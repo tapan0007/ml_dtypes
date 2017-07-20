@@ -3,6 +3,9 @@
 #include "arb_prec.h"
 #include <cstdint>
 
+// ----------------------------------------------------------
+// Signals
+// ----------------------------------------------------------
 class EWSignals {
     public:
         EWSignals(ArbPrec _pixel = ArbPrec(uint8_t(0)), ArbPrec _weight = ArbPrec(uint8_t(0))):pixel(_pixel), weight(_weight) {}
@@ -18,6 +21,10 @@ class NSSignals {
         ArbPrec partial_sum;
 };
 
+
+// ----------------------------------------------------------
+// Interfaces
+// ----------------------------------------------------------
 class EWInterface
 {
     public:
@@ -34,8 +41,18 @@ class NSInterface
         virtual NSSignals pull_ns() = 0;
 };
 
+class StateBufferShiftInterface
+{
+    public:
+    StateBufferShiftInterface() {};
+    ~StateBufferShiftInterface() {};
+    virtual bool pull_shift() = 0;
+};
 
-// for testing
+
+// ----------------------------------------------------------
+// Dummy Generators
+// ----------------------------------------------------------
 class RandomInterfaceGenerator : public EWInterface, public NSInterface {
     public:
         EWSignals pull_ew() {return EWSignals(ArbPrec((uint8_t)(rand() % 0xff)), ArbPrec(uint8_t(0))); };
