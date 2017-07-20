@@ -2,13 +2,26 @@
 #define STATE_BUFFER_H
 
 #include "sigint.h"
-#include <array>
-#include <cstdint>
+#include <vector>
 
-class RandomInterfaces : public EWInterface, public NSInterface {
+class StateBuffer : public EWInterface {
     public:
-        EWSignals pull_ew() {return EWSignals(ArbPrec((uint8_t)(rand() % 0xff)), ArbPrec(uint8_t(0))); };
-        NSSignals pull_ns() {return NSSignals(ArbPrec((uint32_t)(0)));}
+        StateBuffer();
+        ~StateBuffer();
+        EWSignals pull_ew();
+    private:
+        RandomInterfaceGenerator generator;
+};
+
+class StateBufferArray {
+    public:
+        StateBufferArray(int _num_buffers = 128);
+        ~StateBufferArray();
+        StateBuffer& operator[](int index);
+        int num();
+    private:
+        std::vector<StateBuffer> buffers;
+        int num_buffers;
 };
 
 

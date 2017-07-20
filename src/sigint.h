@@ -35,4 +35,19 @@ class NSInterface
 };
 
 
+// for testing
+class RandomInterfaceGenerator : public EWInterface, public NSInterface {
+    public:
+        EWSignals pull_ew() {return EWSignals(ArbPrec((uint8_t)(rand() % 0xff)), ArbPrec(uint8_t(0))); };
+        NSSignals pull_ns() {return NSSignals(ArbPrec((uint32_t)(0)));}
+};
+
+
+class ZeroInterfaceGenerator : public EWInterface, public NSInterface {
+    public:
+        EWSignals pull_ew() {return EWSignals(ArbPrec((uint8_t)(0)), ArbPrec(uint8_t(0))); };
+        NSSignals pull_ns() {return NSSignals(ArbPrec((uint32_t)(0)));}
+};
+
+
 #endif  

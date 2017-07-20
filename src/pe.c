@@ -1,6 +1,6 @@
 #include "pe.h"
 
-ProcessingElement::ProcessingElement() :weight(ArbPrec(uint8_t(0))), partial_sum(ArbPrec(uint32_t(0)))
+ProcessingElement::ProcessingElement() :weight(ArbPrec(uint8_t(0))), partial_sum(ArbPrec(uint32_t(0))) //, north(NULL), west(NULL)
 {
 }
 
@@ -15,8 +15,11 @@ EWSignals ProcessingElement::pull_ew() {
     return ew;
 }
 
-void ProcessingElement::connect(EWInterface *_west, NSInterface *_north) {
+void ProcessingElement::connect_west(EWInterface *_west) {
     west = _west;
+}
+
+void ProcessingElement::connect_north(NSInterface *_north) {
     north = _north;
 }
 

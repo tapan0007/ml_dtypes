@@ -12,30 +12,35 @@ ProcessingElementArray::ProcessingElementArray(int _num_rows, int _num_cols) : n
     }
 
     // connect 2d array together
-    NSInterface *north;
-    EWInterface *west;
-    RandomInterfaces *ri = new RandomInterfaces();
     for (int i = num_rows - 1; i >= 0; i--) {
         for (int j = num_cols - 1; j >= 0; j--) {
             if ((i -1 >= 0)) {
-                north = &pe_array[i-1][j];
+                pe_array[i][j].connect_north(&pe_array[i-1][j]);
             } else {
-                north = ri;
+                // zeros always come from ns
+                pe_array[i][j].connect_north(&ns_generator);
             }
             if ((j -1 >= 0)) {
-                west =  &pe_array[i][j-1];
-            } else {
-                west = ri;
-            }
-            pe_array[i][j].connect(west, north);
+                pe_array[i][j].connect_west(&pe_array[i][j-1]);
+            } 
         }
     }
-
 }
 
 ProcessingElementArray::~ProcessingElementArray() {
     delete [] pe_array;
 }
+
+void
+ProcessingElementArray::connect_west(int row, EWInterface *ew) {
+    pe_array[row][0].connect_west(ew);
+}
+
+void
+ProcessingElementArray::connect_north(int col, NSInterface *ns) {
+    pe_array[0][col].connect_north(ns);
+}
+
 
 void
 ProcessingElementArray::step() {

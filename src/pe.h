@@ -9,7 +9,8 @@ class ProcessingElement : public EWInterface, public NSInterface  {
         ~ProcessingElement();
         void step();
         void dump(FILE *f);
-        void connect(EWInterface *west, NSInterface *north);
+        void connect_west(EWInterface *west);
+        void connect_north(NSInterface *north);
         NSSignals pull_ns();
         EWSignals pull_ew();
     private:
@@ -18,8 +19,8 @@ class ProcessingElement : public EWInterface, public NSInterface  {
         ArbPrec partial_sum;
         // fixme - would be nice to make these const - 
         // but must be initialized in constructor?
-        EWInterface *west;
         NSInterface *north;
+        EWInterface *west;
 };
 
 #endif  //PE_H
