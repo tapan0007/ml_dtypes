@@ -31,9 +31,11 @@ void ProcessingElement::step() {
     PeEWSignals in_ew = west->pull_ew();
     PeNSSignals in_ns = north->pull_ns();
     bool in_clamp = sequencer->pull_clamp();
-    
     if (in_clamp) {
         weight[!weight_id] = in_ew.weight;
+    fprintf(stdout, "got clamp ");
+    in_ew.weight.dump(stdout);
+    fprintf(stdout, "\n");
     }
     if (in_ew.toggle_weight) {
         weight_id = !weight_id;
@@ -47,7 +49,7 @@ void ProcessingElement::dump(FILE *f) {
     fprintf(f, "[p=");
     ew.pixel.dump(f);
     fprintf(f, ",w=");
-    weight[weight_id].dump(f);
+    weight[!weight_id].dump(f);
     fprintf(f, ",s=");
     partial_sum.dump(f);
     fprintf(f, "]");

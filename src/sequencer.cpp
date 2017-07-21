@@ -1,6 +1,6 @@
 #include "sequencer.h"
 
-Sequencer::Sequencer() : psum_addr(0), op(BUBBLE), clock(0), clamp_time(MAX_TICK) {
+Sequencer::Sequencer() : psum_addr(0), clamp(false), clock(0) {
 }
 
 Sequencer::~Sequencer() {
@@ -9,7 +9,9 @@ Sequencer::~Sequencer() {
 void
 Sequencer::step() {
     clock++;
-    psum_addr++;
+    if (ifmap_valid) {
+        psum_addr++;
+    }
 }
 
 /* consider adding delay arg? */
@@ -19,21 +21,31 @@ Sequencer::set_psum_addr(addr_t _addr) {
 }
 
 void
-Sequencer::set_opcode(Opcode _op) {
-    op = _op;
+Sequencer::set_ifmap_valid(bool truth) {
+    ifmap_valid = truth;
 }
 
 void
-Sequencer::set_clamp_time(tick_t delay) {
-    clamp_time = clock + delay;
+Sequencer::set_toggle_weight(bool truth) {
+   toggle_weight = truth;
+}
+
+void
+Sequencer::set_weight_valid(bool truth) {
+    weight_valid = truth;
+}
+
+void
+Sequencer::set_clamp(bool truth) {
+    clamp = truth;
 }
 
 bool
 Sequencer::pull_clamp() {
-    return clamp_time == clock;
+    return clamp;
 }
 
 SbNSSignals
 Sequencer::pull_ns() {
-    return SbNSSignals(op, psum_addr);
+    return SbNSSignals(ifmap_valid, weight_valid, toggle_weight, psum_addr);
 }

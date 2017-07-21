@@ -7,7 +7,7 @@
 // ----------------------------------------------------------
 // Signals
 // ----------------------------------------------------------
-enum Opcode {GO=0, START_CALC, END_CALC, BUBBLE, NUM_OPCODE};
+//enum Opcode {GO=0, START_CALC, END_CALC, BUBBLE, NUM_OPCODE};
 class PeEWSignals {
     public:
         PeEWSignals(ArbPrec _pixel = ArbPrec(uint8_t(0)), ArbPrec _weight = ArbPrec(uint8_t(0)), bool _toggle_weight = false)
@@ -27,9 +27,12 @@ class PeNSSignals {
 
 class SbNSSignals {
     public:
-        SbNSSignals(Opcode _op=BUBBLE, addr_t _psum_addr=MAX_ADDR) : op(_op), psum_addr(_psum_addr) {}
+        SbNSSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, addr_t _psum_addr=MAX_ADDR) : 
+            ifmap_valid(_ifmap_valid), weight_valid(_weight_valid), toggle_weight(_toggle_weight), psum_addr(_psum_addr) {}
         ~SbNSSignals() {}
-        Opcode         op;
+        bool           ifmap_valid;
+        bool           weight_valid;
+        bool           toggle_weight;
         addr_t         psum_addr;
 };
 

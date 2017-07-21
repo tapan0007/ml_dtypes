@@ -11,20 +11,17 @@ StateBuffer::~StateBuffer() {
 
 PeEWSignals 
 StateBuffer::pull_ew() {
-    PeEWSignals ew;
-    if (ns.op == START_CALC) {
-        //Opcode op = sequencer.pull_opcode();
-        ew = PeEWSignals(
-                ArbPrec((uint8_t)(rand() % 0xff)),  //pixel
-                ArbPrec((uint8_t)(rand() % 0xff)),
-                true);  // toggle weight
-    } else {
-        ew = PeEWSignals(
-                ArbPrec((uint8_t)(0)),  //pixel
-                ArbPrec((uint8_t)(0)),
-                false);  // toggle weight
+    ArbPrec weight = ArbPrec((uint8_t)(0));
+    ArbPrec pixel  = ArbPrec((uint8_t)(0));
+
+    if (ns.ifmap_valid) {
+        pixel = ArbPrec((uint8_t)(rand() % 0xff));
     }
-    return ew;
+    if (ns.weight_valid) {
+        weight = ArbPrec((uint8_t)(rand() % 0xff));
+    }
+
+    return PeEWSignals(pixel, weight, ns.toggle_weight);
 }
 
 SbNSSignals 
