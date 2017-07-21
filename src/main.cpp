@@ -1,6 +1,7 @@
 #include "pe_array.h"
 #include "state_buffer.h"
 #include "sequencer.h"
+#include "io.h"
 #include <iostream>
 
 #define STEP() \
@@ -17,7 +18,10 @@ int main()
     ProcessingElementArray pe_array;
     StateBufferArray       state_array;
     Sequencer              sequencer;
+    Reader                 reader;
     int i = 0;
+
+    reader.mmap("/home/ec2-user/InklingUT/src/i_uint8_1x3x2x2.npy", 0);
 
     /* make necessary connections */
     for (int j=0; j < state_array.num(); j++) {

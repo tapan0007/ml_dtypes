@@ -10,14 +10,15 @@ CNPYSRC = $(PWD)/cnpy/cnpy-master/
 CNPYBUILD = $(PWD)/cnpy/cnpy-build/
 CNPYINSTALL = $(PWD)cnpy/cnpy-install/
 CNPYLIB = $(CNPYINSTALL)/lib/libcnpy.a
-INCDIR = -I $(PWD)/cnpy/cnpy-install/inc/
-LIBDIR = -L $(PWD)/cnpy/cnpy-install/lib/
-LIB    = -lcnpy
+INCDIR = -I $(PWD)/cnpy/cnpy-install/include/
+LIBDIR = #-L $(PWD)/cnpy/cnpy-install/lib/
+#LIB    = -lcnpy
+LIB    = $(PWD)/cnpy/cnpy-install/lib/libcnpy.a
 RM = rm  -f
 MAKE=make
 
 SOURCES  := $(wildcard $(SRCDIR)/*.cpp)
-INCLUDES := $(wildcard $(SRCDIR)/*.h)
+INCLUDES := $(wildcard $(SRCDIR)/*.h) 
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 .PHONY: all clean
@@ -30,10 +31,10 @@ clean:
 	$(MAKE) -C $(CNPYBUILD) clean;  
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)
-	 @$(CXX) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	 @$(CXX) $(CFLAGS) $(CPPFLAGS) $(INCDIR) -c $< -o $@
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $^ $(INCDIR) $(LIBDIR) $(LIB) -o $@
+	$(CXX) $^ $(INCDIR) $(LIBDIR) $(LIB)  $(LINKFLAGS) -o $@
 
 $(CNPYLIB):
 	cd $(CNPYBUILD); \
