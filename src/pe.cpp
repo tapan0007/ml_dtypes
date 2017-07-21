@@ -23,33 +23,30 @@ void ProcessingElement::connect_north(PeNSInterface *_north) {
     north = _north;
 }
 
-void ProcessingElement::connect_sequencer(SequencerInterface *_sequencer) {
-    sequencer = _sequencer;
+void ProcessingElement::connect_statebuffer(SbEWBroadcastInterface *_sb) {
+    sb_west = _sb;
 }
 
 void ProcessingElement::step() {
     PeEWSignals in_ew = west->pull_ew();
     PeNSSignals in_ns = north->pull_ns();
-    bool in_clamp = sequencer->pull_clamp();
+    bool in_clamp = sb_west->pull_clamp();
     if (in_clamp) {
         weight[!weight_id] = in_ew.weight;
-    fprintf(stdout, "got clamp ");
-    in_ew.weight.dump(stdout);
-    fprintf(stdout, "\n");
     }
     if (in_ew.toggle_weight) {
         weight_id = !weight_id;
     }
 
-    ew.pixel = in_ew.pixel;
     partial_sum = in_ns.partial_sum + in_ew.pixel * weight[weight_id];
+    ew = in_ew;
 }
 
 void ProcessingElement::dump(FILE *f) {
     fprintf(f, "[p=");
     ew.pixel.dump(f);
     fprintf(f, ",w=");
-    weight[!weight_id].dump(f);
+    weight[weight_id].dump(f);
     fprintf(f, ",s=");
     partial_sum.dump(f);
     fprintf(f, "]");

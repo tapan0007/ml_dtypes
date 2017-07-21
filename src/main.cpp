@@ -22,8 +22,8 @@ int main()
     /* make necessary connections */
     for (int j=0; j < state_array.num(); j++) {
         pe_array.connect_west(j, &state_array[j]);
+        pe_array.connect_statebuffer(j, &state_array[j]);
     }
-    pe_array.connect_sequencer(&sequencer);
     state_array.connect_north(&sequencer);
 
     /* set sequencer state */
@@ -32,13 +32,17 @@ int main()
     sequencer.set_weight_valid(true);
     sequencer.set_toggle_weight(false);
 
+    /* step in weights, clamp on last step */
     i = 0;
     for (; i < 64; i++) {
+        if (i == 63) {
+            sequencer.set_clamp(true);
+        }
         STEP();
     }
 
-    /* clamp, stop feeding weights, feed ifmaps instead */
-    sequencer.set_clamp(true);
+    /* unclamp, stop feeding weights, feed ifmaps instead */
+    sequencer.set_clamp(false);
     sequencer.set_psum_addr(0);
     sequencer.set_ifmap_valid(true);
     sequencer.set_weight_valid(false);

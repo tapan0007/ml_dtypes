@@ -40,12 +40,7 @@ Sequencer::set_clamp(bool truth) {
     clamp = truth;
 }
 
-bool
-Sequencer::pull_clamp() {
-    return clamp;
-}
-
 SbNSSignals
 Sequencer::pull_ns() {
-    return SbNSSignals(ifmap_valid, weight_valid, toggle_weight, psum_addr);
+    return SbNSSignals(ifmap_valid, weight_valid, toggle_weight, clamp, psum_addr);
 }

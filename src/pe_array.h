@@ -12,7 +12,7 @@ class ProcessingElementArray {
         ~ProcessingElementArray();
         void connect_west(int row, PeEWInterface *ew);
         void connect_north(int col, PeNSInterface *ns);
-        void connect_sequencer(SequencerInterface *sequencer);
+        void connect_statebuffer(int row, SbEWBroadcastInterface *sequencer);
         void step();
         void dump(FILE *f);
     private:

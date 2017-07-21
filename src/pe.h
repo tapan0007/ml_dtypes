@@ -10,7 +10,7 @@ class ProcessingElement : public PeEWInterface, public PeNSInterface  {
         /* make connections */
         void connect_west(PeEWInterface *west);
         void connect_north(PeNSInterface *north);
-        void connect_sequencer(SequencerInterface *sequencer);
+        void connect_statebuffer(SbEWBroadcastInterface *sb);
         /* slave interface */
         PeNSSignals pull_ns();
         PeEWSignals pull_ew();
@@ -29,7 +29,7 @@ class ProcessingElement : public PeEWInterface, public PeNSInterface  {
         /* pointers to slave to get inputs from */
         PeNSInterface *north;
         PeEWInterface *west;
-        SequencerInterface   *sequencer;
+        SbEWBroadcastInterface   *sb_west;
 };
 
 #endif  //PE_H

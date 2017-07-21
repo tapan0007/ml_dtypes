@@ -29,6 +29,11 @@ StateBuffer::pull_ns() {
     return ns;
 }
 
+bool 
+StateBuffer::pull_clamp() {
+    return ns.clamp_weights;
+}
+
 void 
 StateBuffer::step() {
     ns = north->pull_ns();

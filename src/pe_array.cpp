@@ -42,11 +42,9 @@ ProcessingElementArray::connect_north(int col, PeNSInterface *ns) {
 }
 
 void
-ProcessingElementArray::connect_sequencer(SequencerInterface *sequencer) {
-    for (int i = 0; i < num_rows; i++) {
-        for (int j = 0; j < num_cols; j++) {
-            pe_array[i][j].connect_sequencer(sequencer);
-        }
+ProcessingElementArray::connect_statebuffer(int row, SbEWBroadcastInterface *sb) {
+    for (int j = 0; j < num_cols; j++) {
+        pe_array[row][j].connect_statebuffer(sb);
     }
 }
 

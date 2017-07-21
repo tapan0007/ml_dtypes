@@ -27,12 +27,13 @@ class PeNSSignals {
 
 class SbNSSignals {
     public:
-        SbNSSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, addr_t _psum_addr=MAX_ADDR) : 
-            ifmap_valid(_ifmap_valid), weight_valid(_weight_valid), toggle_weight(_toggle_weight), psum_addr(_psum_addr) {}
+        SbNSSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, bool _clamp_weights = false, addr_t _psum_addr=MAX_ADDR) : 
+            ifmap_valid(_ifmap_valid), weight_valid(_weight_valid), toggle_weight(_toggle_weight), clamp_weights(_clamp_weights), psum_addr(_psum_addr) {}
         ~SbNSSignals() {}
         bool           ifmap_valid;
         bool           weight_valid;
         bool           toggle_weight;
+        bool           clamp_weights;
         addr_t         psum_addr;
 };
 
@@ -63,11 +64,11 @@ class SbNSInterface
         virtual SbNSSignals pull_ns() = 0;
 };
 
-class SequencerInterface
+class SbEWBroadcastInterface
 {
     public:
-        SequencerInterface() {};
-        ~SequencerInterface() {};
+        SbEWBroadcastInterface() {};
+        ~SbEWBroadcastInterface() {};
         virtual bool pull_clamp() = 0;
 };
 

@@ -4,12 +4,13 @@
 #include "sigint.h"
 #include <vector>
 
-class StateBuffer : public PeEWInterface, public SbNSInterface {
+class StateBuffer : public PeEWInterface, public SbNSInterface, public SbEWBroadcastInterface {
     public:
         StateBuffer();
         ~StateBuffer();
         PeEWSignals pull_ew();
         SbNSSignals pull_ns();
+        bool        pull_clamp();
         void connect_north(SbNSInterface *);
         void step();
         SbNSInterface *north;

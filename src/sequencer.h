@@ -3,13 +3,12 @@
 
 #include "sigint.h"
 
-class Sequencer : public SequencerInterface, public SbNSInterface  {
+class Sequencer : public SbNSInterface  {
     public:
         Sequencer();
         ~Sequencer();
         void step();
         SbNSSignals pull_ns();
-        bool pull_clamp();
         void set_clamp(bool truth);
         void set_ifmap_valid(bool truth);
         void set_weight_valid(bool truth);
