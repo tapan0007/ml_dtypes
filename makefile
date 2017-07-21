@@ -3,10 +3,17 @@ CXX= g++
 CPPFLAGS = -I. -std=c++11
 CFLAGS = -W -Wall -ansi -pedantic -ggdb
 TARGET = test
-RM = rm  -f
 SRCDIR = src
 OBJDIR = obj
-CNPYLIB = cnpy-build/lib/libcnpy.a
+
+CNPYSRC = $(PWD)/cnpy/cnpy-master/
+CNPYBUILD = $(PWD)/cnpy/cnpy-build/
+CNPYINSTALL = $(PWD)cnpy/cnpy-install/
+CNPYLIB = $(CNPYINSTALL)/lib/libcnpy.a
+INCDIR = -I $(PWD)/cnpy/cnpy-install/inc/
+LIBDIR = -L $(PWD)/cnpy/cnpy-install/lib/
+LIB    = -lcnpy
+RM = rm  -f
 MAKE=make
 
 SOURCES  := $(wildcard $(SRCDIR)/*.cpp)
@@ -15,23 +22,25 @@ OBJECTS  := $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 .PHONY: all clean
 
-all: $(TARGET) $(CNPYLIB)
+all: $(CNPYLIB) $(TARGET)
 
 clean: 
 	$(RM) $(TARGET) $(OBJECTS) && \
-	$(MAKE) -C cnpy/cnpy-build clean;  
+	$(RM) -rf $(CNPYINSTALL)/* && \
+	$(MAKE) -C $(CNPYBUILD) clean;  
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)
 	 @$(CXX) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $^ -o $@
+	$(CXX) $^ $(INCDIR) $(LIBDIR) $(LIB) -o $@
 
 $(CNPYLIB):
-	echo "hi hi hi hi";
-	cd cnpy/cnpy-build; \
-	cmake -DCMAKE_INSTALL_PREFIX=../cnpy-install ../cnpy-master; \
+	cd $(CNPYBUILD); \
+	cmake -DCMAKE_INSTALL_PREFIX=$(CNPYINSTALL) $(CNPYSRC); \
 	make; \
 	make install ; \
 	cd ../
+
+#-L/path/to/install/dir -lcnpy
 
