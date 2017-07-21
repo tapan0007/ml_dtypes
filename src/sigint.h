@@ -1,69 +1,80 @@
 #ifndef SIGINT_H
 #define SIGINT_H
 #include "arb_prec.h"
+#include "types.h"
 #include <cstdint>
 
 // ----------------------------------------------------------
 // Signals
 // ----------------------------------------------------------
-class EWSignals {
+enum Opcode {GO=0, START_CALC, END_CALC, BUBBLE, NUM_OPCODE};
+class PeEWSignals {
     public:
-        EWSignals(ArbPrec _pixel = ArbPrec(uint8_t(0)), ArbPrec _weight = ArbPrec(uint8_t(0))):pixel(_pixel), weight(_weight) {}
-        ~EWSignals() {};
+        PeEWSignals(ArbPrec _pixel = ArbPrec(uint8_t(0)), ArbPrec _weight = ArbPrec(uint8_t(0)), bool _toggle_weight = false)
+            : pixel(_pixel), weight(_weight), toggle_weight(_toggle_weight) {}
+        ~PeEWSignals() {};
         ArbPrec pixel;
         ArbPrec weight;
+        bool    toggle_weight;
 };
 
-class NSSignals {
+class PeNSSignals {
     public:
-        NSSignals(ArbPrec _partial_sum=ArbPrec(uint32_t(0))) : partial_sum(_partial_sum) {}
-        ~NSSignals() {}
+        PeNSSignals(ArbPrec _partial_sum=ArbPrec(uint32_t(0))) : partial_sum(_partial_sum) {}
+        ~PeNSSignals() {}
         ArbPrec partial_sum;
 };
 
+class SbNSSignals {
+    public:
+        SbNSSignals(Opcode _op=BUBBLE, addr_t _psum_addr=MAX_ADDR) : op(_op), psum_addr(_psum_addr) {}
+        ~SbNSSignals() {}
+        Opcode         op;
+        addr_t         psum_addr;
+};
 
 // ----------------------------------------------------------
 // Interfaces
 // ----------------------------------------------------------
-class EWInterface
+class PeEWInterface
 {
     public:
-        EWInterface() {};
-        ~EWInterface() {};
-        virtual EWSignals pull_ew() = 0;
+        PeEWInterface() {};
+        ~PeEWInterface() {};
+        virtual PeEWSignals pull_ew() = 0;
 };
 
-class NSInterface
+class PeNSInterface
 {
     public:
-        NSInterface() {};
-        ~NSInterface() {};
-        virtual NSSignals pull_ns() = 0;
+        PeNSInterface() {};
+        ~PeNSInterface() {};
+        virtual PeNSSignals pull_ns() = 0;
 };
 
-class StateBufferShiftInterface
+class SbNSInterface
 {
     public:
-    StateBufferShiftInterface() {};
-    ~StateBufferShiftInterface() {};
-    virtual bool pull_shift() = 0;
+        SbNSInterface() {};
+        ~SbNSInterface() {};
+        virtual SbNSSignals pull_ns() = 0;
+};
+
+class SequencerInterface
+{
+    public:
+        SequencerInterface() {};
+        ~SequencerInterface() {};
+        virtual bool pull_clamp() = 0;
 };
 
 
 // ----------------------------------------------------------
 // Dummy Generators
 // ----------------------------------------------------------
-class RandomInterfaceGenerator : public EWInterface, public NSInterface {
+class ZeroPeNSGenerator : public PeNSInterface {
     public:
-        EWSignals pull_ew() {return EWSignals(ArbPrec((uint8_t)(rand() % 0xff)), ArbPrec(uint8_t(0))); };
-        NSSignals pull_ns() {return NSSignals(ArbPrec((uint32_t)(0)));}
-};
-
-
-class ZeroInterfaceGenerator : public EWInterface, public NSInterface {
-    public:
-        EWSignals pull_ew() {return EWSignals(ArbPrec((uint8_t)(0)), ArbPrec(uint8_t(0))); };
-        NSSignals pull_ns() {return NSSignals(ArbPrec((uint32_t)(0)));}
+        PeNSSignals pull_ns() {return PeNSSignals(ArbPrec((uint32_t)(0)));}
 };
 
 

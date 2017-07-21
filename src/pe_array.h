@@ -2,6 +2,7 @@
 #define PE_ARRAY_H
 
 #include "pe.h"
+#include "sequencer.h"
 #include <array>
 #include <cstdint>
 
@@ -9,13 +10,14 @@ class ProcessingElementArray {
     public:
         ProcessingElementArray(int num_rows = 128, int num_cols = 64);
         ~ProcessingElementArray();
-        void connect_west(int row, EWInterface *ew);
-        void connect_north(int col, NSInterface *ns);
+        void connect_west(int row, PeEWInterface *ew);
+        void connect_north(int col, PeNSInterface *ns);
+        void connect_sequencer(SequencerInterface *sequencer);
         void step();
         void dump(FILE *f);
     private:
         ProcessingElement **pe_array;
-        ZeroInterfaceGenerator ns_generator;
+        ZeroPeNSGenerator ns_generator;
         int num_rows;
         int num_cols;
 };

@@ -15,12 +15,15 @@ int main()
     for (int i = 0; i < state_array.num(); i++) {
         pe_array.connect_west(i, &state_array[i]);
     }
-    state_array.connect_shift(&sequencer);
+    pe_array.connect_sequencer(&sequencer);
+    state_array.connect_north(&sequencer);
 
-    /* set sequencer to shift */
-    sequencer.set_shift(true);
+    /* set sequencer state */
+    sequencer.set_opcode(START_CALC);
+    sequencer.set_psum_addr(0);
+    sequencer.set_clamp_time(64);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 100; i++) {
         std::cout << "time = " << i << std::endl;
         state_array.step();
         pe_array.step();

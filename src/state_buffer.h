@@ -4,20 +4,17 @@
 #include "sigint.h"
 #include <vector>
 
-class StateBuffer : public EWInterface, public StateBufferShiftInterface {
+class StateBuffer : public PeEWInterface, public SbNSInterface {
     public:
         StateBuffer();
         ~StateBuffer();
-        EWSignals pull_ew();
-        bool pull_shift();
-        void connect_shift(StateBufferShiftInterface *);
+        PeEWSignals pull_ew();
+        SbNSSignals pull_ns();
+        void connect_north(SbNSInterface *);
         void step();
-        StateBufferShiftInterface *north;
+        SbNSInterface *north;
     private:
-        RandomInterfaceGenerator rand_gen;
-        ZeroInterfaceGenerator   zero_gen;
-        //StateBufferShiftInterface *north;
-        bool shift;
+        SbNSSignals              ns;
 };
 
 class StateBufferArray {
@@ -27,7 +24,7 @@ class StateBufferArray {
         StateBuffer& operator[](int index);
         void step();
         int num();
-        void connect_shift(StateBufferShiftInterface *);
+        void connect_north(SbNSInterface *);
     private:
         std::vector<StateBuffer> buffers;
         int num_buffers;

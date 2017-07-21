@@ -9,30 +9,37 @@ StateBuffer::StateBuffer() : north(NULL){
 StateBuffer::~StateBuffer() {
 }
 
-EWSignals 
+PeEWSignals 
 StateBuffer::pull_ew() {
-    EWSignals ew;
-    if (shift) {
-        ew = rand_gen.pull_ew();
+    PeEWSignals ew;
+    if (ns.op == START_CALC) {
+        //Opcode op = sequencer.pull_opcode();
+        ew = PeEWSignals(
+                ArbPrec((uint8_t)(rand() % 0xff)),  //pixel
+                ArbPrec((uint8_t)(rand() % 0xff)),
+                true);  // toggle weight
     } else {
-        ew = zero_gen.pull_ew();
+        ew = PeEWSignals(
+                ArbPrec((uint8_t)(0)),  //pixel
+                ArbPrec((uint8_t)(0)),
+                false);  // toggle weight
     }
     return ew;
 }
 
-bool 
-StateBuffer::pull_shift() {
-    return shift;
+SbNSSignals 
+StateBuffer::pull_ns() {
+    return ns;
 }
 
 void 
 StateBuffer::step() {
-    shift = north->pull_shift();
+    ns = north->pull_ns();
 }
 
 void
-StateBuffer::connect_shift(StateBufferShiftInterface *shifter) {
-    north = shifter;
+StateBuffer::connect_north(SbNSInterface *_north) {
+    north = _north;
 }
 
 //------------------------------------------------------------------
@@ -45,7 +52,7 @@ StateBufferArray::StateBufferArray(int _num_buffers) : num_buffers(_num_buffers)
     buffers.push_back(StateBuffer());
     for (int i = 1; i < num_buffers; i++) {
         buffers.push_back(StateBuffer());
-        buffers[i].connect_shift(&buffers[i-1]);
+        buffers[i].connect_north(&buffers[i-1]);
     }
 }
 
@@ -67,6 +74,6 @@ StateBuffer& StateBufferArray::operator[](int index) {
 }
 
 void
-StateBufferArray::connect_shift(StateBufferShiftInterface *shifter) {
-    buffers[0].connect_shift(shifter);
+StateBufferArray::connect_north(SbNSInterface *north) {
+    buffers[0].connect_north(north);
 }

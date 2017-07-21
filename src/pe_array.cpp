@@ -32,15 +32,23 @@ ProcessingElementArray::~ProcessingElementArray() {
 }
 
 void
-ProcessingElementArray::connect_west(int row, EWInterface *ew) {
+ProcessingElementArray::connect_west(int row, PeEWInterface *ew) {
     pe_array[row][0].connect_west(ew);
 }
 
 void
-ProcessingElementArray::connect_north(int col, NSInterface *ns) {
+ProcessingElementArray::connect_north(int col, PeNSInterface *ns) {
     pe_array[0][col].connect_north(ns);
 }
 
+void
+ProcessingElementArray::connect_sequencer(SequencerInterface *sequencer) {
+    for (int i = 0; i < num_rows; i++) {
+        for (int j = 0; j < num_cols; j++) {
+            pe_array[i][j].connect_sequencer(sequencer);
+        }
+    }
+}
 
 void
 ProcessingElementArray::step() {
