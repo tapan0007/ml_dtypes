@@ -18,17 +18,26 @@ int main()
     ProcessingElementArray pe_array;
     StateBufferArray       state_array;
     Sequencer              sequencer;
-    Reader                 reader;
     int i = 0;
+    int r,s,t,u;
+    uint8_t *ifmap_addr;
+    uint8_t *filter_addr;
+    int num_sb = state_array.num();
 
-    reader.mmap("/home/ec2-user/InklingUT/src/i_uint8_1x3x2x2.npy", 0);
 
     /* make necessary connections */
-    for (int j=0; j < state_array.num(); j++) {
+    for (int j=0; j < num_sb; j++) {
         pe_array.connect_west(j, &state_array[j]);
         pe_array.connect_statebuffer(j, &state_array[j]);
     }
     state_array.connect_north(&sequencer);
+
+    /* load weights/filters */
+    ifmap_addr = (uint8_t *)io_mmap("/home/ec2-user/InklingUT/src/i_uint8_1x3x2x2.npy", r,s,t,u);
+    state_array.load_ifmap(ifmap_addr, 0, 3, sizeof(uint8_t) * t * u);
+    filter_addr = (uint8_t *)io_mmap("/home/ec2-user/InklingUT/src/f_uint8_3x2x1x1.npy", r,s,t,u);
+    state_array.load_weights(filter_addr, 0, 3, sizeof(uint8_t) * s * t * u, UINT8);
+
 
     /* set sequencer state */
     sequencer.set_clamp(false);
@@ -38,8 +47,8 @@ int main()
 
     /* step in weights, clamp on last step */
     i = 0;
-    for (; i < 64; i++) {
-        if (i == 63) {
+    for (; i < 2; i++) {
+        if (i == 1) {
             sequencer.set_clamp(true);
         }
         STEP();
@@ -57,8 +66,15 @@ int main()
     /* unclamp, done toggling */
     sequencer.set_clamp(false);
     sequencer.set_toggle_weight(false);
-    for (; i < 128; i++) {
+    for (; i < 6; i++) {
         STEP();
     }
+    /* drain out */
+    sequencer.set_ifmap_valid(false);
+    sequencer.set_weight_valid(false);
+    for (; i < 128+6; i++) {
+        STEP();
+    }
+
 }
 

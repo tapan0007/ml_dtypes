@@ -6,10 +6,9 @@
 #include <limits.h>
 #include <assert.h>
 #include <iostream>
-
+#include "types.h"
 
 class ArbPrec {
-    enum PeTypes {UINT8=0, UINT32, FP32, NUM_PETYPES};
     public:
         ArbPrec(uint8_t _val = 0) : uint8(_val), type(UINT8) {}
         ArbPrec(uint32_t _val = 0) : uint32(_val), type(UINT32) {}
@@ -70,7 +69,7 @@ class ArbPrec {
         uint8_t uint8;
         uint32_t uint32;
         float   fp32;
-        PeTypes type;
+        ArbPrecType type;
 };
 
 #endif // ARB_PREC_H

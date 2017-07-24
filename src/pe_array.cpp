@@ -59,6 +59,7 @@ ProcessingElementArray::step() {
 
 void ProcessingElementArray::dump(FILE *f) {
     for (int i = 0; i < num_rows; i++) {
+        fprintf(f, "row=%d ", i);
         for (int j = 0; j < num_cols; j++) {
             pe_array[i][j].dump(f);
         }
