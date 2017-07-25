@@ -6,14 +6,6 @@ TARGET = test
 SRCDIR = src
 OBJDIR = obj
 
-CNPYSRC = $(PWD)/cnpy/cnpy-master/
-CNPYBUILD = $(PWD)/cnpy/cnpy-build/
-CNPYINSTALL = $(PWD)cnpy/cnpy-install/
-CNPYLIB = $(CNPYINSTALL)/lib/libcnpy.a
-INCDIR = -I $(PWD)/cnpy/cnpy-install/include/
-LIBDIR = #-L $(PWD)/cnpy/cnpy-install/lib/
-#LIB    = -lcnpy
-LIB    = $(PWD)/cnpy/cnpy-install/lib/libcnpy.a
 RM = rm  -f
 MAKE=make
 
@@ -23,12 +15,10 @@ OBJECTS  := $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 .PHONY: all clean
 
-all: $(CNPYLIB) $(TARGET)
+all: $(TARGET)
 
 clean: 
-	$(RM) $(TARGET) $(OBJECTS) && \
-	$(RM) -rf $(CNPYINSTALL)/* && \
-	$(MAKE) -C $(CNPYBUILD) clean;  
+	$(RM) $(TARGET) $(OBJECTS)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)
 	 @$(CXX) $(CFLAGS) $(CPPFLAGS) $(INCDIR) -c $< -o $@
@@ -42,6 +32,4 @@ $(CNPYLIB):
 	make; \
 	make install ; \
 	cd ../
-
-#-L/path/to/install/dir -lcnpy
 
