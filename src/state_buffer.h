@@ -13,18 +13,16 @@ class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroad
         EdgeSignals pull_edge();
         bool        pull_clamp();
         void connect_north(EdgeInterface *);
-        void load_ifmap(uint8_t *ifmap);
-        void load_weights(void *weights, ArbPrecType type);
+        void load_ifmap(uint8_t *ifmap, int nbytes);
+        void load_weights(void *weights, int nbytes, ArbPrecType type);
         void step();
     private:
         EdgeInterface        *north;
         EdgeSignals              ns;
         ArbPrecType              type;
         uint8_t                 *ifmap;
-        int                      ifmap_offset;
         void                    *weights;
         ArbPrecType              weights_type;
-        int                      weights_offset;
         ArbPrec   read_addr(void *addr, ArbPrecType type);
         void *    inc_addr(void *addr, ArbPrecType type, int index);
 

@@ -51,13 +51,13 @@ StateBuffer::pull_ew() {
     if (ns.ifmap_valid && ifmap != NULL) {
         //pixel = ArbPrec((uint8_t)(rand() % 0xff));
         pixel = read_addr(ifmap, UINT8);
-        ifmap = (uint8_t *)inc_addr((void *)ifmap, UINT8);
+        ifmap = (uint8_t *)inc_addr((void *)ifmap, UINT8, 1);
     }
     if (ns.weight_valid && weights != NULL) {
         //weight = ArbPrec((uint8_t)(rand() % 0xff));
         weight = read_addr(weights, weights_type);
         printf("weight %d\n", ((uint8_t *)weights)[0]);
-        weights = inc_addr(weights, weights_type);
+        weights = inc_addr(weights, weights_type, -1);
     }
 
     return PeEWSignals(pixel, weight, ns.toggle_weight);
@@ -69,15 +69,14 @@ StateBuffer::connect_north(EdgeInterface *_north) {
 }
 
 void
-StateBuffer::load_ifmap(uint8_t *_ifmap) {
+StateBuffer::load_ifmap(uint8_t *_ifmap, int nbytes) {
+    (void)(nbytes); // avoid nbytes unused warning
     ifmap = _ifmap;
-    ifmap_offset = 0;
 }
 
 void
-StateBuffer::load_weights(void *_weights, ArbPrecType type) {
-    weights = _weights;
-    weights_offset = 0;
+StateBuffer::load_weights(void *base, int nbytes, ArbPrecType type) {
+    weights = (void *)((char *)base + nbytes - 1); // FIXME - make type appropriate
     weights_type = type;
 }
 
@@ -127,7 +126,7 @@ void
 StateBufferArray::load_ifmap(uint8_t *_ifmap, int start_id, int end_id, int stride) {
     uint8_t *ifmap = _ifmap;
     for (int i = start_id; i < end_id; i++) {
-        buffers[i].load_ifmap(ifmap);
+        buffers[i].load_ifmap(ifmap, stride);
         ifmap += stride;
     }
 }
@@ -136,7 +135,7 @@ void
 StateBufferArray::load_weights(void *_weights, int start_id, int end_id, int stride, ArbPrecType type) {
     void *weights = _weights;
     for (int i = start_id; i < end_id; i++) {
-        buffers[i].load_weights(weights, type);
+        buffers[i].load_weights(weights, stride, type);
         weights = static_cast<char *>(weights) + stride;
     }
 }
