@@ -13,8 +13,14 @@ class Sequencer : public EdgeInterface  {
         void set_ifmap_valid(bool truth);
         void set_weight_valid(bool truth);
         void set_toggle_weight(bool truth);
+        void set_start_psum(bool truth);
+        void set_end_psum(bool truth);
         void set_psum_addr(addr_t addr);
+        void set_psum_dtype(ArbPrecType type);
     private:
+        bool     start_psum;
+        bool     end_psum;
+        ArbPrecType     psum_dtype;
         addr_t   psum_addr;
         bool     ifmap_valid;
         bool     weight_valid;

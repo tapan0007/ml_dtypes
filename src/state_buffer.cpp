@@ -45,8 +45,8 @@ StateBuffer::inc_addr(void *addr, ArbPrecType type, int delta_index = 1) {
 
 PeEWSignals 
 StateBuffer::pull_ew() {
-    ArbPrec weight = ArbPrec((uint8_t)(0));
-    ArbPrec pixel  = ArbPrec((uint8_t)(0));
+    ArbPrec weight = ArbPrec(uint8_t(0));
+    ArbPrec pixel  = ArbPrec(uint8_t(0)); // send 0 pixels
 
     if (ns.ifmap_valid && ifmap != NULL) {
         //pixel = ArbPrec((uint8_t)(rand() % 0xff));

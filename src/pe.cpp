@@ -1,6 +1,6 @@
 #include "pe.h"
 
-ProcessingElement::ProcessingElement() : partial_sum(ArbPrec(uint32_t(0))), weight_id(0), weight{ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))}, north(NULL), west(NULL)
+ProcessingElement::ProcessingElement() : ew(ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))), partial_sum(ArbPrec(uint32_t(0))), weight_id(0), weight{ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))}, north(NULL), west(NULL)
 {
 }
 

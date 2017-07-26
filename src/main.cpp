@@ -29,7 +29,7 @@ int main()
 
 
     /* make necessary connections */
-    psum_array.connect_west(&state_array[num_sb]);
+    psum_array.connect_west(&state_array[num_sb - 1]);
     int last_row = pe_array.num_rows()-1;
     for (int j=0; j < pe_array.num_cols(); j++) {
         psum_array.connect_north(j, &pe_array[last_row][j]);
@@ -66,6 +66,9 @@ int main()
     sequencer.set_clamp(false);
     sequencer.set_psum_addr(0);
     sequencer.set_ifmap_valid(true);
+    sequencer.set_start_psum(true);
+    sequencer.set_end_psum(true);
+    sequencer.set_psum_dtype(UINT32);
     sequencer.set_weight_valid(false);
     sequencer.set_toggle_weight(true);
     STEP();
@@ -78,9 +81,11 @@ int main()
         STEP();
     }
     /* drain out */
+    sequencer.set_start_psum(false);
+    sequencer.set_end_psum(false);
     sequencer.set_ifmap_valid(false);
     sequencer.set_weight_valid(false);
-    for (; i < 128+6; i++) {
+    for (; i < 128+7; i++) {
         STEP();
     }
 

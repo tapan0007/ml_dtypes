@@ -10,12 +10,14 @@
 
 class ArbPrec {
     public:
-        ArbPrec(uint8_t _val = 0) : uint8(_val), type(UINT8) {}
-        ArbPrec(uint32_t _val = 0) : uint32(_val), type(UINT32) {}
-        ArbPrec(float _val = 0) : fp32(_val), type(FP32) {}
+        ArbPrec() : type(INVALID_ARBPRECTPYE) {}
+        ArbPrec(uint8_t _val) : uint8(_val), type(UINT8) {}
+        ArbPrec(uint32_t _val) : uint32(_val), type(UINT32) {}
+        ArbPrec(float _val) : fp32(_val), type(FP32) {}
+        ArbPrec(ArbPrecType _type) : uint8(0), uint32(0), fp32(0), type(_type) {};
         ~ArbPrec() {};
         friend ArbPrec operator*(const ArbPrec &x, const ArbPrec &y) {
-            ArbPrec ap(uint8_t(0));
+            ArbPrec ap;
             if (x.type == UINT8 and y.type == UINT8) {
                 ap = ArbPrec(uint32_t(x.uint8) * uint32_t(y.uint8));
             } else if (x.type == UINT8 and y.type == FP32) {
@@ -34,7 +36,7 @@ class ArbPrec {
         }
 
         friend ArbPrec operator+(const ArbPrec &x, const ArbPrec &y) {
-            ArbPrec ap(uint8_t(0));
+            ArbPrec ap;
             if (x.type == UINT32 and y.type == UINT32) {
                 ap = ArbPrec(x.uint32 + y.uint32);
             } else if (x.type == FP32 and y.type == FP32) {

@@ -10,7 +10,7 @@
 //enum Opcode {GO=0, START_CALC, END_CALC, BUBBLE, NUM_OPCODE};
 class PeEWSignals {
     public:
-        PeEWSignals(ArbPrec _pixel = ArbPrec(uint8_t(0)), ArbPrec _weight = ArbPrec(uint8_t(0)), bool _toggle_weight = false)
+        PeEWSignals(ArbPrec _pixel = ArbPrec(), ArbPrec _weight = ArbPrec(), bool _toggle_weight = false)
             : pixel(_pixel), weight(_weight), toggle_weight(_toggle_weight) {}
         ~PeEWSignals() {};
         ArbPrec pixel;
@@ -27,13 +27,16 @@ class PeNSSignals {
 
 class EdgeSignals {
     public:
-        EdgeSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, bool _clamp_weights = false, addr_t _psum_addr=MAX_ADDR) : 
-            ifmap_valid(_ifmap_valid), weight_valid(_weight_valid), toggle_weight(_toggle_weight), clamp_weights(_clamp_weights), psum_addr(_psum_addr) {}
+        EdgeSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, bool _clamp_weights = false, bool _start_psum = false, bool _end_psum = false, ArbPrecType _psum_dtype = UINT8, addr_t _psum_addr=MAX_ADDR) : 
+            ifmap_valid(_ifmap_valid), weight_valid(_weight_valid), toggle_weight(_toggle_weight), clamp_weights(_clamp_weights), start_psum(_start_psum), end_psum(_end_psum), psum_dtype(_psum_dtype), psum_addr(_psum_addr) {}
         ~EdgeSignals() {}
         bool           ifmap_valid;
         bool           weight_valid;
         bool           toggle_weight;
         bool           clamp_weights;
+        bool           start_psum;
+        bool           end_psum;
+        ArbPrecType    psum_dtype;
         addr_t         psum_addr;
 };
 

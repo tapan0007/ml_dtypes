@@ -4,7 +4,9 @@
 // PsumBuffer
 //------------------------------------------------------------
 PSumBuffer::PSumBuffer(int n_entries) : north(nullptr), west(nullptr) {
-    buffer.resize(n_entries);
+    for (int i = 0; i < n_entries; i++) {
+        partial_sum.push_back(ArbPrec(uint32_t(0)));
+    }
 }
 
 PSumBuffer::~PSumBuffer() {}
@@ -28,6 +30,17 @@ void
 PSumBuffer::step() {
     ns = north->pull_ns();
     ew = west->pull_edge();
+    if (ew.start_psum) {
+        partial_sum[ew.psum_addr] = ArbPrec(ew.psum_dtype);
+    }
+    if (ew.ifmap_valid) {
+        partial_sum[ew.psum_addr] = partial_sum[ew.psum_addr] + ns.partial_sum;
+    }
+    if (ew.end_psum) {
+        printf("partial sum is ");
+        partial_sum[ew.psum_addr].dump(stdout);
+        printf("\n");
+    }
 }
 
 //------------------------------------------------------------

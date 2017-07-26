@@ -14,11 +14,11 @@ class PSumBuffer : public EdgeInterface {
         void connect_north(PeNSInterface *);
         void step();
     private:
-        PeNSSignals                ns;
+        PeNSSignals              ns;
         EdgeSignals              ew;
-        std::vector<ArbPrecType>   buffer;
-        PeNSInterface             *north;
-        EdgeInterface           *west;
+        PeNSInterface            *north;
+        EdgeInterface            *west;
+        std::vector<ArbPrec>     partial_sum;
 
 };
 
