@@ -1,11 +1,13 @@
 #include "pe_array.h"
 #include "state_buffer.h"
 #include "sequencer.h"
+#include "psum_buffer.h"
 #include "io.h"
 #include <iostream>
 
 #define STEP() \
     std::cout << "time = " << i << std::endl; \
+    psum_array.step(); \
     state_array.step(); \
     pe_array.step(); \
     sequencer.step(); \
@@ -18,6 +20,7 @@ int main()
     ProcessingElementArray pe_array;
     StateBufferArray       state_array;
     Sequencer              sequencer;
+    PSumBufferArray        psum_array;
     int i = 0;
     int r,s,t,u;
     uint8_t *ifmap_addr;
@@ -26,6 +29,11 @@ int main()
 
 
     /* make necessary connections */
+    psum_array.connect_west(&state_array[num_sb]);
+    int last_row = pe_array.num_rows()-1;
+    for (int j=0; j < pe_array.num_cols(); j++) {
+        psum_array.connect_north(j, &pe_array[last_row][j]);
+    }
     for (int j=0; j < num_sb; j++) {
         pe_array.connect_west(j, &state_array[j]);
         pe_array.connect_statebuffer(j, &state_array[j]);

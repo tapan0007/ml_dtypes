@@ -64,7 +64,7 @@ StateBuffer::pull_ew() {
 }
 
 void
-StateBuffer::connect_north(SbNSInterface *_north) {
+StateBuffer::connect_north(EdgeInterface *_north) {
     north = _north;
 }
 
@@ -81,8 +81,8 @@ StateBuffer::load_weights(void *_weights, ArbPrecType type) {
     weights_type = type;
 }
 
-SbNSSignals 
-StateBuffer::pull_ns() {
+EdgeSignals 
+StateBuffer::pull_edge() {
     return ns;
 }
 
@@ -93,7 +93,7 @@ StateBuffer::pull_clamp() {
 
 void 
 StateBuffer::step() {
-    ns = north->pull_ns();
+    ns = north->pull_edge();
 }
 
 
@@ -119,7 +119,7 @@ StateBuffer& StateBufferArray::operator[](int index) {
 }
 
 void
-StateBufferArray::connect_north(SbNSInterface *north) {
+StateBufferArray::connect_north(EdgeInterface *north) {
     buffers[0].connect_north(north);
 }
 

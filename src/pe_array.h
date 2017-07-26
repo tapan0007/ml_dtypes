@@ -15,11 +15,14 @@ class ProcessingElementArray {
         void connect_statebuffer(int row, SbEWBroadcastInterface *sequencer);
         void step();
         void dump(FILE *f);
+        int  num_rows();
+        int  num_cols();
+        ProcessingElement*& operator[](int index);
     private:
         ProcessingElement **pe_array;
         ZeroPeNSGenerator ns_generator;
-        int num_rows;
-        int num_cols;
+        int n_rows;
+        int n_cols;
 };
 
 #endif //PE_ARRAY_H

@@ -3,12 +3,12 @@
 
 #include "sigint.h"
 
-class Sequencer : public SbNSInterface  {
+class Sequencer : public EdgeInterface  {
     public:
         Sequencer();
         ~Sequencer();
         void step();
-        SbNSSignals pull_ns();
+        EdgeSignals pull_edge();
         void set_clamp(bool truth);
         void set_ifmap_valid(bool truth);
         void set_weight_valid(bool truth);

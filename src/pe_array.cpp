@@ -4,16 +4,16 @@
 #include <array>
 #include <cstdint>
 
-ProcessingElementArray::ProcessingElementArray(int _num_rows, int _num_cols) : num_rows(_num_rows), num_cols(_num_cols)  {
+ProcessingElementArray::ProcessingElementArray(int _n_rows, int _n_cols) : n_rows(_n_rows), n_cols(_n_cols)  {
     // create 2d array
-    pe_array = new ProcessingElement*[num_rows];
-    for (int i = 0; i < num_rows; i++) {
-        pe_array[i] = new ProcessingElement[num_cols];
+    pe_array = new ProcessingElement*[n_rows];
+    for (int i = 0; i < n_rows; i++) {
+        pe_array[i] = new ProcessingElement[n_cols];
     }
 
     // connect 2d array together
-    for (int i = num_rows - 1; i >= 0; i--) {
-        for (int j = num_cols - 1; j >= 0; j--) {
+    for (int i = n_rows - 1; i >= 0; i--) {
+        for (int j = n_cols - 1; j >= 0; j--) {
             if ((i -1 >= 0)) {
                 pe_array[i][j].connect_north(&pe_array[i-1][j]);
             } else {
@@ -31,6 +31,21 @@ ProcessingElementArray::~ProcessingElementArray() {
     delete [] pe_array;
 }
 
+ProcessingElement*& 
+ProcessingElementArray::operator[](int index) {
+    return pe_array[index];
+}
+
+int
+ProcessingElementArray::num_rows() {
+    return n_rows;
+}
+
+int
+ProcessingElementArray::num_cols() {
+    return n_cols;
+}
+
 void
 ProcessingElementArray::connect_west(int row, PeEWInterface *ew) {
     pe_array[row][0].connect_west(ew);
@@ -43,24 +58,24 @@ ProcessingElementArray::connect_north(int col, PeNSInterface *ns) {
 
 void
 ProcessingElementArray::connect_statebuffer(int row, SbEWBroadcastInterface *sb) {
-    for (int j = 0; j < num_cols; j++) {
+    for (int j = 0; j < n_cols; j++) {
         pe_array[row][j].connect_statebuffer(sb);
     }
 }
 
 void
 ProcessingElementArray::step() {
-    for (int i = num_rows - 1; i >= 0; i--) {
-        for (int j = num_cols - 1; j >= 0; j--) {
+    for (int i = n_rows - 1; i >= 0; i--) {
+        for (int j = n_cols - 1; j >= 0; j--) {
             pe_array[i][j].step();
         }
     }
 }
 
 void ProcessingElementArray::dump(FILE *f) {
-    for (int i = 0; i < num_rows; i++) {
+    for (int i = 0; i < n_rows; i++) {
         fprintf(f, "row=%d ", i);
-        for (int j = 0; j < num_cols; j++) {
+        for (int j = 0; j < n_cols; j++) {
             pe_array[i][j].dump(f);
         }
         fprintf(f, "\n");

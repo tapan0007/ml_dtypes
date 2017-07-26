@@ -25,11 +25,11 @@ class PeNSSignals {
         ArbPrec partial_sum;
 };
 
-class SbNSSignals {
+class EdgeSignals {
     public:
-        SbNSSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, bool _clamp_weights = false, addr_t _psum_addr=MAX_ADDR) : 
+        EdgeSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, bool _clamp_weights = false, addr_t _psum_addr=MAX_ADDR) : 
             ifmap_valid(_ifmap_valid), weight_valid(_weight_valid), toggle_weight(_toggle_weight), clamp_weights(_clamp_weights), psum_addr(_psum_addr) {}
-        ~SbNSSignals() {}
+        ~EdgeSignals() {}
         bool           ifmap_valid;
         bool           weight_valid;
         bool           toggle_weight;
@@ -56,12 +56,12 @@ class PeNSInterface
         virtual PeNSSignals pull_ns() = 0;
 };
 
-class SbNSInterface
+class EdgeInterface
 {
     public:
-        SbNSInterface() {};
-        ~SbNSInterface() {};
-        virtual SbNSSignals pull_ns() = 0;
+        EdgeInterface() {};
+        ~EdgeInterface() {};
+        virtual EdgeSignals pull_edge() = 0;
 };
 
 class SbEWBroadcastInterface

@@ -5,20 +5,20 @@
 #include "types.h"
 #include <vector>
 
-class StateBuffer : public PeEWInterface, public SbNSInterface, public SbEWBroadcastInterface {
+class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroadcastInterface {
     public:
         StateBuffer();
         ~StateBuffer();
-        PeEWSignals pull_ew();
-        SbNSSignals pull_ns();
+        PeEWSignals   pull_ew();
+        EdgeSignals pull_edge();
         bool        pull_clamp();
-        void connect_north(SbNSInterface *);
+        void connect_north(EdgeInterface *);
         void load_ifmap(uint8_t *ifmap);
         void load_weights(void *weights, ArbPrecType type);
         void step();
-        SbNSInterface *north;
     private:
-        SbNSSignals              ns;
+        EdgeInterface        *north;
+        EdgeSignals              ns;
         ArbPrecType              type;
         uint8_t                 *ifmap;
         int                      ifmap_offset;
@@ -37,7 +37,7 @@ class StateBufferArray {
         StateBuffer& operator[](int index);
         void step();
         int num();
-        void connect_north(SbNSInterface *);
+        void connect_north(EdgeInterface *);
         void load_ifmap(uint8_t *ifmap, int start_id, int end_id, int stride);
         void load_weights(void *weights, int start_id, int end_id, int stride, ArbPrecType type);
     private:
