@@ -37,8 +37,9 @@ PSumBuffer::step() {
         partial_sum[ew.psum_addr] = partial_sum[ew.psum_addr] + ns.partial_sum;
     }
     if (ew.end_psum) {
-        printf("partial sum is ");
+        printf("partial sum at %ld is ", ew.psum_addr);
         partial_sum[ew.psum_addr].dump(stdout);
+        ew.end_psum--;
         printf("\n");
     }
 }

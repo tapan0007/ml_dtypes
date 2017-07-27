@@ -1,6 +1,6 @@
 #include "sequencer.h"
 
-Sequencer::Sequencer() : start_psum(false), end_psum(false), psum_dtype(UINT8), psum_addr(0), ifmap_valid(false), weight_valid(false), toggle_weight(false), clamp(false), clock(0) {
+Sequencer::Sequencer() : start_psum(false), end_psum(0), psum_dtype(UINT8), psum_addr(0), ifmap_valid(false), weight_valid(false), toggle_weight(false), clamp(false), clock(0) {
 }
 
 Sequencer::~Sequencer() {
@@ -21,8 +21,8 @@ Sequencer::set_start_psum(bool truth) {
 }
 
 void
-Sequencer::set_end_psum(bool truth) {
-    end_psum = truth;
+Sequencer::set_end_psum(uint8_t val) {
+    end_psum = val;
 }
 
 void

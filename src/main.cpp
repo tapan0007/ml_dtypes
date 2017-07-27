@@ -67,7 +67,7 @@ int main()
     sequencer.set_psum_addr(0);
     sequencer.set_ifmap_valid(true);
     sequencer.set_start_psum(true);
-    sequencer.set_end_psum(true);
+    sequencer.set_end_psum(2);
     sequencer.set_psum_dtype(UINT32);
     sequencer.set_weight_valid(false);
     sequencer.set_toggle_weight(true);
@@ -82,10 +82,10 @@ int main()
     }
     /* drain out */
     sequencer.set_start_psum(false);
-    sequencer.set_end_psum(false);
+    sequencer.set_end_psum(0);
     sequencer.set_ifmap_valid(false);
     sequencer.set_weight_valid(false);
-    for (; i < 128+7; i++) {
+    for (; i < 128+8; i++) {
         STEP();
     }
 

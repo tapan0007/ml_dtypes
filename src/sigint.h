@@ -27,15 +27,15 @@ class PeNSSignals {
 
 class EdgeSignals {
     public:
-        EdgeSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, bool _clamp_weights = false, bool _start_psum = false, bool _end_psum = false, ArbPrecType _psum_dtype = UINT8, addr_t _psum_addr=MAX_ADDR) : 
+        EdgeSignals(bool _ifmap_valid = false, bool _weight_valid = false, bool _toggle_weight = false, bool _clamp_weights = false, bool _start_psum = false, uint8_t _end_psum = 0, ArbPrecType _psum_dtype = UINT8, addr_t _psum_addr=MAX_ADDR) : 
             ifmap_valid(_ifmap_valid), weight_valid(_weight_valid), toggle_weight(_toggle_weight), clamp_weights(_clamp_weights), start_psum(_start_psum), end_psum(_end_psum), psum_dtype(_psum_dtype), psum_addr(_psum_addr) {}
         ~EdgeSignals() {}
         bool           ifmap_valid;
         bool           weight_valid;
         bool           toggle_weight;
         bool           clamp_weights;
-        bool           start_psum;
-        bool           end_psum;
+        bool           start_psum; // clear psum buffer
+        uint8_t        end_psum;   // countdown, >1 indicates write psum buffer to state buffer
         ArbPrecType    psum_dtype;
         addr_t         psum_addr;
 };
