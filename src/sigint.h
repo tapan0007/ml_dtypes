@@ -12,7 +12,7 @@ typedef struct PeEWSignals {
     ArbPrec pixel;
     ArbPrec weight;
     ARBPRECTYPE weight_dtype;
-    bool    toggle_weight;
+    bool    weight_toggle;
 } PeEWSignals;
 
 typedef struct PeNSSignals {
@@ -43,8 +43,8 @@ typedef struct EdgeSignals {
     addr_t         weight_addr;
     addr_t         weight_stride;
     ARBPRECTYPE    weight_dtype;    // EDGE &  EW-PE         | SB/PSUM/PE | data type of ifmap, weight, psum
-    bool           toggle_weight; // EDGE &  EW-PE         | PE       | switch weight ptr
-    bool           clamp_weights; // EDGE &  EW-PE(bcast)  | PE       | broadcast
+    bool           weight_toggle; // EDGE &  EW-PE         | PE       | switch weight ptr
+    bool           weight_clamp; // EDGE &  EW-PE(bcast)  | PE       | broadcast
 
     int            psum_id;
     ARBPRECTYPE    psum_dtype;

@@ -41,7 +41,7 @@ StateBuffer::pull_ew() {
         printf("WEIGHT %d\n", weight.uint8);
     }
 
-    return PeEWSignals{pixel, weight, ns.weight_dtype, ns.toggle_weight};
+    return PeEWSignals{pixel, weight, ns.weight_dtype, ns.weight_toggle};
 }
 
 void
@@ -71,7 +71,7 @@ StateBuffer::pull_edge() {
 
 bool 
 StateBuffer::pull_clamp() {
-    return ns.clamp_weights;
+    return ns.weight_clamp;
 }
 
 void 

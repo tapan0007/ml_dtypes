@@ -1,6 +1,6 @@
 #include "pe.h"
 
-ProcessingElement::ProcessingElement() : ew({.pixel=ArbPrec(uint8_t(0)), .weight=ArbPrec(uint8_t(0)), .weight_dtype=UINT8, .toggle_weight=false}), partial_sum(ArbPrec(uint32_t(0))), weight_id(0), weight{ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))}, north(nullptr), west(nullptr)
+ProcessingElement::ProcessingElement() : ew({.pixel=ArbPrec(uint8_t(0)), .weight=ArbPrec(uint8_t(0)), .weight_dtype=UINT8, .weight_toggle=false}), partial_sum(ArbPrec(uint32_t(0))), weight_id(0), weight{ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))}, north(nullptr), west(nullptr)
 {
 }
 
@@ -34,7 +34,7 @@ void ProcessingElement::step() {
     if (in_clamp) {
         weight[!weight_id] = in_ew.weight;
     }
-    if (in_ew.toggle_weight) {
+    if (in_ew.weight_toggle) {
         weight_id = !weight_id;
     }
 
