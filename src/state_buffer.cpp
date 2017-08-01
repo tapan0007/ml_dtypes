@@ -95,14 +95,14 @@ StateBuffer::step_write() {
 // Single buffer array
 //------------------------------------------------------------------
 
-StateBufferArray::StateBufferArray(int _num_buffers) : num_buffers(_num_buffers) {
+StateBufferArray::StateBufferArray(int num_buffers) {
     /* must resize it right away so it doesn't get moved around on us */
     buffers.resize(num_buffers);
-    buffers.push_back(StateBuffer());
+    // add a buffer for the corner
     for (int i = 1; i < num_buffers; i++) {
-        buffers.push_back(StateBuffer());
         buffers[i].connect_north(&buffers[i-1]);
     }
+    corner_buffer.connect_north(&buffers[num_buffers-1]);
 }
 
 StateBufferArray::~StateBufferArray() {
@@ -110,6 +110,11 @@ StateBufferArray::~StateBufferArray() {
 
 StateBuffer& StateBufferArray::operator[](int index) {
     return buffers[index];
+}
+
+StateBuffer *
+StateBufferArray::get_edge() {
+    return &corner_buffer;
 }
 
 void
@@ -124,17 +129,18 @@ StateBufferArray::connect_activate(int id, ActivateSbInterface *activate) {
 
 
 int StateBufferArray::num() {
-    return num_buffers;
+    return buffers.size();
 }
 
 void StateBufferArray::step_read() {
-    for (int i = num_buffers - 1; i >= 0; i--) {
+    corner_buffer.step_read();
+    for (int i = num() - 1; i >= 0; i--) {
         buffers[i].step_read();
     }
 }
 
 void StateBufferArray::step_write() {
-    for (int i = num_buffers - 1; i >= 0; i--) {
+    for (int i = num() - 1; i >= 0; i--) {
         buffers[i].step_write();
     }
 }

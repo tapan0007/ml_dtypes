@@ -38,7 +38,7 @@ int main()
     for (int j=0; j < pe_array.num_cols(); j++) {
         activate_array.connect_psum(j, &psum_array[j]);
     }
-    psum_array.connect_west(&state_array[num_sb - 1]);
+    psum_array.connect_west(state_array.get_edge());
     int last_row = pe_array.num_rows()-1;
     for (int j=0; j < pe_array.num_cols(); j++) {
         psum_array.connect_north(j, &pe_array[last_row][j]);

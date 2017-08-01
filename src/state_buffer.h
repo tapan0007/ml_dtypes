@@ -31,7 +31,7 @@ class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroad
 
 class StateBufferArray {
     public:
-        StateBufferArray(int _num_buffers = 128);
+        StateBufferArray(int num_buffers = 128);
         ~StateBufferArray();
         StateBuffer& operator[](int index);
         void step_read();
@@ -39,9 +39,10 @@ class StateBufferArray {
         int num();
         void connect_activate(int id, ActivateSbInterface *);
         void connect_north(EdgeInterface *);
+        StateBuffer *get_edge();
     private:
         std::vector<StateBuffer> buffers;
-        int num_buffers;
+        StateBuffer              corner_buffer;
 };
 
 
