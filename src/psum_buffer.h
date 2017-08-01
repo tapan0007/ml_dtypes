@@ -20,6 +20,8 @@ class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
         void connect_north(PeNSInterface *);
         void step();
     private:
+        ArbPrec                  pool();
+        ArbPrec                  activation(ArbPrec pixel);
         PeNSSignals              ns;
         EdgeSignals              ew;
         PeNSInterface            *north;

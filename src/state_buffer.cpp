@@ -1,10 +1,12 @@
 #include "state_buffer.h"
 #include "string.h"
+#include "io.h"
 
+extern Memory memory;
 //------------------------------------------------------------------
 // Single state buffer
 //------------------------------------------------------------------
-StateBuffer::StateBuffer() : north(nullptr), activate(nullptr), ifmap(nullptr), weights_rd(nullptr){
+StateBuffer::StateBuffer() : north(nullptr), activate(nullptr), ns(), ifmap(nullptr), weights_rd(nullptr){
     memset(&ns, 0, sizeof(ns));
 }
 
@@ -12,14 +14,14 @@ StateBuffer::~StateBuffer() {
 }
 
 ArbPrec
-StateBuffer::read_addr(void *addr, ARBPRECTYPE type) {
+StateBuffer::read_addr(addr_t addr, ARBPRECTYPE type) {
     switch (type) {
         case UINT8:
-            return ArbPrec(*((uint8_t *)addr));
+            return ArbPrec(*((uint8_t *)memory.translate(addr)));
         case UINT32:
-            return ArbPrec(*((uint32_t *)addr));
+            return ArbPrec(*((uint32_t *)memory.translate(addr)));
         case FP32:
-            return ArbPrec(*((float *)addr));
+            return ArbPrec(*((float *)memory.translate(addr)));
         default:
             assert(0);
     }
@@ -33,11 +35,11 @@ StateBuffer::pull_ew() {
 
     if (ns.ifmap_valid && ns.row_countdown) {
         //pixel = ArbPrec((uint8_t)(rand() % 0xff));
-        pixel = read_addr((void *)ns.ifmap_addr, UINT8);
+        pixel = read_addr(ns.ifmap_addr, UINT8);
     }
     if (ns.weight_valid && ns.row_countdown) {
         //weight = ArbPrec((uint8_t)(rand() % 0xff));
-        weight = read_addr((void *)ns.weight_addr, ns.weight_dtype);
+        weight = read_addr(ns.weight_addr, ns.weight_dtype);
         printf("WEIGHT %d\n", weight.uint8);
     }
 

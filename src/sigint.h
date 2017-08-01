@@ -58,6 +58,8 @@ typedef struct EdgeSignals {
     POOLTYPE       pool_type;
     int            pool_dimx;
     int            pool_dimy;
+    int            pool_stride;
+    ARBPRECTYPE    pool_dtype;
 
     addr_t         ofmap_addr;
     addr_t         ofmap_stride;

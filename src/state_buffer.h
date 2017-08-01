@@ -25,8 +25,7 @@ class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroad
         void                    *weights_rd;
         void                    *weights_wr;
         ARBPRECTYPE              weights_type;
-        ArbPrec   read_addr(void *addr, ARBPRECTYPE type);
-        void *    inc_addr(void *addr, ARBPRECTYPE type, int index);
+        ArbPrec   read_addr(addr_t addr, ARBPRECTYPE type);
 
 };
 
