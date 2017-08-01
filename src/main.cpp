@@ -82,11 +82,11 @@ int main()
     sequencer.set_ifmap_addr(ifmap_addr);
     sequencer.set_ifmap_stride(sizeof(uint8_t) * i_t * i_u);
     sequencer.set_row_countdown(i_s);
-    sequencer.set_start_psum(true);
-    sequencer.set_end_psum(true);
-    sequencer.set_psum_addr(0);
-    sequencer.set_psum_stride(sizeofArbPrecType(psum_dtype) * w_s * i_t * i_u);
-    sequencer.set_psum_dtype(UINT32);
+    sequencer.set_psum_start(true);
+    sequencer.set_psum_end(true);
+    sequencer.set_psum_id(0);
+//    sequencer.set_psum_stride(sizeofArbPrecType(psum_dtype) * w_s * i_t * i_u);
+    sequencer.set_psum_dtype(psum_dtype);
     sequencer.set_column_countdown(2);
     sequencer.set_weight_valid(false);
     sequencer.set_toggle_weight(true);
@@ -100,8 +100,8 @@ int main()
         STEP();
     }
     /* drain out */
-    sequencer.set_start_psum(false);
-    sequencer.set_end_psum(false);
+    sequencer.set_psum_start(false);
+    sequencer.set_psum_end(false);
     sequencer.set_ifmap_valid(false);
     sequencer.set_weight_valid(false);
     for (; i < 128+8; i++) {

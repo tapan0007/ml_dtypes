@@ -29,30 +29,38 @@ typedef struct ActivateSbSignals {
     ArbPrec partial_sum;
 } ActivateSbSignals;
 
+
+
 typedef struct EdgeSignals {
     uint8_t        row_countdown; // EDGE            | PSUM     |  >1 indicates addr_set valid 
-    uint8_t        column_countdown; // EDGE          | PSUM     |  >1 indicates end_psum or addr_set valid 
+    uint8_t        column_countdown; // EDGE          | PSUM     |  >1 indicates psum_end or addr_set valid 
+
     bool           ifmap_valid;   // EDGE                  | SB       | shift in a pixel?
     addr_t         ifmap_addr;
     addr_t         ifmap_stride;
+
     bool           weight_valid;  // EDGE                  | SB       | shift in a weight?
     addr_t         weight_addr;
     addr_t         weight_stride;
     ARBPRECTYPE    weight_dtype;    // EDGE &  EW-PE         | SB/PSUM/PE | data type of ifmap, weight, psum
     bool           toggle_weight; // EDGE &  EW-PE         | PE       | switch weight ptr
     bool           clamp_weights; // EDGE &  EW-PE(bcast)  | PE       | broadcast
-    addr_t         psum_addr;
-    addr_t         psum_stride;
-    ARBPRECTYPE    psum_dtype;
-    bool           start_psum;    // EDGE                  | PSUM     | psum has started - clear psum # could get away with psum_clear, but harder to debug
-    bool           end_psum;    // EDGE                  | PSUM       | psum is done, no more accumulations
-//    uint8_t        psum_id;    // EDGE                  | PSUM     | ofmap pixel result
-//    bool           pool_psum;
-//    uint8_t        pool_start_id;   // where to start pooling
-//    uint8_t        pool_end_id;   // where to start pooling
-//    addr_t         ofmap_offset; // where is the final pixel going?
-//    ACTIVATIONFUNCTION activation;
 
+    int            psum_id;
+    ARBPRECTYPE    psum_dtype;
+    bool           psum_start;    // EDGE                  | PSUM     | psum has started - clear psum # could get away with psum_clear, but harder to debug
+    bool           psum_end;     // EDGE                  | PSUM       | psum is done, no more accumulations
+
+    bool           activation_valid;
+    ACTIVATIONFUNCTION activation;
+
+    bool           pool_valid;
+    POOLTYPE       pool_type;
+    int            pool_dimx;
+    int            pool_dimy;
+
+    addr_t         ofmap_addr;
+    addr_t         ofmap_stride;
 } EdgeSignals;
 
 // ----------------------------------------------------------
