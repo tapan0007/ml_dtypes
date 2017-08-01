@@ -5,11 +5,17 @@
 #include "types.h"
 #include <vector>
 
-class PSumBuffer : public EdgeInterface {
+typedef struct PSumBufferEntry {
+    ArbPrec partial_sum;
+    bool    valid;
+} PSumBufferEntry;
+
+class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
     public:
         PSumBuffer(int n_entries = 128);
         ~PSumBuffer();
         EdgeSignals pull_edge();
+        PSumActivateSignals pull_psum();
         void connect_west(EdgeInterface *);
         void connect_north(PeNSInterface *);
         void step();
@@ -18,7 +24,8 @@ class PSumBuffer : public EdgeInterface {
         EdgeSignals              ew;
         PeNSInterface            *north;
         EdgeInterface            *west;
-        std::vector<ArbPrec>     partial_sum;
+        std::vector<PSumBufferEntry>     entry;
+        int                      ready_id;
 
 };
 
@@ -26,6 +33,7 @@ class PSumBufferArray {
     public:
         PSumBufferArray(int n_cols = 64);
         ~PSumBufferArray();
+        PSumBuffer& operator[](int index);
         void connect_west(EdgeInterface *);
         void connect_north(int col_id, PeNSInterface *);
         void step();

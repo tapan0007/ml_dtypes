@@ -5,14 +5,15 @@
 #include "types.h"
 #include <vector>
 
-class Activate {
+class Activate : public ActivateSbInterface {
     public:
         Activate();
         ~Activate();
-        void connect_north(PSumActivateInterface *);
+        ActivateSbSignals pull_activate();
+        void connect_psum(PSumActivateInterface *);
         void step();
     private:
-        PSumActivateInterface   *north;
+        PSumActivateInterface   *psum_connect;
         PSumActivateSignals      ps;
 
 };
@@ -21,7 +22,8 @@ class ActivateArray {
     public:
         ActivateArray(int n_cols = 64);
         ~ActivateArray();
-        void connect_north(int col_id, PSumActivateInterface *);
+        Activate& operator[](int index);
+        void connect_psum(int col_id, PSumActivateInterface *);
         void step();
     private:
         std::vector<Activate>     buffer;

@@ -8,13 +8,16 @@
 #include <iostream>
 #include "types.h"
 
+size_t
+sizeofArbPrecType(ARBPRECTYPE type);
+
 class ArbPrec {
     public:
-        ArbPrec() : type(INVALID_ARBPRECTPYE) {}
+        ArbPrec() : type(INVALID_ARBPRECTYPE) {}
         ArbPrec(uint8_t _val) : uint8(_val), type(UINT8) {}
         ArbPrec(uint32_t _val) : uint32(_val), type(UINT32) {}
         ArbPrec(float _val) : fp32(_val), type(FP32) {}
-        ArbPrec(ArbPrecType _type) : uint8(0), uint32(0), fp32(0), type(_type) {};
+        ArbPrec(ARBPRECTYPE _type) : uint8(0), uint32(0), fp32(0), type(_type) {};
         ~ArbPrec() {};
         friend ArbPrec operator*(const ArbPrec &x, const ArbPrec &y) {
             ArbPrec ap;
@@ -67,11 +70,11 @@ class ArbPrec {
                     assert(0);
             }
         }
-    private:
         uint8_t uint8;
         uint32_t uint32;
         float   fp32;
-        ArbPrecType type;
+    private:
+        ARBPRECTYPE type;
 };
 
 #endif // ARB_PREC_H

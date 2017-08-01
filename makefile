@@ -1,7 +1,7 @@
 
 CXX= g++
 CPPFLAGS = -I. -std=c++11
-CFLAGS = -W -Wall -ansi -pedantic -ggdb
+CFLAGS = -W -Wall -ansi -ggdb -g
 TARGET = test
 SRCDIR = src
 OBJDIR = obj

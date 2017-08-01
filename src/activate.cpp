@@ -3,25 +3,31 @@
 //-----------------------------------------------------------------------
 //  Activate
 //-----------------------------------------------------------------------
-Activate::Activate() : north(nullptr) {}
+Activate::Activate() : psum_connect(nullptr) {}
 
 Activate::~Activate() {}
 
 void
-Activate::connect_north(PSumActivateInterface *_north)
+Activate::connect_psum(PSumActivateInterface *_psum_connect)
 {
-    north = _north;
+    psum_connect = _psum_connect;
 }
 
 void
 Activate::step()
 {
-    ps = north->pull_psum();
+    ps = psum_connect->pull_psum();
     if (ps.valid) {
         printf("Activate ");
         ps.partial_sum.dump(stdout);
         printf("\n");
     }
+}
+
+ActivateSbSignals 
+Activate::pull_activate()
+{
+    return ActivateSbSignals{ps.valid, ps.partial_sum};
 }
 
 //-----------------------------------------------------------------------
@@ -33,10 +39,14 @@ ActivateArray::ActivateArray(int n_cols) {
 
 ActivateArray::~ActivateArray() {}
 
+Activate& ActivateArray::operator[](int index){
+    return buffer[index];
+}
+
 void
-ActivateArray::connect_north(int id, PSumActivateInterface *_north)
+ActivateArray::connect_psum(int id, PSumActivateInterface *_psum)
 {
-    buffer[id].connect_north(_north);
+    buffer[id].connect_psum(_psum);
 }
 
 void

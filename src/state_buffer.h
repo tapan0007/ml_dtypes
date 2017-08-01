@@ -13,18 +13,20 @@ class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroad
         EdgeSignals pull_edge();
         bool        pull_clamp();
         void connect_north(EdgeInterface *);
-        void load_ifmap(uint8_t *ifmap, int nbytes);
-        void load_weights(void *weights, int nbytes, ArbPrecType type);
-        void step();
+        void connect_activate(ActivateSbInterface *);
+        void step_read();
+        void step_write();
     private:
-        EdgeInterface        *north;
+        EdgeInterface           *north;
+        ActivateSbInterface     *activate;
         EdgeSignals              ns;
-        ArbPrecType              type;
+        ARBPRECTYPE              type;
         uint8_t                 *ifmap;
-        void                    *weights;
-        ArbPrecType              weights_type;
-        ArbPrec   read_addr(void *addr, ArbPrecType type);
-        void *    inc_addr(void *addr, ArbPrecType type, int index);
+        void                    *weights_rd;
+        void                    *weights_wr;
+        ARBPRECTYPE              weights_type;
+        ArbPrec   read_addr(void *addr, ARBPRECTYPE type);
+        void *    inc_addr(void *addr, ARBPRECTYPE type, int index);
 
 };
 
@@ -33,11 +35,11 @@ class StateBufferArray {
         StateBufferArray(int _num_buffers = 128);
         ~StateBufferArray();
         StateBuffer& operator[](int index);
-        void step();
+        void step_read();
+        void step_write();
         int num();
+        void connect_activate(int id, ActivateSbInterface *);
         void connect_north(EdgeInterface *);
-        void load_ifmap(uint8_t *ifmap, int start_id, int end_id, int stride);
-        void load_weights(void *weights, int start_id, int end_id, int stride, ArbPrecType type);
     private:
         std::vector<StateBuffer> buffers;
         int num_buffers;

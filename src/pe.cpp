@@ -1,6 +1,6 @@
 #include "pe.h"
 
-ProcessingElement::ProcessingElement() : ew(ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))), partial_sum(ArbPrec(uint32_t(0))), weight_id(0), weight{ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))}, north(NULL), west(NULL)
+ProcessingElement::ProcessingElement() : ew({.pixel=ArbPrec(uint8_t(0)), .weight=ArbPrec(uint8_t(0)), .weight_dtype=UINT8, .toggle_weight=false}), partial_sum(ArbPrec(uint32_t(0))), weight_id(0), weight{ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))}, north(nullptr), west(nullptr)
 {
 }
 
@@ -8,7 +8,7 @@ ProcessingElement::~ProcessingElement() {
 }
 
 PeNSSignals ProcessingElement::pull_ns() {
-    return PeNSSignals(partial_sum);
+    return PeNSSignals{partial_sum};
 }
 
 PeEWSignals ProcessingElement::pull_ew() {

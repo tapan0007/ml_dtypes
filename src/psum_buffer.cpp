@@ -1,11 +1,15 @@
 #include "psum_buffer.h"
+#include "string.h"
 
 //------------------------------------------------------------
 // PsumBuffer
 //------------------------------------------------------------
-PSumBuffer::PSumBuffer(int n_entries) : north(nullptr), west(nullptr) {
+PSumBuffer::PSumBuffer(int n_entries) : north(nullptr), west(nullptr), ready_id(-1) {
+    PSumBufferEntry empty_entry = {.partial_sum = ArbPrec(uint32_t(0)), .valid=false};
+    memset(&ns, 0, sizeof(ns));
+    memset(&ew, 0, sizeof(ew));
     for (int i = 0; i < n_entries; i++) {
-        partial_sum.push_back(ArbPrec(uint32_t(0)));
+        entry.push_back(empty_entry);
     }
 }
 
@@ -26,21 +30,38 @@ PSumBuffer::pull_edge() {
     return ew;
 }
 
+PSumActivateSignals
+PSumBuffer::pull_psum() {
+    return PSumActivateSignals{ready_id != -1, entry[ready_id].partial_sum};
+}
+
 void
 PSumBuffer::step() {
     ns = north->pull_ns();
     ew = west->pull_edge();
-    if (ew.start_psum) {
-        partial_sum[ew.psum_addr] = ArbPrec(ew.psum_dtype);
-    }
-    if (ew.ifmap_valid) {
-        partial_sum[ew.psum_addr] = partial_sum[ew.psum_addr] + ns.partial_sum;
-    }
-    if (ew.end_psum) {
-        printf("partial sum at %ld is ", ew.psum_addr);
-        partial_sum[ew.psum_addr].dump(stdout);
-        ew.end_psum--;
-        printf("\n");
+    int e_id = ew.psum_addr;
+    assert(e_id < (int)entry.size());
+    if (ew.column_countdown) {
+        if (ew.start_psum) {
+            entry[e_id].partial_sum = ArbPrec(ew.psum_dtype);
+            entry[e_id].valid = true;
+
+        }
+        if (ew.ifmap_valid) {
+            assert(entry[e_id].valid);
+            entry[e_id].partial_sum = entry[e_id].partial_sum + ns.partial_sum;
+            ew.psum_addr += ew.psum_stride;
+        }
+
+        if (ew.end_psum) {
+            printf("partial sum at %d is ", e_id);
+            entry[e_id].partial_sum.dump(stdout);
+            entry[e_id].valid = false;
+            printf("\n");
+        } else {
+            ready_id = -1;
+        }
+        ew.column_countdown--;
     }
 }
 
@@ -65,6 +86,12 @@ PSumBufferArray::connect_west(EdgeInterface *west) {
 void
 PSumBufferArray::connect_north(int col, PeNSInterface *north) {
     col_buffer[col].connect_north(north);
+}
+
+PSumBuffer& 
+PSumBufferArray::operator[](int index)
+{
+    return col_buffer[index];
 }
 
 void
