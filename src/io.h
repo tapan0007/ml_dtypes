@@ -14,6 +14,7 @@ class Memory {
         void read(void *dest, addr_t src, int n_bytes);
         void write(addr_t dest, void *src, int n_bytes);
         void *translate(addr_t addr);
+        void swap_axes(addr_t addr, int i, int j, int k, int l, int n_bytes);
     private:
         char *memory;
 

@@ -28,6 +28,7 @@ int main()
     PSumBufferArray        psum_array;
     ActivateArray          activate_array;
     ConvolveArgs cargs;
+    int n_bytes;
     //int i = 0;
     int num_sb = state_array.num();
 
@@ -50,10 +51,14 @@ int main()
 
     /* load weights/filters */
     cargs.ifmap_addr = 0;
-    cargs.filter_addr = (memory.io_mmap(cargs.ifmap_addr, "/home/ec2-user/InklingUT/src/i_uint8_1x3x2x2.npy", 
-                cargs.i_r, cargs.i_s, cargs.i_t, cargs.i_u) + 0x3ff) & ~0x3ff;
-    cargs.ofmap_addr = (cargs.filter_addr + memory.io_mmap(cargs.filter_addr, "/home/ec2-user/InklingUT/src/f_uint8_3x2x1x1.npy", 
-                cargs.w_r, cargs.w_s, cargs.w_t, cargs.w_u) + 0x3ff) & ~0x3ff;
+    n_bytes = memory.io_mmap(cargs.ifmap_addr, "/home/ec2-user/InklingUT/src/i_uint8_1x3x2x2.npy", 
+                cargs.i_r, cargs.i_s, cargs.i_t, cargs.i_u);
+    cargs.filter_addr = (cargs.ifmap_addr + n_bytes + 0x3ff) & ~0x3ff;
+    n_bytes = memory.io_mmap(cargs.filter_addr, "/home/ec2-user/InklingUT/src/f_uint8_3x2x1x1.npy", 
+            cargs.w_r, cargs.w_s, cargs.w_t, cargs.w_u);
+    cargs.ofmap_addr = (cargs.filter_addr + n_bytes + 0x3ff) & ~0x3ff;
+
+    memory.swap_axes(cargs.filter_addr, cargs.w_r, cargs.w_s, cargs.w_t, cargs.w_u, n_bytes); 
     cargs.weight_dtype = UINT8;
 
 
