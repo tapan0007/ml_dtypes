@@ -2,6 +2,15 @@
 #define SEQUENCER_H
 
 #include "sigint.h"
+#include <deque>
+
+typedef struct ConvolveArgs{
+    addr_t ifmap_addr, filter_addr, ofmap_addr;
+    ARBPRECTYPE weight_dtype;
+    int i_r, i_s, i_t, i_u;
+    int w_r, w_s, w_t, w_u;
+
+} ConvolveArgs;
 
 class Sequencer : public EdgeInterface  {
     public:
@@ -9,9 +18,11 @@ class Sequencer : public EdgeInterface  {
         ~Sequencer();
         void step();
         EdgeSignals pull_edge();
-        EdgeSignals edge_signals;
+        void convolve(const ConvolveArgs &args);
     private:
         tick_t   clock;
+        std::deque<EdgeSignals> uop;
+
 };
 
 #endif  

@@ -1,7 +1,7 @@
 
 CXX= g++
 CPPFLAGS = -I. -std=c++11
-CFLAGS = -W -Wall -ansi -ggdb -g
+CFLAGS = -W -Wall -ansi -ggdb -g -Wno-missing-field-initializers
 TARGET = test
 SRCDIR = src
 OBJDIR = obj
