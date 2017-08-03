@@ -13,8 +13,8 @@
     psum_array.step(); \
     pe_array.step(); \
     state_array.step_read(); \
-    sequencer.step(); \
-    pe_array.dump(stdout); 
+    sequencer.step();  
+//    pe_array.dump(stdout); 
 
 
 Memory memory = Memory(16*1024);
@@ -29,6 +29,7 @@ int main()
     ActivateArray          activate_array;
     ConvolveArgs cargs;
     int n_bytes;
+    int r,s,t,u;
     //int i = 0;
     int num_sb = state_array.num();
 
@@ -54,11 +55,15 @@ int main()
     n_bytes = memory.io_mmap(cargs.ifmap_addr, "/home/ec2-user/InklingUT/src/i_uint8_1x3x2x2.npy", 
                 cargs.i_r, cargs.i_s, cargs.i_t, cargs.i_u);
     cargs.filter_addr = (cargs.ifmap_addr + n_bytes + 0x3ff) & ~0x3ff;
-    n_bytes = memory.io_mmap(cargs.filter_addr, "/home/ec2-user/InklingUT/src/f_uint8_3x2x1x1.npy", 
-            cargs.w_r, cargs.w_s, cargs.w_t, cargs.w_u);
+    n_bytes = memory.io_mmap(cargs.filter_addr, "/home/ec2-user/InklingUT/src/f_uint8_2x3x1x1.npy", 
+            r, s, t, u);
     cargs.ofmap_addr = (cargs.filter_addr + n_bytes + 0x3ff) & ~0x3ff;
+    memory.swap_axes(cargs.filter_addr, r, s, t, u, n_bytes);
+    cargs.w_r = s; // for swap, M now corresponds to C
+    cargs.w_s = r; // for swap, C now corresponds to M
+    cargs.w_t = t;
+    cargs.w_u = u;
 
-    memory.swap_axes(cargs.filter_addr, cargs.w_r, cargs.w_s, cargs.w_t, cargs.w_u, n_bytes); 
     cargs.weight_dtype = UINT8;
 
 
@@ -67,5 +72,7 @@ int main()
     for (int i = 0; i < 138; i++) {
         STEP();
     }
+
+    memory.io_write("ofmap.npy", cargs.ofmap_addr, cargs.i_r, cargs.w_s, (cargs.i_t - cargs.w_t + 1), (cargs.i_u - cargs.w_u + 1), UINT32);
 }
 

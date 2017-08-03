@@ -65,5 +65,21 @@ Memory::translate(addr_t addr) {
 
 }
 
-
-
+void
+Memory::io_write(std::string fname, addr_t addr, int i,int j,int k,int l, ARBPRECTYPE arb_type) {
+    const unsigned int shape[] = {(unsigned int)i, (unsigned int)j, (unsigned int)k, (unsigned int)l};
+    void *src = translate(addr);
+    switch (arb_type) {
+        case UINT8:
+            cnpy::npy_save(fname, (uint8_t *)src, shape, 4, "w");
+            break;
+        case UINT32:
+            cnpy::npy_save(fname, (uint32_t *)src, shape, 4, "w");
+            break;
+        case FP32:
+            cnpy::npy_save(fname, (float *)src, shape, 4, "w");
+            break;
+        default:
+            assert(0);
+    }
+}

@@ -31,7 +31,10 @@ void
 Sequencer::convolve(const ConvolveArgs &args)
 {
     EdgeSignals es = {};
+
     int filter_stride = sizeofArbPrecType(args.weight_dtype) * args.w_s * args.w_t * args.w_u;
+    int ofmap_rows = args.i_t - args.w_t + 1;
+    int ofmap_cols = args.i_u - args.w_u + 1;
     ARBPRECTYPE psum_dtype  = weight_to_psum_dtype[args.weight_dtype];
     ARBPRECTYPE ifmap_dtype = UINT8;
     int pipe_depth = 128;
@@ -65,7 +68,7 @@ Sequencer::convolve(const ConvolveArgs &args)
     es.psum_end = true;
     es.psum_id = 0; 
     es.ofmap_addr = args.ofmap_addr;
-    es.ofmap_stride = sizeofArbPrecType(psum_dtype) * args.w_s * args.i_t * args.i_u;
+    es.ofmap_stride = sizeofArbPrecType(psum_dtype) * ofmap_rows  * ofmap_cols;
     es.psum_dtype = psum_dtype;
     es.column_countdown = args.w_s;
     es.weight_valid = false;
@@ -76,9 +79,10 @@ Sequencer::convolve(const ConvolveArgs &args)
     es.pool_type = NO_POOL;
     es.pool_dtype = psum_dtype;
 
-    /* unweight_clamp, done toggling */
+    /* push pixels */
     for (int i = 0; i < args.i_t * args.i_u; i++) {
         uop.PUSH_BACK(es);
+        /* unweight_clamp, done toggling */
         if (i == 0) {
             es.weight_clamp = false;
             es.weight_toggle = false;
@@ -92,6 +96,8 @@ Sequencer::convolve(const ConvolveArgs &args)
     es.psum_end = false;
     es.ifmap_valid = false;
     es.weight_valid = false;
+    es.pool_valid = false;
+    es.activation_valid = false;
     for (int i = 0; i < pipe_depth + args.w_s; i++) {
         uop.PUSH_BACK(es);
     }

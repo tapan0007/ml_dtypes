@@ -16,6 +16,8 @@
 #include<zlib.h>
 #include<map>
 
+#define UNUSED(x) (void)(x)
+
 namespace cnpy {
 
     struct NpyArray {
@@ -58,6 +60,8 @@ namespace cnpy {
 
 
     template<typename T> std::string tostring(T i, int pad = 0, char padval = ' ') {
+        UNUSED(pad);
+        UNUSED(padval);
         std::stringstream s;
         s << i;
         return s.str();
@@ -205,7 +209,7 @@ namespace cnpy {
     }
 
     template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims) {  
-
+        UNUSED(data);
         std::vector<char> dict;
         dict += "{'descr': '";
         dict += BigEndianTest();
