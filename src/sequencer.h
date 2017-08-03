@@ -19,6 +19,7 @@ class Sequencer : public EdgeInterface  {
         void step();
         EdgeSignals pull_edge();
         void convolve(const ConvolveArgs &args);
+        int steps_to_do();
     private:
         tick_t   clock;
         std::deque<EdgeSignals> uop;

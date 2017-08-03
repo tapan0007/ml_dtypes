@@ -100,16 +100,19 @@ PSumBuffer::step() {
     assert(e_id < (int)entry.size());
     if (ew.column_countdown) {
         if (ew.psum_start) {
+            assert(entry[e_id].valid == false);
             entry[e_id].partial_sum = ArbPrec(ew.psum_dtype);
             entry[e_id].valid = true;
 
         }
         if (ew.ifmap_valid) {
+            assert(entry[e_id].valid == true);
             assert(entry[e_id].valid);
             entry[e_id].partial_sum = entry[e_id].partial_sum + ns.partial_sum;
         }
 
         if (ew.psum_end) {
+            assert(entry[e_id].valid == true);
             printf("partial sum at %d is ", e_id);
             entry[e_id].partial_sum.dump(stdout);
             entry[e_id].valid = false;

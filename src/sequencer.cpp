@@ -37,7 +37,7 @@ Sequencer::convolve(const ConvolveArgs &args)
     int ofmap_cols = args.i_u - args.w_u + 1;
     ARBPRECTYPE psum_dtype  = weight_to_psum_dtype[args.weight_dtype];
     ARBPRECTYPE ifmap_dtype = UINT8;
-    int pipe_depth = 128;
+    int num_rows = 128;
 
     es.weight_clamp = false;
     es.ifmap_valid = false;
@@ -47,7 +47,6 @@ Sequencer::convolve(const ConvolveArgs &args)
     es.weight_dtype = args.weight_dtype;
     es.weight_toggle = false;
     es.row_countdown = args.i_s;
-    uop.PUSH_BACK(es);
 
     /* step in weights for all ofmaps, weight_clamp on last step */
     for (int i = 0; i < args.w_s; i++) {
@@ -59,47 +58,55 @@ Sequencer::convolve(const ConvolveArgs &args)
     }
 
     /* unweight_clamp, stop feeding weights, feed ifmaps instead */
+    /* uncamp weight, stop sending weights, toggle weight  for first cycle */
     es.weight_clamp = false;
+    es.weight_valid = false;
+    es.weight_toggle = true;
+    /* feed pixels */
     es.ifmap_valid = true;
     es.ifmap_addr = args.ifmap_addr;
     es.ifmap_stride = sizeofArbPrecType(ifmap_dtype) * args.i_t * args.i_u;
     es.row_countdown = args.i_s;
+    /* 1x1 so we are done as soon as we start */
     es.psum_start = true;
     es.psum_end = true;
     es.psum_id = 0; 
-    es.ofmap_addr = args.ofmap_addr;
-    es.ofmap_stride = sizeofArbPrecType(psum_dtype) * ofmap_rows  * ofmap_cols;
     es.psum_dtype = psum_dtype;
     es.column_countdown = args.w_s;
-    es.weight_valid = false;
-    es.weight_toggle = true;
+    /* we are ready for activation too */
     es.activation_valid = true;
     es.activation_valid = IDENTITY;
     es.pool_valid = true;
     es.pool_type = NO_POOL;
     es.pool_dtype = psum_dtype;
+    /* where results is going */
+    es.ofmap_addr = args.ofmap_addr;
+    es.ofmap_stride = sizeofArbPrecType(psum_dtype) * ofmap_rows  * ofmap_cols;
 
-    /* push pixels */
-    for (int i = 0; i < args.i_t * args.i_u; i++) {
+    /* push all pixels through systolic array */
+    for (int i = 0; i < args.i_t * args.i_u; i++, es.psum_id=(es.psum_id + 1) % num_rows) {
         uop.PUSH_BACK(es);
         /* unweight_clamp, done toggling */
         if (i == 0) {
-            es.weight_clamp = false;
             es.weight_toggle = false;
         }
-        es.psum_id++;
         es.ifmap_addr += sizeofArbPrecType(ifmap_dtype);
         es.ofmap_addr += sizeofArbPrecType(psum_dtype);
     }
-    /* drain out */
+
+    /* drain out results*/
     es.psum_start = false;
     es.psum_end = false;
     es.ifmap_valid = false;
     es.weight_valid = false;
     es.pool_valid = false;
     es.activation_valid = false;
-    for (int i = 0; i < pipe_depth + args.w_s; i++) {
+    for (int i = 0; i < num_rows + args.w_s; i++) {
         uop.PUSH_BACK(es);
     }
 }
 
+int
+Sequencer::steps_to_do() {
+    return uop.size();
+}

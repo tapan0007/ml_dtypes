@@ -19,7 +19,7 @@
 
 Memory memory = Memory(16*1024);
 
-int main()
+int main(int argc, char **argv)
 {
     /* setup - later put this in a class? */
     ProcessingElementArray pe_array;
@@ -32,6 +32,16 @@ int main()
     int r,s,t,u;
     //int i = 0;
     int num_sb = state_array.num();
+    std::string i_name, f_name, o_name;
+    if (argc < 4) {
+        i_name = "/home/ec2-user/InklingUT/src/i_uint8_1x3x2x2.npy"; 
+        f_name = "/home/ec2-user/InklingUT/src/f_uint8_2x3x1x1.npy"; 
+        o_name = "/home/ec2-user/InklingUT/src/ofmap.npy"; 
+    } else {
+        i_name = argv[1];
+        f_name = argv[2];
+        o_name = argv[3];
+    }
 
 
     /* make necessary connections */
@@ -52,11 +62,9 @@ int main()
 
     /* load weights/filters */
     cargs.ifmap_addr = 0;
-    n_bytes = memory.io_mmap(cargs.ifmap_addr, "/home/ec2-user/InklingUT/src/i_uint8_1x3x2x2.npy", 
-                cargs.i_r, cargs.i_s, cargs.i_t, cargs.i_u);
+    n_bytes = memory.io_mmap(cargs.ifmap_addr, i_name, cargs.i_r, cargs.i_s, cargs.i_t, cargs.i_u);
     cargs.filter_addr = (cargs.ifmap_addr + n_bytes + 0x3ff) & ~0x3ff;
-    n_bytes = memory.io_mmap(cargs.filter_addr, "/home/ec2-user/InklingUT/src/f_uint8_2x3x1x1.npy", 
-            r, s, t, u);
+    n_bytes = memory.io_mmap(cargs.filter_addr, f_name, r, s, t, u);
     cargs.ofmap_addr = (cargs.filter_addr + n_bytes + 0x3ff) & ~0x3ff;
     memory.swap_axes(cargs.filter_addr, r, s, t, u, n_bytes);
     cargs.w_r = s; // for swap, M now corresponds to C
@@ -69,10 +77,12 @@ int main()
 
     /* set sequencer state */
     sequencer.convolve(cargs);
-    for (int i = 0; i < 138; i++) {
+    int i = 0;
+    while (sequencer.steps_to_do()) {
         STEP();
+        i++;
     }
 
-    memory.io_write("ofmap.npy", cargs.ofmap_addr, cargs.i_r, cargs.w_s, (cargs.i_t - cargs.w_t + 1), (cargs.i_u - cargs.w_u + 1), UINT32);
+    memory.io_write(o_name, cargs.ofmap_addr, cargs.i_r, cargs.w_s, (cargs.i_t - cargs.w_t + 1), (cargs.i_u - cargs.w_u + 1), UINT32);
 }
 
