@@ -32,12 +32,20 @@ Sequencer::convolve(const ConvolveArgs &args)
 {
     EdgeSignals es = {};
 
-    int filter_stride = sizeofArbPrecType(args.weight_dtype) * args.w_s * args.w_t * args.w_u;
-    int ofmap_rows = args.i_t - args.w_t + 1;
-    int ofmap_cols = args.i_u - args.w_u + 1;
+    int filter_rows = args.w_t;
+    int filter_cols = args.w_u;
+    int ifmap_rows = args.i_t;
+    int ifmap_cols = args.i_u;
+    int ofmap_rows = ifmap_rows - filter_rows + 1;
+    int ofmap_cols =  ifmap_cols - filter_cols + 1;
+    int num_ofmaps = args.w_s;
+    int ifmap_channels = args.i_s;
+    int filter_stride = sizeofArbPrecType(args.weight_dtype) * num_ofmaps * filter_rows * filter_cols;
     ARBPRECTYPE psum_dtype  = weight_to_psum_dtype[args.weight_dtype];
     ARBPRECTYPE ifmap_dtype = UINT8;
     int num_rows = 128;
+    int weight_load_period = num_ofmaps >= 64 ? 64 : num_ofmaps;
+    //int weight_reuse = ofmap_rows * ofmap_cols; // depends on psum buffers available, too
 
     es.weight_clamp = false;
     es.ifmap_valid = false;
@@ -46,52 +54,68 @@ Sequencer::convolve(const ConvolveArgs &args)
     es.weight_stride = filter_stride;
     es.weight_dtype = args.weight_dtype;
     es.weight_toggle = false;
-    es.row_countdown = args.i_s;
+    es.row_countdown = ifmap_channels;
 
     /* step in weights for all ofmaps, weight_clamp on last step */
-    for (int i = 0; i < args.w_s; i++) {
-        if (i == args.w_s - 1) {
+    for (int i = 0; i < weight_load_period; i++) {
+        if (i == weight_load_period - 1) {
             es.weight_clamp = true;
         }
         uop.PUSH_BACK(es);
         es.weight_addr -= sizeofArbPrecType(es.weight_dtype);
     }
 
-    /* unweight_clamp, stop feeding weights, feed ifmaps instead */
-    /* uncamp weight, stop sending weights, toggle weight  for first cycle */
-    es.weight_clamp = false;
+    // dont with clamping/weights
     es.weight_valid = false;
-    es.weight_toggle = true;
-    /* feed pixels */
-    es.ifmap_valid = true;
-    es.ifmap_addr = args.ifmap_addr;
-    es.ifmap_stride = sizeofArbPrecType(ifmap_dtype) * args.i_t * args.i_u;
-    es.row_countdown = args.i_s;
-    /* 1x1 so we are done as soon as we start */
-    es.psum_start = true;
-    es.psum_end = true;
-    es.psum_id = 0; 
-    es.psum_dtype = psum_dtype;
-    es.column_countdown = args.w_s;
-    /* we are ready for activation too */
-    es.activation_valid = true;
-    es.activation_valid = IDENTITY;
-    es.pool_valid = true;
-    es.pool_type = NO_POOL;
-    es.pool_dtype = psum_dtype;
-    /* where results is going */
-    es.ofmap_addr = args.ofmap_addr;
-    es.ofmap_stride = sizeofArbPrecType(psum_dtype) * ofmap_rows  * ofmap_cols;
-
-    /* push all pixels through systolic array */
-    for (int i = 0; i < args.i_t * args.i_u; i++, es.psum_id=(es.psum_id + 1) % num_rows) {
-        uop.PUSH_BACK(es);
-        /* unweight_clamp, done toggling */
-        if (i == 0) {
-            es.weight_toggle = false;
+    int weight_load_time = ofmap_rows * ofmap_cols - weight_load_period;
+    /* for each pixel this weight will operate on */
+    for (int i = 0; i <  ifmap_rows - ofmap_rows + 1; i++) {
+        for (int j = 0; j <  ifmap_cols - ofmap_cols + 1; j++) {
+            es.psum_id = 0; // we are starting a new weight
+            es.weight_toggle = true;
+            es.weight_clamp = false;
+            for (int r = 0; r < ofmap_rows; r++) {
+                for (int s = 0; s < ofmap_cols; s++) {
+                    /* unweight_clamp, stop feeding weights, feed ifmaps instead */
+                    /* uncamp weight, stop sending weights, toggle weight  for first cycle */
+                    /* feed pixels */
+                    es.ifmap_valid = true;
+                    // ifmap_addr + area base + offset to row in area + offset to col in area
+                    es.ifmap_addr = args.ifmap_addr + ((i * ifmap_cols + j) + (r * ofmap_cols) + s) *sizeofArbPrecType(ifmap_dtype);
+                    es.ifmap_stride = sizeofArbPrecType(ifmap_dtype) * ifmap_rows * ifmap_cols;
+                    es.row_countdown = ifmap_channels;
+                    es.column_countdown = num_ofmaps;
+                    if (i == 0 && j==0) {/* on first weight, so first ofmap, start psum */
+                        es.psum_start = true;
+                    } 
+                    if ((i == ifmap_rows - ofmap_rows) && 
+                            (j == ifmap_cols - ofmap_cols)) {/* on last weight, so last ofmap, end psum */
+                        es.psum_dtype = psum_dtype;
+                        es.psum_end = true;
+                        /* we are ready for activation too */
+                        es.activation_valid = true;
+                        es.activation_valid = IDENTITY;
+                        es.pool_valid = true;
+                        es.pool_type = NO_POOL;
+                        es.pool_dtype = psum_dtype;
+                        /* where results is going */
+                        es.ofmap_stride = sizeofArbPrecType(psum_dtype) * ofmap_rows  * ofmap_cols;
+                        es.ofmap_addr = args.ofmap_addr + (r * ofmap_cols + s) *sizeofArbPrecType(psum_dtype);
+                    }
+                    if (r * s > weight_load_time) {
+                        es.weight_valid = true;
+                    }
+                    if (r * s == ofmap_rows * ofmap_cols - 1) {
+                        es.weight_clamp = true;
+                    } 
+                    uop.PUSH_BACK(es);
+                    if (es.weight_valid) {
+                        es.weight_addr -= sizeofArbPrecType(es.weight_dtype);
+                    }
+                    es.weight_toggle = false;
+                }
+            }
         }
-        es.ifmap_addr += sizeofArbPrecType(ifmap_dtype);
-        es.ofmap_addr += sizeofArbPrecType(psum_dtype);
     }
 
     /* drain out results*/
@@ -101,7 +125,7 @@ Sequencer::convolve(const ConvolveArgs &args)
     es.weight_valid = false;
     es.pool_valid = false;
     es.activation_valid = false;
-    for (int i = 0; i < num_rows + args.w_s; i++) {
+    for (int i = 0; i < num_rows + num_ofmaps; i++) {
         uop.PUSH_BACK(es);
     }
 }

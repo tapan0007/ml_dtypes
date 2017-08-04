@@ -13,8 +13,8 @@
     psum_array.step(); \
     pe_array.step(); \
     state_array.step_read(); \
-    sequencer.step();  
-//    pe_array.dump(stdout); 
+    sequencer.step();  \
+    pe_array.dump(stdout); 
 
 
 Memory memory = Memory(16*1024);
