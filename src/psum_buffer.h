@@ -12,7 +12,7 @@ typedef struct PSumBufferEntry {
 
 class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
     public:
-        PSumBuffer(int n_entries = 128);
+        PSumBuffer(int n_entries = 1024);
         ~PSumBuffer();
         EdgeSignals pull_edge();
         PSumActivateSignals pull_psum();

@@ -69,6 +69,9 @@ Sequencer::convolve(const ConvolveArgs &args)
     es.weight_valid = false;
     int weight_load_time = ofmap_rows * ofmap_cols - weight_load_period;
     /* for each pixel this weight will operate on */
+    /* on first weight, so first ofmap, start psum */
+    es.psum_start = true;
+    es.psum_dtype = psum_dtype;
     for (int i = 0; i <  ifmap_rows - ofmap_rows + 1; i++) {
         for (int j = 0; j <  ifmap_cols - ofmap_cols + 1; j++) {
             es.psum_id = 0; // we are starting a new weight
@@ -85,12 +88,8 @@ Sequencer::convolve(const ConvolveArgs &args)
                     es.ifmap_stride = sizeofArbPrecType(ifmap_dtype) * ifmap_rows * ifmap_cols;
                     es.row_countdown = ifmap_channels;
                     es.column_countdown = num_ofmaps;
-                    if (i == 0 && j==0) {/* on first weight, so first ofmap, start psum */
-                        es.psum_start = true;
-                    } 
                     if ((i == ifmap_rows - ofmap_rows) && 
                             (j == ifmap_cols - ofmap_cols)) {/* on last weight, so last ofmap, end psum */
-                        es.psum_dtype = psum_dtype;
                         es.psum_end = true;
                         /* we are ready for activation too */
                         es.activation_valid = true;
@@ -113,8 +112,10 @@ Sequencer::convolve(const ConvolveArgs &args)
                         es.weight_addr -= sizeofArbPrecType(es.weight_dtype);
                     }
                     es.weight_toggle = false;
+                    es.psum_id++;
                 }
             }
+            es.psum_start = false; // no longer on first weight
         }
     }
 
