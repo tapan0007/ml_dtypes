@@ -31,11 +31,11 @@ void ProcessingElement::step() {
     PeEWSignals in_ew = west->pull_ew();
     PeNSSignals in_ns = north->pull_ns();
     bool in_clamp = sb_west->pull_clamp();
-    if (in_clamp) {
-        weight[!weight_id] = in_ew.weight;
-    }
     if (in_ew.weight_toggle) {
         weight_id = !weight_id;
+    }
+    if (in_clamp) {
+        weight[!weight_id] = in_ew.weight;
     }
 
     partial_sum = in_ns.partial_sum + in_ew.pixel * weight[weight_id];

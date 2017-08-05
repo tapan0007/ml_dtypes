@@ -50,13 +50,13 @@ Sequencer::convolve(const ConvolveArgs &args)
     es.weight_clamp = false;
     es.ifmap_valid = false;
     es.weight_valid = true;
-    es.weight_addr = args.filter_addr + filter_stride - 1;
     es.weight_stride = filter_stride;
     es.weight_dtype = args.weight_dtype;
     es.weight_toggle = false;
     es.row_countdown = ifmap_channels;
 
     /* step in weights for all ofmaps, weight_clamp on last step */
+    es.weight_addr = args.filter_addr + (weight_load_period -1) * sizeofArbPrecType(es.weight_dtype);
     for (int i = 0; i < weight_load_period; i++) {
         if (i == weight_load_period - 1) {
             es.weight_clamp = true;
@@ -77,6 +77,7 @@ Sequencer::convolve(const ConvolveArgs &args)
             es.psum_id = 0; // we are starting a new weight
             es.weight_toggle = true;
             es.weight_clamp = false;
+            es.weight_valid = false;
             for (int r = 0; r < ofmap_rows; r++) {
                 for (int s = 0; s < ofmap_cols; s++) {
                     /* unweight_clamp, stop feeding weights, feed ifmaps instead */
@@ -101,7 +102,11 @@ Sequencer::convolve(const ConvolveArgs &args)
                         es.ofmap_stride = sizeofArbPrecType(psum_dtype) * ofmap_rows  * ofmap_cols;
                         es.ofmap_addr = args.ofmap_addr + (r * ofmap_cols + s) *sizeofArbPrecType(psum_dtype);
                     }
-                    if (r * s > weight_load_time) {
+                    if (r * s == weight_load_time) {
+                        // fixme, adding +1 twice? why? one to calculate the
+                        // next one up, one because we want to calculate next
+                        // one.
+                        es.weight_addr = args.filter_addr + (i * ifmap_cols + j + 1 + 1) * weight_load_period * sizeofArbPrecType(es.weight_dtype) - 1;
                         es.weight_valid = true;
                     }
                     if (r * s == ofmap_rows * ofmap_cols - 1) {
