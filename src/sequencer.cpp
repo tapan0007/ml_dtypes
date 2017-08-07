@@ -72,8 +72,10 @@ Sequencer::convolve(const ConvolveArgs &args)
     /* on first weight, so first ofmap, start psum */
     es.psum_start = true;
     es.psum_dtype = psum_dtype;
-    for (int i = 0; i <  ifmap_rows - ofmap_rows + 1; i++) {
-        for (int j = 0; j <  ifmap_cols - ofmap_cols + 1; j++) {
+    //for (int i = 0; i <  ifmap_rows - ofmap_rows + 1; i++) {
+    //    for (int j = 0; j <  ifmap_cols - ofmap_cols + 1; j++) {
+    for (int i = 0; i <  args.w_t; i++) {
+        for (int j = 0; j <  args.w_u; j++) {
             es.psum_id = 0; // we are starting a new weight
             es.weight_toggle = true;
             es.weight_clamp = false;
@@ -85,12 +87,12 @@ Sequencer::convolve(const ConvolveArgs &args)
                     /* feed pixels */
                     es.ifmap_valid = true;
                     // ifmap_addr + area base + offset to row in area + offset to col in area
-                    es.ifmap_addr = args.ifmap_addr + ((i * ifmap_cols + j) + (r * ofmap_cols) + s) *sizeofArbPrecType(ifmap_dtype);
+                    es.ifmap_addr = args.ifmap_addr + ((i * ifmap_cols + j) + (r * ifmap_cols) + s) *sizeofArbPrecType(ifmap_dtype);
                     es.ifmap_stride = sizeofArbPrecType(ifmap_dtype) * ifmap_rows * ifmap_cols;
                     es.row_countdown = ifmap_channels;
                     es.column_countdown = num_ofmaps;
-                    if ((i == ifmap_rows - ofmap_rows) && 
-                            (j == ifmap_cols - ofmap_cols)) {/* on last weight, so last ofmap, end psum */
+                    if ((i == args.w_t - 1) && 
+                            (j == args.w_u - 1)) {/* on last weight, so last ofmap, end psum */
                         es.psum_end = true;
                         /* we are ready for activation too */
                         es.activation_valid = true;
@@ -102,14 +104,14 @@ Sequencer::convolve(const ConvolveArgs &args)
                         es.ofmap_stride = sizeofArbPrecType(psum_dtype) * ofmap_rows  * ofmap_cols;
                         es.ofmap_addr = args.ofmap_addr + (r * ofmap_cols + s) *sizeofArbPrecType(psum_dtype);
                     }
-                    if (r * s == weight_load_time) {
+                    if ((r * ofmap_cols + s) == weight_load_time) {
                         // fixme, adding +1 twice? why? one to calculate the
                         // next one up, one because we want to calculate next
                         // one.
-                        es.weight_addr = args.filter_addr + (i * ifmap_cols + j + 1 + 1) * weight_load_period * sizeofArbPrecType(es.weight_dtype) - 1;
+                        es.weight_addr = args.filter_addr + (i * args.w_u + j + 1 + 1) * weight_load_period * sizeofArbPrecType(es.weight_dtype) - 1;
                         es.weight_valid = true;
                     }
-                    if (r * s == ofmap_rows * ofmap_cols - 1) {
+                    if ((r * ofmap_cols + s) == ofmap_rows * ofmap_cols - 1) {
                         es.weight_clamp = true;
                     } 
                     uop.PUSH_BACK(es);

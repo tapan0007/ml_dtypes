@@ -97,15 +97,16 @@ PSumBuffer::step() {
     ns = north->pull_ns();
     ew = west->pull_edge();
     int e_id = ew.psum_id;
-    assert(e_id < (int)entry.size());
     if (ew.column_countdown) {
         if (ew.psum_start) {
+            assert(e_id < (int)entry.size());
             assert(entry[e_id].valid == false);
             entry[e_id].partial_sum = ArbPrec(ew.psum_dtype);
             entry[e_id].valid = true;
 
         }
         if (ew.ifmap_valid) {
+            assert(e_id < (int)entry.size());
             assert(entry[e_id].valid == true);
             assert(entry[e_id].valid);
             entry[e_id].partial_sum = entry[e_id].partial_sum + ns.partial_sum;
@@ -113,6 +114,7 @@ PSumBuffer::step() {
 
         if (ew.psum_end) {
             assert(entry[e_id].valid == true);
+            assert(e_id < (int)entry.size());
             printf("partial sum at %d is ", e_id);
             entry[e_id].partial_sum.dump(stdout);
             entry[e_id].valid = false;

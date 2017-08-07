@@ -13,7 +13,7 @@
     psum_array.step(); \
     pe_array.step(); \
     state_array.step_read(); \
-    sequencer.step();  \
+    sequencer.step(); \
     pe_array.dump(stdout); 
 
 
