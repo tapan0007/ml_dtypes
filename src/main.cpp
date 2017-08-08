@@ -13,8 +13,8 @@
     psum_array.step(); \
     pe_array.step(); \
     state_array.step_read(); \
-    sequencer.step(); \
-    pe_array.dump(stdout); 
+    sequencer.step(); 
+ //   pe_array.dump(stdout); 
 
 
 Memory memory = Memory(16*1024);
@@ -62,18 +62,26 @@ int main(int argc, char **argv)
 
     /* load weights/filters */
     cargs.ifmap_addr = 0;
-    n_bytes = memory.io_mmap(cargs.ifmap_addr, i_name, cargs.i_r, cargs.i_s, cargs.i_t, cargs.i_u);
-    cargs.filter_addr = (cargs.ifmap_addr + n_bytes + 0x3ff) & ~0x3ff;
-    n_bytes = memory.io_mmap(cargs.filter_addr, f_name, r, s, t, u);
-    cargs.ofmap_addr = (cargs.filter_addr + n_bytes + 0x3ff) & ~0x3ff;
-    memory.swap_axes(cargs.filter_addr, r, s, t, u, n_bytes);
-    cargs.w_r = s; // for swap, M now corresponds to C
-    cargs.w_s = r; // for swap, C now corresponds to M
-    cargs.w_t = t;
-    cargs.w_u = u;
-
     cargs.weight_dtype = UINT8;
 
+    /* load io_mmap */
+    n_bytes = memory.io_mmap(cargs.ifmap_addr, i_name, r, s, t, u);
+    cargs.i_n = r;
+    cargs.i_c = s;
+    cargs.i_h = t;
+    cargs.i_w = u;
+
+    /* load filter */
+    cargs.filter_addr = (cargs.ifmap_addr + n_bytes + 0x3ff) & ~0x3ff;
+    n_bytes = memory.io_mmap(cargs.filter_addr, f_name, r, s, t, u);
+    cargs.w_c = s; // for swap, M now corresponds to C
+    cargs.w_m = r; // for swap, C now corresponds to M
+    cargs.w_r = t;
+    cargs.w_s = u;
+
+
+    cargs.ofmap_addr = (cargs.filter_addr + n_bytes + 0x3ff) & ~0x3ff;
+    memory.swap_axes(cargs.filter_addr, r, s, t, u, n_bytes);
 
     /* set sequencer state */
     sequencer.convolve(cargs);
@@ -83,6 +91,6 @@ int main(int argc, char **argv)
         i++;
     }
 
-    memory.io_write(o_name, cargs.ofmap_addr, cargs.i_r, cargs.w_s, (cargs.i_t - cargs.w_t + 1), (cargs.i_u - cargs.w_u + 1), UINT32);
+    memory.io_write(o_name, cargs.ofmap_addr, cargs.i_n, cargs.w_m, (cargs.i_h - cargs.w_r + 1), (cargs.i_w - cargs.w_s + 1), UINT32);
 }
 

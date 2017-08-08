@@ -2,13 +2,13 @@
 #define SEQUENCER_H
 
 #include "sigint.h"
-#include <deque>
+#include <queue>
 
 typedef struct ConvolveArgs{
     addr_t ifmap_addr, filter_addr, ofmap_addr;
     ARBPRECTYPE weight_dtype;
-    int i_r, i_s, i_t, i_u;
-    int w_r, w_s, w_t, w_u;
+    int i_n, i_c, i_h, i_w;
+    int w_c, w_m, w_r, w_s;
 
 } ConvolveArgs;
 
@@ -22,7 +22,7 @@ class Sequencer : public EdgeInterface  {
         int steps_to_do();
     private:
         tick_t   clock;
-        std::deque<EdgeSignals> uop;
+        std::queue<EdgeSignals> uop;
 
 };
 
