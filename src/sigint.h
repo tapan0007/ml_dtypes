@@ -7,7 +7,6 @@
 // ----------------------------------------------------------
 // Signals
 // ----------------------------------------------------------
-//enum Opcode {GO=0, START_CALC, END_CALC, BUBBLE, NUM_OPCODE};
 typedef struct PeEWSignals {
     ArbPrec pixel;
     ArbPrec weight;
@@ -32,37 +31,38 @@ typedef struct ActivateSbSignals {
 
 
 typedef struct EdgeSignals {
-    uint8_t        row_countdown; // EDGE            | PSUM     |  >1 indicates addr_set valid 
-    uint8_t        column_countdown; // EDGE          | PSUM     |  >1 indicates psum_end or addr_set valid 
+                                     // CUSTOMER |  DESCRIPTION
+    uint8_t        row_countdown;    // SB       | Which SB rows is this valid for?
+    uint8_t        column_countdown; // PSUM     | Which PSUM columns is this valid for?
 
-    bool           ifmap_valid;   // EDGE                  | SB       | shift in a pixel?
-    addr_t         ifmap_addr;
-    addr_t         ifmap_stride;
+    bool           ifmap_valid;      // SB & PSUM| read and shift pixel from SB, PSUM should use result for MAC
+    addr_t         ifmap_addr;       // SB       | pixel address
+    addr_t         ifmap_stride;     // SB       | stride added to ifmap_addr as passed down rows
 
-    bool           weight_valid;  // EDGE                  | SB       | shift in a weight?
-    addr_t         weight_addr;
-    addr_t         weight_stride;
-    ARBPRECTYPE    weight_dtype;    // EDGE &  EW-PE         | SB/PSUM/PE | data type of ifmap, weight, psum
-    bool           weight_toggle; // EDGE &  EW-PE         | PE       | switch weight ptr
-    bool           weight_clamp; // EDGE &  EW-PE(bcast)  | PE       | broadcast
+    bool           weight_valid;     // SB       | read and shift weight from SB
+    addr_t         weight_addr;      // SB       | weight address
+    addr_t         weight_stride;    // SB       | stride added to weight_addr as passed down rows
+    ARBPRECTYPE    weight_dtype;     // SB       | what type of weight are we loading?
+    bool           weight_toggle;    // PE       | should the PE toggle the weight ptr bit? FIXME: could be id instead?
+    bool           weight_clamp;     // PE       | broadcast signal to tell PEs in a row to "clamp" the weight passing through them
 
-    int            psum_id;
-    ARBPRECTYPE    psum_dtype;
-    bool           psum_start;    // EDGE                  | PSUM     | psum has started - clear psum # could get away with psum_clear, but harder to debug
-    bool           psum_end;     // EDGE                  | PSUM       | psum is done, no more accumulations
+    int            psum_id;          // PSUM     | Which psum buffer in a given column is this result destined for?
+    ARBPRECTYPE    psum_dtype;       // PSUM     | Dtype for psum ops FIXME: semi-redundant, could be inferred from weight_dtype
+    bool           psum_start;       // PSUM     | Clear psum buffer for new calc
+    bool           psum_end;         // PSUM     | Psum calc is done | FIXME : psum_start/end could be combined but we'd lose debugability
 
-    bool           activation_valid;
-    ACTIVATIONFUNCTION activation;
+    bool           activation_valid; // PSUM     | Should we perform an activation on psum id?
+    ACTIVATIONFUNCTION activation;   // PSUM     | Which activation func should we perform?
+ 
+    bool           pool_valid;       // PSUM     | Should we perform a pool on psum id? 
+    POOLTYPE       pool_type;        // PSUM     | Which  pooling func should we perform?
+    int            pool_dimx;        // PSUM     | rows in pooling
+    int            pool_dimy;        // PSUM     | cols in pooling
+    int            pool_stride;      // PSUM     | stride in terms of #psum buffers between two psum rows (== #ofmap_cols?)
+    ARBPRECTYPE    pool_dtype;       // PSUM     | What type of data is our pooling operating on? FIXME: semi-redundant? inferrable from weight_dtype
 
-    bool           pool_valid;
-    POOLTYPE       pool_type;
-    int            pool_dimx;
-    int            pool_dimy;
-    int            pool_stride;
-    ARBPRECTYPE    pool_dtype;
-
-    addr_t         ofmap_addr;
-    addr_t         ofmap_stride;
+    addr_t         ofmap_addr;       // PSUM     | Dest address for pooling/activation result
+    addr_t         ofmap_stride;     // PSUM     | Stride between ofmaps, added to ofmap_addr as passed between cols
 } EdgeSignals;
 
 // ----------------------------------------------------------
