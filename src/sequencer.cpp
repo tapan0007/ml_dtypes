@@ -1,5 +1,6 @@
 #include "sequencer.h"
 #include "types.h"
+#include "string.h"
 
 Sequencer::Sequencer() : clock(0) {
 }
@@ -22,6 +23,36 @@ Sequencer::pull_edge() {
         return uop.front();
     } 
     return EdgeSignals{};
+}
+
+void Sequencer::dump_es(const EdgeSignals &es, bool header)
+{   
+    if (header) {
+        printf("rc cc |  iv   ia   is  |  wv wa   ws   wd  wt wc | pi pd ps pe | av af | pv pt px py ps pd | oa os\n");
+    }
+    printf("%2d %2d | %2d 0x%-3lx 0x%-3lx | %2d 0x%-3lx 0x%-3lx %2d %2d %2d | %2d %2d %2d %2d | %2d %2d | %2d %2d %2d %2d %2d %2d | 0x%-3lx 0x%-3lx \n",
+            es.row_countdown, es.column_countdown, 
+            es.ifmap_valid, es.ifmap_addr, es.ifmap_stride,
+            es.weight_valid, es.weight_addr, es.weight_stride, es.weight_dtype, es.weight_toggle, es.weight_clamp,
+            es.psum_id, es.psum_dtype, es.psum_start, es.psum_end,
+            es.activation_valid, es.activation,
+            es.pool_valid, es.pool_type, es.pool_dimx, es.pool_dimy, es.pool_stride, es.pool_dtype,
+            es.ofmap_addr, es.ofmap_stride);
+
+}
+
+void
+Sequencer::dump() {
+    EdgeSignals es = {};
+    int num = uop.size();
+    int header;
+    for (int i = 0; i < num; i++) {
+        es = uop.front();
+        header = (i == 0);
+        dump_es(es, header);
+        uop.pop();
+        uop.push(es);
+    }
 }
 
 static ARBPRECTYPE weight_to_psum_dtype[NUM_ARBPRECTYPE] = {[UINT8]=UINT32, [UINT32]=UINT32, [FP32]=FP32};
@@ -55,8 +86,6 @@ Sequencer::convolve(const ConvolveArgs &args)
     ARBPRECTYPE psum_dtype  = weight_to_psum_dtype[args.weight_dtype];
     ARBPRECTYPE ifmap_dtype = UINT8;
     int weight_load_latency = num_ofmaps;
-    /* we need to load weights some cycle before we finish an ofmap pass  */
-    int weight_load_time = ofmap_rows * ofmap_cols - weight_load_latency;
     int num_rows = 128;
     int num_cols = 64;
     int curr_opixel, curr_weight;
@@ -110,21 +139,22 @@ Sequencer::convolve(const ConvolveArgs &args)
 
 
                     /* LOAD WEIGHTS */
-                    if (curr_opixel < weight_load_time) {
-                        es.weight_valid = false;
-                    } else if (curr_opixel == weight_load_time) {
+                    if (curr_opixel == 0) {
                         /* we are calculating the weight addr of the next set
                          * (+1) and then trying to get to the last weight (+1)
                          * so we can load the weights in reverse */
                         es.weight_addr = args.filter_addr + (curr_weight + 1 + 1) * weight_load_latency 
                             * sizeofArbPrecType(es.weight_dtype) - 1;
                         es.weight_valid = true;
-                    } else if (curr_opixel > weight_load_time) {
+                    } else if (curr_opixel < weight_load_latency) {
                         assert(es.weight_valid);
                         es.weight_addr -= sizeofArbPrecType(es.weight_dtype);
+                    } else if (curr_opixel == weight_load_latency) {
+                        es.weight_valid  = false;
                     }
                     /* clamp on last load of weights, or the last ofmap pixel */
-                    es.weight_clamp  = (curr_opixel == ofmap_rows * ofmap_cols - 1);
+                    es.weight_clamp  = (curr_opixel == weight_load_latency - 1);
+
 
                     /* ACTIVATE, POOL, WRITE OUT */
                     if ((r == filter_rows - 1) && 
@@ -143,15 +173,11 @@ Sequencer::convolve(const ConvolveArgs &args)
     }
 
     /* drain out results*/
-    es.psum_start   = false;
-    es.psum_end     = false;
-    es.ifmap_valid  = false;
-    es.weight_valid = false;
-    es.pool_valid   = false;
-    es.activation_valid = false;
+    memset(&es, 0, sizeof(es));
     for (int i = 0; i < num_rows + num_ofmaps; i++) {
         uop.PUSH(es);
     }
+    dump();
 }
 
 int
