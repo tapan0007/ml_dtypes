@@ -12,18 +12,117 @@ typedef struct ConvolveArgs{
 
 } ConvolveArgs;
 
+class Sequencer;
+class Instruction {
+    public:
+        Instruction() {}
+        ~Instruction() {}
+        virtual void execute(Sequencer *seq) = 0;
+        virtual void dump(bool header) {(void)header; std::cout << "not implemented";}
+};
+
+
+class EdgeSignalsInstruction : public Instruction {
+     public:
+        EdgeSignalsInstruction(EdgeSignals _es) : es(_es) {};
+        ~EdgeSignalsInstruction() {} ;
+        void execute(Sequencer *seq);
+        void        dump(bool header);
+     private:
+        EdgeSignals es;
+};
+
+typedef struct LdWeightsArgs {
+    addr_t  weight_addr;
+    addr_t  weight_stride;
+    addr_t  weight_step;
+    uint8_t weight_num;
+    ARBPRECTYPE weight_dtype;
+} LdWeightsArgs;
+
+class LdWeights : public Instruction {
+    public:
+        LdWeights(const LdWeightsArgs &args);
+        ~LdWeights();
+        void execute(Sequencer *seq);
+    private:
+        LdWeightsArgs args;
+};
+
+typedef struct MatMulArgs {
+    addr_t  ifmap_addr;
+    addr_t  ifmap_stride;
+    size_t  ifmap_step;
+    addr_t  ifmap_width;
+    uint8_t ifmap_height;
+    ARBPRECTYPE ifmap_dtype;
+    addr_t ofmap_addr;
+    size_t ofmap_step;
+    addr_t ofmap_stride;
+    ARBPRECTYPE psum_dtype;
+    int         num_ifmaps;
+    int num_ofmaps;
+    bool psum_start;
+} MatMulArgs;
+
+class MatMul : public Instruction {
+    public:
+        MatMul(const MatMulArgs &args);
+        ~MatMul();
+        void execute(Sequencer *seq);
+    private:
+        MatMulArgs args;
+};
+
 class Sequencer : public EdgeInterface  {
     public:
         Sequencer();
         ~Sequencer();
         void step();
         EdgeSignals pull_edge();
-        void convolve(const ConvolveArgs &args);
-        int steps_to_do();
+        void convolve_static(const ConvolveArgs &args);
+        void convolve_dynamic(const ConvolveArgs &args);
+        bool done();
         void dump();
+
+        /* internal state */
+        EdgeSignals es;
+
+        /*
+        bool        weight_valid;
+        bool        weight_toggle;  
+        addr_t      weight_stride;
+        ARBPRECTYPE weight_dtype;  
+        addr_t      weight_addr;
+        */
+        size_t      weight_step;
+        uint8_t     weight_num;
+
+        /*
+        bool        ifmap_valid;
+        addr_t      ifmap_addr;
+        addr_t      ifmap_stride;
+        uint8_t     ifmap_height;
+        addr_t      ofmap_addr;
+        uint8_t     ofmap_stride;
+        ARBPRECTYPE  psum_dtype;
+        uint8_t     row_countdown;
+        uint8_t     column_countdown;
+        uint8_t     psum_id;
+        bool        psum_start;
+        bool        psum_end;
+      */  
+        size_t      ifmap_step;
+        size_t      ofmap_step;
+        uint8_t     ifmap_x_num;
+        uint8_t     ifmap_y_num;
+        uint8_t     ifmap_x_cnt;
+        uint8_t     ifmap_y_cnt;
+
+
     private:
         tick_t   clock;
-        std::queue<EdgeSignals> uop;
+        std::queue<Instruction *> uop;
         void dump_es(const EdgeSignals &es, bool header);
 
 };

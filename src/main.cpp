@@ -84,11 +84,15 @@ int main(int argc, char **argv)
     memory.swap_axes(cargs.filter_addr, r, s, t, u, n_bytes);
 
     /* set sequencer state */
-    sequencer.convolve(cargs);
+    sequencer.convolve_static(cargs);
     int i = 0;
-    while (sequencer.steps_to_do()) {
+    while (!sequencer.done()) {
         STEP();
         i++;
+    }
+
+    for (int j = 0; j < 64+128; j++) {
+        STEP();
     }
 
     memory.io_write(o_name, cargs.ofmap_addr, cargs.i_n, cargs.w_m, (cargs.i_h - cargs.w_r + 1), (cargs.i_w - cargs.w_s + 1), UINT32);
