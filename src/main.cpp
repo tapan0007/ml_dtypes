@@ -85,8 +85,13 @@ int main(int argc, char **argv)
 
     /* set sequencer state */
     sequencer.convolve_static(cargs);
+    //sequencer.convolve_dynamic(cargs);
     int i = 0;
     while (!sequencer.done()) {
+        STEP();
+        i++;
+    }
+    for (int j = 0; j < 128+64; j++) {
         STEP();
         i++;
     }

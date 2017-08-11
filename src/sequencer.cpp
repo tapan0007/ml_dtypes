@@ -93,17 +93,22 @@ Sequencer::synch() {
         return false;
     }
     // hacky, but we don't want synchs for raw signals, execution too slow
-    return !raw_signal;
+    return true;
 }
 
 void
 Sequencer::step() {
     /* empty the instruction queue */
-    if (!uop.empty() && !synch()) {
-        Instruction *inst = uop.front();
-        inst->execute(this);
-        uop.pop();
-        free(inst);
+    if (raw_signal || !synch()) {
+        if (!uop.empty()) {
+            Instruction *inst = uop.front();
+            inst->execute(this);
+            uop.pop();
+            free(inst);
+        } else {
+            es = {0};
+            return;
+        }
     }
     /* was the instruction a raw signal, if so, leave es alone and exit */
     if (raw_signal) {
@@ -350,11 +355,6 @@ Sequencer::convolve_static(const ConvolveArgs &args)
         }
     }
 
-    /* drain out results*/
-    memset(&es, 0, sizeof(es));
-    for (int i = 0; i <= 128 + num_ofmaps; i++) {
-        uop.PUSH(new EdgeSignalsInstruction(es));
-    }
     dump();
 }
 
