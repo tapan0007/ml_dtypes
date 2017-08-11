@@ -82,42 +82,27 @@ class Sequencer : public EdgeInterface  {
         EdgeSignals pull_edge();
         void convolve_static(const ConvolveArgs &args);
         void convolve_dynamic(const ConvolveArgs &args);
+        bool synch();
         bool done();
         void dump();
 
         /* internal state */
         EdgeSignals es;
 
-        /*
-        bool        weight_valid;
-        bool        weight_toggle;  
-        addr_t      weight_stride;
-        ARBPRECTYPE weight_dtype;  
-        addr_t      weight_addr;
-        */
+        /* weight */
         size_t      weight_step;
         uint8_t     weight_num;
 
-        /*
-        bool        ifmap_valid;
-        addr_t      ifmap_addr;
-        addr_t      ifmap_stride;
-        uint8_t     ifmap_height;
-        addr_t      ofmap_addr;
-        uint8_t     ofmap_stride;
-        ARBPRECTYPE  psum_dtype;
-        uint8_t     row_countdown;
-        uint8_t     column_countdown;
-        uint8_t     psum_id;
-        bool        psum_start;
-        bool        psum_end;
-      */  
+        /* matmul */
         size_t      ifmap_step;
         size_t      ofmap_step;
         uint8_t     ifmap_x_num;
         uint8_t     ifmap_y_num;
         uint8_t     ifmap_x_cnt;
         uint8_t     ifmap_y_cnt;
+
+        /*  misc */
+        bool        raw_signal;
 
 
     private:

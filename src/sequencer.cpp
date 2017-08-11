@@ -41,6 +41,7 @@ void  LdWeights::execute(Sequencer *seq) {
     seq->es.weight_addr = args.weight_addr;
     seq->weight_num  = args.weight_num;
     seq->weight_step = args.weight_step;
+    seq->raw_signal = true;
 }
 
 /*------------------------------------
@@ -51,13 +52,6 @@ MatMul::MatMul(const MatMulArgs &_args) : args(_args) { }
 MatMul::~MatMul() {}
 
 void  MatMul::execute(Sequencer *seq) {
-
-    static int ready = 1024;
-    if (!ready) {
-        ready = 1024;
-        return;
-    }
-    ready--;
     /* signals that will stay constant for entire convolution */
     seq->es.ifmap_valid   = true;
     seq->es.ifmap_addr    = args.ifmap_addr;
@@ -76,6 +70,7 @@ void  MatMul::execute(Sequencer *seq) {
     seq->ifmap_x_cnt = 0;
     seq->ifmap_y_cnt = 0;
     seq->ofmap_step    = args.ofmap_step;
+    seq->raw_signal = false;
 
 }
 
@@ -90,17 +85,30 @@ Sequencer::Sequencer() : es(), clock(0) {
 Sequencer::~Sequencer() {
 }
 
+bool
+Sequencer::synch() {
+    static int ready = 0;
+    if (!ready--) {
+        ready = 128;
+        return false;
+    }
+    // hacky, but we don't want synchs for raw signals, execution too slow
+    return !raw_signal;
+}
 
 void
 Sequencer::step() {
     /* empty the instruction queue */
-    if (!uop.empty()) {
+    if (!uop.empty() && !synch()) {
         Instruction *inst = uop.front();
         inst->execute(this);
         uop.pop();
         free(inst);
     }
-
+    /* was the instruction a raw signal, if so, leave es alone and exit */
+    if (raw_signal) {
+        return;
+    }
     /* update state - feed pixel */
     if (es.ifmap_valid) {
         /* es state */

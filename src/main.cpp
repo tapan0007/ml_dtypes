@@ -91,10 +91,6 @@ int main(int argc, char **argv)
         i++;
     }
 
-    for (int j = 0; j < 64+128; j++) {
-        STEP();
-    }
-
     memory.io_write(o_name, cargs.ofmap_addr, cargs.i_n, cargs.w_m, (cargs.i_h - cargs.w_r + 1), (cargs.i_w - cargs.w_s + 1), UINT32);
 }
 
