@@ -109,16 +109,19 @@ PSumBuffer::step() {
             assert(e_id < (int)entry.size());
             assert(entry[e_id].valid == true);
             assert(entry[e_id].valid);
+            printf("adding partial sum at %d is ", e_id);
+            ns.partial_sum.dump(stdout);
+            printf("\n");
             entry[e_id].partial_sum = entry[e_id].partial_sum + ns.partial_sum;
         }
 
         if (ew.psum_end) {
             assert(entry[e_id].valid == true);
             assert(e_id < (int)entry.size());
-            printf("partial sum at %d is ", e_id);
+            printf("final partial sum at %d is ", e_id);
             entry[e_id].partial_sum.dump(stdout);
-            entry[e_id].valid = false;
             printf("\n");
+            entry[e_id].valid = false;
         } else {
             ready_id = -1;
         }

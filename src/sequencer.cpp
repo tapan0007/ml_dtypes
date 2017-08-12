@@ -65,6 +65,10 @@ void  MatMul::execute(Sequencer *seq) {
     seq->es.row_countdown = args.num_ifmaps; 
     seq->es.column_countdown = args.num_ofmaps;
     seq->es.psum_start = args.psum_start;
+    seq->es.psum_end = args.psum_end;
+    seq->es.psum_dtype = args.psum_dtype;
+    seq->es.pool_valid = args.psum_end; // FIXME - temporary hack
+    seq->es.pool_dtype = args.psum_dtype; // FIXME - temporary hack to get results
     seq->es.psum_id = 0; // tmp
     seq->es.weight_toggle = true;
     seq->ifmap_base = args.ifmap_addr;
@@ -94,7 +98,7 @@ bool
 Sequencer::synch() {
     static int ready = 0;
     if (!ready--) {
-        ready = 128;
+        ready = 4096;
         return false;
     }
     // hacky, but we don't want synchs for raw signals, execution too slow
@@ -125,8 +129,12 @@ Sequencer::step() {
     if (es.ifmap_valid) {
         /* es state */
         if ((ifmap_x_cnt == ifmap_x_num - 1) && (ifmap_y_cnt == ifmap_y_num - 1)) {
+            /* clear state */
             es.ifmap_valid = false;
             es.psum_start = false;
+            es.psum_end = false;
+            es.pool_valid = false;
+            es.activation_valid = false;
         } else {
             es.ifmap_addr += ifmap_step;
             if (++ifmap_x_cnt >= ifmap_x_num) {
@@ -139,7 +147,6 @@ Sequencer::step() {
             es.ofmap_addr += ofmap_step;
         }
         COND_SET(es.weight_toggle, false);
-        COND_SET(es.psum_end, false);
     }
     /* update state - feed weight */
     if (es.weight_valid) {
@@ -218,33 +225,33 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     uop.PUSH(new LdWeights(weight_args));
 
     MatMulArgs matmul_args;
-    matmul_args.ifmap_addr   = ifmap_addr,
+    matmul_args.ifmap_addr   = 0xdeadbeef,
     matmul_args.ifmap_stride = ifmap_stride;
     matmul_args.ifmap_step   = ifmap_step;
-    matmul_args.ifmap_box_width = ifmap_cols * ifmap_step;
-    matmul_args.ifmap_box_height = ifmap_rows * ifmap_step;
+    matmul_args.ifmap_box_width = ofmap_cols * ifmap_step;
+    matmul_args.ifmap_box_height = ofmap_rows * ifmap_step;
     matmul_args.ifmap_box_stride = ifmap_cols * ifmap_step;
+    matmul_args.ofmap_addr = args.ofmap_addr;
     matmul_args.ifmap_dtype = ifmap_dtype;
     matmul_args.ofmap_step = ofmap_step;
     matmul_args.ofmap_stride = ofmap_stride;
     matmul_args.psum_dtype = UINT32;
     matmul_args.num_ifmaps = num_ifmaps;
     matmul_args.num_ofmaps = num_ofmaps;
-    matmul_args.psum_start = true;
-
 
     /* go through each weight in the filter */
     int curr_weight = 0;
     for (int r = 0; r <  filter_rows; r++) {
         for (int s = 0; s < filter_cols; s++, curr_weight++) {
             /* go through each ofmap pixel this weight operates one*/
-            matmul_args.ifmap_addr += r * ifmap_cols + s;
-            weight_args.weight_addr += weight_load_latency * weight_step;
+            matmul_args.psum_start = (r == 0 && s == 0);
+            matmul_args.psum_end = (curr_weight == (filter_rows * filter_cols - 1));
+            matmul_args.ifmap_addr = ifmap_addr + (r * ifmap_cols + s) * ifmap_step;
             uop.PUSH(new MatMul(matmul_args));
             if (curr_weight < (filter_rows * filter_cols - 1)) {
+                weight_args.weight_addr += weight_load_latency * weight_step;
                 uop.PUSH(new LdWeights(weight_args));
             }
-            matmul_args.psum_start = false;
         }
     }
 
@@ -366,5 +373,5 @@ Sequencer::convolve_static(const ConvolveArgs &args)
 
 bool
 Sequencer::done() {
-    return uop.empty();
+    return uop.empty() && !es.ifmap_valid && !es.weight_valid;
 }

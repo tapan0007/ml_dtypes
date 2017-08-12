@@ -56,7 +56,7 @@ typedef struct MatMulArgs {
     size_t  ifmap_step;
     addr_t  ifmap_box_width;
     uint8_t ifmap_box_height;
-    uint8_t ifmap_box_stride;
+    addr_t  ifmap_box_stride;
     ARBPRECTYPE ifmap_dtype;
     addr_t ofmap_addr;
     size_t ofmap_step;
@@ -65,6 +65,7 @@ typedef struct MatMulArgs {
     int         num_ifmaps;
     int num_ofmaps;
     bool psum_start;
+    bool psum_end;
 } MatMulArgs;
 
 class MatMul : public Instruction {
