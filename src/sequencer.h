@@ -36,7 +36,8 @@ typedef struct LdWeightsArgs {
     addr_t  weight_addr;
     addr_t  weight_stride;
     addr_t  weight_step;
-    uint8_t weight_num;
+    uint8_t weight_columns;
+    uint8_t weight_rows;
     ARBPRECTYPE weight_dtype;
 } LdWeightsArgs;
 
@@ -53,8 +54,9 @@ typedef struct MatMulArgs {
     addr_t  ifmap_addr;
     addr_t  ifmap_stride;
     size_t  ifmap_step;
-    addr_t  ifmap_width;
-    uint8_t ifmap_height;
+    addr_t  ifmap_box_width;
+    uint8_t ifmap_box_height;
+    uint8_t ifmap_box_stride;
     ARBPRECTYPE ifmap_dtype;
     addr_t ofmap_addr;
     size_t ofmap_step;
@@ -91,15 +93,17 @@ class Sequencer : public EdgeInterface  {
 
         /* weight */
         size_t      weight_step;
-        uint8_t     weight_num;
+        uint8_t     weight_columns;
 
         /* matmul */
+        addr_t      ifmap_base;
         size_t      ifmap_step;
-        size_t      ofmap_step;
+        size_t      ifmap_eol_stride;
         uint8_t     ifmap_x_num;
         uint8_t     ifmap_y_num;
         uint8_t     ifmap_x_cnt;
         uint8_t     ifmap_y_cnt;
+        size_t      ofmap_step;
 
         /*  misc */
         bool        raw_signal;

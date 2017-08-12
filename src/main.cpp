@@ -84,8 +84,8 @@ int main(int argc, char **argv)
     memory.swap_axes(cargs.filter_addr, r, s, t, u, n_bytes);
 
     /* set sequencer state */
-    sequencer.convolve_static(cargs);
-    //sequencer.convolve_dynamic(cargs);
+    //sequencer.convolve_static(cargs);
+    sequencer.convolve_dynamic(cargs);
     int i = 0;
     while (!sequencer.done()) {
         STEP();

@@ -25,6 +25,7 @@ void
 EdgeSignalsInstruction::execute(Sequencer *seq) {
 
     seq->es = es;
+    seq->raw_signal = true;
 }
 
 /*------------------------------------
@@ -39,9 +40,11 @@ void  LdWeights::execute(Sequencer *seq) {
     seq->es.weight_stride = args.weight_stride;
     seq->es.weight_dtype = args.weight_dtype;
     seq->es.weight_addr = args.weight_addr;
-    seq->weight_num  = args.weight_num;
+    seq->es.weight_clamp = (args.weight_columns == 1);
+    seq->es.row_countdown = args.weight_rows; 
+    seq->weight_columns = args.weight_columns;
     seq->weight_step = args.weight_step;
-    seq->raw_signal = true;
+    seq->raw_signal = false;
 }
 
 /*------------------------------------
@@ -64,11 +67,13 @@ void  MatMul::execute(Sequencer *seq) {
     seq->es.psum_start = args.psum_start;
     seq->es.psum_id = 0; // tmp
     seq->es.weight_toggle = true;
+    seq->ifmap_base = args.ifmap_addr;
     seq->ifmap_step = args.ifmap_step;
-    seq->ifmap_x_num = args.ifmap_width/args.ifmap_step;
-    seq->ifmap_y_num = args.ifmap_height;
+    seq->ifmap_x_num = args.ifmap_box_width/args.ifmap_step;
+    seq->ifmap_y_num = args.ifmap_box_height;
     seq->ifmap_x_cnt = 0;
     seq->ifmap_y_cnt = 0;
+    seq->ifmap_eol_stride = args.ifmap_box_stride - args.ifmap_box_width;
     seq->ofmap_step    = args.ofmap_step;
     seq->raw_signal = false;
 
@@ -79,7 +84,7 @@ void  MatMul::execute(Sequencer *seq) {
  * Sequencer
  *------------------------------------ */
 
-Sequencer::Sequencer() : es(), clock(0) {
+Sequencer::Sequencer() : es(), raw_signal(false), clock(0) {
 }
 
 Sequencer::~Sequencer() {
@@ -96,6 +101,8 @@ Sequencer::synch() {
     return true;
 }
 
+#define COND_SET(X, VAL) (X == VAL) ? false : X=VAL
+
 void
 Sequencer::step() {
     /* empty the instruction queue */
@@ -107,8 +114,8 @@ Sequencer::step() {
             free(inst);
         } else {
             es = {0};
-            return;
         }
+        return;
     }
     /* was the instruction a raw signal, if so, leave es alone and exit */
     if (raw_signal) {
@@ -117,40 +124,36 @@ Sequencer::step() {
     /* update state - feed pixel */
     if (es.ifmap_valid) {
         /* es state */
-        if (ifmap_x_cnt < ifmap_x_num) {
-            es.ifmap_addr += ifmap_step;
-            ifmap_x_cnt++;
-        } else {
-            if (ifmap_y_cnt < ifmap_y_num) {
-                es.ifmap_addr += ifmap_y_num * es.ifmap_stride;
-                ifmap_y_cnt++;
-            }
-        }
-        if (es.weight_toggle) {
-           es.weight_toggle = false;
-        }
-        if (es.psum_start) {
+        if ((ifmap_x_cnt == ifmap_x_num - 1) && (ifmap_y_cnt == ifmap_y_num - 1)) {
+            es.ifmap_valid = false;
             es.psum_start = false;
+        } else {
+            es.ifmap_addr += ifmap_step;
+            if (++ifmap_x_cnt >= ifmap_x_num) {
+                if (++ifmap_y_cnt < ifmap_y_num) {
+                    es.ifmap_addr += ifmap_eol_stride;
+                }
+                ifmap_x_cnt = 0;
+            }
+            es.psum_id++;
+            es.ofmap_addr += ofmap_step;
         }
-        if (es.psum_end) {
-            es.psum_end = false;
-        }
-        es.psum_id++;
-        es.ofmap_addr += ofmap_step;
+        COND_SET(es.weight_toggle, false);
+        COND_SET(es.psum_end, false);
     }
     /* update state - feed weight */
     if (es.weight_valid) {
         /* es state */
-        es.weight_addr -= weight_step;
-        if (weight_num == 1) {
+        if (--weight_columns) {
+            es.weight_addr -= weight_step;
+        }
+        if (weight_columns == 1) {
             es.weight_clamp = true;
-            weight_num--;
-        } else if (weight_num == 0) {
+        } else if (weight_columns == 0) {
+            assert(es.weight_clamp);
             es.weight_clamp = false;
             es.weight_valid = false;
-        } else {
-            weight_num--;
-        }
+        } 
     }
 
     clock++;
@@ -206,10 +209,11 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
 
     LdWeightsArgs weight_args;
     weight_args.weight_dtype = UINT8;
-    weight_args.weight_num = num_ofmaps;
+    weight_args.weight_columns = num_ofmaps;
+    weight_args.weight_rows = num_ifmaps;
     weight_args.weight_step = weight_step;
     weight_args.weight_stride = weight_stride;
-    weight_args.weight_addr = args.filter_addr + (weight_load_latency -1) * weight_step;
+    weight_args.weight_addr = args.filter_addr + (weight_load_latency-1) * weight_step;
 
     uop.PUSH(new LdWeights(weight_args));
 
@@ -217,8 +221,9 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     matmul_args.ifmap_addr   = ifmap_addr,
     matmul_args.ifmap_stride = ifmap_stride;
     matmul_args.ifmap_step   = ifmap_step;
-    matmul_args.ifmap_width = ifmap_cols;
-    matmul_args.ifmap_height = ifmap_rows;
+    matmul_args.ifmap_box_width = ifmap_cols * ifmap_step;
+    matmul_args.ifmap_box_height = ifmap_rows * ifmap_step;
+    matmul_args.ifmap_box_stride = ifmap_cols * ifmap_step;
     matmul_args.ifmap_dtype = ifmap_dtype;
     matmul_args.ofmap_step = ofmap_step;
     matmul_args.ofmap_stride = ofmap_stride;
@@ -232,12 +237,13 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     int curr_weight = 0;
     for (int r = 0; r <  filter_rows; r++) {
         for (int s = 0; s < filter_cols; s++, curr_weight++) {
-            curr_weight = r * filter_cols + s;
             /* go through each ofmap pixel this weight operates one*/
             matmul_args.ifmap_addr += r * ifmap_cols + s;
             weight_args.weight_addr += weight_load_latency * weight_step;
             uop.PUSH(new MatMul(matmul_args));
-            uop.PUSH(new LdWeights(weight_args));
+            if (curr_weight < (filter_rows * filter_cols - 1)) {
+                uop.PUSH(new LdWeights(weight_args));
+            }
             matmul_args.psum_start = false;
         }
     }
