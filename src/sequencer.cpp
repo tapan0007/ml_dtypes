@@ -96,13 +96,7 @@ Sequencer::~Sequencer() {
 
 bool
 Sequencer::synch() {
-    static int ready = 0;
-    if (!ready--) {
-        ready = 4096;
-        return false;
-    }
-    // hacky, but we don't want synchs for raw signals, execution too slow
-    return true;
+    return es.ifmap_valid  || es.weight_valid;
 }
 
 #define COND_SET(X, VAL) (X == VAL) ? false : X=VAL
