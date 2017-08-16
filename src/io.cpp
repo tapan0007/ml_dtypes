@@ -4,7 +4,8 @@
 #include <complex>
 #include <string.h>
 
-Memory::Memory(int size) {
+
+Memory::Memory(size_t size) {
     memory = (char *)calloc(1, size);
 }
 
@@ -13,14 +14,15 @@ Memory::~Memory() {
 }
 
 void
-Memory::swap_axes(addr_t addr, int r, int s, int t, int u, int nbytes)
+Memory::swap_axes(void *ptr, int r, int s, int t, int u, size_t word_size)
 {
-    char *dest = memory + addr;
+    int nbytes = r * s * t * u * word_size;
+    char *dest = (char *)ptr;
     char *src = (char *)malloc(nbytes);
     int   a = 0;
     int   stride = nbytes / (r * s * t * u);
     int   step = t * u * stride;
-    memcpy(src, memory+addr, nbytes);
+    memcpy(src, ptr, nbytes);
 
     for (int i = 0; i < s; i++) {
         for (int j = 0; j < r; j++) {
@@ -31,30 +33,53 @@ Memory::swap_axes(addr_t addr, int r, int s, int t, int u, int nbytes)
     free(src);
 }
 
-int 
-Memory::io_mmap(addr_t dest, std::string fname, int &i, int &j, int &k, int &l) {
+void * 
+Memory::io_mmap(std::string fname, int &i, int &j, int &k, int &l, size_t &word_size) {
     cnpy::NpyArray arr = cnpy::npy_load(fname);
     std::vector<unsigned int> &sh = arr.shape;
-    int n_bytes;
     i = sh[0];
     j = sh[1];
     k = sh[2];
     l = sh[3];
-    n_bytes = i * j * k * l * arr.word_size;
+    word_size = arr.word_size;
 
-    memcpy(memory + dest, arr.data, n_bytes);
-    free(arr.data);
-    return n_bytes;
+    return arr.data;
 }
 
 void 
-Memory::read(void *dest, addr_t src, int n_bytes)
+Memory::bank_mmap(addr_t addr, void *ptr, int count, size_t n_bytes)
+{
+    char *cptr = (char *)(ptr);
+    assert((n_bytes * count <= Constants::bytes_per_bank) && "won't fit in bank");
+    for (int i = 0; i < count; i++) {
+        memcpy(memory + addr, cptr, n_bytes);
+        addr  += Constants::partition_nbytes;
+        cptr  += n_bytes;
+    }
+}
+
+void  *
+Memory::bank_munmap(addr_t addr, int count, size_t n_bytes)
+{
+    int tot_n_bytes = count * n_bytes;
+    void *ptr = malloc(tot_n_bytes);
+    char *cptr = (char *)ptr;
+    for (int i = 0; i < count; i++) {
+        memcpy(cptr, memory + addr, n_bytes);
+        addr  += Constants::partition_nbytes;
+        cptr  += n_bytes;
+    }
+    return ptr;
+}
+
+void 
+Memory::read(void *dest, addr_t src, size_t n_bytes)
 {
     memcpy(dest, memory + src, n_bytes);
 }
 
 void 
-Memory::write(addr_t dest, void *src, int n_bytes)
+Memory::write(addr_t dest, void *src, size_t n_bytes)
 {
     memcpy(memory + dest, src, n_bytes);
 }
@@ -66,18 +91,14 @@ Memory::translate(addr_t addr) {
 }
 
 void
-Memory::io_write(std::string fname, addr_t addr, int i,int j,int k,int l, ARBPRECTYPE arb_type) {
+Memory::io_write(std::string fname, void *ptr, int i,int j,int k,int l, size_t word_size) {
     const unsigned int shape[] = {(unsigned int)i, (unsigned int)j, (unsigned int)k, (unsigned int)l};
-    void *src = translate(addr);
-    switch (arb_type) {
-        case UINT8:
-            cnpy::npy_save(fname, (uint8_t *)src, shape, 4, "w");
+    switch (word_size) {
+        case 1:
+            cnpy::npy_save(fname, (uint8_t *)ptr, shape, 1, "w");
             break;
-        case UINT32:
-            cnpy::npy_save(fname, (uint32_t *)src, shape, 4, "w");
-            break;
-        case FP32:
-            cnpy::npy_save(fname, (float *)src, shape, 4, "w");
+        case 4: // good for FP too?
+            cnpy::npy_save(fname, (uint32_t *)ptr, shape, 4, "w");
             break;
         default:
             assert(0);

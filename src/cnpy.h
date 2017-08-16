@@ -16,7 +16,9 @@
 #include<zlib.h>
 #include<map>
 
-#define UNUSED(x) (void)(x)
+#ifndef UNUSED
+#define UNUSED(X) (void)(X)
+#endif
 
 namespace cnpy {
 

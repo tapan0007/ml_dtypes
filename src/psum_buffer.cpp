@@ -41,8 +41,9 @@ ArbPrec
 PSumBuffer::pool() {
     int e_id = ew.psum_id;
     ArbPrec pool_pixel = ArbPrec(ew.pool_dtype);
-    int n = ew.pool_dimx * ew.pool_dimy;
+    //int n = ew.pool_dimx * ew.pool_dimy;
     switch (ew.pool_type) {
+#if 0
         case AVG_POOL:
             // fixme - how can we divide with just a multiplying unit?
             //double pool_pixel = pool_pixel * ArbPrecType(ew.psum_dtype, (1.0 / (ew.pool_dimx * ew.pool_dimy)));
@@ -53,11 +54,12 @@ PSumBuffer::pool() {
             }
             pool_pixel = pool_pixel / ArbPrec(ew.psum_dtype, n);
             break;
+#endif
         case MAX_POOL:
             pool_pixel = entry[e_id].partial_sum;
             for (int i = 0; i < ew.pool_dimx; i++) {
                 for (int j = 0; j < ew.pool_dimy; j++) {
-                    ArbPrec comp_pixel = entry[e_id - i * ew.pool_stride - j].partial_sum;
+                    ArbPrec comp_pixel = entry[e_id - i * Constants::partition_nbytes - j].partial_sum;
                     if (comp_pixel > pool_pixel) {
                         pool_pixel = comp_pixel;
                     }
@@ -92,8 +94,11 @@ PSumBuffer::activation(ArbPrec pixel) {
     return pixel;
 }
 
+static ARBPRECTYPE weight_to_psum_dtype[NUM_ARBPRECTYPE] = {[UINT8]=UINT32, [UINT32]=UINT32, [FP32]=FP32};
+
 void
 PSumBuffer::step() {
+    ARBPRECTYPE psum_dtype = weight_to_psum_dtype[ew.psum_dtype];
     ns = north->pull_ns();
     ew = west->pull_edge();
     int e_id = ew.psum_id;
@@ -101,7 +106,7 @@ PSumBuffer::step() {
         if (ew.psum_start) {
             assert(e_id < (int)entry.size());
             assert(entry[e_id].valid == false);
-            entry[e_id].partial_sum = ArbPrec(ew.psum_dtype);
+            entry[e_id].partial_sum = ArbPrec(psum_dtype);
             entry[e_id].valid = true;
 
         }
@@ -132,7 +137,7 @@ PSumBuffer::step() {
                 ofmap_pixel = activation(ofmap_pixel);
             }
             memory.write(ew.ofmap_addr, ofmap_pixel.raw_ptr(), ofmap_pixel.nbytes());
-            ew.ofmap_addr += ew.ofmap_stride;
+            ew.ofmap_addr += Constants::partition_nbytes;
         }
         ew.column_countdown--;
     }

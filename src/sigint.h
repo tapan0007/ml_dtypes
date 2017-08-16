@@ -37,12 +37,10 @@ typedef struct EdgeSignals {
 
     bool           ifmap_valid;      // SB & PSUM| read and shift pixel from SB, PSUM should use result for MAC
     addr_t         ifmap_addr;       // SB       | pixel address
-    addr_t         ifmap_stride;     // SB       | stride added to ifmap_addr as passed down rows
     addr_t         ifmap_step;       // SB       | what type of pixel are we loading?
 
     bool           weight_valid;     // SB       | read and shift weight from SB
     addr_t         weight_addr;      // SB       | weight address
-    addr_t         weight_stride;    // SB       | stride added to weight_addr as passed down rows
     addr_t         weight_step;      // SB       | bytes between weights
     ARBPRECTYPE    weight_dtype;     // SB       | what type of weight are we loading?
     bool           weight_toggle;    // PE       | should the PE toggle the weight ptr bit? FIXME: could be id instead?
@@ -60,11 +58,9 @@ typedef struct EdgeSignals {
     POOLTYPE       pool_type;        // PSUM     | Which  pooling func should we perform?
     int            pool_dimx;        // PSUM     | rows in pooling
     int            pool_dimy;        // PSUM     | cols in pooling
-    int            pool_stride;      // PSUM     | stride in terms of #psum buffers between two psum rows (== #ofmap_cols?)
     ARBPRECTYPE    pool_dtype;       // PSUM     | What type of data is our pooling operating on? FIXME: semi-redundant? inferrable from weight_dtype
 
     addr_t         ofmap_addr;       // PSUM     | Dest address for pooling/activation result
-    addr_t         ofmap_stride;     // PSUM     | Stride between ofmaps, added to ofmap_addr as passed between cols
 } EdgeSignals;
 
 // ----------------------------------------------------------

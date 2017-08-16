@@ -34,7 +34,6 @@ class EdgeSignalsInstruction : public Instruction {
 
 typedef struct LdWeightsArgs {
     addr_t  weight_addr;
-    addr_t  weight_stride;
     addr_t  weight_step;
     uint8_t weight_columns;
     uint8_t weight_rows;
@@ -51,21 +50,19 @@ class LdWeights : public Instruction {
 };
 
 typedef struct MatMulArgs {
-    addr_t  ifmap_addr;
-    addr_t  ifmap_stride;
-    size_t  ifmap_step;
-    addr_t  ifmap_box_width;
-    uint8_t ifmap_box_height;
-    addr_t  ifmap_box_stride;
-    ARBPRECTYPE ifmap_dtype;
-    addr_t ofmap_addr;
-    size_t ofmap_step;
-    addr_t ofmap_stride;
-    ARBPRECTYPE psum_dtype;
-    int         num_ifmaps;
-    int num_ofmaps;
-    bool psum_start;
-    bool psum_end;
+    unsigned int  psum_start  : 1;
+    unsigned int  psum_end    : 1;
+    unsigned int  ifmap_dtype : 3;
+    unsigned int  ifmap_addr  : 20;
+    unsigned int  ifmap_step  : 16;
+    unsigned int  ifmap_box_width  : 16;
+    unsigned int  ifmap_box_height : 16;
+    unsigned int  ifmap_box_stride : 16;
+    unsigned int  psum_dtype : 3;
+    unsigned int  ofmap_addr : 20;
+    unsigned int  ofmap_step : 8;
+    unsigned int  num_rows : 6;
+    unsigned int  num_cols : 7;
 } MatMulArgs;
 
 class MatMul : public Instruction {
