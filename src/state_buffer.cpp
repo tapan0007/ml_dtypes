@@ -35,11 +35,11 @@ StateBuffer::pull_ew() {
 
     if (ns.ifmap_valid && ns.row_countdown) {
         //pixel = ArbPrec((uint8_t)(rand() % 0xff));
-        pixel = read_addr(ns.ifmap_addr, UINT8);
+        pixel = read_addr(ns.ifmap_full_addr, UINT8);
     }
     if (ns.weight_valid && ns.row_countdown) {
         //weight = ArbPrec((uint8_t)(rand() % 0xff));
-        weight = read_addr(ns.weight_addr, ns.weight_dtype);
+        weight = read_addr(ns.weight_full_addr, ns.weight_dtype);
         printf("WEIGHT %d\n", weight.uint8);
     }
 
@@ -61,10 +61,10 @@ StateBuffer::pull_edge() {
     EdgeSignals e = ns;
     if (e.row_countdown) {
         if (e.ifmap_valid) {
-            e.ifmap_addr += Constants::partition_nbytes;
+            e.ifmap_full_addr += Constants::partition_nbytes;
         } 
         if (e.weight_valid) {
-            e.weight_addr += Constants::partition_nbytes;
+            e.weight_full_addr += Constants::partition_nbytes;
         }
         e.row_countdown--;
     }

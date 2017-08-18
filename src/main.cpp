@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     state_array.connect_north(&sequencer);
 
     /* load weights/filters */
-    cargs.ifmap_addr = 0;
+    cargs.ifmap_full_addr = 0;
     cargs.weight_dtype = UINT8;
 
     /* load io_mmap */
@@ -72,20 +72,20 @@ int main(int argc, char **argv)
     cargs.i_h = t;
     cargs.i_w = u;
     assert(cargs.i_n == 1 && "cannot support multibatching yet");
-    memory.bank_mmap(cargs.ifmap_addr, i_ptr, cargs.i_c, cargs.i_h * cargs.i_w * word_size);
+    memory.bank_mmap(cargs.ifmap_full_addr, i_ptr, cargs.i_c, cargs.i_h * cargs.i_w * word_size);
 
     /* load filter */
-    cargs.filter_addr = 1 * Constants::bytes_per_bank;
+    cargs.filter_full_addr = 1 * Constants::bytes_per_bank;
     f_ptr = memory.io_mmap(f_name, r, s, t, u, word_size);
     memory.swap_axes(f_ptr, r, s, t, u, word_size);
     cargs.w_c = s; // for swap, M now corresponds to C
     cargs.w_m = r; // for swap, C now corresponds to M
     cargs.w_r = t;
     cargs.w_s = u;
-    memory.bank_mmap(cargs.filter_addr, f_ptr, cargs.w_c, cargs.w_m * cargs.w_r * cargs.w_s * word_size);
+    memory.bank_mmap(cargs.filter_full_addr, f_ptr, cargs.w_c, cargs.w_m * cargs.w_r * cargs.w_s * word_size);
 
 
-    cargs.ofmap_addr = 2 * Constants::bytes_per_bank;
+    cargs.ofmap_full_addr = 2 * Constants::bytes_per_bank;
 
     /* set sequencer state */
     //sequencer.convolve_static(cargs);
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     int o_rows = (cargs.i_h - cargs.w_r + 1);
     int o_cols = (cargs.i_w - cargs.w_s + 1);
     word_size = 4; // HACKE DIN FIX, outputting 32 
-    o_ptr = memory.bank_munmap(cargs.ofmap_addr, cargs.w_c, o_rows * o_cols * word_size);
+    o_ptr = memory.bank_munmap(cargs.ofmap_full_addr, cargs.w_c, o_rows * o_cols * word_size);
     memory.io_write(o_name, o_ptr, cargs.i_n, cargs.w_m, o_rows, o_cols, word_size);
 }
 

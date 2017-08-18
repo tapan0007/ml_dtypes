@@ -5,7 +5,9 @@
 #include <queue>
 
 typedef struct ConvolveArgs{
-    addr_t ifmap_addr, filter_addr, ofmap_addr;
+    ADDR_UNION(ifmap);
+    ADDR_UNION(filter);
+    ADDR_UNION(ofmap);
     ARBPRECTYPE weight_dtype;
     int i_n, i_c, i_h, i_w;
     int w_c, w_m, w_r, w_s;
@@ -33,7 +35,7 @@ class EdgeSignalsInstruction : public Instruction {
 };
 
 typedef struct LdWeightsArgs {
-    addr_t  weight_addr;
+    ADDR_UNION(weight);
     addr_t  weight_step;
     uint8_t weight_columns;
     uint8_t weight_rows;
@@ -53,13 +55,13 @@ typedef struct MatMulArgs {
     unsigned int  psum_start  : 1;
     unsigned int  psum_end    : 1;
     unsigned int  ifmap_dtype : 3;
-    unsigned int  ifmap_addr  : 20;
+    ADDR_UNION(ifmap);
+    ADDR_UNION(ofmap);
     unsigned int  ifmap_step  : 16;
     unsigned int  ifmap_box_width  : 16;
     unsigned int  ifmap_box_height : 16;
     unsigned int  ifmap_box_stride : 16;
     unsigned int  psum_dtype : 3;
-    unsigned int  ofmap_addr : 20;
     unsigned int  ofmap_step : 8;
     unsigned int  num_rows : 6;
     unsigned int  num_cols : 7;

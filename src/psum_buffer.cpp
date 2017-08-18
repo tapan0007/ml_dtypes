@@ -136,8 +136,8 @@ PSumBuffer::step() {
             if (ew.activation_valid) {
                 ofmap_pixel = activation(ofmap_pixel);
             }
-            memory.write(ew.ofmap_addr, ofmap_pixel.raw_ptr(), ofmap_pixel.nbytes());
-            ew.ofmap_addr += Constants::partition_nbytes;
+            memory.write(ew.ofmap_full_addr, ofmap_pixel.raw_ptr(), ofmap_pixel.nbytes());
+            ew.ofmap_full_addr += Constants::partition_nbytes;
         }
         ew.column_countdown--;
     }
