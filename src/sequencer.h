@@ -52,19 +52,18 @@ class LdWeights : public Instruction {
 };
 
 typedef struct MatMulArgs {
-    unsigned int  psum_start  : 1;
-    unsigned int  psum_end    : 1;
-    unsigned int  ifmap_dtype : 3;
+    uint64_t    psum_start  : 1;
+    uint64_t    psum_end    : 1;
+    uint64_t    ifmap_dtype : 3;
     ADDR_UNION(ifmap);
+    addr_t      ifmap_x_step         : Constants::bank_bits - 1;
+    uint64_t    ifmap_x_num_elements : 8;
+    addr_t      ifmap_y_step         : Constants::bank_bits - 1;
+    uint64_t    ifmap_y_num_elements : 8;
     ADDR_UNION(ofmap);
-    unsigned int  ifmap_step  : 16;
-    unsigned int  ifmap_box_width  : 16;
-    unsigned int  ifmap_box_height : 16;
-    unsigned int  ifmap_box_stride : 16;
-    unsigned int  psum_dtype : 3;
-    unsigned int  ofmap_step : 8;
-    unsigned int  num_rows : 6;
-    unsigned int  num_cols : 7;
+    uint64_t    psum_dtype : 3;
+    uint64_t    num_rows : Constants::row_bits;
+    uint64_t    num_cols : Constants::column_bits;
 } MatMulArgs;
 
 class MatMul : public Instruction {

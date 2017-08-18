@@ -54,6 +54,7 @@ MatMul::MatMul(const MatMulArgs &_args) : args(_args) { }
 MatMul::~MatMul() {}
 
 void  MatMul::execute(Sequencer *seq) {
+    uint8_t dtype_size = fmapdtype_to_bytes[args.ifmap_dtype];
     /* signals that will stay constant for entire convolution */
     seq->es.ifmap_valid   = true;
     seq->es.ifmap_full_addr    = args.ifmap_full_addr;
@@ -68,13 +69,11 @@ void  MatMul::execute(Sequencer *seq) {
     seq->es.psum_id = 0; // tmp
     seq->es.weight_toggle = true;
     seq->ifmap_base = args.ifmap_full_addr;
-    seq->ifmap_step = args.ifmap_step;
-    seq->ifmap_x_num = args.ifmap_box_width/args.ifmap_step;
-    seq->ifmap_y_num = args.ifmap_box_height;
+    seq->ifmap_x_num = args.ifmap_x_num_elements;
+    seq->ifmap_y_num = args.ifmap_y_num_elements;
     seq->ifmap_x_cnt = 0;
     seq->ifmap_y_cnt = 0;
-    seq->ifmap_eol_stride = args.ifmap_box_stride - args.ifmap_box_width;
-    seq->ofmap_step    = args.ofmap_step;
+    seq->ifmap_eol_stride = (args.ifmap_y_step - (args.ifmap_x_step * args.ifmap_x_num_elements)) * dtype_size;
     seq->raw_signal = false;
 
 }
@@ -126,7 +125,7 @@ Sequencer::step() {
             es.pool_valid = false;
             es.activation_valid = false;
         } else {
-            es.ifmap_full_addr += ifmap_step;
+            es.ifmap_full_addr += fmapdtype_to_bytes[es.ifmap_dtype];
             if (++ifmap_x_cnt >= ifmap_x_num) {
                 if (++ifmap_y_cnt < ifmap_y_num) {
                     es.ifmap_full_addr += ifmap_eol_stride;
@@ -134,7 +133,7 @@ Sequencer::step() {
                 ifmap_x_cnt = 0;
             }
             es.psum_id++;
-            es.ofmap_full_addr += ofmap_step;
+            es.ofmap_full_addr += sizeofArbPrecType(es.psum_dtype);
         }
         COND_SET(es.weight_toggle, false);
     }
@@ -194,14 +193,12 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     ARBPRECTYPE weight_dtype = UINT8;
     ARBPRECTYPE psum_dtype = UINT32;
     addr_t weight_step = sizeofArbPrecType(weight_dtype);
-    addr_t ifmap_step = sizeofArbPrecType(ifmap_dtype);
-    addr_t ofmap_step = sizeofArbPrecType(psum_dtype);
     addr_t ifmap_full_addr = args.ifmap_full_addr;
     int weight_load_latency = num_cols;
     assert(weight_load_latency < 64 && "Tiling not implemented yet, too many ofmaps!");
 
     LdWeightsArgs weight_args;
-    weight_args.weight_dtype = UINT8;
+    weight_args.weight_dtype = weight_dtype;
     weight_args.weight_columns = num_cols;
     weight_args.weight_rows = num_rows;
     weight_args.weight_step = weight_step;
@@ -211,14 +208,13 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
 
     MatMulArgs matmul_args;
     matmul_args.ifmap_full_addr   = 0xdead;
-    matmul_args.ifmap_step   = ifmap_step;
-    matmul_args.ifmap_box_width = ofmap_cols * ifmap_step;
-    matmul_args.ifmap_box_height = ofmap_rows * ifmap_step;
-    matmul_args.ifmap_box_stride = ifmap_cols * ifmap_step;
+    matmul_args.ifmap_x_num_elements = ofmap_cols;
+    matmul_args.ifmap_x_step = 1;
+    matmul_args.ifmap_y_num_elements = ofmap_rows;
+    matmul_args.ifmap_y_step = ifmap_cols;
     matmul_args.ofmap_full_addr = args.ofmap_full_addr;
     matmul_args.ifmap_dtype = ifmap_dtype;
-    matmul_args.ofmap_step = ofmap_step;
-    matmul_args.psum_dtype = UINT32;
+    matmul_args.psum_dtype = psum_dtype;
     matmul_args.num_rows = num_rows;
     matmul_args.num_cols = num_cols;
 
@@ -229,7 +225,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
             /* go through each ofmap pixel this weight operates one*/
             matmul_args.psum_start = (r == 0 && s == 0);
             matmul_args.psum_end = (curr_weight == (filter_rows * filter_cols - 1));
-            matmul_args.ifmap_full_addr = ifmap_full_addr + (r * ifmap_cols + s) * ifmap_step;
+            matmul_args.ifmap_full_addr = ifmap_full_addr + (r * ifmap_cols + s) * fmapdtype_to_bytes[ifmap_dtype];
             uop.PUSH(new MatMul(matmul_args));
             if (curr_weight < (filter_rows * filter_cols - 1)) {
                 weight_args.weight_full_addr += weight_load_latency * weight_step;
@@ -271,7 +267,6 @@ Sequencer::convolve_static(const ConvolveArgs &args)
     assert(weight_load_latency < 64 && "Tiling not implemented yet, don't have enough columsn for # ofmaps!");
 
     /* signals that will stay constant for entire convolution */
-    es.ifmap_step =  sizeofArbPrecType(ifmap_dtype);
     es.weight_dtype  = args.weight_dtype;
     es.psum_dtype    = psum_dtype;
     es.activation    = IDENTITY; 
@@ -310,7 +305,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
 
                     /* LOAD PIXEL */
                     es.ifmap_full_addr = args.ifmap_full_addr +
-                        ((r * ifmap_cols + s) + (e * ifmap_cols) + f) * es.ifmap_step;
+                        ((r * ifmap_cols + s) + (e * ifmap_cols) + f) * fmapdtype_to_bytes[ifmap_dtype];
 
 
                     /* LOAD WEIGHTS */

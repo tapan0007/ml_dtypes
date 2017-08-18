@@ -37,11 +37,10 @@ typedef struct EdgeSignals {
 
     bool           ifmap_valid;      // SB & PSUM| read and shift pixel from SB, PSUM should use result for MAC
     ADDR_UNION(ifmap);
-    addr_t         ifmap_step;       // SB       | what type of pixel are we loading?
+    FMAPDTYPE       ifmap_dtype;       // SB       | what type of pixel are we loading?
 
     bool           weight_valid;     // SB       | read and shift weight from SB
     ADDR_UNION(weight)      // SB       | weight address
-    addr_t         weight_step;      // SB       | bytes between weights
     ARBPRECTYPE    weight_dtype;     // SB       | what type of weight are we loading?
     bool           weight_toggle;    // PE       | should the PE toggle the weight ptr bit? FIXME: could be id instead?
     bool           weight_clamp;     // PE       | broadcast signal to tell PEs in a row to "clamp" the weight passing through them
