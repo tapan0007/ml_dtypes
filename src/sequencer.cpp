@@ -36,14 +36,21 @@ LdWeights::LdWeights(const LdWeightsArgs &_args) : args(_args) { }
 LdWeights::~LdWeights() {}
 
 void  LdWeights::execute(Sequencer *seq) {
+    uint8_t dtype_size = weightdtype_to_bytes[args.weight_dtype];
     seq->es.weight_valid = true;
     seq->es.weight_dtype = args.weight_dtype;
     seq->es.weight_full_addr = args.weight_full_addr;
     seq->es.weight_clamp = (args.weight_columns == 1);
     seq->es.row_countdown = args.weight_rows; 
     seq->weight_columns = args.weight_columns;
-    seq->weight_step = args.weight_step;
+    seq->weight_x_step = dtype_size * args.weight_x_step;
+    seq->weight_x_num = args.weight_x_num_elements;
+    seq->weight_y_num = args.weight_y_num_elements;
+    seq->weight_x_cnt = 0;
+    seq->weight_y_cnt = 0;
+    seq->weight_y_step = args.weight_y_step;
     seq->raw_signal = false;
+
 }
 
 /*------------------------------------
@@ -141,7 +148,7 @@ Sequencer::step() {
     if (es.weight_valid) {
         /* es state */
         if (--weight_columns) {
-            es.weight_full_addr -= weight_step;
+            es.weight_full_addr -= weight_x_num * weight_y_step;
         }
         if (weight_columns == 1) {
             es.weight_clamp = true;
@@ -201,9 +208,11 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     weight_args.weight_dtype = weight_dtype;
     weight_args.weight_columns = num_cols;
     weight_args.weight_rows = num_rows;
-    weight_args.weight_step = weight_step;
-    weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * weight_step;
-
+    weight_args.weight_x_step = weight_step;
+    weight_args.weight_x_num_elements = args.w_s;
+    weight_args.weight_y_step = weight_step * args.w_s;
+    weight_args.weight_y_num_elements = args.w_r;
+    weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.weight_y_num_elements * weight_args.weight_y_step);
     uop.PUSH(new LdWeights(weight_args));
 
     MatMulArgs matmul_args;
@@ -228,7 +237,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
             matmul_args.ifmap_full_addr = ifmap_full_addr + (r * ifmap_cols + s) * fmapdtype_to_bytes[ifmap_dtype];
             uop.PUSH(new MatMul(matmul_args));
             if (curr_weight < (filter_rows * filter_cols - 1)) {
-                weight_args.weight_full_addr += weight_load_latency * weight_step;
+                weight_args.weight_full_addr += weight_step;
                 uop.PUSH(new LdWeights(weight_args));
             }
         }

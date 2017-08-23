@@ -36,10 +36,13 @@ class EdgeSignalsInstruction : public Instruction {
 
 typedef struct LdWeightsArgs {
     ADDR_UNION(weight);
-    addr_t  weight_step;
     uint8_t weight_columns;
     uint8_t weight_rows;
     ARBPRECTYPE weight_dtype;
+    addr_t      weight_x_step         : Constants::bank_bits - 1;
+    uint64_t    weight_x_num_elements : 8;
+    addr_t      weight_y_step         : Constants::bank_bits - 1;
+    uint64_t    weight_y_num_elements : 8;
 } LdWeightsArgs;
 
 class LdWeights : public Instruction {
@@ -91,8 +94,13 @@ class Sequencer : public EdgeInterface  {
         EdgeSignals es;
 
         /* weight */
-        size_t      weight_step;
+        size_t      weight_x_step;
+        size_t      weight_y_step;
         uint8_t     weight_columns;
+        uint8_t     weight_x_num;
+        uint8_t     weight_y_num;
+        uint8_t     weight_x_cnt;
+        uint8_t     weight_y_cnt;
 
         /* matmul */
         addr_t      ifmap_base;
