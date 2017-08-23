@@ -61,7 +61,6 @@ MatMul::MatMul(const MatMulArgs &_args) : args(_args) { }
 MatMul::~MatMul() {}
 
 void  MatMul::execute(Sequencer *seq) {
-    uint8_t dtype_size = fmapdtype_to_bytes[args.ifmap_dtype];
     /* signals that will stay constant for entire convolution */
     seq->es.ifmap_valid   = true;
     seq->es.ifmap_full_addr    = args.ifmap_full_addr;
@@ -80,7 +79,8 @@ void  MatMul::execute(Sequencer *seq) {
     seq->ifmap_y_num = args.ifmap_y_num_elements;
     seq->ifmap_x_cnt = 0;
     seq->ifmap_y_cnt = 0;
-    seq->ifmap_eol_stride = (args.ifmap_y_step - (args.ifmap_x_step * args.ifmap_x_num_elements)) * dtype_size;
+    seq->ifmap_x_step = args.ifmap_x_step;
+    seq->ifmap_y_step = args.ifmap_y_step;
     seq->raw_signal = false;
 
 }
@@ -124,7 +124,12 @@ Sequencer::step() {
     /* update state - feed pixel */
     if (es.ifmap_valid) {
         /* es state */
-        if ((ifmap_x_cnt == ifmap_x_num - 1) && (ifmap_y_cnt == ifmap_y_num - 1)) {
+        if (++ifmap_x_cnt >= ifmap_x_num) {
+            ifmap_x_cnt = 0;
+            ++ifmap_y_cnt;
+        }
+
+        if (ifmap_y_cnt == ifmap_y_num) {
             /* clear state */
             es.ifmap_valid = false;
             es.psum_start = false;
@@ -132,13 +137,7 @@ Sequencer::step() {
             es.pool_valid = false;
             es.activation_valid = false;
         } else {
-            es.ifmap_full_addr += fmapdtype_to_bytes[es.ifmap_dtype];
-            if (++ifmap_x_cnt >= ifmap_x_num) {
-                if (++ifmap_y_cnt < ifmap_y_num) {
-                    es.ifmap_full_addr += ifmap_eol_stride;
-                }
-                ifmap_x_cnt = 0;
-            }
+            es.ifmap_full_addr = ifmap_base + (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * fmapdtype_to_bytes[es.ifmap_dtype];
             es.psum_id++;
             es.ofmap_full_addr += sizeofArbPrecType(es.psum_dtype);
         }

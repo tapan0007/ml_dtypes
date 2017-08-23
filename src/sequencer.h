@@ -96,16 +96,16 @@ class Sequencer : public EdgeInterface  {
         /* weight */
         size_t      weight_x_step;
         size_t      weight_y_step;
-        uint8_t     weight_columns;
         uint8_t     weight_x_num;
         uint8_t     weight_y_num;
         uint8_t     weight_x_cnt;
         uint8_t     weight_y_cnt;
+        uint8_t     weight_columns;
 
         /* matmul */
         addr_t      ifmap_base;
-        size_t      ifmap_step;
-        size_t      ifmap_eol_stride;
+        size_t      ifmap_x_step;
+        size_t      ifmap_y_step;
         uint8_t     ifmap_x_num;
         uint8_t     ifmap_y_num;
         uint8_t     ifmap_x_cnt;
