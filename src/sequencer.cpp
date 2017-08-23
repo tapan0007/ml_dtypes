@@ -148,7 +148,7 @@ Sequencer::step() {
     if (es.weight_valid) {
         /* es state */
         if (--weight_columns) {
-            es.weight_full_addr -= weight_x_num * weight_y_step;
+            es.weight_full_addr -= weight_y_num * weight_y_step;
         }
         if (weight_columns == 1) {
             es.weight_clamp = true;
