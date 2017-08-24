@@ -37,7 +37,7 @@ typedef struct EdgeSignals {
 
     bool           ifmap_valid;      // SB & PSUM| read and shift pixel from SB, PSUM should use result for MAC
     ADDR_UNION(ifmap);
-    FMAPDTYPE       ifmap_dtype;       // SB       | what type of pixel are we loading?
+    ARBPRECTYPE      ifmap_dtype;       // SB       | what type of pixel are we loading?
 
     bool           weight_valid;     // SB       | read and shift weight from SB
     ADDR_UNION(weight)      // SB       | weight address

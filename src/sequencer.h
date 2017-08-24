@@ -36,13 +36,13 @@ class EdgeSignalsInstruction : public Instruction {
 
 typedef struct LdWeightsArgs {
     ADDR_UNION(weight);
-    uint8_t weight_columns;
-    uint8_t weight_rows;
-    ARBPRECTYPE weight_dtype;
-    addr_t      weight_x_step         : Constants::bank_bits - 1;
-    uint64_t    weight_x_num_elements : 8;
-    addr_t      weight_y_step         : Constants::bank_bits - 1;
-    uint64_t    weight_y_num_elements : 8;
+    uint64_t    dtype          : Constants::type_bits;
+    addr_t      x_step         : Constants::bank_bits - 1;
+    uint64_t    x_num_elements : 8;
+    addr_t      y_step         : Constants::bank_bits - 1;
+    uint64_t    y_num_elements : 8;
+    uint64_t    num_rows : Constants::row_bits;
+    uint64_t    num_cols : Constants::column_bits;
 } LdWeightsArgs;
 
 class LdWeights : public Instruction {
@@ -57,16 +57,16 @@ class LdWeights : public Instruction {
 typedef struct MatMulArgs {
     uint64_t    psum_start  : 1;
     uint64_t    psum_end    : 1;
-    uint64_t    ifmap_dtype : 3;
+    uint64_t    dtype       : Constants::type_bits;
     ADDR_UNION(ifmap);
-    addr_t      ifmap_x_step         : Constants::bank_bits - 1;
-    uint64_t    ifmap_x_num_elements : 8;
-    addr_t      ifmap_y_step         : Constants::bank_bits - 1;
-    uint64_t    ifmap_y_num_elements : 8;
+    addr_t      x_step         : Constants::bank_bits - 1;
+    uint64_t    x_num_elements : 8;
+    addr_t      y_step         : Constants::bank_bits - 1;
+    uint64_t    y_num_elements : 8;
     ADDR_UNION(ofmap);
-    uint64_t    psum_dtype : 3;
-    uint64_t    num_rows : Constants::row_bits;
-    uint64_t    num_cols : Constants::column_bits;
+    uint64_t    psum_dtype : Constants::type_bits;
+    uint64_t    num_rows   : Constants::row_bits;
+    uint64_t    num_cols   : Constants::column_bits;
 } MatMulArgs;
 
 class MatMul : public Instruction {
@@ -100,7 +100,7 @@ class Sequencer : public EdgeInterface  {
         uint8_t     weight_y_num;
         uint8_t     weight_x_cnt;
         uint8_t     weight_y_cnt;
-        uint8_t     weight_columns;
+        uint8_t     weight_clamp_countdown;
 
         /* matmul */
         addr_t      ifmap_base;

@@ -35,7 +35,7 @@ StateBuffer::pull_ew() {
 
     if (ns.ifmap_valid && ns.row_countdown) {
         //pixel = ArbPrec((uint8_t)(rand() % 0xff));
-        pixel = read_addr(ns.ifmap_full_addr, UINT8);
+        pixel = read_addr(ns.ifmap_full_addr, ns.ifmap_dtype);
     }
     if (ns.weight_valid && ns.row_countdown) {
         //weight = ArbPrec((uint8_t)(rand() % 0xff));

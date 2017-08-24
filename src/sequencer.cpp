@@ -36,19 +36,19 @@ LdWeights::LdWeights(const LdWeightsArgs &_args) : args(_args) { }
 LdWeights::~LdWeights() {}
 
 void  LdWeights::execute(Sequencer *seq) {
-    uint8_t dtype_size = weightdtype_to_bytes[args.weight_dtype];
+    uint8_t dtype_size = weightdtype_to_bytes[args.dtype];
     seq->es.weight_valid = true;
-    seq->es.weight_dtype = args.weight_dtype;
+    seq->es.weight_dtype = (ARBPRECTYPE) args.dtype;
     seq->es.weight_full_addr = args.weight_full_addr;
-    seq->es.weight_clamp = (args.weight_columns == 1);
-    seq->es.row_countdown = args.weight_rows; 
-    seq->weight_columns = args.weight_columns;
-    seq->weight_x_step = dtype_size * args.weight_x_step;
-    seq->weight_x_num = args.weight_x_num_elements;
-    seq->weight_y_num = args.weight_y_num_elements;
+    seq->es.weight_clamp = (args.num_cols == 1);
+    seq->es.row_countdown = args.num_rows; 
+    seq->weight_clamp_countdown = args.num_cols;
+    seq->weight_x_step = dtype_size * args.x_step;
+    seq->weight_x_num = args.x_num_elements;
+    seq->weight_y_num = args.y_num_elements;
     seq->weight_x_cnt = 0;
     seq->weight_y_cnt = 0;
-    seq->weight_y_step = args.weight_y_step;
+    seq->weight_y_step = args.y_step;
     seq->raw_signal = false;
 
 }
@@ -64,6 +64,7 @@ void  MatMul::execute(Sequencer *seq) {
     /* signals that will stay constant for entire convolution */
     seq->es.ifmap_valid   = true;
     seq->es.ifmap_full_addr    = args.ifmap_full_addr;
+    seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
     seq->es.ofmap_full_addr    = args.ofmap_full_addr;
     seq->es.row_countdown = args.num_rows; 
     seq->es.column_countdown = args.num_cols;
@@ -75,12 +76,12 @@ void  MatMul::execute(Sequencer *seq) {
     seq->es.psum_id = 0; // tmp
     seq->es.weight_toggle = true;
     seq->ifmap_base = args.ifmap_full_addr;
-    seq->ifmap_x_num = args.ifmap_x_num_elements;
-    seq->ifmap_y_num = args.ifmap_y_num_elements;
+    seq->ifmap_x_num = args.x_num_elements;
+    seq->ifmap_y_num = args.y_num_elements;
     seq->ifmap_x_cnt = 0;
     seq->ifmap_y_cnt = 0;
-    seq->ifmap_x_step = args.ifmap_x_step;
-    seq->ifmap_y_step = args.ifmap_y_step;
+    seq->ifmap_x_step = args.x_step;
+    seq->ifmap_y_step = args.y_step;
     seq->raw_signal = false;
 
 }
@@ -146,12 +147,12 @@ Sequencer::step() {
     /* update state - feed weight */
     if (es.weight_valid) {
         /* es state */
-        if (--weight_columns) {
+        if (--weight_clamp_countdown) {
             es.weight_full_addr -= weight_y_num * weight_y_step;
         }
-        if (weight_columns == 1) {
+        if (weight_clamp_countdown == 1) {
             es.weight_clamp = true;
-        } else if (weight_columns == 0) {
+        } else if (weight_clamp_countdown == 0) {
             assert(es.weight_clamp);
             es.weight_clamp = false;
             es.weight_valid = false;
@@ -204,29 +205,30 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     assert(weight_load_latency < 64 && "Tiling not implemented yet, too many ofmaps!");
 
     LdWeightsArgs weight_args;
-    weight_args.weight_dtype = weight_dtype;
-    weight_args.weight_columns = num_cols;
-    weight_args.weight_rows = num_rows;
-    weight_args.weight_x_step = weight_step;
-    weight_args.weight_x_num_elements = args.w_s;
-    weight_args.weight_y_step = weight_step * args.w_s;
-    weight_args.weight_y_num_elements = args.w_r;
-    weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.weight_y_num_elements * weight_args.weight_y_step);
+    weight_args.dtype = weight_dtype;
+    weight_args.num_cols = num_cols;
+    weight_args.num_rows = num_rows;
+    weight_args.x_step = weight_step;
+    weight_args.x_num_elements = args.w_s;
+    weight_args.y_step = weight_step * args.w_s;
+    weight_args.y_num_elements = args.w_r;
+    weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num_elements * weight_args.y_step);
     uop.PUSH(new LdWeights(weight_args));
 
     MatMulArgs matmul_args;
     matmul_args.ifmap_full_addr   = 0xdead;
-    matmul_args.ifmap_x_num_elements = ofmap_cols;
-    matmul_args.ifmap_x_step = 1;
-    matmul_args.ifmap_y_num_elements = ofmap_rows;
-    matmul_args.ifmap_y_step = ifmap_cols;
+    matmul_args.x_num_elements = ofmap_cols;
+    matmul_args.x_step = 1;
+    matmul_args.y_num_elements = ofmap_rows;
+    matmul_args.y_step = ifmap_cols;
     matmul_args.ofmap_full_addr = args.ofmap_full_addr;
-    matmul_args.ifmap_dtype = ifmap_dtype;
+    matmul_args.dtype = ifmap_dtype;
     matmul_args.psum_dtype = psum_dtype;
     matmul_args.num_rows = num_rows;
     matmul_args.num_cols = num_cols;
 
-    /* go through each weight in the filter */
+    /* go through each weight in the filter, cannot combine r and s into one, because ifmap_full_addr 
+	   calc needs to seperate them */
     int curr_weight = 0;
     for (int r = 0; r <  filter_rows; r++) {
         for (int s = 0; s < filter_cols; s++, curr_weight++) {

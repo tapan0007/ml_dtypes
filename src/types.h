@@ -6,8 +6,8 @@
 
 enum ARBPRECTYPE {UINT8=0, UINT32, FP32, NUM_ARBPRECTYPE, INVALID_ARBPRECTYPE};
 
-enum FMAPDTYPE {FINT4=0, FUINT4, FINT8, FUINT8, FINT16, FUINT16, FFP16=7, NUM_FMAPDTYPE, INVALID_FMAPDTYPE};
-enum WEIGHTDTYPE {WINT4=0, WUINT4, WINT8, WUINT8, WINT16, WUINT16, WFP16=7, NUM_WEIGHTDTYPE, INVALID_WEIGHTDTYPE};
+enum FMAPDTYPE {FINT4=0, FUINT4, FINT8, FUINT8, FINT16, FUINT16,FUINT32, FFP32, FFP16=7, NUM_FMAPDTYPE, INVALID_FMAPDTYPE};
+enum WEIGHTDTYPE {WINT4=0, WUINT4, WINT8, WUINT8, WINT16, WUINT16, WUINT32, WFP32, WFP16=7, NUM_WEIGHTDTYPE, INVALID_WEIGHTDTYPE};
 
 // FIXME -= make better way to do this
 extern uint8_t fmapdtype_to_bytes[NUM_FMAPDTYPE];
@@ -40,6 +40,7 @@ class Constants
     // TODO: find compile time log 2
     public:
         static const uint8_t row_bits = 6;
+        static const uint8_t type_bits = 3;
         static const uint8_t rows = 1 << Constants::row_bits;
         static const uint8_t column_bits = 7;
         static const uint8_t columns = 1 << Constants::column_bits;
