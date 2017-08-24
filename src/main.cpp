@@ -17,7 +17,9 @@
  //   pe_array.dump(stdout); 
 
 
-Memory memory = Memory(Constants::columns * Constants::partition_nbytes);
+Memory memory = Memory(Constants::columns * Constants::partition_nbytes + Constants::columns * Constants::psum_addr);
+addr_t state_buffer_base = 0x0;
+addr_t psum_buffer_base = Constants::columns * Constants::partition_nbytes;
 
 int main(int argc, char **argv)
 {
@@ -85,8 +87,6 @@ int main(int argc, char **argv)
     memory.bank_mmap(cargs.filter_full_addr, f_ptr, cargs.w_c, cargs.w_m * cargs.w_r * cargs.w_s * word_size);
 
 
-    cargs.ofmap_full_addr = 2 * Constants::bytes_per_bank;
-
     /* set sequencer state */
     //sequencer.convolve_static(cargs);
     sequencer.convolve_dynamic(cargs);
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     int o_rows = (cargs.i_h - cargs.w_r + 1);
     int o_cols = (cargs.i_w - cargs.w_s + 1);
     word_size = 4; // HACKE DIN FIX, outputting 32 
-    o_ptr = memory.bank_munmap(cargs.ofmap_full_addr, cargs.w_c, o_rows * o_cols * word_size);
+    o_ptr = memory.bank_munmap(psum_buffer_base, cargs.w_c, o_rows * o_cols * word_size);
     memory.io_write(o_name, o_ptr, cargs.i_n, cargs.w_m, o_rows, o_cols, word_size);
 }
 

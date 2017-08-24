@@ -7,7 +7,6 @@
 typedef struct ConvolveArgs{
     ADDR_UNION(ifmap);
     ADDR_UNION(filter);
-    ADDR_UNION(ofmap);
     ARBPRECTYPE weight_dtype;
     int i_n, i_c, i_h, i_w;
     int w_c, w_m, w_r, w_s;
@@ -63,7 +62,6 @@ typedef struct MatMulArgs {
     uint64_t    x_num_elements : 8;
     addr_t      y_step         : Constants::bank_bits - 1;
     uint64_t    y_num_elements : 8;
-    ADDR_UNION(ofmap);
     uint64_t    psum_dtype : Constants::type_bits;
     uint64_t    num_rows   : Constants::row_bits;
     uint64_t    num_cols   : Constants::column_bits;
@@ -110,7 +108,6 @@ class Sequencer : public EdgeInterface  {
         uint8_t     ifmap_y_num;
         uint8_t     ifmap_x_cnt;
         uint8_t     ifmap_y_cnt;
-        size_t      ofmap_step;
 
         /*  misc */
         bool        raw_signal;

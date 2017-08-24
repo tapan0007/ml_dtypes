@@ -8,16 +8,15 @@
 void EdgeSignalsInstruction::dump(bool header)
 {   
     if (header) {
-        printf("rc cc |  iv   ia  |  wv wa   wd  wt wc | pa pd ps pe | av af | pv pt px py pd | oa \n");
+        printf("rc cc |  iv   ia  |  wv wa   wd  wt wc | pa pd ps pe | av af | pv pt px py pd  \n");
     }
-    printf("%2d %2d | %2d 0x%-3lx  | %2d 0x%-3lx  %2d %2d %2d | 0x%-3lx %2d %2d %2d | %2d %2d | %2d %2d %2d %2d %2d | 0x%-3lx  \n",
+    printf("%2d %2d | %2d 0x%-3lx  | %2d 0x%-3lx  %2d %2d %2d | 0x%-3lx %2d %2d %2d | %2d %2d | %2d %2d %2d %2d %2d   \n",
             es.row_countdown, es.column_countdown, 
             es.ifmap_valid, es.ifmap_full_addr,
             es.weight_valid, es.weight_full_addr, es.weight_dtype, es.weight_toggle, es.weight_clamp,
             es.psum_full_addr, es.psum_dtype, es.psum_start, es.psum_end,
             es.activation_valid, es.activation,
-            es.pool_valid, es.pool_type, es.pool_dimx, es.pool_dimy, es.pool_dtype,
-            es.ofmap_full_addr);
+            es.pool_valid, es.pool_type, es.pool_dimx, es.pool_dimy, es.pool_dtype);
 
 }
  
@@ -65,7 +64,7 @@ void  MatMul::execute(Sequencer *seq) {
     seq->es.ifmap_valid   = true;
     seq->es.ifmap_full_addr    = args.ifmap_full_addr;
     seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
-    seq->es.ofmap_full_addr    = args.ofmap_full_addr;
+    //seq->es.ofmap_full_addr    = args.ofmap_full_addr;
     seq->es.row_countdown = args.num_rows; 
     seq->es.column_countdown = args.num_cols;
     seq->es.psum_start = args.psum_start;
@@ -140,7 +139,7 @@ Sequencer::step() {
         } else {
             es.ifmap_full_addr = ifmap_base + (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * sizeofArbPrecType((ARBPRECTYPE)es.ifmap_dtype);
             es.psum_full_addr += Constants::psum_buffer_width; /* FIXME - this is the psum granularity, we want to use psum buffers more efficiently */
-            es.ofmap_full_addr += sizeofArbPrecType(es.psum_dtype);
+            //es.ofmap_full_addr += sizeofArbPrecType(es.psum_dtype);
         }
         COND_SET(es.weight_toggle, false);
     }
@@ -221,7 +220,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     matmul_args.x_step = 1;
     matmul_args.y_num_elements = ofmap_rows;
     matmul_args.y_step = ifmap_cols;
-    matmul_args.ofmap_full_addr = args.ofmap_full_addr;
+    //matmul_args.ofmap_full_addr = args.ofmap_full_addr;
     matmul_args.dtype = ifmap_dtype;
     matmul_args.psum_dtype = psum_dtype;
     matmul_args.num_rows = num_rows;
@@ -342,8 +341,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
                         es.psum_end   = true;
                         es.activation_valid = true;
                         es.pool_valid = true;
-                        es.ofmap_full_addr = args.ofmap_full_addr + curr_opixel * 
-                            sizeofArbPrecType(psum_dtype);
+                        //es.ofmap_full_addr = args.ofmap_full_addr + curr_opixel * sizeofArbPrecType(psum_dtype);
                     }
                     
                     uop.PUSH(new EdgeSignalsInstruction(es));

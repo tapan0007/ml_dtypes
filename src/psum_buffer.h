@@ -29,6 +29,7 @@ class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
         EdgeInterface            *west;
         std::vector<PSumBufferEntry>     entry;
         int                      ready_id;
+        void *ptr;
 
 };
 

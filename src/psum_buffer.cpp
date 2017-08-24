@@ -3,10 +3,12 @@
 #include "io.h"
 
 extern Memory memory;
+extern addr_t psum_buffer_base;
 //------------------------------------------------------------
 // PsumBuffer
 //------------------------------------------------------------
 PSumBuffer::PSumBuffer() : ew(), north(nullptr), west(nullptr), ready_id(-1) {
+    ptr = memory.translate(psum_buffer_base);
     PSumBufferEntry empty_entry = {.partial_sum = {0}, .dtype = INVALID_ARBPRECTYPE, .valid=false};
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
@@ -140,8 +142,8 @@ PSumBuffer::step() {
             if (ew.activation_valid) {
                 ofmap_pixel = activation(ofmap_pixel);
             }
-            memory.write(ew.ofmap_full_addr, ArbPrec::element_ptr(ofmap_pixel, psum_dtype), (char *)ArbPrec::element_ptr(ofmap_pixel, psum_dtype) - (char *)&ofmap_pixel);
-            ew.ofmap_full_addr += Constants::partition_nbytes;
+            //memory.write(ew.ofmap_full_addr, ArbPrec::element_ptr(ofmap_pixel, psum_dtype), (char *)ArbPrec::element_ptr(ofmap_pixel, psum_dtype) - (char *)&ofmap_pixel);
+            //ew.ofmap_full_addr += Constants::partition_nbytes;
         }
         ew.column_countdown--;
     }

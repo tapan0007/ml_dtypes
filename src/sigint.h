@@ -61,8 +61,6 @@ typedef struct EdgeSignals {
     int            pool_dimx;        // PSUM     | rows in pooling
     int            pool_dimy;        // PSUM     | cols in pooling
     ARBPRECTYPE    pool_dtype;       // PSUM     | What type of data is our pooling operating on? FIXME: semi-redundant? inferrable from weight_dtype
-
-    ADDR_UNION(ofmap)       // PSUM     | Dest address for pooling/activation result
 } EdgeSignals;
 
 // ----------------------------------------------------------
