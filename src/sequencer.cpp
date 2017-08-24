@@ -8,13 +8,13 @@
 void EdgeSignalsInstruction::dump(bool header)
 {   
     if (header) {
-        printf("rc cc |  iv   ia  |  wv wa   wd  wt wc | pi pd ps pe | av af | pv pt px py pd | oa \n");
+        printf("rc cc |  iv   ia  |  wv wa   wd  wt wc | pa pd ps pe | av af | pv pt px py pd | oa \n");
     }
-    printf("%2d %2d | %2d 0x%-3lx  | %2d 0x%-3lx  %2d %2d %2d | %2d %2d %2d %2d | %2d %2d | %2d %2d %2d %2d %2d | 0x%-3lx  \n",
+    printf("%2d %2d | %2d 0x%-3lx  | %2d 0x%-3lx  %2d %2d %2d | 0x%-3lx %2d %2d %2d | %2d %2d | %2d %2d %2d %2d %2d | 0x%-3lx  \n",
             es.row_countdown, es.column_countdown, 
             es.ifmap_valid, es.ifmap_full_addr,
             es.weight_valid, es.weight_full_addr, es.weight_dtype, es.weight_toggle, es.weight_clamp,
-            es.psum_id, es.psum_dtype, es.psum_start, es.psum_end,
+            es.psum_full_addr, es.psum_dtype, es.psum_start, es.psum_end,
             es.activation_valid, es.activation,
             es.pool_valid, es.pool_type, es.pool_dimx, es.pool_dimy, es.pool_dtype,
             es.ofmap_full_addr);
@@ -73,7 +73,7 @@ void  MatMul::execute(Sequencer *seq) {
     seq->es.psum_dtype = (ARBPRECTYPE)args.psum_dtype;
     seq->es.pool_valid = args.psum_end; // FIXME - temporary hack
     seq->es.pool_dtype = (ARBPRECTYPE)args.psum_dtype; // FIXME - temporary hack to get results
-    seq->es.psum_id = 0; // tmp
+    seq->es.psum_full_addr = 0; // tmp
     seq->es.weight_toggle = true;
     seq->ifmap_base = args.ifmap_full_addr;
     seq->ifmap_x_num = args.x_num_elements;
@@ -139,7 +139,7 @@ Sequencer::step() {
             es.activation_valid = false;
         } else {
             es.ifmap_full_addr = ifmap_base + (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * fmapdtype_to_bytes[es.ifmap_dtype];
-            es.psum_id++;
+            es.psum_full_addr += Constants::psum_buffer_width; /* FIXME - this is the psum granularity, we want to use psum buffers more efficiently */
             es.ofmap_full_addr += sizeofArbPrecType(es.psum_dtype);
         }
         COND_SET(es.weight_toggle, false);
@@ -309,7 +309,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
             for (int e = 0; e < ofmap_rows; e++) {
                 for (int f = 0; f < ofmap_cols; f++) {
                     curr_opixel = e * ofmap_cols + f; // curr pixel
-                    es.psum_id  = curr_opixel;
+                    es.psum_full_addr  = curr_opixel * Constants::psum_buffer_width; // FIXME - inefficient use of psumb uffer
                     es.psum_start = (r == 0) && (s == 0); // only clear psum buffer on first weight
                     es.weight_toggle = (e == 0) && (f == 0); // only toggle on first ofmap pixel
 

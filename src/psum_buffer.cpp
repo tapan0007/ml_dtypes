@@ -6,10 +6,11 @@ extern Memory memory;
 //------------------------------------------------------------
 // PsumBuffer
 //------------------------------------------------------------
-PSumBuffer::PSumBuffer(int n_entries) : ew(), north(nullptr), west(nullptr), ready_id(-1) {
+PSumBuffer::PSumBuffer() : ew(), north(nullptr), west(nullptr), ready_id(-1) {
     PSumBufferEntry empty_entry = {.partial_sum = ArbPrec(uint32_t(0)), .valid=false};
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
+    int n_entries = Constants::psum_banks * Constants::psum_buffer_entries;
     for (int i = 0; i < n_entries; i++) {
         entry.push_back(empty_entry);
     }
@@ -39,7 +40,7 @@ PSumBuffer::pull_psum() {
 
 ArbPrec
 PSumBuffer::pool() {
-    int e_id = ew.psum_id;
+    int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
     ArbPrec pool_pixel = ArbPrec(ew.pool_dtype);
     //int n = ew.pool_dimx * ew.pool_dimy;
     switch (ew.pool_type) {
@@ -101,7 +102,7 @@ PSumBuffer::step() {
     ARBPRECTYPE psum_dtype = weight_to_psum_dtype[ew.psum_dtype];
     ns = north->pull_ns();
     ew = west->pull_edge();
-    int e_id = ew.psum_id;
+    int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
     if (ew.column_countdown) {
         if (ew.psum_start) {
             assert(e_id < (int)entry.size());
