@@ -17,9 +17,11 @@ class Memory {
         void *translate(addr_t addr);
         void swap_axes(void *ptr, int i, int j, int k, int l, size_t word_size);
         void bank_mmap(addr_t addr, void *ptr, int count, size_t size);
-        void *bank_munmap(addr_t addr, int count, size_t size);
+        void *psum_bank_munmap(addr_t addr, int count, size_t size);
+        void *sbuffer_bank_munmap(addr_t addr, int count, size_t size);
     private:
         char *memory;
+        void *bank_munmap(addr_t addr, int count, addr_t stride, size_t size);
 
 };
 

@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     int o_rows = (cargs.i_h - cargs.w_r + 1);
     int o_cols = (cargs.i_w - cargs.w_s + 1);
     word_size = 4; // HACKE DIN FIX, outputting 32 
-    o_ptr = memory.bank_munmap(psum_buffer_base, cargs.w_c, o_rows * o_cols * word_size);
+    o_ptr = memory.psum_bank_munmap(psum_buffer_base, cargs.w_c, o_rows * o_cols * word_size);
     memory.io_write(o_name, o_ptr, cargs.i_n, cargs.w_m, o_rows, o_cols, word_size);
 }
 

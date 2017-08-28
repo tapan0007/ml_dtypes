@@ -59,17 +59,29 @@ Memory::bank_mmap(addr_t addr, void *ptr, int count, size_t n_bytes)
 }
 
 void  *
-Memory::bank_munmap(addr_t addr, int count, size_t n_bytes)
+Memory::bank_munmap(addr_t addr, int count, addr_t stride, size_t n_bytes)
 {
     int tot_n_bytes = count * n_bytes;
     void *ptr = malloc(tot_n_bytes);
     char *cptr = (char *)ptr;
     for (int i = 0; i < count; i++) {
         memcpy(cptr, memory + addr, n_bytes);
-        addr  += Constants::partition_nbytes;
+        addr  += stride;
         cptr  += n_bytes;
     }
     return ptr;
+}
+
+void  *
+Memory::sbuffer_bank_munmap(addr_t addr, int count, size_t n_bytes)
+{
+    return bank_munmap(addr, count, Constants::partition_nbytes, n_bytes);
+}
+
+void  *
+Memory::psum_bank_munmap(addr_t addr, int count, size_t n_bytes)
+{
+    return bank_munmap(addr, count, Constants::psum_addr, n_bytes);
 }
 
 void 

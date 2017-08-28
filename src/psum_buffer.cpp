@@ -7,15 +7,9 @@ extern addr_t psum_buffer_base;
 //------------------------------------------------------------
 // PsumBuffer
 //------------------------------------------------------------
-PSumBuffer::PSumBuffer() : ew(), north(nullptr), west(nullptr), ready_id(-1) {
-    ptr = memory.translate(psum_buffer_base);
-    PSumBufferEntry empty_entry = {.partial_sum = {0}, .dtype = INVALID_ARBPRECTYPE, .valid=false};
+PSumBuffer::PSumBuffer() : ptr(NULL), ew(), north(nullptr), west(nullptr) {
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
-    int n_entries = Constants::psum_banks * Constants::psum_buffer_entries;
-    for (int i = 0; i < n_entries; i++) {
-        entry.push_back(empty_entry);
-    }
 }
 
 PSumBuffer::~PSumBuffer() {}
@@ -23,6 +17,12 @@ PSumBuffer::~PSumBuffer() {}
 void
 PSumBuffer::connect_west(EdgeInterface *_west) {
     west = _west;
+}
+
+void
+PSumBuffer::set_address(addr_t addr) {
+    ptrs.char_ptr = (char *)memory.translate(addr);
+
 }
 
 void
@@ -37,16 +37,19 @@ PSumBuffer::pull_edge() {
 
 PSumActivateSignals
 PSumBuffer::pull_psum() {
-    if (ready_id == -1) {
-        return PSumActivateSignals{false, {0}, INVALID_ARBPRECTYPE};
-    }
-    return PSumActivateSignals{ready_id != -1, entry[ready_id].partial_sum, entry[ready_id].dtype};
+ //   dtype = R_UINT32; // FIXME - should be arg?
+ //   if (ready_id == -1) {
+ //       return PSumActivateSignals{false, {0}, INVALID_ARBPRECTYPE};
+ //   }
+    //assert(0 && "this doesn't work");
+    return PSumActivateSignals{false, {0}, INVALID_ARBPRECTYPE};
+    //return PSumActivateSignals{ready_id != -1, ptrs.char_ptr[ready_id], dtype};
 }
 
 ArbPrecData
 PSumBuffer::pool() {
-    int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
-    ArbPrecData pool_pixel = entry[e_id].partial_sum;
+//    int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
+ //   ArbPrecData pool_pixel = entry[e_id].partial_sum;
     // = ArbPrec(ew.pool_dtype);
     //int n = ew.pool_dimx * ew.pool_dimy;
 #if 0
@@ -79,7 +82,7 @@ PSumBuffer::pool() {
             break;
     }
 #endif
-    return pool_pixel;
+    return {0};
 }
 
 ArbPrecData
@@ -110,32 +113,68 @@ PSumBuffer::step() {
     if (ew.column_countdown) {
         ARBPRECTYPE psum_dtype =  ew.psum_dtype; //get_upcast(ew.psum_dtype);
         if (ew.psum_start) {
-            assert(e_id < (int)entry.size());
-            assert(entry[e_id].valid == false);
-            entry[e_id].partial_sum.raw = 0;
-            entry[e_id].valid = true;
-
+            //assert(e_id < (int)entry.size());  FIXME - add range check
+            //assert(entry[e_id].valid == false);  FIXME - add valid check
+            switch (psum_dtype) {
+                case R_UINT32:
+                    ptrs.uint32_ptr[e_id] = 0;
+                    break;
+                case R_INT32:
+                    ptrs.int32_ptr[e_id] = 0;
+                    break;
+                case R_UINT64:
+                    ptrs.uint64_ptr[e_id] = 0;
+                    break;
+                case R_INT64:
+                    ptrs.int64_ptr[e_id] = 0;
+                    break;
+                case R_FP32:
+                    ptrs.fp32_ptr[e_id] = 0;
+                    break;
+                default:
+                    assert(0);
+            }
         }
         if (ew.ifmap_valid) {
-            assert(e_id < (int)entry.size());
-            assert(entry[e_id].valid == true);
-            assert(entry[e_id].valid);
+            // assert(e_id < (int)entry.size());  FIXME - add range check
+            // assert(entry[e_id].valid);  FIXME - add valid check
             printf("adding partial sum at %d is ", e_id);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             printf("\n");
-            entry[e_id].partial_sum = ArbPrec::add(entry[e_id].partial_sum, ns.partial_sum, psum_dtype);
+            switch (psum_dtype) {
+                case R_UINT32:
+                    ptrs.uint32_ptr[e_id] = 
+                        ArbPrec::add(&ptrs.uint32_ptr[e_id], &ns.partial_sum, psum_dtype).uint32;
+                    break;
+                case R_INT32:
+                    ptrs.int32_ptr[e_id] = 
+                        ArbPrec::add(&ptrs.int32_ptr[e_id], &ns.partial_sum, psum_dtype).int32;
+                    break;
+                case R_UINT64:
+                    ptrs.uint64_ptr[e_id] = 
+                        ArbPrec::add(&ptrs.uint64_ptr[e_id], &ns.partial_sum, psum_dtype).uint64;
+                    break;
+                case R_INT64:
+                    ptrs.int64_ptr[e_id] = 
+                        ArbPrec::add(&ptrs.int64_ptr[e_id], &ns.partial_sum, psum_dtype).int64;
+                    break;
+                case R_FP32:
+                    ptrs.fp32_ptr[e_id] = 
+                        ArbPrec::add(&ptrs.fp32_ptr[e_id], &ns.partial_sum, psum_dtype).fp32;
+                    break;
+                default:
+                    assert(0);
+            }
         }
 
         if (ew.psum_end) {
-            assert(entry[e_id].valid == true);
-            assert(e_id < (int)entry.size());
+            //assert(entry[e_id].valid == true);   FIXME -add range check
+            //assert(e_id < (int)entry.size()); FIXME - add range check
             printf("final partial sum at %d is ", e_id);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             printf("\n");
-            entry[e_id].valid = false;
-        } else {
-            ready_id = -1;
-        }
+            //entry[e_id].valid = false; FIXME - set to invalid
+        } 
 
         if (ew.pool_valid) {
             ArbPrecData ofmap_pixel = pool();
@@ -154,10 +193,11 @@ PSumBuffer::step() {
 //------------------------------------------------------------
 PSumBufferArray::PSumBufferArray(int n_cols) {
     col_buffer.resize(n_cols);
+    col_buffer[0].set_address(psum_buffer_base);
     for (int i = 1; i < n_cols; i++) {
         col_buffer[i].connect_west(&col_buffer[i-1]);
+        col_buffer[i].set_address(psum_buffer_base + i * Constants::psum_addr);
     }
-          
 }
 
 PSumBufferArray::~PSumBufferArray() {}

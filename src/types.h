@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-enum ARBPRECTYPE {INVALID_ARBPRECTYPE=0, INT8=2, UINT8=3, INT16=4, UINT16=5, FP16=7, R_UINT32, R_INT32, R_FP32, NUM_ARBPRECTYPE};
+enum ARBPRECTYPE {INVALID_ARBPRECTYPE=0, INT8=2, UINT8=3, INT16=4, UINT16=5, FP16=7, R_UINT32, R_INT32, R_FP32, R_UINT64, R_INT64, NUM_ARBPRECTYPE};
 
 ARBPRECTYPE get_upcast(ARBPRECTYPE);
 
@@ -56,7 +56,7 @@ class Constants
         static const size_t psum_buffer_width = (1 << Constants::psum_buffer_width_bits);
         static const size_t psum_buffer_entries_bits = 8;
         static const size_t psum_buffer_entries = (1 << Constants::psum_buffer_entries_bits);
-        static const size_t psum_bank_bits = Constants::banks_per_partition;
+        static const size_t psum_bank_bits = Constants::banks_per_partition_bits;
         static const size_t psum_banks = (1 << Constants::psum_bank_bits);
         static const size_t psum_addr_bits = Constants::psum_buffer_width_bits + 
             Constants::psum_buffer_entries_bits + Constants::psum_bank_bits;

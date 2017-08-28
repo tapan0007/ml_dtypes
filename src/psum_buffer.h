@@ -5,12 +5,6 @@
 #include "types.h"
 #include <vector>
 
-typedef struct PSumBufferEntry {
-    ArbPrecData partial_sum;
-    ARBPRECTYPE dtype;
-    bool    valid;
-} PSumBufferEntry;
-
 class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
     public:
         PSumBuffer();
@@ -19,17 +13,25 @@ class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
         PSumActivateSignals pull_psum();
         void connect_west(EdgeInterface *);
         void connect_north(PeNSInterface *);
+        void set_address(addr_t base_addr);
         void step();
     private:
         ArbPrecData              pool();
         ArbPrecData              activation(ArbPrecData pixel);
+        char                    *ptr; // pointer to memory
         PeNSSignals              ns;
         EdgeSignals              ew;
         PeNSInterface            *north;
         EdgeInterface            *west;
-        std::vector<PSumBufferEntry>     entry;
-        int                      ready_id;
-        void *ptr;
+        addr_t                    ready_addr;
+        union {
+            char      *char_ptr;
+            uint32_t  *uint32_ptr;
+            int32_t   *int32_ptr;
+            uint64_t  *uint64_ptr;
+            int64_t   *int64_ptr;
+            float     *fp32_ptr;
+        } __attribute((__packed__)) ptrs;
 
 };
 
