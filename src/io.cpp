@@ -96,6 +96,35 @@ Memory::write(addr_t dest, void *src, size_t n_bytes)
     memcpy(memory + dest, src, n_bytes);
 }
 
+addr_t
+Memory::index(addr_t base, unsigned int i, ARBPRECTYPE dtype)
+{
+    memory_accessor ma;
+    ma.char_ptr = &memory[base];
+    void *ptr;
+
+    switch (dtype) {
+        case R_UINT32:
+            ptr = &ma.uint32_ptr[i];
+            break;
+        case R_INT32:
+            ptr = &ma.int32_ptr[i];
+            break;
+        case R_UINT64:
+            ptr = &ma.uint64_ptr[i];
+            break;
+        case R_INT64:
+            ptr = &ma.int64_ptr[i];
+            break;
+        case R_FP32:
+            ptr = &ma.fp32_ptr[i];
+            break;
+        default:
+            assert(0);
+    }
+    return ((char *)ptr - memory);
+}
+
 void *
 Memory::translate(addr_t addr) {
     return memory + addr;

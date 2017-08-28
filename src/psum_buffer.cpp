@@ -10,6 +10,7 @@ extern addr_t psum_buffer_base;
 PSumBuffer::PSumBuffer() : ptr(NULL), ew(), north(nullptr), west(nullptr) {
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
+    valids = (char *)(calloc(Constants::psum_addr, 1));
 }
 
 PSumBuffer::~PSumBuffer() {}
@@ -21,8 +22,7 @@ PSumBuffer::connect_west(EdgeInterface *_west) {
 
 void
 PSumBuffer::set_address(addr_t addr) {
-    ptrs.char_ptr = (char *)memory.translate(addr);
-
+    mem_addr = addr;
 }
 
 void
@@ -109,71 +109,35 @@ void
 PSumBuffer::step() {
     ns = north->pull_ns();
     ew = west->pull_edge();
-    int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
+    static ArbPrecData zeros = {0};
+    static ArbPrecData ones = {.uint64 = 0xffffffffffffffff};
     if (ew.column_countdown) {
         ARBPRECTYPE psum_dtype =  ew.psum_dtype; //get_upcast(ew.psum_dtype);
+        size_t dsize = sizeofArbPrecType(psum_dtype);
+        unsigned int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
+        unsigned int e_offset = e_id * dsize;
+        addr_t src_addr = memory.index(mem_addr, e_id, psum_dtype);
+        void *src_ptr = memory.translate(src_addr);
+        assert(e_offset <= Constants::psum_addr);
         if (ew.psum_start) {
-            //assert(e_id < (int)entry.size());  FIXME - add range check
-            //assert(entry[e_id].valid == false);  FIXME - add valid check
-            switch (psum_dtype) {
-                case R_UINT32:
-                    ptrs.uint32_ptr[e_id] = 0;
-                    break;
-                case R_INT32:
-                    ptrs.int32_ptr[e_id] = 0;
-                    break;
-                case R_UINT64:
-                    ptrs.uint64_ptr[e_id] = 0;
-                    break;
-                case R_INT64:
-                    ptrs.int64_ptr[e_id] = 0;
-                    break;
-                case R_FP32:
-                    ptrs.fp32_ptr[e_id] = 0;
-                    break;
-                default:
-                    assert(0);
-            }
+            memory.write(src_addr, &zeros, dsize);
+            memcpy(&valids[e_offset], &ones, dsize); 
         }
         if (ew.ifmap_valid) {
-            // assert(e_id < (int)entry.size());  FIXME - add range check
-            // assert(entry[e_id].valid);  FIXME - add valid check
             printf("adding partial sum at %d is ", e_id);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             printf("\n");
-            switch (psum_dtype) {
-                case R_UINT32:
-                    ptrs.uint32_ptr[e_id] = 
-                        ArbPrec::add(&ptrs.uint32_ptr[e_id], &ns.partial_sum, psum_dtype).uint32;
-                    break;
-                case R_INT32:
-                    ptrs.int32_ptr[e_id] = 
-                        ArbPrec::add(&ptrs.int32_ptr[e_id], &ns.partial_sum, psum_dtype).int32;
-                    break;
-                case R_UINT64:
-                    ptrs.uint64_ptr[e_id] = 
-                        ArbPrec::add(&ptrs.uint64_ptr[e_id], &ns.partial_sum, psum_dtype).uint64;
-                    break;
-                case R_INT64:
-                    ptrs.int64_ptr[e_id] = 
-                        ArbPrec::add(&ptrs.int64_ptr[e_id], &ns.partial_sum, psum_dtype).int64;
-                    break;
-                case R_FP32:
-                    ptrs.fp32_ptr[e_id] = 
-                        ArbPrec::add(&ptrs.fp32_ptr[e_id], &ns.partial_sum, psum_dtype).fp32;
-                    break;
-                default:
-                    assert(0);
-            }
+            ArbPrecData result = ArbPrec::add(src_ptr, &ns.partial_sum, psum_dtype);
+            memory.write(src_addr, &result, dsize);
+            assert(valids[e_offset]);
         }
 
         if (ew.psum_end) {
-            //assert(entry[e_id].valid == true);   FIXME -add range check
-            //assert(e_id < (int)entry.size()); FIXME - add range check
             printf("final partial sum at %d is ", e_id);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             printf("\n");
-            //entry[e_id].valid = false; FIXME - set to invalid
+            assert(valids[e_offset]);
+            memcpy(&valids[e_offset], &zeros, dsize); 
         } 
 
         if (ew.pool_valid) {

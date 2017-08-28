@@ -24,14 +24,8 @@ class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
         PeNSInterface            *north;
         EdgeInterface            *west;
         addr_t                    ready_addr;
-        union {
-            char      *char_ptr;
-            uint32_t  *uint32_ptr;
-            int32_t   *int32_ptr;
-            uint64_t  *uint64_ptr;
-            int64_t   *int64_ptr;
-            float     *fp32_ptr;
-        } __attribute((__packed__)) ptrs;
+        char *                    valids;
+        addr_t mem_addr;
 
 };
 
