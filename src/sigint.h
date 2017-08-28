@@ -8,24 +8,27 @@
 // Signals
 // ----------------------------------------------------------
 typedef struct PeEWSignals {
-    ArbPrec pixel;
-    ArbPrec weight;
+    ArbPrecData pixel;
+    bool    pixel_valid;
+    ArbPrecData weight;
     ARBPRECTYPE weight_dtype;
     bool    weight_toggle;
 } PeEWSignals;
 
 typedef struct PeNSSignals {
-    ArbPrec partial_sum;
+    ArbPrecData partial_sum;
 } PeNSSignals;
 
 typedef struct PSumActivateSignals {
     bool    valid;
-    ArbPrec partial_sum;
+    ArbPrecData partial_sum;
+    ARBPRECTYPE dtype;
 } PSumActivateSignals;
 
 typedef struct ActivateSbSignals {
     bool    valid;
-    ArbPrec partial_sum;
+    ArbPrecData partial_sum;
+    ARBPRECTYPE dtype;
 } ActivateSbSignals;
 
 
@@ -112,15 +115,15 @@ class SbEWBroadcastInterface
         ~SbEWBroadcastInterface() {};
         virtual bool pull_clamp() = 0;
 };
-
-
 // ----------------------------------------------------------
 // Dummy Generators
 // ----------------------------------------------------------
 class ZeroPeNSGenerator : public PeNSInterface {
     public:
-        PeNSSignals pull_ns() {return PeNSSignals{ArbPrec((uint32_t)(0))};}
+        PeNSSignals pull_ns() {return {0};}
 };
+
+
 
 
 #endif  

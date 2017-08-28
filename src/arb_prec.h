@@ -11,100 +11,150 @@
 size_t
 sizeofArbPrecType(ARBPRECTYPE type);
 
-class ArbPrec {
+typedef union ArbPrecData {
+    uint8_t  uint8;
+    uint8_t  uint8_tuple[2];
+    uint16_t uint16;
+    uint32_t uint32;
+    uint32_t uint32_tuple[2];
+    uint64_t uint64;
+    int8_t   int8;
+    int8_t   int8_tuple[2];
+    int16_t  int16;
+    int32_t  int32;
+    int32_t  int32_tuple[2];
+    int64_t  int64;
+    float    fp16;
+    float    fp32;
+    uint64_t raw;
+} __attribute__ ((__packed__)) ArbPrecData;
+
+#define EXTRACT(C, V) \
+    (*((C *)V))
+
+class ArbPrec
+{
+    // TODO: find compile time log 2
     public:
-        ArbPrec() : type(INVALID_ARBPRECTYPE) {}
-        ArbPrec(uint8_t _val) : uint8(_val), type(UINT8) {}
-        ArbPrec(uint32_t _val) : uint32(_val), type(UINT32) {}
-        ArbPrec(float _val) : fp32(_val), type(FP32) {}
-        ArbPrec(ARBPRECTYPE _type) : uint8(0), uint32(0), fp32(0), type(_type) {};
-        ArbPrec(ARBPRECTYPE _type, int val) {
-            switch (_type) {
-                case UINT8:
-                    ArbPrec((uint8_t)val); break;
-                case UINT32:
-                    ArbPrec((uint32_t)val); break;
-                case FP32:
-                    ArbPrec((float)val); break;
-                default:
-                    assert(0);
-            }
+        static ArbPrecData multiply(ArbPrecData &x, ArbPrecData &y, ARBPRECTYPE in_type, ARBPRECTYPE &out_type) {
+            return _multiply(element_ptr(x, in_type), element_ptr(y, in_type), in_type, out_type);
         }
-        ~ArbPrec() {};
-        friend ArbPrec operator*(const ArbPrec &x, const ArbPrec &y) {
-            ArbPrec ap;
-            if (x.type == UINT8 and y.type == UINT8) {
-                ap = ArbPrec(uint32_t(x.uint8) * uint32_t(y.uint8));
-            } else if (x.type == UINT8 and y.type == FP32) {
-                ap = ArbPrec(x.uint8 * y.fp32);
-            } else if (x.type == FP32 and y.type == UINT8) {
-                ap = ArbPrec(x.fp32 * y.uint8);
-            } else {
-                assert(0 && "unsupported combo");
-            }
-            return ap;
+        static ArbPrecData multiply(void *x, void *y, ARBPRECTYPE in_type, ARBPRECTYPE &out_type) {
+            return _multiply(x, y, in_type, out_type);
         }
 
-        friend ArbPrec operator/(const ArbPrec &x, const ArbPrec &y) {
-            ArbPrec ap;
-            if (x.type == UINT32 and y.type == UINT32) {
-                ap = ArbPrec(x.uint32 / y.uint32);
-            } else if (x.type == FP32 and y.type == FP32) {
-                ap = ArbPrec(x.fp32 / y.fp32);
-            } else {
-                assert(0 && "unsupported combo");
-            }
-            return ap;
+        static ArbPrecData add(ArbPrecData &x, ArbPrecData &y, ARBPRECTYPE in_type) {
+            return _add(element_ptr(x, in_type), element_ptr(y, in_type), in_type);
         }
-
-        friend ArbPrec operator+(const ArbPrec &x, const ArbPrec &y) {
-            ArbPrec ap;
-            if (x.type == UINT32 and y.type == UINT32) {
-                ap = ArbPrec(x.uint32 + y.uint32);
-            } else if (x.type == FP32 and y.type == FP32) {
-                ap = ArbPrec(x.fp32 + y.fp32);
-            } else {
-                assert(0 && "unsupported combo");
-            }
-            return ap;
+        static ArbPrecData add(void *x, void *y, ARBPRECTYPE in_type) {
+            return _add(x, y, in_type);
         }
-        friend bool operator>(const ArbPrec &x, const ArbPrec &y) {
-            if (x.type == UINT32 and y.type == UINT32) {
-                return x.uint32 > y.uint32;
-            } else if (x.type == FP32 and y.type == FP32) {
-                return x.fp32 > y.fp32;
-            } 
-            assert(0);
+        static void dump(FILE *f, ArbPrecData &x, ARBPRECTYPE type) {
+            _dump(f, element_ptr(x, type), type);
         }
-        void *raw_ptr() {
-            static void *type_to_ptr[NUM_ARBPRECTYPE] = {[UINT8]=&this->uint8, [UINT32]=&this->uint32, [FP32]=&this->fp32};
-            return type_to_ptr[type];
+        static void dump(FILE *f, void *x, ARBPRECTYPE type) {
+            _dump(f, x, type);
         }
-        int nbytes() {
-            static int type_to_nbytes[NUM_ARBPRECTYPE] = {[UINT8]=sizeof(uint8_t), [UINT32]=sizeof(uint32_t), [FP32]=sizeof(float)};
-            return type_to_nbytes[type];
-        }
-
-        void dump(FILE *f) {
+        static void *element_ptr(ArbPrecData &x, ARBPRECTYPE type) {
+            void *ptr = NULL;
             switch (type) {
                 case UINT8:
-                    fprintf(f, "%d", uint8);
+                    ptr = &(x.uint8);
                     break;
-                case UINT32:
-                    fprintf(f, "%d", uint32);
+                case INT8:
+                    ptr = &(x.int8);
                     break;
-                case FP32: 
-                    fprintf(f, "%f", fp32);
+                case UINT16:
+                    ptr = &(x.uint16);
+                    break;
+                case INT16:
+                    ptr = &(x.int16);
+                    break;
+                case R_UINT32:
+                    ptr = &(x.uint32);
+                    break;
+                case R_INT32:
+                    ptr = &(x.int32);
+                    break;
+                case FP16:
+                    ptr = &(x.fp16);
+                    break;
+                case R_FP32:
+                    ptr = &(x.fp32);
+                    break;
+                default:
+                    assert(0);
+            }
+            return ptr;
+        }
+    private:
+        ArbPrec()  {};
+        ~ArbPrec() {}
+        static ArbPrecData _multiply(void *x, void *y, ARBPRECTYPE in_type, ARBPRECTYPE &out_type) {
+            ArbPrecData ap;
+            if (in_type == UINT8) {
+                out_type = R_UINT32;
+                ap.uint32 = uint32_t(EXTRACT(uint8_t, x)) * uint32_t(EXTRACT(uint8_t, y));
+            } else if (in_type == INT8) {
+                out_type = R_INT32;
+                ap.uint32 = int32_t(EXTRACT(int8_t, x)) * int32_t(EXTRACT(int8_t, y));
+            } else if (in_type == UINT16) {
+                out_type = R_UINT32;
+                ap.uint32 = uint32_t(EXTRACT(uint16_t, x)) * uint32_t(EXTRACT(uint16_t, y));
+            } else if (in_type == INT16) {
+                out_type = R_INT32;
+                ap.int32 = int32_t(EXTRACT(int16_t, x)) * int32_t(EXTRACT(int16_t, y));
+            } else if (in_type == R_UINT32) {
+                out_type = R_UINT32;
+                ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) * uint32_t(EXTRACT(uint32_t, y));
+            } else if (in_type == R_INT32) {
+                out_type = R_INT32;
+                ap.int32 = int32_t(EXTRACT(int32_t, x)) * int32_t(EXTRACT(int32_t, y));
+            } else {
+                assert(0 && "unsupported combo");
+            }
+            return ap;
+        }
+        static ArbPrecData _add(void *x, void *y, ARBPRECTYPE in_type) {
+            ArbPrecData ap;
+            if (in_type == R_UINT32) {
+                ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) + uint32_t(EXTRACT(uint32_t, y));
+            } else if (in_type == R_UINT32) {
+                ap.int32 = int32_t(EXTRACT(int32_t, x)) + int32_t(EXTRACT(int32_t, y));
+            } else if (in_type == R_FP32) {
+                ap.fp32 = float(EXTRACT(float, x)) + float(EXTRACT(float, y));
+            }
+            return ap;
+        }
+        static void _dump(FILE *f, void *x, ARBPRECTYPE type) {
+            switch (type) {
+                case UINT8:
+                    fprintf(f, "%d", EXTRACT(uint8_t, x));
+                    break;
+                case INT8:
+                    fprintf(f, "%d", EXTRACT(int8_t, x));
+                    break;
+                case UINT16:
+                    fprintf(f, "%d", EXTRACT(uint16_t, x));
+                    break;
+                case INT16:
+                    fprintf(f, "%d", EXTRACT(int16_t, x));
+                    break;
+                case R_UINT32:
+                    fprintf(f, "%d", EXTRACT(uint32_t, x));
+                    break;
+                case R_INT32:
+                    fprintf(f, "%d", EXTRACT(int32_t, x));
+                    break;
+                case FP16:
+                case R_FP32:
+                    fprintf(f, "%f", EXTRACT(float, x));
                     break;
                 default:
                     assert(0);
             }
         }
-        uint8_t uint8;
-        uint32_t uint32;
-        float   fp32;
-    private:
-        ARBPRECTYPE type;
 };
+
 
 #endif // ARB_PREC_H

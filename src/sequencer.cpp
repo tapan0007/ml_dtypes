@@ -36,7 +36,7 @@ LdWeights::LdWeights(const LdWeightsArgs &_args) : args(_args) { }
 LdWeights::~LdWeights() {}
 
 void  LdWeights::execute(Sequencer *seq) {
-    uint8_t dtype_size = weightdtype_to_bytes[args.dtype];
+    uint8_t dtype_size = sizeofArbPrecType((ARBPRECTYPE)args.dtype);
     seq->es.weight_valid = true;
     seq->es.weight_dtype = (ARBPRECTYPE) args.dtype;
     seq->es.weight_full_addr = args.weight_full_addr;
@@ -138,7 +138,7 @@ Sequencer::step() {
             es.pool_valid = false;
             es.activation_valid = false;
         } else {
-            es.ifmap_full_addr = ifmap_base + (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * fmapdtype_to_bytes[es.ifmap_dtype];
+            es.ifmap_full_addr = ifmap_base + (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * sizeofArbPrecType((ARBPRECTYPE)es.ifmap_dtype);
             es.psum_full_addr += Constants::psum_buffer_width; /* FIXME - this is the psum granularity, we want to use psum buffers more efficiently */
             es.ofmap_full_addr += sizeofArbPrecType(es.psum_dtype);
         }
@@ -198,7 +198,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     int num_rows = args.i_c;
     ARBPRECTYPE ifmap_dtype = UINT8;
     ARBPRECTYPE weight_dtype = UINT8;
-    ARBPRECTYPE psum_dtype = UINT32;
+    ARBPRECTYPE psum_dtype = R_UINT32;
     addr_t weight_step = sizeofArbPrecType(weight_dtype);
     addr_t ifmap_full_addr = args.ifmap_full_addr;
     int weight_load_latency = num_cols;
@@ -235,7 +235,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
             /* go through each ofmap pixel this weight operates one*/
             matmul_args.psum_start = (r == 0 && s == 0);
             matmul_args.psum_end = (curr_weight == (filter_rows * filter_cols - 1));
-            matmul_args.ifmap_full_addr = ifmap_full_addr + (r * ifmap_cols + s) * fmapdtype_to_bytes[ifmap_dtype];
+            matmul_args.ifmap_full_addr = ifmap_full_addr + (r * ifmap_cols + s) * sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
             uop.PUSH(new MatMul(matmul_args));
             if (curr_weight < (filter_rows * filter_cols - 1)) {
                 weight_args.weight_full_addr += weight_step;
@@ -269,7 +269,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
     int ofmap_cols =  ifmap_cols - filter_cols + 1;
     int num_ofmaps = args.w_m;
     int ifmap_channels = args.i_c;
-    ARBPRECTYPE psum_dtype  = UINT32;
+    ARBPRECTYPE psum_dtype  = R_UINT32;
     ARBPRECTYPE ifmap_dtype = UINT8;
     int weight_load_latency = num_ofmaps;
     int curr_opixel, curr_weight;
@@ -315,7 +315,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
 
                     /* LOAD PIXEL */
                     es.ifmap_full_addr = args.ifmap_full_addr +
-                        ((r * ifmap_cols + s) + (e * ifmap_cols) + f) * fmapdtype_to_bytes[ifmap_dtype];
+                        ((r * ifmap_cols + s) + (e * ifmap_cols) + f) * sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
 
 
                     /* LOAD WEIGHTS */

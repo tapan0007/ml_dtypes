@@ -13,37 +13,31 @@ StateBuffer::StateBuffer() : north(nullptr), activate(nullptr), ns(), ifmap(null
 StateBuffer::~StateBuffer() {
 }
 
-ArbPrec
+ArbPrecData
 StateBuffer::read_addr(addr_t addr, ARBPRECTYPE type) {
-    switch (type) {
-        case UINT8:
-            return ArbPrec(*((uint8_t *)memory.translate(addr)));
-        case UINT32:
-            return ArbPrec(*((uint32_t *)memory.translate(addr)));
-        case FP32:
-            return ArbPrec(*((float *)memory.translate(addr)));
-        default:
-            assert(0);
-    }
-    assert(0);
+    ArbPrecData ap;
+    UNUSED(type);
+    // assumes x86 little endianess
+    ap.raw = *((uint64_t *)memory.translate(addr));
+    return ap;
 }
 
 PeEWSignals 
 StateBuffer::pull_ew() {
-    ArbPrec weight = ArbPrec(uint8_t(0));
-    ArbPrec pixel  = ArbPrec(uint8_t(0)); // send 0 pixels
+    ArbPrecData weight = {0};
+    ArbPrecData pixel = {0};
+    bool pixel_valid = false;
 
     if (ns.ifmap_valid && ns.row_countdown) {
-        //pixel = ArbPrec((uint8_t)(rand() % 0xff));
         pixel = read_addr(ns.ifmap_full_addr, ns.ifmap_dtype);
+        pixel_valid = true;
     }
     if (ns.weight_valid && ns.row_countdown) {
-        //weight = ArbPrec((uint8_t)(rand() % 0xff));
         weight = read_addr(ns.weight_full_addr, ns.weight_dtype);
         printf("WEIGHT %d\n", weight.uint8);
     }
 
-    return PeEWSignals{pixel, weight, ns.weight_dtype, ns.weight_toggle};
+    return PeEWSignals{pixel, pixel_valid, weight, ns.weight_dtype, ns.weight_toggle};
 }
 
 void

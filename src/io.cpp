@@ -100,6 +100,9 @@ Memory::io_write(std::string fname, void *ptr, int i,int j,int k,int l, size_t w
         case 4: // good for FP too?
             cnpy::npy_save(fname, (uint32_t *)ptr, shape, 4, "w");
             break;
+        case 8: // good for FP too?
+            cnpy::npy_save(fname, (uint64_t *)ptr, shape, 8, "w");
+            break;
         default:
             assert(0);
     }

@@ -22,10 +22,11 @@ class ProcessingElement : public PeEWInterface, public PeNSInterface  {
         /* caching of signals passing through */
         PeEWSignals ew;
         /* caching of  data */
-        ArbPrec partial_sum;
+        ArbPrecData partial_sum;
         /* caching of weights, fg and bg, with id ptr */
         int weight_id;
-        ArbPrec weight[2];
+        ArbPrecData weight[2];
+        ARBPRECTYPE weight_dtype[2];
         /* pointers to slave to get inputs from */
         PeNSInterface *north;
         PeEWInterface *west;

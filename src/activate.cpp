@@ -19,7 +19,7 @@ Activate::step()
     ps = psum_connect->pull_psum();
     if (ps.valid) {
         printf("Activate ");
-        ps.partial_sum.dump(stdout);
+        ArbPrec::dump(stdout, ps.partial_sum, ps.dtype);
         printf("\n");
     }
 }

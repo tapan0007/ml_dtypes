@@ -1,6 +1,6 @@
 #include "pe.h"
 
-ProcessingElement::ProcessingElement() : ew({.pixel=ArbPrec(uint8_t(0)), .weight=ArbPrec(uint8_t(0)), .weight_dtype=UINT8, .weight_toggle=false}), partial_sum(ArbPrec(uint32_t(0))), weight_id(0), weight{ArbPrec(uint8_t(0)), ArbPrec(uint8_t(0))}, north(nullptr), west(nullptr)
+ProcessingElement::ProcessingElement() : ew({.pixel={0}, .pixel_valid=false, .weight={0}, .weight_dtype=INVALID_ARBPRECTYPE, .weight_toggle=false}), partial_sum({0}), weight_id(0), weight{{0}, {0}}, north(nullptr), west(nullptr)
 {
 }
 
@@ -31,23 +31,33 @@ void ProcessingElement::step() {
     PeEWSignals in_ew = west->pull_ew();
     PeNSSignals in_ns = north->pull_ns();
     bool in_clamp = sb_west->pull_clamp();
+    ArbPrecData product;
+    ARBPRECTYPE out_dtype;
     if (in_ew.weight_toggle) {
         weight_id = !weight_id;
     }
     if (in_clamp) {
         weight[!weight_id] = in_ew.weight;
+        weight_dtype[!weight_id] = in_ew.weight_dtype;
+        in_ew.weight.raw = 0;
+        in_ew.weight_dtype = INVALID_ARBPRECTYPE;
     }
 
-    partial_sum = in_ns.partial_sum + in_ew.pixel * weight[weight_id];
+    if (in_ew.pixel_valid && weight_dtype[weight_id] != INVALID_ARBPRECTYPE) {
+        product = ArbPrec::multiply(in_ew.pixel, weight[weight_id], weight_dtype[weight_id], out_dtype);
+        partial_sum = ArbPrec::add(in_ns.partial_sum, product, R_UINT32);
+    } else {
+        partial_sum = in_ns.partial_sum;
+    }
     ew = in_ew;
 }
 
 void ProcessingElement::dump(FILE *f) {
     fprintf(f, "[p=");
-    ew.pixel.dump(f);
+    ArbPrec::dump(f, ew.pixel, weight_dtype[weight_id]);
     fprintf(f, ",w=");
-    weight[weight_id].dump(f);
+    ArbPrec::dump(f, weight[weight_id], weight_dtype[weight_id]);
     fprintf(f, ",s=");
-    partial_sum.dump(f);
+    ArbPrec::dump(f, partial_sum, R_UINT32);
     fprintf(f, "]");
 }

@@ -6,7 +6,8 @@
 #include <vector>
 
 typedef struct PSumBufferEntry {
-    ArbPrec partial_sum;
+    ArbPrecData partial_sum;
+    ARBPRECTYPE dtype;
     bool    valid;
 } PSumBufferEntry;
 
@@ -20,8 +21,8 @@ class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
         void connect_north(PeNSInterface *);
         void step();
     private:
-        ArbPrec                  pool();
-        ArbPrec                  activation(ArbPrec pixel);
+        ArbPrecData              pool();
+        ArbPrecData              activation(ArbPrecData pixel);
         PeNSSignals              ns;
         EdgeSignals              ew;
         PeNSInterface            *north;

@@ -7,7 +7,7 @@ extern Memory memory;
 // PsumBuffer
 //------------------------------------------------------------
 PSumBuffer::PSumBuffer() : ew(), north(nullptr), west(nullptr), ready_id(-1) {
-    PSumBufferEntry empty_entry = {.partial_sum = ArbPrec(uint32_t(0)), .valid=false};
+    PSumBufferEntry empty_entry = {.partial_sum = {0}, .dtype = INVALID_ARBPRECTYPE, .valid=false};
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
     int n_entries = Constants::psum_banks * Constants::psum_buffer_entries;
@@ -35,16 +35,20 @@ PSumBuffer::pull_edge() {
 
 PSumActivateSignals
 PSumBuffer::pull_psum() {
-    return PSumActivateSignals{ready_id != -1, entry[ready_id].partial_sum};
+    if (ready_id == -1) {
+        return PSumActivateSignals{false, {0}, INVALID_ARBPRECTYPE};
+    }
+    return PSumActivateSignals{ready_id != -1, entry[ready_id].partial_sum, entry[ready_id].dtype};
 }
 
-ArbPrec
+ArbPrecData
 PSumBuffer::pool() {
     int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
-    ArbPrec pool_pixel = ArbPrec(ew.pool_dtype);
+    ArbPrecData pool_pixel = entry[e_id].partial_sum;
+    // = ArbPrec(ew.pool_dtype);
     //int n = ew.pool_dimx * ew.pool_dimy;
-    switch (ew.pool_type) {
 #if 0
+    switch (ew.pool_type) {
         case AVG_POOL:
             // fixme - how can we divide with just a multiplying unit?
             //double pool_pixel = pool_pixel * ArbPrecType(ew.psum_dtype, (1.0 / (ew.pool_dimx * ew.pool_dimy)));
@@ -55,12 +59,11 @@ PSumBuffer::pool() {
             }
             pool_pixel = pool_pixel / ArbPrec(ew.psum_dtype, n);
             break;
-#endif
         case MAX_POOL:
             pool_pixel = entry[e_id].partial_sum;
             for (int i = 0; i < ew.pool_dimx; i++) {
                 for (int j = 0; j < ew.pool_dimy; j++) {
-                    ArbPrec comp_pixel = entry[e_id - i * Constants::partition_nbytes - j].partial_sum;
+                    ArbPrecData comp_pixel = entry[e_id - i * Constants::partition_nbytes - j].partial_sum;
                     if (comp_pixel > pool_pixel) {
                         pool_pixel = comp_pixel;
                     }
@@ -73,11 +76,12 @@ PSumBuffer::pool() {
         default:
             break;
     }
+#endif
     return pool_pixel;
 }
 
-ArbPrec
-PSumBuffer::activation(ArbPrec pixel) {
+ArbPrecData
+PSumBuffer::activation(ArbPrecData pixel) {
     switch (ew.activation) {
         case RELU:
            break;
@@ -95,19 +99,18 @@ PSumBuffer::activation(ArbPrec pixel) {
     return pixel;
 }
 
-static ARBPRECTYPE weight_to_psum_dtype[NUM_ARBPRECTYPE] = {[UINT8]=UINT32, [UINT32]=UINT32, [FP32]=FP32};
 
 void
 PSumBuffer::step() {
-    ARBPRECTYPE psum_dtype = weight_to_psum_dtype[ew.psum_dtype];
     ns = north->pull_ns();
     ew = west->pull_edge();
     int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
     if (ew.column_countdown) {
+        ARBPRECTYPE psum_dtype =  ew.psum_dtype; //get_upcast(ew.psum_dtype);
         if (ew.psum_start) {
             assert(e_id < (int)entry.size());
             assert(entry[e_id].valid == false);
-            entry[e_id].partial_sum = ArbPrec(psum_dtype);
+            entry[e_id].partial_sum.raw = 0;
             entry[e_id].valid = true;
 
         }
@@ -116,16 +119,16 @@ PSumBuffer::step() {
             assert(entry[e_id].valid == true);
             assert(entry[e_id].valid);
             printf("adding partial sum at %d is ", e_id);
-            ns.partial_sum.dump(stdout);
+            ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             printf("\n");
-            entry[e_id].partial_sum = entry[e_id].partial_sum + ns.partial_sum;
+            entry[e_id].partial_sum = ArbPrec::add(entry[e_id].partial_sum, ns.partial_sum, psum_dtype);
         }
 
         if (ew.psum_end) {
             assert(entry[e_id].valid == true);
             assert(e_id < (int)entry.size());
             printf("final partial sum at %d is ", e_id);
-            entry[e_id].partial_sum.dump(stdout);
+            ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             printf("\n");
             entry[e_id].valid = false;
         } else {
@@ -133,11 +136,11 @@ PSumBuffer::step() {
         }
 
         if (ew.pool_valid) {
-            ArbPrec ofmap_pixel = pool();
+            ArbPrecData ofmap_pixel = pool();
             if (ew.activation_valid) {
                 ofmap_pixel = activation(ofmap_pixel);
             }
-            memory.write(ew.ofmap_full_addr, ofmap_pixel.raw_ptr(), ofmap_pixel.nbytes());
+            memory.write(ew.ofmap_full_addr, ArbPrec::element_ptr(ofmap_pixel, psum_dtype), (char *)ArbPrec::element_ptr(ofmap_pixel, psum_dtype) - (char *)&ofmap_pixel);
             ew.ofmap_full_addr += Constants::partition_nbytes;
         }
         ew.column_countdown--;
