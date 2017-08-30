@@ -37,7 +37,7 @@ PSumBuffer::pull_edge() {
 
 PSumActivateSignals
 PSumBuffer::pull_psum() {
- //   dtype = R_UINT32; // FIXME - should be arg?
+ //   dtype = UINT32; // FIXME - should be arg?
  //   if (ready_id == -1) {
  //       return PSumActivateSignals{false, {0}, INVALID_ARBPRECTYPE};
  //   }

@@ -45,7 +45,7 @@ void ProcessingElement::step() {
 
     if (in_ew.pixel_valid && weight_dtype[weight_id] != INVALID_ARBPRECTYPE) {
         product = ArbPrec::multiply(in_ew.pixel, weight[weight_id], weight_dtype[weight_id], out_dtype);
-        partial_sum = ArbPrec::add(in_ns.partial_sum, product, R_UINT32);
+        partial_sum = ArbPrec::add(in_ns.partial_sum, product, UINT32);
     } else {
         partial_sum = in_ns.partial_sum;
     }
@@ -58,6 +58,6 @@ void ProcessingElement::dump(FILE *f) {
     fprintf(f, ",w=");
     ArbPrec::dump(f, weight[weight_id], weight_dtype[weight_id]);
     fprintf(f, ",s=");
-    ArbPrec::dump(f, partial_sum, R_UINT32);
+    ArbPrec::dump(f, partial_sum, UINT32);
     fprintf(f, "]");
 }

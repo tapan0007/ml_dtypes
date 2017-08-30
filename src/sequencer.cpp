@@ -197,7 +197,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     int num_rows = args.i_c;
     ARBPRECTYPE ifmap_dtype = UINT8;
     ARBPRECTYPE weight_dtype = UINT8;
-    ARBPRECTYPE psum_dtype = R_UINT32;
+    ARBPRECTYPE psum_dtype = UINT32;
     addr_t weight_step = sizeofArbPrecType(weight_dtype);
     addr_t ifmap_full_addr = args.ifmap_full_addr;
     int weight_load_latency = num_cols;
@@ -268,7 +268,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
     int ofmap_cols =  ifmap_cols - filter_cols + 1;
     int num_ofmaps = args.w_m;
     int ifmap_channels = args.i_c;
-    ARBPRECTYPE psum_dtype  = R_UINT32;
+    ARBPRECTYPE psum_dtype  = UINT32;
     ARBPRECTYPE ifmap_dtype = UINT8;
     int weight_load_latency = num_ofmaps;
     int curr_opixel, curr_weight;

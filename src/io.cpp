@@ -104,19 +104,19 @@ Memory::index(addr_t base, unsigned int i, ARBPRECTYPE dtype)
     void *ptr;
 
     switch (dtype) {
-        case R_UINT32:
+        case UINT32:
             ptr = &ma.uint32_ptr[i];
             break;
-        case R_INT32:
+        case INT32:
             ptr = &ma.int32_ptr[i];
             break;
-        case R_UINT64:
+        case UINT64:
             ptr = &ma.uint64_ptr[i];
             break;
-        case R_INT64:
+        case INT64:
             ptr = &ma.int64_ptr[i];
             break;
-        case R_FP32:
+        case FP32:
             ptr = &ma.fp32_ptr[i];
             break;
         default:

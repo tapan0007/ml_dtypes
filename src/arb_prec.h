@@ -70,16 +70,16 @@ class ArbPrec
                 case INT16:
                     ptr = &(x.int16);
                     break;
-                case R_UINT32:
+                case UINT32:
                     ptr = &(x.uint32);
                     break;
-                case R_INT32:
+                case INT32:
                     ptr = &(x.int32);
                     break;
                 case FP16:
                     ptr = &(x.fp16);
                     break;
-                case R_FP32:
+                case FP32:
                     ptr = &(x.fp32);
                     break;
                 default:
@@ -93,22 +93,22 @@ class ArbPrec
         static ArbPrecData _multiply(void *x, void *y, ARBPRECTYPE in_type, ARBPRECTYPE &out_type) {
             ArbPrecData ap;
             if (in_type == UINT8) {
-                out_type = R_UINT32;
+                out_type = UINT32;
                 ap.uint32 = uint32_t(EXTRACT(uint8_t, x)) * uint32_t(EXTRACT(uint8_t, y));
             } else if (in_type == INT8) {
-                out_type = R_INT32;
+                out_type = INT32;
                 ap.uint32 = int32_t(EXTRACT(int8_t, x)) * int32_t(EXTRACT(int8_t, y));
             } else if (in_type == UINT16) {
-                out_type = R_UINT32;
+                out_type = UINT32;
                 ap.uint32 = uint32_t(EXTRACT(uint16_t, x)) * uint32_t(EXTRACT(uint16_t, y));
             } else if (in_type == INT16) {
-                out_type = R_INT32;
+                out_type = INT32;
                 ap.int32 = int32_t(EXTRACT(int16_t, x)) * int32_t(EXTRACT(int16_t, y));
-            } else if (in_type == R_UINT32) {
-                out_type = R_UINT32;
+            } else if (in_type == UINT32) {
+                out_type = UINT32;
                 ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) * uint32_t(EXTRACT(uint32_t, y));
-            } else if (in_type == R_INT32) {
-                out_type = R_INT32;
+            } else if (in_type == INT32) {
+                out_type = INT32;
                 ap.int32 = int32_t(EXTRACT(int32_t, x)) * int32_t(EXTRACT(int32_t, y));
             } else {
                 assert(0 && "unsupported combo");
@@ -117,11 +117,11 @@ class ArbPrec
         }
         static ArbPrecData _add(void *x, void *y, ARBPRECTYPE in_type) {
             ArbPrecData ap;
-            if (in_type == R_UINT32) {
+            if (in_type == UINT32) {
                 ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) + uint32_t(EXTRACT(uint32_t, y));
-            } else if (in_type == R_UINT32) {
+            } else if (in_type == UINT32) {
                 ap.int32 = int32_t(EXTRACT(int32_t, x)) + int32_t(EXTRACT(int32_t, y));
-            } else if (in_type == R_FP32) {
+            } else if (in_type == FP32) {
                 ap.fp32 = float(EXTRACT(float, x)) + float(EXTRACT(float, y));
             }
             return ap;
@@ -140,14 +140,14 @@ class ArbPrec
                 case INT16:
                     fprintf(f, "%d", EXTRACT(int16_t, x));
                     break;
-                case R_UINT32:
+                case UINT32:
                     fprintf(f, "%d", EXTRACT(uint32_t, x));
                     break;
-                case R_INT32:
+                case INT32:
                     fprintf(f, "%d", EXTRACT(int32_t, x));
                     break;
                 case FP16:
-                case R_FP32:
+                case FP32:
                     fprintf(f, "%f", EXTRACT(float, x));
                     break;
                 default:
