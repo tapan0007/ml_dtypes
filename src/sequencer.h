@@ -58,7 +58,6 @@ typedef struct MatMulArgs {
     uint64_t    num_cols   : Constants::column_bits;
 } MatMulArgs;
 
-
 typedef struct PoolArgs {
     uint64_t    pool_func   : 8;
     uint64_t    dtype       : Constants::type_bits;
@@ -75,6 +74,7 @@ typedef struct PoolArgs {
     addr_t      dst_y_step         : Constants::bank_bits - 1;
     uint64_t    dst_y_num_elements : 8;
     uint64_t    num_partitions     : Constants::row_bits;
+    uint64_t    num_pools          : Constants::bank_bits;
 } PoolArgs;
 
 class Pool : public Instruction {
@@ -100,6 +100,7 @@ class Sequencer : public EdgeInterface  {
 
         /* internal state */
         EdgeSignals es;
+        PoolSignals ps;
 
         /* weight */
         size_t      weight_x_step;
@@ -118,6 +119,21 @@ class Sequencer : public EdgeInterface  {
         uint8_t     ifmap_y_num;
         uint8_t     ifmap_x_cnt;
         uint8_t     ifmap_y_cnt;
+
+        /* pool */
+        addr_t      pool_base;
+        uint64_t    num_pools;
+        size_t      pool_src_x_step;
+        size_t      pool_src_y_step;
+        size_t      pool_src_z_step;
+        size_t      pool_src_x_num_elements;
+        size_t      pool_src_y_num_elements;
+        size_t      pool_src_z_num_elements;
+
+        size_t      pool_dst_x_step;
+        size_t      pool_dst_y_step;
+        size_t      pool_dst_x_num_elements;
+        size_t      pool_dst_y_num_elements;
 
         /*  misc */
         bool        raw_signal;

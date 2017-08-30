@@ -55,7 +55,6 @@ void  DynamicInstruction<LdWeightsArgs>::execute(Sequencer *seq) {
 /*------------------------------------
  * Convolve
  *------------------------------------ */
-
 template<>
 void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
     /* signals that will stay constant for entire convolution */
@@ -83,6 +82,36 @@ void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
 
 }
 
+/*------------------------------------
+ * Pool
+ *------------------------------------ */
+template<>
+void  DynamicInstruction<PoolArgs>::execute(Sequencer *seq) {
+	unsigned int src_num_elements = args.src_x_num_elements + 
+        args.src_y_num_elements + 
+		args.src_z_num_elements;
+	seq->ps.pool_valid = true;
+	seq->ps.dtype = (ARBPRECTYPE)args.dtype;
+	seq->ps.src_full_addr = args.src_full_addr;
+	seq->ps.pool_start = true;
+	seq->ps.pool_end = (src_num_elements == 3);
+	seq->ps.dst_full_addr = args.src_full_addr;
+	seq->ps.countdown = args.num_partitions;
+	
+	seq->pool_base = args.src_full_addr;
+	seq->num_pools = args.num_pools;
+	seq->pool_src_x_step = args.src_x_step;
+	seq->pool_src_y_step = args.src_y_step;
+	seq->pool_src_z_step = args.src_z_step;
+	seq->pool_src_x_num_elements = args.src_x_num_elements;
+	seq->pool_src_y_num_elements = args.src_y_num_elements;
+	seq->pool_src_z_num_elements = args.src_z_num_elements;
+
+	seq->pool_dst_x_step = args.dst_x_step;
+	seq->pool_dst_y_step = args.dst_y_step;
+	seq->pool_dst_x_num_elements = args.dst_x_num_elements;
+	seq->pool_dst_y_num_elements = args.dst_y_num_elements;
+}
 
 /*------------------------------------
  * Sequencer

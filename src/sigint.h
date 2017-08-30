@@ -63,6 +63,17 @@ typedef struct EdgeSignals {
     ARBPRECTYPE    pool_dtype;       // PSUM     | What type of data is our pooling operating on? FIXME: semi-redundant? inferrable from weight_dtype
 } EdgeSignals;
 
+typedef struct PoolSignals {
+    bool          pool_valid;
+    ARBPRECTYPE   dtype;
+    ADDR_UNION(src);
+    ADDR_UNION(dst);
+    bool          pool_start;
+    bool          pool_end;
+    uint8_t       countdown;
+} PoolSignals;
+
+
 // ----------------------------------------------------------
 // Interfaces
 // ----------------------------------------------------------
