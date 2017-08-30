@@ -22,15 +22,15 @@ class Instruction {
         virtual void dump(bool header) {(void)header; std::cout << "not implemented";}
 };
 
-
-class EdgeSignalsInstruction : public Instruction {
+template <class T>
+class DynamicInstruction : public Instruction {
      public:
-        EdgeSignalsInstruction(EdgeSignals _es) : es(_es) {};
-        ~EdgeSignalsInstruction() {} ;
+        DynamicInstruction(T _args) : args(_args) {};
+        ~DynamicInstruction() {} ;
         void execute(Sequencer *seq);
-        void        dump(bool header);
+        void        dump(bool header) {(void)header; std::cout << "not implemented";}
      private:
-        EdgeSignals es;
+        T args;
 };
 
 typedef struct LdWeightsArgs {
@@ -43,15 +43,6 @@ typedef struct LdWeightsArgs {
     uint64_t    num_rows : Constants::row_bits;
     uint64_t    num_cols : Constants::column_bits;
 } LdWeightsArgs;
-
-class LdWeights : public Instruction {
-    public:
-        LdWeights(const LdWeightsArgs &args);
-        ~LdWeights();
-        void execute(Sequencer *seq);
-    private:
-        LdWeightsArgs args;
-};
 
 typedef struct MatMulArgs {
     uint64_t    psum_start  : 1;
@@ -67,14 +58,6 @@ typedef struct MatMulArgs {
     uint64_t    num_cols   : Constants::column_bits;
 } MatMulArgs;
 
-class MatMul : public Instruction {
-    public:
-        MatMul(const MatMulArgs &args);
-        ~MatMul();
-        void execute(Sequencer *seq);
-    private:
-        MatMulArgs args;
-};
 
 class Sequencer : public EdgeInterface  {
     public:

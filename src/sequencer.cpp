@@ -5,36 +5,36 @@
 /*------------------------------------
  * EdgeSignalsInstruction
  *------------------------------------ */
-void EdgeSignalsInstruction::dump(bool header)
+template<>
+void DynamicInstruction<EdgeSignals>::dump(bool header)
 {   
     if (header) {
         printf("rc cc |  iv   ia  |  wv wa   wd  wt wc | pa pd ps pe | av af | pv pt px py pd  \n");
     }
     printf("%2d %2d | %2d 0x%-3lx  | %2d 0x%-3lx  %2d %2d %2d | 0x%-3lx %2d %2d %2d | %2d %2d | %2d %2d %2d %2d %2d   \n",
-            es.row_countdown, es.column_countdown, 
-            es.ifmap_valid, es.ifmap_full_addr,
-            es.weight_valid, es.weight_full_addr, es.weight_dtype, es.weight_toggle, es.weight_clamp,
-            es.psum_full_addr, es.psum_dtype, es.psum_start, es.psum_end,
-            es.activation_valid, es.activation,
-            es.pool_valid, es.pool_type, es.pool_dimx, es.pool_dimy, es.pool_dtype);
+            args.row_countdown, args.column_countdown, 
+            args.ifmap_valid, args.ifmap_full_addr,
+            args.weight_valid, args.weight_full_addr, args.weight_dtype, args.weight_toggle, args.weight_clamp,
+            args.psum_full_addr, args.psum_dtype, args.psum_start, args.psum_end,
+            args.activation_valid, args.activation,
+            args.pool_valid, args.pool_type, args.pool_dimx, args.pool_dimy, args.pool_dtype);
 
 }
  
+template<>
 void
-EdgeSignalsInstruction::execute(Sequencer *seq) {
+DynamicInstruction<EdgeSignals>::execute(Sequencer *seq) {
 
-    seq->es = es;
+    seq->es = args;
     seq->raw_signal = true;
 }
+
 
 /*------------------------------------
  * LdWeightsInstruction
  *------------------------------------ */
-LdWeights::LdWeights(const LdWeightsArgs &_args) : args(_args) { }
-
-LdWeights::~LdWeights() {}
-
-void  LdWeights::execute(Sequencer *seq) {
+template<>
+void  DynamicInstruction<LdWeightsArgs>::execute(Sequencer *seq) {
     uint8_t dtype_size = sizeofArbPrecType((ARBPRECTYPE)args.dtype);
     seq->es.weight_valid = true;
     seq->es.weight_dtype = (ARBPRECTYPE) args.dtype;
@@ -55,11 +55,9 @@ void  LdWeights::execute(Sequencer *seq) {
 /*------------------------------------
  * Convolve
  *------------------------------------ */
-MatMul::MatMul(const MatMulArgs &_args) : args(_args) { }
 
-MatMul::~MatMul() {}
-
-void  MatMul::execute(Sequencer *seq) {
+template<>
+void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
     /* signals that will stay constant for entire convolution */
     seq->es.ifmap_valid   = true;
     seq->es.ifmap_full_addr    = args.ifmap_full_addr;
@@ -212,7 +210,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     weight_args.y_step = weight_step * args.w_s;
     weight_args.y_num_elements = args.w_r;
     weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num_elements * weight_args.y_step);
-    uop.PUSH(new LdWeights(weight_args));
+    uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
 
     MatMulArgs matmul_args;
     matmul_args.ifmap_full_addr   = 0xdead;
@@ -235,10 +233,10 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
             matmul_args.psum_start = (r == 0 && s == 0);
             matmul_args.psum_end = (curr_weight == (filter_rows * filter_cols - 1));
             matmul_args.ifmap_full_addr = ifmap_full_addr + (r * ifmap_cols + s) * sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
-            uop.PUSH(new MatMul(matmul_args));
+            uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
             if (curr_weight < (filter_rows * filter_cols - 1)) {
                 weight_args.weight_full_addr += weight_step;
-                uop.PUSH(new LdWeights(weight_args));
+                uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
             }
         }
     }
@@ -290,11 +288,11 @@ Sequencer::convolve_static(const ConvolveArgs &args)
     es.weight_valid  = true;
     es.weight_full_addr = args.filter_full_addr + (weight_load_latency -1) * sizeofArbPrecType(es.weight_dtype);
     for (int i = 0; i < weight_load_latency - 1; i++) {
-        uop.PUSH(new EdgeSignalsInstruction(es));
+        uop.PUSH(new DynamicInstruction<EdgeSignals>(es));
         es.weight_full_addr -= sizeofArbPrecType(es.weight_dtype);
     }
     es.weight_clamp = true;
-    uop.PUSH(new EdgeSignalsInstruction(es));
+    uop.PUSH(new DynamicInstruction<EdgeSignals>(es));
 
     /* LOAD PIXELS:
      * load pixels, load weights in background, compute */
@@ -344,7 +342,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
                         //es.ofmap_full_addr = args.ofmap_full_addr + curr_opixel * sizeofArbPrecType(psum_dtype);
                     }
                     
-                    uop.PUSH(new EdgeSignalsInstruction(es));
+                    uop.PUSH(new DynamicInstruction<EdgeSignals>(es));
                 }
             }
         }
