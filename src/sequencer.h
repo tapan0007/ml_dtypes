@@ -59,6 +59,33 @@ typedef struct MatMulArgs {
 } MatMulArgs;
 
 
+typedef struct PoolArgs {
+    uint64_t    pool_func   : 8;
+    uint64_t    dtype       : Constants::type_bits;
+    ADDR_UNION(src);
+    addr_t      src_x_step     : Constants::bank_bits - 1;
+    uint64_t    src_x_num_elements : 8;
+    addr_t      src_y_step         : Constants::bank_bits - 1;
+    uint64_t    src_y_num_elements : 8;
+    addr_t      src_z_step         : Constants::bank_bits - 1;
+    uint64_t    src_z_num_elements : 8;
+    ADDR_UNION(dst);
+    addr_t      dst_x_step     : Constants::bank_bits - 1;
+    uint64_t    dst_x_num_elements : 8;
+    addr_t      dst_y_step         : Constants::bank_bits - 1;
+    uint64_t    dst_y_num_elements : 8;
+    uint64_t    num_partitions     : Constants::row_bits;
+} PoolArgs;
+
+class Pool : public Instruction {
+    public:
+        Pool(const PoolArgs &args);
+        ~Pool();
+        void execute(Sequencer *seq);
+    private:
+        PoolArgs args;
+};
+
 class Sequencer : public EdgeInterface  {
     public:
         Sequencer();
