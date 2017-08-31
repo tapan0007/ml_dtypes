@@ -266,6 +266,10 @@ Sequencer::pull_edge() {
     return es;
 }
 
+PoolSignals
+Sequencer::pull_pool() {
+    return ps;
+}
 
 void
 Sequencer::dump() {

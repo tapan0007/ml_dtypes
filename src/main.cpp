@@ -2,6 +2,7 @@
 #include "state_buffer.h"
 #include "sequencer.h"
 #include "psum_buffer.h"
+#include "pool.h"
 #include "activate.h"
 #include "io.h"
 #include <iostream>
@@ -28,6 +29,7 @@ int main(int argc, char **argv)
     StateBufferArray       state_array;
     Sequencer              sequencer;
     PSumBufferArray        psum_array;
+    PoolArray              pool_array;
     ActivateArray          activate_array;
     ConvolveArgs cargs;
     void *f_ptr, *i_ptr, *o_ptr;
@@ -62,6 +64,7 @@ int main(int argc, char **argv)
         state_array.connect_activate(j, &activate_array[j]);
     }
     state_array.connect_north(&sequencer);
+    pool_array.connect(&sequencer);
 
     /* load weights/filters */
     cargs.ifmap_full_addr = 0;

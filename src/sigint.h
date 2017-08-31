@@ -124,6 +124,14 @@ class SbEWBroadcastInterface
         ~SbEWBroadcastInterface() {};
         virtual bool pull_clamp() = 0;
 };
+
+class PoolInterface
+{
+    public:
+        PoolInterface() {};
+        ~PoolInterface() {};
+        virtual PoolSignals pull_pool() = 0;
+};
 // ----------------------------------------------------------
 // Dummy Generators
 // ----------------------------------------------------------

@@ -76,21 +76,13 @@ typedef struct PoolArgs {
     uint64_t    num_partitions     : Constants::row_bits;
 } PoolArgs;
 
-class Pool : public Instruction {
-    public:
-        Pool(const PoolArgs &args);
-        ~Pool();
-        void execute(Sequencer *seq);
-    private:
-        PoolArgs args;
-};
-
-class Sequencer : public EdgeInterface  {
+class Sequencer : public EdgeInterface, public PoolInterface  {
     public:
         Sequencer();
         ~Sequencer();
         void step();
         EdgeSignals pull_edge();
+        PoolSignals pull_pool();
         void convolve_static(const ConvolveArgs &args);
         void convolve_dynamic(const ConvolveArgs &args);
         bool synch();
