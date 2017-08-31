@@ -90,11 +90,11 @@ void  DynamicInstruction<PoolArgs>::execute(Sequencer *seq) {
 	unsigned int src_num = args.src_x_num + 
         args.src_y_num + 
 		args.src_z_num;
-	seq->ps.pool_valid = true;
+	seq->ps.valid = true;
 	seq->ps.dtype = (ARBPRECTYPE)args.dtype;
 	seq->ps.src_full_addr = args.src_full_addr;
-	seq->ps.pool_start = true;
-	seq->ps.pool_stop = (src_num == 3);
+	seq->ps.start = true;
+	seq->ps.stop = (src_num == 3);
 	seq->ps.dst_full_addr = args.src_full_addr;
 	seq->ps.countdown = args.num_partitions;
 	
@@ -179,7 +179,7 @@ Sequencer::step_edgesignal() {
 /* sub function of step - to step the poolsignal */
 void
 Sequencer::step_poolsignal() {
-    if (!ps.pool_valid) {
+    if (!ps.valid) {
         return;
     }
     /* roll over counters */
@@ -196,11 +196,11 @@ Sequencer::step_poolsignal() {
 
     if (pool_src_z_cnt >= pool_src_z_num) {
         pool_src_z_cnt = 0;
-        ps.pool_stop = true;
+        ps.stop = true;
     }
 
     /* if we are done pooling, calculate dest addr */
-    if (ps.pool_stop) {
+    if (ps.stop) {
         pool_dst_x_cnt++;
         if (pool_dst_x_cnt >= pool_dst_x_num) {
             pool_dst_x_cnt = 0;
@@ -209,7 +209,7 @@ Sequencer::step_poolsignal() {
 
         if (pool_dst_y_cnt >= pool_dst_y_num) {
             pool_dst_y_cnt = 0;
-            ps.pool_valid = false;
+            ps.valid = false;
         }
         ps.dst_full_addr = pool_dst_base + 
             (pool_dst_y_cnt * pool_dst_y_step + 
@@ -223,10 +223,10 @@ Sequencer::step_poolsignal() {
             /* we finished all poolings */
         } else {
             /* we are ready to start a new hxw pooling */
-            ps.pool_start = true;
+            ps.start = true;
         }
     }
-    if (ps.pool_valid) {
+    if (ps.valid) {
         ps.src_full_addr = pool_src_base + 
             (pool_src_z_cnt * pool_src_z_step +
              pool_src_y_cnt * pool_src_y_step + 
@@ -382,7 +382,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
     es.weight_dtype  = args.weight_dtype;
     es.psum_dtype    = psum_dtype;
     es.activation    = IDENTITY; 
-    es.pool_type     = NO_POOL;
+    es.pool_type     = IDENTITY_POOL;
     es.pool_dtype    = psum_dtype;
     es.row_countdown = ifmap_channels; 
     es.column_countdown = num_ofmaps;

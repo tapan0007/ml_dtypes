@@ -57,19 +57,20 @@ typedef struct EdgeSignals {
     ACTIVATIONFUNCTION activation;   // PSUM     | Which activation func should we perform?
  
     bool           pool_valid;       // PSUM     | Should we perform a pool on psum id? 
-    POOLTYPE       pool_type;        // PSUM     | Which  pooling func should we perform?
+    POOLFUNC       pool_type;        // PSUM     | Which  pooling func should we perform?
     int            pool_dimx;        // PSUM     | rows in pooling
     int            pool_dimy;        // PSUM     | cols in pooling
     ARBPRECTYPE    pool_dtype;       // PSUM     | What type of data is our pooling operating on? FIXME: semi-redundant? inferrable from weight_dtype
 } EdgeSignals;
 
 typedef struct PoolSignals {
-    bool          pool_valid;
+    bool          valid;
+    POOLFUNC      func;
     ARBPRECTYPE   dtype;
     ADDR_UNION(src);
     ADDR_UNION(dst);
-    bool          pool_start;
-    bool          pool_stop;
+    bool          start;
+    bool          stop;
     uint8_t       countdown;
 } PoolSignals;
 

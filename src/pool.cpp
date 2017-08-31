@@ -25,18 +25,30 @@ Pool::pull_pool() {
 
 void
 Pool::step() {
-    if (!ps.pool_valid) {
+    if (!ps.valid) {
         return;
     }
-            //memory.write(ew.ofmap_full_addr, ArbPrec::element_ptr(ofmap_pixel, psum_dtype), (char *)ArbPrec::element_ptr(ofmap_pixel, psum_dtype) - (char *)&ofmap_pixel);
-            //ew.ofmap_full_addr += Constants::partition_nbytes;
-        //ew.column_countdown--;
-//    int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
- //   ArbPrecData pool_pixel = entry[e_id].partial_sum;
-    // = ArbPrec(ew.pool_dtype);
-    //int n = ew.pool_dimx * ew.pool_dimy;
+	void *mem;
+	addr_t src_partition_size;
+	addr_t dst_partition_size;
+	size_t dsize = sizeofArbPrecType(ps.dtype);
+
+	ps.countdown--;
+	
+	src_partition_size = (ps.src_full_addr >= psum_buffer_base) ?
+		Constants::psum_addr : Constants::partition_nbytes;
+	dst_partition_size = (ps.dst_full_addr >= psum_buffer_base) ?
+		Constants::psum_addr : Constants::partition_nbytes;
+
+    switch (ps.func) {
+        case IDENTITY_POOL:
+			assert(ps.start && ps.stop && 
+					"identity pool must work on singlet pools");
+			memory.read(mem, ps.src_full_addr, dsize);
+			memory.write(ps.dst_full_addr, mem, dsize);
+            break;
+
 #if 0
-    switch (ew.pool_type) {
         case AVG_POOL:
             // fixme - how can we divide with just a multiplying unit?
             //double pool_pixel = pool_pixel * ArbPrecType(ew.psum_dtype, (1.0 / (ew.pool_dimx * ew.pool_dimy)));
@@ -58,13 +70,16 @@ Pool::step() {
                 }
             }
             break;
-        case NO_POOL:
-            pool_pixel = entry[e_id].partial_sum;
-            break;
+#endif
         default:
+            assert(0 && "that pooling is not yet supported");
             break;
     }
-#endif
+	ps.src_addr += src_partition_size;
+	ps.dst_addr += dst_partition_size;
+    if (!ps.countdown) {
+		ps.valid = false;
+	}
 }
 
 #if 0
