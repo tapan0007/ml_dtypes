@@ -5,6 +5,7 @@
 /*------------------------------------
  * EdgeSignalsInstruction
  *------------------------------------ */
+extern addr_t psum_buffer_base;
 template<>
 void DynamicInstruction<EdgeSignals>::dump(bool header)
 {   
@@ -304,9 +305,13 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     addr_t weight_step = sizeofArbPrecType(weight_dtype);
     addr_t ifmap_full_addr = args.ifmap_full_addr;
     int weight_load_latency = num_cols;
-    assert(weight_load_latency < 64 && "Tiling not implemented yet, too many ofmaps!");
-
+    size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
     LdWeightsArgs weight_args;
+    MatMulArgs    matmul_args;
+    PoolArgs      pool_args;
+    assert(weight_load_latency < 64 && 
+            "Tiling not implemented yet, too many ofmaps!");
+
     weight_args.dtype = weight_dtype;
     weight_args.num_cols = num_cols;
     weight_args.num_rows = num_rows;
@@ -315,34 +320,52 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     weight_args.y_step = weight_step * args.w_s;
     weight_args.y_num = args.w_r;
     weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num * weight_args.y_step);
-    uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
 
-    MatMulArgs matmul_args;
     matmul_args.ifmap_full_addr   = 0xdead;
     matmul_args.x_num = ofmap_cols;
     matmul_args.x_step = 1;
     matmul_args.y_num = ofmap_rows;
     matmul_args.y_step = ifmap_cols;
-    //matmul_args.ofmap_full_addr = args.ofmap_full_addr;
     matmul_args.dtype = ifmap_dtype;
     matmul_args.psum_dtype = psum_dtype;
     matmul_args.num_rows = num_rows;
     matmul_args.num_cols = num_cols;
 
-    /* go through each weight in the filter, cannot combine r and s into one, because ifmap_full_addr 
-	   calc needs to seperate them */
+    pool_args.pool_func = IDENTITY_POOL;
+    pool_args.dtype     = UINT32;
+    pool_args.src_full_addr = psum_buffer_base;
+    pool_args.src_x_step= 1;
+    pool_args.src_y_step= 1;
+    pool_args.src_z_step= 1;
+    pool_args.src_x_num = 1;
+    pool_args.src_y_num = 1;
+    pool_args.src_z_num = 1;
+    pool_args.dst_x_step = 1;
+    pool_args.dst_x_num = ofmap_rows *ofmap_cols; // FIX FOR TILES
+    pool_args.dst_y_step = pool_dst_x_num;
+    pool_args.dst_y_num = 1;
+    pool_args.dst_full_addr = args.ofmap_full_addr;
+    pool_args.num_partitions = args.w_r;
+
+
+    /* go through each weight in the filter, cannot combine r and s into one, 
+     * because ifmap_full_addr calc needs to seperate them */
+    uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
     int curr_weight = 0;
     for (int r = 0; r <  filter_rows; r++) {
         for (int s = 0; s < filter_cols; s++, curr_weight++) {
             /* go through each ofmap pixel this weight operates one*/
             matmul_args.psum_start = (r == 0 && s == 0);
-            matmul_args.psum_stop = (curr_weight == (filter_rows * filter_cols - 1));
-            matmul_args.ifmap_full_addr = ifmap_full_addr + (r * ifmap_cols + s) * sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
+            matmul_args.psum_stop  = (curr_weight == 
+                    (filter_rows * filter_cols - 1));
+            matmul_args.ifmap_full_addr = ifmap_full_addr + 
+                (r * ifmap_cols + s) * dsize;
             uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
             if (curr_weight < (filter_rows * filter_cols - 1)) {
                 weight_args.weight_full_addr += weight_step;
                 uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
             }
+            uop.PUSH(new DynamicInstruction<PoolArgs>(pool_args));
         }
     }
 

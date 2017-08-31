@@ -11,6 +11,7 @@
     std::cout << "time = " << i << std::endl; \
     state_array.step_write(); \
     activate_array.step(); \
+    pool_array.step(); \
     psum_array.step(); \
     pe_array.step(); \
     state_array.step_read(); \
@@ -68,6 +69,7 @@ int main(int argc, char **argv)
 
     /* load weights/filters */
     cargs.ifmap_full_addr = 0;
+    cargs.filter_full_addr = 2 * Constants::bytes_per_bank;
     cargs.weight_dtype = UINT8;
 
     /* load io_mmap */

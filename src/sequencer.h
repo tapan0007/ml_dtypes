@@ -7,6 +7,7 @@
 typedef struct ConvolveArgs{
     ADDR_UNION(ifmap);
     ADDR_UNION(filter);
+    ADDR_UNION(ofmap);
     ARBPRECTYPE weight_dtype;
     int i_n, i_c, i_h, i_w;
     int w_c, w_m, w_r, w_s;

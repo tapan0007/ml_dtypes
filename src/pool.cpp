@@ -28,7 +28,8 @@ Pool::step() {
     if (!ps.valid) {
         return;
     }
-	void *mem;
+    char mem[128]; // FIXME - hack for now
+	void *ptr = (void *)(mem);
 	addr_t src_partition_size;
 	addr_t dst_partition_size;
 	size_t dsize = sizeofArbPrecType(ps.dtype);
@@ -44,8 +45,8 @@ Pool::step() {
         case IDENTITY_POOL:
 			assert(ps.start && ps.stop && 
 					"identity pool must work on singlet pools");
-			memory.read(mem, ps.src_full_addr, dsize);
-			memory.write(ps.dst_full_addr, mem, dsize);
+			memory.read(ptr, ps.src_full_addr, dsize);
+			memory.write(ps.dst_full_addr, ptr, dsize);
             break;
 
 #if 0
