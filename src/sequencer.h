@@ -37,22 +37,22 @@ typedef struct LdWeightsArgs {
     ADDR_UNION(weight);
     uint64_t    dtype          : Constants::type_bits;
     addr_t      x_step         : Constants::bank_bits - 1;
-    uint64_t    x_num_elements : 8;
+    uint64_t    x_num : 8;
     addr_t      y_step         : Constants::bank_bits - 1;
-    uint64_t    y_num_elements : 8;
+    uint64_t    y_num : 8;
     uint64_t    num_rows : Constants::row_bits;
     uint64_t    num_cols : Constants::column_bits;
 } LdWeightsArgs;
 
 typedef struct MatMulArgs {
     uint64_t    psum_start  : 1;
-    uint64_t    psum_end    : 1;
+    uint64_t    psum_stop   : 1;
     uint64_t    dtype       : Constants::type_bits;
     ADDR_UNION(ifmap);
     addr_t      x_step         : Constants::bank_bits - 1;
-    uint64_t    x_num_elements : 8;
+    uint64_t    x_num : 8;
     addr_t      y_step         : Constants::bank_bits - 1;
-    uint64_t    y_num_elements : 8;
+    uint64_t    y_num : 8;
     uint64_t    psum_dtype : Constants::type_bits;
     uint64_t    num_rows   : Constants::row_bits;
     uint64_t    num_cols   : Constants::column_bits;
@@ -63,18 +63,17 @@ typedef struct PoolArgs {
     uint64_t    dtype       : Constants::type_bits;
     ADDR_UNION(src);
     addr_t      src_x_step     : Constants::bank_bits - 1;
-    uint64_t    src_x_num_elements : 8;
+    uint64_t    src_x_num : 8;
     addr_t      src_y_step         : Constants::bank_bits - 1;
-    uint64_t    src_y_num_elements : 8;
+    uint64_t    src_y_num : 8;
     addr_t      src_z_step         : Constants::bank_bits - 1;
-    uint64_t    src_z_num_elements : 8;
+    uint64_t    src_z_num : 8;
     ADDR_UNION(dst);
     addr_t      dst_x_step     : Constants::bank_bits - 1;
-    uint64_t    dst_x_num_elements : 8;
+    uint64_t    dst_x_num : 8;
     addr_t      dst_y_step         : Constants::bank_bits - 1;
-    uint64_t    dst_y_num_elements : 8;
+    uint64_t    dst_y_num : 8;
     uint64_t    num_partitions     : Constants::row_bits;
-    uint64_t    num_pools          : Constants::bank_bits;
 } PoolArgs;
 
 class Pool : public Instruction {
@@ -121,19 +120,24 @@ class Sequencer : public EdgeInterface  {
         uint8_t     ifmap_y_cnt;
 
         /* pool */
-        addr_t      pool_base;
-        uint64_t    num_pools;
+        addr_t      pool_src_base;
         size_t      pool_src_x_step;
         size_t      pool_src_y_step;
         size_t      pool_src_z_step;
-        size_t      pool_src_x_num_elements;
-        size_t      pool_src_y_num_elements;
-        size_t      pool_src_z_num_elements;
+        size_t      pool_src_x_cnt;
+        size_t      pool_src_y_cnt;
+        size_t      pool_src_z_cnt;
+        size_t      pool_src_x_num;
+        size_t      pool_src_y_num;
+        size_t      pool_src_z_num;
 
+        addr_t      pool_dst_base;
         size_t      pool_dst_x_step;
         size_t      pool_dst_y_step;
-        size_t      pool_dst_x_num_elements;
-        size_t      pool_dst_y_num_elements;
+        size_t      pool_dst_x_cnt;
+        size_t      pool_dst_y_cnt;
+        size_t      pool_dst_x_num;
+        size_t      pool_dst_y_num;
 
         /*  misc */
         bool        raw_signal;
@@ -142,6 +146,8 @@ class Sequencer : public EdgeInterface  {
     private:
         tick_t   clock;
         std::queue<Instruction *> uop;
+        void step_edgesignal();
+        void step_poolsignal();
         void dump_es(const EdgeSignals &es, bool header);
 
 };

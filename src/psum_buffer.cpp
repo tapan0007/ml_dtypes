@@ -132,7 +132,7 @@ PSumBuffer::step() {
             assert(valids[e_offset]);
         }
 
-        if (ew.psum_end) {
+        if (ew.psum_stop) {
             printf("final partial sum at %d is ", e_id);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             printf("\n");

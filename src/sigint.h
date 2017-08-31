@@ -51,7 +51,7 @@ typedef struct EdgeSignals {
     PSUM_UNION(psum);                // PSUM     | Which psum buffer in a given column is this result destined for?
     ARBPRECTYPE    psum_dtype;       // PSUM     | Dtype for psum ops FIXME: semi-redundant, could be inferred from weight_dtype
     bool           psum_start;       // PSUM     | Clear psum buffer for new calc
-    bool           psum_end;         // PSUM     | Psum calc is done | FIXME : psum_start/end could be combined but we'd lose debugability
+    bool           psum_stop;         // PSUM     | Psum calc is done | FIXME : psum_start/end could be combined but we'd lose debugability
 
     bool           activation_valid; // PSUM     | Should we perform an activation on psum id?
     ACTIVATIONFUNCTION activation;   // PSUM     | Which activation func should we perform?
@@ -69,7 +69,7 @@ typedef struct PoolSignals {
     ADDR_UNION(src);
     ADDR_UNION(dst);
     bool          pool_start;
-    bool          pool_end;
+    bool          pool_stop;
     uint8_t       countdown;
 } PoolSignals;
 

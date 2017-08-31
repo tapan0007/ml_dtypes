@@ -15,7 +15,7 @@ void DynamicInstruction<EdgeSignals>::dump(bool header)
             args.row_countdown, args.column_countdown, 
             args.ifmap_valid, args.ifmap_full_addr,
             args.weight_valid, args.weight_full_addr, args.weight_dtype, args.weight_toggle, args.weight_clamp,
-            args.psum_full_addr, args.psum_dtype, args.psum_start, args.psum_end,
+            args.psum_full_addr, args.psum_dtype, args.psum_start, args.psum_stop,
             args.activation_valid, args.activation,
             args.pool_valid, args.pool_type, args.pool_dimx, args.pool_dimy, args.pool_dtype);
 
@@ -43,8 +43,8 @@ void  DynamicInstruction<LdWeightsArgs>::execute(Sequencer *seq) {
     seq->es.row_countdown = args.num_rows; 
     seq->weight_clamp_countdown = args.num_cols;
     seq->weight_x_step = dtype_size * args.x_step;
-    seq->weight_x_num = args.x_num_elements;
-    seq->weight_y_num = args.y_num_elements;
+    seq->weight_x_num = args.x_num;
+    seq->weight_y_num = args.y_num;
     seq->weight_x_cnt = 0;
     seq->weight_y_cnt = 0;
     seq->weight_y_step = args.y_step;
@@ -65,15 +65,15 @@ void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
     seq->es.row_countdown = args.num_rows; 
     seq->es.column_countdown = args.num_cols;
     seq->es.psum_start = args.psum_start;
-    seq->es.psum_end = args.psum_end;
+    seq->es.psum_stop = args.psum_stop;
     seq->es.psum_dtype = (ARBPRECTYPE)args.psum_dtype;
-    seq->es.pool_valid = args.psum_end; // FIXME - temporary hack
+    seq->es.pool_valid = args.psum_stop; // FIXME - temporary hack
     seq->es.pool_dtype = (ARBPRECTYPE)args.psum_dtype; // FIXME - temporary hack to get results
     seq->es.psum_full_addr = 0; // tmp
     seq->es.weight_toggle = true;
     seq->ifmap_base = args.ifmap_full_addr;
-    seq->ifmap_x_num = args.x_num_elements;
-    seq->ifmap_y_num = args.y_num_elements;
+    seq->ifmap_x_num = args.x_num;
+    seq->ifmap_y_num = args.y_num;
     seq->ifmap_x_cnt = 0;
     seq->ifmap_y_cnt = 0;
     seq->ifmap_x_step = args.x_step;
@@ -87,30 +87,34 @@ void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
  *------------------------------------ */
 template<>
 void  DynamicInstruction<PoolArgs>::execute(Sequencer *seq) {
-	unsigned int src_num_elements = args.src_x_num_elements + 
-        args.src_y_num_elements + 
-		args.src_z_num_elements;
+	unsigned int src_num = args.src_x_num + 
+        args.src_y_num + 
+		args.src_z_num;
 	seq->ps.pool_valid = true;
 	seq->ps.dtype = (ARBPRECTYPE)args.dtype;
 	seq->ps.src_full_addr = args.src_full_addr;
 	seq->ps.pool_start = true;
-	seq->ps.pool_end = (src_num_elements == 3);
+	seq->ps.pool_stop = (src_num == 3);
 	seq->ps.dst_full_addr = args.src_full_addr;
 	seq->ps.countdown = args.num_partitions;
 	
-	seq->pool_base = args.src_full_addr;
-	seq->num_pools = args.num_pools;
+	seq->pool_src_base = args.src_full_addr;
+	seq->pool_src_x_cnt = 0;
+	seq->pool_src_y_cnt = 0;
+	seq->pool_src_z_cnt = 0;
 	seq->pool_src_x_step = args.src_x_step;
 	seq->pool_src_y_step = args.src_y_step;
 	seq->pool_src_z_step = args.src_z_step;
-	seq->pool_src_x_num_elements = args.src_x_num_elements;
-	seq->pool_src_y_num_elements = args.src_y_num_elements;
-	seq->pool_src_z_num_elements = args.src_z_num_elements;
+	seq->pool_src_x_num = args.src_x_num;
+	seq->pool_src_y_num = args.src_y_num;
+	seq->pool_src_z_num = args.src_z_num;
 
 	seq->pool_dst_x_step = args.dst_x_step;
 	seq->pool_dst_y_step = args.dst_y_step;
-	seq->pool_dst_x_num_elements = args.dst_x_num_elements;
-	seq->pool_dst_y_num_elements = args.dst_y_num_elements;
+	seq->pool_dst_x_cnt = 0;
+	seq->pool_dst_y_cnt = 0;
+	seq->pool_dst_x_num = args.dst_x_num;
+	seq->pool_dst_y_num = args.dst_y_num;
 }
 
 /*------------------------------------
@@ -130,37 +134,23 @@ Sequencer::synch() {
 
 #define COND_SET(X, VAL) (X == VAL) ? false : X=VAL
 
+/* sub function of step - to step the edgesignal */
 void
-Sequencer::step() {
-    /* empty the instruction queue */
-    if (raw_signal || !synch()) {
-        if (!uop.empty()) {
-            Instruction *inst = uop.front();
-            inst->execute(this);
-            uop.pop();
-            free(inst);
-        } else {
-            es = {0};
-        }
-        return;
-    }
-    /* was the instruction a raw signal, if so, leave es alone and exit */
-    if (raw_signal) {
-        return;
-    }
+Sequencer::step_edgesignal() {
     /* update state - feed pixel */
     if (es.ifmap_valid) {
         /* es state */
-        if (++ifmap_x_cnt >= ifmap_x_num) {
+        ifmap_x_cnt++;
+        if (ifmap_x_cnt >= ifmap_x_num) {
             ifmap_x_cnt = 0;
-            ++ifmap_y_cnt;
+            ifmap_y_cnt++;
         }
 
         if (ifmap_y_cnt == ifmap_y_num) {
             /* clear state */
             es.ifmap_valid = false;
             es.psum_start = false;
-            es.psum_end = false;
+            es.psum_stop = false;
             es.pool_valid = false;
             es.activation_valid = false;
         } else {
@@ -184,6 +174,88 @@ Sequencer::step() {
             es.weight_valid = false;
         } 
     }
+}
+
+/* sub function of step - to step the poolsignal */
+void
+Sequencer::step_poolsignal() {
+    if (!ps.pool_valid) {
+        return;
+    }
+    /* roll over counters */
+    pool_src_x_cnt++;
+    if (pool_src_x_cnt >= pool_src_x_num) {
+        pool_src_x_cnt = 0;
+        pool_src_y_cnt++;
+    }
+
+    if (pool_src_y_cnt >= pool_src_y_num) {
+        pool_src_y_cnt = 0;
+        pool_src_z_cnt++;
+    }
+
+    if (pool_src_z_cnt >= pool_src_z_num) {
+        pool_src_z_cnt = 0;
+        ps.pool_stop = true;
+    }
+
+    /* if we are done pooling, calculate dest addr */
+    if (ps.pool_stop) {
+        pool_dst_x_cnt++;
+        if (pool_dst_x_cnt >= pool_dst_x_num) {
+            pool_dst_x_cnt = 0;
+            pool_dst_y_cnt++;
+        }
+
+        if (pool_dst_y_cnt >= pool_dst_y_num) {
+            pool_dst_y_cnt = 0;
+            ps.pool_valid = false;
+        }
+        ps.dst_full_addr = pool_dst_base + 
+            (pool_dst_y_cnt * pool_dst_y_step + 
+             pool_dst_x_cnt * pool_dst_x_step) * 
+            sizeofArbPrecType((ARBPRECTYPE)ps.dtype);
+    }
+
+    if (!pool_src_x_cnt && !pool_src_y_cnt) {
+        if ((pool_dst_x_cnt == pool_dst_x_num) &&
+                (pool_dst_y_cnt == pool_dst_y_num)) {
+            /* we finished all poolings */
+        } else {
+            /* we are ready to start a new hxw pooling */
+            ps.pool_start = true;
+        }
+    }
+    if (ps.pool_valid) {
+        ps.src_full_addr = pool_src_base + 
+            (pool_src_z_cnt * pool_src_z_step +
+             pool_src_y_cnt * pool_src_y_step + 
+             pool_src_x_cnt * pool_src_x_step) * 
+            sizeofArbPrecType((ARBPRECTYPE)ps.dtype);
+    }
+}
+
+void
+Sequencer::step() {
+    /* empty the instruction queue */
+    if (raw_signal || !synch()) {
+        if (!uop.empty()) {
+            Instruction *inst = uop.front();
+            inst->execute(this);
+            uop.pop();
+            free(inst);
+        } else {
+            es = {0};
+        }
+        return;
+    }
+    /* was the instruction a raw signal, if so, leave es alone and exit */
+    if (raw_signal) {
+        return;
+    }
+
+    step_edgesignal();
+    step_poolsignal();
 
     clock++;
 }
@@ -235,17 +307,17 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     weight_args.num_cols = num_cols;
     weight_args.num_rows = num_rows;
     weight_args.x_step = weight_step;
-    weight_args.x_num_elements = args.w_s;
+    weight_args.x_num = args.w_s;
     weight_args.y_step = weight_step * args.w_s;
-    weight_args.y_num_elements = args.w_r;
-    weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num_elements * weight_args.y_step);
+    weight_args.y_num = args.w_r;
+    weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num * weight_args.y_step);
     uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
 
     MatMulArgs matmul_args;
     matmul_args.ifmap_full_addr   = 0xdead;
-    matmul_args.x_num_elements = ofmap_cols;
+    matmul_args.x_num = ofmap_cols;
     matmul_args.x_step = 1;
-    matmul_args.y_num_elements = ofmap_rows;
+    matmul_args.y_num = ofmap_rows;
     matmul_args.y_step = ifmap_cols;
     //matmul_args.ofmap_full_addr = args.ofmap_full_addr;
     matmul_args.dtype = ifmap_dtype;
@@ -260,7 +332,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
         for (int s = 0; s < filter_cols; s++, curr_weight++) {
             /* go through each ofmap pixel this weight operates one*/
             matmul_args.psum_start = (r == 0 && s == 0);
-            matmul_args.psum_end = (curr_weight == (filter_rows * filter_cols - 1));
+            matmul_args.psum_stop = (curr_weight == (filter_rows * filter_cols - 1));
             matmul_args.ifmap_full_addr = ifmap_full_addr + (r * ifmap_cols + s) * sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
             uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
             if (curr_weight < (filter_rows * filter_cols - 1)) {
@@ -365,7 +437,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
                     /* ACTIVATE, POOL, WRITE OUT */
                     if ((r == filter_rows - 1) && 
                             (s == filter_cols - 1)) {
-                        es.psum_end   = true;
+                        es.psum_stop   = true;
                         es.activation_valid = true;
                         es.pool_valid = true;
                         //es.ofmap_full_addr = args.ofmap_full_addr + curr_opixel * sizeofArbPrecType(psum_dtype);
