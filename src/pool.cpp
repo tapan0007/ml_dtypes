@@ -46,58 +46,57 @@ Pool::step() {
     memory.read(curr_ptr, ps.src_full_addr, dsize);
     curr_ptr += dsize;
 
-    if (!ps.stop) {
-        return;
-    }
-    assert(curr_ptr > base_ptr && "empty pool?");
-    switch (ps.func) {
-        case IDENTITY_POOL:
-			memory.write(ps.dst_full_addr, base_ptr, curr_ptr - base_ptr - 1);
-            break;
+    if (ps.stop) {
+        assert(curr_ptr > base_ptr && "empty pool?");
+        switch (ps.func) {
+            case IDENTITY_POOL:
+                memory.write(ps.dst_full_addr, base_ptr, curr_ptr - base_ptr);
+                break;
 
 #if 0
-        case AVG_POOL:
-            // fixme - how can we divide with just a multiplying unit?
-            //double pool_pixel = pool_pixel * ArbPrecType(ew.psum_dtype, (1.0 / (ew.pool_dimx * ew.pool_dimy)));
-            for (int i = 0; i < ew.pool_dimx; i++) {
-                for (int j = 0; j < ew.pool_dimy; j++) {
-                    pool_pixel = pool_pixel + entry[e_id - i * ew.pool_stride - j].partial_sum;
-                }
-            }
-            pool_pixel = pool_pixel / ArbPrec(ew.psum_dtype, n);
-            break;
-        case MAX_POOL:
-            pool_pixel = entry[e_id].partial_sum;
-            for (int i = 0; i < ew.pool_dimx; i++) {
-                for (int j = 0; j < ew.pool_dimy; j++) {
-                    ArbPrecData comp_pixel = entry[e_id - i * Constants::partition_nbytes - j].partial_sum;
-                    if (comp_pixel > pool_pixel) {
-                        pool_pixel = comp_pixel;
+            case AVG_POOL:
+                // fixme - how can we divide with just a multiplying unit?
+                //double pool_pixel = pool_pixel * ArbPrecType(ew.psum_dtype, (1.0 / (ew.pool_dimx * ew.pool_dimy)));
+                for (int i = 0; i < ew.pool_dimx; i++) {
+                    for (int j = 0; j < ew.pool_dimy; j++) {
+                        pool_pixel = pool_pixel + entry[e_id - i * ew.pool_stride - j].partial_sum;
                     }
                 }
-            }
-            break;
+                pool_pixel = pool_pixel / ArbPrec(ew.psum_dtype, n);
+                break;
+            case MAX_POOL:
+                pool_pixel = entry[e_id].partial_sum;
+                for (int i = 0; i < ew.pool_dimx; i++) {
+                    for (int j = 0; j < ew.pool_dimy; j++) {
+                        ArbPrecData comp_pixel = entry[e_id - i * Constants::partition_nbytes - j].partial_sum;
+                        if (comp_pixel > pool_pixel) {
+                            pool_pixel = comp_pixel;
+                        }
+                    }
+                }
+                break;
 #endif
-        default:
-            assert(0 && "that pooling is not yet supported");
-            break;
+            default:
+                assert(0 && "that pooling is not yet supported");
+                break;
+        }
     }
-	ps.src_full_addr += src_partition_size;
-	ps.dst_full_addr += dst_partition_size;
+    ps.src_full_addr += src_partition_size;
+    ps.dst_full_addr += dst_partition_size;
     if (!ps.countdown) {
-		ps.valid = false;
-	}
+        ps.valid = false;
+    }
 }
 
 #if 0
-ArbPrecData
-Pool::activation(ArbPrecData pixel) {
-    switch (ew.activation) {
-        case RELU:
-           break;
-        case LEAKY_RELU:
-           break;
-        case SIGMIOD:
+    ArbPrecData
+        Pool::activation(ArbPrecData pixel) {
+            switch (ew.activation) {
+                case RELU:
+                    break;
+                case LEAKY_RELU:
+                    break;
+                case SIGMIOD:
            break;
         case TANH:
            break;

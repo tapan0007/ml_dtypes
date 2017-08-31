@@ -88,13 +88,15 @@ void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
  *------------------------------------ */
 template<>
 void  DynamicInstruction<PoolArgs>::execute(Sequencer *seq) {
+    POOLFUNC pool_func = (POOLFUNC)args.pool_func;
 	seq->pool_valid = true;
 	seq->pool_timer = Constants::rows;
-    seq->ps.func = (POOLFUNC)args.pool_func;
+    seq->ps.func = pool_func;
 	seq->ps.dtype = (ARBPRECTYPE)args.dtype;
 	seq->ps.src_full_addr = args.src_full_addr;
 	seq->ps.start = true;
-	seq->ps.stop = (args.src_x_num + args.src_y_num == 2);
+	seq->ps.stop = (pool_func = IDENTITY_POOL) ||
+        (args.src_x_num + args.src_y_num == 2);
 	seq->ps.dst_full_addr = args.dst_full_addr;
 	seq->ps.countdown = args.num_partitions;
 	
@@ -195,7 +197,7 @@ Sequencer::step_poolsignal() {
         return;
     }
     size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ps.dtype);
-    /* roll over counters */
+    /* roll over src counters */
     pool_src_x_cnt++;
     if (pool_src_x_cnt >= pool_src_x_num) {
         pool_src_x_cnt = 0;
@@ -205,45 +207,58 @@ Sequencer::step_poolsignal() {
     if (pool_src_y_cnt >= pool_src_y_num) {
         pool_src_y_cnt = 0;
         pool_src_z_cnt++;
-        ps.stop = true;
     }
 
     if (pool_src_z_cnt >= pool_src_z_num) {
         pool_src_z_cnt = 0;
     }
+    bool eopool = 
+        (pool_src_x_cnt == pool_src_x_num - 1) && 
+        (pool_src_y_cnt == pool_src_y_num - 1) &&
+        (pool_src_z_cnt == pool_src_z_num - 1);
 
-    /* if we are done pooling, calculate dest addr */
-    if (ps.stop) {
+    /* roll over dst counters */
+    if (ps.func == IDENTITY_POOL || eopool) {
         pool_dst_x_cnt++;
         if (pool_dst_x_cnt >= pool_dst_x_num) {
             pool_dst_x_cnt = 0;
             pool_dst_y_cnt++;
         }
-
-        if (pool_dst_y_cnt >= pool_dst_y_num) {
-            pool_dst_y_cnt = 0;
-            ps.valid = false;
-            pool_valid = false;
-        }
-        ps.dst_full_addr = pool_dst_base + 
-            (pool_dst_y_cnt * pool_dst_y_step + 
-             pool_dst_x_cnt * pool_dst_x_step) * dsize;
     }
 
-    if (!pool_src_x_cnt && !pool_src_y_cnt) {
-        if ((pool_dst_x_cnt == pool_dst_x_num) &&
-                (pool_dst_y_cnt == pool_dst_y_num)) {
-            /* we finished all poolings */
-        } else {
-            /* we are ready to start a new hxw pooling */
-            ps.start = true;
-        }
+    /* set signals */
+    /* togglers */
+    COND_SET(ps.stop, false);
+    COND_SET(ps.start, false);
+
+    /* start/stop pooling */
+    if (ps.func == IDENTITY_POOL) {
+        ps.start = true;
+        ps.stop = true;
+    } else {
+        ps.start = ps.stop; /* stopped last cycle, start anew */
+        ps.stop = eopool;
     }
+
+    /* totally done */
+    if (pool_dst_y_cnt >= pool_dst_y_num) {
+        pool_dst_y_cnt = 0;
+        ps.valid = false;
+        pool_valid = false;
+    }
+
+
+    /* calculate address based on settings */
     if (ps.valid) {
         ps.src_full_addr = pool_src_base + 
             (pool_src_z_cnt * pool_src_z_step +
              pool_src_y_cnt * pool_src_y_step + 
              pool_src_x_cnt * pool_src_x_step) * dsize;
+    }
+    if (ps.start) {
+        ps.dst_full_addr = pool_dst_base + 
+            (pool_dst_y_cnt * pool_dst_y_step + 
+             pool_dst_x_cnt * pool_dst_x_step) * dsize;
     }
 }
 
@@ -319,6 +334,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     addr_t ifmap_full_addr = args.ifmap_full_addr;
     int weight_load_latency = num_cols;
     size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
+    //size_t tsize;
     addr_t weight_base_addr;
     LdWeightsArgs weight_args;
     MatMulArgs    matmul_args;
@@ -334,49 +350,65 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     weight_base_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num * weight_args.y_step);
     weight_args.weight_full_addr = weight_base_addr;
 
+    size_t tile_x_dim = Constants::tile_size;
+    size_t tile_y_dim = Constants::tile_size;
     matmul_args.ifmap_full_addr   = 0xdead;
-    matmul_args.x_num =
-        ofmap_cols > Constants::tile_size ? Constants::tile_size : ofmap_cols;
+    size_t x_tile_or_ofmap = 
+        ofmap_cols > tile_x_dim ? tile_x_dim : ofmap_cols;
     matmul_args.x_step = 1;
-    matmul_args.y_num =
-        ofmap_rows > Constants::tile_size ? Constants::tile_size : ofmap_rows;
+    size_t y_tile_or_ofmap = 
+        ofmap_rows > tile_y_dim ? tile_y_dim : ofmap_rows;
     matmul_args.y_step = ifmap_cols;
     matmul_args.dtype = ifmap_dtype;
     matmul_args.psum_dtype = psum_dtype;
     matmul_args.num_rows = num_rows;
     matmul_args.num_cols = num_cols;
 
+    ARBPRECTYPE pool_dtype = UINT32;
+    size_t psize = sizeofArbPrecType((ARBPRECTYPE)pool_dtype);
+    size_t  tile_x = x_tile_or_ofmap;
+    size_t  tile_y = y_tile_or_ofmap;
+    size_t  tile_xx = ofmap_cols % tile_x_dim ? ofmap_cols % tile_x_dim : tile_x;
+    size_t  tile_yy = ofmap_rows % tile_y_dim ? ofmap_rows % tile_y_dim : tile_y;
     pool_args.pool_func = IDENTITY_POOL;
-    pool_args.dtype     = UINT32;
+    pool_args.dtype     = pool_dtype;
     pool_args.src_full_addr = psum_buffer_base;
     pool_args.src_x_step= 1;
     pool_args.src_y_step= 1;
     pool_args.src_z_step= 1;
-    pool_args.src_x_num = 1;
+ //   pool_args.src_x_num = tile_x * tile_y;
     pool_args.src_y_num = 1;
-    pool_args.src_z_num = ofmap_rows * ofmap_cols;
+    pool_args.src_z_num = 1;
     pool_args.dst_x_step = 1;
-    pool_args.dst_x_num = ofmap_rows * ofmap_cols; // FIX FOR TILES
-    pool_args.dst_y_step = pool_dst_x_num;
-    pool_args.dst_y_num = 1;
+ //   pool_args.dst_x_num = tile_x;
+    pool_args.dst_y_step = ofmap_cols;
+ //   pool_args.dst_y_num = tile_y;
     pool_args.dst_full_addr = args.ofmap_full_addr;
     pool_args.num_partitions = args.w_m;
+    //tsize = tile_x * tile_y * psize;
 
     /* go through each weight in the filter, cannot combine r and s into one, 
      * because ifmap_full_addr calc needs to seperate them */
-    uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
     /* go through each weight in the filter, cannot combine r and s into one, because ifmap_full_addr 
 	   calc needs to seperate them */
-    unsigned int curr_weight = 0;
+    pool_args.dst_full_addr =args.ofmap_full_addr;
+    unsigned int curr_tile = 0;
     unsigned int ii, jj;
+    size_t t_x, t_y;
     for (unsigned int i = 0; i < tile_rows; i++) {
-        for (unsigned int j = 0; j < tile_cols; j++) {
+        t_y = (i == tile_rows - 1) ? tile_yy : tile_y;
+        for (unsigned int j = 0; j < tile_cols; j++, curr_tile++) {
+            t_x = (j == tile_cols - 1) ? tile_xx : tile_x;
+            unsigned int curr_weight = 0;
+            uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
             for (unsigned int r = 0; r <  filter_rows; r++) {
                 for (unsigned int s = 0; s < filter_cols; s++, curr_weight++) {
                     /* go through each ofmap pixel this weight operates one*/
                     matmul_args.psum_start = (r == 0 && s == 0);
                     matmul_args.psum_stop = (curr_weight == 
                             (filter_rows * filter_cols - 1));
+                    matmul_args.x_num = t_x;
+                    matmul_args.y_num = t_y;
                     ii = i * Constants::tile_size;
                     jj = j * Constants::tile_size;
                     matmul_args.ifmap_full_addr = ifmap_full_addr +
@@ -390,7 +422,19 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
                     }
                 }
             }
+            // coudl replace t_y with tile_y to overwrite sloppily
+            pool_args.src_x_num = t_x * t_y;
+            pool_args.dst_x_num = t_x;
+            pool_args.dst_y_num = t_y;
             uop.PUSH(new DynamicInstruction<PoolArgs>(pool_args));
+            if (j < (tile_cols - 1)) {
+                pool_args.dst_full_addr += t_x * psize;
+            } else {
+                pool_args.dst_full_addr = args.ofmap_full_addr +
+                    ((j+1-1) * (tile_x * tile_y) + t_x * t_y) *  psize;
+                    //(i + 1) * (tile_cols-1)*(tile_x * tile_y) * psize +
+                    //(tile_xx * tile_y) * psize;
+            }
         }
     }
 

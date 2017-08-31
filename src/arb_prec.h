@@ -32,6 +32,7 @@ typedef union ArbPrecData {
 #define EXTRACT(C, V) \
     (*((C *)V))
 
+
 class ArbPrec
 {
     // TODO: find compile time log 2

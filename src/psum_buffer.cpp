@@ -126,15 +126,17 @@ PSumBuffer::step() {
         if (ew.ifmap_valid) {
             printf("adding partial sum at %d is ", e_id);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
-            printf("\n");
             ArbPrecData result = ArbPrec::add(src_ptr, &ns.partial_sum, psum_dtype);
             memory.write(src_addr, &result, dsize);
+            printf(" total = ");
+            ArbPrec::dump(stdout, memory.translate(src_addr), psum_dtype);
+            printf("\n");
             assert(valids[e_offset]);
         }
 
         if (ew.psum_stop) {
             printf("final partial sum at %d is ", e_id);
-            ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
+            ArbPrec::dump(stdout, memory.translate(src_addr), psum_dtype);
             printf("\n");
             assert(valids[e_offset]);
             memcpy(&valids[e_offset], &zeros, dsize); 

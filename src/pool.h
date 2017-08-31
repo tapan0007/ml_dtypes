@@ -16,7 +16,7 @@ class Pool : public PoolInterface {
     private:
         PoolSignals              ps;
         PoolInterface           *connection;
-        char                     mem[MAX_POOL];
+        char                     mem[8192];
         char                    *base_ptr;
         char                    *curr_ptr;
 };
