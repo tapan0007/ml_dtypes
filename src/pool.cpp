@@ -7,7 +7,7 @@ extern addr_t psum_buffer_base;
 //------------------------------------------------------------
 // Pool
 //------------------------------------------------------------
-Pool::Pool() : connection(NULL) {
+Pool::Pool() : connection(NULL), base_ptr(mem) {
     ps = {0};
 }
 
@@ -25,11 +25,10 @@ Pool::pull_pool() {
 
 void
 Pool::step() {
+    ps = connection->pull_pool();
     if (!ps.valid) {
         return;
     }
-    char mem[128]; // FIXME - hack for now
-	void *ptr = (void *)(mem);
 	addr_t src_partition_size;
 	addr_t dst_partition_size;
 	size_t dsize = sizeofArbPrecType(ps.dtype);
@@ -41,12 +40,19 @@ Pool::step() {
 	dst_partition_size = (ps.dst_full_addr >= psum_buffer_base) ?
 		Constants::psum_addr : Constants::partition_nbytes;
 
+    if (ps.start) {
+        curr_ptr = base_ptr;
+    }
+    memory.read(curr_ptr, ps.src_full_addr, dsize);
+    curr_ptr += dsize;
+
+    if (!ps.stop) {
+        return;
+    }
+    assert(curr_ptr > base_ptr && "empty pool?");
     switch (ps.func) {
         case IDENTITY_POOL:
-			assert(ps.start && ps.stop && 
-					"identity pool must work on singlet pools");
-			memory.read(ptr, ps.src_full_addr, dsize);
-			memory.write(ps.dst_full_addr, ptr, dsize);
+			memory.write(ps.dst_full_addr, base_ptr, curr_ptr - base_ptr - 1);
             break;
 
 #if 0
@@ -76,8 +82,8 @@ Pool::step() {
             assert(0 && "that pooling is not yet supported");
             break;
     }
-	ps.src_addr += src_partition_size;
-	ps.dst_addr += dst_partition_size;
+	ps.src_full_addr += src_partition_size;
+	ps.dst_full_addr += dst_partition_size;
     if (!ps.countdown) {
 		ps.valid = false;
 	}
@@ -109,9 +115,9 @@ Pool::activation(ArbPrecData pixel) {
 //------------------------------------------------------------
 // PoolBufferArray
 //------------------------------------------------------------
-PoolArray::PoolArray(int n_cols) {
-    pooler.resize(n_cols);
-    for (int i = 1; i < n_cols; i++) {
+PoolArray::PoolArray(int n_pools) {
+    pooler.resize(n_pools);
+    for (int i = 1; i < n_pools; i++) {
         pooler[i].connect(&pooler[i-1]);
     }
 }
@@ -132,8 +138,8 @@ PoolArray::operator[](int index)
 
 void
 PoolArray::step() {
-    int n_cols = pooler.size();
-    for (int i = n_cols - 1; i >= 0; i--) {
+    int n_pools = pooler.size();
+    for (int i = n_pools - 1; i >= 0; i--) {
         pooler[i].step();
     }
 }

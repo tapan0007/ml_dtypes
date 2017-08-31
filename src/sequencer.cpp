@@ -88,18 +88,18 @@ void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
  *------------------------------------ */
 template<>
 void  DynamicInstruction<PoolArgs>::execute(Sequencer *seq) {
-	unsigned int src_num = args.src_x_num + 
-        args.src_y_num + 
-		args.src_z_num;
-	seq->ps.valid = true;
+	seq->pool_valid = true;
+	seq->pool_timer = Constants::rows;
+    seq->ps.func = (POOLFUNC)args.pool_func;
 	seq->ps.dtype = (ARBPRECTYPE)args.dtype;
 	seq->ps.src_full_addr = args.src_full_addr;
 	seq->ps.start = true;
-	seq->ps.stop = (src_num == 3);
-	seq->ps.dst_full_addr = args.src_full_addr;
+	seq->ps.stop = (args.src_x_num + args.src_y_num == 2);
+	seq->ps.dst_full_addr = args.dst_full_addr;
 	seq->ps.countdown = args.num_partitions;
 	
 	seq->pool_src_base = args.src_full_addr;
+	seq->pool_dst_base = args.dst_full_addr;
 	seq->pool_src_x_cnt = 0;
 	seq->pool_src_y_cnt = 0;
 	seq->pool_src_z_cnt = 0;
@@ -122,7 +122,7 @@ void  DynamicInstruction<PoolArgs>::execute(Sequencer *seq) {
  * Sequencer
  *------------------------------------ */
 
-Sequencer::Sequencer() : es(), raw_signal(false), clock(0) {
+Sequencer::Sequencer() : es(), ps(), pool_valid(false), raw_signal(false), clock(0) {
 }
 
 Sequencer::~Sequencer() {
@@ -130,7 +130,7 @@ Sequencer::~Sequencer() {
 
 bool
 Sequencer::synch() {
-    return es.ifmap_valid  || es.weight_valid;
+    return es.ifmap_valid  || es.weight_valid || pool_valid;
 }
 
 #define COND_SET(X, VAL) (X == VAL) ? false : X=VAL
@@ -180,9 +180,21 @@ Sequencer::step_edgesignal() {
 /* sub function of step - to step the poolsignal */
 void
 Sequencer::step_poolsignal() {
+    if (!pool_valid) {
+        return;
+    }
+    if (pool_timer) {
+        --pool_timer;
+        if (pool_timer == 0) {
+            ps.valid = true;
+        } 
+        return;
+    }
+    assert(ps.valid);
     if (!ps.valid) {
         return;
     }
+    size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ps.dtype);
     /* roll over counters */
     pool_src_x_cnt++;
     if (pool_src_x_cnt >= pool_src_x_num) {
@@ -193,11 +205,11 @@ Sequencer::step_poolsignal() {
     if (pool_src_y_cnt >= pool_src_y_num) {
         pool_src_y_cnt = 0;
         pool_src_z_cnt++;
+        ps.stop = true;
     }
 
     if (pool_src_z_cnt >= pool_src_z_num) {
         pool_src_z_cnt = 0;
-        ps.stop = true;
     }
 
     /* if we are done pooling, calculate dest addr */
@@ -211,11 +223,11 @@ Sequencer::step_poolsignal() {
         if (pool_dst_y_cnt >= pool_dst_y_num) {
             pool_dst_y_cnt = 0;
             ps.valid = false;
+            pool_valid = false;
         }
         ps.dst_full_addr = pool_dst_base + 
             (pool_dst_y_cnt * pool_dst_y_step + 
-             pool_dst_x_cnt * pool_dst_x_step) * 
-            sizeofArbPrecType((ARBPRECTYPE)ps.dtype);
+             pool_dst_x_cnt * pool_dst_x_step) * dsize;
     }
 
     if (!pool_src_x_cnt && !pool_src_y_cnt) {
@@ -231,8 +243,7 @@ Sequencer::step_poolsignal() {
         ps.src_full_addr = pool_src_base + 
             (pool_src_z_cnt * pool_src_z_step +
              pool_src_y_cnt * pool_src_y_step + 
-             pool_src_x_cnt * pool_src_x_step) * 
-            sizeofArbPrecType((ARBPRECTYPE)ps.dtype);
+             pool_src_x_cnt * pool_src_x_step) * dsize;
     }
 }
 
@@ -291,14 +302,16 @@ Sequencer::dump() {
 void 
 Sequencer::convolve_dynamic(const ConvolveArgs &args)
 {
-    int filter_rows = args.w_r;
-    int filter_cols = args.w_s;
-    int ifmap_rows = args.i_h;
-    int ifmap_cols = args.i_w;
-    int ofmap_rows = ifmap_rows - filter_rows + 1;
-    int ofmap_cols =  ifmap_cols - filter_cols + 1;
-    int num_cols = args.w_m;
-    int num_rows = args.i_c;
+    unsigned int filter_rows = args.w_r;
+    unsigned int filter_cols = args.w_s;
+    unsigned int ifmap_rows = args.i_h;
+    unsigned int ifmap_cols = args.i_w;
+    unsigned int ofmap_rows = ifmap_rows - filter_rows + 1;
+    unsigned int ofmap_cols =  ifmap_cols - filter_cols + 1;
+    unsigned int num_cols = args.w_m;
+    unsigned int num_rows = args.i_c;
+    unsigned int tile_rows = ceil((float) ofmap_rows / Constants::tile_size);
+    unsigned int tile_cols = ceil((float) ofmap_rows / Constants::tile_size);
     ARBPRECTYPE ifmap_dtype = UINT8;
     ARBPRECTYPE weight_dtype = UINT8;
     ARBPRECTYPE psum_dtype = UINT32;
@@ -306,11 +319,10 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     addr_t ifmap_full_addr = args.ifmap_full_addr;
     int weight_load_latency = num_cols;
     size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
+    addr_t weight_base_addr;
     LdWeightsArgs weight_args;
     MatMulArgs    matmul_args;
     PoolArgs      pool_args;
-    assert(weight_load_latency < 64 && 
-            "Tiling not implemented yet, too many ofmaps!");
 
     weight_args.dtype = weight_dtype;
     weight_args.num_cols = num_cols;
@@ -319,12 +331,15 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     weight_args.x_num = args.w_s;
     weight_args.y_step = weight_step * args.w_s;
     weight_args.y_num = args.w_r;
-    weight_args.weight_full_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num * weight_args.y_step);
+    weight_base_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num * weight_args.y_step);
+    weight_args.weight_full_addr = weight_base_addr;
 
     matmul_args.ifmap_full_addr   = 0xdead;
-    matmul_args.x_num = ofmap_cols;
+    matmul_args.x_num =
+        ofmap_cols > Constants::tile_size ? Constants::tile_size : ofmap_cols;
     matmul_args.x_step = 1;
-    matmul_args.y_num = ofmap_rows;
+    matmul_args.y_num =
+        ofmap_rows > Constants::tile_size ? Constants::tile_size : ofmap_rows;
     matmul_args.y_step = ifmap_cols;
     matmul_args.dtype = ifmap_dtype;
     matmul_args.psum_dtype = psum_dtype;
@@ -339,31 +354,41 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     pool_args.src_z_step= 1;
     pool_args.src_x_num = 1;
     pool_args.src_y_num = 1;
-    pool_args.src_z_num = 1;
+    pool_args.src_z_num = ofmap_rows * ofmap_cols;
     pool_args.dst_x_step = 1;
-    pool_args.dst_x_num = ofmap_rows *ofmap_cols; // FIX FOR TILES
+    pool_args.dst_x_num = ofmap_rows * ofmap_cols; // FIX FOR TILES
     pool_args.dst_y_step = pool_dst_x_num;
     pool_args.dst_y_num = 1;
     pool_args.dst_full_addr = args.ofmap_full_addr;
-    pool_args.num_partitions = args.w_r;
-
+    pool_args.num_partitions = args.w_m;
 
     /* go through each weight in the filter, cannot combine r and s into one, 
      * because ifmap_full_addr calc needs to seperate them */
     uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
-    int curr_weight = 0;
-    for (int r = 0; r <  filter_rows; r++) {
-        for (int s = 0; s < filter_cols; s++, curr_weight++) {
-            /* go through each ofmap pixel this weight operates one*/
-            matmul_args.psum_start = (r == 0 && s == 0);
-            matmul_args.psum_stop  = (curr_weight == 
-                    (filter_rows * filter_cols - 1));
-            matmul_args.ifmap_full_addr = ifmap_full_addr + 
-                (r * ifmap_cols + s) * dsize;
-            uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
-            if (curr_weight < (filter_rows * filter_cols - 1)) {
-                weight_args.weight_full_addr += weight_step;
-                uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
+    /* go through each weight in the filter, cannot combine r and s into one, because ifmap_full_addr 
+	   calc needs to seperate them */
+    unsigned int curr_weight = 0;
+    unsigned int ii, jj;
+    for (unsigned int i = 0; i < tile_rows; i++) {
+        for (unsigned int j = 0; j < tile_cols; j++) {
+            for (unsigned int r = 0; r <  filter_rows; r++) {
+                for (unsigned int s = 0; s < filter_cols; s++, curr_weight++) {
+                    /* go through each ofmap pixel this weight operates one*/
+                    matmul_args.psum_start = (r == 0 && s == 0);
+                    matmul_args.psum_stop = (curr_weight == 
+                            (filter_rows * filter_cols - 1));
+                    ii = i * Constants::tile_size;
+                    jj = j * Constants::tile_size;
+                    matmul_args.ifmap_full_addr = ifmap_full_addr +
+                        ((r + ii)* ifmap_cols + (s + jj)) * dsize;
+                    uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
+                    if (curr_weight < (filter_rows * filter_cols - 1)) {
+                        weight_args.weight_full_addr += weight_step;
+                        uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
+                    } else {
+                        weight_args.weight_full_addr = weight_base_addr;
+                    }
+                }
             }
             uop.PUSH(new DynamicInstruction<PoolArgs>(pool_args));
         }
@@ -401,6 +426,7 @@ Sequencer::convolve_static(const ConvolveArgs &args)
     int weight_step   = sizeofArbPrecType(args.weight_dtype);
     assert(weight_load_latency < 64 && "Tiling not implemented yet, don't have enough columsn for # ofmaps!");
 
+    printf("warning: bit rot ahead\n");
     /* signals that will stay constant for entire convolution */
     es.weight_dtype  = args.weight_dtype;
     es.psum_dtype    = psum_dtype;
@@ -481,5 +507,5 @@ Sequencer::convolve_static(const ConvolveArgs &args)
 
 bool
 Sequencer::done() {
-    return uop.empty() && !es.ifmap_valid && !es.weight_valid;
+    return uop.empty() && !es.ifmap_valid && !es.weight_valid && !pool_valid;
 }

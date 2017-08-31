@@ -38,9 +38,9 @@ typedef struct LdWeightsArgs {
     ADDR_UNION(weight);
     uint64_t    dtype          : Constants::type_bits;
     addr_t      x_step         : Constants::bank_bits - 1;
-    uint64_t    x_num : 8;
+    uint64_t    x_num : 9;
     addr_t      y_step         : Constants::bank_bits - 1;
-    uint64_t    y_num : 8;
+    uint64_t    y_num : 9;
     uint64_t    num_rows : Constants::row_bits;
     uint64_t    num_cols : Constants::column_bits;
 } LdWeightsArgs;
@@ -51,9 +51,9 @@ typedef struct MatMulArgs {
     uint64_t    dtype       : Constants::type_bits;
     ADDR_UNION(ifmap);
     addr_t      x_step         : Constants::bank_bits - 1;
-    uint64_t    x_num : 8;
+    uint64_t    x_num : 9;
     addr_t      y_step         : Constants::bank_bits - 1;
-    uint64_t    y_num : 8;
+    uint64_t    y_num : 9;
     uint64_t    psum_dtype : Constants::type_bits;
     uint64_t    num_rows   : Constants::row_bits;
     uint64_t    num_cols   : Constants::column_bits;
@@ -64,16 +64,16 @@ typedef struct PoolArgs {
     uint64_t    dtype       : Constants::type_bits;
     ADDR_UNION(src);
     addr_t      src_x_step     : Constants::bank_bits - 1;
-    uint64_t    src_x_num : 8;
+    uint64_t    src_x_num : 9;
     addr_t      src_y_step         : Constants::bank_bits - 1;
-    uint64_t    src_y_num : 8;
+    uint64_t    src_y_num : 9;
     addr_t      src_z_step         : Constants::bank_bits - 1;
-    uint64_t    src_z_num : 8;
+    uint64_t    src_z_num : 9;
     ADDR_UNION(dst);
     addr_t      dst_x_step     : Constants::bank_bits - 1;
-    uint64_t    dst_x_num : 8;
+    uint64_t    dst_x_num : 9;
     addr_t      dst_y_step         : Constants::bank_bits - 1;
-    uint64_t    dst_y_num : 8;
+    uint64_t    dst_y_num : 9;
     uint64_t    num_partitions     : Constants::row_bits;
 } PoolArgs;
 
@@ -113,6 +113,8 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         uint8_t     ifmap_y_cnt;
 
         /* pool */
+        bool        pool_valid;
+        uint64_t    pool_timer;
         addr_t      pool_src_base;
         size_t      pool_src_x_step;
         size_t      pool_src_y_step;
