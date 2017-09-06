@@ -13,21 +13,25 @@ Memory::~Memory() {
     free(memory);
 }
 
+/* go from mcrs->crsm */
 void
-Memory::swap_axes(void *ptr, int r, int s, int t, int u, size_t word_size)
+Memory::swap_axes(void *ptr, int m, int c, int r, int s, size_t word_size)
 {
-    int nbytes = r * s * t * u * word_size;
+    int nbytes = m * c * r * s * word_size;
     char *dest = (char *)ptr;
     char *src = (char *)malloc(nbytes);
-    int   a = 0;
-    int   stride = nbytes / (r * s * t * u);
-    int   step = t * u * stride;
+    int   i = 0;
     memcpy(src, ptr, nbytes);
 
-    for (int i = 0; i < s; i++) {
-        for (int j = 0; j < r; j++) {
-            memcpy(&dest[a], &src[(i + j * s) * step], step);
-            a += step;
+    for (int cc = 0; cc < c; cc++) {
+        for (int rr = 0; rr < r; rr++) {
+            for (int ss = 0; ss < s; ss++) {
+                for (int mm = 0; mm < m; mm++) {
+                    memcpy(&dest[i], &src[(mm*c*r*s + cc*r*s + rr*s + ss) * 
+                            word_size], word_size);
+                    i += word_size;
+                }
+            }
         }
     }
     free(src);

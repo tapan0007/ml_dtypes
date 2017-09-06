@@ -1,6 +1,7 @@
 #include "sequencer.h"
 #include "types.h"
 #include "string.h"
+#include "isa.h"
 
 /*------------------------------------
  * EdgeSignalsInstruction
@@ -36,20 +37,23 @@ DynamicInstruction<EdgeSignals>::execute(Sequencer *seq) {
  *------------------------------------ */
 template<>
 void  DynamicInstruction<LdWeightsArgs>::execute(Sequencer *seq) {
-    uint8_t dtype_size = sizeofArbPrecType((ARBPRECTYPE)args.dtype);
+    uint8_t num_cols = args.x_num * args.y_num; 
     seq->es.weight_valid = true;
     seq->es.weight_dtype = (ARBPRECTYPE) args.dtype;
-    seq->es.weight_full_addr = args.weight_full_addr;
-    seq->es.weight_clamp = (args.num_cols == 1);
+    //seq->es.weight_full_addr = args.address;
+    seq->weight_base = args.address;
+    seq->es.weight_clamp = (num_cols == 1);
     seq->es.row_countdown = args.num_rows; 
-    seq->weight_clamp_countdown = args.num_cols;
-    seq->weight_x_step = dtype_size * args.x_step;
+    seq->weight_clamp_countdown = num_cols;
+    seq->weight_x_step = args.x_step;
+    seq->weight_y_step = args.y_step;
     seq->weight_x_num = args.x_num;
     seq->weight_y_num = args.y_num;
     seq->weight_x_cnt = 0;
     seq->weight_y_cnt = 0;
-    seq->weight_y_step = args.y_step;
     seq->raw_signal = false;
+    seq->es.weight_full_addr = args.address + (args.y_num * args.y_step - 1) * 
+        sizeofArbPrecType((ARBPRECTYPE)args.dtype);
 
 }
 
@@ -166,16 +170,27 @@ Sequencer::step_edgesignal() {
     /* update state - feed weight */
     if (es.weight_valid) {
         /* es state */
-        if (--weight_clamp_countdown) {
-            es.weight_full_addr -= weight_y_num * weight_y_step;
+        weight_x_cnt++;
+        if (weight_x_cnt >= weight_x_num) {
+            weight_x_cnt = 0;
+            weight_y_cnt++;
         }
-        if (weight_clamp_countdown == 1) {
+
+        if ((weight_x_cnt == weight_x_num - 1) &&
+                (weight_y_cnt == weight_y_num -1)) {
             es.weight_clamp = true;
-        } else if (weight_clamp_countdown == 0) {
+        } else if (weight_y_cnt ==  weight_y_num) {
             assert(es.weight_clamp);
             es.weight_clamp = false;
             es.weight_valid = false;
         } 
+        if (es.weight_valid) {
+            es.weight_full_addr = weight_base + 
+                (weight_y_num * weight_y_step -
+                 weight_y_cnt * weight_y_step -
+                 weight_x_cnt * weight_x_step - 1) * 
+                sizeofArbPrecType((ARBPRECTYPE)es.weight_dtype);
+        }
     }
 }
 
@@ -332,23 +347,19 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     ARBPRECTYPE psum_dtype = UINT32;
     addr_t weight_step = sizeofArbPrecType(weight_dtype);
     addr_t ifmap_full_addr = args.ifmap_full_addr;
-    int weight_load_latency = num_cols;
     size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
     //size_t tsize;
-    addr_t weight_base_addr;
     LdWeightsArgs weight_args;
     MatMulArgs    matmul_args;
     PoolArgs      pool_args;
 
     weight_args.dtype = weight_dtype;
-    weight_args.num_cols = num_cols;
     weight_args.num_rows = num_rows;
     weight_args.x_step = weight_step;
-    weight_args.x_num = args.w_s;
-    weight_args.y_step = weight_step * args.w_s;
-    weight_args.y_num = args.w_r;
-    weight_base_addr = args.filter_full_addr + (weight_load_latency-1) * (weight_args.y_num * weight_args.y_step);
-    weight_args.weight_full_addr = weight_base_addr;
+    weight_args.x_num = args.w_m;
+    weight_args.y_step = weight_step * args.w_m;
+    weight_args.y_num = 1;
+    weight_args.address = args.filter_full_addr;
 
     size_t tile_x_dim = Constants::tile_size;
     size_t tile_y_dim = Constants::tile_size;
@@ -415,10 +426,12 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
                         ((r + ii)* ifmap_cols + (s + jj)) * dsize;
                     uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
                     if (curr_weight < (filter_rows * filter_cols - 1)) {
-                        weight_args.weight_full_addr += weight_step;
+                        weight_args.address += 
+                            weight_args.y_num * weight_args.y_step * 
+                            weight_step;
                         uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
                     } else {
-                        weight_args.weight_full_addr = weight_base_addr;
+                        weight_args.address = args.filter_full_addr;
                     }
                 }
             }

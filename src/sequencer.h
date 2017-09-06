@@ -34,17 +34,6 @@ class DynamicInstruction : public Instruction {
         T args;
 };
 
-typedef struct LdWeightsArgs {
-    ADDR_UNION(weight);
-    uint64_t    dtype          : Constants::type_bits;
-    addr_t      x_step         : Constants::bank_bits - 1;
-    uint64_t    x_num : 9;
-    addr_t      y_step         : Constants::bank_bits - 1;
-    uint64_t    y_num : 9;
-    uint64_t    num_rows : Constants::row_bits;
-    uint64_t    num_cols : Constants::column_bits;
-} LdWeightsArgs;
-
 typedef struct MatMulArgs {
     uint64_t    psum_start  : 1;
     uint64_t    psum_stop   : 1;
@@ -95,6 +84,7 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         PoolSignals ps;
 
         /* weight */
+        addr_t      weight_base;
         size_t      weight_x_step;
         size_t      weight_y_step;
         uint8_t     weight_x_num;
