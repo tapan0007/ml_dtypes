@@ -345,108 +345,112 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     ARBPRECTYPE ifmap_dtype = UINT8;
     ARBPRECTYPE weight_dtype = UINT8;
     ARBPRECTYPE psum_dtype = UINT32;
-    addr_t weight_step = sizeofArbPrecType(weight_dtype);
+    addr_t weight_dsize = sizeofArbPrecType(weight_dtype);
     addr_t ifmap_full_addr = args.ifmap_full_addr;
     size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
-    //size_t tsize;
+    addr_t weight_step;
     LdWeightsArgs weight_args;
     MatMulArgs    matmul_args;
     PoolArgs      pool_args;
 
+    /* weight args */
     weight_args.dtype = weight_dtype;
     weight_args.num_rows = num_rows;
-    weight_args.x_step = weight_step;
+    weight_args.x_step = weight_dsize;
     weight_args.x_num = args.w_m;
-    weight_args.y_step = weight_step * args.w_m;
+    weight_args.y_step = weight_dsize * args.w_m;
     weight_args.y_num = 1;
     weight_args.address = args.filter_full_addr;
+    weight_step = weight_args.y_num * weight_args.y_step * weight_dsize;
 
-    size_t tile_x_dim = Constants::tile_size;
-    size_t tile_y_dim = Constants::tile_size;
-    matmul_args.ifmap_full_addr   = 0xdead;
-    size_t x_tile_or_ofmap = 
-        ofmap_cols > tile_x_dim ? tile_x_dim : ofmap_cols;
+    /* matmul args */
     matmul_args.x_step = 1;
-    size_t y_tile_or_ofmap = 
-        ofmap_rows > tile_y_dim ? tile_y_dim : ofmap_rows;
     matmul_args.y_step = ifmap_cols;
     matmul_args.dtype = ifmap_dtype;
     matmul_args.psum_dtype = psum_dtype;
     matmul_args.num_rows = num_rows;
     matmul_args.num_cols = num_cols;
 
+    /* pool args */
     ARBPRECTYPE pool_dtype = UINT32;
-    size_t psize = sizeofArbPrecType((ARBPRECTYPE)pool_dtype);
-    size_t  tile_x = x_tile_or_ofmap;
-    size_t  tile_y = y_tile_or_ofmap;
-    size_t  tile_xx = ofmap_cols % tile_x_dim ? ofmap_cols % tile_x_dim : tile_x;
-    size_t  tile_yy = ofmap_rows % tile_y_dim ? ofmap_rows % tile_y_dim : tile_y;
+    addr_t pool_dsize = sizeofArbPrecType((ARBPRECTYPE)pool_dtype);
     pool_args.pool_func = IDENTITY_POOL;
     pool_args.dtype     = pool_dtype;
     pool_args.src_full_addr = psum_buffer_base;
     pool_args.src_x_step= 1;
     pool_args.src_y_step= 1;
     pool_args.src_z_step= 1;
- //   pool_args.src_x_num = tile_x * tile_y;
     pool_args.src_y_num = 1;
     pool_args.src_z_num = 1;
     pool_args.dst_x_step = 1;
- //   pool_args.dst_x_num = tile_x;
     pool_args.dst_y_step = ofmap_cols;
- //   pool_args.dst_y_num = tile_y;
     pool_args.dst_full_addr = args.ofmap_full_addr;
     pool_args.num_partitions = args.w_m;
-    //tsize = tile_x * tile_y * psize;
 
-    /* go through each weight in the filter, cannot combine r and s into one, 
-     * because ifmap_full_addr calc needs to seperate them */
-    /* go through each weight in the filter, cannot combine r and s into one, because ifmap_full_addr 
-	   calc needs to seperate them */
-    pool_args.dst_full_addr =args.ofmap_full_addr;
-    unsigned int curr_tile = 0;
-    unsigned int ii, jj;
-    size_t t_x, t_y;
+    /* tile args */
+    size_t tile_x_dim = Constants::tile_size;
+    size_t tile_y_dim = Constants::tile_size;
+    size_t tile_x_whole = ofmap_cols > tile_x_dim ? tile_x_dim : ofmap_cols;
+    size_t tile_y_whole = ofmap_rows > tile_y_dim ? tile_y_dim : ofmap_rows;
+    size_t tile_x_partial = 
+        ofmap_cols % tile_x_dim ? ofmap_cols % tile_x_dim : tile_x_whole;
+    size_t tile_y_partial = 
+        ofmap_rows % tile_y_dim ? ofmap_rows % tile_y_dim : tile_y_whole;
+
+    unsigned int row_offset, col_offset;
+    size_t tile_sz_x, tile_sz_y;
+    pool_args.dst_full_addr = args.ofmap_full_addr;
+    unsigned int curr_weight = 0;
+
+    /* go through each tile */
     for (unsigned int i = 0; i < tile_rows; i++) {
-        t_y = (i == tile_rows - 1) ? tile_yy : tile_y;
-        for (unsigned int j = 0; j < tile_cols; j++, curr_tile++) {
-            t_x = (j == tile_cols - 1) ? tile_xx : tile_x;
-            unsigned int curr_weight = 0;
+        /* whole tile or partial tile */
+        tile_sz_y = (i == tile_rows - 1) ? tile_y_partial : tile_y_whole;
+        for (unsigned int j = 0; j < tile_cols; j++) {
+            /* whole tile or partial tile */
+            tile_sz_x = (j == tile_cols - 1) ? tile_x_partial : tile_x_whole;
+            curr_weight = 0;
+
+            /* load weights ahead of first convolution for first filter! */
             uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
+
+            /* go through each weight in the filter and apply it to the ofmap
+             * pixels it operates on */
             for (unsigned int r = 0; r <  filter_rows; r++) {
                 for (unsigned int s = 0; s < filter_cols; s++, curr_weight++) {
-                    /* go through each ofmap pixel this weight operates one*/
+                    /* matmul arguments and PUSH */
+                    row_offset = (r + i * tile_y_dim); 
+                    col_offset = (s + j * tile_x_dim);
+                    matmul_args.ifmap_full_addr = ifmap_full_addr +
+                        (row_offset * ifmap_cols + col_offset) * dsize;
+                    matmul_args.x_num = tile_sz_x;
+                    matmul_args.y_num = tile_sz_y;
                     matmul_args.psum_start = (r == 0 && s == 0);
                     matmul_args.psum_stop = (curr_weight == 
                             (filter_rows * filter_cols - 1));
-                    matmul_args.x_num = t_x;
-                    matmul_args.y_num = t_y;
-                    ii = i * Constants::tile_size;
-                    jj = j * Constants::tile_size;
-                    matmul_args.ifmap_full_addr = ifmap_full_addr +
-                        ((r + ii)* ifmap_cols + (s + jj)) * dsize;
                     uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
-                    if (curr_weight < (filter_rows * filter_cols - 1)) {
-                        weight_args.address += 
-                            weight_args.y_num * weight_args.y_step * 
-                            weight_step;
-                        uop.PUSH(new DynamicInstruction<LdWeightsArgs>(weight_args));
-                    } else {
+
+                    /* adjust weight address and LdWeights if not at end*/
+                    if ((r == filter_rows - 1) && (s == filter_cols - 1)) {
                         weight_args.address = args.filter_full_addr;
+                    } else {
+                        weight_args.address += weight_step;
+                        uop.PUSH(new DynamicInstruction<LdWeightsArgs>(
+                                    weight_args));
                     }
                 }
             }
-            // coudl replace t_y with tile_y to overwrite sloppily
-            pool_args.src_x_num = t_x * t_y;
-            pool_args.dst_x_num = t_x;
-            pool_args.dst_y_num = t_y;
+            /* Pool  */
+            pool_args.src_x_num = tile_sz_x * tile_sz_y;
+            pool_args.dst_x_num = tile_sz_x;
+            pool_args.dst_y_num = tile_sz_y;
             uop.PUSH(new DynamicInstruction<PoolArgs>(pool_args));
-            if (j < (tile_cols - 1)) {
-                pool_args.dst_full_addr += t_x * psize;
-            } else {
+            if (j < (tile_cols - 1)) { /* non-edge tile */
+                pool_args.dst_full_addr += tile_sz_x * pool_dsize;
+            } else { /* edge tile */
                 pool_args.dst_full_addr = args.ofmap_full_addr +
-                    ((j+1-1) * (tile_x * tile_y) + t_x * t_y) *  psize;
-                    //(i + 1) * (tile_cols-1)*(tile_x * tile_y) * psize +
-                    //(tile_xx * tile_y) * psize;
+                    (j * tile_x_whole * tile_y_whole + 
+                     tile_sz_x * tile_sz_y) *  pool_dsize;
             }
         }
     }
