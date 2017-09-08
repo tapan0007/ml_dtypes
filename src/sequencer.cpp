@@ -303,8 +303,7 @@ Sequencer::step() {
 }
 
 
-EdgeSignals
-Sequencer::pull_edge() {
+EdgeSignals Sequencer::pull_edge() {
     return es;
 }
 
@@ -332,16 +331,29 @@ Sequencer::dump() {
 void 
 Sequencer::convolve_dynamic(const ConvolveArgs &args)
 {
-    unsigned int filter_rows = args.w_r;
-    unsigned int filter_cols = args.w_s;
-    unsigned int ifmap_rows = args.i_h;
-    unsigned int ifmap_cols = args.i_w;
-    unsigned int ofmap_rows = ifmap_rows - filter_rows + 1;
-    unsigned int ofmap_cols =  ifmap_cols - filter_cols + 1;
+    unsigned int f_rows = args.w_r;
+    unsigned int f_cols = args.w_s;
+    unsigned int i_rows = args.i_h;
+    unsigned int i_cols = args.i_w;
+    //unsigned int p_rows = args.padding_rows;
+    //unsigned int p_cols = args.padding_cols;
+    unsigned int p_rows = 0;
+    unsigned int p_cols = 0;
+    unsigned int d_rows = 0; // TODO: implement
+    unsigned int d_cols = 0; // TODO: implement
+    unsigned int s_rows = 1; // TODO: implement
+    unsigned int s_cols = 1; // TODO: implement
+    unsigned int f_rows_dilated = f_rows + (f_rows - 1) * d_rows;
+    unsigned int f_cols_dilated = f_cols + (f_cols - 1) * d_cols;
+    /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
+    unsigned int o_rows = (i_rows - f_rows_dilated + 2 * p_rows) / s_rows +
+        1;
+    unsigned int o_cols = (i_cols - f_cols_dilated + 2 * p_cols) / s_cols +
+        1;
     unsigned int num_cols = args.w_m;
     unsigned int num_rows = args.i_c;
-    unsigned int tile_rows = ceil((float) ofmap_rows / Constants::tile_size);
-    unsigned int tile_cols = ceil((float) ofmap_rows / Constants::tile_size);
+    unsigned int tile_rows = ceil((float) o_rows / Constants::tile_size);
+    unsigned int tile_cols = ceil((float) o_rows / Constants::tile_size);
     ARBPRECTYPE ifmap_dtype = UINT8;
     ARBPRECTYPE weight_dtype = UINT8;
     ARBPRECTYPE psum_dtype = UINT32;
@@ -365,7 +377,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
 
     /* matmul args */
     matmul_args.x_step = 1;
-    matmul_args.y_step = ifmap_cols;
+    matmul_args.y_step = i_cols;
     matmul_args.dtype = ifmap_dtype;
     matmul_args.psum_dtype = psum_dtype;
     matmul_args.num_rows = num_rows;
@@ -383,19 +395,19 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
     pool_args.src_y_num = 1;
     pool_args.src_z_num = 1;
     pool_args.dst_x_step = 1;
-    pool_args.dst_y_step = ofmap_cols;
+    pool_args.dst_y_step = o_cols;
     pool_args.dst_full_addr = args.ofmap_full_addr;
     pool_args.num_partitions = args.w_m;
 
     /* tile args */
     size_t tile_x_dim = Constants::tile_size;
     size_t tile_y_dim = Constants::tile_size;
-    size_t tile_x_whole = ofmap_cols > tile_x_dim ? tile_x_dim : ofmap_cols;
-    size_t tile_y_whole = ofmap_rows > tile_y_dim ? tile_y_dim : ofmap_rows;
+    size_t tile_x_whole = o_cols > tile_x_dim ? tile_x_dim : o_cols;
+    size_t tile_y_whole = o_rows > tile_y_dim ? tile_y_dim : o_rows;
     size_t tile_x_partial = 
-        ofmap_cols % tile_x_dim ? ofmap_cols % tile_x_dim : tile_x_whole;
+        o_cols % tile_x_dim ? o_cols % tile_x_dim : tile_x_whole;
     size_t tile_y_partial = 
-        ofmap_rows % tile_y_dim ? ofmap_rows % tile_y_dim : tile_y_whole;
+        o_rows % tile_y_dim ? o_rows % tile_y_dim : tile_y_whole;
 
     unsigned int row_offset, col_offset;
     size_t tile_sz_x, tile_sz_y;
@@ -416,22 +428,22 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args)
 
             /* go through each weight in the filter and apply it to the ofmap
              * pixels it operates on */
-            for (unsigned int r = 0; r <  filter_rows; r++) {
-                for (unsigned int s = 0; s < filter_cols; s++, curr_weight++) {
+            for (unsigned int r = 0; r <  f_rows; r++) {
+                for (unsigned int s = 0; s < f_cols; s++, curr_weight++) {
                     /* matmul arguments and PUSH */
                     row_offset = (r + i * tile_y_dim); 
                     col_offset = (s + j * tile_x_dim);
                     matmul_args.ifmap_full_addr = ifmap_full_addr +
-                        (row_offset * ifmap_cols + col_offset) * dsize;
+                        (row_offset * i_cols + col_offset) * dsize;
                     matmul_args.x_num = tile_sz_x;
                     matmul_args.y_num = tile_sz_y;
                     matmul_args.psum_start = (r == 0 && s == 0);
                     matmul_args.psum_stop = (curr_weight == 
-                            (filter_rows * filter_cols - 1));
+                            (f_rows * f_cols - 1));
                     uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
 
                     /* adjust weight address and LdWeights if not at end*/
-                    if ((r == filter_rows - 1) && (s == filter_cols - 1)) {
+                    if ((r == f_rows - 1) && (s == f_cols - 1)) {
                         weight_args.address = args.filter_full_addr;
                     } else {
                         weight_args.address += weight_step;
