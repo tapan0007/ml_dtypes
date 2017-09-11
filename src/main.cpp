@@ -5,6 +5,7 @@
 #include "pool.h"
 #include "activate.h"
 #include "io.h"
+#include "string.h"
 #include <iostream>
 
 #define STEP() \
@@ -36,6 +37,7 @@ int main(int argc, char **argv)
     void *f_ptr, *i_ptr, *o_ptr;
     int r,s,t,u;
     size_t word_size;
+    unsigned int padding_rows = 0, padding_cols = 0;
     //int i = 0;
     int num_sb = state_array.num();
     std::string i_name, f_name, o_name;
@@ -44,9 +46,15 @@ int main(int argc, char **argv)
         f_name = "/home/ec2-user/InklingTest/input/filters/f_uint8_2x3x1x1_rand.npy"; 
         o_name = "/home/ec2-user/InklingUT/ofmap.npy"; 
     } else {
-        i_name = argv[1];
-        f_name = argv[2];
-        o_name = argv[3];
+        int i = 1;
+        if (!strcmp(argv[i], "-p")) {
+            padding_cols = atoi(argv[++i]);
+            padding_rows = atoi(argv[++i]);
+            i++;
+        }
+        i_name = argv[i++];
+        f_name = argv[i++];
+        o_name = argv[i++];
     }
 
 
@@ -92,9 +100,12 @@ int main(int argc, char **argv)
     memory.bank_mmap(cargs.filter_full_addr, f_ptr, cargs.w_c, cargs.w_m * cargs.w_r * cargs.w_s * word_size);
 
 
+    cargs.padding_rows = padding_rows;
+    cargs.padding_cols = padding_cols;
     /* set sequencer state */
     //sequencer.convolve_static(cargs);
-    sequencer.convolve_dynamic(cargs);
+    unsigned int o_rows=0, o_cols=0;
+    sequencer.convolve_dynamic(cargs, o_rows, o_cols);
     int i = 0;
     while (!sequencer.done()) {
         STEP();
@@ -105,8 +116,6 @@ int main(int argc, char **argv)
         i++;
     }
 
-    int o_rows = (cargs.i_h - cargs.w_r + 1);
-    int o_cols = (cargs.i_w - cargs.w_s + 1);
     word_size = 4; // HACKE DIN FIX, outputting 32 
     o_ptr = memory.sbuffer_bank_munmap(cargs.ofmap_full_addr, cargs.w_c, o_rows * o_cols * word_size);
     memory.io_write(o_name, o_ptr, cargs.i_n, cargs.w_m, 

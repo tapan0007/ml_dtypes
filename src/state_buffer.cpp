@@ -28,13 +28,19 @@ StateBuffer::pull_ew() {
     ArbPrecData pixel = {0};
     bool pixel_valid = false;
 
-    if (ns.ifmap_valid && ns.row_countdown) {
-        pixel = read_addr(ns.ifmap_full_addr, ns.ifmap_dtype);
-        pixel_valid = true;
-    }
-    if (ns.weight_valid && ns.row_countdown) {
-        weight = read_addr(ns.weight_full_addr, ns.weight_dtype);
-        printf("WEIGHT %d\n", weight.uint8);
+    if (ns.row_countdown) {
+        if (ns.pad_valid) {
+            pixel = {0};
+            pixel_valid = true;
+        }
+        if (ns.ifmap_valid) {
+            pixel = read_addr(ns.ifmap_full_addr, ns.ifmap_dtype);
+            pixel_valid = true;
+        }
+        if (ns.weight_valid) {
+            weight = read_addr(ns.weight_full_addr, ns.weight_dtype);
+            printf("WEIGHT %d\n", weight.uint8);
+        }
     }
 
     return PeEWSignals{pixel, pixel_valid, weight, ns.weight_dtype, ns.weight_toggle};

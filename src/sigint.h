@@ -38,6 +38,7 @@ typedef struct EdgeSignals {
     uint8_t        row_countdown;    // SB       | Which SB rows is this valid for?
     uint8_t        column_countdown; // PSUM     | Which PSUM columns is this valid for?
 
+    bool           pad_valid;
     bool           ifmap_valid;      // SB & PSUM| read and shift pixel from SB, PSUM should use result for MAC
     ADDR_UNION(ifmap);
     ARBPRECTYPE      ifmap_dtype;       // SB       | what type of pixel are we loading?
@@ -48,7 +49,7 @@ typedef struct EdgeSignals {
     bool           weight_toggle;    // PE       | should the PE toggle the weight ptr bit? FIXME: could be id instead?
     bool           weight_clamp;     // PE       | broadcast signal to tell PEs in a row to "clamp" the weight passing through them
 
-    PSUM_UNION(psum);                // PSUM     | Which psum buffer in a given column is this result destined for?
+    ADDR_UNION(psum)      // SB       | weight address
     ARBPRECTYPE    psum_dtype;       // PSUM     | Dtype for psum ops FIXME: semi-redundant, could be inferred from weight_dtype
     bool           psum_start;       // PSUM     | Clear psum buffer for new calc
     bool           psum_stop;         // PSUM     | Psum calc is done | FIXME : psum_start/end could be combined but we'd lose debugability

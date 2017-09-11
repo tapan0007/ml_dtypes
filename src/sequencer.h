@@ -9,6 +9,7 @@ typedef struct ConvolveArgs{
     ADDR_UNION(filter);
     ADDR_UNION(ofmap);
     ARBPRECTYPE weight_dtype;
+    uint64_t    padding_rows, padding_cols;
     int i_n, i_c, i_h, i_w;
     int w_c, w_m, w_r, w_s;
 
@@ -43,9 +44,14 @@ typedef struct MatMulArgs {
     uint64_t    x_num : 9;
     addr_t      y_step         : Constants::bank_bits - 1;
     uint64_t    y_num : 9;
+    ADDR_UNION(psum);
     uint64_t    psum_dtype : Constants::type_bits;
     uint64_t    num_rows   : Constants::row_bits;
     uint64_t    num_cols   : Constants::column_bits;
+    uint64_t    W_pad      : 4; 
+    uint64_t    E_pad      : 4; 
+    uint64_t    N_pad      : 4; 
+    uint64_t    S_pad      : 4; 
 } MatMulArgs;
 
 typedef struct PoolArgs {
@@ -66,6 +72,14 @@ typedef struct PoolArgs {
     uint64_t    num_partitions     : Constants::row_bits;
 } PoolArgs;
 
+
+#define N_FLAG 1
+#define S_FLAG 1 << 1
+#define E_FLAG 1 << 2
+#define W_FLAG 1 << 3
+
+enum NSEW {N=0, S, E, W, NUM_NSEW};
+
 class Sequencer : public EdgeInterface, public PoolInterface  {
     public:
         Sequencer();
@@ -74,7 +88,9 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         EdgeSignals pull_edge();
         PoolSignals pull_pool();
         void convolve_static(const ConvolveArgs &args);
-        void convolve_dynamic(const ConvolveArgs &args);
+        void convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
+                unsigned int &o_cols);
+        bool pad_valid(uint8_t, uint8_t);
         bool synch();
         bool done();
         void dump();
@@ -101,8 +117,17 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         uint8_t     ifmap_y_num;
         uint8_t     ifmap_x_cnt;
         uint8_t     ifmap_y_cnt;
+        uint8_t     pad[NUM_NSEW];
+        uint8_t     pad_cnt[NUM_NSEW];
+        uint8_t     pad_run[NUM_NSEW];
+        uint8_t     pad_num[NUM_NSEW];
+        enum NSEW   pad_dir;
 
         /* pool */
+        uint8_t     pifmap_x_num;
+        uint8_t     pifmap_y_num;
+        uint8_t     pifmap_x_cnt;
+        uint8_t     pifmap_y_cnt;
         bool        pool_valid;
         uint64_t    pool_timer;
         addr_t      pool_src_base;
@@ -134,6 +159,9 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         void step_edgesignal();
         void step_poolsignal();
         void dump_es(const EdgeSignals &es, bool header);
+        unsigned int get_tile_type(unsigned int, unsigned int, 
+                unsigned int, unsigned int);
+
 
 };
 
