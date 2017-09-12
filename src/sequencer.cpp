@@ -93,6 +93,7 @@ void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
     seq->pad[S] = args.S_pad;
     seq->pad[E] = args.E_pad;
     seq->pad[W] = args.W_pad;
+    /* pifmap is padded ifmap */
     seq->pifmap_x_cnt = 0;
     seq->pifmap_y_cnt = 0;
     seq->pifmap_x_num = seq->ifmap_x_num + args.E_pad + args.W_pad;
@@ -142,22 +143,16 @@ void  DynamicInstruction<PoolArgs>::execute(Sequencer *seq) {
 /*------------------------------------
  * Sequencer
  *------------------------------------ */
-
-Sequencer::Sequencer() : es(), ps(), pad{0}, pad_cnt{0},pool_valid(false), raw_signal(false), clock(0) {
-}
-
-Sequencer::~Sequencer() {
-}
-
 bool
 Sequencer::synch() {
     return es.pad_valid || es.ifmap_valid  || es.weight_valid || pool_valid;
 }
 
-#define COND_SET(X, VAL) (X == VAL) ? false : X=VAL
 
+/* tells if you element (r,c) is a pad (!ifmap) element */
 bool
 Sequencer::pad_valid(uint8_t r, uint8_t c) {
+    /* checks range, using outer ring of padding */
     return r < pad[N] || 
         ((r > (ifmap_y_num + pad[N] - 1)) && 
          (r < ifmap_y_num + pad[N] + pad[S])) ||
@@ -165,66 +160,67 @@ Sequencer::pad_valid(uint8_t r, uint8_t c) {
         ((c > (ifmap_x_num + pad[W] - 1) && 
           (c < ifmap_x_num + pad[W] + pad[E])));
 }
+
+
+void
+Sequencer::increment_and_rollover(uint8_t &cnt, uint8_t num, 
+        uint8_t &rollover) {
+    cnt++;
+    if (cnt >= num) {
+        cnt = 0;
+        rollover++;
+    }
+}
+
+#define COND_SET(X, VAL) (X == VAL) ? false : X=VAL
+
 /* sub function of step - to step the edgesignal */
 void
 Sequencer::step_edgesignal() {
-    /* update state - feed pixel */
+    /* UPDATE SEQUENCER STATE */
     if (es.pad_valid) {
-        pifmap_x_cnt++;
-        if (pifmap_x_cnt >= pifmap_x_num) {
-            pifmap_x_cnt= 0;
-            pifmap_y_cnt++;
-        }
-        if (pifmap_y_cnt == pifmap_y_num) {
-            es.pad_valid   = false; 
-            es.ifmap_valid = false;
-        } else {
-            es.pad_valid = pad_valid(pifmap_y_cnt, pifmap_x_cnt);
-            es.ifmap_valid = !es.pad_valid;
-        }
-    } else if (es.ifmap_valid) {
-        /* es state */
-        ifmap_x_cnt++;
-        if (ifmap_x_cnt >= ifmap_x_num) {
-            ifmap_x_cnt = 0;
-            ifmap_y_cnt++;
-        }
-
-        pifmap_x_cnt++;
-        if (pifmap_x_cnt >= pifmap_x_num) {
-            pifmap_x_cnt= 0;
-            pifmap_y_cnt++;
-        }
-        es.ifmap_full_addr = ifmap_base + (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * sizeofArbPrecType((ARBPRECTYPE)es.ifmap_dtype);
-
-        if (pad_valid(pifmap_y_cnt, pifmap_x_cnt)) {
-            es.pad_valid = true;
-            es.ifmap_valid = false;
-        } else {
-            if (pifmap_y_cnt == pifmap_y_num) {
-                /* clear state */
-                es.ifmap_valid = false;
-                es.psum_start = false;
-                es.psum_stop = false;
-                es.pool_valid = false;
-                es.activation_valid = false;
-            } else {
-                es.pad_valid = false;
-                es.ifmap_valid = true;
-            //es.ofmap_full_addr += sizeofArbPrecType(es.psum_dtype);
-            }
-        }
+        increment_and_rollover(pifmap_x_cnt, pifmap_x_num, pifmap_y_cnt);
+    } 
+    if (es.ifmap_valid) {
+        increment_and_rollover(ifmap_x_cnt, ifmap_x_num, ifmap_y_cnt);
+        increment_and_rollover(pifmap_x_cnt, pifmap_x_num, pifmap_y_cnt);
     }
-    COND_SET(es.weight_toggle, false);
-    /* update state - feed weight */
     if (es.weight_valid) {
-        /* es state */
-        weight_x_cnt++;
-        if (weight_x_cnt >= weight_x_num) {
-            weight_x_cnt = 0;
-            weight_y_cnt++;
-        }
+        increment_and_rollover(weight_x_cnt, weight_x_num, weight_y_cnt);
+    }
 
+    /* UPDATE SIGNALS */
+    /* IFMAP/PAD */
+    /* is the pad/ifmap valid or are we done? */
+    es.pad_valid = pad_valid(pifmap_y_cnt, pifmap_x_cnt);
+    if (!es.pad_valid && 
+            (pifmap_y_cnt == pifmap_y_num)) { 
+        /* clear state */
+        es.ifmap_valid = false;
+        es.psum_start = false;
+        es.psum_stop = false;
+        es.pool_valid = false;
+        es.activation_valid = false;
+    } else {
+        es.ifmap_valid = !es.pad_valid;
+    }
+
+    /* figured out pad/ifmap valid, now compute addresses */
+    if (es.ifmap_valid) {
+        es.ifmap_full_addr = ifmap_base + 
+            (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * 
+            sizeofArbPrecType((ARBPRECTYPE)es.ifmap_dtype);
+    }
+    /* Sending an ifmap, must be getting out ofmap! */
+    if (es.ifmap_valid || es.pad_valid) {
+        /* FIXME - this is the psum granularity, FIX */
+        es.psum_full_addr += Constants::psum_buffer_width;
+    }
+
+    /*  WEIGHT */
+    /* always toggle down weight */
+    COND_SET(es.weight_toggle, false); 
+    if (es.weight_valid) {
         if ((weight_x_cnt == weight_x_num - 1) &&
                 (weight_y_cnt == weight_y_num -1)) {
             es.weight_clamp = true;
@@ -240,11 +236,6 @@ Sequencer::step_edgesignal() {
                  weight_x_cnt * weight_x_step - 1) * 
                 sizeofArbPrecType((ARBPRECTYPE)es.weight_dtype);
         }
-    }
-    /* FIXME - hacky place */
-    if (es.ifmap_valid || es.pad_valid) {
-        /* FIXME - this is the psum granularity, FIX */
-        es.psum_full_addr += Constants::psum_buffer_width;
     }
 }
 

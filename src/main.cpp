@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     /* setup - later put this in a class? */
     ProcessingElementArray pe_array;
     StateBufferArray       state_array;
-    Sequencer              sequencer;
+    Sequencer              sequencer = Sequencer();
     PSumBufferArray        psum_array;
     PoolArray              pool_array;
     ActivateArray          activate_array;

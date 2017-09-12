@@ -82,8 +82,6 @@ enum NSEW {N=0, S, E, W, NUM_NSEW};
 
 class Sequencer : public EdgeInterface, public PoolInterface  {
     public:
-        Sequencer();
-        ~Sequencer();
         void step();
         EdgeSignals pull_edge();
         PoolSignals pull_pool();
@@ -124,6 +122,7 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         enum NSEW   pad_dir;
 
         /* pool */
+        /* pifmaps are padded ifmaps */
         uint8_t     pifmap_x_num;
         uint8_t     pifmap_y_num;
         uint8_t     pifmap_x_cnt;
@@ -161,6 +160,8 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         void dump_es(const EdgeSignals &es, bool header);
         unsigned int get_tile_type(unsigned int, unsigned int, 
                 unsigned int, unsigned int);
+        void increment_and_rollover(uint8_t &cnt, uint8_t num, 
+                uint8_t &rollover);
 
 
 };
