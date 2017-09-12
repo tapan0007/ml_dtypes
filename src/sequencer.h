@@ -35,25 +35,6 @@ class DynamicInstruction : public Instruction {
         T args;
 };
 
-typedef struct MatMulArgs {
-    uint64_t    psum_start  : 1;
-    uint64_t    psum_stop   : 1;
-    uint64_t    dtype       : Constants::type_bits;
-    ADDR_UNION(ifmap);
-    addr_t      x_step         : Constants::bank_bits - 1;
-    uint64_t    x_num : 9;
-    addr_t      y_step         : Constants::bank_bits - 1;
-    uint64_t    y_num : 9;
-    ADDR_UNION(psum);
-    uint64_t    psum_dtype : Constants::type_bits;
-    uint64_t    num_rows   : Constants::row_bits;
-    uint64_t    num_cols   : Constants::column_bits;
-    uint64_t    W_pad      : 4; 
-    uint64_t    E_pad      : 4; 
-    uint64_t    N_pad      : 4; 
-    uint64_t    S_pad      : 4; 
-} MatMulArgs;
-
 typedef struct PoolArgs {
     uint64_t    pool_func   : 8;
     uint64_t    dtype       : Constants::type_bits;

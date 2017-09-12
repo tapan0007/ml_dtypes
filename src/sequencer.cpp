@@ -11,15 +11,15 @@ template<>
 void DynamicInstruction<EdgeSignals>::dump(bool header)
 {   
     if (header) {
-        printf("rc cc |  iv   ia  |  wv wa   wd  wt wc | pa pd ps pe | av af | pv pt px py pd  \n");
+        printf("rc cc |  iv   ia  |  wv wa   wd  wt wc | pa ps pe | av af | pv pt px py  \n");
     }
-    printf("%2d %2d | %2d 0x%-3lx  | %2d 0x%-3lx  %2d %2d %2d | 0x%-3lx %2d %2d %2d | %2d %2d | %2d %2d %2d %2d %2d   \n",
+    printf("%2d %2d | %2d 0x%-3lx  | %2d 0x%-3lx  %2d %2d %2d | 0x%-3lx %2d %2d | %2d %2d | %2d %2d %2d %2d  \n",
             args.row_countdown, args.column_countdown, 
             args.ifmap_valid, args.ifmap_full_addr,
             args.weight_valid, args.weight_full_addr, args.weight_dtype, args.weight_toggle, args.weight_clamp,
-            args.psum_full_addr, args.psum_dtype, args.psum_start, args.psum_stop,
+            args.psum_full_addr, args.psum_start, args.psum_stop,
             args.activation_valid, args.activation,
-            args.pool_valid, args.pool_type, args.pool_dimx, args.pool_dimy, args.pool_dtype);
+            args.pool_valid, args.pool_type, args.pool_dimx, args.pool_dimy);
 
 }
  
@@ -63,41 +63,39 @@ void  DynamicInstruction<LdWeightsArgs>::execute(Sequencer *seq) {
 template<>
 void  DynamicInstruction<MatMulArgs>::execute(Sequencer *seq) {
     /* ifmap setup */
-    seq->es.ifmap_full_addr    = args.ifmap_full_addr;
+    seq->es.ifmap_full_addr    = args.fmap_start_addr;
     seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
     seq->es.row_countdown = args.num_rows; 
     seq->es.weight_toggle = true;
-    seq->ifmap_base = args.ifmap_full_addr;
-    seq->ifmap_x_num = args.x_num;
-    seq->ifmap_y_num = args.y_num;
+    seq->ifmap_base = args.fmap_start_addr;
+    seq->ifmap_x_num = args.fmap_x_num;
+    seq->ifmap_y_num = args.fmap_y_num;
     seq->ifmap_x_cnt = 0;
     seq->ifmap_y_cnt = 0;
-    seq->ifmap_x_step = args.x_step;
-    seq->ifmap_y_step = args.y_step;
+    seq->ifmap_x_step = args.fmap_x_step;
+    seq->ifmap_y_step = args.fmap_y_step;
     seq->raw_signal = false;
 
     /* psum setup */
     seq->es.column_countdown = args.num_cols;
-    seq->es.psum_start = args.psum_start;
-    seq->es.psum_stop = args.psum_stop;
-    seq->es.psum_dtype = (ARBPRECTYPE)args.psum_dtype;
-    seq->es.psum_full_addr = args.psum_full_addr;
+    seq->es.psum_start = args.start_tensor_calc;
+    seq->es.psum_stop = args.stop_tensor_calc;
+    seq->es.psum_full_addr = args.psum_start_addr;
 
     /* pool setup - TODO remove */
-    seq->es.pool_valid = args.psum_stop; // FIXME - temporary hack
-    seq->es.pool_dtype = (ARBPRECTYPE)args.psum_dtype; // FIXME - temporary hack to get results
+    seq->es.pool_valid = args.stop_tensor_calc; // FIXME - temporary hack
 
     /* signals that will stay constant for entire convolution */
     /* padding setup */
-    seq->pad[N] = args.N_pad;
-    seq->pad[S] = args.S_pad;
-    seq->pad[E] = args.E_pad;
-    seq->pad[W] = args.W_pad;
+    seq->pad[N] = args.n_pad;
+    seq->pad[S] = args.s_pad;
+    seq->pad[E] = args.e_pad;
+    seq->pad[W] = args.w_pad;
     /* pifmap is padded ifmap */
     seq->pifmap_x_cnt = 0;
     seq->pifmap_y_cnt = 0;
-    seq->pifmap_x_num = seq->ifmap_x_num + args.E_pad + args.W_pad;
-    seq->pifmap_y_num = seq->ifmap_y_num + args.N_pad + args.S_pad;
+    seq->pifmap_x_num = seq->ifmap_x_num + args.e_pad + args.w_pad;
+    seq->pifmap_y_num = seq->ifmap_y_num + args.n_pad + args.s_pad;
     seq->es.pad_valid = seq->pad_valid(0, 0);
     seq->es.ifmap_valid   = !seq->es.pad_valid;
 
@@ -418,7 +416,6 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
     unsigned int tile_cols = ceil((float) o_rows / Constants::tile_size);
     ARBPRECTYPE ifmap_dtype = UINT8;
     ARBPRECTYPE weight_dtype = UINT8;
-    ARBPRECTYPE psum_dtype = UINT32;
     addr_t weight_dsize = sizeofArbPrecType(weight_dtype);
     addr_t ifmap_full_addr = args.ifmap_full_addr;
     addr_t ofmap_full_addr = args.ofmap_full_addr;
@@ -439,11 +436,10 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
     weight_step = weight_args.y_num * weight_args.y_step * weight_dsize;
 
     /* matmul args */
-    matmul_args.x_step = 1;
-    matmul_args.y_step = i_cols;
+    matmul_args.fmap_x_step = 1;
+    matmul_args.fmap_y_step = i_cols;
     matmul_args.dtype = ifmap_dtype;
-    matmul_args.psum_dtype = psum_dtype;
-    matmul_args.psum_full_addr = 0; /* b/c we specify padding as arg */
+    matmul_args.psum_start_addr = 0; /* b/c we specify padding as arg */
     matmul_args.num_rows = num_rows;
     matmul_args.num_cols = num_cols;
 
@@ -494,14 +490,14 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
             tile_sz_x = tt & E_FLAG ? tile_x_partial : tile_x_whole;
             tile_sz_y = tt & S_FLAG ? tile_y_partial : tile_y_whole;
 
-            matmul_args.W_pad = tt & W_FLAG ? p_cols : 0;
-            matmul_args.E_pad = tt & E_FLAG ? p_cols : 0;
-            matmul_args.N_pad = tt & N_FLAG ? p_rows : 0;
-            matmul_args.S_pad = tt & S_FLAG ? p_rows : 0;
-            matmul_args.x_num = tile_sz_x - matmul_args.W_pad -
-                matmul_args.E_pad;
-            matmul_args.y_num = tile_sz_y - matmul_args.N_pad - 
-                matmul_args.S_pad;
+            matmul_args.w_pad = tt & W_FLAG ? p_cols : 0;
+            matmul_args.e_pad = tt & E_FLAG ? p_cols : 0;
+            matmul_args.n_pad = tt & N_FLAG ? p_rows : 0;
+            matmul_args.s_pad = tt & S_FLAG ? p_rows : 0;
+            matmul_args.fmap_x_num = tile_sz_x - matmul_args.w_pad -
+                matmul_args.e_pad;
+            matmul_args.fmap_y_num = tile_sz_y - matmul_args.n_pad - 
+                matmul_args.s_pad;
             for (unsigned int r = 0; r <  f_rows; r++) {
                 for (unsigned int s = 0; s < f_cols; s++, curr_weight++) {
                     /* matmul arguments and PUSH */
@@ -509,11 +505,11 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
                     s_adj = (s >= p_cols) * (s - p_cols);
                     row_offset = (r_adj + i * tile_y_dim); 
                     col_offset = (s_adj + j * tile_x_dim);
-                    matmul_args.ifmap_full_addr = ifmap_full_addr +
+                    matmul_args.fmap_start_addr = ifmap_full_addr +
                         (row_offset * i_cols + col_offset) * dsize;
 
-                    matmul_args.psum_start = (r == 0 && s == 0);
-                    matmul_args.psum_stop = (curr_weight == 
+                    matmul_args.start_tensor_calc = (r == 0 && s == 0);
+                    matmul_args.stop_tensor_calc = (curr_weight == 
                             (f_rows * f_cols - 1));
                     uop.PUSH(new DynamicInstruction<MatMulArgs>(matmul_args));
 
@@ -567,7 +563,6 @@ Sequencer::convolve_static(const ConvolveArgs &args)
     int ofmap_cols =  ifmap_cols - filter_cols + 1;
     int num_ofmaps = args.w_m;
     int ifmap_channels = args.i_c;
-    ARBPRECTYPE psum_dtype  = UINT32;
     ARBPRECTYPE ifmap_dtype = UINT8;
     int weight_load_latency = num_ofmaps;
     int curr_opixel, curr_weight;
@@ -577,10 +572,8 @@ Sequencer::convolve_static(const ConvolveArgs &args)
     printf("warning: bit rot ahead\n");
     /* signals that will stay constant for entire convolution */
     es.weight_dtype  = args.weight_dtype;
-    es.psum_dtype    = psum_dtype;
     es.activation    = IDENTITY; 
     es.pool_type     = IDENTITY_POOL;
-    es.pool_dtype    = psum_dtype;
     es.row_countdown = ifmap_channels; 
     es.column_countdown = num_ofmaps;
 
@@ -614,7 +607,8 @@ Sequencer::convolve_static(const ConvolveArgs &args)
 
                     /* LOAD PIXEL */
                     es.ifmap_full_addr = args.ifmap_full_addr +
-                        ((r * ifmap_cols + s) + (e * ifmap_cols) + f) * sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
+                        ((r * ifmap_cols + s) + (e * ifmap_cols) + f) * 
+                        sizeofArbPrecType((ARBPRECTYPE)ifmap_dtype);
 
 
                     /* LOAD WEIGHTS */

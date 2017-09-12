@@ -112,7 +112,7 @@ PSumBuffer::step() {
     static ArbPrecData zeros = {0};
     static ArbPrecData ones = {.uint64 = 0xffffffffffffffff};
     if (ew.column_countdown) {
-        ARBPRECTYPE psum_dtype =  ew.psum_dtype; //get_upcast(ew.psum_dtype);
+        ARBPRECTYPE psum_dtype =  get_upcast(ew.ifmap_dtype);
         size_t dsize = sizeofArbPrecType(psum_dtype);
         unsigned int e_id = ew.psum_full_addr >> Constants::psum_buffer_width_bits;
         unsigned int e_offset = e_id * dsize;

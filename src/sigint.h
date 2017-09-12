@@ -50,7 +50,6 @@ typedef struct EdgeSignals {
     bool           weight_clamp;     // PE       | broadcast signal to tell PEs in a row to "clamp" the weight passing through them
 
     ADDR_UNION(psum)      // SB       | weight address
-    ARBPRECTYPE    psum_dtype;       // PSUM     | Dtype for psum ops FIXME: semi-redundant, could be inferred from weight_dtype
     bool           psum_start;       // PSUM     | Clear psum buffer for new calc
     bool           psum_stop;         // PSUM     | Psum calc is done | FIXME : psum_start/end could be combined but we'd lose debugability
 
@@ -61,7 +60,6 @@ typedef struct EdgeSignals {
     POOLFUNC       pool_type;        // PSUM     | Which  pooling func should we perform?
     int            pool_dimx;        // PSUM     | rows in pooling
     int            pool_dimy;        // PSUM     | cols in pooling
-    ARBPRECTYPE    pool_dtype;       // PSUM     | What type of data is our pooling operating on? FIXME: semi-redundant? inferrable from weight_dtype
 } EdgeSignals;
 
 typedef struct PoolSignals {

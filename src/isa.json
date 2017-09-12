@@ -7,6 +7,7 @@
         "STRIDE_STEP_BITS": 12,
         "STRIDE_NUM_BITS": 9,
         "ROW_BITS":   7,
+        "PAD_BITS":   4,
         "COLUMN_BITS": 6
     },
     "instructions": {
@@ -22,6 +23,35 @@
                 ["y_step",  "STRIDE_STEP_BITS"],
                 ["y_num",   "STRIDE_NUM_BITS"],
                 ["num_rows", "ROW_BITS"]
+            ]
+        },
+        "MATMUL": {
+            "opcode" : "0x01",
+            "template": "MatMulArgs",
+            "fields":
+            [
+                ["dequant_table_idx", "8"],
+                ["quant_data_size",   "4"],
+                ["dequant_data_size", "8"],
+                ["start_tensor_calc", "1"],
+                ["stop_tensor_calc",  "1"],
+                ["reserved",          "3"],
+                ["dtype",             "DTYPE_BITS"],
+                ["fmap_start_addr",   "ADDRESS_BITS"],
+                ["fmap_x_step",       "STRIDE_STEP_BITS"],
+                ["fmap_x_num",        "STRIDE_NUM_BITS"],
+                ["fmap_y_step",       "STRIDE_STEP_BITS"],
+                ["fmap_y_num",        "STRIDE_NUM_BITS"],
+                ["num_rows",          "ROW_BITS"],
+                ["n_pad",             "PAD_BITS"],
+                ["w_pad",             "PAD_BITS"],
+                ["e_pad",             "PAD_BITS"],
+                ["s_pad",             "PAD_BITS"],
+                ["psum_start_addr",   "ADDRESS_BITS"],
+                ["num_cols",          "COLUMN_BITS"],
+                ["psum_step",         "8"],
+                ["event_func",        "4"],
+                ["event_id",          "8"]
             ]
         }
     }
