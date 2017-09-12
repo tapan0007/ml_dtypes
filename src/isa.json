@@ -8,7 +8,9 @@
         "STRIDE_NUM_BITS": 9,
         "ROW_BITS":   7,
         "PAD_BITS":   4,
-        "COLUMN_BITS": 6
+        "COLUMN_BITS": 6,
+        "EVENT_FUNC_BITS": 4,
+        "EVENT_ID_BITS": 8
     },
     "instructions": {
         "LDWEIGHTS": {
@@ -22,7 +24,7 @@
                 ["x_num",   "STRIDE_NUM_BITS"],
                 ["y_step",  "STRIDE_STEP_BITS"],
                 ["y_num",   "STRIDE_NUM_BITS"],
-                ["num_rows", "ROW_BITS"]
+                ["num", "ROW_BITS"]
             ]
         },
         "MATMUL": {
@@ -50,8 +52,33 @@
                 ["psum_start_addr",   "ADDRESS_BITS"],
                 ["num_cols",          "COLUMN_BITS"],
                 ["psum_step",         "8"],
-                ["event_func",        "4"],
-                ["event_id",          "8"]
+                ["event_func",        "EVENT_FUNC_BITS"],
+                ["event_id",          "EVENT_ID_BITS"]
+            ]
+        },
+        "POOL": {
+            "opcode" : "0x80",
+            "template": "PoolArgs",
+            "fields":
+            [
+                ["pool_func",      "8"],
+                ["in_dtype",       "DTYPE_BITS"],
+                ["out_dtype",      "DTYPE_BITS"],
+                ["src_start_addr", "ADDRESS_BITS"],
+                ["src_x_step",     "STRIDE_STEP_BITS"],
+                ["src_x_num",      "STRIDE_NUM_BITS"],
+                ["src_y_step",     "STRIDE_STEP_BITS"],
+                ["src_y_num",      "STRIDE_NUM_BITS"],
+                ["src_z_step",     "STRIDE_STEP_BITS"],
+                ["src_z_num",      "STRIDE_NUM_BITS"],
+                ["dst_start_addr", "ADDRESS_BITS"],
+                ["dst_x_step",     "STRIDE_STEP_BITS"],
+                ["dst_x_num",      "STRIDE_NUM_BITS"],
+                ["dst_y_step",     "STRIDE_STEP_BITS"],
+                ["dst_y_num",      "STRIDE_NUM_BITS"],
+                ["dst_num",        "ROW_BITS"],
+                ["event_func",     "EVENT_FUNC_BITS"],
+                ["event_id",       "EVENT_ID_BITS"]
             ]
         }
     }

@@ -43,7 +43,7 @@ void  DynamicInstruction<LdWeightsArgs>::execute(Sequencer *seq) {
     //seq->es.weight_full_addr = args.address;
     seq->weight_base = args.address;
     seq->es.weight_clamp = (num_cols == 1);
-    seq->es.row_countdown = args.num_rows; 
+    seq->es.row_countdown = args.num; 
     seq->weight_clamp_countdown = num_cols;
     seq->weight_x_step = args.x_step;
     seq->weight_y_step = args.y_step;
@@ -110,16 +110,16 @@ void  DynamicInstruction<PoolArgs>::execute(Sequencer *seq) {
 	seq->pool_valid = true;
 	seq->pool_timer = Constants::rows;
     seq->ps.func = pool_func;
-	seq->ps.dtype = (ARBPRECTYPE)args.dtype;
-	seq->ps.src_full_addr = args.src_full_addr;
+	seq->ps.dtype = (ARBPRECTYPE)args.in_dtype;
+	seq->ps.src_full_addr = args.src_start_addr;
 	seq->ps.start = true;
 	seq->ps.stop = (pool_func = IDENTITY_POOL) ||
         (args.src_x_num + args.src_y_num == 2);
-	seq->ps.dst_full_addr = args.dst_full_addr;
-	seq->ps.countdown = args.num_partitions;
+	seq->ps.dst_full_addr = args.dst_start_addr;
+	seq->ps.countdown = args.dst_num;
 	
-	seq->pool_src_base = args.src_full_addr;
-	seq->pool_dst_base = args.dst_full_addr;
+	seq->pool_src_base = args.src_start_addr;
+	seq->pool_dst_base = args.dst_start_addr;
 	seq->pool_src_x_cnt = 0;
 	seq->pool_src_y_cnt = 0;
 	seq->pool_src_z_cnt = 0;
@@ -427,7 +427,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
 
     /* weight args */
     weight_args.dtype = weight_dtype;
-    weight_args.num_rows = num_rows;
+    weight_args.num = num_rows;
     weight_args.x_step = weight_dsize;
     weight_args.x_num = args.w_m;
     weight_args.y_step = weight_dsize * args.w_m;
@@ -447,8 +447,8 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
     ARBPRECTYPE pool_dtype = UINT32;
     addr_t pool_dsize = sizeofArbPrecType((ARBPRECTYPE)pool_dtype);
     pool_args.pool_func = IDENTITY_POOL;
-    pool_args.dtype     = pool_dtype;
-    pool_args.src_full_addr = psum_buffer_base;
+    pool_args.in_dtype     = pool_dtype;
+    pool_args.src_start_addr = psum_buffer_base;
     pool_args.src_x_step= 1;
     pool_args.src_y_step= 1;
     pool_args.src_z_step= 1;
@@ -456,8 +456,8 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
     pool_args.src_z_num = 1;
     pool_args.dst_x_step = 1;
     pool_args.dst_y_step = o_cols;
-    pool_args.dst_full_addr = ofmap_full_addr;
-    pool_args.num_partitions = args.w_m;
+    pool_args.dst_start_addr = ofmap_full_addr;
+    pool_args.dst_num = args.w_m;
 
     /* tile args */
     size_t tile_x_dim = Constants::tile_size;
@@ -471,7 +471,7 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
 
     unsigned int row_offset, col_offset;
     size_t tile_sz_x, tile_sz_y;
-    pool_args.dst_full_addr = ofmap_full_addr;
+    pool_args.dst_start_addr = ofmap_full_addr;
     unsigned int curr_weight = 0;
     unsigned int tt;
     unsigned int r_adj, s_adj;
@@ -529,9 +529,9 @@ Sequencer::convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
             pool_args.dst_y_num = tile_sz_y;
             uop.PUSH(new DynamicInstruction<PoolArgs>(pool_args));
             if (j < (tile_cols - 1)) { /* non-edge tile */
-                pool_args.dst_full_addr += tile_sz_x * pool_dsize;
+                pool_args.dst_start_addr += tile_sz_x * pool_dsize;
             } else { /* edge tile */
-                pool_args.dst_full_addr = args.ofmap_full_addr +
+                pool_args.dst_start_addr = args.ofmap_full_addr +
                     (j * tile_x_whole * tile_y_whole + 
                      tile_sz_x * tile_sz_y) *  pool_dsize;
             }
