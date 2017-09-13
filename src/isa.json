@@ -25,7 +25,16 @@
                 ["y_step",  "STRIDE_STEP_BITS"],
                 ["y_num",   "STRIDE_NUM_BITS"],
                 ["num", "ROW_BITS"]
+            ],
+            "comments":
+            [
+                "PeArrayCacheWeights initiates a load of weights towards the",
+                " PE array.  It is implicitly assumed that this instruction",
+                " reads weights only from the STATE\\_BUFFER, and writes ",
+                " weights",
+                " into the PE array.  This instruction takes $X\\_NUM\\_ELEMENTS \\times Y\\_NUM\\_ELEMENTS \\leq NUM\\_COLS$ cycles to complete. "
             ]
+
         },
         "MATMUL": {
             "opcode" : "0x01",

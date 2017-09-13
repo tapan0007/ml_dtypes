@@ -7,7 +7,7 @@ SRCDIR = src
 OBJDIR = obj
 SCRIPTS = scripts
 
-RM = rm  -f
+RM = rm  
 MAKE=make
 
 SOURCES  := $(wildcard $(SRCDIR)/*.cpp)
@@ -17,18 +17,25 @@ ISA_JSON := $(SRCDIR)/isa.json
 ISA_H    := $(SRCDIR)/isa.h 
 ISA_PDF  := isa.pdf
 
-.PHONY: all clean
+.PHONY: clean
 
-all: $(TARGET) $(ISA_PDF)
+all: $(TARGET) $(DOCS)
 
 clean: 
-	$(RM) $(TARGET) $(OBJECTS)
+	$(RM) -f $(TARGET) $(OBJECTS) $(SCRIPTS)/*.dtx $(SCRIPTS)/*log $(SCRIPTS)/*sty
+	$(RM) -f $(SRCDIR)/isa.h
 
-$(ISA_H) : $(ISA_JSON)
+docs: $(ISA_PDF)  $(ISA_JSON)
+
+$(ISA_H) : $(ISA_JSON) 
 	$(SCRIPTS)/create_h.py $(SRCDIR)/isa.json $(SRCDIR)/isa.h
 
 $(ISA_PDF) : $(ISA_JSON)
-	$(SCRIPTS)/create_doc.py $(SRCDIR)/isa.json isa.pdf
+	cd $(SCRIPTS) && \
+	rm bytefield.sty && \
+	tex bytefield.ins && \
+	./create_tex.py ../$(SRCDIR)/isa.json ../isa.tex && \
+	pdflatex --output-directory ../ ../isa.tex
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)  $(ISA_H)
 	 @$(CXX) $(CFLAGS) $(CPPFLAGS) $(INCDIR) -c $< -o $@

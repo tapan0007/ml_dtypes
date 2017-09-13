@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import json
 import sys
+import time
 
 HEADERS=0
 BOXES=1
@@ -45,19 +46,28 @@ def get_info(defines, fields):
 def write_header(o):
     o.write("\documentclass{article}\n")
     o.write("\usepackage[endianness=big]{bytefield}\n")
-    o.write("\usepackage[margin=0.25in]{geometry}\n")
+    o.write("\usepackage[margin=0.50in]{geometry}\n")
     o.write("\\begin{document}\n")
+    o.write("\\title{TONGA ISA} \n")
+    ## dd/mm/yyyy format
+    date = time.strftime("%m/%d/%Y")
+    o.write("\\date{" + date + "} \n")
+    o.write("\\maketitle\n")
 
-def write_instruction(o, opcode, infos):
+
+def write_instruction(o, opcode, fields, comments):
     o.write(opcode + "\\\\\\\\ \n")
     o.write("\\begin{{bytefield}}[bitwidth=1.5em]{{{}}}\n".format(STEP))
-    for (bitheaders, bitboxes) in infos:
+    for (bitheaders, bitboxes) in fields:
         o.write("\\bitheader[lsb={}]{{{}}}\\\\\n".format(bitheaders[0], str(bitheaders)[1:-1]))
         for (text, width) in bitboxes:
             o.write("\\bitbox{{{}}}{{{}}}\n".format(width, text))
         o.write("\\\\")
         o.write("\n")
     o.write("\end{bytefield}\n")
+    if comments:
+        o.write("\\\\")
+        o.write(" ".join(comments))
     o.write("\\\\\\\\ \n")
 
 def write_footer(o):
@@ -78,10 +88,11 @@ def json_to_tex(json_name, o_name):
 
     defines = j["defines"]
     for (insn, desc) in j["instructions"].iteritems():
-        opcode = desc["opcode"]
+        comments = desc.get("comments")
+        opcode = desc.get("opcode")
         opcode_field = ["opcode={}".format(opcode), "OPCODE_BITS"]
-        infos = get_info(defines, [opcode_field] + desc["fields"])
-        write_instruction(o, insn, infos)
+        fields = get_info(defines, [opcode_field] + desc.get("fields"))
+        write_instruction(o, insn, fields, comments)
 
     write_footer(o)
 
