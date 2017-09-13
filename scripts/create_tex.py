@@ -8,7 +8,7 @@ STEP = 32
 
 # each element of info is a tuple, the tuple holds two lists: the list of
 # bitheaders that go with the row and the list of bitboxes that go with the row
-def get_info(fields):
+def get_info(defines, fields):
     fields.reverse()
     infos = [([],[])]
     base_bit = 0
@@ -58,30 +58,36 @@ def write_instruction(o, opcode, infos):
         o.write("\\\\")
         o.write("\n")
     o.write("\end{bytefield}\n")
+    o.write("\\\\\\\\ \n")
 
 def write_footer(o):
     o.write("\end{document}\n")
 
 
-json_name = sys.argv[1]
-o_name = open(sys.argv[2], "wb")
-with open(json_name) as json_file:
-    try:
-        j = json.load(json_file)
-    except Exception,e:
-        print("Unexpected error:", e)
-        sys.exit(255)
+def json_to_tex(json_name, o_name):
+    o = open(o_name, "wb")
+    with open(json_name) as json_file:
+        try:
+            j = json.load(json_file)
+        except Exception,e:
+            print("Unexpected error:", e)
+            sys.exit(255)
 
 
-write_header(o_name)
+    write_header(o)
 
-defines = j["defines"]
-for (insn, desc) in j["instructions"].iteritems():
-    opcode = desc["opcode"]
-    opcode_field = ["opcode={}".format(opcode), "OPCODE_BITS"]
-    infos = get_info([opcode_field] + desc["fields"])
-    write_instruction(o_name, insn, infos)
+    defines = j["defines"]
+    for (insn, desc) in j["instructions"].iteritems():
+        opcode = desc["opcode"]
+        opcode_field = ["opcode={}".format(opcode), "OPCODE_BITS"]
+        infos = get_info(defines, [opcode_field] + desc["fields"])
+        write_instruction(o, insn, infos)
 
-write_footer(o_name)
+    write_footer(o)
+
+if __name__ == "__main__":
+    json_name = sys.argv[1]
+    o_name = sys.argv[2]
+    json_to_tex(json_name, o_name)
 
 

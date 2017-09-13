@@ -13,22 +13,27 @@ MAKE=make
 SOURCES  := $(wildcard $(SRCDIR)/*.cpp)
 INCLUDES := $(wildcard $(SRCDIR)/*.h) 
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
-ISA      := $(SRCDIR)/isa.h
+ISA_JSON := $(SRCDIR)/isa.json 
+ISA_H    := $(SRCDIR)/isa.h 
+ISA_PDF  := isa.pdf
 
 .PHONY: all clean
 
-all: $(TARGET)
+all: $(TARGET) $(ISA_PDF)
 
 clean: 
 	$(RM) $(TARGET) $(OBJECTS)
 
-$(ISA) : $(SRCDIR)/isa.json
+$(ISA_H) : $(ISA_JSON)
 	$(SCRIPTS)/create_h.py $(SRCDIR)/isa.json $(SRCDIR)/isa.h
 
-$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES) $(ISA)
+$(ISA_PDF) : $(ISA_JSON)
+	$(SCRIPTS)/create_doc.py $(SRCDIR)/isa.json isa.pdf
+
+$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)  $(ISA_H)
 	 @$(CXX) $(CFLAGS) $(CPPFLAGS) $(INCDIR) -c $< -o $@
 
-$(TARGET): $(OBJECTS)
+$(TARGET): $(OBJECTS) 
 	$(CXX) $^ $(INCDIR) $(LIBDIR) $(LIB)  $(LINKFLAGS) -o $@
 
 $(CNPYLIB):
