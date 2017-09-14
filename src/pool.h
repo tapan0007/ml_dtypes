@@ -5,20 +5,16 @@
 #include "types.h"
 #include <vector>
 
-#define MAX_POOL 128
 class Pool : public PoolInterface {
     public:
-        Pool();
-        ~Pool();
         PoolSignals pull_pool();
         void connect(PoolInterface *);
         void step();
     private:
         PoolSignals              ps;
         PoolInterface           *connection;
-        char                     mem[8192];
-        char                    *base_ptr;
-        char                    *curr_ptr;
+        ArbPrecData              pool_pixel;
+        unsigned int             pool_cnt;
 };
 
 class PoolArray {
