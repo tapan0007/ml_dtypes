@@ -37,25 +37,55 @@ class ArbPrec
 {
     // TODO: find compile time log 2
     public:
-        static ArbPrecData multiply(ArbPrecData &x, ArbPrecData &y, ARBPRECTYPE in_type, ARBPRECTYPE &out_type) {
-            return _multiply(element_ptr(x, in_type), element_ptr(y, in_type), in_type, out_type);
+        /* multiply */
+        static ArbPrecData multiply(ArbPrecData &x, ArbPrecData &y, 
+                ARBPRECTYPE in_type, ARBPRECTYPE &out_type) {
+            return _multiply(element_ptr(x, in_type), element_ptr(y, in_type), 
+                    in_type, out_type);
         }
-        static ArbPrecData multiply(void *x, void *y, ARBPRECTYPE in_type, ARBPRECTYPE &out_type) {
+        static ArbPrecData multiply(void *x, void *y, ARBPRECTYPE in_type, 
+                ARBPRECTYPE &out_type) {
             return _multiply(x, y, in_type, out_type);
         }
 
-        static ArbPrecData add(ArbPrecData &x, ArbPrecData &y, ARBPRECTYPE in_type) {
-            return _add(element_ptr(x, in_type), element_ptr(y, in_type), in_type);
+        /* add */
+        static ArbPrecData add(ArbPrecData &x, ArbPrecData &y,
+                ARBPRECTYPE in_type) {
+            return _add(element_ptr(x, in_type), element_ptr(y, in_type), 
+                    in_type);
         }
         static ArbPrecData add(void *x, void *y, ARBPRECTYPE in_type) {
             return _add(x, y, in_type);
         }
+
+        /* uint_divide */
+        static ArbPrecData uint_divide(ArbPrecData &x, unsigned int uy,
+                ARBPRECTYPE in_type) {
+            return _uint_divide(element_ptr(x, in_type), uy, in_type);
+        }
+        static ArbPrecData uint_divide(void *x, unsigned int uy, 
+                ARBPRECTYPE in_type) {
+            return _uint_divide(x, uy, in_type);
+        }
+
+        /* gt */
+        static bool gt(ArbPrecData &x, ArbPrecData &y,
+                ARBPRECTYPE in_type) {
+            return _gt(element_ptr(x, in_type), element_ptr(y, in_type), 
+                    in_type);
+        }
+        static bool gt(void *x, void *y, ARBPRECTYPE in_type) {
+            return _gt(x, y, in_type);
+        }
+
+        /* dump */
         static void dump(FILE *f, ArbPrecData &x, ARBPRECTYPE type) {
             _dump(f, element_ptr(x, type), type);
         }
         static void dump(FILE *f, void *x, ARBPRECTYPE type) {
             _dump(f, x, type);
         }
+
         static void *element_ptr(ArbPrecData &x, ARBPRECTYPE type) {
             void *ptr = NULL;
             switch (type) {
@@ -91,42 +121,82 @@ class ArbPrec
     private:
         ArbPrec()  {};
         ~ArbPrec() {}
-        static ArbPrecData _multiply(void *x, void *y, ARBPRECTYPE in_type, ARBPRECTYPE &out_type) {
+        static ArbPrecData _multiply(void *x, void *y, ARBPRECTYPE in_type, 
+                ARBPRECTYPE &out_type) {
             ArbPrecData ap;
             if (in_type == UINT8) {
                 out_type = UINT32;
-                ap.uint32 = uint32_t(EXTRACT(uint8_t, x)) * uint32_t(EXTRACT(uint8_t, y));
+                ap.uint32 = uint32_t(EXTRACT(uint8_t, x)) * 
+                    uint32_t(EXTRACT(uint8_t, y));
             } else if (in_type == INT8) {
                 out_type = INT32;
-                ap.uint32 = int32_t(EXTRACT(int8_t, x)) * int32_t(EXTRACT(int8_t, y));
+                ap.uint32 = int32_t(EXTRACT(int8_t, x)) * 
+                    int32_t(EXTRACT(int8_t, y));
             } else if (in_type == UINT16) {
                 out_type = UINT32;
-                ap.uint32 = uint32_t(EXTRACT(uint16_t, x)) * uint32_t(EXTRACT(uint16_t, y));
+                ap.uint32 = uint32_t(EXTRACT(uint16_t, x)) * 
+                    uint32_t(EXTRACT(uint16_t, y));
             } else if (in_type == INT16) {
                 out_type = INT32;
-                ap.int32 = int32_t(EXTRACT(int16_t, x)) * int32_t(EXTRACT(int16_t, y));
+                ap.int32 = int32_t(EXTRACT(int16_t, x)) * 
+                    int32_t(EXTRACT(int16_t, y));
             } else if (in_type == UINT32) {
                 out_type = UINT32;
-                ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) * uint32_t(EXTRACT(uint32_t, y));
+                ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) * 
+                    uint32_t(EXTRACT(uint32_t, y));
             } else if (in_type == INT32) {
                 out_type = INT32;
-                ap.int32 = int32_t(EXTRACT(int32_t, x)) * int32_t(EXTRACT(int32_t, y));
+                ap.int32 = int32_t(EXTRACT(int32_t, x)) * 
+                    int32_t(EXTRACT(int32_t, y));
             } else {
                 assert(0 && "unsupported combo");
             }
             return ap;
         }
+
         static ArbPrecData _add(void *x, void *y, ARBPRECTYPE in_type) {
             ArbPrecData ap;
             if (in_type == UINT32) {
-                ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) + uint32_t(EXTRACT(uint32_t, y));
+                ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) + 
+                    uint32_t(EXTRACT(uint32_t, y));
             } else if (in_type == UINT32) {
-                ap.int32 = int32_t(EXTRACT(int32_t, x)) + int32_t(EXTRACT(int32_t, y));
+                ap.int32 = int32_t(EXTRACT(int32_t, x)) + 
+                    int32_t(EXTRACT(int32_t, y));
             } else if (in_type == FP32) {
-                ap.fp32 = float(EXTRACT(float, x)) + float(EXTRACT(float, y));
+                ap.fp32 = float(EXTRACT(float, x)) + 
+                    float(EXTRACT(float, y));
             }
             return ap;
         }
+
+        static ArbPrecData _uint_divide(void *x, unsigned int uy, 
+                ARBPRECTYPE in_type) {
+            ArbPrecData ap;
+            if (in_type == UINT32) {
+                ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) / uy;
+            } else if (in_type == UINT32) {
+                ap.int32 = int32_t(EXTRACT(int32_t, x)) / uy;
+            } else if (in_type == FP32) {
+                ap.fp32 = float(EXTRACT(float, x)) / uy;
+            }
+            return ap;
+        }
+
+        static bool _gt(void *x, void *y, ARBPRECTYPE in_type) {
+            bool gt;
+            if (in_type == UINT32) {
+                gt = uint32_t(EXTRACT(uint32_t, x)) > 
+                    uint32_t(EXTRACT(uint32_t, y));
+            } else if (in_type == UINT32) {
+                gt = int32_t(EXTRACT(int32_t, x)) > 
+                    int32_t(EXTRACT(int32_t, y));
+            } else if (in_type == FP32) {
+                gt = float(EXTRACT(float, x)) >
+                    float(EXTRACT(float, y));
+            }
+            return gt;
+        }
+
         static void _dump(FILE *f, void *x, ARBPRECTYPE type) {
             switch (type) {
                 case UINT8:
