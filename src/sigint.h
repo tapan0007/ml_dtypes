@@ -77,6 +77,15 @@ typedef struct PoolSignals {
 // ----------------------------------------------------------
 // Interfaces
 // ----------------------------------------------------------
+class Instruction;
+class UopFeedInterface
+{
+    public:
+        virtual  bool         empty() = 0;
+        virtual  void        *front() = 0;
+        virtual  void         pop() = 0;
+};
+
 class PeEWInterface
 {
     public:

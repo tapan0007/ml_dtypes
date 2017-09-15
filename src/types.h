@@ -15,8 +15,19 @@ enum ARBPRECTYPE {INVALID_ARBPRECTYPE = 0,
     NUM_ARBPRECTYPE = 16};
 
 ARBPRECTYPE get_upcast(ARBPRECTYPE);
+size_t sizeofArbPrecType(ARBPRECTYPE type);
+
 
 enum ACTIVATIONFUNCTION {INVALID_ACTIVATIONFUNCTION=-1, IDENTITY, RELU, LEAKY_RELU, SIGMIOD, TANH,  NUM_ACTIVATIONFUNCTION};
+
+
+#define N_FLAG 1
+#define S_FLAG 1 << 1
+#define E_FLAG 1 << 2
+#define W_FLAG 1 << 3
+
+enum NSEW {N=0, S, E, W, NUM_NSEW};
+
 
 enum POOLFUNC {
     MAX_POOL = 0, 
@@ -49,6 +60,10 @@ typedef uint64_t tick_t;
         uint64_t PREF##_full_addr : Constants::psum_bank_bits + Constants::psum_buffer_entries_bits + Constants::psum_buffer_width_bits; \
     }; \
 
+#define BANKS_PER_PARTITION_BITS 2
+#define INSTRUCTION_NBYTES 256
+#define SB_SIZE (1 << COLUMN_BITS) * (1<<BANKS_PER_PARTITION_BITS) * ( 1 << BANK_BITS)
+#define MMAP_PSUM_BASE SB_SIZE
 class Constants
 {
     // TODO: find compile time log 2

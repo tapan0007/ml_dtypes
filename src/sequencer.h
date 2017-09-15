@@ -4,23 +4,11 @@
 #include "sigint.h"
 #include <queue>
 
-typedef struct ConvolveArgs{
-    ADDR_UNION(ifmap);
-    ADDR_UNION(filter);
-    ADDR_UNION(ofmap);
-    ARBPRECTYPE weight_dtype;
-    uint64_t    padding_rows, padding_cols;
-    int i_n, i_c, i_h, i_w;
-    int w_c, w_m, w_r, w_s;
-
-} ConvolveArgs;
-
-class Sequencer;
 class Instruction {
     public:
         Instruction() {}
         ~Instruction() {}
-        virtual void execute(Sequencer *seq) = 0;
+        virtual void execute(void *seq) = 0;
         virtual void dump(bool header) {(void)header; std::cout << "not implemented";}
 };
 
@@ -29,27 +17,19 @@ class DynamicInstruction : public Instruction {
      public:
         DynamicInstruction(T _args) : args(_args) {};
         ~DynamicInstruction() {} ;
-        void execute(Sequencer *seq);
+        void execute(void *seq);
         void        dump(bool header) {(void)header; std::cout << "not implemented";}
      private:
         T args;
 };
 
-#define N_FLAG 1
-#define S_FLAG 1 << 1
-#define E_FLAG 1 << 2
-#define W_FLAG 1 << 3
-
-enum NSEW {N=0, S, E, W, NUM_NSEW};
 
 class Sequencer : public EdgeInterface, public PoolInterface  {
     public:
+        void connect_uopfeed(UopFeedInterface *feed);
         void step();
         EdgeSignals pull_edge();
         PoolSignals pull_pool();
-        void convolve_static(const ConvolveArgs &args);
-        void convolve_dynamic(const ConvolveArgs &args, unsigned int &o_rows,
-                unsigned int &o_cols);
         bool pad_valid(uint8_t, uint8_t);
         bool synch();
         bool done();
@@ -116,12 +96,10 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
 
     private:
         tick_t   clock;
-        std::queue<Instruction *> uop;
+        UopFeedInterface *feed;
         void step_edgesignal();
         void step_poolsignal();
         void dump_es(const EdgeSignals &es, bool header);
-        unsigned int get_tile_type(unsigned int, unsigned int, 
-                unsigned int, unsigned int);
         void increment_and_rollover(uint8_t &cnt, uint8_t num, 
                 uint8_t &rollover);
 

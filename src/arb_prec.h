@@ -8,9 +8,6 @@
 #include <iostream>
 #include "types.h"
 
-size_t
-sizeofArbPrecType(ARBPRECTYPE type);
-
 typedef union ArbPrecData {
     uint8_t  uint8;
     uint8_t  uint8_tuple[2];

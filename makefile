@@ -5,7 +5,7 @@ CFLAGS = -W -Wall -ansi -ggdb -g -Wno-missing-field-initializers
 TARGET = test
 SRCDIR = src
 OBJDIR = obj
-SCRIPTS = scripts
+SCRIPTDIR = scripts
 
 RM = rm  
 MAKE=make
@@ -22,16 +22,16 @@ ISA_PDF  := isa.pdf
 all: $(TARGET) $(DOCS)
 
 clean: 
-	$(RM) -f $(TARGET) $(OBJECTS) $(SCRIPTS)/*.dtx $(SCRIPTS)/*log $(SCRIPTS)/*sty
+	$(RM) -f $(TARGET) $(OBJECTS) $(SCRIPTDIR)/*.dtx $(SCRIPTDIR)/*log $(SCRIPTDIR)/*sty
 	$(RM) -f $(SRCDIR)/isa.h
 
 docs: $(ISA_PDF)  $(ISA_JSON)
 
-$(ISA_H) : $(ISA_JSON) 
-	$(SCRIPTS)/create_h.py $(SRCDIR)/isa.json $(SRCDIR)/isa.h
+$(ISA_H) : $(ISA_JSON)  $(SCRIPTDIR)/create_h.py
+	$(SCRIPTDIR)/create_h.py $(SRCDIR)/isa.json $(SRCDIR)/isa.h
 
 $(ISA_PDF) : $(ISA_JSON)
-	cd $(SCRIPTS) && \
+	cd $(SCRIPTDIR) && \
 	rm bytefield.sty && \
 	tex bytefield.ins && \
 	./create_tex.py ../$(SRCDIR)/isa.json ../isa.tex && \
