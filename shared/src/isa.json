@@ -1,0 +1,134 @@
+{
+    "defines": {
+        "OPCODE_BITS": 8,
+        "ADDRESS_BITS": 32,
+        "DTYPE_BITS": 8,
+        "BANK_BITS": 13,
+        "STRIDE_STEP_BITS": 12,
+        "STRIDE_NUM_BITS": 9,
+        "ROW_BITS":   7,
+        "PAD_BITS":   4,
+        "COLUMN_BITS": 6,
+        "EVENT_FUNC_BITS": 4,
+        "EVENT_ID_BITS": 8
+    },
+    "instructions": {
+        "LDWEIGHTS": {
+            "opcode" : "0x00",
+            "template": "LdWeightsArgs",
+            "fields":
+            [
+                ["bitfield", "opcode",  "OPCODE_BITS"],
+                ["bitfield", "address", "ADDRESS_BITS"],
+                ["bitfield", "dtype",   "DTYPE_BITS"],
+                ["bitfield", "x_step",  "STRIDE_STEP_BITS"],
+                ["bitfield", "x_num",   "STRIDE_NUM_BITS"],
+                ["bitfield", "y_step",  "STRIDE_STEP_BITS"],
+                ["bitfield", "y_num",   "STRIDE_NUM_BITS"],
+                ["bitfield", "num", "ROW_BITS"]
+            ],
+            "comments":
+            [
+                "PeArrayCacheWeights initiates a load of weights towards the",
+                " PE array.  It is implicitly assumed that this instruction",
+                " reads weights only from the STATE\\_BUFFER, and writes ",
+                " weights",
+                " into the PE array.  This instruction takes $X\\_NUM\\_ELEMENTS \\times Y\\_NUM\\_ELEMENTS \\leq NUM\\_COLS$ cycles to complete. "
+            ]
+
+        },
+        "MATMUL": {
+            "opcode" : "0x01",
+            "template": "MatMulArgs",
+            "fields":
+            [
+                ["bitfield", "opcode",  "OPCODE_BITS"],
+                ["bitfield", "dequant_table_idx", "8"],
+                ["bitfield", "quant_data_size",   "4"],
+                ["bitfield", "dequant_data_size", "8"],
+                ["bitfield", "start_tensor_calc", "1"],
+                ["bitfield", "stop_tensor_calc",  "1"],
+                ["bitfield", "reserved",          "3"],
+                ["bitfield", "dtype",             "DTYPE_BITS"],
+                ["bitfield", "fmap_start_addr",   "ADDRESS_BITS"],
+                ["bitfield", "fmap_x_step",       "STRIDE_STEP_BITS"],
+                ["bitfield", "fmap_x_num",        "STRIDE_NUM_BITS"],
+                ["bitfield", "fmap_y_step",       "STRIDE_STEP_BITS"],
+                ["bitfield", "fmap_y_num",        "STRIDE_NUM_BITS"],
+                ["bitfield", "num_rows",          "ROW_BITS"],
+                ["bitfield", "n_pad",             "PAD_BITS"],
+                ["bitfield", "w_pad",             "PAD_BITS"],
+                ["bitfield", "e_pad",             "PAD_BITS"],
+                ["bitfield", "s_pad",             "PAD_BITS"],
+                ["bitfield", "psum_start_addr",   "ADDRESS_BITS"],
+                ["bitfield", "num_cols",          "COLUMN_BITS"],
+                ["bitfield", "psum_step",         "8"],
+                ["bitfield", "event_func",        "EVENT_FUNC_BITS"],
+                ["bitfield", "event_id",          "EVENT_ID_BITS"]
+            ]
+        },
+        "POOL": {
+            "opcode" : "0x80",
+            "template": "PoolArgs",
+            "fields":
+            [
+                ["bitfield", "opcode",  "OPCODE_BITS"],
+                ["bitfield", "pool_func",      "8"],
+                ["bitfield", "in_dtype",       "DTYPE_BITS"],
+                ["bitfield", "out_dtype",      "DTYPE_BITS"],
+                ["bitfield", "src_start_addr", "ADDRESS_BITS"],
+                ["bitfield", "src_x_step",     "STRIDE_STEP_BITS"],
+                ["bitfield", "src_x_num",      "STRIDE_NUM_BITS"],
+                ["bitfield", "src_y_step",     "STRIDE_STEP_BITS"],
+                ["bitfield", "src_y_num",      "STRIDE_NUM_BITS"],
+                ["bitfield", "src_z_step",     "STRIDE_STEP_BITS"],
+                ["bitfield", "src_z_num",      "STRIDE_NUM_BITS"],
+                ["bitfield", "dst_start_addr", "ADDRESS_BITS"],
+                ["bitfield", "dst_x_step",     "STRIDE_STEP_BITS"],
+                ["bitfield", "dst_x_num",      "STRIDE_NUM_BITS"],
+                ["bitfield", "dst_y_step",     "STRIDE_STEP_BITS"],
+                ["bitfield", "dst_y_num",      "STRIDE_NUM_BITS"],
+                ["bitfield", "dst_num",        "ROW_BITS"],
+                ["bitfield", "event_func",     "EVENT_FUNC_BITS"],
+                ["bitfield", "event_id",       "EVENT_ID_BITS"]
+            ]
+        },
+        "SIM_RDIFMAP":  {
+            "opcode" : "0xff",
+            "template": "RdIfmapArgs",
+            "fields":
+            [
+                ["bitfield",  "opcode",  "OPCODE_BITS"],
+                ["bitfield",  "address", "ADDRESS_BITS"],
+                ["bytearray", "fname",   128]
+            ]
+        },
+        "SIM_RDFILTER":  {
+            "opcode" : "0xfe",
+            "template": "RdFilterArgs",
+            "fields":
+            [
+                ["bitfield",  "opcode",  "OPCODE_BITS"],
+                ["bitfield",  "address", "ADDRESS_BITS"],
+                ["bytearray", "fname",   128]
+            ]
+        },
+        "SIM_WROFMAP":  {
+            "opcode" : "0xfd",
+            "template": "WrOfmapArgs",
+            "fields":
+            [
+                ["bitfield",  "opcode",  "OPCODE_BITS"],
+                ["bytearray", "fname",   128],
+                ["bitfield",  "address", "ADDRESS_BITS"],
+                ["bitfield",  "i_n",     8],
+                ["bitfield",  "w_c",     8],
+                ["bitfield",  "w_m",     8],
+                ["bitfield",  "o_rows",  8],
+                ["bitfield",  "o_cols",  8],
+                ["bitfield",  "word_size",  8]
+            ]
+        }
+    }
+}
+

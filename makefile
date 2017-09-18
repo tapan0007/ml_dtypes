@@ -1,52 +1,18 @@
-
-CXX= g++
-CPPFLAGS = -I. -std=c++11
-CFLAGS = -W -Wall -ansi -ggdb -g -Wno-missing-field-initializers
-TARGET = test
-SRCDIR = src
-OBJDIR = obj
-SCRIPTDIR = scripts
-
-RM = rm  
+RM = rm -f
 MAKE=make
-
-SOURCES  := $(wildcard $(SRCDIR)/*.cpp)
-INCLUDES := $(wildcard $(SRCDIR)/*.h) 
-OBJECTS  := $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
-ISA_JSON := $(SRCDIR)/isa.json 
-ISA_H    := $(SRCDIR)/isa.h 
-ISA_PDF  := isa.pdf
 
 .PHONY: clean
 
-all: $(TARGET) $(DOCS)
+all:
+	@$(MAKE) -C shared
+	@$(MAKE) -C tcc
+	@$(MAKE) -C tcc/test
+	@$(MAKE) -C sim
 
 clean: 
-	$(RM) -f $(TARGET) $(OBJECTS) $(SCRIPTDIR)/*.dtx $(SCRIPTDIR)/*log $(SCRIPTDIR)/*sty
-	$(RM) -f $(SRCDIR)/isa.h
+	@$(MAKE) clean -C shared
+	@$(MAKE) clean -C tcc
+	@$(MAKE) clean -C tcc/test
+	@$(MAKE) clean -C sim
 
-docs: $(ISA_PDF)  $(ISA_JSON)
-
-$(ISA_H) : $(ISA_JSON)  $(SCRIPTDIR)/create_h.py
-	$(SCRIPTDIR)/create_h.py $(SRCDIR)/isa.json $(SRCDIR)/isa.h
-
-$(ISA_PDF) : $(ISA_JSON)
-	cd $(SCRIPTDIR) && \
-	rm bytefield.sty && \
-	tex bytefield.ins && \
-	./create_tex.py ../$(SRCDIR)/isa.json ../isa.tex && \
-	pdflatex --output-directory ../ ../isa.tex
-
-$(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)  $(ISA_H)
-	 @$(CXX) $(CFLAGS) $(CPPFLAGS) $(INCDIR) -c $< -o $@
-
-$(TARGET): $(OBJECTS) 
-	$(CXX) $^ $(INCDIR) $(LIBDIR) $(LIB)  $(LINKFLAGS) -o $@
-
-$(CNPYLIB):
-	cd $(CNPYBUILD); \
-	cmake -DCMAKE_INSTALL_PREFIX=$(CNPYINSTALL) $(CNPYSRC); \
-	make; \
-	make install ; \
-	cd ../
 

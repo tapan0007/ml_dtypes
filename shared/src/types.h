@@ -1,0 +1,40 @@
+#ifndef _TYPES_H
+#define _TYPES_H
+
+#include "stdint.h"
+#include "stdlib.h"
+
+#define INSTRUCTION_NBYTES 256
+#define TILE_SIZE 16
+#define BANKS_PER_PARTITION_BITS 2
+#define SB_SIZE (1 << COLUMN_BITS) * (1<<BANKS_PER_PARTITION_BITS) * ( 1 << BANK_BITS)
+#define MMAP_PSUM_BASE SB_SIZE
+
+
+enum ARBPRECTYPE {INVALID_ARBPRECTYPE = 0, 
+    INT8 = 2,   UINT8 = 3, 
+    INT16 = 4,  UINT16 = 5, 
+    FP16 = 7,
+    INT32,      UINT32,
+    FP32, 
+    INT64 = 12, UINT64 = 13, 
+    NUM_ARBPRECTYPE = 16};
+
+ARBPRECTYPE get_upcast(ARBPRECTYPE);
+size_t sizeofArbPrecType(ARBPRECTYPE type);
+
+
+enum ACTIVATIONFUNCTION {INVALID_ACTIVATIONFUNCTION=-1, IDENTITY, RELU, LEAKY_RELU, SIGMIOD, TANH,  NUM_ACTIVATIONFUNCTION};
+
+
+enum POOLFUNC {
+    MAX_POOL = 0, 
+    AVG_POOL = 1, 
+    IDENTITY_POOL = 2,
+    NUM_POOLTYPE=3};
+
+typedef uint64_t addr_t;
+#define MAX_ADDR UINTMAX_MAX
+
+
+#endif
