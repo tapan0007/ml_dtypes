@@ -16,6 +16,9 @@ def print_prologue(o):
 #define PF(FIELD)  \
    print_field("%-20s: 0x%lx \\n", #FIELD, args->FIELD);
 
+#define PF_ARRAY(FIELD)  \
+   print_field("%-20s: 0x%s \\n", #FIELD, args->FIELD);
+
 void
 print_name_header(std::string name, FILE *fp)
 {
@@ -66,7 +69,10 @@ def print_switch(o, j):
                 desc["template"], desc["template"]),
             '                    print_name_header("{}", fptr);\n'.format(insn)])
         for (t,k,v) in desc["fields"]:
-            o.write('                    PF({})\n'.format(k))
+            if t == 'bytearray':
+                o.write('                    PF_ARRAY({})\n'.format(k))
+            else:
+                o.write('                    PF({})\n'.format(k))
         o.write('                }\n')
         o.write('                break;\n')
     o.write('            default:\n')
