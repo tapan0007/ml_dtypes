@@ -45,6 +45,7 @@ void
 _convolve_tile(void **v_dest, size_t &dest_size, 
         uint64_t ifmap_full_addr, uint64_t idim[4],
         uint64_t filter_full_addr, uint64_t wdim[4],
+        uint64_t psum_addr,
         ARBPRECTYPE dtype,
         uint8_t fmap_num[2],
         uint8_t pads[NUM_NSEW])
@@ -81,7 +82,7 @@ _convolve_tile(void **v_dest, size_t &dest_size,
     matmul_args.fmap_x_step = 1;
     matmul_args.fmap_y_step = i_cols;
     matmul_args.dtype = dtype;
-    matmul_args.psum_start_addr = 0; /* b/c we specify padding as arg */
+    matmul_args.psum_start_addr = psum_addr; /* b/c we specify padding as arg */
     matmul_args.num_rows = num_rows;
     matmul_args.num_cols = num_cols;
 
@@ -257,6 +258,7 @@ compile_convolve(void **v_dest, size_t &dest_size,
     addr_t pool_src_addr = MMAP_PSUM_BASE;
     addr_t pool_dst_addr = ofmap_full_addr;
     size_t pool_dsize = sizeofArbPrecType(pool_dtype);
+    addr_t psum_addr = MMAP_PSUM_BASE;
 
     /* go through each tile */
     for (uint8_t i = 0; i < tile_rows; i++) {
@@ -282,6 +284,7 @@ compile_convolve(void **v_dest, size_t &dest_size,
             _convolve_tile(v_dest, dest_size, 
                     matmul_addr, idim,
                     filter_full_addr, wdim,
+                    psum_addr,
                     dtype, fmap_num, pads);
             _pool_tile(v_dest, dest_size,
                     pool_src_addr, pool_dst_addr,

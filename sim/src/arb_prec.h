@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <iostream>
 #include "types.h"
+#include "isa.h"
 
 typedef union ArbPrecData {
     uint8_t  uint8;
