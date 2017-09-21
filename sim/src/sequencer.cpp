@@ -93,7 +93,8 @@ void  DynamicInstruction<WrOfmapArgs>::execute(void *v_seq) {
 template<>
 void  DynamicInstruction<LdWeightsArgs>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
-    uint8_t num_cols = args.x_num * args.y_num; 
+    uint64_t num_cols = args.x_num * args.y_num; 
+    assert(num_cols <= Constants::columns);
     seq->es.weight_valid = true;
     seq->es.weight_dtype = (ARBPRECTYPE) args.dtype;
     //seq->es.weight_full_addr = args.address;

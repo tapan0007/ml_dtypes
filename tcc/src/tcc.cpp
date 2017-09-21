@@ -50,6 +50,11 @@ _convolve_tile(void **v_dest, size_t &dest_size,
         uint8_t fmap_num[2],
         uint8_t pads[NUM_NSEW])
 {
+    /* bounds checking */
+    for (int i = 0; i < 4; i++) {
+        assert((idim[i] < 256) && "TOO BIG!");
+        assert((wdim[i] < 256) && "TOO BIG!");
+    }
     char **dest = (char **)(v_dest);
     uint8_t f_rows = wdim[2];
     uint8_t f_cols = wdim[3];
@@ -57,8 +62,11 @@ _convolve_tile(void **v_dest, size_t &dest_size,
     uint8_t o_channels = wdim[0]; 
 
     assert(wdim[1] == idim[1]);
+    assert(f_rows < (1 << ROW_BITS));
+    assert(f_cols < (1 << COLUMN_BITS));
+    assert(i_cols < (1 << COLUMN_BITS));
     /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
-    uint8_t num_cols = wdim[1];
+    uint8_t num_cols = o_channels;
     uint8_t num_rows = idim[1];
 
     addr_t dsize = sizeofArbPrecType(dtype);
