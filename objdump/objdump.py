@@ -22,7 +22,7 @@ def print_prologue(o):
 void
 print_name_header(std::string name, FILE *fp)
 {
-   printf("0x%x @ %s: \\n", (unsigned int)ftell(fp), name.c_str());
+   printf("0x%x @ %s: \\n", (unsigned int)ftell(fp) - INSTRUCTION_NBYTES, name.c_str());
 }
 
 void
