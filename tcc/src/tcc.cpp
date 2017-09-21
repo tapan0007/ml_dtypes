@@ -62,12 +62,12 @@ _convolve_tile(void **v_dest, size_t &dest_size,
     uint8_t o_channels = wdim[0]; 
 
     assert(wdim[1] == idim[1]);
-    assert(f_rows < (1 << ROW_BITS));
-    assert(f_cols < (1 << COLUMN_BITS));
-    assert(i_cols < (1 << COLUMN_BITS));
     /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
-    uint8_t num_cols = o_channels;
-    uint8_t num_rows = idim[1];
+    uint64_t num_cols = wdim[0];
+    uint64_t num_rows = idim[1];
+    assert(num_rows <= (1 << ROW_BITS));
+    assert(num_cols <= (1 << COLUMN_BITS));
+    assert(num_rows && num_cols);
 
     addr_t dsize = sizeofArbPrecType(dtype);
     addr_t weight_step;
@@ -77,7 +77,7 @@ _convolve_tile(void **v_dest, size_t &dest_size,
     /* weight args */
     weight_args.opcode = LDWEIGHTS;
     weight_args.dtype = dtype;
-    weight_args.num = num_rows;
+    weight_args.max = num_rows - 1;
     weight_args.x_step = dsize;
     weight_args.x_num = o_channels;
     weight_args.y_step = dsize * o_channels;
@@ -91,8 +91,8 @@ _convolve_tile(void **v_dest, size_t &dest_size,
     matmul_args.fmap_y_step = i_cols;
     matmul_args.dtype = dtype;
     matmul_args.psum_start_addr = psum_addr; /* b/c we specify padding as arg */
-    matmul_args.num_rows = num_rows;
-    matmul_args.num_cols = num_cols;
+    matmul_args.max_row = num_rows - 1;
+    matmul_args.max_col = num_cols - 1;
 
 
 

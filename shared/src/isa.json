@@ -25,7 +25,7 @@
                 ["bitfield", "x_num",   "STRIDE_NUM_BITS"],
                 ["bitfield", "y_step",  "STRIDE_STEP_BITS"],
                 ["bitfield", "y_num",   "STRIDE_NUM_BITS"],
-                ["bitfield", "num", "ROW_BITS"]
+                ["bitfield", "max", "ROW_BITS"]
             ],
             "comments":
             [
@@ -55,13 +55,13 @@
                 ["bitfield", "fmap_x_num",        "STRIDE_NUM_BITS"],
                 ["bitfield", "fmap_y_step",       "STRIDE_STEP_BITS"],
                 ["bitfield", "fmap_y_num",        "STRIDE_NUM_BITS"],
-                ["bitfield", "num_rows",          "ROW_BITS"],
+                ["bitfield", "max_row",          "ROW_BITS"],
                 ["bitfield", "n_pad",             "PAD_BITS"],
                 ["bitfield", "w_pad",             "PAD_BITS"],
                 ["bitfield", "e_pad",             "PAD_BITS"],
                 ["bitfield", "s_pad",             "PAD_BITS"],
                 ["bitfield", "psum_start_addr",   "ADDRESS_BITS"],
-                ["bitfield", "num_cols",          "COLUMN_BITS"],
+                ["bitfield", "max_col",          "COLUMN_BITS"],
                 ["bitfield", "psum_step",         "8"],
                 ["bitfield", "event_func",        "EVENT_FUNC_BITS"],
                 ["bitfield", "event_id",          "EVENT_ID_BITS"]

@@ -100,7 +100,8 @@ void  DynamicInstruction<LdWeightsArgs>::execute(void *v_seq) {
     //seq->es.weight_full_addr = args.address;
     seq->weight_base = args.address;
     seq->es.weight_clamp = (num_cols == 1);
-    seq->es.row_countdown = args.num; 
+    seq->es.row_valid = true;
+    seq->es.row_countdown = args.max; 
     seq->weight_clamp_countdown = num_cols;
     seq->weight_x_step = args.x_step;
     seq->weight_y_step = args.y_step;
@@ -123,7 +124,8 @@ void  DynamicInstruction<MatMulArgs>::execute(void *v_seq) {
     /* ifmap setup */
     seq->es.ifmap_full_addr    = args.fmap_start_addr;
     seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
-    seq->es.row_countdown = args.num_rows; 
+    seq->es.row_countdown = args.max_row; 
+    seq->es.row_valid = true;
     seq->es.weight_toggle = true;
     seq->ifmap_base = args.fmap_start_addr;
     seq->ifmap_x_num = args.fmap_x_num;
@@ -135,7 +137,8 @@ void  DynamicInstruction<MatMulArgs>::execute(void *v_seq) {
     seq->raw_signal = false;
 
     /* psum setup */
-    seq->es.column_countdown = args.num_cols;
+    seq->es.column_countdown = args.max_col;
+    seq->es.column_valid = true;
     seq->es.psum_start = args.start_tensor_calc;
     seq->es.psum_stop = args.stop_tensor_calc;
     seq->es.psum_full_addr = args.psum_start_addr;

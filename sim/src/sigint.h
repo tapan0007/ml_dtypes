@@ -34,8 +34,9 @@ typedef struct ActivateSbSignals {
 
 
 typedef struct EdgeSignals {
-                                     // CUSTOMER |  DESCRIPTION
+    uint8_t        row_valid;
     uint8_t        row_countdown;    // SB       | Which SB rows is this valid for?
+    uint8_t        column_valid;
     uint8_t        column_countdown; // PSUM     | Which PSUM columns is this valid for?
 
     bool           pad_valid;

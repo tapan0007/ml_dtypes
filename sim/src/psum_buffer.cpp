@@ -112,7 +112,7 @@ PSumBuffer::step() {
     static ArbPrecData zeros = {0};
     static ArbPrecData ones = {.uint64 = 0xffffffffffffffff};
 
-    if (ew.column_countdown) {
+    if (ew.column_valid) {
         assert(ew.psum_full_addr >= MMAP_PSUM_BASE);
         ARBPRECTYPE psum_dtype =  get_upcast(ew.ifmap_dtype);
         size_t dsize = sizeofArbPrecType(psum_dtype);
@@ -152,7 +152,11 @@ PSumBuffer::step() {
             //memory.write(ew.ofmap_full_addr, ArbPrec::element_ptr(ofmap_pixel, psum_dtype), (char *)ArbPrec::element_ptr(ofmap_pixel, psum_dtype) - (char *)&ofmap_pixel);
             //ew.ofmap_full_addr += Constants::partition_nbytes;
         }
-        ew.column_countdown--;
+        if (ew.column_countdown == 0) {
+            ew.row_valid = 0;
+        } else {
+            ew.column_countdown--;
+        }
     }
 }
 

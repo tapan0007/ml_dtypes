@@ -181,18 +181,20 @@ class ArbPrec
         }
 
         static bool _gt(void *x, void *y, ARBPRECTYPE in_type) {
-            bool gt;
+            bool is_gt = false;
             if (in_type == UINT32) {
-                gt = uint32_t(EXTRACT(uint32_t, x)) > 
+                is_gt = uint32_t(EXTRACT(uint32_t, x)) > 
                     uint32_t(EXTRACT(uint32_t, y));
             } else if (in_type == UINT32) {
-                gt = int32_t(EXTRACT(int32_t, x)) > 
+                is_gt = int32_t(EXTRACT(int32_t, x)) > 
                     int32_t(EXTRACT(int32_t, y));
             } else if (in_type == FP32) {
-                gt = float(EXTRACT(float, x)) >
+                is_gt = float(EXTRACT(float, x)) >
                     float(EXTRACT(float, y));
+            } else {
+                assert(0);
             }
-            return gt;
+            return is_gt;
         }
 
         static void _dump(FILE *f, void *x, ARBPRECTYPE type) {

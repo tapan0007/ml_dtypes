@@ -28,7 +28,7 @@ StateBuffer::pull_ew() {
     ArbPrecData pixel = {0};
     bool pixel_valid = false;
 
-    if (ns.row_countdown) {
+    if (ns.row_valid) {
         if (ns.pad_valid) {
             pixel = {0};
             pixel_valid = true;
@@ -59,14 +59,18 @@ StateBuffer::connect_activate(ActivateSbInterface *_activate) {
 EdgeSignals 
 StateBuffer::pull_edge() {
     EdgeSignals e = ns;
-    if (e.row_countdown) {
+    if (e.row_valid) {
         if (e.ifmap_valid) {
             e.ifmap_full_addr += Constants::partition_nbytes;
         } 
         if (e.weight_valid) {
             e.weight_full_addr += Constants::partition_nbytes;
         }
-        e.row_countdown--;
+        if (e.row_countdown) {
+            e.row_countdown--;
+        } else {
+            e.row_valid = false;
+        }
     }
     return e;
 }
