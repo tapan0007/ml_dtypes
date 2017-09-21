@@ -255,7 +255,6 @@ compile_convolve(void **v_dest, size_t &dest_size,
     uint8_t fmap_num[2];
     addr_t matmul_addr;
     ARBPRECTYPE pool_dtype = get_upcast(dtype);
-    addr_t pool_src_addr = MMAP_PSUM_BASE;
     addr_t pool_dst_addr = ofmap_full_addr;
     size_t pool_dsize = sizeofArbPrecType(pool_dtype);
     addr_t psum_addr = MMAP_PSUM_BASE;
@@ -287,7 +286,7 @@ compile_convolve(void **v_dest, size_t &dest_size,
                     psum_addr,
                     dtype, fmap_num, pads);
             _pool_tile(v_dest, dest_size,
-                    pool_src_addr, pool_dst_addr,
+                    psum_addr, pool_dst_addr,
                     tile_sz_x, tile_sz_y,
                     o_cols, pool_dtype);
             if (j < (tile_cols - 1)) { /* non-edge tile */
@@ -296,6 +295,11 @@ compile_convolve(void **v_dest, size_t &dest_size,
                 pool_dst_addr = ofmap_full_addr +
                     (j * tile_x_whole * tile_y_whole + 
                      tile_sz_x * tile_sz_y) *  pool_dsize;
+            }
+            psum_addr += (1 << BANK_BITS);
+            if (psum_addr >= (1 << BANK_BITS) * 
+                    (1 << BANKS_PER_PARTITION_BITS)) {
+                psum_addr = MMAP_PSUM_BASE;
             }
         }
     }
