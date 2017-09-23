@@ -55,6 +55,9 @@ class Network(object):
     def printMe(self):
         prevNl = False
         maxStateSize = 0 
+        majorLayerNum = 0
+        minorLayerNum = 0
+
         for layer in self.m_Layers:
             if layer.gDenseBlockStart() >= 0:
                 if not prevNl:
@@ -68,7 +71,13 @@ class Network(object):
             totalStateSize = layer.gSingleBatchTotalStateSize()
             if totalStateSize > maxStateSize:
                 maxStateSize = totalStateSize
-            print (str(layer.gIndex()) + " " + str(layer))
+
+            if layer.gLayerType() == LAYER_TYPE_DATA  or layer.gLayerType() == LAYER_TYPE_CONV:
+                numStr = str(majorLayerNum); majorLayerNum +=1; minorLayerNum = 0
+            else:
+                numStr = str(majorLayerNum) + "." + str(minorLayerNum); minorLayerNum +=1
+
+            print (numStr + " " + str(layer))
 
             prevNl = False
             if layer.gDenseBlockEnd() >= 0:
