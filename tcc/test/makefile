@@ -30,6 +30,6 @@ $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	 echo $(INCLUDES); \
 	 $(CXX) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
 
-$(TARGET): $(OBJECTS)
+$(TARGET): $(OBJECTS) $(LIBDIR)/libtcc.a
 	$(CXX) $^ $(INCDIR)  $(LIBFLAGS) -L$(LIBDIR) -o $@
 

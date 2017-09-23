@@ -16,11 +16,11 @@ enum NSEW {N=0, S, E, W, NUM_NSEW};
 
 #define UNUSED(X) (void)(X)
 
-#define PUSH(DEST, DEST_SIZE, INS) \
+#define PUSH(FPTR, INS) \
     assert(sizeof(INS) <= INSTRUCTION_NBYTES); \
-    memcpy(*DEST, &INS, sizeof(INS)); \
-    *DEST += INSTRUCTION_NBYTES; \
-    DEST_SIZE += INSTRUCTION_NBYTES;
+    fwrite(&INS, sizeof(INS), 1, FPTR); \
+    fseek(FPTR, INSTRUCTION_NBYTES - sizeof(INS) - 1, SEEK_CUR); \
+    fputc('\0', FPTR);
 
 uint8_t
 get_tile_type(uint8_t row, uint8_t col, 
@@ -42,7 +42,7 @@ get_tile_type(uint8_t row, uint8_t col,
 }
 
 void
-_convolve_tile(void **v_dest, size_t &dest_size, 
+_convolve_tile(FILE *fptr,
         uint64_t ifmap_full_addr, uint64_t idim[4],
         uint64_t filter_full_addr, uint64_t wdim[4],
         uint64_t psum_addr,
@@ -55,7 +55,6 @@ _convolve_tile(void **v_dest, size_t &dest_size,
         assert((idim[i] < 256) && "TOO BIG!");
         assert((wdim[i] < 256) && "TOO BIG!");
     }
-    char **dest = (char **)(v_dest);
     uint8_t f_rows = wdim[2];
     uint8_t f_cols = wdim[3];
     uint8_t i_cols = idim[3];
@@ -97,7 +96,7 @@ _convolve_tile(void **v_dest, size_t &dest_size,
 
 
     /* load weights ahead of first convolution for first filter! */
-    PUSH(dest, dest_size, weight_args);
+    PUSH(fptr, weight_args);
 
     /* go through each weight in the filter and apply it to the ofmap
      * pixels it operates on */
@@ -121,28 +120,27 @@ _convolve_tile(void **v_dest, size_t &dest_size,
             matmul_args.start_tensor_calc = (r == 0 && s == 0);
             matmul_args.stop_tensor_calc = (curr_weight == 
                     (f_rows * f_cols - 1));
-            PUSH(dest, dest_size, matmul_args);
+            PUSH(fptr, matmul_args);
 
             /* adjust weight address and LdWeights if not at end*/
             if ((r == f_rows - 1) && (s == f_cols - 1)) {
                 weight_args.address = filter_full_addr;
             } else {
                 weight_args.address += weight_step;
-                PUSH(dest, dest_size, weight_args);
+                PUSH(fptr, weight_args);
             }
         }
     }
 }
 
 void
-_pool_tile(void **v_dest, size_t &dest_size, 
+_pool_tile(FILE *fptr,
         uint64_t src_addr,
         uint64_t dst_addr,
         size_t tile_sz_x, size_t tile_sz_y,
         uint64_t o_cols,
         ARBPRECTYPE pool_dtype)
 {
-    char **dest = (char **)(v_dest);
     PoolArgs      pool_args = {0};
 
     /* pool args */
@@ -165,43 +163,40 @@ _pool_tile(void **v_dest, size_t &dest_size,
     pool_args.dst_x_num = tile_sz_x;
     pool_args.dst_y_num = tile_sz_y;
     pool_args.dst_start_addr = dst_addr;
-    PUSH(dest, dest_size, pool_args);
+    PUSH(fptr, pool_args);
 
 }
 
-void compile_read_ifmap(void **v_dest, size_t &dest_size, 
+void compile_read_ifmap(FILE *fptr,
         addr_t ifmap_full_addr, const char *i_name)
 {
     RdIfmapArgs args = {0};
-    char **dest = (char **)(v_dest);
 
     args.opcode = SIM_RDIFMAP;
     args.address = ifmap_full_addr;
     strcpy(args.fname, i_name);
     
-    PUSH(dest, dest_size, args);
+    PUSH(fptr, args);
 }
 
-void compile_read_filter(void **v_dest, size_t &dest_size, 
+void compile_read_filter(FILE *fptr,
         addr_t filter_full_addr, const char *i_name)
 {
     RdFilterArgs args = {0};
-    char **dest = (char **)(v_dest);
 
     args.opcode = SIM_RDFILTER;
     args.address = filter_full_addr;
     strcpy(args.fname, i_name);
     
-    PUSH(dest, dest_size, args);
+    PUSH(fptr, args);
 }
 
-void compile_write_ofmap(void **v_dest, size_t &dest_size, 
+void compile_write_ofmap(FILE *fptr,
         const char *o_name, addr_t addr, uint64_t i_n, 
         uint64_t w_c,  uint64_t w_m,
         uint64_t o_rows, uint64_t o_cols, 
         size_t word_size)
 {
-    char **dest = (char **)(v_dest);
     WrOfmapArgs args = {0};
     args.opcode = SIM_WROFMAP;
     args.address = addr;
@@ -213,11 +208,11 @@ void compile_write_ofmap(void **v_dest, size_t &dest_size,
     args.word_size = word_size;
     strcpy(args.fname, o_name);
     
-    PUSH(dest, dest_size, args);
+    PUSH(fptr, args);
 }
 
 void
-compile_convolve(void **v_dest, size_t &dest_size, 
+compile_convolve(FILE *fptr,
         uint64_t &o_rows, uint64_t &o_cols,
         uint64_t ofmap_full_addr,
         uint64_t ifmap_full_addr, uint64_t idim[4],
@@ -288,12 +283,12 @@ compile_convolve(void **v_dest, size_t &dest_size,
     
 
 
-            _convolve_tile(v_dest, dest_size, 
+            _convolve_tile(fptr,
                     matmul_addr, idim,
                     filter_full_addr, wdim,
                     psum_addr,
                     dtype, fmap_num, pads);
-            _pool_tile(v_dest, dest_size,
+            _pool_tile(fptr,
                     psum_addr, pool_dst_addr,
                     tile_sz_x, tile_sz_y,
                     o_cols, pool_dtype);

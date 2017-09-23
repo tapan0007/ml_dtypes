@@ -30,12 +30,9 @@ main(int argc, char **argv)
     uint8_t padding[2] = {0};
     uint8_t stride[] = {1,1};
     uint8_t dilate[] = {0,0};
-    void *ibuf_start = calloc(1, 64*1024);
-    void *ibuf_end = ibuf_start;
     char *i_name, *o_name, *f_name, *binary_name;
-    size_t ibuf_size = 0;
     int i = 1;
-    FILE *fd;
+    FILE *fptr;
 
     if (argc < 3) {
         printf("Usage is %s [-p PAD] IFMAP_NPY FILTER_NPY OUTPUT_NPY OUTPUT_BINARY\n", argv[0]);
@@ -51,7 +48,7 @@ main(int argc, char **argv)
     o_name = argv[i++];
     binary_name = argv[i++];
 
-    if (!(fd = fopen(binary_name, "w"))) {
+    if (!(fptr = fopen(binary_name, "w"))) {
         fprintf(stderr, "File did not open");
         return 1;
     }
@@ -60,19 +57,16 @@ main(int argc, char **argv)
     get_dims(i_name, i_dims, &word_size);
     get_dims(f_name, f_dims, &word_size);
 
-    compile_read_ifmap(&ibuf_end, ibuf_size, ifmap_full_addr, i_name);
-    compile_read_filter(&ibuf_end, ibuf_size, filter_full_addr, f_name);
-    compile_convolve(&ibuf_end, ibuf_size, o_rows, o_cols,
+    compile_read_ifmap(fptr, ifmap_full_addr, i_name);
+    compile_read_filter(fptr, filter_full_addr, f_name);
+    compile_convolve(fptr, o_rows, o_cols,
             ofmap_full_addr,
             ifmap_full_addr, i_dims,
             filter_full_addr, f_dims,
             dtype, padding, stride, dilate);
-    compile_write_ofmap(&ibuf_end, ibuf_size, o_name, ofmap_full_addr,
+    compile_write_ofmap(fptr, o_name, ofmap_full_addr,
             i_dims[0], f_dims[1], f_dims[0], o_rows, o_cols, oword_size);
 
-
-    fwrite(ibuf_start, 1, (char *)ibuf_end - (char *)ibuf_start, fd);
-    free(ibuf_start);
 
 
     return 0;
