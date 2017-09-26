@@ -12,3 +12,5 @@ class ActivLayer(OneToOneLayer): # abstract class
         super(ActivLayer, self).__init__(ntwk, prev_layer)
 
 
+
+

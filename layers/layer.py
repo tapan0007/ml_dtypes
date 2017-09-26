@@ -57,8 +57,8 @@ class Layer(object): # abstract class
     ## I.e., does the layer compute anything?
     ## This is important to estimate the memory size; if
     ## the input and output are different, than total memory
-    ## size for this layer is the sumof InputStateSize and 
-    ## OutputStateSize. If not, the total memory needed for 
+    ## size for this layer is the sumof InputStateSize and
+    ## OutputStateSize. If not, the total memory needed for
     ## this layer will be equal to OutputStateSize (which
     ## equals InputStateSize).
     ## For example, concatenation layer does not really
@@ -220,4 +220,15 @@ class Layer(object): # abstract class
 
     def qDataLayer(self):
         return False
+
+    def gDotId(self):
+        numStr = self.m_NumStr.replace(".", "_")
+        return self.gName() + "_" + numStr
+
+    def gDotLabel(self):
+        return '"' + self.gName() + "-" + self.m_NumStr + '"'
+
+    def gDotIdLabel(self):
+        return self.gDotId() + ' [label=' + self.gDotLabel() + '];'
+
 

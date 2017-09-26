@@ -2,6 +2,7 @@
 ResNet
 """
 
+from abc             import ABCMeta, abstractmethod
 
 from utils.consts           import  *
 #from utils.fmapdesc         import  IfmapDesc
@@ -21,6 +22,8 @@ from nets.network                import  Network
 ##########################################################
 ##########################################################
 class ResNet(Network):
+    __metaclass__ = ABCMeta
+
     #-----------------------------------------------------------------
     def __init__(self, ofmap_desc):
         super(ResNet, self).__init__()
@@ -77,4 +80,8 @@ class ResNet50(ResNet):
     def __init__(self):
         ofmap_desc = OfmapDesc(3, 224)
         super(ResNet50, self).__init__(ofmap_desc)
+
+    def gName(self):
+        return "ResNet-50"
+
 

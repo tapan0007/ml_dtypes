@@ -18,3 +18,4 @@ class OneToOneLayer(Layer): # abstract class
         assert(prev_layer.gOfmapDesc() == self.gOfmapDesc())
 
 
+

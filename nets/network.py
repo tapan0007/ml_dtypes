@@ -51,12 +51,30 @@ class Network(object):
 ##                    ==  layer2.gNumIfmaps())
 
 
+    def printDot(self):
+        f1=open(self.gName()+".dot", 'w')
+
+        graphName = self.gName().replace("-", "_").replace(".", "_")
+        print >>f1, 'graph', graphName, "{"
+
+        for layer in self.m_Layers:
+            print >>f1, '  ', layer.gDotIdLabel()
+
+        print >>f1
+
+        for layer in self.m_Layers:
+            for nextLayer in layer.gNextLayers():
+                print >>f1, '  ', layer.gDotId(), '->', nextLayer.gDotId(), ';'
+
+        print >>f1, '}'
+        print >>f1
+
     #-----------------------------------------------------------------
     def printMe(self):
         prevNl = False
-        maxStateSize = 0 
-        majorLayerNum = 0
-        minorLayerNum = 0
+        maxStateSize = 0
+        layerNumMajor = 0
+        layerNumMinor = 0
 
         for layer in self.m_Layers:
             if layer.gDenseBlockStart() >= 0:
@@ -72,12 +90,13 @@ class Network(object):
             if totalStateSize > maxStateSize:
                 maxStateSize = totalStateSize
 
-            if layer.gLayerType() == LAYER_TYPE_DATA  or layer.gLayerType() == LAYER_TYPE_CONV:
-                numStr = str(majorLayerNum); majorLayerNum +=1; minorLayerNum = 0
+            if layer.gLayerType() == LAYER_TYPE_DATA or layer.gLayerType() == LAYER_TYPE_CONV:
+                numStr = str(layerNumMajor); layerNumMajor += 1; layerNumMinor = 0
             else:
-                numStr = str(majorLayerNum) + "." + str(minorLayerNum); minorLayerNum +=1
+                numStr = str(layerNumMajor) + "." + str(layerNumMinor); layerNumMinor += 1
 
             print (numStr + " " + str(layer))
+            layer.m_NumStr = numStr
 
             prevNl = False
             if layer.gDenseBlockEnd() >= 0:
@@ -94,4 +113,9 @@ class Network(object):
     @abstractmethod
     def construct(self):
         assert(False)
+
+    @abstractmethod
+    def gName(self):
+        assert(False)
+
 

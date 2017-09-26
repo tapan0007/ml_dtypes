@@ -22,6 +22,9 @@ class AddLayer(CombineLayer):
     def gLayerType(self):
         return LAYER_TYPE_ADD
 
+    def gName(self):
+        return "Add"
+
     #-----------------------------------------------------------------
     def verify(self):
         prevDesc = None
