@@ -22,9 +22,9 @@
 
 
 /* globals! */
-Memory memory = Memory(Constants::columns * Constants::partition_nbytes + Constants::columns * Constants::psum_addr);
+Memory memory = Memory(Constants::rows * Constants::partition_nbytes + Constants::columns * Constants::psum_addr);
 addr_t state_buffer_base = 0x0;
-addr_t psum_buffer_base = Constants::columns * Constants::partition_nbytes;
+addr_t psum_buffer_base = Constants::rows * Constants::partition_nbytes;
 
 
 int main(int argc, char **argv)
