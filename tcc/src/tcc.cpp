@@ -23,8 +23,8 @@ enum NSEW {N=0, S, E, W, NUM_NSEW};
     fputc('\0', FPTR);
 
 uint8_t
-get_tile_type(uint8_t row, uint8_t col, 
-        uint8_t n_rows, uint8_t n_cols) {
+get_tile_type(const uint8_t row, const uint8_t col, 
+        const uint8_t n_rows, const uint8_t n_cols) {
     uint8_t tt = 0;
     if (row == 0) {
         tt |= N_FLAG;
@@ -43,12 +43,12 @@ get_tile_type(uint8_t row, uint8_t col,
 
 void
 _convolve_tile(FILE *fptr,
-        uint64_t ifmap_full_addr, uint64_t idim[4],
-        uint64_t filter_full_addr, uint64_t wdim[4],
-        uint64_t psum_addr,
-        ARBPRECTYPE dtype,
-        uint8_t fmap_num[2],
-        uint8_t pads[NUM_NSEW])
+        const uint64_t ifmap_full_addr, const uint64_t idim[4],
+        const uint64_t filter_full_addr, const uint64_t wdim[4],
+        const uint64_t psum_addr,
+        const ARBPRECTYPE dtype,
+        const uint8_t fmap_num[2],
+        const uint8_t pads[NUM_NSEW])
 {
     /* bounds checking */
     for (int i = 0; i < 4; i++) {
@@ -135,11 +135,11 @@ _convolve_tile(FILE *fptr,
 
 void
 _pool_tile(FILE *fptr,
-        uint64_t src_addr,
-        uint64_t dst_addr,
-        size_t tile_sz_x, size_t tile_sz_y,
-        uint64_t o_cols,
-        ARBPRECTYPE pool_dtype)
+        const uint64_t src_addr,
+        const uint64_t dst_addr,
+        const size_t tile_sz_x, const size_t tile_sz_y,
+        const uint64_t o_cols,
+        const ARBPRECTYPE pool_dtype)
 {
     PoolArgs      pool_args = {0};
 
@@ -192,10 +192,10 @@ void compile_read_filter(FILE *fptr,
 }
 
 void compile_write_ofmap(FILE *fptr,
-        const char *o_name, addr_t addr, uint64_t i_n, 
-        uint64_t w_c,  uint64_t w_m,
-        uint64_t o_rows, uint64_t o_cols, 
-        size_t word_size)
+        const char *o_name, const addr_t addr, const uint64_t i_n, 
+        const uint64_t w_c, const uint64_t w_m,
+        const uint64_t o_rows, const uint64_t o_cols, 
+        const size_t word_size)
 {
     WrOfmapArgs args = {0};
     args.opcode = SIM_WROFMAP;
@@ -213,12 +213,12 @@ void compile_write_ofmap(FILE *fptr,
 
 void
 compile_convolve(FILE *fptr,
-        uint64_t &o_rows, uint64_t &o_cols,
-        uint64_t ofmap_full_addr,
-        uint64_t ifmap_full_addr, uint64_t idim[4],
-        uint64_t filter_full_addr, uint64_t wdim[4],
-        ARBPRECTYPE dtype,
-        uint8_t padding[2], uint8_t stride[2], uint8_t dilate[2])
+        const uint64_t ifmap_full_addr, const uint64_t idim[4],
+        const uint64_t filter_full_addr, const uint64_t wdim[4],
+        const uint64_t ofmap_full_addr, uint64_t o_dims[4],
+        const ARBPRECTYPE dtype,
+        const uint8_t padding[2], const uint8_t stride[2], 
+        const uint8_t dilate[2])
 {
     UNUSED(stride);
     UNUSED(dilate);
@@ -235,8 +235,12 @@ compile_convolve(FILE *fptr,
     uint8_t f_rows_dilated = f_rows + (f_rows - 1) * d_rows;
     uint8_t f_cols_dilated = f_cols + (f_cols - 1) * d_cols;
     /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
-    o_rows = (i_rows - f_rows_dilated + 2 * p_rows) / s_rows + 1;
-    o_cols = (i_cols - f_cols_dilated + 2 * p_cols) / s_cols + 1;
+    o_dims[0] = idim[1];
+    o_dims[1] = wdim[0];
+    o_dims[2] = (i_rows - f_rows_dilated + 2 * p_rows) / s_rows + 1;
+    o_dims[3] = (i_cols - f_cols_dilated + 2 * p_cols) / s_cols + 1;
+    uint8_t o_rows = o_dims[2];
+    uint8_t o_cols = o_dims[3];
     uint8_t tile_rows = ceil((float) o_rows / TILE_SIZE);
     uint8_t tile_cols = ceil((float) o_rows / TILE_SIZE);
     addr_t dsize = sizeofArbPrecType(dtype);

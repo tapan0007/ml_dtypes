@@ -22,7 +22,6 @@ main(int argc, char **argv)
     addr_t ifmap_full_addr  = 0 * (1 << BANK_BITS);
     addr_t filter_full_addr = 1 * (1 << BANK_BITS);
     addr_t ofmap_full_addr  = 2 * (1 << BANK_BITS);
-    uint64_t o_rows, o_cols;
     uint64_t i_dims[4], f_dims[4];
     size_t word_size;
     size_t oword_size = 4; /* FIXME, no pinning! */
@@ -30,6 +29,7 @@ main(int argc, char **argv)
     uint8_t padding[2] = {0};
     uint8_t stride[] = {1,1};
     uint8_t dilate[] = {0,0};
+    uint64_t o_dims[4] = {0,0,0,0};
     char *i_name, *o_name, *f_name, *binary_name;
     int i = 1;
     FILE *fptr;
@@ -59,13 +59,13 @@ main(int argc, char **argv)
 
     compile_read_ifmap(fptr, ifmap_full_addr, i_name);
     compile_read_filter(fptr, filter_full_addr, f_name);
-    compile_convolve(fptr, o_rows, o_cols,
-            ofmap_full_addr,
+    compile_convolve(fptr, 
             ifmap_full_addr, i_dims,
             filter_full_addr, f_dims,
+            ofmap_full_addr, o_dims,
             dtype, padding, stride, dilate);
     compile_write_ofmap(fptr, o_name, ofmap_full_addr,
-            i_dims[0], f_dims[1], f_dims[0], o_rows, o_cols, oword_size);
+            i_dims[0], f_dims[1], f_dims[0], o_dims[2], o_dims[3], oword_size);
 
 
 
