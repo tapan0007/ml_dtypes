@@ -1,5 +1,8 @@
 ## SHELL=rc
 
+DENSE169 = DenseNet-169
+RES50 = ResNet-50
+
 dense : densenet
 
 res : resnet
@@ -21,4 +24,10 @@ dbgres :
 clean :
 	rm -f *.pyc
 
+
+densedot :
+	dot -Tps $(DENSE169).dot > $(DENSE169).ps; ps2pdf $(DENSE169).ps
+
+resdot :
+	dot -Tps $(RES50).dot > $(RES50).ps; ps2pdf $(RES50).ps
 

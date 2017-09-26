@@ -55,7 +55,7 @@ class Network(object):
         f1=open(self.gName()+".dot", 'w')
 
         graphName = self.gName().replace("-", "_").replace(".", "_")
-        print >>f1, 'graph', graphName, "{"
+        print >>f1, 'digraph', graphName, "{"
 
         for layer in self.m_Layers:
             print >>f1, '  ', layer.gDotIdLabel()
