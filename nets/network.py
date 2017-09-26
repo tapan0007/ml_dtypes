@@ -70,6 +70,7 @@ class Network(object):
         maxStateSize = 0
         layerNumMajor = 0
         layerNumMinor = 0
+        self.m_PrevLayer = None
 
         for layer in self.m_Layers:
             if layer.gDenseBlockStart() >= 0:
@@ -98,6 +99,8 @@ class Network(object):
                 print "<<< Ending tran block " + str(layer.gTranBlockEnd())
                 print
                 prevNl = True
+
+            self.m_PrevLayer =layer
 
         print "Max state size =", kstr(maxStateSize)
 
