@@ -1,7 +1,6 @@
 from abc             import ABCMeta, abstractmethod
 
 from utils.consts    import  *
-#from utils.fmapdesc  import IfmapDesc
 from utils.fmapdesc  import OfmapDesc
 from utils.funcs     import kstr
 import nets.network
@@ -16,7 +15,6 @@ class Layer(object): # abstract class
         assert(isinstance(ntwrk, nets.network.Network))
         assert(isinstance(ofmap_desc, OfmapDesc))
 
-        #self.__Index      = None
         self.__Network    = ntwrk
         self.__Ofmap_desc  = ofmap_desc.copy()
 
@@ -33,7 +31,6 @@ class Layer(object): # abstract class
         for prevLayer in prev_layers:
             prevLayer.addNextLayer(self)
 
-        self.rIndex(None)
         ntwrk.addLayer(self) ## will assign index
 
     #-----------------------------------------------------------------
@@ -189,24 +186,14 @@ class Layer(object): # abstract class
 
 
     #-----------------------------------------------------------------
-    def rIndex(self, index):
-        self.__Index = index;
+    def rNumberStr(self, numStr):
+        self.__NumberStr = numStr
 
-    def gIndex(self):
-        return self.__Index
+    def gNumberStr(self):
+        return self.__NumberStr
 
     def gNetwork(self):
         return self.__Network
-
-    #-----------------------------------------------------------------
-    #def gIfmapDesc(self):
-    #    return self.__Ifmap_desc
-
-    #def gIfmapSize(self):
-    #    return self.__Ifmap_desc.gMapSize()
-
-    #def gNumIfmaps(self):
-    #    return self.__Ifmap_desc.gNumMaps()
 
     #-----------------------------------------------------------------
     def gOfmapDesc(self):

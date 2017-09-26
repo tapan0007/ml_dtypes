@@ -1,5 +1,4 @@
 from utils.consts    import *
-#from utils.fmapdesc  import IfmapDesc
 from utils.fmapdesc  import OfmapDesc
 from layer           import Layer
 from combinelayer    import CombineLayer
@@ -47,11 +46,11 @@ class ConcatLayer(CombineLayer):
             assert(prevLayer.gOfmapSize() == self.gOfmapSize())
             if prevLayerIndices == "":
                 assert(mapNumStr == "")
-                prevLayerIndices = str(prevLayer.gIndex())
+                prevLayerIndices = prevLayer.gNumberStr()
                 mapNumStr = str(prevLayer.gNumOfmaps())
             else:
                 assert(mapNumStr != "")
-                prevLayerIndices += "," + str(prevLayer.gIndex())
+                prevLayerIndices += "," + prevLayer.gNumberStr()
                 mapNumStr += ":" + str(prevLayer.gNumOfmaps())
 
         assert(totalNumMaps == self.gNumOfmaps())

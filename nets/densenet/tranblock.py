@@ -1,5 +1,4 @@
 from utils.consts           import  *
-#from utils.fmapdesc         import  IfmapDesc
 from utils.fmapdesc         import  OfmapDesc
 from layers.layer           import  Layer
 from layers.batchnormlayer  import  BatchNormLayer

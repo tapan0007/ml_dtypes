@@ -5,7 +5,6 @@ ResNet
 from abc             import ABCMeta, abstractmethod
 
 from utils.consts           import  *
-#from utils.fmapdesc         import  IfmapDesc
 from utils.fmapdesc         import  OfmapDesc
 
 from layers.layer           import  Layer

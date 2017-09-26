@@ -11,6 +11,8 @@ class Network(object):
     #-----------------------------------------------------------------
     def __init__(self):
         self.m_Layers =[ ]
+        self.__LayerNumMajor = 0
+        self.__LayerNumMinor = 0
 
     def gLayer(self, idx):
         return self.m_Layers[idx]
@@ -20,7 +22,14 @@ class Network(object):
         assert(layer)
         assert( isinstance(layer, layers.layer.Layer) )
         self.m_Layers.append(layer)
-        layer.rIndex(len(self.m_Layers) - 1)
+        t = layer.gLayerType()
+        if (t == LAYER_TYPE_DATA or t == LAYER_TYPE_CONV or t == LAYER_TYPE_FULL):
+            numStr = str(self.__LayerNumMajor)
+            self.__LayerNumMajor += 1; self.__LayerNumMinor = 0
+        else:
+            numStr = str(self.__LayerNumMajor) + "." + str(self.__LayerNumMinor)
+            self.__LayerNumMinor += 1; 
+        layer.rNumberStr(numStr)
 
     #-----------------------------------------------------------------
     def gNumberLayers(self):
@@ -34,21 +43,6 @@ class Network(object):
         for layer in self.m_Layers:
             layer.verify()
 
-
-##        # Check connections between two consecutive layers.
-##        # Special case for Concat layers
-##        for layerIdx in range(numLayers-1):
-##            layer1 = self.m_Layers[layerIdx]
-##            layer2 = self.m_Layers[layerIdx+1]
-##            if layer2.gLayerType() != LAYER_TYPE_CONCAT:
-##                assert(layer1.gOfmapDesc() == layer2.gIfmapDesc())
-##            else:
-##                earlier_layer = layer2.gEarlierLayer()
-##                mapSize = layer1.gOfmapSize()
-##                assert(earlier_layer.gOfmapSize() == mapSize
-##                          and layer2.gIfmapSize() == mapSize)
-##                assert (layer1.gNumOfmaps() + earlier_layer.gNumOfmaps()
-##                    ==  layer2.gNumIfmaps())
 
 
     def printDot(self):
@@ -90,11 +84,7 @@ class Network(object):
             if totalStateSize > maxStateSize:
                 maxStateSize = totalStateSize
 
-            if layer.gLayerType() == LAYER_TYPE_DATA or layer.gLayerType() == LAYER_TYPE_CONV:
-                numStr = str(layerNumMajor); layerNumMajor += 1; layerNumMinor = 0
-            else:
-                numStr = str(layerNumMajor) + "." + str(layerNumMinor); layerNumMinor += 1
-
+            numStr = layer.gNumberStr()
             print (numStr + " " + str(layer))
             layer.m_NumStr = numStr
 

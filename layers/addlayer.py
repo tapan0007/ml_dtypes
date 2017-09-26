@@ -1,5 +1,4 @@
 from utils.consts    import *
-#from utils.fmapdesc  import IfmapDesc
 from utils.fmapdesc  import OfmapDesc
 from layer           import Layer
 from combinelayer    import CombineLayer
@@ -54,9 +53,9 @@ class AddLayer(CombineLayer):
 
         for prevLayer in self.gPrevLayers():
             if p == "":
-                p = str(prevLayer.gIndex())
+                p = prevLayer.gNumberStr()
             else:
-                p += "," + str(prevLayer.gIndex())
+                p += "," + prevLayer.gNumberStr()
 
         return ("Add[" + p + "] " + fromTo + self.gStateSizesStr())
 
