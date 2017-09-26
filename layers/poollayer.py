@@ -44,6 +44,18 @@ class PoolLayer(SubSampleLayer):
     def gLayerType(self):
         return LAYER_TYPE_POOL
 
+    def gName(self):
+        pt = self.gPoolType()
+        if pt == POOL_TYPE_MAX:
+            t = "MaxPool"
+        elif pt == POOL_TYPE_AVG:
+            t = "AvgPool"
+        else:
+            assert(False)
+
+        return t
+
+
     #-----------------------------------------------------------------
     def gPoolType(self):
         return self.m_PoolType

@@ -3,6 +3,7 @@ Parameters obtained from the source code located at
 https://github.com/pudae/tensorflow-densenet
 """
 
+from abc             import ABCMeta, abstractmethod
 
 from utils.consts           import  *
 #from utils.fmapdesc         import  IfmapDesc
@@ -27,6 +28,8 @@ from nets.network                import  Network
 ##########################################################
 ##########################################################
 class DenseNet(Network):
+    __metaclass__ = ABCMeta
+
     #-----------------------------------------------------------------
     def __init__(self, growth_rate, layers_in_dense_block, ofmap_desc, num_classes):
         super(DenseNet, self).__init__()
@@ -46,7 +49,7 @@ class DenseNet(Network):
         layer = DataLayer(self, ofmap_desc)
 
         ## Initial convolution + batch, relu, pool
-        # Convolution IMAP=3, OMAPS=64, kernel 7x7, stride 2, image size 224 -> 112 
+        # Convolution IMAP=3, OMAPS=64, kernel 7x7, stride 2, image size 224 -> 112
         num_ofmaps = 2*self.m_Growth_rate
         layer = ConvLayer(self, layer, num_ofmaps, stride=2, kernel=7)
         # Batch Normalization, IMAPS=64, OMAPS=64, image size 112->112
@@ -66,7 +69,7 @@ class DenseNet(Network):
             tranBlock = TranBlock(self, blockIdx, layer, 0.5)
             layer = tranBlock.gLastLayer()
 
-        lastBlockIdx = numDenseBlocks - 1 
+        lastBlockIdx = numDenseBlocks - 1
         numLayersInBlock = self.m_LayersInDenseBlock[lastBlockIdx]
         denseBlock = DenseBlock(self, lastBlockIdx, numLayersInBlock, self.m_Growth_rate, layer)
         layer = denseBlock.gLastLayer()
@@ -91,4 +94,8 @@ class DenseNet169(DenseNet):
         ofmap_desc = OfmapDesc(3, 224)
         num_classes = 1000
         super(DenseNet169, self).__init__(growth_rate, layersInDenseBlock, ofmap_desc, num_classes)
+
+    def gName(self):
+        return "DenseNet-169"
+
 

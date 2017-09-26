@@ -19,6 +19,9 @@ class SoftMaxLayer(OneToOneLayer):
     def gLayerType(self):
         return LAYER_TYPE_SOFTMAX
 
+    def gName(self):
+        return "SoftMax"
+
     #-----------------------------------------------------------------
     def qPassThrough(self):
         return False

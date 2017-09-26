@@ -17,3 +17,5 @@ class FullLayer(ConvLayer):
         baseLayer = self.gBaseLayerStr()
         return ("Full " + baseLayer)
 
+    def gName(self):
+        return "Full"

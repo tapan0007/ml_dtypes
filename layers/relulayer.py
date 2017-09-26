@@ -21,6 +21,8 @@ class ReluLayer(ActivLayer):
     def gLayerType(self):
         return LAYER_TYPE_ReLU
 
+    def gName(self):
+        return "Relu"
 
     #-----------------------------------------------------------------
     def qPassThrough(self):

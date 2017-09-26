@@ -36,6 +36,9 @@ class ConvLayer(SubSampleLayer):
     def gLayerType(self):
         return LAYER_TYPE_CONV
 
+    def gName(self):
+        return "Conv"
+
     #-----------------------------------------------------------------
     def gNumConvWeights(self):
         k = self.gKernel()

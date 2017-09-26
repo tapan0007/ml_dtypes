@@ -16,4 +16,6 @@ else:
 ntwk.construct()
 ntwk.printMe()
 
+ntwk.printDot()
+
 

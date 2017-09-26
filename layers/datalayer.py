@@ -17,6 +17,9 @@ class DataLayer(Layer):
         return ("Data " + baseLayer
                + self.gStateSizesStr())
 
+    def gName(self):
+        return "Data"
+
     #-----------------------------------------------------------------
     def verify(self):
         return
