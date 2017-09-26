@@ -37,7 +37,7 @@ class PoolLayer(SubSampleLayer):
     def verify(self):
         assert(self.gNumPrevLayers() == 1)
         assert(self.gPrevLayer(0).gOfmapSize()/self.gStride() == self.gOfmapSize())
-        
+
 
     #-----------------------------------------------------------------
     def gLayerType(self):

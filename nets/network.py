@@ -11,7 +11,7 @@ class Network(object):
     #-----------------------------------------------------------------
     def __init__(self):
         self.m_Layers =[ ]
-        self.__LayerNumMajor = 0
+        self.__LayerNumMajor = -1
         self.__LayerNumMinor = 0
 
     def gLayer(self, idx):
@@ -24,11 +24,12 @@ class Network(object):
         self.m_Layers.append(layer)
         t = layer.gLayerType()
         if (t == LAYER_TYPE_DATA or t == LAYER_TYPE_CONV or t == LAYER_TYPE_FULL):
+            self.__LayerNumMajor += 1
+            self.__LayerNumMinor = 0
             numStr = str(self.__LayerNumMajor)
-            self.__LayerNumMajor += 1; self.__LayerNumMinor = 0
         else:
             numStr = str(self.__LayerNumMajor) + "." + str(self.__LayerNumMinor)
-            self.__LayerNumMinor += 1; 
+            self.__LayerNumMinor += 1
         layer.rNumberStr(numStr)
 
     #-----------------------------------------------------------------
