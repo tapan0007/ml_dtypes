@@ -10,7 +10,8 @@ from utils.fmapdesc         import  OfmapDesc
 
 from layers.layer           import  Layer
 from layers.convlayer       import  ConvLayer
-from layers.poollayer       import  PoolLayer
+from layers.avgpoollayer    import  AvgPoolLayer
+from layers.maxpoollayer    import  MaxPoolLayer
 from layers.batchnormlayer  import  BatchNormLayer
 from layers.datalayer       import  DataLayer
 from layers.relulayer       import  ReluLayer
@@ -56,7 +57,7 @@ class DenseNet(Network):
         # ReLU, IMAPS=64, OMAPS=64, image size 112->112
         layer = ReluLayer(self, layer)
         ## Pooling IMAPS=64, OMAPS=64, 3x3, stride 2, pad 1, 112 -> 56
-        layer = PoolLayer(self, layer, stride=2, kernel=3, poolType=POOL_TYPE_MAX)
+        layer = MaxPoolLayer(self, layer, stride=2, kernel=3)
 
 
         # Dense Blocks
@@ -77,7 +78,7 @@ class DenseNet(Network):
         layer = BatchNormLayer(self, layer)
         layer = ReluLayer(self, layer)
 
-        layer = PoolLayer(self, layer, stride=7, kernel=7, poolType=POOL_TYPE_AVG)
+        layer = AvgPoolLayer(self, layer, stride=7, kernel=7)
         layer = FullLayer(self, layer, self.m_NumClasses)
         layer = SoftMaxLayer(self, layer)
 

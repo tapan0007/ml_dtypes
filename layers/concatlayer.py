@@ -51,7 +51,7 @@ class ConcatLayer(CombineLayer):
             else:
                 assert(mapNumStr != "")
                 prevLayerIndices += "," + prevLayer.gNumberStr()
-                mapNumStr += ":" + str(prevLayer.gNumOfmaps())
+                mapNumStr += "+" + str(prevLayer.gNumOfmaps())
 
         assert(totalNumMaps == self.gNumOfmaps())
 
@@ -62,4 +62,19 @@ class ConcatLayer(CombineLayer):
     #-----------------------------------------------------------------
     def qPassThrough(self):
         return True
+
+    #-----------------------------------------------------------------
+    def gSingleBatchInputStateSize(self, batch=1):
+        sz = 0
+        for prevLayer in self.gPrevLayers():
+            num_ofmaps = prevLayer.gNumOfmaps()
+            ofmap_size = prevLayer.gOfmapSize()
+            sz += ofmap_size * ofmap_size * num_ofmaps
+        return sz
+
+    #-----------------------------------------------------------------
+    def gSingleBatchOutputStateSize(self, batch=1):
+        num_ofmaps = self.gNumOfmaps()
+        ofmap_size = self.gOfmapSize()
+        return ofmap_size * ofmap_size * num_ofmaps
 

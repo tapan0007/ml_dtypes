@@ -17,5 +17,13 @@ class OneToOneLayer(Layer): # abstract class
         prev_layer = self.gPrevLayer(0)
         assert(prev_layer.gOfmapDesc() == self.gOfmapDesc())
 
+    #-----------------------------------------------------------------
+    def gSingleBatchInputStateSize(self, batch=1):
+        return 0
+
+    #-----------------------------------------------------------------
+    def gSingleBatchOutputStateSize(self, batch=1):
+        return 0
+
 
 

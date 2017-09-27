@@ -46,7 +46,7 @@ class PoolLayer(SubSampleLayer):
         baseLayer = self.gBaseLayerStr()
         if typ == LAYER_TYPE_MAX_POOL:
             t = "MaxPool"
-        elif typ == LAYER_TYPE_AVG_POL:
+        elif typ == LAYER_TYPE_AVG_POOL:
             t = "AvgPool"
         else:
             assert(False)

@@ -4,7 +4,7 @@ from layers.layer           import  Layer
 from layers.batchnormlayer  import  BatchNormLayer
 from layers.convlayer       import  ConvLayer
 from layers.relulayer       import  ReluLayer
-from layers.poollayer       import  PoolLayer
+from layers.avgpoollayer    import  AvgPoolLayer
 
 import nets.block
 import nets.network
@@ -31,7 +31,7 @@ class TranBlock(nets.block.Block):
         layer = ConvLayer(ntwk, layer, numOfmaps, stride=1, kernel=1)
 
 
-        layer = PoolLayer(ntwk, layer, stride=2, kernel=2, poolType=POOL_TYPE_AVG)
+        layer = AvgPoolLayer(ntwk, layer, stride=2, kernel=2)
 
         layer.rTranBlockEnd(blockIdx)
         self.m_LastLayer = layer
