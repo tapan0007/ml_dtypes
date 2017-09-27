@@ -315,3 +315,66 @@ compile_convolve(FILE *fptr,
 
 
 
+void
+compile_pool(FILE *fptr,
+        const uint64_t ifmap_addr, const uint64_t ifmap_dims[4],
+        const uint64_t kernel_dims[4],
+        const uint64_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
+        const uint64_t stride_dims[4],
+		ARBPRECTYPE dtype,
+        POOLFUNC pool_func)
+{
+	//uint64_t s_cols = stride_dims[3];
+	//uint64_t s_rows = stride_dims[2];
+	uint64_t s_ch   = stride_dims[1];
+	uint64_t s_n    = stride_dims[0];
+	uint64_t k_cols = kernel_dims[3];
+	uint64_t k_rows = kernel_dims[2];
+	uint64_t k_ch   = kernel_dims[1];
+	//uint64_t k_n    = kernel_dims[0];
+	uint64_t i_cols = ifmap_dims[3];
+	uint64_t i_rows = ifmap_dims[2];
+	//uint64_t i_ch   = ifmap_dims[1];
+	uint64_t i_n    = ifmap_dims[0];
+	uint64_t &o_cols = ofmap_dims[3];
+	uint64_t &o_rows = ofmap_dims[2];
+	uint64_t &o_ch   = ofmap_dims[1];
+	//uint64_t &o_n    = ofmap_dims[0];
+    PoolArgs      pool_args = {0};
+	addr_t        src_addr = ifmap_addr;
+	addr_t        dst_addr = ofmap_addr;
+    addr_t dsize = sizeofArbPrecType(dtype);
+    for (int i = 0; i < 4; i++) {
+        ofmap_dims[i] = floor((ifmap_dims[i] - kernel_dims[i])/stride_dims[i]) +
+            1;
+    }
+	
+	assert(s_n == 1 && "TBD: pooling across channels/batches");
+	assert(i_n == 1 && "TBD: batches");
+	for (unsigned int i = 0; i < s_n; i++) {
+        for (unsigned int j = 0; j < s_ch; j++) {
+            /* pool args */
+            pool_args.opcode = POOL;
+            pool_args.pool_func = pool_func;
+            pool_args.in_dtype     = dtype;
+            pool_args.src_start_addr = src_addr;
+            pool_args.src_x_step = 1;
+            pool_args.src_y_step = i_cols * dsize;
+            pool_args.src_z_step = i_rows * i_cols * dsize;
+            pool_args.src_x_num = k_cols;
+            pool_args.src_y_num = k_rows;
+            pool_args.src_z_num = k_ch;
+            pool_args.dst_start_addr = dst_addr;
+
+            /* Pool  */
+            pool_args.dst_x_step = 1;
+            pool_args.dst_y_step = o_cols;
+            pool_args.dst_x_num = o_rows;
+            pool_args.dst_y_num = o_ch;
+            pool_args.dst_num = o_cols;
+            pool_args.dst_start_addr = dst_addr;
+            PUSH(fptr, pool_args);
+        }
+	}
+}
+	
