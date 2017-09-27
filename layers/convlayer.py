@@ -2,6 +2,8 @@ from utils.consts    import *
 from utils.fmapdesc import  OfmapDesc
 from layer          import Layer
 from subsamplelayer import SubSampleLayer
+from poollayer      import PoolLayer
+from activlayer     import ActivLayer
 import nets.network
 
 ##########################################################
@@ -29,6 +31,7 @@ class ConvLayer(SubSampleLayer):
                     + ", kernel=" + ks + "x" + ks + ", stride=" + ss
                     + self.gStateSizesStr())
 
+    #-----------------------------------------------------------------
     def verify(self):
         assert(self.gNumPrevLayers() == 1)
         prevLayer = self.gPrevLayer(0)
@@ -41,6 +44,7 @@ class ConvLayer(SubSampleLayer):
     def gLayerType(self):
         return LAYER_TYPE_CONV
 
+    #-----------------------------------------------------------------
     def gName(self):
         return "Conv"
 
@@ -55,9 +59,37 @@ class ConvLayer(SubSampleLayer):
     def qPassThrough(self):
         return False
 
+    #-----------------------------------------------------------------
     def gNumberWeights(self):
         assert(self.gNumPrevLayers() == 1)
         prevLayer = self.gPrevLayer(0)
         return prevLayer.gNumOfmaps() * self.gNumOfmaps() * (self.gKernel()**2)
+
+
+    #-----------------------------------------------------------------
+    def gSingleBatchInputStateSize(self, batch=1):
+        sz = 0
+        for prevLayer in self.gPrevLayers():
+            num_ofmaps = prevLayer.gNumOfmaps()
+            ofmap_size = prevLayer.gOfmapSize()
+            sz += ofmap_size * ofmap_size * num_ofmaps
+        return sz
+
+    #-----------------------------------------------------------------
+    def gSingleBatchOutputStateSize(self, batch=1):
+        toStateBuffer = False
+        for fanoutLayer in self.gNextLayers():
+            if isinstance(fanoutLayer, ActivLayer) or isinstance(fanoutLayer, PoolLayer):
+                pass
+            else:
+                toStateBuffer = True
+                break
+
+        if toStateBuffer:
+            num_ofmaps = self.gNumOfmaps()
+            ofmap_size = self.gOfmapSize()
+            return ofmap_size * ofmap_size * num_ofmaps
+        else:
+            return 0
 
 

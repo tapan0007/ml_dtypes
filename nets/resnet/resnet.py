@@ -9,7 +9,8 @@ from utils.fmapdesc         import  OfmapDesc
 
 from layers.layer           import  Layer
 from layers.convlayer       import  ConvLayer
-from layers.poollayer       import  PoolLayer
+from layers.maxpoollayer    import  MaxPoolLayer
+from layers.avgpoollayer    import  AvgPoolLayer
 from layers.batchnormlayer  import  BatchNormLayer
 from layers.datalayer       import  DataLayer
 from layers.relulayer       import  ReluLayer
@@ -56,7 +57,7 @@ class ResNet(Network):
         layer = DataLayer(self, ofmap_desc)
 
         layer = ConvLayer(self, layer, 64, stride=2, kernel=7)                ## 7x7 conv, (3,224)->(64,112), stride 2,
-        layer = PoolLayer(self, layer, stride=2, kernel=3, poolType=POOL_TYPE_MAX)              ## Pool (64,112)->(64,56)
+        layer = MaxPoolLayer(self, layer, stride=2, kernel=3)              ## Pool (64,112)->(64,56)
 
         ########################################################################
         layer = self.Section(self, layer, 3, 64, 1)
@@ -66,7 +67,7 @@ class ResNet(Network):
 
 
         ########################################################################
-        layer = PoolLayer(self, layer, stride=2, kernel=3, poolType=POOL_TYPE_MAX)
+        layer = MaxPoolLayer(self, layer, stride=2, kernel=3)
         layer = FullLayer(self, layer, 1000)
 
 
@@ -80,6 +81,7 @@ class ResNet50(ResNet):
         ofmap_desc = OfmapDesc(3, 224)
         super(ResNet50, self).__init__(ofmap_desc)
 
+    #-----------------------------------------------------------------
     def gName(self):
         return "ResNet-50"
 

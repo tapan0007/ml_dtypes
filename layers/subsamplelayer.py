@@ -5,6 +5,7 @@ import nets.network
 
 ##########################################################
 class SubSampleLayer(Layer): # abstract class
+    #-----------------------------------------------------------------
     def __init__(self, ntwk, prev_layer, num_ofmaps, stride, kernel):
         ## Stride(2) is larger than kernel(1*1) for some layers in ResNet.
         ## That seems to be a wrong way of aggregating information, but
@@ -23,9 +24,11 @@ class SubSampleLayer(Layer): # abstract class
         self.__Kernel = kernel
 
 
+    #-----------------------------------------------------------------
     def gStride(self):
         return self.__Stride
 
+    #-----------------------------------------------------------------
     def gKernel(self):
         return self.__Kernel
 

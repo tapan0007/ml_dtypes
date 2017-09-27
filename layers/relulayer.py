@@ -1,3 +1,5 @@
+from abc             import ABCMeta, abstractmethod
+
 from utils.consts  import  *
 from layer         import Layer
 from activlayer    import ActivLayer
@@ -21,6 +23,7 @@ class ReluLayer(ActivLayer):
     def gLayerType(self):
         return LAYER_TYPE_ReLU
 
+    #-----------------------------------------------------------------
     def gName(self):
         return "Relu"
 

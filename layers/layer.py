@@ -50,6 +50,16 @@ class Layer(object): # abstract class
         assert(False)
 
     #-----------------------------------------------------------------
+    @abstractmethod
+    def gSingleBatchInputStateSize(self, batch=1):
+        assert(False)
+
+    #-----------------------------------------------------------------
+    @abstractmethod
+    def gSingleBatchOutputStateSize(self, batch=1):
+        assert(False)
+
+    #-----------------------------------------------------------------
     ## Are the input and the output values different?
     ## I.e., does the layer compute anything?
     ## This is important to estimate the memory size; if
@@ -62,30 +72,40 @@ class Layer(object): # abstract class
     ## compute anything, just passes two inputs as one output.
     ## The same is true for data layer.
 
+    #-----------------------------------------------------------------
     @abstractmethod
     def qPassThrough(self):
         assert(False)
 
+
+
+    #-----------------------------------------------------------------
     def gPrevLayers(self):
         return self.__PrevLayers
 
+    #-----------------------------------------------------------------
     def gNumPrevLayers(self):
         return len(self.gPrevLayers())
 
+    #-----------------------------------------------------------------
     def gNextLayers(self):
         return self.__NextLayers
 
+    #-----------------------------------------------------------------
     def gNumNextLayers(self):
         return len(self.gNextLayers())
 
+    #-----------------------------------------------------------------
     def gPrevLayer(self, idx):
         assert(0 <= idx and idx < len(self.gPrevLayers()))
         return self.gPrevLayers()[idx]
 
+    #-----------------------------------------------------------------
     def gNextLayer(self, idx):
         assert(0 <= idx and idx < len(self.gNextLayers()))
         return self.gNextLayers()[idx]
 
+    #-----------------------------------------------------------------
     def addNextLayer(self, nextLayer):
         self.__NextLayers.append(nextLayer)
 
@@ -131,20 +151,6 @@ class Layer(object): # abstract class
         self.__TranBlockEnd = val
 
     #-----------------------------------------------------------------
-    def gSingleBatchInputStateSize(self):
-        sz = 0
-        for prevLayer in self.gPrevLayers():
-            num_ofmaps = prevLayer.gNumOfmaps()
-            ofmap_size = prevLayer.gOfmapSize()
-            sz += ofmap_size * ofmap_size * num_ofmaps
-        return sz
-
-    #-----------------------------------------------------------------
-    def gSingleBatchOutputStateSize(self):
-        num_ofmaps = self.gNumOfmaps()
-        ofmap_size = self.gOfmapSize()
-        return ofmap_size * ofmap_size * num_ofmaps
-
     def gSingleBatchTotalStateSize(self):
         isize = self.gSingleBatchInputStateSize()
         osize = self.gSingleBatchOutputStateSize()
@@ -154,6 +160,7 @@ class Layer(object): # abstract class
         else:
             return isize + osize
 
+    #-----------------------------------------------------------------
     def gNumberWeights(self):
         return 0
 
@@ -170,6 +177,7 @@ class Layer(object): # abstract class
         s += "-->" + str(self.gOfmapDesc())
         return s
 
+    #-----------------------------------------------------------------
     def gStateSizesStr(self):
         iState = self.gSingleBatchInputStateSize()
         oState = self.gSingleBatchOutputStateSize()
@@ -189,9 +197,11 @@ class Layer(object): # abstract class
     def rNumberStr(self, numStr):
         self.__NumberStr = numStr
 
+    #-----------------------------------------------------------------
     def gNumberStr(self):
         return self.__NumberStr
 
+    #-----------------------------------------------------------------
     def gNetwork(self):
         return self.__Network
 
@@ -199,22 +209,28 @@ class Layer(object): # abstract class
     def gOfmapDesc(self):
         return self.__Ofmap_desc
 
+    #-----------------------------------------------------------------
     def gOfmapSize(self):
         return self.__Ofmap_desc.gMapSize()
 
+    #-----------------------------------------------------------------
     def gNumOfmaps(self):
         return self.__Ofmap_desc.gNumMaps()
 
+    #-----------------------------------------------------------------
     def qDataLayer(self):
         return False
 
+    #-----------------------------------------------------------------
     def gDotId(self):
         numStr = self.m_NumStr.replace(".", "_")
         return self.gName() + "_" + numStr
 
+    #-----------------------------------------------------------------
     def gDotLabel(self):
         return '"' + self.gName() + "-" + self.m_NumStr + '"'
 
+    #-----------------------------------------------------------------
     def gDotIdLabel(self):
         return self.gDotId() + ' [label=' + self.gDotLabel() + '];'
 

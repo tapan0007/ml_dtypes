@@ -1,3 +1,5 @@
+from abc             import ABCMeta, abstractmethod
+
 from utils.consts   import  *
 from layer          import Layer
 from onetoonelayer  import OneToOneLayer
@@ -5,6 +7,8 @@ import nets.network
 
 ##########################################################
 class ActivLayer(OneToOneLayer): # abstract class
+    __metaclass__ = ABCMeta
+
     #-----------------------------------------------------------------
     def __init__(self, ntwk, prev_layer):
         assert(isinstance(ntwk, nets.network.Network))

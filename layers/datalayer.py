@@ -16,6 +16,7 @@ class DataLayer(Layer):
         return ("Data " + baseLayer
                + self.gStateSizesStr())
 
+    #-----------------------------------------------------------------
     def gName(self):
         return "Data"
 
@@ -31,7 +32,17 @@ class DataLayer(Layer):
     def qPassThrough(self):
         return False
 
+    #-----------------------------------------------------------------
     def qDataLayer(self):
         return True
 
+    #-----------------------------------------------------------------
+    def gSingleBatchInputStateSize(self, batch=1):
+        return 0
+
+    #-----------------------------------------------------------------
+    def gSingleBatchOutputStateSize(self, batch=1):
+        num_ofmaps = self.gNumOfmaps()
+        ofmap_size = self.gOfmapSize()
+        return ofmap_size * ofmap_size * num_ofmaps
 

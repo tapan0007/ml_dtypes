@@ -1,3 +1,5 @@
+from abc             import ABCMeta, abstractmethod
+
 from utils.consts    import *
 from utils.fmapdesc  import OfmapDesc
 from layer           import Layer
@@ -6,31 +8,15 @@ import nets.network
 
 ##########################################################
 class PoolLayer(SubSampleLayer):
+    __metaclass__ = ABCMeta
+
     #-----------------------------------------------------------------
-    def __init__(self, ntwk, prev_layer, stride, kernel, poolType):
+    def __init__(self, ntwk, prev_layer, stride, kernel):
         assert(isinstance(ntwk, nets.network.Network))
         assert(isinstance(prev_layer, Layer))
 
         super(PoolLayer, self).__init__(ntwk, prev_layer,
             num_ofmaps=None, stride=stride, kernel=kernel)
-
-        self.m_PoolType = poolType
-
-    #-----------------------------------------------------------------
-    def __str__(self):
-        ks = str(self.gKernel())
-        ss = str(self.gStride())
-        baseLayer = self.gBaseLayerStr()
-        pt = self.gPoolType()
-        if pt == POOL_TYPE_MAX:
-            t = "MaxPool"
-        elif pt == POOL_TYPE_AVG:
-            t = "AvgPool"
-        else:
-            assert(False)
-        return (t + baseLayer
-                + ", kernel=" + ks + "x" + ks + ", stride=" + ss
-                + self.gStateSizesStr())
 
 
     #-----------------------------------------------------------------
@@ -40,26 +26,32 @@ class PoolLayer(SubSampleLayer):
 
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_POOL
+    def qPassThrough(self):
+        return False
 
-    def gName(self):
-        pt = self.gPoolType()
-        if pt == POOL_TYPE_MAX:
+    #-----------------------------------------------------------------
+    def gSingleBatchInputStateSize(self, batch=1):
+        return 0
+
+    #-----------------------------------------------------------------
+    def gSingleBatchOutputStateSize(self, batch=1):
+        num_ofmaps = self.gNumOfmaps()
+        ofmap_size = self.gOfmapSize()
+        return ofmap_size * ofmap_size * num_ofmaps
+
+    #-----------------------------------------------------------------
+    def gPoolLayerStr(self, typ):
+        ks = str(self.gKernel())
+        ss = str(self.gStride())
+        baseLayer = self.gBaseLayerStr()
+        if typ == LAYER_TYPE_MAX_POOL:
             t = "MaxPool"
-        elif pt == POOL_TYPE_AVG:
+        elif typ == LAYER_TYPE_AVG_POL:
             t = "AvgPool"
         else:
             assert(False)
 
-        return t
-
-
-    #-----------------------------------------------------------------
-    def gPoolType(self):
-        return self.m_PoolType
-
-    #-----------------------------------------------------------------
-    def qPassThrough(self):
-        return False
+        return (t + baseLayer
+                + ", kernel=" + ks + "x" + ks + ", stride=" + ss
+                + self.gStateSizesStr())
 

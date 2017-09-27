@@ -14,6 +14,7 @@ class Network(object):
         self.__LayerNumMajor = -1
         self.__LayerNumMinor = 0
 
+    #-----------------------------------------------------------------
     def gLayer(self, idx):
         return self.m_Layers[idx]
 
@@ -46,6 +47,7 @@ class Network(object):
 
 
 
+    #-----------------------------------------------------------------
     def printDot(self):
         f1=open(self.gName()+".dot", 'w')
 
@@ -104,10 +106,12 @@ class Network(object):
 
         print "Max state size =", kstr(maxStateSize)
 
+    #-----------------------------------------------------------------
     @abstractmethod
     def construct(self):
         assert(False)
 
+    #-----------------------------------------------------------------
     @abstractmethod
     def gName(self):
         assert(False)

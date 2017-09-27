@@ -94,6 +94,7 @@ class DenseNet169(DenseNet):
         num_classes = 1000
         super(DenseNet169, self).__init__(growth_rate, layersInDenseBlock, ofmap_desc, num_classes)
 
+    #-----------------------------------------------------------------
     def gName(self):
         return "DenseNet-169"
 
