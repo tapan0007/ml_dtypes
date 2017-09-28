@@ -1,7 +1,7 @@
 #ifndef _TCC_H
 #define _TCC_H
 
-#include "types.h"
+#include "dtypes.h"
 #include "stdio.h"
 
 

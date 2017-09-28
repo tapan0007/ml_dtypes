@@ -8,7 +8,8 @@ def print_prologue(o):
 #include "string.h"
 #include "stdio.h"
 #include "isa.h"
-#include "types.h"
+#include "isadef.h"
+#include "dtypes.h"
 #include "assert.h"
 #include "stdarg.h"
 #include <string>

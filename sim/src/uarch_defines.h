@@ -12,25 +12,6 @@ typedef uint64_t addr_t;
 typedef uint64_t tick_t;
 #define MAX_TICK UINTMAX_MAX
 
-#define ADDR_UNION(PREF)  \
-    union { \
-        struct { \
-            uint64_t PREF##_addr : Constants::bank_bits; \
-            uint64_t PREF##_bank : Constants::addr_size - Constants::bank_bits; \
-        }; \
-        uint64_t PREF##_full_addr : Constants::addr_size; \
-    }; \
-
-#define PSUM_UNION(PREF)  \
-    union { \
-        struct { \
-            uint64_t PREF##_addr : Constants::psum_buffer_entries_bits + Constants::psum_buffer_width_bits; \
-            uint64_t PREF##_bank : Constants::psum_bank_bits; \
-        }; \
-        uint64_t PREF##_full_addr : Constants::psum_bank_bits + Constants::psum_buffer_entries_bits + Constants::psum_buffer_width_bits; \
-    }; \
-
-
 
 class Constants
 {

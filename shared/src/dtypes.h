@@ -1,8 +1,20 @@
-#include "types.h"
-#include <assert.h>
+#ifndef _TYPES_H
+#define _TYPES_H
 
+#include "stdint.h"
+#include "stdlib.h"
+#include "assert.h"
 
+enum ARBPRECTYPE {INVALID_ARBPRECTYPE = 0, 
+    INT8 = 2,   UINT8 = 3, 
+    INT16 = 4,  UINT16 = 5, 
+    FP16 = 7,
+    INT32,      UINT32,
+    FP32, 
+    INT64 = 12, UINT64 = 13, 
+    NUM_ARBPRECTYPE = 16};
 
+inline
 ARBPRECTYPE 
 get_upcast(ARBPRECTYPE type) {
     switch (type) {
@@ -23,6 +35,7 @@ get_upcast(ARBPRECTYPE type) {
     return INVALID_ARBPRECTYPE;
 }
 
+inline
 size_t
 sizeofArbPrecType(ARBPRECTYPE type)
 {
@@ -53,3 +66,17 @@ sizeofArbPrecType(ARBPRECTYPE type)
 }
 
 
+enum ACTIVATIONFUNCTION {INVALID_ACTIVATIONFUNCTION=-1, IDENTITY, RELU, LEAKY_RELU, SIGMIOD, TANH,  NUM_ACTIVATIONFUNCTION};
+
+
+enum POOLFUNC {
+    MAX_POOL = 0, 
+    AVG_POOL = 1, 
+    IDENTITY_POOL = 2,
+    NUM_POOLTYPE=3};
+
+typedef uint64_t addr_t;
+#define MAX_ADDR UINTMAX_MAX
+
+
+#endif

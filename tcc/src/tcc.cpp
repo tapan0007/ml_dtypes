@@ -1,5 +1,6 @@
 #include "tcc.h"
 #include "isa.h"
+#include "isa_def.h"
 #include <assert.h>
 #include <string>
 #include "string.h"

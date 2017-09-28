@@ -9,6 +9,7 @@ all:
 	@$(MAKE) -C tcc/test
 	@$(MAKE) -C sim
 	@$(MAKE) -C objdump
+	@$(MAKE) libs -C sim
 
 clean: 
 	@$(MAKE) clean -C shared

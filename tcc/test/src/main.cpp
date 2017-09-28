@@ -1,5 +1,6 @@
-#include "isa.h"
 #include "cnpy.h"
+#include "isa.h"
+#include "isadef.h"
 #include "tcc.h"
 #include "string.h"
 

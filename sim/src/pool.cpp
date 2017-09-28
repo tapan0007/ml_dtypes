@@ -1,5 +1,6 @@
 #include "pool.h"
 #include "io.h"
+#include "uarch_defines.h"
 
 extern Memory memory;
 extern addr_t psum_buffer_base;

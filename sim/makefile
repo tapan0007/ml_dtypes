@@ -6,6 +6,7 @@ TARGET = sim
 SRCDIR = src
 OBJDIR = obj
 LIBDIR = libs
+LIBRARY = $(LIBDIR)/libsim.a
 SHAREDIR = ../shared
 SHARE_SRCDIR = $(SHAREDIR)/src
 SHARE_INCDIR_LIST = $(SHAREDIR)/src $(SHAREDIR)/build
@@ -18,6 +19,7 @@ SOURCES  := $(wildcard $(SRCDIR)/*.cpp)
 SHARE_SOURCES  := $(wildcard $(SHARE_SRCDIR)/*.cpp)
 INCLUDES := $(wildcard $(SRCDIR)/*.h) 
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
+NONMAIN_OBJECTS  := $(filter-out $(OBJDIR)/main.o, $(OBJECTS))
 SHARE_OBJECTS  := $(SHARE_SOURCES:$(SHARE_SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 .PHONY: clean
@@ -27,8 +29,10 @@ all: $(TARGET) $(LIBRARY)
 libs: $(LIBRARY)
 
 clean: 
-	$(RM) $(TARGET) $(OBJECTS) 
+	$(RM) $(TARGET) $(OBJECTS)   $(LIBRARY)
 
+$(LIBRARY): 
+	 ar rcs $(LIBRARY) $(NONMAIN_OBJECTS) $(SHARE_OBJECTS)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)  
 	 @$(CXX) $(CFLAGS) $(CPPFLAGS) -I $(SHARE_SRCDIR) $(SHARE_INCDIR) -c $< -o $@

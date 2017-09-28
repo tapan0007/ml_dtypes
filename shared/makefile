@@ -27,8 +27,9 @@ clean:
 
 docs: $(ISA_PDF)
 
-$(ISA_H) : $(ISA_JSON)  $(SCRIPTDIR)/create_h.py
-	$(SCRIPTDIR)/create_h.py $(SRCDIR)/isa.json $(OBJDIR)/isa.h
+$(ISA_H) : $(ISA_JSON)  $(SCRIPTDIR)/create_isa_h.py $(SCRIPTDIR)/create_isa_def_h.py
+	$(SCRIPTDIR)/create_isa_h.py $(SRCDIR)/isa.json $(OBJDIR)/isa.h
+	$(SCRIPTDIR)/create_isa_def_h.py $(SRCDIR)/isa.json $(OBJDIR)/isa_def.h
 
 $(ISA_PDF) : $(ISA_JSON)
 	cd $(SCRIPTDIR) && \
@@ -38,7 +39,7 @@ $(ISA_PDF) : $(ISA_JSON)
 	pdflatex --output-directory ../$(DOCDIR) ../$(OBJDIR)/isa.tex
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)  $(ISA_H)
-	 @$(CXX) $(CFLAGS) $(CPPFLAGS) $(INCDIR) -c $< -o $@
+	 $(CXX) $(CFLAGS) $(CPPFLAGS) $(INCDIR) -c $< -o $@
 
 
 

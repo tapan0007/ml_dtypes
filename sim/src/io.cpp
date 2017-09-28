@@ -1,7 +1,7 @@
 #include "io.h"
 #include "uarch_defines.h"
 #include "cnpy.h"
-#include "isa.h"
+#include "isa_def.h"
 #include <complex>
 #include <string.h>
 

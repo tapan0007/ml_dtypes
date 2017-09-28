@@ -2,9 +2,10 @@
 #define PE_ARRAY_H
 
 #include "pe.h"
-#include "sequencer.h"
 #include <array>
 #include <cstdint>
+
+class Sequencer; 
 
 class ProcessingElementArray {
     public:

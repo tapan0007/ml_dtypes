@@ -1,6 +1,7 @@
 #include "state_buffer.h"
 #include "string.h"
 #include "io.h"
+#include "uarch_defines.h"
 
 extern Memory memory;
 //------------------------------------------------------------------

@@ -2,6 +2,7 @@
 #define SEQUENCER_H
 
 #include "sigint.h"
+#include "uarch_defines.h"
 #include <queue>
 
 class Instruction {

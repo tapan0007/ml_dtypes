@@ -10,7 +10,13 @@
         "PAD_BITS":   4,
         "COLUMN_BITS": 6,
         "EVENT_FUNC_BITS": 4,
-        "EVENT_ID_BITS": 8
+        "EVENT_ID_BITS": 8,
+        "INSTRUCTION_NBYTES": 256,
+        "TILE_SIZE": 16,
+        "BANKS_PER_PARTITION_BITS": 2,
+        "SB_SIZE": "(1 << ROW_BITS) * (1<<BANKS_PER_PARTITION_BITS) * ( 1 << BANK_BITS)",
+        "MMAP_PSUM_BASE": "SB_SIZE"
+
     },
     "instructions": {
         "LDWEIGHTS": {

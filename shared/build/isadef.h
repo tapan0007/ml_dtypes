@@ -1,0 +1,34 @@
+#ifndef ISADEF_H
+#define ISADEF_H
+
+#include "stdint.h"
+
+
+#define PAD_BITS 4
+#define MMAP_PSUM_BASE SB_SIZE
+#define EVENT_ID_BITS 8
+#define STRIDE_STEP_BITS 12
+#define STRIDE_NUM_BITS 9
+#define ROW_BITS 7
+#define INSTRUCTION_NBYTES 256
+#define OPCODE_BITS 8
+#define EVENT_FUNC_BITS 4
+#define COLUMN_BITS 6
+#define BANK_BITS 13
+#define DTYPE_BITS 8
+#define SB_SIZE (1 << ROW_BITS) * (1<<BANKS_PER_PARTITION_BITS) * ( 1 << BANK_BITS)
+#define ADDRESS_BITS 32
+#define TILE_SIZE 16
+#define BANKS_PER_PARTITION_BITS 2
+
+
+enum OPCODES {
+SIM_RDFILTER = 0xfe,
+SIM_RDIFMAP = 0xff,
+MATMUL = 0x01,
+SIM_WROFMAP = 0xfd,
+LDWEIGHTS = 0x00,
+POOL = 0x80,
+};
+
+#endif

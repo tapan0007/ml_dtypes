@@ -1,7 +1,8 @@
 #ifndef SIGINT_H
 #define SIGINT_H
+#include "isa_def.h"
+#include "dtypes.h"
 #include "arb_prec.h"
-#include "uarch_defines.h"
 #include <cstdint>
 
 // ----------------------------------------------------------
@@ -31,6 +32,14 @@ typedef struct ActivateSbSignals {
     ARBPRECTYPE dtype;
 } ActivateSbSignals;
 
+#define ADDR_UNION(PREF)  \
+    union { \
+        struct { \
+            uint64_t PREF##_addr : BANK_BITS; \
+            uint64_t PREF##_bank : ADDRESS_BITS - BANK_BITS; \
+        }; \
+        uint64_t PREF##_full_addr : ADDRESS_BITS; \
+    }; \
 
 
 typedef struct EdgeSignals {
@@ -90,8 +99,6 @@ class UopFeedInterface
 class PeEWInterface
 {
     public:
-        PeEWInterface() {};
-        ~PeEWInterface() {};
         virtual PeEWSignals pull_ew() = 0;
 };
 
@@ -130,8 +137,6 @@ class ActivateSbInterface
 class SbEWBroadcastInterface
 {
     public:
-        SbEWBroadcastInterface() {};
-        ~SbEWBroadcastInterface() {};
         virtual bool pull_clamp() = 0;
 };
 
