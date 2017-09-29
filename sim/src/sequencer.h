@@ -59,6 +59,11 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         uint8_t     ifmap_y_num;
         uint8_t     ifmap_x_cnt;
         uint8_t     ifmap_y_cnt;
+        /* pifmaps are padded ifmaps */
+        uint8_t     pifmap_x_num;
+        uint8_t     pifmap_y_num;
+        uint8_t     pifmap_x_cnt;
+        uint8_t     pifmap_y_cnt;
         uint8_t     pad[NUM_NSEW];
         uint8_t     pad_cnt[NUM_NSEW];
         uint8_t     pad_run[NUM_NSEW];
@@ -66,23 +71,19 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         enum NSEW   pad_dir;
 
         /* pool */
-        /* pifmaps are padded ifmaps */
-        uint8_t     pifmap_x_num;
-        uint8_t     pifmap_y_num;
-        uint8_t     pifmap_x_cnt;
-        uint8_t     pifmap_y_cnt;
         bool        pool_valid;
         uint64_t    pool_timer;
         addr_t      pool_src_base;
+        size_t      pool_str_x;
+        size_t      pool_str_y;
         size_t      pool_src_x_step;
         size_t      pool_src_y_step;
-        size_t      pool_src_z_step;
         size_t      pool_src_x_cnt;
         size_t      pool_src_y_cnt;
-        size_t      pool_src_z_cnt;
         size_t      pool_src_x_num;
         size_t      pool_src_y_num;
-        size_t      pool_src_z_num;
+        uint64_t    pool_icols;
+        uint64_t    pool_irows;
 
         addr_t      pool_dst_base;
         size_t      pool_dst_x_step;

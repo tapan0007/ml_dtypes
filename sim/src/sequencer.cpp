@@ -184,13 +184,14 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
 	seq->pool_dst_base = args.dst_start_addr;
 	seq->pool_src_x_cnt = 0;
 	seq->pool_src_y_cnt = 0;
-	seq->pool_src_z_cnt = 0;
 	seq->pool_src_x_step = args.src_x_step;
 	seq->pool_src_y_step = args.src_y_step;
-	seq->pool_src_z_step = args.src_z_step;
 	seq->pool_src_x_num = args.src_x_num;
 	seq->pool_src_y_num = args.src_y_num;
-	seq->pool_src_z_num = args.src_z_num;
+	seq->pool_str_x = args.stride_x;
+	seq->pool_str_y = args.stride_y;
+	seq->pool_cnt = 0;
+
 
 	seq->pool_dst_x_step = args.dst_x_step;
 	seq->pool_dst_y_step = args.dst_y_step;
@@ -198,6 +199,8 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
 	seq->pool_dst_y_cnt = 0;
 	seq->pool_dst_x_num = args.dst_x_num;
 	seq->pool_dst_y_num = args.dst_y_num;
+	seq->pool_irows = 
+	seq->pool_icols = 
 }
 
 /*------------------------------------
@@ -331,16 +334,17 @@ Sequencer::step_poolsignal() {
 
     if (pool_src_y_cnt >= pool_src_y_num) {
         pool_src_y_cnt = 0;
-        pool_src_z_cnt++;
+        pool_cnt++;
+        /* stay withing im ! */
+        assert((pool_cnt + 1) *
+                pool_src_y_num * pool_src_y_step * 
+                pool_src_x_num * pool_src_y_num <= (i_rows * i_cols));
+        }
     }
 
-    if (pool_src_z_cnt >= pool_src_z_num) {
-        pool_src_z_cnt = 0;
-    }
     bool eopool = 
         (pool_src_x_cnt == pool_src_x_num - 1) && 
-        (pool_src_y_cnt == pool_src_y_num - 1) &&
-        (pool_src_z_cnt == pool_src_z_num - 1);
+        (pool_src_y_cnt == pool_src_y_num - 1);
 
     /* roll over dst counters */
     if (ps.func == IDENTITY_POOL || eopool) {
@@ -375,10 +379,12 @@ Sequencer::step_poolsignal() {
 
     /* calculate address based on settings */
     if (ps.valid) {
-        ps.src_full_addr = pool_src_base + 
-            (pool_src_z_cnt * pool_src_z_step +
-             pool_src_y_cnt * pool_src_y_step + 
-             pool_src_x_cnt * pool_src_x_step) * dsize;
+        ps.src_full_addr = pool_src_base + dsize * 
+            (pool_cnt * /* tile */
+             (pool_src_x_num * pool_src_x_step *
+              pool_src_y_num * pool_src_y_step)) + 
+            (pool_src_y_cnt * pool_src_y_step + /* offset in tile */
+             pool_src_x_cnt * pool_src_x_step); 
     }
     if (ps.start) {
         ps.dst_full_addr = pool_dst_base + 

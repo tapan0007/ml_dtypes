@@ -149,11 +149,11 @@ _pool_tile(FILE *fptr,
     pool_args.pool_func = IDENTITY_POOL;
     pool_args.in_dtype     = pool_dtype;
     pool_args.src_start_addr = src_addr;
+    pool_args.stride_x = 1;
+    pool_args.stride_y = 1;
     pool_args.src_x_step= 1;
     pool_args.src_y_step= 1;
-    pool_args.src_z_step= 1;
     pool_args.src_y_num = 1;
-    pool_args.src_z_num = 1;
     pool_args.dst_x_step = 1;
     pool_args.dst_y_step = o_cols;
     pool_args.dst_start_addr = dst_addr;
@@ -325,16 +325,16 @@ compile_pool(FILE *fptr,
 		ARBPRECTYPE dtype,
         POOLFUNC pool_func)
 {
-	//uint64_t s_cols = stride_dims[3];
-	//uint64_t s_rows = stride_dims[2];
+	uint64_t s_cols = stride_dims[3];
+	uint64_t s_rows = stride_dims[2];
 	uint64_t s_ch   = stride_dims[1];
 	uint64_t s_n    = stride_dims[0];
 	uint64_t k_cols = kernel_dims[3];
 	uint64_t k_rows = kernel_dims[2];
-	uint64_t k_ch   = kernel_dims[1];
+	//uint64_t k_ch   = kernel_dims[1];
 	//uint64_t k_n    = kernel_dims[0];
 	uint64_t i_cols = ifmap_dims[3];
-	uint64_t i_rows = ifmap_dims[2];
+	//uint64_t i_rows = ifmap_dims[2];
 	//uint64_t i_ch   = ifmap_dims[1];
 	uint64_t i_n    = ifmap_dims[0];
 	uint64_t &o_cols = ofmap_dims[3];
@@ -361,11 +361,11 @@ compile_pool(FILE *fptr,
             pool_args.src_start_addr = src_addr;
             pool_args.src_x_step = 1;
             pool_args.src_y_step = i_cols * dsize;
-            pool_args.src_z_step = i_rows * i_cols * dsize;
             pool_args.src_x_num = k_cols;
             pool_args.src_y_num = k_rows;
-            pool_args.src_z_num = k_ch;
             pool_args.dst_start_addr = dst_addr;
+            pool_args.stride_x = s_cols;
+            pool_args.stride_y = s_rows;
 
             /* Pool  */
             pool_args.dst_x_step = 1;
