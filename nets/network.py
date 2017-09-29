@@ -16,7 +16,7 @@ class Network(object):
 
     #-----------------------------------------------------------------
     def gLayer(self, idx):
-        return self.__Layers[idx]
+        return self.g_Layers[idx]
 
     #-----------------------------------------------------------------
     def addLayer(self, layer):
@@ -34,8 +34,12 @@ class Network(object):
         layer.rNumberStr(numStr)
 
     #-----------------------------------------------------------------
+    def gLayers(self):
+        return self.__Layers
+
+    #-----------------------------------------------------------------
     def gNumberLayers(self):
-        return len(self.__Layers)
+        return len(self.gLayers())
 
     #-----------------------------------------------------------------
     def verify(self):
@@ -68,6 +72,8 @@ class Network(object):
 
     #-----------------------------------------------------------------
     def printMe(self):
+        self.schedule()
+
         prevNl = False
         maxStateSize = 0
         layerNumMajor = 0
@@ -107,8 +113,24 @@ class Network(object):
         print "Max state size =", kstr(maxStateSize)
 
     #-----------------------------------------------------------------
+    # Level[i] = layers without predecessors in: All-Layers - Union{k : k in [0,i) : Level[k]}
+    def levelize(self):
+        Remain = set(self.gLayers())
+        Levels = []
+        while len(Remain) > 0:
+            nextLevel = filter(lambda lyr : len(set(lyr.gPrevLayers()).intersection(Remain))==0, Remain)
+            Levels.append(nextLevel)
+            Remain = Remain.difference(set(nextLevel))
+        return Levels
+        
+
+    #-----------------------------------------------------------------
     def schedule(self):
-        pass
+        currSched = 0
+        Levels = self.levelize()
+        assert(len(Levels[0]) == 1 and Levels[0][0].gLayerType() == LAYER_TYPE_DATA)
+        initLayers[0].rSchedule(currSched); currSched += 1
+
 
     #-----------------------------------------------------------------
     @abstractmethod

@@ -65,7 +65,7 @@ class AddLayer(CombineLayer):
         return False
 
     #-----------------------------------------------------------------
-    def gSingleBatchInputStateSize(self, batch=1):
+    def gSingleBatchRawInputStateSize(self, batch=1):
         sz = 0
         for prevLayer in self.gPrevLayers():
             num_ofmaps = prevLayer.gNumOfmaps()
@@ -74,7 +74,19 @@ class AddLayer(CombineLayer):
         return sz
 
     #-----------------------------------------------------------------
-    def gSingleBatchOutputStateSize(self, batch=1):
+    def gSingleBatchInputStateSize(self, batch=1):
+        if True:
+            return self.gSingleBatchRawInputStateSize(batch)
+        else:
+            return
+
+    #-----------------------------------------------------------------
+    def gSingleBatchRawOutputStateSize(self, batch=1):
         num_ofmaps = self.gNumOfmaps()
         ofmap_size = self.gOfmapSize()
         return ofmap_size * ofmap_size * num_ofmaps
+
+    #-----------------------------------------------------------------
+    def gSingleBatchOutputStateSize(self, batch=1):
+        return self.gSingleBatchRawOutputStateSize(batch)
+

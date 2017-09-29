@@ -80,6 +80,11 @@ class Layer(object): # abstract class
         assert(False)
 
 
+    def gSchedule(self):
+        return self.__schedule
+
+    def rSchedule(self, sch):
+        self.__schedule = sch
 
     #-----------------------------------------------------------------
     def gPrevLayers(self):
