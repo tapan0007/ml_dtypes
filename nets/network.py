@@ -3,6 +3,7 @@ from abc             import ABCMeta, abstractmethod
 from utils.consts    import  *
 from utils.funcs     import kstr
 import layers.layer
+from schedule.scheduler      import Scheduler
 
 ##########################################################
 class Network(object):
@@ -13,6 +14,15 @@ class Network(object):
         self.__Layers = [ ]
         self.__LayerNumMajor = -1
         self.__LayerNumMinor = 0
+        self.__Levels = None
+
+    #-----------------------------------------------------------------
+    def rLevels(self, levels):
+        self.__Levels = levels
+        
+    #-----------------------------------------------------------------
+    def gLayers(self):
+        return self.__Layers
 
     #-----------------------------------------------------------------
     def gLayer(self, idx):
@@ -110,68 +120,13 @@ class Network(object):
 
         print "Max state size =", kstr(maxStateSize)
 
-    #-----------------------------------------------------------------
-    # Level[i] = layers without predecessors in: All-Layers - Union{k : k in [0,i) : Level[k]}
-    def levelize(self):
-        for layer in self.gLayers():
-            layer.m_NumPredecessors = layer.gNumPrevLayers()
-            layer.rEarlyLevel(-1)
-        Levels = []
-
-        # get layers without predecessors
-        currLevel = filter(lambda lyr : lyr.m_NumPredecessors == 0, self.gLayers())
-        currLevelNum = 0; assert(currLevelNum == len(Levels))
-        for layer in currLevel:
-            layer.rEarlyLevel(currLevelNum)
-
-        Levels.append(currLevel)  ## this is level 0
-        numUnprocessedLayers = self.gNumberLayers() - len(currLevel)
-
-        while numUnprocessedLayers > 0:
-            nextLevel = []
-            nextLevelNum = currLevelNum + 1; assert(nextLevelNum == len(Levels))
-            for currLayer in currLevel:
-                for nextLayer in currLayer.gNextLayers():
-                    nextLayer.m_NumPredecessors -= 1
-                    if nextLayer.m_NumPredecessors == 0:  ## all predecessors in previous layers
-                        nextLevel.append(nextLayer)
-
-            currLevel = nextLevel; currLevelNum = nextLevelNum
-            numUnprocessedLayers -= len(currLevel)
-            Levels.append(currLevel)
-            for layer in currLevel:
-                layer.rEarlyLevel(currLevelNum)
-
-        self.__Levels = Levels
-        self.calculateLateLevels()
-
-    #-----------------------------------------------------------------
-    def calculateLateLevels(self):
-        lastLevel = len(self.__Levels)
-
-        revLevels = list(self.__Levels)
-        revLevels.reverse()
-        for level in revLevels:
-            for layer in level:
-                minNextLastLev = lastLevel
-                for nextLayer in layer.gNextLayers():
-                    minNextLastLev = min(minNextLastLev, nextLayer.gLateLevel())
-                layer.rLateLevel(minNextLastLev - 1)
-
 
     #-----------------------------------------------------------------
     def printLevels(self):
         for level in self.__Levels:
-            for layer in level:
+            for layer in level.gLayers():
                 print (layer.gNameNum() + '[' + str(layer.gEarlyLevel()) + ',' + str(layer.gLateLevel()) + '] '),
             print
-
-
-    #-----------------------------------------------------------------
-    def schedule(self):
-        self.levelize()
-        Levels = self.__Levels
-        assert(len(Levels[0]) == 1 and Levels[0][0].gLayerType() == LAYER_TYPE_DATA)
 
 
     #-----------------------------------------------------------------

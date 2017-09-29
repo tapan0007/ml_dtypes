@@ -103,29 +103,29 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def gPrevLayers(self):
-        return self.__PrevLayers
+        return iter(self.__PrevLayers)
 
     #-----------------------------------------------------------------
     def gPrevLayer(self, idx):
-        assert(0 <= idx and idx < len(self.gPrevLayers()))
-        return self.gPrevLayers()[idx]
+        assert(0 <= idx and idx < self.gNumPrevLayers())
+        return self.__PrevLayers[idx]
 
     #-----------------------------------------------------------------
     def gNumPrevLayers(self):
-        return len(self.gPrevLayers())
+        return len(self.__PrevLayers)
 
     #-----------------------------------------------------------------
     def gNextLayers(self):
-        return self.__NextLayers
+        return iter(self.__NextLayers)
 
     #-----------------------------------------------------------------
     def gNextLayer(self, idx):
         assert(0 <= idx and idx < len(self.gNextLayers()))
-        return self.gNextLayers()[idx]
+        return self.__NextLayers[idx]
 
     #-----------------------------------------------------------------
     def gNumNextLayers(self):
-        return len(self.gNextLayers())
+        return len(self.__NextLayers)
 
     #-----------------------------------------------------------------
     def addNextLayer(self, nextLayer):

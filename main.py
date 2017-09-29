@@ -2,6 +2,7 @@ import sys
 
 from nets.densenet.densenet  import DenseNet169
 from nets.resnet.resnet    import ResNet50
+from schedule.scheduler      import Scheduler
 
 print sys.argv
 assert(len(sys.argv) == 2)
@@ -14,7 +15,9 @@ else:
     sys.exit(1)
 
 ntwk.construct()
-ntwk.schedule()
+scheduler = Scheduler()
+scheduler.schedule(ntwk.gLayers())
+ntwk.rLevels(scheduler.gLevels())
 
 ntwk.printMe()
 ntwk.printLevels()

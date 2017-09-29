@@ -15,10 +15,10 @@ resnet :
 	@  python main.py --resnet
 
 dbgdense :
-	python -mpdb main.py --densenet
+	py -mpdb main.py --densenet
 
 dbgres :
-	python -mpdb main.py --resnet
+	py -mpdb main.py --resnet
 
 
 clean :
