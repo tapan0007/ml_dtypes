@@ -26,6 +26,8 @@ class Layer(object): # abstract class
         self.__NextLayers = []
         self.__PrevLayers = []
 
+        self.__schedule = None  ## number in [0, NUM_LAYERS-1]
+
         assert( (len(prev_layers) == 0) == (self.gLayerType() == LAYER_TYPE_DATA) )
         self.__PrevLayers.extend(prev_layers)
         for prevLayer in prev_layers:

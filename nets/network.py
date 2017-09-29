@@ -10,19 +10,19 @@ class Network(object):
 
     #-----------------------------------------------------------------
     def __init__(self):
-        self.m_Layers =[ ]
+        self.__Layers = [ ]
         self.__LayerNumMajor = -1
         self.__LayerNumMinor = 0
 
     #-----------------------------------------------------------------
     def gLayer(self, idx):
-        return self.m_Layers[idx]
+        return self.__Layers[idx]
 
     #-----------------------------------------------------------------
     def addLayer(self, layer):
         assert(layer)
         assert( isinstance(layer, layers.layer.Layer) )
-        self.m_Layers.append(layer)
+        self.__Layers.append(layer)
         t = layer.gLayerType()
         if (t == LAYER_TYPE_DATA or t == LAYER_TYPE_CONV or t == LAYER_TYPE_FULL):
             self.__LayerNumMajor += 1
@@ -35,14 +35,14 @@ class Network(object):
 
     #-----------------------------------------------------------------
     def gNumberLayers(self):
-        return len(self.m_Layers)
+        return len(self.__Layers)
 
     #-----------------------------------------------------------------
     def verify(self):
-        assert(self.m_Layers[0].gLayerType() == LAYER_TYPE_DATA)
+        assert(self.__Layers[0].gLayerType() == LAYER_TYPE_DATA)
         numLayers = self.gNumberLayers()
 
-        for layer in self.m_Layers:
+        for layer in self.__Layers:
             layer.verify()
 
 
@@ -54,12 +54,12 @@ class Network(object):
         graphName = self.gName().replace("-", "_").replace(".", "_")
         print >>f1, 'digraph', graphName, "{"
 
-        for layer in self.m_Layers:
+        for layer in self.__Layers:
             print >>f1, '  ', layer.gDotIdLabel()
 
         print >>f1
 
-        for layer in self.m_Layers:
+        for layer in self.__Layers:
             for nextLayer in layer.gNextLayers():
                 print >>f1, '  ', layer.gDotId(), '->', nextLayer.gDotId(), ';'
 
@@ -74,7 +74,7 @@ class Network(object):
         layerNumMinor = 0
         self.m_PrevLayer = None
 
-        for layer in self.m_Layers:
+        for layer in self.__Layers:
             if layer.gDenseBlockStart() >= 0:
                 if not prevNl:
                     print
@@ -105,6 +105,10 @@ class Network(object):
             self.m_PrevLayer =layer
 
         print "Max state size =", kstr(maxStateSize)
+
+    #-----------------------------------------------------------------
+    def schedule(self):
+        pass
 
     #-----------------------------------------------------------------
     @abstractmethod
