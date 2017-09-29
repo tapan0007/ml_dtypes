@@ -14,7 +14,10 @@ else:
     sys.exit(1)
 
 ntwk.construct()
+ntwk.schedule()
+
 ntwk.printMe()
+ntwk.printLevels()
 
 ntwk.printDot()
 

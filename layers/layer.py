@@ -80,6 +80,7 @@ class Layer(object): # abstract class
         assert(False)
 
 
+    #-----------------------------------------------------------------
     def gSchedule(self):
         return self.__schedule
 
@@ -87,8 +88,27 @@ class Layer(object): # abstract class
         self.__schedule = sch
 
     #-----------------------------------------------------------------
+    def gEarlyLevel(self):
+        return self.__EarlyLevel
+
+    def rEarlyLevel(self, level):
+        self.__EarlyLevel = level
+
+    #-----------------------------------------------------------------
+    def gLateLevel(self):
+        return self.__LateLevel
+
+    def rLateLevel(self, level):
+        self.__LateLevel = level
+
+    #-----------------------------------------------------------------
     def gPrevLayers(self):
         return self.__PrevLayers
+
+    #-----------------------------------------------------------------
+    def gPrevLayer(self, idx):
+        assert(0 <= idx and idx < len(self.gPrevLayers()))
+        return self.gPrevLayers()[idx]
 
     #-----------------------------------------------------------------
     def gNumPrevLayers(self):
@@ -99,18 +119,13 @@ class Layer(object): # abstract class
         return self.__NextLayers
 
     #-----------------------------------------------------------------
-    def gNumNextLayers(self):
-        return len(self.gNextLayers())
-
-    #-----------------------------------------------------------------
-    def gPrevLayer(self, idx):
-        assert(0 <= idx and idx < len(self.gPrevLayers()))
-        return self.gPrevLayers()[idx]
-
-    #-----------------------------------------------------------------
     def gNextLayer(self, idx):
         assert(0 <= idx and idx < len(self.gNextLayers()))
         return self.gNextLayers()[idx]
+
+    #-----------------------------------------------------------------
+    def gNumNextLayers(self):
+        return len(self.gNextLayers())
 
     #-----------------------------------------------------------------
     def addNextLayer(self, nextLayer):
@@ -228,6 +243,9 @@ class Layer(object): # abstract class
     def qDataLayer(self):
         return False
 
+    #-----------------------------------------------------------------
+    def gNameNum(self):
+        return self.gName() + "-" + self.m_NumStr
     #-----------------------------------------------------------------
     def gDotId(self):
         numStr = self.m_NumStr.replace(".", "_")
