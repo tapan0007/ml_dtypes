@@ -7,7 +7,7 @@ from schedule.layerlevel import LayerLevel
 class Scheduler(object):
     #-----------------------------------------------------------------
     def __init__(self):
-        self.__Layers = layers
+        self.__Layers = None
         self.__Levels = None
 
     #-----------------------------------------------------------------
@@ -74,9 +74,9 @@ class Scheduler(object):
                 layer.rLateLevel(minNextLastLev - 1)
 
     #-----------------------------------------------------------------
-    def schedule(self, layers):
+    def schedule(self, layersToSched):
 
-        self.__Layers = layers
+        self.__Layers = layersToSched
         self.__Levels = None
 
         self.__levelize()

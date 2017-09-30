@@ -26,7 +26,7 @@ class Network(object):
 
     #-----------------------------------------------------------------
     def gLayer(self, idx):
-        return self.g_Layers[idx]
+        return self.__Layers[idx]
 
     #-----------------------------------------------------------------
     def addLayer(self, layer):
@@ -44,19 +44,15 @@ class Network(object):
         layer.rNumberStr(numStr)
 
     #-----------------------------------------------------------------
-    def gLayers(self):
-        return self.__Layers
-
-    #-----------------------------------------------------------------
     def gNumberLayers(self):
-        return len(self.gLayers())
+        return len(self.__Layers)
 
     #-----------------------------------------------------------------
     def verify(self):
-        assert(self.__Layers[0].gLayerType() == LAYER_TYPE_DATA)
+        assert(self.gLayer(0).gLayerType() == LAYER_TYPE_DATA)
         numLayers = self.gNumberLayers()
 
-        for layer in self.__Layers:
+        for layer in self.gLayers(): # self.__Layers:
             layer.verify()
 
 
@@ -68,7 +64,7 @@ class Network(object):
         graphName = self.gName().replace("-", "_").replace(".", "_")
         print >>f1, 'digraph', graphName, "{"
 
-        for layer in self.__Layers:
+        for layer in self.gLayers():
             print >>f1, '  ', layer.gDotIdLabel()
 
         print >>f1
