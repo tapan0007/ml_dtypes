@@ -59,6 +59,18 @@ class Scheduler(object):
 
         self.__Levels = Levels
         self.__calculateLateLevels()
+        self.verifyLevelization()
+
+    #-----------------------------------------------------------------
+    def verifyLevelization(self):
+        for level in self.__Levels:
+            levNum = level.gLevelNum()
+            for layer in level.gLayers():
+                assert(levNum == layer.gEarlyLevel())
+                for nextLayer in layer.gNextLayers():
+                    ## cannot say anything about layer.Late and nextLayer.Early
+                    assert(layer.gEarlyLevel() < nextLayer.gEarlyLevel())
+                    assert(layer.gLateLevel() < nextLayer.gLateLevel())
 
     #-----------------------------------------------------------------
     def __calculateLateLevels(self):
