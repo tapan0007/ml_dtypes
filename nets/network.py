@@ -19,7 +19,7 @@ class Network(object):
     #-----------------------------------------------------------------
     def rLevels(self, levels):
         self.__Levels = levels
-        
+
     #-----------------------------------------------------------------
     def gLayers(self):
         return self.__Layers
