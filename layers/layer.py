@@ -17,6 +17,7 @@ class Layer(object): # abstract class
 
         self.__Network    = ntwrk
         self.__Ofmap_desc  = ofmap_desc.copy()
+        self.__Id = None
 
         self.__DenseBlockStart = -1
         self.__DenseBlockEnd   = -1
@@ -36,6 +37,14 @@ class Layer(object): # abstract class
         ntwrk.addLayer(self) ## will assign index
 
     #-----------------------------------------------------------------
+    def gLayerId(self):
+        return self.__Id
+
+    #-----------------------------------------------------------------
+    def rLayerId(self, id):
+        self.__Id = id
+
+    #-----------------------------------------------------------------
     #-----------------------------------------------------------------
     @abstractmethod
     def __str__(self):
@@ -50,6 +59,17 @@ class Layer(object): # abstract class
     @abstractmethod
     def verify(self):
         assert(False)
+
+    #-----------------------------------------------------------------
+    def gRawInputStateSize(self, batch=1):
+        sz = 0
+        for inLayer in self.gPrevLayers():
+            sz += inLayer.gRawOutputStateSize()
+        return sz
+
+    #-----------------------------------------------------------------
+    def gRawOutputStateSize(self, batch=1):
+        return self.gNumOfmaps() * self.gOfmapSize() * self.gOfmapSize()
 
     #-----------------------------------------------------------------
     @abstractmethod

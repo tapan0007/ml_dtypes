@@ -10,6 +10,8 @@ class OneToOneLayer(Layer): # abstract class
         assert(isinstance(prev_layer, Layer))
         ofmap_desc = prev_layer.gOfmapDesc()
         super(OneToOneLayer, self).__init__(ntwk, (prev_layer,), ofmap_desc)
+        assert(prev_layer.gRawOutputSize() == self.gRawOutputSize())
+        assert(self.gRawInputSize() == self.gRawOutputSize())
 
     #-----------------------------------------------------------------
     def verify(self):
@@ -19,11 +21,11 @@ class OneToOneLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     def gSingleBatchInputStateSize(self, batch=1):
-        return 0
+        return self.gRawInputSize()
 
     #-----------------------------------------------------------------
     def gSingleBatchOutputStateSize(self, batch=1):
-        return 0
+        return self.gRawOutputSize()
 
-
+    #-----------------------------------------------------------------
 

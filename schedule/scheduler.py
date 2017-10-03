@@ -1,7 +1,12 @@
+import functools
+
 from utils.consts    import  *
 import layers.layer
 from schedule.layerlevel import LayerLevel
 
+
+def breakFunc(n):
+    return n + 1
 
 ##########################################################
 class Scheduler(object):
@@ -71,6 +76,7 @@ class Scheduler(object):
                     ## cannot say anything about layer.Late and nextLayer.Early
                     assert(layer.gEarlyLevel() < nextLayer.gEarlyLevel())
                     assert(layer.gLateLevel() < nextLayer.gLateLevel())
+                    assert(layer.gEarlyLevel() <= layer.gLateLevel())
 
     #-----------------------------------------------------------------
     def __calculateLateLevels(self):
@@ -94,4 +100,78 @@ class Scheduler(object):
         self.__levelize()
         Levels = self.__Levels
         assert(Levels[0].gNumberLayers() == 1 and Levels[0].qDataLevel())
+
+
+        ## Move layers with input smaller than output to latest level for the layer
+        for layer in self.__Layers:
+            if layer.gEarlyLevel() == layer.gLateLevel():
+                continue
+            if layer.gSingleBatchInputStateSize() < layer.gSingleBatchOutputStateSize():
+                # move layer to latest level
+                breakFunc(2)
+                earlyLevel = self.__Levels[layer.gEarlyLevel()]
+                lateLevel = self.__Levels[layer.gLateLevel()]
+
+                assert(earlyLevel.qContainsLayer(layer))
+                assert(earlyLevel.gLevelNum() == layer.gEarlyLevel())
+                assert(lateLevel.gLevelNum() == layer.gLateLevel())
+
+                earlyLevel.remove(layer)
+                lateLevel.append(layer)
+                assert(not earlyLevel.qContainsLayer(layer))
+                assert(lateLevel.qContainsLayer(layer))
+            else:
+                # keep it early
+                pass
+
+        ## Schedule within level
+        self.__currSchedule = 0
+        for level in self.__Levels:
+            self.__scheduleLevel(level)
+
+    #-----------------------------------------------------------------
+    def __scheduleLevel(self, level):
+        if level.gNumberLayers() == 1:
+            for layer in level.gLayers():
+                layer.rSchedule(self.__currSchedule)
+                self.__currSchedule += 1
+            return
+
+        # Schedule a multi-layer level
+        # If two (or more) layers have the same successor, schedule one after another
+        # Schedule the layer with smaller out-state-buffer footprint later
+        # Rething this for multi-successor layers
+        levelCopy = list(level.gLayers())
+        self.__sortLayers(levelCopy)
+        for layer in level.gLayers():
+            layer.rSchedule(self.__currSchedule)
+            self.__currSchedule += 1
+        return
+
+
+    #-----------------------------------------------------------------
+    def __sortLayers(self, levelCopy):
+        #-------------------------------------------------------------
+        def compareLayer(layer1, layer2):
+            numNext1 = layer1.gNumNextLayers()
+            numNext2 = layer2.gNumNextLayers()
+            if numNext1 < numNext2:
+                return -1
+            elif numNext1 > numNext2:
+                return 1
+
+            id1 = layer1.gLayerId()
+            id2 = layer2.gLayerId()
+            if id1 < id2:
+                return -1
+            elif id1 > id2:
+                return 1
+            elif layer1.gSingleBatchTotalStateSize() < layer1.gSingleBatchTotalStateSize():
+                return -1
+            else:
+                return 1
+
+
+        #-------------------------------------------------------------
+        sorted(levelCopy, key=functools.cmp_to_key(compareLayer))
 

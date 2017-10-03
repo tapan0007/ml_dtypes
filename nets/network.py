@@ -15,6 +15,7 @@ class Network(object):
         self.__LayerNumMajor = -1
         self.__LayerNumMinor = 0
         self.__Levels = None
+        self.__CurrLayerId = 0
 
     #-----------------------------------------------------------------
     def rLevels(self, levels):
@@ -32,6 +33,7 @@ class Network(object):
     def addLayer(self, layer):
         assert(layer)
         assert( isinstance(layer, layers.layer.Layer) )
+        layer.rLayerId(self.__CurrLayerId); self.__CurrLayerId += 1
         self.__Layers.append(layer)
         t = layer.gLayerType()
         if (t == LAYER_TYPE_DATA or t == LAYER_TYPE_CONV or t == LAYER_TYPE_FULL):
@@ -121,7 +123,10 @@ class Network(object):
     def printLevels(self):
         for level in self.__Levels:
             for layer in level.gLayers():
-                print (layer.gNameNum() + '[' + str(layer.gEarlyLevel()) + ',' + str(layer.gLateLevel()) + '] '),
+                print (layer.gNameNum()
+                      + '[' + str(layer.gEarlyLevel()) + ',' + str(layer.gLateLevel()) + '] '
+                      + '(' + str(layer.gSchedule()) + ')'
+                      ),
             print
 
 

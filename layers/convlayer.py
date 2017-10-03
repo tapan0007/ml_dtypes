@@ -68,12 +68,7 @@ class ConvLayer(SubSampleLayer):
 
     #-----------------------------------------------------------------
     def gSingleBatchInputStateSize(self, batch=1):
-        sz = 0
-        for prevLayer in self.gPrevLayers():
-            num_ofmaps = prevLayer.gNumOfmaps()
-            ofmap_size = prevLayer.gOfmapSize()
-            sz += ofmap_size * ofmap_size * num_ofmaps
-        return sz
+        return self.gRawInputStateSize(batch)
 
     #-----------------------------------------------------------------
     def gSingleBatchOutputStateSize(self, batch=1):
@@ -85,11 +80,6 @@ class ConvLayer(SubSampleLayer):
                 toStateBuffer = True
                 break
 
-        if toStateBuffer:
-            num_ofmaps = self.gNumOfmaps()
-            ofmap_size = self.gOfmapSize()
-            return ofmap_size * ofmap_size * num_ofmaps
-        else:
-            return 0
+        return self.gRawOutputStateSize(batch) if toStateBuffer else 0
 
 
