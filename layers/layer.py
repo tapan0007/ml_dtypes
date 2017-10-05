@@ -62,6 +62,7 @@ class Layer(object): # abstract class
     def verify(self):
         assert(False)
 
+    #-----------------------------------------------------------------
     def qConvLayer(self):
         return self.gLayerType() == LAYER_TYPE_CONV
 
