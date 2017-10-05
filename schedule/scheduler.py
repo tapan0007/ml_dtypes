@@ -92,9 +92,9 @@ class Scheduler(object):
                 layer.rLateLevel(minNextLastLev - 1)
 
     #-----------------------------------------------------------------
-    def schedule(self, layersToSched):
-
-        self.__Layers = layersToSched
+    def schedule(self, ntwk):
+        self.__Network = ntwk
+        self.__Layers = ntwk.gLayers()
         self.__Levels = None
 
         self.__levelize()
@@ -129,6 +129,8 @@ class Scheduler(object):
         for level in self.__Levels:
             self.__scheduleLevel(level)
         self.__linkSchedLayers()
+    
+        self.calcSbMem()
 
     #-----------------------------------------------------------------
     def __linkSchedLayers(self):
@@ -210,4 +212,35 @@ class Scheduler(object):
 
         #-------------------------------------------------------------
         sorted(levelCopy, key=functools.cmp_to_key(compareLayer))
+
+    #-----------------------------------------------------------------
+    def processLayerSbMem(self, layer):
+        outSize = layer.gSingleBatchOutputStateSize()
+        self.__TotMem += outSize
+        layer.changeRefCount(layer.gNumNextLayers())
+        layer.rTotMem(self.__TotMem)
+
+        if self.__TotMem > self.__HighMemWatermark:
+            self.__HighMemWatermark = self.__TotMem 
+
+        for inLayer in layer.gPrevLayers():
+            inLayer.changeRefCount(-1)  ## decrease ref count by 1
+            if inLayer.gRefCount() == 0:
+                oneInSize = inLayer.gSingleBatchOutputStateSize()
+                self.__TotMem -= oneInSize
+
+    #-----------------------------------------------------------------
+    def calcSbMem(self):
+        SBmem = [0] * self.__Network.gNumberLayers()
+        self.__TotMem = 0
+        self.__HighMemWatermark = 0
+
+        for layer in self.__Network.gSchedLayers():
+            self.processLayerSbMem(layer)
+
+    def gTotMem(self):
+        return self.__TotMem
+
+    def gHighMemWatermark(self):
+        return self.__HighMemWatermark
 

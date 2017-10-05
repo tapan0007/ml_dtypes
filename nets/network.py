@@ -166,13 +166,5 @@ class Network(object):
         print
         print "By scheduling"
         for layer in self.gSchedLayers():
-            print layer.gNameWithSched()
-        return
-
-        layer = self.__Layers[0]
-        assert(layer and not layer.gPrevSchedLayer())
-
-        while layer:
-            print layer.gNameWithSched()
-            layer = layer.gNextSchedLayer()
+            print layer.gNameWithSchedMem()
 

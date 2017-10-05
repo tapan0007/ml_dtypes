@@ -17,7 +17,7 @@ else:
 ##################################################
 ntwk.construct()
 scheduler = Scheduler()
-scheduler.schedule(ntwk.gLayers())
+scheduler.schedule(ntwk)
 ntwk.rLevels(scheduler.gLevels())
 
 ### Printing

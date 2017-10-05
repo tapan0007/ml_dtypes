@@ -30,6 +30,11 @@ class Layer(object): # abstract class
         self.__PrevLayers = []
 
         self.__schedule = None  ## number in [0, NUM_LAYERS-1]
+        # counts the number layers that need to be executed
+        # and need this layer's
+        self.__RefCount = 0
+        self.__TotMem = 0
+                            
 
         assert( (len(prev_layers) == 0) == (self.gLayerType() == LAYER_TYPE_DATA) )
         self.__PrevLayers.extend(prev_layers)
@@ -312,9 +317,12 @@ class Layer(object): # abstract class
     def gNameWithSched(self):
         layer = self
         return (layer.gNameNum()
-              + '[' + str(layer.gEarlyLevel()) + ',' + str(layer.gLateLevel()) + '] '
-              + '(' + str(layer.gSchedule()) + ')'
+              + ' lev=[' + str(layer.gEarlyLevel()) + ',' + str(layer.gLateLevel()) + '] '
+              + ' sched=' + str(layer.gSchedule())
               )
+
+    def gNameWithSchedMem(self):
+        return self.gNameWithSched() + ' mem=' + kstr(self.__TotMem)
 
     #-----------------------------------------------------------------
     def gDotIdLabel(self):
@@ -336,4 +344,19 @@ class Layer(object): # abstract class
     def rPrevSchedLayer(self, prevSchedLayer):
         self.__PrevSchedLayer = prevSchedLayer
 
+
+    #-----------------------------------------------------------------
+    def gRefCount(self):
+        return self.__RefCount
+
+    #-----------------------------------------------------------------
+    def changeRefCount(self, num):
+        self.__RefCount += num
+
+
+    def gTotMem(self):
+        return self.__TotMem
+
+    def rTotMem(self, mem):
+        self.__TotMem = mem
 
