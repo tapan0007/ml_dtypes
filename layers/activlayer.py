@@ -22,7 +22,8 @@ class ActivLayer(OneToOneLayer): # abstract class
 
     #-----------------------------------------------------------------
     def gSingleBatchOutputStateSize(self, batch=1):
-        if self.gNextSchedLayer().qConvLayer():
+        nextSchedLayer = self.gNextSchedLayer()
+        if not nextSchedLayer or self.gNextSchedLayer().qConvLayer():
             return self.gRawOutputStateSize(batch)
         else:
             return 0

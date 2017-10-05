@@ -14,11 +14,13 @@ elif sys.argv[1] == "--resnet" or sys.argv[1] == "--res":
 else:
     sys.exit(1)
 
+##################################################
 ntwk.construct()
 scheduler = Scheduler()
 scheduler.schedule(ntwk.gLayers())
 ntwk.rLevels(scheduler.gLevels())
 
+### Printing
 ntwk.printMe()
 ntwk.printLevels()
 ntwk.printSched()

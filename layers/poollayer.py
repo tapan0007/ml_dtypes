@@ -35,7 +35,8 @@ class PoolLayer(SubSampleLayer):
 
     #-----------------------------------------------------------------
     def gSingleBatchOutputStateSize(self, batch=1):
-        if self.qHasNextLayerType(LAYER_TYPE_CONV):
+        nextSchedLayer = self.gNextSchedLayer()
+        if not nextSchedLayer or self.gNextSchedLayer().qConvLayer():
             return self.gRawOutputStateSize(batch)
         else:
             return 0

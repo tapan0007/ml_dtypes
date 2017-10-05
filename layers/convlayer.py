@@ -72,14 +72,9 @@ class ConvLayer(SubSampleLayer):
 
     #-----------------------------------------------------------------
     def gSingleBatchOutputStateSize(self, batch=1):
-        toStateBuffer = False
-        for fanoutLayer in self.gNextLayers():
-            if isinstance(fanoutLayer, ActivLayer) or isinstance(fanoutLayer, PoolLayer):
-                pass
-            else:
-                toStateBuffer = True
-                break
-
-        return self.gRawOutputStateSize(batch) if toStateBuffer else 0
-
+        nextSchedLayer = self.gNextSchedLayer()
+        if not nextSchedLayer or self.gNextSchedLayer().qConvLayer():
+            return self.gRawOutputStateSize(batch)
+        else:
+            return 0
 

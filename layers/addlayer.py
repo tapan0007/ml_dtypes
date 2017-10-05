@@ -82,5 +82,9 @@ class AddLayer(CombineLayer):
 
     #-----------------------------------------------------------------
     def gSingleBatchOutputStateSize(self, batch=1):
-        return self.gRawOutputStateSize(batch)
+        nextSchedLayer = self.gNextSchedLayer()
+        if not nextSchedLayer or self.gNextSchedLayer().qConvLayer():
+            return self.gRawOutputStateSize(batch)
+        else:
+            return 0
 

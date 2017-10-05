@@ -106,7 +106,7 @@ class Scheduler(object):
         for layer in self.__Layers:
             if layer.gEarlyLevel() == layer.gLateLevel():
                 continue
-            if layer.gSingleBatchInputStateSize() < layer.gSingleBatchOutputStateSize():
+            if layer.gRawInputStateSize() < layer.gRawOutputStateSize():
                 # move layer to latest level
                 breakFunc(2)
                 earlyLevel = self.__Levels[layer.gEarlyLevel()]
