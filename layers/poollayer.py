@@ -35,9 +35,10 @@ class PoolLayer(SubSampleLayer):
 
     #-----------------------------------------------------------------
     def gSingleBatchOutputStateSize(self, batch=1):
-        num_ofmaps = self.gNumOfmaps()
-        ofmap_size = self.gOfmapSize()
-        return ofmap_size * ofmap_size * num_ofmaps
+        if self.qHasNextLayerType(LAYER_TYPE_CONV):
+            return self.gRawOutputStateSize(batch)
+        else:
+            return 0
 
     #-----------------------------------------------------------------
     def gPoolLayerStr(self, typ):

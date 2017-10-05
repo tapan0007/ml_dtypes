@@ -18,6 +18,8 @@ class Layer(object): # abstract class
         self.__Network    = ntwrk
         self.__Ofmap_desc  = ofmap_desc.copy()
         self.__Id = None
+        self.__NextSchedLayer = None
+        self.__PrevSchedLayer = None
 
         self.__DenseBlockStart = -1
         self.__DenseBlockEnd   = -1
@@ -59,6 +61,9 @@ class Layer(object): # abstract class
     @abstractmethod
     def verify(self):
         assert(False)
+
+    def qConvLayer(self):
+        return self.gLayerType() == LAYER_TYPE_CONV
 
     #-----------------------------------------------------------------
     def gRawInputStateSize(self, batch=1):
@@ -263,6 +268,24 @@ class Layer(object): # abstract class
     def qDataLayer(self):
         return False
 
+    @staticmethod
+    def qHasLayerType(layerType, layers):
+
+        hasType = False
+        for layer in layers:
+            if layer.gLayerType() == layerType:
+                hasType = True
+                break
+        return hasType
+
+    #-----------------------------------------------------------------
+    def qHasNextLayerType(self, layerType):
+        return Layer.qHasLayerType(layerType, self.gNextLayers())
+
+    #-----------------------------------------------------------------
+    def qHasPrevLayerType(self, layerType):
+        return Layer.qHasLayerType(layerType, self.gPrevLayers())
+
     #-----------------------------------------------------------------
     def gNameNum(self):
         return self.gName() + "-" + self.m_NumStr
@@ -275,8 +298,31 @@ class Layer(object): # abstract class
     def gDotLabel(self):
         return '"' + self.gName() + "-" + self.m_NumStr + '"'
 
+    def gNameWithSched(self):
+        layer = self
+        return (layer.gNameNum()
+              + '[' + str(layer.gEarlyLevel()) + ',' + str(layer.gLateLevel()) + '] '
+              + '(' + str(layer.gSchedule()) + ')'
+              )
+
     #-----------------------------------------------------------------
     def gDotIdLabel(self):
         return self.gDotId() + ' [label=' + self.gDotLabel() + '];'
+
+    #-----------------------------------------------------------------
+    def gNextSchedLayer(self):
+        return self.__NextSchedLayer
+    #-----------------------------------------------------------------
+    def rNextSchedLayer(self, nextSchedLayer):
+        self.__NextSchedLayer = nextSchedLayer
+
+    #-----------------------------------------------------------------
+    def gPrevSchedLayer(self):
+        return self.__PrevSchedLayer
+
+
+    #-----------------------------------------------------------------
+    def rPrevSchedLayer(self, prevSchedLayer):
+        self.__PrevSchedLayer = prevSchedLayer
 
 

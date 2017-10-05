@@ -123,10 +123,7 @@ class Network(object):
     def printLevels(self):
         for level in self.__Levels:
             for layer in level.gLayers():
-                print (layer.gNameNum()
-                      + '[' + str(layer.gEarlyLevel()) + ',' + str(layer.gLateLevel()) + '] '
-                      + '(' + str(layer.gSchedule()) + ')'
-                      ),
+                print layer.gNameWithSched(),
             print
 
 
@@ -140,4 +137,13 @@ class Network(object):
     def gName(self):
         assert(False)
 
+    def printSched(self):
+        layer = self.__Layers[0]
+        assert(layer and not layer.gPrevSchedLayer())
+        print
+        print "By scheduling"
+
+        while layer:
+            print layer.gNameWithSched()
+            layer = layer.gNextSchedLayer()
 

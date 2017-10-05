@@ -128,6 +128,42 @@ class Scheduler(object):
         self.__currSchedule = 0
         for level in self.__Levels:
             self.__scheduleLevel(level)
+        self.__linkSchedLayers()
+
+    #-----------------------------------------------------------------
+    def __linkSchedLayers(self):
+        for layer in self.__Layers:
+            mysch1 = layer.gSchedule() + 1
+            for otherLayer in self.__Layers:
+                if mysch1 == otherLayer.gSchedule():
+                    assert(not layer.gNextSchedLayer())
+                    assert(not otherLayer.gPrevSchedLayer())
+                    layer.rNextSchedLayer(otherLayer)
+                    otherLayer.rPrevSchedLayer(layer)
+                    break
+
+        layerWithoutNextSched = None
+        layerWithoutPrevSched = None
+
+        for layer in self.__Layers:
+
+            nextSchedLayer = layer.gNextSchedLayer()
+            if nextSchedLayer:
+                assert(nextSchedLayer.gPrevSchedLayer() == layer)
+                assert(layer.gSchedule() + 1 == nextSchedLayer.gSchedule())
+            else:
+                assert(not layerWithoutNextSched)
+                layerWithoutNextSched = layer
+
+            prevSchedLayer = layer.gPrevSchedLayer()
+            if prevSchedLayer:
+                assert(prevSchedLayer.gNextSchedLayer() == layer)
+                assert(prevSchedLayer.gSchedule() + 1 == layer.gSchedule())
+            else:
+                assert(not layerWithoutPrevSched)
+                layerWithoutPrevSched = layer
+
+        assert(layerWithoutNextSched and layerWithoutPrevSched)
 
     #-----------------------------------------------------------------
     def __scheduleLevel(self, level):

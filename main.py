@@ -21,6 +21,7 @@ ntwk.rLevels(scheduler.gLevels())
 
 ntwk.printMe()
 ntwk.printLevels()
+ntwk.printSched()
 
 ntwk.printDot()
 
