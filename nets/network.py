@@ -138,11 +138,39 @@ class Network(object):
         assert(False)
 
     #-----------------------------------------------------------------
+    def gSchedLayers(self):
+        #-------------------------------------------------------------
+        class SchedLayerIter(object):
+            def __init__(self, startLayer):
+                self.__CurrLayer = startLayer
+
+            def __iter__(self):
+                return self
+
+            def next(self):
+                currLayer = self.__CurrLayer
+                if not currLayer:
+                    raise StopIteration()
+
+                nextLayer = currLayer.gNextSchedLayer()
+                self.__CurrLayer = nextLayer
+                return currLayer
+
+
+
+        return SchedLayerIter(self.__Layers[0])
+
+
+    #-----------------------------------------------------------------
     def printSched(self):
-        layer = self.__Layers[0]
-        assert(layer and not layer.gPrevSchedLayer())
         print
         print "By scheduling"
+        for layer in self.gSchedLayers():
+            print layer.gNameWithSched()
+        return
+
+        layer = self.__Layers[0]
+        assert(layer and not layer.gPrevSchedLayer())
 
         while layer:
             print layer.gNameWithSched()
