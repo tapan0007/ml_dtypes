@@ -268,9 +268,9 @@ class Layer(object): # abstract class
     def qDataLayer(self):
         return False
 
+    #-----------------------------------------------------------------
     @staticmethod
     def qHasLayerType(layerType, layers):
-
         hasType = False
         for layer in layers:
             if layer.gLayerType() == layerType:
@@ -285,6 +285,16 @@ class Layer(object): # abstract class
     #-----------------------------------------------------------------
     def qHasPrevLayerType(self, layerType):
         return Layer.qHasLayerType(layerType, self.gPrevLayers())
+
+    #-----------------------------------------------------------------
+    def qNextSchedLayerOfType(self, layerType):
+        nextSchedLayer = self.gNextSchedLayer()
+        return nextSchedLayer  and nextSchedLayer.gLayerType() == layerType
+
+    #-----------------------------------------------------------------
+    def qPrevSchedLayerOfType(self, layerType):
+        prevSchedLayer = self.gPrevSchedLayer()
+        return prevSchedLayer  and prevSchedLayer.gLayerType() == layerType
 
     #-----------------------------------------------------------------
     def gNameNum(self):

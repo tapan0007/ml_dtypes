@@ -11,6 +11,7 @@ import nets.network
 
 ##########################################################
 class DenseBlock(nets.block.Block):
+    #-----------------------------------------------------------------
     def __init__(self, ntwk, blockIdx, numDenseLayers, growthRate, prev_layer):
         assert(isinstance(prev_layer, Layer))
         super(DenseBlock, self).__init__(ntwk)
@@ -44,6 +45,7 @@ class DenseBlock(nets.block.Block):
         layer.rDenseBlockEnd(blockIdx)
         self.m_LastLayer = layer
 
+    #-----------------------------------------------------------------
     def gLastLayer(self):
         return self.m_LastLayer
 

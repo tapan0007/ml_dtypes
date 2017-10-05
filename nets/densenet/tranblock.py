@@ -12,6 +12,7 @@ import nets.network
 
 ##########################################################
 class TranBlock(nets.block.Block):
+    #-----------------------------------------------------------------
     def __init__(self, ntwk, blockIdx, prev_layer, compression):
         assert(isinstance(prev_layer, Layer))
         super(TranBlock, self).__init__(ntwk)
@@ -36,6 +37,7 @@ class TranBlock(nets.block.Block):
         layer.rTranBlockEnd(blockIdx)
         self.m_LastLayer = layer
 
+    #-----------------------------------------------------------------
     def gLastLayer(self):
         return self.m_LastLayer
 

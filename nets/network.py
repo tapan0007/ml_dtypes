@@ -137,6 +137,7 @@ class Network(object):
     def gName(self):
         assert(False)
 
+    #-----------------------------------------------------------------
     def printSched(self):
         layer = self.__Layers[0]
         assert(layer and not layer.gPrevSchedLayer())

@@ -22,6 +22,7 @@ class BatchNormLayer(OneToOneLayer):
     def gLayerType(self):
         return LAYER_TYPE_BATCH_NORM
 
+    #-----------------------------------------------------------------
     def gName(self):
         return "BNorm"
 

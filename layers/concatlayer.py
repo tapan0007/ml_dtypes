@@ -31,6 +31,7 @@ class ConcatLayer(CombineLayer):
     def gLayerType(self):
         return LAYER_TYPE_CONCAT
 
+    #-----------------------------------------------------------------
     def gName(self):
         return "Concat"
 
