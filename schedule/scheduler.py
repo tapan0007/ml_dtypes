@@ -204,7 +204,7 @@ class Scheduler(object):
                 return -1
             elif id1 > id2:
                 return 1
-            elif layer1.gSingleBatchTotalStateSize() < layer1.gSingleBatchTotalStateSize():
+            elif layer1.gBatchTotalStateSize() < layer1.gBatchTotalStateSize():
                 return -1
             else:
                 return 1
@@ -215,32 +215,50 @@ class Scheduler(object):
 
     #-----------------------------------------------------------------
     def processLayerSbMem(self, layer):
-        outSize = layer.gSingleBatchOutputStateSize()
-        self.__TotMem += outSize
+        if not layer.qStoreInSB():
+            return
+        outSize = layer.gBatchOutputStateSize()
+        self.__CurrMem += outSize
         layer.changeRefCount(layer.gNumNextLayers())
-        layer.rTotMem(self.__TotMem)
+        layer.rTotMem(self.__CurrMem)
 
-        if self.__TotMem > self.__HighMemWatermark:
-            self.__HighMemWatermark = self.__TotMem 
+        if self.__CurrMem > self.__HighMemWatermark:
+            self.__HighMemWatermark = self.__CurrMem 
 
-        for inLayer in layer.gPrevLayers():
-            inLayer.changeRefCount(-1)  ## decrease ref count by 1
-            if inLayer.gRefCount() == 0:
-                oneInSize = inLayer.gSingleBatchOutputStateSize()
-                self.__TotMem -= oneInSize
+        for inSbLayer in layer.gPrevSbLayers():
+            assert(inSbLayer.qStoreInSB())
+            inSbLayer.changeRefCount(-1)  ## decrease ref count by 1
+            if inSbLayer.gRefCount() == 0:
+                oneInSize = inSbLayer.gBatchOutputStateSize()
+                self.__CurrMem -= oneInSize
+
+    #-----------------------------------------------------------------
+    def addPrevSbLayers(self, layer):
+        for prevLayer in layer.gPrevLayers():
+            if prevLayer.qStoreInSB():
+                layer.addPrevSbLayer(prevLayer)
+            else:
+                for sbLayer in prevLayer.gPrevSbLayers():
+                    if not sbLayer in layer.gPrevSbLayers():
+                        layer.addPrevSbLayer(sbLayer)
 
     #-----------------------------------------------------------------
     def calcSbMem(self):
-        SBmem = [0] * self.__Network.gNumberLayers()
-        self.__TotMem = 0
+        self.__CurrMem = 0
         self.__HighMemWatermark = 0
+
+        for layer in self.__Network.gSchedLayers():
+            self.addPrevSbLayers(layer)
 
         for layer in self.__Network.gSchedLayers():
             self.processLayerSbMem(layer)
 
-    def gTotMem(self):
-        return self.__TotMem
 
+    #-----------------------------------------------------------------
+    def gCurrMem(self):
+        return self.__CurrMem
+
+    #-----------------------------------------------------------------
     def gHighMemWatermark(self):
         return self.__HighMemWatermark
 

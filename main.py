@@ -22,9 +22,18 @@ ntwk.rLevels(scheduler.gLevels())
 
 ### Printing
 ntwk.printMe()
-ntwk.printLevels()
-ntwk.printSched()
+print
 
+print "By level"
+ntwk.printLevels()
+print
+
+print "By scheduling"
+ntwk.printSched()
+print
+
+print "Dot"
 ntwk.printDot()
+print
 
 

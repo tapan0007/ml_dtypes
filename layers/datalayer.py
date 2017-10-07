@@ -37,12 +37,16 @@ class DataLayer(Layer):
         return True
 
     #-----------------------------------------------------------------
-    def gSingleBatchInputStateSize(self, batch=1):
+    def gBatchInputStateSize(self, batch=1):
         return 0
 
     #-----------------------------------------------------------------
-    def gSingleBatchOutputStateSize(self, batch=1):
+    def gBatchOutputStateSize(self, batch=1):
         num_ofmaps = self.gNumOfmaps()
         ofmap_size = self.gOfmapSize()
         return ofmap_size * ofmap_size * num_ofmaps
+
+    #-----------------------------------------------------------------
+    def qStoreInSB(self): ## override
+        return True
 

@@ -30,13 +30,13 @@ class PoolLayer(SubSampleLayer):
         return False
 
     #-----------------------------------------------------------------
-    def gSingleBatchInputStateSize(self, batch=1):
+    def gBatchInputStateSize(self, batch=1):
         return 0
 
     #-----------------------------------------------------------------
-    def gSingleBatchOutputStateSize(self, batch=1):
+    def gBatchOutputStateSize(self, batch=1):
         nextSchedLayer = self.gNextSchedLayer()
-        if not nextSchedLayer or self.gNextSchedLayer().qConvLayer():
+        if self.qStoreInSB():
             return self.gRawOutputStateSize(batch)
         else:
             return 0

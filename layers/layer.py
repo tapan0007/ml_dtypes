@@ -28,6 +28,7 @@ class Layer(object): # abstract class
 
         self.__NextLayers = []
         self.__PrevLayers = []
+        self.__PrevSbLayers = []
 
         self.__schedule = None  ## number in [0, NUM_LAYERS-1]
         # counts the number layers that need to be executed
@@ -42,14 +43,6 @@ class Layer(object): # abstract class
             prevLayer.addNextLayer(self)
 
         ntwrk.addLayer(self) ## will assign index
-
-    #-----------------------------------------------------------------
-    def gLayerId(self):
-        return self.__Id
-
-    #-----------------------------------------------------------------
-    def rLayerId(self, id):
-        self.__Id = id
 
     #-----------------------------------------------------------------
     #-----------------------------------------------------------------
@@ -68,6 +61,15 @@ class Layer(object): # abstract class
         assert(False)
 
     #-----------------------------------------------------------------
+    @abstractmethod
+    def gBatchInputStateSize(self, batch=1):
+        assert(False)
+
+    #-----------------------------------------------------------------
+    @abstractmethod
+    def gBatchOutputStateSize(self, batch=1):
+        assert(False)
+    #-----------------------------------------------------------------
     def qConvLayer(self):
         return self.gLayerType() == LAYER_TYPE_CONV
 
@@ -82,34 +84,14 @@ class Layer(object): # abstract class
     def gRawOutputStateSize(self, batch=1):
         return self.gNumOfmaps() * self.gOfmapSize() * self.gOfmapSize()
 
-    #-----------------------------------------------------------------
-    @abstractmethod
-    def gSingleBatchInputStateSize(self, batch=1):
-        assert(False)
 
     #-----------------------------------------------------------------
-    @abstractmethod
-    def gSingleBatchOutputStateSize(self, batch=1):
-        assert(False)
+    def gLayerId(self):
+        return self.__Id
 
     #-----------------------------------------------------------------
-    ## Are the input and the output values different?
-    ## I.e., does the layer compute anything?
-    ## This is important to estimate the memory size; if
-    ## the input and output are different, than total memory
-    ## size for this layer is the sumof InputStateSize and
-    ## OutputStateSize. If not, the total memory needed for
-    ## this layer will be equal to OutputStateSize (which
-    ## equals InputStateSize).
-    ## For example, concatenation layer does not really
-    ## compute anything, just passes two inputs as one output.
-    ## The same is true for data layer.
-
-    #-----------------------------------------------------------------
-    @abstractmethod
-    def qPassThrough(self):
-        assert(False)
-
+    def rLayerId(self, id):
+        self.__Id = id
 
     #-----------------------------------------------------------------
     def gSchedule(self):
@@ -151,7 +133,7 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def gNextLayer(self, idx):
-        assert(0 <= idx and idx < len(self.gNextLayers()))
+        assert(0 <= idx and idx < self.gNumNextLayers())
         return self.__NextLayers[idx]
 
     #-----------------------------------------------------------------
@@ -170,6 +152,7 @@ class Layer(object): # abstract class
             if numWeights > maxNumWeights:
                 maxNumWeights = numWeights
         return maxNumWeights
+
 
     #-----------------------------------------------------------------
     def gDenseBlockStart(self):
@@ -204,9 +187,9 @@ class Layer(object): # abstract class
         self.__TranBlockEnd = val
 
     #-----------------------------------------------------------------
-    def gSingleBatchTotalStateSize(self):
-        isize = self.gSingleBatchInputStateSize()
-        osize = self.gSingleBatchOutputStateSize()
+    def gBatchTotalStateSize(self):
+        isize = self.gBatchInputStateSize()
+        osize = self.gBatchOutputStateSize()
         if self.qPassThrough():
             assert(isize == osize)
             return osize
@@ -232,9 +215,9 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def gStateSizesStr(self):
-        iState = self.gSingleBatchInputStateSize()
-        oState = self.gSingleBatchOutputStateSize()
-        tState = self.gSingleBatchTotalStateSize()
+        iState = self.gBatchInputStateSize()
+        oState = self.gBatchOutputStateSize()
+        tState = self.gBatchTotalStateSize()
         numWeights = self.gNumberWeights()
         nextNumWeights = self.gMaxNextLayerNumberWeights()
         totMem = tState + numWeights + nextNumWeights
@@ -305,6 +288,7 @@ class Layer(object): # abstract class
     #-----------------------------------------------------------------
     def gNameNum(self):
         return self.gName() + "-" + self.m_NumStr
+
     #-----------------------------------------------------------------
     def gDotId(self):
         numStr = self.m_NumStr.replace(".", "_")
@@ -354,9 +338,40 @@ class Layer(object): # abstract class
         self.__RefCount += num
 
 
+    #-----------------------------------------------------------------
     def gTotMem(self):
         return self.__TotMem
 
     def rTotMem(self, mem):
         self.__TotMem = mem
+
+
+    #-----------------------------------------------------------------
+    # Does this layer store data in the SB?
+    # That depends on
+    # - the sinks of this layer
+    # - scheduling of the sinks
+    # Therefore, the return value can be determined only after scheduling is finished.
+    #-----------------------------------------------------------------
+    def qStoreInSB(self):
+        nextSchedLayer = self.gNextSchedLayer()
+        if not nextSchedLayer:
+            return True
+        elif nextSchedLayer.qConvLayer() :
+            return True
+        elif self.gNumNextLayers() > 1:
+            return True
+        else:
+            mySched = self.gSchedule()
+            return self.gNextLayer(0).gSchedule() > mySched + 1
+
+    #-----------------------------------------------------------------
+    def gPrevSbLayers(self):
+        return iter(self.__PrevSbLayers)
+
+    #-----------------------------------------------------------------
+    def addPrevSbLayer(self, prevLayer):
+        assert(prevLayer.qStoreInSB())
+        self.__PrevSbLayers.append(prevLayer)
+
 

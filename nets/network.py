@@ -96,7 +96,7 @@ class Network(object):
                     print
                 print ">>> Starting tran block " + str(layer.gTranBlockStart())
 
-            totalStateSize = layer.gSingleBatchTotalStateSize()
+            totalStateSize = layer.gBatchTotalStateSize()
             if totalStateSize > maxStateSize:
                 maxStateSize = totalStateSize
 
@@ -140,7 +140,7 @@ class Network(object):
     #-----------------------------------------------------------------
     def gSchedLayers(self):
         #-------------------------------------------------------------
-        class SchedLayerIter(object):
+        class SchedLayerForwIter(object):
             def __init__(self, startLayer):
                 self.__CurrLayer = startLayer
 
@@ -158,13 +158,21 @@ class Network(object):
 
 
 
-        return SchedLayerIter(self.__Layers[0])
+        return SchedLayerForwIter(self.__Layers[0])
 
 
     #-----------------------------------------------------------------
     def printSched(self):
-        print
-        print "By scheduling"
         for layer in self.gSchedLayers():
-            print layer.gNameWithSchedMem()
+            sbPreds = ""
+            first=True
+            for sbLayer in layer.gPrevSbLayers():
+                s = sbLayer.gNameNum()
+                if not first:
+                    s = "," + s
+                first=False
+                sbPreds += s
+
+            sb = "SB" if layer.qStoreInSB() else "sb"
+            print layer.gNameWithSchedMem() + " " + sb + "=[" + sbPreds  + "]"
 
