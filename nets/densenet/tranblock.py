@@ -19,20 +19,21 @@ class TranBlock(nets.block.Block):
 
         layer = prev_layer
 
-        layer = BatchNormLayer(ntwk, layer)
+        pfx = "TBk" + str(blockIdx) 
+        layer = BatchNormLayer(pfx + "-BN1", ntwk, layer)
         layer.rTranBlockStart(blockIdx)
 
-        layer = ReluLayer(ntwk, layer)
+        layer = ReluLayer(pfx + "-RL1", ntwk, layer)
 
         ofmap_desc = layer.gOfmapDesc()
         if compression == 1.0:
             numOfmaps = ofmap_desc.gNumMaps()
         else:
             numOfmaps = int(compression * ofmap_desc.gNumMaps())
-        layer = ConvLayer(ntwk, layer, numOfmaps, stride=1, kernel=1)
+        layer = ConvLayer(pfx + "-CNV1", ntwk, layer, numOfmaps, stride=1, kernel=1)
 
 
-        layer = AvgPoolLayer(ntwk, layer, stride=2, kernel=2)
+        layer = AvgPoolLayer(pfx + "-AVG1", ntwk, layer, stride=2, kernel=2)
 
         layer.rTranBlockEnd(blockIdx)
         self.m_LastLayer = layer

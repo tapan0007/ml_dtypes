@@ -22,7 +22,7 @@ class SoftMaxLayer(OneToOneLayer):
         return LAYER_TYPE_SOFTMAX
 
     #-----------------------------------------------------------------
-    def gName(self):
+    def gTypeStr(self):
         return "SoftMax"
 
     #-----------------------------------------------------------------

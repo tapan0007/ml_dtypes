@@ -23,7 +23,7 @@ class BatchNormLayer(OneToOneLayer):
         return LAYER_TYPE_BATCH_NORM
 
     #-----------------------------------------------------------------
-    def gName(self):
+    def gTypeStr(self):
         return "BNorm"
 
     #-----------------------------------------------------------------
@@ -31,7 +31,7 @@ class BatchNormLayer(OneToOneLayer):
         return False
 
     #-----------------------------------------------------------------
-    def gSingleBatchInputStateSize(self, batch=1):
+    def gBatchInputStateSize(self, batch=1):
         sz = 0
         for prevLayer in self.gPrevLayers():
             num_ofmaps = prevLayer.gNumOfmaps()
@@ -40,7 +40,7 @@ class BatchNormLayer(OneToOneLayer):
         return sz
 
     #-----------------------------------------------------------------
-    def gSingleBatchOutputStateSize(self, batch=1):
+    def gBatchOutputStateSize(self, batch=1):
         num_ofmaps = self.gNumOfmaps()
         ofmap_size = self.gOfmapSize()
         return ofmap_size * ofmap_size * num_ofmaps

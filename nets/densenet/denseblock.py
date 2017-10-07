@@ -23,23 +23,24 @@ class DenseBlock(nets.block.Block):
         for layerNum in range(numDenseLayers):
             first_layer_in_dense_subblock = layer
 
-            layer = BatchNormLayer(ntwk, layer)
+            pfx = "DBk" + str(blockIdx) + "-LY" + str(layerNum)
+            layer = BatchNormLayer(pfx + "-BN1", ntwk, layer)
             if layerNum == 0:
                 layer.rDenseBlockStart(blockIdx)
 
-            layer = ReluLayer(ntwk, layer)
+            layer = ReluLayer(pfx + "-RL1", ntwk, layer)
 
-            layer = ConvLayer(ntwk, layer, 4*growthRate, stride=1, kernel=1)
+            layer = ConvLayer(pfx + "-CNV1", ntwk, layer, 4*growthRate, stride=1, kernel=1)
             #layer = Drop
 
-            layer = BatchNormLayer(ntwk, layer)
+            layer = BatchNormLayer(pfx + "-BN2", ntwk, layer)
 
-            layer = ReluLayer(ntwk, layer)
+            layer = ReluLayer(pfx + "-RL2", ntwk, layer)
 
-            layer = ConvLayer(ntwk, layer, growthRate, stride=1, kernel=3)
+            layer = ConvLayer(pfx + "-CNV2", ntwk, layer, growthRate, stride=1, kernel=3)
             #layer = Drop
 
-            layer = ConcatLayer(ntwk, layer, first_layer_in_dense_subblock)
+            layer = ConcatLayer(pfx + "-CAT", ntwk, layer, first_layer_in_dense_subblock)
 
 
         layer.rDenseBlockEnd(blockIdx)

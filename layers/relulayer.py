@@ -24,7 +24,7 @@ class ReluLayer(ActivLayer):
         return LAYER_TYPE_ReLU
 
     #-----------------------------------------------------------------
-    def gName(self):
+    def gTypeStr(self):
         return "Relu"
 
     #-----------------------------------------------------------------
