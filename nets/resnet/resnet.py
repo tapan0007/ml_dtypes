@@ -65,9 +65,9 @@ class ResNet(Network):
 
         ########################################################################
         layer = self.Section(2, self, layer, 3, 64, 1)
-        layer = self.Section(2, self, layer, 4, 128, 2)
-        layer = self.Section(2, self, layer, 6, 256, 2)
-        layer = self.Section(2, self, layer, 3, 512, 2)
+        layer = self.Section(3, self, layer, 4, 128, 2)
+        layer = self.Section(4, self, layer, 6, 256, 2)
+        layer = self.Section(5, self, layer, 3, 512, 2)
 
 
         ########################################################################
