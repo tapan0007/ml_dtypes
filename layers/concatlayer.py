@@ -7,14 +7,14 @@ import nets.network
 ##########################################################
 class ConcatLayer(CombineLayer):
     #-----------------------------------------------------------------
-    def __init__(self, ntwk, prev_layer, earlier_layer):
+    def __init__(self, layerName, ntwk, prev_layer, earlier_layer):
         assert(isinstance(ntwk, nets.network.Network))
         assert(isinstance(prev_layer, Layer))
         assert(isinstance(earlier_layer, Layer))
         assert(prev_layer.gOfmapSize() == earlier_layer.gOfmapSize())
 
         num_ofmaps = prev_layer.gNumOfmaps() + earlier_layer.gNumOfmaps()
-        super(ConcatLayer, self).__init__(ntwk, prev_layer, earlier_layer, num_ofmaps)
+        super(ConcatLayer, self).__init__(layerName, ntwk, prev_layer, earlier_layer, num_ofmaps)
 
     #-----------------------------------------------------------------
     def verify(self):

@@ -10,11 +10,12 @@ class Layer(object): # abstract class
     __metaclass__ = ABCMeta
 
     #-----------------------------------------------------------------
-    def __init__(self, ntwrk, prev_layers, ofmap_desc):
-        assert(ntwrk)
+    def __init__(self, layerName, ntwrk, prev_layers, ofmap_desc):
+        assert(isinstance(layerName, str))
         assert(isinstance(ntwrk, nets.network.Network))
         assert(isinstance(ofmap_desc, OfmapDesc))
 
+        self.__LayerName       = layerName
         self.__Network    = ntwrk
         self.__Ofmap_desc  = ofmap_desc.copy()
         self.__Id = None
@@ -48,6 +49,11 @@ class Layer(object): # abstract class
     #-----------------------------------------------------------------
     @abstractmethod
     def __str__(self):
+        assert(False)
+
+    #-----------------------------------------------------------------
+    @abstractmethod
+    def gTypeStr(self):
         assert(False)
 
     #-----------------------------------------------------------------
@@ -286,6 +292,10 @@ class Layer(object): # abstract class
         return prevSchedLayer  and prevSchedLayer.gLayerType() == layerType
 
     #-----------------------------------------------------------------
+    def gName(self):
+        return self.__LayerName + "{" + self.gTypeStr() + "}"
+    #-----------------------------------------------------------------
+
     def gNameNum(self):
         return self.gName() + "-" + self.m_NumStr
 

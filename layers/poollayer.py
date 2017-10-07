@@ -11,11 +11,11 @@ class PoolLayer(SubSampleLayer):
     __metaclass__ = ABCMeta
 
     #-----------------------------------------------------------------
-    def __init__(self, ntwk, prev_layer, stride, kernel):
+    def __init__(self, layerName, ntwk, prev_layer, stride, kernel):
         assert(isinstance(ntwk, nets.network.Network))
         assert(isinstance(prev_layer, Layer))
 
-        super(PoolLayer, self).__init__(ntwk, prev_layer,
+        super(PoolLayer, self).__init__(layerName, ntwk, prev_layer,
             num_ofmaps=None, stride=stride, kernel=kernel)
 
 
