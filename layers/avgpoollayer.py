@@ -7,11 +7,11 @@ import nets.network
 ##########################################################
 class AvgPoolLayer(PoolLayer):
     #-----------------------------------------------------------------
-    def __init__(self, layerName, ntwk, prev_layer, stride, kernel):
+    def __init__(self, (layerName, batch, ntwk), prev_layer, stride, kernel):
         assert(isinstance(ntwk, nets.network.Network))
         assert(isinstance(prev_layer, Layer))
 
-        super(AvgPoolLayer, self).__init__(layerName, ntwk, prev_layer,
+        super(AvgPoolLayer, self).__init__((layerName, batch, ntwk), prev_layer,
             stride=stride, kernel=kernel)
 
         #self.m_PoolType = poolType

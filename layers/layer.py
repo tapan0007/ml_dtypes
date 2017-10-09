@@ -10,26 +10,31 @@ class Layer(object): # abstract class
     __metaclass__ = ABCMeta
 
     #-----------------------------------------------------------------
-    def __init__(self, layerName, ntwrk, prev_layers, ofmap_desc):
+    # Arguments (layerName, batch, ntwrk) are applicable to any layer. 
+    # Ofmap_desc could be calculated based on other params such as stride or kernel.
+    def __init__(self, (layerName, batch, ntwrk), ofmap_desc, prev_layers):
         assert(isinstance(layerName, str))
         assert(isinstance(ntwrk, nets.network.Network))
         assert(isinstance(ofmap_desc, OfmapDesc))
+        assert(isinstance(prev_layers, tuple))
+        assert(len(prev_layers) == 0 or isinstance(prev_layers[0], Layer))
 
         self.__LayerName       = layerName
-        self.__Network    = ntwrk
-        self.__Ofmap_desc  = ofmap_desc.copy()
-        self.__Id = None
-        self.__NextSchedLayer = None
-        self.__PrevSchedLayer = None
+        self.__Batch           = batch
+        self.__Network         = ntwrk
+        self.__Ofmap_desc      = ofmap_desc.copy()
+        self.__Id              = None
+        self.__NextSchedLayer  = None
+        self.__PrevSchedLayer  = None
 
         self.__DenseBlockStart = -1
         self.__DenseBlockEnd   = -1
-        self.__TranBlockStart = -1
-        self.__TranBlockEnd   = -1
+        self.__TranBlockStart  = -1
+        self.__TranBlockEnd    = -1
 
-        self.__NextLayers = []
-        self.__PrevLayers = []
-        self.__PrevSbLayers = []
+        self.__NextLayers      = []
+        self.__PrevLayers      = []
+        self.__PrevSbLayers    = []
 
         self.__schedule = None  ## number in [0, NUM_LAYERS-1]
         # counts the number layers that need to be executed

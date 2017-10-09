@@ -45,44 +45,45 @@ class DenseNet(Network):
 
     #-----------------------------------------------------------------
     def construct(self):
+        batch = 1
         ofmap_desc = self.m_Ofmap_desc
-        layer = DataLayer("Data", self, ofmap_desc)
+        layer = DataLayer(("Data", batch, self), ofmap_desc)
 
         ## Initial convolution + batch, relu, pool
         # Convolution IMAP=3, OMAPS=64, kernel 7x7, stride 2, image size 224 -> 112
         num_ofmaps = 2*self.m_Growth_rate
-        layer = ConvLayer("Conv1", self, layer, num_ofmaps, stride=2, kernel=7)
+        layer = ConvLayer(("Conv1", batch, self), layer, num_ofmaps, stride=2, kernel=7)
         # Batch Normalization, IMAPS=64, OMAPS=64, image size 112->112
-        layer = BatchNormLayer("BN1", self, layer)
+        layer = BatchNormLayer(("BN1", batch, self), layer)
         # ReLU, IMAPS=64, OMAPS=64, image size 112->112
-        layer = ReluLayer("Relu1", self, layer)
+        layer = ReluLayer(("Relu1", batch, self), layer)
         ## Pooling IMAPS=64, OMAPS=64, 3x3, stride 2, pad 1, 112 -> 56
-        layer = MaxPoolLayer("MaxPool1", self, layer, stride=2, kernel=3)
+        layer = MaxPoolLayer(("MaxPool1", batch, self), layer, stride=2, kernel=3)
 
 
         # Dense Blocks
         numDenseBlocks = len(self.m_LayersInDenseBlock)
         for blockIdx in range(numDenseBlocks-1):
             numLayersInBlock = self.m_LayersInDenseBlock[blockIdx]
-            denseBlock = DenseBlock(self, blockIdx, numLayersInBlock, self.m_Growth_rate, layer)
+            denseBlock = DenseBlock(batch, self, blockIdx, numLayersInBlock, self.m_Growth_rate, layer)
             layer = denseBlock.gLastLayer()
-            tranBlock = TranBlock(self, blockIdx, layer, 0.5)
+            tranBlock = TranBlock(batch, self, blockIdx, layer, 0.5)
             layer = tranBlock.gLastLayer()
 
         lastBlockIdx = numDenseBlocks - 1
         numLayersInBlock = self.m_LayersInDenseBlock[lastBlockIdx]
-        denseBlock = DenseBlock(self, lastBlockIdx, numLayersInBlock, self.m_Growth_rate, layer)
+        denseBlock = DenseBlock(batch, self, lastBlockIdx, numLayersInBlock, self.m_Growth_rate, layer)
         layer = denseBlock.gLastLayer()
 
         ## Final blocks
         pfx = "TB" + str(lastBlockIdx)
-        layer = BatchNormLayer(pfx + "-BN1", self, layer)
-        layer = ReluLayer(pfx + "-RL1", self, layer)
-        layer = AvgPoolLayer(pfx + "-AVG1", self, layer, stride=7, kernel=7)
+        layer = BatchNormLayer((pfx + "-BN1", batch, self), layer)
+        layer = ReluLayer((pfx + "-RL1", batch, self), layer)
+        layer = AvgPoolLayer((pfx + "-AVG1", batch, self), layer, stride=7, kernel=7)
 
         s = "FC" + str(self.m_NumClasses)
-        layer = FullLayer(s, self, layer, self.m_NumClasses)
-        layer = SoftMaxLayer("SoftMax", self, layer)
+        layer = FullLayer((s, batch, self), layer, self.m_NumClasses)
+        layer = SoftMaxLayer(("SoftMax", batch, self), layer)
 
         self.verify()
 

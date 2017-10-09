@@ -7,11 +7,11 @@ import nets.network
 ##########################################################
 class BatchNormLayer(OneToOneLayer):
     #-----------------------------------------------------------------
-    def __init__(self, layerName, ntwk, prev_layer):
+    def __init__(self, (layerName, batch, ntwk), prev_layer):
         assert(isinstance(ntwk, nets.network.Network))
         assert(isinstance(prev_layer, Layer))
 
-        super(BatchNormLayer, self).__init__(layerName, ntwk, prev_layer)
+        super(BatchNormLayer, self).__init__((layerName, batch, ntwk), prev_layer)
 
     #-----------------------------------------------------------------
     def __str__(self):

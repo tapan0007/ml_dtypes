@@ -5,11 +5,11 @@ import nets.network
 ##########################################################
 class OneToOneLayer(Layer): # abstract class
     #-----------------------------------------------------------------
-    def __init__(self, layerName, ntwk, prev_layer):
+    def __init__(self, (layerName, batch, ntwk), prev_layer):
         assert(isinstance(ntwk, nets.network.Network))
         assert(isinstance(prev_layer, Layer))
         ofmap_desc = prev_layer.gOfmapDesc()
-        super(OneToOneLayer, self).__init__(layerName, ntwk, (prev_layer,), ofmap_desc)
+        super(OneToOneLayer, self).__init__((layerName, batch, ntwk), ofmap_desc, (prev_layer,))
         assert(prev_layer.gRawOutputStateSize() == self.gRawOutputStateSize())
         assert(self.gRawInputStateSize() == self.gRawOutputStateSize())
 

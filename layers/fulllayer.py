@@ -7,10 +7,10 @@ import nets.network
 
 class FullLayer(ConvLayer):
     #-----------------------------------------------------------------
-    def __init__(self, layerName, ntwk, prev_layer, numOuts):
+    def __init__(self, (layerName, batch, ntwk), prev_layer, numOuts):
         assert(isinstance(ntwk, nets.network.Network))
         assert(isinstance(prev_layer, Layer))
-        super(FullLayer, self).__init__(layerName, ntwk, prev_layer, numOuts, stride=1, kernel=1)
+        super(FullLayer, self).__init__((layerName, batch, ntwk), prev_layer, numOuts, stride=1, kernel=1)
 
 
     #-----------------------------------------------------------------

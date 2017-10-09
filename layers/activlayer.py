@@ -10,10 +10,10 @@ class ActivLayer(OneToOneLayer): # abstract class
     __metaclass__ = ABCMeta
 
     #-----------------------------------------------------------------
-    def __init__(self, layerName, ntwk, prev_layer):
+    def __init__(self, (layerName, batch, ntwk), prev_layer):
         assert(isinstance(ntwk, nets.network.Network))
         assert(isinstance(prev_layer, Layer))
-        super(ActivLayer, self).__init__(layerName, ntwk, prev_layer)
+        super(ActivLayer, self).__init__((layerName, batch, ntwk), prev_layer)
 
 
     #-----------------------------------------------------------------
