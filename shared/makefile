@@ -19,7 +19,7 @@ ISA_PDF  := isa.pdf
 
 .PHONY: clean
 
-all: $(OBJECTS) $(ISA_PDF) $(ISA_H)
+all: $(OBJECTS) $(ISA_H)
 
 clean: 
 	$(RM) $(OBJECTS) $(SCRIPTDIR)/*log $(SCRIPTDIR)/*sty 
@@ -27,9 +27,8 @@ clean:
 
 docs: $(ISA_PDF)
 
-$(ISA_H) : $(ISA_JSON)  $(SCRIPTDIR)/create_isa_h.py $(SCRIPTDIR)/create_isa_def_h.py
+$(ISA_H) : $(ISA_JSON)  $(SCRIPTDIR)/create_isa_h.py 
 	$(SCRIPTDIR)/create_isa_h.py $(SRCDIR)/isa.json $(OBJDIR)/isa.h
-	$(SCRIPTDIR)/create_isa_def_h.py $(SRCDIR)/isa.json $(OBJDIR)/isa_def.h
 
 $(ISA_PDF) : $(ISA_JSON)
 	cd $(SCRIPTDIR) && \

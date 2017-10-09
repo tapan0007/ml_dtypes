@@ -2,37 +2,56 @@
 import json
 import sys
 import time
+import re
 from collections import OrderedDict
 
 HEADERS=0
 BOXES=1
 STEP = 32
 
+sizeof = {
+    "char"  : 1,
+    "uint8_t" : 1,
+    "int8_t"  : 1,
+    "int16_t" : 2,
+    "uint16_t" : 2,
+    "uint32_t":4,
+    "int32_t" : 4,
+    "uint64_t" : 8,
+    "int64_t" : 8
+}
+
+def vector_len(s):
+    l = 0 
+    if (re.search(r"\[([0-9]+)\]", s)):
+        l = int(m.group(1))
+    return l
+
+
 # each element of info is a tuple, the tuple holds two lists: the list of
 # bitheaders that go with the row and the list of bitboxes that go with the row
-def get_info(defines, fields):
+def get_info(macros, fields):
     fields.reverse()
     infos = [([],[])]
     base_bit = 0
     curr_bit = 0
     HEADERS = 0
     BOXES = 1
-    for (t,k,v) in fields:
+    for tnc in fields:
+        if (len(tnc) == 2):
+            (t,n) = tnc
+            c = ""
+        else:
+            (t,n,c) = tnc
         i = infos[-1]
         # mark start of this field
         i[HEADERS].append(curr_bit)
 
+        n = n.replace("_", "\_")
         # adjust size of field, based on type
-        if v in defines:
-            v = defines[v]
-        if t == "bytearray":
-            v = 8 * int(v)
-        elif t == "bitfield":
-            v = int(v)
-        else:
-            assert(False and "unrecognized field type")
-        k = k.replace("_", "\_")
-
+        if t in macros:
+           t  = macros[t]
+        v = 8 * sizeof[t] * vector_len(t)
         # update where we are in the field
         curr_bit += v
 
@@ -44,8 +63,8 @@ def get_info(defines, fields):
             # finish this row
             if inside:
                 i[HEADERS].append(base_bit + STEP - 1)
-                new_k = "$\\dots$" + k if outside >= STEP else k
-                i[BOXES].append((new_k, inside))
+                new_n = "$\\dots$" + n if outside >= STEP else n
+                i[BOXES].append((new_n, inside))
                 i[BOXES].reverse() #put it in the right local order
             infos.append(([],[]))
             base_bit = base_bit + STEP
@@ -64,10 +83,10 @@ def get_info(defines, fields):
             if (curr_bit != base_bit):
                 i[HEADERS].append(base_bit)
                 i[HEADERS].append(curr_bit - 1)
-                i[BOXES].append((k, curr_bit - base_bit))
+                i[BOXES].append((n, curr_bit - base_bit))
         else: # we are still in the same row, sweeet
             i[HEADERS].append(curr_bit-1)
-            i[BOXES].append((k,v))
+            i[BOXES].append((n,v))
     # no duplicate writing
     if infos[-1][HEADERS][-1] != curr_bit - 1:
         infos[-1][HEADERS].append(curr_bit-1)
@@ -123,12 +142,11 @@ def json_to_tex(json_name, o_name):
 
     write_header(o)
 
-    defines = j["defines"]
+    macros = j["macros"]
     for (insn, desc) in j["instructions"].iteritems():
         comments = desc.get("comments")
         opcode = desc.get("opcode")
-        opcode_field = ["bitfield", "opcode={}".format(opcode), "OPCODE_BITS"]
-        fields = get_info(defines, [opcode_field] + desc.get("fields")[1:])
+        fields = get_info(macros, desc.get("fields"))
         write_instruction(o, insn, fields, comments)
 
     write_footer(o)
