@@ -6,9 +6,8 @@ import nets.network
 ##########################################################
 class DataLayer(Layer):
     #-----------------------------------------------------------------
-    def __init__(self, (layerName, batch, ntwk), ofmap_desc):
-        assert(isinstance(ntwk, nets.network.Network))
-        super(DataLayer, self).__init__((layerName, batch, ntwk), ofmap_desc, ())
+    def __init__(self, param, ofmap_desc):
+        super(DataLayer, self).__init__(param, ofmap_desc, ())
 
     #-----------------------------------------------------------------
     def __str__(self):

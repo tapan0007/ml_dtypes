@@ -9,11 +9,11 @@ import nets.network
 ##########################################################
 class ConvLayer(SubSampleLayer):
     #-----------------------------------------------------------------
-    def __init__(self, (layerName, batch, ntwk), prev_layer, num_ofmaps, stride, kernel):
-        assert(isinstance(ntwk, nets.network.Network))
+    def __init__(self, param, prev_layer, num_ofmaps, stride, kernel):
+        assert(isinstance(param, Layer.Param))
         assert(isinstance(prev_layer, Layer))
 
-        super(ConvLayer, self).__init__((layerName, batch, ntwk), prev_layer,
+        super(ConvLayer, self).__init__(param, prev_layer,
             num_ofmaps=num_ofmaps, stride=stride, kernel=kernel)
 
     #-----------------------------------------------------------------

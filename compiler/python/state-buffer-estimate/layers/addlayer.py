@@ -7,14 +7,13 @@ import nets.network
 ##########################################################
 class AddLayer(CombineLayer):
     #-----------------------------------------------------------------
-    def __init__(self, (layerName, batch, ntwk), prev_layer, earlier_layer):
-        assert(isinstance(ntwk, nets.network.Network))
+    def __init__(self, param, prev_layer, earlier_layer):
         assert(isinstance(prev_layer, Layer))
         assert(isinstance(earlier_layer, Layer))
         assert(prev_layer.gOfmapDesc() == earlier_layer.gOfmapDesc())
 
         num_ofmaps = prev_layer.gNumOfmaps()
-        super(AddLayer, self).__init__((layerName, batch, ntwk), prev_layer, earlier_layer, num_ofmaps)
+        super(AddLayer, self).__init__(param, prev_layer, earlier_layer, num_ofmaps)
 
 
     #-----------------------------------------------------------------

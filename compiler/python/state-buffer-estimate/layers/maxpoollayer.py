@@ -7,11 +7,10 @@ import nets.network
 ##########################################################
 class MaxPoolLayer(PoolLayer):
     #-----------------------------------------------------------------
-    def __init__(self, (layerName, batch, ntwk), prev_layer, stride, kernel):
-        assert(isinstance(ntwk, nets.network.Network))
+    def __init__(self, param, prev_layer, stride, kernel):
         assert(isinstance(prev_layer, Layer))
 
-        super(MaxPoolLayer, self).__init__((layerName, batch, ntwk), prev_layer,
+        super(MaxPoolLayer, self).__init__(param, prev_layer,
             stride=stride, kernel=kernel)
 
         #self.m_PoolType = poolType

@@ -7,10 +7,9 @@ import nets.network
 
 class SoftMaxLayer(OneToOneLayer):
     #-----------------------------------------------------------------
-    def __init__(self, (layerName, batch, ntwk), prev_layer):
-        assert(isinstance(ntwk, nets.network.Network))
+    def __init__(self, param, prev_layer):
         assert(isinstance(prev_layer, Layer))
-        super(SoftMaxLayer, self).__init__((layerName, batch, ntwk), prev_layer)
+        super(SoftMaxLayer, self).__init__(param, prev_layer)
 
     #-----------------------------------------------------------------
     def __str__(self):

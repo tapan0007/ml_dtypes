@@ -9,10 +9,27 @@ import nets.network
 class Layer(object): # abstract class
     __metaclass__ = ABCMeta
 
+    ######################################################
+    class Param(object):
+        def __init__(self, layerName, batch, ntwk):
+            self.__LayerBatchNetwork = (layerName, batch, ntwk)
+
+        def gLayerName(self):
+            return self.__LayerBatchNetwork[0]
+
+        def gBatch(self):
+            return self.__LayerBatchNetwork[1]
+
+        def gNetwork(self):
+            return self.__LayerBatchNetwork[2]
+
+        def gAll(self):
+            return self.__LayerBatchNetwork
+
     #-----------------------------------------------------------------
-    # Arguments (layerName, batch, ntwrk) are applicable to any layer. 
-    # Ofmap_desc could be calculated based on other params such as stride or kernel.
-    def __init__(self, (layerName, batch, ntwrk), ofmap_desc, prev_layers):
+    def __init__(self, param, ofmap_desc, prev_layers):
+        assert(isinstance(param, Layer.Param))
+        (layerName, batch, ntwrk) = param.gAll()
         assert(isinstance(layerName, str))
         assert(isinstance(ntwrk, nets.network.Network))
         assert(isinstance(ofmap_desc, OfmapDesc))

@@ -8,10 +8,9 @@ import nets.network
 ##########################################################
 class ReluLayer(ActivLayer):
     #-----------------------------------------------------------------
-    def __init__(self, (layerName, batch, ntwk), prev_layer):
-        assert(isinstance(ntwk, nets.network.Network))
+    def __init__(self, param, prev_layer):
         assert(isinstance(prev_layer, Layer))
-        super(ReluLayer, self).__init__((layerName, batch, ntwk) , prev_layer)
+        super(ReluLayer, self).__init__(param , prev_layer)
 
     #-----------------------------------------------------------------
     def __str__(self):
