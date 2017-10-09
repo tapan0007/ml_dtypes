@@ -8,7 +8,7 @@ SRCDIR = src
 OBJDIR = obj
 LIBDIR = ../libs
 SHAREDIR = ../../shared
-INCDIRS = $(SHAREDIR)/src $(SHAREDIR)/build src ../inc
+INCDIRS = $(SHAREDIR)/inc src ../inc
 INCLUDES = $(foreach d, $(INCDIRS), -I$d)
 TARGET = test_convolve
 
@@ -31,5 +31,5 @@ $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	 $(CXX) $(CFLAGS) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
 
 $(TARGET): $(OBJECTS) $(LIBDIR)/libtcc.a
-	$(CXX) $^ $(INCDIR)  $(LIBFLAGS) -L$(LIBDIR) -o $@
+	$(CXX) $^ $(INCDIR) -L$(LIBDIR)  $(LIBFLAGS) -o $@ 
 

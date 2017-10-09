@@ -1,7 +1,7 @@
 #include "sequencer.h"
 #include "uarch_defines.h"
 #include "string.h"
-#include "isa.h"
+#include "tpb_isa.h"
 #include "io.h"
 
 extern class Memory memory;
@@ -40,7 +40,7 @@ DynamicInstruction<EdgeSignals>::execute(void *v_seq) {
  * RdIfmap
  *------------------------------------ */
 template<>
-void  DynamicInstruction<RdIfmapArgs>::execute(void *v_seq) {
+void  DynamicInstruction<SIM_RDIFMAP>::execute(void *v_seq) {
     UNUSED(v_seq);
     void *i_ptr;
     int i_n, i_c, i_h, i_w;
@@ -55,7 +55,7 @@ void  DynamicInstruction<RdIfmapArgs>::execute(void *v_seq) {
  * RdFilterArgs
  *------------------------------------ */
 template<>
-void  DynamicInstruction<RdFilterArgs>::execute(void *v_seq) {
+void  DynamicInstruction<SIM_RDFILTER>::execute(void *v_seq) {
     UNUSED(v_seq);
     void *f_ptr;
     int r,s,t,u;
@@ -76,7 +76,7 @@ void  DynamicInstruction<RdFilterArgs>::execute(void *v_seq) {
  * WrOfmapArgs
  *------------------------------------ */
 template<>
-void  DynamicInstruction<WrOfmapArgs>::execute(void *v_seq) {
+void  DynamicInstruction<SIM_WROFMAP>::execute(void *v_seq) {
     UNUSED(v_seq);
     void *o_ptr;
     
@@ -91,7 +91,7 @@ void  DynamicInstruction<WrOfmapArgs>::execute(void *v_seq) {
  * LdWeightsInstruction
  *------------------------------------ */
 template<>
-void  DynamicInstruction<LdWeightsArgs>::execute(void *v_seq) {
+void  DynamicInstruction<LDWEIGHTS>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     uint64_t num_cols = args.x_num * args.y_num; 
     assert(num_cols <= Constants::columns);
@@ -101,7 +101,7 @@ void  DynamicInstruction<LdWeightsArgs>::execute(void *v_seq) {
     seq->weight_base = args.address;
     seq->es.weight_clamp = (num_cols == 1);
     seq->es.row_valid = true;
-    seq->es.row_countdown = args.max; 
+    seq->es.row_countdown = args.last_row; 
     seq->weight_clamp_countdown = num_cols;
     seq->weight_x_step = args.x_step;
     seq->weight_y_step = args.y_step;
@@ -119,12 +119,12 @@ void  DynamicInstruction<LdWeightsArgs>::execute(void *v_seq) {
  * Convolve
  *------------------------------------ */
 template<>
-void  DynamicInstruction<MatMulArgs>::execute(void *v_seq) {
+void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     /* ifmap setup */
     seq->es.ifmap_full_addr    = args.fmap_start_addr;
     seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
-    seq->es.row_countdown = args.max_row; 
+    seq->es.row_countdown = args.last_row; 
     seq->es.row_valid = true;
     seq->es.weight_toggle = true;
     seq->ifmap_base = args.fmap_start_addr;
@@ -137,7 +137,7 @@ void  DynamicInstruction<MatMulArgs>::execute(void *v_seq) {
     seq->raw_signal = false;
 
     /* psum setup */
-    seq->es.column_countdown = args.max_col;
+    seq->es.column_countdown = args.last_col;
     seq->es.column_valid = true;
     seq->es.psum_start = args.start_tensor_calc;
     seq->es.psum_stop = args.stop_tensor_calc;
@@ -166,7 +166,7 @@ void  DynamicInstruction<MatMulArgs>::execute(void *v_seq) {
  * Pool
  *------------------------------------ */
 template<>
-void  DynamicInstruction<PoolArgs>::execute(void *v_seq) {
+void  DynamicInstruction<POOL>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     POOLFUNC pool_func = (POOLFUNC)args.pool_func;
 	seq->pool_valid = true;
@@ -178,7 +178,7 @@ void  DynamicInstruction<PoolArgs>::execute(void *v_seq) {
 	seq->ps.stop = (pool_func = IDENTITY_POOL) ||
         (args.src_x_num + args.src_y_num == 2);
 	seq->ps.dst_full_addr = args.dst_start_addr;
-	seq->ps.countdown = args.dst_num;
+	seq->ps.countdown = args.dst_w_num;
 	
 	seq->pool_src_base = args.src_start_addr;
 	seq->pool_dst_base = args.dst_start_addr;
@@ -394,30 +394,30 @@ Sequencer::step() {
     if (raw_signal || !synch()) {
         if (!feed->empty()) {
             uint64_t *raw_inst = (uint64_t *)feed->front();
-            switch (*raw_inst & ((1 << OPCODE_BITS) - 1)) {
-                case SIM_RDIFMAP:
-                    inst = new DynamicInstruction<RdIfmapArgs>(
-                            *((RdIfmapArgs *) (raw_inst)));
+            switch (TPB_OPCODE(*raw_inst)) {
+                case SIM_RDIFMAP_OPC:
+                    inst = new DynamicInstruction<SIM_RDIFMAP>(
+                            *((SIM_RDIFMAP *) (raw_inst)));
                     break;
-                case SIM_RDFILTER:
-                    inst = new DynamicInstruction<RdFilterArgs>(
-                            *((RdFilterArgs *) (raw_inst)));
+                case SIM_RDFILTER_OPC:
+                    inst = new DynamicInstruction<SIM_RDFILTER>(
+                            *((SIM_RDFILTER *) (raw_inst)));
                     break;
-                case SIM_WROFMAP:
-                    inst = new DynamicInstruction<WrOfmapArgs>(
-                            *((WrOfmapArgs *) (raw_inst)));
+                case SIM_WROFMAP_OPC:
+                    inst = new DynamicInstruction<SIM_WROFMAP>(
+                            *((SIM_WROFMAP *) (raw_inst)));
                     break;
-                case LDWEIGHTS:
-                    inst = new DynamicInstruction<LdWeightsArgs>(
-                            *((LdWeightsArgs *) (raw_inst)));
+                case LDWEIGHTS_OPC:
+                    inst = new DynamicInstruction<LDWEIGHTS>(
+                            *((LDWEIGHTS *) (raw_inst)));
                     break;
-                case MATMUL:
-                    inst = new DynamicInstruction<MatMulArgs>(
-                            *((MatMulArgs *) (raw_inst)));
+                case MATMUL_OPC:
+                    inst = new DynamicInstruction<MATMUL>(
+                            *((MATMUL *) (raw_inst)));
                     break;
-                case POOL:
-                    inst = new DynamicInstruction<PoolArgs>(
-                            *((PoolArgs *) (raw_inst)));
+                case POOL_OPC:
+                    inst = new DynamicInstruction<POOL>(
+                            *((POOL *) (raw_inst)));
                     break;
                 default:
                     assert(0);

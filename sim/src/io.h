@@ -2,7 +2,7 @@
 #define IO_H
 
 
-#include "dtypes.h"
+#include "tpb_isa.h"
 #include <string>
 
 typedef union memory_accessor{

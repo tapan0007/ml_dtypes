@@ -1,6 +1,6 @@
 #include "tcc.h"
-#include "isa.h"
-#include "isa_def.h"
+#include "tpb_isa.h"
+#include "uarch_cfg.h"
 #include <assert.h>
 #include <string>
 #include "string.h"
@@ -44,9 +44,9 @@ get_tile_type(const uint8_t row, const uint8_t col,
 
 void
 _convolve_tile(FILE *fptr,
-        const uint64_t ifmap_full_addr, const uint64_t idim[4],
-        const uint64_t filter_full_addr, const uint64_t wdim[4],
-        const uint64_t psum_addr,
+        const addr_t ifmap_full_addr, const uint64_t idim[4],
+        const addr_t filter_full_addr, const uint64_t wdim[4],
+        const addr_t psum_addr,
         const ARBPRECTYPE dtype,
         const uint8_t fmap_num[2],
         const uint8_t pads[NUM_NSEW])
@@ -71,13 +71,13 @@ _convolve_tile(FILE *fptr,
 
     addr_t dsize = sizeofArbPrecType(dtype);
     addr_t weight_step;
-    LdWeightsArgs weight_args = {0};
-    MatMulArgs    matmul_args = {0};
+    LDWEIGHTS weight_args = {0};
+    MATMUL    matmul_args = {0};
 
     /* weight args */
-    weight_args.opcode = LDWEIGHTS;
+    weight_args.opcode = LDWEIGHTS_OPC;
     weight_args.dtype = dtype;
-    weight_args.max = num_rows - 1;
+    weight_args.last_row = num_rows - 1;
     weight_args.x_step = dsize;
     weight_args.x_num = o_channels;
     weight_args.y_step = dsize * o_channels;
@@ -86,13 +86,13 @@ _convolve_tile(FILE *fptr,
     weight_step = weight_args.y_num * weight_args.y_step * dsize;
 
     /* matmul args */
-    matmul_args.opcode = MATMUL;
+    matmul_args.opcode = MATMUL_OPC;
     matmul_args.fmap_x_step = 1;
     matmul_args.fmap_y_step = i_cols;
     matmul_args.dtype = dtype;
     matmul_args.psum_start_addr = psum_addr; /* b/c we specify padding as arg */
-    matmul_args.max_row = num_rows - 1;
-    matmul_args.max_col = num_cols - 1;
+    matmul_args.last_row = num_rows - 1;
+    matmul_args.last_col = num_cols - 1;
 
 
 
@@ -136,16 +136,16 @@ _convolve_tile(FILE *fptr,
 
 void
 _pool_tile(FILE *fptr,
-        const uint64_t src_addr,
-        const uint64_t dst_addr,
+        const addr_t src_addr,
+        const addr_t dst_addr,
         const size_t tile_sz_x, const size_t tile_sz_y,
         const uint64_t o_cols,
         const ARBPRECTYPE pool_dtype)
 {
-    PoolArgs      pool_args = {0};
+    POOL      pool_args = {0};
 
     /* pool args */
-    pool_args.opcode = POOL;
+    pool_args.opcode = POOL_OPC;
     pool_args.pool_func = IDENTITY_POOL;
     pool_args.in_dtype     = pool_dtype;
     pool_args.src_start_addr = src_addr;
@@ -157,7 +157,7 @@ _pool_tile(FILE *fptr,
     pool_args.dst_x_step = 1;
     pool_args.dst_y_step = o_cols;
     pool_args.dst_start_addr = dst_addr;
-    pool_args.dst_num = o_cols;
+    pool_args.dst_x_num = o_cols;
 
     /* Pool  */
     pool_args.src_x_num = tile_sz_x * tile_sz_y;
@@ -171,9 +171,9 @@ _pool_tile(FILE *fptr,
 void compile_read_ifmap(FILE *fptr,
         addr_t ifmap_full_addr, const char *i_name)
 {
-    RdIfmapArgs args = {0};
+    SIM_RDIFMAP args = {0};
 
-    args.opcode = SIM_RDIFMAP;
+    args.opcode = SIM_RDIFMAP_OPC;
     args.address = ifmap_full_addr;
     strcpy(args.fname, i_name);
     
@@ -183,9 +183,9 @@ void compile_read_ifmap(FILE *fptr,
 void compile_read_filter(FILE *fptr,
         addr_t filter_full_addr, const char *i_name)
 {
-    RdFilterArgs args = {0};
+    SIM_RDFILTER args = {0};
 
-    args.opcode = SIM_RDFILTER;
+    args.opcode = SIM_RDFILTER_OPC;
     args.address = filter_full_addr;
     strcpy(args.fname, i_name);
     
@@ -198,8 +198,8 @@ void compile_write_ofmap(FILE *fptr,
         const uint64_t o_rows, const uint64_t o_cols, 
         const size_t word_size)
 {
-    WrOfmapArgs args = {0};
-    args.opcode = SIM_WROFMAP;
+    SIM_WROFMAP args = {0};
+    args.opcode = SIM_WROFMAP_OPC;
     args.address = addr;
     args.i_n = i_n;
     args.w_c = w_c;
@@ -214,9 +214,9 @@ void compile_write_ofmap(FILE *fptr,
 
 void
 compile_convolve(FILE *fptr,
-        const uint64_t ifmap_full_addr, const uint64_t idim[4],
-        const uint64_t filter_full_addr, const uint64_t wdim[4],
-        const uint64_t ofmap_full_addr, uint64_t o_dims[4],
+        const addr_t ifmap_full_addr, const uint64_t idim[4],
+        const addr_t filter_full_addr, const uint64_t wdim[4],
+        const addr_t ofmap_full_addr, uint64_t o_dims[4],
         const ARBPRECTYPE dtype,
         const uint8_t padding[2], const uint8_t stride[2], 
         const uint8_t dilate[2])
@@ -318,9 +318,9 @@ compile_convolve(FILE *fptr,
 
 void
 compile_pool(FILE *fptr,
-        const uint64_t ifmap_addr, const uint64_t ifmap_dims[4],
+        const addr_t ifmap_addr, const uint64_t ifmap_dims[4],
         const uint64_t kernel_dims[4],
-        const uint64_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
+        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
         const uint64_t stride_dims[4],
 		ARBPRECTYPE dtype,
         POOLFUNC pool_func)
@@ -341,7 +341,7 @@ compile_pool(FILE *fptr,
 	uint64_t &o_rows = ofmap_dims[2];
 	uint64_t &o_ch   = ofmap_dims[1];
 	//uint64_t &o_n    = ofmap_dims[0];
-    PoolArgs      pool_args = {0};
+    POOL      pool_args = {0};
 	addr_t        src_addr = ifmap_addr;
 	addr_t        dst_addr = ofmap_addr;
     addr_t dsize = sizeofArbPrecType(dtype);
@@ -355,7 +355,7 @@ compile_pool(FILE *fptr,
 	for (unsigned int i = 0; i < s_n; i++) {
         for (unsigned int j = 0; j < s_ch; j++) {
             /* pool args */
-            pool_args.opcode = POOL;
+            pool_args.opcode = POOL_OPC;
             pool_args.pool_func = pool_func;
             pool_args.in_dtype     = dtype;
             pool_args.src_start_addr = src_addr;
@@ -372,7 +372,7 @@ compile_pool(FILE *fptr,
             pool_args.dst_y_step = o_cols;
             pool_args.dst_x_num = o_rows;
             pool_args.dst_y_num = o_ch;
-            pool_args.dst_num = o_cols;
+            pool_args.dst_x_num = o_cols;
             pool_args.dst_start_addr = dst_addr;
             PUSH(fptr, pool_args);
         }

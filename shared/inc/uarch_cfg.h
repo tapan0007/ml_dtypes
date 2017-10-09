@@ -1,8 +1,5 @@
-#ifndef ISADEF_H
-#define ISADEF_H
-
-#include "stdint.h"
-
+#ifndef UARCH_CFG_H
+#define UARCH_CFG_H
 
 #define PAD_BITS 4
 #define MMAP_PSUM_BASE SB_SIZE
@@ -21,14 +18,5 @@
 #define TILE_SIZE 16
 #define BANKS_PER_PARTITION_BITS 2
 
-
-enum OPCODES {
-SIM_RDFILTER = 0xfe,
-SIM_RDIFMAP = 0xff,
-MATMUL = 0x01,
-SIM_WROFMAP = 0xfd,
-LDWEIGHTS = 0x00,
-POOL = 0x80,
-};
-
 #endif
+

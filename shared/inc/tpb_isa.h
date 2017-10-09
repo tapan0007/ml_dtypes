@@ -1,21 +1,55 @@
-#ifndef _TYPES_H
-#define _TYPES_H
+#ifndef TPB_ISA_H
+#define TPB_ISA_H
 
-#include "stdint.h"
-#include "stdlib.h"
-#include "assert.h"
+#include <stdlib.h>
+#include <stdint.h>
+#include "isa_common.h"
+#include "tpb_isa_ldweights.h"
+#include "tpb_isa_matmul.h"
+#include "tpb_isa_pool.h"
+#include "tpb_isa_simrdifmap.h"
+#include "tpb_isa_simrdfilter.h"
+#include "tpb_isa_simwrofmap.h"
 
-enum ARBPRECTYPE {INVALID_ARBPRECTYPE = 0, 
-    INT8 = 2,   UINT8 = 3, 
-    INT16 = 4,  UINT16 = 5, 
+#define TPB_OPCODE(x) BITFIELD_EXTRACT(x, 0, 8)
+
+#define INSTRUCTION_NBYTES 256
+
+typedef uint32_t addr_t;
+
+enum TPB_CMD_TYPE {
+    LDWEIGHTS_OPC  = 0x00,
+    MATMUL_OPC  = 0x01,
+    POOL_OPC    = 0x80,
+    SIM_WROFMAP_OPC = 0xFC,
+    SIM_RDFILTER_OPC = 0xFD,
+    SIM_RDIFMAP_OPC = 0xFE,
+};
+
+/* todo: move out to activation isa defintion*/
+enum ACTIVATIONFUNCTION {
+    INVALID_ACTIVATIONFUNCTION=0x00, 
+    IDENTITY, 
+    RELU, 
+    LEAKY_RELU, 
+    SIGMIOD, 
+    TANH, 
+    NUM_ACTIVATIONFUNCTION
+};
+
+
+enum ARBPRECTYPE {
+    INVALID_ARBPRECTYPE = 0,
+    INT8 = 2,   UINT8 = 3,
+    INT16 = 4,  UINT16 = 5,
     FP16 = 7,
     INT32,      UINT32,
-    FP32, 
-    INT64 = 12, UINT64 = 13, 
+    FP32,
+    INT64 = 12, UINT64 = 13,
     NUM_ARBPRECTYPE = 16};
 
 inline
-ARBPRECTYPE 
+ARBPRECTYPE
 get_upcast(ARBPRECTYPE type) {
     switch (type) {
         case UINT8:
@@ -56,7 +90,7 @@ sizeofArbPrecType(ARBPRECTYPE type)
         case INT64:
             size = sizeof(int64_t);
             break;
-        case FP32:
+        case FP32: 
             size = sizeof(float);
             break;
         default:
@@ -65,18 +99,6 @@ sizeofArbPrecType(ARBPRECTYPE type)
     return size;
 }
 
-
-enum ACTIVATIONFUNCTION {INVALID_ACTIVATIONFUNCTION=-1, IDENTITY, RELU, LEAKY_RELU, SIGMIOD, TANH,  NUM_ACTIVATIONFUNCTION};
-
-
-enum POOLFUNC {
-    MAX_POOL = 0, 
-    AVG_POOL = 1, 
-    IDENTITY_POOL = 2,
-    NUM_POOLTYPE=3};
-
-typedef uint64_t addr_t;
-#define MAX_ADDR UINTMAX_MAX
-
-
 #endif
+
+

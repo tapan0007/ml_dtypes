@@ -1,7 +1,7 @@
 #ifndef SIGINT_H
 #define SIGINT_H
-#include "isa_def.h"
-#include "dtypes.h"
+#include "uarch_cfg.h"
+#include "tpb_isa.h"
 #include "arb_prec.h"
 #include <cstdint>
 

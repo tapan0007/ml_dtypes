@@ -1,9 +1,8 @@
 #ifndef _TCC_H
 #define _TCC_H
 
-#include "dtypes.h"
-#include "stdio.h"
-
+#include <stdio.h>
+#include "tpb_isa.h"
 
 /* we don't have a DMA engine, so compile a special sim-only instruction to read
  * a numpy file (i_name) into the state buffer at ifmap_full_addr */
@@ -23,9 +22,9 @@ void compile_write_ofmap(FILE *file,
 /* convolve kernel */
 void
 compile_convolve(FILE *file,
-        const uint64_t ifmap_addr, const uint64_t ifmap_dims[4],
-        const uint64_t filter_addr, const uint64_t filter_dims[4],
-        const uint64_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
+        const addr_t ifmap_addr, const uint64_t ifmap_dims[4],
+        const addr_t filter_addr, const uint64_t filter_dims[4],
+        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
         const ARBPRECTYPE dtype,
         const uint8_t padding[2],  /* HW */
         const uint8_t stride[2],   /* HW */
@@ -33,9 +32,9 @@ compile_convolve(FILE *file,
 
 void
 compile_pool(FILE *file,
-        const uint64_t ifmap_addr, const uint64_t ifmap_dims[4],
+        const addr_t ifmap_addr, const uint64_t ifmap_dims[4],
         const uint64_t kernel_dims[4],
-        const uint64_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
+        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
         const uint64_t stride_dims[4],
         POOLFUNC pool_func);
 

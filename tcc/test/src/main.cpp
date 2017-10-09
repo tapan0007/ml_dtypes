@@ -1,8 +1,8 @@
+#include <string.h>
 #include "cnpy.h"
-#include "isa.h"
-#include "isadef.h"
+#include "tpb_isa.h"
+#include "uarch_cfg.h"
 #include "tcc.h"
-#include "string.h"
 
 
 
