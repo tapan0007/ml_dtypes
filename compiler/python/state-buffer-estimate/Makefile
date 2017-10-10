@@ -1,15 +1,11 @@
-## SHELL=rc
 
 DENSE169 = DenseNet-169
 RES50 = ResNet-50
 
-dense : densenet
-
-res : resnet
+top : res
 
 densenet :
 	@  python main.py --densenet
-	@# PYTHONPATH=$$PYTHONPATH:. python main.py
 
 resnet :
 	@  python main.py --resnet
@@ -22,8 +18,11 @@ dbgres :
 
 
 clean :
-	rm -f *.pyc
+	rm -f $$(find . -name '*.pyc')
 
+dense : densenet
+
+res : resnet
 
 densedot :
 	dot -Tps $(DENSE169).dot > $(DENSE169).ps; ps2pdf $(DENSE169).ps
