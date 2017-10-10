@@ -31,25 +31,25 @@ class ResNet(Network):
         self.m_Ofmap_desc = ofmap_desc
 
     ############################################################################
-    def Section(self, sectNum, batch, ntwk, prev_layer, numRepeat, convNumOfmaps, firstStride):
+    def Section(self, sectNum, (batch1,batch2), ntwk, prev_layer, numRepeat, convNumOfmaps, firstStride):
         forkLayer = layer = prev_layer
         pfx="res" + str(sectNum) + "a_branch"
-        layer = ConvLayer(Layer.Param(pfx + "2a", batch, self), layer, convNumOfmaps, stride=firstStride, kernel=1)
-        layer = ConvLayer(Layer.Param(pfx + "2b", batch, self), layer, convNumOfmaps, stride=1, kernel=3)
-        layer = ConvLayer(Layer.Param(pfx + "2c", batch, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
+        layer = ConvLayer(Layer.Param(pfx + "2a", batch1, self), layer, convNumOfmaps, stride=firstStride, kernel=1)
+        layer = ConvLayer(Layer.Param(pfx + "2b", batch2, self), layer, convNumOfmaps, stride=1, kernel=3)
+        layer = ConvLayer(Layer.Param(pfx + "2c", batch2, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
         ## The next layer is in parallel with the previous 3 layers. It's stride
         ## is equal to the first layers stride.
-        reshapeShort = ConvLayer(Layer.Param(pfx + "1", batch, self), forkLayer, 4*convNumOfmaps, stride=firstStride, kernel=1)
-        layer = AddLayer(Layer.Param("res" + str(sectNum) + "a", batch, self), layer, reshapeShort)
+        reshapeShort = ConvLayer(Layer.Param(pfx + "1", batch2, self), forkLayer, 4*convNumOfmaps, stride=firstStride, kernel=1)
+        layer = AddLayer(Layer.Param("res" + str(sectNum) + "a", batch2, self), layer, reshapeShort)
 
         x = ord('b')
         for i in range(numRepeat-1):
             forkLayer = layer
             pfx = "res" + str(sectNum) + chr(x) + "_branch"
-            layer = ConvLayer(Layer.Param(pfx + "2a", batch, self), layer, convNumOfmaps, stride=1, kernel=1)
-            layer = ConvLayer(Layer.Param(pfx + "2b", batch, self), layer, convNumOfmaps, stride=1, kernel=3)
-            layer = ConvLayer(Layer.Param(pfx + "2c", batch, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
-            layer = AddLayer(Layer.Param("res" + str(sectNum) + chr(x), batch, self), layer, forkLayer)
+            layer = ConvLayer(Layer.Param(pfx + "2a", batch2, self), layer, convNumOfmaps, stride=1, kernel=1)
+            layer = ConvLayer(Layer.Param(pfx + "2b", batch2, self), layer, convNumOfmaps, stride=1, kernel=3)
+            layer = ConvLayer(Layer.Param(pfx + "2c", batch2, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
+            layer = AddLayer(Layer.Param("res" + str(sectNum) + chr(x), batch2, self), layer, forkLayer)
             x += 1
 
         return layer
@@ -61,18 +61,18 @@ class ResNet(Network):
         layer = DataLayer(Layer.Param("Data", 1, self), ofmap_desc)
 
         layer = ConvLayer(Layer.Param("conv1", 1, self), layer, 64, stride=2, kernel=7)                ## 7x7 conv, (3,224)->(64,112), stride 2,
-        layer = MaxPoolLayer(Layer.Param("pool1", 1, self), layer, stride=2, kernel=3)              ## Pool (64,112)->(64,56)
+        layer = MaxPoolLayer(Layer.Param("pool1", 2, self), layer, stride=2, kernel=3)              ## Pool (64,112)->(64,56)
 
         ########################################################################
-        layer = self.Section(2, 1, self, layer, 3, 64, 1)
-        layer = self.Section(3, 1, self, layer, 4, 128, 2)
-        layer = self.Section(4, 1, self, layer, 6, 256, 2)
-        layer = self.Section(5, 1, self, layer, 3, 512, 2)
+        layer = self.Section(2, (2,2), self, layer, 3, 64, 1)
+        layer = self.Section(3, (2,4), self, layer, 4, 128, 2)
+        layer = self.Section(4, (4,8), self, layer, 6, 256, 2)
+        layer = self.Section(5, (8,16), self, layer, 3, 512, 2)
 
 
         ########################################################################
-        layer = MaxPoolLayer(Layer.Param("pool5", 1, self), layer, stride=2, kernel=3)
-        layer = FullLayer(Layer.Param("fc1000", 1, self), layer, 1000)
+        layer = MaxPoolLayer(Layer.Param("pool5", 16, self), layer, stride=2, kernel=3)
+        layer = FullLayer(Layer.Param("fc1000", 16, self), layer, 1000)
 
 
         self.verify()
