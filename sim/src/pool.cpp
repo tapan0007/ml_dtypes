@@ -28,10 +28,9 @@ Pool::step() {
 	addr_t src_partition_size;
 	addr_t dst_partition_size;
 	ARBPRECTYPE dtype = ps.dtype;
+	ARBPRECTYPE up_dtype = get_upcast(ps.dtype);
 	size_t dsize = sizeofArbPrecType(ps.dtype);
 
-	ps.countdown--;
-	
 	src_partition_size = (ps.src_full_addr >= psum_buffer_base) ?
 		Constants::psum_addr : Constants::partition_nbytes;
 	dst_partition_size = (ps.dst_full_addr >= psum_buffer_base) ?
@@ -46,13 +45,14 @@ Pool::step() {
     }
     switch (ps.func) {
         case IDENTITY_POOL:
+            pool_pixel = in_pixel;
             break;
         case AVG_POOL:
-            pool_pixel = ArbPrec::add(&pool_pixel, &in_pixel, dtype);
+            pool_pixel = ArbPrec::add(&pool_pixel, &in_pixel, up_dtype);
             pool_cnt++;
             break;
         case MAX_POOL:
-            if (ArbPrec::gt(&pool_pixel, &in_pixel, dtype)) {
+            if (ArbPrec::gt(&in_pixel, &pool_pixel, dtype)) {
                 pool_pixel = in_pixel;
             }
             break;
@@ -67,7 +67,8 @@ Pool::step() {
                 assert(ps.start == ps.stop);
                 break;
             case AVG_POOL:
-                pool_pixel = ArbPrec::uint_divide(&pool_pixel, pool_cnt, dtype);
+                pool_pixel = ArbPrec::uint_divide(&pool_pixel, pool_cnt, 
+                        up_dtype);
                 break;
             case MAX_POOL:
                 break;
@@ -75,12 +76,14 @@ Pool::step() {
                 assert(0 && "that pooling is not yet supported");
                 break;
         }
-        memory.write(ps.dst_full_addr, &in_pixel, dsize);
+        memory.write(ps.dst_full_addr, &pool_pixel, dsize);
     }
     ps.src_full_addr += src_partition_size;
     ps.dst_full_addr += dst_partition_size;
-    if (!ps.countdown) {
+    if (ps.countdown == 0) {
         ps.valid = false;
+    } else {
+        ps.countdown--;
     }
 }
 

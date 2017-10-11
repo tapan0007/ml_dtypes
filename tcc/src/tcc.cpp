@@ -139,31 +139,36 @@ _pool_tile(FILE *fptr,
         const addr_t src_addr,
         const addr_t dst_addr,
         const size_t tile_sz_x, const size_t tile_sz_y,
-        const uint64_t o_cols,
+        const uint64_t o_dims[4],
         const ARBPRECTYPE pool_dtype)
 {
     POOL      pool_args = {0};
+    uint64_t o_cols = o_dims[3];
+    uint64_t o_ch    = o_dims[1];
 
     /* pool args */
     pool_args.opcode = POOL_OPC;
     pool_args.pool_func = IDENTITY_POOL;
     pool_args.in_dtype     = pool_dtype;
-    pool_args.src_start_addr = src_addr;
-    pool_args.stride_x = 1;
-    pool_args.stride_y = 1;
+
     pool_args.src_x_step= 1;
     pool_args.src_y_step= 1;
+    pool_args.src_x_num = tile_sz_x * tile_sz_y;
     pool_args.src_y_num = 1;
+    pool_args.src_start_addr = src_addr;
+
     pool_args.dst_x_step = 1;
     pool_args.dst_y_step = o_cols;
-    pool_args.dst_start_addr = dst_addr;
-    pool_args.dst_x_num = o_cols;
-
-    /* Pool  */
-    pool_args.src_x_num = tile_sz_x * tile_sz_y;
     pool_args.dst_x_num = tile_sz_x;
     pool_args.dst_y_num = tile_sz_y;
     pool_args.dst_start_addr = dst_addr;
+    pool_args.max_partition = o_ch - 1;
+
+
+    pool_args.str_x_step = 1;
+    pool_args.str_y_step = 1;
+    pool_args.str_x_num = 1;
+    pool_args.str_y_num = 1;
     PUSH(fptr, pool_args);
 
 }
@@ -193,19 +198,16 @@ void compile_read_filter(FILE *fptr,
 }
 
 void compile_write_ofmap(FILE *fptr,
-        const char *o_name, const addr_t addr, const uint64_t i_n, 
-        const uint64_t w_c, const uint64_t w_m,
-        const uint64_t o_rows, const uint64_t o_cols, 
+        const char *o_name, const addr_t addr,
+        const uint64_t o_dims[4],
         const size_t word_size)
 {
     SIM_WROFMAP args = {0};
     args.opcode = SIM_WROFMAP_OPC;
     args.address = addr;
-    args.i_n = i_n;
-    args.w_c = w_c;
-    args.w_m = w_m;
-    args.o_rows = o_rows;
-    args.o_cols = o_cols;
+    for (int i = 0; i < 4; i++) {
+        args.dims[i] = o_dims[i];
+    }
     args.word_size = word_size;
     strcpy(args.fname, o_name);
     
@@ -236,7 +238,7 @@ compile_convolve(FILE *fptr,
     uint8_t f_rows_dilated = f_rows + (f_rows - 1) * d_rows;
     uint8_t f_cols_dilated = f_cols + (f_cols - 1) * d_cols;
     /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
-    o_dims[0] = idim[1];
+    o_dims[0] = idim[0];
     o_dims[1] = wdim[0];
     o_dims[2] = (i_rows - f_rows_dilated + 2 * p_rows) / s_rows + 1;
     o_dims[3] = (i_cols - f_cols_dilated + 2 * p_cols) / s_cols + 1;
@@ -296,7 +298,7 @@ compile_convolve(FILE *fptr,
             _pool_tile(fptr,
                     psum_addr, pool_dst_addr,
                     tile_sz_x, tile_sz_y,
-                    o_cols, pool_dtype);
+                    o_dims, pool_dtype);
             if (j < (tile_cols - 1)) { /* non-edge tile */
                 pool_dst_addr += tile_sz_x * pool_dsize;
             } else { /* edge tile */
@@ -331,8 +333,8 @@ compile_pool(FILE *fptr,
 	uint64_t s_n    = stride_dims[0];
 	uint64_t k_cols = kernel_dims[3];
 	uint64_t k_rows = kernel_dims[2];
-	//uint64_t k_ch   = kernel_dims[1];
-	//uint64_t k_n    = kernel_dims[0];
+	uint64_t k_ch   = kernel_dims[1];
+	uint64_t k_n    = kernel_dims[0];
 	uint64_t i_cols = ifmap_dims[3];
 	//uint64_t i_rows = ifmap_dims[2];
 	//uint64_t i_ch   = ifmap_dims[1];
@@ -352,6 +354,10 @@ compile_pool(FILE *fptr,
 	
 	assert(s_n == 1 && "TBD: pooling across channels/batches");
 	assert(i_n == 1 && "TBD: batches");
+	assert(k_ch == 1 && "TBD: Pooling across channels");
+	assert(k_n == 1 && "TBD: Pooling across inputs");
+	assert(o_ch <= 64 && "Only 64 pooling engines, supported");
+            
 	for (unsigned int i = 0; i < s_n; i++) {
         for (unsigned int j = 0; j < s_ch; j++) {
             /* pool args */
@@ -364,18 +370,21 @@ compile_pool(FILE *fptr,
             pool_args.src_x_num = k_cols;
             pool_args.src_y_num = k_rows;
             pool_args.dst_start_addr = dst_addr;
-            pool_args.stride_x = s_cols;
-            pool_args.stride_y = s_rows;
+            pool_args.str_x_step = s_cols;
+            pool_args.str_y_step = i_cols * s_rows;
+            pool_args.str_x_num = o_cols;
+            pool_args.str_y_num = o_rows;
+            pool_args.max_partition = o_ch - 1;
 
             /* Pool  */
             pool_args.dst_x_step = 1;
             pool_args.dst_y_step = o_cols;
-            pool_args.dst_x_num = o_rows;
-            pool_args.dst_y_num = o_ch;
             pool_args.dst_x_num = o_cols;
+            pool_args.dst_y_num = o_rows;
             pool_args.dst_start_addr = dst_addr;
             PUSH(fptr, pool_args);
         }
-	}
+    }
+
 }
 	

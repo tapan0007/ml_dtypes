@@ -14,9 +14,8 @@ void compile_read_filter(FILE *file,
         const addr_t filter_full_addr, const char *i_name);
 
 void compile_write_ofmap(FILE *file,
-        const char *o_name, const addr_t addr, const uint64_t i_n, 
-        const uint64_t w_c,  const uint64_t w_m,
-        const uint64_t o_rows, const uint64_t o_cols, 
+        const char *o_name, const addr_t addr,
+        const uint64_t dims[4],
         const size_t word_size);
 
 /* convolve kernel */
@@ -36,6 +35,7 @@ compile_pool(FILE *file,
         const uint64_t kernel_dims[4],
         const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
         const uint64_t stride_dims[4],
+        const ARBPRECTYPE dtype,
         POOLFUNC pool_func);
 
 #endif

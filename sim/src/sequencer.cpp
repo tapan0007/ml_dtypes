@@ -11,22 +11,6 @@ extern class Memory memory;
  * EdgeSignalsInstruction
  *------------------------------------ */
 template<>
-void DynamicInstruction<EdgeSignals>::dump(bool header)
-{   
-    if (header) {
-        printf("rc cc |  iv   ia  |  wv wa   wd  wt wc | pa ps pe | av af | pv pt px py  \n");
-    }
-    printf("%2d %2d | %2d 0x%-3lx  | %2d 0x%-3lx  %2d %2d %2d | 0x%-3lx %2d %2d | %2d %2d | %2d %2d %2d %2d  \n",
-            args.row_countdown, args.column_countdown, 
-            args.ifmap_valid, args.ifmap_full_addr,
-            args.weight_valid, args.weight_full_addr, args.weight_dtype, args.weight_toggle, args.weight_clamp,
-            args.psum_full_addr, args.psum_start, args.psum_stop,
-            args.activation_valid, args.activation,
-            args.pool_valid, args.pool_type, args.pool_dimx, args.pool_dimy);
-
-}
- 
-template<>
 void
 DynamicInstruction<EdgeSignals>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
@@ -80,10 +64,10 @@ void  DynamicInstruction<SIM_WROFMAP>::execute(void *v_seq) {
     UNUSED(v_seq);
     void *o_ptr;
     
-    o_ptr = memory.sbuffer_bank_munmap(args.address, args.w_c, 
-            args.o_rows * args.o_cols * args.word_size);
-    memory.io_write(args.fname, o_ptr, args.i_n, args.w_m, args.o_rows, 
-            args.o_cols, args.word_size);
+    o_ptr = memory.sbuffer_bank_munmap(args.address, args.dims[1], 
+            args.dims[2] * args.dims[3] * args.word_size);
+    memory.io_write(args.fname, o_ptr, args.dims[0], args.dims[1], 
+            args.dims[2], args.dims[3], args.word_size);
 }
 
 
@@ -143,9 +127,6 @@ void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     seq->es.psum_stop = args.stop_tensor_calc;
     seq->es.psum_full_addr = args.psum_start_addr;
 
-    /* pool setup - TODO remove */
-    seq->es.pool_valid = args.stop_tensor_calc; // FIXME - temporary hack
-
     /* signals that will stay constant for entire convolution */
     /* padding setup */
     seq->pad[N] = args.n_pad;
@@ -169,16 +150,15 @@ template<>
 void  DynamicInstruction<POOL>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     POOLFUNC pool_func = (POOLFUNC)args.pool_func;
-	seq->pool_valid = true;
-	seq->pool_timer = Constants::rows;
+	seq->ps.valid = true;
     seq->ps.func = pool_func;
 	seq->ps.dtype = (ARBPRECTYPE)args.in_dtype;
 	seq->ps.src_full_addr = args.src_start_addr;
 	seq->ps.start = true;
-	seq->ps.stop = (pool_func = IDENTITY_POOL) ||
+	seq->ps.stop = (pool_func == IDENTITY_POOL) ||
         (args.src_x_num + args.src_y_num == 2);
 	seq->ps.dst_full_addr = args.dst_start_addr;
-	seq->ps.countdown = args.dst_w_num;
+	seq->ps.countdown = args.max_partition;
 	
 	seq->pool_src_base = args.src_start_addr;
 	seq->pool_dst_base = args.dst_start_addr;
@@ -188,19 +168,27 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
 	seq->pool_src_y_step = args.src_y_step;
 	seq->pool_src_x_num = args.src_x_num;
 	seq->pool_src_y_num = args.src_y_num;
-	seq->pool_str_x = args.stride_x;
-	seq->pool_str_y = args.stride_y;
-	seq->pool_cnt = 0;
+
+	seq->pool_str_x_cnt = 0;
+	seq->pool_str_y_cnt = 0;
+	seq->pool_str_x_step = args.str_x_step;
+	seq->pool_str_y_step = args.str_y_step;
+	seq->pool_str_x_num = args.str_x_num;
+	seq->pool_str_y_num = args.str_y_num;
 
 
-	seq->pool_dst_x_step = args.dst_x_step;
-	seq->pool_dst_y_step = args.dst_y_step;
 	seq->pool_dst_x_cnt = 0;
 	seq->pool_dst_y_cnt = 0;
+	seq->pool_dst_x_step = args.dst_x_step;
+	seq->pool_dst_y_step = args.dst_y_step;
 	seq->pool_dst_x_num = args.dst_x_num;
 	seq->pool_dst_y_num = args.dst_y_num;
-	seq->pool_irows = 
-	seq->pool_icols = 
+
+    seq->pool_eopools = false;
+    /* emit one result for every stride... if not identity pool */
+    assert((pool_func == IDENTITY_POOL) ||
+            (seq->pool_dst_x_num * seq->pool_dst_y_num ==
+             seq->pool_str_x_num * seq->pool_str_y_num));
 }
 
 /*------------------------------------
@@ -213,7 +201,20 @@ Sequencer::connect_uopfeed(UopFeedInterface *_feed) {
 
 bool
 Sequencer::synch() {
-    return es.pad_valid || es.ifmap_valid  || es.weight_valid || pool_valid;
+    static int pe_countdown = 128;
+    bool busy = es.pad_valid || es.ifmap_valid  || es.weight_valid || 
+        ps.valid;
+    if (es.ifmap_valid) {
+        pe_countdown = 128;
+    } else if (ps.valid) {
+        pe_countdown = 128;
+    } else {
+        if (pe_countdown) {
+            pe_countdown--;
+            busy = true;
+        } 
+    }
+    return busy;
 }
 
 
@@ -267,7 +268,6 @@ Sequencer::step_edgesignal() {
         es.ifmap_valid = false;
         es.psum_start = false;
         es.psum_stop = false;
-        es.pool_valid = false;
         es.activation_valid = false;
     } else {
         es.ifmap_valid = !es.pad_valid;
@@ -307,89 +307,77 @@ Sequencer::step_edgesignal() {
     }
 }
 
+#define ROLLOVER(CNT, NUM, ROLLOVER) \
+    if (CNT >= NUM) { \
+        CNT = 0; \
+        ROLLOVER++; \
+    }
+
+
 /* sub function of step - to step the poolsignal */
 void
 Sequencer::step_poolsignal() {
-    if (!pool_valid) {
-        return;
+    uint32_t eopool = 0;
+    bool     last_pool = false;
+    bool     eostrides = false;
+    if (pool_eopools) {
+        ps.valid = false;
     }
-    if (pool_timer) {
-        --pool_timer;
-        if (pool_timer == 0) {
-            ps.valid = true;
-        } 
-        return;
-    }
-    assert(ps.valid);
     if (!ps.valid) {
         return;
     }
     size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ps.dtype);
-    /* roll over src counters */
+
     pool_src_x_cnt++;
-    if (pool_src_x_cnt >= pool_src_x_num) {
-        pool_src_x_cnt = 0;
-        pool_src_y_cnt++;
+    ROLLOVER(pool_src_x_cnt, pool_src_x_num, pool_src_y_cnt);
+    if (!pool_src_x_cnt) {
+        ROLLOVER(pool_src_y_cnt, pool_src_y_num, eopool);
     }
 
-    if (pool_src_y_cnt >= pool_src_y_num) {
-        pool_src_y_cnt = 0;
-        pool_cnt++;
-        /* stay withing im ! */
-        assert((pool_cnt + 1) *
-                pool_src_y_num * pool_src_y_step * 
-                pool_src_x_num * pool_src_y_num <= (i_rows * i_cols));
-        }
-    }
-
-    bool eopool = 
-        (pool_src_x_cnt == pool_src_x_num - 1) && 
+    last_pool = 
+        (pool_src_x_cnt == pool_src_x_num - 1) &&
         (pool_src_y_cnt == pool_src_y_num - 1);
 
     /* roll over dst counters */
     if (ps.func == IDENTITY_POOL || eopool) {
         pool_dst_x_cnt++;
-        if (pool_dst_x_cnt >= pool_dst_x_num) {
-            pool_dst_x_cnt = 0;
-            pool_dst_y_cnt++;
+        ROLLOVER(pool_dst_x_cnt, pool_dst_x_num, pool_dst_y_cnt);
+        if (!pool_dst_x_cnt) {
+            ROLLOVER(pool_dst_y_cnt, pool_dst_y_num, pool_eopools);
+        }
+        pool_str_x_cnt++;
+        ROLLOVER(pool_str_x_cnt, pool_str_x_num, pool_str_y_cnt);
+        if (!pool_str_x_cnt) {
+            ROLLOVER(pool_str_y_cnt, pool_str_y_num, eostrides);
         }
     }
+    assert((ps.func == IDENTITY_POOL) || (eostrides == pool_eopools));
 
-    /* set signals */
-    /* togglers */
-    COND_SET(ps.stop, false);
-    COND_SET(ps.start, false);
-
-    /* start/stop pooling */
+    /* stopped last cycle, start anew */
     if (ps.func == IDENTITY_POOL) {
         ps.start = true;
         ps.stop = true;
     } else {
         ps.start = ps.stop; /* stopped last cycle, start anew */
-        ps.stop = eopool;
+        ps.stop = last_pool;
     }
 
-    /* totally done */
-    if (pool_dst_y_cnt >= pool_dst_y_num) {
-        pool_dst_y_cnt = 0;
-        ps.valid = false;
-        pool_valid = false;
-    }
 
 
     /* calculate address based on settings */
     if (ps.valid) {
-        ps.src_full_addr = pool_src_base + dsize * 
-            (pool_cnt * /* tile */
-             (pool_src_x_num * pool_src_x_step *
-              pool_src_y_num * pool_src_y_step)) + 
-            (pool_src_y_cnt * pool_src_y_step + /* offset in tile */
-             pool_src_x_cnt * pool_src_x_step); 
+        ps.src_full_addr = pool_src_base + 
+            dsize * 
+            (pool_str_x_cnt * pool_str_x_step +
+             pool_str_y_cnt * pool_str_y_step) + /* tile */
+            dsize *
+            (pool_src_x_cnt * pool_src_x_step + /* offset in tile */
+             pool_src_y_cnt * pool_src_y_step);
     }
     if (ps.start) {
         ps.dst_full_addr = pool_dst_base + 
-            (pool_dst_y_cnt * pool_dst_y_step + 
-             pool_dst_x_cnt * pool_dst_x_step) * dsize;
+            (pool_dst_x_cnt * pool_dst_x_step + 
+             pool_dst_y_cnt * pool_dst_y_step) * dsize;
     }
 }
 
@@ -397,7 +385,7 @@ void
 Sequencer::step() {
     /* empty the instruction queue */
     Instruction *inst = NULL;
-    if (raw_signal || !synch()) {
+    if (!synch()) {
         if (!feed->empty()) {
             uint64_t *raw_inst = (uint64_t *)feed->front();
             switch (TPB_OPCODE(*raw_inst)) {
@@ -459,5 +447,5 @@ Sequencer::pull_pool() {
 
 bool
 Sequencer::done() {
-    return feed->empty() && !es.ifmap_valid && !es.weight_valid && !pool_valid;
+    return feed->empty() && !es.ifmap_valid && !es.weight_valid && !ps.valid;
 }

@@ -66,10 +66,6 @@ typedef struct EdgeSignals {
     bool           activation_valid; // PSUM     | Should we perform an activation on psum id?
     ACTIVATIONFUNCTION activation;   // PSUM     | Which activation func should we perform?
  
-    bool           pool_valid;       // PSUM     | Should we perform a pool on psum id? 
-    POOLFUNC       pool_type;        // PSUM     | Which  pooling func should we perform?
-    int            pool_dimx;        // PSUM     | rows in pooling
-    int            pool_dimy;        // PSUM     | cols in pooling
 } EdgeSignals;
 
 typedef struct PoolSignals {

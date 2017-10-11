@@ -65,8 +65,7 @@ main(int argc, char **argv)
             filter_full_addr, f_dims,
             ofmap_full_addr, o_dims,
             dtype, padding, stride, dilate);
-    compile_write_ofmap(fptr, o_name, ofmap_full_addr,
-            i_dims[0], f_dims[1], f_dims[0], o_dims[2], o_dims[3], oword_size);
+    compile_write_ofmap(fptr, o_name, ofmap_full_addr, o_dims, oword_size);
 
 
 

@@ -191,6 +191,9 @@ class ArbPrec
             } else if (in_type == FP32) {
                 is_gt = float(EXTRACT(float, x)) >
                     float(EXTRACT(float, y));
+            } else if (in_type == UINT8) { /* pooling from SB */
+                is_gt = float(EXTRACT(uint8_t, x)) >
+                    float(EXTRACT(uint8_t, y));
             } else {
                 assert(0);
             }

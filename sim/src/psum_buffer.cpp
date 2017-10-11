@@ -145,14 +145,6 @@ PSumBuffer::step() {
             memcpy(&valids[e_offset], &zeros, dsize); 
         } 
 
-        if (ew.pool_valid) {
-            ArbPrecData ofmap_pixel = pool();
-            if (ew.activation_valid) {
-                ofmap_pixel = activation(ofmap_pixel);
-            }
-            //memory.write(ew.ofmap_full_addr, ArbPrec::element_ptr(ofmap_pixel, psum_dtype), (char *)ArbPrec::element_ptr(ofmap_pixel, psum_dtype) - (char *)&ofmap_pixel);
-            //ew.ofmap_full_addr += Constants::partition_nbytes;
-        }
         if (ew.column_countdown == 0) {
             ew.row_valid = 0;
         } else {

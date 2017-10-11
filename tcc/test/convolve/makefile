@@ -6,9 +6,9 @@ LIBFLAGS = -ltcc
 LIBRARY = $(LIBDIR)/compiler_lib.a
 SRCDIR = src
 OBJDIR = obj
-LIBDIR = ../libs
-SHAREDIR = ../../shared
-INCDIRS = $(SHAREDIR)/inc src ../inc
+LIBDIR = ../../libs
+SHAREDIR = ../../../shared
+INCDIRS = $(SHAREDIR)/inc src ../../inc
 INCLUDES = $(foreach d, $(INCDIRS), -I$d)
 TARGET = test_convolve
 
