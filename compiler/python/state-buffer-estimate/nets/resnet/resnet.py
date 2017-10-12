@@ -31,25 +31,24 @@ class ResNet(Network):
         self.m_Ofmap_desc = ofmap_desc
 
     ############################################################################
-    def Section(self, sectNum, (batch1,batch2), ntwk, prev_layer, numRepeat, convNumOfmaps, firstStride):
+    def Section(self, sectNum, (firstLayerBatch,otherLayersBatch), ntwk, prev_layer, numRepeat, convNumOfmaps, firstStride):
         forkLayer = layer = prev_layer
         pfx="res" + str(sectNum) + "a_branch"
-        layer = ConvLayer(Layer.Param(pfx + "2a", batch1, self), layer, convNumOfmaps, stride=firstStride, kernel=1)
-        layer = ConvLayer(Layer.Param(pfx + "2b", batch2, self), layer, convNumOfmaps, stride=1, kernel=3)
-        layer = ConvLayer(Layer.Param(pfx + "2c", batch2, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
-        ## The next layer is in parallel with the previous 3 layers. It's stride
-        ## is equal to the first layers stride.
-        reshapeShort = ConvLayer(Layer.Param(pfx + "1", batch2, self), forkLayer, 4*convNumOfmaps, stride=firstStride, kernel=1)
-        layer = AddLayer(Layer.Param("res" + str(sectNum) + "a", batch2, self), layer, reshapeShort)
+        layer = ConvLayer(Layer.Param(pfx + "2a", firstLayerBatch, self), layer, convNumOfmaps, stride=firstStride, kernel=1)
+        layer = ConvLayer(Layer.Param(pfx + "2b", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=3)
+        layer = ConvLayer(Layer.Param(pfx + "2c", otherLayersBatch, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
+        ## The next layer is in parallel with the previous 3 layers. It's stride is equal to the first layers stride.
+        reshapeShort = ConvLayer(Layer.Param(pfx + "1", otherLayersBatch, self), forkLayer, 4*convNumOfmaps, stride=firstStride, kernel=1)
+        layer = AddLayer(Layer.Param("res" + str(sectNum) + "a", otherLayersBatch, self), layer, reshapeShort)
 
         x = ord('b')
         for i in range(numRepeat-1):
             forkLayer = layer
             pfx = "res" + str(sectNum) + chr(x) + "_branch"
-            layer = ConvLayer(Layer.Param(pfx + "2a", batch2, self), layer, convNumOfmaps, stride=1, kernel=1)
-            layer = ConvLayer(Layer.Param(pfx + "2b", batch2, self), layer, convNumOfmaps, stride=1, kernel=3)
-            layer = ConvLayer(Layer.Param(pfx + "2c", batch2, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
-            layer = AddLayer(Layer.Param("res" + str(sectNum) + chr(x), batch2, self), layer, forkLayer)
+            layer = ConvLayer(Layer.Param(pfx + "2a", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=1)
+            layer = ConvLayer(Layer.Param(pfx + "2b", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=3)
+            layer = ConvLayer(Layer.Param(pfx + "2c", otherLayersBatch, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
+            layer = AddLayer(Layer.Param("res" + str(sectNum) + chr(x), otherLayersBatch, self), layer, forkLayer)
             x += 1
 
         return layer

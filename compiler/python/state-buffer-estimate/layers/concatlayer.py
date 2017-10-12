@@ -64,7 +64,7 @@ class ConcatLayer(CombineLayer):
         return True
 
     #-----------------------------------------------------------------
-    def gBatchInputStateSize(self, batch=1):
+    def gBatchInputStateSize(self):
         sz = 0
         for prevLayer in self.gPrevLayers():
             num_ofmaps = prevLayer.gNumOfmaps()
@@ -73,8 +73,6 @@ class ConcatLayer(CombineLayer):
         return sz
 
     #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self, batch=1):
-        num_ofmaps = self.gNumOfmaps()
-        ofmap_size = self.gOfmapSize()
-        return ofmap_size * ofmap_size * num_ofmaps
+    def gBatchOutputStateSize(self):
+        return self.gRawOutputStateSize()
 

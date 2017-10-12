@@ -34,10 +34,13 @@ class Layer(object): # abstract class
         assert(isinstance(ntwrk, nets.network.Network))
         assert(isinstance(ofmap_desc, OfmapDesc))
         assert(isinstance(prev_layers, tuple))
-        assert(len(prev_layers) == 0 or isinstance(prev_layers[0], Layer))
+        for prevLayer in prev_layers:
+            assert(isinstance(prevLayer, Layer))
+        assert(batch >= 1)
 
         self.__LayerName       = layerName
         self.__Batch           = batch
+        self.__MaxFanoutBatch  = None
         self.__Network         = ntwrk
         self.__Ofmap_desc      = ofmap_desc.copy()
         self.__Id              = None
@@ -58,7 +61,7 @@ class Layer(object): # abstract class
         # and need this layer's
         self.__RefCount = 0
         self.__TotMem = 0
-                            
+
 
         assert( (len(prev_layers) == 0) == (self.gLayerType() == LAYER_TYPE_DATA) )
         self.__PrevLayers.extend(prev_layers)
@@ -66,6 +69,14 @@ class Layer(object): # abstract class
             prevLayer.addNextLayer(self)
 
         ntwrk.addLayer(self) ## will assign index
+
+    #-----------------------------------------------------------------
+    def gBatch(self):
+        return self.__Batch
+
+    #-----------------------------------------------------------------
+    def rMaxFanoutBatch(self, maxFanoutBatch):
+        self.__MaxFanoutBatch  = maxFanoutBatch
 
     #-----------------------------------------------------------------
     #-----------------------------------------------------------------
@@ -90,27 +101,41 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     @abstractmethod
-    def gBatchInputStateSize(self, batch=1):
+    def gBatchInputStateSize(self):
         assert(False)
 
     #-----------------------------------------------------------------
     @abstractmethod
-    def gBatchOutputStateSize(self, batch=1):
+    def gBatchOutputStateSize(self):
         assert(False)
     #-----------------------------------------------------------------
     def qConvLayer(self):
         return self.gLayerType() == LAYER_TYPE_CONV
 
     #-----------------------------------------------------------------
-    def gRawInputStateSize(self, batch=1):
+    def gRawInputStateSize(self):
         sz = 0
         for inLayer in self.gPrevLayers():
             sz += inLayer.gRawOutputStateSize()
         return sz
 
     #-----------------------------------------------------------------
-    def gRawOutputStateSize(self, batch=1):
-        return self.gNumOfmaps() * self.gOfmapSize() * self.gOfmapSize()
+    def gRawInputStateSizeOneBatch(self):
+        sz = 0
+        for inLayer in self.gPrevLayers():
+            sz += inLayer.gRawOutputStateSizeOneBatch()
+        return sz
+
+    #-----------------------------------------------------------------
+    def gRawOutputStateSize(self):
+        return self.__MaxFanoutBatch * self.gRawOutputStateSizeOneBatch()
+
+    def gRawOutputStateSizeOneBatch(self):
+        if self.qStoreInSB():
+            oneBatchSize = self.gNumOfmaps() * (self.gOfmapSize() * self.gOfmapSize())
+            return oneBatchSize
+        else:
+            return 0
 
 
     #-----------------------------------------------------------------
@@ -218,11 +243,7 @@ class Layer(object): # abstract class
     def gBatchTotalStateSize(self):
         isize = self.gBatchInputStateSize()
         osize = self.gBatchOutputStateSize()
-        if self.qPassThrough():
-            assert(isize == osize)
-            return osize
-        else:
-            return isize + osize
+        return isize + osize
 
     #-----------------------------------------------------------------
     def gNumberWeights(self):

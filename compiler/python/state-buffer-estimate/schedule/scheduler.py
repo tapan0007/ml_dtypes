@@ -64,10 +64,10 @@ class Scheduler(object):
 
         self.__Levels = Levels
         self.__calculateLateLevels()
-        self.verifyLevelization()
+        self.__verifyLevelization()
 
     #-----------------------------------------------------------------
-    def verifyLevelization(self):
+    def __verifyLevelization(self):
         for level in self.__Levels:
             levNum = level.gLevelNum()
             for layer in level.gLayers():
@@ -96,6 +96,8 @@ class Scheduler(object):
         self.__Network = ntwk
         self.__Layers = ntwk.gLayers()
         self.__Levels = None
+
+        self.__calcFanoutBatch()
 
         self.__levelize()
         Levels = self.__Levels
@@ -129,7 +131,7 @@ class Scheduler(object):
         for level in self.__Levels:
             self.__scheduleLevel(level)
         self.__linkSchedLayers()
-    
+
         self.calcSbMem()
 
     #-----------------------------------------------------------------
@@ -214,7 +216,7 @@ class Scheduler(object):
         sorted(levelCopy, key=functools.cmp_to_key(compareLayer))
 
     #-----------------------------------------------------------------
-    def processLayerSbMem(self, layer):
+    def __processLayerSbMem(self, layer):
         if not layer.qStoreInSB():
             return
         outSize = layer.gBatchOutputStateSize()
@@ -223,7 +225,7 @@ class Scheduler(object):
         layer.rTotMem(self.__CurrMem)
 
         if self.__CurrMem > self.__HighMemWatermark:
-            self.__HighMemWatermark = self.__CurrMem 
+            self.__HighMemWatermark = self.__CurrMem
 
         for inSbLayer in layer.gPrevSbLayers():
             assert(inSbLayer.qStoreInSB())
@@ -233,7 +235,21 @@ class Scheduler(object):
                 self.__CurrMem -= oneInSize
 
     #-----------------------------------------------------------------
-    def addPrevSbLayers(self, layer):
+    def __calcFanoutBatch(self):
+        for layer in self.__Network.gLayers():
+            maxFanoutBatch = 0
+            numFanouts = 0
+            for fanoutLayer in layer.gNextLayers():
+                numFanouts += 1
+                fob = fanoutLayer.gBatch()
+                if fob > maxFanoutBatch:
+                    maxFanoutBatch = fob
+            assert(numFanouts == 0 or maxFanoutBatch > 0)
+            layer.rMaxFanoutBatch(maxFanoutBatch)
+
+
+    #-----------------------------------------------------------------
+    def __addPrevSbLayers(self, layer):
         for prevLayer in layer.gPrevLayers():
             if prevLayer.qStoreInSB():
                 layer.addPrevSbLayer(prevLayer)
@@ -247,11 +263,12 @@ class Scheduler(object):
         self.__CurrMem = 0
         self.__HighMemWatermark = 0
 
-        for layer in self.__Network.gSchedLayers():
-            self.addPrevSbLayers(layer)
 
         for layer in self.__Network.gSchedLayers():
-            self.processLayerSbMem(layer)
+            self.__addPrevSbLayers(layer)
+
+        for layer in self.__Network.gSchedLayers():
+            self.__processLayerSbMem(layer)
 
 
     #-----------------------------------------------------------------

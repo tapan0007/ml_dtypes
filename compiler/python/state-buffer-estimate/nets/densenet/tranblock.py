@@ -19,7 +19,7 @@ class TranBlock(nets.block.Block):
 
         layer = prev_layer
 
-        pfx = "TBk" + str(blockIdx) 
+        pfx = "TBk" + str(blockIdx)
         layer = BatchNormLayer(Layer.Param(pfx + "-BN1", batch, ntwk), layer)
         layer.rTranBlockStart(blockIdx)
 

@@ -7,7 +7,7 @@ from subsamplelayer import SubSampleLayer
 import nets.network
 
 ##########################################################
-class PoolLayer(SubSampleLayer):
+class PoolLayer(SubSampleLayer): # abstract class
     __metaclass__ = ABCMeta
 
     #-----------------------------------------------------------------
@@ -29,16 +29,12 @@ class PoolLayer(SubSampleLayer):
         return False
 
     #-----------------------------------------------------------------
-    def gBatchInputStateSize(self, batch=1):
+    def gBatchInputStateSize(self):
         return 0
 
     #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self, batch=1):
-        nextSchedLayer = self.gNextSchedLayer()
-        if self.qStoreInSB():
-            return self.gRawOutputStateSize(batch)
-        else:
-            return 0
+    def gBatchOutputStateSize(self):
+        return self.gRawOutputStateSize()
 
     #-----------------------------------------------------------------
     def gPoolLayerStr(self, typ):

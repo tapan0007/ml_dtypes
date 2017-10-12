@@ -9,8 +9,8 @@ class OneToOneLayer(Layer): # abstract class
         assert(isinstance(prev_layer, Layer))
         ofmap_desc = prev_layer.gOfmapDesc()
         super(OneToOneLayer, self).__init__(param, ofmap_desc, (prev_layer,))
-        assert(prev_layer.gRawOutputStateSize() == self.gRawOutputStateSize())
-        assert(self.gRawInputStateSize() == self.gRawOutputStateSize())
+        assert(prev_layer.gRawOutputStateSizeOneBatch() == self.gRawOutputStateSizeOneBatch())
+        assert(self.gRawInputStateSizeOneBatch() == self.gRawOutputStateSizeOneBatch())
 
     #-----------------------------------------------------------------
     def verify(self):
@@ -19,11 +19,11 @@ class OneToOneLayer(Layer): # abstract class
         assert(prev_layer.gOfmapDesc() == self.gOfmapDesc())
 
     #-----------------------------------------------------------------
-    def gBatchInputStateSize(self, batch=1):
+    def gBatchInputStateSize(self):
         return self.gRawInputStateSize()
 
     #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self, batch=1):
+    def gBatchOutputStateSize(self):
         return self.gRawOutputStateSize()
 
     #-----------------------------------------------------------------
