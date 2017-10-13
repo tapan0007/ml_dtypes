@@ -36,7 +36,7 @@ for arg in sys.argv[1:]:
 assert(ntwk)
 ntwk.construct()
 scheduler = Scheduler()
-scheduler.schedule(ntwk)
+scheduler.Schedule(ntwk)
 ntwk.rLevels(scheduler.gLevels())
 
 ### Printing

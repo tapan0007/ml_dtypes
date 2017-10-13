@@ -92,7 +92,7 @@ class Scheduler(object):
                 layer.rLateLevel(minNextLastLev - 1)
 
     #-----------------------------------------------------------------
-    def schedule(self, ntwk):
+    def Schedule(self, ntwk):
         self.__Network = ntwk
         self.__Layers = ntwk.gLayers()
         self.__Levels = None
@@ -234,8 +234,8 @@ class Scheduler(object):
             assert(inSbLayer.qStoreInSB())
             inSbLayer.changeRefCount(-1)  ## decrease ref count by 1
             if inSbLayer.gRefCount() == 0:
-                oneInSize = inSbLayer.gRawOutputStateSize()
-                self.__CurrMem -= oneInSize
+                inLayerSize = inSbLayer.gRawOutputStateSize()
+                self.__CurrMem -= inLayerSize
 
     #-----------------------------------------------------------------
     def __calcFanoutBatch(self):

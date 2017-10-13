@@ -82,7 +82,7 @@ out: 6*3 (L4.batch * w4o)
 in:  6*7 (L4.batch * w4i)
 
 L3:
-out: 2*7 (L3.batch * w3o/w34) + 4*7 ([L4.batch - L3.batch] * w34)
+out: 2*7 (L3.batch * w3o/w34) + 4*7 ([L4.batch - L3.batch] * w34/w3o)
 in:  2*11 (L3.batch * w3i)
 
 L2:

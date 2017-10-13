@@ -68,6 +68,7 @@ class Layer(object): # abstract class
         self.__RefCount         = 0
         self.__TotMem           = 0
 
+        self.__BatchMem         = 0
 
         assert( (len(prev_layers) == 0) == (self.gLayerType() == LAYER_TYPE_DATA) )
         self.__PrevLayers.extend(prev_layers)
@@ -109,6 +110,13 @@ class Layer(object): # abstract class
     def qConvLayer(self):
         return self.gLayerType() == LAYER_TYPE_CONV
 
+    #-----------------------------------------------------------------
+    def addBatchMem(self, mem):
+        self.__BatchMem += mem
+
+    #-----------------------------------------------------------------
+    def gBatchMem(self):
+        return self.__BatchMem
 
 
     #-----------------------------------------------------------------

@@ -10,6 +10,28 @@ class Network(object):
     __metaclass__ = ABCMeta
 
     #-----------------------------------------------------------------
+    class SchedLayerForwRevIter(object):
+        def __init__(self, startLayer, forw):
+            self.__Forw = forw
+            self.__CurrLayer = startLayer
+
+        def __iter__(self):
+            return self
+
+        def next(self):
+            currLayer = self.__CurrLayer
+            if not currLayer:
+                raise StopIteration()
+
+            if self.__Forw:
+                nextLayer = currLayer.gNextSchedLayer()
+            else:
+                nextLayer = currLayer.gPrevSchedLayer()
+
+            self.__CurrLayer = nextLayer
+            return currLayer
+
+    #-----------------------------------------------------------------
     def __init__(self):
         self.__Layers = [ ]
         self.__LayerNumMajor = -1
@@ -142,25 +164,14 @@ class Network(object):
     #-----------------------------------------------------------------
     def gSchedLayers(self):
         #-------------------------------------------------------------
-        class SchedLayerForwIter(object):
-            def __init__(self, startLayer):
-                self.__CurrLayer = startLayer
+        return Network.SchedLayerForwRevIter(self.__Layers[0], True)
 
-            def __iter__(self):
-                return self
-
-            def next(self):
-                currLayer = self.__CurrLayer
-                if not currLayer:
-                    raise StopIteration()
-
-                nextLayer = currLayer.gNextSchedLayer()
-                self.__CurrLayer = nextLayer
-                return currLayer
+    #-----------------------------------------------------------------
+    def gReverseSchedLayers(self):
+        return Network.SchedLayerForwRevIter(self.__Layers[-1], False)
 
 
 
-        return SchedLayerForwIter(self.__Layers[0])
 
 
     #-----------------------------------------------------------------
