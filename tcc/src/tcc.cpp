@@ -51,7 +51,8 @@ _convolve_tile(FILE *fptr,
         const addr_t psum_addr,
         const ARBPRECTYPE dtype,
         const uint8_t fmap_num[2],
-        const uint8_t pads[NUM_NSEW])
+        const uint8_t pads[NUM_NSEW], 
+        const uint8_t strides[2])
 {
     /* bounds checking */
     for (int i = 0; i < 4; i++) {
@@ -87,8 +88,8 @@ _convolve_tile(FILE *fptr,
 
     /* matmul args */
     matmul_args.opcode = MATMUL_OPC;
-    matmul_args.fmap_x_step = 1;
-    matmul_args.fmap_y_step = i_cols;
+    matmul_args.fmap_x_step = strides[0];
+    matmul_args.fmap_y_step = strides[1] * i_cols;
     matmul_args.dtype = dtype;
     matmul_args.psum_start_addr = psum_addr; /* b/c we specify padding as arg */
     matmul_args.last_row = num_rows - 1;
@@ -220,10 +221,9 @@ compile_convolve(FILE *fptr,
         const addr_t filter_full_addr, const uint64_t wdim[4],
         const addr_t ofmap_full_addr, uint64_t o_dims[4],
         const ARBPRECTYPE dtype,
-        const uint8_t padding[2], const uint8_t stride[2], 
+        const uint8_t padding[2], const uint8_t striding[2], 
         const uint8_t dilate[2])
 {
-    UNUSED(stride);
     UNUSED(dilate);
     uint8_t f_rows = wdim[2];
     uint8_t f_cols = wdim[3];
@@ -233,8 +233,8 @@ compile_convolve(FILE *fptr,
     uint8_t p_cols = padding[1];
     uint8_t d_rows = 0; // TODO: implement
     uint8_t d_cols = 0; // TODO: implement
-    uint8_t s_rows = 1; // TODO: implement
-    uint8_t s_cols = 1; // TODO: implement
+    uint8_t s_rows = striding[1];
+    uint8_t s_cols = striding[0];
     uint8_t f_rows_dilated = f_rows + (f_rows - 1) * d_rows;
     uint8_t f_cols_dilated = f_cols + (f_cols - 1) * d_cols;
     /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
@@ -295,7 +295,7 @@ compile_convolve(FILE *fptr,
                     matmul_addr, idim,
                     filter_full_addr, wdim,
                     psum_addr,
-                    dtype, fmap_num, pads);
+                    dtype, fmap_num, pads, striding);
             _pool_tile(fptr,
                     psum_addr, pool_dst_addr,
                     tile_sz_x, tile_sz_y,

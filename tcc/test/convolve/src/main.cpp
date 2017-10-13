@@ -36,12 +36,17 @@ main(int argc, char **argv)
     FILE *fptr;
 
     if (argc < 3) {
-        printf("Usage is %s [-p PAD] IFMAP_NPY FILTER_NPY OUTPUT_NPY OUTPUT_BINARY\n", argv[0]);
+        printf("Usage is %s [-p PAD] [-s STRIDE] IFMAP_NPY FILTER_NPY OUTPUT_NPY OUTPUT_BINARY\n", argv[0]);
         return 1;
     }
     if (!strcmp(argv[i], "-p")) {
         padding[1] = atoi(argv[++i]);
         padding[0] = atoi(argv[++i]);
+        i++;
+    }
+    if (!strcmp(argv[i], "-s")) {
+        stride[1] = atoi(argv[++i]);
+        stride[0] = atoi(argv[++i]);
         i++;
     }
     i_name = argv[i++];
