@@ -28,7 +28,7 @@ Pool::step() {
 	addr_t src_partition_size;
 	addr_t dst_partition_size;
 	ARBPRECTYPE dtype = ps.dtype;
-	ARBPRECTYPE up_dtype = get_upcast(ps.dtype);
+	ARBPRECTYPE up_dtype;
 	size_t dsize = sizeofArbPrecType(ps.dtype);
 
 	src_partition_size = (ps.src_full_addr >= psum_buffer_base) ?
@@ -48,6 +48,7 @@ Pool::step() {
             pool_pixel = in_pixel;
             break;
         case AVG_POOL:
+            up_dtype = get_upcast(ps.dtype);
             pool_pixel = ArbPrec::add(&pool_pixel, &in_pixel, up_dtype);
             pool_cnt++;
             break;
