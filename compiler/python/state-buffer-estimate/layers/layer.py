@@ -5,6 +5,8 @@ from utils.fmapdesc  import OfmapDesc
 from utils.funcs     import kstr
 import nets.network
 
+DoBatching = False
+
 ##########################################################
 class Layer(object): # abstract class
     __metaclass__ = ABCMeta
@@ -28,6 +30,7 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def __init__(self, param, ofmap_desc, prev_layers):
+        global DoBatching
         assert(isinstance(param, Layer.Param))
         (layerName, batch, ntwrk) = param.gAll()
         assert(isinstance(layerName, str))
@@ -38,29 +41,32 @@ class Layer(object): # abstract class
             assert(isinstance(prevLayer, Layer))
         assert(batch >= 1)
 
-        self.__LayerName       = layerName
-        self.__Batch           = batch
-        self.__MaxFanoutBatch  = None
-        self.__Network         = ntwrk
-        self.__Ofmap_desc      = ofmap_desc.copy()
-        self.__Id              = None
-        self.__NextSchedLayer  = None
-        self.__PrevSchedLayer  = None
+        self.__LayerName        = layerName
+        if DoBatching:
+            self.__Batch        = batch
+        else:
+            self.__Batch        = 1
+        self.__MaxFanoutBatch   = None
+        self.__Network          = ntwrk
+        self.__Ofmap_desc       = ofmap_desc.copy()
+        self.__Id               = None
+        self.__NextSchedLayer   = None
+        self.__PrevSchedLayer   = None
 
-        self.__DenseBlockStart = -1
-        self.__DenseBlockEnd   = -1
-        self.__TranBlockStart  = -1
-        self.__TranBlockEnd    = -1
+        self.__DenseBlockStart  = -1
+        self.__DenseBlockEnd    = -1
+        self.__TranBlockStart   = -1
+        self.__TranBlockEnd     = -1
 
-        self.__NextLayers      = []
-        self.__PrevLayers      = []
-        self.__PrevSbLayers    = []
+        self.__NextLayers       = []
+        self.__PrevLayers       = []
+        self.__PrevSbLayers     = []
 
-        self.__schedule = None  ## number in [0, NUM_LAYERS-1]
+        self.__schedule         = None  ## number in [0, NUM_LAYERS-1]
         # counts the number layers that need to be executed
         # and need this layer's
-        self.__RefCount = 0
-        self.__TotMem = 0
+        self.__RefCount         = 0
+        self.__TotMem           = 0
 
 
         assert( (len(prev_layers) == 0) == (self.gLayerType() == LAYER_TYPE_DATA) )

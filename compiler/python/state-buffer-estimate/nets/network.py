@@ -169,7 +169,7 @@ class Network(object):
             sbPreds = ""
             first=True
             for sbLayer in layer.gPrevSbLayers():
-                s = sbLayer.gNameNum()
+                s = sbLayer.gName()
                 if not first:
                     s = "," + s
                 first=False

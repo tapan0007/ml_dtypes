@@ -1,39 +1,62 @@
 import sys
 
-from nets.densenet.densenet  import DenseNet169
-from nets.resnet.resnet    import ResNet50
-from schedule.scheduler      import Scheduler
+from layers.layer                import DoBatching
+from nets.densenet.densenet     import DenseNet169
+from nets.resnet.resnet         import ResNet50
+from schedule.scheduler         import Scheduler
 
-print sys.argv
-assert(len(sys.argv) == 2)
+#print sys.argv
 
-if sys.argv[1] == "--densenet" or sys.argv[1] == "--dense":
-    ntwk = DenseNet169()
-elif sys.argv[1] == "--resnet" or sys.argv[1] == "--res":
-    ntwk = ResNet50()
-else:
-    sys.exit(1)
+PrintLevels = False
+PrintSchedule = True
+PrintDot = False
+PrintLayers = False
+DoBatching = False
+
+for arg in sys.argv[1:]:
+    if arg == "--densenet" or arg == "--dense":
+        ntwk = DenseNet169()
+    elif arg == "--resnet" or arg == "--res":
+        ntwk = ResNet50()
+    elif arg == "--print-layers":
+        PrintLayers = True
+    elif arg == "--print-levels":
+        PrintLevels = True
+    elif arg == "--no-print-sched":
+        PrintSchedule = False
+    elif arg == "--print-dot":
+        PrintDot = True
+    elif arg == "--batch" or arg == "--batching":
+        DoBatching = True
+    else:
+        sys.stderr.write("Wrong argument: " + arg + "\n")
+        sys.exit(1)
 
 ##################################################
+assert(ntwk)
 ntwk.construct()
 scheduler = Scheduler()
 scheduler.schedule(ntwk)
 ntwk.rLevels(scheduler.gLevels())
 
 ### Printing
-ntwk.printMe()
-print
+if PrintLayers:
+    ntwk.printMe()
+    print
 
-print "By level"
-ntwk.printLevels()
-print
+if PrintLevels:
+    print "By level"
+    ntwk.printLevels()
+    print
 
-print "By scheduling"
-ntwk.printSched()
-print
+if PrintSchedule:
+    print "By scheduling"
+    ntwk.printSched()
+    print
 
-print "Dot"
-ntwk.printDot()
-print
+if PrintDot:
+    print "Dot"
+    ntwk.printDot()
+    print
 
 

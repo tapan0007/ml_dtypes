@@ -1,3 +1,4 @@
+ALL_OPTS = --print-layers --print-levels --batch
 
 DENSE169 = DenseNet-169
 RES50 = ResNet-50
@@ -5,16 +6,16 @@ RES50 = ResNet-50
 top : res
 
 densenet :
-	@  python main.py --densenet
+	@  python main.py --densenet $(ALL_OPTS)
 
 resnet :
-	@  python main.py --resnet
+	@  python main.py --resnet $(ALL_OPTS)
 
 dbgdense :
-	py -mpdb main.py --densenet
+	py -mpdb main.py --densenet $(ALL_OPTS)
 
 dbgres :
-	py -mpdb main.py --resnet
+	py -mpdb main.py --resnet $(ALL_OPTS)
 
 
 clean :
