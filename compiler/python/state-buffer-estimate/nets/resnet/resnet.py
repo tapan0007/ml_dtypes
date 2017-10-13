@@ -57,7 +57,7 @@ class ResNet(Network):
     def construct(self):
         ofmap_desc = self.m_Ofmap_desc
         ## (3,224)
-        layer = DataLayer(Layer.Param("Data", 1, self), ofmap_desc)
+        layer = DataLayer(Layer.Param("data0", 1, self), ofmap_desc)
 
         layer = ConvLayer(Layer.Param("conv1", 1, self), layer, 64, stride=2, kernel=7)                ## 7x7 conv, (3,224)->(64,112), stride 2,
         layer = MaxPoolLayer(Layer.Param("pool1", 2, self), layer, stride=2, kernel=3)              ## Pool (64,112)->(64,56)

@@ -112,30 +112,34 @@ class Layer(object): # abstract class
     def qConvLayer(self):
         return self.gLayerType() == LAYER_TYPE_CONV
 
+
+
     #-----------------------------------------------------------------
     def gRawInputStateSize(self):
         sz = 0
-        for inLayer in self.gPrevLayers():
+        for inLayer in self.gPrevSbLayers():
             sz += inLayer.gRawOutputStateSize()
         return sz
 
     #-----------------------------------------------------------------
     def gRawInputStateSizeOneBatch(self):
         sz = 0
-        for inLayer in self.gPrevLayers():
-            sz += inLayer.gRawOutputStateSizeOneBatch()
+        for inSbLayer in self.gPrevSbLayers():
+            sz += inSbLayer.gRawOutputStateSizeOneBatch()
         return sz
 
     #-----------------------------------------------------------------
     def gRawOutputStateSize(self):
         return self.__MaxFanoutBatch * self.gRawOutputStateSizeOneBatch()
 
+    #-----------------------------------------------------------------
     def gRawOutputStateSizeOneBatch(self):
         if self.qStoreInSB():
             oneBatchSize = self.gNumOfmaps() * (self.gOfmapSize() * self.gOfmapSize())
             return oneBatchSize
         else:
             return 0
+
 
 
     #-----------------------------------------------------------------
@@ -353,7 +357,7 @@ class Layer(object): # abstract class
 
     def gNameWithSched(self):
         layer = self
-        return (layer.gNameNum()
+        return (layer.gName()
               + ' lev=[' + str(layer.gEarlyLevel()) + ',' + str(layer.gLateLevel()) + '] '
               + ' sched=' + str(layer.gSchedule())
               )

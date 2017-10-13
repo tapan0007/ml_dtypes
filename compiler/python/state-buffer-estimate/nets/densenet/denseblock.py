@@ -24,23 +24,23 @@ class DenseBlock(nets.block.Block):
             first_layer_in_dense_subblock = layer
 
             pfx = "DBk" + str(blockIdx) + "-LY" + str(layerNum)
-            layer = BatchNormLayer(Layer.Param(pfx + "-BN1", batch, ntwk), layer)
+            layer = BatchNormLayer(Layer.Param(pfx + "-bn1", batch, ntwk), layer)
             if layerNum == 0:
                 layer.rDenseBlockStart(blockIdx)
 
-            layer = ReluLayer(Layer.Param(pfx + "-RL1", batch, ntwk), layer)
+            layer = ReluLayer(Layer.Param(pfx + "-relu1", batch, ntwk), layer)
 
-            layer = ConvLayer(Layer.Param(pfx + "-CNV1", batch, ntwk), layer, 4*growthRate, stride=1, kernel=1)
+            layer = ConvLayer(Layer.Param(pfx + "-conv1", batch, ntwk), layer, 4*growthRate, stride=1, kernel=1)
             #layer = Drop
 
-            layer = BatchNormLayer(Layer.Param(pfx + "-BN2", batch, ntwk), layer)
+            layer = BatchNormLayer(Layer.Param(pfx + "-bn2", batch, ntwk), layer)
 
-            layer = ReluLayer(Layer.Param(pfx + "-RL2", batch, ntwk), layer)
+            layer = ReluLayer(Layer.Param(pfx + "-relu2", batch, ntwk), layer)
 
-            layer = ConvLayer(Layer.Param(pfx + "-CNV2", batch, ntwk), layer, growthRate, stride=1, kernel=3)
+            layer = ConvLayer(Layer.Param(pfx + "-conv2", batch, ntwk), layer, growthRate, stride=1, kernel=3)
             #layer = Drop
 
-            layer = ConcatLayer(Layer.Param(pfx + "-CAT", batch, ntwk), layer, first_layer_in_dense_subblock)
+            layer = ConcatLayer(Layer.Param(pfx + "-cat", batch, ntwk), layer, first_layer_in_dense_subblock)
 
 
         layer.rDenseBlockEnd(blockIdx)

@@ -47,16 +47,16 @@ class DenseNet(Network):
     def construct(self):
         batch = 1
         ofmap_desc = self.m_Ofmap_desc
-        layer = DataLayer(Layer.Param("Data", batch, self), ofmap_desc)
+        layer = DataLayer(Layer.Param("data0", batch, self), ofmap_desc)
 
         ## Initial convolution + batch, relu, pool
         # Convolution IMAP=3, OMAPS=64, kernel 7x7, stride 2, image size 224 -> 112
         num_ofmaps = 2*self.m_Growth_rate
-        layer = ConvLayer(Layer.Param("Conv1", batch, self), layer, num_ofmaps, stride=2, kernel=7)
+        layer = ConvLayer(Layer.Param("conv1", batch, self), layer, num_ofmaps, stride=2, kernel=7)
         # Batch Normalization, IMAPS=64, OMAPS=64, image size 112->112
-        layer = BatchNormLayer(Layer.Param("BN1", batch, self), layer)
+        layer = BatchNormLayer(Layer.Param("bn1", batch, self), layer)
         # ReLU, IMAPS=64, OMAPS=64, image size 112->112
-        layer = ReluLayer(Layer.Param("Relu1", batch, self), layer)
+        layer = ReluLayer(Layer.Param("relu1", batch, self), layer)
         ## Pooling IMAPS=64, OMAPS=64, 3x3, stride 2, pad 1, 112 -> 56
         layer = MaxPoolLayer(Layer.Param("MaxPool1", batch, self), layer, stride=2, kernel=3)
 
@@ -77,9 +77,9 @@ class DenseNet(Network):
 
         ## Final blocks
         pfx = "TB" + str(lastBlockIdx)
-        layer = BatchNormLayer(Layer.Param(pfx + "-BN1", batch, self), layer)
-        layer = ReluLayer(Layer.Param(pfx + "-RL1", batch, self), layer)
-        layer = AvgPoolLayer(Layer.Param(pfx + "-AVG1", batch, self), layer, stride=7, kernel=7)
+        layer = BatchNormLayer(Layer.Param(pfx + "-bn1", batch, self), layer)
+        layer = ReluLayer(Layer.Param(pfx + "-relu1", batch, self), layer)
+        layer = AvgPoolLayer(Layer.Param(pfx + "-avg1", batch, self), layer, stride=7, kernel=7)
 
         s = "FC" + str(self.m_NumClasses)
         layer = FullLayer(Layer.Param(s, batch, self), layer, self.m_NumClasses)

@@ -57,7 +57,8 @@ class AddLayer(CombineLayer):
             else:
                 p += "," + prevLayer.gNumberStr()
 
-        return ("Add[" + p + "] " + fromTo + self.gStateSizesStr())
+        return (self.gName()
+            + "[" + p + "] " + fromTo + self.gStateSizesStr())
 
     #-----------------------------------------------------------------
     def qPassThrough(self):

@@ -12,7 +12,7 @@ class DataLayer(Layer):
     #-----------------------------------------------------------------
     def __str__(self):
         baseLayer = self.gBaseLayerStr()
-        return ("Data " + baseLayer
+        return (self.gName() + baseLayer
                + self.gStateSizesStr())
 
     #-----------------------------------------------------------------

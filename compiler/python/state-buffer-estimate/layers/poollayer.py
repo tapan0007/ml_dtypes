@@ -42,13 +42,14 @@ class PoolLayer(SubSampleLayer): # abstract class
         ss = str(self.gStride())
         baseLayer = self.gBaseLayerStr()
         if typ == LAYER_TYPE_MAX_POOL:
-            t = "MaxPool"
+            t = "{MaxPool}"
         elif typ == LAYER_TYPE_AVG_POOL:
-            t = "AvgPool"
+            t = "{AvgPool}"
         else:
             assert(False)
 
-        return (t + baseLayer
+        return (self.gName() # + t 
+                + baseLayer
                 + ", kernel=" + ks + "x" + ks + ", stride=" + ss
                 + self.gStateSizesStr())
 
