@@ -15,15 +15,3 @@ class ActivLayer(OneToOneLayer): # abstract class
         super(ActivLayer, self).__init__(param, prev_layer)
 
 
-    #-----------------------------------------------------------------
-    def gBatchInputStateSize(self):
-        return 0
-
-    #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self):
-        nextSchedLayer = self.gNextSchedLayer()
-        if not nextSchedLayer or self.gNextSchedLayer().qConvLayer():
-            return self.gRawOutputStateSize()
-        else:
-            return 0
-

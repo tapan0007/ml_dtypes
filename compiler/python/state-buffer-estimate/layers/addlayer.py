@@ -64,24 +64,3 @@ class AddLayer(CombineLayer):
     def qPassThrough(self):
         return False
 
-    #-----------------------------------------------------------------
-    def gBatchInputStateSize(self):
-        l0 = self.gPrevLayer(0)
-        l1 = self.gPrevLayer(1)
-        s0 = l0.gSchedule()
-        s1 = l1.gSchedule()
-        s  = self.gSchedule()
-        assert(s0 < s and s1 <s and s0 != s1)
-
-        if s0 == s-1:
-            return l1.gRawOutputStateSize()
-        elif s1 == s-1:
-            return l0.gRawOutputStateSize()
-        else:
-            return self.gRawInputStateSize()
-
-    #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self):
-        return self.gRawOutputStateSize()
-
-

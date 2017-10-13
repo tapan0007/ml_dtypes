@@ -100,15 +100,6 @@ class Layer(object): # abstract class
         assert(False)
 
     #-----------------------------------------------------------------
-    @abstractmethod
-    def gBatchInputStateSize(self):
-        assert(False)
-
-    #-----------------------------------------------------------------
-    @abstractmethod
-    def gBatchOutputStateSize(self):
-        assert(False)
-    #-----------------------------------------------------------------
     def qConvLayer(self):
         return self.gLayerType() == LAYER_TYPE_CONV
 
@@ -244,12 +235,6 @@ class Layer(object): # abstract class
         self.__TranBlockEnd = val
 
     #-----------------------------------------------------------------
-    def gBatchTotalStateSize(self):
-        isize = self.gBatchInputStateSize()
-        osize = self.gBatchOutputStateSize()
-        return isize + osize
-
-    #-----------------------------------------------------------------
     def gNumberWeights(self):
         return 0
 
@@ -268,9 +253,9 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def gStateSizesStr(self):
-        iState = self.gBatchInputStateSize()
-        oState = self.gBatchOutputStateSize()
-        tState = self.gBatchTotalStateSize()
+        iState = self.gRawInputStateSize()
+        oState = self.gRawOutputStateSize()
+        tState = iState + oState
         numWeights = self.gNumberWeights()
         nextNumWeights = self.gMaxNextLayerNumberWeights()
         totMem = tState + numWeights + nextNumWeights

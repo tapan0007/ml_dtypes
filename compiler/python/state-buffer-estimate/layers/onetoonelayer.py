@@ -18,12 +18,4 @@ class OneToOneLayer(Layer): # abstract class
         assert(prev_layer.gOfmapDesc() == self.gOfmapDesc())
 
     #-----------------------------------------------------------------
-    def gBatchInputStateSize(self):
-        return self.gRawInputStateSize()
-
-    #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self):
-        return self.gRawOutputStateSize()
-
-    #-----------------------------------------------------------------
 

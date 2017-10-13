@@ -206,10 +206,13 @@ class Scheduler(object):
                 return -1
             elif id1 > id2:
                 return 1
-            elif layer1.gBatchTotalStateSize() < layer1.gBatchTotalStateSize():
-                return -1
             else:
-                return 1
+                sz1 = layer1.gRawInputStateSize() + layer1.gRawOutputStateSize() 
+                sz2 = layer2.gRawInputStateSize() + layer2.gRawOutputStateSize()
+                if sz1 < sz2:
+                    return -1
+                else:
+                    return 1
 
 
         #-------------------------------------------------------------
@@ -219,9 +222,9 @@ class Scheduler(object):
     def __processLayerSbMem(self, layer):
         if not layer.qStoreInSB():
             return
-        outSize = layer.gBatchOutputStateSize()
+        outSize = layer.gRawOutputStateSize()
         self.__CurrMem += outSize
-        layer.changeRefCount(layer.gNumNextLayers())
+        layer.changeRefCount(layer.gNumNextLayers()) ## all subsequent layers refer to this layer
         layer.rTotMem(self.__CurrMem)
 
         if self.__CurrMem > self.__HighMemWatermark:
@@ -231,7 +234,7 @@ class Scheduler(object):
             assert(inSbLayer.qStoreInSB())
             inSbLayer.changeRefCount(-1)  ## decrease ref count by 1
             if inSbLayer.gRefCount() == 0:
-                oneInSize = inSbLayer.gBatchOutputStateSize()
+                oneInSize = inSbLayer.gRawOutputStateSize()
                 self.__CurrMem -= oneInSize
 
     #-----------------------------------------------------------------

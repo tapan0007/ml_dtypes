@@ -36,14 +36,6 @@ class DataLayer(Layer):
         return True
 
     #-----------------------------------------------------------------
-    def gBatchInputStateSize(self):
-        return 0
-
-    #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self):
-        return self.gRawOutputStateSize()
-
-    #-----------------------------------------------------------------
     def qStoreInSB(self): ## override
         return True
 

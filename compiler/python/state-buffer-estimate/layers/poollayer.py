@@ -29,14 +29,6 @@ class PoolLayer(SubSampleLayer): # abstract class
         return False
 
     #-----------------------------------------------------------------
-    def gBatchInputStateSize(self):
-        return 0
-
-    #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self):
-        return self.gRawOutputStateSize()
-
-    #-----------------------------------------------------------------
     def gPoolLayerStr(self, typ):
         ks = str(self.gKernel())
         ss = str(self.gStride())

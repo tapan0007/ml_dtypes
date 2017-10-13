@@ -67,16 +67,3 @@ class ConvLayer(SubSampleLayer):
         return prevLayer.gNumOfmaps() * self.gNumOfmaps() * (self.gKernel()**2)
 
 
-    #-----------------------------------------------------------------
-    def gBatchInputStateSize(self):
-        return self.gRawInputStateSize()
-
-    #-----------------------------------------------------------------
-    def gBatchOutputStateSize(self):
-        nextSchedLayer = self.gNextSchedLayer()
-        if self.qStoreInSB():
-            return self.gRawOutputStateSize()
-        else:
-            return 0
-
-

@@ -96,7 +96,9 @@ class Network(object):
                     print
                 print ">>> Starting tran block " + str(layer.gTranBlockStart())
 
-            totalStateSize = layer.gBatchTotalStateSize()
+            inStateSize = layer.gRawInputStateSize()
+            outStateSize = layer.gRawOutputStateSize()
+            totalStateSize = inStateSize + outStateSize
             if totalStateSize > maxStateSize:
                 maxStateSize = totalStateSize
 

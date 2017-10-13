@@ -29,12 +29,3 @@ class BatchNormLayer(OneToOneLayer):
     def qPassThrough(self):
         return False
 
-    #-----------------------------------------------------------------
-    def gBatchInputStateSize(self):
-        sz = 0
-        for prevLayer in self.gPrevLayers():
-            num_ofmaps = prevLayer.gNumOfmaps()
-            ofmap_size = prevLayer.gOfmapSize()
-            sz += ofmap_size * ofmap_size * num_ofmaps
-        return sz
-
