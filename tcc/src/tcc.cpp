@@ -12,6 +12,8 @@
 #define E_FLAG 1 << 2
 #define W_FLAG 1 << 3
 
+#define TILE_SIZE 16
+
 enum NSEW {N=0, S, E, W, NUM_NSEW};
 
 
@@ -65,8 +67,6 @@ _convolve_tile(FILE *fptr,
     /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
     uint64_t num_cols = wdim[0];
     uint64_t num_rows = idim[1];
-    assert(num_rows <= (1 << ROW_BITS));
-    assert(num_cols <= (1 << COLUMN_BITS));
     assert(num_rows && num_cols);
 
     addr_t dsize = sizeofArbPrecType(dtype);
@@ -267,6 +267,7 @@ compile_convolve(FILE *fptr,
     ARBPRECTYPE pool_dtype = get_upcast(dtype);
     addr_t pool_dst_addr = ofmap_full_addr;
     size_t pool_dsize = sizeofArbPrecType(pool_dtype);
+    //  FIXME: assuming psum_base == sb_size
     addr_t psum_addr = MMAP_PSUM_BASE;
 
     /* go through each tile */
@@ -309,7 +310,7 @@ compile_convolve(FILE *fptr,
             psum_addr += (1 << BANK_BITS);
             if (psum_addr >= (1 << BANK_BITS) * 
                     (1 << BANKS_PER_PARTITION_BITS)) {
-                psum_addr = MMAP_PSUM_BASE;
+                psum_addr = MMAP_PSUM_BASE; 
             }
         }
     }

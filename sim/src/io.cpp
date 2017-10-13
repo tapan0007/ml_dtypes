@@ -55,7 +55,6 @@ Memory::bank_mmap(addr_t addr, void *ptr, int count, size_t n_bytes)
 {
     char *cptr = (char *)(ptr);
     assert((n_bytes  <= Constants::partition_nbytes) && "won't fit in partition");
-    //assert((count <= (1 << ROW_BITS)) && "won't fit in bank");
     for (int i = 0; i < count; i++) {
         memcpy(memory + addr, cptr, n_bytes);
         addr  += Constants::partition_nbytes;
