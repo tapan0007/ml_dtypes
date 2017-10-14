@@ -1,6 +1,8 @@
 import sys
+import layers.layer
 
-from layers.layer                import DoBatching
+#from layers.layer               import rDoBatching
+
 from nets.densenet.densenet     import DenseNet169
 from nets.resnet.resnet         import ResNet50
 from schedule.scheduler         import Scheduler
@@ -34,6 +36,7 @@ for arg in sys.argv[1:]:
 
 ##################################################
 assert(ntwk)
+ntwk.rDoBatching(True)
 ntwk.construct()
 scheduler = Scheduler()
 scheduler.Schedule(ntwk)

@@ -16,6 +16,7 @@ from layers.datalayer       import  DataLayer
 from layers.relulayer       import  ReluLayer
 from layers.fulllayer       import  FullLayer
 from layers.addlayer        import  AddLayer
+from layers.softmaxlayer    import  SoftMaxLayer
 
 from nets.network                import  Network
 
@@ -70,8 +71,9 @@ class ResNet(Network):
 
 
         ########################################################################
-        layer = MaxPoolLayer(Layer.Param("pool5", 16, self), layer, stride=2, kernel=3)
+        layer = AvgPoolLayer(Layer.Param("pool5", 16, self), layer, stride=1, kernel=7)
         layer = FullLayer(Layer.Param("fc1000", 16, self), layer, 1000)
+        layer = SoftMaxLayer(Layer.Param("softmax", 16, self), layer)
 
 
         self.verify()

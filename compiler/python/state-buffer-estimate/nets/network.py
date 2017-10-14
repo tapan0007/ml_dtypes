@@ -38,6 +38,15 @@ class Network(object):
         self.__LayerNumMinor = 0
         self.__Levels = None
         self.__CurrLayerId = 0
+        self.__DoBatching = False
+
+    #-----------------------------------------------------------------
+    def qDoBatching(self):
+        return self.__DoBatching
+
+    #-----------------------------------------------------------------
+    def rDoBatching(self, batch):
+        self.__DoBatching = batch
 
     #-----------------------------------------------------------------
     def rLevels(self, levels):

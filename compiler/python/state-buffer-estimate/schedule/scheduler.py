@@ -262,16 +262,32 @@ class Scheduler(object):
                         layer.addPrevSbLayer(sbLayer)
 
     #-----------------------------------------------------------------
+    def __processSbConnection(self, prevLayer, nextLayer):
+        assert(prevLayer.qStoreInSB() and nextLayer.qStoreInSB())
+        deltaBatch = nextLayer.gBatch() - prevLayer.gBatch() 
+        prevLayer.addBatchMem(deltaBatch * prevLayer.gRawOutputStateSize())
+        prevLayer.addBatchMem(nextLayer.gBatchMem())
+
+    #-----------------------------------------------------------------
     def calcSbMem(self):
         self.__CurrMem = 0
         self.__HighMemWatermark = 0
 
+        network = self.__Network
 
-        for layer in self.__Network.gSchedLayers():
+        for layer in network.gSchedLayers():
             self.__addPrevSbLayers(layer)
 
-        for layer in self.__Network.gSchedLayers():
+        for layer in network.gSchedLayers():
             self.__processLayerSbMem(layer)
+
+        for layer in network.gReverseSchedLayers():
+            if not layer.qStoreInSB():
+                continue
+            myBatch = layer.gBatch()
+            for inSbLayer in layer.gPrevSbLayers():
+                self.__processSbConnection(inSbLayer, layer)
+
 
 
     #-----------------------------------------------------------------

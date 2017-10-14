@@ -5,8 +5,6 @@ from utils.fmapdesc  import OfmapDesc
 from utils.funcs     import kstr
 import nets.network
 
-DoBatching = False
-
 ##########################################################
 class Layer(object): # abstract class
     __metaclass__ = ABCMeta
@@ -30,7 +28,6 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def __init__(self, param, ofmap_desc, prev_layers):
-        global DoBatching
         assert(isinstance(param, Layer.Param))
         (layerName, batch, ntwrk) = param.gAll()
         assert(isinstance(layerName, str))
@@ -42,7 +39,7 @@ class Layer(object): # abstract class
         assert(batch >= 1)
 
         self.__LayerName        = layerName
-        if DoBatching:
+        if ntwrk.qDoBatching():
             self.__Batch        = batch
         else:
             self.__Batch        = 1
@@ -362,7 +359,9 @@ class Layer(object): # abstract class
               )
 
     def gNameWithSchedMem(self):
-        return self.gNameWithSched() + ' mem=' + kstr(self.__TotMem)
+        return (self.gNameWithSched()
+                + ' mem=' + kstr(self.__TotMem)
+                + ' batch_mem=' + kstr(self.gBatchMem()) )
 
     #-----------------------------------------------------------------
     def gDotIdLabel(self):
@@ -371,6 +370,7 @@ class Layer(object): # abstract class
     #-----------------------------------------------------------------
     def gNextSchedLayer(self):
         return self.__NextSchedLayer
+
     #-----------------------------------------------------------------
     def rNextSchedLayer(self, nextSchedLayer):
         self.__NextSchedLayer = nextSchedLayer
