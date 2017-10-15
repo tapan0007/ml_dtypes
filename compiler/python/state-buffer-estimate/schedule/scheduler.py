@@ -219,23 +219,30 @@ class Scheduler(object):
         sorted(levelCopy, key=functools.cmp_to_key(compareLayer))
 
     #-----------------------------------------------------------------
-    def __processLayerSbMem(self, layer):
-        if not layer.qStoreInSB():
-            return
+    def __processLayerSbMemForResidue(self, layer):
+        assert(layer.qStoreInSB())
+
+        ## all subsequent layers refer to this layer
+        layer.changeRefCount(layer.gNumNextLayers()) 
         outSize = layer.gRawOutputStateSize()
-        self.__CurrMem += outSize
-        layer.changeRefCount(layer.gNumNextLayers()) ## all subsequent layers refer to this layer
-        layer.rTotMem(self.__CurrMem)
+        inMemBefore = self.gCurrInMem()
 
-        if self.__CurrMem > self.__HighMemWatermark:
-            self.__HighMemWatermark = self.__CurrMem
-
+        canRelease = 0
+        cannotRelease = 0
         for inSbLayer in layer.gPrevSbLayers():
-            assert(inSbLayer.qStoreInSB())
+            assert(layer != inSbLayer and inSbLayer.qStoreInSB())
             inSbLayer.changeRefCount(-1)  ## decrease ref count by 1
+            inSbMem = inSbLayer.gRawOutputStateSize()
             if inSbLayer.gRefCount() == 0:
-                inLayerSize = inSbLayer.gRawOutputStateSize()
-                self.__CurrMem -= inLayerSize
+                canRelease += inSbMem
+            else:
+                cannotRelease += inSbMem
+
+        inMemAfter = inMemBefore + outSize - canRelease
+        residueMem = inMemBefore - (canRelease + cannotRelease)
+
+        layer.rResMem(residueMem)
+        self.__CurrInMem = inMemAfter
 
     #-----------------------------------------------------------------
     def __calcFanoutBatch(self):
@@ -262,15 +269,38 @@ class Scheduler(object):
                         layer.addPrevSbLayer(sbLayer)
 
     #-----------------------------------------------------------------
-    def __processSbConnection(self, prevLayer, nextLayer):
+    #  Li: Batch Oi, Output size Oi
+    #
+    #  L1  ---L2---L3----------------\
+    #       |                         L6
+    #       +------------L4---L5 ----/
+    #   L6:   B6*O6
+    #   L5:   B5*O5     + (B6-B5)*O5
+    #         self mem    L5 batch
+    #   L4:   B4*O4     + (B5-B4)*O4 + (B6-B5)*O5
+    #         self mem    L4 batch
+    #   L3:   B3*O3     + (B6-B3)*O3
+    #         self mem    L3 batch
+    #   L2:   B2*O2     + (B3-B2)*O2 (B6-B3)*O3
+    #         self mem    L2 batch
+    #   L1Ba: (B2-B1)*O1 + (B3-B2)*O2
+    #         L1 batch a
+    #   L1Bb: (B4-B1)*O1 + (B5-B4)*O4
+    #         L1 batch b
+    #   L1:   B1*O1(self mem) + max(L1a, L1b)
+    #-----------------------------------------------------------------
+    def __processSbConnectionForBatching(self, prevLayer, nextLayer):
         assert(prevLayer.qStoreInSB() and nextLayer.qStoreInSB())
         deltaBatch = nextLayer.gBatch() - prevLayer.gBatch() 
-        prevLayer.addBatchMem(deltaBatch * prevLayer.gRawOutputStateSize())
-        prevLayer.addBatchMem(nextLayer.gBatchMem())
+        assert(deltaBatch >= 0)
+        myBatchMem = deltaBatch * prevLayer.gRawOutputStateSizeOneBatch()
+        batchMem = myBatchMem + nextLayer.gBatchMem()
+        if batchMem > prevLayer.gBatchMem():
+            prevLayer.rBatchMem(batchMem)
 
     #-----------------------------------------------------------------
     def calcSbMem(self):
-        self.__CurrMem = 0
+        self.__CurrInMem = 0
         self.__HighMemWatermark = 0
 
         network = self.__Network
@@ -279,20 +309,20 @@ class Scheduler(object):
             self.__addPrevSbLayers(layer)
 
         for layer in network.gSchedLayers():
-            self.__processLayerSbMem(layer)
+            if not layer.qStoreInSB():
+                continue
+            self.__processLayerSbMemForResidue(layer)
 
         for layer in network.gReverseSchedLayers():
             if not layer.qStoreInSB():
                 continue
             myBatch = layer.gBatch()
             for inSbLayer in layer.gPrevSbLayers():
-                self.__processSbConnection(inSbLayer, layer)
-
-
+                self.__processSbConnectionForBatching(inSbLayer, layer)
 
     #-----------------------------------------------------------------
-    def gCurrMem(self):
-        return self.__CurrMem
+    def gCurrInMem(self):
+        return self.__CurrInMem
 
     #-----------------------------------------------------------------
     def gHighMemWatermark(self):

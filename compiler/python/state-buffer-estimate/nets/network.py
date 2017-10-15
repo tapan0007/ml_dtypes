@@ -196,5 +196,6 @@ class Network(object):
                 sbPreds += s
 
             sb = "SB" if layer.qStoreInSB() else "sb"
-            print layer.gNameWithSchedMem() + " " + sb + "=[" + sbPreds  + "]"
+            ss = ("%-80s  %s=[%s]") % (layer.gNameWithSchedMem(), sb, sbPreds)
+            print ss
 

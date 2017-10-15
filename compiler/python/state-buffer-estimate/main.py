@@ -13,7 +13,7 @@ PrintLevels = False
 PrintSchedule = True
 PrintDot = False
 PrintLayers = False
-DoBatching = False
+__DoBatching = False
 
 for arg in sys.argv[1:]:
     if arg == "--densenet" or arg == "--dense":
@@ -29,14 +29,14 @@ for arg in sys.argv[1:]:
     elif arg == "--print-dot":
         PrintDot = True
     elif arg == "--batch" or arg == "--batching":
-        DoBatching = True
+        __DoBatching = True
     else:
         sys.stderr.write("Wrong argument: " + arg + "\n")
         sys.exit(1)
 
 ##################################################
 assert(ntwk)
-ntwk.rDoBatching(True)
+ntwk.rDoBatching(__DoBatching)
 ntwk.construct()
 scheduler = Scheduler()
 scheduler.Schedule(ntwk)
