@@ -12,8 +12,6 @@
 
 #define PF(FIELD, FORMAT_SPECIFIER)     print_field(PRINT_TEMPLATE(FORMAT_SPECIFIER), #FIELD, args->FIELD);
 
-#define PF_ARRAY(FIELD)     print_field("%-20s: 0x%s \n", #FIELD, args->FIELD);
-
 void
 print_name_header(std::string name, FILE *fp)
 {
@@ -97,11 +95,10 @@ main(int argc, char **argv)
                     PF(opcode, "%x")
                     PF(fname, "%s")
                     PF(address, "%lx")
-                    PF(i_n, "%lx")
-                    PF(w_c, "%lx")
-                    PF(w_m, "%lx")
-                    PF(o_rows, "%lx")
-                    PF(o_cols, "%lx")
+                    PF(dims[0], "%lx")
+                    PF(dims[1], "%lx")
+                    PF(dims[2], "%lx")
+                    PF(dims[3], "%lx")
                     PF(word_size, "%x")
                 }
                 break;
@@ -128,23 +125,20 @@ main(int argc, char **argv)
                     PF(in_dtype, "%x")
                     PF(out_dtype, "%x")
                     PF(src_start_addr, "%lx")
-                    PF(src_w_step, "%lx")
-                    PF(src_w_num, "%lx")
                     PF(src_x_step, "%lx")
                     PF(src_x_num, "%lx")
                     PF(src_y_step, "%lx")
                     PF(src_y_num, "%lx")
-                    PF(src_z_step, "%lx")
-                    PF(src_z_num, "%lx")
                     PF(dst_start_addr, "%lx")
-                    PF(dst_w_step, "%lx")
-                    PF(dst_w_num, "%lx")
                     PF(dst_x_step, "%lx")
                     PF(dst_x_num, "%lx")
                     PF(dst_y_step, "%lx")
                     PF(dst_y_num, "%lx")
-                    PF(dst_z_step, "%lx")
-                    PF(dst_z_num, "%lx")
+                    PF(str_x_step, "%lx")
+                    PF(str_x_num, "%lx")
+                    PF(str_y_step, "%lx")
+                    PF(str_y_num, "%lx")
+                    PF(max_partition, "%lx")
                     PF(event_func, "%x")
                     PF(event_id, "%x")
                 }

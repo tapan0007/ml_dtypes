@@ -23,7 +23,7 @@ class Constants
         static const size_t bytes_per_bank = 1 << BANK_BITS;
         static const size_t partition_nbytes = Constants::banks_per_partition 
             * Constants::bytes_per_bank;
-        static const size_t psum_buffer_width_bits = 6; // 64 byte entries
+        static const size_t psum_buffer_width_bits = 5; // 32 byte entries
         static const size_t psum_buffer_width = 1 << 
             Constants::psum_buffer_width_bits;
         static const size_t psum_buffer_entries_bits = 8; // 256 entries
