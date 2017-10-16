@@ -20,16 +20,15 @@ void compile_write_ofmap(FILE *out_binary,
         const uint64_t dims[4],
         const size_t word_size);
 
-/* convolve kernel */
 void
 compile_convolve(FILE *out_binary,
         const addr_t ifmap_addr, const uint64_t ifmap_dims[4],
         const addr_t filter_addr, const uint64_t filter_dims[4],
         const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
         const ARBPRECTYPE dtype,
-        const uint8_t padding[2],  /* HW */
-        const uint8_t stride[2],   /* HW */
-        const uint8_t dilate[2]);  /* HW */
+        const uint8_t padding[2],  /* Height,Width */
+        const uint8_t stride[2],   /* Height,Width */
+        const uint8_t dilate[2]);  /* Height,Width */
 
 void
 compile_pool(FILE *out_binary,
@@ -40,6 +39,12 @@ compile_pool(FILE *out_binary,
         const ARBPRECTYPE dtype,
         POOLFUNC pool_func);
  
+void
+compile_resadd(FILE *out_binary,
+        const addr_t lhs_addr, 
+        const addr_t rhs_addr,
+        const uint64_t dims[4],
+        const ARBPRECTYPE dtype);
  
  
 #endif
