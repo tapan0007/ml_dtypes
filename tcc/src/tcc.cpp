@@ -25,25 +25,6 @@ enum NSEW {N=0, S, E, W, NUM_NSEW};
     fseek(FPTR, INSTRUCTION_NBYTES - sizeof(INS) - 1, SEEK_CUR); \
     fputc('\0', FPTR);
 
-uint8_t
-get_tile_type(const uint8_t row, const uint8_t col, 
-        const uint8_t n_rows, const uint8_t n_cols) {
-    uint8_t tt = 0;
-    if (row == 0) {
-        tt |= N_FLAG;
-    }
-    if (row == n_rows - 1) {
-        tt |= S_FLAG;
-    }
-    if (col == 0) {
-        tt |= W_FLAG;
-    }
-    if (col == n_cols - 1) {
-        tt |= E_FLAG;
-    }
-    return tt;
-}
-
 void
 _convolve_tile(FILE *fptr,
         const addr_t ifmap_full_addr, const uint64_t idim[4],
@@ -220,54 +201,71 @@ void compile_write_ofmap(FILE *fptr,
 }
 
 struct Tile_Dims {
-    uint8_t rows;
-    uint8_t cols;
-    size_t  x_whole;
-    size_t  y_whole;
-    size_t  x_partial;
-    size_t  y_partial;
-    Tile_Dims(uint8_t o_rows, uint8_t o_cols) {
-        rows = ceil((float) o_rows / TILE_SIZE);
-        cols = ceil((float) o_cols / TILE_SIZE);
+    public:
+        uint8_t rows;
+        uint8_t cols;
+        size_t  x_whole;
+        size_t  y_whole;
+        size_t  x_partial;
+        size_t  y_partial;
+        Tile_Dims(uint8_t o_rows, uint8_t o_cols) {
+            rows = ceil((float) o_rows / TILE_SIZE);
+            cols = ceil((float) o_cols / TILE_SIZE);
 
-        /* tile args */
-        x_whole = o_cols > TILE_SIZE ? TILE_SIZE : o_cols;
-        y_whole = o_rows > TILE_SIZE ? TILE_SIZE : o_rows;
-        x_partial = cols % TILE_SIZE ? o_cols % TILE_SIZE : x_whole;
-        y_partial = o_rows % TILE_SIZE ? o_rows % TILE_SIZE : y_whole;
-    };
-    size_t area() {
-        return x_whole * y_whole;
-    }
-    void get_info(int i, int j, uint8_t *tt,
-            uint8_t *row_offset, uint8_t *col_offset,
-            size_t *tile_sz_x, size_t *tile_sz_y) {
-        *tt = get_tile_type(i, j, rows, cols);
-        *row_offset = (i * TILE_SIZE); 
-        *col_offset = (j * TILE_SIZE);
-        *tile_sz_x = *tt & E_FLAG ? x_partial : x_whole;
-        *tile_sz_y = *tt & S_FLAG ? y_partial : y_whole;
+            /* tile args */
+            x_whole = o_cols > TILE_SIZE ? TILE_SIZE : o_cols;
+            y_whole = o_rows > TILE_SIZE ? TILE_SIZE : o_rows;
+            x_partial = cols % TILE_SIZE ? o_cols % TILE_SIZE : x_whole;
+            y_partial = o_rows % TILE_SIZE ? o_rows % TILE_SIZE : y_whole;
+        };
+        void get_info(int i, int j, uint8_t *tt,
+                uint8_t *row_offset, uint8_t *col_offset,
+                size_t *tile_sz_x, size_t *tile_sz_y) {
+            *tt = get_tile_type(i, j, rows, cols);
+            *row_offset = (i * TILE_SIZE); 
+            *col_offset = (j * TILE_SIZE);
+            *tile_sz_x = *tt & E_FLAG ? x_partial : x_whole;
+            *tile_sz_y = *tt & S_FLAG ? y_partial : y_whole;
 
-    }
-    addr_t addr(unsigned int i, unsigned int j) {
-        addr_t lin_addr = 0;
-        uint8_t row_offset, col_offset;
-        size_t  tile_sz_x, tile_sz_y;
-        uint8_t tt = get_tile_type(i, j, rows, cols);
-        /* there is easier ways to do this */
-        for (unsigned int ii = 0; ii < i; ii++) {
-            for (unsigned int jj = 0; jj < j; jj++) {
-                get_info(ii, jj, &tt, &row_offset, &col_offset, 
-                        &tile_sz_x, &tile_sz_y);
-                lin_addr += tile_sz_x * tile_sz_y;
-            }
         }
-        return lin_addr;
-    }
+        addr_t flatten_coord(unsigned int i, unsigned int j) {
+            addr_t lin_addr = 0;
+            uint8_t row_offset, col_offset;
+            size_t  tile_sz_x, tile_sz_y;
+            uint8_t tt = get_tile_type(i, j, rows, cols);
+            /* there is easier ways to do this */
+            for (unsigned int ii = 0; ii < i; ii++) {
+                for (unsigned int jj = 0; jj < j; jj++) {
+                    get_info(ii, jj, &tt, &row_offset, &col_offset, 
+                            &tile_sz_x, &tile_sz_y);
+                    lin_addr += tile_sz_x * tile_sz_y;
+                }
+            }
+            return lin_addr;
+        }
+    private:
+        uint8_t get_tile_type(const uint8_t row, const uint8_t col, 
+                    const uint8_t n_rows, const uint8_t n_cols) {
+                uint8_t tt = 0;
+                if (row == 0) {
+                    tt |= N_FLAG;
+                }
+                if (row == n_rows - 1) {
+                    tt |= S_FLAG;
+                }
+                if (col == 0) {
+                    tt |= W_FLAG;
+                }
+                if (col == n_cols - 1) {
+                    tt |= E_FLAG;
+                }
+                return tt;
+            }
+
 
 };
 
-void
+    void
 compile_convolve(FILE *fptr,
         const addr_t ifmap_full_addr, const uint64_t idim[4],
         const addr_t filter_full_addr, const uint64_t wdim[4],
@@ -342,7 +340,8 @@ compile_convolve(FILE *fptr,
                     tile_sz_x, tile_sz_y,
                     o_dims, pool_dtype);
 
-            pool_dst_addr = ofmap_full_addr + tile_dims.addr(i, j) * pool_dsize;
+            pool_dst_addr = ofmap_full_addr + tile_dims.flatten_coord(i, j) *
+                pool_dsize;
             psum_addr += (1 << BANK_BITS);
             if (psum_addr >= (1 << BANK_BITS) * 
                     (1 << BANKS_PER_PARTITION_BITS)) {
@@ -425,7 +424,6 @@ compile_pool(FILE *fptr,
 
 }
 
-#if 0
 void
 compile_resadd(FILE *out_binary,
         const addr_t lhs_addr, 
@@ -433,10 +431,12 @@ compile_resadd(FILE *out_binary,
         const uint64_t dims[4],
         const ARBPRECTYPE dtype)
 {
+#if 0
 	uint64_t cols = dims[3];
 	uint64_t rows = dims[2];
 	uint64_t ch   = dims[1];
 	uint64_t n    = dims[0];
+    addr_t  dsize = sizeofArbPrecType(dtype);
     uint8_t tile_rows,  tile_cols;
     size_t  tile_x_whole, tile_y_whole;
     size_t  tile_x_partial, tile_y_partial;
@@ -445,13 +445,25 @@ compile_resadd(FILE *out_binary,
     Tile_Dims tile_dims = Tile_Dims(rows, cols)
 
     /* go through each tile */
-    for (uint8_t i = 0; i < tile_rows; i++) {
-        for (uint8_t j = 0; j < tile_cols; j++) {
+    for (uint8_t i = 0; i < tile_dims.rows; i++) {
+        for (uint8_t j = 0; j < tile_dims.cols; j++) {
+            tile_dims.get_info(i, j, &tt, &row_offset, &col_offset, 
+                    &tile_sz_x, &tile_sz_y);
+            offest_addr = tile_dims.flatten_coord(i, j);
+            _convolve_tile(out_binary,
+                    lhs_addr + offset_addr, dims,
+                    filter_full_addr, {1,1,1,1},
+                    psum_addr,
+                    dtype, fmap_num, pads, striding);
+            _pool_tile(fptr,
+                    psum_addr, pool_dst_addr,
+                    tile_sz_x, tile_sz_y,
+                    o_dims, pool_dtype);
+
         }
     }
 
-
-}
 #endif
+}
 
 	
