@@ -235,11 +235,16 @@ struct Tile_Dims {
             uint8_t tt = get_tile_type(i, j, rows, cols);
             /* there is easier ways to do this */
             for (unsigned int ii = 0; ii < i; ii++) {
-                for (unsigned int jj = 0; jj < j; jj++) {
+                for (unsigned int jj = 0; jj < cols; jj++) {
                     get_info(ii, jj, &tt, &row_offset, &col_offset, 
                             &tile_sz_x, &tile_sz_y);
                     lin_addr += tile_sz_x * tile_sz_y;
                 }
+            }
+            for (unsigned int jj = 0; jj < j; jj++) {
+                get_info(i, jj, &tt, &row_offset, &col_offset, 
+                        &tile_sz_x, &tile_sz_y);
+                lin_addr += tile_sz_x;
             }
             return lin_addr;
         }
@@ -329,6 +334,8 @@ compile_convolve(FILE *fptr,
     
             matmul_addr = ifmap_full_addr + (row_offset * i_cols + col_offset) *
                 dsize;
+            pool_dst_addr = ofmap_full_addr + tile_dims.flatten_coord(i, j) *
+                pool_dsize;
 
             _convolve_tile(fptr,
                     matmul_addr, idim,
@@ -340,10 +347,8 @@ compile_convolve(FILE *fptr,
                     tile_sz_x, tile_sz_y,
                     o_dims, pool_dtype);
 
-            pool_dst_addr = ofmap_full_addr + tile_dims.flatten_coord(i, j) *
-                pool_dsize;
             psum_addr += (1 << BANK_BITS);
-            if (psum_addr >= (1 << BANK_BITS) * 
+            if (psum_addr >= MMAP_PSUM_BASE + (1 << BANK_BITS) * 
                     (1 << BANKS_PER_PARTITION_BITS)) {
                 psum_addr = MMAP_PSUM_BASE; 
             }
