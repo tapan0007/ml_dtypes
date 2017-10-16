@@ -56,7 +56,7 @@ main(int argc, char **argv)
 
     get_dims(i_name, i_dims, &word_size);
 
-    compile_read_ifmap(fptr, ifmap_full_addr, i_name);
+    compile_read_ifmap(fptr, ifmap_full_addr, i_name, "NCHW");
     compile_pool(fptr, ifmap_full_addr, i_dims, k_dims, 
             ofmap_full_addr, o_dims, s_dims, dtype, (POOLFUNC)pool_func);
     compile_write_ofmap(fptr, o_name, ofmap_full_addr,

@@ -63,8 +63,8 @@ main(int argc, char **argv)
     get_dims(i_name, i_dims, &word_size);
     get_dims(f_name, f_dims, &word_size);
 
-    compile_read_ifmap(fptr, ifmap_full_addr, i_name);
-    compile_read_filter(fptr, filter_full_addr, f_name);
+    compile_read_ifmap(fptr, ifmap_full_addr, i_name, "NCHW");
+    compile_read_filter(fptr, filter_full_addr, f_name, "MCRS");
     compile_convolve(fptr, 
             ifmap_full_addr, i_dims,
             filter_full_addr, f_dims,

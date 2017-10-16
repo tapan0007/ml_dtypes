@@ -175,9 +175,11 @@ _pool_tile(FILE *fptr,
 }
 
 void compile_read_ifmap(FILE *fptr,
-        addr_t ifmap_full_addr, const char *i_name)
+        addr_t ifmap_full_addr, const char *i_name, const char *numpy_layout)
 {
     SIM_RDIFMAP args = {0};
+
+    assert(!strcmp(numpy_layout, "NCHW") && "only NCHW currently supported");
 
     args.opcode = SIM_RDIFMAP_OPC;
     args.address = ifmap_full_addr;
@@ -187,9 +189,11 @@ void compile_read_ifmap(FILE *fptr,
 }
 
 void compile_read_filter(FILE *fptr,
-        addr_t filter_full_addr, const char *i_name)
+        addr_t filter_full_addr, const char *i_name, const char *numpy_layout)
 {
     SIM_RDFILTER args = {0};
+
+    assert(!strcmp(numpy_layout, "MCRS") && "only MCRS currently supported");
 
     args.opcode = SIM_RDFILTER_OPC;
     args.address = filter_full_addr;
