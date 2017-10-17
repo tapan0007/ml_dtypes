@@ -5,6 +5,9 @@ TARGET = verif_test
 SRCDIR = .
 OBJDIR = .
 SIMDIR = ../sim
+SHAREDIR = ../shared
+SHARE_INCDIR := $(SHAREDIR)/inc
+SIM_INCDIR := $(SIMDIR)/src
 LIBDIR = $(SIMDIR)/libs
 LINKFLAGS = -L $(LIBDIR) -lsim
 
@@ -24,9 +27,9 @@ clean:
 
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)  
-	 $(CXX) -DVERIF $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	 $(CXX) -DVERIF -I$(SHARE_INCDIR) -I$(SIM_INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 $(TARGET): $(OBJECTS) 
-	$(CXX) $^  $(LINKFLAGS) -o $@ 
+	$(CXX) $^  -I$(SHARE_INCDIR) -I$(SIM_INCDIR) $(LINKFLAGS) -o $@ 
 
 

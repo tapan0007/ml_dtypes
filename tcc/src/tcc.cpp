@@ -1,20 +1,13 @@
 #include "tcc.h"
 #include "tpb_isa.h"
 #include "uarch_cfg.h"
+#include "tile.h"
 #include <assert.h>
 #include <string>
 #include "string.h"
 #include "math.h"
 
 
-#define N_FLAG 1
-#define S_FLAG 1 << 1
-#define E_FLAG 1 << 2
-#define W_FLAG 1 << 3
-
-#define TILE_SIZE 16
-
-enum NSEW {N=0, S, E, W, NUM_NSEW};
 
 
 #define UNUSED(X) (void)(X)
@@ -27,8 +20,8 @@ enum NSEW {N=0, S, E, W, NUM_NSEW};
 
 void
 _convolve_tile(FILE *fptr,
-        const addr_t ifmap_full_addr, const uint64_t idim[4],
-        const addr_t filter_full_addr, const uint64_t wdim[4],
+        const addr_t *ifmap_addrs,  addr_t ifmap_offset, const uint64_t idim[4],
+        const addr_t filter_addr, const uint64_t wdim[4],
         const addr_t psum_addr,
         const ARBPRECTYPE dtype,
         const uint8_t fmap_num[2],
@@ -42,6 +35,7 @@ _convolve_tile(FILE *fptr,
     }
     uint8_t f_rows = wdim[2];
     uint8_t f_cols = wdim[3];
+    uint8_t i_ch = idim[1];
     uint8_t i_cols = idim[3];
     uint8_t o_channels = wdim[0]; 
 
@@ -49,6 +43,7 @@ _convolve_tile(FILE *fptr,
     /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
     uint64_t num_cols = wdim[0];
     uint64_t num_rows = idim[1];
+    uint64_t ch_batches = ceil((1.0 * i_ch)/(1 << ROW_BITS));
     assert(num_rows && num_cols);
 
     addr_t dsize = sizeofArbPrecType(dtype);
@@ -64,7 +59,7 @@ _convolve_tile(FILE *fptr,
     weight_args.x_num = o_channels;
     weight_args.y_step = dsize * o_channels;
     weight_args.y_num = 1;
-    weight_args.address = filter_full_addr;
+    weight_args.address = filter_addr;
     weight_step = weight_args.y_num * weight_args.y_step * dsize;
 
     /* matmul args */
@@ -94,23 +89,25 @@ _convolve_tile(FILE *fptr,
     uint8_t r_adj, s_adj;
     for (uint8_t r = 0; r <  f_rows; r++) {
         for (uint8_t s = 0; s < f_cols; s++, curr_weight++) {
-            /* matmul arguments and PUSH */
-            r_adj = (r >= pads[N]) * (r - pads[N]);
-            s_adj = (s >= pads[W]) * (s - pads[W]);
-            matmul_args.fmap_start_addr = ifmap_full_addr + 
-                (r_adj * i_cols + s_adj) * dsize;
+            for (uint8_t i = 0; i < ch_batches; i++) {
+                /* matmul arguments and PUSH */
+                r_adj = (r >= pads[N]) * (r - pads[N]);
+                s_adj = (s >= pads[W]) * (s - pads[W]);
+                matmul_args.fmap_start_addr = ifmap_addrs[i] + ifmap_offset +
+                    (r_adj * i_cols + s_adj) * dsize;
 
-            matmul_args.start_tensor_calc = (r == 0 && s == 0);
-            matmul_args.stop_tensor_calc = (curr_weight == 
-                    (f_rows * f_cols - 1));
-            PUSH(fptr, matmul_args);
+                matmul_args.start_tensor_calc = (r == 0 && s == 0 && i == 0);
+                matmul_args.stop_tensor_calc = (curr_weight == 
+                        (f_rows * f_cols - 1)) && (i == ch_batches - 1);
+                PUSH(fptr, matmul_args);
 
-            /* adjust weight address and LdWeights if not at end*/
-            if ((r == f_rows - 1) && (s == f_cols - 1)) {
-                weight_args.address = filter_full_addr;
-            } else {
-                weight_args.address += weight_step;
-                PUSH(fptr, weight_args);
+                /* adjust weight address and LdWeights if not at end*/
+                if ((r == f_rows - 1) && (s == f_cols - 1)) {
+                    weight_args.address = filter_addr;
+                } else {
+                    weight_args.address += weight_step;
+                    PUSH(fptr, weight_args);
+                }
             }
         }
     }
@@ -200,81 +197,11 @@ void compile_write_ofmap(FILE *fptr,
     PUSH(fptr, args);
 }
 
-struct Tile_Dims {
-    public:
-        uint8_t rows;
-        uint8_t cols;
-        size_t  x_whole;
-        size_t  y_whole;
-        size_t  x_partial;
-        size_t  y_partial;
-        Tile_Dims(uint8_t o_rows, uint8_t o_cols) {
-            rows = ceil((float) o_rows / TILE_SIZE);
-            cols = ceil((float) o_cols / TILE_SIZE);
-
-            /* tile args */
-            x_whole = o_cols > TILE_SIZE ? TILE_SIZE : o_cols;
-            y_whole = o_rows > TILE_SIZE ? TILE_SIZE : o_rows;
-            x_partial = o_cols % TILE_SIZE ? o_cols % TILE_SIZE : x_whole;
-            y_partial = o_rows % TILE_SIZE ? o_rows % TILE_SIZE : y_whole;
-        };
-        void get_info(int i, int j, uint8_t *tt,
-                uint8_t *row_offset, uint8_t *col_offset,
-                size_t *tile_sz_x, size_t *tile_sz_y) {
-            *tt = get_tile_type(i, j, rows, cols);
-            *row_offset = (i * TILE_SIZE); 
-            *col_offset = (j * TILE_SIZE);
-            *tile_sz_x = *tt & E_FLAG ? x_partial : x_whole;
-            *tile_sz_y = *tt & S_FLAG ? y_partial : y_whole;
-
-        }
-        addr_t flatten_coord(unsigned int i, unsigned int j) {
-            addr_t lin_addr = 0;
-            uint8_t row_offset, col_offset;
-            size_t  tile_sz_x, tile_sz_y;
-            uint8_t tt = get_tile_type(i, j, rows, cols);
-            /* there is easier ways to do this */
-            for (unsigned int ii = 0; ii < i; ii++) {
-                for (unsigned int jj = 0; jj < cols; jj++) {
-                    get_info(ii, jj, &tt, &row_offset, &col_offset, 
-                            &tile_sz_x, &tile_sz_y);
-                    lin_addr += tile_sz_x * tile_sz_y;
-                }
-            }
-            for (unsigned int jj = 0; jj < j; jj++) {
-                get_info(i, jj, &tt, &row_offset, &col_offset, 
-                        &tile_sz_x, &tile_sz_y);
-                lin_addr += tile_sz_x;
-            }
-            return lin_addr;
-        }
-    private:
-        uint8_t get_tile_type(const uint8_t row, const uint8_t col, 
-                    const uint8_t n_rows, const uint8_t n_cols) {
-                uint8_t tt = 0;
-                if (row == 0) {
-                    tt |= N_FLAG;
-                }
-                if (row == n_rows - 1) {
-                    tt |= S_FLAG;
-                }
-                if (col == 0) {
-                    tt |= W_FLAG;
-                }
-                if (col == n_cols - 1) {
-                    tt |= E_FLAG;
-                }
-                return tt;
-            }
-
-
-};
-
     void
 compile_convolve(FILE *fptr,
-        const addr_t ifmap_full_addr, const uint64_t idim[4],
-        const addr_t filter_full_addr, const uint64_t wdim[4],
-        const addr_t ofmap_full_addr, uint64_t o_dims[4],
+        const addr_t *ifmap_addr, const uint64_t idim[4],
+        const addr_t filter_addr, const uint64_t wdim[4],
+        const addr_t ofmap_addr, uint64_t o_dims[4],
         const ARBPRECTYPE dtype,
         const uint8_t padding[2], const uint8_t striding[2], 
         const uint8_t dilate[2])
@@ -306,9 +233,9 @@ compile_convolve(FILE *fptr,
 
     uint8_t pads[NUM_NSEW];
     uint8_t fmap_num[2];
-    addr_t matmul_addr;
+    addr_t matmul_offset;
     ARBPRECTYPE pool_dtype = get_upcast(dtype);
-    addr_t pool_dst_addr = ofmap_full_addr;
+    addr_t pool_dst_addr = ofmap_addr;
     size_t pool_dsize = sizeofArbPrecType(pool_dtype);
     //  FIXME: assuming psum_base == sb_size
     addr_t psum_addr = MMAP_PSUM_BASE;
@@ -332,14 +259,13 @@ compile_convolve(FILE *fptr,
             fmap_num[0] = tile_sz_x - pads[W] - pads[E];
             fmap_num[1] = tile_sz_y - pads[N] - pads[S];
     
-            matmul_addr = ifmap_full_addr + (row_offset * i_cols + col_offset) *
-                dsize;
-            pool_dst_addr = ofmap_full_addr + tile_dims.flatten_coord(i, j) *
+            matmul_offset = (row_offset * i_cols + col_offset) * dsize;
+            pool_dst_addr = ofmap_addr + tile_dims.flatten_coord(i, j) *
                 pool_dsize;
 
             _convolve_tile(fptr,
-                    matmul_addr, idim,
-                    filter_full_addr, wdim,
+                    ifmap_addr, matmul_offset, idim,
+                    filter_addr, wdim,
                     psum_addr,
                     dtype, fmap_num, pads, striding);
             _pool_tile(fptr,

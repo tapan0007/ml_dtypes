@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include "tpb_isa.h"
 
-/* we don't have a DMA engine, so compile a special sim-only instruction to read
- * a numpy file (i_name) into the state buffer at ifmap_full_addr */
 
 void compile_read_ifmap(FILE *out_binary,
         const addr_t ifmap_sb_addr, const char *in_numpy_fname,
@@ -22,7 +20,7 @@ void compile_write_ofmap(FILE *out_binary,
 
 void
 compile_convolve(FILE *out_binary,
-        const addr_t ifmap_addr, const uint64_t ifmap_dims[4],
+        const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4],
         const addr_t filter_addr, const uint64_t filter_dims[4],
         const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
         const ARBPRECTYPE dtype,
