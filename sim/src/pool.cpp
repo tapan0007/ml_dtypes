@@ -32,9 +32,9 @@ Pool::step() {
 	size_t dsize = sizeofArbPrecType(ps.dtype);
 
 	src_partition_size = (ps.src_full_addr >= psum_buffer_base) ?
-		Constants::psum_addr : Constants::partition_nbytes;
+		Constants::column_partition_nbytes : Constants::row_partition_nbytes;
 	dst_partition_size = (ps.dst_full_addr >= psum_buffer_base) ?
-		Constants::psum_addr : Constants::partition_nbytes;
+		Constants::column_partition_nbytes : Constants::row_partition_nbytes;
 
     memory.read(&in_pixel, ps.src_full_addr, dsize);
 

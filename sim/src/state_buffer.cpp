@@ -62,10 +62,10 @@ StateBuffer::pull_edge() {
     EdgeSignals e = ns;
     if (e.row_valid) {
         if (e.ifmap_valid) {
-            e.ifmap_full_addr += Constants::partition_nbytes;
+            e.ifmap_full_addr += Constants::row_partition_nbytes;
         } 
         if (e.weight_valid) {
-            e.weight_full_addr += Constants::partition_nbytes;
+            e.weight_full_addr += Constants::row_partition_nbytes;
         }
         if (e.row_countdown) {
             e.row_countdown--;

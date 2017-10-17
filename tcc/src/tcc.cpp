@@ -215,7 +215,7 @@ struct Tile_Dims {
             /* tile args */
             x_whole = o_cols > TILE_SIZE ? TILE_SIZE : o_cols;
             y_whole = o_rows > TILE_SIZE ? TILE_SIZE : o_rows;
-            x_partial = cols % TILE_SIZE ? o_cols % TILE_SIZE : x_whole;
+            x_partial = o_cols % TILE_SIZE ? o_cols % TILE_SIZE : x_whole;
             y_partial = o_rows % TILE_SIZE ? o_rows % TILE_SIZE : y_whole;
         };
         void get_info(int i, int j, uint8_t *tt,

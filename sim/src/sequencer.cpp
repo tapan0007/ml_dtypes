@@ -282,7 +282,7 @@ Sequencer::step_edgesignal() {
     /* Sending an ifmap, must be getting out ofmap! */
     if (es.ifmap_valid || es.pad_valid) {
         /* FIXME - this is the psum granularity, FIX */
-        es.psum_full_addr += Constants::psum_buffer_width;
+        es.psum_full_addr += sizeofArbPrecType((ARBPRECTYPE)get_upcast(es.ifmap_dtype));
     }
 
     /*  WEIGHT */

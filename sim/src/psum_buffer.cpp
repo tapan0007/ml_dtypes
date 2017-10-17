@@ -11,7 +11,7 @@ extern addr_t psum_buffer_base;
 PSumBuffer::PSumBuffer() : ptr(NULL), ew(), north(nullptr), west(nullptr) {
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
-    valids = (char *)(calloc(Constants::psum_addr, 1));
+    valids = (char *)(calloc(Constants::column_partition_nbytes, 1));
 }
 
 PSumBuffer::~PSumBuffer() {}
@@ -113,21 +113,20 @@ PSumBuffer::step() {
     static ArbPrecData zeros = {0};
     static ArbPrecData ones = {.uint64 = 0xffffffffffffffff};
 
-    if (ew.column_valid) {
+    if (ew.column_valid && ew.ifmap_valid) {
         assert(ew.psum_full_addr >= MMAP_PSUM_BASE);
         ARBPRECTYPE psum_dtype =  get_upcast(ew.ifmap_dtype);
         size_t dsize = sizeofArbPrecType(psum_dtype);
-        unsigned int e_id = (ew.psum_full_addr - MMAP_PSUM_BASE) >> Constants::psum_buffer_width_bits;
-        unsigned int e_offset = e_id * dsize;
-        addr_t src_addr = memory.index(mem_addr, e_id, psum_dtype);
+        unsigned int e_offset = ew.psum_full_addr - MMAP_PSUM_BASE;
+        addr_t src_addr = memory.index(mem_addr, e_offset, UINT8);
         void *src_ptr = memory.translate(src_addr);
-        assert(e_offset <= Constants::psum_addr);
+        assert(e_offset <= Constants::column_partition_nbytes);
         if (ew.psum_start) {
             memory.write(src_addr, &zeros, dsize);
             memcpy(&valids[e_offset], &ones, dsize); 
         }
         if (ew.ifmap_valid) {
-            printf("adding partial sum at %d is ", e_id);
+            printf("adding partial sum at %x is ", e_offset);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             ArbPrecData result = ArbPrec::add(src_ptr, &ns.partial_sum, psum_dtype);
             memory.write(src_addr, &result, dsize);
@@ -138,7 +137,7 @@ PSumBuffer::step() {
         }
 
         if (ew.psum_stop) {
-            printf("final partial sum at %d is ", e_id);
+            printf("final partial sum at %x is ", e_offset);
             ArbPrec::dump(stdout, memory.translate(src_addr), psum_dtype);
             printf("\n");
             assert(valids[e_offset]);
@@ -146,7 +145,7 @@ PSumBuffer::step() {
         } 
 
         if (ew.column_countdown == 0) {
-            ew.row_valid = 0;
+            ew.column_valid = 0;
         } else {
             ew.column_countdown--;
         }
@@ -161,7 +160,7 @@ PSumBufferArray::PSumBufferArray(int n_cols) {
     col_buffer[0].set_address(psum_buffer_base);
     for (int i = 1; i < n_cols; i++) {
         col_buffer[i].connect_west(&col_buffer[i-1]);
-        col_buffer[i].set_address(psum_buffer_base + i * Constants::psum_addr);
+        col_buffer[i].set_address(psum_buffer_base + i * Constants::column_partition_nbytes);
     }
 }
 
