@@ -21,16 +21,10 @@ class ConvLayer(SubSampleLayer):
         ks = str(self.gKernel())
         ss = str(self.gStride())
         baseLayer = self.gBaseLayerStr()
-        if self.gPrevLayer(0) == self.gNetwork().m_PrevLayer:
-            return (self.gName() + baseLayer
-                    + ", kernel=" + ks + "x" + ks + ", stride=" + ss
-                    + self.gStateSizesStr())
-        else:
-            p = "[" + self.gPrevLayer(0).gNumberStr() + "]"
-            return (self.gName() # + p
-                    + " " + baseLayer
-                    + ", kernel=" + ks + "x" + ks + ", stride=" + ss
-                    + self.gStateSizesStr())
+        return (self.gName()
+                + baseLayer
+                + ", kernel=" + ks + "x" + ks + ", stride=" + ss
+                + self.gStateSizesStr())
 
     #-----------------------------------------------------------------
     def verify(self):

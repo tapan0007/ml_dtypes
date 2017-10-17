@@ -1,7 +1,7 @@
 from abc             import ABCMeta, abstractmethod
 
 from utils.consts    import  *
-from utils.funcs     import kstr
+##from utils.funcs     import kstr
 import layers.layer
 from schedule.scheduler      import Scheduler
 
@@ -49,6 +49,9 @@ class Network(object):
         self.__DoBatching = batch
 
     #-----------------------------------------------------------------
+    def gLevels(self):
+        return self.__Levels
+
     def rLevels(self, levels):
         self.__Levels = levels
 
@@ -90,78 +93,6 @@ class Network(object):
 
 
 
-    #-----------------------------------------------------------------
-    def printDot(self):
-        f1=open(self.gName()+".dot", 'w')
-
-        graphName = self.gName().replace("-", "_").replace(".", "_")
-        print >>f1, 'digraph', graphName, "{"
-
-        for layer in self.gLayers():
-            print >>f1, '  ', layer.gDotIdLabel()
-
-        print >>f1
-
-        for layer in self.__Layers:
-            for nextLayer in layer.gNextLayers():
-                print >>f1, '  ', layer.gDotId(), '->', nextLayer.gDotId(), ';'
-
-        print >>f1, '}'
-        print >>f1
-
-    #-----------------------------------------------------------------
-    def printMe(self):
-        prevNl = False
-        maxStateSize = 0
-        layerNumMajor = 0
-        layerNumMinor = 0
-        self.m_PrevLayer = None
-
-        for layer in self.__Layers:
-            if layer.gDenseBlockStart() >= 0:
-                if not prevNl:
-                    print
-                print ">>> Starting dense block " + str(layer.gDenseBlockStart())
-            elif layer.gTranBlockStart() >= 0:
-                if not prevNl:
-                    print
-                print ">>> Starting tran block " + str(layer.gTranBlockStart())
-
-            if layer.qStoreInSB():
-                inStateSize = layer.gInputStateMemWithoutBatching()
-                outStateSize = layer.gOutputStateMemWithoutBatching()
-                totalStateSize = inStateSize + outStateSize
-                if totalStateSize > maxStateSize:
-                    maxStateSize = totalStateSize
-            else:
-                inStateSize = layer.gInputSize()
-                outStateSize = layer.gOutputSize()
-
-            numStr = layer.gNumberStr()
-            print (numStr + " " + str(layer))
-            layer.m_NumStr = numStr
-
-            prevNl = False
-            if layer.gDenseBlockEnd() >= 0:
-                print "<<< Ending dense block " + str(layer.gDenseBlockEnd())
-                print
-                prevNl = True
-            elif layer.gTranBlockEnd() >= 0:
-                print "<<< Ending tran block " + str(layer.gTranBlockEnd())
-                print
-                prevNl = True
-
-            self.m_PrevLayer =layer
-
-        print "Max state size =", kstr(maxStateSize)
-
-
-    #-----------------------------------------------------------------
-    def printLevels(self):
-        for level in self.__Levels:
-            for layer in level.gLayers():
-                print layer.gNameWithSched(),
-            print
 
 
     #-----------------------------------------------------------------
@@ -186,20 +117,4 @@ class Network(object):
 
 
 
-
-    #-----------------------------------------------------------------
-    def printSched(self):
-        for layer in self.gSchedLayers():
-            sbPreds = ""
-            first=True
-            for sbLayer in layer.gPrevSbLayers():
-                s = sbLayer.gName()
-                if not first:
-                    s = "," + s
-                first=False
-                sbPreds += s
-
-            sb = "SB" if layer.qStoreInSB() else "sb"
-            ss = ("%-80s  %s=[%s]") % (layer.gNameWithSchedMem(), sb, sbPreds)
-            print ss
 

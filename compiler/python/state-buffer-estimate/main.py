@@ -1,4 +1,5 @@
 import sys
+from utils.printers             import Printer
 import layers.layer
 
 #from layers.layer               import rDoBatching
@@ -42,24 +43,27 @@ scheduler = Scheduler()
 scheduler.Schedule(ntwk)
 ntwk.rLevels(scheduler.gLevels())
 
+##################################################
+printer = Printer(ntwk)
+
 ### Printing
 if PrintLayers:
-    ntwk.printMe()
+    printer.printNetwork()
     print
 
 if PrintLevels:
     print("By level")
-    ntwk.printLevels()
+    printer.printLevels()
     print
 
 if PrintSchedule:
     print("By scheduling")
-    ntwk.printSched()
+    printer.printSched()
     print
 
 if PrintDot:
     print("Dot")
-    ntwk.printDot()
+    printer.printDot()
     print
 
 
