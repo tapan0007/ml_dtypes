@@ -1,7 +1,8 @@
-#ALL_OPTS = --print-layers --print-levels --batch
-#ALL_OPTS = --print-layers --print-levels 
-ALL_OPTS = --print-layers 
-#ALL_OPTS = 
+ALL_OPTS := --print-layers  --batch
+ALL_OPTS := --print-layers 
+ALL_OPTS := 
+ALL_OPTS := --print-layers --print-levels --batch
+ALL_OPTS := --print-layers --print-levels 
 
 DENSE169 = DenseNet-169
 RES50 = ResNet-50

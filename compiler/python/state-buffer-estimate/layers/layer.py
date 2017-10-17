@@ -17,7 +17,7 @@ class Layer(object): # abstract class
         def gLayerName(self):
             return self.__LayerBatchNetwork[0]
 
-        def gBatch(self):
+        def gBatchNum(self):
             return self.__LayerBatchNetwork[1]
 
         def gNetwork(self):
@@ -40,12 +40,11 @@ class Layer(object): # abstract class
 
         self.__LayerName        = layerName
         if ntwrk.qDoBatching():
-            self.__Batch        = batch
+            self.__BatchNum     = batch
         else:
-            self.__Batch        = 1
+            self.__BatchNum     = 1
         self.__BatchMem         = 0
 
-        self.__MaxFanoutBatch   = None
         self.__Network          = ntwrk
         self.__Ofmap_desc       = ofmap_desc.copy()
         self.__Id               = None
@@ -65,7 +64,8 @@ class Layer(object): # abstract class
         # counts the number layers that need to be executed
         # and need this layer's
         self.__RefCount         = 0
-        self.__ResMem           = 0
+        self.__ResMemWithBatching = 0
+        self.__ResMemWithoutBatching = 0
 
 
         assert( (len(prev_layers) == 0) == (self.gLayerType() == LAYER_TYPE_DATA) )
@@ -74,10 +74,6 @@ class Layer(object): # abstract class
             prevLayer.addNextLayer(self)
 
         ntwrk.addLayer(self) ## will assign index
-
-    #-----------------------------------------------------------------
-    def rMaxFanoutBatch(self, maxFanoutBatch):
-        self.__MaxFanoutBatch  = maxFanoutBatch
 
     #-----------------------------------------------------------------
     #-----------------------------------------------------------------
@@ -106,55 +102,68 @@ class Layer(object): # abstract class
 
 
     #-----------------------------------------------------------------
-    def gBatch(self):
-        return self.__Batch
-
-    #-----------------------------------------------------------------
-    def rBatchMem(self, mem):
-        self.__BatchMem = mem
+    def gBatchNum(self):
+        return self.__BatchNum
 
     #-----------------------------------------------------------------
     def gBatchMem(self):
         return self.__BatchMem
 
+    #-----------------------------------------------------------------
+    def rBatchMem(self, mem):
+        self.__BatchMem = mem
+
 
     #-----------------------------------------------------------------
-    def gRawInputStateSize(self):
+    def gResMemWithoutBatching(self):
+        return self.__ResMemWithBatching
+
+    #-----------------------------------------------------------------
+    def rResMemWithoutBatching(self, mem):
+        self.__ResMemWithBatching = mem
+
+    #-----------------------------------------------------------------
+    def gResMemWithBatching(self):
+        return self.__ResMemWithBatching
+
+    #-----------------------------------------------------------------
+    def rResMemWithBatching(self, mem):
+        self.__ResMemWithBatching = mem
+
+
+    #-----------------------------------------------------------------
+    def gInputSize(self):
         sz = 0
-        for inLayer in self.gPrevSbLayers():
-            sz += inLayer.gRawOutputStateSize()
+        for inLayer in self.gPrevLayers():
+            sz += inLayer.gOutputSize()
         return sz
 
     #-----------------------------------------------------------------
-    def gRawInputStateSizeOneBatch(self):
-        sz = 0
-        for inSbLayer in self.gPrevSbLayers():
-            sz += inSbLayer.gRawOutputStateSizeOneBatch()
-        return sz
-
-    #-----------------------------------------------------------------
-    def gRawOutputStateSize(self):
-        return self.__MaxFanoutBatch * self.gRawOutputStateSizeOneBatch()
-
-    #-----------------------------------------------------------------
-    def gRawInputSize(self):
-        sz = 0
-        for inLayer in self.gPrevSbLayers():
-            sz += inLayer.gRawOutputSize()
-        return sz
-
-    #-----------------------------------------------------------------
-    def gRawOutputSize(self):
+    def gOutputSize(self):
         oneBatchSize = self.gNumOfmaps() * (self.gOfmapSize() * self.gOfmapSize())
         return oneBatchSize
 
     #-----------------------------------------------------------------
-    def gRawOutputStateSizeOneBatch(self):
+    def gInputStateMemWithoutBatching(self):
+        #assert(self.qStoreInSB())
+        sz = 0
+        for inSbLayer in self.gPrevSbLayers():
+            sz += inSbLayer.gOutputStateMemWithoutBatching()
+        return sz
+
+    #-----------------------------------------------------------------
+    def gOutputStateMemWithoutBatching(self):
+        assert(self.qStoreInSB())
         if self.qStoreInSB():
-            oneBatchSize = self.gRawOutputSize()
+            oneBatchSize = self.gOutputSize()
             return oneBatchSize
         else:
             return 0
+
+    #-----------------------------------------------------------------
+    def gOutputStateMemWithBatching(self):
+        assert(self.qStoreInSB())
+        return self.gBatchNum() * self.gOutputStateMemWithoutBatching()
 
 
 
@@ -172,6 +181,15 @@ class Layer(object): # abstract class
 
     def rSchedule(self, sch):
         self.__schedule = sch
+
+    #-----------------------------------------------------------------
+    def gCurrLevel(self):
+        return self.__CurrLevel
+
+    #-----------------------------------------------------------------
+    def rCurrLevel(self, lev):
+        assert(self.gEarlyLevel() <= lev and lev <= self.gLateLevel())
+        self.__CurrLevel = lev
 
     #-----------------------------------------------------------------
     def gEarlyLevel(self):
@@ -278,21 +296,25 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def gStateSizesStr(self):
-        iState = self.gRawInputStateSize()
-        nOut = self.gRawOutputSize()
         if self.qStoreInSB() :
+            nIn= self.gInputStateMemWithoutBatching()
+            nOut = self.gOutputStateMemWithoutBatching()
+            iState = kstr(nIn)
             oState = kstr(nOut)
-            tState = iState + nOut
+            tState = kstr(nIn + nOut)
         else:
+            nIn = self.gInputSize()
+            iState = "(" + kstr(nIn) + ")"
+            nOut = self.gOutputSize()
             oState = "(" + kstr(nOut) + ")"
-            tState = iState 
+            tState = "(" + kstr(nIn+nOut) + ")"
 
         numWeights = self.gNumberWeights()
         nextNumWeights = self.gMaxNextLayerNumberWeights()
-        totMem = tState + numWeights + nextNumWeights
-        return ("  IState=" + kstr(iState)
+        totMem = nIn + nOut + numWeights + nextNumWeights
+        return ("  IState=" + (iState)
              + ",  OState=" + (oState)
-             + ",  TState=" + kstr(tState)
+             + ",  TState=" + (tState)
              + ",  NumWeights=" + kstr(numWeights)
              + ",  TMem=" + kstr(totMem)
                  )
@@ -382,21 +404,24 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def gNameWithSchedMem(self):
-        imem = self.gRawInputStateSize()
-        rmem = self.gResMem()
+        if self.gName() == "res3d{Add}":
+            x = 3
         if self.qStoreInSB():
-            omem = self.gRawOutputStateSize()
+            imem = self.gInputStateMemWithoutBatching()
+            rmem = self.gResMemWithoutBatching()
+            omem = self.gOutputStateMemWithoutBatching()
             bmem = self.gBatchMem()
             s = ("%-24s imem=%-6s omem=%-8s rmem=%-8s bmem=%-8s") % (
                 self.gName(),
                 kstr(imem), kstr(omem), kstr(rmem),
-                (kstr(bmem) + "[" + str(self.gBatch()) + "]")
+                (kstr(bmem) + "[" + str(self.gBatchNum()) + "]")
                 )
         else:
-            omem = self.gRawOutputSize()
-            s = ("%-24s imem=%-6s omem=%-8s rmem=%-8s") % (
+            imem = self.gInputSize()
+            omem = self.gOutputSize()
+            s = ("%-24s isize=%-6s osize=%-8s") % (
                 self.gName(),
-                kstr(imem), "("+kstr(omem)+")", "("+kstr(rmem)+")")
+                kstr(imem), "("+kstr(omem)+")")
         return s
 
     #-----------------------------------------------------------------
@@ -430,14 +455,6 @@ class Layer(object): # abstract class
         self.__RefCount += num
 
 
-    #-----------------------------------------------------------------
-    def gResMem(self):
-        return self.__ResMem
-
-    #-----------------------------------------------------------------
-    def rResMem(self, mem):
-        self.__ResMem = mem
-
 
     #-----------------------------------------------------------------
     # Does this layer store data in the SB?
@@ -447,6 +464,8 @@ class Layer(object): # abstract class
     # Therefore, the return value can be determined only after scheduling is finished.
     #-----------------------------------------------------------------
     def qStoreInSB(self):
+        mySched = self.gSchedule()
+        assert(mySched != None)
         nextSchedLayer = self.gNextSchedLayer()
         if not nextSchedLayer:
             return True
@@ -455,7 +474,6 @@ class Layer(object): # abstract class
         elif self.gNumNextLayers() > 1:
             return True
         else:
-            mySched = self.gSchedule()
             return self.gNextLayer(0).gSchedule() > mySched + 1
 
     #-----------------------------------------------------------------

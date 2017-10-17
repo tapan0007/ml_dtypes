@@ -127,11 +127,15 @@ class Network(object):
                     print
                 print ">>> Starting tran block " + str(layer.gTranBlockStart())
 
-            inStateSize = layer.gRawInputStateSize()
-            outStateSize = layer.gRawOutputStateSize()
-            totalStateSize = inStateSize + outStateSize
-            if totalStateSize > maxStateSize:
-                maxStateSize = totalStateSize
+            if layer.qStoreInSB():
+                inStateSize = layer.gInputStateMemWithoutBatching()
+                outStateSize = layer.gOutputStateMemWithoutBatching()
+                totalStateSize = inStateSize + outStateSize
+                if totalStateSize > maxStateSize:
+                    maxStateSize = totalStateSize
+            else:
+                inStateSize = layer.gInputSize()
+                outStateSize = layer.gOutputSize()
 
             numStr = layer.gNumberStr()
             print (numStr + " " + str(layer))

@@ -48,17 +48,17 @@ if PrintLayers:
     print
 
 if PrintLevels:
-    print "By level"
+    print("By level")
     ntwk.printLevels()
     print
 
 if PrintSchedule:
-    print "By scheduling"
+    print("By scheduling")
     ntwk.printSched()
     print
 
 if PrintDot:
-    print "Dot"
+    print("Dot")
     ntwk.printDot()
     print
 

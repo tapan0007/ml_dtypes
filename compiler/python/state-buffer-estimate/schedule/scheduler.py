@@ -29,6 +29,8 @@ class Scheduler(object):
 
     #-----------------------------------------------------------------
     # Level[i] = layers without predecessors in: All-Layers - Union{k : k in [0,i) : Level[k]}
+    # All layers go to the earliest level:w
+    #-----------------------------------------------------------------
     def __levelize(self):
         for layer in self.__Layers:
             layer.m_NumPredecessors = layer.gNumPrevLayers()
@@ -62,8 +64,11 @@ class Scheduler(object):
             for layer in currLevel.gLayers():
                 layer.rEarlyLevel(currLevelNum)
 
+
         self.__Levels = Levels
         self.__calculateLateLevels()
+        for layer in self.__Layers:
+            layer.rCurrLevel(layer.gEarlyLevel())
         self.__verifyLevelization()
 
     #-----------------------------------------------------------------
@@ -77,6 +82,7 @@ class Scheduler(object):
                     assert(layer.gEarlyLevel() < nextLayer.gEarlyLevel())
                     assert(layer.gLateLevel() < nextLayer.gLateLevel())
                     assert(layer.gEarlyLevel() <= layer.gLateLevel())
+                    assert(layer.gEarlyLevel() <= layer.gCurrLevel() and layer.gCurrLevel() <= layer.gLateLevel())
 
     #-----------------------------------------------------------------
     def __calculateLateLevels(self):
@@ -97,7 +103,7 @@ class Scheduler(object):
         self.__Layers = ntwk.gLayers()
         self.__Levels = None
 
-        self.__calcFanoutBatch()
+        ##self.__calcFanoutBatch()
 
         self.__levelize()
         Levels = self.__Levels
@@ -108,23 +114,23 @@ class Scheduler(object):
         for layer in self.__Layers:
             if layer.gEarlyLevel() == layer.gLateLevel():
                 continue
-            if layer.gRawInputStateSize() < layer.gRawOutputStateSize():
+            earlyLevel = self.__Levels[layer.gEarlyLevel()]
+            lateLevel = self.__Levels[layer.gLateLevel()]
+            assert(layer.gCurrLevel() == layer.gEarlyLevel())
+            assert(earlyLevel.qContainsLayer(layer))
+            assert(earlyLevel.gLevelNum() == layer.gEarlyLevel())
+            assert(lateLevel.gLevelNum() == layer.gLateLevel())
+            assert(not lateLevel.qContainsLayer(layer))
+
+            if layer.gInputSize() < layer.gOutputSize():
                 # move layer to latest level
                 breakFunc(2)
-                earlyLevel = self.__Levels[layer.gEarlyLevel()]
-                lateLevel = self.__Levels[layer.gLateLevel()]
-
-                assert(earlyLevel.qContainsLayer(layer))
-                assert(earlyLevel.gLevelNum() == layer.gEarlyLevel())
-                assert(lateLevel.gLevelNum() == layer.gLateLevel())
 
                 earlyLevel.remove(layer)
                 lateLevel.append(layer)
+                layer.rCurrLevel(layer.gLateLevel())
                 assert(not earlyLevel.qContainsLayer(layer))
                 assert(lateLevel.qContainsLayer(layer))
-            else:
-                # keep it early
-                pass
 
         ## Schedule within level
         self.__currSchedule = 0
@@ -219,12 +225,12 @@ class Scheduler(object):
         sorted(levelCopy, key=functools.cmp_to_key(compareLayer))
 
     #-----------------------------------------------------------------
-    def __processLayerSbMemForResidue(self, layer):
+    def __processLayerSbMemForResidueWithoutBatching(self, layer):
         assert(layer.qStoreInSB())
 
         ## all subsequent layers refer to this layer
         layer.changeRefCount(layer.gNumNextLayers()) 
-        outSize = layer.gRawOutputStateSize()
+        outSize = layer.gOutputStateMemWithoutBatching()
         inMemBefore = self.gCurrInMem()
 
         canRelease = 0
@@ -232,7 +238,7 @@ class Scheduler(object):
         for inSbLayer in layer.gPrevSbLayers():
             assert(layer != inSbLayer and inSbLayer.qStoreInSB())
             inSbLayer.changeRefCount(-1)  ## decrease ref count by 1
-            inSbMem = inSbLayer.gRawOutputStateSize()
+            inSbMem = inSbLayer.gOutputStateMemWithoutBatching()
             if inSbLayer.gRefCount() == 0:
                 canRelease += inSbMem
             else:
@@ -241,21 +247,47 @@ class Scheduler(object):
         inMemAfter = inMemBefore + outSize - canRelease
         residueMem = inMemBefore - (canRelease + cannotRelease)
 
-        layer.rResMem(residueMem)
+        layer.rResMemWithoutBatching(residueMem)
+        self.__CurrInMem = inMemAfter
+
+    #-----------------------------------------------------------------
+    def __processLayerSbMemForResidueWithBatching(self, layer):
+        assert(layer.qStoreInSB())
+
+        ## all subsequent layers refer to this layer
+        layer.changeRefCount(layer.gNumNextLayers()) 
+        outSize = layer.gOutputStateMemWithBatching()
+        inMemBefore = self.gCurrInMem()
+
+        canRelease = 0
+        cannotRelease = 0
+        for inSbLayer in layer.gPrevSbLayers():
+            assert(layer != inSbLayer and inSbLayer.qStoreInSB())
+            inSbLayer.changeRefCount(-1)  ## decrease ref count by 1
+            inSbMem = inSbLayer.gOutputStateMemWithBatching()
+            if inSbLayer.gRefCount() == 0:
+                canRelease += inSbMem
+            else:
+                cannotRelease += inSbMem
+
+        inMemAfter = inMemBefore + outSize - canRelease
+        residueMem = inMemBefore - (canRelease + cannotRelease)
+
+        layer.rResMemWithBatching(residueMem)
         self.__CurrInMem = inMemAfter
 
     #-----------------------------------------------------------------
     def __calcFanoutBatch(self):
         for layer in self.__Network.gLayers():
-            maxFanoutBatch = 0
+            maxFanoutBatchNum = 0
             numFanouts = 0
             for fanoutLayer in layer.gNextLayers():
                 numFanouts += 1
-                fob = fanoutLayer.gBatch()
-                if fob > maxFanoutBatch:
+                fob = fanoutLayer.gBatchNum()
+                if fob > maxFanoutBatchNum:
                     maxFanoutBatch = fob
             assert(numFanouts == 0 or maxFanoutBatch > 0)
-            layer.rMaxFanoutBatch(maxFanoutBatch)
+            #layer.rMaxFanoutBatchNum(maxFanoutBatchNum)
 
 
     #-----------------------------------------------------------------
@@ -291,34 +323,40 @@ class Scheduler(object):
     #-----------------------------------------------------------------
     def __processSbConnectionForBatching(self, prevLayer, nextLayer):
         assert(prevLayer.qStoreInSB() and nextLayer.qStoreInSB())
-        deltaBatch = nextLayer.gBatch() - prevLayer.gBatch() 
+        deltaBatch = nextLayer.gBatchNum() - prevLayer.gBatchNum() 
         assert(deltaBatch >= 0)
-        myBatchMem = deltaBatch * prevLayer.gRawOutputStateSizeOneBatch()
+        myBatchMem = deltaBatch * prevLayer.gOutputStateMemWithoutBatching()
         batchMem = myBatchMem + nextLayer.gBatchMem()
         if batchMem > prevLayer.gBatchMem():
             prevLayer.rBatchMem(batchMem)
 
     #-----------------------------------------------------------------
     def calcSbMem(self):
-        self.__CurrInMem = 0
-        self.__HighMemWatermark = 0
-
         network = self.__Network
 
         for layer in network.gSchedLayers():
             self.__addPrevSbLayers(layer)
 
+        # First determine residue without batching
+        self.__CurrInMem = 0
         for layer in network.gSchedLayers():
             if not layer.qStoreInSB():
                 continue
-            self.__processLayerSbMemForResidue(layer)
+            self.__processLayerSbMemForResidueWithoutBatching(layer)
 
+        # First determing batching
         for layer in network.gReverseSchedLayers():
             if not layer.qStoreInSB():
                 continue
-            myBatch = layer.gBatch()
             for inSbLayer in layer.gPrevSbLayers():
                 self.__processSbConnectionForBatching(inSbLayer, layer)
+
+        # Second determine residue with batching
+        self.__CurrInMem = 0
+        for layer in network.gSchedLayers():
+            if not layer.qStoreInSB():
+                continue
+            self.__processLayerSbMemForResidueWithBatching(layer)
 
     #-----------------------------------------------------------------
     def gCurrInMem(self):
