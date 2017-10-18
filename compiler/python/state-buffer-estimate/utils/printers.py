@@ -1,5 +1,6 @@
 
 from utils.funcs     import kstr
+from utils.consts    import SCHED_MEM_FORMAT
 from layers.layer import Layer
 from nets.network import Network
 
@@ -88,6 +89,12 @@ class Printer(object):
     #-----------------------------------------------------------------
     def printSched(self):
         ntwk = self.__Network
+        s = (SCHED_MEM_FORMAT) % (
+            "Layer", "In", "Out", "Residue", "Batch",
+            )
+        lineFmt = ("%-70s  %s")
+        ss = (lineFmt) % (s, "SB predecessors")
+        print(ss)
         for layer in ntwk.gSchedLayers():
             sbPreds = ""
             first=True
@@ -98,6 +105,9 @@ class Printer(object):
                 first=False
                 sbPreds += s
 
+            if sbPreds == "":
+                sbPreds = "()"
             sb = "SB" if layer.qStoreInSB() else "sb"
-            ss = ("%-80s  %s=[%s]") % (layer.gNameWithSchedMem(), sb, sbPreds)
+            ss = (lineFmt) % (layer.gNameWithSchedMem(), "[" + sb + "]=" + sbPreds)
             print ss
+

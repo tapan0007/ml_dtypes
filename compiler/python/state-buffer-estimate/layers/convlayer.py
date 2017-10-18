@@ -44,20 +44,15 @@ class ConvLayer(SubSampleLayer):
         return "Conv"
 
     #-----------------------------------------------------------------
-    def gNumConvWeights(self):
-        k = self.gKernel()
-        num_ifmaps = gPrevLayer(0).gNumOfmaps()
-        num_ofmaps = self.gNumOfmaps()
-        return k*k * num_ifmaps * num_ofmaps
-
-    #-----------------------------------------------------------------
     def qPassThrough(self):
         return False
 
     #-----------------------------------------------------------------
     def gNumberWeights(self):
         assert(self.gNumPrevLayers() == 1)
-        prevLayer = self.gPrevLayer(0)
-        return prevLayer.gNumOfmaps() * self.gNumOfmaps() * (self.gKernel()**2)
+        k = self.gKernel()
+        num_ifmaps = self.gPrevLayer(0).gNumOfmaps()
+        num_ofmaps = self.gNumOfmaps()
+        return k*k * num_ifmaps * num_ofmaps
 
 

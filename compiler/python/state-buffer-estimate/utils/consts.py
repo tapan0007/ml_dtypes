@@ -14,3 +14,4 @@ LAYER_TYPE_FULL       = 10
 #POOL_TYPE_MAX    = 1
 #POOL_TYPE_AVG    = 2
 
+SCHED_MEM_FORMAT = "%-24s %-6s %-8s %-8s %-8s"

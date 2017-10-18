@@ -1,6 +1,7 @@
 from abc             import ABCMeta, abstractmethod
 
 from utils.consts    import  *
+from utils.consts    import SCHED_MEM_FORMAT
 from utils.fmapdesc  import OfmapDesc
 from utils.funcs     import kstr
 import nets.network
@@ -278,6 +279,7 @@ class Layer(object): # abstract class
         self.__TranBlockEnd = val
 
     #-----------------------------------------------------------------
+    ## ConvLayer must override this method for real weights
     def gNumberWeights(self):
         return 0
 
@@ -411,7 +413,7 @@ class Layer(object): # abstract class
             rmem = self.gResMemWithoutBatching()
             omem = self.gOutputStateMemWithoutBatching()
             bmem = self.gBatchMem()
-            s = ("%-24s imem=%-6s omem=%-8s rmem=%-8s bmem=%-8s") % (
+            s = (SCHED_MEM_FORMAT) % (
                 self.gName(),
                 kstr(imem), kstr(omem), kstr(rmem),
                 (kstr(bmem) + "[" + str(self.gBatchNum()) + "]")
@@ -419,9 +421,11 @@ class Layer(object): # abstract class
         else:
             imem = self.gInputSize()
             omem = self.gOutputSize()
-            s = ("%-24s isize=%-6s osize=%-8s") % (
+            s = (SCHED_MEM_FORMAT) % (
                 self.gName(),
-                kstr(imem), "("+kstr(omem)+")")
+                kstr(imem), "("+kstr(omem)+")",
+                "", "",
+                )
         return s
 
     #-----------------------------------------------------------------

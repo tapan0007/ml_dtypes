@@ -20,3 +20,4 @@ class FullLayer(ConvLayer):
     #-----------------------------------------------------------------
     def gTypeStr(self):
         return "Full"
+
