@@ -18,6 +18,10 @@ void compile_write_ofmap(FILE *out_binary,
         const uint64_t dims[4],
         const size_t word_size);
 
+/*[ifmap/filter]_addrs are arrays of statebuffer addresses.  Arrays 
+ * deal with cases iwhen with the number of ifmap channels is > number of rows.
+ * In this case, the ifmaps and filters must be "wrapped".  Each address in the
+ * array is the wrap offset */
 void
 compile_convolve(FILE *out_binary,
         const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4],

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "sequencer.h"
 #include "uarch_defines.h"
 #include "string.h"
@@ -436,6 +437,15 @@ Sequencer::step() {
 
 
 EdgeSignals Sequencer::pull_edge() {
+    assert(!es.ifmap_valid ||
+            ((es.ifmap_full_addr >= MMAP_SB_BASE) && 
+             (es.ifmap_full_addr < ROW_SIZE)));
+    assert(!es.weight_valid ||
+          ((es.weight_full_addr >= MMAP_SB_BASE) && 
+           (es.weight_full_addr < ROW_SIZE)));
+    assert(!es.ifmap_valid ||
+            ((es.psum_full_addr >= MMAP_PSUM_BASE) && 
+             (es.psum_full_addr < MMAP_PSUM_BASE + COLUMN_SIZE)));
     return es;
 }
 
