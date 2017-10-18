@@ -110,7 +110,7 @@ void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
     seq->es.row_countdown = args.last_row; 
     seq->es.row_valid = true;
-    seq->es.weight_toggle = true;
+    seq->es.weight_toggle = args.toggle_weight;
     seq->ifmap_base = args.fmap_start_addr;
     seq->ifmap_x_num = args.fmap_x_num;
     seq->ifmap_y_num = args.fmap_y_num;

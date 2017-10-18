@@ -20,11 +20,11 @@ get_dims(char *fname, uint64_t *shape, size_t *word_size) {
 int 
 main(int argc, char **argv) 
 {
-    addr_t ifmap_addr[2]  = {
-        0 * (1 << BANK_BITS),
-        1 * (1 << BANK_BITS)};
-    addr_t filter_addr = 2 * (1 << BANK_BITS);
-    addr_t ofmap_addr  = 3 * (1 << BANK_BITS);
+    addr_t ifmap_base = 0 * (1 << BANK_BITS);
+    addr_t filter_base = 1 * (1 << BANK_BITS);
+    addr_t ofmap_addr  = 2 * (1 << BANK_BITS);
+    addr_t ifmap_addr[2] = {ifmap_base,0};
+    addr_t filter_addr[2] = {filter_base,0};
     uint64_t i_dims[4], f_dims[4];
     size_t word_size;
     size_t oword_size = 4; /* FIXME, no pinning! */
@@ -33,9 +33,10 @@ main(int argc, char **argv)
     uint8_t stride[] = {1,1};
     uint8_t dilate[] = {0,0};
     uint64_t o_dims[4] = {0,0,0,0};
-    char *i_names[2], *o_name, *f_name, *binary_name;
+    char *i_names[2], *f_names[2], *o_name, *binary_name;
     int i = 1;
     int num_inames = 0;
+    int num_fnames = 0;
     FILE *fptr;
 
     if (argc < 3) {
@@ -56,7 +57,10 @@ main(int argc, char **argv)
         i_names[num_inames++] = argv[++i];
         i++;
     }
-    f_name = argv[i++];
+    while (!strcmp(argv[i], "-f")) {
+        f_names[num_fnames++] = argv[++i];
+        i++;
+    }
     o_name = argv[i++];
     binary_name = argv[i++];
 
@@ -66,18 +70,31 @@ main(int argc, char **argv)
     }
 
 
-    get_dims(f_name, f_dims, &word_size);
-    compile_read_filter(fptr, filter_addr, f_name, "MCRS");
 
     assert(num_inames <= 2);
     uint64_t i_ch = 0;
     for (int j = 0; j < num_inames; j++) {
         get_dims(i_names[j], i_dims, &word_size);
         compile_read_ifmap(fptr, ifmap_addr[j], i_names[j], "NCHW");
+        if (j + 1 < num_inames) {
+            ifmap_addr[j+1] = ifmap_addr[i] + word_size * i_dims[3] * i_dims[2];
+        }
         i_ch += i_dims[1];
     }
     /* sum of channels! */
     i_dims[1] = i_ch;
+
+    uint64_t f_ch = 0;
+    for (int j = 0; j < num_fnames; j++) {
+        get_dims(f_names[j], f_dims, &word_size);
+        compile_read_filter(fptr, filter_addr[j], f_names[j], "MCRS");
+        if (j + 1 < num_fnames) {
+            filter_addr[j+1] = filter_addr[j] + 
+                word_size * f_dims[3] * f_dims[2] * f_dims[0];
+        }
+        f_ch += f_dims[1];
+    }
+    f_dims[1] = f_ch;
 
 
     compile_convolve(fptr, 

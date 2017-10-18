@@ -21,7 +21,7 @@ void compile_write_ofmap(FILE *out_binary,
 void
 compile_convolve(FILE *out_binary,
         const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4],
-        const addr_t filter_addr, const uint64_t filter_dims[4],
+        const addr_t *filter_addr, const uint64_t filter_dims[4],
         const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
         const ARBPRECTYPE dtype,
         const uint8_t padding[2],  /* Height,Width */

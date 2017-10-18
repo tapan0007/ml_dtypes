@@ -126,7 +126,7 @@ PSumBuffer::step() {
             memcpy(&valids[e_offset], &ones, dsize); 
         }
         if (ew.ifmap_valid) {
-            printf("adding partial sum at %x is ", e_offset);
+            printf("adding partial sum at %x is ", mem_addr + e_offset);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             ArbPrecData result = ArbPrec::add(src_ptr, &ns.partial_sum, psum_dtype);
             memory.write(src_addr, &result, dsize);
@@ -137,7 +137,7 @@ PSumBuffer::step() {
         }
 
         if (ew.psum_stop) {
-            printf("final partial sum at %x is ", e_offset);
+            printf("final partial sum at %x is ", mem_addr + e_offset);
             ArbPrec::dump(stdout, memory.translate(src_addr), psum_dtype);
             printf("\n");
             assert(valids[e_offset]);

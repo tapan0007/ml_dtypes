@@ -26,6 +26,8 @@ struct MATMUL {
     uint32_t        psum_start_addr;   
     uint8_t         last_col;      
     int8_t          psum_step;     
+    /* use most recently loaded weights */
+    uint8_t         toggle_weight;
     uint8_t         event_func;    
     uint8_t         event_id;      
 } TONGA_PACKED;

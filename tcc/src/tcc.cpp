@@ -21,7 +21,7 @@
 void
 _convolve_tile(FILE *fptr,
         const addr_t *ifmap_addrs,  addr_t ifmap_offset, const uint64_t idim[4],
-        const addr_t filter_addr, const uint64_t wdim[4],
+        const addr_t *filter_addrs, const uint64_t wdim[4],
         const addr_t psum_addr,
         const ARBPRECTYPE dtype,
         const uint8_t fmap_num[2],
@@ -42,9 +42,17 @@ _convolve_tile(FILE *fptr,
     assert(wdim[1] == idim[1]);
     /* for output dim derivation, see https://arxiv.org/pdf/1603.07285.pdf */
     uint64_t num_cols = wdim[0];
-    uint64_t num_rows = idim[1];
-    uint64_t ch_batches = ceil((1.0 * i_ch)/(1 << ROW_BITS));
-    assert(num_rows && num_cols);
+    uint64_t all_num_rows = i_ch;
+    uint64_t ifmap_num_rows[2];
+    uint64_t max_rows = 1 << ROW_BITS;
+    uint64_t ch_batches = ceil((1.0 * i_ch)/max_rows);
+    int i = 0;
+    while (all_num_rows) {
+        ifmap_num_rows[i] = all_num_rows >= max_rows ?  max_rows : all_num_rows;
+        all_num_rows -= ifmap_num_rows[i];
+        i++;
+    }
+
 
     addr_t dsize = sizeofArbPrecType(dtype);
     addr_t weight_step;
@@ -54,13 +62,17 @@ _convolve_tile(FILE *fptr,
     /* weight args */
     weight_args.opcode = LDWEIGHTS_OPC;
     weight_args.dtype = dtype;
-    weight_args.last_row = num_rows - 1;
     weight_args.x_step = dsize;
     weight_args.x_num = o_channels;
     weight_args.y_step = dsize * o_channels;
     weight_args.y_num = 1;
-    weight_args.address = filter_addr;
+    weight_args.address = filter_addrs[0];
     weight_step = weight_args.y_num * weight_args.y_step * dsize;
+    weight_args.address = filter_addrs[0];
+    weight_args.last_row = ifmap_num_rows[0] - 1;
+
+    /* load weights ahead of first convolution for first filter! */
+    PUSH(fptr, weight_args);
 
     /* matmul args */
     matmul_args.opcode = MATMUL_OPC;
@@ -68,13 +80,8 @@ _convolve_tile(FILE *fptr,
     matmul_args.fmap_y_step = strides[1] * i_cols;
     matmul_args.dtype = dtype;
     matmul_args.psum_start_addr = psum_addr; /* b/c we specify padding as arg */
-    matmul_args.last_row = num_rows - 1;
     matmul_args.last_col = num_cols - 1;
 
-
-
-    /* load weights ahead of first convolution for first filter! */
-    PUSH(fptr, weight_args);
 
     /* go through each weight in the filter and apply it to the ofmap
      * pixels it operates on */
@@ -82,14 +89,18 @@ _convolve_tile(FILE *fptr,
     matmul_args.e_pad = pads[E];
     matmul_args.n_pad = pads[N];
     matmul_args.s_pad = pads[S];
-    matmul_args.fmap_x_num = fmap_num[0];
-    matmul_args.fmap_y_num = fmap_num[1];
+    matmul_args.fmap_x_num = fmap_num[1];
+    matmul_args.fmap_y_num = fmap_num[0];
+    matmul_args.toggle_weight = 1;
 
     uint8_t curr_weight = 0;
     uint8_t r_adj, s_adj;
-    for (uint8_t r = 0; r <  f_rows; r++) {
-        for (uint8_t s = 0; s < f_cols; s++, curr_weight++) {
-            for (uint8_t i = 0; i < ch_batches; i++) {
+    for (uint8_t i = 0; i < ch_batches; i++) {
+        bool last_batch = (i == (ch_batches - 1));
+        matmul_args.last_row = ifmap_num_rows[i] - 1;
+        for (uint8_t r = 0; r <  f_rows; r++) {
+            for (uint8_t s = 0; s < f_cols; s++, curr_weight++) {
+                bool last_weight = (curr_weight == (f_rows * f_cols - 1));
                 /* matmul arguments and PUSH */
                 r_adj = (r >= pads[N]) * (r - pads[N]);
                 s_adj = (s >= pads[W]) * (s - pads[W]);
@@ -97,15 +108,15 @@ _convolve_tile(FILE *fptr,
                     (r_adj * i_cols + s_adj) * dsize;
 
                 matmul_args.start_tensor_calc = (r == 0 && s == 0 && i == 0);
-                matmul_args.stop_tensor_calc = (curr_weight == 
-                        (f_rows * f_cols - 1)) && (i == ch_batches - 1);
+                matmul_args.stop_tensor_calc = last_weight && last_batch;
                 PUSH(fptr, matmul_args);
-
-                /* adjust weight address and LdWeights if not at end*/
-                if ((r == f_rows - 1) && (s == f_cols - 1)) {
-                    weight_args.address = filter_addr;
-                } else {
-                    weight_args.address += weight_step;
+                if (!matmul_args.stop_tensor_calc) {
+                    if (last_weight) {
+                        weight_args.address = filter_addrs[i+1];
+                        weight_args.last_row = ifmap_num_rows[i+1] - 1;
+                    } else {
+                        weight_args.address += weight_step;
+                    }
                     PUSH(fptr, weight_args);
                 }
             }
@@ -200,7 +211,7 @@ void compile_write_ofmap(FILE *fptr,
     void
 compile_convolve(FILE *fptr,
         const addr_t *ifmap_addr, const uint64_t idim[4],
-        const addr_t filter_addr, const uint64_t wdim[4],
+        const addr_t *filter_addr, const uint64_t wdim[4],
         const addr_t ofmap_addr, uint64_t o_dims[4],
         const ARBPRECTYPE dtype,
         const uint8_t padding[2], const uint8_t striding[2], 
@@ -256,8 +267,8 @@ compile_convolve(FILE *fptr,
             pads[E] = tt & E_FLAG ? p_cols : 0;
             pads[N] = tt & N_FLAG ? p_rows : 0;
             pads[S] = tt & S_FLAG ? p_rows : 0;
-            fmap_num[0] = tile_sz_x - pads[W] - pads[E];
-            fmap_num[1] = tile_sz_y - pads[N] - pads[S];
+            fmap_num[0] = tile_sz_y - pads[N] - pads[S];
+            fmap_num[1] = tile_sz_x - pads[W] - pads[E];
     
             matmul_offset = (row_offset * i_cols + col_offset) * dsize;
             pool_dst_addr = ofmap_addr + tile_dims.flatten_coord(i, j) *
