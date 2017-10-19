@@ -47,21 +47,31 @@ class TfFe:
     self.__gd = None
     self.__kg = None
   
-  def loadPb(self, pbFile):
+  def loadPb(self, pbFile, focusNodeRe):
     self.__gd = graph_pb2.GraphDef()
     with gfile.FastGFile(pbFile,'rb') as f:
       self.__gd.ParseFromString(f.read())
     
     self.__kg = kog.Graph(pbFile)
+    numOps = 0
+    numConv = 0
     
     for tfNode in self.__gd.node:
       tfop = TfOp(tfNode.name, tfNode.op, tfNode)
       #print(tfop)
-      self.__kg.addNode(tfNode.name, {"tfop" : tfop})
+      if (re.search(focusNodeRe, tfNode.name) != None):
+        self.__kg.addNode(tfNode.name, {"tfop" : tfop})
+        numOps += 1
+        if (re.search("conv", tfop.op.lower(), re.I) != None):
+          numConv += 1
       
-      for ni in tfNode.input:
-        #print("  Input=", ni)
-        self.__kg.addEdge(ni, tfNode.name)
+        for ni in tfNode.input:
+          #print("  Input=", ni)
+          # Nodes out of focus may not edist, so skip the edge to
+          if (self.__kg.hasNode(ni) and self.__kg.hasNode(tfNode.name)):
+            self.__kg.addEdge(ni, tfNode.name)
+    print("INFO: loaded %s file with %d ops  of which %d are CONV"
+          % (pbFile, numOps, numConv))
     
   def writeWeights(self, outPrefix):
     numWeights = 0
@@ -122,7 +132,7 @@ class TfFe:
     #print("Dot=", dot.source)
     dot.format = outFormat
     dot.render(outFile)
-    print("INFO: wrote " + outFile)
+    print("INFO: wrote " + outFile + "." + outFormat)
     
   
   def tf2dotName(tfName):

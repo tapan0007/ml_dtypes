@@ -44,6 +44,9 @@ class Graph(Object):
       self.__edges[fromNode] = {}
     self.__edges[fromNode][toNode] = Edge(fromNode, toNode, attrs)
 
+  def hasNode(self, name):
+    return(self.__name2node.get(name) != None)
+
   def getNode(self, name):
     return(self.__name2node[name])
   
