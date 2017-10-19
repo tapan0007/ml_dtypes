@@ -17,7 +17,7 @@ class MaxPoolLayer(PoolLayer):
 
     #-----------------------------------------------------------------
     def __str__(self):
-        return self.gPoolLayerStr(self.gLayerType())
+        return self.gPoolLayerStr()
 
     #-----------------------------------------------------------------
     def verify(self):
@@ -26,11 +26,11 @@ class MaxPoolLayer(PoolLayer):
 
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_MAX_POOL
-
-    #-----------------------------------------------------------------
     def gTypeStr(self):
         t = "MaxPool"
         return t
+
+    #-----------------------------------------------------------------
+    def qMaxPoolLayer(self):
+        return True
 

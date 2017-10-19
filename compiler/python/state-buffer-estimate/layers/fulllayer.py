@@ -21,3 +21,7 @@ class FullLayer(ConvLayer):
     def gTypeStr(self):
         return "Full"
 
+    #-----------------------------------------------------------------
+    def qFullLayer(self):
+        return True
+

@@ -17,7 +17,7 @@ class AvgPoolLayer(PoolLayer):
 
     #-----------------------------------------------------------------
     def __str__(self):
-        return self.gPoolLayerStr(self.gLayerType())
+        return self.gPoolLayerStr()
 
     #-----------------------------------------------------------------
     def verify(self):
@@ -26,12 +26,12 @@ class AvgPoolLayer(PoolLayer):
 
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_AVG_POOL
-
-    #-----------------------------------------------------------------
     def gTypeStr(self):
         t = "AvgPool"
         return t
 
+
+    #-----------------------------------------------------------------
+    def qAvgPoolLayer(self):
+        return True
 

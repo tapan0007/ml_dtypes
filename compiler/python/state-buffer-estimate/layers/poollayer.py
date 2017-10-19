@@ -29,19 +29,18 @@ class PoolLayer(SubSampleLayer): # abstract class
         return False
 
     #-----------------------------------------------------------------
-    def gPoolLayerStr(self, typ):
+    def gPoolLayerStr(self):
         ks = str(self.gKernel())
         ss = str(self.gStride())
         baseLayer = self.gBaseLayerStr()
-        if typ == LAYER_TYPE_MAX_POOL:
-            t = "{MaxPool}"
-        elif typ == LAYER_TYPE_AVG_POOL:
-            t = "{AvgPool}"
-        else:
-            assert(False)
+        t = "{" + self.gTypeStr() + "}"
 
         return (self.gName() # + t 
                 + baseLayer
                 + ", kernel=" + ks + "x" + ks + ", stride=" + ss
                 + self.gStateSizesStr())
+
+    #-----------------------------------------------------------------
+    def qPoolLayer(self):
+        return True
 

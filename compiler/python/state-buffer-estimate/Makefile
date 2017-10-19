@@ -9,11 +9,16 @@ RES50 = ResNet-50
 
 top : res
 
+resb :resnet-batch
+
 densenet :
 	@  python main.py --densenet $(ALL_OPTS)
 
 resnet :
 	@  python main.py --resnet $(ALL_OPTS)
+
+resnet-batch :
+	@  python main.py --resnet $(ALL_OPTS) --batch
 
 dbgdense :
 	py -mpdb main.py --densenet $(ALL_OPTS)

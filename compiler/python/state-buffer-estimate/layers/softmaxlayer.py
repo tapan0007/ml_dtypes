@@ -17,14 +17,15 @@ class SoftMaxLayer(OneToOneLayer):
         return ("SoftMax " + baseLayer + self.gStateSizesStr())
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_SOFTMAX
-
-    #-----------------------------------------------------------------
     def gTypeStr(self):
         return "SoftMax"
 
     #-----------------------------------------------------------------
     def qPassThrough(self):
         return False
+
+    #-----------------------------------------------------------------
+    def qSoftMaxLayer(self):
+        return True
+
 

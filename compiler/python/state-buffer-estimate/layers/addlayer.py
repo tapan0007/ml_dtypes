@@ -17,10 +17,6 @@ class AddLayer(CombineLayer):
 
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_ADD
-
-    #-----------------------------------------------------------------
     def gTypeStr(self):
         return "Add"
 
@@ -63,4 +59,8 @@ class AddLayer(CombineLayer):
     #-----------------------------------------------------------------
     def qPassThrough(self):
         return False
+
+    #-----------------------------------------------------------------
+    def qAddLayer(self):
+        return True
 

@@ -19,4 +19,8 @@ class CombineLayer(Layer): # abstract class
     def qPassThrough(self):
         return False
 
+    #-----------------------------------------------------------------
+    def qCombineLayer(self):
+        return True
+
 

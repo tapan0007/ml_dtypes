@@ -14,4 +14,8 @@ class ActivLayer(OneToOneLayer): # abstract class
         assert(isinstance(prev_layer, Layer))
         super(ActivLayer, self).__init__(param, prev_layer)
 
+    #-----------------------------------------------------------------
+    def qActivLayer(self):
+        return True
+
 

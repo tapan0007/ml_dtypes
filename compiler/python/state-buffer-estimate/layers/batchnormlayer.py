@@ -18,14 +18,14 @@ class BatchNormLayer(OneToOneLayer):
         return ("BNorm " + baseLayer + self.gStateSizesStr())
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_BATCH_NORM
-
-    #-----------------------------------------------------------------
     def gTypeStr(self):
         return "BNorm"
 
     #-----------------------------------------------------------------
     def qPassThrough(self):
         return False
+
+    #-----------------------------------------------------------------
+    def qBatchNormLayer(self):
+        return True
 

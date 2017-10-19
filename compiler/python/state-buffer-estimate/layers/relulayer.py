@@ -19,16 +19,16 @@ class ReluLayer(ActivLayer):
 
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_ReLU
-
-    #-----------------------------------------------------------------
     def gTypeStr(self):
         return "Relu"
 
     #-----------------------------------------------------------------
     def qPassThrough(self):
         return False
+
+    #-----------------------------------------------------------------
+    def qReluLayer(self):
+        return True
 
 
 

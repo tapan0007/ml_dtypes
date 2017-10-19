@@ -3,7 +3,7 @@ from abc             import ABCMeta, abstractmethod
 from utils.consts    import  *
 from utils.consts    import SCHED_MEM_FORMAT
 from utils.fmapdesc  import OfmapDesc
-from utils.funcs     import kstr
+from utils.funcs     import kstr, Kstr
 import nets.network
 
 ##########################################################
@@ -69,12 +69,75 @@ class Layer(object): # abstract class
         self.__ResMemWithoutBatching = 0
 
 
-        assert( (len(prev_layers) == 0) == (self.gLayerType() == LAYER_TYPE_DATA) )
+        assert( (len(prev_layers) == 0) == self.qDataLayer() )
         self.__PrevLayers.extend(prev_layers)
         for prevLayer in prev_layers:
             prevLayer.addNextLayer(self)
 
         ntwrk.addLayer(self) ## will assign index
+
+
+    #-----------------------------------------------------------------
+    #-----------------------------------------------------------------
+    def qSubSamleLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qConvLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qPoolLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qMaxPoolLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qAvgPoolLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qOneToOneLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qActivLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qReluLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qBatchNormLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qDataLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qCombineLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qConcatLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qAddLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qSoftMaxLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
+    def qFullLayer(self):
+        return False
+
 
     #-----------------------------------------------------------------
     #-----------------------------------------------------------------
@@ -89,17 +152,8 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     @abstractmethod
-    def gLayerType(self):
-        assert(False)
-
-    #-----------------------------------------------------------------
-    @abstractmethod
     def verify(self):
         assert(False)
-
-    #-----------------------------------------------------------------
-    def qConvLayer(self):
-        return self.gLayerType() == LAYER_TYPE_CONV
 
 
     #-----------------------------------------------------------------
@@ -350,33 +404,7 @@ class Layer(object): # abstract class
     def qDataLayer(self):
         return False
 
-    #-----------------------------------------------------------------
-    @staticmethod
-    def qHasLayerType(layerType, layers):
-        hasType = False
-        for layer in layers:
-            if layer.gLayerType() == layerType:
-                hasType = True
-                break
-        return hasType
 
-    #-----------------------------------------------------------------
-    def qHasNextLayerType(self, layerType):
-        return Layer.qHasLayerType(layerType, self.gNextLayers())
-
-    #-----------------------------------------------------------------
-    def qHasPrevLayerType(self, layerType):
-        return Layer.qHasLayerType(layerType, self.gPrevLayers())
-
-    #-----------------------------------------------------------------
-    def qNextSchedLayerOfType(self, layerType):
-        nextSchedLayer = self.gNextSchedLayer()
-        return nextSchedLayer  and nextSchedLayer.gLayerType() == layerType
-
-    #-----------------------------------------------------------------
-    def qPrevSchedLayerOfType(self, layerType):
-        prevSchedLayer = self.gPrevSchedLayer()
-        return prevSchedLayer  and prevSchedLayer.gLayerType() == layerType
 
     #-----------------------------------------------------------------
     def gName(self):
@@ -406,24 +434,27 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def gNameWithSchedMem(self):
+        #Str = kstr
+        Str = Kstr
         if self.gName() == "res3d{Add}":
             x = 3
         if self.qStoreInSB():
             imem = self.gInputStateMemWithoutBatching()
             rmem = self.gResMemWithoutBatching()
-            omem = self.gOutputStateMemWithoutBatching()
+            omem = self.gOutputStateMemWithBatching()
             bmem = self.gBatchMem()
             s = (SCHED_MEM_FORMAT) % (
                 self.gName(),
-                kstr(imem), kstr(omem), kstr(rmem),
-                (kstr(bmem) + "[" + str(self.gBatchNum()) + "]")
+                Str(imem), Str(omem), 
+                Str(rmem),
+                (Str(bmem) + "[" + str(self.gBatchNum()) + "]"),
                 )
         else:
             imem = self.gInputSize()
             omem = self.gOutputSize()
             s = (SCHED_MEM_FORMAT) % (
                 self.gName(),
-                kstr(imem), "("+kstr(omem)+")",
+                Str(imem), "("+Str(omem)+")",
                 "", "",
                 )
         return s

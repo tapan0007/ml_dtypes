@@ -24,10 +24,6 @@ class DataLayer(Layer):
         return
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_DATA
-
-    #-----------------------------------------------------------------
     def qPassThrough(self):
         return False
 
@@ -37,5 +33,9 @@ class DataLayer(Layer):
 
     #-----------------------------------------------------------------
     def qStoreInSB(self): ## override
+        return True
+
+    #-----------------------------------------------------------------
+    def qDataLayer(self):
         return True
 

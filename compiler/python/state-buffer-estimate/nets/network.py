@@ -69,8 +69,7 @@ class Network(object):
         assert( isinstance(layer, layers.layer.Layer) )
         layer.rLayerId(self.__CurrLayerId); self.__CurrLayerId += 1
         self.__Layers.append(layer)
-        t = layer.gLayerType()
-        if (t == LAYER_TYPE_DATA or t == LAYER_TYPE_CONV or t == LAYER_TYPE_FULL):
+        if layer.qDataLayer() or layer.qConvLayer() or layer.qFullLayer():
             self.__LayerNumMajor += 1
             self.__LayerNumMinor = 0
             numStr = str(self.__LayerNumMajor)
@@ -85,7 +84,7 @@ class Network(object):
 
     #-----------------------------------------------------------------
     def verify(self):
-        assert(self.gLayer(0).gLayerType() == LAYER_TYPE_DATA)
+        assert(self.gLayer(0).qDataLayer())
         numLayers = self.gNumberLayers()
 
         for layer in self.gLayers(): # self.__Layers:

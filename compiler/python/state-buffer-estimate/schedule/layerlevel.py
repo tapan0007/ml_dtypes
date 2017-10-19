@@ -40,7 +40,7 @@ class LayerLevel(object):
     #-----------------------------------------------------------------
     def qDataLevel(self):
         for layer in self.__Layers:
-            if layer.gLayerType() != LAYER_TYPE_DATA:
+            if not layer.qDataLayer():
                 return False
         return True
 

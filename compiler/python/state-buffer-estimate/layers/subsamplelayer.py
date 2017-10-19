@@ -32,3 +32,7 @@ class SubSampleLayer(Layer): # abstract class
     def gKernel(self):
         return self.__Kernel
 
+    #-----------------------------------------------------------------
+    def qSubSamleLayer(self):
+        return True
+

@@ -36,10 +36,6 @@ class ConvLayer(SubSampleLayer):
 
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_CONV
-
-    #-----------------------------------------------------------------
     def gTypeStr(self):
         return "Conv"
 
@@ -54,5 +50,9 @@ class ConvLayer(SubSampleLayer):
         num_ifmaps = self.gPrevLayer(0).gNumOfmaps()
         num_ofmaps = self.gNumOfmaps()
         return k*k * num_ifmaps * num_ofmaps
+
+    #-----------------------------------------------------------------
+    def qConvLayer(self):
+        return True
 
 

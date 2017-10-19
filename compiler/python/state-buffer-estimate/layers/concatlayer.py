@@ -27,10 +27,6 @@ class ConcatLayer(CombineLayer):
 
 
     #-----------------------------------------------------------------
-    def gLayerType(self):
-        return LAYER_TYPE_CONCAT
-
-    #-----------------------------------------------------------------
     def gTypeStr(self):
         return "Concat"
 
@@ -61,5 +57,9 @@ class ConcatLayer(CombineLayer):
 
     #-----------------------------------------------------------------
     def qPassThrough(self):
+        return True
+
+    #-----------------------------------------------------------------
+    def qConcatLayer(self):
         return True
 
