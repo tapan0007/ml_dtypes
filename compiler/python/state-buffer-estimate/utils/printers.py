@@ -97,7 +97,12 @@ class Printer(object):
         lineFmt = ("%-70s  %s")
         fullHeader = (lineFmt) % (memHeader, "SB predecessors")
         print(fullHeader)
+        hasRelu = False
+        lastWasAdd = False
+
         for layer in ntwk.gSchedLayers():
+            if layer.qReluLayer():
+                hasRelu = True
             sbPreds = ""
             first=True
             for sbLayer in layer.gPrevSbLayers():
@@ -112,8 +117,14 @@ class Printer(object):
             sb = "SB" if layer.qStoreInSB() else "--"
             ss = (lineFmt) % (layer.gNameWithSchedMem(), "[" + sb + "]=" + sbPreds)
             print ss
-            if layer.qAddLayer() or layer.qPoolLayer():
-                print
+            if hasRelu:
+                if lastWasAdd and layer.qReluLayer():
+                    print
+            else:
+                if layer.qAddLayer() or layer.qPoolLayer():
+                    print
+
+            lastWasAdd = layer.qAddLayer()
 
         print(fullHeader)
 

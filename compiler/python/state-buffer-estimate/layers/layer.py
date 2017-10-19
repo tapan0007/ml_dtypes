@@ -507,14 +507,17 @@ class Layer(object): # abstract class
         mySched = self.gSchedule()
         assert(mySched != None)
         nextSchedLayer = self.gNextSchedLayer()
-        if not nextSchedLayer:
+        if not nextSchedLayer: ## output
             return True
-        elif nextSchedLayer.qConvLayer() :
-            return True
-        elif self.gNumNextLayers() > 1:
+        elif nextSchedLayer.qConvLayer() : ## to get to convolution
             return True
         else:
-            return self.gNextLayer(0).gSchedule() > mySched + 1
+            for nextLayer in self.gNextLayers():
+                if nextLayer.gSchedule() > mySched + 1:
+                    return True
+
+        assert(self.gNumNextLayers() <= 1)
+        return False
 
     #-----------------------------------------------------------------
     def gPrevSbLayers(self):

@@ -1,7 +1,3 @@
-ALL_OPTS := --print-layers  --batch
-ALL_OPTS := --print-layers 
-ALL_OPTS := 
-ALL_OPTS := --print-layers --print-levels --batch
 ALL_OPTS := --print-layers --print-levels 
 
 DENSE169 = DenseNet-169
@@ -10,6 +6,18 @@ RES50 = ResNet-50
 top : res
 
 resb :resnet-batch
+
+resnet-residue :
+	@  python main.py --resnet $(ALL_OPTS)
+
+resnet-batch :
+	@  python main.py --resnet --batch $(ALL_OPTS)
+
+resnet-relu :
+	@  python main.py --resnet --relu $(ALL_OPTS)
+
+resnet-batch-relu :
+	@  python main.py --resnet --batch --relu $(ALL_OPTS)
 
 densenet :
 	@  python main.py --densenet $(ALL_OPTS)
