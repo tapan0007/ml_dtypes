@@ -1,12 +1,10 @@
 import functools
 
-from utils.consts    import  *
+from utils.consts   import  *
+from utils.debug    import breakFunc
 import layers.layer
 from schedule.layerlevel import LayerLevel
 
-
-def breakFunc(n):
-    return n + 1
 
 ##########################################################
 class Scheduler(object):
@@ -123,9 +121,6 @@ class Scheduler(object):
             assert(not lateLevel.qContainsLayer(layer))
 
             if layer.gInputSize() < layer.gOutputSize():
-                # move layer to latest level
-                breakFunc(2)
-
                 earlyLevel.remove(layer)
                 lateLevel.append(layer)
                 layer.rCurrLevel(layer.gLateLevel())
@@ -346,6 +341,8 @@ class Scheduler(object):
 
         # First determing batching
         for layer in network.gReverseSchedLayers():
+            if layer.gName() == "res5a":
+                breakFunc(0)
             if not layer.qStoreInSB():
                 continue
             for inSbLayer in layer.gPrevSbLayers():

@@ -407,8 +407,13 @@ class Layer(object): # abstract class
 
 
     #-----------------------------------------------------------------
+    def gNameType(self):
+        return self.gName() + "{" + self.gTypeStr() + "}"
+
+    #-----------------------------------------------------------------
     def gName(self):
-        return self.__LayerName + "{" + self.gTypeStr() + "}"
+        return self.__LayerName
+
     #-----------------------------------------------------------------
 
     def gNameNum(self):

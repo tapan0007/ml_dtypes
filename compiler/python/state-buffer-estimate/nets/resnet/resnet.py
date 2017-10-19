@@ -26,30 +26,48 @@ class ResNet(Network):
     __metaclass__ = ABCMeta
 
     #-----------------------------------------------------------------
-    def __init__(self, ofmap_desc):
+    def __init__(self, ofmap_desc, useRelu):
         super(ResNet, self).__init__()
 
         self.m_Ofmap_desc = ofmap_desc
+        self.__UseRelu = useRelu
 
     ############################################################################
     def Section(self, sectNum, (firstLayerBatch,otherLayersBatch), ntwk, prev_layer, numRepeat, convNumOfmaps, firstStride):
+        branchSfx = "_branch"
+        branchSfx = "_br"
         forkLayer = layer = prev_layer
-        pfx="res" + str(sectNum) + "a_branch"
-        layer = ConvLayer(Layer.Param(pfx + "2a", firstLayerBatch, self), layer, convNumOfmaps, stride=firstStride, kernel=1)
-        layer = ConvLayer(Layer.Param(pfx + "2b", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=3)
-        layer = ConvLayer(Layer.Param(pfx + "2c", otherLayersBatch, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
+        ResN = "res" + str(sectNum)       ## res2
+        ResNchar = ResN + "a"           ## res2a
+        branch = ResNchar + branchSfx
+
+        layer = ConvLayer(Layer.Param(branch + "2a", firstLayerBatch, self), layer, convNumOfmaps, stride=firstStride, kernel=1)
+        layer = ConvLayer(Layer.Param(branch + "2b", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=3)
+        layer = ConvLayer(Layer.Param(branch + "2c", otherLayersBatch, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
+
         ## The next layer is in parallel with the previous 3 layers. It's stride is equal to the first layers stride.
-        reshapeShort = ConvLayer(Layer.Param(pfx + "1", otherLayersBatch, self), forkLayer, 4*convNumOfmaps, stride=firstStride, kernel=1)
-        layer = AddLayer(Layer.Param("res" + str(sectNum) + "a", otherLayersBatch, self), layer, reshapeShort)
+        reshapeShort = ConvLayer(Layer.Param(branch + "1", otherLayersBatch, self), forkLayer, 4*convNumOfmaps, stride=firstStride, kernel=1)
+        layer = AddLayer(Layer.Param(ResNchar, otherLayersBatch, self), layer, reshapeShort)
+        if self.__UseRelu:
+            layer = ReluLayer(Layer.Param(ResNchar + "_relu", otherLayersBatch, self), layer)
 
         x = ord('b')
         for i in range(numRepeat-1):
             forkLayer = layer
-            pfx = "res" + str(sectNum) + chr(x) + "_branch"
-            layer = ConvLayer(Layer.Param(pfx + "2a", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=1)
-            layer = ConvLayer(Layer.Param(pfx + "2b", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=3)
-            layer = ConvLayer(Layer.Param(pfx + "2c", otherLayersBatch, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
-            layer = AddLayer(Layer.Param("res" + str(sectNum) + chr(x), otherLayersBatch, self), layer, forkLayer)
+
+            ResNchar = ResN + chr(x)            ## res3a, res4c, res5f, ...
+            branch = ResNchar + branchSfx
+
+            layer = ConvLayer(Layer.Param(branch + "2a", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=1)
+            if self.__UseRelu:
+                layer = ReluLayer(Layer.Param(branch + "2a_relu", otherLayersBatch, self), layer)
+            layer = ConvLayer(Layer.Param(branch + "2b", otherLayersBatch, self), layer, convNumOfmaps, stride=1, kernel=3)
+            if self.__UseRelu:
+                layer = ReluLayer(Layer.Param(branch + "2b_relu", otherLayersBatch, self), layer)
+            layer = ConvLayer(Layer.Param(branch + "2c", otherLayersBatch, self), layer, 4*convNumOfmaps, stride=1, kernel=1)
+            layer = AddLayer(Layer.Param(ResNchar, otherLayersBatch, self), layer, forkLayer)
+            if self.__UseRelu:
+                layer = ReluLayer(Layer.Param(ResNchar + "_relu", otherLayersBatch, self), layer)
             x += 1
 
         return layer
@@ -61,6 +79,8 @@ class ResNet(Network):
         layer = DataLayer(Layer.Param("data0", 1, self), ofmap_desc)
 
         layer = ConvLayer(Layer.Param("conv1", 1, self), layer, 64, stride=2, kernel=7)                ## 7x7 conv, (3,224)->(64,112), stride 2,
+        if self.__UseRelu:
+            layer = ReluLayer(Layer.Param("conv1_relu", 1, self), layer)
         layer = MaxPoolLayer(Layer.Param("pool1", 2, self), layer, stride=2, kernel=3)              ## Pool (64,112)->(64,56)
 
         ########################################################################
@@ -82,9 +102,9 @@ class ResNet(Network):
 ##########################################################
 class ResNet50(ResNet):
     #-----------------------------------------------------------------
-    def __init__(self):
+    def __init__(self, useRelu):
         ofmap_desc = OfmapDesc(3, 224)
-        super(ResNet50, self).__init__(ofmap_desc)
+        super(ResNet50, self).__init__(ofmap_desc, useRelu)
 
     #-----------------------------------------------------------------
     def gName(self):

@@ -15,12 +15,15 @@ PrintSchedule = True
 PrintDot = False
 PrintLayers = False
 __DoBatching = False
+DenseNet = False
+ResNet = False
+UseRelu = False
 
 for arg in sys.argv[1:]:
     if arg == "--densenet" or arg == "--dense":
-        ntwk = DenseNet169()
+        DenseNet = True
     elif arg == "--resnet" or arg == "--res":
-        ntwk = ResNet50()
+        ResNet = True
     elif arg == "--print-layers":
         PrintLayers = True
     elif arg == "--print-levels":
@@ -31,9 +34,16 @@ for arg in sys.argv[1:]:
         PrintDot = True
     elif arg == "--batch" or arg == "--batching":
         __DoBatching = True
+    elif arg == "--relu" or arg == "--batching":
+        UseRelu = True
     else:
         sys.stderr.write("Wrong argument: " + arg + "\n")
         sys.exit(1)
+
+if DenseNet:
+        ntwk = DenseNet169(UseRelu)
+elif ResNet:
+        ntwk = ResNet50(UseRelu)
 
 ##################################################
 assert(ntwk)

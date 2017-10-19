@@ -112,7 +112,7 @@ class Printer(object):
             sb = "SB" if layer.qStoreInSB() else "--"
             ss = (lineFmt) % (layer.gNameWithSchedMem(), "[" + sb + "]=" + sbPreds)
             print ss
-            if layer.qAddLayer():
+            if layer.qAddLayer() or layer.qPoolLayer():
                 print
 
         print(fullHeader)
