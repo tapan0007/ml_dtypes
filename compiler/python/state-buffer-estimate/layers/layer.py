@@ -18,7 +18,7 @@ class Layer(object): # abstract class
         def gLayerName(self):
             return self.__LayerBatchNetwork[0]
 
-        def gBatchNum(self):
+        def gBatchFactor(self):
             return self.__LayerBatchNetwork[1]
 
         def gNetwork(self):
@@ -41,9 +41,9 @@ class Layer(object): # abstract class
 
         self.__LayerName        = layerName
         if ntwrk.qDoBatching():
-            self.__BatchNum     = batch
+            self.__BatchFactor     = batch
         else:
-            self.__BatchNum     = 1
+            self.__BatchFactor     = 1
         self.__BatchMem         = 0
 
         self.__Network          = ntwrk
@@ -157,8 +157,8 @@ class Layer(object): # abstract class
 
 
     #-----------------------------------------------------------------
-    def gBatchNum(self):
-        return self.__BatchNum
+    def gBatchFactor(self):
+        return self.__BatchFactor
 
     #-----------------------------------------------------------------
     def gBatchMem(self):
@@ -218,7 +218,7 @@ class Layer(object): # abstract class
     #-----------------------------------------------------------------
     def gOutputStateMemWithBatching(self):
         assert(self.qStoreInSB())
-        return self.gBatchNum() * self.gOutputStateMemWithoutBatching()
+        return self.gBatchFactor() * self.gOutputStateMemWithoutBatching()
 
 
 
@@ -447,7 +447,7 @@ class Layer(object): # abstract class
                 self.gName(),
                 Str(imem), Str(omem), 
                 Str(rmem),
-                (Str(bmem) + "[" + str(self.gBatchNum()) + "]"),
+                (Str(bmem) + "[" + str(self.gBatchFactor()) + "]"),
                 )
         else:
             imem = self.gInputSize()

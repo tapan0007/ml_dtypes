@@ -279,15 +279,15 @@ class Scheduler(object):
     #-----------------------------------------------------------------
     def __calcFanoutBatch(self):
         for layer in self.__Network.gLayers():
-            maxFanoutBatchNum = 0
+            maxFanoutBatchFactor = 0
             numFanouts = 0
             for fanoutLayer in layer.gNextLayers():
                 numFanouts += 1
-                fob = fanoutLayer.gBatchNum()
-                if fob > maxFanoutBatchNum:
+                fob = fanoutLayer.gBatchFactor()
+                if fob > maxFanoutBatchFactor:
                     maxFanoutBatch = fob
             assert(numFanouts == 0 or maxFanoutBatch > 0)
-            #layer.rMaxFanoutBatchNum(maxFanoutBatchNum)
+            #layer.rMaxFanoutBatchFactor(maxFanoutBatchFactor)
 
 
     #-----------------------------------------------------------------
@@ -323,7 +323,7 @@ class Scheduler(object):
     #-----------------------------------------------------------------
     def __processSbConnectionForBatching(self, prevLayer, nextLayer):
         assert(prevLayer.qStoreInSB() and nextLayer.qStoreInSB())
-        deltaBatch = nextLayer.gBatchNum() - prevLayer.gBatchNum() 
+        deltaBatch = nextLayer.gBatchFactor() - prevLayer.gBatchFactor() 
         assert(deltaBatch >= 0)
         myBatchMem = deltaBatch * prevLayer.gOutputStateMemWithoutBatching()
         batchMem = myBatchMem + nextLayer.gBatchMem()
