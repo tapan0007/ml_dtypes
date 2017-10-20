@@ -93,6 +93,7 @@ class Printer(object):
             "Layer", "In", "Out", 
             "Residue",
             "Batch",
+            "BatchDlt",
             )
         lineFmt = ("%-70s  %s")
         fullHeader = (lineFmt) % (memHeader, "SB predecessors")

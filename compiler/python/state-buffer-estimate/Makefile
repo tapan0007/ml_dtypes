@@ -10,9 +10,6 @@ resb :resnet-batch
 resnet-residue :
 	@  python main.py --resnet $(ALL_OPTS)
 
-resnet-batch :
-	@  python main.py --resnet --batch $(ALL_OPTS)
-
 resnet-relu :
 	@  python main.py --resnet --relu $(ALL_OPTS)
 
@@ -23,10 +20,12 @@ densenet :
 	@  python main.py --densenet $(ALL_OPTS)
 
 resnet :
-	@  python main.py --resnet $(ALL_OPTS)
+	python main.py --resnet $(ALL_OPTS)
 
 resnet-batch :
-	@  python main.py --resnet $(ALL_OPTS) --batch
+	@  python main.py --resnet --batch $(ALL_OPTS)
+
+
 
 dbgdense :
 	py -mpdb main.py --densenet $(ALL_OPTS)

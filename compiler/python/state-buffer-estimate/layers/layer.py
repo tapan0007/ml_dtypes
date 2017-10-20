@@ -60,6 +60,7 @@ class Layer(object): # abstract class
         self.__NextLayers       = []
         self.__PrevLayers       = []
         self.__PrevSbLayers     = []
+        self.__NextSbLayers     = []
 
         self.__schedule         = None  ## number in [0, NUM_LAYERS-1]
         # counts the number layers that need to be executed
@@ -444,23 +445,36 @@ class Layer(object): # abstract class
         if self.gName() == "res3d{Add}":
             x = 3
         if self.qStoreInSB():
-            imem = self.gInputStateMemWithoutBatching()
-            rmem = self.gResMemWithoutBatching()
-            omem = self.gOutputStateMemWithBatching()
-            bmem = self.gBatchMem()
+            inMem = self.gInputStateMemWithoutBatching()
+            residueMem = self.gResMemWithoutBatching()
+            outMem = self.gOutputStateMemWithBatching()
+            batchMem = self.gBatchMem()
+            batchDelta = "["
+            for nextSbLayer in self.gNextSbLayers():
+                d = self.gOutputStateMemWithoutBatching() * (nextSbLayer.gBatchFactor() - self.gBatchFactor())
+                ##  d = Str(batchMem - nextSbLayer.gBatchMem())
+                if batchDelta == "[":
+                    batchDelta += Str(d)
+                else:
+                    batchDelta += "," + Str(d)
+            batchDelta += "]"
+
             s = (SCHED_MEM_FORMAT) % (
                 self.gName(),
-                Str(imem), Str(omem), 
-                Str(rmem),
-                (Str(bmem) + "[" + str(self.gBatchFactor()) + "]"),
+                Str(inMem), Str(outMem), 
+                Str(residueMem),
+                (Str(batchMem) + "[" + str(self.gBatchFactor()) + "]"),
+                batchDelta,
                 )
         else:
-            imem = self.gInputSize()
-            omem = self.gOutputSize()
+            inMem = self.gInputSize()
+            outMem = self.gOutputSize()
             s = (SCHED_MEM_FORMAT) % (
                 self.gName(),
-                Str(imem), "("+Str(omem)+")",
-                "", "",
+                Str(inMem), "("+Str(outMem)+")",
+                "",  # residueMem
+                "",  # batchMem
+                "",  # bdelta
                 )
         return s
 
@@ -521,11 +535,19 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     def gPrevSbLayers(self):
+        ##assert(self.qStoreInSB())
         return iter(self.__PrevSbLayers)
+
+    #-----------------------------------------------------------------
+    def gNextSbLayers(self):
+        assert(self.qStoreInSB())
+        return iter(self.__NextSbLayers)
 
     #-----------------------------------------------------------------
     def addPrevSbLayer(self, prevLayer):
         assert(prevLayer.qStoreInSB())
         self.__PrevSbLayers.append(prevLayer)
+        if self.qStoreInSB():
+            prevLayer.__NextSbLayers.append(self)
 
 
