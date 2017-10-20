@@ -1,6 +1,7 @@
 import sys
 from utils.printers             import Printer
 import layers.layer
+from arch.arch import Arch
 
 #from layers.layer               import rDoBatching
 
@@ -44,6 +45,20 @@ if DenseNet:
         ntwk = DenseNet169(UseRelu)
 elif ResNet:
         ntwk = ResNet50(UseRelu)
+
+##################################################
+if True:
+    arch = Arch()
+
+    arch.gNumberPsumBanks()
+    arch.gPsumBankEntries()
+    arch.gNumberPeArrayRows()
+    arch.gNumberPeArrayColumns()
+
+
+
+
+
 
 ##################################################
 assert(ntwk)
