@@ -50,6 +50,11 @@ elif ResNet:
 if True:
     arch = Arch()
 
+    peArray = arch.gPeArray()
+    psumBuf = arch.gPsumBuffer()
+    pool = arch.gPoolingEng()
+    activ = arch.gActivationEng()
+    stbuf = arch.gStateBuffer()
     arch.gNumberPsumBanks()
     arch.gPsumBankEntries()
     arch.gNumberPeArrayRows()

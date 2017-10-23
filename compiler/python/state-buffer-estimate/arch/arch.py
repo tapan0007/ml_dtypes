@@ -1,9 +1,10 @@
 from abc             import ABCMeta, abstractmethod
 
-#from arch.psumbuffer import PsumBuffer
-from psumbuffer import PsumBuffer
-from pearray import PeArray
-from statebuffer import StateBuffer
+from psumbuffer         import PsumBuffer
+from pearray            import PeArray
+from statebuffer        import StateBuffer
+from poolingeng         import PoolingEng
+from activationeng      import ActivationEng
 
 ##########################################################
 class Arch(object):
@@ -11,8 +12,38 @@ class Arch(object):
 
     #-----------------------------------------------------------------
     def __init__(self):
-        self.__PeArray    = PeArray()
-        self.__PsumBuffer = PsumBuffer()
+
+        numberPeRows            = 128
+        numberPeColumns         = 64
+        numberPsumBanks         = 4
+        numberPsumBankEntries   = 256
+        sbPartitionsSize        = 12 * 1024 * 1024 / numberPeRows  ## 12 MB
+
+        self.__PeArray          = PeArray(numberPeRows, numberPeColumns)
+        self.__PsumBuffer       = PsumBuffer(self.gPeArray(), numberPsumBanks, numberPsumBankEntries)
+        self.__PoolingEng       = PoolingEng(self.gPsumBuffer())
+        self.__ActivationEng    = ActivationEng(self.gPsumBuffer())
+        self.__StateBuffer      = StateBuffer(self.gPeArray(), sbPartitionsSize)
+
+    #-----------------------------------------------------------------
+    def gPeArray(self):
+        return self.__PeArray
+
+    #-----------------------------------------------------------------
+    def gStateBuffer(self):
+        return self.__StateBuffer
+
+    #-----------------------------------------------------------------
+    def gPsumBuffer(self):
+        return self.__PsumBuffer
+
+    #-----------------------------------------------------------------
+    def gPoolingEng(self):
+        return self.__PoolingEng
+
+    #-----------------------------------------------------------------
+    def gActivationEng(self):
+        return self.__ActivationEng
 
 
     #-----------------------------------------------------------------
@@ -27,13 +58,11 @@ class Arch(object):
 
     #-----------------------------------------------------------------
     def gNumberPsumBanks(self):
-        return self.__PsumBuffer.gNumberBanks()
+        return self.gPsumBuffer().gNumberBanks()
 
     #-----------------------------------------------------------------
     def gPsumBankEntries(self):
-        return self.__PsumBuffer.gNumberBankEntries()
-
-
+        return self.gPsumBuffer().gNumberBankEntries()
 
 
 

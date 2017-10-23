@@ -1,16 +1,16 @@
+from pearray import PeArray
 
 ##########################################################
 class StateBuffer(object):
     #-----------------------------------------------------------------
-    def __init__(self, numPartitions):
-        totalSize = 12 * 1024 * 1024  ## 12 MBs in bytes
-        assert(numPartitions > 0)
-        assert(numPartitions & (numPartitions - 1) == 0) ## 2^M
-        assert(totalSize % numPartitions == 0)
+    def __init__(self, peArray, partitionSizeInBytes):
+        assert(isinstance(peArray, PeArray))
 
-        self.__TotalSizeInBytes     = totalSize
-        self.__NumberPartitions     = numPartitions
-        self.__PartitionSizeInBytes = totalSize / numPartitions
+        self.__NumberPartitions = peArray.gNumberRows()
+        assert(self.__NumberPartitions > 0)
+        assert(self.__NumberPartitions & (self.__NumberPartitions - 1) == 0) ## power of 2
+        self.__PartitionSizeInBytes = partitionSizeInBytes
+        self.__TotalSizeInBytes     = self.__NumberPartitions * self.__PartitionSizeInBytes
 
     #-----------------------------------------------------------------
     def gNumberPartitions(self):
@@ -33,7 +33,7 @@ class StateBuffer(object):
         return 0
 
     #-----------------------------------------------------------------
-    def gPartitionFirstAddressInBytes(self, partNum):
+    def gPartitionStartAddressInBytes(self, partNum):
         assert(0 <= partNum and partNum < self.gNumberPartitions())
         return self.gFirstAddress() + partNum * self.gPartitionSizeInBytes()
 

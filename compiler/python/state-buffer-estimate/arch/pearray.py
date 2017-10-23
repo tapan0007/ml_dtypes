@@ -4,9 +4,9 @@
 class PeArray(object):
 
     #-----------------------------------------------------------------
-    def __init__(self):
-        self.__NumberRows    = 128
-        self.__NumberColumns = 64
+    def __init__(self, numberRows, numberColumns):
+        self.__NumberRows    = numberRows
+        self.__NumberColumns = numberColumns
         
     #-----------------------------------------------------------------
     def gNumberRows(self):  ## IFMAPs

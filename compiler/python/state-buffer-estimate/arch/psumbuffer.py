@@ -1,12 +1,14 @@
+from pearray import PeArray
 
 
 ##########################################################
 class PsumBuffer(object):
 
     #-----------------------------------------------------------------
-    def __init__(self):
-        self.__NumberBanks          = 4
-        self.__NumberBankEntries    = 256
+    def __init__(self, peArray, numberBanks, numberBankEntries):
+        self.__NumberColumns        = peArray.gNumberColumns()
+        self.__NumberBanks          = numberBanks
+        self.__NumberBankEntries    = numberBankEntries
         self.__BankEntrySizeInBytes = 64 ## ???
 
     #-----------------------------------------------------------------
@@ -17,6 +19,11 @@ class PsumBuffer(object):
     def gNumberBankEntries(self):
         return self.__NumberBankEntries
 
+    #-----------------------------------------------------------------
     def gBankEntrySizeInBytes(self):
         return self.__BankEntrySizeInBytes
+
+    #-----------------------------------------------------------------
+    def gNumberColumns(self):
+        return self.__NumberColumns
 
