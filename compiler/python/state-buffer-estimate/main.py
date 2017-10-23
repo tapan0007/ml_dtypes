@@ -2,6 +2,7 @@ import sys
 from utils.printers             import Printer
 import layers.layer
 from arch.arch import Arch
+from memmgr.statebufmgr         import StateBufferMgr
 
 #from layers.layer               import rDoBatching
 
@@ -59,6 +60,8 @@ if True:
     arch.gPsumBankEntries()
     arch.gNumberPeArrayRows()
     arch.gNumberPeArrayColumns()
+
+    sbmgr = StateBufferMgr(arch)
 
 
 
