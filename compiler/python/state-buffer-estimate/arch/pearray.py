@@ -16,3 +16,9 @@ class PeArray(object):
     def gNumberColumns(self):  ## OFMAPs
         return self.__NumberColumns
 
+    def gInstructionRamStartInBytes(self):
+        return 0x001D00000
+
+    def gInstructionRamEndInBytes(self):
+        return 0x001D03FFF
+

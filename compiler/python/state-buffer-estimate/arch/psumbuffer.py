@@ -27,3 +27,5 @@ class PsumBuffer(object):
     def gNumberColumns(self):
         return self.__NumberColumns
 
+    def gAddress(self):
+        return 0x001800000

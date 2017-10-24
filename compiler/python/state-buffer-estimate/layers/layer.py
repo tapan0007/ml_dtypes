@@ -367,7 +367,9 @@ class Layer(object): # abstract class
             tState = "(" + kstr(nIn+nOut) + ")"
 
         numWeights = self.gNumberWeights()
-        nextNumWeights = self.gMaxNextLayerNumberWeights()
+        nextSchedLayer = self.gNextSchedLayer()
+        nextNumWeights = (nextSchedLayer.gNumberWeights() if nextSchedLayer else 0)
+
         totMem = nIn + nOut + numWeights + nextNumWeights
         return ("  IState=" + (iState)
              + ",  OState=" + (oState)

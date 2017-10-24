@@ -30,7 +30,8 @@ class StateBuffer(object):
 
     #-----------------------------------------------------------------
     def gFirstAddressInBytes(self):
-        return 0
+        return 0x000000000
+
 
     #-----------------------------------------------------------------
     def gPartitionStartAddressInBytes(self, partNum):
