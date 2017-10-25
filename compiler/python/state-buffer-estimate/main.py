@@ -61,7 +61,6 @@ if True:
     arch.gNumberPeArrayRows()
     arch.gNumberPeArrayColumns()
 
-    sbmgr = StateBufferMgr(arch)
 
 
 
@@ -70,6 +69,8 @@ if True:
 
 ##################################################
 assert(ntwk)
+sbmgr = StateBufferMgr(arch, ntwk)
+
 ntwk.rDoBatching(__DoBatching)
 ntwk.construct()
 scheduler = Scheduler()
