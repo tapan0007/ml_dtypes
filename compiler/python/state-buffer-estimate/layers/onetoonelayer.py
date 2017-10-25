@@ -1,5 +1,5 @@
 from utils.consts  import  *
-from layer         import Layer
+from .layer         import Layer
 import nets.network
 
 ##########################################################

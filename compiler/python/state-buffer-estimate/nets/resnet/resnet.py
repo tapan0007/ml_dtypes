@@ -33,7 +33,10 @@ class ResNet(Network):
         self.__UseRelu = useRelu
 
     ############################################################################
-    def Section(self, sectNum, (firstLayerBatch,otherLayersBatch), ntwk, prev_layer, numRepeat, convNumOfmaps, firstStride):
+    def Section(self, sectNum, batches, ntwk, prev_layer, numRepeat, convNumOfmaps, firstStride):
+
+        (firstLayerBatch,otherLayersBatch) = batches
+
         branchSfx = "_branch"
         branchSfx = "_br"
         forkLayer = layer = prev_layer

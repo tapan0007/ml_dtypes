@@ -1,4 +1,4 @@
-from psumbuffer import PsumBuffer
+from .psumbuffer import PsumBuffer
 
 class PoolingEng(object):
     def __init__(self, psumBuffer):

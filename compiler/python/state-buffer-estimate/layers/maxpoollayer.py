@@ -1,7 +1,7 @@
 from utils.consts    import *
 from utils.fmapdesc  import OfmapDesc
-from layer           import Layer
-from poollayer       import PoolLayer
+from .layer           import Layer
+from .poollayer       import PoolLayer
 import nets.network
 
 ##########################################################

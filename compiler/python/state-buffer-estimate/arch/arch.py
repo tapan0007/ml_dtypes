@@ -1,10 +1,10 @@
 from abc             import ABCMeta, abstractmethod
 
-from psumbuffer         import PsumBuffer
-from pearray            import PeArray
-from statebuffer        import StateBuffer
-from poolingeng         import PoolingEng
-from activationeng      import ActivationEng
+from .psumbuffer         import PsumBuffer
+from .pearray            import PeArray
+from .statebuffer        import StateBuffer
+from .poolingeng         import PoolingEng
+from .activationeng      import ActivationEng
 
 ##########################################################
 class Arch(object):

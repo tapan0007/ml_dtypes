@@ -1,4 +1,4 @@
-from psumbuffer import PsumBuffer
+from .psumbuffer import PsumBuffer
 
 class ActivationEng(object):
     def __init__(self, psumBuffer):

@@ -1,7 +1,7 @@
 from utils.consts    import *
 from utils.fmapdesc  import OfmapDesc
-from layer           import Layer
-from combinelayer    import CombineLayer
+from .layer           import Layer
+from .combinelayer    import CombineLayer
 import nets.network
 
 ##########################################################

@@ -1,9 +1,9 @@
 from utils.consts    import *
 from utils.fmapdesc import  OfmapDesc
-from layer          import Layer
-from subsamplelayer import SubSampleLayer
-from poollayer      import PoolLayer
-from activlayer     import ActivLayer
+from .layer          import Layer
+from .subsamplelayer import SubSampleLayer
+from .poollayer      import PoolLayer
+from .activlayer     import ActivLayer
 import nets.network
 
 ##########################################################
@@ -46,10 +46,14 @@ class ConvLayer(SubSampleLayer):
     #-----------------------------------------------------------------
     def gNumberWeights(self):
         assert(self.gNumPrevLayers() == 1)
-        k = self.gKernel()
         num_ifmaps = self.gPrevLayer(0).gNumOfmaps()
+        return num_ifmaps *  self.gNumberWeightsPerPartition()
+
+    def gNumberWeightsPerPartition(self):
+        assert(self.gNumPrevLayers() == 1)
+        k = self.gKernel()
         num_ofmaps = self.gNumOfmaps()
-        return k*k * num_ifmaps * num_ofmaps
+        return k*k * num_ofmaps
 
     #-----------------------------------------------------------------
     def qConvLayer(self):

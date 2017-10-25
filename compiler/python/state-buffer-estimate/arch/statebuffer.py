@@ -1,4 +1,4 @@
-from pearray import PeArray
+from .pearray import PeArray
 
 ##########################################################
 class StateBuffer(object):

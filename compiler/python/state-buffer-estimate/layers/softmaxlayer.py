@@ -1,7 +1,7 @@
 from utils.consts    import *
 from utils.fmapdesc import  OfmapDesc
-from layer          import Layer
-from onetoonelayer  import OneToOneLayer
+from .layer          import Layer
+from .onetoonelayer  import OneToOneLayer
 import nets.network
 
 

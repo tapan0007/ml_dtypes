@@ -1,7 +1,9 @@
 import nets.network 
 from arch.arch import Arch
 
+##########################################################
 class StateBufferMgr(object):
+    #-----------------------------------------------------------------
     def __init__(self, arch, ntwk):
         assert(isinstance(arch, Arch))
         assert(isinstance(ntwk, nets.network.Network))
@@ -13,47 +15,55 @@ class StateBufferMgr(object):
         self.__FirstSbAddress = sbuf.gFirstAddressInBytes()
 
         self.__FirstFreeStart = self.__FirstSbAddress
-        self.calcLayerFmapAddresses()
 
 
+    #-----------------------------------------------------------------
+    def calcOneLayerFmapAddresses(self, layer):
+        prevOfmapAddress = self.__OfmapAddress 
+        prevIfmapAddress = self.__IfmapAddress 
+
+        if layer.qDataLayer():
+            assert(prevIfmapAddress == None and prevOfmapAddress == None)
+            ifmapAddress = None
+            ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeightsPerPart
+        elif layer.qConvLayer():
+            assert(prevOfmapAddress != None)
+            ifmapAddress = prevOfmapAddress
+
+            if prevIfmapAddress == None: ## after data layer
+                ##         Weights | prevOfmap | ... | ...      
+                ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - layer.gOutputStateMemWithBatching()
+            else:
+                if prevIfmapAddress < prevOfmapAddress:
+                    ##     Weights | prevIfmap | ... | prevOfmap
+                    ##             | Ofmap   
+                    ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeightsPerPart
+                else:
+                    ##     Weights | prevOfmap | ... | prevIfmap
+                    ##                             | Ofmap   
+                    ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - layer.gOutputStateMemWithBatching()
+
+        layer.rIfmapAddress(ifmapAddress)
+        layer.rOfmapAddress(ofmapAddress)
+        layer.rWeightAddress = self.__FirstSbAddress
+
+        self.__OfmapAddress = ofmapAddress 
+        self.__IfmapAddress = ifmapAddress 
+
+    #-----------------------------------------------------------------
     def calcLayerFmapAddresses(self):
-        maxNumWeights = 0
+        maxNumWeightsPerPart = 0
         for layer in self.__Network.gLayers():
-            if layer.gNumberWeights() > maxWeightSize:
-                maxNumWeights = layer.gNumberWeights() 
+            if layer.gNumberWeightsPerPartition() > maxNumWeightsPerPart :
+                maxNumWeightsPerPart = layer.gNumberWeightsPerPartition() 
 
-        self.__MaxNumberWeights = maxNumWeights
+        self.__MaxNumberWeightsPerPart = maxNumWeightsPerPart
 
 
         ## first layer is Data layer and will have no ifmap
-        ofmapAddress = ifmapAddress = None
+        self.__OfmapAddress = self.__IfmapAddress = None
 
         for layer in self.__Network.gLayers():
-            if layer.qDataLayer():
-                assert(ifmapAddress == None and ofmapAddress == None)
-                ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeights
-                layer.rIfmapAddress(ifmapAddress)
-                layer.rOfmapAddress(ofmapAddress)
-            elif layer.qConvLayer():
-                assert(ofmapAddress != None)
-                prevIfmapAddress = ifmapAddress
-                prevOfmapAddress = ofmapAddress
-                ifmapAddress = ofmapAddress
-
-                if prevIfmapAddress == None: ## after data layer
-                    ##         Weights | prevOfmap | ... | ...      
-                    ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - layer.gOutputStateMemWithBatching()
-                else:
-                    if prevIfmapAddress < prevOfmapAddress:
-                        ##     Weights | prevIfmap | ... | prevOfmap
-                        ##             | Ofmap   
-                        ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeights
-                    else:
-                        ##     Weights | prevOfmap | ... | prevIfmap
-                        ##                             | Ofmap   
-                        ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - layer.gOutputStateMemWithBatching()
-
-                layer.rIfmapAddress(ifmapAddress)
-                layer.rOfmapAddress(ofmapAddress)
+            self.calcOneLayerFmapAddresses(layer)
 
 

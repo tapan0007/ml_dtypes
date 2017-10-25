@@ -1,8 +1,8 @@
 from abc             import ABCMeta, abstractmethod
 
 from utils.consts  import  *
-from layer         import Layer
-from activlayer    import ActivLayer
+from .layer         import Layer
+from .activlayer    import ActivLayer
 import nets.network
 
 ##########################################################

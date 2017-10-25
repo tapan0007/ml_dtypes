@@ -18,7 +18,7 @@ class Network(object):
         def __iter__(self):
             return self
 
-        def next(self):
+        def __next__(self):
             currLayer = self.__CurrLayer
             if not currLayer:
                 raise StopIteration()

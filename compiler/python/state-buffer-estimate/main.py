@@ -1,4 +1,6 @@
 import sys
+assert(sys.version_info.major >= 3)
+
 from utils.printers             import Printer
 import layers.layer
 from arch.arch import Arch
@@ -6,8 +8,6 @@ from memmgr.statebufmgr         import StateBufferMgr
 
 #from layers.layer               import rDoBatching
 
-from nets.densenet.densenet     import DenseNet169
-from nets.resnet.resnet         import ResNet50
 from schedule.scheduler         import Scheduler
 
 #print sys.argv
@@ -36,16 +36,18 @@ for arg in sys.argv[1:]:
         PrintDot = True
     elif arg == "--batch" or arg == "--batching":
         __DoBatching = True
-    elif arg == "--relu" or arg == "--batching":
+    elif arg == "--relu":
         UseRelu = True
     else:
         sys.stderr.write("Wrong argument: " + arg + "\n")
         sys.exit(1)
 
 if DenseNet:
-        ntwk = DenseNet169(UseRelu)
+    from nets.densenet.densenet     import DenseNet169
+    ntwk = DenseNet169(UseRelu)
 elif ResNet:
-        ntwk = ResNet50(UseRelu)
+    from nets.resnet.resnet         import ResNet50
+    ntwk = ResNet50(UseRelu)
 
 ##################################################
 if True:
@@ -69,13 +71,15 @@ if True:
 
 ##################################################
 assert(ntwk)
-sbmgr = StateBufferMgr(arch, ntwk)
 
 ntwk.rDoBatching(__DoBatching)
 ntwk.construct()
 scheduler = Scheduler()
 scheduler.Schedule(ntwk)
 ntwk.rLevels(scheduler.gLevels())
+
+sbmgr = StateBufferMgr(arch, ntwk)
+#sbmgr.calcLayerFmapAddresses()
 
 ##################################################
 printer = Printer(ntwk)

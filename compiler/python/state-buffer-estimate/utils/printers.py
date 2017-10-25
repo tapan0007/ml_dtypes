@@ -23,11 +23,11 @@ class Printer(object):
             if layer.gDenseBlockStart() >= 0:
                 if not prevNl:
                     print
-                print ">>> Starting dense block " + str(layer.gDenseBlockStart())
+                print (">>> Starting dense block " + str(layer.gDenseBlockStart()))
             elif layer.gTranBlockStart() >= 0:
                 if not prevNl:
                     print
-                print ">>> Starting tran block " + str(layer.gTranBlockStart())
+                print(">>> Starting tran block " + str(layer.gTranBlockStart()))
 
             if layer.qStoreInSB():
                 inStateSize = layer.gInputStateMemWithoutBatching()
@@ -45,17 +45,17 @@ class Printer(object):
 
             prevNl = False
             if layer.gDenseBlockEnd() >= 0:
-                print "<<< Ending dense block " + str(layer.gDenseBlockEnd())
+                print("<<< Ending dense block " + str(layer.gDenseBlockEnd()))
                 print
                 prevNl = True
             elif layer.gTranBlockEnd() >= 0:
-                print "<<< Ending tran block " + str(layer.gTranBlockEnd())
+                print("<<< Ending tran block " + str(layer.gTranBlockEnd()))
                 print
                 prevNl = True
 
             self.__PrevLayer =layer
 
-        print "Max state size =", kstr(maxStateSize)
+        print("Max state size =", kstr(maxStateSize))
 
     #-----------------------------------------------------------------
     def printDot(self):
@@ -83,7 +83,7 @@ class Printer(object):
         ntwk = self.__Network
         for level in ntwk.gLevels():
             for layer in level.gLayers():
-                print layer.gNameWithSched(),
+                print(layer.gNameWithSched(),)
             print
 
     #-----------------------------------------------------------------
@@ -117,7 +117,7 @@ class Printer(object):
                 sbPreds = "()"
             sb = "SB" if layer.qStoreInSB() else "--"
             ss = (lineFmt) % (layer.gNameWithSchedMem(), "[" + sb + "]=" + sbPreds)
-            print ss
+            print(ss)
             if hasRelu:
                 if lastWasAdd and layer.qReluLayer():
                     print

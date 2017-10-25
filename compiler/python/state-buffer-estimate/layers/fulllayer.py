@@ -1,8 +1,8 @@
 
 from utils.consts   import *
 from utils.fmapdesc import  OfmapDesc
-from layer          import Layer
-from convlayer      import ConvLayer
+from .layer          import Layer
+from .convlayer      import ConvLayer
 import nets.network
 
 class FullLayer(ConvLayer):

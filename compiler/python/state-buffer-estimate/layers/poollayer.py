@@ -2,8 +2,8 @@ from abc             import ABCMeta, abstractmethod
 
 from utils.consts    import *
 from utils.fmapdesc  import OfmapDesc
-from layer           import Layer
-from subsamplelayer import SubSampleLayer
+from .layer           import Layer
+from .subsamplelayer import SubSampleLayer
 import nets.network
 
 ##########################################################

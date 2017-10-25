@@ -69,6 +69,10 @@ class Layer(object): # abstract class
         self.__ResMemWithBatching = 0
         self.__ResMemWithoutBatching = 0
 
+        self.__IfmapAddress = None
+        self.__OfmapAddress = None
+        self.__WeightAddress = None
+
 
         assert( (len(prev_layers) == 0) == self.qDataLayer() )
         self.__PrevLayers.extend(prev_layers)
@@ -334,8 +338,11 @@ class Layer(object): # abstract class
         self.__TranBlockEnd = val
 
     #-----------------------------------------------------------------
-    ## ConvLayer must override this method for real weights
+    ## ConvLayer must override these two methods with correct values
     def gNumberWeights(self):
+        return 0
+
+    def gNumberWeightsPerPartition(self):
         return 0
 
     #-----------------------------------------------------------------
@@ -552,4 +559,14 @@ class Layer(object): # abstract class
         if self.qStoreInSB():
             prevLayer.__NextSbLayers.append(self)
 
+    def rIfmapAddress(self, address):
+        self.__IfmapAddress = address
+
+    def rOfmapAddress(self, address):
+        assert(address != None)
+        self.__OfmapAddress = None
+
+    def rWeightAddress(self, address):
+        assert(address != None)
+        self.__WeightAddress = None
 

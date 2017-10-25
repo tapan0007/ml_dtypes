@@ -7,9 +7,8 @@ class LayerLevel(object):
     #-----------------------------------------------------------------
     def __init__(self, levelNum, initLayers):
         isinstance(initLayers, list)
-        assert(initLayers==[] or isinstance(initLayers[0], layers.layer.Layer))
         self.__LevelNum = levelNum
-        self.__Layers = initLayers
+        self.__Layers = list(initLayers)
 
     #-----------------------------------------------------------------
     def remove(self, layer):

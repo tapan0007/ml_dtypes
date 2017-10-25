@@ -1,3 +1,5 @@
+PYTHON=python3
+
 ALL_OPTS := --print-layers --print-levels 
 
 DENSE169 = DenseNet-169
@@ -8,22 +10,22 @@ top : res
 resb :resnet-batch
 
 resnet-residue :
-	@  python main.py --resnet $(ALL_OPTS)
+	@  $(PYTHON) main.py --resnet $(ALL_OPTS)
 
 resnet-relu :
-	@  python main.py --resnet --relu $(ALL_OPTS)
+	@  $(PYTHON) main.py --resnet --relu $(ALL_OPTS)
 
 resnet-batch-relu :
-	@  python main.py --resnet --batch --relu $(ALL_OPTS)
+	@  $(PYTHON) main.py --resnet --batch --relu $(ALL_OPTS)
 
 densenet :
-	@  python main.py --densenet $(ALL_OPTS)
+	@  $(PYTHON) main.py --densenet $(ALL_OPTS)
 
 resnet :
-	python main.py --resnet $(ALL_OPTS)
+	$(PYTHON) main.py --resnet $(ALL_OPTS)
 
 resnet-batch :
-	@  python main.py --resnet --batch $(ALL_OPTS)
+	@  $(PYTHON) main.py --resnet --batch $(ALL_OPTS)
 
 
 
