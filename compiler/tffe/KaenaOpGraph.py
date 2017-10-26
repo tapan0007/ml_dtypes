@@ -26,6 +26,7 @@ class Node(Object):
   def getNpInfo(self):
     return(self.getName(),
            self.getAttr("op_type"),
+           self.getAttr("np_dtype"),
            self.getAttr("np_shape"),
            self.getAttr("np_file"))
            
@@ -48,6 +49,7 @@ class Graph(Object):
     Object.__init__(self, name, attrs)
     self.__name2node = {}
     self.__edges = {}
+    self.__edgesReverse = {} # to speed up predecessor lookup in levelization
     
   def addNode(self, name, attrs = {}):
     self.__name2node[name] = Node(name, attrs)
@@ -57,10 +59,14 @@ class Graph(Object):
     toNode = self.getNode(nameTo)
     if self.__edges.get(fromNode) == None:
       self.__edges[fromNode] = {}
-    self.__edges[fromNode][toNode] = Edge(fromNode, toNode, attrs)
+    edge = Edge(fromNode, toNode, attrs)
+    self.__edges[fromNode][toNode] = edge
+    if self.__edgesReverse.get(toNode) == None:
+      self.__edgesReverse[toNode] = {}
+    self.__edgesReverse[toNode][fromNode] = edge
 
   def hasNode(self, name):
-    return(self.__name2node.get(name, None))
+    return(self.__name2node.get(name) != None)
 
   def getNode(self, name):
     return(self.__name2node[name])
@@ -84,19 +90,23 @@ class Graph(Object):
     return(nextNodes)
   
   def nodePredecessors(self, toNode):
-    preNodes = []
-    for fromNode in self.__edges.keys():
-      if toNode in self.__edges[fromNode]:
-        preNodes.append(fromNode)
-    return(preNodes)
+    nextNodes = []
+    if self.__edgesReverse.get(toNode):
+      nextNodes = list(self.__edgesReverse[toNode].keys())
+    return(nextNodes)
   
+  # Get the node with most computation - highest in the data flow level
   def getTopNode(self):
     nextNodes = self.getNodes()
     while len(nextNodes) > 0:
       n = nextNodes[0]
       nextNodes = self.nodeSuccessors(n)
     return(n)
-        
+  
+  # On a levelized graph - max depth to reach node among all paths
+  # It describes "computational readiness" in the data flow:
+  #   all ops at level N done implies that an op at level N+1 can
+  #   be safely executed
   def levelize(self):
     nodes = self.getNodes()
     perDot = max(1, int(len(nodes) / 80))

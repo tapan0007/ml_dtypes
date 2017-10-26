@@ -109,10 +109,8 @@ class TfFe:
 
       tfVars = []
       kNodes = []
-      # Levelization is not necessary of TF, but ok to use to order the np files
-      nodeQueue = [inputNode]
-      visitedNodes = {}
       
+      # Perform serialization of operations by using levels
       levelizedNodes = self.__kg.getLevelizedNodes()
       for level in range(0, len(levelizedNodes)):
         for n in levelizedNodes[level]:
@@ -143,6 +141,8 @@ class TfFe:
           if numImages % perDot == 0:
             print(".", end='', flush=True)
           n.setAttr("np_file", imageFile + ".npy")
+          dtype = nd.dtype
+          n.setAttr("np_dtype", str(dtype))
         else:
           print("INFO: Failed to get tensor content for ",
                 tfOp.type, "  ", tfOp.name)
@@ -230,11 +230,11 @@ class TfFe:
       for level in range(0, len(levelizedNodes)):
         for n in levelizedNodes[level]:
           #print("DEBUG: node=", n.getName())
-          (opName, opType, npShape, npFile) = n.getNpInfo()
+          (opName, opType, dType, npShape, npFile) = n.getNpInfo()
           row = {"OpName"      : opName,
                  "OpType"      : opType,
                  "Level"       : level,
-                 "OutputData"  : "TBD", 
+                 "OutputData"  : dType, 
                  "OutputSize"  : TfFe.npShapeToSize(npShape), 
                  "OutputShape" : npShape, 
                  "OutputFile"  : npFile}
@@ -242,7 +242,7 @@ class TfFe:
           i = 0
           inputSize = 0
           for preNode in self.__kg.nodePredecessors(n):
-            (opName, opType, npShape, npFile) = preNode.getNpInfo()
+            (opName, opType, dType, npShape, npFile) = preNode.getNpInfo()
             row["Input" + str(i) + "Shape"] = npShape
             row["Input" + str(i) + "File"] = npFile
             inputSize += TfFe.npShapeToSize(npShape)
