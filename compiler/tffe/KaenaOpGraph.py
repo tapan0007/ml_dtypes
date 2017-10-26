@@ -66,7 +66,7 @@ class Graph(Object):
     self.__edgesReverse[toNode][fromNode] = edge
 
   def hasNode(self, name):
-    return(self.__name2node.get(name) != None)
+    return(name in self.__name2node)
 
   def getNode(self, name):
     return(self.__name2node[name])

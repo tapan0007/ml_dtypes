@@ -65,12 +65,12 @@ class TfFe:
       if (re.search(focusNodeRe, tfNode.name) != None):
         self.__kg.addNode(tfNode.name, {"tfop" : tfop, 'op_type' : tfNode.op})
         numOps += 1
-        if (re.search("conv", tfop.op.lower(), re.I) != None):
+        if (re.search("conv", tfop.op, re.I) != None):
           numConv += 1
       
         for ni in tfNode.input:
           #print("  Input=", ni)
-          # Nodes out of focus may not edist, so skip the edge to
+          # Nodes out of focus may not exist, so skip the edge too
           if (self.__kg.hasNode(ni) and self.__kg.hasNode(tfNode.name)):
             self.__kg.addEdge(ni, tfNode.name)
     print("INFO: loaded %s file with %d ops  of which %d are CONV"
@@ -182,7 +182,7 @@ class TfFe:
 
     def addClusterNodes(graph, ClusterNode):
       # add nodes in this subgraph
-      if ClusterNode.get("nodes") != None:
+      if "nodes" in ClusterNode:
         for n in ClusterNode["nodes"]:
           #print("  DEBUG: added node ", n)
           graph.node(n)
