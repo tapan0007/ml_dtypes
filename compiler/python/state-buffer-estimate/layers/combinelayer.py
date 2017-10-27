@@ -13,7 +13,7 @@ class CombineLayer(Layer): # abstract class
 
         ofmap_desc = OfmapDesc(num_ofmaps, prev_layer.gOfmapSize())
 
-        super(CombineLayer, self).__init__(param, ofmap_desc, (prev_layer, earlier_layer))
+        super().__init__(param, ofmap_desc, (prev_layer, earlier_layer))
 
     #-----------------------------------------------------------------
     def qPassThrough(self):

@@ -13,7 +13,7 @@ class PoolLayer(SubSampleLayer, metaclass = ABCMeta): # abstract class
     def __init__(self, param, prev_layer, stride, kernel):
         assert(isinstance(prev_layer, Layer))
 
-        super(PoolLayer, self).__init__(param, prev_layer,
+        super().__init__(param, prev_layer,
             num_ofmaps=None, stride=stride, kernel=kernel)
 
 

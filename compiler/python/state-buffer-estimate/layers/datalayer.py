@@ -7,7 +7,7 @@ import nets.network
 class DataLayer(Layer):
     #-----------------------------------------------------------------
     def __init__(self, param, ofmap_desc):
-        super(DataLayer, self).__init__(param, ofmap_desc, ())
+        super().__init__(param, ofmap_desc, ())
 
     #-----------------------------------------------------------------
     def __str__(self):

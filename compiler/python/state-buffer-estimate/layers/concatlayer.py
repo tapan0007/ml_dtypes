@@ -13,7 +13,7 @@ class ConcatLayer(CombineLayer):
         assert(prev_layer.gOfmapSize() == earlier_layer.gOfmapSize())
 
         num_ofmaps = prev_layer.gNumOfmaps() + earlier_layer.gNumOfmaps()
-        super(ConcatLayer, self).__init__(param, prev_layer, earlier_layer, num_ofmaps)
+        super().__init__(param, prev_layer, earlier_layer, num_ofmaps)
 
     #-----------------------------------------------------------------
     def verify(self):

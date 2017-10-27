@@ -31,7 +31,7 @@ class DenseNet(Network, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def __init__(self, growth_rate, layers_in_dense_block, ofmap_desc, num_classes):
-        super(DenseNet, self).__init__()
+        super().__init__()
 
         self.m_Growth_rate = growth_rate
         self.m_LayersInDenseBlock = layers_in_dense_block
@@ -95,7 +95,7 @@ class DenseNet169(DenseNet):
         layersInDenseBlock = [6, 12, 32, 32]
         ofmap_desc = OfmapDesc(3, 224)
         num_classes = 1000
-        super(DenseNet169, self).__init__(growth_rate, layersInDenseBlock, ofmap_desc, num_classes)
+        super().__init__(growth_rate, layersInDenseBlock, ofmap_desc, num_classes)
 
     #-----------------------------------------------------------------
     def gName(self):

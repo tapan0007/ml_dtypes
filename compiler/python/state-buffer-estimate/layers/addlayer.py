@@ -13,7 +13,7 @@ class AddLayer(CombineLayer):
         assert(prev_layer.gOfmapDesc() == earlier_layer.gOfmapDesc())
 
         num_ofmaps = prev_layer.gNumOfmaps()
-        super(AddLayer, self).__init__(param, prev_layer, earlier_layer, num_ofmaps)
+        super().__init__(param, prev_layer, earlier_layer, num_ofmaps)
 
 
     #-----------------------------------------------------------------

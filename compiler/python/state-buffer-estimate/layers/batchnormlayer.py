@@ -10,7 +10,7 @@ class BatchNormLayer(OneToOneLayer):
     def __init__(self, param, prev_layer):
         assert(isinstance(prev_layer, Layer))
 
-        super(BatchNormLayer, self).__init__(param, prev_layer)
+        super().__init__(param, prev_layer)
 
     #-----------------------------------------------------------------
     def __str__(self):

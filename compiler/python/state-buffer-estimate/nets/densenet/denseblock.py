@@ -14,7 +14,7 @@ class DenseBlock(nets.block.Block):
     #-----------------------------------------------------------------
     def __init__(self, batch, ntwk, blockIdx, numDenseLayers, growthRate, prev_layer):
         assert(isinstance(prev_layer, Layer))
-        super(DenseBlock, self).__init__(ntwk)
+        super().__init__(ntwk)
 
         self.m_numDenseLayers = numDenseLayers
         growthRate = ntwk.gGrowthRate()

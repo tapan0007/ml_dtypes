@@ -8,7 +8,7 @@ class OneToOneLayer(Layer): # abstract class
     def __init__(self, param, prev_layer):
         assert(isinstance(prev_layer, Layer))
         ofmap_desc = prev_layer.gOfmapDesc()
-        super(OneToOneLayer, self).__init__(param, ofmap_desc, (prev_layer,))
+        super().__init__(param, ofmap_desc, (prev_layer,))
 
     #-----------------------------------------------------------------
     def verify(self):

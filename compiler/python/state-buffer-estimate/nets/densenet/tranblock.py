@@ -15,7 +15,7 @@ class TranBlock(nets.block.Block):
     #-----------------------------------------------------------------
     def __init__(self, batch, ntwk, blockIdx, prev_layer, compression):
         assert(isinstance(prev_layer, Layer))
-        super(TranBlock, self).__init__(ntwk)
+        super().__init__(ntwk)
 
         layer = prev_layer
 

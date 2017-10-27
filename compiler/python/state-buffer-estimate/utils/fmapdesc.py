@@ -48,7 +48,7 @@ class FmapDesc(object, metaclass = ABCMeta):
 class OfmapDesc(FmapDesc):
     #-----------------------------------------------------------------
     def __init__(self, num_ofmaps, ofmap_size):
-        super(OfmapDesc, self).__init__(num_ofmaps, ofmap_size)
+        super().__init__(num_ofmaps, ofmap_size)
 
     #-----------------------------------------------------------------
     def copy(self):

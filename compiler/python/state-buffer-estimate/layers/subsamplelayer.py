@@ -18,7 +18,7 @@ class SubSampleLayer(Layer): # abstract class
         ofmap_size = ifmap_desc.gMapSize()  //  stride
         ofmap_desc = OfmapDesc(num_ofmaps, ofmap_size);
 
-        super(SubSampleLayer, self).__init__(param, ofmap_desc, (prev_layer,))
+        super().__init__(param, ofmap_desc, (prev_layer,))
 
         self.__Stride = stride
         self.__Kernel = kernel

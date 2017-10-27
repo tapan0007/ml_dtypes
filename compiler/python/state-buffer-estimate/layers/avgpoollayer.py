@@ -10,7 +10,7 @@ class AvgPoolLayer(PoolLayer):
     def __init__(self, param, prev_layer, stride, kernel):
         assert(isinstance(prev_layer, Layer))
 
-        super(AvgPoolLayer, self).__init__(param, prev_layer,
+        super().__init__(param, prev_layer,
             stride=stride, kernel=kernel)
 
         #self.m_PoolType = poolType
