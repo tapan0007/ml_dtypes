@@ -286,7 +286,7 @@ compile_convolve(FILE *fptr,
 
             psum_addr += (1 << BANK_BITS);
             if (psum_addr >= MMAP_PSUM_BASE + (1 << BANK_BITS) * 
-                    (1 << BANKS_PER_PARTITION_BITS)) {
+                    (1 << BANKS_PER_ROW_BITS)) {
                 psum_addr = MMAP_PSUM_BASE; 
             }
         }

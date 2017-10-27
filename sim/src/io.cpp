@@ -1,6 +1,6 @@
 #include "io.h"
-#include "uarch_defines.h"
 #include "cnpy.h"
+#include "uarch_cfg.h"
 #include <complex>
 #include <string.h>
 
@@ -54,10 +54,10 @@ void
 Memory::bank_mmap(addr_t addr, void *ptr, int count, size_t n_bytes)
 {
     char *cptr = (char *)(ptr);
-    assert((n_bytes  <= Constants::row_partition_nbytes) && "won't fit in partition");
+    assert((n_bytes  <= ROW_SIZE) && "won't fit in partition");
     for (int i = 0; i < count; i++) {
         memcpy(memory + addr, cptr, n_bytes);
-        addr  += Constants::row_partition_nbytes;
+        addr  += ROW_SIZE;
         cptr  += n_bytes;
     }
 }
@@ -79,13 +79,13 @@ Memory::bank_munmap(addr_t addr, int count, addr_t stride, size_t n_bytes)
 void  *
 Memory::sbuffer_bank_munmap(addr_t addr, int count, size_t n_bytes)
 {
-    return bank_munmap(addr, count, Constants::row_partition_nbytes, n_bytes);
+    return bank_munmap(addr, count, ROW_SIZE, n_bytes);
 }
 
 void  *
 Memory::psum_bank_munmap(addr_t addr, int count, size_t n_bytes)
 {
-    return bank_munmap(addr, count, Constants::column_partition_nbytes, n_bytes);
+    return bank_munmap(addr, count, COLUMN_SIZE, n_bytes);
 }
 
 void 

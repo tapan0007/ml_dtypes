@@ -8,63 +8,75 @@
 // ----------------------------------------------------------
 // Signals
 // ----------------------------------------------------------
-typedef struct PeEWSignals {
+struct PeEWSignals {
     ArbPrecData pixel;
     bool    pixel_valid;
     ArbPrecData weight;
     ARBPRECTYPE weight_dtype;
     bool    weight_toggle;
-} PeEWSignals;
+};
 
-typedef struct PeNSSignals {
+struct PeNSSignals {
     ArbPrecData partial_sum;
-} PeNSSignals;
+};
 
-typedef struct PSumActivateSignals {
+struct PSumActivateSignals {
     bool    valid;
     ArbPrecData partial_sum;
     ARBPRECTYPE dtype;
-} PSumActivateSignals;
+};
 
-typedef struct ActivateSbSignals {
+struct ActivateSbSignals {
     bool    valid;
     ArbPrecData partial_sum;
     ARBPRECTYPE dtype;
-} ActivateSbSignals;
+};
 
-#define ADDR_UNION(PREF)  \
-    union { \
-        struct { \
-            uint64_t PREF##_addr : BANK_BITS; \
-            uint64_t PREF##_bank : ADDRESS_BITS - BANK_BITS; \
-        }; \
-        uint64_t PREF##_full_addr : ADDRESS_BITS; \
-    }; \
+struct Addr {
+    union { 
+        struct {
+            struct { 
+                uint64_t offset : BANK_BITS;
+                uint64_t bank   : BANKS_PER_ROW_BITS;
+            }; 
+            uint64_t local : BANK_BITS + BANKS_PER_COLUMN_BITS;
+        } row;
+        struct {
+            struct { 
+                uint64_t offset : BANK_BITS;
+                uint64_t bank   : BANKS_PER_COLUMN_BITS;
+            }; 
+            uint64_t local : BANK_BITS + BANKS_PER_COLUMN_BITS;
+        } col;
+        uint64_t sys : ADDRESS_BITS; 
+    }; 
+};
 
 
 typedef struct EdgeSignals {
     uint8_t        row_valid;
-    uint8_t        row_countdown;    // SB       | Which SB rows is this valid for?
+    uint8_t        row_countdown; 
     uint8_t        column_valid;
-    uint8_t        column_countdown; // PSUM     | Which PSUM columns is this valid for?
+    uint8_t        column_countdown; 
 
     bool           pad_valid;
-    bool           ifmap_valid;      // SB & PSUM| read and shift pixel from SB, PSUM should use result for MAC
-    ADDR_UNION(ifmap);
-    ARBPRECTYPE      ifmap_dtype;       // SB       | what type of pixel are we loading?
+    bool           ifmap_valid;     
+    Addr           ifmap_addr;
+    ARBPRECTYPE    ifmap_dtype;  
 
-    bool           weight_valid;     // SB       | read and shift weight from SB
-    ADDR_UNION(weight)      // SB       | weight address
-    ARBPRECTYPE    weight_dtype;     // SB       | what type of weight are we loading?
-    bool           weight_toggle;    // PE       | should the PE toggle the weight ptr bit? FIXME: could be id instead?
-    bool           weight_clamp;     // PE       | broadcast signal to tell PEs in a row to "clamp" the weight passing through them
+    bool           weight_valid;  
+    Addr           weight_addr;
+    ARBPRECTYPE    weight_dtype;
+    bool           weight_toggle;
+    bool           weight_clamp; 
 
-    ADDR_UNION(psum)      // SB       | weight address
-    bool           psum_start;       // PSUM     | Clear psum buffer for new calc
-    bool           psum_stop;         // PSUM     | Psum calc is done | FIXME : psum_start/end could be combined but we'd lose debugability
 
-    bool           activation_valid; // PSUM     | Should we perform an activation on psum id?
-    ACTIVATIONFUNCTION activation;   // PSUM     | Which activation func should we perform?
+    Addr           psum_addr;
+    bool           psum_start;
+    bool           psum_stop; 
+
+    bool           activation_valid; 
+    ACTIVATIONFUNCTION activation;  
  
 } EdgeSignals;
 
@@ -72,8 +84,8 @@ typedef struct PoolSignals {
     bool          valid;
     POOLFUNC      func;
     ARBPRECTYPE   dtype;
-    ADDR_UNION(src);
-    ADDR_UNION(dst);
+    Addr          src_addr;
+    Addr          dst_addr;
     bool          start;
     bool          stop;
     uint8_t       countdown;

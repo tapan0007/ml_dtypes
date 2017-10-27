@@ -2,7 +2,6 @@
 #define SEQUENCER_H
 
 #include "sigint.h"
-#include "uarch_defines.h"
 #include <queue>
 
 class Instruction {
@@ -100,7 +99,7 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
 
 
     private:
-        tick_t   clock;
+        uint64_t   clock;
         UopFeedInterface *feed;
         void step_edgesignal();
         void step_poolsignal();

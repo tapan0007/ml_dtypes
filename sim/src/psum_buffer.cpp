@@ -1,7 +1,6 @@
 #include "psum_buffer.h"
 #include "string.h"
 #include "io.h"
-#include "uarch_defines.h"
 
 extern Memory memory;
 extern addr_t psum_buffer_base;
@@ -11,7 +10,7 @@ extern addr_t psum_buffer_base;
 PSumBuffer::PSumBuffer() : ptr(NULL), ew(), north(nullptr), west(nullptr) {
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
-    valids = (char *)(calloc(Constants::column_partition_nbytes, 1));
+    valids = (char *)(calloc(COLUMN_SIZE, 1));
 }
 
 PSumBuffer::~PSumBuffer() {}
@@ -114,13 +113,13 @@ PSumBuffer::step() {
     static ArbPrecData ones = {.uint64 = 0xffffffffffffffff};
 
     if (ew.column_valid && ew.ifmap_valid) {
-        assert(ew.psum_full_addr >= MMAP_PSUM_BASE);
+        assert(ew.psum_addr.sys >= MMAP_PSUM_BASE);
         ARBPRECTYPE psum_dtype =  get_upcast(ew.ifmap_dtype);
         size_t dsize = sizeofArbPrecType(psum_dtype);
-        unsigned int e_offset = ew.psum_full_addr - MMAP_PSUM_BASE;
+        unsigned int e_offset = ew.psum_addr.sys - MMAP_PSUM_BASE;
         addr_t src_addr = memory.index(mem_addr, e_offset, UINT8);
         void *src_ptr = memory.translate(src_addr);
-        assert(e_offset <= Constants::column_partition_nbytes);
+        assert(e_offset <= COLUMN_SIZE);
         if (ew.psum_start) {
             memory.write(src_addr, &zeros, dsize);
             memcpy(&valids[e_offset], &ones, dsize); 
@@ -160,7 +159,7 @@ PSumBufferArray::PSumBufferArray(int n_cols) {
     col_buffer[0].set_address(psum_buffer_base);
     for (int i = 1; i < n_cols; i++) {
         col_buffer[i].connect_west(&col_buffer[i-1]);
-        col_buffer[i].set_address(psum_buffer_base + i * Constants::column_partition_nbytes);
+        col_buffer[i].set_address(psum_buffer_base + i * COLUMN_SIZE);
     }
 }
 

@@ -1,6 +1,5 @@
 #include <assert.h>
 #include "sequencer.h"
-#include "uarch_defines.h"
 #include "string.h"
 #include "tpb_isa.h"
 #include "io.h"
@@ -79,10 +78,10 @@ template<>
 void  DynamicInstruction<LDWEIGHTS>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     uint64_t num_cols = args.x_num * args.y_num; 
-    assert(num_cols <= Constants::columns);
+    assert(num_cols <= SZ(COLUMN_BITS));
     seq->es.weight_valid = true;
     seq->es.weight_dtype = (ARBPRECTYPE) args.dtype;
-    //seq->es.weight_full_addr = args.address;
+    //seq->es.weight_addr.sys = args.address;
     seq->weight_base = args.address;
     seq->es.weight_clamp = (num_cols == 1);
     seq->es.row_valid = true;
@@ -95,7 +94,7 @@ void  DynamicInstruction<LDWEIGHTS>::execute(void *v_seq) {
     seq->weight_x_cnt = 0;
     seq->weight_y_cnt = 0;
     seq->raw_signal = false;
-    seq->es.weight_full_addr = args.address + (args.y_num * args.y_step - 1) * 
+    seq->es.weight_addr.sys = args.address + (args.y_num * args.y_step - 1) * 
         sizeofArbPrecType((ARBPRECTYPE)args.dtype);
 
 }
@@ -107,7 +106,7 @@ template<>
 void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     /* ifmap setup */
-    seq->es.ifmap_full_addr    = args.fmap_start_addr;
+    seq->es.ifmap_addr.sys    = args.fmap_start_addr;
     seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
     seq->es.row_countdown = args.last_row; 
     seq->es.row_valid = true;
@@ -126,7 +125,7 @@ void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     seq->es.column_valid = true;
     seq->es.psum_start = args.start_tensor_calc;
     seq->es.psum_stop = args.stop_tensor_calc;
-    seq->es.psum_full_addr = args.psum_start_addr;
+    seq->es.psum_addr.sys = args.psum_start_addr;
 
     /* signals that will stay constant for entire convolution */
     /* padding setup */
@@ -154,11 +153,11 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
 	seq->ps.valid = true;
     seq->ps.func = pool_func;
 	seq->ps.dtype = (ARBPRECTYPE)args.in_dtype;
-	seq->ps.src_full_addr = args.src_start_addr;
+	seq->ps.src_addr.sys = args.src_start_addr;
 	seq->ps.start = true;
 	seq->ps.stop = (pool_func == IDENTITY_POOL) ||
         (args.src_x_num + args.src_y_num == 2);
-	seq->ps.dst_full_addr = args.dst_start_addr;
+	seq->ps.dst_addr.sys = args.dst_start_addr;
 	seq->ps.countdown = args.max_partition;
 	
 	seq->pool_src_base = args.src_start_addr;
@@ -276,14 +275,14 @@ Sequencer::step_edgesignal() {
 
     /* figured out pad/ifmap valid, now compute addresses */
     if (es.ifmap_valid) {
-        es.ifmap_full_addr = ifmap_base + 
+        es.ifmap_addr.sys = ifmap_base + 
             (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * 
             sizeofArbPrecType((ARBPRECTYPE)es.ifmap_dtype);
     }
     /* Sending an ifmap, must be getting out ofmap! */
     if (es.ifmap_valid || es.pad_valid) {
         /* FIXME - this is the psum granularity, FIX */
-        es.psum_full_addr += sizeofArbPrecType((ARBPRECTYPE)get_upcast(es.ifmap_dtype));
+        es.psum_addr.sys += sizeofArbPrecType((ARBPRECTYPE)get_upcast(es.ifmap_dtype));
     }
 
     /*  WEIGHT */
@@ -299,7 +298,7 @@ Sequencer::step_edgesignal() {
             es.weight_valid = false;
         } 
         if (es.weight_valid) {
-            es.weight_full_addr = weight_base + 
+            es.weight_addr.sys = weight_base + 
                 (weight_y_num * weight_y_step -
                  weight_y_cnt * weight_y_step -
                  weight_x_cnt * weight_x_step - 1) * 
@@ -367,7 +366,7 @@ Sequencer::step_poolsignal() {
 
     /* calculate address based on settings */
     if (ps.valid) {
-        ps.src_full_addr = pool_src_base + 
+        ps.src_addr.sys = pool_src_base + 
             dsize * 
             (pool_str_x_cnt * pool_str_x_step +
              pool_str_y_cnt * pool_str_y_step) + /* tile */
@@ -376,7 +375,7 @@ Sequencer::step_poolsignal() {
              pool_src_y_cnt * pool_src_y_step);
     }
     if (ps.start) {
-        ps.dst_full_addr = pool_dst_base + 
+        ps.dst_addr.sys = pool_dst_base + 
             (pool_dst_x_cnt * pool_dst_x_step + 
              pool_dst_y_cnt * pool_dst_y_step) * dsize;
     }
@@ -437,15 +436,20 @@ Sequencer::step() {
 
 
 EdgeSignals Sequencer::pull_edge() {
+// IF: to avoid warning: comparison is always true due to limited range of data type [-Wtype-limits]
+    assert(!es.ifmap_valid || (
+#if MMAP_SB_BASE
+            (es.ifmap_addr.sys >= MMAP_SB_BASE) && 
+#endif
+             (es.ifmap_addr.sys < ROW_SIZE)));
+    assert(!es.weight_valid || (
+#if MMAP_SB_BASE
+          (es.weight_addr.sys >= MMAP_SB_BASE) && 
+#endif
+           (es.weight_addr.sys < ROW_SIZE)));
     assert(!es.ifmap_valid ||
-            ((es.ifmap_full_addr >= MMAP_SB_BASE) && 
-             (es.ifmap_full_addr < ROW_SIZE)));
-    assert(!es.weight_valid ||
-          ((es.weight_full_addr >= MMAP_SB_BASE) && 
-           (es.weight_full_addr < ROW_SIZE)));
-    assert(!es.ifmap_valid ||
-            ((es.psum_full_addr >= MMAP_PSUM_BASE) && 
-             (es.psum_full_addr < MMAP_PSUM_BASE + COLUMN_SIZE)));
+            ((es.psum_addr.sys >= MMAP_PSUM_BASE) && 
+             (es.psum_addr.sys < MMAP_PSUM_BASE + COLUMN_SIZE)));
     return es;
 }
 

@@ -1,6 +1,5 @@
 #include "pool.h"
 #include "io.h"
-#include "uarch_defines.h"
 
 extern Memory memory;
 extern addr_t psum_buffer_base;
@@ -31,12 +30,12 @@ Pool::step() {
 	ARBPRECTYPE up_dtype;
 	size_t dsize = sizeofArbPrecType(ps.dtype);
 
-	src_partition_size = (ps.src_full_addr >= psum_buffer_base) ?
-		Constants::column_partition_nbytes : Constants::row_partition_nbytes;
-	dst_partition_size = (ps.dst_full_addr >= psum_buffer_base) ?
-		Constants::column_partition_nbytes : Constants::row_partition_nbytes;
+	src_partition_size = (ps.src_addr.sys >= psum_buffer_base) ?
+		COLUMN_SIZE : ROW_SIZE;
+	dst_partition_size = (ps.dst_addr.sys >= psum_buffer_base) ?
+		COLUMN_SIZE : ROW_SIZE;
 
-    memory.read(&in_pixel, ps.src_full_addr, dsize);
+    memory.read(&in_pixel, ps.src_addr.sys, dsize);
 
     /* start ! */
     if (ps.start) {
@@ -77,10 +76,10 @@ Pool::step() {
                 assert(0 && "that pooling is not yet supported");
                 break;
         }
-        memory.write(ps.dst_full_addr, &pool_pixel, dsize);
+        memory.write(ps.dst_addr.sys, &pool_pixel, dsize);
     }
-    ps.src_full_addr += src_partition_size;
-    ps.dst_full_addr += dst_partition_size;
+    ps.src_addr.sys += src_partition_size;
+    ps.dst_addr.sys += dst_partition_size;
     if (ps.countdown == 0) {
         ps.valid = false;
     } else {

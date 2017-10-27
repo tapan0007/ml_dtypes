@@ -1,7 +1,6 @@
 #include "state_buffer.h"
 #include "string.h"
 #include "io.h"
-#include "uarch_defines.h"
 
 extern Memory memory;
 //------------------------------------------------------------------
@@ -35,11 +34,11 @@ StateBuffer::pull_ew() {
             pixel_valid = true;
         }
         if (ns.ifmap_valid) {
-            pixel = read_addr(ns.ifmap_full_addr, ns.ifmap_dtype);
+            pixel = read_addr(ns.ifmap_addr.sys, ns.ifmap_dtype);
             pixel_valid = true;
         }
         if (ns.weight_valid) {
-            weight = read_addr(ns.weight_full_addr, ns.weight_dtype);
+            weight = read_addr(ns.weight_addr.sys, ns.weight_dtype);
             printf("WEIGHT %d\n", weight.uint8);
         }
     }
@@ -62,10 +61,10 @@ StateBuffer::pull_edge() {
     EdgeSignals e = ns;
     if (e.row_valid) {
         if (e.ifmap_valid) {
-            e.ifmap_full_addr += Constants::row_partition_nbytes;
+            e.ifmap_addr.sys += ROW_SIZE;
         } 
         if (e.weight_valid) {
-            e.weight_full_addr += Constants::row_partition_nbytes;
+            e.weight_addr.sys += ROW_SIZE;
         }
         if (e.row_countdown) {
             e.row_countdown--;

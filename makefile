@@ -10,6 +10,7 @@ all:
 	@$(MAKE) -C sim
 	#@$(MAKE) -C objdump
 	@$(MAKE) libs -C sim
+	@$(MAKE) -C verif
 
 clean: 
 	@$(MAKE) clean -C tcc
@@ -17,5 +18,6 @@ clean:
 	@$(MAKE) clean -C tcc/test/pool
 	@$(MAKE) clean -C sim
 	#@$(MAKE) clean -C objdump
+	@$(MAKE) clean -C verif
 
 
