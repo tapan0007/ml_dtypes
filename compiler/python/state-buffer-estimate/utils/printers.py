@@ -134,7 +134,7 @@ class Printer(object):
                     b = True
                 if waddr:
                     if b: ss += ", "
-                    ss += ",w=" + str(waddr)
+                    ss += "w=" + str(waddr)
                     b = True
                 ss += "}"
 
