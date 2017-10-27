@@ -77,7 +77,7 @@ main(int argc, char **argv)
         get_dims(i_names[j], i_dims, &word_size);
         compile_read_ifmap(fptr, ifmap_addr[j], i_names[j], "NCHW");
         if (j + 1 < num_inames) {
-            ifmap_addr[j+1] = ifmap_addr[i] + word_size * i_dims[3] * i_dims[2];
+            ifmap_addr[j+1] = ifmap_addr[j] + word_size * i_dims[3] * i_dims[2];
         }
         i_ch += i_dims[1];
     }
