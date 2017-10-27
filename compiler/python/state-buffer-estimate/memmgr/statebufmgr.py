@@ -1,4 +1,4 @@
-from utils.debug    import *
+from utils.debug    import breakFunc
 from utils.funcs    import *
 import nets.network 
 from arch.arch import Arch
@@ -20,6 +20,22 @@ class StateBufferMgr(object):
 
 
     #-----------------------------------------------------------------
+    def calcOneLayerFmapMemSizePerPartition(self, layer):
+        outSbMemBatch  = layer.gOutputStateMemWithBatching()
+        resSbMemBatch  = layer.gResMemWithBatching() 
+        totSbMemBatch  = outSbMemBatch + resSbMemBatch
+        numOfmaps      = layer.gNumOfmaps()
+        assert(numOfmaps > 0)
+        numPeArrayRows = self.__Arch.gNumberPeArrayRows()
+
+        sbMemPerOfmap  = totSbMemBatch // numOfmaps
+        maxNumOfmapsPerRow = 1 + DivFloor((numOfmaps - 1), numPeArrayRows)
+
+        ofmapMemPerPart = sbMemPerOfmap * maxNumOfmapsPerRow
+        return ofmapMemPerPart 
+
+
+    #-----------------------------------------------------------------
     def calcOneLayerFmapAddresses(self, layer):
         if layer.qStoreInSB():
             prevOfmapAddress = self.__OfmapAddress 
@@ -32,10 +48,8 @@ class StateBufferMgr(object):
             else:
                 assert(prevOfmapAddress != None)
                 ifmapAddress = prevOfmapAddress
-                ofmapSizePerPart = (
-                      ( (layer.gOutputStateMemWithBatching() + layer.gResMemWithBatching()) // layer.gNumOfmaps() )
-                    * ( 1 + DivFloor((layer.gNumOfmaps() - 1), self.__Arch.gNumberPeArrayRows()) )
-                    )
+
+                ofmapSizePerPart = self.calcOneLayerFmapMemSizePerPartition(layer)
 
                 if prevIfmapAddress == None: ## after data layer
                     ##         Weights | prevOfmap | ... | ...      

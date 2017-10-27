@@ -2,6 +2,8 @@ import sys
 assert(sys.version_info.major >= 3)
 
 from utils.printers             import Printer
+from utils.debug                import breakFunc
+
 import layers.layer
 from arch.arch import Arch
 from memmgr.statebufmgr         import StateBufferMgr
@@ -87,21 +89,21 @@ printer = Printer(ntwk)
 ### Printing
 if PrintLayers:
     printer.printNetwork()
-    print
+    print("")
 
 if PrintLevels:
     print("By level")
     printer.printLevels()
-    print
+    print("")
 
 if PrintSchedule:
     print("By scheduling")
     printer.printSched()
-    print
+    print("")
 
 if PrintDot:
     print("Dot")
     printer.printDot()
-    print
+    print("")
 
 

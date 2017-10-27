@@ -5,6 +5,8 @@ class FmapDesc(object, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def __init__(self, num_maps, map_size):
+        assert(num_maps > 0)
+        assert(map_size > 0)
         self.__Num_maps = num_maps
         self.__Map_size = map_size
 
