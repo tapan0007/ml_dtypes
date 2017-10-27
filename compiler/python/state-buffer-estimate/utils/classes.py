@@ -6,6 +6,6 @@ class Final(type):
         super().__init__(name, bases, namespace)
         for klass in bases:
             if isinstance(klass, Final):
-                raise TypeError("class " + str(klass.__name__) + " is final")
+                raise TypeError("Base class " + str(klass.__name__) + " is final")
 
 
