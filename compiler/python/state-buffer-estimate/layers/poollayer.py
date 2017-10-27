@@ -7,8 +7,7 @@ from .subsamplelayer import SubSampleLayer
 import nets.network
 
 ##########################################################
-class PoolLayer(SubSampleLayer): # abstract class
-    __metaclass__ = ABCMeta
+class PoolLayer(SubSampleLayer, metaclass = ABCMeta): # abstract class
 
     #-----------------------------------------------------------------
     def __init__(self, param, prev_layer, stride, kernel):

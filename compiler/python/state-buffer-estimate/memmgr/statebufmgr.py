@@ -1,4 +1,5 @@
-from utils.debug    import breakFunc
+from utils.debug    import *
+from utils.funcs    import *
 import nets.network 
 from arch.arch import Arch
 
@@ -20,39 +21,43 @@ class StateBufferMgr(object):
 
     #-----------------------------------------------------------------
     def calcOneLayerFmapAddresses(self, layer):
-        if not layer.qStoreInSB():
-            return
+        if layer.qStoreInSB():
+            prevOfmapAddress = self.__OfmapAddress 
+            prevIfmapAddress = self.__IfmapAddress 
 
-        prevOfmapAddress = self.__OfmapAddress 
-        prevIfmapAddress = self.__IfmapAddress 
-
-        if layer.qDataLayer():
-            assert(prevIfmapAddress == None and prevOfmapAddress == None)
-            ifmapAddress = None
-            ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeightsPerPart
-        else:
-            assert(prevOfmapAddress != None)
-            ifmapAddress = prevOfmapAddress
-
-            if prevIfmapAddress == None: ## after data layer
-                ##         Weights | prevOfmap | ... | ...      
-                ## need to get batching memory per partition
-                ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - layer.gOutputStateMemWithBatching()
-            elif prevIfmapAddress < prevOfmapAddress:
-                ##     Weights | prevIfmap | ... | prevOfmap
-                ##             | Ofmap   
+            if layer.qDataLayer():
+                assert(prevIfmapAddress == None and prevOfmapAddress == None)
+                ifmapAddress = None
                 ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeightsPerPart
             else:
-                ##     Weights | prevOfmap | ... | prevIfmap
-                ##                             | Ofmap   
-                ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - layer.gOutputStateMemWithBatching()
+                assert(prevOfmapAddress != None)
+                ifmapAddress = prevOfmapAddress
+                ofmapSizePerPart = (
+                      ( (layer.gOutputStateMemWithBatching() + layer.gResMemWithBatching()) // layer.gNumOfmaps() )
+                    * ( 1 + DivFloor((layer.gNumOfmaps() - 1), self.__Arch.gNumberPeArrayRows()) )
+                    )
 
-        layer.rIfmapAddress(ifmapAddress)
-        layer.rOfmapAddress(ofmapAddress)
-        layer.rWeightAddress(self.__FirstSbAddress)
+                if prevIfmapAddress == None: ## after data layer
+                    ##         Weights | prevOfmap | ... | ...      
+                    ## need to get batching memory per partition
+                    ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
+                elif prevIfmapAddress < prevOfmapAddress:
+                    ##     Weights | prevIfmap | ... | prevOfmap
+                    ##             | Ofmap  $rc -ec 'false|false' && fail $rc -c $q'false|false'$q should fail 
+                    ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeightsPerPart
+                else:
+                    ##     Weights | prevOfmap | ... | prevIfmap
+                    ##                             | Ofmap   
+                    ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
 
-        self.__OfmapAddress = ofmapAddress 
-        self.__IfmapAddress = ifmapAddress 
+            layer.rIfmapAddress(ifmapAddress)
+            layer.rOfmapAddress(ofmapAddress)
+            self.__OfmapAddress = ofmapAddress 
+            self.__IfmapAddress = ifmapAddress 
+
+        if layer.qConvLayer():
+            layer.rWeightAddress(self.__FirstSbAddress)
+
 
     #-----------------------------------------------------------------
     def calcLayerFmapAddresses(self):

@@ -6,8 +6,7 @@ from .onetoonelayer  import OneToOneLayer
 import nets.network
 
 ##########################################################
-class ActivLayer(OneToOneLayer): # abstract class
-    __metaclass__ = ABCMeta
+class ActivLayer(OneToOneLayer, metaclass = ABCMeta): # abstract class
 
     #-----------------------------------------------------------------
     def __init__(self, param, prev_layer):

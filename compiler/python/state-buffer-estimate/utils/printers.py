@@ -125,14 +125,14 @@ class Printer(object):
             if ifaddr or ofaddr or waddr:
                 ss += " {"
                 b = False
-                if ifaddr:
+                if ifaddr != None:
                     ss += "i=" + str(ifaddr)
                     b = True
-                if ofaddr:
+                if ofaddr != None:
                     if b: ss += ", "
                     ss += "o=" + str(ofaddr)
                     b = True
-                if waddr:
+                if waddr != None:
                     if b: ss += ", "
                     ss += "w=" + str(waddr)
                     b = True

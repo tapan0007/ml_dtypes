@@ -27,8 +27,7 @@ from nets.network                import  Network
 
 ##########################################################
 ##########################################################
-class DenseNet(Network):
-    __metaclass__ = ABCMeta
+class DenseNet(Network, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def __init__(self, growth_rate, layers_in_dense_block, ofmap_desc, num_classes):

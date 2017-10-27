@@ -1,8 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
 ##########################################################
-class FmapDesc(object):
-    __metaclass__ = ABCMeta
+class FmapDesc(object, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def __init__(self, num_maps, map_size):

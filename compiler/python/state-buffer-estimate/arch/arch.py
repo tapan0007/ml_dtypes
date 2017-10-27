@@ -7,8 +7,7 @@ from .poolingeng         import PoolingEng
 from .activationeng      import ActivationEng
 
 ##########################################################
-class Arch(object):
-    __metaclass__ = ABCMeta
+class Arch(object, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def __init__(self):

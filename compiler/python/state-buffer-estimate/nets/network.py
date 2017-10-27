@@ -6,8 +6,7 @@ import layers.layer
 from schedule.scheduler      import Scheduler
 
 ##########################################################
-class Network(object):
-    __metaclass__ = ABCMeta
+class Network(object, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     class SchedLayerForwRevIter(object):

@@ -22,8 +22,7 @@ from nets.network                import  Network
 
 ##########################################################
 ##########################################################
-class ResNet(Network):
-    __metaclass__ = ABCMeta
+class ResNet(Network, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def __init__(self, ofmap_desc, useRelu):

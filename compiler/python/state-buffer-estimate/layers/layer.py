@@ -7,8 +7,7 @@ from utils.funcs     import kstr, Kstr
 import nets.network
 
 ##########################################################
-class Layer(object): # abstract class
-    __metaclass__ = ABCMeta
+class Layer(object, metaclass = ABCMeta): # abstract class
 
     ######################################################
     class Param(object):
@@ -451,7 +450,8 @@ class Layer(object): # abstract class
     def gNameWithSchedMem(self):
         #Str = kstr
         Str = Kstr
-        if self.gName() == "res3d{Add}":
+        name = self.gNameType()
+        if name == "res3d{Add}":
             x = 3
         if self.qStoreInSB():
             inMem = self.gInputStateMemWithoutBatching()
@@ -469,7 +469,7 @@ class Layer(object): # abstract class
             batchDelta += "]"
 
             s = (SCHED_MEM_FORMAT) % (
-                self.gName(),
+                name,
                 Str(inMem), Str(outMem), 
                 Str(residueMem),
                 (Str(batchMem) + "[" + str(self.gBatchFactor()) + "]"),
@@ -479,7 +479,7 @@ class Layer(object): # abstract class
             inMem = self.gInputSize()
             outMem = self.gOutputSize()
             s = (SCHED_MEM_FORMAT) % (
-                self.gName(),
+                name,
                 Str(inMem), "("+Str(outMem)+")",
                 "",  # residueMem
                 "",  # batchMem
@@ -577,5 +577,5 @@ class Layer(object): # abstract class
 
     def rWeightAddress(self, address):
         assert(address != None)
-        self.__WeightAddress = None
+        self.__WeightAddress = address
 

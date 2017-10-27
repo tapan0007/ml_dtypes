@@ -4,8 +4,7 @@ from utils.consts           import  *
 import nets.network
 
 ##########################################################
-class Block(object):
-    __metaclass__ = ABCMeta
+class Block(object, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def __init__(self, ntwk):
