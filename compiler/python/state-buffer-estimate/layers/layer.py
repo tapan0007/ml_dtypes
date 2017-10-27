@@ -84,7 +84,7 @@ class Layer(object): # abstract class
 
     #-----------------------------------------------------------------
     #-----------------------------------------------------------------
-    def qSubSamleLayer(self):
+    def qSubSampleLayer(self):
         return False
 
     #-----------------------------------------------------------------
@@ -559,12 +559,21 @@ class Layer(object): # abstract class
         if self.qStoreInSB():
             prevLayer.__NextSbLayers.append(self)
 
+    def gIfmapAddress(self):
+        return self.__IfmapAddress 
+
+    def gOfmapAddress(self):
+        return self.__OfmapAddress 
+
+    def gWeightAddress(self):
+        return self.__WeightAddress 
+
     def rIfmapAddress(self, address):
         self.__IfmapAddress = address
 
     def rOfmapAddress(self, address):
         assert(address != None)
-        self.__OfmapAddress = None
+        self.__OfmapAddress = address
 
     def rWeightAddress(self, address):
         assert(address != None)

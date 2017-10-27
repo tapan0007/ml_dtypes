@@ -31,8 +31,8 @@ class ConvLayer(SubSampleLayer):
         assert(self.gNumPrevLayers() == 1)
         prevLayer = self.gPrevLayer(0)
         prevMapSize = prevLayer.gOfmapSize()
-        assert(prevMapSize/self.gStride() == self.gOfmapSize())
-        ##assert(self.gPrevLayer(0).gOfmapSize()/self.gStride() == self.gOfmapSize())
+        assert(prevMapSize // self.gStride() == self.gOfmapSize())
+        ##assert(self.gPrevLayer(0).gOfmapSize() // self.gStride() == self.gOfmapSize())
 
 
     #-----------------------------------------------------------------

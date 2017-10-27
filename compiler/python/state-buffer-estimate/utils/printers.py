@@ -117,6 +117,27 @@ class Printer(object):
                 sbPreds = "()"
             sb = "SB" if layer.qStoreInSB() else "--"
             ss = (lineFmt) % (layer.gNameWithSchedMem(), "[" + sb + "]=" + sbPreds)
+
+            ifaddr = layer.gIfmapAddress()
+            ofaddr = layer.gOfmapAddress()
+            waddr  = layer.gWeightAddress()
+
+            if ifaddr or ofaddr or waddr:
+                ss += " {"
+                b = False
+                if ifaddr:
+                    ss += "i=" + str(ifaddr)
+                    b = True
+                if ofaddr:
+                    if b: ss += ", "
+                    ss += "o=" + str(ofaddr)
+                    b = True
+                if waddr:
+                    if b: ss += ", "
+                    ss += ",w=" + str(waddr)
+                    b = True
+                ss += "}"
+
             print(ss)
             if hasRelu:
                 if lastWasAdd and layer.qReluLayer():

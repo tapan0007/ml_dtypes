@@ -21,7 +21,7 @@ class PoolLayer(SubSampleLayer): # abstract class
     #-----------------------------------------------------------------
     def verify(self):
         assert(self.gNumPrevLayers() == 1)
-        assert(self.gPrevLayer(0).gOfmapSize()/self.gStride() == self.gOfmapSize())
+        assert(self.gPrevLayer(0).gOfmapSize() // self.gStride() == self.gOfmapSize())
 
 
     #-----------------------------------------------------------------

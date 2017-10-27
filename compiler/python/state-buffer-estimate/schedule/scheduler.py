@@ -1,7 +1,6 @@
 import functools
 
 from utils.consts   import  *
-from utils.debug    import breakFunc
 import layers.layer
 from schedule.layerlevel import LayerLevel
 
@@ -341,8 +340,6 @@ class Scheduler(object):
 
         # First determing batching
         for layer in network.gReverseSchedLayers():
-            if layer.gName() == "res5a":
-                breakFunc(0)
             if not layer.qStoreInSB():
                 continue
             for inSbLayer in layer.gPrevSbLayers():

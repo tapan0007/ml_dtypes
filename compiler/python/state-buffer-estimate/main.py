@@ -79,7 +79,7 @@ scheduler.Schedule(ntwk)
 ntwk.rLevels(scheduler.gLevels())
 
 sbmgr = StateBufferMgr(arch, ntwk)
-#sbmgr.calcLayerFmapAddresses()
+sbmgr.calcLayerFmapAddresses()
 
 ##################################################
 printer = Printer(ntwk)
