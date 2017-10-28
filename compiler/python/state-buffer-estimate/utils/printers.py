@@ -90,7 +90,7 @@ class Printer(object):
     def printSched(self):
         ntwk = self.__Network
         memHeader = (SCHED_MEM_FORMAT) % (
-            "Layer", "In", "Out", 
+            "Layer", "Ofmap", "In", "Out", 
             "Residue",
             "Batch",
             "BatchDlt",

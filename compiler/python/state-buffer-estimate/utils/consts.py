@@ -12,4 +12,4 @@
 #LAYER_TYPE_FULL       = 10
 
 
-SCHED_MEM_FORMAT = "%-24s %6s  %8s  %8s  %8s  %8s"
+SCHED_MEM_FORMAT = "%-24s %10s %6s  %8s  %8s  %8s  %8s"

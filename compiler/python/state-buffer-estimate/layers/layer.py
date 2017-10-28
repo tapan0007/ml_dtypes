@@ -453,6 +453,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         name = self.gNameType()
         if name == "res3d{Add}":
             x = 3
+        ofmapStr = str(self.gNumOfmaps()) + "*" + str(self.gOfmapSize()) + "^2"
         if self.qStoreInSB():
             inMem = self.gInputStateMemWithoutBatching()
             residueMem = self.gResMemWithoutBatching()
@@ -470,6 +471,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
 
             s = (SCHED_MEM_FORMAT) % (
                 name,
+                ofmapStr,
                 Str(inMem), Str(outMem), 
                 Str(residueMem),
                 (Str(batchMem) + "[" + str(self.gBatchFactor()) + "]"),
@@ -480,6 +482,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
             outMem = self.gOutputSize()
             s = (SCHED_MEM_FORMAT) % (
                 name,
+                ofmapStr,
                 Str(inMem), "("+Str(outMem)+")",
                 "",  # residueMem
                 "",  # batchMem
