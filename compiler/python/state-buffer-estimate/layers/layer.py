@@ -550,10 +550,16 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         ##assert(self.qStoreInSB())
         return iter(self.__PrevSbLayers)
 
+    def gNumPrevSbLayers(self):
+        return len(self.__PrevSbLayers)
+
     #-----------------------------------------------------------------
     def gNextSbLayers(self):
         assert(self.qStoreInSB())
         return iter(self.__NextSbLayers)
+
+    def gNumNextSbLayers(self):
+        return len(self.__NextSbLayers)
 
     #-----------------------------------------------------------------
     def addPrevSbLayer(self, prevLayer):

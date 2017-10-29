@@ -122,7 +122,7 @@ class Printer(object):
             ofaddr = layer.gOfmapAddress()
             waddr  = layer.gWeightAddress()
 
-            if ifaddr or ofaddr or waddr:
+            if ifaddr != None or ofaddr != None or waddr != None:
                 ss += " {"
                 b = False
                 if ifaddr != None:

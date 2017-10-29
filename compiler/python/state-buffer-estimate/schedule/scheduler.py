@@ -219,6 +219,26 @@ class Scheduler(object):
         sorted(levelCopy, key=functools.cmp_to_key(compareLayer))
 
     #-----------------------------------------------------------------
+    # Before processing layer, certain amount of earlier memory is held in SB.
+    # The memory equals the layer's inputs plus residue (memory held for future
+    # layers).
+    #
+    # After this layer is processed all its inputs could potentially be released,
+    # except those held for the future (residues). The memory after the layer
+    # is earlier mem + layer output - inputs that can be released
+    #
+    # Residue for this layer is all memory that must be held. It equals:
+    # 1. Memory held by future layers that is input to this layer
+    # 2. Memory held by future layers that is NOT input to this layer
+    # So, if memory before layer is inMem = a + b + c:
+    # a. input that can be released
+    # b. input that cannot be released
+    # c. non-input (that cannot be released because it is held by other future layers)
+    # Residue = b + c = (a + b + c) - a = inMem - input.that.can.be.released.
+    #
+    # Total memory after is
+    # b + c + layer.out = inMem - input.that.can.be.released + layer.out
+    #
     def __processLayerSbMemForResidueWithoutBatching(self, layer):
         assert(layer.qStoreInSB())
 
@@ -227,19 +247,19 @@ class Scheduler(object):
         outSize = layer.gOutputStateMemWithoutBatching()
         inMemBefore = self.gCurrInMem()
 
-        canRelease = 0
-        cannotRelease = 0
+        inputCanRelease = 0
+        inputCannotRelease = 0
         for inSbLayer in layer.gPrevSbLayers():
             assert(layer != inSbLayer and inSbLayer.qStoreInSB())
             inSbLayer.changeRefCount(-1)  ## decrease ref count by 1
             inSbMem = inSbLayer.gOutputStateMemWithoutBatching()
             if inSbLayer.gRefCount() == 0:
-                canRelease += inSbMem
+                inputCanRelease += inSbMem
             else:
-                cannotRelease += inSbMem
+                inputCannotRelease += inSbMem
 
-        inMemAfter = inMemBefore + outSize - canRelease
-        residueMem = inMemBefore - (canRelease + cannotRelease)
+        residueMem = inMemBefore - (inputCanRelease)
+        inMemAfter = residueMem + outSize
 
         layer.rResMemWithoutBatching(residueMem)
         self.__CurrInMem = inMemAfter
