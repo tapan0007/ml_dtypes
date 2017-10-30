@@ -17,11 +17,13 @@ get_dims(char *fname, uint64_t *shape, size_t *word_size) {
 }
 
 
+#define SB_STEP 13
+
 int 
 main(int argc, char **argv) 
 {
-    addr_t ifmap_full_addr  = 0 * (1 << BANK_BITS);
-    addr_t ofmap_full_addr  = 2 * (1 << BANK_BITS);
+    addr_t ifmap_full_addr  = 0 * (1 << SB_STEP);
+    addr_t ofmap_full_addr  = 2 * (1 << SB_STEP);
     uint64_t i_dims[4], o_dims[4], s_dims[4], k_dims[4];
     size_t word_size;
     ARBPRECTYPE dtype = UINT8;

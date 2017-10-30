@@ -16,13 +16,14 @@ get_dims(char *fname, uint64_t *shape, size_t *word_size) {
     free(arr.data);
 }
 
+#define SB_STEP 13
 
 int 
 main(int argc, char **argv) 
 {
-    addr_t ifmap_base = 0 * (1 << BANK_BITS);
-    addr_t filter_base = 1 * (1 << BANK_BITS);
-    addr_t ofmap_addr  = 2 * (1 << BANK_BITS);
+    addr_t ifmap_base = 0 * (1 << SB_STEP);
+    addr_t filter_base = 1 * (1 << SB_STEP);
+    addr_t ofmap_addr  = 2 * (1 << SB_STEP);
     addr_t ifmap_addr[2] = {ifmap_base,0};
     addr_t filter_addr[2] = {filter_base,0};
     uint64_t i_dims[4], f_dims[4];

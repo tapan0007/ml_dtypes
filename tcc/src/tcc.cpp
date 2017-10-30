@@ -284,8 +284,8 @@ compile_convolve(FILE *fptr,
                     tile_sz_x, tile_sz_y,
                     o_dims, pool_dtype);
 
-            psum_addr += (1 << BANK_BITS);
-            if (psum_addr >= MMAP_PSUM_BASE + (1 << BANK_BITS) * 
+            psum_addr += (1 << COLUMN_BYTE_OFFSET);
+            if (psum_addr >= MMAP_PSUM_BASE + (1 << COLUMN_BYTE_OFFSET) * 
                     (1 << BANKS_PER_ROW_BITS)) {
                 psum_addr = MMAP_PSUM_BASE; 
             }

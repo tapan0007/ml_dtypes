@@ -61,10 +61,10 @@ StateBuffer::pull_edge() {
     EdgeSignals e = ns;
     if (e.row_valid) {
         if (e.ifmap_valid) {
-            e.ifmap_addr.sys += ROW_SIZE;
+            e.ifmap_addr.sys += SZ(ROW_SIZE_BITS);
         } 
         if (e.weight_valid) {
-            e.weight_addr.sys += ROW_SIZE;
+            e.weight_addr.sys += SZ(ROW_SIZE_BITS);
         }
         if (e.row_countdown) {
             e.row_countdown--;

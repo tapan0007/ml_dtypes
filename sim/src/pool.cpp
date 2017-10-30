@@ -31,9 +31,9 @@ Pool::step() {
 	size_t dsize = sizeofArbPrecType(ps.dtype);
 
 	src_partition_size = (ps.src_addr.sys >= psum_buffer_base) ?
-		COLUMN_SIZE : ROW_SIZE;
+		SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
 	dst_partition_size = (ps.dst_addr.sys >= psum_buffer_base) ?
-		COLUMN_SIZE : ROW_SIZE;
+		SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
 
     memory.read(&in_pixel, ps.src_addr.sys, dsize);
 

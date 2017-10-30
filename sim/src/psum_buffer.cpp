@@ -10,7 +10,7 @@ extern addr_t psum_buffer_base;
 PSumBuffer::PSumBuffer() : ptr(NULL), ew(), north(nullptr), west(nullptr) {
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
-    valids = (char *)(calloc(COLUMN_SIZE, 1));
+    valids = (char *)(calloc(SZ(COLUMN_SIZE_BITS), 1));
 }
 
 PSumBuffer::~PSumBuffer() {}
@@ -119,7 +119,7 @@ PSumBuffer::step() {
         unsigned int e_offset = ew.psum_addr.sys - MMAP_PSUM_BASE;
         addr_t src_addr = memory.index(mem_addr, e_offset, UINT8);
         void *src_ptr = memory.translate(src_addr);
-        assert(e_offset <= COLUMN_SIZE);
+        assert(e_offset <= SZ(COLUMN_SIZE_BITS));
         if (ew.psum_start) {
             memory.write(src_addr, &zeros, dsize);
             memcpy(&valids[e_offset], &ones, dsize); 
@@ -159,7 +159,7 @@ PSumBufferArray::PSumBufferArray(int n_cols) {
     col_buffer[0].set_address(psum_buffer_base);
     for (int i = 1; i < n_cols; i++) {
         col_buffer[i].connect_west(&col_buffer[i-1]);
-        col_buffer[i].set_address(psum_buffer_base + i * COLUMN_SIZE);
+        col_buffer[i].set_address(psum_buffer_base + i * SZ(COLUMN_SIZE_BITS));
     }
 }
 

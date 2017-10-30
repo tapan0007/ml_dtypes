@@ -37,10 +37,14 @@ struct Addr {
         struct {
             struct { 
                 uint64_t offset : BANK_BITS;
+                uint64_t sram   : SRAMS_PER_BANK_PER_ROW_BITS;
                 uint64_t bank   : BANKS_PER_ROW_BITS;
+                uint64_t index  : ROW_BITS;
             }; 
-            uint64_t local : BANK_BITS + BANKS_PER_COLUMN_BITS;
+            uint64_t local : BANK_BITS + SRAMS_PER_BANK_PER_ROW_BITS + 
+		    BANKS_PER_ROW_BITS;
         } row;
+	uint64_t sb : ROW_SIZE_BITS;
         struct {
             struct { 
                 uint64_t offset : BANK_BITS;

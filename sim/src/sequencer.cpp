@@ -441,15 +441,15 @@ EdgeSignals Sequencer::pull_edge() {
 #if MMAP_SB_BASE
             (es.ifmap_addr.sys >= MMAP_SB_BASE) && 
 #endif
-             (es.ifmap_addr.sys < ROW_SIZE)));
+             (es.ifmap_addr.sys < SZ(ROW_SIZE_BITS))));
     assert(!es.weight_valid || (
 #if MMAP_SB_BASE
           (es.weight_addr.sys >= MMAP_SB_BASE) && 
 #endif
-           (es.weight_addr.sys < ROW_SIZE)));
+           (es.weight_addr.sys < SZ(ROW_SIZE_BITS))));
     assert(!es.ifmap_valid ||
             ((es.psum_addr.sys >= MMAP_PSUM_BASE) && 
-             (es.psum_addr.sys < MMAP_PSUM_BASE + COLUMN_SIZE)));
+             (es.psum_addr.sys < MMAP_PSUM_BASE + SZ(COLUMN_SIZE_BITS))));
     return es;
 }
 
