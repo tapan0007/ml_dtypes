@@ -1,3 +1,5 @@
+from .consts import *
+
 def kstr(num):
     return Kstr(num) +"k"
 

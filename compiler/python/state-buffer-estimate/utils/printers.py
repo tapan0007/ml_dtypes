@@ -1,6 +1,7 @@
 
 from utils.funcs     import kstr
 from utils.consts    import *
+from utils.datatype  import *
 from layers.layer import Layer
 from nets.network import Network
 
@@ -89,6 +90,8 @@ class Printer(object):
     #-----------------------------------------------------------------
     def printSched(self):
         ntwk = self.__Network
+        dataType = ntwk.gDataType()
+        print(ntwk.gName(), ": data type=", dataType.gName(), " data type size=", dataType.gSizeInBytes())
         memHeader = (SCHED_MEM_FORMAT) % (
             "Layer", "Ofmap", "In", "Out", 
             "Residue",

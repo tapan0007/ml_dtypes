@@ -4,6 +4,7 @@ assert(sys.version_info.major >= 3)
 from utils.printers             import Printer
 from utils.debug                import breakFunc
 from utils.consts               import *
+from utils.datatype             import *
 
 import layers.layer
 from arch.arch import Arch
@@ -51,7 +52,9 @@ if DenseNet:
     ntwk = DenseNet169(UseRelu)
 elif ResNet:
     from nets.resnet.resnet         import ResNet50
-    ntwk = ResNet50(DATA_TYPE_FP16, UseRelu)
+    #ntwk = ResNet50(DataTypeFp16(), UseRelu)
+    #ntwk = ResNet50(DataTypeInt8(), UseRelu)
+    ntwk = ResNet50(DataTypeInt16(), UseRelu)
 
 ##################################################
 if True:

@@ -2,6 +2,7 @@ from abc             import ABCMeta, abstractmethod
 
 from utils.consts    import  *
 ##from utils.funcs     import kstr
+from utils.datatype  import *
 import layers.layer
 from schedule.scheduler      import Scheduler
 
@@ -31,6 +32,7 @@ class Network(object, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def __init__(self, dataType):
+        assert(isinstance(dataType, DataType))
         self.__Layers = [ ]
         self.__LayerNumMajor = -1
         self.__LayerNumMinor = 0
@@ -38,18 +40,10 @@ class Network(object, metaclass = ABCMeta):
         self.__CurrLayerId = 0
         self.__DoBatching = False
         self.__DataType = dataType
-        if dataType == DATA_TYPE_INT8:
-            self.__DataTypeSizeInBytes = 1
-        elif dataType == DATA_TYPE_INT16:
-            self.__DataTypeSizeInBytes = 1
-        elif dataType == DATA_TYPE_FP16:
-            self.__DataTypeSizeInBytes = 1
-        else:
-            assert(False)
 
     #-----------------------------------------------------------------
-    def gDataTypeSize(self):
-        return self.__DataTypeSizeInBytes
+    def gDataType(self):
+        return self.__DataType
 
     #-----------------------------------------------------------------
     def qDoBatching(self):
