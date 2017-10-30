@@ -32,28 +32,58 @@ struct ActivateSbSignals {
     ARBPRECTYPE dtype;
 };
 
+struct StateBufferAddr {
+    union {
+        struct { 
+            union {
+                struct {
+                    uint64_t byte_offset : ROW_BYTE_OFFSET;
+                    uint64_t bank_select : BANKS_PER_ROW_BITS;
+                    uint64_t row_select  : ROWS_PER_BANK_PER_ROW_BITS;
+                };
+                uint64_t local : ROW_BYTE_OFFSET + BANKS_PER_ROW_BITS +
+                    ROWS_PER_BANK_PER_ROW_BITS;
+            };
+            uint64_t index  : ROW_BITS;
+        };
+        uint64_t raw : ROW_BYTE_OFFSET + ROWS_PER_BANK_PER_ROW_BITS + 
+            BANKS_PER_ROW_BITS + ROW_BITS;
+    };
+};
+
+struct PSumBufferAddr {
+    union {
+        struct { 
+            union {
+                struct {
+                    union {
+                        uint64_t byte_offset : COLUMN_BYTE_OFFSET;
+                        struct {
+                            uint64_t entry_id : COLUMN_BYTE_OFFSET - 
+                                PSUM_ENTRY_BITS;
+                            uint64_t reserved : PSUM_ENTRY_BITS;
+                        };
+                    };
+                    uint64_t metadata : 1;
+                    uint64_t bank_select : BANKS_PER_COLUMN_BITS;
+                };
+                uint64_t local : COLUMN_BYTE_OFFSET + 1 + BANKS_PER_COLUMN_BITS;
+            };
+            uint64_t index  : COLUMN_BITS;
+        };
+        uint64_t raw : COLUMN_BYTE_OFFSET + 1 + BANKS_PER_COLUMN_BITS + 
+            COLUMN_BITS;
+    };
+
+};
+
+
 struct Addr {
-    union { 
-        struct {
-            struct { 
-                uint64_t offset : BANK_BITS;
-                uint64_t sram   : SRAMS_PER_BANK_PER_ROW_BITS;
-                uint64_t bank   : BANKS_PER_ROW_BITS;
-                uint64_t index  : ROW_BITS;
-            }; 
-            uint64_t local : BANK_BITS + SRAMS_PER_BANK_PER_ROW_BITS + 
-		    BANKS_PER_ROW_BITS;
-        } row;
-	uint64_t sb : ROW_SIZE_BITS;
-        struct {
-            struct { 
-                uint64_t offset : BANK_BITS;
-                uint64_t bank   : BANKS_PER_COLUMN_BITS;
-            }; 
-            uint64_t local : BANK_BITS + BANKS_PER_COLUMN_BITS;
-        } col;
-        uint64_t sys : ADDRESS_BITS; 
-    }; 
+    union {
+        StateBufferAddr row;
+        PSumBufferAddr  column;
+        uint64_t        sys : ADDRESS_BITS;
+    };
 };
 
 
