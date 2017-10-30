@@ -25,8 +25,8 @@ from nets.network                import  Network
 class ResNet(Network, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
-    def __init__(self, ofmap_desc, useRelu):
-        super().__init__()
+    def __init__(self, ofmap_desc, dataType, useRelu):
+        super().__init__(dataType)
 
         self.m_Ofmap_desc = ofmap_desc
         self.__UseRelu = useRelu
@@ -104,9 +104,9 @@ class ResNet(Network, metaclass = ABCMeta):
 ##########################################################
 class ResNet50(ResNet):
     #-----------------------------------------------------------------
-    def __init__(self, useRelu):
+    def __init__(self, dataType, useRelu):
         ofmap_desc = OfmapDesc(3, 224)
-        super().__init__(ofmap_desc, useRelu)
+        super().__init__(ofmap_desc, dataType, useRelu)
 
     #-----------------------------------------------------------------
     def gName(self):

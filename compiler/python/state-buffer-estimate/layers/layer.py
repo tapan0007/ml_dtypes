@@ -199,7 +199,8 @@ class Layer(object, metaclass = ABCMeta): # abstract class
 
     #-----------------------------------------------------------------
     def gOutputSize(self):
-        oneBatchSize = self.gNumOfmaps() * (self.gOfmapSize() * self.gOfmapSize())
+        wordSize = self.__Network.gDataTypeSize()
+        oneBatchSize = wordSize * self.gNumOfmaps() * (self.gOfmapSize() * self.gOfmapSize())
         return oneBatchSize
 
     #-----------------------------------------------------------------

@@ -34,6 +34,9 @@ class StateBufferMgr(object):
         ofmapMemPerPart = sbMemPerOfmap * maxNumOfmapsPerRow
         return ofmapMemPerPart 
 
+    #-----------------------------------------------------------------
+    def freeLayerMem(self, layer):
+        assert(layer.qStoreInSB())
 
     #-----------------------------------------------------------------
     def calcOneLayerFmapAddresses(self, layer):
@@ -41,7 +44,8 @@ class StateBufferMgr(object):
             for prevSbLayer in layer.gPrevSbLayers():
                 prevSbLayer.changeRefCount(-1)
                 if prevSbLayer.gRefCount() == 0:
-                    pass
+                    self.freeLayerMem(prevSbLayer)
+
             assert(layer.gRefCount() == 0)
             layer.changeRefCount(layer.gNumNextSbLayers())
 
@@ -97,6 +101,9 @@ class StateBufferMgr(object):
 
 
         ## first layer is Data layer and will have no ifmap
+        self.__LeftStart = self.__MaxNumberWeightsPerPart
+        self.__RightEnd  = self.__PartitionSize
+
         self.__OfmapAddress = self.__IfmapAddress = None
 
         for layer in self.__Network.gLayers():

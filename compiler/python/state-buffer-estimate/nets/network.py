@@ -7,7 +7,6 @@ from schedule.scheduler      import Scheduler
 
 ##########################################################
 class Network(object, metaclass = ABCMeta):
-
     #-----------------------------------------------------------------
     class SchedLayerForwRevIter(object):
         def __init__(self, startLayer, forw):
@@ -31,13 +30,26 @@ class Network(object, metaclass = ABCMeta):
             return currLayer
 
     #-----------------------------------------------------------------
-    def __init__(self):
+    def __init__(self, dataType):
         self.__Layers = [ ]
         self.__LayerNumMajor = -1
         self.__LayerNumMinor = 0
         self.__Levels = None
         self.__CurrLayerId = 0
         self.__DoBatching = False
+        self.__DataType = dataType
+        if dataType == DATA_TYPE_INT8:
+            self.__DataTypeSizeInBytes = 1
+        elif dataType == DATA_TYPE_INT16:
+            self.__DataTypeSizeInBytes = 1
+        elif dataType == DATA_TYPE_FP16:
+            self.__DataTypeSizeInBytes = 1
+        else:
+            assert(False)
+
+    #-----------------------------------------------------------------
+    def gDataTypeSize(self):
+        return self.__DataTypeSizeInBytes
 
     #-----------------------------------------------------------------
     def qDoBatching(self):

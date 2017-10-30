@@ -3,6 +3,7 @@ assert(sys.version_info.major >= 3)
 
 from utils.printers             import Printer
 from utils.debug                import breakFunc
+from utils.consts               import *
 
 import layers.layer
 from arch.arch import Arch
@@ -44,12 +45,13 @@ for arg in sys.argv[1:]:
         sys.stderr.write("Wrong argument: " + arg + "\n")
         sys.exit(1)
 
+from nets.network         import Network
 if DenseNet:
     from nets.densenet.densenet     import DenseNet169
     ntwk = DenseNet169(UseRelu)
 elif ResNet:
     from nets.resnet.resnet         import ResNet50
-    ntwk = ResNet50(UseRelu)
+    ntwk = ResNet50(DATA_TYPE_FP16, UseRelu)
 
 ##################################################
 if True:
