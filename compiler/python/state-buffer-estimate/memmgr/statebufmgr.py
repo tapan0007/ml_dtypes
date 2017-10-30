@@ -38,6 +38,13 @@ class StateBufferMgr(object):
     #-----------------------------------------------------------------
     def calcOneLayerFmapAddresses(self, layer):
         if layer.qStoreInSB():
+            for prevSbLayer in layer.gPrevSbLayers():
+                prevSbLayer.changeRefCount(-1)
+                if prevSbLayer.gRefCount() == 0:
+                    pass
+            assert(layer.gRefCount() == 0)
+            layer.changeRefCount(layer.gNumNextSbLayers())
+
             prevOfmapAddress = self.__OfmapAddress 
             prevIfmapAddress = self.__IfmapAddress 
 
@@ -76,6 +83,10 @@ class StateBufferMgr(object):
     #-----------------------------------------------------------------
     def calcLayerFmapAddresses(self):
         maxNumWeightsPerPart = 0
+        for layer in self.__Network.gLayers():
+            layer.changeRefCount(-layer.gRefCount())
+            assert(layer.gRefCount() == 0)
+
         for layer in self.__Network.gLayers():
             numWeights = layer.gNumberWeightsPerPartition()
             if numWeights > maxNumWeightsPerPart :

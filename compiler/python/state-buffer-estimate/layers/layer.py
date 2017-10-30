@@ -518,6 +518,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
 
     #-----------------------------------------------------------------
     def changeRefCount(self, num):
+        assert(self.__RefCount >= -num)
         self.__RefCount += num
 
 

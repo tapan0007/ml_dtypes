@@ -1,0 +1,83 @@
+
+When this-layer is scheduled:
+
+1. For in-layer in this-layer.inputs:
+     If in-layer has SB flag:
+       a. Verify that in-layer sb-out-memory is still allocated
+2. Set ref-count for this-layer to number of fanout layers with SB flag
+3. Find and record sb-out-memory for this-layer
+4. For in-layer in this-layer.inputs:
+     a. decrement in-layer ref-count.
+     b. if in-layer ref-count == 0:
+          release in-layer sb-out-memory
+
+
+
+Resnet (a star (*) next to layer's name means the layer is writing to the state buffer)
+Scheduling: A*, B*, C*, D*, E, F*
+A and F are additions, other layers are convolutions
+
+************************************************************************************************
+                 +---------> C:res4d_br2a* --> D:res4d_br2b* --> E:res4d_br2c --\
+                 |                                                               \
+A:res4c(plus)* --+                                                                --> F:res4d(plus)*
+                 |                                                               /
+                 +-->  B:res4d_br1* ----------------------------------->--------/
+
+res4d_br2c does not store in SB.
+
+SB mem allocation:
+
+1 after  A:  |A              |
+  during B:  |A             B|
+2 after  B:  |A             B|
+  during C:  |AC            B|
+3 after  C:  | C            B|
+  during D:  | C           DB|
+4 after  D:  |             DB|
+  during F:  |F            DB|
+5 after  F:  |F              |
+
+************************************************************************************************
+                 +--> C:res4d_br2a* ---------> D:res4d_br2b* --> E:res4d_br2c --\
+                 |                                                               \
+A:res4c(plus)* --+                                                                --> F:res4d(plus)*
+                 |                                                               /
+                 +--------->  B:res4d_br1* ---------------------------->--------/
+
+res4d_br2c does not store in SB.
+
+SB mem allocation:
+
+1 after  A:  |A              |
+  during C:  |A             C|
+2 after  C:  |A             C|
+  during B:  |AB            C|
+3 after  B:  | B            C|
+  during D:  | B           DC|
+4 after  D:  | B           D |
+  during F:  | BF          D |
+5 after  F:  |  F            |
+
+************************************************************************************************
+                 +--> C:res4d_br2a* ---> D:res4d_br2b* --------> E:res4d_br2c --\
+                 |                                                               \
+A:res4c(plus)* --+                                                                --> F:res4d(plus)*
+                 |                                                               /
+                 +------------------------------->  B:res4d_br1* ------>--------/
+
+res4d_br2c does not store in SB.
+
+SB mem allocation:
+
+after  A:  |A              |
+during C:  |A             C|
+after  C:  |A             C|
+during D:  |AD            C|
+after  D:  |AD             |
+during B:  |AD            B|
+after  B:  | D            B|
+during F:  | DF           B|
+after  F:  |  F            |
+
+************************************************************************************************
