@@ -314,10 +314,22 @@ Sequencer::step_edgesignal() {
     }
 }
 
+namespace rollover {
+    template <typename T> void increment(T& value)
+    {
+        ++value;
+    }
+
+    template <> void increment<bool>(bool& value)
+    {
+        value = !value;
+    }
+};
+
 #define ROLLOVER(CNT, NUM, ROLLOVER) \
     if (CNT >= NUM) { \
         CNT = 0; \
-        ROLLOVER++; \
+        rollover::increment(ROLLOVER); \
     }
 
 
