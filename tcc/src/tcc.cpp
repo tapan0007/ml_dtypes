@@ -132,6 +132,7 @@ _pool_tile(FILE *fptr,
         const uint64_t o_dims[4],
         const ARBPRECTYPE pool_dtype)
 {
+    addr_t dsize = sizeofArbPrecType(pool_dtype);
     POOL      pool_args = {0};
     uint64_t o_cols = o_dims[3];
     uint64_t o_ch    = o_dims[1];
@@ -141,7 +142,7 @@ _pool_tile(FILE *fptr,
     pool_args.pool_func = IDENTITY_POOL;
     pool_args.in_dtype     = pool_dtype;
 
-    pool_args.src_x_step= 1;
+    pool_args.src_x_step= 8/dsize;
     pool_args.src_y_step= 1;
     pool_args.src_x_num = tile_sz_x * tile_sz_y;
     pool_args.src_y_num = 1;

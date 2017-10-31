@@ -326,7 +326,8 @@ Sequencer::step_poolsignal() {
     if (!ps.valid) {
         return;
     }
-    size_t src_dsize = SZ(PSUM_ENTRY_BITS);
+    /* eventually want to support quantization here */
+    size_t src_dsize = sizeofArbPrecType(ps.dtype);
     size_t dst_dsize = sizeofArbPrecType(ps.dtype);
 
     pool_src_x_cnt++;
