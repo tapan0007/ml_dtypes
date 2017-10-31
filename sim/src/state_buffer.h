@@ -2,33 +2,31 @@
 #define STATE_BUFFER_H
 
 #include "sigint.h"
+#include "io.h"
 #include <vector>
 
 class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroadcastInterface {
     public:  
-        StateBuffer();
+        StateBuffer(MemoryMap *mmap, addr_t base, size_t nbytes);
         PeEWSignals   pull_ew();
         EdgeSignals pull_edge();
         bool        pull_clamp();
         void connect_north(EdgeInterface *);
-        void connect_activate(ActivateSbInterface *);
         void step_read();
     private:
         EdgeInterface           *north        = nullptr;
-        ActivateSbInterface     *activate     = nullptr;
         EdgeSignals              ns           = {0};
-        ArbPrecData   read_addr(addr_t addr, ARBPRECTYPE type);
+        MemoryMapInstance       *mem;
 
 };
 
 class StateBufferArray {
     public:
-        StateBufferArray(int num_buffers = 128);
+        StateBufferArray(MemoryMap *mmap, addr_t base, int num_buffers);
         ~StateBufferArray();
         StateBuffer& operator[](int index);
         void step_read();
         int num();
-        void connect_activate(int id, ActivateSbInterface *);
         void connect_north(EdgeInterface *);
         StateBuffer *get_edge();
     private:

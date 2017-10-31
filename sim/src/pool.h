@@ -2,10 +2,12 @@
 #define POOL_BUFFER_H
 
 #include "sigint.h"
+#include "io.h"
 #include <vector>
 
 class Pool : public PoolInterface {
     public:
+        Pool(MemoryMap *_memory) : memory(_memory) {}
         PoolSignals pull_pool();
         void connect(PoolInterface *);
         void step();
@@ -13,12 +15,15 @@ class Pool : public PoolInterface {
         PoolSignals              ps;
         PoolInterface           *connection;
         ArbPrecData              pool_pixel;
+        addr_t src_partition_size;
+        addr_t dst_partition_size;
         unsigned int             pool_cnt;
+        MemoryMap               *memory;
 };
 
 class PoolArray {
     public:
-        PoolArray(int n_pools = 64);
+        PoolArray(MemoryMap *mmap, size_t n_pools);
         ~PoolArray();
         Pool& operator[](int index);
         void connect(PoolInterface *);

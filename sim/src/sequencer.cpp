@@ -4,8 +4,6 @@
 #include "tpb_isa.h"
 #include "io.h"
 
-extern class Memory memory;
-#define UNUSED(X) (void)(X)
 
 /*------------------------------------
  * EdgeSignalsInstruction
@@ -25,14 +23,14 @@ DynamicInstruction<EdgeSignals>::execute(void *v_seq) {
  *------------------------------------ */
 template<>
 void  DynamicInstruction<SIM_RDIFMAP>::execute(void *v_seq) {
-    UNUSED(v_seq);
+    Sequencer *seq = (Sequencer *)v_seq;
     void *i_ptr;
     int i_n, i_c, i_h, i_w;
     size_t word_size;
 
     /* load io_mmap */
-    i_ptr = memory.io_mmap(args.fname, i_n, i_c, i_h, i_w, word_size);
-    memory.bank_mmap(args.address, i_ptr, i_c, i_h * i_w * word_size);
+    i_ptr = seq->mem->io_mmap(args.fname, i_n, i_c, i_h, i_w, word_size);
+    seq->mem->bank_mmap(args.address, i_ptr, i_c, i_h * i_w * word_size);
 }
 
 /*------------------------------------
@@ -40,20 +38,20 @@ void  DynamicInstruction<SIM_RDIFMAP>::execute(void *v_seq) {
  *------------------------------------ */
 template<>
 void  DynamicInstruction<SIM_RDFILTER>::execute(void *v_seq) {
-    UNUSED(v_seq);
+    Sequencer *seq = (Sequencer *)v_seq;
     void *f_ptr;
     int r,s,t,u;
     int w_c, w_m, w_r, w_s;
     size_t word_size;
 
     /* load io_mmap */
-    f_ptr = memory.io_mmap(args.fname, r, s, t, u, word_size);
-    memory.swap_axes(f_ptr, r, s, t, u, word_size);
+    f_ptr = seq->mem->io_mmap(args.fname, r, s, t, u, word_size);
+    seq->mem->swap_axes(f_ptr, r, s, t, u, word_size);
     w_c = s; // for swamp, M now corresponds to C
     w_m = r; // for swamp, C now corresponds to M
     w_r = t;
     w_s = u;
-    memory.bank_mmap(args.address, f_ptr, w_c, w_m * w_r * w_s * word_size);
+    seq->mem->bank_mmap(args.address, f_ptr, w_c, w_m * w_r * w_s * word_size);
 }
 
 /*------------------------------------
@@ -61,12 +59,12 @@ void  DynamicInstruction<SIM_RDFILTER>::execute(void *v_seq) {
  *------------------------------------ */
 template<>
 void  DynamicInstruction<SIM_WROFMAP>::execute(void *v_seq) {
-    UNUSED(v_seq);
+    Sequencer *seq = (Sequencer *)v_seq;
     void *o_ptr;
     
-    o_ptr = memory.sbuffer_bank_munmap(args.address, args.dims[1], 
+    o_ptr = seq->mem->sbuffer_bank_munmap(args.address, args.dims[1], 
             args.dims[2] * args.dims[3] * args.word_size);
-    memory.io_write(args.fname, o_ptr, args.dims[0], args.dims[1], 
+    seq->mem->io_write(args.fname, o_ptr, args.dims[0], args.dims[1], 
             args.dims[2], args.dims[3], args.word_size);
 }
 

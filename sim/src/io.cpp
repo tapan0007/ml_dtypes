@@ -155,3 +155,79 @@ Memory::io_write(std::string fname, void *ptr, int i,int j,int k,int l, size_t w
             assert(0);
     }
 }
+
+/*---------------------------------------------*/
+/* MemoryMap */
+/*---------------------------------------------*/
+
+MemoryMap::MemoryMap(Memory *_memory) : memory(_memory) {}
+
+MemoryMapInstance *
+MemoryMap::mmap(addr_t addr, size_t sz) {
+    /* TODO -  check to make sure range is not already mmapd */
+    MemoryMapInstance *mmap = new MemoryMapInstance(this, addr, sz);
+    mmaps.push_back(mmap);
+    return mmap;
+}
+
+void
+MemoryMap::read_global(void *dest, addr_t src, size_t n_bytes) {
+    /* FIXME - check that we aren't in reserved range */
+    return memory->read(dest, src, n_bytes);
+}
+
+
+void 
+MemoryMap::write_global(addr_t dest, void *src, size_t n_bytes) {
+    /* FIXME - check that we aren't in reserved range */
+    return memory->write(dest, src, n_bytes);
+}
+
+/*---------------------------------------------*/
+/* MemoryMapInstance */
+/*---------------------------------------------*/
+
+MemoryMapInstance::MemoryMapInstance(MemoryMap *_mmap, addr_t _base, size_t _sz) 
+    : mmap(_mmap), base(_base), sz(_sz) {
+}
+
+addr_t
+MemoryMapInstance::get_base() {
+    return base;
+}
+
+size_t
+MemoryMapInstance::get_size() {
+    return sz;
+}
+
+bool
+MemoryMapInstance::in_range(addr_t addr, size_t nbytes) {
+    return ((addr >= base) && (addr + nbytes <= base + sz));
+}
+
+
+void
+MemoryMapInstance::read_local(void *dest, addr_t src, size_t n_bytes) {
+    assert(in_range(src, n_bytes));
+    return mmap->read_global(dest, src, n_bytes);
+}
+
+
+void 
+MemoryMapInstance::write_local(addr_t dest, void *src, size_t n_bytes) {
+    assert(in_range(dest, n_bytes));
+    return mmap->write_global(dest, src, n_bytes);
+}
+
+void
+MemoryMapInstance::read_local_offset(void *dest, addr_t src_offset, size_t n_bytes) {
+    return read_local(dest, base +src_offset, n_bytes);
+}
+
+
+void 
+MemoryMapInstance::write_local_offset(addr_t dest_offset, void *src, size_t n_bytes) {
+    return write_local(base + dest_offset, src, n_bytes);
+}
+

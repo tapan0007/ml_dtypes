@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 
 check: 
+	make clean
 	python -m unittest discover
 
 clean:

@@ -11,13 +11,13 @@
 
 #define STEP() \
     std::cout << "time = " << i << std::endl; \
-    activate_array.step(); \
     pool_array.step(); \
     psum_array.step(); \
     pe_array.step(); \
     state_array.step_read(); \
     sequencer.step(); 
  //   pe_array.dump(stdout); 
+//    activate_array.step(); 
 
 
 /* globals! */
@@ -27,13 +27,17 @@ Memory memory = Memory(0x04000000);
 int main(int argc, char **argv)
 {
     /* setup - later put this in a class? */
+    size_t num_rows = SZ(ROW_BITS);
+    size_t num_cols = SZ(COLUMN_BITS);
+    MemoryMap mmap = MemoryMap(&memory);
     ProcessingElementArray pe_array;
-    StateBufferArray       state_array;
-    Sequencer              sequencer = Sequencer();
-    PSumBufferArray        psum_array;
-    PoolArray              pool_array;
+    StateBufferArray       state_array = 
+        StateBufferArray(&mmap, MMAP_SB_BASE, num_rows);
+    Sequencer              sequencer = Sequencer(&memory);
+    PSumBufferArray        psum_array = 
+        PSumBufferArray(&mmap, MMAP_PSUM_BASE, num_cols);;
+    PoolArray              pool_array = PoolArray(&mmap, num_cols);
     ActivateArray          activate_array;
-    int num_sb = state_array.num();
     UopFeedInterface *feed;
 
 
@@ -47,18 +51,14 @@ int main(int argc, char **argv)
 
     /* make necessary connections */
     sequencer.connect_uopfeed(feed);
-    for (int j=0; j < pe_array.num_cols(); j++) {
-        activate_array.connect_psum(j, &psum_array[j]);
-    }
     psum_array.connect_west(state_array.get_edge());
     int last_row = pe_array.num_rows()-1;
-    for (int j=0; j < pe_array.num_cols(); j++) {
+    for (size_t j=0; j < num_cols; j++) {
         psum_array.connect_north(j, &pe_array[last_row][j]);
     }
-    for (int j=0; j < num_sb; j++) {
+    for (size_t j=0; j < num_rows; j++) {
         pe_array.connect_west(j, &state_array[j]);
         pe_array.connect_statebuffer(j, &state_array[j]);
-        state_array.connect_activate(j, &activate_array[j]);
     }
     state_array.connect_north(&sequencer);
     pool_array.connect(&sequencer);

@@ -2,22 +2,13 @@
 #include "string.h"
 #include "io.h"
 
-extern Memory memory;
 //------------------------------------------------------------------
 // Single state buffer
 //------------------------------------------------------------------
-StateBuffer::StateBuffer() {
+StateBuffer::StateBuffer(MemoryMap *mmap, addr_t base, size_t nbytes) {
+    this->mem = mmap->mmap(base, nbytes);
 }
 
-
-ArbPrecData
-StateBuffer::read_addr(addr_t addr, ARBPRECTYPE type) {
-    ArbPrecData ap;
-    UNUSED(type);
-    // assumes x86 little endianess
-    ap.raw = *((uint64_t *)memory.translate(addr));
-    return ap;
-}
 
 PeEWSignals 
 StateBuffer::pull_ew() {
@@ -31,11 +22,13 @@ StateBuffer::pull_ew() {
             pixel_valid = true;
         }
         if (ns.ifmap_valid) {
-            pixel = read_addr(ns.ifmap_addr.sys, ns.ifmap_dtype);
+            mem->read_local_offset(&pixel.raw, ns.ifmap_addr.row, 
+                    sizeofArbPrecType(ns.ifmap_dtype));
             pixel_valid = true;
         }
         if (ns.weight_valid) {
-            weight = read_addr(ns.weight_addr.sys, ns.weight_dtype);
+            mem->read_local_offset(&weight.raw, ns.weight_addr.row, 
+                    sizeofArbPrecType(ns.weight_dtype));
             printf("WEIGHT %d\n", weight.uint8);
         }
     }
@@ -48,21 +41,10 @@ StateBuffer::connect_north(EdgeInterface *_north) {
     north = _north;
 }
 
-void
-StateBuffer::connect_activate(ActivateSbInterface *_activate) {
-    activate = _activate;
-}
-
 EdgeSignals 
 StateBuffer::pull_edge() {
     EdgeSignals e = ns;
     if (e.row_valid) {
-        if (e.ifmap_valid) {
-            e.ifmap_addr.sys += SZ(ROW_SIZE_BITS);
-        } 
-        if (e.weight_valid) {
-            e.weight_addr.sys += SZ(ROW_SIZE_BITS);
-        }
         if (e.row_countdown) {
             e.row_countdown--;
         } else {
@@ -86,10 +68,15 @@ StateBuffer::step_read() {
 // Single buffer array
 //------------------------------------------------------------------
 
-StateBufferArray::StateBufferArray(int num_buffers) {
-    /* must resize it right away so it doesn't get moved around on us */
-    buffers.resize(num_buffers);
-    // add a buffer for the corner
+StateBufferArray::StateBufferArray(MemoryMap *mmap, addr_t base, 
+        int num_buffers) : corner_buffer(mmap, 0, 0) {
+    /* FIXME, some of this range is reserved */
+    size_t buffer_size = SZ(ROW_SIZE_BITS);
+    for (int i = 0; i < num_buffers; i++) {
+        buffers.push_back(StateBuffer(mmap, base, buffer_size));
+        base += buffer_size;
+    }
+
     for (int i = 1; i < num_buffers; i++) {
         buffers[i].connect_north(&buffers[i-1]);
     }
@@ -112,12 +99,6 @@ void
 StateBufferArray::connect_north(EdgeInterface *north) {
     buffers[0].connect_north(north);
 }
-
-void
-StateBufferArray::connect_activate(int id, ActivateSbInterface *activate) {
-    buffers[id].connect_activate(activate);
-}
-
 
 int StateBufferArray::num() {
     return buffers.size();

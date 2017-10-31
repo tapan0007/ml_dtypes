@@ -1,9 +1,6 @@
 #include "pool.h"
 #include "io.h"
 
-extern Memory memory;
-extern addr_t psum_buffer_base;
-
 //------------------------------------------------------------
 // Pool
 //------------------------------------------------------------
@@ -24,23 +21,23 @@ Pool::step() {
     if (!ps.valid) {
         return;
     }
-	addr_t src_partition_size;
-	addr_t dst_partition_size;
 	ARBPRECTYPE dtype = ps.dtype;
 	ARBPRECTYPE up_dtype;
 	size_t dsize = sizeofArbPrecType(ps.dtype);
 
-	src_partition_size = (ps.src_addr.sys >= psum_buffer_base) ?
-		SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
-	dst_partition_size = (ps.dst_addr.sys >= psum_buffer_base) ?
-		SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
 
-    memory.read(&in_pixel, ps.src_addr.sys, dsize);
+    memory->read_global(&in_pixel, ps.src_addr.sys, dsize);
 
     /* start ! */
     if (ps.start) {
         pool_pixel = {0};
         pool_cnt = 0;
+        /* FIXME - how is this going to be done in HW? 
+         * Should we put check to make sure we stay in bounds? */
+        src_partition_size = (ps.src_addr.sys >= MMAP_PSUM_BASE) ?
+            SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
+        dst_partition_size = (ps.dst_addr.sys >= MMAP_PSUM_BASE) ?
+            SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
     }
     switch (ps.func) {
         case IDENTITY_POOL:
@@ -76,7 +73,7 @@ Pool::step() {
                 assert(0 && "that pooling is not yet supported");
                 break;
         }
-        memory.write(ps.dst_addr.sys, &pool_pixel, dsize);
+        memory->write_global(ps.dst_addr.sys, &pool_pixel, dsize);
     }
     ps.src_addr.sys += src_partition_size;
     ps.dst_addr.sys += dst_partition_size;
@@ -113,9 +110,11 @@ Pool::step() {
 //------------------------------------------------------------
 // PoolBufferArray
 //------------------------------------------------------------
-PoolArray::PoolArray(int n_pools) {
-    pooler.resize(n_pools);
-    for (int i = 1; i < n_pools; i++) {
+PoolArray::PoolArray(MemoryMap *mmap, size_t n_pools) {
+    for (size_t i = 0; i < n_pools; i++) {
+        pooler.push_back(Pool(mmap));
+    }
+    for (size_t i = 1; i < n_pools; i++) {
         pooler[i].connect(&pooler[i-1]);
     }
 }

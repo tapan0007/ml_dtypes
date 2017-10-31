@@ -4,33 +4,30 @@
 #include "sigint.h"
 #include <vector>
 
-class PSumBuffer : public EdgeInterface, public PSumActivateInterface {
+class MemoryMap;
+class MemoryMapInstance;
+
+class PSumBuffer : public EdgeInterface {
     public:
-        PSumBuffer();
-        ~PSumBuffer();
+        PSumBuffer(MemoryMap *mmap, addr_t base, size_t nbytes);
         EdgeSignals pull_edge();
-        PSumActivateSignals pull_psum();
         void connect_west(EdgeInterface *);
         void connect_north(PeNSInterface *);
-        void set_address(addr_t base_addr);
+        PSumActivateSignals pull_psum();
         void step();
     private:
         ArbPrecData              pool();
-        ArbPrecData              activation(ArbPrecData pixel);
-        char                    *ptr; // pointer to memory
         PeNSSignals              ns;
-        EdgeSignals              ew;
-        PeNSInterface            *north;
-        EdgeInterface            *west;
-        addr_t                    ready_addr;
-        char *                    valids;
-        addr_t mem_addr;
+        EdgeSignals              ew = {0};
+        PeNSInterface            *north = nullptr;
+        EdgeInterface            *west  = nullptr;
+        MemoryMapInstance        *mem;
 
 };
 
 class PSumBufferArray {
     public:
-        PSumBufferArray(int n_cols = 64);
+        PSumBufferArray(MemoryMap *, addr_t base, size_t n_cols);
         ~PSumBufferArray();
         PSumBuffer& operator[](int index);
         void connect_west(EdgeInterface *);
