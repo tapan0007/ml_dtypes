@@ -22,9 +22,7 @@
 
 
 /* globals! */
-Memory memory = Memory(SZ(ROW_BITS) * SZ(ROW_SIZE_BITS) + SZ(COLUMN_BITS) * SZ(COLUMN_SIZE_BITS));
-addr_t state_buffer_base = 0x0;
-addr_t psum_buffer_base = SZ(ROW_BITS) * SZ(ROW_SIZE_BITS);
+Memory memory = Memory(0x04000000);
 
 
 int main(int argc, char **argv)

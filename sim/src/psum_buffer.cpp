@@ -3,7 +3,6 @@
 #include "io.h"
 
 extern Memory memory;
-extern addr_t psum_buffer_base;
 //------------------------------------------------------------
 // PsumBuffer
 //------------------------------------------------------------
@@ -161,10 +160,10 @@ PSumBuffer::step() {
 //------------------------------------------------------------
 PSumBufferArray::PSumBufferArray(int n_cols) {
     col_buffer.resize(n_cols);
-    col_buffer[0].set_address(psum_buffer_base);
+    col_buffer[0].set_address(MMAP_PSUM_BASE);
     for (int i = 1; i < n_cols; i++) {
         col_buffer[i].connect_west(&col_buffer[i-1]);
-        col_buffer[i].set_address(psum_buffer_base + i * SZ(COLUMN_SIZE_BITS));
+        col_buffer[i].set_address(MMAP_PSUM_BASE + i * SZ(COLUMN_SIZE_BITS));
     }
 }
 
