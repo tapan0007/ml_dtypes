@@ -45,10 +45,10 @@ class TfOp:
     return(nd)
 
 class TfFe:
-  def __init__(self):
+  def __init__(self, dataPathWidthThreshold):
     self.__gd = None
     self.__kg = None
-    self.FAT_PIPE_SIZE = 1000  # Min tensor size for visualization
+    self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
   
   def getKaenaOpGraph(self):
     return(self.__kg)
@@ -123,8 +123,17 @@ class TfFe:
       inputTensor = inputOp.outputs[0]
       inputShape = inputTensor.get_shape().as_list()
       shapeXY = inputShape[1:3]
-      img = Image.open(imageFile).resize(shapeXY)
-      img = np.array(img)
+      if imageFile.endswith(".npy"):
+        img = np.load(imageFile)
+      elif imageFile == "linear":
+        unusedArr = np.ndarray(inputShape)
+        img = np.arange(unusedArr.size, dtype=np.float16).reshape(inputShape)
+        print("INFO: generated linear input=\n", img)
+      elif " " in imageFile:
+        img = np.fromstring(imageFile, dtype=np.float16, sep=" ")
+      else:
+        img = Image.open(imageFile).resize(shapeXY)
+        img = np.array(img)
       img = img.reshape(inputShape)
 
       tfVars = []
@@ -243,6 +252,7 @@ class TfFe:
       "uint8"   : "black:green",
       "int8"    : "black:green",
       "int32"   : "black:yellow",
+      "float16" : "black:pink",
       "float32" : "black:red"
     }.get(dType, None)
 
@@ -295,7 +305,7 @@ class TfFe:
           # Populate edge attributes for plotting type and size
           edge.setLabel(str(npInfo.dType) + "\\n" + str(npInfo.npShape))
           if self.__kg.edgeIsInMainFlow(edge):
-            if TfFe.npShapeToSize(npInfo.npShape) >= self.FAT_PIPE_SIZE:
+            if TfFe.npShapeToSize(npInfo.npShape) >= self.dataPathWidthThreshold:
               #edge.setAttr("penwidth", str(5 + debugId / 1000))
               edge.setAttr("penwidth", str(5))
               edge.setAttr("weight", str(2))

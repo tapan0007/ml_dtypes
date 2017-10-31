@@ -15,6 +15,12 @@
 #   set img = ../../../Kaena-external-opensource/apps/tf/resnet_v2_152/dog.jpg
 #   ./tffe.py --tfpb $tfpb --depth 5 --images $img
 
+#   set net=jdr_v1
+#   python3 $net.py
+#   python /home/ubuntu/src/tensorflow_p3/tensorflow/python/tools/freeze_graph.py --input_graph out_$net.pb --input_checkpoint out_$net.data --output_graph out_"$net"_freeze.pb --output_node_names $net/output
+#   ./tffe.py --tfpb out_"$net"_freeze.pb --depth 5 --images linear --width 30
+#   python3 -c "import numpy as np; x=np.load('out_"$net"__output:0.npy'); print('Output OFMAP\n', x)"
+
 
 import argparse
 import os.path
@@ -30,6 +36,8 @@ parser.add_argument('--depth', help='Depth of layer name hierarchy to show in th
                     default=5)
 parser.add_argument('--focus', help='Regular expression to filter a subset of nodes',
                     default=".*")
+parser.add_argument('--width', help='Highlight data paths wider than the width',
+                    default=1000)
 
 args = parser.parse_args()
 inputTensorName = "input"
@@ -40,7 +48,7 @@ if not os.path.isfile(file):
 if args.images != None and args.focus != ".*":
   raise("ERROR: Unsupported --images with --focus")
 
-tffe = TfFrontEnd.TfFe()
+tffe = TfFrontEnd.TfFe(int(args.width))
 tffe.loadPb(file, args.focus)
 tffe.writeDot(int(args.depth), args.out_prefix + "graph.dot", "svg")
 if args.weights:
