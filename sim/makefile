@@ -27,7 +27,7 @@ libs: $(LIBRARY)
 clean: 
 	$(RM) $(TARGET) $(OBJECTS)   $(LIBRARY)
 
-$(LIBRARY): 
+$(LIBRARY): $(NONMAIN_OBJECTS)
 	 ar rcs $(LIBRARY) $(NONMAIN_OBJECTS)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)  
