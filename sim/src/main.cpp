@@ -20,8 +20,6 @@
 //    activate_array.step(); 
 
 
-/* globals! */
-Memory memory = Memory(0x04000000);
 
 
 int main(int argc, char **argv)
@@ -29,6 +27,7 @@ int main(int argc, char **argv)
     /* setup - later put this in a class? */
     size_t num_rows = SZ(ROW_BITS);
     size_t num_cols = SZ(COLUMN_BITS);
+    Memory memory = Memory(0x04000000);
     MemoryMap mmap = MemoryMap(&memory);
     ProcessingElementArray pe_array;
     StateBufferArray       state_array = 
