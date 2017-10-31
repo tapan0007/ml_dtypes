@@ -32,7 +32,7 @@ class GenPoolLayer(GenLayer):
               "compile_pool(out_binary,",
               ind + str(layer.gIfmapAddress()) + ", ifmap_dims,",
               ind + "kernel_dims,",
-              ind + str(layer.gOfmapAddress()) + ", uint64_t ofmap_dims[4],",
+              ind + str(layer.gOfmapAddress()) + ", ofmap_dims,",
               ind + "stride,   /* Height,Width */",
               ind + self.gMacroInstrGen().gDataTypeName() + ",",
               ind + poolType + ");",
