@@ -9,12 +9,13 @@ from utils.datatype             import *
 import layers.layer
 from arch.arch import Arch
 from memmgr.statebufmgr         import StateBufferMgr
+from codegen.macroinstrgen      import MacroInstrGen
 
 #from layers.layer               import rDoBatching
 
 from schedule.scheduler         import Scheduler
 
-#print sys.argv
+#print(sys.argv)
 
 PrintLevels = False
 PrintSchedule = True
@@ -87,6 +88,11 @@ ntwk.rLevels(scheduler.gLevels())
 
 sbmgr = StateBufferMgr(arch, ntwk)
 sbmgr.calcLayerFmapAddresses()
+
+codegen = MacroInstrGen(ntwk, arch)
+breakFunc(3)
+codegen.generate()
+print("")
 
 ##################################################
 printer = Printer(ntwk)
