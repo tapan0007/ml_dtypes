@@ -150,7 +150,7 @@ class PoolInterface
 // ----------------------------------------------------------
 class ZeroPeNSGenerator : public PeNSInterface {
     public:
-        PeNSSignals pull_ns() {return {0};}
+        PeNSSignals pull_ns() {return PeNSSignals();}
 };
 
 
