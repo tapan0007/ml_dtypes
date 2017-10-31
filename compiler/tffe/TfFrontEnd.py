@@ -48,6 +48,10 @@ class TfFe:
   def __init__(self):
     self.__gd = None
     self.__kg = None
+    self.FAT_PIPE_SIZE = 1000  # Min tensor size for visualization
+  
+  def getKaenaOpGraph(self):
+    return(self.__kg)
   
   def loadPb(self, pbFile, focusNodeRe):
     self.__gd = graph_pb2.GraphDef()
@@ -58,23 +62,39 @@ class TfFe:
     numOps = 0
     numConv = 0
     
-    # Iterate over all TF graph definition nodes
+    # Add all nodes (ops) in TF graph definition
     for tfNode in self.__gd.node:
       tfop = TfOp(tfNode.name, tfNode.op, tfNode)
       #print(tfop)
       if (re.search(focusNodeRe, tfNode.name) != None):
-        self.__kg.addNode(tfNode.name, {"tfop" : tfop, 'op_type' : tfNode.op})
+        self.__kg.addNode(tfNode.name, tfop.op, {"tfop" : tfop})
         numOps += 1
         if (re.search("conv", tfop.op, re.I) != None):
           numConv += 1
-      
-        for ni in tfNode.input:
-          #print("  Input=", ni)
-          # Nodes out of focus may not exist, so skip the edge too
-          if (self.__kg.hasNode(ni) and self.__kg.hasNode(tfNode.name)):
-            self.__kg.addEdge(ni, tfNode.name)
     print("INFO: loaded %s file with %d ops  of which %d are CONV"
           % (pbFile, numOps, numConv))
+
+    # Add all edges (ops) in TF graph definition
+    for tfNode in self.__gd.node:
+      tfop = TfOp(tfNode.name, tfNode.op, tfNode)
+      #print("DEBUG: tfop.op=", tfop.op)
+      if (re.search(focusNodeRe, tfNode.name) != None):
+        i = 0
+        for ni in tfNode.input:
+          #print("  Input=", ni)
+          fromIndex = 0
+          m = re.findall("(.*):(\d+)$", ni)
+          if len(m) == 1:
+            (fromName, fromIndex) = m[0][0], int(m[0][1])
+          else:
+            (fromName, fromIndex) = (ni, 0)
+          # Nodes out of focus may not exist, so skip the edge too
+          if (self.__kg.hasNode(fromName) and self.__kg.hasNode(tfNode.name)):
+            self.__kg.addEdge(fromName, fromIndex, tfNode.name, i)
+          else:
+            print("INFO: skipped edge %s -> %s due to missing nodes"
+                  % (ni, tfNode.name))
+          i += 1
     
   def writeWeights(self, outPrefix):
     numWeights = 0
@@ -92,8 +112,8 @@ class TfFe:
     print("INFO: wrote %d weights" % numWeights)
 
 
-  def writeImages(self, outPrefix, imageFile):
-    inputNode = self.__kg.getNode("input")
+  def writeImages(self, outPrefix, imageFile, inputTensorName):
+    inputNode = self.__kg.getNode(inputTensorName)
     self.__kg.levelize()
     inputTfOpName = inputNode.getAttr("tfop").name
     with tf.Session() as sess:
@@ -117,20 +137,19 @@ class TfFe:
           #print("DEBUG: node=", n.getName())
           tfOpName = n.getAttr("tfop").name
           op = graph.get_operation_by_name(tfOpName)
-          tensor = op.outputs[0]
-          shape = tensor.get_shape().as_list()
-          n.setAttr("np_shape", shape)
-          tfVars.append(tensor.name)
-          kNodes.append(n)
-          # Add support for multi-output graphs
-          assert(len(op.outputs)==1)
+          for tensor in op.outputs:
+            shape = tensor.get_shape().as_list()
+            npInfo = kog.NpInfo(tensor.name, shape)
+            n.appendNpInfo(npInfo)
+            tfVars.append(tensor.name)
+            kNodes.append((n, npInfo))
       
-      print("INFO: identified %d operations, computing ..." % len(tfVars))
+      print("INFO: identified %d tensors, computing ..." % len(tfVars))
       numImages = 0
       tfResults = sess.run(tfVars, feed_dict={inputTensor.name : img})
       perDot = max(1, int(len(tfVars) / 80))
       print("INFO: writing if/ofmap files ...")
-      for (n, var, nd) in zip(kNodes, tfVars, tfResults):
+      for ((n, npInfo), var, nd) in zip(kNodes, tfVars, tfResults):
         if nd.size > 0:
           imageFile = outPrefix + var.replace("/", "__")
           #print("ImageFile=", weightFile,
@@ -140,9 +159,8 @@ class TfFe:
           numImages += 1
           if numImages % perDot == 0:
             print(".", end='', flush=True)
-          n.setAttr("np_file", imageFile + ".npy")
-          dtype = nd.dtype
-          n.setAttr("np_dtype", str(dtype))
+          npInfo.npFile = imageFile + ".npy"
+          npInfo.dType = str(nd.dtype)
         else:
           print("INFO: Failed to get tensor content for ",
                 tfOp.type, "  ", tfOp.name)
@@ -163,9 +181,13 @@ class TfFe:
         attrs["color"] = "red"
       dot.node(n.getName(), tfOp.op, attrs)
 
-    for e in self.__kg.getEdges():
-      #print(e)
-      dot.edge(e.fromNode().getName(), e.toNode().getName())
+    for edge in self.__kg.getEdges():
+      #print(edge)
+      #print("DEBUG: adding edge to dot ", edge)
+      #print("DEBUG: attrs=", edge.getAttrs())
+      dot.edge(edge.getFromPosNode().node.getName(),
+               edge.getToPosNode().node.getName(),
+               edge.getLabel(), edge.getAttrs())
 
     # Add subgraphs
     clusters = {}
@@ -214,41 +236,98 @@ class TfFe:
     arr = np.ndarray(shapeList)
     return(arr.size)
 
+  # Color graph by the datatype. Intended for int8 inteference so 8b is green
+  @staticmethod
+  def dType2color(dType):
+    return {
+      "uint8"   : "black:green",
+      "int8"    : "black:green",
+      "int32"   : "black:yellow",
+      "float32" : "black:red"
+    }.get(dType, None)
 
+  # Generates csv report for all inputs and outputs of the operations
+  # Also populates the Kaena graph with tensor (edge) size labels,
+  # data flow colors (eventually these 2 functions could be split at
+  # the cost of replicating the loops and data querry)
   def writeOpsCsv(self, csvFile):
     levelizedNodes = self.__kg.getLevelizedNodes()
+    
+    # Count number of inputs and outputs
+    numInputs = 0
+    numOutputs = 0
+    for level in range(0, len(levelizedNodes)):
+      for n in levelizedNodes[level]:
+        numInputs = max(numInputs, len(n.getFaninEdges()))
+        numOutputs = max(numOutputs, len(n.getFanoutEdges()))
+
+    rows = []
+    #debugId = 0
+    for level in range(0, len(levelizedNodes)):
+      for n in levelizedNodes[level]:
+        #print("DEBUG: node=", n.getName())
+        opName = n.getOpName()
+        opType = n.getOpType()
+        row = {"OpName"      : opName,
+               "OpType"      : opType,
+               "Level"       : level}
+        npOutputInfo = n.getNpInfo()
+        outputSize = 0
+        for i in range(0, len(npOutputInfo)):
+          npInfo = npOutputInfo[i]
+          row["Output" + str(i) + "dType"] = npInfo.dType
+          row["Output" + str(i) + "Shape"] = npInfo.npShape
+          row["Output" + str(i) + "File"]  = npInfo.npFile
+          outputSize += TfFe.npShapeToSize(npInfo.npShape)
+        row["OutputSize"] = outputSize
+        inputSize = 0
+        faninEdges = n.getFaninEdges()
+        for i in range(0, len(faninEdges)):
+          edge = faninEdges[i]
+          p = edge.getFromPosNode()
+          (fromNode, fromIndex) = (p.node, p.index)
+          npInfo = fromNode.getNpInfo()[fromIndex]
+          row["Input" + str(i) + "dType"] = npInfo.dType
+          row["Input" + str(i) + "Shape"] = npInfo.npShape
+          row["Input" + str(i) + "File"] = npInfo.npFile
+          inputSize += TfFe.npShapeToSize(npInfo.npShape)
+          
+          # Populate edge attributes for plotting type and size
+          edge.setLabel(str(npInfo.dType) + "\\n" + str(npInfo.npShape))
+          if self.__kg.edgeIsInMainFlow(edge):
+            if TfFe.npShapeToSize(npInfo.npShape) >= self.FAT_PIPE_SIZE:
+              #edge.setAttr("penwidth", str(5 + debugId / 1000))
+              edge.setAttr("penwidth", str(5))
+              edge.setAttr("weight", str(2))
+              color = TfFe.dType2color(npInfo.dType)
+              if color:
+                edge.setAttr("color", color)
+                #print("DEBUG: set color ", color, " on edge ", edge, "  DEBUG_ID=", debugId)
+          i += 1
+          #edge.setAttr("DENUG_ID", str(debugId))
+          #debugId += 1
+        #print("\n")
+        if 0:
+          for i in range(0, len(faninEdges)):
+            edge = faninEdges[i]
+            print("DEBUG: final csv edge attributes ", edge.getAttrs(), " Edge=", edge)
+        row["InputSize"] = inputSize
+        rows.append(row)
+        #print("DEBUG: row=", row)
+    
+    # Write csv
     with open(csvFile, 'w') as csvHandle:
       fieldNames = ["OpName", "OpType", "Level",
-                    "OutputData", "OutputSize", "InputSize",
-                    "OutputShape", "OutputFile"]
-      for i in range(0,6):
-        fieldNames += ["Input" + str(i) + "Shape",
+                    "OutputSize", "InputSize"]
+      for i in range(0,numOutputs):
+        fieldNames += ["Output" + str(i) + "dType",
+                       "Output" + str(i) + "Shape",
+                       "Output" + str(i) + "File"]
+      for i in range(0,numInputs):
+        fieldNames += ["Input" + str(i) + "dType",
+                       "Input" + str(i) + "Shape",
                        "Input" + str(i) + "File"]
       writer = csv.DictWriter(csvHandle, fieldnames=fieldNames)
-
-      rows = []
-      for level in range(0, len(levelizedNodes)):
-        for n in levelizedNodes[level]:
-          #print("DEBUG: node=", n.getName())
-          (opName, opType, dType, npShape, npFile) = n.getNpInfo()
-          row = {"OpName"      : opName,
-                 "OpType"      : opType,
-                 "Level"       : level,
-                 "OutputData"  : dType, 
-                 "OutputSize"  : TfFe.npShapeToSize(npShape), 
-                 "OutputShape" : npShape, 
-                 "OutputFile"  : npFile}
-          
-          i = 0
-          inputSize = 0
-          for preNode in self.__kg.nodePredecessors(n):
-            (opName, opType, dType, npShape, npFile) = preNode.getNpInfo()
-            row["Input" + str(i) + "Shape"] = npShape
-            row["Input" + str(i) + "File"] = npFile
-            inputSize += TfFe.npShapeToSize(npShape)
-            i += 1
-          row["InputSize"] = inputSize
-          rows.append(row)
       writer.writeheader()
       writer.writerows(rows)
     print("INFO: Wrote op sequences into " + csvFile)

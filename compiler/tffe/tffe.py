@@ -32,6 +32,7 @@ parser.add_argument('--focus', help='Regular expression to filter a subset of no
                     default=".*")
 
 args = parser.parse_args()
+inputTensorName = "input"
 
 file = args.tfpb
 if not os.path.isfile(file):
@@ -45,7 +46,9 @@ tffe.writeDot(int(args.depth), args.out_prefix + "graph.dot", "svg")
 if args.weights:
   tffe.writeWeights(args.out_prefix)
 if args.images != None:
-  tffe.writeImages(args.out_prefix, args.images)
+  tffe.writeImages(args.out_prefix, args.images, inputTensorName)
+  tffe.getKaenaOpGraph().identifyMainFlowEdges(inputTensorName)
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
+  tffe.writeDot(int(args.depth), args.out_prefix + "graph_ann.dot", "svg")
 
 

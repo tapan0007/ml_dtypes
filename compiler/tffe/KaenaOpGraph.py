@@ -1,22 +1,37 @@
-# Kaena absration of neural network framework operations
+# Kaena abstraction of neural network framework operations
 # Suitable for TF freeze graph input and general op reduction and fusing
 
 
-class Object:
+class Object():
   def __init__(self, name, attrs):
     self.__name = name
-    self.__attrs = attrs
+    self.__attrs = attrs.copy()
   def getName(self):
     return(self.__name)
   def getAttr(self, attrName):
     return(self.__attrs[attrName])
+  def getAttrs(self):
+    return(self.__attrs)
   def setAttr(self, attrName, attrVal):
     self.__attrs[attrName] = attrVal
 
+# Neural network Numpy-style info for each op output
+class NpInfo:
+  def __init__(self, tensorName, npShape):
+    self.tensorName = tensorName
+    self.npShape = npShape
+    self.npFile = None
+    self.dType = None
+
+# NN operation
 class Node(Object):
-  def __init__(self, name, attrs):
+  def __init__(self, name, opType, attrs):
     Object.__init__(self, name, attrs)
     self.__level = -1
+    self.__opType = opType
+    self.__npInfo = []
+    self.__fanin = []  # inputs
+    self.__fanout = [] # outputs
   def __str__(self):
     return("Node=" + self.getName())
   def getLevel(self):
@@ -24,46 +39,76 @@ class Node(Object):
   def setLevel(self, level):
     self.__level = level
   def getNpInfo(self):
-    return(self.getName(),
-           self.getAttr("op_type"),
-           self.getAttr("np_dtype"),
-           self.getAttr("np_shape"),
-           self.getAttr("np_file"))
-           
+    return(self.__npInfo)
+  def getOpType(self):
+    return(self.__opType)
+  def getOpName(self):
+    return(self.getName())
+  def appendNpInfo(self, npInfo):
+    self.__npInfo.append(npInfo)
+  def getFaninEdges(self):
+    return(self.__fanin)
+  def getFanoutEdges(self):
+    return([item for edgelist in self.__fanout for item in edgelist])
+  # Fanin of 1 per input
+  def setFaninEdge(self, edge, index):
+    assert(len(self.__fanin) < index + 1 or self.__fanout[index] == None)
+    while len(self.__fanin) < index + 1:
+      self.__fanin.append(None)
+    self.__fanin[index] = edge
+  # Fanout can be greater than 1
+  def setFanoutEdge(self, edge, index):
+    while len(self.__fanout) < index + 1:
+      self.__fanout.append([])
+    self.__fanout[index].append(edge)
 
+class PosNode:
+  def __init__(self, node, index):
+    self.node = node
+    self.index = index
+    
 class Edge(Object):
-  def __init__(self, fromNode, toNode, attrs):
+  def __init__(self, fromPosNode, toPosNode, attrs):
     Object.__init__(self, "Edge", attrs)
-    self.__fromNode = fromNode
-    self.__toNode = toNode
-  def fromNode(self):
-    return(self.__fromNode)
-  def toNode(self):
-    return(self.__toNode)
+    self.__fromPosNode = fromPosNode
+    self.__toPosNode = toPosNode
+    self.__label = None
+  def getFromPosNode(self):
+    return(self.__fromPosNode)
+  def getToPosNode(self):
+    return(self.__toPosNode)
+  def setLabel(self, label):
+    self.__label = label
+  def getLabel(self):
+    return(self.__label)
   def __str__(self):
-    return("Edge  From=" + self.fromNode().getName()
-           + "  To=" + self.toNode().getName())
+    f = self.getFromPosNode()
+    t = self.getToPosNode()
+    return("Edge" +
+           "  From=" + f.node.getName() + ":" + str(f.index) +
+           "  To=" + t.node.getName()  + ":" + str(t.index) )
 
+# Computational data flow graph
 class Graph(Object):
   def __init__(self, name, attrs = {}):
     Object.__init__(self, name, attrs)
     self.__name2node = {}
-    self.__edges = {}
-    self.__edgesReverse = {} # to speed up predecessor lookup in levelization
+    self.__edges = []
+    self.__mainFlowEdges = []
     
-  def addNode(self, name, attrs = {}):
-    self.__name2node[name] = Node(name, attrs)
+  def addNode(self, name, opType, attrs = {}):
+    self.__name2node[name] = Node(name, opType, attrs)
   
-  def addEdge(self, nameFrom, nameTo, attrs = {}):
-    fromNode = self.getNode(nameFrom)
-    toNode = self.getNode(nameTo)
-    if self.__edges.get(fromNode) == None:
-      self.__edges[fromNode] = {}
-    edge = Edge(fromNode, toNode, attrs)
-    self.__edges[fromNode][toNode] = edge
-    if self.__edgesReverse.get(toNode) == None:
-      self.__edgesReverse[toNode] = {}
-    self.__edgesReverse[toNode][fromNode] = edge
+  def addEdge(self, fromName, fromIndex, toName, toIndex, attrs = {}):
+    fromNode = self.getNode(fromName)
+    toNode = self.getNode(toName)
+    lattrs = attrs
+    #lattrs.update({"label" : "E" + str(len(self.__edges))})
+    edge = Edge(PosNode(fromNode, fromIndex), PosNode(toNode, toIndex), lattrs)
+    #print("DEBUG added edge with attrs ", edge.getAttrs())
+    self.__edges.append(edge)
+    fromNode.setFanoutEdge(edge, fromIndex)
+    toNode.setFaninEdge(edge, toIndex)
 
   def hasNode(self, name):
     return(name in self.__name2node)
@@ -71,29 +116,23 @@ class Graph(Object):
   def getNode(self, name):
     return(self.__name2node[name])
   
-  def getEdge(self, nameFrom, NameTo):
-    return(self.__edges[nameFrom][nameTo])
-  
   def getNodes(self):
     return(list(self.__name2node.values()))
   
   def getEdges(self):
-    edges = []
-    for fromNode in self.__edges:
-      edges += list(self.__edges[fromNode].values())
-    return(edges)
+    return(self.__edges)
   
   def nodeSuccessors(self, fromNode):
-    nextNodes = []
-    if self.__edges.get(fromNode):
-      nextNodes = list(self.__edges[fromNode].keys())
-    return(nextNodes)
+    nextNodes = {}
+    for edge in fromNode.getFanoutEdges():
+      nextNodes[edge.getToPosNode().node] = 1
+    return(nextNodes.keys())
   
   def nodePredecessors(self, toNode):
-    nextNodes = []
-    if self.__edgesReverse.get(toNode):
-      nextNodes = list(self.__edgesReverse[toNode].keys())
-    return(nextNodes)
+    preNodes = []
+    for edge in toNode.getFaninEdges():
+      preNodes.append(edge.getFromPosNode().node)
+    return(preNodes)
   
   # Get the node with most computation - highest in the data flow level
   def getTopNode(self):
@@ -141,6 +180,26 @@ class Graph(Object):
   def getLevelizedNodes(self):
     return(self.__level2nodes)
   
-
+  # Marks edges that are important for visualization and data flow transformations
+  # Typically it is transitive fanout of the input tensor
+  def identifyMainFlowEdges(self, inputTensorName):
+    nodes = {self.getNode(inputTensorName): 0}
+    assert(len(nodes.keys()) > 0)
+    nodeFront = nodes.copy()
+    while len(nodeFront) > 0:
+      nodeFrontNew = {}
+      for n in nodeFront.keys():
+        #if n.getName() == "resnet_v2_152/block1/unit_1/bottleneck_v2/add":
+        #  print("DEBUG")
+        for nextNode in self.nodeSuccessors(n):
+          if nextNode not in nodes:
+            nodes[nextNode] = 0
+            nodeFrontNew[nextNode] = 0
+      nodeFront = nodeFrontNew
+    for n in nodes.keys():
+      self.__mainFlowEdges += n.getFanoutEdges()
+  
+  def edgeIsInMainFlow(self, edge):
+    return(edge in self.__mainFlowEdges)
 
 
