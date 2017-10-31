@@ -6,12 +6,9 @@ extern Memory memory;
 //------------------------------------------------------------------
 // Single state buffer
 //------------------------------------------------------------------
-StateBuffer::StateBuffer() : north(nullptr), activate(nullptr), ns(), ifmap(nullptr), weights_rd(nullptr){
-    memset(&ns, 0, sizeof(ns));
+StateBuffer::StateBuffer() {
 }
 
-StateBuffer::~StateBuffer() {
-}
 
 ArbPrecData
 StateBuffer::read_addr(addr_t addr, ARBPRECTYPE type) {
@@ -85,16 +82,6 @@ StateBuffer::step_read() {
     ns = north->pull_edge();
 }
 
-void 
-StateBuffer::step_write() {
-    //ActivateSbSignals as = activate->pull_activate();
-    //if (as.valid) {
-    //    printf("sbact");
-    //    as.partial_sum.dump(stdout);
-     //   printf("\n");
-    //}
-}
-
 //------------------------------------------------------------------
 // Single buffer array
 //------------------------------------------------------------------
@@ -143,8 +130,3 @@ void StateBufferArray::step_read() {
     }
 }
 
-void StateBufferArray::step_write() {
-    for (int i = num() - 1; i >= 0; i--) {
-        buffers[i].step_write();
-    }
-}

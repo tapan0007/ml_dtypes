@@ -11,7 +11,6 @@
 
 #define STEP() \
     std::cout << "time = " << i << std::endl; \
-    state_array.step_write(); \
     activate_array.step(); \
     pool_array.step(); \
     psum_array.step(); \

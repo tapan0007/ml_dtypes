@@ -5,25 +5,18 @@
 #include <vector>
 
 class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroadcastInterface {
-    public:
+    public:  
         StateBuffer();
-        ~StateBuffer();
         PeEWSignals   pull_ew();
         EdgeSignals pull_edge();
         bool        pull_clamp();
         void connect_north(EdgeInterface *);
         void connect_activate(ActivateSbInterface *);
         void step_read();
-        void step_write();
     private:
-        EdgeInterface           *north;
-        ActivateSbInterface     *activate;
-        EdgeSignals              ns;
-        ARBPRECTYPE              type;
-        uint8_t                 *ifmap;
-        void                    *weights_rd;
-        void                    *weights_wr;
-        ARBPRECTYPE              weights_type;
+        EdgeInterface           *north        = nullptr;
+        ActivateSbInterface     *activate     = nullptr;
+        EdgeSignals              ns           = {0};
         ArbPrecData   read_addr(addr_t addr, ARBPRECTYPE type);
 
 };
@@ -34,7 +27,6 @@ class StateBufferArray {
         ~StateBufferArray();
         StateBuffer& operator[](int index);
         void step_read();
-        void step_write();
         int num();
         void connect_activate(int id, ActivateSbInterface *);
         void connect_north(EdgeInterface *);
