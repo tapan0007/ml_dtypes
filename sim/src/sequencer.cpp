@@ -282,7 +282,7 @@ Sequencer::step_edgesignal() {
     /* Sending an ifmap, must be getting out ofmap! */
     if (es.ifmap_valid || es.pad_valid) {
         /* FIXME - this is the psum granularity, FIX */
-        es.psum_addr.sys += sizeofArbPrecType((ARBPRECTYPE)get_upcast(es.ifmap_dtype));
+        es.psum_addr.sys += SZ(PSUM_ENTRY_BITS);
     }
 
     /*  WEIGHT */
@@ -326,7 +326,8 @@ Sequencer::step_poolsignal() {
     if (!ps.valid) {
         return;
     }
-    size_t dsize = sizeofArbPrecType((ARBPRECTYPE)ps.dtype);
+    size_t src_dsize = SZ(PSUM_ENTRY_BITS);
+    size_t dst_dsize = sizeofArbPrecType(ps.dtype);
 
     pool_src_x_cnt++;
     ROLLOVER(pool_src_x_cnt, pool_src_x_num, pool_src_y_cnt);
@@ -367,17 +368,17 @@ Sequencer::step_poolsignal() {
     /* calculate address based on settings */
     if (ps.valid) {
         ps.src_addr.sys = pool_src_base + 
-            dsize * 
+            src_dsize * 
             (pool_str_x_cnt * pool_str_x_step +
              pool_str_y_cnt * pool_str_y_step) + /* tile */
-            dsize *
+            src_dsize *
             (pool_src_x_cnt * pool_src_x_step + /* offset in tile */
              pool_src_y_cnt * pool_src_y_step);
     }
     if (ps.start) {
         ps.dst_addr.sys = pool_dst_base + 
             (pool_dst_x_cnt * pool_dst_x_step + 
-             pool_dst_y_cnt * pool_dst_y_step) * dsize;
+             pool_dst_y_cnt * pool_dst_y_step) * dst_dsize;
     }
 }
 

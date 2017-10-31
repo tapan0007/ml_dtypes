@@ -6,16 +6,20 @@
 #define SZ(BITS) (1 << (BITS))
 
 #define ROW_BITS                    7
-#define ROW_BYTE_OFFSET             3
+#define ROW_BYTE_OFFSET_BITS        3
 #define BANKS_PER_ROW_BITS          2
 #define ROWS_PER_BANK_PER_ROW_BITS  11
-#define ROW_SIZE_BITS               ROW_BYTE_OFFSET + BANKS_PER_ROW_BITS + \
+#define ROW_SIZE_BITS               ROW_BYTE_OFFSET_BITS + \
+                                    BANKS_PER_ROW_BITS + \
                                     ROWS_PER_BANK_PER_ROW_BITS
 
 #define COLUMN_BITS                 6
-#define COLUMN_BYTE_OFFSET          13
+#define COLUMN_BYTE_OFFSET_BITS     13
 #define BANKS_PER_COLUMN_BITS       2
-#define COLUMN_SIZE_BITS            COLUMN_BYTE_OFFSET + BANKS_PER_COLUMN_BITS
+#define COLUMN_META_BIT             1
+#define COLUMN_SIZE_BITS            COLUMN_BYTE_OFFSET_BITS + \
+                                    BANKS_PER_COLUMN_BITS + \
+                                    COLUMN_META_BIT
 
 #define PSUM_ENTRY_BITS             3
 

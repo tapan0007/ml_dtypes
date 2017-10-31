@@ -10,7 +10,6 @@ extern addr_t psum_buffer_base;
 PSumBuffer::PSumBuffer() : ptr(NULL), ew(), north(nullptr), west(nullptr) {
     memset(&ns, 0, sizeof(ns));
     memset(&ew, 0, sizeof(ew));
-    valids = (char *)(calloc(SZ(COLUMN_SIZE_BITS), 1));
 }
 
 PSumBuffer::~PSumBuffer() {}
@@ -111,36 +110,42 @@ PSumBuffer::step() {
     ew = west->pull_edge();
     static ArbPrecData zeros = {0};
     static ArbPrecData ones = {.uint64 = 0xffffffffffffffff};
+    uint8_t valid;
 
     if (ew.column_valid && ew.ifmap_valid) {
         assert(ew.psum_addr.sys >= MMAP_PSUM_BASE);
         ARBPRECTYPE psum_dtype =  get_upcast(ew.ifmap_dtype);
         size_t dsize = sizeofArbPrecType(psum_dtype);
-        unsigned int e_offset = ew.psum_addr.sys - MMAP_PSUM_BASE;
-        addr_t src_addr = memory.index(mem_addr, e_offset, UINT8);
-        void *src_ptr = memory.translate(src_addr);
-        assert(e_offset <= SZ(COLUMN_SIZE_BITS));
+        unsigned int local_addr = ew.psum_addr.column;
+        Addr src_addr;
+        src_addr.sys = memory.index(mem_addr, local_addr, UINT8);
+        Addr meta_addr;
+        meta_addr.sys  = src_addr.sys | (1 << (COLUMN_BYTE_OFFSET_BITS + 
+                    BANKS_PER_COLUMN_BITS));
+        void *src_ptr = memory.translate(src_addr.sys);
         if (ew.psum_start) {
-            memory.write(src_addr, &zeros, dsize);
-            memcpy(&valids[e_offset], &ones, dsize); 
+            memory.write(src_addr.sys, &zeros, dsize);
+            memory.write(meta_addr.sys, &ones, dsize); 
         }
         if (ew.ifmap_valid) {
-            printf("adding partial sum at %x is ", mem_addr + e_offset);
+            printf("adding partial sum at %lx is ", mem_addr | src_addr.sys);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
             ArbPrecData result = ArbPrec::add(src_ptr, &ns.partial_sum, psum_dtype);
-            memory.write(src_addr, &result, dsize);
+            memory.write(src_addr.sys, &result, dsize);
             printf(" total = ");
-            ArbPrec::dump(stdout, memory.translate(src_addr), psum_dtype);
+            ArbPrec::dump(stdout, memory.translate(src_addr.sys), psum_dtype);
             printf("\n");
-            assert(valids[e_offset]);
+            memory.read(&valid, meta_addr.sys, 1);
+            assert(valid);
         }
 
         if (ew.psum_stop) {
-            printf("final partial sum at %x is ", mem_addr + e_offset);
-            ArbPrec::dump(stdout, memory.translate(src_addr), psum_dtype);
+            printf("final partial sum at %lx is ", mem_addr | src_addr.sys);
+            ArbPrec::dump(stdout, memory.translate(src_addr.sys), psum_dtype);
             printf("\n");
-            assert(valids[e_offset]);
-            memcpy(&valids[e_offset], &zeros, dsize); 
+            memory.read(&valid, meta_addr.sys, 1);
+            assert(valid);
+            memory.write(meta_addr.sys, &zeros, 1); 
         } 
 
         if (ew.column_countdown == 0) {

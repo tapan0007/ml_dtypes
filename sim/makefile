@@ -1,7 +1,7 @@
 
 CXX= g++
 CPPFLAGS = -I. -std=c++11
-CFLAGS = -W -Wall -ansi -ggdb -g -Wno-missing-field-initializers
+CFLAGS = -W -Wall -ansi -ggdb -g -Wpacked -Wno-missing-field-initializers
 TARGET = sim
 SRCDIR = src
 OBJDIR = obj
@@ -31,7 +31,7 @@ $(LIBRARY):
 	 ar rcs $(LIBRARY) $(NONMAIN_OBJECTS)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCLUDES)  
-	 @$(CXX) $(CFLAGS) $(CPPFLAGS) -I $(SHARE_INCDIR) -c $< -o $@
+	 $(CXX) $(CFLAGS) $(CPPFLAGS) -I $(SHARE_INCDIR) -c $< -o $@
 
 
 $(TARGET): $(OBJECTS)  
