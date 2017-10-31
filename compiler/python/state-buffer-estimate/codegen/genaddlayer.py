@@ -1,12 +1,20 @@
-from .genpoollayer import GenPoolLayer
+from .genlayer import GenLayer
 
 ##########################################################
-class GenMaxPoolLayer(GenPoolLayer):
+class GenAddLayer(GenLayer):
     #-----------------------------------------------------------------
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)
 
     #-----------------------------------------------------------------
     def generate(self, layer):
-        self.generatePool(layer, "MAX_POOL")
+        f = self.gFile()
+        ind        = self.gIndent()
+        s = [ "// " + layer.gName(),
+              "compile_add()",
+        ]
+        ss = ""
+        for x in s: ss += ind + x + "\n"
+
+        f.write(ss)
 

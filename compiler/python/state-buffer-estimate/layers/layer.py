@@ -532,6 +532,9 @@ class Layer(object, metaclass = ABCMeta): # abstract class
     # Therefore, the return value can be determined only after scheduling is finished.
     #-----------------------------------------------------------------
     def qStoreInSB(self):
+        return True ## this because Dana requires SB area for each operation,
+                    ## cannot feed convolution directly to pooling
+
         mySched = self.gSchedule()
         assert(mySched != None)
         nextSchedLayer = self.gNextSchedLayer()
