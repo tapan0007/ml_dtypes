@@ -24,9 +24,9 @@ void compile_write_ofmap(FILE *out_binary,
  * array is the wrap offset */
 void
 compile_convolve(FILE *out_binary,
-        const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4],
-        const addr_t *filter_addr, const uint64_t filter_dims[4],
-        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
+        const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4], /* NCHW */
+        const addr_t *filter_addr, const uint64_t filter_dims[4], /* MCRS */
+        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output NCHW */
         const ARBPRECTYPE dtype,
         const uint8_t padding[2],  /* Height,Width */
         const uint8_t stride[2],   /* Height,Width */
@@ -34,19 +34,20 @@ compile_convolve(FILE *out_binary,
 
 void
 compile_pool(FILE *out_binary,
-        const addr_t ifmap_addr, const uint64_t ifmap_dims[4],
-        const uint64_t kernel_dims[4],
-        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
-        const uint64_t stride_dims[4],
+        const addr_t ifmap_addr, const uint64_t ifmap_dims[4], /* NCHW */
+        const uint64_t kernel_dims[4], /* NCHW */
+        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output NCHW */
+        const uint64_t stride_dims[4], /* NCHW */
         const ARBPRECTYPE dtype,
         POOLFUNC pool_func);
  
+#if 0
 void
 compile_resadd(FILE *out_binary,
         const addr_t lhs_addr, 
         const addr_t rhs_addr,
         const uint64_t dims[4],
         const ARBPRECTYPE dtype);
- 
- 
+#endif 
+
 #endif

@@ -366,6 +366,7 @@ compile_pool(FILE *fptr,
 
 }
 
+#if 0
 void
 compile_resadd(FILE *out_binary,
         const addr_t lhs_addr, 
@@ -373,7 +374,6 @@ compile_resadd(FILE *out_binary,
         const uint64_t dims[4],
         const ARBPRECTYPE dtype)
 {
-#if 0
 	uint64_t cols = dims[3];
 	uint64_t rows = dims[2];
 	uint64_t ch   = dims[1];
@@ -404,8 +404,7 @@ compile_resadd(FILE *out_binary,
 
         }
     }
-
-#endif
 }
+#endif
 
 	
