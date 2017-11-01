@@ -59,6 +59,14 @@ class TestPool(unittest.TestCase):
         pf = 'avg_pool'
         tn = sys._getframe().f_code.co_name
         self.rand_pool_test(tn, itype, idims, k, s, pf)
+    def test_fp16_pool_small(self):
+        itype = 'float16'
+        idims = [1,3,2,2]
+        k = ["1", "1", "2", "2"]
+        s = ["1", "1", "1", "1"]
+        pf = 'avg_pool'
+        tn = sys._getframe().f_code.co_name
+        self.rand_pool_test(tn, itype, idims, k, s, pf)
 
     def test_pool_medium(self):
         itype = 'uint8'
@@ -69,5 +77,13 @@ class TestPool(unittest.TestCase):
         tn = sys._getframe().f_code.co_name
         self.rand_pool_test(tn, itype, idims, k, s, pf)
 
+    def test_fp16_pool_medium(self):
+        itype = 'float16'
+        idims = [1,64,56,56]
+        k = ["1", "1", "2", "2"]
+        s = ["1", "1", "2", "2"]
+        pf = 'max_pool'
+        tn = sys._getframe().f_code.co_name
+        self.rand_pool_test(tn, itype, idims, k, s, pf)
 if __name__ == '__main__':
     unittest.main()

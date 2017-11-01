@@ -324,12 +324,10 @@ compile_pool(FILE *fptr,
     POOL      pool_args = {0};
 	addr_t        src_addr = ifmap_addr;
 	addr_t        dst_addr = ofmap_addr;
-    addr_t dsize = sizeofArbPrecType(dtype);
     for (int i = 0; i < 4; i++) {
         ofmap_dims[i] = floor((ifmap_dims[i] - kernel_dims[i])/stride_dims[i]) +
             1;
     }
-	
 	assert(s_n == 1 && "TBD: pooling across channels/batches");
 	assert(i_n == 1 && "TBD: batches");
 	assert(k_ch == 1 && "TBD: Pooling across channels");
@@ -344,7 +342,7 @@ compile_pool(FILE *fptr,
             pool_args.in_dtype     = dtype;
             pool_args.src_start_addr = src_addr;
             pool_args.src_x_step = 1;
-            pool_args.src_y_step = i_cols * dsize;
+            pool_args.src_y_step = i_cols;
             pool_args.src_x_num = k_cols;
             pool_args.src_y_num = k_rows;
             pool_args.dst_start_addr = dst_addr;
