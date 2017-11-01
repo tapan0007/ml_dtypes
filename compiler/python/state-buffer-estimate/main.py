@@ -91,7 +91,7 @@ sbmgr.calcLayerFmapAddresses()
 
 codegen = MacroInstrGen(ntwk, arch)
 breakFunc(3)
-codegen.generate("try/code.cpp")
+codegen.generate("test/code.cpp")
 print("")
 
 ##################################################
