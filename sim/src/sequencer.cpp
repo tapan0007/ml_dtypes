@@ -61,11 +61,12 @@ template<>
 void  DynamicInstruction<SIM_WROFMAP>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     void *o_ptr;
+    ARBPRECTYPE dtype = (ARBPRECTYPE)(args.dtype);
     
     o_ptr = seq->mem->sbuffer_bank_munmap(args.address, args.dims[1], 
-            args.dims[2] * args.dims[3] * args.word_size);
+            args.dims[2] * args.dims[3] * sizeofArbPrecType(dtype));
     seq->mem->io_write(args.fname, o_ptr, args.dims[0], args.dims[1], 
-            args.dims[2], args.dims[3], args.word_size);
+            args.dims[2], args.dims[3], dtype);
 }
 
 

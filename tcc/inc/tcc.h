@@ -16,7 +16,7 @@ void compile_read_filter(FILE *out_binary,
 void compile_write_ofmap(FILE *out_binary,
         const char *out_numpy_name, const addr_t ofmap_sb_addr,
         const uint64_t dims[4],
-        const size_t word_size);
+        const ARBPRECTYPE dtype);
 
 /*[ifmap/filter]_addrs are arrays of statebuffer addresses.  Arrays 
  * deal with cases iwhen with the number of ifmap channels is > number of rows.

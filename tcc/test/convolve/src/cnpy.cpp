@@ -57,7 +57,7 @@ template<> std::vector<char>& cnpy::operator+=(std::vector<char>& lhs, const cha
     return lhs;
 }
 
-void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order) {  
+void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order, char &ctype) {  
     char buffer[256];
     size_t res = fread(buffer,sizeof(char),11,fp);       
     if(res != 11)
@@ -93,6 +93,7 @@ void cnpy::parse_npy_header(FILE* fp, unsigned int& word_size, unsigned int*& sh
 
     //char type = header[loc1+1];
     //assert(type == map_type(T));
+    ctype = header[loc1+1];
 
     std::string str_ws = header.substr(loc1+2);
     loc2 = str_ws.find("'");
@@ -126,7 +127,8 @@ cnpy::NpyArray load_the_npy_file(FILE* fp) {
     unsigned int* shape;
     unsigned int ndims, word_size;
     bool fortran_order;
-    cnpy::parse_npy_header(fp,word_size,shape,ndims,fortran_order);
+    char ctype;
+    cnpy::parse_npy_header(fp,word_size,shape,ndims,fortran_order,ctype);
     unsigned long long size = 1; //long long so no overflow when multiplying by word_size
     for(unsigned int i = 0;i < ndims;i++) size *= shape[i];
 

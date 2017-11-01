@@ -32,7 +32,6 @@ void ProcessingElement::step() {
     PeNSSignals in_ns = north->pull_ns();
     bool in_clamp = sb_west->pull_clamp();
     ArbPrecData product;
-    ARBPRECTYPE out_dtype;
     if (in_ew.weight_toggle) {
         weight_id = !weight_id;
     }
@@ -44,8 +43,10 @@ void ProcessingElement::step() {
     }
 
     if (in_ew.pixel_valid && weight_dtype[weight_id] != INVALID_ARBPRECTYPE) {
-        product = ArbPrec::multiply(in_ew.pixel, weight[weight_id], weight_dtype[weight_id], out_dtype);
-        partial_sum = ArbPrec::add(in_ns.partial_sum, product, UINT32);
+        ARBPRECTYPE out_dtype;
+        product = ArbPrec::multiply(in_ew.pixel, weight[weight_id], 
+                weight_dtype[weight_id], out_dtype);
+        partial_sum = ArbPrec::add(in_ns.partial_sum, product, out_dtype);
     } else {
         partial_sum = in_ns.partial_sum;
     }

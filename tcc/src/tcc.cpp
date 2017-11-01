@@ -62,13 +62,12 @@ _convolve_tile(FILE *fptr,
     /* weight args */
     weight_args.opcode = LDWEIGHTS_OPC;
     weight_args.dtype = dtype;
-    weight_args.x_step = dsize;
+    weight_args.x_step = 1;
     weight_args.x_num = o_channels;
-    weight_args.y_step = dsize * o_channels;
+    weight_args.y_step = o_channels;
     weight_args.y_num = 1;
     weight_args.address = filter_addrs[0];
     weight_step = weight_args.y_num * weight_args.y_step * dsize;
-    weight_args.address = filter_addrs[0];
     weight_args.last_row = ifmap_num_rows[0] - 1;
 
     /* load weights ahead of first convolution for first filter! */
@@ -195,7 +194,7 @@ void compile_read_filter(FILE *fptr,
 void compile_write_ofmap(FILE *fptr,
         const char *o_name, const addr_t addr,
         const uint64_t o_dims[4],
-        const size_t word_size)
+        const ARBPRECTYPE dtype)
 {
     SIM_WROFMAP args = {0};
     args.opcode = SIM_WROFMAP_OPC;
@@ -203,7 +202,7 @@ void compile_write_ofmap(FILE *fptr,
     for (int i = 0; i < 4; i++) {
         args.dims[i] = o_dims[i];
     }
-    args.word_size = word_size;
+    args.dtype = dtype;
     strcpy(args.fname, o_name);
     
     PUSH(fptr, args);

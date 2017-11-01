@@ -61,7 +61,7 @@ get_upcast(ARBPRECTYPE type) {
         case INT16:
             return INT32;
         case FP16:
-            return FP32;
+            return FP16;
         default:
             assert(0);
     }
@@ -89,6 +89,9 @@ sizeofArbPrecType(ARBPRECTYPE type)
             break;
         case INT64:
             size = sizeof(int64_t);
+            break;
+        case FP16: /* FIXME HACK!! */ 
+            size = 2;
             break;
         case FP32: 
             size = sizeof(float);

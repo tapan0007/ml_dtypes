@@ -1,11 +1,13 @@
 #ifndef ARB_PREC_H
 #define ARB_PREC_H
 
+#include "fp16/fp16.h"
 #include <cstdint>
 #include <typeinfo>
 #include <limits.h>
 #include <assert.h>
 #include <iostream>
+
 //#include "types.h"
 //#include "isa.h"
 
@@ -22,8 +24,9 @@ typedef union ArbPrecData {
     int32_t  int32;
     int32_t  int32_tuple[2];
     int64_t  int64;
-    float    fp16;
+    uint16_t fp16; /* tmp! */
     float    fp32;
+    unsigned char ch[8];
     uint64_t raw;
 } __attribute__ ((__packed__)) ArbPrecData;
 
@@ -122,30 +125,29 @@ class ArbPrec
         static ArbPrecData _multiply(void *x, void *y, ARBPRECTYPE in_type, 
                 ARBPRECTYPE &out_type) {
             ArbPrecData ap;
+            out_type = get_upcast(in_type);
             if (in_type == UINT8) {
-                out_type = UINT32;
                 ap.uint32 = uint32_t(EXTRACT(uint8_t, x)) * 
                     uint32_t(EXTRACT(uint8_t, y));
             } else if (in_type == INT8) {
-                out_type = INT32;
                 ap.uint32 = int32_t(EXTRACT(int8_t, x)) * 
                     int32_t(EXTRACT(int8_t, y));
             } else if (in_type == UINT16) {
-                out_type = UINT32;
                 ap.uint32 = uint32_t(EXTRACT(uint16_t, x)) * 
                     uint32_t(EXTRACT(uint16_t, y));
             } else if (in_type == INT16) {
-                out_type = INT32;
                 ap.int32 = int32_t(EXTRACT(int16_t, x)) * 
                     int32_t(EXTRACT(int16_t, y));
             } else if (in_type == UINT32) {
-                out_type = UINT32;
                 ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) * 
                     uint32_t(EXTRACT(uint32_t, y));
             } else if (in_type == INT32) {
-                out_type = INT32;
                 ap.int32 = int32_t(EXTRACT(int32_t, x)) * 
                     int32_t(EXTRACT(int32_t, y));
+            } else if (in_type == FP16) {
+                float f_x = fp16_ieee_to_fp32_value(EXTRACT(uint16_t, x));
+                float f_y = fp16_ieee_to_fp32_value(EXTRACT(uint16_t, y));
+                ap.fp16 = fp16_ieee_from_fp32_value(f_x * f_y);
             } else {
                 assert(0 && "unsupported combo");
             }
@@ -157,12 +159,18 @@ class ArbPrec
             if (in_type == UINT32) {
                 ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) + 
                     uint32_t(EXTRACT(uint32_t, y));
-            } else if (in_type == UINT32) {
+            } else if (in_type == INT32) {
                 ap.int32 = int32_t(EXTRACT(int32_t, x)) + 
                     int32_t(EXTRACT(int32_t, y));
             } else if (in_type == FP32) {
                 ap.fp32 = float(EXTRACT(float, x)) + 
                     float(EXTRACT(float, y));
+            } else if (in_type == FP16) {
+                float f_x = fp16_ieee_to_fp32_value(EXTRACT(uint16_t, x));
+                float f_y = fp16_ieee_to_fp32_value(EXTRACT(uint16_t, y));
+                ap.fp16 = fp16_ieee_from_fp32_value(f_x + f_y);
+            } else {
+                assert(0 && "unsupported combo");
             }
             return ap;
         }
@@ -172,10 +180,15 @@ class ArbPrec
             ArbPrecData ap;
             if (in_type == UINT32) {
                 ap.uint32 = uint32_t(EXTRACT(uint32_t, x)) / uy;
-            } else if (in_type == UINT32) {
+            } else if (in_type == INT32) {
                 ap.int32 = int32_t(EXTRACT(int32_t, x)) / uy;
             } else if (in_type == FP32) {
                 ap.fp32 = float(EXTRACT(float, x)) / uy;
+            } else if (in_type == FP16) {
+                float f_x = fp16_ieee_to_fp32_value(EXTRACT(uint16_t, x));
+                ap.fp16 = fp16_ieee_from_fp32_value(f_x / uy);
+            } else {
+                assert(0 && "unsupported combo");
             }
             return ap;
         }
@@ -185,7 +198,7 @@ class ArbPrec
             if (in_type == UINT32) {
                 is_gt = uint32_t(EXTRACT(uint32_t, x)) > 
                     uint32_t(EXTRACT(uint32_t, y));
-            } else if (in_type == UINT32) {
+            } else if (in_type == INT32) {
                 is_gt = int32_t(EXTRACT(int32_t, x)) > 
                     int32_t(EXTRACT(int32_t, y));
             } else if (in_type == FP32) {
@@ -194,6 +207,10 @@ class ArbPrec
             } else if (in_type == UINT8) { /* pooling from SB */
                 is_gt = float(EXTRACT(uint8_t, x)) >
                     float(EXTRACT(uint8_t, y));
+            } else if (in_type == FP16) {
+                float f_x = fp16_ieee_to_fp32_value(EXTRACT(uint16_t, x));
+                float f_y = fp16_ieee_to_fp32_value(EXTRACT(uint16_t, y));
+                is_gt = (f_x > f_y);
             } else {
                 assert(0);
             }

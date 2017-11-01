@@ -9,8 +9,9 @@ def diff(_n0, _n1):
     np.set_printoptions(threshold=np.nan)
     n0 = np.load(_n0)
     n1 = np.load(_n1)
-    if n0.dtype == np.dtype(np.float32):
-        np.testing.assert_allclose(n0, n1,  err_msg=err_msg)
+    if n0.dtype == np.dtype(np.float32) or n0.dtype == np.dtype(np.float16):
+        np.seterr(under='warn')
+        np.testing.assert_allclose(n0, n1, rtol=0.05)
     else:
         np.testing.assert_array_equal(n0, n1)
 

@@ -42,7 +42,7 @@ namespace cnpy {
     char BigEndianTest();
     char map_type(const std::type_info& t);
     template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims);
-    void parse_npy_header(FILE* fp,unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order);
+    void parse_npy_header(FILE* fp,unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order, char& ctype);
     void parse_zip_footer(FILE* fp, unsigned short& nrecs, unsigned int& global_header_size, unsigned int& global_header_offset);
     npz_t npz_load(std::string fname);
     NpyArray npz_load(std::string fname, std::string varname);
@@ -71,6 +71,7 @@ namespace cnpy {
 
     template<typename T> void npy_save(std::string fname, const T* data, const unsigned int* shape, const unsigned int ndims, std::string mode = "w") {
         FILE* fp = NULL;
+        char ctype;
 
         if(mode == "a") fp = fopen(fname.c_str(),"r+b");
 
@@ -79,7 +80,7 @@ namespace cnpy {
             unsigned int word_size, tmp_dims;
             unsigned int* tmp_shape = 0;
             bool fortran_order;
-            parse_npy_header(fp,word_size,tmp_shape,tmp_dims,fortran_order);
+            parse_npy_header(fp,word_size,tmp_shape,tmp_dims,fortran_order,ctype);
             assert(!fortran_order);
 
             if(word_size != sizeof(T)) {

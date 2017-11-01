@@ -20,7 +20,7 @@ class Memory {
         Memory(size_t size);
         ~Memory();
         void *io_mmap(std::string fname, int &i, int &j, int &k, int &l, size_t &word_size);
-        void io_write(std::string fname, void *ptr, int i, int j, int k, int l, size_t word_size);
+        void io_write(std::string fname, void *ptr, int i, int j, int k, int l, ARBPRECTYPE dtype);
         //void munmap(addr_t addr);
         void read(void *dest, addr_t src, size_t n_bytes);
         void write(addr_t dest, void *src, size_t n_bytes);

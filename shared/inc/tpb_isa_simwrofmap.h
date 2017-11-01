@@ -9,7 +9,7 @@ struct SIM_WROFMAP {
     char            fname[128];    
     uint32_t        address;       
     uint16_t        dims[4];           
-    uint8_t         word_size;     
+    uint8_t         dtype;
 } TONGA_PACKED;
 
 

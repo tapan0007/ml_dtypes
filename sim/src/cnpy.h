@@ -41,7 +41,7 @@ namespace cnpy {
 
     char BigEndianTest();
     char map_type(const std::type_info& t);
-    template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims);
+    template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims, const unsigned int word_size);
     void parse_npy_header(FILE* fp,unsigned int& word_size, unsigned int*& shape, unsigned int& ndims, bool& fortran_order);
     void parse_zip_footer(FILE* fp, unsigned short& nrecs, unsigned int& global_header_size, unsigned int& global_header_offset);
     npz_t npz_load(std::string fname);
@@ -69,22 +69,22 @@ namespace cnpy {
         return s.str();
     }
 
-    template<typename T> void npy_save(std::string fname, const T* data, const unsigned int* shape, const unsigned int ndims, std::string mode = "w") {
+    template<typename T> void npy_save(std::string fname, const T* data, const unsigned int* shape, const unsigned int ndims, const unsigned int word_size, std::string mode = "w") {
         FILE* fp = NULL;
 
         if(mode == "a") fp = fopen(fname.c_str(),"r+b");
 
         if(fp) {
             //file exists. we need to append to it. read the header, modify the array size
-            unsigned int word_size, tmp_dims;
+            unsigned int act_word_size, tmp_dims;
             unsigned int* tmp_shape = 0;
             bool fortran_order;
-            parse_npy_header(fp,word_size,tmp_shape,tmp_dims,fortran_order);
+            parse_npy_header(fp,act_word_size,tmp_shape,tmp_dims,fortran_order);
             assert(!fortran_order);
 
-            if(word_size != sizeof(T)) {
-                std::cout<<"libnpy error: "<<fname<<" has word size "<<word_size<<" but npy_save appending data sized "<<sizeof(T)<<"\n";
-                assert( word_size == sizeof(T) );
+            if(act_word_size != word_size) {
+                std::cout<<"libnpy error: "<<fname<<" has word size "<<word_size<<" but npy_save appending data sized "<<act_word_size<<"\n";
+                assert( word_size == act_word_size );
             }
             if(tmp_dims != ndims) {
                 std::cout<<"libnpy error: npy_save attempting to append misdimensioned data to "<<fname<<"\n";
@@ -100,7 +100,7 @@ namespace cnpy {
             tmp_shape[0] += shape[0];
 
             fseek(fp,0,SEEK_SET);
-            std::vector<char> header = create_npy_header(data,tmp_shape,ndims);
+            std::vector<char> header = create_npy_header(data,tmp_shape,ndims,word_size);
             fwrite(&header[0],sizeof(char),header.size(),fp);
             fseek(fp,0,SEEK_END);
 
@@ -108,7 +108,7 @@ namespace cnpy {
         }
         else {
             fp = fopen(fname.c_str(),"wb");
-            std::vector<char> header = create_npy_header(data,shape,ndims);
+            std::vector<char> header = create_npy_header(data,shape,ndims,word_size);
             fwrite(&header[0],sizeof(char),header.size(),fp);
         }
 
@@ -151,7 +151,7 @@ namespace cnpy {
             fp = fopen(zipname.c_str(),"wb");
         }
 
-        std::vector<char> npy_header = create_npy_header(data,shape,ndims);
+        std::vector<char> npy_header = create_npy_header(data,shape,ndims,sizeof(T));
 
         unsigned long nels = 1;
         for (int m=0; m<ndims; m++ ) nels *= shape[m];
@@ -210,13 +210,13 @@ namespace cnpy {
         fclose(fp);
     }
 
-    template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims) {  
+    template<typename T> std::vector<char> create_npy_header(const T* data, const unsigned int* shape, const unsigned int ndims, const unsigned int word_size) {  
         UNUSED(data);
         std::vector<char> dict;
         dict += "{'descr': '";
         dict += BigEndianTest();
         dict += map_type(typeid(T));
-        dict += tostring(sizeof(T));
+        dict += tostring(word_size);
         dict += "', 'fortran_order': False, 'shape': (";
         dict += tostring(shape[0]);
         for(unsigned int i = 1;i < ndims;i++) {

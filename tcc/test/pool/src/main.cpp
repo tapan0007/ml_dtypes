@@ -62,7 +62,7 @@ main(int argc, char **argv)
     compile_pool(fptr, ifmap_full_addr, i_dims, k_dims, 
             ofmap_full_addr, o_dims, s_dims, dtype, (POOLFUNC)pool_func);
     compile_write_ofmap(fptr, o_name, ofmap_full_addr,
-            o_dims, word_size);
+            o_dims, dtype);
 
 
 

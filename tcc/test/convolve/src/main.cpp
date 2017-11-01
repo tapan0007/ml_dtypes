@@ -7,13 +7,44 @@
 
 
 void
-get_dims(char *fname, uint64_t *shape, size_t *word_size) {
-    cnpy::NpyArray arr = cnpy::npy_load(fname);
-    for (int i = 0; i < 4; i++) {
-        shape[i] = (uint64_t)arr.shape[i];
+get_dims(char *fname, unsigned int *&shape, unsigned int &word_size, ARBPRECTYPE &dtype) {
+    bool fortran_order;
+    unsigned int ndims;
+    char ctype;
+    FILE *fp = fopen(fname, "r");
+    cnpy::parse_npy_header(fp, word_size, shape, ndims, fortran_order, ctype);
+
+    switch (word_size) {
+        case 1:
+            switch (ctype) {
+                case 'u':
+                    dtype = UINT8;
+                    break;
+                case 'i':
+                    dtype = INT8;
+                    break;
+                default:
+                    assert(0);
+            }
+            break;
+        case 2:
+            switch (ctype) {
+                case 'u':
+                    dtype = UINT8;
+                    break;
+                case 'i':
+                    dtype = INT8;
+                    break;
+                case 'f':
+                    dtype = FP16;
+                    break;
+                default:
+                    assert(0);
+            }
+            break;
+        default:
+            assert(0);
     }
-    *word_size = arr.word_size;
-    free(arr.data);
 }
 
 #define SB_STEP 13
@@ -26,10 +57,13 @@ main(int argc, char **argv)
     addr_t ofmap_addr  = 2 * (1 << SB_STEP);
     addr_t ifmap_addr[2] = {ifmap_base,0};
     addr_t filter_addr[2] = {filter_base,0};
-    uint64_t i_dims[4], f_dims[4];
-    size_t word_size;
-    size_t oword_size = 4; /* FIXME, no pinning! */
-    ARBPRECTYPE dtype = UINT8; /* FIXME, no pinning! */
+    unsigned int *i_dims;
+    unsigned int *f_dims;
+    uint64_t i64_dims[4];
+    uint64_t f64_dims[4];
+    unsigned int word_size = 0;
+    ARBPRECTYPE dtype = INVALID_ARBPRECTYPE; 
+    ARBPRECTYPE o_dtype;
     uint8_t padding[2] = {0};
     uint8_t stride[] = {1,1};
     uint8_t dilate[] = {0,0};
@@ -71,11 +105,13 @@ main(int argc, char **argv)
     }
 
 
+    get_dims(i_names[0], i_dims, word_size, dtype);
+    o_dtype = get_upcast(dtype);
 
     assert(num_inames <= 2);
     uint64_t i_ch = 0;
     for (int j = 0; j < num_inames; j++) {
-        get_dims(i_names[j], i_dims, &word_size);
+        get_dims(i_names[j], i_dims, word_size, dtype);
         compile_read_ifmap(fptr, ifmap_addr[j], i_names[j], "NCHW");
         if (j + 1 < num_inames) {
             ifmap_addr[j+1] = ifmap_addr[j] + word_size * i_dims[3] * i_dims[2];
@@ -87,7 +123,7 @@ main(int argc, char **argv)
 
     uint64_t f_ch = 0;
     for (int j = 0; j < num_fnames; j++) {
-        get_dims(f_names[j], f_dims, &word_size);
+        get_dims(f_names[j], f_dims, word_size, dtype);
         compile_read_filter(fptr, filter_addr[j], f_names[j], "MCRS");
         if (j + 1 < num_fnames) {
             filter_addr[j+1] = filter_addr[j] + 
@@ -97,13 +133,17 @@ main(int argc, char **argv)
     }
     f_dims[1] = f_ch;
 
+    for (size_t j = 0; j < 4; j++) {
+        i64_dims[j] = i_dims[j];
+        f64_dims[j] = f_dims[j];
+    }
 
     compile_convolve(fptr, 
-            ifmap_addr, i_dims,
-            filter_addr, f_dims,
+            ifmap_addr, i64_dims,
+            filter_addr, f64_dims,
             ofmap_addr, o_dims,
             dtype, padding, stride, dilate);
-    compile_write_ofmap(fptr, o_name, ofmap_addr, o_dims, oword_size);
+    compile_write_ofmap(fptr, o_name, ofmap_addr, o_dims, o_dtype);
 
 
 
