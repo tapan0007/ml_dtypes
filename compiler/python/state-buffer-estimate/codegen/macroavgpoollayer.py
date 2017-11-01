@@ -1,20 +1,13 @@
-from .genlayer import GenLayer
+from .macropoollayer import MacroPoolLayer
+
 
 ##########################################################
-class GenAddLayer(GenLayer):
+class MacroAvgPoolLayer(MacroPoolLayer):
     #-----------------------------------------------------------------
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)
 
     #-----------------------------------------------------------------
     def generate(self, layer):
-        f = self.gFile()
-        ind        = self.gIndent()
-        s = [ "// " + layer.gName(),
-              "compile_add()",
-        ]
-        ss = ""
-        for x in s: ss += ind + x + "\n"
-
-        f.write(ss)
+        self.generatePool(layer, "AVG_POOL")
 

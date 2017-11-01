@@ -1,8 +1,8 @@
-from .genlayer import GenLayer
+from .macrolayer import MacroLayer
 
 
 ##########################################################
-class GenDataLayer(GenLayer):
+class MacroDataLayer(MacroLayer):
     #-----------------------------------------------------------------
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)
@@ -13,8 +13,8 @@ class GenDataLayer(GenLayer):
         ind = self.gIndent()
         s = [ "// " + layer.gName(),
               "compile_read_ifmap(out_binary,",
-              ind + "const addr_t ifmap_sb_addr, const char *in_numpy_fname,",
-              ind + "const char *numpy_layout);",
+              ind + str(layer.gOfmapAddress()) + ", " + str('"ifmap.py"') +",",
+              ind + '"NCHW");',
             ]
 
         ss = ""

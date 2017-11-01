@@ -7,11 +7,11 @@ import layers.maxpoollayer
 import layers.avgpoollayer
 import layers.addlayer
 
-from .genconvlayer    import GenConvLayer
-from .genmaxpoollayer import GenMaxPoolLayer
-from .genavgpoollayer import GenAvgPoolLayer
-from .gendatalayer    import GenDataLayer
-from .genaddlayer     import GenAddLayer
+from .macroconvlayer    import MacroConvLayer
+from .macromaxpoollayer import MacroMaxPoolLayer
+from .macroavgpoollayer import MacroAvgPoolLayer
+from .macrodatalayer    import MacroDataLayer
+from .macroaddlayer     import MacroAddLayer
 
 ##########################################################
 macro_instr_api=(
@@ -65,11 +65,11 @@ class MacroInstrGen(object):
     #-----------------------------------------------------------------
     def createGenMap(self):
         self.__Map = {
-            layers.datalayer.DataLayer       : GenDataLayer(self),
-            layers.convlayer.ConvLayer       : GenConvLayer(self),
-            layers.maxpoollayer.MaxPoolLayer : GenMaxPoolLayer(self),
-            layers.avgpoollayer.AvgPoolLayer : GenAvgPoolLayer(self),
-            layers.addlayer.AddLayer        : GenAddLayer(self),
+            layers.datalayer.DataLayer       : MacroDataLayer(self),
+            layers.convlayer.ConvLayer       : MacroConvLayer(self),
+            layers.maxpoollayer.MaxPoolLayer : MacroMaxPoolLayer(self),
+            layers.avgpoollayer.AvgPoolLayer : MacroAvgPoolLayer(self),
+            #layers.addlayer.AddLayer         : MacroAddLayer(self),
         }
 
     #-----------------------------------------------------------------
@@ -82,7 +82,7 @@ class MacroInstrGen(object):
         self.createGenMap()
 
     def gDataTypeName(self):
-        return self.__Network.gDataType().gName().upper()
+        return "ARBPRECTYPE::" + self.__Network.gDataType().gName().upper()
 
     def gIndent(self):
         return self.__Indent
@@ -114,33 +114,56 @@ class MacroInstrGen(object):
 
     def writeIncludes(self):
         f = self.__File
-        f.write('#include "tcc.h"')
+        f.write('\n')
+        f.write('#include "cnpy.h"\n')
+        f.write('#include "tpb_isa.h"\n')
+        f.write('#include "uarch_cfg.h"\n')
+        f.write('#include "tcc.h"\n')
+
+    def writeDefines(self):
+        f = self.__File
+        f.write('#define Assert(X) assert(X)\n')
 
     #-----------------------------------------------------------------
     def generateFile(self):
         nl = "\n"
         self.writeIfc()
         self.writeIncludes()
+        self.writeDefines()
         f = self.__File
 
 
         ####################################################
         ind = self.gIndent()
+        ind2 = ind*2
         sep = "//-----------------------------------------" + nl
 
         ####################################################
         header = [
             nl,
-            "void",
-            "network(const char* out_binary_name)",
+            "int",
+            "main(int argc, char* argv[])",
             "{",
-            ind + 'FILE* const out_binary = fopen(out_binary_name, "w");',
+            ind + "if (argc < 2) {",
+            ind2 +'    fprintf(stderr, "Usage: %s out_obj_file\\n", argv[0]);',
+            ind2 +"    exit(1);",
+            ind + "}",
+            ind + 'FILE* const out_binary = fopen(argv[1], "w");',
+            ind + "if (! out_binary) {",
+            ind2 +'    fprintf(stderr, "Cannot open file %s\\n", argv[1]);',
+            ind2 +"    exit(1);",
+            ind + "}",
+            "",
             ind + "uint64_t ofmap_dims[4];",
+            ind + "addr_t   ifmap_addrs[1];",   ## temporary for single Ifmap
             ind + "uint64_t ifmap_dims[4];",
+            ind + "addr_t   filter_addr[1];",   ## temporary for single Ifmap
             ind + "uint64_t filter_dims[4];",
             ind + "uint64_t kernel_dims[4];",
             ind + "uint64_t pool_stride[4];",
             ind + "uint8_t  convolve_stride[2];",
+            ind + "uint8_t padding[2];",
+            ind + "uint8_t dilate[2];",
             "",
         ]
         for l in header:
@@ -158,6 +181,7 @@ class MacroInstrGen(object):
             "",
             ind + sep,
             ind + "fclose(out_binary);",
+            ind + "return 0;",
             "}",
             "",
         ]

@@ -1,8 +1,8 @@
-from .genlayer import GenLayer
+from .macrolayer import MacroLayer
 
 
 ##########################################################
-class GenConvLayer(GenLayer):
+class MacroConvLayer(MacroLayer):
     #-----------------------------------------------------------------
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)
@@ -32,10 +32,10 @@ class GenConvLayer(GenLayer):
               ## C: number of ifmaps / channels
               ## H: height of ifmap
               ## W: width of ifmap
-              (   "ifmaps_dims[0] = " + str(numBatches) + ";"  ## num images
-                + " ifmaps_dims[1] = " + str(numIfmaps) + ";"  ## image width?
-                + " ifmaps_dims[2] = " + str(ifmapSize) + ";"  ## image height?
-                + " ifmaps_dims[3] = " + str(ifmapSize) + ";"
+              (   "ifmap_dims[0] = " + str(numBatches) + ";"  ## num images
+                + " ifmap_dims[1] = " + str(numIfmaps) + ";"  ## image width?
+                + " ifmap_dims[2] = " + str(ifmapSize) + ";"  ## image height?
+                + " ifmap_dims[3] = " + str(ifmapSize) + ";"
               ),
               ## const addr_t *filter_addr, const uint64_t filter_dims[4], // MCRS
               ## M: number of ofmaps
@@ -47,10 +47,12 @@ class GenConvLayer(GenLayer):
                 + " filter_dims[2] = " + str(kernelSize) + ";"  ## image height?
                 + " filter_dims[3] = " + str(kernelSize)  + ";"
               ),
+              "ifmap_addrs[0] = " + str(layer.gIfmapAddress()) + ";",
+              "filter_addr[0] = " + str(layer.gWeightAddress()) + ";",
               "",
               "compile_convolve(out_binary,",
-              ind + str(layer.gIfmapAddress())  + ", ifmap_dims,",
-              ind + str(layer.gWeightAddress()) + ", filter_dims,",
+              ind + "ifmap_addrs, ifmap_dims,",
+              ind + "filter_addr, filter_dims,",
               ind + str(layer.gOfmapAddress())  + ", ofmap_dims,",
               ind + self.gMacroInstrGen().gDataTypeName() + ",",
               ind + "padding,",
@@ -63,10 +65,10 @@ class GenConvLayer(GenLayer):
               ## H: height of ofmap
               ## W: width of ofmap
               (
-                  assertStr + "(ofmaps_dims[0] == " + str(numBatches) + ");"
-                + " " + assertStr + "(ofmaps_dims[1] == " + str(numOfmaps) + ");"  
-                + " " + assertStr + "(ofmaps_dims[2] == " + str(ofmapSize) + ");"  
-                + " " + assertStr + "(ofmaps_dims[3] == " + str(ofmapSize) + ");"
+                  assertStr + "(ofmap_dims[0] == " + str(numBatches) + ");"
+                + " " + assertStr + "(ofmap_dims[1] == " + str(numOfmaps) + ");"  
+                + " " + assertStr + "(ofmap_dims[2] == " + str(ofmapSize) + ");"  
+                + " " + assertStr + "(ofmap_dims[3] == " + str(ofmapSize) + ");"
               ),
            ]
 

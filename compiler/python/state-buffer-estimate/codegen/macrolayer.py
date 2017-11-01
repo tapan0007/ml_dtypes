@@ -1,7 +1,7 @@
 from abc             import ABCMeta, abstractmethod
 
 ##########################################################
-class GenLayer(object, metaclass = ABCMeta):
+class MacroLayer(object, metaclass = ABCMeta):
     def __init__(self, macroInstrGen):
         self.__MacroInstrGen = macroInstrGen
         self.__Indent = "    "

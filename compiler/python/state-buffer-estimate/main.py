@@ -54,8 +54,8 @@ if DenseNet:
 elif ResNet:
     from nets.resnet.resnet         import ResNet50
     #ntwk = ResNet50(DataTypeFp16(), UseRelu)
-    #ntwk = ResNet50(DataTypeInt8(), UseRelu)
-    ntwk = ResNet50(DataTypeInt16(), UseRelu)
+    ntwk = ResNet50(DataTypeInt8(), UseRelu)
+    #ntwk = ResNet50(DataTypeInt16(), UseRelu)
 
 ##################################################
 if True:
@@ -91,7 +91,7 @@ sbmgr.calcLayerFmapAddresses()
 
 codegen = MacroInstrGen(ntwk, arch)
 breakFunc(3)
-codegen.generate("Code")
+codegen.generate("try/code.cpp")
 print("")
 
 ##################################################

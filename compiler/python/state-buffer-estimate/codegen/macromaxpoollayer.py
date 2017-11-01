@@ -1,7 +1,7 @@
-from .genpoollayer import GenPoolLayer
+from .macropoollayer import MacroPoolLayer
 
 ##########################################################
-class GenMaxPoolLayer(GenPoolLayer):
+class MacroMaxPoolLayer(MacroPoolLayer):
     #-----------------------------------------------------------------
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)

@@ -1,6 +1,6 @@
-from .genlayer import GenLayer
+from .macrolayer import MacroLayer
 
-class GenPoolLayer(GenLayer):
+class MacroPoolLayer(MacroLayer):
     #-----------------------------------------------------------------
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)
@@ -22,17 +22,17 @@ class GenPoolLayer(GenLayer):
 
         ##
         s = [ "// " + layer.gName(),
-              "stride[1] = stride[0] = " + str(layer.gStride()) + ";",
+              "pool_stride[1] = pool_stride[0] = " + str(layer.gStride()) + ";",
 
               ## const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4], // NCHW
               ## N: batch size
               ## C: number of ifmaps / channels
               ## H: height of ifmap
               ## W: width of ifmap
-              (   "ifmaps_dims[0] = " + str(numBatches) + ";"
-                + " ifmaps_dims[1] = " + str(numIfmaps) + ";"
-                + " ifmaps_dims[2] = " + str(ifmapSize) + ";"
-                + " ifmaps_dims[3] = " + str(ifmapSize) + ";"
+              (   "ifmap_dims[0] = " + str(numBatches) + ";"
+                + " ifmap_dims[1] = " + str(numIfmaps) + ";"
+                + " ifmap_dims[2] = " + str(ifmapSize) + ";"
+                + " ifmap_dims[3] = " + str(ifmapSize) + ";"
               ),
               ## const uint64_t kernel_dims[4], // NCHW 
               ## N: batch size
@@ -59,7 +59,7 @@ class GenPoolLayer(GenLayer):
               ind + str(layer.gOfmapAddress()) + ", ofmap_dims,",
               ind + "pool_stride,",
               ind + self.gMacroInstrGen().gDataTypeName() + ",",
-              ind + poolType + ");",
+              ind + "POOLFUNC::" + poolType + ");",
               "",
 
               ##const addr_t ofmap_addr, uint64_t ofmap_dims[4], 
@@ -68,10 +68,10 @@ class GenPoolLayer(GenLayer):
               ## H: height of ifmap
               ## W: width of ifmap
               (
-                  assertStr + "(ofmaps_dims[0] == " + str(numBatches) + ");"
-                + " " + assertStr + "(ofmaps_dims[1] == " + str(numOfmaps) + ");"  
-                + " " + assertStr + "(ofmaps_dims[2] == " + str(ofmapSize) + ");"  
-                + " " + assertStr + "(ofmaps_dims[3] == " + str(ofmapSize) + ");"
+                  assertStr + "(ofmap_dims[0] == " + str(numBatches) + ");"
+                + " " + assertStr + "(ofmap_dims[1] == " + str(numOfmaps) + ");"  
+                + " " + assertStr + "(ofmap_dims[2] == " + str(ofmapSize) + ");"  
+                + " " + assertStr + "(ofmap_dims[3] == " + str(ofmapSize) + ");"
               ),
             ]
 
