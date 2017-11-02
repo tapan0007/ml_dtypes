@@ -82,7 +82,7 @@ class MacroInstrGen(object):
         self.createGenMap()
 
     def gDataTypeName(self):
-        return "ARBPRECTYPE::" + self.__Network.gDataType().gName().upper()
+        return "ARBPRECTYPE::" + self.__Network.gDataType().gTccName()
 
     def gIndent(self):
         return self.__Indent
