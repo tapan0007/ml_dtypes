@@ -36,3 +36,6 @@ class SubSampleLayer(Layer): # abstract class
     def qSubSampleLayer(self):
         return True
 
+    def verify(self):
+        assert(self.gPrevLayer(0).gOfmapSize() // self.gStride() == self.gOfmapSize())
+

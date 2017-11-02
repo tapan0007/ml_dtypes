@@ -9,12 +9,15 @@ class MacroDataLayer(MacroLayer):
 
     #-----------------------------------------------------------------
     def generate(self, layer):
+        qq = '"'
+        q  = "'"
         f = self.gFile()
         ind = self.gIndent()
         s = [ "// " + layer.gName(),
               "compile_read_ifmap(out_binary,",
-              ind + str(layer.gOfmapAddress()) + ", " + str('"ifmap.py"') +",",
-              ind + '"NCHW");',
+              ind + str(layer.gOfmapAddress()) + ", ",
+              ind + str(qq + layer.gInputDataFileName() + qq) +", "
+              + qq + layer.gDataTensorDimSemantics() + qq + ");",
             ]
 
         ss = ""

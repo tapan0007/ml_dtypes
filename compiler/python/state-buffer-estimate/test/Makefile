@@ -1,4 +1,4 @@
-FLAGS= -W -Wall -ggdb -g 
+FLAGS= -W -Wall -Werror -ggdb -g 
 CFLAGS = $(FLAGS) -I. -Wno-missing-field-initializers
 CPPFLAGS = $(CFLAGS) -std=c++11
 LFLAGS = $(FLAGS)
@@ -22,7 +22,7 @@ code.cpp :
 	cd .. ; make resnet
 
 code.o : code.cpp
-	g++ $(CPPFLAGS) -c code.cpp 2>LOG
+	g++ $(CPPFLAGS) -c code.cpp 2>&1 | tee LOG
 
 
 clean :

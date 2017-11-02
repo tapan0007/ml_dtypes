@@ -35,6 +35,7 @@ class MacroPoolLayer(MacroLayer):
           + " ifmap_dims[3] = " + str(ifmapSize) + ";"
         )
 
+    #-----------------------------------------------------------------
     def gKernelString(self, layer):
         numBatches  = self.__NumBatches 
         kernelSize  = layer.gKernel()
@@ -52,6 +53,7 @@ class MacroPoolLayer(MacroLayer):
           + " kernel_dims[3] = " + str(kernelSize) + ";"
         )
 
+    #-----------------------------------------------------------------
     def gStrideString(self, layer):
         batchStride = self.__NumBatches = 1
         ifmapStride = 1
@@ -64,6 +66,7 @@ class MacroPoolLayer(MacroLayer):
         )
 
 
+    #-----------------------------------------------------------------
     def gOfmapAssertString(self, layer):
         assertStr   =  self.gMacroInstrGen().gAssertionStr()
         ofmapSize   = layer.gOfmapSize()
@@ -82,6 +85,7 @@ class MacroPoolLayer(MacroLayer):
           + " " + assertStr + "(ofmap_dims[3] == " + str(ofmapSize) + ");"
         )
 
+    #-----------------------------------------------------------------
     def generatePool(self, layer, poolType):
         f           = self.gFile()
         self.__NumBatches = 1    ## only one image in batch

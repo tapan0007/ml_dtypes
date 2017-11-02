@@ -9,12 +9,16 @@ import nets.network
 ##########################################################
 class ConvLayer(SubSampleLayer):
     #-----------------------------------------------------------------
-    def __init__(self, param, prev_layer, num_ofmaps, stride, kernel):
+    def __init__(self, param, prev_layer, num_ofmaps, stride, kernel,
+            inputDataFileName = "conv-weights.py", filterTensorDims = "MCRS"):
         assert(isinstance(param, Layer.Param))
         assert(isinstance(prev_layer, Layer))
 
         super().__init__(param, prev_layer,
             num_ofmaps=num_ofmaps, stride=stride, kernel=kernel)
+
+        self.__InputDataFileName = inputDataFileName
+        self.__FilterTensorDimSemantics = filterTensorDims
 
     #-----------------------------------------------------------------
     def __str__(self):
@@ -29,11 +33,18 @@ class ConvLayer(SubSampleLayer):
     #-----------------------------------------------------------------
     def verify(self):
         assert(self.gNumPrevLayers() == 1)
+        super().verify()
         prevLayer = self.gPrevLayer(0)
         prevMapSize = prevLayer.gOfmapSize()
-        assert(prevMapSize // self.gStride() == self.gOfmapSize())
         ##assert(self.gPrevLayer(0).gOfmapSize() // self.gStride() == self.gOfmapSize())
 
+    #-----------------------------------------------------------------
+    def gInputDataFileName(self):
+        return self.__InputDataFileName
+
+    #-----------------------------------------------------------------
+    def gFilterTensorDimSemantics(self):
+        return self.__FilterTensorDimSemantics
 
     #-----------------------------------------------------------------
     def gTypeStr(self):
@@ -49,6 +60,7 @@ class ConvLayer(SubSampleLayer):
         num_ifmaps = self.gPrevLayer(0).gNumOfmaps()
         return num_ifmaps *  self.gNumberWeightsPerPartition()
 
+    #-----------------------------------------------------------------
     def gNumberWeightsPerPartition(self):
         assert(self.gNumPrevLayers() == 1)
         k = self.gKernel()

@@ -20,7 +20,7 @@ class PoolLayer(SubSampleLayer, metaclass = ABCMeta): # abstract class
     #-----------------------------------------------------------------
     def verify(self):
         assert(self.gNumPrevLayers() == 1)
-        assert(self.gPrevLayer(0).gOfmapSize() // self.gStride() == self.gOfmapSize())
+        super().verify()
 
 
     #-----------------------------------------------------------------

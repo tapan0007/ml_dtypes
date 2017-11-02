@@ -25,6 +25,8 @@ class MacroConvLayer(MacroLayer):
     #         const uint8_t dilate[2]);  // Height,Width 
     #-----------------------------------------------------------------
     def generate(self, layer):
+        qq = '"'
+        q  = "'"
         f = self.gFile()
         ind        = self.gIndent()
         prevLayer  = layer.gPrevLayer(0)
@@ -66,7 +68,12 @@ class MacroConvLayer(MacroLayer):
               ),
               "ifmap_addrs[0] = " + str(layer.gIfmapAddress()) + ";",
               "filter_addr[0] = " + str(layer.gWeightAddress()) + ";",
+              "filter_file_names[0] = " + qq + layer.gInputDataFileName() + qq + ";",
               "",
+
+              "compile_read_filter(out_binary, filter_addr[0], filter_file_names[0], "
+                    + qq + layer.gFilterTensorDimSemantics() + qq +  ");",
+
               "compile_convolve(out_binary,",
               ind + "ifmap_addrs, ifmap_dims,",
               ind + "filter_addr, filter_dims,",
@@ -75,6 +82,7 @@ class MacroConvLayer(MacroLayer):
               ind + "padding,",
               ind + "convolve_stride,",
               ind + "dilate);",
+
               "",
               ## const addr_t ofmap_addr, uint64_t ofmap_dims[4], // output NCHW 
               ## N: batch size

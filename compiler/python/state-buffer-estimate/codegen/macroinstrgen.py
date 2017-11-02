@@ -155,9 +155,10 @@ class MacroInstrGen(object):
             ind + "}",
             "",
             ind + "uint64_t ofmap_dims[4];",
-            ind + "addr_t   ifmap_addrs[1];",   ## temporary for single Ifmap
+            ind + "addr_t   ifmap_addrs[1];",   ## 1 is temporary for single Ifmap
             ind + "uint64_t ifmap_dims[4];",
-            ind + "addr_t   filter_addr[1];",   ## temporary for single Ifmap
+            ind + "addr_t   filter_addr[1];",   ## 1 is temporary for single Ifmap
+            ind + "const char* filter_file_names[1];",   ## 1 is temporary for single Ifmap
             ind + "uint64_t filter_dims[4];",
             ind + "uint64_t kernel_dims[4];",
             ind + "uint64_t pool_stride[4];",

@@ -18,7 +18,7 @@ from schedule.scheduler         import Scheduler
 #print(sys.argv)
 
 PrintLevels = False
-PrintSchedule = True
+PrintSchedule = False
 PrintDot = False
 PrintLayers = False
 __DoBatching = False
