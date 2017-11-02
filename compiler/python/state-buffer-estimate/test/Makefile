@@ -5,14 +5,18 @@ LFLAGS = $(FLAGS)
 
 INKLING = ./Inkling
 
-LIBDIRS = -L$(INKLING)/tcc/libs
-LIBS = -ltcc
+LIBDIR1 = $(INKLING)/tcc/libs
+LIBDIR_FLAGS= -L$(LIBDIR1)
+
+TCC=tcc
+LIB_FLAGS = -l$(TCC)
+TCCAR = $(LIBDIR1)/lib$(TCC).a
 
 run : code
 	./code o
 
-code : code.o
-	g++ $(LFLAGS) -o code code.o $(LIBDIRS) $(LIBS)
+code : code.o $(TCCAR)
+	g++ $(LFLAGS) -o code code.o $(LIBDIR_FLAGS) $(LIB_FLAGS)
 
 code.cpp :
 	cd .. ; make resnet

@@ -7,6 +7,22 @@ class MacroConvLayer(MacroLayer):
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)
 
+
+    #-----------------------------------------------------------------
+    # *[ifmap/filter]_addrs are arrays of statebuffer addresses.  Arrays 
+    # * deal with cases iwhen with the number of ifmap channels is > number of rows.
+    # * In this case, the ifmaps and filters must be "wrapped".  Each address in the 
+    # * array is the wrap offset 
+    #
+    # void
+    # compile_convolve(FILE *out_binary,
+    #         const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4], // NCHW
+    #         const addr_t *filter_addr, const uint64_t filter_dims[4], // MCRS 
+    #         const addr_t ofmap_addr, uint64_t ofmap_dims[4], // output NCHW 
+    #         const ARBPRECTYPE dtype,
+    #         const uint8_t padding[2],  // Height,Width 
+    #         const uint8_t stride[2],   // Height,Width 
+    #         const uint8_t dilate[2]);  // Height,Width 
     #-----------------------------------------------------------------
     def generate(self, layer):
         f = self.gFile()
@@ -24,7 +40,8 @@ class MacroConvLayer(MacroLayer):
         ##
         s = [ "// " + layer.gName(),
               "convolve_stride[1] = convolve_stride[0] = " + str(layer.gStride()) + ";",
-              "padding[1] = padding[0] = 0;",
+              "padding[0] = " + str( (kernelSize-1) // 2 ) + ";",
+              "padding[1] = " + str( (kernelSize-1) // 2 ) + ";",
               "dilate[1] = dilate[0] = 0;",
 
               ## const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4], // NCHW

@@ -110,7 +110,7 @@ class MacroInstrGen(object):
     #-----------------------------------------------------------------
     def writeIfc(self):
         f = self.__File
-        f.write(macro_instr_api)
+        #f.write(macro_instr_api)
 
     def writeIncludes(self):
         f = self.__File
