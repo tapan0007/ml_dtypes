@@ -90,12 +90,10 @@ class MacroConvLayer(MacroLayer):
               ## C: number of ofmaps / channels
               ## H: height of ofmap
               ## W: width of ofmap
-              (
-                  assertStr + "(ofmap_dims[0] == " + str(numBatches) + ");"
-                + " " + assertStr + "(ofmap_dims[1] == " + str(numOfmaps) + ");"  
-                + " " + assertStr + "(ofmap_dims[2] == " + str(ofmapSize) + ");"  
-                + " " + assertStr + "(ofmap_dims[3] == " + str(ofmapSize) + ");"
-              ),
+              assertStr + "(ofmap_dims[0] == " + str(numBatches) + ");",
+              assertStr + "(ofmap_dims[1] == " + str(numOfmaps) + ");",
+              assertStr + "(ofmap_dims[2] == " + str(ofmapSize) + ");",
+              assertStr + "(ofmap_dims[3] == " + str(ofmapSize) + ");",
            ]
 
         ss = ""
