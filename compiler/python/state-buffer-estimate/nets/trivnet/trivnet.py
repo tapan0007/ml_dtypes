@@ -18,14 +18,9 @@ class TrivNet(Network):
  
     def construct(self):
         layer =  DataLayer(Layer.Param("input", 1, self),
-               OfmapDesc(4, 8), inputDataFileName="out_input:0_NCHW.npy", dataTensorDimSemantics="NCHW")
-        layer = ConvLayer(Layer.Param("jdr_v3/i1", 1, self), layer,
-                   4, stride=1, kernel=3,
-                   filterFileName="out_jdr_v3__weight1__read:0_MCRS.npy", filterTensorDimSemantics="MCRS")
-        # Golden result file  out_jdr_v3__i1:0_NCHW.npy
-        
-        layer = ConvLayer(Layer.Param("jdr_v3/i2", 1, self), layer,
-                   4, stride=1, kernel=3,
-                   filterFileName="out_jdr_v3__weight2__read:0_MCRS.npy", filterTensorDimSemantics="MCRS")
-        # Golden result file  out_jdr_v3__i2:0_NCHW.npy
+               OfmapDesc(1, 4), inputDataFileName="out_input:0_NCHW.npy", dataTensorDimSemantics="NCHW")
+        layer = ConvLayer(Layer.Param("jdr_v2/i1", 1, self), layer,
+                   1, stride=1, kernel=1,
+                   filterFileName="out_jdr_v2__weight1__read:0_MCRS.npy", filterTensorDimSemantics="MCRS")
+        # Golden result file  out_jdr_v2__i1:0_NCHW.npy
         
