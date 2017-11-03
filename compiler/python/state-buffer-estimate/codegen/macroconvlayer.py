@@ -67,8 +67,9 @@ class MacroConvLayer(MacroLayer):
                 + " filter_dims[3] = " + str(kernelSize)  + ";"
               ),
               "ifmap_addrs[0] = " + str(layer.gIfmapAddress()) + ";",
+              "ofmap_addrs = " + str(layer.gOfmapAddress()) + ";",
               "filter_addr[0] = " + str(layer.gWeightAddress()) + ";",
-              "filter_file_names[0] = " + qq + layer.gInputDataFileName() + qq + ";",
+              "filter_file_names[0] = " + qq + layer.gFilterFileName() + qq + ";",
               "",
 
               "compile_read_filter(out_binary, filter_addr[0], filter_file_names[0], "
@@ -77,7 +78,7 @@ class MacroConvLayer(MacroLayer):
               "compile_convolve(out_binary,",
               ind + "ifmap_addrs, ifmap_dims,",
               ind + "filter_addr, filter_dims,",
-              ind + str(layer.gOfmapAddress())  + ", ofmap_dims,",
+              ind + "ofmap_addrs, ofmap_dims,",
               ind + self.gMacroInstrGen().gDataTypeName() + ",",
               ind + "padding,",
               ind + "convolve_stride,",

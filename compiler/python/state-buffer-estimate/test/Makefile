@@ -12,8 +12,14 @@ TCC=tcc
 LIB_FLAGS = -l$(TCC)
 TCCAR = $(LIBDIR1)/lib$(TCC).a
 
-run : code
-	./code o
+tpb.obj : code
+	./code $@
+
+tpb.asm : tpb.obj
+	./objdump tpb.obj > $@
+
+simulate : tpb.obj
+	./sim tpb.obj | tee tpb.simres
 
 code : code.o $(TCCAR)
 	g++ $(LFLAGS) -o code code.o $(LIBDIR_FLAGS) $(LIB_FLAGS)
@@ -24,6 +30,7 @@ code.cpp :
 code.o : code.cpp
 	g++ $(CPPFLAGS) -c code.cpp 2>&1 | tee LOG
 
+all : code tpb.asm simulate
 
 clean :
 	rm code code.o

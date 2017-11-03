@@ -24,6 +24,7 @@ PrintLayers = False
 __DoBatching = False
 DenseNet = False
 ResNet = False
+TrivNet = False
 UseRelu = False
 
 for arg in sys.argv[1:]:
@@ -31,6 +32,8 @@ for arg in sys.argv[1:]:
         DenseNet = True
     elif arg == "--resnet" or arg == "--res":
         ResNet = True
+    elif arg == "--trivnet" or arg == "--triv":
+        TrivNet = True
     elif arg == "--print-layers":
         PrintLayers = True
     elif arg == "--print-levels":
@@ -56,6 +59,9 @@ elif ResNet:
     #ntwk = ResNet50(DataTypeFp16(), UseRelu)
     ntwk = ResNet50(DataTypeInt8(), UseRelu)
     #ntwk = ResNet50(DataTypeInt16(), UseRelu)
+elif TrivNet:
+    from nets.trivnet.trivnet import TrivNet
+    ntwk = TrivNet()
 
 ##################################################
 if True:
