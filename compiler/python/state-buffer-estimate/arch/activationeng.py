@@ -13,4 +13,4 @@ class ActivationEng(object):
 
     def gInstructionRamEndInBytes(self):
         return 0x001F03FFF
-        
+

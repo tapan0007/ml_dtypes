@@ -93,7 +93,7 @@ class Printer(object):
         dataType = ntwk.gDataType()
         print(ntwk.gName(), ": data type=", dataType.gName(), " data type size=", dataType.gSizeInBytes())
         memHeader = (SCHED_MEM_FORMAT) % (
-            "Layer", "Ofmap", "In", "Out", 
+            "Layer", "Ofmap", "In", "Out",
             "Residue",
             "Batch",
             "BatchDlt",

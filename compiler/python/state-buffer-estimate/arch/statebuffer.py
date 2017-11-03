@@ -38,4 +38,4 @@ class StateBuffer(object):
         assert(0 <= partNum and partNum < self.gNumberPartitions())
         return self.gFirstAddress() + partNum * self.gPartitionSizeInBytes()
 
-    
+

@@ -1,6 +1,6 @@
 from utils.debug    import breakFunc
 from utils.funcs    import *
-import nets.network 
+import nets.network
 from arch.arch import Arch
 
 ##########################################################
@@ -22,7 +22,7 @@ class StateBufferMgr(object):
     #-----------------------------------------------------------------
     def calcOneLayerFmapMemSizePerPartition(self, layer):
         outSbMemBatch  = layer.gOutputStateMemWithBatching()
-        resSbMemBatch  = layer.gResMemWithBatching() 
+        resSbMemBatch  = layer.gResMemWithBatching()
         totSbMemBatch  = outSbMemBatch + resSbMemBatch
         numOfmaps      = layer.gNumOfmaps()
         assert(numOfmaps > 0)
@@ -32,7 +32,7 @@ class StateBufferMgr(object):
         maxNumOfmapsPerRow = 1 + DivFloor((numOfmaps - 1), numPeArrayRows)
 
         ofmapMemPerPart = sbMemPerOfmap * maxNumOfmapsPerRow
-        return ofmapMemPerPart 
+        return ofmapMemPerPart
 
     #-----------------------------------------------------------------
     def freeLayerMem(self, layer):
@@ -49,8 +49,8 @@ class StateBufferMgr(object):
             assert(layer.gRefCount() == 0)
             layer.changeRefCount(layer.gNumNextSbLayers())
 
-            prevOfmapAddress = self.__OfmapAddress 
-            prevIfmapAddress = self.__IfmapAddress 
+            prevOfmapAddress = self.__OfmapAddress
+            prevIfmapAddress = self.__IfmapAddress
 
             if layer.qDataLayer():
                 assert(prevIfmapAddress == None and prevOfmapAddress == None)
@@ -63,22 +63,22 @@ class StateBufferMgr(object):
                 ofmapSizePerPart = self.calcOneLayerFmapMemSizePerPartition(layer)
 
                 if prevIfmapAddress == None: ## after data layer
-                    ##         Weights | prevOfmap | ... | ...      
+                    ##         Weights | prevOfmap | ... | ...
                     ## need to get batching memory per partition
                     ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
                 elif prevIfmapAddress < prevOfmapAddress:
                     ##     Weights | prevIfmap | ... | prevOfmap
-                    ##             | Ofmap  $rc -ec 'false|false' && fail $rc -c $q'false|false'$q should fail 
+                    ##             | Ofmap  $rc -ec 'false|false' && fail $rc -c $q'false|false'$q should fail
                     ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeightsPerPart
                 else:
                     ##     Weights | prevOfmap | ... | prevIfmap
-                    ##                             | Ofmap   
+                    ##                             | Ofmap
                     ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
 
             layer.rIfmapAddress(ifmapAddress)
             layer.rOfmapAddress(ofmapAddress)
-            self.__OfmapAddress = ofmapAddress 
-            self.__IfmapAddress = ifmapAddress 
+            self.__OfmapAddress = ofmapAddress
+            self.__IfmapAddress = ifmapAddress
 
         if layer.qConvLayer():
             layer.rWeightAddress(self.__FirstSbAddress)

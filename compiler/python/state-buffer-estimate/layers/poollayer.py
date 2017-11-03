@@ -34,7 +34,7 @@ class PoolLayer(SubSampleLayer, metaclass = ABCMeta): # abstract class
         baseLayer = self.gBaseLayerStr()
         t = "{" + self.gTypeStr() + "}"
 
-        return (self.gName() # + t 
+        return (self.gName() # + t
                 + baseLayer
                 + ", kernel=" + ks + "x" + ks + ", stride=" + ss
                 + self.gStateSizesStr())
