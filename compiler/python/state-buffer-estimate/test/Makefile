@@ -22,6 +22,7 @@ TPB=$(NET).tpb
 ASM=$(NET).asm
 SIMRES=$(NET).simres
 
+GOLDEN=golden
 FINAL=$(NET)-out
 
 #################################################
@@ -43,13 +44,17 @@ $(CPP) :
 $(OBJ) : $(CPP)
 	g++ $(CPPFLAGS) -c $(CPP) 2>&1 | tee LOG
 
-all : $(EXE) $(ASM) simulate
-	for file in $(FINAL) input; do for fmt in int16 float16; do \
-	    dumpnpy --$$fmt $$file.npy > $$file.txt;
-	done; done
+npy2txt :
+	for file in $(FINAL) $(GOLDEN); do                  \
+		for fmt in int16 float16; do                    \
+	    	dumpnpy --$$fmt $$file.npy > $$file-$$fmt.txt;    \
+		done;                                           \
+	done
+
+all : $(EXE) $(ASM) simulate npy2txt
 
 clean :
-	rm -f $(EXE) $(OBJ) *-out.npy simulation.log $(TPB) $(ASM) $(SIMRES)
+	rm -f $(EXE) $(OBJ) *-out.npy simulation.log $(TPB) $(ASM) $(SIMRES) *.txt
 
 link :
 	ln -s $$HOME/kaena/CodeCommit/Inkling .
