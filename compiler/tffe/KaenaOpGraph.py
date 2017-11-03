@@ -40,6 +40,16 @@ class Node(Object):
     self.__level = level
   def getNpInfo(self):
     return(self.__npInfo)
+  def getInputNodesAndNpInfo(self):
+    inputNodesAndNpInfos = []
+    faninEdges = self.getFaninEdges()
+    for i in range(0, len(faninEdges)):
+      edge = faninEdges[i]
+      p = edge.getFromPosNode()
+      (fromNode, fromIndex) = (p.node, p.index)
+      npInfo = fromNode.getNpInfo()[fromIndex]
+      inputNodesAndNpInfos.append((fromNode, npInfo))
+    return(inputNodesAndNpInfos)
   def getOpType(self):
     return(self.__opType)
   def getOpName(self):
@@ -61,6 +71,8 @@ class Node(Object):
     while len(self.__fanout) < index + 1:
       self.__fanout.append([])
     self.__fanout[index].append(edge)
+  def genCompilerLayerText(self):
+    return("        # No model for %s %s\n" % (self.getOpType(), self.getOpName()))
 
 class PosNode:
   def __init__(self, node, index):
@@ -88,6 +100,27 @@ class Edge(Object):
            "  From=" + f.node.getName() + ":" + str(f.index) +
            "  To=" + t.node.getName()  + ":" + str(t.index) )
 
+class NodeConv2D(Node):
+  def __init__(self, name, opType, strides, padding, dataFormat, attrs):
+    Node.__init__(self, name, opType, attrs)
+    self.__strides = strides
+    self.__padding = padding
+    self.__strides = strides
+  def genCompilerLayerText(self):
+    npInfo = self.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    numOfMaps = channels
+    filterSize = npInfoW.npShape[0]
+    assert(npInfoW.npShape[0] == npInfoW.npShape[1]) # square filter
+    s =  '        layer = ConvLayer(Layer.Param("%s", %d, self), layer,\n' % (self.getOpName(), batch)
+    s += '                   %d, stride=%d, kernel=%d,\n' % (numOfMaps, 1, filterSize)
+    s += '                   filterFileName="%s", filterTensorDimSemantics="MCRS")\n' % npInfoW.npFile
+    s += '        # Golden result file  %s\n' % npInfo.npFile
+    s += "        \n"
+    return(s)
+    
+
 # Computational data flow graph
 class Graph(Object):
   def __init__(self, name, attrs = {}):
@@ -95,9 +128,10 @@ class Graph(Object):
     self.__name2node = {}
     self.__edges = []
     self.__mainFlowEdges = []
+    self.__inputNode = None
     
-  def addNode(self, name, opType, attrs = {}):
-    self.__name2node[name] = Node(name, opType, attrs)
+  def addNode(self, node):
+    self.__name2node[node.getName()] = node
   
   def addEdge(self, fromName, fromIndex, toName, toIndex, attrs = {}):
     fromNode = self.getNode(fromName)
@@ -141,6 +175,11 @@ class Graph(Object):
       n = nextNodes[0]
       nextNodes = self.nodeSuccessors(n)
     return(n)
+  
+  def setInputNode(self, node):
+    self.__inputNode = node
+  def getInputNode(self):
+    return(self.__inputNode)
   
   # On a levelized graph - max depth to reach node among all paths
   # It describes "computational readiness" in the data flow:
@@ -203,3 +242,54 @@ class Graph(Object):
     return(edge in self.__mainFlowEdges)
 
 
+  def genCompilerPy(self, outFile):
+    
+    prefix = """
+from utils.fmapdesc     import OfmapDesc
+from utils.datatype     import *
+ 
+from layers.layer       import Layer
+from layers.datalayer   import DataLayer
+from layers.convlayer   import ConvLayer
+
+from nets.network       import Network
+ 
+ 
+class TrivNet(Network):
+    def __init__(self):
+        super().__init__(DataTypeFloat16())
+
+    def gName(self):
+        return "TrivNet"
+ 
+    def construct(self):
+"""
+    lines = []
+    
+    # Input layer
+    inputNode = self.getInputNode()
+    npInfo = inputNode.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    assert(height == width)
+    s = '        layer =  DataLayer(Layer.Param("%s", %d, self),\n' % (inputNode.getOpName(), batch)
+    s+= '               OfmapDesc(%d, %d), inputDataFileName="%s", dataTensorDimSemantics="NCHW")\n' % (channels, height, npInfo.npFile)
+    lines.append(s)
+    
+    # Conv and other layers
+    levelizedNodes = self.getLevelizedNodes()
+    for level in range(0, len(levelizedNodes)):
+      for n in levelizedNodes[level]:
+        op = n.getOpType()
+        #print("DEBUG: node=", n.getName(), "  op=", op)
+        if op == "Conv2D":
+          s = n.genCompilerLayerText()
+          lines.append(s)
+
+    with open(outFile, "w") as f:
+      f.write(prefix)
+      for s in lines:
+        f.write(s)
+    print("INFO: wrote ", outFile)
+          
+          
+    
