@@ -473,7 +473,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
             s = (SCHED_MEM_FORMAT) % (
                 name,
                 ofmapStr,
-                Str(inMem), Str(outMem), 
+                Str(inMem), Str(outMem),
                 Str(residueMem),
                 (Str(batchMem) + "[" + str(self.gBatchFactor()) + "]"),
                 batchDelta,
@@ -574,13 +574,13 @@ class Layer(object, metaclass = ABCMeta): # abstract class
             prevLayer.__NextSbLayers.append(self)
 
     def gIfmapAddress(self):
-        return self.__IfmapAddress 
+        return self.__IfmapAddress
 
     def gOfmapAddress(self):
-        return self.__OfmapAddress 
+        return self.__OfmapAddress
 
     def gWeightAddress(self):
-        return self.__WeightAddress 
+        return self.__WeightAddress
 
     def rIfmapAddress(self, address):
         self.__IfmapAddress = address

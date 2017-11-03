@@ -7,10 +7,10 @@ class PoolingEng(object):
 
     def gWidth(self):
         return self.__Width
-        
+
     def gInstructionRamStartInBytes(self):
         return 0x001E00000
 
     def gInstructionRamEndInBytes(self):
         return 0x001E03FFF
-        
+

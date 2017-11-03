@@ -10,10 +10,10 @@ class PeArray(object):
             assert(numberRows % numberColumns == 0)
         elif numberRows < numberColumns:
             assert(numberColumns % numberRows == 0)
-            
+
         self.__NumberRows    = numberRows
         self.__NumberColumns = numberColumns
-        
+
     #-----------------------------------------------------------------
     def gNumberRows(self):  ## IFMAPs
         return self.__NumberRows

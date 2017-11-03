@@ -207,7 +207,7 @@ class Scheduler(object):
             elif id1 > id2:
                 return 1
             else:
-                sz1 = layer1.gRawInputStateSize() + layer1.gRawOutputStateSize() 
+                sz1 = layer1.gRawInputStateSize() + layer1.gRawOutputStateSize()
                 sz2 = layer2.gRawInputStateSize() + layer2.gRawOutputStateSize()
                 if sz1 < sz2:
                     return -1
@@ -243,7 +243,7 @@ class Scheduler(object):
         assert(layer.qStoreInSB())
 
         ## all subsequent layers refer to this layer
-        layer.changeRefCount(layer.gNumNextLayers()) 
+        layer.changeRefCount(layer.gNumNextLayers())
         outSize = layer.gOutputStateMemWithoutBatching()
         inMemBefore = self.gCurrInMem()
 
@@ -269,7 +269,7 @@ class Scheduler(object):
         assert(layer.qStoreInSB())
 
         ## all subsequent layers refer to this layer
-        layer.changeRefCount(layer.gNumNextLayers()) 
+        layer.changeRefCount(layer.gNumNextLayers())
         outSize = layer.gOutputStateMemWithBatching()
         inMemBefore = self.gCurrInMem()
 
@@ -337,7 +337,7 @@ class Scheduler(object):
     #-----------------------------------------------------------------
     def __processSbConnectionForBatching(self, prevLayer, nextLayer):
         assert(prevLayer.qStoreInSB() and nextLayer.qStoreInSB())
-        deltaBatch = nextLayer.gBatchFactor() - prevLayer.gBatchFactor() 
+        deltaBatch = nextLayer.gBatchFactor() - prevLayer.gBatchFactor()
         assert(deltaBatch >= 0)
         myBatchMem = deltaBatch * prevLayer.gOutputStateMemWithoutBatching()
         batchMem = myBatchMem + nextLayer.gBatchMem()
