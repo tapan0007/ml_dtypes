@@ -5,7 +5,7 @@
 #include <array>
 #include <cstdint>
 
-class Sequencer; 
+class Sequencer;
 
 class ProcessingElementArray {
     public:

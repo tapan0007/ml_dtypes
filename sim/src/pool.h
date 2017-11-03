@@ -32,4 +32,4 @@ class PoolArray {
         std::vector<Pool>     pooler;
 
 };
-#endif 
+#endif

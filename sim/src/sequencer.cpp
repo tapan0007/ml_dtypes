@@ -64,10 +64,10 @@ void  DynamicInstruction<SIM_WROFMAP>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     void *o_ptr;
     ARBPRECTYPE dtype = (ARBPRECTYPE)(args.dtype);
-    
-    o_ptr = seq->mem->sbuffer_bank_munmap(args.address, args.dims[1], 
+
+    o_ptr = seq->mem->sbuffer_bank_munmap(args.address, args.dims[1],
             args.dims[2] * args.dims[3] * sizeofArbPrecType(dtype));
-    seq->mem->io_write(args.fname, o_ptr, args.dims[0], args.dims[1], 
+    seq->mem->io_write(args.fname, o_ptr, args.dims[0], args.dims[1],
             args.dims[2], args.dims[3], dtype);
     free(o_ptr);
 }
@@ -79,7 +79,7 @@ void  DynamicInstruction<SIM_WROFMAP>::execute(void *v_seq) {
 template<>
 void  DynamicInstruction<LDWEIGHTS>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
-    uint64_t num_cols = args.x_num * args.y_num; 
+    uint64_t num_cols = args.x_num * args.y_num;
     assert(num_cols <= SZ(COLUMN_BITS));
     seq->es.weight_valid = true;
     seq->es.weight_dtype = (ARBPRECTYPE) args.dtype;
@@ -87,7 +87,7 @@ void  DynamicInstruction<LDWEIGHTS>::execute(void *v_seq) {
     seq->weight_base = args.address;
     seq->es.weight_clamp = (num_cols == 1);
     seq->es.row_valid = true;
-    seq->es.row_countdown = args.last_row; 
+    seq->es.row_countdown = args.last_row;
     seq->weight_clamp_countdown = num_cols;
     seq->weight_x_step = args.x_step;
     seq->weight_y_step = args.y_step;
@@ -96,7 +96,7 @@ void  DynamicInstruction<LDWEIGHTS>::execute(void *v_seq) {
     seq->weight_x_cnt = 0;
     seq->weight_y_cnt = 0;
     seq->raw_signal = false;
-    seq->es.weight_addr.sys = args.address + (args.y_num * args.y_step - 1) * 
+    seq->es.weight_addr.sys = args.address + (args.y_num * args.y_step - 1) *
         sizeofArbPrecType((ARBPRECTYPE)args.dtype);
 
 }
@@ -110,7 +110,7 @@ void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     /* ifmap setup */
     seq->es.ifmap_addr.sys    = args.fmap_start_addr;
     seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
-    seq->es.row_countdown = args.last_row; 
+    seq->es.row_countdown = args.last_row;
     seq->es.row_valid = true;
     seq->es.weight_toggle = args.toggle_weight;
     seq->ifmap_base = args.fmap_start_addr;
@@ -161,7 +161,7 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
         (args.src_x_num + args.src_y_num == 2);
 	seq->ps.dst_addr.sys = args.dst_start_addr;
 	seq->ps.countdown = args.max_partition;
-	
+
 	seq->pool_src_base = args.src_start_addr;
 	seq->pool_dst_base = args.dst_start_addr;
 	seq->pool_src_x_cnt = 0;
@@ -204,7 +204,7 @@ Sequencer::connect_uopfeed(UopFeedInterface *_feed) {
 bool
 Sequencer::synch() {
     static int pe_countdown = 128;
-    bool busy = es.pad_valid || es.ifmap_valid  || es.weight_valid || 
+    bool busy = es.pad_valid || es.ifmap_valid  || es.weight_valid ||
         ps.valid;
     if (es.ifmap_valid) {
         pe_countdown = 128;
@@ -214,7 +214,7 @@ Sequencer::synch() {
         if (pe_countdown) {
             pe_countdown--;
             busy = true;
-        } 
+        }
     }
     return busy;
 }
@@ -224,22 +224,22 @@ Sequencer::synch() {
 bool
 Sequencer::pad_valid(uint8_t r, uint8_t c) {
     /* checks range, using outer ring of padding */
-    bool out_of_range = 
+    bool out_of_range =
             (r >= pifmap_y_num) ||
             (c >= pifmap_x_num);
     bool in_pad_range =
-        r < pad[N] || 
-        ((r > (ifmap_y_num + pad[N] - 1)) && 
+        r < pad[N] ||
+        ((r > (ifmap_y_num + pad[N] - 1)) &&
          (r < ifmap_y_num + pad[N] + pad[S])) ||
-        c < pad[W] || 
-        ((c > (ifmap_x_num + pad[W] - 1) && 
+        c < pad[W] ||
+        ((c > (ifmap_x_num + pad[W] - 1) &&
           (c < ifmap_x_num + pad[W] + pad[E])));
     return !out_of_range && in_pad_range;
 }
 
 
 void
-Sequencer::increment_and_rollover(uint8_t &cnt, uint8_t num, 
+Sequencer::increment_and_rollover(uint8_t &cnt, uint8_t num,
         uint8_t &rollover) {
     cnt++;
     if (cnt >= num) {
@@ -256,7 +256,7 @@ Sequencer::step_edgesignal() {
     /* UPDATE SEQUENCER STATE */
     if (es.pad_valid) {
         increment_and_rollover(pifmap_x_cnt, pifmap_x_num, pifmap_y_cnt);
-    } 
+    }
     if (es.ifmap_valid) {
         increment_and_rollover(ifmap_x_cnt, ifmap_x_num, ifmap_y_cnt);
         increment_and_rollover(pifmap_x_cnt, pifmap_x_num, pifmap_y_cnt);
@@ -269,8 +269,8 @@ Sequencer::step_edgesignal() {
     /* IFMAP/PAD */
     /* is the pad/ifmap valid or are we done? */
     es.pad_valid = pad_valid(pifmap_y_cnt, pifmap_x_cnt);
-    if (!es.pad_valid && 
-            (pifmap_y_cnt == pifmap_y_num)) { 
+    if (!es.pad_valid &&
+            (pifmap_y_cnt == pifmap_y_num)) {
         /* clear state */
         es.ifmap_valid = false;
         es.psum_start = false;
@@ -282,8 +282,8 @@ Sequencer::step_edgesignal() {
 
     /* figured out pad/ifmap valid, now compute addresses */
     if (es.ifmap_valid) {
-        es.ifmap_addr.sys = ifmap_base + 
-            (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) * 
+        es.ifmap_addr.sys = ifmap_base +
+            (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) *
             sizeofArbPrecType((ARBPRECTYPE)es.ifmap_dtype);
     }
     /* Sending an ifmap, must be getting out ofmap! */
@@ -294,7 +294,7 @@ Sequencer::step_edgesignal() {
 
     /*  WEIGHT */
     /* always toggle down weight */
-    COND_SET(es.weight_toggle, false); 
+    COND_SET(es.weight_toggle, false);
     if (es.weight_valid) {
         if ((weight_x_cnt == weight_x_num - 1) &&
                 (weight_y_cnt == weight_y_num -1)) {
@@ -303,12 +303,12 @@ Sequencer::step_edgesignal() {
             assert(es.weight_clamp);
             es.weight_clamp = false;
             es.weight_valid = false;
-        } 
+        }
         if (es.weight_valid) {
-            es.weight_addr.sys = weight_base + 
+            es.weight_addr.sys = weight_base +
                 (weight_y_num * weight_y_step -
                  weight_y_cnt * weight_y_step -
-                 weight_x_cnt * weight_x_step - 1) * 
+                 weight_x_cnt * weight_x_step - 1) *
                 sizeofArbPrecType((ARBPRECTYPE)es.weight_dtype);
         }
     }
@@ -355,7 +355,7 @@ Sequencer::step_poolsignal() {
         ROLLOVER(pool_src_y_cnt, pool_src_y_num, eopool);
     }
 
-    last_pool = 
+    last_pool =
         (pool_src_x_cnt == pool_src_x_num - 1) &&
         (pool_src_y_cnt == pool_src_y_num - 1);
 
@@ -387,8 +387,8 @@ Sequencer::step_poolsignal() {
 
     /* calculate address based on settings */
     if (ps.valid) {
-        ps.src_addr.sys = pool_src_base + 
-            src_dsize * 
+        ps.src_addr.sys = pool_src_base +
+            src_dsize *
             (pool_str_x_cnt * pool_str_x_step +
              pool_str_y_cnt * pool_str_y_step) + /* tile */
             src_dsize *
@@ -396,8 +396,8 @@ Sequencer::step_poolsignal() {
              pool_src_y_cnt * pool_src_y_step);
     }
     if (ps.start) {
-        ps.dst_addr.sys = pool_dst_base + 
-            (pool_dst_x_cnt * pool_dst_x_step + 
+        ps.dst_addr.sys = pool_dst_base +
+            (pool_dst_x_cnt * pool_dst_x_step +
              pool_dst_y_cnt * pool_dst_y_step) * dst_dsize;
     }
 }
@@ -461,16 +461,16 @@ EdgeSignals Sequencer::pull_edge() {
 // IF: to avoid warning: comparison is always true due to limited range of data type [-Wtype-limits]
     assert(!es.ifmap_valid || (
 #if MMAP_SB_BASE
-            (es.ifmap_addr.sys >= MMAP_SB_BASE) && 
+            (es.ifmap_addr.sys >= MMAP_SB_BASE) &&
 #endif
              (es.ifmap_addr.sys < SZ(ROW_SIZE_BITS))));
     assert(!es.weight_valid || (
 #if MMAP_SB_BASE
-          (es.weight_addr.sys >= MMAP_SB_BASE) && 
+          (es.weight_addr.sys >= MMAP_SB_BASE) &&
 #endif
            (es.weight_addr.sys < SZ(ROW_SIZE_BITS))));
     assert(!es.ifmap_valid ||
-            ((es.psum_addr.sys >= MMAP_PSUM_BASE) && 
+            ((es.psum_addr.sys >= MMAP_PSUM_BASE) &&
              (es.psum_addr.sys < MMAP_PSUM_BASE + SZ(COLUMN_SIZE_BITS))));
     return es;
 }

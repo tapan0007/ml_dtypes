@@ -45,29 +45,29 @@ struct Addr {
 
 typedef struct EdgeSignals {
     uint8_t        row_valid;
-    uint8_t        row_countdown; 
+    uint8_t        row_countdown;
     uint8_t        column_valid;
-    uint8_t        column_countdown; 
+    uint8_t        column_countdown;
 
     bool           pad_valid;
-    bool           ifmap_valid;     
+    bool           ifmap_valid;
     Addr           ifmap_addr;
-    ARBPRECTYPE    ifmap_dtype;  
+    ARBPRECTYPE    ifmap_dtype;
 
-    bool           weight_valid;  
+    bool           weight_valid;
     Addr           weight_addr;
     ARBPRECTYPE    weight_dtype;
     bool           weight_toggle;
-    bool           weight_clamp; 
+    bool           weight_clamp;
 
 
     Addr           psum_addr;
     bool           psum_start;
-    bool           psum_stop; 
+    bool           psum_stop;
 
-    bool           activation_valid; 
-    ACTIVATIONFUNCTION activation;  
- 
+    bool           activation_valid;
+    ACTIVATIONFUNCTION activation;
+
 } EdgeSignals;
 
 typedef struct PoolSignals {
@@ -156,4 +156,4 @@ class ZeroPeNSGenerator : public PeNSInterface {
 
 
 
-#endif  
+#endif

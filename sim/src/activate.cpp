@@ -24,7 +24,7 @@ Activate::step()
     }
 }
 
-ActivateSbSignals 
+ActivateSbSignals
 Activate::pull_activate()
 {
     return ActivateSbSignals{ps.valid, ps.partial_sum};

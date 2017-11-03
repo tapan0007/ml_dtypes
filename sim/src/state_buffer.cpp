@@ -10,7 +10,7 @@ StateBuffer::StateBuffer(MemoryMap *mmap, addr_t base, size_t nbytes) {
 }
 
 
-PeEWSignals 
+PeEWSignals
 StateBuffer::pull_ew() {
     ArbPrecData weight = {0};
     ArbPrecData pixel = {0};
@@ -22,12 +22,12 @@ StateBuffer::pull_ew() {
             pixel_valid = true;
         }
         if (ns.ifmap_valid) {
-            mem->read_local_offset(&pixel.raw, ns.ifmap_addr.row, 
+            mem->read_local_offset(&pixel.raw, ns.ifmap_addr.row,
                     sizeofArbPrecType(ns.ifmap_dtype));
             pixel_valid = true;
         }
         if (ns.weight_valid) {
-            mem->read_local_offset(&weight.raw, ns.weight_addr.row, 
+            mem->read_local_offset(&weight.raw, ns.weight_addr.row,
                     sizeofArbPrecType(ns.weight_dtype));
             printf("WEIGHT %d\n", weight.uint8);
         }
@@ -41,7 +41,7 @@ StateBuffer::connect_north(EdgeInterface *_north) {
     north = _north;
 }
 
-EdgeSignals 
+EdgeSignals
 StateBuffer::pull_edge() {
     EdgeSignals e = ns;
     if (e.row_valid) {
@@ -54,12 +54,12 @@ StateBuffer::pull_edge() {
     return e;
 }
 
-bool 
+bool
 StateBuffer::pull_clamp() {
     return ns.weight_clamp;
 }
 
-void 
+void
 StateBuffer::step_read() {
     ns = north->pull_edge();
 }
@@ -68,7 +68,7 @@ StateBuffer::step_read() {
 // Single buffer array
 //------------------------------------------------------------------
 
-StateBufferArray::StateBufferArray(MemoryMap *mmap, addr_t base, 
+StateBufferArray::StateBufferArray(MemoryMap *mmap, addr_t base,
         int num_buffers) : corner_buffer(mmap, 0, 0) {
     /* FIXME, some of this range is reserved */
     size_t buffer_size = SZ(ROW_SIZE_BITS);

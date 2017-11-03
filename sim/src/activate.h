@@ -28,4 +28,4 @@ class ActivateArray {
         std::vector<Activate>     buffer;
 
 };
-#endif 
+#endif

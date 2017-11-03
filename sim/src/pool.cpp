@@ -32,7 +32,7 @@ Pool::step() {
     if (ps.start) {
         pool_pixel = {0};
         pool_cnt = 0;
-        /* FIXME - how is this going to be done in HW? 
+        /* FIXME - how is this going to be done in HW?
          * Should we put check to make sure we stay in bounds? */
         src_partition_size = (ps.src_addr.sys >= MMAP_PSUM_BASE) ?
             SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
@@ -127,7 +127,7 @@ PoolArray::connect(PoolInterface *connection) {
 }
 
 
-Pool& 
+Pool&
 PoolArray::operator[](int index)
 {
     return pooler[index];

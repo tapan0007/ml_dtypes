@@ -6,7 +6,7 @@
 #include <vector>
 
 class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroadcastInterface {
-    public:  
+    public:
         StateBuffer(MemoryMap *mmap, addr_t base, size_t nbytes);
         PeEWSignals   pull_ew();
         EdgeSignals pull_edge();
@@ -35,4 +35,4 @@ class StateBufferArray {
 };
 
 
-#endif 
+#endif

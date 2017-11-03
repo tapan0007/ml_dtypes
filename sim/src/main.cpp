@@ -15,9 +15,9 @@
     psum_array.step(); \
     pe_array.step(); \
     state_array.step_read(); \
-    sequencer.step(); 
- //   pe_array.dump(stdout); 
-//    activate_array.step(); 
+    sequencer.step();
+ //   pe_array.dump(stdout);
+//    activate_array.step();
 
 
 
@@ -30,10 +30,10 @@ int main(int argc, char **argv)
     Memory memory = Memory(0x04000000);
     MemoryMap mmap = MemoryMap(&memory);
     ProcessingElementArray pe_array;
-    StateBufferArray       state_array = 
+    StateBufferArray       state_array =
         StateBufferArray(&mmap, MMAP_SB_BASE, num_rows);
     Sequencer              sequencer = Sequencer(&memory);
-    PSumBufferArray        psum_array = 
+    PSumBufferArray        psum_array =
         PSumBufferArray(&mmap, MMAP_PSUM_BASE, num_cols);;
     PoolArray              pool_array = PoolArray(&mmap, num_cols);
     ActivateArray          activate_array;

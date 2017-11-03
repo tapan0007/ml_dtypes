@@ -107,10 +107,10 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         void step_edgesignal();
         void step_poolsignal();
         void dump_es(const EdgeSignals &es, bool header);
-        void increment_and_rollover(uint8_t &cnt, uint8_t num, 
+        void increment_and_rollover(uint8_t &cnt, uint8_t num,
                 uint8_t &rollover);
 
 
 };
 
-#endif  
+#endif

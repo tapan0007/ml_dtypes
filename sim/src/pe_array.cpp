@@ -22,7 +22,7 @@ ProcessingElementArray::ProcessingElementArray(int _n_rows, int _n_cols) : n_row
             }
             if ((j -1 >= 0)) {
                 pe_array[i][j].connect_west(&pe_array[i][j-1]);
-            } 
+            }
         }
     }
 }
@@ -34,7 +34,7 @@ ProcessingElementArray::~ProcessingElementArray() {
     delete [] pe_array;
 }
 
-ProcessingElement*& 
+ProcessingElement*&
 ProcessingElementArray::operator[](int index) {
     return pe_array[index];
 }

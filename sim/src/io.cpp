@@ -27,7 +27,7 @@ Memory::swap_axes(void *ptr, int m, int c, int r, int s, size_t word_size)
         for (int rr = 0; rr < r; rr++) {
             for (int ss = 0; ss < s; ss++) {
                 for (int mm = 0; mm < m; mm++) {
-                    memcpy(&dest[i], &src[(mm*c*r*s + cc*r*s + rr*s + ss) * 
+                    memcpy(&dest[i], &src[(mm*c*r*s + cc*r*s + rr*s + ss) *
                             word_size], word_size);
                     i += word_size;
                 }
@@ -37,7 +37,7 @@ Memory::swap_axes(void *ptr, int m, int c, int r, int s, size_t word_size)
     free(src);
 }
 
-void * 
+void *
 Memory::io_mmap(std::string fname, int &i, int &j, int &k, int &l, size_t &word_size) {
     cnpy::NpyArray arr = cnpy::npy_load(fname);
     std::vector<unsigned int> &sh = arr.shape;
@@ -50,7 +50,7 @@ Memory::io_mmap(std::string fname, int &i, int &j, int &k, int &l, size_t &word_
     return arr.data;
 }
 
-void 
+void
 Memory::bank_mmap(addr_t addr, void *ptr, int count, size_t n_bytes)
 {
     char *cptr = (char *)(ptr);
@@ -88,13 +88,13 @@ Memory::psum_bank_munmap(addr_t addr, int count, size_t n_bytes)
     return bank_munmap(addr, count, SZ(COLUMN_SIZE_BITS), n_bytes);
 }
 
-void 
+void
 Memory::read(void *dest, addr_t src, size_t n_bytes)
 {
     memcpy(dest, memory + src, n_bytes);
 }
 
-void 
+void
 Memory::write(addr_t dest, void *src, size_t n_bytes)
 {
     memcpy(memory + dest, src, n_bytes);
@@ -188,7 +188,7 @@ MemoryMap::read_global(void *dest, addr_t src, size_t n_bytes) {
 }
 
 
-void 
+void
 MemoryMap::write_global(addr_t dest, void *src, size_t n_bytes) {
     /* FIXME - check that we aren't in reserved range */
     return memory->write(dest, src, n_bytes);
@@ -198,7 +198,7 @@ MemoryMap::write_global(addr_t dest, void *src, size_t n_bytes) {
 /* MemoryMapInstance */
 /*---------------------------------------------*/
 
-MemoryMapInstance::MemoryMapInstance(MemoryMap *_mmap, addr_t _base, size_t _sz) 
+MemoryMapInstance::MemoryMapInstance(MemoryMap *_mmap, addr_t _base, size_t _sz)
     : mmap(_mmap), base(_base), sz(_sz) {
 }
 
@@ -225,7 +225,7 @@ MemoryMapInstance::read_local(void *dest, addr_t src, size_t n_bytes) {
 }
 
 
-void 
+void
 MemoryMapInstance::write_local(addr_t dest, void *src, size_t n_bytes) {
     assert(in_range(dest, n_bytes));
     return mmap->write_global(dest, src, n_bytes);
@@ -237,7 +237,7 @@ MemoryMapInstance::read_local_offset(void *dest, addr_t src_offset, size_t n_byt
 }
 
 
-void 
+void
 MemoryMapInstance::write_local_offset(addr_t dest_offset, void *src, size_t n_bytes) {
     return write_local(base + dest_offset, src, n_bytes);
 }

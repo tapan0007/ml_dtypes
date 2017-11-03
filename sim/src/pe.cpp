@@ -44,7 +44,7 @@ void ProcessingElement::step() {
 
     if (in_ew.pixel_valid && weight_dtype[weight_id] != INVALID_ARBPRECTYPE) {
         ARBPRECTYPE out_dtype;
-        product = ArbPrec::multiply(in_ew.pixel, weight[weight_id], 
+        product = ArbPrec::multiply(in_ew.pixel, weight[weight_id],
                 weight_dtype[weight_id], out_dtype);
         partial_sum = ArbPrec::add(in_ns.partial_sum, product, out_dtype);
     } else {

@@ -36,7 +36,7 @@ class Memory {
 
 };
 
-class MemoryMap; 
+class MemoryMap;
 
 class MemoryMapInstance {
     public:

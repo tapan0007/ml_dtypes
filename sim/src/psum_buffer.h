@@ -37,4 +37,4 @@ class PSumBufferArray {
         std::vector<PSumBuffer>     col_buffer;
 
 };
-#endif 
+#endif

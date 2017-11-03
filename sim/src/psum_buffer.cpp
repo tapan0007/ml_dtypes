@@ -47,13 +47,13 @@ PSumBuffer::step() {
         size_t dsize = sizeofArbPrecType(psum_dtype);
 
         addr_t src_off = ew.psum_addr.column;
-        addr_t meta_off = src_off | (1 << (COLUMN_BYTE_OFFSET_BITS + 
+        addr_t meta_off = src_off | (1 << (COLUMN_BYTE_OFFSET_BITS +
                     BANKS_PER_COLUMN_BITS));
         mem->read_local_offset(src_ptr, src_off, dsize);
 
         if (ew.psum_start) {
             mem->write_local_offset(src_off, &zeros, dsize);
-            mem->write_local_offset(meta_off, &ones, dsize); 
+            mem->write_local_offset(meta_off, &ones, dsize);
         }
         if (ew.ifmap_valid) {
             printf("adding partial sum at %x is ", mem->get_base() | src_off);
@@ -74,8 +74,8 @@ PSumBuffer::step() {
             printf("\n");
             mem->read_local_offset(&valid, meta_off, 1);
             assert(valid);
-            mem->write_local_offset(meta_off, &zeros, 1); 
-        } 
+            mem->write_local_offset(meta_off, &zeros, 1);
+        }
 
         if (ew.column_countdown == 0) {
             ew.column_valid = 0;
@@ -111,7 +111,7 @@ PSumBufferArray::connect_north(int col, PeNSInterface *north) {
     col_buffer[col].connect_north(north);
 }
 
-PSumBuffer& 
+PSumBuffer&
 PSumBufferArray::operator[](int index)
 {
     return col_buffer[index];
