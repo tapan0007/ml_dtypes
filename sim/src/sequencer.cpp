@@ -221,12 +221,17 @@ Sequencer::synch() {
 bool
 Sequencer::pad_valid(uint8_t r, uint8_t c) {
     /* checks range, using outer ring of padding */
-    return r < pad[N] || 
+    bool out_of_range = 
+            (r >= pifmap_y_num) ||
+            (c >= pifmap_x_num);
+    bool in_pad_range =
+        r < pad[N] || 
         ((r > (ifmap_y_num + pad[N] - 1)) && 
          (r < ifmap_y_num + pad[N] + pad[S])) ||
         c < pad[W] || 
         ((c > (ifmap_x_num + pad[W] - 1) && 
           (c < ifmap_x_num + pad[W] + pad[E])));
+    return !out_of_range && in_pad_range;
 }
 
 

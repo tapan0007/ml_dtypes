@@ -41,7 +41,7 @@ PSumBuffer::step() {
     void *src_ptr = &src;
     uint8_t valid;
 
-    if (ew.column_valid && ew.ifmap_valid) {
+    if (ew.column_valid && (ew.ifmap_valid || ew.pad_valid)) {
         assert(ew.psum_addr.sys >= MMAP_PSUM_BASE);
         ARBPRECTYPE psum_dtype =  get_upcast(ew.ifmap_dtype);
         size_t dsize = sizeofArbPrecType(psum_dtype);

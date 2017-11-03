@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <string>
 #include "string.h"
-#include "math.h"
+#include <math.h>
 
 
 
@@ -24,7 +24,7 @@ _convolve_tile(FILE *fptr,
         const addr_t *filter_addrs, const uint64_t wdim[4],
         const addr_t psum_addr,
         const ARBPRECTYPE dtype,
-        const uint8_t fmap_num[2],
+        const uint8_t tile_size_y, const uint8_t tile_size_x,
         const uint8_t pads[NUM_NSEW], 
         const uint8_t strides[2])
 {
@@ -76,7 +76,6 @@ _convolve_tile(FILE *fptr,
     /* matmul args */
     matmul_args.opcode = MATMUL_OPC;
     matmul_args.fmap_x_step = strides[0];
-    matmul_args.fmap_y_step = strides[1] * i_cols;
     matmul_args.dtype = dtype;
     matmul_args.psum_start_addr = psum_addr; /* b/c we specify padding as arg */
     matmul_args.last_col = num_cols - 1;
@@ -84,16 +83,11 @@ _convolve_tile(FILE *fptr,
 
     /* go through each weight in the filter and apply it to the ofmap
      * pixels it operates on */
-    matmul_args.w_pad = pads[W];
-    matmul_args.e_pad = pads[E];
-    matmul_args.n_pad = pads[N];
-    matmul_args.s_pad = pads[S];
-    matmul_args.fmap_x_num = fmap_num[1];
-    matmul_args.fmap_y_num = fmap_num[0];
+    matmul_args.fmap_y_step = strides[1] * i_cols;
     matmul_args.toggle_weight = 1;
 
     uint8_t curr_weight = 0;
-    uint8_t r_adj, s_adj;
+    uint8_t r_adj = 0, s_adj = 0;
     for (uint8_t i = 0; i < ch_batches; i++) {
         bool last_batch = (i == (ch_batches - 1));
         matmul_args.last_row = ifmap_num_rows[i] - 1;
@@ -101,8 +95,25 @@ _convolve_tile(FILE *fptr,
             for (uint8_t s = 0; s < f_cols; s++, curr_weight++) {
                 bool last_weight = (curr_weight == (f_rows * f_cols - 1));
                 /* matmul arguments and PUSH */
-                r_adj = (r >= pads[N]) * (r - pads[N]);
-                s_adj = (s >= pads[W]) * (s - pads[W]);
+                /* do we need to adjust where the filter starts/padding? */
+                r_adj = fmax(0, r - pads[N]);
+                if (pads[N]) {
+                    matmul_args.n_pad = fmax(0, pads[N] - r);
+                }
+                if (pads[S]) {
+                    matmul_args.s_pad = fmax(0, pads[S] + r - f_rows + 1);
+                }
+                s_adj = fmax(0, s - pads[W]);
+                if (pads[W]) {
+                    matmul_args.w_pad = fmax(0, pads[W] - s);
+                }
+                if (pads[E]) {
+                    matmul_args.e_pad = fmax(0, pads[E] + s - f_cols + 1);
+                }
+                matmul_args.fmap_y_num = tile_size_y
+                    - matmul_args.n_pad - matmul_args.s_pad;
+                matmul_args.fmap_x_num = tile_size_x 
+                    - matmul_args.w_pad - matmul_args.e_pad;
                 matmul_args.fmap_start_addr = ifmap_addrs[i] + ifmap_offset +
                     (r_adj * i_cols + s_adj) * dsize;
 
@@ -127,7 +138,7 @@ void
 _pool_tile(FILE *fptr,
         const addr_t src_addr,
         const addr_t dst_addr,
-        const size_t tile_sz_x, const size_t tile_sz_y,
+        const size_t tile_sz_y, const size_t tile_sz_x,
         const uint64_t o_dims[4],
         const ARBPRECTYPE pool_dtype)
 {
@@ -243,7 +254,6 @@ compile_convolve(FILE *fptr,
     /* tile args */
 
     uint8_t pads[NUM_NSEW];
-    uint8_t fmap_num[2];
     addr_t matmul_offset;
     ARBPRECTYPE pool_dtype = get_upcast(dtype);
     addr_t pool_dst_addr = ofmap_addr;
@@ -267,8 +277,6 @@ compile_convolve(FILE *fptr,
             pads[E] = tt & E_FLAG ? p_cols : 0;
             pads[N] = tt & N_FLAG ? p_rows : 0;
             pads[S] = tt & S_FLAG ? p_rows : 0;
-            fmap_num[0] = tile_sz_y - pads[N] - pads[S];
-            fmap_num[1] = tile_sz_x - pads[W] - pads[E];
     
             matmul_offset = (row_offset * i_cols + col_offset) * dsize;
             pool_dst_addr = ofmap_addr + tile_dims.flatten_coord(i, j) *
@@ -278,10 +286,10 @@ compile_convolve(FILE *fptr,
                     ifmap_addr, matmul_offset, idim,
                     filter_addr, wdim,
                     psum_addr,
-                    dtype, fmap_num, pads, striding);
+                    dtype, tile_sz_y, tile_sz_x, pads, striding);
             _pool_tile(fptr,
                     psum_addr, pool_dst_addr,
-                    tile_sz_x, tile_sz_y,
+                    tile_sz_y, tile_sz_x,
                     o_dims, pool_dtype);
 
             psum_addr += (1 << COLUMN_BYTE_OFFSET_BITS);
