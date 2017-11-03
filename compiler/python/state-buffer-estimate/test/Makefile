@@ -1,50 +1,58 @@
 FLAGS= -W -Wall -Werror -ggdb -g 
-CFLAGS = $(FLAGS) -I. -Wno-missing-field-initializers
+INC_FLAGS = -IInkling/shared/inc -IInkling/tcc/inc
+#-IInkling/tcc/test/convolve/src
+
+CFLAGS = $(FLAGS) -I. $(INC_FLAGS) -Wno-missing-field-initializers
+
 CPPFLAGS = $(CFLAGS) -std=c++11
 LFLAGS = $(FLAGS)
-
-INKLING = ./Inkling
-
+#################################################
+INKLING=./Inkling
 LIBDIR1 = $(INKLING)/tcc/libs
 LIBDIR_FLAGS= -L$(LIBDIR1)
 
 TCC=tcc
 LIB_FLAGS = -l$(TCC)
 TCCAR = $(LIBDIR1)/lib$(TCC).a
+NET=trivnet
+CPP=$(NET).cpp
+EXE=$(NET)-exe
+OBJ=$(NET).o
+TPB=$(NET).tpb
+ASM=$(NET).asm
+SIMRES=$(NET).simres
 
-tpb.obj : code
-	./code $@
+FINAL=$(NET)-out
 
-tpb.asm : tpb.obj
-	./objdump tpb.obj > $@
+#################################################
+$(TPB) : $(EXE)
+	./$(EXE) $(TPB)
 
-simulate : tpb.obj
-	./sim tpb.obj | tee tpb.simres
+$(ASM) : $(TPB)
+	./objdump $(TPB) > $@
 
-code : code.o $(TCCAR)
-	g++ $(LFLAGS) -o code code.o $(LIBDIR_FLAGS) $(LIB_FLAGS)
+simulate : $(TPB)
+	./sim $(TPB) | tee $(SIMRES)
 
-code.cpp :
-	cd .. ; make resnet
+$(EXE) : $(OBJ) $(TCCAR)
+	g++ $(LFLAGS) -o $@ $(OBJ) $(LIBDIR_FLAGS) $(LIB_FLAGS)
 
-code.o : code.cpp
-	g++ $(CPPFLAGS) -c code.cpp 2>&1 | tee LOG
+$(CPP) :
+	cd .. ; make $(NET)
 
-all : code tpb.asm simulate
+$(OBJ) : $(CPP)
+	g++ $(CPPFLAGS) -c $(CPP) 2>&1 | tee LOG
+
+all : $(EXE) $(ASM) simulate
+	for file in $(FINAL) input; do for fmt in int16 float16; do \
+	    dumpnpy --$$fmt $$file.npy > $$file.txt;
+	done; done
 
 clean :
-	rm code code.o
+	rm -f $(EXE) $(OBJ) *-out.npy simulation.log $(TPB) $(ASM) $(SIMRES)
 
 link :
-	ln -s Inkling/tcc/test/convolve/src/cnpy.h
-	ln -s Inkling/shared/inc/isa_common.h
-	ln -s Inkling/tcc/inc/tcc.h
-	ln -s Inkling/shared/inc/tpb_isa.h
-	ln -s Inkling/shared/inc/tpb_isa_ldweights.h
-	ln -s Inkling/shared/inc/tpb_isa_matmul.h
-	ln -s Inkling/shared/inc/tpb_isa_pool.h
-	ln -s Inkling/shared/inc/tpb_isa_simrdfilter.h
-	ln -s Inkling/shared/inc/tpb_isa_simrdifmap.h
-	ln -s Inkling/shared/inc/tpb_isa_simwrofmap.h
-	ln -s Inkling/shared/inc/uarch_cfg.h
+	ln -s $$HOME/kaena/CodeCommit/Inkling .
+	ln -s ../nets/trivnet .
+#################################################
 
