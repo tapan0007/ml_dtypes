@@ -17,6 +17,7 @@ class Arch(object, metaclass = ABCMeta):
         numberPsumBanks         = 4
         numberPsumBankEntries   = 256
         sbPartitionsSize        = 12 * 1024 * 1024 // numberPeRows  ## 12 MB
+        sbPartitionsSize        =  8 * 1024 * 1024 // numberPeRows  ##  8 MB
 
         self.__PeArray          = PeArray(numberPeRows, numberPeColumns)
         self.__PsumBuffer       = PsumBuffer(self.gPeArray(), numberPsumBanks, numberPsumBankEntries)

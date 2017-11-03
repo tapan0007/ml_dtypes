@@ -7,10 +7,10 @@ import nets.network
 class DataLayer(Layer):
     #-----------------------------------------------------------------
     # TODO: remove default values for input data file name and tensor dimension meaning string
-    def __init__(self, param, ofmap_desc, inputDataFileName = "datafile.py", dataTensorDims = "NCHW"):
+    def __init__(self, param, ofmap_desc, inputDataFileName, dataTensorDimSemantics):
         super().__init__(param, ofmap_desc, ())
         self.__InputDataFileName = inputDataFileName
-        self.__DataTensorDimSemantics = dataTensorDims
+        self.__DataTensorDimSemantics = dataTensorDimSemantics
 
     #-----------------------------------------------------------------
     def __str__(self):

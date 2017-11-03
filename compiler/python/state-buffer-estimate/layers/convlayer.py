@@ -10,15 +10,15 @@ import nets.network
 class ConvLayer(SubSampleLayer):
     #-----------------------------------------------------------------
     def __init__(self, param, prev_layer, num_ofmaps, stride, kernel,
-            inputDataFileName = "conv-weights.py", filterTensorDims = "MCRS"):
+            filterFileName, filterTensorDimSemantics):
         assert(isinstance(param, Layer.Param))
         assert(isinstance(prev_layer, Layer))
 
         super().__init__(param, prev_layer,
             num_ofmaps=num_ofmaps, stride=stride, kernel=kernel)
 
-        self.__InputDataFileName = inputDataFileName
-        self.__FilterTensorDimSemantics = filterTensorDims
+        self.__FilterFileName = filterFileName
+        self.__FilterTensorDimSemantics = filterTensorDimSemantics
 
     #-----------------------------------------------------------------
     def __str__(self):
@@ -39,8 +39,8 @@ class ConvLayer(SubSampleLayer):
         ##assert(self.gPrevLayer(0).gOfmapSize() // self.gStride() == self.gOfmapSize())
 
     #-----------------------------------------------------------------
-    def gInputDataFileName(self):
-        return self.__InputDataFileName
+    def gFilterFileName(self):
+        return self.__FilterFileName
 
     #-----------------------------------------------------------------
     def gFilterTensorDimSemantics(self):

@@ -29,6 +29,9 @@ resnet-batch :
 	@  $(PYTHON) main.py --resnet --batch $(ALL_OPTS)
 
 
+trivnet :
+	$(PYTHON) main.py --trivnet $(ALL_OPTS)
+
 
 dbgdense :
 	py -mpdb main.py --densenet $(ALL_OPTS)
@@ -43,6 +46,8 @@ clean :
 dense : densenet
 
 res : resnet
+
+triv : trivnet
 
 densedot :
 	dot -Tps $(DENSE169).dot > $(DENSE169).ps; ps2pdf $(DENSE169).ps
