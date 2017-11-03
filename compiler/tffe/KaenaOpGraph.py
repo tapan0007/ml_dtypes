@@ -40,6 +40,16 @@ class Node(Object):
     self.__level = level
   def getNpInfo(self):
     return(self.__npInfo)
+  def getInputNodesAndNpInfo(self):
+    inputNodesAndNpInfos = []
+    faninEdges = self.getFaninEdges()
+    for i in range(0, len(faninEdges)):
+      edge = faninEdges[i]
+      p = edge.getFromPosNode()
+      (fromNode, fromIndex) = (p.node, p.index)
+      npInfo = fromNode.getNpInfo()[fromIndex]
+      inputNodesAndNpInfos.append((fromNode, npInfo))
+    return(inputNodesAndNpInfos)
   def getOpType(self):
     return(self.__opType)
   def getOpName(self):
@@ -98,9 +108,14 @@ class NodeConv2D(Node):
     self.__strides = strides
   def genCompilerLayerText(self):
     npInfo = self.getNpInfo()[0]
-    s =  '        layer = ConvLayer(Layer.Param("%s", 1, self), layer,\n' % self.getOpName()
-    s += '                   4, stride=1, kernel=3,\n'
-    s += '                   filterFileName="%s", filterTensorDimSemantics="MCRS")\n' % "out_jdr_v3__weight1__read:0.npy"
+    (batch, height, width, channels) = npInfo.npShape
+    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    numOfMaps = channels
+    filterSize = npInfoW.npShape[0]
+    assert(npInfoW.npShape[0] == npInfoW.npShape[1]) # square filter
+    s =  '        layer = ConvLayer(Layer.Param("%s", %d, self), layer,\n' % (self.getOpName(), batch)
+    s += '                   %d, stride=%d, kernel=%d,\n' % (numOfMaps, 1, filterSize)
+    s += '                   filterFileName="%s", filterTensorDimSemantics="MCRS")\n' % npInfoW.npFile
     s += '        # Golden result file  %s\n' % npInfo.npFile
     s += "        \n"
     return(s)
@@ -113,6 +128,7 @@ class Graph(Object):
     self.__name2node = {}
     self.__edges = []
     self.__mainFlowEdges = []
+    self.__inputNode = None
     
   def addNode(self, node):
     self.__name2node[node.getName()] = node
@@ -159,6 +175,11 @@ class Graph(Object):
       n = nextNodes[0]
       nextNodes = self.nodeSuccessors(n)
     return(n)
+  
+  def setInputNode(self, node):
+    self.__inputNode = node
+  def getInputNode(self):
+    return(self.__inputNode)
   
   # On a levelized graph - max depth to reach node among all paths
   # It describes "computational readiness" in the data flow:
@@ -222,6 +243,7 @@ class Graph(Object):
 
 
   def genCompilerPy(self, outFile):
+    
     prefix = """
 from utils.fmapdesc     import OfmapDesc
 from utils.datatype     import *
@@ -241,16 +263,24 @@ class TrivNet(Network):
         return "TrivNet"
  
     def construct(self):
-        layer =  DataLayer(Layer.Param("jdr_v3/input", 1, self),
-                    OfmapDesc(3, 8), inputDataFileName="out_input:0.npy", dataTensorDimSemantics="NCHW")
- 
 """
     lines = []
+    
+    # Input layer
+    inputNode = self.getInputNode()
+    npInfo = inputNode.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    assert(height == width)
+    s = '        layer =  DataLayer(Layer.Param("%s", %d, self),\n' % (inputNode.getOpName(), batch)
+    s+= '               OfmapDesc(%d, %d), inputDataFileName="%s", dataTensorDimSemantics="NCHW")\n' % (channels, height, npInfo.npFile)
+    lines.append(s)
+    
+    # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
     for level in range(0, len(levelizedNodes)):
       for n in levelizedNodes[level]:
         op = n.getOpType()
-        print("DEBUG: node=", n.getName(), "  op=", op)
+        #print("DEBUG: node=", n.getName(), "  op=", op)
         if op == "Conv2D":
           s = n.genCompilerLayerText()
           lines.append(s)

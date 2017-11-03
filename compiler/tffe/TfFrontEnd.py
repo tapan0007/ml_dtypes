@@ -65,22 +65,22 @@ class TfFe:
     # Add all nodes (ops) in TF graph definition
     for tfNode in self.__gd.node:
       tfop = TfOp(tfNode.name, tfNode.op, tfNode)
-      print("\nDEBUG loadPb ", tfop, tfNode)
+      #print("\nDEBUG loadPb ", tfop, tfNode)
       if (re.search(focusNodeRe, tfNode.name) != None):
       
         add_attrs = {}
         for attr in ["strides", "padding", "data_format"]:
           if attr in tfNode.attr:
             add_attrs[attr] = tfNode.attr[attr]
-            print("  DEBUG attr=", attr, "  ", add_attrs[attr])        
+            #print("  DEBUG attr=", attr, "  ", add_attrs[attr])        
         add_attrs["tfop"] = tfop
         numOps += 1
         node = None
         if (re.search("conv", tfop.op, re.I) != None):
           numConv += 1
-          print("DEBUG strides=", tfNode.attr["strides"])
-          print("DEBUG padding=", tfNode.attr["padding"])
-          print("DEBUG data_format=", tfNode.attr["data_format"])
+          #print("DEBUG strides=", tfNode.attr["strides"])
+          #print("DEBUG padding=", tfNode.attr["padding"])
+          #print("DEBUG data_format=", tfNode.attr["data_format"])
           node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs["strides"], add_attrs["padding"], add_attrs["data_format"], add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
@@ -128,6 +128,8 @@ class TfFe:
 
   def writeImages(self, outPrefix, imageFile, inputTensorName):
     inputNode = self.__kg.getNode(inputTensorName)
+    assert(inputNode != None)
+    self.__kg.setInputNode(inputNode)
     self.__kg.levelize()
     inputTfOpName = inputNode.getAttr("tfop").name
     with tf.Session() as sess:
@@ -160,8 +162,8 @@ class TfFe:
           #print("DEBUG: node=", n.getName())
           tfOpName = n.getOpName()
           op = graph.get_operation_by_name(tfOpName)
-          if (re.search("conv", n.getOpType(), re.I) != None):
-            print("DEBUG: conv  ", n.getOpName())
+          #if (re.search("conv", n.getOpType(), re.I) != None):
+            #print("DEBUG: conv  ", n.getOpName())
           for tensor in op.outputs:
             shape = tensor.get_shape().as_list()
             npInfo = kog.NpInfo(tensor.name, shape)
@@ -195,7 +197,7 @@ class TfFe:
 
   # Writes graph in a given format using graphviz lib
   # Key operations like convolution are colored red
-  # The depth determines subgraph clastering based on operation manes
+  # The depth determines subgraph clastering based on operation names
   #   layerN/branchM/convP cluster would be breated (in blue) if depth is 3
   def writeDot(self, depth, outFile, outFormat = "svg"):
     dot = Digraph(comment="writeDot")
@@ -294,8 +296,8 @@ class TfFe:
         #print("DEBUG: node=", n.getName())
         opName = n.getOpName()
         opType = n.getOpType()
-        if (re.search("conv", opType, re.I) != None):
-          print("DEBUG: conv  ", opName)
+        #if (re.search("conv", opType, re.I) != None):
+        #  print("DEBUG: conv  ", opName)
         row = {"OpName"      : opName,
                "OpType"      : opType,
                "Level"       : level}
@@ -338,7 +340,7 @@ class TfFe:
         if 0:
           for i in range(0, len(faninEdges)):
             edge = faninEdges[i]
-            print("DEBUG: final csv edge attributes ", edge.getAttrs(), " Edge=", edge)
+            #print("DEBUG: final csv edge attributes ", edge.getAttrs(), " Edge=", edge)
         row["InputSize"] = inputSize
         rows.append(row)
         #print("DEBUG: row=", row)
