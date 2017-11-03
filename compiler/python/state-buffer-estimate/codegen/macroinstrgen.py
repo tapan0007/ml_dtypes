@@ -107,9 +107,6 @@ class MacroInstrGen(object):
     def writeIncludes(self):
         f = self.__File
         f.write('\n')
-        f.write('#include "cnpy.h"\n')
-        f.write('#include "tpb_isa.h"\n')
-        f.write('#include "uarch_cfg.h"\n')
         f.write('#include "tcc.h"\n')
 
     #-----------------------------------------------------------------
