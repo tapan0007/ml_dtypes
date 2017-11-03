@@ -61,6 +61,8 @@ class Node(Object):
     while len(self.__fanout) < index + 1:
       self.__fanout.append([])
     self.__fanout[index].append(edge)
+  def genCompilerLayerText(self):
+    return("        # No model for %s %s\n" % (self.getOpType(), self.getOpName()))
 
 class PosNode:
   def __init__(self, node, index):
@@ -88,6 +90,22 @@ class Edge(Object):
            "  From=" + f.node.getName() + ":" + str(f.index) +
            "  To=" + t.node.getName()  + ":" + str(t.index) )
 
+class NodeConv2D(Node):
+  def __init__(self, name, opType, strides, padding, dataFormat, attrs):
+    Node.__init__(self, name, opType, attrs)
+    self.__strides = strides
+    self.__padding = padding
+    self.__strides = strides
+  def genCompilerLayerText(self):
+    npInfo = self.getNpInfo()[0]
+    s =  '        layer = ConvLayer(Layer.Param("%s", 1, self), layer,\n' % self.getOpName()
+    s += '                   4, stride=1, kernel=3,\n'
+    s += '                   filterFileName="%s", filterTensorDimSemantics="MCRS")\n' % "out_jdr_v3__weight1__read:0.npy"
+    s += '        # Golden result file  %s\n' % npInfo.npFile
+    s += "        \n"
+    return(s)
+    
+
 # Computational data flow graph
 class Graph(Object):
   def __init__(self, name, attrs = {}):
@@ -96,8 +114,8 @@ class Graph(Object):
     self.__edges = []
     self.__mainFlowEdges = []
     
-  def addNode(self, name, opType, attrs = {}):
-    self.__name2node[name] = Node(name, opType, attrs)
+  def addNode(self, node):
+    self.__name2node[node.getName()] = node
   
   def addEdge(self, fromName, fromIndex, toName, toIndex, attrs = {}):
     fromNode = self.getNode(fromName)
@@ -203,3 +221,45 @@ class Graph(Object):
     return(edge in self.__mainFlowEdges)
 
 
+  def genCompilerPy(self, outFile):
+    prefix = """
+from utils.fmapdesc     import OfmapDesc
+from utils.datatype     import *
+ 
+from layers.layer       import Layer
+from layers.datalayer   import DataLayer
+from layers.convlayer   import ConvLayer
+
+from nets.network       import Network
+ 
+ 
+class TrivNet(Network):
+    def __init__(self):
+        super().__init__(DataTypeFloat16())
+
+    def gName(self):
+        return "TrivNet"
+ 
+    def construct(self):
+        layer =  DataLayer(Layer.Param("jdr_v3/input", 1, self),
+                    OfmapDesc(3, 8), inputDataFileName="out_input:0.npy", dataTensorDimSemantics="NCHW")
+ 
+"""
+    lines = []
+    levelizedNodes = self.getLevelizedNodes()
+    for level in range(0, len(levelizedNodes)):
+      for n in levelizedNodes[level]:
+        op = n.getOpType()
+        print("DEBUG: node=", n.getName(), "  op=", op)
+        if op == "Conv2D":
+          s = n.genCompilerLayerText()
+          lines.append(s)
+
+    with open(outFile, "w") as f:
+      f.write(prefix)
+      for s in lines:
+        f.write(s)
+    print("INFO: wrote ", outFile)
+          
+          
+    

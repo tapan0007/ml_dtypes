@@ -53,10 +53,11 @@ tffe.loadPb(file, args.focus)
 tffe.writeDot(int(args.depth), args.out_prefix + "graph.dot", "svg")
 if args.weights:
   tffe.writeWeights(args.out_prefix)
+kog = tffe.getKaenaOpGraph()
 if args.images != None:
   tffe.writeImages(args.out_prefix, args.images, inputTensorName)
-  tffe.getKaenaOpGraph().identifyMainFlowEdges(inputTensorName)
+  kog.identifyMainFlowEdges(inputTensorName)
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   tffe.writeDot(int(args.depth), args.out_prefix + "graph_ann.dot", "svg")
-
+kog.genCompilerPy(args.out_prefix + "compiler.py")
 
