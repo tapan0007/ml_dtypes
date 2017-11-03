@@ -59,5 +59,5 @@ if args.images != None:
   kog.identifyMainFlowEdges(inputTensorName)
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   tffe.writeDot(int(args.depth), args.out_prefix + "graph_ann.dot", "svg")
-kog.genCompilerPy(args.out_prefix + "compiler.py")
+  kog.genCompilerPy(args.out_prefix + "compiler.py")
 
