@@ -58,10 +58,10 @@ PSumBuffer::step() {
         if (ew.ifmap_valid) {
             printf("adding partial sum at %x is ", mem->get_base() | src_off);
             ArbPrec::dump(stdout, ns.partial_sum, psum_dtype);
-            ArbPrecData result = ArbPrec::add(src_ptr, &ns.partial_sum, psum_dtype);
+            ArbPrecData result = ArbPrec::add(src, ns.partial_sum, psum_dtype);
             mem->write_local_offset(src_off, &result, dsize);
             printf(" total = ");
-            ArbPrec::dump(stdout, &result, psum_dtype);
+            ArbPrec::dump(stdout, result, psum_dtype);
             printf("\n");
             mem->read_local_offset(&valid, meta_off, 1);
             assert(valid);
@@ -70,7 +70,7 @@ PSumBuffer::step() {
         if (ew.psum_stop) {
             mem->read_local_offset(src_ptr, src_off, dsize);
             printf("final partial sum at %x is ", mem->get_base() | src_off);
-            ArbPrec::dump(stdout, src_ptr, psum_dtype);
+            ArbPrec::dump(stdout, src, psum_dtype);
             printf("\n");
             mem->read_local_offset(&valid, meta_off, 1);
             assert(valid);

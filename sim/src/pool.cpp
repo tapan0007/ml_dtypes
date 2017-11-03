@@ -45,11 +45,11 @@ Pool::step() {
             break;
         case AVG_POOL:
             up_dtype = get_upcast(ps.dtype);
-            pool_pixel = ArbPrec::add(&pool_pixel, &in_pixel, up_dtype);
+            pool_pixel = ArbPrec::add(pool_pixel, in_pixel, up_dtype);
             pool_cnt++;
             break;
         case MAX_POOL:
-            if (ArbPrec::gt(&in_pixel, &pool_pixel, dtype)) {
+            if (ArbPrec::gt(in_pixel, pool_pixel, dtype)) {
                 pool_pixel = in_pixel;
             }
             break;
@@ -64,7 +64,7 @@ Pool::step() {
                 assert(ps.start == ps.stop);
                 break;
             case AVG_POOL:
-                pool_pixel = ArbPrec::uint_divide(&pool_pixel, pool_cnt, 
+                pool_pixel = ArbPrec::uint_divide(pool_pixel, pool_cnt,
                         up_dtype);
                 break;
             case MAX_POOL:
