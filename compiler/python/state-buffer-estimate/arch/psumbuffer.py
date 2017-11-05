@@ -1,11 +1,11 @@
 from .pearray import PeArray
 
-
 ##########################################################
 class PsumBuffer(object):
 
     #-----------------------------------------------------------------
     def __init__(self, peArray, numberBanks, numberBankEntries):
+        assert isinstance(peArray, PeArray)
         self.__NumberColumns        = peArray.gNumberColumns()
         self.__NumberBanks          = numberBanks
         self.__NumberBankEntries    = numberBankEntries

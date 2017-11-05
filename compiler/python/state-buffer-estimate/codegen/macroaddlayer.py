@@ -2,19 +2,23 @@ from .macrolayer import MacroLayer
 
 ##########################################################
 class MacroAddLayer(MacroLayer):
+    """
+    Generate macro instruction(s) for AddLayer
+    """
     #-----------------------------------------------------------------
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)
 
     #-----------------------------------------------------------------
     def generate(self, layer):
-        f = self.gFile()
-        ind        = self.gIndent()
-        s = [ "// " + layer.gName(),
-              "compile_add()",
-        ]
-        ss = ""
-        for x in s: ss += ind + x + "\n"
+        file = self.gFile()
+        ind = self.gIndent()
+        cmdlist = ["// " + layer.gName(),
+                   "compile_add()",
+                  ]
+        cmds = ""
+        for cmd in cmdlist:
+            cmds += ind + cmd + "\n"
 
-        f.write(ss)
+        file.write(cmds)
 

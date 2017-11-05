@@ -55,7 +55,8 @@ class StateBufferMgr(object):
             if layer.qDataLayer():
                 assert(prevIfmapAddress == None and prevOfmapAddress == None)
                 ifmapAddress = None
-                ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeightsPerPart
+                ofmapAddress = self.__FirstSbAddress + (
+                               self.__Network.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
             else:
                 assert(prevOfmapAddress != None)
                 ifmapAddress = prevOfmapAddress
@@ -69,7 +70,8 @@ class StateBufferMgr(object):
                 elif prevIfmapAddress < prevOfmapAddress:
                     ##     Weights | prevIfmap | ... | prevOfmap
                     ##             | Ofmap  $rc -ec 'false|false' && fail $rc -c $q'false|false'$q should fail
-                    ofmapAddress = self.__FirstSbAddress + self.__MaxNumberWeightsPerPart
+                    ofmapAddress = self.__FirstSbAddress + (
+                                   self.__Network.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
                 else:
                     ##     Weights | prevOfmap | ... | prevIfmap
                     ##                             | Ofmap
@@ -101,8 +103,8 @@ class StateBufferMgr(object):
 
 
         ## first layer is Data layer and will have no ifmap
-        self.__LeftStart = self.__MaxNumberWeightsPerPart
-        self.__RightEnd  = self.__PartitionSize
+        #self.__LeftStart = self.__MaxNumberWeightsPerPart
+        #self.__RightEnd  = self.__PartitionSize
 
         self.__OfmapAddress = self.__IfmapAddress = None
 

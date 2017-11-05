@@ -55,3 +55,9 @@ densedot :
 resdot :
 	dot -Tps $(RES50).dot > $(RES50).ps; ps2pdf $(RES50).ps
 
+pylint :
+	for mod in arch codegen layers memmgr nets schedule utils; do \
+	    pylint $$mod > $$mod/$$mod.lint;  \
+	done
+
+lint : pylint

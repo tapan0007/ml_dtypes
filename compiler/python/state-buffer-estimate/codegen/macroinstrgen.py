@@ -120,6 +120,7 @@ class MacroInstrGen(object):
         qq = '"'
         ind  = self.gIndent()
         ind2 = ind*2
+        ind3 = ind*3
         sep  = self.__Sep
         f    = self.__File
 
@@ -140,6 +141,18 @@ class MacroInstrGen(object):
             ind + "return 0;",
             "}",
             "",
+
+            "class FileMgr {",
+            "public:",
+            ind + "FileMgr(FILE* file)",
+            ind + "  : m_File(file)",
+            ind + "{}",
+            ind + "~FileMgr() {",
+            ind2 +     "fclose(m_File);",
+            ind + "}",
+            "private:",
+            ind + "FILE* const m_File;",
+            "};",
             "",
             "int",
             "main(int argc, char* argv[])",
@@ -149,10 +162,12 @@ class MacroInstrGen(object):
             ind2 +"    exit(1);",
             ind + "}",
             ind + 'FILE* const out_binary = fopen(argv[1], "w");',
+
             ind + "if (! out_binary) {",
             ind2 +'    fprintf(stderr, "Cannot open file %s\\n", argv[1]);',
             ind2 +"    return 1;",
             ind + "}",
+            ind + "FileMgr fileMgr(out_binary);",
             "",
             ind + "const int ret = " + self.__Network.gName() + "(out_binary);",
             ind + "if (ret != 0) {",
