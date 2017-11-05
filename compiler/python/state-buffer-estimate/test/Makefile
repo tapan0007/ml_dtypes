@@ -26,6 +26,8 @@ GOLDEN=golden
 FINAL=$(NET)-out
 
 #################################################
+top : all
+#################################################
 $(TPB) : $(EXE)
 	./$(EXE) $(TPB)
 
@@ -33,7 +35,7 @@ $(ASM) : $(TPB)
 	./objdump $(TPB) > $@
 
 simulate : $(TPB)
-	./sim $(TPB) | tee $(SIMRES)
+	./sim $(TPB) > tee $(SIMRES)
 
 $(EXE) : $(OBJ) $(TCCAR)
 	g++ $(LFLAGS) -o $@ $(OBJ) $(LIBDIR_FLAGS) $(LIB_FLAGS)
@@ -45,10 +47,13 @@ $(OBJ) : $(CPP)
 	g++ $(CPPFLAGS) -c $(CPP) 2>&1 | tee LOG
 
 npy2txt :
-	for file in $(FINAL) $(GOLDEN); do                  \
-		for fmt in int16 float16; do                    \
-	    	dumpnpy --$$fmt $$file.npy > $$file-$$fmt.txt;    \
-		done;                                           \
+	for fmt in int16 float16; do                              \
+	    for file in $(GOLDEN) $(FINAL); do                    \
+	        npy=$$file.npy;  txt=$$file-$$fmt.txt;            \
+	        dumpnpy --$$fmt $$npy > $$txt;                    \
+	        echo $$txt;                                       \
+	        cat $$txt;                                        \
+	    done;                                                 \
 	done
 
 all : $(EXE) $(ASM) simulate npy2txt

@@ -1,5 +1,3 @@
-from abc             import ABCMeta, abstractmethod
-
 from .psumbuffer         import PsumBuffer
 from .pearray            import PeArray
 from .statebuffer        import StateBuffer
@@ -7,7 +5,7 @@ from .poolingeng         import PoolingEng
 from .activationeng      import ActivationEng
 
 ##########################################################
-class Arch(object, metaclass = ABCMeta):
+class Arch(object):
 
     #-----------------------------------------------------------------
     def __init__(self):
@@ -20,7 +18,8 @@ class Arch(object, metaclass = ABCMeta):
         sbPartitionsSize        =  8 * 1024 * 1024 // numberPeRows  ##  8 MB
 
         self.__PeArray          = PeArray(numberPeRows, numberPeColumns)
-        self.__PsumBuffer       = PsumBuffer(self.gPeArray(), numberPsumBanks, numberPsumBankEntries)
+        self.__PsumBuffer       = PsumBuffer(self.gPeArray(), numberPsumBanks,
+                                             numberPsumBankEntries)
         self.__PoolingEng       = PoolingEng(self.gPsumBuffer())
         self.__ActivationEng    = ActivationEng(self.gPsumBuffer())
         self.__StateBuffer      = StateBuffer(self.gPeArray(), sbPartitionsSize)
