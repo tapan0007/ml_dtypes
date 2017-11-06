@@ -21,24 +21,28 @@
 
 class IBufferFile : public UopFeedInterface {
     public:
-        IBufferFile(char *fname) {
+        IBufferFile(char* fname) {
             struct stat st;
             fd = open(fname, O_RDONLY, 0);
+            assert(fd > 0);
+
             stat(fname, &st);
             fsize = st.st_size;
-            data_start = (char *)mmap(NULL, fsize, PROT_READ,
-                                      MMAP_FLAGS, fd, 0);
-            data_idx = data_start;
+
+            auto rc = mmap(NULL, fsize, PROT_READ, MMAP_FLAGS, fd, 0);
+            assert(rc != nullptr);
+
+            data_idx = data_start = reinterpret_cast<char*>(rc);
         }
         ~IBufferFile() { munmap(data_start, fsize); }
         bool         empty()   {return data_idx == data_start + fsize;}
-        void        *front()   {return data_idx;}
+        void*        front()   {return data_idx;}
         void         pop()     {data_idx += INSTRUCTION_NBYTES;}
     private:
-        int    fd;
-        size_t  fsize;
-        char   *data_start;
-        char   *data_idx;
+        int    fd = -1;
+        size_t  fsize = 0;
+        char   *data_start = nullptr;
+        char   *data_idx = nullptr;
 };
 
 #endif
