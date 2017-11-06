@@ -12,13 +12,13 @@ class Pool : public PoolInterface {
         void connect(PoolInterface *);
         void step();
     private:
-        PoolSignals              ps;
-        PoolInterface           *connection;
-        ArbPrecData              pool_pixel;
-        addr_t src_partition_size;
-        addr_t dst_partition_size;
-        unsigned int             pool_cnt;
-        MemoryMap               *memory;
+        PoolSignals              ps = {0};
+        PoolInterface           *connection = nullptr;
+        ArbPrecData              pool_pixel = {0};
+        addr_t src_partition_size = 0;
+        addr_t dst_partition_size = 0;
+        unsigned int             pool_cnt = 0;
+        MemoryMap               *memory = nullptr;
 };
 
 class PoolArray {

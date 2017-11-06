@@ -115,7 +115,7 @@ namespace cnpy {
         unsigned int nels = 1;
         for(unsigned int i = 0;i < ndims;i++) nels *= shape[i];
 
-        fwrite(data,sizeof(T),nels,fp);
+        fwrite(data,word_size,nels,fp);
         fclose(fp);
     }
 

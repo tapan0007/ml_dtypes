@@ -73,7 +73,6 @@ int main(int argc, char **argv)
         STEP();
         i++;
     }
-    free(feed);
 
 }
 
