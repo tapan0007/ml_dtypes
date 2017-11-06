@@ -24,7 +24,7 @@ OBJECTS  := $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 all: $(TARGET) 
 
 clean: 
-	$(RM) $(OBJECTS) 
+	$(RM) $(OBJECTS) $(TARGET)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.cpp 
 	 echo $(INCLUDES); \
