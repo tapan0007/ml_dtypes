@@ -40,40 +40,49 @@ class MacroConvLayer(MacroLayer):
 
         ##
         ##
-        s = ["// " + layer.gName(),
-             "convolve_stride[1] = convolve_stride[0] = " + str(layer.gStride()) + ";",
-             "padding[0] = " + str((kernelSize-1) // 2) + ";",
-             "padding[1] = " + str((kernelSize-1) // 2) + ";",
-             "dilate[1] = dilate[0] = 0;",
-
-             ## const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4], // NCHW
-             ## N: batch size
-             ## C: number of ifmaps / channels
-             ## H: height of ifmap
-             ## W: width of ifmap
-             ("ifmap_dims[0] = " + str(numBatches) + ";"  ## num images
-              + " ifmap_dims[1] = " + str(numIfmaps) + ";"  ## image width?
-              + " ifmap_dims[2] = " + str(ifmapSize) + ";"  ## image height?
-              + " ifmap_dims[3] = " + str(ifmapSize) + ";"
-             ),
+        s = ["// convolution: " + layer.gName(),
              ## const addr_t *filter_addr, const uint64_t filter_dims[4], // MCRS
              ## M: number of ofmaps
              ## C: number ifmaps / channels
              ## R: filter height
              ## S: filter width
-             (   "filter_dims[0] = " + str(numOfmaps)   + ";"  ## num images
-               + " filter_dims[1] = " + str(numIfmaps) + ";"  ## image width?
-               + " filter_dims[2] = " + str(kernelSize) + ";"  ## image height?
-               + " filter_dims[3] = " + str(kernelSize)  + ";"
-             ),
-             "ifmap_addrs[0] = " + str(layer.gIfmapAddress()) + ";",
-             "ofmap_addrs = " + str(layer.gOfmapAddress()) + ";",
              "filter_addr[0] = " + str(layer.gWeightAddress()) + ";",
              "filter_file_names[0] = " + qq + layer.gFilterFileName() + qq + ";",
              "",
 
              "compile_read_filter(out_binary, filter_addr[0], filter_file_names[0], "
                    + qq + layer.gFilterTensorDimSemantics() + qq +  ");",
+
+             "",
+
+             ## const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4], // NCHW
+             ## N: batch size
+             ## C: number of ifmaps / channels
+             ## H: height of ifmap
+             ## W: width of ifmap
+             "ifmap_addrs[0]     = " + str(layer.gIfmapAddress()) + ";",
+
+             "ifmap_dims[0]      = " + str(numBatches) + ";",  ## num images
+             "ifmap_dims[1]      = " + str(numIfmaps) + ";", ## image width?
+             "ifmap_dims[2]      = " + str(ifmapSize) + ";", ## image height?
+             "ifmap_dims[3]      = " + str(ifmapSize) + ";",
+
+             "// filter_addr",
+             "filter_dims[0]     = " + str(numOfmaps)   + ";",  ## num images
+             "filter_dims[1]     = " + str(numIfmaps) + ";",  ## image width?
+             "filter_dims[2]     = " + str(kernelSize) + ";",  ## image height?
+             "filter_dims[3]     = " + str(kernelSize)  + ";",
+
+             "ofmap_addrs        = " + str(layer.gOfmapAddress()) + ";",
+             "// ofmap_dims (output)",
+             "// precision",
+             "padding[0]         = " + str((kernelSize-1) // 2) + ";",
+             "padding[1]         = " + str((kernelSize-1) // 2) + ";",
+             "convolve_stride[0] = " + str(layer.gStride()) + ";",
+             "convolve_stride[1] = " + str(layer.gStride()) + ";",
+             "dilate[0]          = 0;",
+             "dilate[1]          = 0;",
+             "",
 
              "compile_convolve(out_binary,",
              ind + "ifmap_addrs, ifmap_dims,",

@@ -71,6 +71,7 @@ class MacroInstrGen(object):
         self.__Arch = arch
         self.__Indent = "    "
         self.__AssertionStr = "Assert"
+        self.__FuncSep =  "//************************************************************"
 
         self.createGenMap()
 
@@ -112,7 +113,8 @@ class MacroInstrGen(object):
     #-----------------------------------------------------------------
     def writeDefines(self):
         f = self.__File
-        f.write('#define Assert(X) assert(X)\n')
+        f.write("#define Quote_(X) #X\n")
+        f.write("#define Assert(X) assert((X) && Quote_(X))\n")
 
     #-----------------------------------------------------------------
     def writeFooter(self, lastLayer):
@@ -128,8 +130,11 @@ class MacroInstrGen(object):
         #         const char *out_numpy_name, const addr_t ofmap_sb_addr,
         #         const uint64_t dims[4],
         #         const size_t word_size);
+        assertStr  =  self.gAssertionStr()
         footer = [
             "",
+            ind + "//-----------------------------------------------------",
+            ind + "// output",
             ind + "compile_write_ofmap(out_binary, "
                 + qq + self.__Network.gName().lower() + "-out.npy" + qq + ", "
                 + str(lastLayer.gOfmapAddress())
@@ -137,23 +142,30 @@ class MacroInstrGen(object):
                 + "ARBPRECTYPE::" + self.__Network.gDataType().gTccName()
                 + ");",
             ind + sep,
-            ind + "fclose(out_binary);",
             ind + "return 0;",
             "}",
             "",
 
+            self.__FuncSep,
             "class FileMgr {",
             "public:",
             ind + "FileMgr(FILE* file)",
             ind + "  : m_File(file)",
-            ind + "{}",
+            ind + "{",
+            ind2 +     assertStr +  "(file);",
+            ind + "}",
             ind + "~FileMgr() {",
             ind2 +     "fclose(m_File);",
             ind + "}",
             "private:",
+            ind + "FileMgr() = delete;",
+            ind + "FileMgr(const FileMgr&) = delete;",
+            "private:",
             ind + "FILE* const m_File;",
             "};",
+
             "",
+            self.__FuncSep,
             "int",
             "main(int argc, char* argv[])",
             "{",
@@ -190,6 +202,7 @@ class MacroInstrGen(object):
 
         header = [
             nl,
+            self.__FuncSep,
             "static int",
             self.__Network.gName() + "(FILE* const out_binary)",
             "{",
@@ -198,8 +211,8 @@ class MacroInstrGen(object):
             ind + "addr_t   ifmap_addrs[1];",   ## 1 is temporary for single Ifmap
             ind + "addr_t   ofmap_addrs;",
             ind + "uint8_t  convolve_stride[2];",
-            ind + "uint8_t padding[2];",
-            ind + "uint8_t dilate[2];",
+            ind + "uint8_t  padding[2];",
+            ind + "uint8_t  dilate[2];",
             "",
         ]
 
@@ -212,12 +225,13 @@ class MacroInstrGen(object):
                 qHasPoolLayer = True
 
         if qHasConvLayer:
-            header.append(ind + "const char* filter_file_names[1];")   ## 1 is temporary for single Ifmap
-            header.append(ind + "addr_t   filter_addr[1];")   ## 1 is temporary for single Ifmap
             header.append(ind + "uint64_t filter_dims[4];")
+            header.append(ind + "addr_t   filter_addr[1];")   ## 1 is temporary for single Ifmap
+            header.append(ind + "const char* filter_file_names[1];")   ## 1 is temporary for single Ifmap
+            header.append("")
 
         if qHasPoolLayer:
-            ind + "uint64_t kernel_dims[4];",
+            header.append(ind + "uint64_t kernel_dims[4];")
             header.append(ind + "uint64_t pool_stride[4];")
 
         for l in header:
@@ -242,7 +256,7 @@ class MacroInstrGen(object):
         for layer in self.__Network.gSchedLayers():
             generator = self.gGenFunc(layer)
             if generator:
-                f.write(ind + sep)
+                f.write("\n" + ind + sep)
                 generator.generate(layer)
                 lastWrittenLayer = layer
 
