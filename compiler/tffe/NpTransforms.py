@@ -2,6 +2,13 @@
 
 import numpy as np
 
+def calcTransform(sf, st):
+  assert(len(sf) == len(st))
+  transform = [sf.find(c) for c in list(st)]
+  #print("DEBUG: transform=", transform)
+  assert(transform[0] >= 0)
+  return(transform)
+
 class NpTrans:
   # See spec for method  genCompilerPy
   TF = "TF"
@@ -11,12 +18,12 @@ class NpTrans:
   Weights = "Weights"
   NHWC = "NHWC"
   NCHW = "NCHW"
-  NCHW = "NCHW"
+  RSCM = "RSCM"
   MCRS = "MCRS"
   Formats = {
     TF : {
       Fmaps   : NHWC,
-      Weights : NCHW
+      Weights : RSCM
       },
     SIM : {
       Fmaps   : NCHW,
@@ -25,16 +32,15 @@ class NpTrans:
     }
   Transforms = {
     TF2SIM : {
-      Fmaps   : [ [1,2], [1,3] ],
-      Weights : [ [0,3], [1,2], [2,3] ]
+      Fmaps   : calcTransform(Formats[TF][Fmaps],   Formats[SIM][Fmaps]),
+      Weights : calcTransform(Formats[TF][Weights], Formats[SIM][Weights])
       }
     }
   # Ulility function to convert npy files, can be moved out of the graph later
   @staticmethod
-  def copyNpyFileAs(npFile, destFormat, transformList):
+  def copyNpyFileAs(npFile, destFormat, transform):
     arr = np.load(npFile)
-    for transform in transformList:
-      arr = np.swapaxes(arr, *transform)
+    arr = np.transpose(arr, transform)
     npFileDest = npFile.replace(".npy", "_" + destFormat + ".npy")
     np.save(npFileDest, arr)
     return(npFileDest)
