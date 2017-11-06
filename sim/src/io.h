@@ -57,6 +57,7 @@ class MemoryMapInstance {
 class MemoryMap {
     public:
         MemoryMap(Memory *_memory);
+        ~MemoryMap();
         MemoryMapInstance *mmap(addr_t addr, size_t sz);
         void read_global(void *dest, addr_t src, size_t n_bytes);
         void write_global(addr_t dest, void *src, size_t n_bytes);

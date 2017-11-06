@@ -37,7 +37,6 @@ int main(int argc, char **argv)
         PSumBufferArray(&mmap, MMAP_PSUM_BASE, num_cols);;
     PoolArray              pool_array = PoolArray(&mmap, num_cols);
     ActivateArray          activate_array;
-    UopFeedInterface *feed;
 
 
     /* Parse args */
@@ -45,11 +44,11 @@ int main(int argc, char **argv)
         printf("Usage is %s [object file]", argv[0]);
         return 0;
     }
-    feed = new IBufferFile(argv[1]);
+    IBufferFile feed = IBufferFile(argv[1]);
 
 
     /* make necessary connections */
-    sequencer.connect_uopfeed(feed);
+    sequencer.connect_uopfeed(&feed);
     psum_array.connect_west(state_array.get_edge());
     int last_row = pe_array.num_rows()-1;
     for (size_t j=0; j < num_cols; j++) {

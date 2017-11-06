@@ -30,7 +30,7 @@ class IBufferFile : public UopFeedInterface {
                                       MMAP_FLAGS, fd, 0);
             data_idx = data_start;
         }
-        ~IBufferFile() { free(data_start); }
+        ~IBufferFile() { munmap(data_start, fsize); }
         bool         empty()   {return data_idx == data_start + fsize;}
         void        *front()   {return data_idx;}
         void         pop()     {data_idx += INSTRUCTION_NBYTES;}

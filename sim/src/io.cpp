@@ -166,6 +166,13 @@ Memory::io_write(std::string fname, void *ptr, int i,int j,int k,int l, ARBPRECT
 
 MemoryMap::MemoryMap(Memory *_memory) : memory(_memory) {}
 
+MemoryMap::~MemoryMap() {
+    for (size_t i=0; i < mmaps.size(); i++) {
+        delete mmaps[i];
+    }
+
+}
+
 MemoryMapInstance *
 MemoryMap::mmap(addr_t addr, size_t sz) {
     /* TODO -  check to make sure range is not already mmapd */

@@ -28,6 +28,9 @@ ProcessingElementArray::ProcessingElementArray(int _n_rows, int _n_cols) : n_row
 }
 
 ProcessingElementArray::~ProcessingElementArray() {
+    for (int i = 0; i < n_rows; i++) {
+        delete [] pe_array[i];
+    }
     delete [] pe_array;
 }
 

@@ -31,6 +31,7 @@ void  DynamicInstruction<SIM_RDIFMAP>::execute(void *v_seq) {
     /* load io_mmap */
     i_ptr = seq->mem->io_mmap(args.fname, i_n, i_c, i_h, i_w, word_size);
     seq->mem->bank_mmap(args.address, i_ptr, i_c, i_h * i_w * word_size);
+    delete [] (char *)i_ptr;
 }
 
 /*------------------------------------
@@ -52,6 +53,7 @@ void  DynamicInstruction<SIM_RDFILTER>::execute(void *v_seq) {
     w_r = t;
     w_s = u;
     seq->mem->bank_mmap(args.address, f_ptr, w_c, w_m * w_r * w_s * word_size);
+    delete [] (char *)f_ptr;
 }
 
 /*------------------------------------
@@ -67,6 +69,7 @@ void  DynamicInstruction<SIM_WROFMAP>::execute(void *v_seq) {
             args.dims[2] * args.dims[3] * sizeofArbPrecType(dtype));
     seq->mem->io_write(args.fname, o_ptr, args.dims[0], args.dims[1], 
             args.dims[2], args.dims[3], dtype);
+    free(o_ptr);
 }
 
 
@@ -424,6 +427,7 @@ Sequencer::step() {
             }
             inst->execute(this);
             feed->pop();
+            delete inst;
         } else {
             es = {0};
         }

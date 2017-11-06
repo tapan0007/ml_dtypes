@@ -6,8 +6,7 @@
 
 class Instruction {
     public:
-        Instruction() {}
-        ~Instruction() {}
+        virtual ~Instruction()  {};
         virtual void execute(void *seq) = 0;
         virtual void dump(bool header) {(void)header; std::cout << "not implemented";}
 };
