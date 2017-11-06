@@ -170,20 +170,20 @@ class MacroInstrGen(object):
             "main(int argc, char* argv[])",
             "{",
             ind + "if (argc < 2) {",
-            ind2 +'    fprintf(stderr, "Usage: %s out_obj_file\\n", argv[0]);',
-            ind2 +"    exit(1);",
+            ind2 +    'fprintf(stderr, "Usage: %s out_obj_file\\n", argv[0]);',
+            ind2 +    "return 1;",
             ind + "}",
             ind + 'FILE* const out_binary = fopen(argv[1], "w");',
 
             ind + "if (! out_binary) {",
-            ind2 +'    fprintf(stderr, "Cannot open file %s\\n", argv[1]);',
-            ind2 +"    return 1;",
+            ind2 +    'fprintf(stderr, "Cannot open file %s\\n", argv[1]);',
+            ind2 +    "return 1;",
             ind + "}",
             ind + "FileMgr fileMgr(out_binary);",
             "",
             ind + "const int ret = " + self.__Network.gName() + "(out_binary);",
             ind + "if (ret != 0) {",
-            ind2 +'    fprintf(stderr, "Usage: %s out_obj_file\\n", argv[0]);',
+            ind2 +    'fprintf(stderr, "Usage: %s out_obj_file\\n", argv[0]);',
             ind + "}",
             ind + "return ret;",
             "}",
@@ -208,7 +208,7 @@ class MacroInstrGen(object):
             "{",
             ind + "uint64_t ofmap_dims[4];",
             ind + "uint64_t ifmap_dims[4];",
-            ind + "addr_t   ifmap_addrs[1];",   ## 1 is temporary for single Ifmap
+            ind + "addr_t   ifmap_addrs[2] = {0, 0};",   ## 2 is temporary for single Ifmap
             ind + "addr_t   ofmap_addrs;",
             ind + "uint8_t  convolve_stride[2];",
             ind + "uint8_t  padding[2];",
@@ -226,8 +226,8 @@ class MacroInstrGen(object):
 
         if qHasConvLayer:
             header.append(ind + "uint64_t filter_dims[4];")
-            header.append(ind + "addr_t   filter_addr[1];")   ## 1 is temporary for single Ifmap
-            header.append(ind + "const char* filter_file_names[1];")   ## 1 is temporary for single Ifmap
+            header.append(ind + "addr_t   filter_addr[2] = {0, 0};")   ## 2 is temporary for single Ifmap
+            header.append(ind + "const char* filter_file_names[2] = {0, 0};")   ## 2 is temporary for single Ifmap
             header.append("")
 
         if qHasPoolLayer:
