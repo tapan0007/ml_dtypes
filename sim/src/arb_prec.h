@@ -237,7 +237,12 @@ class ArbPrec
                 case INT32:
                     fprintf(f, "%d", EXTRACT(int32_t, x));
                     break;
-                case FP16:
+                case FP16: 
+                    {
+                        float f_x = fp16_ieee_to_fp32_value(EXTRACT(uint16_t, x));
+                        fprintf(f, "%f", EXTRACT(float, &f_x));
+                    }
+                    break;
                 case FP32:
                     fprintf(f, "%f", EXTRACT(float, x));
                     break;
