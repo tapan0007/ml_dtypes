@@ -99,7 +99,7 @@ main(int argc, char **argv)
                     PF(dims[1], "%lx")
                     PF(dims[2], "%lx")
                     PF(dims[3], "%lx")
-                    PF(word_size, "%x")
+                    PF(dtype, "%x")
                 }
                 break;
             case LDWEIGHTS_OPC:
