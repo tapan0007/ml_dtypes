@@ -14,8 +14,10 @@ class MacroDataLayer(MacroLayer):
         f = self.gFile()
         ind = self.gIndent()
         s = [ "// " + layer.gName(),
+              "ofmap_addrs = " + str(layer.gOfmapAddress()) + ";",
+              "",
               "compile_read_ifmap(out_binary,",
-              ind + str(layer.gOfmapAddress()) + ", ",
+              ind + "ofmap_addrs, ",
               ind + str(qq + layer.gInputDataFileName() + qq) +", "
               + qq + layer.gDataTensorDimSemantics() + qq + ");",
             ]
