@@ -10,17 +10,20 @@ class ConcatLayer(CombineLayer):
     def __init__(self, param, prev_layer, earlier_layer):
         assert(isinstance(prev_layer, Layer))
         assert(isinstance(earlier_layer, Layer))
-        assert(prev_layer.gOfmapSize() == earlier_layer.gOfmapSize())
+        assert(prev_layer.gOfmapWidth() == earlier_layer.gOfmapWidth())
+        assert(prev_layer.gOfmapHeight() == earlier_layer.gOfmapHeight())
 
         num_ofmaps = prev_layer.gNumOfmaps() + earlier_layer.gNumOfmaps()
         super().__init__(param, prev_layer, earlier_layer, num_ofmaps)
 
     #-----------------------------------------------------------------
     def verify(self):
-        mapSize = self.gOfmapSize()
+        mapWidth = self.gOfmapWidth()
+        mapHeight = self.gOfmapHeight()
         numInputMaps = 0
         for prevLayer in self.gPrevLayers():
-            assert(mapSize == prevLayer.gOfmapSize())
+            assert(mapWidth == prevLayer.gOfmapWidth())
+            assert(mapHeight == prevLayer.gOfmapHeight())
             numInputMaps += prevLayer.gNumOfmaps()
 
         assert(numInputMaps == self.gNumOfmaps())
@@ -39,7 +42,8 @@ class ConcatLayer(CombineLayer):
 
         for prevLayer in self.gPrevLayers():
             totalNumMaps += prevLayer.gNumOfmaps()
-            assert(prevLayer.gOfmapSize() == self.gOfmapSize())
+            assert(prevLayer.gOfmapWidth() == self.gOfmapWidth())
+            assert(prevLayer.gOfmapHeight() == self.gOfmapHeight())
             if prevLayerIndices == "":
                 assert(mapNumStr == "")
                 prevLayerIndices = prevLayer.gNumberStr()
@@ -51,7 +55,8 @@ class ConcatLayer(CombineLayer):
 
         assert(totalNumMaps == self.gNumOfmaps())
 
-        fromTo = "(" + mapNumStr + "," + str(self.gOfmapSize()) + ")"
+        fromTo = "(" + mapNumStr + "," + 
+                str(self.gOfmapWidth()) + '*' + str(self.gOfmapHeight()) + ")"
 
         return ("Concat[" + prevLayerIndices + "] " + fromTo + self.gStateSizesStr())
 

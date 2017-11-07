@@ -59,9 +59,12 @@ RunCmd ./objdump $TPB > $ASM || Fatal Failed to create $ASM
 RunCmd shasum $TPB
 echo ./sim $TPB
 ./sim $TPB >$SIMRES || Fatal Sim failed on $TPB
+outNpy = ${ egrep -A 1 compile_write_ofmap $CPP |
+            tail -n 1 | sed -e 's/^ *"//' -e 's/.npy".*//' }
+echo Out npy: $outNpy
 Files=(
     golden
-    $NET-out
+    $outNpy
 )
 FMTS = (    
     # int16

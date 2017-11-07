@@ -23,7 +23,6 @@ class AddLayer(CombineLayer):
     #-----------------------------------------------------------------
     def verify(self):
         prevDesc = None
-        mapSize = -1
         numOfmaps = 0
 
         numPreLayers = self.gNumPrevLayers()

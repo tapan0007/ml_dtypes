@@ -98,6 +98,7 @@ class MacroInstrGen(object):
             self.__File = f
             self.generateFile()
 
+    #-----------------------------------------------------------------
     def gFile(self):
         return self.__File
 
@@ -117,7 +118,7 @@ class MacroInstrGen(object):
         f.write("#define Assert(X) assert((X) && Quote_(X))\n")
 
     #-----------------------------------------------------------------
-    def writeFooter(self, lastLayer):
+    def writeFooter(self, lastGenerator):
         nl   = "\n"
         qq = '"'
         ind  = self.gIndent()
@@ -135,12 +136,12 @@ class MacroInstrGen(object):
             "",
             ind + "//-----------------------------------------------------",
             ind + "// output",
-            ind + "compile_write_ofmap(out_binary, "
-                + qq + self.__Network.gName().lower() + "-out.npy" + qq + ", "
-                + str(lastLayer.gOfmapAddress())
-                + ", ofmap_dims, "
-                + "ARBPRECTYPE::" + self.__Network.gDataType().gTccName()
-                + ");",
+            ]
+
+        #for s in lastGenerator.gWriteOfmapStatement(ind):
+        #    footer.append(ind + s)
+            
+        footer += [
             ind + sep,
             ind + "return 0;",
             "}",
@@ -189,6 +190,7 @@ class MacroInstrGen(object):
             "}",
             "",
         ]
+
         for l in footer:
             f.write(l+nl)
 
@@ -252,14 +254,16 @@ class MacroInstrGen(object):
         self.writeHeader()
 
         ####################################################
-        lastWrittenLayer = None
+        lastGenerator = None
+        lastLayer = None
         for layer in self.__Network.gSchedLayers():
             generator = self.gGenFunc(layer)
             if generator:
                 f.write("\n" + ind + sep)
-                generator.generate(layer)
-                lastWrittenLayer = layer
+                generator.rLayer(layer)
+                generator.generate()
+                lastGenerator = generator
 
         ####################################################
-        self.writeFooter(lastWrittenLayer)
+        self.writeFooter(lastGenerator)
 

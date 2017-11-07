@@ -21,7 +21,8 @@ class MacroPoolLayer(MacroLayer):
         prevLayer   = layer.gPrevLayer(0)
         numBatches  = self.__NumBatches
         numIfmaps   = prevLayer.gNumOfmaps()
-        ifmapSize   = prevLayer.gOfmapSize()
+        ifmapWidth   = prevLayer.gOfmapWidth()
+        ifmapHeight   = prevLayer.gOfmapHeight()
 
         ## const addr_t *ifmap_addrs, const uint64_t ifmap_dims[4], // NCHW
         ## N: batch size
@@ -31,8 +32,8 @@ class MacroPoolLayer(MacroLayer):
         return (
             "ifmap_dims[0] = " + str(numBatches) + ";"
           + " ifmap_dims[1] = " + str(numIfmaps) + ";"
-          + " ifmap_dims[2] = " + str(ifmapSize) + ";"
-          + " ifmap_dims[3] = " + str(ifmapSize) + ";"
+          + " ifmap_dims[2] = " + str(ifmapHeight) + ";"
+          + " ifmap_dims[3] = " + str(ifmapWidth) + ";"
         )
 
     #-----------------------------------------------------------------
@@ -69,7 +70,8 @@ class MacroPoolLayer(MacroLayer):
     #-----------------------------------------------------------------
     def gOfmapAssertString(self, layer):
         assertStr   =  self.gMacroInstrGen().gAssertionStr()
-        ofmapSize   = layer.gOfmapSize()
+        ofmapWidth   = layer.gOfmapWidth()
+        ofmapHeight   = layer.gOfmapHeight()
         numOfmaps   = layer.gNumOfmaps()
         numBatches  = self.__NumBatches
 
@@ -81,12 +83,13 @@ class MacroPoolLayer(MacroLayer):
         return (
             assertStr + "(ofmap_dims[0] == " + str(numBatches) + ");"
           + " " + assertStr + "(ofmap_dims[1] == " + str(numOfmaps) + ");"
-          + " " + assertStr + "(ofmap_dims[2] == " + str(ofmapSize) + ");"
-          + " " + assertStr + "(ofmap_dims[3] == " + str(ofmapSize) + ");"
+          + " " + assertStr + "(ofmap_dims[2] == " + str(ofmapHeight) + ");"
+          + " " + assertStr + "(ofmap_dims[3] == " + str(ofmapWidth) + ");"
         )
 
     #-----------------------------------------------------------------
-    def generatePool(self, layer, poolType):
+    def generatePool(self, poolType):
+        layer = self.gLayer()
         f           = self.gFile()
         self.__NumBatches = 1    ## only one image in batch
         self.__BatchPoolDim = 1  ## no pooling across batches
