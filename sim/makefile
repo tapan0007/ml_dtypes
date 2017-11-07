@@ -1,6 +1,6 @@
 CXX= g++
 CXXFLAGS = -I. -std=c++11 -O1
-CFLAGS = -W -Wall -ansi -ggdb -g -Wpacked -Wno-missing-field-initializers
+CFLAGS = -W -Wall -ansi -ggdb -g -Wno-missing-field-initializers
 AR=ar
 TARGET = sim
 SRCDIR = src

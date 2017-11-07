@@ -7,7 +7,7 @@
 #include <string>
 #include "tpb_isa.h"
 
-#define PRINT_TEMPLATE(X)     "%-20s: 0x%#X  \n"
+#define PRINT_TEMPLATE(X)     "%-20s: %#X  \n"
 
 
 #define PF(FIELD, FORMAT_SPECIFIER)     print_field(PRINT_TEMPLATE(FORMAT_SPECIFIER), #FIELD, args->FIELD);

@@ -314,7 +314,7 @@ template <typename Op, typename... Args>
 struct Unroll<Op, ARBPRECTYPE::INVALID_ARBPRECTYPE, Args...>
 {
     static inline auto unroll(
-            ARBPRECTYPE, ARBPRECTYPE& result_type, Args ...args) ->
+            ARBPRECTYPE, ARBPRECTYPE& result_type, Args ...args __attribute__((unused))) ->
         decltype(Op::template eval<ARBPRECTYPE::INVALID_ARBPRECTYPE>(
                 std::forward<Args>(args)..., result_type))
     {
@@ -511,7 +511,7 @@ struct Dump
         }
         else
         {
-            fprintf(f, "%lld", static_cast<int64_t>(extract<Type>(x)));
+            fprintf(f, "%ld", static_cast<int64_t>(extract<Type>(x)));
         }
     }
 };
