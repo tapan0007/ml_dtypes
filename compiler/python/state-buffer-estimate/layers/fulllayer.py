@@ -9,7 +9,8 @@ class FullLayer(ConvLayer):
     #-----------------------------------------------------------------
     def __init__(self, param, prev_layer, numOuts):
         assert(isinstance(prev_layer, Layer))
-        super().__init__(param, prev_layer, numOuts, stride=1, kernel=1)
+        super().__init__(param, prev_layer, numOuts, 1, 1,
+                        param.gLayerName()+".npy", "MCRS")
 
 
     #-----------------------------------------------------------------

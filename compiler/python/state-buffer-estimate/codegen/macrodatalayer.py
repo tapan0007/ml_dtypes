@@ -8,7 +8,8 @@ class MacroDataLayer(MacroLayer):
         super().__init__(macroInstrGen)
 
     #-----------------------------------------------------------------
-    def generate(self, layer):
+    def generate(self):
+        layer = self.gLayer()
         qq = '"'
         q  = "'"
         f = self.gFile()

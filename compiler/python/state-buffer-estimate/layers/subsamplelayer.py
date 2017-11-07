@@ -15,8 +15,9 @@ class SubSampleLayer(Layer): # abstract class
         ifmap_desc = prev_layer.gOfmapDesc()
         if not num_ofmaps:
             num_ofmaps = ifmap_desc.gNumMaps()
-        ofmap_size = ifmap_desc.gMapSize()  //  stride
-        ofmap_desc = OfmapDesc(num_ofmaps, ofmap_size);
+        ofmap_width = ifmap_desc.gMapWidth()  //  stride
+        ofmap_height = ifmap_desc.gMapHeight()  //  stride
+        ofmap_desc = OfmapDesc(num_ofmaps, (ofmap_width, ofmap_height));
 
         super().__init__(param, ofmap_desc, (prev_layer,))
 
@@ -36,6 +37,8 @@ class SubSampleLayer(Layer): # abstract class
     def qSubSampleLayer(self):
         return True
 
+    #-----------------------------------------------------------------
     def verify(self):
-        assert(self.gPrevLayer(0).gOfmapSize() // self.gStride() == self.gOfmapSize())
+        assert(self.gPrevLayer(0).gOfmapWidth() // self.gStride() == self.gOfmapWidth())
+        assert(self.gPrevLayer(0).gOfmapHeight() // self.gStride() == self.gOfmapHeight())
 

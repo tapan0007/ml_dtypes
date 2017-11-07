@@ -35,8 +35,10 @@ class ConvLayer(SubSampleLayer):
         assert(self.gNumPrevLayers() == 1)
         super().verify()
         prevLayer = self.gPrevLayer(0)
-        prevMapSize = prevLayer.gOfmapSize()
-        ##assert(self.gPrevLayer(0).gOfmapSize() // self.gStride() == self.gOfmapSize())
+        prevMapWidth = prevLayer.gOfmapWidth()
+        prevMapHeight = prevLayer.gOfmapHeight()
+        ##assert(self.gPrevLayer(0).gOfmapWidth() // self.gStride() == self.gOfmapWidth())
+        ##assert(self.gPrevLayer(0).gOfmapHeight() // self.gStride() == self.gOfmapHeight())
 
     #-----------------------------------------------------------------
     def gFilterFileName(self):

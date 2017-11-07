@@ -21,22 +21,32 @@ class MacroLayer(object, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     @abstractmethod
-    def generate(self, layer):
+    def generate(self):
         assert(False)
 
     #-----------------------------------------------------------------
-    def gWriteOfmapStr(self, file, ind):
+    def gLayer(self):
+        return self.__Layer
+
+    #-----------------------------------------------------------------
+    def rLayer(self, layer):
+        self.__Layer = layer
+
+    #-----------------------------------------------------------------
+    def gWriteOfmapStatement(self, ind):
+        layer = self.gLayer()
         nl = "\n"
         qq = '"'
+        nn = layer.gNetwork()
+        layerFileName = nn.gName().lower() + "-" + layer.gName().lower() + "-out.npy"
+        layerFileName = layerFileName.replace("/", "-")
 
-        ind + 
-        lines = (
-            ofmap_addrsStr = "ofmap_addrs = " + str(self.gOfmapsAddress());
-            "compile_write_ofmap(out_binary, "
-            + qq + self.__Network.gName().lower() + "-" + self.gName().lower + "-out.npy" + qq + ", "
-            + ofmap_addrsStr + ", "
-            + "ARBPRECTYPE::" + self.__Network.gDataType().gTccName()
-            + ");",
+        lines = [
+            "ofmap_addrs = " + str(layer.gOfmapAddress()) + ";",
+            "compile_write_ofmap(out_binary, ",
+            ind + qq + layerFileName + qq + ", ",
+            ind + "ofmap_addrs , ofmap_dims, " + "ARBPRECTYPE::" + nn.gDataType().gTccName() + ");",
+        ]
+        return lines
 
-        f.write(l+nl)
 
