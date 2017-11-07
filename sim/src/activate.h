@@ -4,28 +4,29 @@
 #include "sigint.h"
 #include <vector>
 
-class Activate : public ActivateSbInterface {
+class MemoryMap;
+
+class Activate : public ActivateInterface{
     public:
-        Activate();
-        ~Activate();
-        ActivateSbSignals pull_activate();
-        void connect_psum(PSumActivateInterface *);
+        Activate(MemoryMap *_memory) : memory(_memory) {};
+        ActivateSignals pull_activate();
+        void connect(ActivateInterface *);
         void step();
     private:
-        PSumActivateInterface   *psum_connect;
-        PSumActivateSignals      ps;
+        MemoryMap           *memory;
+        ActivateInterface   *connection;
+        ActivateSignals      as = {0};
 
 };
 
 class ActivateArray {
     public:
-        ActivateArray(int n_cols = 64);
-        ~ActivateArray();
+        ActivateArray(MemoryMap *memory, size_t n_cols = 64);
         Activate& operator[](int index);
-        void connect_psum(int col_id, PSumActivateInterface *);
+        void connect(ActivateInterface *);
         void step();
     private:
-        std::vector<Activate>     buffer;
+        std::vector<Activate>     activators;
 
 };
 #endif

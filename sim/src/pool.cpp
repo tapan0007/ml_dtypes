@@ -22,9 +22,9 @@ Pool::step() {
     if (!ps.valid) {
         return;
     }
-	ARBPRECTYPE dtype = ps.dtype;
-	ARBPRECTYPE up_dtype;
-	size_t dsize = sizeofArbPrecType(ps.dtype);
+    ARBPRECTYPE dtype = ps.dtype;
+    ARBPRECTYPE up_dtype;
+    size_t dsize = sizeofArbPrecType(ps.dtype);
 
 
     memory->read_global(&in_pixel, ps.src_addr.sys, dsize);
@@ -117,8 +117,6 @@ PoolArray::PoolArray(MemoryMap *mmap, size_t n_pools) {
         pooler[i].connect(&pooler[i-1]);
     }
 }
-
-PoolArray::~PoolArray() {}
 
 void
 PoolArray::connect(PoolInterface *connection) {

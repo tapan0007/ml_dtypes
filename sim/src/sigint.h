@@ -5,6 +5,16 @@
 #include "arb_prec.h"
 #include <cstdint>
 
+struct Addr {
+    union {
+        uint64_t row :  ROW_BYTE_OFFSET_BITS + BANKS_PER_ROW_BITS +
+            ROWS_PER_BANK_PER_ROW_BITS;
+        uint64_t column : 1 + COLUMN_BYTE_OFFSET_BITS + BANKS_PER_COLUMN_BITS;
+        uint64_t sys : ADDRESS_BITS;
+    };
+};
+
+
 // ----------------------------------------------------------
 // Signals
 // ----------------------------------------------------------
@@ -19,29 +29,6 @@ struct PeEWSignals {
 struct PeNSSignals {
     ArbPrecData partial_sum;
 };
-
-struct PSumActivateSignals {
-    bool    valid;
-    ArbPrecData partial_sum;
-    ARBPRECTYPE dtype;
-};
-
-struct ActivateSbSignals {
-    bool    valid;
-    ArbPrecData partial_sum;
-    ARBPRECTYPE dtype;
-};
-
-
-struct Addr {
-    union {
-        uint64_t row :  ROW_BYTE_OFFSET_BITS + BANKS_PER_ROW_BITS +
-            ROWS_PER_BANK_PER_ROW_BITS;
-        uint64_t column : 1 + COLUMN_BYTE_OFFSET_BITS + BANKS_PER_COLUMN_BITS;
-        uint64_t sys : ADDRESS_BITS;
-    };
-};
-
 
 typedef struct EdgeSignals {
     uint8_t        row_valid;
@@ -65,10 +52,16 @@ typedef struct EdgeSignals {
     bool           psum_start;
     bool           psum_stop;
 
-    bool           activation_valid;
-    ACTIVATIONFUNCTION activation;
 
 } EdgeSignals;
+
+struct ActivateSignals {
+    bool          valid;
+    ACTIVATIONFUNC func;
+    ARBPRECTYPE   dtype;
+    Addr          addr;
+    uint8_t       countdown;
+};
 
 typedef struct PoolSignals {
     bool          valid;
@@ -116,20 +109,12 @@ class EdgeInterface
         virtual EdgeSignals pull_edge() = 0;
 };
 
-class PSumActivateInterface
+class ActivateInterface
 {
     public:
-        PSumActivateInterface() {};
-        ~PSumActivateInterface() {};
-        virtual PSumActivateSignals pull_psum() = 0;
-};
-
-class ActivateSbInterface
-{
-    public:
-        ActivateSbInterface() {};
-        ~ActivateSbInterface() {};
-        virtual ActivateSbSignals pull_activate() = 0;
+        ActivateInterface() {};
+        ~ActivateInterface() {};
+        virtual ActivateSignals pull_activate() = 0;
 };
 
 class SbEWBroadcastInterface

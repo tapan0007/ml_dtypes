@@ -3,55 +3,55 @@
 //-----------------------------------------------------------------------
 //  Activate
 //-----------------------------------------------------------------------
-Activate::Activate() : psum_connect(nullptr) {}
-
-Activate::~Activate() {}
-
 void
-Activate::connect_psum(PSumActivateInterface *_psum_connect)
+Activate::connect(ActivateInterface *connection)
 {
-    psum_connect = _psum_connect;
+    this->connection = connection;
+}
+
+ActivateSignals
+Activate::pull_activate()
+{
+    return as;
 }
 
 void
 Activate::step()
 {
-    ps = psum_connect->pull_psum();
-    if (ps.valid) {
-        printf("Activate ");
-        ArbPrec::dump(stdout, ps.partial_sum, ps.dtype);
-        printf("\n");
+    as = connection->pull_activate();
+    if (as.valid) {
+        printf("Activate\n");
+        //ArbPrec::dump(stdout, as.partial_sum, as.dtype);
+        //printf("\n");
+        as.valid = ((as.countdown--) > 0);
     }
-}
-
-ActivateSbSignals
-Activate::pull_activate()
-{
-    return ActivateSbSignals{ps.valid, ps.partial_sum};
 }
 
 //-----------------------------------------------------------------------
 //  ActivateArray
 //-----------------------------------------------------------------------
-ActivateArray::ActivateArray(int n_cols) {
-    buffer.resize(n_cols);
+ActivateArray::ActivateArray(MemoryMap *mmap, size_t n_cols) {
+    for (size_t i = 0; i < n_cols; i++) {
+        activators.push_back(Activate(mmap));
+    }
+    for (size_t i = 1; i < activators.size(); i++) {
+        activators[i].connect(&activators[i-1]);
+    }
 }
 
-ActivateArray::~ActivateArray() {}
-
 Activate& ActivateArray::operator[](int index){
-    return buffer[index];
+    return activators[index];
 }
 
 void
-ActivateArray::connect_psum(int id, PSumActivateInterface *_psum)
+ActivateArray::connect(ActivateInterface *ai)
 {
-    buffer[id].connect_psum(_psum);
+    activators[0].connect(ai);
 }
 
 void
 ActivateArray::step() {
-    for (int i = buffer.size() - 1; i >= 0; i--) {
-        buffer[i].step();
+    for (int i = activators.size() - 1; i >= 0; i--) {
+        activators[i].step();
     }
 }

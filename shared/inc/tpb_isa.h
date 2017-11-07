@@ -5,8 +5,6 @@
 #include <stdint.h>
 #include "isa_common.h"
 
-#define TPB_OPCODE(x) BITFIELD_EXTRACT(x, 1, 8)
-
 #define INSTRUCTION_NBYTES 256
 
 typedef uint32_t addr_t;
@@ -26,6 +24,7 @@ enum TPB_CMD_TYPE {
     LDWEIGHTS_OPC  = 0x00,
     MATMUL_OPC  = 0x01,
     POOL_OPC    = 0x02,
+    ACTIVATION_OPC    = 0x03,
     SIM_WROFMAP_OPC = 0x7C,
     SIM_RDFILTER_OPC = 0x7D,
     SIM_RDIFMAP_OPC = 0x7E,
@@ -61,21 +60,10 @@ struct TPB_CMD_DEQUANT {
 #include "tpb_isa_ldweights.h"
 #include "tpb_isa_matmul.h"
 #include "tpb_isa_pool.h"
+#include "tpb_isa_activate.h"
 #include "tpb_isa_simrdifmap.h"
 #include "tpb_isa_simrdfilter.h"
 #include "tpb_isa_simwrofmap.h"
-
-/* todo: move out to activation isa defintion*/
-enum ACTIVATIONFUNCTION {
-    INVALID_ACTIVATIONFUNCTION=0x00, 
-    IDENTITY, 
-    RELU, 
-    LEAKY_RELU, 
-    SIGMIOD, 
-    TANH, 
-    NUM_ACTIVATIONFUNCTION
-};
-
 
 inline
 ARBPRECTYPE

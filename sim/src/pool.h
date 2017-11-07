@@ -8,9 +8,9 @@
 class Pool : public PoolInterface {
     public:
         Pool(MemoryMap *_memory) : memory(_memory) {}
-        PoolSignals pull_pool();
         void connect(PoolInterface *);
         void step();
+        PoolSignals pull_pool();
     private:
         PoolSignals              ps = {0};
         PoolInterface           *connection = nullptr;
@@ -24,7 +24,6 @@ class Pool : public PoolInterface {
 class PoolArray {
     public:
         PoolArray(MemoryMap *mmap, size_t n_pools);
-        ~PoolArray();
         Pool& operator[](int index);
         void connect(PoolInterface *);
         void step();

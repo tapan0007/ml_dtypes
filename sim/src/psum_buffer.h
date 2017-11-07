@@ -13,7 +13,6 @@ class PSumBuffer : public EdgeInterface {
         EdgeSignals pull_edge();
         void connect_west(EdgeInterface *);
         void connect_north(PeNSInterface *);
-        PSumActivateSignals pull_psum();
         void step();
     private:
         ArbPrecData              pool();

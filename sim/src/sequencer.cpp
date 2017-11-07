@@ -204,7 +204,7 @@ bool
 Sequencer::synch() {
     static int pe_countdown = 128;
     bool busy = es.pad_valid || es.ifmap_valid  || es.weight_valid ||
-        ps.valid;
+        ps.valid || as.valid;
     if (es.ifmap_valid) {
         pe_countdown = 128;
     } else if (ps.valid) {
@@ -275,7 +275,6 @@ Sequencer::step_edgesignal() {
         es.ifmap_valid = false;
         es.psum_start = false;
         es.psum_stop = false;
-        es.activation_valid = false;
     } else {
         es.ifmap_valid = !es.pad_valid;
     }
@@ -478,8 +477,14 @@ Sequencer::pull_pool() {
     return ps;
 }
 
+ActivateSignals
+Sequencer::pull_activate() {
+    return as;
+}
+
 
 bool
 Sequencer::done() {
-    return feed->empty() && !es.ifmap_valid && !es.weight_valid && !ps.valid;
+    return feed->empty() && !es.ifmap_valid && !es.weight_valid && 
+        !ps.valid && !as.valid;
 }

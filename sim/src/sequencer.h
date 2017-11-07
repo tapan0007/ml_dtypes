@@ -26,13 +26,15 @@ enum NSEW {N=0, S, E, W, NUM_NSEW};
 
 class Memory;
 
-class Sequencer : public EdgeInterface, public PoolInterface  {
+class Sequencer : 
+    public EdgeInterface, public PoolInterface, public ActivateInterface {
     public:
         Sequencer(Memory *_mem) : mem(_mem) {}
         void connect_uopfeed(UopFeedInterface *feed);
         void step();
         EdgeSignals pull_edge();
         PoolSignals pull_pool();
+        ActivateSignals pull_activate();
         bool pad_valid(uint8_t, uint8_t);
         bool synch();
         bool done();
@@ -41,6 +43,7 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         /* internal state */
         EdgeSignals es = {0};
         PoolSignals ps = {0};
+        ActivateSignals as = {0};
 
         /* weight */
         addr_t      weight_base   = 0x0;

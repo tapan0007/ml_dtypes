@@ -24,13 +24,6 @@ PSumBuffer::pull_edge() {
     return ew;
 }
 
-/* FIXME - dummy function for now */
-PSumActivateSignals
-PSumBuffer::pull_psum() {
-    return PSumActivateSignals{false, ArbPrecData(), INVALID_ARBPRECTYPE};
-}
-
-
 void
 PSumBuffer::step() {
     ns = north->pull_ns();

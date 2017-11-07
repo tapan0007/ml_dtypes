@@ -11,13 +11,13 @@
 
 #define STEP() \
     std::cout << "time = " << i << std::endl; \
+    activate_array.step(); \
     pool_array.step(); \
     psum_array.step(); \
     pe_array.step(); \
     state_array.step_read(); \
     sequencer.step();
  //   pe_array.dump(stdout);
-//    activate_array.step();
 
 
 
@@ -25,18 +25,18 @@
 int main(int argc, char **argv)
 {
     /* setup - later put this in a class? */
-    size_t num_rows = SZ(ROW_BITS);
-    size_t num_cols = SZ(COLUMN_BITS);
+    size_t n_rows = SZ(ROW_BITS);
+    size_t n_cols = SZ(COLUMN_BITS);
     Memory memory = Memory(0x04000000);
     MemoryMap mmap = MemoryMap(&memory);
     ProcessingElementArray pe_array;
     StateBufferArray       state_array =
-        StateBufferArray(&mmap, MMAP_SB_BASE, num_rows);
+        StateBufferArray(&mmap, MMAP_SB_BASE, n_rows);
     Sequencer              sequencer = Sequencer(&memory);
     PSumBufferArray        psum_array =
-        PSumBufferArray(&mmap, MMAP_PSUM_BASE, num_cols);;
-    PoolArray              pool_array = PoolArray(&mmap, num_cols);
-    ActivateArray          activate_array;
+        PSumBufferArray(&mmap, MMAP_PSUM_BASE, n_cols);;
+    PoolArray              pool_array = PoolArray(&mmap, n_cols);
+    ActivateArray          activate_array = ActivateArray(&mmap, n_cols);
 
 
     /* Parse args */
@@ -50,16 +50,17 @@ int main(int argc, char **argv)
     /* make necessary connections */
     sequencer.connect_uopfeed(&feed);
     psum_array.connect_west(state_array.get_edge());
-    int last_row = pe_array.num_rows()-1;
-    for (size_t j=0; j < num_cols; j++) {
+    int last_row = n_rows - 1;
+    for (size_t j=0; j < n_cols; j++) {
         psum_array.connect_north(j, &pe_array[last_row][j]);
     }
-    for (size_t j=0; j < num_rows; j++) {
+    for (size_t j=0; j < n_rows; j++) {
         pe_array.connect_west(j, &state_array[j]);
         pe_array.connect_statebuffer(j, &state_array[j]);
     }
     state_array.connect_north(&sequencer);
     pool_array.connect(&sequencer);
+    activate_array.connect(&sequencer);
 
 
     //sequencer.convolve_dynamic(cargs, o_rows, o_cols);
