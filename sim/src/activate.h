@@ -16,7 +16,8 @@ class Activate : public ActivateInterface{
         MemoryMap           *memory;
         ActivateInterface   *connection;
         ActivateSignals      as = {0};
-
+        addr_t               src_partition_size = 0;
+        addr_t               dst_partition_size = 0;
 };
 
 class ActivateArray {

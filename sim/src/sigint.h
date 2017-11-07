@@ -59,7 +59,8 @@ struct ActivateSignals {
     bool          valid;
     ACTIVATIONFUNC func;
     ARBPRECTYPE   dtype;
-    Addr          addr;
+    Addr          src_addr;
+    Addr          dst_addr;
     uint8_t       countdown;
 };
 

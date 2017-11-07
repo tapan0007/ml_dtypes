@@ -15,8 +15,8 @@ class Pool : public PoolInterface {
         PoolSignals              ps = {0};
         PoolInterface           *connection = nullptr;
         ArbPrecData              pool_pixel;
-        addr_t src_partition_size = 0;
-        addr_t dst_partition_size = 0;
+        addr_t                   src_partition_size = 0;
+        addr_t                   dst_partition_size = 0;
         unsigned int             pool_cnt = 0;
         MemoryMap               *memory = nullptr;
 };

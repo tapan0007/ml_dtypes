@@ -83,29 +83,6 @@ Pool::step() {
     }
 }
 
-#if 0
-    ArbPrecData
-        Pool::activation(ArbPrecData pixel) {
-            switch (ew.activation) {
-                case RELU:
-                    break;
-                case LEAKY_RELU:
-                    break;
-                case SIGMIOD:
-           break;
-        case TANH:
-           break;
-        case IDENTITY:
-           break;
-        default:
-           break;
-    }
-    return pixel;
-}
-#endif
-
-
-
 //------------------------------------------------------------
 // PoolBufferArray
 //------------------------------------------------------------

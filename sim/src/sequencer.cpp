@@ -80,22 +80,25 @@ template<>
 void  DynamicInstruction<LDWEIGHTS>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     uint64_t num_cols = args.x_num;
+    ARBPRECTYPE dtype = (ARBPRECTYPE) args.dquant.dequant_data_type;
+    size_t dsize = sizeofArbPrecType(dtype);
     assert(num_cols <= SZ(COLUMN_BITS));
+
+    int weight_nums[]   = {args.x_num};
+    int weight_steps[]  = {args.x_step};
+    seq->weight_pit.init(weight_nums, weight_steps);
+    /* load weights into ofmaps backwards! */
+    seq->weight_base = args.start_addr + (args.x_num * args.x_step - 1) * dsize;
+    seq->weight_clamp_countdown = num_cols;
+    seq->raw_signal = false;
+
     seq->es.weight_valid = true;
     seq->es.weight_dtype = (ARBPRECTYPE) args.dquant.dequant_data_type;
     //seq->es.weight_addr.sys = args.address;
-    seq->weight_base = args.start_addr;
     seq->es.weight_clamp = (num_cols == 1);
     seq->es.row_valid = true;
     seq->es.row_countdown = args.num_row_partitions;
-    seq->weight_clamp_countdown = num_cols;
-    seq->weight_x_step = args.x_step;
-    seq->weight_x_num = args.x_num;
-    seq->weight_x_cnt = 0;
-    seq->raw_signal = false;
-    seq->es.weight_addr.sys = args.start_addr + 
-        (args.x_num * args.x_step - 1) *
-        sizeofArbPrecType((ARBPRECTYPE)args.dquant.dequant_data_type);
+    seq->es.weight_addr.sys = seq->weight_base;
 
 }
 
@@ -106,19 +109,17 @@ template<>
 void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     /* ifmap setup */
-    seq->es.ifmap_addr.sys    = args.fmap_start_addr;
-    seq->es.ifmap_dtype = (ARBPRECTYPE) 
-        args.dquant.dequant_data_type;
     seq->es.row_countdown = args.num_row_partitions;
     seq->es.row_valid = true;
     seq->es.weight_toggle = args.toggle_weight;
+
+    int ifmap_nums[]   = {args.fmap_x_num, args.fmap_y_num};
+    int ifmap_steps[]  = {args.fmap_x_step, args.fmap_y_step};
+    seq->ifmap_pit.init(ifmap_nums, ifmap_steps);
+    seq->es.ifmap_addr.sys    = args.fmap_start_addr;
+    seq->es.ifmap_dtype = (ARBPRECTYPE) 
+        args.dquant.dequant_data_type;
     seq->ifmap_base = args.fmap_start_addr;
-    seq->ifmap_x_num = args.fmap_x_num;
-    seq->ifmap_y_num = args.fmap_y_num;
-    seq->ifmap_x_cnt = 0;
-    seq->ifmap_y_cnt = 0;
-    seq->ifmap_x_step = args.fmap_x_step;
-    seq->ifmap_y_step = args.fmap_y_step;
     seq->raw_signal = false;
 
     /* psum setup */
@@ -135,11 +136,12 @@ void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     seq->pad[E] = args.e_pad;
     seq->pad[W] = args.w_pad;
     /* pifmap is padded ifmap */
-    seq->pifmap_x_cnt = 0;
-    seq->pifmap_y_cnt = 0;
-    seq->pifmap_x_num = seq->ifmap_x_num + args.e_pad + args.w_pad;
-    seq->pifmap_y_num = seq->ifmap_y_num + args.n_pad + args.s_pad;
-    seq->es.pad_valid = seq->pad_valid(0, 0);
+    int ew_pad = args.e_pad + args.w_pad;
+    int ns_pad = args.n_pad + args.s_pad;
+    int pifmap_nums[]  = {args.fmap_x_num + ew_pad,  args.fmap_y_num + ns_pad};
+    int pifmap_steps[] = {args.fmap_x_step + ew_pad, args.fmap_y_step + ns_pad};
+    seq->pifmap_pit.init(pifmap_nums, pifmap_steps);
+    seq->es.pad_valid = seq->pad_valid();
     seq->es.ifmap_valid   = !seq->es.pad_valid;
 
 }
@@ -151,45 +153,36 @@ template<>
 void  DynamicInstruction<POOL>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     POOLFUNC pool_func = (POOLFUNC)args.pool_func;
-	seq->ps.valid = true;
+    seq->ps.valid = true;
     seq->ps.func = pool_func;
-	seq->ps.dtype = (ARBPRECTYPE)args.in_dtype;
-	seq->ps.src_addr.sys = args.src_start_addr;
-	seq->ps.start = true;
-	seq->ps.stop = (pool_func == IDENTITY_POOL) ||
+    seq->ps.dtype = (ARBPRECTYPE)args.in_dtype;
+    seq->ps.src_addr.sys = args.src_start_addr;
+    seq->ps.start = true;
+    seq->ps.stop = (pool_func == IDENTITY_POOL) ||
         (args.src_x_num + args.src_y_num == 2);
-	seq->ps.dst_addr.sys = args.dst_start_addr;
-	seq->ps.countdown = args.num_partitions;
+    seq->ps.dst_addr.sys = args.dst_start_addr;
+    seq->ps.countdown = args.num_partitions;
 
-	seq->pool_src_base = args.src_start_addr;
-	seq->pool_dst_base = args.dst_start_addr;
-	seq->pool_src_x_cnt = 0;
-	seq->pool_src_y_cnt = 0;
-	seq->pool_src_x_step = args.src_x_step;
-	seq->pool_src_y_step = args.src_y_step;
-	seq->pool_src_x_num = args.src_x_num;
-	seq->pool_src_y_num = args.src_y_num;
-
-	seq->pool_str_x_cnt = 0;
-	seq->pool_str_y_cnt = 0;
-	seq->pool_str_x_step = args.str_x_step;
-	seq->pool_str_y_step = args.str_y_step;
-	seq->pool_str_x_num = args.str_x_num;
-	seq->pool_str_y_num = args.str_y_num;
+    seq->pool_src_base = args.src_start_addr;
+    seq->pool_dst_base = args.dst_start_addr;
 
 
-	seq->pool_dst_x_cnt = 0;
-	seq->pool_dst_y_cnt = 0;
-	seq->pool_dst_x_step = args.dst_x_step;
-	seq->pool_dst_y_step = args.dst_y_step;
-	seq->pool_dst_x_num = args.dst_x_num;
-	seq->pool_dst_y_num = args.dst_y_num;
+    int pool_src_nums[]   = {args.src_x_num, args.src_y_num};
+    int pool_src_steps[]  = {args.src_x_step, args.src_y_step};
+    seq->pool_src_pit.init(pool_src_nums, pool_src_steps);
 
-    seq->pool_eopools = false;
+    int pool_str_nums[]   = {args.str_x_num, args.str_y_num};
+    int pool_str_steps[]  = {args.str_x_step, args.str_y_step};
+    seq->pool_str_pit.init(pool_str_nums, pool_str_steps);
+
+    int pool_dst_nums[]   = {args.dst_x_num,  args.dst_y_num};
+    int pool_dst_steps[]  = {args.dst_x_step, args.dst_y_step};
+    seq->pool_dst_pit.init(pool_dst_nums, pool_dst_steps);
+
     /* emit one result for every stride... if not identity pool */
     assert((pool_func == IDENTITY_POOL) ||
-            (seq->pool_dst_x_num * seq->pool_dst_y_num ==
-             seq->pool_str_x_num * seq->pool_str_y_num));
+            (args.dst_x_num * args.dst_y_num ==
+             args.str_x_num * args.str_y_num));
 }
 
 /*------------------------------------
@@ -221,19 +214,15 @@ Sequencer::synch() {
 
 /* tells if you element (r,c) is a pad (!ifmap) element */
 bool
-Sequencer::pad_valid(uint8_t r, uint8_t c) {
+Sequencer::pad_valid() {
     /* checks range, using outer ring of padding */
-    bool out_of_range =
-            (r >= pifmap_y_num) ||
-            (c >= pifmap_x_num);
-    bool in_pad_range =
-        r < pad[N] ||
-        ((r > (ifmap_y_num + pad[N] - 1)) &&
-         (r < ifmap_y_num + pad[N] + pad[S])) ||
-        c < pad[W] ||
-        ((c > (ifmap_x_num + pad[W] - 1) &&
-          (c < ifmap_x_num + pad[W] + pad[E])));
-    return !out_of_range && in_pad_range;
+    uint8_t r = pifmap_pit[1];
+    uint8_t c = pifmap_pit[0];
+    int prange[] = {c, r};
+    int irange[] = {c-pad[W], r-pad[N]};
+    bool in_fmap_range = ifmap_pit.in_range(irange);
+    bool in_pad_range   = pifmap_pit.in_range(prange);
+    return !pifmap_pit.eop() && !in_fmap_range && in_pad_range;
 }
 
 
@@ -253,24 +242,22 @@ Sequencer::increment_and_rollover(uint8_t &cnt, uint8_t num,
 void
 Sequencer::step_edgesignal() {
     /* UPDATE SEQUENCER STATE */
-    uint8_t weights_done = 0;
     if (es.pad_valid) {
-        increment_and_rollover(pifmap_x_cnt, pifmap_x_num, pifmap_y_cnt);
+        pifmap_pit.increment();
     }
     if (es.ifmap_valid) {
-        increment_and_rollover(ifmap_x_cnt, ifmap_x_num, ifmap_y_cnt);
-        increment_and_rollover(pifmap_x_cnt, pifmap_x_num, pifmap_y_cnt);
+        ifmap_pit.increment();
+        pifmap_pit.increment();
     }
     if (es.weight_valid) {
-        increment_and_rollover(weight_x_cnt, weight_x_num, weights_done);
+        weight_pit.increment();
     }
 
     /* UPDATE SIGNALS */
     /* IFMAP/PAD */
     /* is the pad/ifmap valid or are we done? */
-    es.pad_valid = pad_valid(pifmap_y_cnt, pifmap_x_cnt);
-    if (!es.pad_valid &&
-            (pifmap_y_cnt == pifmap_y_num)) {
+    es.pad_valid = pad_valid();
+    if (!es.pad_valid && pifmap_pit.eop()) {
         /* clear state */
         es.ifmap_valid = false;
         es.psum_start = false;
@@ -282,7 +269,7 @@ Sequencer::step_edgesignal() {
     /* figured out pad/ifmap valid, now compute addresses */
     if (es.ifmap_valid) {
         es.ifmap_addr.sys = ifmap_base +
-            (ifmap_y_cnt * ifmap_y_step + ifmap_x_cnt * ifmap_x_step) *
+            ifmap_pit.coordinates() *
             sizeofArbPrecType((ARBPRECTYPE)es.ifmap_dtype);
     }
     /* Sending an ifmap, must be getting out ofmap! */
@@ -295,17 +282,16 @@ Sequencer::step_edgesignal() {
     /* always toggle down weight */
     COND_SET(es.weight_toggle, false);
     if (es.weight_valid) {
-        if (weights_done) {
+        if (weight_pit.eop()) {
             assert(es.weight_clamp);
             es.weight_clamp = false;
             es.weight_valid = false;
-        } else if (weight_x_cnt == weight_x_num - 1) {
+        } else if (weight_pit.last()) {
             es.weight_clamp = true;
         }
         if (es.weight_valid) {
-            es.weight_addr.sys = weight_base +
-                (weight_x_num * weight_x_step -
-                 weight_x_cnt * weight_x_step - 1) *
+            es.weight_addr.sys = weight_base -
+                weight_pit.coordinates() *
                 sizeofArbPrecType((ARBPRECTYPE)es.weight_dtype);
         }
     }
@@ -333,43 +319,28 @@ namespace rollover {
 /* sub function of step - to step the poolsignal */
 void
 Sequencer::step_poolsignal() {
-    uint32_t eopool = 0;
-    bool     last_pool = false;
-    bool     eostrides = false;
-    if (pool_eopools) {
-        ps.valid = false;
-    }
     if (!ps.valid) {
+        return;
+    }
+    if (pool_dst_pit.eop()) {
+        ps.valid = false;
         return;
     }
     /* eventually want to support quantization here */
     size_t src_dsize = sizeofArbPrecType(ps.dtype);
     size_t dst_dsize = sizeofArbPrecType(ps.dtype);
 
-    pool_src_x_cnt++;
-    ROLLOVER(pool_src_x_cnt, pool_src_x_num, pool_src_y_cnt);
-    if (!pool_src_x_cnt) {
-        ROLLOVER(pool_src_y_cnt, pool_src_y_num, eopool);
-    }
+    pool_src_pit.increment();
 
-    last_pool =
-        (pool_src_x_cnt == pool_src_x_num - 1) &&
-        (pool_src_y_cnt == pool_src_y_num - 1);
 
     /* roll over dst counters */
-    if (ps.func == IDENTITY_POOL || eopool) {
-        pool_dst_x_cnt++;
-        ROLLOVER(pool_dst_x_cnt, pool_dst_x_num, pool_dst_y_cnt);
-        if (!pool_dst_x_cnt) {
-            ROLLOVER(pool_dst_y_cnt, pool_dst_y_num, pool_eopools);
-        }
-        pool_str_x_cnt++;
-        ROLLOVER(pool_str_x_cnt, pool_str_x_num, pool_str_y_cnt);
-        if (!pool_str_x_cnt) {
-            ROLLOVER(pool_str_y_cnt, pool_str_y_num, eostrides);
+    if (ps.func == IDENTITY_POOL || pool_src_pit.eop()) {
+        pool_dst_pit.increment();
+        pool_str_pit.increment();
+        if (ps.func != IDENTITY_POOL) {
+            pool_src_pit.reset();
         }
     }
-    assert((ps.func == IDENTITY_POOL) || (eostrides == pool_eopools));
 
     /* stopped last cycle, start anew */
     if (ps.func == IDENTITY_POOL) {
@@ -377,25 +348,21 @@ Sequencer::step_poolsignal() {
         ps.stop = true;
     } else {
         ps.start = ps.stop; /* stopped last cycle, start anew */
-        ps.stop = last_pool;
+        ps.stop = pool_src_pit.last();
     }
 
-
+    assert((ps.func == IDENTITY_POOL) || 
+            (pool_str_pit.eop() == pool_dst_pit.eop()));
 
     /* calculate address based on settings */
     if (ps.valid) {
-        ps.src_addr.sys = pool_src_base +
-            src_dsize *
-            (pool_str_x_cnt * pool_str_x_step +
-             pool_str_y_cnt * pool_str_y_step) + /* tile */
-            src_dsize *
-            (pool_src_x_cnt * pool_src_x_step + /* offset in tile */
-             pool_src_y_cnt * pool_src_y_step);
+        ps.src_addr.sys = pool_src_base + src_dsize *
+            (pool_str_pit.coordinates() + /* tile */
+             pool_src_pit.coordinates()); /* offset in tile */
     }
     if (ps.start) {
-        ps.dst_addr.sys = pool_dst_base +
-            (pool_dst_x_cnt * pool_dst_x_step +
-             pool_dst_y_cnt * pool_dst_y_step) * dst_dsize;
+        ps.dst_addr.sys = pool_dst_base + dst_dsize * 
+            pool_dst_pit.coordinates();
     }
 }
 
