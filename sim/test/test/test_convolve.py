@@ -123,6 +123,12 @@ class TestConvolve(unittest.TestCase):
         p = ["1", "1"]
         tn = sys._getframe().f_code.co_name
         self.rand_convolve_test(tn, prec, idims, prec, fdims, pad=p)
+    def test_1x1_filter_tiny_img(self):
+        prec = 'uint8'
+        idims = [1,1,2,2]
+        fdims = [1,1,1,1]
+        tn = sys._getframe().f_code.co_name
+        self.rand_convolve_test(tn, prec, idims, prec, fdims)
     def test_3x3_filter_tiny_img_pad_1(self):
         prec = 'uint8'
         idims = [1,1,2,2]

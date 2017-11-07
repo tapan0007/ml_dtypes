@@ -23,6 +23,6 @@ clean:
 
 
 $(TARGET): $(SRC)
-	$(CXX) $(CFLAGS) $(SRC) -I$(SHARE_INCDIR) -o $@
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(SRC) -I$(SHARE_INCDIR) -o $@
 
 

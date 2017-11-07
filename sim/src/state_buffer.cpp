@@ -43,15 +43,7 @@ StateBuffer::connect_north(EdgeInterface *_north) {
 
 EdgeSignals
 StateBuffer::pull_edge() {
-    EdgeSignals e = ns;
-    if (e.row_valid) {
-        if (e.row_countdown) {
-            e.row_countdown--;
-        } else {
-            e.row_valid = false;
-        }
-    }
-    return e;
+    return ns;
 }
 
 bool
@@ -62,6 +54,9 @@ StateBuffer::pull_clamp() {
 void
 StateBuffer::step_read() {
     ns = north->pull_edge();
+    if (ns.row_valid) {
+        ns.row_valid = ((ns.row_countdown--) > 0);
+    }
 }
 
 //------------------------------------------------------------------

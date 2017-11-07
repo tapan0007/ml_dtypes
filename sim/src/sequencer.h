@@ -45,11 +45,8 @@ class Sequencer : public EdgeInterface, public PoolInterface  {
         /* weight */
         addr_t      weight_base   = 0x0;
         size_t      weight_x_step = 0;
-        size_t      weight_y_step = 0;
         uint8_t     weight_x_num  = 0;
-        uint8_t     weight_y_num  = 0;
         uint8_t     weight_x_cnt  = 0;
-        uint8_t     weight_y_cnt  = 0;
         uint8_t     weight_clamp_countdown = 0;
 
         /* matmul */

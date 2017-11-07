@@ -3,17 +3,19 @@
 
 #include "tpb_isa.h"
 
-
-struct LDWEIGHTS {
-    uint8_t         opcode;        
-    uint32_t        address;       
-    uint8_t         dtype;         
-    int16_t         x_step;        // 1's complement, granularity of dtype
-    uint8_t         x_num;         
-    int16_t         y_step;        
-    uint8_t         y_num;         
-    uint8_t         last_row;      // id of last partition to read from
+struct LDWEIGHTS 
+{
+    public:
+        TPB_CMD_HEADER<LDWEIGHTS>    hdr;
+        struct TPB_CMD_SYNCH         synch;
+        struct TPB_CMD_DEQUANT       dquant;
+        uint32_t        start_addr = {0};       
+        int16_t         x_step = {0};      // 1's complement, granularity of dtype
+        uint8_t         x_num  = {0};         
+        uint8_t         num_row_partitions = {0}; 
+        LDWEIGHTS() : hdr(LDWEIGHTS_OPC) {}
 } TONGA_PACKED;
+
 
 
 

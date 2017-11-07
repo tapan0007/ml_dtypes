@@ -4,18 +4,23 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "isa_common.h"
-#include "tpb_isa_ldweights.h"
-#include "tpb_isa_matmul.h"
-#include "tpb_isa_pool.h"
-#include "tpb_isa_simrdifmap.h"
-#include "tpb_isa_simrdfilter.h"
-#include "tpb_isa_simwrofmap.h"
 
 #define TPB_OPCODE(x) BITFIELD_EXTRACT(x, 0, 8)
 
 #define INSTRUCTION_NBYTES 256
 
 typedef uint32_t addr_t;
+
+enum ARBPRECTYPE {
+    INVALID_ARBPRECTYPE = 0,
+    INT8 = 2,   UINT8 = 3,
+    INT16 = 4,  UINT16 = 5,
+    FP16 = 7,
+    INT32,      UINT32,
+    FP32,
+    INT64 = 12, UINT64 = 13,
+    NUM_ARBPRECTYPE = 16};
+
 
 enum TPB_CMD_TYPE {
     LDWEIGHTS_OPC  = 0x00,
@@ -25,6 +30,40 @@ enum TPB_CMD_TYPE {
     SIM_RDFILTER_OPC = 0xFD,
     SIM_RDIFMAP_OPC = 0xFE,
 };
+
+template <class T>
+class TPB_CMD_HEADER {
+    public:
+        uint8_t         phase   : 1;
+        uint8_t         opcode  : 7;
+        uint8_t         inst_word_len = {0};
+        void            set_phase(uint8_t ph) {
+            phase=ph & 0x1;
+        };
+        TPB_CMD_HEADER(uint8_t _opcode) : 
+            phase(0), opcode(_opcode), inst_word_len(sizeof(T)) {}
+} TONGA_PACKED;
+
+struct TPB_CMD_SYNCH {
+    uint8_t         wait_event_mode   : 4;
+    uint8_t         set_event_mode    : 4;
+    uint8_t         wait_event_id = {0};
+    uint8_t         set_event_id  = {0};
+    TPB_CMD_SYNCH() : wait_event_mode(0), set_event_mode(0) {}
+} TONGA_PACKED;
+
+struct TPB_CMD_DEQUANT {
+    uint8_t         dequant_table_idx = {0xff};
+    uint8_t         quant_data_size   = {0xff};
+    uint8_t         dequant_data_type = {INVALID_ARBPRECTYPE};
+} TONGA_PACKED;
+
+#include "tpb_isa_ldweights.h"
+#include "tpb_isa_matmul.h"
+#include "tpb_isa_pool.h"
+#include "tpb_isa_simrdifmap.h"
+#include "tpb_isa_simrdfilter.h"
+#include "tpb_isa_simwrofmap.h"
 
 /* todo: move out to activation isa defintion*/
 enum ACTIVATIONFUNCTION {
@@ -37,16 +76,6 @@ enum ACTIVATIONFUNCTION {
     NUM_ACTIVATIONFUNCTION
 };
 
-
-enum ARBPRECTYPE {
-    INVALID_ARBPRECTYPE = 0,
-    INT8 = 2,   UINT8 = 3,
-    INT16 = 4,  UINT16 = 5,
-    FP16 = 7,
-    INT32,      UINT32,
-    FP32,
-    INT64 = 12, UINT64 = 13,
-    NUM_ARBPRECTYPE = 16};
 
 inline
 ARBPRECTYPE

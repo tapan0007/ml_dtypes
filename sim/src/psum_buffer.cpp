@@ -77,10 +77,8 @@ PSumBuffer::step() {
             mem->write_local_offset(meta_off, &zeros, 1);
         }
 
-        if (ew.column_countdown == 0) {
-            ew.column_valid = 0;
-        } else {
-            ew.column_countdown--;
+        if (ew.column_valid) {
+            ew.column_valid = ((ew.column_countdown--) > 0);
         }
     }
 }

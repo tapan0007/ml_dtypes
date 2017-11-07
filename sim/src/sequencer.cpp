@@ -79,25 +79,23 @@ void  DynamicInstruction<SIM_WROFMAP>::execute(void *v_seq) {
 template<>
 void  DynamicInstruction<LDWEIGHTS>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
-    uint64_t num_cols = args.x_num * args.y_num;
+    uint64_t num_cols = args.x_num;
     assert(num_cols <= SZ(COLUMN_BITS));
     seq->es.weight_valid = true;
-    seq->es.weight_dtype = (ARBPRECTYPE) args.dtype;
+    seq->es.weight_dtype = (ARBPRECTYPE) args.dquant.dequant_data_type;
     //seq->es.weight_addr.sys = args.address;
-    seq->weight_base = args.address;
+    seq->weight_base = args.start_addr;
     seq->es.weight_clamp = (num_cols == 1);
     seq->es.row_valid = true;
-    seq->es.row_countdown = args.last_row;
+    seq->es.row_countdown = args.num_row_partitions;
     seq->weight_clamp_countdown = num_cols;
     seq->weight_x_step = args.x_step;
-    seq->weight_y_step = args.y_step;
     seq->weight_x_num = args.x_num;
-    seq->weight_y_num = args.y_num;
     seq->weight_x_cnt = 0;
-    seq->weight_y_cnt = 0;
     seq->raw_signal = false;
-    seq->es.weight_addr.sys = args.address + (args.y_num * args.y_step - 1) *
-        sizeofArbPrecType((ARBPRECTYPE)args.dtype);
+    seq->es.weight_addr.sys = args.start_addr + 
+        (args.x_num * args.x_step - 1) *
+        sizeofArbPrecType((ARBPRECTYPE)args.dquant.dequant_data_type);
 
 }
 
@@ -110,7 +108,7 @@ void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     /* ifmap setup */
     seq->es.ifmap_addr.sys    = args.fmap_start_addr;
     seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
-    seq->es.row_countdown = args.last_row;
+    seq->es.row_countdown = args.num_row_partitions;
     seq->es.row_valid = true;
     seq->es.weight_toggle = args.toggle_weight;
     seq->ifmap_base = args.fmap_start_addr;
@@ -123,7 +121,7 @@ void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     seq->raw_signal = false;
 
     /* psum setup */
-    seq->es.column_countdown = args.last_col;
+    seq->es.column_countdown = args.num_column_partitions;
     seq->es.column_valid = true;
     seq->es.psum_start = args.start_tensor_calc;
     seq->es.psum_stop = args.stop_tensor_calc;
@@ -254,6 +252,7 @@ Sequencer::increment_and_rollover(uint8_t &cnt, uint8_t num,
 void
 Sequencer::step_edgesignal() {
     /* UPDATE SEQUENCER STATE */
+    uint8_t weights_done = 0;
     if (es.pad_valid) {
         increment_and_rollover(pifmap_x_cnt, pifmap_x_num, pifmap_y_cnt);
     }
@@ -262,7 +261,7 @@ Sequencer::step_edgesignal() {
         increment_and_rollover(pifmap_x_cnt, pifmap_x_num, pifmap_y_cnt);
     }
     if (es.weight_valid) {
-        increment_and_rollover(weight_x_cnt, weight_x_num, weight_y_cnt);
+        increment_and_rollover(weight_x_cnt, weight_x_num, weights_done);
     }
 
     /* UPDATE SIGNALS */
@@ -296,18 +295,16 @@ Sequencer::step_edgesignal() {
     /* always toggle down weight */
     COND_SET(es.weight_toggle, false);
     if (es.weight_valid) {
-        if ((weight_x_cnt == weight_x_num - 1) &&
-                (weight_y_cnt == weight_y_num -1)) {
-            es.weight_clamp = true;
-        } else if (weight_y_cnt ==  weight_y_num) {
+        if (weights_done) {
             assert(es.weight_clamp);
             es.weight_clamp = false;
             es.weight_valid = false;
+        } else if (weight_x_cnt == weight_x_num - 1) {
+            es.weight_clamp = true;
         }
         if (es.weight_valid) {
             es.weight_addr.sys = weight_base +
-                (weight_y_num * weight_y_step -
-                 weight_y_cnt * weight_y_step -
+                (weight_x_num * weight_x_step -
                  weight_x_cnt * weight_x_step - 1) *
                 sizeofArbPrecType((ARBPRECTYPE)es.weight_dtype);
         }

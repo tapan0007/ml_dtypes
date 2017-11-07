@@ -56,19 +56,16 @@ _convolve_tile(FILE *fptr,
 
     addr_t dsize = sizeofArbPrecType(dtype);
     addr_t weight_step;
-    LDWEIGHTS weight_args = {0};
+    LDWEIGHTS weight_args;
     MATMUL    matmul_args = {0};
 
     /* weight args */
-    weight_args.opcode = LDWEIGHTS_OPC;
-    weight_args.dtype = dtype;
+    weight_args.dquant.dequant_data_type = dtype;
     weight_args.x_step = 1;
     weight_args.x_num = o_channels;
-    weight_args.y_step = o_channels;
-    weight_args.y_num = 1;
-    weight_args.address = filter_addrs[0];
-    weight_step = weight_args.y_num * weight_args.y_step * dsize;
-    weight_args.last_row = ifmap_num_rows[0] - 1;
+    weight_args.start_addr = filter_addrs[0];
+    weight_step = weight_args.x_num * weight_args.x_step * dsize;
+    weight_args.num_row_partitions = ifmap_num_rows[0];
 
     /* load weights ahead of first convolution for first filter! */
     PUSH(fptr, weight_args);
@@ -78,7 +75,7 @@ _convolve_tile(FILE *fptr,
     matmul_args.fmap_x_step = strides[0];
     matmul_args.dtype = dtype;
     matmul_args.psum_start_addr = psum_addr; /* b/c we specify padding as arg */
-    matmul_args.last_col = num_cols - 1;
+    matmul_args.num_column_partitions = num_cols;
 
 
     /* go through each weight in the filter and apply it to the ofmap
@@ -90,7 +87,7 @@ _convolve_tile(FILE *fptr,
     uint8_t r_adj = 0, s_adj = 0;
     for (uint8_t i = 0; i < ch_batches; i++) {
         bool last_batch = (i == (ch_batches - 1));
-        matmul_args.last_row = ifmap_num_rows[i] - 1;
+        matmul_args.num_row_partitions = ifmap_num_rows[i];
         for (uint8_t r = 0; r <  f_rows; r++) {
             for (uint8_t s = 0; s < f_cols; s++, curr_weight++) {
                 bool last_weight = (curr_weight == (f_rows * f_cols - 1));
@@ -122,10 +119,10 @@ _convolve_tile(FILE *fptr,
                 PUSH(fptr, matmul_args);
                 if (!matmul_args.stop_tensor_calc) {
                     if (last_weight) {
-                        weight_args.address = filter_addrs[i+1];
-                        weight_args.last_row = ifmap_num_rows[i+1] - 1;
+                        weight_args.start_addr = filter_addrs[i+1];
+                        weight_args.num_row_partitions = ifmap_num_rows[i+1];
                     } else {
-                        weight_args.address += weight_step;
+                        weight_args.start_addr += weight_step;
                     }
                     PUSH(fptr, weight_args);
                 }

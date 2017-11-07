@@ -18,13 +18,13 @@ struct MATMUL {
     uint8_t         fmap_x_num;    
     int16_t         fmap_y_step;   
     uint8_t         fmap_y_num;    
-    uint8_t         last_row;      
+    uint8_t         num_row_partitions;      
     uint8_t         n_pad;         
     uint8_t         w_pad;         
     uint8_t         e_pad;         
     uint8_t         s_pad;         
     uint32_t        psum_start_addr;   
-    uint8_t         last_col;      
+    uint8_t         num_column_partitions;      
     int8_t          psum_step;     
     /* use most recently loaded weights */
     uint8_t         toggle_weight;

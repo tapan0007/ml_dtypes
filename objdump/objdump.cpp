@@ -7,7 +7,7 @@
 #include <string>
 #include "tpb_isa.h"
 
-#define PRINT_TEMPLATE(X)     "%-20s: "X"  \n"
+#define PRINT_TEMPLATE(X)     "%-20s: " X "  \n"
 
 #define PF(FIELD, FORMAT_SPECIFIER)     print_field(PRINT_TEMPLATE(FORMAT_SPECIFIER), #FIELD, args->FIELD);
 
@@ -75,13 +75,13 @@ main(int argc, char **argv)
                     PF(fmap_x_num, "0x%x")
                     PF(fmap_y_step, "0x%lx")
                     PF(fmap_y_num, "0x%x")
-                    PF(last_row, "0x%x")
+                    PF(num_row_partitions, "0x%x")
                     PF(n_pad, "0x%x")
                     PF(w_pad, "0x%x")
                     PF(e_pad, "0x%x")
                     PF(s_pad, "0x%x")
                     PF(psum_start_addr, "0x%lx")
-                    PF(last_col, "0x%x")
+                    PF(num_column_partitions, "0x%x")
                     PF(psum_step, "0x%x")
                     PF(event_func, "0x%x")
                     PF(event_id, "0x%x")
@@ -105,14 +105,12 @@ main(int argc, char **argv)
                 {
                     LDWEIGHTS *args = (LDWEIGHTS *)buffer;
                     print_name_header("LDWEIGHTS", fptr);
-                    PF(opcode, "0x%x")
-                    PF(address, "0x%lx")
-                    PF(dtype, "0x%x")
+                    PF(hdr.opcode, "0x%x")
+                    PF(start_addr, "0x%lx")
+                    PF(dquant.dequant_data_type, "0x%x")
                     PF(x_step, "0x%lx")
                     PF(x_num, "0x%x")
-                    PF(y_step, "0x%lx")
-                    PF(y_num, "0x%x")
-                    PF(last_row, "0x%x")
+                    PF(num_row_partitions, "0x%x")
                 }
                 break;
             case POOL_OPC:
