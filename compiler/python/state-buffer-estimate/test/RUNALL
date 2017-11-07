@@ -55,7 +55,7 @@ RunCmd ./objdump $TPB > $ASM || Fatal Failed to create $ASM
 
 RunCmd shasum $TPB
 echo ./sim $TPB
-./sim $TPB >$SIMRES
+./sim $TPB >$SIMRES || Fatal Fail sim $TPB
 Files=(
     golden
     $NET-out
