@@ -10,7 +10,8 @@ class MacroAddLayer(MacroLayer):
         super().__init__(macroInstrGen)
 
     #-----------------------------------------------------------------
-    def generate(self, layer):
+    def generate(self):
+        layer = self.gLayer()
         file = self.gFile()
         ind = self.gIndent()
         cmdlist = ["// " + layer.gName(),

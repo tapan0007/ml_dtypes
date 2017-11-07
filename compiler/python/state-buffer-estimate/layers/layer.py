@@ -200,7 +200,8 @@ class Layer(object, metaclass = ABCMeta): # abstract class
     #-----------------------------------------------------------------
     def gOutputSize(self):
         wordSize = self.__Network.gDataType().gSizeInBytes()
-        oneBatchSize = wordSize * self.gNumOfmaps() * (self.gOfmapSize() * self.gOfmapSize())
+        oneBatchSize = (wordSize * self.gNumOfmaps() *
+                        (self.gOfmapWidth() * self.gOfmapHeight()))
         return oneBatchSize
 
     #-----------------------------------------------------------------
@@ -403,8 +404,12 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         return self.__Ofmap_desc
 
     #-----------------------------------------------------------------
-    def gOfmapSize(self):
-        return self.__Ofmap_desc.gMapSize()
+    def gOfmapWidth(self):
+        return self.__Ofmap_desc.gMapWidth()
+
+    #-----------------------------------------------------------------
+    def gOfmapHeight(self):
+        return self.__Ofmap_desc.gMapHeight()
 
     #-----------------------------------------------------------------
     def gNumOfmaps(self):
@@ -454,7 +459,8 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         name = self.gNameType()
         if name == "res3d{Add}":
             x = 3
-        ofmapStr = str(self.gNumOfmaps()) + "*" + str(self.gOfmapSize()) + "^2"
+        ofmapStr = (str(self.gNumOfmaps()) + "*" 
+                   + str(self.gOfmapWidth()) + "*" + str(self.gOfmapHeigh()) )
         if self.qStoreInSB():
             inMem = self.gInputStateMemWithoutBatching()
             residueMem = self.gResMemWithoutBatching()

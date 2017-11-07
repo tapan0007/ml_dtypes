@@ -8,6 +8,6 @@ class MacroAvgPoolLayer(MacroPoolLayer):
         super().__init__(macroInstrGen)
 
     #-----------------------------------------------------------------
-    def generate(self, layer):
-        self.generatePool(layer, "AVG_POOL")
+    def generate(self):
+        self.generatePool("AVG_POOL")
 

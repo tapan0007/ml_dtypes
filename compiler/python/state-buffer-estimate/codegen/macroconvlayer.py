@@ -7,7 +7,6 @@ class MacroConvLayer(MacroLayer):
     def __init__(self, macroInstrGen):
         super().__init__(macroInstrGen)
 
-
     #-----------------------------------------------------------------
     # *[ifmap/filter]_addrs are arrays of statebuffer addresses.  Arrays
     # * deal with cases iwhen with the number of ifmap channels is > number of rows.
@@ -24,16 +23,20 @@ class MacroConvLayer(MacroLayer):
     #         const uint8_t stride[2],   // Height,Width
     #         const uint8_t dilate[2]);  // Height,Width
     #-----------------------------------------------------------------
-    def generate(self, layer):
+    def generate(self):
+        layer = self.gLayer()
+        assert layer
         qq = '"'
         q = "'"
         f = self.gFile()
         ind        = self.gIndent()
         prevLayer  = layer.gPrevLayer(0)
         numIfmaps  = prevLayer.gNumOfmaps()
-        ifmapSize  = prevLayer.gOfmapSize()
+        ifmapWidth  = prevLayer.gOfmapWidth()
+        ifmapHeight  = prevLayer.gOfmapHeight()
         numOfmaps  = layer.gNumOfmaps()
-        ofmapSize  = layer.gOfmapSize()
+        ofmapWidth  = layer.gOfmapWidth()
+        ofmapHeight  = layer.gOfmapHeight()
         kernelSize = layer.gKernel()
         numBatches = 1
         assertStr  =  self.gMacroInstrGen().gAssertionStr()
@@ -62,10 +65,10 @@ class MacroConvLayer(MacroLayer):
              ## W: width of ifmap
              "ifmap_addrs[0]     = " + str(layer.gIfmapAddress()) + ";",
 
-             "ifmap_dims[0]      = " + str(numBatches) + ";",  ## num images
-             "ifmap_dims[1]      = " + str(numIfmaps) + ";", ## image width?
-             "ifmap_dims[2]      = " + str(ifmapSize) + ";", ## image height?
-             "ifmap_dims[3]      = " + str(ifmapSize) + ";",
+             "ifmap_dims[0]      = " + str(numBatches) + ";",
+             "ifmap_dims[1]      = " + str(numIfmaps) + ";",
+             "ifmap_dims[2]      = " + str(ifmapHeight) + ";",
+             "ifmap_dims[3]      = " + str(ifmapWidth) + ";",
 
              "// filter_addr",
              "filter_dims[0]     = " + str(numOfmaps)   + ";",  ## num images
@@ -101,11 +104,19 @@ class MacroConvLayer(MacroLayer):
              ## W: width of ofmap
              assertStr + "(ofmap_dims[0] == " + str(numBatches) + ");",
              assertStr + "(ofmap_dims[1] == " + str(numOfmaps) + ");",
-             assertStr + "(ofmap_dims[2] == " + str(ofmapSize) + ");",
-             assertStr + "(ofmap_dims[3] == " + str(ofmapSize) + ");",
+             assertStr + "(ofmap_dims[2] == " + str(ofmapHeight) + ");",
+             assertStr + "(ofmap_dims[3] == " + str(ofmapWidth) + ");",
+             "",
             ]
 
+        for x in self.gWriteOfmapStatement(ind):
+            s.append(x)
+
         ss = ""
-        for x in s: ss += ind + x + "\n"
+        for x in s:
+            if x != "":
+                ss += ind + x + "\n"
+            else:
+                ss += x + "\n"
         f.write(ss)
 

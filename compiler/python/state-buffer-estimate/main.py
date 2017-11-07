@@ -25,9 +25,14 @@ __DoBatching = False
 DenseNet = False
 ResNet = False
 TrivNet = False
+NetPyFile = None
 UseRelu = False
 
-for arg in sys.argv[1:]:
+argv = sys.argv
+nArgv = len(argv)
+i = 1
+while i < nArgv:
+    arg = argv[i]
     if arg == "--densenet" or arg == "--dense":
         DenseNet = True
     elif arg == "--resnet" or arg == "--res":
@@ -50,6 +55,8 @@ for arg in sys.argv[1:]:
         sys.stderr.write("Wrong argument: " + arg + "\n")
         sys.exit(1)
 
+    i += 1
+
 from nets.network         import Network
 if DenseNet:
     from nets.densenet.densenet     import DenseNet169
@@ -62,6 +69,9 @@ elif ResNet:
 elif TrivNet:
     from nets.trivnet.trivnet import TrivNet
     ntwk = TrivNet()
+else:
+    sys.stderr.write("Must specify net\n")
+    sys.exit(1)
 
 ##################################################
 if True:
