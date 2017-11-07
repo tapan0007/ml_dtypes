@@ -1,5 +1,5 @@
 fn Error { echo >[1=2] $* }
-fn Fatal { Error $*; exit 1 }
+fn Fatal { Error '>>>' $*; exit 1 }
 
 fn RunCmd  {
    #sleep 3
@@ -40,6 +40,7 @@ TEST=$TOP/test
 {
 
 cd  $TOP
+pwd
 TopCleanFiles=( $CPP $OBJ )
 RunCmd rm -f $TopCleanFiles
 
@@ -47,15 +48,17 @@ RunCmd make $NET || Fatal Failed to make $NET
 shasum $CPP
 
 cd  $TOP/test
+pwd
 #BottomCleanFiles=($OBJ $EXE $TPB  $ASM $RESULTS/*-out.npy $SIMLOG $SIMRES $RESULTS/*.txt)
 RunCmd make $EXE || Fatal Failed make $EXE
+cp -p $CPP $RESULTS/.
 RunCmd ./$EXE $TPB || Fatal Failed $EXE $TPB
 
 RunCmd ./objdump $TPB > $ASM || Fatal Failed to create $ASM
 
 RunCmd shasum $TPB
 echo ./sim $TPB
-./sim $TPB >$SIMRES
+./sim $TPB >$SIMRES || Fatal Sim failed on $TPB
 Files=(
     golden
     $NET-out
