@@ -7,8 +7,7 @@
 #include <string>
 #include "tpb_isa.h"
 
-#define PRINT_TEMPLATE(X)     "%-20s: %#X  \n"
-
+#define PRINT_TEMPLATE(X)     "%-20s: "X"  \n"
 
 #define PF(FIELD, FORMAT_SPECIFIER)     print_field(PRINT_TEMPLATE(FORMAT_SPECIFIER), #FIELD, args->FIELD);
 
@@ -45,8 +44,8 @@ main(int argc, char **argv)
                 {
                     SIM_RDFILTER *args = (SIM_RDFILTER *)buffer;
                     print_name_header("SIM_RDFILTER", fptr);
-                    PF(opcode, "%x")
-                    PF(address, "%lx")
+                    PF(opcode, "0x%x")
+                    PF(address, "0x%lx")
                     PF(fname, "%s")
                 }
                 break;
@@ -54,8 +53,8 @@ main(int argc, char **argv)
                 {
                     SIM_RDIFMAP *args = (SIM_RDIFMAP *)buffer;
                     print_name_header("SIM_RDIFMAP", fptr);
-                    PF(opcode, "%x")
-                    PF(address, "%lx")
+                    PF(opcode, "0x%x")
+                    PF(address, "0x%lx")
                     PF(fname, "%s")
                 }
                 break;
@@ -63,84 +62,84 @@ main(int argc, char **argv)
                 {
                     MATMUL *args = (MATMUL *)buffer;
                     print_name_header("MATMUL", fptr);
-                    PF(opcode, "%x")
-                    PF(dequant_table_idx, "%x")
-                    PF(quant_data_size, "%x")
-                    PF(dequant_data_size, "%x")
-                    PF(start_tensor_calc, "%x")
-                    PF(stop_tensor_calc, "%x")
-                    PF(reserved, "%x")
-                    PF(dtype, "%x")
-                    PF(fmap_start_addr, "%lx")
-                    PF(fmap_x_step, "%lx")
-                    PF(fmap_x_num, "%x")
-                    PF(fmap_y_step, "%lx")
-                    PF(fmap_y_num, "%x")
-                    PF(last_row, "%x")
-                    PF(n_pad, "%x")
-                    PF(w_pad, "%x")
-                    PF(e_pad, "%x")
-                    PF(s_pad, "%x")
-                    PF(psum_start_addr, "%lx")
-                    PF(last_col, "%x")
-                    PF(psum_step, "%x")
-                    PF(event_func, "%x")
-                    PF(event_id, "%x")
+                    PF(opcode, "0x%x")
+                    PF(dequant_table_idx, "0x%x")
+                    PF(quant_data_size, "0x%x")
+                    PF(dequant_data_size, "0x%x")
+                    PF(start_tensor_calc, "0x%x")
+                    PF(stop_tensor_calc, "0x%x")
+                    PF(reserved, "0x%x")
+                    PF(dtype, "0x%x")
+                    PF(fmap_start_addr, "0x%lx")
+                    PF(fmap_x_step, "0x%lx")
+                    PF(fmap_x_num, "0x%x")
+                    PF(fmap_y_step, "0x%lx")
+                    PF(fmap_y_num, "0x%x")
+                    PF(last_row, "0x%x")
+                    PF(n_pad, "0x%x")
+                    PF(w_pad, "0x%x")
+                    PF(e_pad, "0x%x")
+                    PF(s_pad, "0x%x")
+                    PF(psum_start_addr, "0x%lx")
+                    PF(last_col, "0x%x")
+                    PF(psum_step, "0x%x")
+                    PF(event_func, "0x%x")
+                    PF(event_id, "0x%x")
                 }
                 break;
             case SIM_WROFMAP_OPC:
                 {
                     SIM_WROFMAP *args = (SIM_WROFMAP *)buffer;
                     print_name_header("SIM_WROFMAP", fptr);
-                    PF(opcode, "%x")
+                    PF(opcode, "0x%x")
                     PF(fname, "%s")
-                    PF(address, "%lx")
-                    PF(dims[0], "%lx")
-                    PF(dims[1], "%lx")
-                    PF(dims[2], "%lx")
-                    PF(dims[3], "%lx")
-                    PF(dtype, "%x")
+                    PF(address, "0x%lx")
+                    PF(dims[0], "0x%lx")
+                    PF(dims[1], "0x%lx")
+                    PF(dims[2], "0x%lx")
+                    PF(dims[3], "0x%lx")
+                    PF(dtype, "0x%x")
                 }
                 break;
             case LDWEIGHTS_OPC:
                 {
                     LDWEIGHTS *args = (LDWEIGHTS *)buffer;
                     print_name_header("LDWEIGHTS", fptr);
-                    PF(opcode, "%x")
-                    PF(address, "%lx")
-                    PF(dtype, "%x")
-                    PF(x_step, "%lx")
-                    PF(x_num, "%x")
-                    PF(y_step, "%lx")
-                    PF(y_num, "%x")
-                    PF(last_row, "%x")
+                    PF(opcode, "0x%x")
+                    PF(address, "0x%lx")
+                    PF(dtype, "0x%x")
+                    PF(x_step, "0x%lx")
+                    PF(x_num, "0x%x")
+                    PF(y_step, "0x%lx")
+                    PF(y_num, "0x%x")
+                    PF(last_row, "0x%x")
                 }
                 break;
             case POOL_OPC:
                 {
                     POOL *args = (POOL *)buffer;
                     print_name_header("POOL", fptr);
-                    PF(opcode, "%x")
-                    PF(pool_func, "%x")
-                    PF(in_dtype, "%x")
-                    PF(out_dtype, "%x")
-                    PF(src_start_addr, "%lx")
-                    PF(src_x_step, "%lx")
-                    PF(src_x_num, "%lx")
-                    PF(src_y_step, "%lx")
-                    PF(src_y_num, "%lx")
-                    PF(dst_start_addr, "%lx")
-                    PF(dst_x_step, "%lx")
-                    PF(dst_x_num, "%lx")
-                    PF(dst_y_step, "%lx")
-                    PF(dst_y_num, "%lx")
-                    PF(str_x_step, "%lx")
-                    PF(str_x_num, "%lx")
-                    PF(str_y_step, "%lx")
-                    PF(str_y_num, "%lx")
-                    PF(max_partition, "%lx")
-                    PF(event_func, "%x")
-                    PF(event_id, "%x")
+                    PF(opcode, "0x%x")
+                    PF(pool_func, "0x%x")
+                    PF(in_dtype, "0x%x")
+                    PF(out_dtype, "0x%x")
+                    PF(src_start_addr, "0x%lx")
+                    PF(src_x_step, "0x%lx")
+                    PF(src_x_num, "0x%lx")
+                    PF(src_y_step, "0x%lx")
+                    PF(src_y_num, "0x%lx")
+                    PF(dst_start_addr, "0x%lx")
+                    PF(dst_x_step, "0x%lx")
+                    PF(dst_x_num, "0x%lx")
+                    PF(dst_y_step, "0x%lx")
+                    PF(dst_y_num, "0x%lx")
+                    PF(str_x_step, "0x%lx")
+                    PF(str_x_num, "0x%lx")
+                    PF(str_y_step, "0x%lx")
+                    PF(str_y_num, "0x%lx")
+                    PF(max_partition, "0x%lx")
+                    PF(event_func, "0x%x")
+                    PF(event_id, "0x%x")
                 }
                 break;
             default:
