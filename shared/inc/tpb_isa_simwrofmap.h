@@ -5,11 +5,12 @@
 
 
 struct SIM_WROFMAP {
-    uint8_t         opcode;        
-    char            fname[128];    
-    uint32_t        address;       
-    uint16_t        dims[4];           
-    uint8_t         dtype;
+    TPB_CMD_HEADER  hdr;
+    char            fname[128] = {0};    
+    uint32_t        address    = {0};       
+    uint16_t        dims[4]    = {0};           
+    uint8_t         dtype      = {0};
+    SIM_WROFMAP() : hdr(SIM_WROFMAP_OPC, sizeof(*this)) {}
 } TONGA_PACKED;
 
 

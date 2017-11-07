@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "isa_common.h"
 
-#define TPB_OPCODE(x) BITFIELD_EXTRACT(x, 0, 8)
+#define TPB_OPCODE(x) BITFIELD_EXTRACT(x, 1, 8)
 
 #define INSTRUCTION_NBYTES 256
 
@@ -25,23 +25,23 @@ enum ARBPRECTYPE {
 enum TPB_CMD_TYPE {
     LDWEIGHTS_OPC  = 0x00,
     MATMUL_OPC  = 0x01,
-    POOL_OPC    = 0x80,
-    SIM_WROFMAP_OPC = 0xFC,
-    SIM_RDFILTER_OPC = 0xFD,
-    SIM_RDIFMAP_OPC = 0xFE,
+    POOL_OPC    = 0x02,
+    SIM_WROFMAP_OPC = 0x7C,
+    SIM_RDFILTER_OPC = 0x7D,
+    SIM_RDIFMAP_OPC = 0x7E,
 };
 
-template <class T>
 class TPB_CMD_HEADER {
     public:
-        uint8_t         phase   : 1;
+        /* on little endian machine, bit field order is reversed from code-list order*/
         uint8_t         opcode  : 7;
+        uint8_t         phase   : 1;
         uint8_t         inst_word_len = {0};
         void            set_phase(uint8_t ph) {
             phase=ph & 0x1;
         };
-        TPB_CMD_HEADER(uint8_t _opcode) : 
-            phase(0), opcode(_opcode), inst_word_len(sizeof(T)) {}
+        TPB_CMD_HEADER(uint8_t _opcode, size_t szof) : 
+            opcode(_opcode), phase(0), inst_word_len(szof) {}
 } TONGA_PACKED;
 
 struct TPB_CMD_SYNCH {

@@ -4,9 +4,10 @@
 #include "tpb_isa.h"
 
 struct SIM_RDFILTER {
-    uint8_t         opcode;        
-    uint32_t        address;       
-    char            fname[128];    
+    TPB_CMD_HEADER  hdr;
+    uint32_t        address    = {0};
+    char            fname[128] = {0};
+    SIM_RDFILTER() : hdr(SIM_RDFILTER_OPC, sizeof(*this)) {}
 } TONGA_PACKED;
 
 

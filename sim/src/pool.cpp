@@ -77,10 +77,8 @@ Pool::step() {
     }
     ps.src_addr.sys += src_partition_size;
     ps.dst_addr.sys += dst_partition_size;
-    if (ps.countdown == 0) {
-        ps.valid = false;
-    } else {
-        ps.countdown--;
+    if (ps.valid) {
+        ps.valid = ((ps.countdown--) > 0);
     }
 }
 

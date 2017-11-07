@@ -107,7 +107,8 @@ void  DynamicInstruction<MATMUL>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
     /* ifmap setup */
     seq->es.ifmap_addr.sys    = args.fmap_start_addr;
-    seq->es.ifmap_dtype = (ARBPRECTYPE) args.dtype;
+    seq->es.ifmap_dtype = (ARBPRECTYPE) 
+        args.dquant.dequant_data_type;
     seq->es.row_countdown = args.num_row_partitions;
     seq->es.row_valid = true;
     seq->es.weight_toggle = args.toggle_weight;
@@ -158,7 +159,7 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
 	seq->ps.stop = (pool_func == IDENTITY_POOL) ||
         (args.src_x_num + args.src_y_num == 2);
 	seq->ps.dst_addr.sys = args.dst_start_addr;
-	seq->ps.countdown = args.max_partition;
+	seq->ps.countdown = args.num_partitions;
 
 	seq->pool_src_base = args.src_start_addr;
 	seq->pool_dst_base = args.dst_start_addr;
@@ -406,7 +407,7 @@ Sequencer::step() {
     if (!synch()) {
         if (!feed->empty()) {
             uint64_t *raw_inst = (uint64_t *)feed->front();
-            switch (TPB_OPCODE(*raw_inst)) {
+            switch (((TPB_CMD_HEADER *)raw_inst)->opcode) {
                 case SIM_RDIFMAP_OPC:
                     inst = new DynamicInstruction<SIM_RDIFMAP>(
                             *((SIM_RDIFMAP *) (raw_inst)));

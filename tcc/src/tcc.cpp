@@ -47,7 +47,8 @@ _convolve_tile(FILE *fptr,
     uint64_t max_rows = 1 << ROW_BITS;
     uint64_t ch_batches = ceil((1.0 * i_ch)/max_rows);
     int i = 0;
-    while (all_num_rows) {
+    while (all_num_rows)
+    {
         ifmap_num_rows[i] = all_num_rows >= max_rows ?  max_rows : all_num_rows;
         all_num_rows -= ifmap_num_rows[i];
         i++;
@@ -57,7 +58,7 @@ _convolve_tile(FILE *fptr,
     addr_t dsize = sizeofArbPrecType(dtype);
     addr_t weight_step;
     LDWEIGHTS weight_args;
-    MATMUL    matmul_args = {0};
+    MATMUL    matmul_args;
 
     /* weight args */
     weight_args.dquant.dequant_data_type = dtype;
@@ -71,9 +72,8 @@ _convolve_tile(FILE *fptr,
     PUSH(fptr, weight_args);
 
     /* matmul args */
-    matmul_args.opcode = MATMUL_OPC;
     matmul_args.fmap_x_step = strides[0];
-    matmul_args.dtype = dtype;
+    matmul_args.dquant.dequant_data_type = dtype;
     matmul_args.psum_start_addr = psum_addr; /* b/c we specify padding as arg */
     matmul_args.num_column_partitions = num_cols;
 
@@ -140,12 +140,11 @@ _pool_tile(FILE *fptr,
         const ARBPRECTYPE pool_dtype)
 {
     addr_t dsize = sizeofArbPrecType(pool_dtype);
-    POOL      pool_args = {0};
+    POOL      pool_args;
     uint64_t o_cols = o_dims[3];
     uint64_t o_ch    = o_dims[1];
 
     /* pool args */
-    pool_args.opcode = POOL_OPC;
     pool_args.pool_func = IDENTITY_POOL;
     pool_args.in_dtype     = pool_dtype;
 
@@ -160,7 +159,7 @@ _pool_tile(FILE *fptr,
     pool_args.dst_x_num = tile_sz_x;
     pool_args.dst_y_num = tile_sz_y;
     pool_args.dst_start_addr = dst_addr;
-    pool_args.max_partition = o_ch - 1;
+    pool_args.num_partitions = o_ch;
 
 
     pool_args.str_x_step = 1;
@@ -174,11 +173,10 @@ _pool_tile(FILE *fptr,
 void compile_read_ifmap(FILE *fptr,
         addr_t ifmap_full_addr, const char *i_name, const char *numpy_layout)
 {
-    SIM_RDIFMAP args = {0};
+    SIM_RDIFMAP args;
 
     assert(!strcmp(numpy_layout, "NCHW") && "only NCHW currently supported");
 
-    args.opcode = SIM_RDIFMAP_OPC;
     args.address = ifmap_full_addr;
     strcpy(args.fname, i_name);
     
@@ -188,11 +186,10 @@ void compile_read_ifmap(FILE *fptr,
 void compile_read_filter(FILE *fptr,
         addr_t filter_full_addr, const char *i_name, const char *numpy_layout)
 {
-    SIM_RDFILTER args = {0};
+    SIM_RDFILTER args;
 
     assert(!strcmp(numpy_layout, "MCRS") && "only MCRS currently supported");
 
-    args.opcode = SIM_RDFILTER_OPC;
     args.address = filter_full_addr;
     strcpy(args.fname, i_name);
     
@@ -204,8 +201,7 @@ void compile_write_ofmap(FILE *fptr,
         const uint64_t o_dims[4],
         const ARBPRECTYPE dtype)
 {
-    SIM_WROFMAP args = {0};
-    args.opcode = SIM_WROFMAP_OPC;
+    SIM_WROFMAP args;
     args.address = addr;
     for (int i = 0; i < 4; i++) {
         args.dims[i] = o_dims[i];
@@ -310,39 +306,38 @@ compile_pool(FILE *fptr,
 		ARBPRECTYPE dtype,
         POOLFUNC pool_func)
 {
-	uint64_t s_cols = stride_dims[3];
-	uint64_t s_rows = stride_dims[2];
-	uint64_t s_ch   = stride_dims[1];
-	uint64_t s_n    = stride_dims[0];
-	uint64_t k_cols = kernel_dims[3];
-	uint64_t k_rows = kernel_dims[2];
-	uint64_t k_ch   = kernel_dims[1];
-	uint64_t k_n    = kernel_dims[0];
-	uint64_t i_cols = ifmap_dims[3];
-	//uint64_t i_rows = ifmap_dims[2];
-	//uint64_t i_ch   = ifmap_dims[1];
-	uint64_t i_n    = ifmap_dims[0];
-	uint64_t &o_cols = ofmap_dims[3];
-	uint64_t &o_rows = ofmap_dims[2];
-	uint64_t &o_ch   = ofmap_dims[1];
-	//uint64_t &o_n    = ofmap_dims[0];
-    POOL      pool_args = {0};
-	addr_t        src_addr = ifmap_addr;
-	addr_t        dst_addr = ofmap_addr;
+    uint64_t s_cols = stride_dims[3];
+    uint64_t s_rows = stride_dims[2];
+    uint64_t s_ch   = stride_dims[1];
+    uint64_t s_n    = stride_dims[0];
+    uint64_t k_cols = kernel_dims[3];
+    uint64_t k_rows = kernel_dims[2];
+    uint64_t k_ch   = kernel_dims[1];
+    uint64_t k_n    = kernel_dims[0];
+    uint64_t i_cols = ifmap_dims[3];
+    //uint64_t i_rows = ifmap_dims[2];
+    //uint64_t i_ch   = ifmap_dims[1];
+    uint64_t i_n    = ifmap_dims[0];
+    uint64_t &o_cols = ofmap_dims[3];
+    uint64_t &o_rows = ofmap_dims[2];
+    uint64_t &o_ch   = ofmap_dims[1];
+    //uint64_t &o_n    = ofmap_dims[0];
+    POOL      pool_args;
+    addr_t        src_addr = ifmap_addr;
+    addr_t        dst_addr = ofmap_addr;
     for (int i = 0; i < 4; i++) {
         ofmap_dims[i] = floor((ifmap_dims[i] - kernel_dims[i])/stride_dims[i]) +
             1;
     }
-	assert(s_n == 1 && "TBD: pooling across channels/batches");
-	assert(i_n == 1 && "TBD: batches");
-	assert(k_ch == 1 && "TBD: Pooling across channels");
-	assert(k_n == 1 && "TBD: Pooling across inputs");
-	assert(o_ch <= 64 && "Only 64 pooling engines, supported");
-            
-	for (unsigned int i = 0; i < s_n; i++) {
+    assert(s_n == 1 && "TBD: pooling across channels/batches");
+    assert(i_n == 1 && "TBD: batches");
+    assert(k_ch == 1 && "TBD: Pooling across channels");
+    assert(k_n == 1 && "TBD: Pooling across inputs");
+    assert(o_ch <= 64 && "Only 64 pooling engines, supported");
+
+    for (unsigned int i = 0; i < s_n; i++) {
         for (unsigned int j = 0; j < s_ch; j++) {
             /* pool args */
-            pool_args.opcode = POOL_OPC;
             pool_args.pool_func = pool_func;
             pool_args.in_dtype     = dtype;
             pool_args.src_start_addr = src_addr;
@@ -355,7 +350,7 @@ compile_pool(FILE *fptr,
             pool_args.str_y_step = i_cols * s_rows;
             pool_args.str_x_num = o_cols;
             pool_args.str_y_num = o_rows;
-            pool_args.max_partition = o_ch - 1;
+            pool_args.num_partitions = o_ch;
 
             /* Pool  */
             pool_args.dst_x_step = 1;
@@ -370,14 +365,14 @@ compile_pool(FILE *fptr,
 }
 
 #if 0
-void
+    void
 compile_resadd(FILE *out_binary,
         const addr_t lhs_addr, 
         const addr_t rhs_addr, 
         const uint64_t dims[4],
         const ARBPRECTYPE dtype)
 {
-	uint64_t cols = dims[3];
+    uint64_t cols = dims[3];
 	uint64_t rows = dims[2];
 	uint64_t ch   = dims[1];
 	uint64_t n    = dims[0];

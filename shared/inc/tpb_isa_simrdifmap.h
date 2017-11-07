@@ -5,9 +5,10 @@
 
 
 struct SIM_RDIFMAP {
-    uint8_t         opcode;        
-    uint32_t        address;       
-    char            fname[128];    
+    TPB_CMD_HEADER  hdr;
+    uint32_t        address    = {0};       
+    char            fname[128] = {0};    
+    SIM_RDIFMAP() : hdr(SIM_RDIFMAP_OPC, sizeof(*this)) {};
 } TONGA_PACKED;
 
 

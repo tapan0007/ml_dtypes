@@ -39,12 +39,12 @@ main(int argc, char **argv)
 
     fptr = fopen(argv[1], "r");
     while (fread(buffer, INSTRUCTION_NBYTES, 1, fptr)) {
-        switch (TPB_OPCODE(*((uint64_t *)buffer))) {
+        switch (((TPB_CMD_HEADER *)buffer)->opcode) {
             case SIM_RDFILTER_OPC:
                 {
                     SIM_RDFILTER *args = (SIM_RDFILTER *)buffer;
                     print_name_header("SIM_RDFILTER", fptr);
-                    PF(opcode, "0x%x")
+                    PF(hdr.opcode, "0x%x")
                     PF(address, "0x%lx")
                     PF(fname, "%s")
                 }
@@ -53,7 +53,7 @@ main(int argc, char **argv)
                 {
                     SIM_RDIFMAP *args = (SIM_RDIFMAP *)buffer;
                     print_name_header("SIM_RDIFMAP", fptr);
-                    PF(opcode, "0x%x")
+                    PF(hdr.opcode, "0x%x")
                     PF(address, "0x%lx")
                     PF(fname, "%s")
                 }
@@ -62,14 +62,12 @@ main(int argc, char **argv)
                 {
                     MATMUL *args = (MATMUL *)buffer;
                     print_name_header("MATMUL", fptr);
-                    PF(opcode, "0x%x")
-                    PF(dequant_table_idx, "0x%x")
-                    PF(quant_data_size, "0x%x")
-                    PF(dequant_data_size, "0x%x")
+                    PF(hdr.opcode, "0x%x")
+                    PF(dquant.dequant_table_idx, "0x%x")
+                    PF(dquant.quant_data_size, "0x%x")
+                    PF(dquant.dequant_data_type, "0x%x")
                     PF(start_tensor_calc, "0x%x")
                     PF(stop_tensor_calc, "0x%x")
-                    PF(reserved, "0x%x")
-                    PF(dtype, "0x%x")
                     PF(fmap_start_addr, "0x%lx")
                     PF(fmap_x_step, "0x%lx")
                     PF(fmap_x_num, "0x%x")
@@ -83,15 +81,13 @@ main(int argc, char **argv)
                     PF(psum_start_addr, "0x%lx")
                     PF(num_column_partitions, "0x%x")
                     PF(psum_step, "0x%x")
-                    PF(event_func, "0x%x")
-                    PF(event_id, "0x%x")
                 }
                 break;
             case SIM_WROFMAP_OPC:
                 {
                     SIM_WROFMAP *args = (SIM_WROFMAP *)buffer;
                     print_name_header("SIM_WROFMAP", fptr);
-                    PF(opcode, "0x%x")
+                    PF(hdr.opcode, "0x%x")
                     PF(fname, "%s")
                     PF(address, "0x%lx")
                     PF(dims[0], "0x%lx")
@@ -117,7 +113,7 @@ main(int argc, char **argv)
                 {
                     POOL *args = (POOL *)buffer;
                     print_name_header("POOL", fptr);
-                    PF(opcode, "0x%x")
+                    PF(hdr.opcode, "0x%x")
                     PF(pool_func, "0x%x")
                     PF(in_dtype, "0x%x")
                     PF(out_dtype, "0x%x")
@@ -135,9 +131,7 @@ main(int argc, char **argv)
                     PF(str_x_num, "0x%lx")
                     PF(str_y_step, "0x%lx")
                     PF(str_y_num, "0x%lx")
-                    PF(max_partition, "0x%lx")
-                    PF(event_func, "0x%x")
-                    PF(event_id, "0x%x")
+                    PF(num_partitions, "0x%lx")
                 }
                 break;
             default:

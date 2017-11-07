@@ -12,32 +12,33 @@ enum POOLFUNC {
 
 
 struct POOL {
-    uint8_t         opcode;        
-    uint8_t         pool_func;     
-    uint8_t         in_dtype;      
-    uint8_t         out_dtype;     
-    uint32_t        src_start_addr;   
+    TPB_CMD_HEADER               hdr;
+    struct TPB_CMD_SYNCH         synch;
+    struct TPB_CMD_DEQUANT       dquant;
+    uint8_t         pool_func = {IDENTITY_POOL};     
+    uint8_t         in_dtype  = {INVALID_ARBPRECTYPE};      
+    uint8_t         out_dtype = {INVALID_ARBPRECTYPE};     
+    uint32_t        src_start_addr = {0};   
     /* src* describes ONE pooling src */  
-    int16_t         src_x_step;    
-    uint16_t        src_x_num;     
-    int16_t         src_y_step;    
-    uint16_t        src_y_num;     
-    uint32_t        dst_start_addr;   
+    int16_t         src_x_step = {0};    
+    uint16_t        src_x_num  = {0};     
+    int16_t         src_y_step = {0};    
+    uint16_t        src_y_num  = {0};     
+    uint32_t        dst_start_addr = {0};   
     /* dst* describes ONE pooling result */ 
-    int16_t         dst_x_step;    
-    uint16_t        dst_x_num;     
-    int16_t         dst_y_step;    
-    uint16_t        dst_y_num;     
+    int16_t         dst_x_step = {0};    
+    uint16_t        dst_x_num  = {0};     
+    int16_t         dst_y_step = {0};    
+    uint16_t        dst_y_num  = {0};     
     /* str* describes interpooling strides */
-    int16_t         str_x_step;    
-    uint16_t        str_x_num;
-    int16_t         str_y_step;    
-    uint16_t        str_y_num;
-    uint8_t         max_partition;
-    uint8_t         event_func;    
-    uint8_t         event_id;      
+    int16_t         str_x_step = {0};    
+    uint16_t        str_x_num  = {0};
+    int16_t         str_y_step = {0};    
+    uint16_t        str_y_num  = {0};
+    uint8_t         num_partitions = {0};
+    POOL() : hdr(POOL_OPC, sizeof(*this)) {}
 } TONGA_PACKED;
 
-
-
 #endif
+
+
