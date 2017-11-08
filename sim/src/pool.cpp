@@ -16,7 +16,7 @@ Pool::pull_pool() {
 
 void
 Pool::step() {
-    ArbPrecData in_pixel.raw = 0;
+    ArbPrecData in_pixel = {.raw = 0};
     ps = connection->pull_pool();
     if (!ps.valid) {
         return;
