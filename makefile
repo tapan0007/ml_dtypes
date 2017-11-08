@@ -1,16 +1,17 @@
 RM = rm -f
 MAKE=make
+CXX:=g++
 
 .PHONY: clean
 
 all:
-	@$(MAKE) -C tcc
-	@$(MAKE) -C tcc/test/convolve
-	@$(MAKE) -C tcc/test/pool
-	@$(MAKE) -C sim
-	@$(MAKE) -C objdump
-	@$(MAKE) libs -C sim
-	@$(MAKE) -C verif
+	@$(MAKE) CXX=$(CXX) -C tcc
+	@$(MAKE) CXX=$(CXX) -C tcc/test/convolve
+	@$(MAKE) CXX=$(CXX) -C tcc/test/pool
+	@$(MAKE) CXX=$(CXX) -C sim
+	@$(MAKE) CXX=$(CXX) -C objdump
+	@$(MAKE) libs CXX=$(CXX) -C sim
+	@$(MAKE) CXX=$(CXX) -C verif
 
 clean: 
 	@$(MAKE) clean -C tcc

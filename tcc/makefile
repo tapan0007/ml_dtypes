@@ -1,5 +1,5 @@
 
-CXX= g++
+CXX?= g++
 CPPFLAGS = -I. -std=c++11
 CFLAGS = -W -Wall -ansi -ggdb -g -Wno-missing-field-initializers
 LIBRARY = $(LIBDIR)/libtcc.a

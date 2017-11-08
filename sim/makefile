@@ -1,4 +1,4 @@
-CXX= g++
+CXX?= g++
 CXXFLAGS = -I. -std=c++11 -O0
 CFLAGS = -W -Wall -ansi -ggdb -g -Wno-missing-field-initializers
 AR=ar
