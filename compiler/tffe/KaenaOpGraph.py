@@ -332,6 +332,7 @@ class TrivNet(Network):
       for s in lines:
         f.write(s)
     print("INFO: wrote ", outFile)
+    fileList.append(outFile)
     return(fileList)
     
   def genCompilertgz(self, outTgzFile, fileList):
