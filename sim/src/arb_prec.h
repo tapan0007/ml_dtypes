@@ -127,116 +127,70 @@ template <int Type> struct Extract
         return unused;
     }
 };
-template <> struct Extract<ARBPRECTYPE::INT8>
+
+/** Template to extract a specific member from an ArbPrecData union.
+ *
+ *  @tparam M - The type of the member.
+ *  @tparam Member - The pointer of the member.
+ *
+ *  This class is intended to be used as a inherited class of a struct, which
+ *  is itself a specialization of the Extract template.
+ *
+ *  This says that Extract of INT8 returns the member of the union int8:
+ *  template <> struct Extract<INT8> : ExtractMember<decltype(&::int8), &::int8>
+ */
+template <typename M, M Member>
+struct ExtractMember
 {
-    static inline int8_t& extract(ArbPrecData& v)
+    // Utility template to get the underlying type of a member pointer,
+    // since '&Struct::Member' is of type 'MemberType Struct::*'
+    template <typename T> struct UnderlyingMemberType { };
+    template <typename T, typename S> struct UnderlyingMemberType<T S::*>
     {
-        return v.int8;
-    }
-    static inline const int8_t& extract(const ArbPrecData& v)
+        using type = T;
+    };
+
+    using member = typename UnderlyingMemberType<M>::type;
+    using const_member = typename std::add_const<member>::type;
+
+    /** Extract a reference to the member.
+     *
+     *  This returns a reference-to-const or a reference, depending on if
+     *  the passed parameter is a const ArbPrecData or a ArbPrecData.
+     */
+    template <typename T>
+    static inline auto extract(T& v) ->
+        typename std::conditional<std::is_const<T>::value,
+                                  const_member&, member&>::type
     {
-        return v.int8;
+        static_assert(std::is_same<ArbPrecData,
+                                   typename std::remove_cv<T>::type>::value,
+                      "Parameter type must be ArbPrecData");
+
+        return v.*Member;
     }
 };
-template <> struct Extract<ARBPRECTYPE::UINT8>
-{
-    static inline uint8_t& extract(ArbPrecData& v)
-    {
-        return v.uint8;
-    }
-    static inline const uint8_t& extract(const ArbPrecData& v)
-    {
-        return v.uint8;
-    }
-};
-template <> struct Extract<ARBPRECTYPE::INT16>
-{
-    static inline int16_t& extract(ArbPrecData& v)
-    {
-        return v.int16;
-    }
-    static inline const int16_t& extract(const ArbPrecData& v)
-    {
-        return v.int16;
-    }
-};
-template <> struct Extract<ARBPRECTYPE::UINT16>
-{
-    static inline uint16_t& extract(ArbPrecData& v)
-    {
-        return v.uint16;
-    }
-    static inline const uint16_t& extract(const ArbPrecData& v)
-    {
-        return v.uint16;
-    }
-};
-template <> struct Extract<ARBPRECTYPE::INT32>
-{
-    static inline int32_t& extract(ArbPrecData& v)
-    {
-        return v.int32;
-    }
-    static inline const int32_t& extract(const ArbPrecData& v)
-    {
-        return v.int32;
-    }
-};
-template <> struct Extract<ARBPRECTYPE::UINT32>
-{
-    static inline uint32_t& extract(ArbPrecData& v)
-    {
-        return v.uint32;
-    }
-    static inline const uint32_t& extract(const ArbPrecData& v)
-    {
-        return v.uint32;
-    }
-};
-template <> struct Extract<ARBPRECTYPE::INT64>
-{
-    static inline int64_t& extract(ArbPrecData& v)
-    {
-        return v.int64;
-    }
-    static inline const int64_t& extract(const ArbPrecData& v)
-    {
-        return v.int64;
-    }
-};
-template <> struct Extract<ARBPRECTYPE::UINT64>
-{
-    static inline uint64_t& extract(ArbPrecData& v)
-    {
-        return v.uint64;
-    }
-    static inline const uint64_t& extract(const ArbPrecData& v)
-    {
-        return v.uint64;
-    }
-};
-template <> struct Extract<ARBPRECTYPE::FP16>
-{
-    static inline uint16_t& extract(ArbPrecData& v)
-    {
-        return v.fp16;
-    }
-    static inline const uint16_t& extract(const ArbPrecData& v)
-    {
-        return v.fp16;
-    }
-};
-template <> struct Extract<ARBPRECTYPE::FP32>
-{
-    static inline float& extract(ArbPrecData& v)
-    {
-        return v.fp32;
-    }
-    static inline const float& extract(const ArbPrecData& v)
-    {
-        return v.fp32;
-    }
-};
+
+template <> struct Extract<ARBPRECTYPE::INT8> :
+        ExtractMember<decltype(&ArbPrecData::int8), &ArbPrecData::int8> {};
+template <> struct Extract<ARBPRECTYPE::UINT8> :
+        ExtractMember<decltype(&ArbPrecData::uint8), &ArbPrecData::uint8> {};
+template <> struct Extract<ARBPRECTYPE::INT16> :
+        ExtractMember<decltype(&ArbPrecData::int16), &ArbPrecData::int16> {};
+template <> struct Extract<ARBPRECTYPE::UINT16> :
+        ExtractMember<decltype(&ArbPrecData::uint16), &ArbPrecData::uint16> {};
+template <> struct Extract<ARBPRECTYPE::INT32> :
+        ExtractMember<decltype(&ArbPrecData::int32), &ArbPrecData::int32> {};
+template <> struct Extract<ARBPRECTYPE::UINT32> :
+        ExtractMember<decltype(&ArbPrecData::uint32), &ArbPrecData::uint32> {};
+template <> struct Extract<ARBPRECTYPE::INT64> :
+        ExtractMember<decltype(&ArbPrecData::int64), &ArbPrecData::int64> {};
+template <> struct Extract<ARBPRECTYPE::UINT64> :
+        ExtractMember<decltype(&ArbPrecData::uint64), &ArbPrecData::uint64> {};
+template <> struct Extract<ARBPRECTYPE::FP16> :
+        ExtractMember<decltype(&ArbPrecData::fp16), &ArbPrecData::fp16> {};
+template <> struct Extract<ARBPRECTYPE::FP32> :
+        ExtractMember<decltype(&ArbPrecData::fp32), &ArbPrecData::fp32> {};
 
 /** Syntactic helper function for Extract<T>::extract.
  *
@@ -314,7 +268,8 @@ template <typename Op, typename... Args>
 struct Unroll<Op, ARBPRECTYPE::INVALID_ARBPRECTYPE, Args...>
 {
     static inline auto unroll(
-            ARBPRECTYPE, ARBPRECTYPE& result_type, Args ...args __attribute__((unused))) ->
+            ARBPRECTYPE, ARBPRECTYPE& result_type,
+            Args ...args __attribute__((unused))) ->
         decltype(Op::template eval<ARBPRECTYPE::INVALID_ARBPRECTYPE>(
                 std::forward<Args>(args)..., result_type))
     {
