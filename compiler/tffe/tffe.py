@@ -25,6 +25,9 @@
 import argparse
 import os.path
 import TfFrontEnd
+import sys
+
+print("\nINFO: started as  ", " ".join(sys.argv))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
@@ -38,6 +41,8 @@ parser.add_argument('--focus', help='Regular expression to filter a subset of no
                     default=".*")
 parser.add_argument('--width', help='Highlight data paths wider than the width',
                     default=1000)
+parser.add_argument('--verbose', help='Verbosity level, 0 default, 1 shows in/outputs, 2 TBD',
+                    default=0)
 
 args = parser.parse_args()
 inputTensorName = "input"
@@ -59,5 +64,7 @@ if args.images != None:
   kog.identifyMainFlowEdges(inputTensorName)
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   tffe.writeDot(int(args.depth), args.out_prefix + "graph_ann.dot", "svg")
-  kog.genCompilerPy(args.out_prefix + "compiler.py")
+  fileList = kog.genCompilerPy(args.out_prefix + "compiler.py", int(args.verbose))
+  fileList += [args.out_prefix + "graph_ann.dot"]
+  kog.genCompilertgz(args.out_prefix + "compiler.tgz", fileList)
 

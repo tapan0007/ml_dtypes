@@ -6,6 +6,9 @@ import numpy as np
 
 netName = "jdr_v3"
 (B1, H1, R1, C1, M1, P1) = (1, 8, 3, 4, 4, 3)
+#(B1, H1, R1, C1, M1, P1) = (1, 12, 2, 12, 12, 3)
+#(B1, H1, R1, C1, M1, P1) = (1, 17, 2, 129, 129, 3)
+#(B1, H1, R1, C1, M1, P1) = (1, 19, 2, 64, 64, 3)
 IF1 = np.zeros([B1, H1, H1, C1])
 W1  = np.zeros([R1, R1, C1, M1])
 W2  = np.zeros([R1, R1, C1, M1])
@@ -14,9 +17,9 @@ strides = [1, 1, 1, 1]
 padding = "SAME"
 
 
-w1Values =  np.linspace(0.1, 0.2, num=W1.size, dtype=np.float16).reshape(W1.shape)
+w1Values =  np.linspace(-0.0001, 0.0001, num=W1.size, dtype=np.float16).reshape(W1.shape)
 print("w1\n", w1Values, "  ", w1Values.dtype)
-w2Values =  np.linspace(0.2, 0.3, num=W2.size, dtype=np.float16).reshape(W2.shape)
+w2Values =  np.linspace(-0.0002, 0.0002, num=W2.size, dtype=np.float16).reshape(W2.shape)
 print("w1\n", w2Values, "  ", w2Values.dtype)
 
 w1 = tf.get_variable(name=netName+"/weight1",

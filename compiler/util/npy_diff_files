@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys
+
+(unused, goldFile, newFile) = sys.argv
+
+gold = np.load(goldFile)
+new = np.load(newFile)
+
+if gold.shape != new.shape:
+  print("ERROR: shapes differ, gold %s, new %s" %(gold.shape, new.shape))
+  exit(1)
+
+diffAbs = new-gold
+diffRel = diffAbs / gold
+
+print("Comparing golden  %s  and  new  %s  files:" % (goldFile, newFile))
+print("\nDetailed differences:")
+print("%-20s %-12s %-12s  %-12s %-12s" % ("Index", "Gold", "New", "Rel diff [%]", "Abs diff"))
+for index, g in np.ndenumerate(gold):
+  n = new[index]
+  da = diffAbs[index]
+  dr = diffRel[index]
+  print("%-20s %12g %12g  %12g %12g" % (str(index), g, n, dr, da))
+  
+print("\nStatistics")
+print("%-36s" % ("Relative Error  mean std  min max"))
+print("%12g %12g  %12g %12g" % (diffRel.mean(), diffRel.std(), diffRel.min(), diffRel.max()))
+
+print("%-36s" % ("Absolute Error  mean std  min max"))
+print("%12g %12g  %12g %12g" % (diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
+
+
