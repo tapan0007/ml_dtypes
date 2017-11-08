@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <assert.h>
 #include <iostream>
+#include <inttypes.h>
 
 //#include "types.h"
 //#include "isa.h"
@@ -466,7 +467,7 @@ struct Dump
         }
         else
         {
-            fprintf(f, "%ld", static_cast<int64_t>(extract<Type>(x)));
+            fprintf(f, "%" PRId64, static_cast<int64_t>(extract<Type>(x)));
         }
     }
 };
