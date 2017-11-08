@@ -303,7 +303,10 @@ class TrivNet(Network):
     s+= '               OfmapDesc(%d, %d), inputDataFileName="%s", dataTensorDimSemantics="%s")\n' % (channels, height, npFileSim, simFormat)
     lines.append(s)
     # Link the input
+    if os.path.exists("input.npy"):
+      os.unlink("input.npy")
     os.symlink(npFileSim, "input.npy")
+    fileList.append(npFileSim)
     fileList.append("input.npy")
     if verbose > 0:
       npu.showNpyFile("Input IFMAPs", npFileSim)
@@ -322,6 +325,8 @@ class TrivNet(Network):
           outNpy = fileListLayer[-1]
 
     # Link the input
+    if os.path.exists("output.npy"):
+      os.unlink("output.npy")
     os.symlink(outNpy, "output.npy")
     fileList.append("output.npy")
     if verbose > 0:
