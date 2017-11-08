@@ -16,7 +16,7 @@ Pool::pull_pool() {
 
 void
 Pool::step() {
-    ArbPrecData in_pixel = {0};
+    ArbPrecData in_pixel.raw = 0;
     ps = connection->pull_pool();
     if (!ps.valid) {
         return;
@@ -30,7 +30,7 @@ Pool::step() {
 
     /* start ! */
     if (ps.start) {
-        pool_pixel = {0};
+        pool_pixel.raw = 0;
         pool_cnt = 0;
         /* FIXME - how is this going to be done in HW?
          * Should we put check to make sure we stay in bounds? */

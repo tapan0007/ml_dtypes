@@ -12,13 +12,13 @@ StateBuffer::StateBuffer(MemoryMap *mmap, addr_t base, size_t nbytes) {
 
 PeEWSignals
 StateBuffer::pull_ew() {
-    ArbPrecData weight = {0};
-    ArbPrecData pixel = {0};
+    ArbPrecData weight.raw = 0;
+    ArbPrecData pixel.raw = 0;
     bool pixel_valid = false;
 
     if (ns.row_valid) {
         if (ns.pad_valid) {
-            pixel = {0};
+            pixel.raw = 0;
             pixel_valid = true;
         }
         if (ns.ifmap_valid) {
