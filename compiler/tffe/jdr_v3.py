@@ -3,24 +3,44 @@
 
 import tensorflow as tf
 import numpy as np
+import sys
+import re
 
-netName = "jdr_v3"
-(B1, H1, R1, C1, M1, P1) = (1, 8, 3, 4, 4, 3)
-#(B1, H1, R1, C1, M1, P1) = (1, 12, 2, 12, 12, 3)
-#(B1, H1, R1, C1, M1, P1) = (1, 17, 2, 129, 129, 3)
-#(B1, H1, R1, C1, M1, P1) = (1, 19, 2, 64, 64, 3)
-IF1 = np.zeros([B1, H1, H1, C1])
-W1  = np.zeros([R1, R1, C1, M1])
-W2  = np.zeros([R1, R1, C1, M1])
+print("\nINFO: started as  ", " ".join(sys.argv))
 
-strides = [1, 1, 1, 1]
+dimStr = sys.argv[1]
+
+# Sample dimStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
+dimStr = dimStr.upper() + "-"
+if len(sys.argv) > 2:
+  outPrefix = sys.argv[2]
+else:
+  outPrefix = "out_"
+if len(sys.argv) > 3:
+  netName = sys.argv[3]
+else:
+  netName = "jdr_v2"
+
+dimList = re.split('([A-Z]+)(-?[\d\.]+)-', dimStr)
+dimCmd = str(tuple(dimList[1::3])).replace("'", "") + " = " + str(tuple(map(float, dimList[2::3])))
+dimCmd = dimCmd.replace(".0,", ",")
+print(dimCmd)
+assert(len(dimList[2::3]) == 10)
+exec(dimCmd)
+assert(C == M)  # Two back to back convolutions must have same number of channels (till pooling is added)
+
+IF1 = np.zeros([B, H, H, C])
+W1  = np.zeros([R, R, C, M])
+W2  = np.zeros([R, R, C, M])
+
+strides = [1, S, S, 1]
 padding = "SAME"
 
-
-w1Values =  np.linspace(-0.0001, 0.0001, num=W1.size, dtype=np.float16).reshape(W1.shape)
+wAllValues = np.linspace(WMIN, WMAX, num=(W1.size + W2.size), dtype=np.float16)
+w1Values =  wAllValues[0:W1.size].reshape(W1.shape)
 print("w1\n", w1Values, "  ", w1Values.dtype)
-w2Values =  np.linspace(-0.0002, 0.0002, num=W2.size, dtype=np.float16).reshape(W2.shape)
-print("w1\n", w2Values, "  ", w2Values.dtype)
+w2Values =  wAllValues[W1.size:W1.size+W2.size].reshape(W2.shape)
+print("w2\n", w2Values, "  ", w2Values.dtype)
 
 w1 = tf.get_variable(name=netName+"/weight1",
                      initializer = w1Values, dtype=tf.float16)
@@ -33,14 +53,17 @@ w2 = tf.get_variable(name=netName+"/weight2",
 i2 = tf.nn.conv2d(i1, w2, strides, padding, name=netName + "/i2")
 output = tf.identity(i2, name=netName+"/output")
 
-i0val = np.linspace(0, 1, num=IF1.size, dtype=np.float16).reshape(IF1.shape)
+i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=np.float16).reshape(IF1.shape)
 print("Inp=\n", i0val)
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
   res = sess.run(output, feed_dict={"input:0" : i0val})
   print("Res=\n", res)
   graph = tf.get_default_graph()
-  tf.train.write_graph(graph, '.', 'out_jdr_v3.pb')
+  tf.train.write_graph(graph, '.', outPrefix + 'graph.pb')
   saver = tf.train.Saver()
-  saver.save(sess,"./out_jdr_v3.data")
+  prefixTFfix = ""
+  if not outPrefix.startswith("/"):
+    prefixTFfix = "./"
+  saver.save(sess, prefixTFfix + outPrefix + "checkpoint.data")
 

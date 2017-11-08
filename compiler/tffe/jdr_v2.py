@@ -28,15 +28,8 @@ print(dimCmd)
 assert(len(dimList[2::3]) == 10)
 exec(dimCmd)
 
-#(B, H, R, S, C, M) = (1,  4, 1, 1, 1, 1)
-#(B, H, R, S, C, M) = (1,  8, 3, 1, 4, 4)
-#(B, H, R, S, C, M) = (1, 12, 3, 1, 12, 12)
-#(B, H, R, S, C, M) = (1, 16, 2, 1, 16, 16)
-#(B, H, R, S, C, M) = (1, 16, 2, 1, 64, 64)
-#(B, H, R, S, C, M) = (1, 16, 2, 1, 1, 1)
 IF1 = np.zeros([B, H, H, C])
 W1  = np.zeros([R, R, C, M])
-#(WMIN, WMAX) = (-0.001,0.001)
 
 strides = [1, S, S, 1]
 padding = "SAME"

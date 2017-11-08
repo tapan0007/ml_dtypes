@@ -65,6 +65,6 @@ if args.images != None:
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   tffe.writeDot(int(args.depth), args.out_prefix + "graph_ann.dot", "svg")
   fileList = kog.genCompilerPy(args.out_prefix + "compiler.py", int(args.verbose))
-  fileList += [args.out_prefix + "graph_ann.dot"]
+  fileList += [args.out_prefix + "graph_ann.dot.svg"]
   kog.genCompilertgz(args.out_prefix + "compiler.tgz", fileList)
 
