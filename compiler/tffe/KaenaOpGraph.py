@@ -2,7 +2,8 @@
 # Suitable for TF freeze graph input and general op reduction and fusing
 
 from NpTransforms import NpTrans as npt
-
+from NpUtils import NpUtils as npu
+import os
 
 class Object():
   def __init__(self, name, attrs):
@@ -74,7 +75,7 @@ class Node(Object):
       self.__fanout.append([])
     self.__fanout[index].append(edge)
   def genCompilerLayerText(self):
-    return("        # No model for %s %s\n" % (self.getOpType(), self.getOpName()))
+    return("        # No model for %s %s\n" % (self.getOpType(), self.getOpName()), [])
 
 class PosNode:
   def __init__(self, node, index):
@@ -109,6 +110,7 @@ class NodeConv2D(Node):
     self.__padding = padding
     self.__strides = strides
   def genCompilerLayerText(self):
+    fileList = []
     npInfo = self.getNpInfo()[0]
     (batch, height, width, channels) = npInfo.npShape
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
@@ -127,7 +129,8 @@ class NodeConv2D(Node):
     s += '                   filterFileName="%s", filterTensorDimSemantics="%s")\n' % (npFileSimW, simFormatW)
     s += '        # Golden result file  %s\n' % npFileSim
     s += "        \n"
-    return(s)
+    fileList += [npFileSimW, npFileSim]
+    return(s, fileList)
     
 
 # Computational data flow graph
@@ -264,7 +267,7 @@ class Graph(Object):
   # WEIGHTS:
   #   RSCM   (0, 3)  MSCR   (1,2)  MCSR   (2,3)  MCRS
     
-  def genCompilerPy(self, outFile):
+  def genCompilerPy(self, outFile, verbose):
     
     prefix = """
 from utils.fmapdesc     import OfmapDesc
@@ -288,6 +291,8 @@ class TrivNet(Network):
 """
     lines = []
     
+    fileList = []
+
     # Input layer
     inputNode = self.getInputNode()
     npInfo = inputNode.getNpInfo()[0]
@@ -297,22 +302,42 @@ class TrivNet(Network):
     s = '        layer =  DataLayer(Layer.Param("%s", %d, self),\n' % (inputNode.getOpName(), batch)
     s+= '               OfmapDesc(%d, %d), inputDataFileName="%s", dataTensorDimSemantics="%s")\n' % (channels, height, npFileSim, simFormat)
     lines.append(s)
+    # Link the input
+    os.symlink(npFileSim, "input.npy")
+    fileList.append("input.npy")
+    if verbose > 0:
+      npu.showNpyFile("Input IFMAPs", npFileSim)
     
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
+    outNpy = None
     for level in range(0, len(levelizedNodes)):
       for n in levelizedNodes[level]:
         op = n.getOpType()
         #print("DEBUG: node=", n.getName(), "  op=", op)
         if op == "Conv2D":
-          s = n.genCompilerLayerText()
+          (s, fileListLayer) = n.genCompilerLayerText()
           lines.append(s)
+          fileList += fileListLayer
+          outNpy = fileListLayer[-1]
+
+    # Link the input
+    os.symlink(outNpy, "output.npy")
+    fileList.append("output.npy")
+    if verbose > 0:
+      npu.showNpyFile("Output OFMAPs", outNpy)
 
     with open(outFile, "w") as f:
       f.write(prefix)
       for s in lines:
         f.write(s)
     print("INFO: wrote ", outFile)
-          
+    return(fileList)
+    
+  def genCompilertgz(self, outTgzFile, fileList):
+    # Tar all files as package
+    cmd = ("tar cvzf %s " % outTgzFile) + " ".join(fileList)
+    print("INFO: executing  %s" %cmd)
+    os.system(cmd)
           
     
