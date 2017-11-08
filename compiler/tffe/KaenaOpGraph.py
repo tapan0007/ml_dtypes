@@ -116,14 +116,11 @@ class NodeConv2D(Node):
     filterSize = npInfoW.npShape[0]
     assert(npInfoW.npShape[0] == npInfoW.npShape[1]) # square filter
     # OFMAP
-    simFormat = npt.Formats[npt.SIM][npt.Fmaps]
-    npFileSim = npt.copyNpyFileAs(npInfo.npFile, simFormat, npt.Transforms[npt.TF2SIM][npt.Fmaps])
+    (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     # IFMAP, not needed
-    simFormatF = npt.Formats[npt.SIM][npt.Fmaps]
-    npFileSimF = npt.copyNpyFileAs(npInfoIF.npFile, simFormatF, npt.Transforms[npt.TF2SIM][npt.Fmaps])
+    (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
     # WEIGHT
-    simFormatW = npt.Formats[npt.SIM][npt.Weights]
-    npFileSimW = npt.copyNpyFileAs(npInfoW.npFile, simFormatW, npt.Transforms[npt.TF2SIM][npt.Weights])
+    (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
     stride = 1 # TO_DO extract it properly
     s =  '        layer = ConvLayer(Layer.Param("%s", %d, self), layer,\n' % (self.getOpName(), batch)
     s += '                   %d, stride=%d, kernel=%d,\n' % (numOfMaps, stride, filterSize)
@@ -296,8 +293,7 @@ class TrivNet(Network):
     npInfo = inputNode.getNpInfo()[0]
     (batch, height, width, channels) = npInfo.npShape
     assert(height == width)
-    simFormat = npt.Formats[npt.SIM][npt.Fmaps]
-    npFileSim = npt.copyNpyFileAs(npInfo.npFile, simFormat, npt.Transforms[npt.TF2SIM][npt.Fmaps])
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     s = '        layer =  DataLayer(Layer.Param("%s", %d, self),\n' % (inputNode.getOpName(), batch)
     s+= '               OfmapDesc(%d, %d), inputDataFileName="%s", dataTensorDimSemantics="%s")\n' % (channels, height, npFileSim, simFormat)
     lines.append(s)
