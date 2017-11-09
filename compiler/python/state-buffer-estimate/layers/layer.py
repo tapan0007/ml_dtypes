@@ -80,6 +80,27 @@ class Layer(object, metaclass = ABCMeta): # abstract class
 
         ntwrk.addLayer(self) ## will assign index
 
+    #-----------------------------------------------------------------
+    def gJson(self):
+        prevLayers = []
+        for prevLayer in self.gPrevLayers():
+            prevLayers.append(prevLayer.gName())
+        x = {
+            "name"          : self.gName(),
+            "type"          : self.gTypeStr(),
+            "prev_layers"   : prevLayers,
+            "number_ofmaps" : self.gNumOfmaps(),
+            "ofmap_width"   : self.gOfmapWidth(),
+            "ofmap_height"  : self.gOfmapHeight()
+        }
+        return x
+
+    def combineJson(self, it):
+        x = {}
+        for y in it:
+            x.update(y)
+            #x = { **x, **y }
+        return x
 
     #-----------------------------------------------------------------
     #-----------------------------------------------------------------

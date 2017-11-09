@@ -37,7 +37,8 @@ class MacroConvLayer(MacroLayer):
         numOfmaps  = layer.gNumOfmaps()
         ofmapWidth  = layer.gOfmapWidth()
         ofmapHeight  = layer.gOfmapHeight()
-        kernelSize = layer.gKernel()
+        kernelHeight = layer.gKernelHeight()
+        kernelWidth = layer.gKernelWidth()
         numBatches = 1
         assertStr  =  self.gMacroInstrGen().gAssertionStr()
 
@@ -65,24 +66,24 @@ class MacroConvLayer(MacroLayer):
              ## W: width of ifmap
              "ifmap_addrs[0]     = " + str(layer.gIfmapAddress()) + ";",
 
-             "ifmap_dims[0]      = " + str(numBatches) + ";",
-             "ifmap_dims[1]      = " + str(numIfmaps) + ";",
-             "ifmap_dims[2]      = " + str(ifmapHeight) + ";",
-             "ifmap_dims[3]      = " + str(ifmapWidth) + ";",
+             "ifmap_dims[IfmapIndex_N]      = " + str(numBatches) + ";",
+             "ifmap_dims[IfmapIndex_C]      = " + str(numIfmaps) + ";",
+             "ifmap_dims[IfmapIndex_H]      = " + str(ifmapHeight) + ";",
+             "ifmap_dims[IfmapIndex_W]      = " + str(ifmapWidth) + ";",
 
              "// filter_addr",
-             "filter_dims[0]     = " + str(numOfmaps)   + ";",  ## num images
-             "filter_dims[1]     = " + str(numIfmaps) + ";",  ## image width?
-             "filter_dims[2]     = " + str(kernelSize) + ";",  ## image height?
-             "filter_dims[3]     = " + str(kernelSize)  + ";",
+             "filter_dims[FilterIndex_M]     = " + str(numOfmaps)   + ";",
+             "filter_dims[FilterIndex_C]     = " + str(numIfmaps) + ";",  
+             "filter_dims[FilterIndex_R]     = " + str(kernelHeight) + ";",
+             "filter_dims[FilterIndex_S]     = " + str(kernelWidth)  + ";",
 
              "ofmap_addrs        = " + str(layer.gOfmapAddress()) + ";",
              "// ofmap_dims (output)",
              "// precision",
-             "padding[0]         = " + str((kernelSize-1) // 2) + ";",
-             "padding[1]         = " + str((kernelSize-1) // 2) + ";",
-             "convolve_stride[0] = " + str(layer.gStride()) + ";",
-             "convolve_stride[1] = " + str(layer.gStride()) + ";",
+             "padding[0]         = " + str(layer.gPaddingRight()) + ";",
+             "padding[1]         = " + str(layer.gPaddingTop()) + ";",
+             "convolve_stride[0] = " + str(layer.gStrideLR()) + ";",
+             "convolve_stride[1] = " + str(layer.gStrideBT()) + ";",
              "dilate[0]          = 0;",
              "dilate[1]          = 0;",
              "",
@@ -99,13 +100,13 @@ class MacroConvLayer(MacroLayer):
              "",
              ## const addr_t ofmap_addr, uint64_t ofmap_dims[4], // output NCHW
              ## N: batch size
-             ## C: number of ofmaps / channels
+             ## C: number of ifmaps / channels
              ## H: height of ofmap
              ## W: width of ofmap
-             assertStr + "(ofmap_dims[0] == " + str(numBatches) + ");",
-             assertStr + "(ofmap_dims[1] == " + str(numOfmaps) + ");",
-             assertStr + "(ofmap_dims[2] == " + str(ofmapHeight) + ");",
-             assertStr + "(ofmap_dims[3] == " + str(ofmapWidth) + ");",
+             assertStr + "(ofmap_dims[OfmapIndex_N] == " + str(numBatches) + ");",
+             assertStr + "(ofmap_dims[OfmapIndex_C] == " + str(numOfmaps) + ");",
+             assertStr + "(ofmap_dims[OfmapIndex_H] == " + str(ofmapHeight) + ");",
+             assertStr + "(ofmap_dims[OfmapIndex_W] == " + str(ofmapWidth) + ");",
              "",
             ]
 

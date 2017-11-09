@@ -1,16 +1,12 @@
-fn Error { echo >[1=2] $* }
-fn Fatal { Error '>>>' $*; exit 1 }
+All=( ${ cat Files} )
 
-fn RunCmd  {
-   #sleep 3
-   echo $*
-   $*
-}
+fn Run { f=$1 {
+    rc LINK $f
+    rc RUNONE $f
+}}
 
-##############################################################
-switch ($#*) {
-case 0
-    Fatal Usage $0 NUMBER
+for (d in $All) {
+    Run $d
 }
 N=$1
 
@@ -62,6 +58,83 @@ echo ./sim $TPB
 outNpy = ${ egrep -A 1 compile_write_ofmap $CPP |
             tail -n 1 | sed -e 's/^ *"//' -e 's/.npy".*//' }
 echo Out npy: $outNpy
+Files=(
+    golden
+    $outNpy
+)
+FMTS = (    
+    # int16
+    float16
+)
+
+for (fmt in $FMTS) {
+    for (file in $Files) {
+        npy=$file.npy
+        txt=$RESULTS/$file-$fmt.txt
+        echo dumpnpy --$fmt $npy '>' $txt
+        dumpnpy --$fmt $npy > $txt
+        shasum  $txt
+        cat $txt
+    }
+}
+
+#echo GOLDEN:
+#cat goldn-float16.txt
+#echo FROM SIM:
+#cat $NET-out-float16.txt
+} >[2=1] | tee $LOG
+||||||| merged common ancestors
+N=$1
+
+##############################################################
+
+NET=trivnet
+
+CPP=$NET.cpp
+OBJ=$NET.obj
+EXE=$NET-exe
+
+RESULTS=./results/$N
+rm -fR $RESULTS; mkdir $RESULTS
+
+ASM=$RESULTS/$NET.asm
+TPB=$RESULTS/$NET.tpb
+
+SIMRES=$RESULTS/$NET.simres
+SIMLOG=$RESULTS/simulation.log
+LOG=$RESULTS/LOG
+
+##############################################################
+TOP=$HOME/kaena/GitFarm/Kaena/compiler/python/state-buffer-estimate
+TEST=$TOP/test
+##############################################################
+##############################################################
+{
+
+cd  $TOP
+pwd
+TopCleanFiles=( $CPP $OBJ )
+RunCmd rm -f $TopCleanFiles
+
+RunCmd make $NET || Fatal Failed to make $NET
+shasum $CPP
+
+cd  $TOP/test
+pwd
+#BottomCleanFiles=($OBJ $EXE $TPB  $ASM $RESULTS/*-out.npy $SIMLOG $SIMRES $RESULTS/*.txt)
+RunCmd make $EXE || Fatal Failed make $EXE
+cp -p $CPP $RESULTS/.
+RunCmd ./$EXE $TPB || Fatal Failed $EXE $TPB
+
+RunCmd ./objdump $TPB > $ASM || Fatal Failed to create $ASM
+
+RunCmd shasum $TPB
+echo ./sim $TPB
+./sim $TPB >$SIMRES || Fatal Sim failed on $TPB
+outNpy = ${ egrep -A 1 compile_write_ofmap $CPP |
+            tail -n 1 | sed -e 's/^ *"//' -e 's/.npy".*//' }
+echo Out npy: $outNpy
+
 Files=(
     golden
     $outNpy

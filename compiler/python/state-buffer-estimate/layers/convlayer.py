@@ -21,13 +21,24 @@ class ConvLayer(SubSampleLayer):
         self.__FilterTensorDimSemantics = filterTensorDimSemantics
 
     #-----------------------------------------------------------------
+    def gJson(self):
+        x = super().gJson()
+        y = {
+            "filter_file" : self.__FilterFileName,
+            "filter_dims" : self.__FilterTensorDimSemantics 
+        }
+        r = self.combineJson( (x, y) )
+        return r
+
+    #-----------------------------------------------------------------
     def __str__(self):
-        ks = str(self.gKernel())
+        kw = str(self.gKernelWidth())
+        kh = str(self.gKernelHeight())
         ss = str(self.gStride())
         baseLayer = self.gBaseLayerStr()
         return (self.gName()
                 + baseLayer
-                + ", kernel=" + ks + "x" + ks + ", stride=" + ss
+                + ", kernel=" + kh + "x" + kw + ", stride=" + ss
                 + self.gStateSizesStr())
 
     #-----------------------------------------------------------------
@@ -65,9 +76,10 @@ class ConvLayer(SubSampleLayer):
     #-----------------------------------------------------------------
     def gNumberWeightsPerPartition(self):
         assert(self.gNumPrevLayers() == 1)
-        k = self.gKernel()
+        kw = self.gKernelWidth()
+        kh = self.gKernelHeight()
         num_ofmaps = self.gNumOfmaps()
-        return k*k * num_ofmaps
+        return kw*kh * num_ofmaps
 
     #-----------------------------------------------------------------
     def qConvLayer(self):

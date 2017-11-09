@@ -40,6 +40,11 @@ class Network(object, metaclass = ABCMeta):
         self.__CurrLayerId = 0
         self.__DoBatching = False
         self.__DataType = dataType
+        self.__UseDimList = True
+
+    #-----------------------------------------------------------------
+    def gUseDimList(self):
+        return self.__UseDimList
 
     #-----------------------------------------------------------------
     def gDataType(self):
@@ -118,7 +123,17 @@ class Network(object, metaclass = ABCMeta):
     def gReverseSchedLayers(self):
         return Network.SchedLayerForwRevIter(self.__Layers[-1], False)
 
-
-
-
+    #-----------------------------------------------------------------
+    def gJson(self):
+        json = { 
+            "name" : self.gName()
+        }
+        json_layers = []
+        for layer in self.gLayers():
+            if layer.qDataLayer():
+                json["input"] = layer.gJson()
+            else:
+                json_layers.append(layer.gJson())
+        json["layers"] = json_layers
+        return json
 
