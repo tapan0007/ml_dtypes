@@ -30,17 +30,18 @@ class MacroPoolLayer(MacroLayer):
         ## H: height of ifmap
         ## W: width of ifmap
         return (
-            "ifmap_dims[0] = " + str(numBatches) + ";"
-          + " ifmap_dims[1] = " + str(numIfmaps) + ";"
-          + " ifmap_dims[2] = " + str(ifmapHeight) + ";"
-          + " ifmap_dims[3] = " + str(ifmapWidth) + ";"
+            "ifmap_dims[IfmapIndex_N] = " + str(numBatches) + ";"
+          + " ifmap_dims[IfmapIndex_C] = " + str(numIfmaps) + ";"
+          + " ifmap_dims[IfmapIndex_H] = " + str(ifmapHeight) + ";"
+          + " ifmap_dims[IfmapIndex_W] = " + str(ifmapWidth) + ";"
         )
 
     #-----------------------------------------------------------------
     def gKernelString(self, layer):
-        numBatches  = self.__NumBatches
-        kernelSize  = layer.gKernel()
-        ifmapStride = self.__IfmapStride
+        batchPool = 1
+        ifmapPool = 1
+        kernelWidth  = layer.gKernelWidth()
+        kernelHeight  = layer.gKernelHeight()
 
         ## const uint64_t kernel_dims[4], // NCHW
         ## N: batch size
@@ -48,22 +49,22 @@ class MacroPoolLayer(MacroLayer):
         ## H: filter height
         ## W: filter width
         return (
-            "kernel_dims[0] = " + str(numBatches)+ ";"
-          + " kernel_dims[1] = " + str(ifmapStride) + ";"
-          + " kernel_dims[2] = " + str(kernelSize) + ";"
-          + " kernel_dims[3] = " + str(kernelSize) + ";"
+            "kernel_dims[0] = " + str(batchPool)+ ";"
+          + " kernel_dims[1] = " + str(ifmapPool) + ";"
+          + " kernel_dims[2] = " + str(kernelHeight) + ";"
+          + " kernel_dims[3] = " + str(kernelWidth) + ";"
         )
 
     #-----------------------------------------------------------------
     def gStrideString(self, layer):
-        batchStride = self.__NumBatches = 1
+        batchStride = 1
         ifmapStride = 1
         ## const uint64_t stride_dims[4], // NCHW
         return (
             "pool_stride[0] = " + str(batchStride) + ";"
           + " pool_stride[1] = " + str(ifmapStride) + ";"
-          + " pool_stride[2] = " + str(layer.gStride()) + ";"
-          + " pool_stride[3] = " + str(layer.gStride()) + ";"
+          + " pool_stride[2] = " + str(layer.gStrideBT()) + ";"
+          + " pool_stride[3] = " + str(layer.gStrideLR()) + ";"
         )
 
 
@@ -101,7 +102,8 @@ class MacroPoolLayer(MacroLayer):
 
         ##
         s = [ "// " + layer.gName(),
-              "pool_stride[1] = pool_stride[0] = " + str(layer.gStride()) + ";",
+              "pool_stride[0] = " + str(layer.gStrideBT()) + ";",
+              "pool_stride[1] = " + str(layer.gStrideLR()) + ";",
               self.gIfmapString(layer),
               self.gKernelString(layer),
               self.gStrideString(layer),

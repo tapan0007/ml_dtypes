@@ -22,8 +22,8 @@ class AvgPoolLayer(PoolLayer):
     #-----------------------------------------------------------------
     def verify(self):
         assert(self.gNumPrevLayers() == 1)
-        assert(self.gPrevLayer(0).gOfmapWidth() // self.gStride() == self.gOfmapWidth())
-        assert(self.gPrevLayer(0).gOfmapHeight() // self.gStride() == self.gOfmapHeight())
+        assert(self.gPrevLayer(0).gOfmapWidth()  // self.gStrideLR() == self.gOfmapWidth())
+        assert(self.gPrevLayer(0).gOfmapHeight() // self.gStrideBT() == self.gOfmapHeight())
 
 
     #-----------------------------------------------------------------

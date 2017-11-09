@@ -113,9 +113,27 @@ class MacroInstrGen(object):
 
     #-----------------------------------------------------------------
     def writeDefines(self):
+        ind  = self.gIndent()
         f = self.__File
         f.write("#define Quote_(X) #X\n")
         f.write("#define Assert(X) assert((X) && Quote_(X))\n")
+        f.write("enum FmapDimIndex {\n")
+
+        f.write(ind+ "IfmapIndex_N = 0, // batch\n")
+        f.write(ind+ "IfmapIndex_C = 1, // num ifmaps\n")
+        f.write(ind+ "IfmapIndex_H = 2, // ifmap height\n")
+        f.write(ind+ "IfmapIndex_W = 3, // ifmap width\n")
+
+        f.write(ind+ "OfmapIndex_N = IfmapIndex_N, // batch\n")
+        f.write(ind+ "OfmapIndex_C = IfmapIndex_C, // num ifmaps\n")
+        f.write(ind+ "OfmapIndex_H = IfmapIndex_H, // ifmap height\n")
+        f.write(ind+ "OfmapIndex_W = IfmapIndex_W, // ifmap width\n")
+
+        f.write(ind+ "FilterIndex_M = 0, // filter num ofmaps\n")
+        f.write(ind+ "FilterIndex_C = 1, // filter num ifmaps\n")
+        f.write(ind+ "FilterIndex_R = 2, // filter height\n")
+        f.write(ind+ "FilterIndex_S = 3, // filter width\n")
+        f.write("};\n")
 
     #-----------------------------------------------------------------
     def writeFooter(self, lastGenerator):

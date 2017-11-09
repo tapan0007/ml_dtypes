@@ -1,3 +1,4 @@
+import json
 
 from utils.funcs     import kstr
 from utils.consts    import *
@@ -152,4 +153,9 @@ class Printer(object):
             lastWasAdd = layer.qAddLayer()
 
         print(fullHeader)
+
+    def printJson(self, obj, filename):
+        obj_json = json.dumps(obj.gJson(), sort_keys=False, indent=4, separators=(',', ': '))
+        with open(filename, "w") as f:
+            f.write(obj_json)
 

@@ -16,6 +16,10 @@ class PoolLayer(SubSampleLayer, metaclass = ABCMeta): # abstract class
         super().__init__(param, prev_layer,
             num_ofmaps=None, stride=stride, kernel=kernel)
 
+    #-----------------------------------------------------------------
+    def gJson(self):
+        x = super().gJson()
+        return x
 
     #-----------------------------------------------------------------
     def verify(self):

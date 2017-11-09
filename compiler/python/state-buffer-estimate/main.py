@@ -133,4 +133,5 @@ if PrintDot:
     printer.printDot()
     print("")
 
+printer.printJson(ntwk, ntwk.gName() + ".json")
 

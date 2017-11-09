@@ -13,6 +13,18 @@ class DataLayer(Layer):
         self.__DataTensorDimSemantics = dataTensorDimSemantics
 
     #-----------------------------------------------------------------
+    def gJson(self):
+        x = {
+            "name"          : self.gName(),
+            "number_ifmaps" : self.gNumOfmaps(),
+            "ifmap_width"   : self.gOfmapWidth(),
+            "ifmap_height"  : self.gOfmapHeight(),
+            "input_file"    : self.__InputDataFileName,
+            "input_dims"    : self.__DataTensorDimSemantics
+        }
+        return x
+
+    #-----------------------------------------------------------------
     def __str__(self):
         baseLayer = self.gBaseLayerStr()
         return (self.gName() + baseLayer

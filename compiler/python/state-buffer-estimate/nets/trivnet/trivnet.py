@@ -1,1 +1,1 @@
-../../test/data-trivnet/trivnet.py
+../../test/data-trivnet/trivnet_compiler.py
