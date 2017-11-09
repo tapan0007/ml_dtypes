@@ -10,15 +10,17 @@
 #KAENA_PATH = ../..
 OUT_PREFIX = "out_"
 NN_NAME = "jdr"
+DATA_TYPE = "float16"
 TF_PATH = $(shell python3 -c "import tensorflow as tf; print(tf.__file__.replace('/__init__.py', ''))")
 export KAENA_TFFE := $(KAENA_PATH)/compiler/tffe
 export PYTHONPATH := $(KAENA_TFFE):$(PYTHONPATH)
 $(info KAENA_PATH is ${KAENA_PATH})
 $(info KAENA_TFFE is ${KAENA_TFFE})
 $(info TF_PATH is ${TF_PATH})
+$(info DATA_TYPE is ${DATA_TYPE})
 
 jdr_%:
-	python3 $(KAENA_TFFE)/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME)
+	python3 $(KAENA_TFFE)/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
 	python $(TF_PATH)/python/tools/freeze_graph.py --input_graph $(OUT_PREFIX)graph.pb --input_checkpoint $(OUT_PREFIX)checkpoint.data --output_graph $(OUT_PREFIX)freeze.pb --output_node_names $(NN_NAME)/output
 	$(KAENA_TFFE)/tffe.py --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(OUT_PREFIX)freeze.pb --depth 5 --images linear --width 30
 	mv $(OUT_PREFIX)compiler.tgz $(OUT_PREFIX)$(NN_NAME)_$(NN_CONFIG).tgz
