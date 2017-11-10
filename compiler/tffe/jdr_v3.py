@@ -10,10 +10,13 @@ import re
 # Example  0 1 2 3 4 5  =>  0 5 1 4 2 3
 def permuteArr(arr):
   s = arr.size
-  a1 = arr.reshape(2, int(s/2))
-  a1[1] = np.flip(a1[1], 0)
-  a2 = a1.swapaxes(0, 1)
-  a3 = a2.ravel()
+  if s %2 == 0:
+    a1 = arr.reshape(2, int(s/2))
+    a1[1] = np.flip(a1[1], 0)
+    a2 = a1.swapaxes(0, 1)
+    a3 = a2.ravel()
+  else:
+    a3 = arr
   return(a3)
 
 print("\nINFO: started as  ", " ".join(sys.argv))
@@ -79,6 +82,7 @@ with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
   res = sess.run(output, feed_dict={"input:0" : i0val})
   print("Res=\n", res)
+  print("INFO: the result contains %d infinite numbers" % (res.size - np.count_nonzero(np.isfinite(res))))
   graph = tf.get_default_graph()
   tf.train.write_graph(graph, '.', outPrefix + 'graph.pb')
   saver = tf.train.Saver()
