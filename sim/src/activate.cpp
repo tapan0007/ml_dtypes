@@ -45,7 +45,7 @@ Activate::step()
             case LEAKY_RELU:
                 {
                     /* max(x, 0.01*x) */
-                    ArbPrecData cmp_pixel = ArbPrec::uint_divide(in_pixel, 10,
+                    ArbPrecData cmp_pixel = ArbPrec::int_divide(in_pixel, 100,
                             in_dtype);
                     if (ArbPrec::gt(in_pixel, cmp_pixel, in_dtype)) {
                         out_pixel = in_pixel;

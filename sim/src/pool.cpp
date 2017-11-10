@@ -65,7 +65,7 @@ Pool::step() {
                 assert(ps.start == ps.stop);
                 break;
             case AVG_POOL:
-                pool_pixel = ArbPrec::uint_divide(pool_pixel, pool_cnt,
+                pool_pixel = ArbPrec::int_divide(pool_pixel, pool_cnt,
                         up_dtype);
                 break;
             case MAX_POOL:

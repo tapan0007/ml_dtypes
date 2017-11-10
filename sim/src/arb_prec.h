@@ -68,12 +68,12 @@ inline ArbPrecData add(const ArbPrecData& x, const ArbPrecData& y,
  *  Performs 'x/uy'.
  *
  *  @param[in] x - Arbitrary precision as numerator.
- *  @param[in] uy - Unsigned integer as denominator.
+ *  @param[in] uy - signed integer as denominator.
  *  @param[in] in_type - The type of x.
  *
  *  @return x/uy
  */
-inline ArbPrecData uint_divide(const ArbPrecData& x, unsigned int uy,
+inline ArbPrecData int_divide(const ArbPrecData& x, int y,
                                ARBPRECTYPE in_type);
 
 /** Compares two arbitrary precision values.
@@ -390,18 +390,18 @@ inline ArbPrecData Add::eval<ARBPRECTYPE::FP16>(
     return real_result;
 }
 
-/** Operator class for 'unroll' that will perform division with unsigned. */
-struct UintDivide
+/** Operator class for 'unroll' that will perform division with signed. */
+struct IntDivide
 {
     template <int Type>
     static inline ArbPrecData eval(
-            const ArbPrecData& x, unsigned int uy, ARBPRECTYPE& r)
+            const ArbPrecData& x, int y, ARBPRECTYPE& r)
     {
         static constexpr auto result_type = ARBPRECTYPE(Type);
         using result_t = typename TypeOf<result_type>::type;
 
         r = result_type;
-        result_t result = static_cast<result_t>(extract<Type>(x)) / uy;
+        result_t result = static_cast<result_t>(extract<Type>(x)) / y;
 
         ArbPrecData real_result;
         Extract<result_type>::extract(real_result) = result;
@@ -411,8 +411,8 @@ struct UintDivide
 };
 
 template <>
-inline ArbPrecData UintDivide::eval<ARBPRECTYPE::FP16>(
-        const ArbPrecData& x, unsigned int uy, ARBPRECTYPE& r)
+inline ArbPrecData IntDivide::eval<ARBPRECTYPE::FP16>(
+        const ArbPrecData& x, int y, ARBPRECTYPE& r)
 {
     static constexpr auto Type = ARBPRECTYPE::FP16;
     static constexpr auto result_type = Type;
@@ -420,7 +420,7 @@ inline ArbPrecData UintDivide::eval<ARBPRECTYPE::FP16>(
 
     r = result_type;
     result_t result = fp16_ieee_from_fp32_value(
-        fp16_ieee_to_fp32_value(extract<Type>(x)) / uy);
+        fp16_ieee_to_fp32_value(extract<Type>(x)) / y);
 
     ArbPrecData real_result;
     Extract<result_type>::extract(real_result) = result;
@@ -499,10 +499,10 @@ inline ArbPrecData add(const ArbPrecData& x, const ArbPrecData& y,
 }
 
 /* uint_divide */
-inline ArbPrecData uint_divide(const ArbPrecData& x, unsigned int uy,
+inline ArbPrecData int_divide(const ArbPrecData& x, int y,
                                ARBPRECTYPE in_type)
 {
-    return details::unroll<details::UintDivide>(in_type, in_type, x, uy);
+    return details::unroll<details::IntDivide>(in_type, in_type, x, y);
 }
 
 /* gt */
