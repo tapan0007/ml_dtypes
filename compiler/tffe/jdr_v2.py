@@ -6,6 +6,16 @@ import numpy as np
 import sys
 import re
 
+# To minimize likelihood of float16 overflow
+# Example  0 1 2 3 4 5  =>  0 5 1 4 2 3
+def permuteArr(arr):
+  s = arr.size
+  a1 = arr.reshape(2, int(s/2))
+  a1[1] = np.flip(a1[1], 0)
+  a2 = a1.swapaxes(0, 1)
+  a3 = a2.ravel()
+  return(a3)
+
 print("\nINFO: started as  ", " ".join(sys.argv))
 
 dimStr = sys.argv[1]
@@ -45,7 +55,7 @@ strides = [1, S, S, 1]
 padding = "SAME"
 
 
-w1Values =  np.linspace(WMIN, WMAX, num=W1.size, dtype=fixedDataType).reshape(W1.shape)
+w1Values =  permuteArr(np.linspace(WMIN, WMAX, num=W1.size, dtype=fixedDataType)).reshape(W1.shape)
 print("w1\n", w1Values, "  ", w1Values.dtype)
 
 w1 = tf.get_variable(name=netName+"/weight1",
@@ -55,7 +65,7 @@ i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
 i1 = tf.nn.conv2d(i0, w1, strides, padding, name=netName + "/i1")
 output = tf.identity(i1, name=netName+"/output")
 
-i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType).reshape(IF1.shape)
+i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType)).reshape(IF1.shape)
 print("Inp=\n", i0val)
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
