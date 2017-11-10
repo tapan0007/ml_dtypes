@@ -212,7 +212,7 @@ void compile_write_ofmap(FILE *fptr,
     PUSH(fptr, args);
 }
 
-    void
+void
 compile_convolve(FILE *fptr,
         const addr_t *ifmap_addr, const uint64_t idim[4],
         const addr_t *filter_addr, const uint64_t wdim[4],
@@ -361,6 +361,54 @@ compile_pool(FILE *fptr,
             PUSH(fptr, pool_args);
         }
     }
+
+}
+
+void
+compile_activation(FILE *fptr,
+        const addr_t ifmap_addr, const uint64_t ifmap_dims[4],
+        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output */
+        ARBPRECTYPE in_data_type,
+        ARBPRECTYPE out_data_type,
+        ACTIVATIONFUNC activation_function)
+{
+    uint64_t i_cols = ifmap_dims[3];
+    uint64_t i_rows = ifmap_dims[2];
+    //uint64_t i_ch   = ifmap_dims[1];
+    uint64_t i_n    = ifmap_dims[0];
+    uint64_t &o_cols = ofmap_dims[3];
+    uint64_t &o_rows = ofmap_dims[2];
+    uint64_t &o_ch   = ofmap_dims[1];
+    //uint64_t &o_n    = ofmap_dims[0];
+    ACTIVATION    act_args;
+    addr_t        src_addr = ifmap_addr;
+    addr_t        dst_addr = ofmap_addr;
+    for (int i = 0; i < 4; i++) {
+        ofmap_dims[i] = ifmap_dims[i];
+    }
+    assert(i_n == 1 && "TBD: batches");
+    assert(o_ch <= 64 && "Only 64 acting engines, supported");
+
+    /* activation args  */
+    act_args.activation_func   = activation_function;
+    act_args.in_data_type   = in_data_type;
+    act_args.out_data_type  = out_data_type;
+
+    act_args.src_start_addr = src_addr;
+    act_args.dst_start_addr = dst_addr;
+
+    act_args.src_x_step = 1;
+    act_args.src_y_step = i_cols;
+    act_args.src_x_num_elements = i_cols;
+    act_args.src_y_num_elements = i_rows;
+
+    act_args.dst_x_step = 1;
+    act_args.dst_y_step = o_cols;
+    act_args.dst_x_num_elements  = o_cols;
+    act_args.dst_y_num_elements  = o_rows;
+
+    act_args.num_partitions = o_ch;
+    PUSH(fptr, act_args);
 
 }
 

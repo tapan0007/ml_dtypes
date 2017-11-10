@@ -41,6 +41,13 @@ compile_pool(FILE *out_binary,
         const ARBPRECTYPE dtype,
         POOLFUNC pool_func);
  
+void
+compile_activation(FILE *out_binary,
+        const addr_t ifmap_addr, const uint64_t ifmap_dims[4], /* NCHW */
+        const addr_t ofmap_addr, uint64_t ofmap_dims[4], /* output NCHW */
+        const ARBPRECTYPE in_dtype,
+        const ARBPRECTYPE out_dtype,
+        ACTIVATIONFUNC act_func);
 #if 0
 void
 compile_resadd(FILE *out_binary,

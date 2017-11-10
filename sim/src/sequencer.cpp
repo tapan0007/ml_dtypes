@@ -191,7 +191,7 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
 template<>
 void  DynamicInstruction<ACTIVATION>::execute(void *v_seq) {
     Sequencer *seq = (Sequencer *)v_seq;
-    ACTIVATIONFUNC act_func = (ACTIVATIONFUNC)args.activate_func;
+    ACTIVATIONFUNC act_func = (ACTIVATIONFUNC)args.activation_func;
     seq->as.valid = true;
     seq->as.func  = act_func;
     seq->as.in_dtype  = (ARBPRECTYPE)args.in_data_type;

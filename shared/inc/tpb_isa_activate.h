@@ -20,7 +20,7 @@ struct ACTIVATION {
     struct TPB_CMD_SYNCH     synch;
     uint8_t    in_data_type   = {INVALID_ARBPRECTYPE};      
     uint8_t    out_data_type  = {INVALID_ARBPRECTYPE};
-    uint8_t    activate_func  = {INVALID_ACTIVATIONFUNC};
+    uint8_t    activation_func  = {INVALID_ACTIVATIONFUNC};
     uint32_t   src_start_addr = {0x0};
     uint16_t   src_x_step     = {0};
     uint8_t    src_x_num_elements = {0};

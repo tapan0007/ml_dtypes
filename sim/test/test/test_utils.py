@@ -12,6 +12,7 @@ for path in paths:
 
 TEST_CONVOLVE='../../tcc/test/convolve/test_convolve'
 TEST_POOL='../../tcc/test/pool/test_pool'
+TEST_ACTIVATION='../../tcc/test/activation/test_activation'
 SIM = '../../sim/sim'
 
 import numpy as np
