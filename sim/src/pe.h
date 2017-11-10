@@ -6,6 +6,8 @@
 class ProcessingElement : public PeEWInterface, public PeNSInterface  {
     public:
         /* make connections */
+        ProcessingElement() 
+        { ew.weight_toggle = false; ew.pixel_valid = false; }
         void connect_west(PeEWInterface *west);
         void connect_north(PeNSInterface *north);
         void connect_statebuffer(SbEWBroadcastInterface *sb);
