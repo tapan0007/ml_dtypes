@@ -5,8 +5,6 @@
 
 class ProcessingElement : public PeEWInterface, public PeNSInterface  {
     public:
-        ProcessingElement();
-        ~ProcessingElement();
         /* make connections */
         void connect_west(PeEWInterface *west);
         void connect_north(PeNSInterface *north);
@@ -28,9 +26,9 @@ class ProcessingElement : public PeEWInterface, public PeNSInterface  {
         ArbPrecData weight[2];
         ARBPRECTYPE weight_dtype[2];
         /* pointers to slave to get inputs from */
-        PeNSInterface *north;
-        PeEWInterface *west;
-        SbEWBroadcastInterface   *sb_west;
+        PeNSInterface *north = nullptr;
+        PeEWInterface *west  = nullptr;
+        SbEWBroadcastInterface   *sb_west = nullptr;
 };
 
 #endif  //PE_H

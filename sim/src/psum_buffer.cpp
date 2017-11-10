@@ -27,7 +27,7 @@ PSumBuffer::pull_edge() {
 /* FIXME - dummy function for now */
 PSumActivateSignals
 PSumBuffer::pull_psum() {
-    return PSumActivateSignals{false, {0}, INVALID_ARBPRECTYPE};
+    return PSumActivateSignals{false, ArbPrecData(), INVALID_ARBPRECTYPE};
 }
 
 
@@ -35,11 +35,12 @@ void
 PSumBuffer::step() {
     ns = north->pull_ns();
     ew = west->pull_edge();
-    static ArbPrecData zeros = {0};
-    static ArbPrecData ones = {.uint64 = 0xffffffffffffffff};
+    static ArbPrecData zeros;
+    static ArbPrecData ones;
     ArbPrecData src;
     void *src_ptr = &src;
     uint8_t valid;
+    ones.raw = 0xffffffffffffffff;
 
     if (ew.column_valid && (ew.ifmap_valid || ew.pad_valid)) {
         assert(ew.psum_addr.sys >= MMAP_PSUM_BASE);

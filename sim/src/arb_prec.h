@@ -29,6 +29,7 @@ typedef union ArbPrecData {
     float    fp32;
     unsigned char ch[8];
     uint64_t raw;
+    ArbPrecData() {raw = 0;}
 } ArbPrecData;
 
 namespace ArbPrec

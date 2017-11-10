@@ -1,12 +1,5 @@
 #include "pe.h"
 
-ProcessingElement::ProcessingElement() : ew({.pixel={0}, .pixel_valid=false, .weight={0}, .weight_dtype=INVALID_ARBPRECTYPE, .weight_toggle=false}), partial_sum({0}), weight_id(0), weight{{0}, {0}}, north(nullptr), west(nullptr)
-{
-}
-
-ProcessingElement::~ProcessingElement() {
-}
-
 PeNSSignals ProcessingElement::pull_ns() {
     return PeNSSignals{partial_sum};
 }
