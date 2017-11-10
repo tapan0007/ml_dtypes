@@ -73,6 +73,7 @@ typedef struct PoolSignals {
     Addr          dst_addr;
     bool          start;
     bool          stop;
+    int8_t        avg_count;
     uint8_t       countdown;
 } PoolSignals;
 

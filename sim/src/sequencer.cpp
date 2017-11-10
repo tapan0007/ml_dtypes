@@ -161,6 +161,7 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
     seq->ps.stop = (pool_func == IDENTITY_POOL) ||
         (args.src_x_num + args.src_y_num == 2);
     seq->ps.dst_addr.sys = args.dst_start_addr;
+    seq->ps.avg_count = args.src_x_num * args.src_y_num;
     seq->ps.countdown = args.num_partitions;
 
     seq->pool_src_base = args.src_start_addr;

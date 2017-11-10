@@ -16,6 +16,7 @@ Pool::pull_pool() {
 
 void
 Pool::step() {
+    ArbPrecData raw_pixel;
     ArbPrecData in_pixel;
     in_pixel.raw = 0;
     ps = connection->pull_pool();
@@ -23,16 +24,20 @@ Pool::step() {
         return;
     }
     ARBPRECTYPE dtype = ps.dtype;
-    ARBPRECTYPE up_dtype;
     size_t dsize = sizeofArbPrecType(ps.dtype);
 
 
-    memory->read_global(&in_pixel, ps.src_addr.sys, dsize);
+    memory->read_global(&raw_pixel, ps.src_addr.sys, dsize);
+    if (ps.func == AVG_POOL) {
+        in_pixel = ArbPrec::cast_to_fp32(raw_pixel, dtype);
+    }  else {
+        in_pixel = raw_pixel;
+    }
 
     /* start ! */
     if (ps.start) {
         pool_pixel.raw = 0;
-        pool_cnt = 0;
+        averager_pixel.fp32 = 1.0/ps.avg_count;
         /* FIXME - how is this going to be done in HW?
          * Should we put check to make sure we stay in bounds? */
         src_partition_size = (ps.src_addr.sys >= MMAP_PSUM_BASE) ?
@@ -45,13 +50,20 @@ Pool::step() {
             pool_pixel = in_pixel;
             break;
         case AVG_POOL:
-            up_dtype = get_upcast(ps.dtype);
-            pool_pixel = ArbPrec::add(pool_pixel, in_pixel, up_dtype);
-            pool_cnt++;
+            {
+                ARBPRECTYPE dtype_fp32 = ARBPRECTYPE::FP32;
+                ArbPrecData scale_pixel = ArbPrec::multiply(in_pixel, 
+                        averager_pixel, dtype_fp32, dtype_fp32);
+                pool_pixel = ArbPrec::add(pool_pixel, scale_pixel, dtype_fp32);
+            }
             break;
         case MAX_POOL:
-            if (ArbPrec::gt(in_pixel, pool_pixel, dtype)) {
+            if (ps.start) {
                 pool_pixel = in_pixel;
+            } else {
+                if (ArbPrec::gt(in_pixel, pool_pixel, dtype)) {
+                    pool_pixel = in_pixel;
+                }
             }
             break;
         default:
@@ -65,8 +77,7 @@ Pool::step() {
                 assert(ps.start == ps.stop);
                 break;
             case AVG_POOL:
-                pool_pixel = ArbPrec::int_divide(pool_pixel, pool_cnt,
-                        up_dtype);
+                pool_pixel = ArbPrec::cast_from_fp32(pool_pixel, dtype);
                 break;
             case MAX_POOL:
                 break;
