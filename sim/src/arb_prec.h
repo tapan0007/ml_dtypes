@@ -307,6 +307,7 @@ template <> constexpr ARBPRECTYPE multResult<INT8>() { return INT32; }
 template <> constexpr ARBPRECTYPE multResult<UINT8>() { return UINT32; }
 template <> constexpr ARBPRECTYPE multResult<INT16>() { return INT32; }
 template <> constexpr ARBPRECTYPE multResult<UINT16>() { return UINT32; }
+template <> constexpr ARBPRECTYPE multResult<FP16>() { return FP32; }
 
 /** Operator class for 'unroll' that will perform multiplications. */
 struct Multiply
@@ -339,9 +340,9 @@ inline ArbPrecData Multiply::eval<ARBPRECTYPE::FP16>(
     using result_t = typename TypeOf<result_type>::type;
 
     r = result_type;
-    result_t result = fp16_ieee_from_fp32_value(
+    result_t result = 
             fp16_ieee_to_fp32_value(extract<Type>(x)) *
-            fp16_ieee_to_fp32_value(extract<Type>(y)));
+            fp16_ieee_to_fp32_value(extract<Type>(y));
 
     ArbPrecData real_result;
     Extract<result_type>::extract(real_result) = result;

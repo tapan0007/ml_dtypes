@@ -78,7 +78,7 @@ get_upcast(ARBPRECTYPE type) {
         case INT16:
             return INT32;
         case FP16:
-            return FP16;
+            return FP32;
         default:
             assert(0);
     }

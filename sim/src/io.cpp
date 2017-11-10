@@ -142,23 +142,27 @@ void
 Memory::io_write(std::string fname, void *ptr, int i,int j,int k,int l, ARBPRECTYPE dtype) {
     const unsigned int shape[] = {(unsigned int)i, (unsigned int)j, (unsigned int)k, (unsigned int)l};
     int word_size = sizeofArbPrecType(dtype);
+    int ndims = 4;
     switch (dtype) {
         case INT8:
             /* for some reason, type info does not recognize int8_t, 
              * so use char */
-            cnpy::npy_save(fname, (char *)ptr, shape, 4, word_size, "w");
+            cnpy::npy_save(fname, (char *)ptr, shape, ndims, word_size, "w");
             break;
         case UINT8:
-            cnpy::npy_save(fname, (uint8_t *)ptr, shape, 4, word_size, "w");
+            cnpy::npy_save(fname, (uint8_t *)ptr, shape, ndims, word_size, "w");
             break;
         case UINT16:
-            cnpy::npy_save(fname, (uint16_t *)ptr, shape, 4, word_size, "w");
+            cnpy::npy_save(fname, (uint16_t *)ptr, shape, ndims, word_size, "w");
             break;
         case UINT32:
-            cnpy::npy_save(fname, (uint32_t *)ptr, shape, 4, word_size, "w");
+            cnpy::npy_save(fname, (uint32_t *)ptr, shape, ndims, word_size, "w");
             break;
         case FP16:
-            cnpy::npy_save(fname, (float *)ptr, shape, 4, 2, "w");
+            cnpy::npy_save(fname, (float *)ptr, shape, ndims, 2, "w");
+            break;
+        case FP32:
+            cnpy::npy_save(fname, (float *)ptr, shape, ndims, word_size, "w");
             break;
         default:
             assert(0);

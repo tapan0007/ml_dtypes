@@ -48,7 +48,7 @@ def convolve(i, f, stride, dilate, padding, mn_vs_tf = False):
     # TODO: make error reporting an option?
     itype_to_otype = {
                      tf.quint8  : tf.qint32,
-                     tf.float16 : tf.float16,
+                     tf.float16 : tf.float32,
                      tf.float32 : tf.float32
     }
     # get info from input images
