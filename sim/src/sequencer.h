@@ -96,7 +96,8 @@ class Sequencer :
     public EdgeInterface, public PoolInterface, public ActivateInterface {
     public:
         Sequencer(Memory *_mem) : weight_pit(1), ifmap_pit(2), pifmap_pit(2),
-        pool_src_pit(2), pool_dst_pit(2), pool_str_pit(2), mem(_mem) {}
+        pool_src_pit(2), pool_dst_pit(2), pool_str_pit(2), 
+        act_src_pit(2), act_dst_pit(2), mem(_mem) {}
         void connect_uopfeed(UopFeedInterface *feed);
         void step();
         EdgeSignals pull_edge();
@@ -132,11 +133,17 @@ class Sequencer :
         enum NSEW   pad_dir;
 
         /* pool */
-        addr_t      pool_src_base = 0;
+        addr_t      pool_src_base = 0x0;
         addr_t      pool_dst_base = 0x0;
         PatchIterator pool_src_pit;
         PatchIterator pool_dst_pit;
         PatchIterator pool_str_pit;;
+
+        /* activation */
+        addr_t      act_src_base = 0x0;
+        addr_t      act_dst_base = 0x0;
+        PatchIterator act_src_pit;
+        PatchIterator act_dst_pit;
 
         /*  misc */
         bool        raw_signal = false;
@@ -148,6 +155,7 @@ class Sequencer :
         UopFeedInterface *feed = nullptr;
         void step_edgesignal();
         void step_poolsignal();
+        void step_actsignal();
         void dump_es(const EdgeSignals &es, bool header);
         void increment_and_rollover(uint8_t &cnt, uint8_t num,
                 uint8_t &rollover);

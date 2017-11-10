@@ -23,19 +23,21 @@ Activate::step()
     if (as.valid) {
 	ArbPrecData in_pixel ;
 	ArbPrecData out_pixel;
-        ARBPRECTYPE dtype = as.dtype;
-	size_t dsize = sizeofArbPrecType(dtype);
+        ARBPRECTYPE in_dtype  = as.in_dtype;
+        ARBPRECTYPE out_dtype = as.out_dtype;
+	size_t in_dsize  = sizeofArbPrecType(in_dtype);
+	size_t out_dsize = sizeofArbPrecType(out_dtype);
 	src_partition_size = (as.src_addr.sys >= MMAP_PSUM_BASE) ?
             SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
         dst_partition_size = (as.dst_addr.sys >= MMAP_PSUM_BASE) ?
             SZ(COLUMN_SIZE_BITS) : SZ(ROW_SIZE_BITS);
-	memory->read_global(&in_pixel, as.src_addr.sys, dsize);
+	memory->read_global(&in_pixel, as.src_addr.sys, in_dsize);
         switch (as.func) {
             case RELU:
                 {
                     /* max(0, x) */
                     ArbPrecData zero_pixel;
-                    if (ArbPrec::gt(in_pixel, zero_pixel, dtype)) {
+                    if (ArbPrec::gt(in_pixel, zero_pixel, in_dtype)) {
                         out_pixel = in_pixel;
                     }
                 }
@@ -44,8 +46,8 @@ Activate::step()
                 {
                     /* max(x, 0.01*x) */
                     ArbPrecData cmp_pixel = ArbPrec::uint_divide(in_pixel, 10,
-                            dtype);
-                    if (ArbPrec::gt(in_pixel, cmp_pixel, dtype)) {
+                            in_dtype);
+                    if (ArbPrec::gt(in_pixel, cmp_pixel, in_dtype)) {
                         out_pixel = in_pixel;
                     } else {
                         out_pixel = cmp_pixel;
@@ -66,9 +68,9 @@ Activate::step()
             default:
                 break;
 	}
-	memory->write_global(as.dst_addr.sys, &out_pixel, dsize);
+	memory->write_global(as.dst_addr.sys, &out_pixel, out_dsize);
 	printf("Activate\n");
-        ArbPrec::dump(stdout, out_pixel, dtype);
+        ArbPrec::dump(stdout, out_pixel, out_dtype);
         printf("\n");
 	as.src_addr.sys += src_partition_size;
 	as.dst_addr.sys += dst_partition_size;

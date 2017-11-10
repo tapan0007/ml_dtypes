@@ -58,7 +58,8 @@ typedef struct EdgeSignals {
 struct ActivateSignals {
     bool          valid;
     ACTIVATIONFUNC func;
-    ARBPRECTYPE   dtype;
+    ARBPRECTYPE   in_dtype;
+    ARBPRECTYPE   out_dtype;
     Addr          src_addr;
     Addr          dst_addr;
     uint8_t       countdown;

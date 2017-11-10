@@ -24,13 +24,14 @@ struct ACTIVATION {
     uint32_t   src_start_addr = {0x0};
     uint16_t   src_x_step     = {0};
     uint8_t    src_x_num_elements = {0};
-    uint16_t   src_y_step = {0};
+    uint16_t   src_y_step         = {0};
     uint8_t    src_y_num_elements = {0};
-    uint32_t   dst_start_addr = {0};
-    uint16_t   dst_x_step = {0};
+    uint32_t   dst_start_addr     = {0};
+    uint16_t   dst_x_step         = {0};
     uint8_t    dst_x_num_elements = {0};
-    uint16_t   dst_y_step = {0};
+    uint16_t   dst_y_step         = {0};
     uint8_t    dst_y_num_elements = {0};
+    uint8_t    num_partitions     = {0};
     ACTIVATION() : hdr(ACTIVATION_OPC, sizeof(*this)) {}
 } TONGA_PACKED;
 

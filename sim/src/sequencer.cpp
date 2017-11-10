@@ -186,6 +186,36 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
 }
 
 /*------------------------------------
+ * Activation
+ *------------------------------------ */
+template<>
+void  DynamicInstruction<ACTIVATION>::execute(void *v_seq) {
+    Sequencer *seq = (Sequencer *)v_seq;
+    ACTIVATIONFUNC act_func = (ACTIVATIONFUNC)args.activate_func;
+    seq->as.valid = true;
+    seq->as.func  = act_func;
+    seq->as.in_dtype  = (ARBPRECTYPE)args.in_data_type;
+    seq->as.out_dtype = (ARBPRECTYPE)args.out_data_type;
+    seq->as.src_addr.sys = args.src_start_addr;
+    seq->as.dst_addr.sys = args.dst_start_addr;
+    seq->as.countdown = args.num_partitions;
+
+    seq->act_src_base = args.src_start_addr;
+    seq->act_dst_base = args.dst_start_addr;
+    assert((args.in_data_type == args.out_data_type) && 
+            "type conversion not supported yet");
+
+
+    int act_src_nums[]   = {args.src_x_num_elements, args.src_y_num_elements};
+    int act_src_steps[]  = {args.src_x_step, args.src_y_step};
+    seq->act_src_pit.init(act_src_nums, act_src_steps);
+
+    int act_dst_nums[]   = {args.dst_x_num_elements,  args.dst_y_num_elements};
+    int act_dst_steps[]  = {args.dst_x_step, args.dst_y_step};
+    seq->act_dst_pit.init(act_dst_nums, act_dst_steps);
+
+}
+/*------------------------------------
  * Sequencer
  *------------------------------------ */
 void
@@ -317,15 +347,18 @@ namespace rollover {
 
 
 /* sub function of step - to step the poolsignal */
+
 void
 Sequencer::step_poolsignal() {
     if (!ps.valid) {
         return;
     }
+
     if (pool_dst_pit.eop()) {
         ps.valid = false;
         return;
     }
+
     /* eventually want to support quantization here */
     size_t src_dsize = sizeofArbPrecType(ps.dtype);
     size_t dst_dsize = sizeofArbPrecType(ps.dtype);
@@ -366,6 +399,30 @@ Sequencer::step_poolsignal() {
     }
 }
 
+/* sub function of step - to step the poolsignal */
+void
+Sequencer::step_actsignal() {
+    if (!as.valid) {
+        return;
+    }
+    if (act_dst_pit.eop()) {
+        as.valid = false;
+        return;
+    }
+    /* eventually want to support quantization here */
+    size_t src_dsize = sizeofArbPrecType(as.in_dtype);
+    size_t dst_dsize = sizeofArbPrecType(as.out_dtype);
+
+    act_src_pit.increment();
+    act_dst_pit.increment();
+
+    /* calculate address based on settings */
+    if (as.valid) {
+        as.src_addr.sys = act_src_base + src_dsize * act_src_pit.coordinates();
+        as.dst_addr.sys = act_dst_base + dst_dsize * act_dst_pit.coordinates();
+    }
+}
+
 void
 Sequencer::step() {
     /* empty the instruction queue */
@@ -398,6 +455,10 @@ Sequencer::step() {
                     inst = new DynamicInstruction<POOL>(
                             *((POOL *) (raw_inst)));
                     break;
+                case ACTIVATION_OPC:
+                    inst = new DynamicInstruction<ACTIVATION>(
+                            *((ACTIVATION *) (raw_inst)));
+                    break;
                 default:
                     assert(0);
             }
@@ -416,6 +477,7 @@ Sequencer::step() {
 
     step_edgesignal();
     step_poolsignal();
+    step_actsignal();
 
     clock++;
 }
