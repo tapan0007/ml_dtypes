@@ -17,7 +17,7 @@ from subprocess import call
 
 activation_func = {
         "relu" : "2",
-        "leaky_relu" : "3",
+        "leakyrelu" : "3",
         "sigmoid" : "4",
         "tanh" : "5"
         }
@@ -52,10 +52,28 @@ class TestActivation(unittest.TestCase):
         ifmap =  test_utils.randf('i', itype, i_dims)
         self.activation_test(test_name, ifmap, af)
 
-    def test_activation_small(self):
-        itype = 'float16'
+    def test_relu_int_small(self):
+        itype = 'int8'
         idims = [1,3,2,2]
         af = 'relu'
+        tn = sys._getframe().f_code.co_name
+        self.rand_activation_test(tn, itype, idims, af)
+    def test_relu_fp16_small(self):
+        itype = 'float16'
+        idims = [1,3,4,2]
+        af = 'relu'
+        tn = sys._getframe().f_code.co_name
+        self.rand_activation_test(tn, itype, idims, af)
+    def test_leaky_relu_int_small(self):
+        itype = 'int8'
+        idims = [1,3,2,2]
+        af = 'leakyrelu'
+        tn = sys._getframe().f_code.co_name
+        self.rand_activation_test(tn, itype, idims, af)
+    def test_leaky_relu_int_med(self):
+        itype = 'int8'
+        idims = [1,3,32,8]
+        af = 'leakyrelu'
         tn = sys._getframe().f_code.co_name
         self.rand_activation_test(tn, itype, idims, af)
 if __name__ == '__main__':
