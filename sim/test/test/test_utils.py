@@ -25,6 +25,15 @@ def rand_fname(preq, dtype, dims):
     return mypath
 
 def randf(preq, dtype, dims):
+    vmin = None
+    vmax = None
+    if preq == 'f':
+        if 'int' in dtype:
+            vmin = np.iinfo(dtype).min/10
+            vmax = np.iinfo(dtype).max/10
+        else:
+            vmin = np.finfo(dtype).min/1000
+            vmax = np.finfo(dtype).max/1000
     mypath = rand_fname(preq, dtype, dims)
     A = make_array.create(dtype, None, dims)
     np.save(mypath, A)

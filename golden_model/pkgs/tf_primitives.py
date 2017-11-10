@@ -44,7 +44,7 @@ _np_to_tf_dtype = {
 #   padding: tbd
 # Output: 4D numpy ofmap in mxnet format (NCHW)
 ######################################################
-def convolve(i, f, stride, dilate, padding):
+def convolve(i, f, stride, dilate, padding, mn_vs_tf = False):
     # TODO: make error reporting an option?
     itype_to_otype = {
                      tf.quint8  : tf.qint32,
@@ -70,9 +70,10 @@ def convolve(i, f, stride, dilate, padding):
         ii_pad = tf.pad(ii, padding, 'CONSTANT')
         out = sess.run(ii_pad)
         iii = tf.constant(out, i_dtype, ii_pad.shape)
+        fff = tf.constant(ff, i_dtype, ff.shape)
     else:
-        iii = tf.cast(tf.pad(ii[:,::stride[1], ::stride[2], :], padding, 'CONSTANT'), i_dtype)
-    fff = tf.constant(ff, i_dtype, ff.shape)
+        iii = tf.cast(tf.pad(ii[:,::stride[1], ::stride[2], :], padding, 'CONSTANT'), o_dtype)
+        fff = tf.constant(ff, o_dtype, ff.shape)
 
     # feed nn
     if i_dtype.is_quantized: 

@@ -3,7 +3,7 @@ import random
 import os
 import numpy as np
 
-def create(dtype, values, dims):
+def create(dtype, values, dims, vmin=None, vmax=None):
     if values:
         tgt_dim = reduce((lambda x,y:x*y), dims)
         if len(values) == 1:
@@ -13,10 +13,17 @@ def create(dtype, values, dims):
             exit(1)
         A = np.array(values, dtype=dtype).reshape(dims)
     else:
-        if "int" in dtype:
-            A = np.random.randint(np.iinfo(dtype).max, size=dims, dtype=dtype)
-        else:
-            A = np.array(np.random.rand(*dims), dtype=dtype)
+        if vmin == None:
+            if 'int' in dtype: 
+                vmin = np.iinfo(dtype).min
+            else:
+                vmin = np.finfo(dtype).min
+        if vmax == None:
+            if 'int' in dtype: 
+                vmax = np.iinfo(dtype).max
+            else:
+                vmax = np.finfo(dtype).max
+        A = np.random.uniform(vmin, vmax, dims).astype(dtype, order='C')
     return A	
 
 if __name__ == '__main__':

@@ -143,6 +143,11 @@ Memory::io_write(std::string fname, void *ptr, int i,int j,int k,int l, ARBPRECT
     const unsigned int shape[] = {(unsigned int)i, (unsigned int)j, (unsigned int)k, (unsigned int)l};
     int word_size = sizeofArbPrecType(dtype);
     switch (dtype) {
+        case INT8:
+            /* for some reason, type info does not recognize int8_t, 
+             * so use char */
+            cnpy::npy_save(fname, (char *)ptr, shape, 4, word_size, "w");
+            break;
         case UINT8:
             cnpy::npy_save(fname, (uint8_t *)ptr, shape, 4, word_size, "w");
             break;

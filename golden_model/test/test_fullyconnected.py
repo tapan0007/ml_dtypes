@@ -24,7 +24,7 @@ class TestFullyConnected(unittest.TestCase):
         mn_o = args.func(args)
         err_msg = "Suffix of command line: {}".format(" ".join(base_args))
         with np.errstate(under='ignore'):
-            np.testing.assert_allclose(mn_o, tf_o, rtol=1e-2, err_msg=err_msg)
+            np.testing.assert_allclose(tf_o, mn_o, rtol=1e-2, err_msg=err_msg)
     def rand_fullyconnected(self, prec, i_dims, w_dims, n, b_dims = None):
         bias = None
         img = test_utils.randf('i', prec, i_dims)

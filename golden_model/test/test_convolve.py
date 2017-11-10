@@ -11,6 +11,7 @@ import random
 import mock
 import test_utils
 from pkgs import cmd_line
+import pkgs.mn_primitives as mn
 
 
 class TestConvolve(unittest.TestCase):
@@ -19,17 +20,23 @@ class TestConvolve(unittest.TestCase):
         s_args = [] if stride == None else ["-s"] + [str(x) for x in stride]
         p_args = [] if pad    == None else ["-p"] + [str(x) for x in pad]
         d_args = [] if dilate == None else ["-d"] + [str(x) for x in dilate]
+        mn.test_against_tensorflow = True
         all_args = base_args + s_args + p_args + d_args
         args = cmd_line.parser.parse_args(["tf"] + all_args)
         tf_o = args.func(args)
-        args = cmd_line.parser.parse_args(["mn"] + all_args)
+        args = cmd_line.parser.parse_args(["mn_vs_tf"] + all_args)
         mn_o = args.func(args)
         err_msg = "Suffix of command line mn vs tf: {}".format(" ".join(all_args))
         with np.errstate(under='ignore'):
-            np.testing.assert_allclose(mn_o, tf_o, rtol=1e-03, err_msg=err_msg)
+            np.testing.assert_allclose(tf_o, mn_o, rtol=1e-03, err_msg=err_msg)
     def rand_convolve(self, prec, i_dims, f_dims, stride=None, pad=None, dilate=None):
-        img = test_utils.randf('i', prec, i_dims)
-        filtr = test_utils.randf('f', prec, f_dims)
+        if prec == 'uint8':
+            # in tf, quint8 yields qint32, so keep things positive
+            img = test_utils.randf('i', prec, i_dims)
+            filtr = test_utils.randf('f', prec, f_dims)
+        else:
+            img = test_utils.randf('i', prec, i_dims)
+            filtr = test_utils.randf('f', prec, f_dims)
         self.convolve(img, filtr, stride, pad, dilate)
     def test_fp16_ch1(self):
         self.rand_convolve('float16', [1,1,256,256], [1,1,3,3])

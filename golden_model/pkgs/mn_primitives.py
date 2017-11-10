@@ -10,16 +10,20 @@ import sys
 # sweeping configs - hacky?
 mp.prec = 16
 np.seterr(all='raise')
-
+# Get on tensorflows page for testing, esp for type converstion
+    
 " The following _type* functions are helpers for all of the different  \
   input/output types for calculations.  They do some casting to/from \
   numpy/mpmath to hit targetted precisions (because numpy fp16 is not \
   IEEE compliant fp16, it internally upcasts to fp32). \
 "
+xnt32 = np.uint32
+
 # dtype for array (mpf requires object type)
 def _type_to_nparray(dtype):
     return {
-        np.dtype('uint8') : np.int32,
+        np.dtype('int8')  : np.int32,
+        np.dtype('uint8') : xnt32,
         np.dtype('float16') :  object,
         np.dtype('float32') : np.float32
     }[dtype]
@@ -31,7 +35,8 @@ def _type_cast(val):
     #  calc_cast - calculation for casting (e.g. conversino to mpf for float16)
     dtype = val.dtype
     (up_cast, calc_cast) = {
-        np.dtype('uint8') : (long, np.int32),
+        np.dtype('int8') : (long, np.int32),
+        np.dtype('uint8') : (long, xnt32),
         np.dtype('float16') : (float, mp.mpf),
         np.dtype('float32') : (float, np.float32)
     }[dtype]
@@ -40,8 +45,9 @@ def _type_cast(val):
 # output_type required by API,,
 def _type_to_otype(dtype):
     return {
-        np.dtype('uint8') : np.int32,
-        np.dtype('float16') : np.float16,
+        np.dtype('int8') : np.int32,
+        np.dtype('uint8') : xnt32,
+        np.dtype('float16') : np.float32,
         np.dtype('float32') : np.float32
     }[dtype]
 
@@ -50,8 +56,10 @@ def _type_to_otype(dtype):
 # filters: 4D numpy array (#filters, #channels, #rows, #cols)
 # return: convolved 4D numpy array
 ###########################################
-def convolve(ifmaps, filters, stride, dilate, padding):
-
+def convolve(ifmaps, filters, stride, dilate, padding, mn_vs_tf=False):
+    if mn_vs_tf:
+        global xnt32
+        xnt32 = np.int32
     t = ifmaps.dtype
 
     # shape info
@@ -115,8 +123,8 @@ def max_pool(ifmaps, ksize, strides):
     (s_batches, s_channels, s_rows, s_cols) = strides
     (o_batches, o_channels, o_rows, o_cols) = tuple([(i-k)/s + 1 for (i,k,s) in zip(ifmaps.shape, ksize, strides)])
     dtype = ifmaps.dtype
-    ofmap = np.zeros((o_batches, o_channels, o_rows, o_cols), 
-            dtype=_type_to_nparray(dtype))
+    ofmap = np.zeros((o_batches, o_channels, o_rows, o_cols),
+            dtype=dtype)
     for batch in range(o_batches):
         for channel in range(o_channels):
             for i in range(o_rows):
@@ -127,7 +135,7 @@ def max_pool(ifmaps, ksize, strides):
                                 s_rows*i:s_rows*i + k_rows,
                                 s_cols*j:s_cols*j + k_cols])
     
-    return np.array(ofmap, dtype=_type_to_otype(dtype))
+    return ofmap
     
 ############################################
 # ifmaps:  4D numpy array (#inputs,  #channels, #rows, #cols)
@@ -140,8 +148,7 @@ def avg_pool(ifmaps, ksize, strides):
     (o_batches, o_channels, o_rows, o_cols) = tuple([(i-k)/s + 1 for (i,k,s) in zip(ifmaps.shape, ksize, strides)])
     (s_batches, s_channels, s_rows, s_cols) = strides
     dtype = ifmaps.dtype
-    ofmap = np.zeros((o_batches, o_channels, o_rows, o_cols), 
-            dtype=_type_to_nparray(dtype))
+    ofmap = np.zeros((o_batches, o_channels, o_rows, o_cols), dtype=dtype)
     for batch in range(o_batches):
         for channel in range(o_channels):
             for i in range(o_rows):
@@ -156,17 +163,17 @@ def avg_pool(ifmaps, ksize, strides):
                         logging.warning("AvgPool Error: {}, at batch={} filter={}, ofmap_i={}, ofmap_j={}".format(
                                     err, s_batches*batch, s_channels*channel, s_rows*i, s_cols*j))
                         with np.errstate(all='ignore'): #redo with op off
-                            l = _type_cast(ifmaps[
+                            l = ifmaps[
                                 s_batches*batch:s_batches*batch + k_batches,
                                 s_channels*channel:s_channels*channel + k_channels,
                                 s_rows*i:s_rows*i + k_rows,
-                                s_cols*j:s_cols*j + k_cols].flatten())
+                                s_cols*j:s_cols*j + k_cols].flatten()
                             if isinstance(dtype, mpf):
                                 s = mpf.fsum(l)/len(l)
                             else:
                                 ofmap[batch, channel, i, j] = np.mean(l)
     
-    return np.array(ofmap, dtype=_type_to_otype(dtype))
+    return ofmap
             
 ############################################
 # helper function for activations
@@ -175,14 +182,13 @@ def avg_pool(ifmaps, ksize, strides):
 def _activation(f, ifmaps):
     (o_batches, o_channels, o_rows, o_cols) = ifmaps.shape
     dtype = ifmaps.dtype
-    ofmap = np.zeros((o_batches, o_channels, o_rows, o_cols),
-            dtype=_type_to_nparray(dtype))
+    ofmap = np.zeros((o_batches, o_channels, o_rows, o_cols), dtype=dtype)
     for batch in range(o_batches):
         for channel in range(o_channels):
             for i in range(o_rows):
                 for j in range(o_cols):
-                    ofmap[batch, channel, i, j] = f(_type_cast(ifmaps[batch, channel, i,j]))
-    return np.array(ofmap, dtype=_type_to_otype(dtype))
+                    ofmap[batch, channel, i, j] = f(ifmaps[batch, channel, i,j])
+    return ofmap
 
 ############################################
 # ifmaps:  4D numpy array (#inputs,  #channels, #rows, #cols)
@@ -226,7 +232,8 @@ def fullyconnected(i, weight, bias, num_hidden):
     
     ii = np.reshape(i, [i.shape[0], i_flat_shape])
 
-    o = np.zeros((num_batches, num_hidden), dtype=_type_to_nparray(dtype))
+    o = np.zeros((num_batches, num_hidden), 
+            dtype=_type_to_nparray(dtype))
     for batch in range(num_batches):
         for h in range(num_hidden):
             for i in range(i_flat_shape):

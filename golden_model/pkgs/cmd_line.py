@@ -8,7 +8,7 @@ import numpy as np
 import tf_primitives  as tfp
 import mn_primitives as mnp
 
-pkg={'tf':tfp, 'mn':mnp}
+pkg={'tf':tfp, 'mn':mnp, 'mn_vs_tf':mnp}
 
 def convolve(args):
     i = np.load(args.i)
@@ -16,7 +16,10 @@ def convolve(args):
     s = args.stride
     d = args.dilate
     p = args.padding
-    return pkg[args.model].convolve(i, f, stride=s, dilate=d, padding=p)
+    # for out_dtype mucking, mn must match tf
+    mn_vs_tf = True if args.model == 'mn_vs_tf' else False
+    return pkg[args.model].convolve(i, f, stride=s, dilate=d, padding=p, 
+            mn_vs_tf=mn_vs_tf)
 
 
 def max_pool(args):
@@ -56,7 +59,7 @@ def fullyconnected(args):
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('model', type=str, choices=["tf","mn"], help="model to run, tf=tensorflow, mn=mariana")
+parser.add_argument('model', type=str, choices=["tf","mn", "mn_vs_tf"], help="model to run, tf=tensorflow, mn=mariana, mn_vs_tf")
 
 sp = parser.add_subparsers(title='action')
 

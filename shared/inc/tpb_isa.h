@@ -95,6 +95,9 @@ sizeofArbPrecType(ARBPRECTYPE type)
         case UINT8:
             size = sizeof(uint8_t);
             break;
+        case INT8:
+            size = sizeof(int8_t);
+            break;
         case UINT32:
             size = sizeof(uint32_t);
             break;
