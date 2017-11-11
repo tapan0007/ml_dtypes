@@ -92,7 +92,7 @@ class MacroConvLayer(MacroLayer):
              ind + "ifmap_addrs, ifmap_dims,",
              ind + "filter_addr, filter_dims,",
              ind + "ofmap_addrs, ofmap_dims,",
-             ind + self.gMacroInstrGen().gDataTypeName() + ",",
+             ind + self.gMacroInstrGen().gDataTypeName(layer) + ",",
              ind + "padding,",
              ind + "convolve_stride,",
              ind + "dilate);",

@@ -5,6 +5,18 @@ import nets.network
 
 ##########################################################
 class SubSampleLayer(Layer): # abstract class
+    kernel_key = "kernel"
+    kernel_height_key = "height"
+    kernel_width_key = "width"
+    stride_key = "stride"
+    stride_lr_key = "LR"
+    stride_bt_key = "BT"
+    padding_key = "padding"
+    padding_left_key = "left"
+    padding_right_key = "right"
+    padding_top_key = "top"
+    padding_bottom_key = "bottom"
+
     #-----------------------------------------------------------------
     def __init__(self, param, prev_layer, num_ofmaps, stride, kernel):
         ## Stride(2) is larger than kernel(1*1) for some layers in ResNet.
@@ -64,27 +76,106 @@ class SubSampleLayer(Layer): # abstract class
             padding = [ [0,0], [0,0], [self.gPaddingBottom(), self.gPaddingTop()], [self.gPaddingLeft(), self.gPaddingRight()]]
         else:
             kernel  = {
-                "height" : self.gKernelHeight(),
-                "width" : self.gKernelWidth()
+                SubSampleLayer.kernel_height_key : self.gKernelHeight(),
+                SubSampleLayer.kernel_width_key  : self.gKernelWidth()
             }
             padding = {
-                "top" : self.gPaddingTop(),
-                "bottom" : self.gPaddingBottom(),
-                "left" : self.gPaddingLeft(),
-                "right" : self.gPaddingRight()
+                SubSampleLayer.padding_top_key    : self.gPaddingTop(),
+                SubSampleLayer.padding_bottom_key : self.gPaddingBottom(),
+                SubSampleLayer.padding_left_key   : self.gPaddingLeft(),
+                SubSampleLayer.padding_right_key  : self.gPaddingRight()
             }
             stride = {
-                "BT" : self.gStrideBT(),
-                "LR" : self.gStrideLR()
+                SubSampleLayer.stride_bt_key : self.gStrideBT(),
+                SubSampleLayer.stride_lr_key : self.gStrideLR()
             }
 
         y = {
-            "kernel" : kernel,
-            "stride" : stride,
-            "padding" : padding
+            SubSampleLayer.kernel_key : kernel,
+            SubSampleLayer.stride_key : stride,
+            SubSampleLayer.padding_key : padding
         }
         r = self.combineJson( (x, y) )
         return r
+
+
+
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def gStrideLRFromJson(klass, layerDict, nn):
+        stride = layerDict[SubSampleLayer.stride_key]
+        if nn.gUseDimList():
+            return stride[3]
+        else:
+            return stride[SubSampleLayer.stride_lr_key]
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def gStrideBTFromJson(klass, layerDict, nn):
+        stride = layerDict[SubSampleLayer.stride_key]
+        if nn.gUseDimList():
+            return stride[2]
+        else:
+            return stride[SubSampleLayer.stride_bt_key]
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def gKernelHeightFromJson(klass, layerDict, nn):
+        kernel = layerDict[SubSampleLayer.kernel_key]
+        if nn.gUseDimList():
+            return kernel[2]
+        else:
+            return kernel[SubSampleLayer.kernel_height_key]
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def gKernelWeightFromJson(klass, layerDict, nn):
+        kernel = layerDict[SubSampleLayer.kernel_key]
+        if nn.gUseDimList():
+            return kernel[3]
+        else:
+            return kernel[SubSampleLayer.kernel_weight_key]
+
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def gPaddingLeftFromJson(klass, layerDict, nn):
+        padding = layerDict[SubSampleLayer.padding_key]
+        if nn.gUseDimList():
+            return padding[3][0]
+        else:
+            return padding[SubSampleLayer.padding_left_key]
+
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def gPaddingRightFromJson(klass, layerDict, nn):
+        padding = layerDict[SubSampleLayer.padding_key]
+        if nn.gUseDimList():
+            return padding[3][1]
+        else:
+            return padding[SubSampleLayer.padding_right_key]
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def gPaddingBottomFromJson(klass, layerDict, nn):
+        padding = layerDict[SubSampleLayer.padding_key]
+        if nn.gUseDimList():
+            return padding[2][0]
+        else:
+            return padding[SubSampleLayer.padding_bottom_key]
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def gPaddingTopFromJson(klass, layerDict, nn):
+        padding = layerDict[SubSampleLayer.padding_key]
+        if nn.gUseDimList():
+            return padding[2][1]
+        else:
+            return padding[SubSampleLayer.padding_top_key]
+
+
 
     #-----------------------------------------------------------------
     def gStrideLR(self):

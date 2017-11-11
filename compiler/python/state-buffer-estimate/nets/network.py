@@ -1,13 +1,26 @@
-from abc             import ABCMeta, abstractmethod
+#from abc             import ABCMeta, abstractmethod
 
 from utils.consts    import  *
 ##from utils.funcs     import kstr
 from utils.datatype  import *
+
 import layers.layer
+from layers.layer        import Layer
+from layers.convlayer    import ConvLayer
+from layers.maxpoollayer import MaxPoolLayer
+from layers.avgpoollayer import AvgPoolLayer
+from layers.datalayer    import DataLayer
+from layers.addlayer     import AddLayer
+
 from schedule.scheduler      import Scheduler
 
 ##########################################################
-class Network(object, metaclass = ABCMeta):
+##class Network(object, metaclass = abc.ABCMeta):
+class Network(object):
+    net_name_key  = "net_name"
+    data_type_key = "data_type"
+    layers_key    = "layers"
+
     #-----------------------------------------------------------------
     class SchedLayerForwRevIter(object):
         def __init__(self, startLayer, forw):
@@ -31,9 +44,11 @@ class Network(object, metaclass = ABCMeta):
             return currLayer
 
     #-----------------------------------------------------------------
-    def __init__(self, dataType):
+    def __init__(self, dataType, netName):
         assert(isinstance(dataType, DataType))
+        self.__Name = netName
         self.__Layers = [ ]
+        self.__LayersByName = {}
         self.__LayerNumMajor = -1
         self.__LayerNumMinor = 0
         self.__Levels = None
@@ -47,7 +62,7 @@ class Network(object, metaclass = ABCMeta):
         return self.__UseDimList
 
     #-----------------------------------------------------------------
-    def gDataType(self):
+    def ggDataType(self):
         return self.__DataType
 
     #-----------------------------------------------------------------
@@ -74,11 +89,16 @@ class Network(object, metaclass = ABCMeta):
         return self.__Layers[idx]
 
     #-----------------------------------------------------------------
+    def gLayerByName(self, name):
+        return self.__LayersByName[name]
+
+    #-----------------------------------------------------------------
     def addLayer(self, layer):
         assert(layer)
         assert( isinstance(layer, layers.layer.Layer) )
         layer.rLayerId(self.__CurrLayerId); self.__CurrLayerId += 1
         self.__Layers.append(layer)
+        self.__LayersByName[layer.gName()] = layer
         if layer.qDataLayer() or layer.qConvLayer() or layer.qFullLayer():
             self.__LayerNumMajor += 1
             self.__LayerNumMinor = 0
@@ -105,14 +125,8 @@ class Network(object, metaclass = ABCMeta):
 
 
     #-----------------------------------------------------------------
-    @abstractmethod
-    def construct(self):
-        assert(False)
-
-    #-----------------------------------------------------------------
-    @abstractmethod
     def gName(self):
-        assert(False)
+        return self.__Name
 
     #-----------------------------------------------------------------
     def gSchedLayers(self):
@@ -125,15 +139,45 @@ class Network(object, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
     def gJson(self):
-        json = { 
-            "name" : self.gName()
+        jsonDict = { 
+            Network.net_name_key : self.gName(),
+            Network.data_type_key : self.__DataType.gName()
         }
         json_layers = []
         for layer in self.gLayers():
-            if layer.qDataLayer():
-                json["input"] = layer.gJson()
+            json_layers.append(layer.gJson())
+        jsonDict[Network.layers_key] = json_layers
+        return jsonDict
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def constructFromJson(klass, jsonDict):
+        netName = jsonDict[Network.net_name_key]
+        dt = jsonDict[Network.data_type_key]
+        if dt == "int8":
+            dataType = DataTypeInt8()
+        elif dt == "int16":
+            dataType = DataTypeInt16()
+        elif dt == "float16":
+            dataType = DataTypeFloat16()
+        nn = Network(dataType, netName)
+
+        layerDicts = jsonDict[Network.layers_key]
+        for layerDict in layerDicts:
+            layerType = layerDict[Layer.type_key]
+            if layerType == ConvLayer.gTypeStr():
+                layer = ConvLayer.constructFromJson(layerDict, nn)
+            elif layerType == MaxPoolLayer.gTypeStr():
+                layer = MaxPoolLayer.constructFromJson(layerDict, nn)
+            elif layerType == DataLayer.gTypeStr():
+                layer = DataLayer.constructFromJson(layerDict, nn)
+            elif layerType == MaxPoolLayer.gTypeStr():
+                layer = MaxPoolLayer.constructFromJson(layerDict, nn)
+            elif layerType == AddLayer.gTypeStr():
+                layer = AddLayer.constructFromJson(layerDict, nn)
             else:
-                json_layers.append(layer.gJson())
-        json["layers"] = json_layers
-        return json
+                assert False
+
+        return nn
+
 

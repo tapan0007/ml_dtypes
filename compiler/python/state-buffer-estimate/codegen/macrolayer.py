@@ -45,7 +45,7 @@ class MacroLayer(object, metaclass = ABCMeta):
             "ofmap_addrs = " + str(layer.gOfmapAddress()) + ";",
             "compile_write_ofmap(out_binary, ",
             ind + qq + layerFileName + qq + ", ",
-            ind + "ofmap_addrs , ofmap_dims, " + "ARBPRECTYPE::" + nn.gDataType().gTccName() + ");",
+            ind + "ofmap_addrs , ofmap_dims, " + "ARBPRECTYPE::" + layer.gDataType().gTccName() + ");",
         ]
         return lines
 

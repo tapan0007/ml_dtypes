@@ -20,8 +20,8 @@ from layers.softmaxlayer    import  SoftMaxLayer
 
 #from blocks.denseblock      import  DenseBlock
 #from blocks.tranblock       import  TranBlock
-from denseblock      import  DenseBlock
-from tranblock       import  TranBlock
+from .denseblock      import  DenseBlock
+from .tranblock       import  TranBlock
 
 from nets.network                import  Network
 
@@ -30,13 +30,14 @@ from nets.network                import  Network
 class DenseNet(Network, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
-    def __init__(self, growth_rate, layers_in_dense_block, ofmap_desc, num_classes):
-        super().__init__()
+    def __init__(self, growth_rate, layers_in_dense_block, ofmap_desc, num_classes, dataType, useRelu):
+        super().__init__(dataType)
 
         self.m_Growth_rate = growth_rate
         self.m_LayersInDenseBlock = layers_in_dense_block
         self.m_Ofmap_desc = ofmap_desc
         self.m_NumClasses = num_classes
+        self.__UseRelu = useRelu
 
     #-----------------------------------------------------------------
     def gGrowthRate(self):
@@ -46,12 +47,13 @@ class DenseNet(Network, metaclass = ABCMeta):
     def construct(self):
         batch = 1
         ofmap_desc = self.m_Ofmap_desc
-        layer = DataLayer(Layer.Param("data0", batch, self), ofmap_desc)
+        layer = DataLayer(Layer.Param("data0", batch, self), ofmap_desc, "input.npy", "NCHW")
 
         ## Initial convolution + batch, relu, pool
         # Convolution IMAP=3, OMAPS=64, kernel 7x7, stride 2, image size 224 -> 112
         num_ofmaps = 2*self.m_Growth_rate
-        layer = ConvLayer(Layer.Param("conv1", batch, self), layer, num_ofmaps, stride=2, kernel=7)
+        nm = "conv1"
+        layer = ConvLayer(Layer.Param(nm, batch, self), layer, num_ofmaps, 2, 7, nm+".npy", "MCRS")
         # Batch Normalization, IMAPS=64, OMAPS=64, image size 112->112
         layer = BatchNormLayer(Layer.Param("bn1", batch, self), layer)
         # ReLU, IMAPS=64, OMAPS=64, image size 112->112
@@ -90,12 +92,12 @@ class DenseNet(Network, metaclass = ABCMeta):
 ##########################################################
 class DenseNet169(DenseNet):
     #-----------------------------------------------------------------
-    def __init__(self):
+    def __init__(self, dataType, useRelu):
         growth_rate = 32
         layersInDenseBlock = [6, 12, 32, 32]
         ofmap_desc = OfmapDesc(3, 224)
         num_classes = 1000
-        super().__init__(growth_rate, layersInDenseBlock, ofmap_desc, num_classes)
+        super().__init__(growth_rate, layersInDenseBlock, ofmap_desc, num_classes, dataType, useRelu)
 
     #-----------------------------------------------------------------
     def gName(self):

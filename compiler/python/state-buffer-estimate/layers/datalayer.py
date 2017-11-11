@@ -5,6 +5,9 @@ import nets.network
 
 ##########################################################
 class DataLayer(Layer):
+    input_file_key = "input_file"
+    input_dims_key = "input_dims"
+
     #-----------------------------------------------------------------
     # TODO: remove default values for input data file name and tensor dimension meaning string
     def __init__(self, param, ofmap_desc, inputDataFileName, dataTensorDimSemantics):
@@ -14,15 +17,27 @@ class DataLayer(Layer):
 
     #-----------------------------------------------------------------
     def gJson(self):
-        x = {
-            "name"          : self.gName(),
-            "number_ifmaps" : self.gNumOfmaps(),
-            "ifmap_width"   : self.gOfmapWidth(),
-            "ifmap_height"  : self.gOfmapHeight(),
-            "input_file"    : self.__InputDataFileName,
-            "input_dims"    : self.__DataTensorDimSemantics
+        x = super().gJson()
+        y = {
+            DataLayer.input_file_key    : self.__InputDataFileName,
+            DataLayer.input_dims_key : self.__DataTensorDimSemantics
         }
-        return x
+        r = self.combineJson( (x, y) )
+        return r
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def constructFromJson(klass, layerDict, nn):
+        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
+        layerName = Layer.gLayerNameFromJson(layerDict)
+
+        inputFileName = layerDict[DataLayer.input_file_key]
+        tensorSemantics = layerDict[DataLayer.input_dims_key]
+        batch = 1
+
+        param = Layer.Param(layerName, batch, nn)
+        layer = DataLayer(param, ofmapDesc, inputFileName, tensorSemantics)
+        return layer
 
     #-----------------------------------------------------------------
     def __str__(self):
@@ -39,7 +54,8 @@ class DataLayer(Layer):
         return self.__DataTensorDimSemantics
 
     #-----------------------------------------------------------------
-    def gTypeStr(self):
+    @classmethod
+    def gTypeStr(klass):
         return "Data"
 
     #-----------------------------------------------------------------

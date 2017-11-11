@@ -4,10 +4,17 @@ from utils.consts    import  *
 from utils.consts    import SCHED_MEM_FORMAT
 from utils.fmapdesc  import OfmapDesc
 from utils.funcs     import kstr, Kstr
-import nets.network
+#import nets.network
 
 ##########################################################
 class Layer(object, metaclass = ABCMeta): # abstract class
+    layer_name_key    = "layer_name"
+    type_key          = "layer_type"
+    ofmap_key         = "ofmaps"
+    number_ofmaps_key = "number_ofmaps"
+    ofmap_width_key   = "ofmap_width"
+    ofmap_height_key  = "ofmap_height"
+    prev_layers_key   = "prev_layers"
 
     ######################################################
     class Param(object):
@@ -31,7 +38,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         assert(isinstance(param, Layer.Param))
         (layerName, batch, ntwrk) = param.gAll()
         assert(isinstance(layerName, str))
-        assert(isinstance(ntwrk, nets.network.Network))
+        #assert(isinstance(ntwrk, nets.network.Network))
         assert(isinstance(ofmap_desc, OfmapDesc))
         assert(isinstance(prev_layers, tuple))
         for prevLayer in prev_layers:
@@ -85,15 +92,26 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         prevLayers = []
         for prevLayer in self.gPrevLayers():
             prevLayers.append(prevLayer.gName())
+
+        batch = 1
         x = {
-            "name"          : self.gName(),
-            "type"          : self.gTypeStr(),
-            "prev_layers"   : prevLayers,
-            "number_ofmaps" : self.gNumOfmaps(),
-            "ofmap_width"   : self.gOfmapWidth(),
-            "ofmap_height"  : self.gOfmapHeight()
+            Layer.layer_name_key : self.gName(),
+            Layer.type_key       : self.gTypeStr(),
+            Layer.prev_layers_key   : prevLayers,
         }
+        if self.gNetwork().gUseDimList():
+            x.update({
+                Layer.ofmap_key : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
+            })
+        else:
+            x.update({
+                Layer.number_ofmaps_key : self.gNumOfmaps(),
+                Layer.ofmap_width_key   : self.gOfmapWidth(),
+                Layer.ofmap_height_key  : self.gOfmapHeight()
+            })
         return x
+
+    #-----------------------------------------------------------------
 
     def combineJson(self, it):
         x = {}
@@ -219,8 +237,13 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         return sz
 
     #-----------------------------------------------------------------
+    def gDataType(self):
+        return self.__Network.ggDataType()
+
+
+    #-----------------------------------------------------------------
     def gOutputSize(self):
-        wordSize = self.__Network.gDataType().gSizeInBytes()
+        wordSize = self.gDataType().gSizeInBytes()
         oneBatchSize = (wordSize * self.gNumOfmaps() *
                         (self.gOfmapWidth() * self.gOfmapHeight()))
         return oneBatchSize
@@ -619,4 +642,27 @@ class Layer(object, metaclass = ABCMeta): # abstract class
     def rWeightAddress(self, address):
         assert(address != None)
         self.__WeightAddress = address
+
+    @classmethod
+    def gOfmapDescFromJson(klass, layerDict, nn):
+        if nn.gUseDimList():
+            of = layerDict[Layer.ofmap_key] ##  : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
+            return OfmapDesc(of[1], (of[2], of[3]) )
+        else:
+            nOfmaps = layerDict[Layer.number_ofmaps_key]
+            ofmapH = layerDict[Layer.ofmap_height_key]
+            return OfmapDesc(nOfmaps, (ofmapW, ofmapH))
+
+    @classmethod
+    def gLayerNameFromJson(klass, layerDict):
+        layerName = layerDict[Layer.layer_name_key]
+        return layerName
+
+    @classmethod
+    def gPrevLayersFromJson(klass, layerDict, nn):
+        prevLayers = []
+        prevLayersNames = layerDict[Layer.prev_layers_key]
+        for prevLayerName in prevLayersNames:
+            prevLayers.append(nn.gLayerByName(prevLayerName))
+        return prevLayers
 

@@ -8,6 +8,9 @@ import nets.network
 
 ##########################################################
 class ConvLayer(SubSampleLayer):
+    filter_file_key = "filter_file" 
+    filter_dims_key = "filter_dims"
+
     #-----------------------------------------------------------------
     def __init__(self, param, prev_layer, num_ofmaps, stride, kernel,
             filterFileName, filterTensorDimSemantics):
@@ -24,11 +27,43 @@ class ConvLayer(SubSampleLayer):
     def gJson(self):
         x = super().gJson()
         y = {
-            "filter_file" : self.__FilterFileName,
-            "filter_dims" : self.__FilterTensorDimSemantics 
+            ConvLayer.filter_file_key : self.__FilterFileName,
+            ConvLayer.filter_dims_key : self.__FilterTensorDimSemantics 
         }
         r = self.combineJson( (x, y) )
         return r
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def constructFromJson(klass, layerDict, nn):
+        layerName = Layer.gLayerNameFromJson(layerDict)
+        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
+        num_ofmaps = ofmapDesc.gNumMaps()
+
+        strideLR = SubSampleLayer.gStrideLRFromJson(layerDict, nn)
+        strideBT = SubSampleLayer.gStrideBTFromJson(layerDict, nn)
+        kernelH = SubSampleLayer.gKernelHeightFromJson(layerDict, nn)
+        kernelW = SubSampleLayer.gKernelWeightFromJson(layerDict, nn)
+
+        paddingLeft = SubSampleLayer.gPaddingLeftFromJson(layerDict, nn)
+        paddingRight = SubSampleLayer.gPaddingRightFromJson(layerDict, nn)
+        paddingTop = SubSampleLayer.gPaddingTopFromJson(layerDict, nn)
+        paddingBottom = SubSampleLayer.gPaddingBottomFromJson(layerDict, nn)
+
+        stride = (strideLR + strideBT) // 2
+        kernel = (kernelH + kernelW) // 2
+
+        filterFileName = layerDict[ConvLayer.filter_file_key]
+        tensorSemantics = layerDict[ConvLayer.filter_dims_key]
+        batch = 1
+
+        param = Layer.Param(layerName, batch, nn)
+        prevLayers = Layer.gPrevLayersFromJson(layerDict, nn)
+        assert isinstance(prevLayers, list) and len(prevLayers)==1
+
+        layer = ConvLayer(param, prevLayers[0], num_ofmaps, stride, kernel,
+                    filterFileName, tensorSemantics)
+        return layer
 
     #-----------------------------------------------------------------
     def __str__(self):
@@ -60,7 +95,8 @@ class ConvLayer(SubSampleLayer):
         return self.__FilterTensorDimSemantics
 
     #-----------------------------------------------------------------
-    def gTypeStr(self):
+    @classmethod
+    def gTypeStr(cls):
         return "Conv"
 
     #-----------------------------------------------------------------
