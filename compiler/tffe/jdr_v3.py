@@ -77,6 +77,7 @@ i2 = tf.nn.conv2d(i1, w2, strides, padding, name=netName + "/i2")
 output = tf.identity(i2, name=netName+"/output")
 
 i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType)).reshape(IF1.shape)
+np.save( outPrefix + 'ref_input.npy', i0val)
 print("Inp=\n", i0val)
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())

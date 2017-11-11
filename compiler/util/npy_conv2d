@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+
+# 2-D convolution for calculation golden reference for TF, Inkling
+# For definitions and terminology, see e.g.,
+#   https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.convolve.html
+#   https://www.tensorflow.org/api_docs/python/tf/nn/conv2d
+
+import numpy as np
+import sys
+
+print("\nINFO: started as  ", " ".join(sys.argv))
+
+try:
+  (unused, imgFile, imgFormat, weightFile, weightFormat, outFile, outFormat, calcTypeName, outTypeName) = sys.argv
+except:
+  print("""
+Usage:
+  npy_conv2d  file and formats image  weight output  calculation_type output_type
+  Features: stride=1, padding=same
+
+Examples:
+
+  # Conceptual example
+  npy_conv2d  img.npy NCHW  weight.npy MCRS  output.npy NCHW  float64 float32
+  
+  # Specific example using a Kaena unit test
+  make -f $KAENA_PATH/compiler/tffe/Makefile jdr_v2 NN_CONFIG=b2-h4-r3-s1-c5-m6-wmin-0.1-wmax0.1-imin-1-imax1 OUT_PREFIX=trivnet_ NN_NAME=1conv
+  ln -s trivnet_input:0_NCHW.npy i
+  ln -s trivnet_1conv__weight1__read:0_MCRS.npy w
+  ln -s trivnet_1conv__i1:0_NCHW.npy otf
+  
+  # true gold vs TF
+  set c = 64; set o = 64
+  $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files   o$c-$o.npy otf | tee -a log-$c-$o
+  # 32b gold vs TF
+  set c = 32; set o = 32
+  $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files   o$c-$o.npy otf | tee -a log-$c-$o
+  # 32b truncated to 16b vs TF
+  set c = 32; set o = 16
+  $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files   o$c-$o.npy otf | tee -a log-$c-$o
+  # 16b (Inkling-like) vs TF
+  set c = 16; set o = 16
+  $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files   o$c-$o.npy otf | tee -a log-$c-$o
+  
+  egrep -A 1 Relative\ Error log* | sort -r
+
+""")
+  exit(1)
+
+exec("calcType = np.%s" % calcTypeName)
+exec("outType = np.%s" % outTypeName)
+
+
+def calcTransform(sf, st):
+  assert(len(sf) == len(st))
+  transform = [sf.find(c) for c in list(st)]
+  #print("DEBUG: %s -> %s  transform=" % (sf, st), transform)
+  assert(all(i >=0 for i in transform))
+  return(transform)
+
+class Tensor:
+  @staticmethod
+  def __init__(self, arr, dataFormat):
+    self.arr = arr.copy()
+    self.format = dataFormat.upper()
+    self.order = []
+    self.orderReverse = []
+  
+  def getArr(self):
+    return(self.arr)
+
+  def getIndex(self, indexExt):
+    indexInt = [indexExt[i] for i in self.orderReverse]
+    #print('DEBUG: getIndex  %s -> %s  orderReverse=%s' % (str(indexExt), str(indexInt), self.orderReverse))
+    return(tuple(indexInt))
+
+  def getSizes(self):
+    sizes = [self.arr.shape[i] for i in self.order]
+    #print("DEBUG: sizes %s -> %s " %(self.arr.shape, sizes), "  order=", self.order)
+    return(sizes)
+
+  def get(self, bhwc):
+    index = self.getIndex(bhwc)
+    return(self.arr[index])
+
+  def set(self, bhwc, value):
+    index = self.getIndex(bhwc)
+    self.arr[index] = value
+  
+  def conv2d(self, img, weight):
+    (nn, hh, ww, cc) = img.getSizes()
+    (rr, ss, cc1, mm) = weight.getSizes()
+    self.arr.resize(self.getIndex([nn, hh, ww, mm]))
+    assert(cc == cc1)
+    for n in range(0, nn):
+      for m in range(0, mm):
+        for c in range(0, cc):
+          for h in range(0, hh):
+            for w in range(0, ww):
+              for r in range(0, rr):
+                for s in range(0, ss):
+                  hhh = h + r - int(rr/2)
+                  www = w + s - int(ss/2)
+                  if hhh >= 0 and www >= 0 and hhh < hh and www < ww:
+                    val = img.get([n, hhh, www, c]) *  weight.get([r, s, c, m])
+                    valOld = self.get([n, h, w, m])
+                    valNew = valOld + val
+                    self.set([n, h, w, m], valNew)
+    return(self.arr)
+
+  def __str__(self):
+    s = str(self.arr.shape) + "  " + self.format + "  " + str(self.arr.dtype)
+    s += "\n" + str(self.arr)
+    return(s)
+
+class Image(Tensor):
+  def __init__(self, arr, dataFormat):
+    Tensor.__init__(self, arr, dataFormat)
+    self.order =  calcTransform(self.format, 'NHWC')
+    self.orderReverse =  calcTransform('NHWC', self.format)
+  
+class Weight(Tensor):
+  def __init__(self, arr, dataFormat):
+    Tensor.__init__(self, arr, dataFormat)
+    self.order =  calcTransform(self.format, 'RSCM')
+    self.orderReverse =  calcTransform('RSCM', self.format)
+  
+  # Just for debug printing, comment out after debug
+  #def getIndex(self, indexExt):
+  #  indexInt = [indexExt[i] for i in self.orderReverse]
+  #  print('DEBUG: Weight getIndex  %s -> %s  orderReverse=%s' % (str(indexExt), str(indexInt), self.orderReverse))
+  #  return(tuple(indexInt))
+
+  def get(self, rscm):
+    index = self.getIndex(rscm)
+    return(self.arr[index])
+
+
+img = Image(np.load(imgFile).astype(calcType), imgFormat)
+weight = Weight(np.load(weightFile).astype(calcType), weightFormat)
+calc = Image(np.zeros(img.getArr().shape, dtype=calcType), outFormat)
+calc.conv2d(img, weight)
+out = Image(calc.getArr().astype(outType), outFormat)
+np.save(outFile, out.getArr())
+print("INFO: wrote file  ", outFile)
+
+print("\nIMG=%s\n\nWEIGHT=%s\n\nCALC=%s\n\nOUT=%s\n" % (img, weight, calc, out))
+
