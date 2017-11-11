@@ -56,7 +56,7 @@ class StateBufferMgr(object):
                 assert(prevIfmapAddress == None and prevOfmapAddress == None)
                 ifmapAddress = None
                 ofmapAddress = self.__FirstSbAddress + (
-                               self.__Network.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
+                               layer.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
             else:
                 assert(prevOfmapAddress != None)
                 ifmapAddress = prevOfmapAddress
@@ -71,7 +71,7 @@ class StateBufferMgr(object):
                     ##     Weights | prevIfmap | ... | prevOfmap
                     ##             | Ofmap  $rc -ec 'false|false' && fail $rc -c $q'false|false'$q should fail
                     ofmapAddress = self.__FirstSbAddress + (
-                                   self.__Network.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
+                                   layer.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
                 else:
                     ##     Weights | prevOfmap | ... | prevIfmap
                     ##                             | Ofmap

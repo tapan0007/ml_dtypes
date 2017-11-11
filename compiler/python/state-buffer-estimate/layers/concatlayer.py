@@ -53,10 +53,11 @@ class ConcatLayer(CombineLayer):
                 prevLayerIndices += "," + prevLayer.gNumberStr()
                 mapNumStr += "+" + str(prevLayer.gNumOfmaps())
 
-        assert(totalNumMaps == self.gNumOfmaps())
+        assert totalNumMaps == self.gNumOfmaps()
 
-        fromTo = "(" + mapNumStr + "," + 
-                str(self.gOfmapWidth()) + '*' + str(self.gOfmapHeight()) + ")"
+        fromTo = ( "(" + mapNumStr + "," + 
+                   str(self.gOfmapWidth()) + '*' + str(self.gOfmapHeight()) + ")"
+                 )
 
         return ("Concat[" + prevLayerIndices + "] " + fromTo + self.gStateSizesStr())
 

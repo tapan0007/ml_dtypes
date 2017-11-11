@@ -30,7 +30,8 @@ class TranBlock(nets.block.Block):
             numOfmaps = ofmap_desc.gNumMaps()
         else:
             numOfmaps = int(compression * ofmap_desc.gNumMaps())
-        layer = ConvLayer(Layer.Param(pfx + "-conv1", batch, ntwk), layer, numOfmaps, stride=1, kernel=1)
+        nm = pfx + "-conv1"
+        layer = ConvLayer(Layer.Param(nm, batch, ntwk), layer, numOfmaps, 1, 1, nm+".npy", "MCRS")
 
 
         layer = AvgPoolLayer(Layer.Param(pfx + "-avg1", batch, ntwk), layer, stride=2, kernel=2)

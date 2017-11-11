@@ -17,7 +17,8 @@ class AddLayer(CombineLayer):
 
 
     #-----------------------------------------------------------------
-    def gTypeStr(self):
+    @classmethod
+    def gTypeStr(cls):
         return "Add"
 
     #-----------------------------------------------------------------

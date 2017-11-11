@@ -116,7 +116,7 @@ class MacroPoolLayer(MacroLayer):
               ind + "ofmap_address, ofmap_dims,",
               ind + "kernel_dims,",
               ind + "pool_stride,",
-              ind + self.gMacroInstrGen().gDataTypeName() + ",",
+              ind + self.gMacroInstrGen().gDataTypeName(layer) + ",",
               ind + "POOLFUNC::" + poolType + ");",
               "",
 

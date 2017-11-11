@@ -30,17 +30,20 @@ class DenseBlock(nets.block.Block):
 
             layer = ReluLayer(Layer.Param(pfx + "-relu1", batch, ntwk), layer)
 
-            layer = ConvLayer(Layer.Param(pfx + "-conv1", batch, ntwk), layer, 4*growthRate, stride=1, kernel=1)
+            nm = pfx + "-conv1"
+            layer = ConvLayer(Layer.Param(nm, batch, ntwk), layer, 4*growthRate, 1, 1, nm+".npy", "MCRS")
             #layer = Drop
 
             layer = BatchNormLayer(Layer.Param(pfx + "-bn2", batch, ntwk), layer)
 
             layer = ReluLayer(Layer.Param(pfx + "-relu2", batch, ntwk), layer)
 
-            layer = ConvLayer(Layer.Param(pfx + "-conv2", batch, ntwk), layer, growthRate, stride=1, kernel=3)
+            nm = pfx + "-conv2"
+            layer = ConvLayer(Layer.Param(nm, batch, ntwk), layer, growthRate, 1, 3, nm+".npy", "MCRS")
             #layer = Drop
 
-            layer = ConcatLayer(Layer.Param(pfx + "-cat", batch, ntwk), layer, first_layer_in_dense_subblock)
+            nm = pfx + "-cat"
+            layer = ConcatLayer(Layer.Param(nm, batch, ntwk), layer, first_layer_in_dense_subblock)
 
 
         layer.rDenseBlockEnd(blockIdx)

@@ -1,5 +1,6 @@
 import sys
 assert(sys.version_info.major >= 3)
+import json
 
 from utils.printers             import Printer
 from utils.debug                import breakFunc
@@ -60,10 +61,10 @@ while i < nArgv:
 from nets.network         import Network
 if DenseNet:
     from nets.densenet.densenet     import DenseNet169
-    ntwk = DenseNet169(UseRelu)
+    ntwk = DenseNet169(DataTypeFloat16(), UseRelu)
 elif ResNet:
     from nets.resnet.resnet         import ResNet50
-    #ntwk = ResNet50(DataTypeFp16(), UseRelu)
+    #ntwk = ResNet50(DataTypeFloat16(), UseRelu)
     ntwk = ResNet50(DataTypeInt8(), UseRelu)
     #ntwk = ResNet50(DataTypeInt16(), UseRelu)
 elif TrivNet:
@@ -133,5 +134,15 @@ if PrintDot:
     printer.printDot()
     print("")
 
-printer.printJson(ntwk, ntwk.gName() + ".json")
+jsonFileName = ntwk.gName().lower() + ".json"
+printer.printJson(ntwk, jsonFileName)
+
+with open(jsonFileName) as f:
+    jsonContent = f.read()
+
+jsonDict = json.loads(jsonContent)
+nn2 = Network.constructFromJson(jsonDict)
+
+jsonFileName2 = nn2.gName().lower() + "2.json"
+printer.printJson(nn2, jsonFileName2)
 
