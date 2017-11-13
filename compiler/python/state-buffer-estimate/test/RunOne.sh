@@ -38,8 +38,8 @@ case $# in
 esac
 
 case "x$1" in
-(x*.tgz) TGZ=$1; N=${TGZ%.tgz};;
-(*) N=$1; TGZ=$N.tgz;;
+(x*.tgz) TGZ=$1; Name=${TGZ%.tgz};;
+(*) Name=$1; TGZ=$Name.tgz;;
 esac
 
 #test -d ./test || mkdir ./test || Fatal Cannot mkdir dir ./test
@@ -54,7 +54,7 @@ CPP=$NET.cpp
 OBJ=$NET.o
 EXE=$NET-exe
 
-RESULTS=./results/$N
+RESULTS=./results/$Name
 rm -fR $RESULTS; mkdir $RESULTS
 
 ASM=$RESULTS/$NET.asm
