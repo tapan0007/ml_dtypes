@@ -282,11 +282,8 @@ from nets.network       import Network
  
 class TrivNet(Network):
     def __init__(self):
-        super().__init__(DataTypeFloat16())
+        super().__init__(DataTypeFloat16(), "TrivNet")
 
-    def gName(self):
-        return "TrivNet"
- 
     def construct(self):
 """
     lines = []

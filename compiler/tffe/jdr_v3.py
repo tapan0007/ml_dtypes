@@ -6,6 +6,19 @@ import numpy as np
 import sys
 import re
 
+# To minimize likelihood of float16 overflow
+# Example  0 1 2 3 4 5  =>  0 5 1 4 2 3
+def permuteArr(arr):
+  s = arr.size
+  if s %2 == 0:
+    a1 = arr.reshape(2, int(s/2))
+    a1[1] = np.flip(a1[1], 0)
+    a2 = a1.swapaxes(0, 1)
+    a3 = a2.ravel()
+  else:
+    a3 = arr
+  return(a3)
+
 print("\nINFO: started as  ", " ".join(sys.argv))
 
 dimStr = sys.argv[1]
@@ -46,7 +59,7 @@ W2  = np.zeros([R, R, C, M])
 strides = [1, S, S, 1]
 padding = "SAME"
 
-wAllValues = np.linspace(WMIN, WMAX, num=(W1.size + W2.size), dtype=fixedDataType)
+wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size + W2.size), dtype=fixedDataType))
 w1Values =  wAllValues[0:W1.size].reshape(W1.shape)
 print("w1\n", w1Values, "  ", w1Values.dtype)
 w2Values =  wAllValues[W1.size:W1.size+W2.size].reshape(W2.shape)
@@ -63,12 +76,14 @@ w2 = tf.get_variable(name=netName+"/weight2",
 i2 = tf.nn.conv2d(i1, w2, strides, padding, name=netName + "/i2")
 output = tf.identity(i2, name=netName+"/output")
 
-i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType).reshape(IF1.shape)
+i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType)).reshape(IF1.shape)
+np.save( outPrefix + 'ref_input.npy', i0val)
 print("Inp=\n", i0val)
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
   res = sess.run(output, feed_dict={"input:0" : i0val})
   print("Res=\n", res)
+  print("INFO: the result contains %d infinite numbers" % (res.size - np.count_nonzero(np.isfinite(res))))
   graph = tf.get_default_graph()
   tf.train.write_graph(graph, '.', outPrefix + 'graph.pb')
   saver = tf.train.Saver()

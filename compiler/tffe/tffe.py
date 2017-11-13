@@ -4,7 +4,7 @@
 #
 # Examples
 #
-#   set tfpb =  ../../../Kaena-external-opensource/apps/tf/resnet_v2_152/pb/resnet_v2_152_fp32.pb
+#   set tfpb =  $KAENA_PATH/../Kaena-external-opensource/apps/tf/resnet_v2_152/pb/resnet_v2_152_fp32.pb
 #
 #   python3 tffe.py --tfpb $tfpb --depth 5
 #
@@ -12,14 +12,12 @@
 #
 #   python3 tffe.py --tfpb $tfpb --depth 5 --focus block3/unit_18
 #
-#   set img = ../../../Kaena-external-opensource/apps/tf/resnet_v2_152/dog.jpg
-#   ./tffe.py --tfpb $tfpb --depth 5 --images $img
-
-#   set net=jdr_v1
-#   python3 $net.py
-#   python /home/ubuntu/src/tensorflow_p3/tensorflow/python/tools/freeze_graph.py --input_graph out_$net.pb --input_checkpoint out_$net.data --output_graph out_"$net"_freeze.pb --output_node_names $net/output
-#   ./tffe.py --tfpb out_"$net"_freeze.pb --depth 5 --images linear --width 30
-#   python3 -c "import numpy as np; x=np.load('out_"$net"__output:0.npy'); print('Output OFMAP\n', x)"
+#   set img = $KAENA_PATH/../Kaena-external-opensource/apps/tf/resnet_v2_152/dog.jpg
+#   $KAENA_PATH/compiler/tffe//tffe.py --tfpb $tfpb --depth 5 --images $img
+#     firefox out_graph_ann.dot.svg
+#     soffice  out_ops.csv  
+#
+#   See the Makefile for examples of running units tests
 
 
 import argparse
