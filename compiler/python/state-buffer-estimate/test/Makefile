@@ -1,13 +1,12 @@
 FLAGS= -W -Wall -Werror -ggdb -g 
-INC_FLAGS = -IInkling/shared/inc -IInkling/tcc/inc
-#-IInkling/tcc/test/convolve/src
+INC_FLAGS = -I$(INKLING)/shared/inc -I$(INKLING)/tcc/inc
+#-I$(INKLING)/tcc/test/convolve/src
 
 CFLAGS = $(FLAGS) -I. $(INC_FLAGS) -Wno-missing-field-initializers
 
 CPPFLAGS = $(CFLAGS) -std=c++11
 LFLAGS = $(FLAGS)
 #################################################
-INKLING=./Inkling
 LIBDIR1 = $(INKLING)/tcc/libs
 LIBDIR_FLAGS= -L$(LIBDIR1)
 RESULTS=./results
