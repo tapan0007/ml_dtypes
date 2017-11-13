@@ -68,7 +68,8 @@ elif ResNet:
     ntwk = ResNet50(DataTypeInt8(), UseRelu)
     #ntwk = ResNet50(DataTypeInt16(), UseRelu)
 elif TrivNet:
-    from nets.trivnet.trivnet import TrivNet
+    #from nets.trivnet.trivnet_compiler import TrivNet
+    from trivnet_compiler import TrivNet
     ntwk = TrivNet()
 else:
     sys.stderr.write("Must specify net\n")
