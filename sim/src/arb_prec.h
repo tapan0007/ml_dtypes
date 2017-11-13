@@ -76,6 +76,7 @@ inline ArbPrecData add(const ArbPrecData& x, const ArbPrecData& y,
 inline ArbPrecData int_divide(const ArbPrecData& x, int y,
                                ARBPRECTYPE in_type);
 
+
 /** Compares two arbitrary precision values.
  *
  *  Performs an 'x<y' on two arbitrary precision values.
@@ -87,6 +88,28 @@ inline ArbPrecData int_divide(const ArbPrecData& x, int y,
  *  @return x<y as boolean.
  */
 inline bool gt(ArbPrecData& x, ArbPrecData& y, ARBPRECTYPE in_type);
+/** Converts to fp32 to input type
+ *
+ *  Performs a casting of arbitrary precission float32 value x to out_type
+ *
+ *  @param[in] x - the value to convert.
+ *  @param[in] in_type - The type of x.
+ *
+ *  @return (fp32_t) copy(x)
+ */
+inline ArbPrecData cast_to_fp32(ArbPrecData& x, ARBPRECTYPE in_type);
+
+/** Converts from fp32 to input type
+ *
+ *  Performs an (out_type)x on arbitrary precision float32 value.
+ *
+ *  @param[in] x - the value to convert.
+ *  @param[in] out_type - The output type.
+ *
+ *  @return (out_type) copy(x)
+ */
+inline ArbPrecData cast_from_fp32(ArbPrecData& x, ARBPRECTYPE out_type);
+
 
 /** Write an arbitrary precision value to a file.
  *
@@ -450,6 +473,40 @@ inline bool GreaterThan::eval<ARBPRECTYPE::FP16>(
         fp16_ieee_to_fp32_value(extract<Type>(y));
 }
 
+/** Operator class for 'unroll' that will perform conversion from fp32 */
+struct CastToFp32
+{
+    template <int InType>
+    static inline ArbPrecData eval(const ArbPrecData& x, ARBPRECTYPE&)
+    {
+        static constexpr auto OutType = ARBPRECTYPE::FP32;
+        using result_t = typename TypeOf<OutType>::type;
+        result_t result = static_cast<result_t>(extract<InType>(x));
+
+        ArbPrecData real_result;
+        Extract<OutType>::extract(real_result) = result;
+
+        return real_result;
+    }
+};
+
+/** Operator class for 'unroll' that will perform conversion  to fp32*/
+struct CastFromFp32
+{
+    template <int OutType>
+    static inline ArbPrecData eval(const ArbPrecData& x, ARBPRECTYPE&)
+    {
+        static constexpr auto InType = ARBPRECTYPE::FP32;
+        using result_t = typename TypeOf<OutType>::type;
+        result_t result = static_cast<result_t>(extract<InType>(x));
+
+        ArbPrecData real_result;
+        Extract<OutType>::extract(real_result) = result;
+
+        return real_result;
+    }
+};
+
 /** Operator class for 'unroll' that will print a value. */
 struct Dump
 {
@@ -499,7 +556,7 @@ inline ArbPrecData add(const ArbPrecData& x, const ArbPrecData& y,
     return details::unroll<details::Add>(in_type, in_type, x, y);
 }
 
-/* uint_divide */
+/* int_divide */
 inline ArbPrecData int_divide(const ArbPrecData& x, int y,
                                ARBPRECTYPE in_type)
 {
@@ -511,6 +568,23 @@ inline bool gt(ArbPrecData& x, ArbPrecData& y, ARBPRECTYPE in_type)
 {
     return details::unroll<details::GreaterThan>(in_type, in_type, x, y);
 }
+
+/* cast_to_fp32 */
+inline ArbPrecData cast_to_fp32(const ArbPrecData& x, 
+        ARBPRECTYPE in_type)
+{
+    return details::unroll<details::CastToFp32>(ARBPRECTYPE::FP32, 
+            in_type, x);
+}
+
+/* cast_from_fp32 */
+inline ArbPrecData cast_from_fp32(const ArbPrecData& x, 
+        ARBPRECTYPE out_type)
+{
+    return details::unroll<details::CastFromFp32>(ARBPRECTYPE::FP32, 
+            out_type, x);
+}
+
 
 /* dump */
 inline void dump(FILE* f, const ArbPrecData& x, ARBPRECTYPE type)
