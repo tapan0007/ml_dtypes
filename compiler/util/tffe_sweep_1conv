@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
 
+# Generator of neural networks for unit testing of Kaena compiler flow
+# Variables - match teh TPB spec
+#  h - image heights (and width)
+#  c - channels - number of IFMAPs
+#  m - outputs - number of OFMAPs
+#  b - batch
+#  s - stride
+#  r - filter (height and width)
+#  w - weight value range bound
+#  i - input image value range bound
+
+
 import numpy as np
 import os
 

@@ -20,6 +20,16 @@ if len(sys.argv) > 3:
   netName = sys.argv[3]
 else:
   netName = "jdr_v2"
+if len(sys.argv) > 4:
+  dataType = sys.argv[4]
+else:
+  dataType = "float16"
+# DataTypes
+#   npDataType, tfDataType - for the data flow
+#   fixedType - np.float16 - for generating inputs, weights
+for t in ["np", "tf"]:
+  exec("%sDataType = %s.%s" % (t, t, dataType))
+fixedDataType = np.float16
 
 dimList = re.split('([A-Z]+)(-?[\d\.]+)-', dimStr)
 dimCmd = str(tuple(dimList[1::3])).replace("'", "") + " = " + str(tuple(map(float, dimList[2::3])))
@@ -28,31 +38,24 @@ print(dimCmd)
 assert(len(dimList[2::3]) == 10)
 exec(dimCmd)
 
-#(B, H, R, S, C, M) = (1,  4, 1, 1, 1, 1)
-#(B, H, R, S, C, M) = (1,  8, 3, 1, 4, 4)
-#(B, H, R, S, C, M) = (1, 12, 3, 1, 12, 12)
-#(B, H, R, S, C, M) = (1, 16, 2, 1, 16, 16)
-#(B, H, R, S, C, M) = (1, 16, 2, 1, 64, 64)
-#(B, H, R, S, C, M) = (1, 16, 2, 1, 1, 1)
 IF1 = np.zeros([B, H, H, C])
 W1  = np.zeros([R, R, C, M])
-#(WMIN, WMAX) = (-0.001,0.001)
 
 strides = [1, S, S, 1]
 padding = "SAME"
 
 
-w1Values =  np.linspace(WMIN, WMAX, num=W1.size, dtype=np.float16).reshape(W1.shape)
+w1Values =  np.linspace(WMIN, WMAX, num=W1.size, dtype=fixedDataType).reshape(W1.shape)
 print("w1\n", w1Values, "  ", w1Values.dtype)
 
 w1 = tf.get_variable(name=netName+"/weight1",
-                     initializer = w1Values, dtype=tf.float16)
-i0 = tf.placeholder(tf.float16, shape=IF1.shape, name="input")
+                     initializer = w1Values.astype(npDataType), dtype=tfDataType)
+i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
 
 i1 = tf.nn.conv2d(i0, w1, strides, padding, name=netName + "/i1")
 output = tf.identity(i1, name=netName+"/output")
 
-i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=np.float16).reshape(IF1.shape)
+i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType).reshape(IF1.shape)
 print("Inp=\n", i0val)
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())

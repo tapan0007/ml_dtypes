@@ -271,7 +271,8 @@ class TfFe:
       "int8"    : "black:green",
       "int32"   : "black:yellow",
       "float16" : "black:pink",
-      "float32" : "black:red"
+      "float32" : "black:red",
+      "float64" : "black:purple"
     }.get(dType, None)
 
   # Generates csv report for all inputs and outputs of the operations

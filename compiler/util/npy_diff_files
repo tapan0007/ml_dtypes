@@ -13,7 +13,7 @@ if gold.shape != new.shape:
   exit(1)
 
 diffAbs = new-gold
-diffRel = diffAbs / gold
+diffRel = 100 * diffAbs / gold
 
 print("Comparing golden  %s  and  new  %s  files:" % (goldFile, newFile))
 print("\nDetailed differences:")
@@ -22,13 +22,14 @@ for index, g in np.ndenumerate(gold):
   n = new[index]
   da = diffAbs[index]
   dr = diffRel[index]
-  print("%-20s %12g %12g  %12g %12g" % (str(index), g, n, dr, da))
+  print("%-20s %12g %12g  %12.2f %12g" % (str(index), g, n, dr, da))
   
 print("\nStatistics")
-print("%-36s" % ("Relative Error  mean std  min max"))
-print("%12g %12g  %12g %12g" % (diffRel.mean(), diffRel.std(), diffRel.min(), diffRel.max()))
+print("%-36s" % ("Relative Error % mean std  min max"))
+print("%12.2f %12.2f  %12.2f %12.2f" % (diffRel.mean(), diffRel.std(), diffRel.min(), diffRel.max()))
 
 print("%-36s" % ("Absolute Error  mean std  min max"))
 print("%12g %12g  %12g %12g" % (diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
 
-
+(tolr, tola) = (1, 1e-6)
+print("Allclose info tolerance rel %g %%  absolute %g : %s" % (tolr, tola, np.allclose(new, gold, tolr/100, tola)))
