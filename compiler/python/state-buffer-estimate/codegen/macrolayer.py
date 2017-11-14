@@ -38,7 +38,7 @@ class MacroLayer(object, metaclass = ABCMeta):
         nl = "\n"
         qq = '"'
         nn = layer.gNetwork()
-        layerFileName = nn.gName().lower() + "-" + layer.gName().lower() + "-out.npy"
+        layerFileName = nn.gName().lower() + "-" + layer.gName().lower() + "-simout.npy"
         layerFileName = layerFileName.replace("/", "-")
 
         lines = [
