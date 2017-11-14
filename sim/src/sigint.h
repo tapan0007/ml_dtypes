@@ -68,7 +68,8 @@ struct ActivateSignals {
 typedef struct PoolSignals {
     bool          valid;
     POOLFUNC      func;
-    ARBPRECTYPE   dtype;
+    ARBPRECTYPE   in_dtype;
+    ARBPRECTYPE   out_dtype;
     Addr          src_addr;
     Addr          dst_addr;
     bool          start;

@@ -147,6 +147,7 @@ _pool_tile(FILE *fptr,
     /* pool args */
     pool_args.pool_func = IDENTITY_POOL;
     pool_args.in_dtype     = pool_dtype;
+    pool_args.out_dtype    = pool_dtype;
 
     pool_args.src_x_step= 8/dsize;
     pool_args.src_y_step= 1;
@@ -340,6 +341,7 @@ compile_pool(FILE *fptr,
             /* pool args */
             pool_args.pool_func = pool_func;
             pool_args.in_dtype     = dtype;
+            pool_args.out_dtype    = dtype;
             pool_args.src_start_addr = src_addr;
             pool_args.src_x_step = 1;
             pool_args.src_y_step = i_cols;

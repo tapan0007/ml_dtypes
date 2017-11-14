@@ -155,7 +155,8 @@ void  DynamicInstruction<POOL>::execute(void *v_seq) {
     POOLFUNC pool_func = (POOLFUNC)args.pool_func;
     seq->ps.valid = true;
     seq->ps.func = pool_func;
-    seq->ps.dtype = (ARBPRECTYPE)args.in_dtype;
+    seq->ps.in_dtype  = (ARBPRECTYPE)args.in_dtype;
+    seq->ps.out_dtype = (ARBPRECTYPE)args.out_dtype;
     seq->ps.src_addr.sys = args.src_start_addr;
     seq->ps.start = true;
     seq->ps.stop = (pool_func == IDENTITY_POOL) ||
@@ -361,8 +362,8 @@ Sequencer::step_poolsignal() {
     }
 
     /* eventually want to support quantization here */
-    size_t src_dsize = sizeofArbPrecType(ps.dtype);
-    size_t dst_dsize = sizeofArbPrecType(ps.dtype);
+    size_t src_dsize = sizeofArbPrecType(ps.in_dtype);
+    size_t dst_dsize = sizeofArbPrecType(ps.out_dtype);
 
     pool_src_pit.increment();
 
