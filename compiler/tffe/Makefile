@@ -7,6 +7,13 @@
 
 # TO_DO add test env using https://docs.python.org/2/library/unittest.html
 
+#on MAC OSX 10.12.6
+#need pip3 install graphviz
+#need PIL:
+#pip3 install pillow
+#need graphviz, so use
+#brew install graphviz
+#if need brew:  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 #KAENA_PATH = ../..
 OUT_PREFIX = "out_"
@@ -25,4 +32,3 @@ jdr_%:
 	python3 $(TF_PATH)/python/tools/freeze_graph.py --input_graph $(OUT_PREFIX)graph.pb --input_checkpoint $(OUT_PREFIX)checkpoint.data --output_graph $(OUT_PREFIX)freeze.pb --output_node_names $(NN_NAME)/output
 	$(KAENA_TFFE)/tffe.py --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(OUT_PREFIX)freeze.pb --depth 5 --images $(OUT_PREFIX)ref_input.npy --width 30
 	mv $(OUT_PREFIX)compiler.tgz $(OUT_PREFIX)$(NN_NAME)_$(NN_CONFIG).tgz
-        
