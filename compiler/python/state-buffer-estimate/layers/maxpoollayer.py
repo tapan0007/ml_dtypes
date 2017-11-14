@@ -20,26 +20,27 @@ class MaxPoolLayer(PoolLayer):
         x = super().gJson()
         return x
 
+    #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, nn):
+    def constructFromJson(klass, layerDict, ntwk):
         layerName = Layer.gLayerNameFromJson(layerDict)
-        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
+        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, ntwk)
 
-        strideLR = PoolLayer.gStrideLRFromJson(layerDict, nn)
-        strideBT = PoolLayer.gStrideBTFromJson(layerDict, nn)
-        kernelH = PoolLayer.gKernelHeightFromJson(layerDict, nn)
-        kernelW = PoolLayer.gKernelWeightFromJson(layerDict, nn)
+        strideLR = PoolLayer.gStrideLRFromJson(layerDict, ntwk)
+        strideBT = PoolLayer.gStrideBTFromJson(layerDict, ntwk)
+        kernelH = PoolLayer.gKernelHeightFromJson(layerDict, ntwk)
+        kernelW = PoolLayer.gKernelWeightFromJson(layerDict, ntwk)
 
-        paddingLeft = PoolLayer.gPaddingLeftFromJson(layerDict, nn)
-        paddingRight = PoolLayer.gPaddingRightFromJson(layerDict, nn)
-        paddingTop = PoolLayer.gPaddingTopFromJson(layerDict, nn)
-        paddingBottom = PoolLayer.gPaddingBottomFromJson(layerDict, nn)
+        paddingLeft = PoolLayer.gPaddingLeftFromJson(layerDict, ntwk)
+        paddingRight = PoolLayer.gPaddingRightFromJson(layerDict, ntwk)
+        paddingTop = PoolLayer.gPaddingTopFromJson(layerDict, ntwk)
+        paddingBottom = PoolLayer.gPaddingBottomFromJson(layerDict, ntwk)
 
         stride = (strideLR + strideBT) // 2
         kernel = (kernelH + kernelW) // 2
         batch = 1
-        param = Layer.Param(layerName, batch, nn)
-        prevLayers = Layer.gPrevLayersFromJson(layerDict, nn)
+        param = Layer.Param(layerName, batch, ntwk)
+        prevLayers = Layer.gPrevLayersFromJson(layerDict, ntwk)
         assert isinstance(prevLayers, list) and len(prevLayers)==1
             #def __init__(self, param, prev_layer, stride, kernel):
                 #assert(isinstance(prev_layer, Layer))

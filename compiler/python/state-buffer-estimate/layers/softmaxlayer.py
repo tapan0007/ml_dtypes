@@ -12,11 +12,29 @@ class SoftMaxLayer(OneToOneLayer):
         super().__init__(param, prev_layer)
 
     #-----------------------------------------------------------------
+    def gJson(self):
+        x = super().gJson()
+        return x
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def constructFromJson(klass, layerDict, ntwk):
+        batch = 1
+        layerName = Layer.gLayerNameFromJson(layerDict)
+        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, ntwk)
+        param = Layer.Param(layerName, batch, ntwk)
+        prevLayers = Layer.gPrevLayersFromJson(layerDict, ntwk)
+        assert isinstance(prevLayers, list) and len(prevLayers)==1
+
+        return SoftMaxLayer(param, prevLayers[0])
+
+    #-----------------------------------------------------------------
     def __str__(self):
         baseLayer = self.gBaseLayerStr()
         return ("SoftMax " + baseLayer + self.gStateSizesStr())
 
     #-----------------------------------------------------------------
+    @classmethod
     def gTypeStr(self):
         return "SoftMax"
 

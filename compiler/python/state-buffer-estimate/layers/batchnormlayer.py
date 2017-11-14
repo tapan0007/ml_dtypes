@@ -18,6 +18,7 @@ class BatchNormLayer(OneToOneLayer):
         return ("BNorm " + baseLayer + self.gStateSizesStr())
 
     #-----------------------------------------------------------------
+    @classmethod
     def gTypeStr(self):
         return "BNorm"
 

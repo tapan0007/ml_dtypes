@@ -3,6 +3,7 @@
 from utils.consts    import  *
 ##from utils.funcs     import kstr
 from utils.datatype  import *
+from utils.debug  import breakFunc
 
 import layers.layer
 from layers.layer        import Layer
@@ -11,6 +12,8 @@ from layers.maxpoollayer import MaxPoolLayer
 from layers.avgpoollayer import AvgPoolLayer
 from layers.datalayer    import DataLayer
 from layers.addlayer     import AddLayer
+from layers.fulllayer    import FullLayer
+from layers.softmaxlayer import SoftMaxLayer
 
 from schedule.scheduler      import Scheduler
 
@@ -56,6 +59,11 @@ class Network(object):
         self.__DoBatching = False
         self.__DataType = dataType
         self.__UseDimList = True
+        self.__Constructed = False
+
+    #-----------------------------------------------------------------
+    def qConstructed(self):
+        return self.__Constructed
 
     #-----------------------------------------------------------------
     def gUseDimList(self):
@@ -145,7 +153,9 @@ class Network(object):
         }
         json_layers = []
         for layer in self.gLayers():
-            json_layers.append(layer.gJson())
+            layer_json = layer.gJson()
+            assert layer_json 
+            json_layers.append(layer_json)
         jsonDict[Network.layers_key] = json_layers
         return jsonDict
 
@@ -162,22 +172,30 @@ class Network(object):
             dataType = DataTypeFloat16()
         nn = Network(dataType, netName)
 
+        name2klass = {}
+        Klasses = [
+            ConvLayer, MaxPoolLayer, DataLayer, 
+            AddLayer, AvgPoolLayer, FullLayer,
+            SoftMaxLayer,
+        ]
+        for klass in Klasses:
+            name2klass[klass.gTypeStr()] = klass
+
         layerDicts = jsonDict[Network.layers_key]
+
         for layerDict in layerDicts:
             layerType = layerDict[Layer.type_key]
-            if layerType == ConvLayer.gTypeStr():
-                layer = ConvLayer.constructFromJson(layerDict, nn)
-            elif layerType == MaxPoolLayer.gTypeStr():
-                layer = MaxPoolLayer.constructFromJson(layerDict, nn)
-            elif layerType == DataLayer.gTypeStr():
-                layer = DataLayer.constructFromJson(layerDict, nn)
-            elif layerType == MaxPoolLayer.gTypeStr():
-                layer = MaxPoolLayer.constructFromJson(layerDict, nn)
-            elif layerType == AddLayer.gTypeStr():
-                layer = AddLayer.constructFromJson(layerDict, nn)
+            if layerType == "Full":
+                breakFunc(3)
+            layer = None
+            klass = name2klass[layerType]
+            if klass:
+                layer = klass.constructFromJson(layerDict, nn)
             else:
+                print(layerType)
                 assert False
 
+        nn.__Constructed = True
         return nn
 
 

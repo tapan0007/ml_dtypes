@@ -18,6 +18,11 @@ class CombineLayer(Layer): # abstract class
         super().__init__(param, ofmap_desc, (prev_layer, earlier_layer))
 
     #-----------------------------------------------------------------
+    def gJson(self):
+        x = super().gJson()
+        return x
+
+    #-----------------------------------------------------------------
     def qPassThrough(self):
         return False
 
