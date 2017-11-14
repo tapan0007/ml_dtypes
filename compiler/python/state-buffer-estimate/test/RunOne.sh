@@ -42,8 +42,7 @@ case "x$1" in
 (*) Name=$1; TGZ=$Name.tgz;;
 esac
 
-#test -d ./test || mkdir ./test || Fatal Cannot mkdir dir ./test
-test -d ./results || mkdir ./results || Fatal Cannot mkdir dir ./results
+DIR=./results
 ##############################################################
 SIM=$INKLING/sim/sim
 OBJDUMP=$INKLING/objdump/objdump
@@ -55,7 +54,7 @@ OBJ=$NET.o
 EXE=$NET-exe
 
 RESULTS=./results/$Name
-rm -fR $RESULTS; mkdir $RESULTS
+rm -fR $RESULTS; mkdir $RESULTS || Fatal Cannot mkdir dir $DIR
 
 ASM=$RESULTS/$NET.asm
 TPB=$RESULTS/$NET.tpb

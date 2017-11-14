@@ -30,6 +30,7 @@ class ConcatLayer(CombineLayer):
 
 
     #-----------------------------------------------------------------
+    @classmethod
     def gTypeStr(self):
         return "Concat"
 

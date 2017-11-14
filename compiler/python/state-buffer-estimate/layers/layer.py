@@ -189,6 +189,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         assert(False)
 
     #-----------------------------------------------------------------
+    @classmethod
     @abstractmethod
     def gTypeStr(self):
         assert(False)

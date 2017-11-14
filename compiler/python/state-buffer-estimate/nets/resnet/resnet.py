@@ -116,6 +116,7 @@ class ResNet(Network, metaclass = ABCMeta):
 
 
         self.verify()
+        self.__Constructed = True
 
 
 ##########################################################

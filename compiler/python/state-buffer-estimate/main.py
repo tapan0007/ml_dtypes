@@ -2,6 +2,7 @@ import sys
 assert(sys.version_info.major >= 3)
 import json
 
+##################################################
 from utils.printers             import Printer
 from utils.debug                import breakFunc
 from utils.consts               import *
@@ -16,6 +17,7 @@ from codegen.macroinstrgen      import MacroInstrGen
 
 from schedule.scheduler         import Scheduler
 
+##################################################
 #print(sys.argv)
 
 PrintLevels = False
@@ -28,6 +30,7 @@ ResNet = False
 TrivNet = False
 NetPyFile = None
 UseRelu = False
+JsonFileName = None
 
 argv = sys.argv
 nArgv = len(argv)
@@ -52,6 +55,9 @@ while i < nArgv:
         __DoBatching = True
     elif arg == "--relu":
         UseRelu = True
+    elif arg == "--json":
+        JsonFileName = argv[i+1]
+        i += 1
     else:
         sys.stderr.write("Wrong argument: " + arg + "\n")
         sys.exit(1)
@@ -71,35 +77,36 @@ elif TrivNet:
     #from nets.trivnet.trivnet_compiler import TrivNet
     from trivnet_compiler import TrivNet
     ntwk = TrivNet()
+elif JsonFileName:
+    with open(JsonFileName) as f:
+        jsonContent = f.read()
+    jsonDict = json.loads(jsonContent)
+    ntwk = Network.constructFromJson(jsonDict)
 else:
     sys.stderr.write("Must specify net\n")
     sys.exit(1)
 
 ##################################################
-if True:
-    arch = Arch()
+arch = Arch()
 
-    peArray = arch.gPeArray()
-    psumBuf = arch.gPsumBuffer()
-    pool = arch.gPoolingEng()
-    activ = arch.gActivationEng()
-    stbuf = arch.gStateBuffer()
-    arch.gNumberPsumBanks()
-    arch.gPsumBankEntries()
-    arch.gNumberPeArrayRows()
-    arch.gNumberPeArrayColumns()
-
-
-
-
-
+peArray = arch.gPeArray()
+psumBuf = arch.gPsumBuffer()
+pool = arch.gPoolingEng()
+activ = arch.gActivationEng()
+stbuf = arch.gStateBuffer()
+arch.gNumberPsumBanks()
+arch.gPsumBankEntries()
+arch.gNumberPeArrayRows()
+arch.gNumberPeArrayColumns()
 
 
 ##################################################
 assert(ntwk)
 
 ntwk.rDoBatching(__DoBatching)
-ntwk.construct()
+if not ntwk.qConstructed():
+    ntwk.construct()
+
 scheduler = Scheduler()
 scheduler.Schedule(ntwk)
 ntwk.rLevels(scheduler.gLevels())

@@ -15,6 +15,27 @@ class AddLayer(CombineLayer):
         num_ofmaps = prev_layer.gNumOfmaps()
         super().__init__(param, prev_layer, earlier_layer, num_ofmaps)
 
+    #-----------------------------------------------------------------
+    def gJson(self):
+        x = super().gJson()
+        return x
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def constructFromJson(klass, layerDict, ntwk):
+        layerName = Layer.gLayerNameFromJson(layerDict)
+        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, ntwk)
+        batch = 1
+        param = Layer.Param(layerName, batch, ntwk)
+        prevLayers = Layer.gPrevLayersFromJson(layerDict, ntwk)
+        assert isinstance(prevLayers, list) and len(prevLayers)==2
+
+        return AddLayer(param, prevLayers[0], prevLayers[1])
+
+    #-----------------------------------------------------------------
+    def gJson(self):
+        x = super().gJson()
+        return x
 
     #-----------------------------------------------------------------
     @classmethod
