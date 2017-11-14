@@ -14,12 +14,20 @@ from os.path import abspath
 from pkgs import cmd_line
 from utils import npdiff
 from subprocess import call
+import math
 
 activation_func = {
         "relu" : "2",
         "leakyrelu" : "3",
         "sigmoid" : "4",
         "tanh" : "5"
+        }
+
+rtol = {
+        "relu" : .1,
+        "leakyrelu" : .1,
+        "sigmoid" : .1,
+        "tanh" : .2
         }
 class TestActivation(unittest.TestCase):
     def gold_activation(self, test_name, ifmap, af):
@@ -47,9 +55,10 @@ class TestActivation(unittest.TestCase):
         print ""
         o_gold = self.gold_activation(test_name, ifmap, af)
         o_tpu = self.tpu_activation(test_name, ifmap, af)
-        npdiff.diff(o_gold, o_tpu)
-    def rand_activation_test(self, test_name, itype, i_dims, af):
-        ifmap =  test_utils.randf('i', itype, i_dims)
+        npdiff.diff(o_gold, o_tpu, rtol = rtol[af])
+    def rand_activation_test(self, test_name, itype, i_dims, af, 
+            vmin=None, vmax=None):
+        ifmap =  test_utils.randf('i', itype, i_dims, vmin, vmax)
         self.activation_test(test_name, ifmap, af)
 
     def test_relu_int_small(self):
@@ -76,5 +85,33 @@ class TestActivation(unittest.TestCase):
         af = 'leakyrelu'
         tn = sys._getframe().f_code.co_name
         self.rand_activation_test(tn, itype, idims, af)
+    def test_tanh(self):
+        itype = 'int8'
+        idims = [1,3,16,16]
+        af = 'tanh'
+        tn = sys._getframe().f_code.co_name
+        self.rand_activation_test(tn, itype, idims, af)
+    def test_fp16_tanh(self):
+        itype = 'float16'
+        idims = [1,3,12,16]
+        af = 'tanh'
+        tn = sys._getframe().f_code.co_name
+        self.rand_activation_test(tn, itype, idims, af)
+    def test_sigmoid(self):
+        itype = 'int8'
+        idims = [1,3,16,16]
+        af = 'sigmoid'
+        vmin = -math.log(np.iinfo(itype).max)
+        vmax = -1
+        tn = sys._getframe().f_code.co_name
+        self.rand_activation_test(tn, itype, idims, af, vmin, vmax)
+    def test_fp16_sigmoid(self):
+        itype = 'float16'
+        idims = [1,4,4,4]
+        af = 'sigmoid'
+        vmin = -math.log(np.finfo(itype).max)
+        vmax = -1
+        tn = sys._getframe().f_code.co_name
+        self.rand_activation_test(tn, itype, idims, af, vmin, vmax)
 if __name__ == '__main__':
     unittest.main()

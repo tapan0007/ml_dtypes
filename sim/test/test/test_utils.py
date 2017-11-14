@@ -25,18 +25,20 @@ def rand_fname(preq, dtype, dims):
     assert(not os.path.exists(mypath) and "path exists, clean up input dir?")
     return mypath
 
-def randf(preq, dtype, dims):
-    vmin = None
-    vmax = None
+def randf(preq, dtype, dims, vmin = None, vmax = None):
     if preq == 'f':
-        if 'int' in dtype:
-            vmin = np.iinfo(dtype).min/10
-            vmax = np.iinfo(dtype).max/10
-        else:
-            vmin = np.finfo(dtype).min/1000
-            vmax = np.finfo(dtype).max/1000
+        if vmin is None:
+            if 'int' in dtype:
+                vmin = np.iinfo(dtype).min/10
+            else:
+                vmin = np.finfo(dtype).min/1000
+        if vmax is None:
+            if 'int' in dtype:
+                vmax = np.iinfo(dtype).max/10
+            else:
+                vmax = np.finfo(dtype).max/1000
     mypath = rand_fname(preq, dtype, dims)
-    A = make_array.create(dtype, None, dims)
+    A = make_array.create(dtype, None, dims, vmin, vmax)
     np.save(mypath, A)
     return mypath
 

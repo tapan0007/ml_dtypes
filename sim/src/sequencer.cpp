@@ -230,9 +230,7 @@ Sequencer::synch() {
     static int pe_countdown = 128;
     bool busy = es.pad_valid || es.ifmap_valid  || es.weight_valid ||
         ps.valid || as.valid;
-    if (es.ifmap_valid) {
-        pe_countdown = 128;
-    } else if (ps.valid) {
+    if (es.ifmap_valid || ps.valid || as.valid) {
         pe_countdown = 128;
     } else {
         if (pe_countdown) {
@@ -407,10 +405,6 @@ Sequencer::step_actsignal() {
     if (!as.valid) {
         return;
     }
-    if (act_dst_pit.eop()) {
-        as.valid = false;
-        return;
-    }
     /* eventually want to support quantization here */
     size_t src_dsize = sizeofArbPrecType(as.in_dtype);
     size_t dst_dsize = sizeofArbPrecType(as.out_dtype);
@@ -422,6 +416,9 @@ Sequencer::step_actsignal() {
     if (as.valid) {
         as.src_addr.sys = act_src_base + src_dsize * act_src_pit.coordinates();
         as.dst_addr.sys = act_dst_base + dst_dsize * act_dst_pit.coordinates();
+    }
+    if (act_dst_pit.eop()) {
+        as.valid = false;
     }
 }
 
