@@ -12,10 +12,13 @@ if gold.shape != new.shape:
   print("ERROR: shapes differ, gold %s, new %s" %(gold.shape, new.shape))
   exit(1)
 
-diffAbs = new-gold
-diffRel = 100 * diffAbs / gold
+diffAbs = new.astype(np.float64) - gold.astype(np.float64)
+diffRel = 100 * diffAbs.astype(np.float64) / gold.astype(np.float64)
 
-print("Comparing golden  %s  and  new  %s  files:" % (goldFile, newFile))
+print("Comparing")
+print("GOLDEN  %-10s %-8s %s" % (gold.shape, gold.dtype, goldFile))
+print("NEW     %-10s %-8s %s" % (new.shape, new.dtype, newFile))
+
 print("\nDetailed differences:")
 print("%-20s %-12s %-12s  %-12s %-12s" % ("Index", "Gold", "New", "Rel diff [%]", "Abs diff"))
 for index, g in np.ndenumerate(gold):
