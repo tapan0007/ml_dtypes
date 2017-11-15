@@ -24,9 +24,9 @@ class ProcessingElement : public PeEWInterface, public PeNSInterface  {
         /* caching of  data */
         ArbPrecData partial_sum;
         /* caching of weights, fg and bg, with id ptr */
-        int weight_id;
+        int weight_id = 0;
         ArbPrecData weight[2];
-        ARBPRECTYPE weight_dtype[2];
+        ARBPRECTYPE weight_dtype[2] = {INVALID_ARBPRECTYPE, INVALID_ARBPRECTYPE};
         /* pointers to slave to get inputs from */
         PeNSInterface *north = nullptr;
         PeEWInterface *west  = nullptr;
