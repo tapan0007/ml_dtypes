@@ -85,18 +85,12 @@ class TestActivation(unittest.TestCase):
         af = 'leakyrelu'
         tn = sys._getframe().f_code.co_name
         self.rand_activation_test(tn, itype, idims, af)
-    def test_tanh(self):
-        itype = 'int8'
-        idims = [1,3,16,16]
-        af = 'tanh'
-        tn = sys._getframe().f_code.co_name
-        self.rand_activation_test(tn, itype, idims, af)
     def test_fp16_tanh(self):
         itype = 'float16'
         idims = [1,3,12,16]
         af = 'tanh'
         tn = sys._getframe().f_code.co_name
-        self.rand_activation_test(tn, itype, idims, af)
+        self.rand_activation_test(tn, itype, idims, af, -0.5, 0.5)
     def test_sigmoid(self):
         itype = 'int8'
         idims = [1,3,16,16]
