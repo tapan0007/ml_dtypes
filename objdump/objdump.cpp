@@ -134,6 +134,27 @@ main(int argc, char **argv)
                     PF(num_partitions, "0x%lx")
                 }
                 break;
+            case ACTIVATION_OPC:
+                {
+                    ACTIVATION *args = (ACTIVATION *)buffer;
+                    print_name_header("ACTIVATION", fptr);
+                    PF(hdr.opcode, "0x%x")
+                    PF(in_data_type, "0x%x")
+                    PF(out_data_type, "0x%x")
+                    PF(activation_func, "0x%x")
+                    PF(src_start_addr, "0x%lx")
+                    PF(src_x_step, "0x%lx")
+                    PF(src_x_num_elements, "0x%lx")
+                    PF(src_y_step, "0x%lx")
+                    PF(src_y_num_elements, "0x%lx")
+                    PF(dst_start_addr, "0x%lx")
+                    PF(dst_x_step, "0x%lx")
+                    PF(dst_x_num_elements, "0x%lx")
+                    PF(dst_y_step, "0x%lx")
+                    PF(dst_y_num_elements, "0x%lx")
+                    PF(num_partitions, "0x%lx")
+                }
+                break;
             default:
                 assert(0);
 
