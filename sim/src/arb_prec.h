@@ -63,6 +63,21 @@ inline ArbPrecData multiply(const ArbPrecData& x, const ArbPrecData& y,
 inline ArbPrecData add(const ArbPrecData& x, const ArbPrecData& y,
                        ARBPRECTYPE in_type);
 
+/** Fuse-multiply-add on two arbitrary precision values.
+ *
+ *  Performs an 'x*y+z' on three arbitrary precision values.
+ *
+ *  @param[in] x
+ *  @param[in] y
+ *  @param[in] z
+ *  @param[in] in_type - The type of x, y, and z.
+ *  @param[out] out_type - The type of the result of 'x*y'.
+ *
+ *  @return x*y + z
+ */
+inline ArbPrecData fma(const ArbPrecData& x, const ArbPrecData& y,
+        const ArbPrecData& z, ARBPRECTYPE in_type, ARBPRECTYPE& out_type);
+
 /** Divides an arbitrary precision values by an unsigned integer.
  *
  *  Performs 'x/uy'.
@@ -73,6 +88,7 @@ inline ArbPrecData add(const ArbPrecData& x, const ArbPrecData& y,
  *
  *  @return x/uy
  */
+
 inline ArbPrecData int_divide(const ArbPrecData& x, int y,
                                ARBPRECTYPE in_type);
 
@@ -415,6 +431,68 @@ inline ArbPrecData Add::eval<ARBPRECTYPE::FP16>(
     return real_result;
 }
 
+/** Operator class for 'unroll' that will perform FMAs. */
+struct FusedMultiplyAdd
+{
+    template <int Type>
+    static inline ArbPrecData eval(
+            const ArbPrecData& x, 
+            const ArbPrecData& y, 
+            const ArbPrecData& z, 
+            ARBPRECTYPE& r)
+    {
+        ARBPRECTYPE in_r = (ARBPRECTYPE)Type;
+        ArbPrecData mult_result = ArbPrec::multiply(x, y, in_r, r);
+
+        return ArbPrec::add(mult_result, z, r);
+    }
+};
+
+template <>
+inline ArbPrecData FusedMultiplyAdd::eval<ARBPRECTYPE::FP32>(
+        const ArbPrecData& x,
+        const ArbPrecData& y, 
+        const ArbPrecData& z, 
+        ARBPRECTYPE& r)
+{
+    static constexpr auto Type = ARBPRECTYPE::FP32;
+    static constexpr auto result_type = multResult<Type>();
+    using result_t = typename TypeOf<result_type>::type;
+
+    r = result_type;
+    result_t result =  std::fma(extract<Type>(x), extract<Type>(y),
+            extract<Type>(z));
+
+    ArbPrecData real_result;
+    Extract<result_type>::extract(real_result) = result;
+
+    return real_result;
+}
+
+template <>
+inline ArbPrecData FusedMultiplyAdd::eval<ARBPRECTYPE::FP16>(
+        const ArbPrecData& x,
+        const ArbPrecData& y, 
+        const ArbPrecData& z, 
+        ARBPRECTYPE& r)
+{
+    static constexpr auto Type = ARBPRECTYPE::FP16;
+    static constexpr auto result_type = multResult<Type>();
+    using result_t = typename TypeOf<result_type>::type;
+
+    r = result_type;
+    result_t result = 
+        std::fma(fp16_ieee_to_fp32_value(extract<Type>(x)),
+                fp16_ieee_to_fp32_value(extract<Type>(y)),
+                extract<result_type>(z));
+
+    ArbPrecData real_result;
+    Extract<result_type>::extract(real_result) = result;
+
+    return real_result;
+}
+
+
 /** Operator class for 'unroll' that will perform division with signed. */
 struct IntDivide
 {
@@ -586,6 +664,14 @@ inline ArbPrecData add(const ArbPrecData& x, const ArbPrecData& y,
                        ARBPRECTYPE in_type)
 {
     return details::unroll<details::Add>(in_type, in_type, x, y);
+}
+
+/* multiply */
+inline ArbPrecData fma(const ArbPrecData& x, const ArbPrecData& y,
+        const ArbPrecData & z, ARBPRECTYPE in_type, ARBPRECTYPE& out_type)
+{
+    return details::unroll<details::FusedMultiplyAdd>(in_type, out_type, 
+            x, y, z);
 }
 
 /* int_divide */
