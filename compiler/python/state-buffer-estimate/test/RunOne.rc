@@ -43,7 +43,9 @@ N=$Name
 
 tar xvfz $TGZ
 ##############################################################
-. files.rc
+F=files.rc
+test -r $F || Fatal Missing file $F
+. $F
 NetName=${ egrep 'class.*:' $NetPy | sed -e 's/class *//' -e 's/[(].*//' }
 LastLayerName=${ egrep 'Layer.Param' $NetPy | tail -n 1 | sed -e 's/.*Layer.Param[(]["]//' -e 's/",.*//' }
 InputNpy=${ egrep inputDataFileName $NetPy | sed -e 's/.*FileName="//' -e 's/",.*//' }
