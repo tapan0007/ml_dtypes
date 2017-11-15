@@ -1,5 +1,6 @@
 SCRIPT=$0
 
+##############################################################
 Error () {
     echo 1>&2 "$@"
 }
@@ -23,8 +24,10 @@ esac
 export COMPILER=$KAENA_PATH/compiler/python/state-buffer-estimate
 export TEST=$COMPILER/test
 export npy_diff=$KAENA_PATH/compiler/util/npy_diff_files
-export DUMPNPY=$KAENA_PATH/compiler/util/dumpnpy
+export DUMPNPY=$KAENA_PATH/compiler/util/npy2txt
 export INKLING=$INKLING_PATH
+SIM=$INKLING/sim/sim
+OBJDUMP=$INKLING/objdump/objdump
 
 export PYTHONPATH=$PYTHONPATH:$COMPILER
 ##############################################################
@@ -44,6 +47,17 @@ case $# in
 (0) FatalUsage;;
 esac
 
+JSON=false
+
+while let "$# != 0"
+do
+    case "x$1" in
+    (x-json|x--json) JSON=true ;;
+    (x-*) Fatal Wrong option "$1" ;;
+    (*) break;;
+    esac
+done
+
 case "x$1" in
 (x*.tgz)
     TGZ=$1; 
@@ -55,8 +69,6 @@ esac
 
 DIR=./results
 ##############################################################
-SIM=$INKLING/sim/sim
-OBJDUMP=$INKLING/objdump/objdump
 
 ##############################################################
 tar xvfz $TGZ

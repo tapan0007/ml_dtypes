@@ -58,6 +58,9 @@ while i < nArgv:
     elif arg == "--json":
         JsonFileName = argv[i+1]
         i += 1
+    elif arg == "--netpy":
+        NetPyFileName = argv[i+1]
+        i += 1
     else:
         sys.stderr.write("Wrong argument: " + arg + "\n")
         sys.exit(1)
@@ -82,6 +85,9 @@ elif JsonFileName:
         jsonContent = f.read()
     jsonDict = json.loads(jsonContent)
     ntwk = Network.constructFromJson(jsonDict)
+elif NetPyFileName:
+    from trivnet_compiler import TrivNet
+    ntwk = TrivNet()
 else:
     sys.stderr.write("Must specify net\n")
     sys.exit(1)

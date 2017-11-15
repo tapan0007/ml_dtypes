@@ -1,0 +1,37 @@
+#! /usr/bin/env sh
+
+Error () {
+    echo 1>&2 "$@"
+}
+Fatal () {
+    Error "$@"
+    exit 1
+}
+
+while let "$# != 0"
+do
+    case "x$1" in
+    (x--int16|x-int16)                      TYPE=uint16 ;;
+    (x--uint16|x-uint16)                    TYPE=uint16 ;;
+    (x--int8|x-int8)                        TYPE=uint8 ;;
+    (x--uint8|x-uint8)                      TYPE=uint8 ;;
+    (x--float16|x--fp16|x-float16|x-fp16)   TYPE=float16 ;;
+    (x-*) Fatal Wrong option $1 ;;
+    (*)   break ;;
+    esac
+    shift
+done
+
+case "x$TYPE" in
+(x) Fatal Need type size option: --int8, --uint8, --int16, --uint16, --float16 ;;
+esac
+file=$1
+
+q=''''
+qq='"'
+
+#python3_cmd =  'import numpy as np; x=np.load("' ^ $file ^ '"); print("Output OFMAP\n", x)'
+python3_cmd='import numpy as np; x=np.load("'${file}'"); print("Output FMAP", x.shape, "\n", x.view(dtype=np.'${TYPE}'))'
+
+exec python3 -c "$python3_cmd"
+
