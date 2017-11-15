@@ -6,12 +6,35 @@
 // Single state buffer
 //------------------------------------------------------------------
 StateBuffer::StateBuffer(MemoryMap *mmap, addr_t base, size_t nbytes) {
+    this->ew.pixel_valid   = false;
+    this->ew.weight_toggle = false;
     this->mem = mmap->mmap(base, nbytes);
 }
 
 
 PeEWSignals
 StateBuffer::pull_ew() {
+    return ew;
+}
+
+void
+StateBuffer::connect_north(EdgeInterface *_north) {
+    north = _north;
+}
+
+EdgeSignals
+StateBuffer::pull_edge() {
+    return ns;
+}
+
+bool
+StateBuffer::pull_clamp() {
+    return ns.weight_clamp;
+}
+
+void
+StateBuffer::step_read() {
+    ns = north->pull_edge();
     ArbPrecData weight;
     weight.raw = 0;
     ArbPrecData pixel;
@@ -35,29 +58,11 @@ StateBuffer::pull_ew() {
         }
     }
 
-    return PeEWSignals{pixel, pixel_valid, weight, ns.weight_dtype, ns.weight_toggle};
-}
+    ew = PeEWSignals{pixel, pixel_valid, weight, ns.weight_dtype, 
+        ns.weight_toggle};
 
-void
-StateBuffer::connect_north(EdgeInterface *_north) {
-    north = _north;
-}
-
-EdgeSignals
-StateBuffer::pull_edge() {
-    return ns;
-}
-
-bool
-StateBuffer::pull_clamp() {
-    return ns.weight_clamp;
-}
-
-void
-StateBuffer::step_read() {
-    ns = north->pull_edge();
     if (ns.row_valid) {
-        ns.row_valid = ((ns.row_countdown--) > 0);
+        ns.row_valid = ((--ns.row_countdown) > 0);
     }
 }
 

@@ -16,6 +16,7 @@ class StateBuffer : public PeEWInterface, public EdgeInterface, public SbEWBroad
     private:
         EdgeInterface           *north        = nullptr;
         EdgeSignals              ns           = {0};
+        PeEWSignals              ew;
         MemoryMapInstance       *mem;
 
 };
