@@ -354,10 +354,6 @@ Sequencer::step_poolsignal() {
         return;
     }
 
-    if (pool_dst_pit.eop()) {
-        ps.valid = false;
-        return;
-    }
 
     /* eventually want to support quantization here */
     size_t src_dsize = sizeofArbPrecType(ps.in_dtype);
@@ -396,6 +392,10 @@ Sequencer::step_poolsignal() {
     if (ps.start) {
         ps.dst_addr.sys = pool_dst_base + dst_dsize * 
             pool_dst_pit.coordinates();
+    }
+    if (pool_dst_pit.eop()) {
+        ps.valid = false;
+        return;
     }
 }
 

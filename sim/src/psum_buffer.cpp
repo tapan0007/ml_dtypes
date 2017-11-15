@@ -72,7 +72,7 @@ PSumBuffer::step() {
         }
 
         if (ew.column_valid) {
-            ew.column_valid = ((ew.column_countdown--) > 0);
+            ew.column_valid = ((--ew.column_countdown) > 0);
         }
     }
 }
