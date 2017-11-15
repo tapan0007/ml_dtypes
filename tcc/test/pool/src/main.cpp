@@ -3,61 +3,16 @@
 #include "tpb_isa.h"
 #include "uarch_cfg.h"
 #include "tcc.h"
+#include "utils.h"
 
-
-void
-get_dims(char *fname, unsigned int *&shape, unsigned int &word_size, ARBPRECTYPE &dtype) {
-    bool fortran_order;
-    unsigned int ndims;
-    char ctype;
-    FILE *fp = fopen(fname, "r");
-    cnpy::parse_npy_header(fp, word_size, shape, ndims, fortran_order, ctype);
-
-    switch (word_size) {
-        case 1:
-            switch (ctype) {
-                case 'u':
-                    dtype = UINT8;
-                    break;
-                case 'i':
-                    dtype = INT8;
-                    break;
-                default:
-                    assert(0);
-            }
-            break;
-        case 2:
-            switch (ctype) {
-                case 'u':
-                    dtype = UINT8;
-                    break;
-                case 'i':
-                    dtype = INT8;
-                    break;
-                case 'f':
-                    dtype = FP16;
-                    break;
-                default:
-                    assert(0);
-            }
-            break;
-        default:
-            assert(0);
-    }
-}
-
-
-
-#define SB_STEP 13
 
 int 
 main(int argc, char **argv) 
 {
-    addr_t ifmap_full_addr  = 0 * (1 << SB_STEP);
-    addr_t ofmap_full_addr  = 2 * (1 << SB_STEP);
-    unsigned int *i_dims;
-	uint64_t i64_dims[4], o_dims[4], s_dims[4], k_dims[4];
-    unsigned int word_size;
+    addr_t ifmap_full_addr  = 0;
+    addr_t ofmap_full_addr  = 0;
+    uint64_t i_dims[4], o_dims[4], s_dims[4], k_dims[4];
+    unsigned int word_size, tot_size;
     ARBPRECTYPE dtype = INVALID_ARBPRECTYPE;
     char *i_name, *o_name, *binary_name;
     int i = 1;
@@ -88,13 +43,10 @@ main(int argc, char **argv)
     }
 
 
-    get_dims(i_name, i_dims, word_size, dtype);
-    for (size_t j = 0; j < 4; j++) {
-        i64_dims[j] = i_dims[j]; /* type conversion */
-    }
+    get_dims(i_name, i_dims, word_size, tot_size, dtype);
 
     compile_read_ifmap(fptr, ifmap_full_addr, i_name, "NCHW");
-    compile_pool(fptr, ifmap_full_addr, i64_dims, k_dims, 
+    compile_pool(fptr, ifmap_full_addr, i_dims, k_dims, 
             ofmap_full_addr, o_dims, s_dims, dtype, (POOLFUNC)pool_func);
     compile_write_ofmap(fptr, o_name, ofmap_full_addr,
             o_dims, dtype);

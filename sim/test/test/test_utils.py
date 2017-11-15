@@ -10,9 +10,9 @@ for path in paths:
     if not apath in sys.path:
         sys.path.insert(1, apath)
 
-TEST_CONVOLVE='../../tcc/test/convolve/test_convolve'
-TEST_POOL='../../tcc/test/pool/test_pool'
-TEST_ACTIVATION='../../tcc/test/activation/test_activation'
+TEST_CONVOLVE='../../tcc/test/convolve/test_convolve.bin'
+TEST_POOL='../../tcc/test/pool/test_pool.bin'
+TEST_ACTIVATION='../../tcc/test/activation/test_activation.bin'
 SIM = '../../sim/sim'
 
 import numpy as np
