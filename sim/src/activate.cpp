@@ -58,10 +58,7 @@ Activate::step()
                 break;
             case TANH:
                 /* tanh(x) */
-                /* Use std::tanh not c's math.h tanh, because std returned
-                 * float, math.h returns double, which then is implicitly 
-                 * rounded to float */
-                out_pixel.fp32 = trunc(std::tanh((double)in_fp32)); 
+                out_pixel.fp32 = std::tanh((double)in_fp32); 
                 break;
             case IDENTITY:
                 out_pixel = in_pixel;

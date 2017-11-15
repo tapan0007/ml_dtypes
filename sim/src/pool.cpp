@@ -30,11 +30,7 @@ Pool::step() {
 
 
     memory->read_global(&raw_pixel, ps.src_addr.sys, in_dsize);
-    if (ps.func == AVG_POOL) {
-        in_pixel = ArbPrec::cast_to_fp32(raw_pixel, in_dtype);
-    }  else {
-        in_pixel = raw_pixel;
-    }
+    in_pixel = ArbPrec::cast_to_fp32(raw_pixel, in_dtype);
 
     /* start ! */
     if (ps.start) {
@@ -63,7 +59,7 @@ Pool::step() {
             if (ps.start) {
                 pool_pixel = in_pixel;
             } else {
-                if (ArbPrec::gt(in_pixel, pool_pixel, in_dtype)) {
+                if (ArbPrec::gt(in_pixel, pool_pixel, ARBPRECTYPE::FP32)) {
                     pool_pixel = in_pixel;
                 }
             }
@@ -74,18 +70,8 @@ Pool::step() {
     }
 
     if (ps.stop) {
-        switch (ps.func) {
-            case IDENTITY_POOL:
-                assert(ps.start == ps.stop);
-                break;
-            case AVG_POOL:
-                pool_pixel = ArbPrec::cast_from_fp32(pool_pixel, out_dtype);
-                break;
-            case MAX_POOL:
-                break;
-            default:
-                assert(0 && "that pooling is not yet supported");
-                break;
+        if (out_dtype != ARBPRECTYPE::FP32) {
+            pool_pixel = ArbPrec::cast_from_fp32(pool_pixel, out_dtype);
         }
         memory->write_global(ps.dst_addr.sys, &pool_pixel, out_dsize);
     }
