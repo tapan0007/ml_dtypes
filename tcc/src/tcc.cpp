@@ -137,9 +137,10 @@ _pool_tile(FILE *fptr,
         const addr_t dst_addr,
         const size_t tile_sz_y, const size_t tile_sz_x,
         const uint64_t o_dims[4],
-        const ARBPRECTYPE pool_dtype)
+        const ARBPRECTYPE pool_dtype, 
+        const ARBPRECTYPE out_dtype)
 {
-    addr_t dsize = sizeofArbPrecType(pool_dtype);
+    addr_t pool_dsize = sizeofArbPrecType(pool_dtype);
     POOL      pool_args;
     uint64_t o_cols = o_dims[3];
     uint64_t o_ch    = o_dims[1];
@@ -147,9 +148,9 @@ _pool_tile(FILE *fptr,
     /* pool args */
     pool_args.pool_func = IDENTITY_POOL;
     pool_args.in_dtype     = pool_dtype;
-    pool_args.out_dtype    = pool_dtype;
+    pool_args.out_dtype    = out_dtype;
 
-    pool_args.src_x_step= 8/dsize;
+    pool_args.src_x_step= 8/pool_dsize;
     pool_args.src_y_step= 1;
     pool_args.src_x_num = tile_sz_x * tile_sz_y;
     pool_args.src_y_num = 1;
@@ -218,7 +219,8 @@ compile_convolve(FILE *fptr,
         const addr_t *ifmap_addr, const uint64_t idim[4],
         const addr_t *filter_addr, const uint64_t wdim[4],
         const addr_t ofmap_addr, uint64_t o_dims[4],
-        const ARBPRECTYPE dtype,
+        const ARBPRECTYPE in_dtype, 
+        const ARBPRECTYPE out_dtype, /*performs conversion */
         const uint8_t padding[2], const uint8_t striding[2], 
         const uint8_t dilate[2])
 {
@@ -242,16 +244,16 @@ compile_convolve(FILE *fptr,
     o_dims[3] = (i_cols - f_cols_dilated + 2 * p_cols) / s_cols + 1;
     uint8_t o_rows = o_dims[2];
     uint8_t o_cols = o_dims[3];
-    addr_t dsize = sizeofArbPrecType(dtype);
+    addr_t in_dsize  = sizeofArbPrecType(in_dtype);
+    addr_t out_dsize = sizeofArbPrecType(out_dtype);
     Tile_Dims tile_dims = Tile_Dims(o_rows, o_cols);
 
     /* tile args */
 
     uint8_t pads[NUM_NSEW];
     addr_t matmul_offset;
-    ARBPRECTYPE pool_dtype = get_upcast(dtype);
+    ARBPRECTYPE pool_dtype = get_upcast(in_dtype);
     addr_t pool_dst_addr = ofmap_addr;
-    size_t pool_dsize = sizeofArbPrecType(pool_dtype);
     //  FIXME: assuming psum_base == sb_size
     addr_t psum_addr = MMAP_PSUM_BASE;
     uint8_t row_offset, col_offset;
@@ -272,19 +274,19 @@ compile_convolve(FILE *fptr,
             pads[N] = tt & N_FLAG ? p_rows : 0;
             pads[S] = tt & S_FLAG ? p_rows : 0;
     
-            matmul_offset = (row_offset * i_cols + col_offset) * dsize;
+            matmul_offset = (row_offset * i_cols + col_offset) * in_dsize;
             pool_dst_addr = ofmap_addr + tile_dims.flatten_coord(i, j) *
-                pool_dsize;
+                out_dsize;
 
             _convolve_tile(fptr,
                     ifmap_addr, matmul_offset, idim,
                     filter_addr, wdim,
                     psum_addr,
-                    dtype, tile_sz_y, tile_sz_x, pads, striding);
+                    in_dtype, tile_sz_y, tile_sz_x, pads, striding);
             _pool_tile(fptr,
                     psum_addr, pool_dst_addr,
                     tile_sz_y, tile_sz_x,
-                    o_dims, pool_dtype);
+                    o_dims, pool_dtype, out_dtype);
 
             psum_addr += (1 << COLUMN_BYTE_OFFSET_BITS);
             if (psum_addr >= MMAP_PSUM_BASE + (1 << COLUMN_BYTE_OFFSET_BITS) * 

@@ -106,7 +106,11 @@ main(int argc, char **argv)
 
 
     get_dims(i_names[0], i_dims, word_size, dtype);
-    o_dtype = get_upcast(dtype);
+    if (dtype == ARBPRECTYPE::FP16) {
+        o_dtype = ARBPRECTYPE::FP16;
+    } else {
+        o_dtype = get_upcast(dtype);
+    }
 
     assert(num_inames <= 2);
     uint64_t i_ch = 0;
@@ -142,7 +146,7 @@ main(int argc, char **argv)
             ifmap_addr, i64_dims,
             filter_addr, f64_dims,
             ofmap_addr, o_dims,
-            dtype, padding, stride, dilate);
+            dtype, o_dtype, padding, stride, dilate);
     compile_write_ofmap(fptr, o_name, ofmap_addr, o_dims, o_dtype);
 
 

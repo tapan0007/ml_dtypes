@@ -136,11 +136,16 @@ class TestConvolve(unittest.TestCase):
         p = ["1", "1"]
         tn = sys._getframe().f_code.co_name
         self.rand_convolve_test(tn, prec, idims, prec, fdims, pad=p)
+    def test_fp16_1x1_tiny(self):
+        prec = 'float16'
+        idims = [1,1,1,1]
+        fdims = [1,1,1,1]
+        tn = sys._getframe().f_code.co_name
+        self.rand_convolve_test(tn, prec, idims, prec, fdims)
     def test_fp16_3x3_filter_small_img(self):
         prec = 'float16'
         idims = [1,3,3,3]
         fdims = [1,3,3,3]
-        p = ["1", "1"]
         tn = sys._getframe().f_code.co_name
         self.rand_convolve_test(tn, prec, idims, prec, fdims)
 #    def test_3x3_filter_big_img_pad_1(self):
