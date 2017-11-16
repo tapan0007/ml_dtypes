@@ -77,7 +77,7 @@ LOG=$RESULTS/LOG
 ##############################################################
 {
 
-cmd=(python3 $Compiler/main.py --netpy $NetPy)
+cmd=(python3 $Compiler/compiler.py --netpy $NetPy)
 RunCmd $cmd || Fatal Failed $cmd
 cp -p $CPP $RESULTS/.
 
