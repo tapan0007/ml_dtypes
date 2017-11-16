@@ -77,9 +77,9 @@ F=./net_json_params.sh
 test -r $F || Fatal missing file $F
 . $F
 
-sed1='s/.*":  *"//'; sed2='s/",.*//'
+sed1='s/.*": *"//'; sed2='s/"[,]* *//'
 
-InputNpy=$( egrep '"input_file":' $JsonFile | sed -e "$sed1" -e "$sed2" )
+InputNpy=$( egrep '"ref_file":' $JsonFile | head -n 1 | sed -e "$sed1" -e "$sed2" )
 NetName=$( egrep '"net_name":' $JsonFile | sed -e "$sed1" -e "$sed2" )
 LastLayerName=$( egrep '"layer_name":' $JsonFile | tail -n 1| sed -e "$sed1" -e "$sed2" )
 
@@ -122,7 +122,7 @@ LIBDIR_FLAGS="-L$LIBDIR1"
 
 CXX=g++
 CXX=clang++
-RunCmd $CXX $CPPFLAGS -c "$CPP" || Fatal Failed to compile $CPP
+RunCmd $CXX $CPPFLAGS -c $CPP || Fatal Failed to compile $CPP
 RunCmd $CXX $LDFLAGS -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS || Fatal Failed to link $OBJ
 
 ##############################################################

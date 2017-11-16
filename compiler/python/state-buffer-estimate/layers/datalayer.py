@@ -5,8 +5,7 @@ import nets.network
 
 ##########################################################
 class DataLayer(Layer):
-    input_file_key = "input_file"
-    input_dims_key = "input_dims"
+    input_dims_key = "ofmap_format"
 
     #-----------------------------------------------------------------
     # TODO: remove default values for input data file name and tensor dimension meaning string
@@ -19,7 +18,7 @@ class DataLayer(Layer):
     def gJson(self):
         x = super().gJson()
         y = {
-            DataLayer.input_file_key    : self.__InputDataFileName,
+            Layer.ref_file_key    : self.__InputDataFileName,
             DataLayer.input_dims_key : self.__DataTensorDimSemantics
         }
         r = self.combineJson( (x, y) )
@@ -31,7 +30,7 @@ class DataLayer(Layer):
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
         layerName = Layer.gLayerNameFromJson(layerDict)
 
-        inputFileName = layerDict[DataLayer.input_file_key]
+        inputFileName = layerDict[Layer.ref_file_key]
         tensorSemantics = layerDict[DataLayer.input_dims_key]
         batch = 1
 
@@ -56,7 +55,7 @@ class DataLayer(Layer):
     #-----------------------------------------------------------------
     @classmethod
     def gTypeStr(klass):
-        return "Data"
+        return "Input"
 
     #-----------------------------------------------------------------
     def verify(self):
