@@ -43,7 +43,7 @@ N=$Name
 
 tar xvfz $TGZ
 ##############################################################
-F=files.rc
+F=./net_py_params.sh
 test -r $F || Fatal Missing file $F
 . $F
 NetName=${ egrep 'class.*:' $NetPy | sed -e 's/class *//' -e 's/[(].*//' }
@@ -83,7 +83,7 @@ cp -p $CPP $RESULTS/.
 ##############################################################
 ##############################################################
 ## compile C++
-FLAGS=(-W -Wall -Werror -ggdb -g)
+FLAGS=(-W -Wall -Werror -ggdb -g -pedantic)
 INC_FLAGS=(-I$INKLING/shared/inc -I$INKLING/tcc/inc)
 CFLAGS=($FLAGS -I. $INC_FLAGS -Wno-missing-field-initializers)
 CPPFLAGS=($CFLAGS -std=c++11)
@@ -91,8 +91,10 @@ LDFLAGS=($FLAGS -ltcc)
 LIBDIR1=($INKLING/tcc/libs)
 LIBDIR_FLAGS=(-L$LIBDIR1)
 
-g++ $CPPFLAGS -c $CPP || Fatal Failed to compile $CPP
-g++ $LDFLAGS -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS || Fatal Failed to link $OBJ
+CXX=g++
+CXX=clang++
+RunCmd $CXX $CPPFLAGS -c $CPP || Fatal Failed to compile $CPP
+RunCmd $CXX $LDFLAGS -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS || Fatal Failed to link $OBJ
 
 ##############################################################
 RunCmd ./$EXE $TPB || Fatal Failed ./$EXE $TPB
@@ -102,15 +104,10 @@ RunCmd $ObjDump $TPB > $ASM || Fatal Failed to create $ASM
 RunCmd shasum $TPB
 
 ##############################################################
-echo $SIM $TPB
-$SIM $TPB >$SIMRES || Fatal Sim failed on $TPB
-
 SimOutputNpy=$NetName-$LastLayerName-simout.npy
-SimOutputNpy=${ echo $SimOutputNpy | sed -e 's@/@-@g' }
+SimOutputNpy=${ echo $SimOutputNpy | sed -e 's@/@-@g' }  ## remove '/'s from layer name
+
 ##############################################################
-
-
-
 RunCmd $ObjDump $TPB > $ASM || Fatal Failed to create $ASM
 
 RunCmd shasum $TPB

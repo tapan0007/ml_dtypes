@@ -73,7 +73,10 @@ DIR=./results
 ##############################################################
 tar xvfz $TGZ
 #PYTHONPATH="$PYTHONPATH:$PWD"
-. ./files.sh 
+F=./net_json_params.sh
+test -r $F || Fatal missing file $F
+. $F
+
 sed1='s/.*":  *"//'; sed2='s/",.*//'
 
 InputNpy=$( egrep '"input_file":' $JsonFile | sed -e "$sed1" -e "$sed2" )
@@ -116,8 +119,10 @@ LDFLAGS="$FLAGS -ltcc"
 LIBDIR1="$INKLING/tcc/libs"
 LIBDIR_FLAGS="-L$LIBDIR1"
 
-g++ $CPPFLAGS -c "$CPP" || Fatal Failed to compile $CPP
-g++ $LDFLAGS -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS || Fatal Failed to link $OBJ
+CXX=g++
+CXX=clang++
+RunCmd $CXX $CPPFLAGS -c "$CPP" || Fatal Failed to compile $CPP
+RunCmd $CXX $LDFLAGS -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS || Fatal Failed to link $OBJ
 
 ##############################################################
 RunCmd ./$EXE $TPB || Fatal Failed ./$EXE $TPB
