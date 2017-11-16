@@ -1,7 +1,7 @@
 # Examples
 #   cd /tmp (some empty dir)
 #   setenv KAENA_PATH /your/install/path/of/Kaena
-#   make -f $KAENA_PATH/compiler/tffe/Makefile  jdr_v2  NN_CONFIG=b1-h4-r2-s1-c2-m1-wmin-0.1-wmax0.2-imin1-imax5  OUT_PREFIX=trivnet_  NN_NAME=1conv
+#   make -f $KAENA_PATH/compiler/tffe/Makefile  jdr_v2  NN_CONFIG=b1-h4-r3-s1-c2-m1-wmin-0.1-wmax0.2-imin1-imax5  OUT_PREFIX=trivnet_  NN_NAME=1conv
 #     # For NN_CONFIG semantic see the NN generator  compiler/util/tffe_sweep_1conv
 #   This generates data flow graph svg, K-graph package tgz
 
