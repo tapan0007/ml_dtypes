@@ -8,7 +8,7 @@ import nets.network
 
 ##########################################################
 class ConvLayer(SubSampleLayer):
-    filter_file_key = "kernel_file" 
+    filter_file_key   = "kernel_file" 
     kernel_format_key = "kernel_format"
 
     #-----------------------------------------------------------------
@@ -27,7 +27,7 @@ class ConvLayer(SubSampleLayer):
     def gJson(self):
         x = super().gJson()
         y = {
-            ConvLayer.filter_file_key : self.__FilterFileName,
+            ConvLayer.filter_file_key   : self.__FilterFileName,
             ConvLayer.kernel_format_key : self.__FilterTensorDimSemantics 
         }
         r = self.combineJson( (x, y) )
