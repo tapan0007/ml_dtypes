@@ -106,7 +106,7 @@ LOG=$RESULTS/LOG
 ##############################################################
 ## First make NET.py file
 #touch __init__.py
-RunCmd python3 $COMPILER/main.py --json $JsonFile
+RunCmd python3 $COMPILER/main.py --json $JsonFile || Fatal Failed python3 $COMPILER/main.py --json $JsonFile
 cp -p $CPP $RESULTS/.
 
 ##############################################################
