@@ -1,19 +1,49 @@
 #!/usr/bin/env python3
 
-import os
+# Basic minimal suite of TF to Inkling tests
+
+import os, sys
+import argparse
+
+kPath = os.environ.get('KAENA_PATH')
+iPath = os.environ.get('INKLING_PATH')
+if kPath == None or iPath == None or not os.path.isdir(kPath) or not os.path.isdir(iPath):
+  print("ERROR: make sure KAENA_PATH and INKLING_PATH environment is set");
+  exit(1)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--test', help='Run specific tests (list)', nargs='+', default=[])
+parser.add_argument('--stop_after', help='Supported: frontend, backend (default)', default="backend")
+parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
+
+args = parser.parse_args()
+verbose = args.verbose
+
+if verbose:
+  print("\nINFO: started as  ", " ".join(sys.argv))
 
 tests = {
   "t0001" : [ "jdr_v2", "b1-h1-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv"],
-  "t0002" : [ "jdr_v3", "b1-h1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "1conv"],
+  "t0002" : [ "jdr_v3", "b1-h1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "2conv"],
   "t0003" : [ "jdr_v3", "b1-Zh1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "I_ALWAYS_FAIL"],
   "t0010" : [ "jdr_v2", "b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "t0011" : [ "jdr_v2", "b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "t0012" : [ "jdr_v2", "b1-h35-r3-s1-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"]
 }
 
-for testName in sorted(tests):
+testList = sorted(tests)
+if len(args.test) > 0:
+  testList = args.test
+
+for testName in testList:
   (nnStruct, nnConfig, nnLabel) = tests[testName]
-  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/Makefile %s NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=%s > log 2>&1; date; test -f *.tgz && echo PASS || echo FAIL' % (testName, testName, nnStruct, nnConfig, nnLabel)
-  print("\nExecuting ", cmd)
+  if verbose:
+    print("\n############## %s ##############" % testName)
+  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/Makefile %s NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=%s > log-fe.txt 2>&1; test -f *.tgz; ' % (testName, testName, nnStruct, nnConfig, nnLabel)
+  if args.stop_after == "backend":
+    cmd += 'bash $KAENA_PATH/compiler/python/state-buffer-estimate/test/RunOne.sh *tgz > log-be.txt 2>&1; '
+  cmd += 'echo -n PASS || echo -n FAIL; echo "  "' + testName
+  if verbose:
+    print("Executing ", cmd)
   os.system(cmd)
   
