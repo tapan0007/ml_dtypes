@@ -10,11 +10,13 @@ from utils.funcs     import kstr, Kstr
 class Layer(object, metaclass = ABCMeta): # abstract class
     layer_name_key    = "layer_name"
     type_key          = "layer_type"
-    ofmap_key         = "ofmaps"
+    ofmap_key         = "ofmap_shape"
+    ref_file_key      = "ref_file"
+    prev_layers_key   = "previous_layers"
+
     number_ofmaps_key = "number_ofmaps"
     ofmap_width_key   = "ofmap_width"
     ofmap_height_key  = "ofmap_height"
-    prev_layers_key   = "prev_layers"
 
     ######################################################
     class Param(object):

@@ -5,16 +5,17 @@ import nets.network
 
 ##########################################################
 class SubSampleLayer(Layer): # abstract class
-    kernel_key = "kernel"
-    kernel_height_key = "height"
-    kernel_width_key = "width"
-    stride_key = "stride"
-    stride_lr_key = "LR"
-    stride_bt_key = "BT"
-    padding_key = "padding"
-    padding_left_key = "left"
-    padding_right_key = "right"
-    padding_top_key = "top"
+    kernel_key         = "kernel_shape"
+    stride_key         = "stride"
+    padding_key        = "padding"
+
+    kernel_height_key  = "height"
+    kernel_width_key   = "width"
+    stride_lr_key      = "LR"
+    stride_bt_key      = "BT"
+    padding_left_key   = "left"
+    padding_right_key  = "right"
+    padding_top_key    = "top"
     padding_bottom_key = "bottom"
 
     #-----------------------------------------------------------------
