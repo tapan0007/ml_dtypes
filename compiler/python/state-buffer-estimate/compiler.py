@@ -93,6 +93,7 @@ else:
     sys.exit(1)
 
 ##################################################
+print("Generating Arch")
 arch = Arch()
 
 peArray = arch.gPeArray()
@@ -118,10 +119,12 @@ scheduler.Schedule(ntwk)
 ntwk.rLevels(scheduler.gLevels())
 
 sbmgr = StateBufferMgr(arch, ntwk)
+print("Calculating FMAP addresses")
 sbmgr.calcLayerFmapAddresses()
 
 codegen = MacroInstrGen(ntwk, arch)
 breakFunc(3)
+print("Generating instructions")
 codegen.generate(ntwk.gName().lower() + ".cpp")
 print("")
 
