@@ -32,19 +32,19 @@ Examples:
   # true gold vs TF
   set c = 64; set o = 64
   $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
-  $KAENA_PATH/compiler/util/npy_diff_files   o$c-$o.npy otf | tee -a log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files  --gold o$c-$o.npy --new otf | tee -a log-$c-$o
   # 32b gold vs TF
   set c = 32; set o = 32
   $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
-  $KAENA_PATH/compiler/util/npy_diff_files   o$c-$o.npy otf | tee -a log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files   --gold o$c-$o.npy --new otf | tee -a log-$c-$o
   # 32b truncated to 16b vs TF
   set c = 32; set o = 16
   $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
-  $KAENA_PATH/compiler/util/npy_diff_files   o$c-$o.npy otf | tee -a log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files   --gold o$c-$o.npy --new otf | tee -a log-$c-$o
   # 16b (Inkling-like) vs TF
   set c = 16; set o = 16
   $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
-  $KAENA_PATH/compiler/util/npy_diff_files   o$c-$o.npy otf | tee -a log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files   --gold o$c-$o.npy --new otf | tee -a log-$c-$o
   
   egrep -A 1 Relative\ Error log* | sort -r
 
