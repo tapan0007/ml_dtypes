@@ -3,7 +3,7 @@
 
 from NpTransforms import NpTrans as npt
 from NpUtils import NpUtils as npu
-import os
+import os, re, json
 
 class Object():
   def __init__(self, name, attrs):
@@ -76,6 +76,11 @@ class Node(Object):
     self.__fanout[index].append(edge)
   def genCompilerLayerText(self):
     return("        # No model for %s %s\n" % (self.getOpType(), self.getOpName()), [])
+  def genCompilerLayerJson(self):
+    return({"layer_type" :  self.getOpType(),
+            "layet_name" :  self.getOpName(),
+            "#comment"   :  "unsupported layer"
+            }, [])
 
 class PosNode:
   def __init__(self, node, index):
@@ -109,6 +114,8 @@ class NodeConv2D(Node):
     self.__strides = strides
     self.__padding = padding
     self.__strides = strides
+
+  # Returns layer python model in text format, and list of files (npy data)
   def genCompilerLayerText(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
@@ -131,7 +138,41 @@ class NodeConv2D(Node):
     s += "        \n"
     fileList += [npFileSimW, npFileSim]
     return(s, fileList)
-    
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  # To be removed once full flow is tested with JSON
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    numOfMaps = channels
+    filterShapeRSCM = npInfoW.npShape
+    filterShapeMCRS = [filterShapeRSCM[i] for i in [3, 2, 0, 1]]
+    # OFMAP
+    (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    # IFMAP, not needed
+    (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    # WEIGHT
+    (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
+
+    fileList += [npFileSimW, npFileSim]
+    stride = [1, 1, 1, 1]   # TO_DO extract it properly
+    padding = [[0,0], [0,0], [1,1], [1,1]]   # TO_DO extract it properly
+    layerData = {
+      "layer_name"      : self.getOpName(),
+      "layer_type"      : "Conv",
+      "kernel_file"     : npFileSimW,
+      "kernel_format"   : simFormatW,
+      "kernel_shape"    : filterShapeMCRS,
+      "ofmap_shape"     : [batch, channels, height, width],
+      "ofmap_format"    : simFormatOF,
+      "ref_file"        : npFileSim,
+      "padding"         : padding,
+      "previous_layers" : [fromIfNode.getName()],  # TO_DO - use the actual input
+      "stride"          : stride
+    }
+    return(layerData, fileList)
 
 # Computational data flow graph
 class Graph(Object):
@@ -299,12 +340,6 @@ class TrivNet(Network):
     s = '        layer =  DataLayer(Layer.Param("%s", %d, self),\n' % (inputNode.getOpName(), batch)
     s+= '               OfmapDesc(%d, %d), inputDataFileName="%s", dataTensorDimSemantics="%s")\n' % (channels, height, npFileSim, simFormat)
     lines.append(s)
-    # Link the input
-    if os.path.exists("input.npy"):
-      os.unlink("input.npy")
-    os.symlink(npFileSim, "input.npy")
-    fileList.append(npFileSim)
-    fileList.append("input.npy")
     if verbose > 0:
       npu.showNpyFile("Input IFMAPs", npFileSim)
     
@@ -321,11 +356,6 @@ class TrivNet(Network):
           fileList += fileListLayer
           outNpy = fileListLayer[-1]
 
-    # Link the input
-    if os.path.exists("output.npy"):
-      os.unlink("output.npy")
-    os.symlink(outNpy, "output.npy")
-    fileList.append("output.npy")
     if verbose > 0:
       npu.showNpyFile("Output OFMAPs", outNpy)
 
@@ -344,3 +374,91 @@ class TrivNet(Network):
     os.system(cmd)
           
     
+  # Generate Kaena Compiler input graph (in json format)
+  # including weights, input and golden output imges (in numpy format)
+  #
+  # NPY file formats:
+  #   source (in TF) -> conversions to Inkling/Tonga -> NPY written by TFFE
+  # 
+  # IFMAPS:
+  #   NHWC  -> NCHW 
+  # 
+  # WEIGHTS:
+  #   RSCM   ->  MCRS
+  #
+  # Returns npy reference file for the last layer, and list of files to package into K-graph tgz
+    
+  def genCompilerJson(self, outFile, verbose):
+    
+    jsonData = {}
+    jsonData["net_name"] = "TrivNet"
+    jsonData["data_type"] = "float16"
+    jsonData["layers"] = []
+       
+    fileList = []
+
+    # Input layer
+    inputNode = self.getInputNode()
+    npInfo = inputNode.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    assert(height == width)
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    inputLayerData = {
+      "layer_name"      : inputNode.getName(),
+      "layer_type"      : "Input",
+      "previous_layers" : [],
+      "ofmap_shape"     : [batch, channels, height, width],
+      "ref_file"        : npFileSim,
+      "ofmap_format"    : simFormat
+    }
+    jsonData["layers"].append(inputLayerData)
+    fileList.append(npFileSim)
+    if verbose > 0:
+      npu.showNpyFile("Input IFMAPs", npFileSim)
+    
+    # Conv and other layers
+    levelizedNodes = self.getLevelizedNodes()
+    outNpy = None
+    for level in range(0, len(levelizedNodes)):
+      for n in levelizedNodes[level]:
+        op = n.getOpType()
+        #print("DEBUG: node=", n.getName(), "  op=", op)
+        if op == "Conv2D":
+          (layerData, fileListLayer) = n.genCompilerLayerJson()
+          jsonData["layers"].append(layerData)
+          fileList += fileListLayer
+          outNpy = fileListLayer[-1]
+
+    if verbose > 0:
+      npu.showNpyFile("Output OFMAPs", outNpy)
+
+    with open(outFile, "w") as f:
+      s = json.dumps(jsonData, indent=2, sort_keys=True)
+      s = re.sub(r'\s+(\d+,)\n', r' \1', s, flags=re.S)
+      s = re.sub(r',\s+(\d+)\n\s+\]', r', \1 ]', s, flags=re.S)
+      s = re.sub(r'\s+(\[ \d+, \d+ \],)\n', r' \1', s, flags=re.S)
+      s = re.sub(r',\s+(\[ \d+, \d+ \])\n\s+\]', r', \1 ]', s, flags=re.S)
+      f.write(s)
+    print("INFO: wrote ", outFile)
+    fileList.append(outFile)
+    
+    return(outNpy, fileList)
+    
+  
+  # Write K-graph compiler configuration files
+  # Example:
+  #  net_<interface_type>_params.sh : 
+  #    OutputNpy=trivnet_1conv__i1:0_NCHW.npy
+  #    PythonFile=trivnet_compiler.py
+  def genKgraphSetupFiles(self, fileNamePy, fileNameJson, fileNameNpyOutput):
+    setupFilePy = "net_py_params.sh"
+    with open(setupFilePy, "w") as f:
+      f.write("OutputNpy=%s\n" % fileNameNpyOutput)
+      f.write("PythonFile=%s\n" % fileNamePy)
+    setupFileJson = "net_json_params.sh"
+    with open(setupFileJson, "w") as f:
+      f.write("OutputNpy=%s\n" % fileNameNpyOutput)
+      f.write("JsonFile=%s\n" % fileNameJson)
+    return([setupFilePy, setupFileJson])
+
+
