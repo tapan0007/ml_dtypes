@@ -8,8 +8,8 @@ import nets.network
 
 ##########################################################
 class ConvLayer(SubSampleLayer):
-    filter_file_key = "filter_file" 
-    filter_dims_key = "filter_dims"
+    filter_file_key   = "kernel_file" 
+    kernel_format_key = "kernel_format"
 
     #-----------------------------------------------------------------
     def __init__(self, param, prev_layer, num_ofmaps, stride, kernel,
@@ -27,8 +27,8 @@ class ConvLayer(SubSampleLayer):
     def gJson(self):
         x = super().gJson()
         y = {
-            ConvLayer.filter_file_key : self.__FilterFileName,
-            ConvLayer.filter_dims_key : self.__FilterTensorDimSemantics 
+            ConvLayer.filter_file_key   : self.__FilterFileName,
+            ConvLayer.kernel_format_key : self.__FilterTensorDimSemantics 
         }
         r = self.combineJson( (x, y) )
         return r
@@ -54,7 +54,7 @@ class ConvLayer(SubSampleLayer):
         kernel = (kernelH + kernelW) // 2
 
         filterFileName = layerDict[ConvLayer.filter_file_key]
-        tensorSemantics = layerDict[ConvLayer.filter_dims_key]
+        tensorSemantics = layerDict[ConvLayer.kernel_format_key]
         batch = 1
 
         param = Layer.Param(layerName, batch, nn)
