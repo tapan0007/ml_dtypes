@@ -63,6 +63,9 @@ if args.images != None:
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   tffe.writeDot(int(args.depth), args.out_prefix + "graph_ann.dot", "svg")
   fileList = kog.genCompilerPy(args.out_prefix + "compiler.py", int(args.verbose))
+  (refOutNpyFile, fileListJson) = kog.genCompilerJson(args.out_prefix + "compiler.json", int(args.verbose))
+  fileList += fileListJson
+  fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + "compiler.json", refOutNpyFile)
   fileList += [args.out_prefix + "graph_ann.dot.svg"]
-  kog.genCompilertgz(args.out_prefix + "compiler.tgz", fileList)
+  kog.genCompilertgz(args.out_prefix + "compiler.tgz", list(set(fileList)))
 
