@@ -18,8 +18,8 @@ class DataLayer(Layer):
     def gJson(self):
         x = super().gJson()
         y = {
-            Layer.ref_file_key       : self.__InputDataFileName,
-            DataLayer.input_dims_key : self.__DataTensorDimSemantics
+            Layer.ref_file_key        : self.__InputDataFileName,
+            DataLayer.input_dims_key  : self.__DataTensorDimSemantics
         }
         r = self.combineJson( (x, y) )
         return r
