@@ -83,6 +83,7 @@ InputNpy=$( egrep '"ref_file":' $JsonFile | head -n 1 | sed -e "$sed1" -e "$sed2
 NetName=$( egrep '"net_name":' $JsonFile | sed -e "$sed1" -e "$sed2" )
 LastLayerName=$( egrep '"layer_name":' $JsonFile | tail -n 1| sed -e "$sed1" -e "$sed2" )
 
+NetName=$(echo $NetName | tr A-Z a-z)
 NET=$NetName
 
 CPP=$NET.cpp
@@ -120,10 +121,10 @@ LDFLAGS="$FLAGS -ltcc"
 LIBDIR1="$INKLING/tcc/libs"
 LIBDIR_FLAGS="-L$LIBDIR1"
 
-CXX=g++
 CXX=clang++
+CXX=g++
 RunCmd $CXX $CPPFLAGS -c $CPP || Fatal Failed to compile $CPP
-RunCmd $CXX $LDFLAGS -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS || Fatal Failed to link $OBJ
+RunCmd $CXX -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS $LDFLAGS || Fatal Failed to link $OBJ
 
 ##############################################################
 RunCmd ./$EXE $TPB || Fatal Failed ./$EXE $TPB
