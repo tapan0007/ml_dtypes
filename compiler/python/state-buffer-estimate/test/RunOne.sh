@@ -13,12 +13,13 @@ FatalUsage () {
 }
 
 ##############################################################
-case "x$INKLING_PATH" in
-(x) INKLING_PATH=$HOME/code/CodeCommit/Inkling ;;
-esac
-case "x$KAENA_PATH" in
-(x) KAENA_PATH=$HOME/code/GitFarm/Kaena ;;
-esac
+if ! test -d "$INKLING_PATH"; then
+    Fatal Inkling path directory does not exist: "INKLING_PATH = $INKLING_PATH"
+fi
+
+if ! test -d "$KAENA_PATH"; then
+    Fatal Kaena path directory does not exist: "KAENA_PATH = $KAENA_PATH"
+fi
 
 
 export COMPILER=$KAENA_PATH/compiler/python/state-buffer-estimate
@@ -99,7 +100,7 @@ TPB=$RESULTS/$NET.tpb
 SIMRES=$RESULTS/$NET.simres
 SIMLOG=$RESULTS/simulation.log
 LOG=$RESULTS/LOG
-
+trivnet_1conv_b1-h35-r3-s1-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2
 ##############################################################
 {
 
@@ -157,7 +158,11 @@ for f in $Files; do
 done
 
 echo $npy_diff $OutputNpy $SimOutputNpy '>' $RESULTS/$NET.diff
-$npy_diff $OutputNpy $SimOutputNpy 2>&1 | tee $RESULTS/$NET.diff
+
+$npy_diff $OutputNpy $SimOutputNpy  ## 2>&1 tee $RESULTS/$NET.diff
+echo status: $?
+
+diffStatus="${PIPESTATUS[0]}"    ### collect status of npy_diff process
 
 
 for fmt in $FMTS; do
@@ -170,10 +175,12 @@ for fmt in $FMTS; do
     done
 done
 
-#echo GOLDEN:
+#echo GOLDEN from framework '(TF)':
 #cat $OutputNpy-float16.txt
 #echo FROM SIM:
 #cat $SimOututNpy-float16.txt
+
+exit $diffStatus
 
 } 2>&1 | tee $LOG
 
