@@ -47,6 +47,8 @@ while i < nArgv:
         PrintLayers = True
     elif arg == "--print-levels":
         PrintLevels = True
+    elif arg == "--print-sched":
+        PrintSchedule = True
     elif arg == "--no-print-sched":
         PrintSchedule = False
     elif arg == "--print-dot":

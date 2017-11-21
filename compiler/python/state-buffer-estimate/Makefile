@@ -1,43 +1,49 @@
 PYTHON=python3
 
-ALL_OPTS := --print-sched --print-layers --print-levels 
 ALL_OPTS := 
+ALL_OPTS := --print-sched --print-layers --print-levels 
 
 DENSE169 = DenseNet-169
 RES50 = ResNet-50
+
+COMPILER_PY = compiler.py
 
 top : res
 
 resb :resnet-batch
 
 resnet-residue :
-	@  $(PYTHON) main.py --resnet $(ALL_OPTS)
+	@  $(PYTHON) $(COMPILER_PY) --resnet $(ALL_OPTS)
 
 resnet-relu :
-	@  $(PYTHON) main.py --resnet --relu $(ALL_OPTS)
+	@  $(PYTHON) $(COMPILER_PY) --resnet --relu $(ALL_OPTS)
 
 resnet-batch-relu :
-	@  $(PYTHON) main.py --resnet --batch --relu $(ALL_OPTS)
+	@  $(PYTHON) $(COMPILER_PY) --resnet --batch --relu $(ALL_OPTS)
 
 densenet :
-	@  $(PYTHON) main.py --densenet $(ALL_OPTS)
+	@  $(PYTHON) $(COMPILER_PY) --densenet $(ALL_OPTS)
+
+densenet-json :
+	@  $(PYTHON) $(COMPILER_PY) --json densenet-169.json $(ALL_OPTS)
 
 resnet :
-	$(PYTHON) main.py --resnet $(ALL_OPTS)
+	$(PYTHON) $(COMPILER_PY) --resnet $(ALL_OPTS)
 
 resnet-batch :
-	@  $(PYTHON) main.py --resnet --batch $(ALL_OPTS)
+	@  $(PYTHON) $(COMPILER_PY) --json resnet50.json  --batch $(ALL_OPTS)
 
+resnet-json : resnet-batch
 
 trivnet :
-	$(PYTHON) main.py --trivnet $(ALL_OPTS)
+	$(PYTHON) $(COMPILER_PY) --trivnet $(ALL_OPTS)
 
 
 dbgdense :
-	py -mpdb main.py --densenet $(ALL_OPTS)
+	py -mpdb $(COMPILER_PY) --densenet $(ALL_OPTS)
 
 dbgres :
-	py -mpdb main.py --resnet $(ALL_OPTS)
+	py -mpdb $(COMPILER_PY) --resnet $(ALL_OPTS)
 
 
 clean :

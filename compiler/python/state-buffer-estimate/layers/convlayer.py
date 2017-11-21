@@ -69,7 +69,7 @@ class ConvLayer(SubSampleLayer):
     def __str__(self):
         kw = str(self.gKernelWidth())
         kh = str(self.gKernelHeight())
-        ss = str(self.gStride())
+        ss = str(self.gStrideBT()) + "/" + str(self.gStrideLR()) 
         baseLayer = self.gBaseLayerStr()
         return (self.gName()
                 + baseLayer
@@ -83,8 +83,8 @@ class ConvLayer(SubSampleLayer):
         prevLayer = self.gPrevLayer(0)
         prevMapWidth = prevLayer.gOfmapWidth()
         prevMapHeight = prevLayer.gOfmapHeight()
-        ##assert(self.gPrevLayer(0).gOfmapWidth() // self.gStride() == self.gOfmapWidth())
-        ##assert(self.gPrevLayer(0).gOfmapHeight() // self.gStride() == self.gOfmapHeight())
+        ##assert(self.gPrevLayer(0).gOfmapWidth() // self.gStrideLR() == self.gOfmapWidth())
+        ##assert(self.gPrevLayer(0).gOfmapHeight() // self.gStrideBT() == self.gOfmapHeight())
 
     #-----------------------------------------------------------------
     def gFilterFileName(self):

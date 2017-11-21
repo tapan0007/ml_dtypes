@@ -241,7 +241,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
 
     #-----------------------------------------------------------------
     def gDataType(self):
-        return self.__Network.ggDataType()
+        return self.__Network.gDataType()
 
 
     #-----------------------------------------------------------------
@@ -478,16 +478,16 @@ class Layer(object, metaclass = ABCMeta): # abstract class
 
     #-----------------------------------------------------------------
 
-    def gNameNum(self):
+    def XgNameNum(self):
         return self.gName() + "-" + self.m_NumStr
 
     #-----------------------------------------------------------------
-    def gDotId(self):
+    def XgDotId(self):
         numStr = self.m_NumStr.replace(".", "_")
         return self.gName() + "_" + numStr
 
     #-----------------------------------------------------------------
-    def gDotLabel(self):
+    def XgDotLabel(self):
         return '"' + self.gName() + "-" + self.m_NumStr + '"'
 
     #-----------------------------------------------------------------
@@ -507,7 +507,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         if name == "res3d{Add}":
             x = 3
         ofmapStr = (str(self.gNumOfmaps()) + "*" 
-                   + str(self.gOfmapWidth()) + "*" + str(self.gOfmapHeigh()) )
+                   + str(self.gOfmapWidth()) + "*" + str(self.gOfmapHeight()) )
         if self.qStoreInSB():
             inMem = self.gInputStateMemWithoutBatching()
             residueMem = self.gResMemWithoutBatching()
