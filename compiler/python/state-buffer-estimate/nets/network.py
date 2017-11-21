@@ -6,14 +6,17 @@ from utils.datatype  import *
 from utils.debug  import breakFunc
 
 import layers.layer
-from layers.layer        import Layer
-from layers.convlayer    import ConvLayer
-from layers.maxpoollayer import MaxPoolLayer
-from layers.avgpoollayer import AvgPoolLayer
-from layers.datalayer    import DataLayer
-from layers.addlayer     import AddLayer
-from layers.fulllayer    import FullLayer
-from layers.softmaxlayer import SoftMaxLayer
+from layers.layer           import Layer
+from layers.convlayer       import ConvLayer
+from layers.maxpoollayer    import MaxPoolLayer
+from layers.avgpoollayer    import AvgPoolLayer
+from layers.datalayer       import DataLayer
+from layers.addlayer        import AddLayer
+from layers.fulllayer       import FullLayer
+from layers.softmaxlayer    import SoftMaxLayer
+from layers.batchnormlayer  import BatchNormLayer
+from layers.relulayer       import ReluLayer
+from layers.concatlayer     import ConcatLayer
 
 from schedule.scheduler      import Scheduler
 
@@ -70,7 +73,7 @@ class Network(object):
         return self.__UseDimList
 
     #-----------------------------------------------------------------
-    def ggDataType(self):
+    def gDataType(self):
         return self.__DataType
 
     #-----------------------------------------------------------------
@@ -176,7 +179,8 @@ class Network(object):
         Klasses = [
             ConvLayer, MaxPoolLayer, DataLayer, 
             AddLayer, AvgPoolLayer, FullLayer,
-            SoftMaxLayer,
+            SoftMaxLayer, BatchNormLayer, ReluLayer,
+            ConcatLayer,
         ]
         for klass in Klasses:
             name2klass[klass.gTypeStr()] = klass

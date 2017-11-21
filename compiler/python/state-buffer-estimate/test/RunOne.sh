@@ -1,3 +1,4 @@
+set -e
 SCRIPT=$0
 
 ##############################################################
@@ -13,12 +14,13 @@ FatalUsage () {
 }
 
 ##############################################################
-case "x$INKLING_PATH" in
-(x) INKLING_PATH=$HOME/code/CodeCommit/Inkling ;;
-esac
-case "x$KAENA_PATH" in
-(x) KAENA_PATH=$HOME/code/GitFarm/Kaena ;;
-esac
+if ! test -d "$INKLING_PATH"; then
+    Fatal Inkling path directory does not exist: "INKLING_PATH = $INKLING_PATH"
+fi
+
+if ! test -d "$KAENA_PATH"; then
+    Fatal Kaena path directory does not exist: "KAENA_PATH = $KAENA_PATH"
+fi
 
 
 export COMPILER=$KAENA_PATH/compiler/python/state-buffer-estimate
@@ -28,6 +30,9 @@ export DUMPNPY=$KAENA_PATH/compiler/util/npy2txt
 export INKLING=$INKLING_PATH
 SIM=$INKLING/sim/sim
 OBJDUMP=$INKLING/objdump/objdump
+
+TCC_INC_TOP_DIR=$INKLING
+## Later it will be $KAENA_PATH/compiler/codegen/
 
 export PYTHONPATH=$PYTHONPATH:$COMPILER
 ##############################################################
@@ -99,22 +104,21 @@ TPB=$RESULTS/$NET.tpb
 SIMRES=$RESULTS/$NET.simres
 SIMLOG=$RESULTS/simulation.log
 LOG=$RESULTS/LOG
-
 ##############################################################
-{
 
 
 ##############################################################
 ## First make NET.py file
 #touch __init__.py
 cmd="python3 $COMPILER/compiler.py --json $JsonFile"
-RunCmd $cmd || Fatal Failed $cmd
+RunCmd $cmd
 cp -p $CPP $RESULTS/.
 
 ##############################################################
 ## compile C++
 FLAGS="-W -Wall -Werror -ggdb -g"
-INC_FLAGS="-I$INKLING/shared/inc -I$INKLING/tcc/inc"
+
+INC_FLAGS="-I$TCC_INC_TOP_DIR/shared/inc -I$TCC_INC_TOP_DIR/tcc/inc"
 CFLAGS="$FLAGS -I. $INC_FLAGS -Wno-missing-field-initializers"
 CPPFLAGS="$CFLAGS -std=c++11"
 LDFLAGS="$FLAGS -ltcc"
@@ -123,14 +127,14 @@ LIBDIR_FLAGS="-L$LIBDIR1"
 
 CXX=clang++
 CXX=g++
-RunCmd $CXX $CPPFLAGS -c $CPP || Fatal Failed to compile $CPP
-RunCmd $CXX -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS $LDFLAGS || Fatal Failed to link $OBJ
+RunCmd $CXX $CPPFLAGS -c $CPP
+RunCmd $CXX -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS $LDFLAGS 
 
 ##############################################################
-RunCmd ./$EXE $TPB || Fatal Failed ./$EXE $TPB
+RunCmd ./$EXE $TPB 
 
 ##############################################################
-RunCmd $OBJDUMP $TPB > $ASM || Fatal Failed to create $ASM
+RunCmd $OBJDUMP $TPB > $ASM 
 RunCmd shasum $TPB
 
 ##############################################################
@@ -156,10 +160,7 @@ for f in $Files; do
     cp $f $RESULTS/.
 done
 
-echo $npy_diff $OutputNpy $SimOutputNpy '>' $RESULTS/$NET.diff
-$npy_diff $OutputNpy $SimOutputNpy 2>&1 | tee $RESULTS/$NET.diff
-
-
+##############################################################
 for fmt in $FMTS; do
     for npyFile in $NpyFiles; do
         txt=$RESULTS/$npyFile-$fmt.txt
@@ -170,10 +171,22 @@ for fmt in $FMTS; do
     done
 done
 
-#echo GOLDEN:
+#echo GOLDEN from framework '(TF)':
 #cat $OutputNpy-float16.txt
 #echo FROM SIM:
 #cat $SimOututNpy-float16.txt
 
-} 2>&1 | tee $LOG
+##############################################################
+cmd="$npy_diff --gold $OutputNpy --new $SimOutputNpy"
+echo $cmd '| tee ' $RESULTS/$NET.diff
+$cmd 2>&1 | tee $RESULTS/$NET.diff
+
+diffStatus="${PIPESTATUS[0]}"    ### collect status of npy_diff process
+## echo status: $?, diffStatus $diffStatus
+
+case $diffStatus in
+(0) Error Finished successfully ;;
+(*) Error Failed comparison of golden and simulation results;;
+esac
+exit $diffStatus
 

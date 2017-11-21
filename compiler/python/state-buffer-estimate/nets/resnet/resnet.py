@@ -124,6 +124,6 @@ class ResNet50(ResNet):
     #-----------------------------------------------------------------
     def __init__(self, dataType, useRelu):
         ofmap_desc = OfmapDesc(3, 224)
-        super().__init__(ofmap_desc, dataType, "ResNet50", useRelu)
+        super().__init__(ofmap_desc, dataType, "resnet50", useRelu)
 
 

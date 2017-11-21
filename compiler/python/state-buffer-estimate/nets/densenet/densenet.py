@@ -30,8 +30,8 @@ from nets.network                import  Network
 class DenseNet(Network, metaclass = ABCMeta):
 
     #-----------------------------------------------------------------
-    def __init__(self, growth_rate, layers_in_dense_block, ofmap_desc, num_classes, dataType, useRelu):
-        super().__init__(dataType)
+    def __init__(self, growth_rate, layers_in_dense_block, ofmap_desc, num_classes, dataType, netName, useRelu):
+        super().__init__(dataType, netName)
 
         self.m_Growth_rate = growth_rate
         self.m_LayersInDenseBlock = layers_in_dense_block
@@ -97,7 +97,7 @@ class DenseNet169(DenseNet):
         layersInDenseBlock = [6, 12, 32, 32]
         ofmap_desc = OfmapDesc(3, 224)
         num_classes = 1000
-        super().__init__(growth_rate, layersInDenseBlock, ofmap_desc, num_classes, dataType, useRelu)
+        super().__init__(growth_rate, layersInDenseBlock, ofmap_desc, num_classes, dataType, "densenet169", useRelu)
 
     #-----------------------------------------------------------------
     def gName(self):
