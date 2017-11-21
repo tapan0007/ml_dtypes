@@ -17,13 +17,13 @@ using std::vector;
 
 namespace kcc {
 
-namespace network {
+namespace nets {
     class Network;
 }
 
 namespace layers {
 
-using network::Network;
+using nets::Network;
 using namespace utils;
 
 //--------------------------------------------------------
@@ -43,7 +43,7 @@ public:
 
 
     //----------------------------------------------------------------
-    Layer(const Params& params, FmapDesc& fmapDesc, vector<Layer>& prevLayers);
+    Layer(const Params& params, const FmapDesc& fmapDesc, const vector<Layer*>& prevLayers);
 
     //----------------------------------------------------------------
     virtual std::string gTypeStr() const = 0;
@@ -394,23 +394,23 @@ public:
 
     //----------------------------------------------------------------
     const FmapDesc& gOfmapDesc() const {
-        return m_Ofmap_desc;
+        return m_OfmapDesc;
     }
 
     //----------------------------------------------------------------
     int32 gOfmapWidth() const {
-        return m_Ofmap_desc.gMapWidth();
+        return m_OfmapDesc.gMapWidth();
     }
 
     //----------------------------------------------------------------
     int32 gOfmapHeight() const {
-        return m_Ofmap_desc.gMapHeight();
+        return m_OfmapDesc.gMapHeight();
     }
 
 
     //----------------------------------------------------------------
     int32 gNumOfmaps() const {
-        return m_Ofmap_desc.gNumMaps();
+        return m_OfmapDesc.gNumMaps();
     }
 
     //----------------------------------------------------------------
@@ -444,9 +444,10 @@ public:
     string gDotLabel() const {
         string s("\"");
         return s + gName() + "-" + m_NumStr + "\"";
+    }
 
     //----------------------------------------------------------------
-    string gDotIdLabel() const [
+    string gDotIdLabel() const {
         return gDotId() + " [label=" + gDotLabel() + "];";
     }
 
@@ -482,7 +483,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    vector<Layer>& gPrevSbLayers() {
+    vector<Layer*>& gPrevSbLayers() {
         return m_PrevSbLayers;
     }
 
@@ -502,10 +503,10 @@ public:
 
     //----------------------------------------------------------------
     void addPrevSbLayer(Layer* prevLayer) {
-        assert(prevLayer->qStoreInSB())
+        assert(prevLayer->qStoreInSB());
         m_PrevSbLayers.push_back(prevLayer);
         if (qStoreInSB()) {
-            prevLayer.m_NextSbLayers.push_back(this);
+            prevLayer->m_NextSbLayers.push_back(this);
         }
     }
 
@@ -534,12 +535,24 @@ public:
     }
 
 
+    string gBaseLayerStr() const;
+    string gStateSizesStr() const;
+    string gNameWithSched() const;
+    string gNameWithSchedMem() const;
+
+
+
 private:
     std::string         m_LayerName;
+
     vector<Layer*>      m_PrevLayers;
-    vector<Layer*>      m_PrevSbLayers;
     vector<Layer*>      m_NextLayers;
-    network::Network*   m_Network;
+    vector<Layer*>      m_PrevSbLayers;
+    vector<Layer*>      m_NextSbLayers;
+    nets::Network*      m_Network;
+
+    Layer*              m_NextSchedLayer;
+    Layer*              m_PrevSchedLayer;
 
     StateBufferAddress  m_IfmapAddress;
     StateBufferAddress  m_OfmapAddress;
@@ -557,11 +570,13 @@ private:
     int32               m_DenseBlockEnd;
     int32               m_TranBlockStart;
     int32               m_TranBlockEnd;
+    int32               m_RefCount;
 
     LayerId             m_Id;
     string              m_NumberStr;
+    string              m_NumStr;
 
-    FmapDesc            m_Ofmap_desc;
+    FmapDesc            m_OfmapDesc;
 }; // class Layer
 
 
@@ -569,156 +584,24 @@ class Layer::Params {
 public:
     std::string         m_LayerName;
     int32               m_BatchFactor;
-    network::Network*   m_Network;
+    nets::Network*      m_Network;
 };
 
 
 } // namespace layers
 } // namespace kcc
 
+#if 0
     #-----------------------------------------------------------------
+    virtual string gString() const = 0;
 
+    #-----------------------------------------------------------------
     def combineJson(it):
         x = {}
         for y in it:
             x.update(y)
             #x = { **x, **y }
         return x
-
-    #-----------------------------------------------------------------
-
-
-    #-----------------------------------------------------------------
-    #-----------------------------------------------------------------
-    @abstractmethod
-    def __str__():
-        assert(False)
-
-    #-----------------------------------------------------------------
-
-
-
-    #-----------------------------------------------------------------
-    def gBaseLayerStr():
-        i = 0
-        s = ""
-        for prevLayer in gPrevLayers():
-            ofmap_desc = prevLayer.gOfmapDesc()
-            if i == 0:
-                s = str(ofmap_desc)
-            else:
-                s += "+" + str(ofmap_desc)
-        s += "-->" + str(gOfmapDesc())
-        return s
-
-    #-----------------------------------------------------------------
-    def gStateSizesStr():
-        if qStoreInSB() :
-            nIn= gInputStateMemWithoutBatching()
-            nOut = gOutputStateMemWithoutBatching()
-            iState = kstr(nIn)
-            oState = kstr(nOut)
-            tState = kstr(nIn + nOut)
-        else:
-            nIn = gInputSize()
-            iState = "(" + kstr(nIn) + ")"
-            nOut = gOutputSize()
-            oState = "(" + kstr(nOut) + ")"
-            tState = "(" + kstr(nIn+nOut) + ")"
-
-        numWeights = gNumberWeights()
-        nextSchedLayer = gNextSchedLayer()
-        nextNumWeights = (nextSchedLayer.gNumberWeights() if nextSchedLayer else 0)
-
-        totMem = nIn + nOut + numWeights + nextNumWeights
-        return ("  IState=" + (iState)
-             + ",  OState=" + (oState)
-             + ",  TState=" + (tState)
-             + ",  NumWeights=" + kstr(numWeights)
-             + ",  TMem=" + kstr(totMem)
-                 )
-
-
-    #-----------------------------------------------------------------
-    def gNameWithSched():
-        layer = this;
-        return (layer.gName()
-              + ' lev=[' + str(layer.gEarlyLevel())
-              +        ',' + str(layer.gLateLevel()) + '] '
-              + ' sched=' + str(layer.gSchedule())
-              )
-
-    #-----------------------------------------------------------------
-    def gNameWithSchedMem():
-        #Str = kstr
-        Str = Kstr
-        name = self.gNameType()
-        if name == "res3d{Add}":
-            x = 3
-        ofmapStr = (str(self.gNumOfmaps()) + "*" 
-                   + str(self.gOfmapWidth()) + "*" + str(self.gOfmapHeigh()) )
-        if self.qStoreInSB():
-            inMem = self.gInputStateMemWithoutBatching()
-            residueMem = self.gResMemWithoutBatching()
-            outMem = self.gOutputStateMemWithBatching()
-            batchMem = self.gBatchMem()
-            batchDelta = "["
-            for nextSbLayer in self.gNextSbLayers():
-                d = self.gOutputStateMemWithoutBatching() * (nextSbLayer.gBatchFactor() - self.gBatchFactor())
-                ##  d = Str(batchMem - nextSbLayer.gBatchMem())
-                if batchDelta == "[":
-                    batchDelta += Str(d)
-                else:
-                    batchDelta += "," + Str(d)
-            batchDelta += "]"
-
-            s = (SCHED_MEM_FORMAT) % (
-                name,
-                ofmapStr,
-                Str(inMem), Str(outMem),
-                Str(residueMem),
-                (Str(batchMem) + "[" + str(self.gBatchFactor()) + "]"),
-                batchDelta,
-                )
-        else:
-            inMem = self.gInputSize()
-            outMem = self.gOutputSize()
-            s = (SCHED_MEM_FORMAT) % (
-                name,
-                ofmapStr,
-                Str(inMem), "("+Str(outMem)+")",
-                "",  # residueMem
-                "",  # batchMem
-                "",  # bdelta
-                )
-        return s
-
-
-    #-----------------------------------------------------------------
-    # Does this layer store data in the SB?
-    # That depends on
-    # - the sinks of this layer
-    # - scheduling of the sinks
-    # Therefore, the return value can be determined only after scheduling is finished.
-    #-----------------------------------------------------------------
-    def qStoreInSB(self):
-        return True ## this because Dana requires SB area for each operation,
-                    ## cannot feed convolution directly to pooling
-
-        mySched = self.gSchedule()
-        assert(mySched != None)
-        nextSchedLayer = self.gNextSchedLayer()
-        if not nextSchedLayer: ## output
-            return True
-        elif nextSchedLayer.qConvLayer() : ## to get to convolution
-            return True
-        else:
-            for nextLayer in self.gNextLayers():
-                if nextLayer.gSchedule() > mySched + 1:
-                    return True
-
-        assert(self.gNumNextLayers() <= 1)
-        return False
 
     @classmethod
     def gOfmapDescFromJson(klass, layerDict, nn):
@@ -742,4 +625,8 @@ public:
         for prevLayerName in prevLayersNames:
             prevLayers.append(nn.gLayerByName(prevLayerName))
         return prevLayers
+
+#endif
+
+#endif // KCC_LAYERS_LAYER_H
 

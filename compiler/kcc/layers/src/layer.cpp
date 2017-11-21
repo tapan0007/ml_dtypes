@@ -1,5 +1,8 @@
+#include <sstream>
+
 #include "layer.h"
 #include "datatype.h"
+#include "network.h"
 
 
 
@@ -10,48 +13,47 @@ namespace layers {
 //----------------------------------------------------------------
 Layer::Layer(const Params& params, const FmapDesc&ofmap_desc, const vector<Layer*>& prev_layers)
     : m_LayerName(params.m_LayerName)
-    , m_BatchFactor(params.m_BatchFactor)
     , m_Network(params.m_Network)
+    , m_NextSchedLayer(nullptr)
+    , m_PrevSchedLayer(nullptr)
+    , m_IfmapAddress(StateBufferAddress_Invalid)
+    , m_OfmapAddress(StateBufferAddress_Invalid)
+    , m_WeightAddress(StateBufferAddress_Invalid)
+    , m_ResMemWithBatching(0)
+    , m_ResMemWithoutBatching(0)
+    , m_BatchMemory(0)
+    , m_BatchFactor(params.m_BatchFactor)
+    , m_Schedule(-1)
+    , m_CurrLevel(-1)
+    , m_EarlyLevel(-1)
+    , m_LateLevel(-1)
+    , m_DenseBlockStart(1)
+    , m_DenseBlockEnd(1)
+    , m_TranBlockStart(1)
+    , m_TranBlockEnd(1)
+    , m_RefCount(0)
+    , m_Id(LayerId_Null)
+    , m_OfmapDesc(ofmap_desc)
 {
-    std::copy(prev_layers.begin(), prev_layers.end(), m_PrevLayers);
-
+    std::copy(prev_layers.begin(), prev_layers.end(), m_PrevLayers.end());
     assert(m_BatchFactor >= 1);
-    m_OfmapDesc = ofmap_desc;
-    self.m_Id = LayerIdNull;
-
-    m_NextSchedLayer   = null;
-    m_PrevSchedLayer   = null;
-
-    m_DenseBlockStart  = -1
-    m_DenseBlockEnd    = -1
-    m_TranBlockStart   = -1
-    m_TranBlockEnd     = -1
-
-    m_Schedule         = -1;
 
     // counts the number layers that need to be executed and need this layer's
-    m_RefCount         = 0
-    m_ResMemWithBatching = 0
-    m_ResMemWithoutBatching = 0
-
-    m_IfmapAddress = StateBufferAddress_Invalid;
-    m_OfmapAddress = StateBufferAddress_Invalid;
-    m_WeightAddress = StateBufferAddress_Invalid;
 
 
-#if 0
-        assert( (len(prev_layers) == 0) == self.qDataLayer() )
-        self.__PrevLayers.extend(prev_layers)
-        for prevLayer in prev_layers:
-            prevLayer.addNextLayer(self)
 
-        ntwrk.addLayer(self) ## will assign index
-#endif
+    assert( (prev_layers.size() == 0) == qDataLayer() );
+    std::copy(prev_layers.begin(), prev_layers.end(), m_PrevLayers.end());
+    for (auto prevLayer : prev_layers) {
+        prevLayer->addNextLayer(this);
+    }
 
+    m_Network->addLayer(this); // will assign index
 }
 
 //----------------------------------------------------------------
-const utils::DataType& gDataType() const
+const utils::DataType&
+Layer::gDataType() const
 {
     return m_Network->gDataType();
 }
@@ -93,374 +95,69 @@ const utils::DataType& gDataType() const
             #x = { **x, **y }
         return x
 
-    #-----------------------------------------------------------------
-    #-----------------------------------------------------------------
-    def qSubSampleLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qConvLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qPoolLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qMaxPoolLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qAvgPoolLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qOneToOneLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qActivLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qReluLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qBatchNormLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qDataLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qCombineLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qConcatLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qAddLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qSoftMaxLayer(self):
-        return False
-
-    #-----------------------------------------------------------------
-    def qFullLayer(self):
-        return False
-
-
-    #-----------------------------------------------------------------
-    #-----------------------------------------------------------------
+    //----------------------------------------------------------------
     @abstractmethod
     def __str__(self):
         assert(False)
-
-    #-----------------------------------------------------------------
-    @classmethod
-    @abstractmethod
-    def gTypeStr(self):
-        assert(False)
-
-    #-----------------------------------------------------------------
-    @abstractmethod
-    def verify(self):
-        assert(False)
-
-
-    #-----------------------------------------------------------------
-    def gBatchFactor(self):
-        return self.__BatchFactor
-
-    #-----------------------------------------------------------------
-    def gBatchMem(self):
-        return self.__BatchMem
-
-    #-----------------------------------------------------------------
-    def rBatchMem(self, mem):
-        self.__BatchMem = mem
-
-
-    #-----------------------------------------------------------------
-    def gResMemWithoutBatching(self):
-        return self.__ResMemWithBatching
-
-    #-----------------------------------------------------------------
-    def rResMemWithoutBatching(self, mem):
-        self.__ResMemWithBatching = mem
-
-    #-----------------------------------------------------------------
-    def gResMemWithBatching(self):
-        return self.__ResMemWithBatching
-
-    #-----------------------------------------------------------------
-    def rResMemWithBatching(self, mem):
-        self.__ResMemWithBatching = mem
-
-
-    #-----------------------------------------------------------------
-    def gInputSize(self):
-        sz = 0
-        for inLayer in self.gPrevLayers():
-            sz += inLayer.gOutputSize()
-        return sz
-
-    #-----------------------------------------------------------------
-    def gDataType(self):
-        return self.__Network.ggDataType()
-
-
-    #-----------------------------------------------------------------
-    def gOutputSize(self):
-        wordSize = self.gDataType().gSizeInBytes()
-        oneBatchSize = (wordSize * self.gNumOfmaps() *
-                        (self.gOfmapWidth() * self.gOfmapHeight()))
-        return oneBatchSize
-
-    #-----------------------------------------------------------------
-    def gInputStateMemWithoutBatching(self):
-        #assert(self.qStoreInSB())
-        sz = 0
-        for inSbLayer in self.gPrevSbLayers():
-            sz += inSbLayer.gOutputStateMemWithoutBatching()
-        return sz
-
-    #-----------------------------------------------------------------
-    def gOutputStateMemWithoutBatching(self):
-        assert(self.qStoreInSB())
-        if self.qStoreInSB():
-            oneBatchSize = self.gOutputSize()
-            return oneBatchSize
-        else:
-            return 0
-
-    #-----------------------------------------------------------------
-    def gOutputStateMemWithBatching(self):
-        assert(self.qStoreInSB())
-        return self.gBatchFactor() * self.gOutputStateMemWithoutBatching()
-
-
-
-    #-----------------------------------------------------------------
-    def gLayerId(self):
-        return self.__Id
-
-    #-----------------------------------------------------------------
-    def rLayerId(self, id):
-        self.__Id = id
-
-    #-----------------------------------------------------------------
-    def gSchedule(self):
-        return self.__schedule
-
-    def rSchedule(self, sch):
-        self.__schedule = sch
-
-    #-----------------------------------------------------------------
-    def gCurrLevel(self):
-        return self.__CurrLevel
-
-    #-----------------------------------------------------------------
-    def rCurrLevel(self, lev):
-        assert(self.gEarlyLevel() <= lev and lev <= self.gLateLevel())
-        self.__CurrLevel = lev
-
-    #-----------------------------------------------------------------
-    def gEarlyLevel(self):
-        return self.__EarlyLevel
-
-    def rEarlyLevel(self, level):
-        self.__EarlyLevel = level
-
-    #-----------------------------------------------------------------
-    def gLateLevel(self):
-        return self.__LateLevel
-
-    def rLateLevel(self, level):
-        self.__LateLevel = level
-
-    #-----------------------------------------------------------------
-    def gPrevLayers(self):
-        return iter(self.__PrevLayers)
-
-    #-----------------------------------------------------------------
-    def gPrevLayer(self, idx):
-        assert(0 <= idx and idx < self.gNumPrevLayers())
-        return self.__PrevLayers[idx]
-
-    #-----------------------------------------------------------------
-    def gNumPrevLayers(self):
-        return len(self.__PrevLayers)
-
-    #-----------------------------------------------------------------
-    def gNextLayers(self):
-        return iter(self.__NextLayers)
-
-    #-----------------------------------------------------------------
-    def gNextLayer(self, idx):
-        assert(0 <= idx and idx < self.gNumNextLayers())
-        return self.__NextLayers[idx]
-
-    #-----------------------------------------------------------------
-    def gNumNextLayers(self):
-        return len(self.__NextLayers)
-
-    #-----------------------------------------------------------------
-    def addNextLayer(self, nextLayer):
-        self.__NextLayers.append(nextLayer)
-
-    #-----------------------------------------------------------------
-    def gMaxNextLayerNumberWeights(self):
-        maxNumWeights = 0
-        for nextLayer in self.gNextLayers():
-            numWeights = nextLayer.gNumberWeights()
-            if numWeights > maxNumWeights:
-                maxNumWeights = numWeights
-        return maxNumWeights
-
-
-    #-----------------------------------------------------------------
-    def gDenseBlockStart(self):
-        return self.__DenseBlockStart
-
-    #-----------------------------------------------------------------
-    def rDenseBlockStart(self, val):
-        self.__DenseBlockStart = val
-
-    #-----------------------------------------------------------------
-    def gDenseBlockEnd(self):
-        return self.__DenseBlockEnd
-
-    #-----------------------------------------------------------------
-    def rDenseBlockEnd(self, val):
-        self.__DenseBlockEnd = val
-
-    #-----------------------------------------------------------------
-    def gTranBlockStart(self):
-        return self.__TranBlockStart
-
-    #-----------------------------------------------------------------
-    def rTranBlockStart(self, val):
-        self.__TranBlockStart = val
-
-    #-----------------------------------------------------------------
-    def gTranBlockEnd(self):
-        return self.__TranBlockEnd
-
-    #-----------------------------------------------------------------
-    def rTranBlockEnd(self, val):
-        self.__TranBlockEnd = val
-
-    #-----------------------------------------------------------------
-    ## ConvLayer must override these two methods with correct values
-    def gNumberWeights(self):
-        return 0
-
-    def gNumberWeightsPerPartition(self):
-        return 0
-
-    #-----------------------------------------------------------------
-    def gBaseLayerStr(self):
-        i = 0
-        s = ""
-        for prevLayer in self.gPrevLayers():
-            ofmap_desc = prevLayer.gOfmapDesc()
-            if i == 0:
-                s = str(ofmap_desc)
-            else:
-                s += "+" + str(ofmap_desc)
-        s += "-->" + str(self.gOfmapDesc())
-        return s
-
-    #-----------------------------------------------------------------
-    def gStateSizesStr(self):
-        if self.qStoreInSB() :
-            nIn= self.gInputStateMemWithoutBatching()
-            nOut = self.gOutputStateMemWithoutBatching()
-            iState = kstr(nIn)
-            oState = kstr(nOut)
-            tState = kstr(nIn + nOut)
-        else:
-            nIn = self.gInputSize()
-            iState = "(" + kstr(nIn) + ")"
-            nOut = self.gOutputSize()
-            oState = "(" + kstr(nOut) + ")"
-            tState = "(" + kstr(nIn+nOut) + ")"
-
-        numWeights = self.gNumberWeights()
-        nextSchedLayer = self.gNextSchedLayer()
-        nextNumWeights = (nextSchedLayer.gNumberWeights() if nextSchedLayer else 0)
-
-        totMem = nIn + nOut + numWeights + nextNumWeights
-        return ("  IState=" + (iState)
-             + ",  OState=" + (oState)
-             + ",  TState=" + (tState)
-             + ",  NumWeights=" + kstr(numWeights)
-             + ",  TMem=" + kstr(totMem)
-                 )
-
-
-    #-----------------------------------------------------------------
-    def rNumberStr(self, numStr):
-        self.__NumberStr = numStr
-
-    #-----------------------------------------------------------------
-    def gNumberStr(self):
-        return self.__NumberStr
-
-    #-----------------------------------------------------------------
-    def gNetwork(self):
-        return self.__Network
-
-    #-----------------------------------------------------------------
-    def gOfmapDesc(self):
-        return self.__Ofmap_desc
-
-    #-----------------------------------------------------------------
-    def gOfmapWidth(self):
-        return self.__Ofmap_desc.gMapWidth()
-
-    #-----------------------------------------------------------------
-    def gOfmapHeight(self):
-        return self.__Ofmap_desc.gMapHeight()
-
-    #-----------------------------------------------------------------
-    def gNumOfmaps(self):
-        return self.__Ofmap_desc.gNumMaps()
-
-    #-----------------------------------------------------------------
-    def qDataLayer(self):
-        return False
-
-
-
-    #-----------------------------------------------------------------
-    def gNameType(self):
-        return self.gName() + "{" + self.gTypeStr() + "}"
-
-    #-----------------------------------------------------------------
-    def gName(self):
-        return self.__LayerName
-
-    #-----------------------------------------------------------------
-
-    def gNameNum(self):
-        return self.gName() + "-" + self.m_NumStr
-
-    #-----------------------------------------------------------------
-    def gDotId(self):
-        numStr = self.m_NumStr.replace(".", "_")
-        return self.gName() + "_" + numStr
-
-    #-----------------------------------------------------------------
-    def gDotLabel(self):
-        return '"' + self.gName() + "-" + self.m_NumStr + '"'
-
+#endif
+
+
+//----------------------------------------------------------------
+string Layer::gBaseLayerStr() const
+{
+    int32 i = 0;
+    string s = "";
+    for (auto prevLayer : gPrevLayers()) {
+        const FmapDesc& ofmap_desc = prevLayer->gOfmapDesc();
+        if (i == 0) {
+            s = ofmap_desc.gString();
+        } else {
+            s += "+" + ofmap_desc.gString();
+        }
+        ++i;
+    }
+    s += "-->" + gOfmapDesc().gString();
+    return s;
+}
+
+//----------------------------------------------------------------
+string Layer::gStateSizesStr() const
+{
+    int64 nIn, nOut, iState, oState, tState;
+    if (qStoreInSB()) {
+        nIn     = gInputStateMemWithoutBatching();
+        nOut    = gOutputStateMemWithoutBatching();
+        iState  = nIn;
+        oState  = nOut;
+        tState  = nIn + nOut;
+    } else {
+        nIn     = gInputSize();
+        nOut    = 0;
+        iState  = nIn;
+        nOut    = gOutputSize();
+        oState  = nOut;
+        tState  = nIn+nOut;
+    }
+
+    const int64 numWeights = gNumberWeights();
+    const Layer* const nextSchedLayer = gNextSchedLayer();
+    const int64 nextNumWeights = nextSchedLayer ?  nextSchedLayer->gNumberWeights() : 0;
+
+    const int64 totMem = nIn + nOut + numWeights + nextNumWeights;
+    std::stringstream ss;
+    if (qStoreInSB()) {
+        ss << "  Istate=" << iState << ", OState=" << oState << ", TState=" << tState
+           << ", NumWeights=" << numWeights << ", TMem=" << totMem;
+    } else {
+        ss << "  Istate=(" << iState << "), Ostate=(" << oState << "), TState=(" << tState
+           << "), NumWeights=" << numWeights << ", TMem=(" << totMem << ")";
+    }
+    return ss.str();
+}
+
+
+
+#if 0
     #-----------------------------------------------------------------
     def gNameWithSched(self):
         layer = self
@@ -515,38 +212,6 @@ const utils::DataType& gDataType() const
                 )
         return s
 
-    #-----------------------------------------------------------------
-    def gDotIdLabel(self):
-        return self.gDotId() + ' [label=' + self.gDotLabel() + '];'
-
-    #-----------------------------------------------------------------
-    def gNextSchedLayer(self):
-        return self.__NextSchedLayer
-
-    #-----------------------------------------------------------------
-    def rNextSchedLayer(self, nextSchedLayer):
-        self.__NextSchedLayer = nextSchedLayer
-
-    #-----------------------------------------------------------------
-    def gPrevSchedLayer(self):
-        return self.__PrevSchedLayer
-
-
-    #-----------------------------------------------------------------
-    def rPrevSchedLayer(self, prevSchedLayer):
-        self.__PrevSchedLayer = prevSchedLayer
-
-
-    #-----------------------------------------------------------------
-    def gRefCount(self):
-        return self.__RefCount
-
-    #-----------------------------------------------------------------
-    def changeRefCount(self, num):
-        assert(self.__RefCount >= -num)
-        self.__RefCount += num
-
-
 
     #-----------------------------------------------------------------
     # Does this layer store data in the SB?
@@ -574,49 +239,6 @@ const utils::DataType& gDataType() const
         assert(self.gNumNextLayers() <= 1)
         return False
 
-    #-----------------------------------------------------------------
-    def gPrevSbLayers(self):
-        ##assert(self.qStoreInSB())
-        return iter(self.__PrevSbLayers)
-
-    def gNumPrevSbLayers(self):
-        return len(self.__PrevSbLayers)
-
-    #-----------------------------------------------------------------
-    def gNextSbLayers(self):
-        assert(self.qStoreInSB())
-        return iter(self.__NextSbLayers)
-
-    def gNumNextSbLayers(self):
-        return len(self.__NextSbLayers)
-
-    #-----------------------------------------------------------------
-    def addPrevSbLayer(self, prevLayer):
-        assert(prevLayer.qStoreInSB())
-        self.__PrevSbLayers.append(prevLayer)
-        if self.qStoreInSB():
-            prevLayer.__NextSbLayers.append(self)
-
-    def gIfmapAddress(self):
-        return self.__IfmapAddress
-
-    def gOfmapAddress(self):
-        return self.__OfmapAddress
-
-    def gWeightAddress(self):
-        return self.__WeightAddress
-
-    def rIfmapAddress(self, address):
-        self.__IfmapAddress = address
-
-    def rOfmapAddress(self, address):
-        assert(address != None)
-        self.__OfmapAddress = address
-
-    def rWeightAddress(self, address):
-        assert(address != None)
-        self.__WeightAddress = address
-
     @classmethod
     def gOfmapDescFromJson(klass, layerDict, nn):
         if nn.gUseDimList():
@@ -640,9 +262,6 @@ const utils::DataType& gDataType() const
             prevLayers.append(nn.gLayerByName(prevLayerName))
         return prevLayers
 
-#endif
-
-#if 0
 #-----------------------------------------------------------------
 Json Layer::gJson()
 {
