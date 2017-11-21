@@ -106,6 +106,10 @@ class MacroConvLayer(MacroLayer):
             ]
 
         ss = ""
-        for x in s: ss += ind + x + "\n"
+        for x in s:
+            if x != "":
+                ss += ind + x + "\n"
+            else:
+                ss += x + "\n"
         f.write(ss)
 
