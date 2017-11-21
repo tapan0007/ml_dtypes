@@ -17,6 +17,23 @@ class ConcatLayer(CombineLayer):
         super().__init__(param, prev_layer, earlier_layer, num_ofmaps)
 
     #-----------------------------------------------------------------
+    def gJson(self):
+        x = super().gJson()
+        return x
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def constructFromJson(klass, layerDict, nn):
+        layerName = Layer.gLayerNameFromJson(layerDict)
+        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
+        batch = 1
+        param = Layer.Param(layerName, batch, nn)
+        prevLayers = Layer.gPrevLayersFromJson(layerDict, nn)
+        assert isinstance(prevLayers, list) and len(prevLayers)==2
+        layer = ConcatLayer(param, prevLayers[0], prevLayers[1])
+        return layer
+
+    #-----------------------------------------------------------------
     def verify(self):
         mapWidth = self.gOfmapWidth()
         mapHeight = self.gOfmapHeight()

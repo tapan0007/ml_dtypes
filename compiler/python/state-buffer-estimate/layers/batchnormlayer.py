@@ -13,6 +13,23 @@ class BatchNormLayer(OneToOneLayer):
         super().__init__(param, prev_layer)
 
     #-----------------------------------------------------------------
+    def gJson(self):
+        x = super().gJson()
+        return x
+
+    #-----------------------------------------------------------------
+    @classmethod
+    def constructFromJson(klass, layerDict, nn):
+        layerName = Layer.gLayerNameFromJson(layerDict)
+        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
+        batch = 1
+        param = Layer.Param(layerName, batch, nn)
+        prevLayers = Layer.gPrevLayersFromJson(layerDict, nn)
+        assert isinstance(prevLayers, list) and len(prevLayers)==1
+        layer = BatchNormLayer(param, prevLayers[0])
+        return layer
+
+    #-----------------------------------------------------------------
     def __str__(self):
         baseLayer = self.gBaseLayerStr()
         return ("BNorm " + baseLayer + self.gStateSizesStr())

@@ -33,8 +33,9 @@ class PoolLayer(SubSampleLayer, metaclass = ABCMeta): # abstract class
 
     #-----------------------------------------------------------------
     def gPoolLayerStr(self):
-        ks = str(self.gKernel())
-        ss = str(self.gStride())
+        ks = str(self.gKernelHeight()) + "*" + str(self.gKernelWidth())
+
+        ss = str(self.gStrideBT()) + "*" + str(self.gStrideLR())
         baseLayer = self.gBaseLayerStr()
         t = "{" + self.gTypeStr() + "}"
 
