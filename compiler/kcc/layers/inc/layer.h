@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <assert.h>
 
 using std::string;
 using std::vector;
@@ -11,16 +12,13 @@ using std::vector;
 
 #include "types.h"
 #include "datatype.h"
+#include "fmapdesc.h"
 
 
 namespace kcc {
 
 namespace network {
     class Network;
-}
-namespace utils {
-    class DataType;
-    class FmapDesc;
 }
 
 namespace layers {
@@ -190,6 +188,9 @@ public:
     const DataType& gDataType() const;
 
     //----------------------------------------------------------------
+    bool  qStoreInSB() const;
+
+    //----------------------------------------------------------------
     int64 gInputStateMemWithoutBatching() const {
         assert(qStoreInSB());
         int64 sz = 0;
@@ -203,7 +204,7 @@ public:
     int64 gOutputStateMemWithoutBatching() const {
         assert(qStoreInSB());
         if (qStoreInSB()) {
-            oneBatchSize = gOutputSize();
+            const int64 oneBatchSize = gOutputSize();
             return oneBatchSize;
         } else {
             return 0;
@@ -253,7 +254,7 @@ public:
         return m_EarlyLevel;
     }
 
-    int32 rEarlyLevel(int32 level) {
+    void rEarlyLevel(int32 level) {
         m_EarlyLevel = level;
     }
 
@@ -263,11 +264,16 @@ public:
     }
 
     void rLateLevel(int32 level) {
-        mLateLevel = level;
+        m_LateLevel = level;
     }
 
     //----------------------------------------------------------------
-    vector<Layer>& gPrevLayers() {
+    vector<Layer*>& gPrevLayers() {
+        return m_PrevLayers;
+    }
+
+    //----------------------------------------------------------------
+    const vector<Layer*>& gPrevLayers() const {
         return m_PrevLayers;
     }
 
@@ -283,13 +289,18 @@ public:
     }
 
     //----------------------------------------------------------------
-    vector<Layer>& gNextLayers() {
+    vector<Layer*>& gNextLayers() {
+        return m_NextLayers;
+    }
+
+    //----------------------------------------------------------------
+    const vector<Layer*>& gNextLayers() const {
         return m_NextLayers;
     }
 
     //----------------------------------------------------------------
     Layer* gNextLayer(int32 idx) {
-        assert(0 <= idx and idx < gNumNextLayers())
+        assert(0 <= idx and idx < gNumNextLayers());
         return m_NextLayers[idx];
     }
 
@@ -305,9 +316,9 @@ public:
 
     //----------------------------------------------------------------
     int64 gMaxNextLayerNumberWeights() const {
-        maxNumWeights = 0
+        int64 maxNumWeights = 0;
         for (auto nextLayer : gNextLayers()) {
-            numWeights = nextLayer->gNumberWeights();
+            const int64 numWeights = nextLayer->gNumberWeights();
             if (numWeights > maxNumWeights) {
                 maxNumWeights = numWeights;
             }
@@ -348,7 +359,7 @@ public:
 
     //----------------------------------------------------------------
     int32 gTranBlockEnd() const {
-        return self.m_TranBlockEnd;
+        return m_TranBlockEnd;
     }
 
     //----------------------------------------------------------------
@@ -404,7 +415,7 @@ public:
 
     //----------------------------------------------------------------
     string gNameType() const {
-        return gName() + "{" + self.gTypeStr() + "}";
+        return gName() + "{" + gTypeStr() + "}";
     }
 
     //----------------------------------------------------------------
@@ -420,23 +431,23 @@ public:
 
     //----------------------------------------------------------------
     string gDotId() const {
-        string numStr = self.m_NumStr;
+        string numStr = m_NumStr;
         for (auto& ch : numStr) {
             if (ch == '.') {
                 ch = '_';
             }
         }
-        return self.gName() + "_" + numStr;
+        return gName() + "_" + numStr;
     }
 
     //----------------------------------------------------------------
     string gDotLabel() const {
         string s("\"");
-        return s + self.gName() + "-" + self.m_NumStr + "\"";
+        return s + gName() + "-" + m_NumStr + "\"";
 
     //----------------------------------------------------------------
     string gDotIdLabel() const [
-        return self.gDotId() + " [label=" + self.gDotLabel() + "];";
+        return gDotId() + " [label=" + gDotLabel() + "];";
     }
 
     //----------------------------------------------------------------
@@ -451,7 +462,7 @@ public:
 
     //----------------------------------------------------------------
     Layer* gPrevSchedLayer() const {
-        return self.m_PrevSchedLayer;
+        return m_PrevSchedLayer;
     }
 
     //----------------------------------------------------------------
@@ -525,7 +536,9 @@ public:
 
 private:
     std::string         m_LayerName;
-    vector<Layer*>&     m_PrevLayers;
+    vector<Layer*>      m_PrevLayers;
+    vector<Layer*>      m_PrevSbLayers;
+    vector<Layer*>      m_NextLayers;
     network::Network*   m_Network;
 
     StateBufferAddress  m_IfmapAddress;
@@ -536,6 +549,19 @@ private:
     int64               m_BatchMemory;
     int32               m_BatchFactor;
     int32               m_Schedule;
+    int32               m_CurrLevel;
+    int32               m_EarlyLevel;
+    int32               m_LateLevel;
+
+    int32               m_DenseBlockStart;
+    int32               m_DenseBlockEnd;
+    int32               m_TranBlockStart;
+    int32               m_TranBlockEnd;
+
+    LayerId             m_Id;
+    string              m_NumberStr;
+
+    FmapDesc            m_Ofmap_desc;
 }; // class Layer
 
 
@@ -552,7 +578,7 @@ public:
 
     #-----------------------------------------------------------------
 
-    def combineJson(self, it):
+    def combineJson(it):
         x = {}
         for y in it:
             x.update(y)
@@ -565,7 +591,7 @@ public:
     #-----------------------------------------------------------------
     #-----------------------------------------------------------------
     @abstractmethod
-    def __str__(self):
+    def __str__():
         assert(False)
 
     #-----------------------------------------------------------------
@@ -573,35 +599,35 @@ public:
 
 
     #-----------------------------------------------------------------
-    def gBaseLayerStr(self):
+    def gBaseLayerStr():
         i = 0
         s = ""
-        for prevLayer in self.gPrevLayers():
+        for prevLayer in gPrevLayers():
             ofmap_desc = prevLayer.gOfmapDesc()
             if i == 0:
                 s = str(ofmap_desc)
             else:
                 s += "+" + str(ofmap_desc)
-        s += "-->" + str(self.gOfmapDesc())
+        s += "-->" + str(gOfmapDesc())
         return s
 
     #-----------------------------------------------------------------
-    def gStateSizesStr(self):
-        if self.qStoreInSB() :
-            nIn= self.gInputStateMemWithoutBatching()
-            nOut = self.gOutputStateMemWithoutBatching()
+    def gStateSizesStr():
+        if qStoreInSB() :
+            nIn= gInputStateMemWithoutBatching()
+            nOut = gOutputStateMemWithoutBatching()
             iState = kstr(nIn)
             oState = kstr(nOut)
             tState = kstr(nIn + nOut)
         else:
-            nIn = self.gInputSize()
+            nIn = gInputSize()
             iState = "(" + kstr(nIn) + ")"
-            nOut = self.gOutputSize()
+            nOut = gOutputSize()
             oState = "(" + kstr(nOut) + ")"
             tState = "(" + kstr(nIn+nOut) + ")"
 
-        numWeights = self.gNumberWeights()
-        nextSchedLayer = self.gNextSchedLayer()
+        numWeights = gNumberWeights()
+        nextSchedLayer = gNextSchedLayer()
         nextNumWeights = (nextSchedLayer.gNumberWeights() if nextSchedLayer else 0)
 
         totMem = nIn + nOut + numWeights + nextNumWeights
@@ -614,8 +640,8 @@ public:
 
 
     #-----------------------------------------------------------------
-    def gNameWithSched(self):
-        layer = self
+    def gNameWithSched():
+        layer = this;
         return (layer.gName()
               + ' lev=[' + str(layer.gEarlyLevel())
               +        ',' + str(layer.gLateLevel()) + '] '
@@ -623,7 +649,7 @@ public:
               )
 
     #-----------------------------------------------------------------
-    def gNameWithSchedMem(self):
+    def gNameWithSchedMem():
         #Str = kstr
         Str = Kstr
         name = self.gNameType()
