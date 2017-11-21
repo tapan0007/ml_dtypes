@@ -60,46 +60,37 @@ Layer::gDataType() const
 
 
 
+//-----------------------------------------------------------------
+// Does this layer store data in the SB?
+// That depends on
+// - the sinks of this layer
+// - scheduling of the sinks
+// Therefore, the return value can be determined only after scheduling is finished.
+//-----------------------------------------------------------------
+bool Layer::qStoreInSB() const
+{
+    return true; // this because Dana requires SB area for each operation,
+                 // cannot feed convolution directly to pooling
 
-#if 0
-    #-----------------------------------------------------------------
-    def gJson(self):
-        prevLayers = []
-        for prevLayer in self.gPrevLayers():
-            prevLayers.append(prevLayer.gName())
-
-        batch = 1
-        x = {
-            Layer.layer_name_key : self.gName(),
-            Layer.type_key       : self.gTypeStr(),
-            Layer.prev_layers_key   : prevLayers,
+    const int32 mySched = gSchedule();
+    assert(mySched >= 0);
+    const Layer* nextSchedLayer = gNextSchedLayer();
+    if (!nextSchedLayer) { // output
+        return true;
+    } else if (nextSchedLayer->qConvLayer()) { // to get to convolution
+        return true;
+    } else {
+        for (const Layer* nextLayer : gNextLayers()) {
+            if (nextLayer->gSchedule() > mySched + 1) {
+                return true;
+            }
         }
-        if self.gNetwork().gUseDimList():
-            x.update({
-                Layer.ofmap_key : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
-            })
-        else:
-            x.update({
-                Layer.number_ofmaps_key : self.gNumOfmaps(),
-                Layer.ofmap_width_key   : self.gOfmapWidth(),
-                Layer.ofmap_height_key  : self.gOfmapHeight()
-            })
-        return x
+    }
 
-    #-----------------------------------------------------------------
+    assert(gNumNextLayers() <= 1);
+    return false;
+}
 
-    def combineJson(self, it):
-        x = {}
-        for y in it:
-            x.update(y)
-            #x = { **x, **y }
-        return x
-
-    //----------------------------------------------------------------
-    @abstractmethod
-    def __str__(self):
-        assert(False)
-#endif
 
 
 //----------------------------------------------------------------
@@ -157,110 +148,131 @@ string Layer::gStateSizesStr() const
 
 
 
+//----------------------------------------------------------------
+string Layer::gNameWithSched() const
+{
+    std::stringstream ss;
+    ss  << gName()
+        << "lev=[" << gEarlyLevel() << ", " << gLateLevel() << "] "
+        << "sched=" << gSchedule();
+    return ss.str();
+}
+
+//----------------------------------------------------------------
+string Layer::gNameWithSchedMem() const
+{
+    std::stringstream s;
+    //Str = kstr
+    //Str = Kstr
+    string name = gNameType();
+
+    if (qStoreInSB()) {
+        std::stringstream ss;
+        ss << gNumOfmaps() << "*" << gOfmapWidth() << "*" << gOfmapHeight();
+        const auto inMem = gInputStateMemWithoutBatching();
+        const auto residueMem = gResMemWithoutBatching();
+        const auto outMem = gOutputStateMemWithBatching();
+        const auto batchMem = gBatchMem();
+        ss << "[";
+        bool first = true;
+        for (Layer* nextSbLayer : gNextSbLayers()) {
+            const auto d = gOutputStateMemWithoutBatching() * (nextSbLayer->gBatchFactor() - gBatchFactor());
+            if (first) {
+                first = false;
+                ss << d;
+            } else {
+                ss << "," << d;
+            }
+        }
+        ss << "]";
+
+        s   << name
+            << inMem << outMem << residueMem
+            << batchMem
+            << "["
+            << gBatchFactor()
+            << "]"
+            << ss.str();
+    } else {
+        std::stringstream ss;
+        ss << gNumOfmaps() << "*" << gOfmapWidth() << "*" << gOfmapHeight();
+
+        const auto inMem = gInputSize();
+        const auto outMem = gOutputSize();
+        s   << name
+            << inMem << "(" << outMem << ")"
+            << ""
+            << ""
+            << ""
+            << ss.str();
+    }
+    return s.str();
+}
+
+
+
+
 #if 0
     #-----------------------------------------------------------------
-    def gNameWithSched(self):
-        layer = self
-        return (layer.gName()
-              + ' lev=[' + str(layer.gEarlyLevel())
-              +        ',' + str(layer.gLateLevel()) + '] '
-              + ' sched=' + str(layer.gSchedule())
-              )
-
-    #-----------------------------------------------------------------
-    def gNameWithSchedMem(self):
-        #Str = kstr
-        Str = Kstr
-        name = self.gNameType()
-        if name == "res3d{Add}":
-            x = 3
-        ofmapStr = (str(self.gNumOfmaps()) + "*" 
-                   + str(self.gOfmapWidth()) + "*" + str(self.gOfmapHeigh()) )
-        if self.qStoreInSB():
-            inMem = self.gInputStateMemWithoutBatching()
-            residueMem = self.gResMemWithoutBatching()
-            outMem = self.gOutputStateMemWithBatching()
-            batchMem = self.gBatchMem()
-            batchDelta = "["
-            for nextSbLayer in self.gNextSbLayers():
-                d = self.gOutputStateMemWithoutBatching() * (nextSbLayer.gBatchFactor() - self.gBatchFactor())
-                ##  d = Str(batchMem - nextSbLayer.gBatchMem())
-                if batchDelta == "[":
-                    batchDelta += Str(d)
-                else:
-                    batchDelta += "," + Str(d)
-            batchDelta += "]"
-
-            s = (SCHED_MEM_FORMAT) % (
-                name,
-                ofmapStr,
-                Str(inMem), Str(outMem),
-                Str(residueMem),
-                (Str(batchMem) + "[" + str(self.gBatchFactor()) + "]"),
-                batchDelta,
-                )
-        else:
-            inMem = self.gInputSize()
-            outMem = self.gOutputSize()
-            s = (SCHED_MEM_FORMAT) % (
-                name,
-                ofmapStr,
-                Str(inMem), "("+Str(outMem)+")",
-                "",  # residueMem
-                "",  # batchMem
-                "",  # bdelta
-                )
-        return s
-
-
-    #-----------------------------------------------------------------
-    # Does this layer store data in the SB?
-    # That depends on
-    # - the sinks of this layer
-    # - scheduling of the sinks
-    # Therefore, the return value can be determined only after scheduling is finished.
-    #-----------------------------------------------------------------
-    def qStoreInSB(self):
-        return True ## this because Dana requires SB area for each operation,
-                    ## cannot feed convolution directly to pooling
-
-        mySched = self.gSchedule()
-        assert(mySched != None)
-        nextSchedLayer = self.gNextSchedLayer()
-        if not nextSchedLayer: ## output
-            return True
-        elif nextSchedLayer.qConvLayer() : ## to get to convolution
-            return True
-        else:
-            for nextLayer in self.gNextLayers():
-                if nextLayer.gSchedule() > mySched + 1:
-                    return True
-
-        assert(self.gNumNextLayers() <= 1)
-        return False
-
-    @classmethod
-    def gOfmapDescFromJson(klass, layerDict, nn):
-        if nn.gUseDimList():
-            of = layerDict[Layer.ofmap_key] ##  : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
-            return OfmapDesc(of[1], (of[2], of[3]) )
-        else:
-            nOfmaps = layerDict[Layer.number_ofmaps_key]
-            ofmapH = layerDict[Layer.ofmap_height_key]
-            return OfmapDesc(nOfmaps, (ofmapW, ofmapH))
-
-    @classmethod
-    def gLayerNameFromJson(klass, layerDict):
-        layerName = layerDict[Layer.layer_name_key]
-        return layerName
-
-    @classmethod
-    def gPrevLayersFromJson(klass, layerDict, nn):
+    def gJson(self):
         prevLayers = []
-        prevLayersNames = layerDict[Layer.prev_layers_key]
-        for prevLayerName in prevLayersNames:
-            prevLayers.append(nn.gLayerByName(prevLayerName))
-        return prevLayers
+        for prevLayer in self.gPrevLayers():
+            prevLayers.append(prevLayer.gName())
+
+        batch = 1
+        x = {
+            Layer.layer_name_key : self.gName(),
+            Layer.type_key       : self.gTypeStr(),
+            Layer.prev_layers_key   : prevLayers,
+        }
+        if self.gNetwork().gUseDimList():
+            x.update({
+                Layer.ofmap_key : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
+            })
+        else:
+            x.update({
+                Layer.number_ofmaps_key : self.gNumOfmaps(),
+                Layer.ofmap_width_key   : self.gOfmapWidth(),
+                Layer.ofmap_height_key  : self.gOfmapHeight()
+            })
+        return x
+
+    #-----------------------------------------------------------------
+
+    def combineJson(self, it):
+        x = {}
+        for y in it:
+            x.update(y)
+            #x = { **x, **y }
+        return x
+
+    //----------------------------------------------------------------
+    @abstractmethod
+    def __str__(self):
+        assert(False)
+
+@classmethod
+def gOfmapDescFromJson(klass, layerDict, nn):
+    if nn.gUseDimList():
+        of = layerDict[Layer.ofmap_key] ##  : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
+        return OfmapDesc(of[1], (of[2], of[3]) )
+    else:
+        nOfmaps = layerDict[Layer.number_ofmaps_key]
+        ofmapH = layerDict[Layer.ofmap_height_key]
+        return OfmapDesc(nOfmaps, (ofmapW, ofmapH))
+
+@classmethod
+def gLayerNameFromJson(klass, layerDict):
+    layerName = layerDict[Layer.layer_name_key]
+    return layerName
+
+@classmethod
+def gPrevLayersFromJson(klass, layerDict, nn):
+    prevLayers = []
+    prevLayersNames = layerDict[Layer.prev_layers_key]
+    for prevLayerName in prevLayersNames:
+        prevLayers.append(nn.gLayerByName(prevLayerName))
+    return prevLayers
 
 #-----------------------------------------------------------------
 Json Layer::gJson()
@@ -292,13 +304,6 @@ Json Layer::gJson()
 }}
 #endif
 
-const char* const Layer::m_LayerNameKey     = "layer_name";
-const char* const Layer::m_TypeKey          = "layer_type";
-const char* const Layer::m_OfmapKey         = "ofmaps";
-const char* const Layer::m_NumberOfmapsKey  = "number_ofmaps";
-const char* const Layer::m_OfmapWidthKey    = "ofmap_width";
-const char* const Layer::m_OfmapHeightKey   = "ofmap_height";
-const char* const Layer::m_PrevKayersKey    = "previous_layers";
 
-}}
+}} // namespace
 

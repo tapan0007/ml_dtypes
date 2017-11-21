@@ -29,13 +29,13 @@ using namespace utils;
 //--------------------------------------------------------
 class Layer { // abstract class
 protected:
-    static const char* const m_LayerNameKey;
-    static const char* const m_TypeKey;
-    static const char* const m_OfmapKey;
-    static const char* const m_NumberOfmapsKey;
-    static const char* const m_OfmapWidthKey;
-    static const char* const m_OfmapHeightKey;
-    static const char* const m_PrevKayersKey;
+    constexpr static const char* m_LayerNameKey     = "layer_name";
+    constexpr static const char* m_TypeKey          = "layer_type";
+    constexpr static const char* m_OfmapKey         = "ofmaps";
+    constexpr static const char* m_NumberOfmapsKey  = "number_ofmaps";
+    constexpr static const char* m_OfmapWidthKey    = "ofmap_width";
+    constexpr static const char* m_OfmapHeightKey   = "ofmap_height";
+    constexpr static const char* m_PrevKayersKey    = "previous_layers";
 
     //----------------------------------------------------
 public:
@@ -487,12 +487,21 @@ public:
         return m_PrevSbLayers;
     }
 
+    const vector<Layer*>& gPrevSbLayers() const {
+        return m_PrevSbLayers;
+    }
+
     int32 gNumPrevSbLayers() {
         return m_PrevSbLayers.size();
     }
 
     //----------------------------------------------------------------
-    vector<Layer*> gNextSbLayers() {
+    vector<Layer*>& gNextSbLayers() {
+        assert(qStoreInSB());
+        return m_NextSbLayers;
+    }
+
+    const vector<Layer*>& gNextSbLayers() const {
         assert(qStoreInSB());
         return m_NextSbLayers;
     }
@@ -603,7 +612,7 @@ public:
             #x = { **x, **y }
         return x
 
-    @classmethod
+    static
     def gOfmapDescFromJson(klass, layerDict, nn):
         if nn.gUseDimList():
             of = layerDict[Layer.ofmap_key] ##  : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
@@ -613,12 +622,12 @@ public:
             ofmapH = layerDict[Layer.ofmap_height_key]
             return OfmapDesc(nOfmaps, (ofmapW, ofmapH))
 
-    @classmethod
+    static
     def gLayerNameFromJson(klass, layerDict):
         layerName = layerDict[Layer.layer_name_key]
         return layerName
 
-    @classmethod
+    static
     def gPrevLayersFromJson(klass, layerDict, nn):
         prevLayers = []
         prevLayersNames = layerDict[Layer.prev_layers_key]

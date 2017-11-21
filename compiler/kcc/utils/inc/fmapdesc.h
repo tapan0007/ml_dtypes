@@ -65,6 +65,9 @@ public:
 
 
 private:
+    FmapDesc() = delete;
+
+private:
     int32 m_NumMaps;
     int32 m_MapHeight;
     int32 m_MapWidth;
