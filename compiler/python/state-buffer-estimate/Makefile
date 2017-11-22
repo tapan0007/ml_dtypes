@@ -38,6 +38,9 @@ resnet-json : resnet-batch
 trivnet :
 	$(PYTHON) $(COMPILER_PY) --trivnet $(ALL_OPTS)
 
+trivnet :
+	$(PYTHON) main.py --trivnet $(ALL_OPTS)
+
 
 dbgdense :
 	py -mpdb $(COMPILER_PY) --densenet $(ALL_OPTS)
