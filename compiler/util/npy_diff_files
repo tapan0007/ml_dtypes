@@ -1,50 +1,72 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import sys
+import sys, os
+import argparse
 
-(unused, goldFile, newFile) = sys.argv
+parser = argparse.ArgumentParser()
+parser.add_argument('--gold', help='Golden/reference file. Used as base for the computing relative diference',
+                    default="gold.npy")
+parser.add_argument('--new', help='New values', default="new.npy")
+parser.add_argument('--verbose', help='Verbosity level, 0 exit code only (0 allclose match, 1 mismatch), 1 status line, 2 default with histograms and summaries,  3 individual values',
+                    default=2)
 
-gold = np.load(goldFile)
-new = np.load(newFile)
+args = parser.parse_args()
+
+if not os.path.isfile(args.gold):
+  raise("ERROR: missing file --gold ")
+if not os.path.isfile(args.new):
+  raise("ERROR: missing file --new ")
+
+gold = np.load(args.gold)
+new = np.load(args.new)
+
+verbose = int(args.verbose)
 
 if gold.shape != new.shape:
   print("ERROR: shapes differ, gold %s, new %s" %(gold.shape, new.shape))
-  exit(1)
+  exit(2)
 
 diffAbs = new.astype(np.float64) - gold.astype(np.float64)
 diffRel = 100 * diffAbs.astype(np.float64) / gold.astype(np.float64)
 
-print("Comparing")
-print("GOLDEN  %-10s %-8s %s" % (gold.shape, gold.dtype, goldFile))
-print("NEW     %-10s %-8s %s" % (new.shape, new.dtype, newFile))
+if verbose >= 1:
+  print("Comparing")
+  print("GOLD  %-10s %-8s %s" % (gold.shape, gold.dtype, args.gold))
+  print("NEW   %-10s %-8s %s" % (new.shape, new.dtype, args.new))
 
-print("\nDetailed differences:")
-print("%-20s %-12s %-12s  %-12s %-12s" % ("Index", "Gold", "New", "Rel diff [%]", "Abs diff"))
-for index, g in np.ndenumerate(gold):
-  n = new[index]
-  da = diffAbs[index]
-  dr = diffRel[index]
-  print("%-20s %12g %12g  %12.2f%% %12g" % (str(index), g, n, dr, da))
+if verbose >= 3:
+  print("\nDetailed differences:")
+  print("%-20s %-12s %-12s  %-12s %-12s" % ("Index", "Gold", "New", "Rel diff [%]", "Abs diff"))
+  for index, g in np.ndenumerate(gold):
+    n = new[index]
+    da = diffAbs[index]
+    dr = diffRel[index]
+    print("%-20s %12g %12g  %12.2f%% %12g" % (str(index), g, n, dr, da))
   
 # Histograms
-def printHistogram(text, arr):
-  print(text)
-  (counts, values) = np.histogram(arr)
-  step = 60 / max(counts)
-  for (count, value) in zip(counts, values):
-    print("  %12g " % value, "#" * int(count * step + 0.49999), count)
-print("\nHistograms:")
-printHistogram("Gold", gold)
-printHistogram("New", new)
+if verbose >= 2:
+  def printHistogram(text, arr):
+    print(text)
+    (counts, values) = np.histogram(arr)
+    step = 60 / max(counts)
+    for (count, value) in zip(counts, values):
+      print("  %12g " % value, "#" * int(count * step + 0.49999), count)
+  print("\nHistograms:")
+  printHistogram("Gold", gold)
+  printHistogram("New", new)
 
-print("\nStatistics")
-print("%-36s" % ("Relative Error % mean std  min max"))
-print("%12.2f %12.2f  %12.2f %12.2f" % (diffRel.mean(), diffRel.std(), diffRel.min(), diffRel.max()))
+if verbose >= 2:
+  print("\nStatistics")
+  print("%-36s" % ("Relative Error % mean std  min max"))
+  print("%12.2f %12.2f  %12.2f %12.2f" % (diffRel.mean(), diffRel.std(), diffRel.min(), diffRel.max()))
 
-print("%-36s" % ("Absolute Error  mean std  min max"))
-print("%12g %12g  %12g %12g" % (diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
+  print("%-36s" % ("Absolute Error  mean std  min max"))
+  print("%12g %12g  %12g %12g" % (diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
 
 (tolr, tola) = (1, 1e-6)
-print("Allclose info tolerance rel %g %%  absolute %g : %s" % (tolr, tola, np.allclose(new, gold, tolr/100, tola)))
+resAllclose = np.allclose(new, gold, tolr/100, tola)
+if verbose >= 1:
+  print("Allclose info tolerance rel %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
 
+exit(0 if resAllclose else 1)
