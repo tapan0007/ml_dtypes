@@ -39,9 +39,9 @@ for testName in testList:
   (nnStruct, nnConfig, nnLabel) = tests[testName]
   if verbose:
     print("\n############## %s ##############" % testName)
-  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/Makefile %s NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=%s > log-fe.txt 2>&1; test -f *.tgz; ' % (testName, testName, nnStruct, nnConfig, nnLabel)
+  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/Makefile %s NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=%s > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, nnLabel)
   if args.stop_after == "backend":
-    cmd += 'bash $KAENA_PATH/compiler/python/state-buffer-estimate/test/RunOne.sh *tgz > log-be.txt 2>&1; '
+    cmd += 'bash $KAENA_PATH/compiler/python/state-buffer-estimate/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
   cmd += 'echo -n PASS || echo -n FAIL; echo "  "' + testName
   if verbose:
     print("Executing ", cmd)
