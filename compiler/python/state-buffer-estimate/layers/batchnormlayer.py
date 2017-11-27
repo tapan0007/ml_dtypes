@@ -36,7 +36,7 @@ class BatchNormLayer(OneToOneLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(self):
+    def gTypeStr(klass):
         return "BNorm"
 
     #-----------------------------------------------------------------
