@@ -1,1 +1,0 @@
-../../test/data-trivnet/trivnet_compiler.py

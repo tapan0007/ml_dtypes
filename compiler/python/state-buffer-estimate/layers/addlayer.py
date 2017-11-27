@@ -33,11 +33,6 @@ class AddLayer(CombineLayer):
         return AddLayer(param, prevLayers[0], prevLayers[1])
 
     #-----------------------------------------------------------------
-    def gJson(self):
-        x = super().gJson()
-        return x
-
-    #-----------------------------------------------------------------
     @classmethod
     def gTypeStr(cls):
         return "Add"

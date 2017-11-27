@@ -69,7 +69,6 @@ class StateBufferMgr(object):
                     ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
                 elif prevIfmapAddress < prevOfmapAddress:
                     ##     Weights | prevIfmap | ... | prevOfmap
-                    ##             | Ofmap  $rc -ec 'false|false' && fail $rc -c $q'false|false'$q should fail
                     ofmapAddress = self.__FirstSbAddress + (
                                    layer.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
                 else:

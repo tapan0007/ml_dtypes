@@ -176,14 +176,14 @@ class Network(object):
         nn = Network(dataType, netName)
 
         name2klass = {}
-        Klasses = [
+        LeafKlasses = [
             ConvLayer, MaxPoolLayer, DataLayer, 
             AddLayer, AvgPoolLayer, FullLayer,
             SoftMaxLayer, BatchNormLayer, ReluLayer,
             ConcatLayer,
         ]
-        for klass in Klasses:
-            name2klass[klass.gTypeStr()] = klass
+        for leafKlass in LeafKlasses:
+            name2klass[leafKlass.gTypeStr()] = leafKlass
 
         layerDicts = jsonDict[Network.layers_key]
 

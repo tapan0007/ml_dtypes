@@ -42,6 +42,8 @@ class MacroConvLayer(MacroLayer):
         numBatches = 1
         assertStr  =  self.gMacroInstrGen().gAssertionStr()
 
+        inDataType  = self.gMacroInstrGen().gDataTypeName(layer)
+        outDataType = self.gMacroInstrGen().gDataTypeName(layer)
         ##
         ##
         s = ["// convolution: " + layer.gName(),
@@ -92,8 +94,9 @@ class MacroConvLayer(MacroLayer):
              ind + "ifmap_addrs, ifmap_dims,",
              ind + "filter_addr, filter_dims,",
              ind + "ofmap_addrs, ofmap_dims,",
-             ind + self.gMacroInstrGen().gDataTypeName(layer) + ",",
-             ind + self.gMacroInstrGen().gDataTypeName(layer) + ",",
+             ind + inDataType + ",",
+             ind + outDataType + ",",
+
              ind + "padding,",
              ind + "convolve_stride,",
              ind + "dilate);",

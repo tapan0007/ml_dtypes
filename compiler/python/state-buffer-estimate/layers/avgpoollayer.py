@@ -57,7 +57,6 @@ class AvgPoolLayer(PoolLayer):
         assert(self.gPrevLayer(0).gOfmapWidth()  // self.gStrideLR() == self.gOfmapWidth())
         assert(self.gPrevLayer(0).gOfmapHeight() // self.gStrideBT() == self.gOfmapHeight())
 
-
     #-----------------------------------------------------------------
     @classmethod
     def gTypeStr(self):

@@ -78,7 +78,7 @@ class Node(Object):
     return("        # No model for %s %s\n" % (self.getOpType(), self.getOpName()), [])
   def genCompilerLayerJson(self):
     return({"layer_type" :  self.getOpType(),
-            "layet_name" :  self.getOpName(),
+            "layer_name" :  self.getOpName(),
             "#comment"   :  "unsupported layer"
             }, [])
 
@@ -121,7 +121,6 @@ class NodeConv2D(Node):
     npInfo = self.getNpInfo()[0]
     (batch, height, width, channels) = npInfo.npShape
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    numOfMaps = channels
     filterSize = npInfoW.npShape[0]
     assert(npInfoW.npShape[0] == npInfoW.npShape[1]) # square filter
     # OFMAP
@@ -132,7 +131,7 @@ class NodeConv2D(Node):
     (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
     stride = 1 # TO_DO extract it properly
     s =  '        layer = ConvLayer(Layer.Param("%s", %d, self), layer,\n' % (self.getOpName(), batch)
-    s += '                   %d, stride=%d, kernel=%d,\n' % (numOfMaps, stride, filterSize)
+    s += '                   %d, stride=%d, kernel=%d,\n' % (channels, stride, filterSize)
     s += '                   filterFileName="%s", filterTensorDimSemantics="%s")\n' % (npFileSimW, simFormatW)
     s += '        # Golden result file  %s\n' % npFileSim
     s += "        \n"
@@ -146,7 +145,6 @@ class NodeConv2D(Node):
     npInfo = self.getNpInfo()[0]
     (batch, height, width, channels) = npInfo.npShape
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    numOfMaps = channels
     filterShapeRSCM = npInfoW.npShape
     filterShapeMCRS = [filterShapeRSCM[i] for i in [3, 2, 0, 1]]
     # OFMAP
@@ -160,7 +158,6 @@ class NodeConv2D(Node):
     stride = [1, 1, 1, 1]   # TO_DO extract it properly
     padding = [[0,0], [0,0], [1,1], [1,1]]   # TO_DO extract it properly
     layerData = {
-      "layer_name"      : self.getOpName(),
       "layer_type"      : "Conv",
       "kernel_file"     : npFileSimW,
       "kernel_format"   : simFormatW,
@@ -170,9 +167,13 @@ class NodeConv2D(Node):
       "ref_file"        : npFileSim,
       "padding"         : padding,
       "previous_layers" : [fromIfNode.getName()],  # TO_DO - use the actual input
-      "stride"          : stride
+      "stride"          : stride,
+      "#comment"        : "supported layer"
     }
-    return(layerData, fileList)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase.update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
 
 # Computational data flow graph
 class Graph(Object):
@@ -390,10 +391,11 @@ class TrivNet(Network):
     
   def genCompilerJson(self, outFile, verbose):
     
-    jsonData = {}
-    jsonData["net_name"] = "TrivNet"
-    jsonData["data_type"] = "float16"
-    jsonData["layers"] = []
+    jsonData = {
+      "net_name"  : "TrivNet",
+      "data_type" : "float16",
+      "layers"   : []
+    }
        
     fileList = []
 
@@ -434,6 +436,8 @@ class TrivNet(Network):
 
     with open(outFile, "w") as f:
       s = json.dumps(jsonData, indent=2, sort_keys=True)
+      ## Blank space formatting - Remove redundant new lines on list
+      ##   of integers, and list of pairs of integers.
       s = re.sub(r'\s+(\d+,)\n', r' \1', s, flags=re.S)
       s = re.sub(r',\s+(\d+)\n\s+\]', r', \1 ]', s, flags=re.S)
       s = re.sub(r'\s+(\[ \d+, \d+ \],)\n', r' \1', s, flags=re.S)
