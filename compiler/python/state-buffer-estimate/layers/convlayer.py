@@ -96,7 +96,7 @@ class ConvLayer(SubSampleLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(cls):
+    def gTypeStr(klass):
         return "Conv"
 
     #-----------------------------------------------------------------

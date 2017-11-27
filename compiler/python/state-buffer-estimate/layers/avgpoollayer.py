@@ -59,7 +59,7 @@ class AvgPoolLayer(PoolLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(self):
+    def gTypeStr(klass):
         t = "AvgPool"
         return t
 

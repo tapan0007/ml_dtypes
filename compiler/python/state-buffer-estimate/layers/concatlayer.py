@@ -48,7 +48,7 @@ class ConcatLayer(CombineLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(self):
+    def gTypeStr(klass):
         return "Concat"
 
     #-----------------------------------------------------------------

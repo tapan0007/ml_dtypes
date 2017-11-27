@@ -60,7 +60,7 @@ class MaxPoolLayer(PoolLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(cls):
+    def gTypeStr(klass):
         t = "MaxPool"
         return t
 

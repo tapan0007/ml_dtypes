@@ -50,7 +50,7 @@ class FullLayer(ConvLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(self):
+    def gTypeStr(klass):
         return "Full"
 
     #-----------------------------------------------------------------
