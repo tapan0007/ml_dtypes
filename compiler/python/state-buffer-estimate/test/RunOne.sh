@@ -71,7 +71,7 @@ case "x$1" in
 (x*.tgz)
     TGZ=$1; 
     x=${TGZ%.tgz}
-    Name="${x#.*/}"
+    Name="${x##.*/}"
     ;;
 (*) Name=$1; TGZ=$Name.tgz;;
 esac
