@@ -32,20 +32,18 @@ export DUMPNPY=$KAENA_PATH/compiler/util/npy2txt
 export INKLING=$INKLING_PATH
 SIM=$INKLING/sim/sim
 
-CODEGEN_TOP=$KAENA_PATH/compiler/kcc/codegen
-OBJDUMP=$CODEGEN_TOP/objdump/objdump
+##############################################################
+## CODEGEN_TOP=$KAENA_PATH/compiler/kcc/codegen
+CODEGEN_TOP=$INKLING
 
-if ! test -d $CODEGEN_TOP; then
-    Fatal "Codegen top dir does not exist: $CODEGEN_TOP"
-fi
-if ! test -x $OBJDUMP; then
-    Fatal "Codegen executable dir does not exist: $OBJDUMP"
-fi
+OBJDUMP=$CODEGEN_TOP/objdump/objdump
 
 export PYTHONPATH=$PYTHONPATH:$COMPILER
 ##############################################################
-test -d "$INKLING"  || Fatal Inkling directory "$INKLING" missing
-test -d "$COMPILER" || Fatal Compiler directory "$COMPILER" missing
+test -d "$CODEGEN_TOP"  || Fatal Inkling directory "$CODEGEN_TOP" missing
+test -d "$INKLING"      || Fatal Inkling directory "$INKLING" missing
+test -d "$COMPILER"     || Fatal Compiler directory "$COMPILER" missing
+test -x $OBJDUMP        || Fatal "Codegen executable dir does not exist: $OBJDUMP"
 
 ##############################################################
 
@@ -80,7 +78,6 @@ case "x$1" in
 (*) Name=$1; TGZ=$Name.tgz;;
 esac
 
-DIR=./results
 ##############################################################
 
 ##############################################################

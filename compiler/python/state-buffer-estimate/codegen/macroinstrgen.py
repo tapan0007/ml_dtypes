@@ -108,7 +108,8 @@ class MacroInstrGen(object):
     def writeIncludes(self):
         f = self.__File
         f.write('\n')
-        f.write('#include "tcc.h"\n')
+        ##f.write('#include "tcc.h"\n')
+        f.write('#include "tcc.hpp"\n')
 
     #-----------------------------------------------------------------
     def writeDefines(self):
