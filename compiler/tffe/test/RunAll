@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
 # Basic minimal suite of TF to Inkling tests
 
 import os, sys
@@ -22,13 +24,18 @@ verbose = args.verbose
 if verbose:
   print("\nINFO: started as  ", " ".join(sys.argv))
 
+# test naming
+#   level-name
+#   level is relative complexity and runtime cost, easiest 0  to most complex 9
+#   Name can be composed of anything - 0 can be used as base/existence test
 tests = {
-  "t0001" : [ "jdr_v2", "b1-h1-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv"],
-  "t0002" : [ "jdr_v3", "b1-h1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "2conv"],
-  "t0003" : [ "jdr_v3", "b1-Zh1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "I_ALWAYS_FAIL"],
-  "t0010" : [ "jdr_v2", "b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
-  "t0011" : [ "jdr_v2", "b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
-  "t0012" : [ "jdr_v2", "b1-h35-r3-s1-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"]
+  "0-1conv0"      : [ "trivnet_conv1",  "b1-h1-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv"],
+  "0-2conv0"      : [ "trivnet_conv2",  "b1-h1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "2conv"],
+  "0-neg"         : [ "trivnet_conv2",  "b1-Zh1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "I_ALWAYS_FAIL"],
+  "0-1conv_tile"  : [ "trivnet_conv1",  "b1-h35-r3-s1-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "0-30conv3"     : [ "trivnet_conv30", "b1-h4-r3-s1-c1-m1-wmin-0.2-wmax0.2-imin-10000-imax10000", "30conv"],
+  "1-1conv7_64"   : [ "trivnet_conv1",  "b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "1-1conv9_64"   : [ "trivnet_conv1",  "b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
 }
 
 testList = sorted(tests)
@@ -39,7 +46,7 @@ for testName in testList:
   (nnStruct, nnConfig, nnLabel) = tests[testName]
   if verbose:
     print("\n############## %s ##############" % testName)
-  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/Makefile %s NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=%s > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, nnLabel)
+  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=%s > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, nnLabel)
   if args.stop_after == "backend":
     cmd += 'bash $KAENA_PATH/compiler/python/state-buffer-estimate/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
   cmd += 'echo -n PASS || echo -n FAIL; echo "  "' + testName

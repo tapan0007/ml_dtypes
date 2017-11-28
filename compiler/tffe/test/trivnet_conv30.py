@@ -1,5 +1,11 @@
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
 # Unit test for Tffe - convolution, (later) pool (CNN-like)
 
+# Samples
+# Depth 30
+# make -f $KAENA_PATH/compiler/tffe/Makefile jdr_v4 NN_CONFIG=b1-h4-r3-s1-c1-m1-wmin-0.2-wmax0.2-imin-10000-imax10000 OUT_PREFIX=trivnet_ NN_NAME=150conv
+#
 
 import tensorflow as tf
 import numpy as np
@@ -54,27 +60,24 @@ assert(C == M)  # Two back to back convolutions must have same number of channel
 
 IF1 = np.zeros([B, H, H, C])
 W1  = np.zeros([R, R, C, M])
-W2  = np.zeros([R, R, C, M])
 
 strides = [1, S, S, 1]
 padding = "SAME"
 
-wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size + W2.size), dtype=fixedDataType))
-w1Values =  wAllValues[0:W1.size].reshape(W1.shape)
-print("w1\n", w1Values, "  ", w1Values.dtype)
-w2Values =  wAllValues[W1.size:W1.size+W2.size].reshape(W2.shape)
-print("w2\n", w2Values, "  ", w2Values.dtype)
+numLayers = 6
+wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size * numLayers), dtype=fixedDataType))
 
-w1 = tf.get_variable(name=netName+"/weight1",
-                     initializer = w1Values.astype(npDataType), dtype=tfDataType)
-i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
-
-i1 = tf.nn.conv2d(i0, w1, strides, padding, name=netName + "/i1")
-#output = tf.nn.max_pool(i1, [1, P1, P1, 1], strides, padding, name=netName+"/output")
-w2 = tf.get_variable(name=netName+"/weight2",
-                     initializer = w2Values.astype(npDataType), dtype=tfDataType)
-i2 = tf.nn.conv2d(i1, w2, strides, padding, name=netName + "/i2")
-output = tf.identity(i2, name=netName+"/output")
+layers = []
+weights = []
+layers.append(tf.placeholder(tfDataType, shape=IF1.shape, name="input"))
+for layerId in range(1, numLayers):
+  wValues =  wAllValues[(layerId-1)*W1.size:layerId * W1.size].reshape(W1.shape)
+  w = tf.get_variable(name=netName+"/weight" + str(layerId),
+                             initializer = wValues.astype(npDataType), dtype=tfDataType)
+  weights.append(w)
+  op = tf.nn.conv2d(layers[layerId - 1], weights[layerId - 1], strides, padding, name=netName + "/conv" + str(layerId))
+  layers.append(op)
+output = tf.identity(layers[numLayers - 1], name=netName+"/output")
 
 i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType)).reshape(IF1.shape)
 np.save( outPrefix + 'ref_input.npy', i0val)
