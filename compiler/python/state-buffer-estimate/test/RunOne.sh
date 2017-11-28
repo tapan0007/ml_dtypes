@@ -31,10 +31,16 @@ export npy_diff=$KAENA_PATH/compiler/util/npy_diff_files
 export DUMPNPY=$KAENA_PATH/compiler/util/npy2txt
 export INKLING=$INKLING_PATH
 SIM=$INKLING/sim/sim
-OBJDUMP=$INKLING/objdump/objdump
 
-TCC_INC_TOP_DIR=$INKLING
-## Later it will be $KAENA_PATH/compiler/codegen/
+CODEGEN_TOP=$KAENA_PATH/compiler/kcc/codegen
+OBJDUMP=$CODEGEN_TOP/objdump/objdump
+
+if ! test -d $CODEGEN_TOP; then
+    Fatal "Codegen top dir does not exist: $CODEGEN_TOP"
+fi
+if ! test -x $OBJDUMP; then
+    Fatal "Codegen executable dir does not exist: $OBJDUMP"
+fi
 
 export PYTHONPATH=$PYTHONPATH:$COMPILER
 ##############################################################
@@ -69,7 +75,7 @@ case "x$1" in
 (x*.tgz)
     TGZ=$1; 
     x=${TGZ%.tgz}
-    Name="${x#.*/}"
+    Name="${x##.*/}"
     ;;
 (*) Name=$1; TGZ=$Name.tgz;;
 esac
@@ -98,7 +104,7 @@ OBJ=$NET.o
 EXE=$NET-exe
 
 RESULTS=./results/$Name
-rm -fR $RESULTS; mkdir -p $RESULTS || Fatal Cannot mkdir dir $DIR
+rm -fR $RESULTS; mkdir -p $RESULTS || Fatal Cannot mkdir dir $RESULTS
 
 ASM=$RESULTS/$NET.asm
 TPB=$RESULTS/$NET.tpb
@@ -120,11 +126,11 @@ cp -p $CPP $RESULTS/.
 ## compile C++
 FLAGS="-W -Wall -Werror -ggdb -g"
 
-INC_FLAGS="-I$TCC_INC_TOP_DIR/shared/inc -I$TCC_INC_TOP_DIR/tcc/inc"
+INC_FLAGS="-I$CODEGEN_TOP/shared/inc -I$CODEGEN_TOP/tcc/inc"
 CFLAGS="$FLAGS -I. $INC_FLAGS -Wno-missing-field-initializers"
 CPPFLAGS="$CFLAGS -std=c++11"
 LDFLAGS="$FLAGS -ltcc"
-LIBDIR1="$INKLING/tcc/libs"
+LIBDIR1="$CODEGEN_TOP/tcc/libs"
 LIBDIR_FLAGS="-L$LIBDIR1"
 
 CXX=clang++
