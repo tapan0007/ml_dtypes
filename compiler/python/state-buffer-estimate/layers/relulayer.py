@@ -19,7 +19,7 @@ class ReluLayer(ActivLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, nn):
+    def constructFromJson(cls, layerDict, nn):
         layerName = Layer.gLayerNameFromJson(layerDict)
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
         batch = 1
@@ -38,7 +38,7 @@ class ReluLayer(ActivLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         return "Relu"
 
     #-----------------------------------------------------------------

@@ -104,7 +104,7 @@ class SubSampleLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     @classmethod
-    def gStrideLRFromJson(klass, layerDict, nn):
+    def gStrideLRFromJson(cls, layerDict, nn):
         stride = layerDict[SubSampleLayer.stride_key]
         if nn.gUseDimList():
             return stride[3]
@@ -113,7 +113,7 @@ class SubSampleLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     @classmethod
-    def gStrideBTFromJson(klass, layerDict, nn):
+    def gStrideBTFromJson(cls, layerDict, nn):
         stride = layerDict[SubSampleLayer.stride_key]
         if nn.gUseDimList():
             return stride[2]
@@ -122,7 +122,7 @@ class SubSampleLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     @classmethod
-    def gKernelHeightFromJson(klass, layerDict, nn):
+    def gKernelHeightFromJson(cls, layerDict, nn):
         kernel = layerDict[SubSampleLayer.kernel_key]
         if nn.gUseDimList():
             return kernel[2]
@@ -131,7 +131,7 @@ class SubSampleLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     @classmethod
-    def gKernelWeightFromJson(klass, layerDict, nn):
+    def gKernelWeightFromJson(cls, layerDict, nn):
         kernel = layerDict[SubSampleLayer.kernel_key]
         if nn.gUseDimList():
             return kernel[3]
@@ -141,7 +141,7 @@ class SubSampleLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     @classmethod
-    def gPaddingLeftFromJson(klass, layerDict, nn):
+    def gPaddingLeftFromJson(cls, layerDict, nn):
         padding = layerDict[SubSampleLayer.padding_key]
         if nn.gUseDimList():
             return padding[3][0]
@@ -151,7 +151,7 @@ class SubSampleLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     @classmethod
-    def gPaddingRightFromJson(klass, layerDict, nn):
+    def gPaddingRightFromJson(cls, layerDict, nn):
         padding = layerDict[SubSampleLayer.padding_key]
         if nn.gUseDimList():
             return padding[3][1]
@@ -160,7 +160,7 @@ class SubSampleLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     @classmethod
-    def gPaddingBottomFromJson(klass, layerDict, nn):
+    def gPaddingBottomFromJson(cls, layerDict, nn):
         padding = layerDict[SubSampleLayer.padding_key]
         if nn.gUseDimList():
             return padding[2][0]
@@ -169,7 +169,7 @@ class SubSampleLayer(Layer): # abstract class
 
     #-----------------------------------------------------------------
     @classmethod
-    def gPaddingTopFromJson(klass, layerDict, nn):
+    def gPaddingTopFromJson(cls, layerDict, nn):
         padding = layerDict[SubSampleLayer.padding_key]
         if nn.gUseDimList():
             return padding[2][1]

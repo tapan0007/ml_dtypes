@@ -164,7 +164,7 @@ class Network(object):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, jsonDict):
+    def constructFromJson(cls, jsonDict):
         netName = jsonDict[Network.net_name_key]
         dt = jsonDict[Network.data_type_key]
         if dt == "int8":
@@ -175,7 +175,7 @@ class Network(object):
             dataType = DataTypeFloat16()
         nn = Network(dataType, netName)
 
-        name2klass = {}
+        name2class = {}
         LeafKlasses = [
             ConvLayer, MaxPoolLayer, DataLayer, 
             AddLayer, AvgPoolLayer, FullLayer,
@@ -183,7 +183,7 @@ class Network(object):
             ConcatLayer,
         ]
         for leafKlass in LeafKlasses:
-            name2klass[leafKlass.gTypeStr()] = leafKlass
+            name2class[leafKlass.gTypeStr()] = leafKlass
 
         layerDicts = jsonDict[Network.layers_key]
 
@@ -192,9 +192,9 @@ class Network(object):
             if layerType == "Full":
                 breakFunc(3)
             layer = None
-            klass = name2klass[layerType]
-            if klass:
-                layer = klass.constructFromJson(layerDict, nn)
+            cls = name2class[layerType]
+            if cls:
+                layer = cls.constructFromJson(layerDict, nn)
             else:
                 print(layerType)
                 assert False

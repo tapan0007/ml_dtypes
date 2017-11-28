@@ -35,7 +35,7 @@ class ConvLayer(SubSampleLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, nn):
+    def constructFromJson(cls, layerDict, nn):
         layerName = Layer.gLayerNameFromJson(layerDict)
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
         num_ofmaps = ofmapDesc.gNumMaps()
@@ -96,7 +96,7 @@ class ConvLayer(SubSampleLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         return "Conv"
 
     #-----------------------------------------------------------------

@@ -22,7 +22,7 @@ class MaxPoolLayer(PoolLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, ntwk):
+    def constructFromJson(cls, layerDict, ntwk):
         layerName = Layer.gLayerNameFromJson(layerDict)
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, ntwk)
 
@@ -60,7 +60,7 @@ class MaxPoolLayer(PoolLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         t = "MaxPool"
         return t
 
