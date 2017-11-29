@@ -42,9 +42,11 @@ public:
     class Params;
 
 
+protected:
     //----------------------------------------------------------------
     Layer(const Params& params, const FmapDesc& fmapDesc, const vector<Layer*>& prevLayers);
 
+public:
     //----------------------------------------------------------------
     virtual std::string gTypeStr() const = 0;
 

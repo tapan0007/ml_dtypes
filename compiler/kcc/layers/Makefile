@@ -10,6 +10,12 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
+all : $(OBJDIR)/layer.o $(OBJDIR)/activlayer.o 
+
+########################################################
+$(OBJDIR)/activlayer.o : $(SRCDIR)/activlayer.cpp
+	$(CPP) $(CFLAGS) -c -o $@ $<
+
 $(OBJDIR)/layer.o : $(SRCDIR)/layer.cpp
 	$(CPP) $(CFLAGS) -c -o $@ $<
 
