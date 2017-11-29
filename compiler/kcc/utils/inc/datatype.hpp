@@ -1,7 +1,7 @@
 #ifndef KCC_UTILS_DATATYPE_H
 #define KCC_UTILS_DATATYPE_H
 
-#include "types.h"
+#include "types.hpp"
 
 namespace kcc {
 namespace utils {

@@ -1,8 +1,8 @@
 #include <sstream>
 
-#include "layer.h"
-#include "datatype.h"
-#include "network.h"
+#include "layer.hpp"
+#include "datatype.hpp"
+#include "network.hpp"
 
 
 

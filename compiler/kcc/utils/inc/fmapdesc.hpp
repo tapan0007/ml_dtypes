@@ -5,8 +5,8 @@
 #include <string>
 using std::string;
 
-#include "types.h"
-#include "datatype.h"
+#include "types.hpp"
+#include "datatype.hpp"
 
 //########################################################
 

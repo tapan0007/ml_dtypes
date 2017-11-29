@@ -1,4 +1,3 @@
-#CPP = clang++
 CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14

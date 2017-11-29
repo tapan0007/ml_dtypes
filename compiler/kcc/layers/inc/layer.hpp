@@ -10,9 +10,9 @@ using std::string;
 using std::vector;
 
 
-#include "types.h"
-#include "datatype.h"
-#include "fmapdesc.h"
+#include "types.hpp"
+#include "datatype.hpp"
+#include "fmapdesc.hpp"
 
 
 namespace kcc {
