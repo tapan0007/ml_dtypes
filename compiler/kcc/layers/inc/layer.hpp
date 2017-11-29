@@ -48,7 +48,7 @@ protected:
 
 public:
     //----------------------------------------------------------------
-    virtual std::string gTypeStr() const = 0;
+    virtual const char* gTypeStr() const = 0;
 
     //----------------------------------------------------------------
     virtual bool verify() const = 0;

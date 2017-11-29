@@ -20,10 +20,11 @@ using namespace utils;
 
 //--------------------------------------------------------
 class ActivLayer : public OneToOneLayer {
-
+protected:
     //----------------------------------------------------------------
     ActivLayer(const Params& params, Layer* prev_layer);
 
+public:
     //----------------------------------------------------------------
     bool qActivLayer() const;
 };
@@ -31,5 +32,5 @@ class ActivLayer : public OneToOneLayer {
 } // namespace layers
 } // namespace kcc
 
-#endif
+#endif // KCC_LAYERS_ACTIVLAYER_H
 
