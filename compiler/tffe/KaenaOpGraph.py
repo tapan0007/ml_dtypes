@@ -1,3 +1,5 @@
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
 # Kaena abstraction of neural network framework operations
 # Suitable for TF freeze graph input and general op reduction and fusing
 
@@ -109,12 +111,14 @@ class Edge(Object):
            "  To=" + t.node.getName()  + ":" + str(t.index) )
 
 class NodeConv2D(Node):
-  def __init__(self, name, opType, strides, padding, dataFormat, attrs):
+  def __init__(self, name, opType, padding, dataFormat, attrs):
     Node.__init__(self, name, opType, attrs)
-    self.__strides = strides
     self.__padding = padding
-    self.__strides = strides
+    self.__dataFormat = dataFormat
 
+  def getStrides(self):
+    return(self.getAttr("strides"))
+  
   # Returns layer python model in text format, and list of files (npy data)
   def genCompilerLayerText(self):
     fileList = []
@@ -155,7 +159,7 @@ class NodeConv2D(Node):
     (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
 
     fileList += [npFileSimW, npFileSim]
-    stride = [1, 1, 1, 1]   # TO_DO extract it properly
+    stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
     padding = [[0,0], [0,0], [1,1], [1,1]]   # TO_DO extract it properly
     layerData = {
       "layer_type"      : "Conv",

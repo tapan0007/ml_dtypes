@@ -1,4 +1,6 @@
-# TensorFlow front end for Kaena Compiler
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
+# Kaena Compiler front end for TensorFlow 
 
 # Nodes etc
 #   https://www.tensorflow.org/extend/tool_developers/
@@ -69,7 +71,7 @@ class TfFe:
       if (re.search(focusNodeRe, tfNode.name) != None):
       
         add_attrs = {}
-        for attr in ["strides", "padding", "data_format"]:
+        for attr in ["padding", "data_format"]:
           if attr in tfNode.attr:
             add_attrs[attr] = tfNode.attr[attr]
             #print("  DEBUG attr=", attr, "  ", add_attrs[attr])        
@@ -81,7 +83,7 @@ class TfFe:
           #print("DEBUG strides=", tfNode.attr["strides"])
           #print("DEBUG padding=", tfNode.attr["padding"])
           #print("DEBUG data_format=", tfNode.attr["data_format"])
-          node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs["strides"], add_attrs["padding"], add_attrs["data_format"], add_attrs)
+          node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs["padding"], add_attrs["data_format"], add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         self.__kg.addNode(node)
@@ -170,6 +172,14 @@ class TfFe:
             n.appendNpInfo(npInfo)
             tfVars.append(tensor.name)
             kNodes.append((n, npInfo))
+          # update/collect attributes
+          # Strides are in the pb but require complex parsing (op.get_attr)
+          #   which seems only accessible from the graph so deferred to calibration
+          for attr in ["strides"]:
+            if attr in op.node_def.attr:
+              n.setAttr(attr, op.get_attr(attr))
+              print("  DEBUG attr=", attr, "  ", op.get_attr(attr))    
+          
       
       print("INFO: identified %d tensors, computing ..." % len(tfVars))
       numImages = 0
