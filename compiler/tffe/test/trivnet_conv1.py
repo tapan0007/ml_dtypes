@@ -1,3 +1,5 @@
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
 # Unit test for Tffe - single convolution
 
 

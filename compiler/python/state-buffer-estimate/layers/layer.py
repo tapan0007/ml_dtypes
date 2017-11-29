@@ -193,7 +193,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
     #-----------------------------------------------------------------
     @classmethod
     @abstractmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         assert(False)
 
     #-----------------------------------------------------------------
@@ -647,7 +647,7 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         self.__WeightAddress = address
 
     @classmethod
-    def gOfmapDescFromJson(klass, layerDict, nn):
+    def gOfmapDescFromJson(cls, layerDict, nn):
         if nn.gUseDimList():
             of = layerDict[Layer.ofmap_key] ##  : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
             return OfmapDesc(of[1], (of[2], of[3]) )
@@ -657,12 +657,12 @@ class Layer(object, metaclass = ABCMeta): # abstract class
             return OfmapDesc(nOfmaps, (ofmapW, ofmapH))
 
     @classmethod
-    def gLayerNameFromJson(klass, layerDict):
+    def gLayerNameFromJson(cls, layerDict):
         layerName = layerDict[Layer.layer_name_key]
         return layerName
 
     @classmethod
-    def gPrevLayersFromJson(klass, layerDict, nn):
+    def gPrevLayersFromJson(cls, layerDict, nn):
         prevLayers = []
         prevLayersNames = layerDict[Layer.prev_layers_key]
         for prevLayerName in prevLayersNames:

@@ -22,7 +22,7 @@ class AvgPoolLayer(PoolLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, ntwk):
+    def constructFromJson(cls, layerDict, ntwk):
         layerName = Layer.gLayerNameFromJson(layerDict)
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, ntwk)
 
@@ -59,7 +59,7 @@ class AvgPoolLayer(PoolLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         t = "AvgPool"
         return t
 

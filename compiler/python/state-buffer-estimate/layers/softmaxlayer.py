@@ -18,7 +18,7 @@ class SoftMaxLayer(OneToOneLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, ntwk):
+    def constructFromJson(cls, layerDict, ntwk):
         batch = 1
         layerName = Layer.gLayerNameFromJson(layerDict)
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, ntwk)
@@ -35,7 +35,7 @@ class SoftMaxLayer(OneToOneLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         return "SoftMax"
 
     #-----------------------------------------------------------------

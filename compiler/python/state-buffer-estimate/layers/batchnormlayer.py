@@ -19,7 +19,7 @@ class BatchNormLayer(OneToOneLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, nn):
+    def constructFromJson(cls, layerDict, nn):
         layerName = Layer.gLayerNameFromJson(layerDict)
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
         batch = 1
@@ -36,7 +36,7 @@ class BatchNormLayer(OneToOneLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         return "BNorm"
 
     #-----------------------------------------------------------------
