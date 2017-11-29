@@ -9,8 +9,11 @@ CFLAGS=$(COPTS) $(CINC)
 SRCDIR = src
 OBJDIR = obj
 
+SRCS = layer activlayer relulayer combinelayer
+CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
+OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 ########################################################
-all : $(OBJDIR)/layer.o $(OBJDIR)/activlayer.o $(OBJDIR)/relulayer.o 
+all :  $(OFILES)
 
 ########################################################
 $(OBJDIR)/activlayer.o : $(SRCDIR)/activlayer.cpp
@@ -20,5 +23,8 @@ $(OBJDIR)/relulayer.o : $(SRCDIR)/relulayer.cpp
 	$(CPP) $(CFLAGS) -c -o $@ $<
 
 $(OBJDIR)/layer.o : $(SRCDIR)/layer.cpp
+	$(CPP) $(CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/combinelayer.o : $(SRCDIR)/combinelayer.cpp
 	$(CPP) $(CFLAGS) -c -o $@ $<
 

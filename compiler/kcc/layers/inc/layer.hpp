@@ -46,6 +46,8 @@ protected:
     //----------------------------------------------------------------
     Layer(const Params& params, const FmapDesc& fmapDesc, const vector<Layer*>& prevLayers);
 
+    static vector<Layer*> mkLayerVector2(Layer* layer1, Layer* layer2);
+
 public:
     //----------------------------------------------------------------
     virtual const char* gTypeStr() const = 0;

@@ -210,6 +210,14 @@ string Layer::gNameWithSchedMem() const
 }
 
 
+vector<Layer*>
+Layer::mkLayerVector2(Layer* layer1, Layer* layer2)
+{
+    vector<Layer*> vec2;
+    vec2.push_back(layer1);
+    vec2.push_back(layer2);
+    return vec2;
+}
 
 
 #if 0
