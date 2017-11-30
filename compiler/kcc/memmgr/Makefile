@@ -2,12 +2,15 @@ AR=ar
 CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
-CINC= -I./inc -I../utils/inc -I../nets/inc 
+
+MODS = utils nets arch layers
+CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+
 
 CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
-MODULE=layers
+MODULE=memmgr
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 
@@ -15,7 +18,7 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = layer activlayer relulayer combinelayer subsamplelayer convlayer 
+SRCS = statebufmgr
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
@@ -29,15 +32,8 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 ########################################################
 ########################################################
-$(OBJDIR)/activlayer.o : $(SRCDIR)/activlayer.cpp
+$(OBJDIR)/statebufmgr.o : $(SRCDIR)/statebufmgr.cpp
 
-$(OBJDIR)/relulayer.o : $(SRCDIR)/relulayer.cpp
-
-$(OBJDIR)/layer.o : $(SRCDIR)/layer.cpp
-
-$(OBJDIR)/combinelayer.o : $(SRCDIR)/combinelayer.cpp
-
-$(OBJDIR)/convlayer.o : $(SRCDIR)/convlayer.cpp
 
 $(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)

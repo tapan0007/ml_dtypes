@@ -29,6 +29,17 @@ using layers::Layer;
 //--------------------------------------------------------
 class Network {
 public:
+    static const char* const net_name_key;
+    static const char* const data_type_key;
+    static const char* const layers_key;
+    class SchedForwLayers;
+    class SchedRevLayers;
+private:
+    class SchedLayerForwRevIter;
+
+public:
+
+public:
     //----------------------------------------------------------------
     Network(const DataType& dataType, const string& netName);
 
@@ -38,6 +49,12 @@ public:
 
     void addLayer(Layer* layer);
     
+    SchedForwLayers gSchedForwLayers();
+    SchedRevLayers gSchedRevLayers();
+
+    vector<Layer*>& gLayers() {
+        return m_Layers;
+    }
 
 private:
     const DataType& m_DataType;
@@ -46,6 +63,61 @@ private:
 }; // class Layer
 
 
+
+
+//----------------------------------------------------------------
+class Network::SchedLayerForwRevIter {
+public:
+    SchedLayerForwRevIter(Layer* startLayer, bool forw)
+        : m_CurrLayer(startLayer)
+        , m_Forw(forw)
+    { }
+
+    bool operator!= (const SchedLayerForwRevIter& rhs) const {
+        return m_CurrLayer != rhs.m_CurrLayer;
+    }
+
+    Layer* operator* () const {
+        return m_CurrLayer;
+    }
+
+    void operator++();
+private:
+    Layer* m_CurrLayer;
+    const bool m_Forw;
+};
+
+//--------------------------------------------------------
+class Network::SchedForwLayers {
+public:
+    SchedForwLayers(std::vector<Layer*>& layers)
+        : m_Layers(layers)
+    { }
+    SchedLayerForwRevIter begin() const {
+        return SchedLayerForwRevIter(m_Layers[0], true);
+    }
+    SchedLayerForwRevIter end() const {
+        return SchedLayerForwRevIter(nullptr, true);
+    }
+private:
+    vector<Layer*>& m_Layers;
+};
+
+//--------------------------------------------------------
+class Network::SchedRevLayers {
+public:
+    SchedRevLayers(std::vector<Layer*>& layers)
+        : m_Layers(layers)
+    { }
+    SchedLayerForwRevIter begin() const {
+        return SchedLayerForwRevIter(m_Layers[m_Layers.size()-1], false);
+    }
+    SchedLayerForwRevIter end() const {
+        return SchedLayerForwRevIter(nullptr, true);
+    }
+private:
+    vector<Layer*>& m_Layers;
+};
 
 } // namespace nets
 } // namespace kcc

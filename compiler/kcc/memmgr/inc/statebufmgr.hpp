@@ -1,113 +1,69 @@
-from utils.debug    import breakFunc
-from utils.funcs    import *
-import nets.network
-from arch.arch import Arch
+#ifndef KCC_MEMMGR_STATEBUFMGR_H
+#define KCC_MEMMGR_STATEBUFMGR_H 1
 
-##########################################################
-class StateBufferMgr(object):
-    #-----------------------------------------------------------------
-    def __init__(self, arch, ntwk):
-        assert(isinstance(arch, Arch))
-        assert(isinstance(ntwk, nets.network.Network))
-        self.__Arch = arch
-        self.__Network = ntwk
+#include "types.hpp"
+#include "arch.hpp"
 
-        sbuf = self.__StateBuffer = arch.gStateBuffer()
-        self.__PartitionSize = sbuf.gPartitionSizeInBytes()
-        self.__FirstSbAddress = sbuf.gFirstAddressInBytes()
+using namespace kcc::utils;
 
-        self.__FirstFreeStart = self.__FirstSbAddress
-
-
-    #-----------------------------------------------------------------
-    def calcOneLayerFmapMemSizePerPartition(self, layer):
-        outSbMemBatch  = layer.gOutputStateMemWithBatching()
-        resSbMemBatch  = layer.gResMemWithBatching()
-        totSbMemBatch  = outSbMemBatch + resSbMemBatch
-        numOfmaps      = layer.gNumOfmaps()
-        assert(numOfmaps > 0)
-        numPeArrayRows = self.__Arch.gNumberPeArrayRows()
-
-        sbMemPerOfmap  = totSbMemBatch // numOfmaps
-        maxNumOfmapsPerRow = 1 + DivFloor((numOfmaps - 1), numPeArrayRows)
-
-        ofmapMemPerPart = sbMemPerOfmap * maxNumOfmapsPerRow
-        return ofmapMemPerPart
-
-    #-----------------------------------------------------------------
-    def freeLayerMem(self, layer):
-        assert(layer.qStoreInSB())
-
-    #-----------------------------------------------------------------
-    def calcOneLayerFmapAddresses(self, layer):
-        if layer.qStoreInSB():
-            for prevSbLayer in layer.gPrevSbLayers():
-                prevSbLayer.changeRefCount(-1)
-                if prevSbLayer.gRefCount() == 0:
-                    self.freeLayerMem(prevSbLayer)
-
-            assert(layer.gRefCount() == 0)
-            layer.changeRefCount(layer.gNumNextSbLayers())
-
-            prevOfmapAddress = self.__OfmapAddress
-            prevIfmapAddress = self.__IfmapAddress
-
-            if layer.qDataLayer():
-                assert(prevIfmapAddress == None and prevOfmapAddress == None)
-                ifmapAddress = None
-                ofmapAddress = self.__FirstSbAddress + (
-                               layer.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
-            else:
-                assert(prevOfmapAddress != None)
-                ifmapAddress = prevOfmapAddress
-
-                ofmapSizePerPart = self.calcOneLayerFmapMemSizePerPartition(layer)
-
-                if prevIfmapAddress == None: ## after data layer
-                    ##         Weights | prevOfmap | ... | ...
-                    ## need to get batching memory per partition
-                    ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
-                elif prevIfmapAddress < prevOfmapAddress:
-                    ##     Weights | prevIfmap | ... | prevOfmap
-                    ofmapAddress = self.__FirstSbAddress + (
-                                   layer.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
-                else:
-                    ##     Weights | prevOfmap | ... | prevIfmap
-                    ##                             | Ofmap
-                    ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
-
-            layer.rIfmapAddress(ifmapAddress)
-            layer.rOfmapAddress(ofmapAddress)
-            self.__OfmapAddress = ofmapAddress
-            self.__IfmapAddress = ifmapAddress
-
-        if layer.qConvLayer():
-            layer.rWeightAddress(self.__FirstSbAddress)
+namespace kcc {
+namespace arch {
+    class Arch;
+    class StateBuffer;
+}
+namespace layers {
+    class Layer;
+}
+namespace nets {
+    class Network;
+}
 
 
-    #-----------------------------------------------------------------
-    def calcLayerFmapAddresses(self):
-        maxNumWeightsPerPart = 0
-        for layer in self.__Network.gLayers():
-            layer.changeRefCount(-layer.gRefCount())
-            assert(layer.gRefCount() == 0)
 
-        for layer in self.__Network.gLayers():
-            numWeights = layer.gNumberWeightsPerPartition()
-            if numWeights > maxNumWeightsPerPart :
-                maxNumWeightsPerPart = numWeights
-
-        breakFunc(0)
-        self.__MaxNumberWeightsPerPart = maxNumWeightsPerPart
+namespace memmgr {
+using kcc::arch::Arch;
+using kcc::arch::StateBuffer;
+using kcc::layers::Layer;
+using kcc::nets::Network;
 
 
-        ## first layer is Data layer and will have no ifmap
-        #self.__LeftStart = self.__MaxNumberWeightsPerPart
-        #self.__RightEnd  = self.__PartitionSize
+//--------------------------------------------------------
+class StateBufferMgr {
+private:
+    const StateBufferAddress InvalidFmapAddress = -1L;
 
-        self.__OfmapAddress = self.__IfmapAddress = None
+public:
+    //----------------------------------------------------------------
+    StateBufferMgr(Arch* arch, Network* ntwk);
 
-        for layer in self.__Network.gLayers():
-            self.calcOneLayerFmapAddresses(layer)
 
+    //----------------------------------------------------------------
+    StateBufferAddress calcOneLayerFmapMemSizePerPartition(Layer* layer);
+
+    //----------------------------------------------------------------
+    void freeLayerMem(Layer* layer);
+
+    //----------------------------------------------------------------
+    void calcOneLayerFmapAddresses(Layer* layer);
+
+    //----------------------------------------------------------------
+    void calcLayerFmapAddresses();
+
+private:
+    Network* m_Network;
+    Arch* m_Arch;
+    StateBuffer* m_StateBuffer;
+
+    StateBufferAddress m_OfmapAddress;
+    StateBufferAddress m_IfmapAddress;
+    StateBufferAddress m_FirstSbAddress;
+    StateBufferAddress m_FirstFreeStart;
+    StateBufferAddress m_MaxNumberWeightsPerPart;
+    StateBufferAddress m_PartitionSize;
+};
+
+
+}}
+
+#endif // KCC_MEMMGR_STATEBUFMGR_H
 

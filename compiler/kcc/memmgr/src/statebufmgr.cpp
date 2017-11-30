@@ -1,113 +1,142 @@
-from utils.debug    import breakFunc
-from utils.funcs    import *
-import nets.network
-from arch.arch import Arch
+#include "statebuffer.hpp"
+#include "layer.hpp"
+#include "network.hpp"
+#include "statebufmgr.hpp"
 
-##########################################################
-class StateBufferMgr(object):
-    #-----------------------------------------------------------------
-    def __init__(self, arch, ntwk):
-        assert(isinstance(arch, Arch))
-        assert(isinstance(ntwk, nets.network.Network))
-        self.__Arch = arch
-        self.__Network = ntwk
+namespace kcc{
+using layers::Layer;
 
-        sbuf = self.__StateBuffer = arch.gStateBuffer()
-        self.__PartitionSize = sbuf.gPartitionSizeInBytes()
-        self.__FirstSbAddress = sbuf.gFirstAddressInBytes()
+namespace memmgr {
 
-        self.__FirstFreeStart = self.__FirstSbAddress
+//--------------------------------------------------------
+StateBufferMgr::StateBufferMgr(arch::Arch* arch, Network* ntwk)
+{
+    m_Arch = arch;
+    m_Network = ntwk;
 
+    m_StateBuffer = arch->gStateBuffer();
+    m_PartitionSize = m_StateBuffer->gPartitionSizeInBytes();
+    m_FirstSbAddress = m_StateBuffer->gFirstAddressInBytes();
 
-    #-----------------------------------------------------------------
-    def calcOneLayerFmapMemSizePerPartition(self, layer):
-        outSbMemBatch  = layer.gOutputStateMemWithBatching()
-        resSbMemBatch  = layer.gResMemWithBatching()
-        totSbMemBatch  = outSbMemBatch + resSbMemBatch
-        numOfmaps      = layer.gNumOfmaps()
-        assert(numOfmaps > 0)
-        numPeArrayRows = self.__Arch.gNumberPeArrayRows()
+    m_FirstFreeStart = m_FirstSbAddress;
+}
 
-        sbMemPerOfmap  = totSbMemBatch // numOfmaps
-        maxNumOfmapsPerRow = 1 + DivFloor((numOfmaps - 1), numPeArrayRows)
+//--------------------------------------------------------
+void 
+StateBufferMgr::freeLayerMem(Layer* layer)
+{
+    assert(layer->qStoreInSB());
+}
 
-        ofmapMemPerPart = sbMemPerOfmap * maxNumOfmapsPerRow
-        return ofmapMemPerPart
+//--------------------------------------------------------
+StateBufferAddress
+StateBufferMgr::calcOneLayerFmapMemSizePerPartition(layers::Layer* layer)
+{
+    const StateBufferAddress outSbMemBatch  = layer->gOutputStateMemWithBatching();
+    const StateBufferAddress resSbMemBatch  = layer->gResMemWithBatching();
+    const StateBufferAddress totSbMemBatch  = outSbMemBatch + resSbMemBatch;
+    const int numOfmaps      = layer->gNumOfmaps();
+    assert(numOfmaps > 0);
+    const StateBufferAddress numPeArrayRows = m_Arch->gNumberPeArrayRows();
 
-    #-----------------------------------------------------------------
-    def freeLayerMem(self, layer):
-        assert(layer.qStoreInSB())
+    const StateBufferAddress sbMemPerOfmap  = totSbMemBatch / numOfmaps;
+    const StateBufferAddress maxNumOfmapsPerRow = 1 + ((numOfmaps - 1) / numPeArrayRows);
 
-    #-----------------------------------------------------------------
-    def calcOneLayerFmapAddresses(self, layer):
-        if layer.qStoreInSB():
-            for prevSbLayer in layer.gPrevSbLayers():
-                prevSbLayer.changeRefCount(-1)
-                if prevSbLayer.gRefCount() == 0:
-                    self.freeLayerMem(prevSbLayer)
-
-            assert(layer.gRefCount() == 0)
-            layer.changeRefCount(layer.gNumNextSbLayers())
-
-            prevOfmapAddress = self.__OfmapAddress
-            prevIfmapAddress = self.__IfmapAddress
-
-            if layer.qDataLayer():
-                assert(prevIfmapAddress == None and prevOfmapAddress == None)
-                ifmapAddress = None
-                ofmapAddress = self.__FirstSbAddress + (
-                               layer.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
-            else:
-                assert(prevOfmapAddress != None)
-                ifmapAddress = prevOfmapAddress
-
-                ofmapSizePerPart = self.calcOneLayerFmapMemSizePerPartition(layer)
-
-                if prevIfmapAddress == None: ## after data layer
-                    ##         Weights | prevOfmap | ... | ...
-                    ## need to get batching memory per partition
-                    ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
-                elif prevIfmapAddress < prevOfmapAddress:
-                    ##     Weights | prevIfmap | ... | prevOfmap
-                    ofmapAddress = self.__FirstSbAddress + (
-                                   layer.gDataType().gSizeInBytes() * self.__MaxNumberWeightsPerPart)
-                else:
-                    ##     Weights | prevOfmap | ... | prevIfmap
-                    ##                             | Ofmap
-                    ofmapAddress = self.__FirstSbAddress + self.__PartitionSize - ofmapSizePerPart
-
-            layer.rIfmapAddress(ifmapAddress)
-            layer.rOfmapAddress(ofmapAddress)
-            self.__OfmapAddress = ofmapAddress
-            self.__IfmapAddress = ifmapAddress
-
-        if layer.qConvLayer():
-            layer.rWeightAddress(self.__FirstSbAddress)
+    const StateBufferAddress ofmapMemPerPart = sbMemPerOfmap * maxNumOfmapsPerRow;
+    return ofmapMemPerPart;
+}
 
 
-    #-----------------------------------------------------------------
-    def calcLayerFmapAddresses(self):
-        maxNumWeightsPerPart = 0
-        for layer in self.__Network.gLayers():
-            layer.changeRefCount(-layer.gRefCount())
-            assert(layer.gRefCount() == 0)
 
-        for layer in self.__Network.gLayers():
-            numWeights = layer.gNumberWeightsPerPartition()
-            if numWeights > maxNumWeightsPerPart :
-                maxNumWeightsPerPart = numWeights
+//--------------------------------------------------------
+void
+StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
+{
+    if (layer->qStoreInSB()) {
+        for (auto prevSbLayer : layer->gPrevSbLayers()) {
+            prevSbLayer->changeRefCount(-1);
+            if (prevSbLayer->gRefCount() == 0) {
+                freeLayerMem(prevSbLayer);
+            }
+        }
 
-        breakFunc(0)
-        self.__MaxNumberWeightsPerPart = maxNumWeightsPerPart
+        assert(layer->gRefCount() == 0);
+        layer->changeRefCount(layer->gNumNextSbLayers());
+
+        StateBufferAddress ifmapAddress = StateBufferAddress_Invalid;
+        StateBufferAddress ofmapAddress = StateBufferAddress_Invalid;
+        const StateBufferAddress prevOfmapAddress = m_OfmapAddress;
+        const StateBufferAddress prevIfmapAddress = m_IfmapAddress;
+
+        if (layer->qDataLayer()) {
+            assert(prevIfmapAddress == StateBufferAddress_Invalid &&
+                   prevOfmapAddress == StateBufferAddress_Invalid);
+            ifmapAddress = StateBufferAddress_Invalid;
+            ofmapAddress = m_FirstSbAddress +
+                           (layer->gDataType().gSizeInBytes() * m_MaxNumberWeightsPerPart);
+        } else {
+            assert(prevOfmapAddress != StateBufferAddress_Invalid);
+            ifmapAddress = prevOfmapAddress;
+
+            const StateBufferAddress ofmapSizePerPart = calcOneLayerFmapMemSizePerPartition(layer);
+
+            if (prevIfmapAddress == StateBufferAddress_Invalid) {
+                //         Weights | prevOfmap | ... | ...
+                // need to get batching memory per partition
+                ofmapAddress = m_FirstSbAddress + m_PartitionSize - ofmapSizePerPart;
+            } else if (prevIfmapAddress < prevOfmapAddress) {
+                //     Weights | prevIfmap | ... | prevOfmap
+                ofmapAddress = m_FirstSbAddress +
+                               (layer->gDataType().gSizeInBytes() * m_MaxNumberWeightsPerPart);
+            } else {
+                //     Weights | prevOfmap | ... | prevIfmap
+                //                             | Ofmap
+                ofmapAddress = m_FirstSbAddress + m_PartitionSize - ofmapSizePerPart;
+            }
+        }
+
+        layer->rIfmapAddress(ifmapAddress);
+        layer->rOfmapAddress(ofmapAddress);
+        m_OfmapAddress = ofmapAddress;
+        m_IfmapAddress = ifmapAddress;
+    }
+
+    if (layer->qConvLayer()) {
+        layer->rWeightAddress(m_FirstSbAddress);
+    }
+}
 
 
-        ## first layer is Data layer and will have no ifmap
-        #self.__LeftStart = self.__MaxNumberWeightsPerPart
-        #self.__RightEnd  = self.__PartitionSize
+//--------------------------------------------------------
+void 
+StateBufferMgr::calcLayerFmapAddresses()
+{
+    for (auto layer : m_Network->gLayers()) {
+        layer->changeRefCount(-layer->gRefCount());
+        assert(layer->gRefCount() == 0);
+    }
 
-        self.__OfmapAddress = self.__IfmapAddress = None
+    StateBufferAddress maxNumWeightsPerPart = 0;
+    for (auto layer : m_Network->gLayers()) {
+        const StateBufferAddress numWeights = layer->gNumberWeightsPerPartition();
+        if (numWeights > maxNumWeightsPerPart) {
+            maxNumWeightsPerPart = numWeights;
+        }
+    }
 
-        for layer in self.__Network.gLayers():
-            self.calcOneLayerFmapAddresses(layer)
+    m_MaxNumberWeightsPerPart = maxNumWeightsPerPart;
 
+
+    // first layer is Data layer and will have no ifmap
+    // self.__LeftStart = self.__MaxNumberWeightsPerPart
+    // self.__RightEnd  = self.__PartitionSize
+
+    m_OfmapAddress = m_IfmapAddress = StateBufferAddress_Invalid;
+
+    for (auto layer : m_Network->gLayers()) {
+        calcOneLayerFmapAddresses(layer);
+    }
+}
+
+}}
 
