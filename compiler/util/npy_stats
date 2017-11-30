@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
+# Example
+#  Collect statistics of resent 152 weights
+#    set tfpb = $KAENA_PATH/../Kaena-external-opensource/apps/tf/resnet_v2_152/pb/resnet_v2_152_fp32.pb
+#    python3 $KAENA_PATH/compiler/tffe/tffe.py --tfpb $tfpb --depth 5 --weights
+#    $KAENA_PATH/compiler/util/npy_stats --verbose 2 --weights  out_resnet_v2_152__conv1__weights.npy out_resnet_v2_152__block1__unit_1__bottleneck_v2__conv1__weights.npy
+#    $KAENA_PATH/compiler/util/npy_stats --verbose 0 --weights out_*conv*weight*.npy
+
+import numpy as np
+import sys, os
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--weights', help='Set of weight files to analyze', nargs='+')
+parser.add_argument('--verbose', help='Verbosity level, 0 summary, 1 per file summary, 2 all values', default=1)
+
+args = parser.parse_args()
+
+weightFiles = args.weights
+verbose = int(args.verbose)
+
+if verbose >= 2:
+  print("\nINFO: started as  ", " ".join(sys.argv), "\n")
+
+def printHistogram(text, arr):
+  print(text)
+  (counts, values) = np.histogram(arr)
+  step = 60 / max(counts)
+  for (count, value) in zip(counts, values):
+    print("  %12g " % value, "#" * int(count * step + 0.49999), count)
+
+
+np.set_printoptions(threshold=np.nan)
+valAll = np.array([], dtype=np.float64)
+if verbose >= 1:
+  print("%-12s %-12s  %-12s %-12s  %-12s  %-8s  %s" % ("Mean", "Std", "Min", "Max", "Shape", "Type", "File"))
+  print("-"*82)
+for f in weightFiles:
+  val = np.load(f)
+  if verbose >= 1:
+    print("\n%12g %12g  %12g %12g  %-8s  %-8s  %s" % (val.mean(), val.std(), val.min(), val.max(), val.shape, str(val.dtype), f))
+    printHistogram("  Histogram", val)
+  valAll = np.append(valAll, val.ravel())
+  if verbose >= 2:
+    print("  Values\n", val)
+
+print("\nSummary:\n")
+if verbose >= 0:
+  print("\n%-12s %-12s  %-12s %-12s" % ("Mean", "Std", "Min", "Max"))
+  print("%12g %12g  %12g %12g" % (valAll.mean(), valAll.std(), valAll.min(), valAll.max()))
+  printHistogram("All", valAll)
+  
+
