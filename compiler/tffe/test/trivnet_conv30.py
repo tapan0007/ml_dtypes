@@ -64,7 +64,7 @@ W1  = np.zeros([R, R, C, M])
 strides = [1, S, S, 1]
 padding = "SAME"
 
-numLayers = 6
+numLayers = 30
 wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size * numLayers), dtype=fixedDataType))
 
 layers = []
