@@ -1,0 +1,10 @@
+import numpy as np
+import sys
+
+(itself, fileNameIn, fileNameOut, mulFactor) = sys.argv
+
+arr = np.load(fileNameIn)
+print("Loaded\n", arr)
+arr *= int(mulFactor)
+np.save(fileNameOut, arr)
+print("Stored\n", arr)
