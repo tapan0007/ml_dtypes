@@ -50,6 +50,9 @@ protected:
 
 public:
     //----------------------------------------------------------------
+    virtual string gString() const = 0;
+
+    //----------------------------------------------------------------
     virtual const char* gTypeStr() const = 0;
 
     //----------------------------------------------------------------
@@ -601,12 +604,7 @@ public:
 };
 
 
-} // namespace layers
-} // namespace kcc
-
 #if 0
-    #-----------------------------------------------------------------
-    virtual string gString() const = 0;
 
     #-----------------------------------------------------------------
     def combineJson(it):
@@ -640,6 +638,10 @@ public:
         return prevLayers
 
 #endif
+
+
+} // namespace layers
+} // namespace kcc
 
 #endif // KCC_LAYERS_LAYER_H
 
