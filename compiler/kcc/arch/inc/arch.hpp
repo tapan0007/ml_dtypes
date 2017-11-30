@@ -1,67 +1,85 @@
-from .psumbuffer         import PsumBuffer
-from .pearray            import PeArray
-from .statebuffer        import StateBuffer
-from .poolingeng         import PoolingEng
-from .activationeng      import ActivationEng
+#ifndef KCC_ARCH_ARCH_H
+#define KCC_ARCH_ARCH_H 1
 
-##########################################################
-class Arch(object):
+#include "psumbuffer.hpp"
+#include "pearray.hpp"
+//#include "statebuffer.hpp"
+//#include "poolingeng.hpp"
+//#include "activationeng.hpp"
 
-    #-----------------------------------------------------------------
-    def __init__(self):
-
-        numberPeRows            = 128
-        numberPeColumns         = 64
-        numberPsumBanks         = 4
-        numberPsumBankEntries   = 256
-        sbPartitionsSize        = 12 * 1024 * 1024 // numberPeRows  ## 12 MB
-        sbPartitionsSize        =  8 * 1024 * 1024 // numberPeRows  ##  8 MB
-
-        self.__PeArray          = PeArray(numberPeRows, numberPeColumns)
-        self.__PsumBuffer       = PsumBuffer(self.gPeArray(), numberPsumBanks,
-                                             numberPsumBankEntries)
-        self.__PoolingEng       = PoolingEng(self.gPsumBuffer())
-        self.__ActivationEng    = ActivationEng(self.gPsumBuffer())
-        self.__StateBuffer      = StateBuffer(self.gPeArray(), sbPartitionsSize)
-
-    #-----------------------------------------------------------------
-    def gPeArray(self):
-        return self.__PeArray
-
-    #-----------------------------------------------------------------
-    def gStateBuffer(self):
-        return self.__StateBuffer
-
-    #-----------------------------------------------------------------
-    def gPsumBuffer(self):
-        return self.__PsumBuffer
-
-    #-----------------------------------------------------------------
-    def gPoolingEng(self):
-        return self.__PoolingEng
-
-    #-----------------------------------------------------------------
-    def gActivationEng(self):
-        return self.__ActivationEng
+namespace kcc {
+namespace arch {
+class PoolingEng;
+class PeArray;
+class PsumBuffer;
+class ActivationEng;
+class StateBuffer;
 
 
-    #-----------------------------------------------------------------
-    def gNumberPeArrayRows(self):
-        return self.__PeArray.gNumberRows()
+//--------------------------------------------------------
+class Arch {
+public:
 
-    #-----------------------------------------------------------------
-    def gNumberPeArrayColumns(self):
-        return self.__PeArray.gNumberColumns()
+    //----------------------------------------------------------------
+    Arch();
+
+    //----------------------------------------------------------------
+    PeArray* gPeArray() {
+        return m_PeArray;
+    }
+
+    //----------------------------------------------------------------
+    StateBuffer* gStateBuffer() {
+        return m_StateBuffer;
+    }
+
+    //----------------------------------------------------------------
+    PsumBuffer* gPsumBuffer() {
+        return m_PsumBuffer;
+    }
+
+    //----------------------------------------------------------------
+    PoolingEng* gPoolingEng() {
+        return m_PoolingEng;
+    }
+
+    //----------------------------------------------------------------
+    ActivationEng* gActivationEng() {
+        return m_ActivationEng;
+    }
+
+
+    //----------------------------------------------------------------
+    int gNumberPeArrayRows() const;
+
+    //----------------------------------------------------------------
+    int gNumberPeArrayColumns() const;
 
 
 
-    #-----------------------------------------------------------------
-    def gNumberPsumBanks(self):
-        return self.gPsumBuffer().gNumberBanks()
+    //----------------------------------------------------------------
+    int gNumberPsumBanks() const;
 
-    #-----------------------------------------------------------------
-    def gPsumBankEntries(self):
-        return self.gPsumBuffer().gNumberBankEntries()
+    //----------------------------------------------------------------
+    int gPsumBankEntries() const;
 
+private:
+    int m_NumberPeRows;
+    int m_NumberPeColumns;
+    int m_NumberPsumBanks;
+    int m_NumberPsumBankEntries;
+    long m_SbPartitionsSize;
+
+    PeArray*       m_PeArray;
+    StateBuffer*   m_StateBuffer;
+    PsumBuffer*    m_PsumBuffer;
+    PoolingEng*    m_PoolingEng;
+    ActivationEng* m_ActivationEng;
+};
+
+}}
+
+
+#endif // KCC_ARCH_ARCH_H
 
 

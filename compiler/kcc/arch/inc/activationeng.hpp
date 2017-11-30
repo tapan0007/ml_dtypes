@@ -1,24 +1,34 @@
-"""
-The module describing Activation Engine class
-"""
-from .psumbuffer import PsumBuffer
+#ifndef KCC_ARCH_ACTIVATIONENG_H
+#define KCC_ARCH_ACTIVATIONENG_H 1
 
-class ActivationEng(object):
-    """
-    Activation Engine
-    Important parameters are
-        width :
-        memory mapped addresses
-    """
-    def __init__(self, psumBuffer):
-        assert isinstance(psumBuffer, PsumBuffer)
-        self.__Width = psumBuffer.gNumberColumns()
 
-    def gWidth(self):
-        return self.__Width
+namespace kcc {
+namespace arch {
 
-    def gInstructionRamStartInBytes(self):
-        return 0x001F00000
+class PsumBuffer;
 
-    def gInstructionRamEndInBytes(self):
-        return 0x001F03FFF
+class ActivationEng {
+public:
+    ActivationEng(PsumBuffer* psumBuffer);
+
+    int gWidth() const {
+        return m_Width;
+    }
+
+    long gInstructionRamStartInBytes() const {
+        return 0x001F00000L;
+    }
+
+    long gInstructionRamEndInBytes() const {
+        return 0x001F03FFFL;
+    }
+
+private:
+    int m_Width;
+};
+
+
+}}
+
+#endif // KCC_ARCH_ACTIVATIONENG_H
+

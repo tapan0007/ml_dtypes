@@ -20,7 +20,7 @@ CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 
 ########################################################
-all : $(OBJDIR)/$(MODULE).lib
+all : $(LIBRARY)
 
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
@@ -29,7 +29,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 ########################################################
 $(OBJDIR)/fmapdesc.o : $(SRCDIR)/fmapdesc.cpp
 
-$(OBJDIR)/$(MODULE).lib : $(OFILES)
+$(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)
 
 

@@ -7,7 +7,7 @@ CINC= -I./inc -I../utils/inc -I../nets/inc
 CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
-MODULE=layers
+MODULE=arch
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 
@@ -15,13 +15,13 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = layer activlayer relulayer combinelayer subsamplelayer convlayer 
+SRCS = activationeng arch pearray poolingeng psumbuffer statebuffer
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 
 ########################################################
-all : $(OBJDIR)/$(MODULE).lib
+all : $(LIBRARY)
 
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
@@ -29,17 +29,18 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 ########################################################
 ########################################################
-$(OBJDIR)/activlayer.o : $(SRCDIR)/activlayer.cpp
+$(OBJDIR)/arch.o : $(SRCDIR)/arch.cpp
 
-$(OBJDIR)/relulayer.o : $(SRCDIR)/relulayer.cpp
+$(OBJDIR)/activationeng.o : $(SRCDIR)/activationeng.cpp
 
-$(OBJDIR)/layer.o : $(SRCDIR)/layer.cpp
+$(OBJDIR)/pearray.o : $(SRCDIR)/pearray.cpp
 
-$(OBJDIR)/combinelayer.o : $(SRCDIR)/combinelayer.cpp
+$(OBJDIR)/poolingeng.o : $(SRCDIR)/poolingeng.cpp
 
-$(OBJDIR)/convlayer.o : $(SRCDIR)/convlayer.cpp
+$(OBJDIR)/psumbuffer.o : $(SRCDIR)/psumbuffer.cpp
+
+$(OBJDIR)/statebuffer.o : $(SRCDIR)/statebuffer.cpp
 
 $(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)
-
 

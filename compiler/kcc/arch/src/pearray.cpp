@@ -1,32 +1,23 @@
 
+#include "pearray.hpp"
 
-##########################################################
-class PeArray(object):
+namespace kcc {
+namespace arch {
 
-    #-----------------------------------------------------------------
-    def __init__(self, numberRows, numberColumns):
-        assert numberRows > 0 and numberColumns > 0
-        if numberRows > numberColumns:
-            assert numberRows % numberColumns == 0
-        elif numberRows < numberColumns:
-            assert numberColumns % numberRows == 0
 
-        self.__NumberRows    = numberRows
-        self.__NumberColumns = numberColumns
+//--------------------------------------------------------
+PeArray::PeArray(int numberRows, int numberColumns)
+{
+    assert(numberRows > 0 and numberColumns > 0);
+    if (numberRows > numberColumns) {
+        assert(numberRows % numberColumns == 0);
+    } else if (numberRows < numberColumns) {
+        assert(numberColumns % numberRows == 0);
+    }
 
-    #-----------------------------------------------------------------
-    def gNumberRows(self):  ## IFMAPs
-        return self.__NumberRows
+    m_NumberRows    = numberRows;
+    m_NumberColumns = numberColumns;
+}
 
-    #-----------------------------------------------------------------
-    def gNumberColumns(self):  ## OFMAPs
-        return self.__NumberColumns
-
-    #-----------------------------------------------------------------
-    def gInstructionRamStartInBytes(self):
-        return 0x001D00000
-
-    #-----------------------------------------------------------------
-    def gInstructionRamEndInBytes(self):
-        return 0x001D03FFF
+}}
 

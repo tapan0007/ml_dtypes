@@ -1,32 +1,43 @@
+#ifndef KCC_ARCH_PEARRAY_H
+#define KCC_ARCH_PEARRAY_H 1
 
+#include <assert.h>
 
-##########################################################
-class PeArray(object):
+namespace kcc {
+namespace arch {
 
-    #-----------------------------------------------------------------
-    def __init__(self, numberRows, numberColumns):
-        assert numberRows > 0 and numberColumns > 0
-        if numberRows > numberColumns:
-            assert numberRows % numberColumns == 0
-        elif numberRows < numberColumns:
-            assert numberColumns % numberRows == 0
+//--------------------------------------------------------
+class PeArray {
+public:
+    //----------------------------------------------------------------
+    PeArray(int numberRows, int numberColumns);
 
-        self.__NumberRows    = numberRows
-        self.__NumberColumns = numberColumns
+    //----------------------------------------------------------------
+    int gNumberRows() const {
+        return m_NumberRows;
+    }
 
-    #-----------------------------------------------------------------
-    def gNumberRows(self):  ## IFMAPs
-        return self.__NumberRows
+    //----------------------------------------------------------------
+    int gNumberColumns() const {
+        return m_NumberColumns;
+    }
 
-    #-----------------------------------------------------------------
-    def gNumberColumns(self):  ## OFMAPs
-        return self.__NumberColumns
+    //----------------------------------------------------------------
+    long gInstructionRamStartInBytes() const {
+        return 0x001D00000L;
+    }
 
-    #-----------------------------------------------------------------
-    def gInstructionRamStartInBytes(self):
-        return 0x001D00000
+    //----------------------------------------------------------------
+    long gInstructionRamEndInBytes() const {
+        return 0x001D03FFFL;
+    }
 
-    #-----------------------------------------------------------------
-    def gInstructionRamEndInBytes(self):
-        return 0x001D03FFF
+private:
+    int m_NumberRows;
+    int m_NumberColumns;
+};
+
+}}
+
+#endif // KCC_ARCH_PEARRAY_H
 

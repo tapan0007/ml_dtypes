@@ -1,41 +1,56 @@
-from .pearray import PeArray
+#ifndef KCC_ARCH_STATEBUFFER_H
+#define KCC_ARCH_STATEBUFFER_H 1
 
-##########################################################
-class StateBuffer(object):
-    #-----------------------------------------------------------------
-    def __init__(self, peArray, partitionSizeInBytes):
-        assert isinstance(peArray, PeArray)
+#include "pearray.hpp"
 
-        self.__NumberPartitions = peArray.gNumberRows()
-        assert self.__NumberPartitions > 0
-        assert self.__NumberPartitions & (self.__NumberPartitions - 1) == 0 ## power of 2
-        self.__PartitionSizeInBytes = partitionSizeInBytes
-        self.__TotalSizeInBytes     = self.__NumberPartitions * self.__PartitionSizeInBytes
+namespace kcc {
+namespace arch {
 
-    #-----------------------------------------------------------------
-    def gNumberPartitions(self):
-        return self.__NumberPartitions
+//--------------------------------------------------------
+class StateBuffer {
+public:
+    //--------------------------------------------------------
+    StateBuffer(PeArray* peArray, long partitionSizeInBytes);
 
-    #-----------------------------------------------------------------
-    def gPartitionSizeInBytes(self):
-        return self.__PartitionSizeInBytes
+    //--------------------------------------------------------
+    int gNumberPartitions() const {
+        return m_NumberPartitions;
+    }
 
-    #-----------------------------------------------------------------
-    def gTotalSizeInBytes(self):
-        return self.__TotalSizeInBytes
+    //--------------------------------------------------------
+    long gPartitionSizeInBytes() const {
+        return m_PartitionSizeInBytes;
+    }
 
-    #-----------------------------------------------------------------
-    def qLittleEndian(self):
-        return True
+    //--------------------------------------------------------
+    long gTotalSizeInBytes() const {
+        return m_TotalSizeInBytes;
+    }
 
-    #-----------------------------------------------------------------
-    def gFirstAddressInBytes(self):
-        return 0x000000000
+    //--------------------------------------------------------
+    bool qLittleEndian() const {
+        return true;
+    }
 
-
-    #-----------------------------------------------------------------
-    def gPartitionStartAddressInBytes(self, partNum):
-        assert (partNum >= 0) and (partNum < self.gNumberPartitions())
-        return self.gFirstAddressInBytes() + partNum * self.gPartitionSizeInBytes()
+    //--------------------------------------------------------
+    long gFirstAddressInBytes() const {
+        return 0x000000000L;
+    }
 
 
+    //--------------------------------------------------------
+    long gPartitionStartAddressInBytes(int partNum) const {
+        assert((partNum >= 0) && (partNum < gNumberPartitions()));
+        return gFirstAddressInBytes() + partNum * gPartitionSizeInBytes();
+    }
+
+private:
+
+    int m_NumberPartitions;
+    long m_PartitionSizeInBytes;
+    long m_TotalSizeInBytes;
+};
+
+}}
+
+#endif // KCC_ARCH_STATEBUFFER_H

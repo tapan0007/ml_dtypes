@@ -1,31 +1,51 @@
-from .pearray import PeArray
+#ifndef KCC_ARCH_PSUMBUFFER_H
+#define KCC_ARCH_PSUMBUFFER_H 1
 
-##########################################################
-class PsumBuffer(object):
+#include "pearray.hpp"
 
-    #-----------------------------------------------------------------
-    def __init__(self, peArray, numberBanks, numberBankEntries):
-        assert isinstance(peArray, PeArray)
-        self.__NumberColumns        = peArray.gNumberColumns()
-        self.__NumberBanks          = numberBanks
-        self.__NumberBankEntries    = numberBankEntries
-        self.__BankEntrySizeInBytes = 64 ## ???
+namespace kcc {
+namespace arch {
 
-    #-----------------------------------------------------------------
-    def gNumberBanks(self):
-        return self.__NumberBanks
+//--------------------------------------------------------
+class PsumBuffer {
+public:
+    //----------------------------------------------------------------
+    PsumBuffer(PeArray* peArray, int numberBanks, int numberBankEntries);
 
-    #-----------------------------------------------------------------
-    def gNumberBankEntries(self):
-        return self.__NumberBankEntries
+    //----------------------------------------------------------------
+    int gNumberBanks() const {
+        return m_NumberBanks;
+    }
 
-    #-----------------------------------------------------------------
-    def gBankEntrySizeInBytes(self):
-        return self.__BankEntrySizeInBytes
+    //----------------------------------------------------------------
+    int gNumberBankEntries() const {
+        return m_NumberBankEntries;
+    }
 
-    #-----------------------------------------------------------------
-    def gNumberColumns(self):
-        return self.__NumberColumns
+    //----------------------------------------------------------------
+    int gBankEntrySizeInBytes() const {
+        return m_BankEntrySizeInBytes;
+    }
 
-    def gAddress(self):
-        return 0x001800000
+    //----------------------------------------------------------------
+    int gNumberColumns() const {
+        return m_NumberColumns;
+    }
+
+    //----------------------------------------------------------------
+    long gAddress() const {
+        return 0x001800000L;
+    }
+
+private:
+    int m_NumberColumns;
+    int m_NumberBanks;
+    int m_NumberBankEntries;
+    long m_BankEntrySizeInBytes;
+};
+
+
+}}
+
+#endif // KCC_ARCH_PSUMBUFFER_H
+

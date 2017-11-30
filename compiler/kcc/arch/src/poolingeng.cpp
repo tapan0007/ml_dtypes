@@ -1,16 +1,15 @@
-from .psumbuffer import PsumBuffer
 
-class PoolingEng(object):
-    def __init__(self, psumBuffer):
-        assert isinstance(psumBuffer, PsumBuffer)
-        self.__Width = psumBuffer.gNumberColumns()
+#include "psumbuffer.hpp"
+#include "poolingeng.hpp"
 
-    def gWidth(self):
-        return self.__Width
+namespace kcc {
+namespace arch {
 
-    def gInstructionRamStartInBytes(self):
-        return 0x001E00000
 
-    def gInstructionRamEndInBytes(self):
-        return 0x001E03FFF
+PoolingEng::PoolingEng(PsumBuffer* psumBuffer)
+{
+    m_Width = psumBuffer->gNumberColumns();
+}
+
+}}
 
