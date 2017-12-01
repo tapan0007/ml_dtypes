@@ -31,9 +31,6 @@ using kcc::nets::Network;
 
 //--------------------------------------------------------
 class StateBufferMgr {
-private:
-    const StateBufferAddress InvalidFmapAddress = -1L;
-
 public:
     //----------------------------------------------------------------
     StateBufferMgr(Arch* arch, Network* ntwk);
