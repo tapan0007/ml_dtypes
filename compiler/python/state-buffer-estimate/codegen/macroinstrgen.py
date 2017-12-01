@@ -9,6 +9,7 @@ import layers.addlayer
 
 from .macroconvlayer    import MacroConvLayer
 from .macrorelulayer    import MacroReluLayer
+from .macrotanhlayer    import MacroTanhLayer
 from .macromaxpoollayer import MacroMaxPoolLayer
 from .macroavgpoollayer import MacroAvgPoolLayer
 from .macrodatalayer    import MacroDataLayer
@@ -63,6 +64,7 @@ class MacroInstrGen(object):
             layers.maxpoollayer.MaxPoolLayer : MacroMaxPoolLayer(self),
             layers.avgpoollayer.AvgPoolLayer : MacroAvgPoolLayer(self),
             layers.relulayer.ReluLayer       : MacroReluLayer(self),
+            layers.tanhlayer.TanhLayer       : MacroTanhLayer(self),
             #layers.addlayer.AddLayer        : MacroAddLayer(self),
         }
 
@@ -290,6 +292,8 @@ class MacroInstrGen(object):
                 generator.rLayer(layer)
                 generator.generate()
                 lastGenerator = generator
+            else:
+                raise
 
         ####################################################
         self.writeFooter(lastGenerator)

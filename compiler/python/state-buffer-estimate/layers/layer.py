@@ -156,6 +156,10 @@ class Layer(object, metaclass = ABCMeta): # abstract class
         return False
 
     #-----------------------------------------------------------------
+    def qTanhLayer(self):
+        return False
+
+    #-----------------------------------------------------------------
     def qBatchNormLayer(self):
         return False
 
