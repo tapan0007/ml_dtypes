@@ -1,45 +1,65 @@
-from utils.consts    import  *
-import layers.layer
-#from layers.layer import Layer
+#pragma once
 
-##########################################################
-class LayerLevel(object):
-    #-----------------------------------------------------------------
-    def __init__(self, levelNum, initLayers):
-        isinstance(initLayers, list)
-        self.__LevelNum = levelNum
-        self.__Layers = list(initLayers)
+#ifndef KCC_SCHEDULE_LAYERLEVEL_H
+#define KCC_SCHEDULE_LAYERLEVEL_H 1
 
-    #-----------------------------------------------------------------
-    def remove(self, layer):
-        assert(self.qContainsLayer(layer))
-        self.__Layers.remove(layer)
 
-    #-----------------------------------------------------------------
-    def append(self, layer):
-        assert(isinstance(layer, layers.layer.Layer))
-        self.__Layers.append(layer)
+#include "consts.hpp"
+#include "layer.hpp"
 
-    #-----------------------------------------------------------------
-    def gLevelNum(self):
-        return self.__LevelNum
 
-    #-----------------------------------------------------------------
-    def gLayers(self):
-        return iter(self.__Layers)
+namespace kcc {
 
-    #-----------------------------------------------------------------
-    def qContainsLayer(self, layer):
-        return layer in self.__Layers
+using namespace utils;
+using layers::Layer;
 
-    #-----------------------------------------------------------------
-    def gNumberLayers(self):
-        return len(self.__Layers)
 
-    #-----------------------------------------------------------------
-    def qDataLevel(self):
-        for layer in self.__Layers:
-            if not layer.qDataLayer():
-                return False
-        return True
+namespace schedule {
+
+//--------------------------------------------------------
+class LayerLevel {
+public:
+    //--------------------------------------------------------
+    LayerLevel(int levelNum, const std::vector<Layer*>& initLayers);
+
+    //--------------------------------------------------------
+    void remove(Layer* layer);
+
+    //--------------------------------------------------------
+    void append(Layer* layer);
+
+    //--------------------------------------------------------
+    int gLevelNum() const {
+        return m_LevelNum;
+    }
+
+    //--------------------------------------------------------
+    vector<Layer*>& gLayers() {
+        return m_Layers;
+    }
+
+    //--------------------------------------------------------
+    bool qContainsLayer(Layer* layer) const;
+
+    //--------------------------------------------------------
+    int gNumberLayers() const {
+        return m_Layers.size();
+    }
+
+    //--------------------------------------------------------
+    void appendLayer(Layer* layer) {
+        m_Layers.push_back(layer);
+    }
+
+    //--------------------------------------------------------
+    bool qDataLevel() const;
+
+private:
+    int m_LevelNum;
+    std::vector<Layer*> m_Layers;
+};
+
+}}
+
+#endif // KCC_SCHEDULE_LAYERLEVEL_H
 

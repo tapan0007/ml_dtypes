@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_ARCH_ARCH_H
 #define KCC_ARCH_ARCH_H 1
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_ARCH_ACTIVATIONENG_H
 #define KCC_ARCH_ACTIVATIONENG_H 1
 

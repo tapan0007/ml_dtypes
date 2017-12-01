@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_ARCH_PEARRAY_H
 #define KCC_ARCH_PEARRAY_H 1
 

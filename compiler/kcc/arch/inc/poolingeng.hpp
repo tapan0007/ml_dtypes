@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_ARCH_POOLINGENG_H
 #define KCC_ARCH_POOLINGENG_H 1
 

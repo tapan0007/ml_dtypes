@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_UTILS_TYPES_H
 #define KCC_UTILS_TYPES_H
 

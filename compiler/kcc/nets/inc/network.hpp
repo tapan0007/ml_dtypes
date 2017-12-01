@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_NETS_NETWORK_H
 #define KCC_NETS_NETWORK_H
 
@@ -43,6 +45,25 @@ public:
     //----------------------------------------------------------------
     Network(const DataType& dataType, const string& netName);
 
+    bool qDoBatching() const {
+        return m_DoBatching;
+    }
+    void rDoBatching(bool doBatch) {
+        m_DoBatching = doBatch;
+    }
+
+    std::vector<Layer*>& gLayers() {
+        return m_Layers;
+    }
+
+    Layer* gLayer(int idx) const {
+        return m_Layers[idx];
+    }
+
+    int gNumberLayers() const {
+        return m_Layers.size();
+    }
+
     const DataType& gDataType() const {
         return m_DataType;
     }
@@ -52,14 +73,11 @@ public:
     SchedForwLayers gSchedForwLayers();
     SchedRevLayers gSchedRevLayers();
 
-    vector<Layer*>& gLayers() {
-        return m_Layers;
-    }
-
 private:
     const DataType& m_DataType;
     string m_Name;
     vector<Layer*> m_Layers;
+    bool m_DoBatching;
 }; // class Layer
 
 

@@ -32,8 +32,6 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 ########################################################
 ########################################################
-$(OBJDIR)/statebufmgr.o : $(SRCDIR)/statebufmgr.cpp
-
 
 $(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)

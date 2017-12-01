@@ -1,45 +1,54 @@
-from utils.consts    import  *
-import layers.layer
-#from layers.layer import Layer
+#include <algorithm>
 
-##########################################################
-class LayerLevel(object):
-    #-----------------------------------------------------------------
-    def __init__(self, levelNum, initLayers):
-        isinstance(initLayers, list)
-        self.__LevelNum = levelNum
-        self.__Layers = list(initLayers)
+#include "consts.hpp"
+#include "layerlevel.hpp"
 
-    #-----------------------------------------------------------------
-    def remove(self, layer):
-        assert(self.qContainsLayer(layer))
-        self.__Layers.remove(layer)
+namespace kcc {
+namespace schedule {
 
-    #-----------------------------------------------------------------
-    def append(self, layer):
-        assert(isinstance(layer, layers.layer.Layer))
-        self.__Layers.append(layer)
+LayerLevel::LayerLevel(int levelNum, const std::vector<Layer*>& initLayers)
+    : m_LevelNum(levelNum)
+    , m_Layers(initLayers)
+{}
 
-    #-----------------------------------------------------------------
-    def gLevelNum(self):
-        return self.__LevelNum
 
-    #-----------------------------------------------------------------
-    def gLayers(self):
-        return iter(self.__Layers)
+//--------------------------------------------------------
+void
+LayerLevel::remove(Layer* layer)
+{
+    //assert(qContainsLayer(layer));
+    auto it = find(m_Layers.begin(), m_Layers.end(), layer);
+    assert(it != m_Layers.end());
+    auto lastIt = m_Layers.end() - 1;
+    std::swap(*it, *lastIt);
+    m_Layers.pop_back();
+}
 
-    #-----------------------------------------------------------------
-    def qContainsLayer(self, layer):
-        return layer in self.__Layers
+//--------------------------------------------------------
+void
+LayerLevel::append(Layer* layer)
+{
+    m_Layers.push_back(layer);
+}
 
-    #-----------------------------------------------------------------
-    def gNumberLayers(self):
-        return len(self.__Layers)
+//--------------------------------------------------------
+bool
+LayerLevel::qDataLevel() const
+{
+    for (auto layer : m_Layers) {
+        if (!layer->qDataLayer()) {
+            return false;
+        }
+    }
+    return true;
+}
 
-    #-----------------------------------------------------------------
-    def qDataLevel(self):
-        for layer in self.__Layers:
-            if not layer.qDataLayer():
-                return False
-        return True
+//--------------------------------------------------------
+bool
+LayerLevel::qContainsLayer(Layer* layer) const
+{
+    return std::find(m_Layers.begin(), m_Layers.end(), layer) != m_Layers.end();
+}
+
+}}
 

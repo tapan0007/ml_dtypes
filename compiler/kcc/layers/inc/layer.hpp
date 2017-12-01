@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_LAYERS_LAYER_H
 #define KCC_LAYERS_LAYER_H
 
@@ -146,45 +148,45 @@ public:
     }
 
     //----------------------------------------------------------------
-    int64 gBatchMem() const {
+    StateBufferAddress gBatchMem() const {
         return m_BatchMemory;
     }
 
     //----------------------------------------------------------------
-    void rBatchMem(int64 mem) {
+    void rBatchMem(StateBufferAddress mem) {
         m_BatchMemory = mem;
     }
 
     //----------------------------------------------------------------
-    int64 gResMemWithoutBatching() const {
+    StateBufferAddress gResMemWithoutBatching() const {
         return m_ResMemWithoutBatching;
     }
 
     //----------------------------------------------------------------
-    void rResMemWithoutBatching(int64 mem) {
+    void rResMemWithoutBatching(StateBufferAddress mem) {
         m_ResMemWithoutBatching = mem;
     }
 
     //----------------------------------------------------------------
-    int64 gResMemWithBatching() const {
+    StateBufferAddress gResMemWithBatching() const {
         return m_ResMemWithBatching;
     }
 
     //----------------------------------------------------------------
-    void rResMemWithBatching(int64 mem) {
+    void rResMemWithBatching(StateBufferAddress mem) {
         m_ResMemWithBatching = mem;
     }
 
     //----------------------------------------------------------------
-    int64 gOutputSize() const {
-        const int64 wordSize = gDataType().gSizeInBytes();
-        const int64 oneBatchSize = (wordSize * gNumOfmaps() * (gOfmapWidth() * gOfmapHeight()));
+    StateBufferAddress gOutputSize() const {
+        const StateBufferAddress wordSize = gDataType().gSizeInBytes();
+        const StateBufferAddress oneBatchSize = (wordSize * gNumOfmaps() * (gOfmapWidth() * gOfmapHeight()));
         return oneBatchSize;
     }
 
     //----------------------------------------------------------------
-    int64 gInputSize() const {
-        int64 sz = 0;
+    StateBufferAddress gInputSize() const {
+        StateBufferAddress sz = 0;
         for (auto inLayer : m_PrevLayers) {
             sz += inLayer->gOutputSize();
         }
@@ -198,9 +200,9 @@ public:
     bool  qStoreInSB() const;
 
     //----------------------------------------------------------------
-    int64 gInputStateMemWithoutBatching() const {
+    StateBufferAddress gInputStateMemWithoutBatching() const {
         assert(qStoreInSB());
-        int64 sz = 0;
+        StateBufferAddress sz = 0;
         for (auto inSbLayer : m_PrevSbLayers) {
             sz += inSbLayer->gOutputStateMemWithoutBatching();
         }
@@ -208,10 +210,10 @@ public:
     }
 
     //----------------------------------------------------------------
-    int64 gOutputStateMemWithoutBatching() const {
+    StateBufferAddress gOutputStateMemWithoutBatching() const {
         assert(qStoreInSB());
         if (qStoreInSB()) {
-            const int64 oneBatchSize = gOutputSize();
+            const StateBufferAddress oneBatchSize = gOutputSize();
             return oneBatchSize;
         } else {
             return 0;
@@ -219,7 +221,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    int64 gOutputStateMemWithBatching() const {
+    StateBufferAddress gOutputStateMemWithBatching() const {
         assert(qStoreInSB());
         return gBatchFactor() * gOutputStateMemWithoutBatching();
     }
@@ -322,10 +324,10 @@ public:
     }
 
     //----------------------------------------------------------------
-    int64 gMaxNextLayerNumberWeights() const {
-        int64 maxNumWeights = 0;
+    StateBufferAddress gMaxNextLayerNumberWeights() const {
+        StateBufferAddress maxNumWeights = 0;
         for (auto nextLayer : gNextLayers()) {
-            const int64 numWeights = nextLayer->gNumberWeights();
+            const StateBufferAddress numWeights = nextLayer->gNumberWeights();
             if (numWeights > maxNumWeights) {
                 maxNumWeights = numWeights;
             }
@@ -376,11 +378,11 @@ public:
 
     //----------------------------------------------------------------
     // ConvLayer must override these two methods with correct values
-    int64 gNumberWeights() const {
+    StateBufferAddress gNumberWeights() const {
         return 0;
     }
 
-    int64 gNumberWeightsPerPartition() const {
+    StateBufferAddress gNumberWeightsPerPartition() const {
         return 0;
     }
 
@@ -489,6 +491,13 @@ public:
         m_RefCount += num;
     }
 
+    int32 gNumPredecessors() const {
+        return m_NumPredecessors;
+    }
+    void changeNumPredecessors(int32 num) {
+        m_NumPredecessors += num;
+    }
+
     //----------------------------------------------------------------
     vector<Layer*>& gPrevSbLayers() {
         return m_PrevSbLayers;
@@ -573,9 +582,9 @@ private:
     StateBufferAddress  m_IfmapAddress;
     StateBufferAddress  m_OfmapAddress;
     StateBufferAddress  m_WeightAddress;
-    int64               m_ResMemWithBatching;
-    int64               m_ResMemWithoutBatching;
-    int64               m_BatchMemory;
+    StateBufferAddress               m_ResMemWithBatching;
+    StateBufferAddress               m_ResMemWithoutBatching;
+    StateBufferAddress               m_BatchMemory;
     int32               m_BatchFactor;
     int32               m_Schedule;
     int32               m_CurrLevel;
@@ -587,6 +596,7 @@ private:
     int32               m_TranBlockStart;
     int32               m_TranBlockEnd;
     int32               m_RefCount;
+    int32               m_NumPredecessors;
 
     LayerId             m_Id;
     string              m_NumberStr;

@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_LAYERS_RELULAYER_H
 #define KCC_LAYERS_RELULAYER_H
 

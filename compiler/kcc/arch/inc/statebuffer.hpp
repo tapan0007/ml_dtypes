@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_ARCH_STATEBUFFER_H
 #define KCC_ARCH_STATEBUFFER_H 1
 

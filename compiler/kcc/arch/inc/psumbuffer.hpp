@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_ARCH_PSUMBUFFER_H
 #define KCC_ARCH_PSUMBUFFER_H 1
 

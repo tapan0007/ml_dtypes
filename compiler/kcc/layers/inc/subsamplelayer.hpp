@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_LAYERS_SUBSAMPLELAYER_H
 #define KCC_LAYERS_SUBSAMPLELAYER_H
 

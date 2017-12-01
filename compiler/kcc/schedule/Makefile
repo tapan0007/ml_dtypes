@@ -2,12 +2,14 @@ AR=ar
 CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
-CINC= -I./inc -I../utils/inc -I../nets/inc 
+
+MODS = utils layers nets
+CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
 CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
-MODULE=layers
+MODULE=schedule
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 
@@ -15,7 +17,7 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = layer activlayer relulayer combinelayer subsamplelayer convlayer 
+SRCS = layerlevel scheduler
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
@@ -29,17 +31,11 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 ########################################################
 ########################################################
-$(OBJDIR)/activlayer.o : $(SRCDIR)/activlayer.cpp
-
-$(OBJDIR)/relulayer.o : $(SRCDIR)/relulayer.cpp
-
-$(OBJDIR)/layer.o : $(SRCDIR)/layer.cpp
-
-$(OBJDIR)/combinelayer.o : $(SRCDIR)/combinelayer.cpp
-
-$(OBJDIR)/convlayer.o : $(SRCDIR)/convlayer.cpp
 
 $(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)
 
+########################################################
+clean :
+	rm -f obj/*
 

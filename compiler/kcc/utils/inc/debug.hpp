@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_UTILS_DEBUG_H
 #define KCC_UTILS_DEBUG_H
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_LAYERS_CONVLAYER_H
 #define KCC_LAYERS_CONVLAYER_H
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef KCC_MEMMGR_STATEBUFMGR_H
 #define KCC_MEMMGR_STATEBUFMGR_H 1
 
