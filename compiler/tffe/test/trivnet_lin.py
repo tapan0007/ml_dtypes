@@ -25,12 +25,23 @@ def permuteArr(arr):
     a3 = arr
   return(a3)
 
+# Extract text-only config options from the config string
+# l10-relu-tanh-b1 => {"relu" : 1, "tanh" : 1}, return letover "l10-b1"
+def getConfOpts(confStr):
+  conf = {}
+  for s in ["RELU", "TANH"]:
+    s1 = "-" + s
+    if s1 in confStr:
+      confStr = confStr.replace(s1, "")
+      conf[s] = True
+  return(conf, confStr)
+
 print("\nINFO: started as  ", " ".join(sys.argv))
 
-dimStr = sys.argv[1]
+confStr = sys.argv[1]
 
-# Sample dimStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
-dimStr = dimStr.upper() + "-"
+# Sample confStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
+confStr = confStr.upper() + "-"
 if len(sys.argv) > 2:
   outPrefix = sys.argv[2]
 else:
@@ -50,13 +61,17 @@ for t in ["np", "tf"]:
   exec("%sDataType = %s.%s" % (t, t, dataType))
 fixedDataType = np.float16
 
+(conf, dimStr) = getConfOpts(confStr)
+print("INFO: options config ", conf)
+
 dimList = re.split('([A-Z]+)(-?[\d\.]+)-', dimStr)
 dimCmd = str(tuple(dimList[1::3])).replace("'", "") + " = " + str(tuple(map(float, dimList[2::3])))
 dimCmd = dimCmd.replace(".0,", ",")
 print(dimCmd)
-assert(len(dimList[2::3]) == 10)
+assert(len(dimList[2::3]) == 11)
 exec(dimCmd)
 assert(C == M)  # Two back to back convolutions must have same number of channels (till pooling is added)
+assert(L > 0)
 
 IF1 = np.zeros([B, H, H, C])
 W1  = np.zeros([R, R, C, M])
@@ -64,20 +79,27 @@ W1  = np.zeros([R, R, C, M])
 strides = [1, S, S, 1]
 padding = "SAME"
 
-numLayers = 30
-wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size * numLayers), dtype=fixedDataType))
+numConvLayers = L
+wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size * numConvLayers), dtype=fixedDataType))
 
 layers = []
 weights = []
 layers.append(tf.placeholder(tfDataType, shape=IF1.shape, name="input"))
-for layerId in range(1, numLayers):
+for layerId in range(1, numConvLayers):
   wValues =  wAllValues[(layerId-1)*W1.size:layerId * W1.size].reshape(W1.shape)
   w = tf.get_variable(name=netName+"/weight" + str(layerId),
                              initializer = wValues.astype(npDataType), dtype=tfDataType)
   weights.append(w)
-  op = tf.nn.conv2d(layers[layerId - 1], weights[layerId - 1], strides, padding, name=netName + "/conv" + str(layerId))
+  op = tf.nn.conv2d(layers[-1], weights[layerId - 1], strides, padding, name=netName + "/conv" + str(layerId))
   layers.append(op)
-output = tf.identity(layers[numLayers - 1], name=netName+"/output")
+  # Relu
+  if (conf.get("RELU")):
+    op = tf.nn.relu(layers[-1], name=netName + "/relu" + str(layerId))
+    layers.append(op)
+  if (conf.get("TANH")):
+    op = tf.nn.tanh(layers[-1], name=netName + "/tanh" + str(layerId))
+    layers.append(op)
+output = tf.identity(layers[-1], name=netName+"/output")
 
 i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType)).reshape(IF1.shape)
 np.save( outPrefix + 'ref_input.npy', i0val)
