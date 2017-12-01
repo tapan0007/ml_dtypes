@@ -8,6 +8,7 @@ import layers.avgpoollayer
 import layers.addlayer
 
 from .macroconvlayer    import MacroConvLayer
+from .macrorelulayer    import MacroReluLayer
 from .macromaxpoollayer import MacroMaxPoolLayer
 from .macroavgpoollayer import MacroAvgPoolLayer
 from .macrodatalayer    import MacroDataLayer
@@ -61,6 +62,7 @@ class MacroInstrGen(object):
             layers.convlayer.ConvLayer       : MacroConvLayer(self),
             layers.maxpoollayer.MaxPoolLayer : MacroMaxPoolLayer(self),
             layers.avgpoollayer.AvgPoolLayer : MacroAvgPoolLayer(self),
+            layers.relulayer.ReluLayer       : MacroReluLayer(self),
             #layers.addlayer.AddLayer        : MacroAddLayer(self),
         }
 
