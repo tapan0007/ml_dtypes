@@ -1,95 +1,110 @@
-import json
+//import json
 
-from utils.funcs     import kstr
-from utils.consts    import *
-from utils.datatype  import *
-from layers.layer import Layer
-from nets.network import Network
+//from utils.funcs     import kstr
+#include "consts.hpp"
+#include "datatype.hpp"
+#include "layer.hpp"
+#include "network.hpp"
 
-class Printer(object):
+//--------------------------------------------------------
+void
+Printer::printNetwork()
+{
+    Network* ntwk = m_Network;
+    bool prevNl = False;
+    StateBufferAddress maxStateSize = 0;
+    int layerNumMajor = 0;
+    int layerNumMinor = 0;
+    m_PrevLayer = nullptr;
 
-    #-----------------------------------------------------------------
-    def __init__(self, netwk):
-        self.__Network = netwk
+    for (auto layer : ntwk.gLayers()) {
+        if (layer->gDenseBlockStart() >= 0) {
+            if (!prevNl) {
+                cout << "\n";
+            }
+            cout << ">>> Starting dense block " << layer->gDenseBlockStart();
+        } else if layer->gTranBlockStart() >= 0) {
+            if (!prevNl) {
+                cout << "\n";
+            }
+            cout << ">>> Starting tran block " << layer->gTranBlockStart();
+        }
 
-    #-----------------------------------------------------------------
-    def printNetwork(self):
-        ntwk = self.__Network
-        prevNl = False
-        maxStateSize = 0
-        layerNumMajor = 0
-        layerNumMinor = 0
-        self.__PrevLayer = None
+        StateBufferAddress inStateSize, outStateSize, totalStateSize;
 
-        for layer in ntwk.gLayers():
-            if layer.gDenseBlockStart() >= 0:
-                if not prevNl:
-                    print
-                print (">>> Starting dense block " + str(layer.gDenseBlockStart()))
-            elif layer.gTranBlockStart() >= 0:
-                if not prevNl:
-                    print
-                print(">>> Starting tran block " + str(layer.gTranBlockStart()))
+        if (layer->qStoreInSB()) {
+            inStateSize = layer.gInputStateMemWithoutBatching();
+            outStateSize = layer.gOutputStateMemWithoutBatching();
+            totalStateSize = inStateSize + outStateSize;
+            if (totalStateSize > maxStateSize) {
+                maxStateSize = totalStateSize;
+            }
+        } else {
+            inStateSize = layer.gInputSize();
+            outStateSize = layer.gOutputSize();
+        }
 
-            if layer.qStoreInSB():
-                inStateSize = layer.gInputStateMemWithoutBatching()
-                outStateSize = layer.gOutputStateMemWithoutBatching()
-                totalStateSize = inStateSize + outStateSize
-                if totalStateSize > maxStateSize:
-                    maxStateSize = totalStateSize
-            else:
-                inStateSize = layer.gInputSize()
-                outStateSize = layer.gOutputSize()
+        numStr = layer.gNumberStr()
+        print (numStr + " " + str(layer))
+        layer.m_NumStr = numStr
 
-            numStr = layer.gNumberStr()
-            print (numStr + " " + str(layer))
-            layer.m_NumStr = numStr
+        prevNl = False;
+        if layer.gDenseBlockEnd() >= 0: {
+            print("<<< Ending dense block " + str(layer.gDenseBlockEnd()))
+            print
+            prevNl = True
+        } elif layer.gTranBlockEnd() >= 0: {
+            print("<<< Ending tran block " + str(layer.gTranBlockEnd()))
+            print
+            prevNl = True
+        }
 
-            prevNl = False
-            if layer.gDenseBlockEnd() >= 0:
-                print("<<< Ending dense block " + str(layer.gDenseBlockEnd()))
-                print
-                prevNl = True
-            elif layer.gTranBlockEnd() >= 0:
-                print("<<< Ending tran block " + str(layer.gTranBlockEnd()))
-                print
-                prevNl = True
+        self.__PrevLayer =layer
+    }
 
-            self.__PrevLayer =layer
+    print("Max state size =", kstr(maxStateSize))
+}
 
-        print("Max state size =", kstr(maxStateSize))
+//------------------------------------------------
+void
+Printer::printDot()
+{
+    Network* ntwk = m_Network;
+    FILE* f1 = fopen(netwk.gName()+".dot", 'w')
 
-    #-----------------------------------------------------------------
-    def printDot(self):
-        ntwk = self.__Network
-        f1=open(netwk.gName()+".dot", 'w')
+    string graphName = netwk.gName().replace("-", "_").replace(".", "_")
+    print >>f1, 'digraph', graphName, "{"
 
-        graphName = netwk.gName().replace("-", "_").replace(".", "_")
-        print >>f1, 'digraph', graphName, "{"
+    for (layer in netwk.gLayers()) {
+        print >>f1, '  ', layer.gDotIdLabel()
+    }
 
-        for layer in netwk.gLayers():
-            print >>f1, '  ', layer.gDotIdLabel()
+    print >>f1
 
-        print >>f1
+    for (layer in netwk.__Layers) {
+        for (nextLayer in layer.gNextLayers()) {
+            print >>f1, '  ', layer.gDotId(), '->', nextLayer.gDotId(), ';'
+        }
+    }
 
-        for layer in netwk.__Layers:
-            for nextLayer in layer.gNextLayers():
-                print >>f1, '  ', layer.gDotId(), '->', nextLayer.gDotId(), ';'
-
-        print >>f1, '}'
-        print >>f1
+    print >>f1, '}'
+    print >>f1
+}
 
 
-    #-----------------------------------------------------------------
-    def printLevels(self):
+#-----------------------------------------------------------------
+def printLevels(self):
+{
         ntwk = self.__Network
         for level in ntwk.gLevels():
             for layer in level.gLayers():
                 print(layer.gNameWithSched(),)
             print
+}
 
-    #-----------------------------------------------------------------
-    def printSched(self):
+#-----------------------------------------------------------------
+def printSched(self):
+{
         ntwk = self.__Network
         dataType = ntwk.gDataType()
         print(ntwk.gName(), ": data type=", dataType.gName(), " data type size=", dataType.gSizeInBytes())
@@ -153,13 +168,17 @@ class Printer(object):
             lastWasAdd = layer.qAddLayer()
 
         print(fullHeader)
+}
 
-    def printJsonOld(self, obj, filename):
+def printJsonOld(self, obj, filename):
+{
         obj_str = json.dumps(obj.gJson(), sort_keys=False, indent=4, separators=(',', ': '))
         with open(filename, "w") as f:
             f.write(obj_str)
+}
 
-    def printJson(self, obj, filename):
+def printJson(self, obj, filename):
+{
         #obj_str = json.dumps(obj.gJson(), sort_keys=False, indent=4, separators=(',', ': '))
         obj_json = obj.gJson()
         #print("type:", type(obj_json))
@@ -167,4 +186,5 @@ class Printer(object):
         with open(filename, "w") as f:
             json.dump(obj_json, f, indent=2)
             f.write("\n")
+}
 
