@@ -19,7 +19,7 @@ class FullLayer(ConvLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, ntwk):
+    def constructFromJson(cls, layerDict, ntwk):
         layerName = Layer.gLayerNameFromJson(layerDict)
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, ntwk)
 
@@ -50,7 +50,7 @@ class FullLayer(ConvLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         return "Full"
 
     #-----------------------------------------------------------------

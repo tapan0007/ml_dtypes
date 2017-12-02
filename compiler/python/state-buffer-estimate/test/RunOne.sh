@@ -39,8 +39,8 @@ OBJDUMP=$CODEGEN_TOP/objdump/objdump
 
 export PYTHONPATH=$PYTHONPATH:$COMPILER
 ##############################################################
-test -d "$CODEGEN_TOP"  || Fatal Inkling directory "$CODEGEN_TOP" missing
 test -d "$INKLING"  || Fatal Inkling directory "$INKLING" missing
+test -d "$CODEGEN_TOP"  || Fatal Codegen directory "$CODEGEN_TOP" missing
 test -d "$COMPILER" || Fatal Compiler directory "$COMPILER" missing
 
 ##############################################################
@@ -71,7 +71,7 @@ case "x$1" in
 (x*.tgz)
     TGZ=$1; 
     x=${TGZ%.tgz}
-    Name="${x#.*/}"
+    Name="${x##.*/}"
     ;;
 (*) Name=$1; TGZ=$Name.tgz;;
 esac

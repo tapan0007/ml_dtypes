@@ -26,7 +26,7 @@ class DataLayer(Layer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, nn):
+    def constructFromJson(cls, layerDict, nn):
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
         layerName = Layer.gLayerNameFromJson(layerDict)
 
@@ -54,7 +54,7 @@ class DataLayer(Layer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         return "Input"
 
     #-----------------------------------------------------------------

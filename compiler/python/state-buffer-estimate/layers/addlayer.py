@@ -22,7 +22,7 @@ class AddLayer(CombineLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def constructFromJson(klass, layerDict, ntwk):
+    def constructFromJson(cls, layerDict, ntwk):
         layerName = Layer.gLayerNameFromJson(layerDict)
         ofmapDesc = Layer.gOfmapDescFromJson(layerDict, ntwk)
         batch = 1
@@ -34,7 +34,7 @@ class AddLayer(CombineLayer):
 
     #-----------------------------------------------------------------
     @classmethod
-    def gTypeStr(klass):
+    def gTypeStr(cls):
         return "Add"
 
     #-----------------------------------------------------------------
