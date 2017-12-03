@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
 # Top level Tensorflow to Tonga compiler interface
 #
 # Examples
 #
 #   set tfpb =  $KAENA_PATH/../Kaena-external-opensource/apps/tf/resnet_v2_152/pb/resnet_v2_152_fp32.pb
 #
-#   python3 tffe.py --tfpb $tfpb --depth 5
+#   python3 $KAENA_PATH/compiler/tffe/tffe.py --tfpb $tfpb --depth 5
 #
-#   python3 tffe.py --tfpb $tfpb --depth 5 --weights
+#   python3 $KAENA_PATH/compiler/tffe/tffe.py --tfpb $tfpb --depth 5 --weights
 #
-#   python3 tffe.py --tfpb $tfpb --depth 5 --focus block3/unit_18
+#   python3 $KAENA_PATH/compiler/tffe/tffe.py --tfpb $tfpb --depth 5 --focus block3/unit_18
 #
 #   set img = $KAENA_PATH/../Kaena-external-opensource/apps/tf/resnet_v2_152/dog.jpg
 #   $KAENA_PATH/compiler/tffe//tffe.py --tfpb $tfpb --depth 5 --images $img

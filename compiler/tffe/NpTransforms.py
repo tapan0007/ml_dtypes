@@ -1,3 +1,5 @@
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
 # Numpy file transformation definitions and services
 #
 # It allows to specify framework (e.g. TF) formats for weights
@@ -49,3 +51,10 @@ class NpTrans:
     np.save(npFileDest, arr)
     return(npFileDest, dstFormat)
 
+  @staticmethod
+  def reorderShape(shapeArr, srcPlat, dstPlat, dataFlavor):
+    dstFormat = NpTrans.Formats[dstPlat][dataFlavor]
+    transform = NpTrans.Transforms[srcPlat][dstPlat][dataFlavor]
+    reorderedShape = [shapeArr[i] for i in transform]
+    #print("DEBUG: shape %s %s -> %s %s " %(srcPlat, shapeArr, dstPlat, reorderedShape))
+    return(reorderedShape)

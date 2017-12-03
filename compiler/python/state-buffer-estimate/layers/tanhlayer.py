@@ -4,7 +4,7 @@ from .activlayer    import ActivLayer
 import nets.network
 
 ##########################################################
-class ReluLayer(ActivLayer):
+class TanhLayer(ActivLayer):
     #-----------------------------------------------------------------
     def __init__(self, param, prev_layer):
         assert(isinstance(prev_layer, Layer))
@@ -18,21 +18,22 @@ class ReluLayer(ActivLayer):
     #-----------------------------------------------------------------
     def __str__(self):
         baseLayer = self.gBaseLayerStr()
-        return (self.gTypeStr() + baseLayer + self.gStateSizesStr())
+        return ("Tanh " + baseLayer + self.gStateSizesStr())
 
 
     #-----------------------------------------------------------------
     @classmethod
     def gTypeStr(cls):
-        return "Relu"
+        return "Tanh"
 
     #-----------------------------------------------------------------
     def qPassThrough(self):
         return False
 
     #-----------------------------------------------------------------
-    def qReluLayer(self):
+    def qTanhLayer(self):
         return True
+
 
 
 

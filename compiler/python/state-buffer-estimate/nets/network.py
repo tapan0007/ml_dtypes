@@ -16,6 +16,7 @@ from layers.fulllayer       import FullLayer
 from layers.softmaxlayer    import SoftMaxLayer
 from layers.batchnormlayer  import BatchNormLayer
 from layers.relulayer       import ReluLayer
+from layers.tanhlayer       import TanhLayer
 from layers.concatlayer     import ConcatLayer
 
 from schedule.scheduler      import Scheduler
@@ -179,7 +180,8 @@ class Network(object):
         LeafClasses = [
             ConvLayer, MaxPoolLayer, DataLayer, 
             AddLayer, AvgPoolLayer, FullLayer,
-            SoftMaxLayer, BatchNormLayer, ReluLayer,
+            SoftMaxLayer, BatchNormLayer,
+            ReluLayer, TanhLayer,
             ConcatLayer,
         ]
         for leafClass in LeafClasses:

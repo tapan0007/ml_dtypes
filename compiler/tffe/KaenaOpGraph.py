@@ -1,3 +1,5 @@
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
 # Kaena abstraction of neural network framework operations
 # Suitable for TF freeze graph input and general op reduction and fusing
 
@@ -76,6 +78,8 @@ class Node(Object):
     self.__fanout[index].append(edge)
   def genCompilerLayerText(self):
     return("        # No model for %s %s\n" % (self.getOpType(), self.getOpName()), [])
+  # Base class support for single-input, single output layers
+  # E.g., activation, later possibly other simple layers
   def genCompilerLayerJson(self):
     return({"layer_type" :  self.getOpType(),
             "layer_name" :  self.getOpName(),
@@ -108,13 +112,41 @@ class Edge(Object):
            "  From=" + f.node.getName() + ":" + str(f.index) +
            "  To=" + t.node.getName()  + ":" + str(t.index) )
 
-class NodeConv2D(Node):
-  def __init__(self, name, opType, strides, padding, dataFormat, attrs):
+# Simple single input, single output nodes like RELU
+class NodeSimple(Node):
+  def __init__(self, name, opType, attrs):
     Node.__init__(self, name, opType, attrs)
-    self.__strides = strides
-    self.__padding = padding
-    self.__strides = strides
 
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape # FIX_THIS - this order is TF specific, use NpUtils
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
+    (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    layerData = {
+      "ofmap_shape"     : [batch, channels, height, width],
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [fromIfNode.getName()],
+      "#comment"        : "supported simple layer"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase.update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+class NodeConv2D(Node):
+  def __init__(self, name, opType, padding, dataFormat, attrs):
+    Node.__init__(self, name, opType, attrs)
+    self.__padding = padding
+    self.__dataFormat = dataFormat
+
+  def getStrides(self):
+    return(self.getAttr("strides"))
+  
   # Returns layer python model in text format, and list of files (npy data)
   def genCompilerLayerText(self):
     fileList = []
@@ -155,7 +187,7 @@ class NodeConv2D(Node):
     (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
 
     fileList += [npFileSimW, npFileSim]
-    stride = [1, 1, 1, 1]   # TO_DO extract it properly
+    stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
     padding = [[0,0], [0,0], [1,1], [1,1]]   # TO_DO extract it properly
     layerData = {
       "layer_type"      : "Conv",
@@ -166,7 +198,7 @@ class NodeConv2D(Node):
       "ofmap_format"    : simFormatOF,
       "ref_file"        : npFileSim,
       "padding"         : padding,
-      "previous_layers" : [fromIfNode.getName()],  # TO_DO - use the actual input
+      "previous_layers" : [fromIfNode.getName()],
       "stride"          : stride,
       "#comment"        : "supported layer"
     }
@@ -425,7 +457,7 @@ class TrivNet(Network):
       for n in levelizedNodes[level]:
         op = n.getOpType()
         #print("DEBUG: node=", n.getName(), "  op=", op)
-        if op == "Conv2D":
+        if op == "Conv2D" or op == "Relu" or op == "Tanh":
           (layerData, fileListLayer) = n.genCompilerLayerJson()
           jsonData["layers"].append(layerData)
           fileList += fileListLayer

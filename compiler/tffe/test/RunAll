@@ -3,6 +3,13 @@
 # Copyright (C) 2017, Amazon.com. All Rights Reserved
 #
 # Basic minimal suite of TF to Inkling tests
+#
+# Examples
+#   Existence test
+#     /bin/rm -rf [0-9]* ; ./RunAll --verbose --test 0-1conv0
+#   All tests
+#     /bin/rm -rf [0-9]* ; ./RunAll --verbose
+#
 
 import os, sys
 import argparse
@@ -33,9 +40,15 @@ tests = {
   "0-2conv0"      : [ "trivnet_conv2",  "b1-h1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "2conv"],
   "0-neg"         : [ "trivnet_conv2",  "b1-Zh1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "I_ALWAYS_FAIL"],
   "0-1conv_tile"  : [ "trivnet_conv1",  "b1-h35-r3-s1-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
-  "0-30conv3"     : [ "trivnet_conv30", "b1-h4-r3-s1-c1-m1-wmin-0.2-wmax0.2-imin-10000-imax10000", "30conv"],
+  "0-30conv3"     : [ "trivnet_lin",    "l30-b1-h4-r3-s1-c1-m1-wmin-0.2-wmax0.2-imin-10000-imax10000", "30conv"],
+  "0-10conv_relu" : [ "trivnet_lin",    "l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1000", "10cr"],
+  "0-116conv_tanh" : [ "trivnet_lin",   "l150-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct"],
+  "0-1conv_s2"    : [ "trivnet_conv1",  "b1-h4-r1-s2-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "0-1conv_s8"    : [ "trivnet_conv1",  "b1-h16-r1-s8-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "1-1conv7_64"   : [ "trivnet_conv1",  "b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "1-1conv9_64"   : [ "trivnet_conv1",  "b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "2-1conv3_64s8" : [ "trivnet_conv1",  "b1-h16-r3-s8-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "2-1conv9_64s8" : [ "trivnet_conv1",  "b1-h16-r9-s8-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
 }
 
 testList = sorted(tests)

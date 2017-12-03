@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
 # 2-D convolution for calculation golden reference for TF, Inkling
 # For definitions and terminology, see e.g.,
 #   https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.convolve.html
@@ -7,11 +9,19 @@
 
 import numpy as np
 import sys
+import argparse
 
 print("\nINFO: started as  ", " ".join(sys.argv))
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--image', help='Input image file content and format', nargs='+')
+parser.add_argument('--weight', help='Filter content file and format', nargs='+')
+parser.add_argument('--output', help='Output file and format', nargs='+')
+parser.add_argument('--floats', help='Data type for calculation and output', nargs='+')
+parser.add_argument('--strides', help='Strides shape', nargs='+')
+
 try:
-  (unused, imgFile, imgFormat, weightFile, weightFormat, outFile, outFormat, calcTypeName, outTypeName) = sys.argv
+  args = parser.parse_args()
 except:
   print("""
 Usage:
@@ -21,35 +31,51 @@ Usage:
 Examples:
 
   # Conceptual example
-  npy_conv2d  img.npy NCHW  weight.npy MCRS  output.npy NCHW  float64 float32
+  npy_conv2d  --image img.npy NCHW  --weight weight.npy MCRS  --output output.npy NCHW  --floats float64 float32
   
   # Specific example using a Kaena unit test
-  make -f $KAENA_PATH/compiler/tffe/Makefile jdr_v2 NN_CONFIG=b2-h4-r3-s1-c5-m6-wmin-0.1-wmax0.1-imin-1-imax1 OUT_PREFIX=trivnet_ NN_NAME=1conv
+  make -f $KAENA_PATH/compiler/tffe/test/Makefile trivnet_conv1 NN_CONFIG=b2-h4-r3-s1-c5-m6-wmin-0.1-wmax0.1-imin-1-imax1 OUT_PREFIX=trivnet_ NN_NAME=1conv
   ln -s trivnet_input:0_NCHW.npy i
   ln -s trivnet_1conv__weight1__read:0_MCRS.npy w
   ln -s trivnet_1conv__i1:0_NCHW.npy otf
   
   # true gold vs TF
   set c = 64; set o = 64
-  $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
+  set strides = "1 1 1 1"
+  $KAENA_PATH/compiler/util/npy_conv2d  --image i NCHW  --weight w MCRS  --output o$c-$o.npy  NCHW  --floats float$c  float$o --strides $strides | tee log-$c-$o
   $KAENA_PATH/compiler/util/npy_diff_files  --gold o$c-$o.npy --new otf | tee -a log-$c-$o
   # 32b gold vs TF
   set c = 32; set o = 32
-  $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
+  $KAENA_PATH/compiler/util/npy_conv2d  --image i NCHW  --weight w MCRS  --output o$c-$o.npy  NCHW  --floats float$c  float$o --strides $strides | tee log-$c-$o
   $KAENA_PATH/compiler/util/npy_diff_files   --gold o$c-$o.npy --new otf | tee -a log-$c-$o
   # 32b truncated to 16b vs TF
   set c = 32; set o = 16
-  $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
+  $KAENA_PATH/compiler/util/npy_conv2d  --image i NCHW  --weight w MCRS  --output o$c-$o.npy  NCHW  --floats float$c  float$o --strides $strides | tee log-$c-$o
   $KAENA_PATH/compiler/util/npy_diff_files   --gold o$c-$o.npy --new otf | tee -a log-$c-$o
   # 16b (Inkling-like) vs TF
   set c = 16; set o = 16
-  $KAENA_PATH/compiler/util/npy_conv2d  i NCHW  w MCRS  o$c-$o.npy  NCHW  float$c  float$o | tee log-$c-$o
+  $KAENA_PATH/compiler/util/npy_conv2d  --image i NCHW  --weight w MCRS  --output o$c-$o.npy  NCHW  --floats float$c  float$o --strides $strides | tee log-$c-$o
   $KAENA_PATH/compiler/util/npy_diff_files   --gold o$c-$o.npy --new otf | tee -a log-$c-$o
   
+  # Strides
+  # 32b truncated to 16b vs TF
+  set c = 32; set o = 16
+  set s = 2
+  set strides = "1 1 $s $s"
+  make -f $KAENA_PATH/compiler/tffe/test/Makefile trivnet_conv1 NN_CONFIG=b3-h4-r3-s$s-c5-m6-wmin-0.1-wmax0.1-imin-1-imax1 OUT_PREFIX=trivnet_ NN_NAME=1conv
+  $KAENA_PATH/compiler/util/npy_conv2d  --image i NCHW  --weight w MCRS  --output o$c-$o.npy  NCHW  --floats float$c  float$o --strides $strides | tee log-$c-$o
+  $KAENA_PATH/compiler/util/npy_diff_files   --gold o$c-$o.npy --new otf | tee -a log-$c-$o
+
   egrep -A 1 Relative\ Error log* | sort -r
 
 """)
   exit(1)
+
+(imgFile, imgFormat) = args.image
+(weightFile, weightFormat) = args.weight
+(outFile, outFormat) = args.output
+strides = args.strides
+(calcTypeName, outTypeName) = args.floats
 
 exec("calcType = np.%s" % calcTypeName)
 exec("outType = np.%s" % outTypeName)
@@ -78,10 +104,18 @@ class Tensor:
     #print('DEBUG: getIndex  %s -> %s  orderReverse=%s' % (str(indexExt), str(indexInt), self.orderReverse))
     return(tuple(indexInt))
 
+  def reorder(self, arr):
+    reordered = [arr[i] for i in self.order]
+    #print("DEBUG: reordrer %s -> %s " %(arr, reordered), "  order=", self.order)
+    return(reordered)
+
+  def reorderReverse(self, arr):
+    reordered = [arr[i] for i in self.orderReverse]
+    #print("DEBUG: reordrer %s -> %s " %(arr, reordered), "  order=", self.order)
+    return(reordered)
+
   def getSizes(self):
-    sizes = [self.arr.shape[i] for i in self.order]
-    #print("DEBUG: sizes %s -> %s " %(self.arr.shape, sizes), "  order=", self.order)
-    return(sizes)
+    return(self.reorder(self.arr.shape))
 
   def get(self, bhwc):
     index = self.getIndex(bhwc)
@@ -91,25 +125,39 @@ class Tensor:
     index = self.getIndex(bhwc)
     self.arr[index] = value
   
-  def conv2d(self, img, weight):
+  def conv2d(self, img, weight, strides):
     (nn, hh, ww, cc) = img.getSizes()
     (rr, ss, cc1, mm) = weight.getSizes()
-    self.arr.resize(self.getIndex([nn, hh, ww, mm]))
+    self.arr.resize(img.getIndex([nn, hh, ww, mm]))
     assert(cc == cc1)
+    stridesLocal = self.reorder(strides)
+    (sh, sw) = [int(x) for x in stridesLocal[1:3]]
+    # TF seems not to center the filter when stride > 0
+    rShift = int(rr/2)
+    if sh > 1:
+      rShift =0
+    sShift = int(ss/2)
+    if sw > 1:
+      sShift =0
     for n in range(0, nn):
       for m in range(0, mm):
         for c in range(0, cc):
-          for h in range(0, hh):
-            for w in range(0, ww):
+          for h in range(0, hh // sh):
+            for w in range(0, ww // sw):
               for r in range(0, rr):
                 for s in range(0, ss):
-                  hhh = h + r - int(rr/2)
-                  www = w + s - int(ss/2)
+                  hhh = h * sh + r - rShift
+                  www = w * sw + s - sShift
                   if hhh >= 0 and www >= 0 and hhh < hh and www < ww:
                     val = img.get([n, hhh, www, c]) *  weight.get([r, s, c, m])
                     valOld = self.get([n, h, w, m])
                     valNew = valOld + val
                     self.set([n, h, w, m], valNew)
+    outputShape = self.reorderReverse((nn, hh // sh, ww // sw, mm))
+    print("DEBUG calc shape %s -> %s" % (self.arr.shape, outputShape))
+    print("DEBUG: arr=\n", self.arr)
+    self.arr = self.arr[0:outputShape[0], 0:outputShape[1], 0:outputShape[2], 0:outputShape[3]]
+    print("DEBUG: arr_after_resize=\n", self.arr)
     return(self.arr)
 
   def __str__(self):
@@ -143,7 +191,7 @@ class Weight(Tensor):
 img = Image(np.load(imgFile).astype(calcType), imgFormat)
 weight = Weight(np.load(weightFile).astype(calcType), weightFormat)
 calc = Image(np.zeros(img.getArr().shape, dtype=calcType), outFormat)
-calc.conv2d(img, weight)
+calc.conv2d(img, weight, args.strides)
 out = Image(calc.getArr().astype(outType), outFormat)
 np.save(outFile, out.getArr())
 print("INFO: wrote file  ", outFile)
