@@ -22,11 +22,15 @@ namespace kcc {
 namespace layers {
     class Layer;
 }
+namespace schedule {
+    class LayerLevel;
+}
 
 namespace nets {
 
 using namespace utils;
 using layers::Layer;
+using schedule::LayerLevel;
 
 //--------------------------------------------------------
 class Network {
@@ -69,15 +73,26 @@ public:
     }
 
     void addLayer(Layer* layer);
+
+    vector<LayerLevel*>& gLevels() {
+        return *m_Levels;
+    }
+    void rLevels(vector<LayerLevel*>* levels) {
+        m_Levels = levels;
+    }
+    const string& gName() const {
+        return m_Name;
+    }
     
     SchedForwLayers gSchedForwLayers();
     SchedRevLayers gSchedRevLayers();
 
 private:
-    const DataType& m_DataType;
-    string m_Name;
-    vector<Layer*> m_Layers;
-    bool m_DoBatching;
+    const DataType&       m_DataType;
+    string                m_Name;
+    vector<Layer*>        m_Layers;
+    vector<LayerLevel*>*  m_Levels;
+    bool                  m_DoBatching;
 }; // class Layer
 
 
