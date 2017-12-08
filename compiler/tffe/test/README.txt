@@ -18,13 +18,13 @@ Steps to run, and extract TPB instruction streams
         https://code.amazon.com/packages/Kaena/blobs/mainline/--/compiler/tffe/test/Makefile
   
 
-2) Run and anazlyze data
+2) Run and analyze data
 
   a) Test your setup by running an existence test
       cd /any/empty/dir
-      ./RunAll --verbose --test 0-1conv0
+      $KAENA_PATH/compiler/tffe/test/RunAll --verbose --test 0-1conv0
   b) Run
-      \rm -r [0-9]* ; ./RunAll
+      /bin/rm -r [0-9]* ; $KAENA_PATH/compiler/tffe/test/RunAll
 
   b) Locate the TPB instruction streams
       find . -name \*.tpb -o -name \*.asm
