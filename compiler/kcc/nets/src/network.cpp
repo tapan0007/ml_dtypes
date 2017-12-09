@@ -7,7 +7,7 @@ namespace kcc {
 
 namespace nets {
 
-Network::Network(const DataType& dataType, const string& netName)
+Network::Network(const DataType* dataType, const string& netName)
     : m_DataType(dataType)
     , m_Name(netName)
 {

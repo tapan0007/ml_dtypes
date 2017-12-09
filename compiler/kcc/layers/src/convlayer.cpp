@@ -12,13 +12,6 @@ namespace nets {
 namespace layers {
 
 //--------------------------------------------------------
-const char* const
-ConvLayer::filter_file_key   = "kernel_file";
-
-const char* const
-ConvLayer::kernel_format_key = "kernel_format";
-
-//--------------------------------------------------------
 ConvLayer::ConvLayer(const Params& params, Layer* prev_layer, int num_ofmaps,
         const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel,
         const char* filterFileName, const char* filterTensorDimSemantics)

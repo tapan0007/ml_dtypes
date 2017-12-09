@@ -32,6 +32,12 @@ enum : StateBufferAddress {
     StateBufferAddress_Invalid = -1L
 };
 
+typedef int OfmapShapeType[4];
+typedef int KernelShapeType[4];
+typedef int StrideType[4];
+typedef int PaddingType[4][2];
+typedef int BatchingType[4];
+
 }}
 
 #endif

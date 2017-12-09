@@ -3,6 +3,7 @@
 #ifndef KCC_LAYERS_CONVLAYER_H
 #define KCC_LAYERS_CONVLAYER_H
 
+#include "consts.hpp"
 #include "types.hpp"
 #include "datatype.hpp"
 #include "fmapdesc.hpp"
@@ -20,8 +21,6 @@ namespace layers {
 //--------------------------------------------------------
 class ConvLayer : public SubSampleLayer {
 public:
-    static const char* const filter_file_key;
-    static const char* const kernel_format_key;
 
     //----------------------------------------------------------------
     ConvLayer(const Params& params, Layer* prev_layer, int num_ofmaps,
@@ -52,9 +51,13 @@ public:
         return m_FilterTensorDimSemantics;
     }
 
+    static const char* TypeStr() {
+        return utils::TypeStr_Conv;
+    }
+
     //----------------------------------------------------------------
     const char* gTypeStr() const {
-        return "Conv";
+        return TypeStr();
     }
 
     //----------------------------------------------------------------

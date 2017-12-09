@@ -8,16 +8,17 @@ CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
-MODULE=layers
-MODS = $(MODULE) utils nets serialize
+MODULE=serialize
+MODS = $(MODULE) utils 
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 
 SRCDIR = src
+INCDIR = inc
 OBJDIR = obj
 
 ########################################################
-SRCS = layer activlayer relulayer combinelayer subsamplelayer convlayer 
+SRCS = serlayer
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
@@ -26,7 +27,7 @@ OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 all : $(LIBRARY)
 
 ########################################################
-$(OBJDIR)/%.o : $(SRCDIR)/%.cpp
+$(OBJDIR)/%.o : $(SRCDIR)/%.cpp $(INCDIR)/%.hpp
 	$(CPP) $(CFLAGS) -c -o $@ $<
 
 ########################################################
@@ -37,4 +38,5 @@ $(LIBRARY) : $(OFILES)
 
 clean :
 	rm -f $(OFILES)
+
 

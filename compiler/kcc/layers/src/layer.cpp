@@ -1,7 +1,15 @@
 #include <sstream>
 
-#include "layer.hpp"
+
+#include <cereal/archives/json.hpp>
+
+
 #include "datatype.hpp"
+#include "layer.hpp"
+#include "inputlayer.hpp"
+#include "convlayer.hpp"
+#include "relulayer.hpp"
+#include "tanhlayer.hpp"
 #include "network.hpp"
 
 
@@ -42,7 +50,7 @@ Layer::Layer(const Params& params, const FmapDesc&ofmap_desc, const vector<Layer
 
 
 
-    assert( (prev_layers.size() == 0) == qDataLayer() );
+    assert( (prev_layers.size() == 0) == qInputLayer() );
     std::copy(prev_layers.begin(), prev_layers.end(), m_PrevLayers.end());
     for (auto prevLayer : prev_layers) {
         prevLayer->addNextLayer(this);
@@ -52,7 +60,7 @@ Layer::Layer(const Params& params, const FmapDesc&ofmap_desc, const vector<Layer
 }
 
 //----------------------------------------------------------------
-const utils::DataType&
+const utils::DataType*
 Layer::gDataType() const
 {
     return m_Network->gDataType();
@@ -217,6 +225,118 @@ Layer::mkLayerVector2(Layer* layer1, Layer* layer2)
     vec2.push_back(layer1);
     vec2.push_back(layer2);
     return vec2;
+}
+
+//----------------------------------------------------------------
+template<>
+void Layer::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive)
+{
+    archive(cereal::make_nvp(utils::Key_LayerType, string(gTypeStr())));
+    archive(cereal::make_nvp(utils::Key_LayerName, m_LayerName));
+
+    std::vector<string> prevLayers;
+    for (auto layer : m_PrevLayers) {
+        prevLayers.push_back(layer->gName());
+    }
+    archive(cereal::make_nvp(utils::Key_PrevLayers, prevLayers));
+
+    utils::OfmapShapeType      ofmapShape;
+    ofmapShape[0] = m_BatchFactor;
+    ofmapShape[1] = 1;
+    ofmapShape[2] = gOfmapHeight();
+    ofmapShape[3] = gOfmapWidth();
+    archive(cereal::make_nvp(utils::Key_OfmapShape, ofmapShape));
+    if (auto inputLayer = dynamic_cast<InputLayer*>(this)) {
+        archive(cereal::make_nvp(utils::Key_RefFile, inputLayer->gInputDataFileName()));
+        archive(cereal::make_nvp(utils::Key_OfmapFormat, inputLayer->gDataTensorDimSemantics()));
+    } else if (auto convLayer = dynamic_cast<ConvLayer*>(this)) {
+        utils::KernelShapeType  kernelShape;   // conv,pool
+        kernelShape[0] = 1;
+        kernelShape[1] = 1;
+        kernelShape[2] = convLayer->gKernelHeight();
+        kernelShape[3] = convLayer->gKernelWidth();
+        archive(cereal::make_nvp(utils::Key_KernelShape, kernelShape));
+
+        archive(cereal::make_nvp(utils::Key_KernelFile, convLayer->gFilterFileName()));
+        archive(cereal::make_nvp(utils::Key_KernelFormat, convLayer->gFilterTensorDimSemantics()));
+
+        utils::StrideType stride;        // conv,pool
+        stride[0] = 1;
+        stride[1] = 1;
+        stride[2] = convLayer->gStrideBT();
+        stride[3] = convLayer->gStrideLR();
+        archive(cereal::make_nvp(utils::Key_Stride, stride));
+
+        utils::PaddingType padding;       // conv,pool
+        padding[0][0] = 0; padding[0][1] = 0;
+        padding[1][0] = 0; padding[1][1] = 0;
+        padding[2][0] = convLayer->gPaddingBottom(); padding[2][1] = convLayer->gPaddingTop();
+        padding[3][0] = convLayer->gPaddingLeft(); padding[3][1] = convLayer->gPaddingRight();
+        archive(cereal::make_nvp(utils::Key_Padding, padding));
+
+    } else if (auto reluLayer = dynamic_cast<ReluLayer*>(this)) {
+        assert(reluLayer);
+    } else if (auto tanhLayer = dynamic_cast<TanhLayer*>(this)) {
+        assert(tanhLayer);
+    } else {
+        assert(0);
+    }
+}
+
+//----------------------------------------------------------------
+template<>
+void Layer::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
+{
+    archive(cereal::make_nvp(utils::Key_LayerType, string(gTypeStr())));
+    archive(cereal::make_nvp(utils::Key_LayerName, m_LayerName));
+
+    std::vector<string> prevLayers;
+    for (auto layer : m_PrevLayers) {
+        prevLayers.push_back(layer->gName());
+    }
+    archive(cereal::make_nvp(utils::Key_PrevLayers, prevLayers));
+
+    utils::OfmapShapeType      ofmapShape;
+    ofmapShape[0] = m_BatchFactor;
+    ofmapShape[1] = 1;
+    ofmapShape[2] = gOfmapHeight();
+    ofmapShape[3] = gOfmapWidth();
+    archive(cereal::make_nvp(utils::Key_OfmapShape, ofmapShape));
+    if (auto inputLayer = dynamic_cast<InputLayer*>(this)) {
+        archive(cereal::make_nvp(utils::Key_RefFile, inputLayer->gInputDataFileName()));
+        archive(cereal::make_nvp(utils::Key_OfmapFormat, inputLayer->gDataTensorDimSemantics()));
+    } else if (auto convLayer = dynamic_cast<ConvLayer*>(this)) {
+        utils::KernelShapeType  kernelShape;   // conv,pool
+        kernelShape[0] = 1;
+        kernelShape[1] = 1;
+        kernelShape[2] = convLayer->gKernelHeight();
+        kernelShape[3] = convLayer->gKernelWidth();
+        archive(cereal::make_nvp(utils::Key_KernelShape, kernelShape));
+
+        archive(cereal::make_nvp(utils::Key_KernelFile, convLayer->gFilterFileName()));
+        archive(cereal::make_nvp(utils::Key_KernelFormat, convLayer->gFilterTensorDimSemantics()));
+
+        utils::StrideType stride;        // conv,pool
+        stride[0] = 1;
+        stride[1] = 1;
+        stride[2] = convLayer->gStrideBT();
+        stride[3] = convLayer->gStrideLR();
+        archive(cereal::make_nvp(utils::Key_Stride, stride));
+
+        utils::PaddingType padding;       // conv,pool
+        padding[0][0] = 0; padding[0][1] = 0;
+        padding[1][0] = 0; padding[1][1] = 0;
+        padding[2][0] = convLayer->gPaddingBottom(); padding[2][1] = convLayer->gPaddingTop();
+        padding[3][0] = convLayer->gPaddingLeft(); padding[3][1] = convLayer->gPaddingRight();
+        archive(cereal::make_nvp(utils::Key_Padding, padding));
+
+    } else if (auto reluLayer = dynamic_cast<ReluLayer*>(this)) {
+        assert(reluLayer);
+    } else if (auto tanhLayer = dynamic_cast<TanhLayer*>(this)) {
+        assert(tanhLayer);
+    } else {
+        assert(0);
+    }
 }
 
 

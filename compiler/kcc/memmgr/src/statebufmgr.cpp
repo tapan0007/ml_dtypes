@@ -68,12 +68,12 @@ StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
         const StateBufferAddress prevOfmapAddress = m_OfmapAddress;
         const StateBufferAddress prevIfmapAddress = m_IfmapAddress;
 
-        if (layer->qDataLayer()) {
+        if (layer->qInputLayer()) {
             assert(prevIfmapAddress == StateBufferAddress_Invalid &&
                    prevOfmapAddress == StateBufferAddress_Invalid);
             ifmapAddress = StateBufferAddress_Invalid;
             ofmapAddress = m_FirstSbAddress +
-                           (layer->gDataType().gSizeInBytes() * m_MaxNumberWeightsPerPart);
+                           (layer->gDataType()->gSizeInBytes() * m_MaxNumberWeightsPerPart);
         } else {
             assert(prevOfmapAddress != StateBufferAddress_Invalid);
             ifmapAddress = prevOfmapAddress;
@@ -87,7 +87,7 @@ StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
             } else if (prevIfmapAddress < prevOfmapAddress) {
                 //     Weights | prevIfmap | ... | prevOfmap
                 ofmapAddress = m_FirstSbAddress +
-                               (layer->gDataType().gSizeInBytes() * m_MaxNumberWeightsPerPart);
+                               (layer->gDataType()->gSizeInBytes() * m_MaxNumberWeightsPerPart);
             } else {
                 //     Weights | prevOfmap | ... | prevIfmap
                 //                             | Ofmap

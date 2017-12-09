@@ -3,7 +3,6 @@ CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
 
-MODS = utils nets arch layers
 CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
 
@@ -11,6 +10,7 @@ CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
 MODULE=memmgr
+MODS = utils nets arch layers serialize
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 
@@ -35,5 +35,8 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 $(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)
+
+clean :
+	rm -f $(OFILES)
 
 

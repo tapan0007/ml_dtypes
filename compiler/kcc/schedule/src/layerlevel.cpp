@@ -36,7 +36,7 @@ bool
 LayerLevel::qDataLevel() const
 {
     for (auto layer : m_Layers) {
-        if (!layer->qDataLayer()) {
+        if (!layer->qInputLayer()) {
             return false;
         }
     }

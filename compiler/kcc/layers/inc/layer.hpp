@@ -8,11 +8,17 @@
 #include <vector>
 #include <assert.h>
 
+#include <cereal/archives/json.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+
+
 using std::string;
 using std::vector;
 
 
 #include "types.hpp"
+#include "consts.hpp"
 #include "datatype.hpp"
 #include "fmapdesc.hpp"
 
@@ -31,18 +37,9 @@ using namespace utils;
 //--------------------------------------------------------
 class Layer { // abstract class
 protected:
-    constexpr static const char* m_LayerNameKey     = "layer_name";
-    constexpr static const char* m_TypeKey          = "layer_type";
-    constexpr static const char* m_OfmapKey         = "ofmaps";
-    constexpr static const char* m_NumberOfmapsKey  = "number_ofmaps";
-    constexpr static const char* m_OfmapWidthKey    = "ofmap_width";
-    constexpr static const char* m_OfmapHeightKey   = "ofmap_height";
-    constexpr static const char* m_PrevKayersKey    = "previous_layers";
-
     //----------------------------------------------------
 public:
     class Params;
-
 
 protected:
     //----------------------------------------------------------------
@@ -113,7 +110,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    bool qDataLayer() const {
+    bool qInputLayer() const {
         return false;
     }
 
@@ -179,7 +176,7 @@ public:
 
     //----------------------------------------------------------------
     StateBufferAddress gOutputSize() const {
-        const StateBufferAddress wordSize = gDataType().gSizeInBytes();
+        const StateBufferAddress wordSize = gDataType()->gSizeInBytes();
         const StateBufferAddress oneBatchSize = (wordSize * gNumOfmaps() * (gOfmapWidth() * gOfmapHeight()));
         return oneBatchSize;
     }
@@ -194,7 +191,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    const DataType& gDataType() const;
+    const DataType* gDataType() const;
 
     //----------------------------------------------------------------
     bool  qStoreInSB() const;
@@ -565,6 +562,8 @@ public:
     string gNameWithSched() const;
     string gNameWithSchedMem() const;
 
+    template<class Archive>
+    void serialize(Archive & archive);
 
 
 private:

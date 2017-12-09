@@ -72,14 +72,15 @@ Printer::printDot()
     Network* ntwk = m_Network;
     FILE* f1 = fopen(netwk.gName()+".dot", 'w')
 
-    string graphName = netwk.gName().replace("-", "_").replace(".", "_")
-    print >>f1, 'digraph', graphName, "{"
+    string graphName = netwk.gName();
+    fprintf(f1, "digraph %s {\n", graphName.c_str());
 
     for (layer in netwk.gLayers()) {
-        print >>f1, '  ', layer.gDotIdLabel()
+        string label = layer.gDotIdLabel();
+        fprint(f1, "  %s\n", label.c_str());
     }
 
-    print >>f1
+    fprint(f1, "\n");
 
     for (layer in netwk.__Layers) {
         for (nextLayer in layer.gNextLayers()) {
