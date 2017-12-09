@@ -229,7 +229,7 @@ Layer::mkLayerVector2(Layer* layer1, Layer* layer2)
 
 //----------------------------------------------------------------
 template<>
-void Layer::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive)
+void Layer::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive)
 {
     archive(cereal::make_nvp(utils::Key_LayerType, string(gTypeStr())));
     archive(cereal::make_nvp(utils::Key_LayerName, m_LayerName));
@@ -285,7 +285,8 @@ void Layer::serialize<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& arch
 
 //----------------------------------------------------------------
 template<>
-void Layer::serialize<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
+void
+Layer::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 {
     archive(cereal::make_nvp(utils::Key_LayerType, string(gTypeStr())));
     archive(cereal::make_nvp(utils::Key_LayerName, m_LayerName));

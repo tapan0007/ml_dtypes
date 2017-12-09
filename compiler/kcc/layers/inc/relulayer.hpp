@@ -39,6 +39,7 @@ public:
     string gString() const;
 
     //----------------------------------------------------------------
+    static const char* gTypeStrStatic();
     const char* gTypeStr() const;
 
     //----------------------------------------------------------------

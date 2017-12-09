@@ -562,8 +562,11 @@ public:
     string gNameWithSched() const;
     string gNameWithSchedMem() const;
 
-    template<class Archive>
-    void serialize(Archive & archive);
+    template<typename Archive>
+    void save(Archive & archive);
+
+    template<typename Archive>
+    void load(Archive & archive);
 
 
 private:

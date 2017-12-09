@@ -17,7 +17,7 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = layer activlayer relulayer combinelayer subsamplelayer convlayer 
+SRCS = layer activlayer relulayer tanhlayer combinelayer subsamplelayer convlayer 
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))

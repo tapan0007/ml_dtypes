@@ -1,9 +1,9 @@
 # codegen compiler
 
-MODS = arch layers memmgr nets utils schedule
+MODS = arch layers memmgr nets utils schedule serialize compiler
 
 top :
-	for mod in $(MODS); do (cd $$mod; make) done
+	for mod in $(MODS); do (if cd $$mod; then make clean; make; fi) done
 
 
 clean :

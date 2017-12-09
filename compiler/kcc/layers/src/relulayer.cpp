@@ -43,15 +43,22 @@ string
 ReluLayer::gString() const
 {
     string baseLayerStr = gBaseLayerStr();
-    string retVal = "Relu " + baseLayerStr + gStateSizesStr();
+    string retVal;
+    retVal = retVal + gTypeStr() + " " + baseLayerStr + gStateSizesStr();
     return retVal;
 }
 
 
 const char*
-ReluLayer::gTypeStr() const
+ReluLayer::gTypeStrStatic()
 {
     return "Relu";
+}
+
+const char*
+ReluLayer::gTypeStr() const
+{
+    return gTypeStrStatic();
 }
 
 bool

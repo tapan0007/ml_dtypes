@@ -3,10 +3,16 @@ CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
 
-MODS = utils nets layers arch memmgr schedule
 CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
-LIBS = ../utils/$(OBJDIR)/libutils.a ../layers/$(OBJDIR)/liblayers.a
+LIBS = \
+    ../memmgr/$(OBJDIR)/libmemmgr.a \
+    ../schedule/$(OBJDIR)/libschedule.a \
+    ../serialize/$(OBJDIR)/libserialize.a \
+    ../nets/$(OBJDIR)/libnets.a \
+    ../layers/$(OBJDIR)/liblayers.a \
+    ../arch/$(OBJDIR)/libarch.a \
+    ../utils/$(OBJDIR)/libutils.a 
 
 CFLAGS=$(COPTS) $(CINC)
 
@@ -14,6 +20,7 @@ LDFLAGS = $(COPTS) $(LIBS)
 
 ########################################################
 MODULE=compiler
+MODS = utils nets layers arch memmgr schedule serialize
 
 SRCDIR = src
 OBJDIR = obj
@@ -25,7 +32,7 @@ CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 
 ########################################################
-all : $(OBJDIR)/$(MODULE).exe
+all : $(MODULE).exe
 
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
@@ -33,6 +40,6 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 ########################################################
 ########################################################
-$(OBJDIR)/$(MODULE).exe : $(OFILES)
+$(MODULE).exe : $(OFILES)
 	$(CPP) $(COPTS) $^ $(LIBS) -o $@
 
