@@ -24,16 +24,9 @@ public:
 
     //----------------------------------------------------------------
     ConvLayer(const Params& params, Layer* prev_layer, int num_ofmaps,
+        const string& dataTensorSemantics,
         const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel,
         const char* filterFileName, const char* filterTensorDimSemantics);
-
-#if 0
-    //----------------------------------------------------------------
-    def gJson(self):
-
-    @classmethod
-    def constructFromJson(cls, layerDict, nn):
-#endif
 
     //----------------------------------------------------------------
     string gString() const;
@@ -61,7 +54,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    bool qPassThrough() const {
+    bool qPassThrough() const override {
         return false;
     }
 
@@ -72,14 +65,13 @@ public:
     long gNumberWeightsPerPartition() const;
 
     //----------------------------------------------------------------
-    bool qConvLayer() const {
+    bool qConvLayer() const override {
         return true;
     }
 
 private:
     string m_FilterFileName;
     string m_FilterTensorDimSemantics;
-
 };
 
 } // namespace layers

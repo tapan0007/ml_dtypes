@@ -12,10 +12,13 @@ namespace nets {
 namespace layers {
 
 //--------------------------------------------------------
-ConvLayer::ConvLayer(const Params& params, Layer* prev_layer, int num_ofmaps,
+ConvLayer::ConvLayer(const Params& params, Layer* prev_layer,
+        int num_ofmaps, const string& dataTensorSemantics,
         const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel,
         const char* filterFileName, const char* filterTensorDimSemantics)
-    : SubSampleLayer(params, prev_layer, num_ofmaps, stride, kernel)
+    : SubSampleLayer(params, prev_layer,
+                num_ofmaps, dataTensorSemantics,
+                stride, kernel)
 {
         m_FilterFileName = filterFileName;
         m_FilterTensorDimSemantics = filterTensorDimSemantics;
@@ -68,49 +71,6 @@ ConvLayer::gNumberWeightsPerPartition() const
 }
 
 
-#if 0
-    #-----------------------------------------------------------------
-    def gJson(self):
-        x = super().gJson()
-        y = {
-            ConvLayer.filter_file_key   : self.__FilterFileName,
-            ConvLayer.kernel_format_key : self.__FilterTensorDimSemantics 
-        }
-        r = self.combineJson( (x, y) )
-        return r
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def constructFromJson(cls, layerDict, nn):
-        layerName = Layer.gLayerNameFromJson(layerDict)
-        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
-        num_ofmaps = ofmapDesc.gNumMaps()
-
-        strideLR = SubSampleLayer.gStrideLRFromJson(layerDict, nn)
-        strideBT = SubSampleLayer.gStrideBTFromJson(layerDict, nn)
-        kernelH = SubSampleLayer.gKernelHeightFromJson(layerDict, nn)
-        kernelW = SubSampleLayer.gKernelWeightFromJson(layerDict, nn)
-
-        paddingLeft = SubSampleLayer.gPaddingLeftFromJson(layerDict, nn)
-        paddingRight = SubSampleLayer.gPaddingRightFromJson(layerDict, nn)
-        paddingTop = SubSampleLayer.gPaddingTopFromJson(layerDict, nn)
-        paddingBottom = SubSampleLayer.gPaddingBottomFromJson(layerDict, nn)
-
-        stride = (strideLR + strideBT) / 2
-        kernel = (kernelH + kernelW) / 2
-
-        filterFileName = layerDict[ConvLayer.filter_file_key]
-        tensorSemantics = layerDict[ConvLayer.kernel_format_key]
-        batch = 1
-
-        param = Layer.Param(layerName, batch, nn)
-        prevLayers = Layer.gPrevLayersFromJson(layerDict, nn)
-        assert isinstance(prevLayers, list) and len(prevLayers)==1
-
-        layer = ConvLayer(param, prevLayers[0], num_ofmaps, stride, kernel,
-                    filterFileName, tensorSemantics)
-        return layer
-#endif
 
 } // namespace layers
 } // namespace kcc

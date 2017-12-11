@@ -8,6 +8,7 @@
 #include <vector>
 #include <assert.h>
 
+#include <cereal/types/memory.hpp>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
@@ -17,6 +18,7 @@ using std::string;
 using std::vector;
 
 
+#include "debug.hpp"
 #include "consts.hpp"
 #include "types.hpp"
 #include "datatype.hpp"
@@ -30,17 +32,28 @@ namespace serialize {
 class SerLayer { 
     //----------------------------------------------------
 public:
-    template<class Archive>
+    SerLayer()
+    {
+        m_Batching[0] = m_Batching[1] = m_Batching[2] = m_Batching[3] = 1;
+        m_Stride[0]   = m_Stride[1]   = m_Stride[2]   = m_Stride[3]   = 0;
+        m_Padding[0][0]      = m_Padding[0][1]  = 
+            m_Padding[1][0]  = m_Padding[1][1]  =
+            m_Padding[2][0]  = m_Padding[2][1]  = 
+            m_Padding[3][0]  = m_Padding[3][1]  = 0;
+    }
+
+    template<typename Archive>
     void serialize(Archive & archive)
     {
+        utils::breakFunc(33);
         archive(cereal::make_nvp(utils::Key_LayerType, m_LayerType));
         archive(cereal::make_nvp(utils::Key_LayerName, m_LayerName));
         archive(cereal::make_nvp(utils::Key_PrevLayers, m_PrevLayers));
         archive(cereal::make_nvp(utils::Key_OfmapShape, m_OfmapShape));
+        archive(cereal::make_nvp(utils::Key_OfmapFormat, m_OfmapFormat));
 
         if (m_LayerType == utils::TypeStr_Input) {
             archive(cereal::make_nvp(utils::Key_RefFile, m_RefFile));
-            archive(cereal::make_nvp(utils::Key_OfmapFormat, m_OfmapFormat));
         } else if (m_LayerType == utils::TypeStr_Conv) {
             archive(cereal::make_nvp(utils::Key_KernelShape, m_KernelShape));
             archive(cereal::make_nvp(utils::Key_KernelFile, m_KernelFile));
@@ -60,9 +73,21 @@ protected:
     //----------------------------------------------------------------
 
 public:
-    const char* gTypeStr() const {
-        return m_LayerType.c_str();
+    const string& gTypeStr() const {
+        return m_LayerType;
     };
+
+    void rLayerType(const string& t) {
+        m_LayerType = t;
+    }
+
+    const string& gLayerName() const {
+        return m_LayerName;
+    }
+
+    void rLayerName(const string& nm) {
+        m_LayerName = nm;
+    }
 
     //----------------------------------------------------------------
     int gBatchFactor() const {
@@ -72,6 +97,11 @@ public:
     //----------------------------------------------------------------
     const vector<string>& gPrevLayers() const {
         return m_PrevLayers;
+    }
+
+    //----------------------------------------------------------------
+    void addPrevLayer(const string& prevLayer) {
+        m_PrevLayers.push_back(prevLayer);
     }
 
     //----------------------------------------------------------------
@@ -85,6 +115,13 @@ public:
         return m_PrevLayers.size();
     }
 
+
+    //----------------------------------------------------------------
+    void rOfmapShape(const utils::OfmapShapeType ofmapShape) {
+        for (int i = 0; i < 4; ++i) {
+            m_OfmapShape[i] = ofmapShape[i];
+        }
+    }
 
     //----------------------------------------------------------------
     int gOfmapWidth() const {
@@ -106,10 +143,24 @@ public:
         return m_OfmapFormat;   // input,conv
     }
 
+    void rOfmapFormat(const std::string& fmt) {
+        m_OfmapFormat = fmt;   // input,conv
+    }
+
     //----------------------------------------------------------------
     const string& gName() const;
+
     const std::string& gRefFile() {
         return m_RefFile;       // input
+    }
+    void rRefFile(const std::string& f) {
+        m_RefFile = f;       // input
+    }
+
+    void rStride(const utils::StrideType stride) {        // conv,pool
+        for (int i = 0; i < 4; ++i) {
+            m_Stride[i] = stride[i];
+        }
     }
 
     int gStrideVertical () const {
@@ -119,74 +170,59 @@ public:
     int gStrideHorizontal () const {
         return m_Stride[3];        // conv,pool
     }
+    void rKernelShape(const utils::KernelShapeType  kernelShape) {//conv,pool
+        for (int i = 0; i < 4; ++i) {
+            m_KernelShape[i] = kernelShape[i];
+        }
+    }
     int gKernelHeight() const {
         return m_KernelShape[2];   // conv,pool
     }
     int gKernelWidth() const {
         return m_KernelShape[3];   // conv,pool
     }
+
     const std::string& gKernelFile() const {   // input(data), conv(weights)
         return m_KernelFile;
     }
+    void rKernelFile(const std::string& kfil) {   // input(data), conv(weights)
+        m_KernelFile = kfil;
+    }
+
     const std::string& gKernelFormat() const {   // conv, pool
         return m_KernelFormat;
+    }
+    void rKernelFormat(const std::string&  fmt) {   // conv, pool
+        m_KernelFormat = fmt;
+    }
+
+    void rPadding(const utils::PaddingType padding) {     // conv,pool
+        for (int i0 = 0; i0 < 4; ++i0) {
+            for (int i1 = 0; i1 < 2; ++i1) {
+                m_Padding[i0][i1] = padding[i0][i1];
+            }
+        }
     }
 
     //----------------------------------------------------------------
 
 private:
-    std::string         m_LayerType;
-    std::string         m_LayerName;
-    vector<std::string> m_PrevLayers;
-    utils::OfmapShapeType      m_OfmapShape;
+    std::string                 m_LayerType;
+    std::string                 m_LayerName;
+    vector<std::string>         m_PrevLayers;
+    utils::OfmapShapeType       m_OfmapShape;
 
-    std::string         m_OfmapFormat;   // input,conv
-    std::string         m_RefFile;       // input
+    std::string                 m_OfmapFormat;   // input,conv
+    std::string                 m_RefFile;       // input
 
-    std::string         m_KernelFile;    // input(data), conv(weights)
-    std::string         m_KernelFormat;  // conv, pool
-    utils::KernelShapeType     m_KernelShape;   // conv,pool
-    utils::StrideType          m_Stride;        // conv,pool
-    utils::PaddingType         m_Padding;       // conv,pool
-    utils::BatchingType        m_Batching;
+    std::string                 m_KernelFile;    // input(data), conv(weights)
+    std::string                 m_KernelFormat;  // conv, pool
+    utils::KernelShapeType      m_KernelShape;   // conv,pool
+    utils::StrideType           m_Stride;        // conv,pool
+    utils::PaddingType          m_Padding;       // conv,pool
+    utils::BatchingType         m_Batching;
 }; // class Layer
 
-
-
-#if 0
-
-    #-----------------------------------------------------------------
-    def combineJson(it):
-        x = {}
-        for y in it:
-            x.update(y)
-            #x = { **x, **y }
-        return x
-
-    static
-    def gOfmapDescFromJson(klass, layerDict, nn):
-        if nn.gUseDimList():
-            of = layerDict[Layer.ofmap_key] ##  : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
-            return OfmapDesc(of[1], (of[2], of[3]) )
-        else:
-            nOfmaps = layerDict[Layer.number_ofmaps_key]
-            ofmapH = layerDict[Layer.ofmap_height_key]
-            return OfmapDesc(nOfmaps, (ofmapW, ofmapH))
-
-    static
-    def gLayerNameFromJson(klass, layerDict):
-        layerName = layerDict[Layer.layer_name_key]
-        return layerName
-
-    static
-    def gPrevLayersFromJson(klass, layerDict, nn):
-        prevLayers = []
-        prevLayersNames = layerDict[Layer.prev_layers_key]
-        for prevLayerName in prevLayersNames:
-            prevLayers.append(nn.gLayerByName(prevLayerName))
-        return prevLayers
-
-#endif
 
 
 } // namespace serialize

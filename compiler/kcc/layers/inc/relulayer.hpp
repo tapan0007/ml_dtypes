@@ -43,10 +43,10 @@ public:
     const char* gTypeStr() const;
 
     //----------------------------------------------------------------
-    bool qPassThrough() const;
+    bool qPassThrough() const override;
 
     //----------------------------------------------------------------
-    bool qReluLayer() const;
+    bool qReluLayer() const override;
 };
 
 } // namespace layers

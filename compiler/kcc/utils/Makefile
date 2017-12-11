@@ -16,7 +16,7 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = fmapdesc consts 
+SRCS = fmapdesc consts debug
 ##printers
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
@@ -34,6 +34,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 $(OBJDIR)/fmapdesc.o : $(SRCDIR)/fmapdesc.cpp
 $(OBJDIR)/consts.o : $(SRCDIR)/consts.cpp
 $(OBJDIR)/printers.o : $(SRCDIR)/printers.cpp
+$(OBJDIR)/debug.o : $(SRCDIR)/debug.cpp
 
 $(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)

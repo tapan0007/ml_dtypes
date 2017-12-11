@@ -6,11 +6,11 @@ COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c+
 CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
 LIBS = \
+    ../nets/$(OBJDIR)/libnets.a \
+    ../layers/$(OBJDIR)/liblayers.a \
     ../memmgr/$(OBJDIR)/libmemmgr.a \
     ../schedule/$(OBJDIR)/libschedule.a \
     ../serialize/$(OBJDIR)/libserialize.a \
-    ../nets/$(OBJDIR)/libnets.a \
-    ../layers/$(OBJDIR)/liblayers.a \
     ../arch/$(OBJDIR)/libarch.a \
     ../utils/$(OBJDIR)/libutils.a 
 
@@ -42,4 +42,10 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 ########################################################
 $(MODULE).exe : $(OFILES)
 	$(CPP) $(COPTS) $^ $(LIBS) -o $@
+
+clean :
+	rm -f $(OFILES)
+
+i : $(MODULE).exe
+	./$< --json $@.json
 

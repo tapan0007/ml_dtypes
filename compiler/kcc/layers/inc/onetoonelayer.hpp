@@ -22,7 +22,9 @@ class OneToOneLayer : public Layer {
 public:
     //----------------------------------------------------------------
     OneToOneLayer(const Params& params, Layer* prev_layer)
-        : Layer(params, prev_layer->gOfmapDesc(), vector<Layer*>(1, prev_layer))
+        : Layer(params,
+            prev_layer->gOfmapDesc(), prev_layer->gDataTensorDimSemantics(),
+            vector<Layer*>(1, prev_layer))
     { }
 
     //----------------------------------------------------------------
@@ -33,7 +35,7 @@ public:
         return true;
     }
 
-    bool qOneToOneLayer() const {
+    bool qOneToOneLayer() const override {
         return true;
     }
 };

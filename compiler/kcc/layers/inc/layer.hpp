@@ -8,6 +8,7 @@
 #include <vector>
 #include <assert.h>
 
+#include <cereal/types/memory.hpp>
 #include <cereal/archives/json.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
@@ -43,7 +44,9 @@ public:
 
 protected:
     //----------------------------------------------------------------
-    Layer(const Params& params, const FmapDesc& fmapDesc, const vector<Layer*>& prevLayers);
+    Layer(const Params& params, const FmapDesc& fmapDesc,
+        const string& dataTensorSemantics,
+        const vector<Layer*>& prevLayers);
 
     static vector<Layer*> mkLayerVector2(Layer* layer1, Layer* layer2);
 
@@ -65,77 +68,88 @@ public:
     static Json combineJson(const Json& j1, const Json&j2);
 
     //----------------------------------------------------------------
-    bool qSubSampleLayer() const {
+    virtual bool qPassThrough() const {
+        return false;
+    }
+
+
+    //----------------------------------------------------------------
+    virtual bool qSubSampleLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qConvLayer() const {
+    virtual bool qConvLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qPoolLayer() const {
+    virtual bool qPoolLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qMaxPoolLayer() const {
+    virtual bool qMaxPoolLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qAvgPoolLayer() const {
+    virtual bool qAvgPoolLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qOneToOneLayer() const {
+    virtual bool qOneToOneLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qActivLayer() const {
+    virtual bool qActivLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qReluLayer() const {
+    virtual bool qReluLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qBatchNormLayer() const {
+    virtual bool qTanhLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qInputLayer() const {
+    virtual bool qBatchNormLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qCombineLayer() const {
+    virtual bool qInputLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qConcatLayer() const {
+    virtual bool qCombineLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qAddLayer() const {
+    virtual bool qConcatLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qSoftMaxLayer() const {
+    virtual bool qAddLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
-    bool qFullLayer() const {
+    virtual bool qSoftMaxLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
+    virtual bool qFullLayer() const {
         return false;
     }
 
@@ -419,6 +433,10 @@ public:
         return m_OfmapDesc.gNumMaps();
     }
 
+    const string gDataTensorDimSemantics() const {
+        return m_DataTensorDimSemantics;
+    }
+
     //----------------------------------------------------------------
     string gNameType() const {
         return gName() + "{" + gTypeStr() + "}";
@@ -562,11 +580,25 @@ public:
     string gNameWithSched() const;
     string gNameWithSchedMem() const;
 
-    template<typename Archive>
-    void save(Archive & archive);
-
-    template<typename Archive>
-    void load(Archive & archive);
+#define SER 4
+#if SER == 1
+    #define TEMPL(X) X
+    template<class Archive> void save(Archive & archive) const;
+    template<class Archive> void load(Archive & archive);
+#elif SER == 2
+    #define TEMPL(X)
+    void save(cereal::JSONOutputArchive & archive) const;
+    void load(cereal::JSONInputArchive & archive);
+#elif SER == 3
+    template<class Archive>
+    void serialize(Archive & archive);
+#elif SER == 4
+    template<class Archive>
+    void serialize(Archive & archive)
+    {
+        archive(m_LayerName);
+    }
+#endif
 
 
 private:
@@ -605,51 +637,16 @@ private:
     string              m_NumStr;
 
     FmapDesc            m_OfmapDesc;
+    string m_DataTensorDimSemantics;
 }; // class Layer
 
 
 class Layer::Params {
 public:
     std::string         m_LayerName;
-    int32               m_BatchFactor;
-    nets::Network*      m_Network;
+    int32               m_BatchFactor = 1;
+    nets::Network*      m_Network = nullptr;
 };
-
-
-#if 0
-
-    #-----------------------------------------------------------------
-    def combineJson(it):
-        x = {}
-        for y in it:
-            x.update(y)
-            #x = { **x, **y }
-        return x
-
-    static
-    def gOfmapDescFromJson(klass, layerDict, nn):
-        if nn.gUseDimList():
-            of = layerDict[Layer.ofmap_key] ##  : [1, self.gNumOfmaps(), self.gOfmapHeight(), self.gOfmapWidth()]
-            return OfmapDesc(of[1], (of[2], of[3]) )
-        else:
-            nOfmaps = layerDict[Layer.number_ofmaps_key]
-            ofmapH = layerDict[Layer.ofmap_height_key]
-            return OfmapDesc(nOfmaps, (ofmapW, ofmapH))
-
-    static
-    def gLayerNameFromJson(klass, layerDict):
-        layerName = layerDict[Layer.layer_name_key]
-        return layerName
-
-    static
-    def gPrevLayersFromJson(klass, layerDict, nn):
-        prevLayers = []
-        prevLayersNames = layerDict[Layer.prev_layers_key]
-        for prevLayerName in prevLayersNames:
-            prevLayers.append(nn.gLayerByName(prevLayerName))
-        return prevLayers
-
-#endif
 
 
 } // namespace layers

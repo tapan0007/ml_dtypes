@@ -417,19 +417,24 @@ Scheduler::levelize()
 {
     for (auto layer : m_Layers) {
         layer->rEarlyLevel(-1);
-        layer->changeNumPredecessors(-layer->gNumPredecessors()); // zero num predecessors
+        // set NumPredecessors to NumPrevLayers
+        layer->changeNumPredecessors(-layer->gNumPredecessors());//zero num pred
+        layer->changeNumPredecessors(+layer->gNumPrevLayers());
     }
-
 
     std::vector<LayerLevel*> Levels;
 
     // get layers without predecessors
-
     size_t currLevelNum = 0; assert(currLevelNum == Levels.size());
 
-    // put all layers from self.__Layers that don't have predecessors into lev0 (
+    // put all layers from self.__Layers without predecessors into lev0 (
     std::vector<Layer*> lev0;
-    copy_if(m_Layers.begin(), m_Layers.end(), lev0.begin(), zeroPred);
+    //copy_if(m_Layers.begin(), m_Layers.end(), lev0.begin(), zeroPred);
+    for (auto layer : m_Layers) {
+        if (zeroPred(layer)) {
+            lev0.push_back(layer);
+        }
+    }
 
     LayerLevel* currLevel = new LayerLevel(currLevelNum, lev0);
 

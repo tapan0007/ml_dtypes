@@ -49,7 +49,7 @@ private:
 
 public:
     template<typename Archive>
-    void save(Archive & archive);
+    void save(Archive & archive) const;
 
     template<typename Archive>
     void load(Archive & archive);

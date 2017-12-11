@@ -37,45 +37,9 @@ public:
 
     //----------------------------------------------------------------
     SubSampleLayer (const Params& param, Layer* prev_layer,
-         int num_ofmaps, const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel);
+         int num_ofmaps, const string& dataTensorSemantics,
+         const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel);
 
-#if 0
-    #-----------------------------------------------------------------
-    def gJson(self):
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def gStrideLRFromJson(cls, layerDict, nn):
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def gStrideBTFromJson(cls, layerDict, nn):
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def gKernelHeightFromJson(cls, layerDict, nn):
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def gKernelWeightFromJson(cls, layerDict, nn):
-
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def gPaddingLeftFromJson(cls, layerDict, nn):
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def gPaddingRightFromJson(cls, layerDict, nn):
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def gPaddingBottomFromJson(cls, layerDict, nn):
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def gPaddingTopFromJson(cls, layerDict, nn):
-#endif
 
 
     //----------------------------------------------------------------
@@ -119,7 +83,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    bool qSubSampleLayer() const {
+    bool qSubSampleLayer() const  override{
         return true;
     }
 
