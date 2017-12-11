@@ -498,3 +498,5 @@ class TrivNet(Network):
     return([setupFilePy, setupFileJson])
 
 
+  def getLowestLevelNodes(self):
+    return self.getLevelizedNodes()[1]  # levels start from 1

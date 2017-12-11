@@ -133,10 +133,15 @@ class TfFe:
 
 
   def writeImages(self, outPrefix, imageFile, inputTensorName):
-    inputNode = self.__kg.getNode(inputTensorName)
+    self.__kg.levelize()
+    if self.__kg.hasNode(inputTensorName):
+      inputNode = self.__kg.getNode(inputTensorName)
+    else:
+      lowestLevelNodes = self.__kg.getLowestLevelNodes()
+      print("ERROR: the  --input_node %s  was not found. Use one of  %s" % (inputTensorName, [ n.getName() for n in lowestLevelNodes]))
+      exit(1)
     assert(inputNode != None)
     self.__kg.setInputNode(inputNode)
-    self.__kg.levelize()
     inputTfOpName = inputNode.getAttr("tfop").name
     with tf.Session() as sess:
       tf.import_graph_def(self.__gd, name="")
