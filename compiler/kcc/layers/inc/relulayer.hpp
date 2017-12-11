@@ -36,16 +36,17 @@ public:
 
 
     //----------------------------------------------------------------
-    string gString() const;
+    string gString() const override;
 
     //----------------------------------------------------------------
-    const char* gTypeStr() const;
+    static const char* gTypeStrStatic();
+    const char* gTypeStr() const override;
 
     //----------------------------------------------------------------
-    bool qPassThrough() const;
+    bool qPassThrough() const override;
 
     //----------------------------------------------------------------
-    bool qReluLayer() const;
+    bool qReluLayer() const override;
 };
 
 } // namespace layers

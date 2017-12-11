@@ -22,18 +22,11 @@ class CombineLayer : public Layer {
     //----------------------------------------------------------------
     CombineLayer(const Params& param, Layer* prev_layer, Layer* earlier_layer, int num_ofmaps);
 
-#if 0
     //----------------------------------------------------------------
-    def gJson(self):
-        x = super().gJson()
-        return x
-#endif
+    bool qPassThrough() const override;
 
     //----------------------------------------------------------------
-    bool qPassThrough() const;
-
-    //----------------------------------------------------------------
-    bool qCombineLayer() const;
+    bool qCombineLayer() const override;
 };
 
 } // namespace layers

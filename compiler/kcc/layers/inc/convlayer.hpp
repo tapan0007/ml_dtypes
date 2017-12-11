@@ -3,6 +3,7 @@
 #ifndef KCC_LAYERS_CONVLAYER_H
 #define KCC_LAYERS_CONVLAYER_H
 
+#include "consts.hpp"
 #include "types.hpp"
 #include "datatype.hpp"
 #include "fmapdesc.hpp"
@@ -20,27 +21,18 @@ namespace layers {
 //--------------------------------------------------------
 class ConvLayer : public SubSampleLayer {
 public:
-    static const char* const filter_file_key;
-    static const char* const kernel_format_key;
 
     //----------------------------------------------------------------
     ConvLayer(const Params& params, Layer* prev_layer, int num_ofmaps,
+        const string& dataTensorSemantics,
         const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel,
         const char* filterFileName, const char* filterTensorDimSemantics);
 
-#if 0
     //----------------------------------------------------------------
-    def gJson(self):
-
-    @classmethod
-    def constructFromJson(cls, layerDict, nn):
-#endif
+    string gString() const override;
 
     //----------------------------------------------------------------
-    string gString() const;
-
-    //----------------------------------------------------------------
-    bool verify() const;
+    bool verify() const override;
 
     //----------------------------------------------------------------
     string gFilterFileName() const {
@@ -52,13 +44,17 @@ public:
         return m_FilterTensorDimSemantics;
     }
 
-    //----------------------------------------------------------------
-    const char* gTypeStr() const {
-        return "Conv";
+    static const char* TypeStr() {
+        return utils::TypeStr_Conv;
     }
 
     //----------------------------------------------------------------
-    bool qPassThrough() const {
+    const char* gTypeStr() const override {
+        return TypeStr();
+    }
+
+    //----------------------------------------------------------------
+    bool qPassThrough() const override {
         return false;
     }
 
@@ -69,14 +65,13 @@ public:
     long gNumberWeightsPerPartition() const;
 
     //----------------------------------------------------------------
-    bool qConvLayer() const {
+    bool qConvLayer() const override {
         return true;
     }
 
 private:
     string m_FilterFileName;
     string m_FilterTensorDimSemantics;
-
 };
 
 } // namespace layers

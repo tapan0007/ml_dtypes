@@ -3,13 +3,13 @@ CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
 
-MODS = utils layers nets
 CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
 CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
 MODULE=schedule
+MODS = $(MODULE) utils layers nets serialize
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 

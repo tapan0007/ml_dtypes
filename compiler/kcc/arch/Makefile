@@ -35,3 +35,6 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 $(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)
 
+clean :
+	rm -f $(OFILES)
+

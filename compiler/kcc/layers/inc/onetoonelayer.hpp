@@ -22,18 +22,20 @@ class OneToOneLayer : public Layer {
 public:
     //----------------------------------------------------------------
     OneToOneLayer(const Params& params, Layer* prev_layer)
-        : Layer(params, prev_layer->gOfmapDesc(), vector<Layer*>(1, prev_layer))
+        : Layer(params,
+            prev_layer->gOfmapDesc(), prev_layer->gDataTensorDimSemantics(),
+            vector<Layer*>(1, prev_layer))
     { }
 
     //----------------------------------------------------------------
-    bool verify() const {
+    bool verify() const override {
         assert(1 == gNumPrevLayers());
         const Layer* prev_layer = gPrevLayer(0);
         assert(prev_layer->gOfmapDesc() == gOfmapDesc());
         return true;
     }
 
-    bool qOneToOneLayer() const {
+    bool qOneToOneLayer() const override {
         return true;
     }
 };

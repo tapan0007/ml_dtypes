@@ -3,6 +3,10 @@
 #ifndef KCC_UTILS_DATATYPE_H
 #define KCC_UTILS_DATATYPE_H
 
+#include <cereal/archives/json.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+
 #include "types.hpp"
 
 namespace kcc {
@@ -32,9 +36,13 @@ public:
         return sizeof(data_type);
     }
 
-    const char* gName() const
+    static const char* gNameStatic()
     {
         return "int8";
+    }
+    const char* gName() const
+    {
+        return gNameStatic();
     }
 
     const char* gTccName() const
@@ -56,9 +64,14 @@ public:
         return sizeof(data_type);
     }
 
-    const char* gName() const
+    static const char* gNameStatic()
     {
         return "int16";
+    }
+
+    const char* gName() const
+    {
+        return gNameStatic();
     }
 
     const char* gTccName() const
@@ -78,9 +91,14 @@ public:
         return 2;
     }
 
-    const char* gName() const
+    static const char* gNameStatic()
     {
         return "float16";
+    }
+
+    const char* gName() const
+    {
+        return gNameStatic();
     }
 
     const char* gTccName() const

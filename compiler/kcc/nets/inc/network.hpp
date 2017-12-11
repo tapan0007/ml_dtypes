@@ -12,9 +12,17 @@ using std::string;
 using std::vector;
 
 
+#include "consts.hpp"
 #include "types.hpp"
 #include "datatype.hpp"
 #include "fmapdesc.hpp"
+
+#include "inputlayer.hpp"
+#include "convlayer.hpp"
+#include "relulayer.hpp"
+#include "tanhlayer.hpp"
+
+//#include "serlayer.hpp"
 
 
 namespace kcc {
@@ -44,10 +52,23 @@ private:
     class SchedLayerForwRevIter;
 
 public:
+    template<typename Archive>
+    void save(Archive & archive) const;
+
+    template<typename Archive>
+    void load(Archive & archive);
+
+    Layer* findLayer(const string& prevLayerName);
 
 public:
     //----------------------------------------------------------------
-    Network(const DataType& dataType, const string& netName);
+    Network()
+        : m_DataType(nullptr)
+        , m_Name()
+        , m_DoBatching(false)
+    {}
+
+    Network(const DataType* dataType, const string& netName);
 
     bool qDoBatching() const {
         return m_DoBatching;
@@ -68,18 +89,12 @@ public:
         return m_Layers.size();
     }
 
-    const DataType& gDataType() const {
+    const DataType* gDataType() const {
         return m_DataType;
     }
 
     void addLayer(Layer* layer);
 
-    vector<LayerLevel*>& gLevels() {
-        return *m_Levels;
-    }
-    void rLevels(vector<LayerLevel*>* levels) {
-        m_Levels = levels;
-    }
     const string& gName() const {
         return m_Name;
     }
@@ -88,12 +103,12 @@ public:
     SchedRevLayers gSchedRevLayers();
 
 private:
-    const DataType&       m_DataType;
-    string                m_Name;
-    vector<Layer*>        m_Layers;
-    vector<LayerLevel*>*  m_Levels;
-    bool                  m_DoBatching;
-}; // class Layer
+    const DataType*          m_DataType;
+    string                   m_Name;
+    vector<Layer*>           m_Layers;
+    bool                     m_DoBatching;
+    std::map<string, Layer*> m_Name2Layer;
+}; // Network
 
 
 
@@ -116,8 +131,8 @@ public:
 
     void operator++();
 private:
-    Layer* m_CurrLayer;
-    const bool m_Forw;
+    Layer*      m_CurrLayer;
+    const bool  m_Forw;
 };
 
 //--------------------------------------------------------

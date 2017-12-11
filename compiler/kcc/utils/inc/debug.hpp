@@ -8,14 +8,10 @@ namespace kcc {
 namespace utils {
 
 
-int breakFunc(int n)
-{
-    return n + 1;
-}
+int breakFunc(int n);
 
 
-} // namespace utils
-} // namespace kcc
+}}
 
 #endif
 

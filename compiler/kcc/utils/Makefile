@@ -10,13 +10,16 @@ CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
 MODULE=utils
+MODS = $(MODULE) nets layers serialize
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = fmapdesc consts printers
+SRCS = fmapdesc debug
+##printers
+## consts
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
@@ -33,8 +36,11 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 $(OBJDIR)/fmapdesc.o : $(SRCDIR)/fmapdesc.cpp
 $(OBJDIR)/consts.o : $(SRCDIR)/consts.cpp
 $(OBJDIR)/printers.o : $(SRCDIR)/printers.cpp
+$(OBJDIR)/debug.o : $(SRCDIR)/debug.cpp
 
 $(LIBRARY) : $(OFILES)
 	$(AR) rcs $@ $(OFILES)
 
+clean :
+	rm -f $(OFILES)
 

@@ -26,13 +26,9 @@ public:
     void Schedule(Network* ntwk);
 
     //--------------------------------------------------------
-    std::vector<LayerLevel*>& gLevels() {
-        return m_Levels;
+    std::vector<LayerLevel*>* gLevels() {
+        return &m_Levels;
     }
-
-    //--------------------------------------------------------
-    //def rLevels(self, levels):
-    //    self.__Levels = levels
 
 private:
     //--------------------------------------------------------
@@ -42,8 +38,10 @@ private:
 
 private:
     //--------------------------------------------------------
-    // Level[i] = layers without predecessors in: All-Layers - Union{k : k in [0,i) : Level[k]}
-    // All layers go to the earliest level:w
+    // Level[i] = layers without predecessors in:
+    //      All-Layers - Union{k : k in [0,i) : Level[k]}
+    //
+    // All layers go to the earliest level
     //--------------------------------------------------------
     void levelize();
 

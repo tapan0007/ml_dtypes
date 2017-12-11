@@ -28,7 +28,7 @@ protected:
 
 public:
     //----------------------------------------------------------------
-    bool qActivLayer() const;
+    bool qActivLayer() const override;
 };
 
 } // namespace layers
