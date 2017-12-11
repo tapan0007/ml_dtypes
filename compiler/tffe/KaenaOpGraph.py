@@ -7,7 +7,7 @@ from NpTransforms import NpTrans as npt
 from NpUtils import NpUtils as npu
 import os, re, json
 
-class Object():
+class Object:
   def __init__(self, name, attrs):
     self.__name = name
     self.__attrs = attrs.copy()
@@ -115,7 +115,7 @@ class Edge(Object):
 # Simple single input, single output nodes like RELU
 class NodeSimple(Node):
   def __init__(self, name, opType, attrs):
-    Node.__init__(self, name, opType, attrs)
+    super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
   def genCompilerLayerJson(self):
@@ -140,7 +140,7 @@ class NodeSimple(Node):
 
 class NodeConv2D(Node):
   def __init__(self, name, opType, padding, dataFormat, attrs):
-    Node.__init__(self, name, opType, attrs)
+    super().__init__(name, opType, attrs)
     self.__padding = padding
     self.__dataFormat = dataFormat
 
@@ -210,7 +210,7 @@ class NodeConv2D(Node):
 # Computational data flow graph
 class Graph(Object):
   def __init__(self, name, attrs = {}):
-    Object.__init__(self, name, attrs)
+    super().__init__(name, attrs)
     self.__name2node = {}
     self.__edges = []
     self.__mainFlowEdges = []

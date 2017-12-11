@@ -67,7 +67,7 @@ class TfFe:
     # Add all nodes (ops) in TF graph definition
     for tfNode in self.__gd.node:
       tfop = TfOp(tfNode.name, tfNode.op, tfNode)
-      print("\nDEBUG loadPb ", tfop, tfNode)
+      #print("\nDEBUG loadPb ", tfop, tfNode)
       if (re.search(focusNodeRe, tfNode.name) != None):
       
         add_attrs = {}
@@ -84,10 +84,10 @@ class TfFe:
           #print("DEBUG padding=", tfNode.attr["padding"])
           #print("DEBUG data_format=", tfNode.attr["data_format"])
           node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs["padding"], add_attrs["data_format"], add_attrs)
-          print("DEBUG created NodeConv2D")
+          #print("DEBUG created NodeConv2D")
         elif  (re.search("relu|tanh", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
-          print("DEBUG created NodeSimple")
+          #print("DEBUG created NodeSimple")
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         self.__kg.addNode(node)
@@ -182,7 +182,7 @@ class TfFe:
           for attr in ["strides"]:
             if attr in op.node_def.attr:
               n.setAttr(attr, op.get_attr(attr))
-              print("  DEBUG attr=", attr, "  ", op.get_attr(attr))    
+              #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))    
           
       
       print("INFO: identified %d tensors, computing ..." % len(tfVars))
