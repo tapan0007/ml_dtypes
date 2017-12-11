@@ -1,52 +1,22 @@
-from abc             import ABCMeta, abstractmethod
+#include "codegen.hpp"
+#include "codegenlayer.hpp"
 
-##########################################################
-class MacroLayer(object, metaclass = ABCMeta):
-    #-----------------------------------------------------------------
-    def __init__(self, macroInstrGen):
-        self.__MacroInstrGen = macroInstrGen
-        self.__Indent = "    "
+namespace kcc {
+namespace codegen {
 
-    #-----------------------------------------------------------------
-    def gMacroInstrGen(self):
-        return self.__MacroInstrGen
+//----------------------------------------------------------------
+FILE*
+CodeGenLayer::gObjFile() const
+{
+    return m_CodeGen->gObjFile();
+}
 
-    #-----------------------------------------------------------------
-    def gFile(self):
-        return self.__MacroInstrGen.gFile()
+//----------------------------------------------------------------
+Layer*
+CodeGenLayer::gLayer() const
+{
+    return m_Layer;
+}
 
-    #-----------------------------------------------------------------
-    def gIndent(self):
-        return self.__MacroInstrGen.gIndent()
-
-    #-----------------------------------------------------------------
-    @abstractmethod
-    def generate(self):
-        assert(False)
-
-    #-----------------------------------------------------------------
-    def gLayer(self):
-        return self.__Layer
-
-    #-----------------------------------------------------------------
-    def rLayer(self, layer):
-        self.__Layer = layer
-
-    #-----------------------------------------------------------------
-    def gWriteOfmapStatement(self, ind):
-        layer = self.gLayer()
-        nl = "\n"
-        qq = '"'
-        nn = layer.gNetwork()
-        layerFileName = nn.gName().lower() + "-" + layer.gName().lower() + "-simout.npy"
-        layerFileName = layerFileName.replace("/", "-")
-
-        lines = [
-            "ofmap_addrs = " + str(layer.gOfmapAddress()) + ";",
-            "compile_write_ofmap(out_binary, ",
-            ind + qq + layerFileName + qq + ", ",
-            ind + "ofmap_addrs , ofmap_dims, " + "ARBPRECTYPE::" + layer.gDataType().gTccName() + ");",
-        ]
-        return lines
-
+}}
 

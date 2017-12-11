@@ -1,15 +1,21 @@
+########################################################
 AR=ar
 CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
 
-CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+########################################################
+MODULE=codegen
+MODS = $(MODULE) utils nets layers
+
+INK_INC_DIR = shared tcc
+INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
+
+CINC = $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
 CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
-MODULE=codegen
-MODS = $(MODULE) utils nets layers
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 
@@ -17,7 +23,7 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = layer activlayer relulayer tanhlayer combinelayer subsamplelayer convlayer 
+SRCS = codegenlayer codegeninputlayer codegen
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))

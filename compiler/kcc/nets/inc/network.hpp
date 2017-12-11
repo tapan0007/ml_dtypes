@@ -22,7 +22,7 @@ using std::vector;
 #include "relulayer.hpp"
 #include "tanhlayer.hpp"
 
-#include "serlayer.hpp"
+//#include "serlayer.hpp"
 
 
 namespace kcc {
