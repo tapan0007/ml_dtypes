@@ -37,7 +37,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 ########################################################
 
 $(OBJDIR)/fmapdesc.o : $(SRCDIR)/fmapdesc.cpp
-$(OBJDIR)/consts.o : $(SRCDIR)/consts.cpp
+$(OBJDIR)/datatype.o : $(SRCDIR)/datatype.cpp
 $(OBJDIR)/printers.o : $(SRCDIR)/printers.cpp
 $(OBJDIR)/debug.o : $(SRCDIR)/debug.cpp
 
