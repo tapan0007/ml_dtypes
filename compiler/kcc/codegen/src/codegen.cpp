@@ -6,6 +6,10 @@ using namespace std;
 #include "layer.hpp"
 
 #include "codegen.hpp"
+#include "codegeninputlayer.hpp"
+#include "codegenconvlayer.hpp"
+#include "codegenrelulayer.hpp"
+#include "codegentanhlayer.hpp"
 
 namespace kcc {
 
@@ -55,12 +59,12 @@ CodeGen::CodeGen(Network* ntwk, Arch* arch)
 {
     m_Network = ntwk;
     m_Arch = arch;
-    createGenMap(self);
+    createGenMap();
 }
 
 //----------------------------------------------------------------
 void
-CodeGen::createGenMap(self)
+CodeGen::createGenMap()
 {
     m_InputLayer.reset(new CodeGenInputLayer());
     m_ConvLayer.reset(new CodeGenConvLayer());
@@ -73,13 +77,13 @@ CodeGen::createGenMap(self)
 CodeGenLayer*
 CodeGen::gGenFunc(const Layer* layer)
 {
-    if (dynamic_cast<InputLayer*>(layer)) {
+    if (dynamic_cast<const InputLayer*>(layer)) {
         return m_InputLayer.get();
-    } else if (dynamic_cast<ConvLayer*>(layer)) {
+    } else if (dynamic_cast<const ConvLayer*>(layer)) {
         return m_ConvLayer.get();
-    } else if (dynamic_cast<ReluLayer*>(layer)) {
+    } else if (dynamic_cast<const ReluLayer*>(layer)) {
         return m_ReluLayer.get();
-    } else if (dynamic_cast<TanhLayer*>(layer)) {
+    } else if (dynamic_cast<const TanhLayer*>(layer)) {
         return m_TanhLayer.get();
     } else {
         assert(false);

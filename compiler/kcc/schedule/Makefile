@@ -3,7 +3,10 @@ CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
 
-CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+INK_INC_DIR = shared tcc
+INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
+
+CINC = $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
 CFLAGS=$(COPTS) $(CINC)
 

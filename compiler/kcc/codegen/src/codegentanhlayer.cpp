@@ -1,15 +1,14 @@
-from .macroactivlayer import MacroActivLayer
 
+#include "codegentanhlayer.hpp"
 
-##########################################################
-class MacroTanhLayer(MacroActivLayer):
-    #-----------------------------------------------------------------
-    def __init__(self, macroInstrGen):
-        super().__init__(macroInstrGen)
+namespace kcc {
+namespace codegen {
 
-    @classmethod
-    def gActivFunc(self):
-        return "TANH"
+string
+CodeGenTanhLayer::gActivFunc()
+{
+    return string("TANH");
+}
 
-
+}}
 

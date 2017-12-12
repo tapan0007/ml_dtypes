@@ -190,7 +190,7 @@ public:
 
     //----------------------------------------------------------------
     StateBufferAddress gOutputSize() const {
-        const StateBufferAddress wordSize = gDataType()->gSizeInBytes();
+        const StateBufferAddress wordSize = gDataType().gSizeInBytes();
         const StateBufferAddress oneBatchSize = (wordSize * gNumOfmaps() * (gOfmapWidth() * gOfmapHeight()));
         return oneBatchSize;
     }
@@ -205,7 +205,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    const DataType* gDataType() const;
+    const DataType& gDataType() const;
 
     //----------------------------------------------------------------
     bool  qStoreInSB() const;

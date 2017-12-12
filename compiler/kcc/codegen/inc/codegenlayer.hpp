@@ -3,7 +3,10 @@
 #ifndef KCC_CODEGEN_CODEGENLAYER_H
 #define KCC_CODEGEN_CODEGENLAYER_H
 
+#include <string>
 #include <cstdio>
+
+using namespace std;
 
 #include "tcc.hpp"
 
@@ -58,10 +61,21 @@ protected:
 
     CodeGen* const m_CodeGen;
     Layer* m_Layer;
-    uint64_t m_Ofmap_dims[4];
-    uint64_t m_Ifmap_dims[4];
-    addr_t   m_Ifmap_addrs[2] = {0, 0};   // 2 is temporary for single Ifmap
-    addr_t   m_Ofmap_addrs;
+
+    addr_t   m_OfmapAddrs;
+    uint64_t m_OfmapDims[4];
+    string   m_OfmapFormat;
+
+    addr_t   m_IfmapAddrs[2] = {0, 0};// 2 is tmp for single Ifmap
+    uint64_t m_IfmapDims[4];
+    string   m_IfmapFormat;
+    string   m_IfmapFileName;
+
+    addr_t   m_FilterAddr[2];
+    uint64_t m_FilterDims[4];
+    string   m_FilterFormat;
+    string   m_FilterFileNames[2]; // more when #ofmaps > #cols
+
     uint8_t  m_Convolve_stride[2];
     uint8_t  m_Padding[2];
     uint8_t  m_Dilate[2];

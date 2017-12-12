@@ -11,7 +11,7 @@ MODS = $(MODULE) utils nets layers
 INK_INC_DIR = shared tcc
 INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
 
-CINC = $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+CINC = $(INK_INC) -I../inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
 CFLAGS=$(COPTS) $(CINC)
 
@@ -23,7 +23,7 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = codegenlayer codegeninputlayer codegen
+SRCS = codegenlayer codegeninputlayer codegenconvlayer codegenrelu codegentanh codegen
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))

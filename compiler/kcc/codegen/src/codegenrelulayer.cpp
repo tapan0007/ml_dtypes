@@ -1,14 +1,13 @@
-from .macroactivlayer import MacroActivLayer
 
+#include "codegenrelulayer.hpp"
 
-##########################################################
-class MacroReluLayer(MacroActivLayer):
-    #-----------------------------------------------------------------
-    def __init__(self, macroInstrGen):
-        super().__init__(macroInstrGen)
+namespace kcc {
+namespace codegen {
 
-    @classmethod
-    def gActivFunc(self):
-        return "RELU"
+string
+CodeGenReluLayer::gActivFunc()
+{
+    return string("RELU");
+}
 
-
+}}

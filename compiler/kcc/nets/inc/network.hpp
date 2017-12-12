@@ -85,8 +85,8 @@ public:
         return m_Layers.size();
     }
 
-    const DataType* gDataType() const {
-        return m_DataType;
+    const DataType& gDataType() const {
+        return *m_DataType;
     }
 
     void addLayer(Layer* layer);

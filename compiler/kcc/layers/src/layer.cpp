@@ -60,7 +60,7 @@ Layer::Layer(const Params& params,
 }
 
 //----------------------------------------------------------------
-const utils::DataType*
+const utils::DataType&
 Layer::gDataType() const
 {
     return m_Network->gDataType();

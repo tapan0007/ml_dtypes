@@ -1,4 +1,5 @@
 # codegen compiler
+	#egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' | 
 
 MODS = arch layers memmgr nets utils schedule serialize compiler
 
@@ -7,7 +8,7 @@ top :
 	    (if cd $$mod; then \
 		    make clean; make -k; \
 		fi) \
-	done 2>&1 | egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' | tee e; \
+	done 2>&1 | tee e; \
 	echo; echo '========================'; \
 	if egrep -qi 'warn|error' e; then \
 		egrep -i 'warn|error' e; false; \

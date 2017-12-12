@@ -7,7 +7,11 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
 
+#include "tpb_isa.hpp"
+
 #include "types.hpp"
+
+
 
 namespace kcc {
 namespace utils {
@@ -17,6 +21,8 @@ namespace utils {
 class DataType {
 public:
     virtual int64 gSizeInBytes() const = 0;
+
+    virtual ARBPRECTYPE gTypeId() const = 0;
 
     virtual const char* gName() const = 0;
 
@@ -31,7 +37,9 @@ public:
     DataTypeInt8() {
     }
 
-    int64 gSizeInBytes() const
+    ARBPRECTYPE gTypeId() const override;
+
+    int64 gSizeInBytes() const override
     {
         return sizeof(data_type);
     }
@@ -40,12 +48,12 @@ public:
     {
         return "int8";
     }
-    const char* gName() const
+    const char* gName() const override
     {
         return gNameStatic();
     }
 
-    const char* gTccName() const
+    const char* gTccName() const override
     {
         return "INT8";
     }
@@ -58,6 +66,8 @@ private:
 public:
     DataTypeInt16() {
     }
+
+    ARBPRECTYPE gTypeId() const override;
 
     int64 gSizeInBytes() const
     {
@@ -85,6 +95,8 @@ class DataTypeFloat16 : public DataType {
 public:
     DataTypeFloat16() {
     }
+
+    ARBPRECTYPE gTypeId() const override;
 
     int64 gSizeInBytes() const
     {

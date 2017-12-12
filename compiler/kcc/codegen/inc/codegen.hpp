@@ -56,7 +56,7 @@ private:
     //----------------------------------------------------------------
     string gDataTypeName(Layer* layer) const {
         string ret("ARBPRECTYPE::");
-        ret += layer->gDataType()->gTccName();
+        ret += layer->gDataType().gTccName();
         return  ret;
     }
 

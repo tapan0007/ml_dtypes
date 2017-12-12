@@ -1,28 +1,35 @@
 #pragma once
 
-#ifndef KCC_CODEGEN_CODEGENINPUTLAYER_H
-#define KCC_CODEGEN_CODEGENINPUTLAYER_H
+#ifndef KCC_CODEGEN_CODEGENCONVLAYER_H
+#define KCC_CODEGEN_CODEGENCONVLAYER_H
 
 #include <cstdio>
 
 #include "codegenlayer.hpp"
 
 namespace kcc {
-namespace codegen {
+namespace layers {
+    class Layer;
+}
 
-class CodeGenInputLayer : public CodeGenLayer {
+namespace codegen {
+using layers::Layer;
+
+class CodeGenConvLayer : public CodeGenLayer {
 public:
     //----------------------------------------------------------------
-    CodeGenInputLayer(CodeGen* codegen)
+    CodeGenConvLayer(CodeGen* codegen)
         : CodeGenLayer(codegen)
     {}
-
+    
     //----------------------------------------------------------------
     void generate(Layer* layer) override;
-};
 
+private:
+    uint8_t  m_Convolve_stride[2];
+};
 
 }}
 
-#endif // KCC_CODEGEN_CODEGENINPUTLAYER_H
+#endif // KCC_CODEGEN_CODEGENCONVLAYER_H
 
