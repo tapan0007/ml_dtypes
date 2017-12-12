@@ -29,6 +29,9 @@ protected:
 public:
     //----------------------------------------------------------------
     bool qActivLayer() const override;
+    long gNumberWeightsPerPartition() const override {
+        return 0L;
+    }
 };
 
 } // namespace layers

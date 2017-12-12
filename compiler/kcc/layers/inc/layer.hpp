@@ -397,9 +397,7 @@ public:
         return 0;
     }
 
-    StateBufferAddress gNumberWeightsPerPartition() const {
-        return 0;
-    }
+    virtual StateBufferAddress gNumberWeightsPerPartition() const = 0;
 
     //----------------------------------------------------------------
     void rNumberStr(const string& numStr) {
@@ -664,6 +662,7 @@ public:
     std::string         m_LayerName;
     int32               m_BatchFactor = 1;
     nets::Network*      m_Network = nullptr;
+    std::string         m_RefFile;
 };
 
 

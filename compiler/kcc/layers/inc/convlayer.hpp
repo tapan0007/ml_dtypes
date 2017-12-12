@@ -62,7 +62,7 @@ public:
     int gNumberWeights() const;
 
     //----------------------------------------------------------------
-    long gNumberWeightsPerPartition() const;
+    long gNumberWeightsPerPartition() const override;
 
     //----------------------------------------------------------------
     bool qConvLayer() const override {
