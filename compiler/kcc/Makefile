@@ -1,10 +1,11 @@
 # codegen compiler
 	#egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' | 
 
-MODS = arch layers memmgr nets utils schedule serialize compiler
+MODS = arch layers memmgr nets utils schedule serialize codegen
+MAINMOD= compiler 
 
 top :
-	for mod in $(MODS); do \
+	for mod in $(MODS) $(MAINMOD); do \
 	    (if cd $$mod; then \
 		    make clean; make -k; \
 		fi) \

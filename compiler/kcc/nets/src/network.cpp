@@ -178,6 +178,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         params.m_LayerName = serLayer.gName();
         params.m_BatchFactor = serLayer.gBatchFactor();
         params.m_Network = this;
+        const string refFile = serLayer.gRefFile();
 
         Layer* layer = nullptr;
         if (serLayer.gTypeStr() == TypeStr_Input) {
@@ -186,10 +187,9 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         serLayer.gNumOfmaps(),
                         serLayer.gOfmapHeight(),
                         serLayer.gOfmapWidth());
-            const string inputDataFileName = serLayer.gRefFile();
             const string dataTensorDimSemantics = serLayer.gOfmapFormat();
             layer = new layers::InputLayer(params, fmap_desc, 
-                        inputDataFileName.c_str(), dataTensorDimSemantics.c_str());
+                        refFile.c_str(), dataTensorDimSemantics.c_str());
         } else if (serLayer.gTypeStr() == TypeStr_Conv) {
             assert(serLayer.gNumPrevLayers() == 1);
             const string& prevLayerName = serLayer.gPrevLayer(0);
@@ -226,6 +226,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         } else {
             assert(false);
         }
+        layer->rRefFileName(refFile);
         m_Name2Layer[params.m_LayerName] = layer;
     }
     assert(m_Layers.size() == serLayers.size());

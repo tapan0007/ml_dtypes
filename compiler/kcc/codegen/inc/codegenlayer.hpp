@@ -29,6 +29,9 @@ public:
         : m_CodeGen(codegen)
     {}
 
+    virtual ~CodeGenLayer()
+    {}
+
     //----------------------------------------------------------------
     FILE* gObjFile() const;
 

@@ -99,9 +99,9 @@ CodeGen::gGenFunc(const Layer* layer)
 }
 
 void
-CodeGen::generate(const char* fileName)
+CodeGen::generate(const char* objFileName)
 {
-    m_ObjFile = std::fopen(fileName, "w");
+    m_ObjFile = std::fopen(objFileName, "w");
     assert(m_ObjFile);
 
     for (auto layer : m_Network->gSchedForwLayers()) {

@@ -6,6 +6,7 @@ LDOPT = -W -Wall -pedantic -g -ggdb -Wno-missing-field-initializers -std=c++14
 
 INK_INC_DIR = shared tcc
 INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
+TCC_LIB = $(INKLING_PATH)/tcc/libs/libtcc.a
 
 CINC = $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
@@ -16,7 +17,9 @@ LIBS = \
     ../schedule/$(OBJDIR)/libschedule.a \
     ../serialize/$(OBJDIR)/libserialize.a \
     ../arch/$(OBJDIR)/libarch.a \
-    ../utils/$(OBJDIR)/libutils.a 
+    ../utils/$(OBJDIR)/libutils.a \
+    ../codegen/$(OBJDIR)/libcodegen.a  \
+	$(TCC_LIB)
 
 CFLAGS=$(COPTS) $(CINC)
 
@@ -24,7 +27,7 @@ LDFLAGS = $(COPTS) $(LIBS)
 
 ########################################################
 MODULE=compiler
-MODS = utils nets layers arch memmgr schedule serialize
+MODS = utils nets layers arch memmgr schedule serialize codegen
 
 SRCDIR = src
 OBJDIR = obj

@@ -9,10 +9,11 @@
 #include "debug.hpp"
 #include "arch.hpp"
 #include "statebufmgr.hpp"
-//#include "macroinstrgen.h"
+#include "codegen.hpp"
 #include "scheduler.hpp"
 #include "layer.hpp"
 #include "network.hpp"
+
 //#include "printer.hpp"
 
 
@@ -28,6 +29,7 @@ using kcc::nets::Network;
 using kcc::layers::Layer;
 using kcc::schedule::Scheduler;
 using kcc::memmgr::StateBufferMgr;
+using kcc::codegen::CodeGen;
 
 
 
@@ -114,19 +116,22 @@ main(int argc, char* argv[])
     arch->gNumberPeArrayColumns();
 
 
-    //--------------------------------------------------------
-
     ntwk->rDoBatching(DoBatching);
 
+    //--------------------------------------------------------
     Scheduler* scheduler = new Scheduler();
+    std::cout << "Scheduling\n";
     scheduler->Schedule(ntwk);
     //ntwk->rLevels(scheduler->gLevels());
 
+    //--------------------------------------------------------
     StateBufferMgr* sbmgr = new StateBufferMgr(arch, ntwk);
     std::cout << "Calculating FMAP addresses\n";
     sbmgr->calcLayerFmapAddresses();
 
+    //--------------------------------------------------------
     {
+        std::cout << "Reading NN\n";
         char JsonOutFileName[256];
         const char* p = JsonInFileName;
         char* q = JsonOutFileName;
@@ -143,12 +148,14 @@ main(int argc, char* argv[])
         ntwk->save(ar);
     }
 
-#if 0
-    MacroInstrGen* codegen = MacroInstrGen(ntwk, arch);
+    //--------------------------------------------------------
+    CodeGen* codegen = new CodeGen(ntwk, arch);
     std::cout << "Generating instructions";
-    codegen->generate(ntwk->gName().lower() + ".cpp")
-    std::cout << "\n";
+    string objFileName(ntwk->gName());
+    objFileName += ".tpb";
+    codegen->generate(objFileName.c_str());
 
+#if 0
     //--------------------------------------------------------
     printer = new Printer(ntwk);
 
@@ -187,5 +194,7 @@ main(int argc, char* argv[])
     jsonFileName2 = nn2.gName().lower() + "2.json"
     printer.printJson(nn2, jsonFileName2)
 #endif
+
+    return 0;
 }
 

@@ -38,6 +38,7 @@ using namespace utils;
 //--------------------------------------------------------
 class Layer { // abstract class
 protected:
+
     //----------------------------------------------------
 public:
     class Params;
@@ -47,6 +48,9 @@ protected:
     Layer(const Params& params, const FmapDesc& fmapDesc,
         const string& dataTensorSemantics,
         const vector<Layer*>& prevLayers);
+
+    virtual ~Layer()
+    {}
 
     static vector<Layer*> mkLayerVector2(Layer* layer1, Layer* layer2);
 
@@ -587,6 +591,10 @@ public:
     //----------------------------------------------------------------
     const string gRefFileName() const {
         return m_RefFileName;
+    }
+
+    void rRefFileName(const string& refFile) {
+        m_RefFileName = refFile;
     }
 
 #define SER 4
