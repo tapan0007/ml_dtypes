@@ -45,6 +45,7 @@ Layer::Layer(const Params& params,
     , m_Id(LayerId_Null)
     , m_OfmapDesc(ofmap_desc)
     , m_DataTensorDimSemantics(dataDensorDimSemantics)
+    , m_RefFileName("")
 {
     assert(m_BatchFactor >= 1);
     for (auto prevLayer : prev_layers) {

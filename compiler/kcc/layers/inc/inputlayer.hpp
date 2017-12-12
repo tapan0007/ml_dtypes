@@ -20,7 +20,7 @@ public:
                   const string& dataTensorDimSemantics)
         : Layer(param, fmap_desc, dataTensorDimSemantics, vector<Layer*>())
     {
-        m_InputDataFileName = inputDataFileName;
+        m_RefFileName = inputDataFileName;
     }
 
     //----------------------------------------------------------------
@@ -32,7 +32,7 @@ public:
 
     //----------------------------------------------------------------
     const string gInputDataFileName() const {
-        return m_InputDataFileName;
+        return m_RefFileName;
     }
 
     //----------------------------------------------------------------
@@ -94,7 +94,6 @@ public:
 #endif
 
 private:
-    string m_InputDataFileName;
 };
 
 }}

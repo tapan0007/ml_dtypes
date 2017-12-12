@@ -33,26 +33,25 @@ CodeGenConvLayer::generate(Layer* layer)
     assert(convLayer);
         
     Layer* const prevLayer  = convLayer->gPrevLayer(0);
-    const int numIfmaps     = prevLayer->gNumOfmaps();
-    const int ifmapWidth    = prevLayer->gOfmapWidth();
-    const int ifmapHeight   = prevLayer->gOfmapHeight();
-    const int numOfmaps     = convLayer->gNumOfmaps();
-    const int ofmapWidth    = convLayer->gOfmapWidth();
-    const int ofmapHeight   = convLayer->gOfmapHeight();
-    const int kernelHeight  = convLayer->gKernelHeight();
-    const int kernelWidth   = convLayer->gKernelWidth();
-    const int numBatches    = 1;
+    const unsigned numIfmaps     = prevLayer->gNumOfmaps();
+    const unsigned ifmapWidth    = prevLayer->gOfmapWidth();
+    const unsigned ifmapHeight   = prevLayer->gOfmapHeight();
+    const unsigned numOfmaps     = convLayer->gNumOfmaps();
+    const unsigned ofmapWidth    = convLayer->gOfmapWidth();
+    const unsigned ofmapHeight   = convLayer->gOfmapHeight();
+    const unsigned kernelHeight  = convLayer->gKernelHeight();
+    const unsigned kernelWidth   = convLayer->gKernelWidth();
+    const unsigned numBatches    = 1;
 
     const ARBPRECTYPE inDataType  = prevLayer->gDataType().gTypeId();
     const ARBPRECTYPE outDataType = convLayer->gDataType().gTypeId();
 
     // const addr_t *filterAddr, const uint64_t filterDims[4], // MCRS
     m_FilterAddr[0] = convLayer->gWeightAddress();
-
     m_FilterFileNames[0] = convLayer->gFilterFileName();
 
-    compile_read_filter(objFile, m_FilterAddr[0],
-            m_FilterFileNames[0],
+    compile_read_filter(objFile,
+            m_FilterAddr[0], m_FilterFileNames[0].c_str(),
             convLayer->gFilterTensorDimSemantics().c_str());
 
     // N: batch size
@@ -60,18 +59,18 @@ CodeGenConvLayer::generate(Layer* layer)
     // H: height of ifmap
     // W: width of ifmap
     m_IfmapAddrs[0] = convLayer->gIfmapAddress();
-    m_IfmapDims[IfmapIndex_N] = numBatches;
-    m_IfmapDims[IfmapIndex_C] = numIfmaps;
-    m_IfmapDims[IfmapIndex_H] = ifmapHeight;
-    m_IfmapDims[IfmapIndex_W] = ifmapWidth;
+    m_IfmapDims[m_IfmapIndex_N] = numBatches;
+    m_IfmapDims[m_IfmapIndex_C] = numIfmaps;
+    m_IfmapDims[m_IfmapIndex_H] = ifmapHeight;
+    m_IfmapDims[m_IfmapIndex_W] = ifmapWidth;
 
     // filterAddr
-    m_FilterDims[FilterIndex_M] = numOfmaps;
-    m_FilterDims[FilterIndex_C] = numIfmaps;
-    m_FilterDims[FilterIndex_R] = kernelHeight;
-    m_FilterDims[FilterIndex_S] = kernelWidth;
+    m_FilterDims[m_FilterIndex_M] = numOfmaps;
+    m_FilterDims[m_FilterIndex_C] = numIfmaps;
+    m_FilterDims[m_FilterIndex_R] = kernelHeight;
+    m_FilterDims[m_FilterIndex_S] = kernelWidth;
 
-    ofmapAddrs = convLayer->gOfmapAddress();
+    m_OfmapAddrs = convLayer->gOfmapAddress();
 
     m_Padding[0]         = convLayer->gPaddingRight();
     m_Padding[1]         = convLayer->gPaddingTop();
@@ -81,7 +80,7 @@ CodeGenConvLayer::generate(Layer* layer)
     m_Dilate[1]          = 0;
 
     compile_convolve(objFile,
-            ifmapAddrs, ifmapDims,
+            m_IfmapAddrs, m_IfmapDims,
             m_FilterAddr, m_FilterDims,
             m_OfmapAddrs, m_OfmapDims,
             inDataType, outDataType,
@@ -94,17 +93,12 @@ CodeGenConvLayer::generate(Layer* layer)
     // C: number of ifmaps / channels
     // H: height of ofmap
     // W: width of ofmap
-    assert(ofmapDims[OfmapIndex_N] == numBatches);
-    assert(ofmapDims[OfmapIndex_C] == numOfmaps);
-    assert(ofmapDims[OfmapIndex_H] == ofmapHeight);
-    assert(ofmapDims[OfmapIndex_W] == ofmapWidth);
+    assert(m_OfmapDims[m_OfmapIndex_N] == numBatches);
+    assert(m_OfmapDims[m_OfmapIndex_C] == numOfmaps);
+    assert(m_OfmapDims[m_OfmapIndex_H] == ofmapHeight);
+    assert(m_OfmapDims[m_OfmapIndex_W] == ofmapWidth);
 
-    m_FilterFileNames[0] = convLayer->gFilterFileName();
-    if () {
-        compile_write_ofmap(objFile,
-                filename,
-                ofmapAddrs, ofmapDims, outDataType.c_str());
-    }
+    epilogue(layer);
 }
 
 }}

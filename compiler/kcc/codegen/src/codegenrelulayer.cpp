@@ -4,10 +4,10 @@
 namespace kcc {
 namespace codegen {
 
-string
-CodeGenReluLayer::gActivFunc()
+ACTIVATIONFUNC
+CodeGenReluLayer::gActivFunc() const
 {
-    return string("RELU");
+    return ACTIVATIONFUNC::RELU;
 }
 
 }}

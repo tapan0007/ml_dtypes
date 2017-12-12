@@ -3,7 +3,7 @@
 #ifndef KCC_CODEGEN_CODEGENTANHLAYER_H
 #define KCC_CODEGEN_CODEGENTANHLAYER_H
 
-#include "codegenlayer.hpp"
+#include "codegenactivlayer.hpp"
 
 namespace kcc {
 namespace codegen {
@@ -16,7 +16,7 @@ public:
         : CodeGenActivLayer(codegen)
     {}
 
-    static string gActivFunc();
+    ACTIVATIONFUNC gActivFunc() const override;
 };
 
 }}

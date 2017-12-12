@@ -44,6 +44,9 @@ public:
     }
 
 protected:
+    void epilogue(Layer* layer);
+
+protected:
     int m_IfmapIndex_N = 0; // batch",
     int m_IfmapIndex_C = 1; // num ifmaps",
     int m_IfmapIndex_H = 2; // ifmap height",

@@ -3,7 +3,10 @@
 using namespace std;
 
 #include "network.hpp"
-#include "layer.hpp"
+#include "inputlayer.hpp"
+#include "convlayer.hpp"
+#include "relulayer.hpp"
+#include "tanhlayer.hpp"
 
 #include "codegen.hpp"
 #include "codegeninputlayer.hpp"
@@ -12,8 +15,13 @@ using namespace std;
 #include "codegentanhlayer.hpp"
 
 namespace kcc {
+using layers::InputLayer;
+using layers::ConvLayer;
+using layers::ReluLayer;
+using layers::TanhLayer;
 
 namespace codegen {
+
 
 //  ##########################################################
 //  void compile_read_ifmap(FILE *out_binary,
@@ -66,10 +74,10 @@ CodeGen::CodeGen(Network* ntwk, Arch* arch)
 void
 CodeGen::createGenMap()
 {
-    m_InputLayer.reset(new CodeGenInputLayer());
-    m_ConvLayer.reset(new CodeGenConvLayer());
-    m_ReluLayer.reset(new CodeGenReluLayer());
-    m_TanhLayer.reset(new CodeGenTanhLayer());
+    m_InputLayer.reset(new CodeGenInputLayer(this));
+    m_ConvLayer.reset(new CodeGenConvLayer(this));
+    m_ReluLayer.reset(new CodeGenReluLayer(this));
+    m_TanhLayer.reset(new CodeGenTanhLayer(this));
     //m_MaxPoolLayer.reset(new CodeGenMaxPoolLayer());
     //m_AvgPoolLayer.reset(new CodeGenAvgPoolLayer());
 }
@@ -95,11 +103,12 @@ CodeGen::generate(const char* fileName)
 {
     m_ObjFile = std::fopen(fileName, "w");
     assert(m_ObjFile);
-    SchedForwLayers 
+
     for (auto layer : m_Network->gSchedForwLayers()) {
         CodeGenLayer* layerGen = gGenFunc(layer);
         layerGen->generate(layer);
     }
+
     fclose(m_ObjFile); m_ObjFile = nullptr;
 }
 

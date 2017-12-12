@@ -584,6 +584,11 @@ public:
     string gNameWithSched() const;
     string gNameWithSchedMem() const;
 
+    //----------------------------------------------------------------
+    const string gRefFileName() const {
+        return m_RefFileName;
+    }
+
 #define SER 4
 #if SER == 1
     #define TEMPL(X) X
@@ -605,7 +610,7 @@ public:
 #endif
 
 
-private:
+protected:
     std::string         m_LayerName;
 
     vector<Layer*>      m_PrevLayers;
@@ -620,9 +625,9 @@ private:
     StateBufferAddress  m_IfmapAddress;
     StateBufferAddress  m_OfmapAddress;
     StateBufferAddress  m_WeightAddress;
-    StateBufferAddress               m_ResMemWithBatching;
-    StateBufferAddress               m_ResMemWithoutBatching;
-    StateBufferAddress               m_BatchMemory;
+    StateBufferAddress  m_ResMemWithBatching;
+    StateBufferAddress  m_ResMemWithoutBatching;
+    StateBufferAddress  m_BatchMemory;
     int32               m_BatchFactor;
     int32               m_Schedule;
     int32               m_CurrLevel;
@@ -641,7 +646,8 @@ private:
     string              m_NumStr;
 
     FmapDesc            m_OfmapDesc;
-    string m_DataTensorDimSemantics;
+    string              m_DataTensorDimSemantics;
+    string              m_RefFileName;
 }; // class Layer
 
 

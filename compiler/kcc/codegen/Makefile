@@ -23,7 +23,7 @@ SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = codegenlayer codegeninputlayer codegenconvlayer codegenrelu codegentanh codegen
+SRCS = codegenlayer codegeninputlayer codegenconvlayer codegenrelulayer codegentanhlayer codegen
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))

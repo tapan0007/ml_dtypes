@@ -4,10 +4,10 @@
 namespace kcc {
 namespace codegen {
 
-string
-CodeGenTanhLayer::gActivFunc()
+ACTIVATIONFUNC
+CodeGenTanhLayer::gActivFunc() const
 {
-    return string("TANH");
+    return ACTIVATIONFUNC::TANH;
 }
 
 }}

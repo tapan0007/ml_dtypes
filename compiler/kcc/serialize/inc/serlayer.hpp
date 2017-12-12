@@ -51,9 +51,9 @@ public:
         archive(cereal::make_nvp(utils::Key_PrevLayers, m_PrevLayers));
         archive(cereal::make_nvp(utils::Key_OfmapShape, m_OfmapShape));
         archive(cereal::make_nvp(utils::Key_OfmapFormat, m_OfmapFormat));
+        archive(cereal::make_nvp(utils::Key_RefFile, m_RefFile));
 
         if (m_LayerType == utils::TypeStr_Input) {
-            archive(cereal::make_nvp(utils::Key_RefFile, m_RefFile));
         } else if (m_LayerType == utils::TypeStr_Conv) {
             archive(cereal::make_nvp(utils::Key_KernelShape, m_KernelShape));
             archive(cereal::make_nvp(utils::Key_KernelFile, m_KernelFile));
