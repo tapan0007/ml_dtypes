@@ -6,7 +6,8 @@
 namespace kcc {
 namespace utils {
 
-const char* const SCHED_MEM_FORMAT = "%s";
+const char* const SCHED_MEM_FORMAT = "%-24s %10s %6s  %8s  %8s  %8s  %8s";
+
 
 constexpr const char* const TypeStr_Input     = "Input";
 constexpr const char* const TypeStr_Conv      = "Conv";

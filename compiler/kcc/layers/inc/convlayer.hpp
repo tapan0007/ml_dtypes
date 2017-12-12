@@ -29,10 +29,10 @@ public:
         const char* filterFileName, const char* filterTensorDimSemantics);
 
     //----------------------------------------------------------------
-    string gString() const;
+    string gString() const override;
 
     //----------------------------------------------------------------
-    bool verify() const;
+    bool verify() const override;
 
     //----------------------------------------------------------------
     string gFilterFileName() const {
@@ -49,7 +49,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    const char* gTypeStr() const {
+    const char* gTypeStr() const override {
         return TypeStr();
     }
 

@@ -9,6 +9,9 @@
 #include "network.hpp"
 
 namespace kcc {
+using nets::Network;
+using layers::Layer;
+
 namespace utils {
 
 class Printer {
@@ -30,9 +33,15 @@ public:
     //--------------------------------------------------------
     void printSched();
 
+#if 0
     void printJsonOld(obj, filename):
 
     void printJson(self, obj, filename):
+#endif
+
+private:
+    Network* m_Network;
+    Layer*   m_PrevLayer;
 };
 
 }}

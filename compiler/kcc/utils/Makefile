@@ -3,6 +3,9 @@ CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
 
+MODULE=utils
+MODS = $(MODULE) nets layers serialize schedule
+
 INK_INC_DIR = shared tcc
 INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
 
@@ -11,16 +14,15 @@ CINC = $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 CFLAGS=$(COPTS) $(CINC)
 
 ########################################################
-MODULE=utils
-MODS = $(MODULE) nets layers serialize
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 SRCDIR = src
 OBJDIR = obj
 
 ########################################################
-SRCS = fmapdesc consts debug datatype
+SRCS = fmapdesc debug datatype
 ##printers
+## consts
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))

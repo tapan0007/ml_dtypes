@@ -30,11 +30,15 @@ namespace kcc {
 namespace layers {
     class Layer;
 }
+namespace schedule {
+    class LayerLevel;
+}
 
 namespace nets {
 
 using namespace utils;
 using layers::Layer;
+using schedule::LayerLevel;
 
 //--------------------------------------------------------
 class Network {
@@ -90,6 +94,10 @@ public:
     }
 
     void addLayer(Layer* layer);
+
+    const string& gName() const {
+        return m_Name;
+    }
     
     SchedForwLayers gSchedForwLayers();
     SchedRevLayers gSchedRevLayers();

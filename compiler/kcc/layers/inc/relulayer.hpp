@@ -36,11 +36,11 @@ public:
 
 
     //----------------------------------------------------------------
-    string gString() const;
+    string gString() const override;
 
     //----------------------------------------------------------------
     static const char* gTypeStrStatic();
-    const char* gTypeStr() const;
+    const char* gTypeStr() const override;
 
     //----------------------------------------------------------------
     bool qPassThrough() const override;

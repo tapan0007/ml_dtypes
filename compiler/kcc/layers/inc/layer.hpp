@@ -447,6 +447,10 @@ public:
         return m_LayerName;
     }
 
+    void rNumStr(const string& s) {
+        m_NumStr = s;
+    }
+
     //----------------------------------------------------------------
 
     string gNameNum() const {

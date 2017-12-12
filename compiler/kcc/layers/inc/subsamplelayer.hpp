@@ -88,7 +88,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    bool verify() const;
+    bool verify() const override;
 
 private:
     int m_StrideLR;

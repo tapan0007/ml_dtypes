@@ -28,7 +28,7 @@ public:
     { }
 
     //----------------------------------------------------------------
-    bool verify() const {
+    bool verify() const override {
         assert(1 == gNumPrevLayers());
         const Layer* prev_layer = gPrevLayer(0);
         assert(prev_layer->gOfmapDesc() == gOfmapDesc());

@@ -1,68 +1,76 @@
 //import json
 
+#include <iostream>
+#include <sstream>
+
 //from utils.funcs     import kstr
 #include "consts.hpp"
 #include "datatype.hpp"
 #include "layer.hpp"
 #include "network.hpp"
+#include "layerlevel.hpp"
+#include "printers.hpp"
+
+namespace kcc {
+namespace utils {
 
 //--------------------------------------------------------
 void
 Printer::printNetwork()
 {
     Network* ntwk = m_Network;
-    bool prevNl = False;
+    bool prevNl = false;
     StateBufferAddress maxStateSize = 0;
-    int layerNumMajor = 0;
-    int layerNumMinor = 0;
+    //int layerNumMajor = 0;
+    //int layerNumMinor = 0;
     m_PrevLayer = nullptr;
 
-    for (auto layer : ntwk.gLayers()) {
+    for (auto layer : ntwk->gLayers()) {
         if (layer->gDenseBlockStart() >= 0) {
             if (!prevNl) {
-                cout << "\n";
+                std::cout << "\n";
             }
-            cout << ">>> Starting dense block " << layer->gDenseBlockStart();
-        } else if layer->gTranBlockStart() >= 0) {
+            std::cout << ">>> Starting dense block " << layer->gDenseBlockStart();
+        } else if (layer->gTranBlockStart() >= 0) {
             if (!prevNl) {
-                cout << "\n";
+                std::cout << "\n";
             }
-            cout << ">>> Starting tran block " << layer->gTranBlockStart();
+            std::cout << ">>> Starting tran block " << layer->gTranBlockStart();
         }
 
         StateBufferAddress inStateSize, outStateSize, totalStateSize;
 
         if (layer->qStoreInSB()) {
-            inStateSize = layer.gInputStateMemWithoutBatching();
-            outStateSize = layer.gOutputStateMemWithoutBatching();
+            inStateSize = layer->gInputStateMemWithoutBatching();
+            outStateSize = layer->gOutputStateMemWithoutBatching();
             totalStateSize = inStateSize + outStateSize;
             if (totalStateSize > maxStateSize) {
                 maxStateSize = totalStateSize;
             }
         } else {
-            inStateSize = layer.gInputSize();
-            outStateSize = layer.gOutputSize();
+            inStateSize = layer->gInputSize();
+            outStateSize = layer->gOutputSize();
         }
 
-        numStr = layer.gNumberStr()
-        print (numStr + " " + str(layer))
-        layer.m_NumStr = numStr
+        string numStr(layer->gNumberStr());
+        std::cout << numStr << " " << layer->gString();
+        layer->rNumStr(numStr);
 
-        prevNl = False;
-        if layer.gDenseBlockEnd() >= 0: {
-            print("<<< Ending dense block " + str(layer.gDenseBlockEnd()))
-            print
-            prevNl = True
-        } elif layer.gTranBlockEnd() >= 0: {
-            print("<<< Ending tran block " + str(layer.gTranBlockEnd()))
-            print
-            prevNl = True
+        prevNl = false;
+        if (layer->gDenseBlockEnd() >= 0) {
+            std::cout << "<<< Ending dense block " << layer->gDenseBlockEnd();
+            std::cout << "\n";
+            prevNl = true;
+        } else if (layer->gTranBlockEnd() >= 0) {
+            std::cout << "<<< Ending tran block " << layer->gTranBlockEnd();
+            std::cout << "\n";
+            prevNl = true;
         }
 
-        self.__PrevLayer =layer
+        m_PrevLayer = layer;
     }
 
-    print("Max state size =", kstr(maxStateSize))
+    std::cout << "Max state size =" << maxStateSize;
 }
 
 //------------------------------------------------
@@ -70,115 +78,145 @@ void
 Printer::printDot()
 {
     Network* ntwk = m_Network;
-    FILE* f1 = fopen(netwk.gName()+".dot", 'w')
+    const string dotFileName(ntwk->gName() + ".dot");
+    FILE* f1 = fopen(dotFileName.c_str(), "w");
 
-    string graphName = netwk.gName();
+    string graphName = ntwk->gName();
+    for (auto& ch : graphName) {
+        if (ch == '-' || ch == '.') {
+            ch = '_';
+        }
+    }
     fprintf(f1, "digraph %s {\n", graphName.c_str());
 
-    for (layer in netwk.gLayers()) {
-        string label = layer.gDotIdLabel();
-        fprint(f1, "  %s\n", label.c_str());
+    for (auto layer : ntwk->gLayers()) {
+        fprintf(f1, "  %s\n", layer->gDotIdLabel().c_str());
     }
 
-    fprint(f1, "\n");
+    fprintf(f1, "\n");
 
-    for (layer in netwk.__Layers) {
-        for (nextLayer in layer.gNextLayers()) {
-            print >>f1, '  ', layer.gDotId(), '->', nextLayer.gDotId(), ';'
+    for (auto layer : ntwk->gLayers()) {
+        for (auto nextLayer : layer->gNextLayers()) {
+            fprintf(f1, "  %s->%s;\n", layer->gDotId().c_str(), nextLayer->gDotId().c_str());
         }
     }
 
-    print >>f1, '}'
-    print >>f1
+    fprintf(f1, "}\n\n");
 }
 
 
-#-----------------------------------------------------------------
-def printLevels(self):
+//-----------------------------------------------------------------
+void
+Printer::printLevels()
 {
-        ntwk = self.__Network
-        for level in ntwk.gLevels():
-            for layer in level.gLayers():
-                print(layer.gNameWithSched(),)
-            print
+    Network* ntwk = m_Network;
+    for (auto level : ntwk->gLevels()) {
+        for (auto layer : level->gLayers()) {
+            std::cout << (layer->gNameWithSched()) << "\n";
+        }
+        std::cout << "\n";
+    }
 }
 
-#-----------------------------------------------------------------
-def printSched(self):
+//-----------------------------------------------------------------
+void
+Printer::printSched()
 {
-        ntwk = self.__Network
-        dataType = ntwk.gDataType()
-        print(ntwk.gName(), ": data type=", dataType.gName(), " data type size=", dataType.gSizeInBytes())
-        memHeader = (SCHED_MEM_FORMAT) % (
-            "Layer", "Ofmap", "In", "Out",
-            "Residue",
-            "Batch",
-            "BatchDlt",
-            )
-        lineFmt = ("%-70s  %s")
-        fullHeader = (lineFmt) % (memHeader, "SB predecessors")
-        print(fullHeader)
-        hasRelu = False
-        lastWasAdd = False
+    Network* ntwk = m_Network;
+    const DataType& dataType(ntwk->gDataType());
+    std::cout << ntwk->gName() << ": data type=" << dataType.gName()
+              << " data type size=" << dataType.gSizeInBytes() << "\n";
+    char memHeader[256];
+    sprintf(memHeader, SCHED_MEM_FORMAT,
+        "Layer", "Ofmap", "In", "Out",
+        "Residue", "Batch", "BatchDlt");
+    const char* lineFmt = "%-70s  %s";
+    char fullHeader[256];
+    sprintf(fullHeader, lineFmt, memHeader, "SB predecessors");
+    std::cout << fullHeader;
+    bool hasRelu = false;
+    bool lastWasAdd = false;
 
-        for layer in ntwk.gSchedLayers():
-            if layer.qReluLayer():
-                hasRelu = True
-            sbPreds = ""
-            first=True
-            for sbLayer in layer.gPrevSbLayers():
-                s = sbLayer.gName()
-                if not first:
-                    s = "," + s
-                first=False
-                sbPreds += s
+    for (auto layer : ntwk->gSchedForwLayers()) {
+        if (layer->qReluLayer()) {
+            hasRelu = true;
+        }
+        string sbPreds = "";
+        bool first=true;
+        for (auto sbLayer : layer->gPrevSbLayers()) {
+            string s = sbLayer->gName();
+            if (! first) {
+                s = "," + s;
+            }
+            first=false;
+            sbPreds += s;
+        }
 
-            if sbPreds == "":
-                sbPreds = "()"
-            sb = "SB" if layer.qStoreInSB() else "--"
-            ss = (lineFmt) % (layer.gNameWithSchedMem(), "[" + sb + "]=" + sbPreds)
+        if (sbPreds == "") {
+            sbPreds = "()";
+        }
+        const char* sb = layer->qStoreInSB() ? "SB" : "--";
+        char line[256];
+        sprintf(line, lineFmt, layer->gNameWithSchedMem().c_str(), sb, sbPreds.c_str());
+        std::stringstream ss;
+        ss << line;
 
-            ifaddr = layer.gIfmapAddress()
-            ofaddr = layer.gOfmapAddress()
-            waddr  = layer.gWeightAddress()
+        StateBufferAddress ifaddr = layer->gIfmapAddress();
+        StateBufferAddress ofaddr = layer->gOfmapAddress();
+        StateBufferAddress waddr  = layer->gWeightAddress();
 
-            if ifaddr != None or ofaddr != None or waddr != None:
-                ss += " {"
-                b = False
-                if ifaddr != None:
-                    ss += "i=" + str(ifaddr)
-                    b = True
-                if ofaddr != None:
-                    if b: ss += ", "
-                    ss += "o=" + str(ofaddr)
-                    b = True
-                if waddr != None:
-                    if b: ss += ", "
-                    ss += "w=" + str(waddr)
-                    b = True
-                ss += "}"
+        if (ifaddr != StateBufferAddress_Invalid || ofaddr != StateBufferAddress_Invalid ||
+           waddr != StateBufferAddress_Invalid)
+        {
+            ss << " {";
+            bool b = false;
+            if (ifaddr != StateBufferAddress_Invalid) {
+                ss << "i=" << ifaddr;
+                b = true;
+            }
+            if (ofaddr != StateBufferAddress_Invalid) {
+                if (b) {
+                    ss << ", ";
+                }
+                ss << "o=" << ofaddr;
+                b = true;
+            }
+            if (waddr != StateBufferAddress_Invalid) {
+                if (b) {
+                    ss << ", ";
+                }
+                ss << "w=" << waddr;
+                b = true;
+            }
+            ss << "}";
+        }
 
-            print(ss)
-            if hasRelu:
-                if lastWasAdd and layer.qReluLayer():
-                    print
-            else:
-                if layer.qAddLayer() or layer.qPoolLayer():
-                    print
+        std::cout << ss.str() << "\n";
+        if (hasRelu) {
+            if (lastWasAdd && layer->qReluLayer()) {
+                std::cout << "\n";
+            }
+        } else {
+            if (layer->qAddLayer() || layer->qPoolLayer()) {
+                std::cout << "\n";
+            }
+        }
 
-            lastWasAdd = layer.qAddLayer()
+        lastWasAdd = layer->qAddLayer();
 
-        print(fullHeader)
+    }
+    std::cout << fullHeader << "\n";
 }
 
-def printJsonOld(self, obj, filename):
+#if 0
+def printJsonOld(obj, filename):
 {
         obj_str = json.dumps(obj.gJson(), sort_keys=False, indent=4, separators=(',', ': '))
         with open(filename, "w") as f:
             f.write(obj_str)
 }
 
-def printJson(self, obj, filename):
+def printJson(obj, filename):
 {
         #obj_str = json.dumps(obj.gJson(), sort_keys=False, indent=4, separators=(',', ': '))
         obj_json = obj.gJson()
@@ -188,4 +226,8 @@ def printJson(self, obj, filename):
             json.dump(obj_json, f, indent=2)
             f.write("\n")
 }
+#endif
+
+}}
+
 

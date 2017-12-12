@@ -15,6 +15,7 @@ top :
 	else true; \
 	fi
 
+#	| egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' 
 
 clean :
 	rm -f */obj/*.o */obj/lib*.a

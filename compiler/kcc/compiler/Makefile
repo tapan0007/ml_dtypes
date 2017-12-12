@@ -2,6 +2,7 @@ AR=ar
 CPP = g++
 
 COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
+LDOPT = -W -Wall -pedantic -g -ggdb -Wno-missing-field-initializers -std=c++14
 
 INK_INC_DIR = shared tcc
 INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
@@ -44,7 +45,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 ########################################################
 ########################################################
 $(MODULE).exe : $(OFILES)
-	$(CPP) $(COPTS) $^ $(LIBS) -o $@
+	$(CPP) $(LDOPTS) $^ $(LIBS) -o $@
 
 clean :
 	rm -f $(OFILES)

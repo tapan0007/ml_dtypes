@@ -24,7 +24,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    string gString() const {
+    string gString() const override {
         string baseLayer = gBaseLayerStr();
         return (gName() + baseLayer
                + gStateSizesStr());
@@ -39,14 +39,14 @@ public:
     static const char* gTypeStrStatic() {
         return utils::TypeStr_Input;
     }
-    const char*  gTypeStr() const  {
+    const char*  gTypeStr() const  override {
         return gTypeStrStatic();
     }
 
 
 
     //----------------------------------------------------------------
-    bool verify() const {
+    bool verify() const override {
         return true;
     }
 
