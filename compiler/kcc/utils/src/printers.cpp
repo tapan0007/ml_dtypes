@@ -208,25 +208,6 @@ Printer::printSched()
     std::cout << fullHeader << "\n";
 }
 
-#if 0
-def printJsonOld(obj, filename):
-{
-        obj_str = json.dumps(obj.gJson(), sort_keys=False, indent=4, separators=(',', ': '))
-        with open(filename, "w") as f:
-            f.write(obj_str)
-}
-
-def printJson(obj, filename):
-{
-        #obj_str = json.dumps(obj.gJson(), sort_keys=False, indent=4, separators=(',', ': '))
-        obj_json = obj.gJson()
-        #print("type:", type(obj_json))
-        #print(obj_json)
-        with open(filename, "w") as f:
-            json.dump(obj_json, f, indent=2)
-            f.write("\n")
-}
-#endif
 
 }}
 

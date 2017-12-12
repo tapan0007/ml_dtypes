@@ -71,31 +71,6 @@ public:
         return 0;
     }
 
-#if 0
-    #-----------------------------------------------------------------
-    def gJson(self):
-        x = super().gJson()
-        y = {
-            Layer.ref_file_key        : self.__InputDataFileName,
-            InputLayer.input_dims_key  : self.__DataTensorDimSemantics
-        }
-        r = self.combineJson( (x, y) )
-        return r
-
-    #-----------------------------------------------------------------
-    @classmethod
-    def constructFromJson(cls, layerDict, nn):
-        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
-        layerName = Layer.gLayerNameFromJson(layerDict)
-
-        inputFileName = layerDict[Layer.ref_file_key]
-        tensorSemantics = layerDict[InputLayer.input_dims_key]
-        batch = 1
-
-        param = Layer.Param(layerName, batch, nn)
-        layer = InputLayer(param, ofmapDesc, inputFileName, tensorSemantics)
-        return layer
-#endif
 
 private:
 };
