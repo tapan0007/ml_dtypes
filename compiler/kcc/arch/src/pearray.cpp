@@ -7,6 +7,8 @@ namespace arch {
 
 //--------------------------------------------------------
 PeArray::PeArray(int numberRows, int numberColumns)
+    : m_NumberRows(numberRows)
+    , m_NumberColumns(numberColumns)
 {
     assert(numberRows > 0 and numberColumns > 0);
     if (numberRows > numberColumns) {
@@ -15,8 +17,6 @@ PeArray::PeArray(int numberRows, int numberColumns)
         assert(numberColumns % numberRows == 0);
     }
 
-    m_NumberRows    = numberRows;
-    m_NumberColumns = numberColumns;
 }
 
 }}

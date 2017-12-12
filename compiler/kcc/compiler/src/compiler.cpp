@@ -87,18 +87,22 @@ main(int argc, char* argv[])
         std::cerr << "Must specify net" << "\n";
         exit(1);
     }
+
+
+    //------------------------------------------------
     Network network;
     Network* ntwk = &network;
     kcc::utils::breakFunc(44);
     {
+        std::cout << "Reading NN from JSON file " << JsonInFileName << "\n";
         std::ifstream is(JsonInFileName);
         cereal::JSONInputArchive ar(is);
         ntwk->load(ar);
     }
 
     //------------------------------------------------
-    std::cout << "Generating Arch\n";
     Arch* arch = new Arch();
+    std::cout << "Generating Arch " << arch->gArchVersion() << "\n";
 
     PeArray* peArray = arch->gPeArray();
     assert(peArray);
@@ -120,18 +124,17 @@ main(int argc, char* argv[])
 
     //--------------------------------------------------------
     Scheduler* scheduler = new Scheduler();
-    std::cout << "Scheduling\n";
+    std::cout << "Scheduling NN " << ntwk->gName() << "\n";
     scheduler->Schedule(ntwk);
     //ntwk->rLevels(scheduler->gLevels());
 
     //--------------------------------------------------------
     StateBufferMgr* sbmgr = new StateBufferMgr(arch, ntwk);
-    std::cout << "Calculating FMAP addresses\n";
+    std::cout << "Calculating FMAP and weight state buffer addresses\n";
     sbmgr->calcLayerFmapAddresses();
 
     //--------------------------------------------------------
     {
-        std::cout << "Reading NN\n";
         char JsonOutFileName[256];
         const char* p = JsonInFileName;
         char* q = JsonOutFileName;
@@ -144,15 +147,18 @@ main(int argc, char* argv[])
         *q = '\0';
 
         std::ofstream os(JsonOutFileName);
+
+        std::cout << "Writing NN JSON to file " << JsonOutFileName;
         cereal::JSONOutputArchive ar(os);
         ntwk->save(ar);
     }
 
     //--------------------------------------------------------
     CodeGen* codegen = new CodeGen(ntwk, arch);
-    std::cout << "Generating instructions";
     string objFileName(ntwk->gName());
     objFileName += ".tpb";
+
+    std::cout << "Generating instructions to file " << objFileName << "\n";
     codegen->generate(objFileName.c_str());
 
 #if 0

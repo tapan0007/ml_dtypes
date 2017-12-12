@@ -3,6 +3,8 @@
 #ifndef KCC_ARCH_ARCH_H
 #define KCC_ARCH_ARCH_H 1
 
+#include <string>
+
 #include "psumbuffer.hpp"
 #include "pearray.hpp"
 //#include "statebuffer.hpp"
@@ -65,13 +67,10 @@ public:
     //----------------------------------------------------------------
     int gPsumBankEntries() const;
 
-private:
-    int m_NumberPeRows;
-    int m_NumberPeColumns;
-    int m_NumberPsumBanks;
-    int m_NumberPsumBankEntries;
-    long m_SbPartitionsSize;
+    //----------------------------------------------------------------
+    const std::string& gArchVersion() const;
 
+private:
     PeArray*       m_PeArray;
     StateBuffer*   m_StateBuffer;
     PsumBuffer*    m_PsumBuffer;

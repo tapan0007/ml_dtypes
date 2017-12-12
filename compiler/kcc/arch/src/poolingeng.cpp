@@ -7,8 +7,8 @@ namespace arch {
 
 
 PoolingEng::PoolingEng(PsumBuffer* psumBuffer)
+    : m_Width(psumBuffer->gNumberColumns())
 {
-    m_Width = psumBuffer->gNumberColumns();
 }
 
 }}

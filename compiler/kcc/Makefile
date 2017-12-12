@@ -5,14 +5,14 @@ MODS = arch layers memmgr nets utils schedule serialize codegen
 MAINMOD= compiler 
 
 top :
-	for mod in $(MODS) $(MAINMOD); do \
+	@for mod in $(MODS) $(MAINMOD); do \
 	    (if cd $$mod; then \
 		    make clean; make -k; \
 		fi) \
 	done 2>&1 | tee e; \
 	echo; echo '========================'; \
-	if egrep -qi 'warn|error' e; then \
-		egrep -i 'warn|error' e; false; \
+	if egrep -wqi 'warning|error' e; then \
+		egrep -i 'warning|error' e; false; \
 	else true; \
 	fi
 

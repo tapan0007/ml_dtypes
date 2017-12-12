@@ -1,7 +1,7 @@
 AR=ar
 CPP = g++
 
-COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
+COPTS= -W -Wall -Werror -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
 
 MODULE=utils
 MODS = $(MODULE) nets layers serialize schedule
@@ -32,7 +32,8 @@ all : $(LIBRARY)
 
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
-	$(CPP) $(CFLAGS) -c -o $@ $<
+	@echo CC $<
+	@$(CPP) $(CFLAGS) -c -o $@ $<
 
 ########################################################
 
@@ -42,8 +43,10 @@ $(OBJDIR)/printers.o : $(SRCDIR)/printers.cpp
 $(OBJDIR)/debug.o : $(SRCDIR)/debug.cpp
 
 $(LIBRARY) : $(OFILES)
-	$(AR) rcs $@ $(OFILES)
+	@echo AR $@
+	@$(AR) rcs $@ $(OFILES)
 
 clean :
-	rm -f $(OFILES)
+	@echo CLEAN $(MODULE)
+	@rm -f $(OFILES)
 

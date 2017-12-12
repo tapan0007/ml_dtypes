@@ -47,7 +47,7 @@ public:
     }
 
 protected:
-    void epilogue(Layer* layer);
+    void epilogue(const Layer* layer);
 
 protected:
     int m_IfmapIndex_N = 0; // batch",

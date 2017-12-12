@@ -1,7 +1,7 @@
 AR=ar
 CPP = g++
 
-COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
+COPTS= -W -Wall -Werror -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
 
 MODS= utils nets
 CINC = -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
@@ -27,14 +27,17 @@ all : $(LIBRARY)
 
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
-	$(CPP) $(CFLAGS) -c -o $@ $<
+	@echo CC $<
+	@$(CPP) $(CFLAGS) -c -o $@ $<
 
 ########################################################
 ########################################################
 
 $(LIBRARY) : $(OFILES)
-	$(AR) rcs $@ $(OFILES)
+	@echo AR $@
+	@$(AR) rcs $@ $(OFILES)
 
 clean :
-	rm -f $(OFILES)
+	@echo CLEAN $(MODULE)
+	@rm -f $(OFILES)
 

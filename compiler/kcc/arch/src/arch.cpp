@@ -10,19 +10,23 @@ namespace arch {
 //--------------------------------------------------------
 Arch::Arch()
 {
-    m_NumberPeRows            = 128;
-    m_NumberPeColumns         = 64;
-    m_NumberPsumBanks         = 4;
-    m_NumberPsumBankEntries   = 256;
-    m_SbPartitionsSize        = 12 * 1024 * 1024; // numberPeRows  ## 12 MB
-    m_SbPartitionsSize        =  8 * 1024 * 1024; // numberPeRows  ##  8 MB
+    const int  numberPeRows            = 128;
+    const int  numberPeColumns       = 64;
+    const int  numberPsumBanks         = 4;
+    const int  numberPsumBankEntries   = 256;
 
-    m_PeArray          = new PeArray(m_NumberPeRows, m_NumberPeColumns);
-    m_PsumBuffer       = new PsumBuffer(gPeArray(), m_NumberPsumBanks,
-                                         m_NumberPsumBankEntries);
+    //const long stateBuffersSizeInBytes = 12 * 1024 * 1024; // numberPeRows  ## 12 MB
+    const long stateBuffersSizeInBytes =  8 * 1024 * 1024; // numberPeRows  ##  8 MB
+
+    const long sbPartitionSizeInBytes  = stateBuffersSizeInBytes  / numberPeRows; 
+
+    m_PeArray          = new PeArray(numberPeRows, numberPeColumns);  // first
+
+    m_PsumBuffer       = new PsumBuffer(gPeArray(), numberPsumBanks,
+                                         numberPsumBankEntries);
     m_PoolingEng       = new PoolingEng(gPsumBuffer());
     m_ActivationEng    = new ActivationEng(gPsumBuffer());
-    m_StateBuffer      = new StateBuffer(gPeArray(), m_SbPartitionsSize);
+    m_StateBuffer      = new StateBuffer(gPeArray(), sbPartitionSizeInBytes);
 }
 
 //----------------------------------------------------------------
@@ -49,6 +53,14 @@ int Arch::gNumberPsumBanks() const
 int Arch::gPsumBankEntries() const
 {
     return m_PsumBuffer->gNumberBankEntries();
+}
+
+//----------------------------------------------------------------
+const std::string&
+Arch::gArchVersion() const
+{
+    static const std::string version("Tonga 0.2");
+    return version;
 }
 
 }}

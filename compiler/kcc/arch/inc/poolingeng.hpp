@@ -25,7 +25,7 @@ public:
     }
 
 private:
-    int m_Width;
+    const int m_Width;
 };
 
 }}

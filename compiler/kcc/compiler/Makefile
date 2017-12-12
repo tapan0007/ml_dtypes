@@ -1,8 +1,8 @@
 AR=ar
 CPP = g++
 
-COPTS= -W -Wall -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
-LDOPT = -W -Wall -pedantic -g -ggdb -Wno-missing-field-initializers -std=c++14
+COPTS= -W -Wall -Werror -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
+LDOPT = -W -Wall -Werror -pedantic -g -ggdb -Wno-missing-field-initializers -std=c++14
 
 INK_INC_DIR = shared tcc
 INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
@@ -48,10 +48,12 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 ########################################################
 ########################################################
 $(MODULE).exe : $(OFILES)
-	$(CPP) $(LDOPTS) $^ $(LIBS) -o $@
+	@echo LD $@
+	@$(CPP) $(LDOPTS) $^ $(LIBS) -o $@
 
 clean :
-	rm -f $(OFILES)
+	@echo CLEAN $(MODULE)
+	@rm -f $(OFILES)
 
 i : $(MODULE).exe
 	./$< --json $@.json

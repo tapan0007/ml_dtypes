@@ -48,9 +48,9 @@ public:
 
 private:
 
-    int m_NumberPartitions;
-    long m_PartitionSizeInBytes;
-    long m_TotalSizeInBytes;
+    const int  m_NumberPartitions;
+    const long m_PartitionSizeInBytes;
+    const long m_TotalSizeInBytes; // should be last
 };
 
 }}

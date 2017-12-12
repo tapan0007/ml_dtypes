@@ -40,10 +40,10 @@ public:
     }
 
 private:
-    int m_NumberColumns;
-    int m_NumberBanks;
-    int m_NumberBankEntries;
-    long m_BankEntrySizeInBytes;
+    const int  m_NumberColumns;
+    const int  m_NumberBanks;
+    const int  m_NumberBankEntries;
+    const long m_BankEntrySizeInBytes;
 };
 
 

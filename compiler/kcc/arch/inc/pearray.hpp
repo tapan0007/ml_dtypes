@@ -35,8 +35,8 @@ public:
     }
 
 private:
-    int m_NumberRows;
-    int m_NumberColumns;
+    const int m_NumberRows;
+    const int m_NumberColumns;
 };
 
 }}
