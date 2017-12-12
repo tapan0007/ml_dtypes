@@ -69,7 +69,7 @@ public:
 
     ARBPRECTYPE gTypeId() const override;
 
-    int64 gSizeInBytes() const
+    int64 gSizeInBytes() const override
     {
         return sizeof(data_type);
     }
@@ -79,12 +79,12 @@ public:
         return "int16";
     }
 
-    const char* gName() const
+    const char* gName() const override
     {
         return gNameStatic();
     }
 
-    const char* gTccName() const
+    const char* gTccName() const override
     {
         return "INT16";
     }
@@ -98,7 +98,7 @@ public:
 
     ARBPRECTYPE gTypeId() const override;
 
-    int64 gSizeInBytes() const
+    int64 gSizeInBytes() const override
     {
         return 2;
     }
@@ -108,12 +108,12 @@ public:
         return "float16";
     }
 
-    const char* gName() const
+    const char* gName() const override
     {
         return gNameStatic();
     }
 
-    const char* gTccName() const
+    const char* gTccName() const override
     {
         return "FP16";
     }
