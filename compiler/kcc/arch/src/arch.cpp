@@ -59,7 +59,7 @@ int Arch::gPsumBankEntries() const
 const std::string&
 Arch::gArchVersion() const
 {
-    static const std::string version("Tonga 0.2");
+    static const std::string version("Tonga-0.2");
     return version;
 }
 

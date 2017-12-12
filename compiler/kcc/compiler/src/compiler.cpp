@@ -94,7 +94,7 @@ main(int argc, char* argv[])
     Network* ntwk = &network;
     kcc::utils::breakFunc(44);
     {
-        std::cout << "Reading NN from JSON file " << JsonInFileName << "\n";
+        std::cout << "Reading NN from JSON file '" << JsonInFileName << "'\n";
         std::ifstream is(JsonInFileName);
         cereal::JSONInputArchive ar(is);
         ntwk->load(ar);
@@ -102,7 +102,7 @@ main(int argc, char* argv[])
 
     //------------------------------------------------
     Arch* arch = new Arch();
-    std::cout << "Generating Arch " << arch->gArchVersion() << "\n";
+    std::cout << "Generating Arch '" << arch->gArchVersion() << "'\n";
 
     PeArray* peArray = arch->gPeArray();
     assert(peArray);
@@ -124,7 +124,7 @@ main(int argc, char* argv[])
 
     //--------------------------------------------------------
     Scheduler* scheduler = new Scheduler();
-    std::cout << "Scheduling NN " << ntwk->gName() << "\n";
+    std::cout << "Scheduling NN '" << ntwk->gName() << "'\n";
     scheduler->Schedule(ntwk);
     //ntwk->rLevels(scheduler->gLevels());
 
@@ -148,7 +148,7 @@ main(int argc, char* argv[])
 
         std::ofstream os(JsonOutFileName);
 
-        std::cout << "Writing NN JSON to file " << JsonOutFileName;
+        std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
         cereal::JSONOutputArchive ar(os);
         ntwk->save(ar);
     }
@@ -158,7 +158,7 @@ main(int argc, char* argv[])
     string objFileName(ntwk->gName());
     objFileName += ".tpb";
 
-    std::cout << "Generating instructions to file " << objFileName << "\n";
+    std::cout << "Generating instructions to file '" << objFileName << "'\n";
     codegen->generate(objFileName.c_str());
 
 #if 0
