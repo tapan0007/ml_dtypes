@@ -40,7 +40,7 @@ print("\nINFO: started as  ", " ".join(sys.argv))
 
 confStr = sys.argv[1]
 
-# Sample confStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
+# Sample confStr : tf16-l2-b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
 confStr = confStr.upper() + "-"
 if len(sys.argv) > 2:
   outPrefix = sys.argv[2]
@@ -50,28 +50,28 @@ if len(sys.argv) > 3:
   netName = sys.argv[3]
 else:
   netName = "jdr_v2"
-if len(sys.argv) > 4:
-  dataType = sys.argv[4]
-else:
-  dataType = "float16"
-# DataTypes
-#   npDataType, tfDataType - for the data flow
-#   fixedType - np.float16 - for generating inputs, weights
-for t in ["np", "tf"]:
-  exec("%sDataType = %s.%s" % (t, t, dataType))
-fixedDataType = np.float16
-
 (conf, dimStr) = getConfOpts(confStr)
 print("INFO: options config ", conf)
 
 dimList = re.split('([A-Z]+)(-?[\d\.]+)-', dimStr)
 dimCmd = str(tuple(dimList[1::3])).replace("'", "") + " = " + str(tuple(map(float, dimList[2::3])))
 dimCmd = dimCmd.replace(".0,", ",")
+
 print(dimCmd)
-assert(len(dimList[2::3]) == 11)
+assert(len(dimList[2::3]) == 12)
 exec(dimCmd)
 assert(C == M)  # Two back to back convolutions must have same number of channels (till pooling is added)
 assert(L > 0)
+
+# TO_DO - add support for int types
+dataType = TFLOAT
+# DataTypes - likely legacy, we are heading toward clean 32b or clean 16b or quantized 32/8
+#   npDataType, tfDataType - for the data flow
+#   fixedDataType - np.float16 - for generating inputs, weights
+for t in ["np", "tf"]:
+  exec("%sDataType = %s.float%s" % (t, t, dataType))
+fixedDataType = npDataType
+
 
 IF1 = np.zeros([B, H, H, C])
 W1  = np.zeros([R, R, C, M])
