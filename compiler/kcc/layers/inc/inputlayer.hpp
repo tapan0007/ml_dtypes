@@ -12,6 +12,8 @@ namespace layers {
 
 //########################################################
 class InputLayer : public Layer {
+private:
+    typedef Layer SubClass;
 public:
     //----------------------------------------------------------------
     //TODO: remove default values for input data file name and tensor dimension meaning string

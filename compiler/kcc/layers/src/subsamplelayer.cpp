@@ -85,7 +85,7 @@ SubSampleLayer::verify() const
 {
     assert(gPrevLayer(0)->gOfmapWidth()  == gStrideLR() * gOfmapWidth());
     assert(gPrevLayer(0)->gOfmapHeight() == gStrideBT() * gOfmapHeight());
-    return true;
+    return this->SubClass::verify();
 }
 
 } // namespace layers

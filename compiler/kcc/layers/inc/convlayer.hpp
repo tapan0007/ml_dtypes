@@ -20,6 +20,8 @@ namespace layers {
 
 //--------------------------------------------------------
 class ConvLayer : public SubSampleLayer {
+private:
+    typedef SubSampleLayer SubClass;
 public:
 
     //----------------------------------------------------------------

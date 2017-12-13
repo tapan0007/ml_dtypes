@@ -21,6 +21,8 @@ namespace layers {
 
 //--------------------------------------------------------
 class SubSampleLayer : public Layer {
+private:
+    typedef Layer SubClass;
 public:
     static const char* const kernel_key;
     static const char* const stride_key;

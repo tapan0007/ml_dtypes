@@ -41,7 +41,7 @@ bool
 ConvLayer::verify() const
 {
     assert(gNumPrevLayers() == 1);
-    const bool ok = this->SubSampleLayer::verify();
+    const bool ok = this->SubClass::verify();
     const Layer* prevLayer = gPrevLayer(0);
     const int prevMapWidth = prevLayer->gOfmapWidth();
     const int prevMapHeight = prevLayer->gOfmapHeight();

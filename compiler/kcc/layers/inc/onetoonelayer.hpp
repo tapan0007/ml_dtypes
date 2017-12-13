@@ -19,6 +19,8 @@ namespace layers {
 
 //--------------------------------------------------------
 class OneToOneLayer : public Layer {
+private:
+    typedef Layer SubClass;
 public:
     //----------------------------------------------------------------
     OneToOneLayer(const Params& params, Layer* prev_layer)
