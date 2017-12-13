@@ -45,10 +45,10 @@ CodeGenActivLayer::generate(Layer* layer)
     // W: width of ifmap
     m_IfmapAddrs[0] = activLayer->gIfmapAddress();
 
-    m_IfmapDims[m_IfmapIndex_N] = numBatches;
-    m_IfmapDims[m_IfmapIndex_C] = numIfmaps;
-    m_IfmapDims[m_IfmapIndex_H] = ifmapHeight;
-    m_IfmapDims[m_IfmapIndex_W] = ifmapWidth;
+    m_IfmapDims[m_FmapIndex_N] = numBatches;
+    m_IfmapDims[m_FmapIndex_C] = numIfmaps;
+    m_IfmapDims[m_FmapIndex_H] = ifmapHeight;
+    m_IfmapDims[m_FmapIndex_W] = ifmapWidth;
 
     m_OfmapAddrs = activLayer->gOfmapAddress();
 
@@ -64,10 +64,10 @@ CodeGenActivLayer::generate(Layer* layer)
     // C: number of ifmaps / channels
     // H: height of ofmap
     // W: width of ofmap
-    assert(m_OfmapDims[m_OfmapIndex_N] == numBatches);
-    assert(m_OfmapDims[m_OfmapIndex_C] == numOfmaps);
-    assert(m_OfmapDims[m_OfmapIndex_H] == ofmapHeight);
-    assert(m_OfmapDims[m_OfmapIndex_W] == ofmapWidth);
+    assert(m_OfmapDims[m_FmapIndex_N] == numBatches);
+    assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps);
+    assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight);
+    assert(m_OfmapDims[m_FmapIndex_W] == ofmapWidth);
 
     epilogue(layer);
 }

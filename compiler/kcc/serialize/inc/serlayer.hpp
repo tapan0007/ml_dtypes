@@ -25,6 +25,8 @@ using std::vector;
 
 
 namespace kcc {
+using  namespace utils;
+
 namespace serialize {
 
 
@@ -34,12 +36,14 @@ class SerLayer {
 public:
     SerLayer()
     {
-        m_Batching[0] = m_Batching[1] = m_Batching[2] = m_Batching[3] = 1;
-        m_Stride[0]   = m_Stride[1]   = m_Stride[2]   = m_Stride[3]   = 0;
-        m_Padding[0][0]      = m_Padding[0][1]  = 
-            m_Padding[1][0]  = m_Padding[1][1]  =
-            m_Padding[2][0]  = m_Padding[2][1]  = 
-            m_Padding[3][0]  = m_Padding[3][1]  = 0;
+        m_Batching[FmapIndex_N] = m_Batching[FmapIndex_C]
+            = m_Batching[FmapIndex_H] = m_Batching[FmapIndex_W] = 1;
+        m_Stride[FilterIndex_M]   = m_Stride[FilterIndex_C]
+            = m_Stride[FilterIndex_R]   = m_Stride[FilterIndex_S]   = 0;
+        m_Padding[FmapIndex_N][0]      = m_Padding[FmapIndex_N][1]  = 
+            m_Padding[FmapIndex_C][0]  = m_Padding[FmapIndex_C][1]  =
+            m_Padding[FmapIndex_H][0]  = m_Padding[FmapIndex_H][1]  = 
+            m_Padding[FmapIndex_W][0]  = m_Padding[FmapIndex_W][1]  = 0;
     }
 
     template<typename Archive>
@@ -118,25 +122,25 @@ public:
 
     //----------------------------------------------------------------
     void rOfmapShape(const utils::OfmapShapeType ofmapShape) {
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < FMAP_TENSOR_RANK; ++i) {
             m_OfmapShape[i] = ofmapShape[i];
         }
     }
 
     //----------------------------------------------------------------
     int gOfmapWidth() const {
-        return m_OfmapShape[3];
+        return m_OfmapShape[FmapIndex_W];
     }
 
     //----------------------------------------------------------------
     int gOfmapHeight() const {
-        return m_OfmapShape[2];
+        return m_OfmapShape[FmapIndex_H];
     }
 
 
     //----------------------------------------------------------------
     int gNumOfmaps() const {
-        return m_OfmapShape[1];
+        return m_OfmapShape[FmapIndex_C];
     }
 
     const std::string& gOfmapFormat() const {
@@ -158,28 +162,28 @@ public:
     }
 
     void rStride(const utils::StrideType stride) {        // conv,pool
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < FILTER_TENSOR_RANK; ++i) {
             m_Stride[i] = stride[i];
         }
     }
 
     int gStrideVertical () const {
-        return m_Stride[2];        // conv,pool
+        return m_Stride[FilterIndex_R];        // conv,pool
     }
 
     int gStrideHorizontal () const {
-        return m_Stride[3];        // conv,pool
+        return m_Stride[FilterIndex_S];        // conv,pool
     }
     void rKernelShape(const utils::KernelShapeType  kernelShape) {//conv,pool
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < FILTER_TENSOR_RANK; ++i) {
             m_KernelShape[i] = kernelShape[i];
         }
     }
     int gKernelHeight() const {
-        return m_KernelShape[2];   // conv,pool
+        return m_KernelShape[FilterIndex_R];   // conv,pool
     }
     int gKernelWidth() const {
-        return m_KernelShape[3];   // conv,pool
+        return m_KernelShape[FilterIndex_S];   // conv,pool
     }
 
     const std::string& gKernelFile() const {   // input(data), conv(weights)
@@ -197,8 +201,8 @@ public:
     }
 
     void rPadding(const utils::PaddingType padding) {     // conv,pool
-        for (int i0 = 0; i0 < 4; ++i0) {
-            for (int i1 = 0; i1 < 2; ++i1) {
+        for (int i0 = 0; i0 < FMAP_TENSOR_RANK; ++i0) {
+            for (int i1 = 0; i1 < 2; ++i1) { // 1 for before, 1 for after
                 m_Padding[i0][i1] = padding[i0][i1];
             }
         }

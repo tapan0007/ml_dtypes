@@ -59,10 +59,10 @@ CodeGenConvLayer::generate(Layer* layer)
     // H: height of ifmap
     // W: width of ifmap
     m_IfmapAddrs[0] = convLayer->gIfmapAddress();
-    m_IfmapDims[m_IfmapIndex_N] = numBatches;
-    m_IfmapDims[m_IfmapIndex_C] = numIfmaps;
-    m_IfmapDims[m_IfmapIndex_H] = ifmapHeight;
-    m_IfmapDims[m_IfmapIndex_W] = ifmapWidth;
+    m_IfmapDims[m_FmapIndex_N] = numBatches;
+    m_IfmapDims[m_FmapIndex_C] = numIfmaps;
+    m_IfmapDims[m_FmapIndex_H] = ifmapHeight;
+    m_IfmapDims[m_FmapIndex_W] = ifmapWidth;
 
     // filterAddr
     m_FilterDims[m_FilterIndex_M] = numOfmaps;
@@ -93,10 +93,10 @@ CodeGenConvLayer::generate(Layer* layer)
     // C: number of ifmaps / channels
     // H: height of ofmap
     // W: width of ofmap
-    assert(m_OfmapDims[m_OfmapIndex_N] == numBatches);
-    assert(m_OfmapDims[m_OfmapIndex_C] == numOfmaps);
-    assert(m_OfmapDims[m_OfmapIndex_H] == ofmapHeight);
-    assert(m_OfmapDims[m_OfmapIndex_W] == ofmapWidth);
+    assert(m_OfmapDims[m_FmapIndex_N] == numBatches);
+    assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps);
+    assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight);
+    assert(m_OfmapDims[m_FmapIndex_W] == ofmapWidth);
 
     epilogue(layer);
 }

@@ -8,6 +8,8 @@
 #include "codegenlayer.hpp"
 
 namespace kcc {
+using namespace utils;
+
 namespace codegen {
 
 class CodeGenInputLayer : public CodeGenLayer {

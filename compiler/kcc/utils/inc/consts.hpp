@@ -6,6 +6,21 @@
 namespace kcc {
 namespace utils {
 
+enum {
+    FMAP_TENSOR_RANK = 4,
+    FILTER_TENSOR_RANK = 4,
+
+    FmapIndex_N = 0,
+    FmapIndex_C = 1,
+    FmapIndex_H = 2,
+    FmapIndex_W = 3,
+
+    FilterIndex_M = 0,
+    FilterIndex_C = 1,
+    FilterIndex_R = 2,
+    FilterIndex_S = 3,
+};
+
 const char* const SCHED_MEM_FORMAT = "%-24s %10s %6s  %8s  %8s  %8s  %8s";
 
 

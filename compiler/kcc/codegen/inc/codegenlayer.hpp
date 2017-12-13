@@ -6,9 +6,12 @@
 #include <string>
 #include <cstdio>
 
+#include "consts.hpp"
+
 using namespace std;
 
 #include "tcc.hpp"
+
 
 namespace kcc {
 
@@ -18,6 +21,7 @@ namespace layers {
 
 namespace codegen {
 using layers::Layer;
+using namespace utils;
 
 class CodeGen;
 
@@ -50,35 +54,31 @@ protected:
     void epilogue(const Layer* layer);
 
 protected:
-    int m_IfmapIndex_N = 0; // batch",
-    int m_IfmapIndex_C = 1; // num ifmaps",
-    int m_IfmapIndex_H = 2; // ifmap height",
-    int m_IfmapIndex_W = 3; // ifmap width",
+    // These are variables because format can change
+    int m_FmapIndex_N = FmapIndex_N; // batch",
+    int m_FmapIndex_C = FmapIndex_C; // num ifmaps",
+    int m_FmapIndex_H = FmapIndex_H; // ifmap height",
+    int m_FmapIndex_W = FmapIndex_W; // ifmap width",
 
-    int m_OfmapIndex_N = 0; // batch",
-    int m_OfmapIndex_C = 1; // num ifmaps",
-    int m_OfmapIndex_H = 2; // ifmap height",
-    int m_OfmapIndex_W = 3; // ifmap width",
-
-    int m_FilterIndex_M = 0; // filter num ofmaps",
-    int m_FilterIndex_C = 1; // filter num ifmaps",
-    int m_FilterIndex_R = 2; // filter height",
-    int m_FilterIndex_S = 3; // filter width",
+    int m_FilterIndex_M = FilterIndex_M; // filter num ofmaps",
+    int m_FilterIndex_C = FilterIndex_C; // filter num ifmaps",
+    int m_FilterIndex_R = FilterIndex_R; // filter height",
+    int m_FilterIndex_S = FilterIndex_S; // filter width",
 
     CodeGen* const m_CodeGen;
     Layer* m_Layer;
 
     addr_t   m_OfmapAddrs;
-    uint64_t m_OfmapDims[4];
+    uint64_t m_OfmapDims[FMAP_TENSOR_RANK];
     string   m_OfmapFormat;
 
     addr_t   m_IfmapAddrs[2] = {0, 0};// 2 is tmp for single Ifmap
-    uint64_t m_IfmapDims[4];
+    uint64_t m_IfmapDims[FMAP_TENSOR_RANK];
     string   m_IfmapFormat;
     string   m_IfmapFileName;
 
     addr_t   m_FilterAddr[2];
-    uint64_t m_FilterDims[4];
+    uint64_t m_FilterDims[FMAP_TENSOR_RANK];
     string   m_FilterFormat;
     string   m_FilterFileNames[2]; // more when #ofmaps > #cols
 

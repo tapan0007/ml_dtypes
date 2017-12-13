@@ -3,6 +3,8 @@
 #ifndef KCC_UTILS_TYPES_H
 #define KCC_UTILS_TYPES_H
 
+#include "consts.hpp"
+
 namespace kcc {
 namespace utils {
 
@@ -32,11 +34,11 @@ enum : StateBufferAddress {
     StateBufferAddress_Invalid = -1L
 };
 
-typedef int OfmapShapeType[4];
-typedef int KernelShapeType[4];
-typedef int StrideType[4];
-typedef int PaddingType[4][2];
-typedef int BatchingType[4];
+typedef int OfmapShapeType[FMAP_TENSOR_RANK];
+typedef int KernelShapeType[FILTER_TENSOR_RANK];
+typedef int StrideType[FMAP_TENSOR_RANK];
+typedef int PaddingType[FMAP_TENSOR_RANK][2];
+typedef int BatchingType[FMAP_TENSOR_RANK];
 
 }}
 

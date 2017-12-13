@@ -23,6 +23,13 @@ DataTypeFloat16::gTypeId() const
     return ARBPRECTYPE::FP16;
 }
 
+#if USE_FLOAT32_DATATYPE
+ARBPRECTYPE
+DataTypeFloat32::gTypeId() const 
+{
+    return ARBPRECTYPE::FP32;
+}
+#endif // USE_FLOAT32_DATATYPE
 
 }}
 

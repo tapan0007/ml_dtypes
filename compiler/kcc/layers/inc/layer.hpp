@@ -595,26 +595,6 @@ public:
         m_RefFileName = refFile;
     }
 
-#define SER 4
-#if SER == 1
-    #define TEMPL(X) X
-    template<class Archive> void save(Archive & archive) const;
-    template<class Archive> void load(Archive & archive);
-#elif SER == 2
-    #define TEMPL(X)
-    void save(cereal::JSONOutputArchive & archive) const;
-    void load(cereal::JSONInputArchive & archive);
-#elif SER == 3
-    template<class Archive>
-    void serialize(Archive & archive);
-#elif SER == 4
-    template<class Archive>
-    void serialize(Archive & archive)
-    {
-        archive(m_LayerName);
-    }
-#endif
-
 
 protected:
     std::string         m_LayerName;

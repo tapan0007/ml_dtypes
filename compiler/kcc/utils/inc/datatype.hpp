@@ -29,6 +29,8 @@ public:
     virtual const char* gTccName() const = 0;
 };
 
+
+
 //########################################################
 class DataTypeInt8 : public DataType {
 private:
@@ -41,6 +43,7 @@ public:
 
     int64 gSizeInBytes() const override
     {
+        static_assert(sizeof(data_type)==1, "sizeof(float) != 1");
         return sizeof(data_type);
     }
 
@@ -62,7 +65,7 @@ public:
 //########################################################
 class DataTypeInt16 : public DataType {
 private:
-    typedef int8 data_type;
+    typedef short data_type;
 public:
     DataTypeInt16() {
     }
@@ -71,6 +74,7 @@ public:
 
     int64 gSizeInBytes() const override
     {
+        static_assert(sizeof(data_type)==2, "sizeof(int16) != 2");
         return sizeof(data_type);
     }
 
@@ -118,6 +122,41 @@ public:
         return "FP16";
     }
 };
+
+#define USE_FLOAT32_DATATYPE 0
+#if USE_FLOAT32_DATATYPE
+//########################################################
+class DataTypeFloat32 : public DataType {
+private:
+    typedef float data_type;
+public:
+    DataTypeFloat32() {
+    }
+
+    ARBPRECTYPE gTypeId() const override;
+
+    int64 gSizeInBytes() const override
+    {
+        static_assert(sizeof(data_type)==4, "sizeof(float) != 4");
+        return sizeof(float);
+    }
+
+    static const char* gNameStatic()
+    {
+        return "float32";
+    }
+
+    const char* gName() const override
+    {
+        return gNameStatic();
+    }
+
+    const char* gTccName() const override
+    {
+        return "FP32";
+    }
+};
+#endif // USE_FLOAT32_DATATYPE
 
 } // namespace utils
 } // namespace kcc
