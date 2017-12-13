@@ -25,7 +25,7 @@ if ! test -d "$KAENA_PATH"; then
 fi
 
 
-export COMPILER=$KAENA_PATH/compiler/python/state-buffer-estimate
+export COMPILER=$KAENA_PATH/compiler/kcc
 export TEST=$COMPILER/test
 export npy_diff=$KAENA_PATH/compiler/util/npy_diff_files
 export DUMPNPY=$KAENA_PATH/compiler/util/npy2txt
@@ -92,18 +92,13 @@ InputNpy=$( egrep '"ref_file":' $JsonFile | head -n 1 | sed -e "$sed1" -e "$sed2
 NetName=$( egrep '"net_name":' $JsonFile | sed -e "$sed1" -e "$sed2" )
 LastLayerName=$( egrep '"layer_name":' $JsonFile | tail -n 1| sed -e "$sed1" -e "$sed2" )
 
-NetName=$(echo $NetName | tr A-Z a-z)
+#NetName=$(echo $NetName | tr A-Z a-z)
 NET=$NetName
-
-CPP=$NET.cpp
-OBJ=$NET.o
-EXE=$NET-exe
 
 RESULTS=./results/$Name
 rm -fR $RESULTS; mkdir -p $RESULTS || Fatal Cannot mkdir dir $RESULTS
 
 ASM=$RESULTS/$NET.asm
-TPB=$RESULTS/$NET.tpb
 
 SIMRES=$RESULTS/$NET.simres
 SIMLOG=$RESULTS/simulation.log
@@ -111,31 +106,9 @@ LOG=$RESULTS/LOG
 ##############################################################
 
 
-##############################################################
-## First make NET.py file
-#touch __init__.py
-cmd="python3 $COMPILER/compiler.py --json $JsonFile"
+TPB=$NET.tpb
+cmd="$COMPILER/compiler/compiler.exe --json $JsonFile"
 RunCmd $cmd
-cp -p $CPP $RESULTS/.
-
-##############################################################
-## compile C++
-FLAGS="-W -Wall -Werror -ggdb -g"
-
-INC_FLAGS="-I$CODEGEN_TOP/shared/inc -I$CODEGEN_TOP/tcc/inc"
-CFLAGS="$FLAGS -I. $INC_FLAGS -Wno-missing-field-initializers"
-CPPFLAGS="$CFLAGS -std=c++11"
-LDFLAGS="$FLAGS -ltcc"
-LIBDIR1="$CODEGEN_TOP/tcc/libs"
-LIBDIR_FLAGS="-L$LIBDIR1"
-
-CXX=clang++
-CXX=g++
-RunCmd $CXX $CPPFLAGS -c $CPP
-RunCmd $CXX -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS $LDFLAGS 
-
-##############################################################
-RunCmd ./$EXE $TPB 
 
 ##############################################################
 RunCmd $OBJDUMP $TPB > $ASM 
@@ -145,7 +118,7 @@ RunCmd shasum $TPB
 echo $SIM $TPB
 $SIM $TPB >$SIMRES || Fatal Sim failed on $TPB
 
-SimOutputNpy="$NetName-$LastLayerName-simout.npy"
+SimOutputNpy=$(echo "$OutputNpy" | sed -e 's/.npy/-simout.npy/')
 SimOutputNpy="$(echo $SimOutputNpy | sed -e 's@/@-@g')"
 ##############################################################
 echo Out npy: $OutputNpy

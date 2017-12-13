@@ -18,6 +18,7 @@ LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 SRCDIR = src
 OBJDIR = obj
+DEPDIR = dep
 
 ########################################################
 SRCS := layer 
@@ -27,6 +28,7 @@ SRCS := $(SRCS) poollayer maxpoollayer avgpoollayer
 
 CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
+DEPFILES = $(addprefix $(DEPDIR)/,$(addsuffix .dep,$(SRCS)))
 
 ########################################################
 all : $(LIBRARY)
@@ -38,6 +40,11 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 ########################################################
 ########################################################
+alldeps: $(DEPFILES)
+
+$(DEPDIR)/%.dep : $(SRCDIR)/%.cpp
+	@echo DEP $<
+	@$(CPP) $(CFLAGS) -M -o $@ $<
 
 $(LIBRARY) : $(OFILES)
 	@echo AR $@
