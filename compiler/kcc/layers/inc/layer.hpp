@@ -54,6 +54,8 @@ protected:
 
     static vector<Layer*> mkLayerVector2(Layer* layer1, Layer* layer2);
 
+    virtual bool verify() const = 0;
+
 public:
     //----------------------------------------------------------------
     virtual string gString() const = 0;
@@ -62,7 +64,6 @@ public:
     virtual const char* gTypeStr() const = 0;
 
     //----------------------------------------------------------------
-    virtual bool verify() const = 0;
 
     //----------------------------------------------------------------
     typedef std::string Json;
