@@ -20,6 +20,9 @@ namespace utils {
 //########################################################
 class DataType {
 public:
+    virtual ~DataType()
+    {}
+
     virtual int64 gSizeInBytes() const = 0;
 
     virtual ARBPRECTYPE gTypeId() const = 0;
