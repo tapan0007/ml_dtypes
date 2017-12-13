@@ -29,7 +29,7 @@ public:
 
 
     //----------------------------------------------------------------
-    bool qPassThrough() const {
+    bool qPassThrough() const override {
         return false;
     }
 
