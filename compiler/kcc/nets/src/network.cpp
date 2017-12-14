@@ -84,12 +84,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
     archive(cereal::make_nvp(utils::Key_DataType, 
                             std::string(m_DataType->gName())));
 
-    // Temporary to vector of unique_ptrs for Cereal
-    //std::vector<std::unique_ptr<serialize::SerLayer> > serLayers(m_Layers.size());
+    // Temporary to vector for Cereal
     std::vector<serialize::SerLayer> serLayers(m_Layers.size());
     for (unsigned i = 0; i < m_Layers.size(); ++i) {
         Layer* layer = m_Layers[i];
-        //serLayers[i].reset(new serialize::SerLayer());
         serialize::SerLayer& serLayer(serLayers[i]);
 
         serLayer.rLayerName(layer->gName());
@@ -168,7 +166,6 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         assert(0);
     }
      
-    //vector<std::unique_ptr<serialize::SerLayer> > serLayers;
     vector<serialize::SerLayer> serLayers;
     archive(cereal::make_nvp(utils::Key_Layers, serLayers));
     kcc::utils::breakFunc(333);

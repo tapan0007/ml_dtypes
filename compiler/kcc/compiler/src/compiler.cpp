@@ -44,8 +44,6 @@ main(int argc, char* argv[])
     bool PrintSchedule = false;
     bool PrintDot      = false;
     bool PrintLayers   = false;
-    bool TrivNet       = false;
-    bool UseRelu       = false;
 #endif
     bool DoBatching    = false;
     const char* JsonInFileName = nullptr;
@@ -54,9 +52,7 @@ main(int argc, char* argv[])
     while (i < argc) {
         string arg(argv[i]);
 #if 0
-        if (arg == "--trivnet" or arg == "--triv") {
-            TrivNet = true;
-        } else if (arg == "--print-layers") {
+        if (arg == "--print-layers") {
             PrintLayers = true;
         } else if (arg == "--print-levels") {
             PrintLevels = true;
@@ -66,8 +62,6 @@ main(int argc, char* argv[])
             PrintSchedule = false;
         } else if (arg == "--print-dot") {
             PrintDot = true;
-        } else if (arg == "--relu") {
-            UseRelu = true;
         } else if (arg == "--batch" or arg == "--batching") {
             DoBatching = true;
         } else
@@ -188,17 +182,6 @@ main(int argc, char* argv[])
         std::cout << "\n";
     }
 
-    jsonFileName = ntwk.gName().lower() + ".json"
-    printer.printJson(ntwk, jsonFileName)
-
-    with open(jsonFileName) as f:
-        jsonContent = f.read()
-
-    jsonDict = json.loads(jsonContent)
-    nn2 = Network.constructFromJson(jsonDict)
-
-    jsonFileName2 = nn2.gName().lower() + "2.json"
-    printer.printJson(nn2, jsonFileName2)
 #endif
 
     return 0;

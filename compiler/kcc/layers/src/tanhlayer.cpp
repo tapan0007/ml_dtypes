@@ -14,29 +14,6 @@ TanhLayer::TanhLayer(const Params& params, Layer* prev_layer)
     : ActivLayer(params, prev_layer)
 {}
 
-#if 0
-//--------------------------------------------------------
-TanhLayer::gJson()
-{
-    x = super().gJson()
-    return x
-}
-
-//--------------------------------------------------------
-TanhLayer* 
-TanhLayer::constructFromJson(cls, layerDict, nn)
-{
-        layerName = Layer.gLayerNameFromJson(layerDict)
-        ofmapDesc = Layer.gOfmapDescFromJson(layerDict, nn)
-        batch = 1
-        param = Layer.Param(layerName, batch, nn)
-        prevLayers = Layer.gPrevLayersFromJson(layerDict, nn)
-        assert isinstance(prevLayers, list) and len(prevLayers)==1
-        layer = TanhLayer(param, prevLayers[0])
-        return layer
-}
-#endif
-
 
 //--------------------------------------------------------
 string

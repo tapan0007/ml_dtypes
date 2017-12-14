@@ -24,10 +24,6 @@ static_assert(sizeof(int64) == 8, "sizeof(int64) != 8");
 typedef int32 LayerId;
 const LayerId LayerId_Null = -1;
 
-#if 0
-typedef int64 StateBufferAddress;
-const StateBufferAddress StateBufferAddress_Invalid = -1;
-#endif
 
 typedef int64 StateBufferAddress;
 enum : StateBufferAddress {

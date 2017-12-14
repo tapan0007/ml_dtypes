@@ -127,10 +127,6 @@ StateBufferMgr::calcLayerFmapAddresses()
     m_MaxNumberWeightsPerPart = maxNumWeightsPerPart;
 
 
-    // first layer is Data layer and will have no ifmap
-    // self.__LeftStart = self.__MaxNumberWeightsPerPart
-    // self.__RightEnd  = self.__PartitionSize
-
     m_OfmapAddress = m_IfmapAddress = StateBufferAddress_Invalid;
 
     for (auto layer : m_Network->gLayers()) {

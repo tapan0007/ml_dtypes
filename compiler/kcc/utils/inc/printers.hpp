@@ -33,11 +33,6 @@ public:
     //--------------------------------------------------------
     void printSched();
 
-#if 0
-    void printJsonOld(obj, filename):
-
-    void printJson(self, obj, filename):
-#endif
 
 private:
     Network* m_Network;
