@@ -8,16 +8,8 @@ namespace codegen {
 
 using layers::ActivLayer;
 
-//  void
-//  compile_activation(FILE *out_binary,
-//            const addr_t ifmap_addr,
-//            const uint64_t ifmapDims[4], /* NCHW */
-//            const addr_t ofmap_addr,
-//            uint64_t ofmapDims[4], /* output NCHW */
-//            const ARBPRECTYPE in_dtype,
-//            const ARBPRECTYPE out_dtype,
-//            ACTIVATIONFUNC act_func);
 
+// Generate Tonga code for an activation layer
 void
 CodeGenActivLayer::generate(Layer* layer)
 {
@@ -38,11 +30,6 @@ CodeGenActivLayer::generate(Layer* layer)
     const ARBPRECTYPE inDataType  = prevLayer->gDataType().gTypeId();
     const ARBPRECTYPE outDataType  = activLayer->gDataType().gTypeId();
 
-    // const addr_t *ifmapAddrs, const uint64_t ifmapDims[4], // NCHW
-    // N: batch size
-    // C: number of ifmaps / channels
-    // H: height of ifmap
-    // W: width of ifmap
     m_IfmapAddrs[0] = activLayer->gIfmapAddress();
 
     m_IfmapDims[m_FmapIndex_N] = numBatches;
@@ -59,11 +46,6 @@ CodeGenActivLayer::generate(Layer* layer)
             activFunc);
 
 
-    // const addr_t ofmap_addr, uint64_t ofmapDims[4], // output NCHW
-    // N: batch size
-    // C: number of ifmaps / channels
-    // H: height of ofmap
-    // W: width of ofmap
     assert(m_OfmapDims[m_FmapIndex_N] == numBatches);
     assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps);
     assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight);

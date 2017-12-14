@@ -36,6 +36,8 @@ class CodeGenInputLayer;
 class CodeGenConvLayer;
 class CodeGenReluLayer;
 class CodeGenTanhLayer;
+//class CodeGenMaxPoolLayer;
+//class CodeGenAvgPoolLayer;
 
 //########################################################
 class CodeGen {
@@ -64,7 +66,7 @@ private:
     }
 
     //----------------------------------------------------------------
-    CodeGenLayer* gGenFunc(const Layer* layer);
+    CodeGenLayer& gGenFunc(const Layer* layer);
 
 
 private:
@@ -75,6 +77,8 @@ private:
     unique_ptr<CodeGenConvLayer>  m_ConvLayer;
     unique_ptr<CodeGenReluLayer> m_ReluLayer;
     unique_ptr<CodeGenTanhLayer>  m_TanhLayer;
+    //unique_ptr<CodeGenMaxPoolLayer>  m_MaxPoolLayer;
+    //unique_ptr<CodeGenAvgPoolLayer>  m_AvgPoolLayer;
 };
 
 
