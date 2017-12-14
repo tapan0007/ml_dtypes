@@ -5,6 +5,7 @@ class DataType(object, metaclass = ABCMeta):
     #DATA_TYPE_INT8  = 1
     #DATA_TYPE_INT16 = 2
     #DATA_TYPE_FLOAT16  = 3
+    #DATA_TYPE_FLOAT32  = 4
 
     @abstractmethod
     def gSizeInBytes(self):
@@ -59,4 +60,18 @@ class DataTypeFloat16(DataType):
 
     def gTccName(self):
         return "FP16"
+
+##########################################################
+class DataTypeFloat32(DataType):
+    def __init__(self):
+        super().__init__()
+
+    def gSizeInBytes(self):
+        return 4
+
+    def gName(self):
+        return "float32"
+
+    def gTccName(self):
+        return "FP32"
 
