@@ -24,18 +24,6 @@ class SubSampleLayer : public Layer {
 private:
     typedef Layer SubClass;
 public:
-    static const char* const kernel_key;
-    static const char* const stride_key;
-    static const char* const padding_key;
-
-    static const char* const kernel_height_key;
-    static const char* const kernel_width_key;
-    static const char* const stride_lr_key;
-    static const char* const stride_bt_key;
-    static const char* const padding_left_key;
-    static const char* const padding_right_key;
-    static const char* const padding_top_key;
-    static const char* const padding_bottom_key;
 
     //----------------------------------------------------------------
     SubSampleLayer (const Params& param, Layer* prev_layer,

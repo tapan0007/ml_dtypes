@@ -9,30 +9,6 @@
 namespace kcc {
 namespace layers {
 
-//--------------------------------------------------------
-const char* const
-SubSampleLayer::kernel_key         = "kernel_shape";
-const char* const
-SubSampleLayer::stride_key         = "stride";
-const char* const
-SubSampleLayer::padding_key        = "padding";
-
-const char* const
-SubSampleLayer::kernel_height_key  = "height";
-const char* const
-SubSampleLayer::kernel_width_key   = "width";
-const char* const
-SubSampleLayer::stride_lr_key      = "LR";
-const char* const
-SubSampleLayer::stride_bt_key      = "BT";
-const char* const
-SubSampleLayer::padding_left_key   = "left";
-const char* const
-SubSampleLayer::padding_right_key  = "right";
-const char* const
-SubSampleLayer::padding_top_key    = "top";
-const char* const
-SubSampleLayer::padding_bottom_key = "bottom";
 
 //--------------------------------------------------------
 SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
@@ -42,8 +18,8 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
     : Layer(param, 
             FmapDesc(
                 (num_ofmaps >= 1 ? num_ofmaps : prev_layer->gNumOfmaps()),
-                prev_layer->gOfmapWidth(),
-                prev_layer->gOfmapHeight()),
+                prev_layer->gOfmapHeight() / std::get<0>(stride),
+                prev_layer->gOfmapWidth() / std::get<1>(stride)),
             dataTensorSemantics,
             vector<Layer*>(1, prev_layer))
 {
