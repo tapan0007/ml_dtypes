@@ -43,9 +43,11 @@ parser.add_argument('--width', help='Highlight data paths wider than the width',
                     default=1000)
 parser.add_argument('--verbose', help='Verbosity level, 0 default, 1 shows in/outputs, 2 TBD',
                     default=0)
+parser.add_argument('--input_node', help='Input node in the neural network graph (where --images should be injected during calibration)',
+                    default="input")
 
 args = parser.parse_args()
-inputTensorName = "input"
+inputTensorName = args.input_node
 
 file = args.tfpb
 if not os.path.isfile(file):

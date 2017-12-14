@@ -133,10 +133,15 @@ class TfFe:
 
 
   def writeImages(self, outPrefix, imageFile, inputTensorName):
-    inputNode = self.__kg.getNode(inputTensorName)
+    self.__kg.levelize()
+    if self.__kg.hasNode(inputTensorName):
+      inputNode = self.__kg.getNode(inputTensorName)
+    else:
+      lowestLevelNodes = self.__kg.getLowestLevelNodes()
+      print("ERROR: the  --input_node %s  was not found. Use one of  %s" % (inputTensorName, [ n.getName() for n in lowestLevelNodes]))
+      exit(1)
     assert(inputNode != None)
     self.__kg.setInputNode(inputNode)
-    self.__kg.levelize()
     inputTfOpName = inputNode.getAttr("tfop").name
     with tf.Session() as sess:
       tf.import_graph_def(self.__gd, name="")
@@ -145,14 +150,19 @@ class TfFe:
       inputTensor = inputOp.outputs[0]
       inputShape = inputTensor.get_shape().as_list()
       shapeXY = inputShape[1:3]
+      inputType = inputTensor.dtype.as_numpy_dtype()
       if imageFile.endswith(".npy"):
         img = np.load(imageFile)
       elif imageFile == "linear":
         unusedArr = np.ndarray(inputShape)
-        img = np.arange(unusedArr.size, dtype=np.float16).reshape(inputShape)
+        img = np.arange(unusedArr.size, dtype=inputType).reshape(inputShape)
+        print("INFO: generated linear input=\n", img)
+      elif imageFile == "linspace1":
+        unusedArr = np.ndarray(inputShape)
+        img = np.linspace(0, 1, num=unusedArr.size, dtype=inputType).reshape(inputShape)
         print("INFO: generated linear input=\n", img)
       elif " " in imageFile:
-        img = np.fromstring(imageFile, dtype=np.float16, sep=" ")
+        img = np.fromstring(imageFile, dtype=inputType, sep=" ")
       else:
         img = Image.open(imageFile).resize(shapeXY)
         img = np.array(img)
