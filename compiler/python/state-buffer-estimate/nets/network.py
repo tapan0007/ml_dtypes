@@ -174,6 +174,10 @@ class Network(object):
             dataType = DataTypeInt16()
         elif dt == "float16":
             dataType = DataTypeFloat16()
+        elif dt == "float32":
+            dataType = DataTypeFloat32()
+        else:
+            raise ("Wrong DataType " + dt)
         nn = Network(dataType, netName)
 
         name2class = {}
