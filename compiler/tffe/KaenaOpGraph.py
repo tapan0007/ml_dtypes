@@ -425,7 +425,6 @@ class TrivNet(Network):
     
     jsonData = {
       "net_name"  : "TrivNet",
-      "data_type" : "float16",
       "layers"   : []
     }
        
@@ -436,6 +435,8 @@ class TrivNet(Network):
     npInfo = inputNode.getNpInfo()[0]
     (batch, height, width, channels) = npInfo.npShape
     assert(height == width)
+    jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
+
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     inputLayerData = {
       "layer_name"      : inputNode.getName(),

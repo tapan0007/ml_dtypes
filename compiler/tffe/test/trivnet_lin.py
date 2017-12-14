@@ -40,7 +40,7 @@ print("\nINFO: started as  ", " ".join(sys.argv))
 
 confStr = sys.argv[1]
 
-# Sample confStr : tf16-l2-b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
+# Sample confStr : tfloat16-l2-b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
 confStr = confStr.upper() + "-"
 if len(sys.argv) > 2:
   outPrefix = sys.argv[2]

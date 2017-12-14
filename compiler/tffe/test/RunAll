@@ -50,6 +50,8 @@ tests = {
   "1-1conv9_64"   : [ "trivnet_conv1",  "b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "2-1conv3_64s8" : [ "trivnet_conv1",  "b1-h16-r3-s8-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "2-1conv9_64s8" : [ "trivnet_conv1",  "b1-h16-r9-s8-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "6-alexnet"     : [ "tf_pb",          "alexnet_v100/alexnet_fp32.pb",  "alexnet", "--input_node Variable --images linspace1"],
+  "8-resnet152"   : [ "tf_pb",          "resnet_v2_152/pb/resnet_v2_152_fp32.pb",  "resnet152", "--images linspace1"],
 }
 
 testList = sorted(tests)
@@ -57,10 +59,13 @@ if len(args.test) > 0:
   testList = args.test
 
 for testName in testList:
-  (nnStruct, nnConfig, nnLabel) = tests[testName]
+  # Add default NN args
+  if len(tests[testName]) < 4:
+    tests[testName].append("")
+  (nnStruct, nnConfig, nnLabel, nnArgs) = tests[testName]
   if verbose:
     print("\n############## %s ##############" % testName)
-  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=%s > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, nnLabel)
+  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
   if args.stop_after == "backend":
     cmd += 'bash $KAENA_PATH/compiler/python/state-buffer-estimate/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
   cmd += 'echo -n PASS || echo -n FAIL; echo "  "' + testName
