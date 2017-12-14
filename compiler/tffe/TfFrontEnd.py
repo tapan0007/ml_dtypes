@@ -150,14 +150,19 @@ class TfFe:
       inputTensor = inputOp.outputs[0]
       inputShape = inputTensor.get_shape().as_list()
       shapeXY = inputShape[1:3]
+      inputType = inputTensor.dtype.as_numpy_dtype()
       if imageFile.endswith(".npy"):
         img = np.load(imageFile)
       elif imageFile == "linear":
         unusedArr = np.ndarray(inputShape)
-        img = np.arange(unusedArr.size, dtype=np.float16).reshape(inputShape)
+        img = np.arange(unusedArr.size, dtype=inputType).reshape(inputShape)
+        print("INFO: generated linear input=\n", img)
+      elif imageFile == "linspace1":
+        unusedArr = np.ndarray(inputShape)
+        img = np.linspace(0, 1, num=unusedArr.size, dtype=inputType).reshape(inputShape)
         print("INFO: generated linear input=\n", img)
       elif " " in imageFile:
-        img = np.fromstring(imageFile, dtype=np.float16, sep=" ")
+        img = np.fromstring(imageFile, dtype=inputType, sep=" ")
       else:
         img = Image.open(imageFile).resize(shapeXY)
         img = np.array(img)
