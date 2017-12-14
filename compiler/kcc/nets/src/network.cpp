@@ -162,6 +162,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         m_DataType = new DataTypeInt16();
     } else if (dataType == DataTypeFloat16::gNameStatic()) {
         m_DataType = new DataTypeFloat16();
+    } else if (dataType == DataTypeFloat32::gNameStatic()) {
+        m_DataType = new DataTypeFloat32();
     } else {
         assert(0);
     }

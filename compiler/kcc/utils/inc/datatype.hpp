@@ -126,8 +126,7 @@ public:
     }
 };
 
-#define USE_FLOAT32_DATATYPE 0
-#if USE_FLOAT32_DATATYPE
+
 //########################################################
 class DataTypeFloat32 : public DataType {
 private:
@@ -159,7 +158,7 @@ public:
         return "FP32";
     }
 };
-#endif // USE_FLOAT32_DATATYPE
+
 
 } // namespace utils
 } // namespace kcc
