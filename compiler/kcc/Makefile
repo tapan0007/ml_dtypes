@@ -7,7 +7,7 @@ MAINMOD= compiler
 top :
 	@for mod in $(MODS) $(MAINMOD); do \
 	    (if cd $$mod; then \
-		    make clean; make -k; \
+			make -k; \
 		fi) \
 	done 2>&1 | tee e; \
 	echo; echo '========================'; \
@@ -21,3 +21,7 @@ top :
 clean :
 	rm -f */obj/*.o */obj/lib*.a
 
+alldeps :
+	@for mod in $(MODS) $(MAINMOD); do \
+		(cd $$mod; $(MAKE) alldeps) \
+	done

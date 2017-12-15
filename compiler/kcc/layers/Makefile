@@ -21,6 +21,10 @@ OBJDIR = obj
 DEPDIR = dep
 
 ########################################################
+all : $(LIBRARY)
+
+include $(DEPDIR)/all.dep
+########################################################
 SRCS := layer 
 SRCS := $(SRCS) activlayer relulayer tanhlayer 
 SRCS := $(SRCS) combinelayer subsamplelayer convlayer 
@@ -30,8 +34,6 @@ CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
 OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 DEPFILES = $(addprefix $(DEPDIR)/,$(addsuffix .dep,$(SRCS)))
 
-########################################################
-all : $(LIBRARY)
 
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
@@ -40,11 +42,17 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 ########################################################
 ########################################################
-alldeps: $(DEPFILES)
+alldeps:
+	@test -d $(DEPDIR) || mkdir $(DEPDIR); \
+	for f in $(SRCS); do \
+	  $(CPP) $(CFLAGS) -MM -MT $(OBJDIR)/$$f.o $(SRCDIR)/$$f.cpp; \
+	done > $(DEPDIR)/all.dep
+
+#@$(CPP) $(CFLAGS) -MM -o $@ $<
 
 $(DEPDIR)/%.dep : $(SRCDIR)/%.cpp
 	@echo DEP $<
-	@$(CPP) $(CFLAGS) -M -o $@ $<
+	@$(CPP) $(CFLAGS) -MM -o $@ $<
 
 $(LIBRARY) : $(OFILES)
 	@echo AR $@

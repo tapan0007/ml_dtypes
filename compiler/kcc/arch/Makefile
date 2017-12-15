@@ -15,6 +15,7 @@ LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 SRCDIR = src
 OBJDIR = obj
+DEPDIR = dep
 
 ########################################################
 SRCS = activationeng arch pearray poolingeng psumbuffer statebuffer
@@ -25,6 +26,7 @@ OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 ########################################################
 all : $(LIBRARY)
 
+include $(DEPDIR)/all.dep
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	@echo CC $<
@@ -32,6 +34,17 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 
 ########################################################
 ########################################################
+alldeps:
+	@test -d $(DEPDIR) || mkdir $(DEPDIR); \
+	for f in $(SRCS); do \
+	  $(CPP) $(CFLAGS) -MM -MT $(OBJDIR)/$$f.o $(SRCDIR)/$$f.cpp; \
+	done > $(DEPDIR)/all.dep
+
+########################################################
+$(DEPDIR)/%.dep : $(SRCDIR)/%.cpp
+	@echo DEP $<
+	@$(CPP) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o -o $@ $<
+
 
 $(LIBRARY) : $(OFILES)
 	@echo AR $@

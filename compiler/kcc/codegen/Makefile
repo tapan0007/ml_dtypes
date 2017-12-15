@@ -21,6 +21,7 @@ LIBRARY = $(OBJDIR)/lib$(MODULE).a
 
 SRCDIR = src
 OBJDIR = obj
+DEPDIR = dep
 
 ########################################################
 SRCS = codegenlayer codegeninputlayer codegenconvlayer codegenrelulayer codegentanhlayer codegenactivlayer codegen
@@ -31,10 +32,18 @@ OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 ########################################################
 all : $(LIBRARY)
 
+include $(DEPDIR)/all.dep
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	@echo CC $<
 	@$(CPP) $(CFLAGS) -c -o $@ $<
+
+########################################################
+alldeps:
+	@test -d $(DEPDIR) || mkdir $(DEPDIR); \
+	for f in $(SRCS); do \
+	  $(CPP) $(CFLAGS) -MM -MT $(OBJDIR)/$$f.o $(SRCDIR)/$$f.cpp; \
+	done > $(DEPDIR)/all.dep
 
 ########################################################
 ########################################################
