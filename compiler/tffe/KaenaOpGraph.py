@@ -139,14 +139,55 @@ class NodeSimple(Node):
     return(layerDataBase, fileListBase)
 
 class NodeConv2D(Node):
-  def __init__(self, name, opType, padding, dataFormat, attrs):
+  def __init__(self, name, opType, attrs):
     super().__init__(name, opType, attrs)
-    self.__padding = padding
-    self.__dataFormat = dataFormat
 
   def getStrides(self):
-    return(self.getAttr("strides"))
+    return self.getAttr("strides")
   
+  def getPaddingMode(self):
+    return self.getAttr("padding").decode("utf-8")
+
+  def getDataFormat(self):
+    return self.getAttr("data_format").decode("utf-8")
+  
+  # Return the 2 significant dimensions of 2-D filter
+  def getFilter(self):
+    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    filterArr = npInfoW.npShape[0:2]
+    # Ensure 2-D filter
+    assert len(npInfoW.npShape) == 4
+    assert npInfoW.npShape[2] > 0
+    assert npInfoW.npShape[3] > 0
+    return filterArr
+  
+  # Utility to extract 2-D object dimensions from 4-D (batched, with channels) conv tensor dimension
+  def dim2imgSize(self, dim):
+    assert len(dim) == 4
+    assert self.getDataFormat() == "NHWC"
+    arr = dim[1:3]
+    assert dim[0] > 0
+    assert dim[3] > 0
+    return arr
+  
+  # Return the 2 significant dimensions of batched multi channel IFMAP (of 2-D images)
+  def getIFmapImageSize(self):
+    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    ifmapArr = self.dim2imgSize(npInfoIF.npShape)
+    return ifmapArr
+
+  # Return the 2 significant dimensions of batched multi channel OFMAP (of 2-D images)
+  def getOFmapImageSize(self):
+    npInfo = self.getNpInfo()[0]
+    ifmapArr = self.dim2imgSize(npInfo.npShape)
+    return ifmapArr
+
+  # Return the 2 significant dimensions of batched multi channel strides (on 2-D images)
+  def getStridesSize(self):
+    strides = self.getStrides()
+    stridesArr = self.dim2imgSize(strides)
+    return stridesArr
+
   # Returns layer python model in text format, and list of files (npy data)
   def genCompilerLayerText(self):
     fileList = []
@@ -169,7 +210,45 @@ class NodeConv2D(Node):
     s += "        \n"
     fileList += [npFileSimW, npFileSim]
     return(s, fileList)
-
+  
+  def calcTpbPadding(self, paddingMode):
+    padding = [[0,0], [0,0], [0,0], [0,0]]
+    (R, S) = self.getFilter()
+    assert R == S
+    (Hi, Wi) = self.getIFmapImageSize()
+    assert Hi == Wi
+    (Ho, Wo) = self.getOFmapImageSize()
+    assert Ho == Wo
+    (Sv, Sh) = self.getStridesSize()
+    assert Sv == Sh
+    if paddingMode == "SAME":
+      if Ho * Sv == Hi:
+        # Padding - assume square filters for simplicity.
+        # Once debugged and tested split off the S calculation as north/south.
+        #   Filter   IFMAP        Tonga padding
+        #          0123456789 -> OFMAP pixel
+        #   1      0        9     [0, 0]
+        #   2      01       9P    [0, 1]
+        #   3     P01      89P    [1, 1]
+        #   4     P012     89PP   [1, 2]
+        #   5    PP012    789PP   [2, 2]
+        #   6    PP0123   789PPP  [2, 3]
+        #   7   PPP0123  6789PPP  [3, 3]
+        padWest = (R - 1) // 2
+        padEast =  R // 2
+        padding = [[0,0], [0,0], [padWest,padEast], [padWest,padEast]]
+      else:
+        raise("Unsupported IFMAP %d and OFMAP %d sizes with stride %d in padding mode %s" % (Hi, Ho, Sv, paddingMode))
+    elif paddingMode == "VALID":
+      # Valid mode should not have any padding so just assert on proper Fmap sizes
+      assert Ho * Sv + R // 2 * 2 == Hi
+      (padWest, padEast) = (0, 0)
+    else:
+      raise("Unsupported padding mode %s" % paddingMode)
+    print("DEBUG: calcTpbPadding  %s  IFMAP %dx%d  OFMAP %dx%d  STRIDE %dx%d  FILTER %dx%d  MODE %s  PAD %d-%dx%d-%d" %
+       (self.getName(), Hi, Wi, Ho, Wo, Sv, Sh, R, S, paddingMode, padWest,padEast, padWest,padEast))
+    return padding
+  
   # Returns layer json model in dictionary format, and list of files (npy data)
   # To be removed once full flow is tested with JSON
   def genCompilerLayerJson(self):
@@ -188,7 +267,7 @@ class NodeConv2D(Node):
 
     fileList += [npFileSimW, npFileSim]
     stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
-    padding = [[0,0], [0,0], [1,1], [1,1]]   # TO_DO extract it properly
+    padding = self.calcTpbPadding(self.getPaddingMode())
     layerData = {
       "layer_type"      : "Conv",
       "kernel_file"     : npFileSimW,
