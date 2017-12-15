@@ -31,7 +31,7 @@ OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 ########################################################
 all : $(LIBRARY)
 
-include $(DEPDIR)/all.dep
+-include $(DEPDIR)/all.dep
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	@echo CC $<

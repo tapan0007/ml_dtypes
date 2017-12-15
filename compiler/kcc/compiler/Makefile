@@ -42,7 +42,7 @@ OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
 ########################################################
 all : $(MODULE).exe
 
-include $(DEPDIR)/all.dep
+-include $(DEPDIR)/all.dep
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	@echo CC $<

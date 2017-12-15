@@ -23,7 +23,7 @@ DEPDIR = dep
 ########################################################
 all : $(LIBRARY)
 
-include $(DEPDIR)/all.dep
+-include $(DEPDIR)/all.dep
 ########################################################
 SRCS := layer 
 SRCS := $(SRCS) activlayer relulayer tanhlayer 
