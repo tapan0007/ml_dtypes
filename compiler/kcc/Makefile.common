@@ -8,7 +8,7 @@ INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
 
 
 CFLAGS=$(COPTS) $(CINC)
-CINC =  $(INK_INC) -I../inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+CINC =  $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 ########################################################
