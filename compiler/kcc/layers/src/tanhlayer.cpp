@@ -38,7 +38,7 @@ TanhLayer::qPassThrough() const
     return false;
 }
 
-bool 
+bool
 TanhLayer::qTanhLayer() const
 {
     return true;

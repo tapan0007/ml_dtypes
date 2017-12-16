@@ -45,7 +45,7 @@ Network::addLayer(Layer* layer)
 
 
 //--------------------------------------------------------
-void 
+void
 Network::SchedLayerForwRevIter::operator++()
 {
     Layer* const currLayer = m_CurrLayer;
@@ -81,7 +81,7 @@ void
 Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) const
 {
     archive(cereal::make_nvp(utils::Key_NetName, m_Name));
-    archive(cereal::make_nvp(utils::Key_DataType, 
+    archive(cereal::make_nvp(utils::Key_DataType,
                             std::string(m_DataType->gName())));
 
     // Temporary to vector for Cereal
@@ -167,7 +167,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     } else {
         assert(0);
     }
-     
+
     vector<serialize::SerLayer> serLayers;
     archive(cereal::make_nvp(utils::Key_Layers, serLayers));
     kcc::utils::breakFunc(333);
@@ -187,7 +187,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         serLayer.gOfmapHeight(),
                         serLayer.gOfmapWidth());
             const string dataTensorDimSemantics = serLayer.gOfmapFormat();
-            layer = new layers::InputLayer(params, fmap_desc, 
+            layer = new layers::InputLayer(params, fmap_desc,
                         refFile.c_str(), dataTensorDimSemantics.c_str());
         } else if (serLayer.gTypeStr() == TypeStr_Conv) {
             assert(serLayer.gNumPrevLayers() == 1);

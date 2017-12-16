@@ -21,7 +21,7 @@ CodeGenConvLayer::generate(Layer* layer)
     FILE* const objFile = gObjFile();
     ConvLayer* const convLayer = dynamic_cast<ConvLayer*>(layer);
     assert(convLayer);
-        
+
     Layer* const prevLayer  = convLayer->gPrevLayer(0);
     const unsigned numIfmaps     = prevLayer->gNumOfmaps();
     const unsigned ifmapWidth    = prevLayer->gOfmapWidth();

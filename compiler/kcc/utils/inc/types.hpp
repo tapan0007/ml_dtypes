@@ -12,7 +12,7 @@ typedef signed char int8;
 typedef short int16;
 typedef int int32;
 typedef long int64;
- 
+
 static_assert(sizeof(int8)  == 1, "sizeof(int8) != 1");
 static_assert(sizeof(int16) == 2, "sizeof(int16) != 2");
 static_assert(sizeof(int32) == 4, "sizeof(int32) != 4");

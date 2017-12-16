@@ -1,5 +1,5 @@
 # codegen compiler
-	#egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' | 
+#egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' |
 
 MODS = arch layers memmgr nets utils schedule serialize codegen
 MAINMOD= compiler 

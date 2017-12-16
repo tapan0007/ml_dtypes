@@ -15,7 +15,7 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
          int num_ofmaps, const string& dataTensorSemantics,
          const std::tuple<int,int>& stride,
          const std::tuple<int,int>& kernel)
-    : Layer(param, 
+    : Layer(param,
             FmapDesc(
                 (num_ofmaps >= 1 ? num_ofmaps : prev_layer->gNumOfmaps()),
                 prev_layer->gOfmapHeight() / std::get<0>(stride),

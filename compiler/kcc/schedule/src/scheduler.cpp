@@ -301,7 +301,7 @@ Scheduler::calcFanoutBatch()
 
 
 //--------------------------------------------------------
-void 
+void
 Scheduler::addPrevSbLayers(Layer* layer)
 {
     for (auto prevLayer : layer->gPrevLayers()) {

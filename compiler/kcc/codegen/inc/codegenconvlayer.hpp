@@ -21,7 +21,7 @@ public:
     CodeGenConvLayer(CodeGen* codegen)
         : CodeGenLayer(codegen)
     {}
-    
+
     //----------------------------------------------------------------
     void generate(Layer* layer) override;
 

@@ -12,7 +12,7 @@ PoolLayer::gPoolLayerStr() const
     ss << gKernelHeight() << "*" <<  gKernelWidth();
 
     ss << gName()  // << "{" << gTypeStr() << "}"
-       << gBaseLayerStr() 
+       << gBaseLayerStr()
        << ", kernel=" << gKernelHeight() << "*" << gKernelWidth()
        << ", stride=" << gStrideBT() << "*" << gStrideLR()
        << gStateSizesStr();

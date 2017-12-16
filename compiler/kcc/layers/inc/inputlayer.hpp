@@ -17,7 +17,7 @@ private:
 public:
     //----------------------------------------------------------------
     //TODO: remove default values for input data file name and tensor dimension meaning string
-    InputLayer(const Params& param, const FmapDesc& fmap_desc, 
+    InputLayer(const Params& param, const FmapDesc& fmap_desc,
                   const char* inputDataFileName,
                   const string& dataTensorDimSemantics)
         : Layer(param, fmap_desc, dataTensorDimSemantics, vector<Layer*>())

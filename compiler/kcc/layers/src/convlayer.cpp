@@ -51,7 +51,7 @@ ConvLayer::verify() const
 }
 
 //--------------------------------------------------------
-int 
+int
 ConvLayer::gNumberWeights() const
 {
     assert(gNumPrevLayers() == 1);

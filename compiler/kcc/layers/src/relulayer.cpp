@@ -45,7 +45,7 @@ ReluLayer::qPassThrough() const
     return false;
 }
 
-bool 
+bool
 ReluLayer::qReluLayer() const
 {
     return true;

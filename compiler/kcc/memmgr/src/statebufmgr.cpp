@@ -22,7 +22,7 @@ StateBufferMgr::StateBufferMgr(arch::Arch* arch, Network* ntwk)
 }
 
 //--------------------------------------------------------
-void 
+void
 StateBufferMgr::freeLayerMem(Layer* layer)
 {
     assert(layer->qStoreInSB());
@@ -108,7 +108,7 @@ StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
 
 
 //--------------------------------------------------------
-void 
+void
 StateBufferMgr::calcLayerFmapAddresses()
 {
     for (auto layer : m_Network->gLayers()) {

@@ -31,7 +31,7 @@ namespace serialize {
 
 
 //--------------------------------------------------------
-class SerLayer { 
+class SerLayer {
     //----------------------------------------------------
 public:
     SerLayer()
@@ -40,9 +40,9 @@ public:
             = m_Batching[FmapIndex_H] = m_Batching[FmapIndex_W] = 1;
         m_Stride[FilterIndex_M]   = m_Stride[FilterIndex_C]
             = m_Stride[FilterIndex_R]   = m_Stride[FilterIndex_S]   = 0;
-        m_Padding[FmapIndex_N][0]      = m_Padding[FmapIndex_N][1]  = 
+        m_Padding[FmapIndex_N][0]      = m_Padding[FmapIndex_N][1]  =
             m_Padding[FmapIndex_C][0]  = m_Padding[FmapIndex_C][1]  =
-            m_Padding[FmapIndex_H][0]  = m_Padding[FmapIndex_H][1]  = 
+            m_Padding[FmapIndex_H][0]  = m_Padding[FmapIndex_H][1]  =
             m_Padding[FmapIndex_W][0]  = m_Padding[FmapIndex_W][1]  = 0;
     }
 

@@ -18,7 +18,7 @@ Arch::Arch()
     //const long stateBuffersSizeInBytes = 12 * 1024 * 1024; // numberPeRows  ## 12 MB
     const long stateBuffersSizeInBytes =  8 * 1024 * 1024; // numberPeRows  ##  8 MB
 
-    const long sbPartitionSizeInBytes  = stateBuffersSizeInBytes  / numberPeRows; 
+    const long sbPartitionSizeInBytes  = stateBuffersSizeInBytes  / numberPeRows;
 
     m_PeArray          = new PeArray(numberPeRows, numberPeColumns);  // first
 

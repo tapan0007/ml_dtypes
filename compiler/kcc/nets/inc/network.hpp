@@ -98,7 +98,7 @@ public:
     const string& gName() const {
         return m_Name;
     }
-    
+
     SchedForwLayers gSchedForwLayers();
     SchedRevLayers gSchedRevLayers();
 
