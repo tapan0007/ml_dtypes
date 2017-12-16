@@ -49,16 +49,16 @@ public:
     void calcLayerFmapAddresses();
 
 private:
-    Network* m_Network;
-    Arch* m_Arch;
-    StateBuffer* m_StateBuffer;
+    Network* const      m_Network;
+    Arch* const         m_Arch;
+    StateBuffer* const  m_StateBuffer;
 
-    StateBufferAddress m_OfmapAddress;
-    StateBufferAddress m_IfmapAddress;
-    StateBufferAddress m_FirstSbAddress;
-    StateBufferAddress m_FirstFreeStart;
-    StateBufferAddress m_MaxNumberWeightsPerPart;
-    StateBufferAddress m_PartitionSize;
+    StateBufferAddress  m_OfmapAddress;
+    StateBufferAddress  m_IfmapAddress;
+    StateBufferAddress  m_FirstSbAddress;
+    StateBufferAddress  m_FirstFreeStart;
+    StateBufferAddress  m_MaxNumberWeightsPerPart;
+    StateBufferAddress  m_PartitionSize;
 };
 
 

@@ -10,11 +10,11 @@ namespace memmgr {
 
 //--------------------------------------------------------
 StateBufferMgr::StateBufferMgr(arch::Arch* arch, Network* ntwk)
+    : m_Network(ntwk)
+    , m_Arch(arch)
+    , m_StateBuffer(arch->gStateBuffer())
 {
-    m_Arch = arch;
-    m_Network = ntwk;
 
-    m_StateBuffer = arch->gStateBuffer();
     m_PartitionSize = m_StateBuffer->gPartitionSizeInBytes();
     m_FirstSbAddress = m_StateBuffer->gFirstAddressInBytes();
 
