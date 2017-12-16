@@ -8,10 +8,6 @@
 #include <vector>
 #include <assert.h>
 
-#include <cereal/types/memory.hpp>
-#include <cereal/archives/json.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/map.hpp>
 
 
 using std::string;
@@ -54,6 +50,13 @@ protected:
     virtual ~Layer()
     {}
 
+private:
+    Layer() = delete;
+    Layer(const Layer&) = delete;
+
+    Layer& operator= (const Layer&) const = delete;
+
+protected:
     static vector<Layer*> mkLayerVector2(Layer* layer1, Layer* layer2);
 
     virtual bool verify() const = 0;

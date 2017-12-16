@@ -5,11 +5,6 @@
 
 #include <string>
 
-#include "psumbuffer.hpp"
-#include "pearray.hpp"
-//#include "statebuffer.hpp"
-//#include "poolingeng.hpp"
-//#include "activationeng.hpp"
 
 namespace kcc {
 namespace arch {

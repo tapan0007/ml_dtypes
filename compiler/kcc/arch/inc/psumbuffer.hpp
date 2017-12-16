@@ -3,16 +3,17 @@
 #ifndef KCC_ARCH_PSUMBUFFER_H
 #define KCC_ARCH_PSUMBUFFER_H 1
 
-#include "pearray.hpp"
 
 namespace kcc {
 namespace arch {
+
+class PeArray;
 
 //--------------------------------------------------------
 class PsumBuffer {
 public:
     //----------------------------------------------------------------
-    PsumBuffer(PeArray* peArray, int numberBanks, int numberBankEntries);
+    PsumBuffer(const PeArray* peArray, int numberBanks, int numberBankEntries);
 
     //----------------------------------------------------------------
     int gNumberBanks() const {

@@ -33,7 +33,14 @@ public:
          int num_ofmaps, const string& dataTensorSemantics,
          const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel);
 
+private:
+    SubSampleLayer() = delete;
+    SubSampleLayer(const SubSampleLayer&) = delete;
 
+    SubSampleLayer& operator= (const SubSampleLayer&) const = delete;
+
+
+public:
 
     //----------------------------------------------------------------
     // Horizontal (Left-to-Right) stride

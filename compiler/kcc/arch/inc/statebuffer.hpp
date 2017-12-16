@@ -3,16 +3,17 @@
 #ifndef KCC_ARCH_STATEBUFFER_H
 #define KCC_ARCH_STATEBUFFER_H 1
 
-#include "pearray.hpp"
 
 namespace kcc {
 namespace arch {
+
+class PeArray;
 
 //--------------------------------------------------------
 class StateBuffer {
 public:
     //--------------------------------------------------------
-    StateBuffer(PeArray* peArray, long partitionSizeInBytes);
+    StateBuffer(const PeArray* peArray, long partitionSizeInBytes);
 
     //--------------------------------------------------------
     int gNumberPartitions() const {
@@ -41,10 +42,7 @@ public:
 
 
     //--------------------------------------------------------
-    long gPartitionStartAddressInBytes(int partNum) const {
-        assert((partNum >= 0) && (partNum < gNumberPartitions()));
-        return gFirstAddressInBytes() + partNum * gPartitionSizeInBytes();
-    }
+    long gPartitionStartAddressInBytes(int partNum) const;
 
 private:
 

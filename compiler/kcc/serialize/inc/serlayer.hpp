@@ -36,20 +36,32 @@ class SerLayer {
 public:
     SerLayer()
     {
-        m_Batching[FmapIndex_N] = m_Batching[FmapIndex_C]
-            = m_Batching[FmapIndex_H] = m_Batching[FmapIndex_W] = 1;
-        m_Stride[FilterIndex_M]   = m_Stride[FilterIndex_C]
-            = m_Stride[FilterIndex_R]   = m_Stride[FilterIndex_S]   = 0;
-        m_Padding[FmapIndex_N][0]      = m_Padding[FmapIndex_N][1]  =
-            m_Padding[FmapIndex_C][0]  = m_Padding[FmapIndex_C][1]  =
-            m_Padding[FmapIndex_H][0]  = m_Padding[FmapIndex_H][1]  =
-            m_Padding[FmapIndex_W][0]  = m_Padding[FmapIndex_W][1]  = 0;
+        m_Batching[FmapIndex_N]     = 1;
+        m_Batching[FmapIndex_C]     = 1;
+        m_Batching[FmapIndex_H]     = 1;
+        m_Batching[FmapIndex_W]     = 1;
+
+        m_Stride[FilterIndex_M]     = 0;
+        m_Stride[FilterIndex_C]     = 0;
+        m_Stride[FilterIndex_R]     = 0;
+        m_Stride[FilterIndex_S]     = 0;
+
+        m_Padding[FmapIndex_N][0]   = 0;
+        m_Padding[FmapIndex_N][1]   = 0;
+        m_Padding[FmapIndex_C][0]   = 0;
+        m_Padding[FmapIndex_C][1]   = 0;
+        m_Padding[FmapIndex_H][0]   = 0;
+        m_Padding[FmapIndex_H][1]   = 0;
+        m_Padding[FmapIndex_W][0]   = 0;
+        m_Padding[FmapIndex_W][1]   = 0;
     }
 
+    SerLayer(const SerLayer&) = default;
+
+public:
     template<typename Archive>
     void serialize(Archive & archive)
     {
-        utils::breakFunc(33);
         archive(cereal::make_nvp(utils::Key_LayerType, m_LayerType));
         archive(cereal::make_nvp(utils::Key_LayerName, m_LayerName));
         archive(cereal::make_nvp(utils::Key_PrevLayers, m_PrevLayers));
@@ -72,9 +84,6 @@ public:
             assert(false);
         }
     }
-
-protected:
-    //----------------------------------------------------------------
 
 public:
     const string& gTypeStr() const {

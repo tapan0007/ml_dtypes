@@ -17,13 +17,6 @@ using std::vector;
 #include "datatype.hpp"
 #include "fmapdesc.hpp"
 
-#include "inputlayer.hpp"
-#include "convlayer.hpp"
-#include "relulayer.hpp"
-#include "tanhlayer.hpp"
-
-//#include "serlayer.hpp"
-
 
 namespace kcc {
 

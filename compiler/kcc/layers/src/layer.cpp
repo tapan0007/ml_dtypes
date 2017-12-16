@@ -1,15 +1,9 @@
 #include <sstream>
 
 
-#include <cereal/archives/json.hpp>
-
 
 #include "datatype.hpp"
 #include "layer.hpp"
-#include "inputlayer.hpp"
-#include "convlayer.hpp"
-#include "relulayer.hpp"
-#include "tanhlayer.hpp"
 #include "network.hpp"
 
 

@@ -1,7 +1,8 @@
 #include "poolingeng.hpp"
 #include "activationeng.hpp"
 #include "statebuffer.hpp"
-
+#include "psumbuffer.hpp"
+#include "pearray.hpp"
 #include "arch.hpp"
 
 namespace kcc {
