@@ -18,6 +18,9 @@ namespace nets {
 namespace layers {
 
 //--------------------------------------------------------
+// Base layer for all layer that combine multiple earlier layer
+// (multi-input layer). Examples: ResNet's residue add, DenseNet's concatenation
+//--------------------------------------------------------
 class CombineLayer : public Layer {
 private:
     typedef Layer SubClass;

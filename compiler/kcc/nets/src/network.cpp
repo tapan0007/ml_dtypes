@@ -32,6 +32,7 @@ namespace nets {
 Network::Network(const DataType* dataType, const string& netName)
     : m_DataType(dataType)
     , m_Name(netName)
+    , m_DoBatching(false)
 {
 }
 

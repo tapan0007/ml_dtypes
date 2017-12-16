@@ -27,24 +27,28 @@ ReluLayer::gString() const
 }
 
 
+//--------------------------------------------------------
 const char*
 ReluLayer::gTypeStrStatic()
 {
     return "Relu";
 }
 
+//--------------------------------------------------------
 const char*
 ReluLayer::gTypeStr() const
 {
     return gTypeStrStatic();
 }
 
+//--------------------------------------------------------
 bool
 ReluLayer::qPassThrough() const
 {
     return false;
 }
 
+//--------------------------------------------------------
 bool
 ReluLayer::qReluLayer() const
 {

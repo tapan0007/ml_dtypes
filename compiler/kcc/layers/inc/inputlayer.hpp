@@ -16,7 +16,9 @@ private:
     typedef Layer SubClass;
 public:
     //----------------------------------------------------------------
-    //TODO: remove default values for input data file name and tensor dimension meaning string
+    // Represents input FMAP. The input FMAP is stored as the *OUTPUT*
+    // of the input layer.
+//--------------------------------------------------------
     InputLayer(const Params& param, const FmapDesc& fmap_desc,
                   const char* inputDataFileName,
                   const string& dataTensorDimSemantics)

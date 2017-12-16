@@ -19,6 +19,8 @@ namespace nets {
 namespace layers {
 
 //--------------------------------------------------------
+// Convolution layer.
+//--------------------------------------------------------
 class ConvLayer : public SubSampleLayer {
 private:
     typedef SubSampleLayer SubClass;
@@ -37,15 +39,20 @@ public:
     bool verify() const override;
 
     //----------------------------------------------------------------
+    // Numpy file where the filter weights are stored (for Inkling simulator).
+    //----------------------------------------------------------------
     string gFilterFileName() const {
         return m_FilterFileName;
     }
 
     //----------------------------------------------------------------
+    // AKA filter format
+    //----------------------------------------------------------------
     string gFilterTensorDimSemantics() const {
         return m_FilterTensorDimSemantics;
     }
 
+    //----------------------------------------------------------------
     static const char* TypeStr() {
         return utils::TypeStr_Conv;
     }

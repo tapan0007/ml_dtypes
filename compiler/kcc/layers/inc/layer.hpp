@@ -36,6 +36,8 @@ using nets::Network;
 using namespace utils;
 
 //--------------------------------------------------------
+// The base class of all layers.
+//--------------------------------------------------------
 class Layer { // abstract class
 protected:
 
@@ -65,12 +67,6 @@ public:
 
     //----------------------------------------------------------------
 
-    //----------------------------------------------------------------
-    typedef std::string Json;
-
-    Json gJson();
-
-    static Json combineJson(const Json& j1, const Json&j2);
 
     //----------------------------------------------------------------
     virtual bool qPassThrough() const {
@@ -353,51 +349,13 @@ public:
 
 
     //----------------------------------------------------------------
-    int32 gDenseBlockStart() const {
-        return m_DenseBlockStart;
-    }
-
-    //----------------------------------------------------------------
-    void rDenseBlockStart(int32 val) {
-        m_DenseBlockStart = val;
-    }
-
-    //----------------------------------------------------------------
-    int32 gDenseBlockEnd() const {
-        return m_DenseBlockEnd;
-    }
-
-    //----------------------------------------------------------------
-    void rDenseBlockEnd(int32 val) {
-        m_DenseBlockEnd = val;
-    }
-
-    //----------------------------------------------------------------
-    int32 gTranBlockStart() const {
-        return m_TranBlockStart;
-    }
-
-    //----------------------------------------------------------------
-    void rTranBlockStart(int32 val) {
-        m_TranBlockStart = val;
-    }
-
-    //----------------------------------------------------------------
-    int32 gTranBlockEnd() const {
-        return m_TranBlockEnd;
-    }
-
-    //----------------------------------------------------------------
-    void rTranBlockEnd(int32 val) {
-        m_TranBlockEnd = val;
-    }
-
-    //----------------------------------------------------------------
-    // ConvLayer must override these two methods with correct values
+    // ConvLayer must override this method with correct values
     StateBufferAddress gNumberWeights() const {
         return 0;
     }
 
+    //----------------------------------------------------------------
+    // ConvLayer must override this method with correct values
     virtual StateBufferAddress gNumberWeightsPerPartition() const = 0;
 
     //----------------------------------------------------------------
@@ -598,52 +556,48 @@ public:
 
 
 protected:
-    std::string         m_LayerName;
+    std::string             m_LayerName;
 
-    vector<Layer*>      m_PrevLayers;
-    vector<Layer*>      m_NextLayers;
-    vector<Layer*>      m_PrevSbLayers;
-    vector<Layer*>      m_NextSbLayers;
-    nets::Network*      m_Network;
+    vector<Layer*>          m_PrevLayers;
+    vector<Layer*>          m_NextLayers;
+    vector<Layer*>          m_PrevSbLayers;
+    vector<Layer*>          m_NextSbLayers;
+    nets::Network* const    m_Network;
 
-    Layer*              m_NextSchedLayer;
-    Layer*              m_PrevSchedLayer;
+    Layer*                  m_NextSchedLayer;
+    Layer*                  m_PrevSchedLayer;
 
-    StateBufferAddress  m_IfmapAddress;
-    StateBufferAddress  m_OfmapAddress;
-    StateBufferAddress  m_WeightAddress;
-    StateBufferAddress  m_ResMemWithBatching;
-    StateBufferAddress  m_ResMemWithoutBatching;
-    StateBufferAddress  m_BatchMemory;
-    int32               m_BatchFactor;
-    int32               m_Schedule;
-    int32               m_CurrLevel;
-    int32               m_EarlyLevel;
-    int32               m_LateLevel;
+    StateBufferAddress      m_IfmapAddress;
+    StateBufferAddress      m_OfmapAddress;
+    StateBufferAddress      m_WeightAddress;
+    StateBufferAddress      m_ResMemWithBatching;
+    StateBufferAddress      m_ResMemWithoutBatching;
+    StateBufferAddress      m_BatchMemory;
+    int32                   m_BatchFactor;
+    int32                   m_Schedule;
+    int32                   m_CurrLevel;
+    int32                   m_EarlyLevel;
+    int32                   m_LateLevel;
 
-    int32               m_DenseBlockStart;
-    int32               m_DenseBlockEnd;
-    int32               m_TranBlockStart;
-    int32               m_TranBlockEnd;
-    int32               m_RefCount;
-    int32               m_NumPredecessors;
+    int32                   m_RefCount;
+    int32                   m_NumPredecessors;
 
-    LayerId             m_Id;
-    string              m_NumberStr;
-    string              m_NumStr;
+    LayerId                 m_Id;
+    string                  m_NumberStr;
+    string                  m_NumStr;
 
-    FmapDesc            m_OfmapDesc;
-    string              m_DataTensorDimSemantics;
-    string              m_RefFileName;
+    FmapDesc                m_OfmapDesc;
+    string                  m_DataTensorDimSemantics;
+    string                  m_RefFileName;
 }; // class Layer
 
 
 class Layer::Params {
 public:
-    std::string         m_LayerName;
-    int32               m_BatchFactor = 1;
-    nets::Network*      m_Network = nullptr;
-    std::string         m_RefFile;
+    std::string             m_LayerName;
+    int32                   m_BatchFactor = 1;
+    nets::Network*          m_Network = nullptr;
+    std::string             m_RefFile;
 };
 
 

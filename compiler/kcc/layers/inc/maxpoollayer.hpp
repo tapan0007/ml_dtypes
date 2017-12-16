@@ -9,7 +9,9 @@ namespace kcc {
 namespace layers {
 
 
-//########################################################
+//--------------------------------------------------------
+// Max pooling layer
+//--------------------------------------------------------
 class MaxPoolLayer : public PoolLayer {
 private:
     typedef PoolLayer SubClass;

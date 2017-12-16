@@ -21,13 +21,14 @@ using nets::Network;
 using namespace utils;
 
 //--------------------------------------------------------
+// Relu activation
+//--------------------------------------------------------
 class ReluLayer : public ActivLayer {
 private:
     typedef ActivLayer SubClass;
 public:
     //----------------------------------------------------------------
     ReluLayer(const Params& params, Layer* prev_layer);
-
 
 
     //----------------------------------------------------------------

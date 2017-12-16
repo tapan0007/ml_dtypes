@@ -8,7 +8,9 @@
 namespace kcc {
 namespace layers {
 
-//########################################################
+//--------------------------------------------------------
+// Base class of various pooling layers.
+//--------------------------------------------------------
 class PoolLayer : public SubSampleLayer {
 private:
     typedef SubSampleLayer SubClass;

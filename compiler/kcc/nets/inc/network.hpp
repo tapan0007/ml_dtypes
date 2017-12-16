@@ -41,11 +41,10 @@ using layers::Layer;
 using schedule::LayerLevel;
 
 //--------------------------------------------------------
+// The whole neural net
+//--------------------------------------------------------
 class Network {
 public:
-    static const char* const net_name_key;
-    static const char* const data_type_key;
-    static const char* const layers_key;
     class SchedForwLayers;
     class SchedRevLayers;
 private:
@@ -58,6 +57,7 @@ public:
     template<typename Archive>
     void load(Archive & archive);
 
+private:
     Layer* findLayer(const string& prevLayerName);
 
 public:
@@ -114,6 +114,8 @@ private:
 
 
 //----------------------------------------------------------------
+// Iterates over scheduled layers either forward or in reverse
+//----------------------------------------------------------------
 class Network::SchedLayerForwRevIter {
 public:
     SchedLayerForwRevIter(Layer* startLayer, bool forw)
@@ -135,6 +137,8 @@ private:
     const bool  m_Forw;
 };
 
+//----------------------------------------------------------------
+// Iterates over scheduled layers forward
 //--------------------------------------------------------
 class Network::SchedForwLayers {
 public:
@@ -152,6 +156,8 @@ private:
 };
 
 //--------------------------------------------------------
+// Iterates over scheduled layers in reverse
+//--------------------------------------------------------
 class Network::SchedRevLayers {
 public:
     SchedRevLayers(std::vector<Layer*>& layers)
@@ -161,7 +167,7 @@ public:
         return SchedLayerForwRevIter(m_Layers[m_Layers.size()-1], false);
     }
     SchedLayerForwRevIter end() const {
-        return SchedLayerForwRevIter(nullptr, true);
+        return SchedLayerForwRevIter(nullptr, false);
     }
 private:
     vector<Layer*>& m_Layers;

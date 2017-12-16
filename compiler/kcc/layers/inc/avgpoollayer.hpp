@@ -8,7 +8,9 @@
 namespace kcc {
 namespace layers {
 
-//########################################################
+//--------------------------------------------------------
+// Average pooling layer
+//--------------------------------------------------------
 class AvgPoolLayer : public PoolLayer {
 private:
     typedef PoolLayer SubClass;

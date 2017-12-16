@@ -26,18 +26,21 @@ TanhLayer::gString() const
 }
 
 
+//--------------------------------------------------------
 const char*
 TanhLayer::gTypeStr() const
 {
     return "Tanh";
 }
 
+//--------------------------------------------------------
 bool
 TanhLayer::qPassThrough() const
 {
     return false;
 }
 
+//--------------------------------------------------------
 bool
 TanhLayer::qTanhLayer() const
 {

@@ -37,10 +37,6 @@ Layer::Layer(const Params& params,
     , m_CurrLevel(-1)
     , m_EarlyLevel(-1)
     , m_LateLevel(-1)
-    , m_DenseBlockStart(1)
-    , m_DenseBlockEnd(1)
-    , m_TranBlockStart(1)
-    , m_TranBlockEnd(1)
     , m_RefCount(0)
     , m_Id(LayerId_Null)
     , m_OfmapDesc(ofmap_desc)
@@ -57,7 +53,7 @@ Layer::Layer(const Params& params,
         prevLayer->addNextLayer(this);
     }
 
-    m_Network->addLayer(this); // will assign index
+    m_Network->addLayer(this);
 }
 
 //----------------------------------------------------------------

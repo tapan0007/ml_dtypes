@@ -21,6 +21,8 @@ using nets::Network;
 using namespace utils;
 
 //--------------------------------------------------------
+// Tanh activation
+//--------------------------------------------------------
 class TanhLayer : public ActivLayer {
 private:
     typedef ActivLayer SubClass;

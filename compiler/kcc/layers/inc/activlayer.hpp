@@ -21,6 +21,8 @@ using nets::Network;
 using namespace utils;
 
 //--------------------------------------------------------
+// Base layer for all activation layers;
+//--------------------------------------------------------
 class ActivLayer : public OneToOneLayer {
 private:
     typedef OneToOneLayer SubClass;

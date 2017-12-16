@@ -18,6 +18,9 @@ namespace nets {
 namespace layers {
 
 //--------------------------------------------------------
+// Base class of layers that have the same OFMAP tensor shaper
+// as the IFMAP tensor shape. Example: Activations.
+//--------------------------------------------------------
 class OneToOneLayer : public Layer {
 private:
     typedef Layer SubClass;

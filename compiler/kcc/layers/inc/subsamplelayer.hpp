@@ -20,6 +20,9 @@ namespace nets {
 namespace layers {
 
 //--------------------------------------------------------
+// Base layer for all layers that can stride or dilate.
+// Examples: Conv, Pool
+//--------------------------------------------------------
 class SubSampleLayer : public Layer {
 private:
     typedef Layer SubClass;
@@ -33,11 +36,13 @@ public:
 
 
     //----------------------------------------------------------------
+    // Horizontal (Left-to-Right) stride
     int gStrideLR() const {
         return m_StrideLR;
     }
 
     //----------------------------------------------------------------
+    // Vertical (Bottom-to-Top) stride
     int gStrideBT() const {
         return m_StrideBT;
     }
