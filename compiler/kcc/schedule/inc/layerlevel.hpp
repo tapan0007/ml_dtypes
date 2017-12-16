@@ -3,12 +3,15 @@
 #ifndef KCC_SCHEDULE_LAYERLEVEL_H
 #define KCC_SCHEDULE_LAYERLEVEL_H 1
 
+#include <vector>
 
 #include "consts.hpp"
-#include "layer.hpp"
 
 
 namespace kcc {
+namespace layers {
+    class Layer;
+}
 
 using namespace utils;
 using layers::Layer;
@@ -34,7 +37,7 @@ public:
     }
 
     //--------------------------------------------------------
-    vector<Layer*>& gLayers() {
+    std::vector<Layer*>& gLayers() {
         return m_Layers;
     }
 

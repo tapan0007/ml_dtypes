@@ -3,16 +3,27 @@
 #ifndef KCC_SCHEDULE_SCHEDULER_H
 #define KCC_SCHEDULE_SCHEDULER_H 1
 
-#include "consts.hpp"
+#include <vector>
 
-#include "network.hpp"
-#include "layer.hpp"
-#include "layerlevel.hpp"
+#include "consts.hpp"
+#include "types.hpp"
+
 
 namespace kcc {
+namespace nets {
+    class Network;
+}
+namespace layers {
+    class Layer;
+}
+
+using namespace utils;
+using layers::Layer;
 using nets::Network;
 
 namespace schedule {
+
+class LayerLevel;
 
 //--------------------------------------------------------
 class Scheduler {
@@ -59,7 +70,7 @@ private:
     void scheduleLevel(LayerLevel* level);
 
     //--------------------------------------------------------
-    void sortLayers(vector<Layer*>& levelCopy);
+    void sortLayers(std::vector<Layer*>& levelCopy);
 
     //--------------------------------------------------------
     void processLayerSbMemForResidueWithoutBatching(Layer* layer);

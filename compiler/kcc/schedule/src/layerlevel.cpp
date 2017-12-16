@@ -1,9 +1,12 @@
 #include <algorithm>
 
 #include "consts.hpp"
+#include "layer.hpp"
 #include "layerlevel.hpp"
 
 namespace kcc {
+using layers::Layer;
+
 namespace schedule {
 
 LayerLevel::LayerLevel(int levelNum, const std::vector<Layer*>& initLayers)
