@@ -9,6 +9,7 @@
 #include "layer.hpp"
 #include "network.hpp"
 #include "layerlevel.hpp"
+#include "scheduler.hpp"
 #include "printers.hpp"
 
 namespace kcc {
@@ -19,25 +20,12 @@ void
 Printer::printNetwork()
 {
     Network* ntwk = m_Network;
-    bool prevNl = false;
     StateBufferAddress maxStateSize = 0;
     //kcc_int32 layerNumMajor = 0;
     //kcc_int32 layerNumMinor = 0;
     m_PrevLayer = nullptr;
 
     for (auto layer : ntwk->gLayers()) {
-        if (layer->gDenseBlockStart() >= 0) {
-            if (!prevNl) {
-                std::cout << "\n";
-            }
-            std::cout << ">>> Starting dense block " << layer->gDenseBlockStart();
-        } else if (layer->gTranBlockStart() >= 0) {
-            if (!prevNl) {
-                std::cout << "\n";
-            }
-            std::cout << ">>> Starting tran block " << layer->gTranBlockStart();
-        }
-
         StateBufferAddress inStateSize, outStateSize, totalStateSize;
 
         if (layer->qStoreInSB()) {
@@ -55,17 +43,6 @@ Printer::printNetwork()
         string numStr(layer->gNumberStr());
         std::cout << numStr << " " << layer->gString();
         layer->rNumStr(numStr);
-
-        prevNl = false;
-        if (layer->gDenseBlockEnd() >= 0) {
-            std::cout << "<<< Ending dense block " << layer->gDenseBlockEnd();
-            std::cout << "\n";
-            prevNl = true;
-        } else if (layer->gTranBlockEnd() >= 0) {
-            std::cout << "<<< Ending tran block " << layer->gTranBlockEnd();
-            std::cout << "\n";
-            prevNl = true;
-        }
 
         m_PrevLayer = layer;
     }
@@ -107,10 +84,9 @@ Printer::printDot()
 
 //-----------------------------------------------------------------
 void
-Printer::printLevels()
+Printer::printLevels(schedule::Scheduler* scheduler)
 {
-    Network* ntwk = m_Network;
-    for (auto level : ntwk->gLevels()) {
+    for (auto level : scheduler->gLevels()) {
         for (auto layer : level->gLayers()) {
             std::cout << (layer->gNameWithSched()) << "\n";
         }

@@ -7,6 +7,7 @@
 #include <cereal/types/map.hpp>
 
 #include "debug.hpp"
+#include "printers.hpp"
 
 #include "arch.hpp"
 #include "statebufmgr.hpp"
@@ -40,7 +41,7 @@ int
 main(int argc, char* argv[])
 {
     kcc::utils::breakFunc(44);
-#if 0
+#if 1
     bool PrintLevels   = false;
     bool PrintSchedule = false;
     bool PrintDot      = false;
@@ -52,7 +53,7 @@ main(int argc, char* argv[])
     int i = 1;
     while (i < argc) {
         string arg(argv[i]);
-#if 0
+#if 1
         if (arg == "--print-layers") {
             PrintLayers = true;
         } else if (arg == "--print-levels") {
@@ -156,9 +157,9 @@ main(int argc, char* argv[])
     std::cout << "Generating instructions to file '" << objFileName << "'\n";
     codegen->generate(objFileName.c_str());
 
-#if 0
+    if (false) {
     //--------------------------------------------------------
-    printer = new Printer(ntwk);
+    const auto printer = new kcc::utils::Printer(ntwk);
 
     if (PrintLayers) {
         printer->printNetwork();
@@ -167,7 +168,7 @@ main(int argc, char* argv[])
 
     if (PrintLevels) {
         std::cout << "By level\n";
-        printer->printLevels();
+        printer->printLevels(scheduler);
         std::cout << "\n";
     }
 
@@ -182,8 +183,7 @@ main(int argc, char* argv[])
         printer->printDot();
         std::cout << "\n";
     }
-
-#endif
+    }
 
     return 0;
 }

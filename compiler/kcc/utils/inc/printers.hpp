@@ -6,9 +6,15 @@
 #include "consts.hpp"
 #include "datatype.hpp"
 #include "layer.hpp"
-#include "network.hpp"
+//#include "network.hpp"
 
 namespace kcc {
+namespace nest {
+    class Network;
+}
+namespace schedule {
+    class Scheduler;
+}
 using nets::Network;
 using layers::Layer;
 
@@ -28,7 +34,7 @@ public:
     void printDot();
 
     //--------------------------------------------------------
-    void printLevels();
+    void printLevels(schedule::Scheduler* scheduler);
 
     //--------------------------------------------------------
     void printSched();

@@ -37,8 +37,8 @@ public:
     void Schedule(Network* ntwk);
 
     //--------------------------------------------------------
-    std::vector<LayerLevel*>* gLevels() {
-        return &m_Levels;
+    std::vector<LayerLevel*>& gLevels() {
+        return m_Levels;
     }
 
 private:
