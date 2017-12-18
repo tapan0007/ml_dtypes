@@ -81,8 +81,8 @@ template<>
 void
 Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) const
 {
-    archive(cereal::make_nvp(utils::Key_NetName, m_Name));
-    archive(cereal::make_nvp(utils::Key_DataType,
+    archive(cereal::make_nvp(Key_NetName, m_Name));
+    archive(cereal::make_nvp(Key_DataType,
                             std::string(m_DataType->gName())));
 
     // Temporary to vector for Cereal
@@ -97,7 +97,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serLayer.addPrevLayer(prevLayer->gName());
         }
         {
-            utils::OfmapShapeType ofmapShape;
+            OfmapShapeType ofmapShape;
             ofmapShape[0] = layer->gBatchFactor();
             ofmapShape[1] = layer->gNumOfmaps();
             ofmapShape[2] = layer->gOfmapHeight();
@@ -110,7 +110,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serLayer.rRefFile(inLayer->gInputDataFileName());
         } else if (auto convLayer = dynamic_cast<ConvLayer*>(layer)) {
             {
-                utils::KernelShapeType  kernelShape;   // conv,pool
+                KernelShapeType  kernelShape;   // conv,pool
                 kernelShape[0] = 1;
                 kernelShape[1] = 1;
                 kernelShape[2] = convLayer->gKernelHeight();
@@ -121,7 +121,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serLayer.rKernelFile(convLayer->gFilterFileName());
             serLayer.rKernelFormat(convLayer->gFilterTensorDimSemantics());
             {
-                utils::StrideType stride;        // conv,pool
+                StrideType stride;        // conv,pool
                 stride[0] = 1;
                 stride[1] = 1;
                 stride[2] = convLayer->gStrideBT();
@@ -129,7 +129,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 serLayer.rStride(stride);
             }
             {
-                utils::PaddingType padding;       // conv,pool
+                PaddingType padding;       // conv,pool
                 padding[0][0] = 0; padding[0][1] = 0;
                 padding[1][0] = 0; padding[1][1] = 0;
                 padding[2][0] = convLayer->gPaddingBottom();
@@ -146,7 +146,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             assert(false);
         }
     }
-    archive(cereal::make_nvp(utils::Key_Layers, serLayers));
+    archive(cereal::make_nvp(Key_Layers, serLayers));
 }
 
 //--------------------------------------------------------
@@ -154,9 +154,9 @@ template<>
 void
 Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 {
-    archive(cereal::make_nvp(utils::Key_NetName, m_Name));
+    archive(cereal::make_nvp(Key_NetName, m_Name));
     string dataType;
-    archive(cereal::make_nvp(utils::Key_DataType, dataType));
+    archive(cereal::make_nvp(Key_DataType, dataType));
     if (dataType == DataTypeInt8::gNameStatic()) {
         m_DataType = new DataTypeInt8();
     } else if (dataType==DataTypeInt16::gNameStatic()) {
@@ -170,7 +170,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     }
 
     vector<serialize::SerLayer> serLayers;
-    archive(cereal::make_nvp(utils::Key_Layers, serLayers));
+    archive(cereal::make_nvp(Key_Layers, serLayers));
     kcc::utils::breakFunc(333);
     for (unsigned i = 0; i < serLayers.size(); ++i) {
         serialize::SerLayer& serLayer(serLayers[i]);
@@ -195,12 +195,12 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             const string& prevLayerName = serLayer.gPrevLayer(0);
             Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr);
-            const int num_ofmaps = serLayer.gNumOfmaps();
+            const kcc_int32 num_ofmaps = serLayer.gNumOfmaps();
             const string ofmapFormat(serLayer.gOfmapFormat());
-            std::tuple<int,int> stride = std::make_tuple(
+            std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
                                             serLayer.gStrideVertical(),
                                             serLayer.gStrideHorizontal());
-            std::tuple<int,int> kernel = std::make_tuple(
+            std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
                                             serLayer.gKernelHeight(),
                                             serLayer.gKernelWidth());
             const string filterFileName = serLayer.gKernelFile();

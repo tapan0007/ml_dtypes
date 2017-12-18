@@ -3,6 +3,7 @@
 #ifndef KCC_ARCH_POOLINGENG_H
 #define KCC_ARCH_POOLINGENG_H 1
 
+#include "types.hpp"
 
 namespace kcc {
 namespace arch {
@@ -12,20 +13,20 @@ class PoolingEng {
 public:
     PoolingEng(PsumBuffer* psumBuffer);
 
-    int gWidth() const {
+    kcc_int32 gWidth() const {
         return m_Width;
     }
 
-    long gInstructionRamStartInBytes() const {
+    kcc_int64 gInstructionRamStartInBytes() const {
         return 0x001E00000L;
     }
 
-    long gInstructionRamEndInBytes() const {
+    kcc_int64 gInstructionRamEndInBytes() const {
         return 0x001E03FFFL;
     }
 
 private:
-    const int m_Width;
+    const kcc_int32 m_Width;
 };
 
 }}

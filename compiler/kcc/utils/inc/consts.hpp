@@ -4,7 +4,7 @@
 #define KCC_UTILS_CONSTS_H
 
 namespace kcc {
-namespace utils {
+// keep types and constants in kcc namespace to avoid "using utils::TYPE"
 
 enum {
     FMAP_TENSOR_RANK = 4,
@@ -52,7 +52,6 @@ constexpr static const char* Key_Stride           = "stride";         // conv,po
 constexpr static const char* Key_Padding          = "padding";        // conv,pool
 constexpr static const char* Key_Batching         = "batching";       //
 
-} // namespace utils
 } // namespace kcc
 
 #endif

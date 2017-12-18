@@ -19,7 +19,7 @@ namespace utils {
 class FmapDesc {
 public:
     //----------------------------------------------------------------
-    FmapDesc(int32 num_maps, int32 map_height, int32 map_width)
+    FmapDesc(kcc_int32 num_maps, kcc_int32 map_height, kcc_int32 map_width)
         : m_NumMaps(num_maps)
         , m_MapHeight(map_height)
         , m_MapWidth(map_width)
@@ -31,19 +31,19 @@ public:
 
 
     //----------------------------------------------------------------
-    int32 gNumMaps() const
+    kcc_int32 gNumMaps() const
     {
         return m_NumMaps;
     }
 
     //----------------------------------------------------------------
-    int32 gMapWidth() const
+    kcc_int32 gMapWidth() const
     {
         return m_MapWidth;
     }
 
     //----------------------------------------------------------------
-    int32 gMapHeight() const
+    kcc_int32 gMapHeight() const
     {
         return m_MapHeight;
     }
@@ -70,9 +70,9 @@ private:
     FmapDesc() = delete;
 
 private:
-    int32 m_NumMaps;
-    int32 m_MapHeight;
-    int32 m_MapWidth;
+    kcc_int32 m_NumMaps;
+    kcc_int32 m_MapHeight;
+    kcc_int32 m_MapWidth;
 };
 
 } // namespace layers

@@ -74,11 +74,11 @@ public:
         return m_Layers;
     }
 
-    Layer* gLayer(int idx) const {
+    Layer* gLayer(kcc_int32 idx) const {
         return m_Layers[idx];
     }
 
-    int gNumberLayers() const {
+    kcc_int32 gNumberLayers() const {
         return m_Layers.size();
     }
 

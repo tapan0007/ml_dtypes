@@ -30,8 +30,8 @@ public:
 
     //----------------------------------------------------------------
     SubSampleLayer (const Params& param, Layer* prev_layer,
-         int num_ofmaps, const string& dataTensorSemantics,
-         const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel);
+         kcc_int32 num_ofmaps, const string& dataTensorSemantics,
+         const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel);
 
 private:
     SubSampleLayer() = delete;
@@ -44,43 +44,43 @@ public:
 
     //----------------------------------------------------------------
     // Horizontal (Left-to-Right) stride
-    int gStrideLR() const {
+    kcc_int32 gStrideLR() const {
         return m_StrideLR;
     }
 
     //----------------------------------------------------------------
     // Vertical (Bottom-to-Top) stride
-    int gStrideBT() const {
+    kcc_int32 gStrideBT() const {
         return m_StrideBT;
     }
 
     //----------------------------------------------------------------
-    int gKernelHeight() const {
+    kcc_int32 gKernelHeight() const {
         return m_KernelHeight;
     }
 
     //----------------------------------------------------------------
-    int gKernelWidth() const {
+    kcc_int32 gKernelWidth() const {
         return m_KernelWidth;
     }
 
     //----------------------------------------------------------------
-    int gPaddingLeft() const {
+    kcc_int32 gPaddingLeft() const {
         return m_PaddingLeft;
     }
 
     //----------------------------------------------------------------
-    int gPaddingRight() const {
+    kcc_int32 gPaddingRight() const {
         return m_PaddingRight;
     }
 
     //----------------------------------------------------------------
-    int gPaddingBottom() const {
+    kcc_int32 gPaddingBottom() const {
         return m_PaddingBottom;
     }
 
     //----------------------------------------------------------------
-    int gPaddingTop() const {
+    kcc_int32 gPaddingTop() const {
         return m_PaddingTop;
     }
 
@@ -93,16 +93,16 @@ public:
     bool verify() const override;
 
 private:
-    int m_StrideLR;
-    int m_StrideBT;
+    kcc_int32 m_StrideLR;
+    kcc_int32 m_StrideBT;
 
-    int m_KernelHeight;
-    int m_KernelWidth;
+    kcc_int32 m_KernelHeight;
+    kcc_int32 m_KernelWidth;
 
-    int m_PaddingLeft;
-    int m_PaddingRight;
-    int m_PaddingBottom;
-    int m_PaddingTop;
+    kcc_int32 m_PaddingLeft;
+    kcc_int32 m_PaddingRight;
+    kcc_int32 m_PaddingBottom;
+    kcc_int32 m_PaddingTop;
 };
 
 

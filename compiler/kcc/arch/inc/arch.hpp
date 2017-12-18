@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include "types.hpp"
 
 namespace kcc {
 namespace arch {
@@ -49,18 +50,18 @@ public:
 
 
     //----------------------------------------------------------------
-    int gNumberPeArrayRows() const;
+    kcc_int32 gNumberPeArrayRows() const;
 
     //----------------------------------------------------------------
-    int gNumberPeArrayColumns() const;
+    kcc_int32 gNumberPeArrayColumns() const;
 
 
 
     //----------------------------------------------------------------
-    int gNumberPsumBanks() const;
+    kcc_int32 gNumberPsumBanks() const;
 
     //----------------------------------------------------------------
-    int gPsumBankEntries() const;
+    kcc_int32 gPsumBankEntries() const;
 
     //----------------------------------------------------------------
     const std::string& gArchVersion() const;

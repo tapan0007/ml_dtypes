@@ -10,7 +10,7 @@ namespace nets {
 namespace layers {
 
 //--------------------------------------------------------
-CombineLayer::CombineLayer(const Params& params, Layer* prev_layer, Layer* earlier_layer, int num_ofmaps)
+CombineLayer::CombineLayer(const Params& params, Layer* prev_layer, Layer* earlier_layer, kcc_int32 num_ofmaps)
     : Layer(params,
             FmapDesc(num_ofmaps, prev_layer->gOfmapHeight(), prev_layer->gOfmapWidth()),
             prev_layer->gDataTensorDimSemantics(),

@@ -27,9 +27,9 @@ private:
 public:
 
     //----------------------------------------------------------------
-    ConvLayer(const Params& params, Layer* prev_layer, int num_ofmaps,
+    ConvLayer(const Params& params, Layer* prev_layer, kcc_int32 num_ofmaps,
         const string& dataTensorSemantics,
-        const std::tuple<int,int>& stride, const std::tuple<int,int>& kernel,
+        const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel,
         const char* filterFileName, const char* filterTensorDimSemantics);
 
     //----------------------------------------------------------------
@@ -54,7 +54,7 @@ public:
 
     //----------------------------------------------------------------
     static const char* TypeStr() {
-        return utils::TypeStr_Conv;
+        return TypeStr_Conv;
     }
 
     //----------------------------------------------------------------
@@ -68,10 +68,10 @@ public:
     }
 
     //----------------------------------------------------------------
-    int gNumberWeights() const;
+    kcc_int32 gNumberWeights() const;
 
     //----------------------------------------------------------------
-    long gNumberWeightsPerPartition() const override;
+    kcc_int64 gNumberWeightsPerPartition() const override;
 
     //----------------------------------------------------------------
     bool qConvLayer() const override {

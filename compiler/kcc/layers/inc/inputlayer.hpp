@@ -41,7 +41,7 @@ public:
 
     //----------------------------------------------------------------
     static const char* gTypeStrStatic() {
-        return utils::TypeStr_Input;
+        return TypeStr_Input;
     }
     const char*  gTypeStr() const  override {
         return gTypeStrStatic();
@@ -71,7 +71,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    long gNumberWeightsPerPartition() const override {
+    kcc_int64 gNumberWeightsPerPartition() const override {
         return 0;
     }
 

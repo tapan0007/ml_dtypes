@@ -4,6 +4,8 @@
 #define KCC_ARCH_PSUMBUFFER_H 1
 
 
+#include "types.hpp"
+
 namespace kcc {
 namespace arch {
 
@@ -13,38 +15,38 @@ class PeArray;
 class PsumBuffer {
 public:
     //----------------------------------------------------------------
-    PsumBuffer(const PeArray* peArray, int numberBanks, int numberBankEntries);
+    PsumBuffer(const PeArray* peArray, kcc_int32 numberBanks, kcc_int32 numberBankEntries);
 
     //----------------------------------------------------------------
-    int gNumberBanks() const {
+    kcc_int32 gNumberBanks() const {
         return m_NumberBanks;
     }
 
     //----------------------------------------------------------------
-    int gNumberBankEntries() const {
+    kcc_int32 gNumberBankEntries() const {
         return m_NumberBankEntries;
     }
 
     //----------------------------------------------------------------
-    int gBankEntrySizeInBytes() const {
+    kcc_int32 gBankEntrySizeInBytes() const {
         return m_BankEntrySizeInBytes;
     }
 
     //----------------------------------------------------------------
-    int gNumberColumns() const {
+    kcc_int32 gNumberColumns() const {
         return m_NumberColumns;
     }
 
     //----------------------------------------------------------------
-    long gAddress() const {
+    kcc_int64 gAddress() const {
         return 0x001800000L;
     }
 
 private:
-    const int  m_NumberColumns;
-    const int  m_NumberBanks;
-    const int  m_NumberBankEntries;
-    const long m_BankEntrySizeInBytes;
+    const kcc_int32  m_NumberColumns;
+    const kcc_int32  m_NumberBanks;
+    const kcc_int32  m_NumberBankEntries;
+    const kcc_int64 m_BankEntrySizeInBytes;
 };
 
 

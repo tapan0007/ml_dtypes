@@ -71,7 +71,7 @@ bool Layer::qStoreInSB() const
     return true; // this because Dana requires SB area for each operation,
                  // cannot feed convolution directly to pooling
 
-    const int32 mySched = gSchedule();
+    const kcc_int32 mySched = gSchedule();
     assert(mySched >= 0);
     const Layer* nextSchedLayer = gNextSchedLayer();
     if (!nextSchedLayer) { // output
@@ -95,7 +95,7 @@ bool Layer::qStoreInSB() const
 //----------------------------------------------------------------
 string Layer::gBaseLayerStr() const
 {
-    int32 i = 0;
+    kcc_int32 i = 0;
     string s = "";
     for (auto prevLayer : gPrevLayers()) {
         const FmapDesc& ofmap_desc = prevLayer->gOfmapDesc();
@@ -113,7 +113,7 @@ string Layer::gBaseLayerStr() const
 //----------------------------------------------------------------
 string Layer::gStateSizesStr() const
 {
-    int64 nIn, nOut, iState, oState, tState;
+    kcc_int64 nIn, nOut, iState, oState, tState;
     if (qStoreInSB()) {
         nIn     = gInputStateMemWithoutBatching();
         nOut    = gOutputStateMemWithoutBatching();
@@ -129,11 +129,11 @@ string Layer::gStateSizesStr() const
         tState  = nIn+nOut;
     }
 
-    const int64 numWeights = gNumberWeights();
+    const kcc_int64 numWeights = gNumberWeights();
     const Layer* const nextSchedLayer = gNextSchedLayer();
-    const int64 nextNumWeights = nextSchedLayer ?  nextSchedLayer->gNumberWeights() : 0;
+    const kcc_int64 nextNumWeights = nextSchedLayer ?  nextSchedLayer->gNumberWeights() : 0;
 
-    const int64 totMem = nIn + nOut + numWeights + nextNumWeights;
+    const kcc_int64 totMem = nIn + nOut + numWeights + nextNumWeights;
     std::stringstream ss;
     if (qStoreInSB()) {
         ss << "  Istate=" << iState << ", OState=" << oState << ", TState=" << tState

@@ -43,7 +43,7 @@ public:
 
 private:
     //--------------------------------------------------------
-    int gNumberLayers() const {
+    kcc_int32 gNumberLayers() const {
         return m_Layers.size();
     }
 
@@ -120,7 +120,7 @@ private:
     std::vector<Layer*> m_Layers;
     std::vector<LayerLevel*> m_Levels;
     Network* m_Network;
-    int m_currSchedule;
+    kcc_int32 m_currSchedule;
     StateBufferAddress m_CurrInMem;
     StateBufferAddress m_HighMemWatermark;
 };

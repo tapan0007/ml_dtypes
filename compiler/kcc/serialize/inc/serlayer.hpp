@@ -62,23 +62,23 @@ public:
     template<typename Archive>
     void serialize(Archive & archive)
     {
-        archive(cereal::make_nvp(utils::Key_LayerType, m_LayerType));
-        archive(cereal::make_nvp(utils::Key_LayerName, m_LayerName));
-        archive(cereal::make_nvp(utils::Key_PrevLayers, m_PrevLayers));
-        archive(cereal::make_nvp(utils::Key_OfmapShape, m_OfmapShape));
-        archive(cereal::make_nvp(utils::Key_OfmapFormat, m_OfmapFormat));
-        archive(cereal::make_nvp(utils::Key_RefFile, m_RefFile));
+        archive(cereal::make_nvp(Key_LayerType, m_LayerType));
+        archive(cereal::make_nvp(Key_LayerName, m_LayerName));
+        archive(cereal::make_nvp(Key_PrevLayers, m_PrevLayers));
+        archive(cereal::make_nvp(Key_OfmapShape, m_OfmapShape));
+        archive(cereal::make_nvp(Key_OfmapFormat, m_OfmapFormat));
+        archive(cereal::make_nvp(Key_RefFile, m_RefFile));
 
-        if (m_LayerType == utils::TypeStr_Input) {
-        } else if (m_LayerType == utils::TypeStr_Conv) {
-            archive(cereal::make_nvp(utils::Key_KernelShape, m_KernelShape));
-            archive(cereal::make_nvp(utils::Key_KernelFile, m_KernelFile));
-            archive(cereal::make_nvp(utils::Key_KernelFormat, m_KernelFormat));
-            archive(cereal::make_nvp(utils::Key_Stride, m_Stride));
-            archive(cereal::make_nvp(utils::Key_Padding, m_Padding));
-        } else if (m_LayerType == utils::TypeStr_Tanh) {
+        if (m_LayerType == TypeStr_Input) {
+        } else if (m_LayerType == TypeStr_Conv) {
+            archive(cereal::make_nvp(Key_KernelShape, m_KernelShape));
+            archive(cereal::make_nvp(Key_KernelFile, m_KernelFile));
+            archive(cereal::make_nvp(Key_KernelFormat, m_KernelFormat));
+            archive(cereal::make_nvp(Key_Stride, m_Stride));
+            archive(cereal::make_nvp(Key_Padding, m_Padding));
+        } else if (m_LayerType == TypeStr_Tanh) {
             // nothing specific to Tanh
-        } else if (m_LayerType == utils::TypeStr_Relu) {
+        } else if (m_LayerType == TypeStr_Relu) {
             // nothing specific to Relu
         } else {
             assert(false);
@@ -103,7 +103,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    int gBatchFactor() const {
+    kcc_int32 gBatchFactor() const {
         return m_Batching[0];
     }
 
@@ -118,37 +118,37 @@ public:
     }
 
     //----------------------------------------------------------------
-    const std::string& gPrevLayer(int idx) const {
+    const std::string& gPrevLayer(kcc_int32 idx) const {
         assert(0 <= idx and idx < gNumPrevLayers());
         return m_PrevLayers[idx];
     }
 
     //----------------------------------------------------------------
-    int gNumPrevLayers() const {
+    kcc_int32 gNumPrevLayers() const {
         return m_PrevLayers.size();
     }
 
 
     //----------------------------------------------------------------
-    void rOfmapShape(const utils::OfmapShapeType ofmapShape) {
-        for (int i = 0; i < FMAP_TENSOR_RANK; ++i) {
+    void rOfmapShape(const OfmapShapeType ofmapShape) {
+        for (kcc_int32 i = 0; i < FMAP_TENSOR_RANK; ++i) {
             m_OfmapShape[i] = ofmapShape[i];
         }
     }
 
     //----------------------------------------------------------------
-    int gOfmapWidth() const {
+    kcc_int32 gOfmapWidth() const {
         return m_OfmapShape[FmapIndex_W];
     }
 
     //----------------------------------------------------------------
-    int gOfmapHeight() const {
+    kcc_int32 gOfmapHeight() const {
         return m_OfmapShape[FmapIndex_H];
     }
 
 
     //----------------------------------------------------------------
-    int gNumOfmaps() const {
+    kcc_int32 gNumOfmaps() const {
         return m_OfmapShape[FmapIndex_C];
     }
 
@@ -170,28 +170,28 @@ public:
         m_RefFile = f;       // input
     }
 
-    void rStride(const utils::StrideType stride) {        // conv,pool
-        for (int i = 0; i < FILTER_TENSOR_RANK; ++i) {
+    void rStride(const StrideType stride) {        // conv,pool
+        for (kcc_int32 i = 0; i < FILTER_TENSOR_RANK; ++i) {
             m_Stride[i] = stride[i];
         }
     }
 
-    int gStrideVertical () const {
+    kcc_int32 gStrideVertical () const {
         return m_Stride[FilterIndex_R];        // conv,pool
     }
 
-    int gStrideHorizontal () const {
+    kcc_int32 gStrideHorizontal () const {
         return m_Stride[FilterIndex_S];        // conv,pool
     }
-    void rKernelShape(const utils::KernelShapeType  kernelShape) {//conv,pool
-        for (int i = 0; i < FILTER_TENSOR_RANK; ++i) {
+    void rKernelShape(const KernelShapeType  kernelShape) {//conv,pool
+        for (kcc_int32 i = 0; i < FILTER_TENSOR_RANK; ++i) {
             m_KernelShape[i] = kernelShape[i];
         }
     }
-    int gKernelHeight() const {
+    kcc_int32 gKernelHeight() const {
         return m_KernelShape[FilterIndex_R];   // conv,pool
     }
-    int gKernelWidth() const {
+    kcc_int32 gKernelWidth() const {
         return m_KernelShape[FilterIndex_S];   // conv,pool
     }
 
@@ -209,9 +209,9 @@ public:
         m_KernelFormat = fmt;
     }
 
-    void rPadding(const utils::PaddingType padding) {     // conv,pool
-        for (int i0 = 0; i0 < FMAP_TENSOR_RANK; ++i0) {
-            for (int i1 = 0; i1 < 2; ++i1) { // 1 for before, 1 for after
+    void rPadding(const PaddingType padding) {     // conv,pool
+        for (kcc_int32 i0 = 0; i0 < FMAP_TENSOR_RANK; ++i0) {
+            for (kcc_int32 i1 = 0; i1 < 2; ++i1) { // 1 for before, 1 for after
                 m_Padding[i0][i1] = padding[i0][i1];
             }
         }
@@ -223,17 +223,17 @@ private:
     std::string                 m_LayerType;
     std::string                 m_LayerName;
     vector<std::string>         m_PrevLayers;
-    utils::OfmapShapeType       m_OfmapShape;
+    OfmapShapeType              m_OfmapShape;
 
     std::string                 m_OfmapFormat;   // input,conv
     std::string                 m_RefFile;       // input
 
     std::string                 m_KernelFile;    // input(data), conv(weights)
     std::string                 m_KernelFormat;  // conv, pool
-    utils::KernelShapeType      m_KernelShape;   // conv,pool
-    utils::StrideType           m_Stride;        // conv,pool
-    utils::PaddingType          m_Padding;       // conv,pool
-    utils::BatchingType         m_Batching;
+    KernelShapeType             m_KernelShape;   // conv,pool
+    StrideType                  m_Stride;        // conv,pool
+    PaddingType                 m_Padding;       // conv,pool
+    BatchingType                m_Batching;
 }; // class Layer
 
 

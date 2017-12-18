@@ -21,8 +21,8 @@ Printer::printNetwork()
     Network* ntwk = m_Network;
     bool prevNl = false;
     StateBufferAddress maxStateSize = 0;
-    //int layerNumMajor = 0;
-    //int layerNumMinor = 0;
+    //kcc_int32 layerNumMajor = 0;
+    //kcc_int32 layerNumMinor = 0;
     m_PrevLayer = nullptr;
 
     for (auto layer : ntwk->gLayers()) {

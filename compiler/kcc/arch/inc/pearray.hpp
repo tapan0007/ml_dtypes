@@ -5,6 +5,8 @@
 
 #include <assert.h>
 
+#include "types.hpp"
+
 namespace kcc {
 namespace arch {
 
@@ -12,31 +14,31 @@ namespace arch {
 class PeArray {
 public:
     //----------------------------------------------------------------
-    PeArray(int numberRows, int numberColumns);
+    PeArray(kcc_int32 numberRows, kcc_int32 numberColumns);
 
     //----------------------------------------------------------------
-    int gNumberRows() const {
+    kcc_int32 gNumberRows() const {
         return m_NumberRows;
     }
 
     //----------------------------------------------------------------
-    int gNumberColumns() const {
+    kcc_int32 gNumberColumns() const {
         return m_NumberColumns;
     }
 
     //----------------------------------------------------------------
-    long gInstructionRamStartInBytes() const {
+    kcc_int64 gInstructionRamStartInBytes() const {
         return 0x001D00000L;
     }
 
     //----------------------------------------------------------------
-    long gInstructionRamEndInBytes() const {
+    kcc_int64 gInstructionRamEndInBytes() const {
         return 0x001D03FFFL;
     }
 
 private:
-    const int m_NumberRows;
-    const int m_NumberColumns;
+    const kcc_int32 m_NumberRows;
+    const kcc_int32 m_NumberColumns;
 };
 
 }}

@@ -11,15 +11,15 @@ namespace arch {
 //--------------------------------------------------------
 Arch::Arch()
 {
-    const int  numberPeRows            = 128;
-    const int  numberPeColumns       = 64;
-    const int  numberPsumBanks         = 4;
-    const int  numberPsumBankEntries   = 256;
+    const kcc_int32  numberPeRows            = 128;
+    const kcc_int32  numberPeColumns         = 64;
+    const kcc_int32  numberPsumBanks         = 4;
+    const kcc_int32  numberPsumBankEntries   = 256;
 
-    //const long stateBuffersSizeInBytes = 12 * 1024 * 1024; // numberPeRows  ## 12 MB
-    const long stateBuffersSizeInBytes =  8 * 1024 * 1024; // numberPeRows  ##  8 MB
+    //const kcc_int64 stateBuffersSizeInBytes = 12 * 1024 * 1024; // numberPeRows  ## 12 MB
+    const kcc_int64 stateBuffersSizeInBytes =  8 * 1024 * 1024; // numberPeRows  ##  8 MB
 
-    const long sbPartitionSizeInBytes  = stateBuffersSizeInBytes  / numberPeRows;
+    const kcc_int64 sbPartitionSizeInBytes  = stateBuffersSizeInBytes  / numberPeRows;
 
     m_PeArray          = new PeArray(numberPeRows, numberPeColumns);  // first
 
@@ -31,13 +31,13 @@ Arch::Arch()
 }
 
 //----------------------------------------------------------------
-int Arch::gNumberPeArrayRows() const
+kcc_int32 Arch::gNumberPeArrayRows() const
 {
     return m_PeArray->gNumberRows();
 }
 
 //----------------------------------------------------------------
-int Arch::gNumberPeArrayColumns() const
+kcc_int32 Arch::gNumberPeArrayColumns() const
 {
     return m_PeArray->gNumberColumns();
 }
@@ -45,13 +45,13 @@ int Arch::gNumberPeArrayColumns() const
 
 
 //----------------------------------------------------------------
-int Arch::gNumberPsumBanks() const
+kcc_int32 Arch::gNumberPsumBanks() const
 {
     return m_PsumBuffer->gNumberBanks();
 }
 
 //----------------------------------------------------------------
-int Arch::gPsumBankEntries() const
+kcc_int32 Arch::gPsumBankEntries() const
 {
     return m_PsumBuffer->gNumberBankEntries();
 }

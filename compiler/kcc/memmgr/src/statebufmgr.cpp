@@ -35,7 +35,7 @@ StateBufferMgr::calcOneLayerFmapMemSizePerPartition(layers::Layer* layer)
     const StateBufferAddress outSbMemBatch  = layer->gOutputStateMemWithBatching();
     const StateBufferAddress resSbMemBatch  = layer->gResMemWithBatching();
     const StateBufferAddress totSbMemBatch  = outSbMemBatch + resSbMemBatch;
-    const int numOfmaps      = layer->gNumOfmaps();
+    const kcc_int32 numOfmaps      = layer->gNumOfmaps();
     assert(numOfmaps > 0);
     const StateBufferAddress numPeArrayRows = m_Arch->gNumberPeArrayRows();
 

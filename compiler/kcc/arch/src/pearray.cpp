@@ -6,7 +6,7 @@ namespace arch {
 
 
 //--------------------------------------------------------
-PeArray::PeArray(int numberRows, int numberColumns)
+PeArray::PeArray(kcc_int32 numberRows, kcc_int32 numberColumns)
     : m_NumberRows(numberRows)
     , m_NumberColumns(numberColumns)
 {

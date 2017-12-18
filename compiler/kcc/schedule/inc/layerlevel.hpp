@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "consts.hpp"
+#include "types.hpp"
 
 
 namespace kcc {
@@ -13,7 +14,7 @@ namespace layers {
     class Layer;
 }
 
-using namespace utils;
+//using namespace utils;
 using layers::Layer;
 
 
@@ -23,7 +24,7 @@ namespace schedule {
 class LayerLevel {
 public:
     //--------------------------------------------------------
-    LayerLevel(int levelNum, const std::vector<Layer*>& initLayers);
+    LayerLevel(kcc_int32 levelNum, const std::vector<Layer*>& initLayers);
 
     //--------------------------------------------------------
     void remove(Layer* layer);
@@ -32,7 +33,7 @@ public:
     void append(Layer* layer);
 
     //--------------------------------------------------------
-    int gLevelNum() const {
+    kcc_int32 gLevelNum() const {
         return m_LevelNum;
     }
 
@@ -45,7 +46,7 @@ public:
     bool qContainsLayer(Layer* layer) const;
 
     //--------------------------------------------------------
-    int gNumberLayers() const {
+    kcc_int32 gNumberLayers() const {
         return m_Layers.size();
     }
 
@@ -58,7 +59,7 @@ public:
     bool qDataLevel() const;
 
 private:
-    int m_LevelNum;
+    kcc_int32 m_LevelNum;
     std::vector<Layer*> m_Layers;
 };
 

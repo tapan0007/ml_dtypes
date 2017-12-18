@@ -6,11 +6,13 @@
 #include <string>
 #include <cstdio>
 
-#include "consts.hpp"
 
 using namespace std;
 
 #include "tcc.hpp"
+
+#include "consts.hpp"
+#include "types.hpp"
 
 
 namespace kcc {
@@ -21,7 +23,6 @@ namespace layers {
 
 namespace codegen {
 using layers::Layer;
-using namespace utils;
 
 class CodeGen;
 
@@ -55,15 +56,15 @@ protected:
 
 protected:
     // These are variables because format can change
-    int m_FmapIndex_N = FmapIndex_N; // batch",
-    int m_FmapIndex_C = FmapIndex_C; // num ifmaps",
-    int m_FmapIndex_H = FmapIndex_H; // ifmap height",
-    int m_FmapIndex_W = FmapIndex_W; // ifmap width",
+    kcc_int32 m_FmapIndex_N = FmapIndex_N; // batch",
+    kcc_int32 m_FmapIndex_C = FmapIndex_C; // num ifmaps",
+    kcc_int32 m_FmapIndex_H = FmapIndex_H; // ifmap height",
+    kcc_int32 m_FmapIndex_W = FmapIndex_W; // ifmap width",
 
-    int m_FilterIndex_M = FilterIndex_M; // filter num ofmaps",
-    int m_FilterIndex_C = FilterIndex_C; // filter num ifmaps",
-    int m_FilterIndex_R = FilterIndex_R; // filter height",
-    int m_FilterIndex_S = FilterIndex_S; // filter width",
+    kcc_int32 m_FilterIndex_M = FilterIndex_M; // filter num ofmaps",
+    kcc_int32 m_FilterIndex_C = FilterIndex_C; // filter num ifmaps",
+    kcc_int32 m_FilterIndex_R = FilterIndex_R; // filter height",
+    kcc_int32 m_FilterIndex_S = FilterIndex_S; // filter width",
 
     CodeGen* const m_CodeGen;
     Layer* m_Layer;

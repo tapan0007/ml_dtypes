@@ -158,7 +158,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    int32 gBatchFactor() const {
+    kcc_int32 gBatchFactor() const {
         return m_BatchFactor;
     }
 
@@ -254,40 +254,40 @@ public:
     }
 
     //----------------------------------------------------------------
-    int32 gSchedule() const {
+    kcc_int32 gSchedule() const {
         return m_Schedule;
     }
 
-    void rSchedule(int32 sch) {
+    void rSchedule(kcc_int32 sch) {
         m_Schedule = sch;
     }
 
     //----------------------------------------------------------------
-    int32  gCurrLevel() const {
+    kcc_int32  gCurrLevel() const {
         return m_CurrLevel;
     }
 
     //----------------------------------------------------------------
-    void rCurrLevel(int32 lev) {
+    void rCurrLevel(kcc_int32 lev) {
         assert(gEarlyLevel() <= lev && lev <= gLateLevel());
         m_CurrLevel = lev;
     }
 
     //----------------------------------------------------------------
-    int32 gEarlyLevel() const {
+    kcc_int32 gEarlyLevel() const {
         return m_EarlyLevel;
     }
 
-    void rEarlyLevel(int32 level) {
+    void rEarlyLevel(kcc_int32 level) {
         m_EarlyLevel = level;
     }
 
     //----------------------------------------------------------------
-    int32 gLateLevel() const {
+    kcc_int32 gLateLevel() const {
         return m_LateLevel;
     }
 
-    void rLateLevel(int32 level) {
+    void rLateLevel(kcc_int32 level) {
         m_LateLevel = level;
     }
 
@@ -302,13 +302,13 @@ public:
     }
 
     //----------------------------------------------------------------
-    Layer* gPrevLayer(int32 idx) const {
+    Layer* gPrevLayer(kcc_int32 idx) const {
         assert(0 <= idx and idx < gNumPrevLayers());
         return m_PrevLayers[idx];
     }
 
     //----------------------------------------------------------------
-    int32 gNumPrevLayers() const {
+    kcc_int32 gNumPrevLayers() const {
         return m_PrevLayers.size();
     }
 
@@ -323,13 +323,13 @@ public:
     }
 
     //----------------------------------------------------------------
-    Layer* gNextLayer(int32 idx) {
+    Layer* gNextLayer(kcc_int32 idx) {
         assert(0 <= idx and idx < gNumNextLayers());
         return m_NextLayers[idx];
     }
 
     //----------------------------------------------------------------
-    int32 gNumNextLayers() const {
+    kcc_int32 gNumNextLayers() const {
         return m_NextLayers.size();
     }
 
@@ -382,18 +382,18 @@ public:
     }
 
     //----------------------------------------------------------------
-    int32 gOfmapWidth() const {
+    kcc_int32 gOfmapWidth() const {
         return m_OfmapDesc.gMapWidth();
     }
 
     //----------------------------------------------------------------
-    int32 gOfmapHeight() const {
+    kcc_int32 gOfmapHeight() const {
         return m_OfmapDesc.gMapHeight();
     }
 
 
     //----------------------------------------------------------------
-    int32 gNumOfmaps() const {
+    kcc_int32 gNumOfmaps() const {
         return m_OfmapDesc.gNumMaps();
     }
 
@@ -464,20 +464,20 @@ public:
     }
 
     //----------------------------------------------------------------
-    int32 gRefCount() const {
+    kcc_int32 gRefCount() const {
         return m_RefCount;
     }
 
     //----------------------------------------------------------------
-    void changeRefCount(int32 num) {
+    void changeRefCount(kcc_int32 num) {
         assert(m_RefCount >= -num);
         m_RefCount += num;
     }
 
-    int32 gNumPredecessors() const {
+    kcc_int32 gNumPredecessors() const {
         return m_NumPredecessors;
     }
-    void changeNumPredecessors(int32 num) {
+    void changeNumPredecessors(kcc_int32 num) {
         m_NumPredecessors += num;
     }
 
@@ -490,7 +490,7 @@ public:
         return m_PrevSbLayers;
     }
 
-    int32 gNumPrevSbLayers() {
+    kcc_int32 gNumPrevSbLayers() {
         return m_PrevSbLayers.size();
     }
 
@@ -505,7 +505,7 @@ public:
         return m_NextSbLayers;
     }
 
-    int32 gNumNextSbLayers() const {
+    kcc_int32 gNumNextSbLayers() const {
         return m_NextSbLayers.size();
     }
 
@@ -576,14 +576,14 @@ protected:
     StateBufferAddress      m_ResMemWithBatching;
     StateBufferAddress      m_ResMemWithoutBatching;
     StateBufferAddress      m_BatchMemory;
-    int32                   m_BatchFactor;
-    int32                   m_Schedule;
-    int32                   m_CurrLevel;
-    int32                   m_EarlyLevel;
-    int32                   m_LateLevel;
+    kcc_int32               m_BatchFactor;
+    kcc_int32               m_Schedule;
+    kcc_int32               m_CurrLevel;
+    kcc_int32               m_EarlyLevel;
+    kcc_int32               m_LateLevel;
 
-    int32                   m_RefCount;
-    int32                   m_NumPredecessors;
+    kcc_int32               m_RefCount;
+    kcc_int32               m_NumPredecessors;
 
     LayerId                 m_Id;
     string                  m_NumberStr;
@@ -598,7 +598,7 @@ protected:
 class Layer::Params {
 public:
     std::string             m_LayerName;
-    int32                   m_BatchFactor = 1;
+    kcc_int32               m_BatchFactor = 1;
     nets::Network*          m_Network = nullptr;
     std::string             m_RefFile;
 };

@@ -1,2 +1,0 @@
-To get scheduling for ResNet-50 run 'make resnet'
-For DenseNet-169 run 'make densenet'

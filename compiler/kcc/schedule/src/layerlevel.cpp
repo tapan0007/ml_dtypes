@@ -9,7 +9,7 @@ using layers::Layer;
 
 namespace schedule {
 
-LayerLevel::LayerLevel(int levelNum, const std::vector<Layer*>& initLayers)
+LayerLevel::LayerLevel(kcc_int32 levelNum, const std::vector<Layer*>& initLayers)
     : m_LevelNum(levelNum)
     , m_Layers(initLayers)
 {}

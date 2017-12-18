@@ -6,7 +6,7 @@ namespace kcc {
 namespace arch {
 
 //--------------------------------------------------------
-PsumBuffer::PsumBuffer(const PeArray* peArray, int numberBanks, int numberBankEntries)
+PsumBuffer::PsumBuffer(const PeArray* peArray, kcc_int32 numberBanks, kcc_int32 numberBankEntries)
     : m_NumberColumns(peArray->gNumberColumns())
     , m_NumberBanks(numberBanks)
     , m_NumberBankEntries(numberBankEntries)

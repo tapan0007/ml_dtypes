@@ -18,7 +18,7 @@ void
 Scheduler::verifyLevelization()
 {
     for (auto level : m_Levels) {
-        const int levNum = level->gLevelNum();
+        const kcc_int32 levNum = level->gLevelNum();
         for (auto layer : level->gLayers()) {
             assert(levNum == layer->gEarlyLevel());
             for (auto nextLayer : layer->gNextLayers()) {
@@ -37,13 +37,13 @@ Scheduler::verifyLevelization()
 void
 Scheduler::calculateLateLevels()
 {
-    const int lastLevel = m_Levels.size();
+    const kcc_int32 lastLevel = m_Levels.size();
 
     auto revLevels = m_Levels;
     std::reverse(revLevels.begin(), revLevels.end());
     for (auto level : revLevels) {
         for (auto layer : level->gLayers()) {
-            int minNextLastLev = lastLevel;
+            kcc_int32 minNextLastLev = lastLevel;
             for (auto nextLayer : layer->gNextLayers()) {
                 minNextLastLev = std::min(minNextLastLev, nextLayer->gLateLevel());
             }
@@ -101,7 +101,7 @@ Scheduler::Schedule(Network* ntwk)
 void Scheduler::linkSchedLayers()
 {
     for (auto layer : m_Layers) {
-        const int mysch1 = layer->gSchedule() + 1;
+        const kcc_int32 mysch1 = layer->gSchedule() + 1;
         for (auto otherLayer : m_Layers) {
             if (mysch1 == otherLayer->gSchedule()) {
                 assert(!layer->gNextSchedLayer());
@@ -169,8 +169,8 @@ Scheduler::scheduleLevel(LayerLevel* level)
 // Less than between layers
 static bool compareLayer(Layer* layer1, Layer* layer2)
 {
-    const int numNext1 = layer1->gNumNextLayers();
-    const int numNext2 = layer2->gNumNextLayers();
+    const kcc_int32 numNext1 = layer1->gNumNextLayers();
+    const kcc_int32 numNext2 = layer2->gNumNextLayers();
     if (numNext1 < numNext2) {
         return true;
     } else if (numNext1 > numNext2) {
@@ -184,8 +184,8 @@ static bool compareLayer(Layer* layer1, Layer* layer2)
     } else if (id1 > id2) {
         return false;
     } else {
-        const int sz1 = layer1->gInputStateMemWithoutBatching() + layer1->gOutputStateMemWithoutBatching();
-        const int sz2 = layer2->gInputStateMemWithoutBatching() + layer2->gOutputStateMemWithoutBatching();
+        const kcc_int32 sz1 = layer1->gInputStateMemWithoutBatching() + layer1->gOutputStateMemWithoutBatching();
+        const kcc_int32 sz2 = layer2->gInputStateMemWithoutBatching() + layer2->gOutputStateMemWithoutBatching();
         if (sz1 < sz2) {
             return true;
         } else {
@@ -291,11 +291,11 @@ void
 Scheduler::calcFanoutBatch()
 {
     for (auto layer : m_Network->gLayers()) {
-        int maxFanoutBatchFactor = 0;
-        int numFanouts = 0;
+        kcc_int32 maxFanoutBatchFactor = 0;
+        kcc_int32 numFanouts = 0;
         for (auto fanoutLayer : layer->gNextLayers()) {
             numFanouts += 1;
-            const int fob = fanoutLayer->gBatchFactor();
+            const kcc_int32 fob = fanoutLayer->gBatchFactor();
             if (fob > maxFanoutBatchFactor) {
                 maxFanoutBatchFactor = fob;
             }
@@ -349,7 +349,7 @@ void
 Scheduler::processSbConnectionForBatching(Layer* prevLayer, Layer* nextLayer)
 {
     assert(prevLayer->qStoreInSB() && nextLayer->qStoreInSB());
-    const int deltaBatch = nextLayer->gBatchFactor() - prevLayer->gBatchFactor();
+    const kcc_int32 deltaBatch = nextLayer->gBatchFactor() - prevLayer->gBatchFactor();
     assert(deltaBatch >= 0);
     const StateBufferAddress myBatchMem = deltaBatch * prevLayer->gOutputStateMemWithoutBatching();
     const StateBufferAddress batchMem = myBatchMem + nextLayer->gBatchMem();
@@ -449,7 +449,7 @@ Scheduler::levelize()
     }
 
     Levels.push_back(currLevel);  // this is level 0
-    int numUnprocessedLayers = gNumberLayers() - currLevel->gNumberLayers();
+    kcc_int32 numUnprocessedLayers = gNumberLayers() - currLevel->gNumberLayers();
 
     while (numUnprocessedLayers > 0) {
         const size_t nextLevelNum = currLevelNum + 1; assert(nextLevelNum == Levels.size());

@@ -7,6 +7,7 @@
 #include <cereal/types/map.hpp>
 
 #include "debug.hpp"
+
 #include "arch.hpp"
 #include "statebufmgr.hpp"
 #include "codegen.hpp"

@@ -6,7 +6,7 @@ namespace arch {
 
 
 //--------------------------------------------------------
-StateBuffer::StateBuffer(const PeArray* peArray, long partitionSizeInBytes)
+StateBuffer::StateBuffer(const PeArray* peArray, kcc_int64 partitionSizeInBytes)
     : m_NumberPartitions(peArray->gNumberRows())
     , m_PartitionSizeInBytes(partitionSizeInBytes)
     , m_TotalSizeInBytes(m_NumberPartitions * partitionSizeInBytes)
@@ -17,8 +17,8 @@ StateBuffer::StateBuffer(const PeArray* peArray, long partitionSizeInBytes)
 
 
 //--------------------------------------------------------
-long
-StateBuffer::gPartitionStartAddressInBytes(int partNum) const
+kcc_int64
+StateBuffer::gPartitionStartAddressInBytes(kcc_int32 partNum) const
 {
     assert((partNum >= 0) && (partNum < gNumberPartitions()));
     return gFirstAddressInBytes() + partNum * gPartitionSizeInBytes();

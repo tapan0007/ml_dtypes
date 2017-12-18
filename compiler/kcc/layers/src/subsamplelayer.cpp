@@ -12,9 +12,9 @@ namespace layers {
 
 //--------------------------------------------------------
 SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
-         int num_ofmaps, const string& dataTensorSemantics,
-         const std::tuple<int,int>& stride,
-         const std::tuple<int,int>& kernel)
+         kcc_int32 num_ofmaps, const string& dataTensorSemantics,
+         const std::tuple<kcc_int32,kcc_int32>& stride,
+         const std::tuple<kcc_int32,kcc_int32>& kernel)
     : Layer(param,
             FmapDesc(
                 (num_ofmaps >= 1 ? num_ofmaps : prev_layer->gNumOfmaps()),
@@ -37,7 +37,7 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
     m_KernelWidth  = std::get<1>(kernel);
 
     // Padding
-    const int kh = gKernelHeight();
+    const kcc_int32 kh = gKernelHeight();
     if (kh % 2 == 1) {
         m_PaddingBottom = m_PaddingTop = (kh - 1) / 2;
     } else {
@@ -45,7 +45,7 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
         m_PaddingTop    = kh / 2;
     }
 
-    const int kw = gKernelWidth();
+    const kcc_int32 kw = gKernelWidth();
     if (kw % 2 == 1) {
         m_PaddingRight  = m_PaddingLeft  = (kw - 1) / 2;
     } else {
