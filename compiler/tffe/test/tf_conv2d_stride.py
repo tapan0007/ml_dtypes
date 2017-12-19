@@ -17,6 +17,9 @@ import numpy as np
 import sys
 import re
 
+np.set_printoptions(edgeitems=10)
+np.core.arrayprint._line_width = 180
+
 tfDataType = np.float16
 (B, H, C, R, M, S) = ( 1, 16, 1, 1, 1, 8)
 W1  = np.zeros([R, R, C, M])
@@ -37,5 +40,7 @@ output = tf.identity(i1, name="output")
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
   res = sess.run(output, feed_dict={"input:0" : i0val})
-  print("Input=\n", i0val, "\n\nRes=\n", res)
+  print("Input=\n", i0val.reshape(H, H),
+        "\n\nWeight=\n", w1val.reshape(R, R),
+        "\n\nRes=\n", res.reshape(H // S, H // S))
   graph = tf.get_default_graph()
