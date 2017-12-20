@@ -1,9 +1,9 @@
 ########################################################
-MODULE=codegen
-MODS = $(MODULE) utils nets layers
+MODULE:=codegen
+MODS := $(MODULE) utils nets layers
 
 ########################################################
-SRCS = codegenlayer codegeninputlayer codegenconvlayer codegenrelulayer codegentanhlayer codegenactivlayer codegen
+SRCS := codegenlayer codegeninputlayer codegenconvlayer codegenrelulayer codegentanhlayer codegenactivlayer codegen
 
 ########################################################
 include ../Makefile.common

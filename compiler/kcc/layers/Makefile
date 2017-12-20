@@ -1,6 +1,6 @@
 ########################################################
-MODULE=layers
-MODS = $(MODULE) utils nets serialize
+MODULE:=layers
+MODS := $(MODULE) utils nets serialize
 
 ########################################################
 SRCS := layer  \

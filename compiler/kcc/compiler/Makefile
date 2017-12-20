@@ -1,8 +1,8 @@
 
 ########################################################
-TCC_LIB = $(INKLING_PATH)/tcc/libs/libtcc.a
+TCC_LIB := $(INKLING_PATH)/tcc/libs/libtcc.a
 
-LIBS = \
+LIBS := \
     ../nets/$(OBJDIR)/libnets.a \
     ../layers/$(OBJDIR)/liblayers.a \
     ../memmgr/$(OBJDIR)/libmemmgr.a \
@@ -14,15 +14,17 @@ LIBS = \
 	$(TCC_LIB)
 
 ########################################################
-MODULE=compiler
-MODS = utils nets layers arch memmgr schedule serialize codegen
+MODULE:=compiler
+MODS := utils nets layers arch memmgr schedule serialize codegen
 
 ########################################################
-SRCS = compiler
+SRCS := compiler
+########################################################
+include ../Makefile.common
+########################################################
 
 top : $(MODULE).exe
 ########################################################
-include ../Makefile.common
 
 $(MODULE).exe : $(OFILES) $(LIBS)
 	@echo LD $@

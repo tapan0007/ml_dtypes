@@ -1,9 +1,9 @@
 ########################################################
-MODULE=memmgr
-MODS = utils nets arch layers serialize
+MODULE:=memmgr
+MODS := utils nets arch layers serialize
 
 ########################################################
-SRCS = statebufmgr
+SRCS := statebufmgr
 
 ########################################################
 include ../Makefile.common

@@ -1,9 +1,9 @@
 ########################################################
-MODULE=serialize
-MODS = $(MODULE) utils 
+MODULE:=serialize
+MODS := $(MODULE) utils 
 
 ########################################################
-SRCS = serlayer
+SRCS := serlayer
 
 ########################################################
 include ../Makefile.common

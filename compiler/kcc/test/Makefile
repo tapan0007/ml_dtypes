@@ -1,29 +1,29 @@
-FLAGS= -W -Wall -Werror -ggdb -g 
-INC_FLAGS = -I$(INKLING)/shared/inc -I$(INKLING)/tcc/inc
+FLAGS:= -W -Wall -Werror -ggdb -g 
+INC_FLAGS := -I$(INKLING)/shared/inc -I$(INKLING)/tcc/inc
 #-I$(INKLING)/tcc/test/convolve/src
 
-CFLAGS = $(FLAGS) -I. $(INC_FLAGS) -Wno-missing-field-initializers
+CFLAGS := $(FLAGS) -I. $(INC_FLAGS) -Wno-missing-field-initializers
 
-CPPFLAGS = $(CFLAGS) -std=c++11
-LFLAGS = $(FLAGS)
+CPPFLAGS := $(CFLAGS) -std=c++11
+LFLAGS := $(FLAGS)
 #################################################
-LIBDIR1 = $(INKLING)/tcc/libs
-LIBDIR_FLAGS= -L$(LIBDIR1)
-RESULTS=./results
+LIBDIR1 := $(INKLING)/tcc/libs
+LIBDIR_FLAGS:= -L$(LIBDIR1)
+RESULTS:=./results
 
-TCC=tcc
-LIB_FLAGS = -l$(TCC)
-TCCAR = $(LIBDIR1)/lib$(TCC).a
-NET=trivnet
-CPP=$(NET).cpp
-EXE=$(NET)-exe
-OBJ=$(NET).o
-TPB=$(RESULTS)/$(NET).tpb
-ASM=$(RESULTS)/$(NET).asm
-SIMRES=$(RESULTS)/$(NET).simres.$(N)
+TCC:=tcc
+LIB_FLAGS := -l$(TCC)
+TCCAR := $(LIBDIR1)/lib$(TCC).a
+NET:=trivnet
+CPP:=$(NET).cpp
+EXE:=$(NET)-exe
+OBJ:=$(NET).o
+TPB:=$(RESULTS)/$(NET).tpb
+ASM:=$(RESULTS)/$(NET).asm
+SIMRES:=$(RESULTS)/$(NET).simres.$(N)
 
-GOLDEN=golden
-FINAL=$(NET)-out
+GOLDEN:=golden
+FINAL:=$(NET)-out
 
 #################################################
 top : all

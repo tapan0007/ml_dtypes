@@ -1,35 +1,37 @@
-AR=ar
-CPP = g++
+AR := ar
+CPP := g++
 
-COPTS= -W -Wall -Werror -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
-LDOPTS = $(COPTS)
-
-INK_INC_DIR = shared tcc
-INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
-
-
-CFLAGS=$(COPTS) $(CINC)
-CINC =  $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
-
-
-LIBRARY = $(OBJDIR)/lib$(MODULE).a
 ########################################################
+LDOPTS := -W -Wall -Werror -pedantic -g -ggdb -Wno-missing-field-initializers -std=c++14
+COPTS := -ansi $(LDOPTS) 
 
-SRCDIR = src
-OBJDIR = obj
-DEPDIR = dep
+INK_INC_DIR := shared tcc
+INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
+
+
+CINC := $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+CFLAGS := $(COPTS) $(CINC)
+
 
 ########################################################
 
-CFILES = $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
-OFILES = $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
-DEPFILES = $(addprefix $(DEPDIR)/,$(addsuffix .dep,$(SRCS)))
+SRCDIR := src
+OBJDIR := obj
+DEPDIR := dep
+
+########################################################
+########################################################
+LIBRARY := $(OBJDIR)/lib$(MODULE).a
+
+CFILES := $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
+OFILES := $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
+DEPFILES := $(addprefix $(DEPDIR)/,$(addsuffix .dep,$(SRCS)))
 
 ########################################################
 all : $(LIBRARY)
 
--include $(DEPDIR)/all.dep
 ########################################################
+-include $(DEPDIR)/all.dep
 
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
@@ -52,7 +54,7 @@ $(DEPDIR)/%.dep : $(SRCDIR)/%.cpp
 
 $(LIBRARY) : $(OFILES)
 	@echo AR $@
-	@$(AR) rcs $@ $(OFILES)
+	$(AR) rcs $@ $(OFILES)
 
 clean :
 	@echo CLEAN $(MODULE)
