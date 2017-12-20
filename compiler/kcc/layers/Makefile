@@ -2,7 +2,6 @@
 MODULE:=layers
 MODS := $(MODULE) utils nets serialize
 
-########################################################
 SRCS := layer  \
 activlayer relulayer tanhlayer  \
 combinelayer subsamplelayer convlayer \

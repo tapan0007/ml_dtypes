@@ -1,7 +1,16 @@
+top : exe
+########################################################
+MODULE:=compiler
+MODS := utils nets layers arch memmgr schedule serialize codegen
+SRCS := compiler
+
+include ../Makefile.common
 
 ########################################################
 TCC_LIB := $(INKLING_PATH)/tcc/libs/libtcc.a
 
+## LIBS cannot be assigned using ':=' because OBJDIR
+## is defined in Makefile.common that is incl
 LIBS := \
     ../nets/$(OBJDIR)/libnets.a \
     ../layers/$(OBJDIR)/liblayers.a \
@@ -14,16 +23,11 @@ LIBS := \
 	$(TCC_LIB)
 
 ########################################################
-MODULE:=compiler
-MODS := utils nets layers arch memmgr schedule serialize codegen
-
-########################################################
-SRCS := compiler
-########################################################
-include ../Makefile.common
 ########################################################
 
-top : $(MODULE).exe
+########################################################
+
+exe : $(MODULE).exe
 ########################################################
 
 $(MODULE).exe : $(OFILES) $(LIBS)

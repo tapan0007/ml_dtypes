@@ -9,8 +9,8 @@ bool
 AvgPoolLayer::verify() const
 {
     assert(gNumPrevLayers() == 1);
-    assert((gPrevLayer(0)->gOfmapWidth()  / gStrideLR()) == gOfmapWidth());
-    assert((gPrevLayer(0)->gOfmapHeight() / gStrideBT()) == gOfmapHeight());
+    assert((gPrevLayer(0)->gOfmapWidth()  / gStrideLeftRight()) == gOfmapWidth());
+    assert((gPrevLayer(0)->gOfmapHeight() / gStrideTopBottom()) == gOfmapHeight());
     return this->SubClass::verify();
 }
 

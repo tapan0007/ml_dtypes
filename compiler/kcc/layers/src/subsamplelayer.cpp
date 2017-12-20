@@ -31,16 +31,16 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
 
 
     // Stride
-    m_StrideBT = std::get<StrideIndex_TopBottom>(stride);
-    m_StrideLR = std::get<StrideIndex_LeftRight>(stride);
+    m_Stride.m_TopBottom = std::get<StrideIndex_TopBottom>(stride);
+    m_Stride.m_LeftRight = std::get<StrideIndex_LeftRight>(stride);
 
-    m_KernelHeight = std::get<0>(kernel);
-    m_KernelWidth  = std::get<1>(kernel);
+    m_Kernel.m_Height = std::get<0>(kernel);
+    m_Kernel.m_Width  = std::get<1>(kernel);
 
-    m_PaddingTop    = std::get<PaddingIndex_Top>(padding);
-    m_PaddingBottom = std::get<PaddingIndex_Bottom>(padding);
-    m_PaddingLeft   = std::get<PaddingIndex_Left>(padding);
-    m_PaddingRight  = std::get<PaddingIndex_Right>(padding);
+    m_Padding.m_Top    = std::get<PaddingIndex_Top>(padding);
+    m_Padding.m_Bottom = std::get<PaddingIndex_Bottom>(padding);
+    m_Padding.m_Left   = std::get<PaddingIndex_Left>(padding);
+    m_Padding.m_Right  = std::get<PaddingIndex_Right>(padding);
 }
 
 
@@ -48,8 +48,8 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
 bool
 SubSampleLayer::verify() const
 {
-    assert(gPrevLayer(0)->gOfmapWidth()  == gStrideLR() * gOfmapWidth());
-    assert(gPrevLayer(0)->gOfmapHeight() == gStrideBT() * gOfmapHeight());
+    assert(gPrevLayer(0)->gOfmapWidth()  == gStrideLeftRight() * gOfmapWidth());
+    assert(gPrevLayer(0)->gOfmapHeight() == gStrideTopBottom() * gOfmapHeight());
     return this->SubClass::verify();
 }
 

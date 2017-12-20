@@ -46,44 +46,44 @@ public:
 
     //----------------------------------------------------------------
     // Horizontal (Left-to-Right) stride
-    kcc_int32 gStrideLR() const {
-        return m_StrideLR;
+    kcc_int32 gStrideLeftRight() const {
+        return m_Stride.m_LeftRight;
     }
 
     //----------------------------------------------------------------
     // Vertical (Bottom-to-Top) stride
-    kcc_int32 gStrideBT() const {
-        return m_StrideBT;
+    kcc_int32 gStrideTopBottom() const {
+        return m_Stride.m_TopBottom;
     }
 
     //----------------------------------------------------------------
     kcc_int32 gKernelHeight() const {
-        return m_KernelHeight;
+        return m_Kernel.m_Height;
     }
 
     //----------------------------------------------------------------
     kcc_int32 gKernelWidth() const {
-        return m_KernelWidth;
+        return m_Kernel.m_Width;
     }
 
     //----------------------------------------------------------------
     kcc_int32 gPaddingLeft() const {
-        return m_PaddingLeft;
+        return m_Padding.m_Left;
     }
 
     //----------------------------------------------------------------
     kcc_int32 gPaddingRight() const {
-        return m_PaddingRight;
+        return m_Padding.m_Right;
     }
 
     //----------------------------------------------------------------
     kcc_int32 gPaddingBottom() const {
-        return m_PaddingBottom;
+        return m_Padding.m_Bottom;
     }
 
     //----------------------------------------------------------------
     kcc_int32 gPaddingTop() const {
-        return m_PaddingTop;
+        return m_Padding.m_Top;
     }
 
     //----------------------------------------------------------------
@@ -95,16 +95,25 @@ public:
     bool verify() const override;
 
 private:
-    kcc_int32 m_StrideLR;
-    kcc_int32 m_StrideBT;
+    struct Stride {
+        kcc_int32 m_TopBottom;
+        kcc_int32 m_LeftRight;
+    };
+    Stride m_Stride;
 
-    kcc_int32 m_KernelHeight;
-    kcc_int32 m_KernelWidth;
+    struct Kernel {
+        kcc_int32 m_Height;
+        kcc_int32 m_Width;
+    };
+    Kernel m_Kernel;
 
-    kcc_int32 m_PaddingLeft;
-    kcc_int32 m_PaddingRight;
-    kcc_int32 m_PaddingBottom;
-    kcc_int32 m_PaddingTop;
+    struct Padding {
+        kcc_int32 m_Top;
+        kcc_int32 m_Bottom;
+        kcc_int32 m_Left;
+        kcc_int32 m_Right;
+    };
+    Padding m_Padding;
 };
 
 

@@ -98,10 +98,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
         {
             OfmapShapeType ofmapShape;
-            ofmapShape[0] = layer->gBatchFactor();
-            ofmapShape[1] = layer->gNumOfmaps();
-            ofmapShape[2] = layer->gOfmapHeight();
-            ofmapShape[3] = layer->gOfmapWidth();
+            ofmapShape[FmapIndex_N] = layer->gBatchFactor();
+            ofmapShape[FmapIndex_C] = layer->gNumOfmaps();
+            ofmapShape[FmapIndex_H] = layer->gOfmapHeight();
+            ofmapShape[FmapIndex_W] = layer->gOfmapWidth();
             serLayer.rOfmapShape(ofmapShape);
         }
         serLayer.rOfmapFormat(layer->gDataTensorDimSemantics());
@@ -111,10 +111,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         } else if (auto convLayer = dynamic_cast<ConvLayer*>(layer)) {
             {
                 KernelShapeType  kernelShape;   // conv,pool
-                kernelShape[0] = 1;
-                kernelShape[1] = 1;
-                kernelShape[2] = convLayer->gKernelHeight();
-                kernelShape[3] = convLayer->gKernelWidth();
+                kernelShape[FilterIndex_M] = 1;
+                kernelShape[FilterIndex_C] = 1;
+                kernelShape[FilterIndex_R] = convLayer->gKernelHeight();
+                kernelShape[FilterIndex_S] = convLayer->gKernelWidth();
                 serLayer.rKernelShape(kernelShape);
             }
 
@@ -122,20 +122,22 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serLayer.rKernelFormat(convLayer->gFilterTensorDimSemantics());
             {
                 StrideType stride;        // conv,pool
-                stride[0] = 1;
-                stride[1] = 1;
-                stride[2] = convLayer->gStrideBT();
-                stride[3] = convLayer->gStrideLR();
+                stride[FmapIndex_N] = 1;
+                stride[FmapIndex_C] = 1;
+                stride[FmapIndex_H] = convLayer->gStrideTopBottom();
+                stride[FmapIndex_W] = convLayer->gStrideLeftRight();
                 serLayer.rStride(stride);
             }
             {
                 PaddingType padding;       // conv,pool
-                padding[0][0] = 0; padding[0][1] = 0;
-                padding[1][0] = 0; padding[1][1] = 0;
-                padding[2][0] = convLayer->gPaddingBottom();
-                padding[2][1] = convLayer->gPaddingTop();
-                padding[3][0] = convLayer->gPaddingLeft();
-                padding[3][1] = convLayer->gPaddingRight();
+                padding[FmapIndex_N][0] = 0;
+                padding[FmapIndex_N][1] = 0;
+                padding[FmapIndex_C][0] = 0;
+                padding[FmapIndex_C][1] = 0;
+                padding[FmapIndex_H][0] = convLayer->gPaddingTop();
+                padding[FmapIndex_H][1] = convLayer->gPaddingBottom();
+                padding[FmapIndex_W][0] = convLayer->gPaddingLeft();
+                padding[FmapIndex_W][1] = convLayer->gPaddingRight();
                 serLayer.rPadding(padding);
             }
         } else if (auto tanhLayer = dynamic_cast<TanhLayer*>(layer)) {

@@ -33,7 +33,7 @@ ConvLayer::gString() const
     const kcc_int32 kh = gKernelHeight();
     const kcc_int32 kw = gKernelWidth();
     ss << gName() << gBaseLayerStr() << ", kernel=" << kh << "x" << kw
-       << ",stride=" << gStrideBT() << "/" << gStrideLR() << gStateSizesStr();
+       << ",stride=" << gStrideTopBottom() << "/" << gStrideLeftRight() << gStateSizesStr();
     return ss.str();
 }
 
@@ -46,8 +46,8 @@ ConvLayer::verify() const
     const Layer* prevLayer = gPrevLayer(0);
     const kcc_int32 prevMapWidth = prevLayer->gOfmapWidth();
     const kcc_int32 prevMapHeight = prevLayer->gOfmapHeight();
-    assert(prevMapWidth ==  gStrideLR() * gOfmapWidth());
-    assert(prevMapHeight == gStrideBT() * gOfmapHeight());
+    assert(prevMapWidth ==  gStrideLeftRight() * gOfmapWidth());
+    assert(prevMapHeight == gStrideTopBottom() * gOfmapHeight());
     return ok;
 }
 
