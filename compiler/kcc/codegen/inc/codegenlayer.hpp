@@ -83,7 +83,6 @@ protected:
     string   m_FilterFormat;
     string   m_FilterFileNames[2]; // more when #ofmaps > #cols
 
-    uint8_t  m_ConvolveStride[2]; // From TCC
     uint8_t  m_Padding[4]; // From TCC
     uint8_t  m_Dilate[2]; // From TCC
 };

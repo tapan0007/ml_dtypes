@@ -26,7 +26,7 @@ public:
     void generate(Layer* layer) override;
 
 private:
-    uint8_t  m_Convolve_stride[2];
+    uint8_t  m_ConvolveStride[2];
 };
 
 }}

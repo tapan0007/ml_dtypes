@@ -72,7 +72,7 @@ CodeGenConvLayer::generate(Layer* layer)
             m_OfmapAddrs, m_OfmapDims,
             inDataType, outDataType,
             m_Padding,
-            m_Convolve_stride,
+            m_ConvolveStride,
             m_Dilate);
 
     assert(m_OfmapDims[m_FmapIndex_N] == numBatches);
