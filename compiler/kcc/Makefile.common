@@ -2,6 +2,7 @@ AR=ar
 CPP = g++
 
 COPTS= -W -Wall -Werror -pedantic -ansi -g -ggdb -Wno-missing-field-initializers -std=c++14
+LDOPTS = $(COPTS)
 
 INK_INC_DIR = shared tcc
 INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
@@ -9,6 +10,7 @@ INK_INC = $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
 
 CFLAGS=$(COPTS) $(CINC)
 CINC =  $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+
 
 LIBRARY = $(OBJDIR)/lib$(MODULE).a
 ########################################################

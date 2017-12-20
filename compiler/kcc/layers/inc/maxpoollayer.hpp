@@ -19,8 +19,9 @@ public:
     //----------------------------------------------------------------
     MaxPoolLayer(const Params& params, Layer* prev_layer,
             kcc_int32 num_ofmaps, const string& dataTensorSemantics,
-            const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel)
-        : PoolLayer(params, prev_layer, num_ofmaps, dataTensorSemantics, stride, kernel)
+            const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel,
+            const std::tuple<kcc_int32,kcc_int32,kcc_int32,kcc_int32>& padding)
+        : PoolLayer(params, prev_layer, num_ofmaps, dataTensorSemantics, stride, kernel, padding)
     {}
 
     //----------------------------------------------------------------

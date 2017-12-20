@@ -203,12 +203,18 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
                                             serLayer.gKernelHeight(),
                                             serLayer.gKernelWidth());
+            std::tuple<kcc_int32,kcc_int32, kcc_int32,kcc_int32> padding = std::make_tuple(
+                                            serLayer.gPaddingTop(),
+                                            serLayer.gPaddingBottom(),
+                                            serLayer.gPaddingLeft(),
+                                            serLayer.gPaddingRight());
+
             const string filterFileName = serLayer.gKernelFile();
             const string filterTensorDimSemantics = serLayer.gKernelFormat();
 
             layer = new layers::ConvLayer(params, prevLayer,
                                           num_ofmaps, ofmapFormat,
-                                          stride, kernel,
+                                          stride, kernel, padding,
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());
         } else if (serLayer.gTypeStr() == TypeStr_Relu) {

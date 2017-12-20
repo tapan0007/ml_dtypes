@@ -14,7 +14,8 @@ namespace layers {
 SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
          kcc_int32 num_ofmaps, const string& dataTensorSemantics,
          const std::tuple<kcc_int32,kcc_int32>& stride,
-         const std::tuple<kcc_int32,kcc_int32>& kernel)
+         const std::tuple<kcc_int32,kcc_int32>& kernel,
+         const std::tuple<kcc_int32,kcc_int32,kcc_int32,kcc_int32>& padding)
     : Layer(param,
             FmapDesc(
                 (num_ofmaps >= 1 ? num_ofmaps : prev_layer->gNumOfmaps()),
@@ -30,28 +31,16 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
 
 
     // Stride
-    m_StrideBT = std::get<0>(stride);
-    m_StrideLR = std::get<1>(stride);
+    m_StrideBT = std::get<StrideIndex_TopBottom>(stride);
+    m_StrideLR = std::get<StrideIndex_LeftRight>(stride);
 
     m_KernelHeight = std::get<0>(kernel);
     m_KernelWidth  = std::get<1>(kernel);
 
-    // Padding
-    const kcc_int32 kh = gKernelHeight();
-    if (kh % 2 == 1) {
-        m_PaddingBottom = m_PaddingTop = (kh - 1) / 2;
-    } else {
-        m_PaddingBottom = 0;
-        m_PaddingTop    = kh / 2;
-    }
-
-    const kcc_int32 kw = gKernelWidth();
-    if (kw % 2 == 1) {
-        m_PaddingRight  = m_PaddingLeft  = (kw - 1) / 2;
-    } else {
-        m_PaddingLeft   = 0;
-        m_PaddingRight  = kw / 2;
-    }
+    m_PaddingTop    = std::get<PaddingIndex_Top>(padding);
+    m_PaddingBottom = std::get<PaddingIndex_Bottom>(padding);
+    m_PaddingLeft   = std::get<PaddingIndex_Left>(padding);
+    m_PaddingRight  = std::get<PaddingIndex_Right>(padding);
 }
 
 

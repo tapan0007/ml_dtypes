@@ -1,5 +1,7 @@
 
 ########################################################
+TCC_LIB = $(INKLING_PATH)/tcc/libs/libtcc.a
+
 LIBS = \
     ../nets/$(OBJDIR)/libnets.a \
     ../layers/$(OBJDIR)/liblayers.a \
@@ -18,6 +20,11 @@ MODS = utils nets layers arch memmgr schedule serialize codegen
 ########################################################
 SRCS = compiler
 
+top : $(MODULE).exe
 ########################################################
 include ../Makefile.common
+
+$(MODULE).exe : $(OFILES) $(LIBS)
+	@echo LD $@
+	@$(CPP) $(LDOPTS) $^ -o $@
 

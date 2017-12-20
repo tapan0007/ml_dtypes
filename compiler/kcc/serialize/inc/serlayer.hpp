@@ -217,6 +217,22 @@ public:
         }
     }
 
+    kcc_int32 gPaddingTop() const {
+        return m_Padding[FmapIndex_H][0];
+    }
+
+    kcc_int32 gPaddingBottom() const {
+        return m_Padding[FmapIndex_H][1];
+    }
+
+    kcc_int32 gPaddingLeft() const {
+        return m_Padding[FmapIndex_W][0];
+    }
+
+    kcc_int32 gPaddingRight() const {
+        return m_Padding[FmapIndex_W][1];
+    }
+
     //----------------------------------------------------------------
 
 private:
