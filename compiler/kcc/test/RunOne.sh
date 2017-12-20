@@ -108,7 +108,7 @@ LOG=$RESULTS/LOG
 
 TPB=$NET.tpb
 cmd="$COMPILER/compiler/compiler.exe --json $JsonFile"
-RunCmd $cmd
+RunCmd $cmd || Fatal Compiler failed
 
 ##############################################################
 RunCmd $OBJDUMP $TPB > $ASM 
