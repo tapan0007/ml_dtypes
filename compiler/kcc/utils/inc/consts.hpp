@@ -19,7 +19,22 @@ enum {
     FilterIndex_C = 1,
     FilterIndex_R = 2,
     FilterIndex_S = 3,
+
+    PaddingIndex_Top    = 0,
+    PaddingIndex_Bottom = 1,
+    PaddingIndex_Left   = 2,
+    PaddingIndex_Right  = 3,
+
+    StrideIndex_TopBottom = 0,
+    StrideIndex_LeftRight = 1,
+
+    DilateIndex_TopBottom = 0,
+    DilateIndex_LeftRight = 1,
 };
+
+static_assert(StrideIndex_TopBottom == DilateIndex_TopBottom, "Stride and Dilate TopBottom indices not same");
+
+static_assert(StrideIndex_LeftRight == DilateIndex_LeftRight, "Stride and Dilate LeftRight indices not same");
 
 const char* const SCHED_MEM_FORMAT = "%-24s %10s %6s  %8s  %8s  %8s  %8s";
 

@@ -50,10 +50,10 @@ public:
         m_Padding[FmapIndex_N][1]   = 0;
         m_Padding[FmapIndex_C][0]   = 0;
         m_Padding[FmapIndex_C][1]   = 0;
-        m_Padding[FmapIndex_H][0]   = 0;
-        m_Padding[FmapIndex_H][1]   = 0;
-        m_Padding[FmapIndex_W][0]   = 0;
-        m_Padding[FmapIndex_W][1]   = 0;
+        m_Padding[FmapIndex_H][0]   = 0; // Top
+        m_Padding[FmapIndex_H][1]   = 0; // Bottom
+        m_Padding[FmapIndex_W][0]   = 0; // Left
+        m_Padding[FmapIndex_W][1]   = 0; // Right
     }
 
     SerLayer(const SerLayer&) = default;
