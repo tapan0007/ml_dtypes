@@ -71,19 +71,16 @@ class TfFe:
       if (re.search(focusNodeRe, tfNode.name) != None):
       
         add_attrs = {}
-        for attr in ["padding", "data_format"]:
-          if attr in tfNode.attr:
-            add_attrs[attr] = tfNode.attr[attr]
-            #print("  DEBUG attr=", attr, "  ", add_attrs[attr])        
+        #for attr in ["data_format"]:
+        #  if attr in tfNode.attr:
+        #    add_attrs[attr] = tfNode.attr[attr]
+        #    print("  DEBUG attr=", attr, "  ", add_attrs[attr])        
         add_attrs["tfop"] = tfop
         numOps += 1
         node = None
         if (re.search("conv", tfop.op, re.I) != None):
           numConv += 1
-          #print("DEBUG strides=", tfNode.attr["strides"])
-          #print("DEBUG padding=", tfNode.attr["padding"])
-          #print("DEBUG data_format=", tfNode.attr["data_format"])
-          node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs["padding"], add_attrs["data_format"], add_attrs)
+          node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeConv2D")
         elif  (re.search("relu|tanh", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
@@ -189,7 +186,7 @@ class TfFe:
           # update/collect attributes
           # Strides are in the pb but require complex parsing (op.get_attr)
           #   which seems only accessible from the graph so deferred to calibration
-          for attr in ["strides"]:
+          for attr in ["strides", "padding", "data_format"]:
             if attr in op.node_def.attr:
               n.setAttr(attr, op.get_attr(attr))
               #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))    
