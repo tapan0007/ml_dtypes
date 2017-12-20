@@ -25,7 +25,7 @@ if ! test -d "$KAENA_PATH"; then
 fi
 
 
-export COMPILER=$KAENA_PATH/compiler/kcc
+export COMPILER=$KAENA_PATH/compiler/be
 export TEST=$COMPILER/test
 export npy_diff=$KAENA_PATH/compiler/util/npy_diff_files
 export DUMPNPY=$KAENA_PATH/compiler/util/npy2txt
@@ -33,7 +33,7 @@ export INKLING=$INKLING_PATH
 SIM=$INKLING/sim/sim
 
 ##############################################################
-## CODEGEN_TOP=$KAENA_PATH/compiler/kcc/codegen
+## CODEGEN_TOP=$KAENA_PATH/compiler/be/codegen
 CODEGEN_TOP=$INKLING
 
 OBJDUMP=$CODEGEN_TOP/objdump/objdump
