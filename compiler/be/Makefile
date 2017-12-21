@@ -7,7 +7,8 @@ MAINMOD := compiler
 top :
 	@for mod in $(MODS) $(MAINMOD); do \
 	    (if cd $$mod; then \
-			make -k; \
+			for D in obj; do test -d $$D || mkdir $$D; done; \
+			$(MAKE) -k; \
 		fi) \
 	done 2>&1 | tee e; \
 	echo; echo '========================'; \
@@ -23,5 +24,7 @@ clean :
 
 alldeps :
 	@for mod in $(MODS) $(MAINMOD); do \
-		(cd $$mod; $(MAKE) alldeps) \
+		(cd $$mod; \
+		for D in dep; do test -d $$D || mkdir $$D; done; \
+		$(MAKE) alldeps) \
 	done
