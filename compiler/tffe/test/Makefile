@@ -20,6 +20,9 @@
 #brew install graphviz
 #if need brew:  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
+# On ubuntu ML AMI use pip from AMI TF directory (DO NOT USE pip3 or detault pip):
+#   pip install graphviz pillow
+
 #KAENA_PATH = ../..
 OUT_PREFIX = "out_"
 NN_NAME = "jdr"
