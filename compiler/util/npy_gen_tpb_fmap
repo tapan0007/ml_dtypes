@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+
+# Examples:
+#   npy_gen_tpb_fmap
+#   npy_gen_tpb_fmap --data_type float64 --fill linear1
+
+import numpy as np
+import sys, os
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--fill',      help='Fill Fmap with value', default="linmod1k")
+parser.add_argument('--filename',  help='File to generate', default="fmap.npy")
+parser.add_argument('--data_type', help='Element type', default="float16")
+parser.add_argument('--size',      help='Number of elements', default="4194304")  # 8MB = 4M of float16
+
+args = parser.parse_args()
+
+filename = args.filename
+try:
+  exec("dType = np.%s" % (args.data_type))
+except:
+  raise("Invalid type %s. Use a type supported by numpy." % args.data_type)
+fill = args.fill
+size = int(args.size)
+
+if fill == "linear1":
+  arr = np.linspace(1, size, num=size, dtype=dType).reshape(1,1,1,-1)
+elif fill == "linmod1k":
+  arr = np.zeros((size), dtype=dType)
+  for i in range(0, size):
+    arr[i] = (i+1) % 1024
+  arr = arr.reshape(1,1,1,-1)
+else:
+  raise("Unknown --file mode")
+
+np.save(filename, arr)
+print(arr)
+print("INFO: generated file %s of shape %s of %s" % (filename, arr.shape, args.data_type))
