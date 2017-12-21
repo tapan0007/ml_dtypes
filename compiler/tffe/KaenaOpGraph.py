@@ -211,53 +211,52 @@ class NodeConv2D(Node):
     fileList += [npFileSimW, npFileSim]
     return(s, fileList)
   
+  # Helper function to calculate padding in SAME mode given
+  # stride, filter, image sizes
+  @staticmethod
+  def calcSamePadding(S, R, H):
+    Ho = (H + S - 1) // S
+    spacing = S - R  # negative spacing means overlap
+    inPixels = Ho * R + (Ho - 1) * spacing
+    leftover = max(0, inPixels - H)
+    return(Ho, leftover // 2, (leftover + 1) // 2)
+  
   def calcTpbPadding(self, paddingMode):
-    padding = [[0,0], [0,0], [0,0], [0,0]]
+    padding = None
     (R, S) = self.getFilter()
-    assert R == S
     (Hi, Wi) = self.getIFmapImageSize()
-    assert Hi == Wi
     (Ho, Wo) = self.getOFmapImageSize()
-    assert Ho == Wo
     (Sv, Sh) = self.getStridesSize()
-    assert Sv == Sh
     if paddingMode == "SAME":
-      if Ho * Sv == Hi:
-        # Padding - assume square filters for simplicity.
-        # Once debugged and tested split off the S calculation as north/south.
-        #
-        # Basic case with stride 1
-        #   Filter   IFMAP        Tonga padding
-        #          0123456789 -> OFMAP pixel
-        #   1      0        9     [0, 0]
-        #   2      01       9P    [0, 1]
-        #   3     P01      89P    [1, 1]
-        #   4     P012     89PP   [1, 2]
-        #   5    PP012    789PP   [2, 2]
-        #   6    PP0123   789PPP  [2, 3]
-        #   7   PPP0123  6789PPP  [3, 3]
-        #
-        # Stride 2 and up :
-        #   Unified formula is based on uniform spacing (or overlap):
-        #    Filter Spacing Filter ... Spacing Filter
-                
-        assert Ho == (Hi + Sv - 1) // Sv
-        spacing = Sv - R  # negative spacing means overlap
-        inPixels = Ho * R + (Ho - 1) * spacing
-        leftover = max(0, inPixels - Hi)
-        padWest = leftover // 2
-        padEast = (leftover + 1) // 2
-        padding = [[0,0], [0,0], [padWest,padEast], [padWest,padEast]]
-      else:
-        raise("Unsupported IFMAP %d and OFMAP %d sizes with stride %d in padding mode %s" % (Hi, Ho, Sv, paddingMode))
+      # Basic case with stride 1
+      #   Filter   IFMAP        Tonga padding
+      #          0123456789 -> OFMAP pixel
+      #   1      0        9     [0, 0]
+      #   2      01       9P    [0, 1]
+      #   3     P01      89P    [1, 1]
+      #   4     P012     89PP   [1, 2]
+      #   5    PP012    789PP   [2, 2]
+      #   6    PP0123   789PPP  [2, 3]
+      #   7   PPP0123  6789PPP  [3, 3]
+      #
+      # Stride 2 and up :
+      #   Unified formula is based on uniform spacing (or overlap):
+      #    Filter Spacing Filter ... Spacing Filter
+
+      (HoCalc, padNorth, padSouth) = NodeConv2D.calcSamePadding(Sv, R, Hi)
+      (WoCalc, padWest,  padEast)  = NodeConv2D.calcSamePadding(Sh, S, Wi)
+      assert Ho == HoCalc
+      assert Wo == WoCalc
     elif paddingMode == "VALID":
       # Valid mode should not have any padding so just assert on proper Fmap sizes
       assert Ho * Sv + R // 2 * 2 == Hi
+      (padNorth, padSouth) = (0, 0)
       (padWest, padEast) = (0, 0)
     else:
       raise("Unsupported padding mode %s" % paddingMode)
     print("DEBUG: calcTpbPadding  %s  IFMAP %dx%d  OFMAP %dx%d  STRIDE %dx%d  FILTER %dx%d  MODE %s  PAD %d-%dx%d-%d" %
-       (self.getName(), Hi, Wi, Ho, Wo, Sv, Sh, R, S, paddingMode, padWest,padEast, padWest,padEast))
+       (self.getName(), Hi, Wi, Ho, Wo, Sv, Sh, R, S, paddingMode, padNorth,padSouth, padWest, padEast))
+    padding = [[0,0], [0,0], [padNorth,padSouth], [padWest,padEast]]
     return padding
   
   # Returns layer json model in dictionary format, and list of files (npy data)
