@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright (C) 2017, Amazon.com. All Rights Reserved
 #
 # Extract padding info for conv2d by running sweeps over image, weight, filter sizes

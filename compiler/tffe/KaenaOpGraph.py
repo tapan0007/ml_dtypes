@@ -225,6 +225,8 @@ class NodeConv2D(Node):
       if Ho * Sv == Hi:
         # Padding - assume square filters for simplicity.
         # Once debugged and tested split off the S calculation as north/south.
+        #
+        # Basic case with stride 1
         #   Filter   IFMAP        Tonga padding
         #          0123456789 -> OFMAP pixel
         #   1      0        9     [0, 0]
@@ -234,8 +236,17 @@ class NodeConv2D(Node):
         #   5    PP012    789PP   [2, 2]
         #   6    PP0123   789PPP  [2, 3]
         #   7   PPP0123  6789PPP  [3, 3]
-        padWest = (R - 1) // 2
-        padEast =  R // 2
+        #
+        # Stride 2 and up :
+        #   Unified formula is based on uniform spacing (or overlap):
+        #    Filter Spacing Filter ... Spacing Filter
+                
+        assert Ho == (Hi + Sv - 1) // Sv
+        spacing = Sv - R  # negative spacing means overlap
+        inPixels = Ho * R + (Ho - 1) * spacing
+        leftover = max(0, inPixels - Hi)
+        padWest = leftover // 2
+        padEast = (leftover + 1) // 2
         padding = [[0,0], [0,0], [padWest,padEast], [padWest,padEast]]
       else:
         raise("Unsupported IFMAP %d and OFMAP %d sizes with stride %d in padding mode %s" % (Hi, Ho, Sv, paddingMode))
