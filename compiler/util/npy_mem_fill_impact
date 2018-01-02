@@ -1,0 +1,8 @@
+import numpy as np
+
+for s in ['FF', 'F0', '0F', 'A5']:
+  for t in [np.uint8, np.int8, np.uint16, np.int16, np.int32, np.int64, np.float16, np.float32, np.float64]:
+    exec('ss="\\x%s"' % s)
+    a = np.fromstring(ss * 8, dtype=t, count=1, sep='')
+    print("Fill=%s  Type=%-7s  Value=%s" % (s, a.dtype, a))
+  print

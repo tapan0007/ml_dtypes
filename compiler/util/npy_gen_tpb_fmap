@@ -22,7 +22,7 @@ filename = args.filename
 try:
   exec("dType = np.%s" % (args.data_type))
 except:
-  raise("Invalid type %s. Use a type supported by numpy." % args.data_type)
+  raise(Exception("ERROR: Invalid --data_type %s. Use a type supported by numpy." % args.data_type))
 fill = args.fill
 size = int(args.size)
 
@@ -34,7 +34,7 @@ elif fill == "linmod1k":
     arr[i] = (i+1) % 1024
   arr = arr.reshape(1,1,1,-1)
 else:
-  raise("Unknown --file mode")
+  raise(Exception("ERROR: Unknown --fill mode"))
 
 np.save(filename, arr)
 print(arr)
