@@ -36,6 +36,15 @@ class SerLayer {
 public:
     SerLayer()
     {
+        m_OfmapShape.resize(4);
+        m_KernelShape.resize(4);   // conv,pool
+        m_Batching.resize(4);
+        m_Stride.resize(4);
+        m_Padding.resize(4);
+        for (auto& v : m_Padding) {
+            v.resize(2);
+        }
+
         m_Batching[FmapIndex_N]     = 1;
         m_Batching[FmapIndex_C]     = 1;
         m_Batching[FmapIndex_H]     = 1;
@@ -239,17 +248,27 @@ private:
     std::string                 m_LayerType;
     std::string                 m_LayerName;
     vector<std::string>         m_PrevLayers;
-    OfmapShapeType              m_OfmapShape;
+
+    //OfmapShapeType              m_OfmapShape;
+    vector<int>                 m_OfmapShape;
 
     std::string                 m_OfmapFormat;   // input,conv
     std::string                 m_RefFile;       // input
 
     std::string                 m_KernelFile;    // input(data), conv(weights)
     std::string                 m_KernelFormat;  // conv, pool
-    KernelShapeType             m_KernelShape;   // conv,pool
-    StrideType                  m_Stride;        // conv,pool
-    PaddingType                 m_Padding;       // conv,pool
-    BatchingType                m_Batching;
+
+    //KernelShapeType             m_KernelShape;   // conv,pool
+    vector<int>                 m_KernelShape;   // conv,pool
+
+    //StrideType                  m_Stride;        // conv,pool
+    vector<int>                 m_Stride;        // conv,pool
+
+    //PaddingType                 m_Padding;       // conv,pool
+    vector<vector<int> >        m_Padding;       // conv,pool
+
+    //BatchingType                m_Batching;
+    vector<int>                 m_Batching;
 }; // class Layer
 
 
