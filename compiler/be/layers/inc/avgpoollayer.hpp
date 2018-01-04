@@ -13,7 +13,7 @@ namespace layers {
 //--------------------------------------------------------
 class AvgPoolLayer : public PoolLayer {
 private:
-    typedef PoolLayer SubClass;
+    using SubClass = PoolLayer;
 public:
     //----------------------------------------------------------------
     AvgPoolLayer(const Params& params, Layer* prev_layer,

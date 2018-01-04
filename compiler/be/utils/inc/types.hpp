@@ -8,16 +8,16 @@
 namespace kcc {
 // keep types and constants in kcc namespace to avoid "using utils::TYPE"
 
-typedef signed char     kcc_int8;
-typedef short           kcc_int16;
-typedef int             kcc_int32;
-typedef long            kcc_int64;
-typedef unsigned char   kcc_uint8;
-typedef unsigned short  kcc_uint16;
-typedef unsigned int    kcc_uint32;
-typedef unsigned long   kcc_uint64;
-typedef float           kcc_float32;
-typedef double          kcc_float64;
+using kcc_int8    = signed char;
+using kcc_int16   = short;
+using kcc_int32   = int;
+using kcc_int64   = long;
+using kcc_uint8   = unsigned char;
+using kcc_uint16  = unsigned short;
+using kcc_uint32  = unsigned int;
+using kcc_uint64  = unsigned long;
+using kcc_float32 = float;
+using kcc_float64 = double;
 
 static_assert(sizeof(kcc_int8)  == 1, "sizeof(int8) != 1");
 static_assert(sizeof(kcc_int16) == 2, "sizeof(int16) != 2");
@@ -31,20 +31,20 @@ static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
 
 
-typedef kcc_int32 LayerId;
+using LayerId = kcc_int32;
 const LayerId LayerId_Null = -1;
 
 
-typedef kcc_int64 StateBufferAddress;
+using StateBufferAddress = kcc_int64;
 enum : StateBufferAddress {
     StateBufferAddress_Invalid = -1L
 };
 
-typedef kcc_int32 OfmapShapeType[FMAP_TENSOR_RANK];
-typedef kcc_int32 KernelShapeType[FILTER_TENSOR_RANK];
-typedef kcc_int32 StrideType[FMAP_TENSOR_RANK];
-typedef kcc_int32 PaddingType[FMAP_TENSOR_RANK][2];
-typedef kcc_int32 BatchingType[FMAP_TENSOR_RANK];
+using OfmapShapeType  = kcc_int32[FMAP_TENSOR_RANK];
+using KernelShapeType = kcc_int32[FILTER_TENSOR_RANK];
+using StrideType      = kcc_int32[FMAP_TENSOR_RANK];
+using PaddingType     = kcc_int32[FMAP_TENSOR_RANK][2];
+using BatchingType    = kcc_int32[FMAP_TENSOR_RANK];
 
 }
 

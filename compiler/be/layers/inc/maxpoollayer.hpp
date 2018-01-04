@@ -14,7 +14,7 @@ namespace layers {
 //--------------------------------------------------------
 class MaxPoolLayer : public PoolLayer {
 private:
-    typedef PoolLayer SubClass;
+    using SubClass = PoolLayer;
 public:
     //----------------------------------------------------------------
     MaxPoolLayer(const Params& params, Layer* prev_layer,

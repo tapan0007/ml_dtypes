@@ -25,7 +25,7 @@ using namespace utils;
 //--------------------------------------------------------
 class TanhLayer : public ActivLayer {
 private:
-    typedef ActivLayer SubClass;
+    using SubClass = ActivLayer;
 public:
     //----------------------------------------------------------------
     TanhLayer(const Params& params, Layer* prev_layer);

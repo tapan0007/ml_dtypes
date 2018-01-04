@@ -37,7 +37,7 @@ public:
 //########################################################
 class DataTypeInt8 : public DataType {
 private:
-    typedef kcc_int8 data_type;
+    using data_type = kcc_int8;
 public:
     DataTypeInt8() {
     }
@@ -68,7 +68,7 @@ public:
 //########################################################
 class DataTypeInt16 : public DataType {
 private:
-    typedef kcc_int16 data_type;
+    using data_type = kcc_int16;
 public:
     DataTypeInt16() {
     }
@@ -130,7 +130,7 @@ public:
 //########################################################
 class DataTypeFloat32 : public DataType {
 private:
-    typedef kcc_float32 data_type;
+    using data_type = kcc_float32;
 public:
     DataTypeFloat32() {
     }

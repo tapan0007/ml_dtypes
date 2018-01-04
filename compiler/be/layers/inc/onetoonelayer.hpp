@@ -23,7 +23,7 @@ namespace layers {
 //--------------------------------------------------------
 class OneToOneLayer : public Layer {
 private:
-    typedef Layer SubClass;
+    using SubClass = Layer;
 public:
     //----------------------------------------------------------------
     OneToOneLayer(const Params& params, Layer* prev_layer)

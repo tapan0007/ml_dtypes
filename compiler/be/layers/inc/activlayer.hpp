@@ -25,7 +25,7 @@ using namespace utils;
 //--------------------------------------------------------
 class ActivLayer : public OneToOneLayer {
 private:
-    typedef OneToOneLayer SubClass;
+    using  SubClass = OneToOneLayer;
 protected:
     //----------------------------------------------------------------
     ActivLayer(const Params& params, Layer* prev_layer);

@@ -13,7 +13,7 @@ namespace layers {
 //########################################################
 class InputLayer : public Layer {
 private:
-    typedef Layer SubClass;
+    using SubClass = Layer;
 public:
     //----------------------------------------------------------------
     // Represents input FMAP. The input FMAP is stored as the *OUTPUT*

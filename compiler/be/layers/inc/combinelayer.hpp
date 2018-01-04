@@ -23,7 +23,7 @@ namespace layers {
 //--------------------------------------------------------
 class CombineLayer : public Layer {
 private:
-    typedef Layer SubClass;
+    using SubClass = Layer;
 public:
     //----------------------------------------------------------------
     CombineLayer(const Params& param, Layer* prev_layer, Layer* earlier_layer, kcc_int32 num_ofmaps);

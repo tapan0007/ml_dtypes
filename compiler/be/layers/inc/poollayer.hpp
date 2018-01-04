@@ -13,7 +13,7 @@ namespace layers {
 //--------------------------------------------------------
 class PoolLayer : public SubSampleLayer {
 private:
-    typedef SubSampleLayer SubClass;
+    using SubClass = SubSampleLayer;
 public:
     //----------------------------------------------------------------
     PoolLayer(const Params& params, Layer* prev_layer,

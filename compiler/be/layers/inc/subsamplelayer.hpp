@@ -25,7 +25,7 @@ namespace layers {
 //--------------------------------------------------------
 class SubSampleLayer : public Layer {
 private:
-    typedef Layer SubClass;
+    using SubClass = Layer;
 public:
 
     //----------------------------------------------------------------

@@ -25,7 +25,7 @@ using namespace utils;
 //--------------------------------------------------------
 class ReluLayer : public ActivLayer {
 private:
-    typedef ActivLayer SubClass;
+    using SubClass = ActivLayer;
 public:
     //----------------------------------------------------------------
     ReluLayer(const Params& params, Layer* prev_layer);
