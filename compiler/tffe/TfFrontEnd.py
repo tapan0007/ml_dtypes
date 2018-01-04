@@ -148,6 +148,11 @@ class TfFe:
       inputShape = inputTensor.get_shape().as_list()
       shapeXY = inputShape[1:3]
       inputType = inputTensor.dtype.as_numpy_dtype()
+      
+      # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
+      if inputShape[0] == None:
+        inputShape[0] = 1
+      
       if imageFile.endswith(".npy"):
         img = np.load(imageFile)
       elif imageFile == "linear":
