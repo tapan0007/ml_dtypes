@@ -58,6 +58,6 @@ $(LIBRARY) : $(OFILES)
 
 clean :
 	@echo CLEAN $(MODULE)
-	@rm -f $(OFILES)
+	@rm -f $(OFILES) $(LIBRARY) $(ADDITIONAL_CLEAN_FILES)
 
 
