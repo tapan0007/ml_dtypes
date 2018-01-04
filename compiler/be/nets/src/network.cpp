@@ -182,13 +182,13 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         params.m_Network = this;
         const string refFile = serLayer.gRefFile();
 
+        FmapDesc fmap_desc(
+                    serLayer.gNumOfmaps(),
+                    serLayer.gOfmapHeight(),
+                    serLayer.gOfmapWidth());
         Layer* layer = nullptr;
         if (serLayer.gTypeStr() == TypeStr_Input) {
             assert(serLayer.gNumPrevLayers() == 0);
-            FmapDesc fmap_desc(
-                        serLayer.gNumOfmaps(),
-                        serLayer.gOfmapHeight(),
-                        serLayer.gOfmapWidth());
             const string dataTensorDimSemantics = serLayer.gOfmapFormat();
             layer = new layers::InputLayer(params, fmap_desc,
                         refFile.c_str(), dataTensorDimSemantics.c_str());
@@ -197,7 +197,6 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             const string& prevLayerName = serLayer.gPrevLayer(0);
             Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr);
-            const kcc_int32 num_ofmaps = serLayer.gNumOfmaps();
             const string ofmapFormat(serLayer.gOfmapFormat());
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
                                             serLayer.gStrideVertical(),
@@ -215,7 +214,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             const string filterTensorDimSemantics = serLayer.gKernelFormat();
 
             layer = new layers::ConvLayer(params, prevLayer,
-                                          num_ofmaps, ofmapFormat,
+                                          fmap_desc, ofmapFormat,
                                           stride, kernel, padding,
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());

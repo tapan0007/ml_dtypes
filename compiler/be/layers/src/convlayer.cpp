@@ -13,12 +13,12 @@ namespace layers {
 
 //--------------------------------------------------------
 ConvLayer::ConvLayer(const Params& params, Layer* prev_layer,
-        kcc_int32 num_ofmaps, const string& dataTensorSemantics,
+        const FmapDesc& fmapDesc, const string& dataTensorSemantics,
         const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel,
         const std::tuple<kcc_int32,kcc_int32,kcc_int32,kcc_int32>& padding,
         const char* filterFileName, const char* filterTensorDimSemantics)
     : SubSampleLayer(params, prev_layer,
-                num_ofmaps, dataTensorSemantics,
+                fmapDesc, dataTensorSemantics,
                 stride, kernel, padding)
 {
         m_FilterFileName = filterFileName;
