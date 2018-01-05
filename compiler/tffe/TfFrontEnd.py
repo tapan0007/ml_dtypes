@@ -216,7 +216,7 @@ class TfFe:
           npInfo.dType = str(nd.dtype)
         else:
           print("INFO: Failed to get tensor content for ",
-                tfOp.type, "  ", tfOp.name)
+                var, "  ", n.getOpName(), n.getOpType())
       print("")
     print("INFO: wrote %d i/ofmap files" % numImages)
 
@@ -315,6 +315,8 @@ class TfFe:
       for n in levelizedNodes[level]:
         numInputs = max(numInputs, len(n.getFaninEdges()))
         numOutputs = max(numOutputs, len(n.getFanoutEdges()))
+        npOutputInfo = n.getNpInfo()
+        #assert len(n.getFanoutEdges()) == len(npOutputInfo)
 
     rows = []
     #debugId = 0
