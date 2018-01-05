@@ -148,6 +148,11 @@ class TfFe:
       inputShape = inputTensor.get_shape().as_list()
       shapeXY = inputShape[1:3]
       inputType = inputTensor.dtype.as_numpy_dtype()
+      
+      # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
+      if inputShape[0] == None:
+        inputShape[0] = 1
+      
       if imageFile.endswith(".npy"):
         img = np.load(imageFile)
       elif imageFile == "linear":
@@ -211,7 +216,7 @@ class TfFe:
           npInfo.dType = str(nd.dtype)
         else:
           print("INFO: Failed to get tensor content for ",
-                tfOp.type, "  ", tfOp.name)
+                var, "  ", n.getOpName(), n.getOpType())
       print("")
     print("INFO: wrote %d i/ofmap files" % numImages)
 
@@ -310,6 +315,8 @@ class TfFe:
       for n in levelizedNodes[level]:
         numInputs = max(numInputs, len(n.getFaninEdges()))
         numOutputs = max(numOutputs, len(n.getFanoutEdges()))
+        npOutputInfo = n.getNpInfo()
+        #assert len(n.getFanoutEdges()) == len(npOutputInfo)
 
     rows = []
     #debugId = 0
