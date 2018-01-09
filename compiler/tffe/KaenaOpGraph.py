@@ -6,6 +6,7 @@
 from NpTransforms import NpTrans as npt
 from NpUtils import NpUtils as npu
 import os, re, json
+import numpy as np
 
 class Object:
   def __init__(self, name, attrs):
@@ -85,6 +86,11 @@ class Node(Object):
             "layer_name" :  self.getOpName(),
             "#comment"   :  "unsupported layer"
             }, [])
+  def getOpCount(self):
+    return 1
+  def getDotText(self):
+    return self.getOpType()
+
 
 class PosNode:
   def __init__(self, node, index):
@@ -295,6 +301,29 @@ class NodeConv2D(Node):
     layerDataBase.update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
+
+  # Number of add, multiply ops for performance analysis and reporting
+  # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
+  def getOpCount(self):
+    npInfo = self.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    filterShapeRSCM = npInfoW.npShape
+    opCount = np.empty(filterShapeRSCM).size * batch * height * width;
+    return opCount
+  
+  # Node text for dot graph
+  def getDotText(self):
+    dotText = self.getOpType()
+    if len(self.getNpInfo()) > 0:
+      # Filter - not needed, it is shown as shape of the other input
+      #((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+      #filterShapeRSCM = npInfoW.npShape
+      #dotText += "\nFilter " + str(filterShapeRSCM)
+      # Stride
+      dotText += "\nStrides " + str(self.getStrides())
+    return dotText
+
 
 # Computational data flow graph
 class Graph(Object):
@@ -543,6 +572,7 @@ class TrivNet(Network):
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
     outNpy = None
+    totalOpCount = 0
     for level in range(0, len(levelizedNodes)):
       for n in levelizedNodes[level]:
         op = n.getOpType()
@@ -552,6 +582,11 @@ class TrivNet(Network):
           jsonData["layers"].append(layerData)
           fileList += fileListLayer
           outNpy = fileListLayer[-1]
+        opCount = n.getOpCount()
+        totalOpCount += opCount
+        print("DEBUG: opcount is %d for %s  %s" % (opCount, n.getOpType(), n.getOpName()))
+    print("INFO: total opcount is %d" % totalOpCount)
+        
 
     if verbose > 0:
       npu.showNpyFile("Output OFMAPs", outNpy)
