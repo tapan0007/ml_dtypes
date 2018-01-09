@@ -337,6 +337,9 @@ class TfFe:
           row["Output" + str(i) + "dType"] = npInfo.dType
           row["Output" + str(i) + "Shape"] = npInfo.npShape
           row["Output" + str(i) + "File"]  = npInfo.npFile
+          # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
+          if (npInfo.npShape[0] == None):
+             npInfo.npShape[0] = 1
           outputSize += TfFe.npShapeToSize(npInfo.npShape)
         row["OutputSize"] = outputSize
         inputSize = 0
