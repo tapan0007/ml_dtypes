@@ -232,7 +232,7 @@ class TfFe:
       attrs = {}
       if re.search("conv", tfOp.op, re.I):
         attrs["color"] = "red"
-      dot.node(n.getName(), tfOp.op, attrs)
+      dot.node(n.getName(), n.getDotText(), attrs)
 
     for edge in self.__kg.getEdges():
       #print(edge)
