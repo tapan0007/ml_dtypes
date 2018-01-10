@@ -309,7 +309,7 @@ class NodeConv2D(Node):
     (batch, height, width, channels) = npInfo.npShape
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
     filterShapeRSCM = npInfoW.npShape
-    opCount = np.empty(filterShapeRSCM).size * batch * height * width;
+    opCount = 2 * np.empty(filterShapeRSCM).size * batch * height * width;
     return opCount
   
   # Node text for dot graph
