@@ -57,7 +57,7 @@ tests = {
   "2-1conv9_64s8" : [ "trivnet_conv1",  "b1-h16-r9-s8-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "6-alexnet"     : [ "tf_pb",          "alexnet_v100/alexnet_fp32.pb",  "alexnet", "--input_node Variable --images linspace1"],
   "8-resnet50"    : [ "tf_pb",          "resnet50/resnet_v1_50_fp32_opt.pb",  "resnet50", "--images linspace1 --depth 2"],
-  #"8-resnet50_fp16"    : [ "tf_pb",          "resnet50/resnet50_fp16_keras_opt.pb",  "resnet50", "--input_node input_1 --images linspace1 --depth 2"],
+  "8-resnet50_fp16"    : [ "tf_pb",          "resnet50/resnet50_fp16_keras_opt.pb",  "resnet50", "--input_node input_1 --images linspace1 --depth 2"],
   "8-resnet152"   : [ "tf_pb",          "resnet_v2_152/pb/resnet_v2_152_fp32.pb",  "resnet152", "--images linspace1"],
 }
 

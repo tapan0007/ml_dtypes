@@ -255,7 +255,10 @@ class NodeConv2D(Node):
       assert Wo == WoCalc
     elif paddingMode == "VALID":
       # Valid mode should not have any padding so just assert on proper Fmap sizes
-      assert Ho * Sv + R // 2 * 2 == Hi
+      #   assert Ho * Sv + R // 2 * 2 == Hi
+      # However in 16b resent there is a conv2d with image 55, filter 1,
+      #   stride 2, output image 28 in which case the above does not hold
+      assert((Hi - (R-Sv)) // Sv == Ho)
       (padNorth, padSouth) = (0, 0)
       (padWest, padEast) = (0, 0)
     else:

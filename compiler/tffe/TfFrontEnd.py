@@ -184,6 +184,22 @@ class TfFe:
             #print("DEBUG: conv  ", n.getOpName())
           for tensor in op.outputs:
             shape = tensor.get_shape().as_list()
+            # Handle missing batch dimension on some input nodes
+            if len(shape) > 0 and shape[0] == None:
+              shape[0] = 1
+              print("WARNING: adjusted batch dimension \"None\" to 1 on  %s  %s  %s" %
+                (n.getOpType(), n.getName(), str(shape))) 
+            if len(shape) == 0:
+              print("WARNING: zero-dimension op output on  %s  %s  %s" %
+                (n.getOpType(), n.getName(), str(shape))) 
+            else:
+              # Generic case excluding batching above
+              for i in range(len(shape)):
+                if shape[i] == None:
+                  shape[i] = 1
+                  print("WARNING: dimension %d \"None\" to 1 on  %s  %s  %s" %
+                    (i, n.getOpType(), n.getName(), str(shape))) 
+                  
             npInfo = kog.NpInfo(tensor.name, shape)
             n.appendNpInfo(npInfo)
             tfVars.append(tensor.name)
@@ -287,7 +303,7 @@ class TfFe:
   @staticmethod
   def npShapeToSize(shapeList):
     arr = np.ndarray(shapeList)
-    return(arr.size)
+    return arr.size
 
   # Color graph by the datatype. Intended for int8 inteference so 8b is green
   @staticmethod
@@ -313,10 +329,9 @@ class TfFe:
     numOutputs = 0
     for level in range(0, len(levelizedNodes)):
       for n in levelizedNodes[level]:
-        numInputs = max(numInputs, len(n.getFaninEdges()))
-        numOutputs = max(numOutputs, len(n.getFanoutEdges()))
         npOutputInfo = n.getNpInfo()
-        #assert len(n.getFanoutEdges()) == len(npOutputInfo)
+        numInputs = max(numInputs, len(n.getFaninEdges()))
+        numOutputs = max(numOutputs, len(npOutputInfo))
 
     rows = []
     #debugId = 0
@@ -337,9 +352,6 @@ class TfFe:
           row["Output" + str(i) + "dType"] = npInfo.dType
           row["Output" + str(i) + "Shape"] = npInfo.npShape
           row["Output" + str(i) + "File"]  = npInfo.npFile
-          # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
-          if (npInfo.npShape[0] == None):
-             npInfo.npShape[0] = 1
           outputSize += TfFe.npShapeToSize(npInfo.npShape)
         row["OutputSize"] = outputSize
         inputSize = 0
