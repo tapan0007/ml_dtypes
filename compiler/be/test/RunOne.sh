@@ -154,7 +154,7 @@ done
 #cat $SimOututNpy-float16.txt
 
 ##############################################################
-cmd="$npy_diff --gold $OutputNpy --new $SimOutputNpy --verbose 2"
+cmd="$npy_diff --gold $OutputNpy --new $SimOutputNpy --verbose 3"
 echo $cmd '| tee ' $RESULTS/$NET.diff
 $cmd 2>&1 | tee $RESULTS/$NET.diff
 
