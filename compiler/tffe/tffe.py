@@ -37,6 +37,8 @@ parser.add_argument('--weights', help='Generate weight files', dest="weights",
 parser.add_argument('--images', help='Generate images (IFMAP and OFMAP files) for an input image', dest="images", default=None)
 parser.add_argument('--depth', help='Depth of layer name hierarchy to show in the dot output',
                     default=5)
+parser.add_argument('--debug', help='Debug level, 1 minimal, 3 detailed op values ',
+                    default=0)
 parser.add_argument('--focus', help='Regular expression to filter a subset of nodes',
                     default=".*")
 parser.add_argument('--width', help='Highlight data paths wider than the width',
@@ -55,7 +57,7 @@ if not os.path.isfile(file):
 if args.images != None and args.focus != ".*":
   raise("ERROR: Unsupported --images with --focus")
 
-tffe = TfFrontEnd.TfFe(int(args.width))
+tffe = TfFrontEnd.TfFe(int(args.width), int(args.debug))
 tffe.loadPb(file, args.focus)
 tffe.writeDot(int(args.depth), args.out_prefix + "graph.dot", "svg")
 if args.weights:
@@ -66,7 +68,7 @@ if args.images != None:
   kog.identifyMainFlowEdges(inputTensorName)
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   tffe.writeDot(int(args.depth), args.out_prefix + "graph_ann.dot", "svg")
-  fileList = kog.genCompilerPy(args.out_prefix + "compiler.py", int(args.verbose))
+  fileList = []
   (refOutNpyFile, fileListJson) = kog.genCompilerJson(args.out_prefix + "compiler.json", int(args.verbose))
   fileList += fileListJson
   fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + "compiler.json", refOutNpyFile)

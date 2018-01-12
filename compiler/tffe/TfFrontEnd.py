@@ -47,10 +47,11 @@ class TfOp:
     return(nd)
 
 class TfFe:
-  def __init__(self, dataPathWidthThreshold):
+  def __init__(self, dataPathWidthThreshold, debugLevel):
     self.__gd = None
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
+    self.debugLevel = debugLevel
   
   def getKaenaOpGraph(self):
     return(self.__kg)
@@ -67,7 +68,8 @@ class TfFe:
     # Add all nodes (ops) in TF graph definition
     for tfNode in self.__gd.node:
       tfop = TfOp(tfNode.name, tfNode.op, tfNode)
-      #print("\nDEBUG loadPb ", tfop, tfNode)
+      if self.debugLevel >= 3:
+        print("\nDEBUG loadPb ", tfop, tfNode)
       if (re.search(focusNodeRe, tfNode.name) != None):
       
         add_attrs = {}
@@ -85,6 +87,9 @@ class TfFe:
         elif  (re.search("relu|tanh", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
+        elif (re.search("MaxPool", tfop.op, re.I) != None):
+          node = kog.NodeMaxPool(tfNode.name, tfop.op, add_attrs)
+          #print("DEBUG created NodeMaxPool")
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         self.__kg.addNode(node)
@@ -207,7 +212,7 @@ class TfFe:
           # update/collect attributes
           # Strides are in the pb but require complex parsing (op.get_attr)
           #   which seems only accessible from the graph so deferred to calibration
-          for attr in ["strides", "padding", "data_format"]:
+          for attr in ["strides", "padding", "data_format", "ksize"]:
             if attr in op.node_def.attr:
               n.setAttr(attr, op.get_attr(attr))
               #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))    
