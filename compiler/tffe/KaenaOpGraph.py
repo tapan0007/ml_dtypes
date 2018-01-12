@@ -77,8 +77,6 @@ class Node(Object):
     while len(self.__fanout) < index + 1:
       self.__fanout.append([])
     self.__fanout[index].append(edge)
-  def genCompilerLayerText(self):
-    return("        # No model for %s %s\n" % (self.getOpType(), self.getOpName()), [])
   # Base class support for single-input, single output layers
   # E.g., activation, later possibly other simple layers
   def genCompilerLayerJson(self):
@@ -90,6 +88,9 @@ class Node(Object):
     return 1
   def getDotText(self):
     return self.getOpType()
+  # Supported ops/nodes are passed down through the compiler and simuator flow
+  def isSupported(self):
+    return False
 
 
 class PosNode:
@@ -118,7 +119,10 @@ class Edge(Object):
            "  From=" + f.node.getName() + ":" + str(f.index) +
            "  To=" + t.node.getName()  + ":" + str(t.index) )
 
+
+###############################################################################
 # Simple single input, single output nodes like RELU
+###############################################################################
 class NodeSimple(Node):
   def __init__(self, name, opType, attrs):
     super().__init__(name, opType, attrs)
@@ -144,7 +148,40 @@ class NodeSimple(Node):
     fileListBase += fileList
     return(layerDataBase, fileListBase)
 
-class NodeConv2D(Node):
+  def isSupported(self):
+    return True
+
+###############################################################################
+# Base class for nodes that use striding and padding
+#   Example: what is common between some ops; in tf.nn syntax:
+#    conv2d(
+#     C   input,
+#        filter,
+#     C   strides,
+#     C   padding,
+#        use_cudnn_on_gpu=True,
+#     C   data_format='NHWC',
+#        dilations=[1, 1, 1, 1],
+#     C   name=None
+#    )
+#    max_pool(
+#     C   value,
+#        ksize,
+#     C   strides,
+#     C   padding,
+#     C   data_format='NHWC',
+#     C   name=None
+#    )
+#    avg_pool(
+#     C   value,
+#        ksize,
+#     C   strides,
+#     C   padding,
+#     C   data_format='NHWC',
+#     C   name=None
+#    )
+###############################################################################
+class NodeBasePaddedStrided(Node):
   def __init__(self, name, opType, attrs):
     super().__init__(name, opType, attrs)
 
@@ -156,16 +193,9 @@ class NodeConv2D(Node):
 
   def getDataFormat(self):
     return self.getAttr("data_format").decode("utf-8")
-  
-  # Return the 2 significant dimensions of 2-D filter
-  def getFilter(self):
-    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    filterArr = npInfoW.npShape[0:2]
-    # Ensure 2-D filter
-    assert len(npInfoW.npShape) == 4
-    assert npInfoW.npShape[2] > 0
-    assert npInfoW.npShape[3] > 0
-    return filterArr
+
+  def isSupported(self):
+    return True
   
   # Utility to extract 2-D object dimensions from 4-D (batched, with channels) conv tensor dimension
   def dim2imgSize(self, dim):
@@ -178,7 +208,7 @@ class NodeConv2D(Node):
   
   # Return the 2 significant dimensions of batched multi channel IFMAP (of 2-D images)
   def getIFmapImageSize(self):
-    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
     ifmapArr = self.dim2imgSize(npInfoIF.npShape)
     return ifmapArr
 
@@ -194,29 +224,6 @@ class NodeConv2D(Node):
     stridesArr = self.dim2imgSize(strides)
     return stridesArr
 
-  # Returns layer python model in text format, and list of files (npy data)
-  def genCompilerLayerText(self):
-    fileList = []
-    npInfo = self.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape
-    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    filterSize = npInfoW.npShape[0]
-    assert(npInfoW.npShape[0] == npInfoW.npShape[1]) # square filter
-    # OFMAP
-    (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-    # IFMAP, not needed
-    (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
-    # WEIGHT
-    (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
-    stride = 1 # TO_DO extract it properly
-    s =  '        layer = ConvLayer(Layer.Param("%s", %d, self), layer,\n' % (self.getOpName(), batch)
-    s += '                   %d, stride=%d, kernel=%d,\n' % (channels, stride, filterSize)
-    s += '                   filterFileName="%s", filterTensorDimSemantics="%s")\n' % (npFileSimW, simFormatW)
-    s += '        # Golden result file  %s\n' % npFileSim
-    s += "        \n"
-    fileList += [npFileSimW, npFileSim]
-    return(s, fileList)
-  
   # Helper function to calculate padding in SAME mode given
   # stride, filter, image sizes
   @staticmethod
@@ -227,9 +234,9 @@ class NodeConv2D(Node):
     leftover = max(0, inPixels - H)
     return(Ho, leftover // 2, (leftover + 1) // 2)
   
-  def calcTpbPadding(self, paddingMode):
+  def calcTpbPadding(self, kernelShape2D, paddingMode):
     padding = None
-    (R, S) = self.getFilter()
+    (R, S) = kernelShape2D
     (Hi, Wi) = self.getIFmapImageSize()
     (Ho, Wo) = self.getOFmapImageSize()
     (Sv, Sh) = self.getStridesSize()
@@ -267,9 +274,25 @@ class NodeConv2D(Node):
        (self.getName(), Hi, Wi, Ho, Wo, Sv, Sh, R, S, paddingMode, padNorth,padSouth, padWest, padEast))
     padding = [[0,0], [0,0], [padNorth,padSouth], [padWest,padEast]]
     return padding
-  
+
+###############################################################################
+# 2D convolution
+###############################################################################
+class NodeConv2D(NodeBasePaddedStrided):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Return the 2 significant dimensions of 2-D filter
+  def getFilter2D(self):
+    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    filterArr = npInfoW.npShape[0:2]
+    # Ensure 2-D filter
+    assert len(npInfoW.npShape) == 4
+    assert npInfoW.npShape[2] > 0
+    assert npInfoW.npShape[3] > 0
+    return filterArr
+
   # Returns layer json model in dictionary format, and list of files (npy data)
-  # To be removed once full flow is tested with JSON
   def genCompilerLayerJson(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
@@ -286,7 +309,7 @@ class NodeConv2D(Node):
 
     fileList += [npFileSimW, npFileSim]
     stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
-    padding = self.calcTpbPadding(self.getPaddingMode())
+    padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
     layerData = {
       "layer_type"      : "Conv",
       "kernel_file"     : npFileSimW,
@@ -305,16 +328,6 @@ class NodeConv2D(Node):
     fileListBase += fileList
     return(layerDataBase, fileListBase)
 
-  # Number of add, multiply ops for performance analysis and reporting
-  # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
-  def getOpCount(self):
-    npInfo = self.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape
-    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    filterShapeRSCM = npInfoW.npShape
-    opCount = 2 * np.empty(filterShapeRSCM).size * batch * height * width;
-    return opCount
-  
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
@@ -327,8 +340,96 @@ class NodeConv2D(Node):
       dotText += "\nStrides " + str(self.getStrides())
     return dotText
 
+  # Number of add, multiply ops for performance analysis and reporting
+  # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
+  def getOpCount(self):
+    npInfo = self.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    filterShapeRSCM = npInfoW.npShape
+    # 7 loops - 4 in the filter, 3 in ofmap
+    opCount = 2 * np.empty(filterShapeRSCM).size * batch * height * width;
+    return opCount
+  
 
+###############################################################################
+# Max Pool
+###############################################################################
+class NodeMaxPool(NodeBasePaddedStrided):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  def getKernelSize(self):
+    return self.getAttr("ksize")
+
+  # Return the 2 significant dimensions of Kernel Size
+  def getKernelSize2D(self):
+    kernelSizeNHWC = self.getKernelSize()
+    kernelSize2D = kernelSizeNHWC[1:3]
+    # Ensure 2-D filter
+    assert len(kernelSizeNHWC) == 4
+    assert kernelSize2D[0] > 0
+    assert kernelSize2D[1] > 0
+    return kernelSize2D
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
+    kernelSizeNHWC = self.getKernelSize()
+    kernelSizeNCHW = [kernelSizeNHWC[i] for i in [0, 3, 1, 2]]
+    # OFMAP
+    (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    # IFMAP, not needed
+    (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
+
+    fileList += [npFileSim]
+    stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
+    padding = self.calcTpbPadding(self.getKernelSize2D(), self.getPaddingMode())
+    layerData = {
+      "layer_type"      : "MaxPool",
+      #"kernel_format"   : simFormatOF,  # redundant, has to be same as fmaps
+      "kernel_shape"    : kernelSizeNCHW,
+      "ofmap_shape"     : [batch, channels, height, width],
+      "ofmap_format"    : simFormatOF,
+      "ref_file"        : npFileSim,
+      "padding"         : padding,
+      "previous_layers" : [fromIfNode.getName()],
+      "stride"          : stride,
+      "#comment"        : "supported layer"
+    }
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase.update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  # Node text for dot graph
+  def getDotText(self):
+    dotText = self.getOpType()
+    if len(self.getNpInfo()) > 0:
+      # Kernel
+      kernelSizeNHWC = self.getKernelSize()
+      dotText += "\nKernelSize " + str(kernelSizeNHWC)
+      # Stride
+      dotText += "\nStrides " + str(self.getStrides())
+    return dotText
+
+  # Number of add, multiply, max or move, copy ops for performance
+  # analysis and reporting
+  # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
+  def getOpCount(self):
+    npInfo = self.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    kernelSizeNHWC = self.getKernelSize()
+    opCount = 2 * np.empty(kernelSizeNHWC).size * batch * height * width * channels;
+    return opCount
+
+
+###############################################################################
 # Computational data flow graph
+###############################################################################
 class Graph(Object):
   def __init__(self, name, attrs = {}):
     super().__init__(name, attrs)
@@ -448,86 +549,14 @@ class Graph(Object):
   
   def edgeIsInMainFlow(self, edge):
     return(edge in self.__mainFlowEdges)
-
-
-  # Generate Kaena Compiler input graph (in python format)
-  # including weights, input and golden output imges (in numpy format)
-  #
-  # NPY file formats:
-  #   source (in TF) -> conversions -> NPY written by TFFE
-  # 
-  # IFMAPS:
-  #   NHWC  swapaxes(1,2)  NWHC   (1,3) NCHW 
-  # 
-  # WEIGHTS:
-  #   RSCM   (0, 3)  MSCR   (1,2)  MCSR   (2,3)  MCRS
-    
-  def genCompilerPy(self, outFile, verbose):
-    
-    prefix = """
-from utils.fmapdesc     import OfmapDesc
-from utils.datatype     import *
- 
-from layers.layer       import Layer
-from layers.datalayer   import DataLayer
-from layers.convlayer   import ConvLayer
-
-from nets.network       import Network
- 
- 
-class TrivNet(Network):
-    def __init__(self):
-        super().__init__(DataTypeFloat16(), "TrivNet")
-
-    def construct(self):
-"""
-    lines = []
-    
-    fileList = []
-
-    # Input layer
-    inputNode = self.getInputNode()
-    npInfo = inputNode.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape
-    assert(height == width)
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-    s = '        layer =  DataLayer(Layer.Param("%s", %d, self),\n' % (inputNode.getOpName(), batch)
-    s+= '               OfmapDesc(%d, %d), inputDataFileName="%s", dataTensorDimSemantics="%s")\n' % (channels, height, npFileSim, simFormat)
-    lines.append(s)
-    if verbose > 0:
-      npu.showNpyFile("Input IFMAPs", npFileSim)
-    
-    # Conv and other layers
-    levelizedNodes = self.getLevelizedNodes()
-    outNpy = None
-    for level in range(0, len(levelizedNodes)):
-      for n in levelizedNodes[level]:
-        op = n.getOpType()
-        #print("DEBUG: node=", n.getName(), "  op=", op)
-        if op == "Conv2D":
-          (s, fileListLayer) = n.genCompilerLayerText()
-          lines.append(s)
-          fileList += fileListLayer
-          outNpy = fileListLayer[-1]
-
-    if verbose > 0:
-      npu.showNpyFile("Output OFMAPs", outNpy)
-
-    with open(outFile, "w") as f:
-      f.write(prefix)
-      for s in lines:
-        f.write(s)
-    print("INFO: wrote ", outFile)
-    fileList.append(outFile)
-    return(fileList)
-    
+          
   def genCompilertgz(self, outTgzFile, fileList):
     # Tar all files as package
     cmd = ("tar cvzf %s " % outTgzFile) + " ".join(fileList)
     print("INFO: executing  %s" %cmd)
     os.system(cmd)
-          
-    
+
+
   # Generate Kaena Compiler input graph (in json format)
   # including weights, input and golden output imges (in numpy format)
   #
@@ -580,7 +609,7 @@ class TrivNet(Network):
       for n in levelizedNodes[level]:
         op = n.getOpType()
         #print("DEBUG: node=", n.getName(), "  op=", op)
-        if op == "Conv2D" or op == "Relu" or op == "Tanh":
+        if n.isSupported():
           (layerData, fileListLayer) = n.genCompilerLayerJson()
           jsonData["layers"].append(layerData)
           fileList += fileListLayer
