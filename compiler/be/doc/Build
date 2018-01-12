@@ -1,0 +1,11 @@
+
+To build everything:
+
+$ cd $KAENA_PATH/compiler/kcc
+$ make alldeps           ## the first time to create dependencies
+$ make
+
+If you want to build a single module, e.g. layers:
+$ cd $KAENA_PATH/compiler/kcc/layers
+$ make
+

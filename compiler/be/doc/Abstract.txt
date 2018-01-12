@@ -1,0 +1,6 @@
+class ActivLayer(OneToOneLayer): # abstract class
+class CombineLayer(Layer): # abstract class
+class Layer(object): # abstract class
+class OneToOneLayer(Layer): # abstract class
+class PoolLayer(SubSampleLayer): # abstract class
+class SubSampleLayer(Layer): # abstract class

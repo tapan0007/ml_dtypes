@@ -1,0 +1,63 @@
+AR := ar
+CPP := g++
+
+########################################################
+LDOPTS := -W -Wall -Werror -pedantic -g -ggdb -Wno-missing-field-initializers -std=c++14
+COPTS := -ansi $(LDOPTS) 
+
+INK_INC_DIR := shared tcc
+INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
+
+
+CINC := $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+CFLAGS := $(COPTS) $(CINC)
+
+
+########################################################
+
+SRCDIR = src
+OBJDIR = obj
+DEPDIR = dep
+
+########################################################
+########################################################
+LIBRARY := $(OBJDIR)/lib$(MODULE).a
+
+CFILES := $(addprefix $(SRCDIR)/,$(addsuffix .c,$(SRCS)))
+OFILES := $(addprefix $(OBJDIR)/,$(addsuffix .o,$(SRCS)))
+DEPFILES := $(addprefix $(DEPDIR)/,$(addsuffix .dep,$(SRCS)))
+
+########################################################
+all : $(LIBRARY)
+
+########################################################
+-include $(DEPDIR)/all.dep
+
+########################################################
+$(OBJDIR)/%.o : $(SRCDIR)/%.cpp
+	@echo CC $<
+	@$(CPP) $(CFLAGS) -c -o $@ $<
+
+########################################################
+########################################################
+alldeps:
+	@test -d $(DEPDIR) || mkdir $(DEPDIR); \
+	for f in $(SRCS); do \
+	  $(CPP) $(CFLAGS) -MM -MT $(OBJDIR)/$$f.o $(SRCDIR)/$$f.cpp; \
+	done > $(DEPDIR)/all.dep
+
+#@$(CPP) $(CFLAGS) -MM -o $@ $<
+
+$(DEPDIR)/%.dep : $(SRCDIR)/%.cpp
+	@echo DEP $<
+	@$(CPP) $(CFLAGS) -MM -o $@ $<
+
+$(LIBRARY) : $(OFILES)
+	@echo AR $@
+	$(AR) rcs $@ $(OFILES)
+
+clean :
+	@echo CLEAN $(MODULE)
+	@rm -f $(OFILES) $(LIBRARY) $(ADDITIONAL_CLEAN_FILES)
+
+
