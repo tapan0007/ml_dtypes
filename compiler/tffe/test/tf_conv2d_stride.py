@@ -37,7 +37,10 @@ i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
 i1 = tf.nn.conv2d(i0, w1, strides, padding, name="i1")
 output = tf.identity(i1, name="output")
 
-with tf.Session() as sess:
+# Grow GPU memory as needed at the cost of fragmentation.
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+with tf.Session(config=config) as sess:
   sess.run(tf.global_variables_initializer())
   res = sess.run(output, feed_dict={"input:0" : i0val})
   print("Input=\n", i0val.reshape(H, H),

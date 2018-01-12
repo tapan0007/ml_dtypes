@@ -26,7 +26,11 @@ output = tf.matmul(i0, w1, name=netName + "/output")
 
 i0val = np.arange(2*k, dtype=np.float16).reshape(1, 2, k)
 print("Inp=\n", i0val)
-with tf.Session() as sess:
+
+# Grow GPU memory as needed at the cost of fragmentation.
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+with tf.Session(config=config) as sess:
   sess.run(tf.global_variables_initializer())
   res = sess.run(output, feed_dict={"input:0" : i0val})
   print("Res=\n", res)
