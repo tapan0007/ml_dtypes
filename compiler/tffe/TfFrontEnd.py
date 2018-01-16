@@ -61,7 +61,8 @@ class TfFe:
     with gfile.FastGFile(pbFile,'rb') as f:
       self.__gd.ParseFromString(f.read())
     
-    self.__kg = kog.Graph(pbFile)
+    self.__kg = kog.Graph()
+    kog.Config.debugLevel = self.debugLevel
     numOps = 0
     numConv = 0
     
@@ -235,6 +236,12 @@ class TfFe:
             print(".", end='', flush=True)
           npInfo.npFile = imageFile + ".npy"
           npInfo.dType = str(nd.dtype)
+          # Update shapes that TF binds late, e.g., batch
+          updatedShape = list(nd.shape)
+          if updatedShape != npInfo.npShape:
+            print("\nINFO: updated tensort shape from %s to %s on  %s  %s" %
+                   (str(npInfo.npShape), str(updatedShape), n.getOpType(), n.getName()))
+            npInfo.npShape = updatedShape
         else:
           print("INFO: Failed to get tensor content for ",
                 var, "  ", n.getOpName(), n.getOpType())
