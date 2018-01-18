@@ -8,6 +8,9 @@ from NpUtils import NpUtils as npu
 import os, re, json
 import numpy as np
 
+class Config:
+  debugLevel = 0
+
 class Object:
   def __init__(self, name, attrs):
     self.__name = name
@@ -270,7 +273,8 @@ class NodeBasePaddedStrided(Node):
       (padWest, padEast) = (0, 0)
     else:
       raise("Unsupported padding mode %s" % paddingMode)
-    print("DEBUG: calcTpbPadding  %s  IFMAP %dx%d  OFMAP %dx%d  STRIDE %dx%d  FILTER %dx%d  MODE %s  PAD %d-%dx%d-%d" %
+    if Config.debugLevel >= 1:
+      print("DEBUG: calcTpbPadding  %s  IFMAP %dx%d  OFMAP %dx%d  STRIDE %dx%d  FILTER %dx%d  MODE %s  PAD %d-%dx%d-%d" %
        (self.getName(), Hi, Wi, Ho, Wo, Sv, Sh, R, S, paddingMode, padNorth,padSouth, padWest, padEast))
     padding = [[0,0], [0,0], [padNorth,padSouth], [padWest,padEast]]
     return padding
@@ -431,7 +435,7 @@ class NodeMaxPool(NodeBasePaddedStrided):
 # Computational data flow graph
 ###############################################################################
 class Graph(Object):
-  def __init__(self, name, attrs = {}):
+  def __init__(self, name = "GRAPH", attrs = {}):
     super().__init__(name, attrs)
     self.__name2node = {}
     self.__edges = []
@@ -616,7 +620,8 @@ class Graph(Object):
           outNpy = fileListLayer[-1]
         opCount = n.getOpCount()
         totalOpCount += opCount
-        print("DEBUG: opcount is %d for %s  %s" % (opCount, n.getOpType(), n.getOpName()))
+        if Config.debugLevel >= 1:
+          print("DEBUG: opcount is %d for %s  %s" % (opCount, n.getOpType(), n.getOpName()))
     print("INFO: total opcount is %d" % totalOpCount)
         
 

@@ -57,7 +57,8 @@ if not os.path.isfile(file):
 if args.images != None and args.focus != ".*":
   raise("ERROR: Unsupported --images with --focus")
 
-tffe = TfFrontEnd.TfFe(int(args.width), int(args.debug))
+debugLevel = int(args.debug)
+tffe = TfFrontEnd.TfFe(int(args.width), debugLevel)
 tffe.loadPb(file, args.focus)
 tffe.writeDot(int(args.depth), args.out_prefix + "graph.dot", "svg")
 if args.weights:
