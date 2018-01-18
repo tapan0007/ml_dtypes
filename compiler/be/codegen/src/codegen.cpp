@@ -7,12 +7,14 @@ using namespace std;
 #include "convlayer.hpp"
 #include "relulayer.hpp"
 #include "tanhlayer.hpp"
+#include "maxpoollayer.hpp"
 
 #include "codegen.hpp"
 #include "codegeninputlayer.hpp"
 #include "codegenconvlayer.hpp"
 #include "codegenrelulayer.hpp"
 #include "codegentanhlayer.hpp"
+#include "codegenmaxpoollayer.hpp"
 
 namespace kcc {
 using layers::InputLayer;
@@ -39,28 +41,29 @@ CodeGen::createGenMap()
     m_ConvLayer.reset(new CodeGenConvLayer(this));
     m_ReluLayer.reset(new CodeGenReluLayer(this));
     m_TanhLayer.reset(new CodeGenTanhLayer(this));
-    //m_MaxPoolLayer.reset(new CodeGenMaxPoolLayer());
-    //m_AvgPoolLayer.reset(new CodeGenAvgPoolLayer());
+    m_MaxPoolLayer.reset(new CodeGenMaxPoolLayer(this));
+    //m_AvgPoolLayer.reset(new CodeGenAvgPoolLayer(this));
 }
 
 CodeGenLayer&
-CodeGen::gGenFunc(const Layer* layer)
+CodeGen::gGenFunc(const layers::Layer* layer)
 {
-    if (dynamic_cast<const InputLayer*>(layer)) {
+    if (dynamic_cast<const layers::InputLayer*>(layer)) {
         return *m_InputLayer;
-    } else if (dynamic_cast<const ConvLayer*>(layer)) {
+    } else if (dynamic_cast<const layers::ConvLayer*>(layer)) {
         return *m_ConvLayer;
-    } else if (dynamic_cast<const ReluLayer*>(layer)) {
+    } else if (dynamic_cast<const layers::ReluLayer*>(layer)) {
         return *m_ReluLayer;
-    } else if (dynamic_cast<const TanhLayer*>(layer)) {
+    } else if (dynamic_cast<const layers::TanhLayer*>(layer)) {
         return *m_TanhLayer;
-    //} else if (dynamic_cast<const MaxPoolLayer*>(layer)) {
-    //    return *m_MaxPoolLayer;
-    //} else if (dynamic_cast<const AvgPoolhLayer*>(layer)) {
+    } else if (dynamic_cast<const layers::MaxPoolLayer*>(layer)) {
+        return *m_MaxPoolLayer;
+    //} else if (dynamic_cast<const AvgPoolLayer*>(layer)) {
     //    return *m_AvgPoolLayer;
     } else {
         assert(false);
     }
+    return *m_MaxPoolLayer;
 }
 
 void

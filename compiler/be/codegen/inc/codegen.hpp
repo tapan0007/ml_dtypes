@@ -15,6 +15,7 @@ namespace kcc {
 namespace layers {
     class InputLayer;
     class ConvLayer;
+    class MaxPoolLayer;
 }
 namespace arch {
     class Arch;
@@ -30,13 +31,14 @@ using arch::Arch;
 using layers::Layer;
 using layers::InputLayer;
 using layers::ConvLayer;
+using layers::MaxPoolLayer;
 
 class CodeGenLayer;
 class CodeGenInputLayer;
 class CodeGenConvLayer;
 class CodeGenReluLayer;
 class CodeGenTanhLayer;
-//class CodeGenMaxPoolLayer;
+class CodeGenMaxPoolLayer;
 //class CodeGenAvgPoolLayer;
 
 //########################################################
@@ -73,11 +75,11 @@ private:
     FILE* m_ObjFile = nullptr;
     Network* m_Network = nullptr;
     Arch* m_Arch = nullptr;
-    unique_ptr<CodeGenInputLayer> m_InputLayer;
-    unique_ptr<CodeGenConvLayer>  m_ConvLayer;
-    unique_ptr<CodeGenReluLayer> m_ReluLayer;
-    unique_ptr<CodeGenTanhLayer>  m_TanhLayer;
-    //unique_ptr<CodeGenMaxPoolLayer>  m_MaxPoolLayer;
+    unique_ptr<CodeGenInputLayer>     m_InputLayer;
+    unique_ptr<CodeGenConvLayer>      m_ConvLayer;
+    unique_ptr<CodeGenReluLayer>      m_ReluLayer;
+    unique_ptr<CodeGenTanhLayer>      m_TanhLayer;
+    unique_ptr<CodeGenMaxPoolLayer>   m_MaxPoolLayer;
     //unique_ptr<CodeGenAvgPoolLayer>  m_AvgPoolLayer;
 };
 

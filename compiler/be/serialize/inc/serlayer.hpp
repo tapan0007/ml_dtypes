@@ -89,6 +89,10 @@ public:
             // nothing specific to Tanh
         } else if (m_LayerType == TypeStr_Relu) {
             // nothing specific to Relu
+        } else if (m_LayerType == TypeStr_MaxPool) {
+            archive(cereal::make_nvp(Key_KernelShape, m_KernelShape));
+            archive(cereal::make_nvp(Key_Stride, m_Stride));
+            archive(cereal::make_nvp(Key_Padding, m_Padding));
         } else {
             assert(false);
         }

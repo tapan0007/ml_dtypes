@@ -61,10 +61,10 @@ CodeGenConvLayer::generate(Layer* layer)
     m_Padding[PaddingIndex_Bottom]  = convLayer->gPaddingBottom();
     m_Padding[PaddingIndex_Left]    = convLayer->gPaddingLeft();
     m_Padding[PaddingIndex_Right]   = convLayer->gPaddingRight();
-    m_ConvolveStride[0]             = convLayer->gStrideLeftRight();
-    m_ConvolveStride[1]             = convLayer->gStrideTopBottom();
-    m_Dilate[0]                     = 0;
-    m_Dilate[1]                     = 0;
+    m_ConvolveStride[0]             = convLayer->gStrideTopBottom();
+    m_ConvolveStride[1]             = convLayer->gStrideLeftRight();
+    m_Dilate[0]                     = 1;
+    m_Dilate[1]                     = 1;
 
     compile_convolve(objFile,
             m_IfmapAddrs, m_IfmapDims,

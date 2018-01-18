@@ -16,6 +16,8 @@
 #include "convlayer.hpp"
 #include "relulayer.hpp"
 #include "tanhlayer.hpp"
+#include "maxpoollayer.hpp"
+
 #include "network.hpp"
 #include "serlayer.hpp"
 
@@ -25,6 +27,7 @@ using layers::InputLayer;
 using layers::ConvLayer;
 using layers::ReluLayer;
 using layers::TanhLayer;
+using layers::MaxPoolLayer;
 
 namespace nets {
 
@@ -144,6 +147,36 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             assert(tanhLayer);
         } else if (auto reluLayer = dynamic_cast<ReluLayer*>(layer)) {
             assert(reluLayer);
+        } else if (auto maxpoolLayer = dynamic_cast<MaxPoolLayer*>(layer)) {
+            assert(maxpoolLayer);
+            {
+                KernelShapeType  kernelShape;   // conv,pool
+                kernelShape[FilterIndex_M] = 1;
+                kernelShape[FilterIndex_C] = 1;
+                kernelShape[FilterIndex_R] = maxpoolLayer->gKernelHeight();
+                kernelShape[FilterIndex_S] = maxpoolLayer->gKernelWidth();
+                serLayer.rKernelShape(kernelShape);
+            }
+            {
+                StrideType stride;        // conv,pool
+                stride[FmapIndex_N] = 1;
+                stride[FmapIndex_C] = 1;
+                stride[FmapIndex_H] = maxpoolLayer->gStrideTopBottom();
+                stride[FmapIndex_W] = maxpoolLayer->gStrideLeftRight();
+                serLayer.rStride(stride);
+            }
+            {
+                PaddingType padding;       // conv,pool
+                padding[FmapIndex_N][0] = 0;
+                padding[FmapIndex_N][1] = 0;
+                padding[FmapIndex_C][0] = 0;
+                padding[FmapIndex_C][1] = 0;
+                padding[FmapIndex_H][0] = maxpoolLayer->gPaddingTop();
+                padding[FmapIndex_H][1] = maxpoolLayer->gPaddingBottom();
+                padding[FmapIndex_W][0] = maxpoolLayer->gPaddingLeft();
+                padding[FmapIndex_W][1] = maxpoolLayer->gPaddingRight();
+                serLayer.rPadding(padding);
+            }
         } else {
             assert(false);
         }
@@ -230,9 +263,36 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr);
             layer = new layers::TanhLayer(params, prevLayer);
+        } else if (serLayer.gTypeStr() == TypeStr_MaxPool) {
+            assert(serLayer.gNumPrevLayers() == 1);
+            const string& prevLayerName = serLayer.gPrevLayer(0);
+            Layer* prevLayer = findLayer(prevLayerName);
+            assert(prevLayer != nullptr);
+            const string ofmapFormat(serLayer.gOfmapFormat());
+            std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
+                                            serLayer.gStrideVertical(),
+                                            serLayer.gStrideHorizontal());
+            std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
+                                            serLayer.gKernelHeight(),
+                                            serLayer.gKernelWidth());
+            std::tuple<kcc_int32,kcc_int32, kcc_int32,kcc_int32> padding = std::make_tuple(
+                                            serLayer.gPaddingTop(),
+                                            serLayer.gPaddingBottom(),
+                                            serLayer.gPaddingLeft(),
+                                            serLayer.gPaddingRight());
+
+            layer = new layers::MaxPoolLayer(
+                        params,
+                        prevLayer,
+                        fmap_desc,
+                        ofmapFormat,
+                        stride,
+                        kernel,
+                        padding);
         } else {
             assert(false);
         }
+
         layer->rRefFileName(refFile);
         m_Name2Layer[params.m_LayerName] = layer;
     }

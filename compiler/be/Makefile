@@ -22,6 +22,8 @@ top :
 clean :
 	rm -f */obj/*.o */obj/lib*.a *.exe
 
+deps : alldeps
+
 alldeps :
 	@for mod in $(MODS) $(MAINMOD); do \
 		(cd $$mod; \
