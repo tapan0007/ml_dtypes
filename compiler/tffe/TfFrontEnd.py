@@ -88,8 +88,8 @@ class TfFe:
         elif  (re.search("relu|tanh", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
-        elif (re.search("MaxPool", tfop.op, re.I) != None):
-          node = kog.NodeMaxPool(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("MaxPool|AvgPool", tfop.op, re.I) != None):
+          node = kog.NodePool(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeMaxPool")
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
