@@ -359,7 +359,7 @@ class NodeConv2D(NodeBasePaddedStrided):
 ###############################################################################
 # Max Pool
 ###############################################################################
-class NodeMaxPool(NodeBasePaddedStrided):
+class NodePool(NodeBasePaddedStrided):
   def __init__(self, name, opType, attrs):
     super().__init__(name, opType, attrs)
 
@@ -393,7 +393,7 @@ class NodeMaxPool(NodeBasePaddedStrided):
     stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
     padding = self.calcTpbPadding(self.getKernelSize2D(), self.getPaddingMode())
     layerData = {
-      "layer_type"      : "MaxPool",
+      "layer_type"      : self.getOpType(),
       #"kernel_format"   : simFormatOF,  # redundant, has to be same as fmaps
       "kernel_shape"    : kernelSizeNCHW,
       "ofmap_shape"     : [batch, channels, height, width],
