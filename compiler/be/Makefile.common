@@ -8,8 +8,10 @@ COPTS := -ansi $(LDOPTS)
 INK_INC_DIR := shared tcc
 INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
 
+CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 
-CINC := $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
+
+CINC := $(CEREAL_INC) $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 CFLAGS := $(COPTS) $(CINC)
 
 
