@@ -29,7 +29,7 @@ NN_NAME = "jdr"
 DATA_TYPE = "float16"
 TF_PATH = $(shell python3 -c "import tensorflow as tf; print(tf.__file__.replace('/__init__.py', ''))")
 export KAENA_TFFE := $(KAENA_PATH)/compiler/tffe
-export KAENA_EXT := $(KAENA_PATH)/../Kaena-external-opensource
+export KAENA_EXT := $(KAENA_EXT_PATH)
 export PYTHONPATH := $(KAENA_TFFE):$(PYTHONPATH)
 $(info KAENA_PATH is ${KAENA_PATH})
 $(info KAENA_TFFE is ${KAENA_TFFE})
