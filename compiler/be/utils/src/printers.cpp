@@ -139,10 +139,11 @@ Printer::printSched()
 
         StateBufferAddress ifaddr = layer->gIfmapAddress();
         StateBufferAddress ofaddr = layer->gOfmapAddress();
-        StateBufferAddress waddr  = layer->gWeightAddress();
+        //StateBufferAddress waddr  = layer->gWeightAddress();
 
-        if (ifaddr != StateBufferAddress_Invalid || ofaddr != StateBufferAddress_Invalid ||
-           waddr != StateBufferAddress_Invalid)
+        if (ifaddr != StateBufferAddress_Invalid || ofaddr != StateBufferAddress_Invalid
+                // || waddr != StateBufferAddress_Invalid
+           )
         {
             ss << " {";
             bool b = false;
@@ -157,6 +158,7 @@ Printer::printSched()
                 ss << "o=" << ofaddr;
                 b = true;
             }
+#if 0
             if (waddr != StateBufferAddress_Invalid) {
                 if (b) {
                     ss << ", ";
@@ -164,6 +166,7 @@ Printer::printSched()
                 ss << "w=" << waddr;
                 b = true;
             }
+#endif
             ss << "}";
         }
 

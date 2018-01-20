@@ -68,6 +68,14 @@ public:
         return false;
     }
 
+    StateBufferAddress gWeightAddress() const {
+        return m_WeightAddress;
+    }
+
+    void rWeightAddress(StateBufferAddress address) {
+        m_WeightAddress = address;
+    }
+
     //----------------------------------------------------------------
     kcc_int32 gNumberWeights() const;
 
@@ -80,8 +88,9 @@ public:
     }
 
 private:
-    string m_FilterFileName;
-    string m_FilterTensorDimSemantics;
+    string              m_FilterFileName;
+    string              m_FilterTensorDimSemantics;
+    StateBufferAddress  m_WeightAddress;
 };
 
 } // namespace layers

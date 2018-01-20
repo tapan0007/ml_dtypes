@@ -61,11 +61,6 @@ protected:
     kcc_int32 m_FmapIndex_H = FmapIndex_H; // ifmap height",
     kcc_int32 m_FmapIndex_W = FmapIndex_W; // ifmap width",
 
-    kcc_int32 m_FilterIndex_M = FilterIndex_M; // filter num ofmaps",
-    kcc_int32 m_FilterIndex_C = FilterIndex_C; // filter num ifmaps",
-    kcc_int32 m_FilterIndex_R = FilterIndex_R; // filter height",
-    kcc_int32 m_FilterIndex_S = FilterIndex_S; // filter width",
-
     CodeGen* const m_CodeGen;
     Layer* m_Layer;
 
@@ -77,11 +72,6 @@ protected:
     uint64_t m_IfmapDims[FMAP_TENSOR_RANK];
     string   m_IfmapFormat;
     string   m_IfmapFileName;
-
-    addr_t   m_FilterAddr[2];
-    uint64_t m_FilterDims[FMAP_TENSOR_RANK];
-    string   m_FilterFormat;
-    string   m_FilterFileNames[2]; // more when #ofmaps > #cols
 
     uint8_t  m_Padding[4]; // From TCC
     uint8_t  m_Dilate[2]; // From TCC

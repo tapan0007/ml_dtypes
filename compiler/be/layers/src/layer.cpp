@@ -22,7 +22,6 @@ Layer::Layer(const Params& params,
     , m_PrevSchedLayer(nullptr)
     , m_IfmapAddress(StateBufferAddress_Invalid)
     , m_OfmapAddress(StateBufferAddress_Invalid)
-    , m_WeightAddress(StateBufferAddress_Invalid)
     , m_ResMemWithBatching(0)
     , m_ResMemWithoutBatching(0)
     , m_BatchMemory(0)

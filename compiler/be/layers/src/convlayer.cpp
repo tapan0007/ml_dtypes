@@ -21,8 +21,9 @@ ConvLayer::ConvLayer(const Params& params, Layer* prev_layer,
                 fmapDesc, dataTensorSemantics,
                 stride, kernel, padding)
 {
-        m_FilterFileName = filterFileName;
-        m_FilterTensorDimSemantics = filterTensorDimSemantics;
+    m_FilterFileName           =  filterFileName;
+    m_FilterTensorDimSemantics = filterTensorDimSemantics;
+    m_WeightAddress            = StateBufferAddress_Invalid;
 }
 
 //--------------------------------------------------------

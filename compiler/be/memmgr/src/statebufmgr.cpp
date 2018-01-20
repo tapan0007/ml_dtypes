@@ -1,10 +1,9 @@
 #include "statebuffer.hpp"
-#include "layer.hpp"
+#include "convlayer.hpp"
 #include "network.hpp"
 #include "statebufmgr.hpp"
 
 namespace kcc{
-using layers::Layer;
 
 namespace memmgr {
 
@@ -23,7 +22,7 @@ StateBufferMgr::StateBufferMgr(arch::Arch* arch, Network* ntwk)
 
 //--------------------------------------------------------
 void
-StateBufferMgr::freeLayerMem(Layer* layer)
+StateBufferMgr::freeLayerMem(layers::Layer* layer)
 {
     assert(layer->qStoreInSB());
 }
@@ -102,7 +101,8 @@ StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
     }
 
     if (layer->qConvLayer()) {
-        layer->rWeightAddress(m_FirstSbAddress);
+        const auto conv_layer = dynamic_cast<layers::ConvLayer*>(layer);
+        conv_layer->rWeightAddress(m_FirstSbAddress);
     }
 }
 

@@ -526,20 +526,12 @@ public:
         return m_OfmapAddress;
     }
 
-    StateBufferAddress gWeightAddress() const {
-        return m_WeightAddress;
-    }
-
     void rIfmapAddress(StateBufferAddress address) {
         m_IfmapAddress = address;
     }
 
     void rOfmapAddress(StateBufferAddress address) {
         m_OfmapAddress = address;
-    }
-
-    void rWeightAddress(StateBufferAddress address) {
-        m_WeightAddress = address;
     }
 
 
@@ -572,7 +564,6 @@ protected:
 
     StateBufferAddress      m_IfmapAddress;
     StateBufferAddress      m_OfmapAddress;
-    StateBufferAddress      m_WeightAddress;
     StateBufferAddress      m_ResMemWithBatching;
     StateBufferAddress      m_ResMemWithoutBatching;
     StateBufferAddress      m_BatchMemory;
