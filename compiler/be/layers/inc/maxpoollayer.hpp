@@ -35,9 +35,6 @@ public:
     //----------------------------------------------------------------
     bool verify() const override;
 
-    virtual StateBufferAddress gNumberWeightsPerPartition() const override {
-        return 0;
-    }
 
     //----------------------------------------------------------------
     static const char* TypeStr() {

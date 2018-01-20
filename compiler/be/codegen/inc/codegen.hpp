@@ -16,6 +16,7 @@ namespace layers {
     class InputLayer;
     class ConvLayer;
     class MaxPoolLayer;
+    class AvgPoolLayer;
 }
 namespace arch {
     class Arch;
@@ -29,9 +30,10 @@ namespace codegen {
 using nets::Network;
 using arch::Arch;
 using layers::Layer;
-using layers::InputLayer;
-using layers::ConvLayer;
-using layers::MaxPoolLayer;
+//using layers::InputLayer;
+//using layers::ConvLayer;
+//using layers::MaxPoolLayer;
+//using layers::AvgPoolLayer;
 
 class CodeGenLayer;
 class CodeGenInputLayer;
@@ -39,7 +41,7 @@ class CodeGenConvLayer;
 class CodeGenReluLayer;
 class CodeGenTanhLayer;
 class CodeGenMaxPoolLayer;
-//class CodeGenAvgPoolLayer;
+class CodeGenAvgPoolLayer;
 
 //########################################################
 class CodeGen {
@@ -80,7 +82,7 @@ private:
     unique_ptr<CodeGenReluLayer>      m_ReluLayer;
     unique_ptr<CodeGenTanhLayer>      m_TanhLayer;
     unique_ptr<CodeGenMaxPoolLayer>   m_MaxPoolLayer;
-    //unique_ptr<CodeGenAvgPoolLayer>  m_AvgPoolLayer;
+    unique_ptr<CodeGenAvgPoolLayer>   m_AvgPoolLayer;
 };
 
 

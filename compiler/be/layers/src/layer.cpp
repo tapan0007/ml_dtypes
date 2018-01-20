@@ -108,6 +108,18 @@ string Layer::gBaseLayerStr() const
     s += "-->" + gOfmapDesc().gString();
     return s;
 }
+ 
+StateBufferAddress
+Layer::gNumberWeights() const
+{
+    return 0L;
+}
+
+StateBufferAddress
+Layer::gNumberWeightsPerPartition() const
+{
+    return 0L;
+}
 
 //----------------------------------------------------------------
 string Layer::gStateSizesStr() const

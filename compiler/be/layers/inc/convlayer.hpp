@@ -77,6 +77,10 @@ public:
     }
 
     //----------------------------------------------------------------
+    // ConvLayer must override this method with correct values
+    StateBufferAddress gNumberWeightsPerPartition();
+
+    //----------------------------------------------------------------
     kcc_int32 gNumberWeights() const;
 
     //----------------------------------------------------------------

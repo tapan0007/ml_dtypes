@@ -8,6 +8,7 @@ using namespace std;
 #include "relulayer.hpp"
 #include "tanhlayer.hpp"
 #include "maxpoollayer.hpp"
+#include "avgpoollayer.hpp"
 
 #include "codegen.hpp"
 #include "codegeninputlayer.hpp"
@@ -15,6 +16,7 @@ using namespace std;
 #include "codegenrelulayer.hpp"
 #include "codegentanhlayer.hpp"
 #include "codegenmaxpoollayer.hpp"
+#include "codegenavgpoollayer.hpp"
 
 namespace kcc {
 using layers::InputLayer;
@@ -42,7 +44,7 @@ CodeGen::createGenMap()
     m_ReluLayer.reset(new CodeGenReluLayer(this));
     m_TanhLayer.reset(new CodeGenTanhLayer(this));
     m_MaxPoolLayer.reset(new CodeGenMaxPoolLayer(this));
-    //m_AvgPoolLayer.reset(new CodeGenAvgPoolLayer(this));
+    m_AvgPoolLayer.reset(new CodeGenAvgPoolLayer(this));
 }
 
 CodeGenLayer&
@@ -58,12 +60,12 @@ CodeGen::gGenFunc(const layers::Layer* layer)
         return *m_TanhLayer;
     } else if (dynamic_cast<const layers::MaxPoolLayer*>(layer)) {
         return *m_MaxPoolLayer;
-    //} else if (dynamic_cast<const AvgPoolLayer*>(layer)) {
-    //    return *m_AvgPoolLayer;
+    } else if (dynamic_cast<const layers::AvgPoolLayer*>(layer)) {
+        return *m_AvgPoolLayer;
     } else {
         assert(false);
     }
-    return *m_MaxPoolLayer;
+    return *m_InputLayer;
 }
 
 void

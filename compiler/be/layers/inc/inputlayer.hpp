@@ -71,9 +71,6 @@ public:
     }
 
     //----------------------------------------------------------------
-    kcc_int64 gNumberWeightsPerPartition() const override {
-        return 0;
-    }
 
 
 private:

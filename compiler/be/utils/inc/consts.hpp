@@ -45,6 +45,7 @@ constexpr const char* const TypeStr_Relu      = "Relu";
 constexpr const char* const TypeStr_Tanh      = "Tanh";
 
 constexpr const char* const TypeStr_MaxPool   = "MaxPool";
+constexpr const char* const TypeStr_AvgPool   = "AvgPool";
 constexpr const char* const TypeStr_SoftMax   = "SoftMax";
 constexpr const char* const TypeStr_BatchNorm = "BNorm";
 

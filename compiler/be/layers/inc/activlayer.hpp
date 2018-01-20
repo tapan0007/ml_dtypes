@@ -33,9 +33,6 @@ protected:
 public:
     //----------------------------------------------------------------
     bool qActivLayer() const override;
-    kcc_int64 gNumberWeightsPerPartition() const override {
-        return 0L;
-    }
 };
 
 } // namespace layers

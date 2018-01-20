@@ -353,13 +353,11 @@ public:
 
     //----------------------------------------------------------------
     // ConvLayer must override this method with correct values
-    StateBufferAddress gNumberWeights() const {
-        return 0;
-    }
+    StateBufferAddress gNumberWeights() const;
 
     //----------------------------------------------------------------
     // ConvLayer must override this method with correct values
-    virtual StateBufferAddress gNumberWeightsPerPartition() const = 0;
+    virtual StateBufferAddress gNumberWeightsPerPartition() const;
 
     //----------------------------------------------------------------
     void rNumberStr(const string& numStr) {

@@ -17,17 +17,13 @@
 #include "relulayer.hpp"
 #include "tanhlayer.hpp"
 #include "maxpoollayer.hpp"
+#include "avgpoollayer.hpp"
 
 #include "network.hpp"
 #include "serlayer.hpp"
 
 namespace kcc {
-using layers::Layer;
-using layers::InputLayer;
-using layers::ConvLayer;
-using layers::ReluLayer;
-using layers::TanhLayer;
-using layers::MaxPoolLayer;
+//using layers::Layer;
 
 namespace nets {
 
@@ -41,7 +37,7 @@ Network::Network(const DataType* dataType, const string& netName)
 
 //--------------------------------------------------------
 void
-Network::addLayer(Layer* layer)
+Network::addLayer(layers::Layer* layer)
 {
     m_Layers.push_back(layer);
 }
@@ -52,9 +48,9 @@ Network::addLayer(Layer* layer)
 void
 Network::SchedLayerForwRevIter::operator++()
 {
-    Layer* const currLayer = m_CurrLayer;
+    layers::Layer* const currLayer = m_CurrLayer;
     assert(currLayer);
-    Layer* nextLayer;
+    layers::Layer* nextLayer;
 
     if (m_Forw) {
         nextLayer = currLayer->gNextSchedLayer();
@@ -91,7 +87,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
     // Temporary to vector for Cereal
     std::vector<serialize::SerLayer> serLayers(m_Layers.size());
     for (unsigned i = 0; i < m_Layers.size(); ++i) {
-        Layer* layer = m_Layers[i];
+        layers::Layer* layer = m_Layers[i];
         serialize::SerLayer& serLayer(serLayers[i]);
 
         serLayer.rLayerName(layer->gName());
@@ -109,9 +105,9 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
         serLayer.rOfmapFormat(layer->gDataTensorDimSemantics());
 
-        if (auto inLayer = dynamic_cast<InputLayer*>(layer)) {
+        if (auto inLayer = dynamic_cast<layers::InputLayer*>(layer)) {
             serLayer.rRefFile(inLayer->gInputDataFileName());
-        } else if (auto convLayer = dynamic_cast<ConvLayer*>(layer)) {
+        } else if (auto convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {
             {
                 KernelShapeType  kernelShape;   // conv,pool
                 kernelShape[FilterIndex_M] = 1;
@@ -143,26 +139,26 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 padding[FmapIndex_W][1] = convLayer->gPaddingRight();
                 serLayer.rPadding(padding);
             }
-        } else if (auto tanhLayer = dynamic_cast<TanhLayer*>(layer)) {
+        } else if (auto tanhLayer = dynamic_cast<layers::TanhLayer*>(layer)) {
             assert(tanhLayer);
-        } else if (auto reluLayer = dynamic_cast<ReluLayer*>(layer)) {
+        } else if (auto reluLayer = dynamic_cast<layers::ReluLayer*>(layer)) {
             assert(reluLayer);
-        } else if (auto maxpoolLayer = dynamic_cast<MaxPoolLayer*>(layer)) {
-            assert(maxpoolLayer);
+        } else if (auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer)) {
+            assert(poolLayer);
             {
                 KernelShapeType  kernelShape;   // conv,pool
                 kernelShape[FilterIndex_M] = 1;
                 kernelShape[FilterIndex_C] = 1;
-                kernelShape[FilterIndex_R] = maxpoolLayer->gKernelHeight();
-                kernelShape[FilterIndex_S] = maxpoolLayer->gKernelWidth();
+                kernelShape[FilterIndex_R] = poolLayer->gKernelHeight();
+                kernelShape[FilterIndex_S] = poolLayer->gKernelWidth();
                 serLayer.rKernelShape(kernelShape);
             }
             {
                 StrideType stride;        // conv,pool
                 stride[FmapIndex_N] = 1;
                 stride[FmapIndex_C] = 1;
-                stride[FmapIndex_H] = maxpoolLayer->gStrideTopBottom();
-                stride[FmapIndex_W] = maxpoolLayer->gStrideLeftRight();
+                stride[FmapIndex_H] = poolLayer->gStrideTopBottom();
+                stride[FmapIndex_W] = poolLayer->gStrideLeftRight();
                 serLayer.rStride(stride);
             }
             {
@@ -171,10 +167,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 padding[FmapIndex_N][1] = 0;
                 padding[FmapIndex_C][0] = 0;
                 padding[FmapIndex_C][1] = 0;
-                padding[FmapIndex_H][0] = maxpoolLayer->gPaddingTop();
-                padding[FmapIndex_H][1] = maxpoolLayer->gPaddingBottom();
-                padding[FmapIndex_W][0] = maxpoolLayer->gPaddingLeft();
-                padding[FmapIndex_W][1] = maxpoolLayer->gPaddingRight();
+                padding[FmapIndex_H][0] = poolLayer->gPaddingTop();
+                padding[FmapIndex_H][1] = poolLayer->gPaddingBottom();
+                padding[FmapIndex_W][0] = poolLayer->gPaddingLeft();
+                padding[FmapIndex_W][1] = poolLayer->gPaddingRight();
                 serLayer.rPadding(padding);
             }
         } else {
@@ -209,7 +205,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     kcc::utils::breakFunc(333);
     for (unsigned i = 0; i < serLayers.size(); ++i) {
         serialize::SerLayer& serLayer(serLayers[i]);
-        Layer::Params params;
+        layers::Layer::Params params;
         params.m_LayerName = serLayer.gName();
         params.m_BatchFactor = serLayer.gBatchFactor();
         params.m_Network = this;
@@ -219,7 +215,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                     serLayer.gNumOfmaps(),
                     serLayer.gOfmapHeight(),
                     serLayer.gOfmapWidth());
-        Layer* layer = nullptr;
+        layers::Layer* layer = nullptr;
         if (serLayer.gTypeStr() == TypeStr_Input) {
             assert(serLayer.gNumPrevLayers() == 0);
             const string dataTensorDimSemantics = serLayer.gOfmapFormat();
@@ -228,7 +224,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         } else if (serLayer.gTypeStr() == TypeStr_Conv) {
             assert(serLayer.gNumPrevLayers() == 1);
             const string& prevLayerName = serLayer.gPrevLayer(0);
-            Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr);
             const string ofmapFormat(serLayer.gOfmapFormat());
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
@@ -254,19 +250,19 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         } else if (serLayer.gTypeStr() == TypeStr_Relu) {
             assert(serLayer.gNumPrevLayers() == 1);
             const string& prevLayerName = serLayer.gPrevLayer(0);
-            Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr);
             layer = new layers::ReluLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == TypeStr_Tanh) {
             assert(serLayer.gNumPrevLayers() == 1);
             const string& prevLayerName = serLayer.gPrevLayer(0);
-            Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr);
             layer = new layers::TanhLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == TypeStr_MaxPool) {
+        } else if (serLayer.gTypeStr() == TypeStr_MaxPool || serLayer.gTypeStr() == TypeStr_AvgPool) {
             assert(serLayer.gNumPrevLayers() == 1);
             const string& prevLayerName = serLayer.gPrevLayer(0);
-            Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr);
             const string ofmapFormat(serLayer.gOfmapFormat());
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
@@ -281,7 +277,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                             serLayer.gPaddingLeft(),
                                             serLayer.gPaddingRight());
 
-            layer = new layers::MaxPoolLayer(
+            if (serLayer.gTypeStr() == TypeStr_MaxPool) {
+                layer = new layers::MaxPoolLayer(
                         params,
                         prevLayer,
                         fmap_desc,
@@ -289,6 +286,16 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         stride,
                         kernel,
                         padding);
+            } else {
+                layer = new layers::AvgPoolLayer(
+                        params,
+                        prevLayer,
+                        fmap_desc,
+                        ofmapFormat,
+                        stride,
+                        kernel,
+                        padding);
+            }
         } else {
             assert(false);
         }
@@ -300,10 +307,10 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 }
 
 //--------------------------------------------------------
-Layer*
+layers::Layer*
 Network::findLayer(const string& layerName)
 {
-    Layer* layer = m_Name2Layer[layerName];
+    layers::Layer* layer = m_Name2Layer[layerName];
     assert(layer);
     return layer;
 }
