@@ -20,7 +20,7 @@ public:
     {}
 
     //----------------------------------------------------------------
-    void generate(Layer* layer) override;
+    void generate(layers::Layer* layer) override;
 };
 
 

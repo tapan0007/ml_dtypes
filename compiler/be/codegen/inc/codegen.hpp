@@ -6,7 +6,6 @@
 #include<string>
 #include<memory>
 
-using namespace std;
 
 #include "layer.hpp"
 
@@ -27,13 +26,6 @@ namespace nets {
 
 namespace codegen {
 
-using nets::Network;
-using arch::Arch;
-using layers::Layer;
-//using layers::InputLayer;
-//using layers::ConvLayer;
-//using layers::MaxPoolLayer;
-//using layers::AvgPoolLayer;
 
 class CodeGenLayer;
 class CodeGenInputLayer;
@@ -47,7 +39,7 @@ class CodeGenAvgPoolLayer;
 class CodeGen {
 public:
     //----------------------------------------------------------------
-    CodeGen(Network* ntwk, Arch* arch);
+    CodeGen(nets::Network* ntwk, arch::Arch* arch);
 
     //----------------------------------------------------------------
     FILE* gObjFile() const {
@@ -63,26 +55,26 @@ private:
     void createGenMap();
 
     //----------------------------------------------------------------
-    string gDataTypeName(Layer* layer) const {
+    string gDataTypeName(const layers::Layer* layer) const {
         string ret("ARBPRECTYPE::");
         ret += layer->gDataType().gTccName();
         return  ret;
     }
 
     //----------------------------------------------------------------
-    CodeGenLayer& gGenFunc(const Layer* layer);
+    CodeGenLayer& gGenFunc(const layers::Layer* layer);
 
 
 private:
-    FILE* m_ObjFile = nullptr;
-    Network* m_Network = nullptr;
-    Arch* m_Arch = nullptr;
-    unique_ptr<CodeGenInputLayer>     m_InputLayer;
-    unique_ptr<CodeGenConvLayer>      m_ConvLayer;
-    unique_ptr<CodeGenReluLayer>      m_ReluLayer;
-    unique_ptr<CodeGenTanhLayer>      m_TanhLayer;
-    unique_ptr<CodeGenMaxPoolLayer>   m_MaxPoolLayer;
-    unique_ptr<CodeGenAvgPoolLayer>   m_AvgPoolLayer;
+    FILE*                                   m_ObjFile = nullptr;
+    const nets::Network*                    m_Network = nullptr;
+    const arch::Arch*                       m_Arch = nullptr;
+    std::unique_ptr<CodeGenInputLayer>      m_InputLayer;
+    std::unique_ptr<CodeGenConvLayer>       m_ConvLayer;
+    std::unique_ptr<CodeGenReluLayer>       m_ReluLayer;
+    std::unique_ptr<CodeGenTanhLayer>       m_TanhLayer;
+    std::unique_ptr<CodeGenMaxPoolLayer>    m_MaxPoolLayer;
+    std::unique_ptr<CodeGenAvgPoolLayer>    m_AvgPoolLayer;
 };
 
 

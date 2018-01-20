@@ -14,14 +14,14 @@ CodeGenLayer::gObjFile() const
 }
 
 //----------------------------------------------------------------
-Layer*
+layers::Layer*
 CodeGenLayer::gLayer() const
 {
     return m_Layer;
 }
 
 void
-CodeGenLayer::epilogue(const Layer* const layer)
+CodeGenLayer::epilogue(const layers::Layer* const layer)
 {
     if ((layer->gRefFileName() != "") || (layer->gNumNextLayers()==0)) {
         char outNpyFileName[256];

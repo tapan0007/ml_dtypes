@@ -13,7 +13,6 @@ namespace layers {
 }
 
 namespace codegen {
-using layers::Layer;
 
 class CodeGenConvLayer : public CodeGenLayer {
 public:
@@ -23,7 +22,7 @@ public:
     {}
 
     //----------------------------------------------------------------
-    void generate(Layer* layer) override;
+    void generate(layers::Layer* layer) override;
 
 private:
     kcc_int32 m_FilterIndex_M = FilterIndex_M; // filter num ofmaps",

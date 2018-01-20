@@ -3,16 +3,15 @@
 #include "codegeninputlayer.hpp"
 
 namespace kcc {
-using layers::InputLayer;
 
 namespace codegen {
 
 //----------------------------------------------------------------
 void
-CodeGenInputLayer::generate(Layer* layer)
+CodeGenInputLayer::generate(layers::Layer* layer)
 {
     FILE* const objFile = gObjFile();
-    InputLayer* const inLayer = dynamic_cast<InputLayer*>(layer);
+    const auto inLayer = dynamic_cast<layers::InputLayer*>(layer);
     assert(inLayer);
     m_IfmapAddrs[0] = inLayer->gOfmapAddress();
     compile_read_ifmap(objFile,

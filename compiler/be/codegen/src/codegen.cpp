@@ -1,6 +1,5 @@
 #include <cstdio>
 
-using namespace std;
 
 #include "network.hpp"
 #include "inputlayer.hpp"
@@ -19,16 +18,12 @@ using namespace std;
 #include "codegenavgpoollayer.hpp"
 
 namespace kcc {
-using layers::InputLayer;
-using layers::ConvLayer;
-using layers::ReluLayer;
-using layers::TanhLayer;
 
 namespace codegen {
 
 
 //########################################################
-CodeGen::CodeGen(Network* ntwk, Arch* arch)
+CodeGen::CodeGen(nets::Network* ntwk, arch::Arch* arch)
 {
     m_Network = ntwk;
     m_Arch = arch;

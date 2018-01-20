@@ -23,7 +23,6 @@
 #include "serlayer.hpp"
 
 namespace kcc {
-//using layers::Layer;
 
 namespace nets {
 
@@ -63,7 +62,7 @@ Network::SchedLayerForwRevIter::operator++()
 
 //--------------------------------------------------------
 Network::SchedForwLayers
-Network::gSchedForwLayers()
+Network::gSchedForwLayers() const
 {
     return SchedForwLayers(m_Layers);
 }

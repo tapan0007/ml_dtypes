@@ -7,7 +7,6 @@
 #include <cstdio>
 
 
-using namespace std;
 
 #include "tcc.hpp"
 
@@ -22,7 +21,6 @@ namespace layers {
 }
 
 namespace codegen {
-using layers::Layer;
 
 class CodeGen;
 
@@ -41,18 +39,18 @@ public:
     FILE* gObjFile() const;
 
     //----------------------------------------------------------------
-    virtual void generate(Layer* layer) = 0;
+    virtual void generate(layers::Layer* layer) = 0;
 
     //----------------------------------------------------------------
-    Layer* gLayer() const;
+    layers::Layer* gLayer() const;
 
     //----------------------------------------------------------------
-    void rLayer(Layer* layer) {
+    void rLayer(layers::Layer* layer) {
         m_Layer = layer;
     }
 
 protected:
-    void epilogue(const Layer* layer);
+    void epilogue(const layers::Layer* layer);
 
 protected:
     // These are variables because format can change
@@ -62,16 +60,16 @@ protected:
     kcc_int32 m_FmapIndex_W = FmapIndex_W; // ifmap width",
 
     CodeGen* const m_CodeGen;
-    Layer* m_Layer;
+    layers::Layer* m_Layer;
 
     addr_t   m_OfmapAddrs;
     uint64_t m_OfmapDims[FMAP_TENSOR_RANK];
-    string   m_OfmapFormat;
+    std::string   m_OfmapFormat;
 
     addr_t   m_IfmapAddrs[2] = {0, 0};// 2 is tmp for single Ifmap
     uint64_t m_IfmapDims[FMAP_TENSOR_RANK];
-    string   m_IfmapFormat;
-    string   m_IfmapFileName;
+    std::string   m_IfmapFormat;
+    std::string   m_IfmapFileName;
 
     uint8_t  m_Padding[4]; // From TCC
     uint8_t  m_Dilate[2]; // From TCC

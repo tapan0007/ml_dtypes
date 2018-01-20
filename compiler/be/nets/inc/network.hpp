@@ -8,8 +8,6 @@
 #include <vector>
 #include <assert.h>
 
-using std::string;
-using std::vector;
 
 
 #include "consts.hpp"
@@ -30,7 +28,6 @@ namespace schedule {
 namespace nets {
 
 using namespace utils;
-using layers::Layer;
 using schedule::LayerLevel;
 
 //--------------------------------------------------------
@@ -51,7 +48,7 @@ public:
     void load(Archive & archive);
 
 private:
-    Layer* findLayer(const string& prevLayerName);
+    layers::Layer* findLayer(const std::string& prevLayerName);
 
 public:
     //----------------------------------------------------------------
@@ -61,7 +58,7 @@ public:
         , m_DoBatching(false)
     {}
 
-    Network(const DataType* dataType, const string& netName);
+    Network(const DataType* dataType, const std::string& netName);
 
     bool qDoBatching() const {
         return m_DoBatching;
@@ -70,11 +67,11 @@ public:
         m_DoBatching = doBatch;
     }
 
-    std::vector<Layer*>& gLayers() {
+    std::vector<layers::Layer*>& gLayers() {
         return m_Layers;
     }
 
-    Layer* gLayer(kcc_int32 idx) const {
+    layers::Layer* gLayer(kcc_int32 idx) const {
         return m_Layers[idx];
     }
 
@@ -86,21 +83,21 @@ public:
         return *m_DataType;
     }
 
-    void addLayer(Layer* layer);
+    void addLayer(layers::Layer* layer);
 
-    const string& gName() const {
+    const std::string& gName() const {
         return m_Name;
     }
 
-    SchedForwLayers gSchedForwLayers();
+    SchedForwLayers gSchedForwLayers() const;
     SchedRevLayers gSchedRevLayers();
 
 private:
     const DataType*          m_DataType;
-    string                   m_Name;
-    vector<Layer*>           m_Layers;
+    std::string                   m_Name;
+    std::vector<layers::Layer*>           m_Layers;
     bool                     m_DoBatching;
-    std::map<string, Layer*> m_Name2Layer;
+    std::map<string, layers::Layer*> m_Name2Layer;
 }; // Network
 
 
@@ -111,7 +108,7 @@ private:
 //----------------------------------------------------------------
 class Network::SchedLayerForwRevIter {
 public:
-    SchedLayerForwRevIter(Layer* startLayer, bool forw)
+    SchedLayerForwRevIter(layers::Layer* startLayer, bool forw)
         : m_CurrLayer(startLayer)
         , m_Forw(forw)
     { }
@@ -120,13 +117,13 @@ public:
         return m_CurrLayer != rhs.m_CurrLayer;
     }
 
-    Layer* operator* () const {
+    layers::Layer* operator* () const {
         return m_CurrLayer;
     }
 
     void operator++();
 private:
-    Layer*      m_CurrLayer;
+    layers::Layer*      m_CurrLayer;
     const bool  m_Forw;
 };
 
@@ -135,7 +132,7 @@ private:
 //--------------------------------------------------------
 class Network::SchedForwLayers {
 public:
-    SchedForwLayers(std::vector<Layer*>& layers)
+    SchedForwLayers(const std::vector<layers::Layer*>& layers)
         : m_Layers(layers)
     { }
     SchedLayerForwRevIter begin() const {
@@ -145,7 +142,7 @@ public:
         return SchedLayerForwRevIter(nullptr, true);
     }
 private:
-    vector<Layer*>& m_Layers;
+    const std::vector<layers::Layer*>& m_Layers;
 };
 
 //--------------------------------------------------------
@@ -153,7 +150,7 @@ private:
 //--------------------------------------------------------
 class Network::SchedRevLayers {
 public:
-    SchedRevLayers(std::vector<Layer*>& layers)
+    SchedRevLayers(std::vector<layers::Layer*>& layers)
         : m_Layers(layers)
     { }
     SchedLayerForwRevIter begin() const {
@@ -163,7 +160,7 @@ public:
         return SchedLayerForwRevIter(nullptr, false);
     }
 private:
-    vector<Layer*>& m_Layers;
+    std::vector<layers::Layer*>& m_Layers;
 };
 
 } // namespace nets

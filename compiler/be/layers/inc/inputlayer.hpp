@@ -22,7 +22,7 @@ public:
     InputLayer(const Params& param, const FmapDesc& fmap_desc,
                   const char* inputDataFileName,
                   const string& dataTensorDimSemantics)
-        : Layer(param, fmap_desc, dataTensorDimSemantics, vector<Layer*>())
+        : Layer(param, fmap_desc, dataTensorDimSemantics, std::vector<Layer*>())
     {
         m_RefFileName = inputDataFileName;
     }

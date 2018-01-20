@@ -12,17 +12,15 @@
 namespace kcc {
 namespace codegen {
 
-using layers::Layer;
-using layers::ConvLayer;
 
 void
-CodeGenConvLayer::generate(Layer* layer)
+CodeGenConvLayer::generate(layers::Layer* layer)
 {
     FILE* const objFile = gObjFile();
-    ConvLayer* const convLayer = dynamic_cast<ConvLayer*>(layer);
+    const auto convLayer = dynamic_cast<layers::ConvLayer*>(layer);
     assert(convLayer);
 
-    Layer* const prevLayer  = convLayer->gPrevLayer(0);
+    layers::Layer* const prevLayer  = convLayer->gPrevLayer(0);
     const unsigned numIfmaps     = prevLayer->gNumOfmaps();
     const unsigned ifmapWidth    = prevLayer->gOfmapWidth();
     const unsigned ifmapHeight   = prevLayer->gOfmapHeight();

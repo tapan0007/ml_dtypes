@@ -17,7 +17,6 @@ namespace nets {
 
 namespace layers {
 
-using nets::Network;
 using namespace utils;
 
 //--------------------------------------------------------

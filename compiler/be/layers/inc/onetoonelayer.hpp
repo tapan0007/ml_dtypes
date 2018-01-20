@@ -29,7 +29,7 @@ public:
     OneToOneLayer(const Params& params, Layer* prev_layer)
         : Layer(params,
             prev_layer->gOfmapDesc(), prev_layer->gDataTensorDimSemantics(),
-            vector<Layer*>(1, prev_layer))
+            std::vector<Layer*>(1, prev_layer))
     { }
 
     //----------------------------------------------------------------

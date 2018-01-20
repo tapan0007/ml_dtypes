@@ -20,7 +20,7 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
     : Layer(param,
             fmapDesc,
             dataTensorSemantics,
-            vector<Layer*>(1, prev_layer))
+            std::vector<Layer*>(1, prev_layer))
 {
     // Stride(2) is larger than kernel(1*1) for some layers in ResNet.
     // That seems to be a wrong way of aggregating information, but

@@ -13,11 +13,10 @@ namespace kcc {
 namespace codegen {
 
 void
-CodeGenAvgPoolLayer::generate(Layer* layer)
+CodeGenAvgPoolLayer::generate(layers::Layer* layer)
 {
     layers::AvgPoolLayer* const avgpoolLayer = dynamic_cast<layers::AvgPoolLayer*>(layer);
     assert(avgpoolLayer);
-    //Generate(avgpoolLayer, POOLFUNC::AVG_POOL);
     Generate(layer, POOLFUNC::AVG_POOL);
 }
 

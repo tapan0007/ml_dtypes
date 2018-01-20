@@ -10,8 +10,6 @@
 
 
 
-using std::string;
-using std::vector;
 
 
 #include "types.hpp"
@@ -28,7 +26,6 @@ namespace nets {
 
 namespace layers {
 
-using nets::Network;
 using namespace utils;
 
 //--------------------------------------------------------
@@ -44,8 +41,8 @@ public:
 protected:
     //----------------------------------------------------------------
     Layer(const Params& params, const FmapDesc& fmapDesc,
-        const string& dataTensorSemantics,
-        const vector<Layer*>& prevLayers);
+        const std::string& dataTensorSemantics,
+        const std::vector<Layer*>& prevLayers);
 
     virtual ~Layer()
     {}
@@ -57,13 +54,13 @@ private:
     Layer& operator= (const Layer&) const = delete;
 
 protected:
-    static vector<Layer*> mkLayerVector2(Layer* layer1, Layer* layer2);
+    static std::vector<Layer*> mkLayerVector2(Layer* layer1, Layer* layer2);
 
     virtual bool verify() const = 0;
 
 public:
     //----------------------------------------------------------------
-    virtual string gString() const = 0;
+    virtual std::string gString() const = 0;
 
     //----------------------------------------------------------------
     virtual const char* gTypeStr() const = 0;
@@ -292,12 +289,12 @@ public:
     }
 
     //----------------------------------------------------------------
-    vector<Layer*>& gPrevLayers() {
+    std::vector<Layer*>& gPrevLayers() {
         return m_PrevLayers;
     }
 
     //----------------------------------------------------------------
-    const vector<Layer*>& gPrevLayers() const {
+    const std::vector<Layer*>& gPrevLayers() const {
         return m_PrevLayers;
     }
 
@@ -313,12 +310,12 @@ public:
     }
 
     //----------------------------------------------------------------
-    vector<Layer*>& gNextLayers() {
+    std::vector<Layer*>& gNextLayers() {
         return m_NextLayers;
     }
 
     //----------------------------------------------------------------
-    const vector<Layer*>& gNextLayers() const {
+    const std::vector<Layer*>& gNextLayers() const {
         return m_NextLayers;
     }
 
@@ -360,17 +357,17 @@ public:
     virtual StateBufferAddress gNumberWeightsPerPartition() const;
 
     //----------------------------------------------------------------
-    void rNumberStr(const string& numStr) {
+    void rNumberStr(const std::string& numStr) {
         m_NumberStr = numStr;
     }
 
     //----------------------------------------------------------------
-    string gNumberStr() const {
+    std::string gNumberStr() const {
         return m_NumberStr;
     }
 
     //----------------------------------------------------------------
-    Network* gNetwork() const {
+    nets::Network* gNetwork() const {
         return m_Network;
     }
 
@@ -395,33 +392,33 @@ public:
         return m_OfmapDesc.gNumMaps();
     }
 
-    const string gDataTensorDimSemantics() const {
+    const std::string gDataTensorDimSemantics() const {
         return m_DataTensorDimSemantics;
     }
 
     //----------------------------------------------------------------
-    string gNameType() const {
+    std::string gNameType() const {
         return gName() + "{" + gTypeStr() + "}";
     }
 
     //----------------------------------------------------------------
-    string gName() const {
+    std::string gName() const {
         return m_LayerName;
     }
 
-    void rNumStr(const string& s) {
+    void rNumStr(const std::string& s) {
         m_NumStr = s;
     }
 
     //----------------------------------------------------------------
 
-    string gNameNum() const {
+    std::string gNameNum() const {
         return gName() + "-" + m_NumStr;
     }
 
     //----------------------------------------------------------------
-    string gDotId() const {
-        string numStr = m_NumStr;
+    std::string gDotId() const {
+        std::string numStr = m_NumStr;
         for (auto& ch : numStr) {
             if (ch == '.') {
                 ch = '_';
@@ -431,13 +428,13 @@ public:
     }
 
     //----------------------------------------------------------------
-    string gDotLabel() const {
-        string s("\"");
+    std::string gDotLabel() const {
+        std::string s("\"");
         return s + gName() + "-" + m_NumStr + "\"";
     }
 
     //----------------------------------------------------------------
-    string gDotIdLabel() const {
+    std::string gDotIdLabel() const {
         return gDotId() + " [label=" + gDotLabel() + "];";
     }
 
@@ -480,11 +477,11 @@ public:
     }
 
     //----------------------------------------------------------------
-    vector<Layer*>& gPrevSbLayers() {
+    std::vector<Layer*>& gPrevSbLayers() {
         return m_PrevSbLayers;
     }
 
-    const vector<Layer*>& gPrevSbLayers() const {
+    const std::vector<Layer*>& gPrevSbLayers() const {
         return m_PrevSbLayers;
     }
 
@@ -493,12 +490,12 @@ public:
     }
 
     //----------------------------------------------------------------
-    vector<Layer*>& gNextSbLayers() {
+    std::vector<Layer*>& gNextSbLayers() {
         assert(qStoreInSB());
         return m_NextSbLayers;
     }
 
-    const vector<Layer*>& gNextSbLayers() const {
+    const std::vector<Layer*>& gNextSbLayers() const {
         assert(qStoreInSB());
         return m_NextSbLayers;
     }
@@ -533,17 +530,17 @@ public:
     }
 
 
-    string gBaseLayerStr() const;
-    string gStateSizesStr() const;
-    string gNameWithSched() const;
-    string gNameWithSchedMem() const;
+    std::string gBaseLayerStr() const;
+    std::string gStateSizesStr() const;
+    std::string gNameWithSched() const;
+    std::string gNameWithSchedMem() const;
 
     //----------------------------------------------------------------
-    const string gRefFileName() const {
+    const std::string gRefFileName() const {
         return m_RefFileName;
     }
 
-    void rRefFileName(const string& refFile) {
+    void rRefFileName(const std::string& refFile) {
         m_RefFileName = refFile;
     }
 
@@ -551,10 +548,10 @@ public:
 protected:
     std::string             m_LayerName;
 
-    vector<Layer*>          m_PrevLayers;
-    vector<Layer*>          m_NextLayers;
-    vector<Layer*>          m_PrevSbLayers;
-    vector<Layer*>          m_NextSbLayers;
+    std::vector<Layer*>          m_PrevLayers;
+    std::vector<Layer*>          m_NextLayers;
+    std::vector<Layer*>          m_PrevSbLayers;
+    std::vector<Layer*>          m_NextSbLayers;
     nets::Network* const    m_Network;
 
     Layer*                  m_NextSchedLayer;
@@ -575,12 +572,12 @@ protected:
     kcc_int32               m_NumPredecessors;
 
     LayerId                 m_Id;
-    string                  m_NumberStr;
-    string                  m_NumStr;
+    std::string                  m_NumberStr;
+    std::string                  m_NumStr;
 
     FmapDesc                m_OfmapDesc;
-    string                  m_DataTensorDimSemantics;
-    string                  m_RefFileName;
+    std::string                  m_DataTensorDimSemantics;
+    std::string                  m_RefFileName;
 }; // class Layer
 
 

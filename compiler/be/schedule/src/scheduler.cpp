@@ -197,7 +197,7 @@ static bool compareLayer(Layer* layer1, Layer* layer2)
 
 //--------------------------------------------------------
 void
-Scheduler::sortLayers(vector<Layer*>& levelCopy)
+Scheduler::sortLayers(std::vector<Layer*>& levelCopy)
 {
     //--------------------------------------------------------
     std::sort(levelCopy.begin(), levelCopy.end(), compareLayer);
