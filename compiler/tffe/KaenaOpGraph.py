@@ -91,10 +91,14 @@ class Node(Object):
     return 1
   def getDotText(self):
     return self.getOpType()
-  # Supported ops/nodes are passed down through the compiler and simuator flow
+  # Supported ops/nodes are passed down through the compiler and simulator flow
   def isSupported(self):
     return False
-
+  def getOpArgsText(self):
+    argsText = self.getDotText()
+    # Simple implementation - reuse dot text and remove \n
+    argsText = re.sub("\n", " ", argsText)
+    return argsText
 
 class PosNode:
   def __init__(self, node, index):
@@ -153,6 +157,8 @@ class NodeSimple(Node):
 
   def isSupported(self):
     return True
+
+
 
 ###############################################################################
 # Base class for nodes that use striding and padding

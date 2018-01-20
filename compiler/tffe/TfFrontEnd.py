@@ -352,10 +352,12 @@ class TfFe:
         #print("DEBUG: node=", n.getName())
         opName = n.getOpName()
         opType = n.getOpType()
+        opArgsText = n.getOpArgsText()
         #if (re.search("conv", opType, re.I) != None):
         #  print("DEBUG: conv  ", opName)
         row = {"OpName"      : opName,
                "OpType"      : opType,
+               "OpArgs"      : opArgsText,
                "Level"       : level}
         npOutputInfo = n.getNpInfo()
         outputSize = 0
@@ -403,7 +405,7 @@ class TfFe:
     
     # Write csv
     with open(csvFile, 'w') as csvHandle:
-      fieldNames = ["OpName", "OpType", "Level",
+      fieldNames = ["OpName", "OpType", "OpArgs", "Level",
                     "OutputSize", "InputSize"]
       for i in range(0,numOutputs):
         fieldNames += ["Output" + str(i) + "dType",
