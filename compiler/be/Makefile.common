@@ -3,7 +3,13 @@ CPP := g++
 
 ########################################################
 LDOPTS := -W -Wall -Werror -pedantic -g -ggdb -Wno-missing-field-initializers -std=c++14
-COPTS := -ansi $(LDOPTS) 
+COPTS := -ansi $(LDOPTS)
+
+platform=$(shell uname -s)
+
+ifeq ($(platform),Darwin)
+	COPTS := $(COPTS) -Wno-unused-private-field
+endif
 
 INK_INC_DIR := shared tcc
 INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
