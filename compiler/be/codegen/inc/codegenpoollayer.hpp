@@ -9,13 +9,10 @@
 
 namespace kcc {
 namespace layers {
-    class Layer;
     class PoolLayer;
 }
 
 namespace codegen {
-using layers::Layer;
-using layers::PoolLayer;
 
 
 class CodeGenPoolLayer : public CodeGenLayer {
@@ -23,7 +20,10 @@ public:
     //----------------------------------------------------------------
     CodeGenPoolLayer(CodeGen* codegen);
 
+protected:
+public:
     //----------------------------------------------------------------
+    void Generate(layers::Layer* layer, POOLFUNC poolFunc);
 
 protected:
     uint64_t m_PoolStride[4];

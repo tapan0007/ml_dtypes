@@ -1,13 +1,14 @@
 #pragma once
 
-#ifndef KCC_CODEGEN_CODEGENMAXPOOLLAYER_H
-#define KCC_CODEGEN_CODEGENMAXPOOLLAYER_H
+#ifndef KCC_CODEGEN_CODEGENAVGPOOLLAYER_H
+#define KCC_CODEGEN_CODEGENAVGPOOLLAYER_H
 
 #include <cstdio>
 
 #include "codegenpoollayer.hpp"
 
 namespace kcc {
+
 namespace layers {
     class Layer;
 }
@@ -15,10 +16,10 @@ namespace layers {
 namespace codegen {
 
 
-class CodeGenMaxPoolLayer : public CodeGenPoolLayer {
+class CodeGenAvgPoolLayer : public CodeGenPoolLayer {
 public:
     //----------------------------------------------------------------
-    CodeGenMaxPoolLayer(CodeGen* codegen)
+    CodeGenAvgPoolLayer(CodeGen* codegen)
         : CodeGenPoolLayer(codegen)
     {}
 
@@ -29,6 +30,7 @@ public:
 
 }}
 
-#endif // KCC_CODEGEN_CODEGENMAXPOOLLAYER_H
+#endif // KCC_CODEGEN_CODEGENAVGPOOLLAYER_H
+
 
 

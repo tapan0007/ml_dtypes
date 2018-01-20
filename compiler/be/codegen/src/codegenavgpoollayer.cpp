@@ -1,6 +1,6 @@
-#include "maxpoollayer.hpp"
+#include "avgpoollayer.hpp"
 
-#include "codegenmaxpoollayer.hpp"
+#include "codegenavgpoollayer.hpp"
 
 //-----------------------------------------------------------------
 // *[ifmap/filter]Addrs are arrays of statebuffer addresses.  Arrays
@@ -13,14 +13,16 @@ namespace kcc {
 namespace codegen {
 
 void
-CodeGenMaxPoolLayer::generate(layers::Layer* layer)
+CodeGenAvgPoolLayer::generate(Layer* layer)
 {
-    layers::MaxPoolLayer* const maxpoolLayer = dynamic_cast<layers::MaxPoolLayer*>(layer);
-    assert(maxpoolLayer);
-    Generate(maxpoolLayer, POOLFUNC::MAX_POOL);
+    layers::AvgPoolLayer* const avgpoolLayer = dynamic_cast<layers::AvgPoolLayer*>(layer);
+    assert(avgpoolLayer);
+    //Generate(avgpoolLayer, POOLFUNC::AVG_POOL);
+    Generate(layer, POOLFUNC::AVG_POOL);
 }
 
 }}
+
 
 
 
