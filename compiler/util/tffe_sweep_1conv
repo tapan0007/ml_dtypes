@@ -16,6 +16,22 @@ import numpy as np
 import os, sys, argparse
 import random
 
+###############################################################
+# Weed out bad tests:
+# 1. Stride >= image
+# 2. Filter >  image
+###############################################################
+def testOk(h, r, s):  ## h=image size, r=filter size, s=stride
+    if h <= 0 or r <= 0 or s <= 0:
+        return False
+
+    if r > h or s >= h:
+        return False
+
+    return True
+
+
+###############################################################
 if 0:
 
   # Basic sweep from October 2017
@@ -33,7 +49,7 @@ if 0:
               dir = "s%04d_%s" % (id, conf)
               cmd = 'mkdir %s; cd %s && ' % (dir, dir)
               cmd += 'make -f $KAENA_PATH/compiler/tffe/test/Makefile trivnet_conv1 NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=1conv &&' % (conf)
-              cmd += 'bash $KAENA_PATH/compiler/python/state-buffer-estimate/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
+              cmd += 'bash $KAENA_PATH/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
               cmd += 'echo -n PASS || echo -n FAIL; echo "  "' + dir
               print("\n", cmd)
               os.system(cmd)
@@ -47,17 +63,36 @@ elif 0:
   w = 0.1
   m = 1
   c = 1
-  
+
+  if True:
+    tests = []
+    for s in [1, 2, 3, 4, 8]:
+      for r in [1, 2, 3, 4, 5, 7]:
+        for h in [2, 3, 4, 5, 6, 7, 14]:
+          tests.append( (s, r, h) )
+  else:
+    ## (s, r, h)
+    tests = [
+      (2, 2, 3),
+      (2, 2, 5),
+      (2, 3, 3),
+      (2, 3, 4),
+      (2, 4, 4),
+      (3, 2, 4),
+    ]
+ 
+  assert tests
+
   id = 0
-  for s in [1, 2, 3, 4, 8]:
-    for r in [1, 2, 3, 4, 5, 7]:
-      for h in [2, 3, 4, 5, 6, 7, 14]:
+  for (s, r, h) in tests:
+        if not testOk(h, r, s):
+          continue
         id += 1
         conf = "b%d-h%d-r%d-s%d-c%d-m%d-" % (b, h, r, s, c, m) +  "wmin%g-wmax%g-imin%g-imax%g" % (-w, w, -i, i)
         dir = "s%04d_%s" % (id, conf)
         cmd = 'mkdir %s; cd %s && ' % (dir, dir)
         cmd += 'make -f $KAENA_PATH/compiler/tffe/test/Makefile trivnet_conv1 NN_CONFIG=%s OUT_PREFIX=trivnet_ NN_NAME=1conv > log-fe.txt 2>&1 &&' % (conf)
-        cmd += 'bash $KAENA_PATH/compiler/python/state-buffer-estimate/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
+        cmd += 'bash $KAENA_PATH/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
         cmd += 'echo -n PASS || echo -n FAIL; echo "  "' + dir
         print("\n", cmd)
         os.system(cmd)

@@ -1,3 +1,4 @@
+import re
 import argparse
 import tensorflow as tf
 import numpy as np
@@ -15,7 +16,8 @@ from tensorflow.tools.graph_transforms import TransformGraph
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fp16", action='store_true')
+    parser.add_argument("--fp16", action='store_true', help="use float16 parameters and operations")
+    parser.add_argument("--dumpvars", action='store_true', help="dump variables")
     parser.add_argument("--image", help="image to be processed")
     parser.add_argument("--input_height", type=int, default=224, help="input height")
     parser.add_argument("--input_width", type=int, default=224, help="input width")
@@ -25,12 +27,14 @@ if __name__ == "__main__":
     backend.set_learning_phase(0)
     if (args.fp16):
         float_type = 'float16'
+        float_type2 = 'fp16'
     else:
         float_type = 'float32'
+        float_type2 = 'fp32'
     backend.set_floatx(float_type)
 
     # load pre-trained model using Keras
-    model_name = 'resnet50_%s_keras'%float_type
+    model_name = 'resnet50_%s_keras'%float_type2
     model = ResNet50(weights='imagenet')
 
     # various save files
@@ -54,6 +58,9 @@ if __name__ == "__main__":
     # save model in HDF5 format 
     model.save(model_save_file)
 
+    # load model back to check that model was saved properly
+    #model = keras.models.load_model(model_save_file)
+
     # obtain parameters
     model_input = model.input.name.replace(':0', '')
     model_output = model.output.name.replace(':0', '')
@@ -67,10 +74,23 @@ if __name__ == "__main__":
     sess = backend.get_session()
 
     # save checkpoint files for freeze_graph
-    ckpt_file = '/tmp/' + model_name + '.ckpt'
-    graph_file = '/tmp/' + model_name + '.pb'
+    ckpt_file = '/tmp/' + model_name + '/' + model_name + '.ckpt'
+    graph_file = '/tmp/' + model_name + '/' + model_name + '.pb'
     tf.train.Saver().save(sess, ckpt_file)
     tf.train.write_graph(sess.graph.as_graph_def(), logdir='.', name=graph_file, as_text=False)
+
+    # peek at conv kernels
+    if (args.dumpvars):
+        # set print option precision to show that half precision has fewer signicant bits
+        np.set_printoptions(precision=20)   
+        for x in tf.trainable_variables():
+            if (re.search("kernel", x.name)):
+                print(x.name)
+                print(x.dtype)
+                w=sess.run(x)
+                y=w.flatten()[0].item()
+                print("First element (in hex): %s"%float.hex(y))
+                print(w)
 
     # use freeze_graph to read in files and replace all variables with const
     freeze_graph(
@@ -105,6 +125,7 @@ if __name__ == "__main__":
                 'strip_unused_nodes(type=uint8, shape="1,%d,%d,%d")'%(width, height, channels),
                 'remove_nodes(op=Identity, op=CheckNumerics)',
                 'fold_constants(ignore_errors=true)',
+                'fold_batch_norms', 
                 'fold_batch_norms', 
                 'fold_old_batch_norms',
                 'strip_unused_nodes', 

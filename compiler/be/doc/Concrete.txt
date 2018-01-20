@@ -1,0 +1,10 @@
+class AddLayer(CombineLayer):
+class AvgPoolLayer(PoolLayer):
+class BatchNormLayer(OneToOneLayer):
+class ConcatLayer(CombineLayer):
+class ConvLayer(SubSampleLayer):
+class DataLayer(Layer):
+class FullLayer(ConvLayer):
+class MaxPoolLayer(PoolLayer):
+class ReluLayer(ActivLayer):
+class SoftMaxLayer(OneToOneLayer):
