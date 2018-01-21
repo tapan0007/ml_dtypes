@@ -107,10 +107,16 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         if (auto inLayer = dynamic_cast<layers::InputLayer*>(layer)) {
             serLayer.rRefFile(inLayer->gInputDataFileName());
         } else if (auto convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {
+            assert(convLayer->gPrevLayers().size() == 1U);
+            const layers::Layer* prevLayer = convLayer->gPrevLayer(0);
+            const int32_t numIfmaps = prevLayer->gNumOfmaps();
+            const int32_t batchStride = 1, ifmapStride = 1;
+            const int32_t batchPadBefore = 0, batchPadAfter = 0, ifmapPadBefore = 0, ifmapPadAfter = 0;
+
             {
                 KernelShapeType  kernelShape;   // conv,pool
-                kernelShape[FilterIndex_M] = 1;
-                kernelShape[FilterIndex_C] = 1;
+                kernelShape[FilterIndex_M] = convLayer->gNumOfmaps();
+                kernelShape[FilterIndex_C] = numIfmaps;
                 kernelShape[FilterIndex_R] = convLayer->gKernelHeight();
                 kernelShape[FilterIndex_S] = convLayer->gKernelWidth();
                 serLayer.rKernelShape(kernelShape);
@@ -120,18 +126,18 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serLayer.rKernelFormat(convLayer->gFilterTensorDimSemantics());
             {
                 StrideType stride;        // conv,pool
-                stride[FmapIndex_N] = 1;
-                stride[FmapIndex_C] = 1;
+                stride[FmapIndex_N] = batchStride;
+                stride[FmapIndex_C] = ifmapStride;
                 stride[FmapIndex_H] = convLayer->gStrideTopBottom();
                 stride[FmapIndex_W] = convLayer->gStrideLeftRight();
                 serLayer.rStride(stride);
             }
             {
                 PaddingType padding;       // conv,pool
-                padding[FmapIndex_N][0] = 0;
-                padding[FmapIndex_N][1] = 0;
-                padding[FmapIndex_C][0] = 0;
-                padding[FmapIndex_C][1] = 0;
+                padding[FmapIndex_N][0] = batchPadBefore;
+                padding[FmapIndex_N][1] = batchPadAfter;
+                padding[FmapIndex_C][0] = ifmapPadBefore;
+                padding[FmapIndex_C][1] = ifmapPadAfter;
                 padding[FmapIndex_H][0] = convLayer->gPaddingTop();
                 padding[FmapIndex_H][1] = convLayer->gPaddingBottom();
                 padding[FmapIndex_W][0] = convLayer->gPaddingLeft();
@@ -144,33 +150,43 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             assert(reluLayer);
         } else if (auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer)) {
             assert(poolLayer);
+            assert(poolLayer->gPrevLayers().size() == 1U);
+            auto prevLayer = convLayer->gPrevLayer(0);
+            const int32_t batchStride = 1, ifmapStride = 1;
+            const int32_t batchPadBefore = 0, batchPadAfter = 0, ifmapPadBefore = 0, ifmapPadAfter = 0;
+
             {
                 KernelShapeType  kernelShape;   // conv,pool
-                kernelShape[FilterIndex_M] = 1;
-                kernelShape[FilterIndex_C] = 1;
+                kernelShape[FilterIndex_M] = poolLayer->gNumOfmaps();
+                kernelShape[FilterIndex_C] = prevLayer->gNumOfmaps();
                 kernelShape[FilterIndex_R] = poolLayer->gKernelHeight();
                 kernelShape[FilterIndex_S] = poolLayer->gKernelWidth();
                 serLayer.rKernelShape(kernelShape);
             }
             {
                 StrideType stride;        // conv,pool
-                stride[FmapIndex_N] = 1;
-                stride[FmapIndex_C] = 1;
+                stride[FmapIndex_N] = batchStride;
+                stride[FmapIndex_C] = ifmapStride;
                 stride[FmapIndex_H] = poolLayer->gStrideTopBottom();
                 stride[FmapIndex_W] = poolLayer->gStrideLeftRight();
                 serLayer.rStride(stride);
             }
             {
                 PaddingType padding;       // conv,pool
-                padding[FmapIndex_N][0] = 0;
-                padding[FmapIndex_N][1] = 0;
-                padding[FmapIndex_C][0] = 0;
-                padding[FmapIndex_C][1] = 0;
+                padding[FmapIndex_N][0] = batchPadBefore;
+                padding[FmapIndex_N][1] = batchPadAfter;
+                padding[FmapIndex_C][0] = ifmapPadBefore;
+                padding[FmapIndex_C][1] = ifmapPadAfter;
                 padding[FmapIndex_H][0] = poolLayer->gPaddingTop();
                 padding[FmapIndex_H][1] = poolLayer->gPaddingBottom();
                 padding[FmapIndex_W][0] = poolLayer->gPaddingLeft();
                 padding[FmapIndex_W][1] = poolLayer->gPaddingRight();
                 serLayer.rPadding(padding);
+            }
+            if (dynamic_cast<layers::MaxPoolLayer*>(layer)) {
+                serLayer.rLayerType(TypeStr_MaxPool);
+            } else {
+                serLayer.rLayerType(TypeStr_AvgPool);
             }
         } else {
             assert(false);

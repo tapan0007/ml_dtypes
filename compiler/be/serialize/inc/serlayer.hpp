@@ -50,10 +50,10 @@ public:
         m_Batching[FmapIndex_H]     = 1;
         m_Batching[FmapIndex_W]     = 1;
 
-        m_Stride[FilterIndex_M]     = 0;
-        m_Stride[FilterIndex_C]     = 0;
-        m_Stride[FilterIndex_R]     = 0;
-        m_Stride[FilterIndex_S]     = 0;
+        m_Stride[FilterIndex_M]     = 1;
+        m_Stride[FilterIndex_C]     = 1;
+        m_Stride[FilterIndex_R]     = 1;
+        m_Stride[FilterIndex_S]     = 1;
 
         m_Padding[FmapIndex_N][0]   = 0;
         m_Padding[FmapIndex_N][1]   = 0;
@@ -102,6 +102,7 @@ public:
     const string& gTypeStr() const {
         return m_LayerType;
     };
+
 
     void rLayerType(const string& t) {
         m_LayerType = t;
