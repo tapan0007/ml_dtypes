@@ -266,7 +266,7 @@ public:
 
     //----------------------------------------------------------------
     void rCurrLevel(kcc_int32 lev) {
-        assert(gEarlyLevel() <= lev && lev <= gLateLevel());
+        assert(gEarlyLevel() <= lev && lev <= gLateLevel() && "Layer current level not within early and late level range");
         m_CurrLevel = lev;
     }
 
@@ -300,7 +300,7 @@ public:
 
     //----------------------------------------------------------------
     Layer* gPrevLayer(kcc_int32 idx) const {
-        assert(0 <= idx and idx < gNumPrevLayers());
+        assert(0 <= idx and idx < gNumPrevLayers() && "Layer: previous layer outside of range");
         return m_PrevLayers[idx];
     }
 
@@ -321,7 +321,7 @@ public:
 
     //----------------------------------------------------------------
     Layer* gNextLayer(kcc_int32 idx) {
-        assert(0 <= idx and idx < gNumNextLayers());
+        assert(0 <= idx and idx < gNumNextLayers() && "Layer: next layer outside of range");
         return m_NextLayers[idx];
     }
 
@@ -465,7 +465,7 @@ public:
 
     //----------------------------------------------------------------
     void changeRefCount(kcc_int32 num) {
-        assert(m_RefCount >= -num);
+        assert(m_RefCount >= -num && "Remaining reference count too small");
         m_RefCount += num;
     }
 

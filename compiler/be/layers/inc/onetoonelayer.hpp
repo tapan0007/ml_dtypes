@@ -34,9 +34,9 @@ public:
 
     //----------------------------------------------------------------
     bool verify() const override {
-        assert(1 == gNumPrevLayers());
+        assert(1 == gNumPrevLayers() && "1-1 layer: Number of previous layers not 1");
         const Layer* prev_layer = gPrevLayer(0);
-        assert(prev_layer->gOfmapDesc() == gOfmapDesc());
+        assert(prev_layer->gOfmapDesc() == gOfmapDesc() && "1-1 layer: Input and output OFMAP descs are different");
         return true;
     }
 

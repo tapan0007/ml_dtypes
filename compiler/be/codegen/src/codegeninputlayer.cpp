@@ -12,7 +12,7 @@ CodeGenInputLayer::generate(layers::Layer* layer)
 {
     FILE* const objFile = gObjFile();
     const auto inLayer = dynamic_cast<layers::InputLayer*>(layer);
-    assert(inLayer);
+    assert(inLayer && "CodeGenLayer::generate: layer is not an Input layer");
     m_IfmapAddrs[0] = inLayer->gOfmapAddress();
     compile_read_ifmap(objFile,
               m_IfmapAddrs[0],

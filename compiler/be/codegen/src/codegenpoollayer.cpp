@@ -19,7 +19,7 @@ CodeGenPoolLayer::Generate(layers::Layer* layer, POOLFUNC poolFunc)
 {
     FILE* const objFile = gObjFile();
     const auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer);
-    assert(poolLayer);
+    assert(poolLayer && "CodeGen::generate: layer is not a Pool layer");
 
     layers::Layer* const prevLayer  = poolLayer->gPrevLayer(0);
     const unsigned numIfmaps        = prevLayer->gNumOfmaps();
@@ -64,7 +64,7 @@ CodeGenPoolLayer::Generate(layers::Layer* layer, POOLFUNC poolFunc)
     m_Dilate[0]                     = 1;
     m_Dilate[1]                     = 1;
 
-    assert(inDataType == outDataType);
+    assert(inDataType == outDataType && "Pool layer's in and out data types should be identical");
     compile_pool(objFile,
             m_IfmapAddrs[0], m_IfmapDims,
             m_KernelDims,
@@ -73,10 +73,10 @@ CodeGenPoolLayer::Generate(layers::Layer* layer, POOLFUNC poolFunc)
             outDataType,
             poolFunc);
 
-    assert(m_OfmapDims[m_FmapIndex_N] == numBatches);
-    assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps);
-    assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight);
-    assert(m_OfmapDims[m_FmapIndex_W] == ofmapWidth);
+    assert(m_OfmapDims[m_FmapIndex_N] == numBatches && "Number of batches not matching after pool calculation");
+    assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps && "Number of OFMAPs not matching after pool calculation");
+    assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight && "OFMAP height not matching after pool calculation");
+    assert(m_OfmapDims[m_FmapIndex_W] == ofmapWidth && "OFMAP width  not matching after pool calculation");
 
     epilogue(poolLayer);
 }

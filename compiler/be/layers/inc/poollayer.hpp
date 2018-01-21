@@ -26,7 +26,9 @@ public:
     //----------------------------------------------------------------
     bool verify() const override
     {
-        assert(gNumPrevLayers() == 1);
+        assert(gNumPrevLayers() == 1 && "Pool layer: number of previous layers not 1");
+        assert((gPrevLayer(0)->gOfmapWidth()  / gStrideLeftRight()) == gOfmapWidth() && "Pool layer: Ifmap width not multiple of stride");
+        assert((gPrevLayer(0)->gOfmapHeight() / gStrideTopBottom()) == gOfmapHeight() && "Pool layer: Ifmap height not multiple of stride");
         return this->SubClass::verify();
     }
 

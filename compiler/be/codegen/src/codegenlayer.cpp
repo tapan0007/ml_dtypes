@@ -31,7 +31,7 @@ CodeGenLayer::epilogue(const layers::Layer* const layer)
             char* p = outNpyFileName + strlen(outNpyFileName);
             // skip last 4 chars ".npy"
             p -= 4;
-            assert(0 == strcmp(p, ".npy"));
+            assert(0 == strcmp(p, ".npy") && "NPY filename suffix should be .npy");
             sprintf(p, "-simout.npy");
         } else {
             sprintf(outNpyFileName, "%s-%s-simout.npy",

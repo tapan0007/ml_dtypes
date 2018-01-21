@@ -42,13 +42,13 @@ ConvLayer::gString() const
 bool
 ConvLayer::verify() const
 {
-    assert(gNumPrevLayers() == 1);
+    assert(gNumPrevLayers() == 1 && " Conv layer: number of previous layers not 1");
     const bool ok = this->SubClass::verify();
     const Layer* prevLayer = gPrevLayer(0);
     const kcc_int32 prevMapWidth = prevLayer->gOfmapWidth();
     const kcc_int32 prevMapHeight = prevLayer->gOfmapHeight();
-    assert(prevMapWidth ==  gStrideLeftRight() * gOfmapWidth());
-    assert(prevMapHeight == gStrideTopBottom() * gOfmapHeight());
+    assert(prevMapWidth ==  gStrideLeftRight() * gOfmapWidth() && "Conv layer: Ifmap width != stride * Ofmap width");
+    assert(prevMapHeight == gStrideTopBottom() * gOfmapHeight() && "Conv layer: Ifmap height != stride * Ofmap height");
     return ok;
 }
 
@@ -56,7 +56,7 @@ ConvLayer::verify() const
 kcc_int32
 ConvLayer::gNumberWeights() const
 {
-    assert(gNumPrevLayers() == 1);
+    assert(gNumPrevLayers() == 1 && "Conv layer: number previous layers not 1");
     const kcc_int32 num_ifmaps = gPrevLayer(0)->gNumOfmaps();
     return num_ifmaps * gNumberWeightsPerPartition();
 }
@@ -65,7 +65,7 @@ ConvLayer::gNumberWeights() const
 kcc_int64
 ConvLayer::gNumberWeightsPerPartition() const
 {
-    assert(gNumPrevLayers() == 1);
+    assert(gNumPrevLayers() == 1 && "Conv layer: number previous layers not 1");
     const kcc_int32 kw = gKernelWidth();
     const kcc_int32 kh = gKernelHeight();
     const kcc_int32 num_ofmaps = gNumOfmaps();

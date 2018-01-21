@@ -58,7 +58,7 @@ CodeGen::gGenFunc(const layers::Layer* layer)
     } else if (dynamic_cast<const layers::AvgPoolLayer*>(layer)) {
         return *m_AvgPoolLayer;
     } else {
-        assert(false);
+        assert(false || "CodeGen::generate: Unknown layer");
     }
     return *m_InputLayer;
 }
@@ -67,7 +67,7 @@ void
 CodeGen::generate(const char* objFileName)
 {
     m_ObjFile = std::fopen(objFileName, "w");
-    assert(m_ObjFile);
+    assert(m_ObjFile && "Object file is null");
 
     for (auto layer : m_Network->gSchedForwLayers()) {
         CodeGenLayer& layerGen = gGenFunc(layer);

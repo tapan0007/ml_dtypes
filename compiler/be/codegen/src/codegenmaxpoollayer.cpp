@@ -16,7 +16,7 @@ void
 CodeGenMaxPoolLayer::generate(layers::Layer* layer)
 {
     layers::MaxPoolLayer* const maxpoolLayer = dynamic_cast<layers::MaxPoolLayer*>(layer);
-    assert(maxpoolLayer);
+    assert(maxpoolLayer && "CodeGen::generate: layer is not a MaxPool layer");
     Generate(maxpoolLayer, POOLFUNC::MAX_POOL);
 }
 

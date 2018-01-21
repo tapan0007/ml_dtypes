@@ -16,7 +16,7 @@ void
 CodeGenAvgPoolLayer::generate(layers::Layer* layer)
 {
     layers::AvgPoolLayer* const avgpoolLayer = dynamic_cast<layers::AvgPoolLayer*>(layer);
-    assert(avgpoolLayer);
+    assert(avgpoolLayer && "CodeGenLayer::generate: layer is not an AvgPool layer");
     Generate(layer, POOLFUNC::AVG_POOL);
 }
 

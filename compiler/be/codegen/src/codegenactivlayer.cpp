@@ -14,7 +14,7 @@ CodeGenActivLayer::generate(layers::Layer* layer)
 {
     FILE* const objFile = gObjFile();
     const auto activLayer = dynamic_cast<layers::ActivLayer*>(layer);
-    assert(activLayer);
+    assert(activLayer && "CodeGen::generate: layer is not an activiation layer");
 
     const ACTIVATIONFUNC activFunc  = gActivFunc();
     layers::Layer* const prevLayer  = activLayer->gPrevLayer(0);
@@ -45,10 +45,10 @@ CodeGenActivLayer::generate(layers::Layer* layer)
             activFunc);
 
 
-    assert(m_OfmapDims[m_FmapIndex_N] == numBatches);
-    assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps);
-    assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight);
-    assert(m_OfmapDims[m_FmapIndex_W] == ofmapWidth);
+    assert(m_OfmapDims[m_FmapIndex_N] == numBatches && "Number of batches not matching after activation calculation");
+    assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps && "Number of OFMAPs not matching after activation calculation");
+    assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight && "OFMAP height not matching after activation calculation");
+    assert(m_OfmapDims[m_FmapIndex_W] == ofmapWidth && "OFMAP width  not matching after activation calculation");
 
     epilogue(layer);
 }

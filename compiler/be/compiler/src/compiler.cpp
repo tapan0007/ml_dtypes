@@ -101,15 +101,15 @@ main(int argc, char* argv[])
     std::cout << "Generating Arch '" << arch->gArchVersion() << "'\n";
 
     PeArray* peArray = arch->gPeArray();
-    assert(peArray);
+    assert(peArray && "Arch missing PE array");
     PsumBuffer* psumBuf = arch->gPsumBuffer();
-    assert(psumBuf);
+    assert(psumBuf && "Arch missing PSUM buffer");
     PoolingEng* pool = arch->gPoolingEng();
-    assert(pool);
+    assert(pool && "Arch missing pooling engine");
     ActivationEng* activ = arch->gActivationEng();
-    assert(activ);
+    assert(activ && "Arch missing activation engine");
     StateBuffer* stbuf = arch->gStateBuffer();
-    assert(stbuf);
+    assert(stbuf && "Arch missing State Buffer");
     arch->gNumberPsumBanks();
     arch->gPsumBankEntries();
     arch->gNumberPeArrayRows();

@@ -18,7 +18,7 @@ CodeGenConvLayer::generate(layers::Layer* layer)
 {
     FILE* const objFile = gObjFile();
     const auto convLayer = dynamic_cast<layers::ConvLayer*>(layer);
-    assert(convLayer);
+    assert(convLayer && "CodeGenLayer::generate: layer is not a convolution layer");
 
     layers::Layer* const prevLayer  = convLayer->gPrevLayer(0);
     const unsigned numIfmaps     = prevLayer->gNumOfmaps();
@@ -73,10 +73,10 @@ CodeGenConvLayer::generate(layers::Layer* layer)
             m_ConvolveStride,
             m_Dilate);
 
-    assert(m_OfmapDims[m_FmapIndex_N] == numBatches);
-    assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps);
-    assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight);
-    assert(m_OfmapDims[m_FmapIndex_W] == ofmapWidth);
+    assert(m_OfmapDims[m_FmapIndex_N] == numBatches && "Number of batches not matching after convolution calculation");
+    assert(m_OfmapDims[m_FmapIndex_C] == numOfmaps && "Number of OFMAPs not matching after convolution calculation");
+    assert(m_OfmapDims[m_FmapIndex_H] == ofmapHeight && "OFMAP height not matching after convolution calculation");
+    assert(m_OfmapDims[m_FmapIndex_W] == ofmapWidth && "OFMAP width  not matching after convolution calculation");
 
     epilogue(layer);
 }
