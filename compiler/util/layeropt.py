@@ -246,7 +246,7 @@ if __name__ == "__main__":
         print("\nExpected OFMAPS:\n", outputs)
         print("\nCompared OFMAPS:\n", compared)
         if (not compared.all()):
-            print("\nFAILED: computed IFMAPS is not equal to expected IFMAPS!\n")
+            print("\nFAILED: computed OFMAPS is not equal to expected OFMAPS!\n")
         else:
             print("\nPASSED\n")
     else:        
