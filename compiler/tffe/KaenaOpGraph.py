@@ -7,9 +7,29 @@ from NpTransforms import NpTrans as npt
 from NpUtils import NpUtils as npu
 import os, re, json
 import numpy as np
+import math
 
 class Config:
   debugLevel = 0
+  # Roofline model
+  numTpb = 1
+  specTops = 32
+  ddrGBps = 42 * 0.9
+  poolGBps = 64*2 * 1e9 / 2**30
+  class Pe:
+    minWave = 64
+    optWave = 256
+  class Graph:
+    legendText = """
+  Conv2D, MaxPool, Add  ... Operators
+  Strides, Kernel  ... Arguments
+  w0.125 i0.191 o0.766 MB  ... weight, input, output
+                               tensor sizes in MegaBytes
+  OpWB 784 ... operations per byte of weights
+  BT(n)    ... batch targets for n TPBs
+  1-2-5    ... recommended batches for roofline-minWave-optWave
+               Batch 0 means tiling required
+"""
 
 class Object:
   def __init__(self, name, attrs):
@@ -31,6 +51,8 @@ class NpInfo:
     self.npShape = npShape
     self.npFile = None
     self.dType = None
+  def nbytes(self):
+    return np.empty(self.npShape, dtype=self.dType).nbytes
 
 # NN operation
 class Node(Object):
@@ -302,6 +324,13 @@ class NodeConv2D(NodeBasePaddedStrided):
     assert npInfoW.npShape[3] > 0
     return filterArr
 
+  # Return the 2 significant dimensions of 2-D feature map
+  def getImg2D(self):
+    npInfo = self.getNpInfo()[0]
+    (batch, height, width, channels) = npInfo.npShape
+    img2D = (height, width)
+    return img2D
+
   # Returns layer json model in dictionary format, and list of files (npy data)
   def genCompilerLayerJson(self):
     fileList = []
@@ -342,12 +371,27 @@ class NodeConv2D(NodeBasePaddedStrided):
   def getDotText(self):
     dotText = self.getOpType()
     if len(self.getNpInfo()) > 0:
-      # Filter - not needed, it is shown as shape of the other input
-      #((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-      #filterShapeRSCM = npInfoW.npShape
-      #dotText += "\nFilter " + str(filterShapeRSCM)
-      # Stride
       dotText += "\nStrides " + str(self.getStrides())
+      ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+      fmapSizeBytes = npInfoIF.nbytes()
+      weightSizeBytes = npInfoW.nbytes()
+      opCount = self.getOpCount()
+      opsPerWeightByte = math.ceil(opCount / weightSizeBytes)
+      # Data sizes
+      npInfoOF = self.getNpInfo()[0]
+      dotText += "\nw%.3f i%.3f o%.3f MB" % (weightSizeBytes / 2**20,
+                                           fmapSizeBytes / 2**20, npInfoOF.nbytes() / 2**20)
+      dotText += "\nOpWB " + str(opsPerWeightByte)
+      # Roofile, wavesize batch targets
+      targetOpB = Config.specTops*2**40 /(Config.ddrGBps*2**30)/2 * Config.numTpb
+      targetBatchRoofLine = math.ceil(targetOpB / opsPerWeightByte)
+      imgPixels = np.empty(self.getImg2D()).size
+      targetBatchImgMin = math.ceil(Config.Pe.minWave / imgPixels)
+      targetBatchImgOpt = math.floor(Config.Pe.optWave / imgPixels)
+      dotText += " BT(%d) %d-%d-%d" % (Config.numTpb, targetBatchRoofLine,
+                                       targetBatchImgMin, targetBatchImgOpt)
+      # Ops
+      dotText += "\nGop %.3f" % (opCount / 1e9)
     return dotText
 
   # Number of add, multiply ops for performance analysis and reporting
@@ -419,6 +463,17 @@ class NodePool(NodeBasePaddedStrided):
   def getDotText(self):
     dotText = self.getOpType()
     if len(self.getNpInfo()) > 0:
+      # Data sizes
+      npInfoOF = self.getNpInfo()[0]
+      (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
+      dotText += "\ni%.3f o%.3f MB" % (npInfoIF.nbytes() / 2**20,
+                                       npInfoOF.nbytes() / 2**20)
+      # Non-fusing cost: 2x the input
+      nfCostDdrUsec =   2 * npInfoIF.nbytes() / (Config.ddrGBps*2**30) * 1e6
+      dotText += "\nNonFuseDdr %.1f usec" %  nfCostDdrUsec
+      nfCostSbUsec =   2 * npInfoIF.nbytes() / (Config.poolGBps*2**30) * 1e6
+      dotText += "\nNonFuseSB %.1f usec" %  nfCostSbUsec
+      
       # Kernel
       kernelSizeNHWC = self.getKernelSize()
       dotText += "\nKernelSize " + str(kernelSizeNHWC)

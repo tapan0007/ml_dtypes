@@ -255,6 +255,8 @@ class TfFe:
   #   layerN/branchM/convP cluster would be breated (in blue) if depth is 3
   def writeDot(self, depth, outFile, outFormat = "svg"):
     dot = Digraph(comment="writeDot")
+    dot.node("KgraphLegend", "Legend" + re.sub("\n", "\l", kog.Config.Graph.legendText),
+             {"color":"yelow", "shape":"rectangle"})
     for n in self.__kg.getNodes():
       tfOp = n.getAttr("tfop")
       attrs = {}
