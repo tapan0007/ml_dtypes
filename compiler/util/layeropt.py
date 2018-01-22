@@ -238,14 +238,14 @@ if __name__ == "__main__":
         outputs = np.load(output_layer['ref_file'])
         compared = results == outputs
 
-        print("Input IFMAPS:\n", inputs)
-        print("Computed OFMAPS:\n", results)
-        print("Expected OFMAPS:\n", outputs)
-        print("Compared OFMAPS:\n", compared)
+        print("\nInput IFMAPS:\n", inputs)
+        print("\nComputed OFMAPS:\n", results)
+        print("\nExpected OFMAPS:\n", outputs)
+        print("\nCompared OFMAPS:\n", compared)
         if (not compared.all()):
-            print("FAILED: computed IFMAPS is not equal to expected IFMAPS!")
+            print("\nFAILED: computed IFMAPS is not equal to expected IFMAPS!\n")
         else:
-            print("PASSED")
+            print("\nPASSED\n")
     else:        
         print("ERROR: the first operation should be Conv")
         exit(-1)

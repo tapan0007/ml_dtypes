@@ -1,0 +1,2 @@
+OutputNpy=trivnet_1conv3__relu1:0_NCHW.npy
+JsonFile=trivnet_compiler.json
