@@ -35,7 +35,7 @@ StateBufferMgr::calcOneLayerFmapMemSizePerPartition(layers::Layer* layer)
     const StateBufferAddress resSbMemBatch  = layer->gResMemWithBatching();
     const StateBufferAddress totSbMemBatch  = outSbMemBatch + resSbMemBatch;
     const kcc_int32 numOfmaps      = layer->gNumOfmaps();
-    assert(numOfmaps > 0);
+    assert(numOfmaps > 0 && "Layer has no Ofmaps");
     const StateBufferAddress numPeArrayRows = m_Arch->gNumberPeArrayRows();
 
     const StateBufferAddress sbMemPerOfmap  = totSbMemBatch / numOfmaps;
@@ -59,7 +59,7 @@ StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
             }
         }
 
-        assert(layer->gRefCount() == 0);
+        assert(layer->gRefCount() == 0 && "New layer should start with zero back reference count" );
         layer->changeRefCount(layer->gNumNextSbLayers());
 
         StateBufferAddress ifmapAddress = StateBufferAddress_Invalid;
@@ -69,12 +69,14 @@ StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
 
         if (layer->qInputLayer()) {
             assert(prevIfmapAddress == StateBufferAddress_Invalid &&
-                   prevOfmapAddress == StateBufferAddress_Invalid);
+                   prevOfmapAddress == StateBufferAddress_Invalid &&
+                   "Input layer should start with invalid FMAP addresses");
             ifmapAddress = StateBufferAddress_Invalid;
             ofmapAddress = m_FirstSbAddress +
                            (layer->gDataType().gSizeInBytes() * m_MaxNumberWeightsPerPart);
         } else {
-            assert(prevOfmapAddress != StateBufferAddress_Invalid);
+            assert(prevOfmapAddress != StateBufferAddress_Invalid &&
+                    "Non-input layers should start valid IFMAP address");
             ifmapAddress = prevOfmapAddress;
 
             const StateBufferAddress ofmapSizePerPart = calcOneLayerFmapMemSizePerPartition(layer);
@@ -113,7 +115,7 @@ StateBufferMgr::calcLayerFmapAddresses()
 {
     for (auto layer : m_Network->gLayers()) {
         layer->changeRefCount(-layer->gRefCount());
-        assert(layer->gRefCount() == 0);
+        assert(layer->gRefCount() == 0 && "Layer should have zero reference count");
     }
 
     StateBufferAddress maxNumWeightsPerPart = 0;

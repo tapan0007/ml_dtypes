@@ -23,11 +23,13 @@ Scheduler::verifyLevelization()
             assert(levNum == layer->gEarlyLevel());
             for (auto nextLayer : layer->gNextLayers()) {
                 // cannot say anything about layer.Late and nextLayer.Early
-                assert(layer->gEarlyLevel() < nextLayer->gEarlyLevel());
-                assert(layer->gLateLevel() < nextLayer->gLateLevel());
-                assert(layer->gEarlyLevel() <= layer->gLateLevel());
+                assert(layer->gEarlyLevel() < nextLayer->gEarlyLevel() &&
+                        "A layer's early level must strictly precede its successor's early level");
+                assert(layer->gLateLevel() < nextLayer->gLateLevel() &&
+                        "A layer's late level must strictly precede its successor's late level");
+                assert(layer->gEarlyLevel() <= layer->gLateLevel() && "Layer's early level must precede (<=) its late level");
                 assert(layer->gEarlyLevel() <= layer->gCurrLevel() &&
-                       layer->gCurrLevel() <= layer->gLateLevel());
+                       layer->gCurrLevel() <= layer->gLateLevel() && "Layer's current level must be between its early and late level");
             }
         }
     }
@@ -62,7 +64,7 @@ Scheduler::Schedule(Network* ntwk)
     //calcFanoutBatch()
 
     levelize();
-    assert(m_Levels[0]->gNumberLayers() == 1 && m_Levels[0]->qDataLevel());
+    assert(m_Levels[0]->gNumberLayers() == 1 && m_Levels[0]->qDataLevel() && "First level must consist of one Input layer");
 
 
     // Move layers with input smaller than output to latest level for the layer
@@ -72,8 +74,8 @@ Scheduler::Schedule(Network* ntwk)
         }
         LayerLevel* earlyLevel = m_Levels[layer->gEarlyLevel()];
         LayerLevel* lateLevel = m_Levels[layer->gLateLevel()];
-        assert(layer->gCurrLevel() == layer->gEarlyLevel());
-        assert(earlyLevel->qContainsLayer(layer));
+        assert(layer->gCurrLevel() == layer->gEarlyLevel() && "Layer's level must be equal to its early level initially");
+        assert(earlyLevel->qContainsLayer(layer) && "Level corresponding to layer's early level index must contain the layer");
         assert(earlyLevel->gLevelNum() == layer->gEarlyLevel());
         assert(lateLevel->gLevelNum() == layer->gLateLevel());
         assert(!lateLevel->qContainsLayer(layer));
@@ -104,8 +106,8 @@ void Scheduler::linkSchedLayers()
         const kcc_int32 mysch1 = layer->gSchedule() + 1;
         for (auto otherLayer : m_Layers) {
             if (mysch1 == otherLayer->gSchedule()) {
-                assert(!layer->gNextSchedLayer());
-                assert(!otherLayer->gPrevSchedLayer());
+                assert(!layer->gNextSchedLayer() && "Layer's next scheduled layer must not be initialized");
+                assert(!otherLayer->gPrevSchedLayer() && "Layer's previous scheduled layer must not be initialized");
                 layer->rNextSchedLayer(otherLayer);
                 otherLayer->rPrevSchedLayer(layer);
                 break;

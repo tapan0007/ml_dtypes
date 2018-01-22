@@ -17,8 +17,8 @@ CombineLayer::CombineLayer(const Params& params, Layer* prev_layer, Layer* earli
             mkLayerVector2(prev_layer, earlier_layer))
 
 {
-    assert(prev_layer->gOfmapWidth() == earlier_layer->gOfmapWidth());
-    assert(prev_layer->gOfmapHeight() == earlier_layer->gOfmapHeight());
+    assert(prev_layer->gOfmapWidth() == earlier_layer->gOfmapWidth() && "Combine layer: Input image widths not identical");
+    assert(prev_layer->gOfmapHeight() == earlier_layer->gOfmapHeight() && "Combine layer: Input image heights not identical");
 }
 
 //----------------------------------------------------------------

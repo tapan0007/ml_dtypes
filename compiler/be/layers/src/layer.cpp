@@ -36,7 +36,7 @@ Layer::Layer(const Params& params,
     , m_DataTensorDimSemantics(dataDensorDimSemantics)
     , m_RefFileName("")
 {
-    assert(m_BatchFactor >= 1);
+    assert(m_BatchFactor >= 1 && "Batching factor not >= 1");
     for (auto prevLayer : prev_layers) {
         m_PrevLayers.push_back(prevLayer);
     }
@@ -71,7 +71,7 @@ bool Layer::qStoreInSB() const
                  // cannot feed convolution directly to pooling
 
     const kcc_int32 mySched = gSchedule();
-    assert(mySched >= 0);
+    assert(mySched >= 0 && "Layer schedule negative");
     const Layer* nextSchedLayer = gNextSchedLayer();
     if (!nextSchedLayer) { // output
         return true;

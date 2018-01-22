@@ -25,7 +25,7 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
     // Stride(2) is larger than kernel(1*1) for some layers in ResNet.
     // That seems to be a wrong way of aggregating information, but
     // it does happen.
-    // assert(stride <= kernel)
+    // assert(stride <= kernel && "SubSampleLayer: stride > kernel");
 
 
     // Stride
@@ -46,8 +46,10 @@ SubSampleLayer::SubSampleLayer (const Params& param, Layer* prev_layer,
 bool
 SubSampleLayer::verify() const
 {
-    assert(gPrevLayer(0)->gOfmapWidth()  == gStrideLeftRight() * gOfmapWidth());
-    assert(gPrevLayer(0)->gOfmapHeight() == gStrideTopBottom() * gOfmapHeight());
+    assert(gPrevLayer(0)->gOfmapWidth()  == gStrideLeftRight() * gOfmapWidth() &&
+            "SubSampleLayer: IFMAP width != stride * OFMAP width");
+    assert(gPrevLayer(0)->gOfmapHeight() == gStrideTopBottom() * gOfmapHeight() &&
+            "SubSampleLayer: IFMAP height != stride * OFMAP height");
     return this->SubClass::verify();
 }
 

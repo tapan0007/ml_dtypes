@@ -48,7 +48,7 @@ void
 Network::SchedLayerForwRevIter::operator++()
 {
     layers::Layer* const currLayer = m_CurrLayer;
-    assert(currLayer);
+    assert(currLayer && "Layer iterator in Network: Invalid current layer");
     layers::Layer* nextLayer;
 
     if (m_Forw) {
@@ -104,10 +104,22 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
         serLayer.rOfmapFormat(layer->gDataTensorDimSemantics());
 
+        /* The following series of 'IFs' is not coded as
+         * if (inLayer = ) {
+         * } else if (convLayer = ) {
+         * } else if (tanhLayer = ) {
+         * } else {
+         * }
+         * because inLayer is visibe in the whole sequence of 'else ifs'.
+         */
+
         if (auto inLayer = dynamic_cast<layers::InputLayer*>(layer)) {
             serLayer.rRefFile(inLayer->gInputDataFileName());
-        } else if (auto convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {
-            assert(convLayer->gPrevLayers().size() == 1U);
+            continue;
+        }
+
+        if (auto convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {
+            assert(convLayer->gPrevLayers().size() == 1U && "Convolution layer should have exactly one input layer");
             const layers::Layer* prevLayer = convLayer->gPrevLayer(0);
             const int32_t numIfmaps = prevLayer->gNumOfmaps();
             const int32_t batchStride = 1, ifmapStride = 1;
@@ -144,14 +156,23 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 padding[FmapIndex_W][1] = convLayer->gPaddingRight();
                 serLayer.rPadding(padding);
             }
-        } else if (auto tanhLayer = dynamic_cast<layers::TanhLayer*>(layer)) {
-            assert(tanhLayer);
-        } else if (auto reluLayer = dynamic_cast<layers::ReluLayer*>(layer)) {
-            assert(reluLayer);
-        } else if (auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer)) {
-            assert(poolLayer);
-            assert(poolLayer->gPrevLayers().size() == 1U);
-            auto prevLayer = convLayer->gPrevLayer(0);
+            continue;
+        }
+
+        if (auto tanhLayer = dynamic_cast<layers::TanhLayer*>(layer)) {
+            assert(tanhLayer && "Expected Tanh layer");
+            continue;
+        }
+
+        if (auto reluLayer = dynamic_cast<layers::ReluLayer*>(layer)) {
+            assert(reluLayer && "Expected Relu layer");
+            continue;
+        }
+
+        if (auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer)) {
+            assert(poolLayer && "Expected Pool layer");
+            assert(poolLayer->gPrevLayers().size() == 1U && "Pool layer should have one input");
+            auto prevLayer = poolLayer->gPrevLayer(0);
             const int32_t batchStride = 1, ifmapStride = 1;
             const int32_t batchPadBefore = 0, batchPadAfter = 0, ifmapPadBefore = 0, ifmapPadAfter = 0;
 
@@ -188,9 +209,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             } else {
                 serLayer.rLayerType(TypeStr_AvgPool);
             }
-        } else {
-            assert(false);
+            continue;
         }
+
+        assert(false && "Unsupported layer");
     }
     archive(cereal::make_nvp(Key_Layers, serLayers));
 }
@@ -212,7 +234,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     } else if (dataType == DataTypeFloat32::gNameStatic()) {
         m_DataType = new DataTypeFloat32();
     } else {
-        assert(0);
+        assert(0 && "Unsupported data type");
     }
 
     vector<serialize::SerLayer> serLayers;
@@ -232,15 +254,15 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                     serLayer.gOfmapWidth());
         layers::Layer* layer = nullptr;
         if (serLayer.gTypeStr() == TypeStr_Input) {
-            assert(serLayer.gNumPrevLayers() == 0);
+            assert(serLayer.gNumPrevLayers() == 0 && "Input layer should have zero inputs");
             const string dataTensorDimSemantics = serLayer.gOfmapFormat();
             layer = new layers::InputLayer(params, fmap_desc,
                         refFile.c_str(), dataTensorDimSemantics.c_str());
         } else if (serLayer.gTypeStr() == TypeStr_Conv) {
-            assert(serLayer.gNumPrevLayers() == 1);
+            assert(serLayer.gNumPrevLayers() == 1 && "Convolution layer should have one input");
             const string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr);
+            assert(prevLayer != nullptr && "Convolution: Unknown input layer");
             const string ofmapFormat(serLayer.gOfmapFormat());
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
                                             serLayer.gStrideVertical(),
@@ -263,22 +285,22 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());
         } else if (serLayer.gTypeStr() == TypeStr_Relu) {
-            assert(serLayer.gNumPrevLayers() == 1);
+            assert(serLayer.gNumPrevLayers() == 1 && "Relu layer: number of inputs not 1");
             const string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr);
+            assert(prevLayer != nullptr && "Relu: Unknown input layer");
             layer = new layers::ReluLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == TypeStr_Tanh) {
-            assert(serLayer.gNumPrevLayers() == 1);
+            assert(serLayer.gNumPrevLayers() == 1 && "Tanh layer: number of inputs not 1");
             const string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr);
+            assert(prevLayer != nullptr && "Tanh: Unknown input layer");
             layer = new layers::TanhLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == TypeStr_MaxPool || serLayer.gTypeStr() == TypeStr_AvgPool) {
-            assert(serLayer.gNumPrevLayers() == 1);
+            assert(serLayer.gNumPrevLayers() == 1 && "Pool layer: number of inputs not 1");
             const string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr);
+            assert(prevLayer != nullptr && "Pool: Unknown input layer");
             const string ofmapFormat(serLayer.gOfmapFormat());
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
                                             serLayer.gStrideVertical(),
@@ -312,13 +334,13 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         padding);
             }
         } else {
-            assert(false);
+            assert(false && "Unsuported layer");
         }
 
         layer->rRefFileName(refFile);
         m_Name2Layer[params.m_LayerName] = layer;
     }
-    assert(m_Layers.size() == serLayers.size());
+    assert(m_Layers.size() == serLayers.size() && "Layer mismatch count after input deserialization" );
 }
 
 //--------------------------------------------------------
@@ -326,7 +348,7 @@ layers::Layer*
 Network::findLayer(const string& layerName)
 {
     layers::Layer* layer = m_Name2Layer[layerName];
-    assert(layer);
+    assert(layer && "Could not find layer");
     return layer;
 }
 

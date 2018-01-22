@@ -94,7 +94,7 @@ public:
             archive(cereal::make_nvp(Key_Stride, m_Stride));
             archive(cereal::make_nvp(Key_Padding, m_Padding));
         } else {
-            assert(false);
+            assert(false && "Serialization: unsupported layer");
         }
     }
 
@@ -133,7 +133,7 @@ public:
 
     //----------------------------------------------------------------
     const std::string& gPrevLayer(kcc_int32 idx) const {
-        assert(0 <= idx and idx < gNumPrevLayers());
+        assert(0 <= idx and idx < gNumPrevLayers() && "Previous layer index out of range");
         return m_PrevLayers[idx];
     }
 
