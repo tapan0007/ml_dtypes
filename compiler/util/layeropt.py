@@ -21,8 +21,7 @@ class PEArray:
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS))
     def trig_tile_done(self, fullwave_id):
         pass
-    # do striding here?
-    def extract_psum (self, psum_bank, start_entry, num_entries, stride_x, stride_y):
+    def extract_psum (self, psum_bank, start_entry, num_entries):
         assert(start_entry < self.MAX_WAVE_SIZE)
         #assert((start_entry+num_entries) < self.MAX_WAVE_SIZE)
         return self.psum_buf[psum_bank, start_entry:start_entry+num_entries, :]
@@ -78,16 +77,19 @@ class TPBSched:
     #   H: height of IFMAP
     #   W: width of IFMAP
     #   M: number of OFMAPs
+    #   pad_*: padding of IFMAP
+    #   stride_*: striding of filter
     # Outputs:
     #   Tn: number of C IFMAPs to roll into a wave
     #   n: number of Tn*C IFMAPs chunks to process
     #   c: number of IFMAP folds
     #   num_tiles: number of OFMAP tiles
     #   m: number of OFMAP folds
-    def compute_mm_loops(self, N, C, H, W, M, pad_north, pad_south, pad_west, pad_east):
+    def compute_mm_loops(self, N, C, H, W, M, pad_north, pad_south, pad_west, pad_east, stride_x, stride_y):
         self.N, self.C, self.H, self.W, self.M = N, C, H, W, M
         self.pad_north, self.pad_south = pad_north, pad_south
         self.pad_west, self.pad_east = pad_west, pad_east
+        self.stride_x, self.stride_y = stride_x, stride_y
         # compute the IFMAP folds
         self.c = ceildiv(C, self.pearray.NUM_ROWS)
         # compute the OFMAP folds
@@ -133,9 +135,6 @@ class TPBSched:
         # get weights from file
         weights = np.load(op_list[0]['kernel_file'])
         M, C, R, S = weights.shape
-        # stride: ignore stride_batch and stride_depth for now
-        stride_x = op_list[0]['stride'][1]
-        stride_y = op_list[0]['stride'][2]
         # initial values
         psum_bank = 0
         psum_add = False                               
@@ -164,7 +163,7 @@ class TPBSched:
                         for i in range(1, len(op_list)):
                             if (op_list[i]['layer_type'] == 'Relu'):
                                 self.activate.wait_tile_done(fullwave_id)
-                                relu_result = self.activate.relu(self.pearray.extract_psum(psum_bank, 0, wave_size, stride_x, stride_y))
+                                relu_result = self.activate.relu(self.pearray.extract_psum(psum_bank, 0, wave_size))
                                 for j in range(M):
                                     result[n_id, j] = (relu_result[0:self.HW, j]).reshape((self.H, self.W))
                             else:
@@ -181,6 +180,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
+        print("\nLoading K-graph %s"%args.kgraph)
         kgraph = json.load(open(args.kgraph))
     except Exception as e:
         print(e)
@@ -230,7 +230,10 @@ if __name__ == "__main__":
         convN, convC, convH, convW = op_list[0]['ofmap_shape']
         pad_north, pad_south = op_list[0]['padding'][2]
         pad_west, pad_east = op_list[0]['padding'][3]
-        tpb.compute_mm_loops(iN, iC, iH, iW, convC, pad_north, pad_south, pad_west, pad_east)
+        # stride: ignore stride_batch and stride_depth for now
+        stride_x = op_list[0]['stride'][1]
+        stride_y = op_list[0]['stride'][2]
+        tpb.compute_mm_loops(iN, iC, iH, iW, convC, pad_north, pad_south, pad_west, pad_east, stride_x, stride_y)
 
         inputs = np.load(input_layer['ref_file'])
         #weights = np.load(layers[1]['kernel_file'])
