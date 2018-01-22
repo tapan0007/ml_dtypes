@@ -3,6 +3,7 @@ import glob
 import tarfile
 import argparse
 import time
+import timeit
 import tensorflow as tf
 import numpy as np
 
@@ -43,6 +44,8 @@ if __name__ == "__main__":
     top5 = 0
     top1 = 0
     cnt = 0
+    time = 0
+    aggtime = 0
     labels = np.loadtxt("val_1000/label", dtype=int, usecols=0)
     for file in glob.glob("val_1000/*.jpg"):
         # get the file name without extension
@@ -58,7 +61,10 @@ if __name__ == "__main__":
             x = preprocess_input(x)
 
             # run first prediction using Keras (warmup)
+            start = timeit.default_timer()
             preds = model.predict(x)
+            time = timeit.default_timer()-start
+            aggtime += time
 
             # take the top 5
             top_indices = preds[0].argsort()[-5:][::-1]
@@ -70,4 +76,4 @@ if __name__ == "__main__":
             # decode the results into a list of tuples (class, description, probability)
             print("\n---------- %s %s ----------"%(model_name, os.path.basename(file)))
             print('Keras %s prediction: '%float_type, decode_predictions(preds, top=3)[0])
-            print('cnt %d top1 %d top5 %d top1 %f top5 %f'%(cnt, top1, top5, top1/cnt, top5/cnt))
+            print('cnt %d top1 %d top5 %d top1 %f top5 %f time %f aggtime %f avgtime %f'%(cnt, top1, top5, top1/cnt, top5/cnt, time, aggtime, aggtime/cnt))
