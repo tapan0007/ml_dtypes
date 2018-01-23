@@ -10,11 +10,11 @@ freq = 1e9
 def simLogGetCycles(filepath):
   cycles = 0
   with open(filepath, 'rb') as fh:
-    fh.seek(-100, 2)
+    #fh.seek(-100, 2)
     last = fh.readlines()[-1].decode()
-    found = re.search('\d+', last)
+    found = re.search('Cycles:\s+(\d+)', last)
     if found:
-      cycles = found.group(0)
+      cycles = found.group(1)
   return int(cycles)
 
 def feLogGetOps(filepath):
@@ -26,8 +26,8 @@ def feLogGetOps(filepath):
         ops = int(match.groups(1)[0])
   return ops
 
-print("%-16s  %16s  %16s %16s" % ("Test", "Tops", "Ops", "Cycles"))
-print("-" * 70)
+print("%-26s  %16s  %16s %16s" % ("Test", "Tops", "Ops", "Cycles"))
+print("-" * 80)
 
 for subdir, dirs, files in os.walk(rootdir):
   for file in files:
@@ -39,10 +39,11 @@ for subdir, dirs, files in os.walk(rootdir):
       cycles = simLogGetCycles(filepath)
 
       feLog = testName + "/" + "log-fe.txt"
-      ops = feLogGetOps(feLog)
-      tops = 0
-      if cycles > 0:
-        tops = 1.0 * ops / cycles / 1e12 * freq
-      print("%-16s  %16g  %16g %16g" % (testName, tops, ops, cycles))
+      if os.path.isfile(feLog):
+        ops = feLogGetOps(feLog)
+        tops = 0
+        if cycles > 0:
+          tops = 1.0 * ops / cycles / 1e12 * freq
+        print("%-26s  %16g  %16g %16g" % (testName, tops, ops, cycles))
 
 
