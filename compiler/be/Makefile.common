@@ -2,13 +2,15 @@ AR := ar
 CPP := g++
 
 ########################################################
-LDOPTS := -W -Wall -Werror -pedantic -g -ggdb -Wno-missing-field-initializers -std=c++14
-COPTS := -ansi $(LDOPTS)
+WARNING_OPTS := -W -Wall -Werror -pedantic -Wno-missing-field-initializers -Wparentheses
+## -Wdangling-else 
+LINK_OPTS := $(WARNING_OPTS) -g -ggdb -std=c++14
+COMPILE_OPTS := -ansi $(LINK_OPTS)
 
 platform=$(shell uname -s)
 
 ifeq ($(platform),Darwin)
-	COPTS := $(COPTS) -Wno-unused-private-field
+	COMPILE_OPTS := $(COMPILE_OPTS) -Wno-unused-private-field
 endif
 
 INK_INC_DIR := shared tcc
@@ -18,7 +20,7 @@ CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 
 
 CINC := $(CEREAL_INC) $(INK_INC) -I./inc  $(addsuffix /inc,$(addprefix -I../,$(MODS)))
-CFLAGS := $(COPTS) $(CINC)
+CFLAGS := $(COMPILE_OPTS) $(CINC)
 
 
 ########################################################
