@@ -166,6 +166,7 @@ class NodeSimple(Node):
   def genCompilerLayerJson(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
     (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
@@ -541,7 +542,15 @@ class NodeSimple2(Node):
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
-    
+
+    # Override layer name to backend
+    #   BiasAdd - when one input is constant
+    #   ResAdd - when both inputs depend on the input image
+    overrideType = "BiasAdd"
+    if isResAdd:
+      overrideType = "ResAdd"
+    layerDataBase[0]["layer_type"] = overrideType
+       
     if not isResAdd:
       # Collapse the size node to a branch    
       # Main input is covered by a previous layer
