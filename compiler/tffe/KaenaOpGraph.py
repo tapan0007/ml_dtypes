@@ -166,7 +166,6 @@ class NodeSimple(Node):
   def genCompilerLayerJson(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
     (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
@@ -551,18 +550,19 @@ class NodeSimple2(Node):
       # Side input has to be collapsed to a constant
       tfShape4D1 = npt.cShapeToNHWC(npInfoIF1.npShape)
       (npFileSimF1, simFormatIF1)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D1)
+      tpbShape4D1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
       
       constLayerData = {
        "layer_type" :  "Const",
        "layer_name" :  fromIfNode1.getName(),
-        "ofmap_shape"     : tpbShape,
+        "ofmap_shape"     : tpbShape4D1,
         "ofmap_format"    : simFormat,
         "ref_file"        : npFileSimF1,
         "previous_layers" : [],
        "#comment"   :  "captured constant"
       }
       fileListBase.append(npFileSimF1)
-      layerDataBase.append(constLayerData)
+      layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
 
     return(layerDataBase, fileListBase)
 
