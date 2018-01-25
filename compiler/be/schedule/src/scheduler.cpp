@@ -62,7 +62,14 @@ Scheduler::Schedule(nets::Network* ntwk)
     //calcFanoutBatch()
 
     levelize();
-    assert(m_Levels[0]->gNumberLayers() == 1 && m_Levels[0]->qDataLevel() && "First level must consist of one Input layer");
+    int numInputs = 0;
+    for (auto layer0 : m_Levels[0]->gLayers()) {
+        assert(layer0->qDataLayer() && "All layers in the first level must be data layers");
+        if (layer0->qInputLayer()) {
+            ++numInputs;
+        }
+        assert(1 == numInputs && "First level must contain exactly one Input layer");
+    }
 
 
     // Move layers with input smaller than output to latest level for the layer

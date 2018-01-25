@@ -96,7 +96,7 @@ public:
             archive(cereal::make_nvp(Key_Padding, m_Padding));
         } else if (m_LayerType == TypeStr_BiasAdd) {
             // nothing specific to BiasAdd layer
-        } else if (m_LayerType == TypeStr_ResAdd || m_LayerType == "Add") {
+        } else if (m_LayerType == TypeStr_ResAdd) {
             // nothing specific to ResAdd layer
         } else {
             assert(false && "Serialization: unsupported layer");
