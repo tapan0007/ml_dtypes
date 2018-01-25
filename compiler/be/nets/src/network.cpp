@@ -236,14 +236,25 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     archive(cereal::make_nvp(Key_NetName, m_Name));
     std::string dataType;
     archive(cereal::make_nvp(Key_DataType, dataType));
+
     if (dataType == DataTypeInt8::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeInt8>();
-    } else if (dataType==DataTypeInt16::gNameStatic()) {
+
+    } else if (dataType == DataTypeInt16::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeInt16>();
+
+    } else if (dataType == DataTypeUint8::gNameStatic()) {
+        m_DataType = std::make_unique<DataTypeUint8>();
+
+    } else if (dataType == DataTypeUint16::gNameStatic()) {
+        m_DataType = std::make_unique<DataTypeUint16>();
+
     } else if (dataType == DataTypeFloat16::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeFloat16>();
+
     } else if (dataType == DataTypeFloat32::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeFloat32>();
+
     } else {
         assert(0 && "Unsupported data type");
     }

@@ -39,7 +39,9 @@ class DataTypeInt8 : public DataType {
 private:
     using data_type = kcc_int8;
 public:
-    DataTypeInt8() {
+    DataTypeInt8()
+        : DataType()
+    {
     }
 
     ARBPRECTYPE gTypeId() const override;
@@ -70,7 +72,9 @@ class DataTypeInt16 : public DataType {
 private:
     using data_type = kcc_int16;
 public:
-    DataTypeInt16() {
+    DataTypeInt16()
+        : DataType()
+    {
     }
 
     ARBPRECTYPE gTypeId() const override;
@@ -98,16 +102,85 @@ public:
 };
 
 //########################################################
-class DataTypeFloat16 : public DataType {
+class DataTypeUint8 : public DataType {
+private:
+    using data_type = kcc_uint8;
 public:
-    DataTypeFloat16() {
+    DataTypeUint8()
+        : DataType()
+    {
     }
 
     ARBPRECTYPE gTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
-        return 2;
+        static_assert(sizeof(data_type)==1, "sizeof(uint8) != 1");
+        return sizeof(data_type);
+    }
+
+    static const char* gNameStatic()
+    {
+        return "uint8";
+    }
+    const char* gName() const override
+    {
+        return gNameStatic();
+    }
+
+    const char* gTccName() const override
+    {
+        return "UINT8";
+    }
+};
+
+//########################################################
+class DataTypeUint16 : public DataType {
+private:
+    using data_type = kcc_uint16;
+public:
+    DataTypeUint16()
+        : DataType()
+    {
+    }
+
+    ARBPRECTYPE gTypeId() const override;
+
+    kcc_int64 gSizeInBytes() const override
+    {
+        static_assert(sizeof(data_type)==2, "sizeof(uint16) != 2");
+        return sizeof(data_type);
+    }
+
+    static const char* gNameStatic()
+    {
+        return "uint16";
+    }
+
+    const char* gName() const override
+    {
+        return gNameStatic();
+    }
+
+    const char* gTccName() const override
+    {
+        return "INT16";
+    }
+};
+
+//########################################################
+class DataTypeFloat16 : public DataType {
+public:
+    DataTypeFloat16()
+        : DataType()
+    {
+    }
+
+    ARBPRECTYPE gTypeId() const override;
+
+    kcc_int64 gSizeInBytes() const override
+    {
+        return 2; // No float16 in C++
     }
 
     static const char* gNameStatic()
@@ -132,7 +205,9 @@ class DataTypeFloat32 : public DataType {
 private:
     using data_type = kcc_float32;
 public:
-    DataTypeFloat32() {
+    DataTypeFloat32()
+        : DataType()
+    {
     }
 
     ARBPRECTYPE gTypeId() const override;
