@@ -5,11 +5,10 @@
 #include "layerlevel.hpp"
 
 namespace kcc {
-using layers::Layer;
 
 namespace schedule {
 
-LayerLevel::LayerLevel(kcc_int32 levelNum, const std::vector<Layer*>& initLayers)
+LayerLevel::LayerLevel(kcc_int32 levelNum, const std::vector<layers::Layer*>& initLayers)
     : m_LevelNum(levelNum)
     , m_Layers(initLayers)
 {}
@@ -17,7 +16,7 @@ LayerLevel::LayerLevel(kcc_int32 levelNum, const std::vector<Layer*>& initLayers
 
 //--------------------------------------------------------
 void
-LayerLevel::remove(Layer* layer)
+LayerLevel::remove(layers::Layer* layer)
 {
     //assert(qContainsLayer(layer));
     auto it = find(m_Layers.begin(), m_Layers.end(), layer);
@@ -29,7 +28,7 @@ LayerLevel::remove(Layer* layer)
 
 //--------------------------------------------------------
 void
-LayerLevel::append(Layer* layer)
+LayerLevel::append(layers::Layer* layer)
 {
     m_Layers.push_back(layer);
 }
@@ -48,7 +47,7 @@ LayerLevel::qDataLevel() const
 
 //--------------------------------------------------------
 bool
-LayerLevel::qContainsLayer(Layer* layer) const
+LayerLevel::qContainsLayer(layers::Layer* layer) const
 {
     return std::find(m_Layers.begin(), m_Layers.end(), layer) != m_Layers.end();
 }

@@ -15,15 +15,13 @@ namespace nest {
 namespace schedule {
     class Scheduler;
 }
-using nets::Network;
-using layers::Layer;
 
 namespace utils {
 
 class Printer {
 public:
     //--------------------------------------------------------
-    Printer(Network* netwk)
+    Printer(nets::Network* netwk)
         : m_Network(netwk)
     {}
 
@@ -41,8 +39,8 @@ public:
 
 
 private:
-    Network* m_Network;
-    Layer*   m_PrevLayer;
+    nets::Network* m_Network;
+    layers::Layer*   m_PrevLayer;
 };
 
 }}

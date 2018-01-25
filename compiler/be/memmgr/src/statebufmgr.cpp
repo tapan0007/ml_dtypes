@@ -8,7 +8,7 @@ namespace kcc{
 namespace memmgr {
 
 //--------------------------------------------------------
-StateBufferMgr::StateBufferMgr(arch::Arch* arch, Network* ntwk)
+StateBufferMgr::StateBufferMgr(arch::Arch* arch, nets::Network* ntwk)
     : m_Network(ntwk)
     , m_Arch(arch)
     , m_StateBuffer(arch->gStateBuffer())

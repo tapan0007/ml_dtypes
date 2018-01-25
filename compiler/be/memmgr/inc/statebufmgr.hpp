@@ -23,35 +23,31 @@ namespace nets {
 
 
 namespace memmgr {
-using kcc::arch::Arch;
-using kcc::arch::StateBuffer;
-using kcc::layers::Layer;
-using kcc::nets::Network;
 
 
 //--------------------------------------------------------
 class StateBufferMgr {
 public:
     //----------------------------------------------------------------
-    StateBufferMgr(Arch* arch, Network* ntwk);
+    StateBufferMgr(arch::Arch* arch, nets::Network* ntwk);
 
 
     //----------------------------------------------------------------
-    StateBufferAddress calcOneLayerFmapMemSizePerPartition(Layer* layer);
+    StateBufferAddress calcOneLayerFmapMemSizePerPartition(layers::Layer* layer);
 
     //----------------------------------------------------------------
-    void freeLayerMem(Layer* layer);
+    void freeLayerMem(layers::Layer* layer);
 
     //----------------------------------------------------------------
-    void calcOneLayerFmapAddresses(Layer* layer);
+    void calcOneLayerFmapAddresses(layers::Layer* layer);
 
     //----------------------------------------------------------------
     void calcLayerFmapAddresses();
 
 private:
-    Network* const      m_Network;
-    Arch* const         m_Arch;
-    StateBuffer* const  m_StateBuffer;
+    nets::Network* const      m_Network;
+    arch::Arch* const         m_Arch;
+    arch::StateBuffer* const  m_StateBuffer;
 
     StateBufferAddress  m_OfmapAddress;
     StateBufferAddress  m_IfmapAddress;

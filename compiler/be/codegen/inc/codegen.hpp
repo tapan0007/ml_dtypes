@@ -55,8 +55,8 @@ private:
     void createGenMap();
 
     //----------------------------------------------------------------
-    string gDataTypeName(const layers::Layer* layer) const {
-        string ret("ARBPRECTYPE::");
+    std::string gDataTypeName(const layers::Layer* layer) const {
+        std::string ret("ARBPRECTYPE::");
         ret += layer->gDataType().gTccName();
         return  ret;
     }

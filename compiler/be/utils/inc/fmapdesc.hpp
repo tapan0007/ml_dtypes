@@ -5,7 +5,6 @@
 
 #include <assert.h>
 #include <string>
-using std::string;
 
 #include "types.hpp"
 #include "datatype.hpp"
@@ -49,7 +48,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    string gString() const;
+    std::string gString() const;
 
     //----------------------------------------------------------------
     bool operator== (const FmapDesc& rhs) const

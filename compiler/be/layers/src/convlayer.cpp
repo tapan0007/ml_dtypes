@@ -25,7 +25,7 @@ ConvLayer::ConvLayer(const Params& params, Layer* prev_layer,
 }
 
 //--------------------------------------------------------
-string
+std::string
 ConvLayer::gString() const
 {
     std::stringstream ss;

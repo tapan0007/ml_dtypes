@@ -26,8 +26,8 @@ public:
     }
 
     //----------------------------------------------------------------
-    string gString() const override {
-        string baseLayer = gBaseLayerStr();
+    std::string gString() const override {
+        std::string baseLayer = gBaseLayerStr();
         return (gName() + baseLayer
                + gStateSizesStr());
     }

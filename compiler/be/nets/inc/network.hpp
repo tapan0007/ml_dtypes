@@ -28,7 +28,6 @@ namespace schedule {
 namespace nets {
 
 using namespace utils;
-using schedule::LayerLevel;
 
 //--------------------------------------------------------
 // The whole neural net
@@ -100,7 +99,7 @@ private:
     std::string                      m_Name;
     std::vector<layers::Layer*>      m_Layers;
     bool                             m_DoBatching;
-    std::map<string, layers::Layer*> m_Name2Layer;
+    std::map<std::string, layers::Layer*> m_Name2Layer;
 }; // Network
 
 

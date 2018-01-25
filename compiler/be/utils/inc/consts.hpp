@@ -4,7 +4,6 @@
 #define KCC_UTILS_CONSTS_H
 
 namespace kcc {
-// keep types and constants in kcc namespace to avoid "using utils::TYPE"
 
 enum {
     FMAP_TENSOR_RANK = 4,

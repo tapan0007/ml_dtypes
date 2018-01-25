@@ -26,7 +26,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    string gString() const override;
+    std::string gString() const override;
 
     //----------------------------------------------------------------
     static const char* gTypeStrStatic() {

@@ -14,8 +14,6 @@
 #include <cereal/types/map.hpp>
 
 
-using std::string;
-using std::vector;
 
 
 #include "debug.hpp"
@@ -106,20 +104,20 @@ public:
     }
 
 public:
-    const string& gTypeStr() const {
+    const std::string& gTypeStr() const {
         return m_LayerType;
     };
 
 
-    void rLayerType(const string& t) {
+    void rLayerType(const std::string& t) {
         m_LayerType = t;
     }
 
-    const string& gLayerName() const {
+    const std::string& gLayerName() const {
         return m_LayerName;
     }
 
-    void rLayerName(const string& nm) {
+    void rLayerName(const std::string& nm) {
         m_LayerName = nm;
     }
 
@@ -129,12 +127,12 @@ public:
     }
 
     //----------------------------------------------------------------
-    const vector<string>& gPrevLayers() const {
+    const std::vector<std::string>& gPrevLayers() const {
         return m_PrevLayers;
     }
 
     //----------------------------------------------------------------
-    void addPrevLayer(const string& prevLayer) {
+    void addPrevLayer(const std::string& prevLayer) {
         m_PrevLayers.push_back(prevLayer);
     }
 
@@ -182,7 +180,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    const string& gName() const;
+    const std::string& gName() const;
 
     const std::string& gRefFile() {
         return m_RefFile;       // input
@@ -259,10 +257,10 @@ public:
 private:
     std::string                 m_LayerType;
     std::string                 m_LayerName;
-    vector<std::string>         m_PrevLayers;
+    std::vector<std::string>    m_PrevLayers;
 
-    //OfmapShapeType              m_OfmapShape;
-    vector<int>                 m_OfmapShape;
+    //OfmapShapeType            m_OfmapShape;
+    std::vector<int>            m_OfmapShape;
 
     std::string                 m_OfmapFormat;   // input,conv
     std::string                 m_RefFile;       // input
@@ -271,16 +269,16 @@ private:
     std::string                 m_KernelFormat;  // conv, pool
 
     //KernelShapeType             m_KernelShape;   // conv,pool
-    vector<int>                 m_KernelShape;   // conv,pool
+    std::vector<int>                 m_KernelShape;   // conv,pool
 
     //StrideType                  m_Stride;        // conv,pool
-    vector<int>                 m_Stride;        // conv,pool
+    std::vector<int>                 m_Stride;        // conv,pool
 
     //PaddingType                 m_Padding;       // conv,pool
-    vector<vector<int> >        m_Padding;       // conv,pool
+    std::vector<std::vector<int> >        m_Padding;       // conv,pool
 
     //BatchingType                m_Batching;
-    vector<int>                 m_Batching;
+    std::vector<int>                 m_Batching;
 }; // class Layer
 
 

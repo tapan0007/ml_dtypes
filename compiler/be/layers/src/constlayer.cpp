@@ -8,7 +8,7 @@ namespace layers {
 std::string
 ConstLayer::gString() const
 {
-    string baseLayer = gBaseLayerStr();
+    std::string baseLayer = gBaseLayerStr();
     return (gName() + baseLayer + gStateSizesStr());
 }
 

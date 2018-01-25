@@ -6,7 +6,6 @@
 #include "consts.hpp"
 
 namespace kcc {
-// keep types and constants in kcc namespace to avoid "using utils::TYPE"
 
 using kcc_int8    = signed char;
 using kcc_int16   = short;

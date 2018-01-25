@@ -33,7 +33,7 @@ public:
         const char* filterFileName, const char* filterTensorDimSemantics);
 
     //----------------------------------------------------------------
-    string gString() const override;
+    std::string gString() const override;
 
     //----------------------------------------------------------------
     bool verify() const override;
@@ -41,16 +41,16 @@ public:
     //----------------------------------------------------------------
     // Numpy file where the filter weights are stored (for Inkling simulator).
     //----------------------------------------------------------------
-    string gFilterFileName() const {
+    std::string gFilterFileName() const {
         return m_FilterFileName;
     }
 
     //----------------------------------------------------------------
-    const string& gFilterTensorDimSemantics() const {
+    const std::string& gFilterTensorDimSemantics() const {
         return m_FilterTensorFormat;
     }
 
-    const string& gFilterTensorFormat() const {
+    const std::string& gFilterTensorFormat() const {
         return m_FilterTensorFormat;
     }
 
@@ -93,8 +93,8 @@ public:
     }
 
 private:
-    string              m_FilterFileName;
-    string              m_FilterTensorFormat;
+    std::string              m_FilterFileName;
+    std::string              m_FilterTensorFormat;
     StateBufferAddress  m_WeightAddress;
 };
 

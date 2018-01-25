@@ -31,7 +31,7 @@ namespace nets {
 
 //--------------------------------------------------------
 #if 0
-Network::Network(const DataType* dataType, const string& netName)
+Network::Network(const DataType* dataType, const std::string& netName)
     : m_DataType(dataType)
     , m_Name(netName)
     , m_DoBatching(false)
@@ -95,7 +95,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         serialize::SerLayer& serLayer(serLayers[i]);
 
         serLayer.rLayerName(layer->gName());
-        serLayer.rLayerType(string(layer->gTypeStr()));
+        serLayer.rLayerType(std::string(layer->gTypeStr()));
         for (auto prevLayer : layer->gPrevLayers()) {
             serLayer.addPrevLayer(prevLayer->gName());
         }
@@ -234,7 +234,7 @@ void
 Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 {
     archive(cereal::make_nvp(Key_NetName, m_Name));
-    string dataType;
+    std::string dataType;
     archive(cereal::make_nvp(Key_DataType, dataType));
     if (dataType == DataTypeInt8::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeInt8>();
@@ -248,7 +248,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         assert(0 && "Unsupported data type");
     }
 
-    vector<serialize::SerLayer> serLayers;
+    std::vector<serialize::SerLayer> serLayers;
     archive(cereal::make_nvp(Key_Layers, serLayers));
     kcc::utils::breakFunc(333);
     for (unsigned i = 0; i < serLayers.size(); ++i) {
@@ -273,7 +273,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             layer = new layers::ConstLayer(params, fmap_desc);
         } else if (serLayer.gTypeStr() == TypeStr_Conv) {
             assert(serLayer.gNumPrevLayers() == 1 && "Convolution layer should have one input");
-            const string& prevLayerName = serLayer.gPrevLayer(0);
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr && "Convolution: Unknown input layer");
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
@@ -288,8 +288,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                             serLayer.gPaddingLeft(),
                                             serLayer.gPaddingRight());
 
-            const string filterFileName = serLayer.gKernelFile();
-            const string filterTensorDimSemantics = serLayer.gKernelFormat();
+            const std::string filterFileName = serLayer.gKernelFile();
+            const std::string filterTensorDimSemantics = serLayer.gKernelFormat();
 
             layer = new layers::ConvLayer(params, prevLayer,
                                           fmap_desc,
@@ -298,19 +298,19 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           filterTensorDimSemantics.c_str());
         } else if (serLayer.gTypeStr() == TypeStr_Relu) {
             assert(serLayer.gNumPrevLayers() == 1 && "Relu layer: number of inputs not 1");
-            const string& prevLayerName = serLayer.gPrevLayer(0);
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr && "Relu: Unknown previous layer");
             layer = new layers::ReluLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == TypeStr_Tanh) {
             assert(serLayer.gNumPrevLayers() == 1 && "Tanh layer: number of inputs not 1");
-            const string& prevLayerName = serLayer.gPrevLayer(0);
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr && "Tanh: Unknown previous layer");
             layer = new layers::TanhLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == TypeStr_MaxPool || serLayer.gTypeStr() == TypeStr_AvgPool) {
             assert(serLayer.gNumPrevLayers() == 1 && "Pool layer: number of inputs not 1");
-            const string& prevLayerName = serLayer.gPrevLayer(0);
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr && "Pool: Unknown previous layer");
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
@@ -372,7 +372,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
 //--------------------------------------------------------
 layers::Layer*
-Network::findLayer(const string& layerName)
+Network::findLayer(const std::string& layerName)
 {
     layers::Layer* layer = m_Name2Layer[layerName];
     assert(layer && "Could not find layer");
