@@ -327,19 +327,13 @@ class NodeConv2D(NodeBasePaddedStrided):
   # Return the 2 significant dimensions of 2-D filter
   def getFilter2D(self):
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    filterArr = npInfoW.npShape[0:2]
-    # Ensure 2-D filter
-    assert len(npInfoW.npShape) == 4
-    assert npInfoW.npShape[2] > 0
-    assert npInfoW.npShape[3] > 0
+    filterArr = npt.subShape(npInfoW.npShape, "RS", npt.TF, npt.Weights)
     return filterArr
 
   # Return the 2 significant dimensions of 2-D feature map
   def getImg2D(self):
     npInfo = self.getNpInfo()[0]
-    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-    (batch, channels, height, width) = tpbShape
-    img2D = (height, width)
+    img2D = npt.subShape(npInfo.npShape, "HW", npt.TF, npt.Fmaps)
     return img2D
 
   # Returns layer json model in dictionary format, and list of files (npy data)
