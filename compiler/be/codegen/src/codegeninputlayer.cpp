@@ -16,8 +16,8 @@ CodeGenInputLayer::generate(layers::Layer* layer)
     m_IfmapAddrs[0] = inLayer->gOfmapAddress();
     compile_read_ifmap(objFile,
               m_IfmapAddrs[0],
-              inLayer->gInputDataFileName().c_str(),
-              inLayer->gDataTensorDimSemantics().c_str());
+              inLayer->gRefFileName().c_str(),
+              inLayer->gRefFileFormat().c_str());
 }
 
 

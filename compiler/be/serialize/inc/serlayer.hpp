@@ -79,6 +79,9 @@ public:
         archive(cereal::make_nvp(Key_RefFile, m_RefFile));
 
         if (m_LayerType == TypeStr_Input) {
+            // nothing specific to Input layer
+        } else if (m_LayerType == TypeStr_Const) {
+            // nothing specific to Const layer
         } else if (m_LayerType == TypeStr_Conv) {
             archive(cereal::make_nvp(Key_KernelShape, m_KernelShape));
             archive(cereal::make_nvp(Key_KernelFile, m_KernelFile));
@@ -93,6 +96,10 @@ public:
             archive(cereal::make_nvp(Key_KernelShape, m_KernelShape));
             archive(cereal::make_nvp(Key_Stride, m_Stride));
             archive(cereal::make_nvp(Key_Padding, m_Padding));
+        } else if (m_LayerType == TypeStr_BiasAdd) {
+            // nothing specific to BiasAdd layer
+        } else if (m_LayerType == TypeStr_ResAdd || m_LayerType == "Add") {
+            // nothing specific to ResAdd layer
         } else {
             assert(false && "Serialization: unsupported layer");
         }

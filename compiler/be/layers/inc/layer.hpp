@@ -41,7 +41,6 @@ public:
 protected:
     //----------------------------------------------------------------
     Layer(const Params& params, const FmapDesc& fmapDesc,
-        const std::string& dataTensorSemantics,
         const std::vector<Layer*>& prevLayers);
 
     virtual ~Layer()
@@ -130,17 +129,42 @@ public:
     }
 
     //----------------------------------------------------------------
+    virtual bool qConstLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
+    virtual bool qDataLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
+    virtual bool qArithmeticLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
+    virtual bool qAddLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
+    virtual bool qResAddLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
+    virtual bool qBiasAddLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
     virtual bool qCombineLayer() const {
         return false;
     }
 
     //----------------------------------------------------------------
     virtual bool qConcatLayer() const {
-        return false;
-    }
-
-    //----------------------------------------------------------------
-    virtual bool qAddLayer() const {
         return false;
     }
 
@@ -392,8 +416,8 @@ public:
         return m_OfmapDesc.gNumMaps();
     }
 
-    const std::string gDataTensorDimSemantics() const {
-        return m_DataTensorDimSemantics;
+    const std::string gRefFileFormat() const {
+        return m_RefFileFormat;
     }
 
     //----------------------------------------------------------------
@@ -548,10 +572,10 @@ public:
 protected:
     std::string             m_LayerName;
 
-    std::vector<Layer*>          m_PrevLayers;
-    std::vector<Layer*>          m_NextLayers;
-    std::vector<Layer*>          m_PrevSbLayers;
-    std::vector<Layer*>          m_NextSbLayers;
+    std::vector<Layer*>     m_PrevLayers;
+    std::vector<Layer*>     m_NextLayers;
+    std::vector<Layer*>     m_PrevSbLayers;
+    std::vector<Layer*>     m_NextSbLayers;
     nets::Network* const    m_Network;
 
     Layer*                  m_NextSchedLayer;
@@ -572,12 +596,13 @@ protected:
     kcc_int32               m_NumPredecessors;
 
     LayerId                 m_Id;
-    std::string                  m_NumberStr;
-    std::string                  m_NumStr;
+    std::string             m_NumberStr;
+    std::string             m_NumStr;
 
     FmapDesc                m_OfmapDesc;
-    std::string                  m_DataTensorDimSemantics;
-    std::string                  m_RefFileName;
+private:
+    std::string             m_RefFileName;
+    std::string             m_RefFileFormat;
 }; // class Layer
 
 
@@ -587,6 +612,7 @@ public:
     kcc_int32               m_BatchFactor = 1;
     nets::Network*          m_Network = nullptr;
     std::string             m_RefFile;
+    std::string             m_RefFileFormat;
 };
 
 

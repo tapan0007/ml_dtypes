@@ -1,43 +1,37 @@
 #pragma once
 
-#ifndef KCC_LAYERS_INPUTLAYER_H
-#define KCC_LAYERS_INPUTLAYER_H
+#ifndef KCC_LAYERS_DATALAYER_H
+#define KCC_LAYERS_DATALAYER_H
 
 
-#include "datalayer.hpp"
+#include "layer.hpp"
+//#include "network.hpp"
 
 namespace kcc {
 namespace layers {
 
 //########################################################
-class InputLayer : public DataLayer {
+class DataLayer : public Layer {
 private:
-    using SubClass = DataLayer;
+    using SubClass = Layer;
 public:
     //----------------------------------------------------------------
     // Represents input FMAP. The input FMAP is stored as the *OUTPUT*
     // of the input layer.
 //--------------------------------------------------------
-    InputLayer(const Params& param, const FmapDesc& fmap_desc)
-        : SubClass(param, fmap_desc)
-    { }
-
-    //----------------------------------------------------------------
-    string gString() const override;
-
-    //----------------------------------------------------------------
-    static const char* gTypeStrStatic() {
-        return TypeStr_Input;
+    DataLayer(const Params& param, const FmapDesc& fmap_desc)
+        : SubClass(param, fmap_desc, std::vector<Layer*>())
+    {
     }
-    const char*  gTypeStr() const  override {
-        return gTypeStrStatic();
+
+    //----------------------------------------------------------------
+    string gString() const override {
+        string baseLayer = gBaseLayerStr();
+        return (gName() + baseLayer
+               + gStateSizesStr());
     }
 
 
-    //----------------------------------------------------------------
-    bool verify() const override {
-        return true;
-    }
 
     //----------------------------------------------------------------
     bool qPassThrough() const override {
@@ -46,7 +40,7 @@ public:
 
 
     //----------------------------------------------------------------
-    bool qInputLayer() const override {
+    bool qDataLayer() const override {
         return true;
     }
 
@@ -63,5 +57,6 @@ private:
 
 }}
 
-#endif // KCC_LAYERS_INPUTLAYER_H
+#endif // KCC_LAYERS_DATALAYER_H
+
 

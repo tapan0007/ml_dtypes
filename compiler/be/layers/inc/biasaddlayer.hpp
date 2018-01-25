@@ -1,43 +1,42 @@
 #pragma once
 
-#ifndef KCC_LAYERS_INPUTLAYER_H
-#define KCC_LAYERS_INPUTLAYER_H
+#ifndef KCC_LAYERS_BIASADDLAYER_H
+#define KCC_LAYERS_BIASADDLAYER_H
 
 
-#include "datalayer.hpp"
+#include "addlayer.hpp"
+//#include "network.hpp"
 
 namespace kcc {
 namespace layers {
 
 //########################################################
-class InputLayer : public DataLayer {
+class BiasAddLayer : public AddLayer {
 private:
-    using SubClass = DataLayer;
+    using SubClass = AddLayer;
 public:
     //----------------------------------------------------------------
     // Represents input FMAP. The input FMAP is stored as the *OUTPUT*
     // of the input layer.
 //--------------------------------------------------------
-    InputLayer(const Params& param, const FmapDesc& fmap_desc)
-        : SubClass(param, fmap_desc)
-    { }
+    BiasAddLayer(const Params& param, const FmapDesc& fmap_desc,
+                  const std::vector<Layer*>& prevLayers)
+        : SubClass(param, fmap_desc, prevLayers)
+    {
+    }
 
     //----------------------------------------------------------------
     string gString() const override;
 
     //----------------------------------------------------------------
     static const char* gTypeStrStatic() {
-        return TypeStr_Input;
+        return TypeStr_BiasAdd;
     }
     const char*  gTypeStr() const  override {
         return gTypeStrStatic();
     }
 
 
-    //----------------------------------------------------------------
-    bool verify() const override {
-        return true;
-    }
 
     //----------------------------------------------------------------
     bool qPassThrough() const override {
@@ -46,7 +45,7 @@ public:
 
 
     //----------------------------------------------------------------
-    bool qInputLayer() const override {
+    bool qBiasAddLayer() const override {
         return true;
     }
 
@@ -56,6 +55,7 @@ public:
     }
 
     //----------------------------------------------------------------
+    bool verify() const override;
 
 
 private:
@@ -63,5 +63,9 @@ private:
 
 }}
 
-#endif // KCC_LAYERS_INPUTLAYER_H
+#endif // KCC_LAYERS_BIASADDLAYER_H
+
+
+
+
 

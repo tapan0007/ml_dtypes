@@ -14,7 +14,6 @@ namespace layers {
 //----------------------------------------------------------------
 Layer::Layer(const Params& params,
         const FmapDesc&ofmap_desc,
-        const string& dataDensorDimSemantics,
         const std::vector<Layer*>& prev_layers)
     : m_LayerName(params.m_LayerName)
     , m_Network(params.m_Network)
@@ -33,8 +32,8 @@ Layer::Layer(const Params& params,
     , m_RefCount(0)
     , m_Id(LayerId_Null)
     , m_OfmapDesc(ofmap_desc)
-    , m_DataTensorDimSemantics(dataDensorDimSemantics)
-    , m_RefFileName("")
+    , m_RefFileName(params.m_RefFile)
+    , m_RefFileFormat(params.m_RefFileFormat)
 {
     assert(m_BatchFactor >= 1 && "Batching factor not >= 1");
     for (auto prevLayer : prev_layers) {
