@@ -1,13 +1,22 @@
 import json
 import os
+import math
 import re
 import numpy as np
 import argparse
+
+np.set_printoptions(threshold=np.nan)
 
 #kgraph_file = os.environ['KAENA_PATH'] + "/compiler/tffe/rundir/0-1conv0/trivnet_compiler.json"
 
 def ceildiv(a,b):
     return (a//b) + (a%b != 0)
+
+# Wave ID
+class WaveID:
+    def __init__(self, n_id, m_id, h_id, w_id, c_id, r_id, s_id):
+        self.n_id, self.m_id, self.h_id, self.w_id = n_id, m_id, h_id, w_id
+        self.c_id, self.r_id, self.s_id = c_id, r_id, s_id
 
 # PE Array properties and methods
 class PEArray:
@@ -58,7 +67,8 @@ class BiasAddAct:
     def biasadd(self, in_array, bias_array):
         return in_array
     def relu(self, in_array):
-        return np.abs(in_array)
+        #return np.maximum(np.zeros(in_array.shape), in_array)
+        return in_array
 
 # The TPB scheduler has access to:
 #   PEArray 
@@ -77,55 +87,110 @@ class TPBSched:
     #   H: height of IFMAP
     #   W: width of IFMAP
     #   M: number of OFMAPs
+    #   E: height of OFMAP
+    #   F: width of OFMAP
     #   pad_*: padding of IFMAP
-    #   stride_*: striding of filter
+    #   stride: striding of filter
     # Outputs:
     #   Tn: number of C IFMAPs to roll into a wave
     #   n: number of Tn*C IFMAPs chunks to process
-    #   c: number of IFMAP folds
-    #   num_tiles: number of OFMAP tiles
-    #   m: number of OFMAP folds
-    def compute_mm_loops(self, N, C, H, W, M, pad_north, pad_south, pad_west, pad_east, stride_x, stride_y):
-        self.N, self.C, self.H, self.W, self.M = N, C, H, W, M
+    #   c: number of IFMAPs folds
+    #   h: number of single IFMAP/OFMAP folds along y dimension
+    #   w: number of single IFMAP/OFMAP folds along x dimension
+    #   m: number of OFMAPs folds
+    def compute_mm_loops(self, N, C, H, W, M, E, F, pad_north, pad_south, pad_west, pad_east, stride):
+        self.N, self.C, self.H, self.W = N, C, H, W 
+        self.M, self.E, self.F = M, E, F
         self.pad_north, self.pad_south = pad_north, pad_south
         self.pad_west, self.pad_east = pad_west, pad_east
-        self.stride_x, self.stride_y = stride_x, stride_y
+        self.stride = stride
         # compute the IFMAP folds
         self.c = ceildiv(C, self.pearray.NUM_ROWS)
         # compute the OFMAP folds
         self.m = ceildiv(M, self.pearray.NUM_COLS)
         # computing the input map tiling       
-        self.num_tiles = 1
+        #self.num_tiles = 1
         self.HW = H*W
+        self.h = 1
+        self.w = 1
         self.n = 1
         self.Tn = 1
+        # TODO: determine tile size and aspect ratio taking into account pooling size
+        self.ofmap_tilex_sz = int(math.sqrt(self.pearray.MAX_WAVE_SIZE))
+        self.ofmap_tiley_sz = int(math.sqrt(self.pearray.MAX_WAVE_SIZE))
         if (self.HW >= self.pearray.MAX_WAVE_SIZE):
             # for now, send in noodles that span width of IFMAP, which has implications for pooling
-            self.num_tiles = ceildiv(H*W, self.pearray.MAX_WAVE_SIZE)
+            #self.num_tiles = ceildiv(H*W, self.pearray.MAX_WAVE_SIZE)
+            # for now, send in 16x16 tiles, which has implications for pooling
+            # for now, use h/w for both IFMAP and OFMAP
+            self.h = ceildiv(E, self.ofmap_tiley_sz)
+            self.w = ceildiv(F, self.ofmap_tilex_sz)
         elif (self.HW < self.pearray.MAX_WAVE_SIZE):
             self.Tn = self.pearray.MAX_WAVE_SIZE // self.HW
             if (self.Tn > self.N):
                 self.Tn = self.N
             self.n = ceildiv(self.N, self.Tn)
-        print("n=%d, Tn=%d, c=%d, num_tiles=%d, m=%d"%(self.n, self.Tn, self.c, self.num_tiles, self.m))
-        #return [self.n, self.Tn, self.c, self.num_tiles, self.m]
+        print("n=%d, Tn=%d, c=%d, h=%d, w=%d, m=%d"%(self.n, self.Tn, self.c, self.h, self.w, self.m))
     
+    # Pack a single flattened tiled IFMAP for a particular wave ID
+    #   ifmap: IFMAP in NCHW format
+    #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
+    #   return: a 256 array
+    def pack_wave_ifmap(self, ifmap, wave_id):
+        out_array = np.zeros(256)
+        # pack ifmap to 0 index, note the ifmap length for general case (not boundary, where ifmap length can be shorter)
+        for i in range(self.Tn):
+            for x in range(self.ofmap_tilex_sz):
+                for y in range(self.ofmap_tiley_sz):
+                    ifmap_tilex = (x * self.stride) + wave_id.r_id - self.pad_west
+                    ifmap_tiley = (y * self.stride) + wave_id.s_id - self.pad_north
+                    ifmap_addr = i * self.ofmap_tilex_sz * self.ofmap_tiley_sz + y * self.ofmap_tilex_sz + x
+                    if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
+                        out_array[ifmap_addr] = 0
+                    elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
+                        out_array[ifmap_addr] = 0
+                    else:
+                        out_array[ifmap_addr] = ifmap[(wave_id.n_id * self.Tn) + i, ifmap_tiley, ifmap_tilex]
+                    # TODO: for optimization, don't send padding zeros by using the following clipped version
+                    #ifmap_tilex_clip = max(0, min(ifmap_tilex, self.W-1))
+                    #ifmap_tiley_clip = max(0, min(ifmap_tiley, self.H-1))
+        #print(out_array)                    
+        return out_array
+
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format
-    #   wave_id: current wave ID, [n_id, m_id, tile_id, c_id, r_id, s_id]
+    #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
     #   return: a 256x128 array
     def pack_wave_ifmaps(self, ifmaps, wave_id):
         out_array = np.zeros((256, 128))
         # remember to extract IFMAPs starting at r_id, s_id (which should be zero for non-conv op)
         # also need to add zeros for padding
+        for row in range(128):
+            if (wave_id.c_id * self.pearray.NUM_ROWS + row < self.C):
+                out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * self.pearray.NUM_ROWS + row], wave_id)
+                #print(out_array[:,row])
+            else:
+                break
         return out_array
 
     # Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
     #   weights: conv weights in MCRS format
-    #   wave_id: current wave ID, [n_id, m_id, tile_id, c_id, r_id, s_id]
+    #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
     #   return: a 128x64 array
     def pack_wave_conv_weights(self, weights, wave_id):
         out_array = np.zeros((128, 64))
+        for row in range(128):
+            if (wave_id.c_id * self.pearray.NUM_ROWS + row >= self.C):
+                break
+            else :
+                for col in range(64):
+                    if (wave_id.m_id * self.pearray.NUM_COLS + col >= self.M):
+                        break
+                    else:
+                        out_array[row, col] = weights[wave_id.m_id * self.pearray.NUM_COLS + col,
+                                                      wave_id.c_id * self.pearray.NUM_ROWS + row, 
+                                                      wave_id.r_id, 
+                                                      wave_id.s_id]
         return out_array
     
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
@@ -143,34 +208,47 @@ class TPBSched:
         # wave loop ordering scheme: nmtcRS
         for n_id in range(self.n):
             for m_id in range(self.m):
-                for tile_id in range(self.num_tiles):
-                    fullwave_id = [n_id, m_id, tile_id]
-                    # loops for constructing a tile
-                    for c_id in range(self.c):
-                        for r_id in range(R):
-                            for s_id in range(S):
-                                wave_id = [n_id, m_id, tile_id, c_id, r_id, s_id]
-                                pearray_packed_ifmaps = self.pack_wave_ifmaps(inputs, wave_id)
-                                pearray_packed_weights = self.pack_wave_conv_weights(weights, wave_id)
-                                self.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank, psum_add)
-                                # after the first wave, subsequent waves results are added to partial sums in buffer
-                                if (not psum_add):
-                                    psum_add = True
-                    # tile is done                                    
-                    self.pearray.trig_tile_done(fullwave_id)
-                    # go through the remaining operations
-                    if (len(op_list)>1):
-                        for i in range(1, len(op_list)):
-                            if (op_list[i]['layer_type'] == 'Relu'):
-                                self.activate.wait_tile_done(fullwave_id)
-                                relu_result = self.activate.relu(self.pearray.extract_psum(psum_bank, 0, wave_size))
-                                for j in range(M):
-                                    result[n_id, j] = (relu_result[0:self.HW, j]).reshape((self.H, self.W))
-                            else:
-                                print ("%s is currently not yet implemented"%op_list[i]['layer_type'])
-                    # Advance to new bank, while the old bank is being processed                                        
-                    psum_bank += 1
-                    psum_add = False                                
+                for h_id in range(self.h):
+                    for w_id in range(self.w):
+                        fullwave_id = [n_id, m_id, h_id, w_id]
+                        # loops for constructing a tile
+                        for c_id in range(self.c):
+                            for r_id in range(R):
+                                for s_id in range(S):
+                                    wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, r_id, s_id)
+                                    pearray_packed_ifmaps = self.pack_wave_ifmaps(inputs, wave_id)
+                                    pearray_packed_weights = self.pack_wave_conv_weights(weights, wave_id)
+                                    #print(pearray_packed_ifmaps)
+                                    #print(pearray_packed_weights)
+                                    self.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank, psum_add)
+                                    # after the first wave, subsequent waves results are added to partial sums in buffer
+                                    if (not psum_add):
+                                        psum_add = True
+                        # tile is done                                    
+                        self.pearray.trig_tile_done(fullwave_id)
+                        # go through the remaining operations
+                        if (len(op_list)>1):
+                            for i in range(1, len(op_list)):
+                                if (op_list[i]['layer_type'] == 'Relu'):
+                                    self.activate.wait_tile_done(fullwave_id)
+                                    relu_result = self.activate.relu(self.pearray.extract_psum(psum_bank, 0, wave_size))
+                                    tile_x_start = wave_id.w_id * self.ofmap_tilex_sz
+                                    tile_y_start = wave_id.h_id * self.ofmap_tiley_sz
+                                    tile_height = self.ofmap_tiley_sz
+                                    tile_width = self.ofmap_tilex_sz
+                                    if ((wave_id.h_id+1) * self.ofmap_tiley_sz - 1 >= self.H):
+                                        tile_height = self.H - tile_y_start
+                                    if ((wave_id.w_id+1) * self.ofmap_tilex_sz - 1 >= self.W):
+                                        tile_width = self.W - tile_x_start
+                                    tile_pixels = tile_height * tile_width
+                                    for j in range(M):
+                                        result[n_id, j, tile_y_start:tile_y_start+tile_height, tile_x_start:tile_x_start+tile_width]\
+                                            = (relu_result[0:tile_pixels, j]).reshape((tile_height, tile_width))
+                                else:
+                                    print ("%s is currently not yet implemented"%op_list[i]['layer_type'])
+                        # Advance to new bank, while the old bank is being processed                                        
+                        psum_bank += 1
+                        psum_add = False                                
         return result                    
 
 # Main program
@@ -230,11 +308,12 @@ if __name__ == "__main__":
         convN, convC, convH, convW = op_list[0]['ofmap_shape']
         pad_north, pad_south = op_list[0]['padding'][2]
         pad_west, pad_east = op_list[0]['padding'][3]
-        # stride: ignore stride_batch and stride_depth for now
+        # stride: ignore stride_batch and stride_depth for now; also assume stride_x==stride_y
         stride_x = op_list[0]['stride'][1]
         stride_y = op_list[0]['stride'][2]
-        tpb.compute_mm_loops(iN, iC, iH, iW, convC, pad_north, pad_south, pad_west, pad_east, stride_x, stride_y)
-
+        assert(stride_x == stride_y)
+        tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x)
+        # TODO: add selecting among pre-derived looping schemes
         inputs = np.load(input_layer['ref_file'])
         #weights = np.load(layers[1]['kernel_file'])
         results = tpb.execute_conv_ops(op_list, inputs)
