@@ -542,7 +542,15 @@ class NodeSimple2(Node):
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
-    
+
+    # Override layer name to backend
+    #   BiasAdd - when one input is constant
+    #   ResAdd - when both inputs depend on the input image
+    overrideType = "BiasAdd"
+    if isResAdd:
+      overrideType = "ResAdd"
+    layerDataBase[0]["layer_type"] = overrideType
+       
     if not isResAdd:
       # Collapse the size node to a branch    
       # Main input is covered by a previous layer
@@ -551,18 +559,19 @@ class NodeSimple2(Node):
       # Side input has to be collapsed to a constant
       tfShape4D1 = npt.cShapeToNHWC(npInfoIF1.npShape)
       (npFileSimF1, simFormatIF1)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D1)
+      tpbShape4D1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
       
       constLayerData = {
        "layer_type" :  "Const",
        "layer_name" :  fromIfNode1.getName(),
-        "ofmap_shape"     : tpbShape,
+        "ofmap_shape"     : tpbShape4D1,
         "ofmap_format"    : simFormat,
         "ref_file"        : npFileSimF1,
         "previous_layers" : [],
        "#comment"   :  "captured constant"
       }
       fileListBase.append(npFileSimF1)
-      layerDataBase.append(constLayerData)
+      layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
 
     return(layerDataBase, fileListBase)
 
