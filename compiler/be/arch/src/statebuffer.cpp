@@ -6,8 +6,8 @@ namespace arch {
 
 
 //--------------------------------------------------------
-StateBuffer::StateBuffer(const PeArray* peArray, kcc_int64 partitionSizeInBytes)
-    : m_NumberPartitions(peArray->gNumberRows())
+StateBuffer::StateBuffer(const PeArray& peArray, kcc_int64 partitionSizeInBytes)
+    : m_NumberPartitions(peArray.gNumberRows())
     , m_PartitionSizeInBytes(partitionSizeInBytes)
     , m_TotalSizeInBytes(m_NumberPartitions * partitionSizeInBytes)
 {

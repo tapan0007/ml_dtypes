@@ -107,23 +107,8 @@ Main(int argc, char* argv[])
     }
 
     //------------------------------------------------
-    arch::Arch* arch = new arch::Arch();
-    std::cout << "Generating Arch '" << arch->gArchVersion() << "'\n";
-
-    arch::PeArray* peArray = arch->gPeArray();
-    assert(peArray && "Arch missing PE array");
-    arch::PsumBuffer* psumBuf = arch->gPsumBuffer();
-    assert(psumBuf && "Arch missing PSUM buffer");
-    arch::PoolingEng* pool = arch->gPoolingEng();
-    assert(pool && "Arch missing pooling engine");
-    arch::ActivationEng* activ = arch->gActivationEng();
-    assert(activ && "Arch missing activation engine");
-    arch::StateBuffer* stbuf = arch->gStateBuffer();
-    assert(stbuf && "Arch missing State Buffer");
-    arch->gNumberPsumBanks();
-    arch->gPsumBankEntries();
-    arch->gNumberPeArrayRows();
-    arch->gNumberPeArrayColumns();
+    arch::Arch arch;
+    std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
 
 
     ntwk->rDoBatching(DoBatching);

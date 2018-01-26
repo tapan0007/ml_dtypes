@@ -7,44 +7,55 @@
 
 #include "types.hpp"
 
+#include "pearray.hpp"
+#include "psumbuffer.hpp"
+#include "poolingeng.hpp"
+#include "activationeng.hpp"
+#include "statebuffer.hpp"
+
 namespace kcc {
 namespace arch {
-class PoolingEng;
-class PeArray;
-class PsumBuffer;
-class ActivationEng;
-class StateBuffer;
 
 
 //--------------------------------------------------------
 class Arch {
+private:
+    // This is the only row/column configuration for float16 and int16 data types
+    // For int8 it is possible to configure pe-array as nrow=256,ncol=64 or as nrow=128,ncol=128
+    const kcc_int32  numberPeRows            = 128;
+    const kcc_int32  numberPeColumns         = 64;
+
+    const kcc_int32  numberPsumBanks         = 4;
+    const kcc_int32  numberPsumBankEntries   = 256;
+    const kcc_int64  stateBuffersSizeInBytes = 12 * 1024 * 1024; // numberPeRows  ##  12 MB
+    const kcc_int64  sbPartitionSizeInBytes  = stateBuffersSizeInBytes  / numberPeRows;
 public:
 
     //----------------------------------------------------------------
     Arch();
 
     //----------------------------------------------------------------
-    PeArray* gPeArray() {
+    const PeArray& gPeArray() const {
         return m_PeArray;
     }
 
     //----------------------------------------------------------------
-    StateBuffer* gStateBuffer() {
+    const StateBuffer& gStateBuffer() const {
         return m_StateBuffer;
     }
 
     //----------------------------------------------------------------
-    PsumBuffer* gPsumBuffer() {
+    const PsumBuffer& gPsumBuffer() const {
         return m_PsumBuffer;
     }
 
     //----------------------------------------------------------------
-    PoolingEng* gPoolingEng() {
+    const PoolingEng& gPoolingEng() const {
         return m_PoolingEng;
     }
 
     //----------------------------------------------------------------
-    ActivationEng* gActivationEng() {
+    const ActivationEng& gActivationEng() const {
         return m_ActivationEng;
     }
 
@@ -67,11 +78,11 @@ public:
     const std::string& gArchVersion() const;
 
 private:
-    PeArray*       m_PeArray;
-    StateBuffer*   m_StateBuffer;
-    PsumBuffer*    m_PsumBuffer;
-    PoolingEng*    m_PoolingEng;
-    ActivationEng* m_ActivationEng;
+    PeArray        m_PeArray;
+    PsumBuffer     m_PsumBuffer;
+    PoolingEng     m_PoolingEng;
+    ActivationEng  m_ActivationEng;
+    StateBuffer    m_StateBuffer;
 };
 
 }}

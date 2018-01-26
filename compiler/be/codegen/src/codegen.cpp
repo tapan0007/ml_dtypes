@@ -39,10 +39,10 @@ namespace codegen {
 
 
 //########################################################
-CodeGen::CodeGen(nets::Network* ntwk, arch::Arch* arch)
+CodeGen::CodeGen(nets::Network* ntwk, const arch::Arch& arch)
+    : m_Network(ntwk)
+    , m_Arch(arch)
 {
-    m_Network = ntwk;
-    m_Arch = arch;
     createGenMap();
 }
 

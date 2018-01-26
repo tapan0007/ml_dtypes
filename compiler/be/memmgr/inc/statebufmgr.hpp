@@ -29,7 +29,7 @@ namespace memmgr {
 class StateBufferMgr {
 public:
     //----------------------------------------------------------------
-    StateBufferMgr(arch::Arch* arch, nets::Network* ntwk);
+    StateBufferMgr(const arch::Arch& arch, nets::Network* ntwk);
 
 
     //----------------------------------------------------------------
@@ -46,8 +46,8 @@ public:
 
 private:
     nets::Network* const      m_Network;
-    arch::Arch* const         m_Arch;
-    arch::StateBuffer* const  m_StateBuffer;
+    const arch::Arch&         m_Arch;
+    const arch::StateBuffer&  m_StateBuffer;
 
     StateBufferAddress  m_OfmapAddress;
     StateBufferAddress  m_IfmapAddress;

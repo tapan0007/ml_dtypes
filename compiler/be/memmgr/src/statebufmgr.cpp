@@ -8,14 +8,14 @@ namespace kcc{
 namespace memmgr {
 
 //--------------------------------------------------------
-StateBufferMgr::StateBufferMgr(arch::Arch* arch, nets::Network* ntwk)
+StateBufferMgr::StateBufferMgr(const arch::Arch& arch, nets::Network* ntwk)
     : m_Network(ntwk)
     , m_Arch(arch)
-    , m_StateBuffer(arch->gStateBuffer())
+    , m_StateBuffer(arch.gStateBuffer())
 {
 
-    m_PartitionSize = m_StateBuffer->gPartitionSizeInBytes();
-    m_FirstSbAddress = m_StateBuffer->gFirstAddressInBytes();
+    m_PartitionSize = m_StateBuffer.gPartitionSizeInBytes();
+    m_FirstSbAddress = m_StateBuffer.gFirstAddressInBytes();
 
     m_FirstFreeStart = m_FirstSbAddress;
 }
@@ -36,7 +36,7 @@ StateBufferMgr::calcOneLayerFmapMemSizePerPartition(layers::Layer* layer)
     const StateBufferAddress totSbMemBatch  = outSbMemBatch + resSbMemBatch;
     const kcc_int32 numOfmaps      = layer->gNumOfmaps();
     assert(numOfmaps > 0 && "Layer has no Ofmaps");
-    const StateBufferAddress numPeArrayRows = m_Arch->gNumberPeArrayRows();
+    const StateBufferAddress numPeArrayRows = m_Arch.gNumberPeArrayRows();
 
     const StateBufferAddress sbMemPerOfmap  = totSbMemBatch / numOfmaps;
     const StateBufferAddress maxNumOfmapsPerRow = 1 + ((numOfmaps - 1) / numPeArrayRows);

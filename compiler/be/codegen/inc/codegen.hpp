@@ -37,7 +37,7 @@ class CodeGenConstLayer;
 class CodeGen {
 public:
     //----------------------------------------------------------------
-    CodeGen(nets::Network* ntwk, arch::Arch* arch);
+    CodeGen(nets::Network* ntwk, const arch::Arch& arch);
 
     //----------------------------------------------------------------
     FILE* gObjFile() const {
@@ -66,7 +66,7 @@ private:
 private:
     FILE*                                   m_ObjFile = nullptr;
     const nets::Network*                    m_Network = nullptr;
-    const arch::Arch*                       m_Arch = nullptr;
+    const arch::Arch&                       m_Arch;
 
     std::unique_ptr<CodeGenInputLayer>      m_InputLayer;
     std::unique_ptr<CodeGenConvLayer>       m_ConvLayer;
