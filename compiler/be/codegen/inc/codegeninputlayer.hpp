@@ -5,18 +5,20 @@
 
 #include <cstdio>
 
-#include "codegenlayer.hpp"
+#include "codegendatalayer.hpp"
 
 namespace kcc {
 using namespace utils;
 
 namespace codegen {
 
-class CodeGenInputLayer : public CodeGenLayer {
+class CodeGenInputLayer : public CodeGenDataLayer {
+private:
+    using SubClass = CodeGenDataLayer;
 public:
     //----------------------------------------------------------------
     CodeGenInputLayer(CodeGen* codegen)
-        : CodeGenLayer(codegen)
+        : SubClass(codegen)
     {}
 
     //----------------------------------------------------------------

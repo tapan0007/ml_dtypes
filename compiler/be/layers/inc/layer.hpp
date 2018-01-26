@@ -560,13 +560,14 @@ public:
     std::string gNameWithSchedMem() const;
 
     //----------------------------------------------------------------
-    const std::string gRefFileName() const {
+    std::string gRefFileName() const {
         return m_RefFileName;
     }
 
-    void rRefFileName(const std::string& refFile) {
-        m_RefFileName = refFile;
+    void rRefFileName(const std::string& refFileName) {
+        m_RefFileName = refFileName;
     }
+
 
 
 protected:

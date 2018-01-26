@@ -107,6 +107,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             ofmapShape[FmapIndex_W] = layer->gOfmapWidth();
             serLayer.rOfmapShape(ofmapShape);
         }
+        serLayer.rRefFile(layer->gRefFileName());
         serLayer.rOfmapFormat(layer->gRefFileFormat());
 
         /* The following series of 'IFs' is not coded as
@@ -119,17 +120,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
          * and convLayer is visible inside tanhLayer's blocks.
          */
 
-        if (auto inLayer = dynamic_cast<layers::InputLayer*>(layer)) {
-            serLayer.rRefFile(inLayer->gRefFileFormat());
-            continue;
-        }
-
-        if (auto inLayer = dynamic_cast<layers::ConstLayer*>(layer)) {
-            serLayer.rRefFile(inLayer->gRefFileFormat());
-            continue;
-        }
-
-        if (auto convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {
+        if (const auto convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {
             assert(convLayer->gPrevLayers().size() == 1U && "Convolution layer should have exactly one input layer");
             const layers::Layer* prevLayer = convLayer->gPrevLayer(0);
             const int32_t numIfmaps = prevLayer->gNumOfmaps();
@@ -170,17 +161,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             continue;
         }
 
-        if (auto tanhLayer = dynamic_cast<layers::TanhLayer*>(layer)) {
-            assert(tanhLayer && "Expected Tanh layer");
-            continue;
-        }
-
-        if (auto reluLayer = dynamic_cast<layers::ReluLayer*>(layer)) {
-            assert(reluLayer && "Expected Relu layer");
-            continue;
-        }
-
-        if (auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer)) {
+        if (const auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer)) {
             assert(poolLayer && "Expected Pool layer");
             assert(poolLayer->gPrevLayers().size() == 1U && "Pool layer should have one input");
             auto prevLayer = poolLayer->gPrevLayer(0);
@@ -215,11 +196,45 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 padding[FmapIndex_W][1] = poolLayer->gPaddingRight();
                 serLayer.rPadding(padding);
             }
-            if (dynamic_cast<layers::MaxPoolLayer*>(layer)) {
+            if (const auto maxpoolLayer = dynamic_cast<layers::MaxPoolLayer*>(poolLayer)) {
+                assert(maxpoolLayer && "Expected MaxPool layer");
                 serLayer.rLayerType(TypeStr_MaxPool);
-            } else {
-                serLayer.rLayerType(TypeStr_AvgPool);
+                continue;
             }
+            if (const auto avgpoolLayer = dynamic_cast<layers::AvgPoolLayer*>(poolLayer)) {
+                assert(avgpoolLayer && "Expected AvgPool layer");
+                serLayer.rLayerType(TypeStr_AvgPool);
+                continue;
+            }
+            continue;
+        }
+
+        if (const auto inLayer = dynamic_cast<layers::InputLayer*>(layer)) {
+            assert(inLayer && "Expected Input layer");
+            continue;
+        }
+
+        if (const auto constLayer = dynamic_cast<layers::ConstLayer*>(layer)) {
+            assert(constLayer && "Expected Const layer");
+            continue;
+        }
+
+        if (const auto tanhLayer = dynamic_cast<layers::TanhLayer*>(layer)) {
+            assert(tanhLayer && "Expected Tanh layer");
+            continue;
+        }
+
+        if (const auto reluLayer = dynamic_cast<layers::ReluLayer*>(layer)) {
+            assert(reluLayer && "Expected Relu layer");
+            continue;
+        }
+
+        if (const auto biasAddLayer = dynamic_cast<layers::BiasAddLayer*>(layer)) {
+            assert(biasAddLayer && "Expected BiasAdd layer");
+            continue;
+        }
+        if (const auto resAddLayer = dynamic_cast<layers::ResAddLayer*>(layer)) {
+            assert(resAddLayer && "Expected ResAdd layer");
             continue;
         }
 
@@ -271,10 +286,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         params.m_RefFile = serLayer.gRefFile();
         params.m_RefFileFormat = serLayer.gOfmapFormat();
 
-        FmapDesc fmap_desc(
-                    serLayer.gNumOfmaps(),
-                    serLayer.gOfmapHeight(),
-                    serLayer.gOfmapWidth());
+        FmapDesc fmap_desc(serLayer.gNumOfmaps(), serLayer.gOfmapHeight(), serLayer.gOfmapWidth());
         layers::Layer* layer = nullptr;
         if (serLayer.gTypeStr() == TypeStr_Input) {
             assert(serLayer.gNumPrevLayers() == 0 && "Input layer should have zero inputs");
@@ -353,8 +365,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         kernel,
                         padding);
             }
-        } else if (
-        serLayer.gTypeStr() == TypeStr_ResAdd || serLayer.gTypeStr() == "Add") {
+        } else if (serLayer.gTypeStr() == TypeStr_ResAdd) {
+            // TODO: check dimensions and types of inputs
             assert(serLayer.gNumPrevLayers() == 2 && "ResAdd layer should have two inputs");
             std::vector<layers::Layer*> prevLayers;
             for (const auto& prevLayerName : serLayer.gPrevLayers()) {
@@ -364,6 +376,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             }
             layer = new layers::ResAddLayer(params, fmap_desc,prevLayers);
         } else if (serLayer.gTypeStr() == TypeStr_BiasAdd) {
+            // TODO check dimensions and types of inputs
             assert(serLayer.gNumPrevLayers() == 2 && "BiasAdd layer should have two inputs");
             std::vector<layers::Layer*> prevLayers;
             for (const auto& prevLayerName : serLayer.gPrevLayers()) {

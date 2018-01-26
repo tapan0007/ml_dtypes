@@ -11,12 +11,6 @@
 
 namespace kcc {
 
-namespace layers {
-    class InputLayer;
-    class ConvLayer;
-    class MaxPoolLayer;
-    class AvgPoolLayer;
-}
 namespace arch {
     class Arch;
 }
@@ -34,6 +28,10 @@ class CodeGenReluLayer;
 class CodeGenTanhLayer;
 class CodeGenMaxPoolLayer;
 class CodeGenAvgPoolLayer;
+class CodeGenResAddLayer;
+class CodeGenBiasAddLayer;
+class CodeGenConstLayer;
+
 
 //########################################################
 class CodeGen {
@@ -69,12 +67,16 @@ private:
     FILE*                                   m_ObjFile = nullptr;
     const nets::Network*                    m_Network = nullptr;
     const arch::Arch*                       m_Arch = nullptr;
+
     std::unique_ptr<CodeGenInputLayer>      m_InputLayer;
     std::unique_ptr<CodeGenConvLayer>       m_ConvLayer;
     std::unique_ptr<CodeGenReluLayer>       m_ReluLayer;
     std::unique_ptr<CodeGenTanhLayer>       m_TanhLayer;
     std::unique_ptr<CodeGenMaxPoolLayer>    m_MaxPoolLayer;
     std::unique_ptr<CodeGenAvgPoolLayer>    m_AvgPoolLayer;
+    std::unique_ptr<CodeGenResAddLayer>     m_ResAddLayer;
+    std::unique_ptr<CodeGenBiasAddLayer>    m_BiasAddLayer;
+    std::unique_ptr<CodeGenConstLayer>      m_ConstLayer;
 };
 
 
