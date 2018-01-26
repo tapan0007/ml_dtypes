@@ -11,23 +11,27 @@ import math
 
 class Config:
   debugLevel = 0
-  # Roofline model
-  numTpb = 1
-  specTops = 32
-  ddrGBps = 42 * 0.9
-  poolGBps = 64*2 * 1e9 / 2**30
+  class Tpb:
+    numTpb = 1
+    specTops = 32
+    freq = 1e9
+    poolGiBps = 64*2 * freq / 2**30  # 64 columns of float16 per 1 GHz cycle in Giga bytes
+      # AWS terminology is G = 1e9, Gi 2**30
+  class Ddr:
+    utilization = 0.9
+    GiBps = 42 * utilization
   class Pe:
     minWave = 64
-    optWave = 256
+    maxWave = 256
   class Graph:
     legendText = """
   Conv2D, MaxPool, Add  ... Operators
   Strides, Kernel  ... Arguments
-  w0.125 i0.191 o0.766 MB  ... weight, input, output
+  w0.125 i0.191 o0.766 MiB  ... weight, input, output
                                tensor sizes in MegaBytes
   OpWB 784 ... operations per byte of weights
   BT(n)    ... batch targets for n TPBs
-  1-2-5    ... recommended batches for roofline-minWave-optWave
+  1-2-5    ... recommended batches for roofline-minWave-maxWave
                Batch 0 means tiling required
 """
 
@@ -323,19 +327,13 @@ class NodeConv2D(NodeBasePaddedStrided):
   # Return the 2 significant dimensions of 2-D filter
   def getFilter2D(self):
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    filterArr = npInfoW.npShape[0:2]
-    # Ensure 2-D filter
-    assert len(npInfoW.npShape) == 4
-    assert npInfoW.npShape[2] > 0
-    assert npInfoW.npShape[3] > 0
+    filterArr = npt.subShape(npInfoW.npShape, "RS", npt.TF, npt.Weights)
     return filterArr
 
   # Return the 2 significant dimensions of 2-D feature map
   def getImg2D(self):
     npInfo = self.getNpInfo()[0]
-    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-    (batch, channels, height, width) = tpbShape
-    img2D = (height, width)
+    img2D = npt.subShape(npInfo.npShape, "HW", npt.TF, npt.Fmaps)
     return img2D
 
   # Returns layer json model in dictionary format, and list of files (npy data)
@@ -385,19 +383,19 @@ class NodeConv2D(NodeBasePaddedStrided):
       opsPerWeightByte = math.ceil(opCount / weightSizeBytes)
       # Data sizes
       npInfoOF = self.getNpInfo()[0]
-      dotText += "\nw%.3f i%.3f o%.3f MB" % (weightSizeBytes / 2**20,
+      dotText += "\nw%.3f i%.3f o%.3f MiB" % (weightSizeBytes / 2**20,
                                            fmapSizeBytes / 2**20, npInfoOF.nbytes() / 2**20)
       dotText += "\nOpWB " + str(opsPerWeightByte)
       # Roofile, wavesize batch targets
-      targetOpB = Config.specTops*2**40 /(Config.ddrGBps*2**30)/2 * Config.numTpb
+      targetOpB = Config.Tpb.specTops*2**40 /(Config.Ddr.GiBps*2**30)/2 * Config.Tpb.numTpb
       targetBatchRoofLine = math.ceil(targetOpB / opsPerWeightByte)
       imgPixels = np.empty(self.getImg2D()).size
       targetBatchImgMin = math.ceil(Config.Pe.minWave / imgPixels)
-      targetBatchImgOpt = math.floor(Config.Pe.optWave / imgPixels)
-      dotText += " BT(%d) %d-%d-%d" % (Config.numTpb, targetBatchRoofLine,
+      targetBatchImgOpt = math.floor(Config.Pe.maxWave / imgPixels)
+      dotText += " BT(%d) %d-%d-%d" % (Config.Tpb.numTpb, targetBatchRoofLine,
                                        targetBatchImgMin, targetBatchImgOpt)
       # Ops
-      dotText += "\nGop %.3f" % (opCount / 1e9)
+      dotText += "\nGop %.3f" % (opCount / Config.Tpb.freq)
     return dotText
 
   # Number of add, multiply ops for performance analysis and reporting
@@ -474,12 +472,13 @@ class NodePool(NodeBasePaddedStrided):
       # Data sizes
       npInfoOF = self.getNpInfo()[0]
       (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
-      dotText += "\ni%.3f o%.3f MB" % (npInfoIF.nbytes() / 2**20,
+      dotText += "\ni%.3f o%.3f MiB" % (npInfoIF.nbytes() / 2**20,
                                        npInfoOF.nbytes() / 2**20)
       # Non-fusing cost: 2x the input
-      nfCostDdrUsec =   2 * npInfoIF.nbytes() / (Config.ddrGBps*2**30) * 1e6
+      # The cost is moving to the storage or back (DDR or SB)
+      nfCostDdrUsec =   2 * npInfoIF.nbytes() / (Config.Ddr.GiBps*2**30) * 1e6
       dotText += "\nNonFuseDdr %.1f usec" %  nfCostDdrUsec
-      nfCostSbUsec =   2 * npInfoIF.nbytes() / (Config.poolGBps*2**30) * 1e6
+      nfCostSbUsec =   2 * npInfoIF.nbytes() / (Config.Tpb.poolGiBps*2**30) * 1e6
       dotText += "\nNonFuseSB %.1f usec" %  nfCostSbUsec
       
       # Kernel
