@@ -129,7 +129,8 @@ if __name__ == "__main__":
                 'fold_batch_norms', 
                 'fold_old_batch_norms',
                 'strip_unused_nodes', 
-                'sort_by_execution_order'
+                'sort_by_execution_order',
+                'remove_attribute(attribute_name="dilations")'
              ])
 
     output_xformed_graph_name = model_name + "_opt.pb"
