@@ -49,7 +49,7 @@ if __name__ == "__main__":
         path = os.environ['HOME']+'/.keras/datasets/'+recfile
         if (not os.path.exists(path)):
             get_file(recfile, origin="http://data.mxnet.io/mxnet/data/"+recfile)
-    elif (args.dataset_50k):
+    elif (args.dataset == "50k"):
         recfile = 'val_256_q90.rec'
         path = os.environ['HOME']+'/.keras/datasets/'+recfile
         if (not os.path.exists(path)):
