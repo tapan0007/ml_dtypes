@@ -1,12 +1,12 @@
 import os
 import glob
 import tarfile
-import argparse
 import time
 import timeit
+import argparse
+import numpy as np
 import tensorflow as tf
 import mxnet as mx
-import numpy as np
 
 from keras.applications.resnet50 import ResNet50
 from keras.preprocessing import image
