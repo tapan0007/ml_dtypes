@@ -1,0 +1,148 @@
+fn Error { echo >[1=2] $* }
+fn Fatal { Error '>>>' $*; exit 1 }
+##############################################################
+if (~ $INKLING_PATH ()) {
+    INKLING_PATH=$HOME/code/CodeCommit/Inkling
+}
+if (~ $KAENA_PATH ()) {
+    KAENA_PATH=$HOME/code/GitFarm/Kaena ;;
+}
+
+Compiler=$KAENA_PATH/compiler/python/state-buffer-estimate
+TEST=$Compiler/test
+npy_diff = $KAENA_PATH/compiler/util/npy_diff_files
+DumpNpy=$KAENA_PATH/compiler/util/npy2txt
+INKLING=$INKLING_PATH
+SIM=$INKLING/sim/sim
+ObjDump=$INKLING/objdump/objdump
+##############################################################
+
+fn RunCmd  {
+   #sleep 3
+   echo $*
+   $*
+}
+
+
+##############################################################
+while (! ~ $#* 0) {
+    switch (x$1) {
+    case x-json x--json; JSON=true
+    case x-*; Fatal Wrong option $1 
+    case *; break
+    }
+}
+##############################################################
+switch (x$1) {
+case x*.tgz
+    TGZ=$1 
+    x=${ echo $TGZ | sed -e 's/.tgz//' }
+    Name=${ echo $x | sed -e s'@.*/@@' }
+}
+N=$Name
+
+tar xvfz $TGZ
+##############################################################
+F=./net_py_params.sh
+test -r $F || Fatal Missing file $F
+. $F
+NetName=${ egrep 'class.*:' $NetPy | sed -e 's/class *//' -e 's/[(].*//' }
+LastLayerName=${ egrep 'Layer.Param' $NetPy | tail -n 1 | sed -e 's/.*Layer.Param[(]["]//' -e 's/",.*//' }
+InputNpy=${ egrep inputDataFileName $NetPy | sed -e 's/.*FileName="//' -e 's/",.*//' }
+
+echo NetName=$NetName, LastLayerName=$LastLayerName, InputNpy=$InputNpy, OutputNpy=$OutputNpy
+
+
+SimOutputNpy=$NetName-$LastLayerName-simout.npy
+SimOutputNpy=${ echo $SimOutputNpy | sed -e 's@/@-@g' }
+
+##############################################################
+NET=$NetName
+PYTHONPATH=$PYTHONPATH:$pwd
+
+CPP=$NET.cpp
+OBJ=$NET.o
+EXE=$NET-exe
+
+RESULTS=./results/$N
+rm -fR $RESULTS; mkdir -p $RESULTS
+
+ASM=$RESULTS/$NET.asm
+TPB=$RESULTS/$NET.tpb
+
+SIMRES=$RESULTS/$NET.simres
+SIMLOG=$RESULTS/simulation.log
+LOG=$RESULTS/LOG
+
+##############################################################
+{
+
+cmd=(python3 $Compiler/compiler.py --netpy $NetPy)
+RunCmd $cmd || Fatal Failed $cmd
+cp -p $CPP $RESULTS/.
+
+##############################################################
+##############################################################
+## compile C++
+FLAGS=(-W -Wall -Werror -ggdb -g -pedantic)
+INC_FLAGS=(-I$INKLING/shared/inc -I$INKLING/tcc/inc)
+CFLAGS=($FLAGS -I. $INC_FLAGS -Wno-missing-field-initializers)
+CPPFLAGS=($CFLAGS -std=c++11)
+LDFLAGS=($FLAGS -ltcc)
+LIBDIR1=($INKLING/tcc/libs)
+LIBDIR_FLAGS=(-L$LIBDIR1)
+
+CXX=g++
+CXX=clang++
+RunCmd $CXX $CPPFLAGS -c $CPP || Fatal Failed to compile $CPP
+RunCmd $CXX $LDFLAGS -o $EXE $OBJ $LIBDIR_FLAGS $LIB_FLAGS || Fatal Failed to link $OBJ
+
+##############################################################
+RunCmd ./$EXE $TPB || Fatal Failed ./$EXE $TPB
+
+##############################################################
+RunCmd $ObjDump $TPB > $ASM || Fatal Failed to create $ASM
+RunCmd shasum $TPB
+
+##############################################################
+SimOutputNpy=$NetName-$LastLayerName-simout.npy
+SimOutputNpy=${ echo $SimOutputNpy | sed -e 's@/@-@g' }  ## remove '/'s from layer name
+
+##############################################################
+RunCmd $ObjDump $TPB > $ASM || Fatal Failed to create $ASM
+
+RunCmd shasum $TPB
+echo $SIM $TPB
+$SIM $TPB >$SIMRES || Fatal Sim failed on $TPB
+
+echo SimOutputNpy:$SimOutputNpy
+
+Files=(
+    $SimOutputNpy
+)
+FMTS = (    
+    # int16
+    float16
+)
+
+cp $Files $RESULTS/.
+
+echo $npy_diff $OutputNpy $SimOutputNpy '>' $RESULTS/$NET.diff
+$npy_diff $OutputNpy $SimOutputNpy >[2=1] | tee $RESULTS/$NET.diff 
+
+for (fmt in $FMTS) {
+    for (file in $Files) {
+        npy=$file
+        txt=$RESULTS/$file-$fmt.txt
+        echo $DumpNpy --$fmt $npy '>' $txt
+        $DumpNpy --$fmt $npy > $txt
+        shasum  $txt
+        #cat $txt
+    }
+}
+
+#echo GOLDEN:
+#cat output-float16.txt
+#echo FROM SIM:
+#cat $NET-out-float16.txt
+} >[2=1] | tee $LOG

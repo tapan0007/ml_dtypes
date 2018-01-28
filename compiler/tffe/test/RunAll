@@ -15,9 +15,11 @@ import os, sys
 import argparse
 
 kPath = os.environ.get('KAENA_PATH')
+kePath = os.environ.get('KAENA_EXT_PATH')
 iPath = os.environ.get('INKLING_PATH')
-if kPath == None or iPath == None or not os.path.isdir(kPath) or not os.path.isdir(iPath):
-  print("ERROR: make sure KAENA_PATH and INKLING_PATH environment is set");
+if kPath == None or kePath == None or iPath == None or \
+    not os.path.isdir(kPath) or not os.path.isdir(kePath) or not os.path.isdir(iPath):
+  print("ERROR: make sure KAENA_PATH, KAENA_EXT_PATH, and INKLING_PATH environment is set");
   exit(1)
 
 parser = argparse.ArgumentParser()
@@ -57,11 +59,26 @@ tests = {
   "0-1mp_r3s2_112_55"  : [ "trivnet_mp1", "b1-h112-r3-s2-c1-m1-wmin0-wmax0-imin1-imax12544", "1mp"],
   "0-1ap0"        : [ "trivnet_ap1",    "b1-h4-r1-s1-c1-m1-wmin0-wmax0-imin1-imax16", "1ap"],
   "0-1ap7x7"      : [ "trivnet_ap1",    "b1-h7-r7-s7-c64-m64-wmin0-wmax0-imin1-imax784", "1ap"],
+
+  "0-biasadd"     : [ "trivnet_biasadd", "tfloat16-b1-h2-c1-wmin2-wmax2-imin3-imax6", "biasadd"],
+  "0-add"         : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2-imin3-imax6", "add"],
+  "0-add_fp32"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.1-imin1-imax5", "add"],
+  "0-add_uint8"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add"],
+
   "0-1conv_s8_32b": [ "trivnet_lin",    "tfloat32-l2-b1-h16-r1-s8-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv32"],
-  "1-1conv7_64"   : [ "trivnet_conv1",  "b1-h7-r7-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "1-1conv7_64"   : [ "trivnet_conv1",  "b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "1-1conv9_64"   : [ "trivnet_conv1",  "b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "2-1conv3_64s8" : [ "trivnet_conv1",  "b1-h16-r3-s8-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
   "2-1conv9_64s8" : [ "trivnet_conv1",  "b1-h16-r9-s8-c64-m64-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+
+  "2-padasym_strd_h3r2s2" : [ "trivnet_conv1", "b1-h3-r2-s2-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "2-padasym_strd_h5r2s2" : [ "trivnet_conv1", "b1-h5-r2-s2-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "2-padasym_strd_h4r2s3" : [ "trivnet_conv1", "b1-h4-r2-s3-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+
+  "2-padsym_strd_h3r3s2" : [ "trivnet_conv1", "b1-h3-r3-s2-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "2-padsym_strd_h5r3s2" : [ "trivnet_conv1", "b1-h5-r3-s2-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "2-padsym_strd_h4r3s3" : [ "trivnet_conv1", "b1-h4-r3-s3-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+
   "6-alexnet"     : [ "tf_pb",          "alexnet_v100/alexnet_fp32.pb",  "alexnet", "--input_node Variable --images linspace1"],
   "8-resnet50"                : [ "tf_pb",   "resnet50/resnet_v1_50_fp32_opt.pb",        "resnet50", "--images linspace1 --depth 2"],
   "8-resnet50_fp32_keras"     : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras.pb",    "resnet50", "--input_node input_1 --images linspace1 --depth 2"],
@@ -84,7 +101,7 @@ for testName in testList:
     print("\n############## %s ##############" % testName)
   cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
   if args.stop_after == "backend":
-    cmd += 'bash $KAENA_PATH/compiler/python/state-buffer-estimate/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
+    cmd += 'bash $KAENA_PATH/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
   cmd += 'echo -n PASS || echo -n FAIL; echo "  "' + testName
   if verbose:
     print("Executing ", cmd)

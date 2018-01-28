@@ -1,0 +1,18 @@
+class Layer(object): # abstract class
+    class CombineLayer(Layer): # abstract class
+*       class AddLayer(CombineLayer):
+*       class ConcatLayer(CombineLayer):
+    class SubSampleLayer(Layer): # abstract class
+        class PoolLayer(SubSampleLayer): # abstract class
+*           class AvgPoolLayer(PoolLayer):
+*           class MaxPoolLayer(PoolLayer):
+*       class ConvLayer(SubSampleLayer):
+*           class FullLayer(ConvLayer):
+    class OneToOneLayer(Layer): # abstract class
+        class ActivLayer(OneToOneLayer): # abstract class
+*           class ReluLayer(ActivLayer):
+*       class BatchNormLayer(OneToOneLayer):
+*       class SoftMaxLayer(OneToOneLayer):
+
+*   class DataLayer(Layer):
+

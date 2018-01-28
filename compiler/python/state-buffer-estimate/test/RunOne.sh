@@ -32,7 +32,8 @@ export DUMPNPY=$KAENA_PATH/compiler/util/npy2txt
 export INKLING=$INKLING_PATH
 SIM=$INKLING/sim/sim
 
-## CODEGEN_TOP=$KAENA_PATH/compiler/codegen
+##############################################################
+## CODEGEN_TOP=$KAENA_PATH/compiler/kcc/codegen
 CODEGEN_TOP=$INKLING
 
 OBJDUMP=$CODEGEN_TOP/objdump/objdump

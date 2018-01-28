@@ -1,0 +1,15 @@
+
+16 bit:
+
+256 long wave (weights)
+
+16b*16b                    -> 32b
+128(+7b) rows(#ifmaps)     -> 39b
+left 25b to 64b
+max filter size: (2^12)^2
+
+8 bit:
+8b*8b                      -> 16b
+256(+8b) rows(#ifmaps)     -> 24b
+left 8b to 32b
+max filter size: (2^4)^2

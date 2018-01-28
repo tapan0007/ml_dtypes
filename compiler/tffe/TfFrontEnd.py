@@ -85,6 +85,9 @@ class TfFe:
           numConv += 1
           node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeConv2D")
+        elif (re.search("Add|BiasAdd", tfop.op, re.I) != None):
+          node = kog.NodeSimple2(tfNode.name, tfop.op, add_attrs)
+          #print("DEBUG created NodeSimple2")
         elif  (re.search("relu|tanh", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
@@ -255,6 +258,8 @@ class TfFe:
   #   layerN/branchM/convP cluster would be breated (in blue) if depth is 3
   def writeDot(self, depth, outFile, outFormat = "svg"):
     dot = Digraph(comment="writeDot")
+    dot.node("KgraphLegend", "Legend" + re.sub("\n", "\l", kog.Config.Graph.legendText),
+             {"color":"yelow", "shape":"rectangle"})
     for n in self.__kg.getNodes():
       tfOp = n.getAttr("tfop")
       attrs = {}
@@ -352,10 +357,12 @@ class TfFe:
         #print("DEBUG: node=", n.getName())
         opName = n.getOpName()
         opType = n.getOpType()
+        opArgsText = n.getOpArgsText()
         #if (re.search("conv", opType, re.I) != None):
         #  print("DEBUG: conv  ", opName)
         row = {"OpName"      : opName,
                "OpType"      : opType,
+               "OpArgs"      : opArgsText,
                "Level"       : level}
         npOutputInfo = n.getNpInfo()
         outputSize = 0
@@ -403,7 +410,7 @@ class TfFe:
     
     # Write csv
     with open(csvFile, 'w') as csvHandle:
-      fieldNames = ["OpName", "OpType", "Level",
+      fieldNames = ["OpName", "OpType", "OpArgs", "Level",
                     "OutputSize", "InputSize"]
       for i in range(0,numOutputs):
         fieldNames += ["Output" + str(i) + "dType",

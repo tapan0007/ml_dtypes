@@ -7,9 +7,33 @@ from NpTransforms import NpTrans as npt
 from NpUtils import NpUtils as npu
 import os, re, json
 import numpy as np
+import math
 
 class Config:
   debugLevel = 0
+  class Tpb:
+    numTpb = 1
+    specTops = 32
+    freq = 1e9
+    poolGiBps = 64*2 * freq / 2**30  # 64 columns of float16 per 1 GHz cycle in Giga bytes
+      # AWS terminology is G = 1e9, Gi 2**30
+  class Ddr:
+    utilization = 0.9
+    GiBps = 42 * utilization
+  class Pe:
+    minWave = 64
+    maxWave = 256
+  class Graph:
+    legendText = """
+  Conv2D, MaxPool, Add  ... Operators
+  Strides, Kernel  ... Arguments
+  w0.125 i0.191 o0.766 MiB  ... weight, input, output
+                               tensor sizes in MegaBytes
+  OpWB 784 ... operations per byte of weights
+  BT(n)    ... batch targets for n TPBs
+  1-2-5    ... recommended batches for roofline-minWave-maxWave
+               Batch 0 means tiling required
+"""
 
 class Object:
   def __init__(self, name, attrs):
@@ -31,6 +55,8 @@ class NpInfo:
     self.npShape = npShape
     self.npFile = None
     self.dType = None
+  def nbytes(self):
+    return np.empty(self.npShape, dtype=self.dType).nbytes
 
 # NN operation
 class Node(Object):
@@ -82,19 +108,25 @@ class Node(Object):
     self.__fanout[index].append(edge)
   # Base class support for single-input, single output layers
   # E.g., activation, later possibly other simple layers
+  # Returns list of layer maps (e.g., 2 for a node with a side constant),
+  # and list of npy files (that need to be part of Kgraph package)
   def genCompilerLayerJson(self):
-    return({"layer_type" :  self.getOpType(),
+    return([{"layer_type" :  self.getOpType(),
             "layer_name" :  self.getOpName(),
             "#comment"   :  "unsupported layer"
-            }, [])
+            }], [])
   def getOpCount(self):
     return 1
   def getDotText(self):
     return self.getOpType()
-  # Supported ops/nodes are passed down through the compiler and simuator flow
+  # Supported ops/nodes are passed down through the compiler and simulator flow
   def isSupported(self):
     return False
-
+  def getOpArgsText(self):
+    argsText = self.getDotText()
+    # Simple implementation - reuse dot text and remove \n
+    argsText = re.sub("\n", " ", argsText)
+    return argsText
 
 class PosNode:
   def __init__(self, node, index):
@@ -107,6 +139,7 @@ class Edge(Object):
     self.__fromPosNode = fromPosNode
     self.__toPosNode = toPosNode
     self.__label = None
+    self.__isInMainFlow = False
   def getFromPosNode(self):
     return(self.__fromPosNode)
   def getToPosNode(self):
@@ -121,7 +154,10 @@ class Edge(Object):
     return("Edge" +
            "  From=" + f.node.getName() + ":" + str(f.index) +
            "  To=" + t.node.getName()  + ":" + str(t.index) )
-
+  def setIsInMainFlow(self, isInMainFlow):
+    self.__isInMainFlow = isInMainFlow
+  def isInMainFlow(self):
+    return self.__isInMainFlow
 
 ###############################################################################
 # Simple single input, single output nodes like RELU
@@ -134,12 +170,12 @@ class NodeSimple(Node):
   def genCompilerLayerJson(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape # FIX_THIS - this order is TF specific, use NpUtils
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
     (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
     layerData = {
-      "ofmap_shape"     : [batch, channels, height, width],
+      "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [fromIfNode.getName()],
@@ -147,12 +183,14 @@ class NodeSimple(Node):
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
-    layerDataBase.update(layerData)
+    layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
 
   def isSupported(self):
     return True
+
+
 
 ###############################################################################
 # Base class for nodes that use striding and padding
@@ -289,21 +327,22 @@ class NodeConv2D(NodeBasePaddedStrided):
   # Return the 2 significant dimensions of 2-D filter
   def getFilter2D(self):
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    filterArr = npInfoW.npShape[0:2]
-    # Ensure 2-D filter
-    assert len(npInfoW.npShape) == 4
-    assert npInfoW.npShape[2] > 0
-    assert npInfoW.npShape[3] > 0
+    filterArr = npt.subShape(npInfoW.npShape, "RS", npt.TF, npt.Weights)
     return filterArr
+
+  # Return the 2 significant dimensions of 2-D feature map
+  def getImg2D(self):
+    npInfo = self.getNpInfo()[0]
+    img2D = npt.subShape(npInfo.npShape, "HW", npt.TF, npt.Fmaps)
+    return img2D
 
   # Returns layer json model in dictionary format, and list of files (npy data)
   def genCompilerLayerJson(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-    filterShapeRSCM = npInfoW.npShape
-    filterShapeMCRS = [filterShapeRSCM[i] for i in [3, 2, 0, 1]]
+    tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.Weights))
     # OFMAP
     (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     # IFMAP, not needed
@@ -318,8 +357,8 @@ class NodeConv2D(NodeBasePaddedStrided):
       "layer_type"      : "Conv",
       "kernel_file"     : npFileSimW,
       "kernel_format"   : simFormatW,
-      "kernel_shape"    : filterShapeMCRS,
-      "ofmap_shape"     : [batch, channels, height, width],
+      "kernel_shape"    : tpbFilterShape,
+      "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormatOF,
       "ref_file"        : npFileSim,
       "padding"         : padding,
@@ -328,7 +367,7 @@ class NodeConv2D(NodeBasePaddedStrided):
       "#comment"        : "supported layer"
     }
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
-    layerDataBase.update(layerData)
+    layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
 
@@ -336,19 +375,35 @@ class NodeConv2D(NodeBasePaddedStrided):
   def getDotText(self):
     dotText = self.getOpType()
     if len(self.getNpInfo()) > 0:
-      # Filter - not needed, it is shown as shape of the other input
-      #((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
-      #filterShapeRSCM = npInfoW.npShape
-      #dotText += "\nFilter " + str(filterShapeRSCM)
-      # Stride
       dotText += "\nStrides " + str(self.getStrides())
+      ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+      fmapSizeBytes = npInfoIF.nbytes()
+      weightSizeBytes = npInfoW.nbytes()
+      opCount = self.getOpCount()
+      opsPerWeightByte = math.ceil(opCount / weightSizeBytes)
+      # Data sizes
+      npInfoOF = self.getNpInfo()[0]
+      dotText += "\nw%.3f i%.3f o%.3f MiB" % (weightSizeBytes / 2**20,
+                                           fmapSizeBytes / 2**20, npInfoOF.nbytes() / 2**20)
+      dotText += "\nOpWB " + str(opsPerWeightByte)
+      # Roofile, wavesize batch targets
+      targetOpB = Config.Tpb.specTops*2**40 /(Config.Ddr.GiBps*2**30)/2 * Config.Tpb.numTpb
+      targetBatchRoofLine = math.ceil(targetOpB / opsPerWeightByte)
+      imgPixels = np.empty(self.getImg2D()).size
+      targetBatchImgMin = math.ceil(Config.Pe.minWave / imgPixels)
+      targetBatchImgOpt = math.floor(Config.Pe.maxWave / imgPixels)
+      dotText += " BT(%d) %d-%d-%d" % (Config.Tpb.numTpb, targetBatchRoofLine,
+                                       targetBatchImgMin, targetBatchImgOpt)
+      # Ops
+      dotText += "\nGop %.3f" % (opCount / Config.Tpb.freq)
     return dotText
 
   # Number of add, multiply ops for performance analysis and reporting
   # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
   def getOpCount(self):
     npInfo = self.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+    (batch, channels, height, width) = tpbShape
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
     filterShapeRSCM = npInfoW.npShape
     # 7 loops - 4 in the filter, 3 in ofmap
@@ -380,7 +435,8 @@ class NodePool(NodeBasePaddedStrided):
   def genCompilerLayerJson(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+    (batch, channels, height, width) = tpbShape
     (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
     kernelSizeNHWC = self.getKernelSize()
     kernelSizeNCHW = [kernelSizeNHWC[i] for i in [0, 3, 1, 2]]
@@ -405,7 +461,7 @@ class NodePool(NodeBasePaddedStrided):
       "#comment"        : "supported layer"
     }
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
-    layerDataBase.update(layerData)
+    layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
 
@@ -413,6 +469,18 @@ class NodePool(NodeBasePaddedStrided):
   def getDotText(self):
     dotText = self.getOpType()
     if len(self.getNpInfo()) > 0:
+      # Data sizes
+      npInfoOF = self.getNpInfo()[0]
+      (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
+      dotText += "\ni%.3f o%.3f MiB" % (npInfoIF.nbytes() / 2**20,
+                                       npInfoOF.nbytes() / 2**20)
+      # Non-fusing cost: 2x the input
+      # The cost is moving to the storage or back (DDR or SB)
+      nfCostDdrUsec =   2 * npInfoIF.nbytes() / (Config.Ddr.GiBps*2**30) * 1e6
+      dotText += "\nNonFuseDdr %.1f usec" %  nfCostDdrUsec
+      nfCostSbUsec =   2 * npInfoIF.nbytes() / (Config.Tpb.poolGiBps*2**30) * 1e6
+      dotText += "\nNonFuseSB %.1f usec" %  nfCostSbUsec
+      
       # Kernel
       kernelSizeNHWC = self.getKernelSize()
       dotText += "\nKernelSize " + str(kernelSizeNHWC)
@@ -425,10 +493,90 @@ class NodePool(NodeBasePaddedStrided):
   # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
   def getOpCount(self):
     npInfo = self.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+    (batch, channels, height, width) = tpbShape
     kernelSizeNHWC = self.getKernelSize()
     opCount = 2 * np.empty(kernelSizeNHWC).size * batch * height * width * channels;
     return opCount
+
+
+###############################################################################
+# Basic 2-argument operations (e.g., Mul, Add) with no config (e.g., filter,
+# stride, padding)
+###############################################################################
+class NodeSimple2(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    
+    # Output tensor
+    npInfo = self.getNpInfo()[0]
+    tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    
+    # Residual Add has both inputs dependent on the input image
+    # BiasAdd has the other input constant
+    # In Keras plain Add can be of either of the above types
+    (faninEdgeFmap, faninEdgeOther) = self.getFaninEdges()
+    theOpIsInMainDataFlow = faninEdgeFmap.isInMainFlow()
+    if not theOpIsInMainDataFlow:
+      # This Add is a part of a side branch computation, no layer needed
+      return [], []
+    
+    isResAdd = faninEdgeOther.isInMainFlow()
+    ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [fromIfNode0.getName(), fromIfNode1.getName()],
+      "#comment"        : "supported simple layer with 2 inputs"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+
+    # Override layer name to backend
+    #   BiasAdd - when one input is constant
+    #   ResAdd - when both inputs depend on the input image
+    overrideType = "BiasAdd"
+    if isResAdd:
+      overrideType = "ResAdd"
+    layerDataBase[0]["layer_type"] = overrideType
+       
+    if not isResAdd:
+      # Collapse the size node to a branch    
+      # Main input is covered by a previous layer
+      #   tfShape4D0 = npt.cShapeToNHWC(npInfoIF0.npShape)
+      #   (npFileSimF0, simFormatIF0)  = npt.copyNpyFileAs(npInfoIF0.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D0)
+      # Side input has to be collapsed to a constant
+      tfShape4D1 = npt.cShapeToNHWC(npInfoIF1.npShape)
+      (npFileSimF1, simFormatIF1)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D1)
+      tpbShape4D1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
+      
+      constLayerData = {
+       "layer_type" :  "Const",
+       "layer_name" :  fromIfNode1.getName(),
+        "ofmap_shape"     : tpbShape4D1,
+        "ofmap_format"    : simFormat,
+        "ref_file"        : npFileSimF1,
+        "previous_layers" : [],
+       "#comment"   :  "captured constant"
+      }
+      fileListBase.append(npFileSimF1)
+      layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
+
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
 
 
 ###############################################################################
@@ -550,6 +698,8 @@ class Graph(Object):
       nodeFront = nodeFrontNew
     for n in nodes.keys():
       self.__mainFlowEdges += n.getFanoutEdges()
+    for e in self.__mainFlowEdges:
+      e.setIsInMainFlow(True)
   
   def edgeIsInMainFlow(self, edge):
     return(edge in self.__mainFlowEdges)
@@ -587,7 +737,8 @@ class Graph(Object):
     # Input layer
     inputNode = self.getInputNode()
     npInfo = inputNode.getNpInfo()[0]
-    (batch, height, width, channels) = npInfo.npShape
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+    (batch, channels, height, width) = tpbShape
     assert(height == width)
     jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
 
@@ -615,9 +766,10 @@ class Graph(Object):
         #print("DEBUG: node=", n.getName(), "  op=", op)
         if n.isSupported():
           (layerData, fileListLayer) = n.genCompilerLayerJson()
-          jsonData["layers"].append(layerData)
-          fileList += fileListLayer
-          outNpy = fileListLayer[-1]
+          if len(layerData) > 0:
+            jsonData["layers"] += layerData
+            fileList += fileListLayer
+            outNpy = fileListLayer[-1]
         opCount = n.getOpCount()
         totalOpCount += opCount
         if Config.debugLevel >= 1:
