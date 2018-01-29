@@ -52,12 +52,6 @@ StateBufferMgr::calcOneLayerFmapMemSizePerPartition(layers::Layer* layer)
 void
 StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
 {
-    if (layer->qConstLayer()) {
-        const auto const_layer = dynamic_cast<layers::ConstLayer*>(layer);
-        const_layer->rOfmapAddress(m_FirstSbAddress);
-        return;
-    }
-
     if (layer->qStoreInSB()) {
         for (auto prevSbLayer : layer->gPrevSbLayers()) {
             prevSbLayer->changeRefCount(-1);
@@ -81,6 +75,9 @@ StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
             ifmapAddress = StateBufferAddress_Invalid;
             ofmapAddress = m_FirstSbAddress +
                            (layer->gDataType().gSizeInBytes() * m_MaxNumberWeightsPerPart);
+        } else if (layer->qConstLayer()) {
+            ifmapAddress = StateBufferAddress_Invalid;
+            ofmapAddress = m_FirstSbAddress;
         } else {
             assert(prevOfmapAddress != StateBufferAddress_Invalid &&
                     "Non-input layers should start valid IFMAP address");

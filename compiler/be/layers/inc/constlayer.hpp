@@ -20,7 +20,10 @@ public:
 //--------------------------------------------------------
     ConstLayer(const Params& param, const FmapDesc& fmap_desc)
         : SubClass(param, fmap_desc)
-    { }
+    {
+        assert(fmap_desc.gMapWidth() == 1 && "Const layer must have width == 1");
+        assert(fmap_desc.gMapHeight() == 1 && "Const layer must have height == 1");
+    }
 
     //----------------------------------------------------------------
     std::string gString() const override;
@@ -58,7 +61,7 @@ public:
     }
 
     //----------------------------------------------------------------
-
+    kcc_int64 gNumberWeightsPerPartition() const override;
 
 private:
 };
