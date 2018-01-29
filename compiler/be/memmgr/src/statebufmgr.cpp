@@ -1,5 +1,6 @@
 #include "statebuffer.hpp"
 #include "convlayer.hpp"
+#include "constlayer.hpp"
 #include "network.hpp"
 #include "statebufmgr.hpp"
 
@@ -51,6 +52,12 @@ StateBufferMgr::calcOneLayerFmapMemSizePerPartition(layers::Layer* layer)
 void
 StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
 {
+    if (layer->qConstLayer()) {
+        const auto const_layer = dynamic_cast<layers::ConstLayer*>(layer);
+        const_layer->rOfmapAddress(m_FirstSbAddress);
+        return;
+    }
+
     if (layer->qStoreInSB()) {
         for (auto prevSbLayer : layer->gPrevSbLayers()) {
             prevSbLayer->changeRefCount(-1);

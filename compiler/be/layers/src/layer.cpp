@@ -107,7 +107,7 @@ std::string Layer::gBaseLayerStr() const
     s += "-->" + gOfmapDesc().gString();
     return s;
 }
- 
+
 StateBufferAddress
 Layer::gNumberWeights() const
 {
