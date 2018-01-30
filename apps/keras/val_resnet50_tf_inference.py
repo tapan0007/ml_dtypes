@@ -149,7 +149,7 @@ if __name__ == "__main__":
                 top1 += 1
 
             # decode the results into a list of tuples (class, description, probability) using Keras
-            print("\n---------- %s %s ----------"%(os.path.basename(args.graph), os.path.basename(file)))
+            print("\n---------- %s image %d label %d ----------"%(os.path.basename(args.graph), cnt, label))
             print('TF    %s prediction: '%float_type, decode_predictions(results, top=3)[0])
             print('cnt %d top1 %d top5 %d top1 %f top5 %f time %f aggtime %f avgtime %f'%(cnt, top1, top5, top1/cnt, top5/cnt, time, aggtime, aggtime/cnt))
             if (cnt == args.stop_at_idx):
