@@ -24,9 +24,7 @@ class WaveID:
 class PEArray:
     NUM_ROWS = 128
     NUM_COLS = 64
-    PSUM_BUFFER_DEPTH = 1024
     PSUM_NUM_BANKS = 4
-    PSUM_NUM_PARTITIONS = 64
     MAX_WAVE_SIZE = 256
     def __init__(self):
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS))
@@ -74,6 +72,47 @@ class BiasAddAct:
         return in_array+bias_array
     def relu(self, in_array):
         return np.maximum(np.zeros(in_array.shape), in_array)
+
+# State buffer memory manager
+class StateBuffer:
+    SB_NUM_PARTITIONS = 128
+    SB_PARTITION_SZ = 6*16*1024
+    SB_NUM_1K_ATOMS = SB_PARTITION_SZ/1024
+    def __init__(self):
+        self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
+    def write(self, partition, address, write_data):
+        self.data[partition, address:len(write_data)] = write_data
+
+class CircularBufferElem:
+    def __init__(self):
+        self.valid = 0
+    def load_dram(self, file, offset):
+        self.valid = 1
+        self.type = "DRAM"
+        self.file = file
+        self.offset = offset
+
+class CircularBuffer:
+    def __init__(self, capacity):
+        self.read_pointer = 0
+        self.write_pointer = 0
+        self.count = 0
+        self.capacity = capacity
+        self.valid = np.zeros(capacity)
+    def malloc(self):
+        alloc = self.write_pointer
+        if (self.count == self.capacity):
+            print ("MALLOC ERROR: no more space!")
+            return -1
+        self.count += 1
+        self.valid[alloc] = 1            
+        return alloc
+    def free(self, location):   
+        if (self.valid[location] == 1):
+            self.valid[location] = 0
+            self.count -= 1
+        else:
+            print ("FREE ERROR: location %d is empty!"%location)
 
 # The TPB scheduler has access to:
 #   PEArray 
@@ -124,8 +163,11 @@ class TPBSched:
         self.n = 1
         self.Tn = 1
         # TODO: determine tile size and aspect ratio taking into account pooling size
-        self.ofmap_tiley_sz = min(self.E, int(math.sqrt(self.pearray.MAX_WAVE_SIZE)))
-        self.ofmap_tilex_sz = min(self.F, int(math.sqrt(self.pearray.MAX_WAVE_SIZE)))
+        #self.ofmap_tiley_sz = min(self.E, int(math.sqrt(self.pearray.MAX_WAVE_SIZE)))
+        #self.ofmap_tilex_sz = min(self.F, int(math.sqrt(self.pearray.MAX_WAVE_SIZE)))
+        # per kaena-85, use noodle shapes for tiles (TODO: if pooling, then need to make num rows = pooling rows)
+        self.ofmap_tilex_sz = min(self.F, self.pearray.MAX_WAVE_SIZE)
+        self.ofmap_tiley_sz = self.pearray.MAX_WAVE_SIZE // self.ofmap_tilex_sz
         self.ofmap_tile_sz = self.ofmap_tilex_sz * self.ofmap_tiley_sz
         if (self.EF >= self.pearray.MAX_WAVE_SIZE):
             # for now, send in noodles that span width of IFMAP, which has implications for pooling
