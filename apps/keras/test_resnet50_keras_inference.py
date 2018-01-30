@@ -33,7 +33,9 @@ if __name__ == "__main__":
     # load image using Keras
     img = image.load_img(args.image, target_size=(args.input_width, args.input_height))
     x = image.img_to_array(img)
+    print(x.shape)
     x = np.expand_dims(x, axis=0)
+    print(x.shape)
     x = preprocess_input(x)
 
     # run first prediction using Keras (warmup)

@@ -1,0 +1,30 @@
+{
+  "data_type": "float16",
+  "layers": [
+    {
+      "layer_name": "input",
+      "layer_type": "Input",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 35, 35 ],
+      "previous_layers": [],
+      "ref_file": "trivnet_input:0_NCHW.npy"
+    },
+    {
+      "#comment": "supported layer",
+      "kernel_file": "trivnet_1conv__weight1__read:0_MCRS.npy",
+      "kernel_format": "MCRS",
+      "kernel_shape": [ 1, 1, 3, 3 ],
+      "layer_name": "1conv/i1",
+      "layer_type": "Conv",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 35, 35 ],
+      "padding": [ [ 0, 0 ], [ 0, 0 ], [ 1, 1 ], [ 1, 1 ] ],
+      "previous_layers": [
+        "input"
+      ],
+      "ref_file": "trivnet_1conv__i1:0_NCHW.npy",
+      "stride": [ 1, 1, 1, 1 ]
+    }
+  ],
+  "net_name": "TrivNet"
+}
