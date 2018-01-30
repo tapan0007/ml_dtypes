@@ -8,6 +8,11 @@
 #include "codegenaddlayer.hpp"
 
 namespace kcc {
+namespace layers {
+    class InputLayer;
+    class ConstLayer;
+}
+
 namespace codegen {
 
 //########################################################
