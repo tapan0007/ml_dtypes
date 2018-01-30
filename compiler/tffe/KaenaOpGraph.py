@@ -324,13 +324,13 @@ class NodeConv2D(NodeBasePaddedStrided):
   def __init__(self, name, opType, attrs):
     super().__init__(name, opType, attrs)
 
-  # Return the 2 significant dimensions of 2-D filter
+  # Return the height and width dimensions of 2-D filter
   def getFilter2D(self):
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
     filterArr = npt.subShape(npInfoW.npShape, "RS", npt.TF, npt.Weights)
     return filterArr
 
-  # Return the 2 significant dimensions of 2-D feature map
+  # Return the height and width dimensions of 2-D feature map
   def getImg2D(self):
     npInfo = self.getNpInfo()[0]
     img2D = npt.subShape(npInfo.npShape, "HW", npt.TF, npt.Fmaps)
@@ -569,7 +569,7 @@ class NodeSimple2(Node):
         "previous_layers" : [],
        "#comment"   :  "captured constant"
       }
-      fileListBase.append(npFileSimF1)
+      fileListBase.insert(0, npFileSimF1)
       layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
 
     return(layerDataBase, fileListBase)
