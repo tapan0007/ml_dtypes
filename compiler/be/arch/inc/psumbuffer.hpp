@@ -38,9 +38,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    kcc_int64 gAddress() const {
-        return 0x001800000L;
-    }
+    kcc_int64 gAddress() const;
 
 private:
     const kcc_int32  m_NumberColumns;
