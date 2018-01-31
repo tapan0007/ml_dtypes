@@ -1,0 +1,2 @@
+OutputNpy=trivnet_1conv__i1:0_NCHW.npy
+PythonFile=trivnet_compiler.py
