@@ -19,6 +19,11 @@ import KaenaOpGraph as kog
 from PIL import Image
 import csv
 
+import sys
+import os
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+import MiscUtil
+
 class TfOp:
   def __init__(self, name, op, tfNode):
     self.name = name
@@ -259,7 +264,7 @@ class TfFe:
   def writeDot(self, depth, outFile, outFormat = "svg"):
     dot = Digraph(comment="writeDot")
     dot.node("KgraphLegend", "Legend" + re.sub("\n", "\l", kog.Config.Graph.legendText),
-             {"color":"yelow", "shape":"rectangle"})
+             {"color":"yellow", "shape":"rectangle"})
     for n in self.__kg.getNodes():
       tfOp = n.getAttr("tfop")
       attrs = {}
@@ -309,9 +314,11 @@ class TfFe:
 
     #print("Dot=", dot.source)
     dot.format = outFormat
-    dot.render(outFile)
-    print("INFO: wrote " + outFile + "." + outFormat)
-    
+    print("INFO: invoking dot to render " + outFile + "." + outFormat)
+    if MiscUtil.ExecTimeout.run(dot.render, outFile, 10):
+      print("INFO: wrote " + outFile + "." + outFormat)      
+    else:
+      print("INFO: dot rendering timed out, skipping")
   
   @staticmethod
   def tf2dotName(tfName):
