@@ -30,3 +30,5 @@ alldeps :
 		for D in dep; do test -d $$D || mkdir $$D; done; \
 		$(MAKE) alldeps) \
 	done
+
+superclean : clean alldeps top

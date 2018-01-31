@@ -45,6 +45,10 @@ using StrideType      = kcc_int32[FMAP_TENSOR_RANK];
 using PaddingType     = kcc_int32[FMAP_TENSOR_RANK][2];
 using BatchingType    = kcc_int32[FMAP_TENSOR_RANK];
 
+constexpr kcc_int64 power2(kcc_int64 b) {
+    return 1 << (b);
+}
+
 }
 
 #endif
