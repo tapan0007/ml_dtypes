@@ -191,11 +191,11 @@ public:
     }
 
     kcc_int32 gStrideVertical () const {
-        return m_Stride[FilterIndex_R];        // conv,pool
+        return m_Stride[FmapIndex_H];        // conv,pool
     }
 
     kcc_int32 gStrideHorizontal () const {
-        return m_Stride[FilterIndex_S];        // conv,pool
+        return m_Stride[FmapIndex_W];        // conv,pool
     }
     void rKernelShape(const KernelShapeType  kernelShape) {//conv,pool
         for (kcc_int32 i = 0; i < FILTER_TENSOR_RANK; ++i) {
