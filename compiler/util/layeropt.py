@@ -114,6 +114,121 @@ class CircularBuffer:
         else:
             print ("FREE ERROR: location %d is empty!"%location)
 
+# Neural network node, containing data read from JSON
+class KNode:
+    def __init__(self, data):
+        self.prev = []
+        self.next = []
+        self.data = data
+    def add_prev(self, prev_node):
+        self.prev.append(prev_node)
+    def add_next(self, next_node):
+        self.next.append(next_node)
+
+# RegExs to determine whether next node is fusable or not
+next_is_fusable = {
+        'Conv'   : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
+        'MatMul' : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
+        }
+
+# graph: nodes, edges, and operations
+class KGraph:
+    def __init__(self):
+        # Node dictionary contains name -> Node pairs for quick reference
+        self.node_dict = {}
+        self.first_node = None
+        self.last_node = None
+        self.data_type = 'float16'
+        self.current_node = None
+        self.last_split_next_nodes = None
+    # add forward edges for forward traversals        
+    def add_forward_refs(self, starting_node):
+        if (starting_node != None):
+            #print (starting_node.data['layer_name'], len(starting_node.prev))
+            if (len(starting_node.prev) > 0):
+                for i in starting_node.prev:
+                    i.add_next(starting_node)
+                    self.add_forward_refs(i)
+    # populate graph using layer info from JSON                    
+    def populate_from_json(self, kgraph_json):                    
+        # get the lowest significant bit
+        self.data_type = kgraph_json["data_type"]
+        # collect some information
+        layers = kgraph_json["layers"]
+        num_layers = len(layers)
+        if (num_layers >= 1):
+            for l in layers:
+                new_node = KNode(l)
+                prev_layers = l['previous_layers']
+                if (len(prev_layers) > 0):
+                    for i in prev_layers:
+                        if i in self.node_dict:
+                            print("Previous layer for ", new_node.data['layer_name'], " is ", i)
+                            new_node.add_prev(self.node_dict[i])
+                        else:
+                            print("ERROR: node %s isn't declared before %s"%(i, l['layer_name']))
+                            exit(-1)
+                else:
+                    # assume that the node without connecting previous layers is the first/input node
+                    self.first_node = new_node
+                # assume the last node is the last one processed (JSON graph is in order), at least for the last one
+                self.last_node = new_node                
+                self.node_dict[ l['layer_name'] ] = new_node
+            self.current_node = self.first_node
+        else:
+            print("ERROR: there are no layers!")
+            exit(-1)
+    # get next fused op            
+    def get_next_fused_op(self, fused_ops):
+        next_nodes = fused_ops[-1].next
+        last_node_type = fused_ops[-1].data['layer_type']
+        # if there's only one next node, check if it is fusable and add
+        if (len(next_nodes) == 1):
+            if (last_node_type in next_is_fusable):
+                regex = next_is_fusable[last_node_type]
+                if (re.search(regex, next_nodes[0].data['layer_type'])):                
+                    fused_ops.append(next_nodes[0])
+                    fused_ops = self.get_next_fused_op(fused_ops)
+        return fused_ops                    
+    # starting from current node position, collect as many operations as possible            
+    def get_fused_ops(self):
+        fused_ops = []
+        if (self.current_node == None):
+            print("ERROR: found zero operations to fuse")
+            exit(-1)
+        fused_ops.append(self.current_node)
+        fused_ops = self.get_next_fused_op(fused_ops)
+        # if there are multiple next nodes
+        next_nodes = fused_ops[-1].next
+        last_node_type = fused_ops[-1].data['layer_type']
+        if (last_node_type == "ResAdd" and self.last_split_next_nodes != []):
+            if (args.debug > 0): print("DBG: found ResAdd, back-track to last split and follow next leg")
+            self.current_node = self.last_split_next_nodes[0] 
+            self.last_split_next_nodes = self.last_split_next_nodes[1:]
+        elif (len(next_nodes) == 1):
+            self.current_node = next_nodes[0]   
+        elif (len(next_nodes) > 1):
+            # move ResAdd node to be last leg
+            for i in range(len(next_nodes)):
+                if (next_nodes[i].data['layer_type'] == "ResAdd"):
+                    resadd_node = next_nodes[i]
+                    del next_nodes[i]
+                    next_nodes.append(resadd_node)
+            # pick the first leg as current_node                        
+            self.current_node = next_nodes[0]
+            self.last_split_next_nodes = next_nodes[1:]
+        else:
+            self.current_node = None
+            self.last_split_next_nodes = []
+        if (args.debug > 0):
+            print("DBG: fused_ops collected: ",)
+            for i in fused_ops:
+                print("    ", i.data["layer_type"],":",i.data["layer_name"], )
+            print("")
+        return fused_ops                    
+    def walk_ended(self):
+        return self.current_node == None
+
 # The TPB scheduler has access to:
 #   PEArray 
 #   Pool 
@@ -251,9 +366,9 @@ class TPBSched:
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, op_list, inputs):
         self.inputs = inputs
-        assert (op_list[0]['layer_type'] == 'Conv')
+        assert (op_list[0].data['layer_type'] == 'Conv')
         # get weights from file
-        weights = np.load(op_list[0]['kernel_file'])
+        weights = np.load(op_list[0].data['kernel_file'])
         M, C, R, S = weights.shape
         # initial values
         psum_bank = 0
@@ -292,21 +407,22 @@ class TPBSched:
                         # go through the remaining operations
                         op_result = self.pearray.extract_psum(psum_bank, 0, self.ofmap_tile_sz)
                         for i in range(1, len(op_list)):
-                            if (op_list[i]['layer_type'] == 'Relu'):
+                            layer_type = op_list[i].data['layer_type'] 
+                            if (layer_type == 'Relu'):
                                 self.activate.wait_tile_done(fullwave_id)
                                 op_result = self.activate.relu(op_result)
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, op_result)
-                            elif (op_list[i]['layer_type'] == 'BiasAdd'):
+                            elif (layer_type == 'BiasAdd'):
                                 self.pool.wait_tile_done(fullwave_id)
-                                bias = np.load(op_list[i]['kernel_file'])
+                                bias = np.load(op_list[i].data['kernel_file'])
                                 op_result = self.pool.biasadd(op_result, bias)
                                 print("Bias\n", bias)
                                 print("BiasAdd\n", op_result)
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
                             else:
-                                print ("%s is currently not yet implemented"%op_list[i]['layer_type'])
+                                print ("%s is currently not yet implemented"%layer_type)
                         # if operation is the last one, dump current result into a portion of final result
                         for j in range(self.pearray.NUM_COLS):
                             M_idx = wave_id.m_id * self.pearray.NUM_COLS + j
@@ -327,84 +443,81 @@ class TPBSched:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--kgraph", help="K-graph Json file to read")
+    parser.add_argument("--debug", default=1, help="Debug level")
     args = parser.parse_args()
 
     try:
         print("\nLoading K-graph %s"%args.kgraph)
-        kgraph = json.load(open(args.kgraph))
+        kgraph_json = json.load(open(args.kgraph))
     except Exception as e:
         print(e)
         exit(-1)
 
-    # get the lowest significant bit
-    data_type = kgraph["data_type"]
-    #if (data_type == "float16"):
+    # create graph from JSON file        
+    kgraph = KGraph()
+    kgraph.populate_from_json(kgraph_json)
 
-    # collect some information
-    layers = kgraph["layers"]
-    num_layers = len(layers)
-    if (num_layers >= 1):
-        input_layer = layers[0]
-        output_layer = layers[num_layers-1]
-    else:
-        print("ERROR: there are no layers!")
-        exit(-1)
+    input_layer = kgraph.first_node.data
+    output_layer = kgraph.last_node.data
+    print("Input layer: ", input_layer['layer_name'])
+    print("Output layer: ", output_layer['layer_name'])
+
+    # add forward references
+    kgraph.add_forward_refs(kgraph.last_node)
 
     # take first layer as input
-    if (layers[0]['ofmap_format'] == 'NCHW'):
-        iN,iC,iH,iW = layers[0]['ofmap_shape']
+    if (input_layer['ofmap_format'] == 'NCHW'):
+        iN,iC,iH,iW = input_layer['ofmap_shape']
         print("Input shape",iN,iC,iH,iW)
     else:
-        print("ERROR: don't understand input ofmap_format %s"%layers[0]['ofmap_format'])
+        print("ERROR: don't understand input ofmap_format %s"%input_layer['ofmap_format'])
         exit(-1)
 
     # take last layer as output
-    if (num_layers >= 1):
-        if (layers[num_layers-1]['ofmap_format'] == 'NCHW'):
-            oN,oC,oH,oW = layers[num_layers-1]['ofmap_shape']
-            print("Output shape",oN,oC,oH,oW)
-        else:
-            print("ERROR: don't understand output ofmap_format %s"%layers[num_layers-1]['ofmap_format'])
-            exit(-1)
+    if (output_layer['ofmap_format'] == 'NCHW'):
+        oN,oC,oH,oW = output_layer['ofmap_shape']
+        print("Output shape",oN,oC,oH,oW)
+    else:
+        print("ERROR: don't understand output ofmap_format %s"%output_layer['ofmap_format'])
+        exit(-1)
 
     # go through all layers and add the fusable operations
-    # TODO: this assumes that the fusable layers are next to each other, and in order in JSON file
-    op_list = []    
-    for l in layers:
-        if (re.search(r"Conv|Add|BiasAdd|Relu|.*Pool", l['layer_type'])) :
-            op_list.append(l)
-    if (len(op_list) == 0):
-        print("ERROR: found zero operations to fuse")
-        exit(-1)
+    inputs = None
+    while (not kgraph.walk_ended()):
+        op_list = kgraph.get_fused_ops()
 
-    # The first one should be conv
-    # TODO: add matrix multiply
-    if (re.search(r"Conv", op_list[0]['layer_type'])):
-        tpb = TPBSched()
-        convN, convC, convH, convW = op_list[0]['ofmap_shape']
-        pad_north, pad_south = op_list[0]['padding'][2]
-        pad_west, pad_east = op_list[0]['padding'][3]
-        # stride: ignore stride_batch and stride_depth for now; also assume stride_x==stride_y
-        stride_x = op_list[0]['stride'][2]
-        stride_y = op_list[0]['stride'][3]
-        assert(stride_x == stride_y)
-        tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x)
-        # TODO: add selecting among pre-derived looping schemes
-        inputs = np.load(input_layer['ref_file'])
-        weights = np.load(layers[1]['kernel_file'])
-        results = tpb.execute_conv_ops(op_list, inputs)
-        outputs = np.load(output_layer['ref_file'])
-        np.allclose(results, outputs, 1/100, 1e-9)
+        # Check init op
+        if (re.search(r"Input", op_list[0].data['layer_type'])):
+            inputs = np.load(op_list[0].data['ref_file'])
+            print("Input: Loaded ", op_list[0].data['ref_file']) 
+        # Check conv fused op
+        # TODO: add matrix multiply
+        elif (re.search(r"Conv", op_list[0].data['layer_type'])):
+            conv_layer = op_list[0].data
+            tpb = TPBSched()
+            convN, convC, convH, convW = conv_layer['ofmap_shape']
+            pad_north, pad_south = conv_layer['padding'][2]
+            pad_west, pad_east = conv_layer['padding'][3]
+            # stride: ignore stride_batch and stride_depth for now; also assume stride_x==stride_y
+            stride_x = conv_layer['stride'][2]
+            stride_y = conv_layer['stride'][3]
+            assert(stride_x == stride_y)
+            tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x)
+            # TODO: add selecting among pre-derived looping schemes
+            weights = np.load(conv_layer['kernel_file'])
+            results = tpb.execute_conv_ops(op_list, inputs)
+            outputs = np.load(output_layer['ref_file'])
+            np.allclose(results, outputs, 1/100, 1e-9)
 
-        print("\nInput IFMAPS:\n", inputs)
-        #print("\nWeights:\n", weights)
-        print("\nComputed OFMAPS:\n", results)
-        print("\nExpected OFMAPS:\n", outputs)
-        if (not np.allclose(results, outputs, 1/100, 1e-9)):
-            print("\nFAILED: computed OFMAPS is not equal to expected OFMAPS!\n")
-        else:
-            print("\nPASSED\n")
-    else:        
-        print("ERROR: the first operation should be Conv")
-        exit(-1)
+            print("\nInput IFMAPS:\n", inputs)
+            #print("\nWeights:\n", weights)
+            print("\nComputed OFMAPS:\n", results)
+            print("\nExpected OFMAPS:\n", outputs)
+            if (not np.allclose(results, outputs, 1/100, 1e-9)):
+                print("\nFAILED: computed OFMAPS is not equal to expected OFMAPS!\n")
+            else:
+                print("\nPASSED\n")
+        else:        
+            print("ERROR: the first operation should be Conv")
+            exit(-1)
 
