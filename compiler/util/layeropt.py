@@ -15,10 +15,13 @@ def ceildiv(a,b):
 # Wave ID
 class WaveID:
     def __init__(self, n_id, m_id, h_id, w_id, c_id, r_id, s_id):
+        self.format = "nmhwcrs"
         self.n_id, self.m_id, self.h_id, self.w_id = n_id, m_id, h_id, w_id
         self.c_id, self.r_id, self.s_id = c_id, r_id, s_id
     def show(self):
         return [self.n_id, self.m_id, self.h_id, self.w_id, self.c_id, self.r_id, self.s_id]
+    def id_string(self):
+        return "n%d_m%d_h%d_w%d_c%d_r%d_s%d"%(self.n_id, self.m_id, self.h_id, self.w_id, self.c_id, self.r_id, self.s_id)
 
 # PE Array properties and methods
 class PEArray:
@@ -77,9 +80,14 @@ class BiasAddAct:
 class StateBuffer:
     SB_NUM_PARTITIONS = 128
     SB_PARTITION_SZ = 6*16*1024
-    SB_NUM_1K_ATOMS = SB_PARTITION_SZ/1024
+    SB_ATOM_SZ = 1024
+    SB_NUM_1K_ATOMS = SB_PARTITION_SZ/SB_ATOM_SZ
     def __init__(self):
         self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
+        self.infbuf_weights = CircularBuffer(1024, self.SB_ATOM_SZ, 0)
+        self.infbuf_ifmaps = CircularBuffer(1024, self.SB_ATOM_SZ, 24)
+        self.infbuf_bias = CircularBuffer(1024, self.SB_ATOM_SZ, 48)
+        self.infbuf_scratch = CircularBuffer(1024, self.SB_ATOM_SZ, 72)
     def write(self, partition, address, write_data):
         self.data[partition, address:len(write_data)] = write_data
 
@@ -93,26 +101,80 @@ class CircularBufferElem:
         self.offset = offset
 
 class CircularBuffer:
-    def __init__(self, capacity):
-        self.read_pointer = 0
-        self.write_pointer = 0
-        self.count = 0
+    # TODO: instead of using initial start atom, determine max capacity during first pass
+    # then adjust the start to fit SB
+    def __init__(self, capacity, atom_sz, start):
         self.capacity = capacity
-        self.valid = np.zeros(capacity)
-    def malloc(self):
-        alloc = self.write_pointer
+        self.atom_sz = atom_sz
+        self.start = start
+        self.reset()
+    def reset(self):
+        self.head_pointer = 0
+        self.tail_pointer = 0
+        self.current_offset_in_file = 0
+        # assuming continuous data, this points to the next data byte within atom
+        self.tail_atom_byte_ptr = 0
+        self.count = 0
+        self.max_count = 0
+        self.valid = np.zeros(self.capacity)
+        self.dram_data_file = None
+        self.dram_data = None
+        self.layer_name = ""
+        self.layer_type = ""
+    def load_data(self, node):       
+        self.reset()
+        if (node.data['layer_type'] == 'Input'):
+            self.dram_data_file = node.data['ref_file']
+            #TODO: what about bias?
+        else:            
+            self.dram_data_file = node.data['kernel_file']
+        self.dram_data = np.load(self.dram_data_file)
+        self.layer_name = node.data['layer_name']
+        self.layer_type = node.data['layer_type']
+        return self.dram_data
+    def gen_dram_instr(self, wave_id):    
+        return {
+              "waveop_type"      : "SBAtomFile",
+              "waveop_name"      : self.layer_name+"/SBAtomFile_%d"%self.current_offset_in_file,
+              "layer_name"       : self.layer_name,
+              "atom_id"          : self.current_atom_id,
+              "ref_file"         : self.dram_data_file,
+              "offset_in_file"   : self.current_offset_in_file,
+              "length"           : self.atom_sz,
+              "ifmaps_replicate" : False,
+              "ifmaps_fold_idx"  : wave_id.c_id
+            }
+    def cache_data(self, wave_id, size):
+        dram_instr = None
+        new_byte_pointer = self.tail_atom_byte_ptr + size
+        if (self.count == 0):
+            self.current_atom_id = self.add_atom()
+            dram_instr           = self.gen_dram_instr(wave_id)
+        elif (new_byte_pointer >= self.atom_sz):
+            self.tail_atom_byte_ptr = new_byte_pointer - self.atom_sz
+            self.current_atom_id    = self.add_atom()
+            dram_instr              = self.gen_dram_instr(wave_id)
+        return dram_instr
+    def add_atom(self):
+        atom_id = self.start + self.tail_pointer
         if (self.count == self.capacity):
-            print ("MALLOC ERROR: no more space!")
+            print ("ADD ATOM ERROR: no more space!")
             return -1
+        self.current_offset_in_file = self.tail_pointer
+        self.tail_pointer += 1
         self.count += 1
-        self.valid[alloc] = 1            
-        return alloc
-    def free(self, location):   
-        if (self.valid[location] == 1):
-            self.valid[location] = 0
+        if (self.count > self.max_count):
+            self.max_count = self.count
+        self.valid[atom_id] = 1            
+        return atom_id
+    def free_atom(self, atom_id):   
+        if (self.valid[atom_id] == 1):
+            self.valid[atom_id] = 0
             self.count -= 1
         else:
-            print ("FREE ERROR: location %d is empty!"%location)
+            print ("FREE ATOM ERROR: atom ID %d is already freed!"%atom_id)
+        # TODO: advance head pointer 
+
 
 # Neural network node, containing data read from JSON
 class KNode:
@@ -238,6 +300,8 @@ class TPBSched:
         self.pearray = PEArray()
         self.pool = Pool()
         self.activate = BiasAddAct()
+        self.statebuffer = StateBuffer()
+        self.instr_stream = []
 
     # Compute matrix multiply loops
     # Inputs:
@@ -343,6 +407,22 @@ class TPBSched:
                 break
         return out_array
 
+    def compute_wave_ifmaps_offset (self, ifmaps, wave_id):
+        # For NCHW format
+        return int(np.ravel_multi_index((wave_id.n_id * self.Tn,
+                                     wave_id.c_id * self.pearray.NUM_ROWS, 
+                                     wave_id.h_id * self.ifmap_tiley_sz, 
+                                     wave_id.w_id * self.ifmap_tilex_sz), 
+                                     dims=ifmaps.shape))
+
+    def compute_wave_ifmaps_end (self, ifmaps, wave_id):
+        # For NCHW format
+        return int(np.ravel_multi_index((wave_id.n_id * self.Tn,
+                                     wave_id.c_id * self.pearray.NUM_ROWS, 
+                                     wave_id.h_id * self.ifmap_tiley_sz, 
+                                     wave_id.w_id * self.ifmap_tilex_sz), 
+                                     dims=ifmaps.shape))
+
     # Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
     #   weights: conv weights in MCRS format
     #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
@@ -362,14 +442,64 @@ class TPBSched:
                                                       wave_id.r_id, 
                                                       wave_id.s_id]
         return out_array
-    
+    def compute_wave_conv_weights_offset(self, weights, wave_id):
+        # For MCRS format (not good, since the weights are not contiguous)
+        return int(np.ravel_multi_index((wave_id.m_id * self.pearray.NUM_COLS, 
+                                     wave_id.c_id * self.pearray.NUM_ROWS, 
+                                     wave_id.r_id, 
+                                     wave_id.s_id), 
+                                     dims=weights.shape))
+    def compute_wave_conv_weights_end(self, weights, wave_id):
+        # For MCRS format (not good, since the weights are not contiguous)
+        return int(np.ravel_multi_index((wave_id.m_id * self.pearray.NUM_COLS + min(self.pearray.NUM_COLS, self.M % self.pearray.NUM_COLS) - 1, 
+                                     wave_id.c_id * self.pearray.NUM_ROWS + min(self.pearray.NUM_ROWS, self.C % self.pearray.NUM_ROWS) - 1, 
+                                     self.R - 1, 
+                                     self.S - 1), 
+                                     dims=weights.shape))
+
+    # generate MatMul instruction and add it to instruction stream
+    def gen_matmul_instr_inline(self, op, dram_weights_instr, dram_ifmaps_instr, wave_id, weights, ifmaps, psum_bank, psum_add):
+        input_list = []
+        if (len(self.instr_stream) > 0):
+            input_list.append(self.instr_stream[-1]['waveop_name'])
+        if (dram_weights_instr != None):
+            input_list.append(dram_weights_instr['waveop_name'])
+            self.instr_stream.append(dram_weights_instr)
+        if (dram_ifmaps_instr != None):
+            input_list.append(dram_ifmaps_instr['waveop_name'])
+            self.instr_stream.append(dram_ifmaps_instr)
+        matmul_instr = {
+              'prev_waveops'            : input_list,
+              'waveop_type'             : 'MatMul',
+              'waveop_name'             : op.data['layer_name']+"/MatMul_"+wave_id.id_string(),
+              'layer_name'              : op.data['layer_name'],
+              'weights_atom_id'         : self.statebuffer.infbuf_weights.current_atom_id,
+              'ifmaps_atom_id'          : self.statebuffer.infbuf_ifmaps.current_atom_id,
+              'weights_offset_in_atom'  : self.compute_wave_conv_weights_offset(weights, wave_id) % self.statebuffer.infbuf_weights.atom_sz,
+              'ifmaps_offset_in_atom'   : self.compute_wave_ifmaps_offset(ifmaps, wave_id) % self.statebuffer.infbuf_ifmaps.atom_sz,
+              'wave_id_format'          : wave_id.format,
+              'wave_id'                 : wave_id.show(),
+              'start'                   : not(psum_add),
+              'psum_bank_id'            : psum_bank
+            }
+        self.instr_stream.append(matmul_instr)
+
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, op_list, inputs):
         self.inputs = inputs
         assert (op_list[0].data['layer_type'] == 'Conv')
         # get weights from file
-        weights = np.load(op_list[0].data['kernel_file'])
-        M, C, R, S = weights.shape
+        weights = self.statebuffer.infbuf_weights.load_data(op_list[0])
+        if (op_list[0].data['kernel_format'] == "MCRS"):
+            M, C, R, S = weights.shape
+        else:
+            print("ERROR: don't understand kernel format %s"%op_list[0].data['ofmap_format'])
+            exit(-1)
+        weight_cols_per_wave = min(M, self.pearray.NUM_COLS)
+        ifmap_cols_per_wave = min(M, self.pearray.NUM_COLS)
+        self.R = R
+        self.S = R
+
         # initial values
         psum_bank = 0
         psum_add = False                               
@@ -385,11 +515,14 @@ class TPBSched:
                             for r_id in range(R):
                                 for s_id in range(S):
                                     wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, r_id, s_id)
-                                    pearray_packed_ifmaps = self.pack_wave_ifmaps(inputs, wave_id)
                                     pearray_packed_weights = self.pack_wave_conv_weights(weights, wave_id)
+                                    pearray_packed_ifmaps = self.pack_wave_ifmaps(inputs, wave_id)
                                     #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
                                     #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
+                                    dram_weights_instr = self.statebuffer.infbuf_weights.cache_data(wave_id, weight_cols_per_wave)
+                                    dram_ifmaps_instr = self.statebuffer.infbuf_ifmaps.cache_data(wave_id, ifmap_cols_per_wave)
                                     self.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank, psum_add)
+                                    self.gen_matmul_instr_inline(op_list[0], dram_weights_instr, dram_ifmaps_instr, wave_id, weights, inputs, psum_bank, psum_add)
                                     # after the first wave, subsequent waves results are added to partial sums in buffer
                                     if (not psum_add):
                                         psum_add = True
@@ -411,12 +544,14 @@ class TPBSched:
                             if (layer_type == 'Relu'):
                                 self.activate.wait_tile_done(fullwave_id)
                                 op_result = self.activate.relu(op_result)
+                                # TODO: generate Relu instruction inline
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, op_result)
                             elif (layer_type == 'BiasAdd'):
                                 self.pool.wait_tile_done(fullwave_id)
                                 bias = np.load(op_list[i].data['kernel_file'])
                                 op_result = self.pool.biasadd(op_result, bias)
+                                # TODO: generate BiasAdd instruction inline
                                 print("Bias\n", bias)
                                 print("BiasAdd\n", op_result)
                                 if (i != len(op_list)-1):
@@ -443,6 +578,7 @@ class TPBSched:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--kgraph", help="K-graph Json file to read")
+    parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
     parser.add_argument("--debug", default=1, help="Debug level")
     args = parser.parse_args()
 
@@ -473,28 +609,27 @@ if __name__ == "__main__":
         print("ERROR: don't understand input ofmap_format %s"%input_layer['ofmap_format'])
         exit(-1)
 
-    # take last layer as output
-    if (output_layer['ofmap_format'] == 'NCHW'):
-        oN,oC,oH,oW = output_layer['ofmap_shape']
-        print("Output shape",oN,oC,oH,oW)
-    else:
-        print("ERROR: don't understand output ofmap_format %s"%output_layer['ofmap_format'])
-        exit(-1)
-
     # go through all layers and add the fusable operations
     inputs = None
+    tpb = TPBSched()
     while (not kgraph.walk_ended()):
         op_list = kgraph.get_fused_ops()
 
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
-            inputs = np.load(op_list[0].data['ref_file'])
-            print("Input: Loaded ", op_list[0].data['ref_file']) 
+            inputs = tpb.statebuffer.infbuf_ifmaps.load_data(op_list[0])
+            #inputs = np.load(op_list[0].data['ref_file'])
+            if (op_list[0].data['ofmap_format'] == 'NCHW'):
+                iN,iC,iH,iW = op_list[0].data['ofmap_shape']
+                print("Input shape",iN,iC,iH,iW)
+            else:
+                print("ERROR: don't understand input ofmap_format %s"%input_layer['ofmap_format'])
+                exit(-1)
+            print("Input shape ", iN,iC,iH,iW, " ref_file ", op_list[0].data['ref_file']) 
         # Check conv fused op
         # TODO: add matrix multiply
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
             conv_layer = op_list[0].data
-            tpb = TPBSched()
             convN, convC, convH, convW = conv_layer['ofmap_shape']
             pad_north, pad_south = conv_layer['padding'][2]
             pad_west, pad_east = conv_layer['padding'][3]
@@ -504,13 +639,11 @@ if __name__ == "__main__":
             assert(stride_x == stride_y)
             tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x)
             # TODO: add selecting among pre-derived looping schemes
-            weights = np.load(conv_layer['kernel_file'])
             results = tpb.execute_conv_ops(op_list, inputs)
             outputs = np.load(output_layer['ref_file'])
             np.allclose(results, outputs, 1/100, 1e-9)
 
             print("\nInput IFMAPS:\n", inputs)
-            #print("\nWeights:\n", weights)
             print("\nComputed OFMAPS:\n", results)
             print("\nExpected OFMAPS:\n", outputs)
             if (not np.allclose(results, outputs, 1/100, 1e-9)):
@@ -520,4 +653,34 @@ if __name__ == "__main__":
         else:        
             print("ERROR: the first operation should be Conv")
             exit(-1)
+
+    # write out wavegraph           
+    wavegraph_json = kgraph_json
+    if (args.wavegraph != None): 
+        wavegraph_json['waveops'] = tpb.instr_stream
+        try:
+            print("\nSaving Wave-Graph %s"%args.wavegraph)
+            with (open(args.wavegraph, 'w')) as f:
+                s = json.dumps(wavegraph_json, indent=2, sort_keys=True)
+                s = re.sub(r'\s+(\d+,)\n', r' \1', s, flags=re.S)
+                s = re.sub(r',\s+(\d+)\n\s+\]', r', \1 ]', s, flags=re.S)
+                s = re.sub(r'\s+(\[ \d+, \d+ \],)\n', r' \1', s, flags=re.S)
+                s = re.sub(r',\s+(\[ \d+, \d+ \])\n\s+\]', r', \1 ]', s, flags=re.S)
+                f.write(s)
+        except Exception as e:
+            print(e)
+            exit(-1)
+
+    # test by reading it back
+    try:
+        print("\nTest by loading Wave-graph %s"%args.wavegraph)
+        wavegraph_json = json.load(open(args.wavegraph))
+    except Exception as e:
+        print(e)
+        exit(-1)
+
+    # create graph from JSON file        
+    wavegraph = KGraph()
+    wavegraph.populate_from_json(wavegraph_json)
+
 
