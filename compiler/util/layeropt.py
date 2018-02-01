@@ -255,7 +255,7 @@ class KGraph:
                 if (len(prev_layers) > 0):
                     for i in prev_layers:
                         if i in self.node_dict:
-                            print("Previous waveop for ", new_node.data['waveop_name'], " is ", i)
+                            if (args.debug > 0): print("Previous waveop for ", new_node.data['waveop_name'], " is ", i)
                             new_node.add_prev(self.node_dict[i])
                         else:
                             print("ERROR: node %s isn't declared before %s"%(i, l['waveop_name']))
