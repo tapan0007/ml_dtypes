@@ -26,9 +26,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--test', help='Run specific tests (list)', nargs='+', default=[])
 parser.add_argument('--stop_after', help='Supported: frontend, backend (default)', default="backend")
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
+parser.add_argument('--level', help='Run tests upto this level, default 4', default=4)
 
 args = parser.parse_args()
 verbose = args.verbose
+level = int(args.level)
 
 if verbose:
   print("\nINFO: started as  ", " ".join(sys.argv))
@@ -90,7 +92,14 @@ tests = {
   "8-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--images linspace1 --depth 2"],
 }
 
-testList = sorted(tests)
+# Filter by level
+def getLevel(testName):
+  return int(testName[0])
+testList = []
+for testName in sorted(tests):
+  if getLevel(testName) <= level:
+    testList.append(testName)
+
 if len(args.test) > 0:
   testList = args.test
 

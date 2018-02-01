@@ -314,11 +314,13 @@ class TfFe:
 
     #print("Dot=", dot.source)
     dot.format = outFormat
-    print("INFO: invoking dot to render " + outFile + "." + outFormat)
+    outFileAndExt = outFile + "." + outFormat
+    print("INFO: invoking dot to render " + outFileAndExt)
     if MiscUtil.ExecTimeout.run(dot.render, outFile, 10):
-      print("INFO: wrote " + outFile + "." + outFormat)      
+      print("INFO: wrote " + outFileAndExt)      
     else:
       print("INFO: dot rendering timed out, skipping")
+      os.remove(outFileAndExt)
   
   @staticmethod
   def tf2dotName(tfName):
