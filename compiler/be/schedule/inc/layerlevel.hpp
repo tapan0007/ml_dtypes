@@ -15,7 +15,6 @@ namespace layers {
 }
 
 //using namespace utils;
-using layers::Layer;
 
 
 namespace schedule {
@@ -24,13 +23,13 @@ namespace schedule {
 class LayerLevel {
 public:
     //--------------------------------------------------------
-    LayerLevel(kcc_int32 levelNum, const std::vector<Layer*>& initLayers);
+    LayerLevel(kcc_int32 levelNum, const std::vector<layers::Layer*>& initLayers);
 
     //--------------------------------------------------------
-    void remove(Layer* layer);
+    void remove(layers::Layer* layer);
 
     //--------------------------------------------------------
-    void append(Layer* layer);
+    void append(layers::Layer* layer);
 
     //--------------------------------------------------------
     kcc_int32 gLevelNum() const {
@@ -38,12 +37,12 @@ public:
     }
 
     //--------------------------------------------------------
-    std::vector<Layer*>& gLayers() {
+    std::vector<layers::Layer*>& gLayers() {
         return m_Layers;
     }
 
     //--------------------------------------------------------
-    bool qContainsLayer(Layer* layer) const;
+    bool qContainsLayer(layers::Layer* layer) const;
 
     //--------------------------------------------------------
     kcc_int32 gNumberLayers() const {
@@ -51,7 +50,7 @@ public:
     }
 
     //--------------------------------------------------------
-    void appendLayer(Layer* layer) {
+    void appendLayer(layers::Layer* layer) {
         m_Layers.push_back(layer);
     }
 
@@ -60,7 +59,7 @@ public:
 
 private:
     kcc_int32 m_LevelNum;
-    std::vector<Layer*> m_Layers;
+    std::vector<layers::Layer*> m_Layers;
 };
 
 }}

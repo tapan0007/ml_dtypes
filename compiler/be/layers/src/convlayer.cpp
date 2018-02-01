@@ -13,21 +13,19 @@ namespace layers {
 
 //--------------------------------------------------------
 ConvLayer::ConvLayer(const Params& params, Layer* prev_layer,
-        const FmapDesc& fmapDesc, const string& dataTensorSemantics,
+        const FmapDesc& fmapDesc,
         const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel,
         const std::tuple<kcc_int32,kcc_int32,kcc_int32,kcc_int32>& padding,
-        const char* filterFileName, const char* filterTensorDimSemantics)
-    : SubSampleLayer(params, prev_layer,
-                fmapDesc, dataTensorSemantics,
-                stride, kernel, padding)
+        const char* filterFileName, const char* filterTensorFormat)
+    : SubSampleLayer(params, prev_layer, fmapDesc, stride, kernel, padding)
 {
-    m_FilterFileName           =  filterFileName;
-    m_FilterTensorDimSemantics = filterTensorDimSemantics;
+    m_FilterFileName           = filterFileName;
+    m_FilterTensorFormat       = filterTensorFormat;
     m_WeightAddress            = StateBufferAddress_Invalid;
 }
 
 //--------------------------------------------------------
-string
+std::string
 ConvLayer::gString() const
 {
     std::stringstream ss;

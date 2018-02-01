@@ -7,7 +7,7 @@ namespace kcc {
 namespace utils {
 
 //----------------------------------------------------------------
-string
+std::string
 FmapDesc::gString() const
 {
     std::stringstream ss;

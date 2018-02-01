@@ -16,11 +16,11 @@ TanhLayer::TanhLayer(const Params& params, Layer* prev_layer)
 
 
 //--------------------------------------------------------
-string
+std::string
 TanhLayer::gString() const
 {
-    string baseLayerStr = gBaseLayerStr();
-    string retVal;
+    std::string baseLayerStr = gBaseLayerStr();
+    std::string retVal;
     retVal = retVal + gTypeStr() + " " + baseLayerStr + gStateSizesStr();
     return retVal;
 }

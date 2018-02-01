@@ -13,7 +13,7 @@ class PsumBuffer;
 
 class ActivationEng {
 public:
-    ActivationEng(PsumBuffer* psumBuffer);
+    ActivationEng(const PsumBuffer& psumBuffer);
 
     kcc_int32 gWidth() const {
         return m_Width;

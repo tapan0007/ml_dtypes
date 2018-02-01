@@ -14,7 +14,6 @@ namespace layers {
 //----------------------------------------------------------------
 Layer::Layer(const Params& params,
         const FmapDesc&ofmap_desc,
-        const string& dataDensorDimSemantics,
         const std::vector<Layer*>& prev_layers)
     : m_LayerName(params.m_LayerName)
     , m_Network(params.m_Network)
@@ -33,8 +32,8 @@ Layer::Layer(const Params& params,
     , m_RefCount(0)
     , m_Id(LayerId_Null)
     , m_OfmapDesc(ofmap_desc)
-    , m_DataTensorDimSemantics(dataDensorDimSemantics)
-    , m_RefFileName("")
+    , m_RefFileName(params.m_RefFile)
+    , m_RefFileFormat(params.m_RefFileFormat)
 {
     assert(m_BatchFactor >= 1 && "Batching factor not >= 1");
     for (auto prevLayer : prev_layers) {
@@ -92,10 +91,10 @@ bool Layer::qStoreInSB() const
 
 
 //----------------------------------------------------------------
-string Layer::gBaseLayerStr() const
+std::string Layer::gBaseLayerStr() const
 {
     kcc_int32 i = 0;
-    string s = "";
+    std::string s = "";
     for (auto prevLayer : gPrevLayers()) {
         const FmapDesc& ofmap_desc = prevLayer->gOfmapDesc();
         if (i == 0) {
@@ -108,7 +107,7 @@ string Layer::gBaseLayerStr() const
     s += "-->" + gOfmapDesc().gString();
     return s;
 }
- 
+
 StateBufferAddress
 Layer::gNumberWeights() const
 {
@@ -122,7 +121,7 @@ Layer::gNumberWeightsPerPartition() const
 }
 
 //----------------------------------------------------------------
-string Layer::gStateSizesStr() const
+std::string Layer::gStateSizesStr() const
 {
     kcc_int64 nIn, nOut, iState, oState, tState;
     if (qStoreInSB()) {
@@ -159,7 +158,7 @@ string Layer::gStateSizesStr() const
 
 
 //----------------------------------------------------------------
-string Layer::gNameWithSched() const
+std::string Layer::gNameWithSched() const
 {
     std::stringstream ss;
     ss  << gName()
@@ -169,12 +168,12 @@ string Layer::gNameWithSched() const
 }
 
 //----------------------------------------------------------------
-string Layer::gNameWithSchedMem() const
+std::string Layer::gNameWithSchedMem() const
 {
     std::stringstream s;
     //Str = kstr
     //Str = Kstr
-    string name = gNameType();
+    std::string name = gNameType();
 
     if (qStoreInSB()) {
         std::stringstream ss;

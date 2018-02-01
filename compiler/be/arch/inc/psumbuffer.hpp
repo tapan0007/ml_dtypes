@@ -15,7 +15,7 @@ class PeArray;
 class PsumBuffer {
 public:
     //----------------------------------------------------------------
-    PsumBuffer(const PeArray* peArray, kcc_int32 numberBanks, kcc_int32 numberBankEntries);
+    PsumBuffer(const PeArray& peArray, kcc_int32 numberBanks, kcc_int32 numberBankEntries);
 
     //----------------------------------------------------------------
     kcc_int32 gNumberBanks() const {
@@ -38,9 +38,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    kcc_int64 gAddress() const {
-        return 0x001800000L;
-    }
+    kcc_int64 gAddress() const;
 
 private:
     const kcc_int32  m_NumberColumns;

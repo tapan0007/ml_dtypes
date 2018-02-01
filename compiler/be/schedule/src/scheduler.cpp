@@ -7,8 +7,6 @@
 
 
 namespace kcc {
-using layers::Layer;
-using nets::Network;
 
 namespace schedule {
 
@@ -56,7 +54,7 @@ Scheduler::calculateLateLevels()
 
 //--------------------------------------------------------
 void
-Scheduler::Schedule(Network* ntwk)
+Scheduler::Schedule(nets::Network* ntwk)
 {
     m_Network = ntwk;
     m_Layers = ntwk->gLayers();
@@ -64,7 +62,14 @@ Scheduler::Schedule(Network* ntwk)
     //calcFanoutBatch()
 
     levelize();
-    assert(m_Levels[0]->gNumberLayers() == 1 && m_Levels[0]->qDataLevel() && "First level must consist of one Input layer");
+    int numInputs = 0;
+    for (auto layer0 : m_Levels[0]->gLayers()) {
+        assert(layer0->qDataLayer() && "All layers in the first level must be data layers");
+        if (layer0->qInputLayer()) {
+            ++numInputs;
+        }
+        assert(1 == numInputs && "First level must contain exactly one Input layer");
+    }
 
 
     // Move layers with input smaller than output to latest level for the layer
@@ -115,11 +120,11 @@ void Scheduler::linkSchedLayers()
         }
     }
 
-    Layer* layerWithoutNextSched = nullptr;
-    Layer* layerWithoutPrevSched = nullptr;
+    layers::Layer* layerWithoutNextSched = nullptr;
+    layers::Layer* layerWithoutPrevSched = nullptr;
 
     for (auto layer : m_Layers) {
-        Layer* nextSchedLayer = layer->gNextSchedLayer();
+        layers::Layer* nextSchedLayer = layer->gNextSchedLayer();
         if (nextSchedLayer) {
             assert(nextSchedLayer->gPrevSchedLayer() == layer);
             assert(layer->gSchedule() + 1 == nextSchedLayer->gSchedule());
@@ -128,7 +133,7 @@ void Scheduler::linkSchedLayers()
             layerWithoutNextSched = layer;
         }
 
-        Layer* prevSchedLayer = layer->gPrevSchedLayer();
+        layers::Layer* prevSchedLayer = layer->gPrevSchedLayer();
         if (prevSchedLayer) {
             assert(prevSchedLayer->gNextSchedLayer() == layer);
             assert(prevSchedLayer->gSchedule() + 1 == layer->gSchedule());
@@ -169,7 +174,7 @@ Scheduler::scheduleLevel(LayerLevel* level)
 
 //--------------------------------------------------------
 // Less than between layers
-static bool compareLayer(Layer* layer1, Layer* layer2)
+static bool compareLayer(layers::Layer* layer1, layers::Layer* layer2)
 {
     const kcc_int32 numNext1 = layer1->gNumNextLayers();
     const kcc_int32 numNext2 = layer2->gNumNextLayers();
@@ -199,7 +204,7 @@ static bool compareLayer(Layer* layer1, Layer* layer2)
 
 //--------------------------------------------------------
 void
-Scheduler::sortLayers(std::vector<Layer*>& levelCopy)
+Scheduler::sortLayers(std::vector<layers::Layer*>& levelCopy)
 {
     //--------------------------------------------------------
     std::sort(levelCopy.begin(), levelCopy.end(), compareLayer);
@@ -227,7 +232,7 @@ Scheduler::sortLayers(std::vector<Layer*>& levelCopy)
 // b + c + layer.out = inMem - input.that.can.be.released + layer.out
 //
 void
-Scheduler::processLayerSbMemForResidueWithoutBatching(Layer* layer)
+Scheduler::processLayerSbMemForResidueWithoutBatching(layers::Layer* layer)
 {
     assert(layer->qStoreInSB());
 
@@ -258,7 +263,7 @@ Scheduler::processLayerSbMemForResidueWithoutBatching(Layer* layer)
 
 //--------------------------------------------------------
 void
-Scheduler::processLayerSbMemForResidueWithBatching(Layer* layer)
+Scheduler::processLayerSbMemForResidueWithBatching(layers::Layer* layer)
 {
     assert(layer->qStoreInSB());
 
@@ -310,7 +315,7 @@ Scheduler::calcFanoutBatch()
 
 //--------------------------------------------------------
 void
-Scheduler::addPrevSbLayers(Layer* layer)
+Scheduler::addPrevSbLayers(layers::Layer* layer)
 {
     for (auto prevLayer : layer->gPrevLayers()) {
         if (prevLayer->qStoreInSB()) {
@@ -348,7 +353,7 @@ Scheduler::addPrevSbLayers(Layer* layer)
 //   L1:   B1*O1(self mem) + max(L1a, L1b)
 //-----------------------------------------------------------------
 void
-Scheduler::processSbConnectionForBatching(Layer* prevLayer, Layer* nextLayer)
+Scheduler::processSbConnectionForBatching(layers::Layer* prevLayer, layers::Layer* nextLayer)
 {
     assert(prevLayer->qStoreInSB() && nextLayer->qStoreInSB());
     const kcc_int32 deltaBatch = nextLayer->gBatchFactor() - prevLayer->gBatchFactor();
@@ -364,7 +369,7 @@ Scheduler::processSbConnectionForBatching(Layer* prevLayer, Layer* nextLayer)
 void
 Scheduler::calcSbMem()
 {
-    Network* network = m_Network;
+    nets::Network* network = m_Network;
 
     for (auto layer : network->gSchedForwLayers()) {
         addPrevSbLayers(layer);
@@ -414,7 +419,7 @@ Scheduler::gHighMemWatermark() const
 }
 
 static bool
-zeroPred(Layer* layer)
+zeroPred(layers::Layer* layer)
 {
     return layer->gNumPrevLayers() == 0;
 }
@@ -436,7 +441,7 @@ Scheduler::levelize()
     size_t currLevelNum = 0; assert(currLevelNum == Levels.size());
 
     // put all layers from self.__Layers without predecessors into lev0 (
-    std::vector<Layer*> lev0;
+    std::vector<layers::Layer*> lev0;
     //copy_if(m_Layers.begin(), m_Layers.end(), lev0.begin(), zeroPred);
     for (auto layer : m_Layers) {
         if (zeroPred(layer)) {
@@ -455,7 +460,7 @@ Scheduler::levelize()
 
     while (numUnprocessedLayers > 0) {
         const size_t nextLevelNum = currLevelNum + 1; assert(nextLevelNum == Levels.size());
-        LayerLevel* nextLevel = new LayerLevel(nextLevelNum, std::vector<Layer*>());
+        LayerLevel* nextLevel = new LayerLevel(nextLevelNum, std::vector<layers::Layer*>());
         for (auto currLayer : currLevel->gLayers()) {
             for (auto nextLayer : currLayer->gNextLayers()) {
                 nextLayer->changeNumPredecessors(-1);

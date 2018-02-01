@@ -19,26 +19,36 @@
 //#include "printer.hpp"
 
 
+namespace kcc {
+namespace arch {
+    class Arch;
+    class PeArray;
+    class PsumBuffer;
+    class PoolingEng;
+    class ActivationEng;
+    class StateBuffer;
+}
 
-using kcc::arch::Arch;
-using kcc::arch::PeArray;
-using kcc::arch::PsumBuffer;
-using kcc::arch::PoolingEng;
-using kcc::arch::ActivationEng;
-using kcc::arch::StateBuffer;
 
-using kcc::nets::Network;
-using kcc::layers::Layer;
-using kcc::schedule::Scheduler;
-using kcc::memmgr::StateBufferMgr;
-using kcc::codegen::CodeGen;
+namespace layers {
+    class Layer;
+}
+namespace schedule {
+    class Scheduler;
+}
+namespace memmgr {
+    class StateBufferMgr;
+}
+namespace codegen {
+    class CodeGen;
+}
 
 
 
 //------------------------------------------------
 
 int
-main(int argc, char* argv[])
+Main(int argc, char* argv[])
 {
     kcc::utils::breakFunc(44);
 #if 1
@@ -52,7 +62,7 @@ main(int argc, char* argv[])
 
     int i = 1;
     while (i < argc) {
-        string arg(argv[i]);
+        std::string arg(argv[i]);
 #if 1
         if (arg == "--print-layers") {
             PrintLayers = true;
@@ -86,8 +96,8 @@ main(int argc, char* argv[])
 
 
     //------------------------------------------------
-    Network network;
-    Network* ntwk = &network;
+    nets::Network network;
+    nets::Network* ntwk = &network;
     kcc::utils::breakFunc(44);
     {
         std::cout << "Reading NN from JSON file '" << JsonInFileName << "'\n";
@@ -97,35 +107,20 @@ main(int argc, char* argv[])
     }
 
     //------------------------------------------------
-    Arch* arch = new Arch();
-    std::cout << "Generating Arch '" << arch->gArchVersion() << "'\n";
-
-    PeArray* peArray = arch->gPeArray();
-    assert(peArray && "Arch missing PE array");
-    PsumBuffer* psumBuf = arch->gPsumBuffer();
-    assert(psumBuf && "Arch missing PSUM buffer");
-    PoolingEng* pool = arch->gPoolingEng();
-    assert(pool && "Arch missing pooling engine");
-    ActivationEng* activ = arch->gActivationEng();
-    assert(activ && "Arch missing activation engine");
-    StateBuffer* stbuf = arch->gStateBuffer();
-    assert(stbuf && "Arch missing State Buffer");
-    arch->gNumberPsumBanks();
-    arch->gPsumBankEntries();
-    arch->gNumberPeArrayRows();
-    arch->gNumberPeArrayColumns();
+    arch::Arch arch;
+    std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
 
 
     ntwk->rDoBatching(DoBatching);
 
     //--------------------------------------------------------
-    Scheduler* scheduler = new Scheduler();
+    schedule::Scheduler* scheduler = new schedule::Scheduler();
     std::cout << "Scheduling NN '" << ntwk->gName() << "'\n";
     scheduler->Schedule(ntwk);
     //ntwk->rLevels(scheduler->gLevels());
 
     //--------------------------------------------------------
-    StateBufferMgr* sbmgr = new StateBufferMgr(arch, ntwk);
+    memmgr::StateBufferMgr* sbmgr = new memmgr::StateBufferMgr(arch, ntwk);
     std::cout << "Calculating FMAP and weight state buffer addresses\n";
     sbmgr->calcLayerFmapAddresses();
 
@@ -150,8 +145,8 @@ main(int argc, char* argv[])
     }
 
     //--------------------------------------------------------
-    CodeGen* codegen = new CodeGen(ntwk, arch);
-    string objFileName(ntwk->gName());
+    codegen::CodeGen* codegen = new codegen::CodeGen(ntwk, arch);
+    std::string objFileName(ntwk->gName());
     objFileName += ".tpb";
 
     std::cout << "Generating instructions to file '" << objFileName << "'\n";
@@ -186,5 +181,13 @@ main(int argc, char* argv[])
     }
 
     return 0;
+}
+
+}
+
+int
+main(int argc, char* argv[])
+{
+    return kcc::Main(argc, argv);
 }
 

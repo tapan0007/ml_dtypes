@@ -6,7 +6,6 @@
 #include "consts.hpp"
 
 namespace kcc {
-// keep types and constants in kcc namespace to avoid "using utils::TYPE"
 
 using kcc_int8    = signed char;
 using kcc_int16   = short;
@@ -45,6 +44,10 @@ using KernelShapeType = kcc_int32[FILTER_TENSOR_RANK];
 using StrideType      = kcc_int32[FMAP_TENSOR_RANK];
 using PaddingType     = kcc_int32[FMAP_TENSOR_RANK][2];
 using BatchingType    = kcc_int32[FMAP_TENSOR_RANK];
+
+constexpr kcc_int64 power2(kcc_int64 b) {
+    return 1 << (b);
+}
 
 }
 

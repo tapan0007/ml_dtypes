@@ -11,7 +11,7 @@ class PsumBuffer;
 
 class PoolingEng {
 public:
-    PoolingEng(PsumBuffer* psumBuffer);
+    PoolingEng(const PsumBuffer& psumBuffer);
 
     kcc_int32 gWidth() const {
         return m_Width;

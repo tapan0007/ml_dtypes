@@ -8,6 +8,9 @@
 #include "tanhlayer.hpp"
 #include "maxpoollayer.hpp"
 #include "avgpoollayer.hpp"
+#include "constlayer.hpp"
+#include "resaddlayer.hpp"
+#include "biasaddlayer.hpp"
 
 #include "codegen.hpp"
 #include "codegeninputlayer.hpp"
@@ -16,17 +19,30 @@
 #include "codegentanhlayer.hpp"
 #include "codegenmaxpoollayer.hpp"
 #include "codegenavgpoollayer.hpp"
+#include "codegenconstlayer.hpp"
+#include "codegenresaddlayer.hpp"
+#include "codegenbiasaddlayer.hpp"
 
 namespace kcc {
+
+namespace layers {
+    class InputLayer;
+    class ConvLayer;
+    class MaxPoolLayer;
+    class AvgPoolLayer;
+    class ResAddLayer;
+    class BiasAddLayer;
+    class ConstLayer;
+}
 
 namespace codegen {
 
 
 //########################################################
-CodeGen::CodeGen(nets::Network* ntwk, arch::Arch* arch)
+CodeGen::CodeGen(nets::Network* ntwk, const arch::Arch& arch)
+    : m_Network(ntwk)
+    , m_Arch(arch)
 {
-    m_Network = ntwk;
-    m_Arch = arch;
     createGenMap();
 }
 
@@ -34,12 +50,15 @@ CodeGen::CodeGen(nets::Network* ntwk, arch::Arch* arch)
 void
 CodeGen::createGenMap()
 {
-    m_InputLayer.reset(new CodeGenInputLayer(this));
-    m_ConvLayer.reset(new CodeGenConvLayer(this));
-    m_ReluLayer.reset(new CodeGenReluLayer(this));
-    m_TanhLayer.reset(new CodeGenTanhLayer(this));
-    m_MaxPoolLayer.reset(new CodeGenMaxPoolLayer(this));
-    m_AvgPoolLayer.reset(new CodeGenAvgPoolLayer(this));
+    m_InputLayer   = std::make_unique<CodeGenInputLayer>(this);
+    m_ConvLayer    = std::make_unique<CodeGenConvLayer>(this);
+    m_ReluLayer    = std::make_unique<CodeGenReluLayer>(this);
+    m_TanhLayer    = std::make_unique<CodeGenTanhLayer>(this);
+    m_MaxPoolLayer = std::make_unique<CodeGenMaxPoolLayer>(this);
+    m_AvgPoolLayer = std::make_unique<CodeGenAvgPoolLayer>(this);
+    m_ResAddLayer  = std::make_unique<CodeGenResAddLayer>(this);
+    m_BiasAddLayer = std::make_unique<CodeGenBiasAddLayer>(this);
+    m_ConstLayer   = std::make_unique<CodeGenConstLayer>(this);
 }
 
 CodeGenLayer&
@@ -57,9 +76,16 @@ CodeGen::gGenFunc(const layers::Layer* layer)
         return *m_MaxPoolLayer;
     } else if (dynamic_cast<const layers::AvgPoolLayer*>(layer)) {
         return *m_AvgPoolLayer;
+    } else if (dynamic_cast<const layers::BiasAddLayer*>(layer)) {
+        return *m_BiasAddLayer;
+    } else if (dynamic_cast<const layers::ResAddLayer*>(layer)) {
+        return *m_ResAddLayer;
+    } else if (dynamic_cast<const layers::ConstLayer*>(layer)) {
+        return *m_ConstLayer;
     } else {
-        assert(false || "CodeGen::generate: Unknown layer");
+        assert("CodeGen::generate: Unknown layer");
     }
+    assert("CodeGen::generate: Unknown layer");
     return *m_InputLayer;
 }
 

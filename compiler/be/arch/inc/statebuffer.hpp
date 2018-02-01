@@ -14,7 +14,7 @@ class PeArray;
 class StateBuffer {
 public:
     //--------------------------------------------------------
-    StateBuffer(const PeArray* peArray, kcc_int64 partitionSizeInBytes);
+    StateBuffer(const PeArray& peArray, kcc_int64 partitionSizeInBytes);
 
     //--------------------------------------------------------
     kcc_int32 gNumberPartitions() const {

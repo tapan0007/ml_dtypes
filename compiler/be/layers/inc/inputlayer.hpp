@@ -4,40 +4,26 @@
 #define KCC_LAYERS_INPUTLAYER_H
 
 
-#include "layer.hpp"
-//#include "network.hpp"
+#include "datalayer.hpp"
 
 namespace kcc {
 namespace layers {
 
 //########################################################
-class InputLayer : public Layer {
+class InputLayer : public DataLayer {
 private:
-    using SubClass = Layer;
+    using SubClass = DataLayer;
 public:
     //----------------------------------------------------------------
     // Represents input FMAP. The input FMAP is stored as the *OUTPUT*
     // of the input layer.
 //--------------------------------------------------------
-    InputLayer(const Params& param, const FmapDesc& fmap_desc,
-                  const char* inputDataFileName,
-                  const string& dataTensorDimSemantics)
-        : Layer(param, fmap_desc, dataTensorDimSemantics, std::vector<Layer*>())
-    {
-        m_RefFileName = inputDataFileName;
-    }
+    InputLayer(const Params& param, const FmapDesc& fmap_desc)
+        : SubClass(param, fmap_desc)
+    { }
 
     //----------------------------------------------------------------
-    string gString() const override {
-        string baseLayer = gBaseLayerStr();
-        return (gName() + baseLayer
-               + gStateSizesStr());
-    }
-
-    //----------------------------------------------------------------
-    const string gInputDataFileName() const {
-        return m_RefFileName;
-    }
+    std::string gString() const override;
 
     //----------------------------------------------------------------
     static const char* gTypeStrStatic() {
@@ -46,7 +32,6 @@ public:
     const char*  gTypeStr() const  override {
         return gTypeStrStatic();
     }
-
 
 
     //----------------------------------------------------------------

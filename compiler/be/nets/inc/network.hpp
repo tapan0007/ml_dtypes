@@ -28,7 +28,6 @@ namespace schedule {
 namespace nets {
 
 using namespace utils;
-using schedule::LayerLevel;
 
 //--------------------------------------------------------
 // The whole neural net
@@ -58,7 +57,9 @@ public:
         , m_DoBatching(false)
     {}
 
+#if 0
     Network(const DataType* dataType, const std::string& netName);
+#endif
 
     bool qDoBatching() const {
         return m_DoBatching;
@@ -93,11 +94,12 @@ public:
     SchedRevLayers gSchedRevLayers();
 
 private:
-    const DataType*          m_DataType;
-    std::string                   m_Name;
-    std::vector<layers::Layer*>           m_Layers;
-    bool                     m_DoBatching;
-    std::map<string, layers::Layer*> m_Name2Layer;
+    //const DataType*                  m_DataType;
+    std::unique_ptr<DataType>        m_DataType;
+    std::string                      m_Name;
+    std::vector<layers::Layer*>      m_Layers;
+    bool                             m_DoBatching;
+    std::map<std::string, layers::Layer*> m_Name2Layer;
 }; // Network
 
 

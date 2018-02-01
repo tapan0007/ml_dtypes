@@ -1,0 +1,359 @@
+<html>
+
+<head>
+<meta name=Title content="Kaena regressions 20180131">
+</head>
+
+<body bgcolor=white lang=EN-US style='tab-interval:.5in'>
+
+<div class=WordSection1>
+
+<P>
+Pass rate drop due to biasadd patches and ISA change is being resolved in Sprint 8. Status Jan 31:
+<P>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>M<span class=GramE>0&nbsp; <span
+class=SpellE>zejdaj</span></span> (Inkling as of 3 days ago)</span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>M<span class=GramE>1&nbsp;
+Master</span> as of now</span><span style='font-size:11.0pt;mso-ascii-font-family:
+Calibri;mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>D<span class=GramE>1&nbsp;
+dana</span>-for-master + <span class=SpellE>Kaena Weights : CRSM</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;M0&nbsp;&nbsp;&nbsp;&nbsp;
+M1&nbsp;&nbsp;&nbsp;&nbsp; D1</span><span style='font-size:11.0pt;mso-ascii-font-family:
+Calibri;mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>----------------------------------------------</span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><b><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#7030A0'>0-10conv_relu</span></b><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:black'>&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PASS&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><b><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#7030A0'>0-116conv_tanh</span></b><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp;&nbsp;</span><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:red'>FAIL&nbsp;&nbsp; <span
+class=SpellE>FAIL</span></span><span style='font-size:11.0pt;mso-ascii-font-family:
+Calibri;mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1ap0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1ap7x7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1conv0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1conv_s2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1conv_s8_32b&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1conv_s8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1conv_tile&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1mp0c64&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1mp0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1mp_r3s2_112_55&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-1mp_r3s2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-2conv0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp; <span class=SpellE>PASS</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-2conv3_32b&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><b><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#7030A0'>0-2conv3_relu</span></b><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:black'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp;&nbsp;</span><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:red'>FAIL&nbsp;&nbsp; <span
+class=SpellE>FAIL</span></span><span style='font-size:11.0pt;mso-ascii-font-family:
+Calibri;mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-2conv_pad2as&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-2conv_pad2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-2conv_pad3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-2conv_pad5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-30conv3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-add&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-add_fp32&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-add_uint8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-biasadd&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>0-neg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>1-1conv7_64&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>1-1conv9_64&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PASS&nbsp;&nbsp;
+<span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span style='font-size:
+11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>2-1conv3_64s8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>2-1conv9_64s8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>2-padasym_strd_h3r2s2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>2-padasym_strd_h4r2s3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>2-padasym_strd_h5r2s2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>2-padsym_strd_h3r3s2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>2-padsym_strd_h4r3s3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:black'>2-padsym_strd_h5r3s2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+PASS&nbsp;&nbsp; <span class=SpellE>PASS</span>&nbsp;&nbsp;&nbsp;</span><span
+style='font-size:11.0pt;font-family:"Courier",serif;mso-bidi-font-family:"Times New Roman";
+color:red'>FAIL</span><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#00B050'>6-alexnet&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#00B050'>8-resnet152&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#00B050'>8-resnet50&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#00B050'>8-resnet50_fp16_keras&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#00B050'>8-resnet50_fp16_keras_opt&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#00B050'>8-resnet50_fp32_keras&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;font-family:"Courier",serif;
+mso-bidi-font-family:"Times New Roman";color:#00B050'>8-resnet50_fp32_keras_opt&nbsp;&nbsp;
+FAIL&nbsp;&nbsp; <span class=SpellE>FAIL</span>&nbsp;&nbsp; <span class=SpellE>FAIL</span></span><span
+style='font-size:11.0pt;mso-ascii-font-family:Calibri;mso-hansi-font-family:
+Calibri;mso-bidi-font-family:"Times New Roman";color:black'><o:p></o:p></span></p>
+
+<p class=MsoNormal><span style='font-size:11.0pt;mso-ascii-font-family:Calibri;
+mso-hansi-font-family:Calibri;mso-bidi-font-family:"Times New Roman";
+color:black'>&nbsp;<o:p></o:p></span></p>
+
+<p class=MsoNormal><o:p>&nbsp;</o:p></p>
+
+</div>
+
+</body>
+
+</html>
