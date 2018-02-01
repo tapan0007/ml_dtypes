@@ -303,8 +303,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                             serLayer.gStrideVertical(),
                                             serLayer.gStrideHorizontal());
             std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
-                                            serLayer.gKernelHeight(),
-                                            serLayer.gKernelWidth());
+                                            serLayer.gConvFilterHeight(),
+                                            serLayer.gConvFilterWidth());
             std::tuple<kcc_int32,kcc_int32, kcc_int32,kcc_int32> padding = std::make_tuple(
                                             serLayer.gPaddingTop(),
                                             serLayer.gPaddingBottom(),
@@ -319,18 +319,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           stride, kernel, padding,
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());
-        } else if (serLayer.gTypeStr() == TypeStr_Relu) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Relu layer: number of inputs not 1");
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Relu: Unknown previous layer");
-            layer = new layers::ReluLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == TypeStr_Tanh) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Tanh layer: number of inputs not 1");
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Tanh: Unknown previous layer");
-            layer = new layers::TanhLayer(params, prevLayer);
+
         } else if (serLayer.gTypeStr() == TypeStr_MaxPool || serLayer.gTypeStr() == TypeStr_AvgPool) {
             assert(serLayer.gNumPrevLayers() == 1 && "Pool layer: number of inputs not 1");
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
@@ -340,8 +329,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                             serLayer.gStrideVertical(),
                                             serLayer.gStrideHorizontal());
             std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
-                                            serLayer.gKernelHeight(),
-                                            serLayer.gKernelWidth());
+                                            serLayer.gPoolKernelHeight(),
+                                            serLayer.gPoolKernelWidth());
             std::tuple<kcc_int32,kcc_int32, kcc_int32,kcc_int32> padding = std::make_tuple(
                                             serLayer.gPaddingTop(),
                                             serLayer.gPaddingBottom(),
@@ -365,6 +354,20 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         kernel,
                         padding);
             }
+
+        } else if (serLayer.gTypeStr() == TypeStr_Relu) {
+            assert(serLayer.gNumPrevLayers() == 1 && "Relu layer: number of inputs not 1");
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
+            assert(prevLayer != nullptr && "Relu: Unknown previous layer");
+            layer = new layers::ReluLayer(params, prevLayer);
+        } else if (serLayer.gTypeStr() == TypeStr_Tanh) {
+            assert(serLayer.gNumPrevLayers() == 1 && "Tanh layer: number of inputs not 1");
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
+            assert(prevLayer != nullptr && "Tanh: Unknown previous layer");
+            layer = new layers::TanhLayer(params, prevLayer);
+
         } else if (serLayer.gTypeStr() == TypeStr_ResAdd) {
             // TODO: check dimensions and types of inputs
             assert(serLayer.gNumPrevLayers() == 2 && "ResAdd layer should have two inputs");
