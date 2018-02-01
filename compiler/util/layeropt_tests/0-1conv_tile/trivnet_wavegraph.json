@@ -31,20 +31,22 @@
     {
       "atom_id": 0,      "ifmaps_fold_idx": 0,      "ifmaps_replicate": false,
       "layer_name": "1conv/i1",
-      "length": 1024,      "offset_in_file": 0,      "ref_file": "trivnet_1conv__weight1__read:0_MCRS.npy",
+      "length": 1024,      "offset_in_file": 0,      "previous_waveops": [],
+      "ref_file": "trivnet_1conv__weight1__read:0_MCRS.npy",
       "waveop_name": "1conv/i1/SBAtomFile_0",
       "waveop_type": "SBAtomFile"
     },
     {
       "atom_id": 24,      "ifmaps_fold_idx": 0,      "ifmaps_replicate": false,
       "layer_name": "input",
-      "length": 1024,      "offset_in_file": 0,      "ref_file": "trivnet_input:0_NCHW.npy",
+      "length": 1024,      "offset_in_file": 0,      "previous_waveops": [],
+      "ref_file": "trivnet_input:0_NCHW.npy",
       "waveop_name": "input/SBAtomFile_0",
       "waveop_type": "SBAtomFile"
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/SBAtomFile_0",
         "input/SBAtomFile_0"
       ],
@@ -57,7 +59,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -69,7 +71,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -81,7 +83,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -93,7 +95,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -105,7 +107,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -117,7 +119,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -129,7 +131,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -141,7 +143,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -153,7 +155,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2"
       ],
       "psum_bank_id": 1,      "start": true,
@@ -165,7 +167,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0"
       ],
       "psum_bank_id": 1,      "start": false,
@@ -177,7 +179,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1"
       ],
       "psum_bank_id": 1,      "start": false,
@@ -189,7 +191,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2"
       ],
       "psum_bank_id": 1,      "start": false,
@@ -201,7 +203,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0"
       ],
       "psum_bank_id": 1,      "start": false,
@@ -213,7 +215,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1"
       ],
       "psum_bank_id": 1,      "start": false,
@@ -225,7 +227,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2"
       ],
       "psum_bank_id": 1,      "start": false,
@@ -237,7 +239,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0"
       ],
       "psum_bank_id": 1,      "start": false,
@@ -249,7 +251,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 245,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1"
       ],
       "psum_bank_id": 1,      "start": false,
@@ -261,7 +263,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2"
       ],
       "psum_bank_id": 2,      "start": true,
@@ -273,7 +275,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0"
       ],
       "psum_bank_id": 2,      "start": false,
@@ -285,7 +287,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1"
       ],
       "psum_bank_id": 2,      "start": false,
@@ -297,7 +299,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2"
       ],
       "psum_bank_id": 2,      "start": false,
@@ -309,7 +311,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0"
       ],
       "psum_bank_id": 2,      "start": false,
@@ -321,7 +323,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1"
       ],
       "psum_bank_id": 2,      "start": false,
@@ -333,7 +335,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2"
       ],
       "psum_bank_id": 2,      "start": false,
@@ -345,7 +347,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0"
       ],
       "psum_bank_id": 2,      "start": false,
@@ -357,7 +359,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1"
       ],
       "psum_bank_id": 2,      "start": false,
@@ -369,7 +371,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2"
       ],
       "psum_bank_id": 3,      "start": true,
@@ -381,7 +383,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0"
       ],
       "psum_bank_id": 3,      "start": false,
@@ -393,7 +395,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1"
       ],
       "psum_bank_id": 3,      "start": false,
@@ -405,7 +407,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2"
       ],
       "psum_bank_id": 3,      "start": false,
@@ -417,7 +419,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0"
       ],
       "psum_bank_id": 3,      "start": false,
@@ -429,7 +431,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1"
       ],
       "psum_bank_id": 3,      "start": false,
@@ -441,7 +443,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2"
       ],
       "psum_bank_id": 3,      "start": false,
@@ -453,7 +455,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0"
       ],
       "psum_bank_id": 3,      "start": false,
@@ -465,7 +467,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 735,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1"
       ],
       "psum_bank_id": 3,      "start": false,
@@ -477,7 +479,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2"
       ],
       "psum_bank_id": 0,      "start": true,
@@ -489,7 +491,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -501,7 +503,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -513,7 +515,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -525,7 +527,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -537,7 +539,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -549,7 +551,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -561,7 +563,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0"
       ],
       "psum_bank_id": 0,      "start": false,
@@ -573,7 +575,7 @@
     },
     {
       "ifmaps_atom_id": 24,      "ifmaps_offset_in_atom": 980,      "layer_name": "1conv/i1",
-      "prev_waveops": [
+      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1"
       ],
       "psum_bank_id": 0,      "start": false,

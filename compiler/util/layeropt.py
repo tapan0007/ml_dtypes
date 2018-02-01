@@ -134,6 +134,7 @@ class CircularBuffer:
         return self.dram_data
     def gen_dram_instr(self, wave_id):    
         return {
+              'previous_waveops' : [],
               "waveop_type"      : "SBAtomFile",
               "waveop_name"      : self.layer_name+"/SBAtomFile_%d"%self.current_offset_in_file,
               "layer_name"       : self.layer_name,
@@ -212,7 +213,7 @@ class KGraph:
                     i.add_next(starting_node)
                     self.add_forward_refs(i)
     # populate graph using layer info from JSON                    
-    def populate_from_json(self, kgraph_json):                    
+    def populate_from_kgraph_json(self, kgraph_json):                    
         # get the lowest significant bit
         self.data_type = kgraph_json["data_type"]
         # collect some information
@@ -236,6 +237,35 @@ class KGraph:
                 # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                 self.last_node = new_node                
                 self.node_dict[ l['layer_name'] ] = new_node
+            self.current_node = self.first_node
+        else:
+            print("ERROR: there are no layers!")
+            exit(-1)
+    # populate graph using layer info from JSON                    
+    def populate_from_wavegraph_json(self, wavegraph_json):                    
+        # get the lowest significant bit
+        self.data_type = wavegraph_json["data_type"]
+        # collect some information
+        layers = wavegraph_json["waveops"]
+        num_layers = len(layers)
+        if (num_layers >= 1):
+            for l in layers:
+                new_node = KNode(l)
+                prev_layers = l['previous_waveops']
+                if (len(prev_layers) > 0):
+                    for i in prev_layers:
+                        if i in self.node_dict:
+                            print("Previous waveop for ", new_node.data['waveop_name'], " is ", i)
+                            new_node.add_prev(self.node_dict[i])
+                        else:
+                            print("ERROR: node %s isn't declared before %s"%(i, l['waveop_name']))
+                            exit(-1)
+                else:
+                    # assume that the node without connecting previous layers is the first/input node
+                    self.first_node = new_node
+                # assume the last node is the last one processed (JSON graph is in order), at least for the last one
+                self.last_node = new_node                
+                self.node_dict[ l['waveop_name'] ] = new_node
             self.current_node = self.first_node
         else:
             print("ERROR: there are no layers!")
@@ -469,7 +499,7 @@ class TPBSched:
             input_list.append(dram_ifmaps_instr['waveop_name'])
             self.instr_stream.append(dram_ifmaps_instr)
         matmul_instr = {
-              'prev_waveops'            : input_list,
+              'previous_waveops'        : input_list,
               'waveop_type'             : 'MatMul',
               'waveop_name'             : op.data['layer_name']+"/MatMul_"+wave_id.id_string(),
               'layer_name'              : op.data['layer_name'],
@@ -591,7 +621,7 @@ if __name__ == "__main__":
 
     # create graph from JSON file        
     kgraph = KGraph()
-    kgraph.populate_from_json(kgraph_json)
+    kgraph.populate_from_kgraph_json(kgraph_json)
 
     input_layer = kgraph.first_node.data
     output_layer = kgraph.last_node.data
@@ -681,6 +711,6 @@ if __name__ == "__main__":
 
     # create graph from JSON file        
     wavegraph = KGraph()
-    wavegraph.populate_from_json(wavegraph_json)
+    wavegraph.populate_from_wavegraph_json(wavegraph_json)
 
 
