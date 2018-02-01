@@ -15,10 +15,13 @@ def ceildiv(a,b):
 # Wave ID
 class WaveID:
     def __init__(self, n_id, m_id, h_id, w_id, c_id, r_id, s_id):
+        self.format = "nmhwcrs"
         self.n_id, self.m_id, self.h_id, self.w_id = n_id, m_id, h_id, w_id
         self.c_id, self.r_id, self.s_id = c_id, r_id, s_id
     def show(self):
         return [self.n_id, self.m_id, self.h_id, self.w_id, self.c_id, self.r_id, self.s_id]
+    def id_string(self):
+        return "n%d_m%d_h%d_w%d_c%d_r%d_s%d"%(self.n_id, self.m_id, self.h_id, self.w_id, self.c_id, self.r_id, self.s_id)
 
 # PE Array properties and methods
 class PEArray:
@@ -28,7 +31,7 @@ class PEArray:
     MAX_WAVE_SIZE = 256
     def __init__(self):
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS))
-    def trig_tile_done(self, fullwave_id):
+    def trig_tile_done(self, tile_id):
         pass
     def extract_psum (self, psum_bank, start_entry, num_entries):
         assert(start_entry < self.MAX_WAVE_SIZE)
@@ -57,7 +60,7 @@ class PEArray:
 
 # Pooling properties and methods
 class Pool:
-    def wait_tile_done(self, fullwave_id):
+    def wait_tile_done(self, tile_id):
         pass
     def avg(self, in_array):
         return in_array
@@ -66,7 +69,7 @@ class Pool:
 
 # Bias-Add and Activate properties and methods
 class BiasAddAct:
-    def wait_tile_done(self, fullwave_id):
+    def wait_tile_done(self, tile_id):
         pass
     def biasadd(self, in_array, bias_array):
         return in_array+bias_array
@@ -77,9 +80,14 @@ class BiasAddAct:
 class StateBuffer:
     SB_NUM_PARTITIONS = 128
     SB_PARTITION_SZ = 6*16*1024
-    SB_NUM_1K_ATOMS = SB_PARTITION_SZ/1024
+    SB_ATOM_SZ = 1024
+    SB_NUM_1K_ATOMS = SB_PARTITION_SZ/SB_ATOM_SZ
     def __init__(self):
         self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
+        self.infbuf_weights = CircularBuffer(1024, self.SB_ATOM_SZ, 0)
+        self.infbuf_ifmaps = CircularBuffer(1024, self.SB_ATOM_SZ, 24)
+        self.infbuf_bias = CircularBuffer(1024, self.SB_ATOM_SZ, 48)
+        self.infbuf_scratch = CircularBuffer(1024, self.SB_ATOM_SZ, 72)
     def write(self, partition, address, write_data):
         self.data[partition, address:len(write_data)] = write_data
 
@@ -93,26 +101,225 @@ class CircularBufferElem:
         self.offset = offset
 
 class CircularBuffer:
-    def __init__(self, capacity):
-        self.read_pointer = 0
-        self.write_pointer = 0
-        self.count = 0
+    # TODO: instead of using initial start atom, determine max capacity during first pass
+    # then adjust the start to fit SB
+    def __init__(self, capacity, atom_sz, start):
         self.capacity = capacity
-        self.valid = np.zeros(capacity)
-    def malloc(self):
-        alloc = self.write_pointer
+        self.atom_sz = atom_sz
+        self.start = start
+        self.reset()
+    def reset(self):
+        self.head_pointer = 0
+        self.tail_pointer = 0
+        self.current_offset_in_file = 0
+        # assuming continuous data, this points to the next data byte within atom
+        self.tail_atom_byte_ptr = 0
+        self.count = 0
+        self.max_count = 0
+        self.valid = np.zeros(self.capacity)
+        self.dram_data_file = None
+        self.dram_data = None
+        self.layer_name = ""
+        self.layer_type = ""
+    def load_data(self, node):       
+        self.reset()
+        if (node.data['layer_type'] == 'Input'):
+            self.dram_data_file = node.data['ref_file']
+            #TODO: what about bias?
+        else:            
+            self.dram_data_file = node.data['kernel_file']
+        self.dram_data = np.load(self.dram_data_file)
+        self.layer_name = node.data['layer_name']
+        self.layer_type = node.data['layer_type']
+        return self.dram_data
+    def gen_dram_instr(self, wave_id):    
+        return {
+              'previous_waveops' : [],
+              "waveop_type"      : "SBAtomFile",
+              "waveop_name"      : self.layer_name+"/SBAtomFile_%d"%self.current_offset_in_file,
+              "layer_name"       : self.layer_name,
+              "atom_id"          : self.current_atom_id,
+              "ref_file"         : self.dram_data_file,
+              "offset_in_file"   : self.current_offset_in_file,
+              "length"           : self.atom_sz,
+              "ifmaps_replicate" : False,
+              "ifmaps_fold_idx"  : wave_id.c_id
+            }
+    def cache_data(self, wave_id, size):
+        dram_instr = None
+        new_byte_pointer = self.tail_atom_byte_ptr + size
+        if (self.count == 0):
+            self.current_atom_id = self.add_atom()
+            dram_instr           = self.gen_dram_instr(wave_id)
+        elif (new_byte_pointer >= self.atom_sz):
+            self.tail_atom_byte_ptr = new_byte_pointer - self.atom_sz
+            self.current_atom_id    = self.add_atom()
+            dram_instr              = self.gen_dram_instr(wave_id)
+        return dram_instr
+    def add_atom(self):
+        atom_id = self.start + self.tail_pointer
         if (self.count == self.capacity):
-            print ("MALLOC ERROR: no more space!")
+            print ("ADD ATOM ERROR: no more space!")
             return -1
+        self.current_offset_in_file = self.tail_pointer
+        self.tail_pointer += 1
         self.count += 1
-        self.valid[alloc] = 1            
-        return alloc
-    def free(self, location):   
-        if (self.valid[location] == 1):
-            self.valid[location] = 0
+        if (self.count > self.max_count):
+            self.max_count = self.count
+        self.valid[atom_id] = 1            
+        return atom_id
+    def free_atom(self, atom_id):   
+        if (self.valid[atom_id] == 1):
+            self.valid[atom_id] = 0
             self.count -= 1
         else:
-            print ("FREE ERROR: location %d is empty!"%location)
+            print ("FREE ATOM ERROR: atom ID %d is already freed!"%atom_id)
+        # TODO: advance head pointer 
+
+
+# Neural network node, containing data read from JSON
+class KNode:
+    def __init__(self, data):
+        self.prev = []
+        self.next = []
+        self.data = data
+    def add_prev(self, prev_node):
+        self.prev.append(prev_node)
+    def add_next(self, next_node):
+        self.next.append(next_node)
+
+# RegExs to determine whether next node is fusable or not
+next_is_fusable = {
+        'Conv'   : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
+        'MatMul' : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
+        }
+
+# graph: nodes, edges, and operations
+class KGraph:
+    def __init__(self):
+        # Node dictionary contains name -> Node pairs for quick reference
+        self.node_dict = {}
+        self.first_node = None
+        self.last_node = None
+        self.data_type = 'float16'
+        self.current_node = None
+        self.last_split_next_nodes = None
+    # add forward edges for forward traversals        
+    def add_forward_refs(self, starting_node):
+        if (starting_node != None):
+            #print (starting_node.data['layer_name'], len(starting_node.prev))
+            if (len(starting_node.prev) > 0):
+                for i in starting_node.prev:
+                    i.add_next(starting_node)
+                    self.add_forward_refs(i)
+    # populate graph using layer info from JSON                    
+    def populate_from_kgraph_json(self, kgraph_json):                    
+        # get the lowest significant bit
+        self.data_type = kgraph_json["data_type"]
+        # collect some information
+        layers = kgraph_json["layers"]
+        num_layers = len(layers)
+        if (num_layers >= 1):
+            for l in layers:
+                new_node = KNode(l)
+                prev_layers = l['previous_layers']
+                if (len(prev_layers) > 0):
+                    for i in prev_layers:
+                        if i in self.node_dict:
+                            print("Previous layer for ", new_node.data['layer_name'], " is ", i)
+                            new_node.add_prev(self.node_dict[i])
+                        else:
+                            print("ERROR: node %s isn't declared before %s"%(i, l['layer_name']))
+                            exit(-1)
+                else:
+                    # assume that the node without connecting previous layers is the first/input node
+                    self.first_node = new_node
+                # assume the last node is the last one processed (JSON graph is in order), at least for the last one
+                self.last_node = new_node                
+                self.node_dict[ l['layer_name'] ] = new_node
+            self.current_node = self.first_node
+        else:
+            print("ERROR: there are no layers!")
+            exit(-1)
+    # populate graph using layer info from JSON                    
+    def populate_from_wavegraph_json(self, wavegraph_json):                    
+        # get the lowest significant bit
+        self.data_type = wavegraph_json["data_type"]
+        # collect some information
+        layers = wavegraph_json["waveops"]
+        num_layers = len(layers)
+        if (num_layers >= 1):
+            for l in layers:
+                new_node = KNode(l)
+                prev_layers = l['previous_waveops']
+                if (len(prev_layers) > 0):
+                    for i in prev_layers:
+                        if i in self.node_dict:
+                            if (args.debug > 0): print("Previous waveop for ", new_node.data['waveop_name'], " is ", i)
+                            new_node.add_prev(self.node_dict[i])
+                        else:
+                            print("ERROR: node %s isn't declared before %s"%(i, l['waveop_name']))
+                            exit(-1)
+                else:
+                    # assume that the node without connecting previous layers is the first/input node
+                    self.first_node = new_node
+                # assume the last node is the last one processed (JSON graph is in order), at least for the last one
+                self.last_node = new_node                
+                self.node_dict[ l['waveop_name'] ] = new_node
+            self.current_node = self.first_node
+        else:
+            print("ERROR: there are no layers!")
+            exit(-1)
+    # get next fused op            
+    def get_next_fused_op(self, fused_ops):
+        next_nodes = fused_ops[-1].next
+        last_node_type = fused_ops[-1].data['layer_type']
+        # if there's only one next node, check if it is fusable and add
+        if (len(next_nodes) == 1):
+            if (last_node_type in next_is_fusable):
+                regex = next_is_fusable[last_node_type]
+                if (re.search(regex, next_nodes[0].data['layer_type'])):                
+                    fused_ops.append(next_nodes[0])
+                    fused_ops = self.get_next_fused_op(fused_ops)
+        return fused_ops                    
+    # starting from current node position, collect as many operations as possible            
+    def get_fused_ops(self):
+        fused_ops = []
+        if (self.current_node == None):
+            print("ERROR: found zero operations to fuse")
+            exit(-1)
+        fused_ops.append(self.current_node)
+        fused_ops = self.get_next_fused_op(fused_ops)
+        # if there are multiple next nodes
+        next_nodes = fused_ops[-1].next
+        last_node_type = fused_ops[-1].data['layer_type']
+        if (last_node_type == "ResAdd" and self.last_split_next_nodes != []):
+            if (args.debug > 0): print("DBG: found ResAdd, back-track to last split and follow next leg")
+            self.current_node = self.last_split_next_nodes[0] 
+            self.last_split_next_nodes = self.last_split_next_nodes[1:]
+        elif (len(next_nodes) == 1):
+            self.current_node = next_nodes[0]   
+        elif (len(next_nodes) > 1):
+            # move ResAdd node to be last leg
+            for i in range(len(next_nodes)):
+                if (next_nodes[i].data['layer_type'] == "ResAdd"):
+                    resadd_node = next_nodes[i]
+                    del next_nodes[i]
+                    next_nodes.append(resadd_node)
+            # pick the first leg as current_node                        
+            self.current_node = next_nodes[0]
+            self.last_split_next_nodes = next_nodes[1:]
+        else:
+            self.current_node = None
+            self.last_split_next_nodes = []
+        if (args.debug > 0):
+            print("DBG: fused_ops collected: ",)
+            for i in fused_ops:
+                print("    ", i.data["layer_type"],":",i.data["layer_name"], )
+            print("")
+        return fused_ops                    
+    def walk_ended(self):
+        return self.current_node == None
 
 # The TPB scheduler has access to:
 #   PEArray 
@@ -123,6 +330,8 @@ class TPBSched:
         self.pearray = PEArray()
         self.pool = Pool()
         self.activate = BiasAddAct()
+        self.statebuffer = StateBuffer()
+        self.instr_stream = []
 
     # Compute matrix multiply loops
     # Inputs:
@@ -228,6 +437,22 @@ class TPBSched:
                 break
         return out_array
 
+    def compute_wave_ifmaps_offset (self, ifmaps, wave_id):
+        # For NCHW format
+        return int(np.ravel_multi_index((wave_id.n_id * self.Tn,
+                                     wave_id.c_id * self.pearray.NUM_ROWS, 
+                                     wave_id.h_id * self.ifmap_tiley_sz, 
+                                     wave_id.w_id * self.ifmap_tilex_sz), 
+                                     dims=ifmaps.shape))
+
+    def compute_wave_ifmaps_end (self, ifmaps, wave_id):
+        # For NCHW format
+        return int(np.ravel_multi_index((wave_id.n_id * self.Tn,
+                                     wave_id.c_id * self.pearray.NUM_ROWS, 
+                                     wave_id.h_id * self.ifmap_tiley_sz, 
+                                     wave_id.w_id * self.ifmap_tilex_sz), 
+                                     dims=ifmaps.shape))
+
     # Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
     #   weights: conv weights in MCRS format
     #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
@@ -247,14 +472,64 @@ class TPBSched:
                                                       wave_id.r_id, 
                                                       wave_id.s_id]
         return out_array
-    
+    def compute_wave_conv_weights_offset(self, weights, wave_id):
+        # For MCRS format (not good, since the weights are not contiguous)
+        return int(np.ravel_multi_index((wave_id.m_id * self.pearray.NUM_COLS, 
+                                     wave_id.c_id * self.pearray.NUM_ROWS, 
+                                     wave_id.r_id, 
+                                     wave_id.s_id), 
+                                     dims=weights.shape))
+    def compute_wave_conv_weights_end(self, weights, wave_id):
+        # For MCRS format (not good, since the weights are not contiguous)
+        return int(np.ravel_multi_index((wave_id.m_id * self.pearray.NUM_COLS + min(self.pearray.NUM_COLS, self.M % self.pearray.NUM_COLS) - 1, 
+                                     wave_id.c_id * self.pearray.NUM_ROWS + min(self.pearray.NUM_ROWS, self.C % self.pearray.NUM_ROWS) - 1, 
+                                     self.R - 1, 
+                                     self.S - 1), 
+                                     dims=weights.shape))
+
+    # generate MatMul instruction and add it to instruction stream
+    def gen_matmul_instr_inline(self, op, dram_weights_instr, dram_ifmaps_instr, wave_id, weights, ifmaps, psum_bank, psum_add):
+        input_list = []
+        if (len(self.instr_stream) > 0):
+            input_list.append(self.instr_stream[-1]['waveop_name'])
+        if (dram_weights_instr != None):
+            input_list.append(dram_weights_instr['waveop_name'])
+            self.instr_stream.append(dram_weights_instr)
+        if (dram_ifmaps_instr != None):
+            input_list.append(dram_ifmaps_instr['waveop_name'])
+            self.instr_stream.append(dram_ifmaps_instr)
+        matmul_instr = {
+              'previous_waveops'        : input_list,
+              'waveop_type'             : 'MatMul',
+              'waveop_name'             : op.data['layer_name']+"/MatMul_"+wave_id.id_string(),
+              'layer_name'              : op.data['layer_name'],
+              'weights_atom_id'         : self.statebuffer.infbuf_weights.current_atom_id,
+              'ifmaps_atom_id'          : self.statebuffer.infbuf_ifmaps.current_atom_id,
+              'weights_offset_in_atom'  : self.compute_wave_conv_weights_offset(weights, wave_id) % self.statebuffer.infbuf_weights.atom_sz,
+              'ifmaps_offset_in_atom'   : self.compute_wave_ifmaps_offset(ifmaps, wave_id) % self.statebuffer.infbuf_ifmaps.atom_sz,
+              'wave_id_format'          : wave_id.format,
+              'wave_id'                 : wave_id.show(),
+              'start'                   : not(psum_add),
+              'psum_bank_id'            : psum_bank
+            }
+        self.instr_stream.append(matmul_instr)
+
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, op_list, inputs):
         self.inputs = inputs
-        assert (op_list[0]['layer_type'] == 'Conv')
+        assert (op_list[0].data['layer_type'] == 'Conv')
         # get weights from file
-        weights = np.load(op_list[0]['kernel_file'])
-        M, C, R, S = weights.shape
+        weights = self.statebuffer.infbuf_weights.load_data(op_list[0])
+        if (op_list[0].data['kernel_format'] == "MCRS"):
+            M, C, R, S = weights.shape
+        else:
+            print("ERROR: don't understand kernel format %s"%op_list[0].data['ofmap_format'])
+            exit(-1)
+        weight_cols_per_wave = min(M, self.pearray.NUM_COLS)
+        ifmap_cols_per_wave = min(M, self.pearray.NUM_COLS)
+        self.R = R
+        self.S = R
+
         # initial values
         psum_bank = 0
         psum_add = False                               
@@ -264,22 +539,25 @@ class TPBSched:
             for m_id in range(self.m):
                 for h_id in range(self.h):
                     for w_id in range(self.w):
-                        fullwave_id = [n_id, m_id, h_id, w_id]
+                        tile_id = [n_id, m_id, h_id, w_id]
                         # loops for constructing a tile
                         for c_id in range(self.c):
                             for r_id in range(R):
                                 for s_id in range(S):
                                     wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, r_id, s_id)
-                                    pearray_packed_ifmaps = self.pack_wave_ifmaps(inputs, wave_id)
                                     pearray_packed_weights = self.pack_wave_conv_weights(weights, wave_id)
+                                    pearray_packed_ifmaps = self.pack_wave_ifmaps(inputs, wave_id)
                                     #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
                                     #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
+                                    dram_weights_instr = self.statebuffer.infbuf_weights.cache_data(wave_id, weight_cols_per_wave)
+                                    dram_ifmaps_instr = self.statebuffer.infbuf_ifmaps.cache_data(wave_id, ifmap_cols_per_wave)
                                     self.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank, psum_add)
+                                    self.gen_matmul_instr_inline(op_list[0], dram_weights_instr, dram_ifmaps_instr, wave_id, weights, inputs, psum_bank, psum_add)
                                     # after the first wave, subsequent waves results are added to partial sums in buffer
                                     if (not psum_add):
                                         psum_add = True
                         # tile is done                                    
-                        self.pearray.trig_tile_done(fullwave_id)
+                        self.pearray.trig_tile_done(tile_id)
                         tile_x_start = wave_id.w_id * self.ofmap_tilex_sz
                         tile_y_start = wave_id.h_id * self.ofmap_tiley_sz
                         tile_height = self.ofmap_tiley_sz
@@ -292,21 +570,24 @@ class TPBSched:
                         # go through the remaining operations
                         op_result = self.pearray.extract_psum(psum_bank, 0, self.ofmap_tile_sz)
                         for i in range(1, len(op_list)):
-                            if (op_list[i]['layer_type'] == 'Relu'):
-                                self.activate.wait_tile_done(fullwave_id)
+                            layer_type = op_list[i].data['layer_type'] 
+                            if (layer_type == 'Relu'):
+                                self.activate.wait_tile_done(tile_id)
                                 op_result = self.activate.relu(op_result)
+                                # TODO: generate Relu instruction inline
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, op_result)
-                            elif (op_list[i]['layer_type'] == 'BiasAdd'):
-                                self.pool.wait_tile_done(fullwave_id)
-                                bias = np.load(op_list[i]['kernel_file'])
+                            elif (layer_type == 'BiasAdd'):
+                                self.pool.wait_tile_done(tile_id)
+                                bias = np.load(op_list[i].data['kernel_file'])
                                 op_result = self.pool.biasadd(op_result, bias)
+                                # TODO: generate BiasAdd instruction inline
                                 print("Bias\n", bias)
                                 print("BiasAdd\n", op_result)
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
                             else:
-                                print ("%s is currently not yet implemented"%op_list[i]['layer_type'])
+                                print ("%s is currently not yet implemented"%layer_type)
                         # if operation is the last one, dump current result into a portion of final result
                         for j in range(self.pearray.NUM_COLS):
                             M_idx = wave_id.m_id * self.pearray.NUM_COLS + j
@@ -327,84 +608,109 @@ class TPBSched:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--kgraph", help="K-graph Json file to read")
+    parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
+    parser.add_argument("--debug", default=1, help="Debug level")
     args = parser.parse_args()
 
     try:
         print("\nLoading K-graph %s"%args.kgraph)
-        kgraph = json.load(open(args.kgraph))
+        kgraph_json = json.load(open(args.kgraph))
     except Exception as e:
         print(e)
         exit(-1)
 
-    # get the lowest significant bit
-    data_type = kgraph["data_type"]
-    #if (data_type == "float16"):
+    # create graph from JSON file        
+    kgraph = KGraph()
+    kgraph.populate_from_kgraph_json(kgraph_json)
 
-    # collect some information
-    layers = kgraph["layers"]
-    num_layers = len(layers)
-    if (num_layers >= 1):
-        input_layer = layers[0]
-        output_layer = layers[num_layers-1]
-    else:
-        print("ERROR: there are no layers!")
-        exit(-1)
+    input_layer = kgraph.first_node.data
+    output_layer = kgraph.last_node.data
+    print("Input layer: ", input_layer['layer_name'])
+    print("Output layer: ", output_layer['layer_name'])
+
+    # add forward references
+    kgraph.add_forward_refs(kgraph.last_node)
 
     # take first layer as input
-    if (layers[0]['ofmap_format'] == 'NCHW'):
-        iN,iC,iH,iW = layers[0]['ofmap_shape']
+    if (input_layer['ofmap_format'] == 'NCHW'):
+        iN,iC,iH,iW = input_layer['ofmap_shape']
         print("Input shape",iN,iC,iH,iW)
     else:
-        print("ERROR: don't understand input ofmap_format %s"%layers[0]['ofmap_format'])
+        print("ERROR: don't understand input ofmap_format %s"%input_layer['ofmap_format'])
         exit(-1)
-
-    # take last layer as output
-    if (num_layers >= 1):
-        if (layers[num_layers-1]['ofmap_format'] == 'NCHW'):
-            oN,oC,oH,oW = layers[num_layers-1]['ofmap_shape']
-            print("Output shape",oN,oC,oH,oW)
-        else:
-            print("ERROR: don't understand output ofmap_format %s"%layers[num_layers-1]['ofmap_format'])
-            exit(-1)
 
     # go through all layers and add the fusable operations
-    # TODO: this assumes that the fusable layers are next to each other, and in order in JSON file
-    op_list = []    
-    for l in layers:
-        if (re.search(r"Conv|Add|BiasAdd|Relu|.*Pool", l['layer_type'])) :
-            op_list.append(l)
-    if (len(op_list) == 0):
-        print("ERROR: found zero operations to fuse")
+    inputs = None
+    tpb = TPBSched()
+    while (not kgraph.walk_ended()):
+        op_list = kgraph.get_fused_ops()
+
+        # Check init op
+        if (re.search(r"Input", op_list[0].data['layer_type'])):
+            inputs = tpb.statebuffer.infbuf_ifmaps.load_data(op_list[0])
+            #inputs = np.load(op_list[0].data['ref_file'])
+            if (op_list[0].data['ofmap_format'] == 'NCHW'):
+                iN,iC,iH,iW = op_list[0].data['ofmap_shape']
+                print("Input shape",iN,iC,iH,iW)
+            else:
+                print("ERROR: don't understand input ofmap_format %s"%input_layer['ofmap_format'])
+                exit(-1)
+            print("Input shape ", iN,iC,iH,iW, " ref_file ", op_list[0].data['ref_file']) 
+        # Check conv fused op
+        # TODO: add matrix multiply
+        elif (re.search(r"Conv", op_list[0].data['layer_type'])):
+            conv_layer = op_list[0].data
+            convN, convC, convH, convW = conv_layer['ofmap_shape']
+            pad_north, pad_south = conv_layer['padding'][2]
+            pad_west, pad_east = conv_layer['padding'][3]
+            # stride: ignore stride_batch and stride_depth for now; also assume stride_x==stride_y
+            stride_x = conv_layer['stride'][2]
+            stride_y = conv_layer['stride'][3]
+            assert(stride_x == stride_y)
+            tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x)
+            # TODO: add selecting among pre-derived looping schemes
+            results = tpb.execute_conv_ops(op_list, inputs)
+            outputs = np.load(output_layer['ref_file'])
+            np.allclose(results, outputs, 1/100, 1e-9)
+
+            print("\nInput IFMAPS:\n", inputs)
+            print("\nComputed OFMAPS:\n", results)
+            print("\nExpected OFMAPS:\n", outputs)
+            if (not np.allclose(results, outputs, 1/100, 1e-9)):
+                print("\nFAILED: computed OFMAPS is not equal to expected OFMAPS!\n")
+            else:
+                print("\nPASSED\n")
+        else:        
+            print("ERROR: the first operation should be Conv")
+            exit(-1)
+
+    # write out wavegraph           
+    wavegraph_json = kgraph_json
+    if (args.wavegraph != None): 
+        wavegraph_json['waveops'] = tpb.instr_stream
+        try:
+            print("\nSaving Wave-Graph %s"%args.wavegraph)
+            with (open(args.wavegraph, 'w')) as f:
+                s = json.dumps(wavegraph_json, indent=2, sort_keys=True)
+                s = re.sub(r'\s+(\d+,)\n', r' \1', s, flags=re.S)
+                s = re.sub(r',\s+(\d+)\n\s+\]', r', \1 ]', s, flags=re.S)
+                s = re.sub(r'\s+(\[ \d+, \d+ \],)\n', r' \1', s, flags=re.S)
+                s = re.sub(r',\s+(\[ \d+, \d+ \])\n\s+\]', r', \1 ]', s, flags=re.S)
+                f.write(s)
+        except Exception as e:
+            print(e)
+            exit(-1)
+
+    # test by reading it back
+    try:
+        print("\nTest by loading Wave-graph %s"%args.wavegraph)
+        wavegraph_json = json.load(open(args.wavegraph))
+    except Exception as e:
+        print(e)
         exit(-1)
 
-    # The first one should be conv
-    # TODO: add matrix multiply
-    if (re.search(r"Conv", op_list[0]['layer_type'])):
-        tpb = TPBSched()
-        convN, convC, convH, convW = op_list[0]['ofmap_shape']
-        pad_north, pad_south = op_list[0]['padding'][2]
-        pad_west, pad_east = op_list[0]['padding'][3]
-        # stride: ignore stride_batch and stride_depth for now; also assume stride_x==stride_y
-        stride_x = op_list[0]['stride'][2]
-        stride_y = op_list[0]['stride'][3]
-        assert(stride_x == stride_y)
-        tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x)
-        # TODO: add selecting among pre-derived looping schemes
-        inputs = np.load(input_layer['ref_file'])
-        weights = np.load(layers[1]['kernel_file'])
-        results = tpb.execute_conv_ops(op_list, inputs)
-        outputs = np.load(output_layer['ref_file'])
-        np.allclose(results, outputs, 1/100, 1e-9)
+    # create graph from JSON file        
+    wavegraph = KGraph()
+    wavegraph.populate_from_wavegraph_json(wavegraph_json)
 
-        print("\nInput IFMAPS:\n", inputs)
-        #print("\nWeights:\n", weights)
-        print("\nComputed OFMAPS:\n", results)
-        print("\nExpected OFMAPS:\n", outputs)
-        if (not np.allclose(results, outputs, 1/100, 1e-9)):
-            print("\nFAILED: computed OFMAPS is not equal to expected OFMAPS!\n")
-        else:
-            print("\nPASSED\n")
-    else:        
-        print("ERROR: the first operation should be Conv")
-        exit(-1)
 

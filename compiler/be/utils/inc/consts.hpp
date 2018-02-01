@@ -4,7 +4,6 @@
 #define KCC_UTILS_CONSTS_H
 
 namespace kcc {
-// keep types and constants in kcc namespace to avoid "using utils::TYPE"
 
 enum {
     FMAP_TENSOR_RANK = 4,
@@ -40,6 +39,9 @@ const char* const SCHED_MEM_FORMAT = "%-24s %10s %6s  %8s  %8s  %8s  %8s";
 
 
 constexpr const char* const TypeStr_Input     = "Input";
+constexpr const char* const TypeStr_Const     = "Const";
+constexpr const char* const TypeStr_ResAdd    = "ResAdd";
+constexpr const char* const TypeStr_BiasAdd   = "BiasAdd";
 constexpr const char* const TypeStr_Conv      = "Conv";
 constexpr const char* const TypeStr_Relu      = "Relu";
 constexpr const char* const TypeStr_Tanh      = "Tanh";

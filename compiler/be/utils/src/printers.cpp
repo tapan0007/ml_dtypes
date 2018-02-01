@@ -19,7 +19,7 @@ namespace utils {
 void
 Printer::printNetwork()
 {
-    Network* ntwk = m_Network;
+    nets::Network* ntwk = m_Network;
     StateBufferAddress maxStateSize = 0;
     //kcc_int32 layerNumMajor = 0;
     //kcc_int32 layerNumMinor = 0;
@@ -40,7 +40,7 @@ Printer::printNetwork()
             outStateSize = layer->gOutputSize();
         }
 
-        string numStr(layer->gNumberStr());
+        std::string numStr(layer->gNumberStr());
         std::cout << numStr << " " << layer->gString();
         layer->rNumStr(numStr);
 
@@ -54,11 +54,11 @@ Printer::printNetwork()
 void
 Printer::printDot()
 {
-    Network* ntwk = m_Network;
-    const string dotFileName(ntwk->gName() + ".dot");
+    nets::Network* ntwk = m_Network;
+    const std::string dotFileName(ntwk->gName() + ".dot");
     FILE* f1 = fopen(dotFileName.c_str(), "w");
 
-    string graphName = ntwk->gName();
+    std::string graphName = ntwk->gName();
     for (auto& ch : graphName) {
         if (ch == '-' || ch == '.') {
             ch = '_';
@@ -98,7 +98,7 @@ Printer::printLevels(schedule::Scheduler* scheduler)
 void
 Printer::printSched()
 {
-    Network* ntwk = m_Network;
+    nets::Network* ntwk = m_Network;
     const DataType& dataType(ntwk->gDataType());
     std::cout << ntwk->gName() << ": data type=" << dataType.gName()
               << " data type size=" << dataType.gSizeInBytes() << "\n";
@@ -117,10 +117,10 @@ Printer::printSched()
         if (layer->qReluLayer()) {
             hasRelu = true;
         }
-        string sbPreds = "";
+        std::string sbPreds = "";
         bool first=true;
         for (auto sbLayer : layer->gPrevSbLayers()) {
-            string s = sbLayer->gName();
+            std::string s = sbLayer->gName();
             if (! first) {
                 s = "," + s;
             }

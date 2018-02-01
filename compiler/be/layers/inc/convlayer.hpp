@@ -28,13 +28,12 @@ public:
 
     //----------------------------------------------------------------
     ConvLayer(const Params& params, Layer* prev_layer, const FmapDesc& fmapDesc,
-        const string& dataTensorSemantics,
         const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel,
         const std::tuple<kcc_int32,kcc_int32,kcc_int32,kcc_int32>& padding,
         const char* filterFileName, const char* filterTensorDimSemantics);
 
     //----------------------------------------------------------------
-    string gString() const override;
+    std::string gString() const override;
 
     //----------------------------------------------------------------
     bool verify() const override;
@@ -42,15 +41,17 @@ public:
     //----------------------------------------------------------------
     // Numpy file where the filter weights are stored (for Inkling simulator).
     //----------------------------------------------------------------
-    string gFilterFileName() const {
+    std::string gFilterFileName() const {
         return m_FilterFileName;
     }
 
     //----------------------------------------------------------------
-    // AKA filter format
-    //----------------------------------------------------------------
-    string gFilterTensorDimSemantics() const {
-        return m_FilterTensorDimSemantics;
+    const std::string& gFilterTensorDimSemantics() const {
+        return m_FilterTensorFormat;
+    }
+
+    const std::string& gFilterTensorFormat() const {
+        return m_FilterTensorFormat;
     }
 
     //----------------------------------------------------------------
@@ -77,10 +78,6 @@ public:
     }
 
     //----------------------------------------------------------------
-    // ConvLayer must override this method with correct values
-    StateBufferAddress gNumberWeightsPerPartition();
-
-    //----------------------------------------------------------------
     kcc_int32 gNumberWeights() const;
 
     //----------------------------------------------------------------
@@ -92,8 +89,8 @@ public:
     }
 
 private:
-    string              m_FilterFileName;
-    string              m_FilterTensorDimSemantics;
+    std::string              m_FilterFileName;
+    std::string              m_FilterTensorFormat;
     StateBufferAddress  m_WeightAddress;
 };
 

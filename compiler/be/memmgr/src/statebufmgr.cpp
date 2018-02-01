@@ -1,5 +1,6 @@
 #include "statebuffer.hpp"
 #include "convlayer.hpp"
+#include "constlayer.hpp"
 #include "network.hpp"
 #include "statebufmgr.hpp"
 
@@ -8,14 +9,14 @@ namespace kcc{
 namespace memmgr {
 
 //--------------------------------------------------------
-StateBufferMgr::StateBufferMgr(arch::Arch* arch, Network* ntwk)
+StateBufferMgr::StateBufferMgr(const arch::Arch& arch, nets::Network* ntwk)
     : m_Network(ntwk)
     , m_Arch(arch)
-    , m_StateBuffer(arch->gStateBuffer())
+    , m_StateBuffer(arch.gStateBuffer())
 {
 
-    m_PartitionSize = m_StateBuffer->gPartitionSizeInBytes();
-    m_FirstSbAddress = m_StateBuffer->gFirstAddressInBytes();
+    m_PartitionSize = m_StateBuffer.gPartitionSizeInBytes();
+    m_FirstSbAddress = m_StateBuffer.gFirstAddressInBytes();
 
     m_FirstFreeStart = m_FirstSbAddress;
 }
@@ -36,7 +37,7 @@ StateBufferMgr::calcOneLayerFmapMemSizePerPartition(layers::Layer* layer)
     const StateBufferAddress totSbMemBatch  = outSbMemBatch + resSbMemBatch;
     const kcc_int32 numOfmaps      = layer->gNumOfmaps();
     assert(numOfmaps > 0 && "Layer has no Ofmaps");
-    const StateBufferAddress numPeArrayRows = m_Arch->gNumberPeArrayRows();
+    const StateBufferAddress numPeArrayRows = m_Arch.gNumberPeArrayRows();
 
     const StateBufferAddress sbMemPerOfmap  = totSbMemBatch / numOfmaps;
     const StateBufferAddress maxNumOfmapsPerRow = 1 + ((numOfmaps - 1) / numPeArrayRows);
@@ -74,6 +75,9 @@ StateBufferMgr::calcOneLayerFmapAddresses(layers::Layer* layer)
             ifmapAddress = StateBufferAddress_Invalid;
             ofmapAddress = m_FirstSbAddress +
                            (layer->gDataType().gSizeInBytes() * m_MaxNumberWeightsPerPart);
+        } else if (layer->qConstLayer()) {
+            ifmapAddress = StateBufferAddress_Invalid;
+            ofmapAddress = m_FirstSbAddress;
         } else {
             assert(prevOfmapAddress != StateBufferAddress_Invalid &&
                     "Non-input layers should start valid IFMAP address");

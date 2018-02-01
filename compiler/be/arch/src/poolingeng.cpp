@@ -6,8 +6,8 @@ namespace kcc {
 namespace arch {
 
 
-PoolingEng::PoolingEng(PsumBuffer* psumBuffer)
-    : m_Width(psumBuffer->gNumberColumns())
+PoolingEng::PoolingEng(const PsumBuffer& psumBuffer)
+    : m_Width(psumBuffer.gNumberColumns())
 {
 }
 

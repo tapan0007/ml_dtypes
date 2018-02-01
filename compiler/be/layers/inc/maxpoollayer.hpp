@@ -17,18 +17,15 @@ private:
     using SubClass = PoolLayer;
 public:
     //----------------------------------------------------------------
-    MaxPoolLayer(const Params& params,
-                 Layer* prev_layer,
-                 const FmapDesc& fmapDesc,
-                 const string& dataTensorSemantics,
+    MaxPoolLayer(const Params& params, Layer* prev_layer, const FmapDesc& fmapDesc,
                  const std::tuple<kcc_int32,kcc_int32>& stride,
                  const std::tuple<kcc_int32,kcc_int32>& kernel,
                  const std::tuple<kcc_int32,kcc_int32,kcc_int32,kcc_int32>& padding)
-        : PoolLayer(params, prev_layer, fmapDesc, dataTensorSemantics, stride, kernel, padding)
+        : SubClass(params, prev_layer, fmapDesc, stride, kernel, padding)
     {}
 
     //----------------------------------------------------------------
-    string gString() const override {
+    std::string gString() const override {
         return gPoolLayerStr();
     }
 

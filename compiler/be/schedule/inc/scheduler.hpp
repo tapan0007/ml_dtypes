@@ -18,8 +18,6 @@ namespace layers {
 }
 
 using namespace utils;
-using layers::Layer;
-using nets::Network;
 
 namespace schedule {
 
@@ -34,7 +32,7 @@ public:
 
 public:
     //--------------------------------------------------------
-    void Schedule(Network* ntwk);
+    void Schedule(nets::Network* ntwk);
 
     //--------------------------------------------------------
     std::vector<LayerLevel*>& gLevels() {
@@ -70,19 +68,19 @@ private:
     void scheduleLevel(LayerLevel* level);
 
     //--------------------------------------------------------
-    void sortLayers(std::vector<Layer*>& levelCopy);
+    void sortLayers(std::vector<layers::Layer*>& levelCopy);
 
     //--------------------------------------------------------
-    void processLayerSbMemForResidueWithoutBatching(Layer* layer);
+    void processLayerSbMemForResidueWithoutBatching(layers::Layer* layer);
 
     //--------------------------------------------------------
-    void processLayerSbMemForResidueWithBatching(Layer* layer);
+    void processLayerSbMemForResidueWithBatching(layers::Layer* layer);
 
     //--------------------------------------------------------
     void  calcFanoutBatch();
 
     //--------------------------------------------------------
-    void addPrevSbLayers(Layer* layer);
+    void addPrevSbLayers(layers::Layer* layer);
 
     //-----------------------------------------------------------------
     //  Li: Batch Oi, Output size Oi
@@ -105,7 +103,7 @@ private:
     //         L1 batch b
     //   L1:   B1*O1(self mem) + max(L1a, L1b)
     //-----------------------------------------------------------------
-    void processSbConnectionForBatching(Layer* prevLayer, Layer* nextLayer);
+    void processSbConnectionForBatching(layers::Layer* prevLayer, layers::Layer* nextLayer);
 
     //--------------------------------------------------------
     void calcSbMem();
@@ -117,9 +115,9 @@ private:
     StateBufferAddress gHighMemWatermark() const;
 
 private:
-    std::vector<Layer*> m_Layers;
+    std::vector<layers::Layer*> m_Layers;
     std::vector<LayerLevel*> m_Levels;
-    Network* m_Network;
+    nets::Network* m_Network;
     kcc_int32 m_currSchedule;
     StateBufferAddress m_CurrInMem;
     StateBufferAddress m_HighMemWatermark;

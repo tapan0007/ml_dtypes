@@ -32,8 +32,8 @@ private:
 
     addr_t   m_FilterAddr[2];
     uint64_t m_FilterDims[FMAP_TENSOR_RANK];
-    string   m_FilterFormat;
-    string   m_FilterFileNames[2]; // more when #ofmaps > #cols
+    std::string   m_FilterFormat;
+    std::string   m_FilterFileNames[2]; // more when #ofmaps > #cols
 
     uint8_t  m_ConvolveStride[2];
 };

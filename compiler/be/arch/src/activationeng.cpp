@@ -4,8 +4,8 @@
 namespace kcc {
 namespace arch {
 
-ActivationEng::ActivationEng(PsumBuffer* psumBuffer)
-    : m_Width(psumBuffer->gNumberColumns())
+ActivationEng::ActivationEng(const PsumBuffer& psumBuffer)
+    : m_Width(psumBuffer.gNumberColumns())
 {
 }
 

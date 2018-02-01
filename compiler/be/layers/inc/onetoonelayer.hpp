@@ -27,8 +27,7 @@ private:
 public:
     //----------------------------------------------------------------
     OneToOneLayer(const Params& params, Layer* prev_layer)
-        : Layer(params,
-            prev_layer->gOfmapDesc(), prev_layer->gDataTensorDimSemantics(),
+        : SubClass(params, prev_layer->gOfmapDesc(),
             std::vector<Layer*>(1, prev_layer))
     { }
 

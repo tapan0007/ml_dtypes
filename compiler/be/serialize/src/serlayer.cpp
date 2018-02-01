@@ -4,7 +4,7 @@ namespace kcc {
 namespace serialize {
 
 //----------------------------------------------------------------
-const string&
+const std::string&
 SerLayer::gName() const
 {
     return m_LayerName;
