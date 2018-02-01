@@ -31,7 +31,7 @@ class PEArray:
     MAX_WAVE_SIZE = 256
     def __init__(self):
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS))
-    def trig_tile_done(self, fullwave_id):
+    def trig_tile_done(self, tile_id):
         pass
     def extract_psum (self, psum_bank, start_entry, num_entries):
         assert(start_entry < self.MAX_WAVE_SIZE)
@@ -60,7 +60,7 @@ class PEArray:
 
 # Pooling properties and methods
 class Pool:
-    def wait_tile_done(self, fullwave_id):
+    def wait_tile_done(self, tile_id):
         pass
     def avg(self, in_array):
         return in_array
@@ -69,7 +69,7 @@ class Pool:
 
 # Bias-Add and Activate properties and methods
 class BiasAddAct:
-    def wait_tile_done(self, fullwave_id):
+    def wait_tile_done(self, tile_id):
         pass
     def biasadd(self, in_array, bias_array):
         return in_array+bias_array
@@ -509,7 +509,7 @@ class TPBSched:
             for m_id in range(self.m):
                 for h_id in range(self.h):
                     for w_id in range(self.w):
-                        fullwave_id = [n_id, m_id, h_id, w_id]
+                        tile_id = [n_id, m_id, h_id, w_id]
                         # loops for constructing a tile
                         for c_id in range(self.c):
                             for r_id in range(R):
@@ -527,7 +527,7 @@ class TPBSched:
                                     if (not psum_add):
                                         psum_add = True
                         # tile is done                                    
-                        self.pearray.trig_tile_done(fullwave_id)
+                        self.pearray.trig_tile_done(tile_id)
                         tile_x_start = wave_id.w_id * self.ofmap_tilex_sz
                         tile_y_start = wave_id.h_id * self.ofmap_tiley_sz
                         tile_height = self.ofmap_tiley_sz
@@ -542,13 +542,13 @@ class TPBSched:
                         for i in range(1, len(op_list)):
                             layer_type = op_list[i].data['layer_type'] 
                             if (layer_type == 'Relu'):
-                                self.activate.wait_tile_done(fullwave_id)
+                                self.activate.wait_tile_done(tile_id)
                                 op_result = self.activate.relu(op_result)
                                 # TODO: generate Relu instruction inline
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, op_result)
                             elif (layer_type == 'BiasAdd'):
-                                self.pool.wait_tile_done(fullwave_id)
+                                self.pool.wait_tile_done(tile_id)
                                 bias = np.load(op_list[i].data['kernel_file'])
                                 op_result = self.pool.biasadd(op_result, bias)
                                 # TODO: generate BiasAdd instruction inline
