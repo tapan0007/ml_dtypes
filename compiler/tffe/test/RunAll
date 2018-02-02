@@ -13,6 +13,8 @@
 
 import os, sys
 import argparse
+import multiprocessing as mp
+import time
 
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
@@ -27,10 +29,12 @@ parser.add_argument('--test', help='Run specific tests (list)', nargs='+', defau
 parser.add_argument('--stop_after', help='Supported: frontend, backend (default)', default="backend")
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
 parser.add_argument('--level', help='Run tests upto this level, default 4', default=4)
+parser.add_argument('--parallel', help='Run concurrently, default 8', default=8)
 
 args = parser.parse_args()
 verbose = args.verbose
 level = int(args.level)
+parallel = int(args.parallel)
 
 if verbose:
   print("\nINFO: started as  ", " ".join(sys.argv))
@@ -103,6 +107,13 @@ for testName in sorted(tests):
 if len(args.test) > 0:
   testList = args.test
 
+def runCmd(cmd):
+  os.system(cmd)
+  return(0)
+
+start_time = time.time()
+numRunning = 0
+processes = []
 for testName in testList:
   # Add default NN args
   if len(tests[testName]) < 4:
@@ -113,8 +124,45 @@ for testName in testList:
   cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
   if args.stop_after == "backend":
     cmd += 'bash $KAENA_PATH/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
-  cmd += 'echo -n PASS || echo -n FAIL; echo "  "' + testName
+  cmd += '(echo; echo -n PASS) || (echo ; echo -n FAIL); echo "  "' + testName
+  
+  #os.system(cmd)
+
+  while numRunning >= parallel:
+    newProcesses = []
+    for p in processes:
+      if p.is_alive():
+        newProcesses.append(p)
+      else:
+        p.join()
+        numRunning -= 1
+    processes = newProcesses
+    if numRunning >= parallel:
+      print("o", end='', flush=True)
+      time.sleep(1)
+
   if verbose:
     print("Executing ", cmd)
-  os.system(cmd)
-  
+  else:
+    print("\nSTART " + testName, flush=True)
+  p = mp.Process(target=runCmd, args=(cmd,))
+  p.start()
+  numRunning += 1
+  processes.append(p)
+
+while numRunning > 0:
+  newProcesses = []
+  for p in processes:
+    if p.is_alive():
+      newProcesses.append(p)
+    else:
+      p.join()
+      numRunning -= 1
+  processes = newProcesses
+  print("x", end='', flush=True)
+  time.sleep(1)
+
+end_time = time.time()
+print("\nDone in %.3f sec" % (end_time - start_time))
+
+

@@ -15,5 +15,6 @@ class ExecTimeout:
       ok = True
     except:
       print("ERROR: Timeout of %d sec exceeded" % timeout)
-    #signal.signal(signal.SIGALRM, signal.SIG_DFL)
+    signal.alarm(0)
+    signal.signal(signal.SIGALRM, signal.SIG_DFL)
     return ok

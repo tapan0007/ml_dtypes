@@ -154,7 +154,11 @@ class TfFe:
     assert(inputNode != None)
     self.__kg.setInputNode(inputNode)
     inputTfOpName = inputNode.getAttr("tfop").name
-    with tf.Session() as sess:
+
+    # Grow GPU memory as needed at the cost of fragmentation.
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
       tf.import_graph_def(self.__gd, name="")
       graph = sess.graph
       inputOp = graph.get_operation_by_name(inputTfOpName)
@@ -320,7 +324,8 @@ class TfFe:
       print("INFO: wrote " + outFileAndExt)      
     else:
       print("INFO: dot rendering timed out, skipping")
-      os.remove(outFileAndExt)
+      if os.path.exists(outFileAndExt):
+        os.remove(outFileAndExt)
   
   @staticmethod
   def tf2dotName(tfName):
