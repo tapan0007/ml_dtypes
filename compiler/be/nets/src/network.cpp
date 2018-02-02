@@ -128,7 +128,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             const int32_t batchPadBefore = 0, batchPadAfter = 0, ifmapPadBefore = 0, ifmapPadAfter = 0;
 
             {
-                KernelShapeType  kernelShape;   // conv,pool
+                KernelShapeType  kernelShape;
                 kernelShape[FilterIndex_M] = convLayer->gNumOfmaps();
                 kernelShape[FilterIndex_C] = numIfmaps;
                 kernelShape[FilterIndex_R] = convLayer->gKernelHeight();
@@ -139,7 +139,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serLayer.rKernelFile(convLayer->gFilterFileName());
             serLayer.rKernelFormat(convLayer->gFilterTensorDimSemantics());
             {
-                StrideType stride;        // conv,pool
+                StrideType stride;
                 stride[FmapIndex_N] = batchStride;
                 stride[FmapIndex_C] = ifmapStride;
                 stride[FmapIndex_H] = convLayer->gStrideTopBottom();
@@ -147,7 +147,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 serLayer.rStride(stride);
             }
             {
-                PaddingType padding;       // conv,pool
+                PaddingType padding;
                 padding[FmapIndex_N][0] = batchPadBefore;
                 padding[FmapIndex_N][1] = batchPadAfter;
                 padding[FmapIndex_C][0] = ifmapPadBefore;
@@ -169,7 +169,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             const int32_t batchPadBefore = 0, batchPadAfter = 0, ifmapPadBefore = 0, ifmapPadAfter = 0;
 
             {
-                KernelShapeType  kernelShape;   // conv,pool
+                KernelShapeType  kernelShape;
                 kernelShape[FilterIndex_M] = poolLayer->gNumOfmaps();
                 kernelShape[FilterIndex_C] = prevLayer->gNumOfmaps();
                 kernelShape[FilterIndex_R] = poolLayer->gKernelHeight();
@@ -177,7 +177,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 serLayer.rKernelShape(kernelShape);
             }
             {
-                StrideType stride;        // conv,pool
+                StrideType stride;
                 stride[FmapIndex_N] = batchStride;
                 stride[FmapIndex_C] = ifmapStride;
                 stride[FmapIndex_H] = poolLayer->gStrideTopBottom();
@@ -185,7 +185,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 serLayer.rStride(stride);
             }
             {
-                PaddingType padding;       // conv,pool
+                PaddingType padding;
                 padding[FmapIndex_N][0] = batchPadBefore;
                 padding[FmapIndex_N][1] = batchPadAfter;
                 padding[FmapIndex_C][0] = ifmapPadBefore;
