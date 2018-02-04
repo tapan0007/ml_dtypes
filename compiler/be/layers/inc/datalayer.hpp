@@ -4,8 +4,7 @@
 #define KCC_LAYERS_DATALAYER_H
 
 
-#include "layer.hpp"
-//#include "network.hpp"
+#include "layers/inc/layer.hpp"
 
 namespace kcc {
 namespace layers {

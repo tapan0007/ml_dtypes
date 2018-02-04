@@ -1,8 +1,9 @@
-#include "statebuffer.hpp"
-#include "convlayer.hpp"
-#include "constlayer.hpp"
-#include "network.hpp"
-#include "statebufmgr.hpp"
+#include "arch/inc/statebuffer.hpp"
+#include "arch/inc/arch.hpp"
+#include "layers/inc/convlayer.hpp"
+#include "layers/inc/constlayer.hpp"
+#include "nets/inc/network.hpp"
+#include "memmgr/inc/statebuffermgr.hpp"
 
 namespace kcc{
 

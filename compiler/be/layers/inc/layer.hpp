@@ -12,10 +12,10 @@
 
 
 
-#include "types.hpp"
-#include "consts.hpp"
-#include "datatype.hpp"
-#include "fmapdesc.hpp"
+#include "utils/inc/types.hpp"
+#include "utils/inc/consts.hpp"
+#include "utils/inc/datatype.hpp"
+#include "utils/inc/fmapdesc.hpp"
 
 
 namespace kcc {

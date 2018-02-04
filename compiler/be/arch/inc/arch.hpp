@@ -6,13 +6,13 @@
 #include <string>
 
 #include "uarch_cfg.hpp"
-#include "types.hpp"
+#include "utils/inc/types.hpp"
 
-#include "pearray.hpp"
-#include "psumbuffer.hpp"
-#include "poolingeng.hpp"
-#include "activationeng.hpp"
-#include "statebuffer.hpp"
+#include "arch/inc/pearray.hpp"
+#include "arch/inc/psumbuffer.hpp"
+#include "arch/inc/poolingeng.hpp"
+#include "arch/inc/activationeng.hpp"
+#include "arch/inc/statebuffer.hpp"
 
 namespace kcc {
 namespace arch {

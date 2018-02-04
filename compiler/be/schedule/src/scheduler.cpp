@@ -1,9 +1,9 @@
 #include <algorithm>
 
-#include "layerlevel.hpp"
-#include "layer.hpp"
-#include "network.hpp"
-#include "scheduler.hpp"
+#include "schedule/inc/layerlevel.hpp"
+#include "layers/inc/layer.hpp"
+#include "nets/inc/network.hpp"
+#include "schedule/inc/scheduler.hpp"
 
 
 namespace kcc {

@@ -11,19 +11,19 @@
 
 
 
-#include "layer.hpp"
-#include "inputlayer.hpp"
-#include "constlayer.hpp"
-#include "convlayer.hpp"
-#include "relulayer.hpp"
-#include "tanhlayer.hpp"
-#include "maxpoollayer.hpp"
-#include "avgpoollayer.hpp"
-#include "resaddlayer.hpp"
-#include "biasaddlayer.hpp"
+#include "layers/inc/layer.hpp"
+#include "layers/inc/inputlayer.hpp"
+#include "layers/inc/constlayer.hpp"
+#include "layers/inc/convlayer.hpp"
+#include "layers/inc/relulayer.hpp"
+#include "layers/inc/tanhlayer.hpp"
+#include "layers/inc/maxpoollayer.hpp"
+#include "layers/inc/avgpoollayer.hpp"
+#include "layers/inc/resaddlayer.hpp"
+#include "layers/inc/biasaddlayer.hpp"
 
-#include "network.hpp"
-#include "serlayer.hpp"
+#include "nets/inc/network.hpp"
+#include "serialize/inc/serlayer.hpp"
 
 namespace kcc {
 

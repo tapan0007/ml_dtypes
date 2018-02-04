@@ -2,9 +2,9 @@
 
 
 
-#include "datatype.hpp"
-#include "layer.hpp"
-#include "network.hpp"
+#include "utils/inc/datatype.hpp"
+#include "layers/inc/layer.hpp"
+#include "nets/inc/network.hpp"
 
 
 

@@ -1,7 +1,7 @@
 
 #include "codegenactivlayer.hpp"
 
-#include "activlayer.hpp"
+#include "layers/inc/activlayer.hpp"
 
 namespace kcc {
 namespace codegen {

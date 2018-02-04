@@ -4,8 +4,8 @@
 #define KCC_LAYERS_ARITHMETICLAYER_H
 
 
-#include "layer.hpp"
-//#include "network.hpp"
+#include "layers/inc/layer.hpp"
+//#include "nets/inc/network.hpp"
 
 namespace kcc {
 namespace layers {

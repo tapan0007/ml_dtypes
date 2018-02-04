@@ -1,6 +1,6 @@
 #include <sstream>
 
-#include "convlayer.hpp"
+#include "layers/inc/convlayer.hpp"
 
 
 namespace kcc {

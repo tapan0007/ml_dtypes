@@ -5,8 +5,8 @@
 
 #include <vector>
 
-#include "consts.hpp"
-#include "types.hpp"
+#include "utils/inc/consts.hpp"
+#include "utils/inc/types.hpp"
 
 
 namespace kcc {

@@ -1,6 +1,6 @@
 
-#include "pearray.hpp"
-#include "psumbuffer.hpp"
+#include "arch/inc/pearray.hpp"
+#include "arch/inc/psumbuffer.hpp"
 
 namespace kcc {
 namespace arch {

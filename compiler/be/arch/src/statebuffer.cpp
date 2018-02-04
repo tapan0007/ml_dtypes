@@ -1,5 +1,5 @@
-#include "pearray.hpp"
-#include "statebuffer.hpp"
+#include "arch/inc/pearray.hpp"
+#include "arch/inc/statebuffer.hpp"
 
 namespace kcc {
 namespace arch {

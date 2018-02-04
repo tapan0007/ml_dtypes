@@ -1,7 +1,7 @@
-#include "network.hpp"
+#include "nets/inc/network.hpp"
 
-#include "codegen.hpp"
-#include "codegenlayer.hpp"
+#include "codegen/inc/codegen.hpp"
+#include "codegen/inc/codegenlayer.hpp"
 
 namespace kcc {
 namespace codegen {

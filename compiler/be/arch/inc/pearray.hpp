@@ -5,7 +5,7 @@
 
 #include <assert.h>
 
-#include "types.hpp"
+#include "utils/inc/types.hpp"
 
 namespace kcc {
 namespace arch {

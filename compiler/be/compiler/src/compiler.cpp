@@ -6,15 +6,15 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
 
-#include "debug.hpp"
-#include "printers.hpp"
+#include "utils/inc/debug.hpp"
+#include "utils/inc/printers.hpp"
 
-#include "arch.hpp"
-#include "statebufmgr.hpp"
-#include "codegen.hpp"
-#include "scheduler.hpp"
-#include "layer.hpp"
-#include "network.hpp"
+#include "arch/inc/arch.hpp"
+#include "memmgr/inc/statebufmgr.hpp"
+#include "codegen/inc/codegen.hpp"
+#include "schedule/inc/scheduler.hpp"
+#include "layers/inc/layer.hpp"
+#include "nets/inc/network.hpp"
 
 //#include "printer.hpp"
 

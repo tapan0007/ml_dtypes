@@ -1,5 +1,5 @@
 
-#include "avgpoollayer.hpp"
+#include "layers/inc/avgpoollayer.hpp"
 
 namespace kcc {
 namespace layers {

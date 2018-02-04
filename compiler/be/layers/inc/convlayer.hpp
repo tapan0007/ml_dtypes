@@ -3,11 +3,11 @@
 #ifndef KCC_LAYERS_CONVLAYER_H
 #define KCC_LAYERS_CONVLAYER_H
 
-#include "consts.hpp"
-#include "types.hpp"
-#include "datatype.hpp"
-#include "fmapdesc.hpp"
-#include "subsamplelayer.hpp"
+#include "utils/inc/consts.hpp"
+#include "utils/inc/types.hpp"
+#include "utils/inc/datatype.hpp"
+#include "utils/inc/fmapdesc.hpp"
+#include "layers/inc/subsamplelayer.hpp"
 
 
 namespace kcc {

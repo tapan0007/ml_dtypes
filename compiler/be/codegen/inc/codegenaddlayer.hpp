@@ -5,7 +5,7 @@
 
 #include "tpb_isa_activate.hpp"
 
-#include "codegenarithmeticlayer.hpp"
+#include "codegen/inc/codegenarithmeticlayer.hpp"
 
 namespace kcc {
 namespace codegen {

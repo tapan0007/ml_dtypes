@@ -3,7 +3,7 @@
 #ifndef KCC_CODEGEN_CODEGENRELULAYER_H
 #define KCC_CODEGEN_CODEGENRELULAYER_H
 
-#include "codegenactivlayer.hpp"
+#include "codegen/inc/codegenactivlayer.hpp"
 
 namespace kcc {
 namespace codegen {

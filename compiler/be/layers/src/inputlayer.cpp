@@ -1,5 +1,5 @@
 
-#include "inputlayer.hpp"
+#include "layers/inc/inputlayer.hpp"
 
 namespace kcc {
 namespace layers {

@@ -3,10 +3,10 @@
 #ifndef KCC_LAYERS_ACTIVLAYER_H
 #define KCC_LAYERS_ACTIVLAYER_H
 
-#include "types.hpp"
-#include "datatype.hpp"
-#include "fmapdesc.hpp"
-#include "onetoonelayer.hpp"
+#include "utils/inc/types.hpp"
+#include "utils/inc/datatype.hpp"
+#include "utils/inc/fmapdesc.hpp"
+#include "layers/inc/onetoonelayer.hpp"
 
 
 namespace kcc {

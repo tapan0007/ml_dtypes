@@ -5,7 +5,7 @@
 
 #include <cstdio>
 
-#include "codegenlayer.hpp"
+#include "codegen/inc/codegenlayer.hpp"
 
 namespace kcc {
 namespace layers {

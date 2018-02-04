@@ -1,5 +1,5 @@
 
-#include "biasaddlayer.hpp"
+#include "layers/inc/biasaddlayer.hpp"
 
 namespace kcc {
 namespace layers {

@@ -1,6 +1,6 @@
 
-#include "resaddlayer.hpp"
-#include "codegenresaddlayer.hpp"
+#include "layers/inc/resaddlayer.hpp"
+#include "codegen/inc/codegenresaddlayer.hpp"
 
 namespace kcc {
 namespace codegen {

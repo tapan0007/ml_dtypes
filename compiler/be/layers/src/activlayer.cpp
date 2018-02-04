@@ -1,8 +1,7 @@
 #include <sstream>
 
-#include "datatype.hpp"
-#include "network.hpp"
-#include "activlayer.hpp"
+#include "utils/inc/datatype.hpp"
+#include "layers/inc/activlayer.hpp"
 
 
 

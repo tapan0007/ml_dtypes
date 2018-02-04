@@ -4,13 +4,13 @@
 #include <sstream>
 
 //from utils.funcs     import kstr
-#include "consts.hpp"
-#include "datatype.hpp"
-#include "layer.hpp"
-#include "network.hpp"
-#include "layerlevel.hpp"
-#include "scheduler.hpp"
-#include "printers.hpp"
+#include "utils/inc/consts.hpp"
+#include "utils/inc/datatype.hpp"
+#include "layers/inc/layer.hpp"
+#include "nets/inc/network.hpp"
+#include "schedule/inc/layerlevel.hpp"
+#include "schedule/inc/scheduler.hpp"
+#include "utils/inc/printers.hpp"
 
 namespace kcc {
 namespace utils {

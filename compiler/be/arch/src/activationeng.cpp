@@ -1,5 +1,5 @@
-#include "psumbuffer.hpp"
-#include "activationeng.hpp"
+#include "arch/inc/psumbuffer.hpp"
+#include "arch/inc/activationeng.hpp"
 
 namespace kcc {
 namespace arch {

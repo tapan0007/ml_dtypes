@@ -3,7 +3,7 @@
 #ifndef KCC_LAYERS_POOLLAYER_H
 #define KCC_LAYERS_POOLLAYER_H 1
 
-#include "subsamplelayer.hpp"
+#include "layers/inc/subsamplelayer.hpp"
 
 namespace kcc {
 namespace layers {

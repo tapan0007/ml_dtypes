@@ -7,7 +7,7 @@
 #include<memory>
 
 
-#include "layer.hpp"
+#include "layers/inc/layer.hpp"
 
 namespace kcc {
 

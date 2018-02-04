@@ -1,5 +1,5 @@
 
-#include "maxpoollayer.hpp"
+#include "layers/inc/maxpoollayer.hpp"
 
 namespace kcc {
 namespace layers {

@@ -6,8 +6,8 @@
 #include <assert.h>
 #include <string>
 
-#include "types.hpp"
-#include "datatype.hpp"
+#include "utils/inc/types.hpp"
+#include "utils/inc/datatype.hpp"
 
 //########################################################
 

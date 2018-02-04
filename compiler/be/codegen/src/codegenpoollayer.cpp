@@ -1,5 +1,5 @@
-#include "poollayer.hpp"
-#include "codegenpoollayer.hpp"
+#include "layers/inc/poollayer.hpp"
+#include "codegen/inc/codegenpoollayer.hpp"
 
 namespace kcc {
 namespace layers {

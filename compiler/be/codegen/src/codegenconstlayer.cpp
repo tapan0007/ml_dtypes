@@ -1,6 +1,6 @@
-#include "constlayer.hpp"
+#include "layers/inc/constlayer.hpp"
 
-#include "codegenconstlayer.hpp"
+#include "codegen/inc/codegenconstlayer.hpp"
 
 //-----------------------------------------------------------------
 // *[ifmap/filter]Addrs are arrays of statebuffer addresses.  Arrays

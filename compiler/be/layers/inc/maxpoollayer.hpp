@@ -3,7 +3,7 @@
 #ifndef KCC_LAYERS_MAXPOOLLAYER_H
 #define KCC_LAYERS_MAXPOOLLAYER_H 1
 
-#include "poollayer.hpp"
+#include "layers/inc/poollayer.hpp"
 
 namespace kcc {
 namespace layers {

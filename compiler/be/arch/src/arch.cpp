@@ -1,9 +1,9 @@
-#include "poolingeng.hpp"
-#include "activationeng.hpp"
-#include "statebuffer.hpp"
-#include "psumbuffer.hpp"
-#include "pearray.hpp"
-#include "arch.hpp"
+#include "arch/inc/poolingeng.hpp"
+#include "arch/inc/activationeng.hpp"
+#include "arch/inc/statebuffer.hpp"
+#include "arch/inc/psumbuffer.hpp"
+#include "arch/inc/pearray.hpp"
+#include "arch/inc/arch.hpp"
 
 namespace kcc {
 namespace arch {

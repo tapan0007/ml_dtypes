@@ -1,6 +1,6 @@
-#include "avgpoollayer.hpp"
+#include "layers/inc/avgpoollayer.hpp"
 
-#include "codegenavgpoollayer.hpp"
+#include "codegen/inc/codegenavgpoollayer.hpp"
 
 //-----------------------------------------------------------------
 // *[ifmap/filter]Addrs are arrays of statebuffer addresses.  Arrays

@@ -3,8 +3,8 @@
 #ifndef KCC_MEMMGR_STATEBUFMGR_H
 #define KCC_MEMMGR_STATEBUFMGR_H 1
 
-#include "types.hpp"
-#include "arch.hpp"
+#include "utils/inc/types.hpp"
+#include "arch/inc/arch.hpp"
 
 using namespace kcc::utils;
 

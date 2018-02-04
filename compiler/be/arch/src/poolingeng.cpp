@@ -1,6 +1,6 @@
 
-#include "psumbuffer.hpp"
-#include "poolingeng.hpp"
+#include "arch/inc/psumbuffer.hpp"
+#include "arch/inc/poolingeng.hpp"
 
 namespace kcc {
 namespace arch {

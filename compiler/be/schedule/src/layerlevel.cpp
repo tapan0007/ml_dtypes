@@ -1,8 +1,8 @@
 #include <algorithm>
 
-#include "consts.hpp"
-#include "layer.hpp"
-#include "layerlevel.hpp"
+#include "utils/inc/consts.hpp"
+#include "layers/inc/layer.hpp"
+#include "schedule/inc/layerlevel.hpp"
 
 namespace kcc {
 

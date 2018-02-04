@@ -3,10 +3,10 @@
 #ifndef KCC_LAYERS_RELULAYER_H
 #define KCC_LAYERS_RELULAYER_H
 
-#include "types.hpp"
-#include "datatype.hpp"
-#include "fmapdesc.hpp"
-#include "activlayer.hpp"
+#include "utils/inc/types.hpp"
+#include "utils/inc/datatype.hpp"
+#include "utils/inc/fmapdesc.hpp"
+#include "layers/inc/activlayer.hpp"
 
 
 namespace kcc {

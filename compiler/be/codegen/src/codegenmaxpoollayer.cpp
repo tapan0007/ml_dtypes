@@ -1,6 +1,6 @@
-#include "maxpoollayer.hpp"
+#include "layers/inc/maxpoollayer.hpp"
 
-#include "codegenmaxpoollayer.hpp"
+#include "codegen/inc/codegenmaxpoollayer.hpp"
 
 //-----------------------------------------------------------------
 // *[ifmap/filter]Addrs are arrays of statebuffer addresses.  Arrays

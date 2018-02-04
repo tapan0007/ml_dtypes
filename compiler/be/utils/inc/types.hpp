@@ -3,7 +3,7 @@
 #ifndef KCC_UTILS_TYPES_H
 #define KCC_UTILS_TYPES_H
 
-#include "consts.hpp"
+#include "utils/inc/consts.hpp"
 
 namespace kcc {
 

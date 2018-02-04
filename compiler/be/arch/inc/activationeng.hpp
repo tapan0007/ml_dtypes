@@ -4,7 +4,7 @@
 #define KCC_ARCH_ACTIVATIONENG_H 1
 
 
-#include "types.hpp"
+#include "utils/inc/types.hpp"
 
 namespace kcc {
 namespace arch {

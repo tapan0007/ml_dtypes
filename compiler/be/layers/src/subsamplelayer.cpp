@@ -1,8 +1,8 @@
 #include <sstream>
 
-#include "datatype.hpp"
-#include "network.hpp"
-#include "subsamplelayer.hpp"
+#include "utils/inc/datatype.hpp"
+#include "nets/inc/network.hpp"
+#include "layers/inc/subsamplelayer.hpp"
 
 
 

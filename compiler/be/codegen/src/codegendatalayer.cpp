@@ -1,6 +1,6 @@
-#include "inputlayer.hpp"
+#include "layers/inc/inputlayer.hpp"
 
-#include "codegendatalayer.hpp"
+#include "codegen/inc/codegendatalayer.hpp"
 
 namespace kcc {
 

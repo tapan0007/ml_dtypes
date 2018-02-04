@@ -4,8 +4,7 @@
 #define KCC_LAYERS_BIASADDLAYER_H
 
 
-#include "addlayer.hpp"
-//#include "network.hpp"
+#include "layers/inc/addlayer.hpp"
 
 namespace kcc {
 namespace layers {

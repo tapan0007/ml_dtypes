@@ -1,8 +1,8 @@
 
-#include "inputlayer.hpp"
-#include "constlayer.hpp"
-#include "biasaddlayer.hpp"
-#include "codegenbiasaddlayer.hpp"
+#include "layers/inc/inputlayer.hpp"
+#include "layers/inc/constlayer.hpp"
+#include "layers/inc/biasaddlayer.hpp"
+#include "codegen/inc/codegenbiasaddlayer.hpp"
 
 namespace kcc {
 namespace codegen {

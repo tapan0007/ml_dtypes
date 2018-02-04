@@ -5,10 +5,10 @@
 
 #include <tuple>
 
-#include "types.hpp"
-#include "datatype.hpp"
-#include "fmapdesc.hpp"
-#include "layer.hpp"
+#include "utils/inc/types.hpp"
+#include "utils/inc/datatype.hpp"
+#include "utils/inc/fmapdesc.hpp"
+#include "layers/inc/layer.hpp"
 
 
 namespace kcc {

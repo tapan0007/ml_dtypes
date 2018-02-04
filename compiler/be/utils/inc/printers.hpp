@@ -3,10 +3,9 @@
 #ifndef KCC_UTILS_PRINTERS_H
 #define KCC_UTILS_PRINTERS_H 1
 
-#include "consts.hpp"
-#include "datatype.hpp"
-#include "layer.hpp"
-//#include "network.hpp"
+#include "utils/inc/consts.hpp"
+#include "utils/inc/datatype.hpp"
+#include "layers/inc/layer.hpp"
 
 namespace kcc {
 namespace nest {
