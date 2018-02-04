@@ -33,5 +33,5 @@ exe : $(MODULE).exe
 
 $(MODULE).exe : $(OFILES) $(LIBS)
 	@echo LD $@
-	@$(CPP) $(LDOPTS) $^ -o $@
+	@$(COMPILER) $(LDOPTS) $^ -o $@
 

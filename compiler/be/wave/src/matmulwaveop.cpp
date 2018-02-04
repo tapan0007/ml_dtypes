@@ -1,0 +1,21 @@
+#include <sstream>
+
+
+
+#include "utils/inc/datatype.hpp"
+#include "layers/inc/layer.hpp"
+#include "wave/inc/matmulwaveop.hpp"
+#include "nets/inc/network.hpp"
+
+
+
+namespace kcc {
+namespace wave {
+
+MatMulWaveOp::MatMulWaveOp(const Params& params, const FmapDesc& fmapDesc,
+                           const std::vector<WaveOp*>& prevWaveOps)
+    : WaveOp(params, fmapDesc, prevWaveOps)
+{}
+
+}}
+
