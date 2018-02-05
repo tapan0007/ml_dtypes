@@ -75,6 +75,9 @@ public:
     virtual bool qMatMultWaveOp() const {
         return false;
     }
+    virtual bool qSbAtomtWaveOp() const {
+        return false;
+    }
 
     //----------------------------------------------------------------
     const DataType& gDataType() const;

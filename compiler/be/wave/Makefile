@@ -3,7 +3,8 @@ MODULE:=wave
 MODS := $(MODULE) utils nets serialize
 
 SRCS := waveop  \
-matmulwaveop
+matmulwaveop \
+sbatomwaveop
 
 ########################################################
 include ../Makefile.common
