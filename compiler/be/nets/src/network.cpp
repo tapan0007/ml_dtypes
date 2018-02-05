@@ -252,13 +252,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     std::string dataType;
     archive(cereal::make_nvp(Key_DataType, dataType));
 
-    if (dataType == DataTypeInt8::gNameStatic()) {
-        m_DataType = std::make_unique<DataTypeInt8>();
-
-    } else if (dataType == DataTypeInt16::gNameStatic()) {
-        m_DataType = std::make_unique<DataTypeInt16>();
-
-    } else if (dataType == DataTypeUint8::gNameStatic()) {
+    if (dataType == DataTypeUint8::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeUint8>();
 
     } else if (dataType == DataTypeUint16::gNameStatic()) {
