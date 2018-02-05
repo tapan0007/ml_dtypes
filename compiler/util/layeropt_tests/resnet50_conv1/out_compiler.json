@@ -20,7 +20,7 @@
       "ofmap_shape": [ 1, 64, 112, 112 ],
       "padding": [ [ 0, 0 ], [ 0, 0 ], [ 2, 3 ], [ 2, 3 ] ],
       "previous_layers": [
-        "input_1_casted"
+        "input_1"
       ],
       "ref_file": "out_conv1__BiasAdd:0_NCHW.npy",
       "stride": [ 1, 1, 2, 2 ]
