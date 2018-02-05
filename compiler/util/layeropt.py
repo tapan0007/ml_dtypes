@@ -468,7 +468,7 @@ class TPBSched:
         return out_array
 
     # Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
-    #   weights: conv weights in MCRS format
+    #   weights: conv weights in CRSM format
     #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
     #   return: a 128x64 array
     def pack_wave_conv_weights(self, weights, wave_id):
@@ -479,13 +479,13 @@ class TPBSched:
         col_stop = min(self.M, col_start + self.pearray.NUM_COLS)
         for row in range(row_start, row_stop):
             for col in range(col_start, col_stop):
-                out_array[row - row_start, col - col_start] = weights[col, row, wave_id.r_id, wave_id.s_id] # MCRS
+                out_array[row - row_start, col - col_start] = weights[row, wave_id.r_id, wave_id.s_id, col] # CRSM
         self.weight_wave_lower_addr = int(np.ravel_multi_index(
-                                            (col_start, row_start, wave_id.r_id, wave_id.s_id), 
+                                            (row_start, wave_id.r_id, wave_id.s_id, col_start), # CRSM
                                             dims=weights.shape) 
                                             * weights.dtype.itemsize)
         self.weight_wave_upper_addr = int(np.ravel_multi_index(
-                                            (col_stop - 1, row_stop - 1, self.R - 1, self.S - 1), 
+                                            (row_stop - 1, self.R - 1, self.S - 1, col_stop-1), # CRSM
                                             dims=weights.shape) 
                                             * weights.dtype.itemsize)
         return out_array
@@ -539,10 +539,12 @@ class TPBSched:
         assert (op_list[0].data['layer_type'] == 'Conv')
         # get weights from file
         weights = self.statebuffer.infbuf_weights.load_data(op_list[0])
-        if (op_list[0].data['kernel_format'] == "MCRS"):
-            M, C, R, S = weights.shape
+        #if (op_list[0].data['kernel_format'] == "MCRS"):
+        #    M, C, R, S = weights.shape
+        if (op_list[0].data['kernel_format'] == "CRSM"):
+            C, R, S, M = weights.shape
         else:
-            print("ERROR: don't understand kernel format %s"%op_list[0].data['ofmap_format'])
+            print("ERROR: don't understand kernel format %s"%op_list[0].data['kernel_format'])
             exit(-1)
         weight_cols_per_wave = min(M, self.pearray.NUM_COLS)
         ifmap_cols_per_wave = min(M, self.pearray.NUM_COLS)

@@ -10,14 +10,14 @@
 <title>%3</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-468.3087 809.6191,-468.3087 809.6191,4 -4,4"/>
 <g id="clust1" class="cluster">
-<title>cluster_input_1</title>
-<polygon fill="none" stroke="#0000ff" points="677.6191,-210.3087 677.6191,-284.3087 797.6191,-284.3087 797.6191,-210.3087 677.6191,-210.3087"/>
-<text text-anchor="middle" x="737.6191" y="-269.1087" font-family="Times,serif" font-size="14.00" fill="#000000">input_1</text>
-</g>
-<g id="clust2" class="cluster">
 <title>cluster_conv1</title>
 <polygon fill="none" stroke="#0000ff" points="399.6191,-8 399.6191,-456.3087 669.6191,-456.3087 669.6191,-8 399.6191,-8"/>
 <text text-anchor="middle" x="534.6191" y="-441.1087" font-family="Times,serif" font-size="14.00" fill="#000000">conv1</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_kernel</title>
+<polygon fill="none" stroke="#0000ff" points="495.6191,-352.3087 495.6191,-426.3087 573.6191,-426.3087 573.6191,-352.3087 495.6191,-352.3087"/>
+<text text-anchor="middle" x="534.6191" y="-411.1087" font-family="Times,serif" font-size="14.00" fill="#000000">kernel</text>
 </g>
 <g id="clust3" class="cluster">
 <title>cluster_BiasAdd</title>
@@ -25,14 +25,14 @@
 <text text-anchor="middle" x="534.6191" y="-149.1087" font-family="Times,serif" font-size="14.00" fill="#000000">BiasAdd</text>
 </g>
 <g id="clust4" class="cluster">
-<title>cluster_kernel</title>
-<polygon fill="none" stroke="#0000ff" points="495.6191,-352.3087 495.6191,-426.3087 573.6191,-426.3087 573.6191,-352.3087 495.6191,-352.3087"/>
-<text text-anchor="middle" x="534.6191" y="-411.1087" font-family="Times,serif" font-size="14.00" fill="#000000">kernel</text>
+<title>cluster_input_1</title>
+<polygon fill="none" stroke="#0000ff" points="677.6191,-210.3087 677.6191,-284.3087 797.6191,-284.3087 797.6191,-210.3087 677.6191,-210.3087"/>
+<text text-anchor="middle" x="737.6191" y="-269.1087" font-family="Times,serif" font-size="14.00" fill="#000000">input_1</text>
 </g>
 <!-- KgraphLegend -->
 <g id="node1" class="node">
 <title>KgraphLegend</title>
-<polygon fill="none" stroke="#000000" points="391.3575,-445.3087 -.1192,-445.3087 -.1192,-311.3087 391.3575,-311.3087 391.3575,-445.3087"/>
+<polygon fill="none" stroke="#ffff00" points="391.3575,-445.3087 -.1192,-445.3087 -.1192,-311.3087 391.3575,-311.3087 391.3575,-445.3087"/>
 <text text-anchor="start" x="8" y="-430.1087" font-family="Times,serif" font-size="14.00" fill="#000000">Legend</text>
 <text text-anchor="start" x="8" y="-416.1087" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;Conv2D, MaxPool, Add &#160;... Operators</text>
 <text text-anchor="start" x="8" y="-402.1087" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;Strides, Kernel &#160;... Arguments</text>
@@ -50,7 +50,7 @@
 <text text-anchor="middle" x="534.6191" y="-374.1087" font-family="Times,serif" font-size="14.00" fill="#000000">Const</text>
 </g>
 <!-- conv1/BiasAdd -->
-<g id="node4" class="node">
+<g id="node3" class="node">
 <title>conv1/BiasAdd</title>
 <ellipse fill="none" stroke="#ff0000" cx="534.6191" cy="-79.1543" rx="118.6294" ry="55.3091"/>
 <text text-anchor="middle" x="534.6191" y="-102.9543" font-family="Times,serif" font-size="14.00" fill="#000000">Conv2D</text>
@@ -68,7 +68,7 @@
 <text text-anchor="middle" x="567.2813" y="-225.1087" font-family="Times,serif" font-size="14.00" fill="#000000">[7, 7, 3, 64]</text>
 </g>
 <!-- input_1 -->
-<g id="node3" class="node">
+<g id="node4" class="node">
 <title>input_1</title>
 <ellipse fill="none" stroke="#000000" cx="737.6191" cy="-236.3087" rx="51.7002" ry="18"/>
 <text text-anchor="middle" x="737.6191" y="-232.1087" font-family="Times,serif" font-size="14.00" fill="#000000">Placeholder</text>

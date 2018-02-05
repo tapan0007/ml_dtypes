@@ -11,9 +11,9 @@
     },
     {
       "#comment": "supported layer",
-      "kernel_file": "out_conv1__kernel:0_MCRS.npy",
-      "kernel_format": "MCRS",
-      "kernel_shape": [ 64, 3, 7, 7 ],
+      "kernel_file": "out_conv1__kernel:0_CRSM.npy",
+      "kernel_format": "CRSM",
+      "kernel_shape": [ 3, 7, 7, 64 ],
       "layer_name": "conv1/BiasAdd",
       "layer_type": "Conv",
       "ofmap_format": "NCHW",
