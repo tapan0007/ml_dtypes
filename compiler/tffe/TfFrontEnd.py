@@ -19,6 +19,11 @@ import KaenaOpGraph as kog
 from PIL import Image
 import csv
 
+import sys
+import os
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+import MiscUtil
+
 class TfOp:
   def __init__(self, name, op, tfNode):
     self.name = name
@@ -47,11 +52,12 @@ class TfOp:
     return(nd)
 
 class TfFe:
-  def __init__(self, dataPathWidthThreshold, debugLevel):
+  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout):
     self.__gd = None
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
     self.debugLevel = debugLevel
+    self.dotTimeout = dotTimeout
   
   def getKaenaOpGraph(self):
     return(self.__kg)
@@ -149,7 +155,11 @@ class TfFe:
     assert(inputNode != None)
     self.__kg.setInputNode(inputNode)
     inputTfOpName = inputNode.getAttr("tfop").name
-    with tf.Session() as sess:
+
+    # Grow GPU memory as needed at the cost of fragmentation.
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
       tf.import_graph_def(self.__gd, name="")
       graph = sess.graph
       inputOp = graph.get_operation_by_name(inputTfOpName)
@@ -259,7 +269,7 @@ class TfFe:
   def writeDot(self, depth, outFile, outFormat = "svg"):
     dot = Digraph(comment="writeDot")
     dot.node("KgraphLegend", "Legend" + re.sub("\n", "\l", kog.Config.Graph.legendText),
-             {"color":"yelow", "shape":"rectangle"})
+             {"color":"yellow", "shape":"rectangle"})
     for n in self.__kg.getNodes():
       tfOp = n.getAttr("tfop")
       attrs = {}
@@ -309,9 +319,14 @@ class TfFe:
 
     #print("Dot=", dot.source)
     dot.format = outFormat
-    dot.render(outFile)
-    print("INFO: wrote " + outFile + "." + outFormat)
-    
+    outFileAndExt = outFile + "." + outFormat
+    print("INFO: invoking dot to render " + outFileAndExt)
+    if MiscUtil.ExecTimeout.run(dot.render, outFile, self.dotTimeout):
+      print("INFO: wrote " + outFileAndExt)      
+    else:
+      print("INFO: dot rendering timed out, skipping")
+      if os.path.exists(outFileAndExt):
+        os.remove(outFileAndExt)
   
   @staticmethod
   def tf2dotName(tfName):

@@ -128,7 +128,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             const int32_t batchPadBefore = 0, batchPadAfter = 0, ifmapPadBefore = 0, ifmapPadAfter = 0;
 
             {
-                KernelShapeType  kernelShape;   // conv,pool
+                KernelShapeType  kernelShape;
                 kernelShape[FilterIndex_M] = convLayer->gNumOfmaps();
                 kernelShape[FilterIndex_C] = numIfmaps;
                 kernelShape[FilterIndex_R] = convLayer->gKernelHeight();
@@ -139,7 +139,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serLayer.rKernelFile(convLayer->gFilterFileName());
             serLayer.rKernelFormat(convLayer->gFilterTensorDimSemantics());
             {
-                StrideType stride;        // conv,pool
+                StrideType stride;
                 stride[FmapIndex_N] = batchStride;
                 stride[FmapIndex_C] = ifmapStride;
                 stride[FmapIndex_H] = convLayer->gStrideTopBottom();
@@ -147,7 +147,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 serLayer.rStride(stride);
             }
             {
-                PaddingType padding;       // conv,pool
+                PaddingType padding;
                 padding[FmapIndex_N][0] = batchPadBefore;
                 padding[FmapIndex_N][1] = batchPadAfter;
                 padding[FmapIndex_C][0] = ifmapPadBefore;
@@ -169,7 +169,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             const int32_t batchPadBefore = 0, batchPadAfter = 0, ifmapPadBefore = 0, ifmapPadAfter = 0;
 
             {
-                KernelShapeType  kernelShape;   // conv,pool
+                KernelShapeType  kernelShape;
                 kernelShape[FilterIndex_M] = poolLayer->gNumOfmaps();
                 kernelShape[FilterIndex_C] = prevLayer->gNumOfmaps();
                 kernelShape[FilterIndex_R] = poolLayer->gKernelHeight();
@@ -177,7 +177,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 serLayer.rKernelShape(kernelShape);
             }
             {
-                StrideType stride;        // conv,pool
+                StrideType stride;
                 stride[FmapIndex_N] = batchStride;
                 stride[FmapIndex_C] = ifmapStride;
                 stride[FmapIndex_H] = poolLayer->gStrideTopBottom();
@@ -185,7 +185,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 serLayer.rStride(stride);
             }
             {
-                PaddingType padding;       // conv,pool
+                PaddingType padding;
                 padding[FmapIndex_N][0] = batchPadBefore;
                 padding[FmapIndex_N][1] = batchPadAfter;
                 padding[FmapIndex_C][0] = ifmapPadBefore;
@@ -252,13 +252,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     std::string dataType;
     archive(cereal::make_nvp(Key_DataType, dataType));
 
-    if (dataType == DataTypeInt8::gNameStatic()) {
-        m_DataType = std::make_unique<DataTypeInt8>();
-
-    } else if (dataType == DataTypeInt16::gNameStatic()) {
-        m_DataType = std::make_unique<DataTypeInt16>();
-
-    } else if (dataType == DataTypeUint8::gNameStatic()) {
+    if (dataType == DataTypeUint8::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeUint8>();
 
     } else if (dataType == DataTypeUint16::gNameStatic()) {
@@ -303,8 +297,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                             serLayer.gStrideVertical(),
                                             serLayer.gStrideHorizontal());
             std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
-                                            serLayer.gKernelHeight(),
-                                            serLayer.gKernelWidth());
+                                            serLayer.gConvFilterHeight(),
+                                            serLayer.gConvFilterWidth());
             std::tuple<kcc_int32,kcc_int32, kcc_int32,kcc_int32> padding = std::make_tuple(
                                             serLayer.gPaddingTop(),
                                             serLayer.gPaddingBottom(),
@@ -319,18 +313,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           stride, kernel, padding,
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());
-        } else if (serLayer.gTypeStr() == TypeStr_Relu) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Relu layer: number of inputs not 1");
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Relu: Unknown previous layer");
-            layer = new layers::ReluLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == TypeStr_Tanh) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Tanh layer: number of inputs not 1");
-            const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Tanh: Unknown previous layer");
-            layer = new layers::TanhLayer(params, prevLayer);
+
         } else if (serLayer.gTypeStr() == TypeStr_MaxPool || serLayer.gTypeStr() == TypeStr_AvgPool) {
             assert(serLayer.gNumPrevLayers() == 1 && "Pool layer: number of inputs not 1");
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
@@ -340,8 +323,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                             serLayer.gStrideVertical(),
                                             serLayer.gStrideHorizontal());
             std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
-                                            serLayer.gKernelHeight(),
-                                            serLayer.gKernelWidth());
+                                            serLayer.gPoolKernelHeight(),
+                                            serLayer.gPoolKernelWidth());
             std::tuple<kcc_int32,kcc_int32, kcc_int32,kcc_int32> padding = std::make_tuple(
                                             serLayer.gPaddingTop(),
                                             serLayer.gPaddingBottom(),
@@ -365,6 +348,20 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         kernel,
                         padding);
             }
+
+        } else if (serLayer.gTypeStr() == TypeStr_Relu) {
+            assert(serLayer.gNumPrevLayers() == 1 && "Relu layer: number of inputs not 1");
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
+            assert(prevLayer != nullptr && "Relu: Unknown previous layer");
+            layer = new layers::ReluLayer(params, prevLayer);
+        } else if (serLayer.gTypeStr() == TypeStr_Tanh) {
+            assert(serLayer.gNumPrevLayers() == 1 && "Tanh layer: number of inputs not 1");
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
+            assert(prevLayer != nullptr && "Tanh: Unknown previous layer");
+            layer = new layers::TanhLayer(params, prevLayer);
+
         } else if (serLayer.gTypeStr() == TypeStr_ResAdd) {
             // TODO: check dimensions and types of inputs
             assert(serLayer.gNumPrevLayers() == 2 && "ResAdd layer should have two inputs");

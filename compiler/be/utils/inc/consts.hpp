@@ -14,10 +14,10 @@ enum {
     FmapIndex_H = 2,
     FmapIndex_W = 3,
 
-    FilterIndex_M = 0,
-    FilterIndex_C = 1,
-    FilterIndex_R = 2,
-    FilterIndex_S = 3,
+    FilterIndex_M = 3,
+    FilterIndex_C = 0,
+    FilterIndex_R = 1,
+    FilterIndex_S = 2,
 
     PaddingIndex_Top    = 0,
     PaddingIndex_Bottom = 1,

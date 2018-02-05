@@ -57,7 +57,11 @@ w = tf.get_variable(name=netName+"/weight1",
 i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType).reshape(IF1.shape)
 np.save( outPrefix + 'ref_input.npy', i0val)
 print("Inp=\n", i0val)
-with tf.Session() as sess:
+
+# Grow GPU memory as needed at the cost of fragmentation.
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+with tf.Session(config=config) as sess:
   sess.run(tf.global_variables_initializer())
   res = sess.run(output, feed_dict={"input:0" : i0val})
   print("Res=\n", res)

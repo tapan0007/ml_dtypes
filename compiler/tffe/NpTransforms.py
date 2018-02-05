@@ -35,8 +35,8 @@ class NpTrans:
       },
     SIM : {
       Fmaps   : NCHW,
-      Weights : MCRS
-      #Weights : CRSM
+      #Weights : MCRS
+      Weights : CRSM
       }
     }
   Transforms = {}

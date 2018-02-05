@@ -196,22 +196,29 @@ public:
     }
 
     kcc_int32 gStrideVertical () const {
-        return m_Stride[FilterIndex_R];        // conv,pool
+        return m_Stride[FmapIndex_H];        // conv,pool
     }
 
     kcc_int32 gStrideHorizontal () const {
-        return m_Stride[FilterIndex_S];        // conv,pool
+        return m_Stride[FmapIndex_W];        // conv,pool
     }
     void rKernelShape(const KernelShapeType  kernelShape) {//conv,pool
         for (kcc_int32 i = 0; i < FILTER_TENSOR_RANK; ++i) {
             m_KernelShape[i] = kernelShape[i];
         }
     }
-    kcc_int32 gKernelHeight() const {
+    kcc_int32 gConvFilterHeight() const {
         return m_KernelShape[FilterIndex_R];   // conv,pool
     }
-    kcc_int32 gKernelWidth() const {
+    kcc_int32 gConvFilterWidth() const {
         return m_KernelShape[FilterIndex_S];   // conv,pool
+    }
+
+    kcc_int32 gPoolKernelHeight() const {
+        return m_KernelShape[FmapIndex_H];   // conv,pool
+    }
+    kcc_int32 gPoolKernelWidth() const {
+        return m_KernelShape[FmapIndex_W];   // conv,pool
     }
 
     const std::string& gKernelFile() const {   // input(data), conv(weights)
