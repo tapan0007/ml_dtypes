@@ -52,11 +52,12 @@ class TfOp:
     return(nd)
 
 class TfFe:
-  def __init__(self, dataPathWidthThreshold, debugLevel):
+  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout):
     self.__gd = None
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
     self.debugLevel = debugLevel
+    self.dotTimeout = dotTimeout
   
   def getKaenaOpGraph(self):
     return(self.__kg)
@@ -320,7 +321,7 @@ class TfFe:
     dot.format = outFormat
     outFileAndExt = outFile + "." + outFormat
     print("INFO: invoking dot to render " + outFileAndExt)
-    if MiscUtil.ExecTimeout.run(dot.render, outFile, 10):
+    if MiscUtil.ExecTimeout.run(dot.render, outFile, self.dotTimeout):
       print("INFO: wrote " + outFileAndExt)      
     else:
       print("INFO: dot rendering timed out, skipping")
