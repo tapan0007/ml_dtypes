@@ -25,8 +25,9 @@ namespace wave {
 
 class SbAtomWaveOp : public WaveOp {
 public:
-    SbAtomWaveOp(const Params& params, const FmapDesc& fmapDesc,
-        const std::vector<WaveOp*>& prevWaveOps);
+    class Params;
+public:
+    SbAtomWaveOp(const SbAtomWaveOp::Params& params, const std::vector<WaveOp*>& prevWaveOps);
 
 
     //----------------------------------------------------------------
@@ -34,6 +35,34 @@ public:
         return true;
     }
 
+    const std::string& gRefFileName() const {
+        return m_RefFileName;
+    }
+
+    void rRefFileName(const std::string& refFileName) {
+        m_RefFileName = refFileName;
+    }
+
+
+private:
+    std::string     m_RefFileName;
+    //std::string     m_RefFileFormat;
+    kcc_int32       m_AtomId;
+    kcc_int32       m_IfmapsFoldIdx;
+    kcc_int32       m_Length;
+    kcc_int32       m_OffsetInFile;
+    bool            m_IfmapsReplicate;
+};
+
+class SbAtomWaveOp::Params {
+public:
+    WaveOp::Params  m_WaveOpParams;
+    std::string     m_RefFileName;
+    kcc_int32       m_AtomId;
+    kcc_int32       m_IfmapsFoldIdx;
+    kcc_int32       m_Length;
+    kcc_int32       m_OffsetInFile;
+    bool            m_IfmapsReplicate;
 };
 
 }}

@@ -43,8 +43,7 @@ public:
 
 protected:
     //----------------------------------------------------------------
-    WaveOp(const Params& params, const FmapDesc& fmapDesc,
-        const std::vector<WaveOp*>& prevWaveOps);
+    WaveOp(const WaveOp::Params& params, const std::vector<WaveOp*>& prevWaveOps);
 
     virtual ~WaveOp()
     {}
@@ -60,16 +59,6 @@ protected:
     virtual bool verify() const = 0;
 
 public:
-    //----------------------------------------------------------------
-    virtual std::string gString() const = 0;
-
-    //----------------------------------------------------------------
-    virtual const char* gTypeStr() const = 0;
-
-    //----------------------------------------------------------------
-
-
-    //----------------------------------------------------------------
 
     //----------------------------------------------------------------
     virtual bool qMatMultWaveOp() const {
@@ -87,15 +76,9 @@ public:
         return m_Name;
     }
 
-
-    const std::string& gRefFileName() const {
-        return m_RefFileName;
+    layers::Layer* gLayer() const {
+        return m_Layer;
     }
-
-    void rRefFileName(const std::string& refFileName) {
-        m_RefFileName = refFileName;
-    }
-
 
 
 protected:
@@ -104,17 +87,14 @@ protected:
     FmapDesc                m_OfmapDesc;
     layers::Layer*          m_Layer;
 private:
-    std::string             m_RefFileName;
-    std::string             m_RefFileFormat;
 }; // class WaveOp
 
 
 class WaveOp::Params {
 public:
     std::string             m_Name;
+    FmapDesc                m_OfmapDesc;
     layers::Layer*          m_Layer = nullptr;
-    std::string             m_RefFile;
-    std::string             m_RefFileFormat;
 };
 
 

@@ -13,14 +13,11 @@ namespace kcc {
 namespace wave {
 
 //----------------------------------------------------------------
-WaveOp::WaveOp(const Params& params,
-        const FmapDesc&ofmap_desc,
+WaveOp::WaveOp(const WaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps)
     : m_Name(params.m_Name)
-    , m_OfmapDesc(ofmap_desc)
+    , m_OfmapDesc(params.m_OfmapDesc)
     , m_Layer(params.m_Layer)
-    , m_RefFileName(params.m_RefFile)
-    , m_RefFileFormat(params.m_RefFileFormat)
 {
     for (auto prevWaveOp : prevWaveOps) {
         m_PrevWaveOps.push_back(prevWaveOp);

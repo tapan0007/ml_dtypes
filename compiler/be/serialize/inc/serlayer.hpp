@@ -32,36 +32,7 @@ namespace serialize {
 class SerLayer {
     //----------------------------------------------------
 public:
-    SerLayer()
-    {
-        m_OfmapShape.resize(4);
-        m_KernelShape.resize(4);   // conv,pool
-        m_Batching.resize(4);
-        m_Stride.resize(4);
-        m_Padding.resize(4);
-        for (auto& v : m_Padding) {
-            v.resize(2);
-        }
-
-        m_Batching[FmapIndex_N]     = 1;
-        m_Batching[FmapIndex_C]     = 1;
-        m_Batching[FmapIndex_H]     = 1;
-        m_Batching[FmapIndex_W]     = 1;
-
-        m_Stride[FilterIndex_M]     = 1;
-        m_Stride[FilterIndex_C]     = 1;
-        m_Stride[FilterIndex_R]     = 1;
-        m_Stride[FilterIndex_S]     = 1;
-
-        m_Padding[FmapIndex_N][0]   = 0;
-        m_Padding[FmapIndex_N][1]   = 0;
-        m_Padding[FmapIndex_C][0]   = 0;
-        m_Padding[FmapIndex_C][1]   = 0;
-        m_Padding[FmapIndex_H][0]   = 0; // Top
-        m_Padding[FmapIndex_H][1]   = 0; // Bottom
-        m_Padding[FmapIndex_W][0]   = 0; // Left
-        m_Padding[FmapIndex_W][1]   = 0; // Right
-    }
+    SerLayer();
 
     SerLayer(const SerLayer&) = default;
 
@@ -149,11 +120,7 @@ public:
 
 
     //----------------------------------------------------------------
-    void rOfmapShape(const OfmapShapeType ofmapShape) {
-        for (kcc_int32 i = 0; i < FMAP_TENSOR_RANK; ++i) {
-            m_OfmapShape[i] = ofmapShape[i];
-        }
-    }
+    void rOfmapShape(const OfmapShapeType ofmapShape);
 
     //----------------------------------------------------------------
     kcc_int32 gOfmapWidth() const {
@@ -189,11 +156,7 @@ public:
         m_RefFile = f;       // input
     }
 
-    void rStride(const StrideType stride) {        // conv,pool
-        for (kcc_int32 i = 0; i < FILTER_TENSOR_RANK; ++i) {
-            m_Stride[i] = stride[i];
-        }
-    }
+    void rStride(const StrideType stride);
 
     kcc_int32 gStrideVertical () const {
         return m_Stride[FmapIndex_H];        // conv,pool
@@ -202,11 +165,9 @@ public:
     kcc_int32 gStrideHorizontal () const {
         return m_Stride[FmapIndex_W];        // conv,pool
     }
-    void rKernelShape(const KernelShapeType  kernelShape) {//conv,pool
-        for (kcc_int32 i = 0; i < FILTER_TENSOR_RANK; ++i) {
-            m_KernelShape[i] = kernelShape[i];
-        }
-    }
+
+    void rKernelShape(const KernelShapeType  kernelShape);
+
     kcc_int32 gConvFilterHeight() const {
         return m_KernelShape[FilterIndex_R];   // conv,pool
     }
@@ -235,13 +196,7 @@ public:
         m_KernelFormat = fmt;
     }
 
-    void rPadding(const PaddingType padding) {     // conv,pool
-        for (kcc_int32 i0 = 0; i0 < FMAP_TENSOR_RANK; ++i0) {
-            for (kcc_int32 i1 = 0; i1 < 2; ++i1) { // 1 for before, 1 for after
-                m_Padding[i0][i1] = padding[i0][i1];
-            }
-        }
-    }
+    void rPadding(const PaddingType padding);
 
     kcc_int32 gPaddingTop() const {
         return m_Padding[FmapIndex_H][0];
@@ -286,7 +241,7 @@ private:
 
     //BatchingType                m_Batching;
     std::vector<int>                 m_Batching;
-}; // class Layer
+}; // class SerLayer
 
 
 
