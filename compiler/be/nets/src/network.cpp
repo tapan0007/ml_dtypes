@@ -260,6 +260,8 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serWaveOp.rIfmapsOffsetInAtom(matmulWaveOp->gIfmapsOffsetInAtom());
             serWaveOp.rPsumBankId(matmulWaveOp->gPsumBankId());
             serWaveOp.rStart(matmulWaveOp->qStart());
+            serWaveOp.rWeightsAtomId(matmulWaveOp->gWeightsAtomId());
+            serWaveOp.rWeightsOffsetInAtom(matmulWaveOp->gWeightsOffsetInAtom());
             continue;
         }
         if (const auto sbatomWaveOp = dynamic_cast<wave::SbAtomWaveOp*>(waveOp)) {
@@ -445,6 +447,9 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             matmulParams.m_IfmapsOffsetInAtom   = serWaveOp.gIfmapsOffsetInAtom();
             matmulParams.m_PsumBankId           = serWaveOp.gPsumBankId();
             matmulParams.m_Start                = serWaveOp.qStart();
+            matmulParams.m_WeightsAtomId        = serWaveOp.gWeightsAtomId();
+            matmulParams.m_WeightsOffsetInAtom  = serWaveOp.gWeightsOffsetInAtom();
+
             waveOp = new wave::MatMulWaveOp(matmulParams, std::vector<wave::WaveOp*>());
         } else if (serWaveOp.gWaveOpType() == wave::SbAtomWaveOp::gTypeStr()) {
             wave::SbAtomWaveOp::Params sbatomParams;

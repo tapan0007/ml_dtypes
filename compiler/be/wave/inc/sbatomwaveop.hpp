@@ -72,23 +72,23 @@ public:
     }
 
 private:
-    std::string     m_RefFileName;
-    kcc_int32       m_AtomId;
-    kcc_int32       m_IfmapsFoldIdx;
-    kcc_int32       m_Length;
-    kcc_int32       m_OffsetInFile;
-    bool            m_IfmapsReplicate;
+    std::string     m_RefFileName       = "";
+    kcc_int32       m_AtomId            = -1;
+    kcc_int32       m_IfmapsFoldIdx     = -1;
+    kcc_int32       m_Length            = -1;
+    kcc_int32       m_OffsetInFile      = -1;
+    bool            m_IfmapsReplicate   = -1;
 };
 
 class SbAtomWaveOp::Params {
 public:
     WaveOp::Params  m_WaveOpParams;
-    std::string     m_RefFileName;
-    kcc_int32       m_AtomId;
-    kcc_int32       m_IfmapsFoldIdx;
-    kcc_int32       m_Length;
-    kcc_int32       m_OffsetInFile;
-    bool            m_IfmapsReplicate;
+    std::string     m_RefFileName       = "";
+    kcc_int32       m_AtomId            = -1;
+    kcc_int32       m_IfmapsFoldIdx     = -1;
+    kcc_int32       m_Length            = -1;
+    kcc_int32       m_OffsetInFile      = -1;
+    bool            m_IfmapsReplicate   = true;
 };
 
 }}

@@ -80,13 +80,13 @@ public:
 
     private:
         //"wave_id_format": "nmhwcrs",
-        kcc_int16 m_BatchIdx;
-        kcc_int16 m_OfmapFoldIdx;
-        kcc_int16 m_TileY;
-        kcc_int16 m_TileX;
-        kcc_int16 m_IfmapFoldIdx;
-        kcc_int16 m_FilterPixelX;
-        kcc_int16 m_FilterPixelY;
+        kcc_int16 m_BatchIdx        = -1;
+        kcc_int16 m_OfmapFoldIdx    = -1;
+        kcc_int16 m_TileY           = -1;
+        kcc_int16 m_TileX           = -1;
+        kcc_int16 m_IfmapFoldIdx    = -1;
+        kcc_int16 m_FilterPixelX    = -1;
+        kcc_int16 m_FilterPixelY    = -1;
     };
 
 
@@ -109,6 +109,14 @@ public:
 
     kcc_int16 gIfmapsOffsetInAtom() const {
         return m_IfmapsOffsetInAtom;
+    }
+
+    kcc_int16 gWeightsAtomId() const {
+        return m_WeightsAtomId;
+    }
+
+    kcc_int16 gWeightsOffsetInAtom() const {
+        return m_WeightsOffsetInAtom;
     }
 
     kcc_int16 gPsumBankId() const {
@@ -134,22 +142,26 @@ public:
 
 private:
     MatMulWaveOp::WaveId    m_WaveId;
-    std::string             m_WaveIdFormat;
-    kcc_int16               m_IfmapsAtomId;
-    kcc_int16               m_IfmapsOffsetInAtom;
-    kcc_int16               m_PsumBankId;
-    bool                    m_Start;
+    std::string             m_WaveIdFormat          = "";
+    kcc_int16               m_IfmapsAtomId          = -1;
+    kcc_int16               m_IfmapsOffsetInAtom    = -1;
+    kcc_int16               m_WeightsAtomId         = -1;
+    kcc_int16               m_WeightsOffsetInAtom   = -1;
+    kcc_int16               m_PsumBankId            = -1;
+    bool                    m_Start                 = true;
 };
 
 class MatMulWaveOp::Params {
 public:
     WaveOp::Params  m_WaveOpParams;
     WaveId          m_WaveId;
-    std::string     m_WaveIdFormat;
-    kcc_int16       m_IfmapsAtomId;
-    kcc_int16       m_IfmapsOffsetInAtom;
-    kcc_int16       m_PsumBankId;
-    bool            m_Start;
+    std::string     m_WaveIdFormat          = "";
+    kcc_int16       m_IfmapsAtomId          = -1;
+    kcc_int16       m_IfmapsOffsetInAtom    = -1;
+    kcc_int16       m_WeightsAtomId         = -1;
+    kcc_int16       m_WeightsOffsetInAtom   = -1;
+    kcc_int16       m_PsumBankId            = -1;
+    bool            m_Start                 = true;
 };
 
 }}

@@ -84,7 +84,7 @@ constexpr static const char* WaveOpKey_PreviousWaveOps        = "previous_waveop
 
 // MatMul
 constexpr static const char* WaveOpKey_IfmapsAtomId           = "ifmaps_atom_id";
-constexpr static const char* WaveOpKey_IfmapsOffsetInAtom     = "ifmaps_atom_id";
+constexpr static const char* WaveOpKey_IfmapsOffsetInAtom     = "ifmaps_offset_in_atom";
 constexpr static const char* WaveOpKey_PsumBankId             = "psum_bank_id";
 constexpr static const char* WaveOpKey_Start                  = "start";
 constexpr static const char* WaveOpKey_WaveIdFormat           = "wave_id_format";

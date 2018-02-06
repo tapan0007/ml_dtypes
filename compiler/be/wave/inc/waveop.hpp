@@ -82,19 +82,19 @@ public:
 
 
 protected:
-    std::string             m_Name;
+    std::string             m_Name          = "";
     std::vector<WaveOp*>    m_PrevWaveOps;
     FmapDesc                m_OfmapDesc;
-    layers::Layer*          m_Layer;
+    layers::Layer*          m_Layer         = nullptr;
 private:
 }; // class WaveOp
 
 
 class WaveOp::Params {
 public:
-    std::string             m_WaveOpName;
+    std::string             m_WaveOpName    = "";
     FmapDesc                m_OfmapDesc;
-    layers::Layer*          m_Layer = nullptr;
+    layers::Layer*          m_Layer         = nullptr;
 };
 
 
