@@ -1,0 +1,49 @@
+Done in 213.369 sec
+
+
+Test                        Status    Tops               Ops           Cycles           TimeSec       Cycles/sec Description
+------------------------------------------------------------------------------------------------------------------------
+0-10conv_relu               PASS     0.000              2621            12988             2.210          5877.91  A unit test
+0-116conv_tanh              PASS     0.000             33467           165946            30.644          5415.24  A unit test
+0-1ap0                      PASS     0.000                34               82             0.015           5410.4  A unit test
+0-1ap7x7                    PASS     0.035              6274              178             0.038          4662.86  A unit test
+0-1conv0                    PASS     0.000                 6              200             0.056           3593.5  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv_s2                  PASS     0.000                12              206             0.038          5444.12  A unit test
+0-1conv_s8                  PASS     0.000                12              206             0.034          5996.39  A unit test
+0-1conv_s8_32b              PASS     0.000                12              206             0.038          5480.91  A unit test
+0-1conv_tile                PASS     0.001             22054            22520             4.231          5322.11  A unit test
+0-1mp0                      PASS     0.000                34               82             0.028          2933.39  A unit test
+0-1mp0c64                   PASS     0.014              2050              145             0.034           4238.4  A unit test
+0-1mp_r3s2                  PASS     0.001                74              102             0.019          5462.14  A unit test
+0-1mp_r3s2_112_55           PASS     0.002             54452            27291             5.189          5259.85  A unit test
+0-2conv0                    PASS     0.000                10              399             0.078          5144.87  A unit test
+0-2conv3_32b                PASS     0.000               292             1362             0.307          4435.59  A unit test
+0-2conv3_relu               PASS     0.000               293             1444             0.253          5714.33  A unit test
+0-2conv_pad2                PASS     0.000               132              656             0.105          6256.44  A unit test
+0-2conv_pad2as              PASS     0.000                36              604             0.125          4848.99  A unit test
+0-2conv_pad3                PASS     0.000               292             1362             0.238          5712.08  A unit test
+0-2conv_pad5                PASS     0.000               804             3554             0.693          5128.24  A unit test
+0-30conv3                   PASS     0.000              8412            39470             7.344          5374.77  A unit test
+0-add                       FAIL     0.000                 6               71             0.014           5225.2  A unit test
+0-add_fp32                  FAIL     0.000                 6              419             0.167          2513.62  A unit test
+0-add_uint8                 FAIL     0.000                 6              146             0.028          5230.91  A unit test
+0-biasadd                   PASS     0.000                 5               71             0.014          5003.17  A unit test
+0-biasadd_c2                PASS     0.000                 5              134             0.025          5309.45  A unit test
+0-neg                       PASS     0.000                 0                1            -1.000                0  Negative test
+1-1conv7_64                 PASS     5.166        1.0276e+08            19892             7.540          2638.21  A unit test
+1-1conv9_64                 PASS     5.397       1.69869e+08            31476            12.162          2588.04  A unit test
+2-1conv3_64s8               PASS     0.154            294916             1916             0.406          4724.98  A unit test
+2-1conv9_64s8               PASS     0.164       2.65421e+06            16137             3.303             4886  A unit test
+2-padasym_strd_h3r2s2       PASS     0.000                36              604             0.117          5172.38  A unit test
+2-padasym_strd_h4r2s3       PASS     0.000                36              604             0.109          5549.07  A unit test
+2-padasym_strd_h5r2s2       PASS     0.000                76              625             0.118          5316.98  A unit test
+2-padsym_strd_h3r3s2        PASS     0.000                76             1266             0.222          5701.96  A unit test
+2-padsym_strd_h4r3s3        PASS     0.000                76             1266             0.219          5792.65  A unit test
+2-padsym_strd_h5r3s2        PASS     0.000               166             1304             0.304          4296.36  A unit test
+6-alexnet                   FAIL     0.000       1.68689e+11                1            -1.000                0  Full size networks
+8-resnet152                 FAIL     0.000       2.18177e+10                1            -1.000                0  Full size networks
+8-resnet50                  FAIL     0.000       6.96883e+09                1            -1.000                0  Full size networks
+8-resnet50_fp16_keras       FAIL     0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp16_keras_opt   FAIL     0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp32_keras       FAIL     0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp32_keras_opt   FAIL     0.000       7.66825e+09                1            -1.000                0  Full size networks
