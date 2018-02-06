@@ -19,6 +19,20 @@ import time
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
 iPath = os.environ.get('INKLING_PATH')
+
+class Logger(object):
+  def __init__(self, logFile):
+    self.default = sys.stdout
+    self.log = open(logFile, "w")
+  def write(self, msg):
+    self.default.write(msg)
+    self.log.write(msg)  
+  def flush(self):
+    self.default.flush()
+    self.log.flush()  
+sys.stdout = Logger('log-RunAll.txt')
+sys.stderr = Logger('log-RunAll.txt')
+
 if kPath == None or kePath == None or iPath == None or \
     not os.path.isdir(kPath) or not os.path.isdir(kePath) or not os.path.isdir(iPath):
   print("ERROR: make sure KAENA_PATH, KAENA_EXT_PATH, and INKLING_PATH environment is set");
@@ -177,8 +191,8 @@ class QoR:
 
   @staticmethod
   def printHeader():
-    print("%-26s  %-12s  %6s  %16s %16s  %16s %16s %s" %
-          ("Test", "Status", "Tops", "Ops", "Cycles", "TimeSec", "Cycles/sec", "Description"))
+    print("%-26s  %-12s  %6s  %16s %16s  %16s %16s  %s" %
+          ("Test", "Status", "Tops", "Ops", "SimCycles", "SimTimeSec", "SimCycles/sec", "Description"))
     print("-" * 120)
 
   def printValues(self, status, description):
