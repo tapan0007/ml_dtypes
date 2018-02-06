@@ -186,7 +186,7 @@ class CircularBuffer:
 
     def add_vatom(self):
         if (self.count == self.capacity):
-            print ("ADD ATOM ERROR: no more space!")
+            print ("ADD VATOM ERROR: no more space!")
             return -1
         self.current_atom_id = self.start + self.tail_pointer
         if (args.debug > 0): print ("Added atom_id %d"%(self.current_atom_id))
@@ -201,7 +201,7 @@ class CircularBuffer:
             self.count -= 1
             if (args.debug > 0): print ("Freed atom_id %d"%(atom_id))
         else:
-            print ("FREE ATOM ERROR: atom ID %d is already freed!"%atom_id)
+            print ("FREE VATOM ERROR: atom ID %d is already freed!"%atom_id)
             return -1
         self.head_pointer += 1            
 
@@ -318,26 +318,28 @@ class KGraph:
         if (self.current_node == None):
             print("ERROR: found zero operations to fuse")
             exit(-1)
+        # when we see ResAdd, backtrack to the last split and follow the next leg in list
+        if (self.current_node.data['layer_type'] == "ResAdd" and self.last_split_next_nodes != []):
+            if (args.debug > 0): print("DBG: found ResAdd, back-track to last split and follow next leg")
+            self.current_node = self.last_split_next_nodes[0] 
+            self.last_split_next_nodes = self.last_split_next_nodes[1:]
         fused_ops.append(self.current_node)
         fused_ops = self.get_next_fused_op(fused_ops)
         # if there are multiple next nodes
         next_nodes = fused_ops[-1].next
         last_node_type = fused_ops[-1].data['layer_type']
-        if (last_node_type == "ResAdd" and self.last_split_next_nodes != []):
-            if (args.debug > 0): print("DBG: found ResAdd, back-track to last split and follow next leg")
-            self.current_node = self.last_split_next_nodes[0] 
-            self.last_split_next_nodes = self.last_split_next_nodes[1:]
-        elif (len(next_nodes) == 1):
+        if (len(next_nodes) == 1):
             self.current_node = next_nodes[0]   
         elif (len(next_nodes) > 1):
-            # move ResAdd node to be last leg
+            # follow the leg that goes to ResAdd directly first, if it exists
             for i in range(len(next_nodes)):
                 if (next_nodes[i].data['layer_type'] == "ResAdd"):
                     resadd_node = next_nodes[i]
                     del next_nodes[i]
-                    next_nodes.append(resadd_node)
+                    next_nodes.insert(0, resadd_node)
             # pick the first leg as current_node                        
             self.current_node = next_nodes[0]
+            # save the remaining legs in a list
             self.last_split_next_nodes = next_nodes[1:]
         else:
             self.current_node = None
@@ -565,7 +567,7 @@ class TPBSched:
         psum_bank = 0
         psum_add = False                               
         result = np.zeros((self.N, self.M, self.E, self.F))
-        # wave loop ordering scheme: nmtcRS
+        # wave loop ordering scheme: nmhwcRS
         for n_id in range(self.n):
             for m_id in range(self.m):
                 for h_id in range(self.h):
@@ -631,7 +633,8 @@ class TPBSched:
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
                             else:
-                                print ("%s is currently not yet implemented"%layer_type)
+                                print ("ERROR: %s is currently not yet implemented"%layer_type)
+                                exit(-1)
                         # if operation is the last one, dump current result into a portion of final result
                         for j in range(self.pearray.NUM_COLS):
                             M_idx = wave_id.m_id * self.pearray.NUM_COLS + j
@@ -676,16 +679,7 @@ if __name__ == "__main__":
     # add forward references
     kgraph.add_forward_refs(kgraph.last_node)
 
-    # take first layer as input
-    if (input_layer['ofmap_format'] == 'NCHW'):
-        iN,iC,iH,iW = input_layer['ofmap_shape']
-        print("Input shape",iN,iC,iH,iW)
-    else:
-        print("ERROR: don't understand input ofmap_format %s"%input_layer['ofmap_format'])
-        exit(-1)
-
     # go through all layers and add the fusable operations
-    inputs = None
     tpb = TPBSched()
     while (not kgraph.walk_ended()):
         op_list = kgraph.get_fused_ops()
@@ -693,17 +687,16 @@ if __name__ == "__main__":
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
             inputs = tpb.statebuffer.infbuf_ifmaps.load_data(op_list[0])
-            #inputs = np.load(op_list[0].data['ref_file'])
-            if (op_list[0].data['ofmap_format'] == 'NCHW'):
-                iN,iC,iH,iW = op_list[0].data['ofmap_shape']
-                print("Input shape",iN,iC,iH,iW)
-            else:
-                print("ERROR: don't understand input ofmap_format %s"%input_layer['ofmap_format'])
-                exit(-1)
-            print("Input shape ", iN,iC,iH,iW, " ref_file ", op_list[0].data['ref_file']) 
+            results = inputs
         # Check conv fused op
         # TODO: add matrix multiply
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
+            if (op_list[0].prev[0].data['ofmap_format'] == 'NCHW'):
+                iN,iC,iH,iW = op_list[0].prev[0].data['ofmap_shape']
+                print("Input shape",iN,iC,iH,iW)
+            else:
+                print("ERROR: don't understand ifmap_format %s"%op_list[0].prev[0].data['ofmap_shape'])
+                exit(-1)
             conv_layer = op_list[0].data
             convN, convC, convH, convW = conv_layer['ofmap_shape']
             pad_north, pad_south = conv_layer['padding'][2]
@@ -714,21 +707,27 @@ if __name__ == "__main__":
             assert(stride_x == stride_y)
             tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x)
             # TODO: add selecting among pre-derived looping schemes
-            results = tpb.execute_conv_ops(op_list, inputs)
-            outputs = np.load(output_layer['ref_file'])
-            diff = results - outputs
+            results = tpb.execute_conv_ops(op_list, results)
 
-            print("\nInput IFMAPS:\n", inputs)
-            print("\nComputed OFMAPS:\n", results)
-            print("\nExpected OFMAPS:\n", outputs)
-            print("\nDiffed   OFMAPS:\n", diff)
-            if (not np.allclose(results, outputs, 1/100, 1e-7)):
-                print("\nFAILED: computed OFMAPS is not equal to expected OFMAPS!\n")
-            else:
-                print("\nPASSED\n")
+        elif (re.search(r"MatMult", op_list[0].data['layer_type'])):
+            print("ERROR: MatMult operation is unimplemented")
+        elif (re.search(r".*Pool", op_list[0].data['layer_type'])):
+            print("ERROR: Pool (unfused) operation is unimplemented")
         else:        
             print("ERROR: the first operation should be Conv")
             exit(-1)
+
+    # Check results against pre-computed results            
+    outputs = np.load(output_layer['ref_file'])
+    diff = results - outputs
+    print("\nInput IFMAPS:\n", inputs)
+    print("\nComputed OFMAPS:\n", results)
+    print("\nExpected OFMAPS:\n", outputs)
+    print("\nDiffed   OFMAPS:\n", diff)
+    if (not np.allclose(results, outputs, 1/100, 1e-7)):
+        print("\nFAILED: computed OFMAPS is not equal to expected OFMAPS!\n")
+    else:
+        print("\nPASSED\n")
 
     # write out wavegraph           
     wavegraph_json = kgraph_json
