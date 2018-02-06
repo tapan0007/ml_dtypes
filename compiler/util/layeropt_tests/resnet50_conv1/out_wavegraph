@@ -4,10 +4,8 @@ digraph {
 	"conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s0" [label="conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s0"]
 	"conv1/BiasAdd/SBAtomFile_0" -> "conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s0"
 	"input_1/SBAtomFile_0" -> "conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s0"
-	"conv1/BiasAdd/SBAtomFile_18" [label="conv1/BiasAdd/SBAtomFile_18"]
 	"conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s1" [label="conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s1"]
 	"conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s0" -> "conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s1"
-	"conv1/BiasAdd/SBAtomFile_18" -> "conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s1"
 	"conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s2" [label="conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s2"]
 	"conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s1" -> "conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s2"
 	"conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s3" [label="conv1/BiasAdd/MatMul_n0_m0_h0_w0_c0_r0_s3"]

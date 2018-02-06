@@ -95,10 +95,10 @@ class StateBuffer:
     SB_NUM_1K_ATOMS = SB_PARTITION_SZ/SB_ATOM_SZ
     def __init__(self):
         self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
-        self.infbuf_weights = CircularBuffer(1024, self.SB_ATOM_SZ, 0)
-        self.infbuf_ifmaps = CircularBuffer(1024, self.SB_ATOM_SZ, 24)
-        self.infbuf_bias = CircularBuffer(1024, self.SB_ATOM_SZ, 48)
-        self.infbuf_scratch = CircularBuffer(1024, self.SB_ATOM_SZ, 72)
+        self.cirbuf_weights = CircularBuffer(24, self.SB_ATOM_SZ, 0)
+        self.cirbuf_ifmaps = CircularBuffer(24, self.SB_ATOM_SZ, 24)
+        self.cirbuf_bias = CircularBuffer(24, self.SB_ATOM_SZ, 48)
+        self.cirbuf_scratch = CircularBuffer(24, self.SB_ATOM_SZ, 72)
     def write(self, partition, address, write_data):
         self.data[partition, address:len(write_data)] = write_data
 
@@ -116,8 +116,8 @@ class CircularBuffer:
         self.reset()
 
     def reset(self):
-        self.head_pointer = 0
-        self.tail_pointer = 0
+        self.head_pointer = self.start
+        self.tail_pointer = self.start
         self.head_byte_ptr = 0
         self.tail_byte_ptr = 0
         self.current_atom_id = 0
@@ -159,19 +159,20 @@ class CircularBuffer:
             }
 
     def cache_data(self, wave_id, lower_addr, upper_addr):
+        #print("caching byte range %d to %d"%(lower_addr, upper_addr))
         if (self.tail_byte_ptr + self.item_sz < lower_addr):
             print("WARNING: caching byte range %d to %d, but there's a %d > %d gap between tail_byte_ptr %d and lower_addr"%(lower_addr, upper_addr, (lower_addr-self.tail_byte_ptr), self.item_sz, self.tail_byte_ptr))
         dram_instr = None
         lower_addr_1kbyte = lower_addr//self.atom_sz
         upper_addr_1kbyte = upper_addr//self.atom_sz
         if lower_addr_1kbyte not in self.addr2atom:
-            self.add_vatom()
+            self.allocate_atom()
             dram_instr = self.gen_dram_instr(wave_id, self.current_atom_id, lower_addr_1kbyte)
             self.addr2atom[lower_addr_1kbyte] = dram_instr
             #assert(lower_addr_1kbyte == upper_addr_1kbyte)
         # the following assume that the lower_addr and upper_addr cannot be in different 1kbyte blocks
         elif upper_addr_1kbyte not in self.addr2atom:
-            self.add_vatom()
+            self.allocate_atom()
             dram_instr = self.gen_dram_instr(wave_id, self.current_atom_id, upper_addr_1kbyte)
             self.addr2atom[upper_addr_1kbyte] = dram_instr
         self.tail_byte_ptr = upper_addr
@@ -181,29 +182,33 @@ class CircularBuffer:
         if (self.head_byte_ptr + self.item_sz < lower_addr):
             print("WARNING: freeing byte range %d to %d, but there's a %d > %d gap between head_byte_ptr %d and lower_addr"%(lower_addr, upper_addr, (lower_addr-self.head_byte_ptr), self.item_sz, self.head_byte_ptr))
         if ((upper_addr//self.atom_sz) > (self.head_byte_ptr//self.atom_sz)):
-            self.free_vatom(self.head_pointer)
+            self.free_atom(self.head_pointer)
         self.head_byte_ptr = upper_addr
 
-    def add_vatom(self):
+    def allocate_atom(self):
         if (self.count == self.capacity):
-            print ("ADD VATOM ERROR: no more space!")
+            print ("ADD ATOM ERROR: no more space!")
             return -1
         self.current_atom_id = self.start + self.tail_pointer
         if (args.debug > 0): print ("Added atom_id %d"%(self.current_atom_id))
         self.tail_pointer += 1
+        if (self.tail_pointer == self.start + self.capacity):
+            self.tail_pointer = self.start
         self.count += 1
         if (self.count > self.max_count):
             self.max_count = self.count
 
-    def free_vatom(self, atom_id):   
-        if (self.valid[atom_id] == 1):
-            self.valid[atom_id] = 0
+    def free_atom(self, atom_id):   
+        if (self.valid[atom_id - self.start] == 1):
+            self.valid[atom_id - self.start] = 0
             self.count -= 1
             if (args.debug > 0): print ("Freed atom_id %d"%(atom_id))
         else:
-            print ("FREE VATOM ERROR: atom ID %d is already freed!"%atom_id)
+            print ("FREE ATOM ERROR: atom ID %d is already freed!"%atom_id)
             return -1
         self.head_pointer += 1            
+        if (self.head_pointer == self.start + self.capacity):
+            self.head_pointer = self.start
 
 # Neural network node, containing data read from JSON
 class KNode:
@@ -438,13 +443,13 @@ class TPBSched:
         # also need to add zeros for padding
         self.ifmap_wave_lower_addr = -1
         self.ifmap_wave_upper_addr = -1
-        row_start = wave_id.c_id * self.pearray.NUM_ROWS
-        row_stop = min(self.C, row_start + self.pearray.NUM_ROWS)
-        assert(row_start < row_stop)
-        for row in range(row_start, row_stop):
+        pe_row_start = wave_id.c_id * self.pearray.NUM_ROWS
+        pe_row_stop = min(self.C, pe_row_start + self.pearray.NUM_ROWS)
+        assert(pe_row_start < pe_row_stop)
+        for row in range(pe_row_start, pe_row_stop):
             #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * self.pearray.NUM_ROWS + row], wave_id)
             ifmap = ifmaps[:, row]
-            row_offset = row - row_start
+            pe_row_offset = row - pe_row_start
             for i in range(self.Tn):
                 for x in range(self.ofmap_tilex_sz):
                     for y in range(self.ofmap_tiley_sz):
@@ -452,14 +457,14 @@ class TPBSched:
                         ifmap_tiley = wave_id.h_id * self.ifmap_tiley_sz + (y * self.stride) + wave_id.r_id - self.pad_north
                         ifmap_addr = i * self.ofmap_tile_sz + y * self.ofmap_tilex_sz + x
                         if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
-                            out_array[ifmap_addr, row_offset] = 0
+                            out_array[ifmap_addr, pe_row_offset] = 0
                         elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
-                            out_array[ifmap_addr, row_offset] = 0
+                            out_array[ifmap_addr, pe_row_offset] = 0
                         else:
-                            out_array[ifmap_addr, row_offset] = ifmap[(wave_id.n_id * self.Tn) + i, ifmap_tiley, ifmap_tilex]
+                            out_array[ifmap_addr, pe_row_offset] = ifmap[(wave_id.n_id * self.Tn) + i, ifmap_tiley, ifmap_tilex]
                             # Check bounds of actual pixels within the original ifmaps for the first ifmap (which should reside in first SB partition)
                             # TODO: check how N/C are arrange in memory; batching within waves may cause different atoms to be accessed by same wave
-                            if (row == row_start):                                
+                            if (row == pe_row_start):                                
                                 self.ifmap_wave_upper_addr = int(np.ravel_multi_index(((wave_id.n_id * self.Tn) + i, row, ifmap_tiley, ifmap_tilex),
                                                                     dims=ifmaps.shape) * ifmaps.dtype.itemsize)
                                 if (self.ifmap_wave_lower_addr < 0):
@@ -475,19 +480,19 @@ class TPBSched:
     #   return: a 128x64 array
     def pack_wave_conv_weights(self, weights, wave_id):
         out_array = np.zeros((self.pearray.NUM_ROWS, self.pearray.NUM_COLS))
-        row_start = wave_id.c_id * self.pearray.NUM_ROWS
-        row_stop = min(self.C, row_start + self.pearray.NUM_ROWS)
-        col_start = wave_id.m_id * self.pearray.NUM_COLS
-        col_stop = min(self.M, col_start + self.pearray.NUM_COLS)
-        for row in range(row_start, row_stop):
-            for col in range(col_start, col_stop):
-                out_array[row - row_start, col - col_start] = weights[row, wave_id.r_id, wave_id.s_id, col] # CRSM
+        pe_row_start = wave_id.c_id * self.pearray.NUM_ROWS
+        pe_row_stop = min(self.C, pe_row_start + self.pearray.NUM_ROWS)
+        pe_col_start = wave_id.m_id * self.pearray.NUM_COLS
+        pe_col_stop = min(self.M, pe_col_start + self.pearray.NUM_COLS)
+        for row in range(pe_row_start, pe_row_stop):
+            for col in range(pe_col_start, pe_col_stop):
+                out_array[row - pe_row_start, col - pe_col_start] = weights[row, wave_id.r_id, wave_id.s_id, col] # CRSM
         self.weight_wave_lower_addr = int(np.ravel_multi_index(
-                                            (row_start, wave_id.r_id, wave_id.s_id, col_start), # CRSM
+                                            (pe_row_start, wave_id.r_id, wave_id.s_id, pe_col_start), # CRSM
                                             dims=weights.shape) 
                                             * weights.dtype.itemsize)
         self.weight_wave_upper_addr = int(np.ravel_multi_index(
-                                            (row_stop - 1, self.R - 1, self.S - 1, col_stop-1), # CRSM
+                                            (pe_row_start, wave_id.r_id, wave_id.s_id, pe_col_stop-1), # CRSM
                                             dims=weights.shape) 
                                             * weights.dtype.itemsize)
         return out_array
@@ -508,10 +513,10 @@ class TPBSched:
               'waveop_type'             : 'MatMul',
               'waveop_name'             : op.data['layer_name']+"/MatMul_"+wave_id.id_string(),
               'layer_name'              : op.data['layer_name'],
-              'weights_atom_id'         : self.statebuffer.infbuf_weights.current_atom_id,
-              'ifmaps_atom_id'          : self.statebuffer.infbuf_ifmaps.current_atom_id,
-              'weights_offset_in_atom'  : self.weight_wave_lower_addr % self.statebuffer.infbuf_weights.atom_sz,
-              'ifmaps_offset_in_atom'   : self.ifmap_wave_lower_addr % self.statebuffer.infbuf_ifmaps.atom_sz,
+              'weights_atom_id'         : self.statebuffer.cirbuf_weights.current_atom_id,
+              'ifmaps_atom_id'          : self.statebuffer.cirbuf_ifmaps.current_atom_id,
+              'weights_offset_in_atom'  : self.weight_wave_lower_addr % self.statebuffer.cirbuf_weights.atom_sz,
+              'ifmaps_offset_in_atom'   : self.ifmap_wave_lower_addr % self.statebuffer.cirbuf_ifmaps.atom_sz,
               'wave_id_format'          : wave_id.format,
               'wave_id'                 : wave_id.show(),
               'start'                   : not(psum_add),
@@ -540,7 +545,7 @@ class TPBSched:
         self.inputs = inputs
         assert (op_list[0].data['layer_type'] == 'Conv')
         # get weights from file
-        weights = self.statebuffer.infbuf_weights.load_data(op_list[0])
+        weights = self.statebuffer.cirbuf_weights.load_data(op_list[0])
         #if (op_list[0].data['kernel_format'] == "MCRS"):
         #    M, C, R, S = weights.shape
         if (op_list[0].data['kernel_format'] == "CRSM"):
@@ -560,7 +565,7 @@ class TPBSched:
             if (layer_type == 'BiasAdd'):
                 for j in op_list[i].prev:
                     if (j.data['layer_type'] == "Const"):
-                        bias_temp = self.statebuffer.infbuf_bias.load_data(j)
+                        bias_temp = self.statebuffer.cirbuf_bias.load_data(j)
                         bias = bias_temp.flatten()
 
         # initial values
@@ -578,12 +583,13 @@ class TPBSched:
                             for r_id in range(R):
                                 for s_id in range(S):
                                     wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, r_id, s_id)
+                                    #print (wave_id.show())
                                     pearray_packed_weights = self.pack_wave_conv_weights(weights, wave_id)
                                     pearray_packed_ifmaps = self.pack_wave_ifmaps(inputs, wave_id)
                                     #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
                                     #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
-                                    dram_weights_instr = self.statebuffer.infbuf_weights.cache_data(wave_id, self.weight_wave_lower_addr, self.weight_wave_upper_addr)
-                                    dram_ifmaps_instr = self.statebuffer.infbuf_ifmaps.cache_data(wave_id, self.ifmap_wave_lower_addr, self.ifmap_wave_upper_addr)
+                                    dram_weights_instr = self.statebuffer.cirbuf_weights.cache_data(wave_id, self.weight_wave_lower_addr, self.weight_wave_upper_addr)
+                                    dram_ifmaps_instr = self.statebuffer.cirbuf_ifmaps.cache_data(wave_id, self.ifmap_wave_lower_addr, self.ifmap_wave_upper_addr)
                                     self.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank, psum_add)
                                     self.gen_matmul_instr_inline(op_list[0], dram_weights_instr, dram_ifmaps_instr, wave_id, weights, inputs, psum_bank, psum_add)
                                     # after the first wave, subsequent waves results are added to partial sums in buffer
@@ -610,7 +616,7 @@ class TPBSched:
                                                         dims=inputs.shape) * inputs.dtype.itemsize)
                         # release portion of cached data
                         # TODO: make sure that this doesn't free needed data
-                        self.statebuffer.infbuf_ifmaps.uncache_data(self.ifmap_tile_lower_addr, self.ifmap_tile_upper_addr)
+                        self.statebuffer.cirbuf_ifmaps.uncache_data(self.ifmap_tile_lower_addr, self.ifmap_tile_upper_addr)
                         # go through the remaining operations
                         op_result = self.pearray.extract_psum(psum_bank, 0, self.ofmap_tile_sz)
                         for i in range(1, len(op_list)):
@@ -628,7 +634,7 @@ class TPBSched:
                                 bias_extracted = np.zeros(self.pearray.NUM_COLS)
                                 bias_extracted[0 : bias_end - bias_start] = bias[bias_start : bias_end]
                                 op_result = self.activate.biasadd(op_result, bias_extracted)
-                                dram_bias_instr = self.statebuffer.infbuf_bias.cache_data(wave_id, bias_start, bias_end)
+                                dram_bias_instr = self.statebuffer.cirbuf_bias.cache_data(wave_id, bias_start, bias_end)
                                 # TODO: generate BiasAdd instruction inline
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
@@ -686,7 +692,7 @@ if __name__ == "__main__":
 
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
-            inputs = tpb.statebuffer.infbuf_ifmaps.load_data(op_list[0])
+            inputs = tpb.statebuffer.cirbuf_ifmaps.load_data(op_list[0])
             results = inputs
         # Check conv fused op
         # TODO: add matrix multiply
