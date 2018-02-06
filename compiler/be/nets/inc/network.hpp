@@ -21,6 +21,9 @@ namespace kcc {
 namespace layers {
     class Layer;
 }
+namespace wave {
+    class WaveOp;
+}
 namespace schedule {
     class LayerLevel;
 }
@@ -94,10 +97,10 @@ public:
     SchedRevLayers gSchedRevLayers();
 
 private:
-    //const DataType*                  m_DataType;
     std::unique_ptr<DataType>        m_DataType;
     std::string                      m_Name;
     std::vector<layers::Layer*>      m_Layers;
+    std::vector<wave::WaveOp*>       m_WaveOps;
     bool                             m_DoBatching;
     std::map<std::string, layers::Layer*> m_Name2Layer;
 }; // Network

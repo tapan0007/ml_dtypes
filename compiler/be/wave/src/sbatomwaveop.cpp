@@ -13,7 +13,8 @@
 namespace kcc {
 namespace wave {
 
-SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params, const std::vector<WaveOp*>& prevWaveOps)
+SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
+                           const std::vector<WaveOp*>& prevWaveOps)
     : WaveOp(params.m_WaveOpParams, prevWaveOps)
     , m_RefFileName(params.m_RefFileName)
     , m_AtomId(params.m_AtomId)

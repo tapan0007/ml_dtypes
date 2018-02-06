@@ -27,7 +27,7 @@ public:
 
     //----------------------------------------------------------------
     static const char* gTypeStrStatic() {
-        return TypeStr_Input;
+        return LayerTypeStr_Input;
     }
     const char*  gTypeStr() const  override {
         return gTypeStrStatic();

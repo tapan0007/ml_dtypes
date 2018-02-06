@@ -24,6 +24,7 @@
 
 #include "nets/inc/network.hpp"
 #include "serialize/inc/serlayer.hpp"
+#include "serialize/inc/serwaveop.hpp"
 
 namespace kcc {
 
@@ -84,8 +85,8 @@ template<>
 void
 Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) const
 {
-    archive(cereal::make_nvp(Key_NetName, m_Name));
-    archive(cereal::make_nvp(Key_DataType,
+    archive(cereal::make_nvp(NetKey_NetName, m_Name));
+    archive(cereal::make_nvp(NetKey_DataType,
                             std::string(m_DataType->gName())));
 
     // Temporary to vector for Cereal
@@ -198,12 +199,12 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             }
             if (const auto maxpoolLayer = dynamic_cast<layers::MaxPoolLayer*>(poolLayer)) {
                 assert(maxpoolLayer && "Expected MaxPool layer");
-                serLayer.rLayerType(TypeStr_MaxPool);
+                serLayer.rLayerType(LayerTypeStr_MaxPool);
                 continue;
             }
             if (const auto avgpoolLayer = dynamic_cast<layers::AvgPoolLayer*>(poolLayer)) {
                 assert(avgpoolLayer && "Expected AvgPool layer");
-                serLayer.rLayerType(TypeStr_AvgPool);
+                serLayer.rLayerType(LayerTypeStr_AvgPool);
                 continue;
             }
             continue;
@@ -240,7 +241,16 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
 
         assert(false && "Unsupported layer");
     }
-    archive(cereal::make_nvp(Key_Layers, serLayers));
+    archive(cereal::make_nvp(NetKey_Layers, serLayers));
+
+
+    std::vector<serialize::SerWaveOp> serWaveOps(m_WaveOps.size());
+    for (unsigned i = 0; i < m_WaveOps.size(); ++i) {
+        wave::WaveOp* waveOp = m_WaveOps[i];
+        serialize::SerWaveOp& serWaveOp(serWaveOps[i]);
+        serWaveOp.rWaveOpName(waveOp->gName());
+    }
+    archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
 }
 
 //--------------------------------------------------------
@@ -248,9 +258,9 @@ template<>
 void
 Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 {
-    archive(cereal::make_nvp(Key_NetName, m_Name));
+    archive(cereal::make_nvp(NetKey_NetName, m_Name));
     std::string dataType;
-    archive(cereal::make_nvp(Key_DataType, dataType));
+    archive(cereal::make_nvp(NetKey_DataType, dataType));
 
     if (dataType == DataTypeUint8::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeUint8>();
@@ -269,10 +279,10 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     }
 
     std::vector<serialize::SerLayer> serLayers;
-    archive(cereal::make_nvp(Key_Layers, serLayers));
+    archive(cereal::make_nvp(NetKey_Layers, serLayers));
     kcc::utils::breakFunc(333);
     for (unsigned i = 0; i < serLayers.size(); ++i) {
-        serialize::SerLayer& serLayer(serLayers[i]);
+        const serialize::SerLayer& serLayer(serLayers[i]);
         layers::Layer::Params params;
         params.m_LayerName = serLayer.gName();
         params.m_BatchFactor = serLayer.gBatchFactor();
@@ -282,13 +292,13 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
         FmapDesc fmap_desc(serLayer.gNumOfmaps(), serLayer.gOfmapHeight(), serLayer.gOfmapWidth());
         layers::Layer* layer = nullptr;
-        if (serLayer.gTypeStr() == TypeStr_Input) {
+        if (serLayer.gTypeStr() == LayerTypeStr_Input) {
             assert(serLayer.gNumPrevLayers() == 0 && "Input layer should have zero inputs");
             layer = new layers::InputLayer(params, fmap_desc);
-        } else if (serLayer.gTypeStr() == TypeStr_Const) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_Const) {
             assert(serLayer.gNumPrevLayers() == 0 && "Const layer should have zero inputs");
             layer = new layers::ConstLayer(params, fmap_desc);
-        } else if (serLayer.gTypeStr() == TypeStr_Conv) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_Conv) {
             assert(serLayer.gNumPrevLayers() == 1 && "Convolution layer should have one input");
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
@@ -314,7 +324,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());
 
-        } else if (serLayer.gTypeStr() == TypeStr_MaxPool || serLayer.gTypeStr() == TypeStr_AvgPool) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_MaxPool || serLayer.gTypeStr() == LayerTypeStr_AvgPool) {
             assert(serLayer.gNumPrevLayers() == 1 && "Pool layer: number of inputs not 1");
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
@@ -331,7 +341,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                             serLayer.gPaddingLeft(),
                                             serLayer.gPaddingRight());
 
-            if (serLayer.gTypeStr() == TypeStr_MaxPool) {
+            if (serLayer.gTypeStr() == LayerTypeStr_MaxPool) {
                 layer = new layers::MaxPoolLayer(
                         params,
                         prevLayer,
@@ -349,20 +359,20 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         padding);
             }
 
-        } else if (serLayer.gTypeStr() == TypeStr_Relu) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_Relu) {
             assert(serLayer.gNumPrevLayers() == 1 && "Relu layer: number of inputs not 1");
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr && "Relu: Unknown previous layer");
             layer = new layers::ReluLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == TypeStr_Tanh) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_Tanh) {
             assert(serLayer.gNumPrevLayers() == 1 && "Tanh layer: number of inputs not 1");
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             assert(prevLayer != nullptr && "Tanh: Unknown previous layer");
             layer = new layers::TanhLayer(params, prevLayer);
 
-        } else if (serLayer.gTypeStr() == TypeStr_ResAdd) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_ResAdd) {
             // TODO: check dimensions and types of inputs
             assert(serLayer.gNumPrevLayers() == 2 && "ResAdd layer should have two inputs");
             std::vector<layers::Layer*> prevLayers;
@@ -372,7 +382,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 prevLayers.push_back(prevLayer);
             }
             layer = new layers::ResAddLayer(params, fmap_desc,prevLayers);
-        } else if (serLayer.gTypeStr() == TypeStr_BiasAdd) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_BiasAdd) {
             // TODO check dimensions and types of inputs
             assert(serLayer.gNumPrevLayers() == 2 && "BiasAdd layer should have two inputs");
             std::vector<layers::Layer*> prevLayers;
@@ -389,6 +399,15 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         m_Name2Layer[params.m_LayerName] = layer;
     }
     assert(m_Layers.size() == serLayers.size() && "Layer mismatch count after input deserialization" );
+
+
+    std::vector<serialize::SerWaveOp> serWaveOps;
+    archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
+    for (unsigned i = 0; i < serWaveOps.size(); ++i) {
+        const serialize::SerWaveOp& serWaveOp(serWaveOps[i]);
+        wave::WaveOp::Params params;
+        params.m_WaveOpName = serWaveOp.gWaveOpName();
+    }
 }
 
 //--------------------------------------------------------

@@ -3,7 +3,7 @@ MODULE:=serialize
 MODS := $(MODULE) utils 
 
 ########################################################
-SRCS := serlayer
+SRCS := serlayer serwaveop
 
 ########################################################
 include ../Makefile.common

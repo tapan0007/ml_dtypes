@@ -92,7 +92,7 @@ private:
 
 class WaveOp::Params {
 public:
-    std::string             m_Name;
+    std::string             m_WaveOpName;
     FmapDesc                m_OfmapDesc;
     layers::Layer*          m_Layer = nullptr;
 };

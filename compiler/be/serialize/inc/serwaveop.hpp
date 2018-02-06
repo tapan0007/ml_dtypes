@@ -39,12 +39,83 @@ public:
     SerWaveOp(const SerWaveOp&) = default;
 
 public:
+    /*
+    { ###   SBAtomFile
+      "atom_id": 24,
+      "ifmaps_fold_idx": 0,
+      "ifmaps_replicate": false,
+      "length": 1024,
+      "offset_in_file": 0,
+      "ref_file": "trivnet_input:0_NCHW.npy",
+
+            "layer_name": "input",
+            "previous_waveops": [],
+            "waveop_name": "input/SBAtomFile_0",
+            "waveop_type": "SBAtomFile"
+    },
+
+    { ###   MatMul
+      "ifmaps_atom_id": 24,
+      "ifmaps_offset_in_atom": 0,
+      "psum_bank_id": 0,
+      "start": true,
+      "wave_id": [ 0, 0, 0, 0, 0, 0, 0 ],
+      "wave_id_format": "nmhwcrs",
+      "weights_atom_id": 0,
+      "weights_offset_in_atom": 0
+
+            "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
+            "waveop_type": "MatMul",
+            "layer_name": "1conv/i1",
+            "previous_waveops": [
+                "1conv/i1/SBAtomFile_0",
+                "input/SBAtomFile_0"
+            ],
+    },
+    */
+
+
     template<typename Archive>
-    void serialize(Archive & archive)
-    {
+    void save(Archive & archive) const;
+
+    template<typename Archive>
+    void load(Archive & archive);
+
+    const std::string& gWaveOpName() const {
+        return m_WaveOpName;
+    }
+    void 
+    rWaveOpName(const std::string& waveOpName) {
+        m_WaveOpName = waveOpName;
     }
 
 private:
+    // common
+    std::string                 m_WaveOpType;
+    std::string                 m_WaveOpName;
+    std::string                 m_LayerName;
+    std::vector<std::string>    m_PreviousWaveOps;
+
+    // SBAtomFile
+    int                         m_AtomId;
+    int                         m_IfmapsFoldIdx;
+    int                         m_IfmapsReplicate;
+    int                         m_Length;
+    int                         m_OffsetInFile;
+    std::string                 m_RefFile;
+
+    // MatMul
+    enum {
+        WaveIdFormatSize = 7,
+    };
+    int                         m_IfmapsAtomId;
+    int                         m_IfmapsOffsetInAtom;
+    int                         m_PsumBankId;
+    bool                        m_Start;
+    wave::MatMulWaveOp::WaveId  m_WaveId;
+    std::string                 m_WaveIdFormat;
+    int                         m_WeightsAtomId;
+    int                         m_WeightsOffsetInAtom;
 }; // class SerWaveOp
 
 

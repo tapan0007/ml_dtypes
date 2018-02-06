@@ -38,37 +38,67 @@ static_assert(StrideIndex_LeftRight == DilateIndex_LeftRight, "Stride and Dilate
 const char* const SCHED_MEM_FORMAT = "%-24s %10s %6s  %8s  %8s  %8s  %8s";
 
 
-constexpr const char* const TypeStr_Input     = "Input";
-constexpr const char* const TypeStr_Const     = "Const";
-constexpr const char* const TypeStr_ResAdd    = "ResAdd";
-constexpr const char* const TypeStr_BiasAdd   = "BiasAdd";
-constexpr const char* const TypeStr_Conv      = "Conv";
-constexpr const char* const TypeStr_Relu      = "Relu";
-constexpr const char* const TypeStr_Tanh      = "Tanh";
+constexpr const char* const LayerTypeStr_Input     = "Input";
+constexpr const char* const LayerTypeStr_Const     = "Const";
+constexpr const char* const LayerTypeStr_ResAdd    = "ResAdd";
+constexpr const char* const LayerTypeStr_BiasAdd   = "BiasAdd";
+constexpr const char* const LayerTypeStr_Conv      = "Conv";
+constexpr const char* const LayerTypeStr_Relu      = "Relu";
+constexpr const char* const LayerTypeStr_Tanh      = "Tanh";
 
-constexpr const char* const TypeStr_MaxPool   = "MaxPool";
-constexpr const char* const TypeStr_AvgPool   = "AvgPool";
-constexpr const char* const TypeStr_SoftMax   = "SoftMax";
-constexpr const char* const TypeStr_BatchNorm = "BNorm";
+constexpr const char* const LayerTypeStr_MaxPool   = "MaxPool";
+constexpr const char* const LayerTypeStr_AvgPool   = "AvgPool";
+constexpr const char* const LayerTypeStr_SoftMax   = "SoftMax";
+constexpr const char* const LayerTypeStr_BatchNorm = "BNorm";
 
-constexpr const char* const Key_Layers        = "layers";
-constexpr const char* const Key_NetName       = "net_name";
-constexpr const char* const Key_DataType      = "data_type";
+constexpr const char* const WaveOpTypeStr_SBAtomFile = "SBAtomFile";
+constexpr const char* const WaveOpTypeStr_MatMul     = "MatMul";
 
-constexpr static const char* Key_LayerType        = "layer_type";
-constexpr static const char* Key_LayerName        = "layer_name";
-constexpr static const char* Key_PrevLayers       = "previous_layers";
-constexpr static const char* Key_OfmapShape       = "ofmap_shape";
+constexpr const char* const NetKey_Layers        = "layers";
+constexpr const char* const NetKey_WaveOps       = "waveops";
+constexpr const char* const NetKey_NetName       = "net_name";
+constexpr const char* const NetKey_DataType      = "data_type";
 
-constexpr static const char* Key_OfmapFormat      = "ofmap_format";   // input,conv
-constexpr static const char* Key_RefFile          = "ref_file";       // input
+constexpr static const char* LayerKey_LayerType        = "layer_type";
+constexpr static const char* LayerKey_LayerName        = "layer_name";
+constexpr static const char* LayerKey_PrevLayers       = "previous_layers";
+constexpr static const char* LayerKey_OfmapShape       = "ofmap_shape";
 
-constexpr static const char* Key_KernelFile       = "kernel_file";    // input, conv
-constexpr static const char* Key_KernelFormat     = "kernel_format";  // conv, pool
-constexpr static const char* Key_KernelShape      = "kernel_shape";   // conv,pool
-constexpr static const char* Key_Stride           = "stride";         // conv,pool
-constexpr static const char* Key_Padding          = "padding";        // conv,pool
-constexpr static const char* Key_Batching         = "batching";       //
+constexpr static const char* LayerKey_OfmapFormat      = "ofmap_format";   // input,conv
+constexpr static const char* LayerKey_RefFile          = "ref_file";       // input
+
+constexpr static const char* LayerKey_KernelFile       = "kernel_file";    // input, conv
+constexpr static const char* LayerKey_KernelFormat     = "kernel_format";  // conv, pool
+constexpr static const char* LayerKey_KernelShape      = "kernel_shape";   // conv,pool
+constexpr static const char* LayerKey_Stride           = "stride";         // conv,pool
+constexpr static const char* LayerKey_Padding          = "padding";        // conv,pool
+constexpr static const char* LayerKey_Batching         = "batching";       //
+
+
+
+// common to all WaveOps
+constexpr static const char* WaveOpKey_WaveOpType             = "waveop_type";
+constexpr static const char* WaveOpKey_WaveOpName             = "waveop_name";
+constexpr static const char* WaveOpKey_LayerName              = "layer_name";
+constexpr static const char* WaveOpKey_PreviousWaveOps        = "previous_waveops";
+
+// MatMul
+constexpr static const char* WaveOpKey_IfmapsAtomId           = "ifmaps_atom_id";
+constexpr static const char* WaveOpKey_IfmapsOffsetInAtom     = "ifmaps_atom_id";
+constexpr static const char* WaveOpKey_PsumBankId             = "psum_bank_id";
+constexpr static const char* WaveOpKey_Start                  = "start";
+constexpr static const char* WaveOpKey_WaveIdFormat           = "wave_id_format";
+constexpr static const char* WaveOpKey_WaveId                 = "wave_id";
+constexpr static const char* WaveOpKey_WeightsAtomId          = "weights_atom_id";
+constexpr static const char* WaveOpKey_WeightsOffsetInAtom    = "weights_offset_in_atom";
+
+// SBAtomFile
+constexpr static const char* WaveOpKey_AtomId                 = "atom_id";
+constexpr static const char* WaveOpKey_IfmapsFoldIdx          = "ifmaps_fold_idx";
+constexpr static const char* WaveOpKey_IfmapsReplicate        = "ifmaps_replicate";
+constexpr static const char* WaveOpKey_Length                 = "length";
+constexpr static const char* WaveOpKey_OffsetInFile           = "offset_in_file";
+constexpr static const char* WaveOpKey_RefFile                = "ref_file";
 
 } // namespace kcc
 

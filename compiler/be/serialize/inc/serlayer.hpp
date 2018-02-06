@@ -40,34 +40,34 @@ public:
     template<typename Archive>
     void serialize(Archive & archive)
     {
-        archive(cereal::make_nvp(Key_LayerType, m_LayerType));
-        archive(cereal::make_nvp(Key_LayerName, m_LayerName));
-        archive(cereal::make_nvp(Key_PrevLayers, m_PrevLayers));
-        archive(cereal::make_nvp(Key_OfmapShape, m_OfmapShape));
-        archive(cereal::make_nvp(Key_OfmapFormat, m_OfmapFormat));
-        archive(cereal::make_nvp(Key_RefFile, m_RefFile));
+        archive(cereal::make_nvp(LayerKey_LayerType, m_LayerType));
+        archive(cereal::make_nvp(LayerKey_LayerName, m_LayerName));
+        archive(cereal::make_nvp(LayerKey_PrevLayers, m_PrevLayers));
+        archive(cereal::make_nvp(LayerKey_OfmapShape, m_OfmapShape));
+        archive(cereal::make_nvp(LayerKey_OfmapFormat, m_OfmapFormat));
+        archive(cereal::make_nvp(LayerKey_RefFile, m_RefFile));
 
-        if (m_LayerType == TypeStr_Input) {
+        if (m_LayerType == LayerTypeStr_Input) {
             // nothing specific to Input layer
-        } else if (m_LayerType == TypeStr_Const) {
+        } else if (m_LayerType == LayerTypeStr_Const) {
             // nothing specific to Const layer
-        } else if (m_LayerType == TypeStr_Conv) {
-            archive(cereal::make_nvp(Key_KernelShape, m_KernelShape));
-            archive(cereal::make_nvp(Key_KernelFile, m_KernelFile));
-            archive(cereal::make_nvp(Key_KernelFormat, m_KernelFormat));
-            archive(cereal::make_nvp(Key_Stride, m_Stride));
-            archive(cereal::make_nvp(Key_Padding, m_Padding));
-        } else if (m_LayerType == TypeStr_Tanh) {
+        } else if (m_LayerType == LayerTypeStr_Conv) {
+            archive(cereal::make_nvp(LayerKey_KernelShape, m_KernelShape));
+            archive(cereal::make_nvp(LayerKey_KernelFile, m_KernelFile));
+            archive(cereal::make_nvp(LayerKey_KernelFormat, m_KernelFormat));
+            archive(cereal::make_nvp(LayerKey_Stride, m_Stride));
+            archive(cereal::make_nvp(LayerKey_Padding, m_Padding));
+        } else if (m_LayerType == LayerTypeStr_Tanh) {
             // nothing specific to Tanh
-        } else if (m_LayerType == TypeStr_Relu) {
+        } else if (m_LayerType == LayerTypeStr_Relu) {
             // nothing specific to Relu
-        } else if (m_LayerType == TypeStr_MaxPool || m_LayerType == TypeStr_AvgPool) {
-            archive(cereal::make_nvp(Key_KernelShape, m_KernelShape));
-            archive(cereal::make_nvp(Key_Stride, m_Stride));
-            archive(cereal::make_nvp(Key_Padding, m_Padding));
-        } else if (m_LayerType == TypeStr_BiasAdd) {
+        } else if (m_LayerType == LayerTypeStr_MaxPool || m_LayerType == LayerTypeStr_AvgPool) {
+            archive(cereal::make_nvp(LayerKey_KernelShape, m_KernelShape));
+            archive(cereal::make_nvp(LayerKey_Stride, m_Stride));
+            archive(cereal::make_nvp(LayerKey_Padding, m_Padding));
+        } else if (m_LayerType == LayerTypeStr_BiasAdd) {
             // nothing specific to BiasAdd layer
-        } else if (m_LayerType == TypeStr_ResAdd) {
+        } else if (m_LayerType == LayerTypeStr_ResAdd) {
             // nothing specific to ResAdd layer
         } else {
             assert(false && "Serialization: unsupported layer");
@@ -149,7 +149,7 @@ public:
     //----------------------------------------------------------------
     const std::string& gName() const;
 
-    const std::string& gRefFile() {
+    const std::string& gRefFile() const {
         return m_RefFile;       // input
     }
     void rRefFile(const std::string& f) {
@@ -221,7 +221,6 @@ private:
     std::string                 m_LayerName;
     std::vector<std::string>    m_PrevLayers;
 
-    //OfmapShapeType            m_OfmapShape;
     std::vector<int>            m_OfmapShape;
 
     std::string                 m_OfmapFormat;   // input,conv
@@ -230,17 +229,13 @@ private:
     std::string                 m_KernelFile;    // input(data), conv(weights)
     std::string                 m_KernelFormat;  // conv, pool
 
-    //KernelShapeType             m_KernelShape;   // conv,pool
-    std::vector<int>                 m_KernelShape;   // conv,pool
+    std::vector<int>            m_KernelShape;   // conv,pool
 
-    //StrideType                  m_Stride;        // conv,pool
-    std::vector<int>                 m_Stride;        // conv,pool
+    std::vector<int>            m_Stride;        // conv,pool
 
-    //PaddingType                 m_Padding;       // conv,pool
     std::vector<std::vector<int> >        m_Padding;       // conv,pool
 
-    //BatchingType                m_Batching;
-    std::vector<int>                 m_Batching;
+    std::vector<int>            m_Batching;
 }; // class SerLayer
 
 

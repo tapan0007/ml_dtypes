@@ -10,7 +10,7 @@
 #include "utils/inc/printers.hpp"
 
 #include "arch/inc/arch.hpp"
-#include "memmgr/inc/statebufmgr.hpp"
+#include "memmgr/inc/statebuffermgr.hpp"
 #include "codegen/inc/codegen.hpp"
 #include "schedule/inc/scheduler.hpp"
 #include "layers/inc/layer.hpp"

@@ -28,6 +28,13 @@ public:
         assert(map_width > 0 && "FMAP width must be positive");
     }
 
+    FmapDesc() 
+        : m_NumMaps(-1)
+        , m_MapHeight(-1)
+        , m_MapWidth(-1)
+    {
+    }
+
 
     //----------------------------------------------------------------
     kcc_int32 gNumMaps() const
@@ -65,8 +72,6 @@ public:
     }
 
 
-private:
-    FmapDesc() = delete;
 
 private:
     kcc_int32 m_NumMaps;

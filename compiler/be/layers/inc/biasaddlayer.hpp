@@ -29,7 +29,7 @@ public:
 
     //----------------------------------------------------------------
     static const char* gTypeStrStatic() {
-        return TypeStr_BiasAdd;
+        return LayerTypeStr_BiasAdd;
     }
     const char*  gTypeStr() const  override {
         return gTypeStrStatic();
