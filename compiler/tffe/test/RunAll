@@ -96,6 +96,15 @@ testConfigMap = {
   "8-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--images linspace1 --depth 2"],
 }
 
+# Regression waiver mechanism 
+# If the testname matches the regexp then the FAIL status is replaced with
+# with the string
+testWaiver = [
+    ['^0-add',   'WAIVE-RESADD'],
+    ['^[4-9]-',  'WAIVE-BENCH']
+  ]
+
+
 # Filter by level
 def getLevel(testName):
   return int(testName[0])
@@ -168,12 +177,12 @@ class QoR:
 
   @staticmethod
   def printHeader():
-    print("%-26s  %-6s  %6s  %16s %16s  %16s %16s %s" %
+    print("%-26s  %-12s  %6s  %16s %16s  %16s %16s %s" %
           ("Test", "Status", "Tops", "Ops", "Cycles", "TimeSec", "Cycles/sec", "Description"))
     print("-" * 120)
 
   def printValues(self, status, description):
-    print("%-26s  %-6s  %6.3f  %16g %16g  %16.3f %16g  %s" %
+    print("%-26s  %-12s  %6.3f  %16g %16g  %16.3f %16g  %s" %
           (self.testName, status, self.tops, self.ops,
            self.cycles, self.elapsedTimeSec, self.cyclesPerSec,
            description))
@@ -211,9 +220,10 @@ class Ktest:
 # Storage for all tests
 ###############################################################################
 class Ktests:
-  def __init__(self, testConfigMap, testList):
+  def __init__(self, testConfigMap, testList, testWaiver):
     self.testConfigMap = testConfigMap
     self.testList = testList
+    self.testWaiver = testWaiver
     self.process2test = {}
     self.name2test = {}
     self.processes = []
@@ -338,17 +348,40 @@ class Ktests:
         description = Text
     return description
 
+  def calcWaivedStatus(self, testName, status):
+    newStatus = status
+    if status == "FAIL":
+      for regexp,replacementStatus in self.testWaiver:
+        if re.search(regexp, testName):
+          newStatus = replacementStatus
+    return newStatus
+
+  def calcNumWaivedTest(self):
+    numWaived  = 0
+    for testName in self.testList:
+      t = self.getTestByName(testName)
+      reportStatus = self.calcWaivedStatus(testName, t.status)
+      if 'WAIVE' in reportStatus:
+        numWaived += 1
+    return numWaived
+
   def report(self):
-    print("\n")
+    numAll = self.getNumTests()
+    numWaived = self.calcNumWaivedTest()
+    numPass = self.numPass + numWaived
+    numPassPct = numPass / numAll * 100
+    print("\nSUMMARY: PASS  %d  %.3f%%  of  %d  (%d were waived)\n" %
+          (numPass, numPassPct, numAll, numWaived) )
     QoR.printHeader()
     for testName in self.testList:
       t = self.getTestByName(testName)
       testDescription = self.getTestDescription(testName)
-      t.qor.printValues(t.status, testDescription)
+      reportStatus = self.calcWaivedStatus(testName, t.status)
+      t.qor.printValues(reportStatus, testDescription)
     
 ###############################################################################
 # Execute
-tests = Ktests(testConfigMap, testList)
+tests = Ktests(testConfigMap, testList, testWaiver)
 tests.run(parallel)
 tests.report()
 
