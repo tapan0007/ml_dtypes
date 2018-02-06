@@ -11,7 +11,7 @@
 #     /bin/rm -rf [0-9]* ; ./RunAll --verbose
 #
 
-import os, sys
+import os, sys, re
 import argparse
 import multiprocessing as mp
 import time
@@ -43,7 +43,7 @@ if verbose:
 #   level-name
 #   level is relative complexity and runtime cost, easiest 0  to most complex 9
 #   Name can be composed of anything - 0 can be used as base/existence test
-tests = {
+testConfigMap = {
   "0-1conv0"      : [ "trivnet_conv1",  "b1-h1-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv"],
   "0-2conv0"      : [ "trivnet_conv2",  "b1-h1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "2conv"],
   "0-neg"         : [ "trivnet_conv2",  "b1-Zh1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "I_ALWAYS_FAIL"],
@@ -100,7 +100,7 @@ tests = {
 def getLevel(testName):
   return int(testName[0])
 testList = []
-for testName in sorted(tests):
+for testName in sorted(testConfigMap):
   if getLevel(testName) <= level:
     testList.append(testName)
 
@@ -111,58 +111,244 @@ def runCmd(cmd):
   os.system(cmd)
   return(0)
 
-start_time = time.time()
-numRunning = 0
-processes = []
-for testName in testList:
-  # Add default NN args
-  if len(tests[testName]) < 4:
-    tests[testName].append("")
-  (nnStruct, nnConfig, nnLabel, nnArgs) = tests[testName]
-  if verbose:
-    print("\n############## %s ##############" % testName)
-  cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
-  if args.stop_after == "backend":
-    cmd += 'bash $KAENA_PATH/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
-  cmd += '(echo; echo -n PASS) || (echo ; echo -n FAIL); echo "  "' + testName
-  
-  #os.system(cmd)
+###############################################################################
+# QoR results for one tests
+###############################################################################
+class QoR:
+  @staticmethod
+  def simLogGetCycles(filepath):
+    cycles = -1
+    elapsedTimeSec = -1
+    with open(filepath, 'rb') as fh:
+      for lineBinary in fh.readlines():
+        line = lineBinary.decode('ascii')
+        found = re.search('Cycles:\s+(\d+)', line)
+        if found:
+          cycles = found.group(1)
+        found = re.search('ElapsedTimeSec:\s+([\d.]+)', line)
+        if found:
+          elapsedTimeSec = found.group(1)
+    return int(cycles), float(elapsedTimeSec)
 
-  while numRunning >= parallel:
+  @staticmethod
+  def feLogGetOps(filepath):
+    ops = 0
+    with open(filepath, 'r') as fh:
+      for line in fh:
+        match = re.search('INFO: total opcount is (\d+)', line)
+        if match:
+          ops = int(match.groups(1)[0])
+    return ops
+
+  def __init__(self, dirName):
+    self.freq = 1e9
+    self.testName = dirName
+    feLog = self.testName + "/" + "log-fe.txt"
+    self.tops = 0
+    self.ops = 0
+    self.cycles = 1
+    self.elapsedTimeSec = -1
+    self.cyclesPerSec = 0
+    if os.path.isfile(feLog):
+      self.ops = QoR.feLogGetOps(feLog)
+      for subdir, dirs, files in os.walk(dirName):
+        for file in files:
+          #print(os.path.join(subdir, file))
+          filepath = subdir + os.sep + file
+          if filepath.endswith(".simres"):
+            testName = filepath.split("/")[0]
+            assert(testName == self.testName)
+            self.cycles, self.elapsedTimeSec = QoR.simLogGetCycles(filepath)
+            self.tops = 0
+            self.cyclesPerSec = 0
+            if self.cycles > 0:
+              self.tops = 1.0 * self.ops / self.cycles / 1e12 * self.freq
+              if self.elapsedTimeSec > 0:
+                self.cyclesPerSec = self.cycles / self.elapsedTimeSec
+
+  @staticmethod
+  def printHeader():
+    print("%-26s  %-6s  %6s  %16s %16s  %16s %16s %s" %
+          ("Test", "Status", "Tops", "Ops", "Cycles", "TimeSec", "Cycles/sec", "Description"))
+    print("-" * 120)
+
+  def printValues(self, status, description):
+    print("%-26s  %-6s  %6.3f  %16g %16g  %16.3f %16g  %s" %
+          (self.testName, status, self.tops, self.ops,
+           self.cycles, self.elapsedTimeSec, self.cyclesPerSec,
+           description))
+
+
+###############################################################################
+# Storage for test name, results
+###############################################################################
+class Ktest:
+  def __init__(self, name, dirName, cmd):
+    self.name = name
+    self.dir = dirName
+    self.cmd = cmd
+  def invertStatus(self):
+    if self.status == "PASS":
+      self.status = "FAIL"
+    elif self.status == "FAIL":
+      self.status = "PASS"
+  def calcStatus(self):
+    statusFile = self.dir + "/status.txt"
+    status = "UNKNOWN"
+    with open(statusFile, 'r') as fh:
+      (status, ) = fh.readlines()
+    self.status = status.rstrip()
+    if self.name == "0-neg":
+      self.invertStatus()
+  def calcQoR(self):
+    self.qor = QoR(self.dir)
+  def passed(self):
+    return self.status == "PASS"
+  def failed(self):
+    return self.status == "FAIL"
+  
+###############################################################################
+# Storage for all tests
+###############################################################################
+class Ktests:
+  def __init__(self, testConfigMap, testList):
+    self.testConfigMap = testConfigMap
+    self.testList = testList
+    self.process2test = {}
+    self.name2test = {}
+    self.processes = []
+    self.numRunning = 0
+    self.sleepSec = 1
+    self.numPass = 0
+    self.numFail = 0
+    self.msg = ""
+    self.statusCount = 0
+    self.testDescriptionREs = []
+    with open("test_description.txt", 'r') as fh:
+      for line in fh:
+        match = re.search('(^[^#\s]+)\s+(\S.*)', line)
+        if match:
+          self.testDescriptionREs.append(match.groups())
+
+  def getNumTests(self):
+    return len(self.testList)
+    
+  def reportStatusWhileRunning(self):
+    numAll = self.getNumTests()
+    numRun = self.numRunning
+    numRunPct = numRun / numAll * 100
+    numPass = self.numPass
+    numPassPct = numPass / numAll * 100
+    numFail = self.numFail
+    numFailPct = numFail / numAll * 100
+    numOther = numAll - numPass - numFail - numRun
+    numOtherPct = numOther / numAll * 100
+    if self.statusCount %10 == 0:
+      print("\n  #Time      Running    Passed    Failed     Other")
+    self.statusCount += 1
+    print("  %s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %s" %
+          (time.strftime("%H:%M:%S"),
+           numRun, numRunPct, numPass, numPassPct, numFail, numFailPct, numOther, numOtherPct, self.msg),
+          flush=True
+         )
+    self.msg = ""
+
+  # check for running proceses
+  def checkProcesses(self, sleepLimit):
     newProcesses = []
-    for p in processes:
+    finishedProcesses = []
+    for p in self.processes:
       if p.is_alive():
         newProcesses.append(p)
       else:
         p.join()
-        numRunning -= 1
-    processes = newProcesses
-    if numRunning >= parallel:
-      print("o", end='', flush=True)
-      time.sleep(1)
+        finishedProcesses.append(p)
+    self.postprocess(finishedProcesses)
+    self.processes = newProcesses
+    self.numRunning = len(self.processes)
+    self.reportStatusWhileRunning()
+    if self.numRunning >= sleepLimit:
+      #print(".", end='', flush=True)
+      time.sleep(self.sleepSec)
+    return(finishedProcesses)
 
-  if verbose:
-    print("Executing ", cmd)
-  else:
-    print("\nSTART " + testName, flush=True)
-  p = mp.Process(target=runCmd, args=(cmd,))
-  p.start()
-  numRunning += 1
-  processes.append(p)
+  def getTestByProcess(self, process):
+    return self.process2test[process]
 
-while numRunning > 0:
-  newProcesses = []
-  for p in processes:
-    if p.is_alive():
-      newProcesses.append(p)
-    else:
-      p.join()
-      numRunning -= 1
-  processes = newProcesses
-  print("x", end='', flush=True)
-  time.sleep(1)
+  def getTestByName(self, testName):
+    return self.name2test[testName]
 
-end_time = time.time()
-print("\nDone in %.3f sec" % (end_time - start_time))
+  def postprocess(self, finishedProcesses):
+    for p in finishedProcesses:
+      t = self.getTestByProcess(p)
+      t.calcStatus()
+      t.calcQoR()
+      if t.passed():
+        self.numPass += 1
+      if t.failed():
+        self.numFail += 1
+      self.msg += "  %s %s" % (t.name, t.status)
+  
+  # Run tests
+  def run(self, parallel):
+    self.parallel = parallel
+    start_time = time.time()
+    self.numRunning = 0
+    self.processes = []
+    for testName in self.testList:
+      # Add default NN args
+      if len(self.testConfigMap[testName]) < 4:
+        self.testConfigMap[testName].append("")
+      (nnStruct, nnConfig, nnLabel, nnArgs) = self.testConfigMap[testName]
+      if verbose:
+        print("\n############## %s ##############" % testName)
+      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
+      if args.stop_after == "backend":
+        cmd += 'bash $KAENA_PATH/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
+      cmd += '(echo PASS > status.txt) || (echo FAIL > status.txt);'
 
+      #os.system(cmd)
+
+      while self.numRunning >= self.parallel:
+        self.checkProcesses(self.parallel)
+
+      if verbose:
+        print("Executing ", cmd)
+      else:
+        self.msg += "  %s START" % testName
+      p = mp.Process(target=runCmd, args=(cmd,))
+      p.start()
+      self.numRunning += 1
+      self.processes.append(p)
+      t = Ktest(testName, testName, cmd)
+      self.process2test[p] = t
+      self.name2test[testName] = t
+
+    while self.numRunning > 0:
+      self.checkProcesses(0)
+
+    end_time = time.time()
+    print("\nDone in %.3f sec" % (end_time - start_time))
+
+  def getTestDescription(self, testName):
+    description = "Missing Description"
+    for testPattern,Text in self.testDescriptionREs:
+      match = re.search(testPattern, testName)
+      if match:
+        description = Text
+    return description
+
+  def report(self):
+    print("\n")
+    QoR.printHeader()
+    for testName in self.testList:
+      t = self.getTestByName(testName)
+      testDescription = self.getTestDescription(testName)
+      t.qor.printValues(t.status, testDescription)
+    
+###############################################################################
+# Execute
+tests = Ktests(testConfigMap, testList)
+tests.run(parallel)
+tests.report()
 
