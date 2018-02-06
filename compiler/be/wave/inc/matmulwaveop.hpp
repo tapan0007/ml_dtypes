@@ -98,6 +98,10 @@ public:
         return true;
     }
 
+    static std::string gTypeStr() {
+        return WaveOpTypeStr_MatMul;
+    }
+
 private:
     MatMulWaveOp::WaveId    m_WaveId;
     std::string             m_WaveIdFormat;

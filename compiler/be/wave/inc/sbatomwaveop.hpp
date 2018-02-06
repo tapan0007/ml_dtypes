@@ -43,6 +43,10 @@ public:
         m_RefFileName = refFileName;
     }
 
+    static std::string gTypeStr() {
+        return WaveOpTypeStr_SBAtomFile;
+    }
+
 
 private:
     std::string     m_RefFileName;

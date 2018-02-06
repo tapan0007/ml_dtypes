@@ -405,8 +405,28 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
     for (unsigned i = 0; i < serWaveOps.size(); ++i) {
         const serialize::SerWaveOp& serWaveOp(serWaveOps[i]);
-        wave::WaveOp::Params params;
-        params.m_WaveOpName = serWaveOp.gWaveOpName();
+        wave::WaveOp::Params waveOpParams;
+        waveOpParams.m_WaveOpName   = serWaveOp.gWaveOpName();
+        waveOpParams.m_Layer        = findLayer(serWaveOp.gLayerName());
+        assert(waveOpParams.m_Layer);
+        wave::WaveOp* waveOp        = nullptr;
+
+        if (serWaveOp.gWaveOpType() == MatMulWaveOp::gTypeStr()) {
+            wave::MatMulWaveOp::Params matmulParams;
+            matmulParams.m_WaveOpParams         = waveOpParams;
+            matmulParams.m_WaveId               = serWaveOp.gWaveId();
+            matmulParams.m_WaveIdFormat         = serWaveOp.gWaveIdFormat();
+            matmulParams.m_IfmapsAtomId         = serWaveOp.gIfmapsIdFormat();
+            matmulParams.m_IfmapsOffsetInAtom   = serWaveOp.gIfmapsOffsetInAtom();
+            matmulParams.m_PsumBankId           = serWaveOp.gPsumBankId();
+            matmulParams.m_Start                = serWaveOp.qStart();
+            waveOp = new MatMulWaveOp(matmulParams, vector<WaveOp*>());
+        } else if (serWaveOp.gWaveOpType() == SBAtomFileWaveOp::gTypeStr()) {
+        } else {
+            assert(false && "Wrong WaveOp type during deserialization");
+        }
+        m_WaveOps.push_back(waveOp);
+
     }
 }
 

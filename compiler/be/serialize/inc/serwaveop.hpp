@@ -81,12 +81,53 @@ public:
     template<typename Archive>
     void load(Archive & archive);
 
+
+
+    const std::string& gWaveOpType() const {
+        return m_WaveOpType;
+    }
+    const std::string& gWaveOpName() const {
+        return m_WaveOpName;
+    }
+    const std::string& gLayerName() const {
+        return m_LayerName;
+    }
+    const std::vector<std::string>& gPreviousWaveOps() const {
+        return m_PreviousWaveOps;
+    }
+
+
     const std::string& gWaveOpName() const {
         return m_WaveOpName;
     }
     void 
     rWaveOpName(const std::string& waveOpName) {
         m_WaveOpName = waveOpName;
+    }
+
+    int gIfmapsAtomId() const {
+        return m_IfmapsAtomId;
+    }
+    int gIfmapsOffsetInAtom() const {
+        return m_IfmapsOffsetInAtom;
+    }
+    int gPsumBankId() const {
+        return m_PsumBankId;
+    }
+    bool qStart() const {
+        return m_Start;
+    }
+    const wave::MatMulWaveOp::WaveId gWaveId() const {
+        return m_WaveId;
+    }
+    const std::string& gWaveIdFormat() const {
+        return m_WaveIdFormat;
+    }
+    int gWeightsAtomId() const {
+        return m_WeightsAtomId;
+    }
+    int gWeightsOffsetInAtom() {
+        return m_WeightsOffsetInAtom;
     }
 
 private:
@@ -99,7 +140,7 @@ private:
     // SBAtomFile
     int                         m_AtomId;
     int                         m_IfmapsFoldIdx;
-    int                         m_IfmapsReplicate;
+    bool                        m_IfmapsReplicate;
     int                         m_Length;
     int                         m_OffsetInFile;
     std::string                 m_RefFile;
