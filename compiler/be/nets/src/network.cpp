@@ -246,9 +246,33 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
 
     std::vector<serialize::SerWaveOp> serWaveOps(m_WaveOps.size());
     for (unsigned i = 0; i < m_WaveOps.size(); ++i) {
-        wave::WaveOp* waveOp = m_WaveOps[i];
         serialize::SerWaveOp& serWaveOp(serWaveOps[i]);
+        wave::WaveOp* waveOp = m_WaveOps[i];
         serWaveOp.rWaveOpName(waveOp->gName());
+        serWaveOp.rLayerName(waveOp->gLayer()->gName());
+
+        if (const auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp)) {
+            serWaveOp.rWaveOpType(wave::MatMulWaveOp::gTypeStr());
+
+            serWaveOp.rWaveId(matmulWaveOp->gWaveId());
+            serWaveOp.rWaveIdFormat(matmulWaveOp->gWaveIdFormat());
+            serWaveOp.rIfmapsAtomId(matmulWaveOp->gIfmapsAtomId());
+            serWaveOp.rIfmapsOffsetInAtom(matmulWaveOp->gIfmapsOffsetInAtom());
+            serWaveOp.rPsumBankId(matmulWaveOp->gPsumBankId());
+            serWaveOp.rStart(matmulWaveOp->qStart());
+            continue;
+        }
+        if (const auto sbatomWaveOp = dynamic_cast<wave::SbAtomWaveOp*>(waveOp)) {
+            serWaveOp.rWaveOpType(wave::SbAtomWaveOp::gTypeStr());
+            serWaveOp.rAtomId(sbatomWaveOp->gAtomId());
+            serWaveOp.rIfmapsFoldIdx(sbatomWaveOp->gIfmapsFoldIdx());
+            serWaveOp.rIfmapsReplicate(sbatomWaveOp->gIfmapsReplicate());
+            serWaveOp.rLength(sbatomWaveOp->gLength());
+            serWaveOp.rOffsetInFile(sbatomWaveOp->gOffsetInFile());
+            serWaveOp.rRefFile(sbatomWaveOp->gRefFileName());
+            continue;
+        }
+        assert(false && "Unsupported WaveOp");
     }
     archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
 }
@@ -409,19 +433,29 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         waveOpParams.m_WaveOpName   = serWaveOp.gWaveOpName();
         waveOpParams.m_Layer        = findLayer(serWaveOp.gLayerName());
         assert(waveOpParams.m_Layer);
+
         wave::WaveOp* waveOp        = nullptr;
 
-        if (serWaveOp.gWaveOpType() == MatMulWaveOp::gTypeStr()) {
+        if (serWaveOp.gWaveOpType() == wave::MatMulWaveOp::gTypeStr()) {
             wave::MatMulWaveOp::Params matmulParams;
             matmulParams.m_WaveOpParams         = waveOpParams;
             matmulParams.m_WaveId               = serWaveOp.gWaveId();
             matmulParams.m_WaveIdFormat         = serWaveOp.gWaveIdFormat();
-            matmulParams.m_IfmapsAtomId         = serWaveOp.gIfmapsIdFormat();
+            matmulParams.m_IfmapsAtomId         = serWaveOp.gIfmapsAtomId();
             matmulParams.m_IfmapsOffsetInAtom   = serWaveOp.gIfmapsOffsetInAtom();
             matmulParams.m_PsumBankId           = serWaveOp.gPsumBankId();
             matmulParams.m_Start                = serWaveOp.qStart();
-            waveOp = new MatMulWaveOp(matmulParams, vector<WaveOp*>());
-        } else if (serWaveOp.gWaveOpType() == SBAtomFileWaveOp::gTypeStr()) {
+            waveOp = new wave::MatMulWaveOp(matmulParams, std::vector<wave::WaveOp*>());
+        } else if (serWaveOp.gWaveOpType() == wave::SbAtomWaveOp::gTypeStr()) {
+            wave::SbAtomWaveOp::Params sbatomParams;
+            sbatomParams.m_WaveOpParams      = waveOpParams;
+            sbatomParams.m_RefFileName       = serWaveOp.gRefFile();
+            sbatomParams.m_AtomId            = serWaveOp.gAtomId();
+            sbatomParams.m_IfmapsFoldIdx     = serWaveOp.gIfmapsFoldIdx();
+            sbatomParams.m_Length            = serWaveOp.gLength();
+            sbatomParams.m_OffsetInFile      = serWaveOp.gOffsetInFile();
+            sbatomParams.m_IfmapsReplicate   = serWaveOp.qIfmapsReplicate();
+            waveOp = new wave::SbAtomWaveOp(sbatomParams, std::vector<wave::WaveOp*>());
         } else {
             assert(false && "Wrong WaveOp type during deserialization");
         }

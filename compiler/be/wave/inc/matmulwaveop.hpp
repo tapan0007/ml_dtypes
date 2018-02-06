@@ -88,10 +88,36 @@ public:
         kcc_int16 m_FilterPixelX;
         kcc_int16 m_FilterPixelY;
     };
+
+
+
 public:
     MatMulWaveOp(const MatMulWaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps);
 
+    const std::string& gWaveIdFormat() const {
+        return m_WaveIdFormat;
+    }
+
+    const WaveId& gWaveId() const {
+        return m_WaveId;
+    }
+
+    kcc_int16 gIfmapsAtomId() const {
+        return m_IfmapsAtomId;
+    }
+
+    kcc_int16 gIfmapsOffsetInAtom() const {
+        return m_IfmapsOffsetInAtom;
+    }
+
+    kcc_int16 gPsumBankId() const {
+        return m_PsumBankId;
+    }
+
+    bool qStart() const {
+        return m_Start;
+    }
 
     //----------------------------------------------------------------
     bool qMatMultWaveOp() const override {
@@ -100,6 +126,10 @@ public:
 
     static std::string gTypeStr() {
         return WaveOpTypeStr_MatMul;
+    }
+
+    bool verify() const override {
+        return true;
     }
 
 private:

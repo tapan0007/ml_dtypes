@@ -86,11 +86,14 @@ public:
     const std::string& gWaveOpType() const {
         return m_WaveOpType;
     }
-    const std::string& gWaveOpName() const {
-        return m_WaveOpName;
+    void rWaveOpType(const std::string& waveOpType) {
+        m_WaveOpType = waveOpType;
     }
     const std::string& gLayerName() const {
         return m_LayerName;
+    }
+    void rLayerName(const std::string& layerName) {
+        m_LayerName = layerName;
     }
     const std::vector<std::string>& gPreviousWaveOps() const {
         return m_PreviousWaveOps;
@@ -105,29 +108,93 @@ public:
         m_WaveOpName = waveOpName;
     }
 
-    int gIfmapsAtomId() const {
+    kcc_int32 gIfmapsAtomId() const {
         return m_IfmapsAtomId;
     }
-    int gIfmapsOffsetInAtom() const {
+    void rIfmapsAtomId(kcc_int32 ifmapsAtomId) {
+        m_IfmapsAtomId = ifmapsAtomId;
+    }
+
+    kcc_int32 gIfmapsOffsetInAtom() const {
         return m_IfmapsOffsetInAtom;
     }
-    int gPsumBankId() const {
+    void rIfmapsOffsetInAtom(kcc_int32 ifmapsOffsetInAtom) {
+        m_IfmapsOffsetInAtom = ifmapsOffsetInAtom;
+    }
+
+    kcc_int32 gPsumBankId() const {
         return m_PsumBankId;
     }
+    void rPsumBankId(kcc_int32 psumBankId) {
+        m_PsumBankId = psumBankId;
+    }
+
     bool qStart() const {
         return m_Start;
     }
+    void rStart(bool start) {
+        m_Start = start;
+    }
+
     const wave::MatMulWaveOp::WaveId gWaveId() const {
         return m_WaveId;
+    }
+    void rWaveId(const wave::MatMulWaveOp::WaveId& waveId) {
+        m_WaveId = waveId;
     }
     const std::string& gWaveIdFormat() const {
         return m_WaveIdFormat;
     }
-    int gWeightsAtomId() const {
+    void rWaveIdFormat(const std::string& waveIdFormat) {
+        m_WaveIdFormat = waveIdFormat;
+    }
+    kcc_int32 gWeightsAtomId() const {
         return m_WeightsAtomId;
     }
-    int gWeightsOffsetInAtom() {
+    kcc_int32 gWeightsOffsetInAtom() {
         return m_WeightsOffsetInAtom;
+    }
+
+    kcc_int32 gAtomId() const {
+        return m_AtomId;
+    }
+    void rAtomId(kcc_int32 atomId) {
+        m_AtomId = atomId;
+    }
+
+    kcc_int32 gIfmapsFoldIdx() const {
+        return m_IfmapsFoldIdx;
+    }
+    void rIfmapsFoldIdx(kcc_int32 ifmapsFoldIdx) {
+        m_IfmapsFoldIdx = ifmapsFoldIdx;
+    }
+
+    bool qIfmapsReplicate() const {
+        return m_IfmapsReplicate;
+    }
+    void rIfmapsReplicate(bool ifmapsReplicate) {
+        m_IfmapsReplicate = ifmapsReplicate;
+    }
+
+    kcc_int32 gLength() const {
+        return m_Length;
+    }
+    void rLength(kcc_int32 len) {
+        m_Length = len;
+    }
+
+    kcc_int32 gOffsetInFile() const {
+        return m_OffsetInFile;
+    }
+    void rOffsetInFile(kcc_int32 off) {
+        m_OffsetInFile = off;
+    }
+
+    const std::string& gRefFile() const {
+        return m_RefFile;
+    }
+    void rRefFile(const std::string& refFile) {
+        m_RefFile = refFile;
     }
 
 private:
@@ -138,25 +205,25 @@ private:
     std::vector<std::string>    m_PreviousWaveOps;
 
     // SBAtomFile
-    int                         m_AtomId;
-    int                         m_IfmapsFoldIdx;
+    kcc_int32                   m_AtomId;
+    kcc_int32                   m_IfmapsFoldIdx;
     bool                        m_IfmapsReplicate;
-    int                         m_Length;
-    int                         m_OffsetInFile;
+    kcc_int32                   m_Length;
+    kcc_int32                   m_OffsetInFile;
     std::string                 m_RefFile;
 
     // MatMul
     enum {
         WaveIdFormatSize = 7,
     };
-    int                         m_IfmapsAtomId;
-    int                         m_IfmapsOffsetInAtom;
-    int                         m_PsumBankId;
+    kcc_int32                   m_IfmapsAtomId;
+    kcc_int32                   m_IfmapsOffsetInAtom;
+    kcc_int32                   m_PsumBankId;
     bool                        m_Start;
     wave::MatMulWaveOp::WaveId  m_WaveId;
     std::string                 m_WaveIdFormat;
-    int                         m_WeightsAtomId;
-    int                         m_WeightsOffsetInAtom;
+    kcc_int32                   m_WeightsAtomId;
+    kcc_int32                   m_WeightsOffsetInAtom;
 }; // class SerWaveOp
 
 

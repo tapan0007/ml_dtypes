@@ -47,10 +47,32 @@ public:
         return WaveOpTypeStr_SBAtomFile;
     }
 
+    kcc_int32 gAtomId() const {
+        return m_AtomId;
+    }
+
+    bool verify() const override {
+        return true;
+    }
+
+    kcc_int32 gIfmapsFoldIdx() const {
+        return m_IfmapsFoldIdx;
+    }
+
+    kcc_int32 gLength() const {
+        return m_Length;
+    }
+
+    kcc_int32 gOffsetInFile() const {
+        return m_OffsetInFile;
+    }
+
+    bool gIfmapsReplicate() const {
+        return m_IfmapsReplicate;
+    }
 
 private:
     std::string     m_RefFileName;
-    //std::string     m_RefFileFormat;
     kcc_int32       m_AtomId;
     kcc_int32       m_IfmapsFoldIdx;
     kcc_int32       m_Length;

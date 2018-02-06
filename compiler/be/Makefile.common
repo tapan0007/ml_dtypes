@@ -18,9 +18,11 @@ INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
 
 CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 
+CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I
+COMPILER_BE := $(KAENA_PATH)/compiler/be
 
 ###CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(KAENA_PATH)/compiler/be $(addsuffix /inc,$(addprefix -I../,$(MODS)))
-CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(KAENA_PATH)/compiler/be
+CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
 CFLAGS := $(COMPILE_OPTS) $(CINC)
 
 
