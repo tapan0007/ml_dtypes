@@ -39,7 +39,7 @@ $(info DATA_TYPE is ${DATA_TYPE})
 trivnet_%:
 	python3 $(KAENA_TFFE)/test/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
 	export CUDA_VISIBLE_DEVICES=""; python3 $(TF_PATH)/python/tools/freeze_graph.py --input_graph $(OUT_PREFIX)graph.pb --input_checkpoint $(OUT_PREFIX)checkpoint.data --output_graph $(OUT_PREFIX)freeze.pb --output_node_names $(NN_NAME)/output
-	$(KAENA_TFFE)/tffe.py --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(OUT_PREFIX)freeze.pb --depth 5 --images $(OUT_PREFIX)ref_input.npy --width 30
+	$(KAENA_TFFE)/tffe.py --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(OUT_PREFIX)freeze.pb --depth 5 --images $(OUT_PREFIX)ref_input.npy --width 30 $(NN_ARGS)
 	mv $(OUT_PREFIX)compiler.tgz $(OUT_PREFIX)$(NN_NAME)_$(NN_CONFIG).tgz
 
 tf_pb:

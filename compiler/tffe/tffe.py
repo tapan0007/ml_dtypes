@@ -49,6 +49,8 @@ parser.add_argument('--input_node', help='Input node in the neural network graph
                     default="input")
 parser.add_argument('--dot_timeout', help='Timeout for planarization of opt and flow graphs in Graphviz, default 60 sec ',
                     default=60)
+parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, default is tcc',
+                    default='tcc')
 
 args = parser.parse_args()
 inputTensorName = args.input_node
@@ -61,7 +63,7 @@ if args.images != None and args.focus != ".*":
 
 debugLevel = int(args.debug)
 dotTimeout = int(args.dot_timeout)
-tffe = TfFrontEnd.TfFe(int(args.width), debugLevel, dotTimeout)
+tffe = TfFrontEnd.TfFe(int(args.width), debugLevel, dotTimeout, args.scheduler)
 tffe.loadPb(file, args.focus)
 tffe.writeDot(int(args.depth), args.out_prefix + "graph.dot", "svg")
 if args.weights:
@@ -77,5 +79,6 @@ if args.images != None:
   fileList += fileListJson
   fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + "compiler.json", refOutNpyFile)
   fileList += [args.out_prefix + "graph_ann.dot.svg"]
+  fileList += tffe.runScheduler(args.out_prefix)
   kog.genCompilertgz(args.out_prefix + "compiler.tgz", list(set(fileList)))
 
