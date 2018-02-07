@@ -56,7 +56,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 ########################################################
 alldeps:
 	@for d in $(DEPDIR) $(OBJDIR); do \
-	  @test -d $${d} || mkdir $${d}; \
+	    test -d $${d} || mkdir $${d}; \
 	done; \
 	for f in $(SRCS); do \
 	  $(COMPILER) $(CFLAGS) -MM -MT $(OBJDIR)/$$f.o $(SRCDIR)/$$f.cpp; \
