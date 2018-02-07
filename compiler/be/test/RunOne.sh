@@ -107,7 +107,13 @@ LOG=$RESULTS/LOG
 
 
 TPB=$NET.tpb
-cmd="$COMPILER/compiler/compiler.exe --json $JsonFile"
+inputGraphArgs="--json $JsonFile"
+# The echo ensures correct exit code in tcc scheduler flow
+inputGraphFile=`/bin/ls *wavegraph.json; echo`
+if [ -f "$inputGraphFile" ] ; then
+  inputGraphArgs="--wavegraph $inputGraphFile"
+fi
+cmd="$COMPILER/compiler/compiler.exe $inputGraphArgs"
 RunCmd $cmd || Fatal Compiler failed
 
 ##############################################################

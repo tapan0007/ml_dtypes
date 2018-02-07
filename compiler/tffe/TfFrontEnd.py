@@ -52,12 +52,14 @@ class TfOp:
     return(nd)
 
 class TfFe:
-  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout):
+  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, schedulerMode):
     self.__gd = None
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
     self.debugLevel = debugLevel
     self.dotTimeout = dotTimeout
+    self.schedulerMode = schedulerMode
+    self.kaenaPath = os.environ["KAENA_PATH"]
   
   def getKaenaOpGraph(self):
     return(self.__kg)
@@ -439,6 +441,21 @@ class TfFe:
       writer.writeheader()
       writer.writerows(rows)
     print("INFO: Wrote op sequences into " + csvFile)
-
-
+  
+  # Returns file to append to the Kaena backend package
+  def runScheduler(self, outPrefix):
+    if self.schedulerMode == 'tcc':
+      # Noop, wave scheduling is done in the backend
+      return []
+    elif self.schedulerMode == 'wave':
+      # Invoke wave scheduler
+      waveSchedulerExec = self.kaenaPath + "/compiler/util/layeropt.py"
+      kGraphJsonFile = outPrefix + "compiler.json"
+      waveGraphJsonFile = outPrefix + "wavegraph.json"
+      waveDotFile = outPrefix + "wavegraph.svg"
+      cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s" % (
+            waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, waveDotFile)
+      print("INFO: executing wave scheduler by  " + cmd)
+      os.system(cmd)
+      return [waveGraphJsonFile, waveDotFile]
 
