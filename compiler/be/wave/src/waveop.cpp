@@ -19,6 +19,7 @@ WaveOp::WaveOp(const WaveOp::Params& params,
     , m_OfmapDesc(params.m_OfmapDesc)
     , m_Layer(params.m_Layer)
 {
+    assert(params.verify());
     for (auto prevWaveOp : prevWaveOps) {
         m_PrevWaveOps.push_back(prevWaveOp);
     }

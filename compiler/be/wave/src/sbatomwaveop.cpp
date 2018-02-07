@@ -22,7 +22,9 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
     , m_Length(params.m_Length)
     , m_OffsetInFile(params.m_OffsetInFile)
     , m_IfmapsReplicate(params.m_IfmapsReplicate)
-{}
+{
+    assert(params.verify());
+}
 
 bool 
 SbAtomWaveOp::Params::verify() const

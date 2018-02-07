@@ -23,7 +23,9 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_WeightsOffsetInAtom(params.m_WeightsOffsetInAtom)
     , m_PsumBankId(params.m_PsumBankId)
     , m_Start(params.m_Start)
-{}
+{
+    assert(params.verify());
+}
 
 
 
