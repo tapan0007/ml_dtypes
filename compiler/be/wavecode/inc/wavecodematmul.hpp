@@ -38,6 +38,7 @@ public:
     void generate(wave::WaveOp* waveOp) override;
 
 private:
+    void generateLoadWeights(MatMullWaveOp *matmulWaveOp, bool firstWeight);
 };
 
 
