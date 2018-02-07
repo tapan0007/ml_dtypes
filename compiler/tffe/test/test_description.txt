@@ -6,11 +6,28 @@
 
 # Blank fallback
 .*            A unit test
-
-# Existence tests
-^0-1conv0      Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
-
 neg           Negative test
 
+add           Two layer, BiasAdd followed by ResAdd
+
+biasadd       Single BiasAdd layer
+
+0-1mp         Single MaxPoll layer
+0-1ap         Single AvgPoll layer
+
+1conv         Single Conv2D layer
+1conv         Two Conv2D layers back to back
+
+padasym       Single Conv2D layer with asymmetric padding
+padsym        Single Conv2D layer with symmetric padding
+
+conv_pad      Single Conv2D layer that exercises padding
+
 ^[4-9]-       Full size networks
+
+
+^0-1conv0      Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv_tile  Single Conv2D layer with a large image
+0-10conv_relu Resnet-like network with 10 Conv2D and Relu layer pairs
+^0-116conv_tanh  Resnet-like network with 116 Conv2D and Relu layer pairs
 
