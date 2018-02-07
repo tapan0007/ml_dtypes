@@ -210,6 +210,9 @@ public:
         m_RefFile = refFile;
     }
 
+protected:
+    bool verify() const;
+
 private:
     // common
     std::string                 m_WaveOpType        = "";

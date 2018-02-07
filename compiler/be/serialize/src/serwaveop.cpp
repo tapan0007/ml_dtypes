@@ -130,7 +130,22 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     } else {
         assert(false && "Serialization: unsupported WaveOp");
     }
+}
 
+
+bool
+SerWaveOp::verify() const
+{
+    if (m_WaveOpType == "") {
+        return false;
+    }
+    if (m_WaveOpName == "") {
+        return false;
+    }
+    if (m_LayerName == "") {
+        return false;
+    }
+    return true;
 }
 
 } // namespace serialize

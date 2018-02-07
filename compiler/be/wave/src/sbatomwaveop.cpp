@@ -24,5 +24,30 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
     , m_IfmapsReplicate(params.m_IfmapsReplicate)
 {}
 
+bool 
+SbAtomWaveOp::Params::verify() const
+{
+    if (! m_WaveOpParams.verify()) {
+        return false;
+    }
+    if (m_RefFileName == "") {
+        return false;
+    }
+    if (m_AtomId < 0) {
+        return false;
+    }
+    if (m_IfmapsFoldIdx < 0) {
+        return false;
+    }
+    if (m_Length < 0) {
+        return false;
+    }
+    if (m_OffsetInFile < 0) {
+        return false;
+    }
+    return true;
+}
+
+
 }}
 

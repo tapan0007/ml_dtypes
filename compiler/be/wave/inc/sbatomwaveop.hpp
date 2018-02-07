@@ -82,6 +82,8 @@ private:
 
 class SbAtomWaveOp::Params {
 public:
+    bool verify() const;
+public:
     WaveOp::Params  m_WaveOpParams;
     std::string     m_RefFileName       = "";
     kcc_int32       m_AtomId            = -1;

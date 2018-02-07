@@ -38,5 +38,18 @@ WaveOp::verify() const
     return true;
 }
 
+bool 
+WaveOp::Params::verify() const
+{
+    if (m_WaveOpName == "") {
+        return false;
+    }
+    if (! m_Layer) {
+        return false;
+    }
+    return true;
+}
+
+
 }} // namespace
 

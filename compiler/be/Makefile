@@ -1,10 +1,10 @@
 # codegen compiler
 #egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' |
 
-MODS := arch layers memmgr nets utils schedule serialize codegen wave
+MODS := arch layers memmgr nets utils schedule serialize codegen wave wavecode
 MAINMOD := compiler 
 
-top :
+top : alldeps
 	@for mod in $(MODS) $(MAINMOD); do \
 	    (if cd $$mod; then \
 			for D in obj; do test -d $$D || mkdir $$D; done; \

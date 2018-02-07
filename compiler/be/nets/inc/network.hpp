@@ -84,6 +84,14 @@ public:
         return m_Layers.size();
     }
 
+    std::vector<wave::WaveOp*> gWaveOps() {
+        return m_WaveOps;
+    }
+
+    const std::vector<wave::WaveOp*> gWaveOps() const {
+        return m_WaveOps;
+    }
+
     const DataType& gDataType() const {
         return *m_DataType;
     }

@@ -153,6 +153,8 @@ private:
 
 class MatMulWaveOp::Params {
 public:
+    bool verify() const;
+public:
     WaveOp::Params  m_WaveOpParams;
     WaveId          m_WaveId;
     std::string     m_WaveIdFormat          = "";

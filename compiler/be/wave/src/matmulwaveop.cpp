@@ -25,5 +25,32 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_Start(params.m_Start)
 {}
 
+bool 
+MatMulWaveOp::Params::verify() const
+{
+    if (! m_WaveOpParams.verify()) {
+        return false;
+    }
+    if (m_WaveIdFormat == "") {
+        return false;
+    }
+    if (m_IfmapsAtomId < 0) {
+        return false;
+    }
+    if (m_IfmapsOffsetInAtom < 0) {
+        return false;
+    }
+    if (m_WeightsAtomId < 0) {
+        return false;
+    }
+    if (m_WeightsOffsetInAtom < 0) {
+        return false;
+    }
+    if (m_PsumBankId < 0) {
+        return false;
+    }
+    return true;
+}
+
 }}
 

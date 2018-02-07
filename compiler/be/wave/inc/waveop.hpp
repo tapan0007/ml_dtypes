@@ -95,6 +95,8 @@ private:
 
 class WaveOp::Params {
 public:
+    bool verify() const;
+public:
     std::string             m_WaveOpName    = "";
     FmapDesc                m_OfmapDesc;
     layers::Layer*          m_Layer         = nullptr;
