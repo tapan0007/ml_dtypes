@@ -7,6 +7,8 @@ WaveCodeWaveOp::WaveCodeWaveOp(WaveCode* wavecode)
     : m_WaveCode(wavecode)
 {}
 
+
+
 }}
 
 
