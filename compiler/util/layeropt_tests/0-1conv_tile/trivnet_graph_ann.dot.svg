@@ -42,7 +42,7 @@
 <!-- KgraphLegend -->
 <g id="node1" class="node">
 <title>KgraphLegend</title>
-<polygon fill="none" stroke="#000000" points="391.3575,-843.3087 -.1192,-843.3087 -.1192,-709.3087 391.3575,-709.3087 391.3575,-843.3087"/>
+<polygon fill="none" stroke="#ffff00" points="391.3575,-843.3087 -.1192,-843.3087 -.1192,-709.3087 391.3575,-709.3087 391.3575,-843.3087"/>
 <text text-anchor="start" x="8" y="-828.1087" font-family="Times,serif" font-size="14.00" fill="#000000">Legend</text>
 <text text-anchor="start" x="8" y="-814.1087" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;Conv2D, MaxPool, Add &#160;... Operators</text>
 <text text-anchor="start" x="8" y="-800.1087" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;Strides, Kernel &#160;... Arguments</text>
@@ -60,7 +60,7 @@
 <text text-anchor="middle" x="534.6191" y="-489.1087" font-family="Times,serif" font-size="14.00" fill="#000000">Identity</text>
 </g>
 <!-- 1conv/i1 -->
-<g id="node4" class="node">
+<g id="node3" class="node">
 <title>1conv/i1</title>
 <ellipse fill="none" stroke="#ff0000" cx="534.6191" cy="-237.1543" rx="118.6294" ry="55.3091"/>
 <text text-anchor="middle" x="534.6191" y="-260.9543" font-family="Times,serif" font-size="14.00" fill="#000000">Conv2D</text>
@@ -78,7 +78,7 @@
 <text text-anchor="middle" x="563.7813" y="-383.1087" font-family="Times,serif" font-size="14.00" fill="#000000">[3, 3, 1, 1]</text>
 </g>
 <!-- 1conv/output -->
-<g id="node3" class="node">
+<g id="node6" class="node">
 <title>1conv/output</title>
 <ellipse fill="none" stroke="#000000" cx="534.6191" cy="-42" rx="37.7266" ry="18"/>
 <text text-anchor="middle" x="534.6191" y="-37.8" font-family="Times,serif" font-size="14.00" fill="#000000">Identity</text>
@@ -93,7 +93,7 @@
 <text text-anchor="middle" x="570.7813" y="-119.8" font-family="Times,serif" font-size="14.00" fill="#000000">[1, 35, 35, 1]</text>
 </g>
 <!-- input -->
-<g id="node5" class="node">
+<g id="node4" class="node">
 <title>input</title>
 <ellipse fill="none" stroke="#000000" cx="331.6191" cy="-394.3087" rx="51.7002" ry="18"/>
 <text text-anchor="middle" x="331.6191" y="-390.1087" font-family="Times,serif" font-size="14.00" fill="#000000">Placeholder</text>
@@ -108,7 +108,7 @@
 <text text-anchor="middle" x="444.7813" y="-333.1087" font-family="Times,serif" font-size="14.00" fill="#000000">[1, 35, 35, 1]</text>
 </g>
 <!-- 1conv/weight1 -->
-<g id="node6" class="node">
+<g id="node5" class="node">
 <title>1conv/weight1</title>
 <ellipse fill="none" stroke="#000000" cx="522.6191" cy="-776.3087" rx="30.9967" ry="18"/>
 <text text-anchor="middle" x="522.6191" y="-772.1087" font-family="Times,serif" font-size="14.00" fill="#000000">Const</text>
