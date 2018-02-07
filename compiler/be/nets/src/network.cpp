@@ -425,6 +425,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             assert(false && "Unsuported layer");
         }
 
+        assert(m_Name2Layer.find(params.m_LayerName) == m_Name2Layer.end());
         m_Name2Layer[params.m_LayerName] = layer;
     }
     assert(m_Layers.size() == serLayers.size() && "Layer mismatch count after input deserialization" );
@@ -472,6 +473,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             assert(false && "Wrong WaveOp type during deserialization");
         }
         m_WaveOps.push_back(waveOp);
+        assert(m_Name2WaveOp.find(waveOpParams.m_WaveOpName) == m_Name2WaveOp.end());
         m_Name2WaveOp[waveOpParams.m_WaveOpName] = waveOp;
 
     }
