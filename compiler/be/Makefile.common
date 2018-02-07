@@ -70,7 +70,7 @@ $(DEPDIR)/%.dep : $(SRCDIR)/%.cpp
 
 $(LIBRARY) : $(OFILES)
 	@echo AR $@
-	$(AR) rcs $@ $(OFILES)
+	@$(AR) rcs $@ $(OFILES)
 
 clean :
 	@echo CLEAN $(MODULE)
