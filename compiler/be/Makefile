@@ -20,7 +20,7 @@ top :
 #	| egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' 
 
 clean :
-	rm -f */obj/*.o */obj/lib*.a *.exe
+	rm -f */obj/*.o */obj/lib*.a *.exe */dep/*
 
 deps : alldeps
 
