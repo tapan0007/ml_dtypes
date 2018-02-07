@@ -80,6 +80,9 @@ public:
         return m_Layer;
     }
 
+    const std::vector<WaveOp*>& gPrevWaveOps() const {
+        return m_PrevWaveOps;
+    }
 
 protected:
     std::string             m_Name          = "";

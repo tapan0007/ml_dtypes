@@ -48,15 +48,15 @@ all : $(LIBRARY)
 
 ########################################################
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
-	test -d $(OBJDIR) || mkdir $(OBJDIR)
+	@test -d $(OBJDIR) || mkdir $(OBJDIR)
 	@echo CC $<
-	$(COMPILER) $(CFLAGS) -c -o $@ $<
+	@$(COMPILER) $(CFLAGS) -c -o $@ $<
 
 ########################################################
 ########################################################
 alldeps:
 	@for d in $(DEPDIR) $(OBJDIR); do \
-	  test -d $${d} || mkdir $${d}; \
+	  @test -d $${d} || mkdir $${d}; \
 	done; \
 	for f in $(SRCS); do \
 	  $(COMPILER) $(CFLAGS) -MM -MT $(OBJDIR)/$$f.o $(SRCDIR)/$$f.cpp; \

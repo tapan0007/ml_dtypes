@@ -51,6 +51,7 @@ public:
 
 private:
     layers::Layer* findLayer(const std::string& prevLayerName);
+    wave::WaveOp*  findWaveOp(const std::string& prevWaveOpName);
 
 public:
     //----------------------------------------------------------------
@@ -97,12 +98,13 @@ public:
     SchedRevLayers gSchedRevLayers();
 
 private:
-    std::unique_ptr<DataType>        m_DataType;
-    std::string                      m_Name;
-    std::vector<layers::Layer*>      m_Layers;
-    std::vector<wave::WaveOp*>       m_WaveOps;
-    bool                             m_DoBatching;
-    std::map<std::string, layers::Layer*> m_Name2Layer;
+    std::unique_ptr<DataType>               m_DataType;
+    std::string                             m_Name;
+    std::vector<layers::Layer*>             m_Layers;
+    std::vector<wave::WaveOp*>              m_WaveOps;
+    bool                                    m_DoBatching;
+    std::map<std::string, layers::Layer*>   m_Name2Layer;
+    std::map<std::string, wave::WaveOp*>    m_Name2WaveOp;
 }; // Network
 
 

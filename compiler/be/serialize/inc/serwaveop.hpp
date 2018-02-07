@@ -95,8 +95,12 @@ public:
     void rLayerName(const std::string& layerName) {
         m_LayerName = layerName;
     }
+
     const std::vector<std::string>& gPreviousWaveOps() const {
         return m_PreviousWaveOps;
+    }
+    void addPreviousWaveOp(const std::string& prevWaveOp) {
+        m_PreviousWaveOps.push_back(prevWaveOp);
     }
 
 

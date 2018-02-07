@@ -250,6 +250,9 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         wave::WaveOp* waveOp = m_WaveOps[i];
         serWaveOp.rWaveOpName(waveOp->gName());
         serWaveOp.rLayerName(waveOp->gLayer()->gName());
+        for (auto prevWaveOp : waveOp->gPrevWaveOps()) {
+            serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
+        }
 
         if (const auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp)) {
             serWaveOp.rWaveOpType(wave::MatMulWaveOp::gTypeStr());
@@ -435,6 +438,10 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         waveOpParams.m_WaveOpName   = serWaveOp.gWaveOpName();
         waveOpParams.m_Layer        = findLayer(serWaveOp.gLayerName());
         assert(waveOpParams.m_Layer);
+        std::vector<wave::WaveOp*> prevWaveOps;
+        for (const auto& prevWaveOpName : serWaveOp.gPreviousWaveOps()) {
+            prevWaveOps.push_back(findWaveOp(prevWaveOpName));
+        }
 
         wave::WaveOp* waveOp        = nullptr;
 
@@ -450,7 +457,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             matmulParams.m_WeightsAtomId        = serWaveOp.gWeightsAtomId();
             matmulParams.m_WeightsOffsetInAtom  = serWaveOp.gWeightsOffsetInAtom();
 
-            waveOp = new wave::MatMulWaveOp(matmulParams, std::vector<wave::WaveOp*>());
+            waveOp = new wave::MatMulWaveOp(matmulParams, prevWaveOps);
         } else if (serWaveOp.gWaveOpType() == wave::SbAtomWaveOp::gTypeStr()) {
             wave::SbAtomWaveOp::Params sbatomParams;
             sbatomParams.m_WaveOpParams      = waveOpParams;
@@ -460,11 +467,12 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             sbatomParams.m_Length            = serWaveOp.gLength();
             sbatomParams.m_OffsetInFile      = serWaveOp.gOffsetInFile();
             sbatomParams.m_IfmapsReplicate   = serWaveOp.qIfmapsReplicate();
-            waveOp = new wave::SbAtomWaveOp(sbatomParams, std::vector<wave::WaveOp*>());
+            waveOp = new wave::SbAtomWaveOp(sbatomParams, prevWaveOps);
         } else {
             assert(false && "Wrong WaveOp type during deserialization");
         }
         m_WaveOps.push_back(waveOp);
+        m_Name2WaveOp[waveOpParams.m_WaveOpName] = waveOp;
 
     }
 }
@@ -476,6 +484,14 @@ Network::findLayer(const std::string& layerName)
     layers::Layer* layer = m_Name2Layer[layerName];
     assert(layer && "Could not find layer");
     return layer;
+}
+
+wave::WaveOp*
+Network::findWaveOp(const std::string& waveOpName)
+{
+    wave::WaveOp* waveOp = m_Name2WaveOp[waveOpName];
+    assert(waveOp && "Could not find WaveOp");
+    return waveOp;
 }
 
 }}
