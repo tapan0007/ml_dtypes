@@ -248,7 +248,8 @@ class Ktests:
     self.msg = ""
     self.statusCount = 0
     self.testDescriptionREs = []
-    with open("test_description.txt", 'r') as fh:
+    testDesriptionFile = os.environ["KAENA_PATH"] + "/compiler/tffe/test/test_description.txt"
+    with open(testDesriptionFile, 'r') as fh:
       for line in fh:
         match = re.search('(^[^#\s]+)\s+(\S.*)', line)
         if match:
