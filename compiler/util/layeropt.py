@@ -433,7 +433,7 @@ class TPBSched:
         self.activate = BiasAddAct()
         self.statebuffer = StateBuffer()
         self.waveop_stream = []
-        self.last_waveop = None
+        self.last_psum_waveop = None
 
     # Compute matrix multiply loops
     # Inputs:
@@ -567,7 +567,7 @@ class TPBSched:
     def gen_matmul_waveop_inline(self, op, dram_weights_waveops, dram_ifmaps_waveops, wave_id, weights, ifmaps, psum_bank, psum_add):
         input_list = []
         if (len(self.waveop_stream) > 0):
-            input_list.append(self.last_waveop['waveop_name'])
+            input_list.append(self.last_psum_waveop['waveop_name'])
         for i in dram_weights_waveops:
             input_list.append(i['waveop_name'])
             self.waveop_stream.append(i)
@@ -581,28 +581,28 @@ class TPBSched:
               'layer_name'              : op.data['layer_name'],
               'weights_atom_id'         : self.statebuffer.circbuf_weights.current_atom_id,
               'ifmaps_atom_id'          : self.statebuffer.circbuf_ifmaps.current_atom_id,
-              'weights_offset_in_atom'  : self.weight_wave_lower_addr % self.statebuffer.circbuf_weights.atom_sz,
-              'ifmaps_offset_in_atom'   : self.ifmap_wave_lower_addr % self.statebuffer.circbuf_ifmaps.atom_sz,
+              'weights_offset_in_atom'  : self.weight_wave_lower_addr % self.statebuffer.circbuf_weights.atom_data_sz,
+              'ifmaps_offset_in_atom'   : self.ifmap_wave_lower_addr % self.statebuffer.circbuf_ifmaps.atom_data_sz,
               'wave_id_format'          : wave_id.format,
               'wave_id'                 : wave_id.show(),
               'start'                   : not(psum_add),
               'psum_bank_id'            : psum_bank
             }
         self.waveop_stream.append(matmul_waveop)
-        self.last_waveop = self.waveop_stream[-1]
+        self.last_psum_waveop = self.waveop_stream[-1]
 
     # add DRAM output waveops
     def add_dram_output_waveops_inline(self, dram_output_waveops):
         # add dependence from last MatMul to DRAM output waveops
         for i in dram_output_waveops:
-            i['previous_waveops'].append(self.waveop_stream[-1])
-            self.waveop_stream.insert(-1, i)
+            i['previous_waveops'].append(self.last_psum_waveop['waveop_name'])
+            self.waveop_stream.append(i)
 
     # generate Relu instruction and add it to instruction stream
     def gen_relu_waveop_inline(self, op, tile_id, psum_bank):
         input_list = []
         if (len(self.waveop_stream) > 0):
-            input_list.append(self.waveop_stream[-1]['waveop_name'])
+            input_list.append(self.last_psum_waveop['waveop_name'])
         instr = {
               'previous_waveops'        : input_list,
               'waveop_type'             : 'Relu',
@@ -613,6 +613,26 @@ class TPBSched:
               'psum_bank_id'            : psum_bank
             }
         self.waveop_stream.append(instr)
+        self.last_psum_waveop = self.waveop_stream[-1]
+
+    # generate BiasAdd instruction and add it to instruction stream
+    def gen_biasadd_waveop_inline(self, op, tile_id, psum_bank, bias_start):
+        input_list = []
+        if (len(self.waveop_stream) > 0):
+            input_list.append(self.last_psum_waveop['waveop_name'])
+        instr = {
+              'previous_waveops'        : input_list,
+              'waveop_type'             : 'BiasAdd',
+              'waveop_name'             : op.data['layer_name']+"/BiasAdd_"+tile_id.id_string(),
+              'layer_name'              : op.data['layer_name'],
+              'bias_atom_id'            : self.statebuffer.circbuf_bias.current_atom_id,
+              'bias_offset_in_atom'     : bias_start % self.statebuffer.circbuf_bias.atom_data_sz,
+              'tile_id_format'          : tile_id.format,
+              'tile_id'                 : tile_id.show(),
+              'psum_bank_id'            : psum_bank
+            }
+        self.waveop_stream.append(instr)
+        self.last_psum_waveop = self.waveop_stream[-1]
 
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, op_list, inputs, result_file):
@@ -717,7 +737,7 @@ class TPBSched:
                                 bias_extracted[0 : bias_end - bias_start] = bias[bias_start : bias_end]
                                 op_result = self.activate.biasadd(op_result, bias_extracted)
                                 dram_bias_waveop = self.statebuffer.circbuf_bias.read_data_region(wave_id, bias_start, bias_end)
-                                # TODO: generate BiasAdd instruction inline
+                                self.gen_biasadd_waveop_inline(op_list[i], tile_id, psum_bank, bias_start)
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
                             else:
