@@ -29,6 +29,8 @@ public:
 
     class WaveId {
     public:
+        bool verify() const;
+    public:
         kcc_int16 gBatchIdx() const {
             return m_BatchIdx;
         }

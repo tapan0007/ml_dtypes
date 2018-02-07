@@ -25,10 +25,43 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_Start(params.m_Start)
 {}
 
+
+
+bool 
+MatMulWaveOp::WaveId::verify() const
+{
+    if (m_BatchIdx < 0) {
+        return false;
+    }
+    if (m_OfmapFoldIdx < 0) {
+        return false;
+    }
+    if (m_TileY < 0) {
+        return false;
+    }
+    if (m_TileX < 0) {
+        return false;
+    }
+    if (m_IfmapFoldIdx < 0) {
+        return false;
+    }
+    if (m_FilterPixelX < 0) {
+        return false;
+    }
+    if (m_FilterPixelY < 0) {
+        return false;
+    }
+    return true;
+}
+
+
 bool 
 MatMulWaveOp::Params::verify() const
 {
     if (! m_WaveOpParams.verify()) {
+        return false;
+    }
+    if (! m_WaveId.verify()) {
         return false;
     }
     if (m_WaveIdFormat == "") {

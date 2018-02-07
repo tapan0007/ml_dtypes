@@ -13,6 +13,7 @@ template<>
 void
 SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) const
 {
+    assert(verify());
     archive(cereal::make_nvp(WaveOpKey_WaveOpType, m_WaveOpType));
     archive(cereal::make_nvp(WaveOpKey_WaveOpName, m_WaveOpName));
     archive(cereal::make_nvp(WaveOpKey_LayerName, m_LayerName));
@@ -130,6 +131,7 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     } else {
         assert(false && "Serialization: unsupported WaveOp");
     }
+    assert(verify());
 }
 
 
@@ -143,6 +145,48 @@ SerWaveOp::verify() const
         return false;
     }
     if (m_LayerName == "") {
+        return false;
+    }
+
+    if (m_WaveOpType == WaveOpTypeStr_SBAtomFile) {
+        if (m_AtomId < 0) {
+            return false;
+        }
+        if (m_IfmapsFoldIdx  < 0) {
+            return false;
+        }
+        if (m_Length  < 0) {
+            return false;
+        }
+        if (m_OffsetInFile  < 0) {
+            return false;
+        }
+        if (m_RefFile == "") {
+            return false;
+        }
+    } else if (m_WaveOpType == WaveOpTypeStr_MatMul) {
+        if (m_IfmapsAtomId < 0) {
+            return false;
+        }
+        if (m_IfmapsOffsetInAtom < 0) {
+            return false;
+        }
+        if (m_PsumBankId < 0) {
+            return false;
+        }
+        if (! m_WaveId.verify()) {
+            return false;
+        }
+        if (m_WaveIdFormat == "") {
+            return false;
+        }
+        if (m_WeightsAtomId < 0) {
+            return false;
+        }
+        if (m_WeightsOffsetInAtom < 0) {
+            return false;
+        }
+    } else {
         return false;
     }
     return true;
