@@ -12,6 +12,7 @@
 #include "arch/inc/arch.hpp"
 #include "memmgr/inc/statebuffermgr.hpp"
 #include "codegen/inc/codegen.hpp"
+#include "wavecode/inc/wavecode.hpp"
 #include "schedule/inc/scheduler.hpp"
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
@@ -59,6 +60,7 @@ Main(int argc, char* argv[])
 #endif
     bool DoBatching    = false;
     const char* JsonInFileName = nullptr;
+    bool useWave = false;
 
     int i = 1;
     while (i < argc) {
@@ -81,6 +83,8 @@ Main(int argc, char* argv[])
         if (arg == "--json") {
             JsonInFileName = argv[i+1];
             i += 1;
+        } else if (arg == "--wave") {
+            useWave = true;
         } else {
             std::cerr << "Wrong argument: " << arg << "\n";
             exit(1);
@@ -114,17 +118,6 @@ Main(int argc, char* argv[])
     ntwk->rDoBatching(DoBatching);
 
     //--------------------------------------------------------
-    schedule::Scheduler* scheduler = new schedule::Scheduler();
-    std::cout << "Scheduling NN '" << ntwk->gName() << "'\n";
-    scheduler->Schedule(ntwk);
-    //ntwk->rLevels(scheduler->gLevels());
-
-    //--------------------------------------------------------
-    memmgr::StateBufferMgr* sbmgr = new memmgr::StateBufferMgr(arch, ntwk);
-    std::cout << "Calculating FMAP and weight state buffer addresses\n";
-    sbmgr->calcLayerFmapAddresses();
-
-    //--------------------------------------------------------
     {
         char JsonOutFileName[256];
         const char* p = JsonInFileName;
@@ -144,40 +137,57 @@ Main(int argc, char* argv[])
         ntwk->save(ar);
     }
 
-    //--------------------------------------------------------
-    codegen::CodeGen* codegen = new codegen::CodeGen(ntwk, arch);
     std::string objFileName(ntwk->gName());
     objFileName += ".tpb";
+    if (! useWave) {
+        //--------------------------------------------------------
+        schedule::Scheduler* scheduler = new schedule::Scheduler();
+        std::cout << "Scheduling NN '" << ntwk->gName() << "'\n";
+        scheduler->Schedule(ntwk);
+        //ntwk->rLevels(scheduler->gLevels());
 
-    std::cout << "Generating instructions to file '" << objFileName << "'\n";
-    codegen->generate(objFileName.c_str());
+        //--------------------------------------------------------
+        memmgr::StateBufferMgr* sbmgr = new memmgr::StateBufferMgr(arch, ntwk);
+        std::cout << "Calculating FMAP and weight state buffer addresses\n";
+        sbmgr->calcLayerFmapAddresses();
 
-    if (false) {
-    //--------------------------------------------------------
-    const auto printer = new kcc::utils::Printer(ntwk);
+        //--------------------------------------------------------
+        codegen::CodeGen codegen(ntwk, arch);
 
-    if (PrintLayers) {
-        printer->printNetwork();
-        std::cout << "\n";
-    }
+        std::cout << "Codegen: Generating instructions to file '" << objFileName << "'\n";
+        codegen.generate(objFileName.c_str());
 
-    if (PrintLevels) {
-        std::cout << "By level\n";
-        printer->printLevels(scheduler);
-        std::cout << "\n";
-    }
+        if (false) {
+            //--------------------------------------------------------
+            const auto printer = new kcc::utils::Printer(ntwk);
 
-    if (PrintSchedule) {
-        std::cout << "By scheduling\n";
-        printer->printSched();
-        std::cout << "\n";
-    }
+            if (PrintLayers) {
+                printer->printNetwork();
+                std::cout << "\n";
+            }
 
-    if (PrintDot) {
-        std::cout << "Dot\n";
-        printer->printDot();
-        std::cout << "\n";
-    }
+            if (PrintLevels) {
+                std::cout << "By level\n";
+                printer->printLevels(scheduler);
+                std::cout << "\n";
+            }
+
+            if (PrintSchedule) {
+                std::cout << "By scheduling\n";
+                printer->printSched();
+                std::cout << "\n";
+            }
+
+            if (PrintDot) {
+                std::cout << "Dot\n";
+                printer->printDot();
+                std::cout << "\n";
+            }
+        }
+    } else {
+        wavecode::WaveCode waveCode(ntwk, arch);
+        std::cout << "WaveCodegen: Generating instructions to file '" << objFileName << "'\n";
+        waveCode.generate(objFileName.c_str());
     }
 
     return 0;

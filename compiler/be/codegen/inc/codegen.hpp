@@ -39,6 +39,7 @@ public:
     //----------------------------------------------------------------
     CodeGen(nets::Network* ntwk, const arch::Arch& arch);
 
+    ~CodeGen();
     //----------------------------------------------------------------
     FILE* gObjFile() const {
         return m_ObjFile;

@@ -46,6 +46,8 @@ CodeGen::CodeGen(nets::Network* ntwk, const arch::Arch& arch)
     createGenMap();
 }
 
+CodeGen::~CodeGen() = default;
+
 //----------------------------------------------------------------
 void
 CodeGen::createGenMap()

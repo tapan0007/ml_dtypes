@@ -28,6 +28,35 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
 }
 
 
+bool
+MatMulWaveOp::verify() const
+{
+    if (! m_WaveId.verify()) {
+        return false;
+    }
+    if (m_WaveIdFormat == "") {
+        return false;
+    }
+    if (m_IfmapsAtomId == -1) {
+        return false;
+    }
+    if (m_IfmapsOffsetInAtom == -1) {
+        return false;
+    }
+    if (m_WeightsAtomId == -1) {
+        return false;
+    }
+    // m_WeightsOffsetInAtom is negative for waves that do NOT reload weights
+    if (m_PsumBankId == -1) {
+        return false;
+    }
+    return true;
+}
+
+
+
+
+
 
 bool 
 MatMulWaveOp::WaveId::verify() const
@@ -78,14 +107,13 @@ MatMulWaveOp::Params::verify() const
     if (m_WeightsAtomId < 0) {
         return false;
     }
-    if (m_WeightsOffsetInAtom < 0) {
-        return false;
-    }
+    // m_WeightsOffsetInAtom is negative for waves that do NOT reload weights
     if (m_PsumBankId < 0) {
         return false;
     }
     return true;
 }
+
 
 }}
 

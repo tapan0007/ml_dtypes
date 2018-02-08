@@ -2,6 +2,7 @@
 #include "tpb_isa_matmul.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
+#include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecodematmul.hpp"
 
 namespace kcc {
@@ -18,7 +19,7 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
     auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp);
     assert(matmulWaveOp);
 
-    generateLoadWeights(matmulWaveOp, matmulWaveOp.qStart());
+    generateLoadWeights(matmulWaveOp, matmulWaveOp->qStart());
 }
 
 /*
@@ -43,22 +44,37 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
 
 
 void
-WaveCodeMatMul::generateLoadWeights(MatMullWaveOp *matmulWaveOp, bool firstWeight)
+WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp, bool /*firstWeight*/)
 {
+    assert(matmulWaveOp->verify());
+    if (matmulWaveOp->gWeightsOffsetInAtom() < 0) {
+        return; // this MatMul reuses weights
+    }
+    const wave::MatMulWaveOp::WaveId& waveId(matmulWaveOp->gWaveId());
+
     LDWEIGHTS ldweighsInstr;
 
-    TPB_CMD_SYNC         sync;
-    if (firstWeight
-    setup_sync(weight_args.sync, in_event, SET_EVENT_ON_END_RD_SRC);
-                    setup_sync(weight_args.sync, matmul_args.sync.set_event_id, SET_EVENT_ON_END_RD_SRC);
+    //TPB_CMD_HEADER  hdr;
+    //setup_sync(ldweighsInstr.sync);
+    ldweighsInstr.dtype                 = matmulWaveOp->gDataType().gTypeId();
+    //uint8_t         perf_opt = OPT_NONE;
+    //uint8_t         dquant_table_idx  = 0;
+    //uint8_t         dquant_in_dsize   = 0;
+    //uint8_t         dquant_out_dtype  = INVALID_ARBPRECTYPE;
+    //uint8_t         dquant_enable  = 0;
+    ///* subtract this from each ldweights on way into PE Array */
+    //union {
+    //    uint8_t     zero_point_uint8[2];
+    //    uint16_t    zero_point_uint16   = 0; 
+    //} TONGA_PACKED;
+    ldweighsInstr.start_addr            = -1; // TODO
+    ldweighsInstr.x_step                = -1; // last column goes first, so decr
+    ldweighsInstr.x_num                 = waveId.gTileNumColumns();
+    ldweighsInstr.num_row_partitions    = -1; // TODO
 
-    TPB_CMD_DEQUANT       dquant;
-    uint32_t        start_addr = {0};
-    int16_t         x_step = {0};      // 1's complement, granularity of dtype
-    uint8_t         x_num  = {0};
-    uint8_t         num_row_partitions = {0};
-    LDWEIGHTS() : hdr(LDWEIGHTS_OPC, *this) {}
+    m_WaveCode->writeInstruction(ldweighsInstr);
 }
+
 
 }}
 

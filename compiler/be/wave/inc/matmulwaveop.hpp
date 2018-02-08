@@ -27,7 +27,7 @@ class MatMulWaveOp : public WaveOp {
 public:
     class Params;
 
-    class WaveId {
+    class WaveId { // must be defined inside MatMulWaveOp because it is instantiated in MatMulWaveOp
     public:
         bool verify() const;
     public:
@@ -80,8 +80,12 @@ public:
             m_FilterPixelY = filterPixelY;
         }
 
+        kcc_int16 gTileNumColumns() const {
+            assert(m_TileNumColumns > 0);
+            return m_TileNumColumns;
+        }
+
     private:
-        //"wave_id_format": "nmhwcrs",
         kcc_int16 m_BatchIdx        = -1;
         kcc_int16 m_OfmapFoldIdx    = -1;
         kcc_int16 m_TileY           = -1;
@@ -89,6 +93,7 @@ public:
         kcc_int16 m_IfmapFoldIdx    = -1;
         kcc_int16 m_FilterPixelX    = -1;
         kcc_int16 m_FilterPixelY    = -1;
+        kcc_int16 m_TileNumColumns  = -1;
     };
 
 
@@ -138,9 +143,7 @@ public:
         return WaveOpTypeStr_MatMul;
     }
 
-    bool verify() const override {
-        return true;
-    }
+    bool verify() const override;
 
 private:
     MatMulWaveOp::WaveId    m_WaveId;

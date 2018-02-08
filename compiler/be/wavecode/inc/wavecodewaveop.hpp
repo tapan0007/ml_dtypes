@@ -27,6 +27,7 @@ namespace wave {
 
 namespace wavecode {
 
+class WaveCode;
 
 
 class WaveCodeWaveOp {

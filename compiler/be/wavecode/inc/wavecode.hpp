@@ -13,7 +13,6 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 
-#include "wavecode/inc/wavecodewaveop.hpp"
 
 
 namespace kcc {
@@ -32,6 +31,9 @@ namespace wave {
 }
 
 namespace wavecode {
+class WaveCodeWaveOp;
+class WaveCodeMatMul;
+class WaveCodeSbAtom;
 
 
 
@@ -40,7 +42,15 @@ public:
     //----------------------------------------------------------------
     WaveCode(const nets::Network* network, const arch::Arch& arch);
 
-    void generate(const char* fileName);
+    ~WaveCode();
+
+    void generate(const char* objFileName);
+
+    template<typename INSTR>
+    void writeInstruction(INSTR& instruction)
+    {
+        fwrite(&instruction, sizeof(instruction), 1, m_ObjFile);
+    }
 
 private:
     WaveCode() = delete;
@@ -50,8 +60,11 @@ private:
     WaveCodeWaveOp& getCodeGen(const wave::WaveOp* waveOp);
 
 private:
-    const nets::Network*                    m_Network;
-    const arch::Arch&                       m_Arch;
+    const nets::Network*            m_Network;
+    const arch::Arch&               m_Arch;
+    FILE*                           m_ObjFile;
+    std::unique_ptr<WaveCodeMatMul> m_CodeMatMul;
+    std::unique_ptr<WaveCodeSbAtom> m_CodeSbAtom;
 };
 
 }}

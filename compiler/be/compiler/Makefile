@@ -21,7 +21,8 @@ LIBS := \
     $(COMPILER_BE)/utils/$(OBJDIR)/libutils.a \
     $(COMPILER_BE)/codegen/$(OBJDIR)/libcodegen.a  \
     $(COMPILER_BE)/wave/$(OBJDIR)/libwave.a  \
-	$(TCC_LIB)
+    $(COMPILER_BE)/wavecode/$(OBJDIR)/libwavecode.a  \
+    $(TCC_LIB)
 
 ########################################################
 ADDITIONAL_CLEAN_FILES := $(MODULE).exe
