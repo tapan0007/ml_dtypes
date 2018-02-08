@@ -6,9 +6,13 @@ import numpy as np
 import argparse
 from graphviz import Digraph
 
+DEBUG_LEVEL_DEFAULT=1
+
 #np.set_printoptions(threshold=np.nan)
 
 #kgraph_file = os.environ['KAENA_PATH'] + "/compiler/tffe/rundir/0-1conv0/trivnet_compiler.json"
+
+# TODO: use datatype from K-Graph to cast everything to that datatype
 
 def ceildiv(a,b):
     return (a//b) + (a%b != 0)
@@ -122,27 +126,38 @@ class CircularBuffer:
         self.allocated = np.zeros(self.capacity)
         self.dram_data_file = None
         self.dram_data = None
+        self.dram_data_len = 0
         self.layer_name = ""
-        self.layer_type = ""
+        self.layer_type = "Output"
         self.waveop_list = []
         self.addr2atom = {}
 
     def load_data(self, waveop):      # use waveop instead of waveop 
         self.reset()
-        if (waveop.data['layer_type'] == 'Input' or waveop.data['layer_type'] == 'Const'):
+        self.layer_name = waveop.data['layer_name']
+        self.layer_type = waveop.data['layer_type']
+        if (self.layer_type == 'Input' or self.layer_type == 'Const'):
             self.dram_data_file = waveop.data['ref_file']
-            # TODO: come up with a better formula for atom_data_sz to take care of all cases
-            # Constraints for atom_data_sz: 
-            #   * less than 1KB
-            #   * multiple of width
-            #   * different IFMAPs in one batch will be in different atoms (for now)
-            #   * different IFMAPs folds will be in different atoms (for now)
-            # TODO: refactor the following function since it is used in multiple places
-            if (waveop.data['ofmap_format'] == 'NCHW'):
-                N, C, H, W = [i*self.item_sz for i in waveop.data['ofmap_shape']]
-            else:
-                print("ERROR: don't understand ofmap_format %s of layer %s"%(waveop.data['ofmap_shape'], waveop.data['layer_name']))
-                exit(-1)
+        else:            
+            self.dram_data_file = waveop.data['kernel_file']
+        self.load_file(self.dram_data_file)                
+        #print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
+        return self.dram_data
+
+    def load_file(self, file):      # use waveop instead of waveop 
+        self.dram_data_file = file
+        self.dram_data = np.load(self.dram_data_file)
+        self.item_sz = self.dram_data.dtype.itemsize   
+        self.dram_data_len = len(self.dram_data)*self.item_sz
+        # TODO: come up with a better formula for atom_data_sz to take care of all cases
+        # Constraints for atom_data_sz: 
+        #   * less than 1KB
+        #   * multiple of width
+        #   * different IFMAPs in one batch will be in different atoms (for now)
+        #   * different IFMAPs folds will be in different atoms (for now)
+        # TODO: refactor the following function since it is used in multiple places
+        if (self.layer_type == 'Input' or self.layer_type == 'Const' or self.layer_type == 'Output'):
+            N, C, H, W = [i*self.item_sz for i in self.dram_data.shape]
             if (H*W <= self.atom_sz):
                 num_dim3 = self.atom_sz // (H*W)
                 self.atom_data_sz = (H*W) * min(C, num_dim3)
@@ -152,19 +167,7 @@ class CircularBuffer:
             else:
                 self.atom_data_sz = self.atom_sz
         else:            
-            self.dram_data_file = waveop.data['kernel_file']
-            # TODO: come up with a better formula for atom_data_sz to take care of all cases
-            # Constraints for atom_data_sz: 
-            #   * less than 1KB
-            #   * multiple of width
-            #   * different IFMAPs in one batch will be in different atoms (for now)
-            #   * different IFMAPs folds will be in different atoms (for now)
-            # TODO: refactor the following function since it is used in multiple places
-            if (waveop.data['kernel_format'] == 'CRSM'):
-                C, R, S, M = [i*self.item_sz for i in waveop.data['kernel_shape']]
-            else:
-                print("ERROR: don't understand kernel_format %s of layer %s"%(waveop.data['kernel_shape'], waveop.data['layer_name']))
-                exit(-1)
+            C, R, S, M = [i*self.item_sz for i in self.dram_data.shape]
             if (M <= self.atom_sz):
                 # find the largest multiple of M that satisfies constraints
                 num_dim3 = self.atom_sz // M
@@ -175,14 +178,14 @@ class CircularBuffer:
                 self.atom_data_sz = M * num_dim3
             else:
                 self.atom_data_sz = self.atom_sz
-        self.dram_data = np.load(self.dram_data_file)
-        self.item_sz = self.dram_data.dtype.itemsize
-        self.layer_name = waveop.data['layer_name']
-        self.layer_type = waveop.data['layer_type']
         print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
     def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id):
+        offset = chunk_id*self.atom_data_sz
+        length = self.atom_data_sz
+        if ((offset + length) > self.dram_data_len):
+            length = self.dram_data_len % self.atom_data_sz
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomFile",
@@ -190,14 +193,18 @@ class CircularBuffer:
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'ref_file'         : self.dram_data_file,
-              'offset_in_file'   : chunk_id*self.atom_data_sz,
-              'length'           : self.atom_sz,
+              'offset_in_file'   : offset,
+              'length'           : length,
               'ifmaps_replicate' : False,
               'ifmaps_fold_idx'  : wave_id.c_id,
               'batch_item_idx'   : wave_id.n_id 
             }
 
     def gen_dram_save_waveop(self, wave_id, atom_id, chunk_id):
+        offset = chunk_id*self.atom_data_sz
+        length = self.atom_data_sz
+        if ((offset + length) > self.dram_data_len):
+            length = self.dram_data_len % self.atom_data_sz
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
@@ -205,22 +212,25 @@ class CircularBuffer:
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'ref_file'         : self.dram_data_file,
-              'offset_in_file'   : chunk_id*self.atom_data_sz,
-              'length'           : self.atom_sz,
+              'offset_in_file'   : offset,
+              'length'           : length,
               'ofmaps_fold_idx'  : wave_id.m_id,
               'batch_item_idx'   : wave_id.n_id 
             }
 
     def read_data_region(self, wave_id, lower_addr, upper_addr):
-        if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
         dram_waveops = []
-        lower_addr_chunked = lower_addr // self.atom_data_sz
-        upper_addr_chunked = upper_addr // self.atom_data_sz
-        for i in range(lower_addr_chunked, upper_addr_chunked+1):
-            if i not in self.addr2atom:
-                atom_id = self.allocate_atom()
-                dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i))
-                self.addr2atom[i] = atom_id
+        if (lower_addr < 0 or upper_addr < 0):
+            print("WARNING %s: reading no data! (lower_addr %d, upper_addr %d)"%(self.circbuf_type, lower_addr, upper_addr))
+        else:
+            if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
+            lower_addr_chunked = lower_addr // self.atom_data_sz
+            upper_addr_chunked = upper_addr // self.atom_data_sz
+            for i in range(lower_addr_chunked, upper_addr_chunked+1):
+                if i not in self.addr2atom:
+                    atom_id = self.allocate_atom()
+                    dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i))
+                    self.addr2atom[i] = atom_id
         return dram_waveops
 
     def write_data_region(self, wave_id, lower_addr, upper_addr):
@@ -233,6 +243,13 @@ class CircularBuffer:
                 atom_id = self.allocate_atom()
                 dram_waveops.append(self.gen_dram_save_waveop(wave_id, atom_id, i))
                 self.addr2atom[i] = atom_id
+        # assuming that we always write to the last piece of atom last, when 
+        # there's a write to last piece of atom, trigger to dump to DRAM and deallocate atom
+        # TODO: optimize by keep some atoms between layers
+        if (upper_addr == self.dram_data_len - self.item_sz or upper_addr == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz):
+            for i in range(lower_addr_chunked, upper_addr_chunked+1):
+                self.free_atom(self.addr2atom[i])
+                del self.addr2atom[i]
         return dram_waveops
 
     def free_data_region(self, lower_addr, upper_addr):
@@ -595,6 +612,7 @@ class TPBSched:
     def add_dram_output_waveops_inline(self, dram_output_waveops):
         # add dependence from last MatMul to DRAM output waveops
         for i in dram_output_waveops:
+            #print("adding output waveop %s"%i['waveop_name'])
             i['previous_waveops'].append(self.last_psum_waveop['waveop_name'])
             self.waveop_stream.append(i)
 
@@ -665,7 +683,12 @@ class TPBSched:
         # initial values
         psum_bank = 0
         psum_add = False                               
-        result = np.zeros((self.N, self.M, self.E, self.F))
+        result = np.zeros((self.N, self.M, self.E, self.F), dtype=self.inputs.dtype)
+        # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
+        np.save(result_file, result)
+        self.statebuffer.circbuf_scratch.load_file(result_file)
+        self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
+        self.statebuffer.circbuf_scratch.layer_type = "Output"
         # wave loop ordering scheme: nmhwcRS
         for n_id in range(self.n):
             for m_id in range(self.m):
@@ -779,7 +802,7 @@ if __name__ == "__main__":
     parser.add_argument("--kgraph", help="K-graph Json file to read")
     parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
     parser.add_argument("--dot", help="Dot file to write")
-    parser.add_argument("--debug", default=1, help="Debug level")
+    parser.add_argument("--debug", default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     args = parser.parse_args()
 
     try:
@@ -809,7 +832,7 @@ if __name__ == "__main__":
         op_list = kgraph.get_fused_ops()
         if (result_file != None):
             last_result_file = result_file
-        result_file = "save_" + op_list[-1].data['layer_name'].replace("/", "__")
+        result_file = "save_" + op_list[-1].data['layer_name'].replace("/", "__") + ".npy"
 
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
