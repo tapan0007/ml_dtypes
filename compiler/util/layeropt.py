@@ -104,8 +104,6 @@ class StateBuffer:
         self.circbuf_weights = CircularBuffer("weights", 96-4-4-8, self.SB_ATOM_SZ, 8)
         self.circbuf_bias    = CircularBuffer("bias",    4,        self.SB_ATOM_SZ, 96-4-4)
         self.circbuf_scratch = CircularBuffer("scratch", 4,        self.SB_ATOM_SZ, 96-4)
-    def write(self, partition, address, write_data):
-        self.data[partition, address:len(write_data)] = write_data
 
 class CircularBuffer:
     def __init__(self, circbuf_type, capacity, atom_sz, start):
@@ -148,7 +146,7 @@ class CircularBuffer:
         self.dram_data_file = file
         self.dram_data = np.load(self.dram_data_file)
         self.item_sz = self.dram_data.dtype.itemsize   
-        self.dram_data_len = len(self.dram_data)*self.item_sz
+        self.dram_data_len = self.dram_data.size * self.item_sz
         # TODO: come up with a better formula for atom_data_sz to take care of all cases
         # Constraints for atom_data_sz: 
         #   * less than 1KB
