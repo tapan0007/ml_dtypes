@@ -19,6 +19,20 @@ import time
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
 iPath = os.environ.get('INKLING_PATH')
+
+class Logger(object):
+  def __init__(self, logFile):
+    self.default = sys.stdout
+    self.log = open(logFile, "w")
+  def write(self, msg):
+    self.default.write(msg)
+    self.log.write(msg)  
+  def flush(self):
+    self.default.flush()
+    self.log.flush()  
+sys.stdout = Logger('log-RunAll.txt')
+sys.stderr = Logger('log-RunAll.txt')
+
 if kPath == None or kePath == None or iPath == None or \
     not os.path.isdir(kPath) or not os.path.isdir(kePath) or not os.path.isdir(iPath):
   print("ERROR: make sure KAENA_PATH, KAENA_EXT_PATH, and INKLING_PATH environment is set");
@@ -45,9 +59,11 @@ if verbose:
 #   Name can be composed of anything - 0 can be used as base/existence test
 testConfigMap = {
   "0-1conv0"      : [ "trivnet_conv1",  "b1-h1-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv"],
+  "0-1conv0_wave" : [ "trivnet_conv1",  "b1-h1-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
   "0-2conv0"      : [ "trivnet_conv2",  "b1-h1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "2conv"],
   "0-neg"         : [ "trivnet_conv2",  "b1-Zh1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "I_ALWAYS_FAIL"],
   "0-1conv_tile"  : [ "trivnet_conv1",  "b1-h35-r3-s1-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv"],
+  "0-1conv_tile_wave"  : [ "trivnet_conv1",  "b1-h35-r3-s1-c1-m1-wmin-0.1-wmax0.1-imin-0.2-imax0.2", "1conv", "--scheduler wave"],
   "0-2conv3_relu" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.2-imin-10000-imax10000", "1conv3"],
   "0-2conv3_32b"  : [ "trivnet_lin",    "tfloat32-l2-b1-h4-r3-s1-c1-m1-wmin-1000-wmax1000-imin-10000-imax10000", "2conv32b"],
   "0-30conv3"     : [ "trivnet_lin",    "tfloat16-l30-b1-h4-r3-s1-c1-m1-wmin-0.2-wmax0.2-imin-10000-imax10000", "30conv"],
@@ -93,6 +109,7 @@ testConfigMap = {
   "8-resnet50_fp32_keras_opt" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2"],
   "8-resnet50_fp16_keras"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras.pb",    "resnet50", "--input_node input_1 --images linspace1 --depth 2"],
   "8-resnet50_fp16_keras_opt" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2"],
+  "8-resnet50_fp16_wave"      : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --scheduler wave"],
   "8-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--images linspace1 --depth 2"],
 }
 
@@ -101,7 +118,8 @@ testConfigMap = {
 # with the string
 testWaiver = [
     ['^0-add',   'WAIVE-RESADD'],
-    ['^[4-9]-',  'WAIVE-BENCH']
+    ['^[4-9]-',  'WAIVE-BENCH'],
+    ['wave',     'WAIVE-WAVESC']
   ]
 
 
@@ -177,8 +195,8 @@ class QoR:
 
   @staticmethod
   def printHeader():
-    print("%-26s  %-12s  %6s  %16s %16s  %16s %16s %s" %
-          ("Test", "Status", "Tops", "Ops", "Cycles", "TimeSec", "Cycles/sec", "Description"))
+    print("%-26s  %-12s  %6s  %16s %16s  %16s %16s  %s" %
+          ("Test", "Status", "Tops", "Ops", "SimCycles", "SimTimeSec", "SimCycles/sec", "Description"))
     print("-" * 120)
 
   def printValues(self, status, description):
@@ -234,7 +252,8 @@ class Ktests:
     self.msg = ""
     self.statusCount = 0
     self.testDescriptionREs = []
-    with open("test_description.txt", 'r') as fh:
+    testDesriptionFile = os.environ["KAENA_PATH"] + "/compiler/tffe/test/test_description.txt"
+    with open(testDesriptionFile, 'r') as fh:
       for line in fh:
         match = re.search('(^[^#\s]+)\s+(\S.*)', line)
         if match:
