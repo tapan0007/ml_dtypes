@@ -13,6 +13,7 @@ DEBUG_LEVEL_DEFAULT=1
 #kgraph_file = os.environ['KAENA_PATH'] + "/compiler/tffe/rundir/0-1conv0/trivnet_compiler.json"
 
 # TODO: use datatype from K-Graph to cast everything to that datatype
+# TODO: determine what states need to be cleared between layers
 
 def ceildiv(a,b):
     return (a//b) + (a%b != 0)
@@ -218,17 +219,14 @@ class CircularBuffer:
 
     def read_data_region(self, wave_id, lower_addr, upper_addr):
         dram_waveops = []
-        if (lower_addr < 0 or upper_addr < 0):
-            print("WARNING %s: reading no data! (lower_addr %d, upper_addr %d)"%(self.circbuf_type, lower_addr, upper_addr))
-        else:
-            if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
-            lower_addr_chunked = lower_addr // self.atom_data_sz
-            upper_addr_chunked = upper_addr // self.atom_data_sz
-            for i in range(lower_addr_chunked, upper_addr_chunked+1):
-                if i not in self.addr2atom:
-                    atom_id = self.allocate_atom()
-                    dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i))
-                    self.addr2atom[i] = atom_id
+        if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
+        lower_addr_chunked = lower_addr // self.atom_data_sz
+        upper_addr_chunked = upper_addr // self.atom_data_sz
+        for i in range(lower_addr_chunked, upper_addr_chunked+1):
+            if i not in self.addr2atom:
+                atom_id = self.allocate_atom()
+                dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i))
+                self.addr2atom[i] = atom_id
         return dram_waveops
 
     def write_data_region(self, wave_id, lower_addr, upper_addr):
@@ -703,19 +701,22 @@ class TPBSched:
                                     pearray_packed_ifmaps = self.pack_wave_ifmaps(inputs, wave_id)
                                     #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
                                     #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
-                                    dram_weights_waveops = self.statebuffer.circbuf_weights.read_data_region(
-                                                                wave_id, 
-                                                                self.weight_wave_lower_addr, 
-                                                                self.weight_wave_upper_addr)
-                                    dram_ifmaps_waveops = self.statebuffer.circbuf_ifmaps.read_data_region(
-                                                                wave_id, 
-                                                                self.ifmap_wave_lower_addr, 
-                                                                self.ifmap_wave_upper_addr)
-                                    self.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank, psum_add)
-                                    self.gen_matmul_waveop_inline(op_list[0], dram_weights_waveops, dram_ifmaps_waveops, wave_id, weights, inputs, psum_bank, psum_add)
-                                    # after the first wave, subsequent waves results are added to partial sums in buffer
-                                    if (not psum_add):
-                                        psum_add = True
+                                    if (self.ifmap_wave_lower_addr < 0 or self.ifmap_wave_upper_addr < 0):
+                                        print("WARNING layer %s: IFMAP wave (%s) has no data, so don't create waveops for this wave"%(op_list[0].data['layer_name'], wave_id.id_string()))
+                                    else:
+                                        dram_weights_waveops = self.statebuffer.circbuf_weights.read_data_region(
+                                                                    wave_id, 
+                                                                    self.weight_wave_lower_addr, 
+                                                                    self.weight_wave_upper_addr)
+                                        dram_ifmaps_waveops = self.statebuffer.circbuf_ifmaps.read_data_region(
+                                                                    wave_id, 
+                                                                    self.ifmap_wave_lower_addr, 
+                                                                    self.ifmap_wave_upper_addr)
+                                        self.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, psum_bank, psum_add)
+                                        self.gen_matmul_waveop_inline(op_list[0], dram_weights_waveops, dram_ifmaps_waveops, wave_id, weights, inputs, psum_bank, psum_add)
+                                        # after the first wave, subsequent waves results are added to partial sums in buffer
+                                        if (not psum_add):
+                                            psum_add = True
                         # tile is done                                    
                         # TODO: refactor the following code into a tile object
                         self.pearray.trig_tile_done(tile_id)
@@ -791,6 +792,7 @@ class TPBSched:
                         # Advance to new bank, while the old bank is being processed                                        
                         psum_bank = (psum_bank + 1)%self.pearray.PSUM_NUM_BANKS
                         psum_add = False
+        # save layer results to file, for retrieval by next layer                        
         np.save(result_file, result)
         return result                    
 
