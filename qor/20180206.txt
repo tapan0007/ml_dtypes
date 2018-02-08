@@ -1,0 +1,50 @@
+Done in 210.356 sec
+
+SUMMARY: PASS  44  100.000%  of  44  (10 were waived)
+
+Test                        Status          Tops               Ops           Cycles           TimeSec       Cycles/sec Description
+------------------------------------------------------------------------------------------------------------------------
+0-10conv_relu               PASS           0.000              2621            12988             2.540          5114.22  Resnet-line network with 10 Conv2D and Relu layer pairs
+0-116conv_tanh              PASS           0.000             33467           165946            30.937          5363.95  A unit test
+0-1ap0                      PASS           0.000                34               82             0.052           1571.6  Single AvgPoll layer
+0-1ap7x7                    PASS           0.035              6274              178             0.035          5015.64  Single AvgPoll layer
+0-1conv0                    PASS           0.000                 6              200             0.032          6200.97  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv_s2                  PASS           0.000                12              206             0.036          5689.35  A unit test
+0-1conv_s8                  PASS           0.000                12              206             0.030          6950.77  A unit test
+0-1conv_s8_32b              PASS           0.000                12              206             0.038          5452.19  A unit test
+0-1conv_tile                PASS           0.001             22054            22520             4.143          5435.35  Single Conv2D layer with a large image
+0-1mp0                      PASS           0.000                34               82             0.016          5252.37  Single MaxPoll layer
+0-1mp0c64                   PASS           0.014              2050              145             0.029          5034.72  Single MaxPoll layer
+0-1mp_r3s2                  PASS           0.001                74              102             0.019          5392.55  Single MaxPoll layer
+0-1mp_r3s2_112_55           PASS           0.002             54452            27291             5.163           5286.3  Single MaxPoll layer
+0-2conv0                    PASS           0.000                10              399             0.078          5124.06  A unit test
+0-2conv3_32b                PASS           0.000               292             1362             0.257          5300.48  A unit test
+0-2conv3_relu               PASS           0.000               293             1444             0.246          5875.15  A unit test
+0-2conv_pad2                PASS           0.000               132              656             0.114          5754.49  Single Conv2D layer that exercises padding
+0-2conv_pad2as              PASS           0.000                36              604             0.103          5844.61  Single Conv2D layer that exercises padding
+0-2conv_pad3                PASS           0.000               292             1362             0.238          5710.79  Single Conv2D layer that exercises padding
+0-2conv_pad5                PASS           0.000               804             3554             0.629          5646.64  Single Conv2D layer that exercises padding
+0-30conv3                   PASS           0.000              8412            39470             7.251           5443.6  A unit test
+0-add                       WAIVE-RESADD   0.000                 6               71             0.016           4424.5  Two layer, BiasAdd followed by ResAdd
+0-add_fp32                  WAIVE-RESADD   0.000                 6              419             0.074          5653.91  Two layer, BiasAdd followed by ResAdd
+0-add_uint8                 WAIVE-RESADD   0.000                 6              146             0.027          5365.08  Two layer, BiasAdd followed by ResAdd
+0-biasadd                   PASS           0.000                 5               71             0.014           5182.1  Single BiasAdd layer
+0-biasadd_c2                PASS           0.000                 5              134             0.024          5518.72  Single BiasAdd layer
+0-neg                       PASS           0.000                 0                1            -1.000                0  Negative test
+1-1conv7_64                 PASS           5.166        1.0276e+08            19892             7.070          2813.75  A unit test
+1-1conv9_64                 PASS           5.397       1.69869e+08            31476            12.705          2477.49  A unit test
+2-1conv3_64s8               PASS           0.154            294916             1916             0.326          5883.18  A unit test
+2-1conv9_64s8               PASS           0.164       2.65421e+06            16137             3.007          5366.66  A unit test
+2-padasym_strd_h3r2s2       PASS           0.000                36              604             0.118          5138.46  A unit test
+2-padasym_strd_h4r2s3       PASS           0.000                36              604             0.109          5537.22  A unit test
+2-padasym_strd_h5r2s2       PASS           0.000                76              625             0.079          7871.44  A unit test
+2-padsym_strd_h3r3s2        PASS           0.000                76             1266             0.232          5461.02  A unit test
+2-padsym_strd_h4r3s3        PASS           0.000                76             1266             0.216          5862.39  A unit test
+2-padsym_strd_h5r3s2        PASS           0.000               166             1304             0.230          5659.33  A unit test
+6-alexnet                   WAIVE-BENCH    0.000       1.68689e+11                1            -1.000                0  Full size networks
+8-resnet152                 WAIVE-BENCH    0.000       2.18177e+10                1            -1.000                0  Full size networks
+8-resnet50                  WAIVE-BENCH    0.000       6.96883e+09                1            -1.000                0  Full size networks
+8-resnet50_fp16_keras       WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp16_keras_opt   WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp32_keras       WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp32_keras_opt   WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks

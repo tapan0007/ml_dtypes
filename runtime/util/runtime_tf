@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
+# Mini runtime environment for ofloading part of TF network to host
+#
+# Example:
+#   Run 8-resnet50_fp16_keras_opt regression, cd there
+#   How ro run the avg pool layer on host:
+#     TO_DO: add input format conversion from TPB to TF format
+#     $KAENA_PATH/runtime/util/runtime_tf --tfpb $KAENA_EXT_PATH/apps/tf/resnet50_keras/resnet50_fp16_keras_opt.pb --input_tensors activation_49/Relu:0 trivnet_activation_49__Relu:0.npy --output_tensor avg_pool/AvgPool:0 pool.npy
+#     $KAENA_PATH/compiler/util/npy_diff_files --gold trivnet_avg_pool__AvgPool:0.npy --new pool.npy
+
+import argparse
+import os.path
+import sys
+import numpy as np
+from tensorflow.python.platform import gfile
+from tensorflow.core.framework import graph_pb2
+import tensorflow as tf
+
+print("\nINFO: started as  ", " ".join(sys.argv))
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
+parser.add_argument('--input_tensors', help='Tensors to set, pairs tensorName tensorValue.npy ...',
+                    dest="input_tensors", default=[], nargs='+',)
+parser.add_argument('--output_tensor', help='Output tensor to compute, pair tensorName tensorValue.npy',
+                    dest="output_tensor", default=[], nargs=2)
+
+args = parser.parse_args()
+inputTensors = args.input_tensors
+outputTensor = args.output_tensor
+assert(len(inputTensors) >= 2)
+assert(len(outputTensor) == 2)
+
+tfpbFile = args.tfpb
+if not os.path.isfile(tfpbFile):
+  raise("ERROR: missing --tfpb " + tfpbFile)
+
+class RuntimeTf:
+  
+  def __init__(self):
+    self.tfg = None
+  
+  def load(self, tfpbFile):
+    self.tfpbFile = tfpbFile
+    self.tfg = graph_pb2.GraphDef()
+    with gfile.FastGFile(tfpbFile,'rb') as f:
+      self.tfg.ParseFromString(f.read())
+  
+  def run(self, inputTensors, outputTensor):
+    self.inputTensors = inputTensors
+    self.outputTensor = outputTensor
+
+    # Grow GPU memory as needed at the cost of fragmentation.
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
+      tf.import_graph_def(self.tfg, name="")
+      graph = sess.graph
+      
+      # Inject input tensors
+      feedDict = {}
+      for tensorName,tensorFile in zip(inputTensors[::2], inputTensors[1::2]):
+        inputTensor = graph.get_tensor_by_name(tensorName)
+        inputValue = np.load(tensorFile)
+        feedDict[inputTensor] = inputValue
+      
+      # Collect results
+      outputTensor,outputFile = outputTensor
+      outputVars = [outputTensor]
+      tfResults = sess.run(outputVars, feed_dict=feedDict)
+      for (var, nd) in zip(outputVars, tfResults):
+        if nd.size > 0:
+          np.save(outputFile, nd)
+          print("\nINFO: wrote tensor %s into %s" %
+                (var, outputFile))
+
+
+runtime = RuntimeTf()
+runtime.load(tfpbFile)
+runtime.run(inputTensors, outputTensor)
+
