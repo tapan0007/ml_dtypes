@@ -102,9 +102,9 @@ class StateBuffer:
     def __init__(self):
         self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         self.circbuf_ifmaps  = CircularBuffer("ifmaps",  8,        self.SB_ATOM_SZ, 0)
-        self.circbuf_weights = CircularBuffer("weights", 96-4-4-8, self.SB_ATOM_SZ, 8)
-        self.circbuf_bias    = CircularBuffer("bias",    4,        self.SB_ATOM_SZ, 96-4-4)
-        self.circbuf_scratch = CircularBuffer("scratch", 4,        self.SB_ATOM_SZ, 96-4)
+        self.circbuf_weights = CircularBuffer("weights", 96-8-8-8, self.SB_ATOM_SZ, 8)
+        self.circbuf_bias    = CircularBuffer("bias",    8,        self.SB_ATOM_SZ, 96-8-8)
+        self.circbuf_scratch = CircularBuffer("scratch", 8,        self.SB_ATOM_SZ, 96-8)
 
 class CircularBuffer:
     def __init__(self, circbuf_type, capacity, atom_sz, start):
@@ -261,6 +261,7 @@ class CircularBuffer:
     def allocate_atom(self):
         if (self.count == self.capacity):
             print ("ERROR %s: no more space during allocate_atom for layer %s!"%(self.circbuf_type, self.layer_name))
+            exit(-1)
             return -1
         self.current_atom_id = self.tail_pointer
         self.allocated[self.current_atom_id - self.start] = 1
@@ -286,6 +287,9 @@ class CircularBuffer:
             self.head_pointer += 1            
             if (self.head_pointer == self.start + self.capacity):
                 self.head_pointer = self.start
+
+    def print_stats(self):
+        print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d waveops %d DRAM data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, len(self.waveop_list), self.dram_data_len))
 
 # Neural network node, containing data read from JSON
 class KNode:
@@ -794,6 +798,15 @@ class TPBSched:
                         psum_add = False
         # save layer results to file, for retrieval by next layer                        
         np.save(result_file, result)
+
+        # print circular buffer stats
+        self.statebuffer.circbuf_ifmaps.print_stats()
+        self.statebuffer.circbuf_weights.print_stats()
+        self.statebuffer.circbuf_bias.print_stats()
+        self.statebuffer.circbuf_scratch.print_stats()
+
+        # reset scratch buffer for now (TODO: keep some atoms for next layer)
+        self.statebuffer.circbuf_scratch.reset()
         return result                    
 
 # Main program
@@ -828,6 +841,7 @@ if __name__ == "__main__":
     tpb = TPBSched()
     result_file = None
     last_result_file = None
+    err_count = 0
     while (not kgraph.walk_ended()):
         op_list = kgraph.get_fused_ops()
         if (result_file != None):
@@ -861,23 +875,27 @@ if __name__ == "__main__":
 
         elif (re.search(r"MatMult", op_list[0].data['layer_type'])):
             print("ERROR: MatMult operation is unimplemented")
+            exit(-1)
         elif (re.search(r".*Pool", op_list[0].data['layer_type'])):
             print("ERROR: Pool (unfused) operation is unimplemented")
+            exit(-1)
         else:        
-            print("ERROR: the first operation should be Conv")
+            print("ERROR: Unrecognized first operation %s"%op_list[0].data['layer_type'])
             exit(-1)
 
-    # Check results against pre-computed results            
-    outputs = np.load(output_layer['ref_file'])
-    diff = results - outputs
-    print("\nInput IFMAPS:\n", inputs)
-    print("\nComputed OFMAPS:\n", results)
-    print("\nExpected OFMAPS:\n", outputs)
-    print("\nDiffed   OFMAPS:\n", diff)
-    if (not np.allclose(results, outputs, 1/100, 1e-7)):
-        print("\nFAILED: computed OFMAPS is not equal to expected OFMAPS!\n")
-    else:
-        print("\nPASSED\n")
+        # Check results against pre-computed results            
+        if 'ref_file' in op_list[-1].data:
+            outputs = np.load(op_list[-1].data['ref_file'])
+            diff = results - outputs
+            if (args.debug > 1): print("\nInput IFMAPS:\n", inputs)
+            if (args.debug > 1): print("\nComputed OFMAPS:\n", results)
+            if (args.debug > 1): print("\nExpected OFMAPS:\n", outputs)
+            if (args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
+            if (not np.allclose(results, outputs, 1/100, 1e-7)):
+                print("\nFAILED: layer %s computed OFMAPS is not equal to expected OFMAPS!\n"%(op_list[-1].data['layer_name']))
+                err_count += 1
+            else:
+                print("\nPASSED: layer %s\n"%(op_list[-1].data['layer_name']))
 
     # write out wavegraph           
     wavegraph_json = kgraph_json

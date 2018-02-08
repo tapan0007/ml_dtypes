@@ -175,7 +175,7 @@
       "waveop_type": "Relu"
     },
     {
-      "atom_id": 92,      "batch_item_idx": 0,      "layer_name": "1conv3/relu1",
+      "atom_id": 88,      "batch_item_idx": 0,      "layer_name": "1conv3/relu1",
       "length": 32,      "offset_in_file": 0,      "ofmaps_fold_idx": 0,      "previous_waveops": [
         "1conv3/relu1/Relu_n0_m0_h0_w0"
       ],
