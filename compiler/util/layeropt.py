@@ -13,7 +13,7 @@ DEBUG_LEVEL_DEFAULT=1
 #kgraph_file = os.environ['KAENA_PATH'] + "/compiler/tffe/rundir/0-1conv0/trivnet_compiler.json"
 
 # TODO: use datatype from K-Graph to cast everything to that datatype
-# TODO: determine what states need to be cleared between layers
+# TODO: multiple atoms within waveop (batching)
 
 def ceildiv(a,b):
     return (a//b) + (a%b != 0)
@@ -81,6 +81,8 @@ class Pool:
         pass
     def avg(self, in_array):
         return in_array
+    def resadd(self, array_a, array_b):
+        return array_a + array_b
     def max(self, in_array):
         return in_array
 
@@ -89,7 +91,7 @@ class BiasAddAct:
     def wait_tile_done(self, tile_id):
         pass
     def biasadd(self, in_array, bias_array):
-        return in_array+bias_array
+        return in_array + bias_array
     def relu(self, in_array):
         return np.maximum(np.zeros(in_array.shape), in_array)
 
@@ -105,6 +107,7 @@ class StateBuffer:
         self.circbuf_weights = CircularBuffer("weights", 96-8-8-8, self.SB_ATOM_SZ, 8)
         self.circbuf_bias    = CircularBuffer("bias",    8,        self.SB_ATOM_SZ, 96-8-8)
         self.circbuf_scratch = CircularBuffer("scratch", 8,        self.SB_ATOM_SZ, 96-8)
+        self.saved_result_files = {}
 
 class CircularBuffer:
     def __init__(self, circbuf_type, capacity, atom_sz, start):
@@ -196,7 +199,7 @@ class CircularBuffer:
               'length'           : length,
               'ifmaps_replicate' : False,
               'ifmaps_fold_idx'  : wave_id.c_id,
-              'batch_item_idx'   : wave_id.n_id 
+              'batch_fold_idx'   : wave_id.n_id 
             }
 
     def gen_dram_save_waveop(self, wave_id, atom_id, chunk_id):
@@ -214,7 +217,7 @@ class CircularBuffer:
               'offset_in_file'   : offset,
               'length'           : length,
               'ofmaps_fold_idx'  : wave_id.m_id,
-              'batch_item_idx'   : wave_id.n_id 
+              'batch_fold_idx'   : wave_id.n_id 
             }
 
     def read_data_region(self, wave_id, lower_addr, upper_addr):
@@ -598,12 +601,17 @@ class TPBSched:
               'layer_name'              : op.data['layer_name'],
               'weights_atom_id'         : self.statebuffer.circbuf_weights.current_atom_id,
               'ifmaps_atom_id'          : self.statebuffer.circbuf_ifmaps.current_atom_id,
-              'weights_offset_in_atom'  : self.weight_wave_lower_addr % self.statebuffer.circbuf_weights.atom_data_sz,
+              'weights_offset_in_atom'  : self.weight_wave_lower_addr % self.statebuffer.circbuf_weights.atom_data_sz,  # TODO: -1 means don't load new weights
               'ifmaps_offset_in_atom'   : self.ifmap_wave_lower_addr % self.statebuffer.circbuf_ifmaps.atom_data_sz,
               'wave_id_format'          : wave_id.format,
               'wave_id'                 : wave_id.show(),
               'start'                   : not(psum_add),
-              'psum_bank_id'            : psum_bank
+              'psum_bank_id'            : psum_bank,
+              'psum_bank_offset'        : 0,    # TODO: compute and put the correct value here
+              'ifmap_tile_width'        : 0,    # TODO: compute and put the correct value here
+              'ifmap_tile_height'       : 0,    # TODO: compute and put the correct value here
+              'ofmap_tile_width'        : 0,    # TODO: compute and put the correct value here
+              'ofmap_tile_height'       : 0,    # TODO: compute and put the correct value here
             }
         self.waveop_stream.append(matmul_waveop)
         self.last_psum_waveop = self.waveop_stream[-1]
@@ -616,19 +624,37 @@ class TPBSched:
             i['previous_waveops'].append(self.last_psum_waveop['waveop_name'])
             self.waveop_stream.append(i)
 
-    # generate Relu instruction and add it to instruction stream
-    def gen_relu_waveop_inline(self, op, tile_id, psum_bank):
+    # generate activation instruction and add it to instruction stream
+    def gen_act_waveop_inline(self, biasadd_op, act_op, tile_id, psum_bank, bias_start):
         input_list = []
+        layer_name = ""
+        bias_add_en = False
+        bias_atom_id = 0
+        bias_offset_in_atom = 0
+        if (biasadd_op != None):
+            bias_add_en = True
+            bias_atom_id = self.statebuffer.circbuf_bias.current_atom_id
+            bias_offset_in_atom = bias_start % self.statebuffer.circbuf_bias.atom_data_sz
+            layer_name = biasadd_op.data['layer_name']
+        act_type = "none"    
+        if (act_op != None):
+            act_type = act_op.data['layer_type']
+            layer_name = act_op.data['layer_name']
         if (len(self.waveop_stream) > 0):
             input_list.append(self.last_psum_waveop['waveop_name'])
         instr = {
               'previous_waveops'        : input_list,
-              'waveop_type'             : 'Relu',
-              'waveop_name'             : op.data['layer_name']+"/Relu_"+tile_id.id_string(),
-              'layer_name'              : op.data['layer_name'],
+              'waveop_type'             : 'Activation',
+              'waveop_name'             : layer_name+"/Activation_"+tile_id.id_string(),
+              'layer_name'              : layer_name,
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
-              'psum_bank_id'            : psum_bank
+              'psum_bank_id_src'        : psum_bank,
+              'psum_bank_id_dst'        : psum_bank,
+              'act_type'                : act_type,
+              'bias_add_en'             : bias_add_en,
+              'bias_atom_id'            : bias_atom_id,
+              'bias_offset_in_atom'     : bias_offset_in_atom,
             }
         self.waveop_stream.append(instr)
         self.last_psum_waveop = self.waveop_stream[-1]
@@ -647,7 +673,28 @@ class TPBSched:
               'bias_offset_in_atom'     : bias_start % self.statebuffer.circbuf_bias.atom_data_sz,
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
-              'psum_bank_id'            : psum_bank
+              'psum_bank_id_src'        : psum_bank,
+              'psum_bank_id_dst'        : psum_bank,
+            }
+        self.waveop_stream.append(instr)
+        self.last_psum_waveop = self.waveop_stream[-1]
+
+    # generate ResAdd instruction and add it to instruction stream
+    def gen_resadd_waveop_inline(self, op, tile_id, psum_bank, data_start):
+        input_list = []
+        if (len(self.waveop_stream) > 0):
+            input_list.append(self.last_psum_waveop['waveop_name'])
+        instr = {
+              'previous_waveops'        : input_list,
+              'waveop_type'             : 'ResAdd',
+              'waveop_name'             : op.data['layer_name']+"/ResAdd_"+tile_id.id_string(),
+              'layer_name'              : op.data['layer_name'],
+              'data_atom_id'            : self.statebuffer.circbuf_scratch.current_atom_id,
+              'data_offset_in_atom'     : data_start % self.statebuffer.circbuf_scratch.atom_data_sz,
+              'tile_id_format'          : tile_id.format,
+              'tile_id'                 : tile_id.show(),
+              'psum_bank_id_src'        : psum_bank,
+              'psum_bank_id_dst'        : psum_bank,
             }
         self.waveop_stream.append(instr)
         self.last_psum_waveop = self.waveop_stream[-1]
@@ -686,9 +733,15 @@ class TPBSched:
         result = np.zeros((self.N, self.M, self.E, self.F), dtype=self.inputs.dtype)
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         np.save(result_file, result)
-        self.statebuffer.circbuf_scratch.load_file(result_file)
-        self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
         self.statebuffer.circbuf_scratch.layer_type = "Output"
+        self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
+        # for ResAdd, retrieve the saved result file for one of the completed legs
+        if (op_list[-1].data['layer_type'] == 'ResAdd'):
+            for i in op_list[-1].prev:
+                if i.data['layer_name'] in saved_result_files:
+                    self.statebuffer.circbuf_scratch.load_file(saved_result_files[i.data['layer_name']])
+        else:
+            self.statebuffer.circbuf_scratch.load_file(result_file)
         # wave loop ordering scheme: nmhwcRS
         for n_id in range(self.n):
             for m_id in range(self.m):
@@ -747,12 +800,13 @@ class TPBSched:
                         self.statebuffer.circbuf_ifmaps.free_data_region(self.ifmap_tile_lower_addr, self.ifmap_tile_upper_addr)
                         # go through the remaining operations
                         op_result = self.pearray.extract_psum(psum_bank, 0, self.ofmap_tile_sz)
-                        for i in range(1, len(op_list)):
+                        op_list_iter = iter(range(1, len(op_list)))
+                        for i in op_list_iter: #range(1, len(op_list)):
                             layer_type = op_list[i].data['layer_type'] 
-                            if (layer_type == 'Relu'):
+                            if (re.search(r"Relu|Tanh|Sigmoid", layer_type)):
                                 self.activate.wait_tile_done(tile_id)
                                 op_result = self.activate.relu(op_result)
-                                self.gen_relu_waveop_inline(op_list[i], tile_id, psum_bank)
+                                self.gen_act_waveop_inline(None, op_list[i], tile_id, psum_bank, 0)
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, op_result)
                             elif (layer_type == 'BiasAdd'):
@@ -763,7 +817,26 @@ class TPBSched:
                                 bias_extracted[0 : bias_end - bias_start] = bias[bias_start : bias_end]
                                 op_result = self.activate.biasadd(op_result, bias_extracted)
                                 dram_bias_waveop = self.statebuffer.circbuf_bias.read_data_region(wave_id, bias_start, bias_end)
-                                self.gen_biasadd_waveop_inline(op_list[i], tile_id, psum_bank, bias_start)
+                                if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid", op_list[i+1].data['layer_type'])):
+                                    self.gen_act_waveop_inline(op_list[i], op_list[i+1], tile_id, psum_bank, bias_start)
+                                    next(op_list_iter)
+                                else:                                    
+                                    self.gen_act_waveop_inline(op_list[i], None, tile_id, psum_bank, bias_start)
+                                if (i != len(op_list)-1):
+                                    self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
+                            elif (layer_type == 'ResAdd'):
+                                self.pool.wait_tile_done(tile_id)
+                                dram_resadd_waveop = self.statebuffer.circbuf_scratch.read_data_region(wave_id, self.ofmap_tile_lower_addr, self.ofmap_tile_upper_addr)
+                                residue_tile = np.zeros((self.ofmap_tile_sz, self.pearray.NUM_COLS))
+                                for j in range(self.pearray.NUM_COLS):
+                                    M_idx = wave_id.m_id * self.pearray.NUM_COLS + j
+                                    if (M_idx >= self.M):
+                                        break
+                                    else:
+                                        residue_tile_ifmap = self.statebuffer.circbuf_scratch.dram_data[n_id, j, tile_y_start : tile_y_start + tile_height, tile_x_start : tile_x_start + tile_width]
+                                        residue_tile[0:tile_height*tile_width,j] = residue_tile_ifmap.flatten()
+                                op_result = self.pool.resadd(op_result, residue_tile)
+                                self.gen_resadd_waveop_inline(op_list[i], tile_id, psum_bank, self.ofmap_tile_lower_addr)
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
                             else:
@@ -798,6 +871,7 @@ class TPBSched:
                         psum_add = False
         # save layer results to file, for retrieval by next layer                        
         np.save(result_file, result)
+        self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = result_file
 
         # print circular buffer stats
         self.statebuffer.circbuf_ifmaps.print_stats()
