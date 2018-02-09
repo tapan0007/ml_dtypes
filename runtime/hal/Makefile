@@ -81,11 +81,6 @@ $(shell $(CC) $1 -E - < /dev/null > /dev/null 2>&1 && echo $1)
 endef
 
 # Notice: make sure these execute only once and not recursively
-GCC_ARCH_CFLAGS := $(call gcc_check_flag,-mcpu=cortex-a15)
-GCC_ARCH_CFLAGS += $(call gcc_check_flag,-mcpu=cortex-a57)
-GCC_ARCH_CFLAGS += $(call gcc_check_flag,-mcpu=cortex-a72)
-GCC_ARCH_CFLAGS += $(call gcc_check_flag,-marm)
-GCC_ARCH_CFLAGS += $(call gcc_check_flag,-mfpu=neon-vfpv4)
 
 ARCH_CFLAGS += $(GCC_ARCH_CFLAGS)
 
