@@ -58,69 +58,69 @@ static int aws_hal_tpb_pe_write_profile (void* tpb_base_addr, uint8_t profile_ta
     
     /* Profile.Instruction_Decode */
     byte_idx = AWS_HAL_TPB_PROFILE_ID_LSB;
-    profile_addr[byte_idx++] = profile_entry.common_params.inst_length.offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.inst_length.size;
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.inst_length.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.inst_length.size);
     for (int k=0 ; k<AWS_HAL_TPB_PROFILE_NUM_IMM_VALS ; k++) {
-        profile_addr[byte_idx++] = profile_entry.common_params.misc_imm_vals[k].offset;
-        profile_addr[byte_idx++] = profile_entry.common_params.misc_imm_vals[k].size;
+        al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.misc_imm_vals[k].offset);
+        al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.misc_imm_vals[k].size);
     }
 
     /* Profile.Data_Types */
     byte_idx = AWS_HAL_TPB_PROFILE_DTYPE_LSB;
-    profile_addr[byte_idx++] = profile_entry.common_params.in_data_type[0].offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.in_data_type[0].size;
-    profile_addr[byte_idx++] = 0; // in_data_type[1] offset - unused (only one input stream in PE-array)
-    profile_addr[byte_idx++] = 0; // in_data_type[1] size   - unused (only one input stream in PE-array)
-    profile_addr[byte_idx++] = 0; // alu_data_type src sel  - unused (no ALUs in PE-array)
-    profile_addr[byte_idx++] = 0; // alu_data_type offset   - unused (no ALUs in PE-array)
-    profile_addr[byte_idx++] = 0; // alu_data_type size     - unused (no ALUs in PE-array)
-    profile_addr[byte_idx++] = profile_entry.common_params.out_data_type.offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.out_data_type.size;
-    profile_addr[byte_idx++] = 0; // reserved
-    profile_addr[byte_idx++] = 0; // reserved
-    profile_addr[byte_idx++] = profile_entry.common_params.num_partitions.offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.num_partitions.size;
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.in_data_type[0].offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.in_data_type[0].size);
+    al_reg_write8(&profile_addr[byte_idx++], 0); // in_data_type[1] offset - unused (only one input stream in PE-array)
+    al_reg_write8(&profile_addr[byte_idx++], 0); // in_data_type[1] size   - unused (only one input stream in PE-array)
+    al_reg_write8(&profile_addr[byte_idx++], 0); // alu_data_type src sel  - unused (no ALUs in PE-array)
+    al_reg_write8(&profile_addr[byte_idx++], 0); // alu_data_type offset   - unused (no ALUs in PE-array)
+    al_reg_write8(&profile_addr[byte_idx++], 0); // alu_data_type size     - unused (no ALUs in PE-array)
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.out_data_type.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.out_data_type.size);
+    al_reg_write8(&profile_addr[byte_idx++], 0); // reserved
+    al_reg_write8(&profile_addr[byte_idx++], 0); // reserved
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.num_partitions.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.num_partitions.size);
 
     /* Profile.Memory_Read_Controller */
     byte_idx = AWS_HAL_TPB_PROFILE_MEM_RD_CTRL_LSB;
     for (int j=0 ; j<2 ; j++) { // repeat for 2 read channels
-        profile_addr[byte_idx++] = profile_entry.common_params.rd_start_addr[j].offset;
-        profile_addr[byte_idx++] = profile_entry.common_params.rd_start_addr[j].size;
+        al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.rd_start_addr[j].offset);
+        al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.rd_start_addr[j].size);
         for (int k=0 ; k<AWS_HAL_TPB_MEM_NUM_DIMENSIONS ; k++) {
-            profile_addr[byte_idx++] = profile_entry.common_params.rd_step[j][k].offset;
-            profile_addr[byte_idx++] = profile_entry.common_params.rd_step[j][k].size;
+            al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.rd_step[j][k].offset);
+            al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.rd_step[j][k].size);
         }
         for (int k=0 ; k<AWS_HAL_TPB_MEM_NUM_DIMENSIONS ; k++) {
-            profile_addr[byte_idx++] = profile_entry.common_params.rd_num_elements[j][k].offset;
-            profile_addr[byte_idx++] = profile_entry.common_params.rd_num_elements[j][k].size;
+            al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.rd_num_elements[j][k].offset);
+            al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.rd_num_elements[j][k].size);
         }
-        profile_addr[byte_idx++] = 0; // reserved
+        al_reg_write8(&profile_addr[byte_idx++], 0); // reserved
     }
 
     /* Profile.Memory_Write_Controller */
     byte_idx = AWS_HAL_TPB_PROFILE_MEM_WR_CTRL_LSB;
-    profile_addr[byte_idx++] = profile_entry.common_params.wr_start_addr.offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.wr_start_addr.size;
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wr_start_addr.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wr_start_addr.size);
     for (int k=0 ; k<AWS_HAL_TPB_MEM_NUM_DIMENSIONS ; k++) {
-        profile_addr[byte_idx++] = profile_entry.common_params.wr_step[k].offset;
-        profile_addr[byte_idx++] = profile_entry.common_params.wr_step[k].size;
+        al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wr_step[k].offset);
+        al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wr_step[k].size);
     }
     for (int k=0 ; k<AWS_HAL_TPB_MEM_NUM_DIMENSIONS ; k++) {
-        profile_addr[byte_idx++] = profile_entry.common_params.wr_num_elements[k].offset;
-        profile_addr[byte_idx++] = profile_entry.common_params.wr_num_elements[k].size;
+        al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wr_num_elements[k].offset);
+        al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wr_num_elements[k].size);
     }
     
     /* Profile.Event_Management */
     byte_idx = AWS_HAL_TPB_PROFILE_EVENT_MGMT_LSB;
-    profile_addr[byte_idx++] = profile_entry.common_params.event_trigger_condition;
-    profile_addr[byte_idx++] = profile_entry.common_params.wait_event_mode.offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.wait_event_mode.size;
-    profile_addr[byte_idx++] = profile_entry.common_params.wait_event_idx.offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.wait_event_idx.size;
-    profile_addr[byte_idx++] = profile_entry.common_params.set_event_mode.offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.set_event_mode.size;
-    profile_addr[byte_idx++] = profile_entry.common_params.set_event_idx.offset;
-    profile_addr[byte_idx++] = profile_entry.common_params.set_event_idx.size;
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.event_trigger_condition);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wait_event_mode.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wait_event_mode.size);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wait_event_idx.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wait_event_idx.size);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.set_event_mode.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.set_event_mode.size);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.set_event_idx.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.set_event_idx.size);
     
     /* Profile.FSM_Management */
     // TODO
