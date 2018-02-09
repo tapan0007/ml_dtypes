@@ -55,6 +55,11 @@ Layer::gDataType() const
     return m_Network->gDataType();
 }
 
+const arch::Arch&
+Layer::gArch() const
+{
+    return m_Network->gArch();
+}
 
 
 //-----------------------------------------------------------------

@@ -38,7 +38,7 @@ public:
     }
 
     static std::string gTypeStr() {
-        return WaveOpTypeStr_SBAtomFile;
+        return WaveOpTypeStr_SBAtomSave;
     }
 
     bool verify() const override;

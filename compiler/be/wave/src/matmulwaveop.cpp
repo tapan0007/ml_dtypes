@@ -3,9 +3,11 @@
 
 
 #include "utils/inc/datatype.hpp"
+
+#include "arch/inc/arch.hpp"
 #include "layers/inc/layer.hpp"
-#include "wave/inc/matmulwaveop.hpp"
 #include "nets/inc/network.hpp"
+#include "wave/inc/matmulwaveop.hpp"
 
 
 
@@ -14,7 +16,7 @@ namespace wave {
 
 MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
-    : WaveOp(params.m_WaveOpParams, prevWaveOps)
+    : WaveOp(params, prevWaveOps)
     , m_IfmapTileHeight(params.m_IfmapTileHeight)
     , m_IfmapTileWidth(params.m_IfmapTileWidth)
     , m_IfmapsAtomId(params.m_IfmapsAtomId)
@@ -33,6 +35,25 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
 }
 
 
+// calculate the number of ofmaps in this wave
+kcc_int32
+MatMulWaveOp::gNumOfmapsInFold() const
+{
+    const arch::Arch& arch(m_Layer->gArch());
+    const kcc_int32 numPeArrayCols      = arch.gNumberPeArrayColumns();
+    const kcc_int32 numOfmapsInLayer    = m_Layer->gNumOfmaps();
+    const kcc_int32 ofmapFoldIdx        = m_WaveId.gOfmapFoldIdx();
+    if (numOfmapsInLayer % numPeArrayCols == 0) {
+        return numOfmapsInLayer;
+    } else {
+        if ( (numOfmapsInLayer / numPeArrayCols) == ofmapFoldIdx ) { // last
+            return numOfmapsInLayer % numPeArrayCols;
+        } else {
+            return numPeArrayCols;
+        }
+    }
+}
+
 bool
 MatMulWaveOp::verify() const
 {
@@ -42,17 +63,17 @@ MatMulWaveOp::verify() const
     if (m_WaveIdFormat == "") {
         return false;
     }
-    if (m_IfmapsAtomId == -1) {
+    if (m_IfmapsAtomId < 0) {
         return false;
     }
-    if (m_IfmapsOffsetInAtom == -1) {
+    if (m_IfmapsOffsetInAtom < 0) {
         return false;
     }
-    if (m_WeightsAtomId == -1) {
+    if (m_WeightsAtomId < 0) {
         return false;
     }
     // m_WeightsOffsetInAtom is negative for waves that do NOT reload weights
-    if (m_PsumBankId == -1) {
+    if (m_PsumBankId < 0) {
         return false;
     }
     return true;
@@ -62,6 +83,77 @@ MatMulWaveOp::verify() const
 
 
 
+
+
+void
+MatMulWaveOp::WaveId::convertFrom(const std::string& fmt, const std::vector<int>& waveId)
+{
+    // "wave_id_format": "nmhwcrs",
+    const int N = fmt.size();
+
+    for (int i = 0; i < N; ++i) {
+        switch (fmt[i]) {
+        case 'n':
+            rBatchIdx(waveId[i]);
+            break;
+        case 'm':
+            rOfmapFoldIdx(waveId[i]);
+            break;
+        case 'h':
+            rTileY(waveId[i]);
+            break;
+        case 'w':
+            rTileX(waveId[i]);
+            break;
+        case 'c':
+            rIfmapFoldIdx(waveId[i]);
+            break;
+        case 'r':
+            rFilterPixelX(waveId[i]);
+            break;
+        case 's':
+            rFilterPixelY(waveId[i]);
+            break;
+        default:
+            assert(false && "Wrong MatMulWaveOp format character");
+        }
+    }
+}
+
+void
+MatMulWaveOp::WaveId::convertTo(const std::string& fmt, std::vector<int>& waveId) const
+{
+    // "wave_id_format": "nmhwcrs",
+    const int N = fmt.size();
+
+    for (int i = 0; i < N; ++i) {
+        switch (fmt[i]) {
+        case 'n':
+            waveId[i] = gBatchIdx();
+            break;
+        case 'm':
+            waveId[i] = gOfmapFoldIdx();
+            break;
+        case 'h':
+            waveId[i] = gTileY();
+            break;
+        case 'w':
+            waveId[i] = gTileX();
+            break;
+        case 'c':
+            waveId[i] = gIfmapFoldIdx();
+            break;
+        case 'r':
+            waveId[i] = gFilterPixelX();
+            break;
+        case 's':
+            waveId[i] = gFilterPixelY();
+            break;
+        default:
+            assert(false && "Wrong MatMulWaveOp format character");
+        }
+    }
+}
 
 bool 
 MatMulWaveOp::WaveId::verify() const
@@ -94,7 +186,7 @@ MatMulWaveOp::WaveId::verify() const
 bool 
 MatMulWaveOp::Params::verify() const
 {
-    if (! m_WaveOpParams.verify()) {
+    if (! this-> WaveOp::Params::verify()) {
         return false;
     }
     if (! m_WaveId.verify()) {

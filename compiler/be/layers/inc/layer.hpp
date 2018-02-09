@@ -20,6 +20,10 @@
 
 namespace kcc {
 
+namespace arch {
+    class Arch;
+}
+
 namespace nets {
     class Network;
 }
@@ -553,6 +557,7 @@ public:
         m_OfmapAddress = address;
     }
 
+    const arch::Arch& gArch() const;
 
     std::string gBaseLayerStr() const;
     std::string gStateSizesStr() const;

@@ -22,7 +22,8 @@
 #include "utils/inc/datatype.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
-#include "wave/inc/sbatomwaveop.hpp"
+#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomsavewaveop.hpp"
 
 
 namespace kcc {
@@ -182,6 +183,13 @@ public:
         m_IfmapsFoldIdx = ifmapsFoldIdx;
     }
 
+    kcc_int32 gOfmapsFoldIdx() const {
+        return m_OfmapsFoldIdx;
+    }
+    void rOfmapsFoldIdx(kcc_int32 ifmapsFoldIdx) {
+        m_OfmapsFoldIdx = ifmapsFoldIdx;
+    }
+
     bool qIfmapsReplicate() const {
         return m_IfmapsReplicate;
     }
@@ -210,8 +218,55 @@ public:
         m_RefFile = refFile;
     }
 
+    kcc_int32 gBatchFoldIdx () const {
+        return m_BatchFoldIdx;
+    }
+    void rBatchFoldIdx (kcc_int32 batchFoldIdx) {
+        m_BatchFoldIdx = batchFoldIdx;
+    }
+
+    kcc_int32 gIfmapTileHeight () const {
+        return m_IfmapTileHeight;
+    }
+    void rIfmapTileHeight (kcc_int32 ifmapTileHeight) {
+        m_IfmapTileHeight = ifmapTileHeight;
+    }
+
+    kcc_int32 gIfmapTileWidth () const {
+        return m_IfmapTileWidth;
+    }
+    void rIfmapTileWidth (kcc_int32 ifmapTileWidth) {
+        m_IfmapTileWidth = ifmapTileWidth;
+    }
+
+    kcc_int32 gOfmapTileHeight () const {
+        return m_OfmapTileHeight;
+    }
+    void rOfmapTileHeight (kcc_int32 ifmapTileHeight) {
+        m_OfmapTileHeight = ifmapTileHeight;
+    }
+
+    kcc_int32 gOfmapTileWidth () const {
+        return m_OfmapTileWidth;
+    }
+    void rOfmapTileWidth (kcc_int32 ifmapTileWidth) {
+        m_OfmapTileWidth = ifmapTileWidth;
+    }
+
+    kcc_int32 gPsumBankOffset () const {
+        return m_PsumBankOffset;
+    }
+    void rPsumBankOffset (kcc_int32 psumBankOffset) {
+        m_PsumBankOffset = psumBankOffset;
+    }
+
 protected:
     bool verify() const;
+
+private:
+    bool verifySbAtomFile () const;
+    bool verifySbAtomSave () const;
+    bool verifyMatMul () const;
 
 private:
     // common
@@ -222,19 +277,28 @@ private:
 
     // SBAtomFile
     kcc_int32                   m_AtomId            = -1;
+    kcc_int32                   m_BatchFoldIdx      = -1;
     kcc_int32                   m_IfmapsFoldIdx     = -1;
     bool                        m_IfmapsReplicate   = false;
     kcc_int32                   m_Length            = -1;
     kcc_int32                   m_OffsetInFile      = -1;
     std::string                 m_RefFile           = "";
 
+    // SBAtomSave
+    kcc_int32                   m_OfmapsFoldIdx     = -1;
+
     // MatMul
     enum {
         WaveIdFormatSize = 7,
     };
+    kcc_int32                   m_IfmapTileHeight       = -1;
+    kcc_int32                   m_IfmapTileWidth        = -1;
     kcc_int32                   m_IfmapsAtomId          = -1;
     kcc_int32                   m_IfmapsOffsetInAtom    = -1;
+    kcc_int32                   m_OfmapTileHeight       = -1;
+    kcc_int32                   m_OfmapTileWidth        = -1;
     kcc_int32                   m_PsumBankId            = -1;
+    kcc_int32                   m_PsumBankOffset        = -1;
     bool                        m_Start                 = true;
     wave::MatMulWaveOp::WaveId  m_WaveId;
     std::string                 m_WaveIdFormat          = "";

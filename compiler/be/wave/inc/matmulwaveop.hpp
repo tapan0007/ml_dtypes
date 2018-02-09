@@ -16,6 +16,7 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
+
 #include "wave/inc/waveop.hpp"
 
 
@@ -80,10 +81,8 @@ public:
             m_FilterPixelY = filterPixelY;
         }
 
-        kcc_int16 gTileNumColumns() const {
-            assert(m_TileNumColumns > 0);
-            return m_TileNumColumns;
-        }
+        void convertFrom(const std::string& fmt, const std::vector<int>& waveId);
+        void convertTo(const std::string& fmt, std::vector<int>& waveId) const;
 
     private:
         kcc_int16 m_BatchIdx        = -1;
@@ -93,7 +92,6 @@ public:
         kcc_int16 m_IfmapFoldIdx    = -1;
         kcc_int16 m_FilterPixelX    = -1;
         kcc_int16 m_FilterPixelY    = -1;
-        kcc_int16 m_TileNumColumns  = -1;
     };
 
 
@@ -177,6 +175,8 @@ public:
 
     bool verify() const override;
 
+    kcc_int32 gNumOfmapsInFold() const;
+
 private:
     kcc_int16               m_IfmapTileHeight       = -1;
     kcc_int16               m_IfmapTileWidth        = -1;
@@ -191,13 +191,16 @@ private:
     kcc_int16               m_WeightsAtomId         = -1;
     kcc_int16               m_WeightsOffsetInAtom   = -1;
     MatMulWaveOp::WaveId    m_WaveId;
-};
+}; // class MatMulWaveOp : public WaveOp
+
+
+
+
 
 class MatMulWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    WaveOp::Params  m_WaveOpParams;
     kcc_int16       m_IfmapTileHeight       = -1;
     kcc_int16       m_IfmapTileWidth        = -1;
     kcc_int16       m_IfmapsAtomId          = -1;

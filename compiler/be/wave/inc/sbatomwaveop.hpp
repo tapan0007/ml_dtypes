@@ -39,10 +39,6 @@ public:
         m_RefFileName = refFileName;
     }
 
-    static std::string gTypeStr() {
-        return WaveOpTypeStr_SBAtomFile;
-    }
-
     kcc_int32 gAtomId() const {
         return m_AtomId;
     }

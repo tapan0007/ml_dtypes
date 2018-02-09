@@ -50,7 +50,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp, bool /*fir
     if (matmulWaveOp->gWeightsOffsetInAtom() < 0) {
         return; // this MatMul reuses weights
     }
-    const wave::MatMulWaveOp::WaveId& waveId(matmulWaveOp->gWaveId());
+    //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveOp->gWaveId());
 
     LDWEIGHTS ldweighsInstr;
 
@@ -69,7 +69,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp, bool /*fir
     //} TONGA_PACKED;
     ldweighsInstr.start_addr            = -1; // TODO
     ldweighsInstr.x_step                = -1; // last column goes first, so decr
-    ldweighsInstr.x_num                 = waveId.gTileNumColumns();
+    ldweighsInstr.x_num                 = matmulWaveOp->gNumOfmapsInFold();
     ldweighsInstr.num_row_partitions    = -1; // TODO
 
     m_WaveCode->writeInstruction(ldweighsInstr);

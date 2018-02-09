@@ -4,7 +4,9 @@ MODS := $(MODULE) utils nets serialize
 
 SRCS := waveop  \
 matmulwaveop \
-sbatomwaveop
+sbatomwaveop \
+sbatomfilewaveop \
+sbatomsavewaveop
 
 ########################################################
 include ../Makefile.common

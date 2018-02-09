@@ -41,7 +41,7 @@ SbAtomWaveOp::verify() const
     if (m_AtomId < 0) {
         return false;
     }
-    if (m_Length <= 0) {
+    if (m_Length < 0) { // TODO: should be <= 0
         return false;
     }
     if (m_OffsetInFile < 0) {
@@ -67,7 +67,7 @@ SbAtomWaveOp::Params::verify() const
     if (m_AtomId < 0) {
         return false;
     }
-    if (m_Length <= 0) {
+    if (m_Length < 0) {  // TODO: should be <=
         return false;
     }
     if (m_OffsetInFile < 0) {

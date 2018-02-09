@@ -18,6 +18,10 @@
 
 namespace kcc {
 
+namespace arch {
+    class Arch;
+}
+
 namespace layers {
     class Layer;
 }
@@ -55,11 +59,14 @@ private:
 
 public:
     //----------------------------------------------------------------
-    Network()
-        : m_DataType(nullptr)
+    Network(const arch::Arch& arch)
+        : m_Arch(arch)
+        , m_DataType(nullptr)
         , m_Name()
         , m_DoBatching(false)
     {}
+
+    const arch::Arch& gArch() const;
 
 #if 0
     Network(const DataType* dataType, const std::string& netName);
@@ -106,6 +113,11 @@ public:
     SchedRevLayers gSchedRevLayers();
 
 private:
+    Network() = delete;
+    Network(const Network&) = delete;
+
+private:
+    const arch::Arch&                       m_Arch;
     std::unique_ptr<DataType>               m_DataType;
     std::string                             m_Name;
     std::vector<layers::Layer*>             m_Layers;

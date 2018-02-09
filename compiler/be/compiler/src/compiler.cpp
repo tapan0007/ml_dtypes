@@ -100,7 +100,12 @@ Main(int argc, char* argv[])
 
 
     //------------------------------------------------
-    nets::Network network;
+    arch::Arch arch;
+    std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
+
+
+    //------------------------------------------------
+    nets::Network network(arch);
     nets::Network* ntwk = &network;
     kcc::utils::breakFunc(44);
     {
@@ -109,11 +114,6 @@ Main(int argc, char* argv[])
         cereal::JSONInputArchive ar(is);
         ntwk->load(ar);
     }
-
-    //------------------------------------------------
-    arch::Arch arch;
-    std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
-
 
     ntwk->rDoBatching(DoBatching);
 
