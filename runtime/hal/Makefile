@@ -93,6 +93,10 @@ override CFLAGS += -MD -MP $(IDIR) $(DEFINES) $(ARCH_CFLAGS) -Wextra -Wall -Werr
 	-Wstrict-prototypes -Wpointer-arith -Wnested-externs -Wcast-qual \
 	-Wwrite-strings -Wformat-nonliteral -Wformat-security -fPIC
 
+override CPPFLAGS += -MD -MP $(IDIR) $(DEFINES) $(ARCH_CFLAGS) -Wextra -Wall -Werror \
+	-Wstrict-prototypes -Wpointer-arith -Wnested-externs -Wcast-qual \
+	-Wwrite-strings -Wformat-nonliteral -Wformat-security -fPIC
+
 SOURCES += \
 	$(HAL_DRIVER_SOURCES)
 
@@ -101,57 +105,21 @@ SAMPLE_SOURCES += $(HAL_SAMPLE_SOURCES)
 TESTS += \
 	$(HAL_SAMPLE_TESTS) \
 
-ifneq ($(AL_HAL_EX), )
-SOURCES += \
-	$(HAL_EX_DRIVER_SOURCES) \
-	$(HAL_EX_INIT_SOURCES_GENERIC) \
-	$(HAL_EX_INIT_SOURCES_ETH_DDP_V4)
-
-SAMPLE_SOURCES += $(HAL_EX_SAMPLE_SOURCES)
-
-TESTS += \
-	$(HAL_EX_SAMPLE_TESTS)
-endif
-
-ifneq ($(AL_HAL_FP_EX),)
-SOURCES += $(HAL_FP_EX_SOURCES_GENERIC)
-endif
+SOURCES = $(HAL_SOURCES)
 
 AL_HAL_PLAT_API_DIR ?= $(HAL_TOP)/include/plat_api/sample
 
-IDIR += \
-	-I$(AL_HAL_PLAT_API_DIR) \
-	$(HAL_USER_INCLUDE_PATH) \
-	$(HAL_DRIVER_INCLUDE_PATH) \
-	$(HAL_INIT_INCLUDE_PATH) \
-	$(HAL_PLATFORM_INCLUDE_PATH) \
-
-ifneq ($(AL_HAL_EX),)
-IDIR += \
-	$(HAL_EX_USER_INCLUDE_PATH) \
-	$(HAL_EX_DRIVER_INCLUDE_PATH) \
-	$(HAL_EX_INIT_INCLUDE_PATH) \
-	$(HAL_EX_INIT_INCLUDE_PATH_ETH_DDP_V4) \
-
-endif
-
-ifneq ($(AL_HAL_FP_EX),)
-IDIR += $(HAL_FP_EX_INCLUDE_PATH)
-endif
+IDIR = $(HAL_INCLUDE_PATH)
 
 HAL_LIB = $(OUTPUT)/libhal.a
 HAL_SO = $(OUTPUT)/libhal.so
 LDFLAGS += -L$(OUTPUT)/ -lhal
 
-ifneq ($(AL_DUMMY_SYSCALLS),)
-SOURCES += $(HAL_TOP)/samples/dummy_syscalls.S
-LDFLAGS += -nostartfiles
-endif
-
 ARFLAGS = -rcs
 SOFLAGS = -shared
 
 OBJS = $(patsubst $(HAL_TOP)/%.c,$(OUTPUT)/%.o,$(filter %.c,$(SOURCES)))
+OBJS += $(patsubst $(HAL_TOP)/%.cpp,$(OUTPUT)/%.o,$(filter %.cpp,$(SOURCES)))
 OBJS += $(patsubst $(HAL_TOP)/%.S,$(OUTPUT)/%.o,$(filter %.S,$(SOURCES)))
 
 SAMPLE_OBJS = $(patsubst $(HAL_TOP)/%.c,$(OUTPUT)/%.o,$(filter %.c,$(SAMPLE_SOURCES)))
@@ -248,12 +216,16 @@ target_rule = \
 		$(cmd_$(1)))
 
 cc_o_c_rule = $(call target_rule,cc_o_c)
+
+cpp_o_c_rule = $(call target_rule,cpp_o_c)
+
 ifeq ($(filter %sparse,$(CC)),)
 quiet_cmd_cc_o_c = CC      $@
 else
 quiet_cmd_cc_o_c = CHK     $@
 endif
 cmd_cc_o_c = $(CC) $(CFLAGS) -c -o $@ $<
+cmd_cpp_o_c = gcc $(CPPFLAGS) -c -o $@ $<
 
 cc_o_s_rule = $(call target_rule,cc_o_s)
 ifeq ($(filter %sparse,$(CC)),)
@@ -291,8 +263,8 @@ all: $(HAL_SO)
 $(HAL_SO): $(OBJS) FORCE
 	$(call so_rule)
 
-$(HAL_LIB): $(OBJS) FORCE
-	$(call ar_rule)
+#$(HAL_LIB): $(OBJS) FORCE
+#	$(call ar_rule)
 
 $(EXT_OOT_BIN): $(EXT_OOT_OBJS) $(HAL_LIB) FORCE
 	$(call ld_rule)
@@ -302,6 +274,9 @@ $(EXT_OOT_OBJS): %.o: %.c FORCE
 
 $(OUTPUT)/%.exe: $(SAMPLE_OBJS) $(HAL_LIB) $(OUTPUT)/%.o FORCE
 	$(call ld_rule)
+
+$(OUTPUT)/%.o: $(HAL_TOP)/%.cpp FORCE
+	$(call cpp_o_c_rule)
 
 $(OUTPUT)/%.o: $(HAL_TOP)/%.c FORCE
 	$(call cc_o_c_rule)
