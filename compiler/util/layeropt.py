@@ -371,12 +371,6 @@ class KNode:
         self.w = self.f
         self.ifmap_tiley_sz = self.ofmap_tiley_sz * self.stride_y
         self.ifmap_tilex_sz = self.ofmap_tilex_sz * self.stride_x
-        self.data['batching_in_wave'] = self.Tn
-        self.data['batch_fold_count'] = self.n
-        self.data['ofmap_fold_count'] = self.m
-        self.data['ifmap_fold_count'] = self.c
-        self.data['width_fold_count'] = self.w
-        self.data['height_fold_count'] = self.h
         print("Conv params: n=%d, Tn=%d, c=%d, h=%d, w=%d, m=%d, ofmap_tilex_sz=%d, ofmap_tiley_sz=%d"%(self.n, self.Tn, self.c, self.h, self.w, self.m, self.ofmap_tilex_sz, self.ofmap_tiley_sz))
 
     # Compute pooling params
@@ -689,6 +683,7 @@ class TPBSched:
               'ofmap_count'             : 1,    # TODO: compute and put the correct value here
               'ofmap_tile_width'        : 1,    # TODO: compute and put the correct value here
               'ofmap_tile_height'       : 1,    # TODO: compute and put the correct value here
+              'batching_in_wave'        : op.Tn,
             }
         self.waveop_stream.append(matmul_waveop)
         self.last_psum_waveop = self.waveop_stream[-1]
