@@ -6,7 +6,7 @@ import numpy as np
 import argparse
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=1
+DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(threshold=np.nan)
 
@@ -92,6 +92,11 @@ class BiasAddAct:
         pass
     def biasadd(self, in_array, bias_array):
         return in_array + bias_array
+    def act(self, type, in_array):
+        if (type == 'Relu'):
+            return np.maximum(np.zeros(in_array.shape), in_array)
+        elif (type == 'Sigmoid'):
+            return 1/(1 + math.exp(-in_array))
     def relu(self, in_array):
         return np.maximum(np.zeros(in_array.shape), in_array)
 
@@ -498,7 +503,7 @@ class TPBSched:
         #self.ofmap_tilex_sz = min(self.F, int(math.sqrt(self.pearray.MAX_WAVE_SIZE)))
         # per kaena-85, use noodle shapes for tiles (TODO: if pooling, then need to make num rows = pooling rows)
         self.ofmap_tilex_sz = min(self.F, self.pearray.MAX_WAVE_SIZE)
-        self.ofmap_tiley_sz = self.pearray.MAX_WAVE_SIZE // self.ofmap_tilex_sz
+        self.ofmap_tiley_sz = min(self.E, self.pearray.MAX_WAVE_SIZE // self.ofmap_tilex_sz)
         self.ofmap_tile_sz = self.ofmap_tilex_sz * self.ofmap_tiley_sz
         if (self.EF >= self.pearray.MAX_WAVE_SIZE):
             # for now, send in noodles that span width of IFMAP, which has implications for pooling
@@ -659,26 +664,6 @@ class TPBSched:
         self.waveop_stream.append(instr)
         self.last_psum_waveop = self.waveop_stream[-1]
 
-    # generate BiasAdd instruction and add it to instruction stream
-    def gen_biasadd_waveop_inline(self, op, tile_id, psum_bank, bias_start):
-        input_list = []
-        if (len(self.waveop_stream) > 0):
-            input_list.append(self.last_psum_waveop['waveop_name'])
-        instr = {
-              'previous_waveops'        : input_list,
-              'waveop_type'             : 'BiasAdd',
-              'waveop_name'             : op.data['layer_name']+"/BiasAdd_"+tile_id.id_string(),
-              'layer_name'              : op.data['layer_name'],
-              'bias_atom_id'            : self.statebuffer.circbuf_bias.current_atom_id,
-              'bias_offset_in_atom'     : bias_start % self.statebuffer.circbuf_bias.atom_data_sz,
-              'tile_id_format'          : tile_id.format,
-              'tile_id'                 : tile_id.show(),
-              'psum_bank_id_src'        : psum_bank,
-              'psum_bank_id_dst'        : psum_bank,
-            }
-        self.waveop_stream.append(instr)
-        self.last_psum_waveop = self.waveop_stream[-1]
-
     # generate ResAdd instruction and add it to instruction stream
     def gen_resadd_waveop_inline(self, op, tile_id, psum_bank, data_start):
         input_list = []
@@ -715,7 +700,7 @@ class TPBSched:
         weight_cols_per_wave = min(M, self.pearray.NUM_COLS)
         ifmap_cols_per_wave = min(M, self.pearray.NUM_COLS)
         self.R = R
-        self.S = R
+        self.S = S
 
         # load bias values
         bias = []
@@ -736,11 +721,13 @@ class TPBSched:
         self.statebuffer.circbuf_scratch.layer_type = "Output"
         self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
         # for ResAdd, retrieve the saved result file for one of the completed legs
-        if (op_list[-1].data['layer_type'] == 'ResAdd'):
-            for i in op_list[-1].prev:
-                if i.data['layer_name'] in saved_result_files:
-                    self.statebuffer.circbuf_scratch.load_file(saved_result_files[i.data['layer_name']])
-        else:
+        for i in op_list:
+            if (i.data['layer_type'] == 'ResAdd'):
+                for j in i.prev:
+                    if j.data['layer_name'] in self.statebuffer.saved_result_files:
+                        self.statebuffer.circbuf_scratch.load_file(self.statebuffer.saved_result_files[j.data['layer_name']])
+                        break
+        if (self.statebuffer.circbuf_scratch.dram_data_file == None):                    
             self.statebuffer.circbuf_scratch.load_file(result_file)
         # wave loop ordering scheme: nmhwcRS
         for n_id in range(self.n):
@@ -815,9 +802,10 @@ class TPBSched:
                                 bias_end = min(bias_start + self.pearray.NUM_COLS, self.M)
                                 bias_extracted = np.zeros(self.pearray.NUM_COLS)
                                 bias_extracted[0 : bias_end - bias_start] = bias[bias_start : bias_end]
-                                op_result = self.activate.biasadd(op_result, bias_extracted)
                                 dram_bias_waveop = self.statebuffer.circbuf_bias.read_data_region(wave_id, bias_start, bias_end)
+                                op_result = self.activate.biasadd(op_result, bias_extracted)
                                 if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid", op_list[i+1].data['layer_type'])):
+                                    op_result = self.activate.act(op_list[i+1].data['layer_type'], op_result)
                                     self.gen_act_waveop_inline(op_list[i], op_list[i+1], tile_id, psum_bank, bias_start)
                                     next(op_list_iter)
                                 else:                                    
@@ -925,10 +913,19 @@ if __name__ == "__main__":
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
+            tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = op_list[0].data['ref_file']
             results = inputs
         # Check conv fused op
         # TODO: add matrix multiply
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
+                for j in op_list[0].prev:
+                    if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
+                        tpb.statebuffer.circbuf_scratch.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
+                        break
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
+                print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
+                exit(-1)
             if (op_list[0].prev[0].data['ofmap_format'] == 'NCHW'):
                 iN,iC,iH,iW = op_list[0].prev[0].data['ofmap_shape']
                 print("Input shape",iN,iC,iH,iW)
