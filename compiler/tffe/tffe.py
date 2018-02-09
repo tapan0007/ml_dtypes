@@ -24,8 +24,9 @@
 
 import argparse
 import os.path
-import TfFrontEnd
 import sys
+import TfFrontEnd
+import KgraphPartitions
 
 print("\nINFO: started as  ", " ".join(sys.argv))
 
@@ -36,21 +37,25 @@ parser.add_argument('--weights', help='Generate weight files', dest="weights",
                     action="store_true",  default=False)
 parser.add_argument('--images', help='Generate images (IFMAP and OFMAP files) for an input image', dest="images", default=None)
 parser.add_argument('--depth', help='Depth of layer name hierarchy to show in the dot output',
-                    default=5)
+                    type=int, default=5)
 parser.add_argument('--debug', help='Debug level, 1 minimal, 3 detailed op values ',
-                    default=0)
+                    type=int, default=0)
 parser.add_argument('--focus', help='Regular expression to filter a subset of nodes',
                     default=".*")
 parser.add_argument('--width', help='Highlight data paths wider than the width',
-                    default=1000)
+                    type=int, default=1000)
 parser.add_argument('--verbose', help='Verbosity level, 0 default, 1 shows in/outputs, 2 TBD',
-                    default=0)
+                    type=int, default=0)
 parser.add_argument('--input_node', help='Input node in the neural network graph (where --images should be injected during calibration)',
                     default="input")
-parser.add_argument('--dot_timeout', help='Timeout for planarization of opt and flow graphs in Graphviz, default 60 sec ',
-                    default=60)
+parser.add_argument('--dot_timeout', help='Timeout for planarization of op and flow graphs in Graphviz, default 60 sec ',
+                    type=int, default=60)
 parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, default is tcc',
                     default='tcc')
+parser.add_argument('--batch', help='Batch override for late-binding networks',
+                    type=int, default=1)
+parser.add_argument('--partition', help='Partition into subgraphs; use fromOpRe toOpRe or auto; the default is none',
+                    nargs='+', default=["none"])
 
 args = parser.parse_args()
 inputTensorName = args.input_node
@@ -61,11 +66,11 @@ if not os.path.isfile(file):
 if args.images != None and args.focus != ".*":
   raise("ERROR: Unsupported --images with --focus")
 
-debugLevel = int(args.debug)
-dotTimeout = int(args.dot_timeout)
-tffe = TfFrontEnd.TfFe(int(args.width), debugLevel, dotTimeout, args.scheduler)
+debugLevel = args.debug
+dotTimeout = args.dot_timeout
+tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.scheduler, args.batch)
 tffe.loadPb(file, args.focus)
-tffe.writeDot(int(args.depth), args.out_prefix + "graph.dot", "svg")
+tffe.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
 if args.weights:
   tffe.writeWeights(args.out_prefix)
 kog = tffe.getKaenaOpGraph()
@@ -73,12 +78,19 @@ if args.images != None:
   tffe.writeImages(args.out_prefix, args.images, inputTensorName)
   kog.identifyMainFlowEdges(inputTensorName)
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
-  tffe.writeDot(int(args.depth), args.out_prefix + "graph_ann.dot", "svg")
-  fileList = []
-  (refOutNpyFile, fileListJson) = kog.genCompilerJson(args.out_prefix + "compiler.json", int(args.verbose))
-  fileList += fileListJson
-  fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + "compiler.json", refOutNpyFile)
-  fileList += [args.out_prefix + "graph_ann.dot.svg"]
-  fileList += tffe.runScheduler(args.out_prefix)
-  kog.genCompilertgz(args.out_prefix + "compiler.tgz", list(set(fileList)))
-
+  tffe.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
+  if args.partition[0] == "none":
+    fileList = []
+    (refOutNpyFile, fileListJson) = kog.genCompilerJson(args.out_prefix + "compiler.json", args.verbose)
+    fileList += fileListJson
+    fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + "compiler.json", refOutNpyFile)
+    fileList += [args.out_prefix + "graph_ann.dot.svg"]
+    fileList += tffe.runScheduler(args.out_prefix)
+    kog.genCompilertgz(args.out_prefix + "compiler.tgz", list(set(fileList)))
+  else:
+    kp = KgraphPartitions.KgraphPart(kog, debugLevel)
+    if args.partition[0] == "auto":
+      kp.autoColorNodes()
+      kp.partitionByColor()
+      kp.print()
+      

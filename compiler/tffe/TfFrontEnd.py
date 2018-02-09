@@ -52,7 +52,7 @@ class TfOp:
     return(nd)
 
 class TfFe:
-  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, schedulerMode):
+  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, schedulerMode, batch):
     self.__gd = None
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
@@ -60,6 +60,7 @@ class TfFe:
     self.dotTimeout = dotTimeout
     self.schedulerMode = schedulerMode
     self.kaenaPath = os.environ["KAENA_PATH"]
+    self.batch = batch
   
   def getKaenaOpGraph(self):
     return(self.__kg)
@@ -172,7 +173,7 @@ class TfFe:
       
       # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
       if inputShape[0] == None:
-        inputShape[0] = 1
+        inputShape[0] = self.batch
       
       if imageFile.endswith(".npy"):
         img = np.load(imageFile)

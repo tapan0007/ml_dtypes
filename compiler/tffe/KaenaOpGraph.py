@@ -93,8 +93,12 @@ class Node(Object):
     self.__npInfo.append(npInfo)
   def getFaninEdges(self):
     return(self.__fanin)
+  def getFaninMainFlowEdges(self):
+    return [e for e in self.getFaninEdges() if e.isInMainFlow()]
   def getFanoutEdges(self):
     return([item for edgelist in self.__fanout for item in edgelist])
+  def getFanoutMainFlowEdges(self):
+    return [e for e in self.getFanoutEdges() if e.isInMainFlow()]
   # Fanin of 1 per input
   def setFaninEdge(self, edge, index):
     assert(len(self.__fanin) < index + 1 or self.__fanout[index] == None)
@@ -144,6 +148,10 @@ class Edge(Object):
     return(self.__fromPosNode)
   def getToPosNode(self):
     return(self.__toPosNode)
+  def getFromNode(self):
+    return self.getFromPosNode().node
+  def getToNode(self):
+    return self.getToPosNode().node
   def setLabel(self, label):
     self.__label = label
   def getLabel(self):
@@ -814,3 +822,13 @@ class Graph(Object):
 
   def getLowestLevelNodes(self):
     return self.getLevelizedNodes()[1]  # levels start from 1
+
+  def print(self):
+    for n in self.getNodes():
+      print("  Node  %s" % n.getName())
+    for e in self.getEdges():
+      print("  Edge  %s  ->  %s" % (edge.getFromNode().getName(),
+                                    edge.getToNode().getName()))
+  
+  
+  
