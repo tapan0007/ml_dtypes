@@ -24,8 +24,9 @@
 
 import argparse
 import os.path
-import TfFrontEnd
 import sys
+import TfFrontEnd
+import KgraphPartitions
 
 print("\nINFO: started as  ", " ".join(sys.argv))
 
@@ -47,12 +48,14 @@ parser.add_argument('--verbose', help='Verbosity level, 0 default, 1 shows in/ou
                     type=int, default=0)
 parser.add_argument('--input_node', help='Input node in the neural network graph (where --images should be injected during calibration)',
                     default="input")
-parser.add_argument('--dot_timeout', help='Timeout for planarization of opt and flow graphs in Graphviz, default 60 sec ',
+parser.add_argument('--dot_timeout', help='Timeout for planarization of op and flow graphs in Graphviz, default 60 sec ',
                     type=int, default=60)
 parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, default is tcc',
                     default='tcc')
 parser.add_argument('--batch', help='Batch override for late-binding networks',
                     type=int, default=1)
+parser.add_argument('--partition', help='Partition into subgraphs; use fromOpRe toOpRe or auto; the default is none',
+                    nargs='+', default=["none"])
 
 args = parser.parse_args()
 inputTensorName = args.input_node
@@ -76,11 +79,18 @@ if args.images != None:
   kog.identifyMainFlowEdges(inputTensorName)
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   tffe.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
-  fileList = []
-  (refOutNpyFile, fileListJson) = kog.genCompilerJson(args.out_prefix + "compiler.json", args.verbose)
-  fileList += fileListJson
-  fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + "compiler.json", refOutNpyFile)
-  fileList += [args.out_prefix + "graph_ann.dot.svg"]
-  fileList += tffe.runScheduler(args.out_prefix)
-  kog.genCompilertgz(args.out_prefix + "compiler.tgz", list(set(fileList)))
-
+  if args.partition[0] == "none":
+    fileList = []
+    (refOutNpyFile, fileListJson) = kog.genCompilerJson(args.out_prefix + "compiler.json", args.verbose)
+    fileList += fileListJson
+    fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + "compiler.json", refOutNpyFile)
+    fileList += [args.out_prefix + "graph_ann.dot.svg"]
+    fileList += tffe.runScheduler(args.out_prefix)
+    kog.genCompilertgz(args.out_prefix + "compiler.tgz", list(set(fileList)))
+  else:
+    kp = KgraphPartitions.KgraphPart(kog, debugLevel)
+    if args.partition[0] == "auto":
+      kp.autoColorNodes()
+      kp.partitionByColor()
+      kp.print()
+      
