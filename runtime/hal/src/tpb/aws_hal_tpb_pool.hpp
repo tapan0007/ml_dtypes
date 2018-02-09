@@ -7,8 +7,8 @@
  * Tensor Processing Block (TPB) / Pooling Engine
  * Terminology:
  *  + TPB has a single Pooling Engine
- +  + The pooling engine within the TPB instansiates 64 Pooling processors
- *  + Each pooling processor is built out of 2 ALUs
+ +  + The pooling engine within the TPB instansiates 64 Pooling channels
+ *  + Each pooling channel is built out of 2 ALUs
  *
  *  +-------+       +--------------------------------------+
  *  |       |  (W)  | PE | PE | PE |                       |
@@ -36,10 +36,9 @@
 
 #include "aws_hal_tpb_common.hpp"
 
-
-#define AWS_HAL_TPB_POOL_ENGINE_NUM_PROCS 64 // 64 Pooling-Processors in the Pooling-Engine
-#define AWS_HAL_TPB_POOL_PROC_NUM_ALUS 2 // 2 ALUs in each Pooling-Processor
-#define AWS_HAL_TPB_POOL_PROC_NUM_ALU_INPUTS 2 // 2 inputs to each ALU
+#define AWS_HAL_TPB_POOL_ENGINE_NUM_CHANNELS 64 // 64 Pooling-Channels in the Pooling-Engine
+#define AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS 2 // 2 ALUs in each Pooling-Channel
+#define AWS_HAL_TPB_POOL_CHANNEL_NUM_ALU_INPUTS 2 // 2 inputs to each ALU
 
 enum aws_hal_tpb_pool_alu_in_sel {
     TPB_POOL_ALU_IN_PROFILE_TABLE_CONST_0 = 0,
@@ -62,10 +61,16 @@ enum aws_hal_tpb_pool_alu_in_sel {
     // 22-31: Reserved
 };
 
+enum aws_hal_tpb_pool_alu_data_type_sel {
+    TPB_POOL_ALU_DTYPE_SEL_FROM_INST = 0,
+    TPB_POOL_ALU_DTYPE_SEL_FP32 = 1,
+    TPB_POOL_ALU_DTYPE_SEL_BITVECTOR = 2
+    // 3: Reserved
+};
 
 enum aws_hal_tpb_pool_alu_opcode {
     TPB_POOL_ALU_OPCODE_PASS_A = 0, // out = A
-    TPB_POOL_ALU_OPCODE_BITWISE_NOT_A = 1, // out = ~A
+    TPB_POOL_ALU_OPCODE_INV_A = 1, // out = ~A
     TPB_POOL_ALU_OPCODE_SHIFT_LEFT = 2, // out = A<<B
     TPB_POOL_ALU_OPCODE_SHIFT_RIGHT = 3, // out = A>>B
     TPB_POOL_ALU_OPCODE_ADD = 4, // out = A+B
@@ -80,22 +85,22 @@ enum aws_hal_tpb_pool_alu_opcode {
     // 13-15: Reserved
 };
 
-enum aws_hal_tpb_pool_step_mgmt_func {  // TODO - find better names, RLAST maybe, or maybe some proxy for that (read-last)
-    TPB_POOL_STEP_MGMT_INC_UNCONDITIONALLY_NO_CLR = 0,
-    TPB_POOL_STEP_MGMT_INC_UNCONDITIONALLY_CLR_ON_LAST_DIM_X_ELEMENT = 1,
-    TPB_POOL_STEP_MGMT_INC_UNCONDITIONALLY_CLR_ON_LAST_DIM_Y_ELEMENT = 2,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_X_ELEMENT_CLR_ON_LAST_DIM_Y_ELEMENT = 3,
-    TPB_POOL_STEP_MGMT_INC_UNCONDITIONALLY_CLR_ON_LAST_DIM_Z_ELEMENT = 4,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_X_ELEMENT_CLR_ON_LAST_DIM_Z_ELEMENT = 5,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_Y_ELEMENT_CLR_ON_LAST_DIM_Z_ELEMENT = 6,
-    TPB_POOL_STEP_MGMT_INC_UNCONDITIONALLY_CLR_ON_LAST_DIM_W_ELEMENT = 7,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_X_ELEMENT_CLR_ON_LAST_DIM_W_ELEMENT = 8,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_Y_ELEMENT_CLR_ON_LAST_DIM_W_ELEMENT = 9,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_Z_ELEMENT_CLR_ON_LAST_DIM_W_ELEMENT = 10,
-    TPB_POOL_STEP_MGMT_INC_UNCONDITIONALLY_CLR_WHEN_REACH_THRESHOLD = 11,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_X_ELEMENT_CLR_WHEN_REACH_THRESHOLD = 12,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_Y_ELEMENT_CLR_WHEN_REACH_THRESHOLD = 13,
-    TPB_POOL_STEP_MGMT_INC_ON_LAST_DIM_Z_ELEMENT_CLR_WHEN_REACH_THRESHOLD = 14
+enum aws_hal_tpb_pool_step_mgmt_func {
+    TPB_POOL_STEP_MGMT_INC_ALWAYS_NO_CLR = 0,
+    TPB_POOL_STEP_MGMT_INC_ALWAYS_CLR_ON_LAST_READ_X = 1,
+    TPB_POOL_STEP_MGMT_INC_ALWAYS_CLR_ON_LAST_READ_Y = 2,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_X_CLR_ON_LAST_READ_Y = 3,
+    TPB_POOL_STEP_MGMT_INC_ALWAYS_CLR_ON_LAST_READ_Z = 4,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_X_CLR_ON_LAST_READ_Z = 5,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_Y_CLR_ON_LAST_READ_Z = 6,
+    TPB_POOL_STEP_MGMT_INC_ALWAYS_CLR_ON_LAST_READ_W = 7,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_X_CLR_ON_LAST_READ_W = 8,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_Y_CLR_ON_LAST_READ_W = 9,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_Z_CLR_ON_LAST_READ_W = 10,
+    TPB_POOL_STEP_MGMT_INC_ALWAYS_CLR_WHEN_REACH_THRESHOLD = 11,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_X_CLR_WHEN_REACH_THRESHOLD = 12,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_Y_CLR_WHEN_REACH_THRESHOLD = 13,
+    TPB_POOL_STEP_MGMT_INC_ON_LAST_READ_Z_CLR_WHEN_REACH_THRESHOLD = 14
     // 15: Reserved
 };
 
@@ -112,10 +117,11 @@ enum aws_hal_tpb_pool_step_threshold_sel {
 enum aws_hal_tpb_pool_alu_res_cache_command {
     TPB_POOL_CACHE_RES_NEVER = 0, // never cache ALU results
     TPB_POOL_CACHE_RES_ALWAYS = 1, // cache all ALU results (every valid result)
-    TPB_POOL_CACHE_RES_LAST_DIM_X_ELEMENT = 2, // cache when reading the last element of dim-x
-    TPB_POOL_CACHE_RES_LAST_DIM_Y_ELEMENT = 3, // cache when reading the last element of dim-y
-    TPB_POOL_CACHE_RES_LAST_DIM_Z_ELEMENT = 4, // cache when reading the last element of dim-z
-    TPB_POOL_CACHE_RES_LAST_DIM_W_ELEMENT = 5  // cache when reading the last element of dim-w
+    TPB_POOL_CACHE_RES_LAST_X = 2, // cache when reading the last element of dim-x
+    TPB_POOL_CACHE_RES_LAST_Y = 3, // cache when reading the last element of dim-y
+    TPB_POOL_CACHE_RES_LAST_Z = 4, // cache when reading the last element of dim-z
+    TPB_POOL_CACHE_RES_LAST_W = 5  // cache when reading the last element of dim-w
+    // 6-7: Reserved
 };
 
 enum aws_hal_tpb_pool_out_sel {
@@ -142,10 +148,12 @@ struct aws_hal_tpb_pool_profile_table_params {
     uint8_t step_clr_delay; // delay to be applied prior to every step clear
 
     // -- ALU control
-    uint32_t alu_const[AWS_HAL_TPB_POOL_PROC_NUM_ALUS][2];
-    enum aws_hal_tpb_pool_alu_in_sel alu_in_sel[AWS_HAL_TPB_POOL_PROC_NUM_ALUS][AWS_HAL_TPB_POOL_PROC_NUM_ALU_INPUTS]; // ALUs input selection
-    enum aws_hal_tpb_pool_alu_opcode alu_opcode[AWS_HAL_TPB_POOL_PROC_NUM_ALUS]; // ALUs opcodoes
-    enum aws_hal_tpb_pool_alu_res_cache_command alu_res_cache_command[AWS_HAL_TPB_POOL_PROC_NUM_ALUS]; // ALU result caching command
+    
+    struct aws_hal_tpb_inst_field_extract alu_data_type; // ALU data-type
+    uint32_t alu_const[AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS][2];
+    enum aws_hal_tpb_pool_alu_in_sel alu_in_sel[AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS][AWS_HAL_TPB_POOL_CHANNEL_NUM_ALU_INPUTS]; // ALUs input selection
+    enum aws_hal_tpb_pool_alu_opcode alu_opcode[AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS]; // ALUs opcodoes
+    enum aws_hal_tpb_pool_alu_res_cache_command alu_res_cache_command[AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS]; // ALU result caching command
     enum aws_hal_tpb_pool_out_sel out_sel; // pooling engine output selection
 };
 

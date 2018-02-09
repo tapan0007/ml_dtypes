@@ -6,6 +6,7 @@
 
 /**
  * Tensor Processing Block (TPB) / PE-ARRAY / Profiles
+ * This file contains the profile-configuration for the PE-array
  *
  *  +-------+       +--------------------------------------+
  *  |       |  (W)  | PE | PE | PE |                       |
@@ -88,7 +89,7 @@ static struct aws_hal_tpb_pe_profile_table_params pe_profile_MatMul =
         .wr_num_elements[3]    = {.offset=0,  .size=0}, // unused (2D write)
 
         // Control flow (events)
-        .event_trigger_condition = TPB_EVENT_TRIGGER_LAST_READ_ELEMENT_DIM_W, // trigger event when finished reading full wave (last dimension).
+        .event_trigger_condition = TPB_EVENT_TRIGGER_LAST_READ_W, // trigger event when finished reading full wave (last dimension).
                                                             // for MatMul, event will get delayed by the PE-array latency, to assure next engine
                                                             // only gets the event after last result was written to the psum-buffer
         .wait_event_mode    = {.offset=2, .size=1},
@@ -146,11 +147,11 @@ static struct aws_hal_tpb_pe_profile_table_params pe_profile_WeightLoad =
         .wr_num_elements[3] = {.offset=0,  .size=0}, // unused (no writes)
 
         // Control flow (events)
-        .event_trigger_condition = TPB_EVENT_TRIGGER_LAST_READ_ELEMENT_DIM_W, // trigger event when finished reading full wave (last dimension).
-        .wait_event_mode    = {.offset=2, .size=1},
-        .wait_event_idx     = {.offset=3, .size=1},
-        .set_event_mode     = {.offset=4, .size=1},
-        .set_event_idx      = {.offset=5, .size=1}
+        .event_trigger_condition = TPB_EVENT_TRIGGER_LAST_READ_W, // trigger event when finished reading full wave (last dimension).
+        .wait_event_mode = {.offset=2, .size=1},
+        .wait_event_idx  = {.offset=3, .size=1},
+        .set_event_mode  = {.offset=4, .size=1},
+        .set_event_idx   = {.offset=5, .size=1}
     }
 };
 
@@ -207,6 +208,233 @@ static struct aws_hal_tpb_pe_profile_table_params pe_profile_Nop =
         .wait_event_idx     = {.offset=3, .size=1},
         .set_event_mode     = {.offset=4, .size=1},
         .set_event_idx      = {.offset=5, .size=1}
+    }
+};
+
+/* SetEvent */
+static struct aws_hal_tpb_pe_profile_table_params pe_profile_SetEvent =
+{
+    .common_params =
+    {
+        // Software self-check fields
+        .profile_entry_type = TPB_ENGINE_PE_ARRAY,
+        .addr = TPB_PE_PROFILE_ID_SET_EVENT,
+
+        // Opcode
+        .opcode = 0x11,
+    
+        // Control fields
+        .inst_length        = {.offset=1,  .size=1},
+        .misc_imm_vals[0]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[1]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[2]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[3]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[4]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[5]   = {.offset=0,  .size=0}, // unused
+        .in_data_type[0]    = {.offset=0,  .size=0}, // unused
+        .in_data_type[1]    = {.offset=0,  .size=0}, // unused
+        .out_data_type      = {.offset=0,  .size=0}, // unused
+        .num_partitions     = {.offset=0,  .size=0}, // unused
+
+        // Read memory access-pattern
+        .rd_start_addr[0]      = {.offset=0,  .size=0}, // unused
+        .rd_step[0][0]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][0] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][1]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][1] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][2]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][2] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][3]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][3] = {.offset=0,  .size=0}, // unused
+
+        // Write memory access-pattern
+        .wr_start_addr      = {.offset=0,  .size=0}, // unused
+        .wr_step[0]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[0] = {.offset=0,  .size=0}, // unused
+        .wr_step[1]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[1] = {.offset=0,  .size=0}, // unused
+        .wr_step[2]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[2] = {.offset=0,  .size=0}, // unused
+        .wr_step[3]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[3] = {.offset=0,  .size=0}, // unused
+
+        // Control flow (events)
+        .event_trigger_condition = TPB_EVENT_TRIGGER_INST_DONE,
+        .wait_event_mode    = {.offset=0, .size=0}, // unused
+        .wait_event_idx     = {.offset=0, .size=0}, // unused
+        .set_event_mode     = {.offset=0, .size=0}, // unused
+        .set_event_idx      = {.offset=2, .size=1}  // event index
+        // TODO - we will add a PT option to take event-mode from PT and not from INST
+    }
+};
+
+/* ClearEvent */
+static struct aws_hal_tpb_pe_profile_table_params pe_profile_ClearEvent =
+{
+    .common_params =
+    {
+        // Software self-check fields
+        .profile_entry_type = TPB_ENGINE_PE_ARRAY,
+        .addr = TPB_PE_PROFILE_ID_SET_EVENT,
+
+        // Opcode
+        .opcode = 0x12,
+    
+        // Control fields
+        .inst_length        = {.offset=1,  .size=1},
+        .misc_imm_vals[0]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[1]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[2]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[3]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[4]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[5]   = {.offset=0,  .size=0}, // unused
+        .in_data_type[0]    = {.offset=0,  .size=0}, // unused
+        .in_data_type[1]    = {.offset=0,  .size=0}, // unused
+        .out_data_type      = {.offset=0,  .size=0}, // unused
+        .num_partitions     = {.offset=0,  .size=0}, // unused
+
+        // Read memory access-pattern
+        .rd_start_addr[0]      = {.offset=0,  .size=0}, // unused
+        .rd_step[0][0]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][0] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][1]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][1] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][2]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][2] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][3]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][3] = {.offset=0,  .size=0}, // unused
+
+        // Write memory access-pattern
+        .wr_start_addr      = {.offset=0,  .size=0}, // unused
+        .wr_step[0]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[0] = {.offset=0,  .size=0}, // unused
+        .wr_step[1]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[1] = {.offset=0,  .size=0}, // unused
+        .wr_step[2]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[2] = {.offset=0,  .size=0}, // unused
+        .wr_step[3]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[3] = {.offset=0,  .size=0}, // unused
+
+        // Control flow (events)
+        .event_trigger_condition = TPB_EVENT_TRIGGER_INST_DONE,
+        .wait_event_mode    = {.offset=0, .size=0}, // unused
+        .wait_event_idx     = {.offset=0, .size=0}, // unused
+        .set_event_mode     = {.offset=0, .size=0}, // unused
+        .set_event_idx      = {.offset=2, .size=1}  // event index
+        // TODO - we will add a PT option to take event-mode from PT and not from INST
+    }
+};
+
+/* WaitEvent */
+static struct aws_hal_tpb_pe_profile_table_params pe_profile_WaitEvent =
+{
+    .common_params =
+    {
+        // Software self-check fields
+        .profile_entry_type = TPB_ENGINE_PE_ARRAY,
+        .addr = TPB_PE_PROFILE_ID_SET_EVENT,
+
+        // Opcode
+        .opcode = 0x10,
+    
+        // Control fields
+        .inst_length        = {.offset=1,  .size=1},
+        .misc_imm_vals[0]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[1]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[2]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[3]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[4]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[5]   = {.offset=0,  .size=0}, // unused
+        .in_data_type[0]    = {.offset=0,  .size=0}, // unused
+        .in_data_type[1]    = {.offset=0,  .size=0}, // unused
+        .out_data_type      = {.offset=0,  .size=0}, // unused
+        .num_partitions     = {.offset=0,  .size=0}, // unused
+
+        // Read memory access-pattern
+        .rd_start_addr[0]      = {.offset=0,  .size=0}, // unused
+        .rd_step[0][0]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][0] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][1]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][1] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][2]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][2] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][3]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][3] = {.offset=0,  .size=0}, // unused
+
+        // Write memory access-pattern
+        .wr_start_addr      = {.offset=0,  .size=0}, // unused
+        .wr_step[0]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[0] = {.offset=0,  .size=0}, // unused
+        .wr_step[1]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[1] = {.offset=0,  .size=0}, // unused
+        .wr_step[2]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[2] = {.offset=0,  .size=0}, // unused
+        .wr_step[3]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[3] = {.offset=0,  .size=0}, // unused
+
+        // Control flow (events)
+        .event_trigger_condition = TPB_EVENT_TRIGGER_INST_DONE,
+        .wait_event_mode    = {.offset=0, .size=0}, // unused
+        .wait_event_idx     = {.offset=2, .size=1}, // event index
+        .set_event_mode     = {.offset=0, .size=0}, // unused
+        .set_event_idx      = {.offset=0, .size=0}  // unused
+        // TODO - we should have a PT option for WaitEventMode
+    }
+};
+
+/* Write */
+static struct aws_hal_tpb_pe_profile_table_params pe_profile_Write =
+{
+    .common_params =
+    {
+        // Software self-check fields
+        .profile_entry_type = TPB_ENGINE_PE_ARRAY,
+        .addr = TPB_PE_PROFILE_ID_SET_EVENT,
+
+        // Opcode
+        .opcode = 0x10,
+    
+        // Control fields
+        .inst_length        = {.offset=1,  .size=1},
+        .misc_imm_vals[0]   = {.offset=2,  .size=4}, // write address
+        .misc_imm_vals[1]   = {.offset=6,  .size=8}, // write data
+        .misc_imm_vals[2]   = {.offset=14, .size=1}, // write size (in bytes)
+        .misc_imm_vals[3]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[4]   = {.offset=0,  .size=0}, // unused
+        .misc_imm_vals[5]   = {.offset=0,  .size=0}, // unused
+        .in_data_type[0]    = {.offset=0,  .size=0}, // unused
+        .in_data_type[1]    = {.offset=0,  .size=0}, // unused
+        .out_data_type      = {.offset=0,  .size=0}, // unused
+        .num_partitions     = {.offset=0,  .size=0}, // unused
+
+        // Read memory access-pattern
+        .rd_start_addr[0]      = {.offset=0,  .size=0}, // unused
+        .rd_step[0][0]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][0] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][1]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][1] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][2]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][2] = {.offset=0,  .size=0}, // unused
+        .rd_step[0][3]         = {.offset=0,  .size=0}, // unused
+        .rd_num_elements[0][3] = {.offset=0,  .size=0}, // unused
+
+        // Write memory access-pattern
+        .wr_start_addr      = {.offset=0,  .size=0}, // unused
+        .wr_step[0]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[0] = {.offset=0,  .size=0}, // unused
+        .wr_step[1]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[1] = {.offset=0,  .size=0}, // unused
+        .wr_step[2]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[2] = {.offset=0,  .size=0}, // unused
+        .wr_step[3]         = {.offset=0,  .size=0}, // unused
+        .wr_num_elements[3] = {.offset=0,  .size=0}, // unused
+
+        // Control flow (events)
+        .event_trigger_condition = TPB_EVENT_TRIGGER_INST_DONE,
+        .wait_event_mode    = {.offset=0, .size=0}, // unused
+        .wait_event_idx     = {.offset=0, .size=0}, // unused
+        .set_event_mode     = {.offset=0, .size=0}, // unused
+        .set_event_idx      = {.offset=0, .size=0}  // unused
     }
 };
 

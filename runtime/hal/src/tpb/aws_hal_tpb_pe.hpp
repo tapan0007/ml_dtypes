@@ -38,9 +38,9 @@ enum aws_hal_tpb_pe_profile_id {
     TPB_PE_PROFILE_ID_MAT_MUL = 0,
     TPB_PE_PROFILE_ID_WEIGHT_LOAD = 1,
     TPB_PE_PROFILE_ID_NOP = 2,
-    TPB_PE_PROFILE_ID_SET_LOCAL_EVENT = 3,
-    TPB_PE_PROFILE_ID_CLEAR_LOCAL_EVENT = 4,
-    TPB_PE_PROFILE_ID_WAIT_LOCAL_EVENT = 5,
+    TPB_PE_PROFILE_ID_SET_EVENT = 3,
+    TPB_PE_PROFILE_ID_CLEAR_EVENT = 4,
+    TPB_PE_PROFILE_ID_WAIT_EVENT = 5,
     TPB_PE_PROFILE_ID_WRITE = 6,
     // 7-31: Reserved
     TPB_PE_NUM_PROFILES
@@ -54,13 +54,6 @@ struct aws_hal_tpb_pe_profile_table_params {
     // Common fields
     struct aws_hal_tpb_common_profile_table_params common_params;
 };
-
-/*
- * PE-Array write profile:
- * ======================
- */
-static int aws_hal_tpb_pe_write_profile (void* tpb_base_addr, uint8_t profile_table_idx, struct aws_hal_tpb_pe_profile_table_params profile_entry);
-// TODO: void* is a placeholder for a mem-handle.  we might want to change (Ilya/Rich to comment)
 
 /*
  * PE-Array init:

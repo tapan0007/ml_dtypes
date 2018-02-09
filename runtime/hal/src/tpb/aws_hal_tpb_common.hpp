@@ -32,6 +32,7 @@
 
 
 #include "aws_hal_tpb_common_mmap.hpp"
+#include "aws_hal_tmp_file.hpp" // TODO - remove
 // TODO - #include "aws_isa_tpb.hpp"
 
 /* General Defines */
@@ -62,15 +63,16 @@ enum aws_hal_tpb_exec_engine {
  */
 enum aws_hal_tpb_common_event_trigger_condition {
     TPB_EVENT_TRIGGER_NONE = 0, // don't generate event
-    TPB_EVENT_TRIGGER_LAST_READ_ELEMENT_DIM_X = 1,
-    TPB_EVENT_TRIGGER_LAST_READ_ELEMENT_DIM_Y = 2,
-    TPB_EVENT_TRIGGER_LAST_READ_ELEMENT_DIM_Z = 3,
-    TPB_EVENT_TRIGGER_LAST_READ_ELEMENT_DIM_W = 4,
-    TPB_EVENT_TRIGGER_LAST_WRITTEN_ELEMENT_DIM_X = 5,
-    TPB_EVENT_TRIGGER_LAST_WRITTEN_ELEMENT_DIM_Y = 6,
-    TPB_EVENT_TRIGGER_LAST_WRITTEN_ELEMENT_DIM_Z = 7,
-    TPB_EVENT_TRIGGER_LAST_WRITTEN_ELEMENT_DIM_W = 8,
+    TPB_EVENT_TRIGGER_LAST_READ_X = 1,
+    TPB_EVENT_TRIGGER_LAST_READ_Y = 2,
+    TPB_EVENT_TRIGGER_LAST_READ_Z = 3,
+    TPB_EVENT_TRIGGER_LAST_READ_W = 4,
+    TPB_EVENT_TRIGGER_LAST_WRITTEN_X = 5,
+    TPB_EVENT_TRIGGER_LAST_WRITTEN_Y = 6,
+    TPB_EVENT_TRIGGER_LAST_WRITTEN_Z = 7,
+    TPB_EVENT_TRIGGER_LAST_WRITTEN_W = 8,
     TPB_EVENT_TRIGGER_INST_DONE = 9 // set event unconditionally when instruction is done (relevant for 'Write'/'SetLocalEvent'/'ClearLocalEvent' instructions)
+    // 10-15: Reserved
 };
     
 

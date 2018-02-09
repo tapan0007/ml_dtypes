@@ -33,16 +33,10 @@
 /*
  * TPB Memory Map:
  * ==============
- * TODO (Ilya/Rich to comment) - consider moving to a central location.
- * TODO (Ilya/Rich to comment) - Consider formatting in another way (#defines maybe)
+ * TODO[1] (Ilya/Rich to comment) - consider moving to a central location
+ * TODO[2] (Ilya/Rich to comment) - Consider formatting in another way
  */
-
-// TODO - temporary. to be removed later (with some central definitions)
-typedef char   uint8_t;
-typedef int    uint32_t;
-typedef float  uint64_t;
-//
-
+#include "aws_hal_tmp_file.hpp" // TODO - remove
 
 namespace TPB_MMAP {
     namespace STATE_BUF {

@@ -42,19 +42,19 @@ static int aws_hal_tpb_pe_write_profile (void* tpb_base_addr, uint8_t profile_ta
     uint8_t byte_idx;
 
     /* CAM.data */
-    cam_addr[0] = profile_entry.common_params.opcode;
-    cam_addr[1] = 0; // unused
-    cam_addr[2] = 0; // unused
-    cam_addr[3] = 0; // unused
+    write_byte(&cam_addr[0], profile_entry.common_params.opcode);
+    write_byte(&cam_addr[1], 0); // unused
+    write_byte(&cam_addr[2], 0); // unused
+    write_byte(&cam_addr[3], 0); // unused
 
     /* CAM.mask */
-    cam_addr[4] = 0xFF;
-    cam_addr[5] = 0; // unused
-    cam_addr[6] = 0; // unused
-    cam_addr[7] = 0; // unused
+    write_byte(&cam_addr[4], 0xFF);
+    write_byte(&cam_addr[5], 0); // unused
+    write_byte(&cam_addr[6], 0); // unused
+    write_byte(&cam_addr[7], 0); // unused
 
     /* CAM.entry_valid */
-    cam_addr[8] = 1;
+    write_byte(&cam_addr[8], 1);
     
     /* Profile.Instruction_Decode */
     byte_idx = AWS_HAL_TPB_PROFILE_ID_LSB;
@@ -133,20 +133,22 @@ static int aws_hal_tpb_pe_write_profile (void* tpb_base_addr, uint8_t profile_ta
  * PE-Array init:
  * =============
  */
-int aws_hal_tpb_pe_init (void* tpb_base_addr) // TODO, implement on cpp file (eventualy probably needs to get APB base as well - maybe should clean this somehow)
+int aws_hal_tpb_pe_init (void* tpb_base_addr)
 {
     /* CSRs */
     // TODO
 
     /* Profile CAM and Table */
-    aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_MAT_MUL, pe_profile_MatMul);
-    aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_WEIGHT_LOAD, pe_profile_WeightLoad);
-    aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_NOP, pe_profile_Nop);
-    // TODO:
-       // SET_LOCAL_EVENT
-       // CLEAR_LOCAL_EVENT
-       // WAIT_LOCAL_EVENT
-       // WRITE
+    int ret = 0;
+    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_MAT_MUL, pe_profile_MatMul);
+    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_WEIGHT_LOAD, pe_profile_WeightLoad);
+    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_NOP, pe_profile_Nop);
+    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_SET_EVENT, pe_profile_SetEvent);
+    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_CLEAR_EVENT, pe_profile_ClearEvent);
+    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_WAIT_EVENT, pe_profile_WaitEvent);
+    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_WRITE, pe_profile_Write);
+
+    return ret;
 }
 
 
