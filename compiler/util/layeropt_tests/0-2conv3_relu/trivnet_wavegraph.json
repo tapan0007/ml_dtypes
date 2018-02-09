@@ -172,7 +172,7 @@
       "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2"
       ],
-      "psum_bank_id_dst": 0,      "psum_bank_id_src": 0,      "tile_id": [ 0, 0, 0, 0 ],
+      "psum_bank_id_dst": 2,      "psum_bank_id_src": 0,      "tile_id": [ 0, 0, 0, 0 ],
       "tile_id_format": "nmhw",
       "waveop_name": "1conv3/relu1/Activation_n0_m0_h0_w0",
       "waveop_type": "Activation"
