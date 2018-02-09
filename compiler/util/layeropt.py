@@ -6,7 +6,7 @@ import numpy as np
 import argparse
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=2
+DEBUG_LEVEL_DEFAULT=1
 
 #np.set_printoptions(threshold=np.nan)
 
@@ -79,8 +79,14 @@ class PEArray:
 class Pool:
     def wait_tile_done(self, tile_id):
         pass
-    def avg(self, in_array):
-        return in_array
+    def avg(self, in_array, stride, pool_window_size):
+        # cannot use the below assertion because we only have layer property for conv layer
+        # assert (stride == pool_window_size)
+        num_cols = in_array.shape[1]
+        print("pooling fun")
+        print(in_array.shape," ",num_cols)
+        # will reshape the tensor into pool_window_size "box" and average within the box
+        return in_array.reshape(pool_window_size,pool_window_size,-1,num_cols).mean(axis=(0,1))
     def resadd(self, array_a, array_b):
         return array_a + array_b
     def max(self, in_array):
@@ -317,6 +323,8 @@ next_is_fusable = {
         'BiasAdd': "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
         'Add'    : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
         'ResAdd' : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
+        'AvgPool': "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
+        'Relu'   : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
         }
 
 # graph: nodes, edges, and operations
@@ -329,6 +337,8 @@ class KGraph:
         self.data_type = 'float16'
         self.current_node = None
         self.last_split_next_nodes = None
+        self.fusedOpsIncludePooling = False
+
     # add forward edges for forward traversals        
     def add_forward_refs(self, starting_node):
         if (starting_node != None):
@@ -393,6 +403,13 @@ class KGraph:
             else:
                 print("ERROR: there are no layers!")
                 exit(-1)
+    # clear fused op states
+    # as a stop-gap method, we set flags during graph travesal to see if we encouter a pooling operator
+    # this would inform compute_mm_loops when making tile size decision to take pooling into consideration
+    # at the of executing fused operations, we need to clear these flags
+    def clear_fused_op_states(self):
+        self.fusedOpsIncludePooling = False
+
     # get next fused op            
     def get_next_fused_op(self, fused_ops):
         next_nodes = fused_ops[-1].next
@@ -403,6 +420,8 @@ class KGraph:
                 regex = next_is_fusable[last_node_type]
                 if (re.search(regex, next_nodes[0].data['layer_type'])):               
                     # TODO: don't fuse if pool size != stride size
+                    if (next_nodes[0].data['layer_type'] == 'AvgPool'):
+                        self.fusedOpsIncludePooling = True
                     fused_ops.append(next_nodes[0])
                     fused_ops = self.get_next_fused_op(fused_ops)
         return fused_ops                    
@@ -471,6 +490,7 @@ class TPBSched:
     #   F: width of OFMAP
     #   pad_*: padding of IFMAP
     #   stride: striding of filter
+    #   fusedOpsIncludePooling: needed to adjust tile size to accommodate pooling operation
     # Outputs:
     #   Tn: number of C IFMAPs to roll into a wave
     #   n: number of Tn*C IFMAPs chunks to process
@@ -478,7 +498,7 @@ class TPBSched:
     #   h: number of single IFMAP/OFMAP folds along y dimension
     #   w: number of single IFMAP/OFMAP folds along x dimension
     #   m: number of OFMAPs folds
-    def compute_mm_loops(self, N, C, H, W, M, E, F, pad_north, pad_south, pad_west, pad_east, stride):
+    def compute_mm_loops(self, N, C, H, W, M, E, F, pad_north, pad_south, pad_west, pad_east, stride, fusedOpsIncludePooling):
         self.N, self.C, self.H, self.W = N, C, H, W 
         self.M, self.E, self.F = M, E, F
         self.pad_north, self.pad_south = pad_north, pad_south
@@ -504,6 +524,8 @@ class TPBSched:
         # per kaena-85, use noodle shapes for tiles (TODO: if pooling, then need to make num rows = pooling rows)
         self.ofmap_tilex_sz = min(self.F, self.pearray.MAX_WAVE_SIZE)
         self.ofmap_tiley_sz = min(self.E, self.pearray.MAX_WAVE_SIZE // self.ofmap_tilex_sz)
+        if (fusedOpsIncludePooling == True):
+            self.ofmap_tiley_sz = (self.ofmap_tiley_sz // self.F) * self.F
         self.ofmap_tile_sz = self.ofmap_tilex_sz * self.ofmap_tiley_sz
         if (self.EF >= self.pearray.MAX_WAVE_SIZE):
             # for now, send in noodles that span width of IFMAP, which has implications for pooling
@@ -708,9 +730,19 @@ class TPBSched:
             layer_type = op_list[i].data['layer_type'] 
             if (layer_type == 'BiasAdd'):
                 for j in op_list[i].prev:
-                    if (j.data['layer_type'] == "Const"):
+                    if (j.data['layer_type'] == "Const"): # assert sizes can be flattened
                         bias_temp = self.statebuffer.circbuf_bias.load_data(j)
                         bias = bias_temp.flatten()
+
+        # load resadd values
+        # This is a temp code; we do not load the resadd to/from state buffer
+        resadd = [] 
+        for i in range(1, len(op_list)):
+            layer_type = op_list[i].data['layer_type'] 
+            if (layer_type == 'ResAdd'):
+                for j in op_list[i].prev:
+                    if (j.data['layer_type'] == "Const"):
+                        resadd = np.load(j.data['ref_file'])
 
         # initial values
         psum_bank = 0
@@ -795,7 +827,7 @@ class TPBSched:
                                 op_result = self.activate.relu(op_result)
                                 self.gen_act_waveop_inline(None, op_list[i], tile_id, psum_bank, 0)
                                 if (i != len(op_list)-1):
-                                    self.pearray.write_psum(psum_bank, 0, op_result)
+                                    self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
                             elif (layer_type == 'BiasAdd'):
                                 self.activate.wait_tile_done(tile_id)
                                 bias_start = m_id*self.pearray.NUM_COLS
@@ -827,6 +859,28 @@ class TPBSched:
                                 self.gen_resadd_waveop_inline(op_list[i], tile_id, psum_bank, self.ofmap_tile_lower_addr)
                                 if (i != len(op_list)-1):
                                     self.pearray.write_psum(psum_bank, 0, self.ofmap_tile_sz, op_result)
+                            elif (layer_type == 'AvgPool'):
+                                self.activate.wait_tile_done(tile_id)
+                                # use the dimension E for pool_window_size since we do not have pool_window_size readily available
+                                op_result = self.pool.avg(op_result,self.stride,self.E)
+                                # need to adjust tile size since pooling operation will shrink the tile dimension
+                                print ("Adjust ofmap size from pooling operation")
+                                pool_ofmap_tilex_sz = self.ofmap_tilex_sz // self.E
+                                pool_ofmap_tiley_sz = self.ofmap_tiley_sz // self.E
+                                pool_ofmap_tile_sz = pool_ofmap_tilex_sz * pool_ofmap_tiley_sz
+                                # replicated code - techinical debt
+                                pool_tile_x_start = wave_id.w_id * pool_ofmap_tilex_sz
+                                pool_tile_y_start = wave_id.h_id * pool_ofmap_tiley_sz
+                                pool_tile_height = pool_ofmap_tiley_sz
+                                pool_tile_width = pool_ofmap_tilex_sz
+                                if ((wave_id.h_id+1) * pool_ofmap_tiley_sz > self.E):
+                                    pool_tile_height = self.E - pool_tile_y_start
+                                if ((wave_id.w_id+1) * self.ofmap_tilex_sz > self.F):
+                                    pool_tile_width = self.F - pool_tile_x_start
+                                pool_tile_size = pool_tile_height * pool_tile_width
+                                # TODO: generate AvgPool instruction inline
+                                if (i != len(op_list)-1):
+                                    self.pearray.write_psum(psum_bank, 0, pool_ofmap_tile_sz, op_result)
                             else:
                                 print ("ERROR: %s is currently not yet implemented"%layer_type)
                                 exit(-1)
@@ -837,9 +891,17 @@ class TPBSched:
                                 break
                             else:
                                 # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
-                                result_tile = (op_result[0 : self.ofmap_tile_sz, j]).reshape((self.ofmap_tiley_sz, self.ofmap_tilex_sz))
-                                result[n_id, j, tile_y_start : tile_y_start + tile_height, tile_x_start : tile_x_start + tile_width]\
+                                # take advantage of the fact that pool op is usually the last one in fused ops
+                                layer_type = op_list[-1].data['layer_type'] 
+                                if (layer_type != 'AvgPool'):
+                                    result_tile = (op_result[0 : self.ofmap_tile_sz, j]).reshape((self.ofmap_tiley_sz, self.ofmap_tilex_sz))
+                                    result[n_id, j, tile_y_start : tile_y_start + tile_height, tile_x_start : tile_x_start + tile_width]\
                                         = result_tile[0:tile_height, 0:tile_width]
+                                else:
+                                    result_tile = (op_result[0 : pool_ofmap_tile_sz, j]).reshape((pool_ofmap_tiley_sz, pool_ofmap_tilex_sz))
+                                    result[n_id, j, pool_tile_y_start : pool_tile_y_start + pool_tile_height, pool_tile_x_start : pool_tile_x_start + pool_tile_width]\
+                                        = result_tile[0:pool_tile_height, 0:pool_tile_width]
+                                # print(wave_id.show(),"\n", result_tile)                                        
                                 #print(wave_id.show(),"\n", result_tile)                                       
 
                         # for scheduling, dump resulting tile into atom that is mapped to DRAM (file)
@@ -940,9 +1002,11 @@ if __name__ == "__main__":
             stride_x = conv_layer['stride'][2]
             stride_y = conv_layer['stride'][3]
             assert(stride_x == stride_y)
-            tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x)
+            tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x,kgraph.fusedOpsIncludePooling)
             # TODO: add selecting among pre-derived looping schemes
             results = tpb.execute_conv_ops(op_list, results, result_file)
+            # finish the fused ops; clear states
+            kgraph.clear_fused_op_states()
 
         elif (re.search(r"MatMult", op_list[0].data['layer_type'])):
             print("ERROR: MatMult operation is unimplemented")
