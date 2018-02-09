@@ -130,8 +130,40 @@ public:
         return m_PsumBankId;
     }
 
+    kcc_int16 gPsumBankOffset () const {
+        return m_PsumBankOffset;
+    }
+
     bool qStart() const {
         return m_Start;
+    }
+
+    kcc_int16 gIfmapTileHeight () const {
+        return m_IfmapTileHeight;
+    }
+    void rIfmapTileHeight (kcc_int16 ifmapTileHeight) {
+        m_IfmapTileHeight = ifmapTileHeight;
+    }
+
+    kcc_int16 gIfmapTileWidth () const {
+        return m_IfmapTileWidth;
+    }
+    void rIfmapTileWidth (kcc_int16 ifmapTileWidth) {
+        m_IfmapTileWidth = ifmapTileWidth;
+    }
+
+    kcc_int16 gOfmapTileHeight () const {
+        return m_OfmapTileHeight;
+    }
+    void rOfmapTileHeight (kcc_int16 ofmapTileHeight) {
+        m_OfmapTileHeight = ofmapTileHeight;
+    }
+
+    kcc_int16 gOfmapTileWidth () const {
+        return m_OfmapTileWidth;
+    }
+    void rOfmapTileWidth (kcc_int16 ofmapTileWidth) {
+        m_OfmapTileWidth = ofmapTileWidth;
     }
 
     //----------------------------------------------------------------
@@ -146,29 +178,39 @@ public:
     bool verify() const override;
 
 private:
-    MatMulWaveOp::WaveId    m_WaveId;
-    std::string             m_WaveIdFormat          = "";
+    kcc_int16               m_IfmapTileHeight       = -1;
+    kcc_int16               m_IfmapTileWidth        = -1;
     kcc_int16               m_IfmapsAtomId          = -1;
     kcc_int16               m_IfmapsOffsetInAtom    = -1;
+    kcc_int16               m_OfmapTileHeight       = -1;
+    kcc_int16               m_OfmapTileWidth        = -1;
+    kcc_int16               m_PsumBankId            = -1;
+    kcc_int16               m_PsumBankOffset        = -1;
+    bool                    m_Start                 = true;
+    std::string             m_WaveIdFormat          = "";
     kcc_int16               m_WeightsAtomId         = -1;
     kcc_int16               m_WeightsOffsetInAtom   = -1;
-    kcc_int16               m_PsumBankId            = -1;
-    bool                    m_Start                 = true;
+    MatMulWaveOp::WaveId    m_WaveId;
 };
 
-class MatMulWaveOp::Params {
+class MatMulWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
     WaveOp::Params  m_WaveOpParams;
-    WaveId          m_WaveId;
-    std::string     m_WaveIdFormat          = "";
+    kcc_int16       m_IfmapTileHeight       = -1;
+    kcc_int16       m_IfmapTileWidth        = -1;
     kcc_int16       m_IfmapsAtomId          = -1;
     kcc_int16       m_IfmapsOffsetInAtom    = -1;
+    kcc_int16       m_OfmapTileHeight       = -1;
+    kcc_int16       m_OfmapTileWidth        = -1;
+    kcc_int16       m_PsumBankId            = -1;
+    kcc_int16       m_PsumBankOffset        = -1;
+    bool            m_Start                 = true;
+    std::string     m_WaveIdFormat          = "";
     kcc_int16       m_WeightsAtomId         = -1;
     kcc_int16       m_WeightsOffsetInAtom   = -1;
-    kcc_int16       m_PsumBankId            = -1;
-    bool            m_Start                 = true;
+    WaveId          m_WaveId;
 };
 
 }}

@@ -15,14 +15,19 @@ namespace wave {
 MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
     : WaveOp(params.m_WaveOpParams, prevWaveOps)
-    , m_WaveId(params.m_WaveId)
-    , m_WaveIdFormat(params.m_WaveIdFormat)
+    , m_IfmapTileHeight(params.m_IfmapTileHeight)
+    , m_IfmapTileWidth(params.m_IfmapTileWidth)
     , m_IfmapsAtomId(params.m_IfmapsAtomId)
     , m_IfmapsOffsetInAtom(params.m_IfmapsOffsetInAtom)
+    , m_OfmapTileHeight(params.m_OfmapTileHeight)
+    , m_OfmapTileWidth(params.m_OfmapTileWidth)
+    , m_PsumBankId(params.m_PsumBankId)
+    , m_PsumBankOffset(params.m_PsumBankOffset)
+    , m_Start(params.m_Start)
+    , m_WaveIdFormat(params.m_WaveIdFormat)
     , m_WeightsAtomId(params.m_WeightsAtomId)
     , m_WeightsOffsetInAtom(params.m_WeightsOffsetInAtom)
-    , m_PsumBankId(params.m_PsumBankId)
-    , m_Start(params.m_Start)
+    , m_WaveId(params.m_WaveId)
 {
     assert(params.verify());
 }

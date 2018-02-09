@@ -33,7 +33,8 @@ namespace wave {
 namespace wavecode {
 class WaveCodeWaveOp;
 class WaveCodeMatMul;
-class WaveCodeSbAtom;
+class WaveCodeSbAtomFile;
+class WaveCodeSbAtomSave;
 
 
 
@@ -64,7 +65,8 @@ private:
     const arch::Arch&               m_Arch;
     FILE*                           m_ObjFile;
     std::unique_ptr<WaveCodeMatMul> m_CodeMatMul;
-    std::unique_ptr<WaveCodeSbAtom> m_CodeSbAtom;
+    std::unique_ptr<WaveCodeSbAtomFile> m_CodeSbAtomFile;
+    std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
 };
 
 }}

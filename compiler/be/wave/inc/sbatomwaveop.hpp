@@ -31,10 +31,6 @@ public:
 
 
     //----------------------------------------------------------------
-    bool qSbAtomtWaveOp() const override {
-        return true;
-    }
-
     const std::string& gRefFileName() const {
         return m_RefFileName;
     }
@@ -51,14 +47,6 @@ public:
         return m_AtomId;
     }
 
-    bool verify() const override {
-        return true;
-    }
-
-    kcc_int32 gIfmapsFoldIdx() const {
-        return m_IfmapsFoldIdx;
-    }
-
     kcc_int32 gLength() const {
         return m_Length;
     }
@@ -67,30 +55,33 @@ public:
         return m_OffsetInFile;
     }
 
-    bool gIfmapsReplicate() const {
-        return m_IfmapsReplicate;
+    kcc_int32 gBatchFoldIdx () const {
+        return m_BatchFoldIdx;
     }
+
+protected:
+    bool verify() const override;
 
 private:
     std::string     m_RefFileName       = "";
+    kcc_int32       m_BatchFoldIdx      = -1;
     kcc_int32       m_AtomId            = -1;
-    kcc_int32       m_IfmapsFoldIdx     = -1;
     kcc_int32       m_Length            = -1;
     kcc_int32       m_OffsetInFile      = -1;
-    bool            m_IfmapsReplicate   = -1;
 };
 
-class SbAtomWaveOp::Params {
+
+
+
+class SbAtomWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    WaveOp::Params  m_WaveOpParams;
     std::string     m_RefFileName       = "";
+    kcc_int32       m_BatchFoldIdx      = -1;
     kcc_int32       m_AtomId            = -1;
-    kcc_int32       m_IfmapsFoldIdx     = -1;
     kcc_int32       m_Length            = -1;
     kcc_int32       m_OffsetInFile      = -1;
-    bool            m_IfmapsReplicate   = true;
 };
 
 }}

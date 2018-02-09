@@ -64,7 +64,10 @@ public:
     virtual bool qMatMultWaveOp() const {
         return false;
     }
-    virtual bool qSbAtomtWaveOp() const {
+    virtual bool qSbAtomFileWaveOp() const {
+        return false;
+    }
+    virtual bool qSbAtomSaveWaveOp() const {
         return false;
     }
 
