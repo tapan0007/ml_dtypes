@@ -41,7 +41,7 @@
 #define AWS_HAL_TPB_POOL_CHANNEL_NUM_ALU_INPUTS 2 // 2 inputs to each ALU
 #define AWS_HAL_TPB_POOL_PROFILE_SIZE 64
 
-enum aws_hal_tpb_pe_profile_id {
+enum aws_hal_tpb_pool_profile_id {
     TPB_POOL_PROFILE_ID_MAX_POOL_STEP1 = 0,
     TPB_POOL_PROFILE_ID_MAX_POOL_STEP2 = 1,
     TPB_POOL_PROFILE_ID_AVERAGE_POOL_STEP1 = 2,
@@ -176,6 +176,13 @@ struct aws_hal_tpb_pool_profile_table_params {
     enum aws_hal_tpb_pool_alu_res_cache_command alu_res_cache_command[AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS]; // ALU result caching command
     enum aws_hal_tpb_pool_out_sel out_sel; // pooling engine output selection
 };
+
+
+/*
+ * Pooling init:
+ * ============
+ */
+int aws_hal_tpb_pool_init (void* tpb_mem_handle);
 
 #endif
 

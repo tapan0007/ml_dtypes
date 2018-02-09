@@ -9,8 +9,9 @@ HAL_UDMA_SOURCES = \
 # TODO need this? 	$(HAL_TOP)/src/udma/al_hal_msg_ipc.c	\
 
 HAL_TPB_SOURCES = \
-    $(HAL_TOP)/src/tpb/aws_hal_tpb_pe.cpp \
-    $(HAL_TOP)/src/tpb/aws_hal_tpb_pool.cpp \
+    $(HAL_TOP)/src/tpb/aws_hal_tpb_pe.c \
+    $(HAL_TOP)/src/tpb/aws_hal_tpb_pool.c \
+    $(HAL_TOP)/src/tpb/aws_hal_tpb.c \
 
 HAL_SOURCES = $(HAL_UDMA_SOURCES) $(HAL_TPB_SOURCES)
 
