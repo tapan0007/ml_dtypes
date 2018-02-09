@@ -383,12 +383,6 @@ class KNode:
         self.w = self.f
         self.ifmap_tiley_sz = self.ofmap_tiley_sz * self.stride_y
         self.ifmap_tilex_sz = self.ofmap_tilex_sz * self.stride_x
-        self.data['batching_in_wave'] = self.Tn
-        self.data['batch_fold_count'] = self.n
-        self.data['ofmap_fold_count'] = self.m
-        self.data['ifmap_fold_count'] = self.c
-        self.data['width_fold_count'] = self.w
-        self.data['height_fold_count'] = self.h
         print("Conv params: n=%d, m=%d, h=%d, w=%d, c=%d, R=%d, S=%d, Tn=%d, stride_x=%d, stride_y=%d, ofmap_tilex_sz=%d, ofmap_tiley_sz=%d"
                 %(self.n, self.m, self.h, self.w, self.c, self.R, self.S, self.Tn, self.stride_x, self.stride_y, self.ofmap_tilex_sz, self.ofmap_tiley_sz))
 
