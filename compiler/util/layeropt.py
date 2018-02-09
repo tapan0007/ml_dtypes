@@ -498,7 +498,7 @@ class TPBSched:
     #   h: number of single IFMAP/OFMAP folds along y dimension
     #   w: number of single IFMAP/OFMAP folds along x dimension
     #   m: number of OFMAPs folds
-    def compute_mm_loops(self, N, C, H, W, M, E, F, pad_north, pad_south, pad_west, pad_east, stride, fusedOpsIncludePooling):
+    def compute_mm_loops(self, op, N, C, H, W, M, E, F, pad_north, pad_south, pad_west, pad_east, stride, fusedOpsIncludePooling):
         self.N, self.C, self.H, self.W = N, C, H, W 
         self.M, self.E, self.F = M, E, F
         self.pad_north, self.pad_south = pad_north, pad_south
@@ -543,6 +543,12 @@ class TPBSched:
         self.w = self.f
         self.ifmap_tiley_sz = self.ofmap_tiley_sz * self.stride
         self.ifmap_tilex_sz = self.ofmap_tilex_sz * self.stride
+        op.data['batching_in_wave'] = self.Tn
+        op.data['batch_fold_count'] = self.n
+        op.data['ofmap_fold_count'] = self.m
+        op.data['ifmap_fold_count'] = self.c
+        op.data['width_fold_count'] = self.w
+        op.data['height_fold_count'] = self.h
         print("n=%d, Tn=%d, c=%d, h=%d, w=%d, m=%d, ofmap_tilex_sz=%d, ofmap_tiley_sz=%d"%(self.n, self.Tn, self.c, self.h, self.w, self.m, self.ofmap_tilex_sz, self.ofmap_tiley_sz))
     
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
@@ -1002,7 +1008,7 @@ if __name__ == "__main__":
             stride_x = conv_layer['stride'][2]
             stride_y = conv_layer['stride'][3]
             assert(stride_x == stride_y)
-            tpb.compute_mm_loops(iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x,kgraph.fusedOpsIncludePooling)
+            tpb.compute_mm_loops(op_list[0], iN, iC, iH, iW, convC, convH, convW, pad_north, pad_south, pad_west, pad_east, stride_x,kgraph.fusedOpsIncludePooling)
             # TODO: add selecting among pre-derived looping schemes
             results = tpb.execute_conv_ops(op_list, results, result_file)
             # finish the fused ops; clear states
