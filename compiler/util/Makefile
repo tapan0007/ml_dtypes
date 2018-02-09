@@ -8,7 +8,8 @@ help:
 TESTS=$(wildcard layeropt_tests/*)
 
 gen_test:
-	@$(foreach var, $(TESTS), echo "\n*******************$(var)********************\n"; pushd .; cd $(var); if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/tffe/tffe.py --tfpb graph.pb --image linspace1; rm -f *.npy; tar -xzf *.tgz; else rm -rf $(notdir $(var)); $(KAENA_PATH)/compiler/tffe/test/RunAll --test $(notdir $(var)); cp $(notdir $(var))/*.tgz .; tar -xzf *.tgz; rm -rf $(notdir $(var)); fi; popd;)
+	#@$(foreach var, $(TESTS), echo "\n*******************$(var)********************\n"; pushd .; cd $(var); if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/tffe/tffe.py --tfpb graph.pb --image linspace1; rm -f *.npy; tar -xzf *.tgz; else rm -rf $(notdir $(var)); $(KAENA_PATH)/compiler/tffe/test/RunAll --test $(notdir $(var)); cp $(notdir $(var))/*.tgz .; tar -xzf *.tgz; rm -rf $(notdir $(var)); fi; popd;)
+	@$(foreach var, $(TESTS), echo "\n*******************$(var)********************\n"; pushd .; cd $(var); if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/tffe/tffe.py --tfpb graph.pb --image linspace1; rm -f *.npy; tar -xzf *.tgz; fi; popd;)
 
 layeropt_sanity:
 	cd layeropt_tests/0-2conv3_relu/ && python3 $(KAENA_PATH)/compiler/util/layeropt.py --kgraph trivnet_compiler.json
