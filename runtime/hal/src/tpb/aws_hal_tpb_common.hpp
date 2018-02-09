@@ -30,9 +30,9 @@
  *
  */
 
-
+#include "al_hal_plat_types.h"
+#include "al_hal_plat_services.h"
 #include "aws_hal_tpb_common_mmap.hpp"
-#include "aws_hal_tmp_file.hpp" // TODO - remove
 // TODO - #include "aws_isa_tpb.hpp"
 
 /* General Defines */

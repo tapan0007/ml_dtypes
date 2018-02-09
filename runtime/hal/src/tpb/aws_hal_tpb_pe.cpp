@@ -42,19 +42,19 @@ static int aws_hal_tpb_pe_write_profile (void* tpb_base_addr, uint8_t profile_ta
     uint8_t byte_idx;
 
     /* CAM.data */
-    write_byte(&cam_addr[0], profile_entry.common_params.opcode);
-    write_byte(&cam_addr[1], 0); // unused
-    write_byte(&cam_addr[2], 0); // unused
-    write_byte(&cam_addr[3], 0); // unused
+    al_reg_write8(&cam_addr[0], profile_entry.common_params.opcode);
+    al_reg_write8(&cam_addr[1], 0); // unused
+    al_reg_write8(&cam_addr[2], 0); // unused
+    al_reg_write8(&cam_addr[3], 0); // unused
 
     /* CAM.mask */
-    write_byte(&cam_addr[4], 0xFF);
-    write_byte(&cam_addr[5], 0); // unused
-    write_byte(&cam_addr[6], 0); // unused
-    write_byte(&cam_addr[7], 0); // unused
+    al_reg_write8(&cam_addr[4], 0xFF);
+    al_reg_write8(&cam_addr[5], 0); // unused
+    al_reg_write8(&cam_addr[6], 0); // unused
+    al_reg_write8(&cam_addr[7], 0); // unused
 
     /* CAM.entry_valid */
-    write_byte(&cam_addr[8], 1);
+    al_reg_write8(&cam_addr[8], 1);
     
     /* Profile.Instruction_Decode */
     byte_idx = AWS_HAL_TPB_PROFILE_ID_LSB;
