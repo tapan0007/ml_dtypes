@@ -35,7 +35,7 @@
  * PE-Array set profile entry:
  * ==========================
  */
-static int aws_hal_tpb_pe_write_profile (void* tpb_base_addr, uint8_t profile_table_idx, struct aws_hal_tpb_pe_profile_table_params profile_entry)
+static int aws_hal_tpb_pe_write_profile (void* tpb_mem_handle, uint8_t profile_table_idx, struct aws_hal_tpb_pe_profile_table_params profile_entry)
 {
     uint8_t* cam_addr = (uint8_t*)tpb_base_addr + TPB_MMAP_PE_ARRAY_PROFILE_CAM_BASE + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
     uint8_t* profile_addr = (uint8_t*)tpb_base_addr + TPB_MMAP_PE_ARRAY_PROFILE_TABLE_BASE + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
@@ -133,7 +133,7 @@ static int aws_hal_tpb_pe_write_profile (void* tpb_base_addr, uint8_t profile_ta
  * PE-Array init:
  * =============
  */
-int aws_hal_tpb_pe_init (void* tpb_base_addr)
+int aws_hal_tpb_pe_init (void* tpb_mem_handle)
 {
     /* CSRs */
     // TODO

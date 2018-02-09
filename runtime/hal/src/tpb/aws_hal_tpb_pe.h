@@ -59,7 +59,7 @@ struct aws_hal_tpb_pe_profile_table_params {
  * PE-Array init:
  * =============
  */
-int aws_hal_tpb_pe_init (void* tpb_base_addr);
+int aws_hal_tpb_pe_init (void* tpb_mem_handle);
 
 
 #endif
