@@ -37,8 +37,8 @@
  */
 static int aws_hal_tpb_pe_write_profile (void* tpb_mem_handle, uint8_t profile_table_idx, struct aws_hal_tpb_pe_profile_table_params profile_entry)
 {
-    uint8_t* cam_addr = (uint8_t*)tpb_base_addr + TPB_MMAP_PE_ARRAY_PROFILE_CAM_BASE + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
-    uint8_t* profile_addr = (uint8_t*)tpb_base_addr + TPB_MMAP_PE_ARRAY_PROFILE_TABLE_BASE + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
+    uint8_t* cam_addr = (uint8_t*)tpb_mem_handle + TPB_MMAP_PE_ARRAY_PROFILE_CAM_BASE + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
+    uint8_t* profile_addr = (uint8_t*)tpb_mem_handle + TPB_MMAP_PE_ARRAY_PROFILE_TABLE_BASE + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
     uint8_t byte_idx;
 
     /* CAM.data */
@@ -140,13 +140,13 @@ int aws_hal_tpb_pe_init (void* tpb_mem_handle)
 
     /* Profile CAM and Table */
     int ret = 0;
-    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_MAT_MUL, pe_profile_MatMul);
-    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_WEIGHT_LOAD, pe_profile_WeightLoad);
-    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_NOP, pe_profile_Nop);
-    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_SET_EVENT, pe_profile_SetEvent);
-    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_CLEAR_EVENT, pe_profile_ClearEvent);
-    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_WAIT_EVENT, pe_profile_WaitEvent);
-    ret += aws_hal_tpb_pe_write_profile (tpb_base_addr, TPB_PE_PROFILE_ID_WRITE, pe_profile_Write);
+    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_MAT_MUL, pe_profile_MatMul);
+    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_WEIGHT_LOAD, pe_profile_WeightLoad);
+    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_NOP, pe_profile_Nop);
+    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_SET_EVENT, pe_profile_SetEvent);
+    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_CLEAR_EVENT, pe_profile_ClearEvent);
+    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_WAIT_EVENT, pe_profile_WaitEvent);
+    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_WRITE, pe_profile_Write);
 
     return ret;
 }
