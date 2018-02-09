@@ -614,8 +614,10 @@ private:
 
 class Layer::Params {
 public:
+    bool verify () const;
+public:
     std::string             m_LayerName;
-    kcc_int32               m_BatchFactor = 1;
+    kcc_int32               m_BatchFactor = -1;
     nets::Network*          m_Network = nullptr;
     std::string             m_RefFile;
     std::string             m_RefFileFormat;

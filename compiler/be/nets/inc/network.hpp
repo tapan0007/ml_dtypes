@@ -112,6 +112,10 @@ public:
     SchedForwLayers gSchedForwLayers() const;
     SchedRevLayers gSchedRevLayers();
 
+    void rUseWave (bool useWave) {
+        m_UseWave = useWave;
+    }
+
 private:
     Network() = delete;
     Network(const Network&) = delete;
@@ -125,6 +129,7 @@ private:
     bool                                    m_DoBatching;
     std::map<std::string, layers::Layer*>   m_Name2Layer;
     std::map<std::string, wave::WaveOp*>    m_Name2WaveOp;
+    bool                                    m_UseWave = false;
 }; // Network
 
 

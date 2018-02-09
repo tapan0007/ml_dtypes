@@ -25,9 +25,11 @@ class ConvLayer : public SubSampleLayer {
 private:
     using SubClass = SubSampleLayer;
 public:
+    class Params;
+public:
 
     //----------------------------------------------------------------
-    ConvLayer(const Params& params, Layer* prev_layer, const FmapDesc& fmapDesc,
+    ConvLayer(const ConvLayer::Params& params, Layer* prev_layer, const FmapDesc& fmapDesc,
         const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel,
         const std::tuple<kcc_int32,kcc_int32,kcc_int32,kcc_int32>& padding,
         const char* filterFileName, const char* filterTensorDimSemantics);
@@ -88,10 +90,34 @@ public:
         return true;
     }
 
+/*
+    kcc_int32 gBatchingInWave () const {
+        return m_BatchingInWave;
+    }
+    void rBatchingInWave (kcc_int32 batchingInWave) {
+        m_BatchingInWave = batchingInWave;
+    }
+*/
+
 private:
-    std::string              m_FilterFileName;
-    std::string              m_FilterTensorFormat;
-    StateBufferAddress  m_WeightAddress;
+    std::string             m_FilterFileName;
+    std::string             m_FilterTensorFormat;
+    StateBufferAddress      m_WeightAddress;
+
+    /*
+    kcc_int32               m_BatchingInWave;
+    */
+};
+
+
+class ConvLayer::Params : public SubSampleLayer::Params {
+public:
+    Params(const Layer::Params& params);
+    bool verify() const;
+/*
+public:
+    kcc_int32               m_BatchingInWave    = -1;
+*/
 };
 
 } // namespace layers

@@ -164,6 +164,21 @@ public:
         m_OfmapTileWidth = ofmapTileWidth;
     }
 
+    kcc_int16 gIfmapCount () const {
+        return m_IfmapCount;
+    }
+    void rIfmapCount (kcc_int16 ifmapCount) {
+        m_IfmapCount = ifmapCount;
+    }
+
+    kcc_int16 gOfmapCount () const {
+        return m_OfmapCount;
+    }
+    void rOfmapCount (kcc_int16 ofmapCount) {
+        m_OfmapCount = ofmapCount;
+    }
+
+
     //----------------------------------------------------------------
     bool qMatMultWaveOp() const override {
         return true;
@@ -178,20 +193,28 @@ public:
     kcc_int32 gNumOfmapsInFold() const;
 
 private:
+    kcc_int16               m_BatchingInWave        = -1;
+    kcc_int16               m_IfmapCount            = -1;
     kcc_int16               m_IfmapTileHeight       = -1;
     kcc_int16               m_IfmapTileWidth        = -1;
     kcc_int16               m_IfmapsAtomId          = -1;
     kcc_int16               m_IfmapsOffsetInAtom    = -1;
+    // layer name
+    kcc_int16               m_OfmapCount            = -1;
     kcc_int16               m_OfmapTileHeight       = -1;
     kcc_int16               m_OfmapTileWidth        = -1;
+    // previous layers
     kcc_int16               m_PsumBankId            = -1;
     kcc_int16               m_PsumBankOffset        = -1;
     bool                    m_Start                 = true;
+    MatMulWaveOp::WaveId    m_WaveId;
     std::string             m_WaveIdFormat          = "";
+    // waveop name
+    // waveop type
     kcc_int16               m_WeightsAtomId         = -1;
     kcc_int16               m_WeightsOffsetInAtom   = -1;
-    MatMulWaveOp::WaveId    m_WaveId;
 }; // class MatMulWaveOp : public WaveOp
+
 
 
 
@@ -201,19 +224,26 @@ class MatMulWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
+    kcc_int16       m_BatchingInWave        = -1;
+    kcc_int16       m_IfmapCount            = -1;
     kcc_int16       m_IfmapTileHeight       = -1;
     kcc_int16       m_IfmapTileWidth        = -1;
     kcc_int16       m_IfmapsAtomId          = -1;
     kcc_int16       m_IfmapsOffsetInAtom    = -1;
+    // layer name
+    kcc_int16       m_OfmapCount            = -1;
     kcc_int16       m_OfmapTileHeight       = -1;
     kcc_int16       m_OfmapTileWidth        = -1;
+    // previous layers
     kcc_int16       m_PsumBankId            = -1;
     kcc_int16       m_PsumBankOffset        = -1;
     bool            m_Start                 = true;
+    WaveId          m_WaveId;
     std::string     m_WaveIdFormat          = "";
+    // waveop name
+    // waveop type
     kcc_int16       m_WeightsAtomId         = -1;
     kcc_int16       m_WeightsOffsetInAtom   = -1;
-    WaveId          m_WaveId;
 };
 
 }}

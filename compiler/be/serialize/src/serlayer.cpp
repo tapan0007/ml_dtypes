@@ -32,6 +32,10 @@ SerLayer::SerLayer()
     m_Padding[FmapIndex_H][1]   = 0; // Bottom
     m_Padding[FmapIndex_W][0]   = 0; // Left
     m_Padding[FmapIndex_W][1]   = 0; // Right
+
+    /*
+    m_BatchingInWave  = -1;
+    */
 }
 
 //----------------------------------------------------------------
@@ -79,6 +83,8 @@ SerLayer::rOfmapShape(const OfmapShapeType ofmapShape)
         m_OfmapShape[i] = ofmapShape[i];
     }
 }
+
+
 
 } // namespace serialize
 } // namespace kcc

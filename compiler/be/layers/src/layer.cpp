@@ -239,5 +239,26 @@ Layer::verify() const
     return true;
 }
 
+bool 
+Layer::Params::verify () const
+{
+    if (m_LayerName == "") {
+        return false;
+    }
+    if (m_BatchFactor <= 0) {
+        return false;
+    }
+    if (! m_Network) {
+        return false;
+    }
+    if (m_RefFile == "") {
+        return false;
+    }
+    if (m_RefFileFormat == "") {
+        return false;
+    }
+    return true;
+}
+
 }} // namespace
 

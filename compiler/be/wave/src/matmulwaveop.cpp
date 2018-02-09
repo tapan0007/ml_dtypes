@@ -17,19 +17,25 @@ namespace wave {
 MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
     : WaveOp(params, prevWaveOps)
+    , m_IfmapCount(params.m_IfmapCount)
     , m_IfmapTileHeight(params.m_IfmapTileHeight)
     , m_IfmapTileWidth(params.m_IfmapTileWidth)
     , m_IfmapsAtomId(params.m_IfmapsAtomId)
     , m_IfmapsOffsetInAtom(params.m_IfmapsOffsetInAtom)
+    // layer name
+    , m_OfmapCount(params.m_OfmapCount)
     , m_OfmapTileHeight(params.m_OfmapTileHeight)
     , m_OfmapTileWidth(params.m_OfmapTileWidth)
+    // previous layers
     , m_PsumBankId(params.m_PsumBankId)
     , m_PsumBankOffset(params.m_PsumBankOffset)
     , m_Start(params.m_Start)
+    , m_WaveId(params.m_WaveId)
     , m_WaveIdFormat(params.m_WaveIdFormat)
+    // waveop name
+    // waveop type
     , m_WeightsAtomId(params.m_WeightsAtomId)
     , m_WeightsOffsetInAtom(params.m_WeightsOffsetInAtom)
-    , m_WaveId(params.m_WaveId)
 {
     assert(params.verify());
 }
@@ -57,10 +63,19 @@ MatMulWaveOp::gNumOfmapsInFold() const
 bool
 MatMulWaveOp::verify() const
 {
-    if (! m_WaveId.verify()) {
+    if (! this->WaveOp::verify()) {
         return false;
     }
-    if (m_WaveIdFormat == "") {
+    if (m_BatchingInWave < 1) {
+        return false;
+    }
+    if (m_IfmapCount <= 0) {
+        return false;
+    }
+    if (m_IfmapTileHeight <= 0) {
+        return false;
+    }
+    if (m_IfmapTileWidth <= 0) {
         return false;
     }
     if (m_IfmapsAtomId < 0) {
@@ -69,11 +84,36 @@ MatMulWaveOp::verify() const
     if (m_IfmapsOffsetInAtom < 0) {
         return false;
     }
-    if (m_WeightsAtomId < 0) {
+    // layer name
+    if (m_OfmapCount <= 0) {
         return false;
     }
-    // m_WeightsOffsetInAtom is negative for waves that do NOT reload weights
+    if (m_OfmapTileHeight <= 0) {
+        return false;
+    }
+    if (m_OfmapTileWidth <= 0) {
+        return false;
+    }
+    // previous layers
     if (m_PsumBankId < 0) {
+        return false;
+    }
+    if (m_PsumBankOffset < 0) {
+        return false;
+    }
+    // start
+    if (! m_WaveId.verify()) {
+        return false;
+    }
+    if (m_WaveIdFormat == "") {
+        return false;
+    }
+    // waveop name
+    // waveop type
+    if (m_WeightsAtomId < -1) { // m_WeightsOffsetInAtom is -1 for waves that do NOT reload weights
+        return false;
+    }
+    if (m_WeightsOffsetInAtom < 0) {
         return false;
     }
     return true;
@@ -189,10 +229,16 @@ MatMulWaveOp::Params::verify() const
     if (! this-> WaveOp::Params::verify()) {
         return false;
     }
-    if (! m_WaveId.verify()) {
+    if (m_BatchingInWave < 1) {
         return false;
     }
-    if (m_WaveIdFormat == "") {
+    if (m_IfmapCount <= 0) {
+        return false;
+    }
+    if (m_IfmapTileHeight <= 0) {
+        return false;
+    }
+    if (m_IfmapTileWidth <= 0) {
         return false;
     }
     if (m_IfmapsAtomId < 0) {
@@ -201,11 +247,36 @@ MatMulWaveOp::Params::verify() const
     if (m_IfmapsOffsetInAtom < 0) {
         return false;
     }
-    if (m_WeightsAtomId < 0) {
+    // layer name
+    if (m_OfmapCount <= 0) {
         return false;
     }
-    // m_WeightsOffsetInAtom is negative for waves that do NOT reload weights
+    if (m_OfmapTileHeight <= 0) {
+        return false;
+    }
+    if (m_OfmapTileWidth <= 0) {
+        return false;
+    }
+    // previous layers
     if (m_PsumBankId < 0) {
+        return false;
+    }
+    if (m_PsumBankOffset < 0) {
+        return false;
+    }
+    // start
+    if (! m_WaveId.verify()) {
+        return false;
+    }
+    if (m_WaveIdFormat == "") {
+        return false;
+    }
+    // waveop name
+    // waveop type
+    if (m_WeightsAtomId < -1) { // m_WeightsOffsetInAtom is -1 for waves that do NOT reload weights
+        return false;
+    }
+    if (m_IfmapsOffsetInAtom < 0) {
         return false;
     }
     return true;

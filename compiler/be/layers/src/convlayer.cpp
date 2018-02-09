@@ -12,16 +12,20 @@ namespace nets {
 namespace layers {
 
 //--------------------------------------------------------
-ConvLayer::ConvLayer(const Params& params, Layer* prev_layer,
+ConvLayer::ConvLayer(const ConvLayer::Params& params, Layer* prev_layer,
         const FmapDesc& fmapDesc,
         const std::tuple<kcc_int32,kcc_int32>& stride, const std::tuple<kcc_int32,kcc_int32>& kernel,
         const std::tuple<kcc_int32,kcc_int32,kcc_int32,kcc_int32>& padding,
         const char* filterFileName, const char* filterTensorFormat)
     : SubSampleLayer(params, prev_layer, fmapDesc, stride, kernel, padding)
 {
+    params.verify();
     m_FilterFileName           = filterFileName;
     m_FilterTensorFormat       = filterTensorFormat;
     m_WeightAddress            = StateBufferAddress_Invalid;
+    /*
+    m_BatchingInWave    = params.m_BatchingInWave;
+    */
 }
 
 //--------------------------------------------------------
@@ -68,6 +72,36 @@ ConvLayer::gNumberWeightsPerPartition() const
     const kcc_int32 kh = gKernelHeight();
     const kcc_int32 num_ofmaps = gNumOfmaps();
     return kw*kh * num_ofmaps;
+}
+
+
+
+
+
+
+
+ConvLayer::Params::Params(const Layer::Params& params)
+{
+    m_LayerName     = params.m_LayerName;
+    m_BatchFactor   = params.m_BatchFactor;
+    m_Network       = params.m_Network;
+    m_RefFile       = params.m_RefFile;
+    m_RefFileFormat = params.m_RefFileFormat;
+}
+
+
+bool
+ConvLayer::Params::verify() const
+{
+    if (! this->Layer::Params::verify()) {
+        return false;
+    }
+    /*
+    if (m_BatchingInWave    <= 0) {
+        return false;
+    }
+    */
+    return true;
 }
 
 

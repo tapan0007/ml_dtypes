@@ -112,6 +112,7 @@ Main(int argc, char* argv[])
         std::cout << "Reading NN from JSON file '" << JsonInFileName << "'\n";
         std::ifstream is(JsonInFileName);
         cereal::JSONInputArchive ar(is);
+        ntwk->rUseWave(useWave);
         ntwk->load(ar);
     }
 

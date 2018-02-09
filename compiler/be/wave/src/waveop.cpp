@@ -36,8 +36,18 @@ WaveOp::gDataType() const
 bool
 WaveOp::verify() const
 {
+    if (m_Name == "") {
+        return false;
+    }
+    if (! m_Layer) {
+        return false;
+    }
     return true;
 }
+
+
+
+
 
 bool 
 WaveOp::Params::verify() const

@@ -260,6 +260,27 @@ public:
         m_PsumBankOffset = psumBankOffset;
     }
 
+    kcc_int32 gIfmapCount () const {
+        return m_IfmapCount;
+    }
+    void rIfmapCount (kcc_int32 ifmapCount) {
+        m_IfmapCount = ifmapCount;
+    }
+
+    kcc_int32 gOfmapCount () const {
+        return m_OfmapCount;
+    }
+    void rOfmapCount (kcc_int32 ofmapCount) {
+        m_OfmapCount = ofmapCount;
+    }
+
+    kcc_int16 gBatchingInWave () const {
+        return m_BatchingInWave;
+    }
+    void rBatchingInWave (kcc_int16 batchingInWave) {
+        m_BatchingInWave = batchingInWave;
+    }
+
 protected:
     bool verify() const;
 
@@ -291,19 +312,27 @@ private:
     enum {
         WaveIdFormatSize = 7,
     };
+    kcc_int32                   m_BatchingInWave        = -1;
+    kcc_int32                   m_IfmapCount            = -1;
     kcc_int32                   m_IfmapTileHeight       = -1;
     kcc_int32                   m_IfmapTileWidth        = -1;
     kcc_int32                   m_IfmapsAtomId          = -1;
     kcc_int32                   m_IfmapsOffsetInAtom    = -1;
+    // layer name
+    kcc_int32                   m_OfmapCount            = -1;
     kcc_int32                   m_OfmapTileHeight       = -1;
     kcc_int32                   m_OfmapTileWidth        = -1;
+    // previous waveops
     kcc_int32                   m_PsumBankId            = -1;
     kcc_int32                   m_PsumBankOffset        = -1;
     bool                        m_Start                 = true;
     wave::MatMulWaveOp::WaveId  m_WaveId;
     std::string                 m_WaveIdFormat          = "";
+    // waveop name
+    // waveop type
     kcc_int32                   m_WeightsAtomId         = -1;
     kcc_int32                   m_WeightsOffsetInAtom   = -1;
+
 }; // class SerWaveOp
 
 

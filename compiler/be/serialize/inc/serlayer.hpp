@@ -57,6 +57,10 @@ public:
             archive(cereal::make_nvp(LayerKey_KernelFormat, m_KernelFormat));
             archive(cereal::make_nvp(LayerKey_Stride, m_Stride));
             archive(cereal::make_nvp(LayerKey_Padding, m_Padding));
+
+            /*
+            archive(cereal::make_nvp(LayerKey_BatchingInWave, m_BatchingInWave));
+            */
         } else if (m_LayerType == LayerTypeStr_Tanh) {
             // nothing specific to Tanh
         } else if (m_LayerType == LayerTypeStr_Relu) {
@@ -214,6 +218,14 @@ public:
         return m_Padding[FmapIndex_W][1];
     }
 
+/*
+    kcc_int32 gBatchingInWave () const {
+        return m_BatchingInWave;
+    }
+    void rBatchingInWave (kcc_int32 batchingInWave) {
+        m_BatchingInWave = batchingInWave;
+    }
+*/
     //----------------------------------------------------------------
 
 private:
@@ -236,6 +248,9 @@ private:
     std::vector<std::vector<int> >        m_Padding;       // conv,pool
 
     std::vector<int>            m_Batching;
+    /*
+    int                         m_BatchingInWave  = -1;
+    */
 }; // class SerLayer
 
 
