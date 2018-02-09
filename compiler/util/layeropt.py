@@ -641,10 +641,12 @@ class TPBSched:
               'start'                   : not(psum_add),
               'psum_bank_id'            : psum_bank,
               'psum_bank_offset'        : 0,    # TODO: compute and put the correct value here
-              'ifmap_tile_width'        : 0,    # TODO: compute and put the correct value here
-              'ifmap_tile_height'       : 0,    # TODO: compute and put the correct value here
-              'ofmap_tile_width'        : 0,    # TODO: compute and put the correct value here
-              'ofmap_tile_height'       : 0,    # TODO: compute and put the correct value here
+              'ifmap_count'             : 1,    # TODO: compute and put the correct value here
+              'ifmap_tile_width'        : 1,    # TODO: compute and put the correct value here
+              'ifmap_tile_height'       : 1,    # TODO: compute and put the correct value here
+              'ofmap_count'             : 1,    # TODO: compute and put the correct value here
+              'ofmap_tile_width'        : 1,    # TODO: compute and put the correct value here
+              'ofmap_tile_height'       : 1,    # TODO: compute and put the correct value here
             }
         self.waveop_stream.append(matmul_waveop)
         self.last_psum_waveop = self.waveop_stream[-1]
