@@ -34,7 +34,7 @@
  */
 
 
-#include "aws_hal_tpb_common.hpp"
+#include "aws_hal_tpb_common.h"
 
 #define AWS_HAL_TPB_POOL_ENGINE_NUM_CHANNELS 64 // 64 Pooling-Channels in the Pooling-Engine
 #define AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS 2 // 2 ALUs in each Pooling-Channel

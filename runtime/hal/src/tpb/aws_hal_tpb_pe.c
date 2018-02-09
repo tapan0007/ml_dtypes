@@ -28,8 +28,8 @@
  *
  */
 
-#include "aws_hal_tpb_pe.hpp"
-#include "aws_hal_tpb_pe_profiles.hpp"
+#include "aws_hal_tpb_pe.h"
+#include "aws_hal_tpb_pe_profiles.h"
 
 /*
  * PE-Array set profile entry:
@@ -37,8 +37,8 @@
  */
 static int aws_hal_tpb_pe_write_profile (void* tpb_base_addr, uint8_t profile_table_idx, struct aws_hal_tpb_pe_profile_table_params profile_entry)
 {
-    uint8_t* cam_addr = (uint8_t*)tpb_base_addr + TPB_MMAP::PE_ARRAY::PROFILE_CAM::base + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
-    uint8_t* profile_addr = (uint8_t*)tpb_base_addr + TPB_MMAP::PE_ARRAY::PROFILE_TABLE::base + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
+    uint8_t* cam_addr = (uint8_t*)tpb_base_addr + TPB_MMAP_PE_ARRAY_PROFILE_CAM_BASE + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
+    uint8_t* profile_addr = (uint8_t*)tpb_base_addr + TPB_MMAP_PE_ARRAY_PROFILE_TABLE_BASE + profile_table_idx*AWS_HAL_TPB_PE_PE_PROFILE_SIZE;
     uint8_t byte_idx;
 
     /* CAM.data */

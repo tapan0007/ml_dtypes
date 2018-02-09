@@ -31,7 +31,7 @@
  *
  */
 
-#include "aws_hal_tpb_pe.hpp"
+#include "aws_hal_tpb_pe.h"
 
 /* MatMul */
 static struct aws_hal_tpb_pe_profile_table_params pe_profile_MatMul =

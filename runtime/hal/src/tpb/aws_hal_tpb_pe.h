@@ -30,7 +30,7 @@
  */
 
 
-#include "aws_hal_tpb_common.hpp"
+#include "aws_hal_tpb_common.h"
 
 #define AWS_HAL_TPB_PE_PE_PROFILE_SIZE 64
 

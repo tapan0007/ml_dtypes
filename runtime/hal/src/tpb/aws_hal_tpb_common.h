@@ -32,8 +32,8 @@
 
 #include "al_hal_plat_types.h"
 #include "al_hal_plat_services.h"
-#include "aws_hal_tpb_common_mmap.hpp"
-// TODO - #include "aws_isa_tpb.hpp"
+#include "aws_hal_tpb_common_mmap.h"
+// TODO - #include "aws_isa_tpb.h"
 
 /* General Defines */
 #define AWS_HAL_TPB_MEM_NUM_DIMENSIONS 4
