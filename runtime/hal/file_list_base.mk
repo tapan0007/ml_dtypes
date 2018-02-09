@@ -10,6 +10,7 @@ HAL_UDMA_SOURCES = \
 
 HAL_TPB_SOURCES = \
     $(HAL_TOP)/src/tpb/aws_hal_tpb_pe.cpp \
+    $(HAL_TOP)/src/tpb/aws_hal_tpb_pool.cpp \
 
 HAL_SOURCES = $(HAL_UDMA_SOURCES) $(HAL_TPB_SOURCES)
 

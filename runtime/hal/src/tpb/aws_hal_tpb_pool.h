@@ -39,6 +39,26 @@
 #define AWS_HAL_TPB_POOL_ENGINE_NUM_CHANNELS 64 // 64 Pooling-Channels in the Pooling-Engine
 #define AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS 2 // 2 ALUs in each Pooling-Channel
 #define AWS_HAL_TPB_POOL_CHANNEL_NUM_ALU_INPUTS 2 // 2 inputs to each ALU
+#define AWS_HAL_TPB_POOL_PROFILE_SIZE 64
+
+enum aws_hal_tpb_pe_profile_id {
+    TPB_POOL_PROFILE_ID_MAX_POOL_STEP1 = 0,
+    TPB_POOL_PROFILE_ID_MAX_POOL_STEP2 = 1,
+    TPB_POOL_PROFILE_ID_AVERAGE_POOL_STEP1 = 2,
+    TPB_POOL_PROFILE_ID_AVERAGE_POOL_STEP2 = 3,
+    TPB_POOL_PROFILE_ID_VECTOR_ADD = 4,
+    TPB_POOL_PROFILE_ID_SCALE_AND_ADD = 5,
+    TPB_POOL_PROFILE_ID_NOP = 6,
+    TPB_POOL_PROFILE_ID_SET_EVENT = 7,
+    TPB_POOL_PROFILE_ID_CLEAR_EVENT = 8,
+    TPB_POOL_PROFILE_ID_WAIT_EVENT = 9,
+    TPB_POOL_PROFILE_ID_WRITE = 10,
+    // 7-31: Reserved
+    TPB_POOL_NUM_PROFILES
+};
+
+
+
 
 enum aws_hal_tpb_pool_alu_in_sel {
     TPB_POOL_ALU_IN_PROFILE_TABLE_CONST_0 = 0,
@@ -148,7 +168,7 @@ struct aws_hal_tpb_pool_profile_table_params {
     uint8_t step_clr_delay; // delay to be applied prior to every step clear
 
     // -- ALU control
-    
+    enum aws_hal_tpb_pool_alu_data_type_sel alu_data_type_sel; // source for ALU data-type (profile-table or instruction)
     struct aws_hal_tpb_inst_field_extract alu_data_type; // ALU data-type
     uint32_t alu_const[AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS][2];
     enum aws_hal_tpb_pool_alu_in_sel alu_in_sel[AWS_HAL_TPB_POOL_CHANNEL_NUM_ALUS][AWS_HAL_TPB_POOL_CHANNEL_NUM_ALU_INPUTS]; // ALUs input selection

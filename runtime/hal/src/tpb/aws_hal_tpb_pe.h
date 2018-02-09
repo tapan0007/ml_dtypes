@@ -32,7 +32,7 @@
 
 #include "aws_hal_tpb_common.h"
 
-#define AWS_HAL_TPB_PE_PE_PROFILE_SIZE 64
+#define AWS_HAL_TPB_PE_PROFILE_SIZE 64
 
 enum aws_hal_tpb_pe_profile_id {
     TPB_PE_PROFILE_ID_MAT_MUL = 0,

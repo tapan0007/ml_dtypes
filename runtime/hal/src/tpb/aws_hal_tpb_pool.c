@@ -3,7 +3,7 @@
  */
 
 /**
- * Tensor Processing Block (TPB) / PE-ARRAY
+ * Tensor Processing Block (TPB) / Pooling
  *
  *  +-------+       +--------------------------------------+
  *  |       |  (W)  | PE | PE | PE |                       |
@@ -28,17 +28,17 @@
  *
  */
 
-#include "aws_hal_tpb_pe.h"
-#include "aws_hal_tpb_pe_profiles.h"
+#include "aws_hal_tpb_pool.h"
+#include "aws_hal_tpb_pool_profiles.h"
 
 /*
- * PE-Array set profile entry:
- * ==========================
+ * Pooling set profile entry:
+ * =========================
  */
-static int aws_hal_tpb_pe_write_profile (void* tpb_mem_handle, uint8_t profile_table_idx, struct aws_hal_tpb_pe_profile_table_params profile_entry)
+static int aws_hal_tpb_pool_write_profile (void* tpb_mem_handle, uint8_t profile_table_idx, struct aws_hal_tpb_pool_profile_table_params profile_entry)
 {
-    uint8_t* cam_addr = (uint8_t*)tpb_mem_handle + TPB_MMAP_PE_ARRAY_PROFILE_CAM_BASE + profile_table_idx*AWS_HAL_TPB_PE_PROFILE_SIZE;
-    uint8_t* profile_addr = (uint8_t*)tpb_mem_handle + TPB_MMAP_PE_ARRAY_PROFILE_TABLE_BASE + profile_table_idx*AWS_HAL_TPB_PE_PROFILE_SIZE;
+    uint8_t* cam_addr = (uint8_t*)tpb_mem_handle + TPB_MMAP_PE_ARRAY_PROFILE_CAM_BASE + profile_table_idx*AWS_HAL_TPB_POOL_PROFILE_SIZE;
+    uint8_t* profile_addr = (uint8_t*)tpb_mem_handle + TPB_MMAP_PE_ARRAY_PROFILE_TABLE_BASE + profile_table_idx*AWS_HAL_TPB_POOL_PROFILE_SIZE;
     uint8_t byte_idx;
 
     /* CAM.data */
@@ -69,11 +69,11 @@ static int aws_hal_tpb_pe_write_profile (void* tpb_mem_handle, uint8_t profile_t
     byte_idx = AWS_HAL_TPB_PROFILE_DTYPE_LSB;
     al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.in_data_type[0].offset);
     al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.in_data_type[0].size);
-    al_reg_write8(&profile_addr[byte_idx++], 0); // in_data_type[1] offset - unused (only one input stream in PE-array)
-    al_reg_write8(&profile_addr[byte_idx++], 0); // in_data_type[1] size   - unused (only one input stream in PE-array)
-    al_reg_write8(&profile_addr[byte_idx++], 0); // alu_data_type src sel  - unused (no ALUs in PE-array)
-    al_reg_write8(&profile_addr[byte_idx++], 0); // alu_data_type offset   - unused (no ALUs in PE-array)
-    al_reg_write8(&profile_addr[byte_idx++], 0); // alu_data_type size     - unused (no ALUs in PE-array)
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.in_data_type[1].offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.in_data_type[1].size);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.alu_data_type_sel);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.alu_data_type.offset);
+    al_reg_write8(&profile_addr[byte_idx++], profile_entry.alu_data_type.size);
     al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.out_data_type.offset);
     al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.out_data_type.size);
     al_reg_write8(&profile_addr[byte_idx++], 0); // reserved
@@ -110,6 +110,15 @@ static int aws_hal_tpb_pe_write_profile (void* tpb_mem_handle, uint8_t profile_t
         al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.wr_num_elements[k].size);
     }
     
+    /* ALU Commands */
+    // TODO
+
+    /* Output Selection */
+    // TODO
+
+    /* Step Management */
+    // TODO
+
     /* Profile.Event_Management */
     byte_idx = AWS_HAL_TPB_PROFILE_EVENT_MGMT_LSB;
     al_reg_write8(&profile_addr[byte_idx++], profile_entry.common_params.event_trigger_condition);
@@ -130,23 +139,27 @@ static int aws_hal_tpb_pe_write_profile (void* tpb_mem_handle, uint8_t profile_t
 }
 
 /*
- * PE-Array init:
- * =============
+ * Pooling init:
+ * ============
  */
-int aws_hal_tpb_pe_init (void* tpb_mem_handle)
+int aws_hal_tpb_pool_init (void* tpb_mem_handle)
 {
     /* CSRs */
     // TODO
 
     /* Profile CAM and Table */
     int ret = 0;
-    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_MAT_MUL, pe_profile_MatMul);
-    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_WEIGHT_LOAD, pe_profile_WeightLoad);
-    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_NOP, pe_profile_Nop);
-    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_SET_EVENT, pe_profile_SetEvent);
-    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_CLEAR_EVENT, pe_profile_ClearEvent);
-    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_WAIT_EVENT, pe_profile_WaitEvent);
-    ret += aws_hal_tpb_pe_write_profile (tpb_mem_handle, TPB_PE_PROFILE_ID_WRITE, pe_profile_Write);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_MAX_POOL_STEP1, pool_profile_MaxPool_1);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_MAX_POOL_STEP2, pool_profile_MaxPool_2);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_AVERAGE_POOL_STEP1, pool_profile_AveragePool_1);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_AVERAGE_POOL_STEP2, pool_profile_AveragePool_2);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_VECTOR_ADD, pool_profile_VectorAdd);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_SCALE_AND_ADD, pool_profile_ScaleAndAdd);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_NOP, pool_profile_Nop);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_SET_EVENT, pool_profile_SetEvent);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_CLEAR_EVENT, pool_profile_ClearEvent);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_WAIT_EVENT, pool_profile_WaitEvent);
+    ret += aws_hal_tpb_pool_write_profile (tpb_mem_handle, TPB_POOL_PROFILE_ID_WRITE, pool_profile_Write);
 
     return ret;
 }
