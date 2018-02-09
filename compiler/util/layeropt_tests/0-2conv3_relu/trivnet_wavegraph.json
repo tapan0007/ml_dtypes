@@ -11,19 +11,20 @@
     },
     {
       "#comment": "supported layer",
-      "kernel_file": "trivnet_1conv3__weight1__read:0_CRSM.npy",
+      "batch_fold_count": 1,      "batching_in_wave": 1,      "height_fold_count": 1,      "ifmap_fold_count": 1,      "kernel_file": "trivnet_1conv3__weight1__read:0_CRSM.npy",
       "kernel_format": "CRSM",
       "kernel_shape": [ 1, 3, 3, 1 ],
       "layer_name": "1conv3/conv1",
       "layer_type": "Conv",
-      "ofmap_format": "NCHW",
+      "ofmap_fold_count": 1,      "ofmap_format": "NCHW",
       "ofmap_shape": [ 1, 1, 4, 4 ],
       "padding": [ [ 0, 0 ], [ 0, 0 ], [ 1, 1 ], [ 1, 1 ] ],
       "previous_layers": [
         "input"
       ],
       "ref_file": "trivnet_1conv3__conv1:0_NCHW.npy",
-      "stride": [ 1, 1, 1, 1 ]
+      "stride": [ 1, 1, 1, 1 ],
+      "width_fold_count": 1
     },
     {
       "#comment": "supported simple layer",
