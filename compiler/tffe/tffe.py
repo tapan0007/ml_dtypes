@@ -83,7 +83,8 @@ if args.images != None:
     fileList = []
     (refOutNpyFile, fileListJson) = kog.genCompilerJson(args.out_prefix + "compiler.json", args.verbose)
     fileList += fileListJson
-    fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + "compiler.json", refOutNpyFile)
+    jsonFile = {"tcc" : "compiler.json", "wave" : "wavegraph.json"}
+    fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + jsonFile[args.scheduler], refOutNpyFile)
     fileList += [args.out_prefix + "graph_ann.dot.svg"]
     fileList += tffe.runScheduler(args.out_prefix)
     kog.genCompilertgz(args.out_prefix + "compiler.tgz", list(set(fileList)))
