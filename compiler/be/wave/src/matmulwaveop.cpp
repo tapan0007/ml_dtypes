@@ -17,6 +17,7 @@ namespace wave {
 MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
     : WaveOp(params, prevWaveOps)
+    , m_BatchingInWave(params.m_BatchingInWave)
     , m_IfmapCount(params.m_IfmapCount)
     , m_IfmapTileHeight(params.m_IfmapTileHeight)
     , m_IfmapTileWidth(params.m_IfmapTileWidth)

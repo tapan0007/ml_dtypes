@@ -178,6 +178,12 @@ public:
         m_OfmapCount = ofmapCount;
     }
 
+    kcc_int16 gBatchingInWave () const {
+        return m_BatchingInWave;
+    }
+    void rBatchingInWave (kcc_int16 batchingInWave) {
+        m_BatchingInWave = batchingInWave;
+    }
 
     //----------------------------------------------------------------
     bool qMatMultWaveOp() const override {

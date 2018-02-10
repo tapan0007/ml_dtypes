@@ -250,6 +250,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         if (const auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp)) {
             serWaveOp.rWaveOpType(wave::MatMulWaveOp::gTypeStr());
 
+            serWaveOp.rBatchingInWave(matmulWaveOp->gBatchingInWave());
             serWaveOp.rIfmapCount(matmulWaveOp->gIfmapCount());
             serWaveOp.rIfmapTileHeight(matmulWaveOp->gIfmapTileHeight());
             serWaveOp.rIfmapTileWidth(matmulWaveOp->gIfmapTileWidth());
