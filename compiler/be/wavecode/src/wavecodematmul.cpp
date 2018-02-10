@@ -19,7 +19,7 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
     auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp);
     assert(matmulWaveOp);
 
-    generateLoadWeights(matmulWaveOp, matmulWaveOp->qStart());
+    generateLoadWeights(matmulWaveOp);
 }
 
 /*
@@ -44,7 +44,7 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
 
 
 void
-WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp, bool /*firstWeight*/)
+WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
 {
     assert(matmulWaveOp->verify());
     if (matmulWaveOp->gWeightsOffsetInAtom() < 0) {
@@ -67,10 +67,11 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp, bool /*fir
     //    uint8_t     zero_point_uint8[2];
     //    uint16_t    zero_point_uint16   = 0; 
     //} TONGA_PACKED;
-    ldweighsInstr.start_addr            = -1; // TODO
-    ldweighsInstr.x_step                = -1; // last column goes first, so decr
+    ldweighsInstr.start_addr            = matmulWaveOp->gWeightsOffsetInAtom() +
+                                          matmulWaveOp->gWeightsAtomId() * wave::MatMulWaveOp::AtomSize;
+    ldweighsInstr.x_step                = -1; // last column goes first, so decrement
     ldweighsInstr.x_num                 = matmulWaveOp->gNumOfmapsInFold();
-    ldweighsInstr.num_row_partitions    = -1; // TODO
+    ldweighsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();
 
     m_WaveCode->writeInstruction(ldweighsInstr);
 }

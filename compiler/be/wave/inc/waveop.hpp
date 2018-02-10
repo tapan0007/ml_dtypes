@@ -41,6 +41,8 @@ protected:
 public:
     class Params;
 
+    enum : kcc_int32 { AtomSize = 1024 };
+
 protected:
     //----------------------------------------------------------------
     WaveOp(const WaveOp::Params& params, const std::vector<WaveOp*>& prevWaveOps);
@@ -57,6 +59,7 @@ private:
 protected:
 
     virtual bool verify() const = 0;
+
 
 public:
 
