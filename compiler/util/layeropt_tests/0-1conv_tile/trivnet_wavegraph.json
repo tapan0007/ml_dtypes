@@ -45,7 +45,7 @@
       "waveop_type": "SBAtomFile"
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/SBAtomFile_0",
         "input/SBAtomFile_0"
@@ -58,7 +58,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 0
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
@@ -70,7 +70,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 2
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1"
       ],
@@ -82,7 +82,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 4
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2"
       ],
@@ -94,7 +94,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 6
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0"
       ],
@@ -106,7 +106,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 8
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1"
       ],
@@ -118,7 +118,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 10
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2"
       ],
@@ -130,7 +130,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 12
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0"
       ],
@@ -142,7 +142,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 14
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 72,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 72,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1"
       ],
@@ -163,7 +163,7 @@
       "waveop_type": "SBAtomSave"
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 420,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 420,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2"
       ],
@@ -175,7 +175,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 0
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 420,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 420,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0"
       ],
@@ -187,7 +187,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 2
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 422,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 422,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1"
       ],
@@ -199,7 +199,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 4
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2"
       ],
@@ -211,7 +211,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 6
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0"
       ],
@@ -223,7 +223,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 8
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 492,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 492,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1"
       ],
@@ -243,7 +243,7 @@
       "waveop_type": "SBAtomFile"
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 560,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 560,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "input/SBAtomFile_1",
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2"
@@ -256,7 +256,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 12
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 560,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 560,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0"
       ],
@@ -268,7 +268,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 14
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 562,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 562,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1"
       ],
@@ -280,7 +280,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 16
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 910,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 910,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2"
       ],
@@ -292,7 +292,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 0
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 910,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 910,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0"
       ],
@@ -304,7 +304,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 2
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 912,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 912,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1"
       ],
@@ -316,7 +316,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 4
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2"
       ],
@@ -328,7 +328,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 6
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0"
       ],
@@ -340,7 +340,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 8
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1"
       ],
@@ -352,7 +352,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 10
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2"
       ],
@@ -364,7 +364,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 12
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0"
       ],
@@ -376,7 +376,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 14
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 72,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 72,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1"
       ],
@@ -397,7 +397,7 @@
       "waveop_type": "SBAtomSave"
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 420,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 420,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2"
       ],
@@ -409,7 +409,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 0
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 420,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 420,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0"
       ],
@@ -421,7 +421,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 2
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 422,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 422,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1"
       ],
@@ -433,7 +433,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 4
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2"
       ],
@@ -445,7 +445,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 6
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 490,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0"
       ],
@@ -457,7 +457,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 8
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 492,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 1,      "ifmaps_offset_in_atom": 492,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1"
       ],
@@ -477,7 +477,7 @@
       "waveop_type": "SBAtomFile"
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 560,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 560,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "input/SBAtomFile_2",
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2"
@@ -490,7 +490,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 12
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 560,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 560,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0"
       ],
@@ -502,7 +502,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 14
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 562,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 562,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1"
       ],
@@ -514,7 +514,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 16
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 910,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 910,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2"
       ],
@@ -526,7 +526,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 0
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 910,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 910,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0"
       ],
@@ -538,7 +538,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 2
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 912,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 912,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1"
       ],
@@ -550,7 +550,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 4
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2"
       ],
@@ -562,7 +562,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 6
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0"
       ],
@@ -574,7 +574,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 8
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1"
       ],
@@ -586,7 +586,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 10
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2"
       ],
@@ -598,7 +598,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 12
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 70,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0"
       ],
@@ -610,7 +610,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 14
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 72,      "layer_name": "1conv/i1",
+      "ifmap_count": 1,      "ifmap_tile_height": 1,      "ifmap_tile_width": 1,      "ifmaps_atom_id": 2,      "ifmaps_offset_in_atom": 72,      "layer_name": "1conv/i1",
       "ofmap_count": 1,      "ofmap_tile_height": 1,      "ofmap_tile_width": 1,      "previous_waveops": [
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1"
       ],
