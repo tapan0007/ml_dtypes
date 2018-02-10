@@ -249,6 +249,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 wave::MatMulWaveOp::Params matmulParams;
                 fillWaveOpParams(serWaveOp, matmulParams);
     
+                matmulParams.m_BatchingInWave       = serWaveOp.gBatchingInWave();
                 matmulParams.m_IfmapCount           = serWaveOp.gIfmapCount();
                 matmulParams.m_IfmapTileHeight      = serWaveOp.gIfmapTileHeight();
                 matmulParams.m_IfmapTileWidth       = serWaveOp.gIfmapTileWidth();
