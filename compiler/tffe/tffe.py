@@ -66,32 +66,50 @@ if not os.path.isfile(file):
 if args.images != None and args.focus != ".*":
   raise("ERROR: Unsupported --images with --focus")
 
+def writeBackEndFiles(kGraph, outPrefix, verbose, scheduler):
+  fileList = []
+  (refOutNpyFile, fileListJson) = kGraph.genCompilerJson(outPrefix + "compiler.json", verbose)
+  fileList += fileListJson
+  jsonFile = {"tcc" : "compiler.json", "wave" : "wavegraph.json"}
+  fileList += kGraph.genKgraphSetupFiles(outPrefix + "compiler.py", outPrefix + jsonFile[scheduler], refOutNpyFile)
+  fileList += [outPrefix + "graph_ann.dot.svg"]
+  fileList += tffe.runScheduler(outPrefix)
+  kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
+  
+
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
 tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.scheduler, args.batch)
 tffe.loadPb(file, args.focus)
-tffe.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
+kog = tffe.getKaenaOpGraph()
+kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
 if args.weights:
   tffe.writeWeights(args.out_prefix)
-kog = tffe.getKaenaOpGraph()
 if args.images != None:
   tffe.writeImages(args.out_prefix, args.images, inputTensorName)
   kog.identifyMainFlowEdges(inputTensorName)
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
-  tffe.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
+  kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
   if args.partition[0] == "none":
-    fileList = []
-    (refOutNpyFile, fileListJson) = kog.genCompilerJson(args.out_prefix + "compiler.json", args.verbose)
-    fileList += fileListJson
-    jsonFile = {"tcc" : "compiler.json", "wave" : "wavegraph.json"}
-    fileList += kog.genKgraphSetupFiles(args.out_prefix + "compiler.py", args.out_prefix + jsonFile[args.scheduler], refOutNpyFile)
-    fileList += [args.out_prefix + "graph_ann.dot.svg"]
-    fileList += tffe.runScheduler(args.out_prefix)
-    kog.genCompilertgz(args.out_prefix + "compiler.tgz", list(set(fileList)))
+    writeBackEndFiles(kog, args.out_prefix, args.verbose, args.scheduler)
   else:
     kp = KgraphPartitions.KgraphPart(kog, debugLevel)
     if args.partition[0] == "auto":
       kp.autoColorNodes()
       kp.partitionByColor()
-      kp.print()
-      
+      #kp.print()
+      sgId = 0
+      for sg in kp.getSubgraphs():
+        sgDir = "sg%02d" % sgId;
+        print("\nINFO: processing subgraph %s" % sgDir)
+        sg.graph.print()
+        os.makedirs(sgDir)
+        os.chdir(sgDir)
+        sg.graph.transferSideNodes(kog)
+        sg.graph.levelize()
+        sg.relinkNpFiles("..")
+        sg.graph.print()
+        sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
+        writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
+        os.chdir("..")
+        sgId += 1
