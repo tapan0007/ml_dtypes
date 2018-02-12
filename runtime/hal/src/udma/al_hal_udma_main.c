@@ -72,7 +72,10 @@ static void al_udma_set_defaults(struct al_udma *udma)
 {
 	uint8_t rev_id = udma->rev_id;
 
-	if (udma->type == UDMA_TX) {
+// TODO init both TX and RX
+
+
+    // Init TX
 		struct al_udma_m2s_pkt_len_conf conf = {
 			.encode_64k_as_zero = AL_TRUE,
 			.max_pkt_size = UDMA_M2S_CFG_LEN_MAX_PKT_SIZE_MASK,
@@ -90,14 +93,14 @@ static void al_udma_set_defaults(struct al_udma *udma)
 		if (rev_id >= AL_UDMA_REV_ID_2) {
 			unsigned int num_beats = (rev_id >= AL_UDMA_REV_ID_4) ? 1024 : 256;
 
-			al_reg_write32_masked(&udma->udma_regs->m2s.m2s_rd.data_cfg,
+			al_reg_write32_masked(&udma->udma_regs_m2s->m2s_rd.data_cfg,
 			      UDMA_M2S_RD_DATA_CFG_DATA_FIFO_DEPTH_MASK,
 			      num_beats << UDMA_M2S_RD_DATA_CFG_DATA_FIFO_DEPTH_SHIFT);
 		}
 
 		/* Set M2S max number of outstanding transactions */
 		if (rev_id >= AL_UDMA_REV_ID_4) {
-			al_reg_write32_masked(&udma->udma_regs->m2s.axi_m2s.ostand_cfg,
+			al_reg_write32_masked(&udma->udma_regs_m2s->axi_m2s.ostand_cfg,
 				UDMA_AXI_M2S_OSTAND_CFG_MAX_DATA_RD_MASK |
 				UDMA_AXI_M2S_OSTAND_CFG_MAX_DESC_RD_MASK |
 				UDMA_AXI_M2S_OSTAND_CFG_MAX_COMP_REQ_MASK,
@@ -110,7 +113,7 @@ static void al_udma_set_defaults(struct al_udma *udma)
 		al_reg_write32(&udma->gen_axi_regs->cfg_1, 1000000);
 
 		/* Ack time out */
-		al_reg_write32(&udma->udma_regs->m2s.m2s_comp.cfg_application_ack, 0);
+		al_reg_write32(&udma->udma_regs_m2s->m2s_comp.cfg_application_ack, 0);
 
 		/* set max packet size to maximum */
 		al_udma_m2s_packet_size_cfg_set(udma, &conf);
@@ -124,11 +127,10 @@ static void al_udma_set_defaults(struct al_udma *udma)
 			for (i = 0; i < DMA_MAX_Q_V4; i++)
 				al_reg_write32(&gen_ex_regs->vmpr_v4[i].tx_sel, 0xffffffff);
 		}
-	}
 
-	if (udma->type == UDMA_RX) {
+    // Init RX
 		/* Ack time out */
-		al_reg_write32(&udma->udma_regs->s2m.s2m_comp.cfg_application_ack, 0);
+		al_reg_write32(&udma->udma_regs_s2m->s2m_comp.cfg_application_ack, 0);
 
 		/* Set addr_hi selectors */
 		if (rev_id == AL_UDMA_REV_ID_4) {
@@ -145,17 +147,16 @@ static void al_udma_set_defaults(struct al_udma *udma)
 
 		/* Set S2M max number of outstanding transactions */
 		if (rev_id >= AL_UDMA_REV_ID_4) {
-			al_reg_write32_masked(&udma->udma_regs->s2m.axi_s2m.ostand_cfg_rd,
+			al_reg_write32_masked(&udma->udma_regs_s2m->axi_s2m.ostand_cfg_rd,
 				UDMA_AXI_S2M_OSTAND_CFG_RD_MAX_DESC_RD_OSTAND_MASK,
 				(128 << UDMA_AXI_S2M_OSTAND_CFG_RD_MAX_DESC_RD_OSTAND_SHIFT));
 
-			al_reg_write32_masked(&udma->udma_regs->s2m.axi_s2m.ostand_cfg_wr,
+			al_reg_write32_masked(&udma->udma_regs_s2m->axi_s2m.ostand_cfg_wr,
 				UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_DATA_WR_OSTAND_MASK |
 				UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_COMP_REQ_MASK,
 				(128 << UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_DATA_WR_OSTAND_SHIFT) |
 				(128 << UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_COMP_REQ_SHIFT));
 		}
-	}
 }
 /**
  * misc queue configurations
@@ -169,7 +170,7 @@ static int al_udma_q_config(struct al_udma_q *udma_q)
 	uint32_t *reg_addr;
 	uint32_t val;
 
-	if (udma_q->udma->type == UDMA_TX) {
+	if (udma_q->type == UDMA_TX) {
 		reg_addr = &udma_q->q_regs->m2s_q.rlimit.mask;
 
 		val = al_reg_read32(reg_addr);
@@ -192,7 +193,7 @@ static int al_udma_q_config_compl(struct al_udma_q *udma_q)
 	uint32_t *reg_addr;
 	uint32_t val;
 
-	if (udma_q->udma->type == UDMA_TX)
+	if (udma_q->type == UDMA_TX)
 		reg_addr = &udma_q->q_regs->m2s_q.comp_cfg;
 	else
 		reg_addr = &udma_q->q_regs->s2m_q.comp_cfg;
@@ -208,15 +209,16 @@ static int al_udma_q_config_compl(struct al_udma_q *udma_q)
 
 	al_reg_write32(reg_addr, val);
 
+// TODO incorrect, this must be done per engine, not per queue
 	/* set the completion queue size */
-	if (udma_q->udma->type == UDMA_RX) {
+	if (udma_q->type == UDMA_RX) {
 		val = al_reg_read32(
-				&udma_q->udma->udma_regs->s2m.s2m_comp.cfg_1c);
+				&udma_q->udma->udma_regs_s2m->s2m_comp.cfg_1c);
 		val &= ~UDMA_S2M_COMP_CFG_1C_DESC_SIZE_MASK;
 		/* the register expects it to be in words */
 		val |= (udma_q->cdesc_size >> 2)
 				& UDMA_S2M_COMP_CFG_1C_DESC_SIZE_MASK;
-		al_reg_write32(&udma_q->udma->udma_regs->s2m.s2m_comp.cfg_1c
+		al_reg_write32(&udma_q->udma->udma_regs_s2m->s2m_comp.cfg_1c
 							, val);
 	}
 	return 0;
@@ -325,7 +327,7 @@ static int al_udma_handle_init_aux(struct al_udma *udma, struct al_udma_params *
 	else
 		udma->num_of_queues_max = DMA_MAX_Q_V4;
 
-	udma->type = udma_params->type;
+	//udma->type = udma_params->type;
 
 	if (udma_params->num_of_queues == AL_UDMA_NUM_QUEUES_MAX)
 		udma->num_of_queues = udma->num_of_queues_max;
@@ -346,10 +348,8 @@ static int al_udma_handle_init_aux(struct al_udma *udma, struct al_udma_params *
 		udma->gen_axi_regs = &unit_regs->gen.axi;
 		udma->gen_int_regs = &unit_regs->gen.interrupt_regs;
 		udma->gen_ex_regs = &unit_regs->gen_ex;
-		if (udma->type == UDMA_TX)
-			udma->udma_regs = (union udma_regs *)&unit_regs->m2s;
-		else
-			udma->udma_regs = (union udma_regs *)&unit_regs->s2m;
+        udma->udma_regs_m2s = (struct udma_m2s_regs_v4 *)&unit_regs->m2s;
+        udma->udma_regs_s2m = (struct udma_s2m_regs_v4 *)&unit_regs->s2m;
 	} else {
 		struct unit_regs_v4 __iomem *unit_regs =
 			(struct unit_regs_v4 __iomem *)udma_params->udma_regs_base;
@@ -359,10 +359,8 @@ static int al_udma_handle_init_aux(struct al_udma *udma, struct al_udma_params *
 		udma->gen_axi_regs = &unit_regs->gen.axi;
 		udma->gen_int_regs = &unit_regs->gen.interrupt_regs;
 		udma->gen_ex_regs = &unit_regs->gen_ex;
-		if (udma->type == UDMA_TX)
-			udma->udma_regs = (union udma_regs *)&unit_regs->m2s;
-		else
-			udma->udma_regs = (union udma_regs *)&unit_regs->s2m;
+        udma->udma_regs_m2s = (struct udma_m2s_regs_v4 *)&unit_regs->m2s;
+        udma->udma_regs_s2m = (struct udma_s2m_regs_v4 *)&unit_regs->s2m;
 	}
 
 	if (udma_params->name == NULL)
@@ -371,15 +369,18 @@ static int al_udma_handle_init_aux(struct al_udma *udma, struct al_udma_params *
 		udma->name = udma_params->name;
 
 	for (i = 0; i < udma->num_of_queues_max; i++) {
-		udma->udma_q[i].q_regs = (udma->type == UDMA_TX) ?
-			(union udma_q_regs __iomem *)&udma->udma_regs->m2s.m2s_q[i] :
-			(union udma_q_regs __iomem *)&udma->udma_regs->s2m.s2m_q[i];
-		udma->udma_q[i].udma = udma;
-		udma->udma_q[i].status = (read_regs ?
-			al_udma_q_status_get(&udma->udma_q[i]) : AL_QUEUE_DISABLED);
+		udma->udma_q_m2s[i].q_regs = (union udma_q_regs __iomem *)&udma->udma_regs_m2s->m2s_q[i];
+	    udma->udma_q_s2m[i].q_regs = (union udma_q_regs __iomem *)&udma->udma_regs_s2m->s2m_q[i];
+		udma->udma_q_m2s[i].udma = udma;
+		udma->udma_q_s2m[i].udma = udma;
+		udma->udma_q_m2s[i].status = (read_regs ?
+			al_udma_q_status_get(&udma->udma_q_m2s[i]) : AL_QUEUE_DISABLED);
+		udma->udma_q_s2m[i].status = (read_regs ?
+			al_udma_q_status_get(&udma->udma_q_s2m[i]) : AL_QUEUE_DISABLED);
 	}
 
-	udma->state = (read_regs ? al_udma_state_get(udma) : UDMA_DISABLE);
+	udma->state_m2s = (read_regs ? al_udma_state_get(udma, UDMA_TX) : UDMA_DISABLE);
+	udma->state_s2m = (read_regs ? al_udma_state_get(udma, UDMA_RX) : UDMA_DISABLE);
 
 	return 0;
 }
@@ -401,6 +402,8 @@ unsigned int al_udma_rev_id_get(struct al_udma *udma)
 
 	return udma->rev_id;
 }
+
+#if 0 // TODO put this back
 
 /* Performance params printout */
 void al_udma_perf_params_print(
@@ -508,6 +511,7 @@ void al_udma_perf_params_print(
 		al_print("    > q_qos = %u\n", comp_conf.q_qos);
 	}
 }
+#endif
 
 /* Num available queues */
 unsigned int al_udma_num_queues_get(
@@ -536,20 +540,20 @@ int al_udma_init(struct al_udma *udma, struct al_udma_params *udma_params)
 	al_udma_set_defaults(udma);
 
 	/* unmask error interrupts */
-	if (udma->type == UDMA_TX)
-		al_udma_iofic_m2s_error_ints_unmask(udma);
-	else
-		al_udma_iofic_s2m_error_ints_unmask(udma	);
 
-	al_dbg("udma [%s] initialized. base %p\n", udma->name,
-		udma->udma_regs);
+    // TODO unmask both OK?
+    al_udma_iofic_m2s_error_ints_unmask(udma);
+    al_udma_iofic_s2m_error_ints_unmask(udma);
+
+	al_dbg("udma [%s] initialized. base m2s: %p, s2m: %p\n", udma->name,
+		udma->udma_regs_m2s, udma->udma_regs_s2m);
 	return 0;
 }
 
 /*
  * Initialize the udma queue data structure
  */
-int al_udma_q_init(struct al_udma *udma, uint32_t qid,
+int al_udma_q_init(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
 					struct al_udma_q_params *q_params)
 {
 	struct al_udma_q *udma_q;
@@ -560,11 +564,6 @@ int al_udma_q_init(struct al_udma *udma, uint32_t qid,
 	if (qid >= udma->num_of_queues) {
 		al_err("udma: invalid queue id (%d)\n", qid);
 		return -EINVAL;
-	}
-
-	if (udma->udma_q[qid].status == AL_QUEUE_ENABLED) {
-		al_err("udma: queue (%d) already enabled!\n", qid);
-		return -EIO;
 	}
 
 	if (q_params->size < AL_UDMA_MIN_Q_SIZE) {
@@ -585,7 +584,12 @@ int al_udma_q_init(struct al_udma *udma, uint32_t qid,
 		return -EINVAL;
 	}
 
-	udma_q = &udma->udma_q[qid];
+	udma_q = (type == UDMA_TX) ? &udma->udma_q_m2s[qid]: &udma->udma_q_s2m[qid];
+	if (udma_q->status == AL_QUEUE_ENABLED) {
+		al_err("udma: queue (%d) already enabled!\n", qid);
+		return -EIO;
+	}
+    udma_q->type = type;
 	udma_q->adapter_rev_id = q_params->adapter_rev_id;
 	udma_q->size = q_params->size;
 	udma_q->size_mask = q_params->size - 1;
@@ -624,7 +628,7 @@ int al_udma_q_init(struct al_udma *udma, uint32_t qid,
 	al_dbg("udma [%s %d]: %s q init. size 0x%x\n"
 			"  desc ring info: phys base 0x%" PRIx64 " virt base %p\n",
 			udma_q->udma->name, udma_q->qid,
-			udma->type == UDMA_TX ? "Tx" : "Rx",
+			udma_q->type == UDMA_TX ? "Tx" : "Rx",
 			q_params->size,
 			q_params->desc_phy_base,
 			q_params->desc_base);
@@ -735,12 +739,14 @@ int al_udma_q_reset(struct al_udma_q *udma_q)
 		return rc;
 
 	/* Assert the queue reset */
-	if (udma_q->udma->type == UDMA_TX)
+	if (udma_q->type == UDMA_TX) {
 		q_sw_ctrl_reg = &udma_q->q_regs->m2s_q.q_sw_ctrl;
-	else
+        al_reg_write32(q_sw_ctrl_reg, UDMA_M2S_Q_SW_CTRL_RST_Q);
+    }
+	else {
 		q_sw_ctrl_reg = &udma_q->q_regs->s2m_q.q_sw_ctrl;
-
-	al_reg_write32(q_sw_ctrl_reg, UDMA_M2S_Q_SW_CTRL_RST_Q);
+        al_reg_write32(q_sw_ctrl_reg, UDMA_S2M_Q_SW_CTRL_RST_Q);
+    }
 
 	return 0;
 }
@@ -748,7 +754,7 @@ int al_udma_q_reset(struct al_udma_q *udma_q)
 /*
  * return (by reference) a pointer to a specific queue date structure.
  */
-int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid,
+static int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
 						struct al_udma_q **q_handle)
 {
 
@@ -759,7 +765,10 @@ int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid,
 		al_err("udma [%s]: invalid queue id (%d)\n", udma->name, qid);
 		return -EINVAL;
 	}
-	*q_handle = &udma->udma_q[qid];
+    if (type == UDMA_TX ) 
+	    *q_handle = &udma->udma_q_m2s[qid];
+    else
+	    *q_handle = &udma->udma_q_s2m[qid];
 	return 0;
 }
 
@@ -771,15 +780,17 @@ int al_udma_state_set(struct al_udma *udma, enum al_udma_state state)
 	uint32_t reg;
 
 	al_assert(udma != NULL);
-	if (state == udma->state)
+	if (state == udma->state_m2s && state == udma->state_s2m)
 		al_dbg("udma [%s]: requested state identical to "
 			"current state (%d)\n", udma->name, state);
 
-	al_dbg("udma [%s]: change state from (%s) to (%s)\n",
-		 udma->name, al_udma_states_name[udma->state],
+	al_dbg("udma [%s]: change state from (%s/%s) to (%s)\n",
+		 udma->name, al_udma_states_name[udma->state_m2s], al_udma_states_name[udma->state_s2m],
 		 al_udma_states_name[state]);
 
 	reg = 0;
+
+    // TODO actually should use M2S or S2M bits
 	switch (state) {
 	case UDMA_DISABLE:
 		reg |= UDMA_M2S_CHANGE_STATE_DIS;
@@ -795,30 +806,28 @@ int al_udma_state_set(struct al_udma *udma, enum al_udma_state state)
 		return -EINVAL;
 	}
 
-	if (udma->type == UDMA_TX)
-		al_reg_write32(&udma->udma_regs->m2s.m2s.change_state, reg);
-	else
-		al_reg_write32(&udma->udma_regs->s2m.s2m.change_state, reg);
+    al_reg_write32(&udma->udma_regs_m2s->m2s.change_state, reg);
+    al_reg_write32(&udma->udma_regs_s2m->s2m.change_state, reg);
 
-	udma->state = state;
+	udma->state_m2s = state;
+	udma->state_s2m = state;
 	return 0;
 }
 
 static void al_udma_s2m_fifos_flush(struct al_udma *udma)
 {
 	al_assert(udma);
-	al_assert(udma->type == UDMA_RX);
 
 	/** FIFO reset - toggle enable bit*/
-	al_reg_write32(&udma->udma_regs->s2m.s2m.fifo_en, 0);
+	al_reg_write32(&udma->udma_regs_s2m->s2m.fifo_en, 0);
 	/** restart udma control state machines */
-	al_reg_write32(&udma->udma_regs->s2m.s2m.clear_ctrl, 0xFFFFFFFF);
+	al_reg_write32(&udma->udma_regs_s2m->s2m.clear_ctrl, 0xFFFFFFFF);
 	al_udelay(1);
 
 	/** Re enable fifo's */
-	al_reg_write32(&udma->udma_regs->s2m.s2m.fifo_en, 0xFFFFFFFF);
+	al_reg_write32(&udma->udma_regs_s2m->s2m.fifo_en, 0xFFFFFFFF);
 	/** restart udma state machines */
-	al_reg_write32(&udma->udma_regs->s2m.s2m.clear_ctrl, 0xFFFFFFFF);
+	al_reg_write32(&udma->udma_regs_s2m->s2m.clear_ctrl, 0xFFFFFFFF);
 	al_udelay(1);
 }
 
@@ -831,7 +840,7 @@ static void udma_s2m_stream_set_mode(struct al_udma *udma, al_bool state)
 {
 	uint32_t stream_dis = AL_UDMA_S2M_STREAM_FLUSH;
 
-	al_reg_write32_masked(&udma->udma_regs->s2m.s2m.stream_cfg,
+	al_reg_write32_masked(&udma->udma_regs_s2m->s2m.stream_cfg,
 		stream_dis,
 		state ? 0 : stream_dis);
 }
@@ -844,7 +853,7 @@ static void udma_s2m_stream_queues_set_mode(struct al_udma *udma, al_bool state)
 	for (i = 0; i < udma->num_of_queues; i++) {
 		struct al_udma_q *dma_q = NULL;
 		uint32_t *reg_addr;
-		rc = al_udma_q_handle_get(udma, i, &dma_q);
+		rc = al_udma_q_handle_get(udma, i, UDMA_RX, &dma_q);
 		if (rc != 0) {
 			al_assert_msg(!rc, "%s : Failed at al_udma_q_handle_get (rc = %d)\n",
 				__func__, rc);
@@ -860,7 +869,7 @@ static void udma_s2m_stream_queues_set_mode(struct al_udma *udma, al_bool state)
 static void al_udma_s2m_stream_configure(struct al_udma *udma, al_bool state)
 {
 	al_assert(udma);
-	al_assert(udma->type == UDMA_RX);
+//	al_assert(udma->type == UDMA_RX);
 
 	if (state == AL_TRUE) {
 		udma_s2m_stream_queues_set_mode(udma, state);
@@ -884,9 +893,9 @@ static al_bool al_udma_s2m_stream_status_get(struct al_udma *udma)
 	al_bool stream_status = AL_TRUE;
 
 	al_assert(udma);
-	al_assert(udma->type == UDMA_RX);
+	//al_assert(udma->type == UDMA_RX);
 
-	stream_cfg = al_reg_read32(&udma->udma_regs->s2m.s2m.stream_cfg);
+	stream_cfg = al_reg_read32(&udma->udma_regs_s2m->s2m.stream_cfg);
 	stream_cfg &= AL_UDMA_S2M_STREAM_FLUSH;
 
 	if (stream_cfg == AL_UDMA_S2M_STREAM_FLUSH)
@@ -898,7 +907,7 @@ static al_bool al_udma_s2m_stream_status_get(struct al_udma *udma)
 		uint32_t *reg_addr;
 		uint32_t reg_val;
 
-		rc = al_udma_q_handle_get(udma, i, &dma_q);
+		rc = al_udma_q_handle_get(udma, i, UDMA_RX, &dma_q);
 		if (rc != 0)
 			al_err("%s : Failed at al_udma_q_handle_get (rc = %d)\n", __func__, rc);
 
@@ -931,7 +940,7 @@ static al_bool al_udma_s2m_stream_status_get(struct al_udma *udma)
 /*
  * return the current UDMA hardware state
  */
-enum al_udma_state al_udma_state_get(struct al_udma *udma)
+enum al_udma_state al_udma_state_get(struct al_udma *udma, enum al_udma_type type)
 {
 	uint32_t state_reg;
 	uint32_t comp_ctrl;
@@ -940,11 +949,11 @@ enum al_udma_state al_udma_state_get(struct al_udma *udma)
 	uint32_t desc_pref;
 	al_bool stream_enabled;
 
-	if (udma->type == UDMA_TX) {
-		state_reg = al_reg_read32(&udma->udma_regs->m2s.m2s.state);
+	if (type == UDMA_TX) {
+		state_reg = al_reg_read32(&udma->udma_regs_m2s->m2s.state);
 		stream_enabled = AL_TRUE;
 	} else {
-		state_reg = al_reg_read32(&udma->udma_regs->s2m.s2m.state);
+		state_reg = al_reg_read32(&udma->udma_regs_s2m->s2m.state);
 		stream_enabled = al_udma_s2m_stream_status_get(udma);
 	}
 
@@ -1018,7 +1027,7 @@ int al_udma_state_set_wait(struct al_udma *dma, enum al_udma_state new_state, al
 	 *    For example : if the EC hasn't been initialized but transferred traffic
 	 */
 	if (flush_stream) {
-		al_assert(dma->type == UDMA_RX);
+		//al_assert(dma->type == UDMA_RX);
 		al_assert((new_state == UDMA_DISABLE) || (new_state == UDMA_NORMAL));
 
 		al_udma_s2m_stream_configure(dma, AL_FALSE);	/** stop stream */
@@ -1035,13 +1044,27 @@ int al_udma_state_set_wait(struct al_udma *dma, enum al_udma_state new_state, al
 	if ((new_state == UDMA_NORMAL) || (new_state == UDMA_DISABLE))
 		expected_state = UDMA_IDLE;
 
+    // wait for both m2s and s2m states to change
+    count = 1000;
 	do {
-		state = al_udma_state_get(dma);
+		state = al_udma_state_get(dma, UDMA_TX);
 		if (state == expected_state)
 			break;
 		al_udelay(1);
 		if (count-- == 0) {
-			al_warn("[%s] warn: dma state didn't change to %s\n",
+			al_warn("[%s] warn: dma m2s state didn't change to %s\n",
+				 dma->name, al_udma_states_name[new_state]);
+			return -ETIMEDOUT;
+		}
+	} while (1);
+    count = 1000;
+	do {
+		state = al_udma_state_get(dma, UDMA_RX);
+		if (state == expected_state)
+			break;
+		al_udelay(1);
+		if (count-- == 0) {
+			al_warn("[%s] warn: dma s2m state didn't change to %s\n",
 				 dma->name, al_udma_states_name[new_state]);
 			return -ETIMEDOUT;
 		}

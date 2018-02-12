@@ -61,10 +61,12 @@ extern "C" {
 #endif
 
 /** UDMA registers, either m2s or s2m */
+#if 0
 union udma_regs {
 	struct udma_m2s_regs_v4 m2s;
 	struct udma_s2m_regs_v4 s2m;
 };
+#endif
 
 struct unit_regs_v3 {
 	struct udma_m2s_regs_v3 m2s;
