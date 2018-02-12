@@ -40,29 +40,36 @@
   "net_name": "TrivNet",
   "waveops": [
     {
-      "atom_id": 8,      "batch_fold_idx": 0,      "ifmaps_fold_idx": 0,      "ifmaps_replicate": false,
+      "atom_id": 8,      "atom_size": 1024,      "batch_fold_idx": 0,      "data_type": "float16",
+      "ifmaps_fold_idx": 0,      "ifmaps_replicate": false,
       "layer_name": "1conv3/conv1",
       "length": 18,      "offset_in_file": 0,      "previous_waveops": [],
       "ref_file": "trivnet_1conv3__weight1__read:0_CRSM.npy",
+      "ref_file_format": "NCHW",
+      "ref_file_shape": [ 1, 1, 4, 4 ],
       "waveop_name": "1conv3/conv1/SBAtomFile_0",
       "waveop_type": "SBAtomFile"
     },
     {
-      "atom_id": 0,      "batch_fold_idx": 0,      "ifmaps_fold_idx": 0,      "ifmaps_replicate": false,
+      "atom_id": 0,      "atom_size": 1024,      "batch_fold_idx": 0,      "data_type": "float16",
+      "ifmaps_fold_idx": 0,      "ifmaps_replicate": false,
       "layer_name": "input",
       "length": 32,      "offset_in_file": 0,      "previous_waveops": [],
       "ref_file": "trivnet_input:0_NCHW.npy",
+      "ref_file_format": "NCHW",
+      "ref_file_shape": [ 1, 1, 4, 4 ],
       "waveop_name": "input/SBAtomFile_0",
       "waveop_type": "SBAtomFile"
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 3,      "fmap_x_step": 1,      "fmap_y_num": 3,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/SBAtomFile_0",
         "input/SBAtomFile_0"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 10,      "start": true,
-      "stop": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 10,      "psum_x_num": 3,      "psum_x_step": 1,      "psum_y_num": 3,      "psum_y_step": 3,      "start": true,
+      "start_tensor_calc": true,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 0, 0 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0",
@@ -70,12 +77,13 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 0
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 4,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 4,      "fmap_x_step": 1,      "fmap_y_num": 3,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 4,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 8,      "start": false,
-      "stop": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 8,      "psum_x_num": 4,      "psum_x_step": 1,      "psum_y_num": 3,      "psum_y_step": 4,      "start": false,
+      "start_tensor_calc": false,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 0, 1 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1",
@@ -83,12 +91,13 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 2
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 3,      "fmap_x_step": 1,      "fmap_y_num": 3,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 8,      "start": false,
-      "stop": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 8,      "psum_x_num": 3,      "psum_x_step": 1,      "psum_y_num": 3,      "psum_y_step": 3,      "start": false,
+      "start_tensor_calc": false,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 0, 2 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2",
@@ -96,12 +105,13 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 4
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 3,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 3,      "fmap_x_step": 1,      "fmap_y_num": 4,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 2,      "start": false,
-      "stop": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 2,      "psum_x_num": 3,      "psum_x_step": 1,      "psum_y_num": 4,      "psum_y_step": 3,      "start": false,
+      "start_tensor_calc": false,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 1, 0 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0",
@@ -109,12 +119,13 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 6
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 4,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 4,      "fmap_x_step": 1,      "fmap_y_num": 4,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 4,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 0,      "start": false,
-      "stop": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 0,      "psum_x_num": 4,      "psum_x_step": 1,      "psum_y_num": 4,      "psum_y_step": 4,      "start": false,
+      "start_tensor_calc": false,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 1, 1 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1",
@@ -122,12 +133,13 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 8
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 3,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 3,      "fmap_x_step": 1,      "fmap_y_num": 4,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 0,      "start": false,
-      "stop": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 0,      "psum_x_num": 3,      "psum_x_step": 1,      "psum_y_num": 4,      "psum_y_step": 3,      "start": false,
+      "start_tensor_calc": false,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 1, 2 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2",
@@ -135,12 +147,13 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 10
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 8,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 3,      "fmap_x_step": 1,      "fmap_y_num": 3,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 8,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 2,      "start": false,
-      "stop": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 2,      "psum_x_num": 3,      "psum_x_step": 1,      "psum_y_num": 3,      "psum_y_step": 3,      "start": false,
+      "start_tensor_calc": false,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 2, 0 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0",
@@ -148,12 +161,13 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 12
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 8,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 4,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 4,      "fmap_x_step": 1,      "fmap_y_num": 3,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 8,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 4,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 0,      "start": false,
-      "stop": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 0,      "psum_x_num": 4,      "psum_x_step": 1,      "psum_y_num": 3,      "psum_y_step": 4,      "start": false,
+      "start_tensor_calc": false,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 2, 1 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1",
@@ -161,12 +175,14 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 14
     },
     {
-      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 10,      "layer_name": "1conv3/conv1",
-      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
+      "batching_in_wave": 1,      "fmap_x_num": 3,      "fmap_x_step": 1,      "fmap_y_num": 3,      "fmap_y_step": 4,      "fmap_z_num": 1,      "fmap_z_step_atoms": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 10,      "layer_name": "1conv3/conv1",
+      "num_column_partitions": 2,      "num_row_partitions": 2,      "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1"
       ],
-      "psum_bank_id": 0,      "psum_bank_offset": 0,      "start": false,
+      "psum_bank_id": 0,      "psum_bank_offset": 0,      "psum_x_num": 3,      "psum_x_step": 1,      "psum_y_num": 3,      "psum_y_step": 3,      "start": false,
+      "start_tensor_calc": false,
       "stop": true,
+      "stop_tensor_calc": false,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 2, 2 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2",
@@ -186,11 +202,14 @@
       "waveop_type": "Activation"
     },
     {
-      "atom_id": 88,      "batch_fold_idx": 0,      "layer_name": "1conv3/relu1",
+      "atom_id": 88,      "atom_size": 1024,      "batch_fold_idx": 0,      "data_type": "float16",
+      "layer_name": "1conv3/relu1",
       "length": 32,      "offset_in_file": 0,      "ofmaps_fold_idx": 0,      "previous_waveops": [
         "1conv3/relu1/Activation_n0_m0_h0_w0"
       ],
       "ref_file": "save_1conv3__relu1.npy",
+      "ref_file_format": "NCHW",
+      "ref_file_shape": [ 1, 1, 4, 4 ],
       "waveop_name": "1conv3/relu1/SBAtomSave_0",
       "waveop_type": "SBAtomSave"
     }

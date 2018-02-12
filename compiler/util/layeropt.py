@@ -162,12 +162,17 @@ class CircularBuffer:
         self.dram_data_len = 0
         self.layer_name = ""
         self.layer_type = "Output"
+        self.layer_format = ""
+        self.layer_shape = []
         self.addr2atom = {}
+        self.data_type = 'float16'
 
     def load_data(self, waveop):
         self.reset()
         self.layer_name = waveop.data['layer_name']
         self.layer_type = waveop.data['layer_type']
+        self.layer_format = waveop.data['ofmap_format']
+        self.layer_shape = waveop.data['ofmap_shape']
         if (self.layer_type == 'Input' or self.layer_type == 'Const'):
             self.dram_data_file = waveop.data['ref_file']
         else:            
@@ -180,6 +185,7 @@ class CircularBuffer:
         self.dram_data_file = file
         self.dram_data = np.load(self.dram_data_file)
         self.item_sz = self.dram_data.dtype.itemsize   
+        self.data_type = self.dram_data.dtype.name
         self.dram_data_len = self.dram_data.size * self.item_sz
         # Determine the actual amount of data per atom
         # TODO: come up with a better formula for atom_data_sz to take care of all cases
@@ -234,7 +240,11 @@ class CircularBuffer:
               'waveop_name'      : self.layer_name+"/SBAtomFile_%d"%chunk_id,
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
+              'atom_size'        : self.atom_sz,
+              'data_type'        : self.data_type,
               'ref_file'         : self.dram_data_file,
+              'ref_file_format'  : self.layer_format,
+              'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset,
               'length'           : length,
               'ifmaps_replicate' : False,
@@ -253,7 +263,11 @@ class CircularBuffer:
               'waveop_name'      : self.layer_name+"/SBAtomSave_%d"%chunk_id,
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
+              'atom_size'        : self.atom_sz,
+              'data_type'        : self.data_type,
               'ref_file'         : self.dram_data_file,
+              'ref_file_format'  : self.layer_format,
+              'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset,
               'length'           : length,
               'ofmaps_fold_idx'  : wave_id.m_id,
@@ -649,12 +663,12 @@ class FusedOp(list):
               'layer_name'              : self.conv_op.data['layer_name'],
               'weights_atom_id'         : tpb.statebuffer.circbuf_weights.current_atom_id,
               'ifmaps_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # if multiple atoms loaded, pick the first one
+              'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,
               'weights_offset_in_atom'  : self.conv_op.weight_wave_lower_addr % tpb.statebuffer.circbuf_weights.atom_data_sz,  # TODO: -1 means don't load new weights
               'ifmaps_offset_in_atom'   : self.conv_op.ifmap_wave_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
               'wave_id_format'          : wave_id.format,
               'wave_id'                 : wave_id.show(),
               'start'                   : not(psum_add),
-              'stop'                    : False,
               'stride_x'                : self.conv_op.stride_x,
               'stride_y'                : self.conv_op.stride_y,
               'psum_bank_id'            : self.conv_op.psum_bank_dst,
@@ -665,8 +679,21 @@ class FusedOp(list):
               'ofmap_count'             : self.conv_op.ofmap_count,
               'ofmap_tile_width'        : ofmap_wave_width,
               'ofmap_tile_height'       : ofmap_wave_height, 
-              'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,
               'batching_in_wave'        : self.conv_op.Tn,
+              'start_tensor_calc'       : not(psum_add),
+              'stop_tensor_calc'        : False,
+              'fmap_x_step'             : self.conv_op.stride_x,
+              'fmap_x_num'              : ofmap_wave_width,
+              'fmap_y_step'             : self.conv_op.H * self.conv_op.stride_y,
+              'fmap_y_num'              : ofmap_wave_height,
+              'fmap_z_step_atoms'       : 1,    # 1 for now; may need more if input needs more than one atom at once 
+              'fmap_z_num'              : self.conv_op.Tn,
+              'num_row_partitions'      : self.conv_op.ifmap_count,
+              'psum_x_step'             : 1,
+              'psum_x_num'              : ofmap_wave_width,
+              'psum_y_step'             : ofmap_wave_width,
+              'psum_y_num'              : ofmap_wave_height,
+              'num_column_partitions'   : self.conv_op.ofmap_count,
             }
         return matmul_waveop
 
@@ -1013,6 +1040,8 @@ class TPBSched:
         np.save(result_file, result)
         self.statebuffer.circbuf_scratch.layer_type = "Output"
         self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
+        self.statebuffer.circbuf_scratch.layer_format = op_list[-1].data['ofmap_format']
+        self.statebuffer.circbuf_scratch.layer_shape = op_list[-1].data['ofmap_shape']
         # only clear the scratch buffer if there's no ResAdd input there
         if (self.statebuffer.circbuf_scratch.dram_data_file == None):                    
             if (op_list.has_pool):
@@ -1127,6 +1156,8 @@ if __name__ == "__main__":
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
                 tpb.statebuffer.circbuf_ifmaps.layer_name = op_list[0].data['layer_name']
                 tpb.statebuffer.circbuf_ifmaps.layer_type = op_list[0].data['layer_type']
+                tpb.statebuffer.circbuf_ifmaps.layer_format = op_list[0].data['ofmap_format']
+                tpb.statebuffer.circbuf_ifmaps.layer_shape = op_list[0].data['ofmap_shape']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
                         tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
