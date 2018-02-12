@@ -70,8 +70,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
 
     matmulInstr.psum_start_addr         = psumBuf.gEntryAddress(matmulWaveOp->gPsumBankId(), matmulWaveOp->gPsumBankOffset());
     matmulInstr.psum_x_num              = matmulWaveOp->gOfmapTileWidth();
+  //matmul_args.psum_x_num = matmul_args.fmap_x_num;
     matmulInstr.psum_x_step             = 1;
     matmulInstr.psum_y_num              = matmulWaveOp->gOfmapTileHeight();
+  //matmul_args.psum_y_num = matmul_args.fmap_y_num;
     matmulInstr.psum_y_step             = matmulInstr.psum_x_num;
 
     matmulInstr.start_tensor_calc       = matmulWaveOp->qStart();
