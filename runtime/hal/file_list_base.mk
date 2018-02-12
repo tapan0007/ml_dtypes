@@ -23,7 +23,7 @@ HAL_INCLUDE_PATH = \
 	-I$(HAL_TOP)/include/common \
 	-I$(HAL_TOP)/include/udma \
 	-I$(HAL_TOP)/include/iofic \
-    -I$(HAL_TOP)/include/plat_api/sample
+    -I$(HAL_TOP)/include/plat_api
 
 #	-I$(HAL_TOP)/include/udma_fast \
 
