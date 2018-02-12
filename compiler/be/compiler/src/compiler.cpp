@@ -81,10 +81,20 @@ Main(int argc, char* argv[])
         } else
 #endif
         if (arg == "--json") {
+            if (JsonInFileName) {
+                std::cerr << "Must specify net" << "\n";
+                exit(1);
+            }
             JsonInFileName = argv[i+1];
             i += 1;
-        } else if (arg == "--wave") {
+        } else if (arg == "--wavegraph") {
+            if (JsonInFileName) {
+                std::cerr << "Must specify net" << "\n";
+                exit(1);
+            }
             useWave = true;
+            JsonInFileName = argv[i+1];
+            i += 1;
         } else {
             std::cerr << "Wrong argument: " << arg << "\n";
             exit(1);
