@@ -161,6 +161,7 @@ class CircularBuffer:
         self.dram_data_file = None
         self.dram_data = None
         self.dram_data_len = 0
+        self.dram_data_len_per_NC = 0
         self.layer_name = ""
         self.layer_type = "Output"
         self.layer_format = ""
@@ -200,6 +201,7 @@ class CircularBuffer:
         # TODO: refactor the following function since it is used in multiple places
         if (self.layer_type == 'Input' or self.layer_type == 'Const' or self.layer_type == 'Output'):
             N, C, H, W = [i*self.item_sz for i in self.dram_data.shape]
+            self.dram_data_len_per_NC = self.dram_data_len/(N*C)
             if (H*W <= self.atom_sz):
                 multiple = self.atom_sz // (H*W)
                 self.atom_data_sz = (H*W) * min(C, multiple)
@@ -216,6 +218,7 @@ class CircularBuffer:
                 self.atom_data_sz = self.atom_sz
         else:            
             C, R, S, M = [i*self.item_sz for i in self.dram_data.shape]
+            self.dram_data_len_per_NC = self.dram_data_len/C
             if (R*S*M <= self.atom_sz):
                 multiple = self.atom_sz // (R*S*M)
                 self.atom_data_sz = (R*S*M) * min(C, multiple)
@@ -230,11 +233,11 @@ class CircularBuffer:
         print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
-    def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id):
+    def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, ifmap_count):
         offset = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
-        if ((offset + length) > self.dram_data_len):
-            length = self.dram_data_len % self.atom_data_sz
+        if ((offset + length) > self.dram_data_len_per_NC):
+            length = self.dram_data_len_per_NC % self.atom_data_sz
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomFile",
@@ -250,14 +253,15 @@ class CircularBuffer:
               'length'           : length,
               'ifmaps_replicate' : False,
               'ifmaps_fold_idx'  : wave_id.c_id,
-              'batch_fold_idx'   : wave_id.n_id 
+              'batch_fold_idx'   : wave_id.n_id,
+              'ifmap_count'      : ifmap_count,
             }
 
-    def gen_dram_save_waveop(self, wave_id, atom_id, chunk_id):
+    def gen_dram_save_waveop(self, wave_id, atom_id, chunk_id, ofmap_count):
         offset = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
-        if ((offset + length) > self.dram_data_len):
-            length = self.dram_data_len % self.atom_data_sz
+        if ((offset + length) > self.dram_data_len_per_NC):
+            length = self.dram_data_len_per_NC % self.atom_data_sz
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
@@ -272,10 +276,11 @@ class CircularBuffer:
               'offset_in_file'   : offset,
               'length'           : length,
               'ofmaps_fold_idx'  : wave_id.m_id,
-              'batch_fold_idx'   : wave_id.n_id 
+              'batch_fold_idx'   : wave_id.n_id,
+              'ofmap_count'      : ofmap_count,
             }
 
-    def read_data_region(self, wave_id, lower_addr, upper_addr):
+    def read_data_region(self, wave_id, lower_addr, upper_addr, ifmap_count):
         dram_waveops = []
         if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
         lower_addr_chunked = lower_addr // self.atom_data_sz
@@ -283,11 +288,11 @@ class CircularBuffer:
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
-                dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i))
+                dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
                 self.addr2atom[i] = atom_id
         return dram_waveops
 
-    def write_data_region(self, wave_id, lower_addr, upper_addr):
+    def write_data_region(self, wave_id, lower_addr, upper_addr, ofmap_count):
         if (args.debug > 2): print("%s: write byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
         dram_waveops = []
         lower_addr_chunked = lower_addr // self.atom_data_sz
@@ -295,12 +300,12 @@ class CircularBuffer:
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
-                dram_waveops.append(self.gen_dram_save_waveop(wave_id, atom_id, i))
+                dram_waveops.append(self.gen_dram_save_waveop(wave_id, atom_id, i, ofmap_count))
                 self.addr2atom[i] = atom_id
         # assuming that we always write to the last piece of atom last, when 
         # there's a write to last piece of atom, trigger to dump to DRAM and deallocate atom
         # TODO: optimize by keep some atoms between layers
-        if (upper_addr == self.dram_data_len - self.item_sz or upper_addr == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz):
+        if (upper_addr == self.dram_data_len_per_NC - self.item_sz or upper_addr == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz):
             for i in range(lower_addr_chunked, upper_addr_chunked+1):
                 self.free_atom(self.addr2atom[i])
                 del self.addr2atom[i]
@@ -347,7 +352,7 @@ class CircularBuffer:
                 self.head_pointer = self.start
 
     def print_stats(self):
-        print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d DRAM data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, self.dram_data_len))
+        print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d DRAM data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, self.dram_data_len_per_NC))
 
 ##################################################################################
 # Neural network node, containing data read from JSON
@@ -452,6 +457,11 @@ class KNode:
         if ((tile_id.w_id+1) * self.ofmap_full_tilex_sz > self.F):
             self.tile_width = self.F - self.tile_x_start
         self.tile_size = self.tile_height * self.tile_width
+
+        # number of OFMAPs for this tile 
+        pe_col_start = tile_id.m_id * PEArray.NUM_COLS
+        pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
+        self.ofmap_count = pe_col_stop - pe_col_start + 1
 
         # compute the address bounds for OFMAP tile within OFMAPs tensor
         # TODO: for Tn>1, need to have multiple bounds for each batch item
@@ -755,11 +765,13 @@ class FusedOp(list):
             dram_weights_waveops = tpb.statebuffer.circbuf_weights.read_data_region(
                                         wave_id, 
                                         self.conv_op.weight_wave_lower_addr, 
-                                        self.conv_op.weight_wave_upper_addr)
+                                        self.conv_op.weight_wave_upper_addr,
+                                        self.conv_op.ifmap_count)
             dram_ifmaps_waveops = tpb.statebuffer.circbuf_ifmaps.read_data_region(
                                         wave_id, 
                                         self.conv_op.ifmap_wave_lower_addr, 
-                                        self.conv_op.ifmap_wave_upper_addr)
+                                        self.conv_op.ifmap_wave_upper_addr,
+                                        self.conv_op.ifmap_count)
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
             tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops+dram_ifmaps_waveops)
@@ -795,7 +807,7 @@ class FusedOp(list):
                 bias_end = min(bias_start + PEArray.NUM_COLS, self.conv_op.M)
                 bias_extracted = np.zeros(PEArray.NUM_COLS)
                 bias_extracted[0 : bias_end - bias_start] = bias[bias_start : bias_end]
-                dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_start, bias_end)
+                dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_start, bias_end, self.conv_op.ifmap_count)
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
                 psum_bank_dst = 2
                 if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid", op_list[i+1].data['layer_type'])):
@@ -809,7 +821,7 @@ class FusedOp(list):
                 psum_bank_src = psum_bank_dst
             elif (layer_type == 'ResAdd'):
                 tpb.pool.wait_tile_done(tile_id)
-                dram_resadd_waveop = tpb.statebuffer.circbuf_scratch.read_data_region(wave_id, self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr)
+                dram_resadd_waveop = tpb.statebuffer.circbuf_scratch.read_data_region(wave_id, self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr, self.conv_op.ifmap_count)
                 residue_tile = np.zeros((self.conv_op.ofmap_full_tile_sz, PEArray.NUM_COLS))
                 for j in range(PEArray.NUM_COLS):
                     M_idx = tile_id.m_id * PEArray.NUM_COLS + j
@@ -1148,7 +1160,7 @@ class TPBSched:
                                         output_params_op.tile_x_start : output_params_op.tile_x_start + output_params_op.tile_width]\
                                     = result_tile[0:output_params_op.tile_height, 0:output_params_op.tile_width]
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
-                        dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(wave_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr)
+                        dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(wave_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr, output_params_op.ofmap_count)
                         # if PEArray instruction is the last one in FusedOp list, then issue an identity pool instruction to move PSUM tile into SB
                         if (op_list.conv_op == op_list[-1]):
                             op_list.execute_identity_pool(tpb, tile_id, psum_bank_src, self.statebuffer.circbuf_scratch.current_atom_id) #TODO: the current_atom_id must point to the first if there are multiple atoms
@@ -1255,10 +1267,8 @@ if __name__ == "__main__":
             print("Saving Wave-Graph %s"%args.wavegraph)
             with (open(args.wavegraph, 'w')) as f:
                 s = json.dumps(wavegraph_json, indent=2, sort_keys=True)
-                s = re.sub(r'\s+(\d+,)\n', r' \1', s, flags=re.S)
-                s = re.sub(r',\s+(\d+)\n\s+\]', r', \1 ]', s, flags=re.S)
-                s = re.sub(r'\s+(\[ \d+, \d+ \],)\n', r' \1', s, flags=re.S)
-                s = re.sub(r',\s+(\[ \d+, \d+ \])\n\s+\]', r', \1 ]', s, flags=re.S)
+                s = re.sub(r'\s+(\d+,)\n\s+(\d+)', r'\1\2', s, flags=re.S)
+                s = re.sub(r',\s*(\d+)\n\s+\]', r',\1]', s, flags=re.S)
                 f.write(s)
         except Exception as e:
             print(e)
