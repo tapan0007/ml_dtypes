@@ -68,6 +68,9 @@ const char *const al_udma_states_name[] = {
 /*  dma_q flags */
 #define AL_UDMA_Q_FLAGS_NO_COMP_UPDATE	AL_BIT(1)
 
+static int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
+						struct al_udma_q **q_handle);
+
 static void al_udma_set_defaults(struct al_udma *udma)
 {
 	uint8_t rev_id = udma->rev_id;
@@ -403,12 +406,8 @@ unsigned int al_udma_rev_id_get(struct al_udma *udma)
 	return udma->rev_id;
 }
 
-#if 0 // TODO put this back
-
 /* Performance params printout */
-void al_udma_perf_params_print(
-	struct al_udma		*m2s_udma,
-	struct al_udma		*s2m_udma)
+void al_udma_perf_params_print(struct al_udma *udma)
 {
 	struct al_udma_m2s_desc_pref_conf m2s_conf;
 	struct al_udma_s2m_desc_pref_conf s2m_conf;
@@ -422,13 +421,13 @@ void al_udma_perf_params_print(
 	int err;
 	unsigned int i;
 
-	err = al_udma_m2s_pref_get(m2s_udma, &m2s_conf);
+	err = al_udma_m2s_pref_get(udma, &m2s_conf);
 	if (err) {
 		al_err("%s: al_udma_handle_init failed!\n", __func__);
 		return;
 	}
 
-	reg = al_reg_read32(&m2s_udma->udma_regs->m2s.axi_m2s.ostand_cfg);
+	reg = al_reg_read32(&udma->udma_regs_m2s->axi_m2s.ostand_cfg);
 	m2s_ostand_max_data_read = AL_REG_FIELD_GET(reg,
 		UDMA_AXI_M2S_OSTAND_CFG_MAX_DATA_RD_MASK,
 		UDMA_AXI_M2S_OSTAND_CFG_MAX_DATA_RD_SHIFT);
@@ -439,18 +438,18 @@ void al_udma_perf_params_print(
 		UDMA_AXI_M2S_OSTAND_CFG_MAX_COMP_REQ_MASK,
 		UDMA_AXI_M2S_OSTAND_CFG_MAX_COMP_REQ_SHIFT);
 
-	err = al_udma_s2m_pref_get(s2m_udma, &s2m_conf);
+	err = al_udma_s2m_pref_get(udma, &s2m_conf);
 	if (err) {
 		al_err("%s: al_udma_handle_init failed!\n", __func__);
 		return;
 	}
 
-	reg = al_reg_read32(&s2m_udma->udma_regs->s2m.axi_s2m.ostand_cfg_rd);
+	reg = al_reg_read32(&udma->udma_regs_s2m->axi_s2m.ostand_cfg_rd);
 	s2m_ostand_max_desc_read = AL_REG_FIELD_GET(reg,
 		UDMA_AXI_S2M_OSTAND_CFG_RD_MAX_DESC_RD_OSTAND_MASK,
 		UDMA_AXI_S2M_OSTAND_CFG_RD_MAX_DESC_RD_OSTAND_SHIFT);
 
-	reg = al_reg_read32(&s2m_udma->udma_regs->s2m.axi_s2m.ostand_cfg_wr);
+	reg = al_reg_read32(&udma->udma_regs_s2m->axi_s2m.ostand_cfg_wr);
 	s2m_ostand_max_data_req = AL_REG_FIELD_GET(reg,
 		UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_DATA_WR_OSTAND_MASK,
 		UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_DATA_WR_OSTAND_SHIFT);
@@ -485,11 +484,11 @@ void al_udma_perf_params_print(
 	al_print("    > min_burst_above_thr = %u\n", s2m_conf.min_burst_above_thr);
 	al_print("    > min_burst_below_thr = %u\n", s2m_conf.min_burst_below_thr);
 
-	for (i = 0; i < al_udma_num_queues_get(s2m_udma); i++) {
+	for (i = 0; i < al_udma_num_queues_get(udma); i++) {
 		struct al_udma_q *s2m_udma_q;
 		struct al_udma_s2m_q_comp_conf comp_conf;
 
-		err = al_udma_q_handle_get(s2m_udma, i, &s2m_udma_q);
+		err = al_udma_q_handle_get(udma, i, UDMA_RX, &s2m_udma_q);
 		if (err) {
 			al_err("%s: al_udma_q_handle_get failed!\n", __func__);
 			return;
@@ -511,7 +510,6 @@ void al_udma_perf_params_print(
 		al_print("    > q_qos = %u\n", comp_conf.q_qos);
 	}
 }
-#endif
 
 /* Num available queues */
 unsigned int al_udma_num_queues_get(
