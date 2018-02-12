@@ -3,6 +3,7 @@ import os
 import math
 import re
 import numpy as np
+import copy
 import argparse
 from graphviz import Digraph
 
@@ -588,7 +589,7 @@ class WaveopStream(list):
 # FusedOp: consist of list of K-Nodes that are fused (communicate through PSUM buffers)
 class FusedOp(list):
 
-    def __init__(self):
+    def __init__(self, out_data_type):
         # only accept max one of each type in fused op
         self.has_pool = False
         self.has_resadd = False
@@ -600,6 +601,7 @@ class FusedOp(list):
         self.conv_op = None
         self.matmul_op = None
         self.biasadd_op = None
+        self.out_data_type = out_data_type 
 
     # Add operation to list of fused operations.
     # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
@@ -697,6 +699,49 @@ class FusedOp(list):
             }
         return matmul_waveop
 
+    # generate Pool waveop and add it to waveop stream
+    # TODO: currently, always go to SB after Pooling
+    def gen_pool_waveop(self, tpb, tile_id, src_is_psum, dst_sb_atom_id):
+        if (self.pool_op.data['layer_type'] == "Conv"):
+            pool_func = "MaxPool"
+        else:            
+            pool_func = self.pool_op.data['layer_type']
+        pool_waveop = {
+              'previous_waveops'        : [],   # to be added later
+              'waveop_type'             : 'Pool',
+              'waveop_name'             : self.pool_op.data['layer_name']+"/Pool_"+tile_id.id_string(),
+              'layer_name'              : self.pool_op.data['layer_name'],
+              'tile_id_format'          : tile_id.format,
+              'tile_id'                 : tile_id.show(),
+              'pool_func'               : pool_func,
+              'in_dtype'                : 'float32',
+              'out_dtype'               : self.out_data_type,
+              'src_is_psum'             : src_is_psum,
+              'src_psum_bank_id'        : self.conv_op.psum_bank_dst,
+              'src_psum_bank_offset'    : 0,
+              'src_sb_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # TODO: this should belong to the lowest atom ID if there are multiple atoms
+              'src_sb_offset_in_atom'   : self.pool_op.ifmap_tile_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
+              'src_x_step'              : 1,
+              'src_x_num'               : self.pool_op.tile_width,
+              'src_y_step'              : self.pool_op.W,
+              'src_y_num'               : self.pool_op.tile_height,
+              'src_z_step'              : self.pool_op.stride_x,
+              'src_z_num'               : self.pool_op.pool_window_x,
+              'src_w_step'              : self.pool_op.W * self.pool_op.stride_y,
+              'src_w_num'               : self.pool_op.pool_window_y,
+              'pool_frequency'          : self.pool_op.tile_size,
+              'num_partitions'          : self.pool_op.ofmap_count,
+              'dst_sb_atom_id'          : dst_sb_atom_id,
+              'dst_sb_offset_in_atom'   : self.pool_op.ofmap_tile_lower_addr % tpb.statebuffer.circbuf_scratch.atom_data_sz,
+              'dst_x_step'              : 1,
+              'dst_x_num'               : self.pool_op.ofmap_full_tilex_sz,
+              'dst_y_step'              : self.pool_op.E,
+              'dst_y_num'               : self.pool_op.ofmap_full_tiley_sz/self.pool_op.Tn,
+              'dst_z_step'              : self.pool_op.ofmap_full_tile_sz/self.pool_op.Tn,
+              'dst_z_num'               : self.pool_op.Tn,
+            }
+        return pool_waveop
+
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
     def execute_matmul_waveop(self, tpb, wave_id, inputs, weights, psum_add):
         pearray_packed_weights = self.conv_op.pack_wave_conv_weights(weights, wave_id)
@@ -719,6 +764,16 @@ class FusedOp(list):
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
             tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops+dram_ifmaps_waveops)
             return True
+
+    def execute_identity_pool(self, tpb, tile_id, psum_bank_src, dst_sb_atom_id):
+        self.pool_op = copy.deepcopy(self.conv_op)
+        self.pool_op.pool_window_x = 1
+        self.pool_op.pool_window_y = 1
+        self.pool_op.stride_x = 1
+        self.pool_op.stride_y = 1
+        self.pool_op.compute_ofmap_tile_info(tile_id)
+        pool_identity_waveop = self.gen_pool_waveop(tpb, tile_id, True, dst_sb_atom_id)
+        tpb.waveop_stream.add_linked(pool_identity_waveop, [])
 
     # execute remaining fused ops
     def execute_tile_waveops (self, tpb, wave_id, tile_id, psum_bank_src, bias, psum_temp):
@@ -906,7 +961,7 @@ class KGraph:
 
     # starting from current node position, collect as many operations as possible            
     def get_fused_ops(self):
-        fused_ops = FusedOp()
+        fused_ops = FusedOp(self.data_type)
         if (self.current_node == None):
             print("ERROR: found zero operations to fuse")
             exit(-1)
@@ -1065,7 +1120,7 @@ class TPBSched:
                                     if (op_list.execute_matmul_waveop(self, wave_id, inputs, weights, psum_add)):
                                         psum_add = True
                         # tile is done                                   
-                        self.waveop_stream.last_main_waveop['stop'] = True
+                        self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
                         self.pearray.trig_tile_done(tile_id)
                         # compute ofmap tile information (tile startx, starty, height, width)
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
@@ -1076,7 +1131,6 @@ class TPBSched:
                         psum_temp = self.pearray.extract_psum(psum_bank_src, 0, op_list.conv_op.ofmap_full_tile_sz)
                         # go through the remaining operations
                         psum_temp = op_list.execute_tile_waveops(tpb, wave_id, tile_id, psum_bank_src, bias, psum_temp)
-
                         # if operation is the last one, dump current result into a portion of final result
                         output_params_op = op_list.conv_op
                         if (op_list.has_pool):
@@ -1095,6 +1149,9 @@ class TPBSched:
                                     = result_tile[0:output_params_op.tile_height, 0:output_params_op.tile_width]
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                         dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(wave_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr)
+                        # if PEArray instruction is the last one in FusedOp list, then issue an identity pool instruction to move PSUM tile into SB
+                        if (op_list.conv_op == op_list[-1]):
+                            op_list.execute_identity_pool(tpb, tile_id, psum_bank_src, self.statebuffer.circbuf_scratch.current_atom_id) #TODO: the current_atom_id must point to the first if there are multiple atoms
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%2)
