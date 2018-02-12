@@ -59,7 +59,8 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     matmulInstr.num_row_partitions      = matmulWaveOp->gIfmapCount();
     matmulInstr.num_column_partitions   = matmulWaveOp->gOfmapCount();
 
-    matmulInstr.fmap_start_addr         = matmulWaveOp->gIfmapsAtomId() * wave::MatMulWaveOp::AtomSize;
+    matmulInstr.fmap_start_addr         = matmulWaveOp->gIfmapsAtomId() * wave::MatMulWaveOp::AtomSize +
+                                          matmulWaveOp->gIfmapsOffsetInAtom();
     matmulInstr.fmap_x_num              = matmulWaveOp->gIfmapTileWidth();
     matmulInstr.fmap_x_step             = convLayer->gStrideLeftRight();
     matmulInstr.fmap_y_num              = matmulWaveOp->gIfmapTileHeight();
