@@ -18,13 +18,30 @@ class KsubGraph:
   def print(self, title):
     print(title)
     self.graph.print()
-  # Links the npyinfo files used by teh graph from the srcDir
+  # Links the npyinfo files used by the graph from the srcDir
   def relinkNpFiles(self, srcDir):
     for n in self.graph.getNodes():
       for npInfo in n.getNpInfo():
         f = npInfo.npFile
         os.symlink("%s/%s" % (srcDir, f), f)
-
+  def genExecutorGraphJson(self, sgDir):
+    jsonDict = {"SubGraphDir" : sgDir}
+    jsonDict["Inputs"] = []
+    for ni in self.__inputs:
+      #inp = {"Node" : ni.getName(), "NpFile" : ni.getNpInfo()[0].npFile}
+      #jsonDict["Inputs"].append(inp)
+      jsonDict["Inputs"].append(ni.getName() + ":0")
+      jsonDict["Inputs"].append(ni.getNpInfo()[0].npFile)
+    o = self.__output
+    #out = {"Node" : o.getName(), "NpFile" : o.getNpInfo()[0].npFile}
+    outNpFile = o.getNpInfo()[0].npFile
+    outNpFile = outNpFile[:-4] + "-out.npy"
+    jsonDict["Output"] = [o.getName() + ":0", outNpFile]
+    return jsonDict
+  def addSideNodes(self, srcGraph):
+    self.__inputs = self.graph.transferSideNodes(srcGraph)
+    self.__output = self.graph.getTopNode()
+    
 # Graph partitioner
 class KgraphPart(object):
 
@@ -141,9 +158,7 @@ class KgraphPart(object):
     for i in range(self.__numColors):
       sg = self.__subgraphs[i]
       sg.print("Subgraph %d" % i)
-        
-
-
+  
 
 
 

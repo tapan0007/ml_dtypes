@@ -687,7 +687,7 @@ class Graph(Object):
     nextNodes = {}
     for edge in fromNode.getFanoutEdges():
       nextNodes[edge.getToPosNode().node] = 1
-    return(nextNodes.keys())
+    return(list(nextNodes.keys()))
   
   def nodePredecessors(self, toNode):
     preNodes = []
@@ -980,7 +980,9 @@ class Graph(Object):
   # Finds all fanin nodes that are missing in this graph and copies
   # them as Constants. This eg, completes the boundary condition
   # for a subgraph that has all main flow nodes.
+  # Returns list of input nodes
   def transferSideNodes(self, sourceGraph):
+    inputNodes = []
     for n in self.getNodes():
       nodeName = n.getName()
       ns = sourceGraph.getNode(nodeName)
@@ -998,8 +1000,9 @@ class Graph(Object):
           # recalculated from subgraph state). Coloring based on main graph
           # is perhaps even better
           #eNew.setIsInMainFlow(False)
-
-
+          if srcEdge.isInMainFlow():
+            inputNodes.append(constNode)
+    return inputNodes
 
 
 

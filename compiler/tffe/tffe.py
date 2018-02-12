@@ -24,10 +24,11 @@
 
 import argparse
 import os.path
-import sys
+import sys, json
 import TfFrontEnd
 import KgraphPartitions
 
+kPath = os.environ.get('KAENA_PATH')
 print("\nINFO: started as  ", " ".join(sys.argv))
 
 parser = argparse.ArgumentParser()
@@ -60,9 +61,9 @@ parser.add_argument('--partition', help='Partition into subgraphs; use fromOpRe 
 args = parser.parse_args()
 inputTensorName = args.input_node
 
-file = args.tfpb
-if not os.path.isfile(file):
-  raise("ERROR: missing --tfpb " + file)
+tfpbFile = args.tfpb
+if not os.path.isfile(tfpbFile):
+  raise("ERROR: missing --tfpb " + tfpbFile)
 if args.images != None and args.focus != ".*":
   raise("ERROR: Unsupported --images with --focus")
 
@@ -80,7 +81,7 @@ def writeBackEndFiles(kGraph, outPrefix, verbose, scheduler):
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
 tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.scheduler, args.batch)
-tffe.loadPb(file, args.focus)
+tffe.loadPb(tfpbFile, args.focus)
 kog = tffe.getKaenaOpGraph()
 kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
 if args.weights:
@@ -95,6 +96,7 @@ if args.images != None:
   else:
     kp = KgraphPartitions.KgraphPart(kog, debugLevel)
     if args.partition[0] == "auto":
+      sgJsonList = []
       kp.autoColorNodes()
       kp.partitionByColor()
       #kp.print()
@@ -105,11 +107,20 @@ if args.images != None:
         sg.graph.print()
         os.makedirs(sgDir)
         os.chdir(sgDir)
-        sg.graph.transferSideNodes(kog)
+        sg.addSideNodes(kog)
         sg.graph.levelize()
         sg.relinkNpFiles("..")
         sg.graph.print()
         sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
         writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
         os.chdir("..")
+        sgJsonList.append(sg.genExecutorGraphJson(sgDir))
         sgId += 1
+      nnGraphFile = "nn_graph.json"
+      with open(nnGraphFile, "w") as f:
+        s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
+        f.write(s)
+      cmd = "%s/runtime/util/nn_executor --nn_graph %s --tfpb %s" % (kPath, nnGraphFile, tfpbFile)
+      print("INFO: executing  %s" % cmd)
+      os.system(cmd)
+        
