@@ -39,6 +39,7 @@ public:
 
 private:
     void generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp);
+    void generateMatMul(wave::MatMulWaveOp* matmulWaveOp);
 };
 
 

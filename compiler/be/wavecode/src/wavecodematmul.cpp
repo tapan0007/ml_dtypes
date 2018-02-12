@@ -1,6 +1,9 @@
 #include "tpb_isa_ldweights.hpp"
 #include "tpb_isa_matmul.hpp"
 
+#include "arch/inc/arch.hpp"
+#include "arch/inc/psumbuffer.hpp"
+
 #include "wave/inc/matmulwaveop.hpp"
 #include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecodematmul.hpp"
@@ -20,6 +23,7 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
     assert(matmulWaveOp);
 
     generateLoadWeights(matmulWaveOp);
+    generateMatMul(matmulWaveOp);
 }
 
 /*
@@ -42,6 +46,39 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
     },
 */
 
+
+void
+WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
+{
+    const layers::ConvLayer* const convLayer = matmulWaveOp->gConvLayer();
+    const arch::Arch& arch(convLayer->gArch());
+    const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
+
+    MATMUL matmulInstr;
+    matmulInstr.dtype                   = matmulWaveOp->gDataType().gTypeId();
+    matmulInstr.num_row_partitions      = matmulWaveOp->gIfmapCount();
+    matmulInstr.num_column_partitions   = matmulWaveOp->gOfmapCount();
+
+    matmulInstr.fmap_start_addr         = 
+    matmulInstr.fmap_x_num              = matmulWaveOp->gIfmapTileWidth();
+    matmulInstr.fmap_x_step             = convLayer->gStrideLeftRight();
+    matmulInstr.fmap_y_num              = matmulWaveOp->gIfmapTileHeight();
+    matmulInstr.fmap_y_step             = matmulWaveOp->gIfmapTileWidth() * convLayer->gStrideTopBottom();
+    matmulInstr.fmap_z_num              = 1; /* no batching right now */
+    matmulInstr.fmap_z_step             = 0;
+
+    matmulInstr.psum_start_addr         = psumBuf.gEntryAddress(matmulWaveOp->gPsumBankId(), matmulWaveOp->gPsumBankOffset());
+    matmulInstr.psum_x_num              = matmulWaveOp->gOfmapTileWidth();
+    matmulInstr.psum_x_step             = 1;
+    matmulInstr.psum_y_num              = matmulWaveOp->gOfmapTileHeight();
+    matmulInstr.psum_y_step             = matmulInstr.psum_x_num;
+
+    matmulInstr.start_tensor_calc       = matmulWaveOp->qStart();
+    matmulInstr.stop_tensor_calc        = false;
+    //setup_sync(matmulInstr.sync, -1, SET_EVENT_ON_END_WR_DST);
+
+    m_WaveCode->writeInstruction(matmulInstr);
+}
 
 void
 WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)

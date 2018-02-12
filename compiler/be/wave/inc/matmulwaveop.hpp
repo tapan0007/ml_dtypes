@@ -17,10 +17,16 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
+#include "layers/inc/convlayer.hpp"
+
 #include "wave/inc/waveop.hpp"
 
 
 namespace kcc {
+namespace layers {
+    class ConvLayer;
+}
+
 namespace wave {
 
 
@@ -197,6 +203,10 @@ public:
     bool verify() const override;
 
     kcc_int32 gNumOfmapsInFold() const;
+
+    layers::ConvLayer* gConvLayer() const {
+        return dynamic_cast<layers::ConvLayer*>(gLayer());
+    }
 
 private:
     kcc_int16               m_BatchingInWave        = -1;
