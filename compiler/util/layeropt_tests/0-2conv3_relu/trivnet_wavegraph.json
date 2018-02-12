@@ -56,7 +56,7 @@
       "waveop_type": "SBAtomFile"
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/SBAtomFile_0",
         "input/SBAtomFile_0"
@@ -70,7 +70,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 0
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 4,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
@@ -83,7 +83,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 2
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1"
       ],
@@ -96,7 +96,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 4
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2"
       ],
@@ -109,7 +109,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 6
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 0,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 4,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0"
       ],
@@ -122,7 +122,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 8
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 4,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 2,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 4,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1"
       ],
@@ -135,7 +135,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 10
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 8,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 8,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2"
       ],
@@ -148,7 +148,7 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 12
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 8,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 4,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 8,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 4,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0"
       ],
@@ -161,12 +161,12 @@
       "weights_atom_id": 8,      "weights_offset_in_atom": 14
     },
     {
-      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_offset_in_atom": 10,      "layer_name": "1conv3/conv1",
+      "batching_in_wave": 1,      "ifmap_count": 2,      "ifmap_tile_height": 3,      "ifmap_tile_width": 3,      "ifmaps_atom_id": 0,      "ifmaps_atom_size": 1024,      "ifmaps_offset_in_atom": 10,      "layer_name": "1conv3/conv1",
       "ofmap_count": 2,      "ofmap_tile_height": 3,      "ofmap_tile_width": 3,      "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1"
       ],
       "psum_bank_id": 0,      "psum_bank_offset": 0,      "start": false,
-      "stop": false,
+      "stop": true,
       "stride_x": 1,      "stride_y": 1,      "wave_id": [ 0, 0, 0, 0, 0, 2, 2 ],
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2",

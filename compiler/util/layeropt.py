@@ -665,6 +665,8 @@ class FusedOp(list):
               'ofmap_count'             : self.conv_op.ofmap_count,
               'ofmap_tile_width'        : ofmap_wave_width,
               'ofmap_tile_height'       : ofmap_wave_height, 
+              'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,
+              'batching_in_wave'        : self.conv_op.Tn,
             }
         return matmul_waveop
 
@@ -926,7 +928,6 @@ class TPBSched:
         self.activate = BiasAddAct()
         self.statebuffer = StateBuffer()
         self.waveop_stream = WaveopStream()
-        self.last_psum_waveop = None
 
     # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, biasadd_op, act_op, tile_id, psum_bank_src, psum_bank_dst, dram_bias_waveops, bias_start):
@@ -1034,7 +1035,8 @@ class TPBSched:
                                     # execute PEArray matrix multiply, and add to PSUM after first wave
                                     if (op_list.execute_matmul_waveop(self, wave_id, inputs, weights, psum_add)):
                                         psum_add = True
-                        # tile is done                                    
+                        # tile is done                                   
+                        self.waveop_stream.last_main_waveop['stop'] = True
                         self.pearray.trig_tile_done(tile_id)
                         # compute ofmap tile information (tile startx, starty, height, width)
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
