@@ -198,7 +198,14 @@ Main(int argc, char* argv[])
     } else {
         wavecode::WaveCode waveCode(ntwk, arch);
         std::cout << "WaveCodegen: Generating instructions to file '" << objFileName << "'\n";
-        waveCode.generate(objFileName.c_str());
+        FILE* file = fopen(objFileName.c_str(), "wb");
+        assert(file && "Cannot open object file");
+        wavecode::WaveCode::InstrStreams instrStreams;
+        instrStreams.m_StreamProcInstrStream    = file;
+        instrStreams.m_PeArrayInstrStream       = file;
+        instrStreams.m_PoolEngInstrStream       = file;
+        instrStreams.m_ActEngInstrStream        = file;
+        waveCode.generate(instrStreams);
     }
 
     return 0;

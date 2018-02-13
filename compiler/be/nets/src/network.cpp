@@ -96,6 +96,12 @@ Network::findWaveOp(const std::string& waveOpName)
     return waveOp;
 }
 
+kcc_int32
+Network::gWaveAtomSize() const
+{
+    return 1024;
+}
+
 }}
 
 

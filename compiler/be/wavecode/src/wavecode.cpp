@@ -1,3 +1,6 @@
+#include <map>
+
+
 #include "nets/inc/network.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
@@ -26,11 +29,9 @@ WaveCode::~WaveCode() = default;
 
 
 void
-WaveCode::generate(const char* objFileName)
+WaveCode::generate(const InstrStreams& instrStreams)
 {
-    m_ObjFile = std::fopen(objFileName, "w");
-    assert(m_ObjFile && "Object file is null");
-
+    m_InstrStreams = &instrStreams;
     for (auto waveOp : m_Network->gWaveOps()) {
         auto& codeGen = getCodeGen(waveOp);
         codeGen.generate(waveOp);
@@ -50,6 +51,31 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         assert(false && "WaveCode: Unsupported WaveOp");
     }
     return *m_CodeMatMul;
+}
+
+kcc_int64
+WaveCode::getDramForNpyFile(const std::string& fileName)
+{
+    const auto it = m_NpyFile2DramAddress.find(fileName);
+    if (it != m_NpyFile2DramAddress.end()) {
+        return it.second.second;
+    } else {
+        return -1;
+    }
+}
+
+void
+WaveCode::recordDramForNpyFile(const std::string& fileName, kcc_int64 dramOffset)
+{
+    m_NpyFile2DramAddress[fileName] = dramOffset;
+}
+
+kcc_int64
+WaveCode::gCurrentDramAddress(kcc_int64 sizeInBytes)
+{
+    const kcc_int64 currAddress = m_CurrentDramAddress;
+    m_CurrentDramAddress += sizeInBytes;
+    return currAddress;
 }
 
 }}

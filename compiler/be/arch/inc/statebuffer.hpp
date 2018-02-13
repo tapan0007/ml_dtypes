@@ -45,6 +45,8 @@ public:
     //--------------------------------------------------------
     kcc_int64 gPartitionStartAddressInBytes(kcc_int32 partNum) const;
 
+    kcc_int64 gEntryTpbAddress(kcc_int32 row, kcc_int32 elOff) const;
+
 private:
 
     const kcc_int32  m_NumberPartitions;

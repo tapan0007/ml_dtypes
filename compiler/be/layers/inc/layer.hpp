@@ -573,6 +573,7 @@ public:
         m_RefFileName = refFileName;
     }
 
+    kcc_int32 gWaveAtomSize() const;
 
 
 protected:

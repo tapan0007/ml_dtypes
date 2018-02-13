@@ -80,13 +80,14 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     matmulInstr.stop_tensor_calc        = false;
     //setup_sync(matmulInstr.sync, -1, SET_EVENT_ON_END_WR_DST);
 
-    m_WaveCode->writeInstruction(matmulInstr);
+    m_WaveCode->writeInstruction(matmulInstr, WaveCode::UseStream_PeArray);
 }
 
 void
 WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
 {
     assert(matmulWaveOp->verify());
+    const layers::ConvLayer* const convLayer = matmulWaveOp->gConvLayer();
     if (matmulWaveOp->gWeightsOffsetInAtom() < 0) {
         return; // this MatMul reuses weights
     }
@@ -107,13 +108,15 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     //    uint8_t     zero_point_uint8[2];
     //    uint16_t    zero_point_uint16   = 0; 
     //} TONGA_PACKED;
-    ldweighsInstr.start_addr            = matmulWaveOp->gWeightsOffsetInAtom() +
-                                          matmulWaveOp->gWeightsAtomId() * wave::MatMulWaveOp::AtomSize;
+    const int32 sizeofWeights = matmulWaveOp->gWeightsOffsetInAtom() +
+                                          (matmulWaveOp->gWeightsAtomId() *
+                                           convLayer->gWaveAtomSize());
+    ldweighsInstr.start_addr            = m_WaveCode->gCurrentDramAddress(sizeofWeights);
     ldweighsInstr.x_step                = -1; // last column goes first, so decrement
     ldweighsInstr.x_num                 = matmulWaveOp->gNumOfmapsInFold();
     ldweighsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();
 
-    m_WaveCode->writeInstruction(ldweighsInstr);
+    m_WaveCode->writeInstruction(ldweighsInstr, WaveCode::UseStream_PeArray);
 }
 
 

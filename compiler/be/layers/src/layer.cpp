@@ -239,6 +239,13 @@ Layer::verify() const
     return true;
 }
 
+kcc_int32
+Layer::gWaveAtomSize() const
+{
+    return m_Network->gWaveAtomSize();
+}
+
+
 bool 
 Layer::Params::verify () const
 {

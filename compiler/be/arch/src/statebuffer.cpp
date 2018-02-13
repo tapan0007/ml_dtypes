@@ -1,3 +1,5 @@
+#include "uarch_cfg.hpp"
+
 #include "arch/inc/pearray.hpp"
 #include "arch/inc/statebuffer.hpp"
 
@@ -22,6 +24,12 @@ StateBuffer::gPartitionStartAddressInBytes(kcc_int32 partNum) const
 {
     assert((partNum >= 0) && (partNum < gNumberPartitions()) && "Partition index not in range");
     return gFirstAddressInBytes() + partNum * gPartitionSizeInBytes();
+}
+
+kcc_int64
+StateBuffer::gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
+{
+    return TPB_BASE + row*power2(ROW_SIZE_BITS) + elmtOffInBytes;
 }
 
 }}

@@ -37,7 +37,7 @@ public:
         return m_NumberColumns;
     }
 
-    kcc_int64 gEntryAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx) const {
+    kcc_int64 gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx) const {
         return gPsumBaseAddress() + gBankOffsetDelta() * bankId + gEntrySize() * bankEntryIdx;
     }
 
