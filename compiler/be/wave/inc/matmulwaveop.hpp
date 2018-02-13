@@ -118,6 +118,10 @@ public:
         return m_IfmapsAtomId;
     }
 
+    kcc_int32 gIfmapsAtomSize () const {
+        return m_IfmapsAtomSize;
+    }
+
     kcc_int16 gIfmapsOffsetInAtom() const {
         return m_IfmapsOffsetInAtom;
     }
@@ -210,6 +214,54 @@ public:
 
     layers::ConvLayer* gConvLayer() const {
         return dynamic_cast<layers::ConvLayer*>(gLayer());
+    }
+
+    kcc_int16 gFmapXNum () const {
+        return m_FmapXNum;
+    }
+
+    kcc_int16 gFmapXStep () const {
+        return m_FmapXStep;
+    }
+
+    kcc_int16 gFmapYNum () const {
+        return m_FmapYNum;
+    }
+
+    kcc_int16 gFmapYStep () const {
+        return m_FmapYStep;
+    }
+
+    kcc_int16 gFmapZNum () const {
+        return m_FmapZNum;
+    }
+
+    kcc_int16 gFmapZStepAtoms () const {
+        return m_FmapZStepAtoms;
+    }
+
+    kcc_int16 gPsumXNum () const {
+        return m_PsumXNum;
+    }
+
+    kcc_int16 gPsumXStep () const {
+        return m_PsumXStep;
+    }
+
+    kcc_int16 gPsumYNum () const {
+        return m_PsumYNum;
+    }
+
+    kcc_int16 gPsumYStep () const {
+        return m_PsumYStep;
+    }
+
+    kcc_int16 gNumColumnPartitions () const {
+        return m_NumColumnPartitions;
+    }
+
+    kcc_int16 gNumRowPartitions () const {
+        return m_NumRowPartitions;
     }
 
 private:

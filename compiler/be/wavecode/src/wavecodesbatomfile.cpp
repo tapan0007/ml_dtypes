@@ -25,8 +25,8 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     const layers::Layer* layer = sbatomfileWaveOp->gLayer();
     const arch::StateBuffer& stateBuf(layer->gArch().gStateBuffer());
 
-    kcc_int64 dramOffset = m_WaveCode->getDramForNpyFile(sbatomfileWaveOp->gRefFileName());
-    if (dramOffset < 0) {
+    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForNpyFile(sbatomfileWaveOp->gRefFileName());
+    if (npyFileDramOffset < 0) {
         SIM_WRNPY npyToDramInstr;
         // Load whole numpy file
         strcpy(npyToDramInstr.src_fname, sbatomfileWaveOp->gRefFileName().c_str());
@@ -44,9 +44,9 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
             numPySize *= layer->gOfmapHeight();      // H
             numPySize *= layer->gOfmapWidth();       // W
         }
-        dramOffset = m_WaveCode->gCurrentDramAddress(numPySize);
-        npyToDramInstr.dst_address = dramOffset;
-        m_WaveCode->recordDramForNpyFile(sbatomfileWaveOp->gRefFileName(), dramOffset);
+        npyFileDramOffset = m_WaveCode->gCurrentDramAddress(numPySize);
+        npyToDramInstr.dst_address = npyFileDramOffset;
+        m_WaveCode->recordDramForNpyFile(sbatomfileWaveOp->gRefFileName(), npyFileDramOffset);
         m_WaveCode->writeInstruction(npyToDramInstr, WaveCode::UseStream_StreamProc);
     }
 
@@ -69,7 +69,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     dramToStateBufInstr.nbytes = numBytesPerPart;
     const kcc_int64 addressInPart = sbatomfileWaveOp->gAtomId() * layer->gWaveAtomSize();
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
-        dramToStateBufInstr.src_address = dramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * stepSize);
+        dramToStateBufInstr.src_address = npyFileDramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * stepSize);
 
         dramToStateBufInstr.dst_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
         m_WaveCode->writeInstruction(dramToStateBufInstr, WaveCode::UseStream_StreamProc);

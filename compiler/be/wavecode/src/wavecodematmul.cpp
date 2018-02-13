@@ -53,28 +53,27 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     const layers::ConvLayer* const convLayer = matmulWaveOp->gConvLayer();
     const arch::Arch& arch(convLayer->gArch());
     const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
+    //const arch::StateBuffer& stateBuf(arch.gStateBuffer());
 
     MATMUL matmulInstr;
     matmulInstr.dtype                   = matmulWaveOp->gDataType().gTypeId();
-    matmulInstr.num_row_partitions      = matmulWaveOp->gIfmapCount();
-    matmulInstr.num_column_partitions   = matmulWaveOp->gOfmapCount();
+    matmulInstr.num_row_partitions      = matmulWaveOp->gNumRowPartitions();
+    matmulInstr.num_column_partitions   = matmulWaveOp->gNumColumnPartitions();
 
     matmulInstr.fmap_start_addr         = matmulWaveOp->gIfmapsAtomId() * wave::MatMulWaveOp::AtomSize +
                                           matmulWaveOp->gIfmapsOffsetInAtom();
-    matmulInstr.fmap_x_num              = matmulWaveOp->gIfmapTileWidth();
-    matmulInstr.fmap_x_step             = convLayer->gStrideLeftRight();
-    matmulInstr.fmap_y_num              = matmulWaveOp->gIfmapTileHeight();
-    matmulInstr.fmap_y_step             = matmulWaveOp->gIfmapTileWidth() * convLayer->gStrideTopBottom();
-    matmulInstr.fmap_z_num              = 1; /* no batching right now */
-    matmulInstr.fmap_z_step             = 0;
+    matmulInstr.fmap_x_num              = matmulWaveOp->gFmapXNum();
+    matmulInstr.fmap_x_step             = matmulWaveOp->gFmapXStep();
+    matmulInstr.fmap_y_num              = matmulWaveOp->gFmapYNum();
+    matmulInstr.fmap_y_step             = matmulWaveOp->gFmapYStep();
+    matmulInstr.fmap_z_num              = matmulWaveOp->gFmapZNum();
+    matmulInstr.fmap_z_step             = matmulWaveOp->gFmapZStepAtoms() * matmulWaveOp->gIfmapsAtomSize();
 
     matmulInstr.psum_start_addr         = psumBuf.gEntryTpbAddress(matmulWaveOp->gPsumBankId(), matmulWaveOp->gPsumBankOffset());
-    matmulInstr.psum_x_num              = matmulWaveOp->gOfmapTileWidth();
-  //matmul_args.psum_x_num = matmul_args.fmap_x_num;
-    matmulInstr.psum_x_step             = 1;
-    matmulInstr.psum_y_num              = matmulWaveOp->gOfmapTileHeight();
-  //matmul_args.psum_y_num = matmul_args.fmap_y_num;
-    matmulInstr.psum_y_step             = matmulInstr.psum_x_num;
+    matmulInstr.psum_x_num              = matmulWaveOp->gPsumXNum();
+    matmulInstr.psum_x_step             = matmulWaveOp->gPsumXStep();
+    matmulInstr.psum_y_num              = matmulWaveOp->gPsumYNum();
+    matmulInstr.psum_y_step             = matmulWaveOp->gPsumYStep();
 
     matmulInstr.start_tensor_calc       = matmulWaveOp->qStartTensorCalc();
     matmulInstr.stop_tensor_calc        = matmulWaveOp->qStopTensorCalc();
