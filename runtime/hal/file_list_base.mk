@@ -4,6 +4,7 @@ HAL_UDMA_SOURCES = \
 	$(HAL_TOP)/src/udma/al_hal_udma_config.c \
 	$(HAL_TOP)/src/udma/al_hal_udma_iofic.c \
 	$(HAL_TOP)/src/udma/al_hal_udma_debug.c \
+	$(HAL_TOP)/src/udma/al_hal_udma_m2m.c \
 
 # TODO need this? 	$(HAL_TOP)/src/udma/al_hal_msg_ipc.c	\
 
