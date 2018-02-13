@@ -57,6 +57,8 @@ parser.add_argument('--batch', help='Batch override for late-binding networks',
                     type=int, default=1)
 parser.add_argument('--partition', help='Partition into subgraphs; use fromOpRe toOpRe or auto; the default is none',
                     nargs='+', default=["none"])
+parser.add_argument('--executors', help='Specifies executors per subgraph, e.g., tcc 1 2 3 (implies rest on host, host 0 4 5), default ""',
+                    nargs='+', default=[])
 
 args = parser.parse_args()
 inputTensorName = args.input_node
@@ -96,6 +98,7 @@ if args.images != None:
   else:
     kp = KgraphPartitions.KgraphPart(kog, debugLevel)
     if args.partition[0] == "auto":
+      executorsStr = " ".join(args.executors)
       sgJsonList = []
       kp.autoColorNodes()
       kp.partitionByColor()
@@ -112,7 +115,10 @@ if args.images != None:
         sg.relinkNpFiles("..")
         sg.graph.print()
         sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
-        writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
+        try:
+          writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
+        except:
+          executorsStr += " host %d" % sgId
         os.chdir("..")
         sgJsonList.append(sg.genExecutorGraphJson(sgDir))
         sgId += 1
@@ -120,7 +126,8 @@ if args.images != None:
       with open(nnGraphFile, "w") as f:
         s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
         f.write(s)
-      cmd = "%s/runtime/util/nn_executor --nn_graph %s --tfpb %s" % (kPath, nnGraphFile, tfpbFile)
+      cmd = "%s/runtime/util/nn_executor --nn_graph %s --tfpb %s --executors %s" % (
+            kPath, nnGraphFile, tfpbFile, executorsStr)
       print("INFO: executing  %s" % cmd)
       os.system(cmd)
         
