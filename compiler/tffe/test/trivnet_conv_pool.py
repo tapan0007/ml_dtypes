@@ -8,12 +8,26 @@ import numpy as np
 import sys
 import re
 
+# To minimize likelihood of float16 overflow
+# Example  0 1 2 3 4 5  =>  0 5 1 4 2 3
+def permuteArr(arr):
+  s = arr.size
+  if s %2 == 0:
+    a1 = arr.reshape(2, int(s/2))
+    a1[1] = np.flip(a1[1], 0)
+    a2 = a1.swapaxes(0, 1)
+    a3 = a2.ravel()
+  else:
+    a3 = arr
+  return(a3)
+
 # Extract text-only config options from the config string
 # h4-MaxPool-k1  returns "MaxPull","h4-k1"
 def getPoolPadType(confStr):
   conf = {}
   padType = None
   poolType = None
+  usePerm = False
   for s in ["MaxPool", "AvgPool"]:
     s1 = "-" + s
     if s1 in confStr:
@@ -26,7 +40,13 @@ def getPoolPadType(confStr):
       confStr = confStr.replace(s1, "")
       padType = s
       break
-  return poolType,padType,confStr
+  for s in ["PERM"]:
+    s1 = "-" + s
+    if s1 in confStr:
+      confStr = confStr.replace(s1, "")
+      usePerm = True
+      break
+  return poolType,padType,usePerm,confStr
 
 print("\nINFO: started as  ", " ".join(sys.argv))
 
@@ -34,7 +54,7 @@ dimStr = sys.argv[1]
 
 # Sample dimStr : tfloat16-b1-h4-r1-s1-c1-m1-SAME-MaxPool-k2-d1-wmin2-wmax2-imin1-imax16
 #  k pool kernel, d pool stride
-poolType, padType, dimStr = getPoolPadType(dimStr)
+poolType, padType, usePerm, dimStr = getPoolPadType(dimStr)
 dimStr = dimStr.upper() + "-"
 if len(sys.argv) > 2:
   outPrefix = sys.argv[2]
@@ -66,12 +86,18 @@ IF1shapeNHWC = [B, H, H, C]
 IF1 = np.zeros(IF1shapeNHWC)
 convKernelNHWC = [1, R, R, 1]
 convStrides = [1, S, S, 1]
-i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType).reshape(IF1shapeNHWC)
+i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType)
+if usePerm:
+  i0val = permuteArr(i0val)
+i0val = i0val.reshape(IF1shapeNHWC)
 
 # Weight
 W1shapeRSCM = [R, R, C, M]
 W1 = np.zeros(W1shapeRSCM)
-W1val = np.linspace(WMIN, WMAX, num=W1.size, dtype=npDataType).reshape(W1shapeRSCM)
+W1val = np.linspace(WMIN, WMAX, num=W1.size, dtype=npDataType)
+if usePerm:
+  W1val = permuteArr(W1val)
+W1val = W1val.reshape(W1shapeRSCM)
 
 # Pool
 poolKernelNHWC = [1, K, K, 1]

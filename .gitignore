@@ -4,3 +4,6 @@
 .*.sw?
 *.o
 *.bin
+# Ignore cscope files
+cscope.*out
+

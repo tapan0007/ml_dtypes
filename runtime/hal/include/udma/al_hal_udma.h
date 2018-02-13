@@ -193,7 +193,7 @@ struct al_block {
 	uint16_t tgtid;
 };
 
-/** UDMA type */
+/** UDMA queue type */
 enum al_udma_type {
 	UDMA_TX,
 	UDMA_RX
@@ -236,7 +236,6 @@ struct al_udma_q_params {
 /** UDMA parameters from upper layer */
 struct al_udma_params {
 	void __iomem *udma_regs_base;
-	enum al_udma_type type;	/**< Tx or Rx */
 	/**
 	 * number of queues used by the UDMA
 	 * Use 'AL_UDMA_NUM_QUEUES_MAX' to use all available queues
@@ -304,6 +303,8 @@ struct __cache_aligned al_udma_q {
 	struct al_udma *udma;	/**< pointer to parent UDMA */
 	uint32_t qid;		/**< the index number of the queue */
 
+	enum al_udma_type type;	/* Tx or Rx */
+
 	/*
 	 * The following fields are duplicated from the UDMA parent adapter
 	 * due to performance considerations.
@@ -314,17 +315,20 @@ struct __cache_aligned al_udma_q {
 /* UDMA */
 struct al_udma {
 	const char *name;
-	enum al_udma_type type;	/* Tx or Rx */
-	enum al_udma_state state;
+	enum al_udma_state state_m2s;
+	enum al_udma_state state_s2m;
 	uint8_t num_of_queues_max; /* max number of queues supported by the UDMA */
 	uint8_t num_of_queues; /* number of queues used by the UDMA */
 	void __iomem *unit_regs_base; /** udma unit (RX & TX) regs base */
-	union udma_regs __iomem *udma_regs; /* pointer to the UDMA registers */
+    // bi-directional engine, keep both m2s and s2m registers
+	struct udma_m2s_regs_v4 __iomem *udma_regs_m2s;
+	struct udma_s2m_regs_v4 __iomem *udma_regs_s2m;
 	void *gen_regs;		/* pointer to the Gen registers*/
 	struct udma_gen_axi *gen_axi_regs;	/* pointer to the gen axi regs */
 	struct udma_iofic_regs *gen_int_regs;	/* pointer to the gen iofic regs */
 	void *gen_ex_regs;		/* pointer to the Gen ex registers*/
-	struct al_udma_q udma_q[DMA_MAX_Q_MAX];	/* Array of UDMA Qs pointers */
+	struct al_udma_q udma_q_m2s[DMA_MAX_Q_MAX];	/* Array of UDMA Qs pointers */
+	struct al_udma_q udma_q_s2m[DMA_MAX_Q_MAX];	/* Array of UDMA Qs pointers */
 	unsigned int rev_id; /* UDMA revision ID */
 };
 
@@ -371,9 +375,7 @@ unsigned int al_udma_rev_id_get(struct al_udma *udma);
  * @param	s2m_udma
  *		S2M UDMA initialized handle
  */
-void al_udma_perf_params_print(
-	struct al_udma		*m2s_udma,
-	struct al_udma		*s2m_udma);
+void al_udma_perf_params_print(struct al_udma *udma);
 
 /**
  * Get number of available UDMA queues
@@ -408,7 +410,7 @@ int al_udma_init(struct al_udma *udma, struct al_udma_params *udma_params);
  *	   -EIO if queue was already initialized
  */
 
-int al_udma_q_init(struct al_udma *udma, uint32_t qid,
+int al_udma_q_init(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
 		   struct al_udma_q_params *q_params);
 
 /**
@@ -481,8 +483,10 @@ al_bool al_udma_q_is_enabled(struct al_udma_q *udma_q);
  *
  * @return  0 on success. -EINVAL otherwise.
  */
-int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid,
-		      struct al_udma_q **q_handle);
+
+// TODO made static 
+//int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
+//		      struct al_udma_q **q_handle);
 
 /**
  * Change the UDMA's state
@@ -501,7 +505,7 @@ int al_udma_state_set(struct al_udma *udma, enum al_udma_state state);
  *
  * @return the UDMA state as reported by the hardware.
  */
-enum al_udma_state al_udma_state_get(struct al_udma *udma);
+enum al_udma_state al_udma_state_get(struct al_udma *udma, enum al_udma_type type);
 
 /**
  * change and wait udma state

@@ -57,7 +57,7 @@ class TfFe:
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
     self.debugLevel = debugLevel
-    self.dotTimeout = dotTimeout
+    kog.Config.Dot.timeout = dotTimeout
     self.schedulerMode = schedulerMode
     self.kaenaPath = os.environ["KAENA_PATH"]
     self.batch = batch
@@ -265,72 +265,6 @@ class TfFe:
     print("INFO: wrote %d i/ofmap files" % numImages)
 
 
-  # Writes graph in a given format using graphviz lib
-  # Key operations like convolution are colored red
-  # The depth determines subgraph clastering based on operation names
-  #   layerN/branchM/convP cluster would be breated (in blue) if depth is 3
-  def writeDot(self, depth, outFile, outFormat = "svg"):
-    dot = Digraph(comment="writeDot")
-    dot.node("KgraphLegend", "Legend" + re.sub("\n", "\l", kog.Config.Graph.legendText),
-             {"color":"yellow", "shape":"rectangle"})
-    for n in self.__kg.getNodes():
-      tfOp = n.getAttr("tfop")
-      attrs = {}
-      if re.search("conv", tfOp.op, re.I):
-        attrs["color"] = "red"
-      dot.node(n.getName(), n.getDotText(), attrs)
-
-    for edge in self.__kg.getEdges():
-      #print(edge)
-      #print("DEBUG: adding edge to dot ", edge)
-      #print("DEBUG: attrs=", edge.getAttrs())
-      dot.edge(edge.getFromPosNode().node.getName(),
-               edge.getToPosNode().node.getName(),
-               edge.getLabel(), edge.getAttrs())
-
-    # Add subgraphs
-    clusters = {}
-    for n in sorted(self.__kg.getNodes(), key=lambda x: x.getName()):
-      clStrs = n.getName().split("/")
-      c = clusters
-      #for i in range(0, len(clStrs)):
-      for i in range(0, min(len(clStrs), depth)):
-        if (c.get(clStrs[i]) == None):
-          c[clStrs[i]] = {"nodes" : []}
-        c = c[clStrs[i]]
-      c["nodes"].append(n.getName())
-    #print("Clusters=", clusters)
-
-    def addClusterNodes(graph, ClusterNode):
-      # add nodes in this subgraph
-      if "nodes" in ClusterNode:
-        for n in ClusterNode["nodes"]:
-          #print("  DEBUG: added node ", n)
-          graph.node(n)
-      # add subgraphs
-
-      for clShortName in ClusterNode:
-        #print("  DEBUG: clShortName ", clShortName)
-        if clShortName != "nodes":
-          with graph.subgraph(name="cluster_" + clShortName) as subGraph:
-            subGraph.attr(color="blue")
-            subGraph.attr(label=clShortName)
-            addClusterNodes(subGraph, ClusterNode.get(clShortName))
-
-    if 1:
-      addClusterNodes(dot, clusters)
-
-    #print("Dot=", dot.source)
-    dot.format = outFormat
-    outFileAndExt = outFile + "." + outFormat
-    print("INFO: invoking dot to render " + outFileAndExt)
-    if MiscUtil.ExecTimeout.run(dot.render, outFile, self.dotTimeout):
-      print("INFO: wrote " + outFileAndExt)      
-    else:
-      print("INFO: dot rendering timed out, skipping")
-      if os.path.exists(outFileAndExt):
-        os.remove(outFileAndExt)
-  
   @staticmethod
   def tf2dotName(tfName):
     return(re.sub(":\d+$", "", tfName))

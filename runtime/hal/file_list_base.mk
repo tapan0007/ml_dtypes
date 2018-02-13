@@ -3,8 +3,8 @@ HAL_UDMA_SOURCES = \
 	$(HAL_TOP)/src/udma/al_hal_udma_main.c \
 	$(HAL_TOP)/src/udma/al_hal_udma_config.c \
 	$(HAL_TOP)/src/udma/al_hal_udma_iofic.c \
-	$(HAL_TOP)/src/udma/al_hal_m2m_udma.c \
 	$(HAL_TOP)/src/udma/al_hal_udma_debug.c \
+	$(HAL_TOP)/src/udma/al_hal_udma_m2m.c \
 
 # TODO need this? 	$(HAL_TOP)/src/udma/al_hal_msg_ipc.c	\
 
@@ -24,7 +24,7 @@ HAL_INCLUDE_PATH = \
 	-I$(HAL_TOP)/include/common \
 	-I$(HAL_TOP)/include/udma \
 	-I$(HAL_TOP)/include/iofic \
-    -I$(HAL_TOP)/include/plat_api/sample
+    -I$(HAL_TOP)/include/plat_api
 
 #	-I$(HAL_TOP)/include/udma_fast \
 
