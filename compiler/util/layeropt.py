@@ -450,8 +450,8 @@ class KNode:
         # For pooling using PSUM (fused), max tile size must be a multiple of pooling window
         self.ofmap_full_tiley_sz = (self.ofmap_full_tiley_sz // pooling_ifmap_width) * pooling_ifmap_width
         self.ofmap_full_tile_sz = self.ofmap_full_tilex_sz * self.ofmap_full_tiley_sz
-        print("Recomputed Conv params due to fused pooling: ofmap_full_tiley_sz=%d"
-                %(self.ofmap_full_tiley_sz))
+        print("Recomputed Conv params due to fused pooling: pooling_ifmap_width=%d, ofmap_full_tiley_sz=%d"
+                %(pooling_ifmap_width, self.ofmap_full_tiley_sz))
 
     # compute output tile info
     def compute_ofmap_tile_info(self, tile_id):        
@@ -632,7 +632,9 @@ class FusedOp(list):
             elif (self.has_pool):
                 return False
             else:
-                if (self.has_conv):
+                # recompute Conv params due to constrained Pooling tile dimensions
+                # (only if it is not identity pool, where window/stride are both 1)
+                if (op.pool_window_y > 1 and self.has_conv):
                     self.conv_op.recompute_conv_params(pooling_ifmap_width = op.F)
                 self.pool_op = op
                 self.has_pool = True
@@ -1010,9 +1012,28 @@ class KGraph:
         else:
             self.current_node = None
             self.last_split_next_nodes = []
+        # if the last node is Conv or MatMul, add an identity pool op
+        if (last_node_type == "Conv" or last_node_type == "MatMul"):
+            fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
         if (args.debug > 0):
             fused_ops.show()
         return fused_ops                   
+
+    def gen_id_pool_op(self, last_op):
+        id_pool_layer_data = {
+          "kernel_shape"    : [ 1, 1, 1, 1 ],
+          "layer_name"      : last_op.data['layer_name']+"_id_pool",
+          "layer_type"      : "MaxPool",
+          "ofmap_format"    : last_op.data['ofmap_format'],
+          "ofmap_shape"     : last_op.data['ofmap_shape'],
+          "padding"         : [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
+          "previous_layers" : [ last_op.data['layer_name'] ],
+          "ref_file"        : "",
+          "stride"          : [ 1, 1, 1, 1 ]
+        }
+        id_pool_op = KNode(id_pool_layer_data, self.item_sz)
+        id_pool_op.prev.append(last_op)
+        return id_pool_op
 
     def walk_ended(self):
         return self.current_node == None
@@ -1243,7 +1264,6 @@ if __name__ == "__main__":
                 exit(-1)
             # TODO: add selecting among pre-derived looping schemes
             results = tpb.execute_conv_ops(results, result_file)
-
         elif (re.search(r"MatMult", op_list[0].data['layer_type'])):
             print("ERROR: MatMult operation is unimplemented")
             exit(-1)
