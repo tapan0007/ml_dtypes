@@ -1,0 +1,44 @@
+{
+  "data_type": "float16",
+  "layers": [
+    {
+      "layer_name": "input",
+      "layer_type": "Input",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 4, 4 ],
+      "previous_layers": [],
+      "ref_file": "trivnet_input:0_NCHW.npy"
+    },
+    {
+      "#comment": "supported layer",
+      "kernel_file": "trivnet_1conv1pool__weight1__read:0_CRSM.npy",
+      "kernel_format": "CRSM",
+      "kernel_shape": [ 1, 1, 1, 1 ],
+      "layer_name": "1conv1pool/i1",
+      "layer_type": "Conv",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 4, 4 ],
+      "padding": [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
+      "previous_layers": [
+        "input"
+      ],
+      "ref_file": "trivnet_1conv1pool__i1:0_NCHW.npy",
+      "stride": [ 1, 1, 1, 1 ]
+    },
+    {
+      "#comment": "supported layer",
+      "kernel_shape": [ 1, 1, 2, 2 ],
+      "layer_name": "1conv1pool/i2",
+      "layer_type": "AvgPool",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 2, 2 ],
+      "padding": [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
+      "previous_layers": [
+        "1conv1pool/i1"
+      ],
+      "ref_file": "trivnet_1conv1pool__i2:0_NCHW.npy",
+      "stride": [ 1, 1, 2, 2 ]
+    }
+  ],
+  "net_name": "TrivNet"
+}
