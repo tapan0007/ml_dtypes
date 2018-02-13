@@ -124,7 +124,7 @@ class Node(Object):
     return None
   # Fanin of 1 per input
   def setFaninEdge(self, edge, index):
-    assert(len(self.__fanin) < index + 1 or self.__fanout[index] == None)
+    assert(len(self.__fanin) < index + 1 or self.__fanin[index] == None)
     while len(self.__fanin) < index + 1:
       self.__fanin.append(None)
     self.__fanin[index] = edge
@@ -202,13 +202,13 @@ class NodeConst(Node):
   def genCompilerLayerJson(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) > 1:
+    if len(npInfo.npShape) == 4:
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     else:
-      tpbShape = npInfo.npShape
-      npFileSim = npInfo.npFile
-      simFormat = npt.Formats[npt.SIM][npt.Fmaps]
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -616,8 +616,8 @@ class NodeSimple2(Node):
       overrideType = "ResAdd"
     layerDataBase[0]["layer_type"] = overrideType
        
-    if not isResAdd:
-      # Collapse the size node to a branch    
+    if not isResAdd and not fromIfNode1.getOpType() == "Const":
+      # Collapse the side node to a branch (except when it already is a real constant) 
       # Main input is covered by a previous layer
       #   tfShape4D0 = npt.cShapeToNHWC(npInfoIF0.npShape)
       #   (npFileSimF0, simFormatIF0)  = npt.copyNpyFileAs(npInfoIF0.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D0)
@@ -829,6 +829,8 @@ class Graph(Object):
     totalOpCount = 0
     for level in range(0, len(levelizedNodes)):
       for n in levelizedNodes[level]:
+        if n == inputNode:
+          continue
         op = n.getOpType()
         #print("DEBUG: node=", n.getName(), "  op=", op)
         if n.isSupported():
@@ -899,6 +901,7 @@ class Graph(Object):
       eNew = self.addEdge(fromName, fromPosNode.index, 
                    toName, toPosNode.index, e.getAttrs())
       eNew.setLabel(e.getLabel())
+      eNew.setIsInMainFlow(e.isInMainFlow())
       if Config.debugLevel >= 1:
         print("DEBUG: copyEdge %s %d -> %s %d" %
               (fromName, fromPosNode.index, toName, toPosNode.index))

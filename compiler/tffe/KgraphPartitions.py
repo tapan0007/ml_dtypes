@@ -41,6 +41,14 @@ class KsubGraph:
   def addSideNodes(self, srcGraph):
     self.__inputs = self.graph.transferSideNodes(srcGraph)
     self.__output = self.graph.getTopNode()
+    if len(self.__inputs) == 0:
+      self.__inputs.append(self.__output)
+    # Make one of the nodes input for teh backend, should not matter whichone
+    inputNode = self.__inputs[0]
+    self.graph.setInputNode(inputNode)
+    #hasInputOpType = any((ni.getOpType() == "Input") for ni in self.__inputs)
+    #assert inputNode.getOpType() == "Input" or
+    #       inputNode.getOpType() == "Const"
     
 # Graph partitioner
 class KgraphPart(object):
@@ -136,15 +144,13 @@ class KgraphPart(object):
           subGraph = self.__subgraphs[color]
           nCopy = n.copy()
           subGraph.graph.addNode(nCopy)
-          if len(subGraph.graph.getNodes()) == 1:
-            subGraph.graph.setInputNode(nCopy)
     # Edges
     for i in range(self.__numColors):
       sg = self.__subgraphs[i]
       #sg.print("Subgraph %d" % i)
       sg.graph.copyEdges(sourceGraph)
-      for e in sg.graph.getEdges():
-        e.setIsInMainFlow(True)
+      #for e in sg.graph.getEdges():
+      #  e.setIsInMainFlow(True)
     # Side nodes
     # to add
     
