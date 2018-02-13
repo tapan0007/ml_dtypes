@@ -753,8 +753,8 @@ class FusedOp(list):
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_full_tilex_sz,
               'dst_y_step'              : self.pool_op.E,
-              'dst_y_num'               : self.pool_op.ofmap_full_tiley_sz/self.pool_op.Tn,
-              'dst_z_step'              : self.pool_op.ofmap_full_tile_sz/self.pool_op.Tn,
+              'dst_y_num'               : self.pool_op.ofmap_full_tiley_sz//self.pool_op.Tn,
+              'dst_z_step'              : self.pool_op.ofmap_full_tile_sz//self.pool_op.Tn,
               'dst_z_num'               : self.pool_op.Tn,
             }
         return pool_waveop
