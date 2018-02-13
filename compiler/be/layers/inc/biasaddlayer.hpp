@@ -19,10 +19,7 @@ public:
     // of the input layer.
 //--------------------------------------------------------
     BiasAddLayer(const Params& param, const FmapDesc& fmap_desc,
-                  const std::vector<Layer*>& prevLayers)
-        : SubClass(param, fmap_desc, prevLayers)
-    {
-    }
+                  const std::vector<Layer*>& prevLayers);
 
     //----------------------------------------------------------------
     std::string gString() const override;
