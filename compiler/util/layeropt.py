@@ -4,9 +4,10 @@ import math
 import re
 import numpy as np
 import argparse
+from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=1
+DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(threshold=np.nan)
 
@@ -83,18 +84,26 @@ class PEArray:
 class Pool:
     def wait_tile_done(self, tile_id):
         pass
-    def avg(self, in_array, stride, pool_window_size):
-        # cannot use the below assertion because we only have layer property for conv layer
-        # assert (stride == pool_window_size)
+    def avg(self, in_array, stride, pool_window_size, Tn, ofmap_tilex_sz, ofmap_tiley_sz):
         num_cols = in_array.shape[1]
-        print("pooling fun")
-        print(in_array.shape," ",num_cols)
-        # will reshape the tensor into pool_window_size "box" and average within the box
-        return in_array.reshape(pool_window_size,pool_window_size,-1,num_cols).mean(axis=(0,1))
+        # view_as_windows needs in_array to be in the same dimension as window_shape
+        # need to make sure the third dimension of stride_shape to be '1' since that is the column direction
+        tile_array = in_array.reshape(ofmap_tilex_sz,ofmap_tiley_sz,Tn,num_cols)
+        window_shape = (pool_window_size,pool_window_size,Tn,num_cols)
+        stride_shape = (stride, stride, Tn, 1)
+        pool_result = view_as_windows(tile_array,window_shape,stride_shape).mean(axis=(4,5)).reshape(-1,num_cols)
+        return pool_result
     def resadd(self, array_a, array_b):
         return array_a + array_b
-    def max(self, in_array):
-        return in_array
+    def max(self, in_array, stride, pool_window_size, Tn, ofmap_tilex_sz, ofmap_tiley_sz):
+        num_cols = in_array.shape[1]
+        # view_as_windows needs in_array to be in the same dimension as window_shape
+        # need to make sure the third dimension of stride_shape to be '1' since that is the column direction
+        tile_array = in_array.reshape(ofmap_tilex_sz,ofmap_tiley_sz,Tn,num_cols)
+        window_shape = (pool_window_size,pool_window_size,Tn,num_cols)
+        stride_shape = (stride, stride, Tn, 1)
+        pool_result = view_as_windows(tile_array,window_shape,stride_shape).max(axis=(4,5)).reshape(-1,num_cols)
+        return pool_result
 
 ##################################################################################
 # Bias-Add and Activate properties and methods
@@ -338,7 +347,7 @@ class KNode:
         return self.psum_bank_dst
 
     # populate common parameters for Conv and Pool
-    def populate_common_params(self):
+    def populate_common_params(self,adjust_for_pool):
         # get input shape from previous layer's data
         assert (self.prev[0] != None)
         input_layer = self.prev[0].data
@@ -355,10 +364,20 @@ class KNode:
         # IFMAP and OFMAP total areas
         self.HW = self.H * self.W
         self.EF = self.E * self.F
+        # compute batch folding and batching within wave, Tn cannot be greater than batch size N
+        self.Tn = min(1,PEArray.MAX_WAVE_SIZE // self.EF)
+        if (self.Tn > self.N):
+            self.Tn = self.N
+        self.n = ceildiv(self.N, self.Tn)
         # per kaena-85, use noodle shapes for tiles
-        # TODO: determine tile size and aspect ratio taking into account pooling size
-        self.ofmap_tilex_sz = min(self.F, PEArray.MAX_WAVE_SIZE)
-        self.ofmap_tiley_sz = min(self.E, PEArray.MAX_WAVE_SIZE // self.ofmap_tilex_sz)
+        # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
+        if ((self.EF > PEArray.MAX_WAVE_SIZE) and (self,adjust_for_pool)):
+            self.ofmap_tiley_sz = self.pool_window_y
+            self.ofmap_tilex_sz = PEArray.MAX_WAVE_SIZE // self.ofmap_tiley_sz
+        else:
+            # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
+            self.ofmap_tilex_sz = min(self.F * self.Tn, PEArray.MAX_WAVE_SIZE)
+            self.ofmap_tiley_sz = min(self.E, PEArray.MAX_WAVE_SIZE // self.ofmap_tilex_sz)
         self.ofmap_tile_sz = self.ofmap_tilex_sz * self.ofmap_tiley_sz
         self.ifmap_tiley_sz = self.ofmap_tiley_sz * self.stride_y
         self.ifmap_tilex_sz = self.ofmap_tilex_sz * self.stride_x
@@ -368,16 +387,10 @@ class KNode:
         self.m = ceildiv(self.M, PEArray.NUM_COLS)
         # computing the input map tiling       
         self.h, self.w, self.e, self.f = 1, 1, 1, 1
-        # compute batch folding and batching within wave
-        self.n, self.Tn = 1, 1
+        # compute ofmap folding
         if (self.EF >= PEArray.MAX_WAVE_SIZE):
             self.e = ceildiv(self.E, self.ofmap_tiley_sz)
             self.f = ceildiv(self.F, self.ofmap_tilex_sz)
-        else:
-            self.Tn = PEArray.MAX_WAVE_SIZE // self.EF
-            if (self.Tn > self.N):
-                self.Tn = self.N
-            self.n = ceildiv(self.N, self.Tn)
         # heigh/width folding is the same for IFMAP and OFMAP            
         self.h = self.e
         self.w = self.f
@@ -386,7 +399,7 @@ class KNode:
 
     # Compute Conv looping params
     def populate_conv_params(self):
-        self.populate_common_params()
+        self.populate_common_params(False)
         # convolution kernel shape
         layer_info = self.data
         assert (layer_info['kernel_format'] == 'CRSM')
@@ -396,11 +409,11 @@ class KNode:
 
     # Compute pooling params
     def populate_pooling_params(self):
-        self.populate_common_params()
         # are the dimensions from layer info correct?
         layer_info = self.data
         self.pool_window_y = layer_info['kernel_shape'][2]
         self.pool_window_x = layer_info['kernel_shape'][3]
+        self.populate_common_params(True)
         print("Pooling params for layer %s: ofmap_tilex_sz=%d, ofmap_tiley_sz=%d, pool_window_x=%d, pool_window_y=%d"
                 %(self.data['layer_name'], self.ofmap_tilex_sz, self.ofmap_tiley_sz, self.pool_window_x, self.pool_window_y))
 
@@ -721,10 +734,15 @@ class FusedOp(list):
                 if (i != len(op_list)-1):
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_tile_sz, psum_temp)
                 psum_bank_src = psum_bank_dst
-            elif (layer_type == 'AvgPool'):
+            elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
                 tpb.activate.wait_tile_done(tile_id)
                 self[i].compute_ofmap_tile_info(tile_id)
-                psum_temp = tpb.pool.avg(psum_temp, self[i].stride_x, self[i].pool_window_y)
+                tilex = self.conv_op.tile_width
+                tiley = self.conv_op.tile_height
+                if (layer_type == 'AvgPool'):
+                    psum_temp = tpb.pool.avg(psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley)
+                else:
+                    psum_temp = tpb.pool.max(psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley)
                 psum_bank_dst = 3
                 # TODO: generate AvgPool instruction inline
                 if (i != len(op_list)-1):
@@ -1105,21 +1123,32 @@ if __name__ == "__main__":
         # Check conv fused op
         # TODO: add matrix multiply
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
-            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
+                tpb.statebuffer.circbuf_ifmaps.layer_name = op_list[0].data['layer_name']
+                tpb.statebuffer.circbuf_ifmaps.layer_type = op_list[0].data['layer_type'] 
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
-                        tpb.statebuffer.circbuf_scratch.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
+                        tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
                         break
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
                 exit(-1)
             # TODO: add selecting among pre-derived looping schemes
             results = tpb.execute_conv_ops(results, result_file)
-
         elif (re.search(r"MatMult", op_list[0].data['layer_type'])):
             print("ERROR: MatMult operation is unimplemented")
             exit(-1)
         elif (re.search(r".*Pool", op_list[0].data['layer_type'])):
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
+                tpb.statebuffer.circbuf_ifmaps.layer_name = op_list[0].data['layer_name']
+                tpb.statebuffer.circbuf_ifmaps.layer_type = op_list[0].data['layer_type']
+                for j in op_list[0].prev:
+                    if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
+                        tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
+                        break
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
+                print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
+                exit(-1)
             print("ERROR: Pool (unfused) operation is unimplemented")
             exit(-1)
         else:        
