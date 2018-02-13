@@ -173,12 +173,14 @@ class CircularBuffer:
         self.reset()
         self.layer_name = waveop.data['layer_name']
         self.layer_type = waveop.data['layer_type']
-        self.layer_format = waveop.data['ofmap_format']
-        self.layer_shape = waveop.data['ofmap_shape']
         if (self.layer_type == 'Input' or self.layer_type == 'Const'):
             self.dram_data_file = waveop.data['ref_file']
+            self.layer_format = waveop.data['ofmap_format']
+            self.layer_shape = waveop.data['ofmap_shape']
         else:            
             self.dram_data_file = waveop.data['kernel_file']
+            self.layer_format = waveop.data['kernel_format']
+            self.layer_shape = waveop.data['kernel_shape']
         self.load_file(self.dram_data_file)                
         #print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
@@ -200,34 +202,39 @@ class CircularBuffer:
         #   * different FMAPs folds will be in different atoms (for now)
         # TODO: refactor the following function since it is used in multiple places
         if (self.layer_type == 'Input' or self.layer_type == 'Const' or self.layer_type == 'Output'):
-            N, C, H, W = [i*self.item_sz for i in self.dram_data.shape]
-            self.dram_data_len_per_NC = self.dram_data_len/(N*C)
-            if (H*W <= self.atom_sz):
-                multiple = self.atom_sz // (H*W)
-                self.atom_data_sz = (H*W) * min(C, multiple)
-            elif (W <= self.atom_sz):
-                multiple = self.atom_sz // W
+            N, C, H, W = self.dram_data.shape
+            self.dram_data_len_per_NC = self.dram_data_len//(N*C)
+            ifmap_data_len = H * W * self.item_sz
+            ifmap_width_data_len = W * self.item_sz
+            if (ifmap_data_len <= self.atom_sz):
+                multiple = self.atom_sz // ifmap_data_len
+                self.atom_data_sz = ifmap_data_len * min(C, multiple)
+            elif (ifmap_width_data_len <= self.atom_sz):
+                multiple = self.atom_sz // ifmap_width_data_len
                 if (self.layer_type == 'Output'):
                     multiple = min(H, multiple)
                     if (ofmap_full_tiley_sz < multiple):
                         multiple = (multiple//ofmap_full_tiley_sz)*ofmap_full_tiley_sz
-                    self.atom_data_sz = W * min(H, multiple)
+                    self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
                 else:                    
-                    self.atom_data_sz = W * min(H, multiple)
+                    self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
             else:
                 self.atom_data_sz = self.atom_sz
         else:            
-            C, R, S, M = [i*self.item_sz for i in self.dram_data.shape]
-            self.dram_data_len_per_NC = self.dram_data_len/C
-            if (R*S*M <= self.atom_sz):
-                multiple = self.atom_sz // (R*S*M)
-                self.atom_data_sz = (R*S*M) * min(C, multiple)
-            elif (S*M <= self.atom_sz):
-                multiple = self.atom_sz // (S*M)
-                self.atom_data_sz = (S*M) * min(R, multiple)
-            elif (M <= self.atom_sz):
-                multiple = self.atom_sz // M
-                self.atom_data_sz = M * min(S, multiple)
+            C, R, S, M = self.dram_data.shape
+            self.dram_data_len_per_NC = self.dram_data_len//C
+            m_data_len = M * self.item_sz
+            sm_data_len = S * m_data_len
+            rsm_data_len = R * sm_data_len
+            if (rsm_data_len  <= self.atom_sz):
+                multiple = self.atom_sz // rsm_data_len 
+                self.atom_data_sz = rsm_data_len * min(C, multiple)
+            elif (sm_data_len <= self.atom_sz):
+                multiple = self.atom_sz // sm_data_len
+                self.atom_data_sz = sm_data_len * min(R, multiple)
+            elif (m_data_len <= self.atom_sz):
+                multiple = self.atom_sz // m_data_len
+                self.atom_data_sz = m_data_len * min(S, multiple)
             else:
                 self.atom_data_sz = self.atom_sz
         print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
