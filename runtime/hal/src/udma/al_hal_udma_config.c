@@ -139,35 +139,35 @@ int al_udma_m2s_axi_set(struct al_udma *udma,
 	uint32_t reg;
 
 	al_udma_m2s_axi_sm_set(&axi_m2s->comp_write,
-			       &udma->udma_regs->m2s.axi_m2s.comp_wr_cfg_1,
-			       &udma->udma_regs->m2s.axi_m2s.comp_wr_cfg_2,
-			       &udma->udma_regs->m2s.axi_m2s.desc_wr_cfg_1);
+			       &udma->udma_regs_m2s->axi_m2s.comp_wr_cfg_1,
+			       &udma->udma_regs_m2s->axi_m2s.comp_wr_cfg_2,
+			       &udma->udma_regs_m2s->axi_m2s.desc_wr_cfg_1);
 
 	al_udma_m2s_axi_sm_set(&axi_m2s->data_read,
-			       &udma->udma_regs->m2s.axi_m2s.data_rd_cfg_1,
-			       &udma->udma_regs->m2s.axi_m2s.data_rd_cfg_2,
-			       &udma->udma_regs->m2s.axi_m2s.data_rd_cfg);
+			       &udma->udma_regs_m2s->axi_m2s.data_rd_cfg_1,
+			       &udma->udma_regs_m2s->axi_m2s.data_rd_cfg_2,
+			       &udma->udma_regs_m2s->axi_m2s.data_rd_cfg);
 
 	al_udma_m2s_axi_sm_set(&axi_m2s->desc_read,
-			       &udma->udma_regs->m2s.axi_m2s.desc_rd_cfg_1,
-			       &udma->udma_regs->m2s.axi_m2s.desc_rd_cfg_2,
-			       &udma->udma_regs->m2s.axi_m2s.desc_rd_cfg_3);
+			       &udma->udma_regs_m2s->axi_m2s.desc_rd_cfg_1,
+			       &udma->udma_regs_m2s->axi_m2s.desc_rd_cfg_2,
+			       &udma->udma_regs_m2s->axi_m2s.desc_rd_cfg_3);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.axi_m2s.data_rd_cfg);
+	reg = al_reg_read32(&udma->udma_regs_m2s->axi_m2s.data_rd_cfg);
 	if (axi_m2s->break_on_max_boundary == AL_TRUE)
 		reg |= UDMA_AXI_M2S_DATA_RD_CFG_ALWAYS_BREAK_ON_MAX_BOUDRY;
 	else
 		reg &= ~UDMA_AXI_M2S_DATA_RD_CFG_ALWAYS_BREAK_ON_MAX_BOUDRY;
-	al_reg_write32(&udma->udma_regs->m2s.axi_m2s.data_rd_cfg, reg);
+	al_reg_write32(&udma->udma_regs_m2s->axi_m2s.data_rd_cfg, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.axi_m2s.desc_wr_cfg_1);
+	reg = al_reg_read32(&udma->udma_regs_m2s->axi_m2s.desc_wr_cfg_1);
 	reg &= ~UDMA_AXI_M2S_DESC_WR_CFG_1_MIN_AXI_BEATS_MASK;
 	reg |= (axi_m2s->min_axi_beats <<
 			UDMA_AXI_M2S_DESC_WR_CFG_1_MIN_AXI_BEATS_SHIFT) &
 		UDMA_AXI_M2S_DESC_WR_CFG_1_MIN_AXI_BEATS_MASK;
-	al_reg_write32(&udma->udma_regs->m2s.axi_m2s.desc_wr_cfg_1, reg);
+	al_reg_write32(&udma->udma_regs_m2s->axi_m2s.desc_wr_cfg_1, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.axi_m2s.ostand_cfg);
+	reg = al_reg_read32(&udma->udma_regs_m2s->axi_m2s.ostand_cfg);
 	reg &= ~UDMA_AXI_M2S_OSTAND_CFG_MAX_DATA_RD_MASK;
 	reg |= axi_m2s->ostand_max_data_read &
 			UDMA_AXI_M2S_OSTAND_CFG_MAX_DATA_RD_MASK;
@@ -183,7 +183,7 @@ int al_udma_m2s_axi_set(struct al_udma *udma,
 	reg |= (axi_m2s->ostand_max_comp_write <<
 			UDMA_AXI_M2S_OSTAND_CFG_MAX_COMP_DATA_WR_SHIFT) &
 		UDMA_AXI_M2S_OSTAND_CFG_MAX_COMP_DATA_WR_MASK;
-	al_reg_write32(&udma->udma_regs->m2s.axi_m2s.ostand_cfg, reg);
+	al_reg_write32(&udma->udma_regs_m2s->axi_m2s.ostand_cfg, reg);
 	return 0;
 }
 
@@ -236,35 +236,35 @@ int al_udma_s2m_axi_set(struct al_udma *udma,
 	uint32_t reg;
 
 	al_udma_s2m_axi_sm_set(&axi_s2m->data_write,
-			       &udma->udma_regs->s2m.axi_s2m.data_wr_cfg_1,
-			       &udma->udma_regs->s2m.axi_s2m.data_wr_cfg_2,
-			       &udma->udma_regs->s2m.axi_s2m.data_wr_cfg);
+			       &udma->udma_regs_s2m->axi_s2m.data_wr_cfg_1,
+			       &udma->udma_regs_s2m->axi_s2m.data_wr_cfg_2,
+			       &udma->udma_regs_s2m->axi_s2m.data_wr_cfg);
 
 	al_udma_s2m_axi_sm_set(&axi_s2m->desc_read,
-			       &udma->udma_regs->s2m.axi_s2m.desc_rd_cfg_4,
-			       &udma->udma_regs->s2m.axi_s2m.desc_rd_cfg_5,
-			       &udma->udma_regs->s2m.axi_s2m.desc_rd_cfg_3);
+			       &udma->udma_regs_s2m->axi_s2m.desc_rd_cfg_4,
+			       &udma->udma_regs_s2m->axi_s2m.desc_rd_cfg_5,
+			       &udma->udma_regs_s2m->axi_s2m.desc_rd_cfg_3);
 
 	al_udma_s2m_axi_sm_set(&axi_s2m->comp_write,
-			       &udma->udma_regs->s2m.axi_s2m.comp_wr_cfg_1,
-			       &udma->udma_regs->s2m.axi_s2m.comp_wr_cfg_2,
-			       &udma->udma_regs->s2m.axi_s2m.desc_wr_cfg_1);
+			       &udma->udma_regs_s2m->axi_s2m.comp_wr_cfg_1,
+			       &udma->udma_regs_s2m->axi_s2m.comp_wr_cfg_2,
+			       &udma->udma_regs_s2m->axi_s2m.desc_wr_cfg_1);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.axi_s2m.desc_rd_cfg_3);
+	reg = al_reg_read32(&udma->udma_regs_s2m->axi_s2m.desc_rd_cfg_3);
 	if (axi_s2m->break_on_max_boundary == AL_TRUE)
 		reg |= UDMA_AXI_S2M_DESC_RD_CFG_3_ALWAYS_BREAK_ON_MAX_BOUDRY;
 	else
 		reg &= ~UDMA_AXI_S2M_DESC_RD_CFG_3_ALWAYS_BREAK_ON_MAX_BOUDRY;
-	al_reg_write32(&udma->udma_regs->s2m.axi_s2m.desc_rd_cfg_3, reg);
+	al_reg_write32(&udma->udma_regs_s2m->axi_s2m.desc_rd_cfg_3, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.axi_s2m.desc_wr_cfg_1);
+	reg = al_reg_read32(&udma->udma_regs_s2m->axi_s2m.desc_wr_cfg_1);
 	reg &= ~UDMA_AXI_S2M_DESC_WR_CFG_1_MIN_AXI_BEATS_MASK;
 	reg |= (axi_s2m->min_axi_beats <<
 			UDMA_AXI_S2M_DESC_WR_CFG_1_MIN_AXI_BEATS_SHIFT) &
 		UDMA_AXI_S2M_DESC_WR_CFG_1_MIN_AXI_BEATS_MASK;
-	al_reg_write32(&udma->udma_regs->s2m.axi_s2m.desc_wr_cfg_1, reg);
+	al_reg_write32(&udma->udma_regs_s2m->axi_s2m.desc_wr_cfg_1, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.axi_s2m.ostand_cfg_rd);
+	reg = al_reg_read32(&udma->udma_regs_s2m->axi_s2m.ostand_cfg_rd);
 	reg &= ~UDMA_AXI_S2M_OSTAND_CFG_RD_MAX_DESC_RD_OSTAND_MASK;
 	reg |= axi_s2m->ostand_max_desc_read &
 			UDMA_AXI_S2M_OSTAND_CFG_RD_MAX_DESC_RD_OSTAND_MASK;
@@ -274,9 +274,9 @@ int al_udma_s2m_axi_set(struct al_udma *udma,
 			UDMA_AXI_S2M_OSTAND_CFG_RD_MAX_STREAM_ACK_SHIFT) &
 		UDMA_AXI_S2M_OSTAND_CFG_RD_MAX_STREAM_ACK_MASK;
 
-	al_reg_write32(&udma->udma_regs->s2m.axi_s2m.ostand_cfg_rd, reg);
+	al_reg_write32(&udma->udma_regs_s2m->axi_s2m.ostand_cfg_rd, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.axi_s2m.ostand_cfg_wr);
+	reg = al_reg_read32(&udma->udma_regs_s2m->axi_s2m.ostand_cfg_wr);
 	reg &= ~UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_DATA_WR_OSTAND_MASK;
 	reg |= axi_s2m->ostand_max_data_req &
 			UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_DATA_WR_OSTAND_MASK;
@@ -292,7 +292,7 @@ int al_udma_s2m_axi_set(struct al_udma *udma,
 	reg |= (axi_s2m->ostand_max_comp_write <<
 		UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_COMP_DATA_WR_OSTAND_SHIFT) &
 		UDMA_AXI_S2M_OSTAND_CFG_WR_MAX_COMP_DATA_WR_OSTAND_MASK;
-	al_reg_write32(&udma->udma_regs->s2m.axi_s2m.ostand_cfg_wr, reg);
+	al_reg_write32(&udma->udma_regs_s2m->axi_s2m.ostand_cfg_wr, reg);
 	return 0;
 }
 
@@ -300,10 +300,10 @@ int al_udma_s2m_axi_set(struct al_udma *udma,
 int al_udma_m2s_packet_size_cfg_set(struct al_udma *udma,
 				struct al_udma_m2s_pkt_len_conf *conf)
 {
-	uint32_t reg = al_reg_read32(&udma->udma_regs->m2s.m2s.cfg_len);
+	uint32_t reg = al_reg_read32(&udma->udma_regs_m2s->m2s.cfg_len);
 	uint32_t max_supported_size = UDMA_M2S_CFG_LEN_MAX_PKT_SIZE_MASK;
 
-	al_assert(udma->type == UDMA_TX);
+//	al_assert(udma->type == UDMA_TX);
 
 	if (conf->max_pkt_size > max_supported_size) {
 		al_err("udma [%s]: requested max_pkt_size (0x%x) exceeds the"
@@ -321,7 +321,7 @@ int al_udma_m2s_packet_size_cfg_set(struct al_udma *udma,
 	reg &= ~UDMA_M2S_CFG_LEN_MAX_PKT_SIZE_MASK;
 	reg |= conf->max_pkt_size;
 
-	al_reg_write32(&udma->udma_regs->m2s.m2s.cfg_len, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s.cfg_len, reg);
 	return 0;
 }
 
@@ -343,12 +343,12 @@ int al_udma_m2s_pref_set(struct al_udma *udma,
 {
 	uint32_t reg;
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_1);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_1);
 	reg &= ~UDMA_M2S_RD_DESC_PREF_CFG_1_FIFO_DEPTH_MASK;
 	reg |= conf->desc_fifo_depth;
-	al_reg_write32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_1, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_1, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_2);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_2);
 
 	if (conf->sch_mode == SRR)
 		reg |= UDMA_M2S_RD_DESC_PREF_CFG_2_PREF_FORCE_RR;
@@ -362,9 +362,9 @@ int al_udma_m2s_pref_set(struct al_udma *udma,
 	reg &= ~UDMA_M2S_RD_DESC_PREF_CFG_2_MAX_DESC_PER_PKT_MASK;
 	reg |= conf->max_desc_per_packet &
 		UDMA_M2S_RD_DESC_PREF_CFG_2_MAX_DESC_PER_PKT_MASK;
-	al_reg_write32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_2, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_2, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_3);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_3);
 	reg &= ~UDMA_M2S_RD_DESC_PREF_CFG_3_MIN_BURST_BELOW_THR_MASK;
 	reg |= conf->min_burst_below_thr &
 		UDMA_M2S_RD_DESC_PREF_CFG_3_MIN_BURST_BELOW_THR_MASK;
@@ -379,9 +379,9 @@ int al_udma_m2s_pref_set(struct al_udma *udma,
 			UDMA_M2S_RD_DESC_PREF_CFG_3_PREF_THR_SHIFT) &
 		UDMA_M2S_RD_DESC_PREF_CFG_3_PREF_THR_MASK;
 
-	al_reg_write32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_3, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_3, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_rd.data_cfg);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_rd.data_cfg);
 	reg &= ~UDMA_M2S_RD_DATA_CFG_DATA_FIFO_DEPTH_MASK;
 	reg |= conf->data_fifo_depth &
 			UDMA_M2S_RD_DATA_CFG_DATA_FIFO_DEPTH_MASK;
@@ -390,7 +390,7 @@ int al_udma_m2s_pref_set(struct al_udma *udma,
 	reg |= (conf->max_pkt_limit
 			<< UDMA_M2S_RD_DATA_CFG_MAX_PKT_LIMIT_SHIFT) &
 		UDMA_M2S_RD_DATA_CFG_MAX_PKT_LIMIT_MASK;
-	al_reg_write32(&udma->udma_regs->m2s.m2s_rd.data_cfg, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_rd.data_cfg, reg);
 
 	return 0;
 }
@@ -401,12 +401,12 @@ int al_udma_m2s_pref_get(struct al_udma *udma,
 {
 	uint32_t reg;
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_1);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_1);
 	conf->desc_fifo_depth =
 	    AL_REG_FIELD_GET(reg, UDMA_M2S_RD_DESC_PREF_CFG_1_FIFO_DEPTH_MASK,
 			UDMA_M2S_RD_DESC_PREF_CFG_1_FIFO_DEPTH_SHIFT);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_2);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_2);
 	if (reg & UDMA_M2S_RD_DESC_PREF_CFG_2_PREF_FORCE_RR)
 		conf->sch_mode = SRR;
 	else
@@ -416,7 +416,7 @@ int al_udma_m2s_pref_get(struct al_udma *udma,
 			UDMA_M2S_RD_DESC_PREF_CFG_2_MAX_DESC_PER_PKT_MASK,
 			UDMA_M2S_RD_DESC_PREF_CFG_2_MAX_DESC_PER_PKT_SHIFT);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_3);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_3);
 
 	conf->min_burst_below_thr =
 	    AL_REG_FIELD_GET(reg,
@@ -432,7 +432,7 @@ int al_udma_m2s_pref_get(struct al_udma *udma,
 				UDMA_M2S_RD_DESC_PREF_CFG_3_PREF_THR_MASK,
 				UDMA_M2S_RD_DESC_PREF_CFG_3_PREF_THR_SHIFT);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_rd.data_cfg);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_rd.data_cfg);
 	conf->data_fifo_depth = AL_REG_FIELD_GET(reg, UDMA_M2S_RD_DATA_CFG_DATA_FIFO_DEPTH_MASK,
 		UDMA_M2S_RD_DATA_CFG_DATA_FIFO_DEPTH_SHIFT);
 	conf->max_pkt_limit = AL_REG_FIELD_GET(reg, UDMA_M2S_RD_DATA_CFG_MAX_PKT_LIMIT_MASK,
@@ -459,11 +459,11 @@ int al_udma_m2s_max_descs_set(struct al_udma *udma, uint8_t max_descs)
 		pref_thr = 4;
 	}
 
-	al_reg_write32_masked(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_2,
+	al_reg_write32_masked(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_2,
 			      UDMA_M2S_RD_DESC_PREF_CFG_2_MAX_DESC_PER_PKT_MASK,
 			      max_descs << UDMA_M2S_RD_DESC_PREF_CFG_2_MAX_DESC_PER_PKT_SHIFT);
 
-	al_reg_write32_masked(&udma->udma_regs->m2s.m2s_rd.desc_pref_cfg_3,
+	al_reg_write32_masked(&udma->udma_regs_m2s->m2s_rd.desc_pref_cfg_3,
 			      UDMA_M2S_RD_DESC_PREF_CFG_3_PREF_THR_MASK |
 			      UDMA_M2S_RD_DESC_PREF_CFG_3_MIN_BURST_ABOVE_THR_MASK,
 			      (pref_thr << UDMA_M2S_RD_DESC_PREF_CFG_3_PREF_THR_SHIFT) |
@@ -489,7 +489,7 @@ int al_udma_s2m_max_descs_set(struct al_udma *udma, uint8_t max_descs)
 	 * min_burst_above_thr >= 4 */
 		pref_thr = 4;
 
-	al_reg_write32_masked(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_3,
+	al_reg_write32_masked(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_3,
 			      UDMA_S2M_RD_DESC_PREF_CFG_3_PREF_THR_MASK |
 			      UDMA_S2M_RD_DESC_PREF_CFG_3_MIN_BURST_ABOVE_THR_MASK,
 			      (pref_thr << UDMA_S2M_RD_DESC_PREF_CFG_3_PREF_THR_SHIFT) |
@@ -507,7 +507,7 @@ int al_udma_s2m_full_line_write_set(struct al_udma *udma, al_bool enable)
 		al_info("udma [%s]: full line write enabled\n", udma->name);
 	}
 
-	al_reg_write32_masked(&udma->udma_regs->s2m.s2m_wr.data_cfg_2,
+	al_reg_write32_masked(&udma->udma_regs_s2m->s2m_wr.data_cfg_2,
 			UDMA_S2M_WR_DATA_CFG_2_FULL_LINE_MODE,
 			val);
 	return 0;
@@ -519,12 +519,12 @@ int al_udma_s2m_pref_set(struct al_udma *udma,
 {
 	uint32_t reg;
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_1);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_1);
 	reg &= ~UDMA_S2M_RD_DESC_PREF_CFG_1_FIFO_DEPTH_MASK;
 	reg |= conf->desc_fifo_depth;
-	al_reg_write32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_1, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_1, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_2);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_2);
 
 	if (conf->sch_mode == SRR)
 		reg |= UDMA_S2M_RD_DESC_PREF_CFG_2_PREF_FORCE_RR;
@@ -555,9 +555,9 @@ int al_udma_s2m_pref_set(struct al_udma *udma,
 			<< UDMA_S2M_RD_DESC_PREF_CFG_2_PROMOTION_TH_SHIFT) &
 		UDMA_S2M_RD_DESC_PREF_CFG_2_PROMOTION_TH_MASK;
 
-	al_reg_write32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_2, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_2, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_3);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_3);
 	reg &= ~UDMA_S2M_RD_DESC_PREF_CFG_3_PREF_THR_MASK;
 	reg |= (conf->pref_thr << UDMA_S2M_RD_DESC_PREF_CFG_3_PREF_THR_SHIFT) &
 		UDMA_S2M_RD_DESC_PREF_CFG_3_PREF_THR_MASK;
@@ -571,12 +571,12 @@ int al_udma_s2m_pref_set(struct al_udma *udma,
 	       UDMA_S2M_RD_DESC_PREF_CFG_3_MIN_BURST_ABOVE_THR_SHIFT) &
 		UDMA_S2M_RD_DESC_PREF_CFG_3_MIN_BURST_ABOVE_THR_MASK;
 
-	al_reg_write32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_3, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_3, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_4);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_4);
 	reg &= ~UDMA_S2M_RD_DESC_PREF_CFG_4_A_FULL_THR_MASK;
 	reg |= conf->a_full_thr & UDMA_S2M_RD_DESC_PREF_CFG_4_A_FULL_THR_MASK;
-	al_reg_write32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_4, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_4, reg);
 
 
 	return 0;
@@ -589,13 +589,13 @@ int al_udma_s2m_pref_get(struct al_udma *udma,
 	uint32_t reg;
 
 	/* desc_pref_cfg_1 */
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_1);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_1);
 	conf->desc_fifo_depth =
 	    AL_REG_FIELD_GET(reg, UDMA_S2M_RD_DESC_PREF_CFG_1_FIFO_DEPTH_MASK,
 			UDMA_S2M_RD_DESC_PREF_CFG_1_FIFO_DEPTH_SHIFT);
 
 	/* desc_pref_cfg_2 */
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_2);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_2);
 	if (reg & UDMA_S2M_RD_DESC_PREF_CFG_2_PREF_FORCE_RR)
 		conf->sch_mode = SRR;
 	else
@@ -606,7 +606,7 @@ int al_udma_s2m_pref_get(struct al_udma *udma,
 		UDMA_S2M_RD_DESC_PREF_CFG_2_PROMOTION_TH_SHIFT);
 
 	/* desc_pref_cfg_3 */
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_3);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_3);
 	conf->min_burst_below_thr = AL_REG_FIELD_GET(reg,
 			UDMA_S2M_RD_DESC_PREF_CFG_3_MIN_BURST_BELOW_THR_MASK,
 			UDMA_S2M_RD_DESC_PREF_CFG_3_MIN_BURST_BELOW_THR_SHIFT);
@@ -618,7 +618,7 @@ int al_udma_s2m_pref_get(struct al_udma *udma,
 			UDMA_S2M_RD_DESC_PREF_CFG_3_PREF_THR_SHIFT);
 
 	/* desc_pref_cfg_4 */
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_rd.desc_pref_cfg_4);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_rd.desc_pref_cfg_4);
 	conf->a_full_thr = AL_REG_FIELD_GET(reg, UDMA_S2M_RD_DESC_PREF_CFG_4_A_FULL_THR_MASK,
 		UDMA_S2M_RD_DESC_PREF_CFG_4_A_FULL_THR_SHIFT);
 
@@ -631,7 +631,7 @@ int al_udma_s2m_data_write_set(struct al_udma *udma,
 {
 	uint32_t reg;
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_wr.data_cfg_1);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_wr.data_cfg_1);
 	reg &= ~UDMA_S2M_WR_DATA_CFG_1_DATA_FIFO_DEPTH_MASK;
 	reg |= conf->data_fifo_depth &
 			UDMA_S2M_WR_DATA_CFG_1_DATA_FIFO_DEPTH_MASK;
@@ -643,9 +643,9 @@ int al_udma_s2m_data_write_set(struct al_udma *udma,
 	reg |= (conf->fifo_margin <<
 				UDMA_S2M_WR_DATA_CFG_1_FIFO_MARGIN_SHIFT) &
 			UDMA_S2M_WR_DATA_CFG_1_FIFO_MARGIN_MASK;
-	al_reg_write32(&udma->udma_regs->s2m.s2m_wr.data_cfg_1, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_wr.data_cfg_1, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_wr.data_cfg_2);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_wr.data_cfg_2);
 	reg &= ~UDMA_S2M_WR_DATA_CFG_2_DESC_WAIT_TIMER_MASK;
 	reg |= conf->desc_wait_timer &
 			UDMA_S2M_WR_DATA_CFG_2_DESC_WAIT_TIMER_MASK;
@@ -660,7 +660,7 @@ int al_udma_s2m_data_write_set(struct al_udma *udma,
 		 UDMA_S2M_WR_DATA_CFG_2_WAIT_FOR_PREF |
 		 UDMA_S2M_WR_DATA_CFG_2_FULL_LINE_MODE |
 		 UDMA_S2M_WR_DATA_CFG_2_DIRECT_HDR_USE_BUF1);
-	al_reg_write32(&udma->udma_regs->s2m.s2m_wr.data_cfg_2, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_wr.data_cfg_2, reg);
 
 	return 0;
 }
@@ -669,7 +669,7 @@ int al_udma_s2m_data_write_set(struct al_udma *udma,
 int al_udma_s2m_completion_set(struct al_udma *udma,
 				struct al_udma_s2m_completion_conf *conf)
 {
-	uint32_t reg = al_reg_read32(&udma->udma_regs->s2m.s2m_comp.cfg_1c);
+	uint32_t reg = al_reg_read32(&udma->udma_regs_s2m->s2m_comp.cfg_1c);
 	reg &= ~UDMA_S2M_COMP_CFG_1C_DESC_SIZE_MASK;
 	reg |= conf->desc_size & UDMA_S2M_COMP_CFG_1C_DESC_SIZE_MASK;
 	if (conf->cnt_words == AL_TRUE)
@@ -687,9 +687,9 @@ int al_udma_s2m_completion_set(struct al_udma *udma,
 	reg &= ~UDMA_S2M_COMP_CFG_1C_Q_FREE_MIN_MASK;
 	reg |= (conf->q_free_min << UDMA_S2M_COMP_CFG_1C_Q_FREE_MIN_SHIFT) &
 		UDMA_S2M_COMP_CFG_1C_Q_FREE_MIN_MASK;
-	al_reg_write32(&udma->udma_regs->s2m.s2m_comp.cfg_1c, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_comp.cfg_1c, reg);
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_comp.cfg_2c);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_comp.cfg_2c);
 	reg &= ~UDMA_S2M_COMP_CFG_2C_COMP_FIFO_DEPTH_MASK;
 	reg |= conf->comp_fifo_depth
 				& UDMA_S2M_COMP_CFG_2C_COMP_FIFO_DEPTH_MASK;
@@ -697,9 +697,9 @@ int al_udma_s2m_completion_set(struct al_udma *udma,
 	reg |= (conf->unack_fifo_depth
 			<< UDMA_S2M_COMP_CFG_2C_UNACK_FIFO_DEPTH_SHIFT) &
 			UDMA_S2M_COMP_CFG_2C_UNACK_FIFO_DEPTH_MASK;
-	al_reg_write32(&udma->udma_regs->s2m.s2m_comp.cfg_2c, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_comp.cfg_2c, reg);
 
-	al_reg_write32(&udma->udma_regs->s2m.s2m_comp.cfg_application_ack,
+	al_reg_write32(&udma->udma_regs_s2m->s2m_comp.cfg_application_ack,
 		       conf->timeout);
 	return 0;
 }
@@ -708,7 +708,7 @@ int al_udma_s2m_completion_set(struct al_udma *udma,
 int al_udma_m2s_sc_set(struct al_udma *udma,
 					struct al_udma_m2s_dwrr_conf *sched)
 {
-	uint32_t reg = al_reg_read32(&udma->udma_regs->m2s.m2s_dwrr.cfg_sched);
+	uint32_t reg = al_reg_read32(&udma->udma_regs_m2s->m2s_dwrr.cfg_sched);
 
 	if (sched->enable_dwrr == AL_TRUE)
 		reg |= UDMA_M2S_DWRR_CFG_SCHED_EN_DWRR;
@@ -724,9 +724,9 @@ int al_udma_m2s_sc_set(struct al_udma *udma,
 	reg |= sched->weight << UDMA_M2S_DWRR_CFG_SCHED_WEIGHT_INC_SHIFT;
 	reg &= ~UDMA_M2S_DWRR_CFG_SCHED_INC_FACTOR_MASK;
 	reg |= sched->inc_factor << UDMA_M2S_DWRR_CFG_SCHED_INC_FACTOR_SHIFT;
-	al_reg_write32(&udma->udma_regs->m2s.m2s_dwrr.cfg_sched, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_dwrr.cfg_sched, reg);
 
-	al_reg_write32(&udma->udma_regs->m2s.m2s_dwrr.ctrl_deficit_cnt, sched->deficit_init_val);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_dwrr.ctrl_deficit_cnt, sched->deficit_init_val);
 
 	return 0;
 }
@@ -736,7 +736,7 @@ int al_udma_m2s_rlimit_set(struct al_udma *udma,
 					struct al_udma_m2s_rlimit_mode *mode)
 {
 	uint32_t reg = al_reg_read32(
-				&udma->udma_regs->m2s.m2s_rate_limiter.gen_cfg);
+				&udma->udma_regs_m2s->m2s_rate_limiter.gen_cfg);
 
 	if (mode->pkt_mode_en == AL_TRUE)
 		reg |= UDMA_M2S_RATE_LIMITER_GEN_CFG_PKT_MODE_EN;
@@ -745,16 +745,16 @@ int al_udma_m2s_rlimit_set(struct al_udma *udma,
 	reg &= ~UDMA_M2S_RATE_LIMITER_GEN_CFG_SHORT_CYCLE_SIZE_MASK;
 	reg |= mode->short_cycle_sz &
 	    UDMA_M2S_RATE_LIMITER_GEN_CFG_SHORT_CYCLE_SIZE_MASK;
-	al_reg_write32(&udma->udma_regs->m2s.m2s_rate_limiter.gen_cfg, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_rate_limiter.gen_cfg, reg);
 
-	al_reg_write32(&udma->udma_regs->m2s.m2s_rate_limiter.ctrl_token, mode->token_init_val);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_rate_limiter.ctrl_token, mode->token_init_val);
 
 	return 0;
 }
 
 int al_udma_m2s_rlimit_reset(struct al_udma *udma)
 {
-	al_reg_write32(&udma->udma_regs->m2s.m2s_rate_limiter.ctrl_cycle_cnt,
+	al_reg_write32(&udma->udma_regs_m2s->m2s_rate_limiter.ctrl_cycle_cnt,
 		UDMA_M2S_RATE_LIMITER_CTRL_CYCLE_CNT_RST);
 	return 0;
 }
@@ -828,7 +828,7 @@ int al_udma_m2s_strm_rlimit_set(struct al_udma *udma,
 				struct al_udma_m2s_rlimit_cfg *conf)
 {
 	struct udma_rlimit_common *rlimit_regs =
-	    &udma->udma_regs->m2s.m2s_stream_rate_limiter.rlimit;
+	    &udma->udma_regs_m2s->m2s_stream_rate_limiter.rlimit;
 
 	return al_udma_common_rlimit_set(rlimit_regs, conf);
 }
@@ -837,7 +837,7 @@ int al_udma_m2s_strm_rlimit_act(struct al_udma *udma,
 				enum al_udma_m2s_rlimit_action act)
 {
 	struct udma_rlimit_common *rlimit_regs =
-	    &udma->udma_regs->m2s.m2s_stream_rate_limiter.rlimit;
+	    &udma->udma_regs_m2s->m2s_stream_rate_limiter.rlimit;
 
 	if (al_udma_common_rlimit_act(rlimit_regs, act) == -EINVAL) {
 		al_err("udma [%s]: udma stream rate limit invalid action "
@@ -925,7 +925,7 @@ int al_udma_m2s_q_sc_reset(struct al_udma_q *udma_q)
 int al_udma_m2s_comp_timeouts_set(struct al_udma *udma,
 				struct al_udma_m2s_comp_timeouts *conf)
 {
-	uint32_t reg = al_reg_read32(&udma->udma_regs->m2s.m2s_comp.cfg_1c);
+	uint32_t reg = al_reg_read32(&udma->udma_regs_m2s->m2s_comp.cfg_1c);
 
 	if (conf->sch_mode == SRR)
 		reg |= UDMA_M2S_COMP_CFG_1C_FORCE_RR;
@@ -948,22 +948,22 @@ int al_udma_m2s_comp_timeouts_set(struct al_udma *udma,
 	reg &= ~UDMA_M2S_COMP_CFG_1C_UNACK_FIFO_DEPTH_MASK;
 	reg |= conf->unack_fifo_depth
 				<< UDMA_M2S_COMP_CFG_1C_UNACK_FIFO_DEPTH_SHIFT;
-	al_reg_write32(&udma->udma_regs->m2s.m2s_comp.cfg_1c, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_comp.cfg_1c, reg);
 
-	al_reg_write32(&udma->udma_regs->m2s.m2s_comp.cfg_coal
+	al_reg_write32(&udma->udma_regs_m2s->m2s_comp.cfg_coal
 							, conf->coal_timeout);
 
-	reg = al_reg_read32(&udma->udma_regs->m2s.m2s_comp.cfg_application_ack);
+	reg = al_reg_read32(&udma->udma_regs_m2s->m2s_comp.cfg_application_ack);
 	reg &= ~UDMA_M2S_COMP_CFG_APPLICATION_ACK_TOUT_MASK;
 	reg |= conf->app_timeout << UDMA_M2S_COMP_CFG_APPLICATION_ACK_TOUT_SHIFT;
-	al_reg_write32(&udma->udma_regs->m2s.m2s_comp.cfg_application_ack, reg);
+	al_reg_write32(&udma->udma_regs_m2s->m2s_comp.cfg_application_ack, reg);
 	return 0;
 }
 
 int al_udma_m2s_comp_timeouts_get(struct al_udma *udma,
 					struct al_udma_m2s_comp_timeouts *conf)
 {
-	uint32_t reg = al_reg_read32(&udma->udma_regs->m2s.m2s_comp.cfg_1c);
+	uint32_t reg = al_reg_read32(&udma->udma_regs_m2s->m2s_comp.cfg_1c);
 
 	if (reg & UDMA_M2S_COMP_CFG_1C_FORCE_RR)
 		conf->sch_mode = SRR;
@@ -985,10 +985,10 @@ int al_udma_m2s_comp_timeouts_get(struct al_udma *udma,
 			     UDMA_M2S_COMP_CFG_1C_UNACK_FIFO_DEPTH_SHIFT);
 
 	conf->coal_timeout = al_reg_read32(
-				&udma->udma_regs->m2s.m2s_comp.cfg_coal);
+				&udma->udma_regs_m2s->m2s_comp.cfg_coal);
 
 	reg = al_reg_read32(
-			&udma->udma_regs->m2s.m2s_comp.cfg_application_ack);
+			&udma->udma_regs_m2s->m2s_comp.cfg_application_ack);
 
 	conf->app_timeout =
 	    AL_REG_FIELD_GET(reg,
@@ -1005,7 +1005,7 @@ int al_udma_s2m_no_desc_cfg_set(struct al_udma *udma, al_bool drop_packet, al_bo
 {
 	uint32_t reg;
 
-	reg = al_reg_read32(&udma->udma_regs->s2m.s2m_wr.data_cfg_2);
+	reg = al_reg_read32(&udma->udma_regs_s2m->s2m_wr.data_cfg_2);
 
 	if ((drop_packet == AL_TRUE) && (wait_for_desc_timeout == 0)) {
 		al_err("udam [%s]: setting timeout to 0 will cause the udma "
@@ -1025,7 +1025,7 @@ int al_udma_s2m_no_desc_cfg_set(struct al_udma *udma, al_bool drop_packet, al_bo
 
 	AL_REG_FIELD_SET(reg, UDMA_S2M_WR_DATA_CFG_2_DESC_WAIT_TIMER_MASK, UDMA_S2M_WR_DATA_CFG_2_DESC_WAIT_TIMER_SHIFT, wait_for_desc_timeout);
 
-	al_reg_write32(&udma->udma_regs->s2m.s2m_wr.data_cfg_2, reg);
+	al_reg_write32(&udma->udma_regs_s2m->s2m_wr.data_cfg_2, reg);
 
 	return 0;
 }
@@ -1089,7 +1089,7 @@ int al_udma_s2m_compl_desc_burst_config(struct al_udma *udma, uint16_t
 
 	/* convert burst size from bytes to beats (16 byte) */
 	burst_size = burst_size / 16;
-	al_reg_write32_masked(&udma->udma_regs->s2m.axi_s2m.desc_wr_cfg_1,
+	al_reg_write32_masked(&udma->udma_regs_s2m->axi_s2m.desc_wr_cfg_1,
 			UDMA_AXI_S2M_DESC_WR_CFG_1_MIN_AXI_BEATS_MASK |
 			UDMA_AXI_S2M_DESC_WR_CFG_1_MAX_AXI_BEATS_MASK,
 			burst_size << UDMA_AXI_S2M_DESC_WR_CFG_1_MIN_AXI_BEATS_SHIFT |
@@ -1464,7 +1464,7 @@ static void al_udma_ttt_init(struct al_udma *udma)
 	uint32_t in_progress;
 
 	al_assert(udma);
-	al_assert(udma->type == UDMA_RX);
+//	al_assert(udma->type == UDMA_RX);
 
 	section_ctrl_regs = udma->gen_ex_regs;
 
@@ -1483,7 +1483,7 @@ void al_udma_ttt_default_config(
 {
 	unsigned int i;
 
-	al_assert(rx_udma->type == UDMA_RX);
+	//al_assert(rx_udma->type == UDMA_RX);
 	al_assert(rx_udma->rev_id >= AL_UDMA_REV_ID_4);
 
 	al_udma_ttt_init(rx_udma);

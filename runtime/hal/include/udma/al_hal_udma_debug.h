@@ -58,18 +58,18 @@ extern "C" {
 /* UDMA register print helper macros */
 #define AL_UDMA_PRINT_REG(UDMA, PREFIX, POSTFIX, TYPE, GROUP, REG) \
 	al_dbg(PREFIX #REG " = 0x%08x" POSTFIX, al_reg_read32( \
-		&(UDMA->udma_regs->TYPE.GROUP.REG)))
+		&(UDMA->udma_regs_##TYPE->GROUP.REG)))
 
 #define AL_UDMA_PRINT_REG_FIELD( \
 		UDMA, PREFIX, POSTFIX, FMT, TYPE, GROUP, REG, LBL, FIELD) \
 	al_dbg(PREFIX #LBL " = " FMT POSTFIX, (al_reg_read32( \
-			&(UDMA->udma_regs->TYPE.GROUP.REG)) \
+			&(UDMA->udma_regs_##TYPE->GROUP.REG)) \
 			& FIELD ## _MASK) >> FIELD ## _SHIFT)
 
 #define AL_UDMA_PRINT_REG_BIT( \
 		UDMA, PREFIX, POSTFIX, TYPE, GROUP, REG, LBL, FIELD) \
 	al_dbg(PREFIX #LBL " = %d" POSTFIX, ((al_reg_read32( \
-			&(UDMA->udma_regs->TYPE.GROUP.REG)) \
+			&(UDMA->udma_regs_##TYPE->GROUP.REG)) \
 			& FIELD) != 0))
 
 /* UDMA register print mask definitions */

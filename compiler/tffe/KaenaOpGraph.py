@@ -5,9 +5,12 @@
 
 from NpTransforms import NpTrans as npt
 from NpUtils import NpUtils as npu
-import os, re, json
+import os, re, json, sys
 import numpy as np
 import math
+from graphviz import Digraph
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+import MiscUtil
 
 class Config:
   debugLevel = 0
@@ -34,6 +37,8 @@ class Config:
   1-2-5    ... recommended batches for roofline-minWave-maxWave
                Batch 0 means tiling required
 """
+  class Dot:
+    timeout = 60
 
 class Object:
   def __init__(self, name, attrs):
@@ -67,6 +72,17 @@ class Node(Object):
     self.__npInfo = []
     self.__fanin = []  # inputs
     self.__fanout = [] # outputs
+  def copy(self):
+    CL = type(self)
+    n = CL(self.getName(), self.getOpType(), self.getAttrs())
+    n.__npInfo = self.getNpInfo()
+    #print("DEBUG: copy node class %s  %s %s" % (CL,  self.getOpType(), self.getName()))
+    return n
+  def copyAs(self, CL, opType):
+    n = CL(self.getName(), opType, self.getAttrs())
+    n.__npInfo = self.getNpInfo()
+    #print("DEBUG: copy node class %s  %s %s" % (CL,  self.getOpType(), self.getName()))
+    return n
   def __str__(self):
     return("Node=" + self.getName())
   def getLevel(self):
@@ -99,6 +115,13 @@ class Node(Object):
     return([item for edgelist in self.__fanout for item in edgelist])
   def getFanoutMainFlowEdges(self):
     return [e for e in self.getFanoutEdges() if e.isInMainFlow()]
+  # Edge between 2 nodes (from this to another)
+  def getEdgeTo(self, toNode):
+    for e in self.getFanoutEdges():
+      p = e.getToPosNode()
+      if p.node == toNode:
+        return e
+    return None
   # Fanin of 1 per input
   def setFaninEdge(self, edge, index):
     assert(len(self.__fanin) < index + 1 or self.__fanout[index] == None)
@@ -167,6 +190,42 @@ class Edge(Object):
   def isInMainFlow(self):
     return self.__isInMainFlow
 
+
+###############################################################################
+# Constant node - single output node
+###############################################################################
+class NodeConst(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    if len(npInfo.npShape) > 1:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      tpbShape = npInfo.npShape
+      npFileSim = npInfo.npFile
+      simFormat = npt.Formats[npt.SIM][npt.Fmaps]
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [],
+      "#comment"        : "supported const layer"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
+
 ###############################################################################
 # Simple single input, single output nodes like RELU
 ###############################################################################
@@ -197,7 +256,6 @@ class NodeSimple(Node):
 
   def isSupported(self):
     return True
-
 
 
 ###############################################################################
@@ -611,6 +669,7 @@ class Graph(Object):
     self.__edges.append(edge)
     fromNode.setFanoutEdge(edge, fromIndex)
     toNode.setFaninEdge(edge, toIndex)
+    return edge
 
   def hasNode(self, name):
     return(name in self.__name2node)
@@ -628,7 +687,7 @@ class Graph(Object):
     nextNodes = {}
     for edge in fromNode.getFanoutEdges():
       nextNodes[edge.getToPosNode().node] = 1
-    return(nextNodes.keys())
+    return(list(nextNodes.keys()))
   
   def nodePredecessors(self, toNode):
     preNodes = []
@@ -761,12 +820,12 @@ class Graph(Object):
     }
     jsonData["layers"].append(inputLayerData)
     fileList.append(npFileSim)
+    outNpy = npFileSim
     if verbose > 0:
       npu.showNpyFile("Input IFMAPs", npFileSim)
     
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
-    outNpy = None
     totalOpCount = 0
     for level in range(0, len(levelizedNodes)):
       for n in levelizedNodes[level]:
@@ -809,15 +868,15 @@ class Graph(Object):
   #    OutputNpy=trivnet_1conv__i1:0_NCHW.npy
   #    PythonFile=trivnet_compiler.py
   def genKgraphSetupFiles(self, fileNamePy, fileNameJson, fileNameNpyOutput):
-    setupFilePy = "net_py_params.sh"
-    with open(setupFilePy, "w") as f:
-      f.write("OutputNpy=%s\n" % fileNameNpyOutput)
-      f.write("PythonFile=%s\n" % fileNamePy)
+    #setupFilePy = "net_py_params.sh"
+    #with open(setupFilePy, "w") as f:
+    #  f.write("OutputNpy=%s\n" % fileNameNpyOutput)
+    #  f.write("PythonFile=%s\n" % fileNamePy)
     setupFileJson = "net_json_params.sh"
     with open(setupFileJson, "w") as f:
       f.write("OutputNpy=%s\n" % fileNameNpyOutput)
       f.write("JsonFile=%s\n" % fileNameJson)
-    return([setupFilePy, setupFileJson])
+    return([setupFileJson])
 
 
   def getLowestLevelNodes(self):
@@ -825,10 +884,127 @@ class Graph(Object):
 
   def print(self):
     for n in self.getNodes():
-      print("  Node  %s" % n.getName())
+      print("  Node  %-12s  %s" % (n.getOpType(), n.getName()))
     for e in self.getEdges():
-      print("  Edge  %s  ->  %s" % (edge.getFromNode().getName(),
-                                    edge.getToNode().getName()))
+      print("  Edge  %s  ->  %s" % (e.getFromNode().getName(),
+                                    e.getToNode().getName()))
   
+  # Copy edge from another graph into this one
+  def copyEdge(self, e):
+    fromPosNode = e.getFromPosNode()
+    toPosNode = e.getToPosNode()
+    fromName = fromPosNode.node.getName()
+    toName = toPosNode.node.getName()
+    if self.hasNode(fromName) and self.hasNode(toName):
+      eNew = self.addEdge(fromName, fromPosNode.index, 
+                   toName, toPosNode.index, e.getAttrs())
+      eNew.setLabel(e.getLabel())
+      if Config.debugLevel >= 1:
+        print("DEBUG: copyEdge %s %d -> %s %d" %
+              (fromName, fromPosNode.index, toName, toPosNode.index))
+      return eNew
+    return None
   
+  # Copy edges from a graph into this one based on node existance in this one
+  def copyEdges(self, sourceGraph):
+    for e in sourceGraph.getEdges():
+      self.copyEdge(e)
   
+  # Writes graph in a given format using graphviz lib
+  # Key operations like convolution are colored red
+  # The depth determines subgraph clastering based on operation names
+  #   layerN/branchM/convP cluster would be breated (in blue) if depth is 3
+  def writeDot(self, depth, outFile, outFormat = "svg"):
+    dot = Digraph(comment="writeDot")
+    dot.node("KgraphLegend", "Legend" + re.sub("\n", "\l", Config.Graph.legendText),
+             {"color":"yellow", "shape":"rectangle"})
+    for n in self.getNodes():
+      opType = n.getOpType()
+      attrs = {}
+      if re.search("conv", opType, re.I):
+        attrs["color"] = "red"
+      
+      dot.node(n.getName(), n.getDotText(), attrs)
+
+    for edge in self.getEdges():
+      #print(edge)
+      #print("DEBUG: adding edge to dot ", edge)
+      #print("DEBUG: attrs=", edge.getAttrs())
+      dot.edge(edge.getFromPosNode().node.getName(),
+               edge.getToPosNode().node.getName(),
+               edge.getLabel(), edge.getAttrs())
+
+    # Add subgraphs
+    clusters = {}
+    for n in sorted(self.getNodes(), key=lambda x: x.getName()):
+      clStrs = n.getName().split("/")
+      c = clusters
+      #for i in range(0, len(clStrs)):
+      for i in range(0, min(len(clStrs), depth)):
+        if (c.get(clStrs[i]) == None):
+          c[clStrs[i]] = {"nodes" : []}
+        c = c[clStrs[i]]
+      c["nodes"].append(n.getName())
+    #print("Clusters=", clusters)
+
+    def addClusterNodes(graph, ClusterNode):
+      # add nodes in this subgraph
+      if "nodes" in ClusterNode:
+        for n in ClusterNode["nodes"]:
+          #print("  DEBUG: added node ", n)
+          graph.node(n)
+      # add subgraphs
+
+      for clShortName in ClusterNode:
+        #print("  DEBUG: clShortName ", clShortName)
+        if clShortName != "nodes":
+          with graph.subgraph(name="cluster_" + clShortName) as subGraph:
+            subGraph.attr(color="blue")
+            subGraph.attr(label=clShortName)
+            addClusterNodes(subGraph, ClusterNode.get(clShortName))
+
+    if 1:
+      addClusterNodes(dot, clusters)
+
+    #print("Dot=", dot.source)
+    dot.format = outFormat
+    outFileAndExt = outFile + "." + outFormat
+    print("INFO: invoking dot to render " + outFileAndExt)
+    if MiscUtil.ExecTimeout.run(dot.render, outFile, Config.Dot.timeout):
+      print("INFO: wrote " + outFileAndExt)      
+    else:
+      print("INFO: dot rendering timed out, skipping")
+      if os.path.exists(outFileAndExt):
+        os.remove(outFileAndExt)
+  
+  # Finds all fanin nodes that are missing in this graph and copies
+  # them as Constants. This eg, completes the boundary condition
+  # for a subgraph that has all main flow nodes.
+  # Returns list of input nodes
+  def transferSideNodes(self, sourceGraph):
+    inputNodes = []
+    for n in self.getNodes():
+      nodeName = n.getName()
+      ns = sourceGraph.getNode(nodeName)
+      assert ns != None
+      for predNode in sourceGraph.nodePredecessors(ns):
+        predName = predNode.getName()
+        print("DEBUG: transferSideNodes %s -> %s" % (predName, nodeName))
+        if not self.hasNode(predName):
+          constNode = predNode.copyAs(NodeConst, "Const")
+          self.addNode(constNode)
+          print("DEBUG: transferSideNodes added node %s" % (constNode.getName()))
+          srcEdge = predNode.getEdgeTo(ns)
+          eNew = self.copyEdge(srcEdge)
+          # Note - This is a noop since edge color is stored in attributes (not
+          # recalculated from subgraph state). Coloring based on main graph
+          # is perhaps even better
+          #eNew.setIsInMainFlow(False)
+          if srcEdge.isInMainFlow():
+            inputNodes.append(constNode)
+    return inputNodes
+
+
+
+
+

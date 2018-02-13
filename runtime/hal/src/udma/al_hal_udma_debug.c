@@ -205,7 +205,7 @@ static void al_udma_regs_m2s_feature_print(struct al_udma *udma)
 static void al_udma_regs_m2s_q_print(struct al_udma *udma, uint32_t qid)
 {
 	al_dbg("M2S Q[%d] status regs:\n", qid);
-	al_reg_write32(&udma->udma_regs->m2s.m2s.indirect_ctrl, qid);
+	al_reg_write32(&udma->udma_regs_m2s->m2s.indirect_ctrl, qid);
 	AL_UDMA_PRINT_REG(udma, " ", "\n", m2s, m2s, sel_pref_fifo_status);
 	AL_UDMA_PRINT_REG(udma, " ", "\n", m2s, m2s, sel_comp_fifo_status);
 	AL_UDMA_PRINT_REG(udma, " ", "\n", m2s, m2s, sel_rate_limit_status);
@@ -322,7 +322,7 @@ static void al_udma_regs_s2m_feature_print(struct al_udma *udma)
 static void al_udma_regs_s2m_q_print(struct al_udma *udma, uint32_t qid)
 {
 	al_dbg("S2M Q[%d] status regs:\n", qid);
-	al_reg_write32(&udma->udma_regs->m2s.m2s.indirect_ctrl, qid);
+	al_reg_write32(&udma->udma_regs_m2s->m2s.indirect_ctrl, qid);
 	AL_UDMA_PRINT_REG(udma, " ", "\n", s2m, s2m, sel_pref_fifo_status);
 	AL_UDMA_PRINT_REG(udma, " ", "\n", s2m, s2m, sel_comp_fifo_status);
 
@@ -348,59 +348,58 @@ static void al_udma_regs_s2m_q_print(struct al_udma *udma, uint32_t qid)
 
 void al_udma_regs_print(struct al_udma *udma, unsigned int mask)
 {
-	uint32_t i;
+    uint32_t i;
 
-	if (!udma)
-		return;
+    if (!udma)
+        return;
 
-	if (udma->type == UDMA_TX) {
-		if (mask & AL_UDMA_DEBUG_AXI)
-			al_udma_regs_m2s_axi_print(udma);
-		if (mask & AL_UDMA_DEBUG_GENERAL)
-			al_udma_regs_m2s_general_print(udma);
-		if (mask & AL_UDMA_DEBUG_READ)
-			al_udma_regs_m2s_rd_print(udma);
-		if (mask & AL_UDMA_DEBUG_DWRR)
-			al_udma_regs_m2s_dwrr_print(udma);
-		if (mask & AL_UDMA_DEBUG_RATE_LIMITER)
-			al_udma_regs_m2s_rate_limiter_print(udma);
-		if (mask & AL_UDMA_DEBUG_STREAM_RATE_LIMITER)
-			al_udma_regs_m2s_stream_rate_limiter_print(udma);
-		if (mask & AL_UDMA_DEBUG_COMP)
-			al_udma_regs_m2s_comp_print(udma);
-		if (mask & AL_UDMA_DEBUG_STAT)
-			al_udma_regs_m2s_stat_print(udma);
-		if (mask & AL_UDMA_DEBUG_FEATURE)
-			al_udma_regs_m2s_feature_print(udma);
-		for (i = 0; i < udma->num_of_queues; i++) {
-			if (mask & AL_UDMA_DEBUG_QUEUE(i))
-				al_udma_regs_m2s_q_print(udma, i);
-		}
-	} else {
-		if (mask & AL_UDMA_DEBUG_AXI)
-			al_udma_regs_s2m_axi_print(udma);
-		if (mask & AL_UDMA_DEBUG_GENERAL)
-			al_udma_regs_s2m_general_print(udma);
-		if (mask & AL_UDMA_DEBUG_READ)
-			al_udma_regs_s2m_rd_print(udma);
-		if (mask & AL_UDMA_DEBUG_WRITE)
-			al_udma_regs_s2m_wr_print(udma);
-		if (mask & AL_UDMA_DEBUG_COMP)
-			al_udma_regs_s2m_comp_print(udma);
-		if (mask & AL_UDMA_DEBUG_STAT)
-			al_udma_regs_s2m_stat_print(udma);
-		if (mask & AL_UDMA_DEBUG_FEATURE)
-			al_udma_regs_s2m_feature_print(udma);
-		for (i = 0; i < udma->num_of_queues; i++) {
-			if (mask & AL_UDMA_DEBUG_QUEUE(i))
-				al_udma_regs_s2m_q_print(udma, i);
-		}
-	}
+    // print both TX and RX
+    if (mask & AL_UDMA_DEBUG_AXI)
+        al_udma_regs_m2s_axi_print(udma);
+    if (mask & AL_UDMA_DEBUG_GENERAL)
+        al_udma_regs_m2s_general_print(udma);
+    if (mask & AL_UDMA_DEBUG_READ)
+        al_udma_regs_m2s_rd_print(udma);
+    if (mask & AL_UDMA_DEBUG_DWRR)
+        al_udma_regs_m2s_dwrr_print(udma);
+    if (mask & AL_UDMA_DEBUG_RATE_LIMITER)
+        al_udma_regs_m2s_rate_limiter_print(udma);
+    if (mask & AL_UDMA_DEBUG_STREAM_RATE_LIMITER)
+        al_udma_regs_m2s_stream_rate_limiter_print(udma);
+    if (mask & AL_UDMA_DEBUG_COMP)
+        al_udma_regs_m2s_comp_print(udma);
+    if (mask & AL_UDMA_DEBUG_STAT)
+        al_udma_regs_m2s_stat_print(udma);
+    if (mask & AL_UDMA_DEBUG_FEATURE)
+        al_udma_regs_m2s_feature_print(udma);
+    for (i = 0; i < udma->num_of_queues; i++) {
+        if (mask & AL_UDMA_DEBUG_QUEUE(i))
+            al_udma_regs_m2s_q_print(udma, i);
+    }
+    if (mask & AL_UDMA_DEBUG_AXI)
+        al_udma_regs_s2m_axi_print(udma);
+    if (mask & AL_UDMA_DEBUG_GENERAL)
+        al_udma_regs_s2m_general_print(udma);
+    if (mask & AL_UDMA_DEBUG_READ)
+        al_udma_regs_s2m_rd_print(udma);
+    if (mask & AL_UDMA_DEBUG_WRITE)
+        al_udma_regs_s2m_wr_print(udma);
+    if (mask & AL_UDMA_DEBUG_COMP)
+        al_udma_regs_s2m_comp_print(udma);
+    if (mask & AL_UDMA_DEBUG_STAT)
+        al_udma_regs_s2m_stat_print(udma);
+    if (mask & AL_UDMA_DEBUG_FEATURE)
+        al_udma_regs_s2m_feature_print(udma);
+    for (i = 0; i < udma->num_of_queues; i++) {
+        if (mask & AL_UDMA_DEBUG_QUEUE(i))
+            al_udma_regs_s2m_q_print(udma, i);
+    }
 }
 
 void al_udma_q_struct_print(struct al_udma *udma, uint32_t qid)
 {
 	struct al_udma_q *queue;
+    int q;
 
 	if (!udma)
 		return;
@@ -408,30 +407,36 @@ void al_udma_q_struct_print(struct al_udma *udma, uint32_t qid)
 	if (qid >= udma->num_of_queues)
 		return;
 
-	queue = &udma->udma_q[qid];
-
-	al_dbg("Q[%d] struct:\n", qid);
-	al_dbg(" size_mask = 0x%08x\n", queue->size_mask);
-	al_dbg(" q_regs = %p\n", queue->q_regs);
-	al_dbg(" desc_base_ptr = %p\n", queue->desc_base_ptr);
-	al_dbg(" next_desc_idx = %d\n", queue->next_desc_idx);
-	al_dbg(" desc_ring_id = %d\n", queue->desc_ring_id);
-	al_dbg(" cdesc_base_ptr = %p\n", queue->cdesc_base_ptr);
-	al_dbg(" cdesc_size = %d\n", queue->cdesc_size);
-	al_dbg(" next_cdesc_idx = %d\n", queue->next_cdesc_idx);
-	al_dbg(" end_cdesc_ptr = %p\n", queue->end_cdesc_ptr);
-	al_dbg(" comp_head_idx = %d\n", queue->comp_head_idx);
-	al_dbg(" comp_head_ptr = %p\n", queue->comp_head_ptr);
-	al_dbg(" pkt_crnt_descs = %d\n", queue->pkt_crnt_descs);
-	al_dbg(" comp_ring_id = %d\n", queue->comp_ring_id);
-	al_dbg(" desc_phy_base = 0x%016" PRIx64 "\n", (uint64_t)queue->desc_phy_base);
-	al_dbg(" cdesc_phy_base = 0x%016" PRIx64 "\n",
-			(uint64_t)queue->cdesc_phy_base);
-	al_dbg(" flags = 0x%08x\n", queue->flags);
-	al_dbg(" size = %d\n", queue->size);
-	al_dbg(" status = %d\n", queue->status);
-	al_dbg(" udma = %p\n", queue->udma);
-	al_dbg(" qid = %d\n", queue->qid);
+    for( q=0; q<2; q++ ) {
+        if( q == 0 ) {
+        	queue = &udma->udma_q_m2s[qid];
+	        al_dbg("Q[%d] m2s struct:\n", qid);
+        } else {
+        	queue = &udma->udma_q_s2m[qid];
+	        al_dbg("Q[%d] s2m struct:\n", qid);
+        }
+        al_dbg(" size_mask = 0x%08x\n", queue->size_mask);
+        al_dbg(" q_regs = %p\n", queue->q_regs);
+        al_dbg(" desc_base_ptr = %p\n", queue->desc_base_ptr);
+        al_dbg(" next_desc_idx = %d\n", queue->next_desc_idx);
+        al_dbg(" desc_ring_id = %d\n", queue->desc_ring_id);
+        al_dbg(" cdesc_base_ptr = %p\n", queue->cdesc_base_ptr);
+        al_dbg(" cdesc_size = %d\n", queue->cdesc_size);
+        al_dbg(" next_cdesc_idx = %d\n", queue->next_cdesc_idx);
+        al_dbg(" end_cdesc_ptr = %p\n", queue->end_cdesc_ptr);
+        al_dbg(" comp_head_idx = %d\n", queue->comp_head_idx);
+        al_dbg(" comp_head_ptr = %p\n", queue->comp_head_ptr);
+        al_dbg(" pkt_crnt_descs = %d\n", queue->pkt_crnt_descs);
+        al_dbg(" comp_ring_id = %d\n", queue->comp_ring_id);
+        al_dbg(" desc_phy_base = 0x%016" PRIx64 "\n", (uint64_t)queue->desc_phy_base);
+        al_dbg(" cdesc_phy_base = 0x%016" PRIx64 "\n",
+                (uint64_t)queue->cdesc_phy_base);
+        al_dbg(" flags = 0x%08x\n", queue->flags);
+        al_dbg(" size = %d\n", queue->size);
+        al_dbg(" status = %d\n", queue->status);
+        al_dbg(" udma = %p\n", queue->udma);
+        al_dbg(" qid = %d\n", queue->qid);
+    }
 }
 
 void al_udma_ring_print(struct al_udma *udma, uint32_t qid,
@@ -441,6 +446,7 @@ void al_udma_ring_print(struct al_udma *udma, uint32_t qid,
 	uint32_t desc_size;
 	uint8_t *base_ptr;
 	uint32_t i;
+    int q;
 
 	if (!udma)
 		return;
@@ -448,49 +454,58 @@ void al_udma_ring_print(struct al_udma *udma, uint32_t qid,
 	if (qid >= udma->num_of_queues)
 		return;
 
-	queue = &udma->udma_q[qid];
-	if (rtype == AL_RING_SUBMISSION) {
-		base_ptr = (uint8_t *)queue->desc_base_ptr;
-		desc_size = sizeof(union al_udma_desc);
-		if (base_ptr)
-			al_dbg("Q[%d] submission ring pointers:\n", qid);
-		else {
-			al_dbg("Q[%d] submission ring is not allocated\n", qid);
-			return;
-		}
-	} else {
-		base_ptr = (uint8_t *)queue->cdesc_base_ptr;
-		desc_size = queue->cdesc_size;
-		if (base_ptr)
-			al_dbg("Q[%d] completion ring pointers:\n", qid);
-		else {
-			al_dbg("Q[%d] completion ring is not allocated\n", qid);
-			return;
-		}
-	}
+    for( q=0; q<2; q++ ) {
+        if( q == 0 ) {
+        	queue = &udma->udma_q_m2s[qid];
+            al_dbg("Q[%d] m2s\n", qid);
+        } else {
+        	queue = &udma->udma_q_s2m[qid];
+            al_dbg("Q[%d] s2m\n", qid);
+        }
 
-	for (i = 0; i < queue->size; i++) {
-		uint32_t *curr_addr = (uint32_t *)(base_ptr + i * desc_size);
-		if (desc_size == 16)
-			al_dbg("[%04d](%p): %08x %08x %08x %08x\n",
-					i,
-					curr_addr,
-					(uint32_t)*curr_addr,
-					(uint32_t)*(curr_addr+1),
-					(uint32_t)*(curr_addr+2),
-					(uint32_t)*(curr_addr+3));
-		else if (desc_size == 8)
-			al_dbg("[%04d](%p): %08x %08x\n",
-					i,
-					curr_addr,
-					(uint32_t)*curr_addr,
-					(uint32_t)*(curr_addr+1));
-		else if (desc_size == 4)
-			al_dbg("[%04d](%p): %08x\n",
-					i,
-					curr_addr,
-					(uint32_t)*curr_addr);
-		else
-			break;
-	}
+        if (rtype == AL_RING_SUBMISSION) {
+            base_ptr = (uint8_t *)queue->desc_base_ptr;
+            desc_size = sizeof(union al_udma_desc);
+            if (base_ptr)
+                al_dbg("Q[%d] submission ring pointers:\n", qid);
+            else {
+                al_dbg("Q[%d] submission ring is not allocated\n", qid);
+                return;
+            }
+        } else {
+            base_ptr = (uint8_t *)queue->cdesc_base_ptr;
+            desc_size = queue->cdesc_size;
+            if (base_ptr)
+                al_dbg("Q[%d] completion ring pointers:\n", qid);
+            else {
+                al_dbg("Q[%d] completion ring is not allocated\n", qid);
+                return;
+            }
+        }
+
+        for (i = 0; i < queue->size; i++) {
+            uint32_t *curr_addr = (uint32_t *)(base_ptr + i * desc_size);
+            if (desc_size == 16)
+                al_dbg("[%04d](%p): %08x %08x %08x %08x\n",
+                        i,
+                        curr_addr,
+                        (uint32_t)*curr_addr,
+                        (uint32_t)*(curr_addr+1),
+                        (uint32_t)*(curr_addr+2),
+                        (uint32_t)*(curr_addr+3));
+            else if (desc_size == 8)
+                al_dbg("[%04d](%p): %08x %08x\n",
+                        i,
+                        curr_addr,
+                        (uint32_t)*curr_addr,
+                        (uint32_t)*(curr_addr+1));
+            else if (desc_size == 4)
+                al_dbg("[%04d](%p): %08x\n",
+                        i,
+                        curr_addr,
+                        (uint32_t)*curr_addr);
+            else
+                break;
+        }
+    }
 }
