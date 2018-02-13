@@ -31,6 +31,30 @@ public:
 
 
     //----------------------------------------------------------------
+    kcc_int32 gAtomId() const {
+        return m_AtomId;
+    }
+
+    kcc_int32 gAtomSize() const {
+        return m_AtomSize;
+    }
+
+    kcc_int32 gBatchFoldIdx () const {
+        return m_BatchFoldIdx;
+    }
+
+    const utils::DataType& gDataType() const {
+        return *m_DataType;
+    }
+
+    kcc_int32 gLength() const {
+        return m_Length;
+    }
+
+    kcc_int64 gOffsetInFile() const {
+        return m_OffsetInFile;
+    }
+
     const std::string& gRefFileName() const {
         return m_RefFileName;
     }
@@ -39,31 +63,27 @@ public:
         m_RefFileName = refFileName;
     }
 
-    kcc_int32 gAtomId() const {
-        return m_AtomId;
+    std::string     gRefFileFormat () const {
+        return m_RefFileFormat;
     }
 
-    kcc_int32 gLength() const {
-        return m_Length;
-    }
-
-    kcc_int32 gOffsetInFile() const {
-        return m_OffsetInFile;
-    }
-
-    kcc_int32 gBatchFoldIdx () const {
-        return m_BatchFoldIdx;
+    std::vector<kcc_int32> gRefFileShape () const {
+        return m_RefFileShape;
     }
 
 protected:
     bool verify() const override;
 
 private:
-    std::string     m_RefFileName       = "";
-    kcc_int32       m_BatchFoldIdx      = -1;
     kcc_int32       m_AtomId            = -1;
-    kcc_int32       m_Length            = -1;
-    kcc_int32       m_OffsetInFile      = -1;
+    kcc_int32       m_AtomSize            = -1;
+    kcc_int32       m_BatchFoldIdx      = -1;
+    std::unique_ptr<utils::DataType> m_DataType       = nullptr;
+    kcc_int64       m_Length            = -1;
+    kcc_int64       m_OffsetInFile      = -1;
+    std::string     m_RefFileName       = "";
+    std::string     m_RefFileFormat     = "";
+    std::vector<kcc_int32> m_RefFileShape;
 };
 
 
@@ -73,11 +93,15 @@ class SbAtomWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    std::string     m_RefFileName       = "";
-    kcc_int32       m_BatchFoldIdx      = -1;
     kcc_int32       m_AtomId            = -1;
-    kcc_int32       m_Length            = -1;
-    kcc_int32       m_OffsetInFile      = -1;
+    kcc_int32       m_AtomSize            = -1;
+    kcc_int32       m_BatchFoldIdx      = -1;
+    std::string     m_DataType       = "";
+    kcc_int64       m_Length            = -1;
+    kcc_int64       m_OffsetInFile      = -1;
+    std::string     m_RefFileName       = "";
+    std::string     m_RefFileFormat     = "";
+    std::vector<kcc_int32> m_RefFileShape;
 };
 
 }}

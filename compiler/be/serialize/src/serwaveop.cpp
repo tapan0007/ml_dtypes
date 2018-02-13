@@ -9,6 +9,43 @@ SerWaveOp::SerWaveOp()
 }
 
 
+bool
+SerWaveOp::verifySbAtom () const
+{
+    if (m_AtomId < 0) {
+        return false;
+    }
+    if (m_AtomSize <= 0) {
+        return false;
+    }
+    if (m_BatchFoldIdx < 0) {
+        return false;
+    }
+    if (m_DataType == "") {
+        return false;
+    }
+    if (m_Length  <= 0.0) {
+        return false;
+    }
+    if (m_OffsetInFile  < 0) {
+        return false;
+    }
+    if (m_RefFile == "") {
+        return false;
+    }
+    if (m_RefFileFormat != "NCHW" && m_RefFileFormat != "CRSM") {
+        return false;
+    }
+    if (m_RefFileShape.size() != 4) {
+        return false;
+    }
+    for (const auto n : m_RefFileShape) {
+        if (n <= 0) {
+            return false;
+        }
+    }
+    return true;
+}
 
 bool
 SerWaveOp::verifySbAtomFile () const
@@ -31,23 +68,13 @@ SerWaveOp::verifySbAtomFile () const
     "ifmaps_replicate": false,
     },
     */
-    if (m_AtomId < 0) {
+    if (! this->verifySbAtom()) {
         return false;
     }
-    if (m_BatchFoldIdx < 0) {
+    if (m_IfmapCount <= 0) {
         return false;
     }
     if (m_IfmapsFoldIdx  < 0) {
-        return false;
-    }
-    // "ifmaps_replicate": false,
-    if (m_Length  < 0) {
-        return false;
-    }
-    if (m_OffsetInFile  < 0) {
-        return false;
-    }
-    if (m_RefFile == "") {
         return false;
     }
     return true;
@@ -74,23 +101,13 @@ SerWaveOp::verifySbAtomSave () const
     "ofmaps_fold_idx": 0,
     }
     */
-    if (m_AtomId < 0) {
+    if (! this->verifySbAtom()) {
         return false;
     }
-    if (m_BatchFoldIdx < 0) {
+    if (m_OfmapCount  <= 0) {
         return false;
     }
     if (m_OfmapsFoldIdx  < 0) {
-        return false;
-    }
-    // "ifmaps_replicate": false,
-    if (m_Length  < 0) {
-        return false;
-    }
-    if (m_OffsetInFile  < 0) {
-        return false;
-    }
-    if (m_RefFile == "") {
         return false;
     }
     return true;

@@ -138,8 +138,12 @@ public:
         return m_PsumBankOffset;
     }
 
-    bool qStart() const {
-        return m_Start;
+    bool qStartTensorCalc() const {
+        return m_StartTensorCalc;
+    }
+
+    bool qStopTensorCalc() const {
+        return m_StopTensorCalc;
     }
 
     kcc_int16 gIfmapTileHeight () const {
@@ -209,26 +213,42 @@ public:
     }
 
 private:
-    kcc_int16               m_BatchingInWave        = -1;
-    kcc_int16               m_IfmapCount            = -1;
-    kcc_int16               m_IfmapTileHeight       = -1;
-    kcc_int16               m_IfmapTileWidth        = -1;
-    kcc_int16               m_IfmapsAtomId          = -1;
-    kcc_int16               m_IfmapsOffsetInAtom    = -1;
+    kcc_int16       m_BatchingInWave        = -1;
+    kcc_int16       m_FmapXNum              = -1;
+    kcc_int16       m_FmapXStep             = -1;
+    kcc_int16       m_FmapYNum              = -1;
+    kcc_int16       m_FmapYStep             = -1;
+    kcc_int16       m_FmapZNum              = -1;
+    kcc_int16       m_FmapZStepAtoms        = -1;
+    kcc_int16       m_IfmapCount            = -1;
+    kcc_int16       m_IfmapTileHeight       = -1;
+    kcc_int16       m_IfmapTileWidth        = -1;
+    kcc_int16       m_IfmapsAtomId          = -1;
+    kcc_int32       m_IfmapsAtomSize        = -1; // in bytes
+    kcc_int16       m_IfmapsOffsetInAtom    = -1;
     // layer name
-    kcc_int16               m_OfmapCount            = -1;
-    kcc_int16               m_OfmapTileHeight       = -1;
-    kcc_int16               m_OfmapTileWidth        = -1;
+    kcc_int16       m_NumColumnPartitions   = -1;
+    kcc_int16       m_NumRowPartitions      = -1;
+    kcc_int16       m_OfmapCount            = -1;
+    kcc_int16       m_OfmapTileHeight       = -1;
+    kcc_int16       m_OfmapTileWidth        = -1;
     // previous layers
-    kcc_int16               m_PsumBankId            = -1;
-    kcc_int16               m_PsumBankOffset        = -1;
-    bool                    m_Start                 = true;
-    MatMulWaveOp::WaveId    m_WaveId;
-    std::string             m_WaveIdFormat          = "";
+    kcc_int16       m_PsumBankId            = -1;
+    kcc_int16       m_PsumBankOffset        = -1;
+    kcc_int16       m_PsumXNum              = -1;
+    kcc_int16       m_PsumXStep             = -1;
+    kcc_int16       m_PsumYNum              = -1;
+    kcc_int16       m_PsumYStep             = -1;
+    bool            m_StartTensorCalc       = true;
+    bool            m_StopTensorCalc        = true;
+    kcc_int16       m_StrideX               = -1;
+    kcc_int16       m_StrideY               = -1;
+    WaveId          m_WaveId;
+    std::string     m_WaveIdFormat          = "";
     // waveop name
     // waveop type
-    kcc_int16               m_WeightsAtomId         = -1;
-    kcc_int16               m_WeightsOffsetInAtom   = -1;
+    kcc_int16       m_WeightsAtomId         = -1;
+    kcc_int16       m_WeightsOffsetInAtom   = -1;
 }; // class MatMulWaveOp : public WaveOp
 
 
@@ -241,19 +261,35 @@ public:
     bool verify() const;
 public:
     kcc_int16       m_BatchingInWave        = -1;
+    kcc_int16       m_FmapXNum              = -1;
+    kcc_int16       m_FmapXStep             = -1;
+    kcc_int16       m_FmapYNum              = -1;
+    kcc_int16       m_FmapYStep             = -1;
+    kcc_int16       m_FmapZNum              = -1;
+    kcc_int16       m_FmapZStepAtoms        = -1;
     kcc_int16       m_IfmapCount            = -1;
     kcc_int16       m_IfmapTileHeight       = -1;
     kcc_int16       m_IfmapTileWidth        = -1;
     kcc_int16       m_IfmapsAtomId          = -1;
+    kcc_int32       m_IfmapsAtomSize        = -1;
     kcc_int16       m_IfmapsOffsetInAtom    = -1;
     // layer name
+    kcc_int16       m_NumColumnPartitions   = -1;
+    kcc_int16       m_NumRowPartitions      = -1;
     kcc_int16       m_OfmapCount            = -1;
     kcc_int16       m_OfmapTileHeight       = -1;
     kcc_int16       m_OfmapTileWidth        = -1;
     // previous layers
     kcc_int16       m_PsumBankId            = -1;
     kcc_int16       m_PsumBankOffset        = -1;
-    bool            m_Start                 = true;
+    kcc_int16       m_PsumXNum              = -1;
+    kcc_int16       m_PsumXStep             = -1;
+    kcc_int16       m_PsumYNum              = -1;
+    kcc_int16       m_PsumYStep             = -1;
+    bool            m_StartTensorCalc       = true;
+    bool            m_StopTensorCalc        = true;
+    kcc_int16       m_StrideX               = -1;
+    kcc_int16       m_StrideY               = -1;
     WaveId          m_WaveId;
     std::string     m_WaveIdFormat          = "";
     // waveop name

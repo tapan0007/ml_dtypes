@@ -50,7 +50,12 @@ public:
         return m_IfmapsReplicate;
     }
 
+    kcc_int32 gIfmapCount () const {
+        return m_IfmapCount;
+    }
+
 private:
+    kcc_int32       m_IfmapCount       = -1;
     kcc_int32       m_IfmapsFoldIdx     = -1;
     bool            m_IfmapsReplicate   = -1;
 };
@@ -62,6 +67,7 @@ class SbAtomFileWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:
+    kcc_int32       m_IfmapCount       = -1;
     kcc_int32       m_IfmapsFoldIdx     = -1;
     bool            m_IfmapsReplicate   = true;
 };

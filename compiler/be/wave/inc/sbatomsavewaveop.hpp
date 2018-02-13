@@ -47,7 +47,12 @@ public:
         return m_OfmapsFoldIdx;
     }
 
+    kcc_int32 gOfmapCount () const {
+        return m_OfmapCount;
+    }
+
 private:
+    kcc_int32       m_OfmapCount       = -1;
     kcc_int32       m_OfmapsFoldIdx     = -1;
 };
 
@@ -58,6 +63,7 @@ class SbAtomSaveWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:
+    kcc_int32       m_OfmapCount       = -1;
     kcc_int32       m_OfmapsFoldIdx     = -1;
 };
 

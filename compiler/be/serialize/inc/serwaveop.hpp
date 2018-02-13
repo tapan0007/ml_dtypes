@@ -83,7 +83,16 @@ public:
     void load(Archive & archive);
 
 
+    void addPreviousWaveOp(const std::string& prevWaveOp) {
+        m_PreviousWaveOps.push_back(prevWaveOp);
+    }
 
+
+#if 0
+    // common
+    void rWaveOpName(const std::string& waveOpName) {
+        m_WaveOpName = waveOpName;
+    }
     const std::string& gWaveOpType() const {
         return m_WaveOpType;
     }
@@ -100,19 +109,13 @@ public:
     const std::vector<std::string>& gPreviousWaveOps() const {
         return m_PreviousWaveOps;
     }
-    void addPreviousWaveOp(const std::string& prevWaveOp) {
-        m_PreviousWaveOps.push_back(prevWaveOp);
-    }
 
 
     const std::string& gWaveOpName() const {
         return m_WaveOpName;
     }
-    void 
-    rWaveOpName(const std::string& waveOpName) {
-        m_WaveOpName = waveOpName;
-    }
 
+    // MatMul
     kcc_int32 gIfmapsAtomId() const {
         return m_IfmapsAtomId;
     }
@@ -134,11 +137,18 @@ public:
         m_PsumBankId = psumBankId;
     }
 
-    bool qStart() const {
-        return m_Start;
+    bool qStartTensorCalc() const {
+        return m_StartTensorCalc;
     }
-    void rStart(bool start) {
-        m_Start = start;
+    void rStartTensorCalc(bool start) {
+        m_StartTensorCalc = start;
+    }
+
+    bool qStopTensorCalc() const {
+        return m_StopTensorCalc;
+    }
+    void rStopTensorCalc(bool stop) {
+        m_StopTensorCalc = stop;
     }
 
     const wave::MatMulWaveOp::WaveId gWaveId() const {
@@ -176,6 +186,21 @@ public:
         m_AtomId = atomId;
     }
 
+    kcc_int32 gAtomSize() const {
+        return m_AtomSize;
+    }
+    void rAtomSize(kcc_int32 atomSize) {
+        m_AtomSize = atomSize;
+    }
+
+    const std::string& gDataType() const {
+        return m_DataType;
+    }
+    void rDataType(const std::string& dataType) {
+        m_DataType = dataType;
+    }
+
+
     kcc_int32 gIfmapsFoldIdx() const {
         return m_IfmapsFoldIdx;
     }
@@ -197,10 +222,10 @@ public:
         m_IfmapsReplicate = ifmapsReplicate;
     }
 
-    kcc_int32 gLength() const {
+    kcc_int64 gLength() const {
         return m_Length;
     }
-    void rLength(kcc_int32 len) {
+    void rLength(kcc_int64 len) {
         m_Length = len;
     }
 
@@ -216,6 +241,20 @@ public:
     }
     void rRefFile(const std::string& refFile) {
         m_RefFile = refFile;
+    }
+
+    const std::string& gRefFileFormat() const {
+        return m_RefFileFormat;
+    }
+    void rRefFileFormat(const std::string& refFileFormat) {
+        m_RefFileFormat = refFileFormat;
+    }
+
+    std::vector<int32>& gRefFileShape() const {
+        return m_RefFileShape;
+    }
+    void rRefFileShape(const std::vector<int32>& refFileShape) {
+        m_RefFileShape = refFileShape;
     }
 
     kcc_int32 gBatchFoldIdx () const {
@@ -280,32 +319,46 @@ public:
     void rBatchingInWave (kcc_int16 batchingInWave) {
         m_BatchingInWave = batchingInWave;
     }
+#endif
 
 protected:
     bool verify() const;
 
 private:
+    bool verifySbAtom () const;
     bool verifySbAtomFile () const;
     bool verifySbAtomSave () const;
     bool verifyMatMul () const;
 
-private:
-    // common
+public:
+    // common to all
     std::string                 m_WaveOpType        = "";
     std::string                 m_WaveOpName        = "";
     std::string                 m_LayerName         = "";
     std::vector<std::string>    m_PreviousWaveOps;
 
-    // SBAtomFile
+    // SBAtom
     kcc_int32                   m_AtomId            = -1;
+    kcc_int32                   m_AtomSize          = -1;
     kcc_int32                   m_BatchFoldIdx      = -1;
+    std::string                 m_DataType          = "";
+    //layer name
+    kcc_int64                   m_Length            = -1;
+    kcc_int32                   m_OffsetInFile      = -1;
+    // previous waveops
+    std::string                 m_RefFile           = "";
+    std::string                 m_RefFileFormat     = "";
+    std::vector<kcc_int32>      m_RefFileShape;
+    // waveop name
+    // waveop type
+
+    // SBAtomFile
+    kcc_int32                   m_IfmapCount       = -1;
     kcc_int32                   m_IfmapsFoldIdx     = -1;
     bool                        m_IfmapsReplicate   = false;
-    kcc_int32                   m_Length            = -1;
-    kcc_int32                   m_OffsetInFile      = -1;
-    std::string                 m_RefFile           = "";
 
     // SBAtomSave
+    kcc_int32                   m_OfmapCount       = -1;
     kcc_int32                   m_OfmapsFoldIdx     = -1;
 
     // MatMul
@@ -313,19 +366,27 @@ private:
         WaveIdFormatSize = 7,
     };
     kcc_int32                   m_BatchingInWave        = -1;
-    kcc_int32                   m_IfmapCount            = -1;
+    kcc_int32                   m_FmapXNum              = -1;
+    kcc_int32                   m_FmapXStep             = -1;
+    kcc_int32                   m_FmapYNum              = -1;
+    kcc_int32                   m_FmapYStep             = -1;
+    kcc_int32                   m_FmapZNum              = -1;
+    kcc_int32                   m_FmapZStepAtoms        = -1;
+    //kcc_int32                   m_IfmapCount            = -1;
     kcc_int32                   m_IfmapTileHeight       = -1;
     kcc_int32                   m_IfmapTileWidth        = -1;
     kcc_int32                   m_IfmapsAtomId          = -1;
+    kcc_int32                   m_IfmapsAtomSize        = -1;
     kcc_int32                   m_IfmapsOffsetInAtom    = -1;
     // layer name
-    kcc_int32                   m_OfmapCount            = -1;
+    //kcc_int32                   m_OfmapCount            = -1;
     kcc_int32                   m_OfmapTileHeight       = -1;
     kcc_int32                   m_OfmapTileWidth        = -1;
     // previous waveops
     kcc_int32                   m_PsumBankId            = -1;
     kcc_int32                   m_PsumBankOffset        = -1;
-    bool                        m_Start                 = true;
+    bool                        m_StartTensorCalc       = true;
+    bool                        m_StopTensorCalc        = true;
     wave::MatMulWaveOp::WaveId  m_WaveId;
     std::string                 m_WaveIdFormat          = "";
     // waveop name

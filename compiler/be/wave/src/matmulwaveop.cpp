@@ -30,7 +30,8 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     // previous layers
     , m_PsumBankId(params.m_PsumBankId)
     , m_PsumBankOffset(params.m_PsumBankOffset)
-    , m_Start(params.m_Start)
+    , m_StartTensorCalc(params.m_StartTensorCalc)
+    , m_StopTensorCalc(params.m_StopTensorCalc)
     , m_WaveId(params.m_WaveId)
     , m_WaveIdFormat(params.m_WaveIdFormat)
     // waveop name
@@ -67,7 +68,26 @@ MatMulWaveOp::verify() const
     if (! this->WaveOp::verify()) {
         return false;
     }
+
     if (m_BatchingInWave < 1) {
+        return false;
+    }
+    if (m_FmapXNum < 1) {
+        return false;
+    }
+    if (m_FmapXStep < 0) {
+        return false;
+    }
+    if (m_FmapYNum < 1) {
+        return false;
+    }
+    if (m_FmapYStep < 0) {
+        return false;
+    }
+    if (m_FmapZNum < 1) {
+        return false;
+    }
+    if (m_FmapZStepAtoms < 0) {
         return false;
     }
     if (m_IfmapCount <= 0) {
@@ -82,10 +102,19 @@ MatMulWaveOp::verify() const
     if (m_IfmapsAtomId < 0) {
         return false;
     }
+    if (m_IfmapsAtomSize < 1) {
+        return false;
+    }
     if (m_IfmapsOffsetInAtom < 0) {
         return false;
     }
     // layer name
+    if (m_NumColumnPartitions < 1) {
+        return false;
+    }
+    if (m_NumRowPartitions < 1) {
+        return false;
+    }
     if (m_OfmapCount <= 0) {
         return false;
     }
@@ -102,7 +131,26 @@ MatMulWaveOp::verify() const
     if (m_PsumBankOffset < 0) {
         return false;
     }
+    if (m_PsumXNum < 1) {
+        return false;
+    }
+    if (m_PsumXStep < 0) {
+        return false;
+    }
+    if (m_PsumYNum < 1) {
+        return false;
+    }
+    if (m_PsumYStep < 0) {
+        return false;
+    }
     // start
+    // stop
+    if (m_StrideX < 1) {
+        return false;
+    }
+    if (m_StrideY < 1) {
+        return false;
+    }
     if (! m_WaveId.verify()) {
         return false;
     }
@@ -230,7 +278,26 @@ MatMulWaveOp::Params::verify() const
     if (! this-> WaveOp::Params::verify()) {
         return false;
     }
+
     if (m_BatchingInWave < 1) {
+        return false;
+    }
+    if (m_FmapXNum < 1) {
+        return false;
+    }
+    if (m_FmapXStep < 0) {
+        return false;
+    }
+    if (m_FmapYNum < 1) {
+        return false;
+    }
+    if (m_FmapYStep < 0) {
+        return false;
+    }
+    if (m_FmapZNum < 1) {
+        return false;
+    }
+    if (m_FmapZStepAtoms < 0) {
         return false;
     }
     if (m_IfmapCount <= 0) {
@@ -245,10 +312,19 @@ MatMulWaveOp::Params::verify() const
     if (m_IfmapsAtomId < 0) {
         return false;
     }
+    if (m_IfmapsAtomSize < 1) {
+        return false;
+    }
     if (m_IfmapsOffsetInAtom < 0) {
         return false;
     }
     // layer name
+    if (m_NumColumnPartitions < 1) {
+        return false;
+    }
+    if (m_NumRowPartitions < 1) {
+        return false;
+    }
     if (m_OfmapCount <= 0) {
         return false;
     }
@@ -265,7 +341,26 @@ MatMulWaveOp::Params::verify() const
     if (m_PsumBankOffset < 0) {
         return false;
     }
+    if (m_PsumXNum < 1) {
+        return false;
+    }
+    if (m_PsumXStep < 0) {
+        return false;
+    }
+    if (m_PsumYNum < 1) {
+        return false;
+    }
+    if (m_PsumYStep < 0) {
+        return false;
+    }
     // start
+    // stop
+    if (m_StrideX < 1) {
+        return false;
+    }
+    if (m_StrideY < 1) {
+        return false;
+    }
     if (! m_WaveId.verify()) {
         return false;
     }
@@ -274,7 +369,7 @@ MatMulWaveOp::Params::verify() const
     }
     // waveop name
     // waveop type
-    if (m_WeightsAtomId < -1) { // m_WeightsOffsetInAtom is -1 for waves that do NOT reload weights
+    if (m_WeightsAtomId < -1) {//m_WeightsOffsetInAtom=-1, waves that do NOT reload weights
         return false;
     }
     if (m_IfmapsOffsetInAtom < 0) {

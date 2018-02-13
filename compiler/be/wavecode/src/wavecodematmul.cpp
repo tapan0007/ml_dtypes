@@ -68,7 +68,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     matmulInstr.fmap_z_num              = 1; /* no batching right now */
     matmulInstr.fmap_z_step             = 0;
 
-    matmulInstr.psum_start_addr         = psumBuf.gEntryAddress(matmulWaveOp->gPsumBankId(), matmulWaveOp->gPsumBankOffset());
+    matmulInstr.psum_start_addr         = psumBuf.gEntryTpbAddress(matmulWaveOp->gPsumBankId(), matmulWaveOp->gPsumBankOffset());
     matmulInstr.psum_x_num              = matmulWaveOp->gOfmapTileWidth();
   //matmul_args.psum_x_num = matmul_args.fmap_x_num;
     matmulInstr.psum_x_step             = 1;
@@ -76,8 +76,8 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
   //matmul_args.psum_y_num = matmul_args.fmap_y_num;
     matmulInstr.psum_y_step             = matmulInstr.psum_x_num;
 
-    matmulInstr.start_tensor_calc       = matmulWaveOp->qStart();
-    matmulInstr.stop_tensor_calc        = false;
+    matmulInstr.start_tensor_calc       = matmulWaveOp->qStartTensorCalc();
+    matmulInstr.stop_tensor_calc        = matmulWaveOp->qStopTensorCalc();
     //setup_sync(matmulInstr.sync, -1, SET_EVENT_ON_END_WR_DST);
 
     m_WaveCode->writeInstruction(matmulInstr, WaveCode::UseStream_PeArray);
@@ -108,7 +108,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     //    uint8_t     zero_point_uint8[2];
     //    uint16_t    zero_point_uint16   = 0; 
     //} TONGA_PACKED;
-    const int32 sizeofWeights = matmulWaveOp->gWeightsOffsetInAtom() +
+    const kcc_int32 sizeofWeights = matmulWaveOp->gWeightsOffsetInAtom() +
                                           (matmulWaveOp->gWeightsAtomId() *
                                            convLayer->gWaveAtomSize());
     ldweighsInstr.start_addr            = m_WaveCode->gCurrentDramAddress(sizeofWeights);

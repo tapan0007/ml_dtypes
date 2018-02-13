@@ -1,8 +1,12 @@
 #include "tpb_isa_ldweights.hpp"
 
-#include "layers/inc/layer.hpp"
+#include "arch/inc/statebuffer.hpp"
+#include "arch/inc/arch.hpp"
+
 #include "layers/inc/convlayer.hpp"
+
 #include "wave/inc/sbatomfilewaveop.hpp"
+
 #include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecodesbatomfile.hpp"
 
@@ -16,9 +20,10 @@ WaveCodeSbAtomFile::WaveCodeSbAtomFile(WaveCode* waveCode)
 void
 WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
 {
-    auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomWaveOp*>(waveOp);
+    const auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp);
     assert(sbatomfileWaveOp);
-    layers::Layer* layer = sbatomfileWaveOp->gLayer();
+    const layers::Layer* layer = sbatomfileWaveOp->gLayer();
+    const arch::StateBuffer& stateBuf(layer->gArch().gStateBuffer());
 
     kcc_int64 dramOffset = m_WaveCode->getDramForNpyFile(sbatomfileWaveOp->gRefFileName());
     if (dramOffset < 0) {
@@ -27,14 +32,15 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         strcpy(npyToDramInstr.src_fname, sbatomfileWaveOp->gRefFileName().c_str());
 
         kcc_int64 numPySize = layer->gDataType().gSizeInBytes();
-        if (layers::ConvLayer* convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {  // All Weights = CRSM
-            numPySize *= convLayer->gNumIfmaps();    // C
+        if (auto convLayer = dynamic_cast<const layers::ConvLayer*>(layer)) {  // All Weights = CRSM
+            layers::Layer* prevLayer = convLayer->gPrevLayer(0);
+            numPySize *= prevLayer->gNumOfmaps();    // C
             numPySize *= convLayer->gKernelHeight(); // R
             numPySize *= convLayer->gKernelWidth();  // S
             numPySize *= convLayer->gNumOfmaps();    // M
         } else {                                                       // All IFMAPs = NCHW
             // batching?                             // N
-            numPySize *= convLayer->gNumIfmaps();    // C
+            numPySize *= convLayer->gNumOfmaps();    // C
             numPySize *= layer->gOfmapHeight();      // H
             numPySize *= layer->gOfmapWidth();       // W
         }
@@ -45,7 +51,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     }
 
     kcc_int64 stepSize = sbatomfileWaveOp->gDataType().gSizeInBytes();
-    if (layers::ConvLayer* convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {  // Weights: step in numpy/dram = RSM
+    if (auto convLayer = dynamic_cast<const layers::ConvLayer*>(layer)) {  // Weights: step in numpy/dram = RSM
         stepSize *= convLayer->gKernelHeight(); // R
         stepSize *= convLayer->gKernelWidth();  // S
         stepSize *= convLayer->gNumOfmaps();    // M
@@ -56,17 +62,17 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     }
 
     const kcc_int64 numBytesPerPart = sbatomfileWaveOp->gLength();
-    const kcc_int64 numPartitions = sbatomfileWaveOp->gNumPartitions();
+    const kcc_int64 numPartitions = sbatomfileWaveOp->gIfmapCount();
 
 
     SIM_MEMCPY dramToStateBufInstr;
     dramToStateBufInstr.nbytes = numBytesPerPart;
-    const kcc_int64 addressInPart = sbatomfileWaveOp->gAtomId() * layer->gNetwork()->gWaveAtomSize() + 
-    for (int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
+    const kcc_int64 addressInPart = sbatomfileWaveOp->gAtomId() * layer->gWaveAtomSize();
+    for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         dramToStateBufInstr.src_address = dramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * stepSize);
 
         dramToStateBufInstr.dst_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
-        m_WaveCode->writeInstruction(dramToStatBufInstr, WaveCode::UseStream_StreamProc);
+        m_WaveCode->writeInstruction(dramToStateBufInstr, WaveCode::UseStream_StreamProc);
     }
 }
 

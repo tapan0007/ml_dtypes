@@ -16,6 +16,7 @@ namespace wave {
 SbAtomSaveWaveOp::SbAtomSaveWaveOp(const SbAtomSaveWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
     : SbAtomWaveOp(params, prevWaveOps)
+    , m_OfmapCount(params.m_OfmapCount)
     , m_OfmapsFoldIdx(params.m_OfmapsFoldIdx)
 {
     assert(params.verify());
@@ -26,6 +27,9 @@ bool
 SbAtomSaveWaveOp::verify() const
 {
     if (! this->SbAtomWaveOp::verify()) {
+        return false;
+    }
+    if (m_OfmapCount < 1) {
         return false;
     }
     if (m_OfmapsFoldIdx < 0) {

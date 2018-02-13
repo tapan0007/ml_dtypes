@@ -58,7 +58,7 @@ WaveCode::getDramForNpyFile(const std::string& fileName)
 {
     const auto it = m_NpyFile2DramAddress.find(fileName);
     if (it != m_NpyFile2DramAddress.end()) {
-        return it.second.second;
+        return (*it).second;
     } else {
         return -1;
     }

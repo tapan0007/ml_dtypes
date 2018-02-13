@@ -214,62 +214,63 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
     for (unsigned i = 0; i < m_WaveOps.size(); ++i) {
         serialize::SerWaveOp& serWaveOp(serWaveOps[i]);
         wave::WaveOp* waveOp = m_WaveOps[i];
-        serWaveOp.rWaveOpName(waveOp->gName());
-        serWaveOp.rLayerName(waveOp->gLayer()->gName());
+        serWaveOp.m_WaveOpName = waveOp->gName();
+        serWaveOp.m_LayerName = waveOp->gLayer()->gName();
         for (auto prevWaveOp : waveOp->gPrevWaveOps()) {
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
         }
 
         if (const auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp)) {
-            serWaveOp.rWaveOpType(wave::SbAtomFileWaveOp::gTypeStr());
+            serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStr();
 
-            serWaveOp.rAtomId(sbatomfileWaveOp->gAtomId());
-            serWaveOp.rBatchFoldIdx(sbatomfileWaveOp->gBatchFoldIdx());
-            serWaveOp.rLength(sbatomfileWaveOp->gLength());
-            serWaveOp.rOffsetInFile(sbatomfileWaveOp->gOffsetInFile());
-            serWaveOp.rRefFile(sbatomfileWaveOp->gRefFileName());
+            serWaveOp.m_AtomId = sbatomfileWaveOp->gAtomId();
+            serWaveOp.m_BatchFoldIdx = sbatomfileWaveOp->gBatchFoldIdx();
+            serWaveOp.m_Length = sbatomfileWaveOp->gLength();
+            serWaveOp.m_OffsetInFile = sbatomfileWaveOp->gOffsetInFile();
+            serWaveOp.m_RefFile = sbatomfileWaveOp->gRefFileName();
 
-            serWaveOp.rIfmapsFoldIdx(sbatomfileWaveOp->gIfmapsFoldIdx());
-            serWaveOp.rIfmapsReplicate(sbatomfileWaveOp->qIfmapsReplicate());
+            serWaveOp.m_IfmapsFoldIdx = sbatomfileWaveOp->gIfmapsFoldIdx();
+            serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
             continue;
         }
 
         if (const auto sbatomsaveWaveOp = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveOp)) {
-            serWaveOp.rWaveOpType(wave::SbAtomSaveWaveOp::gTypeStr());
+            serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStr();
 
-            serWaveOp.rAtomId(sbatomsaveWaveOp->gAtomId());
-            serWaveOp.rBatchFoldIdx(sbatomsaveWaveOp->gBatchFoldIdx());
-            serWaveOp.rLength(sbatomsaveWaveOp->gLength());
-            serWaveOp.rOffsetInFile(sbatomsaveWaveOp->gOffsetInFile());
-            serWaveOp.rRefFile(sbatomsaveWaveOp->gRefFileName());
+            serWaveOp.m_AtomId = sbatomsaveWaveOp->gAtomId();
+            serWaveOp.m_BatchFoldIdx = sbatomsaveWaveOp->gBatchFoldIdx();
+            serWaveOp.m_Length = sbatomsaveWaveOp->gLength();
+            serWaveOp.m_OffsetInFile = sbatomsaveWaveOp->gOffsetInFile();
+            serWaveOp.m_RefFile = sbatomsaveWaveOp->gRefFileName();
 
-            serWaveOp.rOfmapsFoldIdx(sbatomsaveWaveOp->gOfmapsFoldIdx());
+            serWaveOp.m_OfmapsFoldIdx = sbatomsaveWaveOp->gOfmapsFoldIdx();
             continue;
         }
 
         if (const auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp)) {
-            serWaveOp.rWaveOpType(wave::MatMulWaveOp::gTypeStr());
+            serWaveOp.m_WaveOpType = wave::MatMulWaveOp::gTypeStr();
 
-            serWaveOp.rBatchingInWave(matmulWaveOp->gBatchingInWave());
-            serWaveOp.rIfmapCount(matmulWaveOp->gIfmapCount());
-            serWaveOp.rIfmapTileHeight(matmulWaveOp->gIfmapTileHeight());
-            serWaveOp.rIfmapTileWidth(matmulWaveOp->gIfmapTileWidth());
-            serWaveOp.rIfmapsAtomId(matmulWaveOp->gIfmapsAtomId());
-            serWaveOp.rIfmapsOffsetInAtom(matmulWaveOp->gIfmapsOffsetInAtom());
+            serWaveOp.m_BatchingInWave = matmulWaveOp->gBatchingInWave();
+            serWaveOp.m_IfmapCount = matmulWaveOp->gIfmapCount();
+            serWaveOp.m_IfmapTileHeight = matmulWaveOp->gIfmapTileHeight();
+            serWaveOp.m_IfmapTileWidth = matmulWaveOp->gIfmapTileWidth();
+            serWaveOp.m_IfmapsAtomId = matmulWaveOp->gIfmapsAtomId();
+            serWaveOp.m_IfmapsOffsetInAtom = matmulWaveOp->gIfmapsOffsetInAtom();
             // layer_name
-            serWaveOp.rOfmapCount(matmulWaveOp->gOfmapCount());
-            serWaveOp.rOfmapTileHeight(matmulWaveOp->gOfmapTileHeight());
-            serWaveOp.rOfmapTileWidth(matmulWaveOp->gOfmapTileWidth());
+            serWaveOp.m_OfmapCount = matmulWaveOp->gOfmapCount();
+            serWaveOp.m_OfmapTileHeight = matmulWaveOp->gOfmapTileHeight();
+            serWaveOp.m_OfmapTileWidth = matmulWaveOp->gOfmapTileWidth();
             // previous layers
-            serWaveOp.rPsumBankId(matmulWaveOp->gPsumBankId());
-            serWaveOp.rPsumBankOffset(matmulWaveOp->gPsumBankOffset());
-            serWaveOp.rStart(matmulWaveOp->qStart());
-            serWaveOp.rWaveId(matmulWaveOp->gWaveId());
-            serWaveOp.rWaveIdFormat(matmulWaveOp->gWaveIdFormat());
+            serWaveOp.m_PsumBankId = matmulWaveOp->gPsumBankId();
+            serWaveOp.m_PsumBankOffset = matmulWaveOp->gPsumBankOffset();
+            serWaveOp.m_StartTensorCalc = matmulWaveOp->qStartTensorCalc();
+            serWaveOp.m_StopTensorCalc = matmulWaveOp->qStopTensorCalc();
+            serWaveOp.m_WaveId = matmulWaveOp->gWaveId();
+            serWaveOp.m_WaveIdFormat = matmulWaveOp->gWaveIdFormat();
             // waveop name
             // waveop type
-            serWaveOp.rWeightsAtomId(matmulWaveOp->gWeightsAtomId());
-            serWaveOp.rWeightsOffsetInAtom(matmulWaveOp->gWeightsOffsetInAtom());
+            serWaveOp.m_WeightsAtomId = matmulWaveOp->gWeightsAtomId();
+            serWaveOp.m_WeightsOffsetInAtom = matmulWaveOp->gWeightsOffsetInAtom();
             continue;
         }
         assert(false && "Unsupported WaveOp");

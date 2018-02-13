@@ -87,19 +87,36 @@ constexpr static const char* WaveOpKey_PreviousWaveOps      = "previous_waveops"
 
 // MatMul
 constexpr static const char* WaveOpKey_BatchingInWave       = "batching_in_wave";
+constexpr static const char* WaveOpKey_FmapXNum             = "fmap_x_num";
+constexpr static const char* WaveOpKey_FmapXStep            = "fmap_x_step";
+constexpr static const char* WaveOpKey_FmapYNum             = "fmap_y_num";
+constexpr static const char* WaveOpKey_FmapYStep            = "fmap_y_step";
+constexpr static const char* WaveOpKey_FmapZNum             = "fmap_z_num";
+constexpr static const char* WaveOpKey_FmapZStepAtoms       = "fmap_z_step_atoms";
 constexpr static const char* WaveOpKey_IfmapCount           = "ifmap_count";
 constexpr static const char* WaveOpKey_IfmapTileHeight      = "ifmap_tile_height";
 constexpr static const char* WaveOpKey_IfmapTileWidth       = "ifmap_tile_width";
 constexpr static const char* WaveOpKey_IfmapsAtomId         = "ifmaps_atom_id";
+constexpr static const char* WaveOpKey_IfmapsAtomSize       = "ifmaps_atom_size";
+constexpr static const char* WaveOpKey_DataType             = "data_type";
 constexpr static const char* WaveOpKey_IfmapsOffsetInAtom   = "ifmaps_offset_in_atom";
 // layer name
+constexpr static const char* WaveOpKey_NumColumnPartitions  = "num_column_partitions";
+constexpr static const char* WaveOpKey_NumRowPartitions     = "num_row_partitions";
 constexpr static const char* WaveOpKey_OfmapCount           = "ofmap_count";
 constexpr static const char* WaveOpKey_OfmapTileHeight      = "ofmap_tile_height";
 constexpr static const char* WaveOpKey_OfmapTileWidth       = "ofmap_tile_width";
 // previous waveops
 constexpr static const char* WaveOpKey_PsumBankId           = "psum_bank_id";
 constexpr static const char* WaveOpKey_PsumBankOffset       = "psum_bank_offset";
-constexpr static const char* WaveOpKey_Start                = "start";
+constexpr static const char* WaveOpKey_PsumXNum             = "psum_x_num";
+constexpr static const char* WaveOpKey_PsumXStep             = "psum_x_step";
+constexpr static const char* WaveOpKey_PsumYNum             = "psum_y_num";
+constexpr static const char* WaveOpKey_PsumYStep             = "psum_y_step";
+constexpr static const char* WaveOpKey_StartTensorCalc      = "start_tensor_calc";
+constexpr static const char* WaveOpKey_StopTensorCalc      = "stop_tensor_calc";
+constexpr static const char* WaveOpKey_StrideX               = "stride_x";
+constexpr static const char* WaveOpKey_StrideY               = "stride_y";
 constexpr static const char* WaveOpKey_WaveId               = "wave_id";
 constexpr static const char* WaveOpKey_WaveIdFormat         = "wave_id_format";
 // waveop name
@@ -109,10 +126,13 @@ constexpr static const char* WaveOpKey_WeightsOffsetInAtom  = "weights_offset_in
 
 // SBAtom common
 constexpr static const char* WaveOpKey_AtomId               = "atom_id";
+constexpr static const char* WaveOpKey_AtomSize             = "atom_size";
 constexpr static const char* WaveOpKey_BatchFoldIdx         = "batch_fold_idx";
 constexpr static const char* WaveOpKey_Length               = "length";
 constexpr static const char* WaveOpKey_OffsetInFile         = "offset_in_file";
 constexpr static const char* WaveOpKey_RefFile              = "ref_file";
+constexpr static const char* WaveOpKey_RefFileFormat        = "ref_file_format";
+constexpr static const char* WaveOpKey_RefFileShape         = "ref_file_shape";
 
 // SBAtomFile
 constexpr static const char* WaveOpKey_IfmapsFoldIdx        = "ifmaps_fold_idx";

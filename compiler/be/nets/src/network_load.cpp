@@ -207,68 +207,86 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                         const serialize::SerWaveOp& serWaveOp,
                                         wave::WaveOp::Params& waveOpParams) -> void
             {
-                waveOpParams.m_WaveOpName   = serWaveOp.gWaveOpName();
-                waveOpParams.m_Layer        = this->findLayer(serWaveOp.gLayerName());
+                waveOpParams.m_WaveOpName   = serWaveOp.m_WaveOpName;
+                waveOpParams.m_Layer        = this->findLayer(serWaveOp.m_LayerName);
                 assert(waveOpParams.m_Layer);
-                for (const auto& prevWaveOpName : serWaveOp.gPreviousWaveOps()) {
+                for (const auto& prevWaveOpName : serWaveOp.m_PreviousWaveOps) {
                     prevWaveOps.push_back(findWaveOp(prevWaveOpName));
                 }
             };
     
     
-            if (serWaveOp.gWaveOpType() == wave::SbAtomFileWaveOp::gTypeStr()) {
+            if (serWaveOp.m_WaveOpType == wave::SbAtomFileWaveOp::gTypeStr()) {
                 wave::SbAtomFileWaveOp::Params sbatomfileParams;
                 fillWaveOpParams(serWaveOp, sbatomfileParams);
-                sbatomfileParams.m_RefFileName       = serWaveOp.gRefFile();
-                sbatomfileParams.m_BatchFoldIdx      = serWaveOp.gBatchFoldIdx();
-                sbatomfileParams.m_AtomId            = serWaveOp.gAtomId();
-                sbatomfileParams.m_Length            = serWaveOp.gLength();
-                sbatomfileParams.m_OffsetInFile      = serWaveOp.gOffsetInFile();
+                sbatomfileParams.m_AtomId            = serWaveOp.m_AtomId;
+                sbatomfileParams.m_AtomSize          = serWaveOp.m_AtomSize;
+                sbatomfileParams.m_BatchFoldIdx      = serWaveOp.m_BatchFoldIdx;
+                sbatomfileParams.m_DataType            = serWaveOp.m_DataType;
+                sbatomfileParams.m_Length            = serWaveOp.m_Length;
+                sbatomfileParams.m_OffsetInFile      = serWaveOp.m_OffsetInFile;
+                sbatomfileParams.m_RefFileName       = serWaveOp.m_RefFile;
+                sbatomfileParams.m_RefFileFormat       = serWaveOp.m_RefFileFormat;
+                sbatomfileParams.m_RefFileShape       = serWaveOp.m_RefFileShape;
     
-                sbatomfileParams.m_IfmapsFoldIdx     = serWaveOp.gIfmapsFoldIdx();
-                sbatomfileParams.m_IfmapsReplicate   = serWaveOp.qIfmapsReplicate();
+                sbatomfileParams.m_IfmapCount     = serWaveOp.m_IfmapCount;
+                sbatomfileParams.m_IfmapsFoldIdx     = serWaveOp.m_IfmapsFoldIdx;
+                sbatomfileParams.m_IfmapsReplicate   = serWaveOp.m_IfmapsReplicate;
     
                 waveOp = new wave::SbAtomFileWaveOp(sbatomfileParams, prevWaveOps);
                 assert(waveOp->gName() == sbatomfileParams.m_WaveOpName);
     
-            } else if (serWaveOp.gWaveOpType() == wave::SbAtomSaveWaveOp::gTypeStr()) {
+            } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStr()) {
                 wave::SbAtomSaveWaveOp::Params sbatomsaveParams;
                 fillWaveOpParams(serWaveOp, sbatomsaveParams);
-                sbatomsaveParams.m_RefFileName       = serWaveOp.gRefFile();
-                sbatomsaveParams.m_BatchFoldIdx      = serWaveOp.gBatchFoldIdx();
-                sbatomsaveParams.m_AtomId            = serWaveOp.gAtomId();
-                sbatomsaveParams.m_Length            = serWaveOp.gLength();
-                sbatomsaveParams.m_OffsetInFile      = serWaveOp.gOffsetInFile();
+                sbatomsaveParams.m_AtomId           = serWaveOp.m_AtomId;
+                sbatomsaveParams.m_AtomSize         = serWaveOp.m_AtomSize;
+                sbatomsaveParams.m_BatchFoldIdx     = serWaveOp.m_BatchFoldIdx;
+                sbatomsaveParams.m_DataType         = serWaveOp.m_DataType;
+                sbatomsaveParams.m_Length           = serWaveOp.m_Length;
+                sbatomsaveParams.m_OffsetInFile     = serWaveOp.m_OffsetInFile;
+                sbatomsaveParams.m_RefFileName      = serWaveOp.m_RefFile;
+                sbatomsaveParams.m_RefFileFormat    = serWaveOp.m_RefFileFormat;
+                sbatomsaveParams.m_RefFileShape     = serWaveOp.m_RefFileShape;
     
-                sbatomsaveParams.m_OfmapsFoldIdx     = serWaveOp.gOfmapsFoldIdx();
+                sbatomsaveParams.m_OfmapCount      = serWaveOp.m_OfmapCount;
+                sbatomsaveParams.m_OfmapsFoldIdx    = serWaveOp.m_OfmapsFoldIdx;
     
                 waveOp = new wave::SbAtomSaveWaveOp(sbatomsaveParams, prevWaveOps);
                 assert(waveOp->gName() == sbatomsaveParams.m_WaveOpName);
     
-            } else if (serWaveOp.gWaveOpType() == wave::MatMulWaveOp::gTypeStr()) {
+            } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStr()) {
                 wave::MatMulWaveOp::Params matmulParams;
                 fillWaveOpParams(serWaveOp, matmulParams);
     
-                matmulParams.m_BatchingInWave       = serWaveOp.gBatchingInWave();
-                matmulParams.m_IfmapCount           = serWaveOp.gIfmapCount();
-                matmulParams.m_IfmapTileHeight      = serWaveOp.gIfmapTileHeight();
-                matmulParams.m_IfmapTileWidth       = serWaveOp.gIfmapTileWidth();
-                matmulParams.m_IfmapsAtomId         = serWaveOp.gIfmapsAtomId();
-                matmulParams.m_IfmapsOffsetInAtom   = serWaveOp.gIfmapsOffsetInAtom();
+                matmulParams.m_BatchingInWave       = serWaveOp.m_BatchingInWave;
+                matmulParams.m_FmapXNum             = serWaveOp.m_FmapXNum;
+                matmulParams.m_FmapXStep            = serWaveOp.m_FmapXStep;
+                matmulParams.m_FmapYNum             = serWaveOp.m_FmapYNum;
+                matmulParams.m_FmapYStep            = serWaveOp.m_FmapYStep;
+                matmulParams.m_FmapZNum             = serWaveOp.m_FmapZNum;
+                matmulParams.m_FmapZStepAtoms       = serWaveOp.m_FmapZStepAtoms;
+                matmulParams.m_IfmapCount           = serWaveOp.m_IfmapCount;
+                matmulParams.m_IfmapTileHeight      = serWaveOp.m_IfmapTileHeight;
+                matmulParams.m_IfmapTileWidth       = serWaveOp.m_IfmapTileWidth;
+                matmulParams.m_IfmapsAtomId         = serWaveOp.m_IfmapsAtomId;
+                matmulParams.m_IfmapsAtomSize       = serWaveOp.m_IfmapsAtomSize;
+                matmulParams.m_IfmapsOffsetInAtom   = serWaveOp.m_IfmapsOffsetInAtom;
                 // layer_name
-                matmulParams.m_OfmapCount           = serWaveOp.gOfmapCount();
-                matmulParams.m_OfmapTileHeight      = serWaveOp.gOfmapTileHeight();
-                matmulParams.m_OfmapTileWidth       = serWaveOp.gOfmapTileWidth();
+                matmulParams.m_OfmapCount           = serWaveOp.m_OfmapCount;
+                matmulParams.m_OfmapTileHeight      = serWaveOp.m_OfmapTileHeight;
+                matmulParams.m_OfmapTileWidth       = serWaveOp.m_OfmapTileWidth;
                 // previous layers
-                matmulParams.m_PsumBankId           = serWaveOp.gPsumBankId();
-                matmulParams.m_PsumBankOffset       = serWaveOp.gPsumBankOffset();
-                matmulParams.m_Start                = serWaveOp.qStart();
-                matmulParams.m_WaveId               = serWaveOp.gWaveId();
-                matmulParams.m_WaveIdFormat         = serWaveOp.gWaveIdFormat();
+                matmulParams.m_PsumBankId           = serWaveOp.m_PsumBankId;
+                matmulParams.m_PsumBankOffset       = serWaveOp.m_PsumBankOffset;
+                matmulParams.m_StartTensorCalc      = serWaveOp.m_StartTensorCalc;
+                matmulParams.m_StopTensorCalc       = serWaveOp.m_StopTensorCalc;
+                matmulParams.m_WaveId               = serWaveOp.m_WaveId;
+                matmulParams.m_WaveIdFormat         = serWaveOp.m_WaveIdFormat;
                 // waveop name
                 // waveop type
-                matmulParams.m_WeightsAtomId        = serWaveOp.gWeightsAtomId();
-                matmulParams.m_WeightsOffsetInAtom  = serWaveOp.gWeightsOffsetInAtom();
+                matmulParams.m_WeightsAtomId        = serWaveOp.m_WeightsAtomId;
+                matmulParams.m_WeightsOffsetInAtom  = serWaveOp.m_WeightsOffsetInAtom;
     
                 waveOp = new wave::MatMulWaveOp(matmulParams, prevWaveOps);
                 assert(waveOp->gName() == matmulParams.m_WaveOpName);

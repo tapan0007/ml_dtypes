@@ -16,6 +16,7 @@ SbAtomFileWaveOp::SbAtomFileWaveOp(
         const SbAtomFileWaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps)
     : SbAtomWaveOp(params, prevWaveOps)
+    , m_IfmapCount(params.m_IfmapCount)
     , m_IfmapsFoldIdx(params.m_IfmapsFoldIdx)
     , m_IfmapsReplicate(params.m_IfmapsReplicate)
 {
@@ -26,6 +27,9 @@ bool
 SbAtomFileWaveOp::verify() const
 {
     if (! this->SbAtomWaveOp::verify()) {
+        return false;
+    }
+    if (m_IfmapCount < 1) {
         return false;
     }
     if (m_IfmapsFoldIdx < 0) {
