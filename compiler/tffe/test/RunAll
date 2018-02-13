@@ -130,7 +130,8 @@ testConfigMap = {
   
   # Subgraph partioned flow using neural network executor
   "0-add_nne"      : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2-imin3-imax6", "add", "--partition auto --executors tcc 1 --width 2 --debug 1"],
-  "8-resnet50_fp16_nne" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition auto --executors host 1 --debug 1"],
+  "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition auto --executors host 1 --debug 1"],
+  "8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors host 1 --debug 1"],
 }
 
 # Regression waiver mechanism 
