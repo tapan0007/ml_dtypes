@@ -462,9 +462,10 @@ class KNode:
                 %(self.data['layer_name'], self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz, self.pool_window_x, self.pool_window_y))
 
     # Recompute conv tile params due to fused pooling
-    def recompute_conv_params(self, pooling_ifmap_width):        
+    def recompute_conv_params(self, pool_window_x, pool_window_y):        
         # For pooling using PSUM (fused), max tile size must be a multiple of pooling window
-        self.ofmap_full_tiley_sz = (self.ofmap_full_tiley_sz // pooling_ifmap_width) * pooling_ifmap_width
+        self.ofmap_full_tiley_sz = (self.ofmap_full_tiley_sz // pool_window_y) * pool_window_y
+        self.ofmap_full_tilex_sz = (self.ofmap_full_tilex_sz // pool_window_x) * pool_window_x
         self.ofmap_full_tile_sz = self.ofmap_full_tilex_sz * self.ofmap_full_tiley_sz
         print("Recomputed Conv params due to fused pooling: pooling_ifmap_width=%d, ofmap_full_tiley_sz=%d"
                 %(pooling_ifmap_width, self.ofmap_full_tiley_sz))
@@ -652,7 +653,7 @@ class FusedOp(list):
                 # (only if it is not identity pool, where window/stride are both 1)
                 #if (op.pool_window_y > 1 and self.has_conv):
                 if (self.has_conv):
-                    self.conv_op.recompute_conv_params(pooling_ifmap_width = op.F)
+                    self.conv_op.recompute_conv_params(op.pool_window_x,op.pool_window_y)
                 self.pool_op = op
                 self.has_pool = True
         elif (op.data['layer_type'] == 'Conv'):
@@ -1122,6 +1123,24 @@ class TPBSched:
             }
         self.waveop_stream.add_linked(instr, [])
 
+    # Execute an unfused pooling operator
+    def execute_unfused_pool_ops(self, inputs, result_file):
+        # for resnet-50, only MaxPool should call this method
+        assert (op_list[0].data['layer_type'] == 'MaxPool')
+        
+        # initialize result tensor
+        result = np.zeros((op_list.pool_op.N, op_list.pool_op.M, op_list.pool_op.E, op_list.pool_op.F), dtype=inputs.dtype)
+
+        # wave loop ordering scheme: nmhwcRS
+        for n_id in range(op_list.conv_op.n):
+            for m_id in range(op_list.conv_op.m):
+                for h_id in range(op_list.conv_op.h):
+                    for w_id in range(op_list.conv_op.w):
+                        tile_id = TileID(n_id, m_id, h_id, w_id)
+                        # loops for constructing a tile
+
+
+
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, inputs, result_file):
         assert (op_list[0].data['layer_type'] == 'Conv')
@@ -1295,6 +1314,8 @@ if __name__ == "__main__":
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
                 tpb.statebuffer.circbuf_ifmaps.layer_name = op_list[0].data['layer_name']
                 tpb.statebuffer.circbuf_ifmaps.layer_type = op_list[0].data['layer_type']
+                tpb.statebuffer.circbuf_ifmaps.layer_format = op_list[0].data['ofmap_format']
+                tpb.statebuffer.circbuf_ifmaps.layer_shape = op_list[0].data['ofmap_shape']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
                         tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
@@ -1302,6 +1323,7 @@ if __name__ == "__main__":
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
                 exit(-1)
+            results = tpb.execute_unfused_pool_op(results, result_file)
             print("ERROR: Pool (unfused) operation is unimplemented")
             exit(-1)
         else:        
