@@ -101,10 +101,10 @@ class Pool:
         num_cols = in_array.shape[1]
         # view_as_windows needs in_array to be in the same dimension as window_shape
         # need to make sure the third dimension of stride_shape to be '1' since that is the column direction
-        tile_array = in_array.reshape(ofmap_tilex_sz,ofmap_tiley_sz,Tn,num_cols)
-        window_shape = (pool_window_size,pool_window_size,Tn,num_cols)
+        tile_array = in_array.reshape(ofmap_tilex_sz, ofmap_tiley_sz, Tn, num_cols)
+        window_shape = (pool_window_size, pool_window_size, Tn, num_cols)
         stride_shape = (stride, stride, Tn, 1)
-        pool_result = view_as_windows(tile_array,window_shape,stride_shape).max(axis=(4,5)).reshape(-1,num_cols)
+        pool_result = view_as_windows(tile_array, window_shape, stride_shape).max(axis=(4,5)).reshape(-1,num_cols)
         return pool_result
 
 ##################################################################################
@@ -391,7 +391,7 @@ class KNode:
         return self.psum_bank_dst
 
     # populate common parameters for Conv and Pool
-    def populate_common_params(self,adjust_for_pool):
+    def populate_common_params(self, adjust_for_pool):
         # get input shape from previous layer's data
         assert (self.prev[0] != None)
         input_layer = self.prev[0].data
@@ -409,13 +409,15 @@ class KNode:
         self.HW = self.H * self.W
         self.EF = self.E * self.F
         # compute batch folding and batching within wave, Tn cannot be greater than batch size N
-        self.Tn = min(1,PEArray.MAX_WAVE_SIZE // self.EF)
-        if (self.Tn > self.N):
+        self.Tn = PEArray.MAX_WAVE_SIZE // self.EF
+        if (self.Tn < 1):
+            self.Tn = 1
+        elif (self.Tn > self.N):
             self.Tn = self.N
         self.n = ceildiv(self.N, self.Tn)
         # per kaena-85, use noodle shapes for tiles
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
-        if ((self.EF > PEArray.MAX_WAVE_SIZE) and (self,adjust_for_pool)):
+        if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
             self.ofmap_full_tiley_sz = self.pool_window_y
             self.ofmap_full_tilex_sz = PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz
         else:
@@ -648,7 +650,8 @@ class FusedOp(list):
             else:
                 # recompute Conv params due to constrained Pooling tile dimensions
                 # (only if it is not identity pool, where window/stride are both 1)
-                if (op.pool_window_y > 1 and self.has_conv):
+                #if (op.pool_window_y > 1 and self.has_conv):
+                if (self.has_conv):
                     self.conv_op.recompute_conv_params(pooling_ifmap_width = op.F)
                 self.pool_op = op
                 self.has_pool = True
@@ -868,6 +871,8 @@ class FusedOp(list):
                 self[i].compute_ofmap_tile_info(tile_id)
                 tilex = self.conv_op.tile_width
                 tiley = self.conv_op.tile_height
+                #tilex = self[i].ofmap_full_tilex_sz * self[i].stride_x
+                #tiley = self[i].ofmap_full_tiley_sz * self[i].stride_y
                 if (layer_type == 'AvgPool'):
                     psum_temp = tpb.pool.avg(psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley)
                 else:
