@@ -427,6 +427,8 @@ class KNode:
         self.c = ceildiv(self.C, PEArray.NUM_ROWS)
         # compute the OFMAP folds
         self.m = ceildiv(self.M, PEArray.NUM_COLS)
+        # compute the IFMAP folds over NUM_COLS
+        self.d = ceildiv(self.C, PEArray.NUM_COLS)
         # computing the input map tiling       
         self.h, self.w, self.e, self.f = 1, 1, 1, 1
         # compute ofmap folding
@@ -518,9 +520,19 @@ class KNode:
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format
     #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
+    #   layer_type: 'conv' or 'MaxPool'; can be extended to handle other layer types
     #   return: a 256x128 array
-    def pack_wave_ifmaps(self, ifmaps, wave_id):
-        out_array = np.zeros((PEArray.MAX_WAVE_SIZE, PEArray.NUM_ROWS))
+    def pack_wave_ifmaps(self, ifmaps, wave_id, layer_type):
+        # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
+        if (layer_type == 'Conv'):
+            out_array_dim_y = PEArray.NUM_ROWS
+        elif (layer_type == 'MaxPool'):
+            out_array_dim_y = PEArray.NUM_COLS
+        else:
+            print("ERROR: Unrecognized layer type in pack_wave_ifmaps: ",layer_type)
+            exit(-1)
+
+        out_array = np.zeros((PEArray.MAX_WAVE_SIZE, out_array_dim_y))
         # remember to extract IFMAPs starting at r_id, s_id (which should be zero for non-conv op)
         # also need to add zeros for padding
         self.ifmap_wave_lower_addr = -1
@@ -528,11 +540,11 @@ class KNode:
         self.ofmap_wave_lower_coord = (0, 0)
         self.ofmap_wave_upper_coord = (0, 0)
         self.psum_bank_offset = 0
-        pe_row_start = wave_id.c_id * PEArray.NUM_ROWS
-        pe_row_stop = min(self.C, pe_row_start + PEArray.NUM_ROWS)
+        pe_row_start = wave_id.c_id * out_array_dim_y
+        pe_row_stop = min(self.C, pe_row_start + out_array_dim_y)
         assert(pe_row_start < pe_row_stop)
         for row in range(pe_row_start, pe_row_stop):
-            #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * PEArray.NUM_ROWS + row], wave_id)
+            #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * out_array_dim_y + row], wave_id)
             ifmap = ifmaps[:, row]
             pe_row_offset = row - pe_row_start
             for i in range(self.Tn):
@@ -541,7 +553,7 @@ class KNode:
                         ifmap_tilex = (wave_id.w_id * self.ofmap_full_tilex_sz + x) * self.stride_x + wave_id.s_id - self.pad_west
                         ifmap_tiley = (wave_id.h_id * self.ofmap_full_tiley_sz + y) * self.stride_y + wave_id.r_id - self.pad_north
                         ifmap_addr = i * self.ofmap_full_tile_sz + y * self.ofmap_full_tilex_sz + x
-                        #print("x %d y %d ifmap_tilex %d ifmap_tiley %d"%(x, y, ifmap_tilex, ifmap_tiley))                                    
+                        # print("x %d y %d ifmap_tilex %d ifmap_tiley %d"%(x, y, ifmap_tilex, ifmap_tiley))                                    
                         if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
                             out_array[ifmap_addr, pe_row_offset] = 0
                         elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
@@ -777,7 +789,7 @@ class FusedOp(list):
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
     def execute_matmul_waveop(self, tpb, wave_id, inputs, weights, psum_add):
         pearray_packed_weights = self.conv_op.pack_wave_conv_weights(weights, wave_id)
-        pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(inputs, wave_id)
+        pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(inputs, wave_id, 'Conv')
         #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
         #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
         if (self.conv_op.ifmap_wave_lower_addr < 0 or self.conv_op.ifmap_wave_upper_addr < 0):
@@ -1098,20 +1110,38 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, [])
 
     # Execute an unfused pooling operator
-    def execute_unfused_pool_ops(self, inputs, result_file):
+    def execute_unfused_pool_op(self, inputs, result_file):
         # for resnet-50, only MaxPool should call this method
         assert (op_list[0].data['layer_type'] == 'MaxPool')
+        assert (op_list[0].prev[0] != None)
+        conv_node = op_list[0].prev[0]
+        assert(conv_node.data['layer_type'] == 'Conv')
         
         # initialize result tensor
         result = np.zeros((op_list.pool_op.N, op_list.pool_op.M, op_list.pool_op.E, op_list.pool_op.F), dtype=inputs.dtype)
 
         # wave loop ordering scheme: nmhwcRS
-        for n_id in range(op_list.conv_op.n):
-            for m_id in range(op_list.conv_op.m):
-                for h_id in range(op_list.conv_op.h):
-                    for w_id in range(op_list.conv_op.w):
+        for n_id in range(op_list[0].n):
+            for m_id in range(op_list[0].m):
+                for h_id in range(op_list[0].h):
+                    for w_id in range(op_list[0].w):
                         tile_id = TileID(n_id, m_id, h_id, w_id)
                         # loops for constructing a tile
+                        # re-calculate 'c' because it needs to fit to pool engine width
+                        for c_id in range(op_list[0].d):
+                            # set r_id and s_id to zero since we are not doing convolution
+                            wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, 0, 0)
+                            # need to use the conv_node to extract the ifmaps
+                            psum_fake = conv_node.pack_wave_ifmaps(inputs, wave_id, 'MaxPool')
+                            tiley = conv_node.ofmap_full_tiley_sz
+                            tilex = conv_node.ofmap_full_tilex_sz
+                            psum_fake_extract = psum_fake [0:tiley*tilex, :]
+                            psum_temp = self.pool.max(psum_fake_extract, op_list[0].stride_x, op_list[0].pool_window_y, op_list[0].Tn, tilex, tiley)
+                            np.save("debug.npy",psum_fake_extract)
+                            print (op_list[0].pool_window_y, "", op_list[0].stride_x)
+                            print (psum_fake_extract[:,0])
+                            print (psum_temp[:,0])
+        return result
 
 
 
@@ -1298,8 +1328,8 @@ if __name__ == "__main__":
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
                 exit(-1)
             results = tpb.execute_unfused_pool_op(results, result_file)
-            print("ERROR: Pool (unfused) operation is unimplemented")
-            exit(-1)
+            #print("ERROR: Pool (unfused) operation is unimplemented")
+            #exit(-1)
         else:        
             print("ERROR: Unrecognized first operation %s"%op_list[0].data['layer_type'])
             exit(-1)
