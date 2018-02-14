@@ -48,14 +48,17 @@ class NpTrans:
         Transforms[src][dst][d] = calcTransform(Formats[src][d], Formats[dst][d])
   # Ulility function to convert npy files, returns new file name and the destination format
   @staticmethod
-  def copyNpyFileAs(npFile, srcPlat, dstPlat, dataFlavor, srcShape=None):
+  def copyNpyFileAs(npFile, srcPlat, dstPlat, dataFlavor, srcShape=None, outFile=None):
     dstFormat = NpTrans.Formats[dstPlat][dataFlavor]
     transform = NpTrans.Transforms[srcPlat][dstPlat][dataFlavor]
     arr = np.load(npFile)
     if srcShape != None:
       arr = arr.reshape(srcShape)
     arr = np.transpose(arr, transform)
-    npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
+    if outFile == None:
+      npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
+    else:
+      npFileDest = outFile
     np.save(npFileDest, arr)
     return(npFileDest, dstFormat)
 

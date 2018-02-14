@@ -231,6 +231,7 @@ struct al_udma_q_params {
 					*/
 
 	uint8_t adapter_rev_id; /**<PCI adapter revision ID */
+    enum al_udma_type type; // m2s (TX) or s2m (RX)
 };
 
 /** UDMA parameters from upper layer */
@@ -410,8 +411,7 @@ int al_udma_init(struct al_udma *udma, struct al_udma_params *udma_params);
  *	   -EIO if queue was already initialized
  */
 
-int al_udma_q_init(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
-		   struct al_udma_q_params *q_params);
+int al_udma_q_init(struct al_udma *udma, uint32_t qid, struct al_udma_q_params *q_params);
 
 /**
  * pause a udma queue
@@ -484,9 +484,8 @@ al_bool al_udma_q_is_enabled(struct al_udma_q *udma_q);
  * @return  0 on success. -EINVAL otherwise.
  */
 
-// TODO made static 
-//int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
-//		      struct al_udma_q **q_handle);
+extern int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
+		      struct al_udma_q **q_handle);
 
 /**
  * Change the UDMA's state

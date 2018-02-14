@@ -76,15 +76,16 @@ def writeBackEndFiles(kGraph, outPrefix, verbose, scheduler):
   jsonFile = {"tcc" : "compiler.json", "wave" : "wavegraph.json"}
   fileList += kGraph.genKgraphSetupFiles(outPrefix + "compiler.py", outPrefix + jsonFile[scheduler], refOutNpyFile)
   fileList += [outPrefix + "graph_ann.dot.svg"]
-  fileList += tffe.runScheduler(outPrefix)
+  fileList += kGraph.runScheduler(outPrefix)
   kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
   
 
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
-tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.scheduler, args.batch)
+tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch)
 tffe.loadPb(tfpbFile, args.focus)
 kog = tffe.getKaenaOpGraph()
+kog.setSchedulerMode(args.scheduler)
 kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
 if args.weights:
   tffe.writeWeights(args.out_prefix)
@@ -95,39 +96,42 @@ if args.images != None:
   kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
   if args.partition[0] == "none":
     writeBackEndFiles(kog, args.out_prefix, args.verbose, args.scheduler)
+    cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
+    print("INFO: executing %s" % cmd, flush=True)
+    os.system(cmd)
   else:
     kp = KgraphPartitions.KgraphPart(kog, debugLevel)
-    if args.partition[0] == "auto":
-      executorsStr = " ".join(args.executors)
-      sgJsonList = []
-      kp.autoColorNodes()
-      kp.partitionByColor()
-      #kp.print()
-      sgId = 0
-      for sg in kp.getSubgraphs():
-        sgDir = "sg%02d" % sgId;
-        print("\nINFO: processing subgraph %s" % sgDir)
-        sg.graph.print()
-        os.makedirs(sgDir)
-        os.chdir(sgDir)
-        sg.addSideNodes(kog)
-        sg.graph.levelize()
-        sg.relinkNpFiles("..")
-        sg.graph.print()
-        sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
-        try:
-          writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
-        except:
-          executorsStr += " host %d" % sgId
-        os.chdir("..")
-        sgJsonList.append(sg.genExecutorGraphJson(sgDir))
-        sgId += 1
-      nnGraphFile = "nn_graph.json"
-      with open(nnGraphFile, "w") as f:
-        s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
-        f.write(s)
-      cmd = "%s/runtime/util/nn_executor --nn_graph %s --tfpb %s --executors %s" % (
-            kPath, nnGraphFile, tfpbFile, executorsStr)
-      print("INFO: executing  %s" % cmd)
-      os.system(cmd)
+    partitioningStrategy = args.partition[0]
+    executorsStr = " ".join(args.executors)
+    sgJsonList = []
+    kp.colorNodes(partitioningStrategy)
+    kp.partitionByColor()
+    #kp.print()
+    sgId = 0
+    for sg in kp.getSubgraphs():
+      sgDir = "sg%02d" % sgId;
+      print("\nINFO: processing subgraph %s" % sgDir)
+      sg.graph.print()
+      os.makedirs(sgDir)
+      os.chdir(sgDir)
+      sg.addSideNodes(kog)
+      sg.graph.levelize()
+      sg.relinkNpFiles("..")
+      sg.graph.print()
+      sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
+      try:
+        writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
+      except:
+        executorsStr += " host %d" % sgId
+      os.chdir("..")
+      sgJsonList.append(sg.genExecutorGraphJson(sgDir))
+      sgId += 1
+    nnGraphFile = "nn_graph.json"
+    with open(nnGraphFile, "w") as f:
+      s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
+      f.write(s)
+    cmd = "%s/runtime/util/nn_executor --nn_graph %s --tfpb %s --executors %s" % (
+          kPath, nnGraphFile, tfpbFile, executorsStr)
+    print("INFO: executing  %s" % cmd)
+    os.system(cmd)
         

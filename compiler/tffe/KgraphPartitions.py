@@ -35,7 +35,6 @@ class KsubGraph:
     o = self.__output
     #out = {"Node" : o.getName(), "NpFile" : o.getNpInfo()[0].npFile}
     outNpFile = o.getNpInfo()[0].npFile
-    outNpFile = outNpFile[:-4] + "-out.npy"
     jsonDict["Output"] = [o.getName() + ":0", outNpFile]
     return jsonDict
   def addSideNodes(self, srcGraph):
@@ -88,7 +87,7 @@ class KgraphPart(object):
     return(predFanout > 1)
   
   # Auto color nodes to define subgraph partitions
-  def autoColorNodes(self):
+  def colorNodesAuto(self):
     sourceGraph = self.__kgraph
     edgeQueue = []
     visitedNodes = {}
@@ -102,7 +101,7 @@ class KgraphPart(object):
         continue
       visitedNodes[n] = True
       if self.debugLevel > 0:
-        print("DEBUG: autoColorNodes visit         %-12s %s" %
+        print("DEBUG: colorNodesAuto visit         %-12s %s" %
               (n.getOpType(), n.getName()))
       fanoutEdges = n.getFanoutMainFlowEdges()
       faninEdges = n.getFaninMainFlowEdges()
@@ -125,9 +124,64 @@ class KgraphPart(object):
         predNode = self.getPredecessorMainFlowNode(n)
         self.setNodeColor(n, self.getNodeColor(predNode))
       if self.debugLevel > 0:
-        print("DEBUG: autoColorNodes setColor %d on %-12s %s" %
+        print("DEBUG: colorNodesAuto setColor %d on %-12s %s" %
+              (self.getNodeColor(n), n.getOpType(), n.getName()))
+  
+  def edgeHasOp(self, edge, opType):
+    nodes = [edge.getFromNode(), edge.getToNode()]
+    return any((not n == None and n.getOpType() == opType) for n in nodes)
+  
+  # Color nodes to define subgraph partitions -isolate conv2d
+  def colorNodesConv(self):
+    sourceGraph = self.__kgraph
+    edgeQueue = []
+    visitedNodes = {}
+    n = sourceGraph.getInputNode()
+    self.setNodeColor(n, self.getNewColor())
+    edgeQueue += n.getFanoutMainFlowEdges()
+    while len(edgeQueue) > 0:
+      e = edgeQueue.pop(0)
+      n = e.getToNode()
+      if n in visitedNodes:
+        continue
+      visitedNodes[n] = True
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesConv visit         %-12s %s" %
+              (n.getOpType(), n.getName()))
+      fanoutEdges = n.getFanoutMainFlowEdges()
+      faninEdges = n.getFaninMainFlowEdges()
+      # Depth-first traversal upto any reconvergence point
+      if len(faninEdges) > 1:
+        edgeQueue += fanoutEdges
+      else:
+        if len(fanoutEdges) > 0:
+          edgeQueue.insert(0, fanoutEdges[0])
+          edgeQueue += fanoutEdges[1:]
+      # Coloring
+      if len(faninEdges) > 1:
+        # Reconvergence node is standalone partition
+        self.setNodeColor(n, self.getNewColor())
+      elif self.predNodeHasFanout(n):
+        self.setNodeColor(n, self.getNewColor())
+      elif self.edgeHasOp(e, "Conv2D"):
+        self.setNodeColor(n, self.getNewColor())
+      else:
+        assert len(faninEdges) == 1
+        # Fanout node stays with the previous partition
+        predNode = self.getPredecessorMainFlowNode(n)
+        self.setNodeColor(n, self.getNodeColor(predNode))
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesConv setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
       
+  # Color nodes given the partitioning startegy
+  def colorNodes(self, partitioningStrategy):
+    if partitioningStrategy == "auto":
+      self.colorNodesAuto()
+    elif partitioningStrategy == "conv":
+      self.colorNodesConv()
+    else:
+      assert 0
 
   # Partition into ordered list of subgraphs
   # All partitions have single output, multiple inputs

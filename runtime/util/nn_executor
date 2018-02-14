@@ -8,6 +8,9 @@
 import argparse
 import os.path
 import sys, json, re
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+from NpUtils import NpUtils as npu
+from NpTransforms import NpTrans as npt
 
 kPath = os.environ.get('KAENA_PATH')
 
@@ -24,24 +27,42 @@ if not tfpbFile.startswith('/'):
   tfpbFile = '../' + tfpbFile
 
 class NnSubgraph:
-  def __init__(self, sgDir, inputs, outputs):
+  def __init__(self, sgDir, inputs, output):
     self.sgDir = sgDir
     self.inputs = inputs
-    self.outputs = outputs
+    self.output = output
+  
+  def getOutputNpyFile(self):
+    return self.output[1]
+  
+  # The files are shared by op name A, then computed locally as sg00/A-out.npy
+  # and linked to parent as A-out.npy which the input for the next subgraph
+  # This ensures a subgraph failure is visible in the end result
   def run(self, executor):
     logFile = "log-%s.txt" % executor
+    outBase = self.getOutputNpyFile()[:-4]
+    tfOutFile = outBase + "-out.npy"
     if executor == "host":
       cmd = "%s/runtime/util/runtime_tf" % kPath
       cmd += "  --tfpb %s" % tfpbFile
-      cmd += "  --input_tensors %s" % " ".join(self.inputs) 
-      cmd += "  --output_tensor %s" % " ".join(self.outputs) 
-    elif executor == "tcc":
+      cmd += "  --input_tensors %s" % " ".join(self.inputs)
+      cmd += "  --output_tensor %s %s" % (self.output[0], tfOutFile)
+      sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
+    elif executor == "tcc" or executor == "wave":
       cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
     #os.chdir(self.sgDir)
     cmd = "cd %s; %s > %s 2>&1" % (self.sgDir, cmd, logFile)
-    print("INFO: executing %s" % cmd)
+    print("INFO: executing %s" % cmd, flush=True)
     os.system(cmd)
-    #os.chdir("..")
+    # Translate TPB format back to TF format.
+    # To share easily the file is also linked to the parent dir
+    if not executor == "host":
+      tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
+      tpbOutFile = "%s/%s_%s-simout.npy" % (self.sgDir, outBase, tpbFmapFormat)
+      sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
+      npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=sgOutFile)
+    os.symlink(sgOutFile, tfOutFile)
+    
   def getSgId(self):
     sgId = int(self.sgDir.replace("sg", ""))
     return sgId
@@ -50,10 +71,14 @@ class NnExec:
   def __init__(self, nnGraphFile, tpbFile, executors):
     with open(nnGraphFile) as fh:
       self.nnGraphJsonData = json.load(fh)
+    numSubGraphs = len(self.nnGraphJsonData["SubGraphs"])
     self.sgId2executor = {}
     executor = None
     for word in executors:
-      if re.search('^\d+$', word):
+      if word == "all":
+        for sgId in range(numSubGraphs):
+          self.sgId2executor[sgId] = executor
+      elif re.search('^\d+$', word):
         sgId = int(word)
         self.sgId2executor[sgId] = executor
       else:

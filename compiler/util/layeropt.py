@@ -468,7 +468,7 @@ class KNode:
         # number of OFMAPs for this tile 
         pe_col_start = tile_id.m_id * PEArray.NUM_COLS
         pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
-        self.ofmap_count = pe_col_stop - pe_col_start + 1
+        self.ofmap_count = pe_col_stop - pe_col_start
 
         # compute the address bounds for OFMAP tile within OFMAPs tensor
         # TODO: for Tn>1, need to have multiple bounds for each batch item
@@ -556,8 +556,8 @@ class KNode:
         pe_row_stop = min(self.C, pe_row_start + PEArray.NUM_ROWS)
         pe_col_start = wave_id.m_id * PEArray.NUM_COLS
         pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
-        self.ifmap_count = pe_row_stop - pe_row_start + 1
-        self.ofmap_count = pe_col_stop - pe_col_start + 1
+        self.ifmap_count = pe_row_stop - pe_row_start
+        self.ofmap_count = pe_col_stop - pe_col_start
         for row in range(pe_row_start, pe_row_stop):
             for col in range(pe_col_start, pe_col_stop):
                 out_array[row - pe_row_start, col - pe_col_start] = weights[row, wave_id.r_id, wave_id.s_id, col] # CRSM
