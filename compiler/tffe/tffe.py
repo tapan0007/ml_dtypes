@@ -76,15 +76,16 @@ def writeBackEndFiles(kGraph, outPrefix, verbose, scheduler):
   jsonFile = {"tcc" : "compiler.json", "wave" : "wavegraph.json"}
   fileList += kGraph.genKgraphSetupFiles(outPrefix + "compiler.py", outPrefix + jsonFile[scheduler], refOutNpyFile)
   fileList += [outPrefix + "graph_ann.dot.svg"]
-  fileList += tffe.runScheduler(outPrefix)
+  fileList += kGraph.runScheduler(outPrefix)
   kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
   
 
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
-tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.scheduler, args.batch)
+tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch)
 tffe.loadPb(tfpbFile, args.focus)
 kog = tffe.getKaenaOpGraph()
+kog.setSchedulerMode(args.scheduler)
 kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
 if args.weights:
   tffe.writeWeights(args.out_prefix)
@@ -95,6 +96,9 @@ if args.images != None:
   kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
   if args.partition[0] == "none":
     writeBackEndFiles(kog, args.out_prefix, args.verbose, args.scheduler)
+    cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
+    print("INFO: executing %s" % cmd, flush=True)
+    os.system(cmd)
   else:
     kp = KgraphPartitions.KgraphPart(kog, debugLevel)
     partitioningStrategy = args.partition[0]

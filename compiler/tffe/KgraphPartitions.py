@@ -35,7 +35,6 @@ class KsubGraph:
     o = self.__output
     #out = {"Node" : o.getName(), "NpFile" : o.getNpInfo()[0].npFile}
     outNpFile = o.getNpInfo()[0].npFile
-    outNpFile = outNpFile[:-4] + "-out.npy"
     jsonDict["Output"] = [o.getName() + ":0", outNpFile]
     return jsonDict
   def addSideNodes(self, srcGraph):

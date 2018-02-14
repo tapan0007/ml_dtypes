@@ -649,13 +649,20 @@ class NodeSimple2(Node):
 # Computational data flow graph
 ###############################################################################
 class Graph(Object):
-  def __init__(self, name = "GRAPH", attrs = {}):
+  def __init__(self, name = "GRAPH", attrs = {}, schedulerMode = "tcc"):
     super().__init__(name, attrs)
     self.__name2node = {}
     self.__edges = []
     self.__mainFlowEdges = []
     self.__inputNode = None
+    self.kaenaPath = os.environ["KAENA_PATH"]
+    self.schedulerMode = schedulerMode
     
+  def setSchedulerMode(self, mode):
+    self.schedulerMode = mode
+  def setSchedulerMode(self, mode):
+    self.schedulerMode = mode
+  
   def addNode(self, node):
     self.__name2node[node.getName()] = node
   
@@ -1006,6 +1013,23 @@ class Graph(Object):
           if srcEdge.isInMainFlow():
             inputNodes.append(constNode)
     return inputNodes
+
+  # Returns file to append to the Kaena backend package
+  def runScheduler(self, outPrefix):
+    if self.schedulerMode == 'tcc':
+      # Noop, wave scheduling is done in the backend
+      return []
+    elif self.schedulerMode == 'wave':
+      # Invoke wave scheduler
+      waveSchedulerExec = self.kaenaPath + "/compiler/util/layeropt.py"
+      kGraphJsonFile = outPrefix + "compiler.json"
+      waveGraphJsonFile = outPrefix + "wavegraph.json"
+      waveDotFile = outPrefix + "wavegraph.svg"
+      cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s > log-wave.txt 2>&1" % (
+            waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, waveDotFile)
+      print("INFO: executing wave scheduler by  " + cmd)
+      os.system(cmd)
+      return [waveGraphJsonFile, waveDotFile]
 
 
 
