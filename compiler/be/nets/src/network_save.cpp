@@ -220,30 +220,30 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
         }
 
-        if (const auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp)) {
-            serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStr();
+        if (auto sbatomWaveOp = dynamic_cast<wave::SbAtomWaveOp*>(waveOp)) {
+            serWaveOp.m_AtomId = sbatomWaveOp->gAtomId();
+            serWaveOp.m_AtomSize = sbatomWaveOp->gAtomSize();
+            serWaveOp.m_BatchFoldIdx = sbatomWaveOp->gBatchFoldIdx();
+            serWaveOp.m_DataType = DataType::dataTypeId2Str(
+                                      sbatomWaveOp->gDataType().gDataTypeId());
+            serWaveOp.m_Length = sbatomWaveOp->gLength();
+            serWaveOp.m_OffsetInFile = sbatomWaveOp->gOffsetInFile();
+            serWaveOp.m_RefFile = sbatomWaveOp->gRefFileName();
+            serWaveOp.m_RefFileFormat = sbatomWaveOp->gRefFileFormat();
+            serWaveOp.m_RefFileShape = sbatomWaveOp->gRefFileShape();
 
-            serWaveOp.m_AtomId = sbatomfileWaveOp->gAtomId();
-            serWaveOp.m_BatchFoldIdx = sbatomfileWaveOp->gBatchFoldIdx();
-            serWaveOp.m_Length = sbatomfileWaveOp->gLength();
-            serWaveOp.m_OffsetInFile = sbatomfileWaveOp->gOffsetInFile();
-            serWaveOp.m_RefFile = sbatomfileWaveOp->gRefFileName();
-
-            serWaveOp.m_IfmapsFoldIdx = sbatomfileWaveOp->gIfmapsFoldIdx();
-            serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
-            continue;
-        }
-
-        if (const auto sbatomsaveWaveOp = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveOp)) {
-            serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStr();
-
-            serWaveOp.m_AtomId = sbatomsaveWaveOp->gAtomId();
-            serWaveOp.m_BatchFoldIdx = sbatomsaveWaveOp->gBatchFoldIdx();
-            serWaveOp.m_Length = sbatomsaveWaveOp->gLength();
-            serWaveOp.m_OffsetInFile = sbatomsaveWaveOp->gOffsetInFile();
-            serWaveOp.m_RefFile = sbatomsaveWaveOp->gRefFileName();
-
-            serWaveOp.m_OfmapsFoldIdx = sbatomsaveWaveOp->gOfmapsFoldIdx();
+            if (auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp)) {
+                serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStr();
+                serWaveOp.m_IfmapCount = sbatomfileWaveOp->gIfmapCount();
+                serWaveOp.m_IfmapsFoldIdx = sbatomfileWaveOp->gIfmapsFoldIdx();
+                serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
+            } else {
+                auto sbatomsaveWaveOp = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveOp);
+                assert(sbatomsaveWaveOp && "Wrong SbAtaom WaveOp");
+                serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStr();
+                serWaveOp.m_OfmapCount = sbatomsaveWaveOp->gOfmapCount();
+                serWaveOp.m_OfmapsFoldIdx = sbatomsaveWaveOp->gOfmapsFoldIdx();
+            }
             continue;
         }
 

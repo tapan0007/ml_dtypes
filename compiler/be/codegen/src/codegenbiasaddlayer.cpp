@@ -29,8 +29,8 @@ CodeGenBiasAddLayer::generate(layers::Layer* layer)
         assert(inLayer);
     }
 
-    const ARBPRECTYPE inDataType    = inLayer->gDataType().gTypeId();
-    const ARBPRECTYPE outDataType   = biasaddLayer->gDataType().gTypeId();
+    const ARBPRECTYPE inDataType    = inLayer->gDataType().gSimTypeId();
+    const ARBPRECTYPE outDataType   = biasaddLayer->gDataType().gSimTypeId();
     const unsigned int ofmapWidth   = biasaddLayer->gOfmapWidth();
     const unsigned int ofmapHeight  = biasaddLayer->gOfmapHeight();
     m_IfmapAddrs[0]                 = inLayer->gOfmapAddress();

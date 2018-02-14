@@ -6,6 +6,7 @@ namespace serialize {
 
 SerWaveOp::SerWaveOp()
 {
+    m_TileId.resize(4, -1);
 }
 
 
@@ -182,6 +183,109 @@ SerWaveOp::verifyMatMul () const
     return true;
 }
 
+
+bool
+SerWaveOp::verifyPool() const
+{
+    if (m_DstSbAtomId < 0) {
+        return false;
+    }
+    if (m_DstSbOffsetInAtom < 0) {
+        return false;
+    }
+    if (m_DstXNum < 1) {
+        return false;
+    }
+    if (m_DstXStep < 0) {
+        return false;
+    }
+    if (m_DstYNum < 1) {
+        return false;
+    }
+    if (m_DstYStep < 0) {
+        return false;
+    }
+    if (m_DstZNum < 1) {
+        return false;
+    }
+    if (m_DstZStep < 0) {
+        return false;
+    }
+    if (m_InDtype == "") {
+        return false;
+    }
+    // "layername": "1conv/i1",
+    if (m_NumPartitions < 1) {
+        return false;
+    }
+    if (m_OutDtype == "") {
+        return false;
+    }
+    if (m_PoolFrequency	< 1) {
+        return false;
+    }
+    if (m_PoolFunc == "") {
+        return false;
+    }
+    // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
+    // m_SrcIsPsum
+    if (m_SrcPsumBankId < 0) {
+        return false;
+    }
+    if (m_SrcPsumBankOffset < 0) {
+        return false;
+    }
+    if (m_SrcSbAtomId < 0) {
+        return false;
+    }
+    if (m_SrcSbOffsetInAtom < 0) {
+        return false;
+    }
+    if (m_SrcWNum < 1) {
+        return false;
+    }
+    if (m_SrcWStep < 0) {
+        return false;
+    }
+    if (m_SrcXNum < 1) {
+        return false;
+    }
+    if (m_SrcXStep < 0) {
+        return false;
+    }
+    if (m_SrcYNum < 1) {
+        return false;
+    }
+    if (m_SrcYStep < 0) {
+        return false;
+    }
+    if (m_SrcZNum < 1) {
+        return false;
+    }
+    if (m_SrcZStep < 0) {
+        return false;
+    }
+    if (m_TileId.size() != 4) {
+        return false;
+    } else {
+        for (auto n : m_TileId) {
+            if (n < 0) {
+                return false;
+            }
+        }
+    }
+    if (m_TileIdFormat == "") {
+        return false;
+    }
+    //waveopname": "1conv/i1/Pooln0m0h0w0",
+    //waveoptype": "Pool"
+
+    return true;
+}
+
+
+
+
 bool
 SerWaveOp::verify() const
 {
@@ -202,6 +306,8 @@ SerWaveOp::verify() const
         return verifySbAtomSave();
     } else if (m_WaveOpType == WaveOpTypeStr_MatMul) {
         return verifyMatMul();
+    } else if (m_WaveOpType == WaveOpTypeStr_Pool) {
+        return verifyPool();
     } else {
         return false;
     }

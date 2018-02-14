@@ -31,8 +31,8 @@ CodeGenConvLayer::generate(layers::Layer* layer)
     const unsigned kernelWidth   = convLayer->gKernelWidth();
     const unsigned numBatches    = 1;
 
-    const ARBPRECTYPE inDataType  = prevLayer->gDataType().gTypeId();
-    const ARBPRECTYPE outDataType = convLayer->gDataType().gTypeId();
+    const ARBPRECTYPE inDataType  = prevLayer->gDataType().gSimTypeId();
+    const ARBPRECTYPE outDataType = convLayer->gDataType().gSimTypeId();
 
     m_FilterAddr[0] = convLayer->gWeightAddress();
     m_FilterFileNames[0] = convLayer->gFilterFileName();

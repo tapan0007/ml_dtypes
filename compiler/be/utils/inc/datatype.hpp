@@ -16,6 +16,13 @@
 namespace kcc {
 namespace utils {
 
+enum DataTypeId {
+    DataTypeId_None,
+    DataTypeId_Uint8,
+    DataTypeId_Uint16,
+    DataTypeId_Float16,
+    DataTypeId_Float32
+};
 
 //########################################################
 class DataType {
@@ -23,9 +30,14 @@ public:
     virtual ~DataType()
     {}
 
+    static const DataType& dataTypeId2DataType(DataTypeId typeId);
+    static DataTypeId dataTypeStr2Id(const std::string& dataTypeStr);
+    static const std::string& dataTypeId2Str(DataTypeId typeId);
+
     virtual kcc_int64 gSizeInBytes() const = 0;
 
-    virtual ARBPRECTYPE gTypeId() const = 0;
+    virtual DataTypeId  gDataTypeId() const = 0;
+    virtual ARBPRECTYPE gSimTypeId() const = 0;
 
     virtual const char* gName() const = 0;
 
@@ -43,7 +55,8 @@ public:
     {
     }
 
-    ARBPRECTYPE gTypeId() const override;
+    DataTypeId  gDataTypeId() const override;
+    ARBPRECTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
@@ -76,7 +89,8 @@ public:
     {
     }
 
-    ARBPRECTYPE gTypeId() const override;
+    DataTypeId  gDataTypeId() const override;
+    ARBPRECTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
@@ -108,7 +122,8 @@ public:
     {
     }
 
-    ARBPRECTYPE gTypeId() const override;
+    DataTypeId  gDataTypeId() const override;
+    ARBPRECTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
@@ -142,7 +157,8 @@ public:
     {
     }
 
-    ARBPRECTYPE gTypeId() const override;
+    DataTypeId  gDataTypeId() const override;
+    ARBPRECTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {

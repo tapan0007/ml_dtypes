@@ -46,7 +46,7 @@ CodeGenLayer::epilogue(const layers::Layer* const layer)
         }
 
         FILE* const objFile = gObjFile();
-        const ARBPRECTYPE outDataType = layer->gDataType().gTypeId();
+        const ARBPRECTYPE outDataType = layer->gDataType().gSimTypeId();
         compile_write_ofmap(objFile,
                 outNpyFileName,
                 m_OfmapAddrs, m_OfmapDims, outDataType);

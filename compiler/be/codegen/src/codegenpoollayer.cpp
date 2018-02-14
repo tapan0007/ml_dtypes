@@ -32,8 +32,8 @@ CodeGenPoolLayer::Generate(layers::Layer* layer, POOLFUNC poolFunc)
     const unsigned kernelWidth      = poolLayer->gKernelWidth();
     const unsigned numBatches       = 1;
 
-    const ARBPRECTYPE inDataType    = prevLayer->gDataType().gTypeId();
-    const ARBPRECTYPE outDataType   = poolLayer->gDataType().gTypeId();
+    const ARBPRECTYPE inDataType    = prevLayer->gDataType().gSimTypeId();
+    const ARBPRECTYPE outDataType   = poolLayer->gDataType().gSimTypeId();
 
 
     m_IfmapAddrs[0] = poolLayer->gIfmapAddress();

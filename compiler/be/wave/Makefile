@@ -6,7 +6,8 @@ SRCS := waveop  \
 matmulwaveop \
 sbatomwaveop \
 sbatomfilewaveop \
-sbatomsavewaveop
+sbatomsavewaveop \
+poolwaveop
 
 ########################################################
 include ../Makefile.common

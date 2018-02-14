@@ -222,14 +222,15 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 sbatomfileParams.m_AtomId            = serWaveOp.m_AtomId;
                 sbatomfileParams.m_AtomSize          = serWaveOp.m_AtomSize;
                 sbatomfileParams.m_BatchFoldIdx      = serWaveOp.m_BatchFoldIdx;
-                sbatomfileParams.m_DataType            = serWaveOp.m_DataType;
+                sbatomfileParams.m_DataType = DataType::dataTypeStr2Id(
+                                                serWaveOp.m_DataType);
                 sbatomfileParams.m_Length            = serWaveOp.m_Length;
                 sbatomfileParams.m_OffsetInFile      = serWaveOp.m_OffsetInFile;
                 sbatomfileParams.m_RefFileName       = serWaveOp.m_RefFile;
-                sbatomfileParams.m_RefFileFormat       = serWaveOp.m_RefFileFormat;
-                sbatomfileParams.m_RefFileShape       = serWaveOp.m_RefFileShape;
+                sbatomfileParams.m_RefFileFormat     = serWaveOp.m_RefFileFormat;
+                sbatomfileParams.m_RefFileShape      = serWaveOp.m_RefFileShape;
     
-                sbatomfileParams.m_IfmapCount     = serWaveOp.m_IfmapCount;
+                sbatomfileParams.m_IfmapCount        = serWaveOp.m_IfmapCount;
                 sbatomfileParams.m_IfmapsFoldIdx     = serWaveOp.m_IfmapsFoldIdx;
                 sbatomfileParams.m_IfmapsReplicate   = serWaveOp.m_IfmapsReplicate;
     
@@ -239,17 +240,19 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStr()) {
                 wave::SbAtomSaveWaveOp::Params sbatomsaveParams;
                 fillWaveOpParams(serWaveOp, sbatomsaveParams);
+
                 sbatomsaveParams.m_AtomId           = serWaveOp.m_AtomId;
                 sbatomsaveParams.m_AtomSize         = serWaveOp.m_AtomSize;
                 sbatomsaveParams.m_BatchFoldIdx     = serWaveOp.m_BatchFoldIdx;
-                sbatomsaveParams.m_DataType         = serWaveOp.m_DataType;
+                sbatomsaveParams.m_DataType = DataType::dataTypeStr2Id(
+                                                serWaveOp.m_DataType);
                 sbatomsaveParams.m_Length           = serWaveOp.m_Length;
                 sbatomsaveParams.m_OffsetInFile     = serWaveOp.m_OffsetInFile;
                 sbatomsaveParams.m_RefFileName      = serWaveOp.m_RefFile;
                 sbatomsaveParams.m_RefFileFormat    = serWaveOp.m_RefFileFormat;
                 sbatomsaveParams.m_RefFileShape     = serWaveOp.m_RefFileShape;
     
-                sbatomsaveParams.m_OfmapCount      = serWaveOp.m_OfmapCount;
+                sbatomsaveParams.m_OfmapCount       = serWaveOp.m_OfmapCount;
                 sbatomsaveParams.m_OfmapsFoldIdx    = serWaveOp.m_OfmapsFoldIdx;
     
                 waveOp = new wave::SbAtomSaveWaveOp(sbatomsaveParams, prevWaveOps);

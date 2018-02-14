@@ -19,6 +19,7 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
     , m_AtomId(params.m_AtomId)
     , m_AtomSize(params.m_AtomSize)
     , m_BatchFoldIdx(params.m_BatchFoldIdx)
+    , m_DataType(DataType::dataTypeId2DataType(params.m_DataType))
     , m_Length(params.m_Length)
     , m_OffsetInFile(params.m_OffsetInFile)
     , m_RefFileName(params.m_RefFileName)
@@ -26,17 +27,6 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
     , m_RefFileShape(params.m_RefFileShape)
 {
     assert(params.verify());
-    if (params.m_DataType == utils::DataTypeUint8::gNameStatic()) {
-        m_DataType = std::make_unique<utils::DataTypeUint8>();
-    } else if (params.m_DataType == utils::DataTypeUint16::gNameStatic()) {
-        m_DataType = std::make_unique<utils::DataTypeUint16>();
-    } else if (params.m_DataType == utils::DataTypeFloat16::gNameStatic()) {
-        m_DataType = std::make_unique<utils::DataTypeFloat16>();
-    } else if (params.m_DataType == utils::DataTypeFloat32::gNameStatic()) {
-        m_DataType = std::make_unique<utils::DataTypeFloat32>();
-    } else {
-        assert(false && "Wrong data type when (de)serializing");
-    }
 }
 
 
@@ -55,9 +45,7 @@ SbAtomWaveOp::verify() const
     if (m_BatchFoldIdx < 0) {
         return false;
     }
-    if (! m_DataType) {
-        return false;
-    }
+    // m_DataType
     if (m_Length <= 0) {
         return false;
     }

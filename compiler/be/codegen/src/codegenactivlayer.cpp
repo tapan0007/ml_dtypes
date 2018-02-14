@@ -26,8 +26,8 @@ CodeGenActivLayer::generate(layers::Layer* layer)
     const unsigned ofmapHeight      = activLayer->gOfmapHeight();
     const unsigned numBatches       = 1;
 
-    const ARBPRECTYPE inDataType    = prevLayer->gDataType().gTypeId();
-    const ARBPRECTYPE outDataType   = activLayer->gDataType().gTypeId();
+    const ARBPRECTYPE inDataType    = prevLayer->gDataType().gSimTypeId();
+    const ARBPRECTYPE outDataType   = activLayer->gDataType().gSimTypeId();
 
     m_IfmapAddrs[0] = activLayer->gIfmapAddress();
 

@@ -44,7 +44,7 @@ public:
     }
 
     const utils::DataType& gDataType() const {
-        return *m_DataType;
+        return m_DataType;
     }
 
     kcc_int32 gLength() const {
@@ -78,7 +78,7 @@ private:
     kcc_int32       m_AtomId            = -1;
     kcc_int32       m_AtomSize            = -1;
     kcc_int32       m_BatchFoldIdx      = -1;
-    std::unique_ptr<utils::DataType> m_DataType       = nullptr;
+    const utils::DataType& m_DataType;
     kcc_int64       m_Length            = -1;
     kcc_int64       m_OffsetInFile      = -1;
     std::string     m_RefFileName       = "";
@@ -94,9 +94,9 @@ public:
     bool verify() const;
 public:
     kcc_int32       m_AtomId            = -1;
-    kcc_int32       m_AtomSize            = -1;
+    kcc_int32       m_AtomSize          = -1;
     kcc_int32       m_BatchFoldIdx      = -1;
-    std::string     m_DataType       = "";
+    DataTypeId      m_DataType          = DataTypeId_None;
     kcc_int64       m_Length            = -1;
     kcc_int64       m_OffsetInFile      = -1;
     std::string     m_RefFileName       = "";

@@ -35,6 +35,38 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             archive(cereal::make_nvp(WaveOpKey_OfmapCount, m_OfmapCount));
             archive(cereal::make_nvp(WaveOpKey_OfmapsFoldIdx, m_OfmapsFoldIdx));
         }
+    } else if (m_WaveOpType == WaveOpTypeStr_Pool) {
+        archive(cereal::make_nvp(WaveOpKey_DstSbAtomId, m_DstSbAtomId));
+        archive(cereal::make_nvp(WaveOpKey_DstSbOffsetInAtom, m_DstSbOffsetInAtom));
+        archive(cereal::make_nvp(WaveOpKey_DstXNum, m_DstXNum));
+        archive(cereal::make_nvp(WaveOpKey_DstXStep, m_DstXStep));
+        archive(cereal::make_nvp(WaveOpKey_DstYNum, m_DstYNum));
+        archive(cereal::make_nvp(WaveOpKey_DstYStep, m_DstYStep));
+        archive(cereal::make_nvp(WaveOpKey_DstZNum, m_DstZNum));
+        archive(cereal::make_nvp(WaveOpKey_DstZStep, m_DstZStep));
+        archive(cereal::make_nvp(WaveOpKey_InDtype, m_InDtype));
+        // layername
+        archive(cereal::make_nvp(WaveOpKey_NumPartitions, m_NumPartitions));
+        archive(cereal::make_nvp(WaveOpKey_OutDtype, m_OutDtype));
+        archive(cereal::make_nvp(WaveOpKey_PoolFrequency, m_PoolFrequency));
+        archive(cereal::make_nvp(WaveOpKey_PoolFunc, m_PoolFunc));
+        // previouswaveops
+        archive(cereal::make_nvp(WaveOpKey_SrcIsPsum, m_SrcIsPsum));
+        archive(cereal::make_nvp(WaveOpKey_SrcPsumBankId, m_SrcPsumBankId));
+        archive(cereal::make_nvp(WaveOpKey_SrcPsumBankOffset, m_SrcPsumBankOffset));
+        archive(cereal::make_nvp(WaveOpKey_SrcSbAtomId, m_SrcSbAtomId));
+        archive(cereal::make_nvp(WaveOpKey_SrcSbOffsetInAtom, m_SrcSbOffsetInAtom));
+        archive(cereal::make_nvp(WaveOpKey_SrcWNum, m_SrcWNum));
+        archive(cereal::make_nvp(WaveOpKey_SrcWStep, m_SrcWStep));
+        archive(cereal::make_nvp(WaveOpKey_SrcXNum, m_SrcXNum));
+        archive(cereal::make_nvp(WaveOpKey_SrcXStep, m_SrcXStep));
+        archive(cereal::make_nvp(WaveOpKey_SrcYNum, m_SrcYNum));
+        archive(cereal::make_nvp(WaveOpKey_SrcYStep, m_SrcYStep));
+        archive(cereal::make_nvp(WaveOpKey_SrcZNum, m_SrcZNum));
+        archive(cereal::make_nvp(WaveOpKey_SrcZStep, m_SrcZStep));
+        archive(cereal::make_nvp(WaveOpKey_TileId, m_TileId));
+        archive(cereal::make_nvp(WaveOpKey_TileIdFormat, m_TileIdFormat));
+
     } else if (m_WaveOpType == WaveOpTypeStr_MatMul) {
         archive(cereal::make_nvp(WaveOpKey_BatchingInWave, m_BatchingInWave));
         archive(cereal::make_nvp(WaveOpKey_FmapXNum, m_FmapXNum));

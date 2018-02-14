@@ -3,6 +3,8 @@
 #ifndef KCC_UTILS_TYPES_H
 #define KCC_UTILS_TYPES_H
 
+#include <string>
+
 #include "utils/inc/consts.hpp"
 
 namespace kcc {
@@ -28,7 +30,13 @@ static_assert(sizeof(kcc_uint32) == 4, "sizeof(uint32) != 4");
 static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
 
+enum PoolType {
+    PoolType_None,
+    PoolType_Max,
+    PoolType_Avg
+};
 
+const std::string& poolType2Str(PoolType poolType);
 
 using LayerId = kcc_int32;
 const LayerId LayerId_Null = -1;

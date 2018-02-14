@@ -7,7 +7,8 @@ SRCS := wavecode \
 wavecodewaveop \
 wavecodesbatomfile \
 wavecodesbatomsave \
-wavecodematmul
+wavecodematmul \
+wavecodepool
 
 ########################################################
 include ../Makefile.common

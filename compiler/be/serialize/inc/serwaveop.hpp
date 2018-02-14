@@ -325,10 +325,11 @@ protected:
     bool verify() const;
 
 private:
-    bool verifySbAtom () const;
-    bool verifySbAtomFile () const;
-    bool verifySbAtomSave () const;
-    bool verifyMatMul () const;
+    bool verifySbAtom() const;
+    bool verifySbAtomFile() const;
+    bool verifySbAtomSave() const;
+    bool verifyMatMul() const;
+    bool verifyPool() const;
 
 public:
     // common to all
@@ -394,6 +395,40 @@ public:
     kcc_int32                   m_WeightsAtomId         = -1;
     kcc_int32                   m_WeightsOffsetInAtom   = -1;
 
+    // Pool
+    kcc_int32                   m_DstSbAtomId       = -1;
+    kcc_int32                   m_DstSbOffsetInAtom = -1;
+    kcc_int32                   m_DstXNum           = -1;
+    kcc_int32                   m_DstXStep	        = -1;
+    kcc_int32                   m_DstYNum	        = -1;
+    kcc_int32                   m_DstYStep	        = -1;
+    kcc_int32                   m_DstZNum	        = -1;
+    kcc_int32                   m_DstZStep	        = -1;
+    std::string                 m_InDtype           = "";
+    // "layername": "1conv/i1",
+    kcc_int32                   m_NumPartitions     = -1;
+    std::string                 m_OutDtype          = "";
+    kcc_int32                   m_PoolFrequency	    = -1;
+    std::string                 m_PoolFunc          = "";
+    // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
+    bool                        m_SrcIsPsum         = true;
+    kcc_int32                   m_SrcPsumBankId     = -1;
+    kcc_int32                   m_SrcPsumBankOffset = -1;
+    kcc_int32                   m_SrcSbAtomId       = -1;
+    kcc_int32                   m_SrcSbOffsetInAtom = -1;
+    kcc_int32                   m_SrcWNum	        = -1;
+    kcc_int32                   m_SrcWStep	        = -1;
+    kcc_int32                   m_SrcXNum	        = -1;
+    kcc_int32                   m_SrcXStep	        = -1;
+    kcc_int32                   m_SrcYNum	        = -1;
+    kcc_int32                   m_SrcYStep	        = -1;
+    kcc_int32                   m_SrcZNum	        = -1;
+    kcc_int32                   m_SrcZStep	        = -1;
+    std::vector<kcc_int32>      m_TileId;
+    std::string                 m_TileIdFormat      = "";
+    //waveopname": "1conv/i1/Pooln0m0h0w0",
+    //waveoptype": "Pool"
+
 }; // class SerWaveOp
 
 
@@ -401,5 +436,5 @@ public:
 } // namespace serialize
 } // namespace kcc
 
-#endif // KCC_SERIALIZE_SERWAVEOP_H
+#endif // KCCSERIALIZESERWAVEOPH
 
