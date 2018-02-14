@@ -6,6 +6,7 @@ namespace serialize {
 
 SerWaveOp::SerWaveOp()
 {
+    m_RefFileShape.resize(4, -1);
     m_TileId.resize(4, -1);
 }
 

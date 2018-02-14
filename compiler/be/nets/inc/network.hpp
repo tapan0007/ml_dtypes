@@ -116,7 +116,6 @@ public:
         m_UseWave = useWave;
     }
 
-    kcc_int32 gWaveAtomSize() const;
 
 private:
     Network() = delete;

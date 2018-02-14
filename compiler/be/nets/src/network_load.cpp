@@ -227,7 +227,9 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 sbatomfileParams.m_OffsetInFile      = serWaveOp.m_OffsetInFile;
                 sbatomfileParams.m_RefFileName       = serWaveOp.m_RefFile;
                 sbatomfileParams.m_RefFileFormat     = serWaveOp.m_RefFileFormat;
-                sbatomfileParams.m_RefFileShape      = serWaveOp.m_RefFileShape;
+                for (unsigned int i = 0; i < sbatomfileParams.m_RefFileShape.size(); ++i) {
+                    sbatomfileParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
+                }
     
                 sbatomfileParams.m_IfmapCount        = serWaveOp.m_IfmapCount;
                 sbatomfileParams.m_IfmapsFoldIdx     = serWaveOp.m_IfmapsFoldIdx;
@@ -249,7 +251,9 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 sbatomsaveParams.m_OffsetInFile     = serWaveOp.m_OffsetInFile;
                 sbatomsaveParams.m_RefFileName      = serWaveOp.m_RefFile;
                 sbatomsaveParams.m_RefFileFormat    = serWaveOp.m_RefFileFormat;
-                sbatomsaveParams.m_RefFileShape     = serWaveOp.m_RefFileShape;
+                for (unsigned int i = 0; i < sbatomsaveParams.m_RefFileShape.size(); ++i) {
+                    sbatomsaveParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
+                }
     
                 sbatomsaveParams.m_OfmapCount       = serWaveOp.m_OfmapCount;
                 sbatomsaveParams.m_OfmapsFoldIdx    = serWaveOp.m_OfmapsFoldIdx;

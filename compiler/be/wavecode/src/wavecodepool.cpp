@@ -22,8 +22,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 {
     auto poolWaveOp = dynamic_cast<wave::PoolWaveOp*>(waveOp);
     assert(poolWaveOp);
-    const layers::PoolLayer* const poolLayer = poolWaveOp->gPoolLayer();
-    const arch::Arch& arch(poolLayer->gArch());
+    const arch::Arch& arch(m_WaveCode->gArch());
     const auto& psumBuf(arch.gPsumBuffer());
     //const auto& stateBuf(arch.gStateBuffer());
 
@@ -49,7 +48,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                                             poolWaveOp->gSrcPsumBankId(), 
                                             poolWaveOp->gSrcPsumBankOffset());
     } else { // State buffer
-        poolInstr.src_start_addr = poolWaveOp->gSrcSbAtomId() * poolLayer->gWaveAtomSize() + poolWaveOp->gSrcSbOffsetInAtom();
+        poolInstr.src_start_addr = poolWaveOp->gSrcSbAtomId() * poolWaveOp->gWaveAtomSize() + poolWaveOp->gSrcSbOffsetInAtom();
     }
 
     poolInstr.src_x_step        = poolWaveOp->gSrcXStep();
@@ -73,7 +72,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_z_step        = poolWaveOp->gDstZStep();
     poolInstr.dst_z_num         = poolWaveOp->gDstZNum();
     // For now DST is always StateBuf
-    poolInstr.dst_start_addr    = poolWaveOp->gDstSbAtomId() * poolLayer->gWaveAtomSize() + poolWaveOp->gDstSbOffsetInAtom();
+    poolInstr.dst_start_addr    = poolWaveOp->gDstSbAtomId() * poolWaveOp->gWaveAtomSize() + poolWaveOp->gDstSbOffsetInAtom();
 
     m_WaveCode->writeInstruction(poolInstr, WaveCode::UseStream_PoolEng);
 }

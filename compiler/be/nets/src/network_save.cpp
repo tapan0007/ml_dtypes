@@ -209,9 +209,9 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
 
     //===========================================================================
     std::vector<serialize::SerWaveOp> serWaveOps(m_WaveOps.size());
-    for (unsigned i = 0; i < m_WaveOps.size(); ++i) {
-        serialize::SerWaveOp& serWaveOp(serWaveOps[i]);
-        wave::WaveOp* waveOp = m_WaveOps[i];
+    for (unsigned waveOpIdx = 0; waveOpIdx < m_WaveOps.size(); ++waveOpIdx) {
+        serialize::SerWaveOp& serWaveOp(serWaveOps[waveOpIdx]);
+        wave::WaveOp* waveOp = m_WaveOps[waveOpIdx];
         serWaveOp.m_WaveOpName = waveOp->gName();
         serWaveOp.m_LayerName = waveOp->gLayer()->gName();
         for (auto prevWaveOp : waveOp->gPrevWaveOps()) {
@@ -228,7 +228,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serWaveOp.m_OffsetInFile = sbatomWaveOp->gOffsetInFile();
             serWaveOp.m_RefFile = sbatomWaveOp->gRefFileName();
             serWaveOp.m_RefFileFormat = sbatomWaveOp->gRefFileFormat();
-            serWaveOp.m_RefFileShape = sbatomWaveOp->gRefFileShape();
+            const std::array<kcc_int32,4>& refFileShape(sbatomWaveOp->gRefFileShape());
+            for (unsigned int shapeIdx = 0; shapeIdx < refFileShape.size(); ++shapeIdx) {
+                serWaveOp.m_RefFileShape[shapeIdx] = refFileShape[shapeIdx];
+            }
 
             if (auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp)) {
                 serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStr();

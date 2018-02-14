@@ -5,7 +5,7 @@
 
 
 #include <string>
-#include <vector>
+#include <array>
 #include <assert.h>
 
 
@@ -67,7 +67,7 @@ public:
         return m_RefFileFormat;
     }
 
-    std::vector<kcc_int32> gRefFileShape () const {
+    const std::array<kcc_int32,4>& gRefFileShape () const {
         return m_RefFileShape;
     }
 
@@ -83,7 +83,7 @@ private:
     kcc_int64       m_OffsetInFile      = -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";
-    std::vector<kcc_int32> m_RefFileShape;
+    std::array<kcc_int32,4> m_RefFileShape;
 };
 
 
@@ -101,7 +101,7 @@ public:
     kcc_int64       m_OffsetInFile      = -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";
-    std::vector<kcc_int32> m_RefFileShape;
+    std::array<kcc_int32,4> m_RefFileShape;
 };
 
 }}

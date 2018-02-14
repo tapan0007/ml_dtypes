@@ -93,6 +93,10 @@ public:
         return m_PrevWaveOps;
     }
 
+    kcc_int32 gWaveAtomSize () const {
+        return 1024;
+    }
+
 protected:
     std::string             m_Name          = "";
     std::vector<WaveOp*>    m_PrevWaveOps;
