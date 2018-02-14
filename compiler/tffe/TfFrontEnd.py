@@ -376,3 +376,10 @@ class TfFe:
       writer.writerows(rows)
     print("INFO: Wrote op sequences into " + csvFile)
   
+  def getInputNode(self):
+    for n in self.__kg.getNodes():
+        tfOp = n.getAttr("tfop")
+        if (tfOp.op == "Placeholder"):
+            return tfOp.name
+    return None        
+
