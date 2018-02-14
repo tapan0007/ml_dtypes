@@ -68,15 +68,11 @@ const char *const al_udma_states_name[] = {
 /*  dma_q flags */
 #define AL_UDMA_Q_FLAGS_NO_COMP_UPDATE	AL_BIT(1)
 
-static int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
-						struct al_udma_q **q_handle);
-
 static void al_udma_set_defaults(struct al_udma *udma)
 {
 	uint8_t rev_id = udma->rev_id;
 
 // TODO init both TX and RX
-
 
     // Init TX
 		struct al_udma_m2s_pkt_len_conf conf = {
@@ -523,6 +519,7 @@ unsigned int al_udma_num_queues_get(
 /*
  * Initialize the udma engine
  */
+
 int al_udma_init(struct al_udma *udma, struct al_udma_params *udma_params)
 {
 	int ret;
@@ -551,8 +548,7 @@ int al_udma_init(struct al_udma *udma, struct al_udma_params *udma_params)
 /*
  * Initialize the udma queue data structure
  */
-int al_udma_q_init(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
-					struct al_udma_q_params *q_params)
+int al_udma_q_init(struct al_udma *udma, uint32_t qid, struct al_udma_q_params *q_params)
 {
 	struct al_udma_q *udma_q;
 
@@ -582,12 +578,12 @@ int al_udma_q_init(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
 		return -EINVAL;
 	}
 
-	udma_q = (type == UDMA_TX) ? &udma->udma_q_m2s[qid]: &udma->udma_q_s2m[qid];
+	udma_q = (q_params->type == UDMA_TX) ? &udma->udma_q_m2s[qid]: &udma->udma_q_s2m[qid];
 	if (udma_q->status == AL_QUEUE_ENABLED) {
 		al_err("udma: queue (%d) already enabled!\n", qid);
 		return -EIO;
 	}
-    udma_q->type = type;
+    udma_q->type = q_params->type;
 	udma_q->adapter_rev_id = q_params->adapter_rev_id;
 	udma_q->size = q_params->size;
 	udma_q->size_mask = q_params->size - 1;
@@ -752,7 +748,7 @@ int al_udma_q_reset(struct al_udma_q *udma_q)
 /*
  * return (by reference) a pointer to a specific queue date structure.
  */
-static int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
+int al_udma_q_handle_get(struct al_udma *udma, uint32_t qid, enum al_udma_type type,
 						struct al_udma_q **q_handle)
 {
 

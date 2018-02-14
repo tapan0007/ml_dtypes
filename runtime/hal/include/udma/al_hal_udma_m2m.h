@@ -47,14 +47,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "al_hal_udma.h"
 
+// TODO for now 128 = the number of SB buffers. This accommodates the worst case
+// DMA transfer, e.g. save/restore the complete state of SB.
+// having 128 elements makes it impractical to allocate sgl on the stack 
+// will deal with this later
+
+#define AL_UDMA_MAX_SG 128
+struct al_udma_sgl {
+    uint32_t num_sg;
+    struct al_buf sg[AL_UDMA_MAX_SG];
+};
+
 // init the engine
-extern int al_udma_m2m_init(struct al_udma *udma, struct al_udma_params *udma_params);
+extern int al_udma_m2m_init(struct al_udma *udma, void __iomem *regs_base);
 
 // sets up DMA descriptors for the memcopy to be triggered by SP
-extern int al_udma_m2m_copy_prepare(struct al_udma *udma, uint32_t qid, void* src, void* dst);
+extern int al_udma_m2m_copy_prepare(struct al_udma *udma, uint32_t qid, struct al_udma_sgl* src, struct al_udma_sgl* dst);
 
 // sets up DMA descriptors and performs the actual copy
-extern int al_udma_m2m_copy(struct al_udma *udma, uint32_t qid, void* src, void* dst);
+extern int al_udma_m2m_copy(struct al_udma *udma, uint32_t qid, struct al_udma_sgl* src, struct al_udma_sgl* dst);
 
 #endif
 
