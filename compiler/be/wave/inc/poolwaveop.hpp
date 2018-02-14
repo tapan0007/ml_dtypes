@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <assert.h>
+#include <array>
 
 
 
@@ -39,7 +40,7 @@ public:
     PoolWaveOp(const PoolWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps);
 public:
-    bool verify() const;
+    bool verify() const override;
 
 private:
     PoolWaveOp() = delete;
@@ -140,7 +141,7 @@ public:
         return WaveOpTypeStr_Pool;
     }
     layers::PoolLayer* gPoolLayer() const {
-        return dynamic_cast<layers::PoolLayer*>(gLayer());
+        return dynamic_cast<layers::PoolLayer*>(this->gLayer());
     }
 
 private:
