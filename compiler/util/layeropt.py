@@ -1057,7 +1057,7 @@ class KGraph:
     def gen_id_pool_op(self, last_op):
         id_pool_layer_data = {
           "kernel_shape"    : [ 1, 1, 1, 1 ],
-          "layer_name"      : last_op.data['layer_name']+"_id_pool",
+          "layer_name"      : last_op.data['layer_name'],
           "layer_type"      : "MaxPool",
           "ofmap_format"    : last_op.data['ofmap_format'],
           "ofmap_shape"     : last_op.data['ofmap_shape'],
@@ -1144,7 +1144,7 @@ class TPBSched:
         assert (op_list[0].prev[0] != None)
         conv_node = op_list[0].prev[0]
         assert(conv_node.data['layer_type'] == 'Conv')
-        
+
         # initialize result tensor
         result = np.zeros((op_list.pool_op.N, op_list.pool_op.M, op_list.pool_op.E, op_list.pool_op.F), dtype=inputs.dtype)
 
@@ -1161,6 +1161,7 @@ class TPBSched:
                             wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, 0, 0)
                             # need to use the conv_node to extract the ifmaps
                             psum_fake = conv_node.pack_wave_ifmaps(inputs, wave_id, 'MaxPool')
+                            print (psum_fake)
                             tiley = conv_node.ofmap_full_tiley_sz
                             tilex = conv_node.ofmap_full_tilex_sz
                             psum_fake_extract = psum_fake [0:tiley*tilex, :]
@@ -1320,9 +1321,9 @@ if __name__ == "__main__":
 
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
-            inputs = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
+            results = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
             tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = op_list[0].data['ref_file']
-            results = inputs
+            inputs = results
         # Check conv fused op
         # TODO: add matrix multiply
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
@@ -1333,7 +1334,7 @@ if __name__ == "__main__":
                 tpb.statebuffer.circbuf_ifmaps.layer_shape = op_list[0].data['ofmap_shape']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
-                        tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
                         break
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
@@ -1351,7 +1352,7 @@ if __name__ == "__main__":
                 tpb.statebuffer.circbuf_ifmaps.layer_shape = op_list[0].data['ofmap_shape']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
-                        tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
                         break
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])

@@ -449,7 +449,7 @@
       "dst_z_num": 1,
       "dst_z_step": 1225,
       "in_dtype": "float32",
-      "layer_name": "1conv/i1_id_pool",
+      "layer_name": "1conv/i1",
       "num_partitions": 1,
       "out_dtype": "float16",
       "pool_frequency": 1,
@@ -472,7 +472,7 @@
       "src_z_step": 1,
       "tile_id": [0,0,0,0],
       "tile_id_format": "nmhw",
-      "waveop_name": "1conv/i1_id_pool/Pool_n0_m0_h0_w0",
+      "waveop_name": "1conv/i1/Pool_n0_m0_h0_w0",
       "waveop_type": "Pool"
     },
     {
@@ -480,18 +480,18 @@
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
-      "layer_name": "1conv/i1_id_pool",
+      "layer_name": "1conv/i1",
       "length": 980,
       "offset_in_file": 0,
       "ofmap_count": 1,
       "ofmaps_fold_idx": 0,
       "previous_waveops": [
-        "1conv/i1_id_pool/Pool_n0_m0_h0_w0"
+        "1conv/i1/Pool_n0_m0_h0_w0"
       ],
-      "ref_file": "save_1conv__i1_id_pool.npy",
+      "ref_file": "save_1conv__i1.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1_id_pool/SBAtomSave_0",
+      "waveop_name": "1conv/i1/SBAtomSave_0",
       "waveop_type": "SBAtomSave"
     },
     {
@@ -515,7 +515,7 @@
       "ofmap_tile_height": 7,
       "ofmap_tile_width": 34,
       "previous_waveops": [
-        "1conv/i1_id_pool/Pool_n0_m0_h0_w0"
+        "1conv/i1/Pool_n0_m0_h0_w0"
       ],
       "psum_bank_id": 1,
       "psum_bank_offset": 2,
@@ -892,7 +892,7 @@
       "dst_z_num": 1,
       "dst_z_step": 1225,
       "in_dtype": "float32",
-      "layer_name": "1conv/i1_id_pool",
+      "layer_name": "1conv/i1",
       "num_partitions": 1,
       "out_dtype": "float16",
       "pool_frequency": 1,
@@ -915,7 +915,7 @@
       "src_z_step": 1,
       "tile_id": [0,0,1,0],
       "tile_id_format": "nmhw",
-      "waveop_name": "1conv/i1_id_pool/Pool_n0_m0_h1_w0",
+      "waveop_name": "1conv/i1/Pool_n0_m0_h1_w0",
       "waveop_type": "Pool"
     },
     {
@@ -939,7 +939,7 @@
       "ofmap_tile_height": 7,
       "ofmap_tile_width": 34,
       "previous_waveops": [
-        "1conv/i1_id_pool/Pool_n0_m0_h1_w0"
+        "1conv/i1/Pool_n0_m0_h1_w0"
       ],
       "psum_bank_id": 0,
       "psum_bank_offset": 2,
@@ -1297,7 +1297,7 @@
       "dst_z_num": 1,
       "dst_z_step": 1225,
       "in_dtype": "float32",
-      "layer_name": "1conv/i1_id_pool",
+      "layer_name": "1conv/i1",
       "num_partitions": 1,
       "out_dtype": "float16",
       "pool_frequency": 1,
@@ -1320,7 +1320,7 @@
       "src_z_step": 1,
       "tile_id": [0,0,2,0],
       "tile_id_format": "nmhw",
-      "waveop_name": "1conv/i1_id_pool/Pool_n0_m0_h2_w0",
+      "waveop_name": "1conv/i1/Pool_n0_m0_h2_w0",
       "waveop_type": "Pool"
     },
     {
@@ -1328,18 +1328,18 @@
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
-      "layer_name": "1conv/i1_id_pool",
+      "layer_name": "1conv/i1",
       "length": 980,
       "offset_in_file": 980,
       "ofmap_count": 1,
       "ofmaps_fold_idx": 0,
       "previous_waveops": [
-        "1conv/i1_id_pool/Pool_n0_m0_h2_w0"
+        "1conv/i1/Pool_n0_m0_h2_w0"
       ],
-      "ref_file": "save_1conv__i1_id_pool.npy",
+      "ref_file": "save_1conv__i1.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1_id_pool/SBAtomSave_1",
+      "waveop_name": "1conv/i1/SBAtomSave_1",
       "waveop_type": "SBAtomSave"
     },
     {
@@ -1363,7 +1363,7 @@
       "ofmap_tile_height": 7,
       "ofmap_tile_width": 34,
       "previous_waveops": [
-        "1conv/i1_id_pool/Pool_n0_m0_h2_w0"
+        "1conv/i1/Pool_n0_m0_h2_w0"
       ],
       "psum_bank_id": 1,
       "psum_bank_offset": 2,
@@ -1740,7 +1740,7 @@
       "dst_z_num": 1,
       "dst_z_step": 1225,
       "in_dtype": "float32",
-      "layer_name": "1conv/i1_id_pool",
+      "layer_name": "1conv/i1",
       "num_partitions": 1,
       "out_dtype": "float16",
       "pool_frequency": 1,
@@ -1763,7 +1763,7 @@
       "src_z_step": 1,
       "tile_id": [0,0,3,0],
       "tile_id_format": "nmhw",
-      "waveop_name": "1conv/i1_id_pool/Pool_n0_m0_h3_w0",
+      "waveop_name": "1conv/i1/Pool_n0_m0_h3_w0",
       "waveop_type": "Pool"
     },
     {
@@ -1787,7 +1787,7 @@
       "ofmap_tile_height": 7,
       "ofmap_tile_width": 34,
       "previous_waveops": [
-        "1conv/i1_id_pool/Pool_n0_m0_h3_w0"
+        "1conv/i1/Pool_n0_m0_h3_w0"
       ],
       "psum_bank_id": 0,
       "psum_bank_offset": 2,
@@ -2145,7 +2145,7 @@
       "dst_z_num": 1,
       "dst_z_step": 1225,
       "in_dtype": "float32",
-      "layer_name": "1conv/i1_id_pool",
+      "layer_name": "1conv/i1",
       "num_partitions": 1,
       "out_dtype": "float16",
       "pool_frequency": 1,
@@ -2168,7 +2168,7 @@
       "src_z_step": 1,
       "tile_id": [0,0,4,0],
       "tile_id_format": "nmhw",
-      "waveop_name": "1conv/i1_id_pool/Pool_n0_m0_h4_w0",
+      "waveop_name": "1conv/i1/Pool_n0_m0_h4_w0",
       "waveop_type": "Pool"
     },
     {
@@ -2176,18 +2176,18 @@
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
-      "layer_name": "1conv/i1_id_pool",
+      "layer_name": "1conv/i1",
       "length": 490,
       "offset_in_file": 1960,
       "ofmap_count": 1,
       "ofmaps_fold_idx": 0,
       "previous_waveops": [
-        "1conv/i1_id_pool/Pool_n0_m0_h4_w0"
+        "1conv/i1/Pool_n0_m0_h4_w0"
       ],
-      "ref_file": "save_1conv__i1_id_pool.npy",
+      "ref_file": "save_1conv__i1.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1_id_pool/SBAtomSave_2",
+      "waveop_name": "1conv/i1/SBAtomSave_2",
       "waveop_type": "SBAtomSave"
     }
   ]
