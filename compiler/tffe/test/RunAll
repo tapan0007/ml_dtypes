@@ -40,7 +40,6 @@ if kPath == None or kePath == None or iPath == None or \
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--test', help='Run specific tests (list)', nargs='+', default=[])
-parser.add_argument('--stop_after', help='Supported: frontend, backend (default)', default="backend")
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
 parser.add_argument('--level', help='Run tests upto this level, default 4', default=4)
 parser.add_argument('--parallel', help='Run concurrently, default 8', default=8)
@@ -136,7 +135,8 @@ testConfigMap = {
   
   # Subgraph partioned flow using neural network executor
   "0-add_nne"      : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2-imin3-imax6", "add", "--partition auto --executors tcc 1 --width 2 --debug 1"],
-  "8-resnet50_fp16_nne" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition auto --executors host 1 --debug 1"],
+  "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition auto --executors wave all --debug 1 --scheduler wave"],
+  "8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --debug 1"],
 }
 
 # Regression waiver mechanism 
@@ -145,8 +145,8 @@ testConfigMap = {
 testWaiver = [
     ['^0-add',   'WAIVE-RESADD'],
     ['^[4-9]-',  'WAIVE-BENCH'],
-    ['_wave',    'WAIVE-WAVESC'],
-    ['_nne',     'WAIVE-NNE']
+    ['_wave',     'WAIVE-WAVESC'],
+    ['8-rn50_nne', 'WAIVE-NNE']
   ]
 
 
@@ -162,8 +162,8 @@ if len(args.test) > 0:
   testList = args.test
 
 def runCmd(cmd):
-  os.system(cmd)
-  return(0)
+  ret = os.system(cmd)
+  return(ret)
 
 ###############################################################################
 # QoR results for one tests
@@ -247,11 +247,14 @@ class Ktest:
     elif self.status == "FAIL":
       self.status = "PASS"
   def calcStatus(self):
-    statusFile = self.dir + "/status.txt"
-    status = "UNKNOWN"
-    with open(statusFile, 'r') as fh:
-      (status, ) = fh.readlines()
-    self.status = status.rstrip()
+    statusFile = self.dir + "/log-fe.txt"
+    self.status = "FAIL"
+    if os.path.isfile(statusFile):
+      with open(statusFile, 'r') as fh:
+        for line in fh.readlines():
+          match = re.search('INFO: Kaena flow status (.*)', line)
+          if match:
+            self.status = match.group(1)
     if self.name == "0-neg":
       self.invertStatus()
   def calcQoR(self):
@@ -358,10 +361,7 @@ class Ktests:
       (nnStruct, nnConfig, nnLabel, nnArgs) = self.testConfigMap[testName]
       if verbose:
         print("\n############## %s ##############" % testName)
-      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-fe.txt 2>&1 && test -f *.tgz && ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
-      if args.stop_after == "backend":
-        cmd += 'bash $KAENA_PATH/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1 && '
-      cmd += '(echo PASS > status.txt) || (echo FAIL > status.txt);'
+      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-fe.txt 2>&1' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
 
       #os.system(cmd)
 
@@ -416,7 +416,7 @@ class Ktests:
     numWaived = self.calcNumWaivedTest()
     numPass = self.numPass + numWaived
     numPassPct = numPass / numAll * 100
-    print("\nSUMMARY: PASS  %d  %.3f%%  of  %d  (%d were waived)\n" %
+    print("\nSUMMARY: PASSRATE  %d  %.3f%%  of  %d  (%d were waived)\n" %
           (numPass, numPassPct, numAll, numWaived) )
     QoR.printHeader()
     for testName in self.testList:

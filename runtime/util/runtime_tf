@@ -19,7 +19,7 @@ from tensorflow.python.platform import gfile
 from tensorflow.core.framework import graph_pb2
 import tensorflow as tf
 
-print("\nINFO: started as  ", " ".join(sys.argv))
+print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
@@ -75,7 +75,7 @@ class RuntimeTf:
         if nd.size > 0:
           np.save(outputFile, nd)
           print("\nINFO: wrote tensor %s into %s" %
-                (var, outputFile))
+                (var, outputFile), flush=True)
 
 
 runtime = RuntimeTf()

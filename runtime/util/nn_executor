@@ -8,8 +8,11 @@
 import argparse
 import os.path
 import sys, json, re
-
 kPath = os.environ.get('KAENA_PATH')
+sys.path.insert(0, kPath + "/compiler/tffe")
+from NpUtils import NpUtils as npu
+from NpTransforms import NpTrans as npt
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--nn_graph', help='Graph to execute', default="nn_graph.txt")
@@ -24,24 +27,60 @@ if not tfpbFile.startswith('/'):
   tfpbFile = '../' + tfpbFile
 
 class NnSubgraph:
-  def __init__(self, sgDir, inputs, outputs):
+  def __init__(self, sgDir, inputs, output):
     self.sgDir = sgDir
     self.inputs = inputs
-    self.outputs = outputs
+    self.output = output
+  
+  def getOutputNpyFile(self):
+    return self.output[1]
+  def getOutputNpyFileBase(self):
+    return self.getOutputNpyFile()[:-4]
+  
+  # Translate and relink npy files that are inputs to this subgraph
+  # Each subgraph produces output in the host format. So just rename npy
+  # files A:0.npy to point to ../A:0-out.npy
+  def getUpdatedInputs(self):
+    newInputs = []
+    if self.getSgId() == 0:
+      return self.inputs
+    for inp,f in zip(self.inputs[::2], self.inputs[1::2]):
+      fBase = f[:-4]  # removes .npy
+      tfFile = "../%s-out.npy" % fBase
+      newInputs += [inp, tfFile]
+    return newInputs
+  
+  # The files are shared by op name A, then computed locally as sg00/A-out.npy
+  # and linked to parent as A-out.npy which the input for the next subgraph
+  # This ensures a subgraph failure is visible in the end result
   def run(self, executor):
     logFile = "log-%s.txt" % executor
+    outBase = self.getOutputNpyFileBase()
+    tfOutFile = outBase + "-out.npy"
     if executor == "host":
       cmd = "%s/runtime/util/runtime_tf" % kPath
       cmd += "  --tfpb %s" % tfpbFile
-      cmd += "  --input_tensors %s" % " ".join(self.inputs) 
-      cmd += "  --output_tensor %s" % " ".join(self.outputs) 
-    elif executor == "tcc":
+      cmd += "  --input_tensors %s" % " ".join(self.getUpdatedInputs())
+      cmd += "  --output_tensor %s %s" % (self.output[0], tfOutFile)
+      sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
+    elif executor == "tcc" or executor == "wave":
       cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
     #os.chdir(self.sgDir)
     cmd = "cd %s; %s > %s 2>&1" % (self.sgDir, cmd, logFile)
-    print("INFO: executing %s" % cmd)
+    print("INFO: executing %s" % cmd, flush=True)
     os.system(cmd)
-    #os.chdir("..")
+    # Translate TPB format back to TF format.
+    # To share easily the file is also linked to the parent dir
+    if not executor == "host":
+      tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
+      tpbOutFile = "%s/%s_%s-simout.npy" % (self.sgDir, outBase, tpbFmapFormat)
+      sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
+      if os.path.isfile(tpbOutFile):
+        npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=sgOutFile)
+      else:
+        print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
+    os.symlink(sgOutFile, tfOutFile)
+    
   def getSgId(self):
     sgId = int(self.sgDir.replace("sg", ""))
     return sgId
@@ -50,23 +89,42 @@ class NnExec:
   def __init__(self, nnGraphFile, tpbFile, executors):
     with open(nnGraphFile) as fh:
       self.nnGraphJsonData = json.load(fh)
+    numSubGraphs = len(self.nnGraphJsonData["SubGraphs"])
     self.sgId2executor = {}
     executor = None
     for word in executors:
-      if re.search('^\d+$', word):
+      if word == "all":
+        for sgId in range(numSubGraphs):
+          self.sgId2executor[sgId] = executor
+      elif re.search('^\d+$', word):
         sgId = int(word)
         self.sgId2executor[sgId] = executor
       else:
         executor = word
-    print("INFO: subgraph to executor map  %s" % str(self.sgId2executor))
+    print("INFO: subgraph to executor map  %s" % str(self.sgId2executor), flush=True)
+    self.subGraphs = []
 
   def run(self):
     for sgJson in self.nnGraphJsonData["SubGraphs"]:
       sg = NnSubgraph(sgJson["SubGraphDir"], sgJson["Inputs"],
                       sgJson["Output"])
+      self.subGraphs.append(sg)
       sg.run(self.sgId2executor.get(sg.getSgId(), "host"))
-      
+
+  # Return unix exit code
+  def check(self):
+    lastSg = self.subGraphs[-1]
+    outBase = lastSg.getOutputNpyFileBase()
+    flowOutFile = outBase + "-out.npy"
+    refOutFile = lastSg.getOutputNpyFile()
+    cmd = "%s/compiler/util/npy_diff_files --gold %s --new %s" % (kPath, refOutFile, flowOutFile)
+    print("INFO: executing %s" % cmd, flush=True)
+    ret = os.system(cmd)
+    return ret
+
 nnExec = NnExec(nnGraphFile, tfpbFile, args.executors)
 nnExec.run()
+ret = nnExec.check()
+sys.exit(0 if ret == 0 else 1)
 
 
