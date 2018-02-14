@@ -9,15 +9,20 @@ import os
 import KaenaOpGraph as kog
 
 
-# Describes a (small) Kgraph with names of inputs and name of the output
+# Describes a (small) Kgraph with inputs and the output node
 class KsubGraph:
   def __init__(self):
     self.graph = kog.Graph()
     self.__inputs = []
     self.__output = None
+    self.__maxLevel = 0    # highest level of any node (== output) in the src graph
   def print(self, title):
     print(title)
     self.graph.print()
+  def getMaxLevel(self):
+    return self.__maxLevel
+  def updateMaxLevel(self, level):
+    self.__maxLevel = max(self.__maxLevel, level)
   # Links the npyinfo files used by the graph from the srcDir
   def relinkNpFiles(self, srcDir):
     for n in self.graph.getNodes():
@@ -48,7 +53,8 @@ class KsubGraph:
     #hasInputOpType = any((ni.getOpType() == "Input") for ni in self.__inputs)
     #assert inputNode.getOpType() == "Input" or
     #       inputNode.getOpType() == "Const"
-    
+  
+  
 # Graph partitioner
 class KgraphPart(object):
 
@@ -198,6 +204,7 @@ class KgraphPart(object):
           subGraph = self.__subgraphs[color]
           nCopy = n.copy()
           subGraph.graph.addNode(nCopy)
+          subGraph.updateMaxLevel(level)
     # Edges
     for i in range(self.__numColors):
       sg = self.__subgraphs[i]
@@ -212,6 +219,10 @@ class KgraphPart(object):
     #for sg in self.getSubgraphs():
     #  sg.print("Subgraph pre-levelize")
     #  sg.graph.levelize()
+    
+    # Order subgraphs that runtime dependencies are satisfied
+    # Simple sorting by the level of the output node is enough
+    self.__subgraphs.sort(key = lambda sg : sg.getMaxLevel())
   
   # Print textual connectivity info to STDOUT
   def print(self):

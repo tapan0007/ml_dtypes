@@ -87,6 +87,7 @@ tffe.loadPb(tfpbFile, args.focus)
 kog = tffe.getKaenaOpGraph()
 kog.setSchedulerMode(args.scheduler)
 kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
+ret = 1
 if args.weights:
   tffe.writeWeights(args.out_prefix)
 if args.images != None:
@@ -98,7 +99,7 @@ if args.images != None:
     writeBackEndFiles(kog, args.out_prefix, args.verbose, args.scheduler)
     cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
     print("INFO: executing %s" % cmd, flush=True)
-    os.system(cmd)
+    ret = os.system(cmd)
   else:
     kp = KgraphPartitions.KgraphPart(kog, debugLevel)
     partitioningStrategy = args.partition[0]
@@ -117,6 +118,7 @@ if args.images != None:
       sg.addSideNodes(kog)
       sg.graph.levelize()
       sg.relinkNpFiles("..")
+      sg.graph.setSchedulerMode(args.scheduler)
       sg.graph.print()
       sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
       try:
@@ -132,6 +134,7 @@ if args.images != None:
       f.write(s)
     cmd = "%s/runtime/util/nn_executor --nn_graph %s --tfpb %s --executors %s" % (
           kPath, nnGraphFile, tfpbFile, executorsStr)
-    print("INFO: executing  %s" % cmd)
-    os.system(cmd)
-        
+    print("INFO: executing  %s" % cmd, flush=True)
+    ret = os.system(cmd)
+  print("INFO: Kaena flow status %s" % ("PASS" if ret == 0 else "FAIL"))
+  sys.exit(0 if ret == 0 else 1)
