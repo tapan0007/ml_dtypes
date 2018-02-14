@@ -146,13 +146,17 @@ class TfFe:
     print("INFO: wrote %d weights" % numWeights)
 
 
-  def writeImages(self, outPrefix, imageFile, inputTensorName):
+  def writeImages(self, outPrefix, imageFile, inputNodeName):
     self.__kg.levelize()
-    if self.__kg.hasNode(inputTensorName):
-      inputNode = self.__kg.getNode(inputTensorName)
+    inputNOde = None
+    if inputNodeName == None:
+      # Auto detect input - take 1st placeholder
+      inputNode = [x for x in self.__kg.getNodes() if x.getOpType() == "Placeholder"][0]
+    elif self.__kg.hasNode(inputNodeName):
+      inputNode = self.__kg.getNode(inputNodeName)
     else:
       lowestLevelNodes = self.__kg.getLowestLevelNodes()
-      print("ERROR: the  --input_node %s  was not found. Use one of  %s" % (inputTensorName, [ n.getName() for n in lowestLevelNodes]))
+      print("ERROR: the  --input_node %s  was not found. Use one of  %s" % (inputNodeName, [ n.getName() for n in lowestLevelNodes]))
       exit(1)
     assert(inputNode != None)
     self.__kg.setInputNode(inputNode)

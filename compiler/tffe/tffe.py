@@ -48,7 +48,7 @@ parser.add_argument('--width', help='Highlight data paths wider than the width',
 parser.add_argument('--verbose', help='Verbosity level, 0 default, 1 shows in/outputs, 2 TBD',
                     type=int, default=0)
 parser.add_argument('--input_node', help='Input node in the neural network graph (where --images should be injected during calibration)',
-                    default="input")
+                    default=None)
 parser.add_argument('--dot_timeout', help='Timeout for planarization of op and flow graphs in Graphviz, default 60 sec ',
                     type=int, default=60)
 parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, default is tcc',
@@ -61,7 +61,7 @@ parser.add_argument('--executors', help='Specifies executors per subgraph, e.g.,
                     nargs='+', default=[])
 
 args = parser.parse_args()
-inputTensorName = args.input_node
+inputNodeName = args.input_node
 
 tfpbFile = args.tfpb
 if not os.path.isfile(tfpbFile):
@@ -91,14 +91,9 @@ ret = 1
 if args.weights:
   tffe.writeWeights(args.out_prefix)
   
-# Try to detect input node by looking for Placeholder node  
-inputTensorName_try = tffe.getInputNode()
-if (inputTensorName_try != None):
-    inputTensorName = inputTensorName_try
-
 if args.images != None:
-  tffe.writeImages(args.out_prefix, args.images, inputTensorName)
-  kog.identifyMainFlowEdges(inputTensorName)
+  tffe.writeImages(args.out_prefix, args.images, inputNodeName)
+  kog.identifyMainFlowEdges()
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
   if args.partition[0] == "none":
