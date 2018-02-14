@@ -395,12 +395,22 @@ class KNode:
         # get input shape from previous layer's data
         assert (self.prev[0] != None)
         input_layer = self.prev[0].data
-        assert (input_layer['ofmap_format'] == 'NCHW')
-        self.N, self.C, self.H, self.W = input_layer['ofmap_shape']
+        if (input_layer['ofmap_format'] == 'NCHW'):
+            self.N, self.C, self.H, self.W = input_layer['ofmap_shape']
+        elif (layer_info['ofmap_format'] == 'CNHW'):            
+            self.C, self.N, self.H, self.W = input_layer['ofmap_shape']
+        else:
+            print("ERROR: Unrecognized layer %s format %s"%(input_layer['layer_name'], input_layer['ofmap_format']))
+            exit(-1)
         # get output shape from current layer's data
         layer_info = self.data
-        assert (layer_info['ofmap_format'] == 'NCHW')
-        self.N, self.M, self.E, self.F = layer_info['ofmap_shape']
+        if (layer_info['ofmap_format'] == 'NCHW'):
+            self.N, self.M, self.E, self.F = layer_info['ofmap_shape']
+        elif (layer_info['ofmap_format'] == 'CNHW'):            
+            self.M, self.N, self.E, self.F = layer_info['ofmap_shape']
+        else:
+            print("ERROR: Unrecognized layer %s format %s"%(layer_info['layer_name'], layer_info['ofmap_format']))
+            exit(-1)
         self.pad_north, self.pad_south = layer_info['padding'][2]
         self.pad_west, self.pad_east = layer_info['padding'][3]
         self.stride_y = layer_info['stride'][2]
@@ -423,7 +433,8 @@ class KNode:
         #if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
         if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window_y):
             self.ofmap_full_tiley_sz = self.pool_window_y
-            self.ofmap_full_tilex_sz = PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz
+            self.ofmap_full_tilex_sz = min(self.F * self.Tn, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz)
+            #self.ofmap_full_tilex_sz = PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz
         self.ofmap_full_tile_sz = self.ofmap_full_tilex_sz * self.ofmap_full_tiley_sz
         # compute the IFMAP folds
         self.c = ceildiv(self.C, PEArray.NUM_ROWS)
@@ -537,12 +548,13 @@ class KNode:
             #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * PEArray.NUM_ROWS + row], wave_id)
             ifmap = ifmaps[:, row]
             pe_row_offset = row - pe_row_start
+            ofmap_full_tilex_sz_per_batchitem = self.ofmap_full_tilex_sz//self.Tn
             for i in range(self.Tn):
-                for x in range(self.ofmap_full_tilex_sz):
+                for x in range(ofmap_full_tilex_sz_per_batchitem):
                     for y in range(self.ofmap_full_tiley_sz):
-                        ifmap_tilex = (wave_id.w_id * self.ofmap_full_tilex_sz + x) * self.stride_x + wave_id.s_id - self.pad_west
+                        ifmap_tilex = (wave_id.w_id * ofmap_full_tilex_sz_per_batchitem + x) * self.stride_x + wave_id.s_id - self.pad_west
                         ifmap_tiley = (wave_id.h_id * self.ofmap_full_tiley_sz + y) * self.stride_y + wave_id.r_id - self.pad_north
-                        ifmap_addr = i * self.ofmap_full_tile_sz + y * self.ofmap_full_tilex_sz + x
+                        ifmap_addr = i * self.ofmap_full_tile_sz//self.Tn + y * ofmap_full_tilex_sz_per_batchitem + x
                         #print("x %d y %d ifmap_tilex %d ifmap_tiley %d"%(x, y, ifmap_tilex, ifmap_tiley))                                    
                         if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
                             out_array[ifmap_addr, pe_row_offset] = 0
@@ -560,7 +572,7 @@ class KNode:
                                 if (self.ifmap_wave_lower_addr < 0):
                                     self.ifmap_wave_lower_addr = self.ifmap_wave_upper_addr
                                     self.ofmap_wave_lower_coord = self.ofmap_wave_upper_coord
-                                    self.psum_bank_offset = (y * self.ofmap_full_tilex_sz + x) * ifmaps.dtype.itemsize
+                                    self.psum_bank_offset = (y * ofmap_full_tilex_sz_per_batchitem + x) * ifmaps.dtype.itemsize
         return out_array
 
     # Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
@@ -754,23 +766,23 @@ class FusedOp(list):
               'src_sb_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # TODO: this should belong to the lowest atom ID if there are multiple atoms
               'src_sb_offset_in_atom'   : self.pool_op.ifmap_tile_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
               'src_x_step'              : 1,
-              'src_x_num'               : self.pool_op.tile_width,
+              'src_x_num'               : self.pool_op.pool_window_x,
               'src_y_step'              : self.pool_op.W,
-              'src_y_num'               : self.pool_op.tile_height,
+              'src_y_num'               : self.pool_op.pool_window_y,
               'src_z_step'              : self.pool_op.stride_x,
-              'src_z_num'               : self.pool_op.pool_window_x,
+              'src_z_num'               : self.pool_op.tile_width,
               'src_w_step'              : self.pool_op.W * self.pool_op.stride_y,
-              'src_w_num'               : self.pool_op.pool_window_y,
-              'pool_frequency'          : self.pool_op.tile_size,
+              'src_w_num'               : self.pool_op.tile_height,
+              'pool_frequency'          : self.pool_op.pool_window_x * self.pool_op.pool_window_y,
               'num_partitions'          : self.pool_op.ofmap_count,
               'dst_sb_atom_id'          : tpb.statebuffer.circbuf_scratch.current_atom_id, # Need to adjust this after allocating atoms
               'dst_sb_offset_in_atom'   : self.pool_op.ofmap_tile_lower_addr % tpb.statebuffer.circbuf_scratch.atom_data_sz,
               'dst_x_step'              : 1,
-              'dst_x_num'               : self.pool_op.ofmap_full_tilex_sz,
+              'dst_x_num'               : self.pool_op.tile_width,
               'dst_y_step'              : self.pool_op.E,
-              'dst_y_num'               : self.pool_op.ofmap_full_tiley_sz//self.pool_op.Tn,
-              'dst_z_step'              : self.pool_op.ofmap_full_tile_sz//self.pool_op.Tn,
-              'dst_z_num'               : self.pool_op.Tn,
+              'dst_y_num'               : self.pool_op.tile_height,
+              'dst_z_step'              : self.pool_op.E * self.pool_op.F,  # Need CNHW data format
+              'dst_z_num'               : self.pool_op.Tn,  # Need CNHW data format
             }
         return pool_waveop
 
