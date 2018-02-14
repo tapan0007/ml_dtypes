@@ -129,6 +129,10 @@ testConfigMap = {
   "8-resnet50_fp16_wave"      : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --scheduler wave"],
   "8-resnet50_fp16_wave_b2"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --scheduler wave --batch 2"],
   "8-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--images linspace1 --depth 2"],
+  
+  # Subgraph partioned flow using neural network executor
+  "0-add_nne"      : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2-imin3-imax6", "add", "--partition auto --executors tcc 1 --width 2 --debug 1"],
+  "8-resnet50_fp16_nne" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition auto --executors host 1 --debug 1"],
 }
 
 # Regression waiver mechanism 
@@ -137,7 +141,8 @@ testConfigMap = {
 testWaiver = [
     ['^0-add',   'WAIVE-RESADD'],
     ['^[4-9]-',  'WAIVE-BENCH'],
-    ['wave',     'WAIVE-WAVESC']
+    ['wave',     'WAIVE-WAVESC'],
+    ['_nne',     'WAIVE-NNE']
   ]
 
 

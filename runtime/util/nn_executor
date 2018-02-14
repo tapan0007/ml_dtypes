@@ -7,44 +7,66 @@
 
 import argparse
 import os.path
-import sys, json
+import sys, json, re
 
 kPath = os.environ.get('KAENA_PATH')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--nn_graph', help='Graph to execute', default="nn_graph.txt")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
+parser.add_argument('--executors', help='Specifies executors per subgraph, e.g., tcc 1 2 3 (implies rest on host, host 0 4 5), default ""',
+                    nargs='+', default=[])
 
 args = parser.parse_args()
 nnGraphFile = args.nn_graph
 tfpbFile = args.tfpb
+if not tfpbFile.startswith('/'):
+  tfpbFile = '../' + tfpbFile
 
 class NnSubgraph:
   def __init__(self, sgDir, inputs, outputs):
     self.sgDir = sgDir
     self.inputs = inputs
     self.outputs = outputs
-  def run(self):
-    cmd = "%s/runtime/util/runtime_tf" % kPath
-    cmd += "  --tfpb %s" % ("../" + tfpbFile)
-    cmd += "  --input_tensors %s" % " ".join(self.inputs) 
-    cmd += "  --output_tensor %s" % " ".join(self.outputs) 
-    os.chdir(self.sgDir)
+  def run(self, executor):
+    logFile = "log-%s.txt" % executor
+    if executor == "host":
+      cmd = "%s/runtime/util/runtime_tf" % kPath
+      cmd += "  --tfpb %s" % tfpbFile
+      cmd += "  --input_tensors %s" % " ".join(self.inputs) 
+      cmd += "  --output_tensor %s" % " ".join(self.outputs) 
+    elif executor == "tcc":
+      cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
+    #os.chdir(self.sgDir)
+    cmd = "cd %s; %s > %s 2>&1" % (self.sgDir, cmd, logFile)
+    print("INFO: executing %s" % cmd)
     os.system(cmd)
-    os.chdir("..")
+    #os.chdir("..")
+  def getSgId(self):
+    sgId = int(self.sgDir.replace("sg", ""))
+    return sgId
 
 class NnExec:
-  def __init__(self, nnGraphFile, tpbFile):
+  def __init__(self, nnGraphFile, tpbFile, executors):
     with open(nnGraphFile) as fh:
       self.nnGraphJsonData = json.load(fh)
+    self.sgId2executor = {}
+    executor = None
+    for word in executors:
+      if re.search('^\d+$', word):
+        sgId = int(word)
+        self.sgId2executor[sgId] = executor
+      else:
+        executor = word
+    print("INFO: subgraph to executor map  %s" % str(self.sgId2executor))
 
   def run(self):
     for sgJson in self.nnGraphJsonData["SubGraphs"]:
       sg = NnSubgraph(sgJson["SubGraphDir"], sgJson["Inputs"],
                       sgJson["Output"])
-      sg.run()
+      sg.run(self.sgId2executor.get(sg.getSgId(), "host"))
       
-nnExec = NnExec(nnGraphFile, tfpbFile)
+nnExec = NnExec(nnGraphFile, tfpbFile, args.executors)
 nnExec.run()
 
 
