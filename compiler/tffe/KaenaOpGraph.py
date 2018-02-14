@@ -756,8 +756,8 @@ class Graph(Object):
   
   # Marks edges that are important for visualization and data flow transformations
   # Typically it is transitive fanout of the input tensor
-  def identifyMainFlowEdges(self, inputTensorName):
-    nodes = {self.getNode(inputTensorName): 0}
+  def identifyMainFlowEdges(self):
+    nodes = {self.getInputNode(): 0}
     assert(len(nodes.keys()) > 0)
     nodeFront = nodes.copy()
     while len(nodeFront) > 0:
