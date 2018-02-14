@@ -394,3 +394,11 @@ class TfFe:
       os.system(cmd)
       return [waveGraphJsonFile, waveDotFile]
 
+  def getInputNode(self):
+    for n in self.__kg.getNodes():
+        tfOp = n.getAttr("tfop")
+        if (tfOp.op == "Placeholder"):
+            return tfOp.name
+    return None        
+
+

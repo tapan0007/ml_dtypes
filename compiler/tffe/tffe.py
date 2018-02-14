@@ -88,6 +88,12 @@ kog = tffe.getKaenaOpGraph()
 kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
 if args.weights:
   tffe.writeWeights(args.out_prefix)
+  
+# Try to detect input node by looking for Placeholder node  
+inputTensorName_try = tffe.getInputNode()
+if (inputTensorName_try != None):
+    inputTensorName = inputTensorName_try
+
 if args.images != None:
   tffe.writeImages(args.out_prefix, args.images, inputTensorName)
   kog.identifyMainFlowEdges(inputTensorName)
