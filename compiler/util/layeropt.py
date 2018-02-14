@@ -556,11 +556,11 @@ class KNode:
                             if (row == pe_row_start):                                
                                 self.ifmap_wave_upper_addr = int(np.ravel_multi_index(((wave_id.n_id * self.Tn) + i, row, ifmap_tiley, ifmap_tilex),
                                                                     dims=ifmaps.shape) * ifmaps.dtype.itemsize)
-                                self.ofmap_wave_upper_coord = (x, y)
+                                self.ofmap_wave_upper_coord = (ifmap_tilex, ifmap_tiley)
                                 if (self.ifmap_wave_lower_addr < 0):
                                     self.ifmap_wave_lower_addr = self.ifmap_wave_upper_addr
-                                    self.ofmap_wave_lower_coord = (x, y)
-                                    self.psum_bank_offset = (y*self.ofmap_full_tilex_sz + x) * ifmaps.dtype.itemsize
+                                    self.ofmap_wave_lower_coord = self.ofmap_wave_upper_coord
+                                    self.psum_bank_offset = (y * self.ofmap_full_tilex_sz + x) * ifmaps.dtype.itemsize
         return out_array
 
     # Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
