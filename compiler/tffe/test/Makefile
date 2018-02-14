@@ -43,4 +43,3 @@ trivnet_%:
 
 tf_pb:
 	$(KAENA_TFFE)/tffe.py --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(KAENA_EXT)/apps/tf/$(NN_CONFIG) --depth 5 --images $(OUT_PREFIX)ref_input.npy --width 30 $(NN_ARGS)
-	mv $(OUT_PREFIX)compiler.tgz $(OUT_PREFIX)$(NN_NAME).tgz
