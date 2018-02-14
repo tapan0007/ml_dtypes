@@ -8,7 +8,7 @@ import argparse
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=2
+DEBUG_LEVEL_DEFAULT=1
 
 #np.set_printoptions(threshold=np.nan)
 
@@ -416,14 +416,14 @@ class KNode:
             self.Tn = self.N
         self.n = ceildiv(self.N, self.Tn)
         # per kaena-85, use noodle shapes for tiles
+        # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
+        self.ofmap_full_tilex_sz = min(self.F * self.Tn, PEArray.MAX_WAVE_SIZE)
+        self.ofmap_full_tiley_sz = min(self.E, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tilex_sz)
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
-        if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
+        #if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
+        if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window_y):
             self.ofmap_full_tiley_sz = self.pool_window_y
             self.ofmap_full_tilex_sz = PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz
-        else:
-            # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
-            self.ofmap_full_tilex_sz = min(self.F * self.Tn, PEArray.MAX_WAVE_SIZE)
-            self.ofmap_full_tiley_sz = min(self.E, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tilex_sz)
         self.ofmap_full_tile_sz = self.ofmap_full_tilex_sz * self.ofmap_full_tiley_sz
         # compute the IFMAP folds
         self.c = ceildiv(self.C, PEArray.NUM_ROWS)
@@ -467,8 +467,8 @@ class KNode:
         self.ofmap_full_tiley_sz = (self.ofmap_full_tiley_sz // pool_window_y) * pool_window_y
         self.ofmap_full_tilex_sz = (self.ofmap_full_tilex_sz // pool_window_x) * pool_window_x
         self.ofmap_full_tile_sz = self.ofmap_full_tilex_sz * self.ofmap_full_tiley_sz
-        print("Recomputed Conv params due to fused pooling: pooling_ifmap_width=%d, ofmap_full_tiley_sz=%d"
-                %(pooling_ifmap_width, self.ofmap_full_tiley_sz))
+        print("Recomputed Conv params due to fused pooling: pool_window_x=%d, pool_window_y=%d, ofmap_full_tiley_sz=%d"
+                %(pool_window_x, pool_window_y, self.ofmap_full_tiley_sz))
 
     # compute output tile info
     def compute_ofmap_tile_info(self, tile_id):        
@@ -651,8 +651,7 @@ class FusedOp(list):
             else:
                 # recompute Conv params due to constrained Pooling tile dimensions
                 # (only if it is not identity pool, where window/stride are both 1)
-                #if (op.pool_window_y > 1 and self.has_conv):
-                if (self.has_conv):
+                if (op.pool_window_y > 1 and self.has_conv):
                     self.conv_op.recompute_conv_params(op.pool_window_x,op.pool_window_y)
                 self.pool_op = op
                 self.has_pool = True
@@ -738,11 +737,7 @@ class FusedOp(list):
 
     # generate Pool waveop and add it to waveop stream
     # TODO: currently, always go to SB after Pooling
-    def gen_pool_waveop(self, tpb, tile_id, src_is_psum, dst_sb_atom_id):
-        if (self.pool_op.data['layer_type'] == "Conv"):
-            pool_func = "MaxPool"
-        else:            
-            pool_func = self.pool_op.data['layer_type']
+    def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id):
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
@@ -750,11 +745,11 @@ class FusedOp(list):
               'layer_name'              : self.pool_op.data['layer_name'],
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
-              'pool_func'               : pool_func,
+              'pool_func'               : self.pool_op.data['layer_type'],
               'in_dtype'                : 'float32',
               'out_dtype'               : self.out_data_type,
               'src_is_psum'             : src_is_psum,
-              'src_psum_bank_id'        : self.conv_op.psum_bank_dst,
+              'src_psum_bank_id'        : src_psum_bank_id,
               'src_psum_bank_offset'    : 0,
               'src_sb_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # TODO: this should belong to the lowest atom ID if there are multiple atoms
               'src_sb_offset_in_atom'   : self.pool_op.ifmap_tile_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
@@ -768,7 +763,7 @@ class FusedOp(list):
               'src_w_num'               : self.pool_op.pool_window_y,
               'pool_frequency'          : self.pool_op.tile_size,
               'num_partitions'          : self.pool_op.ofmap_count,
-              'dst_sb_atom_id'          : dst_sb_atom_id,
+              'dst_sb_atom_id'          : tpb.statebuffer.circbuf_scratch.current_atom_id, # Need to adjust this after allocating atoms
               'dst_sb_offset_in_atom'   : self.pool_op.ofmap_tile_lower_addr % tpb.statebuffer.circbuf_scratch.atom_data_sz,
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_full_tilex_sz,
@@ -803,16 +798,6 @@ class FusedOp(list):
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
             tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops+dram_ifmaps_waveops)
             return True
-
-    def execute_identity_pool(self, tpb, tile_id, psum_bank_src, dst_sb_atom_id):
-        self.pool_op = copy.deepcopy(self.conv_op)
-        self.pool_op.pool_window_x = 1
-        self.pool_op.pool_window_y = 1
-        self.pool_op.stride_x = 1
-        self.pool_op.stride_y = 1
-        self.pool_op.compute_ofmap_tile_info(tile_id)
-        pool_identity_waveop = self.gen_pool_waveop(tpb, tile_id, True, dst_sb_atom_id)
-        tpb.waveop_stream.add_linked(pool_identity_waveop, [])
 
     # execute remaining fused ops
     def execute_tile_waveops (self, tpb, wave_id, tile_id, psum_bank_src, bias, psum_temp):
@@ -878,11 +863,12 @@ class FusedOp(list):
                     psum_temp = tpb.pool.avg(psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley)
                 else:
                     psum_temp = tpb.pool.max(psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley)
-                psum_bank_dst = 3
-                # TODO: generate AvgPool instruction inline
-                if (i != len(op_list)-1):
-                    tpb.pearray.write_psum(psum_bank_dst, 0, self[i].ofmap_full_tile_sz, psum_temp)
-                psum_bank_src = psum_bank_dst
+                tpb.gen_pool_waveop_inline(op_list, tile_id, psum_bank_src)
+                # Don't go to back to psum for pooling
+                #psum_bank_dst = 3
+                #if (i != len(op_list)-1):
+                #    tpb.pearray.write_psum(psum_bank_dst, 0, self[i].ofmap_full_tile_sz, psum_temp)
+                #psum_bank_src = psum_bank_dst
             else:
                 print ("ERROR: %s is currently not yet implemented"%layer_type)
                 exit(-1)
@@ -1053,8 +1039,8 @@ class KGraph:
           "ofmap_shape"     : last_op.data['ofmap_shape'],
           "padding"         : [ [ 0, 0 ], [ 0, 0 ], [ 0, 0 ], [ 0, 0 ] ],
           "previous_layers" : [ last_op.data['layer_name'] ],
-          "ref_file"        : "",
-          "stride"          : [ 1, 1, 1, 1 ]
+          "stride"          : [ 1, 1, 1, 1 ],
+          "ref_file"        : last_op.data['ref_file']
         }
         id_pool_op = KNode(id_pool_layer_data, self.item_sz)
         id_pool_op.prev.append(last_op)
@@ -1122,6 +1108,10 @@ class TPBSched:
               'psum_bank_id_dst'        : psum_bank_dst,
             }
         self.waveop_stream.add_linked(instr, [])
+
+    def gen_pool_waveop_inline (self, op_list, tile_id, psum_bank_src):
+        pool_identity_waveop = op_list.gen_pool_waveop(self, tile_id, True, psum_bank_src)
+        self.waveop_stream.add_linked(pool_identity_waveop, [])
 
     # Execute an unfused pooling operator
     def execute_unfused_pool_ops(self, inputs, result_file):
@@ -1232,9 +1222,10 @@ class TPBSched:
                                     = result_tile[0:output_params_op.tile_height, 0:output_params_op.tile_width]
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                         dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(wave_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr, output_params_op.ofmap_count)
-                        # if PEArray instruction is the last one in FusedOp list, then issue an identity pool instruction to move PSUM tile into SB
-                        if (op_list.conv_op == op_list[-1]):
-                            op_list.execute_identity_pool(tpb, tile_id, psum_bank_src, self.statebuffer.circbuf_scratch.current_atom_id) #TODO: the current_atom_id must point to the first if there are multiple atoms
+                        # The pooling destination need to be adjusted after the above writes to data region
+                        if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
+                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%2)
