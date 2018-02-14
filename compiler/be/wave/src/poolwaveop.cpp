@@ -135,7 +135,7 @@ PoolWaveOp::verify() const
         return false;
     }
     for (auto n : m_TileId) {
-        if (n < 1) {
+        if (n < 0) {
             return false;
         }
     }

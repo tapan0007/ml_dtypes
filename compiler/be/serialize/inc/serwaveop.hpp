@@ -21,9 +21,10 @@
 #include "utils/inc/types.hpp"
 #include "utils/inc/datatype.hpp"
 
+// Must include matmulwaveop.hpp for WaveId
 #include "wave/inc/matmulwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
-#include "wave/inc/sbatomsavewaveop.hpp"
+//#include "wave/inc/sbatomfilewaveop.hpp"
+//#include "wave/inc/sbatomsavewaveop.hpp"
 
 
 namespace kcc {
@@ -380,14 +381,22 @@ public:
     kcc_int32                   m_IfmapsAtomSize        = -1;
     kcc_int32                   m_IfmapsOffsetInAtom    = -1;
     // layer name
+    kcc_int32                   m_NumColumnPartitions   = -1;
+    kcc_int32                   m_NumRowPartitions      = -1;
     //kcc_int32                   m_OfmapCount            = -1;
     kcc_int32                   m_OfmapTileHeight       = -1;
     kcc_int32                   m_OfmapTileWidth        = -1;
     // previous waveops
     kcc_int32                   m_PsumBankId            = -1;
     kcc_int32                   m_PsumBankOffset        = -1;
+    kcc_int32                   m_PsumXNum              = -1;
+    kcc_int32                   m_PsumXStep             = -1;
+    kcc_int32                   m_PsumYNum              = -1;
+    kcc_int32                   m_PsumYStep             = -1;
     bool                        m_StartTensorCalc       = true;
     bool                        m_StopTensorCalc        = true;
+    kcc_int32                   m_StrideX               = -1;
+    kcc_int32                   m_StrideY               = -1;
     wave::MatMulWaveOp::WaveId  m_WaveId;
     std::string                 m_WaveIdFormat          = "";
     // waveop name

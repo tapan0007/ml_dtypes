@@ -24,18 +24,17 @@
 #include "layers/inc/biasaddlayer.hpp"
 
 #include "nets/inc/network.hpp"
+
+#include "wave/inc/matmulwaveop.hpp"
+#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomsavewaveop.hpp"
+#include "wave/inc/poolwaveop.hpp"
+
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
 namespace kcc {
 
-/*
-namespace wave {
-    class SbAtomFileWaveOp;
-    class SbAtomSaveWaveOp;
-    class MatMulWaveOp;
-}
-*/
 
 namespace nets {
 
@@ -258,6 +257,46 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 waveOp = new wave::SbAtomSaveWaveOp(sbatomsaveParams, prevWaveOps);
                 assert(waveOp->gName() == sbatomsaveParams.m_WaveOpName);
     
+            } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStr()) {
+                wave::PoolWaveOp::Params poolParams;
+                fillWaveOpParams(serWaveOp, poolParams);
+
+                poolParams.m_DstSbAtomId            = serWaveOp.m_DstSbAtomId;
+                poolParams.m_DstSbOffsetInAtom      = serWaveOp.m_DstSbOffsetInAtom;
+                poolParams.m_DstXNum                = serWaveOp.m_DstXNum;
+                poolParams.m_DstXStep               = serWaveOp.m_DstXStep;
+                poolParams.m_DstYNum                = serWaveOp.m_DstYNum;
+                poolParams.m_DstYStep               = serWaveOp.m_DstYStep;
+                poolParams.m_DstZNum                = serWaveOp.m_DstZNum;
+                poolParams.m_DstZStep               = serWaveOp.m_DstZStep;
+                poolParams.m_InDtype                = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+                poolParams.m_NumPartitions          = serWaveOp.m_NumPartitions;
+                poolParams.m_OutDtype               = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+                poolParams.m_PoolFrequency          = serWaveOp.m_PoolFrequency;
+                poolParams.m_PoolFunc               = utils::poolTypeStr2Id(serWaveOp.m_PoolFunc);
+                poolParams.m_SrcIsPsum              = serWaveOp.m_SrcIsPsum;
+                poolParams.m_SrcPsumBankId          = serWaveOp.m_SrcPsumBankId;
+                poolParams.m_SrcPsumBankOffset      = serWaveOp.m_SrcPsumBankOffset;
+                poolParams.m_SrcSbAtomId            = serWaveOp.m_SrcSbAtomId;
+                poolParams.m_SrcSbOffsetInAtom      = serWaveOp.m_SrcSbOffsetInAtom;
+                poolParams.m_SrcWNum                = serWaveOp.m_SrcWNum;
+                poolParams.m_SrcWStep               = serWaveOp.m_SrcWStep;
+                poolParams.m_SrcXNum                = serWaveOp.m_SrcXNum;
+                poolParams.m_SrcXStep               = serWaveOp.m_SrcXStep;
+                poolParams.m_SrcYNum                = serWaveOp.m_SrcYNum;
+                poolParams.m_SrcYStep               = serWaveOp.m_SrcYStep;
+                poolParams.m_SrcZNum                = serWaveOp.m_SrcZNum;
+                poolParams.m_SrcZStep               = serWaveOp.m_SrcZStep;
+
+                assert(poolParams.m_TileId.size() == serWaveOp.m_TileId.size());
+                for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
+                    poolParams.m_TileId[i] = serWaveOp.m_TileId[i];
+                }
+                poolParams.m_TileIdFormat           = serWaveOp.m_TileIdFormat;
+
+                waveOp = new wave::PoolWaveOp(poolParams, prevWaveOps);
+                assert(waveOp->gName() == poolParams.m_WaveOpName);
+
             } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStr()) {
                 wave::MatMulWaveOp::Params matmulParams;
                 fillWaveOpParams(serWaveOp, matmulParams);
@@ -276,14 +315,24 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 matmulParams.m_IfmapsAtomSize       = serWaveOp.m_IfmapsAtomSize;
                 matmulParams.m_IfmapsOffsetInAtom   = serWaveOp.m_IfmapsOffsetInAtom;
                 // layer_name
+                matmulParams.m_NumColumnPartitions  = serWaveOp.m_NumColumnPartitions;
+                matmulParams.m_NumRowPartitions     = serWaveOp.m_NumRowPartitions;
                 matmulParams.m_OfmapCount           = serWaveOp.m_OfmapCount;
                 matmulParams.m_OfmapTileHeight      = serWaveOp.m_OfmapTileHeight;
                 matmulParams.m_OfmapTileWidth       = serWaveOp.m_OfmapTileWidth;
                 // previous layers
                 matmulParams.m_PsumBankId           = serWaveOp.m_PsumBankId;
                 matmulParams.m_PsumBankOffset       = serWaveOp.m_PsumBankOffset;
+                matmulParams.m_PsumXNum             = serWaveOp.m_PsumXNum;
+                matmulParams.m_PsumXStep            = serWaveOp.m_PsumXStep;
+                matmulParams.m_PsumYNum             = serWaveOp.m_PsumYNum;
+                matmulParams.m_PsumYStep            = serWaveOp.m_PsumYStep;
+
                 matmulParams.m_StartTensorCalc      = serWaveOp.m_StartTensorCalc;
                 matmulParams.m_StopTensorCalc       = serWaveOp.m_StopTensorCalc;
+                matmulParams.m_StrideX              = serWaveOp.m_StrideX;
+                matmulParams.m_StrideY              = serWaveOp.m_StrideY;
+
                 matmulParams.m_WaveId               = serWaveOp.m_WaveId;
                 matmulParams.m_WaveIdFormat         = serWaveOp.m_WaveIdFormat;
                 // waveop name

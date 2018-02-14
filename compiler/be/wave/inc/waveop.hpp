@@ -73,6 +73,9 @@ public:
     virtual bool qSbAtomSaveWaveOp() const {
         return false;
     }
+    virtual bool qPoolWaveOp() const {
+        return false;
+    }
 
     //----------------------------------------------------------------
     const DataType& gDataType() const;

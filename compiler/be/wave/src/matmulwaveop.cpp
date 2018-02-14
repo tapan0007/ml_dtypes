@@ -18,20 +18,35 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
     : WaveOp(params, prevWaveOps)
     , m_BatchingInWave(params.m_BatchingInWave)
+    , m_FmapXNum(params.m_FmapXNum)
+    , m_FmapXStep(params.m_FmapXStep)
+    , m_FmapYNum(params.m_FmapYNum)
+    , m_FmapYStep(params.m_FmapYStep)
+    , m_FmapZNum(params.m_FmapZNum)
+    , m_FmapZStepAtoms(params.m_FmapZStepAtoms)
     , m_IfmapCount(params.m_IfmapCount)
     , m_IfmapTileHeight(params.m_IfmapTileHeight)
     , m_IfmapTileWidth(params.m_IfmapTileWidth)
     , m_IfmapsAtomId(params.m_IfmapsAtomId)
+    , m_IfmapsAtomSize(params.m_IfmapsAtomSize)
     , m_IfmapsOffsetInAtom(params.m_IfmapsOffsetInAtom)
     // layer name
+    , m_NumColumnPartitions(params.m_NumColumnPartitions)
+    , m_NumRowPartitions(params.m_NumRowPartitions)
     , m_OfmapCount(params.m_OfmapCount)
     , m_OfmapTileHeight(params.m_OfmapTileHeight)
     , m_OfmapTileWidth(params.m_OfmapTileWidth)
     // previous layers
     , m_PsumBankId(params.m_PsumBankId)
     , m_PsumBankOffset(params.m_PsumBankOffset)
+    , m_PsumXNum(params.m_PsumXNum)
+    , m_PsumXStep(params.m_PsumXNum)
+    , m_PsumYNum(params.m_PsumXNum)
+    , m_PsumYStep(params.m_PsumXNum)
     , m_StartTensorCalc(params.m_StartTensorCalc)
     , m_StopTensorCalc(params.m_StopTensorCalc)
+    , m_StrideX(params.m_StrideX)
+    , m_StrideY(params.m_StrideY)
     , m_WaveId(params.m_WaveId)
     , m_WaveIdFormat(params.m_WaveIdFormat)
     // waveop name
@@ -39,6 +54,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_WeightsAtomId(params.m_WeightsAtomId)
     , m_WeightsOffsetInAtom(params.m_WeightsOffsetInAtom)
 {
+    assert(verify());
     assert(params.verify());
 }
 

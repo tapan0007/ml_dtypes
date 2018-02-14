@@ -24,11 +24,11 @@ private:
     // This is the only row/column configuration for float16 and int16 data types
     // For int8 it is possible to configure pe-array as nrow=256,ncol=64 or as nrow=128,ncol=128
     enum : kcc_int32 {
-        numberPeRows            = power2(ROW_BITS),
-        numberPeColumns         = power2(COLUMN_BITS),
+        numberPeRows            = utils::power2(ROW_BITS),
+        numberPeColumns         = utils::power2(COLUMN_BITS),
 
-        numberPsumBanks         = power2(BANKS_PER_COLUMN_BITS),
-        numberPsumBankEntries   = power2(PSUM_NUM_ENTRY_BITS),
+        numberPsumBanks         = utils::power2(BANKS_PER_COLUMN_BITS),
+        numberPsumBankEntries   = utils::power2(PSUM_NUM_ENTRY_BITS),
     };
     static_assert(numberPeRows == 128, "Number PE rows not 128"); // temporary
     static_assert(numberPeColumns == 64, "Number PE columns not 64"); // temporary

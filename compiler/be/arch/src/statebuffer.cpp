@@ -29,7 +29,7 @@ StateBuffer::gPartitionStartAddressInBytes(kcc_int32 partNum) const
 kcc_int64
 StateBuffer::gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 {
-    return TPB_BASE + row*power2(ROW_SIZE_BITS) + elmtOffInBytes;
+    return TPB_BASE + row * utils::power2(ROW_SIZE_BITS) + elmtOffInBytes;
 }
 
 }}

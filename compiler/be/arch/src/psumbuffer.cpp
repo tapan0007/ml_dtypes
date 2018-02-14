@@ -34,13 +34,13 @@ PsumBuffer::gPsumBaseAddress() const
 kcc_int64
 PsumBuffer::gBankOffsetDelta() const
 {
-    return power2(COLUMN_BANK_SIZE_BITS);
+    return utils::power2(COLUMN_BANK_SIZE_BITS);
 }
 
 kcc_int32
 PsumBuffer::gEntrySize () const
 {
-    return power2(PSUM_ENTRY_BITS);
+    return utils::power2(PSUM_ENTRY_BITS);
 }
 
 }}

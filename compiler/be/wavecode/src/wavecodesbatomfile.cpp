@@ -3,6 +3,7 @@
 #include "arch/inc/statebuffer.hpp"
 #include "arch/inc/arch.hpp"
 
+#include "layers/inc/inputlayer.hpp"
 #include "layers/inc/convlayer.hpp"
 
 #include "wave/inc/sbatomfilewaveop.hpp"
@@ -32,17 +33,23 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         strcpy(npyToDramInstr.src_fname, sbatomfileWaveOp->gRefFileName().c_str());
 
         kcc_int64 numPySize = layer->gDataType().gSizeInBytes();
-        if (auto convLayer = dynamic_cast<const layers::ConvLayer*>(layer)) {  // All Weights = CRSM
+        if (layer->qConvLayer()) {
+            auto convLayer = dynamic_cast<const layers::ConvLayer*>(layer);  // All Weights = CRSM
+            assert(convLayer && "Conv Layer expected");
             layers::Layer* prevLayer = convLayer->gPrevLayer(0);
             numPySize *= prevLayer->gNumOfmaps();    // C
             numPySize *= convLayer->gKernelHeight(); // R
             numPySize *= convLayer->gKernelWidth();  // S
             numPySize *= convLayer->gNumOfmaps();    // M
-        } else {                                                       // All IFMAPs = NCHW
+        } else if (layer->qInputLayer()) {
+            auto inputLayer = dynamic_cast<const layers::InputLayer*>(layer);  // All IFMAPs = NCHW
+            assert(inputLayer && "Input Layer expected");
             // batching?                             // N
-            numPySize *= convLayer->gNumOfmaps();    // C
-            numPySize *= layer->gOfmapHeight();      // H
-            numPySize *= layer->gOfmapWidth();       // W
+            numPySize *= inputLayer->gNumOfmaps();    // C
+            numPySize *= inputLayer->gOfmapHeight();  // H
+            numPySize *= inputLayer->gOfmapWidth();   // W
+        } else {
+            assert(false && "Conv or Input layer expected");
         }
         npyFileDramOffset = m_WaveCode->gCurrentDramAddress(numPySize);
         npyToDramInstr.dst_address = npyFileDramOffset;
@@ -51,14 +58,20 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     }
 
     kcc_int64 stepSize = sbatomfileWaveOp->gDataType().gSizeInBytes();
-    if (auto convLayer = dynamic_cast<const layers::ConvLayer*>(layer)) {  // Weights: step in numpy/dram = RSM
+    if (layer->qConvLayer()) {
+        auto convLayer = dynamic_cast<const layers::ConvLayer*>(layer);  // Weights: step in numpy/dram = RSM
+        assert(convLayer && "Conv Layer expected");
         stepSize *= convLayer->gKernelHeight(); // R
         stepSize *= convLayer->gKernelWidth();  // S
         stepSize *= convLayer->gNumOfmaps();    // M
-    } else {                                                       // IFMAPS: step in numpy/dram = NHW
+    } else if (layer->qInputLayer()) {          // IFMAPS: step in numpy/dram = NHW
+        auto inputLayer = dynamic_cast<const layers::InputLayer*>(layer);  // All IFMAPs = NCHW
+        assert(inputLayer && "Input Layer expected");
         // batching?                             // N
-        stepSize *= layer->gOfmapHeight();      // H
-        stepSize *= layer->gOfmapWidth();       // W
+        stepSize *= inputLayer->gOfmapHeight();      // H
+        stepSize *= inputLayer->gOfmapWidth();       // W
+    } else {
+        assert(false && "Conv or Input layer expected");
     }
 
     const kcc_int64 numBytesPerPart = sbatomfileWaveOp->gLength();

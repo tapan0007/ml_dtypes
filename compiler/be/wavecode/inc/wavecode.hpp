@@ -35,6 +35,7 @@ class WaveCodeWaveOp;
 class WaveCodeMatMul;
 class WaveCodeSbAtomFile;
 class WaveCodeSbAtomSave;
+class WaveCodePool;
 
 
 
@@ -106,6 +107,7 @@ private:
     std::unique_ptr<WaveCodeMatMul>     m_CodeMatMul;
     std::unique_ptr<WaveCodeSbAtomFile> m_CodeSbAtomFile;
     std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
+    std::unique_ptr<WaveCodePool>       m_CodePool;
 
     kcc_int64                           m_CurrentDramAddress = 0;
     std::map<std::string, kcc_int64>    m_NpyFile2DramAddress;

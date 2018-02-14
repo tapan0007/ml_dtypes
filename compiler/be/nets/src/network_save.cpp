@@ -10,6 +10,7 @@
 #include <cereal/types/map.hpp>
 
 
+#include "utils/inc/types.hpp"
 #include "arch/inc/arch.hpp"
 
 #include "layers/inc/layer.hpp"
@@ -24,19 +25,16 @@
 #include "layers/inc/biasaddlayer.hpp"
 
 #include "nets/inc/network.hpp"
+
+#include "wave/inc/matmulwaveop.hpp"
+#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomsavewaveop.hpp"
+#include "wave/inc/poolwaveop.hpp"
+
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
 namespace kcc {
-
-/*
-namespace wave {
-    class SbAtomFileWaveOp;
-    class SbAtomSaveWaveOp;
-    class MatMulWaveOp;
-}
-*/
-
 namespace nets {
 
 //--------------------------------------------------------
@@ -271,6 +269,44 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             // waveop type
             serWaveOp.m_WeightsAtomId = matmulWaveOp->gWeightsAtomId();
             serWaveOp.m_WeightsOffsetInAtom = matmulWaveOp->gWeightsOffsetInAtom();
+
+            continue;
+        }
+        if (const auto poolWaveOp = dynamic_cast<wave::PoolWaveOp*>(waveOp)) {
+            serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStr();
+
+            serWaveOp.m_DstSbAtomId             = poolWaveOp->gDstSbAtomId();
+            serWaveOp.m_DstSbOffsetInAtom       = poolWaveOp->gDstSbOffsetInAtom();
+            serWaveOp.m_DstXNum                 = poolWaveOp->gDstXNum();
+            serWaveOp.m_DstXStep                = poolWaveOp->gDstXStep();
+            serWaveOp.m_DstYNum                 = poolWaveOp->gDstYNum();
+            serWaveOp.m_DstYStep                = poolWaveOp->gDstYStep();
+            serWaveOp.m_DstZNum                 = poolWaveOp->gDstZNum();
+            serWaveOp.m_DstZStep                = poolWaveOp->gDstZStep();
+            serWaveOp.m_InDtype                 = poolWaveOp->gInDtype().gName();
+            serWaveOp.m_NumPartitions           = poolWaveOp->gNumPartitions();
+            serWaveOp.m_OutDtype                = poolWaveOp->gOutDtype().gName();
+            serWaveOp.m_PoolFrequency           = poolWaveOp->gPoolFrequency();
+            serWaveOp.m_PoolFunc                = utils::poolType2Str(poolWaveOp->gPoolFunc());
+            serWaveOp.m_SrcIsPsum               = poolWaveOp->qSrcIsPsum();
+            serWaveOp.m_SrcPsumBankId           = poolWaveOp->gSrcPsumBankId();
+            serWaveOp.m_SrcPsumBankOffset       = poolWaveOp->gSrcPsumBankOffset();
+            serWaveOp.m_SrcSbAtomId             = poolWaveOp->gSrcSbAtomId();
+            serWaveOp.m_SrcSbOffsetInAtom       = poolWaveOp->gSrcSbOffsetInAtom();
+            serWaveOp.m_SrcWNum                 = poolWaveOp->gSrcWNum();
+            serWaveOp.m_SrcWStep                = poolWaveOp->gSrcWStep();
+            serWaveOp.m_SrcXNum                 = poolWaveOp->gSrcXNum();
+            serWaveOp.m_SrcXStep                = poolWaveOp->gSrcXStep();
+            serWaveOp.m_SrcYNum                 = poolWaveOp->gSrcYNum();
+            serWaveOp.m_SrcYStep                = poolWaveOp->gSrcYStep();
+            serWaveOp.m_SrcZNum                 = poolWaveOp->gSrcZNum();
+            serWaveOp.m_SrcZStep                = poolWaveOp->gSrcZStep();
+
+            for (unsigned int i = 0; i < poolWaveOp->gTileId().size(); ++i) {
+                serWaveOp.m_TileId[i] = poolWaveOp->gTileId()[i];
+            }
+            serWaveOp.m_TileIdFormat            = poolWaveOp->gTileIdFormat();
+
             continue;
         }
         assert(false && "Unsupported WaveOp");

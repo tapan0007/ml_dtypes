@@ -36,7 +36,6 @@ enum PoolType {
     PoolType_Avg
 };
 
-const std::string& poolType2Str(PoolType poolType);
 
 using LayerId = kcc_int32;
 const LayerId LayerId_Null = -1;
@@ -53,8 +52,19 @@ using StrideType      = kcc_int32[FMAP_TENSOR_RANK];
 using PaddingType     = kcc_int32[FMAP_TENSOR_RANK][2];
 using BatchingType    = kcc_int32[FMAP_TENSOR_RANK];
 
+
+
+
+namespace utils {
+
+const std::string& poolType2Str(PoolType poolType);
+PoolType           poolTypeStr2Id(const std::string&);
+
 constexpr kcc_int64 power2(kcc_int64 b) {
     return 1 << (b);
+
+}
+
 }
 
 }

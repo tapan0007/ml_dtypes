@@ -133,6 +133,16 @@ public:
         return dynamic_cast<layers::PoolLayer*>(m_Layer);
     }
 
+    bool qPoolWaveOp() const override {
+        return true;
+    }
+    static std::string gTypeStr() {
+        return WaveOpTypeStr_Pool;
+    }
+    layers::PoolLayer* gPoolLayer() const {
+        return dynamic_cast<layers::PoolLayer*>(gLayer());
+    }
+
 private:
     kcc_int32                   m_DstSbAtomId          = -1;
     kcc_int32                   m_DstSbOffsetInAtom     = -1;
