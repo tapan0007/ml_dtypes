@@ -275,6 +275,7 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.dram_data_len_per_NC):
             length = self.dram_data_len_per_NC % self.atom_data_sz
+        simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomFile",
@@ -283,7 +284,7 @@ class CircularBuffer:
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
               'data_type'        : self.data_type,
-              'ref_file'         : self.dram_data_file,
+              'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset,
@@ -299,6 +300,7 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.dram_data_len_per_NC):
             length = self.dram_data_len_per_NC % self.atom_data_sz
+        simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
@@ -307,7 +309,7 @@ class CircularBuffer:
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
               'data_type'        : self.data_type,
-              'ref_file'         : self.dram_data_file,
+              'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset,
@@ -1347,14 +1349,10 @@ if __name__ == "__main__":
     # go through all layers and add the fusable operations
     tpb = TPBSched()
     result_file = None
-    last_result_file = None
     num_mismatches = 0
     while (not kgraph.walk_ended()):
         op_list = kgraph.get_fused_ops()
-        if (result_file != None):
-            last_result_file = result_file
-        #result_file = "save_" + op_list[-1].data['layer_name'].replace("/", "__") + ".npy"
-        result_file = op_list[-1].data['ref_file'].replace(".npy", "-simout.npy")
+        result_file = op_list[-1].data['ref_file'].replace(".npy", "-midout.npy")
         print("Output file for layer %s is %s"%(op_list[-1].data['layer_name'], result_file))
 
         # Check init op
