@@ -154,6 +154,8 @@ class Node(Object):
     # Simple implementation - reuse dot text and remove \n
     argsText = re.sub("\n", " ", argsText)
     return argsText
+  def isMainFlowNode(self):
+    return len(self.getFaninMainFlowEdges()) > 0 or len(self.getFanoutMainFlowEdges()) > 0
 
 class PosNode:
   def __init__(self, node, index):
@@ -616,7 +618,7 @@ class NodeSimple2(Node):
       overrideType = "ResAdd"
     layerDataBase[0]["layer_type"] = overrideType
        
-    if not isResAdd and not fromIfNode1.getOpType() == "Const":
+    if not isResAdd and not type(fromIfNode1) == NodeConst:
       # Collapse the side node to a branch (except when it already is a real constant) 
       # Main input is covered by a previous layer
       #   tfShape4D0 = npt.cShapeToNHWC(npInfoIF0.npShape)
@@ -839,7 +841,9 @@ class Graph(Object):
         if n == inputNode:
           continue
         op = n.getOpType()
-        #print("DEBUG: node=", n.getName(), "  op=", op)
+        #print("DEBUG graph::genCompilerJson: node=", n.getName(), "  op=", op)
+        #isMainFlowConst = (n.getOpType() == "Const" and any(ns.isMainFlowNode() for ns in self.nodeSuccessors(n)))
+        #print("  DEBUG const and successor in main flow " + str(isMainFlowConst))
         if n.isSupported():
           (layerData, fileListLayer) = n.genCompilerLayerJson()
           if len(layerData) > 0:
@@ -1030,8 +1034,7 @@ class Graph(Object):
       print("INFO: executing wave scheduler by  " + cmd)
       os.system(cmd)
       return [waveGraphJsonFile, waveDotFile]
-
-
+    
 
 
 
