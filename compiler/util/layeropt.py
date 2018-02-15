@@ -114,12 +114,12 @@ class Pool:
             stride_shape = (stride, stride)
             pool_result_temp = view_as_windows(tile_array, window_shape, stride_shape)
             pool_result[:,i] = pool_result_temp.max(axis=(2,3)).reshape(-1)
-            if (i==0):
-                print("tile_array :", tile_array)
-                print("window_shape :", window_shape)
-                print("stride_shape :", stride_shape)
-                print("pool_result_temp :", pool_result_temp)
-                print("pool_result :", pool_result)
+            #if (i==0):
+            #    print("tile_array :", tile_array)
+            #    print("window_shape :", window_shape)
+            #    print("stride_shape :", stride_shape)
+            #    print("pool_result_temp :", pool_result_temp)
+            #    print("pool_result :", pool_result)
         return pool_result
 
 ##################################################################################
@@ -1196,6 +1196,7 @@ class TPBSched:
                         #print (psum_fake_extract)
                         #print (psum_temp)
                         #print(op_list[0].ofmap_full_tile_sz)
+                        op_list[0].compute_ofmap_tile_info(tile_id)
                         for j in range(PEArray.NUM_COLS):
                             M_idx = wave_id.m_id * PEArray.NUM_COLS + j
                             if (M_idx >= op_list[0].M):
