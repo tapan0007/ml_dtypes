@@ -59,6 +59,7 @@ if verbose:
 testConfigMap = {
   "0-1conv0"      : [ "trivnet_conv1",  "b1-h1-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv"],
   "0-1conv0_wave" : [ "trivnet_conv1",  "b1-h1-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
+  "0-1conv0_c1h2" : [ "trivnet_conv1",  "b1-h2-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv"],
   "0-1conv0_c1h2_wave" : [ "trivnet_conv1",  "b1-h2-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
   "0-1conv0_c1h16_wave" : [ "trivnet_conv1",  "b1-h16-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
   "0-2conv0"      : [ "trivnet_conv2",  "b1-h1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5", "2conv"],
