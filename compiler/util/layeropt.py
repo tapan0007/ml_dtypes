@@ -8,7 +8,7 @@ import argparse
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=1
+DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(threshold=np.nan)
 
@@ -430,6 +430,7 @@ class KNode:
         # get input shape from previous layer's data
         assert (self.prev[0] != None)
         input_layer = self.prev[0].data
+        self.ifmap_shape = input_layer['ofmap_shape']
         if (input_layer['ofmap_format'] == 'NCHW'):
             self.N, self.C, self.H, self.W = input_layer['ofmap_shape']
         elif (layer_info['ofmap_format'] == 'CNHW'):            
@@ -439,6 +440,7 @@ class KNode:
             exit(-1)
         # get output shape from current layer's data
         layer_info = self.data
+        self.ofmap_shape = layer_info['ofmap_shape']
         if (layer_info['ofmap_format'] == 'NCHW'):
             self.N, self.M, self.E, self.F = layer_info['ofmap_shape']
         elif (layer_info['ofmap_format'] == 'CNHW'):            
@@ -540,13 +542,13 @@ class KNode:
                                                 tile_id.m_id * PEArray.NUM_COLS,
                                                 self.tile_y_start, 
                                                 self.tile_x_start),
-                                        dims=self.data['ofmap_shape']) * self.item_sz)
+                                        dims=self.ofmap_shape) * self.item_sz)
         self.ofmap_tile_upper_addr = int(np.ravel_multi_index(
                                             (self.N - 1, 
                                                 tile_id.m_id * PEArray.NUM_COLS,
                                                 self.tile_y_start + self.tile_height - 1, 
                                                 self.tile_x_start + self.tile_width - 1),
-                                        dims=self.data['ofmap_shape']) * self.item_sz)
+                                        dims=self.ofmap_shape) * self.item_sz)
 
         # compute the address bounds for IFMAP tile within IFMAPs tensor
         # TODO: for Tn>1, need to have multiple bounds for each batch item
@@ -555,13 +557,13 @@ class KNode:
                                                 0,
                                                 self.tile_y_start * self.stride_y, 
                                                 self.tile_x_start * self.stride_x),
-                                        dims=[self.N, self.C, self.H, self.W]) * self.item_sz)
+                                        dims=self.ifmap_shape) * self.item_sz)
         self.ifmap_tile_upper_addr = int(np.ravel_multi_index(
                                             (self.N - 1,    # TODO: for Tn>1, need to have multiple bounds for each batch item
                                                 (self.c-1) * PEArray.NUM_ROWS,
                                                 self.tile_y_start * self.stride_y + self.tile_height * self.stride_y - 1, 
                                                 self.tile_x_start * self.stride_x + self.tile_width * self.stride_x - 1),
-                                        dims=[self.N, self.C, self.H, self.W]) * self.item_sz)
+                                        dims=self.ifmap_shape) * self.item_sz)
 
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format
@@ -1263,7 +1265,7 @@ class TPBSched:
         pool_op = op_list[0]
 
         # initialize result tensor
-        result = np.zeros((pool_op.N, pool_op.M, pool_op.E, pool_op.F), dtype=inputs.dtype)
+        result = np.zeros(pool_op.ofmap_shape, dtype=inputs.dtype)
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         np.save(result_file, result)
         self.statebuffer.circbuf_scratch.layer_type = "Output"
