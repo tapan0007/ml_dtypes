@@ -411,7 +411,13 @@ class KNode:
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
     def add_next(self, next_node):
-        self.next.append(next_node)
+        if (not self.in_next(next_node)):
+            self.next.append(next_node)
+    def in_next(self, node):
+        for i in self.next:
+            if (i == node):
+                return True
+        return False    
 
     # set/get dest PSUM bank
     def set_psum_bank(self, dest):
@@ -749,13 +755,19 @@ class FusedOp(list):
     # Add operation to list of fused operations.
     # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
     def add(self, op):
+        if (args.debug > 2):
+            print("DBG: adding layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
         if (op.data['layer_type'] == 'AvgPool' or op.data['layer_type'] == 'MaxPool'):
             op.populate_pooling_params()
             # If not first op, pool cannot be fused with previous op if stride != pooling window
             if (len(self) != 0 and 
                     (op.stride_x != op.pool_window_x or op.stride_y != op.pool_window_y)):
+                if (args.debug > 2):
+                    print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
             elif (self.has_pool):
+                if (args.debug > 2):
+                    print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
             else:
                 # recompute Conv params due to constrained Pooling tile dimensions
@@ -766,8 +778,12 @@ class FusedOp(list):
                 self.has_pool = True
         elif (op.data['layer_type'] == 'Conv'):
             if (len(self) != 0):
+                if (args.debug > 2):
+                    print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
             elif (self.has_conv):
+                if (args.debug > 2):
+                    print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
             else:
                 op.populate_conv_params()
@@ -775,18 +791,24 @@ class FusedOp(list):
                 self.has_conv = True
         elif (op.data['layer_type'] == 'ResAdd'):
             if (self.has_resadd):
+                if (args.debug > 2):
+                    print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
             else:
                 self.resadd_op = op
                 self.has_resadd = True
         elif (op.data['layer_type'] == 'MatMul'):
             if (self.has_matmul):
+                if (args.debug > 2):
+                    print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
             else:
                 self.matmul_op = op
                 self.has_matmul = True
         elif (op.data['layer_type'] == 'BiasAdd'):
             if (self.has_biasadd):
+                if (args.debug > 2):
+                    print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
             else:
                 self.biasadd_op = op
@@ -992,7 +1014,6 @@ next_is_fusable = {
         'Add'    : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
         'ResAdd' : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
         'AvgPool': "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
-        'MaxPool': "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
         'Relu'   : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
         }
 
@@ -1112,6 +1133,8 @@ class KGraph:
             self.current_node = self.last_split_next_nodes[0] 
             self.last_split_next_nodes = self.last_split_next_nodes[1:]
         fused_ops.add(self.current_node)
+        for i in self.current_node.next:
+            print(i.data['layer_type'], ":", i.data['layer_name'])
         fused_ops = self.get_next_fused_op(fused_ops)
         # if there are multiple next nodes
         next_nodes = fused_ops[-1].next
