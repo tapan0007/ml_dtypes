@@ -275,7 +275,10 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.dram_data_len_per_NC):
             length = self.dram_data_len_per_NC % self.atom_data_sz
-        simout_file = self.dram_data_file.replace("-midout.", "-simout.")
+        if (args.golden_inputs):            
+            simout_file = self.dram_data_file.replace("-midout.", ".")
+        else:            
+            simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomFile",
@@ -1230,7 +1233,11 @@ class TPBSched:
 
         # save layer results to file, for retrieval by next layer                        
         np.save(result_file, result)
-        self.statebuffer.saved_result_files[pool_op.data['layer_name']] = result_file
+        if (args.golden_inputs):
+            # if using golden inputs, save the ref_file instead of result_file
+            self.statebuffer.saved_result_files[pool_op.data['layer_name']] = pool_op.data['ref_file']
+        else:            
+            self.statebuffer.saved_result_files[pool_op.data['layer_name']] = result_file
 
         # print circular buffer stats
         self.statebuffer.print_stats()
@@ -1341,7 +1348,11 @@ class TPBSched:
 
         # save layer results to file, for retrieval by next layer                        
         np.save(result_file, result)
-        self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = result_file
+        if (args.golden_inputs):
+            # if using golden inputs, save the ref_file instead of result_file
+            self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = op_list[-1].data['ref_file']
+        else:            
+            self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = result_file
 
         # print circular buffer stats
         self.statebuffer.print_stats()
@@ -1357,6 +1368,7 @@ if __name__ == "__main__":
     parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--debug", default=DEBUG_LEVEL_DEFAULT, help="Debug level")
+    parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     args = parser.parse_args()
 
     try:
