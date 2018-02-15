@@ -93,18 +93,33 @@ class Pool:
         tile_array = in_array.reshape(ofmap_tilex_sz,ofmap_tiley_sz,Tn,num_cols)
         window_shape = (pool_window_size,pool_window_size,Tn,num_cols)
         stride_shape = (stride, stride, Tn, 1)
-        pool_result = view_as_windows(tile_array,window_shape,stride_shape).mean(axis=(4,5)).reshape(-1,num_cols)
+        #pool_result = view_as_windows(tile_array,window_shape,stride_shape).mean(axis=(4,5)).reshape(-1,num_cols)
+        pool_result_temp = view_as_windows(tile_array, window_shape, stride_shape)
+        pool_result = pool_result_temp.mean(axis=(4,5)).reshape(-1,num_cols)
         return pool_result
     def resadd(self, array_a, array_b):
         return array_a + array_b
-    def max(self, in_array, stride, pool_window_size, Tn, ofmap_tilex_sz, ofmap_tiley_sz):
+    def max(self, in_array, stride, pool_window_size, Tn, ifmap_tilex_sz, ifmap_tiley_sz, ofmap_tilex_sz, ofmap_tiley_sz):
         num_cols = in_array.shape[1]
         # view_as_windows needs in_array to be in the same dimension as window_shape
         # need to make sure the third dimension of stride_shape to be '1' since that is the column direction
-        tile_array = in_array.reshape(ofmap_tilex_sz, ofmap_tiley_sz, Tn, num_cols)
-        window_shape = (pool_window_size, pool_window_size, Tn, num_cols)
-        stride_shape = (stride, stride, Tn, 1)
-        pool_result = view_as_windows(tile_array, window_shape, stride_shape).max(axis=(4,5)).reshape(-1,num_cols)
+        input_tilex_with_pad = ifmap_tilex_sz + pool_window_size - stride
+        input_tiley_with_pad = ifmap_tiley_sz + pool_window_size - stride
+        input_tile_with_pad_sz = input_tilex_with_pad*input_tiley_with_pad
+        tile_array = np.zeros((input_tilex_with_pad, input_tiley_with_pad))
+        pool_result = np.zeros((ofmap_tilex_sz*ofmap_tiley_sz, num_cols))
+        for i in range(num_cols):
+            tile_array[0:ifmap_tilex_sz, 0:ifmap_tiley_sz] = in_array[0:ifmap_tilex_sz*ifmap_tiley_sz,i].reshape(ifmap_tilex_sz, ifmap_tiley_sz) # ignoring Tn for now
+            window_shape = (pool_window_size, pool_window_size)
+            stride_shape = (stride, stride)
+            pool_result_temp = view_as_windows(tile_array, window_shape, stride_shape)
+            pool_result[:,i] = pool_result_temp.max(axis=(2,3)).reshape(-1)
+            #if (i==0):
+            #    print("tile_array :", tile_array)
+            #    print("window_shape :", window_shape)
+            #    print("stride_shape :", stride_shape)
+            #    print("pool_result_temp :", pool_result_temp)
+            #    print("pool_result :", pool_result)
         return pool_result
 
 ##################################################################################
@@ -211,7 +226,13 @@ class CircularBuffer:
         #   * different FMAPs folds will be in different atoms (for now)
         # TODO: refactor the following function since it is used in multiple places
         if (self.layer_type == 'Input' or self.layer_type == 'Const' or self.layer_type == 'Output'):
-            N, C, H, W = self.dram_data.shape
+            if (self.layer_format == 'NCHW'):
+                N, C, H, W = self.dram_data.shape
+            elif (self.layer_format == 'CNHW'):    
+                C, N, H, W = self.dram_data.shape
+            else:
+                print("ERROR in load_file: Unrecognized layer %s type %s format %s"%(self.layer_name, self.layer_type, self.layer_format))
+                exit(-1)
             self.dram_data_len_per_NC = self.dram_data_len//(N*C)
             ifmap_data_len = H * W * self.item_sz
             ifmap_width_data_len = W * self.item_sz
@@ -254,6 +275,10 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.dram_data_len_per_NC):
             length = self.dram_data_len_per_NC % self.atom_data_sz
+        if (args.golden_inputs):            
+            simout_file = self.dram_data_file.replace("-midout.", ".")
+        else:            
+            simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomFile",
@@ -262,7 +287,7 @@ class CircularBuffer:
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
               'data_type'        : self.data_type,
-              'ref_file'         : self.dram_data_file,
+              'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset,
@@ -278,6 +303,7 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.dram_data_len_per_NC):
             length = self.dram_data_len_per_NC % self.atom_data_sz
+        simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
@@ -286,7 +312,7 @@ class CircularBuffer:
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
               'data_type'        : self.data_type,
-              'ref_file'         : self.dram_data_file,
+              'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset,
@@ -400,7 +426,7 @@ class KNode:
         elif (layer_info['ofmap_format'] == 'CNHW'):            
             self.C, self.N, self.H, self.W = input_layer['ofmap_shape']
         else:
-            print("ERROR: Unrecognized layer %s format %s"%(input_layer['layer_name'], input_layer['ofmap_format']))
+            print("ERROR in populate_common_params: Unrecognized previous layer %s format %s"%(input_layer['layer_name'], input_layer['ofmap_format']))
             exit(-1)
         # get output shape from current layer's data
         layer_info = self.data
@@ -409,7 +435,7 @@ class KNode:
         elif (layer_info['ofmap_format'] == 'CNHW'):            
             self.M, self.N, self.E, self.F = layer_info['ofmap_shape']
         else:
-            print("ERROR: Unrecognized layer %s format %s"%(layer_info['layer_name'], layer_info['ofmap_format']))
+            print("ERROR in populate_common_params: Unrecognized current layer %s format %s"%(layer_info['layer_name'], layer_info['ofmap_format']))
             exit(-1)
         self.pad_north, self.pad_south = layer_info['padding'][2]
         self.pad_west, self.pad_east = layer_info['padding'][3]
@@ -432,7 +458,7 @@ class KNode:
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
         #if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
         if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window_y):
-            self.ofmap_full_tiley_sz = self.pool_window_y
+            self.ofmap_full_tiley_sz = min(self.E, self.pool_window_y)
             self.ofmap_full_tilex_sz = min(self.F * self.Tn, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz)
             #self.ofmap_full_tilex_sz = PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz
         self.ofmap_full_tile_sz = self.ofmap_full_tilex_sz * self.ofmap_full_tiley_sz
@@ -440,8 +466,6 @@ class KNode:
         self.c = ceildiv(self.C, PEArray.NUM_ROWS)
         # compute the OFMAP folds
         self.m = ceildiv(self.M, PEArray.NUM_COLS)
-        # compute the IFMAP folds over NUM_COLS
-        self.d = ceildiv(self.C, PEArray.NUM_COLS)
         # computing the input map tiling       
         self.h, self.w, self.e, self.f = 1, 1, 1, 1
         # compute ofmap folding
@@ -451,8 +475,8 @@ class KNode:
         # heigh/width folding is the same for IFMAP and OFMAP            
         self.h = self.e
         self.w = self.f
-        print("Common params for layer %s:  N=%d, M=%d, H=%d, W=%d, C=%d, E=%d, F=%d, stride_x=%d, stride_y=%d, ofmap_full_tilex_sz=%d, ofmap_full_tiley_sz=%d"
-                %(self.data['layer_name'], self.N, self.M, self.H, self.W, self.C, self.E, self.F, self.stride_x, self.stride_y, self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz))
+        print("Common params for layer %s:  N=%d, M=%d, H=%d, W=%d, C=%d, E=%d, F=%d, stride_x=%d, stride_y=%d, ofmap_full_tilex_sz=%d, ofmap_full_tiley_sz=%d, ofmap_full_tile_sz=%d"
+                %(self.data['layer_name'], self.N, self.M, self.H, self.W, self.C, self.E, self.F, self.stride_x, self.stride_y, self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz, self.ofmap_full_tile_sz))
 
     # Compute Conv looping params
     def populate_conv_params(self):
@@ -535,16 +559,16 @@ class KNode:
     #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
     #   layer_type: 'conv' or 'MaxPool'; can be extended to handle other layer types
     #   return: a 256x128 array
-    def pack_wave_ifmaps(self, ifmaps, wave_id, layer_type):
+    def pack_wave_ifmaps(self, ifmaps, wave_id, for_unfused_pooling):
         # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
-        if (layer_type == 'Conv'):
-            out_array_dim_y = PEArray.NUM_ROWS
-        elif (layer_type == 'MaxPool'):
+        if (for_unfused_pooling):
             out_array_dim_y = PEArray.NUM_COLS
-        else:
-            print("ERROR: Unrecognized layer type in pack_wave_ifmaps: ",layer_type)
-            exit(-1)
-
+            fmap_folding_idx = wave_id.m_id
+            fmap_total_count = self.M
+        else:            
+            out_array_dim_y = PEArray.NUM_ROWS
+            fmap_folding_idx = wave_id.c_id
+            fmap_total_count = self.C
         out_array = np.zeros((PEArray.MAX_WAVE_SIZE, out_array_dim_y))
         # remember to extract IFMAPs starting at r_id, s_id (which should be zero for non-conv op)
         # also need to add zeros for padding
@@ -553,8 +577,9 @@ class KNode:
         self.ofmap_wave_lower_coord = (0, 0)
         self.ofmap_wave_upper_coord = (0, 0)
         self.psum_bank_offset = 0
-        pe_row_start = wave_id.c_id * out_array_dim_y
-        pe_row_stop = min(self.C, pe_row_start + out_array_dim_y)
+        # for pooling, the "row" below actually means output columns
+        pe_row_start = fmap_folding_idx * out_array_dim_y
+        pe_row_stop = min(fmap_total_count, pe_row_start + out_array_dim_y)
         assert(pe_row_start < pe_row_stop)
         for row in range(pe_row_start, pe_row_stop):
             #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * out_array_dim_y + row], wave_id)
@@ -801,7 +826,7 @@ class FusedOp(list):
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
     def execute_matmul_waveop(self, tpb, wave_id, inputs, weights, psum_add):
         pearray_packed_weights = self.conv_op.pack_wave_conv_weights(weights, wave_id)
-        pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(inputs, wave_id, 'Conv')
+        pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(inputs, wave_id, for_unfused_pooling=False)
         #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
         #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
         if (self.conv_op.ifmap_wave_lower_addr < 0 or self.conv_op.ifmap_wave_upper_addr < 0):
@@ -879,15 +904,15 @@ class FusedOp(list):
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
                 tpb.activate.wait_tile_done(tile_id)
                 self[i].compute_ofmap_tile_info(tile_id)
-                tilex = self.conv_op.tile_width
-                tiley = self.conv_op.tile_height
-                #tilex = self[i].ofmap_full_tilex_sz * self[i].stride_x
-                #tiley = self[i].ofmap_full_tiley_sz * self[i].stride_y
+                #tilex = self.conv_op.tile_width
+                #tiley = self.conv_op.tile_height
+                tilex = self[i].ofmap_full_tilex_sz * self[i].stride_x + (self[i].pool_window_x - self[i].stride_x)
+                tiley = self[i].ofmap_full_tiley_sz * self[i].stride_y + (self[i].pool_window_y - self[i].stride_y)
                 if (layer_type == 'AvgPool'):
                     psum_temp = tpb.pool.avg(psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley)
                 else:
-                    psum_temp = tpb.pool.max(psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley)
-                tpb.gen_pool_waveop_inline(op_list, tile_id, psum_bank_src)
+                    psum_temp = tpb.pool.max(psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley, self[i].ofmap_full_tilex_sz, self[i].ofmap_full_tiley_sz)
+                tpb.gen_fused_pool_waveop_inline(op_list, tile_id, psum_bank_src)
                 # Don't go to back to psum for pooling
                 #psum_bank_dst = 3
                 #if (i != len(op_list)-1):
@@ -1133,9 +1158,13 @@ class TPBSched:
             }
         self.waveop_stream.add_linked(instr, [])
 
-    def gen_pool_waveop_inline (self, op_list, tile_id, psum_bank_src):
-        pool_identity_waveop = op_list.gen_pool_waveop(self, tile_id, True, psum_bank_src)
-        self.waveop_stream.add_linked(pool_identity_waveop, [])
+    def gen_fused_pool_waveop_inline (self, op_list, tile_id, psum_bank_src):
+        pool_waveop = op_list.gen_pool_waveop(self, tile_id, True, psum_bank_src)
+        self.waveop_stream.add_linked(pool_waveop, [])
+
+    def gen_unfused_pool_waveop_inline (self, op_list, tile_id, dram_waveops):
+        pool_waveop = op_list.gen_pool_waveop(self, tile_id, False, 0)
+        self.waveop_stream.add_linked(pool_waveop, dram_waveops)
 
     # Execute an unfused pooling operator
     def execute_unfused_pool_op(self, inputs, result_file):
@@ -1145,34 +1174,77 @@ class TPBSched:
         conv_node = op_list[0].prev[0]
         assert(conv_node.data['layer_type'] == 'Conv')
 
+        pool_op = op_list[0]
+
         # initialize result tensor
-        result = np.zeros((op_list.pool_op.N, op_list.pool_op.M, op_list.pool_op.E, op_list.pool_op.F), dtype=inputs.dtype)
+        result = np.zeros((pool_op.N, pool_op.M, pool_op.E, pool_op.F), dtype=inputs.dtype)
+        # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
+        np.save(result_file, result)
+        self.statebuffer.circbuf_scratch.layer_type = "Output"
+        self.statebuffer.circbuf_scratch.layer_name = pool_op.data['layer_name']
+        self.statebuffer.circbuf_scratch.layer_format = pool_op.data['ofmap_format']
+        self.statebuffer.circbuf_scratch.layer_shape = pool_op.data['ofmap_shape']
+        # only clear the scratch buffer if there's no ResAdd input there
+        if (self.statebuffer.circbuf_scratch.dram_data_file == None):                    
+            self.statebuffer.circbuf_scratch.load_file(result_file, pool_op.ofmap_full_tiley_sz)
 
-        # wave loop ordering scheme: nmhwcRS
-        for n_id in range(op_list[0].n):
-            for m_id in range(op_list[0].m):
-                for h_id in range(op_list[0].h):
-                    for w_id in range(op_list[0].w):
+        # wave loop ordering scheme: nmhw
+        for n_id in range(pool_op.n):
+            for m_id in range(pool_op.m):
+                for h_id in range(pool_op.h):
+                    for w_id in range(pool_op.w):
                         tile_id = TileID(n_id, m_id, h_id, w_id)
-                        # loops for constructing a tile
-                        # re-calculate 'c' because it needs to fit to pool engine width
-                        for c_id in range(op_list[0].d):
-                            # set r_id and s_id to zero since we are not doing convolution
-                            wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, 0, 0)
-                            # need to use the conv_node to extract the ifmaps
-                            psum_fake = conv_node.pack_wave_ifmaps(inputs, wave_id, 'MaxPool')
-                            print (psum_fake)
-                            tiley = conv_node.ofmap_full_tiley_sz
-                            tilex = conv_node.ofmap_full_tilex_sz
-                            psum_fake_extract = psum_fake [0:tiley*tilex, :]
-                            psum_temp = self.pool.max(psum_fake_extract, op_list[0].stride_x, op_list[0].pool_window_y, op_list[0].Tn, tilex, tiley)
-                            np.save("debug.npy",psum_fake_extract)
-                            print (op_list[0].pool_window_y, "", op_list[0].stride_x)
-                            print (psum_fake_extract[:,0])
-                            print (psum_temp[:,0])
+                        # set r_id and s_id in wave_id to zero since we are not doing convolution
+                        wave_id = WaveID(n_id, m_id, h_id, w_id, 0, 0, 0)
+                        # need to use the conv_node to extract the ifmaps
+                        psum_fake = conv_node.pack_wave_ifmaps(inputs, wave_id, for_unfused_pooling=True)
+                        input_tiley = conv_node.ofmap_full_tiley_sz
+                        input_tilex = conv_node.ofmap_full_tilex_sz
+                        output_tiley = pool_op.ofmap_full_tiley_sz
+                        output_tilex = pool_op.ofmap_full_tilex_sz
+                        psum_fake_extract = psum_fake [0:input_tiley*input_tilex, :]
+                        psum_temp = self.pool.max(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
+                        dram_ifmaps_waveops = tpb.statebuffer.circbuf_ifmaps.read_data_region(
+                                                    wave_id, 
+                                                    conv_node.ifmap_wave_lower_addr, 
+                                                    conv_node.ifmap_wave_upper_addr,
+                                                    conv_node.ifmap_count)
+                        pool_op.compute_ofmap_tile_info(tile_id)
+                        self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops)
+                        for j in range(PEArray.NUM_COLS):
+                            M_idx = wave_id.m_id * PEArray.NUM_COLS + j
+                            if (M_idx >= pool_op.M):
+                                break
+                            else:
+                                # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
+                                result_tile = (psum_temp[0 : pool_op.ofmap_full_tile_sz, j]).reshape((pool_op.ofmap_full_tiley_sz, pool_op.ofmap_full_tilex_sz))
+                                result[n_id, 
+                                        j, 
+                                        pool_op.tile_y_start : pool_op.tile_y_start + pool_op.tile_height, 
+                                        pool_op.tile_x_start : pool_op.tile_x_start + pool_op.tile_width]\
+                                    = result_tile[0:pool_op.tile_height, 0:pool_op.tile_width]
+                        # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
+                        dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(wave_id, pool_op.ofmap_tile_lower_addr, pool_op.ofmap_tile_upper_addr, pool_op.ofmap_count)
+                        # The pooling destination need to be adjusted after the above writes to data region
+                        if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
+                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+
+                        self.waveop_stream.add_outputs(dram_output_waveops)
+
+        # save layer results to file, for retrieval by next layer                        
+        np.save(result_file, result)
+        if (args.golden_inputs):
+            # if using golden inputs, save the ref_file instead of result_file
+            self.statebuffer.saved_result_files[pool_op.data['layer_name']] = pool_op.data['ref_file']
+        else:            
+            self.statebuffer.saved_result_files[pool_op.data['layer_name']] = result_file
+
+        # print circular buffer stats
+        self.statebuffer.print_stats()
+
+        # reset scratch buffer for now (TODO: keep some atoms for next layer)
+        self.statebuffer.reset_all()
         return result
-
-
 
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, inputs, result_file):
@@ -1200,6 +1272,10 @@ class TPBSched:
         if (op_list.has_resadd):
             for j in op_list.resadd_op.prev:
                 if j.data['layer_name'] in self.statebuffer.saved_result_files:
+                    self.statebuffer.circbuf_scratch.layer_type = "Output"
+                    self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
+                    self.statebuffer.circbuf_scratch.layer_format = op_list[-1].data['ofmap_format']
+                    self.statebuffer.circbuf_scratch.layer_shape = op_list[-1].data['ofmap_shape']
                     self.statebuffer.circbuf_scratch.load_file(self.statebuffer.saved_result_files[j.data['layer_name']], op_list.conv_op.ofmap_full_tiley_sz)
                     break
 
@@ -1209,12 +1285,12 @@ class TPBSched:
         else:     
             result = np.zeros((op_list.conv_op.N, op_list.conv_op.M, op_list.conv_op.E, op_list.conv_op.F), dtype=inputs.dtype)
         np.save(result_file, result)
-        self.statebuffer.circbuf_scratch.layer_type = "Output"
-        self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
-        self.statebuffer.circbuf_scratch.layer_format = op_list[-1].data['ofmap_format']
-        self.statebuffer.circbuf_scratch.layer_shape = op_list[-1].data['ofmap_shape']
         # only clear the scratch buffer if there's no ResAdd input there
         if (self.statebuffer.circbuf_scratch.dram_data_file == None):                    
+            self.statebuffer.circbuf_scratch.layer_type = "Output"
+            self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
+            self.statebuffer.circbuf_scratch.layer_format = op_list[-1].data['ofmap_format']
+            self.statebuffer.circbuf_scratch.layer_shape = op_list[-1].data['ofmap_shape']
             if (op_list.has_pool):
                 self.statebuffer.circbuf_scratch.load_file(result_file, op_list.pool_op.ofmap_full_tiley_sz)
             else:                
@@ -1276,7 +1352,11 @@ class TPBSched:
 
         # save layer results to file, for retrieval by next layer                        
         np.save(result_file, result)
-        self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = result_file
+        if (args.golden_inputs):
+            # if using golden inputs, save the ref_file instead of result_file
+            self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = op_list[-1].data['ref_file']
+        else:            
+            self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = result_file
 
         # print circular buffer stats
         self.statebuffer.print_stats()
@@ -1292,6 +1372,7 @@ if __name__ == "__main__":
     parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--debug", default=DEBUG_LEVEL_DEFAULT, help="Debug level")
+    parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     args = parser.parse_args()
 
     try:
@@ -1311,14 +1392,10 @@ if __name__ == "__main__":
     # go through all layers and add the fusable operations
     tpb = TPBSched()
     result_file = None
-    last_result_file = None
     num_mismatches = 0
     while (not kgraph.walk_ended()):
         op_list = kgraph.get_fused_ops()
-        if (result_file != None):
-            last_result_file = result_file
-        #result_file = "save_" + op_list[-1].data['layer_name'].replace("/", "__") + ".npy"
-        result_file = op_list[-1].data['ref_file'].replace(".npy", "-simout.npy")
+        result_file = op_list[-1].data['ref_file'].replace(".npy", "-midout.npy")
         print("Output file for layer %s is %s"%(op_list[-1].data['layer_name'], result_file))
 
         # Check init op
@@ -1351,11 +1428,11 @@ if __name__ == "__main__":
                 tpb.statebuffer.circbuf_ifmaps.layer_name = op_list[0].data['layer_name']
                 tpb.statebuffer.circbuf_ifmaps.layer_type = op_list[0].data['layer_type']
                 tpb.statebuffer.circbuf_ifmaps.layer_format = op_list[0].data['ofmap_format']
-                tpb.statebuffer.circbuf_ifmaps.layer_shape = op_list[0].data['ofmap_shape']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
                         inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
                         break
+                tpb.statebuffer.circbuf_ifmaps.layer_shape = tpb.statebuffer.circbuf_ifmaps.dram_data.shape
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
                 exit(-1)
