@@ -1156,12 +1156,12 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, [])
 
     def gen_fused_pool_waveop_inline (self, op_list, tile_id, psum_bank_src):
-        pool_identity_waveop = op_list.gen_pool_waveop(self, tile_id, True, psum_bank_src)
-        self.waveop_stream.add_linked(pool_identity_waveop, [])
+        pool_waveop = op_list.gen_pool_waveop(self, tile_id, True, psum_bank_src)
+        self.waveop_stream.add_linked(pool_waveop, [])
 
-    def gen_unfused_pool_waveop_inline (self, op_list, tile_id):
-        pool_identity_waveop = op_list.gen_pool_waveop(self, tile_id, False, 0)
-        self.waveop_stream.add_linked(pool_identity_waveop, [])
+    def gen_unfused_pool_waveop_inline (self, op_list, tile_id, dram_waveops):
+        pool_waveop = op_list.gen_pool_waveop(self, tile_id, False, 0)
+        self.waveop_stream.add_linked(pool_waveop, dram_waveops)
 
     # Execute an unfused pooling operator
     def execute_unfused_pool_op(self, inputs, result_file):
@@ -1171,14 +1171,25 @@ class TPBSched:
         conv_node = op_list[0].prev[0]
         assert(conv_node.data['layer_type'] == 'Conv')
 
-        # initialize result tensor
-        result = np.zeros((op_list.pool_op.N, op_list.pool_op.M, op_list.pool_op.E, op_list.pool_op.F), dtype=inputs.dtype)
+        pool_op = op_list[0]
 
-        # wave loop ordering scheme: nmhwcRS
-        for n_id in range(op_list[0].n):
-            for m_id in range(op_list[0].m):
-                for h_id in range(op_list[0].h):
-                    for w_id in range(op_list[0].w):
+        # initialize result tensor
+        result = np.zeros((pool_op.N, pool_op.M, pool_op.E, pool_op.F), dtype=inputs.dtype)
+        # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
+        np.save(result_file, result)
+        self.statebuffer.circbuf_scratch.layer_type = "Output"
+        self.statebuffer.circbuf_scratch.layer_name = pool_op.data['layer_name']
+        self.statebuffer.circbuf_scratch.layer_format = pool_op.data['ofmap_format']
+        self.statebuffer.circbuf_scratch.layer_shape = pool_op.data['ofmap_shape']
+        # only clear the scratch buffer if there's no ResAdd input there
+        if (self.statebuffer.circbuf_scratch.dram_data_file == None):                    
+            self.statebuffer.circbuf_scratch.load_file(result_file, pool_op.ofmap_full_tiley_sz)
+
+        # wave loop ordering scheme: nmhw
+        for n_id in range(pool_op.n):
+            for m_id in range(pool_op.m):
+                for h_id in range(pool_op.h):
+                    for w_id in range(pool_op.w):
                         tile_id = TileID(n_id, m_id, h_id, w_id)
                         # set r_id and s_id in wave_id to zero since we are not doing convolution
                         wave_id = WaveID(n_id, m_id, h_id, w_id, 0, 0, 0)
@@ -1186,32 +1197,47 @@ class TPBSched:
                         psum_fake = conv_node.pack_wave_ifmaps(inputs, wave_id, for_unfused_pooling=True)
                         input_tiley = conv_node.ofmap_full_tiley_sz
                         input_tilex = conv_node.ofmap_full_tilex_sz
-                        output_tiley = op_list[0].ofmap_full_tiley_sz
-                        output_tilex = op_list[0].ofmap_full_tilex_sz
+                        output_tiley = pool_op.ofmap_full_tiley_sz
+                        output_tilex = pool_op.ofmap_full_tilex_sz
                         psum_fake_extract = psum_fake [0:input_tiley*input_tilex, :]
-                        psum_temp = self.pool.max(psum_fake_extract, op_list[0].stride_x, op_list[0].pool_window_y, op_list[0].Tn, input_tilex, input_tiley, output_tilex, output_tiley)
-                        #tpb.gen_unfused_pool_waveop_inline(op_list, tile_id)
-                        #np.save("debug.npy",psum_fake_extract)
-                        #print (op_list[0].pool_window_y, "", op_list[0].stride_x)
-                        #print (psum_fake_extract)
-                        #print (psum_temp)
-                        #print(op_list[0].ofmap_full_tile_sz)
-                        op_list[0].compute_ofmap_tile_info(tile_id)
+                        psum_temp = self.pool.max(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
+                        dram_ifmaps_waveops = tpb.statebuffer.circbuf_ifmaps.read_data_region(
+                                                    wave_id, 
+                                                    conv_node.ifmap_wave_lower_addr, 
+                                                    conv_node.ifmap_wave_upper_addr,
+                                                    conv_node.ifmap_count)
+                        pool_op.compute_ofmap_tile_info(tile_id)
+                        self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops)
                         for j in range(PEArray.NUM_COLS):
                             M_idx = wave_id.m_id * PEArray.NUM_COLS + j
-                            if (M_idx >= op_list[0].M):
+                            if (M_idx >= pool_op.M):
                                 break
                             else:
                                 # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
-                                result_tile = (psum_temp[0 : op_list[0].ofmap_full_tile_sz, j]).reshape((op_list[0].ofmap_full_tiley_sz, op_list[0].ofmap_full_tilex_sz))
+                                result_tile = (psum_temp[0 : pool_op.ofmap_full_tile_sz, j]).reshape((pool_op.ofmap_full_tiley_sz, pool_op.ofmap_full_tilex_sz))
                                 result[n_id, 
                                         j, 
-                                        op_list[0].tile_y_start : op_list[0].tile_y_start + op_list[0].tile_height, 
-                                        op_list[0].tile_x_start : op_list[0].tile_x_start + op_list[0].tile_width]\
-                                    = result_tile[0:op_list[0].tile_height, 0:op_list[0].tile_width]
+                                        pool_op.tile_y_start : pool_op.tile_y_start + pool_op.tile_height, 
+                                        pool_op.tile_x_start : pool_op.tile_x_start + pool_op.tile_width]\
+                                    = result_tile[0:pool_op.tile_height, 0:pool_op.tile_width]
+                        # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
+                        dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(wave_id, pool_op.ofmap_tile_lower_addr, pool_op.ofmap_tile_upper_addr, pool_op.ofmap_count)
+                        # The pooling destination need to be adjusted after the above writes to data region
+                        if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
+                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+
+                        self.waveop_stream.add_outputs(dram_output_waveops)
+
+        # save layer results to file, for retrieval by next layer                        
+        np.save(result_file, result)
+        self.statebuffer.saved_result_files[pool_op.data['layer_name']] = result_file
+
+        # print circular buffer stats
+        self.statebuffer.print_stats()
+
+        # reset scratch buffer for now (TODO: keep some atoms for next layer)
+        self.statebuffer.reset_all()
         return result
-
-
 
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, inputs, result_file):
@@ -1386,11 +1412,11 @@ if __name__ == "__main__":
                 tpb.statebuffer.circbuf_ifmaps.layer_name = op_list[0].data['layer_name']
                 tpb.statebuffer.circbuf_ifmaps.layer_type = op_list[0].data['layer_type']
                 tpb.statebuffer.circbuf_ifmaps.layer_format = op_list[0].data['ofmap_format']
-                tpb.statebuffer.circbuf_ifmaps.layer_shape = op_list[0].data['ofmap_shape']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
                         inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
                         break
+                tpb.statebuffer.circbuf_ifmaps.layer_shape = tpb.statebuffer.circbuf_ifmaps.dram_data.shape
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
                 exit(-1)
