@@ -11,7 +11,7 @@
 #     /bin/rm -rf [0-9]* ; ./RunAll --verbose
 #
 
-import os, sys, re
+import os, sys, re, shutil
 import argparse
 import multiprocessing as mp
 import time
@@ -364,8 +364,12 @@ class Ktests:
       if verbose:
         print("\n############## %s ##############" % testName)
       cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-fe.txt 2>&1' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
-
-      #os.system(cmd)
+      # Remove the old directory
+      if os.path.exists(testName):
+        oldDir = "%s-old-%d" % (testName, os.getpid())
+        #print("DEBUG: renamed %s to %s and removed it" % (testName, oldDir))
+        os.rename(testName, oldDir)
+        shutil.rmtree(oldDir)
 
       while self.numRunning >= self.parallel:
         self.checkProcesses(self.parallel)
