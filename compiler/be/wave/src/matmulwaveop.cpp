@@ -63,7 +63,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
 kcc_int32
 MatMulWaveOp::gNumOfmapsInFold() const
 {
-    const arch::Arch& arch(m_Layer->gArch());
+    const arch::Arch& arch(arch::Arch::gArch());
     const kcc_int32 numPeArrayCols      = arch.gNumberPeArrayColumns();
     const kcc_int32 numOfmapsInLayer    = m_Layer->gNumOfmaps();
     const kcc_int32 ofmapFoldIdx        = m_WaveId.gOfmapFoldIdx();

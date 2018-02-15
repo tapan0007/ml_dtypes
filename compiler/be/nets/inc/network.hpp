@@ -66,8 +66,6 @@ public:
         , m_DoBatching(false)
     {}
 
-    const arch::Arch& gArch() const;
-
 #if 0
     Network(const DataType* dataType, const std::string& netName);
 #endif
