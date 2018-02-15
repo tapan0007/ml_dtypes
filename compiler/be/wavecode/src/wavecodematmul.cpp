@@ -16,6 +16,7 @@ WaveCodeMatMul::WaveCodeMatMul(WaveCode* waveCode)
 {}
 
 
+
 void
 WaveCodeMatMul::generate(wave::WaveOp* waveOp)
 {
@@ -25,26 +26,6 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
     generateLoadWeights(matmulWaveOp);
     generateMatMul(matmulWaveOp);
 }
-
-/*
-    {
-      "ifmaps_atom_id": 48,
-      "ifmaps_offset_in_atom": 0,
-      "layer_name": "1conv/i1",
-      "previous_waveops": [
-        "1conv/i1/SBAtomFile_0",
-        "input/SBAtomFile_0"
-      ],
-      "psum_bank_id": 0,
-      "start": true,
-      "wave_id": [ 0, 0, 0, 0, 0, 0, 0 ],
-      "wave_id_format": "nmhwcrs",
-      "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
-      "waveop_type": "MatMul",
-      "weights_atom_id": 0,
-      "weights_offset_in_atom": 0
-    },
-*/
 
 
 void
@@ -90,6 +71,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     if (matmulWaveOp->gWeightsOffsetInAtom() < 0) {
         return; // this MatMul reuses weights
     }
+    //const arch::StateBuffer& stateBuf(m_WaveCode->gArch().gStateBuffer());
     //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveOp->gWaveId());
 
     LDWEIGHTS ldweighsInstr;
@@ -107,10 +89,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     //    uint8_t     zero_point_uint8[2];
     //    uint16_t    zero_point_uint16   = 0; 
     //} TONGA_PACKED;
-    const kcc_int32 sizeofWeights = matmulWaveOp->gWeightsOffsetInAtom() +
-                                          (matmulWaveOp->gWeightsAtomId() *
-                                           matmulWaveOp->gWaveAtomSize());
-    ldweighsInstr.start_addr            = m_WaveCode->gCurrentDramAddress(sizeofWeights);
+    const kcc_int64 addressInSbPart     = matmulWaveOp->gWeightsAtomId() * matmulWaveOp->gWaveAtomSize()
+                                            + matmulWaveOp->gWeightsOffsetInAtom();
+    ldweighsInstr.start_addr            = addressInSbPart;
     ldweighsInstr.x_step                = -1; // last column goes first, so decrement
     ldweighsInstr.x_num                 = matmulWaveOp->gNumOfmapsInFold();
     ldweighsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();

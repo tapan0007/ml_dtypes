@@ -43,7 +43,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveOp)
 
     SIM_RDNPY dramToNpyInstr;
     dramToNpyInstr.src_address       = statebufToDramInstr.dst_address;
-    strcpy(dramToNpyInstr.dst_fname, sbatomsaveWaveOp->gRefFileFormat().c_str());
+    strcpy(dramToNpyInstr.dst_fname, sbatomsaveWaveOp->gRefFileName().c_str());
     dramToNpyInstr.dst_ndims         = 4;
     for (int i = 0; i < dramToNpyInstr.dst_ndims; ++i) {
         dramToNpyInstr.dst_dims[i]   = sbatomsaveWaveOp->gRefFileShape()[i];
