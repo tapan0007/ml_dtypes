@@ -871,6 +871,17 @@ class FusedOp(list):
     # generate Pool waveop and add it to waveop stream
     # TODO: currently, always go to SB after Pooling
     def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id):
+        # TODO: once Inkling bug is fixed, remove this
+        if (src_is_psum and self.pool_op.item_sz == 2):
+            src_x_step = 2
+            src_y_step = self.pool_op.W * 2
+            src_z_step = self.pool_op.stride_x * 2
+            src_w_step = self.pool_op.W * self.pool_op.stride_y * 2
+        else:
+            src_x_step = 1
+            src_y_step = self.pool_op.W 
+            src_z_step = self.pool_op.stride_x
+            src_w_step = self.pool_op.W * self.pool_op.stride_y
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
@@ -886,13 +897,13 @@ class FusedOp(list):
               'src_psum_bank_offset'    : 0,
               'src_sb_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # TODO: this should belong to the lowest atom ID if there are multiple atoms
               'src_sb_offset_in_atom'   : self.pool_op.ifmap_tile_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
-              'src_x_step'              : 1,
+              'src_x_step'              : src_x_step,
               'src_x_num'               : self.pool_op.pool_window_x,
-              'src_y_step'              : self.pool_op.W,
+              'src_y_step'              : src_y_step,
               'src_y_num'               : self.pool_op.pool_window_y,
-              'src_z_step'              : self.pool_op.stride_x,
+              'src_z_step'              : src_z_step,
               'src_z_num'               : self.pool_op.tile_width,
-              'src_w_step'              : self.pool_op.W * self.pool_op.stride_y,
+              'src_w_step'              : src_w_step,
               'src_w_num'               : self.pool_op.tile_height,
               'pool_frequency'          : self.pool_op.pool_window_x * self.pool_op.pool_window_y,
               'num_partitions'          : self.pool_op.ofmap_count,
