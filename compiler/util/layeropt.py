@@ -231,7 +231,7 @@ class CircularBuffer:
             elif (self.layer_format == 'CNHW'):    
                 C, N, H, W = self.dram_data.shape
             else:
-                print("ERROR: Unrecognized layer %s format %s"%(self.layer_name, self.layer_format))
+                print("ERROR in load_file: Unrecognized layer %s type %s format %s"%(self.layer_name, self.layer_type, self.layer_format))
                 exit(-1)
             self.dram_data_len_per_NC = self.dram_data_len//(N*C)
             ifmap_data_len = H * W * self.item_sz
@@ -426,7 +426,7 @@ class KNode:
         elif (layer_info['ofmap_format'] == 'CNHW'):            
             self.C, self.N, self.H, self.W = input_layer['ofmap_shape']
         else:
-            print("ERROR: Unrecognized layer %s format %s"%(input_layer['layer_name'], input_layer['ofmap_format']))
+            print("ERROR in populate_common_params: Unrecognized previous layer %s format %s"%(input_layer['layer_name'], input_layer['ofmap_format']))
             exit(-1)
         # get output shape from current layer's data
         layer_info = self.data
@@ -435,7 +435,7 @@ class KNode:
         elif (layer_info['ofmap_format'] == 'CNHW'):            
             self.M, self.N, self.E, self.F = layer_info['ofmap_shape']
         else:
-            print("ERROR: Unrecognized layer %s format %s"%(layer_info['layer_name'], layer_info['ofmap_format']))
+            print("ERROR in populate_common_params: Unrecognized current layer %s format %s"%(layer_info['layer_name'], layer_info['ofmap_format']))
             exit(-1)
         self.pad_north, self.pad_south = layer_info['padding'][2]
         self.pad_west, self.pad_east = layer_info['padding'][3]
@@ -1272,6 +1272,10 @@ class TPBSched:
         if (op_list.has_resadd):
             for j in op_list.resadd_op.prev:
                 if j.data['layer_name'] in self.statebuffer.saved_result_files:
+                    self.statebuffer.circbuf_scratch.layer_type = "Output"
+                    self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
+                    self.statebuffer.circbuf_scratch.layer_format = op_list[-1].data['ofmap_format']
+                    self.statebuffer.circbuf_scratch.layer_shape = op_list[-1].data['ofmap_shape']
                     self.statebuffer.circbuf_scratch.load_file(self.statebuffer.saved_result_files[j.data['layer_name']], op_list.conv_op.ofmap_full_tiley_sz)
                     break
 
@@ -1281,12 +1285,12 @@ class TPBSched:
         else:     
             result = np.zeros((op_list.conv_op.N, op_list.conv_op.M, op_list.conv_op.E, op_list.conv_op.F), dtype=inputs.dtype)
         np.save(result_file, result)
-        self.statebuffer.circbuf_scratch.layer_type = "Output"
-        self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
-        self.statebuffer.circbuf_scratch.layer_format = op_list[-1].data['ofmap_format']
-        self.statebuffer.circbuf_scratch.layer_shape = op_list[-1].data['ofmap_shape']
         # only clear the scratch buffer if there's no ResAdd input there
         if (self.statebuffer.circbuf_scratch.dram_data_file == None):                    
+            self.statebuffer.circbuf_scratch.layer_type = "Output"
+            self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
+            self.statebuffer.circbuf_scratch.layer_format = op_list[-1].data['ofmap_format']
+            self.statebuffer.circbuf_scratch.layer_shape = op_list[-1].data['ofmap_shape']
             if (op_list.has_pool):
                 self.statebuffer.circbuf_scratch.load_file(result_file, op_list.pool_op.ofmap_full_tiley_sz)
             else:                
