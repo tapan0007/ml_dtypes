@@ -1317,7 +1317,9 @@ if __name__ == "__main__":
         op_list = kgraph.get_fused_ops()
         if (result_file != None):
             last_result_file = result_file
-        result_file = "save_" + op_list[-1].data['layer_name'].replace("/", "__") + ".npy"
+        #result_file = "save_" + op_list[-1].data['layer_name'].replace("/", "__") + ".npy"
+        result_file = op_list[-1].data['ref_file'].replace(".npy", "-simout.npy")
+        print("Output file for layer %s is %s"%(op_list[-1].data['layer_name'], result_file))
 
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
