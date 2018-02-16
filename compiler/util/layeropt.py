@@ -885,17 +885,22 @@ class FusedOp(list):
     # generate Pool waveop and add it to waveop stream
     # TODO: currently, always go to SB after Pooling
     def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id):
-        # TODO: once Inkling bug is fixed, remove this
-        if (src_is_psum and self.pool_op.item_sz == 2):
-            src_x_step = 2
-            src_y_step = self.pool_op.W * 2
-            src_z_step = self.pool_op.stride_x * 2
-            src_w_step = self.pool_op.W * self.pool_op.stride_y * 2
+        if (src_is_psum):
+            src_x_step = 1
+            src_y_step = self.pool_op.tile_width
+            src_z_step = self.pool_op.stride_x
+            src_w_step = self.pool_op.tile_width * self.pool_op.stride_y 
         else:
             src_x_step = 1
-            src_y_step = self.pool_op.W 
+            src_y_step = self.pool_op.W
             src_z_step = self.pool_op.stride_x
             src_w_step = self.pool_op.W * self.pool_op.stride_y
+        # TODO: once Inkling bug is fixed, remove this
+        if (src_is_psum and self.pool_op.item_sz == 2):
+            src_x_step = src_x_step * 2
+            src_y_step = src_y_step * 2
+            src_z_step = src_z_step * 2
+            src_w_step = src_w_step * 2
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
