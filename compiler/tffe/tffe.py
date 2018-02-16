@@ -98,7 +98,7 @@ if args.images != None:
   kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
   if args.partition[0] == "none":
     writeBackEndFiles(kog, args.out_prefix, args.verbose, args.scheduler)
-    cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
+    cmd = "bash %s/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1" % kPath
     print("INFO: executing %s" % cmd, flush=True)
     ret = os.system(cmd)
   else:

@@ -21,9 +21,21 @@ def permuteArr(arr):
     a3 = arr
   return(a3)
 
+# Extract custom config
+# Example for filling specific values for FMAP F(31,31)=3
+def getConfFmap(confStr):
+  conf = []
+  for regexp in [r'-F_(\d+)_(\d+)=(\d+)']:
+    match = re.search(regexp, confStr)
+    if match:
+      conf.append((int(match.group(1)), int(match.group(2)), int(match.group(3))))
+      confStr = confStr.replace(match.group(0), "")
+  return(conf, confStr)
+
 print("\nINFO: started as  ", " ".join(sys.argv))
 
 dimStr = sys.argv[1]
+fmapValList,dimStr = getConfFmap(dimStr)
 
 # Sample dimStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
 dimStr = dimStr.upper() + "-"
@@ -71,6 +83,11 @@ i1 = tf.nn.conv2d(i0, w1, strides, padding, name=netName + "/i1")
 output = tf.identity(i1, name=netName+"/output")
 
 i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType)).reshape(IF1.shape)
+
+# Overide the values:
+for row,col,val in fmapValList:
+  i0val[0, row, col, 0] = val
+
 np.save( outPrefix + 'ref_input.npy', i0val)
 print("Inp=\n", i0val)
 
