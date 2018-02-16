@@ -1,27 +1,59 @@
 #!/usr/bin/env python3
 
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+#
+# Kgraph visualization
+#
+import argparse
 import os, json, sys
 from graphviz import Digraph
 
-jsonIn = sys.argv[1]
-dotOut = jsonIn[:-4] + ".dot"
+parser = argparse.ArgumentParser()
+parser.add_argument('--json', help='Json Kgraphs to visualize', nargs='+', default=[])
+parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
 
-with open(jsonIn) as fh:
-  jsonData = json.load(fh)
+args = parser.parse_args()
 
-dot = Digraph(comment="writeDot")
-for layer in jsonData["layers"]:
-  # node
-  attrs = {}
-  nodeName = layer["layer_name"]
-  dotText = nodeName
-  dot.node(nodeName, dotText, attrs)
-  print(dot.source)
-  # edge
-  for prevNode in layer["previous_layers"]:
-    edgeAttrs = {}
-    dot.edge(prevNode, nodeName, "edge", edgeAttrs)
-    print(dot.source)
+class KgraphJson(object):
+  def __init__(self, jsonFile, verbose):
+    self.jsonFile = jsonFile
+    self.verbose = verbose
+    with open(self.jsonFile) as fh:
+      self.jsonData = json.load(fh)
+  t2c = {
+    "Conv"     : "red",
+    "MaxPool"  : "orange",
+    "BiasAdd"  : "blue",
+    "ResAdd"   : "cyan",
+    "Const"    : "green"
+    }
+  def type2color(self, layerType):
+    return KgraphJson.t2c.get(layerType, "black")
+  
+  def plot(self):
+    dot = Digraph(comment="writeDot")
+    for layer in self.jsonData["layers"]:
+      # node
+      attrs = {}
+      nodeName = layer["layer_name"]
+      layerType = layer["layer_type"]
+      shape = layer["ofmap_shape"]
+      dotText = "%s\n%s\n%s" % (layerType, nodeName, shape)
+      attrs["color"] = self.type2color(layerType)
+      dot.node(nodeName, dotText, attrs)
+      #print(dot.source)
+      # edge
+      for prevNode in layer["previous_layers"]:
+        edgeAttrs = {}
+        dot.edge(prevNode, nodeName, "", edgeAttrs)
+        #print(dot.source)
+    dot.format = "svg"
+    jsonIn = self.jsonFile
+    dotOut = jsonIn[:-5] + ".dot"
+    dot.render(dotOut)
+    print("INFO: wrote  %s.%s" % (dotOut, "svg"))
 
-print(dot.source)
-dot.render(dotOut)
+
+for jsonFile in args.json:
+  kj = KgraphJson(jsonFile, args.verbose)
+  kj.plot()
