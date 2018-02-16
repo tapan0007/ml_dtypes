@@ -103,10 +103,9 @@ if args.images != None:
     ret = os.system(cmd)
   else:
     kp = KgraphPartitions.KgraphPart(kog, debugLevel)
-    partitioningStrategy = args.partition[0]
     executorsStr = " ".join(args.executors)
     sgJsonList = []
-    kp.colorNodes(partitioningStrategy)
+    kp.colorNodes(args.partition)
     kp.partitionByColor()
     #kp.print()
     sgId = 0

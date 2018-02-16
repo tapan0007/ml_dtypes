@@ -23,6 +23,7 @@ class KgraphJson(object):
   t2c = {
     "Conv"     : "red",
     "MaxPool"  : "orange",
+    "AvgPool"  : "orange",
     "BiasAdd"  : "blue",
     "ResAdd"   : "cyan",
     "Const"    : "green"
@@ -39,7 +40,10 @@ class KgraphJson(object):
       layerType = layer["layer_type"]
       shape = layer["ofmap_shape"]
       dotText = "%s\n%s\n%s" % (layerType, nodeName, shape)
+      if self.verbose:
+        dotText = "\n".join(["%s : %s" % (k, v) for k,v in sorted(layer.items())]) 
       attrs["color"] = self.type2color(layerType)
+      attrs["shape"] = "rect"
       dot.node(nodeName, dotText, attrs)
       #print(dot.source)
       # edge
