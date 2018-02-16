@@ -63,7 +63,7 @@
       "waveop_type": "SBAtomFile"
     },
     {
-      "atom_id": 8,
+      "atom_id": 16,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -119,7 +119,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 0
     },
     {
@@ -160,7 +160,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 2
     },
     {
@@ -201,7 +201,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 4
     },
     {
@@ -242,7 +242,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 6
     },
     {
@@ -283,7 +283,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 8
     },
     {
@@ -324,7 +324,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 10
     },
     {
@@ -365,7 +365,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 12
     },
     {
@@ -406,7 +406,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 14
     },
     {
@@ -447,7 +447,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 8,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 16
     },
     {
