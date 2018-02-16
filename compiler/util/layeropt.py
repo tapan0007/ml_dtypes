@@ -301,7 +301,7 @@ class CircularBuffer:
               'ifmap_count'      : ifmap_count,
             }
 
-    def gen_dram_save_waveop(self, wave_id, atom_id, chunk_id, ofmap_count):
+    def gen_dram_save_waveop(self, tile_id, atom_id, chunk_id, ofmap_count):
         offset = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
         if ((offset + length) > self.dram_data_len_per_NC):
@@ -310,7 +310,7 @@ class CircularBuffer:
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
-              'waveop_name'      : self.layer_name+"/SBAtomSave_%d"%chunk_id,
+              'waveop_name'      : self.layer_name+"/SBAtomSave_"+tile_id.id_string(),
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
@@ -320,8 +320,8 @@ class CircularBuffer:
               'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset,
               'length'           : length,
-              'ofmaps_fold_idx'  : wave_id.m_id,
-              'batch_fold_idx'   : wave_id.n_id,
+              'ofmaps_fold_idx'  : tile_id.m_id,
+              'batch_fold_idx'   : tile_id.n_id,
               'ofmap_count'      : ofmap_count,
             }
 
@@ -337,7 +337,7 @@ class CircularBuffer:
                 self.addr2atom[i] = atom_id
         return dram_waveops
 
-    def write_data_region(self, wave_id, lower_addr, upper_addr, ofmap_count):
+    def write_data_region(self, tile_id, lower_addr, upper_addr, ofmap_count):
         if (args.debug > 2): print("%s: write byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
         dram_waveops = []
         lower_addr_chunked = lower_addr // self.atom_data_sz
@@ -345,7 +345,7 @@ class CircularBuffer:
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
-                dram_waveops.append(self.gen_dram_save_waveop(wave_id, atom_id, i, ofmap_count))
+                dram_waveops.append(self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count))
                 self.addr2atom[i] = atom_id
         # assuming that we always write to the last piece of atom last, when 
         # there's a write to last piece of atom, trigger to dump to DRAM and deallocate atom
@@ -1346,7 +1346,7 @@ class TPBSched:
                                         pool_op.tile_x_start : pool_op.tile_x_start + pool_op.tile_width]\
                                     = result_tile[0:pool_op.tile_height, 0:pool_op.tile_width]
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
-                        dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(wave_id, pool_op.ofmap_tile_lower_addr, pool_op.ofmap_tile_upper_addr, pool_op.ofmap_count)
+                        dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, pool_op.ofmap_tile_lower_addr, pool_op.ofmap_tile_upper_addr, pool_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
                             self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
@@ -1462,7 +1462,7 @@ class TPBSched:
                                         output_params_op.tile_x_start : output_params_op.tile_x_start + output_params_op.tile_width]\
                                     = result_tile[0:output_params_op.tile_height, 0:output_params_op.tile_width]
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
-                        dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(wave_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr, output_params_op.ofmap_count)
+                        dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr, output_params_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
                             self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
