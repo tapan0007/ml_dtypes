@@ -8,7 +8,7 @@ import argparse
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=1
+DEBUG_LEVEL_DEFAULT=2
 
 #kgraph_file = os.environ['KAENA_PATH'] + "/compiler/tffe/rundir/0-1conv0/trivnet_compiler.json"
 
