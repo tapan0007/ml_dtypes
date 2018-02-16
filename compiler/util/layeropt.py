@@ -1001,7 +1001,7 @@ class FusedOp(list):
                         # NCHW
                         residue_tile_ifmap = tpb.statebuffer.circbuf_scratch.dram_data[
                                 tile_id.n_id, 
-                                j, 
+                                M_idx, 
                                 self.conv_op.tile_y_start : self.conv_op.tile_y_start + self.conv_op.tile_height, 
                                 self.conv_op.tile_x_start : self.conv_op.tile_x_start + self.conv_op.tile_width]
                         residue_tile[0:self.conv_op.tile_height*self.conv_op.tile_width,j] = residue_tile_ifmap.flatten()
@@ -1336,7 +1336,7 @@ class TPBSched:
                                 result_tile = (psum_temp[0 : pool_op.ofmap_full_tile_sz, j]).reshape((pool_op.ofmap_full_tiley_sz, pool_op.ofmap_full_tilex_sz))
                                 # NCHW
                                 result[n_id, 
-                                        j, 
+                                        M_idx, 
                                         pool_op.tile_y_start : pool_op.tile_y_start + pool_op.tile_height, 
                                         pool_op.tile_x_start : pool_op.tile_x_start + pool_op.tile_width]\
                                     = result_tile[0:pool_op.tile_height, 0:pool_op.tile_width]
@@ -1452,7 +1452,7 @@ class TPBSched:
                                 result_tile = (psum_temp[0 : output_params_op.ofmap_full_tile_sz, j]).reshape((output_params_op.ofmap_full_tiley_sz, output_params_op.ofmap_full_tilex_sz))
                                 # NCHW
                                 result[n_id, 
-                                        j, 
+                                        M_idx, 
                                         output_params_op.tile_y_start : output_params_op.tile_y_start + output_params_op.tile_height, 
                                         output_params_op.tile_x_start : output_params_op.tile_x_start + output_params_op.tile_width]\
                                     = result_tile[0:output_params_op.tile_height, 0:output_params_op.tile_width]
