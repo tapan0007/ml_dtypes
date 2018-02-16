@@ -1,6 +1,27 @@
 #!/usr/bin/env python3
 
-import os, json
+import os, json, sys
+from graphviz import Digraph
 
+jsonIn = sys.argv[1]
+dotOut = jsonIn[:-4] + ".dot"
 
+with open(jsonIn) as fh:
+  jsonData = json.load(fh)
 
+dot = Digraph(comment="writeDot")
+for layer in jsonData["layers"]:
+  # node
+  attrs = {}
+  nodeName = layer["layer_name"]
+  dotText = nodeName
+  dot.node(nodeName, dotText, attrs)
+  print(dot.source)
+  # edge
+  for prevNode in layer["previous_layers"]:
+    edgeAttrs = {}
+    dot.edge(prevNode, nodeName, "edge", edgeAttrs)
+    print(dot.source)
+
+print(dot.source)
+dot.render(dotOut)

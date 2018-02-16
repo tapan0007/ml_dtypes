@@ -11,11 +11,12 @@ import KaenaOpGraph as kog
 
 # Describes a (small) Kgraph with inputs and the output node
 class KsubGraph:
-  def __init__(self):
+  def __init__(self, debugLevel):
     self.graph = kog.Graph()
     self.__inputs = []
     self.__output = None
     self.__maxLevel = 0    # highest level of any node (== output) in the src graph
+    self.debugLevel = debugLevel
   def print(self, title):
     print(title)
     self.graph.print()
@@ -47,8 +48,14 @@ class KsubGraph:
     self.__output = self.graph.getTopNode()
     if len(self.__inputs) == 0:
       self.__inputs.append(self.__output)
-    # Make one of the nodes input for teh backend, should not matter whichone
+    # In the very first subgraph the original input node needs to be added too
+    srcInputName = srcGraph.getInputNode().getName()
+    if self.graph.hasNode(srcInputName):
+      self.__inputs.insert(0, self.graph.getNode(srcInputName))
+    # Make one of the nodes input for the backend, should not matter which one
     inputNode = self.__inputs[0]
+    if self.debugLevel > 0:
+      print("DEBUG: set input node %s" % inputNode.getName())
     self.graph.setInputNode(inputNode)
     #hasInputOpType = any((ni.getOpType() == "Input") for ni in self.__inputs)
     #assert inputNode.getOpType() == "Input" or
@@ -106,8 +113,7 @@ class KgraphPart(object):
       if n in visitedNodes:
         continue
       visitedNodes[n] = True
-      if self.debugLevel > 0:
-        print("DEBUG: colorNodesAuto visit         %-12s %s" %
+      print("DEBUG: colorNodesAuto visit         %-12s %s" %
               (n.getOpType(), n.getName()))
       fanoutEdges = n.getFanoutMainFlowEdges()
       faninEdges = n.getFaninMainFlowEdges()
@@ -194,7 +200,7 @@ class KgraphPart(object):
   def partitionByColor(self):
     sourceGraph = self.__kgraph
     for i in range(self.__numColors):
-      self.__subgraphs.append(KsubGraph())
+      self.__subgraphs.append(KsubGraph(self.debugLevel))
     levelizedNodes = sourceGraph.getLevelizedNodes()
     # Nodes
     for level in range(len(levelizedNodes)):
