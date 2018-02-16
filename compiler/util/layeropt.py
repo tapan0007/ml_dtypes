@@ -10,8 +10,6 @@ from graphviz import Digraph
 
 DEBUG_LEVEL_DEFAULT=1
 
-#np.set_printoptions(threshold=np.nan)
-
 #kgraph_file = os.environ['KAENA_PATH'] + "/compiler/tffe/rundir/0-1conv0/trivnet_compiler.json"
 
 # TODO: use datatype from K-Graph to cast everything to that datatype
@@ -107,13 +105,15 @@ class Pool:
         input_tilex_with_pad = ofmap_tilex_sz * stride + pool_window_size - stride
         input_tiley_with_pad = ofmap_tiley_sz * stride + pool_window_size - stride
         input_tile_with_pad_sz = input_tilex_with_pad*input_tiley_with_pad
-        tile_array = np.zeros((input_tilex_with_pad, input_tiley_with_pad))
+        tile_array = np.empty((input_tiley_with_pad, input_tilex_with_pad))
+        tile_array[:] = -np.inf  # set all padding values to -inf to allow only actual tile values to be analyzed
         pool_result = np.zeros((ofmap_tilex_sz*ofmap_tiley_sz, num_cols))
         for i in range(num_cols):
-            tile_array[0:ifmap_tilex_sz, 0:ifmap_tiley_sz] = in_array[0:ifmap_tilex_sz*ifmap_tiley_sz,i].reshape(ifmap_tilex_sz, ifmap_tiley_sz) # ignoring Tn for now
+            tile_array[0:ifmap_tiley_sz, 0:ifmap_tilex_sz] = in_array[0:ifmap_tilex_sz*ifmap_tiley_sz,i].reshape(ifmap_tiley_sz, ifmap_tilex_sz) # ignoring Tn for now
             window_shape = (pool_window_size, pool_window_size)
             stride_shape = (stride, stride)
             pool_result_temp = view_as_windows(tile_array, window_shape, stride_shape)
+            pool_result[:,i] = pool_result_temp.max(axis=(2,3)).reshape(-1)
             #if (i==0):
             #    print("tile_array :", tile_array)
             #    print("tile_array shape :", tile_array.shape)
@@ -121,8 +121,8 @@ class Pool:
             #    print("stride_shape :", stride_shape)
             #    print("pool_result_temp :", pool_result_temp)
             #    print("pool_result_temp shape :", pool_result_temp.shape)
-            #    print("pool_result :", pool_result)
-            pool_result[:,i] = pool_result_temp.max(axis=(2,3)).reshape(-1)
+            #    print("pool_result :", pool_result[:,i])
+            #    print("pool_result reshape :", pool_result[:,i].reshape(ofmap_tiley_sz, ofmap_tilex_sz))
         return pool_result
 
 ##################################################################################
@@ -1483,6 +1483,8 @@ if __name__ == "__main__":
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     args = parser.parse_args()
 
+    if (args.debug > 5): np.set_printoptions(threshold=np.nan)
+
     try:
         print("\nLoading K-graph %s"%args.kgraph)
         kgraph_json = json.load(open(args.kgraph))
@@ -1551,17 +1553,18 @@ if __name__ == "__main__":
             print("ERROR: Unrecognized first operation %s"%op_list[0].data['layer_type'])
             exit(-1)
 
-        # Check results against pre-computed results            
-        if 'ref_file' in op_list[-1].data:
-            outputs = np.load(op_list[-1].data['ref_file'])
-            diff = results - outputs
-            if (args.debug > 2): print("\nInput IFMAPS:\n", inputs)
-            if (args.debug > 1): print("\nComputed OFMAPS:\n", results)
-            if (args.debug > 1): print("\nExpected OFMAPS:\n", outputs)
-            if (args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
-            if (not np.allclose(results, outputs, 1/100, 1e-6)):
-                print("\nERROR: layer %s computed OFMAPS is not equal to expected OFMAPS!\n"%(op_list[-1].data['layer_name']))
-                num_mismatches += 1
+        # Check results against pre-computed results           
+        if (op_list[0].data['layer_type'] != "Input"):
+            if 'ref_file' in op_list[-1].data:
+                outputs = np.load(op_list[-1].data['ref_file'])
+                diff = results - outputs
+                if (args.debug > 2): print("\nInput IFMAPS:\n", inputs)
+                if (args.debug > 1): print("\nComputed OFMAPS:\n", results)
+                if (args.debug > 1): print("\nExpected OFMAPS:\n", outputs)
+                if (args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
+                if (not np.allclose(results, outputs, 1/100, 1e-6)):
+                    print("\nERROR: layer %s computed OFMAPS is not equal to expected OFMAPS!\n"%(op_list[-1].data['layer_name']))
+                    num_mismatches += 1
 
     # write out wavegraph           
     wavegraph_json = kgraph_json
