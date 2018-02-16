@@ -32,7 +32,7 @@ void
 WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
 {
     //const layers::ConvLayer* const convLayer = matmulWaveOp->gConvLayer();
-    const arch::Arch& arch(m_WaveCode->gArch());
+    const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
     //const arch::StateBuffer& stateBuf(arch.gStateBuffer());
 
@@ -71,7 +71,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     if (matmulWaveOp->gWeightsOffsetInAtom() < 0) {
         return; // this MatMul reuses weights
     }
-    //const arch::StateBuffer& stateBuf(m_WaveCode->gArch().gStateBuffer());
+    //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveOp->gWaveId());
 
     LDWEIGHTS ldweighsInstr;

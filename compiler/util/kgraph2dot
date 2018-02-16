@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+#
+# Kgraph visualization
+#
+import argparse
+import os, json, sys
+from graphviz import Digraph
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--json', help='Json Kgraphs to visualize', nargs='+', default=[])
+parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
+
+args = parser.parse_args()
+
+class KgraphJson(object):
+  def __init__(self, jsonFile, verbose):
+    self.jsonFile = jsonFile
+    self.verbose = verbose
+    with open(self.jsonFile) as fh:
+      self.jsonData = json.load(fh)
+  t2c = {
+    "Conv"     : "red",
+    "MaxPool"  : "orange",
+    "AvgPool"  : "orange",
+    "BiasAdd"  : "blue",
+    "ResAdd"   : "cyan",
+    "Const"    : "green"
+    }
+  def type2color(self, layerType):
+    return KgraphJson.t2c.get(layerType, "black")
+  
+  def plot(self):
+    dot = Digraph(comment="writeDot")
+    for layer in self.jsonData["layers"]:
+      # node
+      attrs = {}
+      nodeName = layer["layer_name"]
+      layerType = layer["layer_type"]
+      shape = layer["ofmap_shape"]
+      dotText = "%s\n%s\n%s" % (layerType, nodeName, shape)
+      if self.verbose:
+        dotText = "\n".join(["%s : %s" % (k, v) for k,v in sorted(layer.items())]) 
+      attrs["color"] = self.type2color(layerType)
+      attrs["shape"] = "rect"
+      dot.node(nodeName, dotText, attrs)
+      #print(dot.source)
+      # edge
+      for prevNode in layer["previous_layers"]:
+        edgeAttrs = {}
+        dot.edge(prevNode, nodeName, "", edgeAttrs)
+        #print(dot.source)
+    dot.format = "svg"
+    jsonIn = self.jsonFile
+    dotOut = jsonIn[:-5] + ".dot"
+    dot.render(dotOut)
+    print("INFO: wrote  %s.%s" % (dotOut, "svg"))
+
+
+for jsonFile in args.json:
+  kj = KgraphJson(jsonFile, args.verbose)
+  kj.plot()

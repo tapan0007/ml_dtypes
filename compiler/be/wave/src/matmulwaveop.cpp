@@ -40,9 +40,9 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_PsumBankId(params.m_PsumBankId)
     , m_PsumBankOffset(params.m_PsumBankOffset)
     , m_PsumXNum(params.m_PsumXNum)
-    , m_PsumXStep(params.m_PsumXNum)
-    , m_PsumYNum(params.m_PsumXNum)
-    , m_PsumYStep(params.m_PsumXNum)
+    , m_PsumXStep(params.m_PsumXStep)
+    , m_PsumYNum(params.m_PsumYNum)
+    , m_PsumYStep(params.m_PsumYStep)
     , m_StartTensorCalc(params.m_StartTensorCalc)
     , m_StopTensorCalc(params.m_StopTensorCalc)
     , m_StrideX(params.m_StrideX)
@@ -54,8 +54,8 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_WeightsAtomId(params.m_WeightsAtomId)
     , m_WeightsOffsetInAtom(params.m_WeightsOffsetInAtom)
 {
-    assert(verify());
     assert(params.verify());
+    assert(verify());
 }
 
 
@@ -63,7 +63,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
 kcc_int32
 MatMulWaveOp::gNumOfmapsInFold() const
 {
-    const arch::Arch& arch(m_Layer->gArch());
+    const arch::Arch& arch(arch::Arch::gArch());
     const kcc_int32 numPeArrayCols      = arch.gNumberPeArrayColumns();
     const kcc_int32 numOfmapsInLayer    = m_Layer->gNumOfmaps();
     const kcc_int32 ofmapFoldIdx        = m_WaveId.gOfmapFoldIdx();
@@ -91,19 +91,19 @@ MatMulWaveOp::verify() const
     if (m_FmapXNum < 1) {
         return false;
     }
-    if (m_FmapXStep < 0) {
+    if (m_FmapXStep < 1) {
         return false;
     }
     if (m_FmapYNum < 1) {
         return false;
     }
-    if (m_FmapYStep < 0) {
+    if (m_FmapYStep < 1) {
         return false;
     }
     if (m_FmapZNum < 1) {
         return false;
     }
-    if (m_FmapZStepAtoms < 0) {
+    if (m_FmapZStepAtoms < 1) {
         return false;
     }
     if (m_IfmapCount <= 0) {
@@ -150,13 +150,13 @@ MatMulWaveOp::verify() const
     if (m_PsumXNum < 1) {
         return false;
     }
-    if (m_PsumXStep < 0) {
+    if (m_PsumXStep < 1) {
         return false;
     }
     if (m_PsumYNum < 1) {
         return false;
     }
-    if (m_PsumYStep < 0) {
+    if (m_PsumYStep < 1) {
         return false;
     }
     // start
@@ -301,19 +301,19 @@ MatMulWaveOp::Params::verify() const
     if (m_FmapXNum < 1) {
         return false;
     }
-    if (m_FmapXStep < 0) {
+    if (m_FmapXStep < 1) {
         return false;
     }
     if (m_FmapYNum < 1) {
         return false;
     }
-    if (m_FmapYStep < 0) {
+    if (m_FmapYStep < 1) {
         return false;
     }
     if (m_FmapZNum < 1) {
         return false;
     }
-    if (m_FmapZStepAtoms < 0) {
+    if (m_FmapZStepAtoms < 1) {
         return false;
     }
     if (m_IfmapCount <= 0) {
@@ -360,13 +360,13 @@ MatMulWaveOp::Params::verify() const
     if (m_PsumXNum < 1) {
         return false;
     }
-    if (m_PsumXStep < 0) {
+    if (m_PsumXStep < 1) {
         return false;
     }
     if (m_PsumYNum < 1) {
         return false;
     }
-    if (m_PsumYStep < 0) {
+    if (m_PsumYStep < 1) {
         return false;
     }
     // start

@@ -83,14 +83,22 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         archive(cereal::make_nvp(WaveOpKey_IfmapsAtomSize, m_IfmapsAtomSize));
         archive(cereal::make_nvp(WaveOpKey_IfmapsOffsetInAtom, m_IfmapsOffsetInAtom));
         // layer name
+        archive(cereal::make_nvp(WaveOpKey_NumColumnPartitions, m_NumColumnPartitions));
+        archive(cereal::make_nvp(WaveOpKey_NumRowPartitions, m_NumRowPartitions));
         archive(cereal::make_nvp(WaveOpKey_OfmapCount, m_OfmapCount));
         archive(cereal::make_nvp(WaveOpKey_OfmapTileHeight, m_OfmapTileHeight));
         archive(cereal::make_nvp(WaveOpKey_OfmapTileWidth, m_OfmapTileWidth));
         // previous waveops
         archive(cereal::make_nvp(WaveOpKey_PsumBankId, m_PsumBankId));
         archive(cereal::make_nvp(WaveOpKey_PsumBankOffset, m_PsumBankOffset));
+        archive(cereal::make_nvp(WaveOpKey_PsumXNum, m_PsumXNum));
+        archive(cereal::make_nvp(WaveOpKey_PsumXStep, m_PsumXStep));
+        archive(cereal::make_nvp(WaveOpKey_PsumYNum, m_PsumYNum));
+        archive(cereal::make_nvp(WaveOpKey_PsumYStep, m_PsumYStep));
         archive(cereal::make_nvp(WaveOpKey_StartTensorCalc, m_StartTensorCalc));
         archive(cereal::make_nvp(WaveOpKey_StopTensorCalc, m_StopTensorCalc));
+        archive(cereal::make_nvp(WaveOpKey_StrideX, m_StrideX));
+        archive(cereal::make_nvp(WaveOpKey_StrideY, m_StrideY));
         archive(cereal::make_nvp(WaveOpKey_WaveIdFormat, m_WaveIdFormat));
         // waveop name
         // waveop type

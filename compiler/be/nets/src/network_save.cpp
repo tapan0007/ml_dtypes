@@ -252,20 +252,35 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serWaveOp.m_WaveOpType = wave::MatMulWaveOp::gTypeStr();
 
             serWaveOp.m_BatchingInWave = matmulWaveOp->gBatchingInWave();
+            serWaveOp.m_FmapXNum = matmulWaveOp->gFmapXNum();
+            serWaveOp.m_FmapXStep = matmulWaveOp->gFmapXStep();
+            serWaveOp.m_FmapYNum = matmulWaveOp->gFmapYNum();
+            serWaveOp.m_FmapYStep = matmulWaveOp->gFmapYStep();
+            serWaveOp.m_FmapZNum = matmulWaveOp->gFmapZNum();
+            serWaveOp.m_FmapZStepAtoms = matmulWaveOp->gFmapZStepAtoms();
             serWaveOp.m_IfmapCount = matmulWaveOp->gIfmapCount();
             serWaveOp.m_IfmapTileHeight = matmulWaveOp->gIfmapTileHeight();
             serWaveOp.m_IfmapTileWidth = matmulWaveOp->gIfmapTileWidth();
             serWaveOp.m_IfmapsAtomId = matmulWaveOp->gIfmapsAtomId();
+            serWaveOp.m_IfmapsAtomSize = matmulWaveOp->gIfmapsAtomSize();
             serWaveOp.m_IfmapsOffsetInAtom = matmulWaveOp->gIfmapsOffsetInAtom();
             // layer_name
+            serWaveOp.m_NumColumnPartitions = matmulWaveOp->gNumColumnPartitions();
+            serWaveOp.m_NumRowPartitions = matmulWaveOp->gNumRowPartitions();
             serWaveOp.m_OfmapCount = matmulWaveOp->gOfmapCount();
             serWaveOp.m_OfmapTileHeight = matmulWaveOp->gOfmapTileHeight();
             serWaveOp.m_OfmapTileWidth = matmulWaveOp->gOfmapTileWidth();
             // previous layers
             serWaveOp.m_PsumBankId = matmulWaveOp->gPsumBankId();
             serWaveOp.m_PsumBankOffset = matmulWaveOp->gPsumBankOffset();
+            serWaveOp.m_PsumXNum = matmulWaveOp->gPsumXNum();
+            serWaveOp.m_PsumXStep = matmulWaveOp->gPsumXStep();
+            serWaveOp.m_PsumYNum = matmulWaveOp->gPsumYNum();
+            serWaveOp.m_PsumYStep = matmulWaveOp->gPsumYStep();
             serWaveOp.m_StartTensorCalc = matmulWaveOp->qStartTensorCalc();
             serWaveOp.m_StopTensorCalc = matmulWaveOp->qStopTensorCalc();
+            serWaveOp.m_StrideX = matmulWaveOp->gStrideX();
+            serWaveOp.m_StrideY = matmulWaveOp->gStrideY();
             serWaveOp.m_WaveId = matmulWaveOp->gWaveId();
             serWaveOp.m_WaveIdFormat = matmulWaveOp->gWaveIdFormat();
             // waveop name

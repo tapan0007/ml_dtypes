@@ -264,6 +264,13 @@ public:
         return m_NumRowPartitions;
     }
 
+    kcc_int16 gStrideX () const {
+        return m_StrideX;
+    }
+    kcc_int16 gStrideY () const {
+        return m_StrideY;
+    }
+
 private:
     kcc_int16       m_BatchingInWave        = -1;
     kcc_int16       m_FmapXNum              = -1;

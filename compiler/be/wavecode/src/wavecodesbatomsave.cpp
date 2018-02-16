@@ -20,7 +20,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveOp)
 {
     auto sbatomsaveWaveOp = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveOp);
     assert(sbatomsaveWaveOp);
-    const arch::StateBuffer& stateBuf(m_WaveCode->gArch().gStateBuffer());
+    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
     const kcc_int64 numPartitions       = sbatomsaveWaveOp->gOfmapCount();
     const kcc_int64 numBytesPerPart     = sbatomsaveWaveOp->gLength();

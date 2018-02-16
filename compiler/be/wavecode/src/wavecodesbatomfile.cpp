@@ -23,7 +23,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
 {
     const auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp);
     assert(sbatomfileWaveOp);
-    const arch::StateBuffer& stateBuf(m_WaveCode->gArch().gStateBuffer());
+    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const layers::Layer* layer = sbatomfileWaveOp->gLayer();
 
     const kcc_int64 numBytesPerPart = sbatomfileWaveOp->gLength();
