@@ -8,7 +8,7 @@ import argparse
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=2
+DEBUG_LEVEL_DEFAULT=1
 
 #np.set_printoptions(threshold=np.nan)
 
@@ -149,10 +149,10 @@ class StateBuffer:
     SB_NUM_1K_ATOMS = SB_PARTITION_SZ/SB_ATOM_SZ
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
-        self.circbuf_ifmaps  = CircularBuffer("ifmaps",  8,        self.SB_ATOM_SZ, 0)
-        self.circbuf_weights = CircularBuffer("weights", 96-8-8-8, self.SB_ATOM_SZ, 8)
-        self.circbuf_bias    = CircularBuffer("bias",    8,        self.SB_ATOM_SZ, 96-8-8)
-        self.circbuf_scratch = CircularBuffer("scratch", 8,        self.SB_ATOM_SZ, 96-8)
+        self.circbuf_ifmaps  = CircularBuffer("ifmaps",  16,        self.SB_ATOM_SZ, 0)
+        self.circbuf_weights = CircularBuffer("weights", 96-8-4-16, self.SB_ATOM_SZ, 16)
+        self.circbuf_bias    = CircularBuffer("bias",    4,         self.SB_ATOM_SZ, 96-8-4)
+        self.circbuf_scratch = CircularBuffer("scratch", 8,         self.SB_ATOM_SZ, 96-8)
         self.saved_result_files = {}
 
     def print_stats(self):        
@@ -369,6 +369,7 @@ class CircularBuffer:
     def allocate_atom(self):
         if (self.count == self.capacity):
             print ("ERROR %s: no more space during allocate_atom for layer %s!"%(self.circbuf_type, self.layer_name))
+            self.print_stats()
             exit(-1)
             return -1
         self.current_atom_id = self.tail_pointer
@@ -558,11 +559,18 @@ class KNode:
                                                 self.tile_y_start * self.stride_y, 
                                                 self.tile_x_start * self.stride_x),
                                         dims=self.ifmap_shape) * self.item_sz)
+
+        ifmap_tile_upper_coordx = self.tile_x_start * self.stride_x + self.tile_width * self.stride_x - 1
+        ifmap_tile_upper_coordy = self.tile_y_start * self.stride_y + self.tile_height * self.stride_y - 1
+        if (ifmap_tile_upper_coordx > self.W-1):
+            ifmap_tile_upper_coordx = self.W-1
+        if (ifmap_tile_upper_coordy > self.H-1):
+            ifmap_tile_upper_coordy = self.H-1
         self.ifmap_tile_upper_addr = int(np.ravel_multi_index(
                                             (self.N - 1,    # TODO: for Tn>1, need to have multiple bounds for each batch item
                                                 (self.c-1) * PEArray.NUM_ROWS,
-                                                self.tile_y_start * self.stride_y + self.tile_height * self.stride_y - 1, 
-                                                self.tile_x_start * self.stride_x + self.tile_width * self.stride_x - 1),
+                                                ifmap_tile_upper_coordy,
+                                                ifmap_tile_upper_coordx),
                                         dims=self.ifmap_shape) * self.item_sz)
 
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
@@ -992,6 +1000,7 @@ class FusedOp(list):
                         residue_tile[0:self.conv_op.tile_height*self.conv_op.tile_width,j] = residue_tile_ifmap.flatten()
                 psum_temp = tpb.pool.resadd(psum_temp, residue_tile)
                 psum_bank_dst = 3
+                tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr)
                 tpb.gen_resadd_waveop_inline(op_list[i], tile_id, psum_bank_src, psum_bank_dst, self.conv_op.ofmap_tile_lower_addr)
                 if (i != len(op_list)-1):
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
@@ -1310,6 +1319,7 @@ class TPBSched:
                                                     pool_op.ifmap_count)
                         pool_op.compute_ofmap_tile_info(tile_id)
                         self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops)
+                        tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr, pool_op.ifmap_wave_upper_addr)
                         for j in range(PEArray.NUM_COLS):
                             M_idx = wave_id.m_id * PEArray.NUM_COLS + j
                             if (M_idx >= pool_op.M):
@@ -1328,7 +1338,6 @@ class TPBSched:
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
                             self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
                         self.waveop_stream.add_outputs(dram_output_waveops)
-                        tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr, pool_op.ifmap_wave_upper_addr)
 
         # save layer results to file, for retrieval by next layer                        
         np.save(result_file, result)
