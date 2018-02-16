@@ -29,6 +29,8 @@ conv_pad      Single Conv2D layer that exercises padding
 
 ^0-1conv0      Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
 ^0-1conv0_wave Existence test for wave scheduler
+^0-1conv0_c1h2_wave Existance test for 1 conv2D layer with 1x1 filter, 2x2 image, 1 input channel
+^0-1conv0_c1h16_wave Existance test for 1 conv2D layer with 1x1 filter, 16x16 image, 1 input channel
 0-1conv_tile  Single Conv2D layer with a large image
 0-10conv_relu Resnet-like network with 10 Conv2D and Relu layer pairs
 ^0-116conv_tanh  Resnet-like network with 116 Conv2D and Relu layer pairs
