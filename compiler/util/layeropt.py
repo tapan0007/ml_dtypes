@@ -538,12 +538,14 @@ class KNode:
 
         # compute the address bounds for OFMAP tile within OFMAPs tensor
         # TODO: for Tn>1, need to have multiple bounds for each batch item
+        # NCHW
         self.ofmap_tile_lower_addr = int(np.ravel_multi_index(
                                             (tile_id.n_id * self.Tn, 
                                                 tile_id.m_id * PEArray.NUM_COLS,
                                                 self.tile_y_start, 
                                                 self.tile_x_start),
                                         dims=self.ofmap_shape) * self.item_sz)
+        # NCHW
         self.ofmap_tile_upper_addr = int(np.ravel_multi_index(
                                             (self.N - 1, 
                                                 tile_id.m_id * PEArray.NUM_COLS,
@@ -553,6 +555,7 @@ class KNode:
 
         # compute the address bounds for IFMAP tile within IFMAPs tensor
         # TODO: for Tn>1, need to have multiple bounds for each batch item
+        # NCHW
         self.ifmap_tile_lower_addr = int(np.ravel_multi_index(
                                             (tile_id.n_id * self.Tn, 
                                                 0,
@@ -566,6 +569,7 @@ class KNode:
             ifmap_tile_upper_coordx = self.W-1
         if (ifmap_tile_upper_coordy > self.H-1):
             ifmap_tile_upper_coordy = self.H-1
+        # NCHW
         self.ifmap_tile_upper_addr = int(np.ravel_multi_index(
                                             (self.N - 1,    # TODO: for Tn>1, need to have multiple bounds for each batch item
                                                 (self.c-1) * PEArray.NUM_ROWS,
@@ -604,7 +608,7 @@ class KNode:
         assert(pe_row_start < pe_row_stop)
         for row in range(pe_row_start, pe_row_stop):
             #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * out_array_dim_y + row], wave_id)
-            ifmap = ifmaps[:, row]
+            ifmap = ifmaps[:, row]  # NCHW
             pe_row_offset = row - pe_row_start
             ofmap_full_tilex_sz_per_batchitem = self.ofmap_full_tilex_sz//self.Tn
             for i in range(self.Tn):
@@ -624,6 +628,7 @@ class KNode:
                             # TODO: check how N/C are arrange in memory; batching within waves may cause different atoms to be accessed by same wave
                             # TODO: for Tn>1, need to have multiple bounds for each batch item
                             if (row == pe_row_start):                                
+                                # NCHW
                                 self.ifmap_wave_upper_addr = int(np.ravel_multi_index(((wave_id.n_id * self.Tn) + i, row, ifmap_tiley, ifmap_tilex),
                                                                     dims=ifmaps.shape) * ifmaps.dtype.itemsize)
                                 self.ofmap_wave_upper_coordx = ifmap_tilex
@@ -664,7 +669,7 @@ class KNode:
         assert(pe_row_start < pe_row_stop)
         for row in range(pe_row_start, pe_row_stop):
             #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * out_array_dim_y + row], wave_id)
-            ifmap = ifmaps[:, row]
+            ifmap = ifmaps[:, row]  # NCHW
             pe_row_offset = row - pe_row_start
             ofmap_full_tilex_sz_per_batchitem = self.ofmap_full_tilex_sz//self.Tn
             for i in range(self.Tn): #ignore Tn for now
@@ -680,7 +685,8 @@ class KNode:
                                                             self.ifmap_wave_lower_coordy:self.ifmap_wave_upper_coordy+1,
                                                             self.ifmap_wave_lower_coordx:self.ifmap_wave_upper_coordx+1].flatten()
                 out_array[0:len(row_temp), pe_row_offset] = row_temp
-                if (row == pe_row_start):                                
+                if (row == pe_row_start):                               
+                    # NCHW
                     self.ifmap_wave_lower_addr = int(np.ravel_multi_index(((wave_id.n_id * self.Tn) + i, row, self.ifmap_wave_lower_coordy, self.ifmap_wave_lower_coordx),
                                                         dims=ifmaps.shape) * ifmaps.dtype.itemsize)
                     self.ifmap_wave_upper_addr = int(np.ravel_multi_index(((wave_id.n_id * self.Tn) + i, row, self.ifmap_wave_upper_coordy, self.ifmap_wave_upper_coordx),
@@ -866,7 +872,7 @@ class FusedOp(list):
               'fmap_y_step'             : self.conv_op.H * self.conv_op.stride_y,
               'fmap_y_num'              : ofmap_wave_height,
               'fmap_z_step_atoms'       : 1,    # 1 for now; may need more if input needs more than one atom at once 
-              'fmap_z_num'              : self.conv_op.Tn,
+              'fmap_z_num'              : self.conv_op.Tn,  # need CNHW format for this
               'num_row_partitions'      : self.conv_op.ifmap_count,
               'psum_x_step'             : 1,
               'psum_x_num'              : ofmap_wave_width,
@@ -992,6 +998,7 @@ class FusedOp(list):
                     if (M_idx >= self.conv_op.M):
                         break
                     else:
+                        # NCHW
                         residue_tile_ifmap = tpb.statebuffer.circbuf_scratch.dram_data[
                                 tile_id.n_id, 
                                 j, 
@@ -1327,6 +1334,7 @@ class TPBSched:
                             else:
                                 # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
                                 result_tile = (psum_temp[0 : pool_op.ofmap_full_tile_sz, j]).reshape((pool_op.ofmap_full_tiley_sz, pool_op.ofmap_full_tilex_sz))
+                                # NCHW
                                 result[n_id, 
                                         j, 
                                         pool_op.tile_y_start : pool_op.tile_y_start + pool_op.tile_height, 
@@ -1442,6 +1450,7 @@ class TPBSched:
                             else:
                                 # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
                                 result_tile = (psum_temp[0 : output_params_op.ofmap_full_tile_sz, j]).reshape((output_params_op.ofmap_full_tiley_sz, output_params_op.ofmap_full_tilex_sz))
+                                # NCHW
                                 result[n_id, 
                                         j, 
                                         output_params_op.tile_y_start : output_params_op.tile_y_start + output_params_op.tile_height, 
