@@ -26,6 +26,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const layers::Layer* layer = sbatomfileWaveOp->gLayer();
 
+    // These are waveop params, not layer params
     const kcc_int64 numBytesPerPart = sbatomfileWaveOp->gLength();
     const kcc_int64 numPartitions   = sbatomfileWaveOp->gIfmapCount();
 
@@ -54,38 +55,18 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         } else {
             assert(false && "Conv or Input layer expected");
         }
-        assert(numPartitions * numBytesPerPart == numPySize && "Something wrong when calculating numpy size");
         npyFileDramOffset           = m_WaveCode->gCurrentDramAddress(numPySize);
         npyToDramInstr.dst_address  = npyFileDramOffset;
         m_WaveCode->recordDramForNpyFile(sbatomfileWaveOp->gRefFileName(), npyFileDramOffset);
         m_WaveCode->writeInstruction(npyToDramInstr, WaveCode::UseStream_StreamProc);
     }
 
-    kcc_int64 stepSize = sbatomfileWaveOp->gDataType().gSizeInBytes();
-    if (layer->qConvLayer()) {
-        auto convLayer = dynamic_cast<const layers::ConvLayer*>(layer);  // Weights: step in numpy/dram = RSM
-        assert(convLayer && "Conv Layer expected");
-        stepSize *= convLayer->gKernelHeight(); // R
-        stepSize *= convLayer->gKernelWidth();  // S
-        stepSize *= convLayer->gNumOfmaps();    // M
-    } else if (layer->qInputLayer()) {          // IFMAPS: step in numpy/dram = NHW
-        auto inputLayer = dynamic_cast<const layers::InputLayer*>(layer);  // All IFMAPs = NCHW
-        assert(inputLayer && "Input Layer expected");
-        // batching?                             // N
-        stepSize *= inputLayer->gOfmapHeight();      // H
-        stepSize *= inputLayer->gOfmapWidth();       // W
-    } else {
-        assert(false && "Conv or Input layer expected");
-    }
-    assert(stepSize == numBytesPerPart);
-
     const kcc_int64 addressInPart   = sbatomfileWaveOp->gAtomId() * sbatomfileWaveOp->gWaveAtomSize();
-
 
     SIM_MEMCPY dramToStateBufInstr;
     dramToStateBufInstr.nbytes = numBytesPerPart;
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
-        dramToStateBufInstr.src_address = npyFileDramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * stepSize);
+        dramToStateBufInstr.src_address = npyFileDramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * numBytesPerPart);
         dramToStateBufInstr.dst_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
         m_WaveCode->writeInstruction(dramToStateBufInstr, WaveCode::UseStream_StreamProc);
     }
