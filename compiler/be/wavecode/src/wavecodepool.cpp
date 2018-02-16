@@ -22,7 +22,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 {
     auto poolWaveOp = dynamic_cast<wave::PoolWaveOp*>(waveOp);
     assert(poolWaveOp);
-    const arch::Arch& arch(m_WaveCode->gArch());
+    const arch::Arch& arch(arch::Arch::gArch());
     const auto& psumBuf(arch.gPsumBuffer());
     //const auto& stateBuf(arch.gStateBuffer());
 

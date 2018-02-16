@@ -33,11 +33,6 @@ namespace wave {
 namespace nets {
 
 //--------------------------------------------------------
-const arch::Arch&
-Network::gArch() const
-{
-    return m_Arch;
-}
 
 //--------------------------------------------------------
 void

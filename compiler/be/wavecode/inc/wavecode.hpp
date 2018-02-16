@@ -88,9 +88,6 @@ public:
     }
 
 
-    const arch::Arch& gArch() const {
-        return m_Arch;
-    }
     kcc_int64 gCurrentDramAddress(kcc_int64 sizeInBytes);
     kcc_int64 getDramForNpyFile(const std::string& fileName);
     void recordDramForNpyFile(const std::string& fileName, kcc_int64 dramOffset);

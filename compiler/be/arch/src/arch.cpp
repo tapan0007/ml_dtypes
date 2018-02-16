@@ -19,6 +19,21 @@ Arch::Arch()
 }
 
 //----------------------------------------------------------------
+const Arch&
+Arch::gArch()
+{
+    return *s_GlobalArch;
+}
+
+void
+Arch::init()
+{
+    s_GlobalArch = std::make_unique<Arch>();
+}
+
+std::unique_ptr<Arch> Arch::s_GlobalArch;
+
+//----------------------------------------------------------------
 kcc_int32 Arch::gNumberPeArrayRows() const
 {
     return m_PeArray.gNumberRows();

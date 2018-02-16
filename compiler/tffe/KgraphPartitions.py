@@ -11,11 +11,12 @@ import KaenaOpGraph as kog
 
 # Describes a (small) Kgraph with inputs and the output node
 class KsubGraph:
-  def __init__(self):
+  def __init__(self, debugLevel):
     self.graph = kog.Graph()
     self.__inputs = []
     self.__output = None
     self.__maxLevel = 0    # highest level of any node (== output) in the src graph
+    self.debugLevel = debugLevel
   def print(self, title):
     print(title)
     self.graph.print()
@@ -47,8 +48,14 @@ class KsubGraph:
     self.__output = self.graph.getTopNode()
     if len(self.__inputs) == 0:
       self.__inputs.append(self.__output)
-    # Make one of the nodes input for teh backend, should not matter whichone
+    # In the very first subgraph the original input node needs to be added too
+    srcInputName = srcGraph.getInputNode().getName()
+    if self.graph.hasNode(srcInputName):
+      self.__inputs.insert(0, self.graph.getNode(srcInputName))
+    # Make one of the nodes input for the backend, should not matter which one
     inputNode = self.__inputs[0]
+    if self.debugLevel > 0:
+      print("DEBUG: set input node %s" % inputNode.getName())
     self.graph.setInputNode(inputNode)
     #hasInputOpType = any((ni.getOpType() == "Input") for ni in self.__inputs)
     #assert inputNode.getOpType() == "Input" or
@@ -79,12 +86,17 @@ class KgraphPart(object):
   def getSubgraphs(self):
     return self.__subgraphs
   
+  # Returns the predecessor nodes along main flow edges only
+  def getPredecessorMainFlowNodes(self, node):
+    faninEdges = node.getFaninMainFlowEdges()
+    predNodes = [e.getFromNode() for e in faninEdges]
+    return(predNodes)
+
   # Returns the node, asserts that there is exactly one
   def getPredecessorMainFlowNode(self, node):
-    faninEdges = node.getFaninMainFlowEdges()
-    assert len(faninEdges) == 1
-    predNode = faninEdges[0].getFromNode()
-    return(predNode)
+    predNodes = self.getPredecessorMainFlowNodes(node)
+    assert len(predNodes) == 1
+    return(predNodes[0])
 
   # Returns True if nodes predecessor is forking flow (fanout >= 2)
   def predNodeHasFanout(self, node):
@@ -106,8 +118,7 @@ class KgraphPart(object):
       if n in visitedNodes:
         continue
       visitedNodes[n] = True
-      if self.debugLevel > 0:
-        print("DEBUG: colorNodesAuto visit         %-12s %s" %
+      print("DEBUG: colorNodesAuto visit         %-12s %s" %
               (n.getOpType(), n.getName()))
       fanoutEdges = n.getFanoutMainFlowEdges()
       faninEdges = n.getFaninMainFlowEdges()
@@ -180,12 +191,48 @@ class KgraphPart(object):
         print("DEBUG: colorNodesConv setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
       
-  # Color nodes given the partitioning startegy
+  # Color nodes to define subgraph partitions - start new partition from a node
+  # The from list must NOT be part of any reconvergent branch
+  def colorNodesFrom(self, fromNodeList):
+    sourceGraph = self.__kgraph
+    fromNodeSet = set(fromNodeList)
+    edgeQueue = []
+    visitedNodes = {}
+    n = sourceGraph.getInputNode()
+    color = self.getNewColor()
+    self.setNodeColor(n, color)
+    edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
+    while len(edgeQueue) > 0:
+      e,color = edgeQueue.pop(0)
+      n = e.getToNode()
+      if n in visitedNodes:
+        continue
+      visitedNodes[n] = True
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesFrom visit         %-12s %s" %
+              (n.getOpType(), n.getName()))
+      # Coloring
+      if n.getName() in fromNodeSet:
+        color = self.getNewColor()
+        self.setNodeColor(n, color)
+      else:
+        self.setNodeColor(n, color)
+      fanoutEdges = n.getFanoutMainFlowEdges()
+      edgeQueue += [(e, color) for e in fanoutEdges]
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesFrom setColor %d on %-12s %s" %
+              (self.getNodeColor(n), n.getOpType(), n.getName()))
+      
+  # Color nodes given the partitioning strategy
+  # The strategy is a keyword and arguments (for some)
   def colorNodes(self, partitioningStrategy):
-    if partitioningStrategy == "auto":
+    strategy = partitioningStrategy[0]
+    if strategy == "auto":
       self.colorNodesAuto()
-    elif partitioningStrategy == "conv":
+    elif strategy == "conv":
       self.colorNodesConv()
+    elif strategy == "from":
+      self.colorNodesFrom( partitioningStrategy[1:])
     else:
       assert 0
 
@@ -194,7 +241,7 @@ class KgraphPart(object):
   def partitionByColor(self):
     sourceGraph = self.__kgraph
     for i in range(self.__numColors):
-      self.__subgraphs.append(KsubGraph())
+      self.__subgraphs.append(KsubGraph(self.debugLevel))
     levelizedNodes = sourceGraph.getLevelizedNodes()
     # Nodes
     for level in range(len(levelizedNodes)):

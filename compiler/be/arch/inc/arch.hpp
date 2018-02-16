@@ -4,6 +4,7 @@
 #define KCC_ARCH_ARCH_H 1
 
 #include <string>
+#include <memory>
 
 #include "uarch_cfg.hpp"
 #include "utils/inc/types.hpp"
@@ -44,7 +45,10 @@ private:
 public:
 
     //----------------------------------------------------------------
-    Arch();
+    explicit Arch();
+
+    static const Arch& gArch();
+    static void init();
 
     //----------------------------------------------------------------
     const PeArray& gPeArray() const {
@@ -95,6 +99,8 @@ private:
     PoolingEng     m_PoolingEng;
     ActivationEng  m_ActivationEng;
     StateBuffer    m_StateBuffer;
+
+    static std::unique_ptr<Arch> s_GlobalArch;
 };
 
 }}

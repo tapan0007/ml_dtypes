@@ -110,7 +110,8 @@ Main(int argc, char* argv[])
 
 
     //------------------------------------------------
-    arch::Arch arch;
+    arch::Arch::init();
+    const arch::Arch& arch(arch::Arch::gArch());
     std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
 
 
