@@ -257,7 +257,7 @@ class CircularBuffer:
             #if (self.ifmap_data_len <= self.atom_sz):
             #    multiple = self.atom_sz // self.ifmap_data_len
             #    self.atom_data_sz = self.ifmap_data_len * multiple
-            # For NCHW, just use ifmap size as atom size
+            # For NCHW, just use ifmap size as atom size (see rule above: "different FMAPs folds will be in different atoms")
             if (self.ifmap_data_len <= self.atom_sz):
                 self.atom_data_sz = self.ifmap_data_len
             # make atom size multiple of width data length if it is smaller than default atom size
@@ -278,10 +278,11 @@ class CircularBuffer:
             self.ifmap_data_len = self.dram_data_len//C
             m_data_len = M * self.item_sz
             sm_data_len = S * m_data_len
-            rsm_data_len = R * sm_data_len
-            if (rsm_data_len  <= self.atom_sz):
-                multiple = self.atom_sz // rsm_data_len 
-                self.atom_data_sz = rsm_data_len * min(C, multiple)
+            # For NCHW, just use ifmap size as atom size (see rule above: "different FMAPs folds will be in different atoms")
+            # Here ifmap is RSM
+            if (self.ifmap_data_len <= self.atom_sz):
+                self.atom_data_sz = self.ifmap_data_len
+            # Else find the largest   
             elif (sm_data_len <= self.atom_sz):
                 multiple = self.atom_sz // sm_data_len
                 self.atom_data_sz = sm_data_len * min(R, multiple)
