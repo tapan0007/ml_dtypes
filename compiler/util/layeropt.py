@@ -8,7 +8,9 @@ import argparse
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=3
+DEBUG_LEVEL_DEFAULT=2
+
+#np.set_printoptions(precision=14)
 
 #kgraph_file = os.environ['KAENA_PATH'] + "/compiler/tffe/rundir/0-1conv0/trivnet_compiler.json"
 
@@ -17,6 +19,15 @@ DEBUG_LEVEL_DEFAULT=3
 
 def ceildiv(a,b):
     return (a//b) + (a%b != 0)
+
+def DBG_DUMP_ARRAY(msg, a):
+    if (args.debug > 3): print (msg, "\n" , a)
+    return a
+
+def DBG_DUMP_PSUM_COL(msg, psum, col):
+    x = psum[:, col]
+    if (args.debug > 3): print (msg, "\n" , x)
+    return x
 
 ##################################################################################
 # ID of a PE array wave
@@ -1009,7 +1020,10 @@ class FusedOp(list):
                 bias_extracted[0 : bias_end - bias_start] = bias[bias_start : bias_end]
                 bias_addr = bias_start * op_list[i].item_sz
                 dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, self.conv_op.ifmap_count)
+                #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
+                #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
+                #print(y-x)
                 psum_bank_dst = 2
                 if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid", op_list[i+1].data['layer_type'])):
                     psum_temp = tpb.activate.act(op_list[i+1].data['layer_type'], psum_temp)
@@ -1482,6 +1496,7 @@ class TPBSched:
                             else:
                                 # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
                                 result_tile = (psum_temp[0 : output_params_op.ofmap_full_tile_sz, j]).reshape((output_params_op.ofmap_full_tiley_sz, output_params_op.ofmap_full_tilex_sz))
+                                #DBG_DUMP_ARRAY("Intermediate result (FP32): ", result_tile)
                                 # NCHW
                                 result[n_id, 
                                         M_idx, 
@@ -1494,6 +1509,7 @@ class TPBSched:
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
                             self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
 
+                        #DBG_DUMP_ARRAY("Final result (FP16):", result)
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%2)
