@@ -93,6 +93,10 @@ testConfigMap = {
   "0-1conv1pool_b5_wave" : [ "trivnet_conv_pool", "tfloat16-b5-h4-r1-s1-c1-m1-SAME-AvgPool-k2-d2-wmin2-wmax2-imin1-imax80", "1conv1pool", "--scheduler wave"],
   "0-1conv1pool_b5m3_wave" : [ "trivnet_conv_pool", "tfloat16-b5-h4-r1-s1-c1-m3-SAME-AvgPool-k2-d2-wmin2-wmax2-imin1-imax240", "1conv1pool", "--scheduler wave"],
   "0-1conv1maxpool_k3d2_wave"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-SAME-MaxPool-k3-d2-wmin2-wmax2-imin1-imax16", "1conv1pool", "--scheduler wave"],
+  
+  # Conv, BiasAdd
+  "0-1conv1ba1"       : [ "trivnet_conv_ba", "tfloat16-b1-h4-r1-s1-c1-m1-SAME-wmin2-wmax2-imin1-imax16-amin1-amax16", "1conv1ba"],
+  "0-1conv1ba1_wave"  : [ "trivnet_conv_ba", "tfloat16-b1-h4-r1-s1-c1-m1-SAME-wmin2-wmax2-imin1-imax16-amin3-amax3", "1conv1ba", "--scheduler wave"],
 
   "0-biasadd"     : [ "trivnet_biasadd", "tfloat16-b1-h2-c1-wmin2-wmax2-imin3-imax6", "biasadd"],
   "0-biasadd_c2"  : [ "trivnet_biasadd", "tfloat16-b1-h2-c2-wmin2-wmax2-imin3-imax6", "biasadd"],
