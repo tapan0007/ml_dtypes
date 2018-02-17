@@ -210,7 +210,6 @@ public:
 
     bool verify() const override;
 
-    kcc_int32 gNumOfmapsInFold() const;
 
     layers::ConvLayer* gConvLayer() const {
         return dynamic_cast<layers::ConvLayer*>(gLayer());

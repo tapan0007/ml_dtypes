@@ -93,7 +93,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
                                             + matmulWaveOp->gWeightsOffsetInAtom();
     ldweighsInstr.start_addr            = addressInSbPart;
     ldweighsInstr.x_step                = -1; // last column goes first, so decrement
-    ldweighsInstr.x_num                 = matmulWaveOp->gNumOfmapsInFold();
+    ldweighsInstr.x_num                 = matmulWaveOp->gOfmapCount();
     ldweighsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();
 
     m_WaveCode->writeInstruction(ldweighsInstr, WaveCode::UseStream_PeArray);

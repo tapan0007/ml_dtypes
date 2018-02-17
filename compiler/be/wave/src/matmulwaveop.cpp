@@ -59,24 +59,6 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
 }
 
 
-// calculate the number of ofmaps in this wave
-kcc_int32
-MatMulWaveOp::gNumOfmapsInFold() const
-{
-    const arch::Arch& arch(arch::Arch::gArch());
-    const kcc_int32 numPeArrayCols      = arch.gNumberPeArrayColumns();
-    const kcc_int32 numOfmapsInLayer    = m_Layer->gNumOfmaps();
-    const kcc_int32 ofmapFoldIdx        = m_WaveId.gOfmapFoldIdx();
-    if (numOfmapsInLayer % numPeArrayCols == 0) {
-        return numOfmapsInLayer;
-    } else {
-        if ( (numOfmapsInLayer / numPeArrayCols) == ofmapFoldIdx ) { // last
-            return numOfmapsInLayer % numPeArrayCols;
-        } else {
-            return numPeArrayCols;
-        }
-    }
-}
 
 bool
 MatMulWaveOp::verify() const
