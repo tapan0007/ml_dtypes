@@ -8,7 +8,7 @@ import argparse
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
-DEBUG_LEVEL_DEFAULT=1
+DEBUG_LEVEL_DEFAULT=3
 
 #kgraph_file = os.environ['KAENA_PATH'] + "/compiler/tffe/rundir/0-1conv0/trivnet_compiler.json"
 
@@ -188,7 +188,9 @@ class CircularBuffer:
         self.dram_data_file = None
         self.dram_data = None
         self.dram_data_len = 0
-        self.dram_data_len_per_NC = 0
+        self.ifmap_data_len = 0
+        self.tracked_lower_addr = -1
+        self.tracked_lower_addr_chunked = 0
         self.layer_name = ""
         self.layer_type = "Output"
         self.layer_format = ""
@@ -222,7 +224,8 @@ class CircularBuffer:
         # TODO: come up with a better formula for atom_data_sz to take care of all cases
         # Constraints for atom_data_sz for Conv IFMAPs/OFMAPs: 
         #   * less than or equal to 1KB
-        #   * IFMAP: multiple of H*W, else multiple of W
+        #   * IFMAP: multiple of H*W, else multiple of W (for CNHW)
+        #   * IFMAP: one H*W, else multiple of W (for NCHW)
         #   * OFMAP: multiple of E*F, else multiple of OFMAP tile size
         #   * Filter: multiple of R*S*M, else multiple of S*M, else multiple of M
         #   * different FMAPs in one batch will be in different atoms (for now)
@@ -236,12 +239,17 @@ class CircularBuffer:
             else:
                 print("ERROR in load_file: Unrecognized layer %s type %s format %s"%(self.layer_name, self.layer_type, self.layer_format))
                 exit(-1)
-            self.dram_data_len_per_NC = self.dram_data_len//(N*C)
-            ifmap_data_len = H * W * self.item_sz
+            assert(N * C * H * W * self.item_sz == self.dram_data_len)                
+            self.ifmap_data_len = self.dram_data_len//(N*C)
             ifmap_width_data_len = W * self.item_sz
-            if (ifmap_data_len <= self.atom_sz):
-                multiple = self.atom_sz // ifmap_data_len
-                self.atom_data_sz = ifmap_data_len * min(C, multiple)
+            # make atom size multiple of IFMAP if IFMAP is smaller than default atom size (CNHW)
+            #if (self.ifmap_data_len <= self.atom_sz):
+            #    multiple = self.atom_sz // self.ifmap_data_len
+            #    self.atom_data_sz = self.ifmap_data_len * multiple
+            # For NCHW, just use ifmap size as atom size
+            if (self.ifmap_data_len <= self.atom_sz):
+                self.atom_data_sz = self.ifmap_data_len
+            # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
                 multiple = self.atom_sz // ifmap_width_data_len
                 if (self.layer_type == 'Output'):
@@ -255,7 +263,8 @@ class CircularBuffer:
                 self.atom_data_sz = self.atom_sz
         else:            
             C, R, S, M = self.dram_data.shape
-            self.dram_data_len_per_NC = self.dram_data_len//C
+            assert(C * R * S * M * self.item_sz == self.dram_data_len)                
+            self.ifmap_data_len = self.dram_data_len//C
             m_data_len = M * self.item_sz
             sm_data_len = S * m_data_len
             rsm_data_len = R * sm_data_len
@@ -276,8 +285,8 @@ class CircularBuffer:
     def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, ifmap_count):
         offset = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
-        if ((offset + length) > self.dram_data_len_per_NC):
-            length = self.dram_data_len_per_NC % self.atom_data_sz
+        if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
+            length = self.ifmap_data_len % self.atom_data_sz
         if (args.golden_inputs):            
             simout_file = self.dram_data_file.replace("-midout.", ".")
         else:            
@@ -304,8 +313,8 @@ class CircularBuffer:
     def gen_dram_save_waveop(self, tile_id, atom_id, chunk_id, ofmap_count):
         offset = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
-        if ((offset + length) > self.dram_data_len_per_NC):
-            length = self.dram_data_len_per_NC % self.atom_data_sz
+        if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
+            length = self.ifmap_data_len % self.atom_data_sz
         simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
@@ -326,8 +335,8 @@ class CircularBuffer:
             }
 
     def read_data_region(self, wave_id, lower_addr, upper_addr, ifmap_count):
-        dram_waveops = []
         if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
+        dram_waveops = []
         lower_addr_chunked = lower_addr // self.atom_data_sz
         upper_addr_chunked = upper_addr // self.atom_data_sz
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
@@ -336,23 +345,39 @@ class CircularBuffer:
                 dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
                 self.addr2atom[i] = atom_id
         return dram_waveops
+    
+    def hit_end_addr(self, upper_addr):
+        upper_addr_chunked = upper_addr // self.atom_data_sz
+        # if upper addr is larger than IFMAP size, then it is in a different channel or batch item,
+        # so use the modulo to check the end address
+        upper_addr_mod = upper_addr % self.ifmap_data_len
+        if (upper_addr_mod == self.ifmap_data_len - self.item_sz or upper_addr_mod == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz):
+            return True
+        return False
 
     def write_data_region(self, tile_id, lower_addr, upper_addr, ofmap_count):
         if (args.debug > 2): print("%s: write byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
+        if (self.tracked_lower_addr == -1): 
+            self.tracked_lower_addr = lower_addr
+            self.tracked_lower_addr_chunked = lower_addr // self.atom_data_sz
+        if (args.debug > 2): print("%s: written range is now %d to %d"%(self.circbuf_type, self.tracked_lower_addr, upper_addr))
         dram_waveops = []
         lower_addr_chunked = lower_addr // self.atom_data_sz
         upper_addr_chunked = upper_addr // self.atom_data_sz
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
-                dram_waveops.append(self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count))
                 self.addr2atom[i] = atom_id
         # assuming that we always write to the last piece of atom last, when 
         # there's a write to last piece of atom, trigger to dump to DRAM and deallocate atom
         # TODO: optimize by keep some atoms between layers
-        if (upper_addr == self.dram_data_len_per_NC - self.item_sz or upper_addr == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz):
-            for i in range(lower_addr_chunked, upper_addr_chunked+1):
-                self.free_atom(self.addr2atom[i])
+        if self.hit_end_addr(upper_addr):
+            if (args.debug > 2): print("%s: freeing range %d to %d"%(self.circbuf_type, self.tracked_lower_addr, upper_addr))
+            for i in range(self.tracked_lower_addr_chunked, upper_addr_chunked+1):
+                atom_id = self.addr2atom[i]
+                dram_waveops.append(self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count))
+                self.free_atom(atom_id)
+                self.tracked_lower_addr = -1
                 del self.addr2atom[i]
         return dram_waveops
 
@@ -398,7 +423,7 @@ class CircularBuffer:
                 self.head_pointer = self.start
 
     def print_stats(self):
-        print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d DRAM data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, self.dram_data_len_per_NC))
+        print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d DRAM file data length %d IFMAP data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, self.dram_data_len, self.ifmap_data_len))
 
 ##################################################################################
 # Neural network node, containing data read from JSON
@@ -982,7 +1007,8 @@ class FusedOp(list):
                 bias_end = min(bias_start + PEArray.NUM_COLS, self.conv_op.M)
                 bias_extracted = np.zeros(PEArray.NUM_COLS)
                 bias_extracted[0 : bias_end - bias_start] = bias[bias_start : bias_end]
-                dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_start, bias_end, self.conv_op.ifmap_count)
+                bias_addr = bias_start * op_list[i].item_sz
+                dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, self.conv_op.ifmap_count)
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
                 psum_bank_dst = 2
                 if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid", op_list[i+1].data['layer_type'])):
@@ -991,6 +1017,7 @@ class FusedOp(list):
                     next(op_list_iter)
                 else:                                    
                     tpb.gen_act_waveop_inline(op_list[i], None, tile_id, psum_bank_src, psum_bank_dst, dram_bias_waveops, bias_start)
+                tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr)
                 if (i != len(op_list)-1):
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
                 psum_bank_src = psum_bank_dst
@@ -1012,8 +1039,8 @@ class FusedOp(list):
                         residue_tile[0:self.conv_op.tile_height*self.conv_op.tile_width,j] = residue_tile_ifmap.flatten()
                 psum_temp = tpb.pool.resadd(psum_temp, residue_tile)
                 psum_bank_dst = 3
-                tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr)
                 tpb.gen_resadd_waveop_inline(op_list[i], tile_id, psum_bank_src, psum_bank_dst, self.conv_op.ofmap_tile_lower_addr)
+                tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr)
                 if (i != len(op_list)-1):
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
                 psum_bank_src = psum_bank_dst
