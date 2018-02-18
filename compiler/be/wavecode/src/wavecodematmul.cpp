@@ -78,7 +78,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
 
     //TPB_CMD_HEADER  hdr;
     //setup_sync(ldweighsInstr.sync);
-    ldweighsInstr.dtype                 = matmulWaveOp->gDataType().gSimTypeId();
+    const utils::DataType& dtype(matmulWaveOp->gDataType());
+    ldweighsInstr.dtype                 = dtype.gSimTypeId();
     //uint8_t         perf_opt = OPT_NONE;
     //uint8_t         dquant_table_idx  = 0;
     //uint8_t         dquant_in_dsize   = 0;
@@ -91,7 +92,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     //} TONGA_PACKED;
     const kcc_int64 addressInSbPart     = matmulWaveOp->gWeightsAtomId() * matmulWaveOp->gWaveAtomSize()
                                             + matmulWaveOp->gWeightsOffsetInAtom();
-    ldweighsInstr.start_addr            = addressInSbPart;
+
+    ldweighsInstr.start_addr            = addressInSbPart + (matmulWaveOp->gOfmapCount() - 1) * dtype.gSizeInBytes();
+
     ldweighsInstr.x_step                = -1; // last column goes first, so decrement
     ldweighsInstr.x_num                 = matmulWaveOp->gOfmapCount();
     ldweighsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();
