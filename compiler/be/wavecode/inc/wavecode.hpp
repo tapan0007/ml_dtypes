@@ -8,7 +8,6 @@
 
 
 
-#include "tcc.hpp"
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
@@ -119,7 +118,7 @@ private:
     std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
     std::unique_ptr<WaveCodePool>       m_CodePool;
 
-    kcc_int64                           m_CurrentDramAddress = 0;
+    kcc_int64                           m_CurrentDramAddress;
     std::map<std::string, kcc_int64>    m_InputNpyFile2DramAddress;
     std::map<std::string, NpyFileInfo>  m_OutputNpyFile2DramAddress;
 };

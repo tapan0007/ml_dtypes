@@ -1,6 +1,9 @@
 #include <map>
 
 
+#include "uarch_cfg.hpp"
+#include "tcc.hpp"
+
 #include "nets/inc/network.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
@@ -22,10 +25,11 @@ WaveCode::WaveCode(const nets::Network* network, const arch::Arch& arch)
     : m_Network(network)
     , m_Arch(arch)
 {
-    m_CodeMatMul     = std::make_unique<WaveCodeMatMul>(this);
-    m_CodeSbAtomFile = std::make_unique<WaveCodeSbAtomFile>(this);
-    m_CodeSbAtomSave = std::make_unique<WaveCodeSbAtomSave>(this);
-    m_CodePool       = std::make_unique<WaveCodePool>(this);
+    m_CodeMatMul            = std::make_unique<WaveCodeMatMul>(this);
+    m_CodeSbAtomFile        = std::make_unique<WaveCodeSbAtomFile>(this);
+    m_CodeSbAtomSave        = std::make_unique<WaveCodeSbAtomSave>(this);
+    m_CodePool              = std::make_unique<WaveCodePool>(this);
+    m_CurrentDramAddress    = DDRC0_PORT0;
 }
 
 WaveCode::~WaveCode() = default;
