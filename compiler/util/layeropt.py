@@ -1105,7 +1105,7 @@ class KGraph:
         self.data_type = 'float16'
         self.item_sz = 2
         self.current_node = None
-        self.last_split_next_nodes = None
+        self.last_split_next_nodes = []
 
     # add forward edges for forward traversals        
     def add_forward_refs(self, starting_node):
