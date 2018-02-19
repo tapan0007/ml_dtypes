@@ -502,7 +502,7 @@ class KNode:
         self.n = ceildiv(self.N, self.Tn)
         # per kaena-85, use noodle shapes for tiles
         # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
-        self.ofmap_full_tilex_sz = min(self.F * self.Tn, PEArray.MAX_WAVE_SIZE)
+        self.ofmap_full_tilex_sz = min(self.F * self.Tn, 16) ## DB: PEArray.MAX_WAVE_SIZE)
         self.ofmap_full_tiley_sz = min(self.E, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tilex_sz)
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
         #if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):

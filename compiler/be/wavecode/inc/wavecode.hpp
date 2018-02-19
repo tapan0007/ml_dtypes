@@ -41,6 +41,13 @@ class WaveCodePool;
 
 class WaveCode {
 public:
+    class NpyFileInfo {
+    public:
+        kcc_int64 m_FileDramOffset = -1;
+        ARBPRECTYPE m_SimTypeId = INVALID_ARBPRECTYPE;
+        std::array<kcc_int32, 4> m_RefFileShape;
+    };
+public:
     enum UseStream {
         UseStream_StreamProc,
         UseStream_PeArray,
@@ -89,8 +96,10 @@ public:
 
 
     kcc_int64 gCurrentDramAddress(kcc_int64 sizeInBytes);
-    kcc_int64 getDramForNpyFile(const std::string& fileName);
-    void recordDramForNpyFile(const std::string& fileName, kcc_int64 dramOffset);
+    kcc_int64 getDramForInputNpyFile(const std::string& fileName);
+    kcc_int64 getDramForOutputNpyFile(const std::string& fileName);
+    void recordDramForInputNpyFile(const std::string& fileName, kcc_int64 dramOffset);
+    void recordDramForOutputNpyFile(const std::string& fileName, const NpyFileInfo& npyFileInfo);
 
 private:
     WaveCode() = delete;
@@ -98,6 +107,7 @@ private:
 
 private:
     WaveCodeWaveOp& getCodeGen(const wave::WaveOp* waveOp);
+    void saveAllNpyFiles();
 
 private:
     const nets::Network*                m_Network;
@@ -110,7 +120,8 @@ private:
     std::unique_ptr<WaveCodePool>       m_CodePool;
 
     kcc_int64                           m_CurrentDramAddress = 0;
-    std::map<std::string, kcc_int64>    m_NpyFile2DramAddress;
+    std::map<std::string, kcc_int64>    m_InputNpyFile2DramAddress;
+    std::map<std::string, NpyFileInfo>  m_OutputNpyFile2DramAddress;
 };
 
 }}

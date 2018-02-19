@@ -39,6 +39,7 @@ WaveCode::generate(const InstrStreams& instrStreams)
         auto& codeGen = getCodeGen(waveOp);
         codeGen.generate(waveOp);
     }
+    saveAllNpyFiles();
 }
 
 WaveCodeWaveOp&
@@ -59,20 +60,37 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
 }
 
 kcc_int64
-WaveCode::getDramForNpyFile(const std::string& fileName)
+WaveCode::getDramForInputNpyFile(const std::string& fileName)
 {
-    const auto it = m_NpyFile2DramAddress.find(fileName);
-    if (it != m_NpyFile2DramAddress.end()) {
+    const auto it = m_InputNpyFile2DramAddress.find(fileName);
+    if (m_InputNpyFile2DramAddress.end() != it) {
         return (*it).second;
     } else {
         return -1;
     }
 }
 
-void
-WaveCode::recordDramForNpyFile(const std::string& fileName, kcc_int64 dramOffset)
+kcc_int64
+WaveCode::getDramForOutputNpyFile(const std::string& fileName)
 {
-    m_NpyFile2DramAddress[fileName] = dramOffset;
+    const auto it = m_OutputNpyFile2DramAddress.find(fileName);
+    if (it != m_OutputNpyFile2DramAddress.end()) {
+        return (*it).second.m_FileDramOffset;
+    } else {
+        return -1;
+    }
+}
+
+void
+WaveCode::recordDramForInputNpyFile(const std::string& fileName, kcc_int64 dramOffset)
+{
+    m_InputNpyFile2DramAddress[fileName] = dramOffset;
+}
+
+void
+WaveCode::recordDramForOutputNpyFile(const std::string& fileName, const NpyFileInfo& npyFileInfo)
+{
+    m_OutputNpyFile2DramAddress[fileName] = npyFileInfo;
 }
 
 kcc_int64
@@ -81,6 +99,27 @@ WaveCode::gCurrentDramAddress(kcc_int64 sizeInBytes)
     const kcc_int64 currAddress = m_CurrentDramAddress;
     m_CurrentDramAddress += sizeInBytes;
     return currAddress;
+}
+
+void
+WaveCode::saveAllNpyFiles ()
+{
+
+    const auto itE = m_OutputNpyFile2DramAddress.cend();
+    auto it = m_OutputNpyFile2DramAddress.cbegin();
+    for (; itE != it; ++it) {
+        SIM_RDNPY dramToNpyInstr;
+        strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
+        const NpyFileInfo& npyFileInfo((*it).second);
+        dramToNpyInstr.src_address          = (*it).second.m_FileDramOffset;
+        dramToNpyInstr.dst_ndims            = 4;
+        for (int i = 0; i < dramToNpyInstr.dst_ndims; ++i) {
+            dramToNpyInstr.dst_dims[i]   = npyFileInfo.m_RefFileShape[i];
+        }
+        dramToNpyInstr.dtype             = npyFileInfo.m_SimTypeId;
+
+        this->writeInstruction(dramToNpyInstr, WaveCode::UseStream_StreamProc);
+    }
 }
 
 }}
