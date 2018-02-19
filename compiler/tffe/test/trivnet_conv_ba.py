@@ -57,16 +57,7 @@ else:
 if len(sys.argv) > 3:
   netName = sys.argv[3]
 else:
-  netName = "jdr_v4"
-if len(sys.argv) > 4:
-  dataType = sys.argv[4]
-else:
-  dataType = "float16"
-# DataTypes
-#   npDataType, tfDataType - for the data flow
-#   fixedType - np.float16 - for generating inputs, weights
-for t in ["np", "tf"]:
-  exec("%sDataType = %s.%s" % (t, t, dataType))
+  netName = "jdr_v5"
 
 dimList = re.split('([A-Z]+)(-?[\d\.]+)-', dimStr)
 dimCmd = str(tuple(dimList[1::3])).replace("'", "") + " = " + str(tuple(map(float, dimList[2::3])))
@@ -74,6 +65,25 @@ dimCmd = dimCmd.replace(".0,", ",")
 print(dimCmd)
 assert(len(dimList[2::3]) == 13)
 exec(dimCmd)
+
+# DataTypes
+#   npDataType, tfDataType - for the data flow
+dataType = "float16"
+try:
+  dataType = "float%d" % TFLOAT
+except:
+  try:
+    dataType = "int%d" % TINT
+  except:
+    try:
+      dataType = "uint%d" % TUINT
+    except:
+      print("ERROR: no known type, check your t... section of the config string")
+      exit(1)
+for t in ["np", "tf"]:
+  exec("%sDataType = %s.%s" % (t, t, dataType))
+
+
 
 # Conv
 IF1shapeNHWC = [B, H, H, C]
