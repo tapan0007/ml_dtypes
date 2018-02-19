@@ -654,7 +654,6 @@ class KNode:
                         ifmap_tilex = (wave_id.w_id * ofmap_full_tilex_sz_per_batchitem + x) * self.stride_x + wave_id.s_id - self.pad_west
                         ifmap_tiley = (wave_id.h_id * self.ofmap_full_tiley_sz + y) * self.stride_y + wave_id.r_id - self.pad_north
                         ifmap_addr = i * self.ofmap_full_tile_sz//self.Tn + y * ofmap_full_tilex_sz_per_batchitem + x
-                        #print("x %d y %d ifmap_tilex %d ifmap_tiley %d"%(x, y, ifmap_tilex, ifmap_tiley))                                    
                         if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
                             out_array[ifmap_addr, pe_row_offset] = 0
                         elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
@@ -668,13 +667,14 @@ class KNode:
                                 # NCHW
                                 self.ifmap_wave_upper_addr = int(np.ravel_multi_index(((wave_id.n_id * self.Tn) + i, row, ifmap_tiley, ifmap_tilex),
                                                                     dims=ifmaps.shape) * ifmaps.dtype.itemsize)
-                                self.ofmap_wave_upper_coordx = ifmap_tilex
-                                self.ofmap_wave_upper_coordy = ifmap_tiley
+                                self.ofmap_wave_upper_coordx = x
+                                self.ofmap_wave_upper_coordy = y
                                 if (self.ifmap_wave_lower_addr < 0):
                                     self.ifmap_wave_lower_addr = self.ifmap_wave_upper_addr
-                                    self.ofmap_wave_lower_coordx = self.ofmap_wave_upper_coordx
-                                    self.ofmap_wave_lower_coordy = self.ofmap_wave_upper_coordy
+                                    self.ofmap_wave_lower_coordx = x
+                                    self.ofmap_wave_lower_coordy = y
                                     self.psum_bank_offset = (y * ofmap_full_tilex_sz_per_batchitem + x) * ifmaps.dtype.itemsize
+                        #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx, self.ofmap_wave_lower_coordy, self.ofmap_wave_upper_coordx, self.ofmap_wave_upper_coordy))                                    
         return out_array
 
     def pack_wave_ifmaps_unfused_pooling (self, ifmaps, wave_id, for_unfused_pooling):
