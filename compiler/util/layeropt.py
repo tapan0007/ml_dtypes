@@ -953,10 +953,7 @@ class FusedOp(list):
             src_ifmap_width = self.pool_op.W
             src_ifmap_height = self.pool_op.H
             in_dtype = self.out_data_type
-        psum_step_multiplier = 1            
-        # TODO: once Inkling bug is fixed, remove this
-        if (src_is_psum): # and self.pool_op.item_sz == 2):
-            psum_step_multiplier = 2
+        psum_step_multiplier = 1   # kaena-174, tonga-310: after Inkling fix, no need for multiplier         
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
