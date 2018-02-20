@@ -161,9 +161,9 @@ class StateBuffer:
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         self.circbuf_ifmaps  = CircularBuffer("ifmaps",  16,        self.SB_ATOM_SZ, 0)
-        self.circbuf_weights = CircularBuffer("weights", 96-8-4-16, self.SB_ATOM_SZ, 16)
-        self.circbuf_bias    = CircularBuffer("bias",    4,         self.SB_ATOM_SZ, 96-8-4)
-        self.circbuf_scratch = CircularBuffer("scratch", 8,         self.SB_ATOM_SZ, 96-8)
+        self.circbuf_weights = CircularBuffer("weights", 96-16-4-16, self.SB_ATOM_SZ, 16)
+        self.circbuf_bias    = CircularBuffer("bias",    4,         self.SB_ATOM_SZ, 96-16-4)
+        self.circbuf_scratch = CircularBuffer("scratch", 16,         self.SB_ATOM_SZ, 96-16)
         self.saved_result_files = {}
 
     def print_stats(self):        
@@ -1039,19 +1039,24 @@ class FusedOp(list):
                 tpb.pool.wait_tile_done(tile_id)
                 dram_resadd_waveop = tpb.statebuffer.circbuf_scratch.read_data_region(wave_id, self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr, self.conv_op.ifmap_count)
                 residue_tile = np.zeros((self.conv_op.ofmap_full_tile_sz, PEArray.NUM_COLS))
+                residue_ifmaps = np.zeros((self.conv_op.ofmap_full_tile_sz, PEArray.NUM_COLS), dtype=np.float32)
                 for j in range(PEArray.NUM_COLS):
                     M_idx = tile_id.m_id * PEArray.NUM_COLS + j
                     if (M_idx >= self.conv_op.M):
                         break
                     else:
                         # NCHW
-                        residue_tile_ifmap = tpb.statebuffer.circbuf_scratch.dram_data[
+                        residue_tile_ifmap = np.zeros((self.conv_op.ofmap_full_tiley_sz, self.conv_op.ofmap_full_tilex_sz), dtype=np.float32)
+                        residue_tile_ifmap[0:self.conv_op.ofmap_cropped_tile_height, 0:self.conv_op.ofmap_cropped_tile_width] = tpb.statebuffer.circbuf_scratch.dram_data[
                                 tile_id.n_id, 
                                 M_idx, 
                                 self.conv_op.ofmap_tile_y_start : self.conv_op.ofmap_tile_y_start + self.conv_op.ofmap_cropped_tile_height, 
                                 self.conv_op.ofmap_tile_x_start : self.conv_op.ofmap_tile_x_start + self.conv_op.ofmap_cropped_tile_width]
-                        residue_tile[0:self.conv_op.ofmap_cropped_tile_height*self.conv_op.ofmap_cropped_tile_width,j] = residue_tile_ifmap.flatten()
-                psum_temp = tpb.pool.resadd(psum_temp, residue_tile)
+                        residue_ifmaps[:,j] = residue_tile_ifmap.flatten()
+                x1 = DBG_DUMP_PSUM_COL("PSUM col0 before ResAdd (FP32): ", psum_temp, 0)
+                x2 = DBG_DUMP_PSUM_COL("Residue col0 before ResAdd (FP32): ", residue_ifmaps, 0)
+                psum_temp = tpb.pool.resadd(psum_temp, residue_ifmaps)
+                y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
                 psum_bank_dst = 3
                 tpb.gen_resadd_waveop_inline(op_list[i], tile_id, psum_bank_src, psum_bank_dst, self.conv_op.ofmap_tile_lower_addr)
                 tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr)
@@ -1188,7 +1193,8 @@ class KGraph:
         last_node_type = fused_ops[-1].data['layer_type']
         # if there's only one next node, check if it is fusable and add
         if (len(next_nodes) == 1):
-            if (last_node_type in next_is_fusable):
+            if (last_node_type in next_is_fusable
+                    and not (next_nodes[0].data['layer_type'] == "ResAdd" and self.last_split_next_nodes != [])):
                 regex = next_is_fusable[last_node_type]
                 if (re.search(regex, next_nodes[0].data['layer_type'])):               
                     # TODO: don't fuse if pool size != stride size
