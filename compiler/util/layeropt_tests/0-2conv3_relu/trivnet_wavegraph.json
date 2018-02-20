@@ -467,7 +467,7 @@
       "waveop_type": "Activation"
     },
     {
-      "atom_id": 88,
+      "atom_id": 80,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",

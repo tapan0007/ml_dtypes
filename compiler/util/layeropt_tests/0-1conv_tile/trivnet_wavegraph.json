@@ -440,7 +440,7 @@
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 88,
+      "dst_sb_atom_id": 80,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -864,7 +864,7 @@
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 88,
+      "dst_sb_atom_id": 80,
       "dst_sb_offset_in_atom": 490,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -900,7 +900,7 @@
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 88,
+      "atom_id": 80,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -1288,7 +1288,7 @@
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 89,
+      "dst_sb_atom_id": 81,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1712,7 +1712,7 @@
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 89,
+      "dst_sb_atom_id": 81,
       "dst_sb_offset_in_atom": 490,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1748,7 +1748,7 @@
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 89,
+      "atom_id": 81,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -2136,7 +2136,7 @@
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 90,
+      "dst_sb_atom_id": 82,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -2172,7 +2172,7 @@
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 90,
+      "atom_id": 82,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
