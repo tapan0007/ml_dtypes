@@ -3,6 +3,7 @@
 #ifndef KCC_WAVECODE_WAVECODE_H
 #define KCC_WAVECODE_WAVECODE_H
 
+#include <array>
 #include <string>
 #include <cstdio>
 
