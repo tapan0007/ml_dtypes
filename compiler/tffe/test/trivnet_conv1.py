@@ -47,23 +47,30 @@ if len(sys.argv) > 3:
   netName = sys.argv[3]
 else:
   netName = "jdr_v2"
-if len(sys.argv) > 4:
-  dataType = sys.argv[4]
-else:
-  dataType = "float16"
-# DataTypes
-#   npDataType, tfDataType - for the data flow
-#   fixedType - np.float16 - for generating inputs, weights
-for t in ["np", "tf"]:
-  exec("%sDataType = %s.%s" % (t, t, dataType))
-fixedDataType = np.float16
 
 dimList = re.split('([A-Z]+)(-?[\d\.]+)-', dimStr)
 dimCmd = str(tuple(dimList[1::3])).replace("'", "") + " = " + str(tuple(map(float, dimList[2::3])))
 dimCmd = dimCmd.replace(".0,", ",")
 print(dimCmd)
-assert(len(dimList[2::3]) == 10)
+#assert(len(dimList[2::3]) == 1)
 exec(dimCmd)
+
+# DataTypes
+#   npDataType, tfDataType - for the data flow
+dataType = "float16"
+try:
+  dataType = "float%d" % TFLOAT
+except:
+  try:
+    dataType = "int%d" % TINT
+  except:
+    try:
+      dataType = "uint%d" % TUINT
+    except:
+      print("ERROR: no known type, check your t... section of the config string")
+      exit(1)
+for t in ["np", "tf"]:
+  exec("%sDataType = %s.%s" % (t, t, dataType))
 
 IF1 = np.zeros([B, H, H, C])
 W1  = np.zeros([R, R, C, M])
@@ -72,7 +79,7 @@ strides = [1, S, S, 1]
 padding = "SAME"
 
 
-w1Values =  permuteArr(np.linspace(WMIN, WMAX, num=W1.size, dtype=fixedDataType)).reshape(W1.shape)
+w1Values =  permuteArr(np.linspace(WMIN, WMAX, num=W1.size, dtype=npDataType)).reshape(W1.shape)
 print("w1\n", w1Values, "  ", w1Values.dtype)
 
 w1 = tf.get_variable(name=netName+"/weight1",
@@ -82,7 +89,7 @@ i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
 i1 = tf.nn.conv2d(i0, w1, strides, padding, name=netName + "/i1")
 output = tf.identity(i1, name=netName+"/output")
 
-i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=fixedDataType)).reshape(IF1.shape)
+i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType)).reshape(IF1.shape)
 
 # Overide the values:
 for row,col,val in fmapValList:
