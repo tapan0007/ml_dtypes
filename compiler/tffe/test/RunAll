@@ -233,10 +233,37 @@ testConfigMap = {
 testWaiver = [
     ['^0-add',   'WAIVE-RESADD'],
     ['^[4-9]-',  'WAIVE-BENCH'],
-    ['_wave',     'WAIVE-WAVESC'],
+
+    # ['_wave',     'WAIVE-WAVESC'],
+    ['0-1conv0_h16r3s2_wave',       'WAIVE_WAVESC'],
+    ['0-1conv0_h55c256m1_wave',     'WAIVE_WAVESC'],
+    ['0-1conv1avgpool_wave',        'WAIVE_WAVESC'],
+    ['0-1conv1ba1_wave$',           'WAIVE_WAVESC'],
+    ['0-1conv1ba1_fp32_wave$',      'WAIVE_WAVESC'],
+    ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
+    ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
+    ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
+    ['0-1conv1pool_wave',           'WAIVE_WAVESC'],
+    ['0-1conv_h6r3s2_wave',         'WAIVE_WAVESC'],
+    ['0-1conv_tile_wave',           'WAIVE_WAVESC'],
+    ['1-1conv0_h32c128m128_wave',   'WAIVE_WAVESC'],
+    ['1-1conv0_h32c128m64_wave',    'WAIVE_WAVESC'],
+    ['1-1conv0_h32c1m2_wave',       'WAIVE_WAVESC'],
+    ['1-1conv0_h32c256m128_wave',   'WAIVE_WAVESC'],
+    ['1-1conv0_h32c256m64_wave',    'WAIVE_WAVESC'],
+    ['1-1conv0_h40c128m128_wave',   'WAIVE_WAVESC'],
+    ['1-1conv0_h40c128m64_wave',    'WAIVE_WAVESC'],
+    ['1-1conv0_h40c256m128_wave',   'WAIVE_WAVESC'],
+    ['1-1conv0_h40c256m64_wave',    'WAIVE_WAVESC'],
+    ['1-1conv0_h55c256_wave',       'WAIVE_WAVESC'],
+    ['1-1conv0_h55c64m256_wave',    'WAIVE_WAVESC'],
+    ['1-1conv0_h55m64_wave',        'WAIVE_WAVESC'],
+    ['1-1conv0_h56c1m1_wave',       'WAIVE_WAVESC'],
+    ['1-1conv0_r3h16c128_wave',     'WAIVE_WAVESC'],
+    ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
+    ['3-rn50_pool2_wave',           'WAIVE_WAVESC'],
+
     ['8-rn50_nne', 'WAIVE-NNE'],
-    ['0-1conv1ba1$', 'WAIVE-BE_CONST'],
-    ['0-1conv1ba1_fp32$', 'WAIVE-BE_CONST']
     ['3-rn50-\d+_wave', 'WAIVE-S9-2']
   ]
 
