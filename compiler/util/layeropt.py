@@ -558,15 +558,15 @@ class KNode:
 
     # compute output tile info
     def compute_ofmap_tile_info(self, tile_id):        
-        self.tile_x_start = tile_id.w_id * self.ofmap_full_tilex_sz
-        self.tile_y_start = tile_id.h_id * self.ofmap_full_tiley_sz
-        self.tile_height = self.ofmap_full_tiley_sz
-        self.tile_width = self.ofmap_full_tilex_sz
+        self.ofmap_tile_x_start = tile_id.w_id * self.ofmap_full_tilex_sz
+        self.ofmap_tile_y_start = tile_id.h_id * self.ofmap_full_tiley_sz
+        self.ofmap_cropped_tile_height = self.ofmap_full_tiley_sz
+        self.ofmap_cropped_tile_width = self.ofmap_full_tilex_sz
         if ((tile_id.h_id+1) * self.ofmap_full_tiley_sz > self.E):
-            self.tile_height = self.E - self.tile_y_start
+            self.ofmap_cropped_tile_height = self.E - self.ofmap_tile_y_start
         if ((tile_id.w_id+1) * self.ofmap_full_tilex_sz > self.F):
-            self.tile_width = self.F - self.tile_x_start
-        self.tile_size = self.tile_height * self.tile_width
+            self.ofmap_cropped_tile_width = self.F - self.ofmap_tile_x_start
+        self.tile_size = self.ofmap_cropped_tile_height * self.ofmap_cropped_tile_width
 
         # number of OFMAPs for this tile 
         pe_col_start = tile_id.m_id * PEArray.NUM_COLS
@@ -579,29 +579,31 @@ class KNode:
         self.ofmap_tile_lower_addr = int(np.ravel_multi_index(
                                             (tile_id.n_id * self.Tn, 
                                                 tile_id.m_id * PEArray.NUM_COLS,
-                                                self.tile_y_start, 
-                                                self.tile_x_start),
+                                                self.ofmap_tile_y_start, 
+                                                self.ofmap_tile_x_start),
                                         dims=self.ofmap_shape) * self.item_sz)
         # NCHW
         self.ofmap_tile_upper_addr = int(np.ravel_multi_index(
                                             (self.N - 1, 
                                                 tile_id.m_id * PEArray.NUM_COLS,
-                                                self.tile_y_start + self.tile_height - 1, 
-                                                self.tile_x_start + self.tile_width - 1),
+                                                self.ofmap_tile_y_start + self.ofmap_cropped_tile_height - 1, 
+                                                self.ofmap_tile_x_start + self.ofmap_cropped_tile_width - 1),
                                         dims=self.ofmap_shape) * self.item_sz)
 
         # compute the address bounds for IFMAP tile within IFMAPs tensor
         # TODO: for Tn>1, need to have multiple bounds for each batch item
         # NCHW
+        ifmap_tile_lower_coordx = self.ofmap_tile_x_start * self.stride_x
+        ifmap_tile_lower_coordy = self.ofmap_tile_y_start * self.stride_y
         self.ifmap_tile_lower_addr = int(np.ravel_multi_index(
                                             (tile_id.n_id * self.Tn, 
                                                 0,
-                                                self.tile_y_start * self.stride_y, 
-                                                self.tile_x_start * self.stride_x),
+                                                ifmap_tile_lower_coordy,
+                                                ifmap_tile_lower_coordx),
                                         dims=self.ifmap_shape) * self.item_sz)
 
-        ifmap_tile_upper_coordx = self.tile_x_start * self.stride_x + self.tile_width * self.stride_x - 1
-        ifmap_tile_upper_coordy = self.tile_y_start * self.stride_y + self.tile_height * self.stride_y - 1
+        ifmap_tile_upper_coordx = ifmap_tile_lower_coordx + self.ofmap_cropped_tile_width * self.stride_x - 1
+        ifmap_tile_upper_coordy = ifmap_tile_lower_coordy + self.ofmap_cropped_tile_height * self.stride_y - 1
         if (ifmap_tile_upper_coordx > self.W-1):
             ifmap_tile_upper_coordx = self.W-1
         if (ifmap_tile_upper_coordy > self.H-1):
@@ -613,6 +615,9 @@ class KNode:
                                                 ifmap_tile_upper_coordy,
                                                 ifmap_tile_upper_coordx),
                                         dims=self.ifmap_shape) * self.item_sz)
+
+        self.ifmap_cropped_tile_width = ifmap_tile_upper_coordx - ifmap_tile_lower_coordx + 1
+        self.ifmap_cropped_tile_height = ifmap_tile_upper_coordy - ifmap_tile_lower_coordy + 1
 
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format
@@ -923,21 +928,15 @@ class FusedOp(list):
     # TODO: currently, always go to SB after Pooling
     def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id):
         if (src_is_psum):
-            src_x_step = 1
-            src_y_step = self.pool_op.tile_width
-            src_z_step = self.pool_op.stride_x
-            src_w_step = self.pool_op.tile_width * self.pool_op.stride_y 
+            src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
+            src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
         else:
-            src_x_step = 1
-            src_y_step = self.pool_op.W
-            src_z_step = self.pool_op.stride_x
-            src_w_step = self.pool_op.W * self.pool_op.stride_y
+            src_ifmap_width = self.pool_op.W
+            src_ifmap_height = self.pool_op.H
+        psum_step_multiplier = 1            
         # TODO: once Inkling bug is fixed, remove this
         if (src_is_psum and self.pool_op.item_sz == 2):
-            src_x_step = src_x_step * 2
-            src_y_step = src_y_step * 2
-            src_z_step = src_z_step * 2
-            src_w_step = src_w_step * 2
+            psum_step_multiplier = 2
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
@@ -953,22 +952,22 @@ class FusedOp(list):
               'src_psum_bank_offset'    : 0,
               'src_sb_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # TODO: this should belong to the lowest atom ID if there are multiple atoms
               'src_sb_offset_in_atom'   : self.pool_op.ifmap_tile_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
-              'src_x_step'              : src_x_step,
+              'src_x_step'              : 1 * psum_step_multiplier,
               'src_x_num'               : self.pool_op.pool_window_x,
-              'src_y_step'              : src_y_step,
+              'src_y_step'              : src_ifmap_width * psum_step_multiplier,
               'src_y_num'               : self.pool_op.pool_window_y,
-              'src_z_step'              : src_z_step,
-              'src_z_num'               : self.pool_op.tile_width,
-              'src_w_step'              : src_w_step,
-              'src_w_num'               : self.pool_op.tile_height,
+              'src_z_step'              : self.pool_op.stride_x * psum_step_multiplier,
+              'src_z_num'               : self.pool_op.ofmap_cropped_tile_width,
+              'src_w_step'              : src_ifmap_width * self.pool_op.stride_y * psum_step_multiplier,
+              'src_w_num'               : self.pool_op.ofmap_cropped_tile_height,
               'pool_frequency'          : self.pool_op.pool_window_x * self.pool_op.pool_window_y,
               'num_partitions'          : self.pool_op.ofmap_count,
               'dst_sb_atom_id'          : tpb.statebuffer.circbuf_scratch.current_atom_id, # Need to adjust this after allocating atoms
               'dst_sb_offset_in_atom'   : self.pool_op.ofmap_tile_lower_addr % tpb.statebuffer.circbuf_scratch.atom_data_sz,
               'dst_x_step'              : 1,
-              'dst_x_num'               : self.pool_op.tile_width,
+              'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
               'dst_y_step'              : self.pool_op.E,
-              'dst_y_num'               : self.pool_op.tile_height,
+              'dst_y_num'               : self.pool_op.ofmap_cropped_tile_height,
               'dst_z_step'              : self.pool_op.E * self.pool_op.F,  # Need CNHW data format
               'dst_z_num'               : self.pool_op.Tn,  # Need CNHW data format
             }
@@ -1049,9 +1048,9 @@ class FusedOp(list):
                         residue_tile_ifmap = tpb.statebuffer.circbuf_scratch.dram_data[
                                 tile_id.n_id, 
                                 M_idx, 
-                                self.conv_op.tile_y_start : self.conv_op.tile_y_start + self.conv_op.tile_height, 
-                                self.conv_op.tile_x_start : self.conv_op.tile_x_start + self.conv_op.tile_width]
-                        residue_tile[0:self.conv_op.tile_height*self.conv_op.tile_width,j] = residue_tile_ifmap.flatten()
+                                self.conv_op.ofmap_tile_y_start : self.conv_op.ofmap_tile_y_start + self.conv_op.ofmap_cropped_tile_height, 
+                                self.conv_op.ofmap_tile_x_start : self.conv_op.ofmap_tile_x_start + self.conv_op.ofmap_cropped_tile_width]
+                        residue_tile[0:self.conv_op.ofmap_cropped_tile_height*self.conv_op.ofmap_cropped_tile_width,j] = residue_tile_ifmap.flatten()
                 psum_temp = tpb.pool.resadd(psum_temp, residue_tile)
                 psum_bank_dst = 3
                 tpb.gen_resadd_waveop_inline(op_list[i], tile_id, psum_bank_src, psum_bank_dst, self.conv_op.ofmap_tile_lower_addr)
@@ -1062,8 +1061,8 @@ class FusedOp(list):
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
                 tpb.activate.wait_tile_done(tile_id)
                 self[i].compute_ofmap_tile_info(tile_id)
-                #tilex = self.conv_op.tile_width
-                #tiley = self.conv_op.tile_height
+                #tilex = self.conv_op.ofmap_cropped_tile_width
+                #tiley = self.conv_op.ofmap_cropped_tile_height
                 tilex = self[i].ofmap_full_tilex_sz * self[i].stride_x
                 tiley = self[i].ofmap_full_tiley_sz * self[i].stride_y
                 if (layer_type == 'AvgPool'):
@@ -1384,9 +1383,9 @@ class TPBSched:
                                 # NCHW
                                 result[n_id, 
                                         M_idx, 
-                                        pool_op.tile_y_start : pool_op.tile_y_start + pool_op.tile_height, 
-                                        pool_op.tile_x_start : pool_op.tile_x_start + pool_op.tile_width]\
-                                    = result_tile[0:pool_op.tile_height, 0:pool_op.tile_width]
+                                        pool_op.ofmap_tile_y_start : pool_op.ofmap_tile_y_start + pool_op.ofmap_cropped_tile_height, 
+                                        pool_op.ofmap_tile_x_start : pool_op.ofmap_tile_x_start + pool_op.ofmap_cropped_tile_width]\
+                                    = result_tile[0:pool_op.ofmap_cropped_tile_height, 0:pool_op.ofmap_cropped_tile_width]
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                         dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, pool_op.ofmap_tile_lower_addr, pool_op.ofmap_tile_upper_addr, pool_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
@@ -1501,9 +1500,9 @@ class TPBSched:
                                 # NCHW
                                 result[n_id, 
                                         M_idx, 
-                                        output_params_op.tile_y_start : output_params_op.tile_y_start + output_params_op.tile_height, 
-                                        output_params_op.tile_x_start : output_params_op.tile_x_start + output_params_op.tile_width]\
-                                    = result_tile[0:output_params_op.tile_height, 0:output_params_op.tile_width]
+                                        output_params_op.ofmap_tile_y_start : output_params_op.ofmap_tile_y_start + output_params_op.ofmap_cropped_tile_height, 
+                                        output_params_op.ofmap_tile_x_start : output_params_op.ofmap_tile_x_start + output_params_op.ofmap_cropped_tile_width]\
+                                    = result_tile[0:output_params_op.ofmap_cropped_tile_height, 0:output_params_op.ofmap_cropped_tile_width]
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                         dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr, output_params_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
