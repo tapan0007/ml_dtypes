@@ -8,6 +8,10 @@ import argparse
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
+import sys
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+from NpUtils import NpUtils as npu
+
 DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(precision=14)
@@ -930,12 +934,17 @@ class FusedOp(list):
         if (src_is_psum):
             src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
             src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
+            if (self.pool_op.item_sz == 2):
+                in_dtype = "float32"
+            else:    
+                in_dtype = "float32"
         else:
             src_ifmap_width = self.pool_op.W
             src_ifmap_height = self.pool_op.H
+            in_dtype = self.out_data_type
         psum_step_multiplier = 1            
         # TODO: once Inkling bug is fixed, remove this
-        if (src_is_psum and self.pool_op.item_sz == 2):
+        if (src_is_psum): # and self.pool_op.item_sz == 2):
             psum_step_multiplier = 2
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
@@ -945,7 +954,7 @@ class FusedOp(list):
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
               'pool_func'               : self.pool_op.data['layer_type'],
-              'in_dtype'                : 'float32',
+              'in_dtype'                : in_dtype,
               'out_dtype'               : self.out_data_type,
               'src_is_psum'             : src_is_psum,
               'src_psum_bank_id'        : src_psum_bank_id,
@@ -1625,7 +1634,7 @@ if __name__ == "__main__":
                 if (args.debug > 1): print("\nComputed OFMAPS:\n", results)
                 if (args.debug > 1): print("\nExpected OFMAPS:\n", outputs)
                 if (args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
-                if (not np.allclose(results, outputs, 1/100, 1e-6)):
+                if (not npu.allclose(results, outputs, 1/100, 1e-6, verbose=True)):
                     print("\nERROR: layer %s computed OFMAPS is not equal to expected OFMAPS!\n"%(op_list[-1].data['layer_name']))
                     num_mismatches += 1
 

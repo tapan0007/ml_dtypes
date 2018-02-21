@@ -133,8 +133,8 @@ testConfigMap = {
   "1-1conv0_h16c128_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r1-s1-c128-m1-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
   "1-1conv0_h16c256_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r1-s1-c256-m1-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
 
-  "1-1conv0_h16c256m128_wave"        : [ "trivnet_conv1",  "tfloat16-b1-h16-r1-s1-c256-m128-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
-  "1-1conv0_h16c256m128_fp32_wave"   : [ "trivnet_conv1",  "tfloat32-b1-h16-r1-s1-c256-m128-wmin2-wmax2.1-imin3-imax3.1", "1conv", "--scheduler wave"],
+  "1-1conv0_h16c256m128_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r1-s1-c256-m128-wmin-1-wmax2-imin-1-imax3", "1conv", "--scheduler wave"],
+  "1-1conv0_h16c256m128_fp32_wave"   : [ "trivnet_conv1",  "tfloat32-b1-h16-r1-s1-c256-m128-wmin-1-wmax2-imin-1-imax3", "1conv", "--scheduler wave"],
 
   "1-1conv0_h40c1m1_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h40-r1-s1-c1-m1-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
   "1-1conv0_h40c128m64_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h40-r1-s1-c128-m64-wmin2-wmax2-imin3-imax3", "1conv", "--scheduler wave"],
