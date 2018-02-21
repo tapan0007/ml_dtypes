@@ -918,7 +918,7 @@ class FusedOp(list):
               'num_row_partitions'      : self.conv_op.ifmap_count,
               'psum_x_step'             : 1,
               'psum_x_num'              : ofmap_wave_width,
-              'psum_y_step'             : ofmap_wave_width,
+              'psum_y_step'             : self.conv_op.ofmap_full_tilex_sz,
               'psum_y_num'              : ofmap_wave_height,
               'num_column_partitions'   : self.conv_op.ofmap_count,
             }
