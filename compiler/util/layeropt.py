@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 from NpUtils import NpUtils as npu
 
-DEBUG_LEVEL_DEFAULT=2
+DEBUG_LEVEL_DEFAULT=3
 
 #np.set_printoptions(precision=14)
 
@@ -212,6 +212,18 @@ class CircularBuffer:
         self.layer_shape = []
         self.addr2atom = {}
         self.data_type = 'float16'
+
+    def get_atom(self, addr):
+        addr_chunked = addr // self.atom_data_sz
+        if (addr_chunked in self.addr2atom):
+            return self.addr2atom[addr_chunked]
+        else:
+            print("ERROR: addr/atom_data_sz %d (addr %d) not found in addr2atom:"%(addr_chunked, addr))
+            for i in self.addr2atom.keys():
+                print("     %s: %d"%(i, self.addr2atom[i]))
+
+    def get_atom_offset(self, addr):
+        return addr % self.atom_data_sz
 
     def load_data(self, waveop, fmap_full_tiley_sz = 0):
         self.reset()
@@ -545,6 +557,8 @@ class KNode:
         layer_info = self.data
         self.pool_window_y = layer_info['kernel_shape'][2]
         self.pool_window_x = layer_info['kernel_shape'][3]
+        self.ifmap_wave_lower_addr = -1
+        self.ifmap_wave_upper_addr = -1
         self.populate_common_params(True)
         print("Pooling params for layer %s: ofmap_full_tilex_sz=%d, ofmap_full_tiley_sz=%d, pool_window_x=%d, pool_window_y=%d"
                 %(self.data['layer_name'], self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz, self.pool_window_x, self.pool_window_y))
@@ -903,11 +917,11 @@ class FusedOp(list):
               'waveop_type'             : 'MatMul',
               'waveop_name'             : self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string(),
               'layer_name'              : self.conv_op.data['layer_name'],
-              'weights_atom_id'         : tpb.statebuffer.circbuf_weights.current_atom_id,
-              'ifmaps_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # if multiple atoms loaded, pick the first one
+              'weights_atom_id'         : tpb.statebuffer.circbuf_weights.get_atom(self.conv_op.weight_wave_lower_addr),
+              'weights_offset_in_atom'  : tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr),  # TODO: -1 means don't load new weights
+              'ifmaps_atom_id'          : tpb.statebuffer.circbuf_ifmaps.get_atom(self.conv_op.ifmap_wave_lower_addr), # if multiple atoms loaded, pick the first one
+              'ifmaps_offset_in_atom'   : tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.conv_op.ifmap_wave_lower_addr),
               'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,
-              'weights_offset_in_atom'  : self.conv_op.weight_wave_lower_addr % tpb.statebuffer.circbuf_weights.atom_data_sz,  # TODO: -1 means don't load new weights
-              'ifmaps_offset_in_atom'   : self.conv_op.ifmap_wave_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
               'wave_id_format'          : wave_id.format,
               'wave_id'                 : wave_id.show(),
               'start'                   : not(psum_add),
@@ -945,6 +959,8 @@ class FusedOp(list):
         if (src_is_psum):
             src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
             src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
+            src_sb_atom_id = 0
+            src_sb_offset_in_atom = 0
             if (self.pool_op.item_sz == 2):
                 in_dtype = "float32"
             else:    
@@ -952,6 +968,8 @@ class FusedOp(list):
         else:
             src_ifmap_width = self.pool_op.W
             src_ifmap_height = self.pool_op.H
+            src_sb_atom_id = tpb.statebuffer.circbuf_ifmaps.get_atom(self.pool_op.ifmap_wave_lower_addr)
+            src_sb_offset_in_atom = tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.pool_op.ifmap_wave_lower_addr)
             in_dtype = self.out_data_type
         psum_step_multiplier = 1            
         # TODO: once Inkling bug is fixed, remove this
@@ -970,8 +988,8 @@ class FusedOp(list):
               'src_is_psum'             : src_is_psum,
               'src_psum_bank_id'        : src_psum_bank_id,
               'src_psum_bank_offset'    : 0,
-              'src_sb_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # TODO: this should belong to the lowest atom ID if there are multiple atoms
-              'src_sb_offset_in_atom'   : self.pool_op.ifmap_tile_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
+              'src_sb_atom_id'          : src_sb_atom_id, 
+              'src_sb_offset_in_atom'   : src_sb_offset_in_atom,
               'src_x_step'              : 1 * psum_step_multiplier,
               'src_x_num'               : self.pool_op.pool_window_x,
               'src_y_step'              : src_ifmap_width * psum_step_multiplier,
@@ -982,8 +1000,8 @@ class FusedOp(list):
               'src_w_num'               : self.pool_op.ofmap_cropped_tile_height,
               'pool_frequency'          : self.pool_op.pool_window_x * self.pool_op.pool_window_y,
               'num_partitions'          : self.pool_op.ofmap_count,
-              'dst_sb_atom_id'          : tpb.statebuffer.circbuf_scratch.current_atom_id, # Need to adjust this after allocating atoms
-              'dst_sb_offset_in_atom'   : self.pool_op.ofmap_tile_lower_addr % tpb.statebuffer.circbuf_scratch.atom_data_sz,
+              'dst_sb_atom_id'          : -1, # Need to adjust this after allocating atoms
+              'dst_sb_offset_in_atom'   : tpb.statebuffer.circbuf_scratch.get_atom_offset(self.pool_op.ofmap_tile_lower_addr),
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
               'dst_y_step'              : self.pool_op.E,
@@ -1303,7 +1321,7 @@ class TPBSched:
         bias_offset_in_atom = 0
         if (biasadd_op != None):
             bias_add_en = True
-            bias_atom_id = self.statebuffer.circbuf_bias.current_atom_id
+            bias_atom_id = self.statebuffer.circbuf_bias.get_atom(bias_start)
             bias_offset_in_atom = bias_start % self.statebuffer.circbuf_bias.atom_data_sz
             layer_name = biasadd_op.data['layer_name']
         act_type = "none"    
@@ -1333,7 +1351,7 @@ class TPBSched:
               'waveop_type'             : 'ResAdd',
               'waveop_name'             : op.data['layer_name']+"/ResAdd_"+tile_id.id_string(),
               'layer_name'              : op.data['layer_name'],
-              'data_atom_id'            : self.statebuffer.circbuf_scratch.current_atom_id,
+              'data_atom_id'            : self.statebuffer.circbuf_scratch.get_atom(data_start),
               'data_offset_in_atom'     : data_start % self.statebuffer.circbuf_scratch.atom_data_sz,
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
@@ -1536,8 +1554,6 @@ class TPBSched:
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
                             self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
-
-                        #DBG_DUMP_ARRAY("Final result (FP16):", result)
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%2)
