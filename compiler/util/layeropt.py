@@ -165,7 +165,7 @@ class StateBuffer:
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         self.circbuf_ifmaps  = CircularBuffer("ifmaps",  16,        self.SB_ATOM_SZ, 0)
-        self.circbuf_weights = CircularBuffer("weights", 96-16-4-16, self.SB_ATOM_SZ, 16)
+        self.circbuf_weights = CircularBuffer("weights", 96-16-2-16, self.SB_ATOM_SZ, 16)
         self.circbuf_bias    = CircularBuffer("bias",    4,         self.SB_ATOM_SZ, 96-16-4)
         self.circbuf_scratch = CircularBuffer("scratch", 16,         self.SB_ATOM_SZ, 96-16)
         self.saved_result_files = {}
@@ -213,7 +213,7 @@ class CircularBuffer:
         self.addr2atom = {}
         self.data_type = 'float16'
 
-    def load_data(self, waveop):
+    def load_data(self, waveop, fmap_full_tiley_sz = 0):
         self.reset()
         self.layer_name = waveop.data['layer_name']
         self.layer_type = waveop.data['layer_type']
@@ -225,11 +225,11 @@ class CircularBuffer:
             self.dram_data_file = waveop.data['kernel_file']
             self.layer_format = waveop.data['kernel_format']
             self.layer_shape = waveop.data['kernel_shape']
-        self.load_file(self.dram_data_file)                
+        self.load_file(self.dram_data_file, fmap_full_tiley_sz)
         #print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
-    def load_file(self, file, ofmap_full_tiley_sz = 0):      # use waveop instead of waveop 
+    def load_file(self, file, fmap_full_tiley_sz = 0):      # use waveop instead of waveop 
         self.dram_data_file = file
         self.dram_data = np.load(self.dram_data_file)
         self.item_sz = self.dram_data.dtype.itemsize   
@@ -267,13 +267,11 @@ class CircularBuffer:
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
                 multiple = self.atom_sz // ifmap_width_data_len
-                if (self.layer_type == 'Output'):
-                    multiple = min(H, multiple)
-                    if (ofmap_full_tiley_sz < multiple):
-                        multiple = (multiple//ofmap_full_tiley_sz)*ofmap_full_tiley_sz
-                    self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
-                else:                    
-                    self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
+                multiple = min(H, multiple)
+                if (fmap_full_tiley_sz != 0):
+                    if (fmap_full_tiley_sz < multiple):
+                        multiple = (multiple//fmap_full_tiley_sz)*fmap_full_tiley_sz
+                self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
             else:
                 self.atom_data_sz = self.atom_sz
         else:            
@@ -623,6 +621,19 @@ class KNode:
         self.ifmap_cropped_tile_width = ifmap_tile_upper_coordx - ifmap_tile_lower_coordx + 1
         self.ifmap_cropped_tile_height = ifmap_tile_upper_coordy - ifmap_tile_lower_coordy + 1
 
+    def compute_tile_weight_bounds (self, weights, tile_id):        
+        # Address bounds of weights used for tile
+        pe_col_start = tile_id.m_id * PEArray.NUM_COLS
+        pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
+        self.weight_tile_lower_addr = int(np.ravel_multi_index(
+                                            (0, 0, 0, pe_col_start), # CRSM
+                                            dims=weights.shape) 
+                                            * weights.dtype.itemsize)
+        self.weight_tile_upper_addr = int(np.ravel_multi_index(
+                                            (self.C-1, self.R-1, self.S-1, pe_col_stop-1), # CRSM
+                                            dims=weights.shape) 
+                                            * weights.dtype.itemsize)
+
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format
     #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
@@ -922,7 +933,7 @@ class FusedOp(list):
               'num_row_partitions'      : self.conv_op.ifmap_count,
               'psum_x_step'             : 1,
               'psum_x_num'              : ofmap_wave_width,
-              'psum_y_step'             : self.conv_op.ofmap_full_tilex_sz,
+              'psum_y_step'             : self.conv_op.ofmap_cropped_tile_width,
               'psum_y_num'              : ofmap_wave_height,
               'num_column_partitions'   : self.conv_op.ofmap_count,
             }
@@ -1370,6 +1381,7 @@ class TPBSched:
                 for h_id in range(pool_op.h):
                     for w_id in range(pool_op.w):
                         tile_id = TileID(n_id, m_id, h_id, w_id)
+                        pool_op.compute_ofmap_tile_info(tile_id)
                         # set r_id and s_id in wave_id to zero since we are not doing convolution
                         wave_id = WaveID(n_id, m_id, h_id, w_id, 0, 0, 0)
                         # need to use the conv_node to extract the ifmaps
@@ -1385,7 +1397,6 @@ class TPBSched:
                                                     pool_op.ifmap_wave_lower_addr, 
                                                     pool_op.ifmap_wave_upper_addr,
                                                     pool_op.ifmap_count)
-                        pool_op.compute_ofmap_tile_info(tile_id)
                         self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops)
                         tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr, pool_op.ifmap_wave_upper_addr)
                         for j in range(PEArray.NUM_COLS):
@@ -1479,6 +1490,9 @@ class TPBSched:
                 for h_id in range(op_list.conv_op.h):
                     for w_id in range(op_list.conv_op.w):
                         tile_id = TileID(n_id, m_id, h_id, w_id)
+                        # compute ofmap tile information (tile startx, starty, height, width)
+                        op_list.conv_op.compute_ofmap_tile_info(tile_id)
+                        op_list.conv_op.compute_tile_weight_bounds(weights, tile_id)
                         # loops for constructing a tile
                         for c_id in range(op_list.conv_op.c):
                             for r_id in range(op_list.conv_op.R):
@@ -1491,10 +1505,9 @@ class TPBSched:
                         # tile is done                                   
                         self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
                         self.pearray.trig_tile_done(tile_id)
-                        # compute ofmap tile information (tile startx, starty, height, width)
-                        op_list.conv_op.compute_ofmap_tile_info(tile_id)
                         # free portion of requested data (but retain data such that we can still read it)
                         self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr, op_list.conv_op.ifmap_tile_upper_addr)
+                        self.statebuffer.circbuf_weights.free_data_region(op_list.conv_op.weight_tile_lower_addr, op_list.conv_op.weight_tile_upper_addr)
                         # extract PSUM data
                         psum_bank_src = op_list.conv_op.get_psum_bank()
                         psum_temp = self.pearray.extract_psum(psum_bank_src, 0, op_list.conv_op.ofmap_full_tile_sz)
@@ -1582,20 +1595,24 @@ if __name__ == "__main__":
 
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
-            results = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
+            #if (op_list.has_conv):
+            #    results = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0], op_list.conv_op.ofmap_full_tiley_sz * op_list.conv_op.stride_y)
+            #else:                
+            #    results = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
             tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = op_list[0].data['ref_file']
-            inputs = results
+            #inputs = results
         # Check conv fused op
         # TODO: add matrix multiply
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
-                tpb.statebuffer.circbuf_ifmaps.layer_name = op_list[0].data['layer_name']
-                tpb.statebuffer.circbuf_ifmaps.layer_type = op_list[0].data['layer_type']
-                tpb.statebuffer.circbuf_ifmaps.layer_format = op_list[0].data['ofmap_format']
-                tpb.statebuffer.circbuf_ifmaps.layer_shape = op_list[0].data['ofmap_shape']
+                tpb.statebuffer.circbuf_ifmaps.layer_type = "Input" #op_list[0].data['layer_type']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
-                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
+                        tpb.statebuffer.circbuf_ifmaps.layer_name = j.data['layer_name']
+                        tpb.statebuffer.circbuf_ifmaps.layer_format = j.data['ofmap_format']
+                        tpb.statebuffer.circbuf_ifmaps.layer_shape = j.data['ofmap_shape']
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y)
+                        results = inputs
                         break
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
@@ -1607,12 +1624,14 @@ if __name__ == "__main__":
             exit(-1)
         elif (re.search(r".*Pool", op_list[0].data['layer_type'])):
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
-                tpb.statebuffer.circbuf_ifmaps.layer_name = op_list[0].data['layer_name']
-                tpb.statebuffer.circbuf_ifmaps.layer_type = op_list[0].data['layer_type']
-                tpb.statebuffer.circbuf_ifmaps.layer_format = op_list[0].data['ofmap_format']
+                tpb.statebuffer.circbuf_ifmaps.layer_type = "Input" #op_list[0].data['layer_type']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
-                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']])
+                        tpb.statebuffer.circbuf_ifmaps.layer_name = j.data['layer_name']
+                        tpb.statebuffer.circbuf_ifmaps.layer_format = j.data['ofmap_format']
+                        tpb.statebuffer.circbuf_ifmaps.layer_shape = j.data['ofmap_shape']
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y)
+                        results = inputs
                         break
                 tpb.statebuffer.circbuf_ifmaps.layer_shape = tpb.statebuffer.circbuf_ifmaps.dram_data.shape
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
