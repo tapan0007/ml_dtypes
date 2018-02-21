@@ -2,6 +2,7 @@
 
 
 #include "uarch_cfg.hpp"
+#include "tpb_isa_ldweights.hpp"
 #include "tcc.hpp"
 
 #include "nets/inc/network.hpp"
@@ -105,6 +106,48 @@ WaveCode::gCurrentDramAddress(kcc_int64 sizeInBytes)
     return currAddress;
 }
 
+
+
+template<>
+void WaveCode::writeInstruction<MATMUL>(MATMUL& instruction)
+{
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
+}
+
+template<>
+void WaveCode::writeInstruction<LDWEIGHTS>(LDWEIGHTS& instruction)
+{
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
+}
+
+template<>
+void WaveCode::writeInstruction<POOL>(POOL& instruction)
+{
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+}
+
+
+
+
+template<>
+void WaveCode::writeInstruction<SIM_RDNPY>(SIM_RDNPY& instruction)
+{
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+}
+
+template<>
+void WaveCode::writeInstruction<SIM_WRNPY>(SIM_WRNPY& instruction)
+{
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+}
+
+template<>
+void WaveCode::writeInstruction<SIM_MEMCPY>(SIM_MEMCPY& instruction)
+{
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+}
+
+
 void
 WaveCode::saveAllNpyFiles ()
 {
@@ -122,7 +165,7 @@ WaveCode::saveAllNpyFiles ()
         }
         dramToNpyInstr.dtype             = npyFileInfo.m_SimTypeId;
 
-        this->writeInstruction(dramToNpyInstr, WaveCode::UseStream_StreamProc);
+        this->writeInstruction(dramToNpyInstr);
     }
 }
 

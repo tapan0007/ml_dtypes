@@ -60,7 +60,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     matmulInstr.stop_tensor_calc        = matmulWaveOp->qStopTensorCalc();
     //setup_sync(matmulInstr.sync, -1, SET_EVENT_ON_END_WR_DST);
 
-    m_WaveCode->writeInstruction(matmulInstr, WaveCode::UseStream_PeArray);
+    m_WaveCode->writeInstruction(matmulInstr);
 }
 
 void
@@ -99,7 +99,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     ldweighsInstr.x_num                 = matmulWaveOp->gOfmapCount();
     ldweighsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();
 
-    m_WaveCode->writeInstruction(ldweighsInstr, WaveCode::UseStream_PeArray);
+    m_WaveCode->writeInstruction(ldweighsInstr);
 }
 
 

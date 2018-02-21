@@ -53,7 +53,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         npyFileDramOffset           = m_WaveCode->gCurrentDramAddress(numPySize);
         npyToDramInstr.dst_address  = npyFileDramOffset;
         m_WaveCode->recordDramForInputNpyFile(sbatomfileWaveOp->gRefFileName(), npyFileDramOffset);
-        m_WaveCode->writeInstruction(npyToDramInstr, WaveCode::UseStream_StreamProc);
+        m_WaveCode->writeInstruction(npyToDramInstr);
     }
 
     // These are waveop params, not layer params
@@ -68,7 +68,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         dramToStateBufInstr.src_address = npyFileDramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * numBytesPerPart);
         dramToStateBufInstr.dst_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
-        m_WaveCode->writeInstruction(dramToStateBufInstr, WaveCode::UseStream_StreamProc);
+        m_WaveCode->writeInstruction(dramToStateBufInstr);
     }
 }
 

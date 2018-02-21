@@ -74,7 +74,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     // For now DST is always StateBuf
     poolInstr.dst_start_addr    = poolWaveOp->gDstSbAtomId() * poolWaveOp->gWaveAtomSize() + poolWaveOp->gDstSbOffsetInAtom();
 
-    m_WaveCode->writeInstruction(poolInstr, WaveCode::UseStream_PoolEng);
+    m_WaveCode->writeInstruction(poolInstr);
 }
 
 }}

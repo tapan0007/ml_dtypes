@@ -71,28 +71,7 @@ public:
     void generate(const InstrStreams& instrStreams);
 
     template<typename INSTR>
-    void writeInstruction(INSTR& instruction, UseStream whichStream)
-    {
-        OneInstrStream strm;
-        switch (whichStream) {
-        case UseStream_StreamProc:
-            strm = m_InstrStreams->m_StreamProcInstrStream;
-            break;
-        case UseStream_PeArray:
-            strm = m_InstrStreams->m_PeArrayInstrStream;
-            break;
-        case UseStream_PoolEng:
-            strm = m_InstrStreams->m_PoolEngInstrStream;
-            break;
-        case UseStream_ActEng:
-            strm = m_InstrStreams->m_ActEngInstrStream;
-            break;
-        default:
-            assert(false && "Wrong instruction stream type");
-            break;
-        }
-        fwrite(&instruction, sizeof(instruction), 1, strm);
-    }
+    void writeInstruction(INSTR& instruction);
 
 
     kcc_int64 gCurrentDramAddress(kcc_int64 sizeInBytes);
