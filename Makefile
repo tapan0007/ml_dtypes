@@ -1,5 +1,5 @@
 build:
-	cd ${INKLING_PATH}/sim; make
+	cd ${INKLING_PATH}; make
 	cd ${KAENA_PATH}/compiler/be; make
 check:
 	cd ${KAENA_PATH}/compiler/tffe/test; ./RunAll
