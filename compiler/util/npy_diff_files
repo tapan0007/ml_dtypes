@@ -3,11 +3,14 @@
 import numpy as np
 import sys, os
 import argparse
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+from NpUtils import NpUtils as npu
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gold', help='Golden/reference file. Used as base for the computing relative diference',
                     default="gold.npy")
 parser.add_argument('--new', help='New values', default="new.npy")
+parser.add_argument('--csv', help='Write golden values and difference in matrix form (CSV)', action='store_true', default=False)
 parser.add_argument('--verbose', help='Verbosity level, 0 exit code only (0 allclose match, 1 mismatch), 1 status line, 2 default with histograms and summaries,  3 individual values',
                     default=2)
 
@@ -28,7 +31,12 @@ if gold.shape != new.shape:
   exit(2)
 
 diffAbs = new.astype(np.float64) - gold.astype(np.float64)
-diffRel = 100 * diffAbs.astype(np.float64) / gold.astype(np.float64)
+# Avoid nan in relative difference reporting
+goldFloat64NonZero = gold.astype(np.float64)
+for i,v in np.ndenumerate(goldFloat64NonZero):
+  if abs(goldFloat64NonZero[i]) < 1e-6:
+    goldFloat64NonZero[i] = 1
+diffRel = 100 * diffAbs.astype(np.float64) / goldFloat64NonZero
 
 if verbose >= 1:
   print("Comparing")
@@ -44,7 +52,20 @@ if verbose >= 3:
     dr = diffRel[index]
     print("%-20s %12g %12g  %12.2f%% %12g" % (str(index), g, n, dr, da))
   
-# Histograms
+if args.csv:
+  shape = gold.shape
+  for i in range(shape[1]):
+    print("C=%d"%i)
+    for j in range(shape[2]):
+      for k in range(shape[3]):
+        print("%12g,"%gold[0, i, j, k], end="")
+      print(",", end="")
+      for k in range(shape[3]):
+        #print("%2.2f%%,"%diffRel[0, i, j, k], end="")
+        print("%12g,"%diffAbs[0, i, j, k], end="")
+      print("")
+
+ # Histograms
 if verbose >= 2:
   def printHistogram(text, arr):
     print(text)
@@ -65,7 +86,7 @@ if verbose >= 2:
   print("%12g %12g  %12g %12g" % (diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
 
 (tolr, tola) = (1, 1e-6)
-resAllclose = np.allclose(new, gold, tolr/100, tola)
+resAllclose = npu.allclose(new, gold, tolr/100, tola, verbose=verbose)
 if verbose >= 1:
   print("Allclose info tolerance rel %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
 

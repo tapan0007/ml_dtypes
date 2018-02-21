@@ -17,27 +17,26 @@ CodeGenBiasAddLayer::generate(layers::Layer* layer)
 
     const std::vector<layers::Layer*>& prevLayers = biasaddLayer->gPrevLayers();
     assert(prevLayers.size() == 2);
-    layers::InputLayer* inLayer;
+    layers::Layer* otherLayer;
     layers::ConstLayer* constLayer;
-    if ( (inLayer = dynamic_cast<layers::InputLayer*>(prevLayers[0])) ) {
+    if ( (constLayer = dynamic_cast<layers::ConstLayer*>(prevLayers[0])) ) {
+        otherLayer = prevLayers[1];
+    } else {
         constLayer = dynamic_cast<layers::ConstLayer*>(prevLayers[1]);
         assert(constLayer);
-    } else {
-        constLayer = dynamic_cast<layers::ConstLayer*>(prevLayers[0]);
-        assert(constLayer);
-        inLayer = dynamic_cast<layers::InputLayer*>(prevLayers[1]);
-        assert(inLayer);
+        otherLayer = prevLayers[0];
     }
 
-    const ARBPRECTYPE inDataType    = inLayer->gDataType().gSimTypeId();
+    const ARBPRECTYPE inDataType    = otherLayer->gDataType().gSimTypeId();
+    assert(constLayer->gDataType().gSimTypeId() == inDataType);
     const ARBPRECTYPE outDataType   = biasaddLayer->gDataType().gSimTypeId();
     const unsigned int ofmapWidth   = biasaddLayer->gOfmapWidth();
     const unsigned int ofmapHeight  = biasaddLayer->gOfmapHeight();
-    m_IfmapAddrs[0]                 = inLayer->gOfmapAddress();
+    m_IfmapAddrs[0]                 = otherLayer->gOfmapAddress();
     m_IfmapDims[m_FmapIndex_N]      = 1;
-    m_IfmapDims[m_FmapIndex_C]      = inLayer->gNumOfmaps();
-    m_IfmapDims[m_FmapIndex_H]      = inLayer->gOfmapHeight();
-    m_IfmapDims[m_FmapIndex_W]      = inLayer->gOfmapWidth();
+    m_IfmapDims[m_FmapIndex_C]      = otherLayer->gNumOfmaps();
+    m_IfmapDims[m_FmapIndex_H]      = otherLayer->gOfmapHeight();
+    m_IfmapDims[m_FmapIndex_W]      = otherLayer->gOfmapWidth();
     m_OfmapAddrs                    = biasaddLayer->gOfmapAddress();
 
     /* Must use 4 file API becaue 1 file API cannot specify addition address */

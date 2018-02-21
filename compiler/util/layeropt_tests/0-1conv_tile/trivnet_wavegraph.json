@@ -52,7 +52,7 @@
       "waveop_type": "SBAtomFile"
     },
     {
-      "atom_id": 16,
+      "atom_id": 12,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -98,7 +98,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 6,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": true,
       "start_tensor_calc": true,
       "stop_tensor_calc": false,
@@ -108,7 +108,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 0
     },
     {
@@ -149,7 +149,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 2
     },
     {
@@ -180,7 +180,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 6,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -190,7 +190,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 4
     },
     {
@@ -221,7 +221,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -231,7 +231,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 6
     },
     {
@@ -272,7 +272,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 8
     },
     {
@@ -303,7 +303,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -313,7 +313,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 10
     },
     {
@@ -344,7 +344,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -354,7 +354,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 12
     },
     {
@@ -395,7 +395,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 14
     },
     {
@@ -426,7 +426,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": true,
@@ -436,11 +436,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 88,
+      "dst_sb_atom_id": 84,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -476,25 +476,6 @@
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 88,
-      "atom_size": 1024,
-      "batch_fold_idx": 0,
-      "data_type": "float16",
-      "layer_name": "1conv/i1",
-      "length": 980,
-      "offset_in_file": 0,
-      "ofmap_count": 1,
-      "ofmaps_fold_idx": 0,
-      "previous_waveops": [
-        "1conv/i1/Pool_n0_m0_h0_w0"
-      ],
-      "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
-      "ref_file_format": "NCHW",
-      "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1/SBAtomSave_0",
-      "waveop_type": "SBAtomSave"
-    },
-    {
       "batching_in_wave": 1,
       "fmap_x_num": 34,
       "fmap_x_step": 1,
@@ -522,7 +503,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": true,
       "start_tensor_calc": true,
       "stop_tensor_calc": false,
@@ -532,7 +513,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 0
     },
     {
@@ -573,7 +554,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 2
     },
     {
@@ -604,7 +585,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -614,7 +595,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 4
     },
     {
@@ -645,7 +626,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -655,7 +636,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 6
     },
     {
@@ -696,7 +677,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 8
     },
     {
@@ -727,7 +708,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -737,7 +718,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 10
     },
     {
@@ -787,7 +768,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -797,7 +778,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 12
     },
     {
@@ -838,7 +819,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 14
     },
     {
@@ -869,7 +850,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": true,
@@ -879,11 +860,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 88,
+      "dst_sb_atom_id": 84,
       "dst_sb_offset_in_atom": 490,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -919,6 +900,25 @@
       "waveop_type": "Pool"
     },
     {
+      "atom_id": 84,
+      "atom_size": 1024,
+      "batch_fold_idx": 0,
+      "data_type": "float16",
+      "layer_name": "1conv/i1",
+      "length": 980,
+      "offset_in_file": 0,
+      "ofmap_count": 1,
+      "ofmaps_fold_idx": 0,
+      "previous_waveops": [
+        "1conv/i1/Pool_n0_m0_h1_w0"
+      ],
+      "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
+      "ref_file_format": "NCHW",
+      "ref_file_shape": [1,1,35,35],
+      "waveop_name": "1conv/i1/SBAtomSave_n0_m0_h1_w0",
+      "waveop_type": "SBAtomSave"
+    },
+    {
       "batching_in_wave": 1,
       "fmap_x_num": 34,
       "fmap_x_step": 1,
@@ -946,7 +946,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": true,
       "start_tensor_calc": true,
       "stop_tensor_calc": false,
@@ -956,7 +956,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 0
     },
     {
@@ -997,7 +997,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 2
     },
     {
@@ -1028,7 +1028,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1038,7 +1038,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 4
     },
     {
@@ -1069,7 +1069,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1079,7 +1079,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 6
     },
     {
@@ -1120,7 +1120,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 8
     },
     {
@@ -1151,7 +1151,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1161,7 +1161,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 10
     },
     {
@@ -1192,7 +1192,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1202,7 +1202,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 12
     },
     {
@@ -1243,7 +1243,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 14
     },
     {
@@ -1274,7 +1274,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": true,
@@ -1284,11 +1284,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 89,
+      "dst_sb_atom_id": 85,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1324,25 +1324,6 @@
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 89,
-      "atom_size": 1024,
-      "batch_fold_idx": 0,
-      "data_type": "float16",
-      "layer_name": "1conv/i1",
-      "length": 980,
-      "offset_in_file": 980,
-      "ofmap_count": 1,
-      "ofmaps_fold_idx": 0,
-      "previous_waveops": [
-        "1conv/i1/Pool_n0_m0_h2_w0"
-      ],
-      "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
-      "ref_file_format": "NCHW",
-      "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1/SBAtomSave_1",
-      "waveop_type": "SBAtomSave"
-    },
-    {
       "batching_in_wave": 1,
       "fmap_x_num": 34,
       "fmap_x_step": 1,
@@ -1370,7 +1351,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": true,
       "start_tensor_calc": true,
       "stop_tensor_calc": false,
@@ -1380,7 +1361,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 0
     },
     {
@@ -1421,7 +1402,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 2
     },
     {
@@ -1452,7 +1433,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1462,7 +1443,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 4
     },
     {
@@ -1493,7 +1474,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1503,7 +1484,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 6
     },
     {
@@ -1544,7 +1525,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 8
     },
     {
@@ -1575,7 +1556,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1585,7 +1566,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 10
     },
     {
@@ -1635,7 +1616,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1645,7 +1626,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 12
     },
     {
@@ -1686,7 +1667,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 14
     },
     {
@@ -1717,7 +1698,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": true,
@@ -1727,11 +1708,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 89,
+      "dst_sb_atom_id": 85,
       "dst_sb_offset_in_atom": 490,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1767,6 +1748,25 @@
       "waveop_type": "Pool"
     },
     {
+      "atom_id": 85,
+      "atom_size": 1024,
+      "batch_fold_idx": 0,
+      "data_type": "float16",
+      "layer_name": "1conv/i1",
+      "length": 980,
+      "offset_in_file": 980,
+      "ofmap_count": 1,
+      "ofmaps_fold_idx": 0,
+      "previous_waveops": [
+        "1conv/i1/Pool_n0_m0_h3_w0"
+      ],
+      "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
+      "ref_file_format": "NCHW",
+      "ref_file_shape": [1,1,35,35],
+      "waveop_name": "1conv/i1/SBAtomSave_n0_m0_h3_w0",
+      "waveop_type": "SBAtomSave"
+    },
+    {
       "batching_in_wave": 1,
       "fmap_x_num": 34,
       "fmap_x_step": 1,
@@ -1794,7 +1794,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": true,
       "start_tensor_calc": true,
       "stop_tensor_calc": false,
@@ -1804,7 +1804,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 0
     },
     {
@@ -1845,7 +1845,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 2
     },
     {
@@ -1876,7 +1876,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1886,7 +1886,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 4
     },
     {
@@ -1917,7 +1917,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -1927,7 +1927,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 6
     },
     {
@@ -1968,7 +1968,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 8
     },
     {
@@ -1999,7 +1999,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 7,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -2009,7 +2009,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 10
     },
     {
@@ -2040,7 +2040,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 6,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": false,
@@ -2050,7 +2050,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 12
     },
     {
@@ -2091,7 +2091,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 14
     },
     {
@@ -2122,7 +2122,7 @@
       "psum_x_num": 34,
       "psum_x_step": 1,
       "psum_y_num": 6,
-      "psum_y_step": 34,
+      "psum_y_step": 35,
       "start": false,
       "start_tensor_calc": false,
       "stop_tensor_calc": true,
@@ -2132,11 +2132,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 16,
+      "weights_atom_id": 12,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 90,
+      "dst_sb_atom_id": 86,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -2172,7 +2172,7 @@
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 90,
+      "atom_id": 86,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -2187,7 +2187,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1/SBAtomSave_2",
+      "waveop_name": "1conv/i1/SBAtomSave_n0_m0_h4_w0",
       "waveop_type": "SBAtomSave"
     }
   ]

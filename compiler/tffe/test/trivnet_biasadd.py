@@ -33,7 +33,7 @@ exec(dimCmd)
 
 # DataTypes
 #   npDataType, tfDataType - for the data flow
-dataType = "float6"
+dataType = "float16"
 try:
   dataType = "float%d" % TFLOAT
 except:
