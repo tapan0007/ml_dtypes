@@ -971,10 +971,7 @@ class FusedOp(list):
             src_sb_atom_id = tpb.statebuffer.circbuf_ifmaps.get_atom(self.pool_op.ifmap_wave_lower_addr)
             src_sb_offset_in_atom = tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.pool_op.ifmap_wave_lower_addr)
             in_dtype = self.out_data_type
-        psum_step_multiplier = 1            
-        # TODO: once Inkling bug is fixed, remove this
-        if (src_is_psum): # and self.pool_op.item_sz == 2):
-            psum_step_multiplier = 2
+        psum_step_multiplier = 1   # kaena-174, tonga-310: after Inkling fix, no need for multiplier         
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
