@@ -3,6 +3,8 @@
 import numpy as np
 import sys, os
 import argparse
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+from NpUtils import NpUtils as npu
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gold', help='Golden/reference file. Used as base for the computing relative diference',
@@ -29,7 +31,12 @@ if gold.shape != new.shape:
   exit(2)
 
 diffAbs = new.astype(np.float64) - gold.astype(np.float64)
-diffRel = 100 * diffAbs.astype(np.float64) / gold.astype(np.float64)
+# Avoid nan in relative difference reporting
+goldFloat64NonZero = gold.astype(np.float64)
+for i,v in np.ndenumerate(goldFloat64NonZero):
+  if abs(goldFloat64NonZero[i]) < 1e-6:
+    goldFloat64NonZero[i] = 1
+diffRel = 100 * diffAbs.astype(np.float64) / goldFloat64NonZero
 
 if verbose >= 1:
   print("Comparing")
@@ -79,7 +86,7 @@ if verbose >= 2:
   print("%12g %12g  %12g %12g" % (diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
 
 (tolr, tola) = (1, 1e-6)
-resAllclose = np.allclose(new, gold, tolr/100, tola)
+resAllclose = npu.allclose(new, gold, tolr/100, tola, verbose=verbose)
 if verbose >= 1:
   print("Allclose info tolerance rel %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
 

@@ -8,6 +8,10 @@ import argparse
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 
+import sys
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+from NpUtils import NpUtils as npu
+
 DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(precision=14)
@@ -1630,7 +1634,7 @@ if __name__ == "__main__":
                 if (args.debug > 1): print("\nComputed OFMAPS:\n", results)
                 if (args.debug > 1): print("\nExpected OFMAPS:\n", outputs)
                 if (args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
-                if (not np.allclose(results, outputs, 1/100, 1e-6)):
+                if (not npu.allclose(results, outputs, 1/100, 1e-6, verbose=True)):
                     print("\nERROR: layer %s computed OFMAPS is not equal to expected OFMAPS!\n"%(op_list[-1].data['layer_name']))
                     num_mismatches += 1
 
