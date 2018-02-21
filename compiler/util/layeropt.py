@@ -313,6 +313,7 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
+        #assert (length > 0)            
         if (args.golden_inputs):            
             simout_file = self.dram_data_file.replace("-midout.", ".")
         else:            
@@ -341,11 +342,12 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
+        #assert (length > 0)            
         simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
-              'waveop_name'      : self.layer_name+"/SBAtomSave_"+tile_id.id_string(),
+              'waveop_name'      : self.layer_name + "/SBAtomSave_%d"%atom_id + "_" + tile_id.id_string(),
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
