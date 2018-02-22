@@ -63,6 +63,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
 bool
 MatMulWaveOp::verify() const
 {
+    const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
     if (! this->WaveOp::verify()) {
         return false;
     }
@@ -123,10 +124,10 @@ MatMulWaveOp::verify() const
         return false;
     }
     // previous layers
-    if (m_PsumBankId < 0) {
+    if (m_PsumBankId < 0 || m_PsumBankId >= psumBuf.gNumberBanks()) {
         return false;
     }
-    if (m_PsumBankOffset < 0) {
+    if (m_PsumBankOffset < 0 || m_PsumBankOffset >= psumBuf.gNumberBankEntries()) {
         return false;
     }
     if (m_PsumXNum < 1) {
@@ -135,6 +136,7 @@ MatMulWaveOp::verify() const
     if (m_PsumXStep < 1) {
         return false;
     }
+
     if (m_PsumYNum < 1) {
         return false;
     }

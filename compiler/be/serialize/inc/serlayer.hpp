@@ -28,6 +28,28 @@ using  namespace utils;
 namespace serialize {
 
 
+
+
+// Layer keys
+
+constexpr static const char* LayerKey_LayerType         = "layer_type";
+constexpr static const char* LayerKey_LayerName         = "layer_name";
+constexpr static const char* LayerKey_PrevLayers        = "previous_layers";
+constexpr static const char* LayerKey_OfmapShape        = "ofmap_shape";
+    
+constexpr static const char* LayerKey_OfmapFormat       = "ofmap_format";
+constexpr static const char* LayerKey_RefFile           = "ref_file";
+
+constexpr static const char* LayerKey_KernelFile        = "kernel_file";
+constexpr static const char* LayerKey_KernelFormat      = "kernel_format";
+constexpr static const char* LayerKey_KernelShape       = "kernel_shape";
+constexpr static const char* LayerKey_Stride            = "stride";
+constexpr static const char* LayerKey_Padding           = "padding";
+constexpr static const char* LayerKey_Batching          = "batching";
+
+
+
+
 //--------------------------------------------------------
 class SerLayer {
     //----------------------------------------------------

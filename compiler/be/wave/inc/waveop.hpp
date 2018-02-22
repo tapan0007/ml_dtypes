@@ -76,6 +76,9 @@ public:
     virtual bool qPoolWaveOp() const {
         return false;
     }
+    virtual bool qActivationWaveOp() const {
+        return false;
+    }
 
     //----------------------------------------------------------------
     const DataType& gDataType() const;
