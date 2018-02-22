@@ -232,8 +232,8 @@ testConfigMap = {
   "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition auto --executors wave all --debug 1 --scheduler wave" % rnDogJpg],
   "8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --debug 1"],
   "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 host 1 --debug 1" % rnDogJpg],
-  "4-rn50_nne_fc_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "4-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
+  "7-rn50_nne_fc_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
+  "7-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
 }
 
 # Regression waiver mechanism 
@@ -405,6 +405,16 @@ class Ktest:
             self.status = match.group(1)
     if self.name == "0-neg":
       self.invertStatus()
+  # Middle end or other intermediate status
+  def calcAltStatus(self):
+    statusFile = self.dir + "/log-me.txt"
+    self.altStatus = "None"
+    if os.path.isfile(statusFile):
+      with open(statusFile, 'r') as fh:
+        for line in fh.readlines():
+          match = re.search('^PASSED$', line)
+          if match:
+            self.altStatus = "PASS"
   def calcQoR(self):
     self.qor = QoR(self.dir)
   def passed(self):
@@ -489,6 +499,7 @@ class Ktests:
     for p in finishedProcesses:
       t = self.getTestByProcess(p)
       t.calcStatus()
+      t.calcAltStatus()
       t.calcQoR()
       if t.passed():
         self.numPass += 1
@@ -548,21 +559,23 @@ class Ktests:
 
   def calcWaivedStatus(self, testName, status):
     newStatus = status
+    newTmpStatus = None
     for regexp,replacementStatus in self.testWaiver:
       if re.search(regexp, testName):
-        newStatus = replacementStatus
-    if status == "FAIL":
-      status = newStatus
-    elif status == "PASS":
-      status += "_" + newStatus
-    return status
+        newTmpStatus = replacementStatus
+    if not newTmpStatus == None:
+      if status == "FAIL":
+        newStatus = newTmpStatus
+      elif status == "PASS":
+        newStatus = "%s_%s" % (status, newTmpStatus)
+    return newStatus
 
   def calcNumWaivedTest(self):
     numWaived  = 0
     for testName in self.testList:
       t = self.getTestByName(testName)
       reportStatus = self.calcWaivedStatus(testName, t.status)
-      if 'WAIVE' in reportStatus:
+      if 'WAIVE' in reportStatus and not 'PASS' in reportStatus:
         numWaived += 1
     return numWaived
 
@@ -579,6 +592,16 @@ class Ktests:
       testDescription = self.getTestDescription(testName)
       reportStatus = self.calcWaivedStatus(testName, t.status)
       t.qor.printValues(reportStatus, testDescription)
+
+  def dashboard(self, testRe, outFileName):
+    with open(outFileName, "w") as fh:
+      fh.write("%-20s  %-12s  %-12s\n" % ("Test", "MeStatus", "Status"))
+      for testName in self.testList:
+        if re.search(testRe, testName):
+          t = self.getTestByName(testName)
+          fh.write("%-20s  %-12s  %-12s\n" % (testName, t.altStatus, t.status))
+    print("INFO: wrote dashboard status into %s" % outFileName)
+      
     
 ###############################################################################
 # Execute
@@ -589,4 +612,4 @@ else:
   tests = Ktests(testConfigMap, testList, testWaiver)
   tests.run(parallel)
   tests.report()
-
+  tests.dashboard('3-rn50-.+_wave', "sprint9.txt")
