@@ -43,13 +43,21 @@ if kPath == None or kePath == None or iPath == None or \
 parser = argparse.ArgumentParser()
 parser.add_argument('--test', help='Run specific tests (list)', nargs='+', default=[])
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
-parser.add_argument('--level', help='Run tests upto this level, default 4', default=4)
-parser.add_argument('--parallel', help='Run concurrently, default 8', default=8)
+parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
+parser.add_argument('--level', help='Run tests upto this level, default 4', type=int, default=4)
+parser.add_argument('--parallel', help='Run concurrently, default 8', type=int, default=8)
+parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any', default="any")
+parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
 
 args = parser.parse_args()
 verbose = args.verbose
-level = int(args.level)
-parallel = int(args.parallel)
+level = args.level
+parallel = args.parallel
+select = args.select
+selectSet = set(["any", "waived_only", "not_waived"])
+if not select in selectSet:
+  print("\nERROR: --select must be one of " + str(selectSet))
+  sys.exit(1)
 
 if verbose:
   print("\nINFO: started as  ", " ".join(sys.argv))
@@ -224,8 +232,8 @@ testConfigMap = {
   "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition auto --executors wave all --debug 1 --scheduler wave" % rnDogJpg],
   "8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --debug 1"],
   "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 host 1 --debug 1" % rnDogJpg],
-  "4-rn50_nne_fc_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1" % rnDogJpg],
-  "4-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1" % rnDogJpg],
+  "4-rn50_nne_fc_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
+  "4-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
 }
 
 # Regression waiver mechanism 
@@ -268,17 +276,38 @@ testWaiver = [
     ['3-rn50-\d+_wave', 'WAIVE-S9-2']
   ]
 
-
-# Filter by level
 def getLevel(testName):
   return int(testName[0])
-testList = []
-for testName in sorted(testConfigMap):
-  if getLevel(testName) <= level:
-    testList.append(testName)
 
-if len(args.test) > 0:
-  testList = args.test
+def calcIsWaived(testName, testWaiver):
+  # Linear search for now is ok
+  for regexp,replacementStatus in testWaiver:
+    if re.search(regexp, testName):
+      return True
+  return False
+
+
+def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSelect):
+  testList = []
+  # Filter by level and select method
+  for testName in sorted(testConfigMap):
+    isWaived = calcIsWaived(testName, testWaiver)
+    if getLevel(testName) <= level:
+      if argSelect == "any" or (isWaived and argSelect == "waived_only") or ((not isWaived) and argSelect == "not_waived"):
+        testList.append(testName)
+  # Override by --test
+  if len(argTest) > 0:
+    testList = args.test
+  #Add
+  if len(argTestRe) > 0:
+    for testName in sorted(testConfigMap):
+      for regexp in argTestRe:
+        if re.search(regexp, testName):
+          testList.append(testName)
+  # Remove duplicates
+  testList = sorted(list(set(testList)))
+  return testList
+
 
 def runCmd(cmd):
   ret = os.system(cmd)
@@ -519,11 +548,14 @@ class Ktests:
 
   def calcWaivedStatus(self, testName, status):
     newStatus = status
+    for regexp,replacementStatus in self.testWaiver:
+      if re.search(regexp, testName):
+        newStatus = replacementStatus
     if status == "FAIL":
-      for regexp,replacementStatus in self.testWaiver:
-        if re.search(regexp, testName):
-          newStatus = replacementStatus
-    return newStatus
+      status = newStatus
+    elif status == "PASS":
+      status += "_" + newStatus
+    return status
 
   def calcNumWaivedTest(self):
     numWaived  = 0
@@ -550,7 +582,11 @@ class Ktests:
     
 ###############################################################################
 # Execute
-tests = Ktests(testConfigMap, testList, testWaiver)
-tests.run(parallel)
-tests.report()
+testList = selectTests(testConfigMap, testWaiver, args.level, args.test, args.test_re, args.select)
+if args.show_only:
+  print("INFO: --show_only mode: selected tests are " + str(testList))
+else:
+  tests = Ktests(testConfigMap, testList, testWaiver)
+  tests.run(parallel)
+  tests.report()
 
