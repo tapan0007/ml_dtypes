@@ -380,7 +380,7 @@ class CircularBuffer:
         upper_addr_chunked = upper_addr // self.atom_data_sz
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
             print("ERROR %s: data region is crossing gappy atom boundary!"%self.circbuf_type);
-            exit(-1)
+            #exit(-1)
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()

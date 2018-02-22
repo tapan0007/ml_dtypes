@@ -63,7 +63,7 @@ class NnSubgraph:
       cmd += "  --input_tensors %s" % " ".join(self.getUpdatedInputs())
       cmd += "  --output_tensor %s %s" % (self.output[0], tfOutFile)
       sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
-    elif executor == "tcc" or executor == "wave":
+    elif executor == "tcc" or executor == "wave" or executor == "waveopt":
       cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
     #os.chdir(self.sgDir)
     cmd = "cd %s; %s > %s 2>&1" % (self.sgDir, cmd, logFile)
@@ -72,8 +72,11 @@ class NnSubgraph:
     # Translate TPB format back to TF format.
     # To share easily the file is also linked to the parent dir
     if not executor == "host":
+      simExt = "simout"
+      if executor == "waveopt":
+        simExt = "midout"
       tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
-      tpbOutFile = "%s/%s_%s-simout.npy" % (self.sgDir, outBase, tpbFmapFormat)
+      tpbOutFile = "%s/%s_%s-%s.npy" % (self.sgDir, outBase, tpbFmapFormat, simExt)
       sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
       if os.path.isfile(tpbOutFile):
         npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=sgOutFile)
