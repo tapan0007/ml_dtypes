@@ -1,0 +1,14 @@
+#!/usr/bin/python3
+
+from PIL import Image
+import numpy as np
+import sys
+
+inp = sys.argv[1]
+arr = np.load(inp)
+print("INFO: loaded data of shape %s" % str(arr.shape))
+arr = arr.astype(np.uint8).reshape(arr.shape[1:])
+img = Image.fromarray(arr)
+imgFile = inp + ".jpg" 
+img.save(imgFile)
+print("INFO: wrote file %s" % imgFile)
