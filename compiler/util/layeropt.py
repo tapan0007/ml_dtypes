@@ -198,6 +198,7 @@ class CircularBuffer:
         self.current_atom_id = self.start
         self.atom_data_sz = self.atom_sz
         self.count = 0
+        self.eviction_count = 0
         self.max_count = 0
         self.allocated = np.zeros(self.capacity, dtype=bool)
         self.dram_data_file = None
@@ -315,9 +316,12 @@ class CircularBuffer:
     def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, ifmap_count):
         offset = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
+        # if address is larger than IFMAP size (H*W) for the case that IFMAP size is larger than Atom Data Size,
+        # then try to get the modulo; but if the modulo is 0, then keep length = Atom Data Size
         if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
-        #assert (length > 0)            
+            if (length == 0): length = self.atom_data_sz
+        assert (length > 0)            
         if (args.golden_inputs):            
             simout_file = self.dram_data_file.replace("-midout.", ".")
         else:            
@@ -344,9 +348,12 @@ class CircularBuffer:
     def gen_dram_save_waveop(self, tile_id, atom_id, chunk_id, ofmap_count):
         offset = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
+        # if address is larger than IFMAP size (H*W) for the case that IFMAP size is larger than Atom Data Size,
+        # then try to get the modulo; but if the modulo is 0, then keep length = Atom Data Size
         if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
-        #assert (length > 0)            
+            if (length == 0): length = self.atom_data_sz
+        assert (length > 0)            
         simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
@@ -371,10 +378,17 @@ class CircularBuffer:
         dram_waveops = []
         lower_addr_chunked = lower_addr // self.atom_data_sz
         upper_addr_chunked = upper_addr // self.atom_data_sz
+        if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
+            print("ERROR %s: data region is crossing gappy atom boundary!");
+            exit(-1)
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
                 dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
+                for k in self.addr2atom.keys():
+                    if (self.addr2atom[k] == atom_id):
+                        if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with %s"%(k, i))
+                        eviction_count += 1
                 self.addr2atom[i] = atom_id
         return dram_waveops
     
@@ -455,7 +469,7 @@ class CircularBuffer:
                 self.head_pointer = self.start
 
     def print_stats(self):
-        print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d DRAM file data length %d IFMAP data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, self.dram_data_len, self.ifmap_data_len))
+        print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d eviction count %d DRAM file data length %d IFMAP data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, self.eviction_count, self.dram_data_len, self.ifmap_data_len))
 
 ##################################################################################
 # Neural network node, containing data read from JSON
