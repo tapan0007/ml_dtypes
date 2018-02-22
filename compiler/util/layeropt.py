@@ -214,6 +214,18 @@ class CircularBuffer:
         self.addr2atom = {}
         self.data_type = 'float16'
 
+    def get_atom(self, addr):
+        addr_chunked = addr // self.atom_data_sz
+        if (addr_chunked in self.addr2atom):
+            return self.addr2atom[addr_chunked]
+        else:
+            print("ERROR %s: addr/atom_data_sz %d (addr %d) not found in addr2atom of %s:"%(self.circbuf_type, addr_chunked, addr, self.layer_name))
+            for i in self.addr2atom.keys():
+                print("     %s: %d"%(i, self.addr2atom[i]))
+
+    def get_atom_offset(self, addr):
+        return addr % self.atom_data_sz
+
     def load_data(self, waveop, fmap_full_tiley_sz = 0):
         self.reset()
         self.layer_name = waveop.data['layer_name']
@@ -305,6 +317,7 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
+        #assert (length > 0)            
         if (args.golden_inputs):            
             simout_file = self.dram_data_file.replace("-midout.", ".")
         else:            
@@ -333,11 +346,12 @@ class CircularBuffer:
         length = self.atom_data_sz
         if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
+        #assert (length > 0)            
         simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
-              'waveop_name'      : self.layer_name+"/SBAtomSave_"+tile_id.id_string(),
+              'waveop_name'      : self.layer_name + "/SBAtomSave_%d"%atom_id + "_" + tile_id.id_string(),
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
@@ -549,6 +563,8 @@ class KNode:
         layer_info = self.data
         self.pool_window_y = layer_info['kernel_shape'][2]
         self.pool_window_x = layer_info['kernel_shape'][3]
+        self.ifmap_wave_lower_addr = -1
+        self.ifmap_wave_upper_addr = -1
         self.populate_common_params(True)
         print("Pooling params for layer %s: ofmap_full_tilex_sz=%d, ofmap_full_tiley_sz=%d, pool_window_x=%d, pool_window_y=%d"
                 %(self.data['layer_name'], self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz, self.pool_window_x, self.pool_window_y))
@@ -907,11 +923,11 @@ class FusedOp(list):
               'waveop_type'             : 'MatMul',
               'waveop_name'             : self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string(),
               'layer_name'              : self.conv_op.data['layer_name'],
-              'weights_atom_id'         : tpb.statebuffer.circbuf_weights.current_atom_id,
-              'ifmaps_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # if multiple atoms loaded, pick the first one
+              'weights_atom_id'         : tpb.statebuffer.circbuf_weights.get_atom(self.conv_op.weight_wave_lower_addr),
+              'weights_offset_in_atom'  : tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr),  # TODO: -1 means don't load new weights
+              'ifmaps_atom_id'          : tpb.statebuffer.circbuf_ifmaps.get_atom(self.conv_op.ifmap_wave_lower_addr), # if multiple atoms loaded, pick the first one
+              'ifmaps_offset_in_atom'   : tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.conv_op.ifmap_wave_lower_addr),
               'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,
-              'weights_offset_in_atom'  : self.conv_op.weight_wave_lower_addr % tpb.statebuffer.circbuf_weights.atom_data_sz,  # TODO: -1 means don't load new weights
-              'ifmaps_offset_in_atom'   : self.conv_op.ifmap_wave_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
               'wave_id_format'          : wave_id.format,
               'wave_id'                 : wave_id.show(),
               'start'                   : not(psum_add),
@@ -949,6 +965,8 @@ class FusedOp(list):
         if (src_is_psum):
             src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
             src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
+            src_sb_atom_id = 0
+            src_sb_offset_in_atom = 0
             if (self.pool_op.item_sz == 2):
                 in_dtype = "float32"
             else:    
@@ -956,11 +974,10 @@ class FusedOp(list):
         else:
             src_ifmap_width = self.pool_op.W
             src_ifmap_height = self.pool_op.H
+            src_sb_atom_id = tpb.statebuffer.circbuf_ifmaps.get_atom(self.pool_op.ifmap_wave_lower_addr)
+            src_sb_offset_in_atom = tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.pool_op.ifmap_wave_lower_addr)
             in_dtype = self.out_data_type
-        psum_step_multiplier = 1            
-        # TODO: once Inkling bug is fixed, remove this
-        if (src_is_psum): # and self.pool_op.item_sz == 2):
-            psum_step_multiplier = 2
+        psum_step_multiplier = 1   # kaena-174, tonga-310: after Inkling fix, no need for multiplier         
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
@@ -974,8 +991,8 @@ class FusedOp(list):
               'src_is_psum'             : src_is_psum,
               'src_psum_bank_id'        : src_psum_bank_id,
               'src_psum_bank_offset'    : 0,
-              'src_sb_atom_id'          : tpb.statebuffer.circbuf_ifmaps.current_atom_id, # TODO: this should belong to the lowest atom ID if there are multiple atoms
-              'src_sb_offset_in_atom'   : self.pool_op.ifmap_tile_lower_addr % tpb.statebuffer.circbuf_ifmaps.atom_data_sz,
+              'src_sb_atom_id'          : src_sb_atom_id, 
+              'src_sb_offset_in_atom'   : src_sb_offset_in_atom,
               'src_x_step'              : 1 * psum_step_multiplier,
               'src_x_num'               : self.pool_op.pool_window_x,
               'src_y_step'              : src_ifmap_width * psum_step_multiplier,
@@ -986,8 +1003,8 @@ class FusedOp(list):
               'src_w_num'               : self.pool_op.ofmap_cropped_tile_height,
               'pool_frequency'          : self.pool_op.pool_window_x * self.pool_op.pool_window_y,
               'num_partitions'          : self.pool_op.ofmap_count,
-              'dst_sb_atom_id'          : tpb.statebuffer.circbuf_scratch.current_atom_id, # Need to adjust this after allocating atoms
-              'dst_sb_offset_in_atom'   : self.pool_op.ofmap_tile_lower_addr % tpb.statebuffer.circbuf_scratch.atom_data_sz,
+              'dst_sb_atom_id'          : -1, # Need to adjust this after allocating atoms
+              'dst_sb_offset_in_atom'   : tpb.statebuffer.circbuf_scratch.get_atom_offset(self.pool_op.ofmap_tile_lower_addr),
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
               'dst_y_step'              : self.pool_op.E,
@@ -1028,33 +1045,36 @@ class FusedOp(list):
         op_list = self
         for i in op_list_iter:
             layer_type = self[i].data['layer_type'] 
-            if (re.search(r"Relu|Tanh|Sigmoid", layer_type)):
+            if (re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", layer_type)):
                 tpb.activate.wait_tile_done(tile_id)
                 psum_temp = tpb.activate.relu(psum_temp)
                 psum_bank_dst = 2
-                tpb.gen_act_waveop_inline(None, op_list[i], tile_id, psum_bank_src, psum_bank_dst, [], 0)
+                tpb.gen_act_waveop_inline(None, op_list[i], self.conv_op, tile_id, 
+                                          psum_bank_src, psum_bank_dst, [], 0)
                 if (i != len(op_list)-1):
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
                 psum_bank_src = psum_bank_dst
             elif (layer_type == 'BiasAdd'):
                 tpb.activate.wait_tile_done(tile_id)
-                bias_start = tile_id.m_id * PEArray.NUM_COLS
-                bias_end = min(bias_start + PEArray.NUM_COLS, self.conv_op.M)
+                bias_chan_start = tile_id.m_id * PEArray.NUM_COLS
+                bias_chan_end = min(bias_chan_start + PEArray.NUM_COLS, self.conv_op.M)
                 bias_extracted = np.zeros(PEArray.NUM_COLS)
-                bias_extracted[0 : bias_end - bias_start] = bias[bias_start : bias_end]
-                bias_addr = bias_start * op_list[i].item_sz
+                bias_extracted[0 : bias_chan_end - bias_chan_start] = bias[bias_chan_start : bias_chan_end]
+                bias_addr = bias_chan_start * op_list[i].item_sz
                 dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, self.conv_op.ifmap_count)
                 #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
                 #print(y-x)
                 psum_bank_dst = 2
-                if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid", op_list[i+1].data['layer_type'])):
+                if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", op_list[i+1].data['layer_type'])):
                     psum_temp = tpb.activate.act(op_list[i+1].data['layer_type'], psum_temp)
-                    tpb.gen_act_waveop_inline(op_list[i], op_list[i+1], tile_id, psum_bank_src, psum_bank_dst, dram_bias_waveops, bias_start)
+                    tpb.gen_act_waveop_inline(op_list[i], op_list[i+1], self.conv_op, tile_id, 
+                                              psum_bank_src, psum_bank_dst, dram_bias_waveops, bias_addr)
                     next(op_list_iter)
                 else:                                    
-                    tpb.gen_act_waveop_inline(op_list[i], None, tile_id, psum_bank_src, psum_bank_dst, dram_bias_waveops, bias_start)
+                    tpb.gen_act_waveop_inline(op_list[i], None, self.conv_op, tile_id, 
+                                              psum_bank_src, psum_bank_dst, dram_bias_waveops, bias_addr)
                 tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr)
                 if (i != len(op_list)-1):
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
@@ -1112,13 +1132,13 @@ class FusedOp(list):
 ##################################################################################
 # RegExs to determine whether next node is fusable or not
 next_is_fusable = {
-        'Conv'   : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
-        'MatMul' : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
-        'BiasAdd': "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
-        'Add'    : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
-        'ResAdd' : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
-        'AvgPool': "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
-        'Relu'   : "BiasAdd|Relu|Sigmoid|Tanh|.*Pool|Add|ResAdd",
+        'Conv'   : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
+        'MatMul' : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
+        'BiasAdd': "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
+        'Add'    : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
+        'ResAdd' : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
+        'AvgPool': "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
+        'Relu'   : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
         }
 
 ##################################################################################
@@ -1300,20 +1320,38 @@ class TPBSched:
         self.waveop_stream = WaveopStream()
 
     # generate activation instruction and add it to instruction stream
-    def gen_act_waveop_inline(self, biasadd_op, act_op, tile_id, psum_bank_src, psum_bank_dst, dram_bias_waveops, bias_start):
+    def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, psum_bank_src, psum_bank_dst, dram_bias_waveops, bias_start):
         layer_name = ""
         bias_add_en = False
         bias_atom_id = 0
         bias_offset_in_atom = 0
+        in_dtype = "float32"
+        out_dtype = "float32"
         if (biasadd_op != None):
             bias_add_en = True
-            bias_atom_id = self.statebuffer.circbuf_bias.current_atom_id
+            bias_atom_id = self.statebuffer.circbuf_bias.get_atom(bias_start)
             bias_offset_in_atom = bias_start % self.statebuffer.circbuf_bias.atom_data_sz
             layer_name = biasadd_op.data['layer_name']
-        act_type = "none"    
+        act_type = "Identity"    
         if (act_op != None):
             act_type = act_op.data['layer_type']
             layer_name = act_op.data['layer_name']
+        dst_x_num = 1
+        dst_y_step = 1
+        dst_y_num = 1
+        dst_z_num = 1
+        dst_z_step = 1
+        num_partitions = PEArray.NUM_COLS
+        if (conv_op != None):
+            dst_x_num = conv_op.ofmap_cropped_tile_width
+            dst_y_step = conv_op.ofmap_cropped_tile_width
+            dst_y_num = conv_op.ofmap_cropped_tile_height
+            dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
+            dst_z_num = conv_op.Tn  # Need CNHW data format
+            num_partitions = conv_op.ofmap_count
+        else:
+            print("ERROR: expecting a convolution/matmul before activation at %s!"%act_op.data['layer_name'])
+            exit -1
         instr = {
               'previous_waveops'        : [],
               'waveop_type'             : 'Activation',
@@ -1321,9 +1359,22 @@ class TPBSched:
               'layer_name'              : layer_name,
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
-              'psum_bank_id_src'        : psum_bank_src,
-              'psum_bank_id_dst'        : psum_bank_dst,
-              'act_type'                : act_type,
+              'activation_func'         : act_type,
+              'in_dtype'                : in_dtype,
+              'out_dtype'               : out_dtype,
+              'src_psum_bank_id'        : psum_bank_src,
+              'src_x_step'              : 1,
+              'src_x_num'               : dst_x_num,
+              'src_y_step'              : dst_y_step,
+              'src_y_num'               : dst_y_num * dst_z_num,
+              'dst_psum_bank_id'        : psum_bank_dst,
+              'dst_x_step'              : 1,
+              'dst_x_num'               : dst_x_num,
+              'dst_y_step'              : dst_y_step,
+              'dst_y_num'               : dst_y_num,
+              'dst_z_step'              : dst_z_step,
+              'dst_z_num'               : dst_z_num,
+              'num_partitions'          : num_partitions,
               'bias_add_en'             : bias_add_en,
               'bias_atom_id'            : bias_atom_id,
               'bias_offset_in_atom'     : bias_offset_in_atom,
@@ -1337,12 +1388,12 @@ class TPBSched:
               'waveop_type'             : 'ResAdd',
               'waveop_name'             : op.data['layer_name']+"/ResAdd_"+tile_id.id_string(),
               'layer_name'              : op.data['layer_name'],
-              'data_atom_id'            : self.statebuffer.circbuf_scratch.current_atom_id,
+              'data_atom_id'            : self.statebuffer.circbuf_scratch.get_atom(data_start),
               'data_offset_in_atom'     : data_start % self.statebuffer.circbuf_scratch.atom_data_sz,
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
-              'psum_bank_id_src'        : psum_bank_src,
-              'psum_bank_id_dst'        : psum_bank_dst,
+              'src_psum_bank_id'        : psum_bank_src,
+              'dst_psum_bank_id'        : psum_bank_dst,
             }
         self.waveop_stream.add_linked(instr, [])
 
@@ -1540,8 +1591,6 @@ class TPBSched:
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"):
                             self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
-
-                        #DBG_DUMP_ARRAY("Final result (FP16):", result)
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%2)

@@ -52,7 +52,7 @@
       "waveop_type": "SBAtomFile"
     },
     {
-      "atom_id": 12,
+      "atom_id": 16,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -108,7 +108,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 0
     },
     {
@@ -149,7 +149,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 2
     },
     {
@@ -190,7 +190,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 4
     },
     {
@@ -231,7 +231,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 6
     },
     {
@@ -272,7 +272,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 8
     },
     {
@@ -313,7 +313,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 10
     },
     {
@@ -354,7 +354,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 12
     },
     {
@@ -395,7 +395,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 14
     },
     {
@@ -436,11 +436,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 84,
+      "dst_sb_atom_id": 80,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -463,13 +463,13 @@
       "src_sb_atom_id": 0,
       "src_sb_offset_in_atom": 0,
       "src_w_num": 7,
-      "src_w_step": 70,
+      "src_w_step": 35,
       "src_x_num": 1,
-      "src_x_step": 2,
+      "src_x_step": 1,
       "src_y_num": 1,
-      "src_y_step": 70,
+      "src_y_step": 35,
       "src_z_num": 35,
-      "src_z_step": 2,
+      "src_z_step": 1,
       "tile_id": [0,0,0,0],
       "tile_id_format": "nmhw",
       "waveop_name": "1conv/i1/Pool_n0_m0_h0_w0",
@@ -513,7 +513,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 0
     },
     {
@@ -554,7 +554,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 2
     },
     {
@@ -595,7 +595,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 4
     },
     {
@@ -636,7 +636,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 6
     },
     {
@@ -677,7 +677,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 8
     },
     {
@@ -718,7 +718,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 10
     },
     {
@@ -750,7 +750,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_atom_id": 1,
+      "ifmaps_atom_id": 0,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 560,
       "layer_name": "1conv/i1",
@@ -778,7 +778,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 12
     },
     {
@@ -792,7 +792,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_atom_id": 1,
+      "ifmaps_atom_id": 0,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 560,
       "layer_name": "1conv/i1",
@@ -819,7 +819,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 14
     },
     {
@@ -833,7 +833,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_atom_id": 1,
+      "ifmaps_atom_id": 0,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 562,
       "layer_name": "1conv/i1",
@@ -860,11 +860,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 84,
+      "dst_sb_atom_id": 80,
       "dst_sb_offset_in_atom": 490,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -884,23 +884,23 @@
       "src_is_psum": true,
       "src_psum_bank_id": 1,
       "src_psum_bank_offset": 0,
-      "src_sb_atom_id": 1,
-      "src_sb_offset_in_atom": 490,
+      "src_sb_atom_id": 0,
+      "src_sb_offset_in_atom": 0,
       "src_w_num": 7,
-      "src_w_step": 70,
+      "src_w_step": 35,
       "src_x_num": 1,
-      "src_x_step": 2,
+      "src_x_step": 1,
       "src_y_num": 1,
-      "src_y_step": 70,
+      "src_y_step": 35,
       "src_z_num": 35,
-      "src_z_step": 2,
+      "src_z_step": 1,
       "tile_id": [0,0,1,0],
       "tile_id_format": "nmhw",
       "waveop_name": "1conv/i1/Pool_n0_m0_h1_w0",
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 84,
+      "atom_id": 80,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -915,7 +915,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1/SBAtomSave_n0_m0_h1_w0",
+      "waveop_name": "1conv/i1/SBAtomSave_80_n0_m0_h1_w0",
       "waveop_type": "SBAtomSave"
     },
     {
@@ -929,7 +929,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_atom_id": 1,
+      "ifmaps_atom_id": 0,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 910,
       "layer_name": "1conv/i1",
@@ -956,7 +956,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 0
     },
     {
@@ -970,7 +970,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_atom_id": 1,
+      "ifmaps_atom_id": 0,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 910,
       "layer_name": "1conv/i1",
@@ -997,7 +997,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 2
     },
     {
@@ -1011,7 +1011,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_atom_id": 1,
+      "ifmaps_atom_id": 0,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 912,
       "layer_name": "1conv/i1",
@@ -1038,7 +1038,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 4
     },
     {
@@ -1079,7 +1079,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 6
     },
     {
@@ -1120,7 +1120,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 8
     },
     {
@@ -1161,7 +1161,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 10
     },
     {
@@ -1202,7 +1202,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 12
     },
     {
@@ -1243,7 +1243,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 14
     },
     {
@@ -1284,11 +1284,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 85,
+      "dst_sb_atom_id": 81,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1308,16 +1308,16 @@
       "src_is_psum": true,
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
-      "src_sb_atom_id": 1,
+      "src_sb_atom_id": 0,
       "src_sb_offset_in_atom": 0,
       "src_w_num": 7,
-      "src_w_step": 70,
+      "src_w_step": 35,
       "src_x_num": 1,
-      "src_x_step": 2,
+      "src_x_step": 1,
       "src_y_num": 1,
-      "src_y_step": 70,
+      "src_y_step": 35,
       "src_z_num": 35,
-      "src_z_step": 2,
+      "src_z_step": 1,
       "tile_id": [0,0,2,0],
       "tile_id_format": "nmhw",
       "waveop_name": "1conv/i1/Pool_n0_m0_h2_w0",
@@ -1361,7 +1361,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 0
     },
     {
@@ -1402,7 +1402,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 2
     },
     {
@@ -1443,7 +1443,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 4
     },
     {
@@ -1484,7 +1484,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 6
     },
     {
@@ -1525,7 +1525,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 8
     },
     {
@@ -1566,7 +1566,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 10
     },
     {
@@ -1598,7 +1598,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_atom_id": 2,
+      "ifmaps_atom_id": 1,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 560,
       "layer_name": "1conv/i1",
@@ -1626,7 +1626,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 12
     },
     {
@@ -1640,7 +1640,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_atom_id": 2,
+      "ifmaps_atom_id": 1,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 560,
       "layer_name": "1conv/i1",
@@ -1667,7 +1667,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 14
     },
     {
@@ -1681,7 +1681,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_atom_id": 2,
+      "ifmaps_atom_id": 1,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 562,
       "layer_name": "1conv/i1",
@@ -1708,11 +1708,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 85,
+      "dst_sb_atom_id": 81,
       "dst_sb_offset_in_atom": 490,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1732,23 +1732,23 @@
       "src_is_psum": true,
       "src_psum_bank_id": 1,
       "src_psum_bank_offset": 0,
-      "src_sb_atom_id": 2,
-      "src_sb_offset_in_atom": 490,
+      "src_sb_atom_id": 0,
+      "src_sb_offset_in_atom": 0,
       "src_w_num": 7,
-      "src_w_step": 70,
+      "src_w_step": 35,
       "src_x_num": 1,
-      "src_x_step": 2,
+      "src_x_step": 1,
       "src_y_num": 1,
-      "src_y_step": 70,
+      "src_y_step": 35,
       "src_z_num": 35,
-      "src_z_step": 2,
+      "src_z_step": 1,
       "tile_id": [0,0,3,0],
       "tile_id_format": "nmhw",
       "waveop_name": "1conv/i1/Pool_n0_m0_h3_w0",
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 85,
+      "atom_id": 81,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -1763,7 +1763,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1/SBAtomSave_n0_m0_h3_w0",
+      "waveop_name": "1conv/i1/SBAtomSave_81_n0_m0_h3_w0",
       "waveop_type": "SBAtomSave"
     },
     {
@@ -1777,7 +1777,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_atom_id": 2,
+      "ifmaps_atom_id": 1,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 910,
       "layer_name": "1conv/i1",
@@ -1804,7 +1804,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 0
     },
     {
@@ -1818,7 +1818,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_atom_id": 2,
+      "ifmaps_atom_id": 1,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 910,
       "layer_name": "1conv/i1",
@@ -1845,7 +1845,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 2
     },
     {
@@ -1859,7 +1859,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_atom_id": 2,
+      "ifmaps_atom_id": 1,
       "ifmaps_atom_size": 1024,
       "ifmaps_offset_in_atom": 912,
       "layer_name": "1conv/i1",
@@ -1886,7 +1886,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 4
     },
     {
@@ -1927,7 +1927,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 6
     },
     {
@@ -1968,7 +1968,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 8
     },
     {
@@ -2009,7 +2009,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 10
     },
     {
@@ -2050,7 +2050,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 12
     },
     {
@@ -2091,7 +2091,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 14
     },
     {
@@ -2132,11 +2132,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_atom_id": 12,
+      "weights_atom_id": 16,
       "weights_offset_in_atom": 16
     },
     {
-      "dst_sb_atom_id": 86,
+      "dst_sb_atom_id": 82,
       "dst_sb_offset_in_atom": 0,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -2156,23 +2156,23 @@
       "src_is_psum": true,
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
-      "src_sb_atom_id": 2,
+      "src_sb_atom_id": 0,
       "src_sb_offset_in_atom": 0,
       "src_w_num": 7,
-      "src_w_step": 70,
+      "src_w_step": 35,
       "src_x_num": 1,
-      "src_x_step": 2,
+      "src_x_step": 1,
       "src_y_num": 1,
-      "src_y_step": 70,
+      "src_y_step": 35,
       "src_z_num": 35,
-      "src_z_step": 2,
+      "src_z_step": 1,
       "tile_id": [0,0,4,0],
       "tile_id_format": "nmhw",
       "waveop_name": "1conv/i1/Pool_n0_m0_h4_w0",
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 86,
+      "atom_id": 82,
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
@@ -2187,7 +2187,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "waveop_name": "1conv/i1/SBAtomSave_n0_m0_h4_w0",
+      "waveop_name": "1conv/i1/SBAtomSave_82_n0_m0_h4_w0",
       "waveop_type": "SBAtomSave"
     }
   ]
