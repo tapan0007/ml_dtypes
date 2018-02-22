@@ -23,14 +23,132 @@
 
 // Must include matmulwaveop.hpp for WaveId
 #include "wave/inc/matmulwaveop.hpp"
-//#include "wave/inc/sbatomfilewaveop.hpp"
-//#include "wave/inc/sbatomsavewaveop.hpp"
 
 
 namespace kcc {
 using  namespace utils;
 
 namespace serialize {
+
+
+// common to all WaveOps
+constexpr static const char* WaveOpKey_WaveOpType           = "waveop_type";
+constexpr static const char* WaveOpKey_WaveOpName           = "waveop_name";
+constexpr static const char* WaveOpKey_LayerName            = "layer_name";
+constexpr static const char* WaveOpKey_PreviousWaveOps      = "previous_waveops";
+
+
+// MatMul
+constexpr static const char* WaveOpKey_BatchingInWave       = "batching_in_wave";
+constexpr static const char* WaveOpKey_FmapXNum             = "fmap_x_num";
+constexpr static const char* WaveOpKey_FmapXStep            = "fmap_x_step";
+constexpr static const char* WaveOpKey_FmapYNum             = "fmap_y_num";
+constexpr static const char* WaveOpKey_FmapYStep            = "fmap_y_step";
+constexpr static const char* WaveOpKey_FmapZNum             = "fmap_z_num";
+constexpr static const char* WaveOpKey_FmapZStepAtoms       = "fmap_z_step_atoms";
+constexpr static const char* WaveOpKey_IfmapCount           = "ifmap_count";
+constexpr static const char* WaveOpKey_IfmapTileHeight      = "ifmap_tile_height";
+constexpr static const char* WaveOpKey_IfmapTileWidth       = "ifmap_tile_width";
+constexpr static const char* WaveOpKey_IfmapsAtomId         = "ifmaps_atom_id";
+constexpr static const char* WaveOpKey_IfmapsAtomSize       = "ifmaps_atom_size";
+constexpr static const char* WaveOpKey_DataType             = "data_type";
+constexpr static const char* WaveOpKey_IfmapsOffsetInAtom   = "ifmaps_offset_in_atom";
+// layer name
+constexpr static const char* WaveOpKey_NumColumnPartitions  = "num_column_partitions";
+constexpr static const char* WaveOpKey_NumRowPartitions     = "num_row_partitions";
+constexpr static const char* WaveOpKey_OfmapCount           = "ofmap_count";
+constexpr static const char* WaveOpKey_OfmapTileHeight      = "ofmap_tile_height";
+constexpr static const char* WaveOpKey_OfmapTileWidth       = "ofmap_tile_width";
+// previous waveops
+constexpr static const char* WaveOpKey_PsumBankId           = "psum_bank_id";
+constexpr static const char* WaveOpKey_PsumBankOffset       = "psum_bank_offset";
+constexpr static const char* WaveOpKey_PsumXNum             = "psum_x_num";
+constexpr static const char* WaveOpKey_PsumXStep             = "psum_x_step";
+constexpr static const char* WaveOpKey_PsumYNum             = "psum_y_num";
+constexpr static const char* WaveOpKey_PsumYStep             = "psum_y_step";
+constexpr static const char* WaveOpKey_StartTensorCalc      = "start_tensor_calc";
+constexpr static const char* WaveOpKey_StopTensorCalc      = "stop_tensor_calc";
+constexpr static const char* WaveOpKey_StrideX               = "stride_x";
+constexpr static const char* WaveOpKey_StrideY               = "stride_y";
+constexpr static const char* WaveOpKey_WaveId               = "wave_id";
+constexpr static const char* WaveOpKey_WaveIdFormat         = "wave_id_format";
+// waveop name
+// waveop type
+constexpr static const char* WaveOpKey_WeightsAtomId        = "weights_atom_id";
+constexpr static const char* WaveOpKey_WeightsOffsetInAtom  = "weights_offset_in_atom";
+
+// SBAtom common
+constexpr static const char* WaveOpKey_AtomId               = "atom_id";
+constexpr static const char* WaveOpKey_AtomSize             = "atom_size";
+constexpr static const char* WaveOpKey_BatchFoldIdx         = "batch_fold_idx";
+constexpr static const char* WaveOpKey_Length               = "length";
+constexpr static const char* WaveOpKey_OffsetInFile         = "offset_in_file";
+constexpr static const char* WaveOpKey_RefFile              = "ref_file";
+constexpr static const char* WaveOpKey_RefFileFormat        = "ref_file_format";
+constexpr static const char* WaveOpKey_RefFileShape         = "ref_file_shape";
+
+// SBAtomFile
+constexpr static const char* WaveOpKey_IfmapsFoldIdx        = "ifmaps_fold_idx";
+constexpr static const char* WaveOpKey_IfmapsReplicate      = "ifmaps_replicate";
+
+// SBAtomSave
+constexpr static const char* WaveOpKey_OfmapsFoldIdx = "ofmaps_fold_idx";
+
+// Pool
+constexpr static const char* WaveOpKey_DstSbAtomId          = "dst_sb_atom_id";
+constexpr static const char* WaveOpKey_DstSbOffsetInAtom    = "dst_sb_offset_in_atom";
+constexpr static const char* WaveOpKey_DstXNum              = "dst_x_num";
+constexpr static const char* WaveOpKey_DstXStep	            = "dst_x_step";
+constexpr static const char* WaveOpKey_DstYNum	            = "dst_y_num";
+constexpr static const char* WaveOpKey_DstYStep	            = "dst_y_step";
+constexpr static const char* WaveOpKey_DstZNum	            = "dst_z_num";
+constexpr static const char* WaveOpKey_DstZStep	            = "dst_z_step";
+constexpr static const char* WaveOpKey_InDtype              = "in_dtype";
+// "layername": "1conv/i1",
+constexpr static const char* WaveOpKey_NumPartitions        = "num_partitions";
+constexpr static const char* WaveOpKey_OutDtype             = "out_dtype";
+constexpr static const char* WaveOpKey_PoolFrequency	    = "pool_frequency";
+constexpr static const char* WaveOpKey_PoolFunc             = "pool_func";
+// previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
+constexpr static const char* WaveOpKey_SrcIsPsum            = "src_is_psum";
+constexpr static const char* WaveOpKey_SrcPsumBankId        = "src_psum_bank_id";
+constexpr static const char* WaveOpKey_SrcPsumBankOffset    = "src_psum_bank_offset";
+constexpr static const char* WaveOpKey_SrcSbAtomId          = "src_sb_atom_id";
+constexpr static const char* WaveOpKey_SrcSbOffsetInAtom    = "src_sb_offset_in_atom";
+constexpr static const char* WaveOpKey_SrcWNum	            = "src_w_num";
+constexpr static const char* WaveOpKey_SrcWStep	            = "src_w_step";
+constexpr static const char* WaveOpKey_SrcXNum	            = "src_x_num";
+constexpr static const char* WaveOpKey_SrcXStep	            = "src_x_step";
+constexpr static const char* WaveOpKey_SrcYNum	            = "src_y_num";
+constexpr static const char* WaveOpKey_SrcYStep	            = "src_y_step";
+constexpr static const char* WaveOpKey_SrcZNum	            = "src_z_num";
+constexpr static const char* WaveOpKey_SrcZStep	            = "src_z_step";
+constexpr static const char* WaveOpKey_TileId               = "tile_id";
+constexpr static const char* WaveOpKey_TileIdFormat         = "tile_id_format";
+//waveopname": "1conv/i1/Pooln0m0h0w0",
+//waveoptype": "Pool"
+
+constexpr static const char* WaveOpKey_ActType              = "act_type";
+constexpr static const char* WaveOpKey_ActType_None         = "none"; /* until Jeff fixes none */
+constexpr static const char* WaveOpKey_ActType_Identity     = "Identity";
+constexpr static const char* WaveOpKey_ActType_Relu         = "Relu";
+constexpr static const char* WaveOpKey_ActType_Lrelu        = "Lrelu";
+constexpr static const char* WaveOpKey_ActType_Prelu        = "Prelu";
+constexpr static const char* WaveOpKey_ActType_Sigmoid      = "Sigmoid";
+constexpr static const char* WaveOpKey_ActType_Tanh         = "Tanh";
+constexpr static const char* WaveOpKey_ActType_Exp          = "Exp";
+
+
+constexpr static const char* WaveOpKey_BiasAddEn            = "bias_add_en";
+constexpr static const char* WaveOpKey_BiasAtomId           = "bias_atom_id";
+constexpr static const char* WaveOpKey_BiasOffsetInAtom     = "bias_offset_in_atom";
+constexpr static const char* WaveOpKey_PsumBankIdDst        = "psum_bank_id_dst";
+constexpr static const char* WaveOpKey_PsumBankIdSrc        = "psum_bank_id_src";
+
+
+
+
+
 
 
 class SerWaveOp {
@@ -41,41 +159,6 @@ public:
     SerWaveOp(const SerWaveOp&) = default;
 
 public:
-    /*
-    { ###   SBAtomFile
-      "atom_id": 24,
-      "ifmaps_fold_idx": 0,
-      "ifmaps_replicate": false,
-      "length": 1024,
-      "offset_in_file": 0,
-      "ref_file": "trivnet_input:0_NCHW.npy",
-
-            "layer_name": "input",
-            "previous_waveops": [],
-            "waveop_name": "input/SBAtomFile_0",
-            "waveop_type": "SBAtomFile"
-    },
-
-    { ###   MatMul
-      "ifmaps_atom_id": 24,
-      "ifmaps_offset_in_atom": 0,
-      "psum_bank_id": 0,
-      "start": true,
-      "wave_id": [ 0, 0, 0, 0, 0, 0, 0 ],
-      "wave_id_format": "nmhwcrs",
-      "weights_atom_id": 0,
-      "weights_offset_in_atom": 0
-
-            "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
-            "waveop_type": "MatMul",
-            "layer_name": "1conv/i1",
-            "previous_waveops": [
-                "1conv/i1/SBAtomFile_0",
-                "input/SBAtomFile_0"
-            ],
-    },
-    */
-
 
     template<typename Archive>
     void save(Archive & archive) const;
@@ -88,239 +171,19 @@ public:
         m_PreviousWaveOps.push_back(prevWaveOp);
     }
 
+    static ActivationType str2ActivationType(const std::string& s);
+    static std::string activationType2Str(ActivationType);
 
-#if 0
-    // common
-    void rWaveOpName(const std::string& waveOpName) {
-        m_WaveOpName = waveOpName;
-    }
-    const std::string& gWaveOpType() const {
-        return m_WaveOpType;
-    }
-    void rWaveOpType(const std::string& waveOpType) {
-        m_WaveOpType = waveOpType;
-    }
-    const std::string& gLayerName() const {
-        return m_LayerName;
-    }
-    void rLayerName(const std::string& layerName) {
-        m_LayerName = layerName;
-    }
+private:
+    void loadSbAtom(cereal::JSONInputArchive& archive);
+    void loadPool(cereal::JSONInputArchive& archive);
+    void loadMatMul(cereal::JSONInputArchive& archive);
+    void loadActivation(cereal::JSONInputArchive& archive);
 
-    const std::vector<std::string>& gPreviousWaveOps() const {
-        return m_PreviousWaveOps;
-    }
-
-
-    const std::string& gWaveOpName() const {
-        return m_WaveOpName;
-    }
-
-    // MatMul
-    kcc_int32 gIfmapsAtomId() const {
-        return m_IfmapsAtomId;
-    }
-    void rIfmapsAtomId(kcc_int32 ifmapsAtomId) {
-        m_IfmapsAtomId = ifmapsAtomId;
-    }
-
-    kcc_int32 gIfmapsOffsetInAtom() const {
-        return m_IfmapsOffsetInAtom;
-    }
-    void rIfmapsOffsetInAtom(kcc_int32 ifmapsOffsetInAtom) {
-        m_IfmapsOffsetInAtom = ifmapsOffsetInAtom;
-    }
-
-    kcc_int32 gPsumBankId() const {
-        return m_PsumBankId;
-    }
-    void rPsumBankId(kcc_int32 psumBankId) {
-        m_PsumBankId = psumBankId;
-    }
-
-    bool qStartTensorCalc() const {
-        return m_StartTensorCalc;
-    }
-    void rStartTensorCalc(bool start) {
-        m_StartTensorCalc = start;
-    }
-
-    bool qStopTensorCalc() const {
-        return m_StopTensorCalc;
-    }
-    void rStopTensorCalc(bool stop) {
-        m_StopTensorCalc = stop;
-    }
-
-    const wave::MatMulWaveOp::WaveId gWaveId() const {
-        return m_WaveId;
-    }
-    void rWaveId(const wave::MatMulWaveOp::WaveId& waveId) {
-        m_WaveId = waveId;
-    }
-
-    const std::string& gWaveIdFormat() const {
-        return m_WaveIdFormat;
-    }
-    void rWaveIdFormat(const std::string& waveIdFormat) {
-        m_WaveIdFormat = waveIdFormat;
-    }
-
-    kcc_int32 gWeightsAtomId() const {
-        return m_WeightsAtomId;
-    }
-    void rWeightsAtomId(kcc_int32 weightsAtomId) {
-        m_WeightsAtomId = weightsAtomId;
-    }
-
-    kcc_int32 gWeightsOffsetInAtom() const {
-        return m_WeightsOffsetInAtom;
-    }
-    void rWeightsOffsetInAtom(kcc_int32 weightsOffsetInAtom) {
-        m_WeightsOffsetInAtom = weightsOffsetInAtom;
-    }
-
-    kcc_int32 gAtomId() const {
-        return m_AtomId;
-    }
-    void rAtomId(kcc_int32 atomId) {
-        m_AtomId = atomId;
-    }
-
-    kcc_int32 gAtomSize() const {
-        return m_AtomSize;
-    }
-    void rAtomSize(kcc_int32 atomSize) {
-        m_AtomSize = atomSize;
-    }
-
-    const std::string& gDataType() const {
-        return m_DataType;
-    }
-    void rDataType(const std::string& dataType) {
-        m_DataType = dataType;
-    }
-
-
-    kcc_int32 gIfmapsFoldIdx() const {
-        return m_IfmapsFoldIdx;
-    }
-    void rIfmapsFoldIdx(kcc_int32 ifmapsFoldIdx) {
-        m_IfmapsFoldIdx = ifmapsFoldIdx;
-    }
-
-    kcc_int32 gOfmapsFoldIdx() const {
-        return m_OfmapsFoldIdx;
-    }
-    void rOfmapsFoldIdx(kcc_int32 ifmapsFoldIdx) {
-        m_OfmapsFoldIdx = ifmapsFoldIdx;
-    }
-
-    bool qIfmapsReplicate() const {
-        return m_IfmapsReplicate;
-    }
-    void rIfmapsReplicate(bool ifmapsReplicate) {
-        m_IfmapsReplicate = ifmapsReplicate;
-    }
-
-    kcc_int64 gLength() const {
-        return m_Length;
-    }
-    void rLength(kcc_int64 len) {
-        m_Length = len;
-    }
-
-    kcc_int32 gOffsetInFile() const {
-        return m_OffsetInFile;
-    }
-    void rOffsetInFile(kcc_int32 off) {
-        m_OffsetInFile = off;
-    }
-
-    const std::string& gRefFile() const {
-        return m_RefFile;
-    }
-    void rRefFile(const std::string& refFile) {
-        m_RefFile = refFile;
-    }
-
-    const std::string& gRefFileFormat() const {
-        return m_RefFileFormat;
-    }
-    void rRefFileFormat(const std::string& refFileFormat) {
-        m_RefFileFormat = refFileFormat;
-    }
-
-    std::vector<int32>& gRefFileShape() const {
-        return m_RefFileShape;
-    }
-    void rRefFileShape(const std::vector<int32>& refFileShape) {
-        m_RefFileShape = refFileShape;
-    }
-
-    kcc_int32 gBatchFoldIdx () const {
-        return m_BatchFoldIdx;
-    }
-    void rBatchFoldIdx (kcc_int32 batchFoldIdx) {
-        m_BatchFoldIdx = batchFoldIdx;
-    }
-
-    kcc_int32 gIfmapTileHeight () const {
-        return m_IfmapTileHeight;
-    }
-    void rIfmapTileHeight (kcc_int32 ifmapTileHeight) {
-        m_IfmapTileHeight = ifmapTileHeight;
-    }
-
-    kcc_int32 gIfmapTileWidth () const {
-        return m_IfmapTileWidth;
-    }
-    void rIfmapTileWidth (kcc_int32 ifmapTileWidth) {
-        m_IfmapTileWidth = ifmapTileWidth;
-    }
-
-    kcc_int32 gOfmapTileHeight () const {
-        return m_OfmapTileHeight;
-    }
-    void rOfmapTileHeight (kcc_int32 ifmapTileHeight) {
-        m_OfmapTileHeight = ifmapTileHeight;
-    }
-
-    kcc_int32 gOfmapTileWidth () const {
-        return m_OfmapTileWidth;
-    }
-    void rOfmapTileWidth (kcc_int32 ifmapTileWidth) {
-        m_OfmapTileWidth = ifmapTileWidth;
-    }
-
-    kcc_int32 gPsumBankOffset () const {
-        return m_PsumBankOffset;
-    }
-    void rPsumBankOffset (kcc_int32 psumBankOffset) {
-        m_PsumBankOffset = psumBankOffset;
-    }
-
-    kcc_int32 gIfmapCount () const {
-        return m_IfmapCount;
-    }
-    void rIfmapCount (kcc_int32 ifmapCount) {
-        m_IfmapCount = ifmapCount;
-    }
-
-    kcc_int32 gOfmapCount () const {
-        return m_OfmapCount;
-    }
-    void rOfmapCount (kcc_int32 ofmapCount) {
-        m_OfmapCount = ofmapCount;
-    }
-
-    kcc_int16 gBatchingInWave () const {
-        return m_BatchingInWave;
-    }
-    void rBatchingInWave (kcc_int16 batchingInWave) {
-        m_BatchingInWave = batchingInWave;
-    }
-#endif
+    void saveSbAtom(cereal::JSONOutputArchive& archive) const;
+    void savePool(cereal::JSONOutputArchive& archive) const;
+    void saveMatMul(cereal::JSONOutputArchive& archive) const;
+    void saveActivation(cereal::JSONOutputArchive& archive) const;
 
 protected:
     bool verify() const;
@@ -331,6 +194,7 @@ private:
     bool verifySbAtomSave() const;
     bool verifyMatMul() const;
     bool verifyPool() const;
+    bool verifyActivation() const;
 
 public:
     // common to all
@@ -438,6 +302,12 @@ public:
     //waveopname": "1conv/i1/Pooln0m0h0w0",
     //waveoptype": "Pool"
 
+    std::string                 m_ActType           = "";
+    bool                        m_BiasAddEn         = false;
+    kcc_int32                   m_BiasAtomId        = -1;
+    kcc_int32                   m_BiasOffsetInAtom  = -1;
+    kcc_int32                   m_PsumBankIdDst     = -1;
+    kcc_int32                   m_PsumBankIdSrc     = -1;
 }; // class SerWaveOp
 
 

@@ -15,6 +15,8 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
+#include "wave/inc/waveop.hpp"
+
 
 namespace kcc {
 
@@ -27,14 +29,33 @@ namespace layers {
 }
 namespace wave {
     class WaveOp;
+    class SbAtomWaveOp;
+    class SbAtomFileWaveOp;
+    class SbAtomSaveWaveOp;
+    class MatMulWaveOp;
+    class PoolWaveOp;
+    class ActivationWaveOp;
 }
 namespace schedule {
     class LayerLevel;
+}
+namespace serialize {
+    class SerWaveOp;
 }
 
 namespace nets {
 
 using namespace utils;
+
+
+
+constexpr const char* const NetKey_Layers               = "layers";
+constexpr const char* const NetKey_WaveOps              = "waveops";
+constexpr const char* const NetKey_NetName              = "net_name";
+constexpr const char* const NetKey_DataType             = "data_type";
+
+
+
 
 //--------------------------------------------------------
 // The whole neural net
@@ -52,6 +73,39 @@ public:
 
     template<typename Archive>
     void load(Archive & archive);
+
+private:
+    void
+    fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
+                     std::vector<wave::WaveOp*>& prevWaveOps,
+                     wave::WaveOp::Params& waveOpParams);
+
+    wave::SbAtomFileWaveOp* loadSbAtomFile(
+                                const serialize::SerWaveOp& serWaveOp,
+                                std::vector<wave::WaveOp*> prevWaveOps);
+
+    wave::SbAtomSaveWaveOp* loadSbAtomSave(
+                                const serialize::SerWaveOp& serWaveOp,
+                                std::vector<wave::WaveOp*> prevWaveOps);
+
+    wave::PoolWaveOp* loadPool(
+                                const serialize::SerWaveOp& serWaveOp,
+                                std::vector<wave::WaveOp*> prevWaveOps);
+
+    wave::MatMulWaveOp* loadMatMul(
+                                const serialize::SerWaveOp& serWaveOp,
+                                std::vector<wave::WaveOp*> prevWaveOps);
+
+    wave::ActivationWaveOp* loadActivation(
+                                const serialize::SerWaveOp& serWaveOp,
+                                std::vector<wave::WaveOp*> prevWaveOps);
+
+
+    void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const;
+    void saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const;
+
 
 private:
     layers::Layer* findLayer(const std::string& prevLayerName);

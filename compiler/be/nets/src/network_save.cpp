@@ -30,6 +30,7 @@
 #include "wave/inc/sbatomfilewaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
+#include "wave/inc/activationwaveop.hpp"
 
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
@@ -218,33 +219,8 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
         }
 
-        if (auto sbatomWaveOp = dynamic_cast<wave::SbAtomWaveOp*>(waveOp)) {
-            serWaveOp.m_AtomId = sbatomWaveOp->gAtomId();
-            serWaveOp.m_AtomSize = sbatomWaveOp->gAtomSize();
-            serWaveOp.m_BatchFoldIdx = sbatomWaveOp->gBatchFoldIdx();
-            serWaveOp.m_DataType = DataType::dataTypeId2Str(
-                                      sbatomWaveOp->gDataType().gDataTypeId());
-            serWaveOp.m_Length = sbatomWaveOp->gLength();
-            serWaveOp.m_OffsetInFile = sbatomWaveOp->gOffsetInFile();
-            serWaveOp.m_RefFile = sbatomWaveOp->gRefFileName();
-            serWaveOp.m_RefFileFormat = sbatomWaveOp->gRefFileFormat();
-            const std::array<kcc_int32,4>& refFileShape(sbatomWaveOp->gRefFileShape());
-            for (unsigned int shapeIdx = 0; shapeIdx < refFileShape.size(); ++shapeIdx) {
-                serWaveOp.m_RefFileShape[shapeIdx] = refFileShape[shapeIdx];
-            }
-
-            if (auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp)) {
-                serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStr();
-                serWaveOp.m_IfmapCount = sbatomfileWaveOp->gIfmapCount();
-                serWaveOp.m_IfmapsFoldIdx = sbatomfileWaveOp->gIfmapsFoldIdx();
-                serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
-            } else {
-                auto sbatomsaveWaveOp = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveOp);
-                assert(sbatomsaveWaveOp && "Wrong SbAtaom WaveOp");
-                serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStr();
-                serWaveOp.m_OfmapCount = sbatomsaveWaveOp->gOfmapCount();
-                serWaveOp.m_OfmapsFoldIdx = sbatomsaveWaveOp->gOfmapsFoldIdx();
-            }
+        if (auto sbatomWaveOp = dynamic_cast<const wave::SbAtomWaveOp*>(waveOp)) {
+            saveSbAtom(sbatomWaveOp, serWaveOp);
             continue;
         }
 
@@ -325,11 +301,69 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             }
             serWaveOp.m_TileIdFormat            = poolWaveOp->gTileIdFormat();
 
+
+            continue;
+        }
+        if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
+            saveActivaton(activationWaveOp, serWaveOp);
             continue;
         }
         assert(false && "Unsupported WaveOp");
     }
     archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
+}
+
+
+void
+Network::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+    serWaveOp.m_AtomId = sbatomWaveOp->gAtomId();
+    serWaveOp.m_AtomSize = sbatomWaveOp->gAtomSize();
+    serWaveOp.m_BatchFoldIdx = sbatomWaveOp->gBatchFoldIdx();
+    serWaveOp.m_DataType = DataType::dataTypeId2Str(
+                              sbatomWaveOp->gDataType().gDataTypeId());
+    serWaveOp.m_Length = sbatomWaveOp->gLength();
+    serWaveOp.m_OffsetInFile = sbatomWaveOp->gOffsetInFile();
+    serWaveOp.m_RefFile = sbatomWaveOp->gRefFileName();
+    serWaveOp.m_RefFileFormat = sbatomWaveOp->gRefFileFormat();
+    const std::array<kcc_int32,4>& refFileShape(sbatomWaveOp->gRefFileShape());
+    for (unsigned int shapeIdx = 0; shapeIdx < refFileShape.size(); ++shapeIdx) {
+        serWaveOp.m_RefFileShape[shapeIdx] = refFileShape[shapeIdx];
+    }
+
+    if (auto sbatomfileWaveOp = dynamic_cast<const wave::SbAtomFileWaveOp*>(sbatomWaveOp)) {
+        serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStr();
+        serWaveOp.m_IfmapCount = sbatomfileWaveOp->gIfmapCount();
+        serWaveOp.m_IfmapsFoldIdx = sbatomfileWaveOp->gIfmapsFoldIdx();
+        serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
+    } else {
+        auto sbatomsaveWaveOp = dynamic_cast<const wave::SbAtomSaveWaveOp*>(sbatomWaveOp);
+        assert(sbatomsaveWaveOp && "Wrong SbAtaom WaveOp");
+        serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStr();
+        serWaveOp.m_OfmapCount = sbatomsaveWaveOp->gOfmapCount();
+        serWaveOp.m_OfmapsFoldIdx = sbatomsaveWaveOp->gOfmapsFoldIdx();
+    }
+}
+
+
+void
+Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const
+{
+    serWaveOp.m_WaveOpType = wave::ActivationWaveOp::gTypeStr();
+
+    serWaveOp.m_ActType             = serialize::SerWaveOp::activationType2Str(activationWaveOp->gActType());
+    serWaveOp.m_BiasAddEn           = activationWaveOp->qBiasAddEn();
+    serWaveOp.m_BiasAtomId          = activationWaveOp->gBiasAtomId();
+    serWaveOp.m_BiasOffsetInAtom    = activationWaveOp->gBiasOffsetInAtom();
+    serWaveOp.m_PsumBankIdDst       = activationWaveOp->gPsumBankIdDst();
+    serWaveOp.m_PsumBankIdSrc       = activationWaveOp->gPsumBankIdSrc();
+    const std::array<kcc_int32, 4>& tileId(activationWaveOp->gTileId());
+    for (unsigned int i = 0; i < tileId.size(); ++i) {
+        serWaveOp.m_TileId[i]       = tileId[i];
+    }
+    serWaveOp.m_TileIdFormat        = activationWaveOp->gTileIdFormat();
 }
 
 }}

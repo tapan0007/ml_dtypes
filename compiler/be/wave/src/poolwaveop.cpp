@@ -59,6 +59,7 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
 bool 
 PoolWaveOp::verify() const
 {
+    const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
     if (! this->WaveOp::verify()) {
         return false;
     }
@@ -93,15 +94,19 @@ PoolWaveOp::verify() const
     if (m_PoolFrequency < 1) {
         return false;
     }
-    if (m_PoolFunc != PoolType_Max && m_PoolFunc != PoolType_Avg) {
+    switch (m_PoolFunc) {
+    case PoolType_Max:
+    case PoolType_Avg:
+        break;
+    default:
         return false;
     }
     // previouswaveops: [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
     // m_SrcIsPsum;
-    if (m_SrcPsumBankId < 0) {
+    if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
         return false;
     }
-    if (m_SrcPsumBankOffset < 0) {
+    if (m_SrcPsumBankOffset < 0 || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries()) {
         return false;
     }
     if (m_SrcSbAtomId < 0) {

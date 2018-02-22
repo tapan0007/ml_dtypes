@@ -340,12 +340,11 @@ SerWaveOp::verifyPool() const
     if (m_TileId.size() != 4) {
         DEBUG_ASSERT(false);
         return false;
-    } else {
-        for (auto n : m_TileId) {
-            if (n < 0) {
+    }
+    for (auto n : m_TileId) {
+        if (n < 0) {
             DEBUG_ASSERT(false);
-                return false;
-            }
+            return false;
         }
     }
     if (m_TileIdFormat == "") {
@@ -359,6 +358,44 @@ SerWaveOp::verifyPool() const
 }
 
 
+bool
+SerWaveOp::verifyActivation() const
+{
+    if (m_ActType == "") {
+        DEBUG_ASSERT(false);
+        return false;
+    }
+    // m_BiasAddEn
+    if (m_BiasAtomId < 0) {
+        return false;
+    }
+    if (m_BiasOffsetInAtom < 0) {
+        return false;
+    }
+    if (m_PsumBankIdDst < 0) {
+        return false;
+    }
+    if (m_PsumBankIdSrc < 0) {
+        return false;
+    }
+
+    if (m_TileId.size() != 4) {
+        DEBUG_ASSERT(false);
+        return false;
+    }
+    for (auto n : m_TileId) {
+        if (n < 0) {
+            DEBUG_ASSERT(false);
+            return false;
+        }
+    }
+
+    if (m_TileIdFormat == "") {
+        DEBUG_ASSERT(false);
+        return false;
+    }
+    return true;
+}
 
 
 bool
@@ -386,12 +423,70 @@ SerWaveOp::verify() const
         return verifyMatMul();
     } else if (m_WaveOpType == WaveOpTypeStr_Pool) {
         return verifyPool();
+    } else if (m_WaveOpType == WaveOpTypeStr_Activation) {
+        return verifyActivation();
     } else {
         DEBUG_ASSERT(false);
         return false;
     }
     return true;
 }
+
+std::string
+SerWaveOp::activationType2Str(ActivationType actType)
+{
+    switch (actType) {
+    case ActivationType_Identity:
+        return WaveOpKey_ActType_Identity;
+        break;
+    case ActivationType_Relu:
+        return WaveOpKey_ActType_Relu;
+        break;
+    case ActivationType_LRelu:
+        return WaveOpKey_ActType_Lrelu;
+        break;
+    case ActivationType_PRelu:
+        return WaveOpKey_ActType_Prelu;
+        break;
+    case ActivationType_Sigmoid:
+        return WaveOpKey_ActType_Sigmoid;
+        break;
+    case ActivationType_Tanh:
+        return WaveOpKey_ActType_Tanh;
+        break;
+    case ActivationType_Exp:
+        return WaveOpKey_ActType_Exp;
+        break;
+    default:
+        assert(false && "Wrong activation type");
+        break;
+    }
+    return "";
+}
+
+ActivationType
+SerWaveOp::str2ActivationType(const std::string& actType)
+{
+    if (actType == WaveOpKey_ActType_Identity || actType == WaveOpKey_ActType_None /* until Jeff fixes none */) {
+        return ActivationType_Identity;
+    } else if (actType  == WaveOpKey_ActType_Relu) {
+        return ActivationType_Relu;
+    } else if (actType  == WaveOpKey_ActType_Lrelu) {
+        return ActivationType_LRelu;
+    } else if (actType  == WaveOpKey_ActType_Prelu) {
+        return ActivationType_PRelu;
+    } else if (actType  == WaveOpKey_ActType_Sigmoid) {
+        return ActivationType_Sigmoid;
+    } else if (actType  == WaveOpKey_ActType_Tanh) {
+        return ActivationType_Tanh;
+    } else if (actType  == WaveOpKey_ActType_Exp) {
+        return ActivationType_Exp;
+    } else {
+        assert(false && "Wrong activation type");
+    }
+    return ActivationType_Exp;
+}
+
 
 } // namespace serialize
 } // namespace kcc
