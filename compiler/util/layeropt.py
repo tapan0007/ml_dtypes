@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 from NpUtils import NpUtils as npu
 
-DEBUG_LEVEL_DEFAULT=3
+DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(precision=14)
 
