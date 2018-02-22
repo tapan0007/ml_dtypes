@@ -54,6 +54,10 @@ dimCmd = dimCmd.replace(".0,", ",")
 print(dimCmd)
 #assert(len(dimList[2::3]) == 1)
 exec(dimCmd)
+if (IMIN >= IMAX):
+    print("Warning: Imin >= Imax:", IMIN< IMAX)
+if (WMIN >= WMAX):
+    print("Warning: Wmin >= Wmax:", WMIN< WMAX)
 
 # DataTypes
 #   npDataType, tfDataType - for the data flow
