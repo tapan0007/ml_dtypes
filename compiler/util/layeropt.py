@@ -379,7 +379,7 @@ class CircularBuffer:
         lower_addr_chunked = lower_addr // self.atom_data_sz
         upper_addr_chunked = upper_addr // self.atom_data_sz
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
-            print("ERROR %s: data region is crossing gappy atom boundary!");
+            print("ERROR %s: data region is crossing gappy atom boundary!"%self.circbuf_type);
             exit(-1)
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
@@ -387,8 +387,8 @@ class CircularBuffer:
                 dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
                 for k in self.addr2atom.keys():
                     if (self.addr2atom[k] == atom_id):
-                        if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with %s"%(k, i))
-                        eviction_count += 1
+                        if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with %s"%(self.circbuf_type, k, atom_id, i))
+                        self.eviction_count += 1
                 self.addr2atom[i] = atom_id
         return dram_waveops
     
