@@ -595,6 +595,7 @@ class Ktests:
 
   def dashboard(self, testRe, outFileName):
     with open(outFileName, "w") as fh:
+      fh.write("Test description is in  https://sim.amazon.com/issues/kaena-163\n")
       fh.write("%-20s  %-12s  %-12s\n" % ("Test", "MeStatus", "Status"))
       fh.write("-" * 79 + "\n")
       countAll = 0
