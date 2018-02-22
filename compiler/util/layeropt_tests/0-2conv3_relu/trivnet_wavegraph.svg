@@ -147,15 +147,15 @@
 <path fill="none" stroke="#000000" d="M193.3047,-143.8314C193.3047,-136.131 193.3047,-126.9743 193.3047,-118.4166"/>
 <polygon fill="#000000" stroke="#000000" points="196.8048,-118.4132 193.3047,-108.4133 189.8048,-118.4133 196.8048,-118.4132"/>
 </g>
-<!-- 1conv3/relu1/SBAtomSave_n0_m0_h0_w0 -->
+<!-- 1conv3/relu1/SBAtomSave_80_n0_m0_h0_w0 -->
 <g id="node13" class="node">
-<title>1conv3/relu1/SBAtomSave_n0_m0_h0_w0</title>
-<ellipse fill="none" stroke="#000000" cx="193.3047" cy="-18" rx="164.7178" ry="18"/>
-<text text-anchor="middle" x="193.3047" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/relu1/SBAtomSave_n0_m0_h0_w0</text>
+<title>1conv3/relu1/SBAtomSave_80_n0_m0_h0_w0</title>
+<ellipse fill="none" stroke="#000000" cx="193.3047" cy="-18" rx="178.2482" ry="18"/>
+<text text-anchor="middle" x="193.3047" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/relu1/SBAtomSave_80_n0_m0_h0_w0</text>
 </g>
-<!-- 1conv3/relu1/Activation_n0_m0_h0_w0&#45;&gt;1conv3/relu1/SBAtomSave_n0_m0_h0_w0 -->
+<!-- 1conv3/relu1/Activation_n0_m0_h0_w0&#45;&gt;1conv3/relu1/SBAtomSave_80_n0_m0_h0_w0 -->
 <g id="edge12" class="edge">
-<title>1conv3/relu1/Activation_n0_m0_h0_w0&#45;&gt;1conv3/relu1/SBAtomSave_n0_m0_h0_w0</title>
+<title>1conv3/relu1/Activation_n0_m0_h0_w0&#45;&gt;1conv3/relu1/SBAtomSave_80_n0_m0_h0_w0</title>
 <path fill="none" stroke="#000000" d="M193.3047,-71.8314C193.3047,-64.131 193.3047,-54.9743 193.3047,-46.4166"/>
 <polygon fill="#000000" stroke="#000000" points="196.8048,-46.4132 193.3047,-36.4133 189.8048,-46.4133 196.8048,-46.4132"/>
 </g>
