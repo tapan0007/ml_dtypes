@@ -343,6 +343,7 @@ class CircularBuffer:
               'ifmaps_fold_idx'  : wave_id.c_id,
               'batch_fold_idx'   : wave_id.n_id,
               'ifmap_count'      : ifmap_count,
+              'partition_step_bytes': self.ifmap_data_len,
             }
 
     def gen_dram_save_waveop(self, tile_id, atom_id, chunk_id, ofmap_count):
@@ -371,6 +372,7 @@ class CircularBuffer:
               'ofmaps_fold_idx'  : tile_id.m_id,
               'batch_fold_idx'   : tile_id.n_id,
               'ofmap_count'      : ofmap_count,
+              'partition_step_bytes': self.ofmap_data_len,
             }
 
     def read_data_region(self, wave_id, lower_addr, upper_addr, ifmap_count):

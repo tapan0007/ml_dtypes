@@ -55,6 +55,7 @@
       "layer_name": "input",
       "length": 32,
       "offset_in_file": 0,
+      "partition_step_bytes": 32,
       "previous_waveops": [],
       "ref_file": "trivnet_input:0_NCHW.npy",
       "ref_file_format": "NCHW",
@@ -73,6 +74,7 @@
       "layer_name": "1conv3/conv1",
       "length": 18,
       "offset_in_file": 0,
+      "partition_step_bytes": 18,
       "previous_waveops": [],
       "ref_file": "trivnet_1conv3__weight1__read:0_CRSM.npy",
       "ref_file_format": "CRSM",
@@ -489,6 +491,7 @@
       "offset_in_file": 0,
       "ofmap_count": 1,
       "ofmaps_fold_idx": 0,
+      "partition_step_bytes": 32,
       "previous_waveops": [
         "1conv3/relu1/Activation_n0_m0_h0_w0"
       ],
