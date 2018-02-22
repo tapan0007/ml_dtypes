@@ -205,6 +205,7 @@ class CircularBuffer:
         self.dram_data = None
         self.dram_data_len = 0
         self.ifmap_data_len = 0
+        self.ofmap_data_len = 0
         self.tracked_lower_addr = -1
         self.tracked_lower_addr_chunked = 0
         self.layer_name = ""
@@ -269,6 +270,9 @@ class CircularBuffer:
                 exit(-1)
             assert(N * C * H * W * self.item_sz == self.dram_data_len)                
             self.ifmap_data_len = self.dram_data_len//(N*C)
+            # layer_shape is the ofmap_shape, in the format of N, M, E, F
+            assert(self.layer_shape[0] == N)
+            self.ofmap_data_len = self.layer_shape[2]*self.layer_shape[3]*self.item_sz
             ifmap_width_data_len = W * self.item_sz
             # make atom size multiple of IFMAP if IFMAP is smaller than default atom size (CNHW)
             #if (self.ifmap_data_len <= self.atom_sz):
@@ -392,8 +396,8 @@ class CircularBuffer:
         upper_addr_chunked = upper_addr // self.atom_data_sz
         # if upper addr is larger than IFMAP size, then it is in a different channel or batch item,
         # so use the modulo to check the end address
-        upper_addr_mod = upper_addr % self.ifmap_data_len
-        if (upper_addr_mod == self.ifmap_data_len - self.item_sz or upper_addr_mod == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz):
+        upper_addr_mod = upper_addr % self.ofmap_data_len
+        if ((upper_addr_mod == (self.ofmap_data_len - self.item_sz)) or (upper_addr_mod == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz)):
             return True
         return False
 
