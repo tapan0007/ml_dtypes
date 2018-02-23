@@ -281,6 +281,9 @@ class CircularBuffer:
             # For NCHW, just use ifmap size as atom size (see rule above: "different FMAPs folds will be in different atoms")
             if (self.ifmap_data_len <= self.atom_sz):
                 self.atom_data_sz = self.ifmap_data_len
+            # To prevent crossing gaps for inputs, make it contiguous (only work for inputs)
+            elif (self.layer_type == 'Input'):
+                self.atom_data_sz = self.atom_sz
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
                 multiple = self.atom_sz // ifmap_width_data_len
