@@ -16,7 +16,7 @@ namespace kcc {
 namespace wavecode {
 
 WaveCodeSbAtomFile::WaveCodeSbAtomFile(WaveCode* waveCode)
-    : WaveCodeWaveOp(waveCode)
+    : WaveCodeSbAtom(waveCode)
 {}
 
 void
@@ -24,6 +24,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
 {
     const auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp);
     assert(sbatomfileWaveOp);
+    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
     kcc_int64 npyFileDramOffset = m_WaveCode->getDramForInputNpyFile(sbatomfileWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) {
@@ -64,17 +65,15 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         m_WaveCode->writeInstruction(npyToDramInstr);
     }
 
-    // These are waveop params, not layer params
-    const kcc_int64 numBytesPerPart = sbatomfileWaveOp->gLength();
     const kcc_int64 numPartitions   = sbatomfileWaveOp->gIfmapCount();
-    const kcc_int64 addressInPart   = sbatomfileWaveOp->gAtomId() * sbatomfileWaveOp->gWaveAtomSize();
-
-    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
+    const kcc_int64 numBytesPerPart = sbatomfileWaveOp->gLength();
+    const kcc_int64 addressInPart   = sbatomfileWaveOp->gAddressInPartition(0 /*offset in atom*/);
+    const kcc_int64 stepSize = sbatomfileWaveOp->gPartitionStepBytes();
 
     SIM_MEMCPY dramToStateBufInstr;
     dramToStateBufInstr.nbytes = numBytesPerPart;
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
-        dramToStateBufInstr.src_address = npyFileDramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * numBytesPerPart);
+        dramToStateBufInstr.src_address = npyFileDramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * stepSize);
         dramToStateBufInstr.dst_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
         m_WaveCode->writeInstruction(dramToStateBufInstr);
     }

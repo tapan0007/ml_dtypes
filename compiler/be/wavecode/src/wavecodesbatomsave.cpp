@@ -14,7 +14,7 @@ namespace kcc {
 namespace wavecode {
 
 WaveCodeSbAtomSave::WaveCodeSbAtomSave(WaveCode* waveCode)
-    : WaveCodeWaveOp(waveCode)
+    : WaveCodeSbAtom(waveCode)
 {}
 
 void
@@ -23,6 +23,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveOp)
     auto sbatomsaveWaveOp = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveOp);
     assert(sbatomsaveWaveOp);
     const layers::Layer* layer = sbatomsaveWaveOp->gLayer();
+    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
     kcc_int64 npyFileDramOffset = m_WaveCode->getDramForOutputNpyFile(sbatomsaveWaveOp->gRefFileName());
 
@@ -40,20 +41,16 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveOp)
         m_WaveCode->recordDramForOutputNpyFile(sbatomsaveWaveOp->gRefFileName(), npyFileInfo);
     }
 
-    const kcc_int64 numPartitions       = sbatomsaveWaveOp->gOfmapCount();
-    const kcc_int64 addressInPart       = sbatomsaveWaveOp->gAtomId() * sbatomsaveWaveOp->gWaveAtomSize(); // offset = 0
-    const kcc_int64 numBytesPerPart     = sbatomsaveWaveOp->gLength();
-    kcc_int64 stepSize                  = layer->gOfmapHeight();
-    stepSize                            *= layer->gOfmapWidth();
-    stepSize                            *= sbatomsaveWaveOp->gDataType().gSizeInBytes();
+    const kcc_int64 numPartitions   = sbatomsaveWaveOp->gOfmapCount();
+    const kcc_int64 numBytesPerPart = sbatomsaveWaveOp->gLength();
+    const kcc_int64 addressInPart   = sbatomsaveWaveOp->gAddressInPartition(0 /*offset in atom*/);
+    const kcc_int64 stepSize = sbatomsaveWaveOp->gPartitionStepBytes();
 
-    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     SIM_MEMCPY statebufToDramInstr;
     statebufToDramInstr.nbytes       = numBytesPerPart;
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         statebufToDramInstr.src_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
         statebufToDramInstr.dst_address = npyFileDramOffset + sbatomsaveWaveOp->gOffsetInFile() + (partIdx * stepSize);
-
         m_WaveCode->writeInstruction(statebufToDramInstr);
     }
 }

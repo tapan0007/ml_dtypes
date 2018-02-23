@@ -63,6 +63,13 @@ public:
         return m_RefFileName;
     }
 
+    kcc_int64 gAddressInPartition(kcc_int32 offsetInPartition) const {
+        kcc_int64 addressInPart = gAtomId();
+        addressInPart *= gWaveAtomSize(); // offset = 0
+        addressInPart += offsetInPartition;
+        return addressInPart;
+    }
+
     void rRefFileName(const std::string& refFileName) {
         m_RefFileName = refFileName;
     }

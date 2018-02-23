@@ -13,7 +13,7 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 
-#include "wavecode/inc/wavecodewaveop.hpp"
+#include "wavecode/inc/wavecodesbatom.hpp"
 
 
 namespace kcc {
@@ -29,7 +29,7 @@ namespace wavecode {
 
 
 
-class WaveCodeSbAtomFile : public WaveCodeWaveOp {
+class WaveCodeSbAtomFile : public WaveCodeSbAtom {
 public:
     //----------------------------------------------------------------
     WaveCodeSbAtomFile(WaveCode* waveCode);

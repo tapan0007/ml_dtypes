@@ -243,7 +243,9 @@ testConfigMap = {
 # If the testname matches the regexp then the FAIL status is replaced with
 # with the string
 testWaiver = [
-    ['^0-add',   'WAIVE-RESADD'],
+    ['^0-add$',   'WAIVE-RESADD'],
+    ['^0-add_fp32',   'WAIVE-RESADD'],
+    ['^0-add_uint8',   'WAIVE-RESADD'],
     ['^[568]-',  'WAIVE-BENCH'],
 
     [ '3-rn50-01_wave',   'WAIVE-BENCH'],
@@ -279,11 +281,11 @@ testWaiver = [
     # ['0-1conv1pool_wave',           'WAIVE_WAVESC'],
     # ['0-1conv_h6r3s2_wave',         'WAIVE_WAVESC'],
     ['0-1conv_tile_wave',           'WAIVE_WAVESC'],
-    ['1-1conv0_h32c128m128_wave',   'WAIVE_WAVESC'],
+    #['1-1conv0_h32c128m128_wave',   'WAIVE_WAVESC'],
     # ['1-1conv0_h32c128m64_wave',    'WAIVE_WAVESC'],
     # ['1-1conv0_h32c1m2_wave',       'WAIVE_WAVESC'],
-    ['1-1conv0_h32c256m128_wave',   'WAIVE_WAVESC'],
-    ['1-1conv0_h32c256m64_wave',    'WAIVE_WAVESC'],
+    #['1-1conv0_h32c256m128_wave',   'WAIVE_WAVESC'],
+    #['1-1conv0_h32c256m64_wave',    'WAIVE_WAVESC'],
     ['1-1conv0_h40c128m128_wave',   'WAIVE_WAVESC'],
     # ['1-1conv0_h40c128m64_wave',    'WAIVE_WAVESC'],
     ['1-1conv0_h40c256m128_wave',   'WAIVE_WAVESC'],
