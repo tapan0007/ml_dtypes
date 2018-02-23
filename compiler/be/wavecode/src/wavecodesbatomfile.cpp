@@ -4,6 +4,7 @@
 #include "arch/inc/arch.hpp"
 
 #include "layers/inc/inputlayer.hpp"
+#include "layers/inc/constlayer.hpp"
 #include "layers/inc/convlayer.hpp"
 
 #include "wave/inc/sbatomfilewaveop.hpp"
@@ -47,6 +48,13 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
             numPySize *= inputLayer->gNumOfmaps();    // C
             numPySize *= inputLayer->gOfmapHeight();  // H
             numPySize *= inputLayer->gOfmapWidth();   // W
+        } else if (layer->qConstLayer()) {
+            auto constLayer = dynamic_cast<const layers::ConstLayer*>(layer);  // All IFMAPs = NCHW
+            assert(constLayer && "Const Layer expected");
+            // batching?                             // N
+            numPySize *= constLayer->gNumOfmaps();    // C
+            numPySize *= constLayer->gOfmapHeight();  // H
+            numPySize *= constLayer->gOfmapWidth();   // W
         } else {
             assert(false && "Conv or Input layer expected");
         }

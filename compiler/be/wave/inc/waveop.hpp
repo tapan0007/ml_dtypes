@@ -84,7 +84,7 @@ public:
     const DataType& gDataType() const;
 
     //----------------------------------------------------------------
-    std::string gName() const {
+    const std::string& gName() const {
         return m_Name;
     }
 

@@ -101,6 +101,11 @@ private:
                                 std::vector<wave::WaveOp*> prevWaveOps);
 
 
+    void saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const;
+    void savePool(const wave::PoolWaveOp* poolWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const;
+
     void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
     void saveActivaton(const wave::ActivationWaveOp* activationWaveOp,

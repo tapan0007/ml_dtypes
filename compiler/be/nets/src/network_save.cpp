@@ -38,6 +38,8 @@
 namespace kcc {
 namespace nets {
 
+#define KCC_SERIALIZE(X) serWaveOp.KCC_CONCAT(m_,X) = WAVE_OP->KCC_CONCAT(g,X)()
+
 //--------------------------------------------------------
 template<>
 void
@@ -225,83 +227,12 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
 
         if (const auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp)) {
-            serWaveOp.m_WaveOpType = wave::MatMulWaveOp::gTypeStr();
 
-            serWaveOp.m_BatchingInWave = matmulWaveOp->gBatchingInWave();
-            serWaveOp.m_FmapXNum = matmulWaveOp->gFmapXNum();
-            serWaveOp.m_FmapXStep = matmulWaveOp->gFmapXStep();
-            serWaveOp.m_FmapYNum = matmulWaveOp->gFmapYNum();
-            serWaveOp.m_FmapYStep = matmulWaveOp->gFmapYStep();
-            serWaveOp.m_FmapZNum = matmulWaveOp->gFmapZNum();
-            serWaveOp.m_FmapZStepAtoms = matmulWaveOp->gFmapZStepAtoms();
-            serWaveOp.m_IfmapCount = matmulWaveOp->gIfmapCount();
-            serWaveOp.m_IfmapTileHeight = matmulWaveOp->gIfmapTileHeight();
-            serWaveOp.m_IfmapTileWidth = matmulWaveOp->gIfmapTileWidth();
-            serWaveOp.m_IfmapsAtomId = matmulWaveOp->gIfmapsAtomId();
-            serWaveOp.m_IfmapsAtomSize = matmulWaveOp->gIfmapsAtomSize();
-            serWaveOp.m_IfmapsOffsetInAtom = matmulWaveOp->gIfmapsOffsetInAtom();
-            // layer_name
-            serWaveOp.m_NumColumnPartitions = matmulWaveOp->gNumColumnPartitions();
-            serWaveOp.m_NumRowPartitions = matmulWaveOp->gNumRowPartitions();
-            serWaveOp.m_OfmapCount = matmulWaveOp->gOfmapCount();
-            serWaveOp.m_OfmapTileHeight = matmulWaveOp->gOfmapTileHeight();
-            serWaveOp.m_OfmapTileWidth = matmulWaveOp->gOfmapTileWidth();
-            // previous layers
-            serWaveOp.m_PsumBankId = matmulWaveOp->gPsumBankId();
-            serWaveOp.m_PsumBankOffset = matmulWaveOp->gPsumBankOffset();
-            serWaveOp.m_PsumXNum = matmulWaveOp->gPsumXNum();
-            serWaveOp.m_PsumXStep = matmulWaveOp->gPsumXStep();
-            serWaveOp.m_PsumYNum = matmulWaveOp->gPsumYNum();
-            serWaveOp.m_PsumYStep = matmulWaveOp->gPsumYStep();
-            serWaveOp.m_StartTensorCalc = matmulWaveOp->qStartTensorCalc();
-            serWaveOp.m_StopTensorCalc = matmulWaveOp->qStopTensorCalc();
-            serWaveOp.m_StrideX = matmulWaveOp->gStrideX();
-            serWaveOp.m_StrideY = matmulWaveOp->gStrideY();
-            serWaveOp.m_WaveId = matmulWaveOp->gWaveId();
-            serWaveOp.m_WaveIdFormat = matmulWaveOp->gWaveIdFormat();
-            // waveop name
-            // waveop type
-            serWaveOp.m_WeightsAtomId = matmulWaveOp->gWeightsAtomId();
-            serWaveOp.m_WeightsOffsetInAtom = matmulWaveOp->gWeightsOffsetInAtom();
-
+            saveMatmul(matmulWaveOp, serWaveOp);
             continue;
         }
         if (const auto poolWaveOp = dynamic_cast<wave::PoolWaveOp*>(waveOp)) {
-            serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStr();
-
-            serWaveOp.m_DstSbAtomId             = poolWaveOp->gDstSbAtomId();
-            serWaveOp.m_DstSbOffsetInAtom       = poolWaveOp->gDstSbOffsetInAtom();
-            serWaveOp.m_DstXNum                 = poolWaveOp->gDstXNum();
-            serWaveOp.m_DstXStep                = poolWaveOp->gDstXStep();
-            serWaveOp.m_DstYNum                 = poolWaveOp->gDstYNum();
-            serWaveOp.m_DstYStep                = poolWaveOp->gDstYStep();
-            serWaveOp.m_DstZNum                 = poolWaveOp->gDstZNum();
-            serWaveOp.m_DstZStep                = poolWaveOp->gDstZStep();
-            serWaveOp.m_InDtype                 = poolWaveOp->gInDtype().gName();
-            serWaveOp.m_NumPartitions           = poolWaveOp->gNumPartitions();
-            serWaveOp.m_OutDtype                = poolWaveOp->gOutDtype().gName();
-            serWaveOp.m_PoolFrequency           = poolWaveOp->gPoolFrequency();
-            serWaveOp.m_PoolFunc                = utils::poolType2Str(poolWaveOp->gPoolFunc());
-            serWaveOp.m_SrcIsPsum               = poolWaveOp->qSrcIsPsum();
-            serWaveOp.m_SrcPsumBankId           = poolWaveOp->gSrcPsumBankId();
-            serWaveOp.m_SrcPsumBankOffset       = poolWaveOp->gSrcPsumBankOffset();
-            serWaveOp.m_SrcSbAtomId             = poolWaveOp->gSrcSbAtomId();
-            serWaveOp.m_SrcSbOffsetInAtom       = poolWaveOp->gSrcSbOffsetInAtom();
-            serWaveOp.m_SrcWNum                 = poolWaveOp->gSrcWNum();
-            serWaveOp.m_SrcWStep                = poolWaveOp->gSrcWStep();
-            serWaveOp.m_SrcXNum                 = poolWaveOp->gSrcXNum();
-            serWaveOp.m_SrcXStep                = poolWaveOp->gSrcXStep();
-            serWaveOp.m_SrcYNum                 = poolWaveOp->gSrcYNum();
-            serWaveOp.m_SrcYStep                = poolWaveOp->gSrcYStep();
-            serWaveOp.m_SrcZNum                 = poolWaveOp->gSrcZNum();
-            serWaveOp.m_SrcZStep                = poolWaveOp->gSrcZStep();
-
-            for (unsigned int i = 0; i < poolWaveOp->gTileId().size(); ++i) {
-                serWaveOp.m_TileId[i] = poolWaveOp->gTileId()[i];
-            }
-            serWaveOp.m_TileIdFormat            = poolWaveOp->gTileIdFormat();
-
-
+            savePool(poolWaveOp, serWaveOp);
             continue;
         }
         if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
@@ -315,34 +246,130 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
 
 
 void
+Network::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+#define WAVE_OP matmulWaveOp
+    serWaveOp.m_WaveOpType = wave::MatMulWaveOp::gTypeStr();
+
+    KCC_SERIALIZE(BatchingInWave);
+    KCC_SERIALIZE(FmapXNum);
+    KCC_SERIALIZE(FmapXStep);
+    KCC_SERIALIZE(FmapYNum);
+    KCC_SERIALIZE(FmapYStep);
+    KCC_SERIALIZE(FmapZNum);
+    KCC_SERIALIZE(FmapZStepAtoms);
+    KCC_SERIALIZE(IfmapCount);
+    KCC_SERIALIZE(IfmapTileHeight);
+    KCC_SERIALIZE(IfmapTileWidth);
+    KCC_SERIALIZE(IfmapsAtomId);
+    KCC_SERIALIZE(IfmapsAtomSize);
+    KCC_SERIALIZE(IfmapsOffsetInAtom);
+    // layer_name
+    KCC_SERIALIZE(NumColumnPartitions);
+    KCC_SERIALIZE(NumRowPartitions);
+    KCC_SERIALIZE(OfmapCount);
+    KCC_SERIALIZE(OfmapTileHeight);
+    KCC_SERIALIZE(OfmapTileWidth);
+    // previous layers
+    KCC_SERIALIZE(PsumBankId);
+    KCC_SERIALIZE(PsumBankOffset);
+    KCC_SERIALIZE(PsumXNum);
+    KCC_SERIALIZE(PsumXStep);
+    KCC_SERIALIZE(PsumYNum);
+    KCC_SERIALIZE(PsumYStep);
+    serWaveOp.m_StartTensorCalc = matmulWaveOp->qStartTensorCalc();
+    serWaveOp.m_StopTensorCalc = matmulWaveOp->qStopTensorCalc();
+    KCC_SERIALIZE(StrideX);
+    KCC_SERIALIZE(StrideY);
+    KCC_SERIALIZE(WaveId);
+    KCC_SERIALIZE(WaveIdFormat);
+    // waveop name
+    // waveop type
+    KCC_SERIALIZE(WeightsAtomId);
+    KCC_SERIALIZE(WeightsOffsetInAtom);
+#undef WAVE_OP
+}
+
+
+
+
+void
+Network::savePool(const wave::PoolWaveOp* poolWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+#define WAVE_OP poolWaveOp
+    serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStr();
+
+    KCC_SERIALIZE(DstSbAtomId);
+    KCC_SERIALIZE(DstSbOffsetInAtom);
+    KCC_SERIALIZE(DstXNum);
+    KCC_SERIALIZE(DstXStep);
+    KCC_SERIALIZE(DstYNum);
+    KCC_SERIALIZE(DstYStep);
+    KCC_SERIALIZE(DstZNum);
+    KCC_SERIALIZE(DstZStep);
+    serWaveOp.m_InDtype  = poolWaveOp->gInDtype().gName();
+    KCC_SERIALIZE(NumPartitions);
+    serWaveOp.m_OutDtype = poolWaveOp->gOutDtype().gName();
+    KCC_SERIALIZE(PoolFrequency);
+    serWaveOp.m_PoolFunc                = utils::poolType2Str(poolWaveOp->gPoolFunc());
+    serWaveOp.m_SrcIsPsum               = poolWaveOp->qSrcIsPsum();
+    KCC_SERIALIZE(SrcPsumBankId);
+    KCC_SERIALIZE(SrcPsumBankOffset);
+    KCC_SERIALIZE(SrcSbAtomId);
+    KCC_SERIALIZE(SrcSbOffsetInAtom);
+    KCC_SERIALIZE(SrcWNum);
+    KCC_SERIALIZE(SrcWStep);
+    KCC_SERIALIZE(SrcXNum);
+    KCC_SERIALIZE(SrcXStep);
+    KCC_SERIALIZE(SrcYNum);
+    KCC_SERIALIZE(SrcYStep);
+    KCC_SERIALIZE(SrcZNum);
+    KCC_SERIALIZE(SrcZStep);
+
+    for (unsigned int i = 0; i < poolWaveOp->gTileId().size(); ++i) {
+        serWaveOp.m_TileId[i] = poolWaveOp->gTileId()[i];
+    }
+    KCC_SERIALIZE(TileIdFormat);
+#undef WAVE_OP
+}
+
+void
 Network::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
-    serWaveOp.m_AtomId = sbatomWaveOp->gAtomId();
-    serWaveOp.m_AtomSize = sbatomWaveOp->gAtomSize();
-    serWaveOp.m_BatchFoldIdx = sbatomWaveOp->gBatchFoldIdx();
+#define WAVE_OP sbatomWaveOp
+    KCC_SERIALIZE(AtomId);
+    KCC_SERIALIZE(AtomSize);
+    KCC_SERIALIZE(BatchFoldIdx);
     serWaveOp.m_DataType = DataType::dataTypeId2Str(
                               sbatomWaveOp->gDataType().gDataTypeId());
-    serWaveOp.m_Length = sbatomWaveOp->gLength();
-    serWaveOp.m_OffsetInFile = sbatomWaveOp->gOffsetInFile();
+    KCC_SERIALIZE(Length);
+    KCC_SERIALIZE(OffsetInFile);
     serWaveOp.m_RefFile = sbatomWaveOp->gRefFileName();
-    serWaveOp.m_RefFileFormat = sbatomWaveOp->gRefFileFormat();
+    KCC_SERIALIZE(RefFileFormat);
     const std::array<kcc_int32,4>& refFileShape(sbatomWaveOp->gRefFileShape());
     for (unsigned int shapeIdx = 0; shapeIdx < refFileShape.size(); ++shapeIdx) {
         serWaveOp.m_RefFileShape[shapeIdx] = refFileShape[shapeIdx];
     }
+#undef WAVE_OP
 
     if (auto sbatomfileWaveOp = dynamic_cast<const wave::SbAtomFileWaveOp*>(sbatomWaveOp)) {
+#define WAVE_OP sbatomfileWaveOp
         serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStr();
-        serWaveOp.m_IfmapCount = sbatomfileWaveOp->gIfmapCount();
-        serWaveOp.m_IfmapsFoldIdx = sbatomfileWaveOp->gIfmapsFoldIdx();
+        KCC_SERIALIZE(IfmapCount);
+        KCC_SERIALIZE(IfmapsFoldIdx);
         serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
+#undef WAVE_OP
     } else {
+#define WAVE_OP sbatomsaveWaveOp
         auto sbatomsaveWaveOp = dynamic_cast<const wave::SbAtomSaveWaveOp*>(sbatomWaveOp);
         assert(sbatomsaveWaveOp && "Wrong SbAtaom WaveOp");
         serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStr();
-        serWaveOp.m_OfmapCount = sbatomsaveWaveOp->gOfmapCount();
-        serWaveOp.m_OfmapsFoldIdx = sbatomsaveWaveOp->gOfmapsFoldIdx();
+        KCC_SERIALIZE(OfmapCount);
+        KCC_SERIALIZE(OfmapsFoldIdx);
+#undef WAVE_OP
     }
 }
 
@@ -351,39 +378,45 @@ void
 Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const
 {
+#define WAVE_OP activationWaveOp
     serWaveOp.m_WaveOpType = wave::ActivationWaveOp::gTypeStr();
 
     serWaveOp.m_ActivationFunc      = serialize::SerWaveOp::activationType2Str(activationWaveOp->gActivationFunc());
     serWaveOp.m_BiasAddEn           = activationWaveOp->qBiasAddEn();
-    serWaveOp.m_BiasAtomId          = activationWaveOp->gBiasAtomId();
-    serWaveOp.m_BiasOffsetInAtom    = activationWaveOp->gBiasOffsetInAtom();
 
-    serWaveOp.m_DstPsumBankId       = activationWaveOp->gDstPsumBankId();
-    serWaveOp.m_DstXNum             = activationWaveOp->gDstXNum();
-    serWaveOp.m_DstXStep            = activationWaveOp->gDstXStep();
-    serWaveOp.m_DstYNum             = activationWaveOp->gDstYNum();
-    serWaveOp.m_DstXStep            = activationWaveOp->gDstYStep();
-    serWaveOp.m_DstZNum             = activationWaveOp->gDstZNum();
-    serWaveOp.m_DstZStep            = activationWaveOp->gDstZStep();
+    //serWaveOp.m_BiasAtomId          = activationWaveOp->gBiasAtomId();
+    KCC_SERIALIZE(BiasAtomId);
 
-    serWaveOp.m_InDtype             = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    serWaveOp.m_NumPartitions       = activationWaveOp->gNumPartitions();
-    serWaveOp.m_OutDtype            = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    KCC_SERIALIZE(BiasOffsetInAtom);
 
-    serWaveOp.m_SrcPsumBankId       = activationWaveOp->gSrcPsumBankId();
-    serWaveOp.m_SrcXNum             = activationWaveOp->gSrcXNum();
-    serWaveOp.m_SrcXStep            = activationWaveOp->gSrcXStep();
-    serWaveOp.m_SrcYNum             = activationWaveOp->gSrcYNum();
-    serWaveOp.m_SrcYStep            = activationWaveOp->gSrcYStep();
-    serWaveOp.m_SrcZNum             = activationWaveOp->gSrcZNum();
-    serWaveOp.m_SrcZStep            = activationWaveOp->gSrcZStep();
+    KCC_SERIALIZE(DstPsumBankId);
+    KCC_SERIALIZE(DstXNum);
+    KCC_SERIALIZE(DstXStep);
+    KCC_SERIALIZE(DstYNum);
+    KCC_SERIALIZE(DstYStep);
+    KCC_SERIALIZE(DstZNum);
+    KCC_SERIALIZE(DstZStep);
+
+    serWaveOp.m_InDtype             = activationWaveOp->gInDtype().gName();
+    KCC_SERIALIZE(NumPartitions);
+    serWaveOp.m_OutDtype            = activationWaveOp->gOutDtype().gName();
+
+    KCC_SERIALIZE(SrcPsumBankId);
+    KCC_SERIALIZE(SrcXNum);
+    KCC_SERIALIZE(SrcXStep);
+    KCC_SERIALIZE(SrcYNum);
+    KCC_SERIALIZE(SrcYStep);
+    KCC_SERIALIZE(SrcZNum);
+    KCC_SERIALIZE(SrcZStep);
 
     const std::array<kcc_int32, 4>& tileId(activationWaveOp->gTileId());
     for (unsigned int i = 0; i < tileId.size(); ++i) {
         serWaveOp.m_TileId[i]       = tileId[i];
     }
-    serWaveOp.m_TileIdFormat        = activationWaveOp->gTileIdFormat();
+    KCC_SERIALIZE(TileIdFormat);
+#undef WAVE_OP
 }
+#undef KCC_SERIALIZE
 
 }}
 

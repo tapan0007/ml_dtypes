@@ -49,6 +49,7 @@ constexpr static const char* LayerKey_Batching          = "batching";
 
 
 
+#define KCC_ARCHIVE(X) archive(cereal::make_nvp(KCC_CONCAT(LayerKey_,X), KCC_CONCAT(m_,X)))
 
 //--------------------------------------------------------
 class SerLayer {
@@ -62,35 +63,35 @@ public:
     template<typename Archive>
     void serialize(Archive & archive)
     {
-        archive(cereal::make_nvp(LayerKey_LayerType, m_LayerType));
-        archive(cereal::make_nvp(LayerKey_LayerName, m_LayerName));
-        archive(cereal::make_nvp(LayerKey_PrevLayers, m_PrevLayers));
-        archive(cereal::make_nvp(LayerKey_OfmapShape, m_OfmapShape));
-        archive(cereal::make_nvp(LayerKey_OfmapFormat, m_OfmapFormat));
-        archive(cereal::make_nvp(LayerKey_RefFile, m_RefFile));
+        KCC_ARCHIVE(LayerType);
+        KCC_ARCHIVE(LayerName);
+        KCC_ARCHIVE(PrevLayers);
+        KCC_ARCHIVE(OfmapShape);
+        KCC_ARCHIVE(OfmapFormat);
+        KCC_ARCHIVE(RefFile);
 
         if (m_LayerType == LayerTypeStr_Input) {
             // nothing specific to Input layer
         } else if (m_LayerType == LayerTypeStr_Const) {
             // nothing specific to Const layer
         } else if (m_LayerType == LayerTypeStr_Conv) {
-            archive(cereal::make_nvp(LayerKey_KernelShape, m_KernelShape));
-            archive(cereal::make_nvp(LayerKey_KernelFile, m_KernelFile));
-            archive(cereal::make_nvp(LayerKey_KernelFormat, m_KernelFormat));
-            archive(cereal::make_nvp(LayerKey_Stride, m_Stride));
-            archive(cereal::make_nvp(LayerKey_Padding, m_Padding));
+            KCC_ARCHIVE(KernelShape);
+            KCC_ARCHIVE(KernelFile);
+            KCC_ARCHIVE(KernelFormat);
+            KCC_ARCHIVE(Stride);
+            KCC_ARCHIVE(Padding);
 
             /*
-            archive(cereal::make_nvp(LayerKey_BatchingInWave, m_BatchingInWave));
+            KCC_ARCHIVE(BatchingInWave);
             */
         } else if (m_LayerType == LayerTypeStr_Tanh) {
             // nothing specific to Tanh
         } else if (m_LayerType == LayerTypeStr_Relu) {
             // nothing specific to Relu
         } else if (m_LayerType == LayerTypeStr_MaxPool || m_LayerType == LayerTypeStr_AvgPool) {
-            archive(cereal::make_nvp(LayerKey_KernelShape, m_KernelShape));
-            archive(cereal::make_nvp(LayerKey_Stride, m_Stride));
-            archive(cereal::make_nvp(LayerKey_Padding, m_Padding));
+            KCC_ARCHIVE(KernelShape);
+            KCC_ARCHIVE(Stride);
+            KCC_ARCHIVE(Padding);
         } else if (m_LayerType == LayerTypeStr_BiasAdd) {
             // nothing specific to BiasAdd layer
         } else if (m_LayerType == LayerTypeStr_ResAdd) {
@@ -275,6 +276,7 @@ private:
     */
 }; // class SerLayer
 
+#undef KCC_ARCHIVE
 
 
 } // namespace serialize

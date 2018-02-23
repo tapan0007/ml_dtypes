@@ -313,8 +313,8 @@ public:
     kcc_int32                   m_SrcXStep	        = -1;
     kcc_int32                   m_SrcYNum	        = -1;
     kcc_int32                   m_SrcYStep	        = -1;
-    kcc_int32                   m_SrcZNum	        = -1;
-    kcc_int32                   m_SrcZStep	        = -1;
+    kcc_int32                   m_SrcZNum	        = +1;
+    kcc_int32                   m_SrcZStep	        = +1;
     std::vector<kcc_int32>      m_TileId;
     std::string                 m_TileIdFormat      = "";
     //waveopname": "1conv/i1/Pooln0m0h0w0",
@@ -340,8 +340,8 @@ public:
     kcc_int32                   m_SrcXStep          = -1;
     kcc_int32                   m_SrcYNum           = -1;
     kcc_int32                   m_SrcYStep          = -1;
-    kcc_int32                   m_SrcZNum           = -1;
-    kcc_int32                   m_SrcZStep          = -1;
+    kcc_int32                   m_SrcZNum           = +1;
+    kcc_int32                   m_SrcZStep          = +1;
 #endif
 }; // class SerWaveOp
 
@@ -350,5 +350,5 @@ public:
 } // namespace serialize
 } // namespace kcc
 
-#endif // KCCSERIALIZESERWAVEOPH
+#endif // KCC_SERIALIZE_SERWAVEOP_H
 

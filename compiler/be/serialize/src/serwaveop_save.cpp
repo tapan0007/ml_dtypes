@@ -3,6 +3,7 @@
 
 namespace kcc {
 namespace serialize {
+#define KCC_ARCHIVE(X) archive(cereal::make_nvp(KCC_CONCAT(WaveOpKey_,X), KCC_CONCAT(m_,X)))
 
 
 template<>
@@ -10,10 +11,10 @@ void
 SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) const
 {
     assert(verify());
-    archive(cereal::make_nvp(WaveOpKey_WaveOpType, m_WaveOpType));
-    archive(cereal::make_nvp(WaveOpKey_WaveOpName, m_WaveOpName));
-    archive(cereal::make_nvp(WaveOpKey_LayerName, m_LayerName));
-    archive(cereal::make_nvp(WaveOpKey_PreviousWaveOps, m_PreviousWaveOps));
+    KCC_ARCHIVE(WaveOpType);
+    KCC_ARCHIVE(WaveOpName);
+    KCC_ARCHIVE(LayerName);
+    KCC_ARCHIVE(PreviousWaveOps);
 
     if (m_WaveOpType == WaveOpTypeStr_SBAtomFile ||
         m_WaveOpType == WaveOpTypeStr_SBAtomSave)
@@ -34,99 +35,99 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
 void
 SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
 {
-    archive(cereal::make_nvp(WaveOpKey_AtomId, m_AtomId));
-    archive(cereal::make_nvp(WaveOpKey_AtomSize, m_AtomSize));
-    archive(cereal::make_nvp(WaveOpKey_BatchFoldIdx, m_BatchFoldIdx));
-    archive(cereal::make_nvp(WaveOpKey_DataType, m_DataType));
-    archive(cereal::make_nvp(WaveOpKey_Length, m_Length));
-    archive(cereal::make_nvp(WaveOpKey_OffsetInFile, m_OffsetInFile));
-    archive(cereal::make_nvp(WaveOpKey_RefFile, m_RefFile));
-    archive(cereal::make_nvp(WaveOpKey_RefFileFormat, m_RefFileFormat));
-    archive(cereal::make_nvp(WaveOpKey_RefFileShape, m_RefFileShape));
+    KCC_ARCHIVE(AtomId);
+    KCC_ARCHIVE(AtomSize);
+    KCC_ARCHIVE(BatchFoldIdx);
+    KCC_ARCHIVE(DataType);
+    KCC_ARCHIVE(Length);
+    KCC_ARCHIVE(OffsetInFile);
+    KCC_ARCHIVE(RefFile);
+    KCC_ARCHIVE(RefFileFormat);
+    KCC_ARCHIVE(RefFileShape);
     if (m_WaveOpType == WaveOpTypeStr_SBAtomFile) {
-        archive(cereal::make_nvp(WaveOpKey_IfmapCount, m_IfmapCount));
-        archive(cereal::make_nvp(WaveOpKey_IfmapsFoldIdx, m_IfmapsFoldIdx));
-        archive(cereal::make_nvp(WaveOpKey_IfmapsReplicate, m_IfmapsReplicate));
+        KCC_ARCHIVE(IfmapCount);
+        KCC_ARCHIVE(IfmapsFoldIdx);
+        KCC_ARCHIVE(IfmapsReplicate);
     } else {
-        archive(cereal::make_nvp(WaveOpKey_OfmapCount, m_OfmapCount));
-        archive(cereal::make_nvp(WaveOpKey_OfmapsFoldIdx, m_OfmapsFoldIdx));
+        KCC_ARCHIVE(OfmapCount);
+        KCC_ARCHIVE(OfmapsFoldIdx);
     }
 }
 
 void
 SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
 {
-    archive(cereal::make_nvp(WaveOpKey_DstSbAtomId, m_DstSbAtomId));
-    archive(cereal::make_nvp(WaveOpKey_DstSbOffsetInAtom, m_DstSbOffsetInAtom));
-    archive(cereal::make_nvp(WaveOpKey_DstXNum, m_DstXNum));
-    archive(cereal::make_nvp(WaveOpKey_DstXStep, m_DstXStep));
-    archive(cereal::make_nvp(WaveOpKey_DstYNum, m_DstYNum));
-    archive(cereal::make_nvp(WaveOpKey_DstYStep, m_DstYStep));
-    archive(cereal::make_nvp(WaveOpKey_DstZNum, m_DstZNum));
-    archive(cereal::make_nvp(WaveOpKey_DstZStep, m_DstZStep));
-    archive(cereal::make_nvp(WaveOpKey_InDtype, m_InDtype));
+    KCC_ARCHIVE(DstSbAtomId);
+    KCC_ARCHIVE(DstSbOffsetInAtom);
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
+    KCC_ARCHIVE(InDtype);
     // layername
-    archive(cereal::make_nvp(WaveOpKey_NumPartitions, m_NumPartitions));
-    archive(cereal::make_nvp(WaveOpKey_OutDtype, m_OutDtype));
-    archive(cereal::make_nvp(WaveOpKey_PoolFrequency, m_PoolFrequency));
-    archive(cereal::make_nvp(WaveOpKey_PoolFunc, m_PoolFunc));
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(OutDtype);
+    KCC_ARCHIVE(PoolFrequency);
+    KCC_ARCHIVE(PoolFunc);
     // previouswaveops
-    archive(cereal::make_nvp(WaveOpKey_SrcIsPsum, m_SrcIsPsum));
-    archive(cereal::make_nvp(WaveOpKey_SrcPsumBankId, m_SrcPsumBankId));
-    archive(cereal::make_nvp(WaveOpKey_SrcPsumBankOffset, m_SrcPsumBankOffset));
-    archive(cereal::make_nvp(WaveOpKey_SrcSbAtomId, m_SrcSbAtomId));
-    archive(cereal::make_nvp(WaveOpKey_SrcSbOffsetInAtom, m_SrcSbOffsetInAtom));
-    archive(cereal::make_nvp(WaveOpKey_SrcWNum, m_SrcWNum));
-    archive(cereal::make_nvp(WaveOpKey_SrcWStep, m_SrcWStep));
-    archive(cereal::make_nvp(WaveOpKey_SrcXNum, m_SrcXNum));
-    archive(cereal::make_nvp(WaveOpKey_SrcXStep, m_SrcXStep));
-    archive(cereal::make_nvp(WaveOpKey_SrcYNum, m_SrcYNum));
-    archive(cereal::make_nvp(WaveOpKey_SrcYStep, m_SrcYStep));
-    archive(cereal::make_nvp(WaveOpKey_SrcZNum, m_SrcZNum));
-    archive(cereal::make_nvp(WaveOpKey_SrcZStep, m_SrcZStep));
-    archive(cereal::make_nvp(WaveOpKey_TileId, m_TileId));
-    archive(cereal::make_nvp(WaveOpKey_TileIdFormat, m_TileIdFormat));
+    KCC_ARCHIVE(SrcIsPsum);
+    KCC_ARCHIVE(SrcPsumBankId);
+    KCC_ARCHIVE(SrcPsumBankOffset);
+    KCC_ARCHIVE(SrcSbAtomId);
+    KCC_ARCHIVE(SrcSbOffsetInAtom);
+    KCC_ARCHIVE(SrcWNum);
+    KCC_ARCHIVE(SrcWStep);
+    KCC_ARCHIVE(SrcXNum);
+    KCC_ARCHIVE(SrcXStep);
+    KCC_ARCHIVE(SrcYNum);
+    KCC_ARCHIVE(SrcYStep);
+    KCC_ARCHIVE(SrcZNum);
+    KCC_ARCHIVE(SrcZStep);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
 }
 
 
 void
 SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
 {
-    archive(cereal::make_nvp(WaveOpKey_BatchingInWave, m_BatchingInWave));
-    archive(cereal::make_nvp(WaveOpKey_FmapXNum, m_FmapXNum));
-    archive(cereal::make_nvp(WaveOpKey_FmapXStep, m_FmapXStep));
-    archive(cereal::make_nvp(WaveOpKey_FmapYNum, m_FmapYNum));
-    archive(cereal::make_nvp(WaveOpKey_FmapYStep, m_FmapYStep));
-    archive(cereal::make_nvp(WaveOpKey_FmapZNum, m_FmapZNum));
-    archive(cereal::make_nvp(WaveOpKey_FmapZStepAtoms, m_FmapZStepAtoms));
-    archive(cereal::make_nvp(WaveOpKey_IfmapCount, m_IfmapCount));
-    archive(cereal::make_nvp(WaveOpKey_IfmapTileHeight, m_IfmapTileHeight));
-    archive(cereal::make_nvp(WaveOpKey_IfmapTileWidth, m_IfmapTileWidth));
-    archive(cereal::make_nvp(WaveOpKey_IfmapsAtomId, m_IfmapsAtomId));
-    archive(cereal::make_nvp(WaveOpKey_IfmapsAtomSize, m_IfmapsAtomSize));
-    archive(cereal::make_nvp(WaveOpKey_IfmapsOffsetInAtom, m_IfmapsOffsetInAtom));
+    KCC_ARCHIVE(BatchingInWave);
+    KCC_ARCHIVE(FmapXNum);
+    KCC_ARCHIVE(FmapXStep);
+    KCC_ARCHIVE(FmapYNum);
+    KCC_ARCHIVE(FmapYStep);
+    KCC_ARCHIVE(FmapZNum);
+    KCC_ARCHIVE(FmapZStepAtoms);
+    KCC_ARCHIVE(IfmapCount);
+    KCC_ARCHIVE(IfmapTileHeight);
+    KCC_ARCHIVE(IfmapTileWidth);
+    KCC_ARCHIVE(IfmapsAtomId);
+    KCC_ARCHIVE(IfmapsAtomSize);
+    KCC_ARCHIVE(IfmapsOffsetInAtom);
     // layer name
-    archive(cereal::make_nvp(WaveOpKey_NumColumnPartitions, m_NumColumnPartitions));
-    archive(cereal::make_nvp(WaveOpKey_NumRowPartitions, m_NumRowPartitions));
-    archive(cereal::make_nvp(WaveOpKey_OfmapCount, m_OfmapCount));
-    archive(cereal::make_nvp(WaveOpKey_OfmapTileHeight, m_OfmapTileHeight));
-    archive(cereal::make_nvp(WaveOpKey_OfmapTileWidth, m_OfmapTileWidth));
+    KCC_ARCHIVE(NumColumnPartitions);
+    KCC_ARCHIVE(NumRowPartitions);
+    KCC_ARCHIVE(OfmapCount);
+    KCC_ARCHIVE(OfmapTileHeight);
+    KCC_ARCHIVE(OfmapTileWidth);
     // previous waveops
-    archive(cereal::make_nvp(WaveOpKey_PsumBankId, m_PsumBankId));
-    archive(cereal::make_nvp(WaveOpKey_PsumBankOffset, m_PsumBankOffset));
-    archive(cereal::make_nvp(WaveOpKey_PsumXNum, m_PsumXNum));
-    archive(cereal::make_nvp(WaveOpKey_PsumXStep, m_PsumXStep));
-    archive(cereal::make_nvp(WaveOpKey_PsumYNum, m_PsumYNum));
-    archive(cereal::make_nvp(WaveOpKey_PsumYStep, m_PsumYStep));
-    archive(cereal::make_nvp(WaveOpKey_StartTensorCalc, m_StartTensorCalc));
-    archive(cereal::make_nvp(WaveOpKey_StopTensorCalc, m_StopTensorCalc));
-    archive(cereal::make_nvp(WaveOpKey_StrideX, m_StrideX));
-    archive(cereal::make_nvp(WaveOpKey_StrideY, m_StrideY));
-    archive(cereal::make_nvp(WaveOpKey_WaveIdFormat, m_WaveIdFormat));
+    KCC_ARCHIVE(PsumBankId);
+    KCC_ARCHIVE(PsumBankOffset);
+    KCC_ARCHIVE(PsumXNum);
+    KCC_ARCHIVE(PsumXStep);
+    KCC_ARCHIVE(PsumYNum);
+    KCC_ARCHIVE(PsumYStep);
+    KCC_ARCHIVE(StartTensorCalc);
+    KCC_ARCHIVE(StopTensorCalc);
+    KCC_ARCHIVE(StrideX);
+    KCC_ARCHIVE(StrideY);
+    KCC_ARCHIVE(WaveIdFormat);
     // waveop name
     // waveop type
-    archive(cereal::make_nvp(WaveOpKey_WeightsAtomId, m_WeightsAtomId));
-    archive(cereal::make_nvp(WaveOpKey_WeightsOffsetInAtom, m_WeightsOffsetInAtom));
+    KCC_ARCHIVE(WeightsAtomId);
+    KCC_ARCHIVE(WeightsOffsetInAtom);
 
     assert(m_WaveIdFormat.size() == WaveIdFormatSize);
     std::vector<int> waveId(WaveIdFormatSize, -1); // undefined value before converting
@@ -138,32 +139,32 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
 void
 SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
 {
-    archive(cereal::make_nvp(WaveOpKey_ActivationFunc, m_ActivationFunc));
-    archive(cereal::make_nvp(WaveOpKey_BiasAddEn, m_BiasAddEn));
-    archive(cereal::make_nvp(WaveOpKey_BiasAtomId, m_BiasAtomId));
-    archive(cereal::make_nvp(WaveOpKey_BiasOffsetInAtom, m_BiasOffsetInAtom));
-    archive(cereal::make_nvp(WaveOpKey_DstPsumBankId, m_DstPsumBankId));
-    archive(cereal::make_nvp(WaveOpKey_DstXNum, m_DstXNum));
-    archive(cereal::make_nvp(WaveOpKey_DstXStep, m_DstXStep));
-    archive(cereal::make_nvp(WaveOpKey_DstYNum, m_DstYNum));
-    archive(cereal::make_nvp(WaveOpKey_DstYStep, m_DstYStep));
-    archive(cereal::make_nvp(WaveOpKey_DstZNum, m_DstZNum));
-    archive(cereal::make_nvp(WaveOpKey_DstZStep, m_DstZStep));
-    archive(cereal::make_nvp(WaveOpKey_InDtype, m_InDtype));
-    archive(cereal::make_nvp(WaveOpKey_NumPartitions, m_NumPartitions));
-    archive(cereal::make_nvp(WaveOpKey_OutDtype, m_OutDtype));
-    archive(cereal::make_nvp(WaveOpKey_SrcPsumBankId, m_SrcPsumBankId));
-    archive(cereal::make_nvp(WaveOpKey_SrcXNum, m_SrcXNum));
-    archive(cereal::make_nvp(WaveOpKey_SrcXStep, m_SrcXStep));
-    archive(cereal::make_nvp(WaveOpKey_SrcYNum, m_SrcYNum));
-    archive(cereal::make_nvp(WaveOpKey_SrcYStep, m_SrcYStep));
-    archive(cereal::make_nvp(WaveOpKey_SrcZNum, m_SrcZNum));
-    archive(cereal::make_nvp(WaveOpKey_SrcZStep, m_SrcZStep));
-    archive(cereal::make_nvp(WaveOpKey_TileId, m_TileId));
-    archive(cereal::make_nvp(WaveOpKey_TileIdFormat, m_TileIdFormat));
+    KCC_ARCHIVE(ActivationFunc);
+    KCC_ARCHIVE(BiasAddEn);
+    KCC_ARCHIVE(BiasAtomId);
+    KCC_ARCHIVE(BiasOffsetInAtom);
+    KCC_ARCHIVE(DstPsumBankId);
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
+    KCC_ARCHIVE(InDtype);
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(OutDtype);
+    KCC_ARCHIVE(SrcPsumBankId);
+    KCC_ARCHIVE(SrcXNum);
+    KCC_ARCHIVE(SrcXStep);
+    KCC_ARCHIVE(SrcYNum);
+    KCC_ARCHIVE(SrcYStep);
+    KCC_ARCHIVE(SrcZNum);
+    KCC_ARCHIVE(SrcZStep);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
 }
 
-
+#undef KCC_ARCHIVE
 } // namespace serialize
 } // namespace kcc
 
