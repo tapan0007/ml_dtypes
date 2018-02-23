@@ -329,7 +329,7 @@ class CircularBuffer:
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomFile",
-              'waveop_name'      : self.layer_name+"/SBAtomFile_%d"%chunk_id,
+              'waveop_name'      : self.layer_name+"/SBAtomFile_%s_%d"%(self.circbuf_type, chunk_id),
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
