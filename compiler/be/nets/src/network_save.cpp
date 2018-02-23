@@ -347,6 +347,7 @@ Network::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                               sbatomWaveOp->gDataType().gDataTypeId());
     KCC_SERIALIZE(Length);
     KCC_SERIALIZE(OffsetInFile);
+    KCC_SERIALIZE(PartitionStepBytes);
     serWaveOp.m_RefFile = sbatomWaveOp->gRefFileName();
     KCC_SERIALIZE(RefFileFormat);
     const std::array<kcc_int32,4>& refFileShape(sbatomWaveOp->gRefFileShape());

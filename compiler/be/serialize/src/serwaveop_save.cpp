@@ -41,6 +41,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(DataType);
     KCC_ARCHIVE(Length);
     KCC_ARCHIVE(OffsetInFile);
+    KCC_ARCHIVE(PartitionStepBytes);
     KCC_ARCHIVE(RefFile);
     KCC_ARCHIVE(RefFileFormat);
     KCC_ARCHIVE(RefFileShape);

@@ -8,6 +8,8 @@
 #include "wave/inc/sbatomwaveop.hpp"
 #include "nets/inc/network.hpp"
 
+//#define ASSERT_RETURN(x) return(x)
+#define ASSERT_RETURN(x) assert(x); return (x)
 
 
 namespace kcc {
@@ -22,6 +24,7 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
     , m_DataType(DataType::dataTypeId2DataType(params.m_DataType))
     , m_Length(params.m_Length)
     , m_OffsetInFile(params.m_OffsetInFile)
+    , m_PartitionStepBytes(params.m_PartitionStepBytes)
     , m_RefFileName(params.m_RefFileName)
     , m_RefFileFormat(params.m_RefFileFormat)
     , m_RefFileShape(params.m_RefFileShape)
@@ -34,36 +37,39 @@ bool
 SbAtomWaveOp::verify() const
 {
     if (! this-> WaveOp::verify()) {
-        return false;
+        ASSERT_RETURN(false);
     }
     if (m_AtomId < 0) {
-        return false;
+        ASSERT_RETURN(false);
     }
     if (m_AtomSize < 1) {
-        return false;
+        ASSERT_RETURN(false);
     }
     if (m_BatchFoldIdx < 0) {
-        return false;
+        ASSERT_RETURN(false);
     }
     // m_DataType
     if (m_Length <= 0) {
-        return false;
+        ASSERT_RETURN(false);
     }
     if (m_OffsetInFile < 0) {
-        return false;
+        ASSERT_RETURN(false);
+    }
+    if (m_PartitionStepBytes < 1) {
+        ASSERT_RETURN(false);
     }
     if (m_RefFileName == "") {
-        return false;
+        ASSERT_RETURN(false);
     }
     if (m_RefFileFormat == "") {
-        return false;
+        ASSERT_RETURN(false);
     }
     if (m_RefFileShape.size() != 4) {
-        return false;
+        ASSERT_RETURN(false);
     }
     for (const auto n : m_RefFileShape) {
         if (n < 1) {
-            return false;
+            ASSERT_RETURN(false);
         }
     }
     return true;

@@ -55,6 +55,10 @@ public:
         return m_OffsetInFile;
     }
 
+    kcc_int64 gPartitionStepBytes() const {
+        return m_PartitionStepBytes;
+    }
+
     const std::string& gRefFileName() const {
         return m_RefFileName;
     }
@@ -81,6 +85,7 @@ private:
     const utils::DataType& m_DataType;
     kcc_int64       m_Length            = -1;
     kcc_int64       m_OffsetInFile      = -1;
+    kcc_int64       m_PartitionStepBytes= -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";
     std::array<kcc_int32,4> m_RefFileShape;
@@ -99,6 +104,7 @@ public:
     DataTypeId      m_DataType          = DataTypeId_None;
     kcc_int64       m_Length            = -1;
     kcc_int64       m_OffsetInFile      = -1;
+    kcc_int64       m_PartitionStepBytes= -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";
     std::array<kcc_int32,4> m_RefFileShape;

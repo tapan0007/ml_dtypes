@@ -256,6 +256,7 @@ Network::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp,
     sbatomfileParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
     UNSERIALIZE(Length);
     UNSERIALIZE(OffsetInFile);
+    UNSERIALIZE(PartitionStepBytes);
     sbatomfileParams.m_RefFileName = serWaveOp.m_RefFile;
     UNSERIALIZE(RefFileFormat);
     for (unsigned int i = 0; i < sbatomfileParams.m_RefFileShape.size(); ++i) {
@@ -287,6 +288,7 @@ Network::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp,
     sbatomsaveParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
     UNSERIALIZE(Length);
     UNSERIALIZE(OffsetInFile);
+    UNSERIALIZE(PartitionStepBytes);
     sbatomsaveParams.m_RefFileName = serWaveOp.m_RefFile;
     UNSERIALIZE(RefFileFormat);
     for (unsigned int i = 0; i < sbatomsaveParams.m_RefFileShape.size(); ++i) {

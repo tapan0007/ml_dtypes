@@ -83,6 +83,7 @@ constexpr static const char* WaveOpKey_AtomSize             = "atom_size";
 constexpr static const char* WaveOpKey_BatchFoldIdx         = "batch_fold_idx";
 constexpr static const char* WaveOpKey_Length               = "length";
 constexpr static const char* WaveOpKey_OffsetInFile         = "offset_in_file";
+constexpr static const char* WaveOpKey_PartitionStepBytes   = "partition_step_bytes";
 constexpr static const char* WaveOpKey_RefFile              = "ref_file";
 constexpr static const char* WaveOpKey_RefFileFormat        = "ref_file_format";
 constexpr static const char* WaveOpKey_RefFileShape         = "ref_file_shape";
@@ -229,6 +230,7 @@ public:
     //layer name
     kcc_int64                   m_Length            = -1;
     kcc_int32                   m_OffsetInFile      = -1;
+    kcc_int64                   m_PartitionStepBytes= -1;
     // previous waveops
     std::string                 m_RefFile           = "";
     std::string                 m_RefFileFormat     = "";

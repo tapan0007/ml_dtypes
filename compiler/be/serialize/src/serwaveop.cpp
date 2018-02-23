@@ -21,40 +21,34 @@ SerWaveOp::verifySbAtom () const
     }
     if (m_AtomSize <= 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_BatchFoldIdx < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DataType == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_Length  <= 0.0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_OffsetInFile  < 0) {
         RETURN_ASSERT(false);
-        return false;
+    }
+    if (m_PartitionStepBytes < 1) {
+        RETURN_ASSERT(false);
     }
     if (m_RefFile == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_RefFileFormat != "NCHW" && m_RefFileFormat != "CRSM") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_RefFileShape.size() != 4) {
         RETURN_ASSERT(false);
-        return false;
     }
     for (const auto n : m_RefFileShape) {
         if (n <= 0) {
             RETURN_ASSERT(false);
-            return false;
         }
     }
     return true;
@@ -83,15 +77,12 @@ SerWaveOp::verifySbAtomFile () const
     */
     if (! this->verifySbAtom()) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_IfmapCount <= 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_IfmapsFoldIdx  < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     return true;
 }
@@ -119,15 +110,12 @@ SerWaveOp::verifySbAtomSave () const
     */
     if (! this->verifySbAtom()) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_OfmapCount  <= 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_OfmapsFoldIdx  < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     return true;
 }
@@ -163,68 +151,52 @@ SerWaveOp::verifyMatMul () const
 
     if (m_IfmapTileHeight < 0) {  // TODO: should be <=
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_IfmapTileWidth < 0) { // TODO: should be <=
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_IfmapsAtomId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_IfmapsOffsetInAtom < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_OfmapTileHeight < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_OfmapTileWidth < 0) { // TODO: should be <=
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_PsumBankId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_PsumBankOffset < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_PsumXNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_PsumXStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_PsumYNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_PsumYStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     // "start": true,
     if (! m_WaveId.verify()) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_WaveIdFormat == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_WeightsAtomId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_WeightsOffsetInAtom < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     return true;
 }
@@ -235,120 +207,92 @@ SerWaveOp::verifyPool() const
 {
     if (m_DstSbAtomId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstSbOffsetInAtom < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstXStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstYNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstYStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstZNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstZStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_InDtype == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     // "layername": "1conv/i1",
     if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_OutDtype == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_PoolFrequency	< 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_PoolFunc == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
     // m_SrcIsPsum
     if (m_SrcPsumBankId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcPsumBankOffset < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcSbAtomId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcSbOffsetInAtom < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcWNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcWStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcXStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcYNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcYStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcZNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcZStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_TileId.size() != 4) {
         RETURN_ASSERT(false);
-        return false;
     }
     for (auto n : m_TileId) {
         if (n < 0) {
             RETURN_ASSERT(false);
-            return false;
         }
     }
     if (m_TileIdFormat == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     //waveopname": "1conv/i1/Pooln0m0h0w0",
     //waveoptype": "Pool"
@@ -362,101 +306,78 @@ SerWaveOp::verifyActivation() const
 {
     if (m_ActivationFunc == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     // m_BiasAddEn
     if (m_BiasAtomId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_BiasOffsetInAtom < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstPsumBankId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstXStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstYNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstYStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstZNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_DstZStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
 
     if (m_InDtype == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_OutDtype == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcPsumBankId < 0) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcXStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcYNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcYStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcZNum < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_SrcZStep < 1) {
         RETURN_ASSERT(false);
-        return false;
     }
 
     if (m_TileId.size() != 4) {
-        RETURN_ASSERT(false);
         return false;
     }
     for (auto n : m_TileId) {
         if (n < 0) {
             RETURN_ASSERT(false);
-            return false;
         }
     }
 
     if (m_TileIdFormat == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     return true;
 }
@@ -468,15 +389,12 @@ SerWaveOp::verify() const
     // Common
     if (m_WaveOpType == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_WaveOpName == "") {
         RETURN_ASSERT(false);
-        return false;
     }
     if (m_LayerName == "") {
         RETURN_ASSERT(false);
-        return false;
     }
 
     if (m_WaveOpType == WaveOpTypeStr_SBAtomFile) {
@@ -491,7 +409,6 @@ SerWaveOp::verify() const
         return verifyActivation();
     } else {
         RETURN_ASSERT(false);
-        return false;
     }
     return true;
 }
