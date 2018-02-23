@@ -28,7 +28,7 @@ public:
         assert(map_width > 0 && "FMAP width must be positive");
     }
 
-    FmapDesc() 
+    FmapDesc()
         : m_NumMaps(-1)
         , m_MapHeight(-1)
         , m_MapWidth(-1)

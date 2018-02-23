@@ -244,7 +244,7 @@ MatMulWaveOp::WaveId::convertTo(const std::string& fmt, std::vector<int>& waveId
     }
 }
 
-bool 
+bool
 MatMulWaveOp::WaveId::verify() const
 {
     if (m_BatchIdx < 0) {
@@ -272,7 +272,7 @@ MatMulWaveOp::WaveId::verify() const
 }
 
 
-bool 
+bool
 MatMulWaveOp::Params::verify() const
 {
     if (! this-> WaveOp::Params::verify()) {

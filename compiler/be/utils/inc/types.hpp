@@ -30,6 +30,17 @@ static_assert(sizeof(kcc_uint32) == 4, "sizeof(uint32) != 4");
 static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
 
+enum ActivationFunc {
+    ActivationFunc_Invalid,
+    ActivationFunc_Identity,
+    ActivationFunc_Relu,
+    ActivationFunc_LRelu,
+    ActivationFunc_PRelu,
+    ActivationFunc_Sigmoid,
+    ActivationFunc_Tanh,
+    ActivationFunc_Exp,
+};
+
 enum PoolType {
     PoolType_None,
     PoolType_Max,

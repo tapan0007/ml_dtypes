@@ -190,20 +190,20 @@ class PoolWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32                   m_DstSbAtomId;
-    kcc_int32                   m_DstSbOffsetInAtom;
-    kcc_int32                   m_DstXNum;
-    kcc_int32                   m_DstXStep;
-    kcc_int32                   m_DstYNum;
-    kcc_int32                   m_DstYStep;
-    kcc_int32                   m_DstZNum;
-    kcc_int32                   m_DstZStep;
-    DataTypeId                  m_InDtype;
+    kcc_int32                   m_DstSbAtomId           = -1;
+    kcc_int32                   m_DstSbOffsetInAtom     = -1;
+    kcc_int32                   m_DstXNum               = -1;
+    kcc_int32                   m_DstXStep              = -1;
+    kcc_int32                   m_DstYNum               = -1;
+    kcc_int32                   m_DstYStep              = -1;
+    kcc_int32                   m_DstZNum               = -1;
+    kcc_int32                   m_DstZStep              = -1;
+    DataTypeId                  m_InDtype               = DataTypeId_None;
     // "layername;
-    kcc_int32                   m_NumPartitions;
-    DataTypeId                  m_OutDtype;
-    kcc_int32                   m_PoolFrequency;
-    PoolType                    m_PoolFunc;
+    kcc_int32                   m_NumPartitions         = -1;
+    DataTypeId                  m_OutDtype              = DataTypeId_None;
+    kcc_int32                   m_PoolFrequency         = 0.0;
+    PoolType                    m_PoolFunc              = PoolType_None;
     // previouswaveops;
     //  1conv/i1/MatMuln0m0h0w0c0r0s0"
     // ],

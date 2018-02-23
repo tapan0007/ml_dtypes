@@ -49,7 +49,7 @@ WaveOp::verify() const
 
 
 
-bool 
+bool
 WaveOp::Params::verify() const
 {
     if (m_WaveOpName == "") {

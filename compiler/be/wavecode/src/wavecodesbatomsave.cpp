@@ -51,7 +51,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveOp)
     SIM_MEMCPY statebufToDramInstr;
     statebufToDramInstr.nbytes       = numBytesPerPart;
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
-        statebufToDramInstr.src_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart); 
+        statebufToDramInstr.src_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
         statebufToDramInstr.dst_address = npyFileDramOffset + sbatomsaveWaveOp->gOffsetInFile() + (partIdx * stepSize);
 
         m_WaveCode->writeInstruction(statebufToDramInstr);

@@ -353,12 +353,31 @@ Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
 {
     serWaveOp.m_WaveOpType = wave::ActivationWaveOp::gTypeStr();
 
-    serWaveOp.m_ActType             = serialize::SerWaveOp::activationType2Str(activationWaveOp->gActType());
+    serWaveOp.m_ActivationFunc      = serialize::SerWaveOp::activationType2Str(activationWaveOp->gActivationFunc());
     serWaveOp.m_BiasAddEn           = activationWaveOp->qBiasAddEn();
     serWaveOp.m_BiasAtomId          = activationWaveOp->gBiasAtomId();
     serWaveOp.m_BiasOffsetInAtom    = activationWaveOp->gBiasOffsetInAtom();
-    serWaveOp.m_PsumBankIdDst       = activationWaveOp->gPsumBankIdDst();
-    serWaveOp.m_PsumBankIdSrc       = activationWaveOp->gPsumBankIdSrc();
+
+    serWaveOp.m_DstPsumBankId       = activationWaveOp->gDstPsumBankId();
+    serWaveOp.m_DstXNum             = activationWaveOp->gDstXNum();
+    serWaveOp.m_DstXStep            = activationWaveOp->gDstXStep();
+    serWaveOp.m_DstYNum             = activationWaveOp->gDstYNum();
+    serWaveOp.m_DstXStep            = activationWaveOp->gDstYStep();
+    serWaveOp.m_DstZNum             = activationWaveOp->gDstZNum();
+    serWaveOp.m_DstZStep            = activationWaveOp->gDstZStep();
+
+    serWaveOp.m_InDtype             = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    serWaveOp.m_NumPartitions       = activationWaveOp->gNumPartitions();
+    serWaveOp.m_OutDtype            = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+
+    serWaveOp.m_SrcPsumBankId       = activationWaveOp->gSrcPsumBankId();
+    serWaveOp.m_SrcXNum             = activationWaveOp->gSrcXNum();
+    serWaveOp.m_SrcXStep            = activationWaveOp->gSrcXStep();
+    serWaveOp.m_SrcYNum             = activationWaveOp->gSrcYNum();
+    serWaveOp.m_SrcYStep            = activationWaveOp->gSrcYStep();
+    serWaveOp.m_SrcZNum             = activationWaveOp->gSrcZNum();
+    serWaveOp.m_SrcZStep            = activationWaveOp->gSrcZStep();
+
     const std::array<kcc_int32, 4>& tileId(activationWaveOp->gTileId());
     for (unsigned int i = 0; i < tileId.size(); ++i) {
         serWaveOp.m_TileId[i]       = tileId[i];

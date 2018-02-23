@@ -200,7 +200,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
         for (unsigned i = 0; i < serWaveOps.size(); ++i) {
             const serialize::SerWaveOp& serWaveOp(serWaveOps[i]);
-    
+
             std::vector<wave::WaveOp*> prevWaveOps;
             wave::WaveOp* waveOp = nullptr;
 
@@ -217,7 +217,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 }
             };
 #endif
-    
+
             if (serWaveOp.m_WaveOpType == wave::SbAtomFileWaveOp::gTypeStr()) {
                 waveOp = loadSbAtomFile(serWaveOp, prevWaveOps);
             } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStr()) {
@@ -231,7 +231,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             } else {
                 assert(false && "Wrong WaveOp type during deserialization");
             }
-    
+
             m_WaveOps.push_back(waveOp);
             assert(m_Name2WaveOp.find(waveOp->gName()) == m_Name2WaveOp.end());
             m_Name2WaveOp[waveOp->gName()] = waveOp;
@@ -288,10 +288,10 @@ Network::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp,
     for (unsigned int i = 0; i < sbatomsaveParams.m_RefFileShape.size(); ++i) {
         sbatomsaveParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
     }
-    
+
     sbatomsaveParams.m_OfmapCount       = serWaveOp.m_OfmapCount;
     sbatomsaveParams.m_OfmapsFoldIdx    = serWaveOp.m_OfmapsFoldIdx;
-    
+
     auto waveOp = new wave::SbAtomSaveWaveOp(sbatomsaveParams, prevWaveOps);
     assert(waveOp->gName() == sbatomsaveParams.m_WaveOpName);
     return waveOp;
@@ -348,7 +348,7 @@ Network::loadMatMul(const serialize::SerWaveOp& serWaveOp,
 {
     wave::MatMulWaveOp::Params matmulParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, matmulParams);
-    
+
     matmulParams.m_BatchingInWave       = serWaveOp.m_BatchingInWave;
     matmulParams.m_FmapXNum             = serWaveOp.m_FmapXNum;
     matmulParams.m_FmapXStep            = serWaveOp.m_FmapXStep;
@@ -387,7 +387,7 @@ Network::loadMatMul(const serialize::SerWaveOp& serWaveOp,
     // waveop type
     matmulParams.m_WeightsAtomId        = serWaveOp.m_WeightsAtomId;
     matmulParams.m_WeightsOffsetInAtom  = serWaveOp.m_WeightsOffsetInAtom;
-    
+
     auto waveOp = new wave::MatMulWaveOp(matmulParams, prevWaveOps);
     assert(waveOp->gName() == matmulParams.m_WaveOpName);
     return waveOp;
@@ -400,12 +400,27 @@ Network::loadActivation(const serialize::SerWaveOp& serWaveOp,
     wave::ActivationWaveOp::Params activationParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, activationParams);
 
-    activationParams.m_ActType          = serialize::SerWaveOp::str2ActivationType(serWaveOp.m_ActType);
+    activationParams.m_ActivationFunc   = serialize::SerWaveOp::str2ActivationFunc(serWaveOp.m_ActivationFunc);
     activationParams.m_BiasAddEn        = serWaveOp.m_BiasAddEn;
     activationParams.m_BiasAtomId       = serWaveOp.m_BiasAtomId;
     activationParams.m_BiasOffsetInAtom = serWaveOp.m_BiasOffsetInAtom;
-    activationParams.m_PsumBankIdDst    = serWaveOp.m_PsumBankIdDst;
-    activationParams.m_PsumBankIdSrc    = serWaveOp.m_PsumBankIdSrc;
+    activationParams.m_DstPsumBankId    = serWaveOp.m_DstPsumBankId;
+    activationParams.m_DstXNum          = serWaveOp.m_DstXNum;
+    activationParams.m_DstXStep         = serWaveOp.m_DstXStep;
+    activationParams.m_DstYNum          = serWaveOp.m_DstYNum;
+    activationParams.m_DstYStep         = serWaveOp.m_DstXStep;
+    activationParams.m_DstZNum          = serWaveOp.m_DstZNum;
+    activationParams.m_DstZStep         = serWaveOp.m_DstZStep;
+    activationParams.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    activationParams.m_NumPartitions    = serWaveOp.m_NumPartitions;
+    activationParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    activationParams.m_SrcPsumBankId    = serWaveOp.m_SrcPsumBankId;
+    activationParams.m_SrcXNum          = serWaveOp.m_SrcXNum;
+    activationParams.m_SrcXStep         = serWaveOp.m_SrcXStep;
+    activationParams.m_SrcYNum          = serWaveOp.m_SrcYNum;
+    activationParams.m_SrcYStep         = serWaveOp.m_SrcYStep;
+    activationParams.m_SrcZNum          = serWaveOp.m_SrcZNum;
+    activationParams.m_SrcZStep         = serWaveOp.m_SrcZStep;
 
     assert(activationParams.m_TileId.size() == serWaveOp.m_TileId.size());
     for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {

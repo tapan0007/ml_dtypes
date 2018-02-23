@@ -138,12 +138,27 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
 void
 SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
 {
-    archive(cereal::make_nvp(WaveOpKey_ActType, m_ActType));
+    archive(cereal::make_nvp(WaveOpKey_ActivationFunc, m_ActivationFunc));
     archive(cereal::make_nvp(WaveOpKey_BiasAddEn, m_BiasAddEn));
     archive(cereal::make_nvp(WaveOpKey_BiasAtomId, m_BiasAtomId));
     archive(cereal::make_nvp(WaveOpKey_BiasOffsetInAtom, m_BiasOffsetInAtom));
-    archive(cereal::make_nvp(WaveOpKey_PsumBankIdDst, m_PsumBankIdDst));
-    archive(cereal::make_nvp(WaveOpKey_PsumBankIdSrc, m_PsumBankIdSrc));
+    archive(cereal::make_nvp(WaveOpKey_DstPsumBankId, m_DstPsumBankId));
+    archive(cereal::make_nvp(WaveOpKey_DstXNum, m_DstXNum));
+    archive(cereal::make_nvp(WaveOpKey_DstXStep, m_DstXStep));
+    archive(cereal::make_nvp(WaveOpKey_DstYNum, m_DstYNum));
+    archive(cereal::make_nvp(WaveOpKey_DstYStep, m_DstYStep));
+    archive(cereal::make_nvp(WaveOpKey_DstZNum, m_DstZNum));
+    archive(cereal::make_nvp(WaveOpKey_DstZStep, m_DstZStep));
+    archive(cereal::make_nvp(WaveOpKey_InDtype, m_InDtype));
+    archive(cereal::make_nvp(WaveOpKey_NumPartitions, m_NumPartitions));
+    archive(cereal::make_nvp(WaveOpKey_OutDtype, m_OutDtype));
+    archive(cereal::make_nvp(WaveOpKey_SrcPsumBankId, m_SrcPsumBankId));
+    archive(cereal::make_nvp(WaveOpKey_SrcXNum, m_SrcXNum));
+    archive(cereal::make_nvp(WaveOpKey_SrcXStep, m_SrcXStep));
+    archive(cereal::make_nvp(WaveOpKey_SrcYNum, m_SrcYNum));
+    archive(cereal::make_nvp(WaveOpKey_SrcYStep, m_SrcYStep));
+    archive(cereal::make_nvp(WaveOpKey_SrcZNum, m_SrcZNum));
+    archive(cereal::make_nvp(WaveOpKey_SrcZStep, m_SrcZStep));
     archive(cereal::make_nvp(WaveOpKey_TileId, m_TileId));
     archive(cereal::make_nvp(WaveOpKey_TileIdFormat, m_TileIdFormat));
 }

@@ -23,7 +23,7 @@ SbAtomSaveWaveOp::SbAtomSaveWaveOp(const SbAtomSaveWaveOp::Params& params,
 }
 
 
-bool 
+bool
 SbAtomSaveWaveOp::verify() const
 {
     if (! this->SbAtomWaveOp::verify()) {
@@ -42,7 +42,7 @@ SbAtomSaveWaveOp::verify() const
 
 
 
-bool 
+bool
 SbAtomSaveWaveOp::Params::verify() const
 {
     if (! this->SbAtomWaveOp::Params::verify()) {

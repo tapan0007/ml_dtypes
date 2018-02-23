@@ -128,22 +128,40 @@ constexpr static const char* WaveOpKey_TileIdFormat         = "tile_id_format";
 //waveopname": "1conv/i1/Pooln0m0h0w0",
 //waveoptype": "Pool"
 
-constexpr static const char* WaveOpKey_ActType              = "act_type";
-constexpr static const char* WaveOpKey_ActType_None         = "none"; /* until Jeff fixes none */
-constexpr static const char* WaveOpKey_ActType_Identity     = "Identity";
-constexpr static const char* WaveOpKey_ActType_Relu         = "Relu";
-constexpr static const char* WaveOpKey_ActType_Lrelu        = "Lrelu";
-constexpr static const char* WaveOpKey_ActType_Prelu        = "Prelu";
-constexpr static const char* WaveOpKey_ActType_Sigmoid      = "Sigmoid";
-constexpr static const char* WaveOpKey_ActType_Tanh         = "Tanh";
-constexpr static const char* WaveOpKey_ActType_Exp          = "Exp";
+constexpr static const char* WaveOpKey_ActivationFunc              = "activation_func";
+constexpr static const char* WaveOpKey_ActivationFunc_None         = "none"; /* until Jeff fixes none */
+constexpr static const char* WaveOpKey_ActivationFunc_Identity     = "Identity";
+constexpr static const char* WaveOpKey_ActivationFunc_Relu         = "Relu";
+constexpr static const char* WaveOpKey_ActivationFunc_Lrelu        = "Lrelu";
+constexpr static const char* WaveOpKey_ActivationFunc_Prelu        = "Prelu";
+constexpr static const char* WaveOpKey_ActivationFunc_Sigmoid      = "Sigmoid";
+constexpr static const char* WaveOpKey_ActivationFunc_Tanh         = "Tanh";
+constexpr static const char* WaveOpKey_ActivationFunc_Exp          = "Exp";
 
 
 constexpr static const char* WaveOpKey_BiasAddEn            = "bias_add_en";
 constexpr static const char* WaveOpKey_BiasAtomId           = "bias_atom_id";
 constexpr static const char* WaveOpKey_BiasOffsetInAtom     = "bias_offset_in_atom";
-constexpr static const char* WaveOpKey_PsumBankIdDst        = "psum_bank_id_dst";
-constexpr static const char* WaveOpKey_PsumBankIdSrc        = "psum_bank_id_src";
+constexpr static const char* WaveOpKey_DstPsumBankId        = "dst_psum_bank_id";
+//constexpr static const char* WaveOpKey_DstXNum              = "dst_x_num";
+//constexpr static const char* WaveOpKey_DstXStep             = "dst_x_step";
+//constexpr static const char* WaveOpKey_DstYNum              = "dst_y_num";
+//constexpr static const char* WaveOpKey_DstYStep             = "dst_y_step";
+//constexpr static const char* WaveOpKey_DstZNum              = "dst_z_num";
+//constexpr static const char* WaveOpKey_DstZStep             = "dst_z_step";
+//constexpr static const char* WaveOpKey_InDtype              = "in_dtype";
+//constexpr static const char* WaveOpKey_NumPartitions        = "num_partitions";
+//constexpr static const char* WaveOpKey_OutDtype             = "out_dtype";
+//constexpr static const char* WaveOpKey_SrcPsumBankId        = "src_psum_bank_id";
+//constexpr static const char* WaveOpKey_SrcXNum              = "src_x_num";
+//constexpr static const char* WaveOpKey_SrcXStep             = "src_x_step";
+//constexpr static const char* WaveOpKey_SrcYNum              = "src_y_num";
+//constexpr static const char* WaveOpKey_SrcYStep             = "src_y_step";
+//constexpr static const char* WaveOpKey_SrcZNum              = "src_z_num";
+//constexpr static const char* WaveOpKey_SrcZStep             = "src_z_step";
+//constexpr static const char* WaveOpKey_TileId               = "tile_id";
+//constexpr static const char* WaveOpKey_TileIdFormat         = "tile_id_format";
+
 
 
 
@@ -171,8 +189,8 @@ public:
         m_PreviousWaveOps.push_back(prevWaveOp);
     }
 
-    static ActivationType str2ActivationType(const std::string& s);
-    static std::string activationType2Str(ActivationType);
+    static ActivationFunc str2ActivationFunc(const std::string& s);
+    static std::string activationType2Str(ActivationFunc);
 
 private:
     void loadSbAtom(cereal::JSONInputArchive& archive);
@@ -302,12 +320,29 @@ public:
     //waveopname": "1conv/i1/Pooln0m0h0w0",
     //waveoptype": "Pool"
 
-    std::string                 m_ActType           = "";
+    // Activation
+    std::string                 m_ActivationFunc    = "";
     bool                        m_BiasAddEn         = false;
     kcc_int32                   m_BiasAtomId        = -1;
     kcc_int32                   m_BiasOffsetInAtom  = -1;
-    kcc_int32                   m_PsumBankIdDst     = -1;
-    kcc_int32                   m_PsumBankIdSrc     = -1;
+    kcc_int32                   m_DstPsumBankId     = -1;
+#if 0
+    kcc_int32                   m_DstXNum           = -1;
+    kcc_int32                   m_DstXStep          = -1;
+    kcc_int32                   m_DstYNum           = -1;
+    kcc_int32                   m_DstYStep          = -1;
+    kcc_int32                   m_DstZNum           = -1;
+    kcc_int32                   m_DstZStep          = -1;
+#endif
+    //kcc_int32                   m_SrcPsumBankId     = -1;
+#if 0
+    kcc_int32                   m_SrcXNum           = -1;
+    kcc_int32                   m_SrcXStep          = -1;
+    kcc_int32                   m_SrcYNum           = -1;
+    kcc_int32                   m_SrcYStep          = -1;
+    kcc_int32                   m_SrcZNum           = -1;
+    kcc_int32                   m_SrcZStep          = -1;
+#endif
 }; // class SerWaveOp
 
 

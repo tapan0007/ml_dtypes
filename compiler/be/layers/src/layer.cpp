@@ -235,7 +235,7 @@ Layer::verify() const
 
 
 
-bool 
+bool
 Layer::Params::verify () const
 {
     if (m_LayerName == "") {

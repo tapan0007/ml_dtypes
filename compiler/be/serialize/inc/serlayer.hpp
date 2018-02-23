@@ -36,7 +36,7 @@ constexpr static const char* LayerKey_LayerType         = "layer_type";
 constexpr static const char* LayerKey_LayerName         = "layer_name";
 constexpr static const char* LayerKey_PrevLayers        = "previous_layers";
 constexpr static const char* LayerKey_OfmapShape        = "ofmap_shape";
-    
+
 constexpr static const char* LayerKey_OfmapFormat       = "ofmap_format";
 constexpr static const char* LayerKey_RefFile           = "ref_file";
 

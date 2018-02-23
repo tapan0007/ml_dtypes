@@ -3,6 +3,10 @@
 #ifndef KCC_UTILS_CONSTS_H
 #define KCC_UTILS_CONSTS_H
 
+#define KCC_CONCAT2(x,y) x##y
+#define KCC_CONCAT(x,y) KCC_CONCAT2(x,y)
+#define KCC_STR(x) #x
+
 namespace kcc {
 
 enum {
@@ -29,16 +33,6 @@ enum {
 
     DilateIndex_TopBottom = 0,
     DilateIndex_LeftRight = 1,
-};
-
-enum ActivationType {
-    ActivationType_Identity,
-    ActivationType_Relu,
-    ActivationType_LRelu,
-    ActivationType_PRelu,
-    ActivationType_Sigmoid,
-    ActivationType_Tanh,
-    ActivationType_Exp,
 };
 
 static_assert(StrideIndex_TopBottom == DilateIndex_TopBottom, "Stride and Dilate TopBottom indices not same");

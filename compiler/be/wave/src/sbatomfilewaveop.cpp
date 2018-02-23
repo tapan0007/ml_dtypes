@@ -23,7 +23,7 @@ SbAtomFileWaveOp::SbAtomFileWaveOp(
     assert(params.verify());
 }
 
-bool 
+bool
 SbAtomFileWaveOp::verify() const
 {
     if (! this->SbAtomWaveOp::verify()) {
@@ -43,7 +43,7 @@ SbAtomFileWaveOp::verify() const
 
 
 
-bool 
+bool
 SbAtomFileWaveOp::Params::verify() const
 {
     if (! this->SbAtomWaveOp::Params::verify()) {

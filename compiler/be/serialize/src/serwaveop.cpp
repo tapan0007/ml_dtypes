@@ -361,7 +361,7 @@ SerWaveOp::verifyPool() const
 bool
 SerWaveOp::verifyActivation() const
 {
-    if (m_ActType == "") {
+    if (m_ActivationFunc == "") {
         DEBUG_ASSERT(false);
         return false;
     }
@@ -372,10 +372,56 @@ SerWaveOp::verifyActivation() const
     if (m_BiasOffsetInAtom < 0) {
         return false;
     }
-    if (m_PsumBankIdDst < 0) {
+    if (m_DstPsumBankId < 0) {
         return false;
     }
-    if (m_PsumBankIdSrc < 0) {
+    if (m_DstXNum < 1) {
+        return false;
+    }
+    if (m_DstXStep < 1) {
+        return false;
+    }
+    if (m_DstYNum < 1) {
+        return false;
+    }
+    if (m_DstYStep < 1) {
+        return false;
+    }
+    if (m_DstZNum < 1) {
+        return false;
+    }
+    if (m_DstZStep < 1) {
+        return false;
+    }
+
+    if (m_InDtype == "") {
+        return false;
+    }
+    if (m_NumPartitions < 1) {
+        return false;
+    }
+    if (m_OutDtype == "") {
+        return false;
+    }
+    if (m_SrcPsumBankId < 0) {
+        return false;
+    }
+    if (m_SrcXNum < 1) {
+        return false;
+    }
+    if (m_SrcXStep < 1) {
+        return false;
+    }
+    if (m_SrcYNum < 1) {
+        return false;
+    }
+    if (m_SrcYStep < 1) {
+        return false;
+    }
+    if (m_SrcZNum < 1) {
+        return false;
+    }
+    if (m_SrcZStep < 1) {
         return false;
     }
 
@@ -433,29 +479,29 @@ SerWaveOp::verify() const
 }
 
 std::string
-SerWaveOp::activationType2Str(ActivationType actType)
+SerWaveOp::activationType2Str(ActivationFunc actType)
 {
     switch (actType) {
-    case ActivationType_Identity:
-        return WaveOpKey_ActType_Identity;
+    case ActivationFunc_Identity:
+        return WaveOpKey_ActivationFunc_Identity;
         break;
-    case ActivationType_Relu:
-        return WaveOpKey_ActType_Relu;
+    case ActivationFunc_Relu:
+        return WaveOpKey_ActivationFunc_Relu;
         break;
-    case ActivationType_LRelu:
-        return WaveOpKey_ActType_Lrelu;
+    case ActivationFunc_LRelu:
+        return WaveOpKey_ActivationFunc_Lrelu;
         break;
-    case ActivationType_PRelu:
-        return WaveOpKey_ActType_Prelu;
+    case ActivationFunc_PRelu:
+        return WaveOpKey_ActivationFunc_Prelu;
         break;
-    case ActivationType_Sigmoid:
-        return WaveOpKey_ActType_Sigmoid;
+    case ActivationFunc_Sigmoid:
+        return WaveOpKey_ActivationFunc_Sigmoid;
         break;
-    case ActivationType_Tanh:
-        return WaveOpKey_ActType_Tanh;
+    case ActivationFunc_Tanh:
+        return WaveOpKey_ActivationFunc_Tanh;
         break;
-    case ActivationType_Exp:
-        return WaveOpKey_ActType_Exp;
+    case ActivationFunc_Exp:
+        return WaveOpKey_ActivationFunc_Exp;
         break;
     default:
         assert(false && "Wrong activation type");
@@ -464,27 +510,28 @@ SerWaveOp::activationType2Str(ActivationType actType)
     return "";
 }
 
-ActivationType
-SerWaveOp::str2ActivationType(const std::string& actType)
+ActivationFunc
+SerWaveOp::str2ActivationFunc(const std::string& actType)
 {
-    if (actType == WaveOpKey_ActType_Identity || actType == WaveOpKey_ActType_None /* until Jeff fixes none */) {
-        return ActivationType_Identity;
-    } else if (actType  == WaveOpKey_ActType_Relu) {
-        return ActivationType_Relu;
-    } else if (actType  == WaveOpKey_ActType_Lrelu) {
-        return ActivationType_LRelu;
-    } else if (actType  == WaveOpKey_ActType_Prelu) {
-        return ActivationType_PRelu;
-    } else if (actType  == WaveOpKey_ActType_Sigmoid) {
-        return ActivationType_Sigmoid;
-    } else if (actType  == WaveOpKey_ActType_Tanh) {
-        return ActivationType_Tanh;
-    } else if (actType  == WaveOpKey_ActType_Exp) {
-        return ActivationType_Exp;
+    if (actType == WaveOpKey_ActivationFunc_Identity
+        || actType == WaveOpKey_ActivationFunc_None /* until Jeff fixes none */) {
+        return ActivationFunc_Identity;
+    } else if (actType  == WaveOpKey_ActivationFunc_Relu) {
+        return ActivationFunc_Relu;
+    } else if (actType  == WaveOpKey_ActivationFunc_Lrelu) {
+        return ActivationFunc_LRelu;
+    } else if (actType  == WaveOpKey_ActivationFunc_Prelu) {
+        return ActivationFunc_PRelu;
+    } else if (actType  == WaveOpKey_ActivationFunc_Sigmoid) {
+        return ActivationFunc_Sigmoid;
+    } else if (actType  == WaveOpKey_ActivationFunc_Tanh) {
+        return ActivationFunc_Tanh;
+    } else if (actType  == WaveOpKey_ActivationFunc_Exp) {
+        return ActivationFunc_Exp;
     } else {
         assert(false && "Wrong activation type");
     }
-    return ActivationType_Exp;
+    return ActivationFunc_Exp;
 }
 
 

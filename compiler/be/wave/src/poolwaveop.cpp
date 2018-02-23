@@ -56,7 +56,7 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     assert(verify());
 }
 
-bool 
+bool
 PoolWaveOp::verify() const
 {
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
@@ -155,7 +155,7 @@ PoolWaveOp::verify() const
 
 
 
-bool 
+bool
 PoolWaveOp::Params::verify() const
 {
     return true;

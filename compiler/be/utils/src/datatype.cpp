@@ -5,7 +5,7 @@
 namespace kcc {
 namespace utils {
 
-DataTypeId 
+DataTypeId
 DataTypeUint8::gDataTypeId () const {
     return DataTypeId_Uint8;
 }
@@ -16,7 +16,7 @@ DataTypeUint8::gSimTypeId() const
     return ARBPRECTYPE::UINT8;
 }
 
-DataTypeId 
+DataTypeId
 DataTypeUint16::gDataTypeId () const {
     return DataTypeId_Uint16;
 }
@@ -27,7 +27,7 @@ DataTypeUint16::gSimTypeId() const
     return ARBPRECTYPE::UINT16;
 }
 
-DataTypeId 
+DataTypeId
 DataTypeFloat16::gDataTypeId () const {
     return DataTypeId_Float16;
 }
@@ -38,7 +38,7 @@ DataTypeFloat16::gSimTypeId() const
     return ARBPRECTYPE::FP16;
 }
 
-DataTypeId 
+DataTypeId
 DataTypeFloat32::gDataTypeId () const {
     return DataTypeId_Float32;
 }

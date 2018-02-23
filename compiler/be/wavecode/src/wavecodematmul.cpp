@@ -88,7 +88,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     ///* subtract this from each ldweights on way into PE Array */
     //union {
     //    uint8_t     zero_point_uint8[2];
-    //    uint16_t    zero_point_uint16   = 0; 
+    //    uint16_t    zero_point_uint16   = 0;
     //} TONGA_PACKED;
     const kcc_int64 addressInSbPart     = matmulWaveOp->gWeightsAtomId() * matmulWaveOp->gWaveAtomSize()
                                             + matmulWaveOp->gWeightsOffsetInAtom();
