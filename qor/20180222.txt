@@ -1,0 +1,149 @@
+Done in 1944.824 sec
+
+SUMMARY: PASSRATE  142  99.301%  of  143  (46 were waived)
+
+Test                        Status          Tops               Ops        SimCycles        SimTimeSec    SimCycles/sec  Description
+------------------------------------------------------------------------------------------------------------------------
+0-10conv_relu               PASS           0.000              2620            14817             2.726          5436.22  Resnet-like network with 10 Conv2D and Relu layer pairs
+0-116conv_tanh              PASS           0.000             33466           188551            39.872          4728.85  Resnet-like network with 116 Conv2D and Relu layer pairs
+0-1ap0                      PASS           0.000                33              213             0.035          6152.16  Single AvgPoll layer
+0-1ap7x7                    PASS           0.001              6273             8499             2.014          4219.16  Single AvgPoll layer
+0-1conv0                    PASS           0.000                 5              396             0.072          5521.93  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_c1h16_wave         PASS           0.001               515              906             0.185          4894.57  Existance test for 1 conv2D layer with 1x1 filter, 16x16 image, 1 input channel
+0-1conv0_c1h2               PASS           0.000                11              402             0.077          5238.19  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_c1h2_wave          PASS           0.000                11              402             0.099          4050.54  Existance test for 1 conv2D layer with 1x1 filter, 2x2 image, 1 input channel
+0-1conv0_h16r2s2_wave       PASS           0.000               515             1107             0.395          2800.96  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h16r3s2_wave       PASS_WAIVE_WAVESC   0.001              1155             2035             0.447             4555  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h55c256m1_wave     WAIVE_WAVESC   0.011        1.5488e+06           146399            29.819          4909.65  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_wave               PASS           0.000                 5              396             0.236           1675.3  Existence test for wave scheduler
+0-1conv1avgpool_wave        PASS_WAIVE_WAVESC   0.000                67              426             0.175          2428.53  Two Conv2D layers back to back
+0-1conv1ba1                 PASS           0.000                38              639             0.221           2884.9  Two Conv2D layers back to back
+0-1conv1ba1_fp32            PASS           0.000                38              639             0.126          5076.79  Two Conv2D layers back to back
+0-1conv1ba1_fp32_wave       WAIVE_WAVESC   0.000                38                1            -1.000                0  Two Conv2D layers back to back
+0-1conv1ba1_wave            WAIVE_WAVESC   0.000                38                1            -1.000                0  Two Conv2D layers back to back
+0-1conv1maxpool_k3d2_wave   WAIVE_WAVESC   0.000               107                1            -1.000                0  Two Conv2D layers back to back
+0-1conv1pool                PASS           0.000                67              573             0.090          6344.53  Two Conv2D layers back to back
+0-1conv1pool_b5_wave        WAIVE_WAVESC   0.000               323                1            -1.000                0  Two Conv2D layers back to back
+0-1conv1pool_b5m3_wave      WAIVE_WAVESC   0.000               963                1            -1.000                0  Two Conv2D layers back to back
+0-1conv1pool_wave           PASS_WAIVE_WAVESC   0.000                67              426             0.084          5083.29  Two Conv2D layers back to back
+0-1conv_h4r1_wave           PASS           0.000                35              426             0.084          5082.14  Two Conv2D layers back to back
+0-1conv_h4r2s2_wave         PASS           0.000                35              807             0.158          5106.21  Two Conv2D layers back to back
+0-1conv_h6r2s3_wave         PASS           0.000                35              807             0.229          3519.73  Two Conv2D layers back to back
+0-1conv_h6r3s2_wave         PASS_WAIVE_WAVESC   0.000               165             1515             0.330          4596.54  Two Conv2D layers back to back
+0-1conv_s2                  PASS           0.000                11              402             0.120          3343.06  Two Conv2D layers back to back
+0-1conv_s8                  PASS           0.000                11              402             0.088          4557.87  Two Conv2D layers back to back
+0-1conv_s8_32b              PASS           0.000                11              402             0.079          5117.63  Two Conv2D layers back to back
+0-1conv_tile                PASS           0.001             22053            22716             4.839           4694.7  Single Conv2D layer with a large image
+0-1conv_tile_r1_e1          PASS           0.001              2453             3900             0.755          5162.22  Single Conv2D layer with a large image
+0-1conv_tile_r1_e1_wave     PASS           0.001              2453             3632             0.811          4480.96  Single Conv2D layer with a large image
+0-1conv_tile_r1_wave        PASS           0.001              2453             3632             0.793          4579.76  Single Conv2D layer with a large image
+0-1conv_tile_r1h32          PASS           0.001              2051             2838             0.599          4740.57  Single Conv2D layer with a large image
+0-1conv_tile_r1h32_wave     PASS           0.001              2051             2968             0.636          4668.35  Single Conv2D layer with a large image
+0-1conv_tile_wave           WAIVE_WAVESC   0.001             22053            18256             3.778           4831.6  Single Conv2D layer with a large image
+0-1mp0                      PASS           0.000                33              213             0.051          4211.82  Single MaxPoll layer
+0-1mp0c64                   PASS           0.000              2049             8466             1.686          5021.31  Single MaxPoll layer
+0-1mp_r3s2                  PASS           0.000                73              233             0.046          5079.57  Single MaxPoll layer
+0-1mp_r3s2_112_55           PASS           0.002             54451            27422             5.465          5018.09  Single MaxPoll layer
+0-2conv0                    PASS           0.000                 9              726             0.141           5151.2  A unit test
+0-2conv3_32b                PASS           0.000               291             1558             0.345          4520.04  A unit test
+0-2conv3_relu               PASS           0.000               292             1705             0.339          5035.63  A unit test
+0-2conv_pad2                PASS           0.000               131              852             0.163          5229.01  Single Conv2D layer that exercises padding
+0-2conv_pad2as              PASS           0.000                35              800             0.160          5011.93  Single Conv2D layer that exercises padding
+0-2conv_pad3                PASS           0.000               291             1558             0.415          3753.61  Single Conv2D layer that exercises padding
+0-2conv_pad5                PASS           0.000               803             3750             0.812          4617.58  Single Conv2D layer that exercises padding
+0-30conv3                   PASS           0.000              8411            43334             8.817          4915.06  A unit test
+0-add                       WAIVE-RESADD   0.000                 5              267             0.053             5062  Two layer, BiasAdd followed by ResAdd
+0-add_fp32                  WAIVE-RESADD   0.000                 5             1200             0.280          4291.88  Two layer, BiasAdd followed by ResAdd
+0-add_nne                   PASS_WAIVE-RESADD   0.000                 3              267             0.056          4727.84  Two layer, BiasAdd followed by ResAdd
+0-add_uint8                 WAIVE-RESADD   0.000                 5              732             0.145          5056.58  Two layer, BiasAdd followed by ResAdd
+0-biasadd                   PASS           0.000                 4              267             0.064          4180.89  Single BiasAdd layer
+0-biasadd_c2                PASS           0.000                 4              525             0.101          5203.17  Single BiasAdd layer
+0-neg                       PASS           0.000                 0                1            -1.000                0  Negative test
+1-1conv0_c128               PASS           0.000               259            16906             3.552          4759.53  Two Conv2D layers back to back
+1-1conv0_c128_wave          PASS           0.000               259            16906             3.451          4898.36  Two Conv2D layers back to back
+1-1conv0_c256_wave          PASS           0.000               515            33678             7.771           4333.7  Two Conv2D layers back to back
+1-1conv0_h112c1m1_wave      PASS           0.001             25091            36252             7.572           4787.7  Two Conv2D layers back to back
+1-1conv0_h16c128            PASS           0.004             65539            17416             3.447          5053.06  Two Conv2D layers back to back
+1-1conv0_h16c128_wave       PASS           0.004             65539            17416             3.698          4709.38  Two Conv2D layers back to back
+1-1conv0_h16c1m1_wave       PASS           0.001              1027             1036             0.201          5153.46  Two Conv2D layers back to back
+1-1conv0_h16c256_wave       PASS           0.004            131075            34443             7.735          4453.12  Two Conv2D layers back to back
+1-1conv0_h16c256m128_fp32_wave  PASS           0.380       1.67772e+07            44107             9.169          4810.51  Two Conv2D layers back to back
+1-1conv0_h16c256m128_wave   PASS           0.380       1.67772e+07            44107            12.432          3547.93  Two Conv2D layers back to back
+1-1conv0_h16c2m1_wave       PASS           0.001              1027             1036             0.203          5107.93  Two Conv2D layers back to back
+1-1conv0_h224c1m1_wave      PASS           0.001            100355           144612            30.741          4704.17  Two Conv2D layers back to back
+1-1conv0_h28c1m1_wave       PASS           0.001              1571             2488             1.013          2456.91  Two Conv2D layers back to back
+1-1conv0_h32c128m128_wave   PASS_WAIVE_WAVESC   0.702       3.35544e+07            47827            10.817          4421.55  Two Conv2D layers back to back
+1-1conv0_h32c128m1_wave     PASS           0.009            262147            27733             5.893          4706.02  Two Conv2D layers back to back
+1-1conv0_h32c128m64_wave    PASS_WAIVE_WAVESC   0.461       1.67772e+07            36427             7.850          4640.27  Two Conv2D layers back to back
+1-1conv0_h32c1m1_wave       PASS           0.001              2051             2968             0.638          4653.39  Two Conv2D layers back to back
+1-1conv0_h32c1m2_wave       PASS_WAIVE_WAVESC   0.001              4099             3354             0.629          5334.36  Two Conv2D layers back to back
+1-1conv0_h32c256m128_wave   PASS_WAIVE_WAVESC   0.879       6.71089e+07            76387            17.852          4278.85  Two Conv2D layers back to back
+1-1conv0_h32c256m64_wave    PASS_WAIVE_WAVESC   0.531       3.35544e+07            63187            13.686          4616.98  Two Conv2D layers back to back
+1-1conv0_h32c2m1_wave       FAIL           0.001              4099             3163             1.015          3115.22  Two Conv2D layers back to back
+1-1conv0_h32c4m1_wave       PASS           0.002              8195             3553             0.757          4693.66  Two Conv2D layers back to back
+1-1conv0_h32c64m1_wave      PASS           0.009            131075            15253             3.205          4758.46  Two Conv2D layers back to back
+1-1conv0_h32c8m1_wave       PASS           0.004             16387             4333             0.934          4640.42  Two Conv2D layers back to back
+1-1conv0_h40c128m128_wave   WAIVE_WAVESC   0.617       5.24288e+07            84959            20.688          4106.75  Two Conv2D layers back to back
+1-1conv0_h40c128m1_wave     PASS           0.009            262147            27733             5.637          4920.13  Two Conv2D layers back to back
+1-1conv0_h40c128m64_wave    PASS_WAIVE_WAVESC   0.414       2.62144e+07            63313            16.701             3791  Two Conv2D layers back to back
+1-1conv0_h40c1m1_wave       PASS           0.001              2051             2968             0.584          5081.46  Two Conv2D layers back to back
+1-1conv0_h40c256m128_wave   WAIVE_WAVESC   0.792       1.04858e+08           132475            29.772          4449.69  Two Conv2D layers back to back
+1-1conv0_h40c256m64_wave    WAIVE_WAVESC   0.486       5.24288e+07           107871            26.070          4137.71  Two Conv2D layers back to back
+1-1conv0_h55c256_wave       WAIVE_WAVESC   0.011        1.5488e+06           146399            31.666          4623.19  Two Conv2D layers back to back
+1-1conv0_h55c64m256_wave    WAIVE_WAVESC   0.526       9.91232e+07           188475            44.911          4196.64  Two Conv2D layers back to back
+1-1conv0_h55m64_wave        PASS_WAIVE_WAVESC   0.010            387203            39369             8.105           4857.5  Two Conv2D layers back to back
+1-1conv0_h56c1m1_wave       PASS_WAIVE_WAVESC   0.001              6275             9162             1.725          5310.36  Two Conv2D layers back to back
+1-1conv0_m128_wave          PASS           0.000               259             9037             1.963          4604.13  Two Conv2D layers back to back
+1-1conv0_m2_wave            PASS           0.000                 7              525             0.076          6909.62  Two Conv2D layers back to back
+1-1conv0_m64_wave           PASS           0.000               131             4617             0.921          5011.51  Two Conv2D layers back to back
+1-1conv0_r3h16c128_wave     WAIVE_WAVESC   0.029            589827            20324             5.090          3992.95  Two Conv2D layers back to back
+1-1conv0_r3h55c256_wave     WAIVE_WAVESC   0.062       1.39392e+07           223157            55.036          4054.77  Two Conv2D layers back to back
+1-1conv0_wave               PASS           0.000                69             4556             0.930          4900.69  Two Conv2D layers back to back
+1-1conv7_64                 PASS           3.174        1.0276e+08            32373            12.581          2573.15  Two Conv2D layers back to back
+1-1conv9_64                 PASS           3.864       1.69869e+08            43957            19.647          2237.39  Two Conv2D layers back to back
+2-1conv3_64s8               PASS           0.020            294915            14397             4.372          3292.68  Two Conv2D layers back to back
+2-1conv9_64s8               PASS           0.093       2.65421e+06            28618             8.677          3298.02  Two Conv2D layers back to back
+2-padasym_strd_h3r2s2       PASS           0.000                35              800             0.341          2345.04  Single Conv2D layer with asymmetric padding
+2-padasym_strd_h4r2s3       PASS           0.000                35              800             0.268          2987.26  Single Conv2D layer with asymmetric padding
+2-padasym_strd_h5r2s2       PASS           0.000                75              821             0.203          4047.74  Single Conv2D layer with asymmetric padding
+2-padsym_strd_h3r3s2        PASS           0.000                75             1462             0.284          5146.96  Single Conv2D layer with symmetric padding
+2-padsym_strd_h4r3s3        PASS           0.000                75             1462             0.282          5186.55  Single Conv2D layer with symmetric padding
+2-padsym_strd_h5r3s2        PASS           0.000               165             1500             0.298          5039.92  Single Conv2D layer with symmetric padding
+3-rn50-01_wave              WAIVE-S9-S1    1.096       2.31211e+08           210915            49.537          4257.71  A unit test
+3-rn50-02_wave              WAIVE-S9-S1    0.617        1.0276e+08           166467            46.524          3578.09  A unit test
+3-rn50-03_wave              PASS           0.629        1.0276e+08           163347            45.941          3555.62  A unit test
+3-rn50-04_wave              WAIVE-S9-S1    0.297       9.91232e+07           334075            87.002          3839.86  A unit test
+3-rn50-05_wave              WAIVE-S9-S1    1.691       2.31211e+08           136723            35.968           3801.2  A unit test
+3-rn50-06_wave              WAIVE-S9-S1    0.504        1.0276e+08           203907            52.709          3868.56  A unit test
+3-rn50-07_wave              WAIVE-S9-S1    1.211       2.23027e+08           184124            51.125          3601.43  A unit test
+3-rn50-08_wave              WAIVE-S9-S1    0.315       2.31211e+08           733995           186.791           3929.5  A unit test
+3-rn50-09_wave              WAIVE-S9-S1    0.220        1.0276e+08           467427           109.127          4283.34  A unit test
+3-rn50-10_wave              WAIVE-S9-S1    0.480        1.0276e+08           214307            57.384          3734.63  A unit test
+3-rn50-11_wave              WAIVE-S9-S1    0.307       9.91232e+07           323310            81.270          3978.24  A unit test
+3-rn50-12_wave              WAIVE-S9-S1    0.221        1.0276e+08           464715           106.595          4359.62  A unit test
+3-rn50-13_wave              WAIVE-S9-S1    0.190       2.47808e+07           130369            29.201          4464.53  A unit test
+3-rn50-14_wave              PASS           0.147       1.28451e+07            87607            18.561          4720.04  A unit test
+3-rn50-15_wave              WAIVE-S9-S1    0.205       5.13802e+07           250387            57.920             4323  A unit test
+3-rn50-16_wave              WAIVE-S9-S1    0.165        5.9007e+07           357874            76.856          4656.44  A unit test
+3-rn50-17_wave              WAIVE-S9-S1    0.386       5.13802e+07           133187            28.196          4723.57  A unit test
+3-rn50-18_wave              WAIVE-S9-S1    0.151       1.28451e+07            85347            18.184          4693.64  A unit test
+3-rn50-19_wave              WAIVE-S9-S1    0.068       1.67772e+07           247107            53.861          4587.86  A unit test
+3-rn50-20_wave              WAIVE-S9-S1    0.085       6.71089e+07           788547           289.212          2726.54  A unit test
+3-rn50-t00_wave             PASS           0.000                 5              396             0.091             4362  A unit test
+3-rn50_pool2                PASS           0.032            809091            25561             5.193          4922.52  A unit test
+3-rn50_pool2_wave           PASS_WAIVE_WAVESC   0.038            809091            21223             4.556          4658.21  A unit test
+4-rn50_nne_fc               PASS           0.000       7.66805e+09                1            -1.000                0  Full size networks
+6-alexnet                   WAIVE-BENCH    0.000       1.68689e+11                1            -1.000                0  Full size networks
+7-rn50_nne_fc_wave          WAIVE-WAVESC   0.000       7.66805e+09                1            -1.000                0  Full size networks using wave scheduler
+7-rn50_nne_fc_waveopt       PASS_WAIVE-WAVESC   0.000       7.66805e+09                1            -1.000                0  Full size networks using wave scheduler
+7-rn50_nne_fp32_waveopt     PASS           0.000       7.66805e+09                1            -1.000                0  Full size networks using wave scheduler
+8-resnet152                 WAIVE-BENCH    0.000       2.18177e+10                1            -1.000                0  Full size networks
+8-resnet50                  WAIVE-BENCH    0.000       6.96883e+09                1            -1.000                0  Full size networks
+8-resnet50_fp16_keras       WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp16_keras_opt   WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp16_wave        WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks using wave scheduler
+8-resnet50_fp16_wave_b2     WAIVE-BENCH    0.000       1.53365e+10                1            -1.000                0  Full size networks using wave scheduler
+8-resnet50_fp32_keras       WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-resnet50_fp32_keras_opt   WAIVE-BENCH    0.000       7.66825e+09                1            -1.000                0  Full size networks
+8-rn50_nne_auto             WAIVE-NNE      0.000                 7                1            -1.000                0  Full size networks
+8-rn50_nne_conv             PASS_WAIVE-NNE   0.000                 7            22950             8.548          2684.94  Full size networks
