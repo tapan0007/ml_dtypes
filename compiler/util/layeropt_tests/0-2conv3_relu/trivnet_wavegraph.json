@@ -60,7 +60,7 @@
       "ref_file": "trivnet_input:0_NCHW.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
-      "waveop_name": "input/SBAtomFile_0",
+      "waveop_name": "input/SBAtomFile_ifmaps_0",
       "waveop_type": "SBAtomFile"
     },
     {
@@ -79,7 +79,7 @@
       "ref_file": "trivnet_1conv3__weight1__read:0_CRSM.npy",
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,3,3,1],
-      "waveop_name": "1conv3/conv1/SBAtomFile_0",
+      "waveop_name": "1conv3/conv1/SBAtomFile_weights_0",
       "waveop_type": "SBAtomFile"
     },
     {
@@ -103,8 +103,8 @@
       "ofmap_tile_height": 3,
       "ofmap_tile_width": 3,
       "previous_waveops": [
-        "input/SBAtomFile_0",
-        "1conv3/conv1/SBAtomFile_0"
+        "input/SBAtomFile_ifmaps_0",
+        "1conv3/conv1/SBAtomFile_weights_0"
       ],
       "psum_bank_id": 0,
       "psum_bank_offset": 10,
@@ -457,7 +457,10 @@
       "bias_add_en": false,
       "bias_atom_id": 0,
       "bias_offset_in_atom": 0,
+      "dst_is_psum": false,
       "dst_psum_bank_id": 2,
+      "dst_sb_atom_id": 80,
+      "dst_sb_offset_in_atom": 0,
       "dst_x_num": 4,
       "dst_x_step": 1,
       "dst_y_num": 4,
