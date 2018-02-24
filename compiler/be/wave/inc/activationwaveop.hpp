@@ -53,6 +53,8 @@ public:
     ActivationFunc gActivationFunc () const {
         return m_ActivationFunc;
     }
+    ACTIVATIONFUNC gSimActivationFunc() const;
+
     bool qBiasAddEn () const {
         return m_BiasAddEn;
     }
@@ -132,11 +134,16 @@ public:
         return m_TileId;
     }
 
+    kcc_float32 gScale() const {
+        return m_Scale;
+    }
+
 private:
     ActivationFunc              m_ActivationFunc        = ActivationFunc_Invalid;
     bool                        m_BiasAddEn;
     kcc_int32                   m_BiasAtomId            = -1;
     kcc_int64                   m_BiasOffsetInAtom      = -1;
+    kcc_float32                 m_Scale                 = 1.0; // TODO: deserialize when available in wavegraph.json
     kcc_int32                   m_DstPsumBankId         = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;

@@ -18,18 +18,17 @@ StateBuffer::StateBuffer(const PeArray& peArray, kcc_int64 partitionSizeInBytes)
 }
 
 
-//--------------------------------------------------------
-kcc_int64
-StateBuffer::gPartitionStartAddressInBytes(kcc_int32 partNum) const
-{
-    assert((partNum >= 0) && (partNum < gNumberPartitions()) && "Partition index not in range");
-    return gFirstAddressInBytes() + partNum * gPartitionSizeInBytes();
-}
 
 kcc_int64
 StateBuffer::gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 {
-    return TPB_BASE + row * utils::power2(ROW_SIZE_BITS) + elmtOffInBytes;
+    return MMAP_SB_BASE + row * utils::power2(ROW_SIZE_BITS) + elmtOffInBytes;
+}
+
+kcc_int64
+StateBuffer::gAllZeroOffsetTpbAddress() const
+{
+    return MMAP_SB_FP32_ZERO_OFFSET;
 }
 
 }}

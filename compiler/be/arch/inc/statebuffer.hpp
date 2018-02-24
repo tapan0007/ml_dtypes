@@ -3,6 +3,7 @@
 #ifndef KCC_ARCH_STATEBUFFER_H
 #define KCC_ARCH_STATEBUFFER_H 1
 
+
 #include "utils/inc/types.hpp"
 
 namespace kcc {
@@ -36,16 +37,11 @@ public:
         return true;
     }
 
-    //--------------------------------------------------------
-    kcc_int64 gFirstAddressInBytes() const {
-        return 0x000000000L;
-    }
-
 
     //--------------------------------------------------------
-    kcc_int64 gPartitionStartAddressInBytes(kcc_int32 partNum) const;
-
     kcc_int64 gEntryTpbAddress(kcc_int32 row, kcc_int32 elOff) const;
+
+    kcc_int64 gAllZeroOffsetTpbAddress() const;
 
 private:
 

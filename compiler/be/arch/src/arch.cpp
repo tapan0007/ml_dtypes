@@ -1,3 +1,6 @@
+#include "uarch_cfg.hpp"
+#include "utils/inc/types.hpp"
+
 #include "arch/inc/poolingeng.hpp"
 #include "arch/inc/activationeng.hpp"
 #include "arch/inc/statebuffer.hpp"
@@ -8,10 +11,32 @@
 namespace kcc {
 namespace arch {
 
+// This is the only row/column configuration for float16 and int16 data types
+// For int8 it is possible to configure pe-array as nrow=256,ncol=64 or as nrow=128,ncol=128
+enum : kcc_int32 {
+    Arch_NumberPeRows            = utils::power2(ROW_BITS),
+    Arch_NumberPeColumns         = utils::power2(COLUMN_BITS),
+
+    Arch_NumberPsumBanks         = utils::power2(BANKS_PER_COLUMN_BITS),
+    Arch_NumberPsumBankEntries   = utils::power2(PSUM_NUM_ENTRY_BITS),
+};
+
+static_assert(Arch_NumberPeRows == 128, "Number PE rows not 128"); // temporary
+static_assert(Arch_NumberPeColumns == 64, "Number PE columns not 64"); // temporary
+static_assert(Arch_NumberPsumBanks == 4, "Number PSUM banks not 4"); // temporary
+static_assert(Arch_NumberPsumBankEntries == 256, "Number PSUM entries not 256"); // temporary
+
+enum : kcc_int64 {
+    stateBuffersSizeInBytes = 8 * 1024 * 1024, // No macro that represents exact size of partition
+    sbPartitionSizeInBytes  = stateBuffersSizeInBytes  / Arch_NumberPeRows,
+};
+static_assert(sbPartitionSizeInBytes  * Arch_NumberPeRows == stateBuffersSizeInBytes,
+              "SB size is not multiple of SB partition size");
+
 //--------------------------------------------------------
 Arch::Arch()
-    : m_PeArray(numberPeRows, numberPeColumns)
-    , m_PsumBuffer(m_PeArray, numberPsumBanks, numberPsumBankEntries)
+    : m_PeArray(Arch_NumberPeRows, Arch_NumberPeColumns)
+    , m_PsumBuffer(m_PeArray, Arch_NumberPsumBanks, Arch_NumberPsumBankEntries)
     , m_PoolingEng(m_PsumBuffer)
     , m_ActivationEng(m_PsumBuffer)
     , m_StateBuffer(m_PeArray, sbPartitionSizeInBytes)

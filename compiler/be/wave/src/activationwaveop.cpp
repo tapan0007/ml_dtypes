@@ -54,7 +54,7 @@ ActivationWaveOp::verify() const
     switch (m_ActivationFunc) {
     case ActivationFunc_Identity:
     case ActivationFunc_Relu:
-    case ActivationFunc_LRelu:
+    case ActivationFunc_LeakyRelu:
     case ActivationFunc_PRelu:
     case ActivationFunc_Sigmoid:
     case ActivationFunc_Tanh:
@@ -132,6 +132,36 @@ ActivationWaveOp::verify() const
     return true;
 }
 
+ACTIVATIONFUNC
+ActivationWaveOp::gSimActivationFunc() const
+{
+    switch(gActivationFunc()) {
+    case ActivationFunc_Identity:
+        return ACTIVATIONFUNC::IDENTITY;
+        break;
+    case ActivationFunc_Relu:
+        return ACTIVATIONFUNC::RELU;
+        break;
+    case ActivationFunc_LeakyRelu:
+        return ACTIVATIONFUNC::LEAKY_RELU;
+        break;
+    case ActivationFunc_PRelu:
+        return ACTIVATIONFUNC::LEAKY_RELU; // TODO: use real one when added
+        break;
+    case ActivationFunc_Sigmoid:
+        return ACTIVATIONFUNC::SIGMOID;
+        break;
+    case ActivationFunc_Tanh:
+        return ACTIVATIONFUNC::TANH;
+        break;
+    case ActivationFunc_Exp:
+        return ACTIVATIONFUNC::EXP;
+        break;
+    default:
+        break;
+    }
+    return ACTIVATIONFUNC::INVALID_ACTIVATIONFUNC;
+}
 
 
 

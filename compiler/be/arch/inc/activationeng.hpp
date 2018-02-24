@@ -19,14 +19,6 @@ public:
         return m_Width;
     }
 
-    kcc_int64 gInstructionRamStartInBytes() const {
-        return 0x001F00000L;
-    }
-
-    kcc_int64 gInstructionRamEndInBytes() const {
-        return 0x001F03FFFL;
-    }
-
 private:
     const kcc_int32 m_Width;
 };

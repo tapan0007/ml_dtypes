@@ -26,16 +26,6 @@ public:
         return m_NumberColumns;
     }
 
-    //----------------------------------------------------------------
-    kcc_int64 gInstructionRamStartInBytes() const {
-        return 0x001D00000L;
-    }
-
-    //----------------------------------------------------------------
-    kcc_int64 gInstructionRamEndInBytes() const {
-        return 0x001D03FFFL;
-    }
-
 private:
     const kcc_int32 m_NumberRows;
     const kcc_int32 m_NumberColumns;

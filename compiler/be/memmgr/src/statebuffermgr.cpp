@@ -17,7 +17,7 @@ StateBufferMgr::StateBufferMgr(const arch::Arch& arch, nets::Network* ntwk)
 {
 
     m_PartitionSize = m_StateBuffer.gPartitionSizeInBytes();
-    m_FirstSbAddress = m_StateBuffer.gFirstAddressInBytes();
+    m_FirstSbAddress = 0; // this is SP-partition relative address, not TPB
 
     m_FirstFreeStart = m_FirstSbAddress;
 }

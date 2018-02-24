@@ -112,7 +112,19 @@ Main(int argc, char* argv[])
     //------------------------------------------------
     arch::Arch::init();
     const arch::Arch& arch(arch::Arch::gArch());
+    const arch::PsumBuffer psumBuf(arch.gPsumBuffer());
+    const arch::StateBuffer stateBuf(arch.gStateBuffer());
     std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
+
+    std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(0, 0) << "'\n";
+    std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(1, 0) << "'\n";
+
+    std::cout << "State buffer, partition size =  " << stateBuf.gPartitionSizeInBytes() << "'\n";
+    std::cout << "State buffer, partition 0, entry 0: TPB address =  " << stateBuf.gEntryTpbAddress(0, 0) << "'\n";
+    std::cout << "State buffer, partition 1, entry 0: TPB address =  " << stateBuf.gEntryTpbAddress(1, 0) << "'\n";
+    std::cout << "State buffer, All zero TPB address =  " << stateBuf.gAllZeroOffsetTpbAddress() << "'\n";
+    std::cout << "State buffer, delta TPB address between part 0 and 1=  "
+              << (stateBuf.gEntryTpbAddress(1, 0) - stateBuf.gEntryTpbAddress(0, 0)) << "'\n";
 
 
     //------------------------------------------------

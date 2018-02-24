@@ -423,8 +423,8 @@ SerWaveOp::activationType2Str(ActivationFunc actType)
     case ActivationFunc_Relu:
         return WaveOpKey_ActivationFunc_Relu;
         break;
-    case ActivationFunc_LRelu:
-        return WaveOpKey_ActivationFunc_Lrelu;
+    case ActivationFunc_LeakyRelu:
+        return WaveOpKey_ActivationFunc_LeakyRelu;
         break;
     case ActivationFunc_PRelu:
         return WaveOpKey_ActivationFunc_Prelu;
@@ -453,8 +453,8 @@ SerWaveOp::str2ActivationFunc(const std::string& actType)
         return ActivationFunc_Identity;
     } else if (actType  == WaveOpKey_ActivationFunc_Relu) {
         return ActivationFunc_Relu;
-    } else if (actType  == WaveOpKey_ActivationFunc_Lrelu) {
-        return ActivationFunc_LRelu;
+    } else if (actType  == WaveOpKey_ActivationFunc_LeakyRelu) {
+        return ActivationFunc_LeakyRelu;
     } else if (actType  == WaveOpKey_ActivationFunc_Prelu) {
         return ActivationFunc_PRelu;
     } else if (actType  == WaveOpKey_ActivationFunc_Sigmoid) {

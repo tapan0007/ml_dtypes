@@ -24,7 +24,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     assert(poolWaveOp);
     const arch::Arch& arch(arch::Arch::gArch());
     const auto& psumBuf(arch.gPsumBuffer());
-    //const auto& stateBuf(arch.gStateBuffer());
+    const auto& stateBuf(arch.gStateBuffer());
 
     POOL poolInstr;
 
@@ -48,7 +48,10 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                                             poolWaveOp->gSrcPsumBankId(),
                                             poolWaveOp->gSrcPsumBankOffset());
     } else { // State buffer
-        poolInstr.src_start_addr = poolWaveOp->gSrcSbAtomId() * poolWaveOp->gWaveAtomSize() + poolWaveOp->gSrcSbOffsetInAtom();
+        poolInstr.src_start_addr = 
+        stateBuf.gEntryTpbAddress(0/*row 0 for now*/, 
+                                 poolWaveOp->gSrcSbAtomId() * poolWaveOp->gWaveAtomSize()
+                                    + poolWaveOp->gSrcSbOffsetInAtom());
     }
 
     poolInstr.src_x_step        = poolWaveOp->gSrcXStep();

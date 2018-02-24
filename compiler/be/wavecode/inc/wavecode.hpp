@@ -36,6 +36,7 @@ class WaveCodeMatMul;
 class WaveCodeSbAtomFile;
 class WaveCodeSbAtomSave;
 class WaveCodePool;
+class WaveCodeActivation;
 
 
 
@@ -48,12 +49,6 @@ public:
         std::array<kcc_int32, 4> m_RefFileShape;
     };
 public:
-    enum UseStream {
-        UseStream_StreamProc,
-        UseStream_PeArray,
-        UseStream_PoolEng,
-        UseStream_ActEng
-    };
 
     using OneInstrStream = FILE*;
     struct InstrStreams {
@@ -97,6 +92,7 @@ private:
     std::unique_ptr<WaveCodeSbAtomFile> m_CodeSbAtomFile;
     std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
     std::unique_ptr<WaveCodePool>       m_CodePool;
+    std::unique_ptr<WaveCodeActivation> m_CodeActivation;
 
     kcc_int64                           m_CurrentDramAddress;
     std::map<std::string, kcc_int64>    m_InputNpyFile2DramAddress;

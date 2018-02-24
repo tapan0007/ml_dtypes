@@ -11,12 +11,14 @@
 #include "wave/inc/sbatomfilewaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
+#include "wave/inc/activationwaveop.hpp"
 
 //#include "wavecode/inc/wavecodewaveop.hpp"
 #include "wavecode/inc/wavecodesbatomfile.hpp"
 #include "wavecode/inc/wavecodesbatomsave.hpp"
 #include "wavecode/inc/wavecodematmul.hpp"
 #include "wavecode/inc/wavecodepool.hpp"
+#include "wavecode/inc/wavecodeactivation.hpp"
 #include "wavecode/inc/wavecode.hpp"
 
 namespace kcc {
@@ -30,6 +32,7 @@ WaveCode::WaveCode(const nets::Network* network, const arch::Arch& arch)
     m_CodeSbAtomFile        = std::make_unique<WaveCodeSbAtomFile>(this);
     m_CodeSbAtomSave        = std::make_unique<WaveCodeSbAtomSave>(this);
     m_CodePool              = std::make_unique<WaveCodePool>(this);
+    m_CodeActivation        = std::make_unique<WaveCodeActivation>(this);
     m_CurrentDramAddress    = DDRC0_PORT0;
 }
 
@@ -58,6 +61,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         return *m_CodeSbAtomSave;
     } else if (dynamic_cast<const wave::PoolWaveOp*>(waveOp)) {
         return *m_CodePool;
+    } else if (dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
+        return *m_CodeActivation;
     } else {
         assert(false && "WaveCode: Unsupported WaveOp");
     }
@@ -124,6 +129,13 @@ template<>
 void WaveCode::writeInstruction<POOL>(POOL& instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+}
+
+
+template<>
+void WaveCode::writeInstruction<ACTIVATION >(ACTIVATION & instruction)
+{
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
 }
 
 

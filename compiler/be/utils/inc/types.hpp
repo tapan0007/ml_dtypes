@@ -34,7 +34,7 @@ enum ActivationFunc {
     ActivationFunc_Invalid,
     ActivationFunc_Identity,
     ActivationFunc_Relu,
-    ActivationFunc_LRelu,
+    ActivationFunc_LeakyRelu,
     ActivationFunc_PRelu,
     ActivationFunc_Sigmoid,
     ActivationFunc_Tanh,
