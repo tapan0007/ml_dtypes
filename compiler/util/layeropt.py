@@ -732,7 +732,7 @@ class KNode:
                                     self.ifmap_wave_lower_addr = self.ifmap_wave_upper_addr
                                     self.ofmap_wave_lower_coordx = x
                                     self.ofmap_wave_lower_coordy = y
-                                    self.psum_bank_offset = (y * ofmap_full_tilex_sz_per_batchitem + x) * ifmaps.dtype.itemsize
+                                    self.psum_bank_offset = (y * ofmap_full_tilex_sz_per_batchitem + x)
                         #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx, self.ofmap_wave_lower_coordy, self.ofmap_wave_upper_coordx, self.ofmap_wave_upper_coordy))                                    
         return out_array
 
@@ -937,6 +937,14 @@ class FusedOp(list):
     def gen_matmul_waveop(self, tpb, wave_id, psum_add):
         ofmap_wave_width = self.conv_op.ofmap_wave_upper_coordx - self.conv_op.ofmap_wave_lower_coordx + 1
         ofmap_wave_height = self.conv_op.ofmap_wave_upper_coordy - self.conv_op.ofmap_wave_lower_coordy + 1
+        if (self.conv_op.item_sz == 2):
+            in_dtype = "float16"
+            out_dtype = "float32"
+        elif (self.conv_op.item_sz == 4):
+            in_dtype = "float32"
+            out_dtype = "float32"
+        else:            
+            print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
         matmul_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'MatMul',
@@ -949,6 +957,8 @@ class FusedOp(list):
               'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,
               'wave_id_format'          : wave_id.format,
               'wave_id'                 : wave_id.show(),
+              'in_dtype'                : in_dtype,
+              'out_dtype'               : out_dtype,
               'start'                   : not(psum_add),
               'stride_x'                : self.conv_op.stride_x,
               'stride_y'                : self.conv_op.stride_y,
