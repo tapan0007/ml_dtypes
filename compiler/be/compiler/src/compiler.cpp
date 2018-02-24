@@ -8,6 +8,7 @@
 
 #include "utils/inc/debug.hpp"
 #include "utils/inc/printers.hpp"
+#include "utils/inc/datatype.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "memmgr/inc/statebuffermgr.hpp"
@@ -116,8 +117,10 @@ Main(int argc, char* argv[])
     const arch::StateBuffer stateBuf(arch.gStateBuffer());
     std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
 
-    std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(0, 0) << "'\n";
-    std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(1, 0) << "'\n";
+    // Does not matter which DataType because entry index is 0.
+    const utils::DataTypeFloat32 dtypeFloat32;
+    std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
+    std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
 
     std::cout << "State buffer, partition size =  " << stateBuf.gPartitionSizeInBytes() << "'\n";
     std::cout << "State buffer, partition 0, entry 0: TPB address =  " << stateBuf.gEntryTpbAddress(0, 0) << "'\n";

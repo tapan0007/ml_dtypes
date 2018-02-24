@@ -199,6 +199,8 @@ public:
         m_BatchingInWave = batchingInWave;
     }
 
+    const DataType& gOutDtype() const;
+
     //----------------------------------------------------------------
     bool qMatMultWaveOp() const override {
         return true;

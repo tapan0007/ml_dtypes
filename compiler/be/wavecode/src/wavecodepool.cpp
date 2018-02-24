@@ -46,7 +46,8 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     if (poolWaveOp->qSrcIsPsum()) {
         poolInstr.src_start_addr = psumBuf.gEntryTpbAddress(
                                             poolWaveOp->gSrcPsumBankId(),
-                                            poolWaveOp->gSrcPsumBankOffset());
+                                            poolWaveOp->gSrcPsumBankOffset(),
+                                            poolWaveOp->gInDtype());
     } else { // State buffer
         poolInstr.src_start_addr = 
         stateBuf.gEntryTpbAddress(0/*row 0 for now*/, 

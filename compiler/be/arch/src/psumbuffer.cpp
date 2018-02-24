@@ -1,6 +1,7 @@
 #include "uarch_cfg.hpp"
 #include "tpb_isa.hpp"
 
+#include "utils/inc/datatype.hpp"
 #include "utils/inc/types.hpp"
 
 #include "arch/inc/pearray.hpp"
@@ -41,6 +42,32 @@ kcc_int32
 PsumBuffer::gEntrySize () const
 {
     return utils::power2(PSUM_ENTRY_BITS);
+}
+
+bool
+PsumBuffer::qLegalDataType(const utils::DataType& dtype)
+{
+    switch (dtype.gDataTypeId()) {
+    case utils::DataTypeId_Float32:
+    case utils::DataTypeId_Int32:
+    case utils::DataTypeId_Int64:
+        return true;
+        break;
+    default:
+        return false;
+        break;
+    }
+    return false;
+}
+
+kcc_int64
+PsumBuffer::gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx,
+                             const utils::DataType& dtype) const
+{
+    assert(qLegalDataType(dtype) && "Wrong data type for PSUM TPB address calculation");
+    return gPsumBaseAddress() 
+           + gBankOffsetDelta() * bankId 
+           + dtype.gSizeInBytes() * bankEntryIdx;
 }
 
 }}

@@ -49,6 +49,28 @@ DataTypeFloat32::gSimTypeId() const
     return ARBPRECTYPE::FP32;
 }
 
+DataTypeId
+DataTypeInt32::gDataTypeId () const {
+    return DataTypeId_Int32;
+}
+
+ARBPRECTYPE
+DataTypeInt32::gSimTypeId() const
+{
+    return ARBPRECTYPE::INT32;
+}
+
+DataTypeId
+DataTypeInt64::gDataTypeId () const {
+    return DataTypeId_Int64;
+}
+
+ARBPRECTYPE
+DataTypeInt64::gSimTypeId() const
+{
+    return ARBPRECTYPE::INT64;
+}
+
 
 
 const DataType&
@@ -58,6 +80,8 @@ DataType::dataTypeId2DataType(DataTypeId typeId)
     static const DataTypeUint16     typeUint16;
     static const DataTypeFloat16    typeFloat16;
     static const DataTypeFloat32    typeFloat32;
+    static const DataTypeInt32      typeInt32;
+    static const DataTypeInt64      typeInt64;
 
     switch (typeId) {
     case DataTypeId_Uint8:
@@ -71,6 +95,12 @@ DataType::dataTypeId2DataType(DataTypeId typeId)
         break;
     case DataTypeId_Float32:
         return typeFloat32;
+        break;
+    case DataTypeId_Int32:
+        return typeInt32;
+        break;
+    case DataTypeId_Int64:
+        return typeInt64;
         break;
     default:
         assert(false && "Wrong DataTypeId");
@@ -91,6 +121,10 @@ DataType::dataTypeStr2Id(const std::string& dataTypeStr)
         return DataTypeId_Float16;
     } else if (dataTypeStr == DataTypeFloat32::gNameStatic()) {
         return DataTypeId_Float32;
+    } else if (dataTypeStr == DataTypeInt32::gNameStatic()) {
+        return DataTypeId_Int32;
+    } else if (dataTypeStr == DataTypeInt64::gNameStatic()) {
+        return DataTypeId_Int64;
     } else {
         assert(false && "Wrong DataTypeId");
     }
@@ -106,6 +140,8 @@ DataType::dataTypeId2Str(DataTypeId typeId)
     static const std::string    uint16Str(DataTypeUint16::gNameStatic());
     static const std::string    float16Str(DataTypeFloat16::gNameStatic());
     static const std::string    float32Str(DataTypeFloat32::gNameStatic());
+    static const std::string    int32Str(DataTypeInt32::gNameStatic());
+    static const std::string    int64Str(DataTypeInt64::gNameStatic());
 
     switch (typeId) {
     case DataTypeId_Uint8:
@@ -119,6 +155,12 @@ DataType::dataTypeId2Str(DataTypeId typeId)
         break;
     case DataTypeId_Float32:
         return float32Str;
+        break;
+    case DataTypeId_Int32:
+        return int32Str;
+        break;
+    case DataTypeId_Int64:
+        return int64Str;
         break;
     default:
         assert(false && "Wrong DataTypeId");

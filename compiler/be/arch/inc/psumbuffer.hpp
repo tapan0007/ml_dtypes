@@ -7,6 +7,11 @@
 #include "utils/inc/types.hpp"
 
 namespace kcc {
+
+namespace utils {
+class DataType;
+}
+
 namespace arch {
 
 class PeArray;
@@ -28,23 +33,17 @@ public:
     }
 
     //----------------------------------------------------------------
-    kcc_int32 gBankEntrySizeInBytes() const {
-        return m_BankEntrySizeInBytes;
-    }
-
-    //----------------------------------------------------------------
     kcc_int32 gNumberColumns() const {
         return m_NumberColumns;
     }
 
-    kcc_int64 gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx) const {
-        return gPsumBaseAddress() + gBankOffsetDelta() * bankId + gEntrySize() * bankEntryIdx;
-    }
+    kcc_int64 gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx, const utils::DataType& dtype) const;
 
 private:
     kcc_int64 gPsumBaseAddress() const;
     kcc_int64 gBankOffsetDelta() const;
     kcc_int32 gEntrySize () const;
+    static bool qLegalDataType(const utils::DataType& dtype);
 
     //----------------------------------------------------------------
     kcc_int64 gAddress() const;

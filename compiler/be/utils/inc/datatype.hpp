@@ -21,7 +21,9 @@ enum DataTypeId {
     DataTypeId_Uint8,
     DataTypeId_Uint16,
     DataTypeId_Float16,
-    DataTypeId_Float32
+    DataTypeId_Float32,
+    DataTypeId_Int32,
+    DataTypeId_Int64,
 };
 
 //########################################################
@@ -182,6 +184,78 @@ public:
     }
 };
 
+
+//########################################################
+class DataTypeInt32 : public DataType {
+private:
+    using data_type = kcc_int32;
+public:
+    DataTypeInt32()
+        : DataType()
+    {
+    }
+
+    DataTypeId  gDataTypeId() const override;
+    ARBPRECTYPE gSimTypeId() const override;
+
+    kcc_int64 gSizeInBytes() const override
+    {
+        static_assert(sizeof(data_type)==4, "sizeof(int32) != 4");
+        return sizeof(data_type);
+    }
+
+    static const char* gNameStatic()
+    {
+        return "int32";
+    }
+
+    const char* gName() const override
+    {
+        return gNameStatic();
+    }
+
+    const char* gTccName() const override
+    {
+        assert(false && "Cannot use int32 as TCC dtype");
+        return nullptr;
+    }
+};
+
+//########################################################
+class DataTypeInt64 : public DataType {
+private:
+    using data_type = kcc_int32;
+public:
+    DataTypeInt64()
+        : DataType()
+    {
+    }
+
+    DataTypeId  gDataTypeId() const override;
+    ARBPRECTYPE gSimTypeId() const override;
+
+    kcc_int64 gSizeInBytes() const override
+    {
+        static_assert(sizeof(data_type)==4, "sizeof(int32) != 4");
+        return sizeof(data_type);
+    }
+
+    static const char* gNameStatic()
+    {
+        return "int32";
+    }
+
+    const char* gName() const override
+    {
+        return gNameStatic();
+    }
+
+    const char* gTccName() const override
+    {
+        assert(false && "Cannot use int32 as TCC dtype");
+        return nullptr;
+    }
+};
 
 } // namespace utils
 } // namespace kcc

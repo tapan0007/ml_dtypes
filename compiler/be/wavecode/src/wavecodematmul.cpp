@@ -50,7 +50,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     matmulInstr.fmap_z_num              = matmulWaveOp->gFmapZNum();
     matmulInstr.fmap_z_step             = matmulWaveOp->gFmapZStepAtoms() * matmulWaveOp->gIfmapsAtomSize();
 
-    matmulInstr.psum_start_addr         = psumBuf.gEntryTpbAddress(matmulWaveOp->gPsumBankId(), matmulWaveOp->gPsumBankOffset());
+    matmulInstr.psum_start_addr         = psumBuf.gEntryTpbAddress(
+                                                    matmulWaveOp->gPsumBankId(),
+                                                    matmulWaveOp->gPsumBankOffset(),
+                                                    matmulWaveOp->gOutDtype());
     matmulInstr.psum_x_num              = matmulWaveOp->gPsumXNum();
     matmulInstr.psum_x_step             = matmulWaveOp->gPsumXStep();
     matmulInstr.psum_y_num              = matmulWaveOp->gPsumYNum();
