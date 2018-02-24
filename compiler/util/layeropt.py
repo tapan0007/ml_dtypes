@@ -197,6 +197,7 @@ class CircularBuffer:
         self.tail_pointer = self.start
         self.current_atom_id = self.start
         self.atom_data_sz = self.atom_sz
+        self.need_spare_atom = False
         self.count = 0
         self.eviction_count = 0
         self.max_count = 0
@@ -284,6 +285,7 @@ class CircularBuffer:
             # To prevent crossing gaps for inputs, make it contiguous (only work for inputs)
             elif (self.layer_type == 'Input'):
                 self.atom_data_sz = self.atom_sz
+                self.need_spare_atom = True
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
                 multiple = self.atom_sz // ifmap_width_data_len
@@ -332,7 +334,7 @@ class CircularBuffer:
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomFile",
-              'waveop_name'      : self.layer_name+"/SBAtomFile_%s_%d"%(self.circbuf_type, chunk_id),
+              'waveop_name'      : self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string()),
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
@@ -362,7 +364,7 @@ class CircularBuffer:
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
-              'waveop_name'      : self.layer_name + "/SBAtomSave_%d"%atom_id + "_" + tile_id.id_string(),
+              'waveop_name'      : self.layer_name + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string()),
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
@@ -394,7 +396,10 @@ class CircularBuffer:
                     if (self.addr2atom[k] == atom_id):
                         if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with %s"%(self.circbuf_type, k, atom_id, i))
                         self.eviction_count += 1
-                self.addr2atom[i] = atom_id
+                if (self.need_spare_atom and atom_id == self.start+self.capacity-1):                       
+                    self.allocated[atom_id - self.start] = False
+                else:
+                    self.addr2atom[i] = atom_id
         return dram_waveops
     
     def hit_end_addr(self, upper_addr):
@@ -415,6 +420,8 @@ class CircularBuffer:
         dram_waveops = []
         lower_addr_chunked = lower_addr // self.atom_data_sz
         upper_addr_chunked = upper_addr // self.atom_data_sz
+        if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
+            print("ERROR %s: data region is crossing gappy atom boundary!"%self.circbuf_type);
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
