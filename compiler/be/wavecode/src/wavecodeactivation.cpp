@@ -1,0 +1,72 @@
+#include "tpb_isa_ldweights.hpp"
+#include "tpb_isa_activate.hpp"
+
+#include "arch/inc/arch.hpp"
+#include "arch/inc/psumbuffer.hpp"
+
+#include "wave/inc/activationwaveop.hpp"
+#include "wavecode/inc/wavecode.hpp"
+#include "wavecode/inc/wavecodeactivation.hpp"
+
+namespace kcc {
+namespace wavecode {
+
+WaveCodeActivation::WaveCodeActivation(WaveCode* waveCode)
+    : WaveCodeWaveOp(waveCode)
+{}
+
+
+
+void
+WaveCodeActivation::generate(wave::WaveOp* waveOp)
+{
+    auto activationWaveOp = dynamic_cast<wave::ActivationWaveOp*>(waveOp);
+    assert(activationWaveOp);
+
+    //const layers::ActivLayer* const activLayer = activationWaveOp->gActivLayer();
+    const arch::Arch& arch(arch::Arch::gArch());
+    const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
+    const arch::StateBuffer& stateBuf(arch.gStateBuffer());
+
+    ACTIVATION activationInstr;
+
+    activationInstr.activation_func     = activationWaveOp->gSimActivationFunc();
+    activationInstr.in_dtype            = activationWaveOp->gInDtype().gSimTypeId();
+    activationInstr.out_dtype           = activationWaveOp->gOutDtype().gSimTypeId();
+
+    // TODO: for now Activation reads from 0 elem in bank.
+    activationInstr.src_start_addr      = psumBuf.gEntryTpbAddress(activationWaveOp->gSrcPsumBankId(), 0, activationWaveOp->gInDtype());
+    activationInstr.dst_start_addr      = psumBuf.gEntryTpbAddress(activationWaveOp->gDstPsumBankId(), 0, activationWaveOp->gOutDtype());
+
+    activationInstr.src_x_step          = activationWaveOp->gSrcXStep();
+    activationInstr.src_y_step          = activationWaveOp->gSrcYStep();
+    // activationInstr.src_z_step          = activationWaveOp->gSrcZStep(); // when available in the new ISA
+    activationInstr.src_x_num           = activationWaveOp->gSrcXNum();
+    activationInstr.src_y_num           = activationWaveOp->gSrcYNum();
+    // activationInstr.src_z_num           = activationWaveOp->gSrcZNum(); // when available in the new ISA
+
+    activationInstr.dst_x_step          =  activationWaveOp->gDstXStep();
+    activationInstr.dst_y_step          = activationWaveOp->gDstYStep();
+    activationInstr.dst_z_step          =  activationWaveOp->gDstZStep();
+    activationInstr.dst_x_num           = activationWaveOp->gDstXNum();
+    activationInstr.dst_y_num           = activationWaveOp->gDstYNum();
+    activationInstr.dst_z_num           = activationWaveOp->gDstZNum();
+
+    activationInstr.scale_value         = activationWaveOp->gScale();
+    if (activationWaveOp->qBiasAddEn ()) {
+        activationInstr.acc_addr        = stateBuf.gEntryTpbAddress(
+                                            0,   //row 0 for now
+                                            activationWaveOp->gBiasAtomId() * activationWaveOp->gWaveAtomSize()
+                                                + activationWaveOp->gBiasOffsetInAtom());
+    } else {
+        activationInstr.acc_addr        = stateBuf.gAllZeroOffsetTpbAddress();
+    }
+    activationInstr.num_partitions      = activationWaveOp->gNumPartitions();
+
+    m_WaveCode->writeInstruction(activationInstr);
+}
+
+
+}}
+
+
