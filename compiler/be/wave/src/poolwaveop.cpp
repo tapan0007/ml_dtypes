@@ -10,6 +10,9 @@
 #include "wave/inc/poolwaveop.hpp"
 
 
+// #define RETURN_ASSERT(x) return (x)
+#define RETURN_ASSERT(x)  assert(x); return (x)
+
 
 namespace kcc {
 namespace wave {
@@ -64,91 +67,95 @@ PoolWaveOp::verify() const
 {
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
     if (! this->WaveOp::verify()) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_DstSbAtomId < 0) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_DstSbOffsetInAtom < 0) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_DstXNum < 1) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_DstXStep < 0) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_DstYNum < 1) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_DstYStep < 0) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_DstZNum < 1) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_DstZStep < 0) {
-        return false;
+        RETURN_ASSERT(false);
     }
     // "layername;
     if (m_NumPartitions < 1) {
-        return false;
+        RETURN_ASSERT(false);
     }
     if (m_PoolFrequency < 1) {
-        return false;
+        RETURN_ASSERT(false);
     }
     switch (m_PoolFunc) {
     case PoolType_Max:
     case PoolType_Avg:
         break;
     default:
-        return false;
+        RETURN_ASSERT(false);
     }
     // previouswaveops: [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
-    // m_SrcIsPsum;
-    if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
-        return false;
+
+    if (m_SrcIsPsum) {
+        if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcPsumBankOffset < 0 || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries()) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcWNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcWStep < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcXNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcXStep < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcYNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcYStep < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcZNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcZStep < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcSbAtomId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcSbOffsetInAtom < 0) {
+            RETURN_ASSERT(false);
+        }
     }
-    if (m_SrcPsumBankOffset < 0 || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries()) {
-        return false;
-    }
-    if (m_SrcSbAtomId < 0) {
-        return false;
-    }
-    if (m_SrcSbOffsetInAtom < 0) {
-        return false;
-    }
-    if (m_SrcWNum < 1) {
-        return false;
-    }
-    if (m_SrcWStep < 0) {
-        return false;
-    }
-    if (m_SrcXNum < 1) {
-        return false;
-    }
-    if (m_SrcXStep < 0) {
-        return false;
-    }
-    if (m_SrcYNum < 1) {
-        return false;
-    }
-    if (m_SrcYStep < 0) {
-        return false;
-    }
-    if (m_SrcZNum < 1) {
-        return false;
-    }
-    if (m_SrcZStep < 0) {
-        return false;
-    }
+
     for (auto n : m_TileId) {
         if (n < 0) {
-            return false;
+            RETURN_ASSERT(false);
         }
     }
     if (m_TileIdFormat == "") {
-        return false;
+        RETURN_ASSERT(false);
     }
     //waveopname;
     //waveoptype;
