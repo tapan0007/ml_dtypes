@@ -160,15 +160,16 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(BiasAtomId);
     KCC_ARCHIVE(BiasOffsetInAtom);
 
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
+
     KCC_ARCHIVE(DstIsPsum);
     if (m_DstIsPsum) {
         KCC_ARCHIVE(DstPsumBankId);
-        KCC_ARCHIVE(DstXNum);
-        KCC_ARCHIVE(DstXStep);
-        KCC_ARCHIVE(DstYNum);
-        KCC_ARCHIVE(DstYStep);
-        KCC_ARCHIVE(DstZNum);
-        KCC_ARCHIVE(DstZStep);
     } else {
         KCC_ARCHIVE(DstSbAtomId);
         KCC_ARCHIVE(DstSbOffsetInAtom);
@@ -177,6 +178,7 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(InDtype);
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(OutDtype);
+
     KCC_ARCHIVE(SrcPsumBankId);
     KCC_ARCHIVE(SrcXNum);
     KCC_ARCHIVE(SrcXStep);

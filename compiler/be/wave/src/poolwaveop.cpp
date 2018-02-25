@@ -47,18 +47,19 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     if (m_SrcIsPsum) {
         m_SrcPsumBankId     = params.m_SrcPsumBankId;
         m_SrcPsumBankOffset = params.m_SrcPsumBankOffset;
-        m_SrcWNum           = params.m_SrcWNum;
-        m_SrcWStep          = params.m_SrcWStep;
-        m_SrcXNum           = params.m_SrcXNum;
-        m_SrcXStep          = params.m_SrcXStep;
-        m_SrcYNum           = params.m_SrcYNum;
-        m_SrcYStep          = params.m_SrcYStep;
-        m_SrcZNum           = params.m_SrcZNum;
-        m_SrcZStep          = params.m_SrcZStep;
     } else {
         m_SrcSbAtomId       = params.m_SrcSbAtomId;
         m_SrcSbOffsetInAtom = params.m_SrcSbOffsetInAtom;
     }
+
+    m_SrcWNum           = params.m_SrcWNum;
+    m_SrcWStep          = params.m_SrcWStep;
+    m_SrcXNum           = params.m_SrcXNum;
+    m_SrcXStep          = params.m_SrcXStep;
+    m_SrcYNum           = params.m_SrcYNum;
+    m_SrcYStep          = params.m_SrcYStep;
+    m_SrcZNum           = params.m_SrcZNum;
+    m_SrcZStep          = params.m_SrcZStep;
     assert(verify());
 }
 
@@ -116,30 +117,6 @@ PoolWaveOp::verify() const
         if (m_SrcPsumBankOffset < 0 || m_SrcPsumBankOffset >= psumBuf.gNumberBankEntries()) {
             RETURN_ASSERT(false);
         }
-        if (m_SrcWNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcWStep < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcXNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcXStep < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcYNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcYStep < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcZNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcZStep < 0) {
-            RETURN_ASSERT(false);
-        }
     } else {
         if (m_SrcSbAtomId < 0) {
             RETURN_ASSERT(false);
@@ -147,6 +124,31 @@ PoolWaveOp::verify() const
         if (m_SrcSbOffsetInAtom < 0) {
             RETURN_ASSERT(false);
         }
+    }
+
+    if (m_SrcWNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcWStep < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcXStep < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYStep < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZStep < 0) {
+        RETURN_ASSERT(false);
     }
 
     for (auto n : m_TileId) {

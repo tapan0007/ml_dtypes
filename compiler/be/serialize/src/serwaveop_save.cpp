@@ -154,17 +154,18 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
 
     KCC_ARCHIVE(DstIsPsum);
     if (m_DstIsPsum) {
-        KCC_ARCHIVE(DstPsumBankId);
-        KCC_ARCHIVE(DstXNum);
-        KCC_ARCHIVE(DstXStep);
-        KCC_ARCHIVE(DstYNum);
-        KCC_ARCHIVE(DstYStep);
-        KCC_ARCHIVE(DstZNum);
-        KCC_ARCHIVE(DstZStep);
     } else {
         KCC_ARCHIVE(DstSbAtomId);
         KCC_ARCHIVE(DstSbOffsetInAtom);
     }
+
+    KCC_ARCHIVE(DstPsumBankId);
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
 
     KCC_ARCHIVE(InDtype);
     KCC_ARCHIVE(NumPartitions);

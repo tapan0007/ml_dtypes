@@ -36,7 +36,7 @@
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
-#define UNSERIALIZE(X) PARAMS.KCC_CONCAT(m_,X) = serWaveOp.KCC_CONCAT(m_,X);
+#define KCC_UNSERIALIZE(X) PARAMS.KCC_CONCAT(m_,X) = serWaveOp.KCC_CONCAT(m_,X);
 namespace kcc {
 
 
@@ -235,22 +235,22 @@ Network::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
     wave::SbAtomFileWaveOp::Params sbatomfileParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, sbatomfileParams);
 
-    UNSERIALIZE(AtomId);
-    UNSERIALIZE(AtomSize);
-    UNSERIALIZE(BatchFoldIdx);
+    KCC_UNSERIALIZE(AtomId);
+    KCC_UNSERIALIZE(AtomSize);
+    KCC_UNSERIALIZE(BatchFoldIdx);
     sbatomfileParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
-    UNSERIALIZE(Length);
-    UNSERIALIZE(OffsetInFile);
-    UNSERIALIZE(PartitionStepBytes);
+    KCC_UNSERIALIZE(Length);
+    KCC_UNSERIALIZE(OffsetInFile);
+    KCC_UNSERIALIZE(PartitionStepBytes);
     sbatomfileParams.m_RefFileName = serWaveOp.m_RefFile;
-    UNSERIALIZE(RefFileFormat);
+    KCC_UNSERIALIZE(RefFileFormat);
     for (unsigned int i = 0; i < sbatomfileParams.m_RefFileShape.size(); ++i) {
         sbatomfileParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
     }
 
-    UNSERIALIZE(IfmapCount);
-    UNSERIALIZE(IfmapsFoldIdx);
-    UNSERIALIZE(IfmapsReplicate);
+    KCC_UNSERIALIZE(IfmapCount);
+    KCC_UNSERIALIZE(IfmapsFoldIdx);
+    KCC_UNSERIALIZE(IfmapsReplicate);
 
     auto waveOp = new wave::SbAtomFileWaveOp(sbatomfileParams, prevWaveOps);
     assert(waveOp && waveOp->gName() == sbatomfileParams.m_WaveOpName);
@@ -267,21 +267,21 @@ Network::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
     wave::SbAtomSaveWaveOp::Params sbatomsaveParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, sbatomsaveParams);
 
-    UNSERIALIZE(AtomId);
-    UNSERIALIZE(AtomSize);
-    UNSERIALIZE(BatchFoldIdx);
+    KCC_UNSERIALIZE(AtomId);
+    KCC_UNSERIALIZE(AtomSize);
+    KCC_UNSERIALIZE(BatchFoldIdx);
     sbatomsaveParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
-    UNSERIALIZE(Length);
-    UNSERIALIZE(OffsetInFile);
-    UNSERIALIZE(PartitionStepBytes);
+    KCC_UNSERIALIZE(Length);
+    KCC_UNSERIALIZE(OffsetInFile);
+    KCC_UNSERIALIZE(PartitionStepBytes);
     sbatomsaveParams.m_RefFileName = serWaveOp.m_RefFile;
-    UNSERIALIZE(RefFileFormat);
+    KCC_UNSERIALIZE(RefFileFormat);
     for (unsigned int i = 0; i < sbatomsaveParams.m_RefFileShape.size(); ++i) {
         sbatomsaveParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
     }
 
-    UNSERIALIZE(OfmapCount);
-    UNSERIALIZE(OfmapsFoldIdx);
+    KCC_UNSERIALIZE(OfmapCount);
+    KCC_UNSERIALIZE(OfmapsFoldIdx);
 
     auto waveOp = new wave::SbAtomSaveWaveOp(sbatomsaveParams, prevWaveOps);
     assert(waveOp->gName() == sbatomsaveParams.m_WaveOpName);
@@ -297,36 +297,37 @@ Network::loadPool(const serialize::SerWaveOp& serWaveOp)
     wave::PoolWaveOp::Params poolParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, poolParams);
 
-    UNSERIALIZE(DstSbAtomId);
-    UNSERIALIZE(DstSbOffsetInAtom);
-    UNSERIALIZE(DstXNum);
-    UNSERIALIZE(DstXStep);
-    UNSERIALIZE(DstYNum);
-    UNSERIALIZE(DstYStep);
-    UNSERIALIZE(DstZNum);
-    UNSERIALIZE(DstZStep);
+    KCC_UNSERIALIZE(DstSbAtomId);
+    KCC_UNSERIALIZE(DstSbOffsetInAtom);
+    KCC_UNSERIALIZE(DstXNum);
+    KCC_UNSERIALIZE(DstXStep);
+    KCC_UNSERIALIZE(DstYNum);
+    KCC_UNSERIALIZE(DstYStep);
+    KCC_UNSERIALIZE(DstZNum);
+    KCC_UNSERIALIZE(DstZStep);
     poolParams.m_InDtype  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    UNSERIALIZE(NumPartitions);
+    KCC_UNSERIALIZE(NumPartitions);
     poolParams.m_OutDtype = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
-    UNSERIALIZE(PoolFrequency);
+    KCC_UNSERIALIZE(PoolFrequency);
     poolParams.m_PoolFunc  = utils::poolTypeStr2Id(serWaveOp.m_PoolFunc);
 
-    UNSERIALIZE(SrcIsPsum);
+    KCC_UNSERIALIZE(SrcIsPsum);
     if (serWaveOp.m_SrcIsPsum) {
-        UNSERIALIZE(SrcPsumBankId);
-        UNSERIALIZE(SrcPsumBankOffset);
-        UNSERIALIZE(SrcWNum);
-        UNSERIALIZE(SrcWStep);
-        UNSERIALIZE(SrcXNum);
-        UNSERIALIZE(SrcXStep);
-        UNSERIALIZE(SrcYNum);
-        UNSERIALIZE(SrcYStep);
-        UNSERIALIZE(SrcZNum);
-        UNSERIALIZE(SrcZStep);
+        KCC_UNSERIALIZE(SrcPsumBankId);
+        KCC_UNSERIALIZE(SrcPsumBankOffset);
     } else {
-        UNSERIALIZE(SrcSbAtomId);
-        UNSERIALIZE(SrcSbOffsetInAtom);
+        KCC_UNSERIALIZE(SrcSbAtomId);
+        KCC_UNSERIALIZE(SrcSbOffsetInAtom);
     }
+
+    KCC_UNSERIALIZE(SrcWNum);
+    KCC_UNSERIALIZE(SrcWStep);
+    KCC_UNSERIALIZE(SrcXNum);
+    KCC_UNSERIALIZE(SrcXStep);
+    KCC_UNSERIALIZE(SrcYNum);
+    KCC_UNSERIALIZE(SrcYStep);
+    KCC_UNSERIALIZE(SrcZNum);
+    KCC_UNSERIALIZE(SrcZStep);
 
     assert(poolParams.m_TileId.size() == serWaveOp.m_TileId.size());
     for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
@@ -348,46 +349,46 @@ Network::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     wave::MatMulWaveOp::Params matmulParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, matmulParams);
 
-    UNSERIALIZE(BatchingInWave);
-    UNSERIALIZE(FmapXNum);
-    UNSERIALIZE(FmapXStep);
-    UNSERIALIZE(FmapYNum);
-    UNSERIALIZE(FmapYStep);
-    UNSERIALIZE(FmapZNum);
-    UNSERIALIZE(FmapZStepAtoms);
-    UNSERIALIZE(IfmapCount);
-    UNSERIALIZE(IfmapTileHeight);
-    UNSERIALIZE(IfmapTileWidth);
-    UNSERIALIZE(IfmapsAtomId);
-    UNSERIALIZE(IfmapsAtomSize);
-    UNSERIALIZE(IfmapsOffsetInAtom);
+    KCC_UNSERIALIZE(BatchingInWave);
+    KCC_UNSERIALIZE(FmapXNum);
+    KCC_UNSERIALIZE(FmapXStep);
+    KCC_UNSERIALIZE(FmapYNum);
+    KCC_UNSERIALIZE(FmapYStep);
+    KCC_UNSERIALIZE(FmapZNum);
+    KCC_UNSERIALIZE(FmapZStepAtoms);
+    KCC_UNSERIALIZE(IfmapCount);
+    KCC_UNSERIALIZE(IfmapTileHeight);
+    KCC_UNSERIALIZE(IfmapTileWidth);
+    KCC_UNSERIALIZE(IfmapsAtomId);
+    KCC_UNSERIALIZE(IfmapsAtomSize);
+    KCC_UNSERIALIZE(IfmapsOffsetInAtom);
     matmulParams.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
     // layer_name
-    UNSERIALIZE(NumColumnPartitions);
-    UNSERIALIZE(NumRowPartitions);
-    UNSERIALIZE(OfmapCount);
-    UNSERIALIZE(OfmapTileHeight);
-    UNSERIALIZE(OfmapTileWidth);
+    KCC_UNSERIALIZE(NumColumnPartitions);
+    KCC_UNSERIALIZE(NumRowPartitions);
+    KCC_UNSERIALIZE(OfmapCount);
+    KCC_UNSERIALIZE(OfmapTileHeight);
+    KCC_UNSERIALIZE(OfmapTileWidth);
     matmulParams.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     // previous layers
-    UNSERIALIZE(PsumBankId);
-    UNSERIALIZE(PsumBankOffset);
-    UNSERIALIZE(PsumXNum);
-    UNSERIALIZE(PsumXStep);
-    UNSERIALIZE(PsumYNum);
-    UNSERIALIZE(PsumYStep);
+    KCC_UNSERIALIZE(PsumBankId);
+    KCC_UNSERIALIZE(PsumBankOffset);
+    KCC_UNSERIALIZE(PsumXNum);
+    KCC_UNSERIALIZE(PsumXStep);
+    KCC_UNSERIALIZE(PsumYNum);
+    KCC_UNSERIALIZE(PsumYStep);
 
-    UNSERIALIZE(StartTensorCalc);
-    UNSERIALIZE(StopTensorCalc);
-    UNSERIALIZE(StrideX);
-    UNSERIALIZE(StrideY);
+    KCC_UNSERIALIZE(StartTensorCalc);
+    KCC_UNSERIALIZE(StopTensorCalc);
+    KCC_UNSERIALIZE(StrideX);
+    KCC_UNSERIALIZE(StrideY);
 
-    UNSERIALIZE(WaveId);
-    UNSERIALIZE(WaveIdFormat);
+    KCC_UNSERIALIZE(WaveId);
+    KCC_UNSERIALIZE(WaveIdFormat);
     // waveop name
     // waveop type
-    UNSERIALIZE(WeightsAtomId);
-    UNSERIALIZE(WeightsOffsetInAtom);
+    KCC_UNSERIALIZE(WeightsAtomId);
+    KCC_UNSERIALIZE(WeightsOffsetInAtom);
 
     auto waveOp = new wave::MatMulWaveOp(matmulParams, prevWaveOps);
     assert(waveOp->gName() == matmulParams.m_WaveOpName);
@@ -405,40 +406,41 @@ Network::loadActivation(const serialize::SerWaveOp& serWaveOp)
 
     activationParams.m_ActivationFunc   = serialize::SerWaveOp::str2ActivationFunc(serWaveOp.m_ActivationFunc);
 
-    UNSERIALIZE(BiasAddEn);
-    UNSERIALIZE(BiasAtomId);
-    UNSERIALIZE(BiasOffsetInAtom);
+    KCC_UNSERIALIZE(BiasAddEn);
+    KCC_UNSERIALIZE(BiasAtomId);
+    KCC_UNSERIALIZE(BiasOffsetInAtom);
 
-    UNSERIALIZE(DstIsPsum);
+    KCC_UNSERIALIZE(DstXNum);
+    KCC_UNSERIALIZE(DstXStep);
+    KCC_UNSERIALIZE(DstYNum);
+    KCC_UNSERIALIZE(DstYStep);
+    KCC_UNSERIALIZE(DstZNum);
+    KCC_UNSERIALIZE(DstZStep);
+
+    KCC_UNSERIALIZE(DstIsPsum);
     if (serWaveOp.m_DstIsPsum) {
-        UNSERIALIZE(DstPsumBankId);
-        UNSERIALIZE(DstXNum);
-        UNSERIALIZE(DstXStep);
-        UNSERIALIZE(DstYNum);
-        UNSERIALIZE(DstYStep);
-        UNSERIALIZE(DstZNum);
-        UNSERIALIZE(DstZStep);
+        KCC_UNSERIALIZE(DstPsumBankId);
     } else {
-        UNSERIALIZE(DstSbAtomId);
-        UNSERIALIZE(DstSbOffsetInAtom);
+        KCC_UNSERIALIZE(DstSbAtomId);
+        KCC_UNSERIALIZE(DstSbOffsetInAtom);
     }
 
     activationParams.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    UNSERIALIZE(NumPartitions);
+    KCC_UNSERIALIZE(NumPartitions);
     activationParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
-    UNSERIALIZE(SrcPsumBankId);
-    UNSERIALIZE(SrcXNum);
-    UNSERIALIZE(SrcXStep);
-    UNSERIALIZE(SrcYNum);
-    UNSERIALIZE(SrcYStep);
-    UNSERIALIZE(SrcZNum);
-    UNSERIALIZE(SrcZStep);
+    KCC_UNSERIALIZE(SrcPsumBankId);
+    KCC_UNSERIALIZE(SrcXNum);
+    KCC_UNSERIALIZE(SrcXStep);
+    KCC_UNSERIALIZE(SrcYNum);
+    KCC_UNSERIALIZE(SrcYStep);
+    KCC_UNSERIALIZE(SrcZNum);
+    KCC_UNSERIALIZE(SrcZStep);
 
     assert(activationParams.m_TileId.size() == serWaveOp.m_TileId.size());
     for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
         activationParams.m_TileId[i] = serWaveOp.m_TileId[i];
     }
-    UNSERIALIZE(TileIdFormat);
+    KCC_UNSERIALIZE(TileIdFormat);
 
     auto waveOp = new wave::ActivationWaveOp(activationParams, prevWaveOps);
     assert(waveOp->gName() == activationParams.m_WaveOpName);
@@ -473,7 +475,7 @@ Network::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
     }
 }
 
-#undef UNSERIALIZE
+#undef KCC_UNSERIALIZE
 
 }}
 

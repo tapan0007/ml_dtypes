@@ -321,18 +321,19 @@ Network::savePool(const wave::PoolWaveOp* poolWaveOp,
     if (poolWaveOp->qSrcIsPsum()) {
         KCC_SERIALIZE(SrcPsumBankId);
         KCC_SERIALIZE(SrcPsumBankOffset);
-        KCC_SERIALIZE(SrcWNum);
-        KCC_SERIALIZE(SrcWStep);
-        KCC_SERIALIZE(SrcXNum);
-        KCC_SERIALIZE(SrcXStep);
-        KCC_SERIALIZE(SrcYNum);
-        KCC_SERIALIZE(SrcYStep);
-        KCC_SERIALIZE(SrcZNum);
-        KCC_SERIALIZE(SrcZStep);
     } else { // state buffer
         KCC_SERIALIZE(SrcSbAtomId);
         KCC_SERIALIZE(SrcSbOffsetInAtom);
     }
+
+    KCC_SERIALIZE(SrcWNum);
+    KCC_SERIALIZE(SrcWStep);
+    KCC_SERIALIZE(SrcXNum);
+    KCC_SERIALIZE(SrcXStep);
+    KCC_SERIALIZE(SrcYNum);
+    KCC_SERIALIZE(SrcYStep);
+    KCC_SERIALIZE(SrcZNum);
+    KCC_SERIALIZE(SrcZStep);
 
     for (unsigned int i = 0; i < poolWaveOp->gTileId().size(); ++i) {
         serWaveOp.m_TileId[i] = poolWaveOp->gTileId()[i];
@@ -399,16 +400,17 @@ Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     serWaveOp.m_DstIsPsum = activationWaveOp->qDstIsPsum();
     if (activationWaveOp->qDstIsPsum()) {
         KCC_SERIALIZE(DstPsumBankId);
-        KCC_SERIALIZE(DstXNum);
-        KCC_SERIALIZE(DstXStep);
-        KCC_SERIALIZE(DstYNum);
-        KCC_SERIALIZE(DstYStep);
-        KCC_SERIALIZE(DstZNum);
-        KCC_SERIALIZE(DstZStep);
     } else {
         KCC_SERIALIZE(DstSbAtomId);
         KCC_SERIALIZE(DstSbOffsetInAtom);
     }
+
+    KCC_SERIALIZE(DstXNum);
+    KCC_SERIALIZE(DstXStep);
+    KCC_SERIALIZE(DstYNum);
+    KCC_SERIALIZE(DstYStep);
+    KCC_SERIALIZE(DstZNum);
+    KCC_SERIALIZE(DstZStep);
 
     serWaveOp.m_InDtype             = activationWaveOp->gInDtype().gName();
     KCC_SERIALIZE(NumPartitions);

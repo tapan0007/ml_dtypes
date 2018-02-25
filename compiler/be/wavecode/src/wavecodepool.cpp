@@ -50,7 +50,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                                             poolWaveOp->gInDtype());
     } else { // State buffer
         poolInstr.src_start_addr = 
-        stateBuf.gEntryTpbAddress(0/*row 0 for now*/, 
+        stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
                                  poolWaveOp->gSrcSbAtomId() * poolWaveOp->gWaveAtomSize()
                                     + poolWaveOp->gSrcSbOffsetInAtom());
     }

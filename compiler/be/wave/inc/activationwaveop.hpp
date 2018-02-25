@@ -162,7 +162,7 @@ private:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_DstSbAtomId             = -1;
+    kcc_int32                   m_DstSbAtomId           = -1;
     kcc_int32                   m_DstSbOffsetInAtom     = -1;
     const DataType&             m_InDtype;
     kcc_int32                   m_NumPartitions         = -1;

@@ -36,7 +36,6 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
 
     // TODO: for now Activation reads from 0 elem in bank.
     activationInstr.src_start_addr      = psumBuf.gEntryTpbAddress(activationWaveOp->gSrcPsumBankId(), 0, activationWaveOp->gInDtype());
-    activationInstr.dst_start_addr      = psumBuf.gEntryTpbAddress(activationWaveOp->gDstPsumBankId(), 0, activationWaveOp->gOutDtype());
 
     activationInstr.src_x_step          = activationWaveOp->gSrcXStep();
     activationInstr.src_y_step          = activationWaveOp->gSrcYStep();
@@ -45,12 +44,21 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
     activationInstr.src_y_num           = activationWaveOp->gSrcYNum();
     // activationInstr.src_z_num           = activationWaveOp->gSrcZNum(); // when available in the new ISA
 
-    activationInstr.dst_x_step          =  activationWaveOp->gDstXStep();
-    activationInstr.dst_y_step          = activationWaveOp->gDstYStep();
-    activationInstr.dst_z_step          =  activationWaveOp->gDstZStep();
-    activationInstr.dst_x_num           = activationWaveOp->gDstXNum();
-    activationInstr.dst_y_num           = activationWaveOp->gDstYNum();
-    activationInstr.dst_z_num           = activationWaveOp->gDstZNum();
+    if (activationWaveOp->qDstIsPsum()) {
+        activationInstr.dst_start_addr  = psumBuf.gEntryTpbAddress(activationWaveOp->gDstPsumBankId(),
+                                                                  0, /* bank offset 0 */
+                                                                  activationWaveOp->gOutDtype());
+    } else {
+        activationInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
+                                                activationWaveOp->gDstSbAtomId() * activationWaveOp->gWaveAtomSize()
+                                                    + activationWaveOp->gDstSbOffsetInAtom());
+    }
+    activationInstr.dst_x_step      = activationWaveOp->gDstXStep();
+    activationInstr.dst_y_step      = activationWaveOp->gDstYStep();
+    activationInstr.dst_z_step      = activationWaveOp->gDstZStep();
+    activationInstr.dst_x_num       = activationWaveOp->gDstXNum();
+    activationInstr.dst_y_num       = activationWaveOp->gDstYNum();
+    activationInstr.dst_z_num       = activationWaveOp->gDstZNum();
 
     activationInstr.scale_value         = activationWaveOp->gScale();
     if (activationWaveOp->qBiasAddEn ()) {

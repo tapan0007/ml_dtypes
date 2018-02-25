@@ -227,35 +227,37 @@ SerWaveOp::verifyPool() const
     }
 
     // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
+
+    if (m_SrcWNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcWStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcXStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZStep < 1) {
+        RETURN_ASSERT(false);
+    }
+
     if (m_SrcIsPsum) {
         if (m_SrcPsumBankId < 0) {
             RETURN_ASSERT(false);
         }
         if (m_SrcPsumBankOffset < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcWNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcWStep < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcXNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcXStep < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcYNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcYStep < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcZNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcZStep < 1) {
             RETURN_ASSERT(false);
         }
     } else {
@@ -298,26 +300,27 @@ SerWaveOp::verifyActivation() const
     if (m_BiasOffsetInAtom < 0) {
         RETURN_ASSERT(false);
     }
+    if (m_DstXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstXStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZStep < 1) {
+        RETURN_ASSERT(false);
+    }
+
     if (m_DstIsPsum) {
         if (m_DstPsumBankId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstXNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstXStep < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstYNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstYStep < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstZNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstZStep < 1) {
             RETURN_ASSERT(false);
         }
     } else {

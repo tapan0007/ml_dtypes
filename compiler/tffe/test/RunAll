@@ -252,21 +252,21 @@ testWaiver = [
 
     ['0-1conv0_h55c256m1_wave',     'WAIVE_WAVESC'],
     ['0-1conv1ba1_wave$',           'WAIVE_WAVESC'],
-    ['0-1conv1ba1_fp32_wave$',      'WAIVE_WAVESC'],
+    #['0-1conv1ba1_fp32_wave$',      'WAIVE_WAVESC'],
     ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
     ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
     ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
-    ['0-1conv_tile_wave',           'WAIVE_WAVESC'],
+    #['0-1conv_tile_wave',           'WAIVE_WAVESC'],
     ['1-1conv0_h40c128m128_wave',   'WAIVE_WAVESC'],
     ['1-1conv0_h40c256m128_wave',   'WAIVE_WAVESC'],
     ['1-1conv0_h40c256m64_wave',    'WAIVE_WAVESC'],
     ['1-1conv0_h55c256_wave',       'WAIVE_WAVESC'],
     ['1-1conv0_h55c64m256_wave',    'WAIVE_WAVESC'],
-    ['1-1conv0_r3h16c128_wave',     'WAIVE_WAVESC'],
+    #['1-1conv0_r3h16c128_wave',     'WAIVE_WAVESC'],
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
     ['8-rn50_nne', 'WAIVE-NNE'],
-    ['3-rn50-(01|04|05|06|07|08|10|11|16|17|18)_wave', 'WAIVE-S9-S1'],
+    ['3-rn50-(04|05|06|10|11|16|17|18)_wave', 'WAIVE-S9-S1'],
     ['7-rn50_nne_fc_wave', 'WAIVE-WAVESC']
   ]
 

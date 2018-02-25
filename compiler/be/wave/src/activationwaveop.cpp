@@ -36,15 +36,16 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
     , m_TileId(params.m_TileId)
     , m_TileIdFormat(params.m_TileIdFormat)
 {
+    m_DstXNum           = params.m_DstXNum;
+    m_DstXStep          = params.m_DstXStep;
+    m_DstYNum           = params.m_DstYNum;
+    m_DstYStep          = params.m_DstYStep;
+    m_DstZNum           = params.m_DstZNum;
+    m_DstZStep          = params.m_DstZStep;
+
     m_DstIsPsum             = params.m_DstIsPsum;
     if (m_DstIsPsum) {
         m_DstPsumBankId     = params.m_DstPsumBankId;
-        m_DstXNum           = params.m_DstXNum;
-        m_DstXStep          = params.m_DstXStep;
-        m_DstYNum           = params.m_DstYNum;
-        m_DstYStep          = params.m_DstYStep;
-        m_DstZNum           = params.m_DstZNum;
-        m_DstZStep          = params.m_DstZStep;
     } else {
         m_DstSbAtomId       = params.m_DstSbAtomId;
         m_DstSbOffsetInAtom = params.m_DstSbOffsetInAtom;
@@ -79,27 +80,28 @@ ActivationWaveOp::verify() const
         RETURN_ASSERT(false);
     }
 
+    // m_DstPsumBankOffset is assumed to be 0
+    if (m_DstXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstXStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZStep < 1) {
+        RETURN_ASSERT(false);
+    }
+
     if (m_DstIsPsum) {
         if (m_DstPsumBankId < 0 || m_DstPsumBankId >= psumBuf.gNumberBanks()) {
-            RETURN_ASSERT(false);
-        }
-        // m_DstPsumBankOffset is assumed to be 0
-        if (m_DstXNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstXStep < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstYNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstYStep < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstZNum < 1) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstZStep < 1) {
             RETURN_ASSERT(false);
         }
     } else {
