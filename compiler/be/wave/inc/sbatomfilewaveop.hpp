@@ -54,6 +54,8 @@ public:
         return m_IfmapCount;
     }
 
+    kcc_int64 gLoadDataSizeInBytes () const;
+
 private:
     kcc_int32       m_IfmapCount       = -1;
     kcc_int32       m_IfmapsFoldIdx     = -1;

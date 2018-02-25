@@ -430,7 +430,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    std::string gName() const {
+    const std::string& gName() const {
         return m_LayerName;
     }
 

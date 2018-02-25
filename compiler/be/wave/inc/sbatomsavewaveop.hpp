@@ -51,6 +51,8 @@ public:
         return m_OfmapCount;
     }
 
+    kcc_int64 gSaveDataSizeInBytes() const;
+
 private:
     kcc_int32       m_OfmapCount       = -1;
     kcc_int32       m_OfmapsFoldIdx     = -1;

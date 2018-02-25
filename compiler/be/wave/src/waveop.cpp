@@ -13,7 +13,7 @@ namespace kcc {
 namespace wave {
 
 //----------------------------------------------------------------
-WaveOp::WaveOp(const WaveOp::Params& params,
+WaveOp::WaveOp (const WaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps)
     : m_Name(params.m_WaveOpName)
     , m_OfmapDesc(params.m_OfmapDesc)
@@ -26,15 +26,14 @@ WaveOp::WaveOp(const WaveOp::Params& params,
 }
 
 //----------------------------------------------------------------
-const utils::DataType&
-WaveOp::gDataType() const
+const std::string&
+WaveOp::gLayerName () const
 {
-    return m_Layer->gDataType();
+    return m_Layer->gName();
 }
 
-
 bool
-WaveOp::verify() const
+WaveOp::verify () const
 {
     if (m_Name == "") {
         return false;

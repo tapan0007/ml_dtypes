@@ -216,7 +216,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         serialize::SerWaveOp& serWaveOp(serWaveOps[waveOpIdx]);
         wave::WaveOp* waveOp = m_WaveOps[waveOpIdx];
         serWaveOp.m_WaveOpName = waveOp->gName();
-        serWaveOp.m_LayerName = waveOp->gLayer()->gName();
+        serWaveOp.m_LayerName = waveOp->gLayerName();
         for (auto prevWaveOp : waveOp->gPrevWaveOps()) {
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
         }

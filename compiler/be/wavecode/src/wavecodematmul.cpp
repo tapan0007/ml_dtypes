@@ -37,7 +37,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     //const arch::StateBuffer& stateBuf(arch.gStateBuffer());
 
     MATMUL matmulInstr;
-    matmulInstr.dtype                   = matmulWaveOp->gDataType().gSimTypeId();
+    matmulInstr.dtype                   = matmulWaveOp->gInDtype().gSimTypeId();
     matmulInstr.num_row_partitions      = matmulWaveOp->gNumRowPartitions();
     matmulInstr.num_column_partitions   = matmulWaveOp->gNumColumnPartitions();
 
@@ -81,7 +81,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
 
     //TPB_CMD_HEADER  hdr;
     //setup_sync(ldweighsInstr.sync);
-    const utils::DataType& dtype(matmulWaveOp->gDataType());
+    const utils::DataType& dtype(matmulWaveOp->gInDtype());
     ldweighsInstr.dtype                 = dtype.gSimTypeId();
     //uint8_t         perf_opt = OPT_NONE;
     //uint8_t         dquant_table_idx  = 0;

@@ -211,10 +211,6 @@ public:
     bool verify() const override;
 
 
-    layers::ConvLayer* gConvLayer() const {
-        return dynamic_cast<layers::ConvLayer*>(gLayer());
-    }
-
     kcc_int16 gFmapXNum () const {
         return m_FmapXNum;
     }

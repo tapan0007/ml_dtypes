@@ -80,17 +80,13 @@ public:
         return false;
     }
 
-    //----------------------------------------------------------------
-    const DataType& gDataType() const;
 
     //----------------------------------------------------------------
     const std::string& gName() const {
         return m_Name;
     }
 
-    layers::Layer* gLayer() const {
-        return m_Layer;
-    }
+    const std::string& gLayerName() const;
 
     const std::vector<WaveOp*>& gPrevWaveOps() const {
         return m_PrevWaveOps;

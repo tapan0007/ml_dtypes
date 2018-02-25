@@ -140,9 +140,6 @@ public:
     static std::string gTypeStr() {
         return WaveOpTypeStr_Pool;
     }
-    layers::PoolLayer* gPoolLayer() const {
-        return dynamic_cast<layers::PoolLayer*>(this->gLayer());
-    }
 
 private:
     kcc_int32                   m_DstSbAtomId          = -1;

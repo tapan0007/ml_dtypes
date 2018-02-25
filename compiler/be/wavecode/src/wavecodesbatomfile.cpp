@@ -22,58 +22,31 @@ WaveCodeSbAtomFile::WaveCodeSbAtomFile(WaveCode* waveCode)
 void
 WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
 {
-    const auto sbatomfileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp);
-    assert(sbatomfileWaveOp);
+    const auto sbAtomFileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp);
+    assert(sbAtomFileWaveOp);
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
-    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForInputNpyFile(sbatomfileWaveOp->gRefFileName());
+    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForInputNpyFile(sbAtomFileWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) {
-        const layers::Layer* layer = sbatomfileWaveOp->gLayer();
         SIM_WRNPY npyToDramInstr;
         // Load whole numpy file
-        strcpy(npyToDramInstr.src_fname, sbatomfileWaveOp->gRefFileName().c_str());
-
-        kcc_int64 numPySize = layer->gDataType().gSizeInBytes();
-        if (layer->qConvLayer()) {
-            auto convLayer = dynamic_cast<const layers::ConvLayer*>(layer);  // All Weights = CRSM
-            assert(convLayer && "Conv Layer expected");
-            layers::Layer* prevLayer = convLayer->gPrevLayer(0);
-            numPySize *= prevLayer->gNumOfmaps();    // C
-            numPySize *= convLayer->gKernelHeight(); // R
-            numPySize *= convLayer->gKernelWidth();  // S
-            numPySize *= convLayer->gNumOfmaps();    // M
-        } else if (layer->qInputLayer()) {
-            auto inputLayer = dynamic_cast<const layers::InputLayer*>(layer);  // All IFMAPs = NCHW
-            assert(inputLayer && "Input Layer expected");
-            // batching?                             // N
-            numPySize *= inputLayer->gNumOfmaps();    // C
-            numPySize *= inputLayer->gOfmapHeight();  // H
-            numPySize *= inputLayer->gOfmapWidth();   // W
-        } else if (layer->qConstLayer()) {
-            auto constLayer = dynamic_cast<const layers::ConstLayer*>(layer);  // All IFMAPs = NCHW
-            assert(constLayer && "Const Layer expected");
-            // batching?                             // N
-            numPySize *= constLayer->gNumOfmaps();    // C
-            numPySize *= constLayer->gOfmapHeight();  // H
-            numPySize *= constLayer->gOfmapWidth();   // W
-        } else {
-            assert(false && "Conv or Input layer expected");
-        }
+        const kcc_int64 numPySize = sbAtomFileWaveOp->gLoadDataSizeInBytes();
+        strcpy(npyToDramInstr.src_fname, sbAtomFileWaveOp->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode->gCurrentDramAddress(numPySize);
         npyToDramInstr.dst_address  = npyFileDramOffset;
-        m_WaveCode->recordDramForInputNpyFile(sbatomfileWaveOp->gRefFileName(), npyFileDramOffset);
+        m_WaveCode->recordDramForInputNpyFile(sbAtomFileWaveOp->gRefFileName(), npyFileDramOffset);
         m_WaveCode->writeInstruction(npyToDramInstr);
     }
 
-    const kcc_int64 numPartitions   = sbatomfileWaveOp->gIfmapCount();
-    const kcc_int64 numBytesPerPart = sbatomfileWaveOp->gLength();
-    const kcc_int64 addressInPart   = sbatomfileWaveOp->gAddressInPartition(0 /*offset in atom*/);
-    const kcc_int64 stepSize = sbatomfileWaveOp->gPartitionStepBytes();
+    const kcc_int64 numPartitions   = sbAtomFileWaveOp->gIfmapCount();
+    const kcc_int64 numBytesPerPart = sbAtomFileWaveOp->gLength();
+    const kcc_int64 addressInPart   = sbAtomFileWaveOp->gAddressInPartition(0 /*offset in atom*/);
+    const kcc_int64 stepSize = sbAtomFileWaveOp->gPartitionStepBytes();
 
     SIM_MEMCPY dramToStateBufInstr;
     dramToStateBufInstr.nbytes = numBytesPerPart;
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
-        dramToStateBufInstr.src_address = npyFileDramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * stepSize);
+        dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomFileWaveOp->gOffsetInFile() + (partIdx * stepSize);
         dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
         m_WaveCode->writeInstruction(dramToStateBufInstr);
     }
