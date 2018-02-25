@@ -225,18 +225,13 @@ SerWaveOp::verifyPool() const
     if (m_PoolFunc == "") {
         RETURN_ASSERT(false);
     }
+
     // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
     if (m_SrcIsPsum) {
         if (m_SrcPsumBankId < 0) {
             RETURN_ASSERT(false);
         }
         if (m_SrcPsumBankOffset < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcSbOffsetInAtom < 0) {
             RETURN_ASSERT(false);
         }
         if (m_SrcWNum < 1) {
@@ -264,13 +259,14 @@ SerWaveOp::verifyPool() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_SrcPsumBankId < 0) {
+        if (m_SrcSbAtomId < 0) {
             RETURN_ASSERT(false);
         }
-        if (m_SrcPsumBankOffset < 0) {
+        if (m_SrcSbOffsetInAtom < 0) {
             RETURN_ASSERT(false);
         }
     }
+
     if (m_TileId.size() != 4) {
         RETURN_ASSERT(false);
     }
