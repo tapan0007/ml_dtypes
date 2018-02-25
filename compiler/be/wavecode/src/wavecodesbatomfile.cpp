@@ -74,7 +74,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     dramToStateBufInstr.nbytes = numBytesPerPart;
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         dramToStateBufInstr.src_address = npyFileDramOffset + sbatomfileWaveOp->gOffsetInFile() + (partIdx * stepSize);
-        dramToStateBufInstr.dst_address = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
+        dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
         m_WaveCode->writeInstruction(dramToStateBufInstr);
     }
 }

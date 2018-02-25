@@ -39,7 +39,8 @@ public:
 
 
     //--------------------------------------------------------
-    kcc_int64 gEntryTpbAddress(kcc_int32 row, kcc_int32 elOff) const;
+    kcc_int64 gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;
+    kcc_int64 gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;
 
     kcc_int64 gAllZeroOffsetTpbAddress() const;
 

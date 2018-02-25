@@ -26,6 +26,14 @@ StateBuffer::gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 }
 
 kcc_int64
+StateBuffer::gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
+{
+    kcc_int64 sysAddr = gEntryTpbAddress(row, elmtOffInBytes);
+    sysAddr += TPB_BASE;
+    return sysAddr;
+}
+
+kcc_int64
 StateBuffer::gAllZeroOffsetTpbAddress() const
 {
     return MMAP_SB_FP32_ZERO_OFFSET;
