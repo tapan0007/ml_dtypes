@@ -199,8 +199,6 @@ public:
         m_BatchingInWave = batchingInWave;
     }
 
-    const DataType& gOutDtype() const;
-
     //----------------------------------------------------------------
     bool qMatMultWaveOp() const override {
         return true;
@@ -272,6 +270,13 @@ public:
         return m_StrideY;
     }
 
+    const DataType& gInDtype () const {
+        return m_InDtype;
+    }
+    const DataType& gOutDtype () const {
+        return m_OutDtype;
+    }
+
 private:
     kcc_int16       m_BatchingInWave        = -1;
     kcc_int16       m_FmapXNum              = -1;
@@ -286,12 +291,14 @@ private:
     kcc_int16       m_IfmapsAtomId          = -1;
     kcc_int32       m_IfmapsAtomSize        = -1; // in bytes
     kcc_int16       m_IfmapsOffsetInAtom    = -1;
+    const DataType& m_InDtype;
     // layer name
     kcc_int16       m_NumColumnPartitions   = -1;
     kcc_int16       m_NumRowPartitions      = -1;
     kcc_int16       m_OfmapCount            = -1;
     kcc_int16       m_OfmapTileHeight       = -1;
     kcc_int16       m_OfmapTileWidth        = -1;
+    const DataType& m_OutDtype;
     // previous layers
     kcc_int16       m_PsumBankId            = -1;
     kcc_int16       m_PsumBankOffset        = -1;
@@ -333,12 +340,14 @@ public:
     kcc_int16       m_IfmapsAtomId          = -1;
     kcc_int32       m_IfmapsAtomSize        = -1;
     kcc_int16       m_IfmapsOffsetInAtom    = -1;
+    DataTypeId      m_InDtypeId             = DataTypeId_None;
     // layer name
     kcc_int16       m_NumColumnPartitions   = -1;
     kcc_int16       m_NumRowPartitions      = -1;
     kcc_int16       m_OfmapCount            = -1;
     kcc_int16       m_OfmapTileHeight       = -1;
     kcc_int16       m_OfmapTileWidth        = -1;
+    DataTypeId      m_OutDtypeId            = DataTypeId_None;
     // previous layers
     kcc_int16       m_PsumBankId            = -1;
     kcc_int16       m_PsumBankOffset        = -1;

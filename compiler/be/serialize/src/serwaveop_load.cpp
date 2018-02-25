@@ -80,19 +80,24 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(PoolFrequency);
     KCC_ARCHIVE(PoolFunc);
     // previouswaveops
+
     KCC_ARCHIVE(SrcIsPsum);
-    KCC_ARCHIVE(SrcPsumBankId);
-    KCC_ARCHIVE(SrcPsumBankOffset);
-    KCC_ARCHIVE(SrcSbAtomId);
-    KCC_ARCHIVE(SrcSbOffsetInAtom);
-    KCC_ARCHIVE(SrcWNum);
-    KCC_ARCHIVE(SrcWStep);
-    KCC_ARCHIVE(SrcXNum);
-    KCC_ARCHIVE(SrcXStep);
-    KCC_ARCHIVE(SrcYNum);
-    KCC_ARCHIVE(SrcYStep);
-    KCC_ARCHIVE(SrcZNum);
-    KCC_ARCHIVE(SrcZStep);
+    if (m_SrcIsPsum) {
+        KCC_ARCHIVE(SrcPsumBankOffset);
+        KCC_ARCHIVE(SrcPsumBankId);
+        KCC_ARCHIVE(SrcWNum);
+        KCC_ARCHIVE(SrcWStep);
+        KCC_ARCHIVE(SrcXNum);
+        KCC_ARCHIVE(SrcXStep);
+        KCC_ARCHIVE(SrcYNum);
+        KCC_ARCHIVE(SrcYStep);
+        KCC_ARCHIVE(SrcZNum);
+        KCC_ARCHIVE(SrcZStep);
+    } else {
+        KCC_ARCHIVE(SrcSbAtomId);
+        KCC_ARCHIVE(SrcSbOffsetInAtom);
+    }
+
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
 }
@@ -113,12 +118,14 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(IfmapsAtomId);
     KCC_ARCHIVE(IfmapsAtomSize);
     KCC_ARCHIVE(IfmapsOffsetInAtom);
+    KCC_ARCHIVE(InDtype);
     // layer name
     KCC_ARCHIVE(NumColumnPartitions);
     KCC_ARCHIVE(NumRowPartitions);
     KCC_ARCHIVE(OfmapCount);
     KCC_ARCHIVE(OfmapTileHeight);
     KCC_ARCHIVE(OfmapTileWidth);
+    KCC_ARCHIVE(OutDtype);
     // previous waveops
     KCC_ARCHIVE(PsumBankId);
     KCC_ARCHIVE(PsumBankOffset);
@@ -152,13 +159,21 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(BiasAddEn);
     KCC_ARCHIVE(BiasAtomId);
     KCC_ARCHIVE(BiasOffsetInAtom);
-    KCC_ARCHIVE(DstPsumBankId);
-    KCC_ARCHIVE(DstXNum);
-    KCC_ARCHIVE(DstXStep);
-    KCC_ARCHIVE(DstYNum);
-    KCC_ARCHIVE(DstYStep);
-    KCC_ARCHIVE(DstZNum);
-    KCC_ARCHIVE(DstZStep);
+
+    KCC_ARCHIVE(DstIsPsum);
+    if (m_DstIsPsum) {
+        KCC_ARCHIVE(DstPsumBankId);
+        KCC_ARCHIVE(DstXNum);
+        KCC_ARCHIVE(DstXStep);
+        KCC_ARCHIVE(DstYNum);
+        KCC_ARCHIVE(DstYStep);
+        KCC_ARCHIVE(DstZNum);
+        KCC_ARCHIVE(DstZStep);
+    } else {
+        KCC_ARCHIVE(DstSbAtomId);
+        KCC_ARCHIVE(DstSbOffsetInAtom);
+    }
+
     KCC_ARCHIVE(InDtype);
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(OutDtype);

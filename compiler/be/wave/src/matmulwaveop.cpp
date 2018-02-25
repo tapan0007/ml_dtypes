@@ -30,12 +30,14 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_IfmapsAtomId(params.m_IfmapsAtomId)
     , m_IfmapsAtomSize(params.m_IfmapsAtomSize)
     , m_IfmapsOffsetInAtom(params.m_IfmapsOffsetInAtom)
+    , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     // layer name
     , m_NumColumnPartitions(params.m_NumColumnPartitions)
     , m_NumRowPartitions(params.m_NumRowPartitions)
     , m_OfmapCount(params.m_OfmapCount)
     , m_OfmapTileHeight(params.m_OfmapTileHeight)
     , m_OfmapTileWidth(params.m_OfmapTileWidth)
+    , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtypeId))
     // previous layers
     , m_PsumBankId(params.m_PsumBankId)
     , m_PsumBankOffset(params.m_PsumBankOffset)

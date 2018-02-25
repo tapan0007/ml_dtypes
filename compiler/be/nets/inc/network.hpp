@@ -80,25 +80,15 @@ private:
                      std::vector<wave::WaveOp*>& prevWaveOps,
                      wave::WaveOp::Params& waveOpParams);
 
-    wave::SbAtomFileWaveOp* loadSbAtomFile(
-                                const serialize::SerWaveOp& serWaveOp,
-                                std::vector<wave::WaveOp*> prevWaveOps);
+    wave::SbAtomFileWaveOp* loadSbAtomFile(const serialize::SerWaveOp& serWaveOp);
 
-    wave::SbAtomSaveWaveOp* loadSbAtomSave(
-                                const serialize::SerWaveOp& serWaveOp,
-                                std::vector<wave::WaveOp*> prevWaveOps);
+    wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
 
-    wave::PoolWaveOp* loadPool(
-                                const serialize::SerWaveOp& serWaveOp,
-                                std::vector<wave::WaveOp*> prevWaveOps);
+    wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
 
-    wave::MatMulWaveOp* loadMatMul(
-                                const serialize::SerWaveOp& serWaveOp,
-                                std::vector<wave::WaveOp*> prevWaveOps);
+    wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);
 
-    wave::ActivationWaveOp* loadActivation(
-                                const serialize::SerWaveOp& serWaveOp,
-                                std::vector<wave::WaveOp*> prevWaveOps);
+    wave::ActivationWaveOp* loadActivation(const serialize::SerWaveOp& serWaveOp);
 
 
     void saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,

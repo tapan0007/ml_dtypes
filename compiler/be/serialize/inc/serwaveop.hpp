@@ -96,6 +96,7 @@ constexpr static const char* WaveOpKey_IfmapsReplicate      = "ifmaps_replicate"
 constexpr static const char* WaveOpKey_OfmapsFoldIdx = "ofmaps_fold_idx";
 
 // Pool
+constexpr static const char* WaveOpKey_DstIsPsum            = "dst_is_psum";
 constexpr static const char* WaveOpKey_DstSbAtomId          = "dst_sb_atom_id";
 constexpr static const char* WaveOpKey_DstSbOffsetInAtom    = "dst_sb_offset_in_atom";
 constexpr static const char* WaveOpKey_DstXNum              = "dst_x_num";
@@ -327,6 +328,7 @@ public:
     bool                        m_BiasAddEn         = false;
     kcc_int32                   m_BiasAtomId        = -1;
     kcc_int32                   m_BiasOffsetInAtom  = -1;
+    bool                        m_DstIsPsum         = true;
     kcc_int32                   m_DstPsumBankId     = -1;
 #if 0
     kcc_int32                   m_DstXNum           = -1;

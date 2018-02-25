@@ -34,25 +34,28 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     // previouswaveops;
     //  1conv/i1/MatMuln0m0h0w0c0r0s0"
     // ],
-    , m_SrcIsPsum(params.m_SrcIsPsum)
-    , m_SrcPsumBankId(params.m_SrcPsumBankId)
-    , m_SrcPsumBankOffset(params.m_SrcPsumBankOffset)
-    , m_SrcSbAtomId(params.m_SrcSbAtomId)
-    , m_SrcSbOffsetInAtom(params.m_SrcSbOffsetInAtom)
-    , m_SrcWNum(params.m_SrcWNum)
-    , m_SrcWStep(params.m_SrcWStep)
-    , m_SrcXNum(params.m_SrcXNum)
-    , m_SrcXStep(params.m_SrcXStep)
-    , m_SrcYNum(params.m_SrcYNum)
-    , m_SrcYStep(params.m_SrcYStep)
-    , m_SrcZNum(params.m_SrcZNum)
-    , m_SrcZStep(params.m_SrcZStep)
 
     , m_TileId(params.m_TileId)
     , m_TileIdFormat(params.m_TileIdFormat)
     //waveopname;
     //waveoptype;
 {
+    m_SrcIsPsum         = params.m_SrcIsPsum;
+    if (m_SrcIsPsum) {
+        m_SrcPsumBankId     = params.m_SrcPsumBankId;
+        m_SrcPsumBankOffset = params.m_SrcPsumBankOffset;
+        m_SrcWNum           = params.m_SrcWNum;
+        m_SrcWStep          = params.m_SrcWStep;
+        m_SrcXNum           = params.m_SrcXNum;
+        m_SrcXStep          = params.m_SrcXStep;
+        m_SrcYNum           = params.m_SrcYNum;
+        m_SrcYStep          = params.m_SrcYStep;
+        m_SrcZNum           = params.m_SrcZNum;
+        m_SrcZStep          = params.m_SrcZStep;
+    } else {
+        m_SrcSbAtomId       = params.m_SrcSbAtomId;
+        m_SrcSbOffsetInAtom = params.m_SrcSbOffsetInAtom;
+    }
     assert(verify());
 }
 

@@ -123,32 +123,6 @@ SerWaveOp::verifySbAtomSave () const
 bool
 SerWaveOp::verifyMatMul () const
 {
-    /*
-    {
-    C: "layer_name": "1conv/i1",
-    C: "previous_waveops": [
-        "1conv/i1/SBAtomFile_0",
-        "input/SBAtomFile_0"
-    ],
-    C: "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
-    C: "waveop_type": "MatMul",
-
-    "ifmap_tile_height": 0,
-    "ifmap_tile_width": 0,
-    "ifmaps_atom_id": 0,
-    "ifmaps_offset_in_atom": 0,
-    "ofmap_tile_height": 0,
-    "ofmap_tile_width": 0,
-    "psum_bank_id": 0,
-    "psum_bank_offset": 0,
-    "start": true,
-    "wave_id": [ 0, 0, 0, 0, 0, 0, 0 ],
-    "wave_id_format": "nmhwcrs",
-    "weights_atom_id": 8,
-    "weights_offset_in_atom": 0
-    },
-    */
-
     if (m_IfmapTileHeight < 0) {  // TODO: should be <=
         RETURN_ASSERT(false);
     }
@@ -161,10 +135,16 @@ SerWaveOp::verifyMatMul () const
     if (m_IfmapsOffsetInAtom < 0) {
         RETURN_ASSERT(false);
     }
+    if (m_InDtype == "") {
+        RETURN_ASSERT(false);
+    }
     if (m_OfmapTileHeight < 0) {
         RETURN_ASSERT(false);
     }
     if (m_OfmapTileWidth < 0) { // TODO: should be <=
+        RETURN_ASSERT(false);
+    }
+    if (m_OutDtype == "") {
         RETURN_ASSERT(false);
     }
     if (m_PsumBankId < 0) {
@@ -246,42 +226,50 @@ SerWaveOp::verifyPool() const
         RETURN_ASSERT(false);
     }
     // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
-    // m_SrcIsPsum
-    if (m_SrcPsumBankId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcPsumBankOffset < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcSbAtomId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcSbOffsetInAtom < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcWNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcWStep < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcXNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcXStep < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcYNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcYStep < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcZNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcZStep < 1) {
-        RETURN_ASSERT(false);
+    if (m_SrcIsPsum) {
+        if (m_SrcPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcSbAtomId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcSbOffsetInAtom < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcWNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcWStep < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcXNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcXStep < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcYNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcYStep < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcZNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcZStep < 1) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
     }
     if (m_TileId.size() != 4) {
         RETURN_ASSERT(false);
@@ -314,26 +302,35 @@ SerWaveOp::verifyActivation() const
     if (m_BiasOffsetInAtom < 0) {
         RETURN_ASSERT(false);
     }
-    if (m_DstPsumBankId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstXNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstXStep < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstYNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstYStep < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstZNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstZStep < 1) {
-        RETURN_ASSERT(false);
+    if (m_DstIsPsum) {
+        if (m_DstPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstXNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstXStep < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstYNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstYStep < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstZNum < 1) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstZStep < 1) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_DstSbAtomId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstSbOffsetInAtom < 0) {
+            RETURN_ASSERT(false);
+        }
     }
 
     if (m_InDtype == "") {
@@ -368,7 +365,7 @@ SerWaveOp::verifyActivation() const
     }
 
     if (m_TileId.size() != 4) {
-        return false;
+        RETURN_ASSERT(false);
     }
     for (auto n : m_TileId) {
         if (n < 0) {
