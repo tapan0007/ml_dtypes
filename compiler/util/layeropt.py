@@ -319,11 +319,13 @@ class CircularBuffer:
         return self.dram_data
 
     def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, ifmap_count):
-        offset = chunk_id*self.atom_data_sz
+        offset_in_file = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
+        adjust_for_folding = wave_id.c_id * self.ifmap_data_len * PEArray.NUM_ROWS
+        offset_in_fold = offset_in_file - adjust_for_folding
         # if address is larger than IFMAP size (H*W) for the case that IFMAP size is larger than Atom Data Size,
         # then try to get the modulo; but if the modulo is 0, then keep length = Atom Data Size
-        if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
+        if ((offset_in_fold + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
             if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
@@ -342,7 +344,7 @@ class CircularBuffer:
               'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
-              'offset_in_file'   : offset,
+              'offset_in_file'   : offset_in_file,
               'length'           : length,
               'ifmaps_replicate' : False,
               'ifmaps_fold_idx'  : wave_id.c_id,
@@ -352,11 +354,13 @@ class CircularBuffer:
             }
 
     def gen_dram_save_waveop(self, tile_id, atom_id, chunk_id, ofmap_count):
-        offset = chunk_id*self.atom_data_sz
+        offset_in_file = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
+        adjust_for_folding = tile_id.m_id * self.ofmap_data_len * PEArray.NUM_COLS
+        offset_in_fold = offset_in_file - adjust_for_folding
         # if address is larger than IFMAP size (H*W) for the case that IFMAP size is larger than Atom Data Size,
         # then try to get the modulo; but if the modulo is 0, then keep length = Atom Data Size
-        if ((offset + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
+        if ((offset_in_fold + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
             if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
@@ -372,7 +376,7 @@ class CircularBuffer:
               'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
-              'offset_in_file'   : offset,
+              'offset_in_file'   : offset_in_file,
               'length'           : length,
               'ofmaps_fold_idx'  : tile_id.m_id,
               'batch_fold_idx'   : tile_id.n_id,
