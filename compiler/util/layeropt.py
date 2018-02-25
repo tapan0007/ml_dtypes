@@ -1147,10 +1147,12 @@ class FusedOp(list):
                 psum_temp = tpb.pool.resadd(psum_temp, residue_ifmaps)
                 y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
                 psum_bank_dst = 3
-                tpb.gen_resadd_waveop_inline(op_list[i], tile_id, psum_bank_src, psum_bank_dst, self.conv_op.ofmap_tile_lower_addr)
-                tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr)
+                dst_is_psum = False
                 if (i != len(op_list)-1):
+                    dst_is_psum = True
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
+                tpb.gen_resadd_waveop_inline(op_list[i], self.conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, self.conv_op.ofmap_tile_lower_addr)
+                tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr)
                 psum_bank_src = psum_bank_dst
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
                 tpb.activate.wait_tile_done(tile_id)
@@ -1437,18 +1439,75 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, dram_bias_waveops)
 
     # generate ResAdd instruction and add it to instruction stream
-    def gen_resadd_waveop_inline(self, op, tile_id, psum_bank_src, psum_bank_dst, data_start):
+    def gen_resadd_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, data_start):
+        if (op.item_sz == 2):
+            in_a_dtype = "float16"
+            in_b_dtype = "float32" # Source B is PSUM for now
+            if (dst_is_psum):
+                out_dtype = "float32"
+            else:                
+                out_dtype = "float16"
+        elif (op.item_sz == 4):
+            in_a_dtype = "float32"
+            in_b_dtype = "float32"
+            out_dtype = "float32"
+        else:            
+            print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
+        dst_x_num = 1
+        dst_y_step = 1
+        dst_y_num = 1
+        dst_z_num = 1
+        dst_z_step = 1
+        num_partitions = PEArray.NUM_COLS
+        if (conv_op != None):
+            if (dst_is_psum):
+                dst_x_num = conv_op.ofmap_cropped_tile_width
+                dst_y_step = conv_op.ofmap_cropped_tile_width
+                dst_y_num = conv_op.ofmap_cropped_tile_height
+                dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
+                dst_z_num = conv_op.Tn  # Need CNHW data format
+            else:                
+                dst_x_num = conv_op.ofmap_full_tilex_sz
+                dst_y_step = conv_op.E
+                dst_y_num = conv_op.ofmap_full_tiley_sz
+                dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
+                dst_z_num = conv_op.Tn  # Need CNHW data format
+            num_partitions = conv_op.ofmap_count
+        else:
+            print("ERROR: expecting a convolution/matmul before activation at %s!"%act_op.data['layer_name'])
+            exit -1
         instr = {
               'previous_waveops'        : [],
               'waveop_type'             : 'ResAdd',
               'waveop_name'             : op.data['layer_name']+"/ResAdd_"+tile_id.id_string(),
               'layer_name'              : op.data['layer_name'],
-              'data_atom_id'            : self.statebuffer.circbuf_scratch.get_atom(data_start),
-              'data_offset_in_atom'     : data_start % self.statebuffer.circbuf_scratch.atom_data_sz,
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
-              'src_psum_bank_id'        : psum_bank_src,
+              'in_a_dtype'              : in_a_dtype,
+              'in_b_dtype'              : in_b_dtype,
+              'out_dtype'               : out_dtype,
+              'src_a_is_psum'           : False,
+              'src_a_psum_bank_id'      : 0,
+              'src_a_psum_bank_offset'  : 0,
+              'src_a_sb_atom_id'        : self.statebuffer.circbuf_scratch.get_atom(data_start),
+              'src_a_sb_offset_in_atom' : self.statebuffer.circbuf_scratch.get_atom_offset(data_start),
+              'src_b_is_psum'           : True,
+              'src_b_psum_bank_id'      : psum_bank_src,
+              'src_b_psum_bank_offset'  : 0,
+              'src_b_sb_atom_id'        : self.statebuffer.circbuf_scratch.get_atom(data_start),
+              'src_b_sb_offset_in_atom' : self.statebuffer.circbuf_scratch.get_atom_offset(data_start),
+              'dst_is_psum'             : dst_is_psum,
               'dst_psum_bank_id'        : psum_bank_dst,
+              'dst_psum_bank_offset'    : 0,
+              'dst_sb_atom_id'          : self.statebuffer.circbuf_scratch.get_atom(data_start),
+              'dst_sb_offset_in_atom'   : self.statebuffer.circbuf_scratch.get_atom_offset(data_start),
+              'dst_x_step'              : 1,
+              'dst_x_num'               : dst_x_num,
+              'dst_y_step'              : dst_y_step,
+              'dst_y_num'               : dst_y_num,
+              'dst_z_step'              : dst_z_step,
+              'dst_z_num'               : dst_z_num,
+              'num_partitions'          : num_partitions,
             }
         self.waveop_stream.add_linked(instr, [])
 
