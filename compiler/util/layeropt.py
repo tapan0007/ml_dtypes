@@ -360,8 +360,8 @@ class CircularBuffer:
         offset_in_fold = offset_in_file - adjust_for_folding
         # if address is larger than IFMAP size (H*W) for the case that IFMAP size is larger than Atom Data Size,
         # then try to get the modulo; but if the modulo is 0, then keep length = Atom Data Size
-        if ((offset_in_fold + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
-            length = self.ifmap_data_len % self.atom_data_sz
+        if ((offset_in_fold + length) > self.ofmap_data_len and self.ofmap_data_len > self.atom_data_sz):
+            length = self.ofmap_data_len % self.atom_data_sz
             if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
         simout_file = self.dram_data_file.replace("-midout.", "-simout.")
