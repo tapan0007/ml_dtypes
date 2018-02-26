@@ -187,8 +187,8 @@ testConfigMap = {
   "2-padasym_strd_h3r2s2" : [ "trivnet_conv1", "tfloat16-b1-h3-r2-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
   "2-padasym_strd_h5r2s2" : [ "trivnet_conv1", "tfloat16-b1-h5-r2-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
   "2-padasym_strd_h4r2s3" : [ "trivnet_conv1", "tfloat16-b1-h4-r2-s3-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
-  "2-padasym_strd_h8r7s2" : [ "trivnet_conv1", "tfloat16-b1-h8-r7-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
-  "2-padasym_strd_h8r7s2_wave" : [ "trivnet_conv1", "tfloat16-b1-h8-r7-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", "--scheduler wave"],
+  "2-padasym_strd_h112r7s2" : [ "trivnet_conv1", "tfloat16-b1-h112-r7-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
+  "2-padasym_strd_h112r7s2_wave" : [ "trivnet_conv1", "tfloat16-b1-h112-r7-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", "--scheduler wave"],
 
   "2-padsym_strd_h3r3s2" : [ "trivnet_conv1", "tfloat16-b1-h3-r3-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
   "2-padsym_strd_h5r3s2" : [ "trivnet_conv1", "tfloat16-b1-h5-r3-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
