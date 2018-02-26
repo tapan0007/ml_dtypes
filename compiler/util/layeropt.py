@@ -244,7 +244,7 @@ class CircularBuffer:
         #print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
-    def load_file(self, file, fmap_full_tiley_sz = 0, filter_sz=1):      # use waveop instead of waveop 
+    def load_file(self, file, fmap_full_tiley_sz = 0, filter_sz=1, stride_sz=1):      # use waveop instead of waveop 
         self.dram_data_file = file
         self.dram_data = np.load(self.dram_data_file)
         self.item_sz = self.dram_data.dtype.itemsize   
@@ -287,7 +287,8 @@ class CircularBuffer:
                 print("ERROR %s: cannot yet handle case where number of IFMAPs > 128, and filter size is > 1"%(self.circbuf_type))
                 exit(-1)
             # To prevent crossing atom gaps for FMAPs, make it contiguous
-            elif (self.layer_type == 'Input' and C <= 128 and filter_sz > 1):
+            elif (self.layer_type == 'Input' 
+                    and (C <= 128 or stride_sz > 1 or filter_sz > 1)):  # make contiguous if not folding, or folding but stride > 1, or filter size > 1
                 self.atom_data_sz = self.atom_sz
                 self.need_spare_atom = True
             # make atom size multiple of width data length if it is smaller than default atom size
@@ -1805,7 +1806,7 @@ if __name__ == "__main__":
                         tpb.statebuffer.circbuf_ifmaps.layer_name = j.data['layer_name']
                         tpb.statebuffer.circbuf_ifmaps.layer_format = j.data['ofmap_format']
                         tpb.statebuffer.circbuf_ifmaps.layer_shape = j.data['ofmap_shape']
-                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, op_list[0].S)
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, op_list[0].S, op_list[0].stride_x)
                         results = inputs
                         break
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
@@ -1824,7 +1825,7 @@ if __name__ == "__main__":
                         tpb.statebuffer.circbuf_ifmaps.layer_name = j.data['layer_name']
                         tpb.statebuffer.circbuf_ifmaps.layer_format = j.data['ofmap_format']
                         tpb.statebuffer.circbuf_ifmaps.layer_shape = j.data['ofmap_shape']
-                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, op_list[0].pool_window_x)
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, op_list[0].pool_window_x, op_list[0].stride_x)
                         results = inputs
                         break
                 tpb.statebuffer.circbuf_ifmaps.layer_shape = tpb.statebuffer.circbuf_ifmaps.dram_data.shape
