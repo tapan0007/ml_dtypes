@@ -560,9 +560,10 @@ class KNode:
         self.ofmap_full_tiley_sz = min(self.E, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tilex_sz)
         # kaena-202: prevent crossing atom gaps by making tiley even across full FMAP
         fmap_rows = self.E
-        while (fmap_rows > self.ofmap_full_tiley_sz):
+        while (fmap_rows % 2 == 0 and fmap_rows > self.ofmap_full_tiley_sz):
             fmap_rows = fmap_rows//2
-        self.ofmap_full_tiley_sz  = fmap_rows
+        if (fmap_rows < self.ofmap_full_tiley_sz):            
+            self.ofmap_full_tiley_sz  = fmap_rows
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
         #if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
         if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window_y):
@@ -1385,6 +1386,7 @@ class TPBSched:
         bias_add_en = False
         bias_atom_id = 0
         bias_offset_in_atom = 0
+        # TODO: update in_dtype when src_is_psum is added
         in_dtype = "float32"
         out_dtype = "float32"
         if (biasadd_op != None):
@@ -1392,10 +1394,19 @@ class TPBSched:
             bias_atom_id = self.statebuffer.circbuf_bias.get_atom(bias_start)
             bias_offset_in_atom = bias_start % self.statebuffer.circbuf_bias.atom_data_sz
             layer_name = biasadd_op.data['layer_name']
+            if (biasadd_op.item_sz == 2 and not dst_is_psum):
+                out_dtype = "float16"
+            elif (biasadd_op.item_sz == 1 and not dst_is_psum):
+                print("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
         act_type = "Identity"    
         if (act_op != None):
             act_type = act_op.data['layer_type']
             layer_name = act_op.data['layer_name']
+            # TODO: refactor to some class to determine in_dtype and out_dtype
+            if (act_op.item_sz == 2 and not dst_is_psum):
+                out_dtype = "float16"
+            elif (act_op.item_sz == 1 and not dst_is_psum):
+                print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
         dst_x_num = 1
         dst_y_step = 1
         dst_y_num = 1
@@ -1453,6 +1464,9 @@ class TPBSched:
 
     # generate ResAdd instruction and add it to instruction stream
     def gen_resadd_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, data_start):
+        in_a_dtype = "float32"
+        in_b_dtype = "float32"
+        out_dtype = "float32"
         if (op.item_sz == 2):
             in_a_dtype = "float16"
             in_b_dtype = "float32" # Source B is PSUM for now
