@@ -244,7 +244,7 @@ class CircularBuffer:
         #print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
-    def load_file(self, file, fmap_full_tiley_sz = 0):      # use waveop instead of waveop 
+    def load_file(self, file, fmap_full_tiley_sz = 0, filter_sz=1):      # use waveop instead of waveop 
         self.dram_data_file = file
         self.dram_data = np.load(self.dram_data_file)
         self.item_sz = self.dram_data.dtype.itemsize   
@@ -282,8 +282,12 @@ class CircularBuffer:
             # For NCHW, just use ifmap size as atom size (see rule above: "different FMAPs folds will be in different atoms")
             if (self.ifmap_data_len <= self.atom_sz):
                 self.atom_data_sz = self.ifmap_data_len
-            # To prevent crossing gaps for inputs, make it contiguous (only work for inputs)
-            elif (self.layer_type == 'Input'):
+            # Cannot handle crossing atom gaps for case where number of IFMAPs is larger than PEArray rows, and filter size > 1
+            elif (self.layer_type == 'Input' and C > 128 and filter_sz > 1):
+                print("ERROR %s: cannot yet handle case where number of IFMAPs > 128, and filter size is > 1"%(self.circbuf_type))
+                exit(-1)
+            # To prevent crossing atom gaps for FMAPs, make it contiguous
+            elif (self.layer_type == 'Input' and C <= 128 and filter_sz > 1):
                 self.atom_data_sz = self.atom_sz
                 self.need_spare_atom = True
             # make atom size multiple of width data length if it is smaller than default atom size
@@ -390,7 +394,7 @@ class CircularBuffer:
         lower_addr_chunked = lower_addr // self.atom_data_sz
         upper_addr_chunked = upper_addr // self.atom_data_sz
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
-            print("ERROR %s: data region is crossing gappy atom boundary!"%self.circbuf_type);
+            print("ERROR %s: data region %d to %d (chunk %d to %d) is crossing gappy atom boundary!"%(self.circbuf_type, lower_addr, upper_addr, lower_addr_chunked, upper_addr_chunked));
             #exit(-1)
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
@@ -425,7 +429,7 @@ class CircularBuffer:
         lower_addr_chunked = lower_addr // self.atom_data_sz
         upper_addr_chunked = upper_addr // self.atom_data_sz
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
-            print("ERROR %s: data region is crossing gappy atom boundary!"%self.circbuf_type);
+            print("ERROR %s: data region %d to %d (chunk %d to %d) is crossing gappy atom boundary!"%(self.circbuf_type, lower_addr, upper_addr, lower_addr_chunked, upper_addr_chunked));
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
@@ -554,6 +558,11 @@ class KNode:
         # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
         self.ofmap_full_tilex_sz = min(self.F * self.Tn, PEArray.MAX_WAVE_SIZE)
         self.ofmap_full_tiley_sz = min(self.E, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tilex_sz)
+        # kaena-202: prevent crossing atom gaps by making tiley even across full FMAP
+        fmap_rows = self.E
+        while (fmap_rows > self.ofmap_full_tiley_sz):
+            fmap_rows = fmap_rows//2
+        self.ofmap_full_tiley_sz  = fmap_rows
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
         #if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
         if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window_y):
@@ -1782,7 +1791,7 @@ if __name__ == "__main__":
                         tpb.statebuffer.circbuf_ifmaps.layer_name = j.data['layer_name']
                         tpb.statebuffer.circbuf_ifmaps.layer_format = j.data['ofmap_format']
                         tpb.statebuffer.circbuf_ifmaps.layer_shape = j.data['ofmap_shape']
-                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y)
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, op_list[0].S)
                         results = inputs
                         break
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
@@ -1801,7 +1810,7 @@ if __name__ == "__main__":
                         tpb.statebuffer.circbuf_ifmaps.layer_name = j.data['layer_name']
                         tpb.statebuffer.circbuf_ifmaps.layer_format = j.data['ofmap_format']
                         tpb.statebuffer.circbuf_ifmaps.layer_shape = j.data['ofmap_shape']
-                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y)
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, op_list[0].pool_window_x)
                         results = inputs
                         break
                 tpb.statebuffer.circbuf_ifmaps.layer_shape = tpb.statebuffer.circbuf_ifmaps.dram_data.shape
