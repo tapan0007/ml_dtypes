@@ -268,7 +268,7 @@ testWaiver = [
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
     ['8-rn50_nne', 'WAIVE-NNE'],
-    ['3-rn50-(05|06|10|11|16)_wave', 'WAIVE-S9-S1'],
+    ['3-rn50-(16)_wave', 'WAIVE-S9-S1'],
     ['7-rn50_nne_fc_wave', 'WAIVE-WAVESC']
   ]
 
