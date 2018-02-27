@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 from NpUtils import NpUtils as npu
 
-DEBUG_LEVEL_DEFAULT=3
+DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(precision=14)
 
@@ -861,6 +861,7 @@ class WaveopStream(list):
 
     def __init__(self):
         self.last_main_waveop = None
+        self.waveop_name_set = set()
 
     def add_linked(self, waveop, side_waveops):
         input_list = []
