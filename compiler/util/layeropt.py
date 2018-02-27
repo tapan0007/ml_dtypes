@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 from NpUtils import NpUtils as npu
 
-DEBUG_LEVEL_DEFAULT=2
+DEBUG_LEVEL_DEFAULT=3
 
 #np.set_printoptions(precision=14)
 
@@ -292,7 +292,7 @@ class CircularBuffer:
                 self.atom_data_sz = self.atom_sz
                 # Heuristics: need more spare for specific cases (RxS = 7x7)
                 if (filter_sz == 7):
-                    self.need_spare_atoms = 2
+                    self.need_spare_atoms = 3
                 else:                    
                     self.need_spare_atoms = 1
             # make atom size multiple of width data length if it is smaller than default atom size
@@ -405,15 +405,19 @@ class CircularBuffer:
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
                 dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
-                for k in self.addr2atom.keys():
-                    if (self.addr2atom[k] == atom_id):
-                        if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with %s"%(self.circbuf_type, k, atom_id, i))
-                        self.eviction_count += 1
                 if (self.need_spare_atoms > 0 
                         and atom_id >= self.start + self.capacity - self.need_spare_atoms
                         and atom_id < self.start + self.capacity):                       
+                    if (args.debug > 2): print("%s: keeping atom_id %d as spare for chunk %d (lower_addr %d)"%(self.circbuf_type, atom_id, i, lower_addr))
                     self.allocated[atom_id - self.start] = False
+                    self.count -= 1
                 else:
+                    for k in self.addr2atom.keys():
+                        if (self.addr2atom[k] == atom_id):
+                            if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with chunk %d (lower_addr %d)"%(self.circbuf_type, k, atom_id, i, lower_addr))
+                            self.eviction_count += 1
+                            del self.addr2atom[k]
+                            break
                     self.addr2atom[i] = atom_id
         return dram_waveops
     
@@ -461,6 +465,7 @@ class CircularBuffer:
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i in self.addr2atom:
                 self.free_atom(self.addr2atom[i])
+                if (args.debug > 2): print("%s: freeing atom_id %d for chunk %d (lower_addr %d, upper_addr %d), but keep around for any subsequent read"%(self.circbuf_type, self.addr2atom[i], i, lower_addr, upper_addr))
                 # keep data around just in case, but allow pointers to wrap around
                 #del self.addr2atom[i]
 
