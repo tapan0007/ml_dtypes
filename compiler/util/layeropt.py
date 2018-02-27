@@ -164,9 +164,9 @@ class StateBuffer:
     SB_NUM_1K_ATOMS = SB_PARTITION_SZ/SB_ATOM_SZ
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
-        self.circbuf_ifmaps  = CircularBuffer("ifmaps",  16,        self.SB_ATOM_SZ, 0)
-        self.circbuf_weights = CircularBuffer("weights", 96-16-2-16, self.SB_ATOM_SZ, 16)
-        self.circbuf_bias    = CircularBuffer("bias",    4,         self.SB_ATOM_SZ, 96-16-4)
+        self.circbuf_ifmaps  = CircularBuffer("ifmaps",  24,         self.SB_ATOM_SZ, 0)
+        self.circbuf_weights = CircularBuffer("weights", 96-16-4-24, self.SB_ATOM_SZ, 24)
+        self.circbuf_bias    = CircularBuffer("bias",    4,          self.SB_ATOM_SZ, 96-16-4)
         self.circbuf_scratch = CircularBuffer("scratch", 16,         self.SB_ATOM_SZ, 96-16)
         self.saved_result_files = {}
 
@@ -197,7 +197,7 @@ class CircularBuffer:
         self.tail_pointer = self.start
         self.current_atom_id = self.start
         self.atom_data_sz = self.atom_sz
-        self.need_spare_atom = False
+        self.need_spare_atoms = 0
         self.count = 0
         self.eviction_count = 0
         self.max_count = 0
@@ -290,7 +290,11 @@ class CircularBuffer:
             elif (self.layer_type == 'Input' 
                     and (C <= 128 or stride_sz > 1 or filter_sz > 1)):  # make contiguous if not folding, or folding but stride > 1, or filter size > 1
                 self.atom_data_sz = self.atom_sz
-                self.need_spare_atom = True
+                # Heuristics: need more spare for specific cases (RxS = 7x7)
+                if (filter_sz == 7):
+                    self.need_spare_atoms = 2
+                else:                    
+                    self.need_spare_atoms = 1
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
                 multiple = self.atom_sz // ifmap_width_data_len
@@ -405,7 +409,9 @@ class CircularBuffer:
                     if (self.addr2atom[k] == atom_id):
                         if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with %s"%(self.circbuf_type, k, atom_id, i))
                         self.eviction_count += 1
-                if (self.need_spare_atom and atom_id == self.start+self.capacity-1):                       
+                if (self.need_spare_atoms > 0 
+                        and atom_id >= self.start + self.capacity - self.need_spare_atoms
+                        and atom_id < self.start + self.capacity):                       
                     self.allocated[atom_id - self.start] = False
                 else:
                     self.addr2atom[i] = atom_id
@@ -501,6 +507,7 @@ class KNode:
         self.data = data
         self.psum_bank_dst = 0
         self.item_sz = item_sz
+        self.ofmap_wave_total_elems = 0
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
     def add_next(self, next_node):
@@ -959,6 +966,7 @@ class FusedOp(list):
     def gen_matmul_waveop(self, tpb, wave_id, psum_add):
         ofmap_wave_width = self.conv_op.ofmap_wave_upper_coordx - self.conv_op.ofmap_wave_lower_coordx + 1
         ofmap_wave_height = self.conv_op.ofmap_wave_upper_coordy - self.conv_op.ofmap_wave_lower_coordy + 1
+        self.conv_op.ofmap_wave_total_elems += ofmap_wave_width*ofmap_wave_height
         if (self.conv_op.item_sz == 2):
             in_dtype = "float16"
             out_dtype = "float32"
@@ -986,18 +994,18 @@ class FusedOp(list):
               'stride_y'                : self.conv_op.stride_y,
               'psum_bank_id'            : self.conv_op.psum_bank_dst,
               'psum_bank_offset'        : self.conv_op.psum_bank_offset,
-              'ifmap_count'             : self.conv_op.ifmap_count,
-              'ifmap_tile_width'        : ofmap_wave_width,
-              'ifmap_tile_height'       : ofmap_wave_height,
-              'ofmap_count'             : self.conv_op.ofmap_count,
-              'ofmap_tile_width'        : ofmap_wave_width,
-              'ofmap_tile_height'       : ofmap_wave_height, 
+              'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
+              'ifmap_tile_width'        : ofmap_wave_width, # to be removed 
+              'ifmap_tile_height'       : ofmap_wave_height, # to be removed
+              'ofmap_count'             : self.conv_op.ofmap_count, # to be removed
+              'ofmap_tile_width'        : ofmap_wave_width, # to be removed
+              'ofmap_tile_height'       : ofmap_wave_height,  # to be removed
               'batching_in_wave'        : self.conv_op.Tn,
               'start_tensor_calc'       : not(psum_add),
               'stop_tensor_calc'        : False,
               'fmap_x_step'             : self.conv_op.stride_x,
               'fmap_x_num'              : ofmap_wave_width,
-              'fmap_y_step'             : self.conv_op.H * self.conv_op.stride_y,
+              'fmap_y_step'             : self.conv_op.W * self.conv_op.stride_y,
               'fmap_y_num'              : ofmap_wave_height,
               'fmap_z_step_atoms'       : 1,    # 1 for now; may need more if input needs more than one atom at once 
               'fmap_z_num'              : self.conv_op.Tn,  # need CNHW format for this
@@ -1519,11 +1527,23 @@ class TPBSched:
               'src_a_psum_bank_offset'  : 0,
               'src_a_sb_atom_id'        : self.statebuffer.circbuf_scratch.get_atom(data_start),
               'src_a_sb_offset_in_atom' : self.statebuffer.circbuf_scratch.get_atom_offset(data_start),
+              'src_a_x_step'            : 1,
+              'src_a_x_num'             : dst_x_num,
+              'src_a_y_step'            : dst_y_step,
+              'src_a_y_num'             : dst_y_num,
+              'src_a_z_step'            : dst_z_step,
+              'src_a_z_num'             : dst_z_num,
               'src_b_is_psum'           : True,
               'src_b_psum_bank_id'      : psum_bank_src,
               'src_b_psum_bank_offset'  : 0,
               'src_b_sb_atom_id'        : self.statebuffer.circbuf_scratch.get_atom(data_start),
               'src_b_sb_offset_in_atom' : self.statebuffer.circbuf_scratch.get_atom_offset(data_start),
+              'src_b_x_step'            : 1,
+              'src_b_x_num'             : dst_x_num,
+              'src_b_y_step'            : dst_y_step,
+              'src_b_y_num'             : dst_y_num,
+              'src_b_z_step'            : dst_z_step,
+              'src_b_z_num'             : dst_z_num,
               'dst_is_psum'             : dst_is_psum,
               'dst_psum_bank_id'        : psum_bank_dst,
               'dst_psum_bank_offset'    : 0,
@@ -1751,6 +1771,9 @@ class TPBSched:
 
         # reset scratch buffer for now (TODO: keep some atoms for next layer)
         self.statebuffer.reset_all()
+
+        if (args.debug > 1): print("DBG: Total wave elements: ", op_list.conv_op.ofmap_wave_total_elems)
+
         return result                    
 
 # Main program

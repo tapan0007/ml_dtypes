@@ -189,6 +189,7 @@ testConfigMap = {
   "2-padasym_strd_h4r2s3" : [ "trivnet_conv1", "tfloat16-b1-h4-r2-s3-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
   "2-padasym_strd_h112r7s2" : [ "trivnet_conv1", "tfloat16-b1-h112-r7-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
   "2-padasym_strd_h112r7s2_wave" : [ "trivnet_conv1", "tfloat16-b1-h112-r7-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", "--scheduler wave"],
+  "2-padasym_strd_h224r7s2_wave" : [ "trivnet_conv1", "tfloat16-b1-h224-r7-s2-c3-m64-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1conv", "--scheduler wave"],
 
   "2-padsym_strd_h3r3s2" : [ "trivnet_conv1", "tfloat16-b1-h3-r3-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
   "2-padsym_strd_h5r3s2" : [ "trivnet_conv1", "tfloat16-b1-h5-r3-s2-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv"],
@@ -236,6 +237,7 @@ testConfigMap = {
   # Subgraph partioned flow using neural network executor
   "0-add_nne"      : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--partition auto --executors tcc 1 --width 2 --debug 1"],
   "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition auto --executors wave all --debug 1 --scheduler wave" % rnDogJpg],
+  "8-rn50_nne_fp32_meauto" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition meauto --executors wave all --debug 1 --scheduler wave" % rnDogJpg],
   "8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --debug 1"],
   "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 host 1 --debug 1" % rnDogJpg],
   "7-rn50_nne_fc_waveopt"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors waveopt 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
@@ -269,7 +271,7 @@ testWaiver = [
 
     ['8-rn50_nne', 'WAIVE-NNE'],
     ['3-rn50-(16)_wave', 'WAIVE-S9-S1'],
-    ['7-rn50_nne_fc_wave', 'WAIVE-WAVESC']
+    ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC']
   ]
 
 def getLevel(testName):

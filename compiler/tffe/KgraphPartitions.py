@@ -144,6 +144,42 @@ class KgraphPart(object):
         print("DEBUG: colorNodesAuto setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
   
+  # Auto color nodes to define subgraph partitions supported by the middle-end
+  # The partitions end on multi fanout node. Every graph cut has exactly 1 node.
+  # This is done by simple traversals till node with fanout
+  def colorNodesMeAuto(self):
+    sourceGraph = self.__kgraph
+    edgeQueue = []
+    visitedNodes = set()
+    n = sourceGraph.getInputNode()
+    color = self.getNewColor()
+    self.setNodeColor(n, color)
+    for e in n.getFanoutMainFlowEdges():
+      edgeQueue.append((color, e))
+    while len(edgeQueue) > 0:
+      color, e = edgeQueue.pop(0)
+      n = e.getToNode()
+      if n in visitedNodes:
+        continue
+      visitedNodes.add(n)
+      print("DEBUG: colorNodesMeAuto visit         %-12s %s" %
+              (n.getOpType(), n.getName()))
+      fanoutEdges = n.getFanoutMainFlowEdges()
+      faninEdges = n.getFaninMainFlowEdges()
+      self.setNodeColor(n, color)
+      if color + 1 > self.__numColors:
+        self.__numColors = color + 1
+      print("DEBUG: colorNodesMeAuto setColor %d on %-12s %s" %
+            (self.getNodeColor(n), n.getOpType(), n.getName()))
+      # Color of the next partition
+      nextColor = color
+      if len(fanoutEdges) > 1:
+        nextColor = color + 1
+      # Traverse deeper
+      for nextEdge in fanoutEdges:
+        edgeQueue.append((nextColor, nextEdge))
+      
+  
   def edgeHasOp(self, edge, opType):
     nodes = [edge.getFromNode(), edge.getToNode()]
     return any((not n == None and n.getOpType() == opType) for n in nodes)
@@ -229,6 +265,8 @@ class KgraphPart(object):
     strategy = partitioningStrategy[0]
     if strategy == "auto":
       self.colorNodesAuto()
+    elif strategy == "meauto":
+      self.colorNodesMeAuto()
     elif strategy == "conv":
       self.colorNodesConv()
     elif strategy == "from":
@@ -250,6 +288,7 @@ class KgraphPart(object):
         if color != None:
           subGraph = self.__subgraphs[color]
           nCopy = n.copy()
+          assert(not n.getFaninEdges == None)
           subGraph.graph.addNode(nCopy)
           subGraph.updateMaxLevel(level)
     # Edges

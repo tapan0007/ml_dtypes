@@ -27,15 +27,15 @@
 <path fill="none" stroke="#000000" d="M263.9483,-792.6626C297.9831,-782.2791 341.4026,-769.0324 376.9743,-758.1801"/>
 <polygon fill="#000000" stroke="#000000" points="378.2415,-761.4528 386.7849,-755.187 376.1988,-754.7575 378.2415,-761.4528"/>
 </g>
-<!-- 1conv3/conv1/SBAtomFile_weights_16_n0_m0_h0_w0_c0_r0_s0 -->
+<!-- 1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0 -->
 <g id="node2" class="node">
-<title>1conv3/conv1/SBAtomFile_weights_16_n0_m0_h0_w0_c0_r0_s0</title>
+<title>1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0</title>
 <ellipse fill="none" stroke="#000000" cx="679.1201" cy="-810" rx="246.8141" ry="18"/>
-<text text-anchor="middle" x="679.1201" y="-805.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/SBAtomFile_weights_16_n0_m0_h0_w0_c0_r0_s0</text>
+<text text-anchor="middle" x="679.1201" y="-805.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0</text>
 </g>
-<!-- 1conv3/conv1/SBAtomFile_weights_16_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0 -->
+<!-- 1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0 -->
 <g id="edge2" class="edge">
-<title>1conv3/conv1/SBAtomFile_weights_16_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0</title>
+<title>1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0</title>
 <path fill="none" stroke="#000000" d="M621.6898,-792.4789C587.7677,-782.1298 544.6831,-768.9853 509.3336,-758.2007"/>
 <polygon fill="#000000" stroke="#000000" points="510.1685,-754.7962 499.5823,-755.2258 508.1258,-761.4916 510.1685,-754.7962"/>
 </g>
