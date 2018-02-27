@@ -244,7 +244,7 @@ class CircularBuffer:
         #print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
-    def load_file(self, file, fmap_full_tiley_sz = 0, filter_sz=1, stride_sz=1):      # use waveop instead of waveop 
+    def load_file(self, file, fmap_full_tiley_sz = 0, fmap_full_tilex_sz = 0, filter_sz=1, stride_sz=1):      # use waveop instead of waveop 
         self.dram_data_file = file
         self.dram_data = np.load(self.dram_data_file)
         self.item_sz = self.dram_data.dtype.itemsize   
@@ -290,11 +290,9 @@ class CircularBuffer:
             elif (self.layer_type == 'Input' 
                     and (C <= 128 or stride_sz > 1 or filter_sz > 1)):  # make contiguous if not folding, or folding but stride > 1, or filter size > 1
                 self.atom_data_sz = self.atom_sz
-                # Heuristics: need more spare for specific cases (RxS = 7x7)
-                if (filter_sz == 7):
-                    self.need_spare_atoms = 2
-                else:                    
-                    self.need_spare_atoms = 1
+                # need spare atoms for large images
+                self.need_spare_atoms = max(1, (fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz) // self.atom_sz)
+                print("Reserve %d as spare atoms"%self.need_spare_atoms)
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
                 multiple = self.atom_sz // ifmap_width_data_len
@@ -342,10 +340,11 @@ class CircularBuffer:
             simout_file = self.dram_data_file.replace("-midout.", ".")
         else:            
             simout_file = self.dram_data_file.replace("-midout.", "-simout.")
+        waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())            
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomFile",
-              'waveop_name'      : self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string()),
+              'waveop_name'      : waveop_name,
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
@@ -374,10 +373,11 @@ class CircularBuffer:
             if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
         simout_file = self.dram_data_file.replace("-midout.", "-simout.")
+        waveop_name = self.layer_name + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
-              'waveop_name'      : self.layer_name + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string()),
+              'waveop_name'      : waveop_name,
               'layer_name'       : self.layer_name,
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
@@ -401,19 +401,28 @@ class CircularBuffer:
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
             print("ERROR %s: data region %d to %d (chunk %d to %d) is crossing gappy atom boundary!"%(self.circbuf_type, lower_addr, upper_addr, lower_addr_chunked, upper_addr_chunked));
             #exit(-1)
+        # check whether the starting chunk is near end of buffer; skip to beginning if it is within spare region
+        if (lower_addr_chunked not in self.addr2atom 
+                and self.tail_pointer >= self.start + self.capacity - self.need_spare_atoms
+                and self.tail_pointer < self.start + self.capacity):
+            self.tail_pointer = 0
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i not in self.addr2atom:
                 atom_id = self.allocate_atom()
                 dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
-                for k in self.addr2atom.keys():
-                    if (self.addr2atom[k] == atom_id):
-                        if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with %s"%(self.circbuf_type, k, atom_id, i))
-                        self.eviction_count += 1
                 if (self.need_spare_atoms > 0 
                         and atom_id >= self.start + self.capacity - self.need_spare_atoms
                         and atom_id < self.start + self.capacity):                       
+                    if (args.debug > 2): print("%s: keeping atom_id %d as spare for chunk %d (lower_addr %d)"%(self.circbuf_type, atom_id, i, lower_addr))
                     self.allocated[atom_id - self.start] = False
+                    self.count -= 1
                 else:
+                    for k in self.addr2atom.keys():
+                        if (self.addr2atom[k] == atom_id):
+                            if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with chunk %d (lower_addr %d)"%(self.circbuf_type, k, atom_id, i, lower_addr))
+                            self.eviction_count += 1
+                            del self.addr2atom[k]
+                            break
                     self.addr2atom[i] = atom_id
         return dram_waveops
     
@@ -461,6 +470,7 @@ class CircularBuffer:
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i in self.addr2atom:
                 self.free_atom(self.addr2atom[i])
+                if (args.debug > 2): print("%s: freeing atom_id %d for chunk %d (lower_addr %d, upper_addr %d), but keep around for any subsequent read"%(self.circbuf_type, self.addr2atom[i], i, lower_addr, upper_addr))
                 # keep data around just in case, but allow pointers to wrap around
                 #del self.addr2atom[i]
 
@@ -851,6 +861,7 @@ class WaveopStream(list):
 
     def __init__(self):
         self.last_main_waveop = None
+        self.waveop_name_set = set()
 
     def add_linked(self, waveop, side_waveops):
         input_list = []
@@ -975,10 +986,11 @@ class FusedOp(list):
             out_dtype = "float32"
         else:            
             print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
+        waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()            
         matmul_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'MatMul',
-              'waveop_name'             : self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string(),
+              'waveop_name'             : waveop_name,
               'layer_name'              : self.conv_op.data['layer_name'],
               'weights_atom_id'         : tpb.statebuffer.circbuf_weights.get_atom(self.conv_op.weight_wave_lower_addr),
               'weights_offset_in_atom'  : tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr),  # TODO: -1 means don't load new weights
@@ -1037,10 +1049,11 @@ class FusedOp(list):
             src_sb_offset_in_atom = tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.pool_op.ifmap_wave_lower_addr)
             in_dtype = self.out_data_type
         psum_step_multiplier = 1   # kaena-174, tonga-310: after Inkling fix, no need for multiplier         
+        waveop_name = self.pool_op.data['layer_name']+"/Pool_"+tile_id.id_string()
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
-              'waveop_name'             : self.pool_op.data['layer_name']+"/Pool_"+tile_id.id_string(),
+              'waveop_name'             : waveop_name,
               'layer_name'              : self.pool_op.data['layer_name'],
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
@@ -1439,10 +1452,11 @@ class TPBSched:
         else:
             print("ERROR: expecting a convolution/matmul before activation at %s!"%act_op.data['layer_name'])
             exit -1
+        waveop_name = layer_name+"/Activation_"+tile_id.id_string()            
         instr = {
               'previous_waveops'        : [],
               'waveop_type'             : 'Activation',
-              'waveop_name'             : layer_name+"/Activation_"+tile_id.id_string(),
+              'waveop_name'             : waveop_name,
               'layer_name'              : layer_name,
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
@@ -1512,10 +1526,11 @@ class TPBSched:
         else:
             print("ERROR: expecting a convolution/matmul before activation at %s!"%act_op.data['layer_name'])
             exit -1
+        waveop_name = op.data['layer_name']+"/ResAdd_"+tile_id.id_string()
         instr = {
               'previous_waveops'        : [],
               'waveop_type'             : 'ResAdd',
-              'waveop_name'             : op.data['layer_name']+"/ResAdd_"+tile_id.id_string(),
+              'waveop_name'             : waveop_name,
               'layer_name'              : op.data['layer_name'],
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
@@ -1829,7 +1844,10 @@ if __name__ == "__main__":
                         tpb.statebuffer.circbuf_ifmaps.layer_name = j.data['layer_name']
                         tpb.statebuffer.circbuf_ifmaps.layer_format = j.data['ofmap_format']
                         tpb.statebuffer.circbuf_ifmaps.layer_shape = j.data['ofmap_shape']
-                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, op_list[0].S, op_list[0].stride_x)
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], 
+                                op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, 
+                                op_list[0].ofmap_full_tilex_sz * op_list[0].stride_x, 
+                                op_list[0].S, op_list[0].stride_x)
                         results = inputs
                         break
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
@@ -1848,7 +1866,10 @@ if __name__ == "__main__":
                         tpb.statebuffer.circbuf_ifmaps.layer_name = j.data['layer_name']
                         tpb.statebuffer.circbuf_ifmaps.layer_format = j.data['ofmap_format']
                         tpb.statebuffer.circbuf_ifmaps.layer_shape = j.data['ofmap_shape']
-                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, op_list[0].pool_window_x, op_list[0].stride_x)
+                        inputs = tpb.statebuffer.circbuf_ifmaps.load_file(tpb.statebuffer.saved_result_files[j.data['layer_name']], 
+                                op_list[0].ofmap_full_tiley_sz * op_list[0].stride_y, 
+                                op_list[0].ofmap_full_tilex_sz * op_list[0].stride_x, 
+                                op_list[0].pool_window_x, op_list[0].stride_x)
                         results = inputs
                         break
                 tpb.statebuffer.circbuf_ifmaps.layer_shape = tpb.statebuffer.circbuf_ifmaps.dram_data.shape
