@@ -378,6 +378,127 @@ SerWaveOp::verifyActivation() const
     return true;
 }
 
+bool
+SerWaveOp::verifyResAdd() const
+{
+    if (m_InADtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_InBDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_OutDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_NumPartitions < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_SrcAIsPsum) {
+        if (m_SrcAPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcAPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcASbAtomId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcASbOffsetInAtom < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_SrcAXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAXStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAYStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAZStep < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_SrcBIsPsum) {
+        if (m_SrcBPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcBPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcBSbAtomId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcBSbOffsetInAtom < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_SrcBXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBXStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBYStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBZStep < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_DstIsPsum) {
+        if (m_DstPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_DstSbAtomId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstSbOffsetInAtom < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_DstXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstXStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZStep < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    return true;
+}
+
 
 bool
 SerWaveOp::verify() const
@@ -403,6 +524,8 @@ SerWaveOp::verify() const
         return verifyPool();
     } else if (m_WaveOpType == WaveOpTypeStr_Activation) {
         return verifyActivation();
+    } else if (m_WaveOpType == WaveOpTypeStr_ResAdd) {
+        return verifyResAdd();
     } else {
         RETURN_ASSERT(false);
     }

@@ -26,6 +26,8 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveMatMul(archive);
     } else if (m_WaveOpType == WaveOpTypeStr_Activation) {
         saveActivation(archive);
+    } else if (m_WaveOpType == WaveOpTypeStr_ResAdd) {
+        saveResAdd(archive);
     } else {
         assert(false && "Serialization: unsupported WaveOp");
     }
@@ -180,6 +182,65 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
 }
+
+
+void
+SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
+{
+    KCC_ARCHIVE(InADtype);
+    KCC_ARCHIVE(InBDtype);
+    KCC_ARCHIVE(OutDtype);
+    KCC_ARCHIVE(NumPartitions);
+
+    // SrcA
+    KCC_ARCHIVE(SrcAIsPsum);
+    if (m_SrcAIsPsum) {
+        KCC_ARCHIVE(SrcAPsumBankId);
+        KCC_ARCHIVE(SrcAPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(SrcASbAtomId);
+        KCC_ARCHIVE(SrcASbOffsetInAtom);
+    }
+    KCC_ARCHIVE(SrcAXNum);
+    KCC_ARCHIVE(SrcAXStep);
+    KCC_ARCHIVE(SrcAYNum);
+    KCC_ARCHIVE(SrcAYStep);
+    KCC_ARCHIVE(SrcAZNum);
+    KCC_ARCHIVE(SrcAZStep);
+
+    // SrcB
+    KCC_ARCHIVE(SrcBIsPsum);
+    if (m_SrcBIsPsum) {
+        KCC_ARCHIVE(SrcBPsumBankId);
+        KCC_ARCHIVE(SrcBPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(SrcBSbAtomId);
+        KCC_ARCHIVE(SrcBSbOffsetInAtom);
+    }
+    KCC_ARCHIVE(SrcBXNum);
+    KCC_ARCHIVE(SrcBXStep);
+    KCC_ARCHIVE(SrcBYNum);
+    KCC_ARCHIVE(SrcBYStep);
+    KCC_ARCHIVE(SrcBZNum);
+    KCC_ARCHIVE(SrcBZStep);
+
+    // Dst
+    KCC_ARCHIVE(DstIsPsum);
+    if (m_DstIsPsum) {
+        KCC_ARCHIVE(DstPsumBankId);
+        KCC_ARCHIVE(DstPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(DstSbAtomId);
+        KCC_ARCHIVE(DstSbOffsetInAtom);
+    }
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
+}
+        
 
 #undef KCC_ARCHIVE
 } // namespace serialize

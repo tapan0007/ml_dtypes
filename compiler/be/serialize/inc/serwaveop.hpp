@@ -144,6 +144,7 @@ constexpr static const char* WaveOpKey_BiasAddEn            = "bias_add_en";
 constexpr static const char* WaveOpKey_BiasAtomId           = "bias_atom_id";
 constexpr static const char* WaveOpKey_BiasOffsetInAtom     = "bias_offset_in_atom";
 constexpr static const char* WaveOpKey_DstPsumBankId        = "dst_psum_bank_id";
+constexpr static const char* WaveOpKey_DstPsumBankOffset    = "dst_psum_bank_offset";
 
 
 constexpr static const char* WaveOpKey_InADtype             = "in_a_dtype";
@@ -216,6 +217,7 @@ private:
     void savePool(cereal::JSONOutputArchive& archive) const;
     void saveMatMul(cereal::JSONOutputArchive& archive) const;
     void saveActivation(cereal::JSONOutputArchive& archive) const;
+    void saveResAdd(cereal::JSONOutputArchive& archive) const;
 
 protected:
     bool verify() const;
@@ -227,6 +229,7 @@ private:
     bool verifyMatMul() const;
     bool verifyPool() const;
     bool verifyActivation() const;
+    bool verifyResAdd() const;
 
 public:
     // common to all
@@ -374,6 +377,7 @@ public:
     kcc_int32                   m_BiasOffsetInAtom  = -1;
     bool                        m_DstIsPsum         = true;
     kcc_int32                   m_DstPsumBankId     = -1;
+    kcc_int32                   m_DstPsumBankOffset = -1;
 #if 0
     kcc_int32                   m_DstXNum           = -1;
     kcc_int32                   m_DstXStep          = -1;

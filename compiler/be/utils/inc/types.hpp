@@ -74,6 +74,34 @@ PoolType           poolTypeStr2Id(const std::string&);
 constexpr kcc_int64 power2(kcc_int64 b) {
     return 1 << (b);
 
+
+class MemAccessPatternXY {
+    kcc_int32       m_XStep             = -1;
+    kcc_int32       m_XNum              = -1;
+    kcc_int32       m_YStep             = -1;
+    kcc_int32       m_YNum              = -1;
+};
+
+class MemAccessPatternXYZ {
+    kcc_int32       m_XStep             = -1;
+    kcc_int32       m_XNum              = -1;
+    kcc_int32       m_YStep             = -1;
+    kcc_int32       m_YNum              = -1;
+    kcc_int32       m_ZStep             = -1;
+    kcc_int32       m_ZNum              = -1;
+};
+
+class MemAccessPatternXYZW {
+    kcc_int32       m_XStep             = -1;
+    kcc_int32       m_XNum              = -1;
+    kcc_int32       m_YStep             = -1;
+    kcc_int32       m_YNum              = -1;
+    kcc_int32       m_ZStep             = -1;
+    kcc_int32       m_ZNum              = -1;
+    kcc_int32       m_WStep             = -1;
+    kcc_int32       m_WNum              = -1;
+};
+
 }
 
 }

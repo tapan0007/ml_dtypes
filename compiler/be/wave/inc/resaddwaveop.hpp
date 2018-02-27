@@ -189,6 +189,7 @@ private:
     kcc_int32       m_SrcAPsumBankOffset    = -1;
     kcc_int32       m_SrcASbAtomId          = -1;
     kcc_int32       m_SrcASbOffsetInAtom    = -1;
+
     kcc_int32       m_SrcAXStep             = -1;
     kcc_int32       m_SrcAXNum              = -1;
     kcc_int32       m_SrcAYStep             = -1;
@@ -202,7 +203,7 @@ private:
     kcc_int32       m_SrcBPsumBankOffset    = -1;
     kcc_int32       m_SrcBSbAtomId          = -1;
     kcc_int32       m_SrcBSbOffsetInAtom    = -1;
-    kcc_int32       m_SrcBStartAddr         = -1;
+
     kcc_int32       m_SrcBXStep             = -1;
     kcc_int32       m_SrcBXNum              = -1;
     kcc_int32       m_SrcBYStep             = -1;
@@ -216,7 +217,7 @@ private:
     kcc_int32       m_DstPsumBankOffset     = -1;
     kcc_int32       m_DstSbAtomId           = -1;
     kcc_int32       m_DstSbOffsetInAtom     = -1;
-    kcc_int32       m_DstStartAddr          = -1;
+
     kcc_int32       m_DstXStep              = -1;
     kcc_int32       m_DstXNum               = -1;
     kcc_int32       m_DstYStep              = -1;
@@ -247,6 +248,7 @@ public:
     kcc_int32       m_SrcAPsumBankOffset    = -1;
     kcc_int32       m_SrcASbAtomId          = -1;
     kcc_int32       m_SrcASbOffsetInAtom    = -1;
+
     kcc_int32       m_SrcAXStep             = -1;
     kcc_int32       m_SrcAXNum              = -1;
     kcc_int32       m_SrcAYStep             = -1;
@@ -260,7 +262,7 @@ public:
     kcc_int32       m_SrcBPsumBankOffset    = -1;
     kcc_int32       m_SrcBSbAtomId          = -1;
     kcc_int32       m_SrcBSbOffsetInAtom    = -1;
-    kcc_int32       m_SrcBStartAddr         = -1;
+
     kcc_int32       m_SrcBXStep             = -1;
     kcc_int32       m_SrcBXNum              = -1;
     kcc_int32       m_SrcBYStep             = -1;
@@ -274,7 +276,7 @@ public:
     kcc_int32       m_DstPsumBankOffset     = -1;
     kcc_int32       m_DstSbAtomId           = -1;
     kcc_int32       m_DstSbOffsetInAtom     = -1;
-    kcc_int32       m_DstStartAddr          = -1;
+
     kcc_int32       m_DstXStep              = -1;
     kcc_int32       m_DstXNum               = -1;
     kcc_int32       m_DstYStep              = -1;
