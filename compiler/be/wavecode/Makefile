@@ -10,7 +10,8 @@ wavecodesbatomfile  \
 wavecodesbatomsave  \
 wavecodematmul      \
 wavecodepool        \
-wavecodeactivation
+wavecodeactivation  \
+wavecoderesadd
 
 ########################################################
 include ../Makefile.common

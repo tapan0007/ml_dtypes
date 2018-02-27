@@ -139,6 +139,13 @@ void WaveCode::writeInstruction<ACTIVATION >(ACTIVATION & instruction)
 }
 
 
+template<>
+void WaveCode::writeInstruction<MATADD>(MATADD & instruction)
+{
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+}
+
+
 
 
 template<>
