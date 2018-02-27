@@ -863,21 +863,33 @@ class WaveopStream(list):
         self.last_main_waveop = None
         self.waveop_name_set = set()
 
+    def append_check(self, item):
+        item_name = item['waveop_name']
+        i = 0
+        while (item_name in self.waveop_name_set):
+            new_name = item_name + "__" + str(i)
+            print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
+            item_name = new_name
+            i += 1
+        item['waveop_name'] = item_name
+        self.waveop_name_set.add(item['waveop_name'])                
+        self.append(item)
+
     def add_linked(self, waveop, side_waveops):
         input_list = []
         for i in side_waveops:
             input_list.append(i['waveop_name'])
-            self.append(i)
+            self.append_check(i)
         if (self.last_main_waveop != None):
             input_list.append(self.last_main_waveop['waveop_name'])
         waveop['previous_waveops'] = input_list
-        self.append(waveop)
+        self.append_check(waveop)
         self.last_main_waveop = waveop
 
     def add_outputs(self, waveops):
         for i in waveops:
             i['previous_waveops'].append(self.last_main_waveop['waveop_name'])
-            self.append(i)
+            self.append_check(i)
 
     def add_group(self, waveops):
         if (len(waveops)>0):
@@ -1797,7 +1809,7 @@ if __name__ == "__main__":
     parser.add_argument("--kgraph", help="K-graph Json file to read")
     parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
     parser.add_argument("--dot", help="Dot file to write")
-    parser.add_argument("--debug", default=DEBUG_LEVEL_DEFAULT, help="Debug level")
+    parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     args = parser.parse_args()
 
