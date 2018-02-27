@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 from NpUtils import NpUtils as npu
 
-DEBUG_LEVEL_DEFAULT=2
+DEBUG_LEVEL_DEFAULT=3
 
 #np.set_printoptions(precision=14)
 
@@ -197,7 +197,7 @@ class CircularBuffer:
         self.tail_pointer = self.start
         self.current_atom_id = self.start
         self.atom_data_sz = self.atom_sz
-        self.need_spare_atom = False
+        self.need_spare_atoms = 0
         self.count = 0
         self.eviction_count = 0
         self.max_count = 0
@@ -290,7 +290,11 @@ class CircularBuffer:
             elif (self.layer_type == 'Input' 
                     and (C <= 128 or stride_sz > 1 or filter_sz > 1)):  # make contiguous if not folding, or folding but stride > 1, or filter size > 1
                 self.atom_data_sz = self.atom_sz
-                self.need_spare_atom = True
+                # Heuristics: need more spare for specific cases (RxS = 7x7)
+                if (filter_sz == 7):
+                    self.need_spare_atoms = 3
+                else:                    
+                    self.need_spare_atoms = 1
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
                 multiple = self.atom_sz // ifmap_width_data_len
@@ -405,7 +409,9 @@ class CircularBuffer:
                     if (self.addr2atom[k] == atom_id):
                         if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with %s"%(self.circbuf_type, k, atom_id, i))
                         self.eviction_count += 1
-                if (self.need_spare_atom and atom_id == self.start+self.capacity-1):                       
+                if (self.need_spare_atoms > 0 
+                        and atom_id >= self.start + self.capacity - self.need_spare_atoms
+                        and atom_id < self.start + self.capacity):                       
                     self.allocated[atom_id - self.start] = False
                 else:
                     self.addr2atom[i] = atom_id
@@ -986,18 +992,18 @@ class FusedOp(list):
               'stride_y'                : self.conv_op.stride_y,
               'psum_bank_id'            : self.conv_op.psum_bank_dst,
               'psum_bank_offset'        : self.conv_op.psum_bank_offset,
-              'ifmap_count'             : self.conv_op.ifmap_count,
-              'ifmap_tile_width'        : ofmap_wave_width,
-              'ifmap_tile_height'       : ofmap_wave_height,
-              'ofmap_count'             : self.conv_op.ofmap_count,
-              'ofmap_tile_width'        : ofmap_wave_width,
-              'ofmap_tile_height'       : ofmap_wave_height, 
+              'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
+              'ifmap_tile_width'        : ofmap_wave_width, # to be removed 
+              'ifmap_tile_height'       : ofmap_wave_height, # to be removed
+              'ofmap_count'             : self.conv_op.ofmap_count, # to be removed
+              'ofmap_tile_width'        : ofmap_wave_width, # to be removed
+              'ofmap_tile_height'       : ofmap_wave_height,  # to be removed
               'batching_in_wave'        : self.conv_op.Tn,
               'start_tensor_calc'       : not(psum_add),
               'stop_tensor_calc'        : False,
               'fmap_x_step'             : self.conv_op.stride_x,
               'fmap_x_num'              : ofmap_wave_width,
-              'fmap_y_step'             : self.conv_op.H * self.conv_op.stride_y,
+              'fmap_y_step'             : self.conv_op.W * self.conv_op.stride_y,
               'fmap_y_num'              : ofmap_wave_height,
               'fmap_z_step_atoms'       : 1,    # 1 for now; may need more if input needs more than one atom at once 
               'fmap_z_num'              : self.conv_op.Tn,  # need CNHW format for this
