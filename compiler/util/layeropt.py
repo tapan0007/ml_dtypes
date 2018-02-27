@@ -164,9 +164,9 @@ class StateBuffer:
     SB_NUM_1K_ATOMS = SB_PARTITION_SZ/SB_ATOM_SZ
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
-        self.circbuf_ifmaps  = CircularBuffer("ifmaps",  16,        self.SB_ATOM_SZ, 0)
-        self.circbuf_weights = CircularBuffer("weights", 96-16-2-16, self.SB_ATOM_SZ, 16)
-        self.circbuf_bias    = CircularBuffer("bias",    4,         self.SB_ATOM_SZ, 96-16-4)
+        self.circbuf_ifmaps  = CircularBuffer("ifmaps",  24,         self.SB_ATOM_SZ, 0)
+        self.circbuf_weights = CircularBuffer("weights", 96-16-4-24, self.SB_ATOM_SZ, 24)
+        self.circbuf_bias    = CircularBuffer("bias",    4,          self.SB_ATOM_SZ, 96-16-4)
         self.circbuf_scratch = CircularBuffer("scratch", 16,         self.SB_ATOM_SZ, 96-16)
         self.saved_result_files = {}
 
@@ -292,7 +292,7 @@ class CircularBuffer:
                 self.atom_data_sz = self.atom_sz
                 # Heuristics: need more spare for specific cases (RxS = 7x7)
                 if (filter_sz == 7):
-                    self.need_spare_atoms = 3
+                    self.need_spare_atoms = 2
                 else:                    
                     self.need_spare_atoms = 1
             # make atom size multiple of width data length if it is smaller than default atom size
