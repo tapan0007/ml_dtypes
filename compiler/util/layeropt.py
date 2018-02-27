@@ -507,6 +507,7 @@ class KNode:
         self.data = data
         self.psum_bank_dst = 0
         self.item_sz = item_sz
+        self.ofmap_wave_total_elems = 0
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
     def add_next(self, next_node):
@@ -965,6 +966,7 @@ class FusedOp(list):
     def gen_matmul_waveop(self, tpb, wave_id, psum_add):
         ofmap_wave_width = self.conv_op.ofmap_wave_upper_coordx - self.conv_op.ofmap_wave_lower_coordx + 1
         ofmap_wave_height = self.conv_op.ofmap_wave_upper_coordy - self.conv_op.ofmap_wave_lower_coordy + 1
+        self.conv_op.ofmap_wave_total_elems += ofmap_wave_width*ofmap_wave_height
         if (self.conv_op.item_sz == 2):
             in_dtype = "float16"
             out_dtype = "float32"
@@ -1769,6 +1771,9 @@ class TPBSched:
 
         # reset scratch buffer for now (TODO: keep some atoms for next layer)
         self.statebuffer.reset_all()
+
+        if (args.debug > 1): print("DBG: Total wave elements: ", op_list.conv_op.ofmap_wave_total_elems)
+
         return result                    
 
 # Main program
