@@ -1008,15 +1008,17 @@ class Graph(Object):
           constNode = predNode.copyAs(NodeConst, "Const")
           self.addNode(constNode)
           print("DEBUG: transferSideNodes added node %s" % (constNode.getName()))
-          srcEdge = predNode.getEdgeTo(ns)
-          eNew = self.copyEdge(srcEdge)
-          # Note - This is a noop since edge color is stored in attributes (not
-          # recalculated from subgraph state). Coloring based on main graph
-          # is perhaps even better
-          #eNew.setIsInMainFlow(False)
-          if srcEdge.isInMainFlow():
-            inputNodes.append(constNode)
-    return inputNodes
+          for srcEdge in predNode.getFanoutEdges():
+            toName = srcEdge.getToNode().getName()
+            if self.hasNode(toName):
+              eNew = self.copyEdge(srcEdge)
+              # Note - This is a noop since edge color is stored in attributes (not
+              # recalculated from subgraph state). Coloring based on main graph
+              # is perhaps even better
+              #eNew.setIsInMainFlow(False)
+              if srcEdge.isInMainFlow():
+                inputNodes.append(constNode)
+    return list(set(inputNodes))
 
   # Returns file to append to the Kaena backend package
   def runScheduler(self, outPrefix):

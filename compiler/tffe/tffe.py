@@ -55,7 +55,7 @@ parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, de
                     default='tcc')
 parser.add_argument('--batch', help='Batch override for late-binding networks',
                     type=int, default=1)
-parser.add_argument('--partition', help='Partition into subgraphs; use fromOpRe toOpRe or auto; the default is none',
+parser.add_argument('--partition', help='Partition into subgraphs; use from, meauto, or auto; the default is none',
                     nargs='+', default=["none"])
 parser.add_argument('--executors', help='Specifies executors per subgraph, e.g., tcc 1 2 3 (implies rest on host, host 0 4 5), default ""',
                     nargs='+', default=[])

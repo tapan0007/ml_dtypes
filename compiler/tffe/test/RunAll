@@ -236,6 +236,7 @@ testConfigMap = {
   # Subgraph partioned flow using neural network executor
   "0-add_nne"      : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--partition auto --executors tcc 1 --width 2 --debug 1"],
   "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition auto --executors wave all --debug 1 --scheduler wave" % rnDogJpg],
+  "8-rn50_nne_fp32_meauto" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition meauto --executors wave all --debug 1 --scheduler wave" % rnDogJpg],
   "8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --debug 1"],
   "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 host 1 --debug 1" % rnDogJpg],
   "7-rn50_nne_fc_waveopt"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors waveopt 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
@@ -269,7 +270,7 @@ testWaiver = [
 
     ['8-rn50_nne', 'WAIVE-NNE'],
     ['3-rn50-(16)_wave', 'WAIVE-S9-S1'],
-    ['7-rn50_nne_fc_wave', 'WAIVE-WAVESC']
+    ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC']
   ]
 
 def getLevel(testName):
