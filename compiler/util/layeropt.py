@@ -63,6 +63,9 @@ class PEArray:
     NUM_COLS = 64
     PSUM_NUM_BANKS = 4
     MAX_WAVE_SIZE = 256
+    num_wave_fp16_mm = 0
+    num_ops_executed = 0
+
     def __init__(self):
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS), dtype=np.float32)
     def trig_tile_done(self, tile_id):
@@ -93,6 +96,7 @@ class PEArray:
             self.psum_buf[psum_bank] += self.matmul_result
         else:            
             self.psum_buf[psum_bank] = self.matmul_result
+        self.num_wave_fp16_mm += 1
 
 ##################################################################################
 # Pooling properties and methods
@@ -191,6 +195,8 @@ class CircularBuffer:
         self.start = start
         self.circbuf_type = circbuf_type
         self.reset()
+        self.DRAM_elem_read = 0
+        self.DRAM_elem_written = 0
 
     def reset(self):
         self.head_pointer = self.start
@@ -217,7 +223,7 @@ class CircularBuffer:
         self.data_type = 'float16'
 
     def get_atom(self, addr):
-        addr_chunked = addr // self.atom_data_sz
+        addr_chunked = self.get_chunk_addr(addr) 
         if (addr_chunked in self.addr2atom):
             return self.addr2atom[addr_chunked]
         else:
@@ -334,8 +340,13 @@ class CircularBuffer:
         # then try to get the modulo; but if the modulo is 0, then keep length = Atom Data Size
         if ((offset_in_fold + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
             length = self.ifmap_data_len % self.atom_data_sz
-            if (length == 0): length = self.atom_data_sz
+
+        if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
+        self.DRAM_elem_read += length * ifmap_count / self.item_sz
+        #print("gen_dram_read_waveop - DRAM_elem_read: ", self.DRAM_elem_read, "length: ", length, "ifmap_count: ",ifmap_count)
+        #print("fmap_data_len",self.ifmap_data_len, "atom_data_sz",self.atom_data_sz)
+        #print("chunk_id", chunk_id, "offset", offset)
         if (args.golden_inputs):            
             simout_file = self.dram_data_file.replace("-midout.", ".")
         else:            
@@ -372,6 +383,8 @@ class CircularBuffer:
             length = self.ofmap_data_len % self.atom_data_sz
             if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
+        self.DRAM_elem_written += length
+
         simout_file = self.dram_data_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         return {
@@ -393,11 +406,14 @@ class CircularBuffer:
               'partition_step_bytes': self.ofmap_data_len,
             }
 
+    def get_chunk_addr(self, addr):
+        return addr // self.atom_data_sz
+
     def read_data_region(self, wave_id, lower_addr, upper_addr, ifmap_count):
         if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
         dram_waveops = []
-        lower_addr_chunked = lower_addr // self.atom_data_sz
-        upper_addr_chunked = upper_addr // self.atom_data_sz
+        lower_addr_chunked = self.get_chunk_addr(lower_addr)
+        upper_addr_chunked = self.get_chunk_addr(upper_addr)
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
             print("ERROR %s: data region %d to %d (chunk %d to %d) is crossing gappy atom boundary!"%(self.circbuf_type, lower_addr, upper_addr, lower_addr_chunked, upper_addr_chunked));
             #exit(-1)
@@ -426,8 +442,9 @@ class CircularBuffer:
                     self.addr2atom[i] = atom_id
         return dram_waveops
     
+    # hit_end_addr is used in write_data_region; so it should use ofmap_data_len
     def hit_end_addr(self, upper_addr):
-        upper_addr_chunked = upper_addr // self.atom_data_sz
+        upper_addr_chunked = self.get_chunk_addr(upper_addr)
         # if upper addr is larger than IFMAP size, then it is in a different channel or batch item,
         # so use the modulo to check the end address
         upper_addr_mod = upper_addr % self.ofmap_data_len
@@ -442,8 +459,8 @@ class CircularBuffer:
             self.tracked_lower_addr_chunked = lower_addr // self.atom_data_sz
         if (args.debug > 2): print("%s: written range is now %d to %d"%(self.circbuf_type, self.tracked_lower_addr, upper_addr))
         dram_waveops = []
-        lower_addr_chunked = lower_addr // self.atom_data_sz
-        upper_addr_chunked = upper_addr // self.atom_data_sz
+        lower_addr_chunked = self.get_chunk_addr(lower_addr)
+        upper_addr_chunked = self.get_chunk_addr(upper_addr)
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
             print("ERROR %s: data region %d to %d (chunk %d to %d) is crossing gappy atom boundary!"%(self.circbuf_type, lower_addr, upper_addr, lower_addr_chunked, upper_addr_chunked));
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
@@ -465,8 +482,8 @@ class CircularBuffer:
 
     def free_data_region(self, lower_addr, upper_addr):
         if (args.debug > 2): print("%s: free byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
-        lower_addr_chunked = lower_addr // self.atom_data_sz
-        upper_addr_chunked = upper_addr // self.atom_data_sz
+        lower_addr_chunked = self.get_chunk_addr(lower_addr)
+        upper_addr_chunked = self.get_chunk_addr(upper_addr)
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i in self.addr2atom:
                 self.free_atom(self.addr2atom[i])
@@ -863,21 +880,33 @@ class WaveopStream(list):
         self.last_main_waveop = None
         self.waveop_name_set = set()
 
+    def append_check(self, item):
+        item_name = item['waveop_name']
+        i = 0
+        while (item_name in self.waveop_name_set):
+            new_name = item_name + "__" + str(i)
+            print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
+            item_name = new_name
+            i += 1
+        item['waveop_name'] = item_name
+        self.waveop_name_set.add(item['waveop_name'])                
+        self.append(item)
+
     def add_linked(self, waveop, side_waveops):
         input_list = []
         for i in side_waveops:
             input_list.append(i['waveop_name'])
-            self.append(i)
+            self.append_check(i)
         if (self.last_main_waveop != None):
             input_list.append(self.last_main_waveop['waveop_name'])
         waveop['previous_waveops'] = input_list
-        self.append(waveop)
+        self.append_check(waveop)
         self.last_main_waveop = waveop
 
     def add_outputs(self, waveops):
         for i in waveops:
             i['previous_waveops'].append(self.last_main_waveop['waveop_name'])
-            self.append(i)
+            self.append_check(i)
 
     def add_group(self, waveops):
         if (len(waveops)>0):
@@ -1109,8 +1138,10 @@ class FusedOp(list):
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
             tpb.waveop_stream.add_linked(matmul_waveop, dram_ifmaps_waveops + dram_weights_waveops)
+            # collect statistics
+            tpb.pearray.num_ops_executed += self.conv_op.ofmap_count * self.conv_op.ofmap_full_tile_sz * self.conv_op.ifmap_count
             return True
-
+        
     # execute remaining fused ops
     def execute_tile_waveops (self, tpb, wave_id, tile_id, psum_bank_src, bias, psum_temp):
         op_list_iter = iter(range(1, len(self)))
@@ -1582,6 +1613,30 @@ class TPBSched:
         pool_waveop = op_list.gen_pool_waveop(self, tile_id, False, 0)
         self.waveop_stream.add_linked(pool_waveop, dram_waveops)
 
+    # reset statistics
+    def reset_stats(self):        
+        self.pearray.num_wave_fp16_mm = 0
+        self.pearray.num_ops_executed = 0
+        if (self.statebuffer.circbuf_weights.DRAM_elem_read):
+            self.statebuffer.circbuf_weights.DRAM_elem_read = 0
+        self.statebuffer.circbuf_ifmaps.DRAM_elem_read = 0
+
+    # print out statistics
+    def calculate_compute_to_load_ratio(self):
+        num_of_wave_ops = self.pearray.num_wave_fp16_mm * self.pearray.NUM_ROWS * self.pearray.NUM_COLS * self.pearray.MAX_WAVE_SIZE
+        num_of_reads = self.statebuffer.circbuf_weights.DRAM_elem_read + self.statebuffer.circbuf_ifmaps.DRAM_elem_read
+        minimum_reads = self.statebuffer.circbuf_weights.dram_data.size + self.statebuffer.circbuf_ifmaps.dram_data.size
+        ideal_compute_to_load_ratio = self.pearray.num_ops_executed / self.statebuffer.circbuf_weights.dram_data.size * 2
+        actual_to_min_read_ratio = num_of_reads / minimum_reads
+        wave_op_efficiency = self.pearray.num_ops_executed / num_of_wave_ops
+        print("num_of_wave_ops: ",num_of_wave_ops, "num_of_op_executed: ", self.pearray.num_ops_executed, "wave_op_efficiency", wave_op_efficiency)
+        print("num_of_reads: ",num_of_reads,"minimum_reads: ",minimum_reads, "actual_to_min_read_ratio: ",actual_to_min_read_ratio,\
+              "weights_read:",self.statebuffer.circbuf_weights.DRAM_elem_read,"ifmaps_read: ",self.statebuffer.circbuf_ifmaps.DRAM_elem_read)
+        print("min weight read:",self.statebuffer.circbuf_weights.dram_data.size, "min ifmap read: ",self.statebuffer.circbuf_ifmaps.dram_data.size)
+        print("ideal_compute_to_load_ratio: ",ideal_compute_to_load_ratio)
+        print("number_of_waves: ",self.pearray.num_wave_fp16_mm)
+        self.reset_stats()
+
     # Execute an unfused pooling operator
     def execute_unfused_pool_op(self, inputs, result_file):
         # for resnet-50, only MaxPool should call this method
@@ -1661,6 +1716,7 @@ class TPBSched:
 
         # print circular buffer stats
         self.statebuffer.print_stats()
+        self.reset_stats()
 
         # reset scratch buffer for now (TODO: keep some atoms for next layer)
         self.statebuffer.reset_all()
@@ -1783,6 +1839,7 @@ class TPBSched:
 
         # print circular buffer stats
         self.statebuffer.print_stats()
+        self.calculate_compute_to_load_ratio()
 
         # reset scratch buffer for now (TODO: keep some atoms for next layer)
         self.statebuffer.reset_all()
@@ -1797,7 +1854,7 @@ if __name__ == "__main__":
     parser.add_argument("--kgraph", help="K-graph Json file to read")
     parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
     parser.add_argument("--dot", help="Dot file to write")
-    parser.add_argument("--debug", default=DEBUG_LEVEL_DEFAULT, help="Debug level")
+    parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     args = parser.parse_args()
 
@@ -1828,14 +1885,8 @@ if __name__ == "__main__":
 
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
-            #if (op_list.has_conv):
-            #    results = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0], op_list.conv_op.ofmap_full_tiley_sz * op_list.conv_op.stride_y)
-            #else:                
-            #    results = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
             tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = op_list[0].data['ref_file']
-            #inputs = results
         # Check conv fused op
-        # TODO: add matrix multiply
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
                 tpb.statebuffer.circbuf_ifmaps.layer_type = "Input" #op_list[0].data['layer_type']
@@ -1855,6 +1906,7 @@ if __name__ == "__main__":
                 exit(-1)
             # TODO: add selecting among pre-derived looping schemes
             results = tpb.execute_conv_ops(results, result_file)
+        # TODO: add matrix multiply
         elif (re.search(r"MatMult", op_list[0].data['layer_type'])):
             print("ERROR: MatMult operation is unimplemented")
             exit(-1)
