@@ -79,6 +79,9 @@ public:
     virtual bool qActivationWaveOp() const {
         return false;
     }
+    virtual bool qResAddWaveOp() const {
+        return false;
+    }
 
 
     //----------------------------------------------------------------
