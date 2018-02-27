@@ -1840,14 +1840,8 @@ if __name__ == "__main__":
 
         # Check init op
         if (re.search(r"Input", op_list[0].data['layer_type'])):
-            #if (op_list.has_conv):
-            #    results = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0], op_list.conv_op.ofmap_full_tiley_sz * op_list.conv_op.stride_y)
-            #else:                
-            #    results = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
             tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = op_list[0].data['ref_file']
-            #inputs = results
         # Check conv fused op
-        # TODO: add matrix multiply
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
                 tpb.statebuffer.circbuf_ifmaps.layer_type = "Input" #op_list[0].data['layer_type']
@@ -1867,6 +1861,7 @@ if __name__ == "__main__":
                 exit(-1)
             # TODO: add selecting among pre-derived looping schemes
             results = tpb.execute_conv_ops(results, result_file)
+        # TODO: add matrix multiply
         elif (re.search(r"MatMult", op_list[0].data['layer_type'])):
             print("ERROR: MatMult operation is unimplemented")
             exit(-1)
