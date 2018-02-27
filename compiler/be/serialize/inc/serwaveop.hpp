@@ -63,13 +63,13 @@ constexpr static const char* WaveOpKey_OfmapTileWidth       = "ofmap_tile_width"
 constexpr static const char* WaveOpKey_PsumBankId           = "psum_bank_id";
 constexpr static const char* WaveOpKey_PsumBankOffset       = "psum_bank_offset";
 constexpr static const char* WaveOpKey_PsumXNum             = "psum_x_num";
-constexpr static const char* WaveOpKey_PsumXStep             = "psum_x_step";
+constexpr static const char* WaveOpKey_PsumXStep            = "psum_x_step";
 constexpr static const char* WaveOpKey_PsumYNum             = "psum_y_num";
-constexpr static const char* WaveOpKey_PsumYStep             = "psum_y_step";
+constexpr static const char* WaveOpKey_PsumYStep            = "psum_y_step";
 constexpr static const char* WaveOpKey_StartTensorCalc      = "start_tensor_calc";
-constexpr static const char* WaveOpKey_StopTensorCalc      = "stop_tensor_calc";
-constexpr static const char* WaveOpKey_StrideX               = "stride_x";
-constexpr static const char* WaveOpKey_StrideY               = "stride_y";
+constexpr static const char* WaveOpKey_StopTensorCalc       = "stop_tensor_calc";
+constexpr static const char* WaveOpKey_StrideX              = "stride_x";
+constexpr static const char* WaveOpKey_StrideY              = "stride_y";
 constexpr static const char* WaveOpKey_WaveId               = "wave_id";
 constexpr static const char* WaveOpKey_WaveIdFormat         = "wave_id_format";
 // waveop name
@@ -93,7 +93,7 @@ constexpr static const char* WaveOpKey_IfmapsFoldIdx        = "ifmaps_fold_idx";
 constexpr static const char* WaveOpKey_IfmapsReplicate      = "ifmaps_replicate";
 
 // SBAtomSave
-constexpr static const char* WaveOpKey_OfmapsFoldIdx = "ofmaps_fold_idx";
+constexpr static const char* WaveOpKey_OfmapsFoldIdx        = "ofmaps_fold_idx";
 
 // Pool
 constexpr static const char* WaveOpKey_DstIsPsum            = "dst_is_psum";
@@ -106,12 +106,12 @@ constexpr static const char* WaveOpKey_DstYStep	            = "dst_y_step";
 constexpr static const char* WaveOpKey_DstZNum	            = "dst_z_num";
 constexpr static const char* WaveOpKey_DstZStep	            = "dst_z_step";
 constexpr static const char* WaveOpKey_InDtype              = "in_dtype";
-// "layername": "1conv/i1",
+
 constexpr static const char* WaveOpKey_NumPartitions        = "num_partitions";
 constexpr static const char* WaveOpKey_OutDtype             = "out_dtype";
 constexpr static const char* WaveOpKey_PoolFrequency	    = "pool_frequency";
 constexpr static const char* WaveOpKey_PoolFunc             = "pool_func";
-// previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
+
 constexpr static const char* WaveOpKey_SrcIsPsum            = "src_is_psum";
 constexpr static const char* WaveOpKey_SrcPsumBankId        = "src_psum_bank_id";
 constexpr static const char* WaveOpKey_SrcPsumBankOffset    = "src_psum_bank_offset";
@@ -125,10 +125,9 @@ constexpr static const char* WaveOpKey_SrcYNum	            = "src_y_num";
 constexpr static const char* WaveOpKey_SrcYStep	            = "src_y_step";
 constexpr static const char* WaveOpKey_SrcZNum	            = "src_z_num";
 constexpr static const char* WaveOpKey_SrcZStep	            = "src_z_step";
+
 constexpr static const char* WaveOpKey_TileId               = "tile_id";
 constexpr static const char* WaveOpKey_TileIdFormat         = "tile_id_format";
-//waveopname": "1conv/i1/Pooln0m0h0w0",
-//waveoptype": "Pool"
 
 constexpr static const char* WaveOpKey_ActivationFunc              = "activation_func";
 constexpr static const char* WaveOpKey_ActivationFunc_None         = "none"; /* until Jeff fixes none */
@@ -145,25 +144,37 @@ constexpr static const char* WaveOpKey_BiasAddEn            = "bias_add_en";
 constexpr static const char* WaveOpKey_BiasAtomId           = "bias_atom_id";
 constexpr static const char* WaveOpKey_BiasOffsetInAtom     = "bias_offset_in_atom";
 constexpr static const char* WaveOpKey_DstPsumBankId        = "dst_psum_bank_id";
-//constexpr static const char* WaveOpKey_DstXNum              = "dst_x_num";
-//constexpr static const char* WaveOpKey_DstXStep             = "dst_x_step";
-//constexpr static const char* WaveOpKey_DstYNum              = "dst_y_num";
-//constexpr static const char* WaveOpKey_DstYStep             = "dst_y_step";
-//constexpr static const char* WaveOpKey_DstZNum              = "dst_z_num";
-//constexpr static const char* WaveOpKey_DstZStep             = "dst_z_step";
-//constexpr static const char* WaveOpKey_InDtype              = "in_dtype";
-//constexpr static const char* WaveOpKey_NumPartitions        = "num_partitions";
-//constexpr static const char* WaveOpKey_OutDtype             = "out_dtype";
-//constexpr static const char* WaveOpKey_SrcPsumBankId        = "src_psum_bank_id";
-//constexpr static const char* WaveOpKey_SrcXNum              = "src_x_num";
-//constexpr static const char* WaveOpKey_SrcXStep             = "src_x_step";
-//constexpr static const char* WaveOpKey_SrcYNum              = "src_y_num";
-//constexpr static const char* WaveOpKey_SrcYStep             = "src_y_step";
-//constexpr static const char* WaveOpKey_SrcZNum              = "src_z_num";
-//constexpr static const char* WaveOpKey_SrcZStep             = "src_z_step";
-//constexpr static const char* WaveOpKey_TileId               = "tile_id";
-//constexpr static const char* WaveOpKey_TileIdFormat         = "tile_id_format";
 
+
+constexpr static const char* WaveOpKey_InADtype             = "in_a_dtype";
+constexpr static const char* WaveOpKey_SrcAIsPsum           = "src_a_is_psum";
+constexpr static const char* WaveOpKey_SrcAPsumBankId       = "src_a_psum_bank_id";
+constexpr static const char* WaveOpKey_SrcAPsumBankOffset   = "src_a_psum_bank_offset";
+constexpr static const char* WaveOpKey_SrcASbAtomId         = "src_a_sb_atom_id";
+constexpr static const char* WaveOpKey_SrcASbOffsetInAtom   = "src_a_sb_offset_in_atom";
+constexpr static const char* WaveOpKey_SrcAWNum	            = "src_a_w_num";
+constexpr static const char* WaveOpKey_SrcAWStep	        = "src_a_w_step";
+constexpr static const char* WaveOpKey_SrcAXNum	            = "src_a_x_num";
+constexpr static const char* WaveOpKey_SrcAXStep	        = "src_a_x_step";
+constexpr static const char* WaveOpKey_SrcAYNum	            = "src_a_y_num";
+constexpr static const char* WaveOpKey_SrcAYStep	        = "src_a_y_step";
+constexpr static const char* WaveOpKey_SrcAZNum	            = "src_a_z_num";
+constexpr static const char* WaveOpKey_SrcAZStep	        = "src_a_z_step";
+
+constexpr static const char* WaveOpKey_InBDtype             = "in_b_dtype";
+constexpr static const char* WaveOpKey_SrcBIsPsum           = "src_b_is_psum";
+constexpr static const char* WaveOpKey_SrcBPsumBankId       = "src_b_psum_bank_id";
+constexpr static const char* WaveOpKey_SrcBPsumBankOffset   = "src_b_psum_bank_offset";
+constexpr static const char* WaveOpKey_SrcBSbAtomId         = "src_b_sb_atom_id";
+constexpr static const char* WaveOpKey_SrcBSbOffsetInAtom   = "src_b_sb_offset_in_atom";
+constexpr static const char* WaveOpKey_SrcBWNum	            = "src_b_w_num";
+constexpr static const char* WaveOpKey_SrcBWStep	        = "src_b_w_step";
+constexpr static const char* WaveOpKey_SrcBXNum	            = "src_b_x_num";
+constexpr static const char* WaveOpKey_SrcBXStep	        = "src_b_x_step";
+constexpr static const char* WaveOpKey_SrcBYNum	            = "src_b_y_num";
+constexpr static const char* WaveOpKey_SrcBYStep	        = "src_b_y_step";
+constexpr static const char* WaveOpKey_SrcBZNum	            = "src_b_z_num";
+constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
 
 
@@ -199,6 +210,7 @@ private:
     void loadPool(cereal::JSONInputArchive& archive);
     void loadMatMul(cereal::JSONInputArchive& archive);
     void loadActivation(cereal::JSONInputArchive& archive);
+    void loadResAdd(cereal::JSONInputArchive& archive);
 
     void saveSbAtom(cereal::JSONOutputArchive& archive) const;
     void savePool(cereal::JSONOutputArchive& archive) const;
@@ -304,6 +316,7 @@ public:
     std::string                 m_OutDtype          = "";
     kcc_int32                   m_PoolFrequency	    = -1;
     std::string                 m_PoolFunc          = "";
+
     // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
     bool                        m_SrcIsPsum         = true;
     kcc_int32                   m_SrcPsumBankId     = -1;
@@ -318,8 +331,39 @@ public:
     kcc_int32                   m_SrcYStep	        = -1;
     kcc_int32                   m_SrcZNum	        = +1;
     kcc_int32                   m_SrcZStep	        = +1;
+
+    std::string                 m_InADtype           = "";
+    bool                        m_SrcAIsPsum            = true;
+    kcc_int32                   m_SrcAPsumBankId        = -1;
+    kcc_int32                   m_SrcAPsumBankOffset    = -1;
+    kcc_int32                   m_SrcASbAtomId          = -1;
+    kcc_int32                   m_SrcASbOffsetInAtom    = -1;
+    kcc_int32                   m_SrcAWNum	            = -1;
+    kcc_int32                   m_SrcAWStep	            = -1;
+    kcc_int32                   m_SrcAXNum	            = -1;
+    kcc_int32                   m_SrcAXStep	            = -1;
+    kcc_int32                   m_SrcAYNum	            = -1;
+    kcc_int32                   m_SrcAYStep	            = -1;
+    kcc_int32                   m_SrcAZNum	            = -1;
+    kcc_int32                   m_SrcAZStep	            = -1;
+
+    std::string                 m_InBDtype           = "";
+    bool                        m_SrcBIsPsum            = true;
+    kcc_int32                   m_SrcBPsumBankId        = -1;
+    kcc_int32                   m_SrcBPsumBankOffset    = -1;
+    kcc_int32                   m_SrcBSbAtomId          = -1;
+    kcc_int32                   m_SrcBSbOffsetInAtom    = -1;
+    kcc_int32                   m_SrcBWNum	            = -1;
+    kcc_int32                   m_SrcBWStep	            = -1;
+    kcc_int32                   m_SrcBXNum	            = -1;
+    kcc_int32                   m_SrcBXStep	            = -1;
+    kcc_int32                   m_SrcBYNum	            = -1;
+    kcc_int32                   m_SrcBYStep	            = -1;
+    kcc_int32                   m_SrcBZNum	            = -1;
+    kcc_int32                   m_SrcBZStep	            = -1;
+
     std::vector<kcc_int32>      m_TileId;
-    std::string                 m_TileIdFormat      = "";
+    std::string                 m_TileIdFormat          = "";
     //waveopname": "1conv/i1/Pooln0m0h0w0",
     //waveoptype": "Pool"
 

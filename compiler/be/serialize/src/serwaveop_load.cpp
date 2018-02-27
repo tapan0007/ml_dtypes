@@ -189,6 +189,76 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
 }
+
+
+void
+SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
+{
+
+    //archive(cereal::make_nvp(WaveOpKey_ActivationFunc, m_ActivationFunc);
+
+    KCC_ARCHIVE(InADtype);
+    KCC_ARCHIVE(InBDtype);
+    KCC_ARCHIVE(OutDtype);
+    KCC_ARCHIVE(NumPartitions);
+
+    KCC_ARCHIVE(SrcAXNum);
+    KCC_ARCHIVE(SrcAXStep);
+    KCC_ARCHIVE(SrcAYNum);
+    KCC_ARCHIVE(SrcAYStep);
+    KCC_ARCHIVE(SrcAZNum);
+    KCC_ARCHIVE(SrcAZStep);
+
+    KCC_ARCHIVE(SrcAIsPsum);
+    if (m_SrcAIsPsum) {
+        KCC_ARCHIVE(SrcAPsumBankId);
+    } else {
+        KCC_ARCHIVE(SrcASbAtomId);
+        KCC_ARCHIVE(SrcASbOffsetInAtom);
+    }
+
+    KCC_ARCHIVE(SrcBXNum);
+    KCC_ARCHIVE(SrcBXStep);
+    KCC_ARCHIVE(SrcBYNum);
+    KCC_ARCHIVE(SrcBYStep);
+    KCC_ARCHIVE(SrcBZNum);
+    KCC_ARCHIVE(SrcBZStep);
+
+    KCC_ARCHIVE(SrcBIsPsum);
+    if (m_SrcBIsPsum) {
+        KCC_ARCHIVE(SrcBPsumBankId);
+    } else {
+        KCC_ARCHIVE(SrcBSbAtomId);
+        KCC_ARCHIVE(SrcBSbOffsetInAtom);
+    }
+
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
+
+    KCC_ARCHIVE(DstIsPsum);
+    if (m_DstIsPsum) {
+        KCC_ARCHIVE(DstPsumBankId);
+    } else {
+        KCC_ARCHIVE(DstSbAtomId);
+        KCC_ARCHIVE(DstSbOffsetInAtom);
+    }
+
+
+    KCC_ARCHIVE(SrcPsumBankId);
+    KCC_ARCHIVE(SrcXNum);
+    KCC_ARCHIVE(SrcXStep);
+    KCC_ARCHIVE(SrcYNum);
+    KCC_ARCHIVE(SrcYStep);
+    //KCC_ARCHIVE(SrcZNum);
+    //KCC_ARCHIVE(SrcZStep);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+}
+
 #undef KCC_ARCHIVE
 
 
