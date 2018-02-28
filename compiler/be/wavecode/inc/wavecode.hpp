@@ -43,6 +43,7 @@ public:
     class NpyFileInfo {
     public:
         kcc_int64 m_FileDramOffset = -1;
+        bool        m_Dirty         = false;
         ARBPRECTYPE m_SimTypeId = INVALID_ARBPRECTYPE;
         std::array<kcc_int32, 4> m_RefFileShape;
     };
@@ -68,10 +69,9 @@ public:
 
 
     kcc_int64 gCurrentDramAddress(kcc_int64 sizeInBytes);
-    kcc_int64 getDramForInputNpyFile(const std::string& fileName);
-    kcc_int64 getDramForOutputNpyFile(const std::string& fileName);
-    void recordDramForInputNpyFile(const std::string& fileName, kcc_int64 dramOffset);
-    void recordDramForOutputNpyFile(const std::string& fileName, const NpyFileInfo& npyFileInfo);
+    kcc_int64 getDramForNpyFile(const std::string& fileName);
+    void recordDramForNpyFile(const std::string& fileName, const NpyFileInfo& npyFileInfo);
+    void markDramDirty(const std::string& fileName);
 
 private:
     WaveCode() = delete;
@@ -94,8 +94,7 @@ private:
     std::unique_ptr<WaveCodeResAdd>     m_CodeResAdd;
 
     kcc_int64                           m_CurrentDramAddress;
-    std::map<std::string, kcc_int64>    m_InputNpyFile2DramAddress;
-    std::map<std::string, NpyFileInfo>  m_OutputNpyFile2DramAddress;
+    std::map<std::string, NpyFileInfo>  m_NpyFile2DramAddress;
 };
 
 }}
