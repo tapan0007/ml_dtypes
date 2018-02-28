@@ -44,10 +44,17 @@ kcc_int64
 SbAtomSaveWaveOp::gSaveDataSizeInBytes() const
 {
         const layers::Layer* const layer = m_Layer;
-        kcc_int64 numPySize = layer->gDataType().gSizeInBytes();
+        kcc_int64 numPySize = gDataType().gSizeInBytes();
         numPySize *= layer->gNumOfmaps();    // C
         numPySize *= layer->gOfmapHeight();  // H
         numPySize *= layer->gOfmapWidth();   // W
+        {
+            kcc_int64 n = gDataType().gSizeInBytes();
+            for (int i = 0; i < 4; ++i) {
+                n *= gRefFileShape()[i];
+            }
+            assert(numPySize == n);
+        }
         return numPySize;
 }
 

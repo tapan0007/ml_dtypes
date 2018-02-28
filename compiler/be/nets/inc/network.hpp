@@ -98,7 +98,7 @@ private:
                     serialize::SerWaveOp& serWaveOp) const;
     void saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
-    void saveActivaton(const wave::ResAddWaveOp* resAddWaveOp,
+    void saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
 
 

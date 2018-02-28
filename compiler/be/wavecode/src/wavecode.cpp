@@ -12,6 +12,7 @@
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
+#include "wave/inc/resaddwaveop.hpp"
 
 //#include "wavecode/inc/wavecodewaveop.hpp"
 #include "wavecode/inc/wavecodesbatomfile.hpp"
@@ -19,6 +20,8 @@
 #include "wavecode/inc/wavecodematmul.hpp"
 #include "wavecode/inc/wavecodepool.hpp"
 #include "wavecode/inc/wavecodeactivation.hpp"
+#include "wavecode/inc/wavecoderesadd.hpp"
+
 #include "wavecode/inc/wavecode.hpp"
 
 namespace kcc {
@@ -33,6 +36,8 @@ WaveCode::WaveCode(const nets::Network* network, const arch::Arch& arch)
     m_CodeSbAtomSave        = std::make_unique<WaveCodeSbAtomSave>(this);
     m_CodePool              = std::make_unique<WaveCodePool>(this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(this);
+    m_CodeResAdd            = std::make_unique<WaveCodeResAdd>(this);
+
     m_CurrentDramAddress    = DDRC0_PORT0;
 }
 
@@ -63,6 +68,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         return *m_CodePool;
     } else if (dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
         return *m_CodeActivation;
+    } else if (dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
+        return *m_CodeResAdd;
     } else {
         assert(false && "WaveCode: Unsupported WaveOp");
     }

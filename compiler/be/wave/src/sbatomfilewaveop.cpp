@@ -42,6 +42,13 @@ SbAtomFileWaveOp::gLoadDataSizeInBytes () const
         numPySize *= convLayer->gKernelHeight(); // R
         numPySize *= convLayer->gKernelWidth();  // S
         numPySize *= convLayer->gNumOfmaps();    // M
+        {
+            kcc_int64 n = gDataType().gSizeInBytes();
+            for (int i = 0; i < 4; ++i) {
+                n *= gRefFileShape()[i];
+            }
+            assert(numPySize == n);
+        }
     } else if (layer->qInputLayer()) {
         auto inputLayer = dynamic_cast<const layers::InputLayer*>(layer);  // All IFMAPs = NCHW
         assert(inputLayer && "Input Layer expected");
@@ -49,6 +56,13 @@ SbAtomFileWaveOp::gLoadDataSizeInBytes () const
         numPySize *= inputLayer->gNumOfmaps();    // C
         numPySize *= inputLayer->gOfmapHeight();  // H
         numPySize *= inputLayer->gOfmapWidth();   // W
+        {
+            kcc_int64 n = gDataType().gSizeInBytes();
+            for (int i = 0; i < 4; ++i) {
+                n *= gRefFileShape()[i];
+            }
+            assert(numPySize == n);
+        }
     } else if (layer->qConstLayer()) {
         auto constLayer = dynamic_cast<const layers::ConstLayer*>(layer);  // All IFMAPs = NCHW
         assert(constLayer && "Const Layer expected");
@@ -56,8 +70,17 @@ SbAtomFileWaveOp::gLoadDataSizeInBytes () const
         numPySize *= constLayer->gNumOfmaps();    // C
         numPySize *= constLayer->gOfmapHeight();  // H
         numPySize *= constLayer->gOfmapWidth();   // W
+        {
+            kcc_int64 n = gDataType().gSizeInBytes();
+            for (int i = 0; i < 4; ++i) {
+                n *= gRefFileShape()[i];
+            }
+            assert(numPySize == n);
+        }
     } else {
-        assert(false && "Conv or Input layer expected");
+        for (int i = 0; i < 4; ++i) {
+            numPySize *= gRefFileShape()[i];
+        }
     }
     return numPySize;
 }

@@ -22,6 +22,9 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
     , m_InADtype(DataType::dataTypeId2DataType(params.m_InADtypeId))
     , m_InBDtype(DataType::dataTypeId2DataType(params.m_InBDtypeId))
     , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtypeId))
+    , m_SrcAIsPsum(params.m_SrcAIsPsum)
+    , m_SrcBIsPsum(params.m_SrcBIsPsum)
+    , m_DstIsPsum(params.m_DstIsPsum)
 {
     /* src_a */
     if (m_SrcAIsPsum) {

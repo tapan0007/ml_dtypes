@@ -23,6 +23,7 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
     , m_BiasAddEn(params.m_BiasAddEn)
     , m_BiasAtomId(params.m_BiasAtomId)
     , m_BiasOffsetInAtom(params.m_BiasOffsetInAtom)
+    , m_DstIsPsum(params.m_DstIsPsum)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_NumPartitions(params.m_NumPartitions)
     , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtypeId))
@@ -43,7 +44,6 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
     m_DstZNum           = params.m_DstZNum;
     m_DstZStep          = params.m_DstZStep;
 
-    m_DstIsPsum             = params.m_DstIsPsum;
     if (m_DstIsPsum) {
         m_DstPsumBankId     = params.m_DstPsumBankId;
     } else {
