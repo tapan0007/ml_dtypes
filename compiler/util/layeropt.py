@@ -204,10 +204,12 @@ class CircularBuffer:
         self.current_atom_id = self.start
         self.atom_data_sz = self.atom_sz
         self.need_spare_atoms = 0
+        self.need_skip_atoms = False
         self.count = 0
         self.eviction_count = 0
         self.max_count = 0
         self.allocated = np.zeros(self.capacity, dtype=bool)
+        self.skipped = np.zeros(self.capacity, dtype=bool)
         self.dram_data_in_file = None
         self.dram_data_out_file = None
         self.dram_data = None
@@ -222,6 +224,7 @@ class CircularBuffer:
         self.layer_shape = []
         self.chunk2atom_map = {}
         self.chunk2spare_map = {}
+        self.chunk2skip_map = {}
         self.data_type = 'float16'
 
     def get_atom(self, addr):
@@ -301,6 +304,9 @@ class CircularBuffer:
                 # need spare atoms for large images
                 self.need_spare_atoms = max(1, (fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz) // self.atom_sz)
                 print("Reserve %d as spare atoms"%self.need_spare_atoms)
+                if (C > 128):
+                    self.need_skip_atoms = True
+                    print("Reserving last atom for each wave load as skip atom")
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
                 multiple = self.atom_sz // ifmap_width_data_len
@@ -417,11 +423,13 @@ class CircularBuffer:
                 and atom_id >= self.start + self.capacity - self.need_spare_atoms
                 and atom_id < self.start + self.capacity)
 
+    def is_a_skip_atom(self, atom_id):
+        return (self.need_skip_atoms and self.skipped[atom_id - self.start])
     
     def map_chunk_to_nonspare_atom(self, atom_id, chunk_id):
         for k in self.chunk2atom_map.keys():
             if (self.chunk2atom_map[k] == atom_id):
-                if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
+                if (args.debug > 2): print("%s: evicting %s at nonspare atom_id %d, replacing with chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2atom_map[k]
                 break
@@ -430,11 +438,20 @@ class CircularBuffer:
     def map_chunk_to_spare_atom(self, atom_id, chunk_id):
         for k in self.chunk2spare_map.keys():
             if (self.chunk2spare_map[k] == atom_id):
-                if (args.debug > 2): print("%s: evicting %s at atom_id %d, replacing with chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
+                if (args.debug > 2): print("%s: evicting %s at spare atom_id %d, replacing with chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2spare_map[k]
                 break
         self.chunk2spare_map[chunk_id] = atom_id
+
+    def map_chunk_to_skip_atom(self, atom_id, chunk_id):
+        for k in self.chunk2skip_map.keys():
+            if (self.chunk2skip_map[k] == atom_id):
+                if (args.debug > 2): print("%s: evicting %s at skip atom_id %d, replacing with chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
+                self.eviction_count += 1
+                del self.chunk2skip_map[k]
+                break
+        self.chunk2skip_map[chunk_id] = atom_id
 
     def read_data_region(self, wave_id, lower_addr, upper_addr, ifmap_count):
         if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
@@ -447,11 +464,16 @@ class CircularBuffer:
         # allocate the first chunk
         # check whether the starting chunk is near end of buffer; skip to beginning if it is within spare region
         if (lower_addr_chunked not in self.chunk2atom_map):
-            if (self.is_a_spare_atom(self.tail_pointer)):
-                self.tail_pointer = 0
+            while (self.is_a_spare_atom(self.tail_pointer) or self.is_a_skip_atom(self.tail_pointer)):
+                self.tail_pointer += 1
+                if (self.tail_pointer == self.start + self.capacity):
+                    self.tail_pointer = self.start
+                assert (self.tail_pointer != self.head_pointer)                    
             atom_id = self.allocate_atom()
             dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, lower_addr_chunked, ifmap_count))
             self.map_chunk_to_nonspare_atom(atom_id, lower_addr_chunked)
+        else:
+            if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, lower_addr_chunked, self.chunk2atom_map[lower_addr_chunked]));
         # allocate the remaining chunks
         # check whether chunk is already in the spares
         starting_spares = False
@@ -469,10 +491,25 @@ class CircularBuffer:
                     else:                        
                         if (args.debug > 2): print("%s: reusing atom_id %d as spare for chunk %d (range %d-%d)"%(self.circbuf_type, self.chunk2spare_map[i], i, lower_addr, upper_addr))
                 else:
-                    assert(starting_spares == False)
-                    atom_id = self.allocate_atom()
-                    dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
-                    self.map_chunk_to_nonspare_atom(atom_id, i)
+                    assert(starting_spares == False)    # indicate fragmented space (bad!)
+                    # if multiple atoms used, and need skip atoms, then keep the last atom as skip-atom
+                    if (self.need_skip_atoms and i == upper_addr_chunked):
+                        if (self.is_a_skip_atom(self.tail_pointer) 
+                                and i in self.chunk2skip_map 
+                                and self.chunk2skip_map == self.tail_pointer):
+                            if (args.debug > 2): print("%s: reusing atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, self.chunk2skip_map[i], i, lower_addr, upper_addr))
+                        else:                                
+                            atom_id = self.allocate_atom()
+                            dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
+                            if (args.debug > 2): print("%s: keeping last atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, atom_id, i, lower_addr, upper_addr))
+                            self.allocated[atom_id - self.start] = False
+                            self.skipped[atom_id - self.start] = True
+                            self.count -= 1
+                            self.map_chunk_to_skip_atom(atom_id, i)
+                    else:                        
+                        atom_id = self.allocate_atom()
+                        dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
+                        self.map_chunk_to_nonspare_atom(atom_id, i)
         return dram_waveops
     
     # hit_end_addr is used in write_data_region; so it should use ofmap_data_len
@@ -531,6 +568,10 @@ class CircularBuffer:
             exit(-1)
             return -1
         self.current_atom_id = self.tail_pointer
+        if (self.allocated[self.current_atom_id - self.start]):
+            print("ERROR %s: allocating a still allocated (non-free) atom at atom_id %d"%(self.circbuf_type, self.current_atom_id))
+            self.print_stats()
+            exit(-1)
         self.allocated[self.current_atom_id - self.start] = True
         if (args.debug > 2): print ("%s: Added atom_id %d for layer %s"%(self.circbuf_type, self.current_atom_id, self.layer_name))
         self.tail_pointer += 1
