@@ -1031,8 +1031,8 @@ class Graph(Object):
       kGraphJsonFile = outPrefix + "compiler.json"
       waveGraphJsonFile = outPrefix + "wavegraph.json"
       waveDotFile = outPrefix + "wavegraph.svg"
-      cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s > log-me.txt 2>&1" % (
-            waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, waveDotFile)
+      cmd = "python3 %s --kgraph %s --wavegraph %s --golden_inputs > log-me.txt 2>&1" % (
+            waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile)
       print("INFO: executing wave scheduler by  " + cmd)
       os.system(cmd)
       return [waveGraphJsonFile, waveDotFile]
