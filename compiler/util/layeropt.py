@@ -208,7 +208,8 @@ class CircularBuffer:
         self.eviction_count = 0
         self.max_count = 0
         self.allocated = np.zeros(self.capacity, dtype=bool)
-        self.dram_data_file = None
+        self.dram_data_in_file = None
+        self.dram_data_out_file = None
         self.dram_data = None
         self.dram_data_len = 0
         self.ifmap_data_len = 0
@@ -240,20 +241,20 @@ class CircularBuffer:
         self.layer_name = waveop.data['layer_name']
         self.layer_type = waveop.data['layer_type']
         if (self.layer_type == 'Input' or self.layer_type == 'Const'):
-            self.dram_data_file = waveop.data['ref_file']
+            self.dram_data_in_file = waveop.data['ref_file']
             self.layer_format = waveop.data['ofmap_format']
             self.layer_shape = waveop.data['ofmap_shape']
         else:            
-            self.dram_data_file = waveop.data['kernel_file']
+            self.dram_data_in_file = waveop.data['kernel_file']
             self.layer_format = waveop.data['kernel_format']
             self.layer_shape = waveop.data['kernel_shape']
-        self.load_file(self.dram_data_file, fmap_full_tiley_sz)
-        #print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
+        self.load_file(self.dram_data_in_file, fmap_full_tiley_sz)
+        #print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
     def load_file(self, file, fmap_full_tiley_sz = 0, fmap_full_tilex_sz = 0, filter_sz=1, stride_sz=1):      # use waveop instead of waveop 
-        self.dram_data_file = file
-        self.dram_data = np.load(self.dram_data_file)
+        self.dram_data_in_file = file
+        self.dram_data = np.load(self.dram_data_in_file)
         self.item_sz = self.dram_data.dtype.itemsize   
         self.data_type = self.dram_data.dtype.name
         self.dram_data_len = self.dram_data.size * self.item_sz
@@ -329,7 +330,7 @@ class CircularBuffer:
                 self.atom_data_sz = m_data_len * min(S, multiple)
             else:
                 self.atom_data_sz = self.atom_sz
-        print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
+        print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
     def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, ifmap_count):
@@ -349,9 +350,9 @@ class CircularBuffer:
         #print("fmap_data_len",self.ifmap_data_len, "atom_data_sz",self.atom_data_sz)
         #print("chunk_id", chunk_id, "offset", offset)
         if (args.golden_inputs):            
-            simout_file = self.dram_data_file.replace("-midout.", ".")
+            simout_file = self.dram_data_in_file.replace("-midout.", ".")
         else:            
-            simout_file = self.dram_data_file.replace("-midout.", "-simout.")
+            simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())            
         return {
               'previous_waveops' : [],
@@ -386,7 +387,8 @@ class CircularBuffer:
         assert (length > 0)            
         self.DRAM_elem_written += length
 
-        simout_file = self.dram_data_file.replace("-midout.", "-simout.")
+        assert(self.dram_data_out_file != None)
+        simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         return {
               'previous_waveops' : [],
@@ -1690,8 +1692,9 @@ class TPBSched:
         self.statebuffer.circbuf_scratch.layer_format = pool_op.data['ofmap_format']
         self.statebuffer.circbuf_scratch.layer_shape = pool_op.data['ofmap_shape']
         # only clear the scratch buffer if there's no ResAdd input there
-        if (self.statebuffer.circbuf_scratch.dram_data_file == None):                    
+        if (self.statebuffer.circbuf_scratch.dram_data_in_file == None):                    
             self.statebuffer.circbuf_scratch.load_file(result_file, pool_op.ofmap_full_tiley_sz)
+        self.statebuffer.circbuf_scratch.dram_data_out_file = result_file
 
         # wave loop ordering scheme: nmhw
         for n_id in range(pool_op.n):
@@ -1793,7 +1796,7 @@ class TPBSched:
             result = np.zeros((op_list.conv_op.N, op_list.conv_op.M, op_list.conv_op.E, op_list.conv_op.F), dtype=inputs.dtype)
         np.save(result_file, result)
         # only clear the scratch buffer if there's no ResAdd input there
-        if (self.statebuffer.circbuf_scratch.dram_data_file == None):                    
+        if (self.statebuffer.circbuf_scratch.dram_data_in_file == None):                    
             self.statebuffer.circbuf_scratch.layer_type = "Output"
             self.statebuffer.circbuf_scratch.layer_name = op_list[-1].data['layer_name']
             self.statebuffer.circbuf_scratch.layer_format = op_list[-1].data['ofmap_format']
@@ -1802,6 +1805,7 @@ class TPBSched:
                 self.statebuffer.circbuf_scratch.load_file(result_file, op_list.pool_op.ofmap_full_tiley_sz)
             else:                
                 self.statebuffer.circbuf_scratch.load_file(result_file, op_list.conv_op.ofmap_full_tiley_sz)
+        self.statebuffer.circbuf_scratch.dram_data_out_file = result_file
 
         # wave loop ordering scheme: nmhwcRS
         for n_id in range(op_list.conv_op.n):
@@ -1919,7 +1923,7 @@ if __name__ == "__main__":
             tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = op_list[0].data['ref_file']
         # Check conv fused op
         elif (re.search(r"Conv", op_list[0].data['layer_type'])):
-            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None):                    
                 tpb.statebuffer.circbuf_ifmaps.layer_type = "Input" #op_list[0].data['layer_type']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
@@ -1932,7 +1936,7 @@ if __name__ == "__main__":
                                 op_list[0].S, op_list[0].stride_x)
                         results = inputs
                         break
-            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):                    
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None):                    
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
                 exit(-1)
             # TODO: add selecting among pre-derived looping schemes
@@ -1942,7 +1946,7 @@ if __name__ == "__main__":
             print("ERROR: MatMult operation is unimplemented")
             exit(-1)
         elif (re.search(r".*Pool", op_list[0].data['layer_type'])):
-            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None):
                 tpb.statebuffer.circbuf_ifmaps.layer_type = "Input" #op_list[0].data['layer_type']
                 for j in op_list[0].prev:
                     if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
@@ -1956,7 +1960,7 @@ if __name__ == "__main__":
                         results = inputs
                         break
                 tpb.statebuffer.circbuf_ifmaps.layer_shape = tpb.statebuffer.circbuf_ifmaps.dram_data.shape
-            if (tpb.statebuffer.circbuf_ifmaps.dram_data_file == None):
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None):
                 print("ERROR: ifmaps are not loaded for layer %s"%op_list[0].data['layer_name'])
                 exit(-1)
             results = tpb.execute_unfused_pool_op(results, result_file)
