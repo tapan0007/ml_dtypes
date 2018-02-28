@@ -27,11 +27,9 @@ static_assert(Arch_NumberPsumBanks == 4, "Number PSUM banks not 4"); // temporar
 static_assert(Arch_NumberPsumBankEntries == 256, "Number PSUM entries not 256"); // temporary
 
 enum : kcc_int64 {
-    stateBuffersSizeInBytes = 8 * 1024 * 1024, // No macro that represents exact size of partition
-    sbPartitionSizeInBytes  = stateBuffersSizeInBytes  / Arch_NumberPeRows,
+    sbPartitionSizeInBytes  = TPB_MMAP_STATE_BUF_PARTITION_ACTIVE_SIZE,
+    stateBuffersSizeInBytes = sbPartitionSizeInBytes  * Arch_NumberPeRows
 };
-static_assert(sbPartitionSizeInBytes  * Arch_NumberPeRows == stateBuffersSizeInBytes,
-              "SB size is not multiple of SB partition size");
 
 //--------------------------------------------------------
 Arch::Arch()
