@@ -273,6 +273,12 @@ testWaiver = [
     #['1-1conv0_r3h16c128_wave',     'WAIVE_WAVESC'],
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
+    ['2-padasym_strd_h112r7s2_wave', 'WAIVE_ALLCLOSE'],
+    ['2-padasym_strd_h224r7s2_wave', 'WAIVE_ALLCLOSE'],
+    ['3-rn50-17_wave', 'WAIVE_ALLCLOSE'],
+
+    ['4-rn50_nne_from\d+_wave', 'WAIVE_S9S2'],
+
     ['8-rn50_nne', 'WAIVE-NNE'],
     ['3-rn50-(16)_wave', 'WAIVE-S9-S1'],
     ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC']
