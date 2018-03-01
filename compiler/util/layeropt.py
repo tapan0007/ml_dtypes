@@ -303,7 +303,7 @@ class CircularBuffer:
             else:    
                 fmap_full_tiley_sz = op_list.conv_op.ofmap_full_tiley_sz
                 data_type = op_list.conv_op.data_type
-            if (op.data['layer_type'] == "ResAdd"):
+            if (op.data['layer_type'] == "ResAdd" and file_name == None):
                 assert(self.dram_data_in_file != None)  # make sure that scratch has been initialized with output data
                 for j in op.prev:
                     if j.data['layer_name'] in self.parent.saved_result_files:
@@ -321,7 +321,8 @@ class CircularBuffer:
                 np.save(self.dram_data_in_file, empty_tensor)
         assert (self.dram_data_in_file != None)
         self.load_file(self.dram_data_in_file, fmap_full_tiley_sz, fmap_full_tilex_sz, filter_x, stride_x)
-        self.dram_data_out_file = file_name
+        if (file_name != None):
+            self.dram_data_out_file = file_name
         return self.dram_data
 
     def load_file(self, file, fmap_full_tiley_sz = 0, fmap_full_tilex_sz = 0, filter_sz=1, stride_sz=1):
@@ -1372,7 +1373,7 @@ class FusedOp(list):
                     psum_bank_src = psum_bank_dst
             elif (layer_type == 'ResAdd'):
                 tpb.pool.wait_tile_done(tile_id)
-                dram_resadd_waveop = tpb.statebuffer.circbuf_scratch.read_data_region(wave_id, self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr, self.conv_op.ifmap_count)
+                dram_resadd_waveops = tpb.statebuffer.circbuf_scratch.read_data_region(wave_id, self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr, self.conv_op.ifmap_count)
                 residue_tile = np.zeros((self.conv_op.ofmap_full_tile_sz, PEArray.NUM_COLS))
                 residue_ifmaps = np.zeros((self.conv_op.ofmap_full_tile_sz, PEArray.NUM_COLS), dtype=np.float32)
                 for j in range(PEArray.NUM_COLS):
@@ -1397,7 +1398,7 @@ class FusedOp(list):
                 if (i != len(op_list)-1):
                     dst_is_psum = True
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
-                tpb.gen_resadd_waveop_inline(op_list[i], self.conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, self.conv_op.ofmap_tile_lower_addr)
+                tpb.gen_resadd_waveop_inline(op_list[i], self.conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, self.conv_op.ofmap_tile_lower_addr)
                 tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr)
                 psum_bank_src = psum_bank_dst
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
@@ -1696,7 +1697,7 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, dram_bias_waveops)
 
     # generate ResAdd instruction and add it to instruction stream
-    def gen_resadd_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, data_start):
+    def gen_resadd_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start):
         in_a_dtype = "float32"
         in_b_dtype = "float32"
         out_dtype = "float32"
@@ -1782,7 +1783,7 @@ class TPBSched:
               'dst_z_num'               : dst_z_num,
               'num_partitions'          : num_partitions,
             }
-        self.waveop_stream.add_linked(instr, [])
+        self.waveop_stream.add_linked(instr, dram_resadd_waveops)
 
     def gen_fused_pool_waveop_inline (self, fused_ops, tile_id, psum_bank_src):
         pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, True, psum_bank_src)
@@ -1901,7 +1902,7 @@ class TPBSched:
 
         # for ResAdd, retrieve the saved result file for one of the completed legs
         if (op_list.has_resadd):
-            self.statebuffer.circbuf_scratch.load_data(op_list.resadd_op, result_file)
+            self.statebuffer.circbuf_scratch.load_data(op_list.resadd_op)
 
         # initial psum bank is 0
         op_list.conv_op.set_psum_bank(0)
