@@ -204,7 +204,6 @@ class CircularBuffer:
         self.parent = parent
         self.capacity = capacity
         self.atom_sz = atom_sz
-        self.item_sz = 2
         self.start = start
         self.circbuf_type = circbuf_type
         self.reset()
@@ -238,6 +237,7 @@ class CircularBuffer:
         self.chunk2atom_map = {}
         self.chunk2spare_map = {}
         self.chunk2skip_map = {}
+        self.item_sz = 2
         self.data_type = 'float16'
 
     def get_atom(self, addr):
@@ -266,7 +266,7 @@ class CircularBuffer:
             self.layer_shape = op.data['kernel_shape']
         elif (self.circbuf_type == "ifmaps"):                
             self.layer_type = "Input" #op.data['layer_type']
-            if (op.data['layer_type'] == "Conv"):
+            if (op.data['layer_type'] == "Conv" or op.data['layer_type'] == "MatMul"):
                 fmap_full_tiley_sz = op_list.conv_op.ofmap_full_tiley_sz * op_list.conv_op.stride_y
                 fmap_full_tilex_sz = op_list.conv_op.ofmap_full_tilex_sz * op_list.conv_op.stride_x
                 filter_x = op_list.conv_op.S
@@ -342,7 +342,14 @@ class CircularBuffer:
         #   * different FMAPs folds will be in different atoms (for now)
         # TODO: refactor the following function since it is used in multiple places
         if (self.circbuf_type == "weights"):            
-            C, R, S, M = self.dram_data.shape
+            if (self.layer_format == "CRSM"):
+                C, R, S, M = self.dram_data.shape
+            elif (self.layer_format == "CM"):
+                C, M = self.dram_data.shape
+                R, S = 1, 1
+            else:
+                print("ERROR: wrong weights format %s"%self.layer_format)
+                exit(-1)
             assert(C * R * S * M * self.item_sz == self.dram_data_len)                
             self.ifmap_data_len = self.dram_data_len//C
             m_data_len = M * self.item_sz
@@ -725,10 +732,18 @@ class KNode:
         else:
             print("ERROR in populate_common_params: Unrecognized current layer %s format %s"%(layer_info['layer_name'], layer_info['ofmap_format']))
             exit(-1)
-        self.pad_north, self.pad_south = layer_info['padding'][2]
-        self.pad_west, self.pad_east = layer_info['padding'][3]
-        self.stride_y = layer_info['stride'][2]
-        self.stride_x = layer_info['stride'][3]
+        if ('padding' in layer_info):            
+            self.pad_north, self.pad_south = layer_info['padding'][2]
+            self.pad_west, self.pad_east = layer_info['padding'][3]
+        else:
+            self.pad_north, self.pad_south = 0, 0
+            self.pad_west, self.pad_east = 0, 0
+        if ('stride' in layer_info):            
+            self.stride_y = layer_info['stride'][2]
+            self.stride_x = layer_info['stride'][3]
+        else:
+            self.stride_y = 1
+            self.stride_x = 1
         # IFMAP and OFMAP total areas
         self.HW = self.H * self.W
         self.EF = self.E * self.F
@@ -776,8 +791,14 @@ class KNode:
     def populate_conv_params(self):
         # convolution kernel shape
         layer_info = self.data
-        assert (layer_info['kernel_format'] == 'CRSM')
-        self.C, self.R, self.S, self.M = layer_info['kernel_shape']
+        if (layer_info['kernel_format'] == 'CRSM'):
+            self.C, self.R, self.S, self.M = layer_info['kernel_shape']
+        elif (layer_info['kernel_format'] == 'CM'):
+            self.C, self.M = layer_info['kernel_shape']
+            self.R, self.S = 1, 1
+        else:
+            print("ERROR: wrong weights format %s"%layer_info['kernel_format'])
+            exit(-1)
         self.populate_common_params(False)
         print("Conv params for layer %s: n=%d, m=%d, h=%d, w=%d, c=%d, R=%d, S=%d, Tn=%d"
                 %(self.data['layer_name'], self.n, self.m, self.h, self.w, self.c, self.R, self.S, self.Tn))
@@ -1107,7 +1128,7 @@ class FusedOp(list):
                     self.conv_op.recompute_conv_params(op.pool_window_x,op.pool_window_y)
                 self.pool_op = op
                 self.has_pool = True
-        elif (op.data['layer_type'] == 'Conv'):
+        elif (op.data['layer_type'] == 'Conv' or op.data['layer_type'] == 'MatMul'):
             if (len(self) != 0):
                 if (args.debug > 2):
                     print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
@@ -1789,21 +1810,11 @@ class TPBSched:
 
     # Execute an unfused pooling operator
     def execute_unfused_pool_op(self, inputs, result_file):
-        # for resnet-50, only MaxPool should call this method
-        assert (op_list[0].data['layer_type'] == 'MaxPool')
-        assert (op_list[0].prev[0] != None)
-        op_backtrack = op_list[0].prev[0]
-        while (op_backtrack.data['layer_type'] != 'Conv'):
-            assert(op_backtrack.prev[0] != None)
-            op_backtrack = op_backtrack.prev[0]
-        conv_node = op_backtrack
-
-        pool_op = op_list[0]
-
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
 
         # wave loop ordering scheme: nmhw
+        pool_op = op_list[0]
         for n_id in range(pool_op.n):
             for m_id in range(pool_op.m):
                 for h_id in range(pool_op.h):
@@ -1812,7 +1823,6 @@ class TPBSched:
                         pool_op.compute_ofmap_tile_info(tile_id)
                         # set r_id and s_id in wave_id to zero since we are not doing convolution
                         wave_id = WaveID(n_id, m_id, h_id, w_id, 0, 0, 0)
-                        # need to use the conv_node to extract the ifmaps
                         psum_fake = pool_op.pack_wave_ifmaps_unfused_pooling(inputs, wave_id, for_unfused_pooling=True)
                         input_tiley = pool_op.ifmap_wave_upper_coordy - pool_op.ifmap_wave_lower_coordy + 1
                         input_tilex = pool_op.ifmap_wave_upper_coordx - pool_op.ifmap_wave_lower_coordx + 1
@@ -1865,8 +1875,6 @@ class TPBSched:
 
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, inputs, result_file):
-        assert (op_list[0].data['layer_type'] == 'Conv')
-
         # get weights from file
         weights = []
         if (op_list.has_conv):
@@ -2007,18 +2015,12 @@ if __name__ == "__main__":
         if (op_list[0].data['layer_type'] == "Input"):
             tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = op_list[0].data['ref_file']
         # Check conv fused op
-        elif (op_list[0].data['layer_type'] == "Conv"):
+        elif (op_list[0].data['layer_type'] == "Conv" or op_list[0].data['layer_type'] == "MatMul"):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
-            # TODO: add selecting among pre-derived looping schemes
             results = tpb.execute_conv_ops(inputs, result_file)
-        elif (op_list[0].data['layer_type'] == "MatMult"):
-            print("ERROR: MatMult operation is unimplemented")
-            exit(-1)
         elif (op_list[0].data['layer_type'] == "AvgPool" or op_list[0].data['layer_type'] == "MaxPool"):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
             results = tpb.execute_unfused_pool_op(inputs, result_file)
-            #print("ERROR: Pool (unfused) operation is unimplemented")
-            #exit(-1)
         else:        
             print("ERROR: Unrecognized first operation %s"%op_list[0].data['layer_type'])
             exit(-1)
