@@ -55,7 +55,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     if (resaddWaveOp->qSrcBIsPsum()) {
         resaddInstr.src_b_start_addr  = psumBuf.gEntryTpbAddress(resaddWaveOp->gSrcBPsumBankId(),
                                                                  resaddWaveOp->gSrcBPsumBankOffset(),
-                                                                 resaddWaveOp->gInADtype());
+                                                                 resaddWaveOp->gInBDtype());
     } else {
         resaddInstr.src_b_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
                                                 resaddWaveOp->gSrcBSbAtomId() * resaddWaveOp->gWaveAtomSize()
@@ -72,7 +72,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     if (resaddWaveOp->qDstIsPsum()) {
         resaddInstr.dst_start_addr  = psumBuf.gEntryTpbAddress(resaddWaveOp->gDstPsumBankId(),
                                                                  resaddWaveOp->gDstPsumBankOffset(),
-                                                                 resaddWaveOp->gInADtype());
+                                                                 resaddWaveOp->gOutDtype());
     } else {
         resaddInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
                                                 resaddWaveOp->gDstSbAtomId() * resaddWaveOp->gWaveAtomSize()
