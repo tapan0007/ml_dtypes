@@ -24,9 +24,6 @@
 
 
 namespace kcc {
-namespace layers {
-    class ResAddLayer;
-}
 
 namespace wave {
 

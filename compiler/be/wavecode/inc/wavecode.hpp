@@ -23,9 +23,6 @@ namespace arch {
 namespace nets {
     class Network;
 }
-namespace layers {
-    class Layer;
-}
 namespace wave {
     class WaveOp;
 }

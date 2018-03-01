@@ -18,9 +18,6 @@
 
 namespace kcc {
 
-namespace layers {
-    class Layer;
-}
 namespace wave {
     class ResAddWaveOp;
 }

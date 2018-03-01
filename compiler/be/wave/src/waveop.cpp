@@ -32,6 +32,10 @@ WaveOp::gLayerName () const
     return m_Layer->gName();
 }
 
+#if 0
+#endif
+
+
 bool
 WaveOp::verify () const
 {

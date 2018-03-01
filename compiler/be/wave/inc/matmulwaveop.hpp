@@ -23,9 +23,6 @@
 
 
 namespace kcc {
-namespace layers {
-    class ConvLayer;
-}
 
 namespace wave {
 
