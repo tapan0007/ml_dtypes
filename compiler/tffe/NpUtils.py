@@ -22,8 +22,11 @@ class NpUtils:
 
   # Custom comparison utility with lower sensitivity by considering overall value range
   #   Spec https://sim.amazon.com/issues/kaena-181
+  # Modes:
+  #   py - like python all close but still has the verbose option
+  #   max - use max B for relative difference -> very loose match criteria
   @staticmethod
-  def allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan=False, verbose=False):
+  def allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan=False, verbose=False, mode='max'):
     # b is gold/refernce, a is new
     if not a.shape == b.shape:
       return false
@@ -33,7 +36,9 @@ class NpUtils:
     #   aver: 1-1conv7_64  1-1conv9_64  3-rn50_pool2  range : 0-1ap7x7
     #bRange = abs(np.amax(b) - np.amin(b))
     #bRange = abs(np.average(b))
-    bRange = abs(np.amax(b))
+    bRange = None
+    if mode == 'max':
+      bRange = abs(np.amax(b))
     for index, bval in np.ndenumerate(b):
       aval = a[index]
       bval = b[index]
@@ -41,6 +46,8 @@ class NpUtils:
         if not (aval == np.nan and equal_nan):
           return False
       else:
+        if mode == 'py':
+          bRange = abs(bval)
         if not (abs(aval - bval) <= (atol + rtol * bRange)):
           if verbose:
             print("INFO: NpUtils::allclose comparison failed  abs(%g - %g) <= (%g + %g * %g)" % (aval, bval, atol, rtol, bRange))
