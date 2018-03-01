@@ -429,16 +429,21 @@ class CircularBuffer:
     def map_chunk_to_nonspare_atom(self, atom_id, chunk_id):
         for k in self.chunk2atom_map.keys():
             if (self.chunk2atom_map[k] == atom_id):
-                if (args.debug > 2): print("%s: evicting %s at nonspare atom_id %d, replacing with chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
+                if (args.debug > 2): print("%s: evicting %s at nonspare atom_id %d, replacing with nonspare chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2atom_map[k]
+                break
+        for k in self.chunk2skip_map.keys():
+            if (self.chunk2skip_map[k] == atom_id):
+                if (args.debug > 2): print("%s: evicting %s at skip atom_id %d, replacing with nonspare chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
+                del self.chunk2skip_map[k]
                 break
         self.chunk2atom_map[chunk_id] = atom_id
 
     def map_chunk_to_spare_atom(self, atom_id, chunk_id):
         for k in self.chunk2spare_map.keys():
             if (self.chunk2spare_map[k] == atom_id):
-                if (args.debug > 2): print("%s: evicting %s at spare atom_id %d, replacing with chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
+                if (args.debug > 2): print("%s: evicting %s at spare atom_id %d, replacing with spare chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2spare_map[k]
                 break
@@ -447,7 +452,7 @@ class CircularBuffer:
     def map_chunk_to_skip_atom(self, atom_id, chunk_id):
         for k in self.chunk2skip_map.keys():
             if (self.chunk2skip_map[k] == atom_id):
-                if (args.debug > 2): print("%s: evicting %s at skip atom_id %d, replacing with chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
+                if (args.debug > 2): print("%s: evicting %s at skip atom_id %d, replacing with skip chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2skip_map[k]
                 break
@@ -515,6 +520,8 @@ class CircularBuffer:
                     else:                        
                         atom_id = self.allocate_atom()
                         dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
+                        if (self.skipped[atom_id - self.start]):
+                            self.skipped[atom_id - self.start] = False
                         self.map_chunk_to_nonspare_atom(atom_id, i)
         return dram_waveops
     
