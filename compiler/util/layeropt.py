@@ -412,7 +412,7 @@ class CircularBuffer:
                 self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
             else:
                 self.atom_data_sz = self.atom_sz
-        print("Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
+        print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
     def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, ifmap_count):
@@ -1901,7 +1901,7 @@ class TPBSched:
 
         # for ResAdd, retrieve the saved result file for one of the completed legs
         if (op_list.has_resadd):
-            self.statebuffer.circbuf_scratch.load_data(op_list.resadd_op)
+            self.statebuffer.circbuf_scratch.load_data(op_list.resadd_op, result_file)
 
         # initial psum bank is 0
         op_list.conv_op.set_psum_bank(0)

@@ -474,6 +474,7 @@
       "activation_func": "Relu",
       "bias_add_en": false,
       "bias_atom_id": 0,
+      "bias_dtype": "float16",
       "bias_offset_in_atom": 0,
       "dst_is_psum": false,
       "dst_psum_bank_id": 2,
