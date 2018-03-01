@@ -159,6 +159,7 @@
       "activation_func": "Identity",
       "bias_add_en": true,
       "bias_atom_id": 76,
+      "bias_dtype": "float32",
       "bias_offset_in_atom": 0,
       "dst_is_psum": false,
       "dst_psum_bank_id": 2,
