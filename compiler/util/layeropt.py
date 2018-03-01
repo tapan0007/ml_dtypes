@@ -1664,6 +1664,7 @@ class TPBSched:
               'tile_id'                 : tile_id.show(),
               'activation_func'         : act_type,
               'in_dtype'                : in_dtype,
+              'bias_dtype'              : tpb.statebuffer.circbuf_bias.data_type, 
               'out_dtype'               : out_dtype,
               'src_psum_bank_id'        : psum_bank_src,
               'src_x_step'              : 1,
