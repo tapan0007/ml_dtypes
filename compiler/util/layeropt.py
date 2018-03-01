@@ -1671,6 +1671,7 @@ class TPBSched:
               'tile_id'                 : tile_id.show(),
               'activation_func'         : act_type,
               'in_dtype'                : in_dtype,
+              'bias_dtype'              : tpb.statebuffer.circbuf_bias.data_type, 
               'out_dtype'               : out_dtype,
               'src_psum_bank_id'        : psum_bank_src,
               'src_x_step'              : 1,
@@ -2041,7 +2042,7 @@ if __name__ == "__main__":
                 if (args.debug > 1): print("\nComputed OFMAPS:\n", results)
                 if (args.debug > 1): print("\nExpected OFMAPS:\n", outputs)
                 if (args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
-                if (not npu.allclose(results, outputs, 1/100, 1e-6, verbose=True)):
+                if (not npu.allclose(results, outputs, 1/100, 1e-5, verbose=True)):
                     print("\nERROR: layer %s computed OFMAPS is not equal to expected OFMAPS!\n"%(op_list[-1].data['layer_name']))
                     num_mismatches += 1
 
