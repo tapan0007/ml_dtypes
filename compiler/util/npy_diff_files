@@ -85,9 +85,9 @@ if verbose >= 2:
   print("%-36s" % ("Absolute Error  mean std  min max"))
   print("%12g %12g  %12g %12g" % (diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
 
-(tolr, tola) = (1, 1e-6)
-#resAllclose = npu.allclose(new, gold, tolr/100, tola, verbose=verbose)
-resAllclose = np.allclose(new, gold, tolr/100, tola)
+(tolr, tola) = (1, 1e-5)
+resAllclose = npu.allclose(new, gold, tolr/100, tola, verbose=verbose)
+#resAllclose = np.allclose(new, gold, tolr/100, tola)
 if verbose >= 1:
   print("Allclose info tolerance rel %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
 
