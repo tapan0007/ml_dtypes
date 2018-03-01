@@ -458,6 +458,7 @@ class CircularBuffer:
         dram_waveops = []
         lower_addr_chunked = self.get_chunk_addr(lower_addr)
         upper_addr_chunked = self.get_chunk_addr(upper_addr)
+        atom_id = -1
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
             print("ERROR %s: data region %d to %d (chunk %d to %d) is crossing gappy atom boundary!"%(self.circbuf_type, lower_addr, upper_addr, lower_addr_chunked, upper_addr_chunked));
             #exit(-1)
@@ -474,11 +475,21 @@ class CircularBuffer:
             self.map_chunk_to_nonspare_atom(atom_id, lower_addr_chunked)
         else:
             if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, lower_addr_chunked, self.chunk2atom_map[lower_addr_chunked]));
+            atom_id = self.chunk2atom_map[lower_addr_chunked]
         # allocate the remaining chunks
         # check whether chunk is already in the spares
         starting_spares = False
         for i in range(lower_addr_chunked+1, upper_addr_chunked+1):
-            if i not in self.chunk2atom_map:
+            if (self.need_skip_atoms 
+                    and i in self.chunk2skip_map
+                    and self.chunk2skip_map[i] == atom_id+1
+                    and i == upper_addr_chunked
+                    ):
+                if (args.debug > 2): print("%s: reusing atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, self.chunk2skip_map[i], i, lower_addr, upper_addr))
+                atom_id = self.chunk2skip_map[i]
+            elif i in self.chunk2atom_map:
+                atom_id = self.chunk2atom_map[i]
+            else:
                 if (self.is_a_spare_atom(self.tail_pointer)):
                     starting_spares = True
                     if (i not in self.chunk2spare_map):
@@ -494,18 +505,13 @@ class CircularBuffer:
                     assert(starting_spares == False)    # indicate fragmented space (bad!)
                     # if multiple atoms used, and need skip atoms, then keep the last atom as skip-atom
                     if (self.need_skip_atoms and i == upper_addr_chunked):
-                        if (self.is_a_skip_atom(self.tail_pointer) 
-                                and i in self.chunk2skip_map 
-                                and self.chunk2skip_map == self.tail_pointer):
-                            if (args.debug > 2): print("%s: reusing atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, self.chunk2skip_map[i], i, lower_addr, upper_addr))
-                        else:                                
-                            atom_id = self.allocate_atom()
-                            dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
-                            if (args.debug > 2): print("%s: keeping last atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, atom_id, i, lower_addr, upper_addr))
-                            self.allocated[atom_id - self.start] = False
-                            self.skipped[atom_id - self.start] = True
-                            self.count -= 1
-                            self.map_chunk_to_skip_atom(atom_id, i)
+                        atom_id = self.allocate_atom()
+                        dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
+                        if (args.debug > 2): print("%s: keeping last atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, atom_id, i, lower_addr, upper_addr))
+                        self.allocated[atom_id - self.start] = False
+                        self.skipped[atom_id - self.start] = True
+                        self.count -= 1
+                        self.map_chunk_to_skip_atom(atom_id, i)
                     else:                        
                         atom_id = self.allocate_atom()
                         dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count))
