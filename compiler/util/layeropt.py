@@ -303,7 +303,7 @@ class CircularBuffer:
             else:    
                 fmap_full_tiley_sz = op_list.conv_op.ofmap_full_tiley_sz
                 data_type = op_list.conv_op.data_type
-            if (op.data['layer_type'] == "ResAdd"):
+            if (op.data['layer_type'] == "ResAdd" and file_name == None):
                 assert(self.dram_data_in_file != None)  # make sure that scratch has been initialized with output data
                 for j in op.prev:
                     if j.data['layer_name'] in self.parent.saved_result_files:
@@ -321,7 +321,8 @@ class CircularBuffer:
                 np.save(self.dram_data_in_file, empty_tensor)
         assert (self.dram_data_in_file != None)
         self.load_file(self.dram_data_in_file, fmap_full_tiley_sz, fmap_full_tilex_sz, filter_x, stride_x)
-        self.dram_data_out_file = file_name
+        if (file_name != None):
+            self.dram_data_out_file = file_name
         return self.dram_data
 
     def load_file(self, file, fmap_full_tiley_sz = 0, fmap_full_tilex_sz = 0, filter_sz=1, stride_sz=1):
@@ -1901,7 +1902,7 @@ class TPBSched:
 
         # for ResAdd, retrieve the saved result file for one of the completed legs
         if (op_list.has_resadd):
-            self.statebuffer.circbuf_scratch.load_data(op_list.resadd_op, result_file)
+            self.statebuffer.circbuf_scratch.load_data(op_list.resadd_op)
 
         # initial psum bank is 0
         op_list.conv_op.set_psum_bank(0)
