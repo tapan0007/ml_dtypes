@@ -28,6 +28,7 @@ def getPadType(confStr):
   padType = None
   poolType = None
   usePerm = False
+  actType = None
   for s in ["SAME", "VALID"]:
     s1 = "-" + s
     if s1 in confStr:
@@ -40,7 +41,13 @@ def getPadType(confStr):
       confStr = confStr.replace(s1, "")
       usePerm = True
       break
-  return poolType,padType,usePerm,confStr
+  for s in ["RELU", "TANH"]:
+    s1 = "-" + s
+    if s1 in confStr:
+      confStr = confStr.replace(s1, "")
+      actType = s
+      break
+  return poolType,padType,usePerm,actType,confStr
 
 print("\nINFO: started as  ", " ".join(sys.argv))
 
@@ -48,8 +55,8 @@ dimStr = sys.argv[1]
 
 # Sample dimStr : tfloat16-b1-h4-r1-s1-c1-m1-SAME-MaxPool-k2-d1-wmin2-wmax2-imin1-imax16
 #  k pool kernel, d pool stride
-poolType, padType, usePerm, dimStr = getPadType(dimStr)
 dimStr = dimStr.upper() + "-"
+poolType, padType, usePerm, actType, dimStr = getPadType(dimStr)
 if len(sys.argv) > 2:
   outPrefix = sys.argv[2]
 else:
@@ -126,7 +133,14 @@ ba1 = tf.get_variable(name=netName+"/bias1",
                       initializer = BAval.astype(npDataType), dtype=tfDataType)
 i2 = tf.nn.bias_add(i1, ba1, name=netName + "/i2")
 
-output = tf.identity(i2, name=netName+"/output")
+if actType == "RELU":
+  i3 = tf.nn.relu(i2, name=netName + "/i3_relu")
+  output = tf.identity(i3, name=netName+"/output")
+elif actType == "TANH":
+  i3 = tf.nn.tanh(i2, name=netName + "/i3_tanh")
+  output = tf.identity(i3, name=netName+"/output")
+else:
+  output = tf.identity(i2, name=netName+"/output")
 
 
 i0val = np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType).reshape(IF1.shape)

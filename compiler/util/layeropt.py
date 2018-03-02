@@ -1120,9 +1120,8 @@ class FusedOp(list):
         if (op.data['layer_type'] == 'AvgPool' or op.data['layer_type'] == 'MaxPool'):
             op.populate_pooling_params()
             # If not first op, pool cannot be fused with previous op if stride != pooling window
-            if (len(self) != 0):
-                    # For now, cannot fuse any pool
-                    #and (op.stride_x != op.pool_window_x or op.stride_y != op.pool_window_y)):
+            if (len(self) != 0
+                    and (op.stride_x != op.pool_window_x or op.stride_y != op.pool_window_y)):
                 if (args.debug > 2):
                     print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
