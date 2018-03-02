@@ -323,6 +323,13 @@ def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSele
         testList.append(testName)
   # Override by --test
   if len(argTest) > 0 or len(argTestRe) > 0:
+    wrongTests = []
+    for t in args.test:
+      if not t in testConfigMap:
+        wrongTests.append(t)
+    if len(wrongTests) > 1:
+      print("ERROR: the --test %s   do not exist" % str(wrongTests))
+      sys.exit(1)
     testList = args.test
   #Add
   if len(argTestRe) > 0:
