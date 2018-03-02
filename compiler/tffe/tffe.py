@@ -124,7 +124,8 @@ if args.images != None:
       try:
         writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
       except:
-        executorsStr += " host %d" % sgId
+        #executorsStr += " host %d" % sgId
+        print("ERROR: Compilation of subgraph %s failed" % sgDir)
       os.chdir("..")
       sgJsonList.append(sg.genExecutorGraphJson(sgDir))
       sgId += 1

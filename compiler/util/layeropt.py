@@ -1103,12 +1103,10 @@ class FusedOp(list):
         self.has_pool = False
         self.has_resadd = False
         self.has_conv = False
-        self.has_matmul = False
         self.has_biasadd = False
         self.pool_op = None
         self.resadd_op = None
         self.conv_op = None
-        self.matmul_op = None
         self.biasadd_op = None
         self.out_data_type = out_data_type 
 
@@ -1121,7 +1119,10 @@ class FusedOp(list):
             op.populate_pooling_params()
             # If not first op, pool cannot be fused with previous op if stride != pooling window
             if (len(self) != 0
-                    and (op.stride_x != op.pool_window_x or op.stride_y != op.pool_window_y)):
+                    and (op.stride_x != op.pool_window_x 
+                        or op.stride_y != op.pool_window_y
+                        or op.stride_x > 1 
+                        or op.stride_y > 1)):
                 if (args.debug > 2):
                     print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
@@ -1157,14 +1158,6 @@ class FusedOp(list):
             else:
                 self.resadd_op = op
                 self.has_resadd = True
-        elif (op.data['layer_type'] == 'MatMul'):
-            if (self.has_matmul):
-                if (args.debug > 2):
-                    print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
-                return False
-            else:
-                self.matmul_op = op
-                self.has_matmul = True
         elif (op.data['layer_type'] == 'BiasAdd'):
             if (self.has_biasadd):
                 if (args.debug > 2):
