@@ -86,18 +86,18 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
     if (m_SrcIsPsum) {
         KCC_ARCHIVE(SrcPsumBankOffset);
         KCC_ARCHIVE(SrcPsumBankId);
-        KCC_ARCHIVE(SrcWNum);
-        KCC_ARCHIVE(SrcWStep);
-        KCC_ARCHIVE(SrcXNum);
-        KCC_ARCHIVE(SrcXStep);
-        KCC_ARCHIVE(SrcYNum);
-        KCC_ARCHIVE(SrcYStep);
-        KCC_ARCHIVE(SrcZNum);
-        KCC_ARCHIVE(SrcZStep);
     } else {
         KCC_ARCHIVE(SrcSbAtomId);
         KCC_ARCHIVE(SrcSbOffsetInAtom);
     }
+    KCC_ARCHIVE(SrcWNum);
+    KCC_ARCHIVE(SrcWStep);
+    KCC_ARCHIVE(SrcXNum);
+    KCC_ARCHIVE(SrcXStep);
+    KCC_ARCHIVE(SrcYNum);
+    KCC_ARCHIVE(SrcYStep);
+    KCC_ARCHIVE(SrcZNum);
+    KCC_ARCHIVE(SrcZStep);
 
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);

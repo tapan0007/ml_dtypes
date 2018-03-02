@@ -80,18 +80,19 @@ SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
     if (m_SrcIsPsum) {
         KCC_ARCHIVE(SrcPsumBankId);
         KCC_ARCHIVE(SrcPsumBankOffset);
-        KCC_ARCHIVE(SrcWNum);
-        KCC_ARCHIVE(SrcWStep);
-        KCC_ARCHIVE(SrcXNum);
-        KCC_ARCHIVE(SrcXStep);
-        KCC_ARCHIVE(SrcYNum);
-        KCC_ARCHIVE(SrcYStep);
-        KCC_ARCHIVE(SrcZNum);
-        KCC_ARCHIVE(SrcZStep);
     } else {
         KCC_ARCHIVE(SrcSbAtomId);
         KCC_ARCHIVE(SrcSbOffsetInAtom);
     }
+
+    KCC_ARCHIVE(SrcWNum);
+    KCC_ARCHIVE(SrcWStep);
+    KCC_ARCHIVE(SrcXNum);
+    KCC_ARCHIVE(SrcXStep);
+    KCC_ARCHIVE(SrcYNum);
+    KCC_ARCHIVE(SrcYStep);
+    KCC_ARCHIVE(SrcZNum);
+    KCC_ARCHIVE(SrcZStep);
 
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
@@ -156,12 +157,12 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
 
     KCC_ARCHIVE(DstIsPsum);
     if (m_DstIsPsum) {
+        KCC_ARCHIVE(DstPsumBankId);
     } else {
         KCC_ARCHIVE(DstSbAtomId);
         KCC_ARCHIVE(DstSbOffsetInAtom);
     }
 
-    KCC_ARCHIVE(DstPsumBankId);
     KCC_ARCHIVE(DstXNum);
     KCC_ARCHIVE(DstXStep);
     KCC_ARCHIVE(DstYNum);
