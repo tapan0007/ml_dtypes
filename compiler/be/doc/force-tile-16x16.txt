@@ -1,0 +1,8 @@
+In compiler/util/layeropt.py, search for "noodle", then replace the assignment to self.ofmap_full_tilex_sz with :
+
+From
+    self.ofmap_full_tilex_sz = min(self.F * self.Tn, PEArray.MAX_WAVE_SIZE)
+
+To 
+    self.ofmap_full_tilex_sz = min(self.F * self.Tn, 16) #PEArray.MAX_WAVE_SIZE)
+

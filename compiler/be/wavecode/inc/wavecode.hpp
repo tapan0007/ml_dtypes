@@ -23,9 +23,6 @@ namespace arch {
 namespace nets {
     class Network;
 }
-namespace layers {
-    class Layer;
-}
 namespace wave {
     class WaveOp;
 }
@@ -37,6 +34,7 @@ class WaveCodeSbAtomFile;
 class WaveCodeSbAtomSave;
 class WaveCodePool;
 class WaveCodeActivation;
+class WaveCodeResAdd;
 
 
 
@@ -93,6 +91,7 @@ private:
     std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
     std::unique_ptr<WaveCodePool>       m_CodePool;
     std::unique_ptr<WaveCodeActivation> m_CodeActivation;
+    std::unique_ptr<WaveCodeResAdd>     m_CodeResAdd;
 
     kcc_int64                           m_CurrentDramAddress;
     std::map<std::string, kcc_int64>    m_InputNpyFile2DramAddress;

@@ -49,10 +49,9 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                                             poolWaveOp->gSrcPsumBankOffset(),
                                             poolWaveOp->gInDtype());
     } else { // State buffer
-        poolInstr.src_start_addr = 
-        stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
-                                 poolWaveOp->gSrcSbAtomId() * poolWaveOp->gWaveAtomSize()
-                                    + poolWaveOp->gSrcSbOffsetInAtom());
+        poolInstr.src_start_addr = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
+                                            poolWaveOp->gSrcSbAtomId() * poolWaveOp->gWaveAtomSize()
+                                                + poolWaveOp->gSrcSbOffsetInAtom());
     }
 
     poolInstr.src_x_step        = poolWaveOp->gSrcXStep();
@@ -76,7 +75,9 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_z_step        = poolWaveOp->gDstZStep();
     poolInstr.dst_z_num         = poolWaveOp->gDstZNum();
     // For now DST is always StateBuf
-    poolInstr.dst_start_addr    = poolWaveOp->gDstSbAtomId() * poolWaveOp->gWaveAtomSize() + poolWaveOp->gDstSbOffsetInAtom();
+    poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
+                                            poolWaveOp->gDstSbAtomId() * poolWaveOp->gWaveAtomSize()
+                                                + poolWaveOp->gDstSbOffsetInAtom());
 
     m_WaveCode->writeInstruction(poolInstr);
 }

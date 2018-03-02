@@ -24,10 +24,6 @@
 
 
 namespace kcc {
-namespace layers {
-    class ActivLayer;
-    class PoolLayer;
-}
 
 namespace wave {
 
@@ -63,9 +59,6 @@ public:
     }
     kcc_int64 gBiasOffsetInAtom () const {
         return m_BiasOffsetInAtom;
-    }
-    const layers::ActivLayer* gActivLayer() const {
-        return dynamic_cast<layers::ActivLayer*>(m_Layer);
     }
     bool qActivationWaveOp() const override {
         return true;

@@ -8,7 +8,8 @@ sbatomwaveop     \
 sbatomfilewaveop \
 sbatomsavewaveop \
 poolwaveop       \
-activationwaveop
+activationwaveop \
+resaddwaveop
 
 ########################################################
 include ../Makefile.common

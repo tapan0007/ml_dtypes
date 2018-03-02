@@ -79,6 +79,9 @@ public:
     virtual bool qActivationWaveOp() const {
         return false;
     }
+    virtual bool qResAddWaveOp() const {
+        return false;
+    }
 
 
     //----------------------------------------------------------------
@@ -97,11 +100,15 @@ public:
     }
 
 protected:
+#if 0
+#endif
+
+protected:
     std::string             m_Name          = "";
     std::vector<WaveOp*>    m_PrevWaveOps;
     FmapDesc                m_OfmapDesc;
-    layers::Layer*          m_Layer         = nullptr;
 private:
+    layers::Layer*          m_Layer         = nullptr;
 }; // class WaveOp
 
 

@@ -27,9 +27,10 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         loadPool(archive);
     } else if (m_WaveOpType == WaveOpTypeStr_MatMul) {
         loadMatMul(archive);
-
     } else if (m_WaveOpType == WaveOpTypeStr_Activation) {
         loadActivation(archive);
+    } else if (m_WaveOpType == WaveOpTypeStr_ResAdd) {
+        loadResAdd(archive);
 
     } else {
         assert(false && "Serialization: unsupported WaveOp");
@@ -85,18 +86,18 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
     if (m_SrcIsPsum) {
         KCC_ARCHIVE(SrcPsumBankOffset);
         KCC_ARCHIVE(SrcPsumBankId);
-        KCC_ARCHIVE(SrcWNum);
-        KCC_ARCHIVE(SrcWStep);
-        KCC_ARCHIVE(SrcXNum);
-        KCC_ARCHIVE(SrcXStep);
-        KCC_ARCHIVE(SrcYNum);
-        KCC_ARCHIVE(SrcYStep);
-        KCC_ARCHIVE(SrcZNum);
-        KCC_ARCHIVE(SrcZStep);
     } else {
         KCC_ARCHIVE(SrcSbAtomId);
         KCC_ARCHIVE(SrcSbOffsetInAtom);
     }
+    KCC_ARCHIVE(SrcWNum);
+    KCC_ARCHIVE(SrcWStep);
+    KCC_ARCHIVE(SrcXNum);
+    KCC_ARCHIVE(SrcXStep);
+    KCC_ARCHIVE(SrcYNum);
+    KCC_ARCHIVE(SrcYStep);
+    KCC_ARCHIVE(SrcZNum);
+    KCC_ARCHIVE(SrcZStep);
 
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
@@ -189,6 +190,68 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
 }
+
+
+void
+SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
+{
+
+    //archive(cereal::make_nvp(WaveOpKey_ActivationFunc, m_ActivationFunc);
+
+    KCC_ARCHIVE(InADtype);
+    KCC_ARCHIVE(InBDtype);
+    KCC_ARCHIVE(OutDtype);
+    KCC_ARCHIVE(NumPartitions);
+
+    // Src A
+    KCC_ARCHIVE(SrcAIsPsum);
+    if (m_SrcAIsPsum) {
+        KCC_ARCHIVE(SrcAPsumBankId);
+        KCC_ARCHIVE(SrcAPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(SrcASbAtomId);
+        KCC_ARCHIVE(SrcASbOffsetInAtom);
+    }
+    KCC_ARCHIVE(SrcAXNum);
+    KCC_ARCHIVE(SrcAXStep);
+    KCC_ARCHIVE(SrcAYNum);
+    KCC_ARCHIVE(SrcAYStep);
+    KCC_ARCHIVE(SrcAZNum);
+    KCC_ARCHIVE(SrcAZStep);
+
+    // Src B
+    KCC_ARCHIVE(SrcBIsPsum);
+    if (m_SrcBIsPsum) {
+        KCC_ARCHIVE(SrcBPsumBankId);
+        KCC_ARCHIVE(SrcBPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(SrcBSbAtomId);
+        KCC_ARCHIVE(SrcBSbOffsetInAtom);
+    }
+    KCC_ARCHIVE(SrcBXNum);
+    KCC_ARCHIVE(SrcBXStep);
+    KCC_ARCHIVE(SrcBYNum);
+    KCC_ARCHIVE(SrcBYStep);
+    KCC_ARCHIVE(SrcBZNum);
+    KCC_ARCHIVE(SrcBZStep);
+
+    // Dst
+    KCC_ARCHIVE(DstIsPsum);
+    if (m_DstIsPsum) {
+        KCC_ARCHIVE(DstPsumBankId);
+        KCC_ARCHIVE(DstPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(DstSbAtomId);
+        KCC_ARCHIVE(DstSbOffsetInAtom);
+    }
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
+}
+
 #undef KCC_ARCHIVE
 
 

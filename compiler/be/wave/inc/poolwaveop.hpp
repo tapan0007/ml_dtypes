@@ -24,11 +24,6 @@
 
 
 namespace kcc {
-namespace layers {
-    class MaxPoolLayer;
-    class AvgPoolLayer;
-    class PoolLayer;
-}
 
 namespace wave {
 
@@ -129,9 +124,6 @@ public:
     }
     const std::string& gTileIdFormat () const {
         return m_TileIdFormat;
-    }
-    const layers::PoolLayer* gPoolLayer() {
-        return dynamic_cast<layers::PoolLayer*>(m_Layer);
     }
 
     bool qPoolWaveOp() const override {

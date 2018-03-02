@@ -35,6 +35,7 @@ namespace wave {
     class MatMulWaveOp;
     class PoolWaveOp;
     class ActivationWaveOp;
+    class ResAddWaveOp;
 }
 namespace schedule {
     class LayerLevel;
@@ -81,24 +82,23 @@ private:
                      wave::WaveOp::Params& waveOpParams);
 
     wave::SbAtomFileWaveOp* loadSbAtomFile(const serialize::SerWaveOp& serWaveOp);
-
     wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
-
     wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
-
     wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);
-
     wave::ActivationWaveOp* loadActivation(const serialize::SerWaveOp& serWaveOp);
+    wave::ResAddWaveOp* loadResAdd(const serialize::SerWaveOp& serWaveOp);
+
 
 
     void saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
     void savePool(const wave::PoolWaveOp* poolWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
-
     void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
     void saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const;
+    void saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
 
 
