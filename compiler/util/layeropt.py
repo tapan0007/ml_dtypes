@@ -1120,8 +1120,9 @@ class FusedOp(list):
         if (op.data['layer_type'] == 'AvgPool' or op.data['layer_type'] == 'MaxPool'):
             op.populate_pooling_params()
             # If not first op, pool cannot be fused with previous op if stride != pooling window
-            if (len(self) != 0 and 
-                    (op.stride_x != op.pool_window_x or op.stride_y != op.pool_window_y)):
+            if (len(self) != 0):
+                    # For now, cannot fuse any pool
+                    #and (op.stride_x != op.pool_window_x or op.stride_y != op.pool_window_y)):
                 if (args.debug > 2):
                     print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
@@ -1345,7 +1346,7 @@ class FusedOp(list):
                 bias_extracted = np.zeros(PEArray.NUM_COLS)
                 bias_extracted[0 : bias_chan_end - bias_chan_start] = bias[bias_chan_start : bias_chan_end]
                 bias_addr = bias_chan_start * op_list[i].item_sz
-                dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, self.conv_op.ifmap_count)
+                dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, bias_chan_end - bias_chan_start)
                 #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
@@ -1372,7 +1373,7 @@ class FusedOp(list):
                     psum_bank_src = psum_bank_dst
             elif (layer_type == 'ResAdd'):
                 tpb.pool.wait_tile_done(tile_id)
-                dram_resadd_waveops = tpb.statebuffer.circbuf_scratch.read_data_region(wave_id, self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr, self.conv_op.ifmap_count)
+                dram_resadd_waveops = tpb.statebuffer.circbuf_scratch.read_data_region(wave_id, self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr, self.conv_op.ofmap_count)
                 residue_tile = np.zeros((self.conv_op.ofmap_full_tile_sz, PEArray.NUM_COLS))
                 residue_ifmaps = np.zeros((self.conv_op.ofmap_full_tile_sz, PEArray.NUM_COLS), dtype=np.float32)
                 for j in range(PEArray.NUM_COLS):
@@ -1430,7 +1431,6 @@ next_is_fusable = {
         'BiasAdd': "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
         'Add'    : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
         'ResAdd' : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
-        'AvgPool': "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
         'Relu'   : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|ResAdd",
         }
 
