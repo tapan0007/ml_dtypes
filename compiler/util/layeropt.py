@@ -1838,7 +1838,13 @@ class TPBSched:
                         output_tiley = pool_op.ofmap_full_tiley_sz
                         output_tilex = pool_op.ofmap_full_tilex_sz
                         psum_fake_extract = psum_fake [0:input_tiley*input_tilex, :]
-                        psum_temp = self.pool.max(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
+                        if (pool_op.data['layer_type'] == "AvgPool"):
+                            psum_temp = self.pool.avg(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley)
+                        elif (pool_op.data['layer_type'] == "MaxPool"):
+                            psum_temp = self.pool.max(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
+                        else:
+                            print("ERROR: cannot execute %s in execute_unfused_pool_op"%pool_op.data['layer_type'])
+                            exit(-1)
                         dram_ifmaps_waveops = tpb.statebuffer.circbuf_ifmaps.read_data_region(
                                                     wave_id, 
                                                     pool_op.ifmap_wave_lower_addr, 
