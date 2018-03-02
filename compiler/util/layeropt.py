@@ -416,21 +416,27 @@ class CircularBuffer:
         print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz)) 
         return self.dram_data
 
-    def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, ifmap_count):
+    def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, fmap_count):
         offset_in_file = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
-        adjust_for_folding = wave_id.c_id * self.ifmap_data_len * PEArray.NUM_ROWS
+        # for scratch buffer (output), if we have to load, then use the m_id (OFMAP fold) instead of c_id (IFMAP fold)
+        if (self.circbuf_type == "scratch"):              
+            fmap_fold_idx = wave_id.m_id
+            fmap_data_len = self.ofmap_data_len
+        else:            
+            fmap_fold_idx = wave_id.c_id
+            fmap_data_len = self.ifmap_data_len
+        adjust_for_folding = fmap_fold_idx * fmap_data_len * PEArray.NUM_ROWS
         offset_in_fold = offset_in_file - adjust_for_folding
         # if address is larger than IFMAP size (H*W) for the case that IFMAP size is larger than Atom Data Size,
         # then try to get the modulo; but if the modulo is 0, then keep length = Atom Data Size
-        if ((offset_in_fold + length) > self.ifmap_data_len and self.ifmap_data_len > self.atom_data_sz):
-            length = self.ifmap_data_len % self.atom_data_sz
-
+        if ((offset_in_fold + length) > fmap_data_len and fmap_data_len > self.atom_data_sz):
+            length = fmap_data_len % self.atom_data_sz
         if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
-        self.DRAM_elem_read += length * ifmap_count / self.item_sz
-        #print("gen_dram_read_waveop - DRAM_elem_read: ", self.DRAM_elem_read, "length: ", length, "ifmap_count: ",ifmap_count)
-        #print("fmap_data_len",self.ifmap_data_len, "atom_data_sz",self.atom_data_sz)
+        self.DRAM_elem_read += length * fmap_count / self.item_sz
+        #print("gen_dram_read_waveop - DRAM_elem_read: ", self.DRAM_elem_read, "length: ", length, "fmap_count: ",fmap_count)
+        #print("fmap_data_len",fmap_data_len, "atom_data_sz",self.atom_data_sz)
         #print("chunk_id", chunk_id, "offset", offset)
         if (args.golden_inputs):            
             simout_file = self.dram_data_in_file.replace("-midout.", ".")
@@ -451,10 +457,10 @@ class CircularBuffer:
               'offset_in_file'   : offset_in_file,
               'length'           : length,
               'ifmaps_replicate' : False,
-              'ifmaps_fold_idx'  : wave_id.c_id,
+              'ifmaps_fold_idx'  : fmap_fold_idx,
               'batch_fold_idx'   : wave_id.n_id,
-              'ifmap_count'      : ifmap_count,
-              'partition_step_bytes': self.ifmap_data_len,
+              'ifmap_count'      : fmap_count,
+              'partition_step_bytes': fmap_data_len,
             }
 
     def gen_dram_save_waveop(self, tile_id, atom_id, chunk_id, ofmap_count):
