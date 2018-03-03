@@ -72,7 +72,7 @@ class NnSubgraph:
         os.rename(tpbInpFile, origFile)
         # Translate and write the previous subgraph file
         if os.path.isfile(f):
-          npt.copyNpyFileAs(tfFile, npt.TF, npt.TF, npt.Fmaps, outFile=tpbInpFile)
+          npt.copyNpyFileAs(tfFile, npt.TF, npt.SIM, npt.Fmaps, outFile=tpbInpFile)
           print("INFO: translated TF format  %s  to TPB Fmap format  %s" % (tfFile, tpbInpFile))
         else:
           print("ERROR: no tpb output file %s" % tfFile, flush=True)        

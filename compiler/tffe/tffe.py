@@ -107,7 +107,7 @@ if args.images != None:
     sgJsonList = []
     kp.colorNodes(args.partition)
     kp.partitionByColor()
-    kp.calcExecutorMap(executorsStr)
+    kp.calcExecutorMap(args.executors)
     #kp.print()
     sgId = 0
     for sg in kp.getSubgraphs():

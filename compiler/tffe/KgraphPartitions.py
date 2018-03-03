@@ -321,12 +321,12 @@ class KgraphPart(object):
       sg.print("Subgraph %d" % i)
   
   # Note nn_executor has a similar function, sharing compiler-runtime is not desirable
-  def calcExecutorMap(self, executorsStr):
+  def calcExecutorMap(self, executorsList):
     self.sgId2executor = {}
     executor = None
-    for word in executorsStr:
+    for word in executorsList:
       if word == "all":
-        for sgId in range(self.__subgraphs):
+        for sgId in range(len(self.__subgraphs)):
           self.sgId2executor[sgId] = executor
       elif re.search('^\d+$', word):
         sgId = int(word)
@@ -334,9 +334,9 @@ class KgraphPart(object):
       else:
         executor = word
     print("INFO: subgraph to executor map  %s" % str(self.sgId2executor), flush=True)
+    #assert len(self.sgId2executor) == len(self.__subgraphs)
   
   def getExecutorById(self, sgId):
-    assert len(self.sgId2executor) > 0
     return self.sgId2executor.get(sgId, 'host')
 
 
