@@ -77,7 +77,7 @@ def writeBackEndFiles(kGraph, outPrefix, verbose, scheduler):
   fileList += kGraph.genKgraphSetupFiles(outPrefix + "compiler.py", outPrefix + jsonFile[scheduler], refOutNpyFile)
   fileList += [outPrefix + "graph_ann.dot.svg"]
   fileList += kGraph.runScheduler(outPrefix)
-  kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
+  #kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
   
 
 debugLevel = args.debug
@@ -107,6 +107,7 @@ if args.images != None:
     sgJsonList = []
     kp.colorNodes(args.partition)
     kp.partitionByColor()
+    kp.calcExecutorMap(executorsStr)
     #kp.print()
     sgId = 0
     for sg in kp.getSubgraphs():
@@ -121,11 +122,12 @@ if args.images != None:
       sg.graph.setSchedulerMode(args.scheduler)
       sg.graph.print()
       sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
-      try:
-        writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
-      except:
-        #executorsStr += " host %d" % sgId
-        print("ERROR: Compilation of subgraph %s failed" % sgDir)
+      executor = kp.getExecutorById(sgId)
+      if not executor == 'host':
+        try:
+          writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
+        except:
+          print("ERROR: Compilation of subgraph %s failed" % sgDir)
       os.chdir("..")
       sgJsonList.append(sg.genExecutorGraphJson(sgDir))
       sgId += 1

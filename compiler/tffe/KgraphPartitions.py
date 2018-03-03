@@ -7,6 +7,7 @@
 
 import os
 import KaenaOpGraph as kog
+import re
 
 
 # Describes a (small) Kgraph with inputs and the output node
@@ -46,12 +47,14 @@ class KsubGraph:
   def addSideNodes(self, srcGraph):
     self.__inputs = self.graph.transferSideNodes(srcGraph)
     self.__output = self.graph.getTopNode()
-    if len(self.__inputs) == 0:
-      self.__inputs.append(self.__output)
     # In the very first subgraph the original input node needs to be added too
     srcInputName = srcGraph.getInputNode().getName()
     if self.graph.hasNode(srcInputName):
-      self.__inputs.insert(0, self.graph.getNode(srcInputName))
+      srcInpEqNode = self.graph.getNode(srcInputName)
+      if not srcInpEqNode in self.__inputs:
+        self.__inputs.insert(0, srcInpEqNode)
+    if len(self.__inputs) == 0:
+      self.__inputs.append(self.__output)
     # Make one of the nodes input for the backend, should not matter which one
     inputNode = self.__inputs[0]
     if self.debugLevel > 0:
@@ -70,6 +73,7 @@ class KgraphPart(object):
     self.__subgraphs = []
     self.__node2color = {}
     self.__numColors = 0
+    self.sgId2executor = {}
     self.debugLevel = debugLevel
   
   def getNewColor(self):
@@ -316,8 +320,24 @@ class KgraphPart(object):
       sg = self.__subgraphs[i]
       sg.print("Subgraph %d" % i)
   
-
-
+  # Note nn_executor has a similar function, sharing compiler-runtime is not desirable
+  def calcExecutorMap(self, executorsStr):
+    self.sgId2executor = {}
+    executor = None
+    for word in executorsStr:
+      if word == "all":
+        for sgId in range(self.__subgraphs):
+          self.sgId2executor[sgId] = executor
+      elif re.search('^\d+$', word):
+        sgId = int(word)
+        self.sgId2executor[sgId] = executor
+      else:
+        executor = word
+    print("INFO: subgraph to executor map  %s" % str(self.sgId2executor), flush=True)
+  
+  def getExecutorById(self, sgId):
+    assert len(self.sgId2executor) > 0
+    return self.sgId2executor.get(sgId, 'host')
 
 
 
