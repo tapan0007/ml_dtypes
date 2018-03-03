@@ -15,11 +15,14 @@ class Asserter {
 public:
     Asserter(int lineNum, const char* fileName);
 
+    void operator() (bool expr, const char* exprStr, const char* fmt, ...);
+
+private:
+    void crash(const char*);
+
     Asserter() = delete;
     Asserter(const Asserter&) = delete;
     Asserter& operator= (const Asserter&) = delete;
-
-    void operator() (bool expr, const char* exprStr, const char* fmt, ...);
 
 private:
     const int           m_LineNumber;
