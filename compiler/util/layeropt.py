@@ -52,9 +52,10 @@ class WaveID:
 # ID of completed OFMAP tile
 class TileID:
 
-    def __init__(self, n_id, m_id, h_id, w_id):
+    def __init__(self, n_id, m_id, h_id, w_id, n, m, h, w):
         self.format = "nmhw"
         self.n_id, self.m_id, self.h_id, self.w_id = n_id, m_id, h_id, w_id
+        self.n, self.m, self.h, self.w = n, m, h, w
 
     def show(self):
         return [self.n_id, self.m_id, self.h_id, self.w_id]
@@ -164,7 +165,12 @@ class BiasAddAct:
         if (type == 'Relu'):
             return self.relu(in_array)
         elif (type == 'Sigmoid'):
-            return 1/(1 + math.exp(-in_array))
+            return 1/(1 + np.exp(-in_array))
+        elif (type == 'Exp'):
+            return np.exp(in_array)
+        else:
+            print("ERROR BiasAddAct.act: unrecognized activation type %s"%type)
+            exit(-1)
 
     def relu(self, in_array):
         return np.maximum(np.zeros(in_array.shape, dtype=in_array.dtype), in_array)
@@ -398,7 +404,7 @@ class CircularBuffer:
                     and (C <= 128 or stride_sz > 1 or filter_sz > 1)):  # make contiguous if not folding, or folding but stride > 1, or filter size > 1
                 self.atom_data_sz = self.atom_sz
                 # need spare atoms for large images
-                self.need_spare_atoms = max(1, (fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz) // self.atom_sz)
+                self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
                 print("Reserve %d as spare atoms"%self.need_spare_atoms)
                 if (C > 128):
                     self.need_skip_atoms = True
@@ -475,7 +481,10 @@ class CircularBuffer:
             if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
         self.DRAM_elem_written += length
-
+        # if this is last chunk in OFMAP, mark it as last
+        last_atom_of_file = (tile_id.m_id+1 == tile_id.m) and (ceildiv(offset_in_fold+length, self.atom_data_sz) == ceildiv(self.ofmap_data_len, self.atom_data_sz))
+        #print("m_id %d m %d offset_in_fold %d length %d ofmap_data_len %d last %d"%(tile_id.m_id, tile_id.m, offset_in_fold, length, self.ofmap_data_len, last_atom_of_file))
+        # use "simout" tag for Back-end/Inkling result file
         assert(self.dram_data_out_file != None)
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
@@ -496,6 +505,7 @@ class CircularBuffer:
               'batch_fold_idx'   : tile_id.n_id,
               'ofmap_count'      : ofmap_count,
               'partition_step_bytes': self.ofmap_data_len,
+              'last'             : last_atom_of_file,
             }
 
     def get_chunk_addr(self, addr):
@@ -1115,6 +1125,7 @@ class FusedOp(list):
         self.conv_op = None
         self.biasadd_op = None
         self.out_data_type = out_data_type 
+        self.prev_weight_wave_lower_addr = -1
 
     # Add operation to list of fused operations.
     # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
@@ -1193,14 +1204,21 @@ class FusedOp(list):
             out_dtype = "float32"
         else:            
             print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
-        waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()            
+        waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()           
+        # find the weights offset within atom; -1 means don't load new weights
+        weights_offset_in_atom = tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr)
+        if (self.conv_op.weight_wave_lower_addr == self.prev_weight_wave_lower_addr):
+            #weights_offset_in_atom = -1
+            if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
+        else:            
+            self.prev_weight_wave_lower_addr = self.conv_op.weight_wave_lower_addr
         matmul_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'MatMul',
               'waveop_name'             : waveop_name,
               'layer_name'              : self.conv_op.data['layer_name'],
               'weights_atom_id'         : tpb.statebuffer.circbuf_weights.get_atom(self.conv_op.weight_wave_lower_addr),
-              'weights_offset_in_atom'  : tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr),  # TODO: -1 means don't load new weights
+              'weights_offset_in_atom'  : weights_offset_in_atom,
               'ifmaps_atom_id'          : tpb.statebuffer.circbuf_ifmaps.get_atom(self.conv_op.ifmap_wave_lower_addr), # if multiple atoms loaded, pick the first one
               'ifmaps_offset_in_atom'   : tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.conv_op.ifmap_wave_lower_addr),
               'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,
@@ -1257,6 +1275,8 @@ class FusedOp(list):
             in_dtype = self.out_data_type
         psum_step_multiplier = 1   # kaena-174, tonga-310: after Inkling fix, no need for multiplier         
         waveop_name = self.pool_op.data['layer_name']+"/Pool_"+tile_id.id_string()
+        pool_frequency = self.pool_op.pool_window_x * self.pool_op.pool_window_y
+        pool_scale = float(1/pool_frequency)
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
@@ -1280,7 +1300,8 @@ class FusedOp(list):
               'src_z_num'               : self.pool_op.ofmap_cropped_tile_width,
               'src_w_step'              : src_ifmap_width * self.pool_op.stride_y * psum_step_multiplier,
               'src_w_num'               : self.pool_op.ofmap_cropped_tile_height,
-              'pool_frequency'          : self.pool_op.pool_window_x * self.pool_op.pool_window_y,
+              'pool_frequency'          : pool_frequency,
+              'pool_scale'              : pool_scale,
               'num_partitions'          : self.pool_op.ofmap_count,
               'dst_sb_atom_id'          : 0, # Need to adjust this after allocating atoms
               'dst_sb_offset_in_atom'   : tpb.statebuffer.circbuf_scratch.get_atom_offset(self.pool_op.ofmap_tile_lower_addr),
@@ -1455,6 +1476,16 @@ class KGraph:
                     i.add_next(starting_node)
                     self.add_forward_refs(i)
 
+    # add a copy of layer, and change it to a new type
+    def add_copy_with_new_type(self, layer, new_type):
+        new_layer = copy.deepcopy(layer)
+        new_layer['layer_type'] = new_type
+        new_layer['layer_name'] = layer['layer_name'] + "_" + new_type
+        new_node = KNode(new_layer, self.item_sz, self.data_type)
+        new_node.add_prev(self.last_node)
+        self.node_dict[ new_layer['layer_name'] ] = new_node
+        self.last_node = new_node
+
     # populate graph using layer info from JSON                    
     def populate_from_kgraph_json(self, kgraph_json):                    
         # get the lowest significant bit
@@ -1491,10 +1522,16 @@ class KGraph:
                 # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                 self.last_node = new_node                
                 self.node_dict[ l['layer_name'] ] = new_node
+                # if softmax, expand to multiple subnodes
+                if (l['layer_type'] == "Softmax"):
+                    self.last_node.data['layer_type'] = "Exp"
+                    self.add_copy_with_new_type(l, "SumReciprocate")
+                    self.add_copy_with_new_type(l, "Scale")
             self.current_node = self.first_node
         else:
             print("ERROR: there are no layers!")
             exit(-1)
+
         # process waveops 
         if ("waveops" in kgraph_json):
             layers = kgraph_json["waveops"]
@@ -1826,7 +1863,7 @@ class TPBSched:
             for m_id in range(pool_op.m):
                 for h_id in range(pool_op.h):
                     for w_id in range(pool_op.w):
-                        tile_id = TileID(n_id, m_id, h_id, w_id)
+                        tile_id = TileID(n_id, m_id, h_id, w_id, pool_op.n, pool_op.m, pool_op.h, pool_op.w)
                         pool_op.compute_ofmap_tile_info(tile_id)
                         # set r_id and s_id in wave_id to zero since we are not doing convolution
                         wave_id = WaveID(n_id, m_id, h_id, w_id, 0, 0, 0)
@@ -1918,7 +1955,7 @@ class TPBSched:
             for m_id in range(op_list.conv_op.m):
                 for h_id in range(op_list.conv_op.h):
                     for w_id in range(op_list.conv_op.w):
-                        tile_id = TileID(n_id, m_id, h_id, w_id)
+                        tile_id = TileID(n_id, m_id, h_id, w_id, op_list.conv_op.n, op_list.conv_op.m, op_list.conv_op.h, op_list.conv_op.w)
                         # compute ofmap tile information (tile startx, starty, height, width)
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
                         op_list.conv_op.compute_tile_weight_bounds(weights, tile_id)
