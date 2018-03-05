@@ -141,7 +141,7 @@ Main(int argc, char* argv[])
         std::cout << "Reading NN from JSON file '" << JsonInFileName << "'\n";
         std::ifstream is(JsonInFileName);
         const bool isOpen = is.is_open();
-        Assert(isOpen, "File %s is not open\n", JsonInFileName);
+        Assert(isOpen, "JSON input file '", JsonInFileName, "' is not open\n");
         cereal::JSONInputArchive ar(is);
         ntwk->rUseWave(useWave);
         ntwk->load(ar);

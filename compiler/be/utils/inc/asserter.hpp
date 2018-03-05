@@ -1,39 +1,68 @@
 #pragma once
 
 #ifndef KCC_UTILS_ASSERTER_H
+#define KCC_UTILS_ASSERTER_H 1
+
+#include <iostream>
 
 namespace kcc {
 namespace utils {
 
-// Usage
-// #define KCC_ASSERT(
-//
-// KCC_ASSERT(a==b, "Value a=%d  !=  b=%d", a, b);
-// Asserter(__LINE__, __FILE__)(a==b, "a==b", "Value a=%d  !=  b=%d", a, b);
 
+
+//template<typename T, typename... Targs>
 class Asserter {
-public:
-    Asserter(int lineNum, const char* fileName);
+private:
+    enum { BUF_SIZE = 1024 };
 
-    void operator() (bool expr, const char* exprStr, const char* fmt, ...);
+public:
+    Asserter (int lineNum, const char* fileName, const char* exprStr);
+
+    void operator() (bool expr) const;
+
+    template<typename T, typename... Targs>
+    inline void operator() (bool expr, T arg, Targs... Fargs) // recursive variadic function
+    {
+        if (expr) {
+            return;
+        }
+        char buf[BUF_SIZE];
+        snprintf(buf, sizeof(buf)/sizeof(buf[0]),
+            "error: File %s:%d, Assertion '%s' failed: ", m_FileName, m_LineNumber, m_ExprStr);
+        this->printer(buf, arg, Fargs...);
+        crash();
+    }
 
 private:
-    void crash(const char*);
+    void crash() const;
+    void printer () const;
 
-    Asserter() = delete;
-    Asserter(const Asserter&) = delete;
+    template<typename T, typename... Targs>
+    inline void printer (T arg, Targs... Fargs) const
+    {
+        std::cerr << arg;
+        this->printer(Fargs...);
+    }
+
+private:
+    Asserter () = delete;
+    Asserter (const Asserter&) = delete;
     Asserter& operator= (const Asserter&) = delete;
 
 private:
     const int           m_LineNumber;
     const char* const   m_FileName;
-};
-
-#define Assert(expr, fmt, ...) kcc::utils::Asserter(__LINE__, __FILE__)(expr, #expr, fmt, __VA_ARGS__)
-
+    const char* const   m_ExprStr;
+}; // class Asserter
 
 }}
 
+#define Assert1(expr) kcc::utils::Asserter(__LINE__,__FILE__,#expr)(expr)
+#define Assert(expr,...) kcc::utils::Asserter(__LINE__,__FILE__,#expr)(expr,__VA_ARGS__)
+
+// __VA_OPT__ in macros does not work, so asserting without comments (discouraged) needs
+// a separate macro
 
 #endif
+
 

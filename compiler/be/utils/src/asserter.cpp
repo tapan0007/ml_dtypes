@@ -4,38 +4,42 @@
 
 #include "utils/inc/asserter.hpp"
 
+
+
 namespace kcc {
 namespace utils {
 
 
-
-Asserter::Asserter(int lineNum, const char* fileName)
+Asserter::Asserter (int lineNum, const char* fileName, const char* exprStr)
     : m_LineNumber(lineNum)
     , m_FileName(fileName)
-{
-}
+    , m_ExprStr(exprStr)
+    { } 
 
-void
-Asserter::operator() (bool expr, const char* exprStr, const char* fmt, ...)
+
+void 
+Asserter::operator() (bool expr) const
 {
     if (expr) {
         return;
-    }
-    char buf[1024];
-    const int numChars = sprintf(buf, "File %s:%d assert(%s): ", m_FileName, m_LineNumber, exprStr);
-
-    va_list args;
-    va_start(args, fmt);
-    vsprintf(buf + numChars, fmt, args);
-    va_end(args);
-
-    crash(buf);
+    }   
+    char buf[BUF_SIZE];
+    snprintf(buf, sizeof(buf)/sizeof(buf[0]),
+        "error: File %s:%d, Assertion '%s' failed ", m_FileName, m_LineNumber, m_ExprStr);
+    this->printer(buf);
+    crash();
 }
 
 void
-Asserter::crash(const char* buf)
+Asserter::printer () const
 {
-    fprintf(stderr, "%s\n", buf);
+    std::cerr << "\n";
+}
+
+void
+Asserter::crash() const
+{
+    exit(1);
     assert(false);
 }
 
