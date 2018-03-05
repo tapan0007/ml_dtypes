@@ -165,7 +165,12 @@ class BiasAddAct:
         if (type == 'Relu'):
             return self.relu(in_array)
         elif (type == 'Sigmoid'):
-            return 1/(1 + math.exp(-in_array))
+            return 1/(1 + np.exp(-in_array))
+        elif (type == 'Exp'):
+            return np.exp(in_array)
+        else:
+            print("ERROR BiasAddAct.act: unrecognized activation type %s"%type)
+            exit(-1)
 
     def relu(self, in_array):
         return np.maximum(np.zeros(in_array.shape, dtype=in_array.dtype), in_array)
@@ -1463,6 +1468,16 @@ class KGraph:
                     i.add_next(starting_node)
                     self.add_forward_refs(i)
 
+    # add a copy of layer, and change it to a new type
+    def add_copy_with_new_type(self, layer, new_type):
+        new_layer = copy.deepcopy(layer)
+        new_layer['layer_type'] = new_type
+        new_layer['layer_name'] = layer['layer_name'] + "_" + new_type
+        new_node = KNode(new_layer, self.item_sz, self.data_type)
+        new_node.add_prev(self.last_node)
+        self.node_dict[ new_layer['layer_name'] ] = new_node
+        self.last_node = new_node
+
     # populate graph using layer info from JSON                    
     def populate_from_kgraph_json(self, kgraph_json):                    
         # get the lowest significant bit
@@ -1499,10 +1514,16 @@ class KGraph:
                 # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                 self.last_node = new_node                
                 self.node_dict[ l['layer_name'] ] = new_node
+                # if softmax, expand to multiple subnodes
+                if (l['layer_type'] == "Softmax"):
+                    self.last_node.data['layer_type'] = "Exp"
+                    self.add_copy_with_new_type(l, "SumReciprocate")
+                    self.add_copy_with_new_type(l, "Scale")
             self.current_node = self.first_node
         else:
             print("ERROR: there are no layers!")
             exit(-1)
+
         # process waveops 
         if ("waveops" in kgraph_json):
             layers = kgraph_json["waveops"]
