@@ -50,6 +50,38 @@ class NnSubgraph:
       newInputs += [inp, tfFile]
     return newInputs
   
+  # The TPB executor (tcc, wave, waveopt) uses fixed npy files
+  # in TPB format. This function finds the ../...-out.npy file
+  # converts it to TPB format and links it instead of the original input
+  # which is renamed to ./...-orig.npy)
+  def overwriteInputFilesInTpbFormat(self):
+    newInputs = []
+    if self.getSgId() == 0:
+      # The inputs for the first subgraph are same as when compiled
+      return
+    tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
+    tpbWeightFormat = npt.Formats[npt.SIM][npt.Weights]
+    for inp,f in zip(self.inputs[::2], self.inputs[1::2]):
+      fBase = f[:-4]  # removes .npy
+      # Only Fmaps come from the previous subgraph
+      tpbInpFile = "%s/%s_%s.npy"      % (self.sgDir, fBase, npt.Formats[npt.SIM][npt.Fmaps])
+      if os.path.isfile(tpbInpFile):
+        tfFile = "%s-out.npy" % fBase
+        # Move the compiler generated input file
+        origFile = tpbInpFile.replace(".npy", "-orig.npy")
+        os.rename(tpbInpFile, origFile)
+        # Translate and write the previous subgraph file
+        if os.path.isfile(f):
+          npt.copyNpyFileAs(tfFile, npt.TF, npt.SIM, npt.Fmaps, outFile=tpbInpFile)
+          print("INFO: translated TF format  %s  to TPB Fmap format  %s" % (tfFile, tpbInpFile))
+        else:
+          print("ERROR: no tpb output file %s" % tfFile, flush=True)        
+        newInputs += [inp, tfFile]
+      else:
+        print("ERROR: missing TPB-format input file  %s" % tpbInpFile)
+        sys.exit(1)
+    return newInputs
+  
   # The files are shared by op name A, then computed locally as sg00/A-out.npy
   # and linked to parent as A-out.npy which the input for the next subgraph
   # This ensures a subgraph failure is visible in the end result
@@ -64,10 +96,11 @@ class NnSubgraph:
       cmd += "  --output_tensor %s %s" % (self.output[0], tfOutFile)
       sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
     elif executor == "tcc" or executor == "wave" or executor == "waveopt":
+      self.overwriteInputFilesInTpbFormat()
       cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
     #os.chdir(self.sgDir)
     cmd = "cd %s; %s > %s 2>&1" % (self.sgDir, cmd, logFile)
-    print("INFO: executing %s" % cmd, flush=True)
+    print("\nINFO: executing %s" % cmd, flush=True)
     os.system(cmd)
     # Translate TPB format back to TF format.
     # To share easily the file is also linked to the parent dir
@@ -82,6 +115,9 @@ class NnSubgraph:
         npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=sgOutFile)
       else:
         print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
+    if os.path.islink(tfOutFile):
+      os.remove(tfOutFile)
+      print("INFO: removed stale link %s" % tfOutFile)
     os.symlink(sgOutFile, tfOutFile)
     
   def getSgId(self):
