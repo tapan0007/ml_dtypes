@@ -34,6 +34,7 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtype))
     , m_PoolFrequency(params.m_PoolFrequency)
     , m_PoolFunc(params.m_PoolFunc)
+    , m_SrcIsPsum(params.m_SrcIsPsum)
     // previouswaveops;
     //  1conv/i1/MatMuln0m0h0w0c0r0s0"
     // ],
@@ -43,7 +44,6 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     //waveopname;
     //waveoptype;
 {
-    m_SrcIsPsum         = params.m_SrcIsPsum;
     if (m_SrcIsPsum) {
         m_SrcPsumBankId     = params.m_SrcPsumBankId;
         m_SrcPsumBankOffset = params.m_SrcPsumBankOffset;

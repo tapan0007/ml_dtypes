@@ -1125,6 +1125,7 @@ class FusedOp(list):
         self.conv_op = None
         self.biasadd_op = None
         self.out_data_type = out_data_type 
+        self.prev_weight_wave_lower_addr = -1
 
     # Add operation to list of fused operations.
     # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
@@ -1203,14 +1204,21 @@ class FusedOp(list):
             out_dtype = "float32"
         else:            
             print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
-        waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()            
+        waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()           
+        # find the weights offset within atom; -1 means don't load new weights
+        weights_offset_in_atom = tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr)
+        if (self.conv_op.weight_wave_lower_addr == self.prev_weight_wave_lower_addr):
+            #weights_offset_in_atom = -1
+            if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
+        else:            
+            self.prev_weight_wave_lower_addr = self.conv_op.weight_wave_lower_addr
         matmul_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'MatMul',
               'waveop_name'             : waveop_name,
               'layer_name'              : self.conv_op.data['layer_name'],
               'weights_atom_id'         : tpb.statebuffer.circbuf_weights.get_atom(self.conv_op.weight_wave_lower_addr),
-              'weights_offset_in_atom'  : tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr),  # TODO: -1 means don't load new weights
+              'weights_offset_in_atom'  : weights_offset_in_atom,
               'ifmaps_atom_id'          : tpb.statebuffer.circbuf_ifmaps.get_atom(self.conv_op.ifmap_wave_lower_addr), # if multiple atoms loaded, pick the first one
               'ifmaps_offset_in_atom'   : tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.conv_op.ifmap_wave_lower_addr),
               'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,

@@ -18,9 +18,6 @@ namespace kcc {
 
 class WaveCode;
 
-namespace layers {
-    class Layer;
-}
 namespace wave {
     class WaveOp;
 }

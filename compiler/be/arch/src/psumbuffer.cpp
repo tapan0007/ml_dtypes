@@ -21,12 +21,6 @@ PsumBuffer::PsumBuffer(const PeArray& peArray, kcc_int32 numberBanks, kcc_int32 
 
 //----------------------------------------------------------------
 kcc_int64
-PsumBuffer::gAddress() const
-{
-    return 0x02000000L;
-}
-
-kcc_int64
 PsumBuffer::gPsumBaseAddress() const
 {
     return MMAP_PSUM_BASE;

@@ -32,6 +32,7 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
+#include "wave/inc/resaddwaveop.hpp"
 
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
@@ -215,6 +216,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 waveOp = loadMatMul(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStr()) {
                 waveOp = loadActivation(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::ResAddWaveOp::gTypeStr()) {
+                waveOp = loadResAdd(serWaveOp);
             } else {
                 assert(false && "Wrong WaveOp type during deserialization");
             }
@@ -447,6 +450,76 @@ Network::loadActivation(const serialize::SerWaveOp& serWaveOp)
     return waveOp;
 #undef PARAMS
 }
+
+
+wave::ResAddWaveOp*
+Network::loadResAdd(const serialize::SerWaveOp& serWaveOp)
+{
+#define PARAMS resAddParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::ResAddWaveOp::Params resAddParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, resAddParams);
+
+    resAddParams.m_InADtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InADtype);
+    resAddParams.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
+    resAddParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    KCC_UNSERIALIZE(NumPartitions);
+
+    // SrcA
+    KCC_UNSERIALIZE(SrcAIsPsum);
+    if (serWaveOp.m_SrcAIsPsum) {
+        KCC_UNSERIALIZE(SrcAPsumBankId);
+        KCC_UNSERIALIZE(SrcAPsumBankOffset);
+    } else {
+        KCC_UNSERIALIZE(SrcASbAtomId);
+        KCC_UNSERIALIZE(SrcASbOffsetInAtom);
+    }
+    KCC_UNSERIALIZE(SrcAXNum);
+    KCC_UNSERIALIZE(SrcAXStep);
+    KCC_UNSERIALIZE(SrcAYNum);
+    KCC_UNSERIALIZE(SrcAYStep);
+    KCC_UNSERIALIZE(SrcAZNum);
+    KCC_UNSERIALIZE(SrcAZStep);
+
+    // SrcB
+    KCC_UNSERIALIZE(SrcBIsPsum);
+    if (serWaveOp.m_SrcBIsPsum) {
+        KCC_UNSERIALIZE(SrcBPsumBankId);
+        KCC_UNSERIALIZE(SrcBPsumBankOffset);
+    } else {
+        KCC_UNSERIALIZE(SrcBSbAtomId);
+        KCC_UNSERIALIZE(SrcBSbOffsetInAtom);
+    }
+    KCC_UNSERIALIZE(SrcBXNum);
+    KCC_UNSERIALIZE(SrcBXStep);
+    KCC_UNSERIALIZE(SrcBYNum);
+    KCC_UNSERIALIZE(SrcBYStep);
+    KCC_UNSERIALIZE(SrcBZNum);
+    KCC_UNSERIALIZE(SrcBZStep);
+
+    // Dst
+    KCC_UNSERIALIZE(DstIsPsum);
+    if (serWaveOp.m_DstIsPsum) {
+        KCC_UNSERIALIZE(DstPsumBankId);
+        KCC_UNSERIALIZE(DstPsumBankOffset);
+    } else {
+        KCC_UNSERIALIZE(DstSbAtomId);
+        KCC_UNSERIALIZE(DstSbOffsetInAtom);
+    }
+    KCC_UNSERIALIZE(DstXNum);
+    KCC_UNSERIALIZE(DstXStep);
+    KCC_UNSERIALIZE(DstYNum);
+    KCC_UNSERIALIZE(DstYStep);
+    KCC_UNSERIALIZE(DstZNum);
+    KCC_UNSERIALIZE(DstZStep);
+
+    auto waveOp = new wave::ResAddWaveOp(resAddParams, prevWaveOps);
+    assert(waveOp->gName() == resAddParams.m_WaveOpName);
+    return waveOp;
+}
+
+
+
 
 
 /* in

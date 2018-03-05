@@ -68,19 +68,23 @@ do
     esac
 done
 
-case "x$1" in
-(x*.tgz)
-    TGZ=$1; 
-    x=${TGZ%.tgz}
-    Name="${x##.*/}"
-    ;;
-(*) Name=$1; TGZ=$Name.tgz;;
-esac
+#case "x$1" in
+#(x*.tgz)
+#    TGZ=$1; 
+#    x=${TGZ%.tgz}
+#    Name="${x##.*/}"
+#    ;;
+#(*) Name=$1; TGZ=$Name.tgz;;
+#esac
+Name=nn
 
 ##############################################################
 
 ##############################################################
-tar xvfz $TGZ
+# Use local directory instead of fixed tgz file since the NNE flow
+# needs to generate the local inputs by translation of the previous
+# subgraph outputs
+#tar xvfz $TGZ
 #PYTHONPATH="$PYTHONPATH:$PWD"
 F=./net_json_params.sh
 test -r $F || Fatal missing file $F

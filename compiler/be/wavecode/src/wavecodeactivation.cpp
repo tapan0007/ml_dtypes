@@ -23,7 +23,6 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
     auto activationWaveOp = dynamic_cast<wave::ActivationWaveOp*>(waveOp);
     assert(activationWaveOp);
 
-    //const layers::ActivLayer* const activLayer = activationWaveOp->gActivLayer();
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
     const arch::StateBuffer& stateBuf(arch.gStateBuffer());

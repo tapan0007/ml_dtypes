@@ -31,6 +31,7 @@
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
+#include "wave/inc/resaddwaveop.hpp"
 
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
@@ -239,6 +240,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             saveActivaton(activationWaveOp, serWaveOp);
             continue;
         }
+        if (const auto resAddWaveOp = dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
+            saveResAdd(resAddWaveOp, serWaveOp);
+            continue;
+        }
         assert(false && "Unsupported WaveOp");
     }
     archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
@@ -431,6 +436,70 @@ Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     KCC_SERIALIZE(TileIdFormat);
 #undef WAVE_OP
 }
+
+
+
+void
+Network::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
+                    serialize::SerWaveOp& serWaveOp) const
+{
+#define WAVE_OP resAddWaveOp
+    serWaveOp.m_WaveOpType = wave::ResAddWaveOp::gTypeStr();
+
+    serWaveOp.m_InADtype            = resAddWaveOp->gInADtype().gName();
+    serWaveOp.m_InBDtype            = resAddWaveOp->gInBDtype().gName();
+    serWaveOp.m_OutDtype            = resAddWaveOp->gOutDtype().gName();
+    KCC_SERIALIZE(NumPartitions);
+
+    serWaveOp.m_SrcAIsPsum = resAddWaveOp->qSrcAIsPsum();
+    if (resAddWaveOp->qSrcAIsPsum()) {
+        KCC_SERIALIZE(SrcAPsumBankId);
+        KCC_SERIALIZE(SrcAPsumBankOffset);
+    } else {
+        KCC_SERIALIZE(SrcASbAtomId);
+        KCC_SERIALIZE(SrcASbOffsetInAtom);
+    }
+    KCC_SERIALIZE(SrcAXNum);
+    KCC_SERIALIZE(SrcAXStep);
+    KCC_SERIALIZE(SrcAYNum);
+    KCC_SERIALIZE(SrcAYStep);
+    KCC_SERIALIZE(SrcAZNum);
+    KCC_SERIALIZE(SrcAZStep);
+
+    serWaveOp.m_SrcBIsPsum = resAddWaveOp->qSrcBIsPsum();
+    if (resAddWaveOp->qSrcBIsPsum()) {
+        KCC_SERIALIZE(SrcBPsumBankId);
+        KCC_SERIALIZE(SrcBPsumBankOffset);
+    } else {
+        KCC_SERIALIZE(SrcBSbAtomId);
+        KCC_SERIALIZE(SrcBSbOffsetInAtom);
+    }
+    KCC_SERIALIZE(SrcBXNum);
+    KCC_SERIALIZE(SrcBXStep);
+    KCC_SERIALIZE(SrcBYNum);
+    KCC_SERIALIZE(SrcBYStep);
+    KCC_SERIALIZE(SrcBZNum);
+    KCC_SERIALIZE(SrcBZStep);
+
+    serWaveOp.m_DstIsPsum = resAddWaveOp->qDstIsPsum();
+    if (resAddWaveOp->qDstIsPsum()) {
+        KCC_SERIALIZE(DstPsumBankId);
+        KCC_SERIALIZE(DstPsumBankOffset);
+    } else {
+        KCC_SERIALIZE(DstSbAtomId);
+        KCC_SERIALIZE(DstSbOffsetInAtom);
+    }
+    KCC_SERIALIZE(DstXNum);
+    KCC_SERIALIZE(DstXStep);
+    KCC_SERIALIZE(DstYNum);
+    KCC_SERIALIZE(DstYStep);
+    KCC_SERIALIZE(DstZNum);
+    KCC_SERIALIZE(DstZStep);
+
+#undef WAVE_OP
+}
+
+
 #undef KCC_SERIALIZE
 
 }}

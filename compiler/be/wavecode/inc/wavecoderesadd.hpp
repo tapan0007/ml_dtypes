@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_WAVECODE_WAVECODEPOOL_H
-#define KCC_WAVECODE_WAVECODEPOOL_H
+#ifndef KCC_WAVECODE_WAVECODERESADD_H
+#define KCC_WAVECODE_WAVECODERESADD_H
 
 #include <string>
 #include <cstdio>
@@ -19,17 +19,17 @@
 namespace kcc {
 
 namespace wave {
-    class PoolWaveOp;
+    class ResAddWaveOp;
 }
 
 namespace wavecode {
 
 
 
-class WaveCodePool : public WaveCodeWaveOp {
+class WaveCodeResAdd : public WaveCodeWaveOp {
 public:
     //----------------------------------------------------------------
-    WaveCodePool(WaveCode* wavecode);
+    WaveCodeResAdd(WaveCode* wavecode);
 
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;
@@ -39,5 +39,5 @@ public:
 
 }}
 
-#endif // KCC_WAVECODE_WAVECODEPOOL_H
+#endif // KCC_WAVECODE_WAVECODERESADD_H
 
