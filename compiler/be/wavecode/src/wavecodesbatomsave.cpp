@@ -24,16 +24,18 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveOp)
     assert(sbAtomSaveWaveOp);
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
-    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForOutputNpyFile(sbAtomSaveWaveOp->gRefFileName());
+    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForNpyFile(sbAtomSaveWaveOp->gRefFileName());
 
     if (npyFileDramOffset < 0) {
         const kcc_int64 numPySize = sbAtomSaveWaveOp->gSaveDataSizeInBytes();
         npyFileDramOffset           = m_WaveCode->gCurrentDramAddress(numPySize);
+
         WaveCode::NpyFileInfo npyFileInfo;
+        npyFileInfo.m_Dirty          = false;
         npyFileInfo.m_FileDramOffset = npyFileDramOffset;
         npyFileInfo.m_SimTypeId = sbAtomSaveWaveOp->gDataType().gSimTypeId();
         npyFileInfo.m_RefFileShape = sbAtomSaveWaveOp->gRefFileShape();
-        m_WaveCode->recordDramForOutputNpyFile(sbAtomSaveWaveOp->gRefFileName(), npyFileInfo);
+        m_WaveCode->recordDramForNpyFile(sbAtomSaveWaveOp->gRefFileName(), npyFileInfo);
     }
 
     const kcc_int64 numPartitions   = sbAtomSaveWaveOp->gOfmapCount();
@@ -47,6 +49,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveOp)
         statebufToDramInstr.src_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
         statebufToDramInstr.dst_address = npyFileDramOffset + sbAtomSaveWaveOp->gOffsetInFile() + (partIdx * stepSize);
         m_WaveCode->writeInstruction(statebufToDramInstr);
+        m_WaveCode->markDramDirty(sbAtomSaveWaveOp->gRefFileName());
     }
 }
 

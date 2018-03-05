@@ -26,16 +26,23 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     assert(sbAtomFileWaveOp);
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
-    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForInputNpyFile(sbAtomFileWaveOp->gRefFileName());
+    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForNpyFile(sbAtomFileWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) {
         SIM_WRNPY npyToDramInstr;
         // Load whole numpy file
         const kcc_int64 numPySize = sbAtomFileWaveOp->gLoadDataSizeInBytes();
         strcpy(npyToDramInstr.src_fname, sbAtomFileWaveOp->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode->gCurrentDramAddress(numPySize);
+
         npyToDramInstr.dst_address  = npyFileDramOffset;
-        m_WaveCode->recordDramForInputNpyFile(sbAtomFileWaveOp->gRefFileName(), npyFileDramOffset);
         m_WaveCode->writeInstruction(npyToDramInstr);
+
+        WaveCode::NpyFileInfo npyFileInfo;
+        npyFileInfo.m_Dirty          = false;
+        npyFileInfo.m_FileDramOffset = npyFileDramOffset;
+        npyFileInfo.m_SimTypeId = sbAtomFileWaveOp->gDataType().gSimTypeId();
+        npyFileInfo.m_RefFileShape = sbAtomFileWaveOp->gRefFileShape();
+        m_WaveCode->recordDramForNpyFile(sbAtomFileWaveOp->gRefFileName(), npyFileInfo);
     }
 
     const kcc_int64 numPartitions   = sbAtomFileWaveOp->gIfmapCount();
