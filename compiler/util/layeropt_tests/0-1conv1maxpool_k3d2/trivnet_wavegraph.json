@@ -149,6 +149,7 @@
       "out_dtype": "float16",
       "pool_frequency": 1,
       "pool_func": "MaxPool",
+      "pool_scale": 1.0,
       "previous_waveops": [
         "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
@@ -175,6 +176,7 @@
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
+      "last": true,
       "layer_name": "1conv1pool/i1",
       "length": 32,
       "offset_in_file": 0,
@@ -224,6 +226,7 @@
       "out_dtype": "float16",
       "pool_frequency": 9,
       "pool_func": "MaxPool",
+      "pool_scale": 0.1111111111111111,
       "previous_waveops": [
         "1conv1pool/i1/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv1pool/i1/Pool_n0_m0_h0_w0"
@@ -251,6 +254,7 @@
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
+      "last": true,
       "layer_name": "1conv1pool/i2",
       "length": 8,
       "offset_in_file": 0,
