@@ -508,6 +508,7 @@
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
+      "last": true,
       "layer_name": "1conv3/relu1",
       "length": 32,
       "offset_in_file": 0,
