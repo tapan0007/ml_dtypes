@@ -1,7 +1,8 @@
-
-#include "codegenactivlayer.hpp"
+#include "utils/inc/asserter.hpp"
 
 #include "layers/inc/activlayer.hpp"
+#include "codegenactivlayer.hpp"
+
 
 namespace kcc {
 namespace codegen {
@@ -14,7 +15,7 @@ CodeGenActivLayer::generate(layers::Layer* layer)
 {
     FILE* const objFile = gObjFile();
     const auto activLayer = dynamic_cast<layers::ActivLayer*>(layer);
-    assert(activLayer && "CodeGen::generate: layer is not an activiation layer");
+    Assert(activLayer, "CodeGen::generate: layer is not an activiation layer: ", layer->gTypeStr());
 
     const ACTIVATIONFUNC activFunc  = gActivFunc();
     layers::Layer* const prevLayer  = activLayer->gPrevLayer(0);

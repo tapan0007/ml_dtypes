@@ -3,7 +3,6 @@
 #ifndef KCC_ARCH_PEARRAY_H
 #define KCC_ARCH_PEARRAY_H 1
 
-#include <assert.h>
 
 #include "utils/inc/types.hpp"
 

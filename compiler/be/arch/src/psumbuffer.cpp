@@ -1,6 +1,7 @@
 #include "uarch_cfg.hpp"
 #include "tpb_isa.hpp"
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/types.hpp"
 
@@ -58,7 +59,7 @@ kcc_int64
 PsumBuffer::gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx,
                              const utils::DataType& dtype) const
 {
-    assert(qLegalDataType(dtype) && "Wrong data type for PSUM TPB address calculation");
+    Assert(qLegalDataType(dtype), "Wrong data type for PSUM TPB address calculation: ", dtype.gName());
     return gPsumBaseAddress() 
            + gBankOffsetDelta() * bankId 
            + dtype.gSizeInBytes() * bankEntryIdx;
