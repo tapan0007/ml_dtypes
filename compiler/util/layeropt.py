@@ -325,6 +325,7 @@ class CircularBuffer:
                 self.layer_shape = op.data['ofmap_shape']
                 empty_tensor = np.zeros(self.layer_shape, dtype=data_type)
                 np.save(self.dram_data_in_file, empty_tensor)
+        print("circBufferType=%s" % self.circbuf_type)
         assert (self.dram_data_in_file != None)
         self.load_file(self.dram_data_in_file, fmap_full_tiley_sz, fmap_full_tilex_sz, filter_x, stride_x)
         if (file_name != None):
@@ -1517,7 +1518,7 @@ class KGraph:
                             exit(-1)
                 else:
                     # Type "Input" node
-                    if (l['layer_type'] == "Input"):
+                    if (l['layer_type'] == "Input" and self.first_node == None):
                         self.first_node = new_node
                 # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                 self.last_node = new_node                
