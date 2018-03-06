@@ -63,4 +63,5 @@ conv_pad      Single Conv2D layer that exercises padding
 7-rn50_nne_fp32_waveopt Full Resnet50 fp32 inference all layers on ME except the last pool, FC, softmax
 7-rn50_nne_fp32_wave    Full Resnet50 fp32 inference all layers on Inkling except the last pool, FC, softmax
 
-# Git test change
+# Project tests
+4-rn50_matmul_fp32_wave  Sprint 10 avgpool, reshape, matmult, softmax on wave backend, rest on host
