@@ -171,6 +171,7 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(DstZStep);
 
     KCC_ARCHIVE(InDtype);
+    KCC_ARCHIVE(BiasDtype);
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(OutDtype);
     KCC_ARCHIVE(SrcPsumBankId);
