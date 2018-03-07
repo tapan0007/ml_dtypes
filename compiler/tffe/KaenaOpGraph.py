@@ -247,6 +247,7 @@ class NodeSimple(Node):
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    # FIX_THIS - IFMAP, it should not be needed
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
     (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
     layerData = {
@@ -255,6 +256,37 @@ class NodeSimple(Node):
       "ref_file"        : npFileSim,
       "previous_layers" : [fromIfNode.getName()],
       "#comment"        : "supported simple layer"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
+###############################################################################
+# Softmax - specialized due to the 2D dimensions
+###############################################################################
+class NodeSoftmax(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [fromIfNode.getName()],
+      "#comment"        : "supported softmax layer"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
@@ -687,6 +719,108 @@ class NodeSimple2(Node):
       fileListBase.insert(0, npFileSimF1)
       layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
 
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
+###############################################################################
+# MatMul - specialization for 2D data formats
+###############################################################################
+class NodeMatMul(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    
+    # Output tensor is NC format
+    npInfo = self.getNpInfo()[0]
+    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    
+    # The IFMAP comes from reshape,  the other is (weight) matrix 
+    ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [fromIfNode0.getName(), fromIfNode1.getName()],
+      "#comment"        : "supported matmul"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+
+    if True:
+      # Add the matrix constant side input
+      tfShape4D1 = npt.cShapeToNHWC(npInfoIF1.npShape)
+      (npFileSimF1, simFormatIF1)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D1)
+      tpbShape4D1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
+      
+      constLayerData = {
+       "layer_type" :  "Const",
+       "layer_name" :  fromIfNode1.getName(),
+        "ofmap_shape"     : tpbShape4D1,
+        "ofmap_format"    : simFormat,
+        "ref_file"        : npFileSimF1,
+        "previous_layers" : [],
+       "#comment"   :  "captured matmul constant"
+      }
+      fileListBase.insert(0, npFileSimF1)
+      layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
+
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
+
+###############################################################################
+# Reshape
+# Initial implementation is simply identity since data format conversions are done
+# on all nodes
+###############################################################################
+class NodeReshape(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    
+    # Output tensor is NC format
+    npInfo = self.getNpInfo()[0]
+    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    
+    # The IFMAP comes from reshape,  the other is (weight) matrix 
+    ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    # Both nodes are part of the main data flow
+    # So use the tensor size to detect which one is reshape vector and which one IFMAP
+    # Unsafe on 1x2 or 1x1 IFMAP
+    assert any(np.empty(x.npShape).size > 2 for x in [npInfoIF0, npInfoIF1])
+    if np.empty(npInfoIF0.npShape).size >  np.empty(npInfoIF1.npShape).size:
+      ifNode = fromIfNode0
+    else:
+      ifNode = fromIfNode1
+    
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [ifNode.getName()],
+      "#comment"        : "supported reshape as copy"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
     return(layerDataBase, fileListBase)
 
   def isSupported(self):

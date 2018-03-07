@@ -93,9 +93,15 @@ class TfFe:
           numConv += 1
           node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeConv2D")
-        elif (re.search("Add|BiasAdd|MatMul", tfop.op, re.I) != None):
+        elif (re.search("Add|BiasAdd", tfop.op, re.I) != None):
           node = kog.NodeSimple2(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple2")
+        elif (re.search("Softmax", tfop.op, re.I) != None):
+          node = kog.NodeSoftmax(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("MatMul", tfop.op, re.I) != None):
+          node = kog.NodeMatMul(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("Reshape", tfop.op, re.I) != None):
+          node = kog.NodeReshape(tfNode.name, tfop.op, add_attrs)
         elif  (re.search("relu|tanh|Softmax", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
