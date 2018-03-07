@@ -287,7 +287,7 @@ testWaiver = [
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
-    ['4-rn50_matmul_fp32_wave', 'WAIVE-S10_MATMUL']
+    ['4-rn50_matmul_fp32_wave', 'WAIVE-S10_MATMUL'],
 
     ['^[6]-alexnet',  'WAIVE-BENCH'],
     ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
