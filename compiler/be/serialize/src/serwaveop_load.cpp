@@ -177,6 +177,7 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     }
 
     KCC_ARCHIVE(InDtype);
+    KCC_ARCHIVE(BiasDtype);
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(OutDtype);
 

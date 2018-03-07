@@ -31,6 +31,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
 
     activationInstr.activation_func     = activationWaveOp->gSimActivationFunc();
     activationInstr.in_dtype            = activationWaveOp->gInDtype().gSimTypeId();
+    activationInstr.bias_dtype          = activationWaveOp->gBiasDtype().gSimTypeId();
     activationInstr.out_dtype           = activationWaveOp->gOutDtype().gSimTypeId();
 
     // TODO: for now Activation reads from 0 elem in bank.
