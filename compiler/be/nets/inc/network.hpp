@@ -165,6 +165,9 @@ public:
 
 
 private:
+    void createSuccWaveOps();
+
+private:
     Network() = delete;
     Network(const Network&) = delete;
 

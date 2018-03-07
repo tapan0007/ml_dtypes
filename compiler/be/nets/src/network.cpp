@@ -92,6 +92,16 @@ Network::findWaveOp(const std::string& waveOpName)
 }
 
 
+void
+Network::createSuccWaveOps()
+{
+    for (auto waveop : m_WaveOps) {
+        for (auto prevWaveop : waveop->gPrevWaveOps()) {
+            prevWaveop->addSuccWaveop(waveop);
+        }
+    }
+}
+
 }}
 
 

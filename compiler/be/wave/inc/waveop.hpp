@@ -99,6 +99,8 @@ public:
         return 1024;
     }
 
+    void addSuccWaveop(WaveOp* succWaveop);
+
 protected:
 #if 0
 #endif
@@ -106,6 +108,7 @@ protected:
 protected:
     std::string             m_Name          = "";
     std::vector<WaveOp*>    m_PrevWaveOps;
+    std::vector<WaveOp*>    m_SuccWaveOps;
     FmapDesc                m_OfmapDesc;
 private:
     layers::Layer*          m_Layer         = nullptr;

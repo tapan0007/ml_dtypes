@@ -64,6 +64,12 @@ WaveOp::Params::verify() const
     return true;
 }
 
+void
+WaveOp::addSuccWaveop(WaveOp* succWaveop)
+{
+    m_SuccWaveOps.push_back(succWaveop);
+}
+
 
 }} // namespace
 
