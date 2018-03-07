@@ -1,4 +1,4 @@
-#include "tpb_isa_pool.hpp"
+#include "shared/inc/tpb_isa_pool.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"

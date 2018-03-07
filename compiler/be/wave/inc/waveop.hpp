@@ -10,6 +10,7 @@
 
 
 
+#include "shared/inc/tpb_isa.hpp"
 
 
 #include "utils/inc/types.hpp"
@@ -106,7 +107,8 @@ protected:
 protected:
     std::string             m_Name          = "";
     std::vector<WaveOp*>    m_PrevWaveOps;
-    FmapDesc                m_OfmapDesc;
+    //FmapDesc                m_OfmapDesc;
+    TPB_CMD_SYNC            m_Sync;
 private:
     layers::Layer*          m_Layer         = nullptr;
 }; // class WaveOp
@@ -117,7 +119,7 @@ public:
     bool verify() const;
 public:
     std::string             m_WaveOpName    = "";
-    FmapDesc                m_OfmapDesc;
+    //FmapDesc                m_OfmapDesc;
     layers::Layer*          m_Layer         = nullptr;
 };
 

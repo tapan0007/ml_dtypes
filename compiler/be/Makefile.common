@@ -14,7 +14,8 @@ ifeq ($(platform),Darwin)
 endif
 
 INK_INC_DIR := shared tcc
-INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
+#INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
+INK_INC := -I$(INKLING_PATH) -I$(INKLING_PATH)/shared/inc
 
 CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 

@@ -1,5 +1,5 @@
 #include "uarch_cfg.hpp"
-#include "tpb_isa.hpp"
+#include "shared/inc/tpb_isa.hpp"
 
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"

@@ -2,8 +2,7 @@
 
 
 #include "uarch_cfg.hpp"
-#include "tpb_isa_ldweights.hpp"
-#include "tcc.hpp"
+#include "tcc/inc/tcc.hpp"
 
 #include "nets/inc/network.hpp"
 

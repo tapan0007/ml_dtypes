@@ -27,6 +27,7 @@ namespace arch {
 namespace layers {
     class Layer;
 }
+
 namespace wave {
     class WaveOp;
     class SbAtomWaveOp;
@@ -76,10 +77,7 @@ public:
     void load(Archive & archive);
 
 private:
-    void
-    fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
-                     std::vector<wave::WaveOp*>& prevWaveOps,
-                     wave::WaveOp::Params& waveOpParams);
+    class Load;
 
     wave::SbAtomFileWaveOp* loadSbAtomFile(const serialize::SerWaveOp& serWaveOp);
     wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
@@ -108,12 +106,9 @@ private:
 
 public:
     //----------------------------------------------------------------
-    Network(const arch::Arch& arch)
-        : m_Arch(arch)
-        , m_DataType(nullptr)
-        , m_Name()
-        , m_DoBatching(false)
-    {}
+    Network(const arch::Arch& arch);
+
+    ~Network();
 
 #if 0
     Network(const DataType* dataType, const std::string& netName);
@@ -178,6 +173,7 @@ private:
     std::map<std::string, layers::Layer*>   m_Name2Layer;
     std::map<std::string, wave::WaveOp*>    m_Name2WaveOp;
     bool                                    m_UseWave = false;
+    std::unique_ptr<Load>                   m_Load;
 }; // Network
 
 

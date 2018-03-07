@@ -19,6 +19,7 @@
 #include "layers/inc/biasaddlayer.hpp"
 
 #include "nets/inc/network.hpp"
+#include "nets/inc/network_load.hpp"
 
 namespace kcc {
 
@@ -33,6 +34,15 @@ namespace wave {
 namespace nets {
 
 //--------------------------------------------------------
+Network::Network(const arch::Arch& arch)
+    : m_Arch(arch)
+    , m_DataType(nullptr)
+    , m_Name()
+    , m_DoBatching(false)
+{}
+
+
+Network::~Network() = default;
 
 //--------------------------------------------------------
 void
