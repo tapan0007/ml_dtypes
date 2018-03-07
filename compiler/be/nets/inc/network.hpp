@@ -78,26 +78,7 @@ public:
 
 private:
     class Load;
-
-    wave::SbAtomFileWaveOp* loadSbAtomFile(const serialize::SerWaveOp& serWaveOp);
-    wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
-    wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
-    wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);
-    wave::ActivationWaveOp* loadActivation(const serialize::SerWaveOp& serWaveOp);
-    wave::ResAddWaveOp* loadResAdd(const serialize::SerWaveOp& serWaveOp);
-
-
-
-    void saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
-    void savePool(const wave::PoolWaveOp* poolWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
-    void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
-    void saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
-    void saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
+    class Save;
 
 
 private:
@@ -174,6 +155,7 @@ private:
     std::map<std::string, wave::WaveOp*>    m_Name2WaveOp;
     bool                                    m_UseWave = false;
     std::unique_ptr<Load>                   m_Load;
+    std::unique_ptr<Save>                   m_Save;
 }; // Network
 
 

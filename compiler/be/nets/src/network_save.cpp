@@ -24,7 +24,7 @@
 #include "layers/inc/resaddlayer.hpp"
 #include "layers/inc/biasaddlayer.hpp"
 
-#include "nets/inc/network.hpp"
+#include "nets/inc/network_save.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomfilewaveop.hpp"
@@ -223,25 +223,25 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
 
         if (auto sbatomWaveOp = dynamic_cast<const wave::SbAtomWaveOp*>(waveOp)) {
-            saveSbAtom(sbatomWaveOp, serWaveOp);
+            m_Save->saveSbAtom(sbatomWaveOp, serWaveOp);
             continue;
         }
 
         if (const auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp)) {
 
-            saveMatmul(matmulWaveOp, serWaveOp);
+            m_Save->saveMatmul(matmulWaveOp, serWaveOp);
             continue;
         }
         if (const auto poolWaveOp = dynamic_cast<wave::PoolWaveOp*>(waveOp)) {
-            savePool(poolWaveOp, serWaveOp);
+            m_Save->savePool(poolWaveOp, serWaveOp);
             continue;
         }
         if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
-            saveActivaton(activationWaveOp, serWaveOp);
+            m_Save->saveActivaton(activationWaveOp, serWaveOp);
             continue;
         }
         if (const auto resAddWaveOp = dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
-            saveResAdd(resAddWaveOp, serWaveOp);
+            m_Save->saveResAdd(resAddWaveOp, serWaveOp);
             continue;
         }
         assert(false && "Unsupported WaveOp");
@@ -250,8 +250,19 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
 }
 
 
+
+
+
+Network::Save::Save(const Network* network)
+    : m_Network(network)
+{ }
+
+
+
+
+
 void
-Network::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
+Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP matmulWaveOp
@@ -302,7 +313,7 @@ Network::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
 
 
 void
-Network::savePool(const wave::PoolWaveOp* poolWaveOp,
+Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP poolWaveOp
@@ -348,7 +359,7 @@ Network::savePool(const wave::PoolWaveOp* poolWaveOp,
 }
 
 void
-Network::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
+Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP sbatomWaveOp
@@ -388,7 +399,7 @@ Network::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
 
 
 void
-Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
+Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP activationWaveOp
@@ -441,7 +452,7 @@ Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
 
 
 void
-Network::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
+Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP resAddWaveOp

@@ -20,6 +20,7 @@
 
 #include "nets/inc/network.hpp"
 #include "nets/inc/network_load.hpp"
+#include "nets/inc/network_save.hpp"
 
 namespace kcc {
 
@@ -39,6 +40,8 @@ Network::Network(const arch::Arch& arch)
     , m_DataType(nullptr)
     , m_Name()
     , m_DoBatching(false)
+    , m_Load(std::make_unique<Load>(this))
+    , m_Save(std::make_unique<Save>(this))
 {}
 
 

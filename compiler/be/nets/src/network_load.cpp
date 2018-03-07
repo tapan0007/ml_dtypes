@@ -199,7 +199,6 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
     //===========================================================================
     if (m_UseWave) {
-        m_Load = std::make_unique<Load>(this);
         std::vector<serialize::SerWaveOp> serWaveOps;
         archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
         for (unsigned i = 0; i < serWaveOps.size(); ++i) {
