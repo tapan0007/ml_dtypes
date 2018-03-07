@@ -354,6 +354,7 @@ class CircularBuffer:
             elif (self.layer_format == "CM"):
                 C, M = self.dram_data.shape
                 R, S = 1, 1
+                self.dram_data = self.dram_data.reshape((C, R, S, M))
             else:
                 print("ERROR: wrong weights format %s"%self.layer_format)
                 exit(-1)
@@ -377,6 +378,16 @@ class CircularBuffer:
         else:
             if (self.layer_format == 'NCHW'):
                 N, C, H, W = self.dram_data.shape
+            elif (self.layer_format == 'NC'):
+                N, C = self.dram_data.shape
+                H, W = 1, 1
+                self.dram_data = self.dram_data.reshape((N, C, H, W))
+            elif (self.layer_format == 'C'):
+                assert (self.circbuf_type == "bias")
+                print(self.dram_data.shape)
+                C = self.dram_data.shape[0]
+                N, H, W = 1, 1, 1
+                self.dram_data = self.dram_data.reshape((N, C, H, W))
             elif (self.layer_format == 'CNHW'):    
                 C, N, H, W = self.dram_data.shape
             else:
@@ -385,8 +396,10 @@ class CircularBuffer:
             assert(N * C * H * W * self.item_sz == self.dram_data_len)                
             self.ifmap_data_len = self.dram_data_len//(N*C)
             # layer_shape is the ofmap_shape, in the format of N, M, E, F
-            assert(self.layer_shape[0] == N)
-            self.ofmap_data_len = self.layer_shape[2]*self.layer_shape[3]*self.item_sz
+            if (self.layer_format == 'NCHW' or self.layer_format == 'CNHW'):
+                self.ofmap_data_len = self.layer_shape[2]*self.layer_shape[3]*self.item_sz
+            elif (self.layer_format == 'NC' or self.layer_format == 'C'):
+                self.ofmap_data_len = self.item_sz
             ifmap_width_data_len = W * self.item_sz
             # make atom size multiple of IFMAP if IFMAP is smaller than default atom size (CNHW)
             #if (self.ifmap_data_len <= self.atom_sz):
@@ -739,9 +752,14 @@ class KNode:
         assert (self.prev[0] != None)
         input_layer = self.prev[0].data
         self.ifmap_shape = input_layer['ofmap_shape']
+        self.internal_ifmap_shape = input_layer['ofmap_shape']
         if (input_layer['ofmap_format'] == 'NCHW'):
             self.N, self.C, self.H, self.W = input_layer['ofmap_shape']
-        elif (layer_info['ofmap_format'] == 'CNHW'):            
+        elif (input_layer['ofmap_format'] == 'NC'):            
+            self.N, self.C = input_layer['ofmap_shape']
+            self.H, self.W = 1, 1
+            self.internal_ifmap_shape = [self.N, self.C, self.H, self.W]
+        elif (input_layer['ofmap_format'] == 'CNHW'):            
             self.C, self.N, self.H, self.W = input_layer['ofmap_shape']
         else:
             print("ERROR in populate_common_params: Unrecognized previous layer %s format %s"%(input_layer['layer_name'], input_layer['ofmap_format']))
@@ -749,8 +767,13 @@ class KNode:
         # get output shape from current layer's data
         layer_info = self.data
         self.ofmap_shape = layer_info['ofmap_shape']
+        self.internal_ofmap_shape = layer_info['ofmap_shape']
         if (layer_info['ofmap_format'] == 'NCHW'):
             self.N, self.M, self.E, self.F = layer_info['ofmap_shape']
+        elif (layer_info['ofmap_format'] == 'NC'):            
+            self.N, self.M = layer_info['ofmap_shape']
+            self.E, self.F = 1, 1
+            self.internal_ofmap_shape = [self.N, self.M, self.E, self.F]
         elif (layer_info['ofmap_format'] == 'CNHW'):            
             self.M, self.N, self.E, self.F = layer_info['ofmap_shape']
         else:
@@ -873,14 +896,14 @@ class KNode:
                                                 tile_id.m_id * PEArray.NUM_COLS,
                                                 self.ofmap_tile_y_start, 
                                                 self.ofmap_tile_x_start),
-                                        dims=self.ofmap_shape) * self.item_sz)
+                                        dims=self.internal_ofmap_shape) * self.item_sz)
         # NCHW
         self.ofmap_tile_upper_addr = int(np.ravel_multi_index(
                                             (self.N - 1, 
                                                 tile_id.m_id * PEArray.NUM_COLS,
                                                 self.ofmap_tile_y_start + self.ofmap_cropped_tile_height - 1, 
                                                 self.ofmap_tile_x_start + self.ofmap_cropped_tile_width - 1),
-                                        dims=self.ofmap_shape) * self.item_sz)
+                                        dims=self.internal_ofmap_shape) * self.item_sz)
 
         # compute the address bounds for IFMAP tile within IFMAPs tensor
         # TODO: for Tn>1, need to have multiple bounds for each batch item
@@ -892,7 +915,7 @@ class KNode:
                                                 0,
                                                 ifmap_tile_lower_coordy,
                                                 ifmap_tile_lower_coordx),
-                                        dims=self.ifmap_shape) * self.item_sz)
+                                        dims=self.internal_ifmap_shape) * self.item_sz)
 
         ifmap_tile_upper_coordx = ifmap_tile_lower_coordx + self.ofmap_cropped_tile_width * self.stride_x - 1
         ifmap_tile_upper_coordy = ifmap_tile_lower_coordy + self.ofmap_cropped_tile_height * self.stride_y - 1
@@ -906,7 +929,7 @@ class KNode:
                                                 (self.c-1) * PEArray.NUM_ROWS,
                                                 ifmap_tile_upper_coordy,
                                                 ifmap_tile_upper_coordx),
-                                        dims=self.ifmap_shape) * self.item_sz)
+                                        dims=self.internal_ifmap_shape) * self.item_sz)
 
         self.ifmap_cropped_tile_width = ifmap_tile_upper_coordx - ifmap_tile_lower_coordx + 1
         self.ifmap_cropped_tile_height = ifmap_tile_upper_coordy - ifmap_tile_lower_coordy + 1
@@ -1908,6 +1931,7 @@ class TPBSched:
                         self.waveop_stream.add_outputs(dram_output_waveops)
 
         # save layer results to file, for retrieval by next layer                        
+
         np.save(result_file, result)
         if (args.golden_inputs):
             # if using golden inputs, save the ref_file instead of result_file
@@ -2007,7 +2031,9 @@ class TPBSched:
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%2)
                         psum_add = False
 
-        # save layer results to file, for retrieval by next layer                        
+        # save layer results to file, for retrieval by next layer                       
+        if (result.shape != tpb.statebuffer.circbuf_scratch.layer_shape):
+            result = result.reshape(tpb.statebuffer.circbuf_scratch.layer_shape)
         np.save(result_file, result)
         if (args.golden_inputs):
             # if using golden inputs, save the ref_file instead of result_file
