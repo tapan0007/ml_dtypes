@@ -9,6 +9,13 @@
 
 namespace kcc {
 
+enum EngineId {
+    EngineId_PeArray,
+    EngineId_Activation,
+    EngineId_Pooling,
+    EngineId_StreamProc,
+};
+
 enum {
     FMAP_TENSOR_RANK = 4,
     FILTER_TENSOR_RANK = 4,

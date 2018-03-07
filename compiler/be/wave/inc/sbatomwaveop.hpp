@@ -82,6 +82,10 @@ public:
         return m_RefFileShape;
     }
 
+    EngineId gEngineId() const override {
+        return EngineId_StreamProc;
+    }
+
 protected:
     bool verify() const override;
 

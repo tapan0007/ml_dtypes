@@ -7,8 +7,9 @@ namespace arch {
 
 
 //--------------------------------------------------------
-PeArray::PeArray(kcc_int32 numberRows, kcc_int32 numberColumns)
-    : m_NumberRows(numberRows)
+PeArray::PeArray(kcc_int32 numberRows, kcc_int32 numberColumns, const Arch& arch)
+    : ArchEng(arch)
+    , m_NumberRows(numberRows)
     , m_NumberColumns(numberColumns)
 {
     Assert(numberRows > 0 && numberColumns > 0,  "Number of rows or columns not positive: number_rows=", numberRows, ", number_columns=", numberColumns );

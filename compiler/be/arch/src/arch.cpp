@@ -33,10 +33,10 @@ enum : kcc_int64 {
 
 //--------------------------------------------------------
 Arch::Arch()
-    : m_PeArray(Arch_NumberPeRows, Arch_NumberPeColumns)
+    : m_PeArray(Arch_NumberPeRows, Arch_NumberPeColumns, *this)
     , m_PsumBuffer(m_PeArray, Arch_NumberPsumBanks, Arch_NumberPsumBankEntries)
-    , m_PoolingEng(m_PsumBuffer)
-    , m_ActivationEng(m_PsumBuffer)
+    , m_PoolingEng(m_PsumBuffer, *this)
+    , m_ActivationEng(m_PsumBuffer, *this)
     , m_StateBuffer(m_PeArray, sbPartitionSizeInBytes)
 {
 }

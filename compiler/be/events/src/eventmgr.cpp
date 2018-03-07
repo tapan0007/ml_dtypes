@@ -15,6 +15,8 @@ EventMgr::EventMgr(const nets::Network& network)
 void
 EventMgr::processLoadWeights(const wave::MatMulWaveOp* matmulWaveop)
 {
+    for (auto prevWaveop : matmulWaveop->gPrevWaveOps()) {
+    }
 }
 
 void

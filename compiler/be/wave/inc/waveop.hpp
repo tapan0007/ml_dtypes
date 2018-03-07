@@ -84,6 +84,7 @@ public:
         return false;
     }
 
+    virtual EngineId gEngineId() const = 0;
 
     //----------------------------------------------------------------
     const std::string& gName() const {

@@ -129,6 +129,11 @@ public:
     bool qPoolWaveOp() const override {
         return true;
     }
+
+    EngineId gEngineId() const override {
+        return EngineId_Pooling;
+    }
+
     static std::string gTypeStr() {
         return WaveOpTypeStr_Pool;
     }

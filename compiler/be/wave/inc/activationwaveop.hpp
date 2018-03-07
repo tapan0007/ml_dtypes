@@ -63,6 +63,9 @@ public:
     bool qActivationWaveOp() const override {
         return true;
     }
+    EngineId gEngineId() const override {
+        return EngineId_Activation;
+    }
     static std::string gTypeStr() {
         return WaveOpTypeStr_Activation;
     }
