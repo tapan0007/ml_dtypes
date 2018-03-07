@@ -24,7 +24,7 @@
 #include "layers/inc/resaddlayer.hpp"
 #include "layers/inc/biasaddlayer.hpp"
 
-#include "nets/inc/network.hpp"
+#include "nets/inc/network_load.hpp"
 
 #include "wave/inc/sbatomfilewaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
@@ -207,17 +207,17 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             wave::WaveOp* waveOp = nullptr;
 
             if (serWaveOp.m_WaveOpType == wave::SbAtomFileWaveOp::gTypeStr()) {
-                waveOp = loadSbAtomFile(serWaveOp);
+                waveOp = m_Load->loadSbAtomFile(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStr()) {
-                waveOp = loadSbAtomSave(serWaveOp);
+                waveOp = m_Load->loadSbAtomSave(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStr()) {
-                waveOp = loadPool(serWaveOp);
+                waveOp = m_Load->loadPool(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStr()) {
-                waveOp = loadMatMul(serWaveOp);
+                waveOp = m_Load->loadMatMul(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStr()) {
-                waveOp = loadActivation(serWaveOp);
+                waveOp = m_Load->loadActivation(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ResAddWaveOp::gTypeStr()) {
-                waveOp = loadResAdd(serWaveOp);
+                waveOp = m_Load->loadResAdd(serWaveOp);
             } else {
                 assert(false && "Wrong WaveOp type during deserialization");
             }
@@ -232,8 +232,17 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 }
 
 
+
+
+Network::Load::Load(Network* network)
+    : m_Network(network)
+{
+}
+
+
+
 wave::SbAtomFileWaveOp*
-Network::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS sbatomfileParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -265,7 +274,7 @@ Network::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
 
 
 wave::SbAtomSaveWaveOp*
-Network::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS sbatomsaveParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -295,7 +304,7 @@ Network::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
 }
 
 wave::PoolWaveOp*
-Network::loadPool(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS poolParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -347,7 +356,7 @@ Network::loadPool(const serialize::SerWaveOp& serWaveOp)
 }
 
 wave::MatMulWaveOp*
-Network::loadMatMul(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS matmulParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -402,7 +411,7 @@ Network::loadMatMul(const serialize::SerWaveOp& serWaveOp)
 }
 
 wave::ActivationWaveOp*
-Network::loadActivation(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS activationParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -456,7 +465,7 @@ Network::loadActivation(const serialize::SerWaveOp& serWaveOp)
 
 
 wave::ResAddWaveOp*
-Network::loadResAdd(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS resAddParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -528,7 +537,7 @@ Network::loadResAdd(const serialize::SerWaveOp& serWaveOp)
 /* in
  * template<>
  * void
- * Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
+ * Network::Load::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
  * {
  *      ...
  *      auto fillWaveOpParams = [this, &prevWaveOps](
@@ -539,15 +548,15 @@ Network::loadResAdd(const serialize::SerWaveOp& serWaveOp)
  */
 
 void
-Network::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
+Network::Load::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
                      std::vector<wave::WaveOp*>& prevWaveOps,
                      wave::WaveOp::Params& waveOpParams)
 {
     waveOpParams.m_WaveOpName   = serWaveOp.m_WaveOpName;
-    waveOpParams.m_Layer        = this->findLayer(serWaveOp.m_LayerName);
+    waveOpParams.m_Layer        = m_Network->findLayer(serWaveOp.m_LayerName);
     assert(waveOpParams.m_Layer);
     for (const auto& prevWaveOpName : serWaveOp.m_PreviousWaveOps) {
-        prevWaveOps.push_back(findWaveOp(prevWaveOpName));
+        prevWaveOps.push_back(m_Network->findWaveOp(prevWaveOpName));
     }
 }
 

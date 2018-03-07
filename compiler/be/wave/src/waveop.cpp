@@ -16,7 +16,7 @@ namespace wave {
 WaveOp::WaveOp (const WaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps)
     : m_Name(params.m_WaveOpName)
-    , m_OfmapDesc(params.m_OfmapDesc)
+    // , m_OfmapDesc(params.m_OfmapDesc)
     , m_Layer(params.m_Layer)
 {
     assert(params.verify());

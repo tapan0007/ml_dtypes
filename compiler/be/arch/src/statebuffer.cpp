@@ -1,5 +1,7 @@
 #include "uarch_cfg.hpp"
 
+#include "utils/inc/asserter.hpp"
+
 #include "arch/inc/pearray.hpp"
 #include "arch/inc/statebuffer.hpp"
 
@@ -13,8 +15,8 @@ StateBuffer::StateBuffer(const PeArray& peArray, kcc_int64 partitionSizeInBytes)
     , m_PartitionSizeInBytes(partitionSizeInBytes)
     , m_TotalSizeInBytes(m_NumberPartitions * partitionSizeInBytes)
 {
-    assert(m_NumberPartitions > 0 && "Number of partitions in SB not positive");
-    assert(( (m_NumberPartitions & (m_NumberPartitions - 1)) == 0) && "Number of partitions not power of 2");
+    Assert(m_NumberPartitions > 0, "Number of partitions in SB is not positive: ", m_NumberPartitions);
+    Assert(( (m_NumberPartitions & (m_NumberPartitions - 1)) == 0), "Number of partitions in SB is not power of 2: ", m_NumberPartitions);
 }
 
 

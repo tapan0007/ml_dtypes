@@ -1,4 +1,4 @@
-#include "tpb_isa_ldweights.hpp"
+#include "shared/inc/tpb_isa_ldweights.hpp"
 
 #include "arch/inc/statebuffer.hpp"
 #include "arch/inc/arch.hpp"

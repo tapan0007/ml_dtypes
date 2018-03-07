@@ -1,5 +1,4 @@
-#include "tpb_isa_ldweights.hpp"
-#include "tpb_isa_activate.hpp"
+#include "shared/inc/tpb_isa_activate.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"

@@ -19,6 +19,8 @@
 #include "layers/inc/biasaddlayer.hpp"
 
 #include "nets/inc/network.hpp"
+#include "nets/inc/network_load.hpp"
+#include "nets/inc/network_save.hpp"
 
 namespace kcc {
 
@@ -33,6 +35,17 @@ namespace wave {
 namespace nets {
 
 //--------------------------------------------------------
+Network::Network(const arch::Arch& arch)
+    : m_Arch(arch)
+    , m_DataType(nullptr)
+    , m_Name()
+    , m_DoBatching(false)
+    , m_Load(std::make_unique<Load>(this))
+    , m_Save(std::make_unique<Save>(this))
+{}
+
+
+Network::~Network() = default;
 
 //--------------------------------------------------------
 void
@@ -95,9 +108,9 @@ Network::findWaveOp(const std::string& waveOpName)
 void
 Network::createSuccWaveOps()
 {
-    for (auto waveop : m_WaveOps) {
-        for (auto prevWaveop : waveop->gPrevWaveOps()) {
-            prevWaveop->addSuccWaveop(waveop);
+    for (auto succWaveop : m_WaveOps) {
+        for (auto prevWaveop : succWaveop->gPrevWaveOps()) {
+            prevWaveop->addSuccWaveop(succWaveop);
         }
     }
 }

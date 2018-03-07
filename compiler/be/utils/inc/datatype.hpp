@@ -7,7 +7,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
 
-#include "tpb_isa.hpp"
+#include "shared/inc/tpb_isa.hpp"
 
 #include "utils/inc/types.hpp"
 

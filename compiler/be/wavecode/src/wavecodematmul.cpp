@@ -1,5 +1,5 @@
-#include "tpb_isa_ldweights.hpp"
-#include "tpb_isa_matmul.hpp"
+#include "shared/inc/tpb_isa_ldweights.hpp"
+#include "shared/inc/tpb_isa_matmul.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"

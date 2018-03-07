@@ -1,6 +1,7 @@
 
 #include <sstream>
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
 namespace kcc {
