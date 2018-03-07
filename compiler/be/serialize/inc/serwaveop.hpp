@@ -106,6 +106,7 @@ constexpr static const char* WaveOpKey_DstYStep	            = "dst_y_step";
 constexpr static const char* WaveOpKey_DstZNum	            = "dst_z_num";
 constexpr static const char* WaveOpKey_DstZStep	            = "dst_z_step";
 constexpr static const char* WaveOpKey_InDtype              = "in_dtype";
+constexpr static const char* WaveOpKey_BiasDtype            = "bias_dtype";
 
 constexpr static const char* WaveOpKey_NumPartitions        = "num_partitions";
 constexpr static const char* WaveOpKey_OutDtype             = "out_dtype";
@@ -314,6 +315,7 @@ public:
     kcc_int32                   m_DstZNum	        = -1;
     kcc_int32                   m_DstZStep	        = -1;
     std::string                 m_InDtype           = "";
+    std::string                 m_BiasDtype         = "";
     // "layername": "1conv/i1",
     kcc_int32                   m_NumPartitions     = -1;
     std::string                 m_OutDtype          = "";

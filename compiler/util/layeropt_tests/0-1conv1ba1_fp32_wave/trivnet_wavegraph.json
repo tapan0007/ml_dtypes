@@ -194,6 +194,7 @@
       "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float32",
+      "last": true,
       "layer_name": "1conv1ba/i2",
       "length": 64,
       "offset_in_file": 0,
