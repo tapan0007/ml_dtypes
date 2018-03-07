@@ -96,7 +96,13 @@ class TfFe:
         elif (re.search("Add|BiasAdd", tfop.op, re.I) != None):
           node = kog.NodeSimple2(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple2")
-        elif  (re.search("relu|tanh", tfop.op, re.I) != None):
+        elif (re.search("Softmax", tfop.op, re.I) != None):
+          node = kog.NodeSoftmax(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("MatMul", tfop.op, re.I) != None):
+          node = kog.NodeMatMul(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("Reshape", tfop.op, re.I) != None):
+          node = kog.NodeReshape(tfNode.name, tfop.op, add_attrs)
+        elif  (re.search("relu|tanh|Softmax", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
         elif (re.search("MaxPool|AvgPool", tfop.op, re.I) != None):
@@ -105,9 +111,14 @@ class TfFe:
         #elif (re.search("Const", tfop.op, re.I) != None):
         #  node = kog.NodeConst(tfNode.name, tfop.op, add_attrs)
         #  #print("DEBUG created NodeConst")
+        elif (re.search("Placeholder", tfop.op, re.I) != None and
+              re.search("input", tfop.name, re.I) != None):
+        #print("DEBUG created NodeInput")
+          node = kog.NodeInput(tfNode.name, tfop.op, add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         self.__kg.addNode(node)
+        print ("DEBUG: loadpb: adding node %s, type %s", (node.getName(), type(node)))
     print("INFO: loaded %s file with %d ops  of which %d are CONV"
           % (pbFile, numOps, numConv))
 

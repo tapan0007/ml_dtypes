@@ -24,7 +24,7 @@
 
 import argparse
 import os.path
-import sys, json
+import sys, json, re
 import TfFrontEnd
 import KgraphPartitions
 
@@ -56,7 +56,7 @@ parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, de
 parser.add_argument('--batch', help='Batch override for late-binding networks',
                     type=int, default=1)
 parser.add_argument('--partition', help='Partition into subgraphs; use from, meauto, or auto; the default is none',
-                    nargs='+', default=["none"])
+                    nargs='+', default=["suppauto"])
 parser.add_argument('--executors', help='Specifies executors per subgraph, e.g., tcc 1 2 3 (implies rest on host, host 0 4 5), default ""',
                     nargs='+', default=[])
 
@@ -87,57 +87,57 @@ tffe.loadPb(tfpbFile, args.focus)
 kog = tffe.getKaenaOpGraph()
 kog.setSchedulerMode(args.scheduler)
 kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
-ret = 1
+ret = 0
 if args.weights:
   tffe.writeWeights(args.out_prefix)
   
 if args.images != None:
   tffe.writeImages(args.out_prefix, args.images, inputNodeName)
-  kog.identifyMainFlowEdges()
-  tffe.writeOpsCsv(args.out_prefix + "ops.csv")
-  kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
-  if args.partition[0] == "none":
-    writeBackEndFiles(kog, args.out_prefix, args.verbose, args.scheduler)
+
+kog.identifyMainFlowEdges()
+tffe.writeOpsCsv(args.out_prefix + "ops.csv")
+kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
+
+
+kp = KgraphPartitions.KgraphPart(kog, debugLevel)
+sgJsonList = []
+kp.colorNodes(args.partition)
+kp.partitionByColor()
+kp.calcExecutorMap(args.executors)
+
+sgId = 0
+for sg in kp.getSubgraphs():
+  sgDir = "sg%02d" % sgId;
+  print("\nINFO: processing subgraph %s" % sgDir)
+  sg.graph.print()
+  os.makedirs(sgDir)
+  os.chdir(sgDir)
+  sg.addSideNodes(kog)
+  sg.graph.levelize()
+  sg.relinkNpFiles("..")
+  sg.graph.setSchedulerMode(args.scheduler)
+  sg.graph.print()
+  sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
+  
+  executor = kp.getExecutorById(sgId)
+  if not executor == 'host':
+    writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
     cmd = "bash %s/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1" % kPath
     print("INFO: executing %s" % cmd, flush=True)
     ret = os.system(cmd)
-  else:
-    kp = KgraphPartitions.KgraphPart(kog, debugLevel)
-    executorsStr = " ".join(args.executors)
-    sgJsonList = []
-    kp.colorNodes(args.partition)
-    kp.partitionByColor()
-    kp.calcExecutorMap(args.executors)
-    #kp.print()
-    sgId = 0
-    for sg in kp.getSubgraphs():
-      sgDir = "sg%02d" % sgId;
-      print("\nINFO: processing subgraph %s" % sgDir)
-      sg.graph.print()
-      os.makedirs(sgDir)
-      os.chdir(sgDir)
-      sg.addSideNodes(kog)
-      sg.graph.levelize()
-      sg.relinkNpFiles("..")
-      sg.graph.setSchedulerMode(args.scheduler)
-      sg.graph.print()
-      sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
-      executor = kp.getExecutorById(sgId)
-      if not executor == 'host':
-        try:
-          writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
-        except:
-          print("ERROR: Compilation of subgraph %s failed" % sgDir)
-      os.chdir("..")
-      sgJsonList.append(sg.genExecutorGraphJson(sgDir))
-      sgId += 1
-    nnGraphFile = "nn_graph.json"
-    with open(nnGraphFile, "w") as f:
-      s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
-      f.write(s)
-    cmd = "%s/runtime/util/nn_executor --nn_graph %s --tfpb %s --executors %s" % (
-          kPath, nnGraphFile, tfpbFile, executorsStr)
-    print("INFO: executing  %s" % cmd, flush=True)
-    ret = os.system(cmd)
-  print("INFO: Kaena flow status %s" % ("PASS" if ret == 0 else "FAIL"))
-  sys.exit(0 if ret == 0 else 1)
+
+  os.chdir("..")
+  sgJson = sg.genExecutorGraphJson(sgDir)
+  sgJson["executor"] = executor
+  sgJsonList.append(sgJson)
+  sgId += 1
+
+nnGraphFile = "nn_graph.json"
+with open(nnGraphFile, "w") as f:
+    s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
+    f.write(s)
+
+print("INFO: Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
+sys.exit(0 if ret == 0 else 1)
+
+

@@ -86,5 +86,11 @@ class NpTrans:
     tmpShape = [1, 1, 1] + shape
     return tmpShape[-4:]
   
+  @staticmethod
+  def ncShapeToNHWC(shape):
+    assert len(shape) == 2
+    tmpShape = [shape[0], 1, 1, shape[1]]
+    return tmpShape[-4:]
   
+ 
   

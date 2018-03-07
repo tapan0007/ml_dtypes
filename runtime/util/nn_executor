@@ -17,8 +17,6 @@ from NpTransforms import NpTrans as npt
 parser = argparse.ArgumentParser()
 parser.add_argument('--nn_graph', help='Graph to execute', default="nn_graph.txt")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
-parser.add_argument('--executors', help='Specifies executors per subgraph, e.g., tcc 1 2 3 (implies rest on host, host 0 4 5), default ""',
-                    nargs='+', default=[])
 
 args = parser.parse_args()
 nnGraphFile = args.nn_graph
@@ -88,16 +86,20 @@ class NnSubgraph:
   def run(self, executor):
     logFile = "log-%s.txt" % executor
     outBase = self.getOutputNpyFileBase()
-    tfOutFile = outBase + "-out.npy"
+    OutFile = outBase + "-out.npy"
     if executor == "host":
       cmd = "%s/runtime/util/runtime_tf" % kPath
       cmd += "  --tfpb %s" % tfpbFile
       cmd += "  --input_tensors %s" % " ".join(self.getUpdatedInputs())
-      cmd += "  --output_tensor %s %s" % (self.output[0], tfOutFile)
-      sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
+      cmd += "  --output_tensor %s %s" % (self.output[0], OutFile)
     elif executor == "tcc" or executor == "wave" or executor == "waveopt":
       self.overwriteInputFilesInTpbFormat()
-      cmd = "bash %s/compiler/be/test/RunOne.sh *tgz" % kPath
+      cmd = "%s/runtime/util/runtime_sim" % kPath
+      cmd += "  --tpb %s" % "TrivNet.tpb"
+      #cmd += "  --input_fmap %s" % " ".join(self.getUpdatedInputs())
+      #cmd += "  --output_fmap %s %s" % (self.output[0], OutFile)
+    sgOutFile = "%s/%s" % (self.sgDir, OutFile)
+
     #os.chdir(self.sgDir)
     cmd = "cd %s; %s > %s 2>&1" % (self.sgDir, cmd, logFile)
     print("\nINFO: executing %s" % cmd, flush=True)
@@ -110,37 +112,24 @@ class NnSubgraph:
         simExt = "midout"
       tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
       tpbOutFile = "%s/%s_%s-%s.npy" % (self.sgDir, outBase, tpbFmapFormat, simExt)
-      sgOutFile = "%s/%s" % (self.sgDir, tfOutFile)
+      sgOutFile = "%s/%s" % (self.sgDir, OutFile)
       if os.path.isfile(tpbOutFile):
         npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=sgOutFile)
       else:
         print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
-    if os.path.islink(tfOutFile):
-      os.remove(tfOutFile)
-      print("INFO: removed stale link %s" % tfOutFile)
-    os.symlink(sgOutFile, tfOutFile)
+    if os.path.islink(OutFile):
+      os.remove(OutFile)
+      print("INFO: removed stale link %s" % OutFile)
+    os.symlink(sgOutFile, OutFile)
     
   def getSgId(self):
     sgId = int(self.sgDir.replace("sg", ""))
     return sgId
 
 class NnExec:
-  def __init__(self, nnGraphFile, tpbFile, executors):
+  def __init__(self, nnGraphFile):
     with open(nnGraphFile) as fh:
       self.nnGraphJsonData = json.load(fh)
-    numSubGraphs = len(self.nnGraphJsonData["SubGraphs"])
-    self.sgId2executor = {}
-    executor = None
-    for word in executors:
-      if word == "all":
-        for sgId in range(numSubGraphs):
-          self.sgId2executor[sgId] = executor
-      elif re.search('^\d+$', word):
-        sgId = int(word)
-        self.sgId2executor[sgId] = executor
-      else:
-        executor = word
-    print("INFO: subgraph to executor map  %s" % str(self.sgId2executor), flush=True)
     self.subGraphs = []
 
   def run(self):
@@ -148,7 +137,7 @@ class NnExec:
       sg = NnSubgraph(sgJson["SubGraphDir"], sgJson["Inputs"],
                       sgJson["Output"])
       self.subGraphs.append(sg)
-      sg.run(self.sgId2executor.get(sg.getSgId(), "host"))
+      sg.run(sgJson["executor"])
 
   # Return unix exit code
   def check(self):
@@ -161,9 +150,11 @@ class NnExec:
     ret = os.system(cmd)
     return ret
 
-nnExec = NnExec(nnGraphFile, tfpbFile, args.executors)
+nnExec = NnExec(nnGraphFile)
 nnExec.run()
 ret = nnExec.check()
+
+print("INFO: Kaena RT status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
 
 

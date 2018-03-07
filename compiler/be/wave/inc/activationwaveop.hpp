@@ -92,6 +92,9 @@ public:
     const DataType& gInDtype () const {
         return m_InDtype;
     }
+    const DataType& gBiasDtype () const {
+        return m_BiasDtype;
+    }
     kcc_int32 gNumPartitions () const {
         return m_NumPartitions;
     }
@@ -158,6 +161,7 @@ private:
     kcc_int32                   m_DstSbAtomId           = -1;
     kcc_int32                   m_DstSbOffsetInAtom     = -1;
     const DataType&             m_InDtype;
+    const DataType&             m_BiasDtype;
     kcc_int32                   m_NumPartitions         = -1;
     const DataType&             m_OutDtype;
     kcc_int32                   m_SrcPsumBankId         = -1;
@@ -193,6 +197,7 @@ public:
     kcc_int32                   m_DstSbAtomId             = -1;
     kcc_int32                   m_DstSbOffsetInAtom     = -1;
     DataTypeId                  m_InDtypeId             = DataTypeId_None;
+    DataTypeId                  m_BiasDtypeId           = DataTypeId_None;
     kcc_int32                   m_NumPartitions         = -1;
     DataTypeId                  m_OutDtypeId            = DataTypeId_None;
     kcc_int32                   m_SrcPsumBankId         = -1;
@@ -204,7 +209,7 @@ public:
     kcc_int32                   m_SrcZStep              = 1; // //issues.amazon.com/issues/kaena-198
     std::array<kcc_int32, 4>    m_TileId;
     std::string                 m_TileIdFormat          = "";
-};
+}; // class ActivationWaveOp::Params : public WaveOp::Params
 
 
 
