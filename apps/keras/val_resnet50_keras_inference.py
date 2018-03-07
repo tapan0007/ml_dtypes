@@ -37,10 +37,10 @@ if __name__ == "__main__":
 
     # download 1k validation set
     if (args.dataset == "1k"):
-        tarfile = 'val_1000.tar'
-        path = os.environ['HOME']+'/.keras/datasets/'+tarfile
+        val_tarfile = 'val_1000.tar'
+        path = os.environ['HOME']+'/.keras/datasets/'+val_tarfile
         if (not os.path.exists(path)):
-            get_file(tarfile, origin='http://data.mxnet.io/mxnet/data/'+tarfile)
+            get_file(val_tarfile, origin='http://data.mxnet.io/mxnet/data/'+val_tarfile)
             tar = tarfile.open(path)
             tar.extractall()
             tar.close()
