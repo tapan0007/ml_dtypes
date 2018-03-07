@@ -105,9 +105,14 @@ class TfFe:
         #elif (re.search("Const", tfop.op, re.I) != None):
         #  node = kog.NodeConst(tfNode.name, tfop.op, add_attrs)
         #  #print("DEBUG created NodeConst")
+        elif (re.search("Placeholder", tfop.op, re.I) != None and
+              re.search("input", tfop.name, re.I) != None):
+        #print("DEBUG created NodeInput")
+          node = kog.NodeInput(tfNode.name, tfop.op, add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         self.__kg.addNode(node)
+        print ("DEBUG: loadpb: adding node %s, type %s", (node.getName(), type(node)))
     print("INFO: loaded %s file with %d ops  of which %d are CONV"
           % (pbFile, numOps, numConv))
 

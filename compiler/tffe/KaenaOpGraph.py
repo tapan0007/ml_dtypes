@@ -9,6 +9,8 @@ import os, re, json, sys
 import numpy as np
 import math
 from graphviz import Digraph
+from collections import OrderedDict
+
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 import MiscUtil
 
@@ -149,6 +151,8 @@ class Node(Object):
   # Supported ops/nodes are passed down through the compiler and simulator flow
   def isSupported(self):
     return False
+  def isConst(self):
+    return False
   def getOpArgsText(self):
     argsText = self.getDotText()
     # Simple implementation - reuse dot text and remove \n
@@ -227,6 +231,8 @@ class NodeConst(Node):
   def isSupported(self):
     return True
 
+  def isConst(self):
+    return True
 
 ###############################################################################
 # Simple single input, single output nodes like RELU
@@ -259,6 +265,45 @@ class NodeSimple(Node):
   def isSupported(self):
     return True
 
+###############################################################################
+# Input Node
+###############################################################################
+class NodeInput(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    #tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+    #(npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+
+    if len(npInfo.npShape) == 4:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+
+    layerData = {
+      "layer_name"      : self.getName(),
+      "layer_type"      : "Input",
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [],
+      "#comment"        : "supported input layer"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
 
 ###############################################################################
 # Base class for nodes that use striding and padding
@@ -477,7 +522,9 @@ class NodeConv2D(NodeBasePaddedStrided):
     # 7 loops - 4 in the filter, 3 in ofmap
     opCount = 2 * np.empty(filterShapeRSCM).size * batch * height * width;
     return opCount
-  
+
+  def isSupported(self):
+    return True
 
 ###############################################################################
 # Max Pool
@@ -813,47 +860,43 @@ class Graph(Object):
     # Input layer
     inputNode = self.getInputNode()
     npInfo = inputNode.getNpInfo()[0]
-    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-    (batch, channels, height, width) = tpbShape
-    assert(height == width)
     jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
-
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-    inputLayerData = {
-      "layer_name"      : inputNode.getName(),
-      "layer_type"      : "Input",
-      "previous_layers" : [],
-      "ofmap_shape"     : [batch, channels, height, width],
-      "ref_file"        : npFileSim,
-      "ofmap_format"    : simFormat
-    }
-    jsonData["layers"].append(inputLayerData)
-    fileList.append(npFileSim)
     outNpy = npFileSim
-    if verbose > 0:
-      npu.showNpyFile("Input IFMAPs", npFileSim)
-    
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
     totalOpCount = 0
+    layers = OrderedDict()
+    fileLists = OrderedDict()
     for level in range(0, len(levelizedNodes)):
       for n in levelizedNodes[level]:
-        if n == inputNode:
-          continue
-        op = n.getOpType()
         #print("DEBUG graph::genCompilerJson: node=", n.getName(), "  op=", op)
         #isMainFlowConst = (n.getOpType() == "Const" and any(ns.isMainFlowNode() for ns in self.nodeSuccessors(n)))
         #print("  DEBUG const and successor in main flow " + str(isMainFlowConst))
-        if n.isSupported():
+        if not n.isSupported():
+          print("WARNING: skipping layer data for layer: %s" % n.getName())
+        else:
           (layerData, fileListLayer) = n.genCompilerLayerJson()
-          if len(layerData) > 0:
-            jsonData["layers"] += layerData
-            fileList += fileListLayer
-            outNpy = fileListLayer[-1]
+          if Config.debugLevel >= 1:
+            print("DEBUG: adding layer data for layer: %s, type %s" % (n.getName(), type(n)))
+
+          # Resadd captured constant overrides input layer to work around the
+          # current BE requirement that BiasAdd has the bias vector as a constant.
+          # This is a hack
+          for l in layerData:
+            layers[l["layer_name"]] = l
+            fileLists[l["layer_name"]] = fileListLayer
         opCount = n.getOpCount()
         totalOpCount += opCount
         if Config.debugLevel >= 1:
           print("DEBUG: opcount is %d for %s  %s" % (opCount, n.getOpType(), n.getOpName()))
+
+    for l in layers:
+      jsonData["layers"] += [layers[l]]
+      fileListLayer = fileLists[l]
+      fileList += fileListLayer
+      outNpy = fileListLayer[-1]
+
     print("INFO: total opcount is %d" % totalOpCount)
         
 
@@ -1003,11 +1046,17 @@ class Graph(Object):
       assert ns != None
       for predNode in sourceGraph.nodePredecessors(ns):
         predName = predNode.getName()
-        print("DEBUG: transferSideNodes %s -> %s" % (predName, nodeName))
+        print("DEBUG: transferSideNodes %s -> %s, node type = %s" % (predName, nodeName, type(predNode)))
         if not self.hasNode(predName):
-          constNode = predNode.copyAs(NodeConst, "Const")
-          self.addNode(constNode)
-          print("DEBUG: transferSideNodes added node %s" % (constNode.getName()))
+
+          if predNode.isConst() or not predNode.isSupported():
+            # we do not want to promote unsupported nodes to input
+            # we want to keep constant nodes as constants
+            predNodeCopy = predNode.copy()
+          else:
+            predNodeCopy = predNode.copyAs(NodeInput, "Input")
+          self.addNode(predNodeCopy)
+          print("DEBUG: transferSideNodes added node %s" % (predNodeCopy.getName()))
           for srcEdge in predNode.getFanoutEdges():
             toName = srcEdge.getToNode().getName()
             if self.hasNode(toName):
@@ -1017,7 +1066,8 @@ class Graph(Object):
               # is perhaps even better
               #eNew.setIsInMainFlow(False)
               if srcEdge.isInMainFlow():
-                inputNodes.append(constNode)
+                inputNodes.append(predNodeCopy)
+  
     return list(set(inputNodes))
 
   # Returns file to append to the Kaena backend package
