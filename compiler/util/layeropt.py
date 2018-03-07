@@ -2091,6 +2091,11 @@ if __name__ == "__main__":
         # Check init op
         if (op_list[0].data['layer_type'] == "Input"):
             tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = op_list[0].data['ref_file']
+        elif (op_list[0].data['layer_type'] == "Reshape"):
+            for j in op_list[0].prev:
+                if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
+                    tpb.statebuffer.saved_result_files[op_list[0].data['layer_name']] = tpb.statebuffer.saved_result_files[j.data['layer_name']]
+                    break
         # Check conv fused op
         elif (op_list[0].data['layer_type'] == "Conv" or op_list[0].data['layer_type'] == "MatMul"):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(op_list[0])
@@ -2103,7 +2108,7 @@ if __name__ == "__main__":
             exit(-1)
 
         # Check results against pre-computed results           
-        if (op_list[0].data['layer_type'] != "Input"):
+        if (op_list[0].data['layer_type'] != "Input" and op_list[0].data['layer_type'] != "Reshape"):
             if 'ref_file' in op_list[-1].data:
                 outputs = np.load(op_list[-1].data['ref_file'])
                 diff = results - outputs
