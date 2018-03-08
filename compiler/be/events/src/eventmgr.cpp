@@ -31,26 +31,37 @@ EventMgr::processMatMult(const wave::MatMulWaveOp* matmulWaveop)
 {
     const EngineId engineId = matmulWaveop->gEngineId();
 
+    int numPrevAtomFile = 0;
+    int numPrevPool = 0;
+    int numPrevActivation = 0;
+
     for (auto prevWaveop : matmulWaveop->gPrevWaveOps()) {
         if (prevWaveop->gEngineId() == engineId) {
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
-        if (auto pWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
-            pWaveOp = nullptr;
+        if (auto sbatomFileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
+            ++numPrevAtomFile;
+            sbatomFileWaveOp = nullptr;
             continue;
         }
-        if (auto pWaveOp = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
-            pWaveOp = nullptr;
+        if (auto poolWaveOp = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
+            ++numPrevPool;
+            poolWaveOp = nullptr;
             continue;
         }
-        if (auto pWaveOp = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
-            pWaveOp = nullptr;
+        if (auto activationWaveOp = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
+            ++numPrevActivation;
+            activationWaveOp = nullptr;
             continue;
         }
         Assert(false,
                 "Predecessors of MatMult waveop must be one of DramLoad, Pool, Activation: ",
                 prevWaveop->gTypeStr());
+    }
+    if (matmulWaveop->qStartTensorCalc()) {
+        Assert(numPrevAtomFile + numPrevPool + numPrevActivation >= 1,
+            "MatMul waveop starting tensor calc should have at least one predecessor from another engine.");
     }
 
     for (auto succWaveop : matmulWaveop->gSuccWaveOps()) {
@@ -70,6 +81,10 @@ EventMgr::processPool(const wave::PoolWaveOp* poolWaveop)
     for (auto prevWaveop : poolWaveop->gPrevWaveOps()) {
         if (prevWaveop->gEngineId() == engineId) {
             continue; // when two waveops execute on the same engine, no need for sync
+        }
+        if (auto pWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
+            pWaveOp = nullptr;
+            continue;
         }
     }
 }
