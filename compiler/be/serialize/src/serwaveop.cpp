@@ -335,6 +335,9 @@ SerWaveOp::verifyActivation() const
     if (m_InDtype == "") {
         RETURN_ASSERT(false);
     }
+    if (m_BiasDtype == "") {
+        RETURN_ASSERT(false);
+    }
     if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
     }

@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
+# Mini runtime environment for SIM
+#
+# Example:
+
+import argparse
+import os.path
+import sys
+import numpy as np
+
+
+print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
+
+InklingPath = os.environ.get('INKLING_PATH')
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--tpb', help='tpb file', default="t.tpb")
+#TODO: define followign two args
+parser.add_argument('--input_fmaps', help='',
+                    dest="input_fmaps", default=[], nargs='+',)
+parser.add_argument('--output_fmaps', help='',
+                    dest="output_fmap", default=[], nargs=2)
+
+args = parser.parse_args()
+inputFmaps = args.input_fmaps
+outputFmap = args.output_fmap
+assert(len(inputFmaps) == 0) # embedded in tdb at the moment..
+assert(len(outputFmap) == 0)
+
+tpbFile = args.tpb
+if not os.path.isfile(tpbFile):
+  raise("ERROR: missing --tpb " + tpbFile)
+
+class RuntimeSim:
+  def __init__(self, tpbfile):
+    self.tpbFile = tpbfile
+
+  def run(self, inputFmaps, outputFmap):
+    self.inputFmaps = inputFmaps
+    self.outputFmap = outputFmap
+
+    cmd = "%s/sim/sim %s" % (InklingPath, self.tpbFile)
+    print("INFO: executing %s" % cmd, flush=True)
+    ret = os.system(cmd)
+
+
+runtime = RuntimeSim(tpbFile)
+ret = runtime.run(inputFmaps, outputFmap)
+exit(ret)

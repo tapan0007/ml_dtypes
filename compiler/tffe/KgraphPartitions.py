@@ -18,6 +18,7 @@ class KsubGraph:
     self.__output = None
     self.__maxLevel = 0    # highest level of any node (== output) in the src graph
     self.debugLevel = debugLevel
+    self.isSupported = True
   def print(self, title):
     print(title)
     self.graph.print()
@@ -63,7 +64,11 @@ class KsubGraph:
     #hasInputOpType = any((ni.getOpType() == "Input") for ni in self.__inputs)
     #assert inputNode.getOpType() == "Input" or
     #       inputNode.getOpType() == "Const"
-  
+  def addNode(self, n):
+    self.graph.addNode(n)
+    if not n.isSupported():
+      self.isSupported = False
+
   
 # Graph partitioner
 class KgraphPart(object):
@@ -182,8 +187,42 @@ class KgraphPart(object):
       # Traverse deeper
       for nextEdge in fanoutEdges:
         edgeQueue.append((nextColor, nextEdge))
-      
-  
+
+
+  # Auto color nodes to define partitions based on supported nodes.
+  def colorNodesSuppAuto(self):
+    sourceGraph = self.__kgraph
+    edgeQueue = []
+    visitedNodes = {}
+    n = sourceGraph.getInputNode()
+    self.setNodeColor(n, self.getNewColor())
+    edgeQueue += n.getFanoutMainFlowEdges()
+    while len(edgeQueue) > 0:
+      e = edgeQueue.pop(0)
+      n = e.getToNode()
+      p = e.getFromNode()
+      edgeQueue += n.getFanoutMainFlowEdges()
+      if n in visitedNodes:
+        continue
+      visitedNodes[n] = True
+      print("DEBUG: colorSuppAuto visit         %-12s %s" %
+            (n.getOpType(), n.getName()))
+
+      if n.isSupported() != p.isSupported():
+        print("DEBUG: adding new color for node: " +
+              n.getName() +
+              " " + str(n.isSupported()) +
+              " predNode " + p.getName() +
+              " " + str(p.isSupported()) )
+        self.setNodeColor(n, self.getNewColor())
+      else:
+        self.setNodeColor(n, self.getNodeColor(p))
+
+      if self.debugLevel > 0:
+        print("DEBUG: colorSuppAuto setColor %d on %-12s %s" %
+              (self.getNodeColor(n), n.getOpType(), n.getName()))
+
+
   def edgeHasOp(self, edge, opType):
     nodes = [edge.getFromNode(), edge.getToNode()]
     return any((not n == None and n.getOpType() == opType) for n in nodes)
@@ -230,7 +269,7 @@ class KgraphPart(object):
       if self.debugLevel > 0:
         print("DEBUG: colorNodesConv setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
-      
+
   # Color nodes to define subgraph partitions - start new partition from a node
   # The from list must NOT be part of any reconvergent branch
   def colorNodesFrom(self, fromNodeList):
@@ -262,7 +301,7 @@ class KgraphPart(object):
       if self.debugLevel > 0:
         print("DEBUG: colorNodesFrom setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
-      
+
   # Color nodes given the partitioning strategy
   # The strategy is a keyword and arguments (for some)
   def colorNodes(self, partitioningStrategy):
@@ -273,6 +312,8 @@ class KgraphPart(object):
       self.colorNodesMeAuto()
     elif strategy == "conv":
       self.colorNodesConv()
+    elif strategy == "suppauto":
+      self.colorNodesSuppAuto()
     elif strategy == "from":
       self.colorNodesFrom( partitioningStrategy[1:])
     else:
@@ -293,7 +334,7 @@ class KgraphPart(object):
           subGraph = self.__subgraphs[color]
           nCopy = n.copy()
           assert(not n.getFaninEdges == None)
-          subGraph.graph.addNode(nCopy)
+          subGraph.addNode(nCopy)
           subGraph.updateMaxLevel(level)
     # Edges
     for i in range(self.__numColors):
@@ -313,7 +354,7 @@ class KgraphPart(object):
     # Order subgraphs that runtime dependencies are satisfied
     # Simple sorting by the level of the output node is enough
     self.__subgraphs.sort(key = lambda sg : sg.getMaxLevel())
-  
+
   # Print textual connectivity info to STDOUT
   def print(self):
     for i in range(self.__numColors):
@@ -323,6 +364,14 @@ class KgraphPart(object):
   # Note nn_executor has a similar function, sharing compiler-runtime is not desirable
   def calcExecutorMap(self, executorsList):
     self.sgId2executor = {}
+    
+    # setup default executor: host if SG unsupported
+    for sgId in range(len(self.__subgraphs)):
+      if self.__subgraphs[sgId].isSupported:
+        self.sgId2executor[sgId] = "tcc"
+      else:
+        self.sgId2executor[sgId] = "host"
+
     executor = None
     for word in executorsList:
       if word == "all":

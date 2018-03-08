@@ -418,6 +418,7 @@ Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     KCC_SERIALIZE(DstZStep);
 
     serWaveOp.m_InDtype             = activationWaveOp->gInDtype().gName();
+    serWaveOp.m_BiasDtype           = activationWaveOp->gBiasDtype().gName();
     KCC_SERIALIZE(NumPartitions);
     serWaveOp.m_OutDtype            = activationWaveOp->gOutDtype().gName();
 

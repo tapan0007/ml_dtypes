@@ -25,6 +25,7 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
     , m_BiasOffsetInAtom(params.m_BiasOffsetInAtom)
     , m_DstIsPsum(params.m_DstIsPsum)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
+    , m_BiasDtype(DataType::dataTypeId2DataType(params.m_BiasDtypeId))
     , m_NumPartitions(params.m_NumPartitions)
     , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtypeId))
     , m_SrcPsumBankId(params.m_SrcPsumBankId)
