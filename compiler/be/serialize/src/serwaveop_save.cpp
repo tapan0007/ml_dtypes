@@ -242,7 +242,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(DstZNum);
     KCC_ARCHIVE(DstZStep);
 }
-        
+
 
 #undef KCC_ARCHIVE
 } // namespace serialize

@@ -163,7 +163,7 @@ void WaveCode::writeInstruction<SIM_MEMCPY>(SIM_MEMCPY& instruction)
 }
 
 
-void 
+void
 WaveCode::markDramDirty(const std::string& fileName)
 {
     const auto it = m_NpyFile2DramAddress.find(fileName);

@@ -47,6 +47,14 @@ namespace codegen {
 }
 
 
+static
+FILE* openObjectFile(const std::string& objFileName, const char* engine)
+{
+    std::cout << "WaveCodegen: Generating " << engine << " instructions to file '" << objFileName << "'\n";
+    FILE* file = fopen(objFileName.c_str(), "wb");
+    Assert(file, "Cannot open PE array object file ", objFileName.c_str());
+    return file;
+}
 
 //------------------------------------------------
 
@@ -61,6 +69,7 @@ Main(int argc, char* argv[])
     bool PrintLayers   = false;
 #endif
     bool DoBatching    = false;
+    bool ParallelStreams = false;
     const char* JsonInFileName = nullptr;
     bool useWave = false;
 
@@ -80,6 +89,8 @@ Main(int argc, char* argv[])
             PrintDot = true;
         } else if (arg == "--batch" or arg == "--batching") {
             DoBatching = true;
+        } else if (arg == "--parallel") {
+            ParallelStreams = true;
         } else
 #endif
         if (arg == "--json") {
@@ -169,9 +180,9 @@ Main(int argc, char* argv[])
         ntwk->save(ar);
     }
 
-    std::string objFileName(ntwk->gName());
-    objFileName += ".tpb";
     if (! useWave) {
+        std::string objFileName(ntwk->gName());
+        objFileName += ".tpb";
         //--------------------------------------------------------
         schedule::Scheduler* scheduler = new schedule::Scheduler();
         std::cout << "Scheduling NN '" << ntwk->gName() << "'\n";
@@ -217,15 +228,33 @@ Main(int argc, char* argv[])
             }
         }
     } else {
-        wavecode::WaveCode waveCode(ntwk, arch);
-        std::cout << "WaveCodegen: Generating instructions to file '" << objFileName << "'\n";
-        FILE* file = fopen(objFileName.c_str(), "wb");
-        assert(file && "Cannot open object file");
         wavecode::WaveCode::InstrStreams instrStreams;
-        instrStreams.m_StreamProcInstrStream    = file;
-        instrStreams.m_PeArrayInstrStream       = file;
-        instrStreams.m_PoolEngInstrStream       = file;
-        instrStreams.m_ActEngInstrStream        = file;
+        if (ParallelStreams) {
+            std::string objFileName;
+
+            objFileName = ntwk->gName() + "-pe.tpb";
+            instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array");
+
+            objFileName = ntwk->gName() + "-sp.tpb";
+            instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor");
+
+            objFileName = ntwk->gName() + "-pool.tpb";
+            instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine");
+
+            objFileName = ntwk->gName() + "-act.tpb";
+            instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine");
+
+        } else {
+            std::string objFileName(ntwk->gName() + ".tpb");
+            FILE* file = openObjectFile(objFileName, "all");
+
+            instrStreams.m_StreamProcInstrStream    = file;
+            instrStreams.m_PeArrayInstrStream       = file;
+            instrStreams.m_PoolEngInstrStream       = file;
+            instrStreams.m_ActEngInstrStream        = file;
+        }
+
+        wavecode::WaveCode waveCode(ntwk, arch);
         waveCode.generate(instrStreams);
     }
 

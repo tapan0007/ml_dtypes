@@ -18,6 +18,8 @@ public:
 
 private:
     void processMatMult(const wave::MatMulWaveOp* matmulWaveop);
+    void processPool(const wave::PoolWaveOp* poolWaveop);
+    void processActivation(const wave::ActivationWaveOp* activationWaveop);
 
 private:
     const nets::Network& m_Network;

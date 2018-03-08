@@ -14,15 +14,15 @@ Asserter::Asserter (int lineNum, const char* fileName, const char* exprStr)
     : m_LineNumber(lineNum)
     , m_FileName(fileName)
     , m_ExprStr(exprStr)
-    { } 
+    { }
 
 
-void 
+void
 Asserter::operator() (bool expr) const
 {
     if (expr) {
         return;
-    }   
+    }
     char buf[BUF_SIZE];
     snprintf(buf, sizeof(buf)/sizeof(buf[0]),
         "error: File %s:%d, Assertion '%s' failed ", m_FileName, m_LineNumber, m_ExprStr);

@@ -85,7 +85,7 @@ public:
     }
 
     virtual EngineId gEngineId() const = 0;
-    
+
     virtual std::string gTypeStr() const = 0;
 
     //----------------------------------------------------------------
@@ -97,6 +97,10 @@ public:
 
     const std::vector<WaveOp*>& gPrevWaveOps() const {
         return m_PrevWaveOps;
+    }
+
+    const std::vector<WaveOp*>& gSuccWaveOps() const {
+        return m_SuccWaveOps;
     }
 
     kcc_int32 gWaveAtomSize () const {

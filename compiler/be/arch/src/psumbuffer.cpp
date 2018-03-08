@@ -60,8 +60,8 @@ PsumBuffer::gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx,
                              const utils::DataType& dtype) const
 {
     Assert(qLegalDataType(dtype), "Wrong data type for PSUM TPB address calculation: ", dtype.gName());
-    return gPsumBaseAddress() 
-           + gBankOffsetDelta() * bankId 
+    return gPsumBaseAddress()
+           + gBankOffsetDelta() * bankId
            + dtype.gSizeInBytes() * bankEntryIdx;
 }
 

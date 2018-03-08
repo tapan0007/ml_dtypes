@@ -22,8 +22,10 @@ EventMgr::EventMgr(const nets::Network& network)
 {
 }
 
-// Predecessor of Loading Weights can only be:
-// Another MatMul which 
+/***************************************************************
+Predecessor of Loading Weights can only be:
+Another MatMul which
+***************************************************************/
 void
 EventMgr::processMatMult(const wave::MatMulWaveOp* matmulWaveop)
 {
@@ -50,9 +52,46 @@ EventMgr::processMatMult(const wave::MatMulWaveOp* matmulWaveop)
                 "Predecessors of MatMult waveop must be one of DramLoad, Pool, Activation: ",
                 prevWaveop->gTypeStr());
     }
+
+    for (auto succWaveop : matmulWaveop->gSuccWaveOps()) {
+        if (succWaveop->gEngineId() == engineId) {
+            continue; // when two waveops execute on the same engine, no need for sync
+        }
+    }
+}
+
+/***************************************************************
+***************************************************************/
+void
+EventMgr::processPool(const wave::PoolWaveOp* poolWaveop)
+{
+    const EngineId engineId = poolWaveop->gEngineId();
+
+    for (auto prevWaveop : poolWaveop->gPrevWaveOps()) {
+        if (prevWaveop->gEngineId() == engineId) {
+            continue; // when two waveops execute on the same engine, no need for sync
+        }
+    }
 }
 
 
+/***************************************************************
+***************************************************************/
+void
+EventMgr::processActivation(const wave::ActivationWaveOp* activationWaveop)
+{
+    const EngineId engineId = activationWaveop->gEngineId();
+
+    for (auto prevWaveop : activationWaveop->gPrevWaveOps()) {
+        if (prevWaveop->gEngineId() == engineId) {
+            continue; // when two waveops execute on the same engine, no need for sync
+        }
+    }
+}
+
+
+/***************************************************************
+***************************************************************/
 void
 EventMgr::processWaveops()
 {
@@ -61,9 +100,17 @@ EventMgr::processWaveops()
             processMatMult(matmulWaveop);
             continue;
         }
+        if (auto poolWaveop = dynamic_cast<wave::PoolWaveOp*>(waveOp)) {
+            processPool(poolWaveop);
+            continue;
+        }
+        if (auto activationWaveop = dynamic_cast<wave::ActivationWaveOp*>(waveOp)) {
+            processActivation(activationWaveop);
+            continue;
+        }
     }
 }
-    
+
 
 
 }}
