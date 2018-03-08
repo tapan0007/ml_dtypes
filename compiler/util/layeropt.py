@@ -1481,6 +1481,7 @@ class KGraph:
         new_layer = copy.deepcopy(layer)
         new_layer['layer_type'] = new_type
         new_layer['layer_name'] = layer['layer_name'] + "_" + new_type
+        new_layer['ref_file'] = layer['ref_file'].replace(".npy", "_" + new_type + ".npy")
         new_node = KNode(new_layer, self.item_sz, self.data_type)
         new_node.add_prev(self.last_node)
         self.node_dict[ new_layer['layer_name'] ] = new_node
@@ -1527,6 +1528,9 @@ class KGraph:
                     self.last_node.data['layer_type'] = "Exp"
                     self.add_copy_with_new_type(l, "SumReciprocate")
                     self.add_copy_with_new_type(l, "Scale")
+                    # move ref file attribute to the last operation for final comparisons
+                    self.last_node.data['ref_file'] = new_node.data['ref_file']
+                    new_node.data['ref_file'] = new_node.data['ref_file'].replace(".npy", "_Exp.npy")
             self.current_node = self.first_node
         else:
             print("ERROR: there are no layers!")
@@ -2009,7 +2013,7 @@ class TPBSched:
 
         # save layer results to file, for retrieval by next layer                        
         np.save(result_file, result)
-        if (args.golden_inputs):
+        if (args.golden_inputs and os.path.isfile(op_list[-1].data['ref_file'])):
             # if using golden inputs, save the ref_file instead of result_file
             self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = op_list[-1].data['ref_file']
         else:            
@@ -2077,7 +2081,7 @@ if __name__ == "__main__":
 
         # Check results against pre-computed results           
         if (op_list[0].data['layer_type'] != "Input"):
-            if 'ref_file' in op_list[-1].data:
+            if 'ref_file' in op_list[-1].data and os.path.isfile(op_list[-1].data['ref_file']):
                 outputs = np.load(op_list[-1].data['ref_file'])
                 diff = results - outputs
                 if (args.debug > 2): print("\nInput IFMAPS:\n", inputs)
