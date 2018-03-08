@@ -205,8 +205,11 @@ public:
         return EngineId_PeArray;
     }
 
-    static std::string gTypeStr() {
+    static std::string gTypeStrStatic() {
         return WaveOpTypeStr_MatMul;
+    }
+    std::string gTypeStr() const override {
+        return gTypeStrStatic();
     }
 
     bool verify() const override;

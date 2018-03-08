@@ -14,9 +14,9 @@ namespace events {
 class EventMgr {
 public:
     EventMgr(const nets::Network& network);
+    void processWaveops();
 
 private:
-    void processLoadWeights(const wave::MatMulWaveOp* matmulWaveop);
     void processMatMult(const wave::MatMulWaveOp* matmulWaveop);
 
 private:

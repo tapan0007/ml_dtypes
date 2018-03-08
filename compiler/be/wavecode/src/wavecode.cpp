@@ -6,6 +6,8 @@
 
 #include "nets/inc/network.hpp"
 
+#include "events/inc/eventmgr.hpp"
+
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomfilewaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
@@ -46,6 +48,9 @@ WaveCode::~WaveCode() = default;
 void
 WaveCode::generate(const InstrStreams& instrStreams)
 {
+    events::EventMgr eventMgr(*m_Network);
+    eventMgr.processWaveops();
+
     m_InstrStreams = &instrStreams;
     for (auto waveOp : m_Network->gWaveOps()) {
         auto& codeGen = getCodeGen(waveOp);

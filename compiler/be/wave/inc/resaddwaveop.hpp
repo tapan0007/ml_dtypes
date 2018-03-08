@@ -47,8 +47,11 @@ public:
     EngineId gEngineId() const override {
         return EngineId_Pooling;
     }
-    static std::string gTypeStr() {
+    static std::string gTypeStrStatic() {
         return WaveOpTypeStr_ResAdd;
+    }
+    std::string gTypeStr() const override {
+        return gTypeStrStatic();
     }
 
     kcc_int32 gNumPartitions () const {

@@ -134,8 +134,11 @@ public:
         return EngineId_Pooling;
     }
 
-    static std::string gTypeStr() {
+    static std::string gTypeStrStatic() {
         return WaveOpTypeStr_Pool;
+    }
+    std::string gTypeStr() const override {
+        return gTypeStrStatic();
     }
 
 private:

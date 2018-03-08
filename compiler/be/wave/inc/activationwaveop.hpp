@@ -66,8 +66,11 @@ public:
     EngineId gEngineId() const override {
         return EngineId_Activation;
     }
-    static std::string gTypeStr() {
+    static std::string gTypeStrStatic() {
         return WaveOpTypeStr_Activation;
+    }
+    std::string gTypeStr() const override {
+        return gTypeStrStatic();
     }
 
     kcc_int32 gDstPsumBankId() const {

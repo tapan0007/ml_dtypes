@@ -206,17 +206,17 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
             wave::WaveOp* waveOp = nullptr;
 
-            if (serWaveOp.m_WaveOpType == wave::SbAtomFileWaveOp::gTypeStr()) {
+            if (serWaveOp.m_WaveOpType == wave::SbAtomFileWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadSbAtomFile(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStr()) {
+            } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadSbAtomSave(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStr()) {
+            } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadPool(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStr()) {
+            } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadMatMul(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStr()) {
+            } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadActivation(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::ResAddWaveOp::gTypeStr()) {
+            } else if (serWaveOp.m_WaveOpType == wave::ResAddWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadResAdd(serWaveOp);
             } else {
                 assert(false && "Wrong WaveOp type during deserialization");
