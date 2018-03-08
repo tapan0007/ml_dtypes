@@ -90,7 +90,13 @@ class NpTrans:
   def ncShapeToNHWC(shape):
     assert len(shape) == 2
     tmpShape = [shape[0], 1, 1, shape[1]]
-    return tmpShape[-4:]
+    return tmpShape
+  
+  @staticmethod
+  def cmShapeToRSCM(shape):
+    assert len(shape) == 2
+    tmpShape = [1, 1, shape[0], shape[1]]
+    return tmpShape
   
  
   
