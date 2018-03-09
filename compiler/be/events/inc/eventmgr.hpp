@@ -9,6 +9,10 @@ namespace kcc {
 
 namespace wave {
 class MatMulWaveOp;
+class PoolWaveOp;
+class ActivationWaveOp;
+class SbAtomSaveWaveOp;
+class ResAddWaveOp;
 }
 
 
@@ -23,6 +27,8 @@ private:
     void processMatMult(wave::MatMulWaveOp* matmulWaveop);
     void processPool(wave::PoolWaveOp* poolWaveop);
     void processActivation(wave::ActivationWaveOp* activationWaveop);
+    void processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop);
+    void processResAdd(wave::ResAddWaveOp* resaddWaveop);
 
     kcc_int32 getLocalEventId(const wave::WaveOp* from, const wave::WaveOp* to);
 

@@ -8,6 +8,7 @@
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
+#include "wave/inc/resaddwaveop.hpp"
 
 #include "nets/inc/network.hpp"
 
@@ -181,6 +182,20 @@ EventMgr::processActivation(wave::ActivationWaveOp* activationWaveop)
     }
 }
 
+void
+EventMgr::processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop)
+{
+    Assert(sbatomSaveWaveop, "Nil SbAtomSaveWaveOp");
+}
+
+
+void
+EventMgr::processResAdd(wave::ResAddWaveOp* resaddWaveop)
+{
+    Assert(resaddWaveop, "Nil ResAddWaveOp");
+}
+
+
 
 /***************************************************************
 ***************************************************************/
@@ -200,12 +215,32 @@ EventMgr::processWaveops()
             processActivation(activationWaveop);
             continue;
         }
+        if (auto sbatomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveOp)) {
+            processSbAtomSave(sbatomSaveWaveop);
+            continue;
+        }
+        if (auto sbatomFileWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp)) {
+            Assert(sbatomFileWaveop->gPrevWaveOps().size() == 0,
+                "SbAtomFile should have 0 predecessors. Waveop: ", sbatomFileWaveop->gName(),
+                ", number predecessors: ", sbatomFileWaveop->gPrevWaveOps().size());
+            continue; // when two waveops execute on the same engine, no need for sync
+        }
+        if (auto resaddWaveop = dynamic_cast<wave::ResAddWaveOp*>(waveOp)) {
+            processResAdd(resaddWaveop);
+            continue;
+        }
+        Assert(false, "WaveOp ", waveOp->gName(), " of type ", waveOp->gTypeStr(),
+                " not expected");
     }
 }
 
 
+/***************************************************************
+***************************************************************/
 
-}
+
+
+} // namespace events
 
 int
 eventWaitMode2Int(EventWaitMode mode)
