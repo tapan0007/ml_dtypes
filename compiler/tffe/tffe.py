@@ -76,7 +76,6 @@ def writeBackEndFiles(kGraph, outPrefix, verbose, scheduler):
   jsonFile = {"tcc" : "compiler.json", "wave" : "wavegraph.json"}
   fileList += kGraph.genKgraphSetupFiles(outPrefix + "compiler.py", outPrefix + jsonFile[scheduler], refOutNpyFile)
   fileList += [outPrefix + "graph_ann.dot.svg"]
-  fileList += kGraph.runScheduler(outPrefix)
   #kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
   
 
@@ -122,9 +121,14 @@ for sg in kp.getSubgraphs():
   executor = kp.getExecutorById(sgId)
   if not executor == 'host':
     writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
-    cmd = "bash %s/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1" % kPath
-    print("INFO: executing %s" % cmd, flush=True)
-    ret = os.system(cmd)
+    meOk, fileList = sg.graph.runScheduler(args.out_prefix)
+    if not executor == 'waveopt':
+      if meOk:
+        cmd = "bash %s/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1" % kPath
+        print("INFO: executing %s" % cmd, flush=True)
+        ret = os.system(cmd)
+      else:
+        print("ERROR: skipping backend compilation since the mid scheduler failed", flush=True)
 
   os.chdir("..")
   sgJson = sg.genExecutorGraphJson(sgDir)

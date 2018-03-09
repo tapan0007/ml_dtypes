@@ -1198,7 +1198,7 @@ class Graph(Object):
   def runScheduler(self, outPrefix):
     if self.schedulerMode == 'tcc':
       # Noop, wave scheduling is done in the backend
-      return []
+      return True, []
     elif self.schedulerMode == 'wave':
       # Invoke wave scheduler
       waveSchedulerExec = self.kaenaPath + "/compiler/util/layeropt.py"
@@ -1209,7 +1209,12 @@ class Graph(Object):
             waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, Config.debugLevel)
       print("INFO: executing wave scheduler by  " + cmd)
       os.system(cmd)
-      return [waveGraphJsonFile, waveDotFile]
+      meOk = False
+      with open("log-me.txt") as meFh:
+        for line in meFh:
+          if line.rstrip() == "PASSED":
+            meOk = True
+      return meOk, [waveGraphJsonFile, waveDotFile]
     
 
 

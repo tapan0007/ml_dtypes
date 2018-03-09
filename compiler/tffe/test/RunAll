@@ -270,6 +270,7 @@ testConfigMap = {
   
   # Matmult
   "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 wave 1 --debug 1 --scheduler wave" % rnDogJpg],
+  "4-rn50_matmul_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 waveopt 1 --debug 1 --scheduler wave" % rnDogJpg],
   "4-rn50_matmul_nosm_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --debug 1 --scheduler wave" % rnDogJpg],
   
 }
@@ -291,8 +292,9 @@ testWaiver = [
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
-    ['4-rn50_matmul_fp32_wave', 'WAIVE-S10_MATMUL'],
-    ['4-rn50_matmul_nosm_fp32_wave', 'WAIVE-S10_MATMUL'],
+    ['4-rn50_matmul_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
+    ['4-rn50_matmul_fp32_waveopt$',   'WAIVE-S10_NNE_4D_2D'],
+    ['4-rn50_matmul_nosm_fp32_wave$', 'WAIVE-S10_BE_MATMUL'],
 
     ['^[6]-alexnet',  'WAIVE-BENCH'],
     ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
