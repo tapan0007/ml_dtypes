@@ -471,6 +471,7 @@ class CircularBuffer:
               'atom_id'          : atom_id,
               'atom_size'        : self.atom_sz,
               'data_type'        : self.data_type,
+              'contain_weights'  : self.circbuf_type == "weights",
               'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
