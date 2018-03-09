@@ -160,26 +160,6 @@ Main(int argc, char* argv[])
 
     ntwk->rDoBatching(DoBatching);
 
-    //--------------------------------------------------------
-    {
-        char JsonOutFileName[256];
-        const char* p = JsonInFileName;
-        char* q = JsonOutFileName;
-        while (*p) {
-            if (*p == '.') {
-                *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
-            }
-            *q++ = *p++;
-        }
-        *q = '\0';
-
-        std::ofstream os(JsonOutFileName);
-
-        std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
-        cereal::JSONOutputArchive ar(os);
-        ntwk->save(ar);
-    }
-
     if (! useWave) {
         std::string objFileName(ntwk->gName());
         objFileName += ".tpb";
@@ -256,6 +236,26 @@ Main(int argc, char* argv[])
 
         wavecode::WaveCode waveCode(ntwk, arch);
         waveCode.generate(instrStreams);
+    }
+
+    //--------------------------------------------------------
+    { // writing is after generate() because generate() sets events
+        char JsonOutFileName[256];
+        const char* p = JsonInFileName;
+        char* q = JsonOutFileName;
+        while (*p) {
+            if (*p == '.') {
+                *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
+            }
+            *q++ = *p++;
+        }
+        *q = '\0';
+
+        std::ofstream os(JsonOutFileName);
+
+        std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
+        cereal::JSONOutputArchive ar(os);
+        ntwk->save(ar);
     }
 
     return 0;

@@ -9,6 +9,7 @@
 
 namespace kcc {
 
+
 using kcc_int8    = signed char;
 using kcc_int16   = short;
 using kcc_int32   = int;
@@ -20,6 +21,7 @@ using kcc_uint64  = unsigned long;
 using kcc_float32 = float;
 using kcc_float64 = double;
 
+
 static_assert(sizeof(kcc_int8)  == 1, "sizeof(int8) != 1");
 static_assert(sizeof(kcc_int16) == 2, "sizeof(int16) != 2");
 static_assert(sizeof(kcc_int32) == 4, "sizeof(int32) != 4");
@@ -29,6 +31,7 @@ static_assert(sizeof(kcc_uint16) == 2, "sizeof(uint16) != 2");
 static_assert(sizeof(kcc_uint32) == 4, "sizeof(uint32) != 4");
 static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
+using EventId = kcc_int32;
 
 enum ActivationFunc {
     ActivationFunc_Invalid,

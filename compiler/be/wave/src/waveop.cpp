@@ -2,7 +2,10 @@
 
 
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"
+#include "utils/inc/events.hpp"
+
 #include "layers/inc/layer.hpp"
 #include "wave/inc/waveop.hpp"
 #include "nets/inc/network.hpp"
@@ -70,6 +73,31 @@ WaveOp::addSuccWaveop(WaveOp* succWaveop)
     m_SuccWaveOps.push_back(succWaveop);
 }
 
+void
+WaveOp::rWaitEvent(EventId eventId, EventWaitMode mode)
+{
+    m_Sync.m_WaitEventId = eventId;
+    m_Sync.m_WaitEventMode = mode;
+}
+
+void
+WaveOp::rSetEvent(EventId eventId, EventSetMode mode)
+{
+    m_Sync.m_SetEventId = eventId;
+    m_Sync.m_SetEventMode = mode;
+}
+
+
+
+
+
+WaveOp::Events::Events()
+    : m_SetEventId(0)
+    , m_SetEventMode(EventSetMode::NoEvent)
+    , m_WaitEventId(0)
+    , m_WaitEventMode(EventWaitMode::NoEvent)
+{
+}
 
 }} // namespace
 

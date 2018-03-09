@@ -1,6 +1,8 @@
 #include "shared/inc/tpb_isa_ldweights.hpp"
 #include "shared/inc/tpb_isa_matmul.hpp"
 
+#include "utils/inc/events.hpp"
+
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"
 
@@ -60,7 +62,12 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
 
     matmulInstr.start_tensor_calc       = matmulWaveOp->qStartTensorCalc();
     matmulInstr.stop_tensor_calc        = matmulWaveOp->qStopTensorCalc();
+
     //setup_sync(matmulInstr.sync, -1, SET_EVENT_ON_END_WR_DST);
+    matmulInstr.sync.wait_event_id      = matmulWaveOp->gWaitEventId();
+    matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(matmulWaveOp->gWaitEventMode());
+    matmulInstr.sync.set_event_id       = matmulWaveOp->gSetEventId();
+    matmulInstr.sync.set_event_mode     = eventSetMode2Int(matmulWaveOp->gSetEventMode());
 
     m_WaveCode->writeInstruction(matmulInstr);
 }

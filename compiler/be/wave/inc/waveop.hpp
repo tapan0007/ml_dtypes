@@ -15,11 +15,14 @@
 
 #include "utils/inc/types.hpp"
 #include "utils/inc/consts.hpp"
+//#include "utils/inc/events.hpp"
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
 
 namespace kcc {
+enum class EventWaitMode;
+enum class EventSetMode;
 
 namespace layers {
     class Layer;
@@ -65,7 +68,7 @@ protected:
 public:
 
     //----------------------------------------------------------------
-    virtual bool qMatMultWaveOp() const {
+    virtual bool qMatMulWaveOp() const {
         return false;
     }
     virtual bool qSbAtomFileWaveOp() const {
@@ -109,6 +112,22 @@ public:
 
     void addSuccWaveop(WaveOp* succWaveop);
 
+    EventId gWaitEventId() const {
+        return m_Sync.m_WaitEventId;
+    }
+    EventWaitMode gWaitEventMode() const {
+        return m_Sync.m_WaitEventMode;
+    }
+    EventId gSetEventId() const {
+        return m_Sync.m_SetEventId;
+    }
+    EventSetMode gSetEventMode() const {
+        return m_Sync.m_SetEventMode;
+    }
+
+    void rWaitEvent(EventId eventId, EventWaitMode);
+    void rSetEvent(EventId eventId, EventSetMode);
+
 protected:
 #if 0
 #endif
@@ -118,7 +137,17 @@ protected:
     std::vector<WaveOp*>    m_PrevWaveOps;
     std::vector<WaveOp*>    m_SuccWaveOps;
     FmapDesc                m_OfmapDesc;
-    TPB_CMD_SYNC            m_Sync;
+
+protected:
+    struct Events {
+        Events();
+        EventId             m_SetEventId;
+        EventSetMode        m_SetEventMode;
+        EventId             m_WaitEventId;
+        EventWaitMode       m_WaitEventMode;
+    };
+    Events                  m_Sync;
+
 private:
     layers::Layer*          m_Layer         = nullptr;
 }; // class WaveOp

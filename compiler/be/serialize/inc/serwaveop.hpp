@@ -178,6 +178,13 @@ constexpr static const char* WaveOpKey_SrcBYStep	        = "src_b_y_step";
 constexpr static const char* WaveOpKey_SrcBZNum	            = "src_b_z_num";
 constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
+constexpr static const char* WaveOpKey_WaitEventId          = "wait_event_id";
+constexpr static const char* WaveOpKey_WaitEventMode        = "wait_event_mode";
+constexpr static const char* WaveOpKey_SetEventId           = "set_event_id";
+constexpr static const char* WaveOpKey_SetEventMode         = "set_event_mode";
+
+constexpr static const char* WaveOpKey_LwWaitEventId          = "lw_wait_event_id";
+constexpr static const char* WaveOpKey_LwWaitEventMode        = "lw_wait_event_mode";
 
 
 
@@ -397,6 +404,12 @@ public:
     kcc_int32                   m_SrcZNum           = +1;
     kcc_int32                   m_SrcZStep          = +1;
 #endif
+    kcc_int32                   m_WaitEventId       = 0;
+    kcc_int32                   m_WaitEventMode     = NO_WAIT_EVENT;
+    kcc_int32                   m_SetEventId        = 0;
+    kcc_int32                   m_SetEventMode      = NO_SET_EVENT;
+    kcc_int32                   m_LwWaitEventId     = 0;
+    kcc_int32                   m_LwWaitEventMode   = NO_WAIT_EVENT;
 }; // class SerWaveOp
 
 

@@ -11,6 +11,7 @@
 
 
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/events.hpp"
 #include "utils/inc/types.hpp"
 #include "arch/inc/arch.hpp"
 
@@ -223,6 +224,13 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         wave::WaveOp* waveOp = m_WaveOps[waveOpIdx];
         serWaveOp.m_WaveOpName = waveOp->gName();
         serWaveOp.m_LayerName = waveOp->gLayerName();
+
+        serWaveOp.m_WaitEventId     = waveOp->gWaitEventId();
+        serWaveOp.m_WaitEventMode   = eventWaitMode2Int(waveOp->gWaitEventMode());
+        serWaveOp.m_SetEventId      = waveOp->gSetEventId();
+        serWaveOp.m_SetEventMode    = eventSetMode2Int(waveOp->gSetEventMode());
+
+
         for (auto prevWaveOp : waveOp->gPrevWaveOps()) {
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
         }
@@ -311,6 +319,8 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     // waveop type
     KCC_SERIALIZE(WeightsAtomId);
     KCC_SERIALIZE(WeightsOffsetInAtom);
+    KCC_SERIALIZE(LwWaitEventId);
+    serWaveOp.m_LwWaitEventMode = eventWaitMode2Int(matmulWaveOp->gLwWaitEventMode());
 #undef WAVE_OP
 }
 

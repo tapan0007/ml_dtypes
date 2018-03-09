@@ -4,6 +4,9 @@
 #define KCC_EVENTS_EVENTMGR_H
 
 namespace kcc {
+//enum class EventWaitMode;
+//enum class EventSetMode;
+
 namespace wave {
 class MatMulWaveOp;
 }
@@ -17,12 +20,15 @@ public:
     void processWaveops();
 
 private:
-    void processMatMult(const wave::MatMulWaveOp* matmulWaveop);
-    void processPool(const wave::PoolWaveOp* poolWaveop);
-    void processActivation(const wave::ActivationWaveOp* activationWaveop);
+    void processMatMult(wave::MatMulWaveOp* matmulWaveop);
+    void processPool(wave::PoolWaveOp* poolWaveop);
+    void processActivation(wave::ActivationWaveOp* activationWaveop);
+
+    kcc_int32 getLocalEventId(const wave::WaveOp* from, const wave::WaveOp* to);
 
 private:
     const nets::Network& m_Network;
+    kcc_int32 m_EventId;
 };
 
 }}

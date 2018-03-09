@@ -197,7 +197,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    bool qMatMultWaveOp() const override {
+    bool qMatMulWaveOp() const override {
         return true;
     }
 
@@ -277,6 +277,14 @@ public:
         return m_OutDtype;
     }
 
+    EventId gLwWaitEventId() const {
+        return m_LwWaitEventId;
+    }
+    EventWaitMode gLwWaitEventMode() const {
+        return m_LwWaitEventMode;
+    }
+    void rLwWaitEvent(EventId eventId, EventWaitMode);
+
 private:
     kcc_int16       m_BatchingInWave        = -1;
     kcc_int16       m_FmapXNum              = -1;
@@ -316,6 +324,8 @@ private:
     // waveop type
     kcc_int16       m_WeightsAtomId         = -1;
     kcc_int16       m_WeightsOffsetInAtom   = -1;
+    EventId         m_LwWaitEventId;
+    EventWaitMode   m_LwWaitEventMode;
 }; // class MatMulWaveOp : public WaveOp
 
 
