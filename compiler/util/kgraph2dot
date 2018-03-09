@@ -26,12 +26,17 @@ class KgraphJson(object):
     "AvgPool"  : "orange",
     "BiasAdd"  : "blue",
     "ResAdd"   : "cyan",
-    "Const"    : "green"
+    "Const"    : "green",
+    # Waveops
+    "MatMul"   : "red",
+    "SBAtomFile" : "green",
+    "SBAtomSave" : "brown",
+    "Pool"     : "orange",    
     }
   def type2color(self, layerType):
     return KgraphJson.t2c.get(layerType, "black")
   
-  def plot(self):
+  def plotLayers(self):
     dot = Digraph(comment="writeDot")
     for layer in self.jsonData["layers"]:
       # node
@@ -53,11 +58,38 @@ class KgraphJson(object):
         #print(dot.source)
     dot.format = "svg"
     jsonIn = self.jsonFile
-    dotOut = jsonIn[:-5] + ".dot"
+    dotOut = jsonIn[:-5] + "-layers.dot"
     dot.render(dotOut)
     print("INFO: wrote  %s.%s" % (dotOut, "svg"))
+
+  def plotWaveops(self):
+    dot = Digraph(comment="writeDot")
+    if "waveops" in self.jsonData:
+      for layer in self.jsonData["waveops"]:
+        # node
+        attrs = {}
+        nodeName = layer["waveop_name"]
+        layerType = layer["waveop_type"]
+        dotText = "%s\n%s" % (layerType, nodeName)
+        if self.verbose:
+          dotText = "\n".join(["%s : %s" % (k, v) for k,v in sorted(layer.items())]) 
+        attrs["color"] = self.type2color(layerType)
+        attrs["shape"] = "rect"
+        dot.node(nodeName, dotText, attrs)
+        #print(dot.source)
+        # edge
+        for prevNode in layer["previous_waveops"]:
+          edgeAttrs = {}
+          dot.edge(prevNode, nodeName, "", edgeAttrs)
+          #print(dot.source)
+      dot.format = "svg"
+      jsonIn = self.jsonFile
+      dotOut = jsonIn[:-5] + "-waveops.dot"
+      dot.render(dotOut)
+      print("INFO: wrote  %s.%s" % (dotOut, "svg"))
 
 
 for jsonFile in args.json:
   kj = KgraphJson(jsonFile, args.verbose)
-  kj.plot()
+  kj.plotLayers()
+  kj.plotWaveops()
