@@ -11,7 +11,7 @@ namespace nets {
 
 class Network::Load {
 public:
-    Load(Network* network);
+    Load(Network& network);
     wave::SbAtomFileWaveOp* loadSbAtomFile(const serialize::SerWaveOp& serWaveOp);
     wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
     wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
@@ -25,7 +25,7 @@ private:
                      std::vector<wave::WaveOp*>& prevWaveOps,
                      wave::WaveOp::Params& waveOpParams);
 private:
-    Network*    m_Network;
+    Network&    m_Network;
 };
 
 }}

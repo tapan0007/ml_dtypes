@@ -266,7 +266,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
 
 
 
-Network::Save::Save(const Network* network)
+Network::Save::Save(const Network& network)
     : m_Network(network)
 { }
 

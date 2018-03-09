@@ -1,5 +1,7 @@
 #include "shared/inc/tpb_isa_pool.hpp"
 
+#include "utils/inc/events.hpp"
+
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"
 
@@ -78,6 +80,11 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
                                             poolWaveOp->gDstSbAtomId() * poolWaveOp->gWaveAtomSize()
                                                 + poolWaveOp->gDstSbOffsetInAtom());
+
+    poolInstr.sync.set_event_id       = poolWaveOp->gSetEventId();
+    poolInstr.sync.set_event_mode     = eventSetMode2Int(poolWaveOp->gSetEventMode());
+    poolInstr.sync.wait_event_id      = poolWaveOp->gWaitEventId();
+    poolInstr.sync.wait_event_mode    = eventWaitMode2Int(poolWaveOp->gWaitEventMode());
 
     m_WaveCode->writeInstruction(poolInstr);
 }

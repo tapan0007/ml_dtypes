@@ -63,9 +63,8 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     matmulInstr.start_tensor_calc       = matmulWaveOp->qStartTensorCalc();
     matmulInstr.stop_tensor_calc        = matmulWaveOp->qStopTensorCalc();
 
-    //setup_sync(matmulInstr.sync, -1, SET_EVENT_ON_END_WR_DST);
-    matmulInstr.sync.wait_event_id      = matmulWaveOp->gWaitEventId();
-    matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(matmulWaveOp->gWaitEventMode());
+    //  LDWEIGHTS waits for the previous instruction(s),
+    //  subsequent MatMul signals the subsequent instructions
     matmulInstr.sync.set_event_id       = matmulWaveOp->gSetEventId();
     matmulInstr.sync.set_event_mode     = eventSetMode2Int(matmulWaveOp->gSetEventMode());
 
@@ -82,12 +81,11 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveOp->gWaveId());
 
-    LDWEIGHTS ldweighsInstr;
+    LDWEIGHTS ldweightsInstr;
 
     //TPB_CMD_HEADER  hdr;
-    //setup_sync(ldweighsInstr.sync);
     const utils::DataType& dtype(matmulWaveOp->gInDtype());
-    ldweighsInstr.dtype                 = dtype.gSimTypeId();
+    ldweightsInstr.dtype                 = dtype.gSimTypeId();
     //uint8_t         perf_opt = OPT_NONE;
     //uint8_t         dquant_table_idx  = 0;
     //uint8_t         dquant_in_dsize   = 0;
@@ -101,13 +99,18 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     const kcc_int64 addressInSbPart     = matmulWaveOp->gWeightsAtomId() * matmulWaveOp->gWaveAtomSize()
                                             + matmulWaveOp->gWeightsOffsetInAtom();
 
-    ldweighsInstr.start_addr            = addressInSbPart + (matmulWaveOp->gOfmapCount() - 1) * dtype.gSizeInBytes();
+    ldweightsInstr.start_addr            = addressInSbPart + (matmulWaveOp->gOfmapCount() - 1) * dtype.gSizeInBytes();
 
-    ldweighsInstr.x_step                = -1; // last column goes first, so decrement
-    ldweighsInstr.x_num                 = matmulWaveOp->gOfmapCount();
-    ldweighsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();
+    ldweightsInstr.x_step                = -1; // last column goes first, so decrement
+    ldweightsInstr.x_num                 = matmulWaveOp->gOfmapCount();
+    ldweightsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();
 
-    m_WaveCode->writeInstruction(ldweighsInstr);
+    //  LDWEIGHTS waits for the previous instruction(s),
+    //  subsequent MatMul signals the subsequent instructions
+    ldweightsInstr.sync.wait_event_id      = matmulWaveOp->gWaitEventId();
+    ldweightsInstr.sync.wait_event_mode    = eventWaitMode2Int(matmulWaveOp->gWaitEventMode());
+
+    m_WaveCode->writeInstruction(ldweightsInstr);
 }
 
 

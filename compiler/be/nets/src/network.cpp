@@ -40,8 +40,8 @@ Network::Network(const arch::Arch& arch)
     , m_DataType(nullptr)
     , m_Name()
     , m_DoBatching(false)
-    , m_Load(std::make_unique<Load>(this))
-    , m_Save(std::make_unique<Save>(this))
+    , m_Load(std::make_unique<Load>(*this))
+    , m_Save(std::make_unique<Save>(*this))
 {}
 
 

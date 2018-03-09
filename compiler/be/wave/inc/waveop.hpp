@@ -137,6 +137,7 @@ protected:
     std::vector<WaveOp*>    m_PrevWaveOps;
     std::vector<WaveOp*>    m_SuccWaveOps;
     FmapDesc                m_OfmapDesc;
+    kcc_int32               m_Order = -1;
 
 protected:
     struct Events {
@@ -160,6 +161,7 @@ public:
     std::string             m_WaveOpName    = "";
     //FmapDesc                m_OfmapDesc;
     layers::Layer*          m_Layer         = nullptr;
+    kcc_int32               m_Order;
 };
 
 

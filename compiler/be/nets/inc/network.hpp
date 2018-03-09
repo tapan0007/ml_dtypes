@@ -114,11 +114,11 @@ public:
         return m_Layers.size();
     }
 
-    std::vector<wave::WaveOp*> gWaveOps() {
+    std::vector<wave::WaveOp*>& gWaveOps() {
         return m_WaveOps;
     }
 
-    const std::vector<wave::WaveOp*> gWaveOps() const {
+    const std::vector<wave::WaveOp*>& gWaveOps() const {
         return m_WaveOps;
     }
 

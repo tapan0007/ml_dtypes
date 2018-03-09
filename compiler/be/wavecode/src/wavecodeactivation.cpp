@@ -1,5 +1,7 @@
 #include "shared/inc/tpb_isa_activate.hpp"
 
+#include "utils/inc/events.hpp"
+
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"
 
@@ -69,6 +71,11 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
         activationInstr.acc_addr        = stateBuf.gAllZeroOffsetTpbAddress();
     }
     activationInstr.num_partitions      = activationWaveOp->gNumPartitions();
+
+    activationInstr.sync.set_event_id       = activationWaveOp->gSetEventId();
+    activationInstr.sync.set_event_mode     = eventSetMode2Int(activationWaveOp->gSetEventMode());
+    activationInstr.sync.wait_event_id      = activationWaveOp->gWaitEventId();
+    activationInstr.sync.wait_event_mode    = eventWaitMode2Int(activationWaveOp->gWaitEventMode());
 
     m_WaveCode->writeInstruction(activationInstr);
 }

@@ -234,7 +234,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
 
 
-Network::Load::Load(Network* network)
+Network::Load::Load(Network& network)
     : m_Network(network)
 {
 }
@@ -553,10 +553,11 @@ Network::Load::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
                      wave::WaveOp::Params& waveOpParams)
 {
     waveOpParams.m_WaveOpName   = serWaveOp.m_WaveOpName;
-    waveOpParams.m_Layer        = m_Network->findLayer(serWaveOp.m_LayerName);
+    waveOpParams.m_Layer        = m_Network.findLayer(serWaveOp.m_LayerName);
+    waveOpParams.m_Order        = m_Network.gWaveOps().size();
     assert(waveOpParams.m_Layer);
     for (const auto& prevWaveOpName : serWaveOp.m_PreviousWaveOps) {
-        prevWaveOps.push_back(m_Network->findWaveOp(prevWaveOpName));
+        prevWaveOps.push_back(m_Network.findWaveOp(prevWaveOpName));
     }
 }
 
