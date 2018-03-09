@@ -92,12 +92,17 @@ class NnSubgraph:
       cmd += "  --tfpb %s" % tfpbFile
       cmd += "  --input_tensors %s" % " ".join(self.getUpdatedInputs())
       cmd += "  --output_tensor %s %s" % (self.output[0], OutFile)
-    elif executor == "tcc" or executor == "wave" or executor == "waveopt":
+    elif executor == "tcc" or executor == "wave":
       self.overwriteInputFilesInTpbFormat()
       cmd = "%s/runtime/util/runtime_sim" % kPath
       cmd += "  --tpb %s" % "TrivNet.tpb"
       #cmd += "  --input_fmap %s" % " ".join(self.getUpdatedInputs())
       #cmd += "  --output_fmap %s %s" % (self.output[0], OutFile)
+    elif executor == "waveopt":
+      self.overwriteInputFilesInTpbFormat()
+      cmd = "python3 %s//compiler/util/layeropt.py" % kPath
+      cmd += "  --kgraph *_compiler.json"
+      cmd += "  --wavegraph *_wavegraph.json"
     sgOutFile = "%s/%s" % (self.sgDir, OutFile)
 
     #os.chdir(self.sgDir)
