@@ -294,16 +294,9 @@ testWaiver = [
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
-<<<<<<< HEAD
-    ['4-rn50_matmul_fp32_wave', 'WAIVE-S10_MATMUL'],
-    ['4-rn50_matmul_nosm_fp32_wave', 'WAIVE-S10_MATMUL'],
-||||||| merged common ancestors
-    ['4-rn50_matmul_fp32_wave', 'WAIVE-S10_MATMUL']
-=======
     ['4-rn50_matmul_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
     ['4-rn50_matmul_fp32_waveopt$',   'WAIVE-S10_NNE_4D_2D'],
     ['4-rn50_matmul_nosm_fp32_wave$', 'WAIVE-S10_BE_MATMUL'],
->>>>>>> mainline
 
     ['^[6]-alexnet',  'WAIVE-BENCH'],
     ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
