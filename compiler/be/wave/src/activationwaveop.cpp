@@ -62,13 +62,13 @@ ActivationWaveOp::verify() const
     }
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
     switch (m_ActivationFunc) {
-    case ActivationFunc_Identity:
-    case ActivationFunc_Relu:
-    case ActivationFunc_LeakyRelu:
-    case ActivationFunc_PRelu:
-    case ActivationFunc_Sigmoid:
-    case ActivationFunc_Tanh:
-    case ActivationFunc_Exp:
+    case ActivationFunc::Identity:
+    case ActivationFunc::Relu:
+    case ActivationFunc::LeakyRelu:
+    case ActivationFunc::PRelu:
+    case ActivationFunc::Sigmoid:
+    case ActivationFunc::Tanh:
+    case ActivationFunc::Exp:
         return true;
     default:
         RETURN_ASSERT(false);
@@ -159,25 +159,25 @@ ACTIVATIONFUNC
 ActivationWaveOp::gSimActivationFunc() const
 {
     switch(gActivationFunc()) {
-    case ActivationFunc_Identity:
+    case ActivationFunc::Identity:
         return ACTIVATIONFUNC::IDENTITY;
         break;
-    case ActivationFunc_Relu:
+    case ActivationFunc::Relu:
         return ACTIVATIONFUNC::RELU;
         break;
-    case ActivationFunc_LeakyRelu:
+    case ActivationFunc::LeakyRelu:
         return ACTIVATIONFUNC::LEAKY_RELU;
         break;
-    case ActivationFunc_PRelu:
+    case ActivationFunc::PRelu:
         return ACTIVATIONFUNC::LEAKY_RELU; // TODO: use real one when added
         break;
-    case ActivationFunc_Sigmoid:
+    case ActivationFunc::Sigmoid:
         return ACTIVATIONFUNC::SIGMOID;
         break;
-    case ActivationFunc_Tanh:
+    case ActivationFunc::Tanh:
         return ACTIVATIONFUNC::TANH;
         break;
-    case ActivationFunc_Exp:
+    case ActivationFunc::Exp:
         return ACTIVATIONFUNC::EXP;
         break;
     default:

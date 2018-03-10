@@ -32,10 +32,10 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
     /* pool args */
     switch (poolWaveOp->gPoolFunc()) {
-    case PoolType_Max:
+    case PoolType::Max:
         poolInstr.pool_func = POOLFUNC::MAX_POOL;
         break;
-    case PoolType_Avg:
+    case PoolType::Avg:
         poolInstr.pool_func = POOLFUNC::AVG_POOL;
         break;
     default:

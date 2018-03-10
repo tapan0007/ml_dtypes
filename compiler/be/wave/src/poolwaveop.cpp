@@ -102,8 +102,8 @@ PoolWaveOp::verify() const
         RETURN_ASSERT(false);
     }
     switch (m_PoolFunc) {
-    case PoolType_Max:
-    case PoolType_Avg:
+    case PoolType::Max:
+    case PoolType::Avg:
         break;
     default:
         RETURN_ASSERT(false);

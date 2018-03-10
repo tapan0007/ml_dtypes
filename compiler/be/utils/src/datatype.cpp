@@ -7,7 +7,7 @@ namespace utils {
 
 DataTypeId
 DataTypeUint8::gDataTypeId () const {
-    return DataTypeId_Uint8;
+    return DataTypeId::Uint8;
 }
 
 ARBPRECTYPE
@@ -18,7 +18,7 @@ DataTypeUint8::gSimTypeId() const
 
 DataTypeId
 DataTypeUint16::gDataTypeId () const {
-    return DataTypeId_Uint16;
+    return DataTypeId::Uint16;
 }
 
 ARBPRECTYPE
@@ -29,7 +29,7 @@ DataTypeUint16::gSimTypeId() const
 
 DataTypeId
 DataTypeFloat16::gDataTypeId () const {
-    return DataTypeId_Float16;
+    return DataTypeId::Float16;
 }
 
 ARBPRECTYPE
@@ -40,7 +40,7 @@ DataTypeFloat16::gSimTypeId() const
 
 DataTypeId
 DataTypeFloat32::gDataTypeId () const {
-    return DataTypeId_Float32;
+    return DataTypeId::Float32;
 }
 
 ARBPRECTYPE
@@ -51,7 +51,7 @@ DataTypeFloat32::gSimTypeId() const
 
 DataTypeId
 DataTypeInt32::gDataTypeId () const {
-    return DataTypeId_Int32;
+    return DataTypeId::Int32;
 }
 
 ARBPRECTYPE
@@ -62,7 +62,7 @@ DataTypeInt32::gSimTypeId() const
 
 DataTypeId
 DataTypeInt64::gDataTypeId () const {
-    return DataTypeId_Int64;
+    return DataTypeId::Int64;
 }
 
 ARBPRECTYPE
@@ -84,22 +84,22 @@ DataType::dataTypeId2DataType(DataTypeId typeId)
     static const DataTypeInt64      typeInt64;
 
     switch (typeId) {
-    case DataTypeId_Uint8:
+    case DataTypeId::Uint8:
         return typeUint8;
         break;
-    case DataTypeId_Uint16:
+    case DataTypeId::Uint16:
         return typeUint16;
         break;
-    case DataTypeId_Float16:
+    case DataTypeId::Float16:
         return typeFloat16;
         break;
-    case DataTypeId_Float32:
+    case DataTypeId::Float32:
         return typeFloat32;
         break;
-    case DataTypeId_Int32:
+    case DataTypeId::Int32:
         return typeInt32;
         break;
-    case DataTypeId_Int64:
+    case DataTypeId::Int64:
         return typeInt64;
         break;
     default:
@@ -114,22 +114,22 @@ DataTypeId
 DataType::dataTypeStr2Id(const std::string& dataTypeStr)
 {
     if (dataTypeStr == DataTypeUint8::gNameStatic()) {
-        return DataTypeId_Uint8;
+        return DataTypeId::Uint8;
     } else if (dataTypeStr == DataTypeUint16::gNameStatic()) {
-        return DataTypeId_Uint16;
+        return DataTypeId::Uint16;
     } else if (dataTypeStr == DataTypeFloat16::gNameStatic()) {
-        return DataTypeId_Float16;
+        return DataTypeId::Float16;
     } else if (dataTypeStr == DataTypeFloat32::gNameStatic()) {
-        return DataTypeId_Float32;
+        return DataTypeId::Float32;
     } else if (dataTypeStr == DataTypeInt32::gNameStatic()) {
-        return DataTypeId_Int32;
+        return DataTypeId::Int32;
     } else if (dataTypeStr == DataTypeInt64::gNameStatic()) {
-        return DataTypeId_Int64;
+        return DataTypeId::Int64;
     } else {
         assert(false && "Wrong DataTypeId");
     }
     assert(false && "Wrong DataTypeId");
-    return DataTypeId_Float32;
+    return DataTypeId::None;
 }
 
 const
@@ -144,22 +144,22 @@ DataType::dataTypeId2Str(DataTypeId typeId)
     static const std::string    int64Str(DataTypeInt64::gNameStatic());
 
     switch (typeId) {
-    case DataTypeId_Uint8:
+    case DataTypeId::Uint8:
         return uint8Str;
         break;
-    case DataTypeId_Uint16:
+    case DataTypeId::Uint16:
         return uint16Str;
         break;
-    case DataTypeId_Float16:
+    case DataTypeId::Float16:
         return float16Str;
         break;
-    case DataTypeId_Float32:
+    case DataTypeId::Float32:
         return float32Str;
         break;
-    case DataTypeId_Int32:
+    case DataTypeId::Int32:
         return int32Str;
         break;
-    case DataTypeId_Int64:
+    case DataTypeId::Int64:
         return int64Str;
         break;
     default:

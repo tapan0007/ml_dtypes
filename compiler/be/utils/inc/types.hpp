@@ -33,21 +33,21 @@ static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
 using EventId = kcc_int32;
 
-enum ActivationFunc {
-    ActivationFunc_Invalid,
-    ActivationFunc_Identity,
-    ActivationFunc_Relu,
-    ActivationFunc_LeakyRelu,
-    ActivationFunc_PRelu,
-    ActivationFunc_Sigmoid,
-    ActivationFunc_Tanh,
-    ActivationFunc_Exp,
+enum class ActivationFunc {
+    Invalid,
+    Identity,
+    Relu,
+    LeakyRelu,
+    PRelu,
+    Sigmoid,
+    Tanh,
+    Exp,
 };
 
-enum PoolType {
-    PoolType_None,
-    PoolType_Max,
-    PoolType_Avg
+enum class PoolType {
+    None,
+    Max,
+    Avg
 };
 
 

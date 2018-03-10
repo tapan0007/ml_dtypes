@@ -43,9 +43,9 @@ bool
 PsumBuffer::qLegalDataType(const utils::DataType& dtype)
 {
     switch (dtype.gDataTypeId()) {
-    case utils::DataTypeId_Float32:
-    case utils::DataTypeId_Int32:
-    case utils::DataTypeId_Int64:
+    case utils::DataTypeId::Float32:
+    case utils::DataTypeId::Int32:
+    case utils::DataTypeId::Int64:
         return true;
         break;
     default:

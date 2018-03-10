@@ -131,7 +131,7 @@ public:
     }
 
     EngineId gEngineId() const override {
-        return EngineId_Pooling;
+        return EngineId::Pooling;
     }
 
     static std::string gTypeStrStatic() {
@@ -155,7 +155,7 @@ private:
     kcc_int32                   m_NumPartitions         = -1;
     const DataType&             m_OutDtype;
     kcc_int32                   m_PoolFrequency         = -1;
-    PoolType                    m_PoolFunc              = PoolType_None;
+    PoolType                    m_PoolFunc              = PoolType::None;
     // previouswaveops;
     //  1conv/i1/MatMuln0m0h0w0c0r0s0"
     // ],
@@ -195,12 +195,12 @@ public:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    DataTypeId                  m_InDtype               = DataTypeId_None;
+    DataTypeId                  m_InDtype               = DataTypeId::None;
     // "layername;
     kcc_int32                   m_NumPartitions         = -1;
-    DataTypeId                  m_OutDtype              = DataTypeId_None;
+    DataTypeId                  m_OutDtype              = DataTypeId::None;
     kcc_int32                   m_PoolFrequency         = 0.0;
-    PoolType                    m_PoolFunc              = PoolType_None;
+    PoolType                    m_PoolFunc              = PoolType::None;
     // previouswaveops;
     //  1conv/i1/MatMuln0m0h0w0c0r0s0"
     // ],

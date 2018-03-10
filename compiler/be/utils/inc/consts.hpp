@@ -9,11 +9,12 @@
 
 namespace kcc {
 
-enum EngineId {
-    EngineId_PeArray,
-    EngineId_Activation,
-    EngineId_Pooling,
-    EngineId_StreamProc,
+enum class EngineId {
+    None,
+    PeArray,
+    Activation,
+    Pooling,
+    StreamProc,
 };
 
 enum {

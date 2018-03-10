@@ -539,25 +539,25 @@ std::string
 SerWaveOp::activationType2Str(ActivationFunc actType)
 {
     switch (actType) {
-    case ActivationFunc_Identity:
+    case ActivationFunc::Identity:
         return WaveOpKey_ActivationFunc_Identity;
         break;
-    case ActivationFunc_Relu:
+    case ActivationFunc::Relu:
         return WaveOpKey_ActivationFunc_Relu;
         break;
-    case ActivationFunc_LeakyRelu:
+    case ActivationFunc::LeakyRelu:
         return WaveOpKey_ActivationFunc_LeakyRelu;
         break;
-    case ActivationFunc_PRelu:
+    case ActivationFunc::PRelu:
         return WaveOpKey_ActivationFunc_Prelu;
         break;
-    case ActivationFunc_Sigmoid:
+    case ActivationFunc::Sigmoid:
         return WaveOpKey_ActivationFunc_Sigmoid;
         break;
-    case ActivationFunc_Tanh:
+    case ActivationFunc::Tanh:
         return WaveOpKey_ActivationFunc_Tanh;
         break;
-    case ActivationFunc_Exp:
+    case ActivationFunc::Exp:
         return WaveOpKey_ActivationFunc_Exp;
         break;
     default:
@@ -572,23 +572,23 @@ SerWaveOp::str2ActivationFunc(const std::string& actType)
 {
     if (actType == WaveOpKey_ActivationFunc_Identity
         || actType == WaveOpKey_ActivationFunc_None /* until Jeff fixes none */) {
-        return ActivationFunc_Identity;
+        return ActivationFunc::Identity;
     } else if (actType  == WaveOpKey_ActivationFunc_Relu) {
-        return ActivationFunc_Relu;
+        return ActivationFunc::Relu;
     } else if (actType  == WaveOpKey_ActivationFunc_LeakyRelu) {
-        return ActivationFunc_LeakyRelu;
+        return ActivationFunc::LeakyRelu;
     } else if (actType  == WaveOpKey_ActivationFunc_Prelu) {
-        return ActivationFunc_PRelu;
+        return ActivationFunc::PRelu;
     } else if (actType  == WaveOpKey_ActivationFunc_Sigmoid) {
-        return ActivationFunc_Sigmoid;
+        return ActivationFunc::Sigmoid;
     } else if (actType  == WaveOpKey_ActivationFunc_Tanh) {
-        return ActivationFunc_Tanh;
+        return ActivationFunc::Tanh;
     } else if (actType  == WaveOpKey_ActivationFunc_Exp) {
-        return ActivationFunc_Exp;
+        return ActivationFunc::Exp;
     } else {
         assert(false && "Wrong activation type");
     }
-    return ActivationFunc_Exp;
+    return ActivationFunc::Invalid;
 }
 
 
