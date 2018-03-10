@@ -48,16 +48,29 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
     int numPrevPool = 0;
     int numPrevActivation = 0;
 
+    int largestAtomFileIfmapOrder = -1;
+    wave::SbAtomFileWaveOp* largestSbAtomFileIfmapWaveop = nullptr;
+    int largestAtomFileWeightOrder = -1;
+    wave::SbAtomFileWaveOp* largestSbAtomFileWeightWaveop = nullptr;
+
     for (auto prevWaveop : matmulWaveop->gPrevWaveOps()) {
         if (prevWaveop->gEngineId() == engineId) {
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
         if (auto sbatomFileWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
-            ++numPrevAtomFile;
-            const EventId eventId = getLocalEventId(sbatomFileWaveop, matmulWaveop);
-            sbatomFileWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            matmulWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            if (sbatomFileWaveop->qContainWeights()) {
+                if (sbatomFileWaveop->gOrder()  > largestAtomFileWeightOrder) {
+                    largestAtomFileWeightOrder = sbatomFileWaveop->gOrder();
+                    largestSbAtomFileWeightWaveop = sbatomFileWaveop;
+                }
+            } else {
+                if (sbatomFileWaveop->gOrder()  > largestAtomFileIfmapOrder) {
+                    largestAtomFileIfmapOrder = sbatomFileWaveop->gOrder();
+                    largestSbAtomFileIfmapWaveop = sbatomFileWaveop;
+                }
+            }
+
             continue;
         }
         if (auto poolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
@@ -78,6 +91,19 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
                 "Predecessors of MatMult waveop must be one of DramLoad, Pool, Activation: ",
                 prevWaveop->gTypeStr());
     }
+
+
+    if (largestSbAtomFileWeightWaveop) {
+        const EventId eventId = getLocalEventId(largestSbAtomFileWeightWaveop, matmulWaveop);
+        largestSbAtomFileWeightWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
+        matmulWaveop->rLwWaitEvent(eventId, EventWaitMode::SetThenClear);
+    }
+    if (largestSbAtomFileIfmapWaveop) {
+        const EventId eventId = getLocalEventId(largestSbAtomFileIfmapWaveop, matmulWaveop);
+        largestSbAtomFileIfmapWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
+        matmulWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+    }
+
     if (matmulWaveop->qStartTensorCalc()) {
         Assert(numPrevAtomFile + numPrevPool + numPrevActivation >= 1,
             "MatMul waveop starting tensor calc should have at least one predecessor from another engine.");
@@ -277,6 +303,7 @@ eventSetMode2Int(EventSetMode mode)
     Assert(false, "Wrong EventSetMode: ", static_cast<kcc_int32>(mode));
     return 0;
 }
+
 
 }
 

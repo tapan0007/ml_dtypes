@@ -110,6 +110,10 @@ public:
         return 1024;
     }
 
+    kcc_int32 gOrder() const {
+        return m_Order;
+    }
+
     void addSuccWaveop(WaveOp* succWaveop);
 
     EventId gWaitEventId() const {

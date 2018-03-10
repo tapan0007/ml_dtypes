@@ -11,6 +11,7 @@ namespace wave {
 class MatMulWaveOp;
 class PoolWaveOp;
 class ActivationWaveOp;
+class SbAtomFileWaveOp;
 class SbAtomSaveWaveOp;
 class ResAddWaveOp;
 }
