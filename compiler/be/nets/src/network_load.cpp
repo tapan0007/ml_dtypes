@@ -17,6 +17,8 @@
 #include "layers/inc/inputlayer.hpp"
 #include "layers/inc/constlayer.hpp"
 #include "layers/inc/convlayer.hpp"
+#include "layers/inc/matmullayer.hpp"
+#include "layers/inc/reshapelayer.hpp"
 #include "layers/inc/relulayer.hpp"
 #include "layers/inc/tanhlayer.hpp"
 #include "layers/inc/maxpoollayer.hpp"
@@ -89,6 +91,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         } else if (serLayer.gTypeStr() == LayerTypeStr_Const) {
             assert(serLayer.gNumPrevLayers() == 0 && "Const layer should have zero inputs");
             layer = new layers::ConstLayer(params, fmap_desc);
+
         } else if (serLayer.gTypeStr() == LayerTypeStr_Conv) {
             assert(serLayer.gNumPrevLayers() == 1 && "Convolution layer should have one input");
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
@@ -118,6 +121,35 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           stride, kernel, padding,
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());
+
+        } else if (serLayer.gTypeStr() == LayerTypeStr_Matmul) {
+            assert(serLayer.gNumPrevLayers() == 1 && "Matmul layer should have one input");
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
+            assert(prevLayer != nullptr && "Matmul: Unknown input layer");
+            std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
+                                            serLayer.gConvFilterHeight(),
+                                            serLayer.gConvFilterWidth());
+
+            const std::string filterFileName = serLayer.gKernelFile();
+            const std::string filterTensorDimSemantics = serLayer.gKernelFormat();
+            layers::MatmulLayer::Params matmulParams(params);
+
+            layer = new layers::MatmulLayer(matmulParams, prevLayer,
+                                          fmap_desc,
+                                          kernel,
+                                          filterFileName.c_str(),
+                                          filterTensorDimSemantics.c_str());
+
+        } else if (serLayer.gTypeStr() == LayerTypeStr_Reshape) {
+            assert(serLayer.gNumPrevLayers() == 1 && "Reshape layer should have one input");
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
+            assert(prevLayer != nullptr && "Reshape: Unknown input layer");
+
+            layers::ReshapeLayer::Params reshapeParams(params);
+
+            layer = new layers::ReshapeLayer(reshapeParams, prevLayer, fmap_desc);
 
         } else if (serLayer.gTypeStr() == LayerTypeStr_MaxPool || serLayer.gTypeStr() == LayerTypeStr_AvgPool) {
             assert(serLayer.gNumPrevLayers() == 1 && "Pool layer: number of inputs not 1");

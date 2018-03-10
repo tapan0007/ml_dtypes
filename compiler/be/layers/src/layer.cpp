@@ -75,6 +75,10 @@ bool Layer::qStoreInSB() const
         return true;
     } else if (nextSchedLayer->qConvLayer()) { // to get to convolution
         return true;
+    } else if (nextSchedLayer->qMatmulLayer()) { // to get to convolution
+        return true;
+    } else if (nextSchedLayer->qReshapeLayer()) { // to get to convolution
+        return false;
     } else {
         for (const Layer* nextLayer : gNextLayers()) {
             if (nextLayer->gSchedule() > mySched + 1) {
@@ -254,6 +258,24 @@ Layer::Params::verify () const
         return false;
     }
     return true;
+}
+
+Layer::Params::Params()
+    : m_LayerName("")
+    , m_BatchFactor(-1)
+    , m_Network(nullptr)
+    , m_RefFile("")
+    , m_RefFileFormat("")
+{
+}
+
+Layer::Params::Params(const Params& rhs)
+    : m_LayerName(rhs.m_LayerName)
+    , m_BatchFactor(rhs.m_BatchFactor)
+    , m_Network(rhs.m_Network)
+    , m_RefFile(rhs.m_RefFile)
+    , m_RefFileFormat(rhs.m_RefFileFormat)
+{
 }
 
 }} // namespace

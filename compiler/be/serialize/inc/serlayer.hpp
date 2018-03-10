@@ -84,6 +84,12 @@ public:
             /*
             KCC_ARCHIVE(BatchingInWave);
             */
+        } else if (m_LayerType == LayerTypeStr_Matmul) {
+            KCC_ARCHIVE(KernelShape);
+            KCC_ARCHIVE(KernelFile);
+            KCC_ARCHIVE(KernelFormat);
+        } else if (m_LayerType == LayerTypeStr_Reshape) {
+            // nothing specific to Reshape
         } else if (m_LayerType == LayerTypeStr_Tanh) {
             // nothing specific to Tanh
         } else if (m_LayerType == LayerTypeStr_Relu) {

@@ -88,6 +88,16 @@ public:
     }
 
     //----------------------------------------------------------------
+    virtual bool qMatmulLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
+    virtual bool qReshapeLayer() const {
+        return false;
+    }
+
+    //----------------------------------------------------------------
     virtual bool qPoolLayer() const {
         return false;
     }
@@ -610,6 +620,8 @@ private:
 
 class Layer::Params {
 public:
+    Params();
+    Params(const Params& rhs);
     bool verify () const;
 public:
     std::string             m_LayerName;
