@@ -96,9 +96,9 @@ WaveOp::rSetEvent(EventId eventId, EventSetMode mode)
 
 
 WaveOp::Events::Events()
-    : m_SetEventId(0)
+    : m_SetEventId(-1)
     , m_SetEventMode(EventSetMode::NoEvent)
-    , m_WaitEventId(0)
+    , m_WaitEventId(-1)
     , m_WaitEventMode(EventWaitMode::NoEvent)
 {
 }
