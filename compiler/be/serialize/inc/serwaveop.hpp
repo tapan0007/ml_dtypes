@@ -183,9 +183,10 @@ constexpr static const char* WaveOpKey_WaitEventMode        = "wait_event_mode";
 constexpr static const char* WaveOpKey_SetEventId           = "set_event_id";
 constexpr static const char* WaveOpKey_SetEventMode         = "set_event_mode";
 
-constexpr static const char* WaveOpKey_LwWaitEventId          = "lw_wait_event_id";
-constexpr static const char* WaveOpKey_LwWaitEventMode        = "lw_wait_event_mode";
+constexpr static const char* WaveOpKey_LwWaitEventId        = "lw_wait_event_id";
+constexpr static const char* WaveOpKey_LwWaitEventMode      = "lw_wait_event_mode";
 
+constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
 
 
 
@@ -263,12 +264,13 @@ public:
     // waveop type
 
     // SBAtomFile
-    kcc_int32                   m_IfmapCount       = -1;
+    kcc_int32                   m_IfmapCount        = -1;
     kcc_int32                   m_IfmapsFoldIdx     = -1;
     bool                        m_IfmapsReplicate   = false;
+    bool                        m_ContainWeights    = false;
 
     // SBAtomSave
-    kcc_int32                   m_OfmapCount       = -1;
+    kcc_int32                   m_OfmapCount        = -1;
     kcc_int32                   m_OfmapsFoldIdx     = -1;
 
     // MatMul

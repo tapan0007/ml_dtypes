@@ -57,6 +57,7 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(IfmapCount);
         KCC_ARCHIVE(IfmapsFoldIdx);
         KCC_ARCHIVE(IfmapsReplicate);
+        KCC_ARCHIVE(ContainWeights);
     } else {
         KCC_ARCHIVE(OfmapCount);
         KCC_ARCHIVE(OfmapsFoldIdx);

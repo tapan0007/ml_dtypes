@@ -297,6 +297,7 @@ Network::Load::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(IfmapCount);
     KCC_UNSERIALIZE(IfmapsFoldIdx);
     KCC_UNSERIALIZE(IfmapsReplicate);
+    KCC_UNSERIALIZE(ContainWeights);
 
     auto waveOp = new wave::SbAtomFileWaveOp(sbatomfileParams, prevWaveOps);
     assert(waveOp && waveOp->gName() == sbatomfileParams.m_WaveOpName);

@@ -53,6 +53,10 @@ public:
         return m_IfmapsReplicate;
     }
 
+    bool qContainWeights() const {
+        return m_ContainWeights;
+    }
+
     kcc_int32 gIfmapCount () const {
         return m_IfmapCount;
     }
@@ -60,9 +64,10 @@ public:
     kcc_int64 gLoadDataSizeInBytes () const;
 
 private:
-    kcc_int32       m_IfmapCount       = -1;
+    kcc_int32       m_IfmapCount        = -1;
     kcc_int32       m_IfmapsFoldIdx     = -1;
-    bool            m_IfmapsReplicate   = -1;
+    bool            m_IfmapsReplicate   = false;
+    bool            m_ContainWeights    = false;
 };
 
 
@@ -72,9 +77,10 @@ class SbAtomFileWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32       m_IfmapCount       = -1;
+    kcc_int32       m_IfmapCount        = -1;
     kcc_int32       m_IfmapsFoldIdx     = -1;
-    bool            m_IfmapsReplicate   = true;
+    bool            m_IfmapsReplicate   = false;
+    bool            m_ContainWeights    = false;
 };
 
 }}

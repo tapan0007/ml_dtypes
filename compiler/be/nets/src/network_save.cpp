@@ -428,6 +428,7 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
         KCC_SERIALIZE(IfmapCount);
         KCC_SERIALIZE(IfmapsFoldIdx);
         serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
+        serWaveOp.m_ContainWeights = sbatomfileWaveOp->qContainWeights();
 #undef WAVE_OP
     } else {
 #define WAVE_OP sbatomsaveWaveOp
