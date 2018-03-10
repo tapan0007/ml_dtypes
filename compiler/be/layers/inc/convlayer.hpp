@@ -62,9 +62,7 @@ public:
     }
 
     //----------------------------------------------------------------
-    const char* gTypeStr() const override {
-        return TypeStr();
-    }
+    const char* gTypeStr() const override;
 
     //----------------------------------------------------------------
     bool qPassThrough() const override {

@@ -81,6 +81,7 @@ ConvLayer::gNumberWeightsPerPartition() const
 
 
 ConvLayer::Params::Params(const Layer::Params& params)
+    : Layer::Params(params)
 {
     m_LayerName     = params.m_LayerName;
     m_BatchFactor   = params.m_BatchFactor;
@@ -104,6 +105,13 @@ ConvLayer::Params::verify() const
     return true;
 }
 
+
+//----------------------------------------------------------------
+const char*
+ConvLayer::gTypeStr() const
+{
+    return TypeStr();
+}
 
 
 } // namespace layers

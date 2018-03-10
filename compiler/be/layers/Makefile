@@ -8,6 +8,7 @@ combinelayer subsamplelayer convlayer \
 constlayer inputlayer \
 resaddlayer biasaddlayer \
 poollayer maxpoollayer avgpoollayer \
+matmullayer reshapelayer
 
 ########################################################
 include ../Makefile.common

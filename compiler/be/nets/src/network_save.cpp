@@ -19,6 +19,8 @@
 #include "layers/inc/inputlayer.hpp"
 #include "layers/inc/constlayer.hpp"
 #include "layers/inc/convlayer.hpp"
+#include "layers/inc/matmullayer.hpp"
+#include "layers/inc/reshapelayer.hpp"
 #include "layers/inc/relulayer.hpp"
 #include "layers/inc/tanhlayer.hpp"
 #include "layers/inc/maxpoollayer.hpp"
@@ -130,6 +132,32 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             }
             */
 
+            continue;
+        }
+
+        if (const auto matmulLayer = dynamic_cast<layers::MatmulLayer*>(layer)) {
+            assert(matmulLayer->gPrevLayers().size() == 1U && "Matmul layer should have exactly one input layer");
+            const layers::Layer* prevLayer = matmulLayer->gPrevLayer(0);
+            const int32_t numIfmaps = prevLayer->gNumOfmaps();
+
+            {
+                KernelShapeType  kernelShape;
+                kernelShape[FilterIndex_M] = matmulLayer->gNumOfmaps();
+                kernelShape[FilterIndex_C] = numIfmaps;
+                kernelShape[FilterIndex_R] = matmulLayer->gKernelHeight();
+                kernelShape[FilterIndex_S] = matmulLayer->gKernelWidth();
+                serLayer.rKernelShape(kernelShape);
+            }
+
+            serLayer.rKernelFile(matmulLayer->gFilterFileName());
+            serLayer.rKernelFormat(matmulLayer->gFilterTensorDimSemantics());
+
+            continue;
+        }
+
+        if (const auto reshapeLayer = dynamic_cast<layers::ReshapeLayer*>(layer)) {
+            assert(reshapeLayer->gPrevLayers().size() == 1U
+                && "Reshape layer should have exactly one input layer");
             continue;
         }
 
