@@ -63,8 +63,8 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
     matmulInstr.start_tensor_calc       = matmulWaveOp->qStartTensorCalc();
     matmulInstr.stop_tensor_calc        = matmulWaveOp->qStopTensorCalc();
 
-    //  LDWEIGHTS waits for the previous instruction(s),
-    //  subsequent MatMul signals the subsequent instructions
+    matmulInstr.sync.wait_event_id      = matmulWaveOp->gWaitEventId();
+    matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(matmulWaveOp->gWaitEventMode());
     matmulInstr.sync.set_event_id       = matmulWaveOp->gSetEventId();
     matmulInstr.sync.set_event_mode     = eventSetMode2Int(matmulWaveOp->gSetEventMode());
 
@@ -107,8 +107,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
 
     //  LDWEIGHTS waits for the previous instruction(s),
     //  subsequent MatMul signals the subsequent instructions
-    ldweightsInstr.sync.wait_event_id      = matmulWaveOp->gWaitEventId();
-    ldweightsInstr.sync.wait_event_mode    = eventWaitMode2Int(matmulWaveOp->gWaitEventMode());
+    ldweightsInstr.sync.wait_event_id      = matmulWaveOp->gLwWaitEventId();
+    ldweightsInstr.sync.wait_event_mode    = eventWaitMode2Int(matmulWaveOp->gLwWaitEventMode());
 
     m_WaveCode->writeInstruction(ldweightsInstr);
 }

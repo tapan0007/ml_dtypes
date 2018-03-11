@@ -1,5 +1,8 @@
 #include "shared/inc/tpb_isa_ldweights.hpp"
 
+
+#include "utils/inc/events.hpp"
+
 #include "arch/inc/statebuffer.hpp"
 #include "arch/inc/arch.hpp"
 
@@ -46,6 +49,22 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveOp)
     SIM_MEMCPY statebufToDramInstr;
     statebufToDramInstr.nbytes       = numBytesPerPart;
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
+
+        statebufToDramInstr.sync.set_event_id       = -1;
+        statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(EventSetMode::NoEvent);
+        statebufToDramInstr.sync.wait_event_id      = -1;
+        statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(EventWaitMode::NoEvent);
+        if (0 == partIdx) {
+            // only the first reading waits for events from previous instr
+            statebufToDramInstr.sync.wait_event_id      = sbAtomSaveWaveOp->gWaitEventId();
+            statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(sbAtomSaveWaveOp->gWaitEventMode());
+        }
+        if (numPartitions-1 == partIdx) {
+            // only the last reading sets event to enable subsequent instr
+            statebufToDramInstr.sync.set_event_id       = sbAtomSaveWaveOp->gSetEventId();
+            statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(sbAtomSaveWaveOp->gSetEventMode());
+        }
+
         statebufToDramInstr.src_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
         statebufToDramInstr.dst_address = npyFileDramOffset + sbAtomSaveWaveOp->gOffsetInFile() + (partIdx * stepSize);
         m_WaveCode->writeInstruction(statebufToDramInstr);
