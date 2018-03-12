@@ -89,7 +89,7 @@ Main(int argc, char* argv[])
             PrintDot = true;
         } else if (arg == "--batch" or arg == "--batching") {
             DoBatching = true;
-        } else if (arg == "--parallel") {
+        } else if (arg == "--parallel_streams") {
             ParallelStreams = true;
         } else
 #endif

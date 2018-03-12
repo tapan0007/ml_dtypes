@@ -48,6 +48,7 @@ parser.add_argument('--level', help='Run tests upto this level, default 4', type
 parser.add_argument('--parallel', help='Run concurrently, default 8', type=int, default=8)
 parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any', default="any")
 parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
+parser.add_argument('--parallel_streams', help='run execution engines in parallel', action='store_true', default=False)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -55,6 +56,7 @@ level = args.level
 parallel = args.parallel
 select = args.select
 selectSet = set(["any", "waived_only", "not_waived"])
+parallelStreams = args.parallel_streams
 if not select in selectSet:
   print("\nERROR: --select must be one of " + str(selectSet))
   sys.exit(1)
@@ -578,7 +580,10 @@ class Ktests:
       (nnStruct, nnConfig, nnLabel, nnArgs) = self.testConfigMap[testName]
       if verbose:
         print("\n############## %s ##############" % testName)
-      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-top.txt 2>&1' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
+      parallelStreamsMaybe = ""
+      if parallelStreams:
+        parallelStreamsMaybe = "--parallel_streams" # forward option to compiler
+      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" PARALLEL_STREAMS_MAYBE="%s" > log-top.txt 2>&1' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs, parallelStreamsMaybe)
       # Remove the old directory
       if os.path.exists(testName):
         oldDir = "%s-old-%d" % (testName, os.getpid())

@@ -59,6 +59,7 @@ parser.add_argument('--partition', help='Partition into subgraphs; use from, mea
                     nargs='+', default=["suppauto"])
 parser.add_argument('--executors', help='Specifies executors per subgraph, e.g., tcc 1 2 3 (implies rest on host, host 0 4 5), default ""',
                     nargs='+', default=[])
+parser.add_argument('--parallel_streams', help='run execution engines in parallel', action='store_true', default=False)
 
 args = parser.parse_args()
 inputNodeName = args.input_node
@@ -69,15 +70,13 @@ if not os.path.isfile(tfpbFile):
 if args.images != None and args.focus != ".*":
   raise("ERROR: Unsupported --images with --focus")
 
-def writeBackEndFiles(kGraph, outPrefix, verbose, scheduler):
+def writeBackEndFiles(kGraph, outPrefix, verbose):
   fileList = []
-  (refOutNpyFile, fileListJson) = kGraph.genCompilerJson(outPrefix + "compiler.json", verbose)
+  (refOutNpyFile, fileListJson) = kGraph.genCompilerJson("compiler.json", verbose)
   fileList += fileListJson
-  jsonFile = {"tcc" : "compiler.json", "wave" : "wavegraph.json"}
-  fileList += kGraph.genKgraphSetupFiles(outPrefix + "compiler.py", outPrefix + jsonFile[scheduler], refOutNpyFile)
   fileList += [outPrefix + "graph_ann.dot.svg"]
   #kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
-  
+
 
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
@@ -105,6 +104,11 @@ kp.partitionByColor()
 kp.calcExecutorMap(args.executors)
 
 sgId = 0
+jsonFileOption = {"tcc" : "--json compiler.json",
+                  "wave" : "--wavegraph wavegraph.json"}
+parallelStreamsOption= ""
+if args.parallel_streams:
+    parallelStreamsOption = "--parallel_streams"
 for sg in kp.getSubgraphs():
   sgDir = "sg%02d" % sgId;
   print("\nINFO: processing subgraph %s" % sgDir)
@@ -120,11 +124,11 @@ for sg in kp.getSubgraphs():
   
   executor = kp.getExecutorById(sgId)
   if not executor == 'host':
-    writeBackEndFiles(sg.graph, args.out_prefix, args.verbose, args.scheduler)
+    writeBackEndFiles(sg.graph, args.out_prefix, args.verbose)
     meOk, fileList = sg.graph.runScheduler(args.out_prefix)
     if not executor == 'waveopt':
       if meOk:
-        cmd = "bash %s/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1" % kPath
+        cmd = "%s/compiler/be/compiler/compiler.exe %s %s> log-be.txt 2>&1" % (kPath, jsonFileOption[args.scheduler], parallelStreamsOption)
         print("INFO: executing %s" % cmd, flush=True)
         ret = os.system(cmd)
       else:
@@ -133,6 +137,7 @@ for sg in kp.getSubgraphs():
   os.chdir("..")
   sgJson = sg.genExecutorGraphJson(sgDir)
   sgJson["executor"] = executor
+  sgJson["parallel_streams"] = args.parallel_streams
   sgJsonList.append(sgJson)
   sgId += 1
 

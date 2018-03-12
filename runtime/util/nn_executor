@@ -25,11 +25,11 @@ if not tfpbFile.startswith('/'):
   tfpbFile = '../' + tfpbFile
 
 class NnSubgraph:
-  def __init__(self, sgDir, inputs, output):
+  def __init__(self, sgDir, inputs, output, parallel_streams):
     self.sgDir = sgDir
     self.inputs = inputs
     self.output = output
-  
+    self.parallel_streams = parallel_streams
   def getOutputNpyFile(self):
     return self.output[1]
   def getOutputNpyFileBase(self):
@@ -95,7 +95,8 @@ class NnSubgraph:
     elif executor == "tcc" or executor == "wave":
       self.overwriteInputFilesInTpbFormat()
       cmd = "%s/runtime/util/runtime_sim" % kPath
-      cmd += "  --tpb %s" % "TrivNet.tpb"
+      if self.parallel_streams:
+        cmd += " --parallel_streams"
       #cmd += "  --input_fmap %s" % " ".join(self.getUpdatedInputs())
       #cmd += "  --output_fmap %s %s" % (self.output[0], OutFile)
     elif executor == "waveopt":
@@ -140,7 +141,7 @@ class NnExec:
   def run(self):
     for sgJson in self.nnGraphJsonData["SubGraphs"]:
       sg = NnSubgraph(sgJson["SubGraphDir"], sgJson["Inputs"],
-                      sgJson["Output"])
+                      sgJson["Output"], sgJson["parallel_streams"])
       self.subGraphs.append(sg)
       sg.run(sgJson["executor"])
 
