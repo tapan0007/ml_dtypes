@@ -5,6 +5,7 @@
 #include <map>
 
 
+#include "utils/inc/asserter.hpp"
 #include "arch/inc/arch.hpp"
 
 #include "layers/inc/layer.hpp"
@@ -61,7 +62,7 @@ void
 Network::SchedLayerForwRevIter::operator++()
 {
     layers::Layer* const currLayer = m_CurrLayer;
-    assert(currLayer && "Layer iterator in Network: Invalid current layer");
+    Assert(currLayer, "Layer iterator in Network: Invalid current layer");
     layers::Layer* nextLayer;
 
     if (m_Forw) {
@@ -92,7 +93,7 @@ layers::Layer*
 Network::findLayer(const std::string& layerName)
 {
     layers::Layer* layer = m_Name2Layer[layerName];
-    assert(layer && "Could not find layer");
+    Assert(layer, "Could not find layer ", layerName);
     return layer;
 }
 
@@ -100,7 +101,7 @@ wave::WaveOp*
 Network::findWaveOp(const std::string& waveOpName)
 {
     wave::WaveOp* waveOp = m_Name2WaveOp[waveOpName];
-    assert(waveOp && "Could not find WaveOp");
+    Assert(waveOp, "Could not find WaveOp ", waveOpName);
     return waveOp;
 }
 
