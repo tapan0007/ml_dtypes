@@ -36,14 +36,11 @@ class KsubGraph:
     jsonDict = {"SubGraphDir" : sgDir}
     jsonDict["Inputs"] = []
     for ni in self.__inputs:
-      #inp = {"Node" : ni.getName(), "NpFile" : ni.getNpInfo()[0].npFile}
-      #jsonDict["Inputs"].append(inp)
-      jsonDict["Inputs"].append(ni.getName() + ":0")
-      jsonDict["Inputs"].append(ni.getNpInfo()[0].npFile)
+      inNpFile = ni.getNpInfo()[0].npFile
+      jsonDict["Inputs"] = [{"name" : ni.getName() + ":0", "file" : inNpFile}]
     o = self.__output
-    #out = {"Node" : o.getName(), "NpFile" : o.getNpInfo()[0].npFile}
     outNpFile = o.getNpInfo()[0].npFile
-    jsonDict["Output"] = [o.getName() + ":0", outNpFile]
+    jsonDict["Outputs"] = [{"name" : o.getName() + ":0", "file" : outNpFile}]
     return jsonDict
   def addSideNodes(self, srcGraph):
     self.__inputs = self.graph.transferSideNodes(srcGraph)

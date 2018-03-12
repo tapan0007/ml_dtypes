@@ -27,6 +27,7 @@ import os.path
 import sys, json, re
 import TfFrontEnd
 import KgraphPartitions
+import shutil
 
 kPath = os.environ.get('KAENA_PATH')
 print("\nINFO: started as  ", " ".join(sys.argv))
@@ -59,6 +60,8 @@ parser.add_argument('--partition', help='Partition into subgraphs; use from, mea
                     nargs='+', default=["suppauto"])
 parser.add_argument('--executors', help='Specifies executors per subgraph, e.g., tcc 1 2 3 (implies rest on host, host 0 4 5), default ""',
                     nargs='+', default=[])
+parser.add_argument('--preprocessor', help='Specify preprocessor script to be part of inference run', default="")
+parser.add_argument('--postprocessor', help='Specify postprocessor script to be part of inference run', default="")
 
 args = parser.parse_args()
 inputNodeName = args.input_node
@@ -135,6 +138,30 @@ for sg in kp.getSubgraphs():
   sgJson["executor"] = executor
   sgJsonList.append(sgJson)
   sgId += 1
+
+for (sgname) in ["sg_pre", "sg_post"]:
+  if sgname == "sg_pre":
+    f = args.preprocessor
+  else:
+    f = args.postprocessor
+  if f != "":
+    sgDir = sgname
+    print("\nINFO: processing subgraph %s" % sgDir)
+    os.makedirs(sgname)
+    assert(os.path.isfile(f) and os.access(f, os.X_OK))
+    shutil.copy2(f, os.getcwd() + "/" + sgname)
+    sgJson = {}
+    sgJson["executor"] = "processor"
+    sgJson["SubGraphDir"] = sgname
+    sgJson["cmd"] =  os.path.basename(f)
+    sgJson["Inputs"] = []
+    sgJson["Outputs"] = []
+    if sgname == "sg_pre":
+      sgJson["Outputs"] += sgJsonList[0]["Inputs"]
+      sgJsonList.insert(0, sgJson)
+    else:
+      sgJson["Inputs"] += sgJsonList[-1]["Outputs"]
+      sgJsonList.append(sgJson)
 
 nnGraphFile = "nn_graph.json"
 with open(nnGraphFile, "w") as f:
