@@ -137,7 +137,9 @@ for sg in kp.getSubgraphs():
   os.chdir("..")
   sgJson = sg.genExecutorGraphJson(sgDir)
   sgJson["executor"] = executor
-  sgJson["parallel_streams"] = args.parallel_streams
+  sgJson["parallel_streams"] = False
+  if args.scheduler == 'wave':
+      sgJson["parallel_streams"] = args.parallel_streams
   sgJsonList.append(sgJson)
   sgId += 1
 
