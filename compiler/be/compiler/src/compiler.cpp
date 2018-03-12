@@ -219,6 +219,9 @@ Main(int argc, char* argv[])
             objFileName = ntwk->gName() + "-sp.tpb";
             instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor");
 
+            objFileName = ntwk->gName() + "-dma.tpb";
+            instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA");
+
             objFileName = ntwk->gName() + "-pool.tpb";
             instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine");
 
