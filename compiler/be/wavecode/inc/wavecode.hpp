@@ -55,6 +55,7 @@ public:
         OneInstrStream m_PeArrayInstrStream;
         OneInstrStream m_PoolEngInstrStream;
         OneInstrStream m_ActEngInstrStream;
+        OneInstrStream m_DmaInstrStream;
     };
 public:
     //----------------------------------------------------------------

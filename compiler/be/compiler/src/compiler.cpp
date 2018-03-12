@@ -48,9 +48,10 @@ namespace codegen {
 
 
 static
-FILE* openObjectFile(const std::string& objFileName, const char* engine)
+FILE* openObjectFile(const std::string& objFileName, const char* engineName)
 {
-    std::cout << "WaveCodegen: Generating " << engine << " instructions to file '" << objFileName << "'\n";
+    std::cout << "Wavegraph code generation: Generating " << engineName
+              << " instructions to file '" << objFileName << "'\n";
     FILE* file = fopen(objFileName.c_str(), "wb");
     Assert(file, "Cannot open PE array object file ", objFileName.c_str());
     return file;
@@ -217,6 +218,9 @@ Main(int argc, char* argv[])
 
             objFileName = ntwk->gName() + "-sp.tpb";
             instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor");
+
+            objFileName = ntwk->gName() + "-dma.tpb";
+            instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA");
 
             objFileName = ntwk->gName() + "-pool.tpb";
             instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine");

@@ -147,19 +147,19 @@ void WaveCode::writeInstruction<MATADD>(MATADD & instruction)
 template<>
 void WaveCode::writeInstruction<SIM_RDNPY>(SIM_RDNPY& instruction)
 {
-    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
 }
 
 template<>
 void WaveCode::writeInstruction<SIM_WRNPY>(SIM_WRNPY& instruction)
 {
-    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
 }
 
 template<>
 void WaveCode::writeInstruction<SIM_MEMCPY>(SIM_MEMCPY& instruction)
 {
-    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+    fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
 }
 
 

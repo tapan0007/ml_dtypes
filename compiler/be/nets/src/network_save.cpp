@@ -45,6 +45,10 @@ namespace nets {
 
 #define KCC_SERIALIZE(X) serWaveOp.KCC_CONCAT(m_,X) = WAVE_OP->KCC_CONCAT(g,X)()
 
+#define ASSERT_NUM_LAYERS(layer, N) \
+    Assert((layer)->gPrevLayers().size() == (N), (layer)->gTypeStr(), " layer '", (layer)->gName(), \
+                   "' should have ", (N), " input", ((N)==1 ? "" : "s"), ", but it has ", (layer)->gPrevLayers().size())
+
 //--------------------------------------------------------
 template<>
 void
@@ -136,7 +140,9 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
 
         if (const auto matmulLayer = dynamic_cast<layers::MatmulLayer*>(layer)) {
-            assert(matmulLayer->gPrevLayers().size() == 1U && "Matmul layer should have exactly one input layer");
+            Assert(matmulLayer->gPrevLayers().size() == 1U,
+                   "Matmul layer should have exactly one input layer, but the size is ",
+                   matmulLayer->gPrevLayers().size());
             const layers::Layer* prevLayer = matmulLayer->gPrevLayer(0);
             const int32_t numIfmaps = prevLayer->gNumOfmaps();
 
@@ -156,8 +162,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
 
         if (const auto reshapeLayer = dynamic_cast<layers::ReshapeLayer*>(layer)) {
-            assert(reshapeLayer->gPrevLayers().size() == 1U
-                && "Reshape layer should have exactly one input layer");
+            ASSERT_NUM_LAYERS(reshapeLayer, 1U);
+            Assert(reshapeLayer->gPrevLayers().size() == 1U,
+                   "Reshape layer should have exactly one input layer, but it has ",
+                   reshapeLayer->gPrevLayers().size());
             continue;
         }
 
@@ -557,6 +565,7 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
 
 
 #undef KCC_SERIALIZE
+#undef ASSERT_NUM_LAYERS
 
 }}
 
