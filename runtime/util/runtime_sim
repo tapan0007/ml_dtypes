@@ -40,7 +40,7 @@ class RuntimeSim:
 
     cmd = "%s/sim/sim" % (InklingPath)
     if args.parallel_streams:
-      cmd += " --sp TrivNet-sp.tpb  --pe TrivNet-pe.tpb --pool TrivNet=pool.tpb --act TrivNet-act.tpb"
+      cmd += " --sp TrivNet-sp.tpb  --pe TrivNet-pe.tpb --pool TrivNet-pool.tpb --act TrivNet-act.tpb"
     else:
       cmd += " TrivNet.tpb"
 
