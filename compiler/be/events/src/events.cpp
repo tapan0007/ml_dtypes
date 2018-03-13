@@ -12,7 +12,7 @@ namespace events {
  ****************************************************************/
 Channel::Channel()
     : m_SetEventMode(EventSetMode::NoEvent)
-    , m_EventId(-1)
+    , m_EventId(EventId_Invalid)
     , m_WaitEventMode(EventWaitMode::NoEvent)
 { }
 

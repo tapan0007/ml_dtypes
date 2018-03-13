@@ -32,6 +32,9 @@ static_assert(sizeof(kcc_uint32) == 4, "sizeof(uint32) != 4");
 static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
 using EventId = kcc_int32;
+enum {
+    EventId_Invalid = -1,
+};
 
 enum class ActivationFunc {
     Invalid,
