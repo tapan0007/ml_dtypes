@@ -1245,7 +1245,7 @@ class FusedOp(list):
         # find the weights offset within atom; -1 means don't load new weights
         weights_offset_in_atom = tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr)
         if (self.conv_op.weight_wave_lower_addr == self.prev_weight_wave_lower_addr):
-            #weights_offset_in_atom = -1
+            weights_offset_in_atom = -1
             if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
         else:            
             self.prev_weight_wave_lower_addr = self.conv_op.weight_wave_lower_addr
