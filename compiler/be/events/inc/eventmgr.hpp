@@ -31,8 +31,6 @@ private:
     void processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop);
     void processResAdd(wave::ResAddWaveOp* resaddWaveop);
 
-    void processSuccSaves(wave::WaveOp* waveop);
-
     kcc_int32 getLocalEventId(const wave::WaveOp* from, const wave::WaveOp* to);
 
 private:

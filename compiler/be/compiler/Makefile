@@ -16,16 +16,14 @@ LIBS := \
     $(COMPILER_BE)/codegen/$(OBJDIR)/libcodegen.a  \
     $(COMPILER_BE)/schedule/$(OBJDIR)/libschedule.a \
     $(COMPILER_BE)/memmgr/$(OBJDIR)/libmemmgr.a \
-    $(COMPILER_BE)/nets/$(OBJDIR)/libnets.a \
     $(COMPILER_BE)/serialize/$(OBJDIR)/libserialize.a \
-    $(COMPILER_BE)/layers/$(OBJDIR)/liblayers.a \
-    $(COMPILER_BE)/events/$(OBJDIR)/libevents.a  \
-    $(COMPILER_BE)/wave/$(OBJDIR)/libwave.a  \
-    $(COMPILER_BE)/arch/$(OBJDIR)/libarch.a \
     $(COMPILER_BE)/codegen/$(OBJDIR)/libcodegen.a  \
     $(COMPILER_BE)/wavecode/$(OBJDIR)/libwavecode.a  \
+    $(COMPILER_BE)/nets/$(OBJDIR)/libnets.a \
     $(COMPILER_BE)/layers/$(OBJDIR)/liblayers.a \
     $(COMPILER_BE)/wave/$(OBJDIR)/libwave.a  \
+    $(COMPILER_BE)/arch/$(OBJDIR)/libarch.a \
+    $(COMPILER_BE)/events/$(OBJDIR)/libevents.a  \
     $(COMPILER_BE)/utils/$(OBJDIR)/libutils.a \
     $(TCC_LIB)
 

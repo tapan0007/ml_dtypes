@@ -1,7 +1,6 @@
 #include <limits>
 
 #include "utils/inc/asserter.hpp"
-#include "utils/inc/events.hpp"
 
 #include "wave/inc/waveop.hpp"
 #include "wave/inc/matmulwaveop.hpp"
@@ -13,6 +12,7 @@
 
 #include "nets/inc/network.hpp"
 
+#include "events/inc/events.hpp"
 #include "events/inc/eventmgr.hpp"
 
 
@@ -38,43 +38,7 @@ EventMgr::getLocalEventId(const wave::WaveOp* from, const wave::WaveOp* to)
 }
 
 
-void
-EventMgr::processSuccSaves(wave::WaveOp* waveop)
-{
-    const EngineId engineId = waveop->gEngineId();
-    int smallestAtomSaveOrder = std::numeric_limits<int>::max();
-    wave::SbAtomSaveWaveOp* smallestAtomSaveWaveop = nullptr;
-#if 0
-    int largestAtomSaveOrder = -1;
-    wave::SbAtomSaveWaveOp* largestAtomSaveWaveop = nullptr;
-#endif
 
-    for (auto succWaveop : waveop->gSuccWaveOps()) {
-        if (succWaveop->gEngineId() == engineId) {
-            continue; // when two waveops execute on the same engine, no need for sync
-        }
-        if (auto sbatomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {
-            if (sbatomSaveWaveop->gOrder()  < smallestAtomSaveOrder) {
-                smallestAtomSaveOrder = sbatomSaveWaveop->gOrder();
-                smallestAtomSaveWaveop = sbatomSaveWaveop;
-            }
-#if 0
-            if (sbatomSaveWaveop->gOrder()  > largestAtomSaveOrder) {
-                largestAtomSaveOrder = sbatomSaveWaveop->gOrder();
-                largestAtomSaveWaveop = sbatomSaveWaveop;
-            }
-#endif
-
-            continue;
-        }
-    }
-
-    if (smallestAtomSaveWaveop) {
-        const EventId eventId = getLocalEventId(smallestAtomSaveWaveop, waveop);
-        waveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-        smallestAtomSaveWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
-    }
-}
 
 /***************************************************************
 Predecessor of Loading Weights can only be:
@@ -152,8 +116,6 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
             "MatMul waveop starting tensor calc should have at least one predecessor from another engine. Num Prev: AtomFile: ",
             numPrevAtomFile, ", Pool: ", numPrevPool, ", Act: ", numPrevActivation);
     }
-
-    processSuccSaves(matmulWaveop);
 }
 
 /***************************************************************
@@ -196,8 +158,6 @@ EventMgr::processPool(wave::PoolWaveOp* poolWaveop)
                 "Predecessors of Pool waveop must be one of DramLoad, MatMul, Activation: ",
                 prevWaveop->gTypeStr());
     }
-
-    processSuccSaves(poolWaveop);
 }
 
 
@@ -241,8 +201,6 @@ EventMgr::processActivation(wave::ActivationWaveOp* activationWaveop)
                 "Predecessors of Pool waveop must be one of DramLoad, MatMul, Activation: ",
                 prevWaveop->gTypeStr());
     }
-
-    processSuccSaves(activationWaveop);
 }
 
 void
@@ -304,42 +262,6 @@ EventMgr::processWaveops()
 
 
 } // namespace events
-
-int
-eventWaitMode2Int(EventWaitMode mode)
-{
-    switch(mode) {
-    case EventWaitMode::NoEvent:
-        return NO_WAIT_EVENT;
-        break;
-    case EventWaitMode::SetOnly:
-        return WAIT_EVENT_SET;
-        break;
-    case EventWaitMode::SetThenClear:
-        return WAIT_EVENT_SET_THEN_CLEAR;
-        break;
-    }
-    Assert(false, "Wrong EventWaitMode: ", static_cast<kcc_int32>(mode));
-    return 0;
-}
-
-int
-eventSetMode2Int(EventSetMode mode)
-{
-    switch(mode) {
-    case EventSetMode::NoEvent:
-        return NO_SET_EVENT;
-        break;
-    case EventSetMode::OnEndRdSrc:
-        return SET_EVENT_ON_END_RD_SRC;
-        break;
-    case EventSetMode::OnEndWrDst:
-        return SET_EVENT_ON_END_WR_DST;
-        break;
-    }
-    Assert(false, "Wrong EventSetMode: ", static_cast<kcc_int32>(mode));
-    return 0;
-}
 
 
 }

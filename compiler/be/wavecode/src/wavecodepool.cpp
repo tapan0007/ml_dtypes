@@ -1,6 +1,6 @@
 #include "shared/inc/tpb_isa_pool.hpp"
 
-#include "utils/inc/events.hpp"
+#include "events/inc/events.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"

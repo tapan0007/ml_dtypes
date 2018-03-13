@@ -278,12 +278,12 @@ public:
     }
 
     EventId gLwWaitEventId() const {
-        return m_LwWaitEventId;
+        return m_LwWaitEvent.gId();
     }
-    EventWaitMode gLwWaitEventMode() const {
-        return m_LwWaitEventMode;
+    events::EventWaitMode gLwWaitEventMode() const {
+        return m_LwWaitEvent.gMode();
     }
-    void rLwWaitEvent(EventId eventId, EventWaitMode);
+    void rLwWaitEvent(EventId eventId, events::EventWaitMode);
 
 private:
     MatMulWaveOp() = delete;
@@ -330,8 +330,7 @@ private:
     // waveop type
     kcc_int16       m_WeightsAtomId         = -2; // -1 means do not load weights
     kcc_int16       m_WeightsOffsetInAtom   = -2; // -1 means do not load weights
-    EventId         m_LwWaitEventId;
-    EventWaitMode   m_LwWaitEventMode;
+    events::WaitEvent       m_LwWaitEvent;
 }; // class MatMulWaveOp : public WaveOp
 
 

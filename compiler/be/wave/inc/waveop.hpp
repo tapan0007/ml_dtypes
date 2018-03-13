@@ -15,14 +15,13 @@
 
 #include "utils/inc/types.hpp"
 #include "utils/inc/consts.hpp"
-//#include "utils/inc/events.hpp"
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
+#include "events/inc/events.hpp"
+
 
 namespace kcc {
-enum class EventWaitMode;
-enum class EventSetMode;
 
 namespace layers {
     class Layer;
@@ -117,20 +116,20 @@ public:
     void addSuccWaveop(WaveOp* succWaveop);
 
     EventId gWaitEventId() const {
-        return m_Sync.m_WaitEventId;
+        return m_Sync.gWaitEventId();
     }
-    EventWaitMode gWaitEventMode() const {
-        return m_Sync.m_WaitEventMode;
+    events::EventWaitMode gWaitEventMode() const {
+        return m_Sync.gWaitEventMode();
     }
     EventId gSetEventId() const {
-        return m_Sync.m_SetEventId;
+        return m_Sync.gSetEventId();
     }
-    EventSetMode gSetEventMode() const {
-        return m_Sync.m_SetEventMode;
+    events::EventSetMode gSetEventMode() const {
+        return m_Sync.gSetEventMode();
     }
 
-    void rWaitEvent(EventId eventId, EventWaitMode);
-    void rSetEvent(EventId eventId, EventSetMode);
+    void rWaitEvent(EventId eventId, events::EventWaitMode);
+    void rSetEvent(EventId eventId, events::EventSetMode);
 
 protected:
 #if 0
@@ -144,14 +143,7 @@ protected:
     kcc_int32               m_Order = -1;
 
 protected:
-    struct Events {
-        Events();
-        EventId             m_SetEventId;
-        EventSetMode        m_SetEventMode;
-        EventId             m_WaitEventId;
-        EventWaitMode       m_WaitEventMode;
-    };
-    Events                  m_Sync;
+    events::Events          m_Sync;
 
 private:
     layers::Layer*          m_Layer         = nullptr;

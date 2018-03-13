@@ -11,8 +11,8 @@
 
 
 #include "utils/inc/asserter.hpp"
-#include "utils/inc/events.hpp"
 #include "utils/inc/types.hpp"
+#include "events/inc/events.hpp"
 #include "arch/inc/arch.hpp"
 
 #include "layers/inc/layer.hpp"

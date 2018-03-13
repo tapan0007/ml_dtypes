@@ -1,7 +1,7 @@
 #include "shared/inc/tpb_isa_ldweights.hpp"
 
 
-#include "utils/inc/events.hpp"
+#include "events/inc/events.hpp"
 
 #include "arch/inc/statebuffer.hpp"
 #include "arch/inc/arch.hpp"
@@ -58,19 +58,19 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
 
         dramToStateBufInstr.sync.set_event_id       = -1;
-        dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(EventSetMode::NoEvent);
+        dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
         dramToStateBufInstr.sync.wait_event_id      = -1;
-        dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(EventWaitMode::NoEvent);
+        dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
 
         if (0 == partIdx) {
             // only the first reading waits for events from previous instr
             dramToStateBufInstr.sync.wait_event_id      = sbAtomFileWaveOp->gWaitEventId();
-            dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(sbAtomFileWaveOp->gWaitEventMode());
+            dramToStateBufInstr.sync.wait_event_mode    = events::WaitEvent::eventWaitMode2Int(sbAtomFileWaveOp->gWaitEventMode());
         }
         if (numPartitions-1 == partIdx) {
             // only the last reading sets event to enable subsequent instr
             dramToStateBufInstr.sync.set_event_id       = sbAtomFileWaveOp->gSetEventId();
-            dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(sbAtomFileWaveOp->gSetEventMode());
+            dramToStateBufInstr.sync.set_event_mode     = events::SetEvent::eventSetMode2Int(sbAtomFileWaveOp->gSetEventMode());
         }
 
         dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomFileWaveOp->gOffsetInFile() + (partIdx * stepSize);

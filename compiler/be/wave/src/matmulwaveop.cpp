@@ -2,8 +2,8 @@
 
 
 
-#include "utils/inc/events.hpp"
 #include "utils/inc/datatype.hpp"
+#include "events/inc/events.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "layers/inc/layer.hpp"
@@ -56,8 +56,6 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     // waveop type
     , m_WeightsAtomId(params.m_WeightsAtomId)
     , m_WeightsOffsetInAtom(params.m_WeightsOffsetInAtom)
-    , m_LwWaitEventId(0)
-    , m_LwWaitEventMode(EventWaitMode::NoEvent)
 {
     assert(params.verify());
     assert(verify());
@@ -385,10 +383,9 @@ MatMulWaveOp::Params::verify() const
 
 
 void
-MatMulWaveOp::rLwWaitEvent(EventId eventId, EventWaitMode mode)
+MatMulWaveOp::rLwWaitEvent(EventId eventId, events::EventWaitMode mode)
 {
-    m_LwWaitEventId     = eventId;
-    m_LwWaitEventMode   = mode;
+    m_LwWaitEvent.rEvent(eventId, mode);
 }
 
 }}
