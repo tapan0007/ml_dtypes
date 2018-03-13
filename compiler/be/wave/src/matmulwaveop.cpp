@@ -161,10 +161,10 @@ MatMulWaveOp::verify() const
     }
     // waveop name
     // waveop type
-    if (m_WeightsAtomId < -1) { // m_WeightsOffsetInAtom is -1 for waves that do NOT reload weights
+    if (m_WeightsAtomId < -1) { // m_WeightsAtomId is -1 for waves that do NOT reload weights
         return false;
     }
-    if (m_WeightsOffsetInAtom < 0) {
+    if (m_WeightsOffsetInAtom < -1) {
         return false;
     }
     return true;
