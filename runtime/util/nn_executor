@@ -19,8 +19,8 @@ from NpTransforms import NpTrans as npt
 parser = argparse.ArgumentParser()
 parser.add_argument('--kelf_dir', help='kelf directory', default="")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
-parser.add_argument('--input_files', help='input filess', default=[], nargs='+')
-parser.add_argument('--output_files', help='output file', default=[], nargs='+')
+parser.add_argument('--input_files', help='Files to be passed in to the first subgraph', default=[], nargs='+')
+parser.add_argument('--output_files', help='Specify output file for last subgraph', default=[], nargs='+')
 parser.add_argument('--check_against_ref', help='compare last produced output npy file against compiler provided golden', action='store_true')
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
 args = parser.parse_args()
@@ -108,19 +108,21 @@ class NnSubgraph:
   # There is no good way to identify consts (weights, biases, ..) in the kelf file yet.
   # This is a hack to link required files so that SIM can find them.
   def linkConsts(self):
-    g = glob.glob("%s/*CRSM*.npy"% working_dir)
-    g += glob.glob("%s/*NCHW*.npy"% working_dir)
+    g = []
+    g += glob.glob("%s/*%s*.npy"% (working_dir, npt.Formats[npt.SIM][npt.Weights]))
+    g += glob.glob("%s/*%s*.npy"% (working_dir, npt.Formats[npt.SIM][npt.Fmaps]))
     for f in g:
       os.remove(f)
-    g = glob.glob("%s/sg*/*CRSM*.npy"% kelf_dir)
-    g += glob.glob("%s/sg*/*NCHW*.npy"% kelf_dir)
+    g = []
+    g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Weights]))
+    g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Fmaps]))
     for f in g:
       os.symlink(f, "%s/%s" % (working_dir, os.path.basename(f)) )
-    # The files are shared by op name A, then computed locally as sg00/A-out.npy
-  # and linked to parent as A-out.npy which the input for the next subgraph
-  # This ensures a subgraph failure is visible in the end result
+
+
+  # Executes a subgraph, calls appropriate executor as specified in nn_graph.json
+  # Returns 0 on success, -1 or error code of failure.
   def run(self):
-    ret = 0
     executor = self.executor
     logFile = "log-exec-%s-%s.txt" % (self.sgDir, executor)
     OutFile = ""
@@ -167,13 +169,11 @@ class NnSubgraph:
     ret = os.system(cmd)
     if ret != 0:
       return ret
-    if OutFile == "": #no output, done
-      return ret
 
     outBase = self.getOutputNpyFileBase()
 
     # Translate TPB format back to TF format.
-    if executor == "tcc" or  executor == "wave" or executor == "waveopt":
+    if (executor == "tcc" or  executor == "wave" or executor == "waveopt") and OutFile != "":
       simExt = "simout"
       if executor == "waveopt":
         simExt = "midout"
@@ -185,7 +185,7 @@ class NnSubgraph:
         print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
         return -1
 
-    return ret
+    return 0
     
 
 class NnExec:

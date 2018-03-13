@@ -15,6 +15,7 @@ import os, sys, re, shutil
 import argparse
 import multiprocessing as mp
 import time
+import multiprocessing
 
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
@@ -46,7 +47,7 @@ parser.add_argument('--test', help='Run specific tests (list)', nargs='+', defau
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
 parser.add_argument('--level', help='Run tests upto this level, default 4', type=int, default=4)
-parser.add_argument('--parallel', help='Run concurrently, default 8', type=int, default=8)
+parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=multiprocessing.cpu_count())
 parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any', default="any")
 parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
 
@@ -68,6 +69,8 @@ rn_cmn_opts = "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --po
 #   level-name
 #   level is relative complexity and runtime cost, easiest 0  to most complex 9
 #   Name can be composed of anything - 0 can be used as base/existence test
+#   Columns: (nnStruct, nnConfig, nnLabel, nnArgs, images)
+
 testConfigMap = {
   "0-1conv0"      : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv"],
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave"],

@@ -139,29 +139,7 @@ for sg in kp.getSubgraphs():
   sgJsonList.append(sgJson)
   sgId += 1
 
-for (sgname) in ["sg_pre", "sg_post"]:
-  if sgname == "sg_pre":
-    f = args.preprocessor
-  else:
-    f = args.postprocessor
-  if f != "":
-    sgDir = sgname
-    print("\nINFO: processing subgraph %s" % sgDir)
-    os.makedirs(sgname)
-    assert(os.path.isfile(f) and os.access(f, os.X_OK))
-    shutil.copy2(f, os.getcwd() + "/" + sgname)
-    sgJson = {}
-    sgJson["executor"] = "processor"
-    sgJson["SubGraphDir"] = sgname
-    sgJson["cmd"] =  os.path.basename(f)
-    sgJson["Inputs"] = []
-    sgJson["Outputs"] = []
-    if sgname == "sg_pre":
-      sgJson["Outputs"] += sgJsonList[0]["Inputs"]
-      sgJsonList.insert(0, sgJson)
-    else:
-      sgJson["Inputs"] += sgJsonList[-1]["Outputs"]
-      sgJsonList.append(sgJson)
+KgraphPartitions.attachPrePost(sgJsonList, args.preprocessor, args.postprocessor)
 
 nnGraphFile = "nn_graph.json"
 with open(nnGraphFile, "w") as f:

@@ -385,7 +385,30 @@ class KgraphPart(object):
   def getExecutorById(self, sgId):
     return self.sgId2executor.get(sgId, 'host')
 
-
+def attachPrePost(sgJsonList, preprocessor, postprocessor):
+  for (sgname) in ["sg_pre", "sg_post"]:
+    if sgname == "sg_pre":
+      f = preprocessor
+    else:
+      f = postprocessor
+    if f != "":
+      sgDir = sgname
+      print("\nINFO: processing subgraph %s" % sgDir)
+      os.makedirs(sgname)
+      assert(os.path.isfile(f) and os.access(f, os.X_OK))
+      shutil.copy2(f, os.getcwd() + "/" + sgname)
+      sgJson = {}
+      sgJson["executor"] = "processor"
+      sgJson["SubGraphDir"] = sgname
+      sgJson["cmd"] =  os.path.basename(f)
+      sgJson["Inputs"] = []
+      sgJson["Outputs"] = []
+      if sgname == "sg_pre":
+        sgJson["Outputs"] += sgJsonList[0]["Inputs"]
+        sgJsonList.insert(0, sgJson)
+      else:
+        sgJson["Inputs"] += sgJsonList[-1]["Outputs"]
+        sgJsonList.append(sgJson)
 
 
 
