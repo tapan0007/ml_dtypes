@@ -11,18 +11,18 @@ namespace events {
  *                                                              *
  ****************************************************************/
 Channel::Channel()
-    : m_WaitEventMode(EventWaitMode::NoEvent)
+    : m_SetEventMode(EventSetMode::NoEvent)
     , m_EventId(-1)
-    , m_SetEventMode(EventSetMode::NoEvent)
+    , m_WaitEventMode(EventWaitMode::NoEvent)
 { }
 
 
 void
-Channel::rEvent(EventWaitMode waitMode, EventId eventId, EventSetMode setMode)
+Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
 {
-    m_WaitEventMode = waitMode;
+    m_SetEventMode = setMode;  // FromOp
     m_EventId = eventId;
-    m_SetEventMode = setMode;
+    m_WaitEventMode = waitMode; // ToOp
 }
 
 

@@ -56,8 +56,16 @@ private:
 
 public:
 
+    const WaveOp* gFromOp() const {
+        return m_FromOp;
+    }
+
     WaveOp* gFromOp() {
         return m_FromOp;
+    }
+
+    const WaveOp* gToOp() const {
+        return m_ToOp;
     }
 
     WaveOp* gToOp() {
@@ -67,6 +75,10 @@ public:
     /****************************************************************
      *                                                              *
      ****************************************************************/
+    void rEvent(events::EventSetMode setMode, EventId eventId, events::EventWaitMode waitMode)
+    {
+        m_Channel.rEvent(setMode, eventId, waitMode);
+    }
     EventId gEventId() const {
         return m_Channel.gEventId();
     }

@@ -44,7 +44,7 @@ class Channel {
 public:
     Channel();
 
-    void rEvent(EventWaitMode waitMode, EventId eventId, EventSetMode setMode);
+    void rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode);
 
     EventId gEventId() const {
         return m_EventId;
@@ -57,9 +57,9 @@ public:
     }
 
 private:
-    EventWaitMode       m_WaitEventMode;
-    EventId             m_EventId;
     EventSetMode        m_SetEventMode;
+    EventId             m_EventId;
+    EventWaitMode       m_WaitEventMode;
 };
 
 

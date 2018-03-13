@@ -27,10 +27,12 @@ EventMgr::EventMgr(const nets::Network& network)
 {
 }
 
-kcc_int32
-EventMgr::getLocalEventId(const wave::WaveOp* from, const wave::WaveOp* to)
+EventId
+EventMgr::getLocalEventId(const wave::WaveEdge* edge)
 {
-    Assert(from != to, "From (", from->gName(), ") and to (", to->gName(), ") events should be different");
+    const wave::WaveOp* const fromOp = edge->gFromOp();
+    const wave::WaveOp* const toOp = edge->gToOp();
+    Assert(fromOp != toOp, "From (", fromOp->gName(), ") and to (", toOp->gName(), ") events should be different");
     const kcc_int32 eventId = m_EventId++;
     if (m_EventId >= 256) {
         m_EventId = 0;
@@ -54,12 +56,12 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
     int numPrevActivation = 0;
 
     int largestAtomFileIfmapOrder = -1;
-    wave::SbAtomFileWaveOp* largestSbAtomFileIfmapWaveop = nullptr;
+    wave::WaveEdge* largestSbAtomFileIfmapWaveEdge = nullptr;
     int largestAtomFileWeightOrder = -1;
-    wave::SbAtomFileWaveOp* largestSbAtomFileWeightWaveop = nullptr;
+    wave::WaveEdge* largestSbAtomFileWeightWaveEdge = nullptr;
 
     for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-        auto prevWaveOp = prevWaveEdge->gFromOp();
+        auto prevWaveop = prevWaveEdge->gFromOp();
         if (prevWaveop->gEngineId() == engineId) {
             continue; // when two waveops execute on the same engine, no need for sync
         }
@@ -69,12 +71,12 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
             if (sbatomFileWaveop->qContainWeights()) {
                 if (sbatomFileWaveop->gOrder()  > largestAtomFileWeightOrder) {
                     largestAtomFileWeightOrder = sbatomFileWaveop->gOrder();
-                    largestSbAtomFileWeightWaveop = sbatomFileWaveop;
+                    largestSbAtomFileWeightWaveEdge = prevWaveEdge;
                 }
             } else {
                 if (sbatomFileWaveop->gOrder()  > largestAtomFileIfmapOrder) {
                     largestAtomFileIfmapOrder = sbatomFileWaveop->gOrder();
-                    largestSbAtomFileIfmapWaveop = sbatomFileWaveop;
+                    largestSbAtomFileIfmapWaveEdge = prevWaveEdge;
                 }
             }
 
@@ -83,17 +85,15 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
 
         if (auto poolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
             ++numPrevPool;
-            const EventId eventId = getLocalEventId(poolWaveop, matmulWaveop);
-            poolWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            matmulWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
 
         if (auto activationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
             ++numPrevActivation;
-            const EventId eventId = getLocalEventId(activationWaveop, matmulWaveop);
-            activationWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            matmulWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
         Assert(false,
@@ -102,15 +102,13 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
     }
 
 
-    if (largestSbAtomFileWeightWaveop) {
-        const EventId eventId = getLocalEventId(largestSbAtomFileWeightWaveop, matmulWaveop);
-        largestSbAtomFileWeightWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-        matmulWaveop->rLwWaitEvent(eventId, EventWaitMode::SetThenClear);
+    if (largestSbAtomFileWeightWaveEdge) {
+        const EventId eventId = getLocalEventId(largestSbAtomFileWeightWaveEdge);
+        largestSbAtomFileWeightWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
     }
-    if (largestSbAtomFileIfmapWaveop) {
-        const EventId eventId = getLocalEventId(largestSbAtomFileIfmapWaveop, matmulWaveop);
-        largestSbAtomFileIfmapWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-        matmulWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+    if (largestSbAtomFileIfmapWaveEdge) {
+        const EventId eventId = getLocalEventId(largestSbAtomFileIfmapWaveEdge);
+        largestSbAtomFileIfmapWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
     }
 
     if (matmulWaveop->qStartTensorCalc()) {
@@ -130,30 +128,28 @@ EventMgr::processPool(wave::PoolWaveOp* poolWaveop)
     int numPrevMatMul = 0;
     int numPrevActivation = 0;
 
-    for (auto prevWaveop : poolWaveop->gPrevWaveOps()) {
+    for (auto prevWaveEdge : poolWaveop->gPrevWaveEdges()) {
+        auto prevWaveop = prevWaveEdge->gFromOp();
         if (prevWaveop->gEngineId() == engineId) {
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
         if (auto sbatomFileWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
             ++numPrevAtomFile;
-            const EventId eventId = getLocalEventId(sbatomFileWaveop, poolWaveop);
-            sbatomFileWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            poolWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
         if (auto matmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
             ++numPrevMatMul;
-            const EventId eventId = getLocalEventId(matmulWaveop, poolWaveop);
-            matmulWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            poolWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
         if (auto activationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
             ++numPrevActivation;
-            const EventId eventId = getLocalEventId(activationWaveop, poolWaveop);
-            activationWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            poolWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
         Assert(false,
@@ -173,30 +169,28 @@ EventMgr::processActivation(wave::ActivationWaveOp* activationWaveop)
     int numPrevPool = 0;
     int numPrevMatMul = 0;
 
-    for (auto prevWaveop : activationWaveop->gPrevWaveOps()) {
+    for (auto prevWaveEdge : activationWaveop->gPrevWaveEdges()) {
+        auto prevWaveop = prevWaveEdge->gFromOp();
         if (prevWaveop->gEngineId() == engineId) {
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
         if (auto sbatomFileWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
             ++numPrevAtomFile;
-            const EventId eventId = getLocalEventId(sbatomFileWaveop, activationWaveop);
-            sbatomFileWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            activationWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
         if (auto matmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
             ++numPrevMatMul;
-            const EventId eventId = getLocalEventId(matmulWaveop, activationWaveop);
-            matmulWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            activationWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
         if (auto poolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
             ++numPrevPool;
-            const EventId eventId = getLocalEventId(poolWaveop, activationWaveop);
-            poolWaveop->rSetEvent(eventId, EventSetMode::OnEndWrDst);
-            activationWaveop->rWaitEvent(eventId, EventWaitMode::SetThenClear);
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
         Assert(false,
@@ -243,9 +237,9 @@ EventMgr::processWaveops()
             continue;
         }
         if (auto sbatomFileWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp)) {
-            Assert(sbatomFileWaveop->gPrevWaveOps().size() == 0,
+            Assert(sbatomFileWaveop->gPrevWaveEdges().size() == 0,
                 "SbAtomFile should have 0 predecessors. Waveop: ", sbatomFileWaveop->gName(),
-                ", number predecessors: ", sbatomFileWaveop->gPrevWaveOps().size());
+                ", number predecessors: ", sbatomFileWaveop->gPrevWaveEdges().size());
             continue; // when two waveops execute on the same engine, no need for sync
         }
         if (auto resaddWaveop = dynamic_cast<wave::ResAddWaveOp*>(waveOp)) {
