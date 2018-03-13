@@ -67,26 +67,22 @@ public:
     /****************************************************************
      *                                                              *
      ****************************************************************/
-    events::EventId gEventId() const {
-        return m_EventId;
+    EventId gEventId() const {
+        return m_Channel.gEventId();
+    }
+    events::EventWaitMode gWaitEventMode() const {
+        return m_Channel.gWaitEventMode();
+    }
+    events::EventSetMode gSetEventMode() const {
+        return m_Channel.gSetEventMode();
     }
 
 private:
-    WaveOp*                 m_From;
-    WaveOp*                 m_To;
-    events::EventId                 m_EventId;
+    WaveOp*                 m_FromOp;
+    WaveOp*                 m_ToOp;
+    events::Channel         m_Channel;
 }; // class WaveEdge
 
-
-class WaveEdge::Params {
-public:
-    bool verify() const;
-public:
-    std::string             m_WaveEdgeName    = "";
-    //FmapDesc                m_OfmapDesc;
-    layers::Layer*          m_Layer         = nullptr;
-    kcc_int32               m_Order;
-};
 
 
 } // namespace wave

@@ -32,29 +32,7 @@ enum class EventSetMode {
 /****************************************************************
  *                                                              *
  ****************************************************************/
-class WaitEvent {
-public:
-    WaitEvent();
 
-    void rEvent(EventId eventId, EventWaitMode);
-
-    EventId gId() const {
-        return m_EventId;
-    }
-
-    EventWaitMode gMode() const {
-        return m_EventMode;
-    }
-
-    static int eventWaitMode2Int(EventWaitMode mode);
-
-private:
-    WaitEvent(const WaitEvent&) = delete;
-
-private:
-    EventId             m_EventId;
-    EventWaitMode       m_EventMode;
-};
 
 
 
@@ -62,60 +40,26 @@ private:
 /****************************************************************
  *                                                              *
  ****************************************************************/
-class SetEvent {
+class Channel {
 public:
-    SetEvent();
+    Channel();
 
-    void rEvent(EventId eventId, EventSetMode mode);
+    void rEvent(EventWaitMode waitMode, EventId eventId, EventSetMode setMode);
 
-    EventId gId() const {
+    EventId gEventId() const {
         return m_EventId;
-    }
-
-    EventSetMode gMode() const {
-        return m_EventMode;
-    }
-
-    static int eventSetMode2Int(EventSetMode mode);
-
-
-private:
-    SetEvent(const SetEvent&) = delete;
-
-private:
-    EventId             m_EventId;
-    EventSetMode        m_EventMode;
-};
-
-
-
-
-/****************************************************************
- *                                                              *
- ****************************************************************/
-class Events {
-public:
-    Events();
-
-    void rWaitEvent(EventId eventId, EventWaitMode);
-    void rSetEvent(EventId eventId, EventSetMode);
-
-    EventId gWaitEventId() const {
-        return m_WaitEvent.gId();
     }
     EventWaitMode gWaitEventMode() const {
-        return m_WaitEvent.gMode();
-    }
-    EventId gSetEventId() const {
-        return m_SetEvent.gId();
+        return m_WaitEventMode;
     }
     EventSetMode gSetEventMode() const {
-        return m_SetEvent.gMode();
+        return m_SetEventMode;
     }
 
 private:
-    WaitEvent           m_WaitEvent;
-    SetEvent            m_SetEvent;
+    EventWaitMode       m_WaitEventMode;
+    EventId             m_EventId;
+    EventSetMode        m_SetEventMode;
 };
 
 

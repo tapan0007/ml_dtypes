@@ -7,6 +7,7 @@
 #include "events/inc/events.hpp"
 
 #include "layers/inc/layer.hpp"
+#include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
 #include "nets/inc/network.hpp"
 
@@ -25,7 +26,9 @@ WaveOp::WaveOp (const WaveOp::Params& params,
 {
     assert(params.verify());
     for (auto prevWaveOp : prevWaveOps) {
-        m_PrevWaveOps.push_back(prevWaveOp);
+        auto edge = new WaveEdge(prevWaveOp, this);
+        this->m_PrevWaveEdges.push_back(edge);
+        prevWaveOp->m_SuccWaveEdges.push_back(edge);
     }
 }
 
@@ -71,24 +74,7 @@ WaveOp::Params::verify() const
     return true;
 }
 
-void
-WaveOp::addSuccWaveop(WaveOp* succWaveop)
-{
-    m_SuccWaveOps.push_back(succWaveop);
-}
 
-
-void
-WaveOp::rWaitEvent(EventId eventId, events::EventWaitMode mode)
-{
-    m_Sync.rWaitEvent(eventId, mode);
-}
-
-void
-WaveOp::rSetEvent(EventId eventId, events::EventSetMode mode)
-{
-    m_Sync.rSetEvent(eventId, mode);
-}
 
 
 

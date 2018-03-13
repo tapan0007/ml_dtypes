@@ -2,6 +2,7 @@
 
 #include "utils/inc/asserter.hpp"
 
+#include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomfilewaveop.hpp"
@@ -57,7 +58,8 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
     int largestAtomFileWeightOrder = -1;
     wave::SbAtomFileWaveOp* largestSbAtomFileWeightWaveop = nullptr;
 
-    for (auto prevWaveop : matmulWaveop->gPrevWaveOps()) {
+    for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
+        auto prevWaveOp = prevWaveEdge->gFromOp();
         if (prevWaveop->gEngineId() == engineId) {
             continue; // when two waveops execute on the same engine, no need for sync
         }

@@ -30,6 +30,7 @@
 
 #include "nets/inc/network_save.hpp"
 
+#include "wave/inc/waveedge.hpp"
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomfilewaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
@@ -261,14 +262,12 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         serWaveOp.m_WaveOpName = waveOp->gName();
         serWaveOp.m_LayerName = waveOp->gLayerName();
 
-        serWaveOp.m_WaitEventId     = waveOp->gWaitEventId();
-        serWaveOp.m_WaitEventMode   = eventWaitMode2Int(waveOp->gWaitEventMode());
-        serWaveOp.m_SetEventId      = waveOp->gSetEventId();
-        serWaveOp.m_SetEventMode    = eventSetMode2Int(waveOp->gSetEventMode());
-
-
-        for (auto prevWaveOp : waveOp->gPrevWaveOps()) {
+        for (auto prevWaveEdge : waveOp->gPrevWaveEdges()) {
+            auto prevWaveOp = prevWaveEdge->gFromOp();
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
+            serWaveOp.addPreviousEventId(prevWaveEdge->gEventId());
+            serWaveOp.addPreviousEventWaitMode(prevWaveEdge->gWaitEventMode());
+            serWaveOp.addPrevEventSetMode(prevWaveEdge->gSetEventMode());
         }
 
         if (auto sbatomWaveOp = dynamic_cast<const wave::SbAtomWaveOp*>(waveOp)) {
@@ -355,8 +354,6 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     // waveop type
     KCC_SERIALIZE(WeightsAtomId);
     KCC_SERIALIZE(WeightsOffsetInAtom);
-    KCC_SERIALIZE(LwWaitEventId);
-    serWaveOp.m_LwWaitEventMode = eventWaitMode2Int(matmulWaveOp->gLwWaitEventMode());
 #undef WAVE_OP
 }
 

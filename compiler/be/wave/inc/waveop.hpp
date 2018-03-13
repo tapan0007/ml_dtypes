@@ -32,6 +32,8 @@ namespace nets {
 
 namespace wave {
 
+class WaveEdge;
+
 using namespace utils;
 
 //--------------------------------------------------------
@@ -97,12 +99,12 @@ public:
 
     const std::string& gLayerName() const;
 
-    const std::vector<WaveOp*>& gPrevWaveOps() const {
-        return m_PrevWaveOps;
+    const std::vector<WaveEdge*>& gPrevWaveEdges() const {
+        return m_PrevWaveEdges;
     }
 
-    const std::vector<WaveOp*>& gSuccWaveOps() const {
-        return m_SuccWaveOps;
+    const std::vector<WaveEdge*>& gSuccWaveEdges() const {
+        return m_SuccWaveEdges;
     }
 
     kcc_int32 gWaveAtomSize () const {
@@ -113,23 +115,6 @@ public:
         return m_Order;
     }
 
-    void addSuccWaveop(WaveOp* succWaveop);
-
-    EventId gWaitEventId() const {
-        return m_Sync.gWaitEventId();
-    }
-    events::EventWaitMode gWaitEventMode() const {
-        return m_Sync.gWaitEventMode();
-    }
-    EventId gSetEventId() const {
-        return m_Sync.gSetEventId();
-    }
-    events::EventSetMode gSetEventMode() const {
-        return m_Sync.gSetEventMode();
-    }
-
-    void rWaitEvent(EventId eventId, events::EventWaitMode);
-    void rSetEvent(EventId eventId, events::EventSetMode);
 
 protected:
 #if 0
@@ -137,13 +122,11 @@ protected:
 
 protected:
     std::string             m_Name          = "";
-    std::vector<WaveOp*>    m_PrevWaveOps;
-    std::vector<WaveOp*>    m_SuccWaveOps;
+    std::vector<WaveEdge*>  m_PrevWaveEdges;
+    std::vector<WaveEdge*>  m_SuccWaveEdges;
     FmapDesc                m_OfmapDesc;
     kcc_int32               m_Order = -1;
 
-protected:
-    events::Events          m_Sync;
 
 private:
     layers::Layer*          m_Layer         = nullptr;
