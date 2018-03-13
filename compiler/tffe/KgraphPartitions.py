@@ -8,7 +8,7 @@
 import os
 import KaenaOpGraph as kog
 import re
-
+import shutil
 
 # Describes a (small) Kgraph with inputs and the output node
 class KsubGraph:

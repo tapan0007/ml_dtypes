@@ -170,10 +170,10 @@ class NnSubgraph:
     if ret != 0:
       return ret
 
-    outBase = self.getOutputNpyFileBase()
 
     # Translate TPB format back to TF format.
     if (executor == "tcc" or  executor == "wave" or executor == "waveopt") and OutFile != "":
+      outBase = self.getOutputNpyFileBase()
       simExt = "simout"
       if executor == "waveopt":
         simExt = "midout"
