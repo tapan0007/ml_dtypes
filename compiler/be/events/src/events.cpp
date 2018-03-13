@@ -1,4 +1,6 @@
 
+#include "utils/inc/asserter.hpp"
+
 #include "events/inc/events.hpp"
 
 
@@ -8,26 +10,20 @@ namespace events {
 /****************************************************************
  *                                                              *
  ****************************************************************/
-Events::Events()
-    : m_WaitEvent()
-    , m_SetEvent()
-{
-}
+Channel::Channel()
+    : m_SetEventMode(EventSetMode::NoEvent)
+    , m_EventId(-1)
+    , m_WaitEventMode(EventWaitMode::NoEvent)
+{ }
 
 
 void
-Events::rWaitEvent(EventId eventId, EventWaitMode mode)
+Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
 {
-    m_WaitEvent.rEvent(eventId, mode);
+    m_SetEventMode = setMode;  // FromOp
+    m_EventId = eventId;
+    m_WaitEventMode = waitMode; // ToOp
 }
-
-
-void
-Events::rSetEvent(EventId eventId, EventSetMode mode)
-{
-    m_SetEvent.rEvent(eventId, mode);
-}
-
 
 
 
@@ -36,22 +32,8 @@ Events::rSetEvent(EventId eventId, EventSetMode mode)
 /****************************************************************
  *                                                              *
  ****************************************************************/
-WaitEvent::WaitEvent()
-    : m_EventId(-1)
-    , m_EventMode(EventWaitMode::NoEvent)
-{
-}
-
-void
-WaitEvent::rEvent(EventId eventId, EventWaitMode mode)
-{
-    m_EventId = eventId;
-    m_EventMode = mode;
-}
-
-
 int
-WaitEvent::eventWaitMode2Int(EventWaitMode mode)
+eventWaitMode2Int(EventWaitMode mode)
 {
     switch(mode) {
     case EventWaitMode::NoEvent:
@@ -73,21 +55,8 @@ WaitEvent::eventWaitMode2Int(EventWaitMode mode)
 /****************************************************************
  *                                                              *
  ****************************************************************/
-SetEvent::SetEvent()
-    : m_EventId(-1)
-    , m_EventMode(EventSetMode::NoEvent)
-{
-}
-
-void
-SetEvent::rEvent(EventId eventId, EventSetMode mode)
-{
-    m_EventId = eventId;
-    m_EventMode = mode;
-}
-
 int
-SetEvent::eventSetMode2Int(EventSetMode mode)
+eventSetMode2Int(EventSetMode mode)
 {
     switch(mode) {
     case EventSetMode::NoEvent:

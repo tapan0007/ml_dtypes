@@ -56,8 +56,16 @@ private:
 
 public:
 
+    const WaveOp* gFromOp() const {
+        return m_FromOp;
+    }
+
     WaveOp* gFromOp() {
         return m_FromOp;
+    }
+
+    const WaveOp* gToOp() const {
+        return m_ToOp;
     }
 
     WaveOp* gToOp() {
@@ -67,26 +75,26 @@ public:
     /****************************************************************
      *                                                              *
      ****************************************************************/
-    events::EventId gEventId() const {
-        return m_EventId;
+    void rEvent(events::EventSetMode setMode, EventId eventId, events::EventWaitMode waitMode)
+    {
+        m_Channel.rEvent(setMode, eventId, waitMode);
+    }
+    EventId gEventId() const {
+        return m_Channel.gEventId();
+    }
+    events::EventWaitMode gWaitEventMode() const {
+        return m_Channel.gWaitEventMode();
+    }
+    events::EventSetMode gSetEventMode() const {
+        return m_Channel.gSetEventMode();
     }
 
 private:
-    WaveOp*                 m_From;
-    WaveOp*                 m_To;
-    events::EventId                 m_EventId;
+    WaveOp*                 m_FromOp;
+    WaveOp*                 m_ToOp;
+    events::Channel         m_Channel;
 }; // class WaveEdge
 
-
-class WaveEdge::Params {
-public:
-    bool verify() const;
-public:
-    std::string             m_WaveEdgeName    = "";
-    //FmapDesc                m_OfmapDesc;
-    layers::Layer*          m_Layer         = nullptr;
-    kcc_int32               m_Order;
-};
 
 
 } // namespace wave

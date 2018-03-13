@@ -21,6 +21,8 @@
 #include "utils/inc/types.hpp"
 #include "utils/inc/datatype.hpp"
 
+#include "events/inc/events.hpp"
+
 // Must include matmulwaveop.hpp for WaveId
 #include "wave/inc/matmulwaveop.hpp"
 
@@ -211,6 +213,15 @@ public:
     void addPreviousWaveOp(const std::string& prevWaveOp) {
         m_PreviousWaveOps.push_back(prevWaveOp);
     }
+    void addPreviousEventId(EventId eventId) {
+        m_PrevEventIds.push_back(eventId);
+    }
+    void addPreviousEventWaitMode(events::EventWaitMode mode) {
+        m_PrevEventWaitMode.push_back(eventWaitMode2Int(mode));
+    }
+    void addPrevEventSetMode(events::EventSetMode mode) {
+        m_PrevEventSetMode.push_back(eventSetMode2Int(mode));
+    }
 
     static ActivationFunc str2ActivationFunc(const std::string& s);
     static std::string activationType2Str(ActivationFunc);
@@ -246,6 +257,9 @@ public:
     std::string                 m_WaveOpName        = "";
     std::string                 m_LayerName         = "";
     std::vector<std::string>    m_PreviousWaveOps;
+    std::vector<int>            m_PrevEventIds;
+    std::vector<int>            m_PrevEventWaitMode;
+    std::vector<int>            m_PrevEventSetMode;
 
     // SBAtom
     kcc_int32                   m_AtomId            = -1;

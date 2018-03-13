@@ -31,11 +31,11 @@ private:
     void processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop);
     void processResAdd(wave::ResAddWaveOp* resaddWaveop);
 
-    kcc_int32 getLocalEventId(const wave::WaveOp* from, const wave::WaveOp* to);
+    EventId getLocalEventId(const wave::WaveEdge* edge);
 
 private:
     const nets::Network& m_Network;
-    kcc_int32 m_EventId;
+    EventId m_EventId;
 };
 
 }}

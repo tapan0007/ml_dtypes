@@ -140,8 +140,6 @@ public:
     }
 
 
-private:
-    void createSuccWaveOps();
 
 private:
     Network() = delete;

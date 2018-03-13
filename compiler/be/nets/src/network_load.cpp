@@ -275,8 +275,6 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             m_Name2WaveOp[waveOp->gName()] = waveOp;
         }
     }
-
-    createSuccWaveOps();
 }
 
 

@@ -382,11 +382,5 @@ MatMulWaveOp::Params::verify() const
 }
 
 
-void
-MatMulWaveOp::rLwWaitEvent(EventId eventId, events::EventWaitMode mode)
-{
-    m_LwWaitEvent.rEvent(eventId, mode);
-}
-
 }}
 
