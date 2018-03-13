@@ -119,8 +119,11 @@ class NnSubgraph:
       tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
       tpbOutFile = "%s/%s_%s-%s.npy" % (self.sgDir, outBase, tpbFmapFormat, simExt)
       sgOutFile = "%s/%s" % (self.sgDir, OutFile)
+      refTfFile = "%s.npy" % (outBase)
       if os.path.isfile(tpbOutFile):
         npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=sgOutFile)
+        if os.path.isfile(refTfFile):
+          npt.reshapeFilePerRefFile(sgOutFile, refTfFile)
       else:
         print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
     if os.path.islink(OutFile):

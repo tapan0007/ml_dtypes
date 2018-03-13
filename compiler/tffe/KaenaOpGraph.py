@@ -215,6 +215,10 @@ class NodeConst(Node):
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      
+      # Spec for future global format tracking
+      #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)
+      
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,

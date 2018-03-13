@@ -97,6 +97,19 @@ class NpTrans:
     assert len(shape) == 2
     tmpShape = [1, 1, shape[0], shape[1]]
     return tmpShape
-  
- 
+
+  @staticmethod
+  def reshapeFilePerRefFile(npyFile, refShapeFile):
+    arr = np.load(npyFile)
+    refArr = np.load(refShapeFile)
+    assert arr.size == arr.size
+    if not refArr.shape == arr.shape:
+      #print("DEBUG: reshapeFilePerRefFile reshaped  %s  %s -> %s  based on shape of  %s"
+      #      % (npyFile, arr.shape, refArr.shape, refShapeFile))
+      arr = arr.reshape(refArr.shape)
+      np.save(npyFile, arr)
+    #else:
+      #print("DEBUG: reshapeFilePerRefFile no reshape was needed for  %s" % npyFile)
+
+
   
