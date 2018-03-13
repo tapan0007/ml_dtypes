@@ -271,6 +271,12 @@ public:
     }
 
 private:
+    MatMulWaveOp() = delete;
+    MatMulWaveOp(const MatMulWaveOp&) = delete;
+
+    MatMulWaveOp& operator= (const MatMulWaveOp&) const = delete;
+
+private:
     kcc_int16       m_BatchingInWave        = -1;
     kcc_int16       m_FmapXNum              = -1;
     kcc_int16       m_FmapXStep             = -1;
@@ -307,8 +313,8 @@ private:
     std::string     m_WaveIdFormat          = "";
     // waveop name
     // waveop type
-    kcc_int16       m_WeightsAtomId         = -1;
-    kcc_int16       m_WeightsOffsetInAtom   = -1;
+    kcc_int16       m_WeightsAtomId         = -2; // -1 means do not load weights
+    kcc_int16       m_WeightsOffsetInAtom   = -2; // -1 means do not load weights
 }; // class MatMulWaveOp : public WaveOp
 
 
