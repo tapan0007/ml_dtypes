@@ -258,7 +258,7 @@ testConfigMap = {
   "0-4conv_relu_nne" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1-imax2", "4conv_nne", "--partition conv --executors tcc 1 3 host 0 2 4 --debug 1 --scheduler wave"],
   "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition auto --executors wave all --debug 1 --scheduler wave" % rnDogJpg],
   "8-rn50_nne_fp32_meauto" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition meauto --executors wave all host 17 --debug 1 --scheduler wave" % rnDogJpg],
-  "8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --debug 1"],
+  #"8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --debug 1"],
   "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 host 1 --debug 1" % rnDogJpg],
   "4-rn50_nne_from1_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from bn_conv1/batchnorm_1/add_1   --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
   "4-rn50_nne_from2_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from activation_1/Relu   --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
@@ -295,8 +295,6 @@ testWaiver = [
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
     ['4-rn50_matmul_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
-    ['4-rn50_matmul_fp32_waveopt$',   'WAIVE-S10_NNE_4D_2D'],
-    ['4-rn50_matmul_nosm_fp32_wave$', 'WAIVE-S10_BE_MATMUL'],
 
     ['^[6]-alexnet',  'WAIVE-BENCH'],
     ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
