@@ -144,11 +144,12 @@ KgraphPartitions.attachPrePost(sgJsonList, args.preprocessor, args.postprocessor
 
 nnGraphFile = "nn_graph.json"
 with open(nnGraphFile, "w") as f:
-    s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
-    f.write(s)
+  s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
+  f.write(s)
 
 # K-elf compilation is done. Make output directory read/execute only
-remove_write_permissions(".")
+if debugLevel > 0:
+  remove_write_permissions(".")
 
 print("INFO: Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
