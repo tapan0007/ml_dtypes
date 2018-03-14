@@ -48,8 +48,10 @@ class RuntimeSim:
 
     print("INFO: executing %s" % cmd, flush=True)
     ret = os.system(cmd)
+    return ret
 
 
 runtime = RuntimeSim()
 ret = runtime.run(inputFmaps, outputFmap)
-exit(ret)
+
+assert(ret == 0)
