@@ -23,10 +23,12 @@ parser.add_argument('--input_fmaps', help='',
 parser.add_argument('--output_fmaps', help='',
                     dest="output_fmap", default=[], nargs=2)
 parser.add_argument('--parallel_streams', help='run execution engines in parallel', action='store_true', default=False)
+parser.add_argument('--tpb_dir', help='directory where tpb file(s) are located', default="./")
 args = parser.parse_args()
 inputFmaps = args.input_fmaps
 outputFmap = args.output_fmap
 parallelStreams = args.parallel_streams
+tpb_dir = args.tpb_dir
 assert(len(inputFmaps) == 0) # embedded in tdb at the moment..
 assert(len(outputFmap) == 0)
 
@@ -40,9 +42,9 @@ class RuntimeSim:
 
     cmd = "%s/sim/sim" % (InklingPath)
     if args.parallel_streams:
-      cmd += " --dma TrivNet-dma.tpb --sp TrivNet-sp.tpb  --pe TrivNet-pe.tpb --pool TrivNet-pool.tpb --act TrivNet-act.tpb"
+      cmd += " --dma %s/TrivNet-dma.tpb --sp %s/TrivNet-sp.tpb  --pe %s/TrivNet-pe.tpb --pool %s/TrivNet-pool.tpb --act %s/TrivNet-act.tpb" %(tpb_dir, tpb_dir, tpb_dir, tpb_dir, tpb_dir)
     else:
-      cmd += " TrivNet.tpb"
+      cmd += " %s/TrivNet.tpb" % tpb_dir
 
 
 

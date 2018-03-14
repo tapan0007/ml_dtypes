@@ -144,7 +144,7 @@ class NnSubgraph:
       self.linkConsts()
       self.createTpbFormatInputs()
       cmd = "%s/runtime/util/runtime_sim" % kPath
-      cmd += "  --tpb %s" % "%s/%s/TrivNet.tpb" %(kelf_dir, self.sgDir)
+      cmd += "  --tpb_dir %s" % "%s/%s" %(kelf_dir, self.sgDir)
       if self.parallel_streams:
         cmd += " --parallel_streams"
       #cmd += "  --input_fmaps %s" % " ".join(self.getUpdatedInputs())
