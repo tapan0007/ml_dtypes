@@ -236,6 +236,7 @@ Main(int argc, char* argv[])
             instrStreams.m_PeArrayInstrStream       = file;
             instrStreams.m_PoolEngInstrStream       = file;
             instrStreams.m_ActEngInstrStream        = file;
+            instrStreams.m_DmaInstrStream           = file;
         }
 
         wavecode::WaveCode waveCode(ntwk, arch);
