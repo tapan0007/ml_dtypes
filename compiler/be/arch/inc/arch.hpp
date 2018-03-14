@@ -72,6 +72,9 @@ public:
     //----------------------------------------------------------------
     const std::string& gArchVersion() const;
 
+    kcc_int64 gTbpEventBase() const;
+    kcc_int64 gSpEventBase() const;
+
 private:
     PeArray        m_PeArray;
     PsumBuffer     m_PsumBuffer;

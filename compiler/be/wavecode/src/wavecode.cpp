@@ -1,9 +1,13 @@
 #include <map>
 
 
-#include "uarch_cfg.hpp"
+#include "shared/inc/uarch_cfg.hpp"
 #include "tcc/inc/tcc.hpp"
 
+
+#include "utils/inc/asserter.hpp"
+
+#include "arch/inc/arch.hpp"
 #include "nets/inc/network.hpp"
 
 #include "events/inc/eventmgr.hpp"
@@ -109,58 +113,144 @@ WaveCode::gCurrentDramAddress(kcc_int64 sizeInBytes)
 
 
 
+
 template<>
-void WaveCode::writeInstruction<MATMUL>(MATMUL& instruction)
+void WaveCode::writeInstruction<MATMUL>(const MATMUL& instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
 }
 
 template<>
-void WaveCode::writeInstruction<LDWEIGHTS>(LDWEIGHTS& instruction)
+void WaveCode::writeInstruction<LDWEIGHTS>(const LDWEIGHTS& instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
 }
 
 template<>
-void WaveCode::writeInstruction<POOL>(POOL& instruction)
+void WaveCode::writeInstruction<POOL>(const POOL& instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
 }
 
 
 template<>
-void WaveCode::writeInstruction<ACTIVATION >(ACTIVATION & instruction)
+void WaveCode::writeInstruction<ACTIVATION >(const ACTIVATION & instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
 }
 
 
 template<>
-void WaveCode::writeInstruction<MATADD>(MATADD & instruction)
+void WaveCode::writeInstruction<MATADD>(const MATADD & instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
 }
 
 
-
-
 template<>
-void WaveCode::writeInstruction<SIM_RDNPY>(SIM_RDNPY& instruction)
+void WaveCode::writeInstruction<SIM_RDNPY>(const SIM_RDNPY& instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
 }
 
 template<>
-void WaveCode::writeInstruction<SIM_WRNPY>(SIM_WRNPY& instruction)
+void WaveCode::writeInstruction<SIM_WRNPY>(const SIM_WRNPY& instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
 }
 
 template<>
-void WaveCode::writeInstruction<SIM_MEMCPY>(SIM_MEMCPY& instruction)
+void WaveCode::writeInstruction<SIM_MEMCPY>(const SIM_MEMCPY& instruction)
 {
     fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
 }
+
+
+
+
+
+template<>
+void WaveCode::writeInstruction<WRITE>(const WRITE& instruction, EngineId engId)
+{
+    switch (engId) {
+    case EngineId::Pooling:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+        break;
+    case EngineId::PeArray:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
+        break;
+    case EngineId::Activation:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
+        break;
+    case EngineId::StreamProc:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+        break;
+    case EngineId::DmaEng:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
+        break;
+    default:
+        Assert(false, "Wrong EngineId ", static_cast<int>(engId));
+    }
+}
+
+
+
+template<>
+void WaveCode::writeInstruction<WAIT>(const WAIT& instruction, EngineId engId)
+{
+    switch (engId) {
+    case EngineId::Pooling:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+        break;
+    case EngineId::PeArray:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
+        break;
+    case EngineId::Activation:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
+        break;
+    case EngineId::StreamProc:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+        break;
+    case EngineId::DmaEng:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
+        break;
+    default:
+        Assert(false, "Wrong EngineId ", static_cast<int>(engId));
+    }
+}
+
+
+template<>
+void WaveCode::writeInstruction<SET>(const SET& instruction, EngineId engId)
+{
+    switch (engId) {
+    case EngineId::Pooling:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+        break;
+    case EngineId::PeArray:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
+        break;
+    case EngineId::Activation:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
+        break;
+    case EngineId::StreamProc:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+        break;
+    case EngineId::DmaEng:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
+        break;
+    default:
+        Assert(false, "Wrong EngineId ", static_cast<int>(engId));
+    }
+}
+
+
+
+
+
+
+
+
 
 
 void
@@ -193,6 +283,31 @@ WaveCode::saveAllNpyFiles ()
 
         this->writeInstruction(dramToNpyInstr);
     }
+}
+
+kcc_uint64
+WaveCode::calculateEventAddress(EngineId engId, EventId eventId) const
+{
+    const arch::Arch& arch(arch::Arch::gArch());
+
+    switch (engId) {
+    case EngineId::Pooling:
+    case EngineId::PeArray:
+    case EngineId::Activation:
+        return arch.gTbpEventBase() + eventId; // 1 byte per eventId
+        break;
+
+    case EngineId::StreamProc:
+        return arch.gSpEventBase() + eventId;
+
+    case EngineId::DmaEng:
+        return arch.gSpEventBase() + eventId; // is this wrong?
+
+    case EngineId::None:
+        Assert(false, "Bad engine id ", static_cast<int>(engId));
+    }
+    Assert(false, "Bad engine id ", static_cast<int>(engId));
+    return 0;
 }
 
 }}

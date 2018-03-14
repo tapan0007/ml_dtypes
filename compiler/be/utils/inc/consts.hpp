@@ -15,6 +15,7 @@ enum class EngineId {
     Activation,
     Pooling,
     StreamProc,
+    DmaEng,
 };
 
 enum {

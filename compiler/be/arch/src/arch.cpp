@@ -1,4 +1,5 @@
-#include "uarch_cfg.hpp"
+#include "shared/inc/uarch_cfg.hpp"
+
 #include "utils/inc/types.hpp"
 
 #include "arch/inc/poolingeng.hpp"
@@ -88,6 +89,19 @@ Arch::gArchVersion() const
 {
     static const std::string version("Tonga-0.2");
     return version;
+}
+
+kcc_int64
+Arch::gTbpEventBase() const
+{
+    return MMAP_EVENTS;
+
+}
+
+kcc_int64
+Arch::gSpEventBase() const
+{
+    return SP_EVENTS_BASE;
 }
 
 }}

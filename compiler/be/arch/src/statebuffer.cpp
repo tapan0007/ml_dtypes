@@ -1,6 +1,7 @@
-#include "uarch_cfg.hpp"
+#include "shared/inc/uarch_cfg.hpp"
 
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/datatype.hpp"
 
 #include "arch/inc/pearray.hpp"
 #include "arch/inc/statebuffer.hpp"
@@ -35,10 +36,60 @@ StateBuffer::gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
     return sysAddr;
 }
 
+
+
 kcc_int64
-StateBuffer::gAllZeroOffsetTpbAddress() const
+StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
 {
-    return MMAP_SB_FP32_ZERO_OFFSET;
+    if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
+        return MMAP_SB_FP32_ZERO_OFFSET;
+    }
+    if (dynamic_cast<const utils::DataTypeFloat16*>(&dataType)) {
+        return MMAP_SB_FP32_ZERO_OFFSET;
+    }
+
+    if (dynamic_cast<const utils::DataTypeUint8*>(&dataType)) {
+        return MMAP_SB_INT32_ZERO_OFFSET;
+    }
+    if (dynamic_cast<const utils::DataTypeUint16*>(&dataType)) {
+        return MMAP_SB_INT32_ZERO_OFFSET;
+    }
+
+    if (dynamic_cast<const utils::DataTypeInt32*>(&dataType)) {
+        return MMAP_SB_INT32_ZERO_OFFSET;
+    }
+    if (dynamic_cast<const utils::DataTypeInt64*>(&dataType)) {
+        return MMAP_SB_INT32_ZERO_OFFSET;
+    }
+    Assert(false, "No all-one in State Buffer for data type ", dataType.gName());
+    return 0;
+}
+
+kcc_int64
+StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
+{
+    if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
+        return MMAP_SB_FP32_ONE_OFFSET;
+    }
+    if (dynamic_cast<const utils::DataTypeFloat16*>(&dataType)) {
+        Assert(false, "Float16 does not have 1.0 in State Buffer");
+        return 0;
+    }
+    if (dynamic_cast<const utils::DataTypeUint8*>(&dataType)) {
+        return MMAP_SB_INT32_ONE_OFFSET;
+    }
+    if (dynamic_cast<const utils::DataTypeUint16*>(&dataType)) {
+        return MMAP_SB_INT32_ONE_OFFSET;
+    }
+
+    if (dynamic_cast<const utils::DataTypeInt32*>(&dataType)) {
+        return MMAP_SB_INT32_ONE_OFFSET;
+    }
+    if (dynamic_cast<const utils::DataTypeInt64*>(&dataType)) {
+        return MMAP_SB_INT32_ONE_OFFSET;
+    }
+    Assert(false, "No all-one in State Buffer for data type ", dataType.gName());
+    return 0;
 }
 
 }}

@@ -70,6 +70,8 @@ private:
     bool            m_ContainWeights    = false;
 };
 
+using SbAtomLoadWaveOp = SbAtomFileWaveOp;
+
 
 
 

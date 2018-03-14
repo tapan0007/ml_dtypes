@@ -65,14 +65,21 @@ public:
 
     void generate(const InstrStreams& instrStreams);
 
+    // Instructions that execute on one engine only: POOL, MATMUL, LDWEIGHTS, etc.
     template<typename INSTR>
-    void writeInstruction(INSTR& instruction);
+    void writeInstruction(const INSTR& instruction);
+
+    // multi-engine instructions: WAIT_EVENT, SET_EVENT, CLEAR_EVENT, WRITE
+    template<typename INSTR>
+    void writeInstruction(const INSTR& instruction, EngineId engId);
 
 
     kcc_int64 gCurrentDramAddress(kcc_int64 sizeInBytes);
     kcc_int64 getDramForNpyFile(const std::string& fileName);
     void recordDramForNpyFile(const std::string& fileName, const NpyFileInfo& npyFileInfo);
     void markDramDirty(const std::string& fileName);
+
+    kcc_uint64 calculateEventAddress(EngineId engId, EventId eventId) const;
 
 private:
     WaveCode() = delete;
