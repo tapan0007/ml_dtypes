@@ -91,7 +91,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     //************************************************************************
 
     //************************************************************************
-    { // Outgoing events
+    { // Outgoing events: inform successors
         std::vector<const wave::WaveEdge*> succMatmulEdges;
         std::vector<const wave::WaveEdge*> succPoolEdges;
         std::vector<const wave::WaveEdge*> succActivationEdges;
@@ -120,7 +120,8 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
                 succActivationEdges.push_back(succWaveEdge);
                 continue;
             }
-            Assert(false, "sbAtomFile waveop: successor waveop ", succWaveop->gName(), " has wrong type ", succWaveop->gTypeStr());
+            Assert(false, "sbAtomFile waveop ", sbAtomFileWaveOp->gName(), ": successor waveop ", succWaveop->gName(),
+                   " has wrong type ", succWaveop->gTypeStr());
         }
 
 

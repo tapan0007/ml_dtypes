@@ -32,18 +32,18 @@ WaveCodePool::WaveCodePool(WaveCode* waveCode)
 void
 WaveCodePool::generate(wave::WaveOp* waveOp)
 {
-    auto poolWaveOp = dynamic_cast<wave::PoolWaveOp*>(waveOp);
-    assert(poolWaveOp);
+    auto poolWaveop = dynamic_cast<wave::PoolWaveOp*>(waveOp);
+    assert(poolWaveop);
     const arch::Arch& arch(arch::Arch::gArch());
     const auto& psumBuf(arch.gPsumBuffer());
     const auto& stateBuf(arch.gStateBuffer());
 
-    const EngineId engineId = poolWaveOp->gEngineId();
+    const EngineId engineId = poolWaveop->gEngineId();
 
     POOL poolInstr;
 
     /* pool args */
-    switch (poolWaveOp->gPoolFunc()) {
+    switch (poolWaveop->gPoolFunc()) {
     case PoolType::Max:
         poolInstr.pool_func = POOLFUNC::MAX_POOL;
         break;
@@ -55,43 +55,43 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
         break;
     }
 
-    poolInstr.in_dtype          = poolWaveOp->gInDtype().gSimTypeId();
-    poolInstr.out_dtype         = poolWaveOp->gOutDtype().gSimTypeId();
-    if (poolWaveOp->qSrcIsPsum()) {
+    poolInstr.in_dtype          = poolWaveop->gInDtype().gSimTypeId();
+    poolInstr.out_dtype         = poolWaveop->gOutDtype().gSimTypeId();
+    if (poolWaveop->qSrcIsPsum()) {
         poolInstr.src_start_addr = psumBuf.gEntryTpbAddress(
-                                            poolWaveOp->gSrcPsumBankId(),
-                                            poolWaveOp->gSrcPsumBankOffset(),
-                                            poolWaveOp->gInDtype());
+                                            poolWaveop->gSrcPsumBankId(),
+                                            poolWaveop->gSrcPsumBankOffset(),
+                                            poolWaveop->gInDtype());
     } else { // State buffer
         poolInstr.src_start_addr = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
-                                            poolWaveOp->gSrcSbAtomId() * poolWaveOp->gWaveAtomSize()
-                                                + poolWaveOp->gSrcSbOffsetInAtom());
+                                            poolWaveop->gSrcSbAtomId() * poolWaveop->gWaveAtomSize()
+                                                + poolWaveop->gSrcSbOffsetInAtom());
     }
 
-    poolInstr.src_x_step        = poolWaveOp->gSrcXStep();
-    poolInstr.src_x_num         = poolWaveOp->gSrcXNum();
-    poolInstr.src_y_step        = poolWaveOp->gSrcYStep();
-    poolInstr.src_y_num         = poolWaveOp->gSrcYNum();
-    poolInstr.pool_frequency    = poolWaveOp->gPoolFrequency();
-    poolInstr.pool_scale        = static_cast<float>(1.0/poolWaveOp->gPoolFrequency());
+    poolInstr.src_x_step        = poolWaveop->gSrcXStep();
+    poolInstr.src_x_num         = poolWaveop->gSrcXNum();
+    poolInstr.src_y_step        = poolWaveop->gSrcYStep();
+    poolInstr.src_y_num         = poolWaveop->gSrcYNum();
+    poolInstr.pool_frequency    = poolWaveop->gPoolFrequency();
+    poolInstr.pool_scale        = static_cast<float>(1.0/poolWaveop->gPoolFrequency());
     /* strides */
-    poolInstr.src_z_step        = poolWaveOp->gSrcZStep();
-    poolInstr.src_z_num         = poolWaveOp->gSrcZNum();
-    poolInstr.src_w_step        = poolWaveOp->gSrcWStep();
-    poolInstr.src_w_num         = poolWaveOp->gSrcWNum();
-    poolInstr.num_partitions    = poolWaveOp->gNumPartitions();
+    poolInstr.src_z_step        = poolWaveop->gSrcZStep();
+    poolInstr.src_z_num         = poolWaveop->gSrcZNum();
+    poolInstr.src_w_step        = poolWaveop->gSrcWStep();
+    poolInstr.src_w_num         = poolWaveop->gSrcWNum();
+    poolInstr.num_partitions    = poolWaveop->gNumPartitions();
 
     /* Pool  */
-    poolInstr.dst_x_step        = poolWaveOp->gDstXStep();
-    poolInstr.dst_x_num         = poolWaveOp->gDstXNum();
-    poolInstr.dst_y_step        = poolWaveOp->gDstYStep();
-    poolInstr.dst_y_num         = poolWaveOp->gDstYNum();
-    poolInstr.dst_z_step        = poolWaveOp->gDstZStep();
-    poolInstr.dst_z_num         = poolWaveOp->gDstZNum();
+    poolInstr.dst_x_step        = poolWaveop->gDstXStep();
+    poolInstr.dst_x_num         = poolWaveop->gDstXNum();
+    poolInstr.dst_y_step        = poolWaveop->gDstYStep();
+    poolInstr.dst_y_num         = poolWaveop->gDstYNum();
+    poolInstr.dst_z_step        = poolWaveop->gDstZStep();
+    poolInstr.dst_z_num         = poolWaveop->gDstZNum();
     // For now DST is always StateBuf
     poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
-                                            poolWaveOp->gDstSbAtomId() * poolWaveOp->gWaveAtomSize()
-                                                + poolWaveOp->gDstSbOffsetInAtom());
+                                            poolWaveop->gDstSbAtomId() * poolWaveop->gWaveAtomSize()
+                                                + poolWaveop->gDstSbOffsetInAtom());
 
     //************************************************************************
     { // incoming events
@@ -100,7 +100,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
         std::vector<const wave::WaveEdge*> prevActivationEdges;
 
         // Inspect incoming edges/events
-        for (auto prevWaveEdge : poolWaveOp->gPrevWaveEdges()) {
+        for (auto prevWaveEdge : poolWaveop->gPrevWaveEdges()) {
             if (prevWaveEdge->gEventId() == EventId_Invalid) {
                 continue;
             }
@@ -109,23 +109,24 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                 continue;
             }
             if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, poolWaveOp);
+                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, poolWaveop);
                 Assert(!prevSbAtomLoadWaveop->qContainWeights(), "SbAtomLoad ", prevSbAtomLoadWaveop->gName(),
-                       " preceeding Pool ", poolWaveOp->gName(), " cannot contain weights");
+                       " preceeding Pool ", poolWaveop->gName(), " cannot contain weights");
                 prevIfmapEdges.push_back(prevWaveEdge);
                 continue;
             }
             if (auto prevActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, poolWaveOp);
+                ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, poolWaveop);
                 prevActivationEdges.push_back(prevWaveEdge);
                 continue;
             }
             if (auto prevMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevMatmulWaveop, poolWaveOp);
+                ASSERT_HAS_EVENT(prevWaveEdge, prevMatmulWaveop, poolWaveop);
                 prevMatmulEdges.push_back(prevWaveEdge);
                 continue;
             }
-            Assert(false, "Pool waveop: predecessor waveop ", prevWaveop->gName(), " has wrong type ", prevWaveop->gTypeStr());
+            Assert(false, "Pool waveop ", poolWaveop->gName(), ": predecessor waveop ", prevWaveop->gName(),
+                   " has wrong type ", prevWaveop->gTypeStr());
         }
 
         bool firstEmb = true;
@@ -170,7 +171,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
         std::vector<const wave::WaveEdge*> succMatmulEdges;
         std::vector<const wave::WaveEdge*> succActivationEdges;
 
-        for (auto succWaveEdge : poolWaveOp->gSuccWaveEdges()) {
+        for (auto succWaveEdge : poolWaveop->gSuccWaveEdges()) {
             if (succWaveEdge->gEventId() == EventId_Invalid) {
                 continue;
             }
@@ -180,21 +181,22 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             }
 
             if (auto succSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, poolWaveOp, succSbAtomSaveWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, poolWaveop, succSbAtomSaveWaveop);
                 succIfmapEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, poolWaveOp, succMatmulWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, poolWaveop, succMatmulWaveop);
                 succMatmulEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, poolWaveOp, succActivationWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, poolWaveop, succActivationWaveop);
                 succActivationEdges.push_back(succWaveEdge);
                 continue;
             }
-            Assert(false, "Pool waveop: successor waveop ", succWaveop->gName(), " has wrong type ", succWaveop->gTypeStr());
+            Assert(false, "Pool waveop ", poolWaveop->gName(), ": successor waveop ", succWaveop->gName(),
+                   " has wrong type ", succWaveop->gTypeStr());
         }
 
         bool firstEmb = true;

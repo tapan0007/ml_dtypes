@@ -12,9 +12,9 @@ WaveEdge::WaveEdge(WaveOp* fromOp, WaveOp* toOp)
 }
 
 void
-WaveEdge::rEvent(EventWaitMode waitMode, EventId eventId, EventSetMode setMode)
+WaveEdge::rEvent(events::EventSetMode setMode, EventId eventId, events::EventWaitMode waitMode)
 {
-    m_Channel.rEvent(waitMode, eventId, setMode);
+    m_Channel.rEvent(setMode, eventId, waitMode);
 }
 
 

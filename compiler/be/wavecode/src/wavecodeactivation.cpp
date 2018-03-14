@@ -30,59 +30,59 @@ WaveCodeActivation::WaveCodeActivation(WaveCode* waveCode)
 
 
 void
-WaveCodeActivation::generate(wave::WaveOp* waveOp)
+WaveCodeActivation::generate(wave::WaveOp* waveop)
 {
-    auto activationWaveOp = dynamic_cast<wave::ActivationWaveOp*>(waveOp);
-    assert(activationWaveOp);
+    auto activationWaveop = dynamic_cast<wave::ActivationWaveOp*>(waveop);
+    assert(activationWaveop);
 
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
     const arch::StateBuffer& stateBuf(arch.gStateBuffer());
-    const EngineId engineId = activationWaveOp->gEngineId();
+    const EngineId engineId = activationWaveop->gEngineId();
 
     ACTIVATION activationInstr;
 
-    activationInstr.activation_func     = activationWaveOp->gSimActivationFunc();
-    activationInstr.in_dtype            = activationWaveOp->gInDtype().gSimTypeId();
-    activationInstr.bias_dtype          = activationWaveOp->gBiasDtype().gSimTypeId();
-    activationInstr.out_dtype           = activationWaveOp->gOutDtype().gSimTypeId();
+    activationInstr.activation_func     = activationWaveop->gSimActivationFunc();
+    activationInstr.in_dtype            = activationWaveop->gInDtype().gSimTypeId();
+    activationInstr.bias_dtype          = activationWaveop->gBiasDtype().gSimTypeId();
+    activationInstr.out_dtype           = activationWaveop->gOutDtype().gSimTypeId();
 
     // TODO: for now Activation reads from 0 elem in bank.
-    activationInstr.src_start_addr      = psumBuf.gEntryTpbAddress(activationWaveOp->gSrcPsumBankId(), 0, activationWaveOp->gInDtype());
+    activationInstr.src_start_addr      = psumBuf.gEntryTpbAddress(activationWaveop->gSrcPsumBankId(), 0, activationWaveop->gInDtype());
 
-    activationInstr.src_x_step          = activationWaveOp->gSrcXStep();
-    activationInstr.src_y_step          = activationWaveOp->gSrcYStep();
-    // activationInstr.src_z_step          = activationWaveOp->gSrcZStep(); // when available in the new ISA
-    activationInstr.src_x_num           = activationWaveOp->gSrcXNum();
-    activationInstr.src_y_num           = activationWaveOp->gSrcYNum();
-    // activationInstr.src_z_num           = activationWaveOp->gSrcZNum(); // when available in the new ISA
+    activationInstr.src_x_step          = activationWaveop->gSrcXStep();
+    activationInstr.src_y_step          = activationWaveop->gSrcYStep();
+    // activationInstr.src_z_step          = activationWaveop->gSrcZStep(); // when available in the new ISA
+    activationInstr.src_x_num           = activationWaveop->gSrcXNum();
+    activationInstr.src_y_num           = activationWaveop->gSrcYNum();
+    // activationInstr.src_z_num           = activationWaveop->gSrcZNum(); // when available in the new ISA
 
-    if (activationWaveOp->qDstIsPsum()) {
-        activationInstr.dst_start_addr  = psumBuf.gEntryTpbAddress(activationWaveOp->gDstPsumBankId(),
+    if (activationWaveop->qDstIsPsum()) {
+        activationInstr.dst_start_addr  = psumBuf.gEntryTpbAddress(activationWaveop->gDstPsumBankId(),
                                                                   0, /* bank offset 0 */
-                                                                  activationWaveOp->gOutDtype());
+                                                                  activationWaveop->gOutDtype());
     } else {
         activationInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
-                                                activationWaveOp->gDstSbAtomId() * activationWaveOp->gWaveAtomSize()
-                                                    + activationWaveOp->gDstSbOffsetInAtom());
+                                                activationWaveop->gDstSbAtomId() * activationWaveop->gWaveAtomSize()
+                                                    + activationWaveop->gDstSbOffsetInAtom());
     }
-    activationInstr.dst_x_step      = activationWaveOp->gDstXStep();
-    activationInstr.dst_y_step      = activationWaveOp->gDstYStep();
-    activationInstr.dst_z_step      = activationWaveOp->gDstZStep();
-    activationInstr.dst_x_num       = activationWaveOp->gDstXNum();
-    activationInstr.dst_y_num       = activationWaveOp->gDstYNum();
-    activationInstr.dst_z_num       = activationWaveOp->gDstZNum();
+    activationInstr.dst_x_step      = activationWaveop->gDstXStep();
+    activationInstr.dst_y_step      = activationWaveop->gDstYStep();
+    activationInstr.dst_z_step      = activationWaveop->gDstZStep();
+    activationInstr.dst_x_num       = activationWaveop->gDstXNum();
+    activationInstr.dst_y_num       = activationWaveop->gDstYNum();
+    activationInstr.dst_z_num       = activationWaveop->gDstZNum();
 
-    activationInstr.scale_value         = activationWaveOp->gScale();
-    if (activationWaveOp->qBiasAddEn ()) {
+    activationInstr.scale_value         = activationWaveop->gScale();
+    if (activationWaveop->qBiasAddEn ()) {
         activationInstr.acc_addr        = stateBuf.gEntryTpbAddress(
                                             0,   //row 0 for now
-                                            activationWaveOp->gBiasAtomId() * activationWaveOp->gWaveAtomSize()
-                                                + activationWaveOp->gBiasOffsetInAtom());
+                                            activationWaveop->gBiasAtomId() * activationWaveop->gWaveAtomSize()
+                                                + activationWaveop->gBiasOffsetInAtom());
     } else {
-        activationInstr.acc_addr        = stateBuf.gAllZeroOffsetTpbAddress(activationWaveOp->gBiasDtype());
+        activationInstr.acc_addr        = stateBuf.gAllZeroOffsetTpbAddress(activationWaveop->gBiasDtype());
     }
-    activationInstr.num_partitions      = activationWaveOp->gNumPartitions();
+    activationInstr.num_partitions      = activationWaveop->gNumPartitions();
 
     //************************************************************************
     { // incoming events
@@ -91,7 +91,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
         std::vector<const wave::WaveEdge*> prevPoolEdges;
 
         // Inspect incoming edges/events
-        for (auto prevWaveEdge : activationWaveOp->gPrevWaveEdges()) {
+        for (auto prevWaveEdge : activationWaveop->gPrevWaveEdges()) {
             if (prevWaveEdge->gEventId() == EventId_Invalid) {
                 continue;
             }
@@ -100,23 +100,24 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
                 continue;
             }
             if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, activationWaveOp);
-                Assert(!prevSbAtomLoadWaveop->qContainWeights(), "SbAtomLoad ", prevSbAtomLoadWaveop->gName(),
-                       " preceeding Activation ", activationWaveOp->gName(), " cannot contain weights");
+                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, activationWaveop);
+                Assert(!prevSbAtomLoadWaveop->qContainWeights(), "SbAtomLoad ", prevWaveop->gName(),
+                       " preceeding Activation ", activationWaveop->gName(), " cannot contain weights");
                 prevIfmapEdges.push_back(prevWaveEdge);
                 continue;
             }
             if (auto prevPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevPoolWaveop, activationWaveOp);
+                ASSERT_HAS_EVENT(prevWaveEdge, prevPoolWaveop, activationWaveop);
                 prevPoolEdges.push_back(prevWaveEdge);
                 continue;
             }
             if (auto prevMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevMatmulWaveop, activationWaveOp);
+                ASSERT_HAS_EVENT(prevWaveEdge, prevMatmulWaveop, activationWaveop);
                 prevMatmulEdges.push_back(prevWaveEdge);
                 continue;
             }
-            Assert(false, "Activation waveop: predecessor waveop ", prevWaveop->gName(), " has wrong type ", prevWaveop->gTypeStr());
+            Assert(false, "Activation waveop ", activationWaveop->gName(), ": predecessor waveop ", prevWaveop->gName(),
+                   " has wrong type ", prevWaveop->gTypeStr());
         }
 
         bool firstEmb = true;
@@ -162,7 +163,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
         std::vector<const wave::WaveEdge*> succMatmulEdges;
         std::vector<const wave::WaveEdge*> succPoolEdges;
 
-        for (auto succWaveEdge : activationWaveOp->gSuccWaveEdges()) {
+        for (auto succWaveEdge : activationWaveop->gSuccWaveEdges()) {
             if (succWaveEdge->gEventId() == EventId_Invalid) {
                 continue;
             }
@@ -171,22 +172,23 @@ WaveCodeActivation::generate(wave::WaveOp* waveOp)
                 continue;
             }
 
-            if (auto succSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, activationWaveOp, succSbAtomSaveWaveop);
+            if (auto succSbAtomSaveWaveOp = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {
+                ASSERT_HAS_EVENT(succWaveEdge, activationWaveop, succSbAtomSaveWaveOp);
                 succIfmapEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, activationWaveOp, succMatmulWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, activationWaveop, succMatmulWaveop);
                 succMatmulEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, activationWaveOp, succPoolWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, activationWaveop, succPoolWaveop);
                 succPoolEdges.push_back(succWaveEdge);
                 continue;
             }
-            Assert(false, "Activation waveop: successor waveop ", succWaveop->gName(), " has wrong type ", succWaveop->gTypeStr());
+            Assert(false, "Activation waveop ", activationWaveop->gName(), ": successor waveop ", succWaveop->gName(),
+                   " has wrong type ", succWaveop->gTypeStr());
         }
 
         bool firstEmb = true;

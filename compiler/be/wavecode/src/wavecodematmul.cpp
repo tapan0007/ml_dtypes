@@ -43,19 +43,19 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
 
 
 void
-WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
+WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 {
-    assert(matmulWaveOp->verify());
-    if (matmulWaveOp->gWeightsOffsetInAtom() < 0) {
+    assert(matmulWaveop->verify());
+    if (matmulWaveop->gWeightsOffsetInAtom() < 0) {
         return; // this MatMul reuses weights
     }
     //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
-    //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveOp->gWaveId());
+    //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveop->gWaveId());
 
     LDWEIGHTS ldweightsInstr;
 
     //TPB_CMD_HEADER  hdr;
-    const utils::DataType& dtype(matmulWaveOp->gInDtype());
+    const utils::DataType& dtype(matmulWaveop->gInDtype());
     ldweightsInstr.dtype                 = dtype.gSimTypeId();
     //uint8_t         perf_opt = OPT_NONE;
     //uint8_t         dquant_table_idx  = 0;
@@ -67,14 +67,14 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     //    uint8_t     zero_point_uint8[2];
     //    uint16_t    zero_point_uint16   = 0;
     //} TONGA_PACKED;
-    const kcc_int64 addressInSbPart     = matmulWaveOp->gWeightsAtomId() * matmulWaveOp->gWaveAtomSize()
-                                            + matmulWaveOp->gWeightsOffsetInAtom();
+    const kcc_int64 addressInSbPart     = matmulWaveop->gWeightsAtomId() * matmulWaveop->gWaveAtomSize()
+                                            + matmulWaveop->gWeightsOffsetInAtom();
 
-    ldweightsInstr.start_addr            = addressInSbPart + (matmulWaveOp->gOfmapCount() - 1) * dtype.gSizeInBytes();
+    ldweightsInstr.start_addr            = addressInSbPart + (matmulWaveop->gOfmapCount() - 1) * dtype.gSizeInBytes();
 
     ldweightsInstr.x_step                = -1; // last column goes first, so decrement
-    ldweightsInstr.x_num                 = matmulWaveOp->gOfmapCount();
-    ldweightsInstr.num_row_partitions    = matmulWaveOp->gIfmapCount();
+    ldweightsInstr.x_num                 = matmulWaveop->gOfmapCount();
+    ldweightsInstr.num_row_partitions    = matmulWaveop->gIfmapCount();
 
     //************************************************************************
     // incoming events
@@ -83,13 +83,13 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
     std::vector<const wave::WaveEdge*> prevPoolEdges;
     std::vector<const wave::WaveEdge*> prevActivationEdges;
 
-    for (auto prevWaveEdge : matmulWaveOp->gPrevWaveEdges()) {
+    for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
         if (prevWaveEdge->gEventId() == EventId_Invalid) {
             continue;
         }
         auto prevWaveop = prevWaveEdge->gFromOp();
         if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
-            ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, matmulWaveOp);
+            ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, matmulWaveop);
             if (prevSbAtomLoadWaveop->qContainWeights()) {
                 prevWeightEdges.push_back(prevWaveEdge);
             } else {
@@ -98,19 +98,20 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
             continue;
         }
         if (auto prevPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
-            ASSERT_HAS_EVENT(prevWaveEdge, prevPoolWaveop, matmulWaveOp);
+            ASSERT_HAS_EVENT(prevWaveEdge, prevPoolWaveop, matmulWaveop);
             prevPoolEdges.push_back(prevWaveEdge);
             continue;
         }
         if (auto prevActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
-            ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, matmulWaveOp);
+            ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, matmulWaveop);
             prevActivationEdges.push_back(prevWaveEdge);
             continue;
         }
-        Assert(false, "Matmul waveop: waveop ", prevWaveop->gName(), " has wrong type ", prevWaveop->gTypeStr());
+        Assert(false, "Matmul waveop ", matmulWaveop->gName(), ": waveop ", prevWaveop->gName(),
+               " has wrong type ", prevWaveop->gTypeStr());
     }
 
-    Assert(prevWeightEdges.size() <= 1, "Matmul waveop ", matmulWaveOp->gName(), " can have only one weight predecessor");
+    Assert(prevWeightEdges.size() <= 1, "Matmul waveop ", matmulWaveop->gName(), " can have only one weight predecessor");
     if (prevWeightEdges.size() > 0) {
         auto prevWaveEdge = prevWeightEdges[0];
         //auto prevWaveop = prevWaveEdge->gFromOp();
@@ -129,39 +130,39 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp)
 
 
 void
-WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
+WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 {
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
     //const arch::StateBuffer& stateBuf(arch.gStateBuffer());
 
-    const EngineId engineId = matmulWaveOp->gEngineId();
+    const EngineId engineId = matmulWaveop->gEngineId();
 
     MATMUL matmulInstr;
-    matmulInstr.dtype                   = matmulWaveOp->gInDtype().gSimTypeId();
-    matmulInstr.num_row_partitions      = matmulWaveOp->gNumRowPartitions();
-    matmulInstr.num_column_partitions   = matmulWaveOp->gNumColumnPartitions();
+    matmulInstr.dtype                   = matmulWaveop->gInDtype().gSimTypeId();
+    matmulInstr.num_row_partitions      = matmulWaveop->gNumRowPartitions();
+    matmulInstr.num_column_partitions   = matmulWaveop->gNumColumnPartitions();
 
-    matmulInstr.fmap_start_addr         = matmulWaveOp->gIfmapsAtomId() * wave::MatMulWaveOp::AtomSize +
-                                          matmulWaveOp->gIfmapsOffsetInAtom();
-    matmulInstr.fmap_x_num              = matmulWaveOp->gFmapXNum();
-    matmulInstr.fmap_x_step             = matmulWaveOp->gFmapXStep();
-    matmulInstr.fmap_y_num              = matmulWaveOp->gFmapYNum();
-    matmulInstr.fmap_y_step             = matmulWaveOp->gFmapYStep();
-    matmulInstr.fmap_z_num              = matmulWaveOp->gFmapZNum();
-    matmulInstr.fmap_z_step             = matmulWaveOp->gFmapZStepAtoms() * matmulWaveOp->gIfmapsAtomSize();
+    matmulInstr.fmap_start_addr         = matmulWaveop->gIfmapsAtomId() * wave::MatMulWaveOp::AtomSize +
+                                          matmulWaveop->gIfmapsOffsetInAtom();
+    matmulInstr.fmap_x_num              = matmulWaveop->gFmapXNum();
+    matmulInstr.fmap_x_step             = matmulWaveop->gFmapXStep();
+    matmulInstr.fmap_y_num              = matmulWaveop->gFmapYNum();
+    matmulInstr.fmap_y_step             = matmulWaveop->gFmapYStep();
+    matmulInstr.fmap_z_num              = matmulWaveop->gFmapZNum();
+    matmulInstr.fmap_z_step             = matmulWaveop->gFmapZStepAtoms() * matmulWaveop->gIfmapsAtomSize();
 
     matmulInstr.psum_start_addr         = psumBuf.gEntryTpbAddress(
-                                                    matmulWaveOp->gPsumBankId(),
-                                                    matmulWaveOp->gPsumBankOffset(),
-                                                    matmulWaveOp->gOutDtype());
-    matmulInstr.psum_x_num              = matmulWaveOp->gPsumXNum();
-    matmulInstr.psum_x_step             = matmulWaveOp->gPsumXStep();
-    matmulInstr.psum_y_num              = matmulWaveOp->gPsumYNum();
-    matmulInstr.psum_y_step             = matmulWaveOp->gPsumYStep();
+                                                    matmulWaveop->gPsumBankId(),
+                                                    matmulWaveop->gPsumBankOffset(),
+                                                    matmulWaveop->gOutDtype());
+    matmulInstr.psum_x_num              = matmulWaveop->gPsumXNum();
+    matmulInstr.psum_x_step             = matmulWaveop->gPsumXStep();
+    matmulInstr.psum_y_num              = matmulWaveop->gPsumYNum();
+    matmulInstr.psum_y_step             = matmulWaveop->gPsumYStep();
 
-    matmulInstr.start_tensor_calc       = matmulWaveOp->qStartTensorCalc();
-    matmulInstr.stop_tensor_calc        = matmulWaveOp->qStopTensorCalc();
+    matmulInstr.start_tensor_calc       = matmulWaveop->qStartTensorCalc();
+    matmulInstr.stop_tensor_calc        = matmulWaveop->qStopTensorCalc();
 
 
     //************************************************************************
@@ -174,7 +175,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
         std::vector<const wave::WaveEdge*> prevActivationEdges;
 
         // Inspect incoming edges/events
-        for (auto prevWaveEdge : matmulWaveOp->gPrevWaveEdges()) {
+        for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
             if (prevWaveEdge->gEventId() == EventId_Invalid) {
                 continue;
             }
@@ -183,7 +184,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
                 continue;
             }
             if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, matmulWaveOp);
+                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, matmulWaveop);
                 if (prevSbAtomLoadWaveop->qContainWeights()) {
                     prevWeightEdges.push_back(prevWaveEdge);
                 } else {
@@ -192,16 +193,17 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
                 continue;
             }
             if (auto prevPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevPoolWaveop, matmulWaveOp);
+                ASSERT_HAS_EVENT(prevWaveEdge, prevPoolWaveop, matmulWaveop);
                 prevPoolEdges.push_back(prevWaveEdge);
                 continue;
             }
             if (auto prevActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, matmulWaveOp);
+                ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, matmulWaveop);
                 prevActivationEdges.push_back(prevWaveEdge);
                 continue;
             }
-            Assert(false, "Matmul waveop: predecessor waveop ", prevWaveop->gName(), " has wrong type ", prevWaveop->gTypeStr());
+            Assert(false, "Matmul waveop ", matmulWaveop->gName(), ": predecessor waveop ", prevWaveop->gName(),
+                   " has wrong type ", prevWaveop->gTypeStr());
         }
 
         bool firstEmb = true;
@@ -251,7 +253,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
         std::vector<const wave::WaveEdge*> succPoolEdges;
         std::vector<const wave::WaveEdge*> succActivationEdges;
 
-        for (auto succWaveEdge : matmulWaveOp->gSuccWaveEdges()) {
+        for (auto succWaveEdge : matmulWaveop->gSuccWaveEdges()) {
             if (succWaveEdge->gEventId() == EventId_Invalid) {
                 continue;
             }
@@ -260,17 +262,17 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveOp)
                 continue;
             }
             if (auto succSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, matmulWaveOp, succSbAtomSaveWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, matmulWaveop, succSbAtomSaveWaveop);
                 succIfmapEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, matmulWaveOp, succPoolWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, matmulWaveop, succPoolWaveop);
                 succPoolEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, matmulWaveOp, succActivationWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, matmulWaveop, succActivationWaveop);
                 succActivationEdges.push_back(succWaveEdge);
                 continue;
             }
