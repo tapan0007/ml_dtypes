@@ -28,6 +28,7 @@ import sys, json, re
 import TfFrontEnd
 import KgraphPartitions
 import shutil
+from MiscUtil import remove_write_permissions
 
 kPath = os.environ.get('KAENA_PATH')
 print("\nINFO: started as  ", " ".join(sys.argv))
@@ -145,6 +146,9 @@ nnGraphFile = "nn_graph.json"
 with open(nnGraphFile, "w") as f:
     s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
     f.write(s)
+
+# K-elf compilation is done. Make output directory read/execute only
+remove_write_permissions(".")
 
 print("INFO: Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
