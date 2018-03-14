@@ -95,7 +95,6 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
     //************************************************************************
     { // incoming events
-        std::vector<const wave::WaveEdge*> prevWeightEdges;
         std::vector<const wave::WaveEdge*> prevIfmapEdges;
         std::vector<const wave::WaveEdge*> prevMatmulEdges;
         std::vector<const wave::WaveEdge*> prevActivationEdges;

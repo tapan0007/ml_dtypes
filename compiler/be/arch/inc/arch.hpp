@@ -72,8 +72,10 @@ public:
     //----------------------------------------------------------------
     const std::string& gArchVersion() const;
 
-    kcc_int64 gTbpEventBase() const;
-    kcc_int64 gSpEventBase() const;
+    static kcc_int64 gTpbBase();
+
+    static kcc_int64 gTbpEventBase();
+    static kcc_int64 gSpEventBase();
 
 private:
     PeArray        m_PeArray;

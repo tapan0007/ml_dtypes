@@ -104,6 +104,12 @@ Arch::gSpEventBase() const
     return SP_EVENTS_BASE;
 }
 
+kcc_int64
+Arch::TpbBase() const
+{
+    return TPB_BASE;
+}
+
 }}
 
 

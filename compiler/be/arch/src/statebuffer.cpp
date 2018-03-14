@@ -32,7 +32,7 @@ kcc_int64
 StateBuffer::gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 {
     kcc_int64 sysAddr = gEntryTpbAddress(row, elmtOffInBytes);
-    sysAddr += TPB_BASE;
+    sysAddr += Arch::gTpbBase();
     return sysAddr;
 }
 
@@ -90,6 +90,18 @@ StateBuffer::gAllOneOffsetSysAddress(const utils::DataType& dataType) const
     }
     Assert(false, "No all-one in State Buffer for data type ", dataType.gName());
     return 0;
+}
+
+kcc_int64
+StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
+{
+    return gAllZeroOffsetSysAddress(dataType) - Arch::gTpbBase();
+}
+
+kcc_int64
+StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
+{
+    return gAllOneOffsetSysAddress(dataType) - m_Arch::gTpbBase();
 }
 
 }}
