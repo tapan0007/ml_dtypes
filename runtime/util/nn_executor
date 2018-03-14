@@ -118,7 +118,9 @@ class NnSubgraph:
     g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Weights]))
     g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Fmaps]))
     for f in g:
-      os.symlink(f, "%s/%s" % (working_dir, os.path.basename(f)) )
+      dst_f = "%s/%s" % (working_dir, os.path.basename(f))
+      if not os.path.isfile(dst_f):
+          os.symlink(f, dst_f )
 
 
   # Executes a subgraph, calls appropriate executor as specified in nn_graph.json
@@ -163,8 +165,8 @@ class NnSubgraph:
       self.linkConsts()
       self.createTpbFormatInputs()
       cmd = "python3 %s//compiler/util/layeropt.py" % kPath
-      cmd += "  --kgraph *_compiler.json"
-      cmd += "  --wavegraph *_wavegraph.json"
+      cmd += "  --kgraph %s/%s/*_compiler.json" % (kelf_dir, self.sgDir)
+      cmd += "  --wavegraph %s/%s/*_wavegraph.json" % (kelf_dir, self.sgDir)
 
 
     cmd = "%s > %s 2>&1" % (cmd, logFile)

@@ -175,7 +175,7 @@ SerWaveOp::verifyMatMul () const
     if (m_WeightsAtomId < 0) {
         RETURN_ASSERT(false);
     }
-    if (m_WeightsOffsetInAtom < 0) {
+    if (m_WeightsOffsetInAtom < -1) {
         RETURN_ASSERT(false);
     }
     return true;
