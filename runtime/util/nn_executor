@@ -160,8 +160,8 @@ class NnSubgraph:
       self.linkConsts()
       self.createTpbFormatInputs()
       cmd = "python3 %s//compiler/util/layeropt.py" % kPath
-      cmd += "  --kgraph *_compiler.json"
-      cmd += "  --wavegraph *_wavegraph.json"
+      cmd += "  --kgraph %s/%s/*_compiler.json" % (kelf_dir, self.sgDir)
+      cmd += "  --wavegraph %s/%s/*_wavegraph.json" % (kelf_dir, self.sgDir)
 
 
     cmd = "%s > %s 2>&1" % (cmd, logFile)
