@@ -181,11 +181,9 @@ class NnSubgraph:
         simExt = "midout"
       tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
       tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
-      refTfFile = "%s/%s.npy" % (kelf_dir, outBase)
       if os.path.isfile(tpbOutFile):
-        npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=OutFile)
-        if os.path.isfile(refTfFile):
-          npt.reshapeFilePerRefFile(OutFile, refTfFile)
+        outShape = self.outputs[0]["shape"]
+        npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=OutFile, dstShape=outShape)
       else:
         print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
         return -1
