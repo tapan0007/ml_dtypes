@@ -249,7 +249,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     { // Outgoing events
         // Right now all succ edges are treated equally, but in the future
         // we may change it, so keep separate arrays.
-        std::vector<const wave::WaveEdge*> succIfmapEdges;
+        std::vector<const wave::WaveEdge*> succOfmapEdges;
         std::vector<const wave::WaveEdge*> succPoolEdges;
         std::vector<const wave::WaveEdge*> succActivationEdges;
 
@@ -263,7 +263,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             }
             if (auto succSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {
                 ASSERT_HAS_EVENT(succWaveEdge, matmulWaveop, succSbAtomSaveWaveop);
-                succIfmapEdges.push_back(succWaveEdge);
+                succOfmapEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(succWaveop)) {
@@ -280,7 +280,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         }
 
         bool firstEmb = true;
-        for (auto succWaveEdge : succIfmapEdges) {
+        for (auto succWaveEdge : succOfmapEdges) {
             WRITE writeInstr;
             writeInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::DmaEng, succWaveEdge->gEventId());
             writeInstr.data         = ~(0UL);  // writing is for remote event-set. All 1's ensure that bit/byte endianess does not matter.

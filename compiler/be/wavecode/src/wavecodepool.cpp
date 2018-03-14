@@ -167,7 +167,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
     //************************************************************************
     { // Outgoing events
-        std::vector<const wave::WaveEdge*> succIfmapEdges;
+        std::vector<const wave::WaveEdge*> succOfmapEdges;
         std::vector<const wave::WaveEdge*> succMatmulEdges;
         std::vector<const wave::WaveEdge*> succActivationEdges;
 
@@ -182,7 +182,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
             if (auto succSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {
                 ASSERT_HAS_EVENT(succWaveEdge, poolWaveop, succSbAtomSaveWaveop);
-                succIfmapEdges.push_back(succWaveEdge);
+                succOfmapEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(succWaveop)) {
@@ -200,7 +200,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
         }
 
         bool firstEmb = true;
-        for (auto succWaveEdge : succIfmapEdges) {
+        for (auto succWaveEdge : succOfmapEdges) {
             WRITE writeInstr;
             writeInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::DmaEng, succWaveEdge->gEventId());
             writeInstr.data         = ~(0UL);  // writing is for remote event-set. All 1's ensure that bit/byte endianess does not matter.

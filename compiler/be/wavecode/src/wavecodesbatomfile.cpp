@@ -126,7 +126,9 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         }
 
 
-        // Add one more MEMCPY to send events
+        // Today SbAtomFile (and SbAtomSave are executed by the DMA sequencer which belongs to the
+        // TPB sync domain, so sending an event to Pool/Act/PE engines could be done with SET_EVENT,
+        // but real DMA will be doing a write (via an additional DMA), so I will use WRITE here.
         const utils::DataTypeUint16 dtype;
         WRITE writeEventInstr;
         writeEventInstr.sync.wait_event_id   = -1;
