@@ -1,4 +1,5 @@
 #include "shared/inc/tpb_isa_ldweights.hpp"
+#include "shared/inc/tpb_isa_write.hpp"
 
 
 #include "utils/inc/asserter.hpp"
@@ -127,12 +128,12 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
 
         // Add one more MEMCPY to send events
         const utils::DataTypeUint16 dtype;
-        SIM_MEMCPY writeEventInstr;
-        writeEventInstr.nbytes = 1;
+        WRITE writeEventInstr;
         writeEventInstr.sync.wait_event_id   = -1;
         writeEventInstr.sync.wait_event_mode = eventWaitMode2Int(events::EventWaitMode::NoEvent);
-        writeEventInstr.src_address = stateBuf.gAllOneOffsetSysAddress(dtype);
 
+        writeEventInstr.nbytes = 1;
+        writeEventInstr.data = ~(0UL);
 
         for (auto succWaveEdge : succPoolEdges) {
             writeEventInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::Pooling, succWaveEdge->gEventId());
