@@ -1245,7 +1245,7 @@ class FusedOp(list):
         # find the weights offset within atom; -1 means don't load new weights
         weights_offset_in_atom = tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr)
         if (self.conv_op.weight_wave_lower_addr == self.prev_weight_wave_lower_addr):
-            #weights_offset_in_atom = -1
+            weights_offset_in_atom = -1
             if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
         else:            
             self.prev_weight_wave_lower_addr = self.conv_op.weight_wave_lower_addr
@@ -1688,6 +1688,40 @@ class TPBSched:
         self.waveop_stream = WaveopStream()
 
     # generate activation instruction and add it to instruction stream
+    def gen_recip_waveop_inline(self, op, psum_bank_src, dst_is_psum, psum_bank_dst):
+        layer_name = op.data["layer_name"]
+        in_dtype = "float32"
+        out_dtype = "float32"
+        waveop_name = layer_name+"/Reciprocal"
+        instr = {
+              'previous_waveops'        : [],
+              'waveop_type'             : 'Reciprocal',
+              'waveop_name'             : waveop_name,
+              'layer_name'              : layer_name,
+              'in_dtype'                : in_dtype,
+              'out_dtype'               : out_dtype,
+              'src_psum_bank_id'        : psum_bank_src,
+              'src_x_step'              : 1,
+              'src_x_num'               : 1,
+              'src_y_step'              : 1,
+              'src_y_num'               : 1,
+              'src_z_step'              : 1,
+              'src_z_num'               : 1,
+              'dst_is_psum'             : dst_is_psum, 
+              'dst_psum_bank_id'        : psum_bank_dst,
+              'dst_sb_atom_id'          : 0, # Need to adjust this after allocating atoms
+              'dst_sb_offset_in_atom'   : 0, 
+              'dst_x_step'              : 1,
+              'dst_x_num'               : 1,
+              'dst_y_step'              : 1,
+              'dst_y_num'               : 1,
+              'dst_z_step'              : 1,
+              'dst_z_num'               : 1,
+              'num_partitions'          : 1
+            }
+        self.waveop_stream.add_linked(instr, [])
+
+    # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
         layer_name = ""
         bias_add_en = False
@@ -1948,6 +1982,7 @@ class TPBSched:
                         psum_temp = self.pool.reciprocate(psum_temp, op_list.conv_op.M)
                         psum_bank_dst = 2
                         tpb.pearray.write_psum(psum_bank_dst, 0, op_list.conv_op.ofmap_full_tile_sz, psum_temp)
+                        tpb.gen_recip_waveop_inline(op_list.conv_op, psum_bank_src, True, psum_bank_dst)
                         psum_bank_src = psum_bank_dst
                         # loops for final scaling
                         for c_id in range(ceildiv(op_list.conv_op.C, PEArray.NUM_COLS)):
