@@ -92,20 +92,20 @@ Arch::gArchVersion() const
 }
 
 kcc_int64
-Arch::gTbpEventBase() const
+Arch::gTbpEventBase()
 {
     return MMAP_EVENTS;
 
 }
 
 kcc_int64
-Arch::gSpEventBase() const
+Arch::gSpEventBase()
 {
     return SP_EVENTS_BASE;
 }
 
 kcc_int64
-Arch::TpbBase() const
+Arch::gTpbBase()
 {
     return TPB_BASE;
 }

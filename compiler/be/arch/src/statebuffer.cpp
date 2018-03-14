@@ -3,6 +3,7 @@
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"
 
+#include "arch/inc/arch.hpp"
 #include "arch/inc/pearray.hpp"
 #include "arch/inc/statebuffer.hpp"
 
@@ -101,7 +102,7 @@ StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
 kcc_int64
 StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
 {
-    return gAllOneOffsetSysAddress(dataType) - m_Arch::gTpbBase();
+    return gAllOneOffsetSysAddress(dataType) - Arch::gTpbBase();
 }
 
 }}
