@@ -2144,9 +2144,9 @@ class TPBSched:
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
                         op_list.conv_op.compute_tile_weight_bounds(weights, tile_id)
                         # loops for constructing a tile
-                        for c_id in range(op_list.conv_op.c):
-                            for r_id in range(op_list.conv_op.R):
-                                for s_id in range(op_list.conv_op.S):
+                        for r_id in range(op_list.conv_op.R):
+                            for s_id in range(op_list.conv_op.S):
+                                for c_id in range(op_list.conv_op.c):
                                     wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, r_id, s_id)
                                     if (args.debug > 2): print (wave_id.show())
                                     # execute PEArray matrix multiply, and add to PSUM after first wave
