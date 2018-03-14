@@ -282,9 +282,9 @@ testConfigMap = {
 
 
   # Matmult
-  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --depth 2 --partition from avg_pool/AvgPool --executors host 0 wave 1 --debug 1 --scheduler wave", rnDogJpg],
-  "4-rn50_matmul_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --depth 2 --partition from avg_pool/AvgPool --executors host 0 waveopt 1 --debug 1 --scheduler wave", rnDogJpg],
-  "4-rn50_matmul_nosm_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --depth 2 --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --debug 1 --scheduler wave", rnDogJpg],
+  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " %s --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave"% (rn_cmn_opts), rnDogJpg],
+  "4-rn50_matmul_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " %s --partition from avg_pool/AvgPool --executors host 0 waveopt 1 --scheduler wave"% (rn_cmn_opts), rnDogJpg],
+  "4-rn50_matmul_nosm_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " %s --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --scheduler wave" % (rn_cmn_opts), rnDogJpg],
 
 }
 
