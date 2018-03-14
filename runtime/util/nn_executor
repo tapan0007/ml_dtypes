@@ -124,7 +124,7 @@ class NnSubgraph:
     g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Fmaps]))
     for f in g:
       dst_f = "%s/%s" % (working_dir, os.path.basename(f))
-      if not os.path.isfile(dst_f):
+      if not os.path.isfile(dst_f) and not "out.npy" in f:
           os.symlink(f, dst_f )
 
 
