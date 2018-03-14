@@ -175,7 +175,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             if (succWaveEdge->gEventId() == EventId_Invalid) {
                 continue;
             }
-            auto succWaveop = succWaveEdge->gFromOp();
+            auto succWaveop = succWaveEdge->gToOp();
             if (succWaveop->gEngineId() == engineId) {
                 continue;
             }

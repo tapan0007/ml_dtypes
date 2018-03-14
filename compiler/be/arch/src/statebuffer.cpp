@@ -39,7 +39,7 @@ StateBuffer::gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 
 
 kcc_int64
-StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
+StateBuffer::gAllZeroOffsetSysAddress(const utils::DataType& dataType) const
 {
     if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
         return MMAP_SB_FP32_ZERO_OFFSET;
@@ -66,7 +66,7 @@ StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
 }
 
 kcc_int64
-StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
+StateBuffer::gAllOneOffsetSysAddress(const utils::DataType& dataType) const
 {
     if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
         return MMAP_SB_FP32_ONE_OFFSET;
