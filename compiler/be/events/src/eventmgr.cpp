@@ -32,7 +32,7 @@ EventMgr::getLocalEventId(const wave::WaveEdge* edge)
 {
     const wave::WaveOp* const fromOp = edge->gFromOp();
     const wave::WaveOp* const toOp = edge->gToOp();
-    Assert(fromOp != toOp, "From (", fromOp->gName(), ") and to (", toOp->gName(), ") events should be different");
+    Assert(fromOp != toOp, "From (", fromOp->gName(), ") and to (", toOp->gName(), ") waveops should be different");
     const kcc_int32 eventId = m_EventId++;
     if (m_EventId >= 256) {
         m_EventId = 0;
@@ -83,14 +83,14 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
             continue;
         }
 
-        if (auto poolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
+        if (dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
             ++numPrevPool;
             const EventId eventId = getLocalEventId(prevWaveEdge);
             prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
 
-        if (auto activationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
+        if (dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
             ++numPrevActivation;
             const EventId eventId = getLocalEventId(prevWaveEdge);
             prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
@@ -134,19 +134,19 @@ EventMgr::processPool(wave::PoolWaveOp* poolWaveop)
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
-        if (auto sbatomFileWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
+        if (dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
             ++numPrevAtomFile;
             const EventId eventId = getLocalEventId(prevWaveEdge);
             prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
-        if (auto matmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
+        if (dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
             ++numPrevMatMul;
             const EventId eventId = getLocalEventId(prevWaveEdge);
             prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
-        if (auto activationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
+        if (dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
             ++numPrevActivation;
             const EventId eventId = getLocalEventId(prevWaveEdge);
             prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
@@ -175,26 +175,26 @@ EventMgr::processActivation(wave::ActivationWaveOp* activationWaveop)
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
-        if (auto sbatomFileWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
+        if (dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
             ++numPrevAtomFile;
             const EventId eventId = getLocalEventId(prevWaveEdge);
             prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
-        if (auto matmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
+        if (dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
             ++numPrevMatMul;
             const EventId eventId = getLocalEventId(prevWaveEdge);
             prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
-        if (auto poolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
+        if (dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
             ++numPrevPool;
             const EventId eventId = getLocalEventId(prevWaveEdge);
             prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
             continue;
         }
         Assert(false,
-                "Predecessors of Pool waveop must be one of DramLoad, MatMul, Activation: ",
+                "Predecessors of Activation waveop must be one of DramLoad, MatMul, Pool: ",
                 prevWaveop->gTypeStr());
     }
 }
@@ -202,7 +202,38 @@ EventMgr::processActivation(wave::ActivationWaveOp* activationWaveop)
 void
 EventMgr::processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop)
 {
-    Assert(sbatomSaveWaveop, "Nil SbAtomSaveWaveOp");
+    const EngineId engineId = sbatomSaveWaveop->gEngineId();
+    int numPrevPool = 0;
+    int numPrevMatMul = 0;
+    int numPrevActivation = 0;
+
+    for (auto prevWaveEdge : sbatomSaveWaveop->gPrevWaveEdges()) {
+        auto prevWaveop = prevWaveEdge->gFromOp();
+        if (prevWaveop->gEngineId() == engineId) {
+            continue; // when two waveops execute on the same engine, no need for sync
+        }
+        if (dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
+            ++numPrevMatMul;
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
+            continue;
+        }
+        if (dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
+            ++numPrevPool;
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
+            continue;
+        }
+        if (dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
+            ++numPrevActivation;
+            const EventId eventId = getLocalEventId(prevWaveEdge);
+            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
+            continue;
+        }
+        Assert(false,
+                "Predecessors of SbAtomSave waveop must be one of Pool, MatMul, Activation: ",
+                prevWaveop->gTypeStr());
+    }
 }
 
 

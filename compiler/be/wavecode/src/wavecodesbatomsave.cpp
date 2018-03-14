@@ -34,6 +34,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     assert(sbAtomSaveWaveop);
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const EngineId engineId = sbAtomSaveWaveop->gEngineId();
+    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomSave waveop should be DmaEng");
 
     kcc_int64 npyFileDramOffset = m_WaveCode->getDramForNpyFile(sbAtomSaveWaveop->gRefFileName());
 
@@ -98,7 +99,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::Pooling);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevPoolEdges) {
@@ -109,7 +110,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::Pooling);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevMatmulEdges) {
@@ -120,12 +121,15 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::Pooling);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
     }
 
 
+    //************************************************************************
+    // Instruction
+    //************************************************************************
     const kcc_int64 numPartitions   = sbAtomSaveWaveop->gOfmapCount();
     const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomSaveWaveop->gAddressInPartition(0 /*offset in atom*/);
@@ -151,9 +155,6 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
         m_WaveCode->writeInstruction(statebufToDramInstr);
         m_WaveCode->markDramDirty(sbAtomSaveWaveop->gRefFileName());
     }
-
-    // Send event to all engines waiting for it
-    // NONE
 }
 
 

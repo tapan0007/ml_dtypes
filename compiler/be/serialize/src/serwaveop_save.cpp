@@ -15,11 +15,18 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
     KCC_ARCHIVE(WaveOpName);
     KCC_ARCHIVE(LayerName);
     KCC_ARCHIVE(PreviousWaveOps);
+    KCC_ARCHIVE(PreviousEventIds);
+    KCC_ARCHIVE(PreviousEventWaitModes);
+    KCC_ARCHIVE(PreviousEventSetModes);
 
+#if 0
     KCC_ARCHIVE(WaitEventId);
     KCC_ARCHIVE(WaitEventMode);
     KCC_ARCHIVE(SetEventMode);
     KCC_ARCHIVE(SetEventId);
+    KCC_ARCHIVE(LwWaitEventId);
+    KCC_ARCHIVE(LwWaitEventMode);
+#endif
 
     if (m_WaveOpType == WaveOpTypeStr_SBAtomFile ||
         m_WaveOpType == WaveOpTypeStr_SBAtomSave)
@@ -145,8 +152,6 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     // waveop type
     KCC_ARCHIVE(WeightsAtomId);
     KCC_ARCHIVE(WeightsOffsetInAtom);
-    KCC_ARCHIVE(LwWaitEventId);
-    KCC_ARCHIVE(LwWaitEventMode);
 
     assert(m_WaveIdFormat.size() == WaveIdFormatSize);
     std::vector<int> waveId(WaveIdFormatSize, -1); // undefined value before converting

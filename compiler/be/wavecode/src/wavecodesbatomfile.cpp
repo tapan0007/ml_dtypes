@@ -39,6 +39,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     assert(sbAtomFileWaveOp);
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const EngineId engineId = sbAtomFileWaveOp->gEngineId();
+    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomFile waveop should be DmaEng");
 
     kcc_int64 npyFileDramOffset = m_WaveCode->getDramForNpyFile(sbAtomFileWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) {
@@ -59,6 +60,9 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         m_WaveCode->recordDramForNpyFile(sbAtomFileWaveOp->gRefFileName(), npyFileInfo);
     }
 
+    //************************************************************************
+    // Instruction
+    //************************************************************************
     const kcc_int64 numPartitions   = sbAtomFileWaveOp->gIfmapCount();
     const kcc_int64 numBytesPerPart = sbAtomFileWaveOp->gLength();
     const kcc_int64 addressInPart   = sbAtomFileWaveOp->gAddressInPartition(0 /*offset in atom*/);
@@ -139,21 +143,17 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
 
         for (auto succWaveEdge : succPoolEdges) {
             writeEventInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::Pooling, succWaveEdge->gEventId());
-            m_WaveCode->writeInstruction(writeEventInstr, EngineId::Pooling);
+            m_WaveCode->writeInstruction(writeEventInstr, engineId);
         }
         for (auto succWaveEdge : succMatmulEdges) {
             writeEventInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::PeArray, succWaveEdge->gEventId());
-            m_WaveCode->writeInstruction(writeEventInstr, EngineId::PeArray);
+            m_WaveCode->writeInstruction(writeEventInstr, engineId);
         }
         for (auto succWaveEdge : succActivationEdges) {
             writeEventInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::Activation, succWaveEdge->gEventId());
-            m_WaveCode->writeInstruction(writeEventInstr, EngineId::PeArray);
+            m_WaveCode->writeInstruction(writeEventInstr, engineId);
         }
-    }
-
-    //************************************************************************
-
-    //************************************************************************
+    } 
 }
 
 }}

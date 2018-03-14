@@ -137,6 +137,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     //const arch::StateBuffer& stateBuf(arch.gStateBuffer());
 
     const EngineId engineId = matmulWaveop->gEngineId();
+    Assert(EngineId::PeArray == engineId, "Engine id for MatMul should be PeArray");
 
     MATMUL matmulInstr;
     matmulInstr.dtype                   = matmulWaveop->gInDtype().gSimTypeId();
@@ -215,7 +216,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::PeArray);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevPoolEdges) {
@@ -226,7 +227,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::PeArray);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevActivationEdges) {
@@ -237,12 +238,16 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::PeArray);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
     }
 
 
+
+    //************************************************************************
+    // write instruction
+    m_WaveCode->writeInstruction(matmulInstr);
 
 
     //************************************************************************
@@ -286,7 +291,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             writeInstr.data         = ~(0UL);  // writing is for remote event-set. All 1's ensure that bit/byte endianess does not matter.
             writeInstr.nbytes       = 1;
 
-            m_WaveCode->writeInstruction(writeInstr, EngineId::DmaEng);
+            m_WaveCode->writeInstruction(writeInstr, engineId);
         }
         for (auto succWaveEdge : succPoolEdges) {
             if (firstEmb) {
@@ -296,7 +301,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             } else {
                 SET setEventInstr;
                 setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(setEventInstr, EngineId::Pooling);
+                m_WaveCode->writeInstruction(setEventInstr, engineId);
             }
         }
         for (auto succWaveEdge : succActivationEdges) {
@@ -307,15 +312,11 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             } else {
                 SET setEventInstr;
                 setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(setEventInstr, EngineId::Activation);
+                m_WaveCode->writeInstruction(setEventInstr, engineId);
             }
         }
 
     }
-
-    //************************************************************************
-    // write instruction
-    m_WaveCode->writeInstruction(matmulInstr);
 }
 
 

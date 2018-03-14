@@ -34,10 +34,13 @@ namespace serialize {
 
 
 // common to all WaveOps
-constexpr static const char* WaveOpKey_WaveOpType           = "waveop_type";
-constexpr static const char* WaveOpKey_WaveOpName           = "waveop_name";
-constexpr static const char* WaveOpKey_LayerName            = "layer_name";
-constexpr static const char* WaveOpKey_PreviousWaveOps      = "previous_waveops";
+constexpr static const char* WaveOpKey_WaveOpType               = "waveop_type";
+constexpr static const char* WaveOpKey_WaveOpName               = "waveop_name";
+constexpr static const char* WaveOpKey_LayerName                = "layer_name";
+constexpr static const char* WaveOpKey_PreviousWaveOps          = "previous_waveops";
+constexpr static const char* WaveOpKey_PreviousEventIds         = "previous_event_ids";
+constexpr static const char* WaveOpKey_PreviousEventWaitModes   = "previous_event_wait_modes";
+constexpr static const char* WaveOpKey_PreviousEventSetModes    = "previous_event_set_modes";
 
 
 // MatMul
@@ -180,6 +183,7 @@ constexpr static const char* WaveOpKey_SrcBYStep	        = "src_b_y_step";
 constexpr static const char* WaveOpKey_SrcBZNum	            = "src_b_z_num";
 constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
+#if 0
 constexpr static const char* WaveOpKey_WaitEventId          = "wait_event_id";
 constexpr static const char* WaveOpKey_WaitEventMode        = "wait_event_mode";
 constexpr static const char* WaveOpKey_SetEventId           = "set_event_id";
@@ -187,6 +191,7 @@ constexpr static const char* WaveOpKey_SetEventMode         = "set_event_mode";
 
 constexpr static const char* WaveOpKey_LwWaitEventId        = "lw_wait_event_id";
 constexpr static const char* WaveOpKey_LwWaitEventMode      = "lw_wait_event_mode";
+#endif
 
 constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
 
@@ -214,13 +219,13 @@ public:
         m_PreviousWaveOps.push_back(prevWaveOp);
     }
     void addPreviousEventId(EventId eventId) {
-        m_PrevEventIds.push_back(eventId);
+        m_PreviousEventIds.push_back(eventId);
     }
     void addPreviousEventWaitMode(events::EventWaitMode mode) {
-        m_PrevEventWaitMode.push_back(eventWaitMode2Int(mode));
+        m_PreviousEventWaitModes.push_back(eventWaitMode2Int(mode));
     }
     void addPrevEventSetMode(events::EventSetMode mode) {
-        m_PrevEventSetMode.push_back(eventSetMode2Int(mode));
+        m_PreviousEventSetModes.push_back(eventSetMode2Int(mode));
     }
 
     static ActivationFunc str2ActivationFunc(const std::string& s);
@@ -257,9 +262,9 @@ public:
     std::string                 m_WaveOpName        = "";
     std::string                 m_LayerName         = "";
     std::vector<std::string>    m_PreviousWaveOps;
-    std::vector<int>            m_PrevEventIds;
-    std::vector<int>            m_PrevEventWaitMode;
-    std::vector<int>            m_PrevEventSetMode;
+    std::vector<int>            m_PreviousEventIds;
+    std::vector<int>            m_PreviousEventWaitModes;
+    std::vector<int>            m_PreviousEventSetModes;
 
     // SBAtom
     kcc_int32                   m_AtomId            = -1;
@@ -420,12 +425,14 @@ public:
     kcc_int32                   m_SrcZNum           = +1;
     kcc_int32                   m_SrcZStep          = +1;
 #endif
+#if 0
     kcc_int32                   m_WaitEventId       = 0;
     kcc_int32                   m_WaitEventMode     = NO_WAIT_EVENT;
     kcc_int32                   m_SetEventId        = 0;
     kcc_int32                   m_SetEventMode      = NO_SET_EVENT;
     kcc_int32                   m_LwWaitEventId     = 0;
     kcc_int32                   m_LwWaitEventMode   = NO_WAIT_EVENT;
+#endif
 }; // class SerWaveOp
 
 

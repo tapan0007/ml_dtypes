@@ -39,6 +39,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     const auto& stateBuf(arch.gStateBuffer());
 
     const EngineId engineId = poolWaveop->gEngineId();
+    Assert(EngineId::Pooling == engineId, "Engine id for Pool should be Pooling");
 
     POOL poolInstr;
 
@@ -138,7 +139,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::Pooling);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevActivationEdges) {
@@ -149,7 +150,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::Pooling);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevMatmulEdges) {
@@ -160,10 +161,16 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, EngineId::Pooling);
+                m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
     }
+
+
+    //************************************************************************
+    // write instruction
+    m_WaveCode->writeInstruction(poolInstr);
+
 
     //************************************************************************
     { // Outgoing events
@@ -206,7 +213,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             writeInstr.data         = ~(0UL);  // writing is for remote event-set. All 1's ensure that bit/byte endianess does not matter.
             writeInstr.nbytes       = 1;
 
-            m_WaveCode->writeInstruction(writeInstr, EngineId::DmaEng);
+            m_WaveCode->writeInstruction(writeInstr, engineId);
         }
         for (auto succWaveEdge : succMatmulEdges) {
             if (firstEmb) {
@@ -216,7 +223,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             } else {
                 SET setEventInstr;
                 setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(setEventInstr, EngineId::PeArray);
+                m_WaveCode->writeInstruction(setEventInstr, engineId);
             }
         }
         for (auto succWaveEdge : succActivationEdges) {
@@ -227,14 +234,10 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             } else {
                 SET setEventInstr;
                 setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(setEventInstr, EngineId::Activation);
+                m_WaveCode->writeInstruction(setEventInstr, engineId);
             }
         }
     }
-
-    //************************************************************************
-    // write instruction
-    m_WaveCode->writeInstruction(poolInstr);
 }
 
 }}
