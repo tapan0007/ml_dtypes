@@ -78,6 +78,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     //************************************************************************
     // incoming events
+    //************************************************************************
     std::vector<const wave::WaveEdge*> prevWeightEdges;
     std::vector<const wave::WaveEdge*> prevIfmapEdges;
     std::vector<const wave::WaveEdge*> prevPoolEdges;
@@ -121,10 +122,12 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     //************************************************************************
     // No outgoing events
+    //************************************************************************
 
     //************************************************************************
     // write instruction
     m_WaveCode->writeInstruction(ldweightsInstr);
+    //************************************************************************
 }
 
 
@@ -241,13 +244,9 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                 m_WaveCode->writeInstruction(waitInstr, engineId);
             }
         }
-    }
+    } // end incoming events
 
 
-
-    //************************************************************************
-    // write instruction
-    m_WaveCode->writeInstruction(matmulInstr);
 
 
     //************************************************************************
@@ -284,38 +283,54 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             Assert(false, "Matmul waveop: successor waveop ", succWaveop->gName(), " has wrong type ", succWaveop->gTypeStr());
         }
 
-        bool firstEmb = true;
+        //************************************************************************
+        // Find one embedded set-event edge, if any
+        //************************************************************************
+        const wave::WaveEdge* succWaveEdgeEmb  = nullptr;
+        kcc_uint32 poolStart = 0;
+        if (!succWaveEdgeEmb && succPoolEdges.size() > 0) {
+            succWaveEdgeEmb = succPoolEdges[poolStart++];
+        }
+        kcc_uint32 activationStart = 0;
+        if (!succWaveEdgeEmb && succActivationEdges.size() > 0) {
+            succWaveEdgeEmb = succActivationEdges[activationStart++];
+        }
+        if (succWaveEdgeEmb) {
+            matmulInstr.sync.set_event_id   = succWaveEdgeEmb->gEventId();
+            matmulInstr.sync.set_event_mode = events::eventSetMode2Int(succWaveEdgeEmb->gSetEventMode());
+        }
+
+        //************************************************************************
+        // write instruction
+        m_WaveCode->writeInstruction(matmulInstr);
+        //************************************************************************
+
+
+
+
+        //************************************************************************
+        // Remaining edges --> signal through SET_EVENT or through WRITE
+        //************************************************************************
+        for (kcc_uint32 poolIdx = poolStart; poolIdx < succPoolEdges.size(); ++poolIdx) {
+            SET setEventInstr;
+            auto succWaveEdge               = succPoolEdges[poolIdx];
+            setEventInstr.event_id          = succWaveEdge->gEventId();
+            m_WaveCode->writeInstruction(setEventInstr, engineId);
+        }
+        for (kcc_uint32 activationIdx = activationStart; activationIdx < succActivationEdges.size(); ++activationIdx) {
+            SET setEventInstr;
+            auto succWaveEdge               = succActivationEdges[activationIdx];
+            setEventInstr.event_id          = succWaveEdge->gEventId();
+            m_WaveCode->writeInstruction(setEventInstr, engineId);
+        }
         for (auto succWaveEdge : succOfmapEdges) {
-            WRITE writeInstr;
-            writeInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::DmaEng, succWaveEdge->gEventId());
-            writeInstr.data         = ~(0UL);  // writing is for remote event-set. All 1's ensure that bit/byte endianess does not matter.
-            writeInstr.nbytes       = 1;
+            WRITE writeInstr; // writing is for remote event-set
+            writeInstr.dst_address          = m_WaveCode->calculateEventAddress(EngineId::DmaEng, succWaveEdge->gEventId());
+            writeInstr.data                 = ~(0UL);  // All 1's => bit/byte endianess does not matter.
+            writeInstr.nbytes               = 1;
 
             m_WaveCode->writeInstruction(writeInstr, engineId);
         }
-        for (auto succWaveEdge : succPoolEdges) {
-            if (firstEmb) {
-                matmulInstr.sync.set_event_id       = succWaveEdge->gEventId();
-                matmulInstr.sync.set_event_mode     = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-                firstEmb = false;
-            } else {
-                SET setEventInstr;
-                setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(setEventInstr, engineId);
-            }
-        }
-        for (auto succWaveEdge : succActivationEdges) {
-            if (firstEmb) {
-                matmulInstr.sync.set_event_id       = succWaveEdge->gEventId();
-                matmulInstr.sync.set_event_mode     = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-                firstEmb = false;
-            } else {
-                SET setEventInstr;
-                setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(setEventInstr, engineId);
-            }
-        }
-
     }
 }
 
