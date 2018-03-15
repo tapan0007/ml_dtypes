@@ -2302,6 +2302,18 @@ if __name__ == "__main__":
             print(e)
             exit(-1)
 
+        # test by reading it back
+        try:
+            print("Test by loading Wave-graph %s"%args.wavegraph)
+            wavegraph_json = json.load(open(args.wavegraph))
+        except Exception as e:
+            print(e)
+            exit(-1)
+
+        # create graph from JSON file        
+        wavegraph = KGraph()
+        wavegraph.populate_from_kgraph_json(wavegraph_json)
+
     # write out dot graph in SVG format
     if (args.dot != None):            
         dot = Digraph()
@@ -2313,18 +2325,6 @@ if __name__ == "__main__":
         dot.format = dotfile_ext[1:]
         dot.render(dotfile_root)
         print("INFO: Wrote " + args.dot)
-
-    # test by reading it back
-    try:
-        print("Test by loading Wave-graph %s"%args.wavegraph)
-        wavegraph_json = json.load(open(args.wavegraph))
-    except Exception as e:
-        print(e)
-        exit(-1)
-
-    # create graph from JSON file        
-    wavegraph = KGraph()
-    wavegraph.populate_from_kgraph_json(wavegraph_json)
 
     # check for comparison errors
     if (num_mismatches > 0):
