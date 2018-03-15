@@ -38,7 +38,7 @@ class KsubGraph:
     for ni in self.__inputs:
       inNpFile = ni.getNpInfo()[0].npFile
       inShape = ni.getNpInfo()[0].npShape
-      jsonDict["Inputs"] = [{"name" : ni.getName() + ":0", "file" : inNpFile, "shape" : inShape}]
+      jsonDict["Inputs"].append({"name" : ni.getName() + ":0", "file" : inNpFile, "shape" : inShape})
     o = self.__output
     outNpFile = o.getNpInfo()[0].npFile
     outShape = o.getNpInfo()[0].npShape
