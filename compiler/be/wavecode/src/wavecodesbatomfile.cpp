@@ -66,41 +66,6 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     }
 
     //************************************************************************
-    // Instruction
-    //************************************************************************
-    const kcc_int64 numPartitions   = sbAtomFileWaveOp->gIfmapCount();
-    const kcc_int64 numBytesPerPart = sbAtomFileWaveOp->gLength();
-    const kcc_int64 addressInPart   = sbAtomFileWaveOp->gAddressInPartition(0 /*offset in atom*/);
-    const kcc_int64 stepSize = sbAtomFileWaveOp->gPartitionStepBytes();
-
-    SIM_MEMCPY dramToStateBufInstr;
-    dramToStateBufInstr.nbytes                  = numBytesPerPart;
-    dramToStateBufInstr.sync.set_event_id       = -1;
-    dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
-    dramToStateBufInstr.sync.wait_event_id      = -1;
-    dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
-#if 0
-        if (0 == partIdx) {
-            // only the first reading waits for events from previous instr
-            dramToStateBufInstr.sync.wait_event_id      = sbAtomFileWaveOp->gWaitEventId();
-            dramToStateBufInstr.sync.wait_event_mode    = events::WaitEvent::eventWaitMode2Int(sbAtomFileWaveOp->gWaitEventMode());
-        }
-        if (numPartitions-1 == partIdx) {
-            // only the last reading sets event to enable subsequent instr
-            dramToStateBufInstr.sync.set_event_id       = sbAtomFileWaveOp->gSetEventId();
-            dramToStateBufInstr.sync.set_event_mode     = events::SetEvent::eventSetMode2Int(sbAtomFileWaveOp->gSetEventMode());
-        }
-#endif
-
-        dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomFileWaveOp->gOffsetInFile() + (partIdx * stepSize);
-        dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
-        m_WaveCode->writeInstruction(dramToStateBufInstr);
-    }
-
-    //************************************************************************
-
-    //************************************************************************
     { // Outgoing events: inform successors
         std::vector<const wave::WaveEdge*> succMatmulEdges;
         std::vector<const wave::WaveEdge*> succPoolEdges;
@@ -134,30 +99,61 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
                    " has wrong type ", succWaveop->gTypeStr());
         }
 
+        //************************************************************************
+        // Find one embedded set-event edge, if any
+        //************************************************************************
+        const wave::WaveEdge* succWaveEdgeEmb  = nullptr;
 
-        // Today SbAtomFile (and SbAtomSave are executed by the DMA sequencer which belongs to the
-        // TPB sync domain, so sending an event to Pool/Act/PE engines could be done with SET_EVENT,
-        // but real DMA will be doing a write (via an additional DMA), so I will use WRITE here.
-        const utils::DataTypeUint16 dtype;
-        WRITE writeEventInstr;
-        writeEventInstr.sync.wait_event_id   = -1;
-        writeEventInstr.sync.wait_event_mode = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+        kcc_uint32 matmulStart = 0;
+        if (!succWaveEdgeEmb && succMatmulEdges.size() > 0) {
+            succWaveEdgeEmb = succMatmulEdges[matmulStart++];
+        }
+        kcc_uint32 activationStart = 0;
+        if (!succWaveEdgeEmb && succActivationEdges.size() > 0) {
+            succWaveEdgeEmb = succActivationEdges[activationStart++];
+        }
+        kcc_uint32 poolStart = 0;
+        if (!succWaveEdgeEmb && succPoolEdges.size() > 0) {
+            succWaveEdgeEmb = succPoolEdges[poolStart++];
+        }
+        Assert(matmulStart + activationStart + poolStart == 1, "SbAtomFile ", sbAtomFileWaveOp->gName(),
+               " must have exactly one successor. Number successors: MatMul=", succMatmulEdges.size(),
+               ", Activation=", succActivationEdges.size(), ", Pool=", succPoolEdges.size());
+        Assert(succWaveEdgeEmb, "SbAtomFile must have at least one successor");
 
-        writeEventInstr.nbytes = 1;
-        writeEventInstr.data = ~(0UL);
+        const EventId setEventId = succWaveEdgeEmb->gEventId();
+        const events::EventSetMode eventSetMode = succWaveEdgeEmb->gSetEventMode();
 
-        for (auto succWaveEdge : succPoolEdges) {
-            writeEventInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::Pooling, succWaveEdge->gEventId());
-            m_WaveCode->writeInstruction(writeEventInstr, engineId);
+
+        //************************************************************************
+        // Instruction(s)
+        //************************************************************************
+        const kcc_int64 numPartitions   = sbAtomFileWaveOp->gIfmapCount();
+        const kcc_int64 numBytesPerPart = sbAtomFileWaveOp->gLength();
+        const kcc_int64 addressInPart   = sbAtomFileWaveOp->gAddressInPartition(0 /*offset in atom*/);
+        const kcc_int64 stepSize = sbAtomFileWaveOp->gPartitionStepBytes();
+
+        SIM_MEMCPY dramToStateBufInstr;
+        dramToStateBufInstr.nbytes                  = numBytesPerPart;
+        dramToStateBufInstr.sync.wait_event_id      = -1;
+        dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+
+        for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
+            if (numPartitions-1 == partIdx) {
+                // only the last reading sets event to enable subsequent instr
+                dramToStateBufInstr.sync.set_event_id       = setEventId;
+                dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(eventSetMode);
+            } else {
+                dramToStateBufInstr.sync.set_event_id       = -1;
+                dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
+            }
+
+            dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomFileWaveOp->gOffsetInFile() + (partIdx * stepSize);
+            dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
+
+            m_WaveCode->writeInstruction(dramToStateBufInstr);
         }
-        for (auto succWaveEdge : succMatmulEdges) {
-            writeEventInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::PeArray, succWaveEdge->gEventId());
-            m_WaveCode->writeInstruction(writeEventInstr, engineId);
-        }
-        for (auto succWaveEdge : succActivationEdges) {
-            writeEventInstr.dst_address  = m_WaveCode->calculateEventAddress(EngineId::Activation, succWaveEdge->gEventId());
-            m_WaveCode->writeInstruction(writeEventInstr, engineId);
-        }
+        //************************************************************************
     } 
 }
 

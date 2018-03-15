@@ -295,6 +295,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         if (!succWaveEdgeEmb && succActivationEdges.size() > 0) {
             succWaveEdgeEmb = succActivationEdges[activationStart++];
         }
+        kcc_uint32 succOfmapStart = 0;
+        if (!succWaveEdgeEmb && succOfmapEdges.size() > 0) {
+            succWaveEdgeEmb = succOfmapEdges[succOfmapStart++];
+        }
         if (succWaveEdgeEmb) {
             matmulInstr.sync.set_event_id   = succWaveEdgeEmb->gEventId();
             matmulInstr.sync.set_event_mode = events::eventSetMode2Int(succWaveEdgeEmb->gSetEventMode());
@@ -309,7 +313,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
 
         //************************************************************************
-        // Remaining edges --> signal through SET_EVENT or through WRITE
+        // Remaining edges --> signal through SET_EVENT
         //************************************************************************
         for (kcc_uint32 poolIdx = poolStart; poolIdx < succPoolEdges.size(); ++poolIdx) {
             SET setEventInstr;
@@ -323,13 +327,11 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             setEventInstr.event_id          = succWaveEdge->gEventId();
             m_WaveCode->writeInstruction(setEventInstr, engineId);
         }
-        for (auto succWaveEdge : succOfmapEdges) {
-            WRITE writeInstr; // writing is for remote event-set
-            writeInstr.dst_address          = m_WaveCode->calculateEventAddress(EngineId::DmaEng, succWaveEdge->gEventId());
-            writeInstr.data                 = ~(0UL);  // All 1's => bit/byte endianess does not matter.
-            writeInstr.nbytes               = 1;
-
-            m_WaveCode->writeInstruction(writeInstr, engineId);
+        for (kcc_uint32 succOfmapIdx = succOfmapStart; succOfmapIdx < succOfmapEdges.size(); ++succOfmapIdx) {
+            SET setEventInstr;
+            auto succWaveEdge               = succOfmapEdges[succOfmapIdx];
+            setEventInstr.event_id          = succWaveEdge->gEventId();
+            m_WaveCode->writeInstruction(setEventInstr, engineId);
         }
     }
 }

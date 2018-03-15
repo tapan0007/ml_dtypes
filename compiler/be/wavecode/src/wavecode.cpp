@@ -169,6 +169,7 @@ void WaveCode::writeInstruction<SIM_MEMCPY>(const SIM_MEMCPY& instruction)
 
 
 
+#if 0
 template<>
 void WaveCode::writeInstruction<WRITE>(const WRITE& instruction, EngineId engId)
 {
@@ -192,6 +193,7 @@ void WaveCode::writeInstruction<WRITE>(const WRITE& instruction, EngineId engId)
         Assert(false, "Wrong EngineId ", static_cast<int>(engId));
     }
 }
+#endif
 
 
 
