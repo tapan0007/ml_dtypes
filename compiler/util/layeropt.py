@@ -1932,7 +1932,8 @@ class TPBSched:
         ones_shape = [op_list[0].C, 1, 1, 1]
         ones_tensor = np.ones(ones_shape, dtype=self.statebuffer.circbuf_ifmaps.data_type)
         ones_file = op_list[0].data['ref_file'].replace(".npy", "-ones.npy")
-        np.save(ones_file, ones_tensor)
+        if (not args.inference):
+            np.save(ones_file, ones_tensor)
         weights = []
         if (op_list.has_conv):
             op_list[0].data['kernel_file'] = ones_file
@@ -2144,9 +2145,9 @@ class TPBSched:
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
                         op_list.conv_op.compute_tile_weight_bounds(weights, tile_id)
                         # loops for constructing a tile
-                        for c_id in range(op_list.conv_op.c):
-                            for r_id in range(op_list.conv_op.R):
-                                for s_id in range(op_list.conv_op.S):
+                        for r_id in range(op_list.conv_op.R):
+                            for s_id in range(op_list.conv_op.S):
+                                for c_id in range(op_list.conv_op.c):
                                     wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, r_id, s_id)
                                     if (args.debug > 2): print (wave_id.show())
                                     # execute PEArray matrix multiply, and add to PSUM after first wave
@@ -2195,7 +2196,8 @@ class TPBSched:
         if (result.shape != tpb.statebuffer.circbuf_scratch.layer_shape):
             result = result.reshape(tpb.statebuffer.circbuf_scratch.layer_shape)
         np.save(result_file, result)
-        if (args.golden_inputs and os.path.isfile(op_list[-1].data['ref_file'])):
+        if ((args.golden_inputs or args.inference)
+                and os.path.isfile(op_list[-1].data['ref_file'])):
             # if using golden inputs, save the ref_file instead of result_file
             self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = op_list[-1].data['ref_file']
         else:            
@@ -2220,6 +2222,7 @@ if __name__ == "__main__":
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
+    parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
@@ -2289,7 +2292,7 @@ if __name__ == "__main__":
 
     # write out wavegraph           
     wavegraph_json = kgraph_json
-    if (args.wavegraph != None): 
+    if (args.wavegraph != None and args.inference == False): 
         wavegraph_json['waveops'] = tpb.waveop_stream
         try:
             print("Saving Wave-Graph %s"%args.wavegraph)
@@ -2302,8 +2305,20 @@ if __name__ == "__main__":
             print(e)
             exit(-1)
 
+        # test by reading it back
+        try:
+            print("Test by loading Wave-graph %s"%args.wavegraph)
+            wavegraph_json = json.load(open(args.wavegraph))
+        except Exception as e:
+            print(e)
+            exit(-1)
+
+        # create graph from JSON file        
+        wavegraph = KGraph()
+        wavegraph.populate_from_kgraph_json(wavegraph_json)
+
     # write out dot graph in SVG format
-    if (args.dot != None):            
+    if (args.dot != None and args.inference == False):            
         dot = Digraph()
         for i in tpb.waveop_stream:
             dot.node(i['waveop_name'], i['waveop_name'])
@@ -2313,18 +2328,6 @@ if __name__ == "__main__":
         dot.format = dotfile_ext[1:]
         dot.render(dotfile_root)
         print("INFO: Wrote " + args.dot)
-
-    # test by reading it back
-    try:
-        print("Test by loading Wave-graph %s"%args.wavegraph)
-        wavegraph_json = json.load(open(args.wavegraph))
-    except Exception as e:
-        print(e)
-        exit(-1)
-
-    # create graph from JSON file        
-    wavegraph = KGraph()
-    wavegraph.populate_from_kgraph_json(wavegraph_json)
 
     # check for comparison errors
     if (num_mismatches > 0):
