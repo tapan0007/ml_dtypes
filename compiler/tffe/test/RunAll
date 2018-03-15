@@ -17,6 +17,7 @@ import multiprocessing as mp
 import time
 import multiprocessing
 
+
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
 iPath = os.environ.get('INKLING_PATH')
@@ -39,6 +40,9 @@ class Logger(object):
 sys.stdout = Logger('log-RunAll.txt')
 sys.stderr = Logger('log-RunAll.txt')
 
+print("\nINFO: started as  ", " ".join(sys.argv))
+
+
 if kPath == None or kePath == None or iPath == None or \
     not os.path.isdir(kPath) or not os.path.isdir(kePath) or not os.path.isdir(iPath):
   print("ERROR: make sure KAENA_PATH, KAENA_EXT_PATH, and INKLING_PATH environment is set");
@@ -53,6 +57,7 @@ parser.add_argument('--parallel', help='Run concurrently, default is number of c
 parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any', default="any")
 parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
 parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=False)
+parser.add_argument('--timeout', help='Timeout for each test, default 3600', type=int, default=3600)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -78,6 +83,7 @@ rn_cmn_opts = "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --po
 testConfigMap = {
   "0-1conv0"      : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv"],
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave"],
+  "0-1conv0_padvalid_wave" : [ "trivnet_conv1_padvalid",  "tfloat16-b1-h229-r7-s2-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave --debug 3"],
   "0-1conv0_h16r2s2_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h16-r2-s2-c1-m1-wmin-2-wmax2.2-imin-3-imax3.3", "1conv", "--scheduler wave"],
   "0-1conv0_h16r3s2_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h16-r3-s2-c1-m1-wmin-2-wmax2.2-imin-3-imax3.3", "1conv", "--scheduler wave"],
   "0-1conv0_c1h2" : [ "trivnet_conv1",  "tfloat16-b1-h2-r1-s1-c1-m1-wmin2-wmax2.2-imin1-imax7", "1conv"],
@@ -441,6 +447,8 @@ class Ktest:
     self.name = name
     self.dir = dirName
     self.cmd = cmd
+    self.startTime = time.time()
+    self.status = "UNKNOWN"
   def invertStatus(self):
     if self.status == "PASS":
       self.status = "FAIL"
@@ -480,11 +488,12 @@ class Ktest:
     self.calcRTStatus()
     self.calcKCCStatus()
     self.calcAltStatus()
-    self.status = "PASS"
-    if (self.status != self.status_kcc or self.status != self.status_rt):
-      self.status = "FAIL"
-    if self.name == "0-neg":
-      self.invertStatus()
+    if not self.status == "TIMEOUT":
+      self.status = "PASS"
+      if (self.status != self.status_kcc or self.status != self.status_rt):
+        self.status = "FAIL"
+      if self.name == "0-neg":
+        self.invertStatus()
 
   def calcQoR(self):
     self.qor = QoR(self.dir)
@@ -492,15 +501,24 @@ class Ktest:
     return self.status == "PASS"
   def failed(self):
     return self.status == "FAIL"
+  def timedout(self):
+    return self.status == "TIMEOUT"
+  def exceededTimeout(self, timeout):
+    #print("DEBUG: checking test  %s  for timeout  %f > %f" % (self.name, time.time() - self.startTime, timeout))
+    return time.time() > self.startTime + timeout
+  def setStatusTimeout(self):
+    self.status = "TIMEOUT"
   
 ###############################################################################
 # Storage for all tests
 ###############################################################################
 class Ktests:
-  def __init__(self, testConfigMap, testList, testWaiver):
+  def __init__(self, testConfigMap, testList, testWaiver, testTimeout):
     self.testConfigMap = testConfigMap
     self.testList = testList
     self.testWaiver = testWaiver
+    self.testTimeout = testTimeout
+    self.startTime = time.time()
     self.process2test = {}
     self.name2test = {}
     self.processes = []
@@ -531,14 +549,15 @@ class Ktests:
     numFailPct = numFail / numAll * 100
     numOther = numAll - numPass - numFail - numRun
     numOtherPct = numOther / numAll * 100
-    if self.statusCount %10 == 0:
-      print("\n  #Time      Running    Passed    Failed     Other")
+    if self.statusCount %60 == 0:
+      print("\n  #Time    Running    Passed    Failed     Other")
+    if self.msg or self.statusCount %10 == 0:
+      print("  %6s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %s" %
+            (int(time.time() - self.startTime),
+             numRun, numRunPct, numPass, numPassPct, numFail, numFailPct, numOther, numOtherPct, self.msg),
+            flush=True
+           )
     self.statusCount += 1
-    print("  %s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %s" %
-          (time.strftime("%H:%M:%S"),
-           numRun, numRunPct, numPass, numPassPct, numFail, numFailPct, numOther, numOtherPct, self.msg),
-          flush=True
-         )
     self.msg = ""
 
   # check for running proceses
@@ -548,6 +567,10 @@ class Ktests:
     for p in self.processes:
       if p.is_alive():
         newProcesses.append(p)
+        t = self.getTestByProcess(p)
+        if t.exceededTimeout(self.testTimeout):
+          p.terminate()
+          t.setStatusTimeout()
       else:
         p.join()
         finishedProcesses.append(p)
@@ -574,9 +597,10 @@ class Ktests:
       t.calcQoR()
       if t.passed():
         self.numPass += 1
-      if t.failed():
+      if t.failed() or t.timedout():
         self.numFail += 1
-      self.msg += "  %s %s" % (t.name, t.status)
+      reportStatus = self.calcWaivedStatus(t.name, t.status)
+      self.msg += "  %s %s" % (t.name, reportStatus)
   
   # Run tests
   def run(self, parallel):
@@ -663,6 +687,19 @@ class Ktests:
     numPassPct = numPass / numAll * 100
     print("\nSUMMARY: PASSRATE  %d  %.3f%%  of  %d  (%d were waived)\n" %
           (numPass, numPassPct, numAll, numWaived) )
+    
+    status2count = {}
+    for testName in self.testList:
+      t = self.getTestByName(testName)
+      reportStatus = self.calcWaivedStatus(testName, t.status)
+      count = status2count.get(reportStatus, 0)
+      status2count[reportStatus] = count + 1
+    strStatus = ""
+    for status in sorted(status2count):
+      strStatus += "%s %d  " % (status, status2count[status])
+    print("DETAILED STATUS: ", strStatus)
+    print("\n")
+    
     QoR.printHeader()
     for testName in self.testList:
       t = self.getTestByName(testName)
@@ -696,7 +733,7 @@ testList = selectTests(testConfigMap, testWaiver, args.level, args.test, args.te
 if args.show_only:
   print("INFO: --show_only mode: selected tests are " + str(testList))
 else:
-  tests = Ktests(testConfigMap, testList, testWaiver)
+  tests = Ktests(testConfigMap, testList, testWaiver, args.timeout)
   tests.run(parallel)
   tests.report()
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")

@@ -37,10 +37,12 @@ class KsubGraph:
     jsonDict["Inputs"] = []
     for ni in self.__inputs:
       inNpFile = ni.getNpInfo()[0].npFile
-      jsonDict["Inputs"] = [{"name" : ni.getName() + ":0", "file" : inNpFile}]
+      inShape = ni.getNpInfo()[0].npShape
+      jsonDict["Inputs"].append({"name" : ni.getName() + ":0", "file" : inNpFile, "shape" : inShape})
     o = self.__output
     outNpFile = o.getNpInfo()[0].npFile
-    jsonDict["Outputs"] = [{"name" : o.getName() + ":0", "file" : outNpFile}]
+    outShape = o.getNpInfo()[0].npShape
+    jsonDict["Outputs"] = [{"name" : o.getName() + ":0", "file" : outNpFile, "shape" : outShape}]
     return jsonDict
   def addSideNodes(self, srcGraph):
     self.__inputs = self.graph.transferSideNodes(srcGraph)
