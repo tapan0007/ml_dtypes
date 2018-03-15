@@ -92,7 +92,7 @@ Arch::gArchVersion() const
 }
 
 kcc_int64
-Arch::gTbpEventBase()
+Arch::gTpbEventBase()
 {
     return MMAP_EVENTS;
 

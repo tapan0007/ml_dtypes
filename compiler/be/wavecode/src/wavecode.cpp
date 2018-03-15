@@ -294,14 +294,14 @@ WaveCode::calculateEventAddress(EngineId engId, EventId eventId) const
     case EngineId::Pooling:
     case EngineId::PeArray:
     case EngineId::Activation:
-        return arch.gTbpEventBase() + eventId; // 1 byte per eventId
+        return arch.gTpbEventBase() + eventId; // 1 byte per eventId
         break;
 
     case EngineId::StreamProc:
-        return arch.gSpEventBase() + eventId;
+        return arch.gSpEventBase()  + eventId;
 
     case EngineId::DmaEng:
-        return arch.gSpEventBase() + eventId; // is this wrong?
+        return arch.gTpbEventBase() + eventId;
 
     case EngineId::None:
         Assert(false, "Bad engine id ", static_cast<int>(engId));

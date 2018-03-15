@@ -74,7 +74,7 @@ public:
 
     static kcc_int64 gTpbBase();
 
-    static kcc_int64 gTbpEventBase();
+    static kcc_int64 gTpbEventBase();
     static kcc_int64 gSpEventBase();
 
 private:
