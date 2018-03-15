@@ -79,6 +79,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             if (auto prevActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
                 ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, sbAtomSaveWaveop);
                 prevActivationEdges.push_back(prevWaveEdge);
+                continue;
             }
             if (auto prevPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
                 ASSERT_HAS_EVENT(prevWaveEdge, prevPoolWaveop, sbAtomSaveWaveop);
