@@ -39,7 +39,8 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     assert(sbAtomFileWaveOp);
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const EngineId engineId = sbAtomFileWaveOp->gEngineId();
-    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomFile waveop should be DmaEng");
+    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomFile waveop should be DmaEng, but is ",
+           static_cast<long>(engineId));
 
     kcc_int64 npyFileDramOffset = m_WaveCode->getDramForNpyFile(sbAtomFileWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) {

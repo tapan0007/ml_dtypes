@@ -83,7 +83,7 @@ public:
     }
 
     EngineId gEngineId() const override {
-        return EngineId::StreamProc;
+        return EngineId::DmaEng;
     }
 
 protected:
