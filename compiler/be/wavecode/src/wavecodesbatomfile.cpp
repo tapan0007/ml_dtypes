@@ -2,6 +2,7 @@
 #include "shared/inc/tpb_isa_write.hpp"
 
 
+#include "utils/inc/debug.hpp"
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"
 #include "events/inc/events.hpp"
@@ -39,6 +40,13 @@ WaveCodeSbAtomFile::WaveCodeSbAtomFile(WaveCode* waveCode)
 void
 WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
 {
+    if (waveOp->gName() == "input/SBAtomFile_ifmaps_0_n0_m0_h5_w0_c0_r5_s0") {
+        utils::breakFunc(1);
+    }
+    if (waveOp->gName() == "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0") {
+        utils::breakFunc(2);
+    }
+
     const auto sbAtomFileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp);
     assert(sbAtomFileWaveOp);
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
@@ -70,13 +78,15 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         std::vector<const wave::WaveEdge*> succMatmulEdges;
         std::vector<const wave::WaveEdge*> succPoolEdges;
         std::vector<const wave::WaveEdge*> succActivationEdges;
+        std::vector<const wave::WaveEdge*> succEdgesWithoutEvent;
 
         for (auto succWaveEdge : sbAtomFileWaveOp->gSuccWaveEdges()) {
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
             auto succWaveop = succWaveEdge->gToOp();
             if (succWaveop->gEngineId() == engineId) {
+                continue;
+            }
+            if (succWaveEdge->gEventId() == EventId_Invalid) {
+                succEdgesWithoutEvent.push_back(succWaveEdge);
                 continue;
             }
 
@@ -116,13 +126,44 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         if (!succWaveEdgeEmb && succPoolEdges.size() > 0) {
             succWaveEdgeEmb = succPoolEdges[poolStart++];
         }
-        Assert(matmulStart + activationStart + poolStart == 1, "SbAtomFile ", sbAtomFileWaveOp->gName(),
-               " must have exactly one successor. Number successors: MatMul=", succMatmulEdges.size(),
-               ", Activation=", succActivationEdges.size(), ", Pool=", succPoolEdges.size());
-        Assert(succWaveEdgeEmb, "SbAtomFile must have at least one successor");
+        switch (matmulStart + activationStart + poolStart) {
+        case 1: // all is good
+            break;
+        case 0:
+            // this is one of the sb atom file, but was not chosen for the event because it is not last
+            // check that there is another SbAtomFile that feeds event-less successor and has larger order
+            Assert(succEdgesWithoutEvent.size() == 1, "SbAtomFile must have one successor");
+            {
+                bool foundHigherPrecedentEdge = false;
+                auto succWaveop = succEdgesWithoutEvent[0]->gToOp();
+                for (auto precWaveEdge : succWaveop->gPrevWaveEdges()) {
+                    auto precWaveop = precWaveEdge->gFromOp();
+                    if (precWaveop == sbAtomFileWaveOp) {
+                        continue;
+                    }
+                    if (dynamic_cast<wave::SbAtomFileWaveOp*>(precWaveop)  // must be SbAtomFile
+                        && precWaveEdge->gEventId() != EventId_Invalid       // must have event
+                        && sbAtomFileWaveOp->gOrder() < precWaveEdge->gFromOp()->gOrder()) // must be later
+                    {
+                        foundHigherPrecedentEdge = true;
+                    }
+                }
+                Assert(foundHigherPrecedentEdge, "At least one SbAtomFile should have an event to its successor waveop");
+            }
+            break;
+        default:
+            Assert(false, "SbAtomFile ", sbAtomFileWaveOp->gName(),
+                " must not have more than one successor. Number successors: MatMul=", succMatmulEdges.size(),
+                ", Activation=", succActivationEdges.size(), ", Pool=", succPoolEdges.size());
+            break;
+        }
 
-        const EventId setEventId = succWaveEdgeEmb->gEventId();
-        const events::EventSetMode eventSetMode = succWaveEdgeEmb->gSetEventMode();
+        EventId setEventId = -1;
+        events::EventSetMode eventSetMode = events::EventSetMode::NoEvent;
+        if (succWaveEdgeEmb) {
+            setEventId = succWaveEdgeEmb->gEventId();
+            eventSetMode = succWaveEdgeEmb->gSetEventMode();
+        }
 
 
         //************************************************************************
