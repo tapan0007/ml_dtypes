@@ -615,7 +615,7 @@ class Ktests:
       if verbose:
         print("\n############## %s ##############" % testName)
 
-      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
+      cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" ' % (self.testTimeout, self.testTimeout, testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
       if images != "":
         cmd += ' IMAGES="%s" '%(images)
       cmd +=  ' > log-top.txt 2>&1'
