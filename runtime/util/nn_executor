@@ -97,6 +97,12 @@ class NnSubgraph:
       # Only Fmaps come from the previous subgraph
       tpbInpFile = "%s_%s.npy"      % (fBase, npt.Formats[npt.SIM][npt.Fmaps])
       tfFile = "%s-out.npy" % fBase
+
+      if os.path.isfile(tpbInpFile):
+        # Move the compiler generated input file
+        origFile = tpbInpFile.replace(".npy", "-orig.npy")
+        os.rename(tpbInpFile, origFile)
+
       # Translate and write the previous subgraph file
       if os.path.isfile(tfFile):
         npt.copyNpyFileAs(tfFile, npt.TF, npt.SIM, npt.Fmaps, outFile=tpbInpFile)
@@ -118,7 +124,7 @@ class NnSubgraph:
     g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Fmaps]))
     for f in g:
       dst_f = "%s/%s" % (working_dir, os.path.basename(f))
-      if not os.path.isfile(dst_f):
+      if not os.path.isfile(dst_f) and not "out.npy" in f:
           os.symlink(f, dst_f )
 
 
@@ -163,9 +169,7 @@ class NnSubgraph:
       self.createTpbFormatInputs()
       cmd = "python3 %s//compiler/util/layeropt.py" % kPath
       cmd += "  --kgraph %s/%s/*_compiler.json" % (kelf_dir, self.sgDir)
-      cmd += "  --wavegraph %s/%s/*_wavegraph.json" % (kelf_dir, self.sgDir)
-
-
+      cmd += "  --inference"
     cmd = "%s > %s 2>&1" % (cmd, logFile)
     print("\nINFO: executing %s" % cmd, flush=True)
     ret = os.system(cmd)
