@@ -62,7 +62,6 @@ FILE* openObjectFile(const std::string& objFileName, const char* engineName)
 int
 Main(int argc, char* argv[])
 {
-    kcc::utils::breakFunc(44);
 #if 1
     bool PrintLevels   = false;
     bool PrintSchedule = false;
@@ -148,7 +147,7 @@ Main(int argc, char* argv[])
     //------------------------------------------------
     nets::Network network(arch);
     nets::Network* ntwk = &network;
-    kcc::utils::breakFunc(44);
+
     {
         std::cout << "Reading NN from JSON file '" << JsonInFileName << "'\n";
         std::ifstream is(JsonInFileName);

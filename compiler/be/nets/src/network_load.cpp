@@ -82,7 +82,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
     std::vector<serialize::SerLayer> serLayers;
     archive(cereal::make_nvp(NetKey_Layers, serLayers));
-    kcc::utils::breakFunc(333);
+
     for (unsigned i = 0; i < serLayers.size(); ++i) {
         const serialize::SerLayer& serLayer(serLayers[i]);
         layers::Layer::Params params;
