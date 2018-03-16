@@ -171,16 +171,20 @@ class BiasAddAct:
 
     def act(self, type, in_array):
         if (type == 'Relu'):
-            return self.relu(in_array)
+            return self.__relu(in_array)
         elif (type == 'Sigmoid'):
             return 1/(1 + np.exp(-in_array))
         elif (type == 'Exp'):
             return np.exp(in_array)
+        elif (type == 'Tanh'):
+            return np.tanh(in_array)
+        elif (type == 'Sigmoid'):
+            return np.sigmoid(in_array)
         else:
             print("ERROR BiasAddAct.act: unrecognized activation type %s"%type)
             exit(-1)
 
-    def relu(self, in_array):
+    def __relu(self, in_array):
         return np.maximum(np.zeros(in_array.shape, dtype=in_array.dtype), in_array)
 
 ##################################################################################
@@ -1386,7 +1390,7 @@ class FusedOp(list):
             layer_type = self[i].data['layer_type'] 
             if (re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", layer_type)):
                 tpb.activate.wait_tile_done(tile_id)
-                psum_temp = tpb.activate.relu(psum_temp)
+                psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp)
                 psum_bank_dst = 2
                 dst_is_psum = False
                 if (i != len(op_list)-1):
