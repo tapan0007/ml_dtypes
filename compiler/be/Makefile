@@ -33,3 +33,10 @@ alldeps :
 
 superclean : clean alldeps top
 
+libs :
+	@for mod in $(MODS) $(MAINMOD); do \
+	    (if cd $$mod; then \
+			$(MAKE) -k lib; \
+		fi) \
+	done
+

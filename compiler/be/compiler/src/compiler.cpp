@@ -239,7 +239,7 @@ Main(int argc, char* argv[])
         }
 
         wavecode::WaveCode waveCode(ntwk, arch);
-        waveCode.generate(instrStreams);
+        waveCode.generate(instrStreams, ParallelStreams);
     }
 
     //--------------------------------------------------------

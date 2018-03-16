@@ -63,7 +63,7 @@ public:
 
     ~WaveCode();
 
-    void generate(const InstrStreams& instrStreams);
+    void generate(const InstrStreams& instrStreams, bool parallelStreams);
 
     // Instructions that execute on one engine only: POOL, MATMUL, LDWEIGHTS, etc.
     template<typename INSTR>

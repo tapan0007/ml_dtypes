@@ -50,10 +50,12 @@ WaveCode::~WaveCode() = default;
 
 
 void
-WaveCode::generate(const InstrStreams& instrStreams)
+WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
 {
-    events::EventMgr eventMgr(*m_Network);
-    eventMgr.processWaveops();
+    if (parallelStreams) {
+        events::EventMgr eventMgr(*m_Network);
+        eventMgr.processWaveops();
+    }
 
     m_InstrStreams = &instrStreams;
     for (auto waveOp : m_Network->gWaveOps()) {
