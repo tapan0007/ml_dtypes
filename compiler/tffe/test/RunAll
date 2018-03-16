@@ -11,7 +11,7 @@
 #     /bin/rm -rf [0-9]* ; ./RunAll --verbose
 #
 
-import os, sys, re, shutil
+import os, sys, re, shutil, signal, psutil
 import argparse
 import multiprocessing as mp
 import time
@@ -566,6 +566,21 @@ class Ktests:
         newProcesses.append(p)
         t = self.getTestByProcess(p)
         if t.exceededTimeout(self.testTimeout):
+          time.sleep(0.01)
+          
+          sig = signal.SIGTERM
+          try:
+            proc = psutil.Process(p.pid)
+            children = proc.children(recursive=True)
+            for process in children:
+              #print("DEBUG: terminating child %d" % process.pid)
+              process.send_signal(sig)
+          except psutil.NoSuchProcess:
+            #print("DEBUg: missing process")
+            pass
+          
+          #os.kill(p.pid, signal.SIGKILL)
+          #os.killpg(os.getpgid(p.pid), signal.SIGKILL)
           p.terminate()
           t.setStatusTimeout()
       else:
@@ -634,6 +649,7 @@ class Ktests:
       else:
         self.msg += "  %s START" % testName
       p = mp.Process(target=runCmd, args=(cmd,))
+      #p.daemon = True
       p.start()
       self.numRunning += 1
       self.processes.append(p)
