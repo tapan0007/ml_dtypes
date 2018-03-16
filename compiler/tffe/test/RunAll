@@ -428,15 +428,15 @@ class QoR:
 
   @staticmethod
   def printHeader():
-    print("%-26s  %-12s  %6s  %16s %16s  %16s %16s  %s" %
-          ("Test", "Status", "Tops", "Ops", "SimCycles", "SimTimeSec", "SimCycles/sec", "Description"))
-    print("-" * 120)
+    print("%-32s  %-16s  %6s  %16s %16s  %16s %16s  %10s  %s" %
+          ("Test", "Status", "Tops", "Ops", "SimCycles", "SimTimeSec", "SimCycles/sec", "TotTimeSec", "Description"))
+    print("-" * 150)
 
-  def printValues(self, status, description):
-    print("%-26s  %-12s  %6.3f  %16g %16g  %16.3f %16g  %s" %
+  def printValues(self, status, testTime, description):
+    print("%-32s  %-16s  %6.3f  %16g %16g  %16.3f %16g  %10.1f  %s" %
           (self.testName, status, self.tops, self.ops,
            self.cycles, self.elapsedTimeSec, self.cyclesPerSec,
-           description))
+           testTime, description))
 
 
 ###############################################################################
@@ -448,6 +448,7 @@ class Ktest:
     self.dir = dirName
     self.cmd = cmd
     self.startTime = time.time()
+    self.testTime = -1
     self.status = "UNKNOWN"
   def invertStatus(self):
     if self.status == "PASS":
@@ -601,6 +602,8 @@ class Ktests:
         self.numFail += 1
       reportStatus = self.calcWaivedStatus(t.name, t.status)
       self.msg += "  %s %s" % (t.name, reportStatus)
+      if not t.status == "TIMEOUT":
+        t.testTime = time.time() - t.startTime
   
   # Run tests
   def run(self, parallel):
@@ -618,7 +621,7 @@ class Ktests:
       parallelStreamsForWaveMaybe = ""
       if parallelStreamsForWave and "wave" in testName:
         parallelStreamsForWaveMaybe = "--parallel_streams" # forward option to compiler
-      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" PARALLEL_STREAMS_FOR_WAVE_MAYBE="%s" ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs, parallelStreamsForWaveMaybe)
+      cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" PARALLEL_STREAMS_FOR_WAVE_MAYBE="%s" ' % (self.testTimeout, self.testTimeout, testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs, parallelStreamsForWaveMaybe)
       if images != "":
         cmd += ' IMAGES="%s" '%(images)
       cmd +=  ' > log-top.txt 2>&1'
@@ -689,15 +692,23 @@ class Ktests:
           (numPass, numPassPct, numAll, numWaived) )
     
     status2count = {}
+    status2test = {}
     for testName in self.testList:
       t = self.getTestByName(testName)
       reportStatus = self.calcWaivedStatus(testName, t.status)
       count = status2count.get(reportStatus, 0)
       status2count[reportStatus] = count + 1
+      if not reportStatus in status2test:
+        status2test[reportStatus] = []
+      status2test[reportStatus].append(testName)
     strStatus = ""
     for status in sorted(status2count):
       strStatus += "%s %d  " % (status, status2count[status])
     print("DETAILED STATUS: ", strStatus)
+    for status in sorted(status2test):
+      print("  %s" % status)
+      for test in sorted(status2test[status]):
+        print("    ", test)
     print("\n")
     
     QoR.printHeader()
@@ -705,7 +716,7 @@ class Ktests:
       t = self.getTestByName(testName)
       testDescription = self.getTestDescription(testName)
       reportStatus = self.calcWaivedStatus(testName, t.status)
-      t.qor.printValues(reportStatus, testDescription)
+      t.qor.printValues(reportStatus, t.testTime, testDescription)
 
   def dashboard(self, testRe, outFileName):
     with open(outFileName, "w") as fh:

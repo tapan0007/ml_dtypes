@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+#
+# Neural network scheduler for Kaena.
+# Its primary goal is to generate memory allocation pattern and limits
+# for the state buffer
+
+import argparse
+
+import sys, re
+import nnsh_opt
+
+print("\nINFO: started as  ", " ".join(sys.argv))
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--json', help='Json Kgraph to estimate/schedule', default=None)
+parser.add_argument('--out', help='Output file to write', default="out.json")
+parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
+parser.add_argument('--debug', help='Debug level', type=int, default=0)
+
+args = parser.parse_args()
+
+if args.json == None:
+  print("ERROR: use --json")
+  sys.exit(1)
+nno = nnsh_opt.NnshOpt(args.json, args.verbose, args.debug)
+nno.fuse()
+nno.partition()
+nno.schedule()
+nno.write(args.out)
