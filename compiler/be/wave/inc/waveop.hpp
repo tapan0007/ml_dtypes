@@ -116,9 +116,6 @@ public:
     }
 
 
-protected:
-#if 0
-#endif
 
 protected:
     std::string             m_Name          = "";

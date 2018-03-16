@@ -183,15 +183,6 @@ constexpr static const char* WaveOpKey_SrcBYStep	        = "src_b_y_step";
 constexpr static const char* WaveOpKey_SrcBZNum	            = "src_b_z_num";
 constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
-#if 0
-constexpr static const char* WaveOpKey_WaitEventId          = "wait_event_id";
-constexpr static const char* WaveOpKey_WaitEventMode        = "wait_event_mode";
-constexpr static const char* WaveOpKey_SetEventId           = "set_event_id";
-constexpr static const char* WaveOpKey_SetEventMode         = "set_event_mode";
-
-constexpr static const char* WaveOpKey_LwWaitEventId        = "lw_wait_event_id";
-constexpr static const char* WaveOpKey_LwWaitEventMode      = "lw_wait_event_mode";
-#endif
 
 constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
 
@@ -408,31 +399,7 @@ public:
     bool                        m_DstIsPsum         = true;
     kcc_int32                   m_DstPsumBankId     = -1;
     kcc_int32                   m_DstPsumBankOffset = -1;
-#if 0
-    kcc_int32                   m_DstXNum           = -1;
-    kcc_int32                   m_DstXStep          = -1;
-    kcc_int32                   m_DstYNum           = -1;
-    kcc_int32                   m_DstYStep          = -1;
-    kcc_int32                   m_DstZNum           = -1;
-    kcc_int32                   m_DstZStep          = -1;
-#endif
     //kcc_int32                   m_SrcPsumBankId     = -1;
-#if 0
-    kcc_int32                   m_SrcXNum           = -1;
-    kcc_int32                   m_SrcXStep          = -1;
-    kcc_int32                   m_SrcYNum           = -1;
-    kcc_int32                   m_SrcYStep          = -1;
-    kcc_int32                   m_SrcZNum           = +1;
-    kcc_int32                   m_SrcZStep          = +1;
-#endif
-#if 0
-    kcc_int32                   m_WaitEventId       = 0;
-    kcc_int32                   m_WaitEventMode     = NO_WAIT_EVENT;
-    kcc_int32                   m_SetEventId        = 0;
-    kcc_int32                   m_SetEventMode      = NO_SET_EVENT;
-    kcc_int32                   m_LwWaitEventId     = 0;
-    kcc_int32                   m_LwWaitEventMode   = NO_WAIT_EVENT;
-#endif
 }; // class SerWaveOp
 
 

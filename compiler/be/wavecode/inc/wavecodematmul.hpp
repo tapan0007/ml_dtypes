@@ -29,7 +29,7 @@ namespace wavecode {
 class WaveCodeMatMul : public WaveCodeWaveOp {
 public:
     //----------------------------------------------------------------
-    WaveCodeMatMul(WaveCode* wavecode);
+    WaveCodeMatMul(WaveCodeRef wavecode);
 
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;

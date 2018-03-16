@@ -57,9 +57,13 @@ public:
     }
 
 private:
-    EventSetMode        m_SetEventMode;
-    EventId             m_EventId;
-    EventWaitMode       m_WaitEventMode;
+    Channel(const Channel&) = delete;
+    Channel& operator= (const Channel&) = delete;
+
+private:
+    EventSetMode        m_SetEventMode  = EventSetMode::NoEvent;
+    EventId             m_EventId       = EventId_Invalid;
+    EventWaitMode       m_WaitEventMode = EventWaitMode::NoEvent;
 };
 
 

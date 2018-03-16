@@ -29,7 +29,7 @@ namespace wavecode {
 class WaveCodeSbAtomSave : public WaveCodeSbAtom {
 public:
     //----------------------------------------------------------------
-    WaveCodeSbAtomSave(WaveCode* waveCode);
+    WaveCodeSbAtomSave(WaveCodeRef waveCode);
 
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;

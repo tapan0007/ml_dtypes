@@ -24,7 +24,7 @@ namespace wavecode {
 #define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
             (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
-WaveCodeMatMul::WaveCodeMatMul(WaveCode* waveCode)
+WaveCodeMatMul::WaveCodeMatMul(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
 {}
 
@@ -126,7 +126,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     //************************************************************************
     // write instruction
-    m_WaveCode->writeInstruction(ldweightsInstr);
+    m_WaveCode.writeInstruction(ldweightsInstr);
     //************************************************************************
 }
 
@@ -219,7 +219,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevPoolEdges) {
@@ -230,7 +230,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevActivationEdges) {
@@ -241,7 +241,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
     } // end incoming events
@@ -306,7 +306,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
         //************************************************************************
         // write instruction
-        m_WaveCode->writeInstruction(matmulInstr);
+        m_WaveCode.writeInstruction(matmulInstr);
         //************************************************************************
 
 
@@ -319,19 +319,19 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             SET setEventInstr;
             auto succWaveEdge               = succPoolEdges[poolIdx];
             setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
         for (kcc_uint32 activationIdx = activationStart; activationIdx < succActivationEdges.size(); ++activationIdx) {
             SET setEventInstr;
             auto succWaveEdge               = succActivationEdges[activationIdx];
             setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
         for (kcc_uint32 succOfmapIdx = succOfmapStart; succOfmapIdx < succOfmapEdges.size(); ++succOfmapIdx) {
             SET setEventInstr;
             auto succWaveEdge               = succOfmapEdges[succOfmapIdx];
             setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
     }
 }

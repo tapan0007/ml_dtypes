@@ -23,7 +23,7 @@ namespace wavecode {
 #define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
             (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
-WaveCodeActivation::WaveCodeActivation(WaveCode* waveCode)
+WaveCodeActivation::WaveCodeActivation(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
 {}
 
@@ -130,7 +130,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevPoolEdges) {
@@ -141,7 +141,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevMatmulEdges) {
@@ -152,7 +152,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
     } // incoming events
@@ -217,7 +217,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
 
         //************************************************************************
         // write instruction
-        m_WaveCode->writeInstruction(activationInstr);
+        m_WaveCode.writeInstruction(activationInstr);
         //************************************************************************
 
 
@@ -228,19 +228,19 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
             SET setEventInstr;
             auto succWaveEdge                   = succMatmulEdges[matmulIdx];
             setEventInstr.event_id              = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
         for (kcc_uint32 poolIdx = poolStart; poolIdx < succPoolEdges.size(); ++poolIdx) {
             SET setEventInstr;
             auto succWaveEdge                   = succPoolEdges[poolIdx];
             setEventInstr.event_id              = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
         for (kcc_uint32 succOfmapIdx = succOfmapStart; succOfmapIdx < succOfmapEdges.size(); ++succOfmapIdx) {
             SET setEventInstr;
             auto succWaveEdge               = succOfmapEdges[succOfmapIdx];
             setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
 
     }

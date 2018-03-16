@@ -29,7 +29,7 @@ namespace wavecode {
 class WaveCodeSbAtom : public WaveCodeWaveOp {
 public:
     //----------------------------------------------------------------
-    WaveCodeSbAtom(WaveCode* waveCode);
+    WaveCodeSbAtom(WaveCodeRef waveCode);
 
 
 private:

@@ -24,7 +24,7 @@ namespace wavecode {
 #define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
             (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
-WaveCodePool::WaveCodePool(WaveCode* waveCode)
+WaveCodePool::WaveCodePool(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
 {}
 
@@ -94,8 +94,13 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                                             poolWaveop->gDstSbAtomId() * poolWaveop->gWaveAtomSize()
                                                 + poolWaveop->gDstSbOffsetInAtom());
 
+    poolInstr.sync.wait_event_id    = -1;
+    poolInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    poolInstr.sync.set_event_id    = -1;
+    poolInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+
     //************************************************************************
-    { // incoming events
+    if (qParallelStreams()) { // incoming events
         std::vector<const wave::WaveEdge*> prevIfmapEdges;
         std::vector<const wave::WaveEdge*> prevMatmulEdges;
         std::vector<const wave::WaveEdge*> prevActivationEdges;
@@ -139,7 +144,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevActivationEdges) {
@@ -150,7 +155,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevMatmulEdges) {
@@ -161,17 +166,21 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
     } // end incoming events
 
 
+    std::vector<const wave::WaveEdge*> succOfmapEdges;
+    std::vector<const wave::WaveEdge*> succMatmulEdges;
+    std::vector<const wave::WaveEdge*> succActivationEdges;
+    kcc_uint32 matmulStart = 0;
+    kcc_uint32 activationStart = 0;
+    kcc_uint32 succOfmapStart = 0;
+
     //************************************************************************
-    { // Outgoing events
-        std::vector<const wave::WaveEdge*> succOfmapEdges;
-        std::vector<const wave::WaveEdge*> succMatmulEdges;
-        std::vector<const wave::WaveEdge*> succActivationEdges;
+    if (qParallelStreams()) { // Outgoing events
 
         for (auto succWaveEdge : poolWaveop->gSuccWaveEdges()) {
             if (succWaveEdge->gEventId() == EventId_Invalid) {
@@ -206,15 +215,12 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
         //************************************************************************
         const wave::WaveEdge* succWaveEdgeEmb  = nullptr;
 
-        kcc_uint32 matmulStart = 0;
         if (!succWaveEdgeEmb && succMatmulEdges.size() > 0) {
             succWaveEdgeEmb = succMatmulEdges[matmulStart++];
         }
-        kcc_uint32 activationStart = 0;
         if (!succWaveEdgeEmb && succActivationEdges.size() > 0) {
             succWaveEdgeEmb = succActivationEdges[activationStart++];
         }
-        kcc_uint32 succOfmapStart = 0;
         if (!succWaveEdgeEmb && succOfmapEdges.size() > 0) {
             succWaveEdgeEmb = succOfmapEdges[succOfmapStart++];
         }
@@ -222,33 +228,33 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
             poolInstr.sync.set_event_id    = succWaveEdgeEmb->gEventId();
             poolInstr.sync.set_event_mode  = events::eventSetMode2Int(succWaveEdgeEmb->gSetEventMode());
         }
+    }
 
-        //************************************************************************
-        // write instruction
-        m_WaveCode->writeInstruction(poolInstr);
-        //************************************************************************
+    //************************************************************************
+    // write instruction
+    m_WaveCode.writeInstruction(poolInstr);
 
-
+    //************************************************************************
+    if (qParallelStreams()) { // Outgoing events
         //************************************************************************
-        // Even DmaEng must use SET.
         //************************************************************************
         for (kcc_uint32 matmulIdx = matmulStart; matmulIdx < succMatmulEdges.size(); ++matmulIdx) {
             SET setEventInstr;
             auto succWaveEdge               = succMatmulEdges[matmulIdx];
             setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
         for (kcc_uint32 activationIdx = activationStart; activationIdx < succActivationEdges.size(); ++activationIdx) {
             SET setEventInstr;
             auto succWaveEdge               = succActivationEdges[activationIdx];
             setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
         for (kcc_uint32 succOfmapIdx = succOfmapStart; succOfmapIdx < succOfmapEdges.size(); ++succOfmapIdx) {
             SET setEventInstr;
             auto succWaveEdge               = succOfmapEdges[succOfmapIdx];
             setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode->writeInstruction(setEventInstr, engineId);
+            m_WaveCode.writeInstruction(setEventInstr, engineId);
         }
     }
 }

@@ -4,10 +4,13 @@
 #define KCC_WAVECODE_WAVECODE_H
 
 #include <array>
+#include <map>
 #include <string>
 #include <cstdio>
+#include <memory>
 
 
+#include "shared/inc/tpb_isa.hpp"
 
 
 #include "utils/inc/consts.hpp"
@@ -42,10 +45,12 @@ class WaveCode {
 public:
     class NpyFileInfo {
     public:
-        kcc_int64 m_FileDramOffset = -1;
-        bool        m_Dirty         = false;
-        ARBPRECTYPE m_SimTypeId = INVALID_ARBPRECTYPE;
-        std::array<kcc_int32, 4> m_RefFileShape;
+        NpyFileInfo();
+    public:
+        kcc_int64                   m_FileDramOffset    = -1;
+        bool                        m_Dirty             = false;
+        ARBPRECTYPE                 m_SimTypeId         = INVALID_ARBPRECTYPE;
+        std::array<kcc_int32, 4>    m_RefFileShape;
     };
 public:
 
@@ -81,6 +86,10 @@ public:
 
     kcc_uint64 calculateEventAddress(EngineId engId, EventId eventId) const;
 
+    bool qParallelStreams() const {
+        return m_ParallelStreams;
+    }
+
 private:
     WaveCode() = delete;
     WaveCode(const WaveCode&) = delete;
@@ -88,6 +97,8 @@ private:
 private:
     WaveCodeWaveOp& getCodeGen(const wave::WaveOp* waveOp);
     void saveAllNpyFiles();
+
+    void checkForNoSync(const TPB_CMD_SYNC&) const;
 
 private:
     const nets::Network*                m_Network;
@@ -103,6 +114,7 @@ private:
 
     kcc_int64                           m_CurrentDramAddress;
     std::map<std::string, NpyFileInfo>  m_NpyFile2DramAddress;
+    bool                                m_ParallelStreams = false;
 };
 
 }}

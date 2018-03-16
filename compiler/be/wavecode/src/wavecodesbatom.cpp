@@ -4,7 +4,7 @@
 namespace kcc {
 namespace wavecode {
 
-WaveCodeSbAtom::WaveCodeSbAtom(WaveCode* waveCode)
+WaveCodeSbAtom::WaveCodeSbAtom(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
 {}
 

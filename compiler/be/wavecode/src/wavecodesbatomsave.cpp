@@ -25,7 +25,7 @@ namespace wavecode {
 
 
 
-WaveCodeSbAtomSave::WaveCodeSbAtomSave(WaveCode* waveCode)
+WaveCodeSbAtomSave::WaveCodeSbAtomSave(WaveCodeRef waveCode)
     : WaveCodeSbAtom(waveCode)
 {}
 
@@ -40,18 +40,18 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     const EngineId engineId = sbAtomSaveWaveop->gEngineId();
     Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomSave waveop should be DmaEng");
 
-    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForNpyFile(sbAtomSaveWaveop->gRefFileName());
+    kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomSaveWaveop->gRefFileName());
 
     if (npyFileDramOffset < 0) {
         const kcc_int64 numPySize = sbAtomSaveWaveop->gSaveDataSizeInBytes();
-        npyFileDramOffset           = m_WaveCode->gCurrentDramAddress(numPySize);
+        npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
 
         WaveCode::NpyFileInfo npyFileInfo;
         npyFileInfo.m_Dirty          = false;
         npyFileInfo.m_FileDramOffset = npyFileDramOffset;
         npyFileInfo.m_SimTypeId = sbAtomSaveWaveop->gDataType().gSimTypeId();
         npyFileInfo.m_RefFileShape = sbAtomSaveWaveop->gRefFileShape();
-        m_WaveCode->recordDramForNpyFile(sbAtomSaveWaveop->gRefFileName(), npyFileInfo);
+        m_WaveCode.recordDramForNpyFile(sbAtomSaveWaveop->gRefFileName(), npyFileInfo);
     }
 
     SIM_MEMCPY statebufToDramInstr;
@@ -104,7 +104,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevPoolEdges) {
@@ -115,7 +115,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevMatmulEdges) {
@@ -126,7 +126,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             } else {
                 WAIT waitInstr;
                 waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode->writeInstruction(waitInstr, engineId);
+                m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
     }
@@ -142,23 +142,11 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     statebufToDramInstr.nbytes       = numBytesPerPart;
 
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
-#if 0
-        if (0 == partIdx) {
-            // only the first reading waits for events from previous instr
-            statebufToDramInstr.sync.wait_event_id      = sbAtomSaveWaveop->gWaitEventId();
-            statebufToDramInstr.sync.wait_event_mode    = events::WaitEvent::eventWaitMode2Int(sbAtomSaveWaveop->gWaitEventMode());
-        }
-        if (numPartitions-1 == partIdx) {
-            // only the last reading sets event to enable subsequent instr
-            statebufToDramInstr.sync.set_event_id       = sbAtomSaveWaveop->gSetEventId();
-            statebufToDramInstr.sync.set_event_mode     = events::SetEvent::eventSetMode2Int(sbAtomSaveWaveop->gSetEventMode());
-        }
-#endif
-
+        // TODO: add synchronization during DMA through extra DMA descriptor
         statebufToDramInstr.src_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
         statebufToDramInstr.dst_address = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
-        m_WaveCode->writeInstruction(statebufToDramInstr);
-        m_WaveCode->markDramDirty(sbAtomSaveWaveop->gRefFileName());
+        m_WaveCode.writeInstruction(statebufToDramInstr);
+        m_WaveCode.markDramDirty(sbAtomSaveWaveop->gRefFileName());
     }
 }
 

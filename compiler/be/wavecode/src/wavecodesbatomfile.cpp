@@ -31,7 +31,7 @@ namespace wavecode {
 
 
 
-WaveCodeSbAtomFile::WaveCodeSbAtomFile(WaveCode* waveCode)
+WaveCodeSbAtomFile::WaveCodeSbAtomFile(WaveCodeRef waveCode)
     : WaveCodeSbAtom(waveCode)
 {}
 
@@ -54,23 +54,23 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomFile waveop should be DmaEng, but is ",
            static_cast<long>(engineId));
 
-    kcc_int64 npyFileDramOffset = m_WaveCode->getDramForNpyFile(sbAtomFileWaveOp->gRefFileName());
+    kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomFileWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) {
         SIM_WRNPY npyToDramInstr;
         // Load whole numpy file
         const kcc_int64 numPySize = sbAtomFileWaveOp->gLoadDataSizeInBytes();
         strcpy(npyToDramInstr.src_fname, sbAtomFileWaveOp->gRefFileName().c_str());
-        npyFileDramOffset           = m_WaveCode->gCurrentDramAddress(numPySize);
+        npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
 
         npyToDramInstr.dst_address  = npyFileDramOffset;
-        m_WaveCode->writeInstruction(npyToDramInstr);
+        m_WaveCode.writeInstruction(npyToDramInstr);
 
         WaveCode::NpyFileInfo npyFileInfo;
         npyFileInfo.m_Dirty          = false;
         npyFileInfo.m_FileDramOffset = npyFileDramOffset;
         npyFileInfo.m_SimTypeId = sbAtomFileWaveOp->gDataType().gSimTypeId();
         npyFileInfo.m_RefFileShape = sbAtomFileWaveOp->gRefFileShape();
-        m_WaveCode->recordDramForNpyFile(sbAtomFileWaveOp->gRefFileName(), npyFileInfo);
+        m_WaveCode.recordDramForNpyFile(sbAtomFileWaveOp->gRefFileName(), npyFileInfo);
     }
 
     //************************************************************************
@@ -192,7 +192,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
             dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomFileWaveOp->gOffsetInFile() + (partIdx * stepSize);
             dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
 
-            m_WaveCode->writeInstruction(dramToStateBufInstr);
+            m_WaveCode.writeInstruction(dramToStateBufInstr);
         }
         //************************************************************************
     } 

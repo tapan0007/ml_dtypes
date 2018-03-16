@@ -29,7 +29,7 @@ namespace wavecode {
 class WaveCodeActivation : public WaveCodeWaveOp {
 public:
     //----------------------------------------------------------------
-    WaveCodeActivation(WaveCode* wavecode);
+    WaveCodeActivation(WaveCodeRef wavecode);
 
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;
