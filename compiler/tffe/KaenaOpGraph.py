@@ -1191,10 +1191,17 @@ class Graph(Object):
       waveSchedulerExec = self.kaenaPath + "/compiler/util/layeropt.py"
       kGraphJsonFile =  "compiler.json"
       waveGraphJsonFile = "wavegraph.json"
+
       # From Jeff: to generate dot, but not svg:  waveDotFile = outPrefix + "wavegraph.dot"
-      waveDotFile = outPrefix + "wavegraph.dot"
-      cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s  --debug %d > log-me.txt 2>&1" % (
-            waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
+      if False:
+        waveDotFile = outPrefix + "wavegraph.dot"
+        cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s  --debug %d > log-me.txt 2>&1" % (
+              waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
+      else:
+        waveDotFile = outPrefix + "wavegraph.svg"
+        cmd = "python3 %s --kgraph %s --wavegraph %s  --debug %d > log-me.txt 2>&1" % (
+              waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, Config.debugLevel)
+
       print("INFO: executing wave scheduler by  " + cmd)
       os.system(cmd)
       meOk = False
