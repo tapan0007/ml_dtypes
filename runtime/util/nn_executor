@@ -58,7 +58,7 @@ class NnSubgraph:
     self.inputs = sgJson["Inputs"]
     self.outputs = sgJson["Outputs"]
     self.executor = sgJson["executor"]
-    self.parallel_streams = sgJson["parallel_streams"]
+    self.parallel_streams = sgJson.get("parallel_streams", False)
     self.cmd = ""
     if self.executor == "processor":
       self.cmd = sgJson["cmd"]
