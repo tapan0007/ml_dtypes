@@ -1423,7 +1423,7 @@ class FusedOp(list):
             if (re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", layer_type)):
                 tpb.activate.wait_tile_done(tile_id)
                 psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp)
-                psum_bank_dst = 2
+                psum_bank_dst = psum_bank_src
                 dst_is_psum = False
                 if (i != len(op_list)-1):
                     dst_is_psum = True
@@ -1443,7 +1443,7 @@ class FusedOp(list):
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
                 #print(y-x)
-                psum_bank_dst = 2
+                psum_bank_dst = psum_bank_src 
                 dst_is_psum = False
                 if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", op_list[i+1].data['layer_type'])):
                     psum_temp = tpb.activate.act(op_list[i+1].data['layer_type'], psum_temp)
@@ -1485,7 +1485,7 @@ class FusedOp(list):
                 #x2 = DBG_DUMP_PSUM_COL("Residue col0 before ResAdd (FP32): ", residue_ifmaps, 0)
                 psum_temp = tpb.pool.resadd(psum_temp, residue_ifmaps)
                 #y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
-                psum_bank_dst = 3
+                psum_bank_dst = psum_bank_src
                 dst_is_psum = False
                 if (i != len(op_list)-1):
                     dst_is_psum = True
@@ -2017,7 +2017,7 @@ class TPBSched:
                         psum_temp = self.pearray.extract_psum(psum_bank_src, 0, op_list.conv_op.ofmap_full_tile_sz)
                         # go through the remaining operations
                         psum_temp = self.pool.reciprocate(psum_temp, op_list.conv_op.M)
-                        psum_bank_dst = 2
+                        psum_bank_dst = psum_bank_src
                         tpb.pearray.write_psum(psum_bank_dst, 0, op_list.conv_op.ofmap_full_tile_sz, psum_temp)
                         tpb.gen_recip_waveop_inline(op_list.conv_op, psum_bank_src, True, psum_bank_dst)
                         psum_bank_src = psum_bank_dst
@@ -2056,7 +2056,7 @@ class TPBSched:
                         self.waveop_stream.add_outputs(dram_output_waveops)
 
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
-                        op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%2)
+                        op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
                         psum_add = False
 
 
@@ -2234,7 +2234,7 @@ class TPBSched:
                             self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
-                        op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%2)
+                        op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
                         psum_add = False
 
         # save layer results to file, for retrieval by next layer                       
