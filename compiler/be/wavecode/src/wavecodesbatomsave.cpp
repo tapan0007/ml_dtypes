@@ -62,7 +62,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
 
     //************************************************************************
-    { // Incoming edges/events: Wait for events from predecessors
+    if (qParallelStreams()) { // Incoming edges/events: Wait for events from predecessors
         std::vector<const wave::WaveEdge*> prevActivationEdges;
         std::vector<const wave::WaveEdge*> prevMatmulEdges;
         std::vector<const wave::WaveEdge*> prevPoolEdges;

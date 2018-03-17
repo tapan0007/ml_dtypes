@@ -73,8 +73,16 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         m_WaveCode.recordDramForNpyFile(sbAtomFileWaveOp->gRefFileName(), npyFileInfo);
     }
 
+    SIM_MEMCPY dramToStateBufInstr;
+    dramToStateBufInstr.sync.wait_event_id      = -1;
+    dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    dramToStateBufInstr.sync.set_event_id       = -1;
+    dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
+    EventId setEventId = -1;
+    events::EventSetMode eventSetMode = events::EventSetMode::NoEvent;
+
     //************************************************************************
-    { // Outgoing events: inform successors
+    if (qParallelStreams()) { // Outgoing events: inform successors
         std::vector<const wave::WaveEdge*> succMatmulEdges;
         std::vector<const wave::WaveEdge*> succPoolEdges;
         std::vector<const wave::WaveEdge*> succActivationEdges;
@@ -158,28 +166,25 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
             break;
         }
 
-        EventId setEventId = -1;
-        events::EventSetMode eventSetMode = events::EventSetMode::NoEvent;
         if (succWaveEdgeEmb) {
             setEventId = succWaveEdgeEmb->gEventId();
             eventSetMode = succWaveEdgeEmb->gSetEventMode();
         }
 
+    }
 
-        //************************************************************************
-        // Instruction(s)
-        //************************************************************************
-        const kcc_int64 numPartitions   = sbAtomFileWaveOp->gIfmapCount();
-        const kcc_int64 numBytesPerPart = sbAtomFileWaveOp->gLength();
-        const kcc_int64 addressInPart   = sbAtomFileWaveOp->gAddressInPartition(0 /*offset in atom*/);
-        const kcc_int64 stepSize = sbAtomFileWaveOp->gPartitionStepBytes();
+    //************************************************************************
+    // Instruction(s)
+    //************************************************************************
+    const kcc_int64 numPartitions   = sbAtomFileWaveOp->gIfmapCount();
+    const kcc_int64 numBytesPerPart = sbAtomFileWaveOp->gLength();
+    const kcc_int64 addressInPart   = sbAtomFileWaveOp->gAddressInPartition(0 /*offset in atom*/);
+    const kcc_int64 stepSize = sbAtomFileWaveOp->gPartitionStepBytes();
 
-        SIM_MEMCPY dramToStateBufInstr;
-        dramToStateBufInstr.nbytes                  = numBytesPerPart;
-        dramToStateBufInstr.sync.wait_event_id      = -1;
-        dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    dramToStateBufInstr.nbytes                  = numBytesPerPart;
 
-        for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
+    for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
+        if (qParallelStreams()) {
             if (numPartitions-1 == partIdx) {
                 // only the last reading sets event to enable subsequent instr
                 dramToStateBufInstr.sync.set_event_id       = setEventId;
@@ -188,14 +193,15 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
                 dramToStateBufInstr.sync.set_event_id       = -1;
                 dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
             }
-
-            dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomFileWaveOp->gOffsetInFile() + (partIdx * stepSize);
-            dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
-
-            m_WaveCode.writeInstruction(dramToStateBufInstr);
         }
-        //************************************************************************
-    } 
+
+
+        dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomFileWaveOp->gOffsetInFile() + (partIdx * stepSize);
+        dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
+
+        m_WaveCode.writeInstruction(dramToStateBufInstr);
+    }
+    //************************************************************************
 }
 
 }}

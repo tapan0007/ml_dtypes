@@ -85,8 +85,13 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     }
     activationInstr.num_partitions      = activationWaveop->gNumPartitions();
 
+    activationInstr.sync.wait_event_id    = -1;
+    activationInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    activationInstr.sync.set_event_id    = -1;
+    activationInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+
     //************************************************************************
-    { // incoming events
+    if (qParallelStreams()) { // incoming events
         std::vector<const wave::WaveEdge*> prevIfmapEdges;
         std::vector<const wave::WaveEdge*> prevMatmulEdges;
         std::vector<const wave::WaveEdge*> prevPoolEdges;
@@ -158,13 +163,15 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     } // incoming events
 
 
+    std::vector<const wave::WaveEdge*> succOfmapEdges;
+    std::vector<const wave::WaveEdge*> succMatmulEdges;
+    std::vector<const wave::WaveEdge*> succPoolEdges;
+    kcc_uint32 poolStart = 0;
+    kcc_uint32 matmulStart = 0;
+    kcc_uint32 succOfmapStart = 0;
 
     //************************************************************************
-    { // Outgoing events
-        std::vector<const wave::WaveEdge*> succOfmapEdges;
-        std::vector<const wave::WaveEdge*> succMatmulEdges;
-        std::vector<const wave::WaveEdge*> succPoolEdges;
-
+    if (qParallelStreams()) { // Outgoing events
         for (auto succWaveEdge : activationWaveop->gSuccWaveEdges()) {
             if (succWaveEdge->gEventId() == EventId_Invalid) {
                 continue;
@@ -198,15 +205,12 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
         // Find one embedded set-event edge, if any
         //************************************************************************
         const wave::WaveEdge* succWaveEdgeEmb  = nullptr;
-        kcc_uint32 poolStart = 0;
         if (!succWaveEdgeEmb && succPoolEdges.size() > 0) {
             succWaveEdgeEmb = succPoolEdges[poolStart++];
         }
-        kcc_uint32 matmulStart = 0;
         if (!succWaveEdgeEmb && succMatmulEdges.size() > 0) {
             succWaveEdgeEmb = succMatmulEdges[matmulStart++];
         }
-        kcc_uint32 succOfmapStart = 0;
         if (!succWaveEdgeEmb && succOfmapEdges.size() > 0) {
             succWaveEdgeEmb = succOfmapEdges[succOfmapStart++];
         }
@@ -214,12 +218,14 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
             activationInstr.sync.set_event_id   = succWaveEdgeEmb->gEventId();
             activationInstr.sync.set_event_mode = events::eventSetMode2Int(succWaveEdgeEmb->gSetEventMode());
         }
+    }
 
-        //************************************************************************
-        // write instruction
-        m_WaveCode.writeInstruction(activationInstr);
-        //************************************************************************
+    //************************************************************************
+    // write instruction
+    m_WaveCode.writeInstruction(activationInstr);
 
+    //************************************************************************
+    if (qParallelStreams()) { // Outgoing events
 
         //************************************************************************
         // Remaining edges --> signal through SET_EVENT or through WRITE
