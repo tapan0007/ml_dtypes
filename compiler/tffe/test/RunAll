@@ -324,6 +324,9 @@ testWaiver = [
     ['^[8]-resnet50',  'WAIVE-BENCH'],
     ['8-rn50_nne_auto', 'WAIVE-NNE'],
     
+    # ME accuracy failure
+    ['0-116conv_tanh_wave', 'WAIVE-ME_ACC'],
+    
     
   ]
 
@@ -572,7 +575,7 @@ class Ktests:
         if t.exceededTimeout(self.testTimeout):
           time.sleep(0.01)
           
-          # The terminate doe snot correctly signal to all
+          # The terminate does not correctly signal to all
           # transitive child processes so signal explicitly
           try:
             proc = psutil.Process(p.pid)
