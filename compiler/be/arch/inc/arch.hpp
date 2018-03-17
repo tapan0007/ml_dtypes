@@ -72,7 +72,7 @@ public:
     //----------------------------------------------------------------
     const std::string& gArchVersion() const;
 
-    static kcc_int64 gTpbBase();
+    static kcc_int64 gTpbBaseSysAddress();
 
     static kcc_int64 gTpbEventBase();
     static kcc_int64 gSpEventBase();

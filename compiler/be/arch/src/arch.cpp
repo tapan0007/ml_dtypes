@@ -105,7 +105,7 @@ Arch::gSpEventBase()
 }
 
 kcc_int64
-Arch::gTpbBase()
+Arch::gTpbBaseSysAddress()
 {
     return TPB_BASE;
 }

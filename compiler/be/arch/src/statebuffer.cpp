@@ -33,14 +33,14 @@ kcc_int64
 StateBuffer::gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 {
     kcc_int64 sysAddr = gEntryTpbAddress(row, elmtOffInBytes);
-    sysAddr += Arch::gTpbBase();
+    sysAddr += Arch::gTpbBaseSysAddress();
     return sysAddr;
 }
 
 
 
 kcc_int64
-StateBuffer::gAllZeroOffsetSysAddress(const utils::DataType& dataType) const
+StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
 {
     if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
         return MMAP_SB_FP32_ZERO_OFFSET;
@@ -67,7 +67,7 @@ StateBuffer::gAllZeroOffsetSysAddress(const utils::DataType& dataType) const
 }
 
 kcc_int64
-StateBuffer::gAllOneOffsetSysAddress(const utils::DataType& dataType) const
+StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
 {
     if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
         return MMAP_SB_FP32_ONE_OFFSET;
@@ -93,16 +93,19 @@ StateBuffer::gAllOneOffsetSysAddress(const utils::DataType& dataType) const
     return 0;
 }
 
+
+
+
 kcc_int64
-StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
+StateBuffer::gAllZeroOffsetSysAddress(const utils::DataType& dataType) const
 {
-    return gAllZeroOffsetSysAddress(dataType) - Arch::gTpbBase();
+    return Arch::gTpbBaseSysAddress() + gAllZeroOffsetTpbAddress(dataType);
 }
 
 kcc_int64
-StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
+StateBuffer::gAllOneOffsetSysAddress(const utils::DataType& dataType) const
 {
-    return gAllOneOffsetSysAddress(dataType) - Arch::gTpbBase();
+    return Arch::gTpbBaseSysAddress() + gAllOneOffsetTpbAddress(dataType);
 }
 
 }}
