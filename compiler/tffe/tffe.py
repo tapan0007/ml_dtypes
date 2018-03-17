@@ -130,9 +130,10 @@ for sg in kp.getSubgraphs():
       if meOk:
         cmd = "bash %s/compiler/be/test/RunOne.sh *tgz > log-be.txt 2>&1" % kPath
         print("INFO: executing %s" % cmd, flush=True)
-        ret = os.system(cmd)
+        ret += abs(os.system(cmd))
       else:
         print("ERROR: skipping backend compilation since the mid scheduler failed", flush=True)
+        ret += 1
 
   os.chdir("..")
   sgJson = sg.genExecutorGraphJson(sgDir)
@@ -140,16 +141,17 @@ for sg in kp.getSubgraphs():
   sgJsonList.append(sgJson)
   sgId += 1
 
-KgraphPartitions.attachPrePost(sgJsonList, args.preprocessor, args.postprocessor)
+if ret == 0:
+  KgraphPartitions.attachPrePost(sgJsonList, args.preprocessor, args.postprocessor)
 
-nnGraphFile = "nn_graph.json"
-with open(nnGraphFile, "w") as f:
-  s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
-  f.write(s)
+  nnGraphFile = "nn_graph.json"
+  with open(nnGraphFile, "w") as f:
+    s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
+    f.write(s)
 
-# K-elf compilation is done. Make output directory read/execute only
-if debugLevel > 0:
-  remove_write_permissions(".")
+  # K-elf compilation is done. Make output directory read/execute only
+  if debugLevel > 0:
+    remove_write_permissions(".")
 
 print("INFO: Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
