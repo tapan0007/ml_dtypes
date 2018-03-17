@@ -48,13 +48,16 @@ class NpTrans:
         Transforms[src][dst][d] = calcTransform(Formats[src][d], Formats[dst][d])
   # Ulility function to convert npy files, returns new file name and the destination format
   @staticmethod
-  def copyNpyFileAs(npFile, srcPlat, dstPlat, dataFlavor, srcShape=None, outFile=None):
+  def copyNpyFileAs(npFile, srcPlat, dstPlat, dataFlavor, srcShape=None, outFile=None, dstShape=None):
     dstFormat = NpTrans.Formats[dstPlat][dataFlavor]
     transform = NpTrans.Transforms[srcPlat][dstPlat][dataFlavor]
     arr = np.load(npFile)
     if srcShape != None:
       arr = arr.reshape(srcShape)
     arr = np.transpose(arr, transform)
+    if not dstShape == None:
+      assert arr.size == np.empty(dstShape).size
+      arr = arr.reshape(dstShape)
     if outFile == None:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
     else:
@@ -97,6 +100,19 @@ class NpTrans:
     assert len(shape) == 2
     tmpShape = [1, 1, shape[0], shape[1]]
     return tmpShape
-  
- 
+
+  @staticmethod
+  def reshapeFilePerRefFile(npyFile, refShapeFile):
+    arr = np.load(npyFile)
+    refArr = np.load(refShapeFile)
+    assert refArr.size == arr.size
+    if not refArr.shape == arr.shape:
+      #print("DEBUG: reshapeFilePerRefFile reshaped  %s  %s -> %s  based on shape of  %s"
+      #      % (npyFile, arr.shape, refArr.shape, refShapeFile))
+      arr = arr.reshape(refArr.shape)
+      np.save(npyFile, arr)
+    #else:
+      #print("DEBUG: reshapeFilePerRefFile no reshape was needed for  %s" % npyFile)
+
+
   

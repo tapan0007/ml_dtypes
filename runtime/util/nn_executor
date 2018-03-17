@@ -8,6 +8,8 @@
 import argparse
 import os.path
 import sys, json, re
+import glob
+import shutil
 kPath = os.environ.get('KAENA_PATH')
 sys.path.insert(0, kPath + "/compiler/tffe")
 from NpUtils import NpUtils as npu
@@ -15,23 +17,55 @@ from NpTransforms import NpTrans as npt
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--nn_graph', help='Graph to execute', default="nn_graph.txt")
+parser.add_argument('--kelf_dir', help='kelf directory', default="")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
-
+parser.add_argument('--input_files', help='Files to be passed in to the first subgraph', default=[], nargs='+')
+parser.add_argument('--output_files', help='Specify output file for last subgraph', default=[], nargs='+')
+parser.add_argument('--check_against_ref', help='compare last produced output npy file against compiler provided golden', action='store_true')
+parser.add_argument('--working_dir', help='all output will be stored here', default="")
 args = parser.parse_args()
-nnGraphFile = args.nn_graph
+kelf_dir = args.kelf_dir
+kelf_dir = os.path.abspath(kelf_dir)
+assert(kelf_dir != "")
+nnGraphFile = kelf_dir + "/nn_graph.json"
 tfpbFile = args.tfpb
-if not tfpbFile.startswith('/'):
-  tfpbFile = '../' + tfpbFile
+tfpbFile = os.path.abspath(tfpbFile)
+
+input_files = []
+for f in args.input_files:
+  input_files.append(os.path.abspath(f))
+
+assert(1 >= len(input_files))
+output_files = []
+for f in args.output_files:
+  output_files.append(os.path.abspath(f))
+check_against_ref = args.check_against_ref
+working_dir = args.working_dir
+if (working_dir == ""):
+  working_dir = "%s/working_dir" % kelf_dir
+working_dir = os.path.abspath(working_dir)
+if not os.path.exists(working_dir):
+  os.makedirs(working_dir)
+
+print("INFO: using working directory  %s" % (working_dir))
+
+
 
 class NnSubgraph:
-  def __init__(self, sgDir, inputs, output):
-    self.sgDir = sgDir
-    self.inputs = inputs
-    self.output = output
-  
+  def __init__(self, sgId, sgJson):
+    self.sgId = sgId
+    self.sgDir = sgJson["SubGraphDir"]
+    self.inputs = sgJson["Inputs"]
+    self.outputs = sgJson["Outputs"]
+    self.executor = sgJson["executor"]
+    self.cmd = ""
+    if self.executor == "processor":
+      self.cmd = sgJson["cmd"]
+
+    assert (len(self.outputs) <= 1) # TODO: handle multiple outputs
+
   def getOutputNpyFile(self):
-    return self.output[1]
+    return self.outputs[0]["file"]
   def getOutputNpyFileBase(self):
     return self.getOutputNpyFile()[:-4]
   
@@ -40,96 +74,122 @@ class NnSubgraph:
   # files A:0.npy to point to ../A:0-out.npy
   def getUpdatedInputs(self):
     newInputs = []
-    if self.getSgId() == 0:
+    if self.sgId == 0:
       return self.inputs
-    for inp,f in zip(self.inputs[::2], self.inputs[1::2]):
-      fBase = f[:-4]  # removes .npy
-      tfFile = "../%s-out.npy" % fBase
-      newInputs += [inp, tfFile]
+
+    for input in self.inputs:
+      name = input["name"]
+      f = input["file"]
+      tfFile = "%s" % f.replace(".npy", "-out.npy")
+      newInputs += [{"name" : name, "file" :tfFile}]
+
     return newInputs
-  
-  # The TPB executor (tcc, wave, waveopt) uses fixed npy files
-  # in TPB format. This function finds the ../...-out.npy file
-  # converts it to TPB format and links it instead of the original input
-  # which is renamed to ./...-orig.npy)
-  def overwriteInputFilesInTpbFormat(self):
-    newInputs = []
-    if self.getSgId() == 0:
+
+
+  def createTpbFormatInputs(self):
+    if self.sgId == 0:
       # The inputs for the first subgraph are same as when compiled
       return
-    tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
-    tpbWeightFormat = npt.Formats[npt.SIM][npt.Weights]
-    for inp,f in zip(self.inputs[::2], self.inputs[1::2]):
+    for input in self.inputs:
+      name = input["name"]
+      f = input["file"]
       fBase = f[:-4]  # removes .npy
       # Only Fmaps come from the previous subgraph
-      tpbInpFile = "%s/%s_%s.npy"      % (self.sgDir, fBase, npt.Formats[npt.SIM][npt.Fmaps])
-      if os.path.isfile(tpbInpFile):
-        tfFile = "%s-out.npy" % fBase
-        # Move the compiler generated input file
-        origFile = tpbInpFile.replace(".npy", "-orig.npy")
-        os.rename(tpbInpFile, origFile)
-        # Translate and write the previous subgraph file
-        if os.path.isfile(f):
-          npt.copyNpyFileAs(tfFile, npt.TF, npt.SIM, npt.Fmaps, outFile=tpbInpFile)
-          print("INFO: translated TF format  %s  to TPB Fmap format  %s" % (tfFile, tpbInpFile))
-        else:
-          print("ERROR: no tpb output file %s" % tfFile, flush=True)        
-        newInputs += [inp, tfFile]
+      tpbInpFile = "%s_%s.npy"      % (fBase, npt.Formats[npt.SIM][npt.Fmaps])
+      tfFile = "%s-out.npy" % fBase
+      # Translate and write the previous subgraph file
+      if os.path.isfile(tfFile):
+        npt.copyNpyFileAs(tfFile, npt.TF, npt.SIM, npt.Fmaps, outFile=tpbInpFile)
+        print("INFO: translated TF format  %s  to TPB Fmap format  %s" % (tfFile, tpbInpFile))
       else:
-        print("ERROR: missing TPB-format input file  %s" % tpbInpFile)
-        sys.exit(1)
-    return newInputs
-  
-  # The files are shared by op name A, then computed locally as sg00/A-out.npy
-  # and linked to parent as A-out.npy which the input for the next subgraph
-  # This ensures a subgraph failure is visible in the end result
-  def run(self, executor):
-    logFile = "log-%s.txt" % executor
-    outBase = self.getOutputNpyFileBase()
-    OutFile = outBase + "-out.npy"
+        print("ERROR: no tf file not found %s" % tfFile, flush=True)
+        sys.exit(-1)
+
+  # There is no good way to identify consts (weights, biases, ..) in the kelf file yet.
+  # This is a hack to link required files so that SIM can find them.
+  def linkConsts(self):
+    g = []
+    g += glob.glob("%s/*%s*.npy"% (working_dir, npt.Formats[npt.SIM][npt.Weights]))
+    g += glob.glob("%s/*%s*.npy"% (working_dir, npt.Formats[npt.SIM][npt.Fmaps]))
+    for f in g:
+      os.remove(f)
+    g = []
+    g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Weights]))
+    g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Fmaps]))
+    for f in g:
+      dst_f = "%s/%s" % (working_dir, os.path.basename(f))
+      if not os.path.isfile(dst_f):
+          os.symlink(f, dst_f )
+
+
+  # Executes a subgraph, calls appropriate executor as specified in nn_graph.json
+  # Returns 0 on success, -1 or error code of failure.
+  def run(self):
+    executor = self.executor
+    logFile = "log-exec-%s-%s.txt" % (self.sgDir, executor)
+    OutFile = ""
+    if len(self.outputs) > 0:
+      OutFile = self.outputs[0]["file"].replace(".npy", "-out.npy")
+
     if executor == "host":
       cmd = "%s/runtime/util/runtime_tf" % kPath
       cmd += "  --tfpb %s" % tfpbFile
-      cmd += "  --input_tensors %s" % " ".join(self.getUpdatedInputs())
-      cmd += "  --output_tensor %s %s" % (self.output[0], OutFile)
-    elif executor == "tcc" or executor == "wave":
-      self.overwriteInputFilesInTpbFormat()
-      cmd = "%s/runtime/util/runtime_sim" % kPath
-      cmd += "  --tpb %s" % "TrivNet.tpb"
-      #cmd += "  --input_fmap %s" % " ".join(self.getUpdatedInputs())
-      #cmd += "  --output_fmap %s %s" % (self.output[0], OutFile)
-    elif executor == "waveopt":
-      self.overwriteInputFilesInTpbFormat()
-      cmd = "python3 %s//compiler/util/layeropt.py" % kPath
-      cmd += "  --kgraph *_compiler.json"
-      cmd += "  --wavegraph *_wavegraph.json"
-    sgOutFile = "%s/%s" % (self.sgDir, OutFile)
+      inputs = []
+      for input in self.getUpdatedInputs():
+        inputs += [input["name"]]
+        inputs += [input["file"]]
 
-    #os.chdir(self.sgDir)
-    cmd = "cd %s; %s > %s 2>&1" % (self.sgDir, cmd, logFile)
+      cmd += "  --input_tensors %s" % " ".join(inputs)
+      cmd += "  --output_tensor %s %s" % (self.outputs[0]["name"], OutFile)
+    elif executor == "tcc" or executor == "wave":
+      self.linkConsts()
+      self.createTpbFormatInputs()
+      cmd = "%s/runtime/util/runtime_sim" % kPath
+      cmd += "  --tpb %s" % "%s/%s/TrivNet.tpb" %(kelf_dir, self.sgDir)
+      #cmd += "  --input_fmaps %s" % " ".join(self.getUpdatedInputs())
+      #cmd += "  --output_fmap %s %s" % (self.outputs[0], OutFile)
+    elif executor == "processor":
+      inputs = []
+      for input in self.getUpdatedInputs():
+        inputs += [input["file"]]
+
+      cmd = "%s/%s/%s" % (kelf_dir, self.sgDir, self.cmd)
+
+      cmd += "  --inputs %s" % " ".join(inputs)
+      if OutFile != "":
+        cmd += "  --output %s" % (OutFile)
+    elif executor == "waveopt":
+      self.linkConsts()
+      self.createTpbFormatInputs()
+      cmd = "python3 %s//compiler/util/layeropt.py" % kPath
+      cmd += "  --kgraph %s/%s/*_compiler.json" % (kelf_dir, self.sgDir)
+      cmd += "  --wavegraph %s/%s/*_wavegraph.json" % (kelf_dir, self.sgDir)
+
+
+    cmd = "%s > %s 2>&1" % (cmd, logFile)
     print("\nINFO: executing %s" % cmd, flush=True)
-    os.system(cmd)
+    ret = os.system(cmd)
+    if ret != 0:
+      return ret
+
+
     # Translate TPB format back to TF format.
-    # To share easily the file is also linked to the parent dir
-    if not executor == "host":
+    if (executor == "tcc" or  executor == "wave" or executor == "waveopt") and OutFile != "":
+      outBase = self.getOutputNpyFileBase()
       simExt = "simout"
       if executor == "waveopt":
         simExt = "midout"
       tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
-      tpbOutFile = "%s/%s_%s-%s.npy" % (self.sgDir, outBase, tpbFmapFormat, simExt)
-      sgOutFile = "%s/%s" % (self.sgDir, OutFile)
+      tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
       if os.path.isfile(tpbOutFile):
-        npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=sgOutFile)
+        outShape = self.outputs[0]["shape"]
+        npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=OutFile, dstShape=outShape)
       else:
         print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
-    if os.path.islink(OutFile):
-      os.remove(OutFile)
-      print("INFO: removed stale link %s" % OutFile)
-    os.symlink(sgOutFile, OutFile)
+        return -1
+
+    return 0
     
-  def getSgId(self):
-    sgId = int(self.sgDir.replace("sg", ""))
-    return sgId
 
 class NnExec:
   def __init__(self, nnGraphFile):
@@ -137,29 +197,75 @@ class NnExec:
       self.nnGraphJsonData = json.load(fh)
     self.subGraphs = []
 
+  def update_io(self, input_files, output_files):
+    sg_first = self.subGraphs[0]
+    sg_last = self.subGraphs[-1]
+
+    # Attach supplied input file to first subgraph
+    if len(input_files) != 0:
+      if len(sg_first.inputs) == 0:
+        sg_first.inputs.append({"name" : "", "file" : input_files[0]})
+      else:
+        assert (len(sg_first.inputs) == len(input_files))
+        # we only support single input file for now
+        sg_first.inputs[0]["file"] = input_files[0]
+
+    # Attach supplied output file to last subgraph
+    if len(output_files) != 0:
+      if len(sg_last.outputs) == 0:
+        sg_last.inputs.append({"name" : "", "file" : output_files[0]})
+      else:
+        assert (len(sg_last.outputs) == len(output_files))
+        # we only support single output file for now
+        sg_last.outputs[0]["file"] = output_files[0]
+
   def run(self):
+
+    sgId = 0
     for sgJson in self.nnGraphJsonData["SubGraphs"]:
-      sg = NnSubgraph(sgJson["SubGraphDir"], sgJson["Inputs"],
-                      sgJson["Output"])
+      sg = NnSubgraph(sgId, sgJson)
       self.subGraphs.append(sg)
-      sg.run(sgJson["executor"])
+      sgId += 1
+
+    # copy input files to local working directory
+    for f in input_files:
+      shutil.copy(f, working_dir)
+
+    self.update_io(input_files, output_files)
+
+    for sg in self.subGraphs:
+      ret = sg.run()
+      if (ret != 0):
+        return ret
+    return 0
+
 
   # Return unix exit code
   def check(self):
-    lastSg = self.subGraphs[-1]
+    # find last non processor subgraph, compare output.
+    lastSg = None
+    for sg in self.subGraphs:
+      if sg.executor != "processor":
+        lastSg = sg
     outBase = lastSg.getOutputNpyFileBase()
     flowOutFile = outBase + "-out.npy"
     refOutFile = lastSg.getOutputNpyFile()
-    cmd = "%s/compiler/util/npy_diff_files --gold %s --new %s" % (kPath, refOutFile, flowOutFile)
+    cmd = "%s/compiler/util/npy_diff_files --gold %s/%s --new %s" % (kPath, kelf_dir, refOutFile, flowOutFile)
     print("INFO: executing %s" % cmd, flush=True)
     ret = os.system(cmd)
     return ret
 
+ret = 0
+os.chdir(working_dir)
 nnExec = NnExec(nnGraphFile)
-nnExec.run()
-ret = nnExec.check()
+ret = nnExec.run()
+assert(ret == 0)
+if check_against_ref:
+  ret = nnExec.check()
+  assert(ret == 0)
 
 print("INFO: Kaena RT status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
+
 
 

@@ -171,16 +171,20 @@ class BiasAddAct:
 
     def act(self, type, in_array):
         if (type == 'Relu'):
-            return self.relu(in_array)
+            return self.__relu(in_array)
         elif (type == 'Sigmoid'):
             return 1/(1 + np.exp(-in_array))
         elif (type == 'Exp'):
             return np.exp(in_array)
+        elif (type == 'Tanh'):
+            return np.tanh(in_array)
+        elif (type == 'Sigmoid'):
+            return np.sigmoid(in_array)
         else:
             print("ERROR BiasAddAct.act: unrecognized activation type %s"%type)
             exit(-1)
 
-    def relu(self, in_array):
+    def __relu(self, in_array):
         return np.maximum(np.zeros(in_array.shape, dtype=in_array.dtype), in_array)
 
 ##################################################################################
@@ -1275,7 +1279,7 @@ class FusedOp(list):
         # find the weights offset within atom; -1 means don't load new weights
         weights_offset_in_atom = tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr)
         if (self.conv_op.weight_wave_lower_addr == self.prev_weight_wave_lower_addr):
-            #weights_offset_in_atom = -1
+            weights_offset_in_atom = -1
             if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
         else:            
             self.prev_weight_wave_lower_addr = self.conv_op.weight_wave_lower_addr
@@ -1418,7 +1422,7 @@ class FusedOp(list):
             layer_type = self[i].data['layer_type'] 
             if (re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", layer_type)):
                 tpb.activate.wait_tile_done(tile_id)
-                psum_temp = tpb.activate.relu(psum_temp)
+                psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp)
                 psum_bank_dst = 2
                 dst_is_psum = False
                 if (i != len(op_list)-1):
@@ -1720,6 +1724,40 @@ class TPBSched:
         self.waveop_stream = WaveopStream()
 
     # generate activation instruction and add it to instruction stream
+    def gen_recip_waveop_inline(self, op, psum_bank_src, dst_is_psum, psum_bank_dst):
+        layer_name = op.data["layer_name"]
+        in_dtype = "float32"
+        out_dtype = "float32"
+        waveop_name = layer_name+"/Reciprocal"
+        instr = {
+              'previous_waveops'        : [],
+              'waveop_type'             : 'Reciprocal',
+              'waveop_name'             : waveop_name,
+              'layer_name'              : layer_name,
+              'in_dtype'                : in_dtype,
+              'out_dtype'               : out_dtype,
+              'src_psum_bank_id'        : psum_bank_src,
+              'src_x_step'              : 1,
+              'src_x_num'               : 1,
+              'src_y_step'              : 1,
+              'src_y_num'               : 1,
+              'src_z_step'              : 1,
+              'src_z_num'               : 1,
+              'dst_is_psum'             : dst_is_psum, 
+              'dst_psum_bank_id'        : psum_bank_dst,
+              'dst_sb_atom_id'          : 0, # Need to adjust this after allocating atoms
+              'dst_sb_offset_in_atom'   : 0, 
+              'dst_x_step'              : 1,
+              'dst_x_num'               : 1,
+              'dst_y_step'              : 1,
+              'dst_y_num'               : 1,
+              'dst_z_step'              : 1,
+              'dst_z_num'               : 1,
+              'num_partitions'          : 1
+            }
+        self.waveop_stream.add_linked(instr, [])
+
+    # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
         layer_name = ""
         bias_add_en = False
@@ -1930,7 +1968,8 @@ class TPBSched:
         ones_shape = [op_list[0].C, 1, 1, 1]
         ones_tensor = np.ones(ones_shape, dtype=self.statebuffer.circbuf_ifmaps.data_type)
         ones_file = op_list[0].data['ref_file'].replace(".npy", "-ones.npy")
-        np.save(ones_file, ones_tensor)
+        if (not args.inference):
+            np.save(ones_file, ones_tensor)
         weights = []
         if (op_list.has_conv):
             op_list[0].data['kernel_file'] = ones_file
@@ -1980,6 +2019,7 @@ class TPBSched:
                         psum_temp = self.pool.reciprocate(psum_temp, op_list.conv_op.M)
                         psum_bank_dst = 2
                         tpb.pearray.write_psum(psum_bank_dst, 0, op_list.conv_op.ofmap_full_tile_sz, psum_temp)
+                        tpb.gen_recip_waveop_inline(op_list.conv_op, psum_bank_src, True, psum_bank_dst)
                         psum_bank_src = psum_bank_dst
                         # loops for final scaling
                         for c_id in range(ceildiv(op_list.conv_op.C, PEArray.NUM_COLS)):
@@ -2201,7 +2241,8 @@ class TPBSched:
         if (result.shape != tpb.statebuffer.circbuf_scratch.layer_shape):
             result = result.reshape(tpb.statebuffer.circbuf_scratch.layer_shape)
         np.save(result_file, result)
-        if (args.golden_inputs and os.path.isfile(op_list[-1].data['ref_file'])):
+        if ((args.golden_inputs or args.inference)
+                and os.path.isfile(op_list[-1].data['ref_file'])):
             # if using golden inputs, save the ref_file instead of result_file
             self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = op_list[-1].data['ref_file']
         else:            
@@ -2226,6 +2267,7 @@ if __name__ == "__main__":
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
+    parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
@@ -2295,7 +2337,7 @@ if __name__ == "__main__":
 
     # write out wavegraph           
     wavegraph_json = kgraph_json
-    if (args.wavegraph != None): 
+    if (args.wavegraph != None and args.inference == False): 
         wavegraph_json['waveops'] = tpb.waveop_stream
         try:
             print("Saving Wave-Graph %s"%args.wavegraph)
@@ -2308,8 +2350,20 @@ if __name__ == "__main__":
             print(e)
             exit(-1)
 
+        # test by reading it back
+        try:
+            print("Test by loading Wave-graph %s"%args.wavegraph)
+            wavegraph_json = json.load(open(args.wavegraph))
+        except Exception as e:
+            print(e)
+            exit(-1)
+
+        # create graph from JSON file        
+        wavegraph = KGraph()
+        wavegraph.populate_from_kgraph_json(wavegraph_json)
+
     # write out dot graph in SVG format
-    if (args.dot != None):            
+    if (args.dot != None and args.inference == False):            
         dot = Digraph()
         for i in tpb.waveop_stream:
             dot.node(i['waveop_name'], i['waveop_name'])
@@ -2319,18 +2373,6 @@ if __name__ == "__main__":
         dot.format = dotfile_ext[1:]
         dot.render(dotfile_root)
         print("INFO: Wrote " + args.dot)
-
-    # test by reading it back
-    try:
-        print("Test by loading Wave-graph %s"%args.wavegraph)
-        wavegraph_json = json.load(open(args.wavegraph))
-    except Exception as e:
-        print(e)
-        exit(-1)
-
-    # create graph from JSON file        
-    wavegraph = KGraph()
-    wavegraph.populate_from_kgraph_json(wavegraph_json)
 
     # check for comparison errors
     if (num_mismatches > 0):

@@ -15,12 +15,17 @@ import os, sys, re, shutil
 import argparse
 import multiprocessing as mp
 import time
+import multiprocessing
+
 
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
 iPath = os.environ.get('INKLING_PATH')
 
 rnDogJpg = "%s/%s" % (kePath, "images/dog.jpg")
+
+rnPre = "%s/%s" % (kPath, "compiler/util/res50_img2fmap")
+rnPost = "%s/%s" % (kPath, "compiler/util/res50_classify")
 
 class Logger(object):
   def __init__(self, logFile):
@@ -35,6 +40,9 @@ class Logger(object):
 sys.stdout = Logger('log-RunAll.txt')
 sys.stderr = Logger('log-RunAll.txt')
 
+print("\nINFO: started as  ", " ".join(sys.argv))
+
+
 if kPath == None or kePath == None or iPath == None or \
     not os.path.isdir(kPath) or not os.path.isdir(kePath) or not os.path.isdir(iPath):
   print("ERROR: make sure KAENA_PATH, KAENA_EXT_PATH, and INKLING_PATH environment is set");
@@ -45,9 +53,10 @@ parser.add_argument('--test', help='Run specific tests (list)', nargs='+', defau
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
 parser.add_argument('--level', help='Run tests upto this level, default 4', type=int, default=4)
-parser.add_argument('--parallel', help='Run concurrently, default 8', type=int, default=8)
+parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=multiprocessing.cpu_count())
 parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any', default="any")
 parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
+parser.add_argument('--timeout', help='Timeout for each test, default 3600', type=int, default=3600)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -62,13 +71,17 @@ if not select in selectSet:
 if verbose:
   print("\nINFO: started as  ", " ".join(sys.argv))
 
+rn_cmn_opts = "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s" % (rnPre, rnPost)
 # test naming
 #   level-name
 #   level is relative complexity and runtime cost, easiest 0  to most complex 9
 #   Name can be composed of anything - 0 can be used as base/existence test
+#   Columns: (nnStruct, nnConfig, nnLabel, nnArgs, images)
+
 testConfigMap = {
   "0-1conv0"      : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv"],
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave"],
+  "0-1conv0_padvalid_wave" : [ "trivnet_conv1_padvalid",  "tfloat16-b1-h229-r7-s2-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave --debug 3"],
   "0-1conv0_h16r2s2_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h16-r2-s2-c1-m1-wmin-2-wmax2.2-imin-3-imax3.3", "1conv", "--scheduler wave"],
   "0-1conv0_h16r3s2_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h16-r3-s2-c1-m1-wmin-2-wmax2.2-imin-3-imax3.3", "1conv", "--scheduler wave"],
   "0-1conv0_c1h2" : [ "trivnet_conv1",  "tfloat16-b1-h2-r1-s1-c1-m1-wmin2-wmax2.2-imin1-imax7", "1conv"],
@@ -240,39 +253,45 @@ testConfigMap = {
   "3-rn50-19_wave" : [ "trivnet_conv1",  "tfloat32-b1-h14-r1-s2-c1024-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave"],
   "3-rn50-20_wave" : [ "trivnet_conv1",  "tfloat32-b1-h14-r1-s2-c1024-m2048-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", "--scheduler wave"],
 
-  #"5-lstm_ptb"     : [ "tf_pb",          "lstm_ptb_word_lm/ptb_word_lm.pb",  "lstm_ptb", "--input_node Valid/ValidInput/StridedSlice --images linspace1"],
-  "6-alexnet"     : [ "tf_pb",          "alexnet_v100/alexnet_fp32.pb",  "alexnet", "--input_node Variable --images linspace1"],
-  "8-resnet50"                : [ "tf_pb",   "resnet50/resnet_v1_50_fp32_opt.pb",        "resnet50", "--images linspace1 --depth 2"],
-  "8-resnet50_fp32_keras"     : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras.pb",    "resnet50", "--input_node input_1 --images linspace1 --depth 2"],
-  "8-resnet50_fp32_keras_opt" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2"],
-  "8-resnet50_fp16_keras"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras.pb",    "resnet50", "--input_node input_1 --images linspace1 --depth 2"],
-  "8-resnet50_fp16_keras_opt" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2"],
-  "8-resnet50_fp16_wave"      : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --scheduler wave"],
-  "8-resnet50_fp32_wave"      : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --scheduler wave"],
-  "8-resnet50_fp16_wave_b2"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --scheduler wave --batch 2"],
-  "8-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--images linspace1 --depth 2"],
+  #"5-lstm_ptb"     : [ "tf_pb",          "lstm_ptb_word_lm/ptb_word_lm.pb",  "lstm_ptb", "--input_node Valid/ValidInput/StridedSlice ", "linspace1"],
+  "6-alexnet"     : [ "tf_pb",          "alexnet_v100/alexnet_fp32.pb",  "alexnet", "--input_node Variable ", "linspace1"],
+  "8-resnet50"                : [ "tf_pb",   "resnet50/resnet_v1_50_fp32_opt.pb",        "resnet50", " --depth 2", "linspace1"],
+  "8-resnet50_fp32_keras"     : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras.pb",    "resnet50", "--input_node input_1  --depth 2", "linspace1"],
+  "8-resnet50_fp32_keras_opt" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2", "linspace1"],
+  "8-resnet50_fp16_keras"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras.pb",    "resnet50", "--input_node input_1  --depth 2", "linspace1"],
+  "8-resnet50_fp16_keras_opt" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2", "linspace1"],
+  "8-resnet50_fp16_wave"      : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2 --scheduler wave", "linspace1"],
+  "8-resnet50_fp32_wave"      : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2 --scheduler wave", "linspace1"],
+  "8-resnet50_fp16_wave_b2"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2 --scheduler wave --batch 2", "linspace1"],
+  #"8-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", " --depth 2", "linspace1"],
   
   # Subgraph partioned flow using neural network executor
   "0-add_nne"      : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--partition auto --executors host all tcc 1 --width 2 --debug 1"],
   "0-4conv_relu_nne" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1-imax2", "4conv_nne", "--partition conv --executors tcc 1 3 host 0 2 4 --debug 1 --scheduler wave"],
-  "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition auto --executors wave all --debug 1 --scheduler wave" % rnDogJpg],
-  "8-rn50_nne_fp32_meauto" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition meauto --executors wave all host 17 --debug 1 --scheduler wave" % rnDogJpg],
-  "8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images linspace1 --depth 2 --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --debug 1"],
-  "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 host 1 --debug 1" % rnDogJpg],
-  "4-rn50_nne_from1_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from bn_conv1/batchnorm_1/add_1   --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "4-rn50_nne_from2_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from activation_1/Relu   --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "4-rn50_nne_from3_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from max_pooling2d_1/MaxPool   --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "7-rn50_nne_fc_waveopt"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors waveopt 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "7-rn50_nne_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors waveopt 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "7-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "7-rn50_nne_fc_wave"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors wave 0 host 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "7-rn50_nne_conv_wave" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition conv --executors host all wave 01 03 04 07 09 12 14 16 19 21 23 26 27 30 32 35 37 39 42 44 46 49 51 53 56 57 60 62 65 67 69 72 74 76 79 81 83 86 88 90 93 95 97 100 101 104 106 109 111 113 116 118 120 --debug 1 --scheduler wave" % rnDogJpg],
-  
+
+
+  # Resnet
+  "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "%s --partition auto --executors wave all  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "8-rn50_nne_fp32_meauto" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s --partition meauto --executors wave all host 17  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  #"8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "%s --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 " % (rn_cmn_opts), "linspace1"],
+  "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "%s --partition from avg_pool/AvgPool --executors host 0 host 1 " % (rn_cmn_opts) , rnDogJpg],
+  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s --partition from avg_pool/AvgPool --executors host 0 wave 1 " % (rn_cmn_opts) , rnDogJpg],
+  "4-rn50_nne_from1_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s --partition from bn_conv1/batchnorm_1/add_1   --executors wave 0 host 1  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "4-rn50_nne_from2_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s --partition from activation_1/Relu   --executors wave 0 host 1  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "4-rn50_nne_from3_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s --partition from max_pooling2d_1/MaxPool   --executors wave 0 host 1  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "7-rn50_nne_fc_waveopt"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "%s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "7-rn50_nne_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "7-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "7-rn50_nne_fc_wave"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "%s --partition from avg_pool/AvgPool --executors wave 0 host 1  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "7-rn50_nne_conv_wave" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s --partition conv --executors host all wave 01 03 04 07 09 12 14 16 19 21 23 26 27 30 32 35 37 39 42 44 46 49 51 53 56 57 60 62 65 67 69 72 74 76 79 81 83 86 88 90 93 95 97 100 101 104 106 109 111 113 116 118 120  --scheduler wave" % (rn_cmn_opts) , rnDogJpg],
+  "7-rn50_nne_fp32_host"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "%s  --partition from fc1000/Softmax --executors host all " % (rn_cmn_opts), rnDogJpg],
+
+
   # Matmult
-  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 wave 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "4-rn50_matmul_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool --executors host 0 waveopt 1 --debug 1 --scheduler wave" % rnDogJpg],
-  "4-rn50_matmul_nosm_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1 --images %s --depth 2 --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --debug 1 --scheduler wave" % rnDogJpg],
-  
+  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " %s --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave"% (rn_cmn_opts), rnDogJpg],
+  "4-rn50_matmul_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " %s --partition from avg_pool/AvgPool --executors host 0 waveopt 1 --scheduler wave"% (rn_cmn_opts), rnDogJpg],
+  "4-rn50_matmul_nosm_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " %s --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --scheduler wave" % (rn_cmn_opts), rnDogJpg],
+
 }
 
 # Regression waiver mechanism 
@@ -293,8 +312,6 @@ testWaiver = [
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
     ['4-rn50_matmul_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
-    ['4-rn50_matmul_fp32_waveopt$',   'WAIVE-S10_NNE_4D_2D'],
-    ['4-rn50_matmul_nosm_fp32_wave$', 'WAIVE-S10_BE_MATMUL'],
 
     ['^[6]-alexnet',  'WAIVE-BENCH'],
     ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
@@ -426,6 +443,8 @@ class Ktest:
     self.name = name
     self.dir = dirName
     self.cmd = cmd
+    self.startTime = time.time()
+    self.status = "UNKNOWN"
   def invertStatus(self):
     if self.status == "PASS":
       self.status = "FAIL"
@@ -465,11 +484,12 @@ class Ktest:
     self.calcRTStatus()
     self.calcKCCStatus()
     self.calcAltStatus()
-    self.status = "PASS"
-    if (self.status != self.status_kcc or self.status != self.status_rt):
-      self.status = "FAIL"
-    if self.name == "0-neg":
-      self.invertStatus()
+    if not self.status == "TIMEOUT":
+      self.status = "PASS"
+      if (self.status != self.status_kcc or self.status != self.status_rt):
+        self.status = "FAIL"
+      if self.name == "0-neg":
+        self.invertStatus()
 
   def calcQoR(self):
     self.qor = QoR(self.dir)
@@ -477,15 +497,24 @@ class Ktest:
     return self.status == "PASS"
   def failed(self):
     return self.status == "FAIL"
+  def timedout(self):
+    return self.status == "TIMEOUT"
+  def exceededTimeout(self, timeout):
+    #print("DEBUG: checking test  %s  for timeout  %f > %f" % (self.name, time.time() - self.startTime, timeout))
+    return time.time() > self.startTime + timeout
+  def setStatusTimeout(self):
+    self.status = "TIMEOUT"
   
 ###############################################################################
 # Storage for all tests
 ###############################################################################
 class Ktests:
-  def __init__(self, testConfigMap, testList, testWaiver):
+  def __init__(self, testConfigMap, testList, testWaiver, testTimeout):
     self.testConfigMap = testConfigMap
     self.testList = testList
     self.testWaiver = testWaiver
+    self.testTimeout = testTimeout
+    self.startTime = time.time()
     self.process2test = {}
     self.name2test = {}
     self.processes = []
@@ -516,14 +545,15 @@ class Ktests:
     numFailPct = numFail / numAll * 100
     numOther = numAll - numPass - numFail - numRun
     numOtherPct = numOther / numAll * 100
-    if self.statusCount %10 == 0:
-      print("\n  #Time      Running    Passed    Failed     Other")
+    if self.statusCount %60 == 0:
+      print("\n  #Time    Running    Passed    Failed     Other")
+    if self.msg or self.statusCount %10 == 0:
+      print("  %6s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %s" %
+            (int(time.time() - self.startTime),
+             numRun, numRunPct, numPass, numPassPct, numFail, numFailPct, numOther, numOtherPct, self.msg),
+            flush=True
+           )
     self.statusCount += 1
-    print("  %s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %s" %
-          (time.strftime("%H:%M:%S"),
-           numRun, numRunPct, numPass, numPassPct, numFail, numFailPct, numOther, numOtherPct, self.msg),
-          flush=True
-         )
     self.msg = ""
 
   # check for running proceses
@@ -533,6 +563,10 @@ class Ktests:
     for p in self.processes:
       if p.is_alive():
         newProcesses.append(p)
+        t = self.getTestByProcess(p)
+        if t.exceededTimeout(self.testTimeout):
+          p.terminate()
+          t.setStatusTimeout()
       else:
         p.join()
         finishedProcesses.append(p)
@@ -559,9 +593,10 @@ class Ktests:
       t.calcQoR()
       if t.passed():
         self.numPass += 1
-      if t.failed():
+      if t.failed() or t.timedout():
         self.numFail += 1
-      self.msg += "  %s %s" % (t.name, t.status)
+      reportStatus = self.calcWaivedStatus(t.name, t.status)
+      self.msg += "  %s %s" % (t.name, reportStatus)
   
   # Run tests
   def run(self, parallel):
@@ -571,12 +606,16 @@ class Ktests:
     self.processes = []
     for testName in self.testList:
       # Add default NN args
-      if len(self.testConfigMap[testName]) < 4:
+      while len(self.testConfigMap[testName]) < 5:
         self.testConfigMap[testName].append("")
-      (nnStruct, nnConfig, nnLabel, nnArgs) = self.testConfigMap[testName]
+      (nnStruct, nnConfig, nnLabel, nnArgs, images) = self.testConfigMap[testName]
       if verbose:
         print("\n############## %s ##############" % testName)
-      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" > log-top.txt 2>&1' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
+
+      cmd = 'mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" ' % (testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs)
+      if images != "":
+        cmd += ' IMAGES="%s" '%(images)
+      cmd +=  ' > log-top.txt 2>&1'
       # Remove the old directory
       if os.path.exists(testName):
         oldDir = "%s-old-%d" % (testName, os.getpid())
@@ -642,6 +681,19 @@ class Ktests:
     numPassPct = numPass / numAll * 100
     print("\nSUMMARY: PASSRATE  %d  %.3f%%  of  %d  (%d were waived)\n" %
           (numPass, numPassPct, numAll, numWaived) )
+    
+    status2count = {}
+    for testName in self.testList:
+      t = self.getTestByName(testName)
+      reportStatus = self.calcWaivedStatus(testName, t.status)
+      count = status2count.get(reportStatus, 0)
+      status2count[reportStatus] = count + 1
+    strStatus = ""
+    for status in sorted(status2count):
+      strStatus += "%s %d  " % (status, status2count[status])
+    print("DETAILED STATUS: ", strStatus)
+    print("\n")
+    
     QoR.printHeader()
     for testName in self.testList:
       t = self.getTestByName(testName)
@@ -675,7 +727,7 @@ testList = selectTests(testConfigMap, testWaiver, args.level, args.test, args.te
 if args.show_only:
   print("INFO: --show_only mode: selected tests are " + str(testList))
 else:
-  tests = Ktests(testConfigMap, testList, testWaiver)
+  tests = Ktests(testConfigMap, testList, testWaiver, args.timeout)
   tests.run(parallel)
   tests.report()
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
