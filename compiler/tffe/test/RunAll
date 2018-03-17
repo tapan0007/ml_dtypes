@@ -568,13 +568,14 @@ class Ktests:
         if t.exceededTimeout(self.testTimeout):
           time.sleep(0.01)
           
-          sig = signal.SIGTERM
+          # The terminate doe snot correctly signal to all
+          # transitive child processes so signal explicitly
           try:
             proc = psutil.Process(p.pid)
             children = proc.children(recursive=True)
             for process in children:
               #print("DEBUG: terminating child %d" % process.pid)
-              process.send_signal(sig)
+              process.send_signal(signal.SIGTERM)
           except psutil.NoSuchProcess:
             #print("DEBUg: missing process")
             pass
