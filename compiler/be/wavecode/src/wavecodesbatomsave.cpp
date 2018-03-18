@@ -60,6 +60,8 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
     statebufToDramInstr.sync.wait_event_id      = -1;
     statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    EventId waitEventId                         = -1;
+    events::EventWaitMode eventWaitMode         = events::EventWaitMode::NoEvent;
 
     //************************************************************************
     if (qParallelStreams()) { // Incoming edges/events: Wait for events from predecessors
@@ -98,37 +100,38 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
         bool firstEmb = true;
         for (auto prevWaveEdge : prevActivationEdges) {
             if (firstEmb) {
-                statebufToDramInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+                waitEventId     = prevWaveEdge->gEventId();
+                eventWaitMode   = prevWaveEdge->gWaitEventMode();
                 firstEmb = false;
             } else {
                 WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
+                waitInstr.event_id = prevWaveEdge->gEventId();
                 m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevPoolEdges) {
             if (firstEmb) {
-                statebufToDramInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+                waitEventId     = prevWaveEdge->gEventId();
+                eventWaitMode   = prevWaveEdge->gWaitEventMode();
                 firstEmb = false;
             } else {
                 WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
+                waitInstr.event_id = prevWaveEdge->gEventId();
                 m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
         for (auto prevWaveEdge : prevMatmulEdges) {
             if (firstEmb) {
-                statebufToDramInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+                waitEventId     = prevWaveEdge->gEventId();
+                eventWaitMode   = prevWaveEdge->gWaitEventMode();
                 firstEmb = false;
             } else {
                 WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
+                waitInstr.event_id = prevWaveEdge->gEventId();
                 m_WaveCode.writeInstruction(waitInstr, engineId);
             }
         }
+        Assert(!firstEmb, "SbAtomSave must have at least one incoming waveop");
     }
 
 
@@ -143,6 +146,17 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
 
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         // TODO: add synchronization during DMA through extra DMA descriptor
+        if (qParallelStreams()) {
+            if (0 == partIdx) {
+                // only the last reading sets event to enable subsequent instr
+                statebufToDramInstr.sync.wait_event_id       = waitEventId;
+                statebufToDramInstr.sync.wait_event_mode     = events::eventWaitMode2Int(eventWaitMode);
+            } else {
+                statebufToDramInstr.sync.wait_event_id       = -1;
+                statebufToDramInstr.sync.wait_event_mode     = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+            }
+        }
+
         statebufToDramInstr.src_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
         statebufToDramInstr.dst_address = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
         m_WaveCode.writeInstruction(statebufToDramInstr);
