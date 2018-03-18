@@ -25,6 +25,8 @@ if args.json == None:
   print("ERROR: use --json")
   sys.exit(1)
 nno = nnsh_opt.NnshOpt(args.json, args.verbose, args.debug)
+nno.fold()
+nno.profile("folded", "out-profile.csv")
 nno.fuse()
 nno.partition()
 nno.schedule()
