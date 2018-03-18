@@ -1409,7 +1409,7 @@ class FusedOp(list):
                                         self.conv_op.ifmap_count > self.conv_op.C)
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
-            tpb.waveop_stream.add_linked(matmul_waveop, dram_ifmaps_waveops + dram_weights_waveops)
+            tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops + dram_ifmaps_waveops)
             # collect statistics
             tpb.pearray.num_ops_executed += self.conv_op.ofmap_count * self.conv_op.ofmap_full_tile_sz * self.conv_op.ifmap_count
             return True
