@@ -2,7 +2,7 @@
 MODULE:=wave
 MODS := $(MODULE) utils nets serialize
 
-SRCS := waveop   \
+SRCS := waveedge waveop   \
 matmulwaveop     \
 sbatomwaveop     \
 sbatomfilewaveop \

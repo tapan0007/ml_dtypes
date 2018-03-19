@@ -13,10 +13,10 @@ poolType2Str(PoolType poolType)
     static const std::string avgPool(LayerTypeStr_AvgPool);
 
     switch(poolType) {
-    case PoolType_Max:
+    case PoolType::Max:
         return maxPool;
         break;
-    case PoolType_Avg:
+    case PoolType::Avg:
         return avgPool;
         break;
     default:
@@ -31,14 +31,14 @@ PoolType
 poolTypeStr2Id(const std::string& str)
 {
     if (str == LayerTypeStr_MaxPool) {
-        return PoolType_Max;
+        return PoolType::Max;
     } else if (str == LayerTypeStr_AvgPool) {
-        return PoolType_Avg;
+        return PoolType::Avg;
     } else {
         assert(false && "Wrong Pool Name");
     }
     assert(false && "Wrong Pool Name");
-    return PoolType_Avg;
+    return PoolType::None;
 }
 
 }}

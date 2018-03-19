@@ -3,18 +3,18 @@
 #ifndef KCC_ARCH_PEARRAY_H
 #define KCC_ARCH_PEARRAY_H 1
 
-#include <assert.h>
 
 #include "utils/inc/types.hpp"
+#include "arch/inc/archeng.hpp"
 
 namespace kcc {
 namespace arch {
 
 //--------------------------------------------------------
-class PeArray {
+class PeArray : ArchEng {
 public:
     //----------------------------------------------------------------
-    PeArray(kcc_int32 numberRows, kcc_int32 numberColumns);
+    PeArray(kcc_int32 numberRows, kcc_int32 numberColumns, const Arch& arch);
 
     //----------------------------------------------------------------
     kcc_int32 gNumberRows() const {

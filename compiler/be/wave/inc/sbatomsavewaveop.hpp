@@ -37,8 +37,11 @@ public:
         return true;
     }
 
-    static std::string gTypeStr() {
+    static std::string gTypeStrStatic() {
         return WaveOpTypeStr_SBAtomSave;
+    }
+    std::string gTypeStr() const override {
+        return gTypeStrStatic();
     }
 
     bool verify() const override;

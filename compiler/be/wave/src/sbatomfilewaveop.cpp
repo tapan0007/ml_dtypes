@@ -24,6 +24,7 @@ SbAtomFileWaveOp::SbAtomFileWaveOp(
     , m_IfmapCount(params.m_IfmapCount)
     , m_IfmapsFoldIdx(params.m_IfmapsFoldIdx)
     , m_IfmapsReplicate(params.m_IfmapsReplicate)
+    , m_ContainWeights(params.m_ContainWeights)
 {
     assert(params.verify());
 }

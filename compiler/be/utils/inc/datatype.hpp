@@ -7,7 +7,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
 
-#include "tpb_isa.hpp"
+#include "shared/inc/tpb_isa.hpp"
 
 #include "utils/inc/types.hpp"
 
@@ -16,14 +16,14 @@
 namespace kcc {
 namespace utils {
 
-enum DataTypeId {
-    DataTypeId_None,
-    DataTypeId_Uint8,
-    DataTypeId_Uint16,
-    DataTypeId_Float16,
-    DataTypeId_Float32,
-    DataTypeId_Int32,
-    DataTypeId_Int64,
+enum class DataTypeId {
+    None,
+    Uint8,
+    Uint16,
+    Float16,
+    Float32,
+    Int32,
+    Int64,
 };
 
 //########################################################

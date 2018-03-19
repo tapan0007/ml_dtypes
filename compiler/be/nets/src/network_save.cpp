@@ -10,7 +10,9 @@
 #include <cereal/types/map.hpp>
 
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/types.hpp"
+#include "events/inc/events.hpp"
 #include "arch/inc/arch.hpp"
 
 #include "layers/inc/layer.hpp"
@@ -26,8 +28,9 @@
 #include "layers/inc/resaddlayer.hpp"
 #include "layers/inc/biasaddlayer.hpp"
 
-#include "nets/inc/network.hpp"
+#include "nets/inc/network_save.hpp"
 
+#include "wave/inc/waveedge.hpp"
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomfilewaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
@@ -42,6 +45,10 @@ namespace kcc {
 namespace nets {
 
 #define KCC_SERIALIZE(X) serWaveOp.KCC_CONCAT(m_,X) = WAVE_OP->KCC_CONCAT(g,X)()
+
+#define ASSERT_NUM_LAYERS(layer, N) \
+    Assert((layer)->gPrevLayers().size() == (N), (layer)->gTypeStr(), " layer '", (layer)->gName(), \
+                   "' should have ", (N), " input", ((N)==1 ? "" : "s"), ", but it has ", (layer)->gPrevLayers().size())
 
 //--------------------------------------------------------
 template<>
@@ -85,7 +92,9 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
          */
 
         if (const auto convLayer = dynamic_cast<layers::ConvLayer*>(layer)) {
-            assert(convLayer->gPrevLayers().size() == 1U && "Convolution layer should have exactly one input layer");
+            Assert(convLayer->gPrevLayers().size() == 1U,
+                "Convolution layer should have exactly one input layer, has ",
+                convLayer->gPrevLayers().size());
             const layers::Layer* prevLayer = convLayer->gPrevLayer(0);
             const int32_t numIfmaps = prevLayer->gNumOfmaps();
             const int32_t batchStride = 1, ifmapStride = 1;
@@ -132,7 +141,9 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
 
         if (const auto matmulLayer = dynamic_cast<layers::MatmulLayer*>(layer)) {
-            assert(matmulLayer->gPrevLayers().size() == 1U && "Matmul layer should have exactly one input layer");
+            Assert(matmulLayer->gPrevLayers().size() == 1U,
+                   "Matmul layer should have exactly one input layer, but the size is ",
+                   matmulLayer->gPrevLayers().size());
             const layers::Layer* prevLayer = matmulLayer->gPrevLayer(0);
             const int32_t numIfmaps = prevLayer->gNumOfmaps();
 
@@ -152,14 +163,18 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
 
         if (const auto reshapeLayer = dynamic_cast<layers::ReshapeLayer*>(layer)) {
-            assert(reshapeLayer->gPrevLayers().size() == 1U
-                && "Reshape layer should have exactly one input layer");
+            ASSERT_NUM_LAYERS(reshapeLayer, 1U);
+            Assert(reshapeLayer->gPrevLayers().size() == 1U,
+                   "Reshape layer should have exactly one input layer, but it has ",
+                   reshapeLayer->gPrevLayers().size());
             continue;
         }
 
         if (const auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer)) {
-            assert(poolLayer && "Expected Pool layer");
-            assert(poolLayer->gPrevLayers().size() == 1U && "Pool layer should have one input");
+            Assert(poolLayer, "Expected Pool layer, found ", poolLayer->gTypeStr());
+            Assert(poolLayer->gPrevLayers().size() == 1U,
+                "Pool layer should have one input, has ",
+                poolLayer->gPrevLayers().size());
             auto prevLayer = poolLayer->gPrevLayer(0);
             const int32_t batchStride = 1, ifmapStride = 1;
             const int32_t batchPadBefore = 0, batchPadAfter = 0, ifmapPadBefore = 0, ifmapPadAfter = 0;
@@ -193,12 +208,12 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
                 serLayer.rPadding(padding);
             }
             if (const auto maxpoolLayer = dynamic_cast<layers::MaxPoolLayer*>(poolLayer)) {
-                assert(maxpoolLayer && "Expected MaxPool layer");
+                Assert(maxpoolLayer, "Expected MaxPool layer, found ", poolLayer->gTypeStr());
                 serLayer.rLayerType(LayerTypeStr_MaxPool);
                 continue;
             }
             if (const auto avgpoolLayer = dynamic_cast<layers::AvgPoolLayer*>(poolLayer)) {
-                assert(avgpoolLayer && "Expected AvgPool layer");
+                Assert(avgpoolLayer, "Expected AvgPool layer, found ", poolLayer->gTypeStr());
                 serLayer.rLayerType(LayerTypeStr_AvgPool);
                 continue;
             }
@@ -206,35 +221,35 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
 
         if (const auto inLayer = dynamic_cast<layers::InputLayer*>(layer)) {
-            assert(inLayer && "Expected Input layer");
+            Assert(inLayer, "Expected Input layer, found ", layer->gTypeStr());
             continue;
         }
 
         if (const auto constLayer = dynamic_cast<layers::ConstLayer*>(layer)) {
-            assert(constLayer && "Expected Const layer");
+            Assert(constLayer, "Expected Const layer, found: ", layer->gTypeStr());
             continue;
         }
 
         if (const auto tanhLayer = dynamic_cast<layers::TanhLayer*>(layer)) {
-            assert(tanhLayer && "Expected Tanh layer");
+            Assert(tanhLayer, "Expected Tanh layer, found: ", layer->gTypeStr());
             continue;
         }
 
         if (const auto reluLayer = dynamic_cast<layers::ReluLayer*>(layer)) {
-            assert(reluLayer && "Expected Relu layer");
+            Assert(reluLayer, "Expected Relu layer, found: ", layer->gTypeStr());
             continue;
         }
 
         if (const auto biasAddLayer = dynamic_cast<layers::BiasAddLayer*>(layer)) {
-            assert(biasAddLayer && "Expected BiasAdd layer");
+            Assert(biasAddLayer, "Expected BiasAdd layer, found: ", layer->gTypeStr());
             continue;
         }
         if (const auto resAddLayer = dynamic_cast<layers::ResAddLayer*>(layer)) {
-            assert(resAddLayer && "Expected ResAdd layer");
+            Assert(resAddLayer, "Expected ResAdd layer, found: ", layer->gTypeStr());
             continue;
         }
 
-        assert(false && "Unsupported layer");
+        Assert(false, "Unsupported layer: ", layer->gTypeStr());
     }
     archive(cereal::make_nvp(NetKey_Layers, serLayers));
 
@@ -246,44 +261,60 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         wave::WaveOp* waveOp = m_WaveOps[waveOpIdx];
         serWaveOp.m_WaveOpName = waveOp->gName();
         serWaveOp.m_LayerName = waveOp->gLayerName();
-        for (auto prevWaveOp : waveOp->gPrevWaveOps()) {
+
+        for (auto prevWaveEdge : waveOp->gPrevWaveEdges()) {
+            auto prevWaveOp = prevWaveEdge->gFromOp();
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
+            serWaveOp.addPreviousEventId(prevWaveEdge->gEventId());
+            serWaveOp.addPreviousEventWaitMode(prevWaveEdge->gWaitEventMode());
+            serWaveOp.addPrevEventSetMode(prevWaveEdge->gSetEventMode());
         }
 
         if (auto sbatomWaveOp = dynamic_cast<const wave::SbAtomWaveOp*>(waveOp)) {
-            saveSbAtom(sbatomWaveOp, serWaveOp);
+            m_Save->saveSbAtom(sbatomWaveOp, serWaveOp);
             continue;
         }
 
         if (const auto matmulWaveOp = dynamic_cast<wave::MatMulWaveOp*>(waveOp)) {
 
-            saveMatmul(matmulWaveOp, serWaveOp);
+            m_Save->saveMatmul(matmulWaveOp, serWaveOp);
             continue;
         }
         if (const auto poolWaveOp = dynamic_cast<wave::PoolWaveOp*>(waveOp)) {
-            savePool(poolWaveOp, serWaveOp);
+            m_Save->savePool(poolWaveOp, serWaveOp);
             continue;
         }
         if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
-            saveActivaton(activationWaveOp, serWaveOp);
+            m_Save->saveActivaton(activationWaveOp, serWaveOp);
             continue;
         }
         if (const auto resAddWaveOp = dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
-            saveResAdd(resAddWaveOp, serWaveOp);
+            m_Save->saveResAdd(resAddWaveOp, serWaveOp);
             continue;
         }
-        assert(false && "Unsupported WaveOp");
+        Assert(false, "Unsupported WaveOp: ", waveOp->gTypeStr());
     }
     archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
 }
 
 
+
+
+
+Network::Save::Save(const Network& network)
+    : m_Network(network)
+{ }
+
+
+
+
+
 void
-Network::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
+Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP matmulWaveOp
-    serWaveOp.m_WaveOpType = wave::MatMulWaveOp::gTypeStr();
+    serWaveOp.m_WaveOpType = wave::MatMulWaveOp::gTypeStrStatic();
 
     KCC_SERIALIZE(BatchingInWave);
     KCC_SERIALIZE(FmapXNum);
@@ -330,11 +361,11 @@ Network::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
 
 
 void
-Network::savePool(const wave::PoolWaveOp* poolWaveOp,
+Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP poolWaveOp
-    serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStr();
+    serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStrStatic();
 
     KCC_SERIALIZE(DstSbAtomId);
     KCC_SERIALIZE(DstSbOffsetInAtom);
@@ -376,7 +407,7 @@ Network::savePool(const wave::PoolWaveOp* poolWaveOp,
 }
 
 void
-Network::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
+Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP sbatomWaveOp
@@ -398,16 +429,17 @@ Network::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
 
     if (auto sbatomfileWaveOp = dynamic_cast<const wave::SbAtomFileWaveOp*>(sbatomWaveOp)) {
 #define WAVE_OP sbatomfileWaveOp
-        serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStr();
+        serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStrStatic();
         KCC_SERIALIZE(IfmapCount);
         KCC_SERIALIZE(IfmapsFoldIdx);
         serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
+        serWaveOp.m_ContainWeights = sbatomfileWaveOp->qContainWeights();
 #undef WAVE_OP
     } else {
 #define WAVE_OP sbatomsaveWaveOp
         auto sbatomsaveWaveOp = dynamic_cast<const wave::SbAtomSaveWaveOp*>(sbatomWaveOp);
-        assert(sbatomsaveWaveOp && "Wrong SbAtaom WaveOp");
-        serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStr();
+        Assert(sbatomsaveWaveOp, "Wrong SbAtaom WaveOp", sbatomWaveOp->gTypeStr());
+        serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStrStatic();
         KCC_SERIALIZE(OfmapCount);
         KCC_SERIALIZE(OfmapsFoldIdx);
 #undef WAVE_OP
@@ -416,11 +448,11 @@ Network::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
 
 
 void
-Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
+Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP activationWaveOp
-    serWaveOp.m_WaveOpType = wave::ActivationWaveOp::gTypeStr();
+    serWaveOp.m_WaveOpType = wave::ActivationWaveOp::gTypeStrStatic();
 
     serWaveOp.m_ActivationFunc      = serialize::SerWaveOp::activationType2Str(activationWaveOp->gActivationFunc());
     serWaveOp.m_BiasAddEn           = activationWaveOp->qBiasAddEn();
@@ -469,11 +501,11 @@ Network::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
 
 
 void
-Network::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
+Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP resAddWaveOp
-    serWaveOp.m_WaveOpType = wave::ResAddWaveOp::gTypeStr();
+    serWaveOp.m_WaveOpType = wave::ResAddWaveOp::gTypeStrStatic();
 
     serWaveOp.m_InADtype            = resAddWaveOp->gInADtype().gName();
     serWaveOp.m_InBDtype            = resAddWaveOp->gInBDtype().gName();
@@ -530,6 +562,7 @@ Network::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
 
 
 #undef KCC_SERIALIZE
+#undef ASSERT_NUM_LAYERS
 
 }}
 

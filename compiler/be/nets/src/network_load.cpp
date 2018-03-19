@@ -10,6 +10,7 @@
 #include <cereal/types/map.hpp>
 
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/consts.hpp"
 #include "arch/inc/arch.hpp"
 
@@ -26,7 +27,7 @@
 #include "layers/inc/resaddlayer.hpp"
 #include "layers/inc/biasaddlayer.hpp"
 
-#include "nets/inc/network.hpp"
+#include "nets/inc/network_load.hpp"
 
 #include "wave/inc/sbatomfilewaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
@@ -42,6 +43,14 @@
 #define KCC_UNSERIALIZE(X) PARAMS.KCC_CONCAT(m_,X) = serWaveOp.KCC_CONCAT(m_,X);
 namespace kcc {
 
+
+#define ASSERT_NUM_LAYERS(serLayer, N) \
+    Assert((serLayer).gNumPrevLayers() == (N), (serLayer).gTypeStr(), " layer '", (serLayer).gLayerName(), \
+                   "' should have ", (N), " input", ((N)==1 ? "" : "s"), ", but it has ", (serLayer).gNumPrevLayers())
+
+#define ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName) \
+    Assert((prevLayer) != nullptr, (serLayer).gTypeStr(), " layer '", (serLayer).gLayerName(), \
+                       "': Previous layer '", (prevLayerName), "' not found");
 
 namespace nets {
 
@@ -68,12 +77,12 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         m_DataType = std::make_unique<DataTypeFloat32>();
 
     } else {
-        assert(0 && "Unsupported data type");
+        Assert(false, "Unsupported data type ", dataType);
     }
 
     std::vector<serialize::SerLayer> serLayers;
     archive(cereal::make_nvp(NetKey_Layers, serLayers));
-    kcc::utils::breakFunc(333);
+
     for (unsigned i = 0; i < serLayers.size(); ++i) {
         const serialize::SerLayer& serLayer(serLayers[i]);
         layers::Layer::Params params;
@@ -86,17 +95,18 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         FmapDesc fmap_desc(serLayer.gNumOfmaps(), serLayer.gOfmapHeight(), serLayer.gOfmapWidth());
         layers::Layer* layer = nullptr;
         if (serLayer.gTypeStr() == LayerTypeStr_Input) {
-            assert(serLayer.gNumPrevLayers() == 0 && "Input layer should have zero inputs");
+            ASSERT_NUM_LAYERS(serLayer, 0);
             layer = new layers::InputLayer(params, fmap_desc);
         } else if (serLayer.gTypeStr() == LayerTypeStr_Const) {
-            assert(serLayer.gNumPrevLayers() == 0 && "Const layer should have zero inputs");
+            ASSERT_NUM_LAYERS(serLayer, 0);
             layer = new layers::ConstLayer(params, fmap_desc);
 
         } else if (serLayer.gTypeStr() == LayerTypeStr_Conv) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Convolution layer should have one input");
+            ASSERT_NUM_LAYERS(serLayer, 1);
+
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Convolution: Unknown input layer");
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
                                             serLayer.gStrideVertical(),
                                             serLayer.gStrideHorizontal());
@@ -123,10 +133,10 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           filterTensorDimSemantics.c_str());
 
         } else if (serLayer.gTypeStr() == LayerTypeStr_Matmul) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Matmul layer should have one input");
+            ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Matmul: Unknown input layer");
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
                                             serLayer.gConvFilterHeight(),
                                             serLayer.gConvFilterWidth());
@@ -142,20 +152,22 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           filterTensorDimSemantics.c_str());
 
         } else if (serLayer.gTypeStr() == LayerTypeStr_Reshape) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Reshape layer should have one input");
+            ASSERT_NUM_LAYERS(serLayer, 1);
+
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Reshape: Unknown input layer");
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
 
             layers::ReshapeLayer::Params reshapeParams(params);
 
             layer = new layers::ReshapeLayer(reshapeParams, prevLayer, fmap_desc);
 
         } else if (serLayer.gTypeStr() == LayerTypeStr_MaxPool || serLayer.gTypeStr() == LayerTypeStr_AvgPool) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Pool layer: number of inputs not 1");
+            ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Pool: Unknown previous layer");
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
+
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
                                             serLayer.gStrideVertical(),
                                             serLayer.gStrideHorizontal());
@@ -187,46 +199,49 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             }
 
         } else if (serLayer.gTypeStr() == LayerTypeStr_Relu) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Relu layer: number of inputs not 1");
+            ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Relu: Unknown previous layer");
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::ReluLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == LayerTypeStr_Tanh) {
-            assert(serLayer.gNumPrevLayers() == 1 && "Tanh layer: number of inputs not 1");
+            ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
-            assert(prevLayer != nullptr && "Tanh: Unknown previous layer");
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);
 
         } else if (serLayer.gTypeStr() == LayerTypeStr_ResAdd) {
             // TODO: check dimensions and types of inputs
-            assert(serLayer.gNumPrevLayers() == 2 && "ResAdd layer should have two inputs");
+            ASSERT_NUM_LAYERS(serLayer, 2);
             std::vector<layers::Layer*> prevLayers;
             for (const auto& prevLayerName : serLayer.gPrevLayers()) {
                 layers::Layer* prevLayer = findLayer(prevLayerName);
-                assert(prevLayer != nullptr && "RadAdd: Unknown previous layer");
+                ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
                 prevLayers.push_back(prevLayer);
             }
             layer = new layers::ResAddLayer(params, fmap_desc,prevLayers);
         } else if (serLayer.gTypeStr() == LayerTypeStr_BiasAdd) {
             // TODO check dimensions and types of inputs
-            assert(serLayer.gNumPrevLayers() == 2 && "BiasAdd layer should have two inputs");
+            ASSERT_NUM_LAYERS(serLayer, 2);
             std::vector<layers::Layer*> prevLayers;
             for (const auto& prevLayerName : serLayer.gPrevLayers()) {
                 layers::Layer* prevLayer = findLayer(prevLayerName);
-                assert(prevLayer != nullptr && "RadAdd: Unknown previous layer");
+                ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
                 prevLayers.push_back(prevLayer);
             }
             layer = new layers::BiasAddLayer(params, fmap_desc, prevLayers);
         } else {
-            assert(false && "Unsuported layer");
+            Assert(false, "Unsuported layer type ", serLayer.gTypeStr());
         }
 
-        assert(m_Name2Layer.find(params.m_LayerName) == m_Name2Layer.end());
+        Assert(m_Name2Layer.find(params.m_LayerName) == m_Name2Layer.end(),
+               "Layer ", params.m_LayerName, " already exists");
         m_Name2Layer[params.m_LayerName] = layer;
     }
-    assert(m_Layers.size() == serLayers.size() && "Layer mismatch count after input deserialization" );
+    Assert(m_Layers.size() == serLayers.size(),
+        "Layer mismatch count after input deserialization: ", m_Layers.size(),
+        " != ", serLayers.size());
 
 
     //===========================================================================
@@ -238,32 +253,42 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
             wave::WaveOp* waveOp = nullptr;
 
-            if (serWaveOp.m_WaveOpType == wave::SbAtomFileWaveOp::gTypeStr()) {
-                waveOp = loadSbAtomFile(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStr()) {
-                waveOp = loadSbAtomSave(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStr()) {
-                waveOp = loadPool(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStr()) {
-                waveOp = loadMatMul(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStr()) {
-                waveOp = loadActivation(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::ResAddWaveOp::gTypeStr()) {
-                waveOp = loadResAdd(serWaveOp);
+            if (serWaveOp.m_WaveOpType == wave::SbAtomFileWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadSbAtomFile(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadSbAtomSave(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadPool(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::MatMulWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadMatMul(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadActivation(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::ResAddWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadResAdd(serWaveOp);
             } else {
-                assert(false && "Wrong WaveOp type during deserialization");
+                Assert(false, "Wrong WaveOp type during deserialization: ", serWaveOp.m_WaveOpType);
             }
 
             m_WaveOps.push_back(waveOp);
-            assert(m_Name2WaveOp.find(waveOp->gName()) == m_Name2WaveOp.end());
+            Assert(m_Name2WaveOp.find(waveOp->gName()) == m_Name2WaveOp.end(),
+                   "Waveop ", waveOp->gName(), " already exists");
             m_Name2WaveOp[waveOp->gName()] = waveOp;
         }
     }
 }
 
 
+
+
+Network::Load::Load(Network& network)
+    : m_Network(network)
+{
+}
+
+
+
 wave::SbAtomFileWaveOp*
-Network::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS sbatomfileParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -286,16 +311,19 @@ Network::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(IfmapCount);
     KCC_UNSERIALIZE(IfmapsFoldIdx);
     KCC_UNSERIALIZE(IfmapsReplicate);
+    KCC_UNSERIALIZE(ContainWeights);
 
     auto waveOp = new wave::SbAtomFileWaveOp(sbatomfileParams, prevWaveOps);
-    assert(waveOp && waveOp->gName() == sbatomfileParams.m_WaveOpName);
+    Assert(waveOp && waveOp->gName() == sbatomfileParams.m_WaveOpName,
+           "Wrong wave op name: should be ", sbatomfileParams.m_WaveOpName,
+           ", it is ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
 
 
 wave::SbAtomSaveWaveOp*
-Network::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS sbatomsaveParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -319,13 +347,15 @@ Network::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(OfmapsFoldIdx);
 
     auto waveOp = new wave::SbAtomSaveWaveOp(sbatomsaveParams, prevWaveOps);
-    assert(waveOp->gName() == sbatomsaveParams.m_WaveOpName);
+    Assert(waveOp && waveOp->gName() == sbatomsaveParams.m_WaveOpName,
+           "Wrong wave op name: should be ", sbatomsaveParams.m_WaveOpName,
+           ", it is ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
 
 wave::PoolWaveOp*
-Network::loadPool(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS poolParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -364,20 +394,22 @@ Network::loadPool(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(SrcZNum);
     KCC_UNSERIALIZE(SrcZStep);
 
-    assert(poolParams.m_TileId.size() == serWaveOp.m_TileId.size());
+    Assert(poolParams.m_TileId.size() == serWaveOp.m_TileId.size(),
+        serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
+        "' has wrong tile id size: ", poolParams.m_TileId.size());
     for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
         poolParams.m_TileId[i] = serWaveOp.m_TileId[i];
     }
     poolParams.m_TileIdFormat           = serWaveOp.m_TileIdFormat;
 
     auto waveOp = new wave::PoolWaveOp(poolParams, prevWaveOps);
-    assert(waveOp->gName() == poolParams.m_WaveOpName);
+    Assert(waveOp->gName() == poolParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
 
 wave::MatMulWaveOp*
-Network::loadMatMul(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS matmulParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -426,13 +458,13 @@ Network::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(WeightsOffsetInAtom);
 
     auto waveOp = new wave::MatMulWaveOp(matmulParams, prevWaveOps);
-    assert(waveOp->gName() == matmulParams.m_WaveOpName);
+    Assert(waveOp->gName() == matmulParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
 
 wave::ActivationWaveOp*
-Network::loadActivation(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS activationParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -472,21 +504,23 @@ Network::loadActivation(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(SrcZNum);
     KCC_UNSERIALIZE(SrcZStep);
 
-    assert(activationParams.m_TileId.size() == serWaveOp.m_TileId.size());
+    Assert(activationParams.m_TileId.size() == serWaveOp.m_TileId.size(),
+        serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
+        "' has wrong tile id size: ", activationParams.m_TileId.size());
     for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
         activationParams.m_TileId[i] = serWaveOp.m_TileId[i];
     }
     KCC_UNSERIALIZE(TileIdFormat);
 
     auto waveOp = new wave::ActivationWaveOp(activationParams, prevWaveOps);
-    assert(waveOp->gName() == activationParams.m_WaveOpName);
+    Assert(waveOp->gName() == activationParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
 
 
 wave::ResAddWaveOp*
-Network::loadResAdd(const serialize::SerWaveOp& serWaveOp)
+Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
 {
 #define PARAMS resAddParams
     std::vector<wave::WaveOp*> prevWaveOps;
@@ -547,7 +581,7 @@ Network::loadResAdd(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(DstZStep);
 
     auto waveOp = new wave::ResAddWaveOp(resAddParams, prevWaveOps);
-    assert(waveOp->gName() == resAddParams.m_WaveOpName);
+    Assert(waveOp->gName() == resAddParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 }
 
@@ -558,7 +592,7 @@ Network::loadResAdd(const serialize::SerWaveOp& serWaveOp)
 /* in
  * template<>
  * void
- * Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
+ * Network::Load::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
  * {
  *      ...
  *      auto fillWaveOpParams = [this, &prevWaveOps](
@@ -569,19 +603,22 @@ Network::loadResAdd(const serialize::SerWaveOp& serWaveOp)
  */
 
 void
-Network::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
+Network::Load::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
                      std::vector<wave::WaveOp*>& prevWaveOps,
                      wave::WaveOp::Params& waveOpParams)
 {
     waveOpParams.m_WaveOpName   = serWaveOp.m_WaveOpName;
-    waveOpParams.m_Layer        = this->findLayer(serWaveOp.m_LayerName);
-    assert(waveOpParams.m_Layer);
+    waveOpParams.m_Layer        = m_Network.findLayer(serWaveOp.m_LayerName);
+    waveOpParams.m_Order        = m_Network.gWaveOps().size();
+    Assert(waveOpParams.m_Layer, "Missing layer for waveop ", serWaveOp.m_WaveOpName);
     for (const auto& prevWaveOpName : serWaveOp.m_PreviousWaveOps) {
-        prevWaveOps.push_back(findWaveOp(prevWaveOpName));
+        prevWaveOps.push_back(m_Network.findWaveOp(prevWaveOpName));
     }
 }
 
 #undef KCC_UNSERIALIZE
+#undef ASSERT_NUM_LAYERS
+#undef ASSERT_PREV_LAYER
 
 }}
 

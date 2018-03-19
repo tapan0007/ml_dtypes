@@ -3,6 +3,7 @@
 
 
 #include "utils/inc/datatype.hpp"
+#include "events/inc/events.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "layers/inc/layer.hpp"
