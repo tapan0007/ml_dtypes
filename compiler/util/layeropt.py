@@ -2371,7 +2371,11 @@ if __name__ == "__main__":
                 dot.edge(j, i['waveop_name'])
         (dotfile_root, dotfile_ext) = os.path.splitext(args.dot)                
         dot.format = dotfile_ext[1:]
-        dot.render(dotfile_root)
+        if (dotfile_ext == '.plain'):
+            f = open(args.dot, 'w')
+            f.write(dot.source)
+        else:
+            dot.render(dotfile_root)
         print("INFO: Wrote " + args.dot)
 
     # check for comparison errors
