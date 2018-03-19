@@ -171,7 +171,7 @@ class NnSubgraph:
       self.linkConsts()
       self.createTpbFormatInputs()
       cmd = "python3 %s//compiler/util/layeropt.py" % kPath
-      cmd += "  --kgraph %s/%s/*_compiler.json" % (kelf_dir, self.sgDir)
+      cmd += "  --kgraph %s/%s/compiler.json" % (kelf_dir, self.sgDir)
       cmd += "  --inference"
     cmd = "%s > %s 2>&1" % (cmd, logFile)
     print("\nINFO: executing %s" % cmd, flush=True)
