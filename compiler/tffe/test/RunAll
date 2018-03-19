@@ -341,6 +341,7 @@ testWaiver = [
 
     ['4-rn50_matmul_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
 
+    ['4-rn50_nne_from._wave',  'WAIVE-FIXME'],
     ['^[6]-alexnet',  'WAIVE-BENCH'],
     ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
 
