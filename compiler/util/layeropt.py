@@ -746,7 +746,6 @@ class KNode:
         self.next = []
         self.data = data
         self.psum_bank_dst = 0
-        self.prev_psum_bank_dst = -1
         self.item_sz = item_sz
         self.data_type = data_type
         self.ofmap_wave_total_elems = 0
@@ -763,7 +762,6 @@ class KNode:
 
     # set/get dest PSUM bank
     def set_psum_bank(self, dest):
-        self.prev_psum_bank_dst = self.psum_bank_dst
         self.psum_bank_dst = dest
     def get_psum_bank(self):
         return self.psum_bank_dst
@@ -1143,11 +1141,7 @@ class KNode:
 class WaveopStream(list):
 
     def __init__(self):
-        self.last_waveop_processed = None
-        self.last_waveop_parallel = []
-        for i in range(PEArray.PSUM_NUM_BANKS):
-            self.last_waveop_parallel.append(None)
-        self.last_waveop_parallel.append(None) # extra for non-PSUM stream (index = -1)
+        self.last_main_waveop = None
         self.waveop_name_set = set()
 
     def append_check(self, item):
@@ -1162,25 +1156,28 @@ class WaveopStream(list):
         self.waveop_name_set.add(item['waveop_name'])                
         self.append(item)
 
-    def add_linked(self, waveop, side_waveops, psum_bank_src, psum_bank_dst):
+    def add_linked(self, waveop, side_waveops):
         input_list = []
         for i in side_waveops:
             input_list.append(i['waveop_name'])
             self.append_check(i)
-        if (self.last_waveop_parallel[psum_bank_src] != None):
-            input_list.append(self.last_waveop_parallel[psum_bank_src]['waveop_name'])
+        if (self.last_main_waveop != None):
+            input_list.append(self.last_main_waveop['waveop_name'])
         waveop['previous_waveops'] = input_list
         self.append_check(waveop)
-        self.last_waveop_parallel[psum_bank_dst] = waveop
-        self.last_waveop_processed = waveop
+        self.last_main_waveop = waveop
 
-    def add_outputs(self, waveops, psum_bank_src):
+    def add_outputs(self, waveops):
         for i in waveops:
-            if (self.last_waveop_parallel[psum_bank_src] != None):
-                i['previous_waveops'].append(self.last_waveop_parallel[psum_bank_src]['waveop_name'])
-                self.append_check(i)
-            else:
-                print("ERROR in add_outputs: there's no source waveop for PSUM bank %d going to waveop %s!"%(psum_bank_src, i['waveop_name']))
+            i['previous_waveops'].append(self.last_main_waveop['waveop_name'])
+            self.append_check(i)
+
+    def add_group(self, waveops):
+        if (len(waveops)>0):
+            if (self.last_main_waveop != None):
+                waveops[0]['previous_waveops'].append(self.last_main_waveop)
+            self = self + waveops
+            self.last_main_waveop = waveops.last_main_waveop
 
 ##################################################################################
 # FusedOp: consist of list of K-Nodes that are fused (communicate through PSUM buffers)
@@ -1412,11 +1409,7 @@ class FusedOp(list):
                                         self.conv_op.ifmap_count > self.conv_op.C)
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
-            tpb.waveop_stream.add_linked(
-                    matmul_waveop, 
-                    dram_weights_waveops + dram_ifmaps_waveops, 
-                    self.conv_op.psum_bank_dst if psum_add else self.conv_op.prev_psum_bank_dst, 
-                    self.conv_op.psum_bank_dst)
+            tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops + dram_ifmaps_waveops)
             # collect statistics
             tpb.pearray.num_ops_executed += self.conv_op.ofmap_count * self.conv_op.ofmap_full_tile_sz * self.conv_op.ifmap_count
             return True
@@ -1762,7 +1755,7 @@ class TPBSched:
               'dst_z_num'               : 1,
               'num_partitions'          : 1
             }
-        self.waveop_stream.add_linked(instr, [], psum_bank_src, psum_bank_dst if dst_is_psum else -1)
+        self.waveop_stream.add_linked(instr, [])
 
     # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
@@ -1846,7 +1839,7 @@ class TPBSched:
               'bias_atom_id'            : bias_atom_id,
               'bias_offset_in_atom'     : bias_offset_in_atom,
             }
-        self.waveop_stream.add_linked(instr, dram_bias_waveops, psum_bank_src, psum_bank_dst if dst_is_psum else -1)
+        self.waveop_stream.add_linked(instr, dram_bias_waveops)
 
     # generate ResAdd instruction and add it to instruction stream
     def gen_resadd_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start):
@@ -1935,15 +1928,15 @@ class TPBSched:
               'dst_z_num'               : dst_z_num,
               'num_partitions'          : num_partitions,
             }
-        self.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src, psum_bank_dst if dst_is_psum else -1)
+        self.waveop_stream.add_linked(instr, dram_resadd_waveops)
 
     def gen_fused_pool_waveop_inline (self, fused_ops, tile_id, psum_bank_src):
         pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, True, psum_bank_src)
-        self.waveop_stream.add_linked(pool_waveop, [], psum_bank_src, -1)
+        self.waveop_stream.add_linked(pool_waveop, [])
 
     def gen_unfused_pool_waveop_inline (self, fused_ops, tile_id, dram_waveops):
         pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, False, 0)
-        self.waveop_stream.add_linked(pool_waveop, dram_waveops, -1, -1)
+        self.waveop_stream.add_linked(pool_waveop, dram_waveops)
 
     # reset statistics
     def reset_stats(self):        
@@ -1989,6 +1982,8 @@ class TPBSched:
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
 
+        # initial psum bank is 0
+        op_list.conv_op.set_psum_bank(0)
         # start tensor computation by clearing psum bank
         psum_add = False                               
 
@@ -2012,7 +2007,7 @@ class TPBSched:
                                     if (op_list.execute_matmul_waveop(self, wave_id, inputs, weights, psum_add)):
                                         psum_add = True
                         # tile is done                                   
-                        self.waveop_stream.last_waveop_processed['stop_tensor_calc'] = True
+                        self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
                         self.pearray.trig_tile_done(tile_id)
                         # free portion of requested data (but retain data such that we can still read it)
                         self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr, op_list.conv_op.ifmap_tile_upper_addr)
@@ -2056,12 +2051,12 @@ class TPBSched:
                                                     output_params_op.ofmap_tile_upper_addr, 
                                                     output_params_op.ifmap_count)
                         # The scale_add destination need to be adjusted after the above writes to data region
-                        if (self.waveop_stream.last_waveop_processed['waveop_type'] == "ScaleAdd"):
-                            self.waveop_stream.last_waveop_processed['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
-                        self.waveop_stream.add_outputs(dram_output_waveops, -1)
+                        if (self.waveop_stream.last_main_waveop['waveop_type'] == "ScaleAdd"):
+                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+                        self.waveop_stream.add_outputs(dram_output_waveops)
 
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
-                        op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%PEArray.PSUM_NUM_BANKS)
+                        op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
                         psum_add = False
 
 
@@ -2132,9 +2127,9 @@ class TPBSched:
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                         dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, pool_op.ofmap_tile_lower_addr, pool_op.ofmap_tile_upper_addr, pool_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
-                        if (self.waveop_stream.last_waveop_processed['waveop_type'] == "Pool" or self.waveop_stream.last_waveop_processed['waveop_type'] == "Activation"):
-                            self.waveop_stream.last_waveop_processed['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
-                        self.waveop_stream.add_outputs(dram_output_waveops, -1)
+                        if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool" or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"):
+                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+                        self.waveop_stream.add_outputs(dram_output_waveops)
 
         # save layer results to file, for retrieval by next layer                        
 
@@ -2175,6 +2170,8 @@ class TPBSched:
         if (op_list.has_resadd):
             self.statebuffer.circbuf_scratch.load_data(op_list.resadd_op)
 
+        # initial psum bank is 0
+        op_list.conv_op.set_psum_bank(0)
         # start tensor computation by clearing psum bank
         psum_add = False                               
 
@@ -2202,7 +2199,7 @@ class TPBSched:
                                 r_id += s_id//op_list.conv_op.S
                                 s_id = s_id%op_list.conv_op.S
                         # tile is done                                   
-                        self.waveop_stream.last_waveop_processed['stop_tensor_calc'] = True
+                        self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
                         self.pearray.trig_tile_done(tile_id)
                         # free portion of requested data (but retain data such that we can still read it)
                         self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr, op_list.conv_op.ifmap_tile_upper_addr)
@@ -2233,11 +2230,11 @@ class TPBSched:
                         # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                         dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr, output_params_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
-                        if (self.waveop_stream.last_waveop_processed['waveop_type'] == "Pool" or self.waveop_stream.last_waveop_processed['waveop_type'] == "Activation"):
-                            self.waveop_stream.last_waveop_processed['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
-                        self.waveop_stream.add_outputs(dram_output_waveops, -1)
+                        if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool" or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"):
+                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+                        self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
-                        op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%PEArray.PSUM_NUM_BANKS)
+                        op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
                         psum_add = False
 
         # save layer results to file, for retrieval by next layer                       
