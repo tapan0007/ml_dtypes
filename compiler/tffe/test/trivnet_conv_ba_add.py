@@ -136,16 +136,16 @@ ba1b = tf.get_variable(name=netName+"/bias1b",
                       initializer = BAval.astype(npDataType), dtype=tfDataType)
 i2b = tf.nn.bias_add(i1b, ba1b, name=netName + "/i2b")
 
-w1c = tf.get_variable(name=netName+"/weight1c",
-                             initializer = W1val.astype(npDataType), dtype=tfDataType)
-i1c = tf.nn.conv2d(i2b, w1c, convStrides, padType, name=netName + "/i1c")
+#w1c = tf.get_variable(name=netName+"/weight1c",
+#                             initializer = W1val.astype(npDataType), dtype=tfDataType)
+#i1c = tf.nn.conv2d(i2b, w1c, convStrides, padType, name=netName + "/i1c")
 
-ba1c = tf.get_variable(name=netName+"/bias1c",
-                      initializer = BAval.astype(npDataType), dtype=tfDataType)
-i2c = tf.nn.bias_add(i1c, ba1c, name=netName + "/i2c")
+#ba1c = tf.get_variable(name=netName+"/bias1c",
+#                      initializer = BAval.astype(npDataType), dtype=tfDataType)
+#i2c = tf.nn.bias_add(i1c, ba1c, name=netName + "/i2c")
 
 # add
-i3 = tf.add(i2, i2c, name=netName + "/i3")
+i3 = tf.add(i2, i2b, name=netName + "/i3")
 
 output = tf.identity(i3, name=netName+"/output")
 
