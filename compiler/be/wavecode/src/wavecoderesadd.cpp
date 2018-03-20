@@ -11,7 +11,7 @@
 namespace kcc {
 namespace wavecode {
 
-WaveCodeResAdd::WaveCodeResAdd(WaveCode* waveCode)
+WaveCodeResAdd::WaveCodeResAdd(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
 {}
 
@@ -85,7 +85,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     resaddInstr.dst_y_num       = resaddWaveOp->gDstYNum();
     resaddInstr.dst_z_num       = resaddWaveOp->gDstZNum();
 
-    m_WaveCode->writeInstruction(resaddInstr);
+    m_WaveCode.writeInstruction(resaddInstr);
 }
 
 

@@ -6,6 +6,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/debug.hpp"
 #include "utils/inc/printers.hpp"
 #include "utils/inc/datatype.hpp"
@@ -46,13 +47,21 @@ namespace codegen {
 }
 
 
+static
+FILE* openObjectFile(const std::string& objFileName, const char* engineName)
+{
+    std::cout << "Wavegraph code generation: Generating " << engineName
+              << " instructions to file '" << objFileName << "'\n";
+    FILE* file = fopen(objFileName.c_str(), "wb");
+    Assert(file, "Cannot open PE array object file ", objFileName.c_str());
+    return file;
+}
 
 //------------------------------------------------
 
 int
 Main(int argc, char* argv[])
 {
-    kcc::utils::breakFunc(44);
 #if 1
     bool PrintLevels   = false;
     bool PrintSchedule = false;
@@ -60,6 +69,7 @@ Main(int argc, char* argv[])
     bool PrintLayers   = false;
 #endif
     bool DoBatching    = false;
+    bool ParallelStreams = false;
     const char* JsonInFileName = nullptr;
     bool useWave = false;
 
@@ -79,6 +89,8 @@ Main(int argc, char* argv[])
             PrintDot = true;
         } else if (arg == "--batch" or arg == "--batching") {
             DoBatching = true;
+        } else if (arg == "--parallel_streams") {
+            ParallelStreams = true;
         } else
 #endif
         if (arg == "--json") {
@@ -114,7 +126,6 @@ Main(int argc, char* argv[])
     arch::Arch::init();
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer psumBuf(arch.gPsumBuffer());
-    const arch::StateBuffer stateBuf(arch.gStateBuffer());
     std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
 
     // Does not matter which DataType because entry index is 0.
@@ -122,25 +133,26 @@ Main(int argc, char* argv[])
     std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
     std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
 
+#if 0
+    const arch::StateBuffer stateBuf(arch.gStateBuffer());
     std::cout << "State buffer, partition size =  " << stateBuf.gPartitionSizeInBytes() << "'\n";
     std::cout << "State buffer, partition 0, entry 0: TPB address =  " << stateBuf.gEntryTpbAddress(0, 0) << "'\n";
     std::cout << "State buffer, partition 1, entry 0: TPB address =  " << stateBuf.gEntryTpbAddress(1, 0) << "'\n";
     std::cout << "State buffer, All zero TPB address =  " << stateBuf.gAllZeroOffsetTpbAddress() << "'\n";
     std::cout << "State buffer, delta TPB address between part 0 and 1=  "
               << (stateBuf.gEntryTpbAddress(1, 0) - stateBuf.gEntryTpbAddress(0, 0)) << "'\n";
+#endif
 
 
     //------------------------------------------------
     nets::Network network(arch);
     nets::Network* ntwk = &network;
-    kcc::utils::breakFunc(44);
+
     {
         std::cout << "Reading NN from JSON file '" << JsonInFileName << "'\n";
         std::ifstream is(JsonInFileName);
-        if (! is.is_open()) {
-            std::cerr << "Cannot open input JSON file " << JsonInFileName << "\n";
-            assert(false && "Cannot open input JSON file");
-        }
+        const bool isOpen = is.is_open();
+        Assert(isOpen, "JSON input file '", JsonInFileName, "' is not open\n");
         cereal::JSONInputArchive ar(is);
         ntwk->rUseWave(useWave);
         ntwk->load(ar);
@@ -148,29 +160,9 @@ Main(int argc, char* argv[])
 
     ntwk->rDoBatching(DoBatching);
 
-    //--------------------------------------------------------
-    {
-        char JsonOutFileName[256];
-        const char* p = JsonInFileName;
-        char* q = JsonOutFileName;
-        while (*p) {
-            if (*p == '.') {
-                *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
-            }
-            *q++ = *p++;
-        }
-        *q = '\0';
-
-        std::ofstream os(JsonOutFileName);
-
-        std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
-        cereal::JSONOutputArchive ar(os);
-        ntwk->save(ar);
-    }
-
-    std::string objFileName(ntwk->gName());
-    objFileName += ".tpb";
     if (! useWave) {
+        std::string objFileName(ntwk->gName());
+        objFileName += ".tpb";
         //--------------------------------------------------------
         schedule::Scheduler* scheduler = new schedule::Scheduler();
         std::cout << "Scheduling NN '" << ntwk->gName() << "'\n";
@@ -216,16 +208,58 @@ Main(int argc, char* argv[])
             }
         }
     } else {
-        wavecode::WaveCode waveCode(ntwk, arch);
-        std::cout << "WaveCodegen: Generating instructions to file '" << objFileName << "'\n";
-        FILE* file = fopen(objFileName.c_str(), "wb");
-        assert(file && "Cannot open object file");
         wavecode::WaveCode::InstrStreams instrStreams;
-        instrStreams.m_StreamProcInstrStream    = file;
-        instrStreams.m_PeArrayInstrStream       = file;
-        instrStreams.m_PoolEngInstrStream       = file;
-        instrStreams.m_ActEngInstrStream        = file;
-        waveCode.generate(instrStreams);
+        if (ParallelStreams) {
+            std::string objFileName;
+
+            objFileName = ntwk->gName() + "-pe.tpb";
+            instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array");
+
+            objFileName = ntwk->gName() + "-sp.tpb";
+            instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor");
+
+            objFileName = ntwk->gName() + "-dma.tpb";
+            instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA");
+
+            objFileName = ntwk->gName() + "-pool.tpb";
+            instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine");
+
+            objFileName = ntwk->gName() + "-act.tpb";
+            instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine");
+
+        } else {
+            std::string objFileName(ntwk->gName() + ".tpb");
+            FILE* file = openObjectFile(objFileName, "all");
+
+            instrStreams.m_StreamProcInstrStream    = file;
+            instrStreams.m_PeArrayInstrStream       = file;
+            instrStreams.m_PoolEngInstrStream       = file;
+            instrStreams.m_ActEngInstrStream        = file;
+            instrStreams.m_DmaInstrStream           = file;
+        }
+
+        wavecode::WaveCode waveCode(ntwk, arch);
+        waveCode.generate(instrStreams, ParallelStreams);
+    }
+
+    //--------------------------------------------------------
+    { // writing is after generate() because generate() sets events
+        char JsonOutFileName[256];
+        const char* p = JsonInFileName;
+        char* q = JsonOutFileName;
+        while (*p) {
+            if (*p == '.') {
+                *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
+            }
+            *q++ = *p++;
+        }
+        *q = '\0';
+
+        std::ofstream os(JsonOutFileName);
+
+        std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
+        cereal::JSONOutputArchive ar(os);
+        ntwk->save(ar);
     }
 
     return 0;

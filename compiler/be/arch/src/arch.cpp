@@ -1,4 +1,5 @@
-#include "uarch_cfg.hpp"
+#include "shared/inc/uarch_cfg.hpp"
+
 #include "utils/inc/types.hpp"
 
 #include "arch/inc/poolingeng.hpp"
@@ -33,10 +34,10 @@ enum : kcc_int64 {
 
 //--------------------------------------------------------
 Arch::Arch()
-    : m_PeArray(Arch_NumberPeRows, Arch_NumberPeColumns)
+    : m_PeArray(Arch_NumberPeRows, Arch_NumberPeColumns, *this)
     , m_PsumBuffer(m_PeArray, Arch_NumberPsumBanks, Arch_NumberPsumBankEntries)
-    , m_PoolingEng(m_PsumBuffer)
-    , m_ActivationEng(m_PsumBuffer)
+    , m_PoolingEng(m_PsumBuffer, *this)
+    , m_ActivationEng(m_PsumBuffer, *this)
     , m_StateBuffer(m_PeArray, sbPartitionSizeInBytes)
 {
 }
@@ -88,6 +89,25 @@ Arch::gArchVersion() const
 {
     static const std::string version("Tonga-0.2");
     return version;
+}
+
+kcc_int64
+Arch::gTpbEventBase()
+{
+    return MMAP_EVENTS;
+
+}
+
+kcc_int64
+Arch::gSpEventBase()
+{
+    return SP_EVENTS_BASE;
+}
+
+kcc_int64
+Arch::gTpbBaseSysAddress()
+{
+    return TPB_BASE;
 }
 
 }}

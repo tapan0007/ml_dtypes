@@ -58,6 +58,7 @@ class NnSubgraph:
     self.inputs = sgJson["Inputs"]
     self.outputs = sgJson["Outputs"]
     self.executor = sgJson["executor"]
+    self.parallel_streams = sgJson.get("parallel_streams", False)
     self.cmd = ""
     if self.executor == "processor":
       self.cmd = sgJson["cmd"]
@@ -151,7 +152,9 @@ class NnSubgraph:
       self.linkConsts()
       self.createTpbFormatInputs()
       cmd = "%s/runtime/util/runtime_sim" % kPath
-      cmd += "  --tpb %s" % "%s/%s/TrivNet.tpb" %(kelf_dir, self.sgDir)
+      cmd += "  --tpb_dir %s" % "%s/%s" %(kelf_dir, self.sgDir)
+      if self.parallel_streams:
+        cmd += " --parallel_streams"
       #cmd += "  --input_fmaps %s" % " ".join(self.getUpdatedInputs())
       #cmd += "  --output_fmap %s %s" % (self.outputs[0], OutFile)
     elif executor == "processor":
@@ -168,7 +171,7 @@ class NnSubgraph:
       self.linkConsts()
       self.createTpbFormatInputs()
       cmd = "python3 %s//compiler/util/layeropt.py" % kPath
-      cmd += "  --kgraph %s/%s/*_compiler.json" % (kelf_dir, self.sgDir)
+      cmd += "  --kgraph %s/%s/compiler.json" % (kelf_dir, self.sgDir)
       cmd += "  --inference"
     cmd = "%s > %s 2>&1" % (cmd, logFile)
     print("\nINFO: executing %s" % cmd, flush=True)

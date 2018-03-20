@@ -15,6 +15,10 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
     KCC_ARCHIVE(WaveOpName);
     KCC_ARCHIVE(LayerName);
     KCC_ARCHIVE(PreviousWaveOps);
+    KCC_ARCHIVE(PreviousEventIds);
+    KCC_ARCHIVE(PreviousEventWaitModes);
+    KCC_ARCHIVE(PreviousEventSetModes);
+
 
     if (m_WaveOpType == WaveOpTypeStr_SBAtomFile ||
         m_WaveOpType == WaveOpTypeStr_SBAtomSave)
@@ -51,6 +55,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(IfmapCount);
         KCC_ARCHIVE(IfmapsFoldIdx);
         KCC_ARCHIVE(IfmapsReplicate);
+        KCC_ARCHIVE(ContainWeights);
     } else {
         KCC_ARCHIVE(OfmapCount);
         KCC_ARCHIVE(OfmapsFoldIdx);
@@ -242,7 +247,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(DstZNum);
     KCC_ARCHIVE(DstZStep);
 }
-        
+
 
 #undef KCC_ARCHIVE
 } // namespace serialize

@@ -8,7 +8,7 @@
 
 
 
-#include "tcc.hpp"
+#include "tcc/inc/tcc.hpp"
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
@@ -28,9 +28,11 @@ class WaveCode;
 
 
 class WaveCodeWaveOp {
+protected:
+    using WaveCodeRef = WaveCode&;
 public:
     //----------------------------------------------------------------
-    WaveCodeWaveOp(WaveCode* wavecode);
+    WaveCodeWaveOp(WaveCodeRef wavecode);
 
     virtual ~WaveCodeWaveOp()
     {}
@@ -49,9 +51,10 @@ public:
 
 protected:
     void epilogue(const wave::WaveOp* waveOp);
+    bool qParallelStreams() const;
 
 protected:
-    WaveCode* const m_WaveCode;
+    WaveCodeRef     m_WaveCode;
     wave::WaveOp*   m_WaveOp;
 };
 

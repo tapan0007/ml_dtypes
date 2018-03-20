@@ -82,6 +82,10 @@ public:
         return m_RefFileShape;
     }
 
+    EngineId gEngineId() const override {
+        return EngineId::DmaEng;
+    }
+
 protected:
     bool verify() const override;
 
@@ -108,7 +112,7 @@ public:
     kcc_int32       m_AtomId            = -1;
     kcc_int32       m_AtomSize          = -1;
     kcc_int32       m_BatchFoldIdx      = -1;
-    DataTypeId      m_DataType          = DataTypeId_None;
+    DataTypeId      m_DataType          = DataTypeId::None;
     kcc_int64       m_Length            = -1;
     kcc_int64       m_OffsetInFile      = -1;
     kcc_int64       m_PartitionStepBytes= -1;

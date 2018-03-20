@@ -68,15 +68,6 @@ do
     esac
 done
 
-#case "x$1" in
-#(x*.tgz)
-#    TGZ=$1; 
-#    x=${TGZ%.tgz}
-#    Name="${x##.*/}"
-#    ;;
-#(*) Name=$1; TGZ=$Name.tgz;;
-#esac
-Name=nn
 
 ##############################################################
 
@@ -91,37 +82,48 @@ test -r $F || Fatal missing file $F
 . $F
 
 sed1='s/.*": *"//'; sed2='s/"[,]* *//'
-
-InputNpy=$( egrep '"ref_file":' $JsonFile | head -n 1 | sed -e "$sed1" -e "$sed2" )
 NetName=$( egrep '"net_name":' $JsonFile | sed -e "$sed1" -e "$sed2" )
-LastLayerName=$( egrep '"layer_name":' $JsonFile | tail -n 1| sed -e "$sed1" -e "$sed2" )
-
-#NetName=$(echo $NetName | tr A-Z a-z)
 NET=$NetName
 
 RESULTS=./results/$Name
 rm -fR $RESULTS; mkdir -p $RESULTS || Fatal Cannot mkdir dir $RESULTS
 
-ASM=$RESULTS/$NET.asm
+Engines="pe pool act sp"
 
-SIMRES=$RESULTS/$NET.simres
-SIMLOG=$RESULTS/simulation.log
-LOG=$RESULTS/LOG
+
 ##############################################################
+Parallel=false
+Parallel=true
 
 
-TPB=$NET.tpb
 inputGraphArgs="--json $JsonFile"
 # Wave scheduler flow
 if [[ $JsonFile = *"wavegraph.json" ]]; then
   inputGraphArgs="--wavegraph $JsonFile"
 fi
-cmd="$COMPILER/compiler/compiler.exe $inputGraphArgs"
+
+if $Parallel; then
+    cmd="$COMPILER/compiler/compiler.exe --parallel $inputGraphArgs"
+else
+    cmd="$COMPILER/compiler/compiler.exe $inputGraphArgs"
+fi
+
 RunCmd $cmd || Fatal Compiler failed
 
 ##############################################################
-RunCmd $OBJDUMP $TPB > $ASM 
-RunCmd shasum $TPB
+if $Parallel; then
+    for f in $Engines; do
+        TPB=$NET-$f.tpb
+        ASM=$RESULTS/$NET-$f.asm
+        RunCmd $OBJDUMP $TPB > $ASM
+        RunCmd shasum $TPB
+    done
+else 
+    TPB=$NET.tpb
+    ASM=$RESULTS/$NET.asm
+    RunCmd $OBJDUMP $TPB > $ASM 
+    RunCmd shasum $TPB
+fi
 
 ##############################################################
 

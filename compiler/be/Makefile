@@ -1,7 +1,7 @@
 # codegen compiler
 #egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' |
 
-MODS := arch layers memmgr nets utils schedule serialize codegen wave wavecode
+MODS := arch layers memmgr nets utils schedule serialize codegen wave events wavecode
 MAINMOD := compiler 
 
 top : alldeps
@@ -32,3 +32,11 @@ alldeps :
 	done
 
 superclean : clean alldeps top
+
+libs :
+	@for mod in $(MODS) $(MAINMOD); do \
+	    (if cd $$mod; then \
+			$(MAKE) -k lib; \
+		fi) \
+	done
+

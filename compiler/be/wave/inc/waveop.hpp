@@ -10,12 +10,15 @@
 
 
 
+#include "shared/inc/tpb_isa.hpp"
 
 
 #include "utils/inc/types.hpp"
 #include "utils/inc/consts.hpp"
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
+
+#include "events/inc/events.hpp"
 
 
 namespace kcc {
@@ -28,6 +31,8 @@ namespace nets {
 }
 
 namespace wave {
+
+class WaveEdge;
 
 using namespace utils;
 
@@ -64,7 +69,7 @@ protected:
 public:
 
     //----------------------------------------------------------------
-    virtual bool qMatMultWaveOp() const {
+    virtual bool qMatMulWaveOp() const {
         return false;
     }
     virtual bool qSbAtomFileWaveOp() const {
@@ -83,6 +88,9 @@ public:
         return false;
     }
 
+    virtual EngineId gEngineId() const = 0;
+
+    virtual std::string gTypeStr() const = 0;
 
     //----------------------------------------------------------------
     const std::string& gName() const {
@@ -91,22 +99,32 @@ public:
 
     const std::string& gLayerName() const;
 
-    const std::vector<WaveOp*>& gPrevWaveOps() const {
-        return m_PrevWaveOps;
+    const std::vector<WaveEdge*>& gPrevWaveEdges() const {
+        return m_PrevWaveEdges;
+    }
+
+    const std::vector<WaveEdge*>& gSuccWaveEdges() const {
+        return m_SuccWaveEdges;
     }
 
     kcc_int32 gWaveAtomSize () const {
         return 1024;
     }
 
-protected:
-#if 0
-#endif
+    kcc_int32 gOrder() const {
+        return m_Order;
+    }
+
+
 
 protected:
     std::string             m_Name          = "";
-    std::vector<WaveOp*>    m_PrevWaveOps;
+    std::vector<WaveEdge*>  m_PrevWaveEdges;
+    std::vector<WaveEdge*>  m_SuccWaveEdges;
     FmapDesc                m_OfmapDesc;
+    kcc_int32               m_Order = -1;
+
+
 private:
     layers::Layer*          m_Layer         = nullptr;
 }; // class WaveOp
@@ -117,8 +135,9 @@ public:
     bool verify() const;
 public:
     std::string             m_WaveOpName    = "";
-    FmapDesc                m_OfmapDesc;
+    //FmapDesc                m_OfmapDesc;
     layers::Layer*          m_Layer         = nullptr;
+    kcc_int32               m_Order;
 };
 
 

@@ -3,7 +3,7 @@ MODULE:=utils
 MODS := $(MODULE) nets layers serialize schedule
 
 ########################################################
-SRCS := fmapdesc debug datatype printers types
+SRCS := fmapdesc debug datatype printers types asserter
 ## consts
 
 ########################################################

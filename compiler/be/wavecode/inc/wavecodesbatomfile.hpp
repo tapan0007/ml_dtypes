@@ -8,7 +8,7 @@
 
 
 
-#include "tcc.hpp"
+#include "tcc/inc/tcc.hpp"
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
@@ -29,7 +29,7 @@ namespace wavecode {
 class WaveCodeSbAtomFile : public WaveCodeSbAtom {
 public:
     //----------------------------------------------------------------
-    WaveCodeSbAtomFile(WaveCode* waveCode);
+    WaveCodeSbAtomFile(WaveCodeRef waveCode);
 
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;

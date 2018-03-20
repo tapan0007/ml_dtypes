@@ -5,6 +5,7 @@
 #include <map>
 
 
+#include "utils/inc/asserter.hpp"
 #include "arch/inc/arch.hpp"
 
 #include "layers/inc/layer.hpp"
@@ -19,6 +20,8 @@
 #include "layers/inc/biasaddlayer.hpp"
 
 #include "nets/inc/network.hpp"
+#include "nets/inc/network_load.hpp"
+#include "nets/inc/network_save.hpp"
 
 namespace kcc {
 
@@ -33,6 +36,17 @@ namespace wave {
 namespace nets {
 
 //--------------------------------------------------------
+Network::Network(const arch::Arch& arch)
+    : m_Arch(arch)
+    , m_DataType(nullptr)
+    , m_Name()
+    , m_DoBatching(false)
+    , m_Load(std::make_unique<Load>(*this))
+    , m_Save(std::make_unique<Save>(*this))
+{}
+
+
+Network::~Network() = default;
 
 //--------------------------------------------------------
 void
@@ -48,7 +62,7 @@ void
 Network::SchedLayerForwRevIter::operator++()
 {
     layers::Layer* const currLayer = m_CurrLayer;
-    assert(currLayer && "Layer iterator in Network: Invalid current layer");
+    Assert(currLayer, "Layer iterator in Network: Invalid current layer");
     layers::Layer* nextLayer;
 
     if (m_Forw) {
@@ -79,7 +93,7 @@ layers::Layer*
 Network::findLayer(const std::string& layerName)
 {
     layers::Layer* layer = m_Name2Layer[layerName];
-    assert(layer && "Could not find layer");
+    Assert(layer, "Could not find layer ", layerName);
     return layer;
 }
 
@@ -87,9 +101,10 @@ wave::WaveOp*
 Network::findWaveOp(const std::string& waveOpName)
 {
     wave::WaveOp* waveOp = m_Name2WaveOp[waveOpName];
-    assert(waveOp && "Could not find WaveOp");
+    Assert(waveOp, "Could not find WaveOp ", waveOpName);
     return waveOp;
 }
+
 
 
 }}
