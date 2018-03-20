@@ -44,8 +44,14 @@ public:
     bool qResAddWaveOp() const override {
         return true;
     }
-    static std::string gTypeStr() {
+    EngineId gEngineId() const override {
+        return EngineId::Pooling;
+    }
+    static std::string gTypeStrStatic() {
         return WaveOpTypeStr_ResAdd;
+    }
+    std::string gTypeStr() const override {
+        return gTypeStrStatic();
     }
 
     kcc_int32 gNumPartitions () const {
@@ -230,9 +236,9 @@ class ResAddWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    DataTypeId      m_InADtypeId            = DataTypeId_None;
-    DataTypeId      m_InBDtypeId            = DataTypeId_None;
-    DataTypeId      m_OutDtypeId            = DataTypeId_None;
+    DataTypeId      m_InADtypeId            = DataTypeId::None;
+    DataTypeId      m_InBDtypeId            = DataTypeId::None;
+    DataTypeId      m_OutDtypeId            = DataTypeId::None;
 
     kcc_int32       m_NumPartitions         = -1;
 

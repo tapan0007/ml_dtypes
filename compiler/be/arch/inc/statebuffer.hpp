@@ -7,6 +7,10 @@
 #include "utils/inc/types.hpp"
 
 namespace kcc {
+namespace utils {
+class DataType;
+}
+
 namespace arch {
 
 class PeArray;
@@ -42,7 +46,10 @@ public:
     kcc_int64 gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;
     kcc_int64 gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;
 
-    kcc_int64 gAllZeroOffsetTpbAddress() const;
+    kcc_int64 gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const;
+    kcc_int64 gAllOneOffsetTpbAddress(const utils::DataType& dataType) const;
+    kcc_int64 gAllZeroOffsetSysAddress(const utils::DataType& dataType) const;
+    kcc_int64 gAllOneOffsetSysAddress(const utils::DataType& dataType) const;
 
 private:
 

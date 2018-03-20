@@ -9,6 +9,7 @@
 
 namespace kcc {
 
+
 using kcc_int8    = signed char;
 using kcc_int16   = short;
 using kcc_int32   = int;
@@ -20,6 +21,7 @@ using kcc_uint64  = unsigned long;
 using kcc_float32 = float;
 using kcc_float64 = double;
 
+
 static_assert(sizeof(kcc_int8)  == 1, "sizeof(int8) != 1");
 static_assert(sizeof(kcc_int16) == 2, "sizeof(int16) != 2");
 static_assert(sizeof(kcc_int32) == 4, "sizeof(int32) != 4");
@@ -29,22 +31,26 @@ static_assert(sizeof(kcc_uint16) == 2, "sizeof(uint16) != 2");
 static_assert(sizeof(kcc_uint32) == 4, "sizeof(uint32) != 4");
 static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
-
-enum ActivationFunc {
-    ActivationFunc_Invalid,
-    ActivationFunc_Identity,
-    ActivationFunc_Relu,
-    ActivationFunc_LeakyRelu,
-    ActivationFunc_PRelu,
-    ActivationFunc_Sigmoid,
-    ActivationFunc_Tanh,
-    ActivationFunc_Exp,
+using EventId = kcc_int32;
+enum {
+    EventId_Invalid = -1,
 };
 
-enum PoolType {
-    PoolType_None,
-    PoolType_Max,
-    PoolType_Avg
+enum class ActivationFunc {
+    Invalid,
+    Identity,
+    Relu,
+    LeakyRelu,
+    PRelu,
+    Sigmoid,
+    Tanh,
+    Exp,
+};
+
+enum class PoolType {
+    None,
+    Max,
+    Avg
 };
 
 

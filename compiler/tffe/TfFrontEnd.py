@@ -118,7 +118,7 @@ class TfFe:
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         self.__kg.addNode(node)
-        print ("DEBUG: loadpb: adding node %s, type %s", (node.getName(), type(node)))
+        print ("DEBUG: loadpb: adding node %s, type %s" % (node.getName(), type(node)))
     print("INFO: loaded %s file with %d ops  of which %d are CONV"
           % (pbFile, numOps, numConv))
 

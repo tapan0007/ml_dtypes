@@ -27,6 +27,7 @@ namespace arch {
 namespace layers {
     class Layer;
 }
+
 namespace wave {
     class WaveOp;
     class SbAtomWaveOp;
@@ -76,30 +77,8 @@ public:
     void load(Archive & archive);
 
 private:
-    void
-    fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
-                     std::vector<wave::WaveOp*>& prevWaveOps,
-                     wave::WaveOp::Params& waveOpParams);
-
-    wave::SbAtomFileWaveOp* loadSbAtomFile(const serialize::SerWaveOp& serWaveOp);
-    wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
-    wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
-    wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);
-    wave::ActivationWaveOp* loadActivation(const serialize::SerWaveOp& serWaveOp);
-    wave::ResAddWaveOp* loadResAdd(const serialize::SerWaveOp& serWaveOp);
-
-
-
-    void saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
-    void savePool(const wave::PoolWaveOp* poolWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
-    void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const;
-    void saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
-    void saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const;
+    class Load;
+    class Save;
 
 
 private:
@@ -108,12 +87,9 @@ private:
 
 public:
     //----------------------------------------------------------------
-    Network(const arch::Arch& arch)
-        : m_Arch(arch)
-        , m_DataType(nullptr)
-        , m_Name()
-        , m_DoBatching(false)
-    {}
+    Network(const arch::Arch& arch);
+
+    ~Network();
 
 #if 0
     Network(const DataType* dataType, const std::string& netName);
@@ -138,11 +114,11 @@ public:
         return m_Layers.size();
     }
 
-    std::vector<wave::WaveOp*> gWaveOps() {
+    std::vector<wave::WaveOp*>& gWaveOps() {
         return m_WaveOps;
     }
 
-    const std::vector<wave::WaveOp*> gWaveOps() const {
+    const std::vector<wave::WaveOp*>& gWaveOps() const {
         return m_WaveOps;
     }
 
@@ -164,6 +140,7 @@ public:
     }
 
 
+
 private:
     Network() = delete;
     Network(const Network&) = delete;
@@ -178,6 +155,8 @@ private:
     std::map<std::string, layers::Layer*>   m_Name2Layer;
     std::map<std::string, wave::WaveOp*>    m_Name2WaveOp;
     bool                                    m_UseWave = false;
+    std::unique_ptr<Load>                   m_Load;
+    std::unique_ptr<Save>                   m_Save;
 }; // Network
 
 

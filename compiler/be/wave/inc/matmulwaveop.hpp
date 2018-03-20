@@ -197,12 +197,19 @@ public:
     }
 
     //----------------------------------------------------------------
-    bool qMatMultWaveOp() const override {
+    bool qMatMulWaveOp() const override {
         return true;
     }
 
-    static std::string gTypeStr() {
+    EngineId gEngineId() const override {
+        return EngineId::PeArray;
+    }
+
+    static std::string gTypeStrStatic() {
         return WaveOpTypeStr_MatMul;
+    }
+    std::string gTypeStr() const override {
+        return gTypeStrStatic();
     }
 
     bool verify() const override;
@@ -339,14 +346,14 @@ public:
     kcc_int16       m_IfmapsAtomId          = -1;
     kcc_int32       m_IfmapsAtomSize        = -1;
     kcc_int16       m_IfmapsOffsetInAtom    = -1;
-    DataTypeId      m_InDtypeId             = DataTypeId_None;
+    DataTypeId      m_InDtypeId             = DataTypeId::None;
     // layer name
     kcc_int16       m_NumColumnPartitions   = -1;
     kcc_int16       m_NumRowPartitions      = -1;
     kcc_int16       m_OfmapCount            = -1;
     kcc_int16       m_OfmapTileHeight       = -1;
     kcc_int16       m_OfmapTileWidth        = -1;
-    DataTypeId      m_OutDtypeId            = DataTypeId_None;
+    DataTypeId      m_OutDtypeId            = DataTypeId::None;
     // previous layers
     kcc_int16       m_PsumBankId            = -1;
     kcc_int16       m_PsumBankOffset        = -1;

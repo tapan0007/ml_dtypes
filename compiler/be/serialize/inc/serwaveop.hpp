@@ -21,6 +21,8 @@
 #include "utils/inc/types.hpp"
 #include "utils/inc/datatype.hpp"
 
+#include "events/inc/events.hpp"
+
 // Must include matmulwaveop.hpp for WaveId
 #include "wave/inc/matmulwaveop.hpp"
 
@@ -32,10 +34,13 @@ namespace serialize {
 
 
 // common to all WaveOps
-constexpr static const char* WaveOpKey_WaveOpType           = "waveop_type";
-constexpr static const char* WaveOpKey_WaveOpName           = "waveop_name";
-constexpr static const char* WaveOpKey_LayerName            = "layer_name";
-constexpr static const char* WaveOpKey_PreviousWaveOps      = "previous_waveops";
+constexpr static const char* WaveOpKey_WaveOpType               = "waveop_type";
+constexpr static const char* WaveOpKey_WaveOpName               = "waveop_name";
+constexpr static const char* WaveOpKey_LayerName                = "layer_name";
+constexpr static const char* WaveOpKey_PreviousWaveOps          = "previous_waveops";
+constexpr static const char* WaveOpKey_PreviousEventIds         = "previous_event_ids";
+constexpr static const char* WaveOpKey_PreviousEventWaitModes   = "previous_event_wait_modes";
+constexpr static const char* WaveOpKey_PreviousEventSetModes    = "previous_event_set_modes";
 
 
 // MatMul
@@ -179,6 +184,7 @@ constexpr static const char* WaveOpKey_SrcBZNum	            = "src_b_z_num";
 constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
 
+constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
 
 
 
@@ -202,6 +208,15 @@ public:
 
     void addPreviousWaveOp(const std::string& prevWaveOp) {
         m_PreviousWaveOps.push_back(prevWaveOp);
+    }
+    void addPreviousEventId(EventId eventId) {
+        m_PreviousEventIds.push_back(eventId);
+    }
+    void addPreviousEventWaitMode(events::EventWaitMode mode) {
+        m_PreviousEventWaitModes.push_back(eventWaitMode2Int(mode));
+    }
+    void addPrevEventSetMode(events::EventSetMode mode) {
+        m_PreviousEventSetModes.push_back(eventSetMode2Int(mode));
     }
 
     static ActivationFunc str2ActivationFunc(const std::string& s);
@@ -238,6 +253,9 @@ public:
     std::string                 m_WaveOpName        = "";
     std::string                 m_LayerName         = "";
     std::vector<std::string>    m_PreviousWaveOps;
+    std::vector<int>            m_PreviousEventIds;
+    std::vector<int>            m_PreviousEventWaitModes;
+    std::vector<int>            m_PreviousEventSetModes;
 
     // SBAtom
     kcc_int32                   m_AtomId            = -1;
@@ -256,12 +274,13 @@ public:
     // waveop type
 
     // SBAtomFile
-    kcc_int32                   m_IfmapCount       = -1;
+    kcc_int32                   m_IfmapCount        = -1;
     kcc_int32                   m_IfmapsFoldIdx     = -1;
     bool                        m_IfmapsReplicate   = false;
+    bool                        m_ContainWeights    = false;
 
     // SBAtomSave
-    kcc_int32                   m_OfmapCount       = -1;
+    kcc_int32                   m_OfmapCount        = -1;
     kcc_int32                   m_OfmapsFoldIdx     = -1;
 
     // MatMul
@@ -380,23 +399,7 @@ public:
     bool                        m_DstIsPsum         = true;
     kcc_int32                   m_DstPsumBankId     = -1;
     kcc_int32                   m_DstPsumBankOffset = -1;
-#if 0
-    kcc_int32                   m_DstXNum           = -1;
-    kcc_int32                   m_DstXStep          = -1;
-    kcc_int32                   m_DstYNum           = -1;
-    kcc_int32                   m_DstYStep          = -1;
-    kcc_int32                   m_DstZNum           = -1;
-    kcc_int32                   m_DstZStep          = -1;
-#endif
     //kcc_int32                   m_SrcPsumBankId     = -1;
-#if 0
-    kcc_int32                   m_SrcXNum           = -1;
-    kcc_int32                   m_SrcXStep          = -1;
-    kcc_int32                   m_SrcYNum           = -1;
-    kcc_int32                   m_SrcYStep          = -1;
-    kcc_int32                   m_SrcZNum           = +1;
-    kcc_int32                   m_SrcZStep          = +1;
-#endif
 }; // class SerWaveOp
 
 

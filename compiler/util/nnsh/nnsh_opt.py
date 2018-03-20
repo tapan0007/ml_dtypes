@@ -5,6 +5,7 @@
 
 import json
 from nnsh_graph import NnshGraph
+from nnsh_prof import NnshProfile
 
 class NnshOpt(object):
 
@@ -18,9 +19,29 @@ class NnshOpt(object):
       if self.debug > 0:
         self.graphJson.render("debug_graph_json")
 
+  def profile(self, profileType, csvOutput):
+    g = None
+    if profileType == "folded":
+      g = self.graphFolded
+    if g:
+      prof = NnshProfile()
+      cuts = g.getCuts()
+      for cut in cuts:
+        opCosts = g.getCutCosts(cut)
+        prof.addStep(opCosts)
+      prof.writeCsv(csvOutput)
+
+  def fold(self):
+    foldOpSet = set()
+    foldOpSet.add('Const')
+    self.graphFolded = self.graphJson.copy()
+    self.graphFolded.fold(foldOpSet)
+    if self.debug > 0:
+      self.graphFolded.render("debug_graph_folded")
+  
   def fuse(self):
     fuseRules = {'ConvBiasRelu' : ['Conv', 'BiasAdd', 'Relu']}
-    self.graphFused = self.graphJson.copy()
+    self.graphFused = self.graphFolded.copy()
     self.graphFused.fuse(fuseRules)
     if self.debug > 0:
       self.graphFused.render("debug_graph_fused")

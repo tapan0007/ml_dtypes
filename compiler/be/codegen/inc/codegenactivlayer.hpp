@@ -3,7 +3,7 @@
 #ifndef KCC_CODEGEN_CODEGENACTIVLAYER_H
 #define KCC_CODEGEN_CODEGENACTIVLAYER_H
 
-#include "tpb_isa_activate.hpp"
+#include "shared/inc/tpb_isa_activate.hpp"
 
 #include "codegen/inc/codegenlayer.hpp"
 

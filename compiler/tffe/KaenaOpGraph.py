@@ -1044,25 +1044,8 @@ class Graph(Object):
     fileList.append(outFile)
     
     return(outNpy, fileList)
-    
+    d
   
-  # Write K-graph compiler configuration files
-  # Example:
-  #  net_<interface_type>_params.sh : 
-  #    OutputNpy=trivnet_1conv__i1:0_NCHW.npy
-  #    PythonFile=trivnet_compiler.py
-  def genKgraphSetupFiles(self, fileNamePy, fileNameJson, fileNameNpyOutput):
-    #setupFilePy = "net_py_params.sh"
-    #with open(setupFilePy, "w") as f:
-    #  f.write("OutputNpy=%s\n" % fileNameNpyOutput)
-    #  f.write("PythonFile=%s\n" % fileNamePy)
-    setupFileJson = "net_json_params.sh"
-    with open(setupFileJson, "w") as f:
-      f.write("OutputNpy=%s\n" % fileNameNpyOutput)
-      f.write("JsonFile=%s\n" % fileNameJson)
-    return([setupFileJson])
-
-
   def getLowestLevelNodes(self):
     return self.getLevelizedNodes()[1]  # levels start from 1
 
@@ -1206,11 +1189,19 @@ class Graph(Object):
     elif self.schedulerMode == 'wave':
       # Invoke wave scheduler
       waveSchedulerExec = self.kaenaPath + "/compiler/util/layeropt.py"
-      kGraphJsonFile = outPrefix + "compiler.json"
-      waveGraphJsonFile = outPrefix + "wavegraph.json"
-      waveDotFile = outPrefix + "wavegraph.svg"
-      cmd = "python3 %s --kgraph %s --wavegraph %s  --debug %d > log-me.txt 2>&1" % (
-            waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, Config.debugLevel)
+      kGraphJsonFile =  "compiler.json"
+      waveGraphJsonFile = "wavegraph.json"
+
+      # From Jeff: to generate dot, but not svg:  waveDotFile = outPrefix + "wavegraph.dot"
+      if False:
+        waveDotFile = outPrefix + "wavegraph.dot"
+        cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s  --debug %d > log-me.txt 2>&1" % (
+              waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
+      else:
+        waveDotFile = outPrefix + "wavegraph.svg"
+        cmd = "python3 %s --kgraph %s --wavegraph %s  --debug %d > log-me.txt 2>&1" % (
+              waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, Config.debugLevel)
+
       print("INFO: executing wave scheduler by  " + cmd)
       os.system(cmd)
       meOk = False

@@ -63,8 +63,14 @@ public:
     bool qActivationWaveOp() const override {
         return true;
     }
-    static std::string gTypeStr() {
+    EngineId gEngineId() const override {
+        return EngineId::Activation;
+    }
+    static std::string gTypeStrStatic() {
         return WaveOpTypeStr_Activation;
+    }
+    std::string gTypeStr() const override {
+        return gTypeStrStatic();
     }
 
     kcc_int32 gDstPsumBankId() const {
@@ -145,7 +151,7 @@ public:
     }
 
 private:
-    ActivationFunc              m_ActivationFunc        = ActivationFunc_Invalid;
+    ActivationFunc              m_ActivationFunc        = ActivationFunc::Invalid;
     bool                        m_BiasAddEn;
     kcc_int32                   m_BiasAtomId            = -1;
     kcc_int64                   m_BiasOffsetInAtom      = -1;
@@ -182,7 +188,7 @@ class ActivationWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    ActivationFunc              m_ActivationFunc        = ActivationFunc_Invalid;
+    ActivationFunc              m_ActivationFunc        = ActivationFunc::Invalid;
     bool                        m_BiasAddEn;
     kcc_int32                   m_BiasAtomId            = -1;
     kcc_int64                   m_BiasOffsetInAtom      = -1;
@@ -196,10 +202,10 @@ public:
     kcc_int32                   m_DstZStep              = -1;
     kcc_int32                   m_DstSbAtomId             = -1;
     kcc_int32                   m_DstSbOffsetInAtom     = -1;
-    DataTypeId                  m_InDtypeId             = DataTypeId_None;
-    DataTypeId                  m_BiasDtypeId           = DataTypeId_None;
+    DataTypeId                  m_InDtypeId             = DataTypeId::None;
+    DataTypeId                  m_BiasDtypeId           = DataTypeId::None;
     kcc_int32                   m_NumPartitions         = -1;
-    DataTypeId                  m_OutDtypeId            = DataTypeId_None;
+    DataTypeId                  m_OutDtypeId            = DataTypeId::None;
     kcc_int32                   m_SrcPsumBankId         = -1;
     kcc_int32                   m_SrcXNum               = -1;
     kcc_int32                   m_SrcXStep              = -1;
