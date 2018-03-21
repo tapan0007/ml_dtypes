@@ -74,6 +74,7 @@ class Node(Object):
     self.__npInfo = []
     self.__fanin = []  # inputs
     self.__fanout = [] # outputs
+    self.protoShape = []
   def copy(self):
     CL = type(self)
     n = CL(self.getName(), self.getOpType(), self.getAttrs())
@@ -147,7 +148,9 @@ class Node(Object):
   def getOpCount(self):
     return 1
   def getDotText(self):
-    return self.getOpType()
+    text = self.getOpType()
+    text += "\n" + str(self.protoShape)
+    return text
   # Supported ops/nodes are passed down through the compiler and simulator flow
   def isSupported(self):
     return False
@@ -160,6 +163,8 @@ class Node(Object):
     return argsText
   def isMainFlowNode(self):
     return len(self.getFaninMainFlowEdges()) > 0 or len(self.getFanoutMainFlowEdges()) > 0
+  def setProtoShape(self, shape):
+    self.protoShape = shape
 
 class PosNode:
   def __init__(self, node, index):
@@ -545,6 +550,8 @@ class NodeConv2D(NodeBasePaddedStrided):
                                        targetBatchImgMin, targetBatchImgOpt)
       # Ops
       dotText += "\nGop %.3f" % (opCount / Config.Tpb.freq)
+    else:
+      dotText += "\n" + str(self.protoShape)
     return dotText
 
   # Number of add, multiply ops for performance analysis and reporting
@@ -637,6 +644,8 @@ class NodePool(NodeBasePaddedStrided):
       dotText += "\nKernelSize " + str(kernelSizeNHWC)
       # Stride
       dotText += "\nStrides " + str(self.getStrides())
+    else:
+      dotText += "\n" + str(self.protoShape)
     return dotText
 
   # Number of add, multiply, max or move, copy ops for performance

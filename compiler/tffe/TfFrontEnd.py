@@ -29,6 +29,7 @@ class TfOp:
     self.name = name
     self.op = op
     self.tfNode = tfNode
+    self.shape = self.extractProtoShape(tfNode)
   def __str__(self):
     return("Name=" + self.name + "  Op=" + self.op)
   def getTensor(self):
@@ -50,6 +51,38 @@ class TfOp:
       shapeStr = ""
       nd = np.array([])
     return(nd)
+  def extractProtoShape(self, tfNode):
+    shape = []
+    try:
+      attrVal = tfNode.attr.get('value', None)
+      if attrVal:
+        dimList = attrVal.tensor.tensor_shape.dim
+        for dim in dimList:
+          val = re.sub(r'[^\d]', "", str(dim))
+          shape.append(int(val))
+    except:
+      pass
+    if len(shape) == 0:
+      try:
+        attrVal = tfNode.attr.get('_output_shapes', None)
+        if attrVal:
+          dimStr = tfNode.attr['_output_shapes'].list.shape[0]
+          dimStr1 = re.sub(r'[^\d]', ' ', str(dimStr))
+          shape = dimStr1.split()
+          shape = [int(d) for d in shape]
+      except:
+        pass
+    if len(shape) == 0:
+      try:
+        attrVal = tfNode.attr.get('shape', None)
+        if attrVal:
+          dimStr = tfNode.attr['shape'].shape
+          dimStr1 = re.sub(r'[^\d]', ' ', str(dimStr))
+          shape = dimStr1.split()
+          shape = [int(d) for d in shape]
+      except:
+        pass
+    return shape
 
 class TfFe:
   def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, batch):
@@ -117,8 +150,9 @@ class TfFe:
           node = kog.NodeInput(tfNode.name, tfop.op, add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
+        node.setProtoShape(tfop.shape)
         self.__kg.addNode(node)
-        print ("DEBUG: loadpb: adding node %s, type %s", (node.getName(), type(node)))
+        print ("DEBUG: loadpb: adding node %s, type %s" % (node.getName(), type(node)))
     print("INFO: loaded %s file with %d ops  of which %d are CONV"
           % (pbFile, numOps, numConv))
 
