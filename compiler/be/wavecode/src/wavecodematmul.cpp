@@ -46,7 +46,7 @@ void
 WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 {
     assert(matmulWaveop->verify());
-    if (matmulWaveop->gWeightsOffsetInAtom() < 0) {
+    if (matmulWaveop->gWeightsSbAddress() < 0) {
         return; // this MatMul reuses weights
     }
     //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
@@ -67,8 +67,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     //    uint8_t     zero_point_uint8[2];
     //    uint16_t    zero_point_uint16   = 0;
     //} TONGA_PACKED;
-    const kcc_int64 addressInSbPart     = matmulWaveop->gWeightsAtomId() * matmulWaveop->gWaveAtomSize()
-                                            + matmulWaveop->gWeightsOffsetInAtom();
+    const kcc_int64 addressInSbPart     = matmulWaveop->gWeightsSbAddress();
 
     ldweightsInstr.start_addr            = addressInSbPart + (matmulWaveop->gOfmapCount() - 1) * dtype.gSizeInBytes();
 
@@ -154,14 +153,13 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     matmulInstr.num_row_partitions      = matmulWaveop->gNumRowPartitions();
     matmulInstr.num_column_partitions   = matmulWaveop->gNumColumnPartitions();
 
-    matmulInstr.fmap_start_addr         = matmulWaveop->gIfmapsAtomId() * wave::MatMulWaveOp::AtomSize +
-                                          matmulWaveop->gIfmapsOffsetInAtom();
+    matmulInstr.fmap_start_addr         = matmulWaveop->gIfmapsSbAddress();
     matmulInstr.fmap_x_num              = matmulWaveop->gFmapXNum();
     matmulInstr.fmap_x_step             = matmulWaveop->gFmapXStep();
     matmulInstr.fmap_y_num              = matmulWaveop->gFmapYNum();
     matmulInstr.fmap_y_step             = matmulWaveop->gFmapYStep();
     matmulInstr.fmap_z_num              = matmulWaveop->gFmapZNum();
-    matmulInstr.fmap_z_step             = matmulWaveop->gFmapZStepAtoms() * matmulWaveop->gIfmapsAtomSize();
+    matmulInstr.fmap_z_step             = 1;
 
     matmulInstr.psum_start_addr         = psumBuf.gEntryTpbAddress(
                                                     matmulWaveop->gPsumBankId(),

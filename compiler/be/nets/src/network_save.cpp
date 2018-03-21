@@ -326,9 +326,7 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     KCC_SERIALIZE(IfmapCount);
     KCC_SERIALIZE(IfmapTileHeight);
     KCC_SERIALIZE(IfmapTileWidth);
-    KCC_SERIALIZE(IfmapsAtomId);
-    KCC_SERIALIZE(IfmapsAtomSize);
-    KCC_SERIALIZE(IfmapsOffsetInAtom);
+    KCC_SERIALIZE(IfmapsSbAddress);
     serWaveOp.m_InDtype  = matmulWaveOp->gInDtype().gName();
     // layer_name
     KCC_SERIALIZE(NumColumnPartitions);
@@ -352,8 +350,7 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     KCC_SERIALIZE(WaveIdFormat);
     // waveop name
     // waveop type
-    KCC_SERIALIZE(WeightsAtomId);
-    KCC_SERIALIZE(WeightsOffsetInAtom);
+    KCC_SERIALIZE(WeightsSbAddress);
 #undef WAVE_OP
 }
 
@@ -367,8 +364,7 @@ Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
 #define WAVE_OP poolWaveOp
     serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStrStatic();
 
-    KCC_SERIALIZE(DstSbAtomId);
-    KCC_SERIALIZE(DstSbOffsetInAtom);
+    KCC_SERIALIZE(DstSbAddress);
     KCC_SERIALIZE(DstXNum);
     KCC_SERIALIZE(DstXStep);
     KCC_SERIALIZE(DstYNum);
@@ -386,8 +382,7 @@ Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
         KCC_SERIALIZE(SrcPsumBankId);
         KCC_SERIALIZE(SrcPsumBankOffset);
     } else { // state buffer
-        KCC_SERIALIZE(SrcSbAtomId);
-        KCC_SERIALIZE(SrcSbOffsetInAtom);
+        KCC_SERIALIZE(SrcSbAddress);
     }
 
     KCC_SERIALIZE(SrcWNum);
@@ -411,8 +406,7 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP sbatomWaveOp
-    KCC_SERIALIZE(AtomId);
-    KCC_SERIALIZE(AtomSize);
+    KCC_SERIALIZE(SbAddress);
     KCC_SERIALIZE(BatchFoldIdx);
     serWaveOp.m_DataType = DataType::dataTypeId2Str(
                               sbatomWaveOp->gDataType().gDataTypeId());
@@ -457,17 +451,13 @@ Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     serWaveOp.m_ActivationFunc      = serialize::SerWaveOp::activationType2Str(activationWaveOp->gActivationFunc());
     serWaveOp.m_BiasAddEn           = activationWaveOp->qBiasAddEn();
 
-    //serWaveOp.m_BiasAtomId          = activationWaveOp->gBiasAtomId();
-    KCC_SERIALIZE(BiasAtomId);
-
-    KCC_SERIALIZE(BiasOffsetInAtom);
+    KCC_SERIALIZE(BiasSbAddress);
 
     serWaveOp.m_DstIsPsum = activationWaveOp->qDstIsPsum();
     if (activationWaveOp->qDstIsPsum()) {
         KCC_SERIALIZE(DstPsumBankId);
     } else {
-        KCC_SERIALIZE(DstSbAtomId);
-        KCC_SERIALIZE(DstSbOffsetInAtom);
+        KCC_SERIALIZE(DstSbAddress);
     }
 
     KCC_SERIALIZE(DstXNum);
@@ -517,8 +507,7 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
         KCC_SERIALIZE(SrcAPsumBankId);
         KCC_SERIALIZE(SrcAPsumBankOffset);
     } else {
-        KCC_SERIALIZE(SrcASbAtomId);
-        KCC_SERIALIZE(SrcASbOffsetInAtom);
+        KCC_SERIALIZE(SrcASbAddress);
     }
     KCC_SERIALIZE(SrcAXNum);
     KCC_SERIALIZE(SrcAXStep);
@@ -532,8 +521,7 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
         KCC_SERIALIZE(SrcBPsumBankId);
         KCC_SERIALIZE(SrcBPsumBankOffset);
     } else {
-        KCC_SERIALIZE(SrcBSbAtomId);
-        KCC_SERIALIZE(SrcBSbOffsetInAtom);
+        KCC_SERIALIZE(SrcBSbAddress);
     }
     KCC_SERIALIZE(SrcBXNum);
     KCC_SERIALIZE(SrcBXStep);
@@ -547,8 +535,7 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
         KCC_SERIALIZE(DstPsumBankId);
         KCC_SERIALIZE(DstPsumBankOffset);
     } else {
-        KCC_SERIALIZE(DstSbAtomId);
-        KCC_SERIALIZE(DstSbOffsetInAtom);
+        KCC_SERIALIZE(DstSbAddress);
     }
     KCC_SERIALIZE(DstXNum);
     KCC_SERIALIZE(DstXStep);

@@ -31,8 +31,7 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
         m_SrcAPsumBankId        = params.m_SrcAPsumBankId;
         m_SrcAPsumBankOffset    = params.m_SrcAPsumBankOffset;
     } else {
-        m_SrcASbAtomId          = params.m_SrcASbAtomId;
-        m_SrcASbOffsetInAtom    = params.m_SrcASbOffsetInAtom;
+        m_SrcASbAddress         = params.m_SrcASbAddress;
     }
     m_SrcAXStep                 = params.m_SrcAXStep;
     m_SrcAXNum                  = params.m_SrcAXNum;
@@ -46,8 +45,7 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
         m_SrcBPsumBankId        = params.m_SrcBPsumBankId;
         m_SrcBPsumBankOffset    = params.m_SrcBPsumBankOffset;
     } else {
-        m_SrcBSbAtomId          = params.m_SrcBSbAtomId;
-        m_SrcBSbOffsetInAtom    = params.m_SrcBSbOffsetInAtom;
+        m_SrcBSbAddress         = params.m_SrcBSbAddress;
     }
     m_SrcBXStep                 = params.m_SrcBXStep;
     m_SrcBXNum                  = params.m_SrcBXNum;
@@ -61,8 +59,7 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
         m_DstPsumBankId         = params.m_DstPsumBankId;
         m_DstPsumBankOffset     = params.m_DstPsumBankOffset;
     } else {
-        m_DstSbAtomId           = params.m_DstSbAtomId;
-        m_DstSbOffsetInAtom     = params.m_DstSbOffsetInAtom;
+        m_DstSbAddress          = params.m_DstSbAddress;
     }
     m_DstXStep                  = params.m_DstXStep;
     m_DstXNum                   = params.m_DstXNum;
@@ -112,10 +109,7 @@ ResAddWaveOp::verify() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_SrcASbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcASbOffsetInAtom < 0) {
+        if (m_SrcASbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }
@@ -146,10 +140,7 @@ ResAddWaveOp::verify() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_SrcBSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcBSbOffsetInAtom < 0) {
+        if (m_SrcBSbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }
@@ -180,10 +171,7 @@ ResAddWaveOp::verify() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_DstSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstSbOffsetInAtom < 0) {
+        if (m_DstSbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }

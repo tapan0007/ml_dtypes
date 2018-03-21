@@ -66,11 +66,8 @@ public:
     bool qSrcAIsPsum () const {
         return m_SrcAIsPsum;
     }
-    kcc_int32 gSrcASbAtomId () const {
-        return m_SrcASbAtomId;
-    }
-    kcc_int32 gSrcASbOffsetInAtom () const {
-        return m_SrcASbOffsetInAtom;
+    kcc_int64 gSrcASbAddress () const {
+        return m_SrcASbAddress;
     }
     kcc_int32 gSrcAPsumBankId() const {
         return m_SrcAPsumBankId;
@@ -106,11 +103,8 @@ public:
     bool qSrcBIsPsum () const {
         return m_SrcBIsPsum;
     }
-    kcc_int32 gSrcBSbAtomId () const {
-        return m_SrcBSbAtomId;
-    }
-    kcc_int32 gSrcBSbOffsetInAtom () const {
-        return m_SrcBSbOffsetInAtom;
+    kcc_int64 gSrcBSbAddress () const {
+        return m_SrcBSbAddress;
     }
     kcc_int32 gSrcBPsumBankId() const {
         return m_SrcBPsumBankId;
@@ -145,11 +139,8 @@ public:
     bool qDstIsPsum () const {
         return m_DstIsPsum;
     }
-    kcc_int32 gDstSbAtomId () const {
-        return m_DstSbAtomId;
-    }
-    kcc_int32 gDstSbOffsetInAtom () const {
-        return m_DstSbOffsetInAtom;
+    kcc_int64 gDstSbAddress () const {
+        return m_DstSbAddress;
     }
     kcc_int32 gDstPsumBankId() const {
         return m_DstPsumBankId;
@@ -190,8 +181,7 @@ private:
     bool            m_SrcAIsPsum;
     kcc_int32       m_SrcAPsumBankId        = -1;
     kcc_int32       m_SrcAPsumBankOffset    = -1;
-    kcc_int32       m_SrcASbAtomId          = -1;
-    kcc_int32       m_SrcASbOffsetInAtom    = -1;
+    kcc_int32       m_SrcASbAddress         = -1;
 
     kcc_int32       m_SrcAXStep             = -1;
     kcc_int32       m_SrcAXNum              = -1;
@@ -204,8 +194,7 @@ private:
     bool            m_SrcBIsPsum;
     kcc_int32       m_SrcBPsumBankId        = -1;
     kcc_int32       m_SrcBPsumBankOffset    = -1;
-    kcc_int32       m_SrcBSbAtomId          = -1;
-    kcc_int32       m_SrcBSbOffsetInAtom    = -1;
+    kcc_int64       m_SrcBSbAddress         = -1;
 
     kcc_int32       m_SrcBXStep             = -1;
     kcc_int32       m_SrcBXNum              = -1;
@@ -218,8 +207,7 @@ private:
     bool            m_DstIsPsum;
     kcc_int32       m_DstPsumBankId         = -1;
     kcc_int32       m_DstPsumBankOffset     = -1;
-    kcc_int32       m_DstSbAtomId           = -1;
-    kcc_int32       m_DstSbOffsetInAtom     = -1;
+    kcc_int64       m_DstSbAddress          = -1;
 
     kcc_int32       m_DstXStep              = -1;
     kcc_int32       m_DstXNum               = -1;
@@ -249,8 +237,7 @@ public:
     bool            m_SrcAIsPsum;
     kcc_int32       m_SrcAPsumBankId        = -1;
     kcc_int32       m_SrcAPsumBankOffset    = -1;
-    kcc_int32       m_SrcASbAtomId          = -1;
-    kcc_int32       m_SrcASbOffsetInAtom    = -1;
+    kcc_int64       m_SrcASbAddress         = -1;
 
     kcc_int32       m_SrcAXStep             = -1;
     kcc_int32       m_SrcAXNum              = -1;
@@ -263,8 +250,7 @@ public:
     bool            m_SrcBIsPsum;
     kcc_int32       m_SrcBPsumBankId        = -1;
     kcc_int32       m_SrcBPsumBankOffset    = -1;
-    kcc_int32       m_SrcBSbAtomId          = -1;
-    kcc_int32       m_SrcBSbOffsetInAtom    = -1;
+    kcc_int64       m_SrcBSbAddress         = -1;
 
     kcc_int32       m_SrcBXStep             = -1;
     kcc_int32       m_SrcBXNum              = -1;
@@ -277,8 +263,7 @@ public:
     bool            m_DstIsPsum;
     kcc_int32       m_DstPsumBankId         = -1;
     kcc_int32       m_DstPsumBankOffset     = -1;
-    kcc_int32       m_DstSbAtomId           = -1;
-    kcc_int32       m_DstSbOffsetInAtom     = -1;
+    kcc_int64       m_DstSbAddress          = -1;
 
     kcc_int32       m_DstXStep              = -1;
     kcc_int32       m_DstXNum               = -1;

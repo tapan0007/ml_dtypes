@@ -41,8 +41,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
                                                                  resaddWaveOp->gInADtype());
     } else {
         resaddInstr.src_a_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
-                                                resaddWaveOp->gSrcASbAtomId() * resaddWaveOp->gWaveAtomSize()
-                                                    + resaddWaveOp->gSrcASbOffsetInAtom());
+                                                resaddWaveOp->gSrcASbAddress());
     }
     resaddInstr.src_a_x_step      = resaddWaveOp->gSrcAXStep();
     resaddInstr.src_a_y_step      = resaddWaveOp->gSrcAYStep();
@@ -58,8 +57,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
                                                                  resaddWaveOp->gInBDtype());
     } else {
         resaddInstr.src_b_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
-                                                resaddWaveOp->gSrcBSbAtomId() * resaddWaveOp->gWaveAtomSize()
-                                                    + resaddWaveOp->gSrcBSbOffsetInAtom());
+                                                resaddWaveOp->gSrcBSbAddress());
     }
     resaddInstr.src_b_x_step      = resaddWaveOp->gSrcBXStep();
     resaddInstr.src_b_y_step      = resaddWaveOp->gSrcBYStep();
@@ -75,8 +73,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
                                                                  resaddWaveOp->gOutDtype());
     } else {
         resaddInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
-                                                resaddWaveOp->gDstSbAtomId() * resaddWaveOp->gWaveAtomSize()
-                                                    + resaddWaveOp->gDstSbOffsetInAtom());
+                                                resaddWaveOp->gDstSbAddress());
     }
     resaddInstr.dst_x_step      = resaddWaveOp->gDstXStep();
     resaddInstr.dst_y_step      = resaddWaveOp->gDstYStep();

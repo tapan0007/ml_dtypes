@@ -41,8 +41,7 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
 void
 SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
 {
-    KCC_ARCHIVE(AtomId);
-    KCC_ARCHIVE(AtomSize);
+    KCC_ARCHIVE(SbAddress);
     KCC_ARCHIVE(BatchFoldIdx);
     KCC_ARCHIVE(DataType);
     KCC_ARCHIVE(Length);
@@ -65,8 +64,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
 void
 SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
 {
-    KCC_ARCHIVE(DstSbAtomId);
-    KCC_ARCHIVE(DstSbOffsetInAtom);
+    KCC_ARCHIVE(DstSbAddress);
     KCC_ARCHIVE(DstXNum);
     KCC_ARCHIVE(DstXStep);
     KCC_ARCHIVE(DstYNum);
@@ -86,8 +84,7 @@ SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(SrcPsumBankId);
         KCC_ARCHIVE(SrcPsumBankOffset);
     } else {
-        KCC_ARCHIVE(SrcSbAtomId);
-        KCC_ARCHIVE(SrcSbOffsetInAtom);
+        KCC_ARCHIVE(SrcSbAddress);
     }
 
     KCC_ARCHIVE(SrcWNum);
@@ -117,9 +114,7 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(IfmapCount);
     KCC_ARCHIVE(IfmapTileHeight);
     KCC_ARCHIVE(IfmapTileWidth);
-    KCC_ARCHIVE(IfmapsAtomId);
-    KCC_ARCHIVE(IfmapsAtomSize);
-    KCC_ARCHIVE(IfmapsOffsetInAtom);
+    KCC_ARCHIVE(IfmapsSbAddress);
     KCC_ARCHIVE(InDtype);
     // layer name
     KCC_ARCHIVE(NumColumnPartitions);
@@ -142,8 +137,7 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(WaveIdFormat);
     // waveop name
     // waveop type
-    KCC_ARCHIVE(WeightsAtomId);
-    KCC_ARCHIVE(WeightsOffsetInAtom);
+    KCC_ARCHIVE(WeightsSbAddress);
 
     assert(m_WaveIdFormat.size() == WaveIdFormatSize);
     std::vector<int> waveId(WaveIdFormatSize, -1); // undefined value before converting
@@ -157,15 +151,13 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
 {
     KCC_ARCHIVE(ActivationFunc);
     KCC_ARCHIVE(BiasAddEn);
-    KCC_ARCHIVE(BiasAtomId);
-    KCC_ARCHIVE(BiasOffsetInAtom);
+    KCC_ARCHIVE(BiasSbAddress);
 
     KCC_ARCHIVE(DstIsPsum);
     if (m_DstIsPsum) {
         KCC_ARCHIVE(DstPsumBankId);
     } else {
-        KCC_ARCHIVE(DstSbAtomId);
-        KCC_ARCHIVE(DstSbOffsetInAtom);
+        KCC_ARCHIVE(DstSbAddress);
     }
 
     KCC_ARCHIVE(DstXNum);
@@ -205,8 +197,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(SrcAPsumBankId);
         KCC_ARCHIVE(SrcAPsumBankOffset);
     } else {
-        KCC_ARCHIVE(SrcASbAtomId);
-        KCC_ARCHIVE(SrcASbOffsetInAtom);
+        KCC_ARCHIVE(SrcASbAddress);
     }
     KCC_ARCHIVE(SrcAXNum);
     KCC_ARCHIVE(SrcAXStep);
@@ -221,8 +212,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(SrcBPsumBankId);
         KCC_ARCHIVE(SrcBPsumBankOffset);
     } else {
-        KCC_ARCHIVE(SrcBSbAtomId);
-        KCC_ARCHIVE(SrcBSbOffsetInAtom);
+        KCC_ARCHIVE(SrcBSbAddress);
     }
     KCC_ARCHIVE(SrcBXNum);
     KCC_ARCHIVE(SrcBXStep);
@@ -237,8 +227,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(DstPsumBankId);
         KCC_ARCHIVE(DstPsumBankOffset);
     } else {
-        KCC_ARCHIVE(DstSbAtomId);
-        KCC_ARCHIVE(DstSbOffsetInAtom);
+        KCC_ARCHIVE(DstSbAddress);
     }
     KCC_ARCHIVE(DstXNum);
     KCC_ARCHIVE(DstXStep);

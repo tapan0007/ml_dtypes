@@ -28,9 +28,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_IfmapCount(params.m_IfmapCount)
     , m_IfmapTileHeight(params.m_IfmapTileHeight)
     , m_IfmapTileWidth(params.m_IfmapTileWidth)
-    , m_IfmapsAtomId(params.m_IfmapsAtomId)
-    , m_IfmapsAtomSize(params.m_IfmapsAtomSize)
-    , m_IfmapsOffsetInAtom(params.m_IfmapsOffsetInAtom)
+    , m_IfmapsSbAddress(params.m_IfmapsSbAddress)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     // layer name
     , m_NumColumnPartitions(params.m_NumColumnPartitions)
@@ -54,8 +52,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_WaveIdFormat(params.m_WaveIdFormat)
     // waveop name
     // waveop type
-    , m_WeightsAtomId(params.m_WeightsAtomId)
-    , m_WeightsOffsetInAtom(params.m_WeightsOffsetInAtom)
+    , m_WeightsSbAddress(params.m_WeightsSbAddress)
 {
     assert(params.verify());
     assert(verify());
@@ -101,13 +98,7 @@ MatMulWaveOp::verify() const
     if (m_IfmapTileWidth <= 0) {
         return false;
     }
-    if (m_IfmapsAtomId < 0) {
-        return false;
-    }
-    if (m_IfmapsAtomSize < 1) {
-        return false;
-    }
-    if (m_IfmapsOffsetInAtom < 0) {
+    if (m_IfmapsSbAddress < 0) {
         return false;
     }
     // layer name
@@ -162,10 +153,7 @@ MatMulWaveOp::verify() const
     }
     // waveop name
     // waveop type
-    if (m_WeightsAtomId < -1) { // m_WeightsAtomId is -1 for waves that do NOT reload weights
-        return false;
-    }
-    if (m_WeightsOffsetInAtom < -1) {
+    if (m_WeightsSbAddress < -1) {
         return false;
     }
     return true;
@@ -312,13 +300,7 @@ MatMulWaveOp::Params::verify() const
     if (m_IfmapTileWidth <= 0) {
         return false;
     }
-    if (m_IfmapsAtomId < 0) {
-        return false;
-    }
-    if (m_IfmapsAtomSize < 1) {
-        return false;
-    }
-    if (m_IfmapsOffsetInAtom < 0) {
+    if (m_IfmapsSbAddress < 0) {
         return false;
     }
     // layer name
@@ -372,10 +354,7 @@ MatMulWaveOp::Params::verify() const
     }
     // waveop name
     // waveop type
-    if (m_WeightsAtomId < -1) {//m_WeightsOffsetInAtom=-1, waves that do NOT reload weights
-        return false;
-    }
-    if (m_IfmapsOffsetInAtom < 0) {
+    if (m_WeightsSbAddress < -1) {
         return false;
     }
     return true;

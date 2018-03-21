@@ -111,24 +111,12 @@ public:
         return m_WaveId;
     }
 
-    kcc_int16 gIfmapsAtomId() const {
-        return m_IfmapsAtomId;
+    kcc_int32 gIfmapsSbAddress() const {
+        return m_IfmapsSbAddress;
     }
 
-    kcc_int32 gIfmapsAtomSize () const {
-        return m_IfmapsAtomSize;
-    }
-
-    kcc_int16 gIfmapsOffsetInAtom() const {
-        return m_IfmapsOffsetInAtom;
-    }
-
-    kcc_int16 gWeightsAtomId() const {
-        return m_WeightsAtomId;
-    }
-
-    kcc_int16 gWeightsOffsetInAtom() const {
-        return m_WeightsOffsetInAtom;
+    kcc_int32 gWeightsSbAddress() const {
+        return m_WeightsSbAddress;
     }
 
     kcc_int16 gPsumBankId() const {
@@ -294,9 +282,7 @@ private:
     kcc_int16       m_IfmapCount            = -1;
     kcc_int16       m_IfmapTileHeight       = -1;
     kcc_int16       m_IfmapTileWidth        = -1;
-    kcc_int16       m_IfmapsAtomId          = -1;
-    kcc_int32       m_IfmapsAtomSize        = -1; // in bytes
-    kcc_int16       m_IfmapsOffsetInAtom    = -1;
+    kcc_int32       m_IfmapsSbAddress       = -1;
     const DataType& m_InDtype;
     // layer name
     kcc_int16       m_NumColumnPartitions   = -1;
@@ -320,8 +306,7 @@ private:
     std::string     m_WaveIdFormat          = "";
     // waveop name
     // waveop type
-    kcc_int16       m_WeightsAtomId         = -2; // -1 means do not load weights
-    kcc_int16       m_WeightsOffsetInAtom   = -2; // -1 means do not load weights
+    kcc_int32       m_WeightsSbAddress      = -2; // -1 means do not load weights
 }; // class MatMulWaveOp : public WaveOp
 
 
@@ -343,9 +328,7 @@ public:
     kcc_int16       m_IfmapCount            = -1;
     kcc_int16       m_IfmapTileHeight       = -1;
     kcc_int16       m_IfmapTileWidth        = -1;
-    kcc_int16       m_IfmapsAtomId          = -1;
-    kcc_int32       m_IfmapsAtomSize        = -1;
-    kcc_int16       m_IfmapsOffsetInAtom    = -1;
+    kcc_int32       m_IfmapsSbAddress       = -1;
     DataTypeId      m_InDtypeId             = DataTypeId::None;
     // layer name
     kcc_int16       m_NumColumnPartitions   = -1;
@@ -369,8 +352,7 @@ public:
     std::string     m_WaveIdFormat          = "";
     // waveop name
     // waveop type
-    kcc_int16       m_WeightsAtomId         = -1;
-    kcc_int16       m_WeightsOffsetInAtom   = -1;
+    kcc_int32       m_WeightsSbAddress      = -2;
 };
 
 }}

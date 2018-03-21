@@ -31,12 +31,8 @@ public:
 
 
     //----------------------------------------------------------------
-    kcc_int32 gAtomId() const {
-        return m_AtomId;
-    }
-
-    kcc_int32 gAtomSize() const {
-        return m_AtomSize;
+    kcc_int64 gSbAddress() const {
+        return m_SbAddress;
     }
 
     kcc_int32 gBatchFoldIdx () const {
@@ -63,13 +59,6 @@ public:
         return m_RefFileName;
     }
 
-    kcc_int64 gAddressInPartition(kcc_int32 offsetInPartition) const {
-        kcc_int64 addressInPart = gAtomId();
-        addressInPart *= gWaveAtomSize(); // offset = 0
-        addressInPart += offsetInPartition;
-        return addressInPart;
-    }
-
     void rRefFileName(const std::string& refFileName) {
         m_RefFileName = refFileName;
     }
@@ -90,8 +79,7 @@ protected:
     bool verify() const override;
 
 private:
-    kcc_int32       m_AtomId            = -1;
-    kcc_int32       m_AtomSize            = -1;
+    kcc_int64       m_SbAddress         = -1;
     kcc_int32       m_BatchFoldIdx      = -1;
     const utils::DataType& m_DataType;
     kcc_int64       m_Length            = -1;
@@ -109,8 +97,7 @@ class SbAtomWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32       m_AtomId            = -1;
-    kcc_int32       m_AtomSize          = -1;
+    kcc_int64       m_SbAddress         = -1;
     kcc_int32       m_BatchFoldIdx      = -1;
     DataTypeId      m_DataType          = DataTypeId::None;
     kcc_int64       m_Length            = -1;

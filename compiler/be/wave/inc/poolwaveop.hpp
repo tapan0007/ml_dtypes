@@ -41,11 +41,8 @@ private:
     PoolWaveOp() = delete;
 
 public:
-    kcc_int32 gDstSbAtomId () const {
-        return m_DstSbAtomId;
-    }
-    kcc_int32 gDstSbOffsetInAtom () const {
-        return m_DstSbOffsetInAtom;
+    kcc_int64 gDstSbAddress () const {
+        return m_DstSbAddress;
     }
     kcc_int32 gDstXNum () const {
         return m_DstXNum;
@@ -89,11 +86,8 @@ public:
     kcc_int32 gSrcPsumBankOffset () const {
         return m_SrcPsumBankOffset;
     }
-    kcc_int32 gSrcSbAtomId () const {
-        return m_SrcSbAtomId;
-    }
-    kcc_int32 gSrcSbOffsetInAtom () const {
-        return m_SrcSbOffsetInAtom;
+    kcc_int64 gSrcSbAddress () const {
+        return m_SrcSbAddress;
     }
     kcc_int32 gSrcWNum () const {
         return m_SrcWNum;
@@ -142,8 +136,7 @@ public:
     }
 
 private:
-    kcc_int32                   m_DstSbAtomId          = -1;
-    kcc_int32                   m_DstSbOffsetInAtom     = -1;
+    kcc_int64                   m_DstSbAddress          = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
     kcc_int32                   m_DstYNum               = -1;
@@ -162,8 +155,7 @@ private:
     bool                        m_SrcIsPsum             = true;
     kcc_int32                   m_SrcPsumBankId         = -1;
     kcc_int32                   m_SrcPsumBankOffset     = -1;
-    kcc_int32                   m_SrcSbAtomId           = -1;
-    kcc_int32                   m_SrcSbOffsetInAtom     = -1;
+    kcc_int64                   m_SrcSbAddress          = -1;
     kcc_int32                   m_SrcWNum               = -1;
     kcc_int32                   m_SrcWStep              = -1;
     kcc_int32                   m_SrcXNum               = -1;
@@ -187,8 +179,7 @@ class PoolWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32                   m_DstSbAtomId           = -1;
-    kcc_int32                   m_DstSbOffsetInAtom     = -1;
+    kcc_int64                   m_DstSbAddress          = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
     kcc_int32                   m_DstYNum               = -1;
@@ -207,8 +198,7 @@ public:
     bool                        m_SrcIsPsum;
     kcc_int32                   m_SrcPsumBankId;
     kcc_int32                   m_SrcPsumBankOffset;
-    kcc_int32                   m_SrcSbAtomId;
-    kcc_int32                   m_SrcSbOffsetInAtom;
+    kcc_int64                   m_SrcSbAddress;
     kcc_int32                   m_SrcWNum;
     kcc_int32                   m_SrcWStep;
     kcc_int32                   m_SrcXNum;
