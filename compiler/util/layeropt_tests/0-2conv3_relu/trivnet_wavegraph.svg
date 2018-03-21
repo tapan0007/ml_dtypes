@@ -9,155 +9,155 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 832)">
 <title>%3</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-832 930.0271,-832 930.0271,4 -4,4"/>
-<!-- input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0 -->
+<!-- 1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0 -->
 <g id="node1" class="node">
-<title>input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0</title>
-<ellipse fill="none" stroke="#000000" cx="207.1201" cy="-810" rx="207.2402" ry="18"/>
-<text text-anchor="middle" x="207.1201" y="-805.8" font-family="Times,serif" font-size="14.00" fill="#000000">input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0</text>
+<title>1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0</title>
+<ellipse fill="none" stroke="#000000" cx="246.907" cy="-810" rx="246.8141" ry="18"/>
+<text text-anchor="middle" x="246.907" y="-805.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0 -->
 <g id="node3" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-738" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-733.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0</text>
-</g>
-<!-- input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0 -->
-<g id="edge1" class="edge">
-<title>input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0</title>
-<path fill="none" stroke="#000000" d="M263.9483,-792.6626C297.9831,-782.2791 341.4026,-769.0324 376.9743,-758.1801"/>
-<polygon fill="#000000" stroke="#000000" points="378.2415,-761.4528 386.7849,-755.187 376.1988,-754.7575 378.2415,-761.4528"/>
-</g>
-<!-- 1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0 -->
-<g id="node2" class="node">
-<title>1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0</title>
-<ellipse fill="none" stroke="#000000" cx="679.1201" cy="-810" rx="246.8141" ry="18"/>
-<text text-anchor="middle" x="679.1201" y="-805.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-738" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-733.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0</text>
 </g>
 <!-- 1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0 -->
-<g id="edge2" class="edge">
+<g id="edge1" class="edge">
 <title>1conv3/conv1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0</title>
-<path fill="none" stroke="#000000" d="M621.6898,-792.4789C587.7677,-782.1298 544.6831,-768.9853 509.3336,-758.2007"/>
-<polygon fill="#000000" stroke="#000000" points="510.1685,-754.7962 499.5823,-755.2258 508.1258,-761.4916 510.1685,-754.7962"/>
+<path fill="none" stroke="#000000" d="M304.3374,-792.4789C338.2594,-782.1298 381.344,-768.9853 416.6936,-758.2007"/>
+<polygon fill="#000000" stroke="#000000" points="417.9014,-761.4916 426.4448,-755.2258 415.8587,-754.7962 417.9014,-761.4916"/>
+</g>
+<!-- input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0 -->
+<g id="node2" class="node">
+<title>input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0</title>
+<ellipse fill="none" stroke="#000000" cx="718.907" cy="-810" rx="207.2402" ry="18"/>
+<text text-anchor="middle" x="718.907" y="-805.8" font-family="Times,serif" font-size="14.00" fill="#000000">input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0</text>
+</g>
+<!-- input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0 -->
+<g id="edge2" class="edge">
+<title>input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0</title>
+<path fill="none" stroke="#000000" d="M662.0788,-792.6626C628.044,-782.2791 584.6245,-769.0324 549.0528,-758.1801"/>
+<polygon fill="#000000" stroke="#000000" points="549.8283,-754.7575 539.2422,-755.187 547.7856,-761.4528 549.8283,-754.7575"/>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1 -->
 <g id="node4" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-666" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-661.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-666" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-661.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1 -->
 <g id="edge3" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1</title>
-<path fill="none" stroke="#000000" d="M443.1201,-719.8314C443.1201,-712.131 443.1201,-702.9743 443.1201,-694.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-694.4132 443.1201,-684.4133 439.6202,-694.4133 446.6202,-694.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-719.8314C482.907,-712.131 482.907,-702.9743 482.907,-694.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-694.4132 482.907,-684.4133 479.4071,-694.4133 486.4071,-694.4132"/>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2 -->
 <g id="node5" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-594" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-589.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-594" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-589.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2 -->
 <g id="edge4" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2</title>
-<path fill="none" stroke="#000000" d="M443.1201,-647.8314C443.1201,-640.131 443.1201,-630.9743 443.1201,-622.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-622.4132 443.1201,-612.4133 439.6202,-622.4133 446.6202,-622.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-647.8314C482.907,-640.131 482.907,-630.9743 482.907,-622.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-622.4132 482.907,-612.4133 479.4071,-622.4133 486.4071,-622.4132"/>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0 -->
 <g id="node6" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-522" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-517.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-522" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-517.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0 -->
 <g id="edge5" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0</title>
-<path fill="none" stroke="#000000" d="M443.1201,-575.8314C443.1201,-568.131 443.1201,-558.9743 443.1201,-550.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-550.4132 443.1201,-540.4133 439.6202,-550.4133 446.6202,-550.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-575.8314C482.907,-568.131 482.907,-558.9743 482.907,-550.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-550.4132 482.907,-540.4133 479.4071,-550.4133 486.4071,-550.4132"/>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1 -->
 <g id="node7" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-450" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-445.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-450" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-445.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1 -->
 <g id="edge6" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1</title>
-<path fill="none" stroke="#000000" d="M443.1201,-503.8314C443.1201,-496.131 443.1201,-486.9743 443.1201,-478.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-478.4132 443.1201,-468.4133 439.6202,-478.4133 446.6202,-478.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-503.8314C482.907,-496.131 482.907,-486.9743 482.907,-478.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-478.4132 482.907,-468.4133 479.4071,-478.4133 486.4071,-478.4132"/>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2 -->
 <g id="node8" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-378" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-373.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-378" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-373.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2 -->
 <g id="edge7" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2</title>
-<path fill="none" stroke="#000000" d="M443.1201,-431.8314C443.1201,-424.131 443.1201,-414.9743 443.1201,-406.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-406.4132 443.1201,-396.4133 439.6202,-406.4133 446.6202,-406.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-431.8314C482.907,-424.131 482.907,-414.9743 482.907,-406.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-406.4132 482.907,-396.4133 479.4071,-406.4133 486.4071,-406.4132"/>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0 -->
 <g id="node9" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-306" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-301.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-306" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-301.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0 -->
 <g id="edge8" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0</title>
-<path fill="none" stroke="#000000" d="M443.1201,-359.8314C443.1201,-352.131 443.1201,-342.9743 443.1201,-334.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-334.4132 443.1201,-324.4133 439.6202,-334.4133 446.6202,-334.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-359.8314C482.907,-352.131 482.907,-342.9743 482.907,-334.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-334.4132 482.907,-324.4133 479.4071,-334.4133 486.4071,-334.4132"/>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1 -->
 <g id="node10" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-234" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-229.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-234" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-229.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1 -->
 <g id="edge9" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1</title>
-<path fill="none" stroke="#000000" d="M443.1201,-287.8314C443.1201,-280.131 443.1201,-270.9743 443.1201,-262.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-262.4132 443.1201,-252.4133 439.6202,-262.4133 446.6202,-262.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-287.8314C482.907,-280.131 482.907,-270.9743 482.907,-262.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-262.4132 482.907,-252.4133 479.4071,-262.4133 486.4071,-262.4132"/>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2 -->
 <g id="node11" class="node">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-162" rx="185.9573" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-157.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-162" rx="185.9573" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-157.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2 -->
 <g id="edge10" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1&#45;&gt;1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2</title>
-<path fill="none" stroke="#000000" d="M443.1201,-215.8314C443.1201,-208.131 443.1201,-198.9743 443.1201,-190.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-190.4132 443.1201,-180.4133 439.6202,-190.4133 446.6202,-190.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-215.8314C482.907,-208.131 482.907,-198.9743 482.907,-190.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-190.4132 482.907,-180.4133 479.4071,-190.4133 486.4071,-190.4132"/>
 </g>
 <!-- 1conv3/relu1/Activation_n0_m0_h0_w0 -->
 <g id="node12" class="node">
 <title>1conv3/relu1/Activation_n0_m0_h0_w0</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-90" rx="154.0754" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-85.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/relu1/Activation_n0_m0_h0_w0</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-90" rx="154.0754" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-85.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/relu1/Activation_n0_m0_h0_w0</text>
 </g>
 <!-- 1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2&#45;&gt;1conv3/relu1/Activation_n0_m0_h0_w0 -->
 <g id="edge11" class="edge">
 <title>1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2&#45;&gt;1conv3/relu1/Activation_n0_m0_h0_w0</title>
-<path fill="none" stroke="#000000" d="M443.1201,-143.8314C443.1201,-136.131 443.1201,-126.9743 443.1201,-118.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-118.4132 443.1201,-108.4133 439.6202,-118.4133 446.6202,-118.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-143.8314C482.907,-136.131 482.907,-126.9743 482.907,-118.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-118.4132 482.907,-108.4133 479.4071,-118.4133 486.4071,-118.4132"/>
 </g>
 <!-- 1conv3/relu1/SBAtomSave_scratch_80_n0_m0_h0_w0 -->
 <g id="node13" class="node">
 <title>1conv3/relu1/SBAtomSave_scratch_80_n0_m0_h0_w0</title>
-<ellipse fill="none" stroke="#000000" cx="443.1201" cy="-18" rx="207.6729" ry="18"/>
-<text text-anchor="middle" x="443.1201" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/relu1/SBAtomSave_scratch_80_n0_m0_h0_w0</text>
+<ellipse fill="none" stroke="#000000" cx="482.907" cy="-18" rx="207.6729" ry="18"/>
+<text text-anchor="middle" x="482.907" y="-13.8" font-family="Times,serif" font-size="14.00" fill="#000000">1conv3/relu1/SBAtomSave_scratch_80_n0_m0_h0_w0</text>
 </g>
 <!-- 1conv3/relu1/Activation_n0_m0_h0_w0&#45;&gt;1conv3/relu1/SBAtomSave_scratch_80_n0_m0_h0_w0 -->
 <g id="edge12" class="edge">
 <title>1conv3/relu1/Activation_n0_m0_h0_w0&#45;&gt;1conv3/relu1/SBAtomSave_scratch_80_n0_m0_h0_w0</title>
-<path fill="none" stroke="#000000" d="M443.1201,-71.8314C443.1201,-64.131 443.1201,-54.9743 443.1201,-46.4166"/>
-<polygon fill="#000000" stroke="#000000" points="446.6202,-46.4132 443.1201,-36.4133 439.6202,-46.4133 446.6202,-46.4132"/>
+<path fill="none" stroke="#000000" d="M482.907,-71.8314C482.907,-64.131 482.907,-54.9743 482.907,-46.4166"/>
+<polygon fill="#000000" stroke="#000000" points="486.4071,-46.4132 482.907,-36.4133 479.4071,-46.4133 486.4071,-46.4132"/>
 </g>
 </g>
 </svg>
