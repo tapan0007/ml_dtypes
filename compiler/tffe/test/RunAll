@@ -363,7 +363,7 @@ testWaiver = [
     ['7-rn50_nne_fp16_wave', 'WAIVE-V7836520'],
     
     # LSMT
-    ['4-ptb_word_lm1', 'WAIVE-V7836520'],
+    ['4-ptb_word_lm1', 'WAIVE-LSTM'],
    
   ]
 
