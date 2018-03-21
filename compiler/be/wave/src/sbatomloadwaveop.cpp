@@ -9,7 +9,7 @@
 #include "layers/inc/inputlayer.hpp"
 #include "layers/inc/constlayer.hpp"
 
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "nets/inc/network.hpp"
 
 
@@ -17,8 +17,8 @@
 namespace kcc {
 namespace wave {
 
-SbAtomFileWaveOp::SbAtomFileWaveOp(
-        const SbAtomFileWaveOp::Params& params,
+SbAtomLoadWaveOp::SbAtomLoadWaveOp(
+        const SbAtomLoadWaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps)
     : SbAtomWaveOp(params, prevWaveOps)
     , m_IfmapCount(params.m_IfmapCount)
@@ -30,7 +30,7 @@ SbAtomFileWaveOp::SbAtomFileWaveOp(
 }
 
 kcc_int64
-SbAtomFileWaveOp::gLoadDataSizeInBytes () const
+SbAtomLoadWaveOp::gLoadDataSizeInBytes () const
 {
     kcc_int64 numPySize = gDataType().gSizeInBytes();
 
@@ -42,7 +42,7 @@ SbAtomFileWaveOp::gLoadDataSizeInBytes () const
 
 
 bool
-SbAtomFileWaveOp::verify() const
+SbAtomLoadWaveOp::verify() const
 {
     if (! this->SbAtomWaveOp::verify()) {
         return false;
@@ -62,7 +62,7 @@ SbAtomFileWaveOp::verify() const
 
 
 bool
-SbAtomFileWaveOp::Params::verify() const
+SbAtomLoadWaveOp::Params::verify() const
 {
     if (! this->SbAtomWaveOp::Params::verify()) {
         return false;

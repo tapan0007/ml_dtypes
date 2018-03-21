@@ -14,14 +14,14 @@
 #include "events/inc/eventmgr.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 
 //#include "wavecode/inc/wavecodewaveop.hpp"
-#include "wavecode/inc/wavecodesbatomfile.hpp"
+#include "wavecode/inc/wavecodesbatomload.hpp"
 #include "wavecode/inc/wavecodesbatomsave.hpp"
 #include "wavecode/inc/wavecodematmul.hpp"
 #include "wavecode/inc/wavecodepool.hpp"
@@ -38,7 +38,7 @@ WaveCode::WaveCode(const nets::Network* network, const arch::Arch& arch)
     , m_Arch(arch)
 {
     m_CodeMatMul            = std::make_unique<WaveCodeMatMul>(*this);
-    m_CodeSbAtomFile        = std::make_unique<WaveCodeSbAtomFile>(*this);
+    m_CodeSbAtomLoad        = std::make_unique<WaveCodeSbAtomLoad>(*this);
     m_CodeSbAtomSave        = std::make_unique<WaveCodeSbAtomSave>(*this);
     m_CodePool              = std::make_unique<WaveCodePool>(*this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(*this);
@@ -72,8 +72,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
 {
     if (dynamic_cast<const wave::MatMulWaveOp*>(waveOp)) {
         return *m_CodeMatMul;
-    } else if (dynamic_cast<const wave::SbAtomFileWaveOp*>(waveOp)) {
-        return *m_CodeSbAtomFile;
+    } else if (dynamic_cast<const wave::SbAtomLoadWaveOp*>(waveOp)) {
+        return *m_CodeSbAtomLoad;
     } else if (dynamic_cast<const wave::SbAtomSaveWaveOp*>(waveOp)) {
         return *m_CodeSbAtomSave;
     } else if (dynamic_cast<const wave::PoolWaveOp*>(waveOp)) {

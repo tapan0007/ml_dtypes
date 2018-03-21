@@ -1201,8 +1201,8 @@ class Graph(Object):
       kGraphJsonFile =  "compiler.json"
       waveGraphJsonFile = "wavegraph.json"
 
-      # From Jeff: to generate dot, but not svg:  waveDotFile = outPrefix + "wavegraph.dot"
-      if False:
+      # From Jeff: to generate dot, but not svg:  waveDotFile = outPrefix + "wavegraph.plain"
+      if True:
         waveDotFile = outPrefix + "wavegraph.dot"
         cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s  --debug %d > log-me.txt 2>&1" % (
               waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)

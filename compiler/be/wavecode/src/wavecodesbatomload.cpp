@@ -18,10 +18,10 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
-#include "wavecode/inc/wavecodesbatomfile.hpp"
+#include "wavecode/inc/wavecodesbatomload.hpp"
 
 namespace kcc {
 namespace wavecode {
@@ -31,35 +31,28 @@ namespace wavecode {
 
 
 
-WaveCodeSbAtomFile::WaveCodeSbAtomFile(WaveCodeRef waveCode)
+WaveCodeSbAtomLoad::WaveCodeSbAtomLoad(WaveCodeRef waveCode)
     : WaveCodeSbAtom(waveCode)
 {}
 
 
 
 void
-WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
+WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 {
-    if (waveOp->gName() == "input/SBAtomFile_ifmaps_0_n0_m0_h5_w0_c0_r5_s0") {
-        utils::breakFunc(1);
-    }
-    if (waveOp->gName() == "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0") {
-        utils::breakFunc(2);
-    }
-
-    const auto sbAtomFileWaveOp = dynamic_cast<wave::SbAtomFileWaveOp*>(waveOp);
-    assert(sbAtomFileWaveOp);
+    const auto sbAtomLoadWaveOp = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveOp);
+    assert(sbAtomLoadWaveOp);
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
-    const EngineId engineId = sbAtomFileWaveOp->gEngineId();
-    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomFile waveop should be DmaEng, but is ",
+    const EngineId engineId = sbAtomLoadWaveOp->gEngineId();
+    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomLoad waveop should be DmaEng, but is ",
            static_cast<long>(engineId));
 
-    kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomFileWaveOp->gRefFileName());
+    kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) {
         SIM_WRNPY npyToDramInstr;
         // Load whole numpy file
-        const kcc_int64 numPySize = sbAtomFileWaveOp->gLoadDataSizeInBytes();
-        strcpy(npyToDramInstr.src_fname, sbAtomFileWaveOp->gRefFileName().c_str());
+        const kcc_int64 numPySize = sbAtomLoadWaveOp->gLoadDataSizeInBytes();
+        strcpy(npyToDramInstr.src_fname, sbAtomLoadWaveOp->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
 
         npyToDramInstr.dst_address  = npyFileDramOffset;
@@ -68,9 +61,9 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         WaveCode::NpyFileInfo npyFileInfo;
         npyFileInfo.m_Dirty          = false;
         npyFileInfo.m_FileDramOffset = npyFileDramOffset;
-        npyFileInfo.m_SimTypeId = sbAtomFileWaveOp->gDataType().gSimTypeId();
-        npyFileInfo.m_RefFileShape = sbAtomFileWaveOp->gRefFileShape();
-        m_WaveCode.recordDramForNpyFile(sbAtomFileWaveOp->gRefFileName(), npyFileInfo);
+        npyFileInfo.m_SimTypeId = sbAtomLoadWaveOp->gDataType().gSimTypeId();
+        npyFileInfo.m_RefFileShape = sbAtomLoadWaveOp->gRefFileShape();
+        m_WaveCode.recordDramForNpyFile(sbAtomLoadWaveOp->gRefFileName(), npyFileInfo);
     }
 
     SIM_MEMCPY dramToStateBufInstr;
@@ -88,7 +81,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         std::vector<const wave::WaveEdge*> succActivationEdges;
         std::vector<const wave::WaveEdge*> succEdgesWithoutEvent;
 
-        for (auto succWaveEdge : sbAtomFileWaveOp->gSuccWaveEdges()) {
+        for (auto succWaveEdge : sbAtomLoadWaveOp->gSuccWaveEdges()) {
             auto succWaveop = succWaveEdge->gToOp();
             if (succWaveop->gEngineId() == engineId) {
                 continue;
@@ -99,21 +92,21 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
             }
 
             if (auto succMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, sbAtomFileWaveOp, succMatmulWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, sbAtomLoadWaveOp, succMatmulWaveop);
                 succMatmulEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, sbAtomFileWaveOp, succPoolWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, sbAtomLoadWaveOp, succPoolWaveop);
                 succPoolEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, sbAtomFileWaveOp, succActivationWaveop);
+                ASSERT_HAS_EVENT(succWaveEdge, sbAtomLoadWaveOp, succActivationWaveop);
                 succActivationEdges.push_back(succWaveEdge);
                 continue;
             }
-            Assert(false, "sbAtomFile waveop ", sbAtomFileWaveOp->gName(), ": successor waveop ", succWaveop->gName(),
+            Assert(false, "SbAtomLoad waveop ", sbAtomLoadWaveOp->gName(), ": successor waveop ", succWaveop->gName(),
                    " has wrong type ", succWaveop->gTypeStr());
         }
 
@@ -139,28 +132,28 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
             break;
         case 0:
             // this is one of the sb atom file, but was not chosen for the event because it is not last
-            // check that there is another SbAtomFile that feeds event-less successor and has larger order
-            Assert(succEdgesWithoutEvent.size() == 1, "SbAtomFile must have one successor");
+            // check that there is another SbAtomLoad that feeds event-less successor and has larger order
+            Assert(succEdgesWithoutEvent.size() == 1, "SbAtomLoad must have one successor");
             {
                 bool foundHigherPrecedentEdge = false;
                 auto succWaveop = succEdgesWithoutEvent[0]->gToOp();
                 for (auto precWaveEdge : succWaveop->gPrevWaveEdges()) {
                     auto precWaveop = precWaveEdge->gFromOp();
-                    if (precWaveop == sbAtomFileWaveOp) {
+                    if (precWaveop == sbAtomLoadWaveOp) {
                         continue;
                     }
-                    if (dynamic_cast<wave::SbAtomFileWaveOp*>(precWaveop)  // must be SbAtomFile
+                    if (dynamic_cast<wave::SbAtomLoadWaveOp*>(precWaveop)  // must be SbAtomLoad
                         && precWaveEdge->gEventId() != EventId_Invalid       // must have event
-                        && sbAtomFileWaveOp->gOrder() < precWaveEdge->gFromOp()->gOrder()) // must be later
+                        && sbAtomLoadWaveOp->gOrder() < precWaveEdge->gFromOp()->gOrder()) // must be later
                     {
                         foundHigherPrecedentEdge = true;
                     }
                 }
-                Assert(foundHigherPrecedentEdge, "At least one SbAtomFile should have an event to its successor waveop");
+                Assert(foundHigherPrecedentEdge, "At least one SbAtomLoad should have an event to its successor waveop");
             }
             break;
         default:
-            Assert(false, "SbAtomFile ", sbAtomFileWaveOp->gName(),
+            Assert(false, "SbAtomLoad ", sbAtomLoadWaveOp->gName(),
                 " must not have more than one successor. Number successors: MatMul=", succMatmulEdges.size(),
                 ", Activation=", succActivationEdges.size(), ", Pool=", succPoolEdges.size());
             break;
@@ -176,10 +169,10 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
     //************************************************************************
     // Instruction(s)
     //************************************************************************
-    const kcc_int64 numPartitions   = sbAtomFileWaveOp->gIfmapCount();
-    const kcc_int64 numBytesPerPart = sbAtomFileWaveOp->gLength();
-    const kcc_int64 addressInPart   = sbAtomFileWaveOp->gAddressInPartition(0 /*offset in atom*/);
-    const kcc_int64 stepSize = sbAtomFileWaveOp->gPartitionStepBytes();
+    const kcc_int64 numPartitions   = sbAtomLoadWaveOp->gIfmapCount();
+    const kcc_int64 numBytesPerPart = sbAtomLoadWaveOp->gLength();
+    const kcc_int64 addressInPart   = sbAtomLoadWaveOp->gAddressInPartition(0 /*offset in atom*/);
+    const kcc_int64 stepSize = sbAtomLoadWaveOp->gPartitionStepBytes();
 
     dramToStateBufInstr.nbytes                  = numBytesPerPart;
 
@@ -196,7 +189,7 @@ WaveCodeSbAtomFile::generate(wave::WaveOp* waveOp)
         }
 
 
-        dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomFileWaveOp->gOffsetInFile() + (partIdx * stepSize);
+        dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomLoadWaveOp->gOffsetInFile() + (partIdx * stepSize);
         dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
 
         m_WaveCode.writeInstruction(dramToStateBufInstr);

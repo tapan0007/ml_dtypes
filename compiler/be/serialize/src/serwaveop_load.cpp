@@ -1,7 +1,7 @@
 #include "serialize/inc/serwaveop.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 
@@ -19,7 +19,7 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(LayerName);
     KCC_ARCHIVE(PreviousWaveOps);
 
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomFile ||
+    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad ||
         m_WaveOpType == WaveOpTypeStr_SBAtomSave)
     {
         loadSbAtom(archive);
@@ -53,7 +53,7 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(RefFileFormat);
     KCC_ARCHIVE(RefFileShape);
 
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomFile) {
+    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
         KCC_ARCHIVE(IfmapCount);
         KCC_ARCHIVE(IfmapsFoldIdx);
         KCC_ARCHIVE(IfmapsReplicate);

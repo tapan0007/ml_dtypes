@@ -11,7 +11,7 @@ namespace wave {
 class MatMulWaveOp;
 class PoolWaveOp;
 class ActivationWaveOp;
-class SbAtomFileWaveOp;
+class SbAtomLoadWaveOp;
 class SbAtomSaveWaveOp;
 class ResAddWaveOp;
 }
@@ -29,6 +29,7 @@ private:
     void processPool(wave::PoolWaveOp* poolWaveop);
     void processActivation(wave::ActivationWaveOp* activationWaveop);
     void processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop);
+    void processSbAtomLoad(wave::SbAtomLoadWaveOp* sbatomLoadWaveop);
     void processResAdd(wave::ResAddWaveOp* resaddWaveop);
 
     EventId getLocalEventId(const wave::WaveEdge* edge);

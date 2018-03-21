@@ -12,7 +12,7 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
@@ -95,7 +95,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                 continue;
             }
             auto prevWaveop = prevWaveEdge->gFromOp();
-            if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomFileWaveOp*>(prevWaveop)) {
+            if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
                 ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, matmulWaveop);
                 if (prevSbAtomLoadWaveop->qContainWeights()) {
                     prevWeightEdges.push_back(prevWaveEdge);
@@ -184,8 +184,9 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     if (qParallelStreams()) { // incoming events
         // Right now all non-weight prev edges are treated equally, but in
         // the future we may change it, so keep separate arrays.
-        std::vector<const wave::WaveEdge*> prevWeightEdges;
-        std::vector<const wave::WaveEdge*> prevIfmapEdges;
+        std::vector<const wave::WaveEdge*> prevLoadWeightEdges;
+        std::vector<const wave::WaveEdge*> prevLoadIfmapEdges;
+        std::vector<const wave::WaveEdge*> prevSbAtomSaveEdges;
         std::vector<const wave::WaveEdge*> prevPoolEdges;
         std::vector<const wave::WaveEdge*> prevActivationEdges;
 
@@ -201,10 +202,15 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
                 ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, matmulWaveop);
                 if (prevSbAtomLoadWaveop->qContainWeights()) {
-                    prevWeightEdges.push_back(prevWaveEdge);
+                    prevLoadWeightEdges.push_back(prevWaveEdge);
                 } else {
-                    prevIfmapEdges.push_back(prevWaveEdge);
+                    prevLoadIfmapEdges.push_back(prevWaveEdge);
                 }
+                continue;
+            }
+            if (auto prevSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(prevWaveop)) {
+                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomSaveWaveop, matmulWaveop);
+                prevSbAtomSaveEdges.push_back(prevWaveEdge);
                 continue;
             }
             if (auto prevPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
@@ -222,7 +228,18 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         }
 
         bool firstEmb = true;
-        for (auto prevWaveEdge : prevIfmapEdges) {
+        for (auto prevWaveEdge : prevLoadIfmapEdges) {
+            if (firstEmb) {
+                matmulInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
+                matmulInstr.sync.wait_event_mode    = events::eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+                firstEmb = false;
+            } else {
+                WAIT waitInstr;
+                waitInstr.event_id                  = prevWaveEdge->gEventId();
+                m_WaveCode.writeInstruction(waitInstr, engineId);
+            }
+        }
+        for (auto prevWaveEdge : prevSbAtomSaveEdges) {
             if (firstEmb) {
                 matmulInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
                 matmulInstr.sync.wait_event_mode    = events::eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
@@ -277,6 +294,11 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
             }
             auto succWaveop = succWaveEdge->gToOp();
             if (succWaveop->gEngineId() == engineId) {
+                continue;
+            }
+            if (auto succSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(succWaveop)) {
+                ASSERT_HAS_EVENT(succWaveEdge, matmulWaveop, succSbAtomLoadWaveop);
+                succOfmapEdges.push_back(succWaveEdge);
                 continue;
             }
             if (auto succSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {

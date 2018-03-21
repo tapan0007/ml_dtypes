@@ -12,7 +12,7 @@
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
@@ -102,6 +102,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     //************************************************************************
     if (qParallelStreams()) { // incoming events
         std::vector<const wave::WaveEdge*> prevIfmapEdges;
+        std::vector<const wave::WaveEdge*> prevSbAtomSaveEdges;
         std::vector<const wave::WaveEdge*> prevMatmulEdges;
         std::vector<const wave::WaveEdge*> prevActivationEdges;
 
@@ -121,6 +122,11 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                 prevIfmapEdges.push_back(prevWaveEdge);
                 continue;
             }
+            if (auto prevSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(prevWaveop)) {
+                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomSaveWaveop, poolWaveop);
+                prevSbAtomSaveEdges.push_back(prevWaveEdge);
+                continue;
+            }
             if (auto prevActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
                 ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, poolWaveop);
                 prevActivationEdges.push_back(prevWaveEdge);
@@ -137,6 +143,17 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
         bool firstEmb = true;
         for (auto prevWaveEdge : prevIfmapEdges) {
+            if (firstEmb) {
+                poolInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
+                poolInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+                firstEmb = false;
+            } else {
+                WAIT waitInstr;
+                waitInstr.event_id                  = prevWaveEdge->gEventId();
+                m_WaveCode.writeInstruction(waitInstr, engineId);
+            }
+        }
+        for (auto prevWaveEdge : prevSbAtomSaveEdges) {
             if (firstEmb) {
                 poolInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
                 poolInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());

@@ -33,7 +33,7 @@ namespace wave {
 namespace wavecode {
 class WaveCodeWaveOp;
 class WaveCodeMatMul;
-class WaveCodeSbAtomFile;
+class WaveCodeSbAtomLoad;
 class WaveCodeSbAtomSave;
 class WaveCodePool;
 class WaveCodeActivation;
@@ -106,7 +106,7 @@ private:
 
     const InstrStreams*                 m_InstrStreams;
     std::unique_ptr<WaveCodeMatMul>     m_CodeMatMul;
-    std::unique_ptr<WaveCodeSbAtomFile> m_CodeSbAtomFile;
+    std::unique_ptr<WaveCodeSbAtomLoad> m_CodeSbAtomLoad;
     std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
     std::unique_ptr<WaveCodePool>       m_CodePool;
     std::unique_ptr<WaveCodeActivation> m_CodeActivation;

@@ -32,7 +32,7 @@
 
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/matmulwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
@@ -427,13 +427,13 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
     }
 #undef WAVE_OP
 
-    if (auto sbatomfileWaveOp = dynamic_cast<const wave::SbAtomFileWaveOp*>(sbatomWaveOp)) {
-#define WAVE_OP sbatomfileWaveOp
-        serWaveOp.m_WaveOpType = wave::SbAtomFileWaveOp::gTypeStrStatic();
+    if (auto sbatomLoadWaveOp = dynamic_cast<const wave::SbAtomLoadWaveOp*>(sbatomWaveOp)) {
+#define WAVE_OP sbatomLoadWaveOp
+        serWaveOp.m_WaveOpType = wave::SbAtomLoadWaveOp::gTypeStrStatic();
         KCC_SERIALIZE(IfmapCount);
         KCC_SERIALIZE(IfmapsFoldIdx);
-        serWaveOp.m_IfmapsReplicate = sbatomfileWaveOp->qIfmapsReplicate();
-        serWaveOp.m_ContainWeights = sbatomfileWaveOp->qContainWeights();
+        serWaveOp.m_IfmapsReplicate = sbatomLoadWaveOp->qIfmapsReplicate();
+        serWaveOp.m_ContainWeights = sbatomLoadWaveOp->qContainWeights();
 #undef WAVE_OP
     } else {
 #define WAVE_OP sbatomsaveWaveOp

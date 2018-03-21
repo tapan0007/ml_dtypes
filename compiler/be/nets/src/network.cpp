@@ -27,7 +27,7 @@ namespace kcc {
 
 /*
 namespace wave {
-    class SbAtomFileWaveOp;
+    class SbAtomLoadWaveOp;
     class SbAtomSaveWaveOp;
     class MatMulWaveOp;
 }

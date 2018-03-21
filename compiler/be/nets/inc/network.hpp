@@ -31,7 +31,7 @@ namespace layers {
 namespace wave {
     class WaveOp;
     class SbAtomWaveOp;
-    class SbAtomFileWaveOp;
+    class SbAtomLoadWaveOp;
     class SbAtomSaveWaveOp;
     class MatMulWaveOp;
     class PoolWaveOp;

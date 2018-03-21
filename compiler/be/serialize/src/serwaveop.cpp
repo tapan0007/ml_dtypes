@@ -55,26 +55,8 @@ SerWaveOp::verifySbAtom () const
 }
 
 bool
-SerWaveOp::verifySbAtomFile () const
+SerWaveOp::verifySbAtomLoad () const
 {
-    /*
-    {
-    C: "layer_name": "1conv/i1",
-    C: "previous_wave-
-    void generate(wops": [],
-    C: "waveop_name": "1conv/i1/SBAtomFile_0",
-    C: "waveop_type": "SBAtomFile"
-
-    "atom_id": 8,
-    "batch_fold_idx": 0,
-    "length": 2,
-    "offset_in_file": 0,
-    "ref_file": "trivnet_1conv__weight1__read:0_CRSM.npy",
-
-    "ifmaps_fold_idx": 0,
-    "ifmaps_replicate": false,
-    },
-    */
     if (! this->verifySbAtom()) {
         RETURN_ASSERT(false);
     }
@@ -90,24 +72,6 @@ SerWaveOp::verifySbAtomFile () const
 bool
 SerWaveOp::verifySbAtomSave () const
 {
-    /*
-    {
-    C: "layer_name": "1conv/i1",
-    C: "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
-    ],
-    C: "waveop_name": "1conv/i1/SBAtomSave_0",
-    C: "waveop_type": "SBAtomSave"
-
-    "atom_id": 88,
-    "batch_fold_idx": 0,
-    "length": 2,
-    "offset_in_file": 0,
-    "ref_file": "save_1conv__i1.npy",
-
-    "ofmaps_fold_idx": 0,
-    }
-    */
     if (! this->verifySbAtom()) {
         RETURN_ASSERT(false);
     }
@@ -517,8 +481,8 @@ SerWaveOp::verify() const
         RETURN_ASSERT(false);
     }
 
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomFile) {
-        return verifySbAtomFile();
+    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
+        return verifySbAtomLoad();
     } else if (m_WaveOpType == WaveOpTypeStr_SBAtomSave) {
         return verifySbAtomSave();
     } else if (m_WaveOpType == WaveOpTypeStr_MatMul) {

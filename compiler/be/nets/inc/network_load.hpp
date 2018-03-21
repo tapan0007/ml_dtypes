@@ -12,7 +12,7 @@ namespace nets {
 class Network::Load {
 public:
     Load(Network& network);
-    wave::SbAtomFileWaveOp* loadSbAtomFile(const serialize::SerWaveOp& serWaveOp);
+    wave::SbAtomLoadWaveOp* loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp);
     wave::SbAtomSaveWaveOp* loadSbAtomSave(const serialize::SerWaveOp& serWaveOp);
     wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
     wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);

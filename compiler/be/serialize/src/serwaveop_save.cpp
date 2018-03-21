@@ -20,7 +20,7 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
     KCC_ARCHIVE(PreviousEventSetModes);
 
 
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomFile ||
+    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad ||
         m_WaveOpType == WaveOpTypeStr_SBAtomSave)
     {
        saveSbAtom(archive);
@@ -51,7 +51,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(RefFile);
     KCC_ARCHIVE(RefFileFormat);
     KCC_ARCHIVE(RefFileShape);
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomFile) {
+    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
         KCC_ARCHIVE(IfmapCount);
         KCC_ARCHIVE(IfmapsFoldIdx);
         KCC_ARCHIVE(IfmapsReplicate);
