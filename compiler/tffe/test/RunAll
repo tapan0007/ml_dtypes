@@ -357,7 +357,10 @@ testWaiver = [
     # ME accuracy failure
     ['0-116conv_tanh_wave', 'WAIVE-ME_ACC'],
     
+     # https://issues.amazon.com/V7836520
+    ['7-rn50_nne_fp16_wave', 'WAIVE-V7836520'],
     
+   
   ]
 
 def getLevel(testName):
