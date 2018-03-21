@@ -42,7 +42,7 @@ class RuntimeSim:
 
     cmd = "%s/sim/sim" % (InklingPath)
     if args.parallel_streams:
-      cmd += " --dma %s/TrivNet-dma.tpb --sp %s/TrivNet-sp.tpb  --pe %s/TrivNet-pe.tpb --pool %s/TrivNet-pool.tpb --act %s/TrivNet-act.tpb" %(tpb_dir, tpb_dir, tpb_dir, tpb_dir, tpb_dir)
+      cmd += " --angel %s/TrivNet-dma.tpb --sp %s/TrivNet-sp.tpb  --pe %s/TrivNet-pe.tpb --pool %s/TrivNet-pool.tpb --act %s/TrivNet-act.tpb" %(tpb_dir, tpb_dir, tpb_dir, tpb_dir, tpb_dir)
     else:
       cmd += " %s/TrivNet.tpb" % tpb_dir
 
