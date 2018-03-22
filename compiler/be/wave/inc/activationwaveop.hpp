@@ -73,6 +73,10 @@ public:
         return gTypeStrStatic();
     }
 
+    virtual WaveOpType gType() const override {
+        return WaveOpType::Activation;
+    }
+
     kcc_int32 gDstPsumBankId() const {
         return m_DstPsumBankId;
     }

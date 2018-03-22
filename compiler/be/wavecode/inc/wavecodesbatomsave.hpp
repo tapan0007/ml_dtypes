@@ -12,6 +12,7 @@
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
+#include "events/inc/events.hpp"
 
 #include "wavecode/inc/wavecodesbatom.hpp"
 
@@ -36,6 +37,13 @@ public:
 
 
 private:
+    void processIncomingEdges(wave::SbAtomSaveWaveOp* waveOp,
+        EventId& waitEventId, events::EventWaitMode& waitEventMode);
+
+    void findSetEventIdMode(wave::SbAtomSaveWaveOp* waveOp,
+        EventId& setEventId, events::EventSetMode& setEventMode);
+
+    void processOutgoingEdges(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop);
 };
 
 }}

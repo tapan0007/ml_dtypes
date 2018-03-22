@@ -141,6 +141,10 @@ public:
         return gTypeStrStatic();
     }
 
+    virtual WaveOpType gType() const override {
+        return WaveOpType::Pool;
+    }
+
 private:
     kcc_int32                   m_DstSbAtomId          = -1;
     kcc_int32                   m_DstSbOffsetInAtom     = -1;

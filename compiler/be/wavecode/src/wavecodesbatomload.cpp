@@ -36,7 +36,18 @@ WaveCodeSbAtomLoad::WaveCodeSbAtomLoad(WaveCodeRef waveCode)
 {}
 
 
-
+//************************************************************************
+// Suppose predecessors are w0, w1, w2
+// Successors are w3, w4, w5
+// We want to issue the following instructions:
+// WAIT(w1)
+// WAIT(w2)
+// MEMCPY first partition with embedded WAIT(w0) and with no-set
+// MEMCPY middle partitions with no-wait and no-set
+// MEMCPY last partition with no-wait and SET(w3)
+// SET(w4)
+// SET(w5)
+//************************************************************************
 void
 WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 {
@@ -47,10 +58,10 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomLoad waveop should be DmaEng, but is ",
            static_cast<long>(engineId));
 
+    //************************************************************************
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveOp->gRefFileName());
-    if (npyFileDramOffset < 0) {
+    if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
         SIM_WRNPY npyToDramInstr;
-        // Load whole numpy file
         const kcc_int64 numPySize = sbAtomLoadWaveOp->gLoadDataSizeInBytes();
         strcpy(npyToDramInstr.src_fname, sbAtomLoadWaveOp->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
@@ -66,104 +77,63 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
         m_WaveCode.recordDramForNpyFile(sbAtomLoadWaveOp->gRefFileName(), npyFileInfo);
     }
 
+    //************************************************************************
     SIM_MEMCPY dramToStateBufInstr;
     dramToStateBufInstr.sync.wait_event_id      = -1;
     dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
     dramToStateBufInstr.sync.set_event_id       = -1;
     dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
+
     EventId setEventId = -1;
-    events::EventSetMode eventSetMode = events::EventSetMode::NoEvent;
+    events::EventSetMode setEventMode = events::EventSetMode::NoEvent;
+    EventId waitEventId = -1;
+    events::EventWaitMode waitEventMode = events::EventWaitMode::NoEvent;
 
     //************************************************************************
-    if (qParallelStreams()) { // Outgoing events: inform successors
-        std::vector<const wave::WaveEdge*> succMatmulEdges;
-        std::vector<const wave::WaveEdge*> succPoolEdges;
-        std::vector<const wave::WaveEdge*> succActivationEdges;
-        std::vector<const wave::WaveEdge*> succEdgesWithoutEvent;
+    if (qParallelStreams()) { // incoming events
+        bool firstEmb = true;
+
+        for (auto prevWaveEdge : sbAtomLoadWaveOp->gPrevWaveEdges()) {
+            if (prevWaveEdge->gEventId() == EventId_Invalid) {
+                continue;
+            }
+            const auto prevWaveop = prevWaveEdge->gFromOp();
+            if (prevWaveop->gEngineId() == engineId) {
+                continue;
+            }
+
+            if (firstEmb) {
+                firstEmb = false;
+                waitEventId = prevWaveEdge->gEventId();
+                waitEventMode = prevWaveEdge->gWaitEventMode();
+            } else {
+                WAIT waitInstr;
+                waitInstr.event_id  = prevWaveEdge->gEventId();
+                m_WaveCode.writeInstruction(waitInstr, engineId);
+            }
+        }
+    } // end incoming events
+
+
+    if (qParallelStreams()) { // Find first successor for embedded
+        bool firstEmb = true;
 
         for (auto succWaveEdge : sbAtomLoadWaveOp->gSuccWaveEdges()) {
             auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gEngineId() == engineId) {
+            if (succWaveop->gType() == sbAtomLoadWaveOp->gType()) {
                 continue;
             }
             if (succWaveEdge->gEventId() == EventId_Invalid) {
-                succEdgesWithoutEvent.push_back(succWaveEdge);
                 continue;
             }
 
-            if (auto succMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, sbAtomLoadWaveOp, succMatmulWaveop);
-                succMatmulEdges.push_back(succWaveEdge);
-                continue;
+            if (firstEmb) {
+                firstEmb = false;
+                setEventId = succWaveEdge->gEventId();
+                setEventMode = succWaveEdge->gSetEventMode();
+                break;
             }
-            if (auto succPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, sbAtomLoadWaveOp, succPoolWaveop);
-                succPoolEdges.push_back(succWaveEdge);
-                continue;
-            }
-            if (auto succActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, sbAtomLoadWaveOp, succActivationWaveop);
-                succActivationEdges.push_back(succWaveEdge);
-                continue;
-            }
-            Assert(false, "SbAtomLoad waveop ", sbAtomLoadWaveOp->gName(), ": successor waveop ", succWaveop->gName(),
-                   " has wrong type ", succWaveop->gTypeStr());
         }
-
-        //************************************************************************
-        // Find one embedded set-event edge, if any
-        //************************************************************************
-        const wave::WaveEdge* succWaveEdgeEmb  = nullptr;
-
-        kcc_uint32 matmulStart = 0;
-        if (!succWaveEdgeEmb && succMatmulEdges.size() > 0) {
-            succWaveEdgeEmb = succMatmulEdges[matmulStart++];
-        }
-        kcc_uint32 activationStart = 0;
-        if (!succWaveEdgeEmb && succActivationEdges.size() > 0) {
-            succWaveEdgeEmb = succActivationEdges[activationStart++];
-        }
-        kcc_uint32 poolStart = 0;
-        if (!succWaveEdgeEmb && succPoolEdges.size() > 0) {
-            succWaveEdgeEmb = succPoolEdges[poolStart++];
-        }
-        switch (matmulStart + activationStart + poolStart) {
-        case 1: // all is good
-            break;
-        case 0:
-            // this is one of the sb atom file, but was not chosen for the event because it is not last
-            // check that there is another SbAtomLoad that feeds event-less successor and has larger order
-            Assert(succEdgesWithoutEvent.size() == 1, "SbAtomLoad must have one successor");
-            {
-                bool foundHigherPrecedentEdge = false;
-                auto succWaveop = succEdgesWithoutEvent[0]->gToOp();
-                for (auto precWaveEdge : succWaveop->gPrevWaveEdges()) {
-                    auto precWaveop = precWaveEdge->gFromOp();
-                    if (precWaveop == sbAtomLoadWaveOp) {
-                        continue;
-                    }
-                    if (dynamic_cast<wave::SbAtomLoadWaveOp*>(precWaveop)  // must be SbAtomLoad
-                        && precWaveEdge->gEventId() != EventId_Invalid       // must have event
-                        && sbAtomLoadWaveOp->gOrder() < precWaveEdge->gFromOp()->gOrder()) // must be later
-                    {
-                        foundHigherPrecedentEdge = true;
-                    }
-                }
-                Assert(foundHigherPrecedentEdge, "At least one SbAtomLoad should have an event to its successor waveop");
-            }
-            break;
-        default:
-            Assert(false, "SbAtomLoad ", sbAtomLoadWaveOp->gName(),
-                " must not have more than one successor. Number successors: MatMul=", succMatmulEdges.size(),
-                ", Activation=", succActivationEdges.size(), ", Pool=", succPoolEdges.size());
-            break;
-        }
-
-        if (succWaveEdgeEmb) {
-            setEventId = succWaveEdgeEmb->gEventId();
-            eventSetMode = succWaveEdgeEmb->gSetEventMode();
-        }
-
     }
 
     //************************************************************************
@@ -172,29 +142,57 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     const kcc_int64 numPartitions   = sbAtomLoadWaveOp->gIfmapCount();
     const kcc_int64 numBytesPerPart = sbAtomLoadWaveOp->gLength();
     const kcc_int64 addressInPart   = sbAtomLoadWaveOp->gAddressInPartition(0 /*offset in atom*/);
-    const kcc_int64 stepSize = sbAtomLoadWaveOp->gPartitionStepBytes();
+    const kcc_int64 stepSize        = sbAtomLoadWaveOp->gPartitionStepBytes();
 
-    dramToStateBufInstr.nbytes                  = numBytesPerPart;
+    dramToStateBufInstr.nbytes      = numBytesPerPart;
 
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         if (qParallelStreams()) {
-            if (numPartitions-1 == partIdx) {
-                // only the last reading sets event to enable subsequent instr
+            dramToStateBufInstr.sync.wait_event_id      = -1;
+            dramToStateBufInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+            dramToStateBufInstr.sync.set_event_id       = -1;
+            dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+
+            if (0 == partIdx) { // only the first reading waits for predecessors
+                dramToStateBufInstr.sync.wait_event_id      = waitEventId;
+                dramToStateBufInstr.sync.wait_event_mode    = events::eventWaitMode2Int(waitEventMode);
+            }
+
+            if (numPartitions-1 == partIdx) { // only the last reading informs successors
                 dramToStateBufInstr.sync.set_event_id       = setEventId;
-                dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(eventSetMode);
-            } else {
-                dramToStateBufInstr.sync.set_event_id       = -1;
-                dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
+                dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(setEventMode);
+
             }
         }
-
 
         dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomLoadWaveOp->gOffsetInFile() + (partIdx * stepSize);
         dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
 
         m_WaveCode.writeInstruction(dramToStateBufInstr);
     }
+
     //************************************************************************
+    if (qParallelStreams()) { // Write remaining SETs
+        bool firstEmb = true;
+
+        for (auto succWaveEdge : sbAtomLoadWaveOp->gSuccWaveEdges()) {
+            auto succWaveop = succWaveEdge->gToOp();
+            if (succWaveop->gType() == sbAtomLoadWaveOp->gType()) {
+                continue;
+            }
+            if (succWaveEdge->gEventId() == EventId_Invalid) {
+                continue;
+            }
+
+            if (firstEmb) {
+                firstEmb = false; // this set event is in embedded already in partition N-1
+            } else {
+                SET setInstr;
+                setInstr.event_id  = succWaveEdge->gEventId();
+                m_WaveCode.writeInstruction(setInstr, engineId);
+            }
+        }
+    }
 }
 
 }}

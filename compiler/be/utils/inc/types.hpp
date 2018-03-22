@@ -36,6 +36,15 @@ enum {
     EventId_Invalid = -1,
 };
 
+enum class WaveOpType {
+    Load,
+    Save,
+    Pool,
+    MatMul,
+    Activation,
+    ResAdd,
+};
+
 enum class ActivationFunc {
     Invalid,
     Identity,

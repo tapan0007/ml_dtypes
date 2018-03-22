@@ -43,6 +43,11 @@ public:
         return gTypeStrStatic();
     }
 
+    virtual WaveOpType gType() const override {
+        return WaveOpType::Load;
+    }
+
+
     bool verify() const override;
 
     kcc_int32 gIfmapsFoldIdx() const {

@@ -26,11 +26,14 @@ public:
 
 private:
     void processMatMult(wave::MatMulWaveOp* matmulWaveop);
+#if 0
     void processPool(wave::PoolWaveOp* poolWaveop);
     void processActivation(wave::ActivationWaveOp* activationWaveop);
     void processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop);
     void processSbAtomLoad(wave::SbAtomLoadWaveOp* sbatomLoadWaveop);
     void processResAdd(wave::ResAddWaveOp* resaddWaveop);
+#endif
+    void processWaveop(wave::WaveOp* waveop);
 
     EventId getLocalEventId(const wave::WaveEdge* edge);
 
