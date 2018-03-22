@@ -18,8 +18,7 @@ namespace wave {
 SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
     : WaveOp(params, prevWaveOps)
-    , m_AtomId(params.m_AtomId)
-    , m_AtomSize(params.m_AtomSize)
+    , m_SbAddress(params.m_SbAddress)
     , m_BatchFoldIdx(params.m_BatchFoldIdx)
     , m_DataType(DataType::dataTypeId2DataType(params.m_DataType))
     , m_Length(params.m_Length)
@@ -39,10 +38,7 @@ SbAtomWaveOp::verify() const
     if (! this-> WaveOp::verify()) {
         ASSERT_RETURN(false);
     }
-    if (m_AtomId < 0) {
-        ASSERT_RETURN(false);
-    }
-    if (m_AtomSize < 1) {
+    if (m_SbAddress < 0) {
         ASSERT_RETURN(false);
     }
     if (m_BatchFoldIdx < 0) {
@@ -89,7 +85,7 @@ SbAtomWaveOp::Params::verify() const
     if (m_BatchFoldIdx < 0) {
         return false;
     }
-    if (m_AtomId < 0) {
+    if (m_SbAddress < 0) {
         return false;
     }
     if (m_Length < 0) {  // TODO: should be <=

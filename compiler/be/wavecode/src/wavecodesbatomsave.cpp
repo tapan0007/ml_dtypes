@@ -81,7 +81,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     //************************************************************************
     const kcc_int64 numPartitions   = sbAtomSaveWaveop->gOfmapCount();
     const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
-    const kcc_int64 addressInPart   = sbAtomSaveWaveop->gAddressInPartition(0 /*offset in atom*/);
+    const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
     const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
     statebufToDramInstr.nbytes      = numBytesPerPart;
 

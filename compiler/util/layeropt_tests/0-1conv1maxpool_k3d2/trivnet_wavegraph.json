@@ -53,8 +53,6 @@
   "net_name": "TrivNet",
   "waveops": [
     {
-      "atom_id": 24,
-      "atom_size": 1024,
       "batch_fold_idx": 0,
       "contain_weights": true,
       "data_type": "float16",
@@ -69,12 +67,11 @@
       "ref_file": "trivnet_1conv1pool__weight1__read:0_CRSM.npy",
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,1,1,1],
-      "waveop_name": "1conv1pool/i1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0",
+      "sb_address": 24576,
+      "waveop_name": "1conv1pool/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
     {
-      "atom_id": 0,
-      "atom_size": 1024,
       "batch_fold_idx": 0,
       "contain_weights": false,
       "data_type": "float16",
@@ -89,6 +86,7 @@
       "ref_file": "trivnet_input:0_NCHW.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
+      "sb_address": 0,
       "waveop_name": "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
@@ -103,9 +101,7 @@
       "ifmap_count": 1,
       "ifmap_tile_height": 4,
       "ifmap_tile_width": 4,
-      "ifmaps_atom_id": 0,
-      "ifmaps_atom_size": 1024,
-      "ifmaps_offset_in_atom": 0,
+      "ifmaps_sb_address": 0,
       "in_dtype": "float16",
       "layer_name": "1conv1pool/i1",
       "num_column_partitions": 1,
@@ -115,7 +111,7 @@
       "ofmap_tile_width": 4,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv1pool/i1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0",
+        "1conv1pool/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
         "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0"
       ],
       "psum_bank_id": 0,
@@ -133,12 +129,10 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_atom_id": 24,
-      "weights_offset_in_atom": 0
+      "weights_sb_address": 24576
     },
     {
-      "dst_sb_atom_id": 80,
-      "dst_sb_offset_in_atom": 0,
+      "dst_sb_address": 81920,
       "dst_x_num": 4,
       "dst_x_step": 1,
       "dst_y_num": 4,
@@ -158,8 +152,7 @@
       "src_is_psum": true,
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
-      "src_sb_atom_id": 0,
-      "src_sb_offset_in_atom": 0,
+      "src_sb_address": 0,
       "src_w_num": 4,
       "src_w_step": 4,
       "src_x_num": 1,
@@ -174,8 +167,6 @@
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 80,
-      "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
       "last": true,
@@ -191,12 +182,11 @@
       "ref_file": "trivnet_1conv1pool__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
-      "waveop_name": "1conv1pool/i1/SBAtomSave_scratch_80_n0_m0_h0_w0",
+      "sb_address": 81920,
+      "waveop_name": "1conv1pool/i1/SBAtomSave_scratch_0_n0_m0_h0_w0",
       "waveop_type": "SBAtomSave"
     },
     {
-      "atom_id": 0,
-      "atom_size": 1024,
       "batch_fold_idx": 0,
       "contain_weights": false,
       "data_type": "float16",
@@ -211,12 +201,12 @@
       "ref_file": "trivnet_1conv1pool__i1:0_NCHW.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
+      "sb_address": 0,
       "waveop_name": "1conv1pool/i1/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
     {
-      "dst_sb_atom_id": 80,
-      "dst_sb_offset_in_atom": 0,
+      "dst_sb_address": 81920,
       "dst_x_num": 2,
       "dst_x_step": 1,
       "dst_y_num": 2,
@@ -237,8 +227,7 @@
       "src_is_psum": false,
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
-      "src_sb_atom_id": 0,
-      "src_sb_offset_in_atom": 0,
+      "src_sb_address": 0,
       "src_w_num": 2,
       "src_w_step": 8,
       "src_x_num": 3,
@@ -253,8 +242,6 @@
       "waveop_type": "Pool"
     },
     {
-      "atom_id": 80,
-      "atom_size": 1024,
       "batch_fold_idx": 0,
       "data_type": "float16",
       "last": true,
@@ -270,7 +257,8 @@
       "ref_file": "trivnet_1conv1pool__i2:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,2,2],
-      "waveop_name": "1conv1pool/i2/SBAtomSave_scratch_80_n0_m0_h0_w0",
+      "sb_address": 81920,
+      "waveop_name": "1conv1pool/i2/SBAtomSave_scratch_0_n0_m0_h0_w0",
       "waveop_type": "SBAtomSave"
     }
   ]

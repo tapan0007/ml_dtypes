@@ -16,10 +16,7 @@ SerWaveOp::SerWaveOp()
 bool
 SerWaveOp::verifySbAtom () const
 {
-    if (m_AtomId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_AtomSize <= 0) {
+    if (m_SbAddress < 0) {
         RETURN_ASSERT(false);
     }
     if (m_BatchFoldIdx < 0) {
@@ -93,10 +90,7 @@ SerWaveOp::verifyMatMul () const
     if (m_IfmapTileWidth < 0) { // TODO: should be <=
         RETURN_ASSERT(false);
     }
-    if (m_IfmapsAtomId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_IfmapsOffsetInAtom < 0) {
+    if (m_IfmapsSbAddress < 0) {
         RETURN_ASSERT(false);
     }
     if (m_InDtype == "") {
@@ -136,10 +130,7 @@ SerWaveOp::verifyMatMul () const
     if (m_WaveIdFormat == "") {
         RETURN_ASSERT(false);
     }
-    if (m_WeightsAtomId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_WeightsOffsetInAtom < -1) {
+    if (m_WeightsSbAddress < -1) {
         RETURN_ASSERT(false);
     }
     return true;
@@ -149,10 +140,7 @@ SerWaveOp::verifyMatMul () const
 bool
 SerWaveOp::verifyPool() const
 {
-    if (m_DstSbAtomId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstSbOffsetInAtom < 0) {
+    if (m_DstSbAddress < 0) {
         RETURN_ASSERT(false);
     }
     if (m_DstXNum < 1) {
@@ -225,10 +213,7 @@ SerWaveOp::verifyPool() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_SrcSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcSbOffsetInAtom < 0) {
+        if (m_SrcSbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }
@@ -258,10 +243,7 @@ SerWaveOp::verifyActivation() const
         RETURN_ASSERT(false);
     }
     // m_BiasAddEn
-    if (m_BiasAtomId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_BiasOffsetInAtom < 0) {
+    if (m_BiasSbAddress < 0) {
         RETURN_ASSERT(false);
     }
     if (m_DstXNum < 1) {
@@ -288,10 +270,7 @@ SerWaveOp::verifyActivation() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_DstSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstSbOffsetInAtom < 0) {
+        if (m_DstSbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }
@@ -369,10 +348,7 @@ SerWaveOp::verifyResAdd() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_SrcASbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcASbOffsetInAtom < 0) {
+        if (m_SrcASbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }
@@ -403,10 +379,7 @@ SerWaveOp::verifyResAdd() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_SrcBSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcBSbOffsetInAtom < 0) {
+        if (m_SrcBSbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }
@@ -437,10 +410,7 @@ SerWaveOp::verifyResAdd() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_DstSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstSbOffsetInAtom < 0) {
+        if (m_DstSbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }

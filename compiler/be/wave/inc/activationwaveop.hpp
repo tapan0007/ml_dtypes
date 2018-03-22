@@ -54,11 +54,8 @@ public:
     bool qBiasAddEn () const {
         return m_BiasAddEn;
     }
-    kcc_int32 gBiasAtomId () const {
-        return m_BiasAtomId;
-    }
-    kcc_int64 gBiasOffsetInAtom () const {
-        return m_BiasOffsetInAtom;
+    kcc_int64 gBiasSbAddress () const {
+        return m_BiasSbAddress;
     }
     bool qActivationWaveOp() const override {
         return true;
@@ -147,18 +144,14 @@ public:
     bool qDstIsPsum () const {
         return m_DstIsPsum;
     }
-    kcc_int32 gDstSbAtomId () const {
-        return m_DstSbAtomId;
-    }
-    kcc_int32 gDstSbOffsetInAtom () const {
-        return m_DstSbOffsetInAtom;
+    kcc_int64 gDstSbAddress () const {
+        return m_DstSbAddress;
     }
 
 private:
     ActivationFunc              m_ActivationFunc        = ActivationFunc::Invalid;
     bool                        m_BiasAddEn;
-    kcc_int32                   m_BiasAtomId            = -1;
-    kcc_int64                   m_BiasOffsetInAtom      = -1;
+    kcc_int64                   m_BiasSbAddress         = -1;
     kcc_float32                 m_Scale                 = 1.0; // TODO: deserialize when available in wavegraph.json
     bool                        m_DstIsPsum;
     kcc_int32                   m_DstPsumBankId         = -1;
@@ -168,8 +161,7 @@ private:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_DstSbAtomId           = -1;
-    kcc_int32                   m_DstSbOffsetInAtom     = -1;
+    kcc_int64                   m_DstSbAddress          = -1;
     const DataType&             m_InDtype;
     const DataType&             m_BiasDtype;
     kcc_int32                   m_NumPartitions         = -1;
@@ -194,8 +186,7 @@ public:
 public:
     ActivationFunc              m_ActivationFunc        = ActivationFunc::Invalid;
     bool                        m_BiasAddEn;
-    kcc_int32                   m_BiasAtomId            = -1;
-    kcc_int64                   m_BiasOffsetInAtom      = -1;
+    kcc_int64                   m_BiasSbAddress         = -1;
     bool                        m_DstIsPsum;
     kcc_int32                   m_DstPsumBankId         = -1;
     kcc_int32                   m_DstXNum               = -1;
@@ -204,8 +195,7 @@ public:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    kcc_int32                   m_DstSbAtomId             = -1;
-    kcc_int32                   m_DstSbOffsetInAtom     = -1;
+    kcc_int64                   m_DstSbAddress          = -1;
     DataTypeId                  m_InDtypeId             = DataTypeId::None;
     DataTypeId                  m_BiasDtypeId           = DataTypeId::None;
     kcc_int32                   m_NumPartitions         = -1;

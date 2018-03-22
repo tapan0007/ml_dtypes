@@ -20,8 +20,7 @@ namespace wave {
 PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
                        const std::vector<WaveOp*>& prevWaveOps)
     : WaveOp(params, prevWaveOps)
-    , m_DstSbAtomId(params.m_DstSbAtomId)
-    , m_DstSbOffsetInAtom(params.m_DstSbOffsetInAtom)
+    , m_DstSbAddress(params.m_DstSbAddress)
     , m_DstXNum(params.m_DstXNum)
     , m_DstXStep(params.m_DstXStep)
     , m_DstYNum(params.m_DstYNum)
@@ -48,8 +47,7 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
         m_SrcPsumBankId     = params.m_SrcPsumBankId;
         m_SrcPsumBankOffset = params.m_SrcPsumBankOffset;
     } else {
-        m_SrcSbAtomId       = params.m_SrcSbAtomId;
-        m_SrcSbOffsetInAtom = params.m_SrcSbOffsetInAtom;
+        m_SrcSbAddress      = params.m_SrcSbAddress;
     }
 
     m_SrcWNum           = params.m_SrcWNum;
@@ -70,10 +68,7 @@ PoolWaveOp::verify() const
     if (! this->WaveOp::verify()) {
         RETURN_ASSERT(false);
     }
-    if (m_DstSbAtomId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstSbOffsetInAtom < 0) {
+    if (m_DstSbAddress < 0) {
         RETURN_ASSERT(false);
     }
     if (m_DstXNum < 1) {
@@ -118,10 +113,7 @@ PoolWaveOp::verify() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_SrcSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_SrcSbOffsetInAtom < 0) {
+        if (m_SrcSbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }

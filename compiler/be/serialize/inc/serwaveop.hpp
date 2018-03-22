@@ -54,10 +54,8 @@ constexpr static const char* WaveOpKey_FmapZStepAtoms       = "fmap_z_step_atoms
 constexpr static const char* WaveOpKey_IfmapCount           = "ifmap_count";
 constexpr static const char* WaveOpKey_IfmapTileHeight      = "ifmap_tile_height";
 constexpr static const char* WaveOpKey_IfmapTileWidth       = "ifmap_tile_width";
-constexpr static const char* WaveOpKey_IfmapsAtomId         = "ifmaps_atom_id";
-constexpr static const char* WaveOpKey_IfmapsAtomSize       = "ifmaps_atom_size";
+constexpr static const char* WaveOpKey_IfmapsSbAddress      = "ifmaps_sb_address";
 constexpr static const char* WaveOpKey_DataType             = "data_type";
-constexpr static const char* WaveOpKey_IfmapsOffsetInAtom   = "ifmaps_offset_in_atom";
 // layer name
 constexpr static const char* WaveOpKey_NumColumnPartitions  = "num_column_partitions";
 constexpr static const char* WaveOpKey_NumRowPartitions     = "num_row_partitions";
@@ -79,12 +77,10 @@ constexpr static const char* WaveOpKey_WaveId               = "wave_id";
 constexpr static const char* WaveOpKey_WaveIdFormat         = "wave_id_format";
 // waveop name
 // waveop type
-constexpr static const char* WaveOpKey_WeightsAtomId        = "weights_atom_id";
-constexpr static const char* WaveOpKey_WeightsOffsetInAtom  = "weights_offset_in_atom";
+constexpr static const char* WaveOpKey_WeightsSbAddress     = "weights_sb_address";
 
 // SBAtom common
-constexpr static const char* WaveOpKey_AtomId               = "atom_id";
-constexpr static const char* WaveOpKey_AtomSize             = "atom_size";
+constexpr static const char* WaveOpKey_SbAddress            = "sb_address";
 constexpr static const char* WaveOpKey_BatchFoldIdx         = "batch_fold_idx";
 constexpr static const char* WaveOpKey_Length               = "length";
 constexpr static const char* WaveOpKey_OffsetInFile         = "offset_in_file";
@@ -102,8 +98,7 @@ constexpr static const char* WaveOpKey_OfmapsFoldIdx        = "ofmaps_fold_idx";
 
 // Pool
 constexpr static const char* WaveOpKey_DstIsPsum            = "dst_is_psum";
-constexpr static const char* WaveOpKey_DstSbAtomId          = "dst_sb_atom_id";
-constexpr static const char* WaveOpKey_DstSbOffsetInAtom    = "dst_sb_offset_in_atom";
+constexpr static const char* WaveOpKey_DstSbAddress         = "dst_sb_address";
 constexpr static const char* WaveOpKey_DstXNum              = "dst_x_num";
 constexpr static const char* WaveOpKey_DstXStep	            = "dst_x_step";
 constexpr static const char* WaveOpKey_DstYNum	            = "dst_y_num";
@@ -121,8 +116,7 @@ constexpr static const char* WaveOpKey_PoolFunc             = "pool_func";
 constexpr static const char* WaveOpKey_SrcIsPsum            = "src_is_psum";
 constexpr static const char* WaveOpKey_SrcPsumBankId        = "src_psum_bank_id";
 constexpr static const char* WaveOpKey_SrcPsumBankOffset    = "src_psum_bank_offset";
-constexpr static const char* WaveOpKey_SrcSbAtomId          = "src_sb_atom_id";
-constexpr static const char* WaveOpKey_SrcSbOffsetInAtom    = "src_sb_offset_in_atom";
+constexpr static const char* WaveOpKey_SrcSbAddress         = "src_sb_address";
 constexpr static const char* WaveOpKey_SrcWNum	            = "src_w_num";
 constexpr static const char* WaveOpKey_SrcWStep	            = "src_w_step";
 constexpr static const char* WaveOpKey_SrcXNum	            = "src_x_num";
@@ -147,8 +141,7 @@ constexpr static const char* WaveOpKey_ActivationFunc_Exp          = "Exp";
 
 
 constexpr static const char* WaveOpKey_BiasAddEn            = "bias_add_en";
-constexpr static const char* WaveOpKey_BiasAtomId           = "bias_atom_id";
-constexpr static const char* WaveOpKey_BiasOffsetInAtom     = "bias_offset_in_atom";
+constexpr static const char* WaveOpKey_BiasSbAddress        = "bias_sb_address";
 constexpr static const char* WaveOpKey_DstPsumBankId        = "dst_psum_bank_id";
 constexpr static const char* WaveOpKey_DstPsumBankOffset    = "dst_psum_bank_offset";
 
@@ -157,8 +150,7 @@ constexpr static const char* WaveOpKey_InADtype             = "in_a_dtype";
 constexpr static const char* WaveOpKey_SrcAIsPsum           = "src_a_is_psum";
 constexpr static const char* WaveOpKey_SrcAPsumBankId       = "src_a_psum_bank_id";
 constexpr static const char* WaveOpKey_SrcAPsumBankOffset   = "src_a_psum_bank_offset";
-constexpr static const char* WaveOpKey_SrcASbAtomId         = "src_a_sb_atom_id";
-constexpr static const char* WaveOpKey_SrcASbOffsetInAtom   = "src_a_sb_offset_in_atom";
+constexpr static const char* WaveOpKey_SrcASbAddress        = "src_a_sb_address";
 constexpr static const char* WaveOpKey_SrcAWNum	            = "src_a_w_num";
 constexpr static const char* WaveOpKey_SrcAWStep	        = "src_a_w_step";
 constexpr static const char* WaveOpKey_SrcAXNum	            = "src_a_x_num";
@@ -172,8 +164,7 @@ constexpr static const char* WaveOpKey_InBDtype             = "in_b_dtype";
 constexpr static const char* WaveOpKey_SrcBIsPsum           = "src_b_is_psum";
 constexpr static const char* WaveOpKey_SrcBPsumBankId       = "src_b_psum_bank_id";
 constexpr static const char* WaveOpKey_SrcBPsumBankOffset   = "src_b_psum_bank_offset";
-constexpr static const char* WaveOpKey_SrcBSbAtomId         = "src_b_sb_atom_id";
-constexpr static const char* WaveOpKey_SrcBSbOffsetInAtom   = "src_b_sb_offset_in_atom";
+constexpr static const char* WaveOpKey_SrcBSbAddress        = "src_b_sb_address";
 constexpr static const char* WaveOpKey_SrcBWNum	            = "src_b_w_num";
 constexpr static const char* WaveOpKey_SrcBWStep	        = "src_b_w_step";
 constexpr static const char* WaveOpKey_SrcBXNum	            = "src_b_x_num";
@@ -258,8 +249,7 @@ public:
     std::vector<int>            m_PreviousEventSetModes;
 
     // SBAtom
-    kcc_int32                   m_AtomId            = -1;
-    kcc_int32                   m_AtomSize          = -1;
+    kcc_int64                   m_SbAddress         = -1;
     kcc_int32                   m_BatchFoldIdx      = -1;
     std::string                 m_DataType          = "";
     //layer name
@@ -297,9 +287,7 @@ public:
     //kcc_int32                   m_IfmapCount            = -1;
     kcc_int32                   m_IfmapTileHeight       = -1;
     kcc_int32                   m_IfmapTileWidth        = -1;
-    kcc_int32                   m_IfmapsAtomId          = -1;
-    kcc_int32                   m_IfmapsAtomSize        = -1;
-    kcc_int32                   m_IfmapsOffsetInAtom    = -1;
+    kcc_int64                   m_IfmapsSbAddress       = -1;
     // layer name
     kcc_int32                   m_NumColumnPartitions   = -1;
     kcc_int32                   m_NumRowPartitions      = -1;
@@ -321,12 +309,10 @@ public:
     std::string                 m_WaveIdFormat          = "";
     // waveop name
     // waveop type
-    kcc_int32                   m_WeightsAtomId         = -1;
-    kcc_int32                   m_WeightsOffsetInAtom   = -1;
+    kcc_int64                   m_WeightsSbAddress      = -2;
 
     // Pool
-    kcc_int32                   m_DstSbAtomId       = -1;
-    kcc_int32                   m_DstSbOffsetInAtom = -1;
+    kcc_int64                   m_DstSbAddress      = -1;
     kcc_int32                   m_DstXNum           = -1;
     kcc_int32                   m_DstXStep	        = -1;
     kcc_int32                   m_DstYNum	        = -1;
@@ -345,8 +331,7 @@ public:
     bool                        m_SrcIsPsum         = true;
     kcc_int32                   m_SrcPsumBankId     = -1;
     kcc_int32                   m_SrcPsumBankOffset = -1;
-    kcc_int32                   m_SrcSbAtomId       = -1;
-    kcc_int32                   m_SrcSbOffsetInAtom = -1;
+    kcc_int64                   m_SrcSbAddress      = -1;
     kcc_int32                   m_SrcWNum	        = -1;
     kcc_int32                   m_SrcWStep	        = -1;
     kcc_int32                   m_SrcXNum	        = -1;
@@ -360,8 +345,7 @@ public:
     bool                        m_SrcAIsPsum            = true;
     kcc_int32                   m_SrcAPsumBankId        = -1;
     kcc_int32                   m_SrcAPsumBankOffset    = -1;
-    kcc_int32                   m_SrcASbAtomId          = -1;
-    kcc_int32                   m_SrcASbOffsetInAtom    = -1;
+    kcc_int64                   m_SrcASbAddress         = -1;
     kcc_int32                   m_SrcAWNum	            = -1;
     kcc_int32                   m_SrcAWStep	            = -1;
     kcc_int32                   m_SrcAXNum	            = -1;
@@ -375,8 +359,7 @@ public:
     bool                        m_SrcBIsPsum            = true;
     kcc_int32                   m_SrcBPsumBankId        = -1;
     kcc_int32                   m_SrcBPsumBankOffset    = -1;
-    kcc_int32                   m_SrcBSbAtomId          = -1;
-    kcc_int32                   m_SrcBSbOffsetInAtom    = -1;
+    kcc_int64                   m_SrcBSbAddress         = -1;
     kcc_int32                   m_SrcBWNum	            = -1;
     kcc_int32                   m_SrcBWStep	            = -1;
     kcc_int32                   m_SrcBXNum	            = -1;
@@ -394,8 +377,7 @@ public:
     // Activation
     std::string                 m_ActivationFunc    = "";
     bool                        m_BiasAddEn         = false;
-    kcc_int32                   m_BiasAtomId        = -1;
-    kcc_int32                   m_BiasOffsetInAtom  = -1;
+    kcc_int64                   m_BiasSbAddress     = -1;
     bool                        m_DstIsPsum         = true;
     kcc_int32                   m_DstPsumBankId     = -1;
     kcc_int32                   m_DstPsumBankOffset = -1;

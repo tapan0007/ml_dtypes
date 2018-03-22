@@ -295,8 +295,7 @@ Network::Load::loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp)
     wave::SbAtomLoadWaveOp::Params sbatomLoadParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, sbatomLoadParams);
 
-    KCC_UNSERIALIZE(AtomId);
-    KCC_UNSERIALIZE(AtomSize);
+    KCC_UNSERIALIZE(SbAddress);
     KCC_UNSERIALIZE(BatchFoldIdx);
     sbatomLoadParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
     KCC_UNSERIALIZE(Length);
@@ -330,8 +329,7 @@ Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
     wave::SbAtomSaveWaveOp::Params sbatomsaveParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, sbatomsaveParams);
 
-    KCC_UNSERIALIZE(AtomId);
-    KCC_UNSERIALIZE(AtomSize);
+    KCC_UNSERIALIZE(SbAddress);
     KCC_UNSERIALIZE(BatchFoldIdx);
     sbatomsaveParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
     KCC_UNSERIALIZE(Length);
@@ -362,8 +360,7 @@ Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
     wave::PoolWaveOp::Params poolParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, poolParams);
 
-    KCC_UNSERIALIZE(DstSbAtomId);
-    KCC_UNSERIALIZE(DstSbOffsetInAtom);
+    KCC_UNSERIALIZE(DstSbAddress);
     KCC_UNSERIALIZE(DstXNum);
     KCC_UNSERIALIZE(DstXStep);
     KCC_UNSERIALIZE(DstYNum);
@@ -381,8 +378,7 @@ Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
         KCC_UNSERIALIZE(SrcPsumBankId);
         KCC_UNSERIALIZE(SrcPsumBankOffset);
     } else {
-        KCC_UNSERIALIZE(SrcSbAtomId);
-        KCC_UNSERIALIZE(SrcSbOffsetInAtom);
+        KCC_UNSERIALIZE(SrcSbAddress);
     }
 
     KCC_UNSERIALIZE(SrcWNum);
@@ -426,9 +422,7 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(IfmapCount);
     KCC_UNSERIALIZE(IfmapTileHeight);
     KCC_UNSERIALIZE(IfmapTileWidth);
-    KCC_UNSERIALIZE(IfmapsAtomId);
-    KCC_UNSERIALIZE(IfmapsAtomSize);
-    KCC_UNSERIALIZE(IfmapsOffsetInAtom);
+    KCC_UNSERIALIZE(IfmapsSbAddress);
     matmulParams.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
     // layer_name
     KCC_UNSERIALIZE(NumColumnPartitions);
@@ -454,8 +448,7 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(WaveIdFormat);
     // waveop name
     // waveop type
-    KCC_UNSERIALIZE(WeightsAtomId);
-    KCC_UNSERIALIZE(WeightsOffsetInAtom);
+    KCC_UNSERIALIZE(WeightsSbAddress);
 
     auto waveOp = new wave::MatMulWaveOp(matmulParams, prevWaveOps);
     Assert(waveOp->gName() == matmulParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
@@ -474,8 +467,7 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     activationParams.m_ActivationFunc   = serialize::SerWaveOp::str2ActivationFunc(serWaveOp.m_ActivationFunc);
 
     KCC_UNSERIALIZE(BiasAddEn);
-    KCC_UNSERIALIZE(BiasAtomId);
-    KCC_UNSERIALIZE(BiasOffsetInAtom);
+    KCC_UNSERIALIZE(BiasSbAddress);
 
     KCC_UNSERIALIZE(DstXNum);
     KCC_UNSERIALIZE(DstXStep);
@@ -488,8 +480,7 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     if (serWaveOp.m_DstIsPsum) {
         KCC_UNSERIALIZE(DstPsumBankId);
     } else {
-        KCC_UNSERIALIZE(DstSbAtomId);
-        KCC_UNSERIALIZE(DstSbOffsetInAtom);
+        KCC_UNSERIALIZE(DstSbAddress);
     }
 
     activationParams.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
@@ -538,8 +529,7 @@ Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
         KCC_UNSERIALIZE(SrcAPsumBankId);
         KCC_UNSERIALIZE(SrcAPsumBankOffset);
     } else {
-        KCC_UNSERIALIZE(SrcASbAtomId);
-        KCC_UNSERIALIZE(SrcASbOffsetInAtom);
+        KCC_UNSERIALIZE(SrcASbAddress);
     }
     KCC_UNSERIALIZE(SrcAXNum);
     KCC_UNSERIALIZE(SrcAXStep);
@@ -554,8 +544,7 @@ Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
         KCC_UNSERIALIZE(SrcBPsumBankId);
         KCC_UNSERIALIZE(SrcBPsumBankOffset);
     } else {
-        KCC_UNSERIALIZE(SrcBSbAtomId);
-        KCC_UNSERIALIZE(SrcBSbOffsetInAtom);
+        KCC_UNSERIALIZE(SrcBSbAddress);
     }
     KCC_UNSERIALIZE(SrcBXNum);
     KCC_UNSERIALIZE(SrcBXStep);
@@ -570,8 +559,7 @@ Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
         KCC_UNSERIALIZE(DstPsumBankId);
         KCC_UNSERIALIZE(DstPsumBankOffset);
     } else {
-        KCC_UNSERIALIZE(DstSbAtomId);
-        KCC_UNSERIALIZE(DstSbOffsetInAtom);
+        KCC_UNSERIALIZE(DstSbAddress);
     }
     KCC_UNSERIALIZE(DstXNum);
     KCC_UNSERIALIZE(DstXStep);

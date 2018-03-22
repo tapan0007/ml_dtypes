@@ -141,7 +141,7 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     //************************************************************************
     const kcc_int64 numPartitions   = sbAtomLoadWaveOp->gIfmapCount();
     const kcc_int64 numBytesPerPart = sbAtomLoadWaveOp->gLength();
-    const kcc_int64 addressInPart   = sbAtomLoadWaveOp->gAddressInPartition(0 /*offset in atom*/);
+    const kcc_int64 addressInPart   = sbAtomLoadWaveOp->gSbAddress();
     const kcc_int64 stepSize        = sbAtomLoadWaveOp->gPartitionStepBytes();
 
     dramToStateBufInstr.nbytes      = numBytesPerPart;

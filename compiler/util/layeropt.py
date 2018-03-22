@@ -198,10 +198,10 @@ class StateBuffer:
 
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
-        self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  24,         self.SB_ATOM_SZ, 0)
-        self.circbuf_weights = CircularBuffer(self, "weights", 96-16-4-24, self.SB_ATOM_SZ, 24)
-        self.circbuf_bias    = CircularBuffer(self, "bias",    4,          self.SB_ATOM_SZ, 96-16-4)
-        self.circbuf_scratch = CircularBuffer(self, "scratch", 16,         self.SB_ATOM_SZ, 96-16)
+        self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*0)
+        self.circbuf_weights = CircularBuffer(self, "weights", 96-16-4-24, self.SB_ATOM_SZ, self.SB_ATOM_SZ*24)
+        self.circbuf_bias    = CircularBuffer(self, "bias",    4,          self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-16-4))
+        self.circbuf_scratch = CircularBuffer(self, "scratch", 16,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-16))
         self.saved_result_files = {}
 
     def print_stats(self):        
@@ -220,8 +220,8 @@ class StateBuffer:
 class CircularBuffer:
     def __init__(self, parent, circbuf_type, capacity, atom_sz, start):
         self.parent = parent
-        self.capacity = capacity
         self.atom_sz = atom_sz
+        self.capacity = capacity
         self.start = start
         self.circbuf_type = circbuf_type
         self.reset()
@@ -230,9 +230,9 @@ class CircularBuffer:
         self.chunk2saved_map = {}   # holds all the saved atoms
 
     def reset(self):
-        self.head_pointer = self.start
-        self.tail_pointer = self.start
-        self.current_atom_id = self.start
+        self.head_pointer = 0
+        self.tail_pointer = 0
+        self.current_atom_id = 0
         self.atom_data_sz = self.atom_sz
         self.need_spare_atoms = 0
         self.need_skip_atoms = False
@@ -260,17 +260,22 @@ class CircularBuffer:
         self.item_sz = 2
         self.data_type = 'float16'
 
-    def get_atom(self, addr):
+    def get_chunk_addr(self, addr):
+        return addr // self.atom_data_sz
+
+    def get_atom_offset(self, addr):
+        return addr % self.atom_data_sz
+
+    def get_sb_address(self, addr):
         addr_chunked = self.get_chunk_addr(addr) 
         if (addr_chunked in self.chunk2atom_map):
-            return self.chunk2atom_map[addr_chunked]
+            sb_address = self.start + self.chunk2atom_map[addr_chunked]*self.atom_sz + self.get_atom_offset(addr)
+            assert (sb_address < StateBuffer.SB_PARTITION_SZ)
+            return sb_address
         else:
             print("ERROR %s: addr/atom_data_sz %d (addr %d) not found in chunk2atom_map of %s:"%(self.circbuf_type, addr_chunked, addr, self.layer_name))
             for i in self.chunk2atom_map.keys():
                 print("     %s: %d"%(i, self.chunk2atom_map[i]))
-
-    def get_atom_offset(self, addr):
-        return addr % self.atom_data_sz
 
     def load_data(self, op, file_name = None):
         fmap_full_tiley_sz = 0
@@ -453,6 +458,12 @@ class CircularBuffer:
                 self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
             else:
                 self.atom_data_sz = self.atom_sz
+        # make atom_sz same as atom_data_sz
+        self.capacity = (self.capacity*self.atom_sz)//self.atom_data_sz
+        self.allocated = [False for x in range(self.capacity)]
+        self.skipped = [False for x in range(self.capacity)]
+        self.consumer_of_freed_atom = [None for x in range(self.capacity)]
+        self.atom_sz = self.atom_data_sz
         print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.replicate_multiple)) 
         return self.dram_data
 
@@ -490,8 +501,7 @@ class CircularBuffer:
               'waveop_type'      : "SBAtomFile",
               'waveop_name'      : waveop_name,
               'layer_name'       : self.layer_name,
-              'atom_id'          : atom_id,
-              'atom_size'        : self.atom_sz,
+              'sb_address'       : self.start + atom_id*self.atom_sz,
               'data_type'        : self.data_type,
               'contain_weights'  : self.circbuf_type == "weights",
               'ref_file'         : simout_file,
@@ -531,8 +541,7 @@ class CircularBuffer:
               'waveop_type'      : "SBAtomSave",
               'waveop_name'      : waveop_name,
               'layer_name'       : self.layer_name,
-              'atom_id'          : atom_id,
-              'atom_size'        : self.atom_sz,
+              'sb_address'       : self.start + atom_id*self.atom_sz,
               'data_type'        : self.data_type,
               'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
@@ -546,16 +555,13 @@ class CircularBuffer:
               'last'             : last_atom_of_file,
             }
 
-    def get_chunk_addr(self, addr):
-        return addr // self.atom_data_sz
-
     def is_a_spare_atom(self, atom_id):
         return (self.need_spare_atoms > 0
-                and atom_id >= self.start + self.capacity - self.need_spare_atoms
-                and atom_id < self.start + self.capacity)
+                and atom_id >= self.capacity - self.need_spare_atoms
+                and atom_id < self.capacity)
 
     def is_a_skip_atom(self, atom_id):
-        return (self.need_skip_atoms and self.skipped[atom_id - self.start])
+        return (self.need_skip_atoms and self.skipped[atom_id])
     
     def map_chunk_to_nonspare_atom(self, atom_id, chunk_id):
         consumer_of_evicted_atom = None
@@ -564,16 +570,16 @@ class CircularBuffer:
                 if (args.debug > 2): print("%s: evicting %s at nonspare atom_id %d, replacing with nonspare chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2atom_map[k]
-                consumer_of_evicted_atom = self.consumer_of_freed_atom[atom_id - self.start]
-                self.consumer_of_freed_atom[atom_id - self.start] = None
+                consumer_of_evicted_atom = self.consumer_of_freed_atom[atom_id]
+                self.consumer_of_freed_atom[atom_id] = None
                 break
         for k in self.chunk2skip_map.keys():
             if (self.chunk2skip_map[k] == atom_id):
                 if (args.debug > 2): print("%s: evicting %s at skip atom_id %d, replacing with nonspare chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2skip_map[k]
-                consumer_of_evicted_atom = self.consumer_of_freed_atom[atom_id - self.start]
-                self.consumer_of_freed_atom[atom_id - self.start] = None
+                consumer_of_evicted_atom = self.consumer_of_freed_atom[atom_id]
+                self.consumer_of_freed_atom[atom_id] = None
                 break
         self.chunk2atom_map[chunk_id] = atom_id
         return consumer_of_evicted_atom
@@ -585,8 +591,8 @@ class CircularBuffer:
                 if (args.debug > 2): print("%s: evicting %s at spare atom_id %d, replacing with spare chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2spare_map[k]
-                consumer_of_evicted_atom = self.consumer_of_freed_atom[atom_id - self.start]
-                self.consumer_of_freed_atom[atom_id - self.start] = None
+                consumer_of_evicted_atom = self.consumer_of_freed_atom[atom_id]
+                self.consumer_of_freed_atom[atom_id] = None
                 break
         self.chunk2spare_map[chunk_id] = atom_id
         return consumer_of_evicted_atom
@@ -598,8 +604,8 @@ class CircularBuffer:
                 if (args.debug > 2): print("%s: evicting %s at skip atom_id %d, replacing with skip chunk %d"%(self.circbuf_type, k, atom_id, chunk_id))
                 self.eviction_count += 1
                 del self.chunk2skip_map[k]
-                consumer_of_evicted_atom = self.consumer_of_freed_atom[atom_id - self.start]
-                self.consumer_of_freed_atom[atom_id - self.start] = None
+                consumer_of_evicted_atom = self.consumer_of_freed_atom[atom_id]
+                self.consumer_of_freed_atom[atom_id] = None
                 break
         self.chunk2skip_map[chunk_id] = atom_id
         return consumer_of_evicted_atom
@@ -618,8 +624,8 @@ class CircularBuffer:
         if (lower_addr_chunked not in self.chunk2atom_map):
             while (self.is_a_spare_atom(self.tail_pointer) or self.is_a_skip_atom(self.tail_pointer)):
                 self.tail_pointer += 1
-                if (self.tail_pointer == self.start + self.capacity):
-                    self.tail_pointer = self.start
+                if (self.tail_pointer == self.capacity):
+                    self.tail_pointer = 0
                 assert (self.tail_pointer != self.head_pointer)                    
             atom_id = self.allocate_atom()
             dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, lower_addr_chunked, ifmap_count, ifmaps_replicate))
@@ -651,7 +657,7 @@ class CircularBuffer:
                         prev_consumer = self.map_chunk_to_spare_atom(atom_id, i)
                         if (prev_consumer != None):
                             dram_waveops[-1]["previous_waveops"].append(prev_consumer)
-                        self.allocated[atom_id - self.start] = False
+                        self.allocated[atom_id] = False
                         self.count -= 1
                         if (args.debug > 2): print("%s: keeping atom_id %d as spare for chunk %d (range %d-%d)"%(self.circbuf_type, atom_id, i, lower_addr, upper_addr))
                     else:                        
@@ -666,8 +672,8 @@ class CircularBuffer:
                         if (prev_consumer != None):
                             dram_waveops[-1]["previous_waveops"].append(prev_consumer)
                         if (args.debug > 2): print("%s: keeping last atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, atom_id, i, lower_addr, upper_addr))
-                        self.allocated[atom_id - self.start] = False
-                        self.skipped[atom_id - self.start] = True
+                        self.allocated[atom_id] = False
+                        self.skipped[atom_id] = True
                         self.count -= 1
                     else:                        
                         atom_id = self.allocate_atom()
@@ -675,8 +681,8 @@ class CircularBuffer:
                         prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, i)
                         if (prev_consumer != None):
                             dram_waveops[-1]["previous_waveops"].append(prev_consumer)
-                        if (self.skipped[atom_id - self.start]):
-                            self.skipped[atom_id - self.start] = False
+                        if (self.skipped[atom_id]):
+                            self.skipped[atom_id] = False
         return dram_waveops
     
     # hit_end_addr is used in write_data_region; so it should use ofmap_data_len
@@ -724,7 +730,7 @@ class CircularBuffer:
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
             if i in self.chunk2atom_map:
                 self.free_atom(self.chunk2atom_map[i])
-                self.consumer_of_freed_atom[self.chunk2atom_map[i] - self.start] = waveop["waveop_name"] 
+                self.consumer_of_freed_atom[self.chunk2atom_map[i]] = waveop["waveop_name"] 
                 if (args.debug > 2): print("%s: freeing atom_id %d for chunk %d (lower_addr %d, upper_addr %d), but keep around for any subsequent read"%(self.circbuf_type, self.chunk2atom_map[i], i, lower_addr, upper_addr))
                 # keep data around just in case, but allow pointers to wrap around
                 #del self.chunk2atom_map[i]
@@ -736,33 +742,33 @@ class CircularBuffer:
             exit(-1)
             return -1
         self.current_atom_id = self.tail_pointer
-        if (self.allocated[self.current_atom_id - self.start]):
+        if (self.allocated[self.current_atom_id]):
             print("ERROR %s: allocating a still allocated (non-free) atom at atom_id %d"%(self.circbuf_type, self.current_atom_id))
             self.print_stats()
             exit(-1)
-        self.allocated[self.current_atom_id - self.start] = True
+        self.allocated[self.current_atom_id] = True
         if (args.debug > 2): print ("%s: Added atom_id %d for layer %s"%(self.circbuf_type, self.current_atom_id, self.layer_name))
         self.tail_pointer += 1
-        if (self.tail_pointer == self.start + self.capacity):
-            self.tail_pointer = self.start
+        if (self.tail_pointer == self.capacity):
+            self.tail_pointer = 0
         self.count += 1
         if (self.count > self.max_count):
             self.max_count = self.count
         return self.current_atom_id            
 
     def free_atom(self, atom_id):   
-        if (self.allocated[atom_id - self.start]):
-            self.allocated[atom_id - self.start] = False
+        if (self.allocated[atom_id]):
+            self.allocated[atom_id] = False
             self.count -= 1
             if (args.debug > 2): print ("%s: Freed atom_id %d for layer %s"%(self.circbuf_type, atom_id, self.layer_name))
         #else:
         #    print ("ERROR %s: cannot free atom ID %d since it is unallocated for layer %s!"%(self.circbuf_type, atom_id, self.layer_name))
         #    return -1
         # garbage collection: advance head pointer until it sees allocated atom
-        if (not self.allocated[self.head_pointer - self.start]):
+        if (not self.allocated[self.head_pointer]):
             self.head_pointer += 1            
-            if (self.head_pointer == self.start + self.capacity):
-                self.head_pointer = self.start
+            if (self.head_pointer == self.capacity):
+                self.head_pointer = 0
 
     def print_stats(self):
         print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d eviction count %d DRAM file data length %d IFMAP data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, self.eviction_count, self.dram_data_len, self.ifmap_data_len))
@@ -1306,22 +1312,19 @@ class FusedOp(list):
             print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
         waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()           
         # find the weights offset within atom; -1 means don't load new weights
-        weights_offset_in_atom = tpb.statebuffer.circbuf_weights.get_atom_offset(self.conv_op.weight_wave_lower_addr)
-        if (self.conv_op.weight_wave_lower_addr == self.prev_weight_wave_lower_addr):
-            weights_offset_in_atom = -1
+        weights_sb_address = tpb.statebuffer.circbuf_weights.get_sb_address(self.conv_op.weight_wave_lower_addr)
+        if (weights_sb_address == self.prev_weight_wave_lower_addr):
+            weights_sb_address = -1
             if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
         else:            
-            self.prev_weight_wave_lower_addr = self.conv_op.weight_wave_lower_addr
+            self.prev_weight_wave_lower_addr = weights_sb_address
         matmul_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'MatMul',
               'waveop_name'             : waveop_name,
               'layer_name'              : self.conv_op.data['layer_name'],
-              'weights_atom_id'         : tpb.statebuffer.circbuf_weights.get_atom(self.conv_op.weight_wave_lower_addr),
-              'weights_offset_in_atom'  : weights_offset_in_atom,
-              'ifmaps_atom_id'          : tpb.statebuffer.circbuf_ifmaps.get_atom(self.conv_op.ifmap_wave_lower_addr), # if multiple atoms loaded, pick the first one
-              'ifmaps_offset_in_atom'   : tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.conv_op.ifmap_wave_lower_addr),
-              'ifmaps_atom_size'        : tpb.statebuffer.circbuf_ifmaps.atom_sz,
+              'weights_sb_address'      : weights_sb_address,
+              'ifmaps_sb_address'       : tpb.statebuffer.circbuf_ifmaps.get_sb_address(self.conv_op.ifmap_wave_lower_addr),
               'in_dtype'                : in_dtype,
               'out_dtype'               : out_dtype,
               'wave_id_format'          : wave_id.format, # to be removed
@@ -1361,8 +1364,7 @@ class FusedOp(list):
         if (src_is_psum):
             src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
             src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
-            src_sb_atom_id = 0
-            src_sb_offset_in_atom = 0
+            src_sb_address = 0
             if (self.pool_op.item_sz == 2):
                 in_dtype = "float32"
             else:    
@@ -1370,8 +1372,7 @@ class FusedOp(list):
         else:
             src_ifmap_width = self.pool_op.W
             src_ifmap_height = self.pool_op.H
-            src_sb_atom_id = tpb.statebuffer.circbuf_ifmaps.get_atom(self.pool_op.ifmap_wave_lower_addr)
-            src_sb_offset_in_atom = tpb.statebuffer.circbuf_ifmaps.get_atom_offset(self.pool_op.ifmap_wave_lower_addr)
+            src_sb_address = tpb.statebuffer.circbuf_ifmaps.get_sb_address(self.pool_op.ifmap_wave_lower_addr)
             in_dtype = self.out_data_type
         psum_step_multiplier = 1   # kaena-174, tonga-310: after Inkling fix, no need for multiplier         
         waveop_name = self.pool_op.data['layer_name']+"/Pool_"+tile_id.id_string()
@@ -1390,8 +1391,7 @@ class FusedOp(list):
               'src_is_psum'             : src_is_psum,
               'src_psum_bank_id'        : src_psum_bank_id,
               'src_psum_bank_offset'    : 0,
-              'src_sb_atom_id'          : src_sb_atom_id, 
-              'src_sb_offset_in_atom'   : src_sb_offset_in_atom,
+              'src_sb_address'          : src_sb_address, 
               'src_x_step'              : 1 * psum_step_multiplier,
               'src_x_num'               : self.pool_op.pool_window_x,
               'src_y_step'              : src_ifmap_width * psum_step_multiplier,
@@ -1403,8 +1403,7 @@ class FusedOp(list):
               'pool_frequency'          : pool_frequency,
               'pool_scale'              : pool_scale,
               'num_partitions'          : self.pool_op.ofmap_count,
-              'dst_sb_atom_id'          : 0, # Need to adjust this after allocating atoms
-              'dst_sb_offset_in_atom'   : tpb.statebuffer.circbuf_scratch.get_atom_offset(self.pool_op.ofmap_tile_lower_addr),
+              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
               'dst_y_step'              : self.pool_op.E,
@@ -1774,8 +1773,7 @@ class TPBSched:
               'src_z_num'               : 1,
               'dst_is_psum'             : dst_is_psum, 
               'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_sb_atom_id'          : 0, # Need to adjust this after allocating atoms
-              'dst_sb_offset_in_atom'   : 0, 
+              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
               'dst_x_step'              : 1,
               'dst_x_num'               : 1,
               'dst_y_step'              : 1,
@@ -1790,15 +1788,13 @@ class TPBSched:
     def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
         layer_name = ""
         bias_add_en = False
-        bias_atom_id = 0
-        bias_offset_in_atom = 0
+        bias_sb_address = 0
         # TODO: update in_dtype when src_is_psum is added
         in_dtype = "float32"
         out_dtype = "float32"
         if (biasadd_op != None):
             bias_add_en = True
-            bias_atom_id = self.statebuffer.circbuf_bias.get_atom(bias_start)
-            bias_offset_in_atom = bias_start % self.statebuffer.circbuf_bias.atom_data_sz
+            bias_sb_address = self.statebuffer.circbuf_bias.get_sb_address(bias_start)
             layer_name = biasadd_op.data['layer_name']
             if (biasadd_op.item_sz == 2 and not dst_is_psum):
                 out_dtype = "float16"
@@ -1855,8 +1851,7 @@ class TPBSched:
               'src_y_num'               : dst_y_num * dst_z_num,
               'dst_is_psum'             : dst_is_psum,
               'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_sb_atom_id'          : 0, # Need to adjust this after allocating atoms
-              'dst_sb_offset_in_atom'   : tpb.statebuffer.circbuf_scratch.get_atom_offset(conv_op.ofmap_tile_lower_addr),
+              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
@@ -1865,8 +1860,7 @@ class TPBSched:
               'dst_z_num'               : dst_z_num,
               'num_partitions'          : num_partitions,
               'bias_add_en'             : bias_add_en,
-              'bias_atom_id'            : bias_atom_id,
-              'bias_offset_in_atom'     : bias_offset_in_atom,
+              'bias_sb_address'         : bias_sb_address,
             }
         self.waveop_stream.add_linked(instr, dram_bias_waveops)
 
@@ -1925,8 +1919,7 @@ class TPBSched:
               'src_a_is_psum'           : False,
               'src_a_psum_bank_id'      : 0,
               'src_a_psum_bank_offset'  : 0,
-              'src_a_sb_atom_id'        : self.statebuffer.circbuf_scratch.get_atom(data_start),
-              'src_a_sb_offset_in_atom' : self.statebuffer.circbuf_scratch.get_atom_offset(data_start),
+              'src_a_sb_address'        : self.statebuffer.circbuf_scratch.get_sb_address(data_start),
               'src_a_x_step'            : 1,
               'src_a_x_num'             : dst_x_num,
               'src_a_y_step'            : dst_y_step,
@@ -1936,8 +1929,7 @@ class TPBSched:
               'src_b_is_psum'           : True,
               'src_b_psum_bank_id'      : psum_bank_src,
               'src_b_psum_bank_offset'  : 0,
-              'src_b_sb_atom_id'        : self.statebuffer.circbuf_scratch.get_atom(data_start),
-              'src_b_sb_offset_in_atom' : self.statebuffer.circbuf_scratch.get_atom_offset(data_start),
+              'src_b_sb_address'        : 0,
               'src_b_x_step'            : 1,
               'src_b_x_num'             : dst_x_num,
               'src_b_y_step'            : dst_y_step,
@@ -1947,8 +1939,7 @@ class TPBSched:
               'dst_is_psum'             : dst_is_psum,
               'dst_psum_bank_id'        : psum_bank_dst,
               'dst_psum_bank_offset'    : 0,
-              'dst_sb_atom_id'          : self.statebuffer.circbuf_scratch.get_atom(data_start),
-              'dst_sb_offset_in_atom'   : self.statebuffer.circbuf_scratch.get_atom_offset(data_start),
+              'dst_sb_address'          : self.statebuffer.circbuf_scratch.get_sb_address(data_start),
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
@@ -2081,7 +2072,10 @@ class TPBSched:
                                                     output_params_op.ifmap_count)
                         # The scale_add destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "ScaleAdd"):
-                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+                            self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
+                                                                                    + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
+                                                                                    + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr)
+                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr)
                         self.waveop_stream.add_outputs(dram_output_waveops)
 
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
@@ -2157,7 +2151,10 @@ class TPBSched:
                         dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, pool_op.ofmap_tile_lower_addr, pool_op.ofmap_tile_upper_addr, pool_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool" or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"):
-                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+                            self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
+                                                                                    + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
+                                                                                    + self.statebuffer.circbuf_scratch.get_atom_offset(pool_op.ofmap_tile_lower_addr)
+                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.get_sb_address(pool_op.ofmap_tile_lower_addr)
                         self.waveop_stream.add_outputs(dram_output_waveops)
 
         # save layer results to file, for retrieval by next layer                        
@@ -2260,7 +2257,10 @@ class TPBSched:
                         dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, output_params_op.ofmap_tile_lower_addr, output_params_op.ofmap_tile_upper_addr, output_params_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool" or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"):
-                            self.waveop_stream.last_main_waveop['dst_sb_atom_id'] = self.statebuffer.circbuf_scratch.current_atom_id
+                            self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
+                                                                                    + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
+                                                                                    + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr)
+                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr)
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)

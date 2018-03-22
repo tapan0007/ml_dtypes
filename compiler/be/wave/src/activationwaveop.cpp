@@ -21,8 +21,7 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
     : WaveOp(params, prevWaveOps)
     , m_ActivationFunc(params.m_ActivationFunc)
     , m_BiasAddEn(params.m_BiasAddEn)
-    , m_BiasAtomId(params.m_BiasAtomId)
-    , m_BiasOffsetInAtom(params.m_BiasOffsetInAtom)
+    , m_BiasSbAddress(params.m_BiasSbAddress)
     , m_DstIsPsum(params.m_DstIsPsum)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_BiasDtype(DataType::dataTypeId2DataType(params.m_BiasDtypeId))
@@ -48,8 +47,7 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
     if (m_DstIsPsum) {
         m_DstPsumBankId     = params.m_DstPsumBankId;
     } else {
-        m_DstSbAtomId       = params.m_DstSbAtomId;
-        m_DstSbOffsetInAtom = params.m_DstSbOffsetInAtom;
+        m_DstSbAddress      = params.m_DstSbAddress;
     }
     assert(verify());
 }
@@ -74,10 +72,7 @@ ActivationWaveOp::verify() const
         RETURN_ASSERT(false);
     }
     // m_BiasAddEn
-    if (m_BiasAtomId < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_BiasOffsetInAtom < 0) {
+    if (m_BiasSbAddress < 0) {
         RETURN_ASSERT(false);
     }
 
@@ -106,10 +101,7 @@ ActivationWaveOp::verify() const
             RETURN_ASSERT(false);
         }
     } else {
-        if (m_DstSbAtomId < 0) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstSbOffsetInAtom < 0) {
+        if (m_DstSbAddress < 0) {
             RETURN_ASSERT(false);
         }
     }
