@@ -70,7 +70,7 @@
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,1,1,1],
       "sb_address": 24576,
-      "waveop_name": "1conv1ba/i1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0",
+      "waveop_name": "1conv1ba/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
     {
@@ -113,7 +113,7 @@
       "ofmap_tile_width": 4,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv1ba/i1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0",
+        "1conv1ba/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
         "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0"
       ],
       "psum_bank_id": 0,
@@ -149,7 +149,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,1,1],
       "sb_address": 77824,
-      "waveop_name": "1conv1ba/bias1/read/SBAtomFile_bias_76_n0_m0_h0_w0_c0_r0_s0",
+      "waveop_name": "1conv1ba/bias1/read/SBAtomFile_bias_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
     {
@@ -171,7 +171,7 @@
       "num_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv1ba/bias1/read/SBAtomFile_bias_76_n0_m0_h0_w0_c0_r0_s0",
+        "1conv1ba/bias1/read/SBAtomFile_bias_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv1ba/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
       "src_psum_bank_id": 0,
@@ -201,7 +201,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
       "sb_address": 81920,
-      "waveop_name": "1conv1ba/i2/SBAtomSave_scratch_80_n0_m0_h0_w0",
+      "waveop_name": "1conv1ba/i2/SBAtomSave_scratch_0_n0_m0_h0_w0",
       "waveop_type": "SBAtomSave"
     }
   ]

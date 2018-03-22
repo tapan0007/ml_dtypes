@@ -49,7 +49,7 @@
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,3,3,1],
       "sb_address": 24576,
-      "waveop_name": "1conv/i1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0",
+      "waveop_name": "1conv/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
     {
@@ -92,7 +92,7 @@
       "ofmap_tile_width": 34,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/SBAtomFile_weights_24_n0_m0_h0_w0_c0_r0_s0",
+        "1conv/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
         "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0"
       ],
       "psum_bank_id": 0,
@@ -899,7 +899,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
       "sb_address": 81920,
-      "waveop_name": "1conv/i1/SBAtomSave_scratch_80_n0_m0_h1_w0",
+      "waveop_name": "1conv/i1/SBAtomSave_scratch_0_n0_m0_h1_w0",
       "waveop_type": "SBAtomSave"
     },
     {
@@ -1263,7 +1263,7 @@
       "weights_sb_address": 24592
     },
     {
-      "dst_sb_address": 82944,
+      "dst_sb_address": 82900,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -1658,7 +1658,7 @@
       "weights_sb_address": 24592
     },
     {
-      "dst_sb_address": 83434,
+      "dst_sb_address": 83390,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -1708,8 +1708,8 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 82944,
-      "waveop_name": "1conv/i1/SBAtomSave_scratch_81_n0_m0_h3_w0",
+      "sb_address": 82900,
+      "waveop_name": "1conv/i1/SBAtomSave_scratch_1_n0_m0_h3_w0",
       "waveop_type": "SBAtomSave"
     },
     {
@@ -2093,7 +2093,7 @@
       "weights_sb_address": 24592
     },
     {
-      "dst_sb_address": 83968,
+      "dst_sb_address": 83880,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -2143,8 +2143,8 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 83968,
-      "waveop_name": "1conv/i1/SBAtomSave_scratch_82_n0_m0_h4_w0",
+      "sb_address": 83880,
+      "waveop_name": "1conv/i1/SBAtomSave_scratch_2_n0_m0_h4_w0",
       "waveop_type": "SBAtomSave"
     }
   ]
