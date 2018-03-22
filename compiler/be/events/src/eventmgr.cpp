@@ -2,6 +2,8 @@
 
 #include "utils/inc/asserter.hpp"
 
+#include "arch/inc/arch.hpp"
+
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
 #include "wave/inc/matmulwaveop.hpp"
@@ -33,8 +35,8 @@ EventMgr::getLocalEventId(const wave::WaveEdge* edge)
     const wave::WaveOp* const fromOp = edge->gFromOp();
     const wave::WaveOp* const toOp = edge->gToOp();
     Assert(fromOp != toOp, "From (", fromOp->gName(), ") and to (", toOp->gName(), ") waveops should be different");
-    const kcc_int32 eventId = m_EventId++;
-    if (m_EventId >= 256) {
+    const EventId eventId = m_EventId++;
+    if (m_EventId >= arch::Arch::gNumberTpbEvents()) {
         m_EventId = 0;
     }
     return eventId;
