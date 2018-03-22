@@ -59,6 +59,7 @@ parser.add_argument('--select', help='Select a specific tests: waived_only, not_
 parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
 parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=False)
 parser.add_argument('--timeout', help='Timeout for each test, default 3600', type=int, default=3600)
+parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -67,6 +68,7 @@ parallel = args.parallel
 select = args.select
 selectSet = set(["any", "waived_only", "not_waived"])
 parallelStreamsForWave = args.parallel_streams_for_wave
+inklingArgs = " ".join(args.inkling_debugflags)
 if not select in selectSet:
   print("\nERROR: --select must be one of " + str(selectSet))
   sys.exit(1)
@@ -78,7 +80,7 @@ if verbose:
 #   level-name
 #   level is relative complexity and runtime cost, easiest 0  to most complex 9
 #   Name can be composed of anything - 0 can be used as base/existence test
-#   Columns: (nnStruct, nnConfig, nnLabel, nnArgs, images)
+#   Columns: (nnStruct, nnConfig, nnLabel, nnArgs, rtArgs)
 
 testConfigMap = {
   "0-1conv0"      : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv"],
@@ -300,33 +302,33 @@ testConfigMap = {
 
 
   # Resnet
-  "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition auto --executors wave all  --scheduler wave" % (rnPreFp16, rnPost) , rnDogJpg],
-  "8-rn50_nne_fp32_meauto" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition meauto --executors wave all host 17  --scheduler wave" % (rnPreFp32, rnPost) , rnDogJpg],
-  #"8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 " % (rnPreFp16, rnPost), "linspace1"],
-  "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from avg_pool/AvgPool --executors host 0 host 1 " % (rnPreFp16, rnPost) , rnDogJpg],
-  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from avg_pool/AvgPool --executors host 0 wave 1 " % (rnPreFp32, rnPost) , rnDogJpg],
-  "4-rn50_nne_from1_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from bn_conv1/batchnorm_1/add_1   --executors wave 0 host 1  --scheduler wave" % (rnPreFp32, rnPost) , rnDogJpg],
-  "4-rn50_nne_from2_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from activation_1/Relu   --executors wave 0 host 1  --scheduler wave" % (rnPreFp32, rnPost) , rnDogJpg],
-  "4-rn50_nne_from3_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from max_pooling2d_1/MaxPool   --executors wave 0 host 1  --scheduler wave" % (rnPreFp32, rnPost) , rnDogJpg],
-  "4-rn50_nne_from1_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from bn_conv1/batchnorm_1/add_1   --executors wave 0 host 1  --scheduler wave" % (rnPreFp16, rnPost) , rnDogJpg],
-  "4-rn50_nne_from2_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from activation_1/Relu   --executors wave 0 host 1  --scheduler wave" % (rnPreFp16, rnPost) , rnDogJpg],
-  "4-rn50_nne_from3_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from max_pooling2d_1/MaxPool   --executors wave 0 host 1  --scheduler wave" % (rnPreFp16, rnPost) , rnDogJpg],
-  "7-rn50_nne_fc_waveopt"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave" % (rnPreFp16, rnPost) , rnDogJpg],
-  "7-rn50_nne_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave" % (rnPreFp32, rnPost) , rnDogJpg],
-  "7-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave" % (rnPreFp32, rnPost) , rnDogJpg],
-  "7-rn50_nne_fp16_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave" % (rnPreFp16, rnPost) , rnDogJpg],
-  "7-rn50_nne_fc_wave"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from avg_pool/AvgPool --executors wave 0 host 1  --scheduler wave" % (rnPreFp16, rnPost) , rnDogJpg],
-  "7-rn50_nne_conv_wave" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition conv --executors host all wave 01 03 04 07 09 12 14 16 19 21 23 26 27 30 32 35 37 39 42 44 46 49 51 53 56 57 60 62 65 67 69 72 74 76 79 81 83 86 88 90 93 95 97 100 101 104 106 109 111 113 116 118 120  --scheduler wave" % (rnPreFp32, rnPost) , rnDogJpg],
-  "7-rn50_nne_fp32_host"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s   --partition from fc1000/Softmax --executors host all " % (rnPreFp32, rnPost), rnDogJpg],
+  "8-rn50_nne_auto" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition auto --executors wave all  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "8-rn50_nne_fp32_meauto" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition meauto --executors wave all host 17  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  #"8-rn50_nne_conv" : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition conv --executors tcc 2 6 8 13 15 20 22 host 0 --images %s" %(rnPreFp16, rnPost, rnDogJpg), "linspace1"],
+  "4-rn50_nne_fc"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from avg_pool/AvgPool --executors host 0 host 1 --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from avg_pool/AvgPool --executors host 0 wave 1 --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "4-rn50_nne_from1_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from bn_conv1/batchnorm_1/add_1   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "4-rn50_nne_from2_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from activation_1/Relu   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "4-rn50_nne_from3_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from max_pooling2d_1/MaxPool   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "4-rn50_nne_from1_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from bn_conv1/batchnorm_1/add_1   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "4-rn50_nne_from2_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from activation_1/Relu   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "4-rn50_nne_from3_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from max_pooling2d_1/MaxPool   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fc_waveopt"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp16_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fc_wave"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from avg_pool/AvgPool --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_conv_wave" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition conv --executors host all wave 01 03 04 07 09 12 14 16 19 21 23 26 27 30 32 35 37 39 42 44 46 49 51 53 56 57 60 62 65 67 69 72 74 76 79 81 83 86 88 90 93 95 97 100 101 104 106 109 111 113 116 118 120  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp32_host"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s   --partition from fc1000/Softmax --executors host all --images %s" %(rnPreFp32, rnPost, rnDogJpg),"--input_files %s" % rnDogJpg ],
 
 
   # Matmult
-  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave"% (rnPreFp32, rnPost), rnDogJpg],
-  "4-rn50_matmul_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 waveopt 1 --scheduler wave"% (rnPreFp32, rnPost), rnDogJpg],
-  "4-rn50_matmul_nosm_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --scheduler wave" % (rnPreFp32, rnPost), rnDogJpg],
+  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave --images %s "% (rnPreFp32, rnPost, rnDogJpg),"--input_files %s" % rnDogJpg ],
+  "4-rn50_matmul_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 waveopt 1 --scheduler wave --images %s"% (rnPreFp32, rnPost, rnDogJpg),"--input_files %s" % rnDogJpg ],
+  "4-rn50_matmul_nosm_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg),"--input_files %s" % rnDogJpg ],
 
   # LSTM
-  "4-ptb_word_lm1"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/frozen_graph.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave"% (rnPreFp32, rnPost), rnDogJpg],
+  "4-ptb_word_lm1"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/frozen_graph.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave"% (rnPreFp32, rnPost),"--input_files %s" % rnDogJpg ],
 }
 
 # Regression waiver mechanism 
@@ -667,19 +669,22 @@ class Ktests:
     start_time = time.time()
     self.numRunning = 0
     self.processes = []
+
+    outPrefix = "trivnet_"
     for testName in self.testList:
       # Add default NN args
       while len(self.testConfigMap[testName]) < 5:
         self.testConfigMap[testName].append("")
-      (nnStruct, nnConfig, nnLabel, nnArgs, images) = self.testConfigMap[testName]
+      (nnStruct, nnConfig, nnLabel, nnArgs, rtArgs) = self.testConfigMap[testName]
       if verbose:
         print("\n############## %s ##############" % testName)
-      parallelStreamsForWaveMaybe = ""
       if parallelStreamsForWave and "wave" in testName:
-        parallelStreamsForWaveMaybe = "--parallel_streams" # forward option to compiler
-      cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" PARALLEL_STREAMS_FOR_WAVE_MAYBE="%s" ' % (self.testTimeout, self.testTimeout, testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs, parallelStreamsForWaveMaybe)
-      if images != "":
-        cmd += ' IMAGES="%s" '%(images)
+        nnArgs += " --parallel_streams" # forward option to compiler
+      if "--images" not in nnArgs:
+          nnArgs += " --images %sref_input.npy" % outPrefix # default if none..
+
+      rtArgs += ' --inkling_debugflags "%s"' % inklingArgs # add passed inkling args to rt Args
+      cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (self.testTimeout, self.testTimeout, testName, testName, nnStruct, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs) 
       cmd +=  ' > log-top.txt 2>&1'
       # Remove the old directory
       if os.path.exists(testName):
