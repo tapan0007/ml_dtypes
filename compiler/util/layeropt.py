@@ -227,6 +227,7 @@ class CircularBuffer:
         self.reset()
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
+        self.chunk2saved_map = {}   # holds all the saved atoms
 
     def reset(self):
         self.head_pointer = self.start
@@ -474,16 +475,18 @@ class CircularBuffer:
         if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
         self.DRAM_elem_read += length * fmap_count / self.item_sz
-        #print("gen_dram_read_waveop - DRAM_elem_read: ", self.DRAM_elem_read, "length: ", length, "fmap_count: ",fmap_count)
-        #print("fmap_data_len",fmap_data_len, "atom_data_sz",self.atom_data_sz)
-        #print("chunk_id", chunk_id, "offset", offset)
         if (args.golden_inputs):            
             simout_file = self.dram_data_in_file.replace("-midout.", ".")
         else:            
             simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
-        waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())            
+        waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
+        # add dependency if the chunk belongs to a saved atom
+        previous_waveops = []
+        chunk_name = "%s_%d"%(simout_file, chunk_id)
+        if (chunk_name in tpb.statebuffer.circbuf_scratch.chunk2saved_map):
+            previous_waveops.append(tpb.statebuffer.circbuf_scratch.chunk2saved_map[chunk_name])
         return {
-              'previous_waveops' : [],
+              'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomFile",
               'waveop_name'      : waveop_name,
               'layer_name'       : self.layer_name,
@@ -522,6 +525,7 @@ class CircularBuffer:
         assert(self.dram_data_out_file != None)
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
+        self.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
