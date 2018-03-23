@@ -50,13 +50,14 @@ if kPath == None or kePath == None or iPath == None or \
   exit(1)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--test', help='Run specific tests (list)', nargs='+', default=[])
+parser.add_argument('--level', help='Run tests upto this level, default 4. This defines the base set of tests', type=int, default=4)
+parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any. This reduces test set from defined by --level', default="any")
+parser.add_argument('--test', help='Run specific tests (list). This overrides --level, --select', nargs='+', default=[])
+parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
+parser.add_argument('--filter', help='Like --select, but it is applied after --test, --test_re', default="any")
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
-parser.add_argument('--level', help='Run tests upto this level, default 4', type=int, default=4)
 parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=multiprocessing.cpu_count())
-parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any', default="any")
-parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
 parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=False)
 parser.add_argument('--timeout', help='Timeout for each test, default 3600', type=int, default=3600)
 
@@ -69,6 +70,9 @@ selectSet = set(["any", "waived_only", "not_waived"])
 parallelStreamsForWave = args.parallel_streams_for_wave
 if not select in selectSet:
   print("\nERROR: --select must be one of " + str(selectSet))
+  sys.exit(1)
+if not args.filter in selectSet:
+  print("\nERROR: --filter must be one of " + str(selectSet))
   sys.exit(1)
 
 if verbose:
@@ -377,9 +381,9 @@ def calcIsWaived(testName, testWaiver):
   return False
 
 
-def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSelect):
+def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSelect, argFilter):
   testList = []
-  # Filter by level and select method
+  # Pre-select by level and the select method
   for testName in sorted(testConfigMap):
     isWaived = calcIsWaived(testName, testWaiver)
     if getLevel(testName) <= level:
@@ -401,9 +405,15 @@ def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSele
       for regexp in argTestRe:
         if re.search(regexp, testName):
           testList.append(testName)
+  # Filter by the --filter method
+  testListFiltered = []
+  for testName in testList:
+    isWaived = calcIsWaived(testName, testWaiver)
+    if argFilter == "any" or (isWaived and argFilter == "waived_only") or ((not isWaived) and argFilter == "not_waived"):
+      testListFiltered.append(testName)
   # Remove duplicates
-  testList = sorted(list(set(testList)))
-  return testList
+  testListFinal = sorted(list(set(testListFiltered)))
+  return testListFinal
 
 
 def runCmd(cmd):
@@ -796,7 +806,7 @@ class Ktests:
     
 ###############################################################################
 # Execute
-testList = selectTests(testConfigMap, testWaiver, args.level, args.test, args.test_re, args.select)
+testList = selectTests(testConfigMap, testWaiver, args.level, args.test, args.test_re, args.select, args.filter)
 if args.show_only:
   print("INFO: --show_only mode: selected tests are " + str(testList))
 else:
