@@ -110,7 +110,7 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(FmapYNum);
     KCC_ARCHIVE(FmapYStep);
     KCC_ARCHIVE(FmapZNum);
-    KCC_ARCHIVE(FmapZStepAtoms);
+    KCC_ARCHIVE(FmapZStep);
     KCC_ARCHIVE(IfmapCount);
     KCC_ARCHIVE(IfmapTileHeight);
     KCC_ARCHIVE(IfmapTileWidth);

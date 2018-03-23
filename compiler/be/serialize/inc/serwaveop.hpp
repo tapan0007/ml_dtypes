@@ -50,7 +50,7 @@ constexpr static const char* WaveOpKey_FmapXStep            = "fmap_x_step";
 constexpr static const char* WaveOpKey_FmapYNum             = "fmap_y_num";
 constexpr static const char* WaveOpKey_FmapYStep            = "fmap_y_step";
 constexpr static const char* WaveOpKey_FmapZNum             = "fmap_z_num";
-constexpr static const char* WaveOpKey_FmapZStepAtoms       = "fmap_z_step_atoms";
+constexpr static const char* WaveOpKey_FmapZStep            = "fmap_z_step";
 constexpr static const char* WaveOpKey_IfmapCount           = "ifmap_count";
 constexpr static const char* WaveOpKey_IfmapTileHeight      = "ifmap_tile_height";
 constexpr static const char* WaveOpKey_IfmapTileWidth       = "ifmap_tile_width";
@@ -283,7 +283,7 @@ public:
     kcc_int32                   m_FmapYNum              = -1;
     kcc_int32                   m_FmapYStep             = -1;
     kcc_int32                   m_FmapZNum              = -1;
-    kcc_int32                   m_FmapZStepAtoms        = -1;
+    kcc_int32                   m_FmapZStep             = -1;
     //kcc_int32                   m_IfmapCount            = -1;
     kcc_int32                   m_IfmapTileHeight       = -1;
     kcc_int32                   m_IfmapTileWidth        = -1;

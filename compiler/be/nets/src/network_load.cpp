@@ -418,7 +418,7 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(FmapYNum);
     KCC_UNSERIALIZE(FmapYStep);
     KCC_UNSERIALIZE(FmapZNum);
-    KCC_UNSERIALIZE(FmapZStepAtoms);
+    KCC_UNSERIALIZE(FmapZStep);
     KCC_UNSERIALIZE(IfmapCount);
     KCC_UNSERIALIZE(IfmapTileHeight);
     KCC_UNSERIALIZE(IfmapTileWidth);
