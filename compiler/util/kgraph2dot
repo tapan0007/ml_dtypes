@@ -81,14 +81,12 @@ class KgraphJson(object):
         edgeIdx = 0
         for prevNode in layer["previous_waveops"]:
           edgeAttrs = {}
-          if len(layer["previous_event_ids"]) > edgeIdx:
+          if layer.get("previous_event_ids", None) and len(layer["previous_event_ids"]) > edgeIdx:
+            # events
             edgeAttrs["label"] = "E %d" % layer["previous_event_ids"][edgeIdx]
             edgeAttrs["color"] = "blue"
           dot.edge(prevNode, nodeName, "", edgeAttrs)
-          #print(dot.source)
-
-          # events
-          
+          #print(dot.source)          
           edgeIdx += 1
       dot.format = "svg"
       jsonIn = self.jsonFile
