@@ -148,6 +148,10 @@ class TfFe:
               re.search("input", tfop.name, re.I) != None):
         #print("DEBUG created NodeInput")
           node = kog.NodeInput(tfNode.name, tfop.op, add_attrs)
+          # At somepoint we;ll need to support multi-input networks
+          # For now use 1st input
+          #if self.__kg.getInputNode() == None:
+          #  self.__kg.setInputNode(node)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)
@@ -193,8 +197,20 @@ class TfFe:
         numWeights += 1
     print("INFO: wrote %d weights" % numWeights)
 
-
-  def writeImages(self, outPrefix, imageFile, inputNodeName):
+  # Convert --input_constants variable valueOrNpy pairs to feed dictionary
+  def inputConst2dict(self, inputConstants):
+    feedDict = {}
+    if len(inputConstants) > 0:
+      for var, valStr in zip(inputConstants[0::2], inputConstants[1::2]):
+        val = None
+        try:
+          val = eval(valStr)
+        except:
+          val = np.load(valStr)
+        feedDict[var] = val
+    return feedDict
+  
+  def writeImages(self, outPrefix, imageFile, inputNodeName, inputConstants, excludeOpsFromCaptureRe):
     self.__kg.levelize()
     inputNOde = None
     if inputNodeName == None:
@@ -209,10 +225,13 @@ class TfFe:
     assert(inputNode != None)
     self.__kg.setInputNode(inputNode)
     inputTfOpName = inputNode.getAttr("tfop").name
-
+    
+    inputFeedDict = self.inputConst2dict(inputConstants)
+    
     # Grow GPU memory as needed at the cost of fragmentation.
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.08
     with tf.Session(config=config) as sess:
       tf.import_graph_def(self.__gd, name="")
       graph = sess.graph
@@ -255,40 +274,57 @@ class TfFe:
           op = graph.get_operation_by_name(tfOpName)
           #if (re.search("conv", n.getOpType(), re.I) != None):
             #print("DEBUG: conv  ", n.getOpName())
-          for tensor in op.outputs:
-            shape = tensor.get_shape().as_list()
-            # Handle missing batch dimension on some input nodes
-            if len(shape) > 0 and shape[0] == None:
-              shape[0] = 1
-              print("WARNING: adjusted batch dimension \"None\" to 1 on  %s  %s  %s" %
-                (n.getOpType(), n.getName(), str(shape))) 
-            if len(shape) == 0:
-              print("WARNING: zero-dimension op output on  %s  %s  %s" %
-                (n.getOpType(), n.getName(), str(shape))) 
-            else:
-              # Generic case excluding batching above
-              for i in range(len(shape)):
-                if shape[i] == None:
-                  shape[i] = 1
-                  print("WARNING: dimension %d \"None\" to 1 on  %s  %s  %s" %
-                    (i, n.getOpType(), n.getName(), str(shape))) 
-                  
-            npInfo = kog.NpInfo(tensor.name, shape)
-            n.appendNpInfo(npInfo)
-            tfVars.append(tensor.name)
-            kNodes.append((n, npInfo))
+          if excludeOpsFromCaptureRe == None or not re.match(excludeOpsFromCaptureRe, tfOpName):
+            for tensor in op.outputs:
+              shape = tensor.get_shape().as_list()
+              # Handle missing batch dimension on some input nodes
+              if len(shape) > 0 and shape[0] == None:
+                shape[0] = 1
+                print("WARNING: adjusted batch dimension \"None\" to 1 on  %s  %s  %s" %
+                  (n.getOpType(), n.getName(), str(shape))) 
+              if len(shape) == 0:
+                print("WARNING: zero-dimension op output on  %s  %s  %s" %
+                  (n.getOpType(), n.getName(), str(shape))) 
+              else:
+                # Generic case excluding batching above
+                for i in range(len(shape)):
+                  if shape[i] == None:
+                    shape[i] = 1
+                    print("WARNING: dimension %d \"None\" to 1 on  %s  %s  %s" %
+                      (i, n.getOpType(), n.getName(), str(shape))) 
+              npInfo = kog.NpInfo(tensor.name, shape)
+              #lookedUpTensor = graph.get_tensor_by_name(tensor.name)
+              #if lookedUpTensor == None:
+              #  print("DEBUG: tensor %s not found" % tensor.name)
+              n.appendNpInfo(npInfo)
+              tfVars.append(tensor.name)
+              kNodes.append((n, npInfo))
+          else:
+            print("INFO: Excluded node from capture %s", tfOpName)
           # update/collect attributes
           # Strides are in the pb but require complex parsing (op.get_attr)
           #   which seems only accessible from the graph so deferred to calibration
           for attr in ["strides", "padding", "data_format", "ksize"]:
             if attr in op.node_def.attr:
               n.setAttr(attr, op.get_attr(attr))
-              #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))    
-          
+              #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))          
       
       print("INFO: identified %d tensors, computing ..." % len(tfVars))
       numImages = 0
-      tfResults = sess.run(tfVars, feed_dict={inputTensor.name : img})
+      inputFeedDict.update({inputTensor.name : img})
+      #tfVars = ['dropout_1/keras_learning_phase:0']
+      
+      # For --exclude_ops_from_capture
+      diagnoseCompiledOutVars = False
+      if diagnoseCompiledOutVars:
+        for tmpVar in tfVars:
+          try:
+            tfResults = sess.run(tmpVar, feed_dict=inputFeedDict)
+          except:
+            print("DEBUG: TF Failed to compute %s" % tmpVar)
+      else:
+        tfResults = sess.run(tfVars, feed_dict=inputFeedDict)
+
       perDot = max(1, int(len(tfVars) / 80))
       print("INFO: writing if/ofmap files ...")
       for ((n, npInfo), var, nd) in zip(kNodes, tfVars, tfResults):
@@ -328,6 +364,7 @@ class TfFe:
   # Color graph by the datatype. Intended for int8 inteference so 8b is green
   @staticmethod
   def dType2color(dType):
+    #print("DEBUG: dType=%s" % str(dType))
     return {
       "uint8"   : "black:green",
       "int8"    : "black:green",
@@ -382,11 +419,13 @@ class TfFe:
           edge = faninEdges[i]
           p = edge.getFromPosNode()
           (fromNode, fromIndex) = (p.node, p.index)
-          npInfo = fromNode.getNpInfo()[fromIndex]
-          row["Input" + str(i) + "dType"] = npInfo.dType
-          row["Input" + str(i) + "Shape"] = npInfo.npShape
-          row["Input" + str(i) + "File"] = npInfo.npFile
-          inputSize += TfFe.npShapeToSize(npInfo.npShape)
+          fromNpInfos = fromNode.getNpInfo()
+          if len(fromNpInfos) > fromIndex:
+            npInfo = fromNpInfos[fromIndex]
+            row["Input" + str(i) + "dType"] = npInfo.dType
+            row["Input" + str(i) + "Shape"] = npInfo.npShape
+            row["Input" + str(i) + "File"] = npInfo.npFile
+            inputSize += TfFe.npShapeToSize(npInfo.npShape)
           
           # Populate edge attributes for plotting type and size
           edge.setLabel(str(npInfo.dType) + "\\n" + str(npInfo.npShape))
