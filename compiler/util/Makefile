@@ -26,6 +26,6 @@ check:
 	sanity
 
 %: 
-	@echo "******************* $* (layeropt_tests/$*/$*.log) ********************" && cd layeropt_tests/$* && if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 3 --golden_inputs --kgraph out_compiler.json --wavegraph out_wavegraph.json --dot out_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi && if [ -e trivnet_compiler.json ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 3 --golden_inputs --kgraph trivnet_compiler.json --wavegraph trivnet_wavegraph.json --dot trivnet_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi
+	@echo "******************* $* (layeropt_tests/$*/$*.log) ********************" && cd layeropt_tests/$* && if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 5 --golden_inputs --kgraph out_compiler.json --wavegraph out_wavegraph.json --dot out_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi && if [ -e trivnet_compiler.json ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 5 --golden_inputs --kgraph trivnet_compiler.json --wavegraph trivnet_wavegraph.json --dot trivnet_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi && if [ -e compiler.json ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 5 --golden_inputs --kgraph compiler.json --wavegraph trivnet_wavegraph.json --dot trivnet_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi
 
 
