@@ -322,7 +322,7 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     KCC_SERIALIZE(FmapYNum);
     KCC_SERIALIZE(FmapYStep);
     KCC_SERIALIZE(FmapZNum);
-    KCC_SERIALIZE(FmapZStepAtoms);
+    KCC_SERIALIZE(FmapZStep);
     KCC_SERIALIZE(IfmapCount);
     KCC_SERIALIZE(IfmapTileHeight);
     KCC_SERIALIZE(IfmapTileWidth);

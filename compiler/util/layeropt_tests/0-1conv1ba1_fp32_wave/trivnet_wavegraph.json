@@ -99,7 +99,7 @@
       "fmap_y_num": 4,
       "fmap_y_step": 4,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 64,
       "ifmap_count": 1,
       "ifmap_tile_height": 4,
       "ifmap_tile_width": 4,
