@@ -202,25 +202,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     //************************************************************************
     bool instructionWritten = false;
     if (qParallelStreams()) { // Outgoing events
-        bool firstEmb = true;
-
-        for (auto succWaveEdge : matmulWaveop->gSuccWaveEdges()) {
-            if (! succWaveEdge->qNeedToImplementWait()) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                matmulInstr.sync.set_event_id   = succWaveEdge->gEventId();
-                matmulInstr.sync.set_event_mode = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-                m_WaveCode.writeInstruction(matmulInstr);
-                instructionWritten = true;
-            } else {
-                SET setEventInstr;
-                setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(setEventInstr, engineId);
-            }
-        }
+        instructionWritten = processOutgoingEdges(matmulWaveop, matmulInstr);
     }
     if (! instructionWritten) {
         m_WaveCode.writeInstruction(matmulInstr);
