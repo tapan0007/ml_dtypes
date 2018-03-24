@@ -2392,7 +2392,6 @@ class TPBSched:
                                 else:
                                     # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
                                     result_tile_tmp = (psum_temp[i*output_params_op.ofmap_full_tile_sz : (i+1)*output_params_op.ofmap_full_tile_sz, j])
-                                    print("%d %s"%(output_params_op.ofmap_full_tile_sz, psum_temp.shape))
                                     result_tile = result_tile_tmp.reshape((output_params_op.ofmap_full_tiley_sz, output_params_op.ofmap_full_tilex_sz))
                                     DBG_DUMP_ARRAY("Intermediate result: ", result_tile)
                                     # NCHW
