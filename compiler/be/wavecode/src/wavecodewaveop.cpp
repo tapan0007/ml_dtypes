@@ -66,32 +66,6 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EventId& waitEventId,
     }
 }
 
-#if 0
-void
-WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
-{
-    bool firstEmb = true;
-
-    for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-        if (! succWaveEdge->qNeedToImplementWait()) {
-            continue;
-        }
-
-        if (firstEmb) {
-            firstEmb = false;
-            sync.set_event_id    = succWaveEdge->gEventId();
-            sync.set_event_mode  = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-            m_WaveCode.writeInstruction(activationInstr);
-            instructionWritten = true;
-        } else {
-            SET setEventInstr;
-            setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode.writeInstruction(setEventInstr, engineId);
-        }
-    }
-}
-#endif
-
 void
 WaveCodeWaveOp::findSetEventIdMode(wave::WaveOp* waveop, EventId& setEventId, events::EventSetMode& setEventMode)
 {
