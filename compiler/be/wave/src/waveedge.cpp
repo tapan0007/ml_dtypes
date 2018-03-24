@@ -39,9 +39,6 @@ WaveEdge::qNeedToWaitFor() const
 {
     const wave::WaveOp* const prevWaveop = gFromOp();
     const wave::WaveOp* const succWaveop = gToOp();
-    Assert(prevWaveop->gType() != succWaveop->gType(),
-        "Pred waveop '", prevWaveop->gName(), "' and succ waveop '", succWaveop->gName(),
-        "' have identical type ", static_cast<int>(prevWaveop->gType()));
 
     // when two waveops execute on different engines, need for sync
     if (prevWaveop->gEngineId() != succWaveop->gEngineId()) {
