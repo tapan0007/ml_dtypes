@@ -6,8 +6,6 @@
 #define KCC_EVENTS_EVENTMGR_H
 
 namespace kcc {
-//enum class EventWaitMode;
-//enum class EventSetMode;
 
 namespace wave {
 class MatMulWaveOp;

@@ -87,14 +87,10 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     bool firstEmbEvt = true;
     if (qParallelStreams()) { // incoming events
         for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
-                std::vector<const wave::WaveEdge*> prevEdgesWithoutEvent;
+            if (! prevWaveEdge->qNeedToImplementWait()) {
                 continue;
             }
             const auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
 
             if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
                 if (prevSbAtomLoadWaveop->qContainWeights()) {
@@ -169,13 +165,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
         // Inspect incoming edges/events
         for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
+            if (! prevWaveEdge->qNeedToImplementWait()) {
                 continue;
             }
             const auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
 
             if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
                 if (! prevSbAtomLoadWaveop->qContainWeights()) { // Load Ifmap
@@ -212,11 +205,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         bool firstEmb = true;
 
         for (auto succWaveEdge : matmulWaveop->gSuccWaveEdges()) {
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gEngineId() == engineId) {
+            if (! succWaveEdge->qNeedToImplementWait()) {
                 continue;
             }
 

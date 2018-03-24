@@ -31,6 +31,8 @@ public:
     //----------------------------------------------------------------
     WaveCodeSbAtom(WaveCodeRef waveCode);
 
+protected:
+    void processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop);
 
 private:
 };

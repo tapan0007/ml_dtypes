@@ -45,6 +45,9 @@ eventWaitMode2Int(EventWaitMode mode)
     case EventWaitMode::SetThenClear:
         return WAIT_EVENT_SET_THEN_CLEAR;
         break;
+    case EventWaitMode::Invalid:
+        return WAIT_EVENT_INVALID;
+        break;
     }
     Assert(false, "Wrong EventWaitMode: ", static_cast<kcc_int32>(mode));
     return 0;
@@ -67,6 +70,9 @@ eventSetMode2Int(EventSetMode mode)
         break;
     case EventSetMode::OnEndWrDst:
         return SET_EVENT_ON_END_WR_DST;
+        break;
+    case EventSetMode::Invalid:
+        return SET_EVENT_INVALID;
         break;
     }
     Assert(false, "Wrong EventSetMode: ", static_cast<kcc_int32>(mode));

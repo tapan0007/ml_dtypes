@@ -17,12 +17,16 @@ enum class EventWaitMode {
     NoEvent         = NO_WAIT_EVENT,
     SetOnly         = WAIT_EVENT_SET,
     SetThenClear    = WAIT_EVENT_SET_THEN_CLEAR,
+
+    Invalid         = WAIT_EVENT_INVALID
 };
 
 enum class EventSetMode {
     NoEvent         = NO_SET_EVENT,
     OnEndRdSrc      = SET_EVENT_ON_END_RD_SRC,
     OnEndWrDst      = SET_EVENT_ON_END_WR_DST,
+
+    Invalid         = SET_EVENT_INVALID
 };
 
 
@@ -61,9 +65,9 @@ private:
     Channel& operator= (const Channel&) = delete;
 
 private:
-    EventSetMode        m_SetEventMode  = EventSetMode::NoEvent;
+    EventSetMode        m_SetEventMode  = EventSetMode::Invalid;
     EventId             m_EventId       = EventId_Invalid;
-    EventWaitMode       m_WaitEventMode = EventWaitMode::NoEvent;
+    EventWaitMode       m_WaitEventMode = EventWaitMode::Invalid;
 };
 
 

@@ -62,6 +62,11 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
         SIM_WRNPY npyToDramInstr;
+        npyToDramInstr.sync.wait_event_id      = -1;
+        npyToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+        npyToDramInstr.sync.set_event_id      = -1;
+        npyToDramInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::NoEvent);
+
         const kcc_int64 numPySize = sbAtomLoadWaveOp->gLoadDataSizeInBytes();
         strcpy(npyToDramInstr.src_fname, sbAtomLoadWaveOp->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
@@ -91,49 +96,12 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
-        bool firstEmb = true;
-
-        for (auto prevWaveEdge : sbAtomLoadWaveOp->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            const auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                waitEventId = prevWaveEdge->gEventId();
-                waitEventMode = prevWaveEdge->gWaitEventMode();
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id  = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
+        processIncomingEdges(sbAtomLoadWaveOp, waitEventId, waitEventMode);
     } // end incoming events
 
 
     if (qParallelStreams()) { // Find first successor for embedded
-        bool firstEmb = true;
-
-        for (auto succWaveEdge : sbAtomLoadWaveOp->gSuccWaveEdges()) {
-            auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gType() == sbAtomLoadWaveOp->gType()) {
-                continue;
-            }
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                setEventId = succWaveEdge->gEventId();
-                setEventMode = succWaveEdge->gSetEventMode();
-                break;
-            }
-        }
+        findSetEventIdMode(sbAtomLoadWaveOp, setEventId,  setEventMode);
     }
 
     //************************************************************************
@@ -161,7 +129,6 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
             if (numPartitions-1 == partIdx) { // only the last reading informs successors
                 dramToStateBufInstr.sync.set_event_id       = setEventId;
                 dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(setEventMode);
-
             }
         }
 
@@ -173,25 +140,7 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 
     //************************************************************************
     if (qParallelStreams()) { // Write remaining SETs
-        bool firstEmb = true;
-
-        for (auto succWaveEdge : sbAtomLoadWaveOp->gSuccWaveEdges()) {
-            auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gType() == sbAtomLoadWaveOp->gType()) {
-                continue;
-            }
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false; // this set event is in embedded already in partition N-1
-            } else {
-                SET setInstr;
-                setInstr.event_id  = succWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(setInstr, engineId);
-            }
-        }
+        processOutgoingEdgesAlreadyEmb(sbAtomLoadWaveOp);
     }
 }
 

@@ -1,5 +1,7 @@
 #include "shared/inc/tpb_isa_pool.hpp"
 
+
+
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
 
@@ -99,57 +101,16 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
-        bool firstEmb = true;
-
-        for (auto prevWaveEdge : poolWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                poolInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                poolInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
+        processIncomingEdges(poolWaveop, poolInstr.sync);
     } // end incoming events
 
 
     //************************************************************************
     bool instructionWritten = false;
     if (qParallelStreams()) { // Outgoing events
-        bool firstEmb = true;
-
-        for (auto succWaveEdge : poolWaveop->gSuccWaveEdges()) {
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                poolInstr.sync.set_event_id    = succWaveEdge->gEventId();
-                poolInstr.sync.set_event_mode  = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-                m_WaveCode.writeInstruction(poolInstr);
-                instructionWritten = true;
-            } else {
-                SET setEventInstr;
-                setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(setEventInstr, engineId);
-            }
-        }
+        instructionWritten = processOutgoingEdges(poolWaveop, poolInstr);
     }
+
     if (! instructionWritten) {
         m_WaveCode.writeInstruction(poolInstr);
     }

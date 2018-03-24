@@ -37,13 +37,7 @@ public:
 
 
 private:
-    void processIncomingEdges(wave::SbAtomSaveWaveOp* waveOp,
-        EventId& waitEventId, events::EventWaitMode& waitEventMode);
 
-    void findSetEventIdMode(wave::SbAtomSaveWaveOp* waveOp,
-        EventId& setEventId, events::EventSetMode& setEventMode);
-
-    void processOutgoingEdges(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop);
 };
 
 }}

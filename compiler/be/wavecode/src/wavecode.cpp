@@ -300,6 +300,11 @@ WaveCode::saveAllNpyFiles ()
             continue;
         }
         SIM_RDNPY dramToNpyInstr;
+        dramToNpyInstr.sync.wait_event_id      = -1;
+        dramToNpyInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+        dramToNpyInstr.sync.set_event_id      = -1;
+        dramToNpyInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::NoEvent);
+
         strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);
         dramToNpyInstr.src_address          = npyFileInfo.m_FileDramOffset;
@@ -342,14 +347,17 @@ WaveCode::calculateEventAddress(EngineId engId, EventId eventId) const
 void
 WaveCode::checkForNoSync(const TPB_CMD_SYNC& sync) const
 {
+    Assert(SET_EVENT_INVALID != sync.set_event_mode, "Invalid set event mode");
+    Assert(WAIT_EVENT_INVALID != sync.wait_event_mode, "Invalid wait event mode");
+
     if (qParallelStreams()) {
         return;
     }
     Assert(NO_SET_EVENT == sync.set_event_mode,
-        "Code generation: set even mode should NONE in serial execution");
+        "Code generation: set event mode should be NONE in serial execution");
 
     Assert(NO_WAIT_EVENT == sync.wait_event_mode,
-        "Code generation: wait even mode should NONE in serial execution");
+        "Code generation: wait event mode should be NONE in serial execution");
 }
 
 

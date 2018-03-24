@@ -90,58 +90,18 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
-        bool firstEmb = true;
-
-        for (auto prevWaveEdge : activationWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                activationInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                activationInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
+        processIncomingEdges(activationWaveop, activationInstr.sync);
     } // incoming events
 
 
     //************************************************************************
     bool instructionWritten = false;
     if (qParallelStreams()) { // Outgoing events
-        bool firstEmb = true;
-
-        for (auto succWaveEdge : activationWaveop->gSuccWaveEdges()) {
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-
-            if (firstEmb) {
-                firstEmb = false;
-                activationInstr.sync.set_event_id    = succWaveEdge->gEventId();
-                activationInstr.sync.set_event_mode  = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-                m_WaveCode.writeInstruction(activationInstr);
-                instructionWritten = true;
-            } else {
-                SET setEventInstr;
-                setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(setEventInstr, engineId);
-            }
-        }
+        instructionWritten = processOutgoingEdges(activationWaveop, activationInstr);
     }
+
+
+
     if (! instructionWritten) {
         m_WaveCode.writeInstruction(activationInstr);
     }
