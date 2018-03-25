@@ -813,7 +813,10 @@ class CircularBuffer:
                 atom_id = self.chunk2atom_map[i]
                 self.free_atom(atom_id)
                 self.tracked_lower_addr = -1
-                if self.is_in_kickout_range(atom_id) or self.layer_type == "Output":
+                if (self.is_in_kickout_range(atom_id) 
+                        or self.layer_type == "Output"
+                        or args.save_layer_output == True
+                        ):
                     dram_waveops.append(self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count))
                     del self.chunk2atom_map[i]
         return dram_waveops
@@ -1626,7 +1629,7 @@ class FusedOp(list):
                 #x1 = DBG_DUMP_PSUM_COL("PSUM col0 before ResAdd (FP32): ", psum_temp, 0)
                 #x2 = DBG_DUMP_PSUM_COL("Residue col0 before ResAdd (FP32): ", residue_ifmaps, 0)
                 psum_temp = tpb.pool.resadd(psum_temp, residue_ifmaps)
-                y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
+                #y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
                 psum_bank_dst = psum_bank_src
                 dst_is_psum = False
                 if (i != len(op_list)-1):
@@ -1682,6 +1685,7 @@ class KGraph:
         self.current_node = None
         self.last_split_next_nodes = []
         self.first_leg = False
+        self.seen_begin_of_first_leg = False 
 
     # add forward edges for forward traversals        
     def add_forward_refs(self, starting_node):
@@ -1806,8 +1810,9 @@ class KGraph:
             self.last_split_next_nodes = self.last_split_next_nodes[1:]
             self.first_leg = False
         fused_ops.add(self.current_node)
-        if (self.first_leg):
+        if (self.first_leg and not self.seen_begin_of_first_leg):
             fused_ops.begin_of_first_leg = True
+            self.seen_begin_of_first_leg = True
         for i in self.current_node.next:
             print(i.data['layer_type'], ":", i.data['layer_name'])
         fused_ops = self.get_next_fused_op(fused_ops)
@@ -1817,7 +1822,8 @@ class KGraph:
         if (len(next_nodes) == 1):
             self.current_node = next_nodes[0]   
         elif (len(next_nodes) > 1):
-            # follow the leg that goes to ResAdd directly first, if it exists
+            # Delete the leg that goes to ResAdd directly first, if it exists.
+            # At the first fusedop, begin_of_first_leg=1, and the IFMAPs will be saved to residue and used by ResAdd
             if (len(next_nodes) > 2):
                 print("ERROR: can only handle fork to 2 branches (ResNet50)")
                 exit(-1)
@@ -1825,10 +1831,11 @@ class KGraph:
                 if (next_nodes[i].data['layer_type'] == "ResAdd"):
                     resadd_node = next_nodes[i]
                     del next_nodes[i]
-                    next_nodes.insert(0, resadd_node)
+                    #next_nodes.insert(0, resadd_node)
             # pick the first leg as current_node                        
             self.current_node = next_nodes[0]
             self.first_leg = True
+            self.seen_begin_of_first_leg = False
             # save the remaining legs in a list
             self.last_split_next_nodes = next_nodes[1:]
         else:
@@ -1837,7 +1844,10 @@ class KGraph:
         # if the last node is Conv or MatMul, add an identity pool op
         if (last_node_type == "Conv" or last_node_type == "MatMul"):
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
-        if (self.first_leg and self.current_node.data['layer_type'] == "ResAdd"):
+        # mark fusedops to be at end of first leg if the following op is ResAdd
+        if (self.first_leg 
+                and self.current_node != None 
+                and self.current_node.data['layer_type'] == "ResAdd"):
             fused_ops.end_of_first_leg = True
         if (args.debug > 0):
             fused_ops.show()
@@ -2255,9 +2265,9 @@ class TPBSched:
                         output_tiley = pool_op.ofmap_full_tiley_sz
                         output_tilex = pool_op.ofmap_full_tilex_sz
                         psum_fake_extract = psum_fake [0:input_tiley*input_tilex*pool_op.Tn, :]
-                        x = DBG_DUMP_PSUM_COL("PSUM before pool: ", psum_fake_extract, 0)
+                        #x = DBG_DUMP_PSUM_COL("PSUM before pool: ", psum_fake_extract, 0)
                         psum_temp = self.pool.pool(pool_op.data['layer_type'], psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
-                        x = DBG_DUMP_PSUM_COL("PSUM after pool: ", psum_temp, 0)
+                        #x = DBG_DUMP_PSUM_COL("PSUM after pool: ", psum_temp, 0)
                         for i in range(pool_op.Tn):
                             dram_ifmaps_waveops = tpb.statebuffer.circbuf_ifmaps.read_data_region(
                                                         wave_id, 
@@ -2375,10 +2385,10 @@ class TPBSched:
                         # extract PSUM data
                         psum_bank_src = op_list.conv_op.get_psum_bank()
                         psum_temp = self.pearray.extract_psum(psum_bank_src, 0, op_list.conv_op.ofmap_full_tile_sz * op_list.conv_op.Tn)
-                        x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
+                        #x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
                         # go through the remaining operations
                         psum_temp = op_list.execute_tile_waveops(tpb, wave_id, tile_id, psum_bank_src, bias, psum_temp)
-                        x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
+                        #x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
                         # if operation is the last one, dump current result into a portion of final result
                         output_params_op = op_list.conv_op
                         if (op_list.has_pool):
@@ -2393,7 +2403,7 @@ class TPBSched:
                                     # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
                                     result_tile_tmp = (psum_temp[i*output_params_op.ofmap_full_tile_sz : (i+1)*output_params_op.ofmap_full_tile_sz, j])
                                     result_tile = result_tile_tmp.reshape((output_params_op.ofmap_full_tiley_sz, output_params_op.ofmap_full_tilex_sz))
-                                    DBG_DUMP_ARRAY("Intermediate result: ", result_tile)
+                                    #DBG_DUMP_ARRAY("Intermediate result: ", result_tile)
                                     # NCHW
                                     result[n_id * output_params_op.Tn + i, 
                                             M_idx, 
@@ -2451,6 +2461,7 @@ if __name__ == "__main__":
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
+    parser.add_argument("--save_layer_output", action='store_true', help="Save intermediate layer output into files")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
