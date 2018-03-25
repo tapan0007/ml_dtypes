@@ -11,15 +11,22 @@ from graphviz import Digraph
 parser = argparse.ArgumentParser()
 parser.add_argument('--json', help='Json Kgraphs to visualize', nargs='+', default=[])
 parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
+parser.add_argument('--show', help='Invoke firefox on teh created graphs', action='store_true', default=False)
+parser.add_argument('--engine_subgraphs', help='Isolate waveopts into subgraph per engine for faster rendering', action='store_true', default=False)
+parser.add_argument('--waveop_range', help='Display only subset of waveops, default 0 1e6', type=int, nargs=2, default=[0,1000000])
 
 args = parser.parse_args()
 
 class KgraphJson(object):
-  def __init__(self, jsonFile, verbose):
+  def __init__(self, jsonFile, verbose, engineSubgraphs, waveOpRange, show):
     self.jsonFile = jsonFile
     self.verbose = verbose
+    self.show = show
+    self.engineSubgraphs = engineSubgraphs
+    self.waveOpRange = waveOpRange
     with open(self.jsonFile) as fh:
       self.jsonData = json.load(fh)
+
   t2c = {
     "Conv"     : "red",
     "MaxPool"  : "orange",
@@ -35,6 +42,17 @@ class KgraphJson(object):
     }
   def type2color(self, layerType):
     return KgraphJson.t2c.get(layerType, "black")
+
+  w2e = {
+    "Activation" : "ACT",
+    "MatMul"     : "PE",
+    "Pool"       : "POOL",
+    "ResAdd"     : "ACT",
+    "SBAtomFile" : "SP",
+    "SBAtomSave" : "SP",
+    }
+  def waveopt2engine(self, waveopType):
+    return KgraphJson.w2e.get(waveopType, "SP")
   
   def plotLayers(self):
     dot = Digraph(comment="writeDot")
@@ -61,10 +79,36 @@ class KgraphJson(object):
     dotOut = jsonIn[:-5] + "-layers.dot"
     dot.render(dotOut)
     print("INFO: wrote  %s.%s" % (dotOut, "svg"))
+    if self.show:
+      os.system("firefox %s.%s" % (dotOut, "svg"))
 
   def plotWaveops(self):
     dot = Digraph(comment="writeDot")
     if "waveops" in self.jsonData:
+      
+      numWavOps = len(self.jsonData["waveops"])
+      minRange = self.waveOpRange[0]
+      maxRange = self.waveOpRange[1]
+      self.jsonData["waveops"] = self.jsonData["waveops"][minRange:maxRange]
+      print("INFO: processing waveops %d to %d out of %d" % (minRange, maxRange, numWavOps), flush=True)
+      
+      # Rank
+      node2rank = {}
+      if False:
+        for engine in ["PE"]:
+          ops = []
+          for layer in self.jsonData["waveops"]:
+            nodeName = layer["waveop_name"]
+            layerType = layer["waveop_type"]
+            if self.waveopt2engine(layerType) == engine:
+              ops.append(nodeName)
+          rank = 1
+          for i in range(0, len(ops)):
+            node2rank[ops[i]] = rank
+            rank += 1
+
+      validOps = set([layer["waveop_name"] for layer in self.jsonData["waveops"]])
+      
       for layer in self.jsonData["waveops"]:
         # node
         attrs = {}
@@ -75,27 +119,89 @@ class KgraphJson(object):
           dotText = "\n".join(["%s : %s" % (k, v) for k,v in sorted(layer.items())]) 
         attrs["color"] = self.type2color(layerType)
         attrs["shape"] = "rect"
+        if nodeName in node2rank:
+          attrs["rank"] = str(node2rank[nodeName])
         dot.node(nodeName, dotText, attrs)
         #print(dot.source)
         # edge
         edgeIdx = 0
         for prevNode in layer["previous_waveops"]:
-          edgeAttrs = {}
-          if layer.get("previous_event_ids", None) and len(layer["previous_event_ids"]) > edgeIdx:
-            # events
-            edgeAttrs["label"] = "E %d" % layer["previous_event_ids"][edgeIdx]
-            edgeAttrs["color"] = "blue"
-          dot.edge(prevNode, nodeName, "", edgeAttrs)
-          #print(dot.source)          
-          edgeIdx += 1
+          if prevNode in validOps:
+            edgeAttrs = {}
+            edgeAttrs["weight"] = "1"
+            if "previous_event_ids" in layer and len(layer["previous_event_ids"]) > edgeIdx:
+              # events
+              eventId = layer["previous_event_ids"][edgeIdx]
+              if eventId > -1:
+                edgeAttrs["label"] = "E %d" % eventId
+                edgeAttrs["color"] = "blue"
+                edgeAttrs["weight"] = "100"
+                edgeAttrs["minlen"] = "2"
+            dot.edge(prevNode, nodeName, "", edgeAttrs)
+            #print(dot.source)          
+            edgeIdx += 1
+          else:
+            print("WARNING: ignoreing previous waveopt outside of range  " + prevNode)
+      
+      # subgraph
+      if self.engineSubgraphs:
+        if False: #  Base simple subgraph
+          for engine in ["PE", "ACT", "POOL", "SP"]:
+            with dot.subgraph(name="cluster_" + engine) as subGraph:
+              subGraph.attr(color="purple")
+              subGraph.attr(label=engine)
+              for layer in self.jsonData["waveops"]:
+                layerType = layer["waveop_type"]
+                if self.waveopt2engine(layerType) == engine:
+                  nodeName = layer["waveop_name"]
+                  subGraph.node(nodeName)
+        if True:
+          nodeAndType = []
+          for layer in self.jsonData["waveops"]:
+            nodeName = layer["waveop_name"]
+            layerType = layer["waveop_type"]
+            engineType = self.waveopt2engine(layerType)
+            nodeAndType.append([nodeName, engineType])
+          for engine in ["PE", "ACT", "POOL", "SP"]:
+            with dot.subgraph(name="cluster_" + engine) as subGraph:
+              subGraph.attr(color="purple")
+              subGraph.attr(label=engine)
+              for i in range(len(nodeAndType)):
+                nodeName, engineType = nodeAndType[i]
+                tNode = engine + "-" + nodeName
+                subGraph.node(tNode, color="white", style="invis", label="")
+                if i > 0:
+                  prevNodeName, preEngineType = nodeAndType[i-1]
+                  tNodePrev = engine + "-" + prevNodeName
+                  subGraph.edge(tNodePrev, tNode, "", {"color" : "white"})
+                if engineType == engine:
+                  subGraph.node(nodeName)
+                  subGraph.edge(tNode, nodeName, "", {"color" : "white"})
+        # Serialization edges
+        if False:
+          for engine in ["PE", "ACT", "POOL", "SP"]:
+            edgeAttrs = {}
+            ops = []
+            for layer in self.jsonData["waveops"]:
+              nodeName = layer["waveop_name"]
+              layerType = layer["waveop_type"]
+              if self.waveopt2engine(layerType) == engine:
+                ops.append(nodeName)
+            edgeAttrs["color"] = "yellow"
+            for i in range(1, len(ops)):
+              dot.edge(ops[i-1], ops[i], "", edgeAttrs)
+      
+      
       dot.format = "svg"
       jsonIn = self.jsonFile
       dotOut = jsonIn[:-5] + "-waveops.dot"
       dot.render(dotOut)
       print("INFO: wrote  %s.%s" % (dotOut, "svg"))
+      if self.show:
+        os.system("firefox %s.%s" % (dotOut, "svg"))
 
 
 for jsonFile in args.json:
-  kj = KgraphJson(jsonFile, args.verbose)
+  kj = KgraphJson(jsonFile, args.verbose, args.engine_subgraphs, args.waveop_range, args.show)
   kj.plotLayers()
   kj.plotWaveops()
