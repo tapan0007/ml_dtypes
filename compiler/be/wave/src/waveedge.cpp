@@ -23,7 +23,7 @@ WaveEdge::rEvent(events::EventSetMode setMode, events::EventId eventId, events::
 bool
 WaveEdge::qNeedToImplementWait() const
 {
-    if (this->gEventId() == events::EventId_Invalid) {
+    if (this->gEventId() == events::EventId_Invalid()) {
         Assert(! qNeedToWaitFor(), "Invalid event ID on an edge that need be waited for: from waveop '",
             gFromOp()->gName(), "', to waveop '", gToOp()->gName(), "'");
         return false;

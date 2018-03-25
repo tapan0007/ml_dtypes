@@ -36,7 +36,7 @@ EventMgr::getLocalEventId(const wave::WaveEdge* edge)
     const wave::WaveOp* const toOp = edge->gToOp();
     Assert(fromOp != toOp, "From (", fromOp->gName(), ") and to (", toOp->gName(), ") waveops should be different");
     const EventId eventId = m_EventId++;
-    if (m_EventId >= arch::Arch::gNumberTpbEvents()) {
+    if (m_EventId >= EventId_Invalid()) {
         m_EventId = 0;
     }
     return eventId;

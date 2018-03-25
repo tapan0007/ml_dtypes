@@ -12,9 +12,12 @@ namespace events {
 
 //**********************************************************************
 using EventId = kcc_int32;
-enum {
-    EventId_Invalid = NUM_TPB_EVENTS - 1
-};
+
+static constexpr EventId EventId_Invalid()
+{
+    return NUM_TPB_EVENTS - 1;
+}
+
 
 /****************************************************************
  *                                                              *
@@ -72,7 +75,7 @@ private:
 
 private:
     EventSetMode        m_SetEventMode  = EventSetMode::Invalid;
-    EventId             m_EventId       = EventId_Invalid;
+    EventId             m_EventId       = EventId_Invalid();
     EventWaitMode       m_WaitEventMode = EventWaitMode::Invalid;
 };
 

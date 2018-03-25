@@ -32,6 +32,11 @@ namespace wave {
 
 namespace wavecode {
 
+#define ASSERT_HAS_EVENT(edge, from, to)                        \
+    Assert((edge)->gEventId() != events::EventId_Invalid(),     \
+    "WaveEdge from waveop ", (from)->gName(), " to waveop ",    \
+    (to)->gName(), " has no event")
+
 class WaveCode;
 
 

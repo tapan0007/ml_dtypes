@@ -23,8 +23,6 @@
 namespace kcc {
 namespace wavecode {
 
-#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
-            (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
 WaveCodePool::WaveCodePool(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)

@@ -12,7 +12,7 @@ namespace events {
  ****************************************************************/
 Channel::Channel()
     : m_SetEventMode(EventSetMode::NoEvent)
-    , m_EventId(EventId_Invalid)
+    , m_EventId(EventId_Invalid())
     , m_WaitEventMode(EventWaitMode::NoEvent)
 { }
 
@@ -24,7 +24,6 @@ Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
     m_EventId = eventId;
     m_WaitEventMode = waitMode; // ToOp
 }
-
 
 
 
