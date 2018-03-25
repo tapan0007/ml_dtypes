@@ -43,6 +43,9 @@ class RuntimeSim:
     cmd = "%s/sim/sim" % (InklingPath)
     if args.parallel_streams:
       cmd += " --angel %s/TrivNet-dma.tpb --sp %s/TrivNet-sp.tpb  --pe %s/TrivNet-pe.tpb --pool %s/TrivNet-pool.tpb --act %s/TrivNet-act.tpb" %(tpb_dir, tpb_dir, tpb_dir, tpb_dir, tpb_dir)
+      sim_debug = os.environ.get('SIM_DEBUG')
+      if sim_debug:
+        cmd += " --debugflags all"
     else:
       cmd += " %s/TrivNet.tpb" % tpb_dir
 

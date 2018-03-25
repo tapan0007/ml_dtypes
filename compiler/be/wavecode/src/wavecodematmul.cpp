@@ -1,6 +1,7 @@
-#include "shared/inc/tpb_isa_wait.hpp"
-#include "shared/inc/tpb_isa_ldweights.hpp"
-#include "shared/inc/tpb_isa_matmul.hpp"
+
+#include "compisa/inc/compisawait.hpp"
+#include "compisa/inc/compisaldweights.hpp"
+#include "compisa/inc/compisamatmul.hpp"
 
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
@@ -51,7 +52,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveop->gWaveId());
 
-    LDWEIGHTS ldweightsInstr;
+    compisa::LdWeightsInstr ldweightsInstr;
 
     //TPB_CMD_HEADER  hdr;
     const utils::DataType& dtype(matmulWaveop->gInDtype());
@@ -97,7 +98,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                         ldweightsInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
                         ldweightsInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
                     } else {
-                        WAIT waitInstr;
+                        compisa::WaitInstr waitInstr;
                         waitInstr.event_id  = prevWaveEdge->gEventId();
                         m_WaveCode.writeInstruction(waitInstr, engineId);
                     }
@@ -127,7 +128,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     const EngineId engineId = matmulWaveop->gEngineId();
     Assert(EngineId::PeArray == engineId, "Engine id for MatMul should be PeArray");
 
-    MATMUL matmulInstr;
+    compisa::MatMulInstr matmulInstr;
     matmulInstr.dtype                   = matmulWaveop->gInDtype().gSimTypeId();
     matmulInstr.num_row_partitions      = matmulWaveop->gNumRowPartitions();
     matmulInstr.num_column_partitions   = matmulWaveop->gNumColumnPartitions();
@@ -175,7 +176,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                         matmulInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
                         matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
                     } else {
-                        WAIT waitInstr;
+                        compisa::WaitInstr waitInstr;
                         waitInstr.event_id  = prevWaveEdge->gEventId();
                         m_WaveCode.writeInstruction(waitInstr, engineId);
                     }
@@ -187,7 +188,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                     matmulInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
                     matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
                 } else {
-                    WAIT waitInstr;
+                    compisa::WaitInstr waitInstr;
                     waitInstr.event_id  = prevWaveEdge->gEventId();
                     m_WaveCode.writeInstruction(waitInstr, engineId);
                 }

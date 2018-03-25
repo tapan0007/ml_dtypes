@@ -1,4 +1,5 @@
-#include "shared/inc/tpb_isa_matadd.hpp"
+
+#include "compisa/inc/compisamatadd.hpp"
 
 
 
@@ -34,7 +35,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     const EngineId engineId = resaddWaveop->gEngineId();
     Assert(EngineId::Pooling == engineId, "Engine id for Pool should be Pooling");
 
-    MATADD resaddInstr;
+    compisa::MatAddInstr resaddInstr;
 
     resaddInstr.in_a_dtype          = resaddWaveop->gInADtype().gSimTypeId();
     resaddInstr.in_b_dtype          = resaddWaveop->gInBDtype().gSimTypeId();

@@ -24,7 +24,7 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop)
         if (firstEmb) {
             firstEmb = false; // this set event is in embedded already in partition N-1
         } else {
-            SET setInstr;
+            compisa::SetInstr setInstr;
             setInstr.event_id  = succWaveEdge->gEventId();
             m_WaveCode.writeInstruction(setInstr, engineId);
         }

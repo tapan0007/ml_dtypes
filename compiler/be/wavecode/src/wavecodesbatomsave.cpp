@@ -1,5 +1,5 @@
-#include "shared/inc/tpb_isa_ldweights.hpp"
 
+#include "compisa/inc/compisasimmemcpy.hpp"
 
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
@@ -52,7 +52,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
         m_WaveCode.recordDramForNpyFile(sbAtomSaveWaveop->gRefFileName(), npyFileInfo);
     }
 
-    SIM_MEMCPY statebufToDramInstr;
+    compisa::SimMemCpyInstr statebufToDramInstr;
 
     statebufToDramInstr.sync.set_event_id       = 0;
     statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);

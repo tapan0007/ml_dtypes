@@ -1,4 +1,5 @@
-#include "shared/inc/tpb_isa_activate.hpp"
+
+#include "compisa/inc/compisaactivation.hpp"
 
 
 #include "utils/inc/asserter.hpp"
@@ -39,7 +40,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     const EngineId engineId = activationWaveop->gEngineId();
     Assert(EngineId::Activation == engineId, "Engine id for Activation waveop should be Activation");
 
-    ACTIVATION activationInstr;
+    compisa::ActivationInstr activationInstr;
 
     activationInstr.activation_func     = activationWaveop->gSimActivationFunc();
     activationInstr.in_dtype            = activationWaveop->gInDtype().gSimTypeId();

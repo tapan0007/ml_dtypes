@@ -8,7 +8,7 @@
 
 
 
-#include "tcc/inc/tcc.hpp"
+#include "compisa/inc/compisaset.hpp"
 
 
 
@@ -88,7 +88,7 @@ protected:
                 m_WaveCode.writeInstruction(instr);
                 instructionWritten = true;
             } else {
-                SET setEventInstr;
+                compisa::SetInstr setEventInstr;
                 setEventInstr.event_id          = succWaveEdge->gEventId();
                 m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
             }

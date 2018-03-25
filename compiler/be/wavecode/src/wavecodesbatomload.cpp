@@ -1,5 +1,7 @@
-#include "shared/inc/tpb_isa_ldweights.hpp"
-#include "shared/inc/tpb_isa_write.hpp"
+#include "compisa/inc/compisaldweights.hpp"
+#include "compisa/inc/compisawrite.hpp"
+#include "compisa/inc/compisasimwrnpy.hpp"
+#include "compisa/inc/compisasimmemcpy.hpp"
 
 
 #include "utils/inc/debug.hpp"
@@ -59,7 +61,7 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     //************************************************************************
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
-        SIM_WRNPY npyToDramInstr;
+        compisa::SimWrNpyInstr npyToDramInstr;
         npyToDramInstr.sync.wait_event_id      = 0;
         npyToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
         npyToDramInstr.sync.set_event_id      = 0;
@@ -81,7 +83,7 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     }
 
     //************************************************************************
-    SIM_MEMCPY dramToStateBufInstr;
+    compisa::SimMemCpyInstr dramToStateBufInstr;
     dramToStateBufInstr.sync.wait_event_id      = 0;
     dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
     dramToStateBufInstr.sync.set_event_id       = 0;

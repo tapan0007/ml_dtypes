@@ -1,4 +1,4 @@
-#include "shared/inc/tpb_isa.hpp"
+#include "compisa/inc/compisawait.hpp"
 
 
 #include "wave/inc/waveedge.hpp"
@@ -36,7 +36,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
             sync.wait_event_id      = prevWaveEdge->gEventId();
             sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
         } else {
-            WAIT waitInstr;
+            compisa::WaitInstr waitInstr;
             waitInstr.event_id  = prevWaveEdge->gEventId();
             m_WaveCode.writeInstruction(waitInstr, engineId);
         }
@@ -59,7 +59,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, events::EventId& wait
             waitEventId = prevWaveEdge->gEventId();
             waitEventMode = prevWaveEdge->gWaitEventMode();
         } else {
-            WAIT waitInstr;
+            compisa::WaitInstr waitInstr;
             waitInstr.event_id  = prevWaveEdge->gEventId();
             m_WaveCode.writeInstruction(waitInstr, engineId);
         }

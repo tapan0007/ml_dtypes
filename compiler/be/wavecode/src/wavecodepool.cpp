@@ -1,4 +1,5 @@
-#include "shared/inc/tpb_isa_pool.hpp"
+
+#include "compisa/inc/compisapool.hpp"
 
 
 
@@ -41,7 +42,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     const EngineId engineId = poolWaveop->gEngineId();
     Assert(EngineId::Pooling == engineId, "Engine id for Pool should be Pooling");
 
-    POOL poolInstr;
+    compisa::PoolInstr poolInstr;
 
     /* pool args */
     switch (poolWaveop->gPoolFunc()) {
