@@ -1,0 +1,63 @@
+#! /usr/bin/env python3
+import argparse
+import sys
+import time
+from datetime import datetime
+import tarfile
+import os
+import shutil
+import platform
+import glob
+
+import boto3
+
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument("--repo-name", help="repo name", type=str, default=None, required=True)
+parser.add_argument("--aws-profile", help="name of aws credentials profile to use", default=None)
+
+args = parser.parse_args()
+
+if (args.aws_profile == None):
+    session = boto3.Session()
+else:
+    session = boto3.Session( profile_name  = args.aws_profile)
+s3 = session.client(
+    service_name='s3',
+    region_name='us-east-1')
+
+
+def main():
+    log = '/tmp/log_kaena_installer.txt'
+
+    repoName = args.repo_name
+    tmpPath = '/tmp/kaena_install_tmp'
+    shutil.rmtree(tmpPath, ignore_errors=True)
+    os.mkdir(tmpPath) 
+
+    tmpRepoPath = '%s/%s' % (tmpPath, repoName)
+    s3.download_file('kaena-images-iad', repoName, tmpRepoPath)
+
+    print("Kaena_install: installed repo")
+
+    tar = tarfile.open(tmpRepoPath)
+    tar.extractall(tmpPath)
+    tar.close()    
+    
+    print("Kaena_install: extracted tarball")
+
+    arch = platform.machine()
+
+    rpms = glob.glob("%s/%s/*.rpm" % (tmpPath, arch))
+   
+    print("installing rpms: ", rpms)
+    for rpm in rpms:
+        cmd = "rpm -ivh %s" % rpm
+        ret = os.system(cmd)
+        print("Kaena_install: ret %s for cmd %s" %(ret, cmd))
+        if ret != 0:
+            print("Kaena_install: max attempts, exiting")
+            sys.exit(-1)
+
+if __name__ == "__main__":
+    main()

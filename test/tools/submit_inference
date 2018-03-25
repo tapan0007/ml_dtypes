@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
+import time
+from datetime import datetime
+
+import boto3
+from botocore.compat import total_seconds
+import tarfile, zipfile
+import uuid
+import os, sys
+import glob
+import math
+
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+#parser.add_argument("--name", help="name of the job", type=str, required=True)
+parser.add_argument("--job-queue", help="name of the job queue to submit this job", type=str, required=True)
+parser.add_argument("--job-definition", help="name of the job job definition", type=str, required=True)
+parser.add_argument("--wait", help="block wait until the job completes", action='store_true')
+parser.add_argument("--aws-profile", help="name of aws credentials profile to use", required=True)
+
+parser.add_argument("--kelf-dir", help="precompiled kelf directory used for inference", required=True)
+parser.add_argument("--input-bucket", help="input bucket", required=True)
+parser.add_argument("--output-bucket", help="output bucket", required=True)
+parser.add_argument("--repo-name", help="repo name", type=str, default=None, required=True)
+parser.add_argument("--dry-run", help="dry run mode",  default=False, action='store_true')
+
+args = parser.parse_args()
+
+
+session = boto3.Session( profile_name  = args.aws_profile)
+batch = session.client(
+    service_name='batch',
+    region_name='us-east-1')
+
+cloudwatch = session.client(
+    service_name='logs',
+    region_name='us-east-1')
+
+s3 = session.resource(
+    service_name='s3',
+    region_name='us-east-1')
+
+
+
+def printLogs(logGroupName, logStreamName, startTime):
+    kwargs = {'logGroupName': logGroupName,
+              'logStreamName': logStreamName,
+              'startTime': startTime,
+              'startFromHead': True}
+
+    lastTimestamp = 0
+    while True:
+        logEvents = cloudwatch.get_log_events(**kwargs)
+
+        for event in logEvents['events']:
+            lastTimestamp = event['timestamp']
+            timestamp = datetime.utcfromtimestamp(lastTimestamp / 1000.0).isoformat()
+            print ('[%s] %s' % ((timestamp + ".000")[:23] + 'Z', event['message']))
+
+        nextToken = logEvents['nextForwardToken']
+        if nextToken and kwargs.get('nextToken') != nextToken:
+            kwargs['nextToken'] = nextToken
+        else:
+            break
+    return lastTimestamp
+
+
+def getLogStream(logGroupName, jobName, jobId):
+    response = cloudwatch.describe_log_streams(
+        logGroupName=logGroupName,
+        logStreamNamePrefix=jobName + '/' + jobId
+    )
+    logStreams = response['logStreams']
+    if not logStreams:
+        return ''
+    else:
+        return logStreams[0]['logStreamName']
+
+def nowInMillis():
+    endTime = long(total_seconds(datetime.utcnow() - datetime(1970, 1, 1))) * 1000
+    return endTime
+
+def make_tarfile(output_filename, source_dir):
+    with tarfile.open(output_filename, "w:gz") as tar:
+        for f in glob.glob("%s/*" % source_dir):
+            tar.add(f, arcname=os.path.basename(f))
+
+def main():
+    spin = ['-', '/', '|', '\\', '-', '/', '|', '\\']
+    logGroupName = '/aws/batch/job'
+
+    jobQueue = args.job_queue
+    jobDefinition = args.job_definition
+
+    wait = args.wait
+
+    testid = uuid.uuid4().hex
+    # get list of all file names in input bucket
+    input_bucket = s3.Bucket(args.input_bucket)
+    num_inputs = len(list(input_bucket.objects.all()))
+    print ("num of input files is %s " % num_inputs)
+
+    # decide on partitioning
+    num_inputs = 10000
+    MAX_NUM_WORKERS = 1000
+
+    num_workers = min(num_inputs, MAX_NUM_WORKERS)
+    num_images_per = math.ceil(num_inputs/num_workers)
+
+
+    # push kelf to s3
+    tmp_kelf_file = "/tmp/kelf_%s.tar.gz" % testid
+    make_tarfile(tmp_kelf_file, args.kelf_dir)
+    s3.Bucket(args.output_bucket).upload_file(tmp_kelf_file, os.path.basename(tmp_kelf_file))
+
+
+    # zip up and push run scripts to s3
+    # inference_runner and kaena_install
+
+    scriptsZipFile = 'scripts_%s.tar.gz' % testid
+    scriptsZipPath = "/tmp/%s" % scriptsZipFile
+    with zipfile.ZipFile(scriptsZipPath, 'w') as myzip:
+        myzip.write("kaena_install")
+        myzip.write("inference_runner")
+    s3.Bucket(args.output_bucket).upload_file(scriptsZipPath, scriptsZipFile)
+
+
+    # submit k jobs, wait
+    jobIds = []
+    worker_index = 0
+    job_names = {}
+
+    while (worker_index < num_workers):
+        offset = num_images_per * worker_index
+        if  offset > num_inputs:
+            break # done
+        cmd = "inference_runner --input-bucket %s --output-bucket %s --test-id %s --repo-name %s --num %s --offset %s" % (args.input_bucket, args.output_bucket, testid, args.repo_name, num_images_per, offset)
+
+        worker_index += 1
+
+        if args.dry_run:
+            print("dry run: executing: %s" % cmd)
+            continue
+
+        jobName = "%s_%s" %(testid, offset)
+        submitJobResponse = batch.submit_job(
+            jobName=jobName,
+            jobQueue=jobQueue,
+            jobDefinition=jobDefinition,
+            containerOverrides={
+                'command': cmd.split(),
+                'environment' : [
+                    {'name':'BATCH_FILE_TYPE',
+                     'value': 'zip'},
+                    {'name':'BATCH_FILE_S3_URL',
+                     'value': 's3://%s/%s'%(args.output_bucket, scriptsZipFile)}]
+            }
+        )
+        jobId = submitJobResponse['jobId']
+        jobIds.append(jobId)
+        job_names[jobId] = jobName
+        print ('Submitted job [%s - %s] to the job queue [%s]' % (jobName, jobId, jobQueue))
+
+    print ("started jobs list is", jobIds)
+
+    spinner = 0
+    running = {}
+    startTime = {}
+
+    while wait and len(jobIds) != 0:
+        time.sleep(1)
+        for jobId in jobIds:
+            jobName = job_names[jobId]
+            describeJobsResponse = batch.describe_jobs(jobs=[jobId])
+            status = describeJobsResponse['jobs'][0]['status']
+            if status == 'SUCCEEDED' or status == 'FAILED':
+                print ('%s' % ('=' * 80))
+                print ('Job [%s - %s] %s' % (jobName, jobId, status))
+                jobIds.remove(jobId)
+                logStreamName = getLogStream(logGroupName, jobName, jobId)
+                if logStreamName:
+                    printLogs(logGroupName, logStreamName, 0)
+            elif status == 'RUNNING':
+                logStreamName = getLogStream(logGroupName, jobName, jobId)
+                if not running.get(jobId, False) and logStreamName:
+                    running[jobId] = True
+                    print ('\rJob [%s - %s] is RUNNING.' % (jobName, jobId))
+                    print ('Output [%s]:\n %s' % (logStreamName, '=' * 80))
+                if logStreamName:
+                    startTime[jobId] = printLogs(logGroupName, logStreamName, startTime.get(jobId, 0)) + 1
+            else:
+                print ('\rJob [%s - %s] is %-9s... %s' % (jobName, jobId, status, spin[spinner % len(spin)])),
+                sys.stdout.flush()
+                spinner += 1
+
+    # download all test output data
+
+    output_bucket = s3.Bucket(args.output_bucket)
+    output_files = list(output_bucket.objects.all())
+    files_to_download = []
+    for obj in output_files:
+        if testid in obj.key:
+            print (obj.key)
+
+
+if __name__ == "__main__":
+    main()
