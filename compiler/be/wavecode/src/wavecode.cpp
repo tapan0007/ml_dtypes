@@ -362,8 +362,8 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
 void
 WaveCode::checkForNoSync(const TPB_CMD_SYNC& sync) const
 {
-    Assert(SET_EVENT_INVALID != sync.set_event_mode, "Invalid set event mode");
-    Assert(WAIT_EVENT_INVALID != sync.wait_event_mode, "Invalid wait event mode");
+    Assert(events::SET_EVENT_INVALID != sync.set_event_mode, "Invalid set event mode");
+    Assert(events::WAIT_EVENT_INVALID != sync.wait_event_mode, "Invalid wait event mode");
 
     if (qParallelStreams()) {
         return;
