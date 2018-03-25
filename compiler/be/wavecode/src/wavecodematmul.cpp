@@ -76,9 +76,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     ldweightsInstr.x_num                 = matmulWaveop->gOfmapCount();
     ldweightsInstr.num_row_partitions    = matmulWaveop->gIfmapCount();
 
-    ldweightsInstr.sync.wait_event_id    = -1;
+    ldweightsInstr.sync.wait_event_id    = 0;
     ldweightsInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    ldweightsInstr.sync.set_event_id     = -1;
+    ldweightsInstr.sync.set_event_id     = 0;
     ldweightsInstr.sync.set_event_mode   = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************
@@ -154,9 +154,9 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     matmulInstr.start_tensor_calc       = matmulWaveop->qStartTensorCalc();
     matmulInstr.stop_tensor_calc        = matmulWaveop->qStopTensorCalc();
 
-    matmulInstr.sync.wait_event_id    = -1;
+    matmulInstr.sync.wait_event_id    = 0;
     matmulInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    matmulInstr.sync.set_event_id    = -1;
+    matmulInstr.sync.set_event_id    = 0;
     matmulInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************

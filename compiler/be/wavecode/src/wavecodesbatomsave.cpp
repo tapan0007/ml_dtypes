@@ -20,7 +20,7 @@
 
 namespace kcc {
 namespace wavecode {
-#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
+#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != events::EventId_Invalid, "WaveEdge from waveop ", \
             (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
 
@@ -56,14 +56,14 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
 
     SIM_MEMCPY statebufToDramInstr;
 
-    statebufToDramInstr.sync.set_event_id       = -1;
+    statebufToDramInstr.sync.set_event_id       = 0;
     statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
-    statebufToDramInstr.sync.wait_event_id      = -1;
+    statebufToDramInstr.sync.wait_event_id      = 0;
     statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
 
-    EventId setEventId = -1;
+    events::EventId setEventId = events::EventId_Invalid;
     events::EventSetMode setEventMode = events::EventSetMode::NoEvent;
-    EventId waitEventId = -1;
+    events::EventId waitEventId = events::EventId_Invalid;
     events::EventWaitMode waitEventMode = events::EventWaitMode::NoEvent;
 
     //************************************************************************
@@ -88,9 +88,9 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         // TODO: add synchronization during DMA through extra DMA descriptor
         if (qParallelStreams()) {
-            statebufToDramInstr.sync.wait_event_id      = -1;
+            statebufToDramInstr.sync.wait_event_id      = 0;
             statebufToDramInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-            statebufToDramInstr.sync.set_event_id       = -1;
+            statebufToDramInstr.sync.set_event_id       = 0;
             statebufToDramInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
             if (0 == partIdx) { // only the first reading waits for predecessors

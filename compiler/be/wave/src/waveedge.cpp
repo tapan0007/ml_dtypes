@@ -15,7 +15,7 @@ WaveEdge::WaveEdge(WaveOp* fromOp, WaveOp* toOp)
 }
 
 void
-WaveEdge::rEvent(events::EventSetMode setMode, EventId eventId, events::EventWaitMode waitMode)
+WaveEdge::rEvent(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode)
 {
     m_Channel.rEvent(setMode, eventId, waitMode);
 }
@@ -23,7 +23,7 @@ WaveEdge::rEvent(events::EventSetMode setMode, EventId eventId, events::EventWai
 bool
 WaveEdge::qNeedToImplementWait() const
 {
-    if (this->gEventId() == EventId_Invalid) {
+    if (this->gEventId() == events::EventId_Invalid) {
         Assert(! qNeedToWaitFor(), "Invalid event ID on an edge that need be waited for: from waveop '",
             gFromOp()->gName(), "', to waveop '", gToOp()->gName(), "'");
         return false;

@@ -300,9 +300,9 @@ WaveCode::saveAllNpyFiles ()
             continue;
         }
         SIM_RDNPY dramToNpyInstr;
-        dramToNpyInstr.sync.wait_event_id      = -1;
+        dramToNpyInstr.sync.wait_event_id      = 0;
         dramToNpyInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
-        dramToNpyInstr.sync.set_event_id      = -1;
+        dramToNpyInstr.sync.set_event_id      = 0;
         dramToNpyInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::NoEvent);
 
         strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
@@ -319,7 +319,7 @@ WaveCode::saveAllNpyFiles ()
 }
 
 kcc_uint64
-WaveCode::calculateEventAddress(EngineId engId, EventId eventId) const
+WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
 {
     const arch::Arch& arch(arch::Arch::gArch());
 

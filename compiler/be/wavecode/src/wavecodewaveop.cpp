@@ -44,7 +44,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
 }
 
 void
-WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EventId& waitEventId,
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, events::EventId& waitEventId,
         events::EventWaitMode& waitEventMode)
 {
     const EngineId engineId = waveop->gEngineId();
@@ -67,7 +67,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EventId& waitEventId,
 }
 
 void
-WaveCodeWaveOp::findSetEventIdMode(wave::WaveOp* waveop, EventId& setEventId, events::EventSetMode& setEventMode)
+WaveCodeWaveOp::findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEventId, events::EventSetMode& setEventMode)
 {
     bool firstEmb = true;
 

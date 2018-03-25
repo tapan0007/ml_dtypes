@@ -10,6 +10,8 @@
 
 #include "tcc/inc/tcc.hpp"
 
+
+
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 #include "events/inc/events.hpp"
@@ -60,8 +62,8 @@ protected:
     bool qParallelStreams() const;
 
     void processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync);
-    void processIncomingEdges(wave::WaveOp* waveop, EventId& waitEventId, events::EventWaitMode& waitEventMode);
-    void findSetEventIdMode(wave::WaveOp* waveop, EventId& setEventId, events::EventSetMode& setEventMode);
+    void processIncomingEdges(wave::WaveOp* waveop, events::EventId& waitEventId, events::EventWaitMode& waitEventMode);
+    void findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEventId, events::EventSetMode& setEventMode);
 
     template <typename INST>
     bool processOutgoingEdges(wave::WaveOp* waveop, INST& instr)

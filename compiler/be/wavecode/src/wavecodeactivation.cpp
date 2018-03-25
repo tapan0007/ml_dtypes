@@ -83,9 +83,9 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     }
     activationInstr.num_partitions      = activationWaveop->gNumPartitions();
 
-    activationInstr.sync.wait_event_id    = -1;
+    activationInstr.sync.wait_event_id    = 0;
     activationInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    activationInstr.sync.set_event_id    = -1;
+    activationInstr.sync.set_event_id    = 0;
     activationInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************

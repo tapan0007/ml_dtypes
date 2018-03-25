@@ -200,7 +200,7 @@ public:
     void addPreviousWaveOp(const std::string& prevWaveOp) {
         m_PreviousWaveOps.push_back(prevWaveOp);
     }
-    void addPreviousEventId(EventId eventId) {
+    void addPreviousEventId(events::EventId eventId) {
         m_PreviousEventIds.push_back(eventId);
     }
     void addPreviousEventWaitMode(events::EventWaitMode mode) {

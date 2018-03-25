@@ -75,9 +75,9 @@ public:
     /****************************************************************
      *                                                              *
      ****************************************************************/
-    void rEvent(events::EventSetMode setMode, EventId eventId, events::EventWaitMode waitMode);
+    void rEvent(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode);
 
-    EventId gEventId() const {
+    events::EventId gEventId() const {
         return m_Channel.gEventId();
     }
     events::EventWaitMode gWaitEventMode() const {

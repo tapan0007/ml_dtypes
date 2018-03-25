@@ -60,11 +60,6 @@ using TongaAddress          = Integer<kcc_int64, TongaAddressTag>;
 
 
 //**********************************************************************
-using EventId = kcc_int32;
-enum {
-    EventId_Invalid = -1,
-};
-
 enum class WaveOpType {
     Load,
     Save,
@@ -74,6 +69,7 @@ enum class WaveOpType {
     ResAdd,
 };
 
+//**********************************************************************
 enum class ActivationFunc {
     Invalid,
     Identity,
@@ -85,6 +81,7 @@ enum class ActivationFunc {
     Exp,
 };
 
+//**********************************************************************
 enum class PoolType {
     None,
     Max,

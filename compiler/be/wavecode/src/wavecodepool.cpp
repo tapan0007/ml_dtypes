@@ -94,9 +94,9 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
                                             poolWaveop->gDstSbAddress());
 
-    poolInstr.sync.wait_event_id    = -1;
+    poolInstr.sync.wait_event_id    = 0;
     poolInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    poolInstr.sync.set_event_id    = -1;
+    poolInstr.sync.set_event_id    = 0;
     poolInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************

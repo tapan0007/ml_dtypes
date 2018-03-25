@@ -26,7 +26,7 @@
 namespace kcc {
 namespace wavecode {
 
-#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
+#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != events::EventId_Invalid, "WaveEdge from waveop ", \
             (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
 
@@ -62,9 +62,9 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
         SIM_WRNPY npyToDramInstr;
-        npyToDramInstr.sync.wait_event_id      = -1;
+        npyToDramInstr.sync.wait_event_id      = 0;
         npyToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
-        npyToDramInstr.sync.set_event_id      = -1;
+        npyToDramInstr.sync.set_event_id      = 0;
         npyToDramInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::NoEvent);
 
         const kcc_int64 numPySize = sbAtomLoadWaveOp->gLoadDataSizeInBytes();
@@ -84,14 +84,14 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 
     //************************************************************************
     SIM_MEMCPY dramToStateBufInstr;
-    dramToStateBufInstr.sync.wait_event_id      = -1;
+    dramToStateBufInstr.sync.wait_event_id      = 0;
     dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    dramToStateBufInstr.sync.set_event_id       = -1;
+    dramToStateBufInstr.sync.set_event_id       = 0;
     dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
 
-    EventId setEventId = -1;
+    events::EventId setEventId = events::EventId_Invalid;
     events::EventSetMode setEventMode = events::EventSetMode::NoEvent;
-    EventId waitEventId = -1;
+    events::EventId waitEventId = events::EventId_Invalid;
     events::EventWaitMode waitEventMode = events::EventWaitMode::NoEvent;
 
     //************************************************************************
@@ -116,9 +116,9 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         if (qParallelStreams()) {
-            dramToStateBufInstr.sync.wait_event_id      = -1;
+            dramToStateBufInstr.sync.wait_event_id      = 0;
             dramToStateBufInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-            dramToStateBufInstr.sync.set_event_id       = -1;
+            dramToStateBufInstr.sync.set_event_id       = 0;
             dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
             if (0 == partIdx) { // only the first reading waits for predecessors

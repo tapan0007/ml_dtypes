@@ -89,9 +89,9 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     resaddInstr.dst_y_num       = resaddWaveop->gDstYNum();
     resaddInstr.dst_z_num       = resaddWaveop->gDstZNum();
 
-    resaddInstr.sync.wait_event_id    = -1;
+    resaddInstr.sync.wait_event_id    = 0;
     resaddInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    resaddInstr.sync.set_event_id    = -1;
+    resaddInstr.sync.set_event_id    = 0;
     resaddInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************
