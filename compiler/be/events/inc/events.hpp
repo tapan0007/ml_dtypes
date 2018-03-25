@@ -7,7 +7,7 @@
 #include "shared/inc/tpb_isa.hpp"
 
 //Event_t
-static_assert(NUM_TPB_EVENTS < (1U << 8*sizeof(TPB_CMD_SYNC::wait_event_id)),
+static_assert(NUM_TPB_EVENTS <= (1U << 8*sizeof(TPB_CMD_SYNC::wait_event_id)),
     "Number of TPB events (NUM_TPB_EVENTS) too large for type Event_t");
 
 
