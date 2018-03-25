@@ -334,7 +334,7 @@ testConfigMap = {
 
   # LSTM
   "4-ptb_word_lm1"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b16s32h512.pb", "lm", " --input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave"% (rnPreFp32, rnPost), rnDogJpg],
-  "4-ptb_word_small1"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 2  --debug 1   --partition from  lstm_2_1/transpose_1  --executors host all --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False --exclude_ops_from_capture ^dropout_1_1/cond/", lstmD0B4],
+  "4-ptb_word_small1_host"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 2  --debug 1   --partition from  lstm_2_1/transpose_1  --executors host all --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False --exclude_ops_from_capture ^dropout_1_1/cond/", lstmD0B4],
   
 }
 
@@ -810,7 +810,7 @@ class Ktests:
 # Execute
 testList = selectTests(testConfigMap, testWaiver, args.level, args.test, args.test_re, args.select, args.filter)
 if args.show_only:
-  print("INFO: --show_only mode: selected tests are " + str(testList))
+  print("INFO: --show_only mode: selected tests are " + "\n".join(testList))
 else:
   tests = Ktests(testConfigMap, testList, testWaiver, args.timeout)
   tests.run(parallel)
