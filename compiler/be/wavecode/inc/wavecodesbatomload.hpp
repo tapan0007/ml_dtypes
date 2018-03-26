@@ -1,14 +1,13 @@
 #pragma once
 
-#ifndef KCC_WAVECODE_WAVECODESBATOMFILE_H
-#define KCC_WAVECODE_WAVECODESBATOMFILE_H
+#ifndef KCC_WAVECODE_WAVECODESBATOMLOAD_H
+#define KCC_WAVECODE_WAVECODESBATOMLOAD_H
 
 #include <string>
 #include <cstdio>
 
 
 
-#include "tcc/inc/tcc.hpp"
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
@@ -19,17 +18,17 @@
 namespace kcc {
 
 namespace wave {
-    class SbAtomFileWaveOp;
+    class SbAtomLoadWaveOp;
 }
 
 namespace wavecode {
 
 
 
-class WaveCodeSbAtomFile : public WaveCodeSbAtom {
+class WaveCodeSbAtomLoad : public WaveCodeSbAtom {
 public:
     //----------------------------------------------------------------
-    WaveCodeSbAtomFile(WaveCodeRef waveCode);
+    WaveCodeSbAtomLoad(WaveCodeRef waveCode);
 
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;
@@ -40,5 +39,5 @@ private:
 
 }}
 
-#endif // KCC_WAVECODE_WAVECODESBATOMFILE_H
+#endif // KCC_WAVECODE_WAVECODESBATOMLOAD_H
 

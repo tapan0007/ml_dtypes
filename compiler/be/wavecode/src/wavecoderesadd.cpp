@@ -1,9 +1,14 @@
-#include "tpb_isa_ldweights.hpp"
-#include "tpb_isa_activate.hpp"
+
+#include "compisa/inc/compisamatadd.hpp"
+
+
+
+#include "utils/inc/asserter.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"
 
+#include "wave/inc/waveedge.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 #include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecoderesadd.hpp"
@@ -20,69 +25,91 @@ WaveCodeResAdd::WaveCodeResAdd(WaveCodeRef waveCode)
 void
 WaveCodeResAdd::generate(wave::WaveOp* waveOp)
 {
-    auto resaddWaveOp = dynamic_cast<wave::ResAddWaveOp*>(waveOp);
-    assert(resaddWaveOp);
+    auto resaddWaveop = dynamic_cast<wave::ResAddWaveOp*>(waveOp);
+    assert(resaddWaveop);
 
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
     const arch::StateBuffer& stateBuf(arch.gStateBuffer());
 
-    MATADD resaddInstr;
+    const EngineId engineId = resaddWaveop->gEngineId();
+    Assert(EngineId::Pooling == engineId, "Engine id for Pool should be Pooling");
 
-    resaddInstr.in_a_dtype          = resaddWaveOp->gInADtype().gSimTypeId();
-    resaddInstr.in_b_dtype          = resaddWaveOp->gInBDtype().gSimTypeId();
-    resaddInstr.out_dtype           = resaddWaveOp->gOutDtype().gSimTypeId();
-    resaddInstr.num_partitions      = resaddWaveOp->gNumPartitions();
+    compisa::MatAddInstr resaddInstr;
+
+    resaddInstr.in_a_dtype          = resaddWaveop->gInADtype().gSimTypeId();
+    resaddInstr.in_b_dtype          = resaddWaveop->gInBDtype().gSimTypeId();
+    resaddInstr.out_dtype           = resaddWaveop->gOutDtype().gSimTypeId();
+    resaddInstr.num_partitions      = resaddWaveop->gNumPartitions();
 
     // SrcA
-    if (resaddWaveOp->qSrcAIsPsum()) {
-        resaddInstr.src_a_start_addr  = psumBuf.gEntryTpbAddress(resaddWaveOp->gSrcAPsumBankId(),
-                                                                 resaddWaveOp->gSrcAPsumBankOffset(),
-                                                                 resaddWaveOp->gInADtype());
+    if (resaddWaveop->qSrcAIsPsum()) {
+        resaddInstr.src_a_start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcAPsumBankId(),
+                                                                 resaddWaveop->gSrcAPsumBankOffset(),
+                                                                 resaddWaveop->gInADtype());
     } else {
         resaddInstr.src_a_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
-                                                resaddWaveOp->gSrcASbAddress());
+                                                resaddWaveop->gSrcASbAddress());
     }
-    resaddInstr.src_a_x_step      = resaddWaveOp->gSrcAXStep();
-    resaddInstr.src_a_y_step      = resaddWaveOp->gSrcAYStep();
-    resaddInstr.src_a_z_step      = resaddWaveOp->gSrcAZStep();
-    resaddInstr.src_a_x_num       = resaddWaveOp->gSrcAXNum();
-    resaddInstr.src_a_y_num       = resaddWaveOp->gSrcAYNum();
-    resaddInstr.src_a_z_num       = resaddWaveOp->gSrcAZNum();
+    resaddInstr.src_a_x_step      = resaddWaveop->gSrcAXStep();
+    resaddInstr.src_a_y_step      = resaddWaveop->gSrcAYStep();
+    resaddInstr.src_a_z_step      = resaddWaveop->gSrcAZStep();
+    resaddInstr.src_a_x_num       = resaddWaveop->gSrcAXNum();
+    resaddInstr.src_a_y_num       = resaddWaveop->gSrcAYNum();
+    resaddInstr.src_a_z_num       = resaddWaveop->gSrcAZNum();
 
     // SrcB
-    if (resaddWaveOp->qSrcBIsPsum()) {
-        resaddInstr.src_b_start_addr  = psumBuf.gEntryTpbAddress(resaddWaveOp->gSrcBPsumBankId(),
-                                                                 resaddWaveOp->gSrcBPsumBankOffset(),
-                                                                 resaddWaveOp->gInBDtype());
+    if (resaddWaveop->qSrcBIsPsum()) {
+        resaddInstr.src_b_start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcBPsumBankId(),
+                                                                 resaddWaveop->gSrcBPsumBankOffset(),
+                                                                 resaddWaveop->gInBDtype());
     } else {
         resaddInstr.src_b_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
-                                                resaddWaveOp->gSrcBSbAddress());
+                                                resaddWaveop->gSrcBSbAddress());
     }
-    resaddInstr.src_b_x_step      = resaddWaveOp->gSrcBXStep();
-    resaddInstr.src_b_y_step      = resaddWaveOp->gSrcBYStep();
-    resaddInstr.src_b_z_step      = resaddWaveOp->gSrcBZStep();
-    resaddInstr.src_b_x_num       = resaddWaveOp->gSrcBXNum();
-    resaddInstr.src_b_y_num       = resaddWaveOp->gSrcBYNum();
-    resaddInstr.src_b_z_num       = resaddWaveOp->gSrcBZNum();
+    resaddInstr.src_b_x_step      = resaddWaveop->gSrcBXStep();
+    resaddInstr.src_b_y_step      = resaddWaveop->gSrcBYStep();
+    resaddInstr.src_b_z_step      = resaddWaveop->gSrcBZStep();
+    resaddInstr.src_b_x_num       = resaddWaveop->gSrcBXNum();
+    resaddInstr.src_b_y_num       = resaddWaveop->gSrcBYNum();
+    resaddInstr.src_b_z_num       = resaddWaveop->gSrcBZNum();
 
     // Dst
-    if (resaddWaveOp->qDstIsPsum()) {
-        resaddInstr.dst_start_addr  = psumBuf.gEntryTpbAddress(resaddWaveOp->gDstPsumBankId(),
-                                                                 resaddWaveOp->gDstPsumBankOffset(),
-                                                                 resaddWaveOp->gOutDtype());
+    if (resaddWaveop->qDstIsPsum()) {
+        resaddInstr.dst_start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gDstPsumBankId(),
+                                                                 resaddWaveop->gDstPsumBankOffset(),
+                                                                 resaddWaveop->gOutDtype());
     } else {
         resaddInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
-                                                resaddWaveOp->gDstSbAddress());
+                                                resaddWaveop->gDstSbAddress());
     }
-    resaddInstr.dst_x_step      = resaddWaveOp->gDstXStep();
-    resaddInstr.dst_y_step      = resaddWaveOp->gDstYStep();
-    resaddInstr.dst_z_step      = resaddWaveOp->gDstZStep();
-    resaddInstr.dst_x_num       = resaddWaveOp->gDstXNum();
-    resaddInstr.dst_y_num       = resaddWaveOp->gDstYNum();
-    resaddInstr.dst_z_num       = resaddWaveOp->gDstZNum();
+    resaddInstr.dst_x_step      = resaddWaveop->gDstXStep();
+    resaddInstr.dst_y_step      = resaddWaveop->gDstYStep();
+    resaddInstr.dst_z_step      = resaddWaveop->gDstZStep();
+    resaddInstr.dst_x_num       = resaddWaveop->gDstXNum();
+    resaddInstr.dst_y_num       = resaddWaveop->gDstYNum();
+    resaddInstr.dst_z_num       = resaddWaveop->gDstZNum();
 
-    m_WaveCode.writeInstruction(resaddInstr);
+    resaddInstr.sync.wait_event_id    = 0;
+    resaddInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    resaddInstr.sync.set_event_id    = 0;
+    resaddInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+
+    //************************************************************************
+    if (qParallelStreams()) { // incoming events
+        processIncomingEdges(resaddWaveop, resaddInstr.sync);
+    } // end incoming events
+
+    //************************************************************************
+    bool instructionWritten = false;
+    if (qParallelStreams()) { // Outgoing events
+        instructionWritten = processOutgoingEdges(resaddWaveop, resaddInstr);
+    }
+
+
+    if (! instructionWritten) {
+        m_WaveCode.writeInstruction(resaddInstr);
+    }
 }
 
 

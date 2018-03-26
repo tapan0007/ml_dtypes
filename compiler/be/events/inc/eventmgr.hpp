@@ -1,17 +1,17 @@
 #pragma once
 
+#include "shared/inc/uarch_cfg.hpp"
+
 #ifndef KCC_EVENTS_EVENTMGR_H
 #define KCC_EVENTS_EVENTMGR_H
 
 namespace kcc {
-//enum class EventWaitMode;
-//enum class EventSetMode;
 
 namespace wave {
 class MatMulWaveOp;
 class PoolWaveOp;
 class ActivationWaveOp;
-class SbAtomFileWaveOp;
+class SbAtomLoadWaveOp;
 class SbAtomSaveWaveOp;
 class ResAddWaveOp;
 }
@@ -26,10 +26,14 @@ public:
 
 private:
     void processMatMult(wave::MatMulWaveOp* matmulWaveop);
+#if 0
     void processPool(wave::PoolWaveOp* poolWaveop);
     void processActivation(wave::ActivationWaveOp* activationWaveop);
     void processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop);
+    void processSbAtomLoad(wave::SbAtomLoadWaveOp* sbatomLoadWaveop);
     void processResAdd(wave::ResAddWaveOp* resaddWaveop);
+#endif
+    void processWaveop(wave::WaveOp* waveop);
 
     EventId getLocalEventId(const wave::WaveEdge* edge);
 

@@ -89,7 +89,7 @@ constexpr static const char* WaveOpKey_RefFile              = "ref_file";
 constexpr static const char* WaveOpKey_RefFileFormat        = "ref_file_format";
 constexpr static const char* WaveOpKey_RefFileShape         = "ref_file_shape";
 
-// SBAtomFile
+// SBAtomLoad
 constexpr static const char* WaveOpKey_IfmapsFoldIdx        = "ifmaps_fold_idx";
 constexpr static const char* WaveOpKey_IfmapsReplicate      = "ifmaps_replicate";
 
@@ -200,7 +200,7 @@ public:
     void addPreviousWaveOp(const std::string& prevWaveOp) {
         m_PreviousWaveOps.push_back(prevWaveOp);
     }
-    void addPreviousEventId(EventId eventId) {
+    void addPreviousEventId(events::EventId eventId) {
         m_PreviousEventIds.push_back(eventId);
     }
     void addPreviousEventWaitMode(events::EventWaitMode mode) {
@@ -231,7 +231,7 @@ protected:
 
 private:
     bool verifySbAtom() const;
-    bool verifySbAtomFile() const;
+    bool verifySbAtomLoad() const;
     bool verifySbAtomSave() const;
     bool verifyMatMul() const;
     bool verifyPool() const;
@@ -263,7 +263,7 @@ public:
     // waveop name
     // waveop type
 
-    // SBAtomFile
+    // SBAtomLoad
     kcc_int32                   m_IfmapCount        = -1;
     kcc_int32                   m_IfmapsFoldIdx     = -1;
     bool                        m_IfmapsReplicate   = false;

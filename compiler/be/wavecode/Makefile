@@ -6,7 +6,7 @@ MODS := $(MODULE) utils nets layers wave
 SRCS := wavecode    \
 wavecodewaveop      \
 wavecodesbatom      \
-wavecodesbatomfile  \
+wavecodesbatomload  \
 wavecodesbatomsave  \
 wavecodematmul      \
 wavecodepool        \

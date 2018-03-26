@@ -77,6 +77,9 @@ public:
     static kcc_int64 gTpbEventBase();
     static kcc_int64 gSpEventBase();
 
+    static kcc_int64 gNumberTpbEvents();
+    static kcc_int64 gNumberSpEvents();
+
 private:
     PeArray        m_PeArray;
     PsumBuffer     m_PsumBuffer;

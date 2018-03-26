@@ -5,7 +5,7 @@ MODS := $(MODULE) utils nets serialize
 SRCS := waveedge waveop   \
 matmulwaveop     \
 sbatomwaveop     \
-sbatomfilewaveop \
+sbatomloadwaveop \
 sbatomsavewaveop \
 poolwaveop       \
 activationwaveop \

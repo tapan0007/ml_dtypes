@@ -29,7 +29,7 @@
 
 #include "nets/inc/network_load.hpp"
 
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
@@ -253,8 +253,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
             wave::WaveOp* waveOp = nullptr;
 
-            if (serWaveOp.m_WaveOpType == wave::SbAtomFileWaveOp::gTypeStrStatic()) {
-                waveOp = m_Load->loadSbAtomFile(serWaveOp);
+            if (serWaveOp.m_WaveOpType == wave::SbAtomLoadWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadSbAtomLoad(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::SbAtomSaveWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadSbAtomSave(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::PoolWaveOp::gTypeStrStatic()) {
@@ -287,24 +287,24 @@ Network::Load::Load(Network& network)
 
 
 
-wave::SbAtomFileWaveOp*
-Network::Load::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
+wave::SbAtomLoadWaveOp*
+Network::Load::loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp)
 {
-#define PARAMS sbatomfileParams
+#define PARAMS sbatomLoadParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::SbAtomFileWaveOp::Params sbatomfileParams;
-    fillWaveOpParams(serWaveOp, prevWaveOps, sbatomfileParams);
+    wave::SbAtomLoadWaveOp::Params sbatomLoadParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, sbatomLoadParams);
 
     KCC_UNSERIALIZE(SbAddress);
     KCC_UNSERIALIZE(BatchFoldIdx);
-    sbatomfileParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
+    sbatomLoadParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
     KCC_UNSERIALIZE(Length);
     KCC_UNSERIALIZE(OffsetInFile);
     KCC_UNSERIALIZE(PartitionStepBytes);
-    sbatomfileParams.m_RefFileName = serWaveOp.m_RefFile;
+    sbatomLoadParams.m_RefFileName = serWaveOp.m_RefFile;
     KCC_UNSERIALIZE(RefFileFormat);
-    for (unsigned int i = 0; i < sbatomfileParams.m_RefFileShape.size(); ++i) {
-        sbatomfileParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
+    for (unsigned int i = 0; i < sbatomLoadParams.m_RefFileShape.size(); ++i) {
+        sbatomLoadParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
     }
 
     KCC_UNSERIALIZE(IfmapCount);
@@ -312,9 +312,9 @@ Network::Load::loadSbAtomFile(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(IfmapsReplicate);
     KCC_UNSERIALIZE(ContainWeights);
 
-    auto waveOp = new wave::SbAtomFileWaveOp(sbatomfileParams, prevWaveOps);
-    Assert(waveOp && waveOp->gName() == sbatomfileParams.m_WaveOpName,
-           "Wrong wave op name: should be ", sbatomfileParams.m_WaveOpName,
+    auto waveOp = new wave::SbAtomLoadWaveOp(sbatomLoadParams, prevWaveOps);
+    Assert(waveOp && waveOp->gName() == sbatomLoadParams.m_WaveOpName,
+           "Wrong wave op name: should be ", sbatomLoadParams.m_WaveOpName,
            ", it is ", waveOp->gName());
     return waveOp;
 #undef PARAMS

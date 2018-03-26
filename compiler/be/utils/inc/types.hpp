@@ -9,7 +9,29 @@
 
 namespace kcc {
 
+//**********************************************************************
+enum IntTag {
+    SbPartitionAddressTag,
+    TpbAddressTag,
+    TongaAddressTag,
+};
 
+//**********************************************************************
+template <typename IntType, IntTag tag>
+class Integer {
+private:
+    using Type = IntType;
+public:
+    Type gValue() const {
+        return m_Value;
+    }
+
+private:
+    Type m_Value;
+};
+
+
+//**********************************************************************
 using kcc_int8    = signed char;
 using kcc_int16   = short;
 using kcc_int32   = int;
@@ -31,11 +53,23 @@ static_assert(sizeof(kcc_uint16) == 2, "sizeof(uint16) != 2");
 static_assert(sizeof(kcc_uint32) == 4, "sizeof(uint32) != 4");
 static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
-using EventId = kcc_int32;
-enum {
-    EventId_Invalid = -1,
+//**********************************************************************
+using SbPartitionAddress    = Integer<kcc_int16, SbPartitionAddressTag>;
+using TpbAddress            = Integer<kcc_int32, TpbAddressTag>;
+using TongaAddress          = Integer<kcc_int64, TongaAddressTag>;
+
+
+//**********************************************************************
+enum class WaveOpType {
+    Load,
+    Save,
+    Pool,
+    MatMul,
+    Activation,
+    ResAdd,
 };
 
+//**********************************************************************
 enum class ActivationFunc {
     Invalid,
     Identity,
@@ -47,6 +81,7 @@ enum class ActivationFunc {
     Exp,
 };
 
+//**********************************************************************
 enum class PoolType {
     None,
     Max,
@@ -54,6 +89,7 @@ enum class PoolType {
 };
 
 
+//**********************************************************************
 using LayerId = kcc_int32;
 const LayerId LayerId_Null = -1;
 

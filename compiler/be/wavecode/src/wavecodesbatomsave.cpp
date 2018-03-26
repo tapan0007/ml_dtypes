@@ -1,5 +1,5 @@
-#include "shared/inc/tpb_isa_ldweights.hpp"
 
+#include "compisa/inc/compisasimmemcpy.hpp"
 
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
@@ -20,8 +20,6 @@
 
 namespace kcc {
 namespace wavecode {
-#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
-            (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
 
 
@@ -54,86 +52,27 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
         m_WaveCode.recordDramForNpyFile(sbAtomSaveWaveop->gRefFileName(), npyFileInfo);
     }
 
-    SIM_MEMCPY statebufToDramInstr;
+    compisa::SimMemCpyInstr statebufToDramInstr;
 
-    statebufToDramInstr.sync.set_event_id       = -1;
+    statebufToDramInstr.sync.set_event_id       = 0;
     statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
-    statebufToDramInstr.sync.wait_event_id      = -1;
+    statebufToDramInstr.sync.wait_event_id      = 0;
     statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    EventId waitEventId                         = -1;
-    events::EventWaitMode eventWaitMode         = events::EventWaitMode::NoEvent;
+
+    events::EventId setEventId          = events::EventId_Invalid();
+    events::EventSetMode setEventMode   = events::EventSetMode::NoEvent;
+    events::EventId waitEventId         = events::EventId_Invalid();
+    events::EventWaitMode waitEventMode = events::EventWaitMode::NoEvent;
 
     //************************************************************************
     if (qParallelStreams()) { // Incoming edges/events: Wait for events from predecessors
-        std::vector<const wave::WaveEdge*> prevActivationEdges;
-        std::vector<const wave::WaveEdge*> prevMatmulEdges;
-        std::vector<const wave::WaveEdge*> prevPoolEdges;
-
-        // Inspect incoming edges/events
-        for (auto prevWaveEdge : sbAtomSaveWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
-            if (auto prevActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, sbAtomSaveWaveop);
-                prevActivationEdges.push_back(prevWaveEdge);
-                continue;
-            }
-            if (auto prevPoolWaveop = dynamic_cast<wave::PoolWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevPoolWaveop, sbAtomSaveWaveop);
-                prevPoolEdges.push_back(prevWaveEdge);
-                continue;
-            }
-            if (auto prevMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevMatmulWaveop, sbAtomSaveWaveop);
-                prevMatmulEdges.push_back(prevWaveEdge);
-                continue;
-            }
-            Assert(false, "SbAtomSave waveop ", sbAtomSaveWaveop->gName(), ": predecessor waveop ", prevWaveop->gName(),
-                   " has wrong type ", prevWaveop->gTypeStr());
-        }
-
-        bool firstEmb = true;
-        for (auto prevWaveEdge : prevActivationEdges) {
-            if (firstEmb) {
-                waitEventId     = prevWaveEdge->gEventId();
-                eventWaitMode   = prevWaveEdge->gWaitEventMode();
-                firstEmb = false;
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
-        for (auto prevWaveEdge : prevPoolEdges) {
-            if (firstEmb) {
-                waitEventId     = prevWaveEdge->gEventId();
-                eventWaitMode   = prevWaveEdge->gWaitEventMode();
-                firstEmb = false;
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
-        for (auto prevWaveEdge : prevMatmulEdges) {
-            if (firstEmb) {
-                waitEventId     = prevWaveEdge->gEventId();
-                eventWaitMode   = prevWaveEdge->gWaitEventMode();
-                firstEmb = false;
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
-        Assert(!firstEmb, "SbAtomSave must have at least one incoming waveop");
+        processIncomingEdges(sbAtomSaveWaveop, waitEventId, waitEventMode);
     }
 
+
+    if (qParallelStreams()) { // Find first successor for embedded
+        findSetEventIdMode(sbAtomSaveWaveop, setEventId,  setEventMode);
+    }
 
     //************************************************************************
     // Instruction
@@ -141,19 +80,26 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     const kcc_int64 numPartitions   = sbAtomSaveWaveop->gOfmapCount();
     const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
-    const kcc_int64 stepSize = sbAtomSaveWaveop->gPartitionStepBytes();
-    statebufToDramInstr.nbytes       = numBytesPerPart;
+    const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
+    statebufToDramInstr.nbytes      = numBytesPerPart;
 
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         // TODO: add synchronization during DMA through extra DMA descriptor
         if (qParallelStreams()) {
-            if (0 == partIdx) {
-                // only the last reading sets event to enable subsequent instr
-                statebufToDramInstr.sync.wait_event_id       = waitEventId;
-                statebufToDramInstr.sync.wait_event_mode     = events::eventWaitMode2Int(eventWaitMode);
-            } else {
-                statebufToDramInstr.sync.wait_event_id       = -1;
-                statebufToDramInstr.sync.wait_event_mode     = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+            statebufToDramInstr.sync.wait_event_id      = 0;
+            statebufToDramInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+            statebufToDramInstr.sync.set_event_id       = 0;
+            statebufToDramInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+
+            if (0 == partIdx) { // only the first reading waits for predecessors
+                statebufToDramInstr.sync.wait_event_id      = waitEventId;
+                statebufToDramInstr.sync.wait_event_mode    = events::eventWaitMode2Int(waitEventMode);
+            }
+
+            if (numPartitions-1 == partIdx) { // only the last reading informs successors
+                statebufToDramInstr.sync.set_event_id       = setEventId;
+                statebufToDramInstr.sync.set_event_mode     = events::eventSetMode2Int(setEventMode);
+
             }
         }
 
@@ -161,6 +107,11 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
         statebufToDramInstr.dst_address = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
         m_WaveCode.writeInstruction(statebufToDramInstr);
         m_WaveCode.markDramDirty(sbAtomSaveWaveop->gRefFileName());
+    }
+
+    //************************************************************************
+    if (qParallelStreams()) { // Write remaining SETs
+        processOutgoingEdgesAlreadyEmb(sbAtomSaveWaveop);
     }
 }
 

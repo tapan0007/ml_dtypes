@@ -56,6 +56,7 @@ class RuntimeTf:
     # Grow GPU memory as needed at the cost of fragmentation.
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.08
     with tf.Session(config=config) as sess:
       tf.import_graph_def(self.tfg, name="")
       graph = sess.graph

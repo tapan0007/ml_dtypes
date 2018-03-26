@@ -10,11 +10,11 @@
 #include <memory>
 
 
-#include "shared/inc/tpb_isa.hpp"
 
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
+#include "events/inc/events.hpp"
 
 
 
@@ -33,7 +33,7 @@ namespace wave {
 namespace wavecode {
 class WaveCodeWaveOp;
 class WaveCodeMatMul;
-class WaveCodeSbAtomFile;
+class WaveCodeSbAtomLoad;
 class WaveCodeSbAtomSave;
 class WaveCodePool;
 class WaveCodeActivation;
@@ -84,7 +84,7 @@ public:
     void recordDramForNpyFile(const std::string& fileName, const NpyFileInfo& npyFileInfo);
     void markDramDirty(const std::string& fileName);
 
-    kcc_uint64 calculateEventAddress(EngineId engId, EventId eventId) const;
+    kcc_uint64 calculateEventAddress(EngineId engId, events::EventId eventId) const;
 
     bool qParallelStreams() const {
         return m_ParallelStreams;
@@ -106,7 +106,7 @@ private:
 
     const InstrStreams*                 m_InstrStreams;
     std::unique_ptr<WaveCodeMatMul>     m_CodeMatMul;
-    std::unique_ptr<WaveCodeSbAtomFile> m_CodeSbAtomFile;
+    std::unique_ptr<WaveCodeSbAtomLoad> m_CodeSbAtomLoad;
     std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
     std::unique_ptr<WaveCodePool>       m_CodePool;
     std::unique_ptr<WaveCodeActivation> m_CodeActivation;

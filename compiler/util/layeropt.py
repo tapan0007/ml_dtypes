@@ -307,6 +307,7 @@ class CircularBuffer:
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
         self.DRAM_atoms_written = 0
+        self.chunk2saved_map = {}   # holds all the saved atoms
 
     def reset(self):
         self.head_pointer = 0
@@ -331,6 +332,7 @@ class CircularBuffer:
         self.tracked_lower_addr = -1
         self.tracked_lower_addr_chunked = 0
         self.layer_name = ""
+        self.layer_name_for_save = ""
         self.layer_type = "Output"
         self.layer_format = ""
         self.layer_shape = []
@@ -454,6 +456,7 @@ class CircularBuffer:
         self.load_file(self.dram_data_in_file, fmap_full_tiley_sz, fmap_full_tilex_sz, filter_x, stride_x)
         if (file_name != None):
             self.dram_data_out_file = file_name
+            self.layer_name_for_save = op.data['layer_name']
         return self.dram_data
 
     def load_file(self, file, fmap_full_tiley_sz = 0, fmap_full_tilex_sz = 0, filter_sz=1, stride_sz=1):
@@ -601,9 +604,14 @@ class CircularBuffer:
             simout_file = self.dram_data_in_file.replace("-midout.", ".")
         else:            
             simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
-        waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())            
+        waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
+        # add dependency if the chunk belongs to a saved atom
+        previous_waveops = []
+        chunk_name = "%s_%d"%(simout_file, chunk_id)
+        if (chunk_name in tpb.statebuffer.circbuf_scratch.chunk2saved_map):
+            previous_waveops.append(tpb.statebuffer.circbuf_scratch.chunk2saved_map[chunk_name])
         return {
-              'previous_waveops' : [],
+              'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomFile",
               'waveop_name'      : waveop_name,
               'layer_name'       : self.layer_name,
@@ -641,7 +649,8 @@ class CircularBuffer:
         # use "simout" tag for Back-end/Inkling result file
         assert(self.dram_data_out_file != None)
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
-        waveop_name = self.layer_name + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
+        waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
+        self.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
@@ -1320,8 +1329,8 @@ class WaveopStream(list):
     def add_linked(self, waveop, side_waveops):
         input_list = []
         for i in side_waveops:
-            input_list.append(i['waveop_name'])
             self.append_check(i)
+            input_list.append(i['waveop_name'])
         if (self.last_main_waveop != None):
             input_list.append(self.last_main_waveop['waveop_name'])
         waveop['previous_waveops'] = input_list

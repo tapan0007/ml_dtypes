@@ -8,7 +8,6 @@
 
 
 
-#include "tcc/inc/tcc.hpp"
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
@@ -31,6 +30,8 @@ public:
     //----------------------------------------------------------------
     WaveCodeSbAtom(WaveCodeRef waveCode);
 
+protected:
+    void processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop);
 
 private:
 };

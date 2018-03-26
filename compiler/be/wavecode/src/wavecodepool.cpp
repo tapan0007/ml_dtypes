@@ -1,4 +1,7 @@
-#include "shared/inc/tpb_isa_pool.hpp"
+
+#include "compisa/inc/compisapool.hpp"
+
+
 
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
@@ -12,7 +15,7 @@
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
@@ -21,8 +24,6 @@
 namespace kcc {
 namespace wavecode {
 
-#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
-            (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
 WaveCodePool::WaveCodePool(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
@@ -41,7 +42,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     const EngineId engineId = poolWaveop->gEngineId();
     Assert(EngineId::Pooling == engineId, "Engine id for Pool should be Pooling");
 
-    POOL poolInstr;
+    compisa::PoolInstr poolInstr;
 
     /* pool args */
     switch (poolWaveop->gPoolFunc()) {
@@ -92,168 +93,25 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
                                             poolWaveop->gDstSbAddress());
 
-    poolInstr.sync.wait_event_id    = -1;
+    poolInstr.sync.wait_event_id    = 0;
     poolInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    poolInstr.sync.set_event_id    = -1;
+    poolInstr.sync.set_event_id    = 0;
     poolInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
-        std::vector<const wave::WaveEdge*> prevIfmapEdges;
-        std::vector<const wave::WaveEdge*> prevMatmulEdges;
-        std::vector<const wave::WaveEdge*> prevActivationEdges;
-
-        // Inspect incoming edges/events
-        for (auto prevWaveEdge : poolWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
-            if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevSbAtomLoadWaveop, poolWaveop);
-                Assert(!prevSbAtomLoadWaveop->qContainWeights(), "SbAtomLoad ", prevSbAtomLoadWaveop->gName(),
-                       " preceeding Pool ", poolWaveop->gName(), " cannot contain weights");
-                prevIfmapEdges.push_back(prevWaveEdge);
-                continue;
-            }
-            if (auto prevActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevActivationWaveop, poolWaveop);
-                prevActivationEdges.push_back(prevWaveEdge);
-                continue;
-            }
-            if (auto prevMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(prevWaveop)) {
-                ASSERT_HAS_EVENT(prevWaveEdge, prevMatmulWaveop, poolWaveop);
-                prevMatmulEdges.push_back(prevWaveEdge);
-                continue;
-            }
-            Assert(false, "Pool waveop ", poolWaveop->gName(), ": predecessor waveop ", prevWaveop->gName(),
-                   " has wrong type ", prevWaveop->gTypeStr());
-        }
-
-        bool firstEmb = true;
-        for (auto prevWaveEdge : prevIfmapEdges) {
-            if (firstEmb) {
-                poolInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                poolInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
-                firstEmb = false;
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
-        for (auto prevWaveEdge : prevActivationEdges) {
-            if (firstEmb) {
-                poolInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                poolInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
-                firstEmb = false;
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
-        for (auto prevWaveEdge : prevMatmulEdges) {
-            if (firstEmb) {
-                poolInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                poolInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
-                firstEmb = false;
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
+        processIncomingEdges(poolWaveop, poolInstr.sync);
     } // end incoming events
 
 
-    std::vector<const wave::WaveEdge*> succOfmapEdges;
-    std::vector<const wave::WaveEdge*> succMatmulEdges;
-    std::vector<const wave::WaveEdge*> succActivationEdges;
-    kcc_uint32 matmulStart = 0;
-    kcc_uint32 activationStart = 0;
-    kcc_uint32 succOfmapStart = 0;
-
     //************************************************************************
+    bool instructionWritten = false;
     if (qParallelStreams()) { // Outgoing events
-
-        for (auto succWaveEdge : poolWaveop->gSuccWaveEdges()) {
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-            if (auto succSbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, poolWaveop, succSbAtomSaveWaveop);
-                succOfmapEdges.push_back(succWaveEdge);
-                continue;
-            }
-            if (auto succMatmulWaveop = dynamic_cast<wave::MatMulWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, poolWaveop, succMatmulWaveop);
-                succMatmulEdges.push_back(succWaveEdge);
-                continue;
-            }
-            if (auto succActivationWaveop = dynamic_cast<wave::ActivationWaveOp*>(succWaveop)) {
-                ASSERT_HAS_EVENT(succWaveEdge, poolWaveop, succActivationWaveop);
-                succActivationEdges.push_back(succWaveEdge);
-                continue;
-            }
-            Assert(false, "Pool waveop ", poolWaveop->gName(), ": successor waveop ", succWaveop->gName(),
-                   " has wrong type ", succWaveop->gTypeStr());
-        }
-
-        //************************************************************************
-        // Find one embedded set-event edge, if any
-        //************************************************************************
-        const wave::WaveEdge* succWaveEdgeEmb  = nullptr;
-
-        if (!succWaveEdgeEmb && succMatmulEdges.size() > 0) {
-            succWaveEdgeEmb = succMatmulEdges[matmulStart++];
-        }
-        if (!succWaveEdgeEmb && succActivationEdges.size() > 0) {
-            succWaveEdgeEmb = succActivationEdges[activationStart++];
-        }
-        if (!succWaveEdgeEmb && succOfmapEdges.size() > 0) {
-            succWaveEdgeEmb = succOfmapEdges[succOfmapStart++];
-        }
-        if (succWaveEdgeEmb) {
-            poolInstr.sync.set_event_id    = succWaveEdgeEmb->gEventId();
-            poolInstr.sync.set_event_mode  = events::eventSetMode2Int(succWaveEdgeEmb->gSetEventMode());
-        }
+        instructionWritten = processOutgoingEdges(poolWaveop, poolInstr);
     }
 
-    //************************************************************************
-    // write instruction
-    m_WaveCode.writeInstruction(poolInstr);
-
-    //************************************************************************
-    if (qParallelStreams()) { // Outgoing events
-        //************************************************************************
-        //************************************************************************
-        for (kcc_uint32 matmulIdx = matmulStart; matmulIdx < succMatmulEdges.size(); ++matmulIdx) {
-            SET setEventInstr;
-            auto succWaveEdge               = succMatmulEdges[matmulIdx];
-            setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode.writeInstruction(setEventInstr, engineId);
-        }
-        for (kcc_uint32 activationIdx = activationStart; activationIdx < succActivationEdges.size(); ++activationIdx) {
-            SET setEventInstr;
-            auto succWaveEdge               = succActivationEdges[activationIdx];
-            setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode.writeInstruction(setEventInstr, engineId);
-        }
-        for (kcc_uint32 succOfmapIdx = succOfmapStart; succOfmapIdx < succOfmapEdges.size(); ++succOfmapIdx) {
-            SET setEventInstr;
-            auto succWaveEdge               = succOfmapEdges[succOfmapIdx];
-            setEventInstr.event_id          = succWaveEdge->gEventId();
-            m_WaveCode.writeInstruction(setEventInstr, engineId);
-        }
+    if (! instructionWritten) {
+        m_WaveCode.writeInstruction(poolInstr);
     }
 }
 

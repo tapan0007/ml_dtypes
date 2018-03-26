@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_WAVE_SBATOMFILEWAVEOP_H
-#define KCC_WAVE_SBATOMFILEWAVEOP_H
+#ifndef KCC_WAVE_SBATOMLOADWAVEOP_H
+#define KCC_WAVE_SBATOMLOADWAVEOP_H
 
 
 #include <string>
@@ -24,24 +24,29 @@ namespace kcc {
 namespace wave {
 
 
-class SbAtomFileWaveOp : public SbAtomWaveOp {
+class SbAtomLoadWaveOp : public SbAtomWaveOp {
 public:
     class Params;
 public:
-    SbAtomFileWaveOp(const SbAtomFileWaveOp::Params& params, const std::vector<WaveOp*>& prevWaveOps);
+    SbAtomLoadWaveOp(const SbAtomLoadWaveOp::Params& params, const std::vector<WaveOp*>& prevWaveOps);
 
 
     //----------------------------------------------------------------
-    bool qSbAtomFileWaveOp() const override {
+    bool qSbAtomLoadWaveOp() const override {
         return true;
     }
 
     static std::string gTypeStrStatic() {
-        return WaveOpTypeStr_SBAtomFile;
+        return WaveOpTypeStr_SBAtomLoad;
     }
     std::string gTypeStr() const override {
         return gTypeStrStatic();
     }
+
+    virtual WaveOpType gType() const override {
+        return WaveOpType::Load;
+    }
+
 
     bool verify() const override;
 
@@ -70,12 +75,12 @@ private:
     bool            m_ContainWeights    = false;
 };
 
-using SbAtomLoadWaveOp = SbAtomFileWaveOp;
+using SbAtomLoadWaveOp = SbAtomLoadWaveOp;
 
 
 
 
-class SbAtomFileWaveOp::Params : public SbAtomWaveOp::Params {
+class SbAtomLoadWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:

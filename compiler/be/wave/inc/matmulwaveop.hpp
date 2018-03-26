@@ -200,6 +200,10 @@ public:
         return gTypeStrStatic();
     }
 
+    virtual WaveOpType gType() const override {
+        return WaveOpType::MatMul;
+    }
+
     bool verify() const override;
 
 

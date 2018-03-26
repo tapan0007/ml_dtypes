@@ -135,6 +135,10 @@ public:
         return gTypeStrStatic();
     }
 
+    virtual WaveOpType gType() const override {
+        return WaveOpType::Pool;
+    }
+
 private:
     kcc_int64                   m_DstSbAddress          = -1;
     kcc_int32                   m_DstXNum               = -1;

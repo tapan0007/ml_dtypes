@@ -110,6 +110,19 @@ Arch::gTpbBaseSysAddress()
     return TPB_BASE;
 }
 
+kcc_int64
+Arch::gNumberTpbEvents()
+{
+    return NUM_TPB_EVENTS;
+}
+
+kcc_int64
+Arch::gNumberSpEvents()
+{
+    return NUM_SP_EVENTS;
+}
+
+
 }}
 
 

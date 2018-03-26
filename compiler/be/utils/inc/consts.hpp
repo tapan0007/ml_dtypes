@@ -65,7 +65,7 @@ constexpr const char* const LayerTypeStr_AvgPool        = "AvgPool";
 constexpr const char* const LayerTypeStr_SoftMax        = "SoftMax";
 constexpr const char* const LayerTypeStr_BatchNorm      = "BNorm";
 
-constexpr const char* const WaveOpTypeStr_SBAtomFile    = "SBAtomFile";
+constexpr const char* const WaveOpTypeStr_SBAtomLoad    = "SBAtomFile";
 constexpr const char* const WaveOpTypeStr_SBAtomSave    = "SBAtomSave";
 constexpr const char* const WaveOpTypeStr_MatMul        = "MatMul";
 constexpr const char* const WaveOpTypeStr_Pool          = "Pool";

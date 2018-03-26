@@ -11,10 +11,10 @@ import sys, json, re
 import glob
 import shutil
 kPath = os.environ.get('KAENA_PATH')
-sys.path.insert(0, kPath + "/compiler/tffe")
-from NpUtils import NpUtils as npu
-from NpTransforms import NpTrans as npt
-
+if kPath is None:
+  kPath =''
+sys.path.insert(0, kPath + "/compiler/")
+from tffe.NpTransforms import NpTrans as npt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--kelf_dir', help='kelf directory', default="")
@@ -23,13 +23,13 @@ parser.add_argument('--input_files', help='Files to be passed in to the first su
 parser.add_argument('--output_files', help='Specify output file for last subgraph', default=[], nargs='+')
 parser.add_argument('--check_against_ref', help='compare last produced output npy file against compiler provided golden', action='store_true')
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
+parser.add_argument('--inkling_debugflags', help='inkling extra args', default=[], nargs='*')
+
 args = parser.parse_args()
 kelf_dir = args.kelf_dir
 kelf_dir = os.path.abspath(kelf_dir)
 assert(kelf_dir != "")
 nnGraphFile = kelf_dir + "/nn_graph.json"
-tfpbFile = args.tfpb
-tfpbFile = os.path.abspath(tfpbFile)
 
 input_files = []
 for f in args.input_files:
@@ -139,8 +139,8 @@ class NnSubgraph:
       OutFile = self.outputs[0]["file"].replace(".npy", "-out.npy")
 
     if executor == "host":
-      cmd = "%s/runtime/util/runtime_tf" % kPath
-      cmd += "  --tfpb %s" % tfpbFile
+      cmd = "PATH=%s/runtime/util:$PATH runtime_tf" % kPath
+      cmd += "  --tfpb %s"  % "%s/tf.pb" %(kelf_dir)
       inputs = []
       for input in self.getUpdatedInputs():
         inputs += [input["name"]]
@@ -151,12 +151,13 @@ class NnSubgraph:
     elif executor == "tcc" or executor == "wave":
       self.linkConsts()
       self.createTpbFormatInputs()
-      cmd = "%s/runtime/util/runtime_sim" % kPath
+      cmd = "PATH=%s/runtime/util:$PATH runtime_sim" % kPath
       cmd += "  --tpb_dir %s" % "%s/%s" %(kelf_dir, self.sgDir)
       if self.parallel_streams:
         cmd += " --parallel_streams"
       #cmd += "  --input_fmaps %s" % " ".join(self.getUpdatedInputs())
-      #cmd += "  --output_fmap %s %s" % (self.outputs[0], OutFile)
+      #cmd += "  --output_fmap %s %s" % (self.outputs[0], OutFile)A
+      cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
     elif executor == "processor":
       inputs = []
       for input in self.getUpdatedInputs():

@@ -1,9 +1,24 @@
 #include <map>
 
 
-#include "shared/inc/uarch_cfg.hpp"
-#include "shared/inc/tpb_isa.hpp"
-#include "tcc/inc/tcc.hpp"
+//#include "shared/inc/uarch_cfg.hpp"
+
+
+#include "compisa/inc/compisaldweights.hpp"
+#include "compisa/inc/compisamatmul.hpp"
+
+#include "compisa/inc/compisapool.hpp"
+#include "compisa/inc/compisamatadd.hpp"
+
+#include "compisa/inc/compisaactivation.hpp"
+
+#include "compisa/inc/compisaset.hpp"
+#include "compisa/inc/compisawait.hpp"
+#include "compisa/inc/compisawrite.hpp"
+
+#include "compisa/inc/compisasimmemcpy.hpp"
+#include "compisa/inc/compisasimwrnpy.hpp"
+#include "compisa/inc/compisasimrdnpy.hpp"
 
 
 #include "utils/inc/asserter.hpp"
@@ -14,14 +29,14 @@
 #include "events/inc/eventmgr.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
-#include "wave/inc/sbatomfilewaveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 
 //#include "wavecode/inc/wavecodewaveop.hpp"
-#include "wavecode/inc/wavecodesbatomfile.hpp"
+#include "wavecode/inc/wavecodesbatomload.hpp"
 #include "wavecode/inc/wavecodesbatomsave.hpp"
 #include "wavecode/inc/wavecodematmul.hpp"
 #include "wavecode/inc/wavecodepool.hpp"
@@ -38,7 +53,7 @@ WaveCode::WaveCode(const nets::Network* network, const arch::Arch& arch)
     , m_Arch(arch)
 {
     m_CodeMatMul            = std::make_unique<WaveCodeMatMul>(*this);
-    m_CodeSbAtomFile        = std::make_unique<WaveCodeSbAtomFile>(*this);
+    m_CodeSbAtomLoad        = std::make_unique<WaveCodeSbAtomLoad>(*this);
     m_CodeSbAtomSave        = std::make_unique<WaveCodeSbAtomSave>(*this);
     m_CodePool              = std::make_unique<WaveCodePool>(*this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(*this);
@@ -72,8 +87,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
 {
     if (dynamic_cast<const wave::MatMulWaveOp*>(waveOp)) {
         return *m_CodeMatMul;
-    } else if (dynamic_cast<const wave::SbAtomFileWaveOp*>(waveOp)) {
-        return *m_CodeSbAtomFile;
+    } else if (dynamic_cast<const wave::SbAtomLoadWaveOp*>(waveOp)) {
+        return *m_CodeSbAtomLoad;
     } else if (dynamic_cast<const wave::SbAtomSaveWaveOp*>(waveOp)) {
         return *m_CodeSbAtomSave;
     } else if (dynamic_cast<const wave::PoolWaveOp*>(waveOp)) {
@@ -119,7 +134,7 @@ WaveCode::gCurrentDramAddress(kcc_int64 sizeInBytes)
 
 
 template<>
-void WaveCode::writeInstruction<MATMUL>(const MATMUL& instruction)
+void WaveCode::writeInstruction<compisa::MatMulInstr>(const compisa::MatMulInstr& instruction)
 {
     checkForNoSync(instruction.sync);
 
@@ -127,7 +142,7 @@ void WaveCode::writeInstruction<MATMUL>(const MATMUL& instruction)
 }
 
 template<>
-void WaveCode::writeInstruction<LDWEIGHTS>(const LDWEIGHTS& instruction)
+void WaveCode::writeInstruction<compisa::LdWeightsInstr>(const compisa::LdWeightsInstr& instruction)
 {
     checkForNoSync(instruction.sync);
 
@@ -135,7 +150,7 @@ void WaveCode::writeInstruction<LDWEIGHTS>(const LDWEIGHTS& instruction)
 }
 
 template<>
-void WaveCode::writeInstruction<POOL>(const POOL& instruction)
+void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& instruction)
 {
     checkForNoSync(instruction.sync);
 
@@ -144,7 +159,7 @@ void WaveCode::writeInstruction<POOL>(const POOL& instruction)
 
 
 template<>
-void WaveCode::writeInstruction<ACTIVATION >(const ACTIVATION & instruction)
+void WaveCode::writeInstruction<compisa::ActivationInstr >(const compisa::ActivationInstr & instruction)
 {
     checkForNoSync(instruction.sync);
 
@@ -153,7 +168,7 @@ void WaveCode::writeInstruction<ACTIVATION >(const ACTIVATION & instruction)
 
 
 template<>
-void WaveCode::writeInstruction<MATADD>(const MATADD & instruction)
+void WaveCode::writeInstruction<compisa::MatAddInstr>(const compisa::MatAddInstr & instruction)
 {
     checkForNoSync(instruction.sync);
 
@@ -162,7 +177,7 @@ void WaveCode::writeInstruction<MATADD>(const MATADD & instruction)
 
 
 template<>
-void WaveCode::writeInstruction<SIM_RDNPY>(const SIM_RDNPY& instruction)
+void WaveCode::writeInstruction<compisa::SimRdNpyInstr>(const compisa::SimRdNpyInstr& instruction)
 {
     checkForNoSync(instruction.sync);
 
@@ -170,7 +185,7 @@ void WaveCode::writeInstruction<SIM_RDNPY>(const SIM_RDNPY& instruction)
 }
 
 template<>
-void WaveCode::writeInstruction<SIM_WRNPY>(const SIM_WRNPY& instruction)
+void WaveCode::writeInstruction<compisa::SimWrNpyInstr>(const compisa::SimWrNpyInstr& instruction)
 {
     checkForNoSync(instruction.sync);
 
@@ -178,7 +193,7 @@ void WaveCode::writeInstruction<SIM_WRNPY>(const SIM_WRNPY& instruction)
 }
 
 template<>
-void WaveCode::writeInstruction<SIM_MEMCPY>(const SIM_MEMCPY& instruction)
+void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCpyInstr& instruction)
 {
     checkForNoSync(instruction.sync);
 
@@ -191,7 +206,7 @@ void WaveCode::writeInstruction<SIM_MEMCPY>(const SIM_MEMCPY& instruction)
 
 #if 0
 template<>
-void WaveCode::writeInstruction<WRITE>(const WRITE& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::WriteInstr>(const compisa::WriteInstr& instruction, EngineId engId)
 {
     checkForNoSync(instruction.sync);
 
@@ -220,7 +235,7 @@ void WaveCode::writeInstruction<WRITE>(const WRITE& instruction, EngineId engId)
 
 
 template<>
-void WaveCode::writeInstruction<WAIT>(const WAIT& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& instruction, EngineId engId)
 {
     Assert(qParallelStreams(), "Cannot generate WAIT for event instruction in serial mode");
 
@@ -247,7 +262,7 @@ void WaveCode::writeInstruction<WAIT>(const WAIT& instruction, EngineId engId)
 
 
 template<>
-void WaveCode::writeInstruction<SET>(const SET& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& instruction, EngineId engId)
 {
     Assert(qParallelStreams(), "Cannot generate SET event instruction in serial mode");
 
@@ -299,7 +314,12 @@ WaveCode::saveAllNpyFiles ()
         if (! (*it).second.m_Dirty) {
             continue;
         }
-        SIM_RDNPY dramToNpyInstr;
+        compisa::SimRdNpyInstr dramToNpyInstr;
+        dramToNpyInstr.sync.wait_event_id      = 0;
+        dramToNpyInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+        dramToNpyInstr.sync.set_event_id      = 0;
+        dramToNpyInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::NoEvent);
+
         strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);
         dramToNpyInstr.src_address          = npyFileInfo.m_FileDramOffset;
@@ -314,7 +334,7 @@ WaveCode::saveAllNpyFiles ()
 }
 
 kcc_uint64
-WaveCode::calculateEventAddress(EngineId engId, EventId eventId) const
+WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
 {
     const arch::Arch& arch(arch::Arch::gArch());
 
@@ -342,14 +362,17 @@ WaveCode::calculateEventAddress(EngineId engId, EventId eventId) const
 void
 WaveCode::checkForNoSync(const TPB_CMD_SYNC& sync) const
 {
+    Assert(events::SET_EVENT_INVALID != sync.set_event_mode, "Invalid set event mode");
+    Assert(events::WAIT_EVENT_INVALID != sync.wait_event_mode, "Invalid wait event mode");
+
     if (qParallelStreams()) {
         return;
     }
     Assert(NO_SET_EVENT == sync.set_event_mode,
-        "Code generation: set even mode should NONE in serial execution");
+        "Code generation: set event mode should be NONE in serial execution");
 
     Assert(NO_WAIT_EVENT == sync.wait_event_mode,
-        "Code generation: wait even mode should NONE in serial execution");
+        "Code generation: wait event mode should be NONE in serial execution");
 }
 
 

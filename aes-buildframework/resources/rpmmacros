@@ -1,0 +1,2 @@
+%_topdir   %(echo ${RPMDIR})
+%_tmppath  %{_topdir}/tmp

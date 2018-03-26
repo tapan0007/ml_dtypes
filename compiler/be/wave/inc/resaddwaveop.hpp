@@ -54,6 +54,10 @@ public:
         return gTypeStrStatic();
     }
 
+    virtual WaveOpType gType() const override {
+        return WaveOpType::ResAdd;
+    }
+
     kcc_int32 gNumPartitions () const {
         return m_NumPartitions;
     }

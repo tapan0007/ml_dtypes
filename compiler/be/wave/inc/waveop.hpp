@@ -10,7 +10,6 @@
 
 
 
-#include "shared/inc/tpb_isa.hpp"
 
 
 #include "utils/inc/types.hpp"
@@ -72,7 +71,7 @@ public:
     virtual bool qMatMulWaveOp() const {
         return false;
     }
-    virtual bool qSbAtomFileWaveOp() const {
+    virtual bool qSbAtomLoadWaveOp() const {
         return false;
     }
     virtual bool qSbAtomSaveWaveOp() const {
@@ -91,6 +90,8 @@ public:
     virtual EngineId gEngineId() const = 0;
 
     virtual std::string gTypeStr() const = 0;
+    
+    virtual WaveOpType gType() const = 0;
 
     //----------------------------------------------------------------
     const std::string& gName() const {

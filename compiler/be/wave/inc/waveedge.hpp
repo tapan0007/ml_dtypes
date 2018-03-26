@@ -10,7 +10,6 @@
 
 
 
-#include "shared/inc/tpb_isa.hpp"
 
 
 #include "utils/inc/types.hpp"
@@ -75,9 +74,9 @@ public:
     /****************************************************************
      *                                                              *
      ****************************************************************/
-    void rEvent(events::EventSetMode setMode, EventId eventId, events::EventWaitMode waitMode);
+    void rEvent(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode);
 
-    EventId gEventId() const {
+    events::EventId gEventId() const {
         return m_Channel.gEventId();
     }
     events::EventWaitMode gWaitEventMode() const {
@@ -86,6 +85,9 @@ public:
     events::EventSetMode gSetEventMode() const {
         return m_Channel.gSetEventMode();
     }
+
+    bool qNeedToImplementWait() const;
+    bool qNeedToWaitFor() const;
 
 private:
     WaveOp*                 m_FromOp;
