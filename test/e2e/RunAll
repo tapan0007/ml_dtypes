@@ -346,7 +346,6 @@ testWaiver = [
     ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
     ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
     ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
-    ['0-3conv_ba_resadd_h1_fp16_wave',      'WAIVE_FIXME'],
 
     ['^0-add$',   'WAIVE-RESADD'],
     ['^0-add_fp32',   'WAIVE-RESADD'],

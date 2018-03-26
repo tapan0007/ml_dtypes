@@ -1,5 +1,5 @@
-#include "shared/inc/tpb_isa_ldweights.hpp"
 
+#include "compisa/inc/compisasimmemcpy.hpp"
 
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
@@ -20,8 +20,6 @@
 
 namespace kcc {
 namespace wavecode {
-#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
-            (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
 
 
@@ -54,16 +52,16 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
         m_WaveCode.recordDramForNpyFile(sbAtomSaveWaveop->gRefFileName(), npyFileInfo);
     }
 
-    SIM_MEMCPY statebufToDramInstr;
+    compisa::SimMemCpyInstr statebufToDramInstr;
 
-    statebufToDramInstr.sync.set_event_id       = -1;
+    statebufToDramInstr.sync.set_event_id       = 0;
     statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
-    statebufToDramInstr.sync.wait_event_id      = -1;
+    statebufToDramInstr.sync.wait_event_id      = 0;
     statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
 
-    EventId setEventId = -1;
-    events::EventSetMode setEventMode = events::EventSetMode::NoEvent;
-    EventId waitEventId = -1;
+    events::EventId setEventId          = events::EventId_Invalid();
+    events::EventSetMode setEventMode   = events::EventSetMode::NoEvent;
+    events::EventId waitEventId         = events::EventId_Invalid();
     events::EventWaitMode waitEventMode = events::EventWaitMode::NoEvent;
 
     //************************************************************************
@@ -88,9 +86,9 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         // TODO: add synchronization during DMA through extra DMA descriptor
         if (qParallelStreams()) {
-            statebufToDramInstr.sync.wait_event_id      = -1;
+            statebufToDramInstr.sync.wait_event_id      = 0;
             statebufToDramInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-            statebufToDramInstr.sync.set_event_id       = -1;
+            statebufToDramInstr.sync.set_event_id       = 0;
             statebufToDramInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
             if (0 == partIdx) { // only the first reading waits for predecessors
@@ -113,87 +111,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
 
     //************************************************************************
     if (qParallelStreams()) { // Write remaining SETs
-        processOutgoingEdges(sbAtomSaveWaveop);
-    }
-}
-
-
-void
-WaveCodeSbAtomSave::processIncomingEdges(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop, EventId& waitEventId,
-        events::EventWaitMode& waitEventMode)
-{
-    const EngineId engineId = sbAtomSaveWaveop->gEngineId();
-    bool firstEmb = true;
-
-    for (auto prevWaveEdge : sbAtomSaveWaveop->gPrevWaveEdges()) {
-        if (prevWaveEdge->gEventId() == EventId_Invalid) {
-            continue;
-        }
-        auto prevWaveop = prevWaveEdge->gFromOp();
-        if (prevWaveop->gEngineId() == engineId) {
-            continue;
-        }
-
-        if (firstEmb) {
-            firstEmb = false;
-            waitEventId = prevWaveEdge->gEventId();
-            waitEventMode = prevWaveEdge->gWaitEventMode();
-        } else {
-            WAIT waitInstr;
-            waitInstr.event_id  = prevWaveEdge->gEventId();
-            m_WaveCode.writeInstruction(waitInstr, engineId);
-        }
-    }
-}
-
-
-void
-WaveCodeSbAtomSave::findSetEventIdMode(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
-        EventId& setEventId, events::EventSetMode& setEventMode)
-{
-    bool firstEmb = true;
-
-    for (auto succWaveEdge : sbAtomSaveWaveop->gSuccWaveEdges()) {
-        auto succWaveop = succWaveEdge->gToOp();
-        if (succWaveop->gType() == sbAtomSaveWaveop->gType()) {
-            continue;
-        }
-        if (succWaveEdge->gEventId() == EventId_Invalid) {
-            continue;
-        }
-
-        if (firstEmb) {
-            firstEmb = false;
-            setEventId = succWaveEdge->gEventId();
-            setEventMode = succWaveEdge->gSetEventMode();
-            break;
-        }
-    }
-}
-
-
-void
-WaveCodeSbAtomSave::processOutgoingEdges(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
-{
-    const EngineId engineId = sbAtomSaveWaveop->gEngineId();
-    bool firstEmb = true;
-
-    for (auto succWaveEdge : sbAtomSaveWaveop->gSuccWaveEdges()) {
-        auto succWaveop = succWaveEdge->gToOp();
-        if (succWaveop->gType() == sbAtomSaveWaveop->gType()) {
-            continue;
-        }
-        if (succWaveEdge->gEventId() == EventId_Invalid) {
-            continue;
-        }
-
-        if (firstEmb) {
-            firstEmb = false; // this set event is in embedded already in partition N-1
-        } else {
-            SET setInstr;
-            setInstr.event_id  = succWaveEdge->gEventId();
-            m_WaveCode.writeInstruction(setInstr, engineId);
-        }
+        processOutgoingEdgesAlreadyEmb(sbAtomSaveWaveop);
     }
 }
 

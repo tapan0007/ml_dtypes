@@ -12,7 +12,7 @@ namespace events {
  ****************************************************************/
 Channel::Channel()
     : m_SetEventMode(EventSetMode::NoEvent)
-    , m_EventId(EventId_Invalid)
+    , m_EventId(EventId_Invalid())
     , m_WaitEventMode(EventWaitMode::NoEvent)
 { }
 
@@ -24,7 +24,6 @@ Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
     m_EventId = eventId;
     m_WaitEventMode = waitMode; // ToOp
 }
-
 
 
 
@@ -44,6 +43,9 @@ eventWaitMode2Int(EventWaitMode mode)
         break;
     case EventWaitMode::SetThenClear:
         return WAIT_EVENT_SET_THEN_CLEAR;
+        break;
+    case EventWaitMode::Invalid:
+        return events::WAIT_EVENT_INVALID;
         break;
     }
     Assert(false, "Wrong EventWaitMode: ", static_cast<kcc_int32>(mode));
@@ -67,6 +69,9 @@ eventSetMode2Int(EventSetMode mode)
         break;
     case EventSetMode::OnEndWrDst:
         return SET_EVENT_ON_END_WR_DST;
+        break;
+    case EventSetMode::Invalid:
+        return events::SET_EVENT_INVALID;
         break;
     }
     Assert(false, "Wrong EventSetMode: ", static_cast<kcc_int32>(mode));

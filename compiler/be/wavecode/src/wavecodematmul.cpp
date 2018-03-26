@@ -1,6 +1,7 @@
-#include "shared/inc/tpb_isa_wait.hpp"
-#include "shared/inc/tpb_isa_ldweights.hpp"
-#include "shared/inc/tpb_isa_matmul.hpp"
+
+#include "compisa/inc/compisawait.hpp"
+#include "compisa/inc/compisaldweights.hpp"
+#include "compisa/inc/compisamatmul.hpp"
 
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
@@ -21,8 +22,6 @@
 namespace kcc {
 namespace wavecode {
 
-#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
-            (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
 WaveCodeMatMul::WaveCodeMatMul(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
@@ -53,7 +52,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveop->gWaveId());
 
-    LDWEIGHTS ldweightsInstr;
+    compisa::LdWeightsInstr ldweightsInstr;
 
     //TPB_CMD_HEADER  hdr;
     const utils::DataType& dtype(matmulWaveop->gInDtype());
@@ -76,9 +75,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     ldweightsInstr.x_num                 = matmulWaveop->gOfmapCount();
     ldweightsInstr.num_row_partitions    = matmulWaveop->gIfmapCount();
 
-    ldweightsInstr.sync.wait_event_id    = -1;
+    ldweightsInstr.sync.wait_event_id    = 0;
     ldweightsInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    ldweightsInstr.sync.set_event_id     = -1;
+    ldweightsInstr.sync.set_event_id     = 0;
     ldweightsInstr.sync.set_event_mode   = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************
@@ -87,14 +86,10 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     bool firstEmbEvt = true;
     if (qParallelStreams()) { // incoming events
         for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
-                std::vector<const wave::WaveEdge*> prevEdgesWithoutEvent;
+            if (! prevWaveEdge->qNeedToImplementWait()) {
                 continue;
             }
             const auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
 
             if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
                 if (prevSbAtomLoadWaveop->qContainWeights()) {
@@ -103,7 +98,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                         ldweightsInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
                         ldweightsInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
                     } else {
-                        WAIT waitInstr;
+                        compisa::WaitInstr waitInstr;
                         waitInstr.event_id  = prevWaveEdge->gEventId();
                         m_WaveCode.writeInstruction(waitInstr, engineId);
                     }
@@ -133,7 +128,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     const EngineId engineId = matmulWaveop->gEngineId();
     Assert(EngineId::PeArray == engineId, "Engine id for MatMul should be PeArray");
 
-    MATMUL matmulInstr;
+    compisa::MatMulInstr matmulInstr;
     matmulInstr.dtype                   = matmulWaveop->gInDtype().gSimTypeId();
     matmulInstr.num_row_partitions      = matmulWaveop->gNumRowPartitions();
     matmulInstr.num_column_partitions   = matmulWaveop->gNumColumnPartitions();
@@ -158,9 +153,9 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     matmulInstr.start_tensor_calc       = matmulWaveop->qStartTensorCalc();
     matmulInstr.stop_tensor_calc        = matmulWaveop->qStopTensorCalc();
 
-    matmulInstr.sync.wait_event_id    = -1;
+    matmulInstr.sync.wait_event_id    = 0;
     matmulInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    matmulInstr.sync.set_event_id    = -1;
+    matmulInstr.sync.set_event_id    = 0;
     matmulInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************
@@ -169,13 +164,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
         // Inspect incoming edges/events
         for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
+            if (! prevWaveEdge->qNeedToImplementWait()) {
                 continue;
             }
             const auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
 
             if (auto prevSbAtomLoadWaveop = dynamic_cast<wave::SbAtomLoadWaveOp*>(prevWaveop)) {
                 if (! prevSbAtomLoadWaveop->qContainWeights()) { // Load Ifmap
@@ -184,7 +176,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                         matmulInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
                         matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
                     } else {
-                        WAIT waitInstr;
+                        compisa::WaitInstr waitInstr;
                         waitInstr.event_id  = prevWaveEdge->gEventId();
                         m_WaveCode.writeInstruction(waitInstr, engineId);
                     }
@@ -196,7 +188,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                     matmulInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
                     matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
                 } else {
-                    WAIT waitInstr;
+                    compisa::WaitInstr waitInstr;
                     waitInstr.event_id  = prevWaveEdge->gEventId();
                     m_WaveCode.writeInstruction(waitInstr, engineId);
                 }
@@ -209,29 +201,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     //************************************************************************
     bool instructionWritten = false;
     if (qParallelStreams()) { // Outgoing events
-        bool firstEmb = true;
-
-        for (auto succWaveEdge : matmulWaveop->gSuccWaveEdges()) {
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                matmulInstr.sync.set_event_id   = succWaveEdge->gEventId();
-                matmulInstr.sync.set_event_mode = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-                m_WaveCode.writeInstruction(matmulInstr);
-                instructionWritten = true;
-            } else {
-                SET setEventInstr;
-                setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(setEventInstr, engineId);
-            }
-        }
+        instructionWritten = processOutgoingEdges(matmulWaveop, matmulInstr);
     }
     if (! instructionWritten) {
         m_WaveCode.writeInstruction(matmulInstr);

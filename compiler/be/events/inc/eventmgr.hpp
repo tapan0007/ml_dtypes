@@ -1,11 +1,11 @@
 #pragma once
 
+#include "shared/inc/uarch_cfg.hpp"
+
 #ifndef KCC_EVENTS_EVENTMGR_H
 #define KCC_EVENTS_EVENTMGR_H
 
 namespace kcc {
-//enum class EventWaitMode;
-//enum class EventSetMode;
 
 namespace wave {
 class MatMulWaveOp;

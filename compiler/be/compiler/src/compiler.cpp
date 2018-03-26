@@ -132,6 +132,7 @@ Main(int argc, char* argv[])
     const utils::DataTypeFloat32 dtypeFloat32;
     std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
     std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
+    std::cout << "Arch: number TPB events = " << arch::Arch::gNumberTpbEvents() << "\n";
 
 #if 0
     const arch::StateBuffer stateBuf(arch.gStateBuffer());

@@ -1,4 +1,7 @@
-#include "shared/inc/tpb_isa_pool.hpp"
+
+#include "compisa/inc/compisapool.hpp"
+
+
 
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
@@ -21,8 +24,6 @@
 namespace kcc {
 namespace wavecode {
 
-#define ASSERT_HAS_EVENT(edge, from, to) Assert((edge)->gEventId() != EventId_Invalid, "WaveEdge from waveop ", \
-            (from)->gName(), " to waveop ", (to)->gName(), " has no event")
 
 WaveCodePool::WaveCodePool(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
@@ -41,7 +42,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     const EngineId engineId = poolWaveop->gEngineId();
     Assert(EngineId::Pooling == engineId, "Engine id for Pool should be Pooling");
 
-    POOL poolInstr;
+    compisa::PoolInstr poolInstr;
 
     /* pool args */
     switch (poolWaveop->gPoolFunc()) {
@@ -92,64 +93,23 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
                                             poolWaveop->gDstSbAddress());
 
-    poolInstr.sync.wait_event_id    = -1;
+    poolInstr.sync.wait_event_id    = 0;
     poolInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
-    poolInstr.sync.set_event_id    = -1;
+    poolInstr.sync.set_event_id    = 0;
     poolInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
-        bool firstEmb = true;
-
-        for (auto prevWaveEdge : poolWaveop->gPrevWaveEdges()) {
-            if (prevWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto prevWaveop = prevWaveEdge->gFromOp();
-            if (prevWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                poolInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
-                poolInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
-            } else {
-                WAIT waitInstr;
-                waitInstr.event_id                  = prevWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(waitInstr, engineId);
-            }
-        }
+        processIncomingEdges(poolWaveop, poolInstr.sync);
     } // end incoming events
 
 
     //************************************************************************
     bool instructionWritten = false;
     if (qParallelStreams()) { // Outgoing events
-        bool firstEmb = true;
-
-        for (auto succWaveEdge : poolWaveop->gSuccWaveEdges()) {
-            if (succWaveEdge->gEventId() == EventId_Invalid) {
-                continue;
-            }
-            auto succWaveop = succWaveEdge->gToOp();
-            if (succWaveop->gEngineId() == engineId) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                poolInstr.sync.set_event_id    = succWaveEdge->gEventId();
-                poolInstr.sync.set_event_mode  = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-                m_WaveCode.writeInstruction(poolInstr);
-                instructionWritten = true;
-            } else {
-                SET setEventInstr;
-                setEventInstr.event_id          = succWaveEdge->gEventId();
-                m_WaveCode.writeInstruction(setEventInstr, engineId);
-            }
-        }
+        instructionWritten = processOutgoingEdges(poolWaveop, poolInstr);
     }
+
     if (! instructionWritten) {
         m_WaveCode.writeInstruction(poolInstr);
     }
