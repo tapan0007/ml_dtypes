@@ -9,7 +9,6 @@
 import argparse
 import os.path
 import sys
-import numpy as np
 
 
 print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
@@ -40,8 +39,7 @@ class RuntimeSim:
   def run(self, inputFmaps, outputFmap):
     self.inputFmaps = inputFmaps
     self.outputFmap = outputFmap
- 
-    cmd = "%s/sim/sim" % (InklingPath)
+    cmd = "PATH=%s/sim/:$PATH sim" % (InklingPath)
     if args.parallel_streams:
       cmd += " --angel %s/TrivNet-dma.tpb --sp %s/TrivNet-sp.tpb  --pe %s/TrivNet-pe.tpb --pool %s/TrivNet-pool.tpb --act %s/TrivNet-act.tpb" %(tpb_dir, tpb_dir, tpb_dir, tpb_dir, tpb_dir)
       sim_debug = os.environ.get('SIM_DEBUG')

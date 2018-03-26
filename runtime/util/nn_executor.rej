@@ -1,0 +1,16 @@
+***************
+*** 18,24 ****
+  
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--kelf_dir', help='kelf directory', default="")
+- parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
+  parser.add_argument('--input_files', help='input filess', default=[], nargs='+')
+  parser.add_argument('--output_files', help='output file', default=[], nargs='+')
+  parser.add_argument('--check_against_ref', help='compare last produced output npy file against compiler provided golden', action='store_true')
+--- 18,23 ----
+  
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--kelf_dir', help='kelf directory', default="")
+  parser.add_argument('--input_files', help='input filess', default=[], nargs='+')
+  parser.add_argument('--output_files', help='output file', default=[], nargs='+')
+  parser.add_argument('--check_against_ref', help='compare last produced output npy file against compiler provided golden', action='store_true')

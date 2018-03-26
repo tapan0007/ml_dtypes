@@ -125,7 +125,6 @@ if args.images != None:
     sg.graph.setSchedulerMode(args.scheduler)
     sg.graph.print()
     sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
-
     executor = kp.getExecutorById(sgId)
     if not executor == 'host':
       writeBackEndFiles(sg.graph, args.out_prefix, args.verbose)
@@ -150,6 +149,9 @@ if args.images != None:
 
   if ret == 0:
     KgraphPartitions.attachPrePost(sgJsonList, args.preprocessor, args.postprocessor)
+
+    #package tfpb file in kelf.
+    shutil.copy2(tfpbFile, "%s/%s"%(os.getcwd(), "tf.pb"))
 
     nnGraphFile = "nn_graph.json"
     with open(nnGraphFile, "w") as f:
