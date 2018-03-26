@@ -6,7 +6,7 @@ PKG_VERSION ?= 1.0.0
 export PKG_VERSION
 PKG_RELEASE ?= 1
 export PKG_RELEASE
-
+PYTHON=python3
 SUBDIRS ?= \
     runtime \
     submodules/Inkling \
@@ -15,14 +15,14 @@ SUBDIRS ?= \
 .PHONY: build
 build:
 	@for subdir in $(SUBDIRS); do \
-		($(MAKE) -j -C $$subdir PREFIX=${PREFIX} DESTDIR=$(DESTDIR)); \
+		($(MAKE) -j -C $$subdir PREFIX=${PREFIX} DESTDIR=$(DESTDIR) PYTHON=$(PYTHON)); \
 	done
 	
 PREFIX=/tmp
 .PHONY: install
 install:
 	@for subdir in $(SUBDIRS); do \
-		($(MAKE) -C $$subdir install PREFIX=${PREFIX} DESTDIR=$(DESTDIR));\
+		($(MAKE) -C $$subdir install PREFIX=${PREFIX} DESTDIR=$(DESTDIR) PYTHON=$(PYTHON));\
 	done
 
 .PHONY: uninstall
