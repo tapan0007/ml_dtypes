@@ -24,6 +24,7 @@ parser.add_argument('--output_fmaps', help='',
                     dest="output_fmap", default=[], nargs=2)
 parser.add_argument('--parallel_streams', help='run execution engines in parallel', action='store_true', default=False)
 parser.add_argument('--tpb_dir', help='directory where tpb file(s) are located', default="./")
+parser.add_argument('--inkling_debugflags', help='Inkling extra args', default=[], nargs='*')
 args = parser.parse_args()
 inputFmaps = args.input_fmaps
 outputFmap = args.output_fmap
@@ -39,7 +40,7 @@ class RuntimeSim:
   def run(self, inputFmaps, outputFmap):
     self.inputFmaps = inputFmaps
     self.outputFmap = outputFmap
-
+ 
     cmd = "%s/sim/sim" % (InklingPath)
     if args.parallel_streams:
       cmd += " --angel %s/TrivNet-dma.tpb --sp %s/TrivNet-sp.tpb  --pe %s/TrivNet-pe.tpb --pool %s/TrivNet-pool.tpb --act %s/TrivNet-act.tpb" %(tpb_dir, tpb_dir, tpb_dir, tpb_dir, tpb_dir)
@@ -47,8 +48,9 @@ class RuntimeSim:
       if sim_debug:
         cmd += " --debugflags all"
     else:
-      cmd += " %s/TrivNet.tpb" % tpb_dir
-
+      cmd += " %s/TrivNet.tpb" % (tpb_dir)
+    if len(args.inkling_debugflags) != 0:
+      cmd += " --debugflags %s" %  " ".join(args.inkling_debugflags)
 
 
     print("INFO: executing %s" % cmd, flush=True)
