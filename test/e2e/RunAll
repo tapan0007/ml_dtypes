@@ -587,7 +587,7 @@ class Ktests:
     self.msg = ""
     self.statusCount = 0
     self.testDescriptionREs = []
-    testDesriptionFile = os.environ["KAENA_PATH"] + "/compiler/tffe/test/test_description.txt"
+    testDesriptionFile = "test_description.txt"
     with open(testDesriptionFile, 'r') as fh:
       for line in fh:
         match = re.search('(^[^#\s]+)\s+(\S.*)', line)
@@ -694,7 +694,7 @@ class Ktests:
       parallelStreamsForWaveMaybe = ""
       if parallelStreamsForWave and "wave" in testName:
         parallelStreamsForWaveMaybe = "--parallel_streams" # forward option to compiler
-      cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f $KAENA_PATH/compiler/tffe/test/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" PARALLEL_STREAMS_FOR_WAVE_MAYBE="%s" ' % (self.testTimeout, self.testTimeout, testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs, parallelStreamsForWaveMaybe)
+      cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f $KAENA_PATH/test/e2e/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s_ NN_NAME=%s NN_ARGS="%s" PARALLEL_STREAMS_FOR_WAVE_MAYBE="%s" ' % (self.testTimeout, self.testTimeout, testName, testName, nnStruct, nnConfig, "trivnet", nnLabel, nnArgs, parallelStreamsForWaveMaybe)
       if images != "":
         cmd += ' IMAGES="%s" '%(images)
       cmd +=  ' > log-top.txt 2>&1'

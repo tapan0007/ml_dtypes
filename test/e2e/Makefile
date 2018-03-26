@@ -35,19 +35,20 @@ TF_PATH = $(shell python3 -c "import tensorflow as tf; print(tf.__file__.replace
 IMAGES="$(OUT_PREFIX)ref_input.npy"
 
 
-export KAENA_TFFE := $(KAENA_PATH)/compiler/tffe
+export KCC := $(KAENA_PATH)/compiler
+export KAENA_E2E := $(KAENA_PATH)/test/e2e
 export KAENA_EXT := $(KAENA_EXT_PATH)
-export PYTHONPATH := $(KAENA_TFFE):$(PYTHONPATH)
+export PYTHONPATH := $(KCC)/tffe:$(PYTHONPATH)
 $(info KAENA_PATH is ${KAENA_PATH})
-$(info KAENA_TFFE is ${KAENA_TFFE})
+$(info KCC is ${KCC})
 $(info TF_PATH is ${TF_PATH})
 $(info DATA_TYPE is ${DATA_TYPE})
 
 trivnet_%:
-	python3 $(KAENA_TFFE)/test/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
+	python3 ${KAENA_E2E}/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
 	export CUDA_VISIBLE_DEVICES=""; python3 $(TF_PATH)/python/tools/freeze_graph.py --input_graph $(OUT_PREFIX)graph.pb --input_checkpoint $(OUT_PREFIX)checkpoint.data --output_graph $(OUT_PREFIX)freeze.pb --output_node_names $(NN_NAME)/output
-	$(KAENA_TFFE)/tffe.py --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(OUT_PREFIX)freeze.pb --depth 5 --images $(IMAGES) --width 30 $(NN_ARGS) $(PARALLEL_STREAMS_FOR_WAVE_MAYBE) > log-fe.txt  2>&1
-	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(OUT_PREFIX)freeze.pb  --input_files $(IMAGES) --check_against_ref > log-rt.txt  2>&1
+	$(KCC)/scripts/tffe --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(OUT_PREFIX)freeze.pb --depth 5 --images $(IMAGES) --width 30 $(NN_ARGS) $(PARALLEL_STREAMS_FOR_WAVE_MAYBE) > log-fe.txt  2>&1
+	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --input_files $(IMAGES) --check_against_ref > log-rt.txt  2>&1
 tf_pb:
-	$(KAENA_TFFE)/tffe.py --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(KAENA_EXT)/apps/tf/$(NN_CONFIG) --depth 5 --images $(IMAGES) --width 30 $(NN_ARGS)  $(PARALLEL_STREAMS_FOR_WAVE_MAYBE) > log-fe.txt  2>&1
-	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(KAENA_EXT)/apps/tf/$(NN_CONFIG) --input_files $(IMAGES) --check_against_ref > log-rt.txt  2>&1
+	$(KCC)/scripts/tffe --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(KAENA_EXT)/apps/tf/$(NN_CONFIG) --depth 5 --images $(IMAGES) --width 30 $(NN_ARGS)  $(PARALLEL_STREAMS_FOR_WAVE_MAYBE) > log-fe.txt  2>&1
+	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --input_files $(IMAGES) --check_against_ref > log-rt.txt  2>&1

@@ -20,7 +20,7 @@ INK_INC := -I$(INKLING_PATH) -I$(INKLING_PATH)/shared/inc
 CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 
 CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I
-COMPILER_BE := $(KAENA_PATH)/compiler/be
+COMPILER_BE ?= ../
 
 ###CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(KAENA_PATH)/compiler/be $(addsuffix /inc,$(addprefix -I../,$(MODS)))
 CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
@@ -77,6 +77,14 @@ clean :
 	@echo CLEAN $(MODULE)
 	@rm -f $(OFILES) $(LIBRARY) $(ADDITIONAL_CLEAN_FILES)
 
+PREFIX = /tmp/
+.PHONY: install
+install : $(MODULE).exe
+	mkdir -p $(DESTDIR)/$(PREFIX)/bin
+	cp $< $(DESTDIR)/$(PREFIX)/bin/
 lib : $(LIBRARY)
 
 
+.PHONY: uninstall
+uninstall:
+	rm -f $(DESTDIR)/$(PREFIX)/bin/$(MODULE).exe

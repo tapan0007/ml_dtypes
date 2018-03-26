@@ -1,0 +1,8 @@
+#~ /bin/bash
+
+case "$1" in
+"iad") echo "us-east-1";;
+*)  echo "region not found!" && exit -1
+esac 
+
+exit 0

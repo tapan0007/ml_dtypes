@@ -3,12 +3,13 @@
 
 MODS := arch layers memmgr nets utils schedule serialize codegen wave events wavecode
 MAINMOD := compiler 
+COMPILER_BE := $(shell pwd)
 
 top : alldeps
 	@for mod in $(MODS) $(MAINMOD); do \
 	    (if cd $$mod; then \
 			for D in obj; do test -d $$D || mkdir $$D; done; \
-			$(MAKE) -k; \
+			$(MAKE) -k COMPILER_BE=$(COMPILER_BE); \
 		fi) \
 	done 2>&1 | tee e; \
 	echo; echo '========================'; \
@@ -33,6 +34,17 @@ alldeps :
 
 superclean : clean alldeps top
 
+install : top
+	@for mod in $(MAINMOD); do \
+		(cd $$mod; \
+		$(MAKE) install) \
+	done
+
+uninstall:
+	@for mod in $(MAINMOD); do \
+		(cd $$mod; \
+		$(MAKE) uninstall) \
+	done
 libs :
 	@for mod in $(MODS) $(MAINMOD); do \
 	    (if cd $$mod; then \
