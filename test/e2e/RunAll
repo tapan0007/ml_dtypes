@@ -697,8 +697,12 @@ class Ktests:
         print("\n############## %s ##############" % testName)
       if parallelStreamsForWave and "wave" in testName:
         nnArgs += " --parallel_streams" # forward option to compiler
-      if "--images" not in nnArgs:
-          nnArgs += " --images %sref_input.npy" % outPrefix # default if none..
+      # default ref omage
+      default_image =  "%sref_input.npy" % outPrefix
+      if "trivnet" in nnStruct and "--images" not in nnArgs:
+          nnArgs += " --images %s " % default_image # default if none..
+      if "trivnet" in nnStruct and "--input_files" not in rtArgs:
+          rtArgs += " --input_files %s " % default_image # default if none..
 
       rtArgs += ' --inkling_debugflags "%s"' % inklingArgs # add passed inkling args to rt Args
       cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f  $KAENA_PATH/test/e2e/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (self.testTimeout, self.testTimeout, testName, testName, nnStruct, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs) 
