@@ -37,6 +37,7 @@ for new_row in c_new:
             top5_match = True
             top1_match = True
             toler_match = True
+            ulp = None
             if new_row[1] != golden_row[1]:
                 top1_match = False
             while (i<len(new_row)):
@@ -49,9 +50,10 @@ for new_row in c_new:
                     fl_new = np.float32(new_row[i])
                     fl_golden = np.float32(golden_row[i])
                     assert(dtype is 'float32')
+                if ulp is None:
+                    ulp = abs(np.nextafter(fl_golden, fl_new) - fl_golden)
                 if new_row[i-1] == golden_row[i-1]:
                     outs_row[i-1] = 'MATCH'
-                    ulp = np.nextafter(fl_golden, fl_new) - fl_golden
                     diff_abs = abs(fl_golden - fl_new)
                     diff_ulps = abs(round(diff_abs / ulp, 0))
                     if np.isnan(diff_ulps):
@@ -62,6 +64,7 @@ for new_row in c_new:
                 else:
                     top5_match = False
                     toler_match = False
+                    print ("ulp: %s, mismatching entry %s" % (ulp, golden_row[i-1]))
                 i += 2
             found = True
             if (top5_match == False):
