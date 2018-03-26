@@ -306,6 +306,7 @@ class CircularBuffer:
         self.DRAM_atoms_read_short_min_len = StateBuffer.SB_ATOM_SZ
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
+        self.DRAM_atoms_written = 0
 
     def reset(self):
         self.head_pointer = 0
@@ -633,6 +634,7 @@ class CircularBuffer:
             if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
         self.DRAM_elem_written += length * ofmap_count / self.item_sz
+        self.DRAM_atoms_written += 1
         # if this is last chunk in OFMAP, mark it as last
         last_atom_of_file = (tile_id.m_id+1 == tile_id.m) and (ceildiv(offset_in_fold+length, self.atom_data_sz) == ceildiv(self.ofmap_data_len, self.atom_data_sz))
         #print("m_id %d m %d offset_in_fold %d length %d ofmap_data_len %d last %d"%(tile_id.m_id, tile_id.m, offset_in_fold, length, self.ofmap_data_len, last_atom_of_file))
@@ -889,8 +891,8 @@ class CircularBuffer:
                     self.head_pointer = 0
 
     def print_stats(self):
-        print("STATS circular buffer type %s layer %s: input file %s output file %s"%(self.circbuf_type, self.layer_name, self.dram_data_in_file, self.dram_data_out_file))
-        print("STATS circular buffer type %s layer %s: item_sz %d capacity %d kickout %d atom_size %d num_allocated_atoms %d max_count %d num_evicted_atoms %d len(chunk2atom_map) %d len(chunk2spare_map) %d len(chunk2skip_map) %d total_size %d dram_data_len %d ifmap_data_len %d ofmap_data_len %d DRAM_elem_read %d DRAM_atoms_read %d DRAM_atoms_read_short %d DRAM_atoms_read_short_min_len %d"%(self.circbuf_type, self.layer_name, self.item_sz, self.capacity, self.num_kickout_atoms, self.atom_sz, self.num_allocated_atoms, self.max_count, self.num_evicted_atoms, len(self.chunk2atom_map), len(self.chunk2spare_map), len(self.chunk2skip_map), self.total_size, self.dram_data_len, self.ifmap_data_len, self.ofmap_data_len, self.DRAM_elem_read, self.DRAM_atoms_read, self.DRAM_atoms_read_short, self.DRAM_atoms_read_short_min_len))
+        #print("STATS circular buffer type %s layer %s: input file %s output file %s"%(self.circbuf_type, self.layer_name, self.dram_data_in_file, self.dram_data_out_file))
+        print("STATS circular buffer type %s layer %s: item_sz %d capacity %d kickout %d atom_size %d num_allocated_atoms %d max_count %d num_evicted_atoms %d len(chunk2atom_map) %d len(chunk2spare_map) %d len(chunk2skip_map) %d total_size %d dram_data_len %d ifmap_data_len %d ofmap_data_len %d DRAM_elem_written %d DRAM_atoms_written %d DRAM_elem_read %d DRAM_atoms_read %d DRAM_atoms_read_short %d DRAM_atoms_read_short_min_len %d"%(self.circbuf_type, self.layer_name, self.item_sz, self.capacity, self.num_kickout_atoms, self.atom_sz, self.num_allocated_atoms, self.max_count, self.num_evicted_atoms, len(self.chunk2atom_map), len(self.chunk2spare_map), len(self.chunk2skip_map), self.total_size, self.dram_data_len, self.ifmap_data_len, self.ofmap_data_len, self.DRAM_elem_written, self.DRAM_atoms_written, self.DRAM_elem_read, self.DRAM_atoms_read, self.DRAM_atoms_read_short, self.DRAM_atoms_read_short_min_len))
 
 ##################################################################################
 # Neural network node, containing data read from JSON
@@ -2116,6 +2118,7 @@ class TPBSched:
         self.statebuffer.circbuf_ifmaps.DRAM_elem_read = 0
         self.statebuffer.circbuf_scratch.DRAM_elem_read = 0
         self.statebuffer.circbuf_scratch.DRAM_elem_written = 0
+        self.statebuffer.circbuf_scratch.DRAM_atoms_written = 0
         self.statebuffer.circbuf_weights.DRAM_atoms_read = 0
         self.statebuffer.circbuf_ifmaps.DRAM_atoms_read = 0
         self.statebuffer.circbuf_weights.DRAM_atoms_read_short = 0
