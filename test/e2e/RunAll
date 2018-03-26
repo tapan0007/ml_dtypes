@@ -587,7 +587,7 @@ class Ktests:
     self.msg = ""
     self.statusCount = 0
     self.testDescriptionREs = []
-    testDesriptionFile = "test_description.txt"
+    testDesriptionFile = os.path.dirname(os.path.realpath(__file__)) + "/test_description.txt"
     with open(testDesriptionFile, 'r') as fh:
       for line in fh:
         match = re.search('(^[^#\s]+)\s+(\S.*)', line)
