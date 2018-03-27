@@ -428,6 +428,9 @@ class CircularBuffer:
             elif (self.layer_format == 'NC' or self.layer_format == 'C'):
                 self.ofmap_data_len = self.item_sz
             ifmap_width_data_len = W * self.item_sz
+            # reset atom_sz if loading from previously saved file
+            if (self.dram_data_in_file in tpb.statebuffer.circbuf_scratch.outfile2atomsz_map):
+                self.atom_sz = tpb.statebuffer.circbuf_scratch.outfile2atomsz_map[self.dram_data_in_file]
             # make atom size multiple of IFMAP if IFMAP is smaller than default atom size (CNHW)
             #if (self.ifmap_data_len <= self.atom_sz):
             #    multiple = self.atom_sz // self.ifmap_data_len
@@ -537,6 +540,7 @@ class CircularBuffer:
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         self.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
+        self.outfile2atomsz_map[self.dram_data_out_file] = self.atom_sz
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
@@ -2391,6 +2395,15 @@ if __name__ == "__main__":
         # create graph from JSON file        
         wavegraph = KGraph()
         wavegraph.populate_from_kgraph_json(wavegraph_json)
+
+        # check for SBAtomFile nodes with no input
+        print("DBG: check for all SBAtomFile nodes with no input")
+        for i in wavegraph.node_dict:
+            entry = wavegraph.node_dict[i]
+            if 'waveop_type' in entry.data:
+                if entry.data['waveop_type'] == "SBAtomFile":
+                    if entry.data['previous_waveops'] == []:
+                        print(entry.data['waveop_name'])
 
     # write out dot graph in SVG format
     if (args.dot != None and args.inference == False):            
