@@ -25,9 +25,12 @@
 import argparse
 import os.path
 import sys, json, re
+import shutil
+
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+
 import TfFrontEnd
 import KgraphPartitions
-import shutil
 from MiscUtil import remove_write_permissions
 
 kPath = os.environ.get('KAENA_PATH')
@@ -159,8 +162,8 @@ if args.images != None:
       f.write(s)
 
     # K-elf compilation is done. Make output directory read/execute only
-    if debugLevel > 0:
-      remove_write_permissions(".")
+    #if debugLevel > 0:
+    #  remove_write_permissions(".")
 
 print("INFO: Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
