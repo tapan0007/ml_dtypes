@@ -313,4 +313,7 @@ testWaiver = [
     # accuracy fail, fp16
     ['7-rn50_nne_fp16_accfail$', 'WAIVE_FP16_ACC'],
 
+    # batching
+    ['7-rn50_nne_fp16_waveopt_b4$', 'WAIVE_BATCH'],
+
   ]
