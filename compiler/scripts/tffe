@@ -25,9 +25,12 @@
 import argparse
 import os.path
 import sys, json, re
+import shutil
+
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
+
 import TfFrontEnd
 import KgraphPartitions
-import shutil
 from MiscUtil import remove_write_permissions
 
 kPath = os.environ.get('KAENA_PATH')
