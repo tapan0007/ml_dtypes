@@ -159,8 +159,8 @@ if args.images != None:
       f.write(s)
 
     # K-elf compilation is done. Make output directory read/execute only
-    if debugLevel > 0:
-      remove_write_permissions(".")
+    #if debugLevel > 0:
+    #  remove_write_permissions(".")
 
 print("INFO: Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
