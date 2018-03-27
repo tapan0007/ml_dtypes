@@ -57,6 +57,7 @@ parser.add_argument('--parallel', help='Run concurrently, default is number of c
 parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=False)
 parser.add_argument('--timeout', help='Timeout for each test, default 3600', type=int, default=3600)
 parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
+parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -162,25 +163,26 @@ class QoR:
     feLog = self.testName + "/" + "log-fe.txt"
     self.tops = 0
     self.ops = 0
-    self.cycles = 1
-    self.elapsedTimeSec = -1
+    self.cycles = 0
+    self.elapsedTimeSec = -1e-6
     self.cyclesPerSec = 0
     if os.path.isfile(feLog):
       self.ops = QoR.feLogGetOps(feLog)
       for subdir, dirs, files in os.walk(dirName):
         for file in files:
-          #print(os.path.join(subdir, file))
+          #print("DEBUG: visited file  " + os.path.join(subdir, file))
           filepath = subdir + os.sep + file
-          if filepath.endswith(".simres"):
+          if re.match(r'log-exec-sg\d+-(wave|tcc)', file):
+            #print("DEBUG: processing file  " + os.path.join(subdir, file))
             testName = filepath.split("/")[0]
             assert(testName == self.testName)
-            self.cycles, self.elapsedTimeSec = QoR.simLogGetCycles(filepath)
-            self.tops = 0
-            self.cyclesPerSec = 0
-            if self.cycles > 0:
-              self.tops = 1.0 * self.ops / self.cycles / 1e12 * self.freq
-              if self.elapsedTimeSec > 0:
-                self.cyclesPerSec = self.cycles / self.elapsedTimeSec
+            sgCycles, sgElapsedTimeSec = QoR.simLogGetCycles(filepath)
+            self.cycles += sgCycles
+            self.elapsedTimeSec += sgElapsedTimeSec
+    if self.cycles > 0:
+      self.tops = 1.0 * self.ops / self.cycles / 1e12 * self.freq
+    if self.elapsedTimeSec > 0:
+      self.cyclesPerSec = self.cycles / self.elapsedTimeSec
 
   @staticmethod
   def printHeader():
@@ -270,11 +272,12 @@ class Ktest:
 # Storage for all tests
 ###############################################################################
 class Ktests:
-  def __init__(self, testConfigMap, testList, testWaiver, testTimeout):
+  def __init__(self, testConfigMap, testList, testWaiver, testTimeout, smallFirst):
     self.testConfigMap = testConfigMap
     self.testList = testList
     self.testWaiver = testWaiver
     self.testTimeout = testTimeout
+    self.smallFirst = smallFirst
     self.startTime = time.time()
     self.process2test = {}
     self.name2test = {}
@@ -377,6 +380,17 @@ class Ktests:
       if not t.status == "TIMEOUT":
         t.testTime = time.time() - t.startTime
   
+  def interleaveFrontBack(self, arr, ratio):
+    newArr = []
+    srcArr = arr.copy()
+    while len(srcArr) > 0:
+      for i in range(ratio):
+        if len(srcArr) > 0:
+          newArr.append(srcArr.pop(0))
+      if len(srcArr) > 0:
+        newArr.append(srcArr.pop(-1))
+    return newArr
+
   # Run tests
   def run(self, parallel):
     self.parallel = parallel
@@ -385,7 +399,7 @@ class Ktests:
     self.processes = []
 
     outPrefix = "trivnet_"
-    for testName in self.testList:
+    for testName in self.interleaveFrontBack(self.testList, self.smallFirst):
       # Add default NN args
       while len(self.testConfigMap[testName]) < 5:
         self.testConfigMap[testName].append("")
@@ -524,7 +538,7 @@ testList = selectTests(test_list.testConfigMap, test_list.testWaiver, args.level
 if args.show_only:
   print("INFO: --show_only mode: selected tests are " + "\n".join(testList))
 else:
-  tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout)
+  tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
   tests.run(parallel)
   tests.report()
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
