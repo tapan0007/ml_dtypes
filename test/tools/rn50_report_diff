@@ -3,6 +3,8 @@
 import csv
 import argparse
 import numpy as np
+from scipy import stats
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--golden', help='Specify golden csv file', default="")
 parser.add_argument('--new', help='Specify data csv file', default="")
@@ -27,6 +29,7 @@ top1_match_cnt = 0
 toler_match_cnt = 0
 
 dtype = args.dtype
+all_diff_ulp=[]
 for new_row in c_new:
     row = 1
     found = False
@@ -42,7 +45,7 @@ for new_row in c_new:
                 top1_match = False
             while (i<len(new_row)):
                 outs_row[i-1] = 'NOT_MATCH'
-                outs_row[i] = -1
+                outs_row[i] = 0
                 if dtype == 'float16':
                     fl_new = np.float16(new_row[i])
                     fl_golden = np.float16(golden_row[i])
@@ -56,20 +59,22 @@ for new_row in c_new:
                     outs_row[i-1] = 'MATCH'
                     diff_abs = abs(fl_golden - fl_new)
                     diff_ulps = abs(round(diff_abs / ulp, 0))
-                    if np.isnan(diff_ulps):
+                    if np.isnan(diff_ulps) or np.isinf(diff_ulps):
                         diff_ulps = 0
+                    assert (not np.isinf(diff_ulps))
                     if diff_ulps > tolerance:
                         toler_match = False
                     outs_row[i] = diff_ulps
+                    all_diff_ulp.append(diff_ulps)
                 else:
                     top5_match = False
                     toler_match = False
-                    print ("ulp: %s, mismatching entry %s" % (ulp, golden_row[i-1]))
+                    #print ("ulp: %s, mismatching entry %s" % (ulp, golden_row[i-1]))
                 i += 2
             found = True
-            if (top5_match == False):
-                print("golden ", golden_row)
-                print("new ", new_row)
+            #if (top5_match == False):
+            #    print("golden ", golden_row)
+            #    print("new ", new_row)
             break
         row = row + 1
     assert(found)
@@ -84,6 +89,7 @@ print("Total processed = %s" % total_cnt)
 print("Top 1 Match count= %s" % top1_match_cnt)
 print("Top 5 Match count= %s" % top5_match_cnt)
 print("Within tolerance match = %s" % toler_match_cnt)
+print(stats.describe(all_diff_ulp))
 
 f_new.close()
 f_golden.close()
