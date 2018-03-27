@@ -7,6 +7,8 @@
 
 #include "shared/inc/tpb_isa_activate.hpp"
 
+#include "utils/inc/consts.hpp"
+
 #include "events/inc/events.hpp"
 
 
@@ -16,6 +18,8 @@ namespace compisa {
 
 
 class ActivationInstr : public ACTIVATION {
+public:
+    static constexpr EngineId engineId = EngineId::Activation;
 public:
     //----------------------------------------------------------------
     ActivationInstr()

@@ -7,6 +7,8 @@
 
 #include "shared/inc/tpb_isa_matadd.hpp"
 
+#include "utils/inc/consts.hpp"
+
 #include "events/inc/events.hpp"
 
 namespace kcc {
@@ -15,6 +17,8 @@ namespace compisa {
 
 
 class MatAddInstr : public MATADD {
+public:
+    static constexpr EngineId engineId = EngineId::Pooling;
 public:
     //----------------------------------------------------------------
     MatAddInstr()

@@ -7,6 +7,8 @@
 
 #include "shared/inc/tpb_isa_write.hpp"
 
+#include "utils/inc/consts.hpp"
+
 #include "events/inc/events.hpp"
 
 namespace kcc {
@@ -15,6 +17,8 @@ namespace compisa {
 
 
 class WriteInstr : public WRITE {
+public:
+    static constexpr EngineId engineId = EngineId::AnyEng;
 public:
     //----------------------------------------------------------------
     WriteInstr()

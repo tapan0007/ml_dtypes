@@ -16,6 +16,7 @@ enum class EngineId {
     Pooling,
     StreamProc,
     DmaEng,
+    AnyEng, // when an instruction can be execed on several engines: WAIT,SET,WRITE
 };
 
 enum {

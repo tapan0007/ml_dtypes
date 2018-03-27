@@ -8,12 +8,17 @@
 #include "shared/inc/tpb_isa_wait.hpp"
 
 
+#include "utils/inc/consts.hpp"
+
+
 namespace kcc {
 
 namespace compisa {
 
 
 class WaitInstr : public WAIT {
+public:
+    static constexpr EngineId engineId = EngineId::AnyEng;
 public:
     //----------------------------------------------------------------
     WaitInstr()

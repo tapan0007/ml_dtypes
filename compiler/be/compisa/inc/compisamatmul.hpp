@@ -7,6 +7,8 @@
 
 #include "shared/inc/tpb_isa_matmul.hpp"
 
+#include "utils/inc/consts.hpp"
+
 #include "events/inc/events.hpp"
 
 namespace kcc {
@@ -15,6 +17,8 @@ namespace compisa {
 
 
 class MatMulInstr : public MATMUL {
+public:
+    static constexpr EngineId engineId = EngineId::PeArray;
 public:
     //----------------------------------------------------------------
     MatMulInstr()

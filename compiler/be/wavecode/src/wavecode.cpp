@@ -351,6 +351,9 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
     case EngineId::DmaEng:
         return arch.gTpbEventBase() + eventId;
 
+    case EngineId::AnyEng:
+        Assert(false, "AnyEng not allowed, engine id ", static_cast<int>(engId));
+
     case EngineId::None:
         Assert(false, "Bad engine id ", static_cast<int>(engId));
     }

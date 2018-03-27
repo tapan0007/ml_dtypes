@@ -7,6 +7,8 @@
 
 #include "shared/inc/tpb_isa_simmemcpy.hpp"
 
+#include "utils/inc/consts.hpp"
+
 #include "events/inc/events.hpp"
 
 namespace kcc {
@@ -15,6 +17,8 @@ namespace compisa {
 
 
 class SimMemCpyInstr : public SIM_MEMCPY {
+public:
+    static constexpr EngineId engineId = EngineId::DmaEng;
 public:
     //----------------------------------------------------------------
     SimMemCpyInstr()
