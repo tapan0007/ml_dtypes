@@ -4,17 +4,42 @@ import csv
 import argparse
 import numpy as np
 from scipy import stats
+import boto3
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--golden', help='Specify golden csv file', default="")
-parser.add_argument('--new', help='Specify data csv file', default="")
-parser.add_argument('--out', help='Specify out csv file', default="")
-parser.add_argument('--dtype', help='Specify out csv file', default="float32")
+parser.add_argument('--golden', help='Specify golden test id', default="")
+parser.add_argument('--new', help='Specify new test id', default="")
+parser.add_argument('--dtype', help='Specify data type of inputs', default="float32")
+parser.add_argument("--aws-profile", help="name of aws credentials profile to use", required=True)
+parser.add_argument("--bucket", help="test results bucket", required=True)
 args = parser.parse_args()
 
-f_golden = open(args.golden, 'r')
-f_new = open(args.new, 'r')
-f_out = open(args.out, 'w')
+
+session = boto3.Session(profile_name  = args.aws_profile)
+s3 = session.resource(
+    service_name='s3',
+    region_name='us-east-1')
+
+bucket = s3.Bucket(args.bucket)
+
+newFileS3Path = "%s/report.csv" % (args.new)
+goldenFileS3Path = "%s/report.csv" % (args.golden)
+diffFileS3Path = "%s/golden_diff.csv" % (args.new)
+diffStatsFileS3Path = "%s/diff_stats.csv" % (args.new)
+
+newFilePath = "/tmp/report_%s" %(args.new)
+goldenFilePath = "/tmp/report_%s" %(args.golden)
+diffFilePath = "/tmp/golden_diff_%s" %(args.new)
+diffStatsFilePath = "/tmp/diff_stats_%s" %(args.new)
+
+bucket.download_file(newFileS3Path, newFilePath)
+bucket.download_file(goldenFileS3Path, goldenFilePath)
+
+
+f_golden = open(goldenFilePath, 'r')
+f_new = open(newFilePath, 'r')
+f_out = open(diffFilePath, 'w')
+f_stats_out = open(diffStatsFilePath, 'w')
 
 c_golden = csv.reader(f_golden)
 c_new = csv.reader(f_new)
@@ -84,14 +109,21 @@ for new_row in c_new:
     toler_match_cnt += toler_match
     total_cnt += 1
 
-print("Diff results:")
-print("Total processed = %s" % total_cnt)
-print("Top 1 Match count= %s" % top1_match_cnt)
-print("Top 5 Match count= %s" % top5_match_cnt)
-print("Within tolerance match = %s" % toler_match_cnt)
-print(stats.describe(all_diff_ulp))
+
+my_stats = ""
+my_stats += "Diff results:\n"
+my_stats += "Total processed = %s\n" % total_cnt
+my_stats += "Top 1 Match count= %s\n" % top1_match_cnt
+my_stats += "Top 5 Match count= %s\n" % top5_match_cnt
+my_stats += "Within tolerance match = %s\n" % toler_match_cnt
+my_stats += str(stats.describe(all_diff_ulp))
+
+f_stats_out.write(my_stats)
+print(my_stats)
 
 f_new.close()
 f_golden.close()
 f_out.close()
+f_stats_out.close()
 
+bucket.upload_file(diffFilePath, diffFileS3Path)

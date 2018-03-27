@@ -96,7 +96,7 @@ def main():
 
     wait = args.wait
 
-    testid = uuid.uuid4().hex
+    testid = uuid.uuid4().hex[:7]
     # get list of all file names in input bucket
     input_bucket = s3.Bucket(args.input_bucket)
     num_inputs = len(list(input_bucket.objects.all()))

@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 
 parser.add_argument("--testid", help="test id", required=True)
 parser.add_argument("--aws-profile", help="name of aws credentials profile to use", required=True)
-parser.add_argument("--bucket", help="output bucket", required=True)
+parser.add_argument("--bucket", help="test results bucket", required=True)
 
 args = parser.parse_args()
 
