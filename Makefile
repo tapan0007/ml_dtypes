@@ -44,7 +44,7 @@ clean:  build_clean check_clean repo_clean
 
 build_clean:
 	@for subdir in $(SUBDIRS); do \
-		($(MAKE) -C $$subdir clean) \
+		($(MAKE) -C $$subdir clean  PYTHON=$(PYTHON)) \
 	done
 
 
