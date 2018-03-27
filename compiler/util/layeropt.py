@@ -195,6 +195,7 @@ class StateBuffer:
     SB_PARTITION_SZ = 96*1024 # 96KB per partition
     SB_ATOM_SZ = 1024 # can be down to 256B for maximum DMA efficiency
     SB_NUM_1K_ATOMS = SB_PARTITION_SZ/SB_ATOM_SZ
+    SB_NUM_64B_MORSELS = SB_PARTITION_SZ // 64
 
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
@@ -203,6 +204,7 @@ class StateBuffer:
         self.circbuf_bias    = CircularBuffer(self, "bias",    4,          self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-16-4))
         self.circbuf_scratch = CircularBuffer(self, "scratch", 16,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-16))
         self.saved_result_files = {}
+        self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
 
     def print_stats(self):        
         self.circbuf_ifmaps.print_stats()
@@ -213,7 +215,7 @@ class StateBuffer:
     def reset_all(self):        
         self.circbuf_ifmaps.reset()
         self.circbuf_weights.reset()
-        self.circbuf_bias.reset()
+        #self.circbuf_bias.reset()
         self.circbuf_scratch.reset()
 
 ##################################################################################
@@ -228,6 +230,8 @@ class CircularBuffer:
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
         self.chunk2saved_map = {}   # holds all the saved atoms
+        self.outfile2atomsz_map = {} # holds the atom size for each output file # TODO: move to global area when we do swapping of regions
+        self.last_biasweight_waveop = ""
 
     def reset(self):
         self.head_pointer = 0
@@ -428,6 +432,9 @@ class CircularBuffer:
             elif (self.layer_format == 'NC' or self.layer_format == 'C'):
                 self.ofmap_data_len = self.item_sz
             ifmap_width_data_len = W * self.item_sz
+            # reset atom_sz if loading from previously saved file
+            if (self.dram_data_in_file in tpb.statebuffer.circbuf_scratch.outfile2atomsz_map):
+                self.atom_sz = tpb.statebuffer.circbuf_scratch.outfile2atomsz_map[self.dram_data_in_file]
             # make atom size multiple of IFMAP if IFMAP is smaller than default atom size (CNHW)
             #if (self.ifmap_data_len <= self.atom_sz):
             #    multiple = self.atom_sz // self.ifmap_data_len
@@ -492,8 +499,19 @@ class CircularBuffer:
         else:            
             simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
+        sb_addr = self.start + atom_id*self.atom_sz
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
+        if (self.circbuf_type == "weights"): # TODO: if space is reused for other regions, need to apply to other regions
+            for i in range(sb_addr//64, (sb_addr + length)//64):
+                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "":
+                    previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
+                    break
+        # string bias reads together
+        #if (self.circbuf_type == "bias" or self.circbuf_type == "weights"):
+        #    if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0):
+        #        previous_waveops.append(self.last_biasweight_waveop)
+        #    self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         if (chunk_name in tpb.statebuffer.circbuf_scratch.chunk2saved_map):
             previous_waveops.append(tpb.statebuffer.circbuf_scratch.chunk2saved_map[chunk_name])
@@ -502,7 +520,7 @@ class CircularBuffer:
               'waveop_type'      : "SBAtomFile",
               'waveop_name'      : waveop_name,
               'layer_name'       : self.layer_name,
-              'sb_address'       : self.start + atom_id*self.atom_sz,
+              'sb_address'       : sb_addr,
               'data_type'        : self.data_type,
               'contain_weights'  : self.circbuf_type == "weights",
               'ref_file'         : simout_file,
@@ -537,6 +555,7 @@ class CircularBuffer:
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         self.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
+        self.outfile2atomsz_map[self.dram_data_out_file] = self.atom_sz
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
@@ -1439,6 +1458,13 @@ class FusedOp(list):
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
             tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops + dram_ifmaps_waveops)
+            # mark this matmul as consumer of the 64B weights morsel
+            matmul_waveop_name = matmul_waveop["waveop_name"]
+            for i in dram_weights_waveops: # + dram_ifmaps_waveops:
+                sb_addr = i["sb_address"]
+                sb_length = i["length"]
+                for j in range(sb_addr//64, (sb_addr+sb_length)//64):
+                    tpb.statebuffer.consumer_of_64byte_morsel[j] = matmul_waveop_name
             # collect statistics
             tpb.pearray.num_ops_executed += self.conv_op.ofmap_count * self.conv_op.ofmap_full_tile_sz * self.conv_op.ifmap_count
             return True
@@ -2391,6 +2417,15 @@ if __name__ == "__main__":
         # create graph from JSON file        
         wavegraph = KGraph()
         wavegraph.populate_from_kgraph_json(wavegraph_json)
+
+        # check for SBAtomFile nodes with no input
+        print("DBG: check for all SBAtomFile nodes with no input")
+        for i in wavegraph.node_dict:
+            entry = wavegraph.node_dict[i]
+            if 'waveop_type' in entry.data:
+                if entry.data['waveop_type'] == "SBAtomFile":
+                    if entry.data['previous_waveops'] == []:
+                        print(entry.data['waveop_name'])
 
     # write out dot graph in SVG format
     if (args.dot != None and args.inference == False):            
