@@ -19,10 +19,7 @@ namespace events {
 //**********************************************************************
 using EventId = kcc_int32;
 
-static constexpr EventId EventId_Invalid()
-{
-    return NUM_TPB_EVENTS - 1;
-}
+EventId EventId_Invalid();
 
 constexpr kcc_int32 KccMax3(kcc_int32 a, kcc_int32 b, kcc_int32 c)
 {

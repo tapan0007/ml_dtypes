@@ -1,6 +1,7 @@
 
 #include "utils/inc/asserter.hpp"
 
+#include "arch/inc/arch.hpp"
 #include "events/inc/events.hpp"
 
 
@@ -76,6 +77,11 @@ eventSetMode2Int(EventSetMode mode)
     }
     Assert(false, "Wrong EventSetMode: ", static_cast<kcc_int32>(mode));
     return 0;
+}
+
+EventId EventId_Invalid()
+{
+    return arch::Arch::gNumberTpbEvents() - 1;
 }
 
 }} // namespace

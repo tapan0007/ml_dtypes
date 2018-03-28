@@ -11,6 +11,8 @@
 #include "utils/inc/printers.hpp"
 #include "utils/inc/datatype.hpp"
 
+#include "events/inc/events.hpp"
+
 #include "arch/inc/arch.hpp"
 #include "memmgr/inc/statebuffermgr.hpp"
 #include "codegen/inc/codegen.hpp"
@@ -110,6 +112,10 @@ Main(int argc, char* argv[])
             i += 1;
         } else {
             std::cerr << "Wrong argument: " << arg << "\n";
+            std::cerr << "Legal argumens:\n";
+            std::cerr << "  --parallel_streams\n";
+            std::cerr << "  --wavegraph\n";
+            std::cerr << "  --json\n";
             exit(1);
         }
 
@@ -133,6 +139,7 @@ Main(int argc, char* argv[])
     std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
     std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
     std::cout << "Arch: number TPB events = " << arch::Arch::gNumberTpbEvents() << "\n";
+    std::cout << "Events: invalid EventId = " << events::EventId_Invalid() << "\n";
 
 #if 0
     const arch::StateBuffer stateBuf(arch.gStateBuffer());
