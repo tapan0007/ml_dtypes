@@ -433,7 +433,7 @@
       "weights_sb_address": 24592
     },
     {
-      "dst_sb_address": 73728,
+      "dst_sb_address": 81920,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -848,7 +848,7 @@
       "weights_sb_address": 24592
     },
     {
-      "dst_sb_address": 74218,
+      "dst_sb_address": 82410,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -898,7 +898,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 73728,
+      "sb_address": 81920,
       "waveop_name": "1conv/i1/SBAtomSave_scratch_0_n0_m0_h1_w0",
       "waveop_type": "SBAtomSave"
     },
@@ -1263,7 +1263,7 @@
       "weights_sb_address": 24592
     },
     {
-      "dst_sb_address": 74708,
+      "dst_sb_address": 82900,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -1658,7 +1658,7 @@
       "weights_sb_address": 24592
     },
     {
-      "dst_sb_address": 75198,
+      "dst_sb_address": 83390,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -1708,7 +1708,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 74708,
+      "sb_address": 82900,
       "waveop_name": "1conv/i1/SBAtomSave_scratch_1_n0_m0_h3_w0",
       "waveop_type": "SBAtomSave"
     },
@@ -2093,7 +2093,7 @@
       "weights_sb_address": 24592
     },
     {
-      "dst_sb_address": 75688,
+      "dst_sb_address": 83880,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -2143,7 +2143,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 75688,
+      "sb_address": 83880,
       "waveop_name": "1conv/i1/SBAtomSave_scratch_2_n0_m0_h4_w0",
       "waveop_type": "SBAtomSave"
     }
