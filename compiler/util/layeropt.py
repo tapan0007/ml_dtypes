@@ -231,6 +231,7 @@ class StateBuffer:
 
     SB_NUM_PARTITIONS = 128
     SB_ATOM_SZ = 1024 # can be down to 256B for maximum DMA efficiency
+    #SB_ATOM_SZ = 2048 # can be down to 256B for maximum DMA efficiency
     SB_PARTITION_SZ = 96*SB_ATOM_SZ # 96KB per partition
     SB_NUM_1K_ATOMS = SB_PARTITION_SZ//SB_ATOM_SZ
     SB_NUM_64B_MORSELS = SB_PARTITION_SZ // 64
@@ -358,12 +359,9 @@ class CircularBuffer:
         self.DRAM_memcpys_in = 0
         self.DRAM_memcpys_out = 0
         self.chunk2saved_map = {}   # holds all the saved atoms
-<<<<<<< HEAD
         self.minibatch_multiplier = 1
-=======
         self.outfile2atomsz_map = {} # holds the atom size for each output file # TODO: move to global area when we do swapping of regions
         self.last_biasweight_waveop = ""
->>>>>>> a8feb51088cf4d48fb4f49cf5497b91c835f9b84
 
     def reset(self):
         self.head_pointer = 0
