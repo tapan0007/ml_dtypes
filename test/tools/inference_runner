@@ -45,15 +45,18 @@ except:
     print(e)
     
 # download kelf, extract
-tmp_kelf_file = "/tmp/kelf_%s.tar.gz" % args.test_id
-print("Downloading kelf file %s"%tmp_kelf_file )
-s3.Bucket(args.output_bucket).download_file(os.path.basename(tmp_kelf_file), tmp_kelf_file)
 
-kelfPath = '/tmp/kelf_dir_%s/' % args.test_id
+kelfTarName = "kelf.tar.gz"
+kelfTarPath = "/tmp/%s" % kelfTarName
+kelfS3Path = "%s/%s" % (args.test_id, kelfTarName)
+print("Downloading kelf file %s"%kelfTarName )
+s3.Bucket(args.output_bucket).download_file(kelfS3Path, kelfTarPath)
+
+kelfPath = '/tmp/kelf_dir/'
 shutil.rmtree(kelfPath, ignore_errors=True)
 os.mkdir(kelfPath)
 
-tar = tarfile.open(tmp_kelf_file)
+tar = tarfile.open(kelfTarPath)
 tar.extractall(kelfPath)
 tar.close()
 
@@ -89,11 +92,12 @@ for obj in input_files:
         os.remove(toRemove)
 
     # pack and push to s3
-    resultTarName = "result_%s_%s.tar.gz" % (args.test_id, f)
+    resultTarName = "result_%s.tar.gz" % (f)
     resultTarPath = "/tmp/%s" %resultTarName
+    resultS3Name = "%s/%s" % (args.test_id, resultTarName)
     if os.path.exists(resultTarPath):
         os.remove(resultTarPath)
     make_tarfile(resultTarPath, workingPath)
-    s3.Bucket(args.output_bucket).upload_file(resultTarPath, resultTarName)
+    s3.Bucket(args.output_bucket).upload_file(resultTarPath, resultS3Name)
 
 

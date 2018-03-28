@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+
+import csv
+import argparse
+import numpy as np
+from scipy import stats
+import boto3
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--golden', help='Specify golden test id', default="")
+parser.add_argument('--new', help='Specify new test id', default="")
+parser.add_argument('--dtype', help='Specify data type of inputs', default="float32")
+parser.add_argument("--aws-profile", help="name of aws credentials profile to use", required=True)
+parser.add_argument("--bucket", help="test results bucket", required=True)
+args = parser.parse_args()
+
+
+session = boto3.Session(profile_name  = args.aws_profile)
+s3 = session.resource(
+    service_name='s3',
+    region_name='us-east-1')
+
+bucket = s3.Bucket(args.bucket)
+
+newFileS3Path = "%s/report.csv" % (args.new)
+goldenFileS3Path = "%s/report.csv" % (args.golden)
+diffFileS3Path = "%s/golden_diff.csv" % (args.new)
+diffStatsFileS3Path = "%s/diff_stats.csv" % (args.new)
+
+newFilePath = "/tmp/report_%s" %(args.new)
+goldenFilePath = "/tmp/report_%s" %(args.golden)
+diffFilePath = "/tmp/golden_diff_%s" %(args.new)
+diffStatsFilePath = "/tmp/diff_stats_%s" %(args.new)
+
+bucket.download_file(newFileS3Path, newFilePath)
+bucket.download_file(goldenFileS3Path, goldenFilePath)
+
+
+f_golden = open(goldenFilePath, 'r')
+f_new = open(newFilePath, 'r')
+f_out = open(diffFilePath, 'w')
+f_stats_out = open(diffStatsFilePath, 'w')
+
+c_golden = csv.reader(f_golden)
+c_new = csv.reader(f_new)
+c_out = csv.writer(f_out)
+
+golden_list = list(c_golden)
+
+tolerance = 100 # ulps
+total_cnt = 0
+top5_match_cnt = 0
+top1_match_cnt = 0
+toler_match_cnt = 0
+
+dtype = args.dtype
+all_diff_ulp=[]
+for new_row in c_new:
+    row = 1
+    found = False
+    for golden_row in golden_list:
+        outs_row = new_row[:]
+        if new_row[0] == golden_row[0]:
+            i = 2 # format: name, label[0], prob[0], label[1], prob[1], ..
+            top5_match = True
+            top1_match = True
+            toler_match = True
+            ulp = None
+            if new_row[1] != golden_row[1]:
+                top1_match = False
+            while (i<len(new_row)):
+                outs_row[i-1] = 'NOT_MATCH'
+                outs_row[i] = 0
+                if dtype == 'float16':
+                    fl_new = np.float16(new_row[i])
+                    fl_golden = np.float16(golden_row[i])
+                else:
+                    fl_new = np.float32(new_row[i])
+                    fl_golden = np.float32(golden_row[i])
+                    assert(dtype is 'float32')
+                if ulp is None:
+                    ulp = abs(np.nextafter(fl_golden, fl_new) - fl_golden)
+                if new_row[i-1] == golden_row[i-1]:
+                    outs_row[i-1] = 'MATCH'
+                    diff_abs = abs(fl_golden - fl_new)
+                    diff_ulps = abs(round(diff_abs / ulp, 0))
+                    if np.isnan(diff_ulps) or np.isinf(diff_ulps):
+                        diff_ulps = 0
+                    assert (not np.isinf(diff_ulps))
+                    if diff_ulps > tolerance:
+                        toler_match = False
+                    outs_row[i] = diff_ulps
+                    all_diff_ulp.append(diff_ulps)
+                else:
+                    top5_match = False
+                    toler_match = False
+                    #print ("ulp: %s, mismatching entry %s" % (ulp, golden_row[i-1]))
+                i += 2
+            found = True
+            #if (top5_match == False):
+            #    print("golden ", golden_row)
+            #    print("new ", new_row)
+            break
+        row = row + 1
+    assert(found)
+    c_out.writerow(outs_row)
+    top5_match_cnt += top5_match
+    top1_match_cnt += top1_match
+    toler_match_cnt += toler_match
+    total_cnt += 1
+
+
+my_stats = ""
+my_stats += "Diff results:\n"
+my_stats += "Total processed = %s\n" % total_cnt
+my_stats += "Top 1 Match count= %s\n" % top1_match_cnt
+my_stats += "Top 5 Match count= %s\n" % top5_match_cnt
+my_stats += "Within tolerance match = %s\n" % toler_match_cnt
+my_stats += str(stats.describe(all_diff_ulp))
+
+f_stats_out.write(my_stats)
+print(my_stats)
+
+f_new.close()
+f_golden.close()
+f_out.close()
+f_stats_out.close()
+
+bucket.upload_file(diffFilePath, diffFileS3Path)

@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+
+import argparse
+import boto3
+import os, glob, tarfile, shutil
+import threading
+
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument("--testid", help="test id", required=True)
+parser.add_argument("--aws-profile", help="name of aws credentials profile to use", required=True)
+parser.add_argument("--bucket", help="test results bucket", required=True)
+
+args = parser.parse_args()
+
+
+session = boto3.Session(profile_name  = args.aws_profile)
+s3 = session.resource(
+    service_name='s3',
+    region_name='us-east-1')
+
+
+
+def download_file(file_list, dst_dir):
+    # thread session
+    session = boto3.Session(profile_name  = args.aws_profile)
+    s3 = session.resource(
+       service_name='s3',
+       region_name='us-east-1')
+    bucket = s3.Bucket(args.bucket)
+    for file in file_list:
+        f_base = os.path.basename(file.key)
+        if "result" not in f_base:
+            continue
+        bucket.download_file(file.key, "%s/%s" %(dst_dir, f_base))
+
+
+def main():
+    # download results
+    bucket = s3.Bucket(args.bucket)
+    output_files = list(bucket.objects.filter(Prefix='%s/'%args.testid) )
+    n = 500
+    list_of_lists = [output_files[i:i+n] for i in range(0, len(output_files), n)]
+
+    workingPath = "/tmp/results_%s" % args.testid
+    shutil.rmtree(workingPath, ignore_errors=True)
+    os.mkdir(workingPath)
+
+    threads = []
+    for fname_list in list_of_lists:
+        t = threading.Thread(target = download_file, args=(fname_list,workingPath))
+        t.start()
+        threads.append(t)
+    for t in threads:
+        t.join()
+
+    # un tar file
+    for f in glob.glob("%s/result*.tar.gz" % workingPath):
+        tar = tarfile.open(f)
+        tar.extractall(workingPath)
+        tar.close()
+        os.remove(f)
+
+    # create csv
+    str = ""
+    for d in glob.glob("%s/*jpg" % workingPath):
+        str += os.path.basename(d) + ", "
+        image_report = "%s/%s" %(d, "rn50_classify_out.txt")
+        with open(image_report, 'r') as myfile:
+            str += myfile.read().replace('\n', '')
+        str += "\n"
+    image_report = "%s/%s" %(workingPath, "report.csv")
+    with open(image_report, 'w') as myfile:
+        myfile.write(str)
+
+    # upload report
+    bucket.upload_file(image_report, "%s/%s" %(args.testid, os.path.basename(image_report)))
+
+
+if __name__ == "__main__":
+    main()

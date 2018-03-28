@@ -672,9 +672,17 @@ class NodeSimple2(Node):
   def genCompilerLayerJson(self):
     fileList = []
     
+    if self.getName() == 'fc1000/BiasAdd':
+      print('HERE')
     # Output tensor
     npInfo = self.getNpInfo()[0]
-    tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+    if len(npInfo.npShape) == 2:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    elif len(npInfo.npShape) == 1:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+    else:
+      assert len(npInfo.npShape) == 4
+      tfShape4D = npInfo.npShape
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
     

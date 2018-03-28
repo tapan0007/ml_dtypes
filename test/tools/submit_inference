@@ -44,7 +44,6 @@ s3 = session.resource(
     region_name='us-east-1')
 
 
-
 def printLogs(logGroupName, logStreamName, startTime):
     kwargs = {'logGroupName': logGroupName,
               'logStreamName': logStreamName,
@@ -97,14 +96,14 @@ def main():
 
     wait = args.wait
 
-    testid = uuid.uuid4().hex
+    testid = uuid.uuid4().hex[:7]
     # get list of all file names in input bucket
     input_bucket = s3.Bucket(args.input_bucket)
     num_inputs = len(list(input_bucket.objects.all()))
     print ("num of input files is %s " % num_inputs)
 
     # decide on partitioning
-    num_inputs = 10000
+    num_inputs = 10
     MAX_NUM_WORKERS = 1000
 
     num_workers = min(num_inputs, MAX_NUM_WORKERS)
@@ -112,9 +111,11 @@ def main():
 
 
     # push kelf to s3
-    tmp_kelf_file = "/tmp/kelf_%s.tar.gz" % testid
-    make_tarfile(tmp_kelf_file, args.kelf_dir)
-    s3.Bucket(args.output_bucket).upload_file(tmp_kelf_file, os.path.basename(tmp_kelf_file))
+    kelfTarName = "kelf.tar.gz"
+    kelfTarPath = "/tmp/%s" % kelfTarName
+    kelfS3Path = "%s/%s" % (testid, kelfTarName)
+    make_tarfile(kelfTarPath, args.kelf_dir)
+    s3.Bucket(args.output_bucket).upload_file(kelfTarPath, kelfS3Path)
 
 
     # zip up and push run scripts to s3
@@ -122,6 +123,7 @@ def main():
 
     scriptsZipFile = 'scripts_%s.tar.gz' % testid
     scriptsZipPath = "/tmp/%s" % scriptsZipFile
+    scriptsZipS3Path = "%s/%s" % (testid, scriptsZipFile)
     with zipfile.ZipFile(scriptsZipPath, 'w') as myzip:
         myzip.write("kaena_install")
         myzip.write("inference_runner")
@@ -196,14 +198,8 @@ def main():
                 sys.stdout.flush()
                 spinner += 1
 
-    # download all test output data
 
-    output_bucket = s3.Bucket(args.output_bucket)
-    output_files = list(output_bucket.objects.all())
-    files_to_download = []
-    for obj in output_files:
-        if testid in obj.key:
-            print (obj.key)
+
 
 
 if __name__ == "__main__":
