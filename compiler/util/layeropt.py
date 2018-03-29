@@ -228,6 +228,7 @@ class CircularBuffer:
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
         self.chunk2saved_map = {}   # holds all the saved atoms
+        self.outfile2atomsz_map = {}
 
     def reset(self):
         self.head_pointer = 0
