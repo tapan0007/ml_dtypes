@@ -38,23 +38,23 @@ def DBG_DUMP_PSUM_COL(msg, psum, col):
 # Collection of statistics
 class Stats:
     def __init__(self):
-        self.layer_name = ""
-        self.num_waves = 0
-        self.num_waves_x_max_pe_ops = 0
-        self.num_of_ops_executed = 0
-        self.num_of_weight_reads = 0
-        self.num_of_reads = 0
-        self.num_of_writes = 0
-        self.num_of_weight_elems = 0
-        self.minimum_reads = 0
-        self.ideal_compute_to_load_ratio = 0.0
-        self.actual_to_min_read_ratio = 0.0
-        self.wave_op_efficiency = 0.0
-        self.total_dram_latency_est = 0.0
-        self.total_pearray_latency = 0.0
-        self.total_pearray_waves = 0
-        self.minibatch_multiplier = 0
-        self.batching_in_wave = 0
+        #self.layer_name = ""
+        #self.num_waves = 0
+        #self.num_waves_x_max_pe_ops = 0
+        #self.num_of_ops_executed = 0
+        #self.num_of_weight_reads = 0
+        #self.num_of_reads = 0
+        #self.num_of_writes = 0
+        #self.num_of_weight_elems = 0
+        #self.minimum_reads = 0
+        #self.ideal_compute_to_load_ratio = 0.0
+        #self.actual_to_min_read_ratio = 0.0
+        #self.wave_op_efficiency = 0.0
+        #self.total_dram_latency_est = 0.0
+        #self.total_pearray_latency = 0.0
+        #self.total_pearray_waves = 0
+        #self.minibatch_multiplier = 0
+        #self.batching_in_wave = 0
         self.circbuf = {}
         self.circbuf["scratch"] = CircbufStats()
         self.circbuf["ifmaps"] = CircbufStats()
@@ -64,11 +64,6 @@ class Stats:
 
 class CircbufStats:
     def __init__(self):
-        self.sb_tot_usage = 0
-        self.sb_overhead_usage = 0
-        self.sb_tot_eviction = 0
-        self.sb_atom_sz = 0
-        self.sb_total_size = 0
         self.sb_memcpys_in = 0
         self.sb_memcpys_out = 0
 
@@ -352,12 +347,9 @@ class CircularBuffer:
         self.reset()
         self.DRAM_atoms_read = 0
         self.DRAM_atoms_read_short = 0
-        self.DRAM_atoms_read_short_min_len = StateBuffer.SB_ATOM_SZ
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
         self.DRAM_atoms_written = 0
-        self.DRAM_memcpys_in = 0
-        self.DRAM_memcpys_out = 0
         self.chunk2saved_map = {}   # holds all the saved atoms
         self.minibatch_multiplier = 1
         self.outfile2atomsz_map = {} # holds the atom size for each output file # TODO: move to global area when we do swapping of regions
@@ -395,6 +387,7 @@ class CircularBuffer:
         self.chunk2skip_map = {}
         self.item_sz = 2
         self.data_type = 'float16'
+        self.circbuf_stats = CircbufStats()
 
     def resize_capacity (self, size_cap, start, reverse=False):
         if (args.debug > 2): print("DBG %s: resizing from capacity %d total_size %d"%(self.circbuf_type, self.capacity, self.total_size))
@@ -647,14 +640,14 @@ class CircularBuffer:
         if ((offset_in_fold + length) > fmap_data_len and fmap_data_len > self.atom_data_sz):
             length = fmap_data_len % self.atom_data_sz
         if (length == 0): length = self.atom_data_sz
-        assert (length > 0)            
-        self.DRAM_elem_read += length * fmap_count / self.item_sz
-        self.DRAM_atoms_read += 1
-        self.DRAM_memcpys_in += fmap_count
-        if (length < self.atom_data_sz):
-            self.DRAM_atoms_read_short += 1
-            if (length < self.DRAM_atoms_read_short_min_len):
-                self.DRAM_atoms_read_short_min_len = length
+        assert (length > 0)           
+        # collect stats
+        if (args.debug > 1):
+            self.DRAM_elem_read += length * fmap_count / self.item_sz
+            self.DRAM_atoms_read += 1
+            self.circbuf_stats.sb_memcpys_in += fmap_count
+            if (length < self.atom_data_sz):
+                self.DRAM_atoms_read_short += 1
         #print("gen_dram_read_waveop - DRAM_elem_read: ", self.DRAM_elem_read, "length: ", length, "fmap_count: ",fmap_count)
         #print("fmap_data_len",fmap_data_len, "atom_data_sz",self.atom_data_sz)
         #print("chunk_id", chunk_id, "offset", offset)
@@ -710,9 +703,11 @@ class CircularBuffer:
             length = self.ofmap_data_len % self.atom_data_sz
             if (length == 0): length = self.atom_data_sz
         assert (length > 0)            
-        self.DRAM_elem_written += length * ofmap_count / self.item_sz
-        self.DRAM_atoms_written += 1
-        self.DRAM_memcpys_out += ofmap_count
+        # collect stats
+        if (args.debug > 1):
+            self.DRAM_elem_written += length * ofmap_count / self.item_sz
+            self.DRAM_atoms_written += 1
+            self.circbuf_stats.sb_memcpys_out += ofmap_count
         # if this is last chunk in OFMAP, mark it as last
         last_atom_of_file = (tile_id.m_id+1 == tile_id.m) and (ceildiv(offset_in_fold+length, self.atom_data_sz) == ceildiv(self.ofmap_data_len, self.atom_data_sz))
         #print("m_id %d m %d offset_in_fold %d length %d ofmap_data_len %d last %d"%(tile_id.m_id, tile_id.m, offset_in_fold, length, self.ofmap_data_len, last_atom_of_file))
@@ -971,18 +966,17 @@ class CircularBuffer:
                     self.head_pointer = 0
 
     def populate_stats(self, stats):
-        stats.circbuf[self.circbuf_type].sb_tot_usage      = (len(self.chunk2atom_map) + len(self.chunk2skip_map) + len(self.chunk2skip_map))*self.atom_sz
-        stats.circbuf[self.circbuf_type].sb_overhead_usage = (len(self.chunk2skip_map) + len(self.chunk2skip_map))*self.atom_sz
-        stats.circbuf[self.circbuf_type].sb_tot_eviction   = self.num_evicted_atoms * self.atom_sz
-        stats.circbuf[self.circbuf_type].sb_atom_sz        = self.atom_sz
-        stats.circbuf[self.circbuf_type].sb_total_size     = self.total_size
-        stats.circbuf[self.circbuf_type].sb_memcpys_in     = self.DRAM_memcpys_in
-        stats.circbuf[self.circbuf_type].sb_memcpys_out    = self.DRAM_memcpys_out
+        self.circbuf_stats.sb_tot_usage      = (len(self.chunk2atom_map) + len(self.chunk2skip_map) + len(self.chunk2skip_map))*self.atom_sz
+        self.circbuf_stats.sb_overhead_usage = (len(self.chunk2skip_map) + len(self.chunk2skip_map))*self.atom_sz
+        self.circbuf_stats.sb_tot_eviction   = self.num_evicted_atoms * self.atom_sz
+        self.circbuf_stats.sb_atom_sz        = self.atom_sz
+        self.circbuf_stats.sb_total_size     = self.total_size
+        stats.circbuf[self.circbuf_type]     = self.circbuf_stats
 
     def print_stats(self):
         #print("STATS circular buffer type %s layer %s: input file %s output file %s"%(self.circbuf_type, self.layer_name, self.dram_data_in_file, self.dram_data_out_file))
         if (args.debug > 1):
-            print("STATS circular buffer type %s layer %s: item_sz %d capacity %d kickout %d atom_size %d num_allocated_atoms %d max_count %d num_evicted_atoms %d len(chunk2atom_map) %d len(chunk2spare_map) %d len(chunk2skip_map) %d total_size %d dram_data_len %d ifmap_data_len %d ofmap_data_len %d DRAM_elem_written %d DRAM_atoms_written %d DRAM_elem_read %d DRAM_atoms_read %d DRAM_atoms_read_short %d DRAM_atoms_read_short_min_len %d"%(self.circbuf_type, self.layer_name, self.item_sz, self.capacity, self.num_kickout_atoms, self.atom_sz, self.num_allocated_atoms, self.max_count, self.num_evicted_atoms, len(self.chunk2atom_map), len(self.chunk2spare_map), len(self.chunk2skip_map), self.total_size, self.dram_data_len, self.ifmap_data_len, self.ofmap_data_len, self.DRAM_elem_written, self.DRAM_atoms_written, self.DRAM_elem_read, self.DRAM_atoms_read, self.DRAM_atoms_read_short, self.DRAM_atoms_read_short_min_len))
+            print("STATS circular buffer type %s layer %s: item_sz %d capacity %d kickout %d atom_size %d num_allocated_atoms %d max_count %d num_evicted_atoms %d len(chunk2atom_map) %d len(chunk2spare_map) %d len(chunk2skip_map) %d total_size %d dram_data_len %d ifmap_data_len %d ofmap_data_len %d DRAM_elem_written %d DRAM_atoms_written %d DRAM_elem_read %d DRAM_atoms_read %d DRAM_atoms_read_short %d"%(self.circbuf_type, self.layer_name, self.item_sz, self.capacity, self.num_kickout_atoms, self.atom_sz, self.num_allocated_atoms, self.max_count, self.num_evicted_atoms, len(self.chunk2atom_map), len(self.chunk2spare_map), len(self.chunk2skip_map), self.total_size, self.dram_data_len, self.ifmap_data_len, self.ofmap_data_len, self.DRAM_elem_written, self.DRAM_atoms_written, self.DRAM_elem_read, self.DRAM_atoms_read, self.DRAM_atoms_read_short))
 
 ##################################################################################
 # Neural network node, containing data read from JSON
@@ -2218,11 +2212,8 @@ class TPBSched:
         if (args.debug > 1):
             # collect stats
             stats = Stats()
-            self.statebuffer.circbuf_weights.populate_stats(stats)
-            self.statebuffer.circbuf_scratch.populate_stats(stats)
-            self.statebuffer.circbuf_ifmaps.populate_stats(stats)
-            self.statebuffer.circbuf_residue.populate_stats(stats)
-            self.statebuffer.circbuf_bias.populate_stats(stats)
+            for i in [self.statebuffer.circbuf_weights, self.statebuffer.circbuf_ifmaps, self.statebuffer.circbuf_scratch, self.statebuffer.circbuf_residue]:
+                i.populate_stats(stats)
             self.calculate_compute_to_load_ratio(layer_name, stats)
             stats_per_layer.append(stats)
             # reset stats
@@ -2230,19 +2221,13 @@ class TPBSched:
             self.pearray.total_pearray_latency = 0
             self.pearray.total_pearray_waves = 0
             self.pearray.num_of_ops_executed = 0
-            self.statebuffer.circbuf_weights.DRAM_elem_read = 0
-            self.statebuffer.circbuf_ifmaps.DRAM_elem_read = 0
-            self.statebuffer.circbuf_scratch.DRAM_elem_read = 0
-            self.statebuffer.circbuf_scratch.DRAM_elem_written = 0
-            self.statebuffer.circbuf_scratch.DRAM_atoms_written = 0
-            self.statebuffer.circbuf_weights.DRAM_atoms_read = 0
-            self.statebuffer.circbuf_ifmaps.DRAM_atoms_read = 0
-            self.statebuffer.circbuf_weights.DRAM_atoms_read_short = 0
-            self.statebuffer.circbuf_ifmaps.DRAM_atoms_read_short = 0
-            self.statebuffer.circbuf_weights.DRAM_atoms_read_short_min_len = StateBuffer.SB_ATOM_SZ
-            self.statebuffer.circbuf_ifmaps.DRAM_atoms_read_short_min_len = StateBuffer.SB_ATOM_SZ
-            self.statebuffer.circbuf_weights.DRAM_atoms_read_short_min_len = StateBuffer.SB_ATOM_SZ
-            self.statebuffer.circbuf_ifmaps.DRAM_atoms_read_short_min_len = StateBuffer.SB_ATOM_SZ
+            for i in [self.statebuffer.circbuf_weights, self.statebuffer.circbuf_ifmaps, self.statebuffer.circbuf_scratch, self.statebuffer.circbuf_residue]:
+                i.DRAM_elem_read = 0
+                i.DRAM_elem_written = 0
+                i.DRAM_atoms_read = 0
+                i.DRAM_atoms_read_short = 0
+                i.DRAM_atoms_written = 0
+                i.circbuf_stats = CircbufStats()
 
     # print out statistics
     def calculate_compute_to_load_ratio(self, layer_name, stats):
@@ -2253,7 +2238,7 @@ class TPBSched:
             stats.num_of_weight_reads   = self.statebuffer.circbuf_weights.DRAM_elem_read
             stats.num_of_reads          = self.statebuffer.circbuf_weights.DRAM_elem_read + self.statebuffer.circbuf_ifmaps.DRAM_elem_read + self.statebuffer.circbuf_scratch.DRAM_elem_read
             stats.num_of_writes         = self.statebuffer.circbuf_scratch.DRAM_elem_written
-            stats.total_dram_latency_est = stats.num_of_reads*self.statebuffer.circbuf_weights.item_sz / 7.5 # assuming 7.5GB/s BW available per TPB
+            stats.total_dram_latency_est = stats.num_of_reads*self.statebuffer.circbuf_weights.item_sz / 10 # assuming 10GB/s BW available per TPB
             stats.total_pearray_latency  = tpb.pearray.total_pearray_latency
             stats.total_pearray_waves    = tpb.pearray.total_pearray_waves
             stats.minibatch_multiplier   = self.statebuffer.circbuf_residue.minibatch_multiplier
@@ -2261,6 +2246,8 @@ class TPBSched:
             stats.num_of_ops_executed    = self.pearray.num_of_ops_executed
             if (stats.num_waves_x_max_pe_ops != 0):
                 stats.wave_op_efficiency    = self.pearray.num_of_ops_executed / stats.num_waves_x_max_pe_ops
+            else:
+                stats.wave_op_efficiency    = 0
             if (self.statebuffer.circbuf_weights.dram_data != []):
                 stats.num_of_weight_elems   = self.statebuffer.circbuf_weights.dram_data.size
                 stats.minimum_reads         = self.statebuffer.circbuf_weights.dram_data.size \
