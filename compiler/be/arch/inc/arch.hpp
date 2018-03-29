@@ -6,6 +6,9 @@
 #include <string>
 #include <memory>
 
+
+#include "shared/inc/uarch_cfg.hpp"
+
 #include "utils/inc/types.hpp"
 
 #include "arch/inc/pearray.hpp"
@@ -77,7 +80,10 @@ public:
     static kcc_int64 gTpbEventBase();
     static kcc_int64 gSpEventBase();
 
-    static kcc_int64 gNumberTpbEvents();
+    static constexpr kcc_int64 gNumberTpbEvents() {
+        return NUM_TPB_EVENTS;
+    }
+
     static kcc_int64 gNumberSpEvents();
 
 private:

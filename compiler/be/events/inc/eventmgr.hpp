@@ -37,6 +37,8 @@ private:
 
     EventId getLocalEventId(const wave::WaveEdge* edge);
 
+    
+
 private:
     const nets::Network& m_Network;
     EventId m_EventId;

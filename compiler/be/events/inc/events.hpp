@@ -6,6 +6,8 @@
 #include "shared/inc/uarch_cfg.hpp"
 #include "shared/inc/tpb_isa.hpp"
 
+#include "arch/inc/arch.hpp"
+
 //Event_t
 static_assert(NUM_TPB_EVENTS <= (1U << 8*sizeof(TPB_CMD_SYNC::wait_event_id)),
     "Number of TPB events (NUM_TPB_EVENTS) too large for type Event_t");
@@ -19,7 +21,10 @@ namespace events {
 //**********************************************************************
 using EventId = kcc_int32;
 
-EventId EventId_Invalid();
+constexpr EventId EventId_Invalid()
+{
+    return arch::Arch::gNumberTpbEvents() - 1;
+}
 
 constexpr kcc_int32 KccMax3(kcc_int32 a, kcc_int32 b, kcc_int32 c)
 {

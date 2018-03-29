@@ -1,4 +1,3 @@
-#include "shared/inc/uarch_cfg.hpp"
 
 #include "utils/inc/types.hpp"
 
@@ -108,12 +107,6 @@ kcc_int64
 Arch::gTpbBaseSysAddress()
 {
     return TPB_BASE;
-}
-
-kcc_int64
-Arch::gNumberTpbEvents()
-{
-    return NUM_TPB_EVENTS;
 }
 
 kcc_int64

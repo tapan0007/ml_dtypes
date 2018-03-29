@@ -79,10 +79,5 @@ eventSetMode2Int(EventSetMode mode)
     return 0;
 }
 
-EventId EventId_Invalid()
-{
-    return arch::Arch::gNumberTpbEvents() - 1;
-}
-
 }} // namespace
 
