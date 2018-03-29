@@ -122,6 +122,10 @@ public:
         return m_WaveOps;
     }
 
+    wave::WaveOp* gWave(kcc_int32 waveIdx) const {
+        return m_WaveOps[waveIdx];
+    }
+
     const DataType& gDataType() const {
         return *m_DataType;
     }

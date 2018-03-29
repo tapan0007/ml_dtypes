@@ -1,5 +1,8 @@
 #pragma once
 
+#include <set>
+
+
 #include "shared/inc/uarch_cfg.hpp"
 
 #ifndef KCC_EVENTS_EVENTMGR_H
@@ -26,22 +29,30 @@ public:
 
 private:
     void processMatMult(wave::MatMulWaveOp* matmulWaveop);
-#if 0
-    void processPool(wave::PoolWaveOp* poolWaveop);
-    void processActivation(wave::ActivationWaveOp* activationWaveop);
-    void processSbAtomSave(wave::SbAtomSaveWaveOp* sbatomSaveWaveop);
-    void processSbAtomLoad(wave::SbAtomLoadWaveOp* sbatomLoadWaveop);
-    void processResAdd(wave::ResAddWaveOp* resaddWaveop);
-#endif
     void processWaveop(wave::WaveOp* waveop);
 
     EventId getLocalEventId(const wave::WaveEdge* edge);
 
-    
+    enum BarrierEvent {
+        BarrierEvent_FromPe,
+        BarrierEvent_FromAct,
+        BarrierEvent_FromPool,
+        BarrierEvent_ToPe,
+        BarrierEvent_ToAct,
+        BarrierEvent_ToPool,
+        BarrierEvent_FirstNonBarrierEvent,
+    };
+
+    void initEventSets();
+    void assignEventsToNewSuccEdges(wave::WaveOp* waveop);
 
 private:
     const nets::Network& m_Network;
     EventId m_EventId;
+
+    std::set<EventId> m_Available;
+    std::set<EventId> m_InFlight;
+    std::set<EventId> m_Completed;
 };
 
 }}

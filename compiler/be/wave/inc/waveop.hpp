@@ -108,6 +108,26 @@ public:
         return m_SuccWaveEdges;
     }
 
+    const kcc_int32 gNumberPrevWaitEdges() const {
+        kcc_int32 numWait = 0;
+        for (auto prevWaveEdge : m_PrevWaveEdges) {
+            if ( prevWaveEdge->qNeedToWaitFor()) {
+                ++numWait;
+            }
+        }
+        return numWait;
+    }
+
+    const kcc_int32 gNumberSuccWaitEdges() const {
+        kcc_int32 numWait = 0;
+        for (auto succWaveEdge : m_SuccWaveEdges) {
+            if ( succWaveEdge->qNeedToWaitFor()) {
+                ++numWait;
+            }
+        }
+        return numWait;
+    }
+
     kcc_int32 gWaveAtomSize () const {
         return 1024;
     }
