@@ -538,11 +538,17 @@ class CircularBuffer:
             self.total_filter_size = R * S
             #if (C < PEArray.NUM_ROWS and (R > 1 or S > 1)):
             #   self.replicate_multiple = min(PEArray.NUM_ROWS//C, self.total_filter_size)
+            # Here ifmap is RSM
             self.ifmap_data_len = self.dram_data_len//C
             m_data_len = M * self.item_sz
             sm_data_len = S * m_data_len
-            # For NCHW, just use ifmap size as atom size (see rule above: "different FMAPs folds will be in different atoms")
-            # Here ifmap is RSM
+            # Folding multiple: if too high (for FP32, it is 16), there's alot of reads (more than allocated) just to perform the first matmul
+            # Just scale down by half to fit
+            folding_multiple = (C//PEArray.NUM_ROWS) * (M//PEArray.NUM_COLS)
+            if (folding_multiple > 16 and self.atom_sz == StateBuffer.SB_ATOM_SZ):
+                self.atom_sz = self.atom_sz // 2
+                self.capacity = self.capacity * 2
+            # If RSM is less than atom, use that as atom size                
             if (self.ifmap_data_len <= self.atom_sz):
                 self.atom_data_sz = self.ifmap_data_len
             # Else find the largest   
