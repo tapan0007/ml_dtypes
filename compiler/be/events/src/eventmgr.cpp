@@ -100,8 +100,13 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
         if (! prevWaveEdge->qNeedToWaitFor()) {
             continue;
         }
-        // InFlight --> Completed
         const EventId evtId = prevWaveEdge->gEventId();
+        if (prevWaveEdge->qEdgeIsFromBarrier()) {
+            Assert(qBarrierEvent(evtId), "Found non-barrier event id ", evtId,
+                " on edge from barrier to waveop ", waveop->gName());
+            continue;
+        }
+        // InFlight --> Completed
         Assert(m_InFlight.find(evtId) != inflightEnd, "Event from prev edge not in the in-flight set");
         m_InFlight.erase(evtId);
         Assert(m_Completed.find(evtId) == completedEnd, "Event from prev edge already in the completed set");
@@ -310,7 +315,7 @@ EventMgr::assignEventsToBarrier(wave::BarrierWaveOp* barrierWaveop)
 
 
 EventId
-EventMgr::gEventIdToBarrier(EngineId fromEngId) const
+EventMgr::gEventIdToBarrier(EngineId fromEngId)
 {
     switch (fromEngId) {
     case EngineId::PeArray:
@@ -337,7 +342,7 @@ EventMgr::gEventIdToBarrier(EngineId fromEngId) const
 
 
 EventId
-EventMgr::gEventIdFromBarrier(EngineId toEngId) const
+EventMgr::gEventIdFromBarrier(EngineId toEngId)
 {
     switch (toEngId) {
     case EngineId::PeArray:

@@ -60,8 +60,13 @@ private:
                                        std::vector<wave::WaveOp*>& prevWaveops);
     void insertBarriers();
     void assignEventsToBarrier(wave::BarrierWaveOp* barrierWaveop);
-    EventId gEventIdToBarrier(EngineId fromEngId) const;
-    EventId gEventIdFromBarrier(EngineId toEngId) const;
+
+    static EventId gEventIdToBarrier(EngineId fromEngId);
+    static EventId gEventIdFromBarrier(EngineId toEngId);
+
+    static bool qBarrierEvent(EventId evtId) {
+        return 0 <= evtId && evtId < BarrierEvent_FirstNonBarrierEvent;
+    }
 
 private:
     nets::Network& m_Network;

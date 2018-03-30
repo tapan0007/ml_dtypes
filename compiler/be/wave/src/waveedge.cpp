@@ -47,6 +47,34 @@ WaveEdge::qNeedToWaitFor() const
     // when two waveops execute on the same engine, no need for sync
     // except for DMA. If Load depends on a Save, Load must wait on Save
     if (EngineId::DmaEng == prevWaveop->gEngineId()) {
+        if (prevWaveop->qSbAtomLoadWaveOp() == succWaveop->qSbAtomSaveWaveOp()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool
+WaveEdge::qEdgeIsToBarrier() const
+{
+    if (this->gToOp()->qBarrierWaveOp()) {
+        Assert(! this->gFromOp()->qBarrierWaveOp(),
+            "Cannot have barrier to barrier wave edge, from ", this->gFromOp()->gName(),
+            ", to ", this->gToOp()->gName());
+        return true;
+    }
+    return false;
+}
+
+
+bool
+WaveEdge::qEdgeIsFromBarrier() const
+{
+    if (this->gFromOp()->qBarrierWaveOp()) {
+        Assert(! this->gToOp()->qBarrierWaveOp(),
+            "Cannot have barrier to barrier wave edge, from ", this->gFromOp()->gName(),
+            ", to ", this->gToOp()->gName());
         return true;
     }
     return false;
