@@ -134,8 +134,12 @@ EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
         }
         if (backward) {
             for (kcc_int32 otherIdx = waveopIdx; otherIdx >= 0; --otherIdx) {
-                auto otherWaveop = m_Network.gWaveOp(otherIdx);
-                if (otherWaveop->gEngineId() == engId) {
+                const auto otherWaveop = m_Network.gWaveOp(otherIdx);
+                const EngineId otherEngId = otherWaveop->gEngineId();
+                if (otherEngId == barrierEngId) {
+                    break; // do not go beyound another barrier
+                }
+                if (otherEngId == engId) {
                     waveops.push_back(otherWaveop);
                     found[k] = true;
                     break;
@@ -145,6 +149,10 @@ EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
             const kcc_int32 N = m_Network.gNumberWaveops();
             for (kcc_int32 otherIdx = waveopIdx; otherIdx < N; ++otherIdx) {
                 auto otherWaveop = m_Network.gWaveOp(otherIdx);
+                const EngineId otherEngId = otherWaveop->gEngineId();
+                if (otherEngId == barrierEngId) {
+                    break; // do not go beyound another barrier
+                }
                 if (otherWaveop->gEngineId() == engId) {
                     waveops.push_back(otherWaveop);
                     found[k] = true;
