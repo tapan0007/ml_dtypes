@@ -13,7 +13,7 @@ import shutil
 # Describes a (small) Kgraph with inputs and the output node
 class KsubGraph:
   def __init__(self, debugLevel):
-    self.graph = kog.Graph()
+    self.graph = kog.Graph(debugLevel=debugLevel)
     self.__inputs = []
     self.__output = None
     self.__maxLevel = 0    # highest level of any node (== output) in the src graph

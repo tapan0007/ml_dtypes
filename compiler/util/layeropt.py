@@ -215,7 +215,7 @@ class StateBuffer:
     def reset_all(self):        
         self.circbuf_ifmaps.reset()
         self.circbuf_weights.reset()
-        #self.circbuf_bias.reset()
+        self.circbuf_bias.reset()
         self.circbuf_scratch.reset()
 
 ##################################################################################
