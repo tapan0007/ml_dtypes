@@ -102,7 +102,7 @@ class TfFe:
     with gfile.FastGFile(pbFile,'rb') as f:
       self.__gd.ParseFromString(f.read())
     
-    self.__kg = kog.Graph()
+    self.__kg = kog.Graph(debugLevel=self.debugLevel)
     kog.Config.debugLevel = self.debugLevel
     numOps = 0
     numConv = 0
@@ -152,11 +152,13 @@ class TfFe:
           # For now use 1st input
           #if self.__kg.getInputNode() == None:
           #  self.__kg.setInputNode(node)
+        elif (re.search("StridedSlice", tfop.op, re.I) != None):
+          node = kog.NodeStridedSlice(tfNode.name, tfop.op, add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)
         self.__kg.addNode(node)
-        print ("DEBUG: loadpb: adding node %s, type %s" % (node.getName(), type(node)))
+        #print ("DEBUG: loadpb: adding node %s, type %s" % (node.getName(), type(node)))
     print("INFO: loaded %s file with %d ops  of which %d are CONV"
           % (pbFile, numOps, numConv))
 
@@ -274,6 +276,8 @@ class TfFe:
           op = graph.get_operation_by_name(tfOpName)
           #if (re.search("conv", n.getOpType(), re.I) != None):
             #print("DEBUG: conv  ", n.getOpName())
+          if (re.search("StridedSlice", n.getOpType(), re.I) != None):
+            print("DEBUG: StridedSlice  ", n.getOpName())
           if excludeOpsFromCaptureRe == None or not re.match(excludeOpsFromCaptureRe, tfOpName):
             for tensor in op.outputs:
               shape = tensor.get_shape().as_list()
@@ -300,7 +304,7 @@ class TfFe:
               tfVars.append(tensor.name)
               kNodes.append((n, npInfo))
           else:
-            print("INFO: Excluded node from capture %s", tfOpName)
+            print("INFO: Excluded node from capture %s" % tfOpName)
           # update/collect attributes
           # Strides are in the pb but require complex parsing (op.get_attr)
           #   which seems only accessible from the graph so deferred to calibration
@@ -308,6 +312,12 @@ class TfFe:
             if attr in op.node_def.attr:
               n.setAttr(attr, op.get_attr(attr))
               #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))          
+          # LSTM attributes - keeping separate from the above loop during debug phase
+          for attr in ["begin_mask", "ellipsis_mask", "end_mask", "new_axis_mask", "shrink_axis_mask"]:
+            if attr in op.node_def.attr:
+              n.setAttr(attr, op.get_attr(attr))
+              #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))          
+          
       
       print("INFO: identified %d tensors, computing ..." % len(tfVars))
       numImages = 0

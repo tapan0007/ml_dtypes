@@ -49,7 +49,7 @@ class Object:
   def getName(self):
     return(self.__name)
   def getAttr(self, attrName):
-    return(self.__attrs[attrName])
+    return self.__attrs.get(attrName, None)
   def getAttrs(self):
     return(self.__attrs)
   def setAttr(self, attrName, attrVal):
@@ -838,12 +838,63 @@ class NodeReshape(Node):
     return True
 
 
+###############################################################################
+# StridedSLice
+# Separate class to allow detailed debug and reporting
+#
+###############################################################################
+class NodeStridedSlice(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Node text for dot graph
+  def getDotText(self):
+    dotText = self.getOpType()
+    for attrName in ["begin_mask", "ellipsis_mask", "end_mask", "new_axis_mask", "shrink_axis_mask"]:
+      attrVal = self.getAttr(attrName)
+      if not attrVal == None:
+        dotText += "\n%s : %g" % (attrName, attrVal)
+    if len(self.getNpInfo()) > 0:
+      bes = {"Begin" : (), "End" : (), "Stride" : ()}
+      ((nIn, npiIn), bes["Begin"], bes["End"], bes["Stride"]) = self.getInputNodesAndNpInfo()
+      dotText += "\nShapeIn : %s" % str(npiIn.npShape)
+      for c in ["Begin", "End", "Stride"]:
+        (fromNode, fromNpInfo) = bes[c]
+        npVal = np.load(fromNpInfo.npFile)
+        dotText += "\n%s : %s" % (c, str([int(i) for i in npVal]))
+#      fmapSizeBytes = npInfoIF.nbytes()
+#      weightSizeBytes = npInfoW.nbytes()
+#      opCount = self.getOpCount()
+#      opsPerWeightByte = math.ceil(opCount / weightSizeBytes)
+#      # Data sizes
+#      npInfoOF = self.getNpInfo()[0]
+#      dotText += "\nw%.3f i%.3f o%.3f MiB" % (weightSizeBytes / 2**20,
+#                                           fmapSizeBytes / 2**20, npInfoOF.nbytes() / 2**20)
+#      dotText += "\nOpWB " + str(opsPerWeightByte)
+#      # Roofile, wavesize batch targets
+#      targetOpB = Config.Tpb.specTops*2**40 /(Config.Ddr.GiBps*2**30)/2 * Config.Tpb.numTpb
+#      targetBatchRoofLine = math.ceil(targetOpB / opsPerWeightByte)
+#      imgPixels = np.empty(self.getImg2D()).size
+#      targetBatchImgMin = math.ceil(Config.Pe.minWave / imgPixels)
+#      targetBatchImgOpt = math.floor(Config.Pe.maxWave / imgPixels)
+#      dotText += " BT(%d) %d-%d-%d" % (Config.Tpb.numTpb, targetBatchRoofLine,
+#                                       targetBatchImgMin, targetBatchImgOpt)
+#      # Ops
+#      dotText += "\nGop %.3f" % (opCount / Config.Tpb.freq)
+    else:
+      dotText += "\n" + str(self.protoShape)
+    return dotText
+
+#  def isSupported(self):
+#    return True
+
+
 
 ###############################################################################
 # Computational data flow graph
 ###############################################################################
 class Graph(Object):
-  def __init__(self, name = "GRAPH", attrs = {}, schedulerMode = "tcc"):
+  def __init__(self, name = "GRAPH", attrs = {}, schedulerMode = "tcc", debugLevel=0):
     super().__init__(name, attrs)
     self.__name2node = {}
     self.__edges = []
@@ -851,6 +902,7 @@ class Graph(Object):
     self.__inputNode = None
     self.kaenaPath = os.environ["KAENA_PATH"]
     self.schedulerMode = schedulerMode
+    self.debugLevel = debugLevel
     
   def setSchedulerMode(self, mode):
     self.schedulerMode = mode
@@ -893,7 +945,10 @@ class Graph(Object):
   def nodePredecessors(self, toNode):
     preNodes = []
     for edge in toNode.getFaninEdges():
-      preNodes.append(edge.getFromPosNode().node)
+      if edge == None:
+        print("INTERNAL WARNING: nodePredecessors of Node %s has None edge" % toNode.getName())
+      else:
+        preNodes.append(edge.getFromPosNode().node)
     return(preNodes)
   
   # Get the node with most computation - highest in the data flow level
@@ -1061,8 +1116,8 @@ class Graph(Object):
     fileList.append(outFile)
     
     return(outNpy, fileList)
-    d
   
+
   def getLowestLevelNodes(self):
     return self.getLevelizedNodes()[1]  # levels start from 1
 
@@ -1174,7 +1229,8 @@ class Graph(Object):
       assert ns != None
       for predNode in sourceGraph.nodePredecessors(ns):
         predName = predNode.getName()
-        print("DEBUG: transferSideNodes %s -> %s, node type = %s" % (predName, nodeName, type(predNode)))
+        if self.debugLevel > 1:
+          print("DEBUG: transferSideNodes %s -> %s, node type = %s" % (predName, nodeName, type(predNode)))
         if not self.hasNode(predName):
 
           if predNode.isConst() or not predNode.isSupported():
@@ -1184,7 +1240,8 @@ class Graph(Object):
           else:
             predNodeCopy = predNode.copyAs(NodeInput, "Input")
           self.addNode(predNodeCopy)
-          print("DEBUG: transferSideNodes added node %s" % (predNodeCopy.getName()))
+          if self.debugLevel > 1:
+            print("DEBUG: transferSideNodes added node %s" % (predNodeCopy.getName()))
           for srcEdge in predNode.getFanoutEdges():
             toName = srcEdge.getToNode().getName()
             if self.hasNode(toName):
