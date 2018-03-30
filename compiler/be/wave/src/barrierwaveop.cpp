@@ -7,6 +7,8 @@
 #include "arch/inc/arch.hpp"
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
+
+#include "wave/inc/waveedge.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 
 
@@ -22,11 +24,25 @@ BarrierWaveOp::BarrierWaveOp(const WaveOp::Params& params,
                              const std::vector<WaveOp*>& succWaveOps)
     : WaveOp(params, prevWaveOps)
 {
-    for (auto succWaveOp : succWaveOps) {
+    for (WaveOp* succWaveOp : succWaveOps) {
         auto edge = new WaveEdge(this, succWaveOp);
         this->m_SuccWaveEdges.push_back(edge);
-        succWaveOp->m_PrevWaveEdges.push_back(edge);
+        succWaveOp->addPrevWaveEdge(edge);
     }
+}
+
+
+
+
+#define RETURN_ASSERT(x)  assert(x); return (x)
+
+bool
+BarrierWaveOp::verify() const
+{
+    if (! this->WaveOp::verify()) {
+        RETURN_ASSERT(false);
+    }
+    return true;
 }
 
 }}

@@ -12,6 +12,7 @@
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
+#include "wave/inc/barrierwaveop.hpp"
 
 #include "nets/inc/network.hpp"
 
@@ -178,9 +179,9 @@ EventMgr::processWaveops()
     std::vector<wave::WaveOp*> waveOpsWithBarriers;
 
     initEventSets();
-    const auto availEnd(m_Available.end());
-    const auto inflightEnd(m_InFlight.end());
-    const auto completedEnd(m_Completed.end());
+    //const auto availEnd(m_Available.end());
+    //const auto inflightEnd(m_InFlight.end());
+    //const auto completedEnd(m_Completed.end());
 
     kcc_int32 waveopIdx = 0; 
     while (waveopIdx < numWaveops) {
@@ -189,7 +190,17 @@ EventMgr::processWaveops()
         if (numSuccEvents > m_Available.size()) {
             // if waveopIdx is included too many events in session,
             // so need barrier between waveop[waveopIdx-1] and waveop[waveopIdx]
-            auto barrierWaveop = new WaveOpBarrier(m_Network.gWaveOp(waveopIdx-1), waveop);
+            wave::WaveOp::Params params;
+            char buf[256];
+            sprintf(buf, "barrier_%d_%d", waveopIdx-1, waveopIdx);
+            params.m_WaveOpName    = std::string(buf);
+            std::vector<wave::WaveOp*> prevWaveops;
+            prevWaveops.push_back(m_Network.gWaveOp(waveopIdx-1));
+            std::vector<wave::WaveOp*> succWaveops;
+            succWaveops.push_back(waveop);
+
+            auto barrierWaveop = new wave::BarrierWaveOp(params, prevWaveops, succWaveops);
+
             waveOpsWithBarriers.push_back(barrierWaveop);
             moveCompletedEventsToAvailable();
             Assert(numSuccEvents <= m_Available.size(), "Not enough event IDs after barrrier");

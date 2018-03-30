@@ -111,6 +111,14 @@ public:
         return m_SuccWaveEdges;
     }
 
+    void addPrevWaveEdge(WaveEdge* waveEdge) {
+        m_PrevWaveEdges.push_back(waveEdge);
+    }
+
+    void addSuccWaveEdge(WaveEdge* waveEdge) {
+        m_SuccWaveEdges.push_back(waveEdge);
+    }
+
     kcc_int32 gNumberPrevWaitEdges() const;
 
     kcc_int32 gNumberSuccWaitEdges() const;
