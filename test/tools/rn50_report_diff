@@ -24,8 +24,8 @@ bucket = s3.Bucket(args.bucket)
 
 newFileS3Path = "%s/report.csv" % (args.new)
 goldenFileS3Path = "%s/report.csv" % (args.golden)
-diffFileS3Path = "%s/golden_diff.csv" % (args.new)
-diffStatsFileS3Path = "%s/diff_stats.csv" % (args.new)
+diffFileS3Path = "%s/golden_diff_%s_%s.csv" % (args.new, args.new, args.golden)
+diffStatsFileS3Path = "%s/diff_stats_%s_%s.csv" % (args.new, args.new, args.golden)
 
 newFilePath = "/tmp/report_%s" %(args.new)
 goldenFilePath = "/tmp/report_%s" %(args.golden)

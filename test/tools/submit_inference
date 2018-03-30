@@ -103,7 +103,7 @@ def main():
     print ("num of input files is %s " % num_inputs)
 
     # decide on partitioning
-    num_inputs = 10
+    num_inputs = 10000
     MAX_NUM_WORKERS = 1000
 
     num_workers = min(num_inputs, MAX_NUM_WORKERS)
