@@ -843,7 +843,7 @@ class NodeReshape(Node):
 # Computational data flow graph
 ###############################################################################
 class Graph(Object):
-  def __init__(self, name = "GRAPH", attrs = {}, schedulerMode = "tcc"):
+  def __init__(self, name = "GRAPH", attrs = {}, schedulerMode = "tcc", debugLevel=0):
     super().__init__(name, attrs)
     self.__name2node = {}
     self.__edges = []
@@ -851,6 +851,7 @@ class Graph(Object):
     self.__inputNode = None
     self.kaenaPath = os.environ["KAENA_PATH"]
     self.schedulerMode = schedulerMode
+    self.debugLevel = debugLevel
     
   def setSchedulerMode(self, mode):
     self.schedulerMode = mode
@@ -893,7 +894,10 @@ class Graph(Object):
   def nodePredecessors(self, toNode):
     preNodes = []
     for edge in toNode.getFaninEdges():
-      preNodes.append(edge.getFromPosNode().node)
+      if edge == None:
+        print("INTERNAL WARNING: nodePredecessors of Node %s has None edge" % toNode.getName())
+      else:
+        preNodes.append(edge.getFromPosNode().node)
     return(preNodes)
   
   # Get the node with most computation - highest in the data flow level
@@ -1061,8 +1065,8 @@ class Graph(Object):
     fileList.append(outFile)
     
     return(outNpy, fileList)
-    d
   
+
   def getLowestLevelNodes(self):
     return self.getLevelizedNodes()[1]  # levels start from 1
 
@@ -1174,7 +1178,8 @@ class Graph(Object):
       assert ns != None
       for predNode in sourceGraph.nodePredecessors(ns):
         predName = predNode.getName()
-        print("DEBUG: transferSideNodes %s -> %s, node type = %s" % (predName, nodeName, type(predNode)))
+        if self.debugLevel > 1:
+          print("DEBUG: transferSideNodes %s -> %s, node type = %s" % (predName, nodeName, type(predNode)))
         if not self.hasNode(predName):
 
           if predNode.isConst() or not predNode.isSupported():
@@ -1184,7 +1189,8 @@ class Graph(Object):
           else:
             predNodeCopy = predNode.copyAs(NodeInput, "Input")
           self.addNode(predNodeCopy)
-          print("DEBUG: transferSideNodes added node %s" % (predNodeCopy.getName()))
+          if self.debugLevel > 1:
+            print("DEBUG: transferSideNodes added node %s" % (predNodeCopy.getName()))
           for srcEdge in predNode.getFanoutEdges():
             toName = srcEdge.getToNode().getName()
             if self.hasNode(toName):

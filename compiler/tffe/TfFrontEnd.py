@@ -102,7 +102,7 @@ class TfFe:
     with gfile.FastGFile(pbFile,'rb') as f:
       self.__gd.ParseFromString(f.read())
     
-    self.__kg = kog.Graph()
+    self.__kg = kog.Graph(debugLevel=self.debugLevel)
     kog.Config.debugLevel = self.debugLevel
     numOps = 0
     numConv = 0
@@ -156,7 +156,7 @@ class TfFe:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)
         self.__kg.addNode(node)
-        print ("DEBUG: loadpb: adding node %s, type %s" % (node.getName(), type(node)))
+        #print ("DEBUG: loadpb: adding node %s, type %s" % (node.getName(), type(node)))
     print("INFO: loaded %s file with %d ops  of which %d are CONV"
           % (pbFile, numOps, numConv))
 
@@ -300,7 +300,7 @@ class TfFe:
               tfVars.append(tensor.name)
               kNodes.append((n, npInfo))
           else:
-            print("INFO: Excluded node from capture %s", tfOpName)
+            print("INFO: Excluded node from capture %s" % tfOpName)
           # update/collect attributes
           # Strides are in the pb but require complex parsing (op.get_attr)
           #   which seems only accessible from the graph so deferred to calibration

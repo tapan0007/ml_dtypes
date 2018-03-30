@@ -308,7 +308,7 @@ class StateBuffer:
         self.circbuf_ifmaps.reset()
         self.circbuf_weights.reset()
         self.circbuf_residue.reset()
-        #self.circbuf_bias.reset()
+        self.circbuf_bias.reset()
         self.circbuf_scratch.reset()
 
     def reallocate_capacities(self):

@@ -119,14 +119,16 @@ if args.images != None:
   for sg in kp.getSubgraphs():
     sgDir = "sg%02d" % sgId;
     print("\nINFO: processing subgraph %s" % sgDir)
-    sg.graph.print()
+    if debugLevel > 1:
+      sg.graph.print()
     os.makedirs(sgDir)
     os.chdir(sgDir)
     sg.addSideNodes(kog)
     sg.graph.levelize()
     sg.relinkNpFiles("..")
     sg.graph.setSchedulerMode(args.scheduler)
-    sg.graph.print()
+    if debugLevel > 1:
+      sg.graph.print()
     sg.graph.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
     executor = kp.getExecutorById(sgId)
     if not executor == 'host':
