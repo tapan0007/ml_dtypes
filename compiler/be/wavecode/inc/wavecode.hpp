@@ -64,7 +64,7 @@ public:
     };
 public:
     //----------------------------------------------------------------
-    WaveCode(const nets::Network* network, const arch::Arch& arch);
+    WaveCode(nets::Network* network, const arch::Arch& arch);
 
     ~WaveCode();
 
@@ -101,7 +101,7 @@ private:
     void checkForNoSync(const TPB_CMD_SYNC&) const;
 
 private:
-    const nets::Network*                m_Network;
+    nets::Network*                m_Network;
     const arch::Arch&                   m_Arch;
 
     const InstrStreams*                 m_InstrStreams;

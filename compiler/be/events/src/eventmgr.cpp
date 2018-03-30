@@ -25,7 +25,7 @@ namespace kcc {
 namespace events {
 
 
-EventMgr::EventMgr(const nets::Network& network)
+EventMgr::EventMgr(nets::Network& network)
     : m_Network(network)
     , m_EventId(0)
 {
@@ -227,8 +227,8 @@ EventMgr::processWaveops()
     //const kcc_int32 NumNonBarrierEvents = EventId_Invalid() - BarrierEvent_FirstNonBarrierEvent; 
     const kcc_int32 numWaveops = m_Network.gWaveOps().size();
     // Need barrier between Waveop[ barrierIndices[j] ] and Waveop[ 1+barrierIndices[j] ]
-    std::vector<kcc_int32> barrierIndices;
-    std::vector<wave::WaveOp*> waveOpsWithBarriers;
+    //std::vector<kcc_int32> barrierIndices;
+    std::vector<wave::WaveOp*> waveopsWithBarriers;
 
     initEventSets();
     //const auto availEnd(m_Available.end());
@@ -256,14 +256,16 @@ EventMgr::processWaveops()
 
             auto barrierWaveop = new wave::BarrierWaveOp(params, prevWaveops, succWaveops, barrierEngId);
 
-            waveOpsWithBarriers.push_back(barrierWaveop);
+            waveopsWithBarriers.push_back(barrierWaveop);
             moveCompletedEventsToAvailable();
             Assert(numSuccEvents <= m_Available.size(), "Not enough event IDs after barrrier");
         }
         assignEventsToNewSuccEdges(waveop);
         completeEventsOnPrevEdges(waveop);
-        waveOpsWithBarriers.push_back(waveop);
+        waveopsWithBarriers.push_back(waveop);
     }
+
+    m_Network.replaceWaveops(waveopsWithBarriers);
 
 
 

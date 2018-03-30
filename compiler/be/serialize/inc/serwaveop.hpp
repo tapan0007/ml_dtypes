@@ -197,8 +197,7 @@ public:
     void load(Archive & archive);
 
 
-    void addPreviousWaveOp(const std::string& prevWaveOp) {
-        m_PreviousWaveOps.push_back(prevWaveOp);
+    void addPreviousWaveOp(const std::string& prevWaveOp) { m_PreviousWaveOps.push_back(prevWaveOp);
     }
     void addPreviousEventId(events::EventId eventId) {
         m_PreviousEventIds.push_back(eventId);
@@ -225,6 +224,7 @@ private:
     void saveMatMul(cereal::JSONOutputArchive& archive) const;
     void saveActivation(cereal::JSONOutputArchive& archive) const;
     void saveResAdd(cereal::JSONOutputArchive& archive) const;
+    void saveBarrier(cereal::JSONOutputArchive& archive) const;
 
 protected:
     bool verify() const;

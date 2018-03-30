@@ -48,7 +48,7 @@
 namespace kcc {
 namespace wavecode {
 
-WaveCode::WaveCode(const nets::Network* network, const arch::Arch& arch)
+WaveCode::WaveCode(nets::Network* network, const arch::Arch& arch)
     : m_Network(network)
     , m_Arch(arch)
 {

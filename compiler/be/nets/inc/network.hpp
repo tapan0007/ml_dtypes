@@ -149,6 +149,8 @@ public:
         m_UseWave = useWave;
     }
 
+    void replaceWaveops(std::vector<wave::WaveOp*>& newWaveops);
+
 
 
 private:

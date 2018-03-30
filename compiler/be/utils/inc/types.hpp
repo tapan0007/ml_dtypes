@@ -68,7 +68,7 @@ enum class EngineId {
     DmaEng,
     AnyEng, // when an instruction can be execed on several engines: WAIT,SET,WRITE
 };
-enum { NumberRealEngines = 5 };
+enum { NumberRealEngines = 5 };  // PeArray, ..., DmaEng
 
 //**********************************************************************
 enum class WaveOpType {

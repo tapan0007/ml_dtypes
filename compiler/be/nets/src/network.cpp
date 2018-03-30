@@ -106,6 +106,14 @@ Network::findWaveOp(const std::string& waveOpName)
 }
 
 
+void
+Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops)
+{
+    m_WaveOps.clear();
+    std::swap(m_WaveOps, newWaveops);
+    //std::copy(newWaveops.begin(), newWaveops.end(), m_WaveOps.begin());
+}
+
 
 }}
 

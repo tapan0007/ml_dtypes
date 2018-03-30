@@ -24,7 +24,7 @@ namespace events {
 
 class EventMgr {
 public:
-    EventMgr(const nets::Network& network);
+    EventMgr(nets::Network& network);
     void processWaveops();
 
 private:
@@ -53,7 +53,7 @@ private:
                                        std::vector<wave::WaveOp*>& prevWaveops);
 
 private:
-    const nets::Network& m_Network;
+    nets::Network& m_Network;
     EventId m_EventId;
 
     std::set<EventId> m_Available;
