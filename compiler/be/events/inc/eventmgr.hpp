@@ -17,6 +17,7 @@ class ActivationWaveOp;
 class SbAtomLoadWaveOp;
 class SbAtomSaveWaveOp;
 class ResAddWaveOp;
+class BarrierWaveOp;
 }
 
 
@@ -37,9 +38,15 @@ private:
         BarrierEvent_FromPe,
         BarrierEvent_FromAct,
         BarrierEvent_FromPool,
+        BarrierEvent_FromStreamProc,
+        BarrierEvent_FromDma,
+
         BarrierEvent_ToPe,
         BarrierEvent_ToAct,
         BarrierEvent_ToPool,
+        BarrierEvent_ToStreamProc,
+        BarrierEvent_ToDma,
+
         BarrierEvent_FirstNonBarrierEvent,
     };
 
@@ -51,6 +58,10 @@ private:
     EngineId gBarrierEngineId(const wave::WaveOp* prevWaveop, const wave::WaveOp* succWaveop);
     void findWaveopsOnOtherEngines(kcc_int32 waveopIdx, const EngineId barrierEngId, bool backward,
                                        std::vector<wave::WaveOp*>& prevWaveops);
+    void insertBarriers();
+    void assignEventsToBarrier(wave::BarrierWaveOp* barrierWaveop);
+    EventId gEventIdToBarrier(EngineId fromEngId) const;
+    EventId gEventIdFromBarrier(EngineId toEngId) const;
 
 private:
     nets::Network& m_Network;
