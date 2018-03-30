@@ -19,6 +19,7 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
     : WaveOp(params, prevWaveOps)
     , m_SbAddress(params.m_SbAddress)
+    , m_StartAtMidPart(params.m_StartAtMidPart)
     , m_BatchFoldIdx(params.m_BatchFoldIdx)
     , m_DataType(DataType::dataTypeId2DataType(params.m_DataType))
     , m_Length(params.m_Length)

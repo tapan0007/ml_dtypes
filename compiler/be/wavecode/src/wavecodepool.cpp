@@ -65,7 +65,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                                             poolWaveop->gSrcPsumBankOffset(),
                                             poolWaveop->gInDtype());
     } else { // State buffer
-        poolInstr.src_start_addr = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
+        poolInstr.src_start_addr = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * poolWaveop->gSrcStartAtMidPart(),
                                             poolWaveop->gSrcSbAddress());
     }
 
@@ -90,7 +90,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_z_step        = poolWaveop->gDstZStep();
     poolInstr.dst_z_num         = poolWaveop->gDstZNum();
     // For now DST is always StateBuf
-    poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
+    poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * poolWaveop->gDstStartAtMidPart(),
                                             poolWaveop->gDstSbAddress());
 
     poolInstr.sync.wait_event_id    = 0;

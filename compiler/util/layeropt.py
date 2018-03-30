@@ -38,23 +38,6 @@ def DBG_DUMP_PSUM_COL(msg, psum, col):
 # Collection of statistics
 class Stats:
     def __init__(self):
-        #self.layer_name = ""
-        #self.num_waves = 0
-        #self.num_waves_x_max_pe_ops = 0
-        #self.num_of_ops_executed = 0
-        #self.num_of_weight_reads = 0
-        #self.num_of_reads = 0
-        #self.num_of_writes = 0
-        #self.num_of_weight_elems = 0
-        #self.minimum_reads = 0
-        #self.ideal_compute_to_load_ratio = 0.0
-        #self.actual_to_min_read_ratio = 0.0
-        #self.wave_op_efficiency = 0.0
-        #self.total_dram_latency_est = 0.0
-        #self.total_pearray_latency = 0.0
-        #self.total_pearray_waves = 0
-        #self.minibatch_multiplier = 0
-        #self.batching_in_wave = 0
         self.circbuf = {}
         self.circbuf["scratch"] = CircbufStats()
         self.circbuf["ifmaps"] = CircbufStats()
@@ -64,8 +47,8 @@ class Stats:
 
 class CircbufStats:
     def __init__(self):
-        self.sb_memcpys_in = 0
-        self.sb_memcpys_out = 0
+        self.sb_all_channels_memcpys_in = 0
+        self.sb_all_channels_memcpys_out = 0
 
 ##################################################################################
 # ID of a PE array wave
@@ -108,7 +91,7 @@ class PEArray:
     MAX_WAVE_SIZE = 256
     num_wave_fp16_mm = 0
     num_of_ops_executed = 0
-    total_pearray_latency = 0
+    total_pearray_latency_cycles = 0
     total_pearray_waves = 0
 
     def __init__(self):
@@ -249,7 +232,6 @@ class StateBuffer:
         self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
 
     def keep_scratch_and_reset(self, begin_of_first_leg = False, end_of_first_leg = False):        
-        total_size = self.circbuf_ifmaps.total_size
         start = self.circbuf_ifmaps.start
         atom_sz = self.circbuf_ifmaps.atom_sz
         # - At the completion of first fused op in the first leg of fork, move IFMAPs to Residue buffer, and scratch to IFMAPs
@@ -287,7 +269,7 @@ class StateBuffer:
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-        self.circbuf_scratch = CircularBuffer(self, "scratch", total_size, atom_sz, start)
+        self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
         self.circbuf_scratch.reset()
         self.circbuf_weights.reset()    # TODO: allow weights to be reused for depth-first batching
         self.circbuf_bias.reset()
@@ -303,7 +285,7 @@ class StateBuffer:
         self.circbuf_ifmaps.reset()
         self.circbuf_weights.reset()
         self.circbuf_residue.reset()
-        #self.circbuf_bias.reset()
+        self.circbuf_bias.reset()
         self.circbuf_scratch.reset()
 
     def reallocate_capacities(self):
@@ -363,6 +345,7 @@ class CircularBuffer:
         self.need_spare_atoms = 0
         self.need_skip_atoms = False
         self.num_kickout_atoms = 4
+        #self.num_kickout_atoms = self.capacity
         self.num_allocated_atoms = 0
         self.num_evicted_atoms = 0
         self.max_count = 0
@@ -400,6 +383,7 @@ class CircularBuffer:
             self.start = start - self.total_size
         else:            
             self.start = start
+        #self.num_kickout_atoms = self.capacity
         self.allocated = [False for x in range(self.capacity)]
         self.skipped = [False for x in range(self.capacity)]
         self.consumer_of_freed_atom = [None for x in range(self.capacity)]
@@ -424,10 +408,10 @@ class CircularBuffer:
             assert (sb_address < StateBuffer.SB_PARTITION_SZ)
             return sb_address
         else:
-            print("ERROR %s: addr/atom_data_sz %d (addr %d) not found in chunk2atom_map of %s:"%(self.circbuf_type, addr_chunked, addr, self.layer_name))
+            print("WARNING %s: addr/atom_data_sz %d (addr %d) not found in chunk2atom_map of %s (returning -1):"%(self.circbuf_type, addr_chunked, addr, self.layer_name))
             for i in self.chunk2atom_map.keys():
                 print("     %s: %d"%(i, self.chunk2atom_map[i]))
-            exit(-1)                
+            return -1                
 
     def load_data(self, op, file_name = None):
         fmap_full_tiley_sz = 0
@@ -545,21 +529,21 @@ class CircularBuffer:
             # Folding multiple: if too high (for FP32, it is 16), there's alot of reads (more than allocated) just to perform the first matmul
             # Just scale down by half to fit
             folding_multiple = (C//PEArray.NUM_ROWS) * (M//PEArray.NUM_COLS)
-            if (folding_multiple > 16 and self.atom_sz == StateBuffer.SB_ATOM_SZ):
-                self.atom_sz = self.atom_sz // 2
-                self.capacity = self.capacity * 2
+            atom_sz_for_computation = StateBuffer.SB_ATOM_SZ
+            if (folding_multiple > 16):
+                atom_sz_for_computation = StateBuffer.SB_ATOM_SZ // 2
             # If RSM is less than atom, use that as atom size                
-            if (self.ifmap_data_len <= self.atom_sz):
+            if (self.ifmap_data_len <= atom_sz_for_computation):
                 self.atom_data_sz = self.ifmap_data_len
             # Else find the largest   
-            elif (sm_data_len <= self.atom_sz):
-                multiple = self.atom_sz // sm_data_len
+            elif (sm_data_len <= atom_sz_for_computation):
+                multiple = atom_sz_for_computation // sm_data_len
                 self.atom_data_sz = sm_data_len * min(R, multiple)
-            elif (m_data_len <= self.atom_sz):
-                multiple = self.atom_sz // m_data_len
+            elif (m_data_len <= atom_sz_for_computation):
+                multiple = atom_sz_for_computation // m_data_len
                 self.atom_data_sz = m_data_len * min(S, multiple)
             else:
-                self.atom_data_sz = self.atom_sz
+                self.atom_data_sz = atom_sz_for_computation
         else:
             if (self.layer_format == 'NCHW'):
                 N, C, H, W = self.dram_data.shape
@@ -634,11 +618,13 @@ class CircularBuffer:
         length = self.atom_data_sz
         # for scratch buffer (output), if we have to load, then use the m_id (OFMAP fold) instead of c_id (IFMAP fold)
         if (self.circbuf_type == "scratch"):              
-            fmap_fold_idx = wave_id.m_id
+            fmap_fold_idx = wave_id.m_id//2
             fmap_data_len = self.ofmap_data_len
+            start_at_mid_part = (wave_id.m_id%2) == 1
         else:            
             fmap_fold_idx = wave_id.c_id
             fmap_data_len = self.ifmap_data_len
+            start_at_mid_part = False 
         adjust_for_folding = fmap_fold_idx * fmap_data_len * PEArray.NUM_ROWS
         offset_in_fold = offset_in_file - adjust_for_folding
         # if address is larger than IFMAP size (H*W) for the case that IFMAP size is larger than Atom Data Size,
@@ -651,7 +637,7 @@ class CircularBuffer:
         if (args.debug > 1):
             self.DRAM_elem_read += length * fmap_count / self.item_sz
             self.DRAM_atoms_read += 1
-            self.circbuf_stats.sb_memcpys_in += fmap_count
+            self.circbuf_stats.sb_all_channels_memcpys_in += fmap_count
             if (length < self.atom_data_sz):
                 self.DRAM_atoms_read_short += 1
         #print("gen_dram_read_waveop - DRAM_elem_read: ", self.DRAM_elem_read, "length: ", length, "fmap_count: ",fmap_count)
@@ -693,6 +679,7 @@ class CircularBuffer:
               'length'           : length,
               'ifmaps_replicate' : ifmaps_replicate,
               'ifmaps_fold_idx'  : fmap_fold_idx,
+              'start_at_mid_part' : start_at_mid_part,
               'batch_fold_idx'   : wave_id.n_id,
               'ifmap_count'      : fmap_count,  # if this is larger than C, replicate fmap_count/C times
               'partition_step_bytes': fmap_data_len,
@@ -701,7 +688,7 @@ class CircularBuffer:
     def gen_dram_save_waveop(self, tile_id, atom_id, chunk_id, ofmap_count):
         offset_in_file = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
-        adjust_for_folding = tile_id.m_id * self.ofmap_data_len * PEArray.NUM_COLS
+        adjust_for_folding = (tile_id.m_id//2) * self.ofmap_data_len * PEArray.NUM_ROWS
         offset_in_fold = offset_in_file - adjust_for_folding
         # if address is larger than IFMAP size (H*W) for the case that IFMAP size is larger than Atom Data Size,
         # then try to get the modulo; but if the modulo is 0, then keep length = Atom Data Size
@@ -713,7 +700,7 @@ class CircularBuffer:
         if (args.debug > 1):
             self.DRAM_elem_written += length * ofmap_count / self.item_sz
             self.DRAM_atoms_written += 1
-            self.circbuf_stats.sb_memcpys_out += ofmap_count
+            self.circbuf_stats.sb_all_channels_memcpys_out += ofmap_count*((tile_id.m_id%2)+1)
         # if this is last chunk in OFMAP, mark it as last
         last_atom_of_file = (tile_id.m_id+1 == tile_id.m) and (ceildiv(offset_in_fold+length, self.atom_data_sz) == ceildiv(self.ofmap_data_len, self.atom_data_sz))
         #print("m_id %d m %d offset_in_fold %d length %d ofmap_data_len %d last %d"%(tile_id.m_id, tile_id.m, offset_in_fold, length, self.ofmap_data_len, last_atom_of_file))
@@ -735,9 +722,10 @@ class CircularBuffer:
               'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset_in_file,
               'length'           : length,
+              'start_at_mid_part' : False, #(tile_id.m_id%2) == 1,
               'ofmaps_fold_idx'  : tile_id.m_id,
               'batch_fold_idx'   : tile_id.n_id,
-              'ofmap_count'      : ofmap_count,
+              'ofmap_count'      : ofmap_count*((tile_id.m_id%2)+1),
               'partition_step_bytes': self.ofmap_data_len,
               'last'             : last_atom_of_file,
             }
@@ -797,7 +785,7 @@ class CircularBuffer:
         self.chunk2skip_map[chunk_id] = atom_id
         return consumer_of_evicted_atom
 
-    def read_data_region(self, wave_id, lower_addr, upper_addr, ifmap_count, ifmaps_replicate=False):
+    def read_data_region(self, wave_id, lower_addr, upper_addr, ifmap_count, ifmaps_replicate=False, start_at_mid_part=False):
         if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
         dram_waveops = []
         lower_addr_chunked = self.get_chunk_addr(lower_addr)
@@ -873,14 +861,16 @@ class CircularBuffer:
         return dram_waveops
     
     # hit_end_addr is used in write_data_region; so it should use ofmap_data_len
-    def hit_end_addr(self, upper_addr):
+    def hit_end_addr(self, tile_id, upper_addr):
         upper_addr_chunked = self.get_chunk_addr(upper_addr)
         # if upper addr is larger than IFMAP size, then it is in a different channel or batch item,
         # so use the modulo to check the end address
         upper_addr_mod = upper_addr % self.ofmap_data_len
-        if ((upper_addr_mod == (self.ofmap_data_len - self.item_sz)) 
-                or (upper_addr == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz)):
-            return True
+        if ((tile_id.m_id%2)==1 or tile_id.m_id == tile_id.m-1):                
+        #if (1):
+            if ((upper_addr_mod == (self.ofmap_data_len - self.item_sz)) 
+                    or (upper_addr == (upper_addr_chunked+1)*self.atom_data_sz - self.item_sz)):
+                return True
         return False
 
     def is_in_kickout_range(self, atom_id):
@@ -904,7 +894,8 @@ class CircularBuffer:
         # assuming that we always write to the last piece of atom last, when 
         # there's a write to last piece of atom, trigger to dump to DRAM and deallocate atom
         # TODO: optimize by keep some atoms between layers
-        if self.hit_end_addr(upper_addr):
+        # TODO: how to handle multiple chunks???
+        if self.hit_end_addr(tile_id, upper_addr):
             if (args.debug > 2): print("%s: freeing range %d to %d"%(self.circbuf_type, self.tracked_lower_addr, upper_addr))
             for i in range(self.tracked_lower_addr_chunked, upper_addr_chunked+1):
                 atom_id = self.chunk2atom_map[i]
@@ -916,6 +907,7 @@ class CircularBuffer:
                         ):
                     dram_waveops.append(self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count))
                     del self.chunk2atom_map[i]
+                    self.num_evicted_atoms += 1
         return dram_waveops
 
     def free_data_region(self, lower_addr, upper_addr, waveop):
@@ -947,6 +939,13 @@ class CircularBuffer:
         if (self.tail_pointer == self.capacity):
             if (self.circbuf_type == "scratch"):
                 self.tail_pointer = self.capacity-self.num_kickout_atoms
+                if (self.tail_pointer > self.head_pointer):
+                    if (self.head_pointer > 0):
+                        self.tail_pointer = self.head_pointer - 1
+                    else:
+                        print ("ERROR %s: tail pointer is hitting head pointer at %d"%(self.head_pointer))
+                        self.print_stats()
+                        exit (-1)
             else:                
                 self.tail_pointer = 0
         self.num_allocated_atoms += 1
@@ -972,17 +971,21 @@ class CircularBuffer:
                     self.head_pointer = 0
 
     def populate_stats(self, stats):
-        self.circbuf_stats.sb_tot_usage      = (len(self.chunk2atom_map) + len(self.chunk2skip_map) + len(self.chunk2skip_map))*self.atom_sz
-        self.circbuf_stats.sb_overhead_usage = (len(self.chunk2skip_map) + len(self.chunk2skip_map))*self.atom_sz
-        self.circbuf_stats.sb_tot_eviction   = self.num_evicted_atoms * self.atom_sz
-        self.circbuf_stats.sb_atom_sz        = self.atom_sz
-        self.circbuf_stats.sb_total_size     = self.total_size
-        stats.circbuf[self.circbuf_type]     = self.circbuf_stats
+        self.circbuf_stats.sb_tot_1partition_usage      = (len(self.chunk2atom_map) + len(self.chunk2skip_map) + len(self.chunk2skip_map) + self.num_evicted_atoms)*self.atom_sz
+        self.circbuf_stats.sb_overhead_1partition_usage = (len(self.chunk2skip_map) + len(self.chunk2skip_map))*self.atom_sz
+        self.circbuf_stats.sb_tot_1partition_eviction   = self.num_evicted_atoms * self.atom_sz
+        self.circbuf_stats.sb_atom_sz                   = self.atom_sz
+        self.circbuf_stats.sb_tot_1partition_preallocated = self.total_size
+        stats.circbuf[self.circbuf_type]                = copy.copy(self.circbuf_stats)
 
     def print_stats(self):
         #print("STATS circular buffer type %s layer %s: input file %s output file %s"%(self.circbuf_type, self.layer_name, self.dram_data_in_file, self.dram_data_out_file))
         if (args.debug > 1):
             print("STATS circular buffer type %s layer %s: item_sz %d capacity %d kickout %d atom_size %d num_allocated_atoms %d max_count %d num_evicted_atoms %d len(chunk2atom_map) %d len(chunk2spare_map) %d len(chunk2skip_map) %d total_size %d dram_data_len %d ifmap_data_len %d ofmap_data_len %d DRAM_elem_written %d DRAM_atoms_written %d DRAM_elem_read %d DRAM_atoms_read %d DRAM_atoms_read_short %d"%(self.circbuf_type, self.layer_name, self.item_sz, self.capacity, self.num_kickout_atoms, self.atom_sz, self.num_allocated_atoms, self.max_count, self.num_evicted_atoms, len(self.chunk2atom_map), len(self.chunk2spare_map), len(self.chunk2skip_map), self.total_size, self.dram_data_len, self.ifmap_data_len, self.ofmap_data_len, self.DRAM_elem_written, self.DRAM_atoms_written, self.DRAM_elem_read, self.DRAM_atoms_read, self.DRAM_atoms_read_short))
+            print("start %d head pointer %d, tail pointer %d"%(self.start, self.head_pointer, self.tail_pointer))
+            print("allocated: ", end="")
+            for i in self.allocated: print(1 if i else 0, end=" ")
+            print("")
 
 ##################################################################################
 # Neural network node, containing data read from JSON
@@ -1171,14 +1174,14 @@ class KNode:
         for i in range(self.Tn):
             self.ofmap_tile_lower_addr.append(int(np.ravel_multi_index(
                                                 (tile_id.n_id * self.Tn + i, 
-                                                    tile_id.m_id * PEArray.NUM_COLS,
+                                                    tile_id.m_id//2 * PEArray.NUM_ROWS,
                                                     self.ofmap_tile_y_start, 
                                                     self.ofmap_tile_x_start),
                                             dims=self.internal_ofmap_shape) * self.item_sz))
             # NCHW
             self.ofmap_tile_upper_addr.append(int(np.ravel_multi_index(
                                                 (tile_id.n_id * self.Tn + i, 
-                                                    tile_id.m_id * PEArray.NUM_COLS,
+                                                    tile_id.m_id//2 * PEArray.NUM_ROWS,
                                                     self.ofmap_tile_y_start + self.ofmap_cropped_tile_height - 1, 
                                                     self.ofmap_tile_x_start + self.ofmap_cropped_tile_width - 1),
                                             dims=self.internal_ofmap_shape) * self.item_sz))
@@ -1576,7 +1579,7 @@ class FusedOp(list):
 
     # generate Pool waveop and add it to waveop stream
     # TODO: currently, always go to SB after Pooling
-    def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id):
+    def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id, start_at_mid_part):
         if (src_is_psum):
             src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
             src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
@@ -1608,6 +1611,7 @@ class FusedOp(list):
               'src_psum_bank_id'        : src_psum_bank_id,
               'src_psum_bank_offset'    : 0,
               'src_sb_address'          : src_sb_address, 
+              'src_start_at_mid_part'   : start_at_mid_part, 
               'src_x_step'              : 1 * psum_step_multiplier,
               'src_x_num'               : self.pool_op.pool_window_x,
               'src_y_step'              : src_ifmap_width * psum_step_multiplier,
@@ -1620,6 +1624,7 @@ class FusedOp(list):
               'pool_scale'              : pool_scale,
               'num_partitions'          : self.pool_op.ofmap_count,
               'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
+              'dst_start_at_mid_part'   : start_at_mid_part,
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
               'dst_y_step'              : self.pool_op.E,
@@ -1668,9 +1673,9 @@ class FusedOp(list):
             if (args.debug > 1):
                 tpb.pearray.total_pearray_waves += self.conv_op.ofmap_wave_elems
                 if (matmul_waveop["weights_sb_address"] < 0):
-                    tpb.pearray.total_pearray_latency += self.conv_op.ofmap_wave_elems
+                    tpb.pearray.total_pearray_latency_cycles += self.conv_op.ofmap_wave_elems
                 else:    
-                    tpb.pearray.total_pearray_latency += max(self.conv_op.ofmap_count, self.conv_op.ofmap_wave_elems)
+                    tpb.pearray.total_pearray_latency_cycles += max(self.conv_op.ofmap_count, self.conv_op.ofmap_wave_elems)
                 tpb.pearray.num_of_ops_executed += self.conv_op.ofmap_count * self.conv_op.ofmap_wave_elems * self.conv_op.Tn * self.conv_op.ifmap_count
             return True
         
@@ -1728,10 +1733,13 @@ class FusedOp(list):
                 dram_resadd_waveops = []
                 for i in range(op_list.conv_op.Tn):
                     dram_resadd_waveops += tpb.statebuffer.circbuf_residue.read_data_region(
-                                                    wave_id, 
+                                                    wave_id,
                                                     self.conv_op.ofmap_tile_lower_addr[i], 
                                                     self.conv_op.ofmap_tile_upper_addr[i], 
-                                                    self.conv_op.ofmap_count)
+                                                    self.conv_op.ofmap_count,
+                                                    ifmaps_replicate = False,
+                                                    start_at_mid_part = (wave_id.m_id%2)==1
+                                                    )
                 residue_ifmaps = np.zeros((self.conv_op.ofmap_full_tile_sz * self.conv_op.Tn, PEArray.NUM_COLS), dtype=np.float32)
                 for i in range(op_list.conv_op.Tn):
                     for j in range(PEArray.NUM_COLS):
@@ -1756,9 +1764,18 @@ class FusedOp(list):
                 if (i != len(op_list)-1):
                     dst_is_psum = True
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz * self.conv_op.Tn, psum_temp)
-                tpb.gen_resadd_waveop_inline(op_list[i], self.conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, self.conv_op.ofmap_tile_lower_addr[0])
-                for i in range(op_list.conv_op.Tn):
-                    tpb.statebuffer.circbuf_residue.free_data_region(self.conv_op.ofmap_tile_lower_addr[i], self.conv_op.ofmap_tile_upper_addr[i], tpb.waveop_stream.last_main_waveop)
+                tpb.gen_resadd_waveop_inline(op_list[i], 
+                        self.conv_op, 
+                        tile_id, 
+                        psum_bank_src, 
+                        dst_is_psum, 
+                        psum_bank_dst, 
+                        dram_resadd_waveops, 
+                        self.conv_op.ofmap_tile_lower_addr[0], 
+                        (tile_id.m_id%2)==1)
+                if ((tile_id.m_id%2)==1 or tile_id.m_id == tile_id.m-1):                
+                    for i in range(op_list.conv_op.Tn):
+                        tpb.statebuffer.circbuf_residue.free_data_region(self.conv_op.ofmap_tile_lower_addr[i], self.conv_op.ofmap_tile_upper_addr[i], tpb.waveop_stream.last_main_waveop)
                 psum_bank_src = psum_bank_dst
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
                 tpb.activate.wait_tile_done(tile_id)
@@ -1770,7 +1787,7 @@ class FusedOp(list):
                 #x = DBG_DUMP_PSUM_COL("PSUM before pool: ", psum_temp, 0)
                 psum_temp = tpb.pool.pool(layer_type, psum_temp, self[i].stride_x, self[i].pool_window_y, self[i].Tn, tilex, tiley, self[i].ofmap_full_tilex_sz, self[i].ofmap_full_tiley_sz)
                 #x = DBG_DUMP_PSUM_COL("PSUM after pool: ", psum_temp, 0)
-                tpb.gen_fused_pool_waveop_inline(op_list, tile_id, psum_bank_src)
+                tpb.gen_fused_pool_waveop_inline(op_list, tile_id, psum_bank_src, (tile_id.m_id%2) == 1)
                 # Don't go to back to psum for pooling
                 #psum_bank_dst = 3
                 #if (i != len(op_list)-1):
@@ -2029,6 +2046,7 @@ class TPBSched:
               'dst_is_psum'             : dst_is_psum, 
               'dst_psum_bank_id'        : psum_bank_dst,
               'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
+              'dst_start_at_mid_part'   : False,
               'dst_x_step'              : 1,
               'dst_x_num'               : 1,
               'dst_y_step'              : 1,
@@ -2107,6 +2125,7 @@ class TPBSched:
               'dst_is_psum'             : dst_is_psum,
               'dst_psum_bank_id'        : psum_bank_dst,
               'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
+              'dst_start_at_mid_part'   : tile_id.m_id%2 == 1,
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
@@ -2116,11 +2135,12 @@ class TPBSched:
               'num_partitions'          : num_partitions,
               'bias_add_en'             : bias_add_en,
               'bias_sb_address'         : bias_sb_address,
+              'bias_start_at_mid_part'  : tile_id.m_id%2 == 1,
             }
         self.waveop_stream.add_linked(instr, dram_bias_waveops)
 
     # generate ResAdd instruction and add it to instruction stream
-    def gen_resadd_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start):
+    def gen_resadd_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start, start_at_mid_part):
         in_a_dtype = "float32"
         in_b_dtype = "float32"
         out_dtype = "float32"
@@ -2175,6 +2195,7 @@ class TPBSched:
               'src_a_psum_bank_id'      : 0,
               'src_a_psum_bank_offset'  : 0,
               'src_a_sb_address'        : self.statebuffer.circbuf_residue.get_sb_address(data_start),
+              'src_a_start_at_mid_part' : start_at_mid_part,
               'src_a_x_step'            : 1,
               'src_a_x_num'             : dst_x_num,
               'src_a_y_step'            : dst_y_step,
@@ -2195,6 +2216,7 @@ class TPBSched:
               'dst_psum_bank_id'        : psum_bank_dst,
               'dst_psum_bank_offset'    : 0,
               'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
+              'dst_start_at_mid_part'   : start_at_mid_part,
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
@@ -2205,12 +2227,12 @@ class TPBSched:
             }
         self.waveop_stream.add_linked(instr, dram_resadd_waveops)
 
-    def gen_fused_pool_waveop_inline (self, fused_ops, tile_id, psum_bank_src):
-        pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, True, psum_bank_src)
+    def gen_fused_pool_waveop_inline (self, fused_ops, tile_id, psum_bank_src, start_at_mid_part):
+        pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, True, psum_bank_src, start_at_mid_part)
         self.waveop_stream.add_linked(pool_waveop, [])
 
     def gen_unfused_pool_waveop_inline (self, fused_ops, tile_id, dram_waveops):
-        pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, False, 0)
+        pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, False, 0, False)
         self.waveop_stream.add_linked(pool_waveop, dram_waveops)
 
     # collect stats
@@ -2218,16 +2240,16 @@ class TPBSched:
         if (args.debug > 1):
             # collect stats
             stats = Stats()
-            for i in [self.statebuffer.circbuf_weights, self.statebuffer.circbuf_ifmaps, self.statebuffer.circbuf_scratch, self.statebuffer.circbuf_residue]:
+            for i in [self.statebuffer.circbuf_weights, self.statebuffer.circbuf_ifmaps, self.statebuffer.circbuf_scratch, self.statebuffer.circbuf_residue, self.statebuffer.circbuf_bias]:
                 i.populate_stats(stats)
             self.calculate_compute_to_load_ratio(layer_name, stats)
             stats_per_layer.append(stats)
             # reset stats
             self.pearray.num_wave_fp16_mm = 0
-            self.pearray.total_pearray_latency = 0
+            self.pearray.total_pearray_latency_cycles = 0
             self.pearray.total_pearray_waves = 0
             self.pearray.num_of_ops_executed = 0
-            for i in [self.statebuffer.circbuf_weights, self.statebuffer.circbuf_ifmaps, self.statebuffer.circbuf_scratch, self.statebuffer.circbuf_residue]:
+            for i in [self.statebuffer.circbuf_weights, self.statebuffer.circbuf_ifmaps, self.statebuffer.circbuf_scratch, self.statebuffer.circbuf_residue, self.statebuffer.circbuf_bias]:
                 i.DRAM_elem_read = 0
                 i.DRAM_elem_written = 0
                 i.DRAM_atoms_read = 0
@@ -2242,10 +2264,10 @@ class TPBSched:
             stats.num_waves             = self.pearray.num_wave_fp16_mm
             stats.num_waves_x_max_pe_ops = self.pearray.num_wave_fp16_mm * self.pearray.NUM_ROWS * self.pearray.NUM_COLS * self.pearray.MAX_WAVE_SIZE
             stats.num_of_weight_reads   = self.statebuffer.circbuf_weights.DRAM_elem_read
-            stats.num_of_reads          = self.statebuffer.circbuf_weights.DRAM_elem_read + self.statebuffer.circbuf_ifmaps.DRAM_elem_read + self.statebuffer.circbuf_scratch.DRAM_elem_read
-            stats.num_of_writes         = self.statebuffer.circbuf_scratch.DRAM_elem_written
-            stats.total_dram_latency_est = stats.num_of_reads*self.statebuffer.circbuf_weights.item_sz / 10 # assuming 10GB/s BW available per TPB
-            stats.total_pearray_latency  = tpb.pearray.total_pearray_latency
+            stats.num_of_reads_elems          = self.statebuffer.circbuf_weights.DRAM_elem_read + self.statebuffer.circbuf_ifmaps.DRAM_elem_read + self.statebuffer.circbuf_scratch.DRAM_elem_read
+            stats.num_of_writes_elems         = self.statebuffer.circbuf_scratch.DRAM_elem_written
+            #stats.total_dram_latency_cycles = stats.num_of_reads_elems*self.statebuffer.circbuf_weights.item_sz / 10 # assuming 10GB/s BW available per TPB
+            stats.total_pearray_latency_cycles  = tpb.pearray.total_pearray_latency_cycles
             stats.total_pearray_waves    = tpb.pearray.total_pearray_waves
             stats.minibatch_multiplier   = self.statebuffer.circbuf_residue.minibatch_multiplier
             stats.batching_in_wave       = self.pearray.batching_in_wave 
@@ -2255,23 +2277,23 @@ class TPBSched:
             else:
                 stats.wave_op_efficiency    = 0
             if (self.statebuffer.circbuf_weights.dram_data != []):
-                stats.num_of_weight_elems   = self.statebuffer.circbuf_weights.dram_data.size
-                stats.minimum_reads         = self.statebuffer.circbuf_weights.dram_data.size \
+                stats.total_weight_elems   = self.statebuffer.circbuf_weights.dram_data.size
+                stats.total_weight_ifmaps_elems         = self.statebuffer.circbuf_weights.dram_data.size \
                                             + (self.statebuffer.circbuf_ifmaps.dram_data.size if self.statebuffer.circbuf_ifmaps.DRAM_elem_read > 0 else 0)
                 stats.ideal_compute_to_load_ratio = 2 * self.pearray.num_of_ops_executed / self.statebuffer.circbuf_weights.dram_data.size
-                stats.actual_to_min_read_ratio = stats.num_of_reads / stats.minimum_reads
+                stats.actual_to_min_read_ratio = stats.num_of_reads_elems / stats.total_weight_ifmaps_elems
             else:
-                stats.num_of_weight_elems  = 0
-                stats.minimum_reads        = 0
+                stats.total_weight_elems  = 0
+                stats.total_weight_ifmaps_elems        = 0
                 stats.ideal_compute_to_load_ratio = 0.0
                 stats.actual_to_min_read_ratio = 0
             print("num_waves_x_max_pe_ops: ",stats.num_waves_x_max_pe_ops, "num_of_ops_executed: ", self.pearray.num_of_ops_executed, "wave_op_efficiency", stats.wave_op_efficiency)
-            print("num_of_reads: ",stats.num_of_reads,"minimum_reads: ",stats.minimum_reads, "actual_to_min_read_ratio: ",stats.actual_to_min_read_ratio,\
+            print("num_of_reads_elems: ",stats.num_of_reads_elems,"total_weight_ifmaps_elems: ",stats.total_weight_ifmaps_elems, "actual_to_min_read_ratio: ",stats.actual_to_min_read_ratio,\
                   "weights_read:",self.statebuffer.circbuf_weights.DRAM_elem_read,"ifmaps_read: ",self.statebuffer.circbuf_ifmaps.DRAM_elem_read)
             print("min weight read:",self.statebuffer.circbuf_weights.dram_data.size, "min ifmap read: ",self.statebuffer.circbuf_ifmaps.dram_data.size)
             print("ideal_compute_to_load_ratio: ",stats.ideal_compute_to_load_ratio)
             print("number_of_waves: ",self.pearray.num_wave_fp16_mm)
-            #print("STATS summary %s: %d %d %d %d %d %d %d %d %f %f %f %d %f"%(layer_name, self.pearray.num_wave_fp16_mm, num_of_wave_ops, self.pearray.num_of_ops_executed, wave_op_efficiency, num_of_weight_reads, num_of_reads, num_of_writes, num_of_weights_elem, minimum_reads, actual_to_min_read_ratio, ideal_compute_to_load_ratio, tpb.pearray.total_pearray_latency, total_dram_latency_est))
+            #print("STATS summary %s: %d %d %d %d %d %d %d %d %f %f %f %d %f"%(layer_name, self.pearray.num_wave_fp16_mm, num_of_wave_ops, self.pearray.num_of_ops_executed, wave_op_efficiency, num_of_weight_reads, num_of_reads_elems, num_of_writes_elems, num_of_weights_elem, total_weight_ifmaps_elems, actual_to_min_read_ratio, ideal_compute_to_load_ratio, tpb.pearray.total_pearray_latency_cycles, total_dram_latency_cycles))
 
     # Execute softmax (second part, which includes Sum, Reciprocate, Scale)
     def execute_softmax2(self, inputs, result_file):
@@ -2370,10 +2392,17 @@ class TPBSched:
                                                             output_params_op.ifmap_count)
                         # The scale_add destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "ScaleAdd"):
-                            self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
-                                                                                    + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
-                                                                                    + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr[0])
-                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr)
+                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
+                            #                                                        + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
+                            #                                                        + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr[0])
+                            sb_addr = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr[0])
+                            if (sb_addr < 0):
+                                if (len(dram_output_waveops) > 0):
+                                    sb_addr = dram_output_waveops[0]['sb_address']
+                                else:
+                                    print("ERROR execute_softmax2: addr %d not found in chunk2atom_map, and also not found in dram_output_waveops; giving up"%(output_params_op.ofmap_tile_lower_addr[0]))
+                                    exit(-1)
+                            self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
 
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
@@ -2455,10 +2484,17 @@ class TPBSched:
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "ResAdd"
                                 ):
-                            self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
-                                                                                    + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
-                                                                                    + self.statebuffer.circbuf_scratch.get_atom_offset(pool_op.ofmap_tile_lower_addr[0])
-                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.get_sb_address(pool_op.ofmap_tile_lower_addr)
+                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
+                            #                                                        + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
+                            #                                                        + self.statebuffer.circbuf_scratch.get_atom_offset(pool_op.ofmap_tile_lower_addr[0])
+                            sb_addr = self.statebuffer.circbuf_scratch.get_sb_address(pool_op.ofmap_tile_lower_addr[0])
+                            if (sb_addr < 0):
+                                if (len(dram_output_waveops) > 0):
+                                    sb_addr = dram_output_waveops[0]['sb_address']
+                                else:
+                                    print("ERROR execute_softmax2: addr %d not found in chunk2atom_map, and also not found in dram_output_waveops; giving up"%(output_params_op.ofmap_tile_lower_addr[0]))
+                                    exit(-1)
+                            self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
 
         # save layer results to file, for retrieval by next layer                        
@@ -2578,10 +2614,17 @@ class TPBSched:
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "ResAdd"
                                 ):
-                            self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
-                                                                                    + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
-                                                                                    + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr[0])
-                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr)
+                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
+                            #                                                        + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
+                            #                                                        + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr[0])
+                            sb_addr = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr[0])
+                            if (sb_addr < 0):
+                                if (len(dram_output_waveops) > 0):
+                                    sb_addr = dram_output_waveops[0]['sb_address']
+                                else:
+                                    print("ERROR execute_softmax2: addr %d not found in chunk2atom_map, and also not found in dram_output_waveops; giving up"%(output_params_op.ofmap_tile_lower_addr[0]))
+                                    exit(-1)
+                            self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
@@ -2778,7 +2821,7 @@ if __name__ == "__main__":
 
     # stats printing
     if (args.debug > 1):
-        #print("STATS summary headings: num_wave num_waves_x_max_pe_ops num_of_ops_executed num_of_weight_reads num_of_reads num_of_writes num_of_weight_elems minimum_reads actual_to_min_read_ratio ideal_compute_to_load_ratio wave_op_efficiency total_pearray_latency total_dram_latency_est")
+        #print("STATS summary headings: num_wave num_waves_x_max_pe_ops num_of_ops_executed num_of_weight_reads num_of_reads_elems num_of_writes_elems total_weight_elems total_weight_ifmaps_elems actual_to_min_read_ratio ideal_compute_to_load_ratio wave_op_efficiency total_pearray_latency_cycles total_dram_latency_cycles")
         printed_header = False
         print("STATS:", end=" ")
         for i in range(len(stats_per_layer)):

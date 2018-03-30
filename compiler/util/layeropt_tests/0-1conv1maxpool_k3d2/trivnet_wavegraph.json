@@ -68,6 +68,7 @@
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,1,1,1],
       "sb_address": 24576,
+      "start_at_mid_part": false,
       "waveop_name": "1conv1pool/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
@@ -87,6 +88,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
       "sb_address": 0,
+      "start_at_mid_part": false,
       "waveop_name": "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
@@ -133,6 +135,7 @@
     },
     {
       "dst_sb_address": 73728,
+      "dst_start_at_mid_part": false,
       "dst_x_num": 4,
       "dst_x_step": 1,
       "dst_y_num": 4,
@@ -153,6 +156,7 @@
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
       "src_sb_address": 0,
+      "src_start_at_mid_part": false,
       "src_w_num": 4,
       "src_w_step": 4,
       "src_x_num": 1,
@@ -183,6 +187,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
       "sb_address": 73728,
+      "start_at_mid_part": false,
       "waveop_name": "1conv1pool/i1/SBAtomSave_scratch_0_n0_m0_h0_w0",
       "waveop_type": "SBAtomSave"
     },
@@ -202,11 +207,13 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
       "sb_address": 73760,
+      "start_at_mid_part": false,
       "waveop_name": "1conv1pool/i1/SBAtomFile_ifmaps_1_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
     {
       "dst_sb_address": 0,
+      "dst_start_at_mid_part": false,
       "dst_x_num": 2,
       "dst_x_step": 1,
       "dst_y_num": 2,
@@ -228,6 +235,7 @@
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
       "src_sb_address": 73760,
+      "src_start_at_mid_part": false,
       "src_w_num": 2,
       "src_w_step": 8,
       "src_x_num": 3,
@@ -258,6 +266,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,2,2],
       "sb_address": 0,
+      "start_at_mid_part": false,
       "waveop_name": "1conv1pool/i2/SBAtomSave_scratch_0_n0_m0_h0_w0",
       "waveop_type": "SBAtomSave"
     }
