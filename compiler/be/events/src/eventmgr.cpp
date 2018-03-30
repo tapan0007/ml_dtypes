@@ -199,7 +199,8 @@ EventMgr::processWaveops()
             std::vector<wave::WaveOp*> succWaveops;
             succWaveops.push_back(waveop);
 
-            auto barrierWaveop = new wave::BarrierWaveOp(params, prevWaveops, succWaveops);
+            auto barrierWaveop = new wave::BarrierWaveOp(params, prevWaveops, succWaveops,
+                                                         EngineId::DmaEng);
 
             waveOpsWithBarriers.push_back(barrierWaveop);
             moveCompletedEventsToAvailable();

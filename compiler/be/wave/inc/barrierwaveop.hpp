@@ -32,7 +32,8 @@ class BarrierWaveOp : public WaveOp {
 public:
     BarrierWaveOp(const WaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps,
-                           const std::vector<WaveOp*>& succWaveOps);
+                           const std::vector<WaveOp*>& succWaveOps,
+                           EngineId engineId);
 public:
     bool verify() const override;
 
@@ -45,7 +46,7 @@ public:
     }
 
     EngineId gEngineId() const override {
-        return EngineId::AnyEng;
+        return m_EngineId;
     }
 
     static std::string gTypeStrStatic() {
@@ -58,6 +59,9 @@ public:
     virtual WaveOpType gType() const override {
         return WaveOpType::Barrier;
     }
+
+private:
+    EngineId m_EngineId = EngineId::AnyEng;
 }; // class BarrierWaveOp : public WaveOp
 
 

@@ -21,8 +21,10 @@ namespace wave {
 
 BarrierWaveOp::BarrierWaveOp(const WaveOp::Params& params,
                              const std::vector<WaveOp*>& prevWaveOps,
-                             const std::vector<WaveOp*>& succWaveOps)
-    : WaveOp(params, prevWaveOps)
+                             const std::vector<WaveOp*>& succWaveOps,
+                             EngineId engineId)
+    : WaveOp(params, prevWaveOps) // will add back edges
+    , m_EngineId(engineId)
 {
     for (WaveOp* succWaveOp : succWaveOps) {
         auto edge = new WaveEdge(this, succWaveOp);
