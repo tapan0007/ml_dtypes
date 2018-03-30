@@ -39,7 +39,7 @@ EventMgr::initEventSets()
     m_Completed.clear();
 
     for (EventId eventId = BarrierEvent_FirstNonBarrierEvent; eventId < EventId_Invalid(); ++eventId) {
-        m_Avaliable.insert(eventId);
+        m_Available.insert(eventId);
     }
 }
 
@@ -77,8 +77,8 @@ EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
             continue;
         }
         // Available --> InFlight
-        Assert(!m_Available.empty(), "Trying to get event from empty available set of events")
-        const auto evtId = m_Available.first();
+        Assert(!m_Available.empty(), "Trying to get event from empty available set of events");
+        const auto evtId = (*m_Available.begin());
         m_Available.erase(evtId);
         succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::SetThenClear);
         m_InFlight.insert(evtId);
@@ -89,18 +89,21 @@ EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
 void
 EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
 {
+    const auto inflightEnd(m_InFlight.end());
+    const auto completedEnd(m_Completed.end());
+
     // For each prev edge move evt id from in-flight to completed.
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
         if (! prevWaveEdge->qNeedToWaitFor()) {
             continue;
         }
         // InFlight --> Completed
-        const EventId evtId = prevEdge->gEventId();
+        const EventId evtId = prevWaveEdge->gEventId();
         Assert(m_InFlight.find(evtId) != inflightEnd, "Event from prev edge not in in-flight set");
         m_InFlight.erase(evtId);
         Assert(m_Completed.find(evtId) != completedEnd, "Event from prev edge not in in-flight set");
 
-        m_Completed.add(evtId);
+        m_Completed.insert(evtId);
     }
 }
 
@@ -168,7 +171,7 @@ EventMgr::processWaveops()
 {
     // From barrier to barrier
 
-    const kcc_int32 NumNonBarrierEvents = EventId_Invalid() - BarrierEvent_FirstNonBarrierEvent; 
+    //const kcc_int32 NumNonBarrierEvents = EventId_Invalid() - BarrierEvent_FirstNonBarrierEvent; 
     const kcc_int32 numWaveops = m_Network.gWaveOps().size();
     // Need barrier between Waveop[ barrierIndices[j] ] and Waveop[ 1+barrierIndices[j] ]
     std::vector<kcc_int32> barrierIndices;
@@ -182,7 +185,7 @@ EventMgr::processWaveops()
     kcc_int32 waveopIdx = 0; 
     while (waveopIdx < numWaveops) {
         auto waveop = m_Network.gWaveOp(waveopIdx);
-        kcc_int32 numSuccEvents = waveop->gNumberSuccWaitEdges();
+        kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
         if (numSuccEvents > m_Available.size()) {
             // if waveopIdx is included too many events in session,
             // so need barrier between waveop[waveopIdx-1] and waveop[waveopIdx]
@@ -193,6 +196,7 @@ EventMgr::processWaveops()
         }
         assignEventsToNewSuccEdges(waveop);
         completeEventsOnPrevEdges(waveop);
+        waveOpsWithBarriers.push_back(waveop);
     }
 
 

@@ -67,6 +67,7 @@ enum class WaveOpType {
     MatMul,
     Activation,
     ResAdd,
+    Barrier,
 };
 
 //**********************************************************************

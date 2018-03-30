@@ -45,6 +45,8 @@ private:
 
     void initEventSets();
     void assignEventsToNewSuccEdges(wave::WaveOp* waveop);
+    void moveCompletedEventsToAvailable();
+    void completeEventsOnPrevEdges(wave::WaveOp* waveop);
 
 private:
     const nets::Network& m_Network;

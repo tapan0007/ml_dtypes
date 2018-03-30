@@ -122,7 +122,7 @@ public:
         return m_WaveOps;
     }
 
-    wave::WaveOp* gWave(kcc_int32 waveIdx) const {
+    wave::WaveOp* gWaveOp(kcc_int32 waveIdx) const {
         return m_WaveOps[waveIdx];
     }
 

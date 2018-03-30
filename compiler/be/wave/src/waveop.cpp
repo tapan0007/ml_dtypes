@@ -40,6 +40,31 @@ WaveOp::gLayerName () const
 }
 
 
+kcc_int32
+WaveOp::gNumberPrevWaitEdges() const
+{
+    kcc_int32 numWait = 0;
+    for (auto prevWaveEdge : m_PrevWaveEdges) {
+        if ( prevWaveEdge->qNeedToWaitFor()) {
+            ++numWait;
+        }
+    }
+    return numWait;
+}
+
+kcc_int32
+WaveOp::gNumberSuccWaitEdges() const
+{
+    kcc_int32 numWait = 0;
+    for (auto succWaveEdge : m_SuccWaveEdges) {
+        if ( succWaveEdge->qNeedToWaitFor()) {
+            ++numWait;
+        }
+    }
+    return numWait;
+}
+
+
 
 bool
 WaveOp::verify () const
