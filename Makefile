@@ -72,8 +72,12 @@ define _publish
 	region=`./get_public_region $(1)` || exit_code=$$?; \
         if [[ $$exit_code -eq 0 ]]; then \
 		echo "region name is  $(1), public region name is $$region "; \
-		aws s3 cp $(2) s3://kaena-images-$(1)/$(2) \
-		  --region=$$region;\
+		#aws s3 cp $(2) s3://kaena-images-$(1)/$(2) \
+		#  --region=$$region;\
+
+		# single bucket for now.
+		aws s3 --profile kaena cp $(2) s3://kaena-release-bucket/$(2) \
+                  --region=$$region;\
 	fi
 endef
 
@@ -81,7 +85,7 @@ endef
 # Publish the release tarball to all regions
 # Usage: make publish
 .PHONY: publish
-publish: $(REPO_TARBALL) cred_check
+publish: $(REPO_TARBALL)
 	for region in `grep -v '^#' publish_regions | awk '{print $$1}'`; do \
 		$(call _publish,$$region,$<); \
 done
@@ -89,18 +93,8 @@ done
 
 # Publish the test tarball to iad
 # Usage: make publish_test
-publish_test: $(REPO_TEST_TARBALL) cred_check
+publish_test: $(REPO_TEST_TARBALL)
 	$(call _publish,iad,$<)
-
-
-.PHONY: cred_check
-cred_check:
-ifndef AWS_ACCESS_KEY_ID
-	$(error "You don't have correct AWS credentials, run 'source aws_creds_setup.sh' to initiate those credentials")
-endif
-ifndef AWS_SECRET_ACCESS_KEY
-	$(error "You don't have correct AWS credentials, run 'source aws_creds_setup.sh' to initiate those credentials")
-endif
 
 
 .PHONY: create_repo
