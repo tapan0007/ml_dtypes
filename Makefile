@@ -72,10 +72,6 @@ define _publish
 	region=`./get_public_region $(1)` || exit_code=$$?; \
         if [[ $$exit_code -eq 0 ]]; then \
 		echo "region name is  $(1), public region name is $$region "; \
-		#aws s3 cp $(2) s3://kaena-images-$(1)/$(2) \
-		#  --region=$$region;\
-
-		# single bucket for now.
 		aws s3 --profile kaena cp $(2) s3://kaena-release-bucket/$(2) \
                   --region=$$region;\
 	fi
