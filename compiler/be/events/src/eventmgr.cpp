@@ -169,6 +169,7 @@ EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
     LoopCmpForw cmpForw(m_Network.gNumberWaveops());
     LoopCmp& cmp(backward ? static_cast<LoopCmp&>(cmpBack) : static_cast<LoopCmp&>(cmpForw));
 
+    // This could be improved to NOT loop over engines
     for (kcc_int32 k = 0; k < NumberRealEngines; ++k) {
         const auto engId = engineIds[k];
         if (barrierEngId == engId) {
@@ -287,16 +288,21 @@ EventMgr::insertBarriers() {
             utils::breakFunc(waveopIdx);
         }
         auto waveop = m_Network.gWaveOp(waveopIdx);
+        auto immedPrevWaveop = m_Network.gWaveOp(waveopIdx-1);
         kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
         if (numSuccEvents > m_Available.size()) {
             // if waveopIdx is included too many events in session,
             // so need barrier between waveop[waveopIdx-1] and waveop[waveopIdx]
-            const EngineId barrierEngId = gBarrierEngineId(m_Network.gWaveOp(waveopIdx-1), waveop);
+            const EngineId barrierEngId = gBarrierEngineId(immedPrevWaveop, waveop);
 
             std::vector<wave::WaveOp*> prevWaveops;
             findWaveopsOnOtherEngines(waveopIdx-1, barrierEngId, true, prevWaveops);
+            Assert(prevWaveops.size() < NumberRealEngines, "Collected to many prev waveops for barrier between waveop ",
+                immedPrevWaveop->gName(), " and waveop ", waveop->gName());
             std::vector<wave::WaveOp*> succWaveops;
             findWaveopsOnOtherEngines(waveopIdx, barrierEngId, false, succWaveops);
+            Assert(succWaveops.size() < NumberRealEngines, "Collected to many prev waveops for barrier between waveop ",
+                immedPrevWaveop->gName(), " and waveop ", waveop->gName());
 
             std::stringstream barrierWaveopName;
             barrierWaveopName << "barrier_" << waveopIdx-1 << "_" << waveopIdx;
