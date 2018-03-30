@@ -9,16 +9,6 @@
 
 namespace kcc {
 
-enum class EngineId {
-    None,
-    PeArray,
-    Activation,
-    Pooling,
-    StreamProc,
-    DmaEng,
-    AnyEng, // when an instruction can be execed on several engines: WAIT,SET,WRITE
-};
-
 enum {
     FMAP_TENSOR_RANK = 4,
     FILTER_TENSOR_RANK = 4,

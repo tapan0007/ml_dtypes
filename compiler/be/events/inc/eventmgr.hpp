@@ -48,6 +48,10 @@ private:
     void moveCompletedEventsToAvailable();
     void completeEventsOnPrevEdges(wave::WaveOp* waveop);
 
+    EngineId gBarrierEngineId(const wave::WaveOp* prevWaveop, const wave::WaveOp* succWaveop);
+    void findWaveopsOnOtherEngines(kcc_int32 waveopIdx, const EngineId barrierEngId, bool backward,
+                                       std::vector<wave::WaveOp*>& prevWaveops);
+
 private:
     const nets::Network& m_Network;
     EventId m_EventId;

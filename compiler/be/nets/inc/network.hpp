@@ -114,6 +114,7 @@ public:
         return m_Layers.size();
     }
 
+
     std::vector<wave::WaveOp*>& gWaveOps() {
         return m_WaveOps;
     }
@@ -125,6 +126,11 @@ public:
     wave::WaveOp* gWaveOp(kcc_int32 waveIdx) const {
         return m_WaveOps[waveIdx];
     }
+
+    kcc_int32 gNumberWaveops() const {
+        return m_WaveOps.size();
+    }
+
 
     const DataType& gDataType() const {
         return *m_DataType;

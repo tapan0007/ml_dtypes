@@ -1,4 +1,5 @@
 #include <limits>
+#include <sstream>
 
 #include "utils/inc/asserter.hpp"
 
@@ -108,6 +109,57 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
     }
 }
 
+
+
+
+void
+EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
+        EngineId barrierEngId, bool backward,
+        std::vector<wave::WaveOp*>& waveops)
+{
+    std::array<EngineId, NumberRealEngines> engineIds { {
+        EngineId::PeArray, EngineId::Activation,
+        EngineId::Pooling, EngineId::StreamProc,
+        EngineId::DmaEng
+    } };
+    std::array<bool, NumberRealEngines> found { {
+        false, false, false, false, false
+    } };
+
+
+    for (kcc_int32 k = 0; k < NumberRealEngines; ++k) {
+        const auto engId = engineIds[k];
+        if (barrierEngId == engId || found[k]) {
+            continue;
+        }
+        if (backward) {
+            for (kcc_int32 otherIdx = waveopIdx; otherIdx >= 0; --otherIdx) {
+                auto otherWaveop = m_Network.gWaveOp(otherIdx);
+                if (otherWaveop->gEngineId() == engId) {
+                    waveops.push_back(otherWaveop);
+                }
+            }
+        } else {
+            const kcc_int32 N = m_Network.gNumberWaveops();
+            for (kcc_int32 otherIdx = waveopIdx; otherIdx < N; ++otherIdx) {
+                auto otherWaveop = m_Network.gWaveOp(otherIdx);
+                if (otherWaveop->gEngineId() == engId) {
+                    waveops.push_back(otherWaveop);
+                }
+            }
+        }
+    }
+}
+
+
+EngineId
+EventMgr::gBarrierEngineId(const wave::WaveOp* /*prevWaveop*/, const wave::WaveOp* /*succWaveop*/)
+{
+    return EngineId::DmaEng;
+}
+
+
+
 /***************************************************************
 Predecessor of Loading Weights can only be:
 Another MatMul which
@@ -190,17 +242,19 @@ EventMgr::processWaveops()
         if (numSuccEvents > m_Available.size()) {
             // if waveopIdx is included too many events in session,
             // so need barrier between waveop[waveopIdx-1] and waveop[waveopIdx]
-            wave::WaveOp::Params params;
-            char buf[256];
-            sprintf(buf, "barrier_%d_%d", waveopIdx-1, waveopIdx);
-            params.m_WaveOpName    = std::string(buf);
-            std::vector<wave::WaveOp*> prevWaveops;
-            prevWaveops.push_back(m_Network.gWaveOp(waveopIdx-1));
-            std::vector<wave::WaveOp*> succWaveops;
-            succWaveops.push_back(waveop);
+            const EngineId barrierEngId = gBarrierEngineId(m_Network.gWaveOp(waveopIdx-1), waveop);
 
-            auto barrierWaveop = new wave::BarrierWaveOp(params, prevWaveops, succWaveops,
-                                                         EngineId::DmaEng);
+            std::vector<wave::WaveOp*> prevWaveops;
+            findWaveopsOnOtherEngines(waveopIdx-1, barrierEngId, true, prevWaveops);
+            std::vector<wave::WaveOp*> succWaveops;
+            findWaveopsOnOtherEngines(waveopIdx, barrierEngId, false, succWaveops);
+
+            std::stringstream barrierWaveopName;
+            barrierWaveopName << "barrier_" << waveopIdx-1 << "_" << waveopIdx;
+            wave::WaveOp::Params params;
+            params.m_WaveOpName    = barrierWaveopName.str();
+
+            auto barrierWaveop = new wave::BarrierWaveOp(params, prevWaveops, succWaveops, barrierEngId);
 
             waveOpsWithBarriers.push_back(barrierWaveop);
             moveCompletedEventsToAvailable();
@@ -210,7 +264,6 @@ EventMgr::processWaveops()
         completeEventsOnPrevEdges(waveop);
         waveOpsWithBarriers.push_back(waveop);
     }
-
 
 
 

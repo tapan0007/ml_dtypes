@@ -59,6 +59,17 @@ using TpbAddress            = Integer<kcc_int32, TpbAddressTag>;
 using TongaAddress          = Integer<kcc_int64, TongaAddressTag>;
 
 
+enum class EngineId {
+    None,
+    PeArray,
+    Activation,
+    Pooling,
+    StreamProc,
+    DmaEng,
+    AnyEng, // when an instruction can be execed on several engines: WAIT,SET,WRITE
+};
+enum { NumberRealEngines = 5 };
+
 //**********************************************************************
 enum class WaveOpType {
     Load,
