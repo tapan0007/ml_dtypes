@@ -101,9 +101,9 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
         }
         // InFlight --> Completed
         const EventId evtId = prevWaveEdge->gEventId();
-        Assert(m_InFlight.find(evtId) != inflightEnd, "Event from prev edge not in in-flight set");
+        Assert(m_InFlight.find(evtId) != inflightEnd, "Event from prev edge not in the in-flight set");
         m_InFlight.erase(evtId);
-        Assert(m_Completed.find(evtId) != completedEnd, "Event from prev edge not in in-flight set");
+        Assert(m_Completed.find(evtId) == completedEnd, "Event from prev edge already in the completed set");
 
         m_Completed.insert(evtId);
     }
@@ -137,6 +137,8 @@ EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
                 auto otherWaveop = m_Network.gWaveOp(otherIdx);
                 if (otherWaveop->gEngineId() == engId) {
                     waveops.push_back(otherWaveop);
+                    found[k] = true;
+                    break;
                 }
             }
         } else {
@@ -145,6 +147,8 @@ EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
                 auto otherWaveop = m_Network.gWaveOp(otherIdx);
                 if (otherWaveop->gEngineId() == engId) {
                     waveops.push_back(otherWaveop);
+                    found[k] = true;
+                    break;
                 }
             }
         }
@@ -235,8 +239,7 @@ EventMgr::processWaveops()
     //const auto inflightEnd(m_InFlight.end());
     //const auto completedEnd(m_Completed.end());
 
-    kcc_int32 waveopIdx = 0; 
-    while (waveopIdx < numWaveops) {
+    for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
         auto waveop = m_Network.gWaveOp(waveopIdx);
         kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
         if (numSuccEvents > m_Available.size()) {

@@ -109,6 +109,10 @@ Network::findWaveOp(const std::string& waveOpName)
 void
 Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops)
 {
+    const kcc_int32 numWaveops = newWaveops.size();
+    for (kcc_int32 k = 0; k < numWaveops; ++k) {
+        newWaveops[k]->rOrder(k);
+    }
     m_WaveOps.clear();
     std::swap(m_WaveOps, newWaveops);
     //std::copy(newWaveops.begin(), newWaveops.end(), m_WaveOps.begin());

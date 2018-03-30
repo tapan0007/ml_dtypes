@@ -33,15 +33,42 @@ BarrierWaveOp::BarrierWaveOp(const WaveOp::Params& params,
     }
 }
 
+const std::string&
+BarrierWaveOp::gLayerName() const
+{
+    const static std::string name("BarrierLayer");
+    return  name;
+}
 
 
 
 #define RETURN_ASSERT(x)  assert(x); return (x)
 
+
 bool
 BarrierWaveOp::verify() const
 {
-    if (! this->WaveOp::verify()) {
+    // Don't call WaveOp::verify() since the layer is nullptr
+    if (m_Name == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_Order < 0) {
+        RETURN_ASSERT(false);
+    }
+    return true;
+}
+
+
+
+
+bool
+BarrierWaveOp::Params::verify() const
+{
+    // Don't call WaveOp::Params::verify() since the layer is nullptr
+    if (m_WaveOpName == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_Order < 0) {
         RETURN_ASSERT(false);
     }
     return true;

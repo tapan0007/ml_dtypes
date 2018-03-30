@@ -101,7 +101,7 @@ public:
         return m_Name;
     }
 
-    const std::string& gLayerName() const;
+    virtual const std::string& gLayerName() const;
 
     const std::vector<WaveEdge*>& gPrevWaveEdges() const {
         return m_PrevWaveEdges;
@@ -129,6 +129,10 @@ public:
 
     kcc_int32 gOrder() const {
         return m_Order;
+    }
+
+    void rOrder(kcc_int32 ord) {
+        m_Order = ord;
     }
 
 

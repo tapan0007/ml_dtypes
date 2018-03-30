@@ -30,12 +30,16 @@ namespace wave {
 
 class BarrierWaveOp : public WaveOp {
 public:
+    class Params;
+public:
     BarrierWaveOp(const WaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps,
                            const std::vector<WaveOp*>& succWaveOps,
                            EngineId engineId);
 public:
     bool verify() const override;
+
+    const std::string& gLayerName() const override;
 
 private:
     BarrierWaveOp() = delete;
@@ -64,6 +68,11 @@ private:
     EngineId m_EngineId = EngineId::AnyEng;
 }; // class BarrierWaveOp : public WaveOp
 
+
+class BarrierWaveOp::Params : public WaveOp::Params {
+public:
+    bool verify()const ;
+};
 
 
 }}
