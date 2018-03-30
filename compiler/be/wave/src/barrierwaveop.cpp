@@ -2,6 +2,7 @@
 
 
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"
 
 #include "arch/inc/arch.hpp"
@@ -26,6 +27,11 @@ BarrierWaveOp::BarrierWaveOp(const WaveOp::Params& params,
     : WaveOp(params, prevWaveOps) // will add back edges
     , m_EngineId(engineId)
 {
+    Assert(prevWaveOps.size() > 0, "Number of predecessors of barrier waveop ",
+            params.m_WaveOpName, " must be >0");
+    Assert(succWaveOps.size() > 0, "Number of successors of barrier waveop ",
+            params.m_WaveOpName, " must be >0");
+
     for (WaveOp* succWaveOp : succWaveOps) {
         auto edge = new WaveEdge(this, succWaveOp);
         this->m_SuccWaveEdges.push_back(edge);

@@ -37,6 +37,7 @@
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
+#include "wave/inc/barrierwaveop.hpp"
 
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
@@ -292,6 +293,11 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             m_Save->saveResAdd(resAddWaveOp, serWaveOp);
             continue;
         }
+        if (const auto barrierWaveOp = dynamic_cast<const wave::BarrierWaveOp*>(waveOp)) {
+            m_Save->saveBarrier(barrierWaveOp, serWaveOp);
+            continue;
+        }
+
         Assert(false, "Unsupported WaveOp: ", waveOp->gTypeStr());
     }
     archive(cereal::make_nvp(NetKey_WaveOps, serWaveOps));
@@ -547,6 +553,15 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
 #undef WAVE_OP
 }
 
+
+void
+Network::Save::saveBarrier(const wave::BarrierWaveOp* /*barrierWaveOp*/,
+                           serialize::SerWaveOp& serWaveOp) const
+{
+#define WAVE_OP barrierWaveOp
+    serWaveOp.m_WaveOpType = wave::BarrierWaveOp::gTypeStrStatic();
+#undef WAVE_OP
+}
 
 #undef KCC_SERIALIZE
 #undef ASSERT_NUM_LAYERS

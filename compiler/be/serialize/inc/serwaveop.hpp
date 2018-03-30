@@ -237,6 +237,7 @@ private:
     bool verifyPool() const;
     bool verifyActivation() const;
     bool verifyResAdd() const;
+    bool verifyBarrier() const;
 
 public:
     // common to all

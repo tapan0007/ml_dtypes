@@ -26,7 +26,6 @@
 #include "arch/inc/arch.hpp"
 #include "nets/inc/network.hpp"
 
-#include "events/inc/eventmgr.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
@@ -69,10 +68,6 @@ void
 WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
 {
     m_ParallelStreams = parallelStreams;
-    if (m_ParallelStreams) {
-        events::EventMgr eventMgr(*m_Network);
-        eventMgr.processWaveops();
-    }
 
     m_InstrStreams = &instrStreams;
     for (auto waveOp : m_Network->gWaveOps()) {

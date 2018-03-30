@@ -438,6 +438,14 @@ SerWaveOp::verifyResAdd() const
 
 
 bool
+SerWaveOp::verifyBarrier() const
+{
+    return true;
+}
+
+
+
+bool
 SerWaveOp::verify() const
 {
     // Common
@@ -463,6 +471,8 @@ SerWaveOp::verify() const
         return verifyActivation();
     } else if (m_WaveOpType == WaveOpTypeStr_ResAdd) {
         return verifyResAdd();
+    } else if (m_WaveOpType == WaveOpTypeStr_Barrier) {
+        return verifyBarrier();
     } else {
         RETURN_ASSERT(false);
     }

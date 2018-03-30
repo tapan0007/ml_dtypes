@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/debug.hpp"
 
 #include "arch/inc/arch.hpp"
 
@@ -23,6 +24,42 @@
 
 namespace kcc {
 namespace events {
+
+
+class LoopCmp {
+public:
+    virtual bool qKeepGoing(kcc_int32 idx) const = 0;
+    virtual kcc_int32 change(kcc_int32 idx) const = 0;
+};
+
+class LoopCmpBack : public LoopCmp {
+public:
+    bool qKeepGoing(kcc_int32 idx) const {
+        return idx >= 0;
+    }
+    kcc_int32 change(kcc_int32 idx) const {
+        return idx - 1;
+    }
+};
+
+class LoopCmpForw : public LoopCmp {
+public:
+    LoopCmpForw(kcc_int32 N)
+        : m_N(N)
+    {}
+public:
+    bool qKeepGoing(kcc_int32 idx) const {
+        return idx < m_N;
+    }
+    kcc_int32 change(kcc_int32 idx) const {
+        return idx + 1;
+    }
+private:
+    const kcc_int32 m_N;
+};
+
+
+
 
 
 EventMgr::EventMgr(nets::Network& network)
@@ -117,7 +154,6 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
 
 
 
-
 void
 EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
         EngineId barrierEngId, bool backward,
@@ -128,42 +164,28 @@ EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
         EngineId::Pooling, EngineId::StreamProc,
         EngineId::DmaEng
     } };
-    std::array<bool, NumberRealEngines> found { {
-        false, false, false, false, false
-    } };
 
+    LoopCmpBack cmpBack;
+    LoopCmpForw cmpForw(m_Network.gNumberWaveops());
+    LoopCmp& cmp(backward ? static_cast<LoopCmp&>(cmpBack) : static_cast<LoopCmp&>(cmpForw));
 
     for (kcc_int32 k = 0; k < NumberRealEngines; ++k) {
         const auto engId = engineIds[k];
-        if (barrierEngId == engId || found[k]) {
+        if (barrierEngId == engId) {
             continue;
         }
-        if (backward) {
-            for (kcc_int32 otherIdx = waveopIdx; otherIdx >= 0; --otherIdx) {
-                const auto otherWaveop = m_Network.gWaveOp(otherIdx);
-                const EngineId otherEngId = otherWaveop->gEngineId();
-                if (otherEngId == barrierEngId) {
-                    break; // do not go beyound another barrier
-                }
-                if (otherEngId == engId) {
-                    waveops.push_back(otherWaveop);
-                    found[k] = true;
-                    break;
-                }
+
+        for (kcc_int32 otherIdx = waveopIdx; cmp.qKeepGoing(otherIdx);
+             otherIdx = cmp.change(otherIdx))
+        {
+            const auto otherWaveop = m_Network.gWaveOp(otherIdx);
+            if (otherWaveop->qBarrierWaveOp()) {
+                break; // do not go beyound another barrier waveop
             }
-        } else {
-            const kcc_int32 N = m_Network.gNumberWaveops();
-            for (kcc_int32 otherIdx = waveopIdx; otherIdx < N; ++otherIdx) {
-                auto otherWaveop = m_Network.gWaveOp(otherIdx);
-                const EngineId otherEngId = otherWaveop->gEngineId();
-                if (otherEngId == barrierEngId) {
-                    break; // do not go beyound another barrier
-                }
-                if (otherWaveop->gEngineId() == engId) {
-                    waveops.push_back(otherWaveop);
-                    found[k] = true;
-                    break;
-                }
+            const EngineId otherEngId = otherWaveop->gEngineId();
+            if (otherEngId == engId) {
+                waveops.push_back(otherWaveop);
+                break;
             }
         }
     }
@@ -193,8 +215,13 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
         }
         ++numPrevs;
 
-        const EventId eventId = getLocalEventId(prevWaveEdge);
-        prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
+        if (prevWaveEdge->qNeedToWaitFor()) {
+            Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
+                    "Need to wait on edge from ", prevWaveEdge->gFromOp()->gName(), " to ", matmulWaveop->gName(),
+                    ", but event id is invalid");
+        }
+        //const EventId eventId = getLocalEventId(prevWaveEdge);
+        //prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
 
     }
 }
@@ -221,8 +248,13 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
             Assert(false, "Predecessors of ", waveop->gTypeStr(),
                 " cannot be another waveop of the same type: ", prevWaveop->gName());
         } else {
-            const EventId eventId = getLocalEventId(prevWaveEdge);
-            prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
+            if (prevWaveEdge->qNeedToWaitFor()) {
+                Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
+                        "Need to wait on edge from ", prevWaveop->gName(), " to ", waveop->gName(),
+                        ", but event id is invalid");
+            }
+            //const EventId eventId = getLocalEventId(prevWaveEdge);
+            //prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
         }
     }
 }
@@ -251,6 +283,9 @@ EventMgr::insertBarriers() {
     //const auto completedEnd(m_Completed.end());
 
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
+        if (4679 == waveopIdx) {
+            utils::breakFunc(waveopIdx);
+        }
         auto waveop = m_Network.gWaveOp(waveopIdx);
         kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
         if (numSuccEvents > m_Available.size()) {

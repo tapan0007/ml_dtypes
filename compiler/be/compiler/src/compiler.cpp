@@ -11,7 +11,9 @@
 #include "utils/inc/printers.hpp"
 #include "utils/inc/datatype.hpp"
 
+#include "nets/inc/network.hpp"
 #include "events/inc/events.hpp"
+#include "events/inc/eventmgr.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "memmgr/inc/statebuffermgr.hpp"
@@ -57,6 +59,28 @@ FILE* openObjectFile(const std::string& objFileName, const char* engineName)
     FILE* file = fopen(objFileName.c_str(), "wb");
     Assert(file, "Cannot open PE array object file ", objFileName.c_str());
     return file;
+}
+
+static
+void writeOutJson(nets::Network* ntwk, const char* jsonInFileName)
+{
+    char JsonOutFileName[256];
+    const char* p = jsonInFileName;
+    char* q = JsonOutFileName;
+    while (*p) {
+        if (*p == '.') {
+            *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
+        }
+        *q++ = *p++;
+    }
+    *q = '\0';
+
+    std::ofstream os(JsonOutFileName);
+
+    std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
+    cereal::JSONOutputArchive ar(os);
+    ntwk->save(ar);
+    std::cout << "Finished writing NN JSON to file '" << JsonOutFileName << "'\n";
 }
 
 //------------------------------------------------
@@ -215,6 +239,7 @@ Main(int argc, char* argv[])
                 std::cout << "\n";
             }
         }
+        writeOutJson(ntwk, JsonInFileName);
     } else {
         wavecode::WaveCode::InstrStreams instrStreams;
         if (ParallelStreams) {
@@ -235,6 +260,10 @@ Main(int argc, char* argv[])
             objFileName = ntwk->gName() + "-act.tpb";
             instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine");
 
+            if (ParallelStreams) {
+                events::EventMgr eventMgr(*ntwk);
+                eventMgr.processWaveops();
+            }
         } else {
             std::string objFileName(ntwk->gName() + ".tpb");
             FILE* file = openObjectFile(objFileName, "all");
@@ -246,34 +275,16 @@ Main(int argc, char* argv[])
             instrStreams.m_DmaInstrStream           = file;
         }
 
+        writeOutJson(ntwk, JsonInFileName);
+
         wavecode::WaveCode waveCode(ntwk, arch);
         waveCode.generate(instrStreams, ParallelStreams);
-    }
-
-    //--------------------------------------------------------
-    { // writing is after generate() because generate() sets events
-        char JsonOutFileName[256];
-        const char* p = JsonInFileName;
-        char* q = JsonOutFileName;
-        while (*p) {
-            if (*p == '.') {
-                *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
-            }
-            *q++ = *p++;
-        }
-        *q = '\0';
-
-        std::ofstream os(JsonOutFileName);
-
-        std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
-        cereal::JSONOutputArchive ar(os);
-        ntwk->save(ar);
     }
 
     return 0;
 }
 
-}
+} // namespace kcc
 
 int
 main(int argc, char* argv[])
