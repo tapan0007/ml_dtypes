@@ -298,11 +298,11 @@ EventMgr::insertBarriers() {
 
             std::vector<wave::WaveOp*> prevWaveops;
             findWaveopsOnOtherEngines(waveopIdx-1, barrierEngId, true, prevWaveops);
-            Assert(prevWaveops.size() < NumberRealEngines, "Collected to many prev waveops for barrier between waveop ",
+            Assert(prevWaveops.size() < NumberRealEngines, "Collected too many prev waveops for barrier between waveop ",
                 immedPrevWaveop->gName(), " and waveop ", waveop->gName());
             std::vector<wave::WaveOp*> succWaveops;
             findWaveopsOnOtherEngines(waveopIdx, barrierEngId, false, succWaveops);
-            Assert(succWaveops.size() < NumberRealEngines, "Collected to many prev waveops for barrier between waveop ",
+            Assert(succWaveops.size() < NumberRealEngines, "Collected too many prev waveops for barrier between waveop ",
                 immedPrevWaveop->gName(), " and waveop ", waveop->gName());
 
             std::stringstream barrierWaveopName;
