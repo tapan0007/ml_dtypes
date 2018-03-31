@@ -344,8 +344,8 @@ class CircularBuffer:
         self.atom_data_sz = self.atom_sz
         self.need_spare_atoms = 0
         self.need_skip_atoms = False
-        self.num_kickout_atoms = 4
-        #self.num_kickout_atoms = self.capacity
+        #self.num_kickout_atoms = 4
+        self.num_kickout_atoms = self.capacity
         self.num_allocated_atoms = 0
         self.num_evicted_atoms = 0
         self.max_count = 0
@@ -383,7 +383,7 @@ class CircularBuffer:
             self.start = start - self.total_size
         else:            
             self.start = start
-        #self.num_kickout_atoms = self.capacity
+        self.num_kickout_atoms = self.capacity
         self.allocated = [False for x in range(self.capacity)]
         self.skipped = [False for x in range(self.capacity)]
         self.consumer_of_freed_atom = [None for x in range(self.capacity)]
@@ -2348,7 +2348,7 @@ class TPBSched:
                         # free portion of requested data (but retain data such that we can still read it)
                         for z in range(op_list.conv_op.Tn):
                             self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr[z], op_list.conv_op.ifmap_tile_upper_addr[z], self.waveop_stream.last_main_waveop)
-                            self.statebuffer.circbuf_weights.free_data_region(op_list.conv_op.weight_tile_lower_addr[z], op_list.conv_op.weight_tile_upper_addr[z], self.waveop_stream.last_main_waveop)
+                        self.statebuffer.circbuf_weights.free_data_region(op_list.conv_op.weight_tile_lower_addr, op_list.conv_op.weight_tile_upper_addr, self.waveop_stream.last_main_waveop)
                         # extract PSUM data
                         psum_bank_src = op_list.conv_op.get_psum_bank()
                         psum_temp = self.pearray.extract_psum(psum_bank_src, 0, op_list.conv_op.ofmap_full_tile_sz * op_list.conv_op.Tn)
@@ -2398,7 +2398,7 @@ class TPBSched:
                             sb_addr = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr[0])
                             if (sb_addr < 0):
                                 if (len(dram_output_waveops) > 0):
-                                    sb_addr = dram_output_waveops[0]['sb_address']
+                                    sb_addr = dram_output_waveops[0]['sb_address'] + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr[0])
                                 else:
                                     print("ERROR execute_softmax2: addr %d not found in chunk2atom_map, and also not found in dram_output_waveops; giving up"%(output_params_op.ofmap_tile_lower_addr[0]))
                                     exit(-1)
@@ -2490,7 +2490,7 @@ class TPBSched:
                             sb_addr = self.statebuffer.circbuf_scratch.get_sb_address(pool_op.ofmap_tile_lower_addr[0])
                             if (sb_addr < 0):
                                 if (len(dram_output_waveops) > 0):
-                                    sb_addr = dram_output_waveops[0]['sb_address']
+                                    sb_addr = dram_output_waveops[0]['sb_address'] + self.statebuffer.circbuf_scratch.get_atom_offset(pool_op.ofmap_tile_lower_addr[0])
                                 else:
                                     print("ERROR execute_softmax2: addr %d not found in chunk2atom_map, and also not found in dram_output_waveops; giving up"%(output_params_op.ofmap_tile_lower_addr[0]))
                                     exit(-1)
@@ -2572,9 +2572,9 @@ class TPBSched:
                         self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
                         self.pearray.trig_tile_done(tile_id)
                         # free portion of requested data (but retain data such that we can still read it)
-                        self.statebuffer.circbuf_weights.free_data_region(op_list.conv_op.weight_tile_lower_addr, op_list.conv_op.weight_tile_upper_addr, self.waveop_stream.last_main_waveop)
                         for z in range(op_list.conv_op.Tn):
                             self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr[z], op_list.conv_op.ifmap_tile_upper_addr[z], self.waveop_stream.last_main_waveop)
+                        self.statebuffer.circbuf_weights.free_data_region(op_list.conv_op.weight_tile_lower_addr, op_list.conv_op.weight_tile_upper_addr, self.waveop_stream.last_main_waveop)
                         # extract PSUM data
                         psum_bank_src = op_list.conv_op.get_psum_bank()
                         psum_temp = self.pearray.extract_psum(psum_bank_src, 0, op_list.conv_op.ofmap_full_tile_sz * op_list.conv_op.Tn)
@@ -2620,9 +2620,9 @@ class TPBSched:
                             sb_addr = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr[0])
                             if (sb_addr < 0):
                                 if (len(dram_output_waveops) > 0):
-                                    sb_addr = dram_output_waveops[0]['sb_address']
+                                    sb_addr = dram_output_waveops[0]['sb_address'] + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr[0])
                                 else:
-                                    print("ERROR execute_softmax2: addr %d not found in chunk2atom_map, and also not found in dram_output_waveops; giving up"%(output_params_op.ofmap_tile_lower_addr[0]))
+                                    print("ERROR execute_conv_op: addr %d not found in chunk2atom_map, and also not found in dram_output_waveops; giving up"%(output_params_op.ofmap_tile_lower_addr[0]))
                                     exit(-1)
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
