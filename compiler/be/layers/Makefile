@@ -2,13 +2,11 @@
 MODULE:=layers
 MODS := $(MODULE) utils nets serialize
 
-SRCS := layer  \
-activlayer relulayer tanhlayer  \
-combinelayer subsamplelayer convlayer \
-constlayer inputlayer \
-resaddlayer biasaddlayer \
-poollayer maxpoollayer avgpoollayer \
-matmullayer reshapelayer
+FILES := activ relu tanh combine subsample conv \
+		 const input resadd biasadd pool maxpool avgpool \
+		 matmul reshape
+
+SRCS := layer $(addsuffix layer,$(FILES))
 
 ########################################################
 include ../Makefile.common

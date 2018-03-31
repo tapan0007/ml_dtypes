@@ -38,6 +38,7 @@ class WaveCodeSbAtomSave;
 class WaveCodePool;
 class WaveCodeActivation;
 class WaveCodeResAdd;
+class WaveCodeBarrier;
 
 
 
@@ -111,6 +112,7 @@ private:
     std::unique_ptr<WaveCodePool>       m_CodePool;
     std::unique_ptr<WaveCodeActivation> m_CodeActivation;
     std::unique_ptr<WaveCodeResAdd>     m_CodeResAdd;
+    std::unique_ptr<WaveCodeBarrier>     m_CodeBarrier;
 
     kcc_int64                           m_CurrentDramAddress;
     std::map<std::string, NpyFileInfo>  m_NpyFile2DramAddress;

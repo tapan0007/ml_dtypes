@@ -66,14 +66,41 @@ protected:
     void epilogue(const wave::WaveOp* waveOp);
     bool qParallelStreams() const;
 
-    void processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync);
-    void processIncomingEdges(wave::WaveOp* waveop, events::EventId& waitEventId, events::EventWaitMode& waitEventMode);
-    void findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEventId, events::EventSetMode& setEventMode);
+    /* Process incoming edges for instructions without embedded events (no SYNC)
+    * 1. Issue WAIT instruction for all in-edges
+    */
+    void processIncomingEdges(wave::WaveOp* waveop);
 
+    /* Process incoming edges for instructions with embedded events (with SYNC)
+    * 1. Assign embedded wait for one in-edge
+    * 2. Issue WAIT instruction for other in-edges
+    */
+    void processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync);
+
+    /* Process incoming edges for instructions with embedded events (with SYNC)
+    * But don't assign embedded events to instruction
+    * 1. Remember embedded wait id/mode for one in-edge
+    */
+    void processIncomingEdges(wave::WaveOp* waveop, events::EventId& waitEventId,
+                              events::EventWaitMode& waitEventMode);
+
+
+    void findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEventId,
+                            events::EventSetMode& setEventMode);
+
+    /* Process outgoing edges for instructions without embedded events (no SYNC)
+    * 1. Issue SET instruction for all out-edges
+    */
+    void processOutgoingEdges(wave::WaveOp* waveop);
+
+    /* Process outgoing edges for instructions with embedded events (with SYNC)
+    * 1. Assign embedded set for one out-edge
+    * 2. Issue SET instruction for other out-edges
+    */
     template <typename INST>
     bool processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
     {
-        bool instructionWritten = false;
+        bool instructionWritten = false; // for no succ edges with event, return false
         bool firstEmb = true;
 
         for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
@@ -84,12 +111,13 @@ protected:
             if (firstEmb) {
                 firstEmb = false;
                 instr.sync.set_event_id    = succWaveEdge->gEventId();
-                instr.sync.set_event_mode  = events::eventSetMode2Int(succWaveEdge->gSetEventMode());
-                m_WaveCode.writeInstruction(instr);
+                instr.sync.set_event_mode  = events::eventSetMode2Int(
+                                                succWaveEdge->gSetEventMode());
+                m_WaveCode.writeInstruction(instr); // this requires template
                 instructionWritten = true;
             } else {
                 compisa::SetInstr setEventInstr;
-                setEventInstr.event_id          = succWaveEdge->gEventId();
+                setEventInstr.event_id = succWaveEdge->gEventId();
                 m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
             }
         }

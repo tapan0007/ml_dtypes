@@ -33,6 +33,7 @@
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
+#include "wave/inc/barrierwaveop.hpp"
 
 //#include "wavecode/inc/wavecodewaveop.hpp"
 #include "wavecode/inc/wavecodesbatomload.hpp"
@@ -41,6 +42,7 @@
 #include "wavecode/inc/wavecodepool.hpp"
 #include "wavecode/inc/wavecodeactivation.hpp"
 #include "wavecode/inc/wavecoderesadd.hpp"
+#include "wavecode/inc/wavecodebarrier.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
 
@@ -57,6 +59,7 @@ WaveCode::WaveCode(nets::Network* network, const arch::Arch& arch)
     m_CodePool              = std::make_unique<WaveCodePool>(*this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(*this);
     m_CodeResAdd            = std::make_unique<WaveCodeResAdd>(*this);
+    m_CodeBarrier            = std::make_unique<WaveCodeBarrier>(*this);
 
     m_CurrentDramAddress    = DDRC0_PORT0;
 }
@@ -92,6 +95,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         return *m_CodeActivation;
     } else if (dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
         return *m_CodeResAdd;
+    } else if (dynamic_cast<const wave::BarrierWaveOp*>(waveOp)) {
+        return *m_CodeBarrier;
     } else {
         assert(false && "WaveCode: Unsupported WaveOp");
     }

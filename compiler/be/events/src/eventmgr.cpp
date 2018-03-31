@@ -21,6 +21,7 @@
 #include "events/inc/events.hpp"
 #include "events/inc/eventmgr.hpp"
 
+kcc::kcc_int32 waveopIdxBrk = 9212;
 
 namespace kcc {
 namespace events {
@@ -284,7 +285,7 @@ EventMgr::insertBarriers() {
     //const auto completedEnd(m_Completed.end());
 
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
-        if (4679 == waveopIdx) {
+        if (waveopIdxBrk == waveopIdx) {
             utils::breakFunc(waveopIdx);
         }
         auto waveop = m_Network.gWaveOp(waveopIdx);
