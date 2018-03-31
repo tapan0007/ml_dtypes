@@ -232,8 +232,6 @@ class StateBuffer:
         self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
 
     def keep_scratch_and_reset(self, begin_of_first_leg = False, end_of_first_leg = False):        
-        start = self.circbuf_ifmaps.start
-        atom_sz = self.circbuf_ifmaps.atom_sz
         # - At the completion of first fused op in the first leg of fork, move IFMAPs to Residue buffer, and scratch to IFMAPs
         # - When last operation in fusedop is not ResAdd, but next operation is ResAdd, then back-track, but first move Residue to IFMAPs, and scratch to Residue
         # - If both is true, just move scratch to Residue (IFMAPs is kept as input to next leg)
@@ -241,12 +239,17 @@ class StateBuffer:
         if (begin_of_first_leg and end_of_first_leg):
             if (self.circbuf_residue.atom_sz != self.circbuf_scratch.atom_sz):
                 self.circbuf_scratch.minibatch_multiplier *= 2
+            start = self.circbuf_scratch.start
+            atom_sz = self.circbuf_scratch.atom_sz
             self.circbuf_residue = self.circbuf_scratch
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
             # keep IFMAPs
         elif (begin_of_first_leg):
+            start = self.circbuf_ifmaps.start
+            atom_sz = self.circbuf_ifmaps.atom_sz
             if (self.circbuf_residue.atom_sz != self.circbuf_ifmaps.atom_sz):
                 self.circbuf_ifmaps.minibatch_multiplier *= 2
             self.circbuf_residue = self.circbuf_ifmaps
@@ -255,7 +258,10 @@ class StateBuffer:
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
         elif (end_of_first_leg):
+            start = self.circbuf_residue.start
+            atom_sz = self.circbuf_residue.atom_sz
             self.circbuf_ifmaps = self.circbuf_residue
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             if (self.circbuf_residue.atom_sz != self.circbuf_scratch.atom_sz):
@@ -264,13 +270,15 @@ class StateBuffer:
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
         else:
+            start = self.circbuf_ifmaps.start
+            atom_sz = self.circbuf_ifmaps.atom_sz
             self.circbuf_ifmaps = self.circbuf_scratch
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-        self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
-        self.circbuf_scratch.reset()
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
         self.circbuf_weights.reset()    # TODO: allow weights to be reused for depth-first batching
         self.circbuf_bias.reset()
 
@@ -344,8 +352,8 @@ class CircularBuffer:
         self.atom_data_sz = self.atom_sz
         self.need_spare_atoms = 0
         self.need_skip_atoms = False
-        #self.num_kickout_atoms = 4
-        self.num_kickout_atoms = self.capacity
+        self.num_kickout_atoms = 4
+        #self.num_kickout_atoms = self.capacity
         self.num_allocated_atoms = 0
         self.num_evicted_atoms = 0
         self.max_count = 0
@@ -383,7 +391,7 @@ class CircularBuffer:
             self.start = start - self.total_size
         else:            
             self.start = start
-        self.num_kickout_atoms = self.capacity
+        #self.num_kickout_atoms = self.capacity
         self.allocated = [False for x in range(self.capacity)]
         self.skipped = [False for x in range(self.capacity)]
         self.consumer_of_freed_atom = [None for x in range(self.capacity)]
@@ -456,7 +464,7 @@ class CircularBuffer:
                     self.layer_format = j.data['ofmap_format']
                     self.layer_shape = j.data['ofmap_shape']
                     break
-        elif (self.circbuf_type == "scratch"):              
+        elif (self.circbuf_type == "scratch"):
             self.layer_type = "Scratch" #op.data['layer_type']
             if (op.next == []):
                 self.layer_type = "Output"
@@ -617,7 +625,7 @@ class CircularBuffer:
         offset_in_file = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
         # for scratch buffer (output), if we have to load, then use the m_id (OFMAP fold) instead of c_id (IFMAP fold)
-        if (self.circbuf_type == "scratch"):              
+        if (self.circbuf_type == "scratch" or self.circbuf_type == "residue"):              
             fmap_fold_idx = wave_id.m_id//2
             fmap_data_len = self.ofmap_data_len
             start_at_mid_part = (wave_id.m_id%2) == 1
@@ -664,6 +672,9 @@ class CircularBuffer:
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         if (chunk_name in tpb.statebuffer.circbuf_scratch.chunk2saved_map):
             previous_waveops.append(tpb.statebuffer.circbuf_scratch.chunk2saved_map[chunk_name])
+        if (chunk_name in tpb.statebuffer.circbuf_residue.chunk2saved_map):
+            previous_waveops.append(tpb.statebuffer.circbuf_residue.chunk2saved_map[chunk_name])
+        if (args.debug > 2): print("LOAD FROM DRAM: layer %s file %s start %d length %d"%(self.layer_name, simout_file, offset_in_file, length))
         return {
               'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomFile",
@@ -710,6 +721,7 @@ class CircularBuffer:
         waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         self.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
         self.outfile2atomsz_map[self.dram_data_out_file] = self.atom_sz
+        if (args.debug > 2): print("SAVE TO DRAM: layer %s file %s start %d length %d"%(self.layer_name, simout_file, offset_in_file, length))
         return {
               'previous_waveops' : [],
               'waveop_type'      : "SBAtomSave",
@@ -875,6 +887,7 @@ class CircularBuffer:
 
     def is_in_kickout_range(self, atom_id):
         return (atom_id >= self.capacity-self.num_kickout_atoms and atom_id < self.capacity)
+        #return True
 
     def write_data_region(self, tile_id, lower_addr, upper_addr, ofmap_count):
         if (args.debug > 2): print("%s: write byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
