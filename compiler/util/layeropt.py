@@ -983,8 +983,8 @@ class CircularBuffer:
         if (args.debug > 1):
             print("STATS circular buffer type %s layer %s: item_sz %d capacity %d kickout %d atom_size %d num_allocated_atoms %d max_count %d num_evicted_atoms %d len(chunk2atom_map) %d len(chunk2spare_map) %d len(chunk2skip_map) %d total_size %d dram_data_len %d ifmap_data_len %d ofmap_data_len %d DRAM_elem_written %d DRAM_atoms_written %d DRAM_elem_read %d DRAM_atoms_read %d DRAM_atoms_read_short %d"%(self.circbuf_type, self.layer_name, self.item_sz, self.capacity, self.num_kickout_atoms, self.atom_sz, self.num_allocated_atoms, self.max_count, self.num_evicted_atoms, len(self.chunk2atom_map), len(self.chunk2spare_map), len(self.chunk2skip_map), self.total_size, self.dram_data_len, self.ifmap_data_len, self.ofmap_data_len, self.DRAM_elem_written, self.DRAM_atoms_written, self.DRAM_elem_read, self.DRAM_atoms_read, self.DRAM_atoms_read_short))
             print("start %d head pointer %d, tail pointer %d"%(self.start, self.head_pointer, self.tail_pointer))
-            print("allocated: ", end="")
-            for i in self.allocated: print(1 if i else 0, end=" ")
+            #print("allocated: ", end="")
+            #for i in self.allocated: print(1 if i else 0, end=" ")
             print("")
 
 ##################################################################################
@@ -1171,16 +1171,16 @@ class KNode:
         self.ofmap_tile_upper_addr = []
         self.ifmap_tile_lower_addr = []
         self.ifmap_tile_upper_addr = []
-        for i in range(self.Tn):
+        for z in range(self.Tn):
             self.ofmap_tile_lower_addr.append(int(np.ravel_multi_index(
-                                                (tile_id.n_id * self.Tn + i, 
+                                                (tile_id.n_id * self.Tn + z, 
                                                     tile_id.m_id//2 * PEArray.NUM_ROWS,
                                                     self.ofmap_tile_y_start, 
                                                     self.ofmap_tile_x_start),
                                             dims=self.internal_ofmap_shape) * self.item_sz))
             # NCHW
             self.ofmap_tile_upper_addr.append(int(np.ravel_multi_index(
-                                                (tile_id.n_id * self.Tn + i, 
+                                                (tile_id.n_id * self.Tn + z, 
                                                     tile_id.m_id//2 * PEArray.NUM_ROWS,
                                                     self.ofmap_tile_y_start + self.ofmap_cropped_tile_height - 1, 
                                                     self.ofmap_tile_x_start + self.ofmap_cropped_tile_width - 1),
@@ -1192,7 +1192,7 @@ class KNode:
             ifmap_tile_lower_coordx = self.ofmap_tile_x_start * self.stride_x
             ifmap_tile_lower_coordy = self.ofmap_tile_y_start * self.stride_y
             self.ifmap_tile_lower_addr.append(int(np.ravel_multi_index(
-                                                (tile_id.n_id * self.Tn + i, 
+                                                (tile_id.n_id * self.Tn + z, 
                                                     0,
                                                     ifmap_tile_lower_coordy,
                                                     ifmap_tile_lower_coordx),
@@ -1206,7 +1206,7 @@ class KNode:
                 ifmap_tile_upper_coordy = self.H-1
             # NCHW
             self.ifmap_tile_upper_addr.append(int(np.ravel_multi_index(
-                                                (tile_id.n_id * self.Tn + i, 
+                                                (tile_id.n_id * self.Tn + z, 
                                                     (self.c-1) * PEArray.NUM_ROWS,
                                                     ifmap_tile_upper_coordy,
                                                     ifmap_tile_upper_coordx),
@@ -1264,15 +1264,15 @@ class KNode:
                 #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * out_array_dim_y + row], wave_id)
                 ifmap = ifmaps[:, row]  # NCHW
                 pe_row_offset = row - pe_row_start
-                for i in range(self.Tn):
-                    batch_id = (wave_id.n_id * self.Tn) + i
+                for z in range(self.Tn):
+                    batch_id = (wave_id.n_id * self.Tn) + z
                     for x in range(self.ofmap_full_tilex_sz):
                         for y in range(self.ofmap_full_tiley_sz):
                             ifmap_tilex = (wave_id.w_id * self.ofmap_full_tilex_sz + x) * self.stride_x + s_id - self.pad_west
                             ifmap_tiley = (wave_id.h_id * self.ofmap_full_tiley_sz + y) * self.stride_y + r_id - self.pad_north
                             last_r_id = r_id
                             last_s_id = s_id
-                            ifmap_addr = i * self.ofmap_full_tile_sz + y * self.ofmap_full_tilex_sz + x
+                            ifmap_addr = z * self.ofmap_full_tile_sz + y * self.ofmap_full_tilex_sz + x
                             if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
                                 out_array[ifmap_addr, pe_row_offset] = 0
                             elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
@@ -1284,14 +1284,14 @@ class KNode:
                                 # TODO: for Tn>1, need to have multiple bounds for each batch item
                                 if (row == pe_row_start):                                
                                     # NCHW
-                                    self.ifmap_wave_upper_addr[i] = int(np.ravel_multi_index((batch_id, row, ifmap_tiley, ifmap_tilex),
+                                    self.ifmap_wave_upper_addr[z] = int(np.ravel_multi_index((batch_id, row, ifmap_tiley, ifmap_tilex),
                                                                         dims=ifmaps.shape) * ifmaps.dtype.itemsize)
-                                    self.ofmap_wave_upper_coordx[i] = x
-                                    self.ofmap_wave_upper_coordy[i] = y
-                                    if (self.ifmap_wave_lower_addr[i] < 0):
-                                        self.ifmap_wave_lower_addr[i] = self.ifmap_wave_upper_addr[i]
-                                        self.ofmap_wave_lower_coordx[i] = x
-                                        self.ofmap_wave_lower_coordy[i] = y
+                                    self.ofmap_wave_upper_coordx[z] = x
+                                    self.ofmap_wave_upper_coordy[z] = y
+                                    if (self.ifmap_wave_lower_addr[z] < 0):
+                                        self.ifmap_wave_lower_addr[z] = self.ifmap_wave_upper_addr[z]
+                                        self.ofmap_wave_lower_coordx[z] = x
+                                        self.ofmap_wave_lower_coordy[z] = y
                                         self.psum_bank_offset = (y * self.ofmap_full_tilex_sz + x)
                             #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx, self.ofmap_wave_lower_coordy, self.ofmap_wave_upper_coordx, self.ofmap_wave_upper_coordy))                                    
             s_id += 1
@@ -1731,17 +1731,17 @@ class FusedOp(list):
             elif (layer_type == 'ResAdd'):
                 tpb.pool.wait_tile_done(tile_id)
                 dram_resadd_waveops = []
-                for i in range(op_list.conv_op.Tn):
+                for z in range(op_list.conv_op.Tn):
                     dram_resadd_waveops += tpb.statebuffer.circbuf_residue.read_data_region(
                                                     wave_id,
-                                                    self.conv_op.ofmap_tile_lower_addr[i], 
-                                                    self.conv_op.ofmap_tile_upper_addr[i], 
+                                                    self.conv_op.ofmap_tile_lower_addr[z], 
+                                                    self.conv_op.ofmap_tile_upper_addr[z], 
                                                     self.conv_op.ofmap_count,
                                                     ifmaps_replicate = False,
                                                     start_at_mid_part = (wave_id.m_id%2)==1
                                                     )
                 residue_ifmaps = np.zeros((self.conv_op.ofmap_full_tile_sz * self.conv_op.Tn, PEArray.NUM_COLS), dtype=np.float32)
-                for i in range(op_list.conv_op.Tn):
+                for z in range(op_list.conv_op.Tn):
                     for j in range(PEArray.NUM_COLS):
                         M_idx = tile_id.m_id * PEArray.NUM_COLS + j
                         if (M_idx >= self.conv_op.M):
@@ -1750,11 +1750,11 @@ class FusedOp(list):
                             # NCHW
                             residue_tile_ifmap = np.zeros((self.conv_op.ofmap_full_tiley_sz, self.conv_op.ofmap_full_tilex_sz), dtype=np.float32)
                             residue_tile_ifmap[0:self.conv_op.ofmap_cropped_tile_height, 0:self.conv_op.ofmap_cropped_tile_width] = tpb.statebuffer.circbuf_residue.dram_data[
-                                    tile_id.n_id * op_list.conv_op.Tn + i, 
+                                    tile_id.n_id * op_list.conv_op.Tn + z, 
                                     M_idx, 
                                     self.conv_op.ofmap_tile_y_start : self.conv_op.ofmap_tile_y_start + self.conv_op.ofmap_cropped_tile_height, 
                                     self.conv_op.ofmap_tile_x_start : self.conv_op.ofmap_tile_x_start + self.conv_op.ofmap_cropped_tile_width]
-                            residue_ifmaps[i*self.conv_op.ofmap_full_tile_sz : (i+1)*self.conv_op.ofmap_full_tile_sz,j] = residue_tile_ifmap.flatten()
+                            residue_ifmaps[z * self.conv_op.ofmap_full_tile_sz : (z+1) * self.conv_op.ofmap_full_tile_sz,j] = residue_tile_ifmap.flatten()
                 #x1 = DBG_DUMP_PSUM_COL("PSUM col0 before ResAdd (FP32): ", psum_temp, 0)
                 #x2 = DBG_DUMP_PSUM_COL("Residue col0 before ResAdd (FP32): ", residue_ifmaps, 0)
                 psum_temp = tpb.pool.resadd(psum_temp, residue_ifmaps)
@@ -2346,9 +2346,9 @@ class TPBSched:
                         self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
                         self.pearray.trig_tile_done(tile_id)
                         # free portion of requested data (but retain data such that we can still read it)
-                        for i in range(op_list.conv_op.Tn):
-                            self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr[i], op_list.conv_op.ifmap_tile_upper_addr[i], self.waveop_stream.last_main_waveop)
-                            self.statebuffer.circbuf_weights.free_data_region(op_list.conv_op.weight_tile_lower_addr[i], op_list.conv_op.weight_tile_upper_addr[i], self.waveop_stream.last_main_waveop)
+                        for z in range(op_list.conv_op.Tn):
+                            self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr[z], op_list.conv_op.ifmap_tile_upper_addr[z], self.waveop_stream.last_main_waveop)
+                            self.statebuffer.circbuf_weights.free_data_region(op_list.conv_op.weight_tile_lower_addr[z], op_list.conv_op.weight_tile_upper_addr[z], self.waveop_stream.last_main_waveop)
                         # extract PSUM data
                         psum_bank_src = op_list.conv_op.get_psum_bank()
                         psum_temp = self.pearray.extract_psum(psum_bank_src, 0, op_list.conv_op.ofmap_full_tile_sz * op_list.conv_op.Tn)
@@ -2368,7 +2368,7 @@ class TPBSched:
                             # use c_id instead of m_id because we collapsed M to 1 to do the summation
                             output_params_op = op_list.conv_op
                             dram_output_waveops = []                            
-                            for i in range(op_list.conv_op.Tn):
+                            for z in range(op_list.conv_op.Tn):
                                 for j in range(PEArray.NUM_COLS):
                                     M_idx = wave_id.c_id * PEArray.NUM_COLS + j
                                     if (M_idx >= output_params_op.C):
@@ -2379,7 +2379,7 @@ class TPBSched:
                                         result_tile = result_tile_tmp.reshape((output_params_op.ofmap_full_tiley_sz, output_params_op.ofmap_full_tilex_sz))
                                         #DBG_DUMP_ARRAY("M_idx %d Intermediate result (FP32): "%M_idx, result_tile)
                                         # NCHW
-                                        result[n_id * output_params_op.Tn + i, 
+                                        result[n_id * output_params_op.Tn + z, 
                                                 M_idx, 
                                                 output_params_op.ofmap_tile_y_start : output_params_op.ofmap_tile_y_start + output_params_op.ofmap_cropped_tile_height, 
                                                 output_params_op.ofmap_tile_x_start : output_params_op.ofmap_tile_x_start + output_params_op.ofmap_cropped_tile_width]\
@@ -2387,8 +2387,8 @@ class TPBSched:
                                 # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                                 dram_output_waveops += self.statebuffer.circbuf_scratch.write_data_region(
                                                             tile_id, 
-                                                            output_params_op.ofmap_tile_lower_addr[i], 
-                                                            output_params_op.ofmap_tile_upper_addr[i], 
+                                                            output_params_op.ofmap_tile_lower_addr[z], 
+                                                            output_params_op.ofmap_tile_upper_addr[z], 
                                                             output_params_op.ifmap_count)
                         # The scale_add destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "ScaleAdd"):
@@ -2454,31 +2454,31 @@ class TPBSched:
                         #x = DBG_DUMP_PSUM_COL("PSUM before pool: ", psum_fake_extract, 0)
                         psum_temp = self.pool.pool(pool_op.data['layer_type'], psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
                         #x = DBG_DUMP_PSUM_COL("PSUM after pool: ", psum_temp, 0)
-                        for i in range(pool_op.Tn):
+                        for z in range(pool_op.Tn):
                             dram_ifmaps_waveops = tpb.statebuffer.circbuf_ifmaps.read_data_region(
                                                         wave_id, 
-                                                        pool_op.ifmap_wave_lower_addr[i], 
-                                                        pool_op.ifmap_wave_upper_addr[i],
+                                                        pool_op.ifmap_wave_lower_addr[z], 
+                                                        pool_op.ifmap_wave_upper_addr[z],
                                                         pool_op.ifmap_count)
                         self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops)
-                        for i in range(pool_op.Tn):
-                            tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr[i], pool_op.ifmap_wave_upper_addr[i], self.waveop_stream.last_main_waveop)
+                        for z in range(pool_op.Tn):
+                            tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr[z], pool_op.ifmap_wave_upper_addr[z], self.waveop_stream.last_main_waveop)
                             for j in range(PEArray.NUM_COLS):
                                 M_idx = wave_id.m_id * PEArray.NUM_COLS + j
                                 if (M_idx >= pool_op.M):
                                     break
                                 else:
                                     # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
-                                    result_tile_tmp = (psum_temp[i*pool_op.ofmap_full_tile_sz : (i+1)*pool_op.ofmap_full_tile_sz, j])
+                                    result_tile_tmp = (psum_temp[z * pool_op.ofmap_full_tile_sz : (z+1) * pool_op.ofmap_full_tile_sz, j])
                                     result_tile = result_tile_tmp.reshape((pool_op.ofmap_full_tiley_sz, pool_op.ofmap_full_tilex_sz))
                                     # NCHW
-                                    result[n_id * pool_op.Tn + i, 
+                                    result[n_id * pool_op.Tn + z, 
                                             M_idx, 
                                             pool_op.ofmap_tile_y_start : pool_op.ofmap_tile_y_start + pool_op.ofmap_cropped_tile_height, 
                                             pool_op.ofmap_tile_x_start : pool_op.ofmap_tile_x_start + pool_op.ofmap_cropped_tile_width]\
                                         = result_tile[0:pool_op.ofmap_cropped_tile_height, 0:pool_op.ofmap_cropped_tile_width]
                             # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
-                            dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, pool_op.ofmap_tile_lower_addr[i], pool_op.ofmap_tile_upper_addr[i], pool_op.ofmap_count)
+                            dram_output_waveops = self.statebuffer.circbuf_scratch.write_data_region(tile_id, pool_op.ofmap_tile_lower_addr[z], pool_op.ofmap_tile_upper_addr[z], pool_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool" 
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
@@ -2572,9 +2572,9 @@ class TPBSched:
                         self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
                         self.pearray.trig_tile_done(tile_id)
                         # free portion of requested data (but retain data such that we can still read it)
-                        for i in range(op_list.conv_op.Tn):
-                            self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr[i], op_list.conv_op.ifmap_tile_upper_addr[i], self.waveop_stream.last_main_waveop)
                         self.statebuffer.circbuf_weights.free_data_region(op_list.conv_op.weight_tile_lower_addr, op_list.conv_op.weight_tile_upper_addr, self.waveop_stream.last_main_waveop)
+                        for z in range(op_list.conv_op.Tn):
+                            self.statebuffer.circbuf_ifmaps.free_data_region(op_list.conv_op.ifmap_tile_lower_addr[z], op_list.conv_op.ifmap_tile_upper_addr[z], self.waveop_stream.last_main_waveop)
                         # extract PSUM data
                         psum_bank_src = op_list.conv_op.get_psum_bank()
                         psum_temp = self.pearray.extract_psum(psum_bank_src, 0, op_list.conv_op.ofmap_full_tile_sz * op_list.conv_op.Tn)
@@ -2587,18 +2587,18 @@ class TPBSched:
                         if (op_list.has_pool):
                             output_params_op = op_list.pool_op
                         dram_output_waveops = []                            
-                        for i in range(op_list.conv_op.Tn):
+                        for z in range(op_list.conv_op.Tn):
                             for j in range(PEArray.NUM_COLS):
                                 M_idx = wave_id.m_id * PEArray.NUM_COLS + j
                                 if (M_idx >= output_params_op.M):
                                     break
                                 else:
                                     # For now, multiply zeros, and at the ofmap, extract tile with zeros, then clip
-                                    result_tile_tmp = (psum_temp[i*output_params_op.ofmap_full_tile_sz : (i+1)*output_params_op.ofmap_full_tile_sz, j])
+                                    result_tile_tmp = (psum_temp[z * output_params_op.ofmap_full_tile_sz : (z+1) * output_params_op.ofmap_full_tile_sz, j])
                                     result_tile = result_tile_tmp.reshape((output_params_op.ofmap_full_tiley_sz, output_params_op.ofmap_full_tilex_sz))
                                     #DBG_DUMP_ARRAY("Intermediate result: ", result_tile)
                                     # NCHW
-                                    result[n_id * output_params_op.Tn + i, 
+                                    result[n_id * output_params_op.Tn + z, 
                                             M_idx, 
                                             output_params_op.ofmap_tile_y_start : output_params_op.ofmap_tile_y_start + output_params_op.ofmap_cropped_tile_height, 
                                             output_params_op.ofmap_tile_x_start : output_params_op.ofmap_tile_x_start + output_params_op.ofmap_cropped_tile_width]\
@@ -2606,8 +2606,8 @@ class TPBSched:
                             # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                             dram_output_waveops += self.statebuffer.circbuf_scratch.write_data_region(
                                                         tile_id, 
-                                                        output_params_op.ofmap_tile_lower_addr[i], 
-                                                        output_params_op.ofmap_tile_upper_addr[i], 
+                                                        output_params_op.ofmap_tile_lower_addr[z], 
+                                                        output_params_op.ofmap_tile_upper_addr[z], 
                                                         output_params_op.ofmap_count)
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"
