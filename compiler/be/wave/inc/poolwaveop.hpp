@@ -44,6 +44,9 @@ public:
     kcc_int64 gDstSbAddress () const {
         return m_DstSbAddress;
     }
+    bool gDstStartAtMidPart () const {
+        return m_DstStartAtMidPart;
+    }
     kcc_int32 gDstXNum () const {
         return m_DstXNum;
     }
@@ -88,6 +91,9 @@ public:
     }
     kcc_int64 gSrcSbAddress () const {
         return m_SrcSbAddress;
+    }
+    bool gSrcStartAtMidPart () const {
+        return m_SrcStartAtMidPart;
     }
     kcc_int32 gSrcWNum () const {
         return m_SrcWNum;
@@ -141,6 +147,7 @@ public:
 
 private:
     kcc_int64                   m_DstSbAddress          = -1;
+    bool                        m_DstStartAtMidPart     = false; 
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
     kcc_int32                   m_DstYNum               = -1;
@@ -160,6 +167,7 @@ private:
     kcc_int32                   m_SrcPsumBankId         = -1;
     kcc_int32                   m_SrcPsumBankOffset     = -1;
     kcc_int64                   m_SrcSbAddress          = -1;
+    bool                        m_SrcStartAtMidPart     = false;
     kcc_int32                   m_SrcWNum               = -1;
     kcc_int32                   m_SrcWStep              = -1;
     kcc_int32                   m_SrcXNum               = -1;
@@ -184,6 +192,7 @@ public:
     bool verify() const;
 public:
     kcc_int64                   m_DstSbAddress          = -1;
+    bool                        m_DstStartAtMidPart     = false;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
     kcc_int32                   m_DstYNum               = -1;
@@ -203,6 +212,7 @@ public:
     kcc_int32                   m_SrcPsumBankId;
     kcc_int32                   m_SrcPsumBankOffset;
     kcc_int64                   m_SrcSbAddress;
+    bool                        m_SrcStartAtMidPart;
     kcc_int32                   m_SrcWNum;
     kcc_int32                   m_SrcWStep;
     kcc_int32                   m_SrcXNum;

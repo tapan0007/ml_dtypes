@@ -35,6 +35,10 @@ public:
         return m_SbAddress;
     }
 
+    bool gStartAtMidPart() const {
+        return m_StartAtMidPart;
+    }
+
     kcc_int32 gBatchFoldIdx () const {
         return m_BatchFoldIdx;
     }
@@ -80,6 +84,7 @@ protected:
 
 private:
     kcc_int64       m_SbAddress         = -1;
+    bool            m_StartAtMidPart    = false;
     kcc_int32       m_BatchFoldIdx      = -1;
     const utils::DataType& m_DataType;
     kcc_int64       m_Length            = -1;
@@ -98,6 +103,7 @@ public:
     bool verify() const;
 public:
     kcc_int64       m_SbAddress         = -1;
+    bool            m_StartAtMidPart    = false;
     kcc_int32       m_BatchFoldIdx      = -1;
     DataTypeId      m_DataType          = DataTypeId::None;
     kcc_int64       m_Length            = -1;
