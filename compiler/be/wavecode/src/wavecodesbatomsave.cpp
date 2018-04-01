@@ -59,9 +59,9 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     statebufToDramInstr.sync.wait_event_id      = 0;
     statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
 
-    events::EventId setEventId          = events::EventId_Invalid();
+    events::EventId setEventId          = 0; // events::EventId_Invalid();
     events::EventSetMode setEventMode   = events::EventSetMode::NoEvent;
-    events::EventId waitEventId         = events::EventId_Invalid();
+    events::EventId waitEventId         = 0; // events::EventId_Invalid();
     events::EventWaitMode waitEventMode = events::EventWaitMode::NoEvent;
 
     //************************************************************************
