@@ -27,6 +27,15 @@ Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
 }
 
 
+bool qEventSetModeValid(kcc_int32 mode)
+{
+    return NO_WAIT_EVENT==mode || WAIT_EVENT_SET==mode || WAIT_EVENT_SET_THEN_CLEAR==mode;
+}
+
+bool qEventWaitModeValid(kcc_int32 mode)
+{
+    return NO_SET_EVENT==mode || SET_EVENT_ON_END_RD_SRC==mode || SET_EVENT_ON_END_WR_DST==mode;
+}
 
 
 /****************************************************************

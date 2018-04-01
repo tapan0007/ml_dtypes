@@ -46,8 +46,8 @@ enum {
  ****************************************************************/
 enum class EventWaitMode {
     DontWait        = NO_WAIT_EVENT,
-    WaitOnly         = WAIT_EVENT_SET,
-    WaitThenClear    = WAIT_EVENT_SET_THEN_CLEAR,
+    WaitOnly        = WAIT_EVENT_SET,
+    WaitThenClear   = WAIT_EVENT_SET_THEN_CLEAR,
 
     Invalid         = WAIT_EVENT_INVALID
 };
@@ -59,6 +59,9 @@ enum class EventSetMode {
 
     Invalid         = SET_EVENT_INVALID
 };
+
+bool qEventWaitModeValid(kcc_int32 mode);
+bool qEventSetModeValid(kcc_int32 mode);
 
 
 

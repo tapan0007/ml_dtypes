@@ -23,6 +23,7 @@
 
 
 #include "utils/inc/asserter.hpp"
+#include "events/inc/events.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "nets/inc/network.hpp"
@@ -393,12 +394,13 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
 void
 WaveCode::checkForNoSync(const TPB_CMD_SYNC& sync) const
 {
-    Assert(events::SET_EVENT_INVALID != sync.set_event_mode, "Invalid set event mode");
-    Assert(events::WAIT_EVENT_INVALID != sync.wait_event_mode, "Invalid wait event mode");
+    Assert(events::qEventSetModeValid(sync.set_event_mode), "Invalid set event mode");
+    Assert(events::qEventWaitModeValid(sync.wait_event_mode), "Invalid wait event mode");
 
     if (qParallelStreams()) {
         return;
     }
+
     Assert(NO_SET_EVENT == sync.set_event_mode,
         "Code generation: set event mode should be NONE in serial execution");
 
