@@ -9,6 +9,7 @@
 
 
 #include "compisa/inc/compisaset.hpp"
+#include "compisa/inc/compisaclear.hpp"
 
 
 
@@ -123,6 +124,8 @@ protected:
         }
         return instructionWritten;
     }
+
+    void writeWaitOrWaitClearInstr(const wave::WaveEdge* edge, EngineId engineId);
 
 
 protected:

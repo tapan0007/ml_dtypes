@@ -1,3 +1,5 @@
+#include "utils/inc/asserter.hpp"
+
 #include "compisa/inc/compisawait.hpp"
 
 
@@ -21,6 +23,33 @@ WaveCodeWaveOp::qParallelStreams() const
 }
 
 
+void
+WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId engineId)
+{
+    const events::EventWaitMode waitEventMode = waveEdge->gWaitEventMode();
+    switch (waitEventMode) {
+    case events::EventWaitMode::WaitOnly: {
+        compisa::WaitInstr waitInstr;
+        waitInstr.event_id  = waveEdge->gEventId();
+        m_WaveCode.writeInstruction(waitInstr, engineId);
+        break;
+    }
+    case events::EventWaitMode::WaitThenClear: {
+        compisa::WaitInstr waitInstr;
+        waitInstr.event_id  = waveEdge->gEventId();
+        m_WaveCode.writeInstruction(waitInstr, engineId);
+
+        compisa::ClearInstr clearInstr;
+        clearInstr.event_id  = waveEdge->gEventId();
+        m_WaveCode.writeInstruction(clearInstr, engineId);
+        break;
+    }
+    default:
+        Assert(false, "Cannot wait on edge with DontWait mode");
+        break;
+    }
+
+}
 
 
 /* Process incoming edges for instructions without embedded events (no SYNC)
@@ -35,9 +64,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop)
         if (! prevWaveEdge->qNeedToImplementWait()) {
             continue;
         }
-        compisa::WaitInstr waitInstr;
-        waitInstr.event_id  = prevWaveEdge->gEventId();
-        m_WaveCode.writeInstruction(waitInstr, engineId);
+        writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
     }
 }
 
@@ -63,9 +90,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
             sync.wait_event_id      = prevWaveEdge->gEventId();
             sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
         } else {
-            compisa::WaitInstr waitInstr;
-            waitInstr.event_id  = prevWaveEdge->gEventId();
-            m_WaveCode.writeInstruction(waitInstr, engineId);
+            writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
         }
     }
 }
@@ -93,9 +118,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, events::EventId& wait
             waitEventId = prevWaveEdge->gEventId();
             waitEventMode = prevWaveEdge->gWaitEventMode();
         } else {
-            compisa::WaitInstr waitInstr;
-            waitInstr.event_id  = prevWaveEdge->gEventId();
-            m_WaveCode.writeInstruction(waitInstr, engineId);
+            writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
         }
     }
 }

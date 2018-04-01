@@ -14,6 +14,7 @@
 
 #include "compisa/inc/compisaset.hpp"
 #include "compisa/inc/compisawait.hpp"
+#include "compisa/inc/compisaclear.hpp"
 #include "compisa/inc/compisawrite.hpp"
 
 #include "compisa/inc/compisasimmemcpy.hpp"
@@ -288,6 +289,33 @@ void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& inst
 }
 
 
+template<>
+void WaveCode::writeInstruction<compisa::ClearInstr>(const compisa::ClearInstr& instruction, EngineId engId)
+{
+    Assert(qParallelStreams(), "Cannot generate SET event instruction in serial mode");
+
+    switch (engId) {
+    case EngineId::Pooling:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+        break;
+    case EngineId::PeArray:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
+        break;
+    case EngineId::Activation:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
+        break;
+    case EngineId::StreamProc:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+        break;
+    case EngineId::DmaEng:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
+        break;
+    default:
+        Assert(false, "Wrong EngineId ", static_cast<int>(engId));
+    }
+}
+
+
 
 
 
@@ -316,9 +344,9 @@ WaveCode::saveAllNpyFiles ()
         }
         compisa::SimRdNpyInstr dramToNpyInstr;
         dramToNpyInstr.sync.wait_event_id      = 0;
-        dramToNpyInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+        dramToNpyInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::DontWait);
         dramToNpyInstr.sync.set_event_id      = 0;
-        dramToNpyInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::NoEvent);
+        dramToNpyInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::DontSet);
 
         strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);

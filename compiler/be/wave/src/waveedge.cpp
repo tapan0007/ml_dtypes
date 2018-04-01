@@ -44,8 +44,11 @@ WaveEdge::qNeedToWaitFor() const
     if (prevWaveop->gEngineId() != succWaveop->gEngineId()) {
         return true;
     }
-    // when two waveops execute on the same engine, no need for sync
-    // except for DMA. If Load depends on a Save, Load must wait on Save
+    // when two waveops execute on the same engine, no need for sync except for DMA.
+    // If Load depends on SB being freed by a Save, Load must wait on Save.
+    // If Save depends on a Load writing correct data, Save must wait on Load.
+    // Load->Save probably won't happen because there is no point saving data in DRAM from
+    // SB that has just been loaded to SB from DRAM.
     if (EngineId::DmaEng == prevWaveop->gEngineId()) {
         if (prevWaveop->qSbAtomLoadWaveOp() == succWaveop->qSbAtomSaveWaveOp()) {
             return true;

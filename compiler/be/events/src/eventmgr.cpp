@@ -122,7 +122,7 @@ EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
         const auto evtId = (*m_Available.begin());
 
         mvFromAvailableToInFlight(evtId);
-        succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::SetThenClear);
+        succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::WaitThenClear);
     }
 }
 
@@ -215,7 +215,7 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
                     ", but event id is invalid");
         }
         //const EventId eventId = getLocalEventId(prevWaveEdge);
-        //prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
+        //prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::WaitThenClear);
 
     }
 }
@@ -248,7 +248,7 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
                         ", but event id is invalid");
             }
             //const EventId eventId = getLocalEventId(prevWaveEdge);
-            //prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::SetThenClear);
+            //prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::WaitThenClear);
         }
     }
 }
@@ -294,7 +294,7 @@ EventMgr::insertBarriers() {
                 immedPrevWaveop->gName(), " and waveop ", waveop->gName());
             std::vector<wave::WaveOp*> succWaveops;
             findWaveopsOnOtherEngines(waveopIdx, barrierEngId, false, succWaveops);
-            Assert(succWaveops.size() < NumberRealEngines, "Collected too many prev waveops for barrier between waveop ",
+            Assert(succWaveops.size() < NumberRealEngines, "Collected too many succ waveops for barrier between waveop ",
                 immedPrevWaveop->gName(), " and waveop ", waveop->gName());
 
             std::stringstream barrierWaveopName;
@@ -331,7 +331,7 @@ EventMgr::assignEventsToBarrier(wave::BarrierWaveOp* barrierWaveop)
                 static_cast<int>(barrierWaveop->gEngineId()),
                 " has a predecessor on the same engine ", fromWaveop->gName());
         const EventId evtId = gEventIdToBarrier(fromWaveop->gEngineId());
-        prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::SetThenClear);
+        prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::WaitThenClear);
     }
 
     for (auto succWaveEdge : barrierWaveop->gSuccWaveEdges()) {
@@ -343,7 +343,7 @@ EventMgr::assignEventsToBarrier(wave::BarrierWaveOp* barrierWaveop)
                 static_cast<int>(barrierWaveop->gEngineId()),
                 " has a successor on the same engine ", toWaveop->gName());
         const EventId evtId = gEventIdFromBarrier(toWaveop->gEngineId());
-        succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::SetThenClear);
+        succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::WaitThenClear);
     }
 }
 

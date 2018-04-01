@@ -63,9 +63,9 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
         compisa::SimWrNpyInstr npyToDramInstr;
         npyToDramInstr.sync.wait_event_id      = 0;
-        npyToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+        npyToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::DontWait);
         npyToDramInstr.sync.set_event_id      = 0;
-        npyToDramInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::NoEvent);
+        npyToDramInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::DontSet);
 
         const kcc_int64 numPySize = sbAtomLoadWaveOp->gLoadDataSizeInBytes();
         strcpy(npyToDramInstr.src_fname, sbAtomLoadWaveOp->gRefFileName().c_str());
@@ -85,14 +85,14 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     //************************************************************************
     compisa::SimMemCpyInstr dramToStateBufInstr;
     dramToStateBufInstr.sync.wait_event_id      = 0;
-    dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::DontWait);
     dramToStateBufInstr.sync.set_event_id       = 0;
-    dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
+    dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::DontSet);
 
     events::EventId setEventId = 0; // events::EventId_Invalid();
-    events::EventSetMode setEventMode = events::EventSetMode::NoEvent;
+    events::EventSetMode setEventMode = events::EventSetMode::DontSet;
     events::EventId waitEventId = 0; // events::EventId_Invalid();
-    events::EventWaitMode waitEventMode = events::EventWaitMode::NoEvent;
+    events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
@@ -117,9 +117,9 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
         if (qParallelStreams()) {
             dramToStateBufInstr.sync.wait_event_id      = 0;
-            dramToStateBufInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+            dramToStateBufInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::DontWait);
             dramToStateBufInstr.sync.set_event_id       = 0;
-            dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+            dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::DontSet);
 
             if (0 == partIdx) { // only the first reading waits for predecessors
                 dramToStateBufInstr.sync.wait_event_id      = waitEventId;

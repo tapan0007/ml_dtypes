@@ -12,9 +12,9 @@ namespace events {
  *                                                              *
  ****************************************************************/
 Channel::Channel()
-    : m_SetEventMode(EventSetMode::NoEvent)
+    : m_SetEventMode(EventSetMode::DontSet)
     , m_EventId(EventId_Invalid())
-    , m_WaitEventMode(EventWaitMode::NoEvent)
+    , m_WaitEventMode(EventWaitMode::DontWait)
 { }
 
 
@@ -36,13 +36,13 @@ int
 eventWaitMode2Int(EventWaitMode mode)
 {
     switch(mode) {
-    case EventWaitMode::NoEvent:
+    case EventWaitMode::DontWait:
         return NO_WAIT_EVENT;
         break;
-    case EventWaitMode::SetOnly:
+    case EventWaitMode::WaitOnly:
         return WAIT_EVENT_SET;
         break;
-    case EventWaitMode::SetThenClear:
+    case EventWaitMode::WaitThenClear:
         return WAIT_EVENT_SET_THEN_CLEAR;
         break;
     case EventWaitMode::Invalid:
@@ -62,7 +62,7 @@ int
 eventSetMode2Int(EventSetMode mode)
 {
     switch(mode) {
-    case EventSetMode::NoEvent:
+    case EventSetMode::DontSet:
         return NO_SET_EVENT;
         break;
     case EventSetMode::OnEndRdSrc:
