@@ -36,6 +36,7 @@ public:
 private:
     void generateLoadWeights(wave::MatMulWaveOp* matmulWaveOp);
     void generateMatMul(wave::MatMulWaveOp* matmulWaveOp);
+    bool qLoadWeightsWaitsFor(const wave::WaveEdge* prevEdge) const;
 };
 
 
