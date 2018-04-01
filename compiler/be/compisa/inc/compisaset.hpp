@@ -8,7 +8,7 @@
 #include "shared/inc/tpb_isa_set.hpp"
 
 
-#include "utils/inc/consts.hpp"
+#include "utils/inc/types.hpp"
 
 
 namespace kcc {

@@ -15,7 +15,9 @@ MODS :=  \
 	events		\
 	wave		\
 	arch		\
-	utils
+	utils		\
+	compisa
+
 
 SRCS := compiler
 
