@@ -120,9 +120,9 @@ EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
         // Available --> InFlight
         Assert(!m_Available.empty(), "Trying to get event from empty available set of events");
         const auto evtId = (*m_Available.begin());
-        m_Available.erase(evtId);
+
+        mvFromAvailableToInFlight(evtId);
         succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::SetThenClear);
-        m_InFlight.insert(evtId);
     }
 }
 
@@ -130,9 +130,6 @@ EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
 void
 EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
 {
-    const auto inflightEnd(m_InFlight.end());
-    const auto completedEnd(m_Completed.end());
-
     // For each prev edge move evt id from in-flight to completed.
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
         if (! prevWaveEdge->qNeedToWaitFor()) {
@@ -144,12 +141,7 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
                 " on edge from barrier to waveop ", waveop->gName());
             continue;
         }
-        // InFlight --> Completed
-        Assert(m_InFlight.find(evtId) != inflightEnd, "Event from prev edge not in the in-flight set");
-        m_InFlight.erase(evtId);
-        Assert(m_Completed.find(evtId) == completedEnd, "Event from prev edge already in the completed set");
-
-        m_Completed.insert(evtId);
+        mvFromInFlightToCompleted(evtId);
     }
 }
 
@@ -428,6 +420,34 @@ EventMgr::processWaveops()
 
 /***************************************************************
 ***************************************************************/
+void
+EventMgr::mvEventFromSetToSet(EventId evtId, EventSet& fromSet, EventSet& toSet,
+        const char* fromStr, const char* toStr)
+{
+    Assert(qEventRegular(evtId), "Cannot move non-regular event id from ", fromStr, " to ", toStr);
+    Assert(fromSet.find(evtId) != fromSet.end(), "Event from prev edge not in ", fromStr);
+    Assert(toSet.find(evtId) == toSet.end(), "Event from prev edge already in the ", toStr, " set");
+    fromSet.erase(evtId);
+    toSet.insert(evtId);
+}
+
+void
+EventMgr::mvFromInFlightToCompleted(EventId evtId)
+{
+    mvEventFromSetToSet(evtId, m_InFlight, m_Completed, "InFlight", "Completed");
+}
+
+void
+EventMgr::mvFromAvailableToInFlight(EventId evtId)
+{
+    mvEventFromSetToSet(evtId, m_Available, m_InFlight, "Available", "InFlight");
+}
+
+void
+EventMgr::mvFromCompletedToAvailable(EventId evtId)
+{
+    mvEventFromSetToSet(evtId, m_Completed, m_Available, "Completed", "Available");
+}
 
 
 

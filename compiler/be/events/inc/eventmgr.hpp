@@ -29,6 +29,8 @@ public:
     void processWaveops();
 
 private:
+    using EventSet = std::set<EventId>;
+private:
     void processMatMult(wave::MatMulWaveOp* matmulWaveop);
     void processWaveop(wave::WaveOp* waveop);
 
@@ -67,14 +69,25 @@ private:
     static bool qBarrierEvent(EventId evtId) {
         return 0 <= evtId && evtId < BarrierEvent_FirstNonBarrierEvent;
     }
+    static bool qEventRegular(EventId eventId) {
+        return BarrierEvent_FirstNonBarrierEvent <= eventId && eventId < EventId_Invalid();
+    }
+
+    void mvFromInFlightToCompleted(EventId eventId);
+    void mvFromAvailableToInFlight(EventId eventId);
+    void mvFromCompletedToAvailable(EventId eventId);
+    void mvEventFromSetToSet(EventId evtId, EventSet& from, EventSet& to,
+            const char* fromStr, const char* toStr);
+
 
 private:
     nets::Network& m_Network;
     EventId m_EventId;
 
-    std::set<EventId> m_Available;
-    std::set<EventId> m_InFlight;
-    std::set<EventId> m_Completed;
+
+    EventSet m_Available;
+    EventSet m_InFlight;
+    EventSet m_Completed;
 };
 
 }}
