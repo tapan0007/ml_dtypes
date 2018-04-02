@@ -224,6 +224,7 @@ class CircularBuffer:
         self.parent = parent
         self.atom_sz = atom_sz
         self.capacity = capacity
+        self.total_size = self.capacity*self.atom_sz
         self.start = start
         self.circbuf_type = circbuf_type
         self.reset()
@@ -467,7 +468,7 @@ class CircularBuffer:
             else:
                 self.atom_data_sz = self.atom_sz
         # make atom_sz same as atom_data_sz
-        self.capacity = (self.capacity*self.atom_sz)//self.atom_data_sz
+        self.capacity = self.total_size//self.atom_data_sz
         self.allocated = [False for x in range(self.capacity)]
         self.skipped = [False for x in range(self.capacity)]
         self.consumer_of_freed_atom = [None for x in range(self.capacity)]
@@ -774,7 +775,22 @@ class CircularBuffer:
         self.count += 1
         if (self.count > self.max_count):
             self.max_count = self.count
+        #self.print_allocated()                    
         return self.current_atom_id            
+
+    def print_allocated(self):
+        if (args.debug > 2):
+            print("%s: head %d tail %d"%(self.circbuf_type, self.head_pointer, self.tail_pointer))
+            print("%s: "%self.circbuf_type)
+            for i in self.allocated:
+                print("%d"%i, end="")
+            print("")
+
+    def next_pointer(self, pointer):
+        next_ptr = pointer + 1
+        if (next_ptr == self.capacity):
+            next_ptr = 0
+        return next_ptr
 
     def free_atom(self, atom_id):   
         if (self.allocated[atom_id]):
@@ -785,10 +801,9 @@ class CircularBuffer:
         #    print ("ERROR %s: cannot free atom ID %d since it is unallocated for layer %s!"%(self.circbuf_type, atom_id, self.layer_name))
         #    return -1
         # garbage collection: advance head pointer until it sees allocated atom
-        if (not self.allocated[self.head_pointer]):
-            self.head_pointer += 1            
-            if (self.head_pointer == self.capacity):
-                self.head_pointer = 0
+        while (not self.allocated[self.head_pointer] and self.next_pointer(self.head_pointer) != self.tail_pointer):
+            self.head_pointer = self.next_pointer(self.head_pointer)
+        #self.print_allocated()                    
 
     def print_stats(self):
         print("STATS circular buffer type %s layer %s: capacity %d atom size %d atom data size %d atom count %d max count %d eviction count %d DRAM file data length %d IFMAP data length %d"%(self.circbuf_type, self.layer_name, self.capacity, self.atom_sz, self.atom_data_sz, self.count, self.max_count, self.eviction_count, self.dram_data_len, self.ifmap_data_len))
