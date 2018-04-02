@@ -12,6 +12,7 @@
 
 
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/types.hpp"
 #include "utils/inc/consts.hpp"
 #include "utils/inc/datatype.hpp"
@@ -136,14 +137,30 @@ public:
     }
 
 
+    bool qHasInBarrier() const {
+        return m_HasInBarrier;
+    }
+    void setHasInBarrier() {
+        Assert(! m_HasInBarrier, "Setting in-barrier on waveop that already has in-barrier");
+        m_HasInBarrier = true;
+    }
+
+    bool qHasOutBarrier() const {
+        return m_HasOutBarrier;
+    }
+    void setHasOutBarrier() {
+        Assert(! m_HasOutBarrier, "Setting out-barrier on waveop that already has out-barrier");
+        m_HasOutBarrier = true;
+    }
 
 protected:
-    std::string             m_Name          = "";
+    std::string             m_Name              = "";
     std::vector<WaveEdge*>  m_PrevWaveEdges;
     std::vector<WaveEdge*>  m_SuccWaveEdges;
     FmapDesc                m_OfmapDesc;
-    kcc_int32               m_Order = -1;
-
+    kcc_int32               m_Order             = -1;
+    bool                    m_HasInBarrier  = false;
+    bool                    m_HasOutBarrier = false;
 
 private:
     layers::Layer*          m_Layer         = nullptr;

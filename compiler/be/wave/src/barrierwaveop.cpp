@@ -36,6 +36,7 @@ BarrierWaveOp::BarrierWaveOp(const WaveOp::Params& params,
         auto edge = new WaveEdge(this, succWaveOp);
         this->m_SuccWaveEdges.push_back(edge);
         succWaveOp->addPrevWaveEdge(edge);
+        succWaveOp->setHasInBarrier();
     }
 }
 

@@ -79,6 +79,7 @@ private:
     void mvEventFromSetToSet(EventId evtId, EventSet& from, EventSet& to,
             const char* fromStr, const char* toStr);
 
+    void verifyWaveop(const wave::WaveOp* waveop) const;
 
 private:
     nets::Network& m_Network;

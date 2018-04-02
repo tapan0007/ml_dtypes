@@ -31,6 +31,7 @@ class LoopCmp {
 public:
     virtual bool qKeepGoing(kcc_int32 idx) const = 0;
     virtual kcc_int32 change(kcc_int32 idx) const = 0;
+    virtual bool qReachedAnotherBarrier(const wave::WaveOp* waveop) const = 0;
 };
 
 class LoopCmpBack : public LoopCmp {
@@ -40,6 +41,9 @@ public:
     }
     kcc_int32 change(kcc_int32 idx) const {
         return idx - 1;
+    }
+    bool qReachedAnotherBarrier(const wave::WaveOp* waveop) const {
+        return waveop->qHasOutBarrier();
     }
 };
 
@@ -54,6 +58,9 @@ public:
     }
     kcc_int32 change(kcc_int32 idx) const {
         return idx + 1;
+    }
+    bool qReachedAnotherBarrier(const wave::WaveOp* waveop) const {
+        return waveop->qHasInBarrier();
     }
 private:
     const kcc_int32 m_N;
@@ -173,7 +180,7 @@ EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
              otherIdx = cmp.change(otherIdx))
         {
             const auto otherWaveop = m_Network.gWaveOp(otherIdx);
-            if (otherWaveop->qBarrierWaveOp()) {
+            if (cmp.qReachedAnotherBarrier(otherWaveop)) {
                 break; // do not go beyound another barrier waveop
             }
             const EngineId otherEngId = otherWaveop->gEngineId();
@@ -276,14 +283,16 @@ EventMgr::insertBarriers() {
     //const auto inflightEnd(m_InFlight.end());
     //const auto completedEnd(m_Completed.end());
 
+    kcc_int32 barrierIdx = 0;
+
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
         if (waveopIdxBrk == waveopIdx) {
             utils::breakFunc(waveopIdx);
         }
-        auto waveop = m_Network.gWaveOp(waveopIdx);
-        auto immedPrevWaveop = m_Network.gWaveOp(waveopIdx-1);
+        const auto waveop = m_Network.gWaveOp(waveopIdx);
         kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
         if (numSuccEvents > m_Available.size()) {
+            const auto immedPrevWaveop = m_Network.gWaveOp(waveopIdx-1);
             // if waveopIdx is included too many events in session,
             // so need barrier between waveop[waveopIdx-1] and waveop[waveopIdx]
             const EngineId barrierEngId = gBarrierEngineId(immedPrevWaveop, waveop);
@@ -292,13 +301,14 @@ EventMgr::insertBarriers() {
             findWaveopsOnOtherEngines(waveopIdx-1, barrierEngId, true, prevWaveops);
             Assert(prevWaveops.size() < NumberRealEngines, "Collected too many prev waveops for barrier between waveop ",
                 immedPrevWaveop->gName(), " and waveop ", waveop->gName());
+
             std::vector<wave::WaveOp*> succWaveops;
             findWaveopsOnOtherEngines(waveopIdx, barrierEngId, false, succWaveops);
             Assert(succWaveops.size() < NumberRealEngines, "Collected too many succ waveops for barrier between waveop ",
                 immedPrevWaveop->gName(), " and waveop ", waveop->gName());
 
             std::stringstream barrierWaveopName;
-            barrierWaveopName << "barrier_" << waveopIdx-1 << "_" << waveopIdx;
+            barrierWaveopName << "barrier_" << barrierIdx << "_" << waveopIdx-1 << "_" << waveopIdx;
             wave::WaveOp::Params params;
             params.m_WaveOpName    = barrierWaveopName.str();
 
@@ -309,15 +319,38 @@ EventMgr::insertBarriers() {
             moveCompletedEventsToAvailable();
             Assert(numSuccEvents <= m_Available.size(), "Not enough event IDs after barrrier");
             assignEventsToBarrier(barrierWaveop);
+
+            ++barrierIdx;
         }
         assignEventsToNewSuccEdges(waveop);
         completeEventsOnPrevEdges(waveop);
         waveopsWithBarriers.push_back(waveop);
     }
 
+    const kcc_int32 numNewWaveops = waveopsWithBarriers.size();
+    for (kcc_int32 waveopIdx = 0; waveopIdx < numNewWaveops; ++waveopIdx) {
+        const auto waveop = waveopsWithBarriers[waveopIdx];
+        verifyWaveop(waveop);
+    }
+
     m_Network.replaceWaveops(waveopsWithBarriers);
 }
 
+
+void
+EventMgr::verifyWaveop(const wave::WaveOp* waveop) const
+{
+    std::set<EventId> eventIds;
+    const auto idSetEnd(eventIds.end());
+    for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
+        const EventId evtId = prevWaveEdge->gEventId();
+        Assert(idSetEnd == eventIds.find(evtId), "Double event ID ", evtId, " on waveop ", waveop->gName());
+    }
+    for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
+        const EventId evtId = succWaveEdge->gEventId();
+        Assert(idSetEnd == eventIds.find(evtId), "Double event ID ", evtId, " on waveop ", waveop->gName());
+    }
+}
 
 void
 EventMgr::assignEventsToBarrier(wave::BarrierWaveOp* barrierWaveop)

@@ -24,11 +24,15 @@ WaveOp::WaveOp (const WaveOp::Params& params,
     , m_Order(params.m_Order)
     , m_Layer(params.m_Layer)
 {
+    const bool thisIsBarrier = this->qBarrierWaveOp();
     //assert(params.verify());
     for (auto prevWaveOp : prevWaveOps) {
         auto edge = new WaveEdge(prevWaveOp, this);
         this->m_PrevWaveEdges.push_back(edge);
         prevWaveOp->m_SuccWaveEdges.push_back(edge);
+        if (thisIsBarrier) {
+            prevWaveOp->setHasOutBarrier();
+        }
     }
 }
 
