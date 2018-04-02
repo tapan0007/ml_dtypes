@@ -97,17 +97,17 @@ def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSele
     if getLevel(testName) <= level:
       if argSelect == "any" or (isWaived and argSelect == "waived_only") or ((not isWaived) and argSelect == "not_waived"):
         testList.append(testName)
-  # Override by --test
-  if len(argTest) > 0 or len(argTestRe) > 0:
+  # Check that all --test exist
+  if len(argTest) > 0:
     wrongTests = []
-    for t in args.test:
+    for t in argTest:
       if not t in testConfigMap:
         wrongTests.append(t)
-    if len(wrongTests) > 1:
+    if len(wrongTests) > 0:
       print("ERROR: the --test %s   do not exist" % str(wrongTests))
       sys.exit(1)
-    testList = args.test
-  #Add
+    testList = argTest
+  # Add--test_re
   if len(argTestRe) > 0:
     for testName in sorted(testConfigMap):
       for regexp in argTestRe:
@@ -499,7 +499,11 @@ class Ktests:
     for status in sorted(status2count):
       strStatus += "%s %d  " % (status, status2count[status])
     print("DETAILED STATUS: ", strStatus)
-    for status in sorted(status2test):
+    
+    statusList = sorted(status2test)
+    if 'PASS' in statusList:
+      statusList.append(statusList.pop(statusList.index('PASS')))
+    for status in statusList:
       print("  %s" % status)
       for test in sorted(status2test[status]):
         print("    ", test)

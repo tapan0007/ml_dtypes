@@ -154,6 +154,8 @@ class TfFe:
           #  self.__kg.setInputNode(node)
         elif (re.search("StridedSlice", tfop.op, re.I) != None):
           node = kog.NodeStridedSlice(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("^Unstack$|^Unpack$", tfop.op, re.I) != None):
+          node = kog.NodeUnstack(tfNode.name, tfop.op, add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)
@@ -280,7 +282,11 @@ class TfFe:
             print("DEBUG: StridedSlice  ", n.getOpName())
           if excludeOpsFromCaptureRe == None or not re.match(excludeOpsFromCaptureRe, tfOpName):
             for tensor in op.outputs:
-              shape = tensor.get_shape().as_list()
+              shapeRaw = tensor.get_shape()
+              if shapeRaw == None:
+                print("INFO: Skipping capture on node with shape None %s" % tensor.name)
+                continue
+              shape = shapeRaw.as_list()
               # Handle missing batch dimension on some input nodes
               if len(shape) > 0 and shape[0] == None:
                 shape[0] = 1
@@ -313,7 +319,7 @@ class TfFe:
               n.setAttr(attr, op.get_attr(attr))
               #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))          
           # LSTM attributes - keeping separate from the above loop during debug phase
-          for attr in ["begin_mask", "ellipsis_mask", "end_mask", "new_axis_mask", "shrink_axis_mask"]:
+          for attr in ["begin_mask", "ellipsis_mask", "end_mask", "new_axis_mask", "shrink_axis_mask", "axis"]:
             if attr in op.node_def.attr:
               n.setAttr(attr, op.get_attr(attr))
               #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))          

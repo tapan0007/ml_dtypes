@@ -64,6 +64,9 @@ class NpInfo:
     self.dType = None
   def nbytes(self):
     return np.empty(self.npShape, dtype=self.dType).nbytes
+  def getValues(self):
+    arr = np.load(self.npFile)
+    return arr
 
 # NN operation
 class Node(Object):
@@ -254,11 +257,17 @@ class NodeSimple(Node):
   def genCompilerLayerJson(self):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    if len(npInfo.npShape) == 4:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+
     # FIX_THIS - IFMAP, it should not be needed
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
-    (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    #(npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -719,26 +728,34 @@ class NodeSimple2(Node):
     layerDataBase[0]["layer_type"] = overrideType
        
     if not isResAdd and not type(fromIfNode1) == NodeConst:
-      # Collapse the side node to a branch (except when it already is a real constant) 
-      # Main input is covered by a previous layer
-      #   tfShape4D0 = npt.cShapeToNHWC(npInfoIF0.npShape)
-      #   (npFileSimF0, simFormatIF0)  = npt.copyNpyFileAs(npInfoIF0.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D0)
-      # Side input has to be collapsed to a constant
-      tfShape4D1 = npt.cShapeToNHWC(npInfoIF1.npShape)
-      (npFileSimF1, simFormatIF1)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D1)
-      tpbShape4D1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
-      
-      constLayerData = {
-       "layer_type" :  "Const",
-       "layer_name" :  fromIfNode1.getName(),
-        "ofmap_shape"     : tpbShape4D1,
-        "ofmap_format"    : simFormat,
-        "ref_file"        : npFileSimF1,
-        "previous_layers" : [],
-       "#comment"   :  "captured constant"
-      }
-      fileListBase.insert(0, npFileSimF1)
-      layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
+    
+      # Scalar add is fused (e.g. for LSTMs)
+      if len(npInfoIF1.npShape) == 0:
+        val = npInfoIF1.getValues()
+        assert len(val.shape) == 0
+        layerDataBase[0]['add_scalar'] = np.asscalar(val.ravel()[0])
+      else:
+    
+        # Collapse the side node to a branch (except when it already is a real constant) 
+        # Main input is covered by a previous layer
+        #   tfShape4D0 = npt.cShapeToNHWC(npInfoIF0.npShape)
+        #   (npFileSimF0, simFormatIF0)  = npt.copyNpyFileAs(npInfoIF0.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D0)
+        # Side input has to be collapsed to a constant
+        tfShape4D1 = npt.cShapeToNHWC(npInfoIF1.npShape)
+        (npFileSimF1, simFormatIF1)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D1)
+        tpbShape4D1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
+
+        constLayerData = {
+         "layer_type" :  "Const",
+         "layer_name" :  fromIfNode1.getName(),
+          "ofmap_shape"     : tpbShape4D1,
+          "ofmap_format"    : simFormat,
+          "ref_file"        : npFileSimF1,
+          "previous_layers" : [],
+         "#comment"   :  "captured constant"
+        }
+        fileListBase.insert(0, npFileSimF1)
+        layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
 
     return(layerDataBase, fileListBase)
 
@@ -839,7 +856,7 @@ class NodeReshape(Node):
 
 
 ###############################################################################
-# StridedSLice
+# StridedSlice
 # Separate class to allow detailed debug and reporting
 #
 ###############################################################################
@@ -860,33 +877,101 @@ class NodeStridedSlice(Node):
       dotText += "\nShapeIn : %s" % str(npiIn.npShape)
       for c in ["Begin", "End", "Stride"]:
         (fromNode, fromNpInfo) = bes[c]
-        npVal = np.load(fromNpInfo.npFile)
+        npVal = fromNpInfo.getValues()
         dotText += "\n%s : %s" % (c, str([int(i) for i in npVal]))
-#      fmapSizeBytes = npInfoIF.nbytes()
-#      weightSizeBytes = npInfoW.nbytes()
-#      opCount = self.getOpCount()
-#      opsPerWeightByte = math.ceil(opCount / weightSizeBytes)
-#      # Data sizes
-#      npInfoOF = self.getNpInfo()[0]
-#      dotText += "\nw%.3f i%.3f o%.3f MiB" % (weightSizeBytes / 2**20,
-#                                           fmapSizeBytes / 2**20, npInfoOF.nbytes() / 2**20)
-#      dotText += "\nOpWB " + str(opsPerWeightByte)
-#      # Roofile, wavesize batch targets
-#      targetOpB = Config.Tpb.specTops*2**40 /(Config.Ddr.GiBps*2**30)/2 * Config.Tpb.numTpb
-#      targetBatchRoofLine = math.ceil(targetOpB / opsPerWeightByte)
-#      imgPixels = np.empty(self.getImg2D()).size
-#      targetBatchImgMin = math.ceil(Config.Pe.minWave / imgPixels)
-#      targetBatchImgOpt = math.floor(Config.Pe.maxWave / imgPixels)
-#      dotText += " BT(%d) %d-%d-%d" % (Config.Tpb.numTpb, targetBatchRoofLine,
-#                                       targetBatchImgMin, targetBatchImgOpt)
-#      # Ops
-#      dotText += "\nGop %.3f" % (opCount / Config.Tpb.freq)
     else:
       dotText += "\n" + str(self.protoShape)
     return dotText
 
-#  def isSupported(self):
-#    return True
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    bes = {"Begin" : (), "End" : (), "Stride" : ()}
+    ((nIn, npInfoFrom), bes["Begin"], bes["End"], bes["Stride"]) = self.getInputNodesAndNpInfo()
+    npInfoIndexinBes = 1
+    
+    # Suppress StridedSlice in constant or reshape calculations
+    # FIX_THIS: this hsould be a graph transform
+    if len(npInfo.npShape) == 1:
+      return {},[]
+    
+    if len(npInfo.npShape) == 4:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      if len(npInfo.npShape) == 2:
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+        channelAxis = 1
+      else:
+        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+        channelAxis = 0
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      
+      # Spec for future global format tracking
+      #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)
+
+    vectorStart = np.asscalar(bes["Begin"][npInfoIndexinBes].getValues()[channelAxis])
+    vectorEnd = np.asscalar(bes["End"][npInfoIndexinBes].getValues()[channelAxis])
+    if vectorEnd <= vectorStart:
+      vectorEnd = npInfoFrom.npShape[channelAxis]
+      assert self.getAttr("end_mask") > 0
+    assert all(bes['Stride'][npInfoIndexinBes].getValues()) == 1
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "channel_slice"   : [vectorStart, vectorEnd],
+      "previous_layers" : [nIn.getName()],
+      "#comment"        : "supported const layer"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
+
+###############################################################################
+# Unstack
+###############################################################################
+class NodeUnstack(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    if len(npInfo.npShape) == 4:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
+      
+    unstackAxis = self.getAttr("axis")
+      
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "unstack_axis"    : unstackAxis,
+      "previous_layers" : [fromIfNode.getName()],
+      "#comment"        : "supported const layer"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
 
 
 
@@ -1061,7 +1146,12 @@ class Graph(Object):
     inputNode = self.getInputNode()
     npInfo = inputNode.getNpInfo()[0]
     jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    if len(npInfo.npShape) == 4:
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     outNpy = npFileSim
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()

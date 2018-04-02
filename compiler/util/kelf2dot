@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+#
+# Kelf visualization
+#
+import argparse
+import os, json, sys
+from graphviz import Digraph
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--json', help='Json Kelfs to visualize', nargs='+', default=[])
+parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
+parser.add_argument('--show', help='Invoke firefox on teh created graphs', action='store_true', default=False)
+
+args = parser.parse_args()
+
+class KelfJson(object):
+  def __init__(self, jsonFile, verbose, show):
+    self.jsonFile = jsonFile
+    self.verbose = verbose
+    self.show = show
+    with open(self.jsonFile) as fh:
+      self.jsonData = json.load(fh)
+
+  e2c = {
+    "processor"     : "green",
+    "wave"  : "red",
+    "host"  : "blue",
+    }
+  def executor2color(self, executor):
+    return KelfJson.e2c.get(executor, "black")
+  
+  def plotPipeline(self):
+    dot = Digraph(comment="writeDot")
+    for subgraph in self.jsonData["SubGraphs"]:
+      # node
+      attrs = {}
+      nodeName = subgraph["SubGraphDir"]
+      subgraphType = subgraph["executor"]
+      dotText = "%s\n%s" % (subgraphType, nodeName)
+      if self.verbose:
+        dotText = "\n".join(["%s : %s" % (str(k), str(v)) for k,v in sorted(subgraph.items())]) 
+      attrs["color"] = self.executor2color(subgraphType)
+      attrs["shape"] = "rect"
+      dot.node(nodeName, dotText, attrs)
+      #print(dot.source)
+      # edge
+      for inp in subgraph["Inputs"]:
+        edgeAttrs = {}
+        dot.edge(inp["name"], nodeName, "", edgeAttrs)
+        #print(dot.source)
+      for outp in subgraph["Outputs"]:
+        edgeAttrs = {}
+        dot.edge(nodeName, outp["name"], "", edgeAttrs)
+        #print(dot.source)
+    dot.format = "svg"
+    jsonIn = self.jsonFile
+    dotOut = jsonIn[:-5] + "-subgraphs.dot"
+    dot.render(dotOut)
+    print("INFO: wrote  %s.%s" % (dotOut, "svg"))
+    if self.show:
+      os.system("firefox %s.%s" % (dotOut, "svg"))
+
+
+for jsonFile in args.json:
+  kj = KelfJson(jsonFile, args.verbose, args.show)
+  kj.plotPipeline()

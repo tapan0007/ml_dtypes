@@ -301,6 +301,49 @@ class KgraphPart(object):
         print("DEBUG: colorNodesFrom setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
 
+  # Color nodes to define subgraph partitions - start new partition from a multi node
+  # The from list defines multi-nodes (cut levels) as comma-separated nodes
+  def colorNodesFromMulti(self, fromMultiNodeList):
+    sourceGraph = self.__kgraph
+    node2cut = {}  # example:  node2cut[a] = "a,b"
+    cut2color = {}
+    for cut in fromMultiNodeList:
+      cutNodes = cut.split(',')
+      for n in cutNodes:
+        node2cut[n] = cut
+      cut2color[cut] = None
+    edgeQueue = []
+    visitedNodes = {}
+    n = sourceGraph.getInputNode()
+    color = self.getNewColor()
+    self.setNodeColor(n, color)
+    edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
+    while len(edgeQueue) > 0:
+      e,color = edgeQueue.pop(0)
+      n = e.getToNode()
+      if n in visitedNodes:
+        continue
+      visitedNodes[n] = True
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesFromMulti visit         %-12s %s" %
+              (n.getOpType(), n.getName()))
+      # Coloring
+      if n.getName() in node2cut:
+        cut = node2cut[n.getName()]
+        if cut2color[cut] == None:
+          color = self.getNewColor()
+          cut2color[cut] = color
+        else:
+          color = cut2color[cut]
+        self.setNodeColor(n, color)
+      else:
+        self.setNodeColor(n, color)
+      fanoutEdges = n.getFanoutMainFlowEdges()
+      edgeQueue += [(e, color) for e in fanoutEdges]
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesFromMulti setColor %d on %-12s %s" %
+              (self.getNodeColor(n), n.getOpType(), n.getName()))
+
   # Color nodes given the partitioning strategy
   # The strategy is a keyword and arguments (for some)
   def colorNodes(self, partitioningStrategy):
@@ -315,6 +358,8 @@ class KgraphPart(object):
       self.colorNodesSuppAuto()
     elif strategy == "from":
       self.colorNodesFrom( partitioningStrategy[1:])
+    elif strategy == "from_multi":
+      self.colorNodesFromMulti( partitioningStrategy[1:])
     else:
       assert 0
 
