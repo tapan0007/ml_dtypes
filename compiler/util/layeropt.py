@@ -507,12 +507,13 @@ class CircularBuffer:
             for i in range(sb_addr//64, (sb_addr + length)//64):
                 if tpb.statebuffer.consumer_of_64byte_morsel[i] != "":
                     previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
+                    tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
                     break
-        # string bias reads together
-        #if (self.circbuf_type == "bias" or self.circbuf_type == "weights"):
-        #    if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0):
-        #        previous_waveops.append(self.last_biasweight_waveop)
-        #    self.last_biasweight_waveop = waveop_name                
+        # string bias reads together (TODO: include weights?)
+        if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
+            if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0):
+                previous_waveops.append(self.last_biasweight_waveop)
+            self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         if (chunk_name in tpb.statebuffer.circbuf_scratch.chunk2saved_map):
             previous_waveops.append(tpb.statebuffer.circbuf_scratch.chunk2saved_map[chunk_name])
