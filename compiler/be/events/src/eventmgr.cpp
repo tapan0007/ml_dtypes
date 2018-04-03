@@ -115,20 +115,14 @@ Another MatMul which
 void
 EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
 {
-    int numPrevs = 0;
-
     for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
         if (! prevWaveEdge->qNeedToWaitFor()) {
             continue; // when two waveops execute on the same engine, no need for sync
         }
-        ++numPrevs;
 
-        if (prevWaveEdge->qNeedToWaitFor()) {
-            Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
-                    "Need to wait on edge from ", prevWaveEdge->gFromOp()->gName(), " to ", matmulWaveop->gName(),
-                    ", but event id is invalid");
-        }
-
+        Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
+                "Need to wait on edge from ", prevWaveEdge->gFromOp()->gName(), " to ",
+                matmulWaveop->gName(), ", but event id is invalid");
     }
 }
 
@@ -151,13 +145,15 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
         ++numPrevs;
 
         if (prevWaveop->gType() == waveop->gType()) {
-            Assert(false, "Predecessors of ", waveop->gTypeStr(),
-                " cannot be another waveop of the same type: ", prevWaveop->gName());
+            if (!waveop->qNopWaveOp()) {
+                Assert(false, "A predecessor of non-NOP waveop ", waveop->gTypeStr(),
+                    " cannot be another waveop of the same type: ", prevWaveop->gName());
+            }
         } else {
             if (prevWaveEdge->qNeedToWaitFor()) {
                 Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
-                        "Need to wait on edge from ", prevWaveop->gName(), " to ", waveop->gName(),
-                        ", but event id is invalid");
+                        "Need to wait on edge from ", prevWaveop->gName(), " to ",
+                        waveop->gName(), ", but event id is invalid");
             }
         }
     }
