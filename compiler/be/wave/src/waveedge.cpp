@@ -45,12 +45,23 @@ WaveEdge::qNeedToWaitFor() const
         return true;
     }
     // when two waveops execute on the same engine, no need for sync except for DMA.
-    // If Load depends on SB being freed by a Save, Load must wait on Save.
-    // If Save depends on a Load writing correct data, Save must wait on Load.
-    // Load->Save probably won't happen because there is no point saving data in DRAM from
-    // SB that has just been loaded to SB from DRAM.
+    // The only case that does NOT need sync is two saves.
+    //
+    // Load -> Save: this is necessary (probably very rare) because we are rely on data
+    // in SB to be correct. It is most likely not necessary because data is Loaded from DRAM,
+    // and saving the same data back to DRAM is not likely.
+    //
+    // Save -> Load: We save data from one region of memory and load different data in
+    // the same region => Load has to wait until Save is done.
+    //
+    // Load -> Load: Suppose we load weights for one layer, and then want to overwrite 
+    // the same memory with other weights. Since the first weights are already in DRAM
+    // (they were loaded from DRAM), we don't need to save 
+    //
     if (EngineId::DmaEng == prevWaveop->gEngineId()) {
-        if (prevWaveop->qSbAtomLoadWaveOp() == succWaveop->qSbAtomSaveWaveOp()) {
+        if (prevWaveop->qSbAtomSaveWaveOp() && succWaveop->qSbAtomSaveWaveOp()) {
+            return false;
+        } else {
             return true;
         }
     }
