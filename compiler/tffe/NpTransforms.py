@@ -19,7 +19,7 @@ def calcTransform(sf, st):
 
 class NpTrans:
   # See spec for method  genCompilerPy
-  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM"]:
+  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "HNC", "HNWC"]:
     exec("%s = '%s'" %(c, c))
   
   # Define tensorFlow (TF) to Inkling simulator (SIM) translation
@@ -46,6 +46,37 @@ class NpTrans:
       Transforms[src][dst] = {}
       for d in [Fmaps, Weights]:
         Transforms[src][dst][d] = calcTransform(Formats[src][d], Formats[dst][d])
+
+  # Ulility function to convert npy files given the precise format spec, returns new file name and the destination format
+  @staticmethod
+  def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None):
+    arr = np.load(npFile)
+    srcShape = arr.shape
+    sf = srcFormat
+    if len(srcFormat) > len(dstFormat):
+      sf = ''
+      for c in list(srcFormat).reverse():
+        if not c in dstFormat:
+          axis = srcFormat.index(c)
+          assert srcShape[axis] == 1
+          arr = np.squeeze(arr, axis)
+        else:
+          sf = c + sf
+    elif len(srcFormat) < len(dstFormat):
+      for c in list(dstFormat):
+        if not c in srcFormat:
+          arr = np.expand_dims(arr, 0)
+          sf = c + sf
+    assert sorted(list(sf)) == sorted(list(dstFormat))
+    transform = calcTransform(sf, dstFormat)
+    arr = np.transpose(arr, transform)
+    if outFile == None:
+      npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
+    else:
+      npFileDest = outFile
+    np.save(npFileDest, arr)
+    return(npFileDest, arr.shape)
+
   # Ulility function to convert npy files, returns new file name and the destination format
   @staticmethod
   def copyNpyFileAs(npFile, srcPlat, dstPlat, dataFlavor, srcShape=None, outFile=None, dstShape=None):

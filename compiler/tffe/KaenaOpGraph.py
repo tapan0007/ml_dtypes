@@ -121,6 +121,15 @@ class Node(Object):
     return([item for edgelist in self.__fanout for item in edgelist])
   def getFanoutMainFlowEdges(self):
     return [e for e in self.getFanoutEdges() if e.isInMainFlow()]
+  # Like graph class nodeSuccesors, but a) localized to Node class, 2) return list of [position, node name]
+  def getFanoutNodePosNames(self):
+    nodeList = []
+    for pos in range(len(self.__fanout)):
+      edgeList = self.__fanout[pos]
+      for edge in edgeList:
+        toNode = edge.getToNode()
+        nodeList.append([pos, toNode.getName()])
+    return nodeList
   # Edge between 2 nodes (from this to another)
   def getEdgeTo(self, toNode):
     for e in self.getFanoutEdges():
@@ -857,7 +866,6 @@ class NodeReshape(Node):
 
 ###############################################################################
 # StridedSlice
-# Separate class to allow detailed debug and reporting
 #
 ###############################################################################
 class NodeStridedSlice(Node):
@@ -890,8 +898,8 @@ class NodeStridedSlice(Node):
     ((nIn, npInfoFrom), bes["Begin"], bes["End"], bes["Stride"]) = self.getInputNodesAndNpInfo()
     npInfoIndexinBes = 1
     
-    # Suppress StridedSlice in constant or reshape calculations
-    # FIX_THIS: this hsould be a graph transform
+    # Suppress StridedSlice in constant or reshape calculations in CNNs
+    # FIX_THIS: this should be a graph transform
     if len(npInfo.npShape) == 1:
       return {},[]
     
@@ -937,6 +945,7 @@ class NodeStridedSlice(Node):
 
 ###############################################################################
 # Unstack
+#
 ###############################################################################
 class NodeUnstack(Node):
   def __init__(self, name, opType, attrs):
@@ -955,13 +964,15 @@ class NodeUnstack(Node):
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
       
     unstackAxis = self.getAttr("axis")
-      
+    nextLayerPosList = self.getFanoutNodePosNames()
+    
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "unstack_axis"    : unstackAxis,
       "previous_layers" : [fromIfNode.getName()],
+      "next_layer_order" : nextLayerPosList,
       "#comment"        : "supported const layer"
     }
     fileList.append(npFileSim)
@@ -1148,6 +1159,10 @@ class Graph(Object):
     jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
     if len(npInfo.npShape) == 4:
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    elif len(npInfo.npShape) == 3:
+      # LSTM HNC input into Unstack
+      simFormat = npt.HNWC
+      (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
     else:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)

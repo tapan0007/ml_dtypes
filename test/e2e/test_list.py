@@ -278,6 +278,7 @@ testConfigMap = {
   "4-ptb_word_lm1"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b16s32h512.pb", "lm", " --input_node input_1  --depth 3  --debug 0 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave --images %s"% (rnPreFp32, rnPost, rnDogJpg), "--input_files %s" % rnDogJpg ],
   "4-ptb_word_small1_host"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 3  --debug 0   --partition from  lstm_2_1/transpose_1  --executors host all --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s" % lstmD0B4, "--input_files %s" % lstmD0B4],
   "4-ptb_word_small1_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 3  --debug 0   --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1  lstm_2_1/transpose_1  --executors host 0 2 wave 1 --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s" % lstmD0B4, "--input_files %s" % lstmD0B4],
+  "4-ptb_word_small_sigmoid_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 3  --debug 0   --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1  lstm_2_1/transpose_1  --executors host 0 2 wave 1 --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s" % lstmD0B4, "--input_files %s" % lstmD0B4],
   
 }
 
@@ -313,6 +314,7 @@ testWaiver = [
     # LSMT
     ['4-ptb_word_lm1', 'WAIVE-LSTM'],
     ['4-ptb_word_small1_wave$', 'WAIVE-LSTM'],
+    ['4-ptb_word_small_sigmoid_wave$', 'WAIVE-LSTM'],
 
     # accuracy fail, fp16
     ['7-rn50_nne_fp16_accfail$', 'WAIVE_FP16_ACC'],
