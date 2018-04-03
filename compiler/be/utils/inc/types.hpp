@@ -79,6 +79,7 @@ enum class WaveOpType {
     Activation,
     ResAdd,
     Barrier,
+    Nop,
 };
 
 //**********************************************************************

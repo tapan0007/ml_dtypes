@@ -443,6 +443,12 @@ SerWaveOp::verifyBarrier() const
     return true;
 }
 
+bool
+SerWaveOp::verifyNop() const
+{
+    return true;
+}
+
 
 
 bool
@@ -473,6 +479,8 @@ SerWaveOp::verify() const
         return verifyResAdd();
     } else if (m_WaveOpType == WaveOpTypeStr_Barrier) {
         return verifyBarrier();
+    } else if (m_WaveOpType == WaveOpTypeStr_Nop) {
+        return verifyNop();
     } else {
         RETURN_ASSERT(false);
     }

@@ -90,6 +90,9 @@ public:
     virtual bool qBarrierWaveOp() const {
         return false;
     }
+    virtual bool qNopWaveOp() const {
+        return false;
+    }
 
     virtual EngineId gEngineId() const = 0;
 

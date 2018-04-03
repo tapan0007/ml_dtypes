@@ -18,7 +18,7 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
-#include "layers/inc/poollayer.hpp"
+//#include "layers/inc/poollayer.hpp"
 
 #include "wave/inc/waveop.hpp"
 
@@ -33,9 +33,9 @@ public:
     class Params;
 public:
     BarrierWaveOp(const WaveOp::Params& params,
-                           const std::vector<WaveOp*>& prevWaveOps,
-                           const std::vector<WaveOp*>& succWaveOps,
-                           EngineId engineId);
+                  const std::vector<WaveOp*>& prevWaveOps,
+                  const std::vector<WaveOp*>& succWaveOps,
+                  EngineId engineId);
 public:
     bool verify() const override;
 

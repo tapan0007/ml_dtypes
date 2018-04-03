@@ -225,6 +225,7 @@ private:
     void saveActivation(cereal::JSONOutputArchive& archive) const;
     void saveResAdd(cereal::JSONOutputArchive& archive) const;
     void saveBarrier(cereal::JSONOutputArchive& archive) const;
+    void saveNop(cereal::JSONOutputArchive& archive) const;
 
 protected:
     bool verify() const;
@@ -238,6 +239,7 @@ private:
     bool verifyActivation() const;
     bool verifyResAdd() const;
     bool verifyBarrier() const;
+    bool verifyNop() const;
 
 public:
     // common to all

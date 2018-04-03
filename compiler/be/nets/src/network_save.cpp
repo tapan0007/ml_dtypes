@@ -38,6 +38,7 @@
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
+#include "wave/inc/nopwaveop.hpp"
 
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
@@ -295,6 +296,10 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         }
         if (const auto barrierWaveOp = dynamic_cast<const wave::BarrierWaveOp*>(waveOp)) {
             m_Save->saveBarrier(barrierWaveOp, serWaveOp);
+            continue;
+        }
+        if (const auto nopWaveOp = dynamic_cast<const wave::NopWaveOp*>(waveOp)) {
+            m_Save->saveNop(nopWaveOp, serWaveOp);
             continue;
         }
 
@@ -560,6 +565,15 @@ Network::Save::saveBarrier(const wave::BarrierWaveOp* /*barrierWaveOp*/,
 {
 #define WAVE_OP barrierWaveOp
     serWaveOp.m_WaveOpType = wave::BarrierWaveOp::gTypeStrStatic();
+#undef WAVE_OP
+}
+
+void
+Network::Save::saveNop(const wave::NopWaveOp* /*nopWaveOp*/,
+                           serialize::SerWaveOp& serWaveOp) const
+{
+#define WAVE_OP nopWaveOp
+    serWaveOp.m_WaveOpType = wave::NopWaveOp::gTypeStrStatic();
 #undef WAVE_OP
 }
 

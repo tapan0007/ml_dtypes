@@ -36,20 +36,33 @@ private:
 
     EventId getLocalEventId(const wave::WaveEdge* edge);
 
-    enum BarrierEvent {
-        BarrierEvent_FromPe,
-        BarrierEvent_FromAct,
-        BarrierEvent_FromPool,
-        BarrierEvent_FromStreamProc,
-        BarrierEvent_FromDma,
+    enum ReservedEvent {
+        ReservedEvent_PeAct,
+        ReservedEvent_PePool,
+        ReservedEvent_PeDma,
+        ReservedEvent_PeSp,
 
-        BarrierEvent_ToPe,
-        BarrierEvent_ToAct,
-        BarrierEvent_ToPool,
-        BarrierEvent_ToStreamProc,
-        BarrierEvent_ToDma,
+        ReservedEvent_ActPe,
+        ReservedEvent_ActPool,
+        ReservedEvent_ActDma,
+        ReservedEvent_ActSp,
 
-        BarrierEvent_FirstNonBarrierEvent,
+        ReservedEvent_PoolPe,
+        ReservedEvent_PoolAct,
+        ReservedEvent_PoolDma,
+        ReservedEvent_PoolSp,
+
+        ReservedEvent_DmaPe,
+        ReservedEvent_DmaAct,
+        ReservedEvent_DmaPool,
+        ReservedEvent_DmaSp,
+
+        ReservedEvent_SpPe,
+        ReservedEvent_SpAct,
+        ReservedEvent_SpPool,
+        ReservedEvent_SpDma,
+
+        ReservedEvent_FirstNonReserved
     };
 
     void initEventSets();
@@ -57,21 +70,21 @@ private:
     void moveCompletedEventsToAvailable();
     void completeEventsOnPrevEdges(wave::WaveOp* waveop);
 
-    EngineId gBarrierEngineId(const wave::WaveOp* prevWaveop, const wave::WaveOp* succWaveop);
-    void findWaveopsOnOtherEngines(kcc_int32 waveopIdx, const EngineId barrierEngId, bool backward,
-                                       std::vector<wave::WaveOp*>& prevWaveops);
+    static EngineId gBarrierEngineId();
     void insertBarriers();
-    void assignEventsToBarrier(wave::BarrierWaveOp* barrierWaveop);
 
-    static EventId gEventIdToBarrier(EngineId fromEngId);
-    static EventId gEventIdFromBarrier(EngineId toEngId);
+    static EventId gEventIdBetweenEngines(EngineId fromId, EngineId toId);
 
-    static bool qBarrierEvent(EventId evtId) {
-        return 0 <= evtId && evtId < BarrierEvent_FirstNonBarrierEvent;
+    static bool qReservedEvent(EventId evtId) {
+        return 0 <= evtId && evtId < ReservedEvent_FirstNonReserved;
     }
     static bool qEventRegular(EventId eventId) {
-        return BarrierEvent_FirstNonBarrierEvent <= eventId && eventId < EventId_Invalid();
+        return ReservedEvent_FirstNonReserved <= eventId
+               && eventId < EventId_Invalid();
     }
+
+    wave::NopWaveOp* mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
+                         kcc_int32 nopIdx, kcc_int32 waveopIdx);
 
     void mvFromInFlightToCompleted(EventId eventId);
     void mvFromAvailableToInFlight(EventId eventId);
@@ -83,7 +96,6 @@ private:
 
 private:
     nets::Network& m_Network;
-    EventId m_EventId;
 
 
     EventSet m_Available;

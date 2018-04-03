@@ -15,6 +15,7 @@
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
+#include "wave/inc/nopwaveop.hpp"
 
 #include "nets/inc/network.hpp"
 
@@ -27,52 +28,12 @@ namespace kcc {
 namespace events {
 
 
-class LoopCmp {
-public:
-    virtual bool qKeepGoing(kcc_int32 idx) const = 0;
-    virtual kcc_int32 change(kcc_int32 idx) const = 0;
-    virtual bool qReachedAnotherBarrier(const wave::WaveOp* waveop) const = 0;
-};
-
-class LoopCmpBack : public LoopCmp {
-public:
-    bool qKeepGoing(kcc_int32 idx) const {
-        return idx >= 0;
-    }
-    kcc_int32 change(kcc_int32 idx) const {
-        return idx - 1;
-    }
-    bool qReachedAnotherBarrier(const wave::WaveOp* waveop) const {
-        return waveop->qHasOutBarrier();
-    }
-};
-
-class LoopCmpForw : public LoopCmp {
-public:
-    LoopCmpForw(kcc_int32 N)
-        : m_N(N)
-    {}
-public:
-    bool qKeepGoing(kcc_int32 idx) const {
-        return idx < m_N;
-    }
-    kcc_int32 change(kcc_int32 idx) const {
-        return idx + 1;
-    }
-    bool qReachedAnotherBarrier(const wave::WaveOp* waveop) const {
-        return waveop->qHasInBarrier();
-    }
-private:
-    const kcc_int32 m_N;
-};
-
 
 
 
 
 EventMgr::EventMgr(nets::Network& network)
     : m_Network(network)
-    , m_EventId(0)
 {
     initEventSets();
 }
@@ -85,24 +46,11 @@ EventMgr::initEventSets()
     m_InFlight.clear();
     m_Completed.clear();
 
-    for (EventId eventId = BarrierEvent_FirstNonBarrierEvent; eventId < EventId_Invalid(); ++eventId) {
+    for (EventId eventId = ReservedEvent_FirstNonReserved; eventId < EventId_Invalid(); ++eventId) {
         m_Available.insert(eventId);
     }
 }
 
-
-EventId
-EventMgr::getLocalEventId(const wave::WaveEdge* edge)
-{
-    const wave::WaveOp* const fromOp = edge->gFromOp();
-    const wave::WaveOp* const toOp = edge->gToOp();
-    Assert(fromOp != toOp, "From (", fromOp->gName(), ") and to (", toOp->gName(), ") waveops should be different");
-    const EventId eventId = m_EventId++;
-    if (m_EventId >= EventId_Invalid()) {
-        m_EventId = 0;
-    }
-    return eventId;
-}
 
 void
 EventMgr::moveCompletedEventsToAvailable()
@@ -143,58 +91,17 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
             continue;
         }
         const EventId evtId = prevWaveEdge->gEventId();
-        if (prevWaveEdge->qEdgeIsFromBarrier()) {
-            Assert(qBarrierEvent(evtId), "Found non-barrier event id ", evtId,
-                " on edge from barrier to waveop ", waveop->gName());
-            continue;
-        }
+        const wave::WaveOp* const precWaveop = prevWaveEdge->gFromOp();
+        Assert(!precWaveop->qNopWaveOp(),
+            "Non-nop waveop ", waveop->gName(), " has incomiing nop-waveop ", precWaveop->gName()); 
         mvFromInFlightToCompleted(evtId);
     }
 }
 
 
 
-void
-EventMgr::findWaveopsOnOtherEngines(kcc_int32 waveopIdx,
-        EngineId barrierEngId, bool backward,
-        std::vector<wave::WaveOp*>& waveops)
-{
-    std::array<EngineId, NumberRealEngines> engineIds { {
-        EngineId::PeArray, EngineId::Activation,
-        EngineId::Pooling, EngineId::StreamProc,
-        EngineId::DmaEng
-    } };
-
-    LoopCmpBack cmpBack;
-    LoopCmpForw cmpForw(m_Network.gNumberWaveops());
-    LoopCmp& cmp(backward ? static_cast<LoopCmp&>(cmpBack) : static_cast<LoopCmp&>(cmpForw));
-
-    // This could be improved to NOT loop over engines
-    for (kcc_int32 k = 0; k < NumberRealEngines; ++k) {
-        const auto engId = engineIds[k];
-        if (barrierEngId == engId) {
-            continue;
-        }
-
-        for (kcc_int32 otherIdx = waveopIdx; cmp.qKeepGoing(otherIdx);
-             otherIdx = cmp.change(otherIdx))
-        {
-            const auto otherWaveop = m_Network.gWaveOp(otherIdx);
-            if (cmp.qReachedAnotherBarrier(otherWaveop)) {
-                break; // do not go beyound another barrier waveop
-            }
-            const EngineId otherEngId = otherWaveop->gEngineId();
-            if (otherEngId == engId) {
-                waveops.push_back(otherWaveop);
-                break;
-            }
-        }
-    }
-}
-
-
 EngineId
-EventMgr::gBarrierEngineId(const wave::WaveOp* /*prevWaveop*/, const wave::WaveOp* /*succWaveop*/)
+EventMgr::gBarrierEngineId()
 {
     return EngineId::DmaEng;
 }
@@ -221,8 +128,6 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
                     "Need to wait on edge from ", prevWaveEdge->gFromOp()->gName(), " to ", matmulWaveop->gName(),
                     ", but event id is invalid");
         }
-        //const EventId eventId = getLocalEventId(prevWaveEdge);
-        //prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::WaitThenClear);
 
     }
 }
@@ -254,12 +159,29 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
                         "Need to wait on edge from ", prevWaveop->gName(), " to ", waveop->gName(),
                         ", but event id is invalid");
             }
-            //const EventId eventId = getLocalEventId(prevWaveEdge);
-            //prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, eventId, EventWaitMode::WaitThenClear);
         }
     }
 }
 
+wave::NopWaveOp*
+EventMgr::mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
+                      kcc_int32 nopIdx, kcc_int32 waveopIdx)
+{
+    std::stringstream nopWaveopName;
+    nopWaveopName << "nop_" << nopIdx << "_" << waveopIdx-1 << "_" << waveopIdx;
+    wave::NopWaveOp::Params params;
+    params.m_WaveOpName    = nopWaveopName.str();
+    std::vector<wave::WaveOp*> prevWaveops;
+    EventId evtId = events::EventId_Invalid();
+    if (prevWaveop) {
+        prevWaveops.push_back(prevWaveop);
+        evtId = gEventIdBetweenEngines(prevWaveop->gEngineId(), engId);
+
+    }
+    const auto nopWaveop = new wave::NopWaveOp(params, prevWaveops, engId, evtId);
+
+    return nopWaveop;
+}
 
 /***************************************************************
  * Events change state from Available -> InFlight -> Completed -> Available
@@ -272,18 +194,17 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
 ***************************************************************/
 void
 EventMgr::insertBarriers() {
-    //const kcc_int32 NumNonBarrierEvents = EventId_Invalid() - BarrierEvent_FirstNonBarrierEvent; 
     const kcc_int32 numWaveops = m_Network.gNumberWaveops();
-    // Need barrier between Waveop[ barrierIndices[j] ] and Waveop[ 1+barrierIndices[j] ]
-    //std::vector<kcc_int32> barrierIndices;
-    std::vector<wave::WaveOp*> waveopsWithBarriers;
+    std::vector<wave::WaveOp*> newWaveops;
 
     initEventSets();
-    //const auto availEnd(m_Available.end());
-    //const auto inflightEnd(m_InFlight.end());
-    //const auto completedEnd(m_Completed.end());
 
-    kcc_int32 barrierIdx = 0;
+    const std::array<EngineId, 4> engineIds { {
+        EngineId::PeArray, EngineId::Activation,
+        EngineId::Pooling, EngineId::DmaEng
+    } };
+    const EngineId barrierEngId = gBarrierEngineId();
+    kcc_int32 nopIdx = 0;
 
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
         if (waveopIdxBrk == waveopIdx) {
@@ -292,48 +213,58 @@ EventMgr::insertBarriers() {
         const auto waveop = m_Network.gWaveOp(waveopIdx);
         kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
         if (numSuccEvents > m_Available.size()) {
-            const auto immedPrevWaveop = m_Network.gWaveOp(waveopIdx-1);
-            // if waveopIdx is included too many events in session,
-            // so need barrier between waveop[waveopIdx-1] and waveop[waveopIdx]
-            const EngineId barrierEngId = gBarrierEngineId(immedPrevWaveop, waveop);
+            //
+            //  PE   -> EvPeAct ->
+            //      ACT  -> EvActPool ->
+            //          POOL -> EvPoolDma ->
+            //              DMA  -> EvDmaPe ->
+            //          PE   -> EvPeAct ->
+            //      ACT  -> EvActPool ->
+            //  POOL
+            wave::WaveOp* prevWaveop = nullptr;
 
-            std::vector<wave::WaveOp*> prevWaveops;
-            findWaveopsOnOtherEngines(waveopIdx-1, barrierEngId, true, prevWaveops);
-            Assert(prevWaveops.size() < NumberRealEngines, "Collected too many prev waveops for barrier between waveop ",
-                immedPrevWaveop->gName(), " and waveop ", waveop->gName());
+            for (size_t k = 0; k < engineIds.size(); ++k) {
+                const auto engId = engineIds[k];
+                if (barrierEngId == engId) {
+                    continue;
+                }
+                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, nopIdx, waveopIdx);
+                newWaveops.push_back(nopWaveop);
+                prevWaveop = nopWaveop;
+            }
 
-            std::vector<wave::WaveOp*> succWaveops;
-            findWaveopsOnOtherEngines(waveopIdx, barrierEngId, false, succWaveops);
-            Assert(succWaveops.size() < NumberRealEngines, "Collected too many succ waveops for barrier between waveop ",
-                immedPrevWaveop->gName(), " and waveop ", waveop->gName());
+            { // DMA
+                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, barrierEngId, nopIdx, waveopIdx);
+                newWaveops.push_back(nopWaveop);
+                prevWaveop = nopWaveop;
+            }
 
-            std::stringstream barrierWaveopName;
-            barrierWaveopName << "barrier_" << barrierIdx << "_" << waveopIdx-1 << "_" << waveopIdx;
-            wave::WaveOp::Params params;
-            params.m_WaveOpName    = barrierWaveopName.str();
+            for (size_t k = 0; k < engineIds.size(); ++k) {
+                const auto engId = engineIds[k];
+                if (barrierEngId == engId) {
+                    continue;
+                }
+                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, nopIdx, waveopIdx);
+                newWaveops.push_back(nopWaveop);
+                prevWaveop = nopWaveop;
+            }
 
-
-            const auto barrierWaveop = new wave::BarrierWaveOp(params, prevWaveops, succWaveops, barrierEngId);
-
-            waveopsWithBarriers.push_back(barrierWaveop);
             moveCompletedEventsToAvailable();
             Assert(numSuccEvents <= m_Available.size(), "Not enough event IDs after barrrier");
-            assignEventsToBarrier(barrierWaveop);
 
-            ++barrierIdx;
         }
         assignEventsToNewSuccEdges(waveop);
         completeEventsOnPrevEdges(waveop);
-        waveopsWithBarriers.push_back(waveop);
+        newWaveops.push_back(waveop);
     }
 
-    const kcc_int32 numNewWaveops = waveopsWithBarriers.size();
+    const kcc_int32 numNewWaveops = newWaveops.size();
     for (kcc_int32 waveopIdx = 0; waveopIdx < numNewWaveops; ++waveopIdx) {
-        const auto waveop = waveopsWithBarriers[waveopIdx];
+        const auto waveop = newWaveops[waveopIdx];
         verifyWaveop(waveop);
     }
 
-    m_Network.replaceWaveops(waveopsWithBarriers);
+    m_Network.replaceWaveops(newWaveops);
 }
 
 
@@ -352,87 +283,111 @@ EventMgr::verifyWaveop(const wave::WaveOp* waveop) const
     }
 }
 
-void
-EventMgr::assignEventsToBarrier(wave::BarrierWaveOp* barrierWaveop)
-{
-    for (auto prevWaveEdge : barrierWaveop->gPrevWaveEdges()) {
-        const wave::WaveOp* fromWaveop = prevWaveEdge->gFromOp();
-        Assert(!fromWaveop->qBarrierWaveOp(), "Barrier waveop ", barrierWaveop->gName(),
-            " has a predecessor that is also a barrier waveop ", fromWaveop->gName());
-        Assert(fromWaveop->gEngineId() != barrierWaveop->gEngineId(),
-                "Barrier waveop ", barrierWaveop->gName(), " on engine ", 
-                static_cast<int>(barrierWaveop->gEngineId()),
-                " has a predecessor on the same engine ", fromWaveop->gName());
-        const EventId evtId = gEventIdToBarrier(fromWaveop->gEngineId());
-        prevWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::WaitThenClear);
-    }
-
-    for (auto succWaveEdge : barrierWaveop->gSuccWaveEdges()) {
-        const wave::WaveOp* toWaveop = succWaveEdge->gToOp();
-        Assert(!toWaveop->qBarrierWaveOp(), "Barrier waveop ", barrierWaveop->gName(),
-            " has a successor that is also a barrier waveop ", toWaveop->gName());
-        Assert(toWaveop->gEngineId() != barrierWaveop->gEngineId(),
-                "Barrier waveop ", barrierWaveop->gName(), " on engine ", 
-                static_cast<int>(barrierWaveop->gEngineId()),
-                " has a successor on the same engine ", toWaveop->gName());
-        const EventId evtId = gEventIdFromBarrier(toWaveop->gEngineId());
-        succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::WaitThenClear);
-    }
-}
-
-
 EventId
-EventMgr::gEventIdToBarrier(EngineId fromEngId)
+EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
 {
-    switch (fromEngId) {
-    case EngineId::PeArray:
-        return BarrierEvent_FromPe;
-        break;
-    case EngineId::Pooling:
-        return BarrierEvent_FromAct;
-        break;
+    switch (fromId) {
     case EngineId::Activation:
-        return BarrierEvent_FromPool;
-        break;
-    case EngineId::StreamProc:
-        return BarrierEvent_FromStreamProc;
-        break;
+        switch (toId) {
+        case EngineId::DmaEng:
+            return ReservedEvent_ActDma;
+            break;
+        case EngineId::PeArray:
+            return ReservedEvent_ActPe;
+            break;
+        case EngineId::Pooling:
+            return ReservedEvent_ActPool;
+            break;
+        case EngineId::StreamProc:
+            return ReservedEvent_ActSp;
+            break;
+        default:
+            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            break;
+        }
+
     case EngineId::DmaEng:
-        return BarrierEvent_FromDma;
-        break;
+        switch (toId) {
+        case EngineId::Activation:
+            return ReservedEvent_DmaAct;
+            break;
+        case EngineId::PeArray:
+            return ReservedEvent_DmaPe;
+            break;
+        case EngineId::Pooling:
+            return ReservedEvent_DmaPool;
+            break;
+        case EngineId::StreamProc:
+            return ReservedEvent_DmaSp;
+            break;
+        default:
+            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            break;
+        }
+
+    case EngineId::PeArray:
+        switch (toId) {
+        case EngineId::Activation:
+            return ReservedEvent_PeAct;
+            break;
+        case EngineId::DmaEng:
+            return ReservedEvent_PeDma;
+            break;
+        case EngineId::Pooling:
+            return ReservedEvent_PePool;
+            break;
+        case EngineId::StreamProc:
+            return ReservedEvent_PeSp;
+            break;
+        default:
+            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            break;
+        }
+
+    case EngineId::Pooling:
+        switch (toId) {
+        case EngineId::Activation:
+            return ReservedEvent_PoolAct;
+            break;
+        case EngineId::DmaEng:
+            return ReservedEvent_PoolDma;
+            break;
+        case EngineId::PeArray:
+            return ReservedEvent_PoolPe;
+            break;
+        case EngineId::StreamProc:
+            return ReservedEvent_PoolSp;
+            break;
+        default:
+            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            break;
+        }
+
+    case EngineId::StreamProc:
+        switch (toId) {
+        case EngineId::PeArray:
+            return ReservedEvent_SpPe;
+            break;
+        case EngineId::Pooling:
+            return ReservedEvent_SpPool;
+            break;
+        case EngineId::Activation:
+            return ReservedEvent_SpAct;
+            break;
+        case EngineId::DmaEng:
+            return ReservedEvent_SpDma;
+            break;
+        default:
+            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            break;
+        }
     default:
-        Assert(false, "Bad from engine id ", static_cast<int>(fromEngId));
+        Assert(false, "Bad from-engine id ", static_cast<int>(fromId));
         break;
     }
-    return BarrierEvent_FromDma;
+    return ReservedEvent_FirstNonReserved;
 }
 
-
-EventId
-EventMgr::gEventIdFromBarrier(EngineId toEngId)
-{
-    switch (toEngId) {
-    case EngineId::PeArray:
-        return BarrierEvent_ToPe;
-        break;
-    case EngineId::Pooling:
-        return BarrierEvent_ToAct;
-        break;
-    case EngineId::Activation:
-        return BarrierEvent_ToPool;
-        break;
-    case EngineId::StreamProc:
-        return BarrierEvent_ToStreamProc;
-        break;
-    case EngineId::DmaEng:
-        return BarrierEvent_ToDma;
-        break;
-    default:
-        Assert(false, "Bad to engine id ", static_cast<int>(toEngId));
-        break;
-    }
-    return BarrierEvent_ToDma;
-}
 
 
 void

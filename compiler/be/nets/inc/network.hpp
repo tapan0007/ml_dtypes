@@ -38,6 +38,7 @@ namespace wave {
     class ActivationWaveOp;
     class ResAddWaveOp;
     class BarrierWaveOp;
+    class NopWaveOp;
 }
 namespace schedule {
     class LayerLevel;

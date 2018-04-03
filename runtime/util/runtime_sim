@@ -9,6 +9,7 @@
 import argparse
 import os.path
 import sys
+import re
 
 
 print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
@@ -43,8 +44,19 @@ class RuntimeSim:
     if args.parallel_streams:
       cmd += " --angel %s/TrivNet-dma.tpb --sp %s/TrivNet-sp.tpb  --pe %s/TrivNet-pe.tpb --pool %s/TrivNet-pool.tpb --act %s/TrivNet-act.tpb" %(tpb_dir, tpb_dir, tpb_dir, tpb_dir, tpb_dir)
       sim_debug = os.environ.get('SIM_DEBUG')
+
       if sim_debug:
-        cmd += " --debugflags all"
+        if "all" in sim_debug:
+          cmd += " --debugflags all"
+        else:
+          sim_engines = ["pe", "act", "pool", "tpb", "sync"]
+          first = True
+          for eng in sim_engines:
+            if eng in sim_dbg:
+              if first:
+                first = False
+                cmd += " --debugflags"
+              cmd += " " + eng
     else:
       cmd += " %s/TrivNet.tpb" % (tpb_dir)
     if len(args.inkling_debugflags) != 0:

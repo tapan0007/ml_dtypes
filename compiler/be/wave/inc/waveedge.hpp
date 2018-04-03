@@ -89,9 +89,6 @@ public:
     bool qNeedToImplementWait() const;
     bool qNeedToWaitFor() const;
 
-    bool qEdgeIsToBarrier() const;
-    bool qEdgeIsFromBarrier() const;
-
 private:
     WaveOp*                 m_FromOp;
     WaveOp*                 m_ToOp;

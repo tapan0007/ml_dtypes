@@ -34,6 +34,8 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveResAdd(archive);
     } else if (m_WaveOpType == WaveOpTypeStr_Barrier) {
         saveBarrier(archive);
+    } else if (m_WaveOpType == WaveOpTypeStr_Nop) {
+        saveNop(archive);
     } else {
         assert(false && "Serialization: unsupported WaveOp");
     }
@@ -241,6 +243,11 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
 
 void
 SerWaveOp::saveBarrier(cereal::JSONOutputArchive& /*archive*/) const
+{
+}
+
+void
+SerWaveOp::saveNop(cereal::JSONOutputArchive& /*archive*/) const
 {
 }
 
