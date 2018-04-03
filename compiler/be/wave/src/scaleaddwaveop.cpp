@@ -7,7 +7,7 @@
 #include "arch/inc/arch.hpp"
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
-#include "wave/inc/poolwaveop.hpp"
+#include "wave/inc/scaleaddwaveop.hpp"
 
 
 // #define RETURN_ASSERT(x) return (x)
@@ -17,8 +17,8 @@
 namespace kcc {
 namespace wave {
 
-PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
-                       const std::vector<WaveOp*>& prevWaveOps)
+ScaleAddWaveOp::ScaleAddWaveOp(const ScaleAddWaveOp::Params& params,
+                               const std::vector<WaveOp*>& prevWaveOps)
     : PoolEngWaveOp(params, prevWaveOps)
     , m_DstSbAddress(params.m_DstSbAddress)
     , m_DstXNum(params.m_DstXNum)
@@ -27,21 +27,10 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     , m_DstYStep(params.m_DstYStep)
     , m_DstZNum(params.m_DstZNum)
     , m_DstZStep(params.m_DstZStep)
-    , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtype))
-    // "layername;
     , m_NumPartitions(params.m_NumPartitions)
-    , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtype))
-    , m_PoolFrequency(params.m_PoolFrequency)
-    , m_PoolFunc(params.m_PoolFunc)
     , m_SrcIsPsum(params.m_SrcIsPsum)
-    // previouswaveops;
-    //  1conv/i1/MatMuln0m0h0w0c0r0s0"
-    // ],
-
-    , m_TileId(params.m_TileId)
-    , m_TileIdFormat(params.m_TileIdFormat)
-    //waveopname;
-    //waveoptype;
+    , m_Scale(params.m_Scale)
+    , m_Offset(params.m_Offset)
 {
     if (m_SrcIsPsum) {
         m_SrcPsumBankId     = params.m_SrcPsumBankId;
@@ -50,9 +39,6 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
         m_SrcSbAddress      = params.m_SrcSbAddress;
     }
 
-    m_SrcWNum           = params.m_SrcWNum;
-    m_SrcWStep          = params.m_SrcWStep;
-    m_SrcXNum           = params.m_SrcXNum;
     m_SrcXStep          = params.m_SrcXStep;
     m_SrcYNum           = params.m_SrcYNum;
     m_SrcYStep          = params.m_SrcYStep;
@@ -62,7 +48,7 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
 }
 
 bool
-PoolWaveOp::verify() const
+ScaleAddWaveOp::verify() const
 {
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
     if (! this->WaveOp::verify()) {
@@ -93,17 +79,6 @@ PoolWaveOp::verify() const
     if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_PoolFrequency < 1) {
-        RETURN_ASSERT(false);
-    }
-    switch (m_PoolFunc) {
-    case PoolType::Max:
-    case PoolType::Avg:
-        break;
-    default:
-        RETURN_ASSERT(false);
-    }
-    // previouswaveops: [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
 
     if (m_SrcIsPsum) {
         if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
@@ -118,12 +93,6 @@ PoolWaveOp::verify() const
         }
     }
 
-    if (m_SrcWNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_SrcWStep < 0) {
-        RETURN_ASSERT(false);
-    }
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
     }
@@ -143,16 +112,6 @@ PoolWaveOp::verify() const
         RETURN_ASSERT(false);
     }
 
-    for (auto n : m_TileId) {
-        if (n < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-    if (m_TileIdFormat == "") {
-        RETURN_ASSERT(false);
-    }
-    //waveopname;
-    //waveoptype;
     return true;
 }
 
@@ -160,7 +119,7 @@ PoolWaveOp::verify() const
 
 
 bool
-PoolWaveOp::Params::verify() const
+ScaleAddWaveOp::Params::verify() const
 {
     return true;
 }

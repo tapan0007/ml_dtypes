@@ -8,6 +8,11 @@
 namespace kcc {
 namespace events {
 
+EventId EventId_Invalid()
+{
+    return arch::Arch::gArch().gNumberAllTpbEvents() - 1;
+}
+
 /****************************************************************
  *                                                              *
  ****************************************************************/

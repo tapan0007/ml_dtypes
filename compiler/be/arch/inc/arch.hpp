@@ -7,8 +7,6 @@
 #include <memory>
 
 
-#include "shared/inc/uarch_cfg.hpp"
-
 #include "utils/inc/types.hpp"
 
 #include "arch/inc/pearray.hpp"
@@ -27,10 +25,10 @@ private:
 public:
 
     //----------------------------------------------------------------
-    explicit Arch();
+    explicit Arch(kcc_int32 number_events);
 
     static const Arch& gArch();
-    static void init();
+    static void init(kcc_int32 number_events);
 
     //----------------------------------------------------------------
     const PeArray& gPeArray() const {
@@ -80,9 +78,7 @@ public:
     static kcc_int64 gTpbEventBase();
     static kcc_int64 gSpEventBase();
 
-    static constexpr kcc_int64 gNumberTpbEvents() {
-        return NUM_TPB_EVENTS;
-    }
+    kcc_int64 gNumberAllTpbEvents() const;
 
     static kcc_int64 gNumberSpEvents();
 
@@ -92,6 +88,7 @@ private:
     PoolingEng     m_PoolingEng;
     ActivationEng  m_ActivationEng;
     StateBuffer    m_StateBuffer;
+    kcc_int32      m_NumberTpbEvents = -1;
 
     static std::unique_ptr<Arch> s_GlobalArch;
 };

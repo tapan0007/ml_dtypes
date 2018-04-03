@@ -64,6 +64,7 @@ constexpr const char* const WaveOpTypeStr_Activation    = "Activation";
 constexpr const char* const WaveOpTypeStr_ResAdd        = "ResAdd";
 constexpr const char* const WaveOpTypeStr_Barrier       = "Barrier";
 constexpr const char* const WaveOpTypeStr_Nop           = "Nop";
+constexpr const char* const WaveOpTypeStr_ScaleAdd      = "ScaleAdd";
 
 } // namespace kcc
 

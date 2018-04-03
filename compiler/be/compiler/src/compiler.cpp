@@ -99,6 +99,8 @@ Main(int argc, char* argv[])
     const char* JsonInFileName = nullptr;
     bool useWave = false;
 
+    kcc_int32 numTpbEvents = -1;
+
     int i = 1;
     while (i < argc) {
         std::string arg(argv[i]);
@@ -117,6 +119,9 @@ Main(int argc, char* argv[])
             DoBatching = true;
         } else if (arg == "--parallel_streams") {
             ParallelStreams = true;
+        } else if (arg == "--number-tpb-events") {
+            numTpbEvents = atoi(argv[i+1]);
+            ++i;
         } else
 #endif
         if (arg == "--json") {
@@ -153,16 +158,22 @@ Main(int argc, char* argv[])
 
 
     //------------------------------------------------
-    arch::Arch::init();
+    arch::Arch::init(numTpbEvents);
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer psumBuf(arch.gPsumBuffer());
     std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
 
     // Does not matter which DataType because entry index is 0.
     const utils::DataTypeFloat32 dtypeFloat32;
-    std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
-    std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
-    std::cout << "Arch: number TPB events = " << arch::Arch::gNumberTpbEvents() << "\n";
+    std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  "
+              << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
+    std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  "
+              << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
+    std::cout << "Arch: number all TPB events = "
+              << arch::Arch::gArch().gNumberAllTpbEvents()
+              << ", number reserved TPB events = "
+              << events::EventMgr::gNumberReservedTpbEvents()
+              << "\n";
     std::cout << "Events: invalid EventId = " << events::EventId_Invalid() << "\n";
 
 #if 0

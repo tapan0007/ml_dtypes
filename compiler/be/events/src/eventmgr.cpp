@@ -145,7 +145,7 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
         ++numPrevs;
 
         if (prevWaveop->gType() == waveop->gType()) {
-            if (!waveop->qNopWaveOp()) {
+            if (! (waveop->qNopWaveOp() || waveop->qSbAtomLoadWaveOp()) ) {
                 Assert(false, "A predecessor of non-NOP waveop ", waveop->gTypeStr(),
                     " cannot be another waveop of the same type: ", prevWaveop->gName());
             }
@@ -246,7 +246,8 @@ EventMgr::insertBarriers() {
             }
 
             moveCompletedEventsToAvailable();
-            Assert(numSuccEvents <= m_Available.size(), "Not enough event IDs after barrrier");
+            Assert(numSuccEvents <= m_Available.size(), "Not enough event IDs after barrrier. Required: ",
+                    numSuccEvents, ", available: ", m_Available.size(), ". Next waveop is ", waveop->gName());
 
         }
         assignEventsToNewSuccEdges(waveop);

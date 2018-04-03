@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_WAVE_POOLWAVEOP_H
-#define KCC_WAVE_POOLWAVEOP_H
+#ifndef KCC_WAVE_SCALEADDWAVEOP_H
+#define KCC_WAVE_SCALEADDWAVEOP_H
 
 
 #include <string>
@@ -28,17 +28,20 @@ namespace kcc {
 namespace wave {
 
 
-class PoolWaveOp : public PoolEngWaveOp {
+/* implements S*x + A, where S = scale, x=input, A=add
+ * S and A are immediate values in the instruction
+ */
+class ScaleAddWaveOp : public PoolEngWaveOp {
 public:
     class Params;
 public:
-    PoolWaveOp(const PoolWaveOp::Params& params,
-                           const std::vector<WaveOp*>& prevWaveOps);
+    ScaleAddWaveOp(const ScaleAddWaveOp::Params& params,
+                   const std::vector<WaveOp*>& prevWaveOps);
 public:
     bool verify() const override;
 
 private:
-    PoolWaveOp() = delete;
+    ScaleAddWaveOp() = delete;
 
 public:
     kcc_int64 gDstSbAddress () const {
@@ -65,12 +68,6 @@ public:
     kcc_int32 gNumPartitions () const {
         return m_NumPartitions;
     }
-    kcc_int32 gPoolFrequency () const {
-        return m_PoolFrequency;
-    }
-    PoolType gPoolFunc () const {
-        return m_PoolFunc;
-    }
     bool qSrcIsPsum() const {
         return m_SrcIsPsum;
     }
@@ -83,51 +80,25 @@ public:
     kcc_int64 gSrcSbAddress () const {
         return m_SrcSbAddress;
     }
-    kcc_int32 gSrcWNum () const {
-        return m_SrcWNum;
-    }
-    kcc_int32 gSrcWStep () const {
-        return m_SrcWStep;
-    }
-    kcc_int32 gSrcXNum () const {
-        return m_SrcXNum;
-    }
-    kcc_int32 gSrcXStep () const {
-        return m_SrcXStep;
-    }
-    kcc_int32 gSrcYNum () const {
-        return m_SrcYNum;
-    }
-    kcc_int32 gSrcYStep () const {
-        return m_SrcYStep;
-    }
-    kcc_int32 gSrcZNum () const {
-        return m_SrcZNum;
-    }
-    kcc_int32 gSrcZStep () const {
-        return m_SrcZStep;
-    }
-    const std::array<kcc_int32, 4>& gTileId () const {
-        return m_TileId;
-    }
-    const std::string& gTileIdFormat () const {
-        return m_TileIdFormat;
-    }
-
-    bool qPoolWaveOp() const override {
+    bool qScaleAddWaveOp() const override {
         return true;
     }
 
-
     static std::string gTypeStrStatic() {
-        return WaveOpTypeStr_Pool;
+        return WaveOpTypeStr_ScaleAdd;
     }
     std::string gTypeStr() const override {
         return gTypeStrStatic();
     }
 
     virtual WaveOpType gType() const override {
-        return WaveOpType::Pool;
+        return WaveOpType::ScaleAdd;
+    }
+    kcc_float32 gScale() const {
+        return m_Scale;
+    }
+    kcc_float32 gOffset() const {
+        return m_Offset;
     }
 
 private:
@@ -138,15 +109,7 @@ private:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    const DataType&             m_InDtype;
-    // "layername;
     kcc_int32                   m_NumPartitions         = -1;
-    const DataType&             m_OutDtype;
-    kcc_int32                   m_PoolFrequency         = -1;
-    PoolType                    m_PoolFunc              = PoolType::None;
-    // previouswaveops;
-    //  1conv/i1/MatMuln0m0h0w0c0r0s0"
-    // ],
     bool                        m_SrcIsPsum             = true;
     kcc_int32                   m_SrcPsumBankId         = -1;
     kcc_int32                   m_SrcPsumBankOffset     = -1;
@@ -159,18 +122,16 @@ private:
     kcc_int32                   m_SrcYStep              = -1;
     kcc_int32                   m_SrcZNum               = -1;
     kcc_int32                   m_SrcZStep              = -1;
-    std::array<kcc_int32, 4>    m_TileId;
-    std::string                 m_TileIdFormat          = "";
-    //waveopname;
-    //waveoptype;
-}; // class PoolWaveOp : public PoolEngWaveOp
+    kcc_float32                 m_Scale                 = 0.0;
+    kcc_float32                 m_Offset                = 0.0;
+}; // class ScaleAddWaveOp : public WaveOp
 
 
 
 
 
 
-class PoolWaveOp::Params : public PoolEngWaveOp::Params {
+class ScaleAddWaveOp::Params : public PoolEngWaveOp::Params {
 public:
     bool verify() const;
 public:
@@ -181,13 +142,7 @@ public:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    // "layername;
     kcc_int32                   m_NumPartitions         = -1;
-    kcc_int32                   m_PoolFrequency         = 0.0;
-    PoolType                    m_PoolFunc              = PoolType::None;
-    // previouswaveops;
-    //  1conv/i1/MatMuln0m0h0w0c0r0s0"
-    // ],
     bool                        m_SrcIsPsum;
     kcc_int32                   m_SrcPsumBankId;
     kcc_int32                   m_SrcPsumBankOffset;
@@ -200,11 +155,8 @@ public:
     kcc_int32                   m_SrcYStep;
     kcc_int32                   m_SrcZNum;
     kcc_int32                   m_SrcZStep;
-    std::array<kcc_int32, 4>    m_TileId;
-    std::string                 m_TileIdFormat;
-    //waveopname;
-    //waveoptype;
-
+    kcc_float32                 m_Scale                 = 0.0;
+    kcc_float32                 m_Offset                = 0.0;
 };
 
 

@@ -27,6 +27,9 @@ class EventMgr {
 public:
     EventMgr(nets::Network& network);
     void processWaveops();
+    static kcc_int32 gNumberReservedTpbEvents() {
+        return ReservedEvent_FirstNonReserved;
+    }
 
 private:
     using EventSet = std::set<EventId>;
@@ -82,6 +85,7 @@ private:
         return ReservedEvent_FirstNonReserved <= eventId
                && eventId < EventId_Invalid();
     }
+
 
     wave::NopWaveOp* mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
                          kcc_int32 nopIdx, kcc_int32 waveopIdx);

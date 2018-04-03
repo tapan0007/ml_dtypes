@@ -80,6 +80,7 @@ enum class WaveOpType {
     ResAdd,
     Barrier,
     Nop,
+    ScaleAdd,
 };
 
 //**********************************************************************
