@@ -55,7 +55,7 @@ parser.add_argument('--verbose', help='Verbose output', action='store_true', def
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
 parser.add_argument('--report_only', help='Print QoR report for the logs in teh current directory', action='store_true', default=False)
 parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=multiprocessing.cpu_count())
-parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=False)
+parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=True)
 parser.add_argument('--timeout', help='Timeout for each test, default 3600', type=int, default=3600)
 parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
 parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
