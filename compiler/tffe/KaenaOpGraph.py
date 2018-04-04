@@ -846,12 +846,12 @@ class NodeMultiply(Node):
 
     layerData = {
       "kernel_file"     : npFileSimW,
-      "kernel_format"   : simFormatW,
-      "kernel_shape"    : tpbShape4Dw,
+      #"kernel_format"   : simFormatW,
+      #"kernel_shape"    : tpbShape4Dw,
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
-      "previous_layers" : [fromIfNode0.getName()],
+      "previous_layers" : [fromIfNode0.getName(), fromIfNode1.getName()],
       "#comment"        : "supported matmul"
     }
     fileList.append(npFileSim)

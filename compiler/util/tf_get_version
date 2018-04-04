@@ -23,7 +23,7 @@ def getCudnnVersion():
       match = re.search(r'\/cuda-([\d\.]+)\/lib64\/libcudnn\.so\.([\d\.]+)', path)
       #print("DEBUG", path)
       if match:
-        print(path)
+        #print(path)
         cudaVersion, cudnnVersion = match.groups()
   return cudaVersion, cudnnVersion
 
