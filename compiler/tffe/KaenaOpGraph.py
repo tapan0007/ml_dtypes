@@ -832,7 +832,11 @@ class NodeMultiply(Node):
     
     # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
-    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    if len(npInfo.npShape) == 1:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+    else:
+      assert len(npInfo.npShape) == 2
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
     
@@ -1423,7 +1427,7 @@ class Graph(Object):
       kGraphJsonFile =  "compiler.json"
       waveGraphJsonFile = "wavegraph.json"
 
-      # From Jeff: to generate dot without placeemnt, but not svg:  waveDotFile = outPrefix + "wavegraph.plain"
+      # From Jeff: to generate dot without placement, but not svg:  waveDotFile = outPrefix + "wavegraph.plain"
       # From Jeff: to generate dot with placeemnt, but not svg:  waveDotFile = outPrefix + "wavegraph.dot"
       if True:
         waveDotFile = outPrefix + "wavegraph.plain"
@@ -1443,6 +1447,18 @@ class Graph(Object):
             meOk = True
       return meOk, [waveGraphJsonFile, waveDotFile]
     
+  #def convertOpsWithNoArgsToConstNodes(self, OpTypes):
+    #for n is self.getNodes():
+    #  if n.getOpType in OpTypes:
+    #    if len(n.getPredecessors()) == 0:
+    #      nodeCopy = n.CopyAs(Node, "Const")
+    #      nodeCopy.setLevel(n.getLevel())
+  
+  def optimizeForInference(self):
+    pass
+    # For a legacy resnet152
+    #self.convertOpsWithNoArgsToConstNodes(["Multiply", "Sub"])
+
 
 
 

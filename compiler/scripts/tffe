@@ -103,6 +103,7 @@ if args.weights:
 if args.images != None:
   tffe.writeImages(args.out_prefix, args.images, inputNodeName, args.input_constants, args.exclude_ops_from_capture)
   kog.identifyMainFlowEdges()
+  kog.optimizeForInference()
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
 
