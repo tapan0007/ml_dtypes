@@ -135,7 +135,7 @@ class TfFe:
           node = kog.NodeMatMul(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Reshape", tfop.op, re.I) != None):
           node = kog.NodeReshape(tfNode.name, tfop.op, add_attrs)
-        elif  (re.search("relu|tanh|Softmax", tfop.op, re.I) != None):
+        elif  (re.search("relu|tanh|Sigmoid|Softmax", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
         elif (re.search("MaxPool|AvgPool", tfop.op, re.I) != None):
@@ -148,12 +148,12 @@ class TfFe:
               re.search("input", tfop.name, re.I) != None):
         #print("DEBUG created NodeInput")
           node = kog.NodeInput(tfNode.name, tfop.op, add_attrs)
-          # At somepoint we;ll need to support multi-input networks
-          # For now use 1st input
-          #if self.__kg.getInputNode() == None:
-          #  self.__kg.setInputNode(node)
         elif (re.search("StridedSlice", tfop.op, re.I) != None):
           node = kog.NodeStridedSlice(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("^Unstack$|^Unpack$", tfop.op, re.I) != None):
+          node = kog.NodeUnstack(tfNode.name, "Unstack", add_attrs)
+        elif (re.search("^Multiply$|^Mul$", tfop.op, re.I) != None):
+          node = kog.NodeMultiply(tfNode.name, "Multiply", add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)
@@ -214,19 +214,19 @@ class TfFe:
   
   def writeImages(self, outPrefix, imageFile, inputNodeName, inputConstants, excludeOpsFromCaptureRe):
     self.__kg.levelize()
-    inputNOde = None
+    inputNodes = []
     if inputNodeName == None:
       # Auto detect input - take 1st placeholder
-      inputNode = [x for x in self.__kg.getNodes() if x.getOpType() == "Placeholder"][0]
+      inputNodes = [x for x in self.__kg.getNodes() if x.getOpType() == "Placeholder"]
     elif self.__kg.hasNode(inputNodeName):
-      inputNode = self.__kg.getNode(inputNodeName)
+      inputNodes = [self.__kg.getNode(inputNodeName)]
     else:
       lowestLevelNodes = self.__kg.getLowestLevelNodes()
       print("ERROR: the  --input_node %s  was not found. Use one of  %s" % (inputNodeName, [ n.getName() for n in lowestLevelNodes]))
       exit(1)
-    assert(inputNode != None)
-    self.__kg.setInputNode(inputNode)
-    inputTfOpName = inputNode.getAttr("tfop").name
+    assert len(inputNodes) > 0
+    self.__kg.setInputNodes(inputNodes)
+    inputTfOpName = inputNodes[0].getAttr("tfop").name
     
     inputFeedDict = self.inputConst2dict(inputConstants)
     
@@ -280,7 +280,11 @@ class TfFe:
             print("DEBUG: StridedSlice  ", n.getOpName())
           if excludeOpsFromCaptureRe == None or not re.match(excludeOpsFromCaptureRe, tfOpName):
             for tensor in op.outputs:
-              shape = tensor.get_shape().as_list()
+              shapeRaw = tensor.get_shape()
+              if shapeRaw == None:
+                print("INFO: Skipping capture on node with shape None %s" % tensor.name)
+                continue
+              shape = shapeRaw.as_list()
               # Handle missing batch dimension on some input nodes
               if len(shape) > 0 and shape[0] == None:
                 shape[0] = 1
@@ -313,7 +317,7 @@ class TfFe:
               n.setAttr(attr, op.get_attr(attr))
               #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))          
           # LSTM attributes - keeping separate from the above loop during debug phase
-          for attr in ["begin_mask", "ellipsis_mask", "end_mask", "new_axis_mask", "shrink_axis_mask"]:
+          for attr in ["begin_mask", "ellipsis_mask", "end_mask", "new_axis_mask", "shrink_axis_mask", "axis"]:
             if attr in op.node_def.attr:
               n.setAttr(attr, op.get_attr(attr))
               #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))          
@@ -477,10 +481,4 @@ class TfFe:
       writer.writerows(rows)
     print("INFO: Wrote op sequences into " + csvFile)
   
-  def getInputNode(self):
-    for n in self.__kg.getNodes():
-        tfOp = n.getAttr("tfop")
-        if (tfOp.op == "Placeholder"):
-            return tfOp.name
-    return None        
 

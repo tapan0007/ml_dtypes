@@ -24,13 +24,13 @@ bucket = s3.Bucket(args.bucket)
 
 newFileS3Path = "%s/report.csv" % (args.new)
 goldenFileS3Path = "%s/report.csv" % (args.golden)
-diffFileS3Path = "%s/golden_diff.csv" % (args.new)
-diffStatsFileS3Path = "%s/diff_stats.csv" % (args.new)
+diffFileS3Path = "%s/golden_diff_%s_%s.csv" % (args.new, args.new, args.golden)
+diffStatsFileS3Path = "%s/diff_stats_%s_%s.csv" % (args.new, args.new, args.golden)
 
 newFilePath = "/tmp/report_%s" %(args.new)
 goldenFilePath = "/tmp/report_%s" %(args.golden)
-diffFilePath = "/tmp/golden_diff_%s" %(args.new)
-diffStatsFilePath = "/tmp/diff_stats_%s" %(args.new)
+diffFilePath = "/tmp/golden_diff_%s_%s" %(args.new, args.golden)
+diffStatsFilePath = "/tmp/diff_stats_%s_%s" %(args.new, args.golden)
 
 bucket.download_file(newFileS3Path, newFilePath)
 bucket.download_file(goldenFileS3Path, goldenFilePath)

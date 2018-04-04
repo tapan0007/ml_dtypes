@@ -56,10 +56,10 @@ class KsubGraph:
     if len(self.__inputs) == 0:
       self.__inputs.append(self.__output)
     # Make one of the nodes input for the backend, should not matter which one
-    inputNode = self.__inputs[0]
+    inputNodes = self.__inputs
     if self.debugLevel > 0:
-      print("DEBUG: set input node %s" % inputNode.getName())
-    self.graph.setInputNode(inputNode)
+      print("DEBUG: set input nodes %s" % str([n.getName() for n in inputNodes]))
+    self.graph.setInputNodes(inputNodes)
     #hasInputOpType = any((ni.getOpType() == "Input") for ni in self.__inputs)
     #assert inputNode.getOpType() == "Input" or
     #       inputNode.getOpType() == "Const"
@@ -204,15 +204,17 @@ class KgraphPart(object):
       if n in visitedNodes:
         continue
       visitedNodes[n] = True
-      print("DEBUG: colorSuppAuto visit         %-12s %s" %
-            (n.getOpType(), n.getName()))
+      if self.debugLevel > 0:
+        print("DEBUG: colorSuppAuto visit         %-12s %s" %
+              (n.getOpType(), n.getName()))
 
       if n.isSupported() != p.isSupported():
-        print("DEBUG: adding new color for node: " +
-              n.getName() +
-              " " + str(n.isSupported()) +
-              " predNode " + p.getName() +
-              " " + str(p.isSupported()) )
+        if self.debugLevel > 0:
+          print("DEBUG: adding new color for node: " +
+                n.getName() +
+                " " + str(n.isSupported()) +
+                " predNode " + p.getName() +
+                " " + str(p.isSupported()) )
         self.setNodeColor(n, self.getNewColor())
       else:
         self.setNodeColor(n, self.getNodeColor(p))
@@ -301,9 +303,63 @@ class KgraphPart(object):
         print("DEBUG: colorNodesFrom setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
 
+  # Color nodes to define subgraph partitions - start new partition from a multi node
+  # The from list defines multi-nodes (cut levels) as comma-separated nodes
+  def colorNodesFromMulti(self, fromMultiNodeList):
+    sourceGraph = self.__kgraph
+    node2cut = {}  # example:  node2cut[a] = "a,b"
+    cut2color = {}
+    for cut in fromMultiNodeList:
+      cutNodes = cut.split(',')
+      for n in cutNodes:
+        node2cut[n] = cut
+      cut2color[cut] = None
+    edgeQueue = []
+    visitedNodes = {}
+    n = sourceGraph.getInputNode()
+    color = self.getNewColor()
+    self.setNodeColor(n, color)
+    edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
+    while len(edgeQueue) > 0:
+      e,color = edgeQueue.pop(0)
+      n = e.getToNode()
+      if n in visitedNodes:
+        continue
+      visitedNodes[n] = True
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesFromMulti visit         %-12s %s" %
+              (n.getOpType(), n.getName()))
+      # Coloring
+      if n.getName() in node2cut:
+        cut = node2cut[n.getName()]
+        if cut2color[cut] == None:
+          color = self.getNewColor()
+          cut2color[cut] = color
+        else:
+          color = cut2color[cut]
+        self.setNodeColor(n, color)
+      else:
+        self.setNodeColor(n, color)
+      fanoutEdges = n.getFanoutMainFlowEdges()
+      edgeQueue += [(e, color) for e in fanoutEdges]
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesFromMulti setColor %d on %-12s %s" %
+              (self.getNodeColor(n), n.getOpType(), n.getName()))
+
+  # Overrides existing colors using Node Color .Node1 Color1 ... list
+  def adjustColor(self, nodeColorAdjustment):
+    for nodeName,color in zip(nodeColorAdjustment[::2], [int(x) for x in nodeColorAdjustment[1::2]]):
+      node = self.__kgraph.getNode(nodeName)
+      oldColor = self.getNodeColor(node)
+      if not oldColor == color:
+        self.setNodeColor(node, color)
+        if color + 1 > self.__numColors:
+          self.__numColors = color + 1
+        print("INFO: overrode color %d to %d on node %s" % (oldColor, color, node.getName()))
+
   # Color nodes given the partitioning strategy
   # The strategy is a keyword and arguments (for some)
-  def colorNodes(self, partitioningStrategy):
+  def colorNodes(self, partitioningStrategy, nodeColorAdjustment):
     strategy = partitioningStrategy[0]
     if strategy == "auto":
       self.colorNodesAuto()
@@ -315,8 +371,12 @@ class KgraphPart(object):
       self.colorNodesSuppAuto()
     elif strategy == "from":
       self.colorNodesFrom( partitioningStrategy[1:])
+    elif strategy == "from_multi":
+      self.colorNodesFromMulti( partitioningStrategy[1:])
     else:
       assert 0
+    if len(nodeColorAdjustment) > 0:
+      self.adjustColor(nodeColorAdjustment)
 
   # Partition into ordered list of subgraphs
   # All partitions have single output, multiple inputs

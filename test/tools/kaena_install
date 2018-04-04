@@ -36,7 +36,7 @@ def main():
     os.mkdir(tmpPath) 
 
     tmpRepoPath = '%s/%s' % (tmpPath, repoName)
-    s3.download_file('kaena-images-iad', repoName, tmpRepoPath)
+    s3.download_file('kaena-release-bucket', repoName, tmpRepoPath)
 
     print("Kaena_install: installed repo")
 

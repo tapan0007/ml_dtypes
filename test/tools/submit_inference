@@ -103,7 +103,7 @@ def main():
     print ("num of input files is %s " % num_inputs)
 
     # decide on partitioning
-    num_inputs = 10
+    num_inputs = 10000
     MAX_NUM_WORKERS = 1000
 
     num_workers = min(num_inputs, MAX_NUM_WORKERS)
@@ -111,7 +111,7 @@ def main():
 
 
     # push kelf to s3
-    kelfTarName = "kelf.tar.gz"
+    kelfTarName = "kelf_%s.tar.gz" % testid
     kelfTarPath = "/tmp/%s" % kelfTarName
     kelfS3Path = "%s/%s" % (testid, kelfTarName)
     make_tarfile(kelfTarPath, args.kelf_dir)
