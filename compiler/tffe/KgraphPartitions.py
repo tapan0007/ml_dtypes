@@ -204,15 +204,17 @@ class KgraphPart(object):
       if n in visitedNodes:
         continue
       visitedNodes[n] = True
-      print("DEBUG: colorSuppAuto visit         %-12s %s" %
-            (n.getOpType(), n.getName()))
+      if self.debugLevel > 0:
+        print("DEBUG: colorSuppAuto visit         %-12s %s" %
+              (n.getOpType(), n.getName()))
 
       if n.isSupported() != p.isSupported():
-        print("DEBUG: adding new color for node: " +
-              n.getName() +
-              " " + str(n.isSupported()) +
-              " predNode " + p.getName() +
-              " " + str(p.isSupported()) )
+        if self.debugLevel > 0:
+          print("DEBUG: adding new color for node: " +
+                n.getName() +
+                " " + str(n.isSupported()) +
+                " predNode " + p.getName() +
+                " " + str(p.isSupported()) )
         self.setNodeColor(n, self.getNewColor())
       else:
         self.setNodeColor(n, self.getNodeColor(p))

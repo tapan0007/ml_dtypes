@@ -236,7 +236,8 @@ testConfigMap = {
   "8-resnet50_fp16_wave"      : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2 --scheduler wave", "linspace1"],
   "8-resnet50_fp32_wave"      : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2 --scheduler wave", "linspace1"],
   "8-resnet50_fp16_wave_b2"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2 --scheduler wave --batch 2", "linspace1"],
-  #"8-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", " --depth 2", "linspace1"],
+  "9-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", " --depth 2", "linspace1"],
+  "9-resnet152_waveopt"          : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--partition from resnet_v2_152/conv1/convolution resnet_v2_152/logits/BiasAdd --executors host all waveopt 1  --depth 2 --scheduler wave --images %s" % rnDogJpg, "--input_files %s" % rnDogJpg],
   
   # Subgraph partioned flow using neural network executor
   "0-add_nne"      : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--partition auto --executors host all tcc 1 --width 2 --debug 1"],
@@ -323,5 +324,8 @@ testWaiver = [
 
     # batching
     ['7-rn50_nne_fp16_waveopt_b4$', 'WAIVE_BATCH'],
+
+    # Resnet 152
+    ['^9-resnet152', 'WAIVE_RN152'],
 
   ]
