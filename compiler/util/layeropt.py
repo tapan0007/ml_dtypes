@@ -2400,7 +2400,15 @@ class TPBSched:
 
         if (args.debug > 1): print("DBG: Total wave elements: ", op_list.conv_op.ofmap_wave_total_elems)
 
-        return result                    
+        return result                   
+
+    # Execute conv and other operations in list: for each op, load parameters and perform op with input
+    def execute_multiply(self, inputs, result_file):
+        # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
+        result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
+        tile_id = TileID(0,0,0,0,1,1,1,1)
+        self.gen_scaleadd_waveop_inline(op_list[0], tile_id, 0, 0, 0 ,0 ,0 ,0 , 0)
+        return result                   
 
 # Main program
 if __name__ == "__main__":
@@ -2461,6 +2469,9 @@ if __name__ == "__main__":
         elif (first_op_type == "Softmax2"):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             results = tpb.execute_softmax2(inputs, result_file)
+        elif (first_op_type == "Multiply"):
+            inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
+            results = tpb.execute_multiply(inputs, result_file)
         else:        
             print("ERROR: Unrecognized first operation %s"%first_op_type)
             exit(-1)

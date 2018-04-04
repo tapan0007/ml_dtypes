@@ -72,7 +72,7 @@ testConfigMap = {
   "0-1ap0"        : [ "trivnet_ap1",    "b1-h4-r1-s1-c1-m1-wmin0-wmax0.1-imin1-imax16", "1ap"],
   "0-1ap7x7"      : [ "trivnet_ap1",    "b1-h7-r7-s7-c64-m64-wmin0-wmax0.1-imin1-imax784", "1ap"],
   "0-1conv1pool"       : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-SAME-MaxPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool"],
-  "0-1conv1pool_wave"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-SAME-MaxPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave"],
+  "0-1conv1pool_wave"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m128-SAME-MaxPool-k2-d2-wmin1-wmax1-imin0-imax127", "1conv1pool", "--scheduler wave"],
   "0-1conv1avgpool_wave"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-SAME-AvgPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave"],
   "0-1conv1pool_b5_wave" : [ "trivnet_conv_pool", "tfloat16-b5-h4-r1-s1-c1-m1-SAME-AvgPool-k2-d2-wmin2-wmax2.2-imin1-imax80", "1conv1pool", "--scheduler wave"],
   "0-1conv1pool_b5m3_wave" : [ "trivnet_conv_pool", "tfloat16-b5-h4-r1-s1-c1-m3-SAME-AvgPool-k2-d2-wmin2-wmax2.2-imin1-imax240", "1conv1pool", "--scheduler wave"],
@@ -98,6 +98,7 @@ testConfigMap = {
   "0-add"         : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add"],
   "0-add_fp32"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add"],
   "0-add_uint8"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add"],
+  "0-scaleadd_wave"       : [ "trivnet_scaleadd",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "scaleadd", "--scheduler wave"],
   "0-resadd_wave"         : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--scheduler wave"],
   "0-resadd_fp32_wave"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add", "--scheduler wave"],
   "0-resadd_uint8_wave"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add", "--scheduler wave"],
@@ -315,6 +316,7 @@ testWaiver = [
     ['4-ptb_word_lm1', 'WAIVE-LSTM'],
     ['4-ptb_word_small1_wave$', 'WAIVE-LSTM'],
     ['4-ptb_word_small_sigmoid_wave$', 'WAIVE-LSTM'],
+    ['0-scaleadd_wave',             'WAIVE-LSTM'],
 
     # accuracy fail, fp16
     ['7-rn50_nne_fp16_accfail$', 'WAIVE_FP16_ACC'],
