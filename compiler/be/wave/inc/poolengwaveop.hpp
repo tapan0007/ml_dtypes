@@ -37,9 +37,6 @@ private:
     PoolEngWaveOp() = delete;
 
 public:
-    const DataType& gInDtype () const {
-        return m_InDtype;
-    }
     const DataType& gOutDtype () const {
         return m_OutDtype;
     }
@@ -48,7 +45,6 @@ public:
     }
 
 private:
-    const DataType&             m_InDtype;
     const DataType&             m_OutDtype;
 }; // class PoolEngWaveOp : public WaveOp
 
@@ -59,8 +55,7 @@ private:
 
 class PoolEngWaveOp::Params : public WaveOp::Params {
 public:
-    DataTypeId                  m_OutDtype              = DataTypeId::None;
-    DataTypeId                  m_InDtype               = DataTypeId::None;
+    DataTypeId m_OutDtypeId = DataTypeId::None;
 };
 
 

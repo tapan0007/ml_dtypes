@@ -367,9 +367,9 @@ Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(DstYStep);
     KCC_UNSERIALIZE(DstZNum);
     KCC_UNSERIALIZE(DstZStep);
-    poolParams.m_InDtype  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    poolParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
     KCC_UNSERIALIZE(NumPartitions);
-    poolParams.m_OutDtype = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    poolParams.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     KCC_UNSERIALIZE(PoolFrequency);
     poolParams.m_PoolFunc  = utils::poolTypeStr2Id(serWaveOp.m_PoolFunc);
 

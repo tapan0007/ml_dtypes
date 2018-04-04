@@ -20,6 +20,7 @@ namespace wave {
 PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
                        const std::vector<WaveOp*>& prevWaveOps)
     : PoolEngWaveOp(params, prevWaveOps)
+    , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_DstSbAddress(params.m_DstSbAddress)
     , m_DstXNum(params.m_DstXNum)
     , m_DstXStep(params.m_DstXStep)
@@ -27,21 +28,12 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     , m_DstYStep(params.m_DstYStep)
     , m_DstZNum(params.m_DstZNum)
     , m_DstZStep(params.m_DstZStep)
-    , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtype))
-    // "layername;
     , m_NumPartitions(params.m_NumPartitions)
-    , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtype))
     , m_PoolFrequency(params.m_PoolFrequency)
     , m_PoolFunc(params.m_PoolFunc)
     , m_SrcIsPsum(params.m_SrcIsPsum)
-    // previouswaveops;
-    //  1conv/i1/MatMuln0m0h0w0c0r0s0"
-    // ],
-
     , m_TileId(params.m_TileId)
     , m_TileIdFormat(params.m_TileIdFormat)
-    //waveopname;
-    //waveoptype;
 {
     if (m_SrcIsPsum) {
         m_SrcPsumBankId     = params.m_SrcPsumBankId;

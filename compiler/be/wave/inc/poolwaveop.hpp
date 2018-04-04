@@ -41,6 +41,9 @@ private:
     PoolWaveOp() = delete;
 
 public:
+    const DataType& gInDtype () const {
+        return m_InDtype;
+    }
     kcc_int64 gDstSbAddress () const {
         return m_DstSbAddress;
     }
@@ -131,6 +134,7 @@ public:
     }
 
 private:
+    const DataType&             m_InDtype;
     kcc_int64                   m_DstSbAddress          = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
@@ -138,15 +142,9 @@ private:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    const DataType&             m_InDtype;
-    // "layername;
     kcc_int32                   m_NumPartitions         = -1;
-    const DataType&             m_OutDtype;
     kcc_int32                   m_PoolFrequency         = -1;
     PoolType                    m_PoolFunc              = PoolType::None;
-    // previouswaveops;
-    //  1conv/i1/MatMuln0m0h0w0c0r0s0"
-    // ],
     bool                        m_SrcIsPsum             = true;
     kcc_int32                   m_SrcPsumBankId         = -1;
     kcc_int32                   m_SrcPsumBankOffset     = -1;
@@ -161,8 +159,6 @@ private:
     kcc_int32                   m_SrcZStep              = -1;
     std::array<kcc_int32, 4>    m_TileId;
     std::string                 m_TileIdFormat          = "";
-    //waveopname;
-    //waveoptype;
 }; // class PoolWaveOp : public PoolEngWaveOp
 
 
@@ -174,6 +170,7 @@ class PoolWaveOp::Params : public PoolEngWaveOp::Params {
 public:
     bool verify() const;
 public:
+    DataTypeId                  m_InDtypeId            = DataTypeId::None;
     kcc_int64                   m_DstSbAddress          = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
@@ -181,13 +178,9 @@ public:
     kcc_int32                   m_DstYStep              = -1;
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
-    // "layername;
     kcc_int32                   m_NumPartitions         = -1;
     kcc_int32                   m_PoolFrequency         = 0.0;
     PoolType                    m_PoolFunc              = PoolType::None;
-    // previouswaveops;
-    //  1conv/i1/MatMuln0m0h0w0c0r0s0"
-    // ],
     bool                        m_SrcIsPsum;
     kcc_int32                   m_SrcPsumBankId;
     kcc_int32                   m_SrcPsumBankOffset;
@@ -202,8 +195,6 @@ public:
     kcc_int32                   m_SrcZStep;
     std::array<kcc_int32, 4>    m_TileId;
     std::string                 m_TileIdFormat;
-    //waveopname;
-    //waveoptype;
 
 };
 
