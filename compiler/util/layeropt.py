@@ -1842,7 +1842,7 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, [])
 
     # generate scaleadd instruction and add it to instruction stream
-    def gen_scaleadd_waveop_inline(self, op, tile_id, src_is_psum, psum_bank_src, src_sb_address, dst_is_psum, psum_bank_dst, scale_val, add_val):
+    def gen_scaleadd_waveop_inline(self, op, tile_id, src_is_psum, psum_bank_src, src_sb_address, dst_is_psum, psum_bank_dst, dram_waveops, scale_val, add_val, ):
         layer_name = op.data["layer_name"]
         # TODO: update in_dtype when src_is_psum is added
         in_dtype = "float32"
@@ -1896,7 +1896,7 @@ class TPBSched:
               'scale'                   : scale_val,
               'add'                     : add_val,
             }
-        self.waveop_stream.add_linked(instr, [])
+        self.waveop_stream.add_linked(instr, dram_waveops)
 
     # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
@@ -2407,7 +2407,13 @@ class TPBSched:
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
         tile_id = TileID(0,0,0,0,1,1,1,1)
-        self.gen_scaleadd_waveop_inline(op_list[0], tile_id, 0, 0, 0 ,0 ,0 ,0 , 0)
+        wave_id = WaveID(0,0,0,0,0,0,0)
+        dram_ifmaps_waveops = tpb.statebuffer.circbuf_ifmaps.read_data_region(
+                                    wave_id, 
+                                    0,
+                                    1,
+                                    1)
+        self.gen_scaleadd_waveop_inline(op_list[0], tile_id, 0, 0, 0 ,0 ,0 , dram_ifmaps_waveops, 0, 0)
         return result                   
 
 # Main program
