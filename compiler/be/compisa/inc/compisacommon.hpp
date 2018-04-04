@@ -6,7 +6,7 @@
 //#include "tpb_isa.hpp"
 //#include "events/inc/events.hpp"
 
-class TPB_CMD_SYNC;
+struct TPB_CMD_SYNC;
 
 namespace kcc {
 namespace compisa {
