@@ -87,8 +87,7 @@ private:
     }
 
 
-    wave::NopWaveOp* mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
-                         kcc_int32 nopIdx, kcc_int32 waveopIdx);
+    wave::NopWaveOp* mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId, kcc_int32 waveopIdx);
 
     void mvFromInFlightToCompleted(EventId eventId);
     void mvFromAvailableToInFlight(EventId eventId);
@@ -105,6 +104,7 @@ private:
     EventSet m_Available;
     EventSet m_InFlight;
     EventSet m_Completed;
+    kcc_int32 m_NopIdx = 0;
 };
 
 }}

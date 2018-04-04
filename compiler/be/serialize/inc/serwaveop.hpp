@@ -176,6 +176,7 @@ constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
 
 constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
+constexpr static const char* WaveOpKey_EngineName           = "engine_name";
 
 
 
@@ -250,6 +251,8 @@ public:
     std::vector<int>            m_PreviousEventIds;
     std::vector<int>            m_PreviousEventWaitModes;
     std::vector<int>            m_PreviousEventSetModes;
+
+    std::string                 m_EngineName;
 
     // SBAtom
     kcc_int64                   m_SbAddress         = -1;

@@ -569,11 +569,12 @@ Network::Save::saveBarrier(const wave::BarrierWaveOp* /*barrierWaveOp*/,
 }
 
 void
-Network::Save::saveNop(const wave::NopWaveOp* /*nopWaveOp*/,
+Network::Save::saveNop(const wave::NopWaveOp* nopWaveOp,
                            serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP nopWaveOp
     serWaveOp.m_WaveOpType = wave::NopWaveOp::gTypeStrStatic();
+    serWaveOp.m_EngineName = engineId2Str(nopWaveOp->gEngineId());
 #undef WAVE_OP
 }
 

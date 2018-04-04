@@ -304,7 +304,7 @@ testWaiver = [
     ['4-rn50_matmul_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
 
     ['^[6]-alexnet',  'WAIVE-BENCH'],
-    ['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
+    #['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
 
     ['^[8]-resnet152',  'WAIVE-BENCH'],
     ['^[8]-resnet50',  'WAIVE-BENCH'],

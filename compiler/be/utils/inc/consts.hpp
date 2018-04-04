@@ -66,6 +66,13 @@ constexpr const char* const WaveOpTypeStr_Barrier       = "Barrier";
 constexpr const char* const WaveOpTypeStr_Nop           = "Nop";
 constexpr const char* const WaveOpTypeStr_ScaleAdd      = "ScaleAdd";
 
+
+constexpr const char* const EngineIdStr_PeArray         = "PeArrayEng";
+constexpr const char* const EngineIdStr_Pool            = "PoolEng";
+constexpr const char* const EngineIdStr_Activation      = "ActivationEng";
+constexpr const char* const EngineIdStr_StreamProc      = "StreamProcEng";
+constexpr const char* const EngineIdStr_Dma             = "DmaEng";
+
 } // namespace kcc
 
 #endif

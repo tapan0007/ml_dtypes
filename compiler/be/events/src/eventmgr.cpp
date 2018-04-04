@@ -161,10 +161,10 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
 
 wave::NopWaveOp*
 EventMgr::mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
-                      kcc_int32 nopIdx, kcc_int32 waveopIdx)
+                      kcc_int32 waveopIdx)
 {
     std::stringstream nopWaveopName;
-    nopWaveopName << "nop_" << nopIdx << "_" << waveopIdx-1 << "_" << waveopIdx;
+    nopWaveopName << "nop_" << m_NopIdx++ << "_" << waveopIdx-1 << "_" << waveopIdx;
     wave::NopWaveOp::Params params;
     params.m_WaveOpName    = nopWaveopName.str();
     std::vector<wave::WaveOp*> prevWaveops;
@@ -200,7 +200,7 @@ EventMgr::insertBarriers() {
         EngineId::Pooling, EngineId::DmaEng
     } };
     const EngineId barrierEngId = gBarrierEngineId();
-    kcc_int32 nopIdx = 0;
+    m_NopIdx = 0;
 
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
         if (waveopIdxBrk == waveopIdx) {
@@ -224,13 +224,13 @@ EventMgr::insertBarriers() {
                 if (barrierEngId == engId) {
                     continue;
                 }
-                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, nopIdx, waveopIdx);
+                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, waveopIdx);
                 newWaveops.push_back(nopWaveop);
                 prevWaveop = nopWaveop;
             }
 
             { // DMA
-                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, barrierEngId, nopIdx, waveopIdx);
+                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, barrierEngId, waveopIdx);
                 newWaveops.push_back(nopWaveop);
                 prevWaveop = nopWaveop;
             }
@@ -240,7 +240,7 @@ EventMgr::insertBarriers() {
                 if (barrierEngId == engId) {
                     continue;
                 }
-                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, nopIdx, waveopIdx);
+                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, waveopIdx);
                 newWaveops.push_back(nopWaveop);
                 prevWaveop = nopWaveop;
             }

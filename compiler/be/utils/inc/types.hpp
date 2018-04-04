@@ -126,6 +126,8 @@ namespace utils {
 
 const std::string& poolType2Str(PoolType poolType);
 PoolType           poolTypeStr2Id(const std::string&);
+const std::string& engineId2Str(EngineId engId);
+EngineId engineId2Str(const std::string& str);
 
 constexpr kcc_int64 power2(kcc_int64 b) {
     return 1 << (b);

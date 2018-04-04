@@ -247,8 +247,9 @@ SerWaveOp::saveBarrier(cereal::JSONOutputArchive& /*archive*/) const
 }
 
 void
-SerWaveOp::saveNop(cereal::JSONOutputArchive& /*archive*/) const
+SerWaveOp::saveNop(cereal::JSONOutputArchive& archive) const
 {
+    KCC_ARCHIVE(EngineName);
 }
 
 
