@@ -200,9 +200,10 @@ class StateBuffer:
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*0)
-        self.circbuf_weights = CircularBuffer(self, "weights", 96-16-4-24, self.SB_ATOM_SZ, self.SB_ATOM_SZ*24)
-        self.circbuf_bias    = CircularBuffer(self, "bias",    4,          self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-16-4))
-        self.circbuf_scratch = CircularBuffer(self, "scratch", 16,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-16))
+        self.circbuf_weights = CircularBuffer(self, "weights", 96-24-1-24-24, self.SB_ATOM_SZ, self.SB_ATOM_SZ*24)
+        self.circbuf_residue = CircularBuffer(self, "residue",  24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1-24))
+        self.circbuf_bias    = CircularBuffer(self, "bias",    1,          self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1))
+        self.circbuf_scratch = CircularBuffer(self, "scratch", 24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24))
         self.saved_result_files = {}
         self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
 
@@ -227,6 +228,8 @@ class CircularBuffer:
         self.total_size = self.capacity*self.atom_sz
         self.start = start
         self.circbuf_type = circbuf_type
+        self.head_pointer = 0
+        self.tail_pointer = 0
         self.reset()
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
@@ -235,6 +238,7 @@ class CircularBuffer:
         self.last_biasweight_waveop = ""
 
     def reset(self):
+        #self.head_pointer = self.tail_pointer
         self.head_pointer = 0
         self.tail_pointer = 0
         self.current_atom_id = 0
@@ -391,22 +395,28 @@ class CircularBuffer:
             self.total_filter_size = R * S
             #if (C < PEArray.NUM_ROWS and (R > 1 or S > 1)):
             #   self.replicate_multiple = min(PEArray.NUM_ROWS//C, self.total_filter_size)
+            # Here ifmap is RSM
             self.ifmap_data_len = self.dram_data_len//C
             m_data_len = M * self.item_sz
             sm_data_len = S * m_data_len
-            # For NCHW, just use ifmap size as atom size (see rule above: "different FMAPs folds will be in different atoms")
-            # Here ifmap is RSM
-            if (self.ifmap_data_len <= self.atom_sz):
+            # Folding multiple: if too high (for FP32, it is 16), there's alot of reads (more than allocated) just to perform the first matmul
+            # Just scale down by half to fit
+            folding_multiple = (C//PEArray.NUM_ROWS) * (M//PEArray.NUM_COLS)
+            atom_sz_for_computation = StateBuffer.SB_ATOM_SZ
+            if (folding_multiple > 16):
+                atom_sz_for_computation = StateBuffer.SB_ATOM_SZ // 2
+            # If RSM is less than atom, use that as atom size                
+            if (self.ifmap_data_len <= atom_sz_for_computation):
                 self.atom_data_sz = self.ifmap_data_len
             # Else find the largest   
-            elif (sm_data_len <= self.atom_sz):
-                multiple = self.atom_sz // sm_data_len
+            elif (sm_data_len <= atom_sz_for_computation):
+                multiple = atom_sz_for_computation // sm_data_len
                 self.atom_data_sz = sm_data_len * min(R, multiple)
-            elif (m_data_len <= self.atom_sz):
-                multiple = self.atom_sz // m_data_len
+            elif (m_data_len <= atom_sz_for_computation):
+                multiple = atom_sz_for_computation // m_data_len
                 self.atom_data_sz = m_data_len * min(S, multiple)
             else:
-                self.atom_data_sz = self.atom_sz
+                self.atom_data_sz = atom_sz_for_computation
         else:
             if (self.layer_format == 'NCHW'):
                 N, C, H, W = self.dram_data.shape
@@ -472,6 +482,10 @@ class CircularBuffer:
         self.allocated = [False for x in range(self.capacity)]
         self.skipped = [False for x in range(self.capacity)]
         self.consumer_of_freed_atom = [None for x in range(self.capacity)]
+        if (self.tail_pointer >= self.capacity):
+            self.tail_pointer = 0
+        if (self.head_pointer >= self.capacity):
+            self.head_pointer = 0
         self.atom_sz = self.atom_data_sz
         print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.replicate_multiple)) 
         return self.dram_data
