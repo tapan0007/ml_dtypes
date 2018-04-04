@@ -56,10 +56,10 @@ class KsubGraph:
     if len(self.__inputs) == 0:
       self.__inputs.append(self.__output)
     # Make one of the nodes input for the backend, should not matter which one
-    inputNode = self.__inputs[0]
+    inputNodes = self.__inputs
     if self.debugLevel > 0:
-      print("DEBUG: set input node %s" % inputNode.getName())
-    self.graph.setInputNode(inputNode)
+      print("DEBUG: set input nodes %s" % str([n.getName() for n in inputNodes]))
+    self.graph.setInputNodes(inputNodes)
     #hasInputOpType = any((ni.getOpType() == "Input") for ni in self.__inputs)
     #assert inputNode.getOpType() == "Input" or
     #       inputNode.getOpType() == "Const"
@@ -344,9 +344,20 @@ class KgraphPart(object):
         print("DEBUG: colorNodesFromMulti setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
 
+  # Overrides existing colors using Node Color .Node1 Color1 ... list
+  def adjustColor(self, nodeColorAdjustment):
+    for nodeName,color in zip(nodeColorAdjustment[::2], [int(x) for x in nodeColorAdjustment[1::2]]):
+      node = self.__kgraph.getNode(nodeName)
+      oldColor = self.getNodeColor(node)
+      if not oldColor == color:
+        self.setNodeColor(node, color)
+        if color + 1 > self.__numColors:
+          self.__numColors = color + 1
+        print("INFO: overrode color %d to %d on node %s" % (oldColor, color, node.getName()))
+
   # Color nodes given the partitioning strategy
   # The strategy is a keyword and arguments (for some)
-  def colorNodes(self, partitioningStrategy):
+  def colorNodes(self, partitioningStrategy, nodeColorAdjustment):
     strategy = partitioningStrategy[0]
     if strategy == "auto":
       self.colorNodesAuto()
@@ -362,6 +373,8 @@ class KgraphPart(object):
       self.colorNodesFromMulti( partitioningStrategy[1:])
     else:
       assert 0
+    if len(nodeColorAdjustment) > 0:
+      self.adjustColor(nodeColorAdjustment)
 
   # Partition into ordered list of subgraphs
   # All partitions have single output, multiple inputs
