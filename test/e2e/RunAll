@@ -576,7 +576,33 @@ class Ktests:
     plt.tight_layout()
     plt.savefig(outFile)
       
-  
+  def plotInf(self, outFile, freq, minInfps, maxInfps, keyTests):
+    test2infps = {}
+    for testName in self.testList:
+      t = self.getTestByName(testName)
+      cycles = t.qor.cycles
+      if cycles > 0:
+        infPs = freq / cycles
+        if infPs >= minInfps and infPs <= maxInfps:
+          test2infps[testName] = infPs
+    labels = sorted(test2infps, key=test2infps.get, reverse=True)
+    x = [x for x in range(len(labels))]
+    y = [test2infps[t] for t in  labels]
+    plt.figure(figsize=(12,8))
+    plt.xticks(x, labels, rotation='vertical')
+    plt.bar(x, y, width=0.5, color = 'blue')
+    for i,v in enumerate(y):
+      color = 'black'
+      if labels[i] in keyTests:
+        color = 'red'
+      plt.text(i-0.1, v+300, "%.0f" % v, rotation='vertical', color=color)
+    plt.xlabel('NN')
+    plt.ylabel('Inf [1/s]')
+    plt.title('TPB inferences per second')
+    plt.tight_layout()
+    plt.savefig(outFile)
+      
+ 
 ###############################################################################
 # Execute
 testList = selectTests(test_list.testConfigMap, test_list.testWaiver, args.level, args.test, args.test_re, args.select, args.filter)
@@ -594,4 +620,7 @@ else:
   except:
     print("WARNING: matplotlib is not installed, skipped Qor plot")
   if plotQor:
-    tests.plotTops("qor_tops.svg", 0.2, 16, {100 : 'lightgreen', 75 : 'yellow', 60 : 'orange'}, ['7-rn50_nne_fp16_wave'])
+    keyDesigns = ['7-rn50_nne_fp16_wave']
+    tests.plotTops("qor_tops.svg", 0.2, 16, {100 : 'lightgreen', 75 : 'yellow', 60 : 'orange'}, keyDesigns)
+    tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
+    
