@@ -546,7 +546,7 @@ class Ktests:
       fh.write("-" * 79 + "\n" + "PASSRATE  %d of %d  %.3f%%\n" % (countPass, countAll, 100 * countPass / countAll))
     print("INFO: wrote dashboard status into %s" % outFileName)
       
-  def plotTops(self, outFile, minTops, normalizeTo):
+  def plotTops(self, outFile, minTops, normalizeTo, pctLines, keyTests):
     test2tops = {}
     for testName in self.testList:
       t = self.getTestByName(testName)
@@ -561,8 +561,15 @@ class Ktests:
     #plt.subplots_adjust(bottom=0.7)
     plt.xticks(x, labels, rotation='vertical')
     plt.bar(x, y, width=0.5, color = 'blue')
+    for p, color in pctLines.items():
+      val = p / 100 * normalizeTo
+      plt.axhline(y=val, color=color)
+      plt.text(-3, val + 0.1, '%g%%' % p, color=color)
     for i,v in enumerate(y):
-      plt.text(i, v+1, "%.2f" % (v / normalizeTo), rotation='vertical')
+      color = 'black'
+      if labels[i] in keyTests:
+        color = 'red'
+      plt.text(i-0.3, v+0.5, "%2.0f" % (100 * v / normalizeTo), rotation='vertical', color=color)
     plt.xlabel('NN')
     plt.ylabel('Tops')
     plt.title('TOB performance')
@@ -580,8 +587,11 @@ else:
   tests.run(parallel, args.report_only)
   tests.report()
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
+  plotQor = False
   try:
     import matplotlib.pyplot as plt
-    tests.plotTops("qor_tops.svg", 0.2, 16)
+    plotQor = True
   except:
     print("WARNING: matplotlib is not installed, skipped Qor plot")
+  if plotQor:
+    tests.plotTops("qor_tops.svg", 0.2, 16, {100 : 'lightgreen', 75 : 'yellow', 60 : 'orange'}, ['7-rn50_nne_fp16_wave'])
