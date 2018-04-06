@@ -839,27 +839,27 @@ class NodeMultiply(Node):
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    fileList.append(npFileSim)
     
-    # Both inputs use teh same format 
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    # scalar_mul - first arg is scalar; element-wise: both are vectors
+    isScalar = len(npInfoIF0.npShape) == 0
     
-    # The matrix side input is handled like convolution weights
-    tfShape4Dw = npt.cmShapeToRSCM(npInfoIF1.npShape)
-    (npFileSimW, simFormatW)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4Dw)
-    tpbShape4Dw = list(npt.reorderShape(tfShape4Dw, npt.TF, npt.SIM, npt.Fmaps))
-
     layerData = {
-      "kernel_file"     : npFileSimW,
-      #"kernel_format"   : simFormatW,
-      #"kernel_shape"    : tpbShape4Dw,
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
-      "previous_layers" : [fromIfNode0.getName(), fromIfNode1.getName()],
-      "#comment"        : "supported matmul"
+      "previous_layers" : [fromIfNode1.getName()],
+      "#comment"        : "supported multiply"
     }
-    fileList.append(npFileSim)
-    fileList.append(npFileSimW)
+
+    if isScalar:
+      val = npInfoIF0.getValues()
+      assert len(val.shape) == 0
+      layerData['mul_scalar'] = np.asscalar(val.ravel()[0])
+    else:
+      layerData["previous_layers"].insert(0, fromIfNode0.getName()),
+
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
