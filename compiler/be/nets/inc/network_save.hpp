@@ -23,6 +23,10 @@ public:
                        serialize::SerWaveOp& serWaveOp) const;
     void saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
+    void saveBarrier(const wave::BarrierWaveOp* barrierWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const;
+    void saveNop(const wave::NopWaveOp* nopWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const;
 
 private:
     const Network&    m_Network;

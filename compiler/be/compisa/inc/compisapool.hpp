@@ -7,7 +7,9 @@
 
 #include "shared/inc/tpb_isa_pool.hpp"
 
-#include "events/inc/events.hpp"
+#include "compisa/inc/compisacommon.hpp"
+#include "utils/inc/types.hpp"
+
 
 namespace kcc {
 
@@ -16,13 +18,13 @@ namespace compisa {
 
 class PoolInstr : public POOL {
 public:
+    static constexpr EngineId engineId = EngineId::Pooling;
+public:
     //----------------------------------------------------------------
     PoolInstr()
         : POOL()
     {
-        // override from Inkling
-        sync.wait_event_mode    = events::WAIT_EVENT_INVALID;
-        sync.set_event_mode     = events::SET_EVENT_INVALID;
+        InitSync(sync);
     }
 
 };

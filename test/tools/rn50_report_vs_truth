@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+
+import csv
+import argparse
+import numpy as np
+from scipy import stats
+import boto3
+import json
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--label_bucket', help='specify bucket with true labels', required=True)
+parser.add_argument('--new', help='Specify new test id', required=True)
+parser.add_argument("--aws-profile", help="name of aws credentials profile to use", required=True)
+parser.add_argument("--bucket", help="test results bucket", required=True)
+args = parser.parse_args()
+
+
+session = boto3.Session(profile_name  = args.aws_profile)
+s3 = session.resource(
+    service_name='s3',
+    region_name='us-east-1')
+
+
+newFileS3Path = "%s/report.csv" % (args.new)
+newFilePath = "/tmp/report_%s" %(args.new)
+
+outputFileS3Path = "%s/report_vs_truth_%s.txt" % (args.new, args.new)
+outputFilePath = "/tmp/diff_stats_%s.txt" %(args.new)
+
+labelsJsonS3Path = "labels.json"
+labelsJsonPath = "/tmp/labels.json"
+
+s3.Bucket(args.bucket).download_file(newFileS3Path, newFilePath)
+s3.Bucket(args.label_bucket).download_file(labelsJsonS3Path, labelsJsonPath)
+
+
+f_new = open(newFilePath, 'r')
+f_output = open(outputFilePath, 'w')
+
+c_new = csv.reader(f_new)
+
+total_cnt = 0
+top5_match_cnt = 0
+top1_match_cnt = 0
+
+
+label_data = {}
+with open(labelsJsonPath) as file:
+    label_data = json.loads(file.read())
+
+for new_row in c_new:
+    image_name = new_row[0]
+    trueLabel = label_data[image_name]
+    new_row_labels = []
+    for label in new_row[1:10:2]:
+        new_row_labels.append(label.strip())
+
+    print (new_row_labels)
+    print (trueLabel)
+    if new_row_labels[0] == trueLabel:
+        top1_match_cnt += 1
+    if trueLabel in new_row_labels:
+        top5_match_cnt += 1
+
+    total_cnt += 1
+
+
+my_stats = ""
+my_stats += "results:\n"
+my_stats += "Total processed = %s\n" % total_cnt
+my_stats += "Top 1 Match count= %s\n" % top1_match_cnt
+my_stats += "Top 5 Match count= %s\n" % top5_match_cnt
+
+
+
+f_output.write(my_stats)
+print(my_stats)
+
+f_new.close()
+f_output.close()
+
+s3.Bucket(args.bucket).upload_file(outputFilePath, outputFileS3Path)

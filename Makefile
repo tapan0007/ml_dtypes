@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-RPMDIR ?= /tmp/build/rpmdir/
+RPMDIR ?= ${KAENA_PATH}/build/rpmdir/
 export RPMDIR
 PKG_VERSION ?= 1.0.0
 export PKG_VERSION

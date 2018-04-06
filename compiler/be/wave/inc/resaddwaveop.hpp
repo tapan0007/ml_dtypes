@@ -20,7 +20,7 @@
 
 #include "layers/inc/resaddlayer.hpp"
 
-#include "wave/inc/waveop.hpp"
+#include "wave/inc/poolengwaveop.hpp"
 
 
 namespace kcc {
@@ -28,7 +28,7 @@ namespace kcc {
 namespace wave {
 
 
-class ResAddWaveOp : public WaveOp {
+class ResAddWaveOp : public PoolEngWaveOp {
 public:
     class Params;
 public:
@@ -43,9 +43,6 @@ private:
 public:
     bool qResAddWaveOp() const override {
         return true;
-    }
-    EngineId gEngineId() const override {
-        return EngineId::Pooling;
     }
     static std::string gTypeStrStatic() {
         return WaveOpTypeStr_ResAdd;
@@ -136,10 +133,6 @@ public:
     }
 
 
-    // Dst
-    const DataType& gOutDtype () const {
-        return m_OutDtype;
-    }
     bool qDstIsPsum () const {
         return m_DstIsPsum;
     }
@@ -174,7 +167,6 @@ public:
 private:
     const DataType& m_InADtype;
     const DataType& m_InBDtype;
-    const DataType& m_OutDtype;
 
     kcc_int32       m_NumPartitions         = -1;
 
@@ -219,18 +211,17 @@ private:
     kcc_int32       m_DstYNum               = -1;
     kcc_int32       m_DstZStep              = -1;
     kcc_int32       m_DstZNum               = -1;
-}; // class ResAddWaveOp : public WaveOp
+}; // class ResAddWaveOp : public PoolEngWaveOp
 
 
 
 
-class ResAddWaveOp::Params : public WaveOp::Params {
+class ResAddWaveOp::Params : public PoolEngWaveOp::Params {
 public:
     bool verify() const;
 public:
     DataTypeId      m_InADtypeId            = DataTypeId::None;
     DataTypeId      m_InBDtypeId            = DataTypeId::None;
-    DataTypeId      m_OutDtypeId            = DataTypeId::None;
 
     kcc_int32       m_NumPartitions         = -1;
 

@@ -121,6 +121,15 @@ class Node(Object):
     return([item for edgelist in self.__fanout for item in edgelist])
   def getFanoutMainFlowEdges(self):
     return [e for e in self.getFanoutEdges() if e.isInMainFlow()]
+  # Like graph class nodeSuccesors, but a) localized to Node class, 2) return list of [position, node name]
+  def getFanoutNodePosNames(self):
+    nodeList = []
+    for pos in range(len(self.__fanout)):
+      edgeList = self.__fanout[pos]
+      for edge in edgeList:
+        toNode = edge.getToNode()
+        nodeList.append([pos, toNode.getName()])
+    return nodeList
   # Edge between 2 nodes (from this to another)
   def getEdgeTo(self, toNode):
     for e in self.getFanoutEdges():
@@ -809,6 +818,57 @@ class NodeMatMul(Node):
 
 
 ###############################################################################
+# Mul - element-wise multiplication
+# Unlike Matmul it uses Fmap format for both inputs
+#
+###############################################################################
+class NodeMultiply(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    
+    # Output tensor is NC format
+    npInfo = self.getNpInfo()[0]
+    if len(npInfo.npShape) == 1:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+    else:
+      assert len(npInfo.npShape) == 2
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    fileList.append(npFileSim)
+    
+    ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    # scalar_mul - first arg is scalar; element-wise: both are vectors
+    isScalar = len(npInfoIF0.npShape) == 0
+    
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : [fromIfNode1.getName()],
+      "#comment"        : "supported multiply"
+    }
+
+    if isScalar:
+      val = npInfoIF0.getValues()
+      assert len(val.shape) == 0
+      layerData['mul_scalar'] = np.asscalar(val.ravel()[0])
+    else:
+      layerData["previous_layers"].insert(0, fromIfNode0.getName()),
+
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
+###############################################################################
 # Reshape
 # Initial implementation is simply identity since data format conversions are done
 # on all nodes
@@ -857,7 +917,6 @@ class NodeReshape(Node):
 
 ###############################################################################
 # StridedSlice
-# Separate class to allow detailed debug and reporting
 #
 ###############################################################################
 class NodeStridedSlice(Node):
@@ -890,8 +949,8 @@ class NodeStridedSlice(Node):
     ((nIn, npInfoFrom), bes["Begin"], bes["End"], bes["Stride"]) = self.getInputNodesAndNpInfo()
     npInfoIndexinBes = 1
     
-    # Suppress StridedSlice in constant or reshape calculations
-    # FIX_THIS: this hsould be a graph transform
+    # Suppress StridedSlice in constant or reshape calculations in CNNs
+    # FIX_THIS: this should be a graph transform
     if len(npInfo.npShape) == 1:
       return {},[]
     
@@ -937,6 +996,7 @@ class NodeStridedSlice(Node):
 
 ###############################################################################
 # Unstack
+#
 ###############################################################################
 class NodeUnstack(Node):
   def __init__(self, name, opType, attrs):
@@ -955,13 +1015,15 @@ class NodeUnstack(Node):
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
       
     unstackAxis = self.getAttr("axis")
-      
+    nextLayerPosList = self.getFanoutNodePosNames()
+    
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "unstack_axis"    : unstackAxis,
       "previous_layers" : [fromIfNode.getName()],
+      "next_layer_order" : nextLayerPosList,
       "#comment"        : "supported const layer"
     }
     fileList.append(npFileSim)
@@ -984,7 +1046,7 @@ class Graph(Object):
     self.__name2node = {}
     self.__edges = []
     self.__mainFlowEdges = []
-    self.__inputNode = None
+    self.__inputNodes = []
     self.kaenaPath = os.environ["KAENA_PATH"]
     self.schedulerMode = schedulerMode
     self.debugLevel = debugLevel
@@ -1044,10 +1106,14 @@ class Graph(Object):
       nextNodes = self.nodeSuccessors(n)
     return(n)
   
-  def setInputNode(self, node):
-    self.__inputNode = node
+  def setInputNodes(self, nodeList):
+    self.__inputNodes = nodeList
+  def getInputNodes(self):
+    return(self.__inputNodes)
+  # Legacy API
   def getInputNode(self):
-    return(self.__inputNode)
+    print("WARNING: using legacy API getInputNode")
+    return(self.__inputNodes[0])
   
   # On a levelized graph - max depth to reach node among all paths
   # It describes "computational readiness" in the data flow:
@@ -1142,16 +1208,21 @@ class Graph(Object):
        
     fileList = []
 
-    # Input layer
-    inputNode = self.getInputNode()
-    npInfo = inputNode.getNpInfo()[0]
-    jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
-    if len(npInfo.npShape) == 4:
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-    else:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    # Input layers
+    inputNodes = self.getInputNodes()
+    for inputNode in self.getInputNodes():
+      npInfo = inputNode.getNpInfo()[0]
+      jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
+      if len(npInfo.npShape) == 4:
+        (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      elif len(npInfo.npShape) == 3:
+        # LSTM HNC input into Unstack
+        simFormat = npt.HNWC
+        (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
+      else:
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+        (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+        tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     outNpy = npFileSim
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
@@ -1323,12 +1394,15 @@ class Graph(Object):
           print("DEBUG: transferSideNodes %s -> %s, node type = %s" % (predName, nodeName, type(predNode)))
         if not self.hasNode(predName):
 
-          if predNode.isConst() or not predNode.isSupported():
-            # we do not want to promote unsupported nodes to input
-            # we want to keep constant nodes as constants
-            predNodeCopy = predNode.copy()
-          else:
+          if predNode.isMainFlowNode():
             predNodeCopy = predNode.copyAs(NodeInput, "Input")
+            inputNodes.append(predNodeCopy)
+            if self.debugLevel > 1:
+              print("DEBUG: transferSideNodes copied node %s as Input" % (predName))
+          else:
+            predNodeCopy = predNode.copy()
+            if self.debugLevel > 1:
+              print("DEBUG: transferSideNodes copied node %s" % (predName))
           self.addNode(predNodeCopy)
           if self.debugLevel > 1:
             print("DEBUG: transferSideNodes added node %s" % (predNodeCopy.getName()))
@@ -1339,10 +1413,7 @@ class Graph(Object):
               # Note - This is a noop since edge color is stored in attributes (not
               # recalculated from subgraph state). Coloring based on main graph
               # is perhaps even better
-              #eNew.setIsInMainFlow(False)
-              if srcEdge.isInMainFlow():
-                inputNodes.append(predNodeCopy)
-  
+              #eNew.setIsInMainFlow(False)  
     return list(set(inputNodes))
 
   # Returns file to append to the Kaena backend package
@@ -1356,7 +1427,7 @@ class Graph(Object):
       kGraphJsonFile =  "compiler.json"
       waveGraphJsonFile = "wavegraph.json"
 
-      # From Jeff: to generate dot without placeemnt, but not svg:  waveDotFile = outPrefix + "wavegraph.plain"
+      # From Jeff: to generate dot without placement, but not svg:  waveDotFile = outPrefix + "wavegraph.plain"
       # From Jeff: to generate dot with placeemnt, but not svg:  waveDotFile = outPrefix + "wavegraph.dot"
       if True:
         waveDotFile = outPrefix + "wavegraph.plain"
@@ -1376,6 +1447,18 @@ class Graph(Object):
             meOk = True
       return meOk, [waveGraphJsonFile, waveDotFile]
     
+  #def convertOpsWithNoArgsToConstNodes(self, OpTypes):
+    #for n is self.getNodes():
+    #  if n.getOpType in OpTypes:
+    #    if len(n.getPredecessors()) == 0:
+    #      nodeCopy = n.CopyAs(Node, "Const")
+    #      nodeCopy.setLevel(n.getLevel())
+  
+  def optimizeForInference(self):
+    pass
+    # For a legacy resnet152
+    #self.convertOpsWithNoArgsToConstNodes(["Multiply", "Sub"])
+
 
 
 

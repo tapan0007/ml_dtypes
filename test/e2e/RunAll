@@ -53,8 +53,9 @@ parser.add_argument('--test_re', help='Similar to --test but select by regexp in
 parser.add_argument('--filter', help='Like --select, but it is applied after --test, --test_re', default="any")
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
+parser.add_argument('--report_only', help='Print QoR report for the logs in teh current directory', action='store_true', default=False)
 parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=multiprocessing.cpu_count())
-parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=False)
+parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=True)
 parser.add_argument('--timeout', help='Timeout for each test, default 3600', type=int, default=3600)
 parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
 parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
@@ -365,20 +366,24 @@ class Ktests:
   def getTestByName(self, testName):
     return self.name2test[testName]
 
+  def postprocessOneTest(self, t):
+    t.calcStatus()
+    t.calcAltStatus()
+    t.calcQoR()
+    if t.passed():
+      self.numPass += 1
+    if t.failed() or t.timedout():
+      self.numFail += 1
+    reportStatus = self.calcWaivedStatus(t.name, t.status)
+    self.msg += "  %s %s" % (t.name, reportStatus)
+    if not t.status == "TIMEOUT":
+      t.testTime = time.time() - t.startTime
+  
+
   def postprocess(self, finishedProcesses):
     for p in finishedProcesses:
       t = self.getTestByProcess(p)
-      t.calcStatus()
-      t.calcAltStatus()
-      t.calcQoR()
-      if t.passed():
-        self.numPass += 1
-      if t.failed() or t.timedout():
-        self.numFail += 1
-      reportStatus = self.calcWaivedStatus(t.name, t.status)
-      self.msg += "  %s %s" % (t.name, reportStatus)
-      if not t.status == "TIMEOUT":
-        t.testTime = time.time() - t.startTime
+      self.postprocessOneTest(t)
   
   def interleaveFrontBack(self, arr, ratio):
     newArr = []
@@ -392,7 +397,7 @@ class Ktests:
     return newArr
 
   # Run tests
-  def run(self, parallel):
+  def run(self, parallel, reportOnly):
     self.parallel = parallel
     start_time = time.time()
     self.numRunning = 0
@@ -419,30 +424,36 @@ class Ktests:
       cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f  $KAENA_PATH/test/e2e/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (self.testTimeout, self.testTimeout, testName, testName, nnStruct, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs) 
       cmd +=  ' > log-top.txt 2>&1'
       # Remove the old directory
-      if os.path.exists(testName):
-        oldDir = "%s-old-%d" % (testName, os.getpid())
-        #print("DEBUG: renamed %s to %s and removed it" % (testName, oldDir))
-        os.rename(testName, oldDir)
-        shutil.rmtree(oldDir)
+      if not reportOnly:
+        if os.path.exists(testName):
+          oldDir = "%s-old-%d" % (testName, os.getpid())
+          #print("DEBUG: renamed %s to %s and removed it" % (testName, oldDir))
+          os.rename(testName, oldDir)
+          shutil.rmtree(oldDir)
 
-      while self.numRunning >= self.parallel:
-        self.checkProcesses(self.parallel)
+        while self.numRunning >= self.parallel:
+          self.checkProcesses(self.parallel)
 
-      if verbose:
-        print("Executing ", cmd)
+        if verbose:
+          print("Executing ", cmd)
+        else:
+          self.msg += "  %s START" % testName
+        p = mp.Process(target=runCmd, args=(cmd,))
+        #p.daemon = True
+        p.start()
+        self.numRunning += 1
+        self.processes.append(p)
+        t = Ktest(testName, testName, cmd)
+        self.process2test[p] = t
+        self.name2test[testName] = t
       else:
-        self.msg += "  %s START" % testName
-      p = mp.Process(target=runCmd, args=(cmd,))
-      #p.daemon = True
-      p.start()
-      self.numRunning += 1
-      self.processes.append(p)
-      t = Ktest(testName, testName, cmd)
-      self.process2test[p] = t
-      self.name2test[testName] = t
+        t = Ktest(testName, testName, cmd)
+        self.name2test[testName] = t
+        self.postprocessOneTest(t)
 
-    while self.numRunning > 0:
-      self.checkProcesses(0)
+    if not reportOnly:
+      while self.numRunning > 0:
+        self.checkProcesses(0)
 
     end_time = time.time()
     print("\nDone in %.3f sec" % (end_time - start_time))
@@ -535,7 +546,63 @@ class Ktests:
       fh.write("-" * 79 + "\n" + "PASSRATE  %d of %d  %.3f%%\n" % (countPass, countAll, 100 * countPass / countAll))
     print("INFO: wrote dashboard status into %s" % outFileName)
       
-    
+  def plotTops(self, outFile, minTops, normalizeTo, pctLines, keyTests):
+    test2tops = {}
+    for testName in self.testList:
+      t = self.getTestByName(testName)
+      tops = t.qor.tops
+      if tops >= minTops:
+        test2tops[testName] = tops
+    labels = sorted(test2tops, key=test2tops.get, reverse=True)
+    x = [x for x in range(len(labels))]
+    y = [test2tops[t] for t in  labels]
+    plt.figure(figsize=(12,8))
+    #plt.margins(0.8)
+    #plt.subplots_adjust(bottom=0.7)
+    plt.xticks(x, labels, rotation='vertical')
+    plt.bar(x, y, width=0.5, color = 'blue')
+    for p, color in pctLines.items():
+      val = p / 100 * normalizeTo
+      plt.axhline(y=val, color=color)
+      plt.text(-3, val + 0.1, '%g%%' % p, color=color)
+    for i,v in enumerate(y):
+      color = 'black'
+      if labels[i] in keyTests:
+        color = 'red'
+      plt.text(i-0.3, v+0.5, "%2.0f" % (100 * v / normalizeTo), rotation='vertical', color=color)
+    plt.xlabel('NN')
+    plt.ylabel('Tops')
+    plt.title('TPB performance')
+    plt.tight_layout()
+    plt.savefig(outFile)
+      
+  def plotInf(self, outFile, freq, minInfps, maxInfps, keyTests):
+    test2infps = {}
+    for testName in self.testList:
+      t = self.getTestByName(testName)
+      cycles = t.qor.cycles
+      if cycles > 0:
+        infPs = freq / cycles
+        if infPs >= minInfps and infPs <= maxInfps:
+          test2infps[testName] = infPs
+    labels = sorted(test2infps, key=test2infps.get, reverse=True)
+    x = [x for x in range(len(labels))]
+    y = [test2infps[t] for t in  labels]
+    plt.figure(figsize=(12,8))
+    plt.xticks(x, labels, rotation='vertical')
+    plt.bar(x, y, width=0.5, color = 'blue')
+    for i,v in enumerate(y):
+      color = 'black'
+      if labels[i] in keyTests:
+        color = 'red'
+      plt.text(i-0.1, v+300, "%.0f" % v, rotation='vertical', color=color)
+    plt.xlabel('NN')
+    plt.ylabel('Inf [1/s]')
+    plt.title('TPB inferences per second')
+    plt.tight_layout()
+    plt.savefig(outFile)
+      
+ 
 ###############################################################################
 # Execute
 testList = selectTests(test_list.testConfigMap, test_list.testWaiver, args.level, args.test, args.test_re, args.select, args.filter)
@@ -543,6 +610,17 @@ if args.show_only:
   print("INFO: --show_only mode: selected tests are " + "\n".join(testList))
 else:
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
-  tests.run(parallel)
+  tests.run(parallel, args.report_only)
   tests.report()
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
+  plotQor = False
+  try:
+    import matplotlib.pyplot as plt
+    plotQor = True
+  except:
+    print("WARNING: matplotlib is not installed, skipped Qor plot")
+  if plotQor:
+    keyDesigns = ['7-rn50_nne_fp16_wave']
+    tests.plotTops("qor_tops.svg", 0.2, 16, {100 : 'lightgreen', 75 : 'yellow', 60 : 'orange'}, keyDesigns)
+    tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
+    

@@ -14,6 +14,7 @@
 
 #include "compisa/inc/compisaset.hpp"
 #include "compisa/inc/compisawait.hpp"
+#include "compisa/inc/compisaclear.hpp"
 #include "compisa/inc/compisawrite.hpp"
 
 #include "compisa/inc/compisasimmemcpy.hpp"
@@ -22,11 +23,11 @@
 
 
 #include "utils/inc/asserter.hpp"
+#include "events/inc/events.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "nets/inc/network.hpp"
 
-#include "events/inc/eventmgr.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
@@ -34,6 +35,8 @@
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
+#include "wave/inc/barrierwaveop.hpp"
+#include "wave/inc/nopwaveop.hpp"
 
 //#include "wavecode/inc/wavecodewaveop.hpp"
 #include "wavecode/inc/wavecodesbatomload.hpp"
@@ -42,13 +45,15 @@
 #include "wavecode/inc/wavecodepool.hpp"
 #include "wavecode/inc/wavecodeactivation.hpp"
 #include "wavecode/inc/wavecoderesadd.hpp"
+#include "wavecode/inc/wavecodebarrier.hpp"
+#include "wavecode/inc/wavecodenop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
 
 namespace kcc {
 namespace wavecode {
 
-WaveCode::WaveCode(const nets::Network* network, const arch::Arch& arch)
+WaveCode::WaveCode(nets::Network* network, const arch::Arch& arch)
     : m_Network(network)
     , m_Arch(arch)
 {
@@ -58,6 +63,8 @@ WaveCode::WaveCode(const nets::Network* network, const arch::Arch& arch)
     m_CodePool              = std::make_unique<WaveCodePool>(*this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(*this);
     m_CodeResAdd            = std::make_unique<WaveCodeResAdd>(*this);
+    m_CodeBarrier           = std::make_unique<WaveCodeBarrier>(*this);
+    m_CodeNop           = std::make_unique<WaveCodeNop>(*this);
 
     m_CurrentDramAddress    = DDRC0_PORT0;
 }
@@ -69,10 +76,6 @@ void
 WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
 {
     m_ParallelStreams = parallelStreams;
-    if (m_ParallelStreams) {
-        events::EventMgr eventMgr(*m_Network);
-        eventMgr.processWaveops();
-    }
 
     m_InstrStreams = &instrStreams;
     for (auto waveOp : m_Network->gWaveOps()) {
@@ -97,6 +100,10 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         return *m_CodeActivation;
     } else if (dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
         return *m_CodeResAdd;
+    } else if (dynamic_cast<const wave::BarrierWaveOp*>(waveOp)) {
+        return *m_CodeBarrier;
+    } else if (dynamic_cast<const wave::NopWaveOp*>(waveOp)) {
+        return *m_CodeNop;
     } else {
         assert(false && "WaveCode: Unsupported WaveOp");
     }
@@ -288,6 +295,33 @@ void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& inst
 }
 
 
+template<>
+void WaveCode::writeInstruction<compisa::ClearInstr>(const compisa::ClearInstr& instruction, EngineId engId)
+{
+    Assert(qParallelStreams(), "Cannot generate SET event instruction in serial mode");
+
+    switch (engId) {
+    case EngineId::Pooling:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+        break;
+    case EngineId::PeArray:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
+        break;
+    case EngineId::Activation:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
+        break;
+    case EngineId::StreamProc:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
+        break;
+    case EngineId::DmaEng:
+        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
+        break;
+    default:
+        Assert(false, "Wrong EngineId ", static_cast<int>(engId));
+    }
+}
+
+
 
 
 
@@ -316,9 +350,9 @@ WaveCode::saveAllNpyFiles ()
         }
         compisa::SimRdNpyInstr dramToNpyInstr;
         dramToNpyInstr.sync.wait_event_id      = 0;
-        dramToNpyInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+        dramToNpyInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::DontWait);
         dramToNpyInstr.sync.set_event_id      = 0;
-        dramToNpyInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::NoEvent);
+        dramToNpyInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::DontSet);
 
         strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);
@@ -351,6 +385,9 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
     case EngineId::DmaEng:
         return arch.gTpbEventBase() + eventId;
 
+    case EngineId::AnyEng:
+        Assert(false, "AnyEng not allowed, engine id ", static_cast<int>(engId));
+
     case EngineId::None:
         Assert(false, "Bad engine id ", static_cast<int>(engId));
     }
@@ -362,12 +399,13 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
 void
 WaveCode::checkForNoSync(const TPB_CMD_SYNC& sync) const
 {
-    Assert(events::SET_EVENT_INVALID != sync.set_event_mode, "Invalid set event mode");
-    Assert(events::WAIT_EVENT_INVALID != sync.wait_event_mode, "Invalid wait event mode");
+    Assert(events::qEventSetModeValid(sync.set_event_mode), "Invalid set event mode");
+    Assert(events::qEventWaitModeValid(sync.wait_event_mode), "Invalid wait event mode");
 
     if (qParallelStreams()) {
         return;
     }
+
     Assert(NO_SET_EVENT == sync.set_event_mode,
         "Code generation: set event mode should be NONE in serial execution");
 

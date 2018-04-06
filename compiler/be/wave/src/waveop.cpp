@@ -24,11 +24,15 @@ WaveOp::WaveOp (const WaveOp::Params& params,
     , m_Order(params.m_Order)
     , m_Layer(params.m_Layer)
 {
-    assert(params.verify());
+    const bool thisIsBarrier = this->qBarrierWaveOp();
+    //assert(params.verify());
     for (auto prevWaveOp : prevWaveOps) {
         auto edge = new WaveEdge(prevWaveOp, this);
         this->m_PrevWaveEdges.push_back(edge);
         prevWaveOp->m_SuccWaveEdges.push_back(edge);
+        if (thisIsBarrier) {
+            prevWaveOp->setHasOutBarrier();
+        }
     }
 }
 
@@ -37,6 +41,31 @@ const std::string&
 WaveOp::gLayerName () const
 {
     return m_Layer->gName();
+}
+
+
+kcc_int32
+WaveOp::gNumberPrevWaitEdges() const
+{
+    kcc_int32 numWait = 0;
+    for (auto prevWaveEdge : m_PrevWaveEdges) {
+        if (prevWaveEdge->qNeedToWaitFor()) {
+            ++numWait;
+        }
+    }
+    return numWait;
+}
+
+kcc_int32
+WaveOp::gNumberSuccWaitEdges() const
+{
+    kcc_int32 numWait = 0;
+    for (auto succWaveEdge : m_SuccWaveEdges) {
+        if (succWaveEdge->qNeedToWaitFor()) {
+            ++numWait;
+        }
+    }
+    return numWait;
 }
 
 

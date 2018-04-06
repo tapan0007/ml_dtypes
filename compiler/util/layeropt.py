@@ -200,9 +200,10 @@ class StateBuffer:
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*0)
-        self.circbuf_weights = CircularBuffer(self, "weights", 96-16-4-24, self.SB_ATOM_SZ, self.SB_ATOM_SZ*24)
-        self.circbuf_bias    = CircularBuffer(self, "bias",    4,          self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-16-4))
-        self.circbuf_scratch = CircularBuffer(self, "scratch", 16,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-16))
+        self.circbuf_weights = CircularBuffer(self, "weights", 96-24-1-24-24, self.SB_ATOM_SZ, self.SB_ATOM_SZ*24)
+        self.circbuf_residue = CircularBuffer(self, "residue",  24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1-24))
+        self.circbuf_bias    = CircularBuffer(self, "bias",    1,          self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1))
+        self.circbuf_scratch = CircularBuffer(self, "scratch", 24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24))
         self.saved_result_files = {}
         self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
 
@@ -227,6 +228,8 @@ class CircularBuffer:
         self.total_size = self.capacity*self.atom_sz
         self.start = start
         self.circbuf_type = circbuf_type
+        self.head_pointer = 0
+        self.tail_pointer = 0
         self.reset()
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
@@ -235,6 +238,7 @@ class CircularBuffer:
         self.last_biasweight_waveop = ""
 
     def reset(self):
+        #self.head_pointer = self.tail_pointer
         self.head_pointer = 0
         self.tail_pointer = 0
         self.current_atom_id = 0
@@ -391,22 +395,28 @@ class CircularBuffer:
             self.total_filter_size = R * S
             #if (C < PEArray.NUM_ROWS and (R > 1 or S > 1)):
             #   self.replicate_multiple = min(PEArray.NUM_ROWS//C, self.total_filter_size)
+            # Here ifmap is RSM
             self.ifmap_data_len = self.dram_data_len//C
             m_data_len = M * self.item_sz
             sm_data_len = S * m_data_len
-            # For NCHW, just use ifmap size as atom size (see rule above: "different FMAPs folds will be in different atoms")
-            # Here ifmap is RSM
-            if (self.ifmap_data_len <= self.atom_sz):
+            # Folding multiple: if too high (for FP32, it is 16), there's alot of reads (more than allocated) just to perform the first matmul
+            # Just scale down by half to fit
+            folding_multiple = (C//PEArray.NUM_ROWS) * (M//PEArray.NUM_COLS)
+            atom_sz_for_computation = StateBuffer.SB_ATOM_SZ
+            if (folding_multiple > 16):
+                atom_sz_for_computation = StateBuffer.SB_ATOM_SZ // 2
+            # If RSM is less than atom, use that as atom size                
+            if (self.ifmap_data_len <= atom_sz_for_computation):
                 self.atom_data_sz = self.ifmap_data_len
             # Else find the largest   
-            elif (sm_data_len <= self.atom_sz):
-                multiple = self.atom_sz // sm_data_len
+            elif (sm_data_len <= atom_sz_for_computation):
+                multiple = atom_sz_for_computation // sm_data_len
                 self.atom_data_sz = sm_data_len * min(R, multiple)
-            elif (m_data_len <= self.atom_sz):
-                multiple = self.atom_sz // m_data_len
+            elif (m_data_len <= atom_sz_for_computation):
+                multiple = atom_sz_for_computation // m_data_len
                 self.atom_data_sz = m_data_len * min(S, multiple)
             else:
-                self.atom_data_sz = self.atom_sz
+                self.atom_data_sz = atom_sz_for_computation
         else:
             if (self.layer_format == 'NCHW'):
                 N, C, H, W = self.dram_data.shape
@@ -472,6 +482,10 @@ class CircularBuffer:
         self.allocated = [False for x in range(self.capacity)]
         self.skipped = [False for x in range(self.capacity)]
         self.consumer_of_freed_atom = [None for x in range(self.capacity)]
+        if (self.tail_pointer >= self.capacity):
+            self.tail_pointer = 0
+        if (self.head_pointer >= self.capacity):
+            self.head_pointer = 0
         self.atom_sz = self.atom_data_sz
         print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.replicate_multiple)) 
         return self.dram_data
@@ -507,12 +521,13 @@ class CircularBuffer:
             for i in range(sb_addr//64, (sb_addr + length)//64):
                 if tpb.statebuffer.consumer_of_64byte_morsel[i] != "":
                     previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
+                    tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
                     break
-        # string bias reads together
-        #if (self.circbuf_type == "bias" or self.circbuf_type == "weights"):
-        #    if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0):
-        #        previous_waveops.append(self.last_biasweight_waveop)
-        #    self.last_biasweight_waveop = waveop_name                
+        # string bias reads together (TODO: include weights?)
+        if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
+            if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0):
+                previous_waveops.append(self.last_biasweight_waveop)
+            self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         if (chunk_name in tpb.statebuffer.circbuf_scratch.chunk2saved_map):
             previous_waveops.append(tpb.statebuffer.circbuf_scratch.chunk2saved_map[chunk_name])
@@ -1826,6 +1841,63 @@ class TPBSched:
             }
         self.waveop_stream.add_linked(instr, [])
 
+    # generate scaleadd instruction and add it to instruction stream
+    def gen_scaleadd_waveop_inline(self, op, tile_id, src_is_psum, psum_bank_src, src_sb_address, dst_is_psum, psum_bank_dst, dram_waveops, scale_val, add_val, ):
+        layer_name = op.data["layer_name"]
+        # TODO: update in_dtype when src_is_psum is added
+        in_dtype = "float32"
+        out_dtype = "float32"
+        # TODO: refactor to some class to determine in_dtype and out_dtype
+        if (op.item_sz == 2 and not src_is_psum):
+            in_dtype = "float16"
+        elif (op.item_sz == 1 and not src_is_psum):
+            print("ERROR: item_sz %d not yet supported"%op.item_sz)
+        if (op.item_sz == 2 and not dst_is_psum):
+            out_dtype = "float16"
+        elif (op.item_sz == 1 and not dst_is_psum):
+            print("ERROR: item_sz %d not yet supported"%op.item_sz)
+        dst_x_num = 1
+        dst_y_step = 1
+        dst_y_num = 1
+        dst_z_num = 1
+        dst_z_step = 1
+        num_partitions = PEArray.NUM_COLS
+        waveop_name = layer_name+"/ScaleAdd_"+tile_id.id_string()            
+        instr = {
+              'previous_waveops'        : [],
+              'waveop_type'             : 'ScaleAdd',
+              'waveop_name'             : waveop_name,
+              'layer_name'              : layer_name,
+              'tile_id_format'          : tile_id.format,
+              'tile_id'                 : tile_id.show(),
+              'in_dtype'                : in_dtype,
+              'out_dtype'               : out_dtype,
+              'src_is_psum'             : src_is_psum,
+              'src_psum_bank_id'        : psum_bank_src,
+              'src_psum_bank_offset'    : 0,
+              'src_sb_address'          : src_sb_address, 
+              'src_x_step'              : 1,
+              'src_x_num'               : dst_x_num,
+              'src_y_step'              : dst_y_step,
+              'src_y_num'               : dst_y_num,
+              'src_z_step'              : dst_z_step,
+              'src_z_num'               : dst_z_num,
+              'dst_is_psum'             : dst_is_psum,
+              'dst_psum_bank_id'        : psum_bank_dst,
+              'dst_psum_bank_offset'    : 0,
+              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
+              'dst_x_step'              : 1,
+              'dst_x_num'               : dst_x_num,
+              'dst_y_step'              : dst_y_step,
+              'dst_y_num'               : dst_y_num,
+              'dst_z_step'              : dst_z_step,
+              'dst_z_num'               : dst_z_num,
+              'num_partitions'          : num_partitions,
+              'scale'                   : scale_val,
+              'add'                     : add_val,
+            }
+        self.waveop_stream.add_linked(instr, dram_waveops)
+
     # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
         layer_name = ""
@@ -2328,7 +2400,21 @@ class TPBSched:
 
         if (args.debug > 1): print("DBG: Total wave elements: ", op_list.conv_op.ofmap_wave_total_elems)
 
-        return result                    
+        return result                   
+
+    # Execute conv and other operations in list: for each op, load parameters and perform op with input
+    def execute_multiply(self, inputs, result_file):
+        # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
+        result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
+        tile_id = TileID(0,0,0,0,1,1,1,1)
+        wave_id = WaveID(0,0,0,0,0,0,0)
+        dram_ifmaps_waveops = tpb.statebuffer.circbuf_ifmaps.read_data_region(
+                                    wave_id, 
+                                    0,
+                                    1,
+                                    1)
+        self.gen_scaleadd_waveop_inline(op_list[0], tile_id, 0, 0, 0 ,0 ,0 , dram_ifmaps_waveops, 0, 0)
+        return result                   
 
 # Main program
 if __name__ == "__main__":
@@ -2389,6 +2475,9 @@ if __name__ == "__main__":
         elif (first_op_type == "Softmax2"):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             results = tpb.execute_softmax2(inputs, result_file)
+        elif (first_op_type == "Multiply"):
+            inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
+            results = tpb.execute_multiply(inputs, result_file)
         else:        
             print("ERROR: Unrecognized first operation %s"%first_op_type)
             exit(-1)

@@ -12,6 +12,7 @@
 
 
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/types.hpp"
 #include "utils/inc/consts.hpp"
 #include "utils/inc/datatype.hpp"
@@ -80,10 +81,19 @@ public:
     virtual bool qPoolWaveOp() const {
         return false;
     }
+    virtual bool qScaleAddWaveOp() const {
+        return false;
+    }
     virtual bool qActivationWaveOp() const {
         return false;
     }
     virtual bool qResAddWaveOp() const {
+        return false;
+    }
+    virtual bool qBarrierWaveOp() const {
+        return false;
+    }
+    virtual bool qNopWaveOp() const {
         return false;
     }
 
@@ -98,7 +108,7 @@ public:
         return m_Name;
     }
 
-    const std::string& gLayerName() const;
+    virtual const std::string& gLayerName() const;
 
     const std::vector<WaveEdge*>& gPrevWaveEdges() const {
         return m_PrevWaveEdges;
@@ -108,6 +118,18 @@ public:
         return m_SuccWaveEdges;
     }
 
+    void addPrevWaveEdge(WaveEdge* waveEdge) {
+        m_PrevWaveEdges.push_back(waveEdge);
+    }
+
+    void addSuccWaveEdge(WaveEdge* waveEdge) {
+        m_SuccWaveEdges.push_back(waveEdge);
+    }
+
+    kcc_int32 gNumberPrevWaitEdges() const;
+
+    kcc_int32 gNumberSuccWaitEdges() const;
+
     kcc_int32 gWaveAtomSize () const {
         return 1024;
     }
@@ -116,15 +138,35 @@ public:
         return m_Order;
     }
 
+    void rOrder(kcc_int32 ord) {
+        m_Order = ord;
+    }
 
+
+    bool qHasInBarrier() const {
+        return m_HasInBarrier;
+    }
+    void setHasInBarrier() {
+        Assert(! m_HasInBarrier, "Setting in-barrier on waveop that already has in-barrier");
+        m_HasInBarrier = true;
+    }
+
+    bool qHasOutBarrier() const {
+        return m_HasOutBarrier;
+    }
+    void setHasOutBarrier() {
+        Assert(! m_HasOutBarrier, "Setting out-barrier on waveop that already has out-barrier");
+        m_HasOutBarrier = true;
+    }
 
 protected:
-    std::string             m_Name          = "";
+    std::string             m_Name              = "";
     std::vector<WaveEdge*>  m_PrevWaveEdges;
     std::vector<WaveEdge*>  m_SuccWaveEdges;
     FmapDesc                m_OfmapDesc;
-    kcc_int32               m_Order = -1;
-
+    kcc_int32               m_Order             = -1;
+    bool                    m_HasInBarrier  = false;
+    bool                    m_HasOutBarrier = false;
 
 private:
     layers::Layer*          m_Layer         = nullptr;

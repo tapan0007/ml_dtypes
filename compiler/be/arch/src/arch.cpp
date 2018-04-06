@@ -1,6 +1,7 @@
 #include "shared/inc/uarch_cfg.hpp"
 
 #include "utils/inc/types.hpp"
+#include "utils/inc/asserter.hpp"
 
 #include "arch/inc/poolingeng.hpp"
 #include "arch/inc/activationeng.hpp"
@@ -33,12 +34,13 @@ enum : kcc_int64 {
 };
 
 //--------------------------------------------------------
-Arch::Arch()
+Arch::Arch(kcc_int32 numTpbEvents)
     : m_PeArray(Arch_NumberPeRows, Arch_NumberPeColumns, *this)
     , m_PsumBuffer(m_PeArray, Arch_NumberPsumBanks, Arch_NumberPsumBankEntries)
     , m_PoolingEng(m_PsumBuffer, *this)
     , m_ActivationEng(m_PsumBuffer, *this)
     , m_StateBuffer(m_PeArray, sbPartitionSizeInBytes)
+    , m_NumberTpbEvents(numTpbEvents > 0 ? numTpbEvents : NUM_TPB_EVENTS)
 {
 }
 
@@ -50,9 +52,9 @@ Arch::gArch()
 }
 
 void
-Arch::init()
+Arch::init(kcc_int32 number_events)
 {
-    s_GlobalArch = std::make_unique<Arch>();
+    s_GlobalArch = std::make_unique<Arch>(number_events);
 }
 
 std::unique_ptr<Arch> Arch::s_GlobalArch;
@@ -111,15 +113,17 @@ Arch::gTpbBaseSysAddress()
 }
 
 kcc_int64
-Arch::gNumberTpbEvents()
-{
-    return NUM_TPB_EVENTS;
-}
-
-kcc_int64
 Arch::gNumberSpEvents()
 {
     return NUM_SP_EVENTS;
+}
+
+kcc_int64
+Arch::gNumberAllTpbEvents() const
+{
+    Assert(m_NumberTpbEvents > 0,
+        "Number of events must be positive: ", m_NumberTpbEvents);
+    return m_NumberTpbEvents;
 }
 
 

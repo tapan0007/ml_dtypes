@@ -63,6 +63,8 @@ parser.add_argument('--batch', help='Batch override for late-binding networks',
                     type=int, default=1)
 parser.add_argument('--partition', help='Partition into subgraphs; use from, from_multi, meauto, or auto. The from_multi is followed by list of comma-separate cut nodes, e.g. from a,b c e,f,g . The default is none',
                     nargs='+', default=["suppauto"])
+parser.add_argument('--adjust_node_color', help='Applied after --partition; Node color Node1 color1 ...',
+                    nargs='+', default=[])
 parser.add_argument('--executors', help='Specifies executors per subgraph, e.g., tcc 1 2 3 (implies rest on host, host 0 4 5), default ""',
                     nargs='+', default=[])
 parser.add_argument('--parallel_streams', help='run execution engines in parallel', action='store_true', default=False)
@@ -101,12 +103,13 @@ if args.weights:
 if args.images != None:
   tffe.writeImages(args.out_prefix, args.images, inputNodeName, args.input_constants, args.exclude_ops_from_capture)
   kog.identifyMainFlowEdges()
+  kog.optimizeForInference()
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
   kog.writeDot(args.depth, args.out_prefix + "graph_ann.dot", "svg")
 
   kp = KgraphPartitions.KgraphPart(kog, debugLevel)
   sgJsonList = []
-  kp.colorNodes(args.partition)
+  kp.colorNodes(args.partition, args.adjust_node_color)
   kp.partitionByColor()
   kp.calcExecutorMap(args.executors)
 
