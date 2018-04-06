@@ -61,6 +61,7 @@ for new_row in c_new:
     for golden_row in golden_list:
         outs_row = new_row[:]
         if new_row[0] == golden_row[0]:
+#            print("processing image: %s" % golden_row[0])
             i = 2 # format: name, label[0], prob[0], label[1], prob[1], ..
             top5_match = True
             top1_match = True
@@ -102,7 +103,6 @@ for new_row in c_new:
             #    print("new ", new_row)
             break
         row = row + 1
-    assert(found)
     c_out.writerow(outs_row)
     top5_match_cnt += top5_match
     top1_match_cnt += top1_match
