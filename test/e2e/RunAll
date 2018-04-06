@@ -572,7 +572,7 @@ class Ktests:
       plt.text(i-0.3, v+0.5, "%2.0f" % (100 * v / normalizeTo), rotation='vertical', color=color)
     plt.xlabel('NN')
     plt.ylabel('Tops')
-    plt.title('TOB performance')
+    plt.title('TPB performance')
     plt.tight_layout()
     plt.savefig(outFile)
       
