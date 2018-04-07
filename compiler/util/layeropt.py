@@ -1700,15 +1700,18 @@ class FusedOp(list):
                 psum_bank_src = psum_bank_dst
             elif (layer_type == 'BiasAdd'):
                 tpb.activate.wait_tile_done(tile_id)
-                bias_chan_start = tile_id.m_id * PEArray.NUM_COLS
-                bias_chan_end = min(bias_chan_start + PEArray.NUM_COLS, self.conv_op.M)
-                bias_extracted = np.zeros(PEArray.NUM_COLS)
+                bias_chan_start = (tile_id.m_id//2) * PEArray.NUM_ROWS
+                bias_chan_mid_part = (tile_id.m_id%2) == 1
+                bias_chan_end = min(bias_chan_start + PEArray.NUM_ROWS, self.conv_op.M)
+                bias_extracted = np.zeros(PEArray.NUM_ROWS)
                 bias_extracted[0 : bias_chan_end - bias_chan_start] = bias[bias_chan_start : bias_chan_end]
                 bias_addr = bias_chan_start * op_list[i].item_sz
                 # TODO: use start_at_mid_part to effectively use all 128 partitions
-                dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, bias_chan_end - bias_chan_start)
+                dram_bias_waveops = []
+                if (tile_id.m_id%2 == 0):
+                    dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, bias_chan_end - bias_chan_start)
                 #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
-                psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted)
+                psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted[bias_chan_mid_part*PEArray.NUM_COLS : (bias_chan_mid_part+1)*PEArray.NUM_COLS])
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
                 #print(y-x)
                 psum_bank_dst = psum_bank_src 
