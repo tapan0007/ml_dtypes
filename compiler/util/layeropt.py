@@ -217,11 +217,11 @@ class StateBuffer:
     SB_NUM_64B_MORSELS = SB_PARTITION_SZ // 64
 
     def __init__(self):
-        self.circbuf_caps = { "ifmaps"  : 24*self.SB_ATOM_SZ, 
-                              "weights" : (self.SB_NUM_1K_ATOMS-24-24-24-1)*self.SB_ATOM_SZ, 
-                              "residue" : 24*self.SB_ATOM_SZ, 
+        self.circbuf_caps = { "ifmaps"  : 27*self.SB_ATOM_SZ, 
+                              "weights" : (self.SB_NUM_1K_ATOMS-27-27-27-1)*self.SB_ATOM_SZ, 
+                              "residue" : 27*self.SB_ATOM_SZ, 
                               "bias"    : 1*self.SB_ATOM_SZ, 
-                              "scratch" : 24*self.SB_ATOM_SZ}
+                              "scratch" : 27*self.SB_ATOM_SZ}
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         # initial sizes and start address, will be readjusted after loading data
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  self.circbuf_caps["ifmaps"],  self.SB_ATOM_SZ, 0)
@@ -330,7 +330,8 @@ class CircularBuffer:
         self.atom_data_sz = self.atom_sz
         self.need_spare_atoms = 1
         self.need_skip_atoms = False
-        self.num_kickout_atoms = 4 if self.circbuf_type == "scratch" else 0
+        self.num_kickout_atoms = 0
+        #self.num_kickout_atoms = 4 if self.circbuf_type == "scratch" else 0
         #self.num_kickout_atoms = self.capacity
         self.circbuf_ptrs = CircbufPtrs(self.capacity, self.num_kickout_atoms)
         self.num_allocated_atoms = 0
@@ -553,8 +554,8 @@ class CircularBuffer:
                 self.atom_data_sz = self.atom_sz
                 # need spare atoms for large images
                 self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
-                if self.circbuf_type == "scratch":
-                    self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
+                if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
+                        self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
                 print("Reserve %d as spare atoms"%self.need_spare_atoms)
                 if (C > 128):
                     self.need_skip_atoms = True
@@ -563,7 +564,7 @@ class CircularBuffer:
             elif (ifmap_width_data_len <= self.atom_sz):
                 if (stride_sz > 1 or filter_sz > 1):
                     self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
-                    if self.circbuf_type == "scratch":
+                    if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
                         self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
                 multiple = self.atom_sz // ifmap_width_data_len
                 multiple = min(H, multiple)
@@ -602,7 +603,7 @@ class CircularBuffer:
             stride_x = 1
         if (stride_x > 1 or filter_x > 1):
             self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
-            if self.circbuf_type == "scratch":
+            if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
                 self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
 
 
@@ -874,7 +875,7 @@ class CircularBuffer:
         return False
 
     def is_in_kickout_range(self, atom_id):
-        if (self.circbuf_type == "scratch"):
+        if (self.circbuf_type == "scratch" and self.num_kickout_atoms > 0):
             return (atom_id >= self.capacity-self.num_kickout_atoms and atom_id < self.capacity)
         else:
             return False
@@ -2389,9 +2390,9 @@ class TPBSched:
         # use conv to sum the exponential results
         # wave loop ordering scheme: nmhwcRS
         for n_id in range(op_list.conv_op.n):
-            for h_id in range(op_list.conv_op.h):
-                for w_id in range(op_list.conv_op.w):
-                    for m_id in range(op_list.conv_op.m):
+            for m_id in range(op_list.conv_op.m):
+                for h_id in range(op_list.conv_op.h):
+                    for w_id in range(op_list.conv_op.w):
                         tile_id = TileID(n_id, m_id, h_id, w_id, op_list.conv_op.n, op_list.conv_op.m, op_list.conv_op.h, op_list.conv_op.w)
                         # compute ofmap tile information (tile startx, starty, height, width)
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
@@ -2504,9 +2505,9 @@ class TPBSched:
         # wave loop ordering scheme: nmhw
         pool_op = op_list[0]
         for n_id in range(pool_op.n):
-            for h_id in range(pool_op.h):
-                for w_id in range(pool_op.w):
-                    for m_id in range(pool_op.m):
+            for m_id in range(pool_op.m):
+                for h_id in range(pool_op.h):
+                    for w_id in range(pool_op.w):
                         tile_id = TileID(n_id, m_id, h_id, w_id, pool_op.n, pool_op.m, pool_op.h, pool_op.w)
                         pool_op.compute_ofmap_tile_info(tile_id)
                         # set r_id and s_id in wave_id to zero since we are not doing convolution
@@ -2622,9 +2623,9 @@ class TPBSched:
 
         # wave loop ordering scheme: nmhwcRS
         for n_id in range(op_list.conv_op.n):
-            for h_id in range(op_list.conv_op.h):
-                for w_id in range(op_list.conv_op.w):
-                    for m_id in range(op_list.conv_op.m):
+            for m_id in range(op_list.conv_op.m):
+                for h_id in range(op_list.conv_op.h):
+                    for w_id in range(op_list.conv_op.w):
                         tile_id = TileID(n_id, m_id, h_id, w_id, op_list.conv_op.n, op_list.conv_op.m, op_list.conv_op.h, op_list.conv_op.w)
                         # compute ofmap tile information (tile startx, starty, height, width)
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
