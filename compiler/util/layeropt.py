@@ -6,8 +6,10 @@ import numpy as np
 import copy
 import argparse
 import inspect
+from layeropt_utils import CircbufPtrs
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
+from enum import Enum
 
 import sys
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
@@ -229,6 +231,8 @@ class StateBuffer:
         self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], self.SB_ATOM_SZ, self.circbuf_bias.start + self.circbuf_bias.total_size)
         # dictionary of saved result files, needed if the files are to be reread
         self.saved_result_files = {}
+        self.chunk2saved_map = {}   # holds all the saved atoms
+        self.outfile2atomsz_map = {} # holds the atom size for each output file # TODO: move to global area when we do swapping of regions
         self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
 
     def keep_scratch_and_reset(self, begin_of_first_leg = False, end_of_first_leg = False):        
@@ -236,6 +240,7 @@ class StateBuffer:
         # - When last operation in fusedop is not ResAdd, but next operation is ResAdd, then back-track, but first move Residue to IFMAPs, and scratch to Residue
         # - If both is true, just move scratch to Residue (IFMAPs is kept as input to next leg)
         # - When last operation is ResAdd, read data from Residue buffer to sum with PSUM data
+        self.circbuf_scratch.circbuf_ptrs.reset_ptrs_clear_endsink_mode()
         if (begin_of_first_leg and end_of_first_leg):
             if (self.circbuf_residue.atom_sz != self.circbuf_scratch.atom_sz):
                 self.circbuf_scratch.minibatch_multiplier *= 2
@@ -245,7 +250,6 @@ class StateBuffer:
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
-            self.circbuf_residue.doing_kickout = False
             self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
             # keep IFMAPs
         elif (begin_of_first_leg):
@@ -259,7 +263,6 @@ class StateBuffer:
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-            self.circbuf_ifmaps.doing_kickout = False
             self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
         elif (end_of_first_leg):
             start = self.circbuf_residue.start
@@ -272,7 +275,6 @@ class StateBuffer:
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
-            self.circbuf_residue.doing_kickout = False
             self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
         else:
             start = self.circbuf_ifmaps.start
@@ -281,7 +283,6 @@ class StateBuffer:
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-            self.circbuf_ifmaps.doing_kickout = False
             self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
         self.circbuf_weights.reset()    # TODO: allow weights to be reused for depth-first batching
         self.circbuf_bias.reset()
@@ -300,34 +301,6 @@ class StateBuffer:
         self.circbuf_bias.reset()
         self.circbuf_scratch.reset()
 
-    def reallocate_capacities(self):
-        start = self.circbuf_ifmaps.start
-        if (start == 0):
-            start += self.circbuf_weights.resize_capacity(self.circbuf_caps["weights"], self.circbuf_ifmaps.total_size)
-            start += self.circbuf_residue.resize_capacity(self.circbuf_caps["residue"], start)
-            start += self.circbuf_bias.resize_capacity(self.circbuf_caps["bias"], start)
-            self.circbuf_scratch.start = self.SB_PARTITION_SZ - self.circbuf_scratch.total_size
-            if (start > self.circbuf_scratch.start):
-                print("WARNING: not enough space for scratch of same size as IFMAP; resizing it to cap of %d"%(self.circbuf_caps["scratch"]))
-                self.circbuf_scratch.resize_capacity(self.circbuf_caps["scratch"], self.SB_PARTITION_SZ - self.circbuf_caps["scratch"])
-            assert(start <= self.circbuf_scratch.start)
-            if (start < self.circbuf_scratch.start):
-                print("INFO: there's extra unused space between bias and scratch of %d"%(self.circbuf_scratch.start - start))
-        else:                
-            start -= self.circbuf_ifmaps.total_size
-            assert (start > 0)
-            start -= self.circbuf_bias.resize_capacity(self.circbuf_caps["bias"], start, reverse=True)
-            assert (start > 0)
-            start -= self.circbuf_residue.resize_capacity(self.circbuf_caps["residue"], start, reverse=True)
-            assert (start > 0)
-            start -= self.circbuf_weights.resize_capacity(self.circbuf_caps["weights"], start, reverse=True)
-            self.circbuf_scratch.start = 0
-            if (start < self.circbuf_scratch.start):
-                print("WARNING: not enough space for scratch of same size as IFMAP; resizing it to cap of %d"%(self.circbuf_caps["scratch"]))
-                self.circbuf_scratch.resize_capacity(self.circbuf_caps["scratch"], 0, reverse=False)
-            if (start > 0):
-                print("INFO: there's extra unused space between bias and scratch of %d"%(start))
-
 
 ##################################################################################
 class CircularBuffer:
@@ -338,30 +311,28 @@ class CircularBuffer:
         self.total_size = self.capacity*self.atom_sz
         self.start = start
         self.circbuf_type = circbuf_type
-        self.head_pointer = 0
-        self.tail_pointer = 0
+        #self.head_pointer = 0
+        #self.tail_pointer = 0
         self.reset()
         self.DRAM_atoms_read = 0
         self.DRAM_atoms_read_short = 0
         self.DRAM_elem_read = 0
         self.DRAM_elem_written = 0
         self.DRAM_atoms_written = 0
-        self.chunk2saved_map = {}   # holds all the saved atoms
         self.minibatch_multiplier = 1
-        self.outfile2atomsz_map = {} # holds the atom size for each output file # TODO: move to global area when we do swapping of regions
         self.last_biasweight_waveop = ""
 
     def reset(self):
         #self.head_pointer = self.tail_pointer
-        self.head_pointer = 0
-        self.tail_pointer = 0
+        #self.head_pointer = 0
+        #self.tail_pointer = 0
         self.current_atom_id = 0
         self.atom_data_sz = self.atom_sz
-        self.need_spare_atoms = 0
+        self.need_spare_atoms = 1
         self.need_skip_atoms = False
-        self.num_kickout_atoms = 4
-        self.doing_kickout = False
+        self.num_kickout_atoms = 4 if self.circbuf_type == "scratch" else 0
         #self.num_kickout_atoms = self.capacity
+        self.circbuf_ptrs = CircbufPtrs(self.capacity, self.num_kickout_atoms)
         self.num_allocated_atoms = 0
         self.num_evicted_atoms = 0
         self.max_count = 0
@@ -387,29 +358,6 @@ class CircularBuffer:
         self.item_sz = 2
         self.data_type = 'float16'
         self.circbuf_stats = CircbufStats()
-
-    def resize_capacity (self, size_cap, start, reverse=False):
-        if (args.debug > 2): print("DBG %s: resizing from capacity %d total_size %d"%(self.circbuf_type, self.capacity, self.total_size))
-        self.capacity = self.dram_data_len // self.atom_sz
-        self.total_size = self.capacity*self.atom_sz
-        if (self.total_size > size_cap):
-            self.capacity = size_cap // self.atom_sz
-            self.total_size = self.capacity*self.atom_sz
-        if (reverse):
-            self.start = start - self.total_size
-        else:            
-            self.start = start
-        #self.num_kickout_atoms = self.capacity
-        self.allocated = [False for x in range(self.capacity)]
-        self.skipped = [False for x in range(self.capacity)]
-        self.consumer_of_freed_atom = [None for x in range(self.capacity)]
-        if (self.tail_pointer >= self.capacity):
-            self.tail_pointer = self.capacity-1
-        if (self.head_pointer >= self.capacity):
-            self.head_pointer = self.capacity-1
-        self.tail_pointer = self.capacity-1 
-        if (args.debug > 2): print("DBG %s: resizing to capacity %d total_size %d"%(self.circbuf_type, self.capacity, self.total_size))
-        return self.total_size
 
     def get_chunk_addr(self, addr):
         return addr // self.atom_data_sz
@@ -586,8 +534,8 @@ class CircularBuffer:
                 self.ofmap_data_len = self.item_sz
             ifmap_width_data_len = W * self.item_sz
             # reset atom_sz if loading from previously saved file
-            if (self.dram_data_in_file in tpb.statebuffer.circbuf_scratch.outfile2atomsz_map):
-                self.atom_sz = tpb.statebuffer.circbuf_scratch.outfile2atomsz_map[self.dram_data_in_file]
+            if (self.dram_data_in_file in tpb.statebuffer.outfile2atomsz_map):
+                self.atom_sz = tpb.statebuffer.outfile2atomsz_map[self.dram_data_in_file]
             # make atom size multiple of IFMAP if IFMAP is smaller than default atom size (CNHW)
             #if (self.ifmap_data_len <= self.atom_sz):
             #    multiple = self.atom_sz // self.ifmap_data_len
@@ -605,13 +553,18 @@ class CircularBuffer:
                 self.atom_data_sz = self.atom_sz
                 # need spare atoms for large images
                 self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
-                self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
+                if self.circbuf_type == "scratch":
+                    self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
                 print("Reserve %d as spare atoms"%self.need_spare_atoms)
                 if (C > 128):
                     self.need_skip_atoms = True
                     print("Reserving last atom for each wave load as skip atom")
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
+                if (stride_sz > 1 or filter_sz > 1):
+                    self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
+                    if self.circbuf_type == "scratch":
+                        self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
                 multiple = self.atom_sz // ifmap_width_data_len
                 multiple = min(H, multiple)
                 if (fmap_full_tiley_sz != 0):
@@ -625,13 +578,33 @@ class CircularBuffer:
         self.allocated = [False for x in range(self.capacity)]
         self.skipped = [False for x in range(self.capacity)]
         self.consumer_of_freed_atom = [None for x in range(self.capacity)]
-        if (self.tail_pointer >= self.capacity):
-            self.tail_pointer = 0
-        if (self.head_pointer >= self.capacity):
-            self.head_pointer = 0
+        self.circbuf_ptrs.reset_full(self.capacity, self.num_kickout_atoms)
         self.atom_sz = self.atom_data_sz
         print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.replicate_multiple)) 
         return self.dram_data
+
+    def recompute_ifmaps_params(self, op):
+        self.layer_type = "Input" #op.data['layer_type']
+        if (op.data['layer_type'] == "Conv" or op.data['layer_type'] == "MatMul"):
+            fmap_full_tiley_sz = op_list.conv_op.ofmap_full_tiley_sz * op_list.conv_op.stride_y
+            fmap_full_tilex_sz = op_list.conv_op.ofmap_full_tilex_sz * op_list.conv_op.stride_x
+            filter_x = op_list.conv_op.S
+            stride_x = op_list.conv_op.stride_x
+        elif (op.data['layer_type'] == "AvgPool" or op.data['layer_type'] == "MaxPool"):
+            fmap_full_tiley_sz = op_list.pool_op.ofmap_full_tiley_sz * op_list.pool_op.stride_y
+            fmap_full_tilex_sz = op_list.pool_op.ofmap_full_tilex_sz * op_list.pool_op.stride_x
+            filter_x = op_list.pool_op.pool_window_x
+            stride_x = op_list.pool_op.stride_x
+        else:
+            fmap_full_tiley_sz = op.ofmap_full_tiley_sz
+            fmap_full_tilex_sz = op.ofmap_full_tilex_sz
+            filter_x = 1
+            stride_x = 1
+        if (stride_x > 1 or filter_x > 1):
+            self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
+            if self.circbuf_type == "scratch":
+                self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
+
 
     def gen_dram_read_waveop(self, wave_id, atom_id, chunk_id, fmap_count, ifmaps_replicate=False):
         offset_in_file = chunk_id*self.atom_data_sz
@@ -683,10 +656,8 @@ class CircularBuffer:
                 previous_waveops.append(self.last_biasweight_waveop)
             self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
-        if (chunk_name in tpb.statebuffer.circbuf_scratch.chunk2saved_map):
-            previous_waveops.append(tpb.statebuffer.circbuf_scratch.chunk2saved_map[chunk_name])
-        if (chunk_name in tpb.statebuffer.circbuf_residue.chunk2saved_map):
-            previous_waveops.append(tpb.statebuffer.circbuf_residue.chunk2saved_map[chunk_name])
+        if (chunk_name in tpb.statebuffer.chunk2saved_map):
+            previous_waveops.append(tpb.statebuffer.chunk2saved_map[chunk_name])
         if (args.debug > 2): print("LOAD FROM DRAM: region %s layer %s file %s start %d length %d fmap_count %d fmap_data_len %d"%(self.circbuf_type, self.layer_name, simout_file, offset_in_file, length, fmap_count, fmap_data_len))
         return {
               'previous_waveops' : previous_waveops,
@@ -732,8 +703,8 @@ class CircularBuffer:
         assert(self.dram_data_out_file != None)
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
         waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
-        self.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
-        self.outfile2atomsz_map[self.dram_data_out_file] = self.atom_sz
+        self.parent.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
+        self.parent.outfile2atomsz_map[self.dram_data_out_file] = self.atom_sz
         fmap_count = ofmap_count*((tile_id.m_id%2)+1)
         if (args.debug > 2): print("SAVE TO DRAM: region %s layer %s file %s start %d length %d fmap_count %d fmap_data_len %d"%(self.circbuf_type, self.layer_name, simout_file, offset_in_file, length, fmap_count, self.ofmap_data_len))
         return {
@@ -823,19 +794,18 @@ class CircularBuffer:
         # allocate the first chunk
         # check whether the starting chunk is near end of buffer; skip to beginning if it is within spare region
         if (lower_addr_chunked not in self.chunk2atom_map):
-            while (self.is_a_spare_atom(self.tail_pointer) or self.is_a_skip_atom(self.tail_pointer)):
-                self.tail_pointer += 1
-                if (self.tail_pointer == self.capacity):
-                    self.tail_pointer = 0
-                assert (self.tail_pointer != self.head_pointer)                    
+            while (self.is_a_spare_atom(self.circbuf_ptrs.get(CircbufPtrs.TAIL)) or self.is_a_skip_atom(self.circbuf_ptrs.get(CircbufPtrs.TAIL))):
+                self.circbuf_ptrs.advance(CircbufPtrs.TAIL)
+                if (args.debug > 2): self.circbuf_ptrs.print(self.circbuf_type)
             atom_id = self.allocate_atom()
             dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, lower_addr_chunked, ifmap_count, ifmaps_replicate))
             prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, lower_addr_chunked)
+            if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, lower_addr_chunked, atom_id))
             if (prev_consumer != None):
                 dram_waveops[-1]["previous_waveops"].append(prev_consumer)
         else:
-            if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, lower_addr_chunked, self.chunk2atom_map[lower_addr_chunked]));
             atom_id = self.chunk2atom_map[lower_addr_chunked]
+            if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, lower_addr_chunked, atom_id));
         # allocate the remaining chunks
         # check whether chunk is already in the spares
         starting_spares = False
@@ -845,16 +815,18 @@ class CircularBuffer:
                     and self.chunk2skip_map[i] == atom_id+1
                     and i == upper_addr_chunked
                     ):
-                if (args.debug > 2): print("%s: reusing atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, self.chunk2skip_map[i], i, lower_addr, upper_addr))
                 atom_id = self.chunk2skip_map[i]
+                if (args.debug > 2): print("%s: reusing atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, atom_id, i, lower_addr, upper_addr))
             elif i in self.chunk2atom_map:
                 atom_id = self.chunk2atom_map[i]
+                if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, i, atom_id));
             else:
-                if (self.is_a_spare_atom(self.tail_pointer)):
+                if (self.is_a_spare_atom(self.circbuf_ptrs.get(CircbufPtrs.TAIL))):
                     starting_spares = True
                     if (i not in self.chunk2spare_map):
                         atom_id = self.allocate_atom()
                         dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
+                        if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                         prev_consumer = self.map_chunk_to_spare_atom(atom_id, i)
                         if (prev_consumer != None):
                             dram_waveops[-1]["previous_waveops"].append(prev_consumer)
@@ -869,6 +841,7 @@ class CircularBuffer:
                     if (self.need_skip_atoms and i == upper_addr_chunked):
                         atom_id = self.allocate_atom()
                         dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
+                        if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                         prev_consumer = self.map_chunk_to_skip_atom(atom_id, i)
                         if (prev_consumer != None):
                             dram_waveops[-1]["previous_waveops"].append(prev_consumer)
@@ -879,6 +852,7 @@ class CircularBuffer:
                     else:                        
                         atom_id = self.allocate_atom()
                         dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
+                        if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                         prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, i)
                         if (prev_consumer != None):
                             dram_waveops[-1]["previous_waveops"].append(prev_consumer)
@@ -933,13 +907,12 @@ class CircularBuffer:
                 self.tracked_lower_addr = -1
                 if (self.is_in_kickout_range(atom_id) 
                         or self.layer_type == "Output"
-                        or args.save_layer_output == True
+                        or args.save_layer_output
                         ):
                     dram_waveops.append(self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count))
-                    del self.chunk2atom_map[i]
-                    self.num_evicted_atoms += 1
                     if (self.is_in_kickout_range(atom_id)):
-                        self.doing_kickout = True
+                        del self.chunk2atom_map[i]
+                        self.num_evicted_atoms += 1
         return dram_waveops
 
     def free_data_region(self, lower_addr, upper_addr, waveop):
@@ -960,14 +933,15 @@ class CircularBuffer:
             self.print_stats()
             exit(-1)
             return -1
-        self.current_atom_id = self.tail_pointer
+        self.current_atom_id = self.circbuf_ptrs.get(CircbufPtrs.TAIL)
         if (self.allocated[self.current_atom_id]):
             print("ERROR %s: allocating a still allocated (non-free) atom at atom_id %d"%(self.circbuf_type, self.current_atom_id))
             self.print_stats()
             exit(-1)
         self.allocated[self.current_atom_id] = True
         if (args.debug > 2): print ("%s: Added atom_id %d for layer %s"%(self.circbuf_type, self.current_atom_id, self.layer_name))
-        self.tail_pointer = self.next_pointer(self.tail_pointer)
+        self.circbuf_ptrs.advance(CircbufPtrs.TAIL)
+        if (args.debug > 2): self.circbuf_ptrs.print(self.circbuf_type)
         self.num_allocated_atoms += 1
         if (self.num_allocated_atoms > self.max_count):
             self.max_count = self.num_allocated_atoms
@@ -975,20 +949,11 @@ class CircularBuffer:
 
     def print_allocated(self):
         if (args.debug > 2):
-            print("%s: head %d tail %d"%(self.circbuf_type, self.head_pointer, self.tail_pointer))
+            print("start %d head pointer %d, tail pointer %d"%(self.start, self.circbuf_ptrs.get[CircbufPtrs.HEAD], self.circbuf_ptrs.get[CircbufPtrs.TAIL]))
             print("%s: "%self.circbuf_type)
             for i in self.allocated:
                 print("%d"%i, end="")
             print("")
-
-    def next_pointer(self, pointer):
-        next_ptr = pointer + 1
-        if (next_ptr == self.capacity):
-            if self.doing_kickout:
-                next_ptr = self.capacity - self.num_kickout_atoms
-            else:                
-                next_ptr = 0
-        return next_ptr
 
     def free_atom(self, atom_id):   
         if (self.allocated[atom_id]):
@@ -999,8 +964,11 @@ class CircularBuffer:
         #    print ("ERROR %s: cannot free atom ID %d since it is unallocated for layer %s!"%(self.circbuf_type, atom_id, self.layer_name))
         #    return -1
         # garbage collection: advance head pointer until it sees allocated atom
-        while (not self.allocated[self.head_pointer] and self.next_pointer(self.head_pointer) != self.tail_pointer):
-            self.head_pointer = self.next_pointer(self.head_pointer)
+        while (not self.allocated[self.circbuf_ptrs.get(CircbufPtrs.HEAD)]):
+            if self.circbuf_ptrs.get(CircbufPtrs.HEAD) == self.circbuf_ptrs.get(CircbufPtrs.TAIL):
+                break
+            self.circbuf_ptrs.advance(CircbufPtrs.HEAD)
+            if (args.debug > 2): self.circbuf_ptrs.print(self.circbuf_type)
 
     def populate_stats(self, stats):
         self.circbuf_stats.sb_tot_1partition_usage      = (len(self.chunk2atom_map) + len(self.chunk2skip_map) + len(self.chunk2skip_map) + self.num_evicted_atoms)*self.atom_sz
@@ -1014,7 +982,7 @@ class CircularBuffer:
         #print("STATS circular buffer type %s layer %s: input file %s output file %s"%(self.circbuf_type, self.layer_name, self.dram_data_in_file, self.dram_data_out_file))
         if (args.debug > 1):
             print("STATS circular buffer type %s layer %s: item_sz %d capacity %d kickout %d atom_size %d num_allocated_atoms %d max_count %d num_evicted_atoms %d len(chunk2atom_map) %d len(chunk2spare_map) %d len(chunk2skip_map) %d total_size %d dram_data_len %d ifmap_data_len %d ofmap_data_len %d DRAM_elem_written %d DRAM_atoms_written %d DRAM_elem_read %d DRAM_atoms_read %d DRAM_atoms_read_short %d"%(self.circbuf_type, self.layer_name, self.item_sz, self.capacity, self.num_kickout_atoms, self.atom_sz, self.num_allocated_atoms, self.max_count, self.num_evicted_atoms, len(self.chunk2atom_map), len(self.chunk2spare_map), len(self.chunk2skip_map), self.total_size, self.dram_data_len, self.ifmap_data_len, self.ofmap_data_len, self.DRAM_elem_written, self.DRAM_atoms_written, self.DRAM_elem_read, self.DRAM_atoms_read, self.DRAM_atoms_read_short))
-            print("start %d head pointer %d, tail pointer %d"%(self.start, self.head_pointer, self.tail_pointer))
+            print("start %d head pointer %d, tail pointer %d"%(self.start, self.circbuf_ptrs.get(CircbufPtrs.HEAD), self.circbuf_ptrs.get(CircbufPtrs.TAIL)))
             #print("allocated: ", end="")
             #for i in self.allocated: print(1 if i else 0, end=" ")
             print("")
@@ -2418,9 +2386,9 @@ class TPBSched:
         # use conv to sum the exponential results
         # wave loop ordering scheme: nmhwcRS
         for n_id in range(op_list.conv_op.n):
-            for m_id in range(op_list.conv_op.m):
-                for h_id in range(op_list.conv_op.h):
-                    for w_id in range(op_list.conv_op.w):
+            for h_id in range(op_list.conv_op.h):
+                for w_id in range(op_list.conv_op.w):
+                    for m_id in range(op_list.conv_op.m):
                         tile_id = TileID(n_id, m_id, h_id, w_id, op_list.conv_op.n, op_list.conv_op.m, op_list.conv_op.h, op_list.conv_op.w)
                         # compute ofmap tile information (tile startx, starty, height, width)
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
@@ -2524,15 +2492,18 @@ class TPBSched:
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
 
+        # recompute some parameters
+        self.statebuffer.circbuf_ifmaps.recompute_ifmaps_params(op_list[-1]),
+
         # reallocate statebuffer resources
         #self.statebuffer.reallocate_capacities()
 
         # wave loop ordering scheme: nmhw
         pool_op = op_list[0]
         for n_id in range(pool_op.n):
-            for m_id in range(pool_op.m):
-                for h_id in range(pool_op.h):
-                    for w_id in range(pool_op.w):
+            for h_id in range(pool_op.h):
+                for w_id in range(pool_op.w):
+                    for m_id in range(pool_op.m):
                         tile_id = TileID(n_id, m_id, h_id, w_id, pool_op.n, pool_op.m, pool_op.h, pool_op.w)
                         pool_op.compute_ofmap_tile_info(tile_id)
                         # set r_id and s_id in wave_id to zero since we are not doing convolution
@@ -2559,7 +2530,7 @@ class TPBSched:
                                                             fmap_count,
                                                             ifmaps_replicate=False, 
                                                             start_at_mid_part=False)
-                        start_at_mid_part = (tile_id.m_id+1 == tile_id.m or tile_id.m_id%2 == 1)
+                        start_at_mid_part = tile_id.m_id%2 == 1
                         self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops, start_at_mid_part)
                         for z in range(pool_op.Tn):
                             if (tile_id.m_id+1 == tile_id.m or tile_id.m_id%2 == 1):
@@ -2648,9 +2619,9 @@ class TPBSched:
 
         # wave loop ordering scheme: nmhwcRS
         for n_id in range(op_list.conv_op.n):
-            for m_id in range(op_list.conv_op.m):
-                for h_id in range(op_list.conv_op.h):
-                    for w_id in range(op_list.conv_op.w):
+            for h_id in range(op_list.conv_op.h):
+                for w_id in range(op_list.conv_op.w):
+                    for m_id in range(op_list.conv_op.m):
                         tile_id = TileID(n_id, m_id, h_id, w_id, op_list.conv_op.n, op_list.conv_op.m, op_list.conv_op.h, op_list.conv_op.w)
                         # compute ofmap tile information (tile startx, starty, height, width)
                         op_list.conv_op.compute_ofmap_tile_info(tile_id)
@@ -2727,6 +2698,11 @@ class TPBSched:
                                     exit(-1)
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
+                        if (m_id+1 == tile_id.m or m_id%2 == 1):
+                            self.statebuffer.circbuf_scratch.free_data_region(
+                                                        output_params_op.ofmap_tile_lower_addr[0], 
+                                                        output_params_op.ofmap_tile_upper_addr[0], 
+                                                        self.waveop_stream.last_main_waveop)
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
                         psum_add = False
