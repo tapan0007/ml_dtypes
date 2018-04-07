@@ -217,11 +217,11 @@ class StateBuffer:
     SB_NUM_64B_MORSELS = SB_PARTITION_SZ // 64
 
     def __init__(self):
-        self.circbuf_caps = { "ifmaps"  : 27*self.SB_ATOM_SZ, 
-                              "weights" : (self.SB_NUM_1K_ATOMS-27-27-27-1)*self.SB_ATOM_SZ, 
-                              "residue" : 27*self.SB_ATOM_SZ, 
+        self.circbuf_caps = { "ifmaps"  : 15*self.SB_ATOM_SZ, 
+                              "weights" : (self.SB_NUM_1K_ATOMS-28-15-15-1)*self.SB_ATOM_SZ, 
+                              "residue" : 15*self.SB_ATOM_SZ,
                               "bias"    : 1*self.SB_ATOM_SZ, 
-                              "scratch" : 27*self.SB_ATOM_SZ}
+                              "scratch" : 28*self.SB_ATOM_SZ}
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         # initial sizes and start address, will be readjusted after loading data
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  self.circbuf_caps["ifmaps"],  self.SB_ATOM_SZ, 0)
@@ -244,17 +244,19 @@ class StateBuffer:
         if (begin_of_first_leg and end_of_first_leg):
             if (self.circbuf_residue.atom_sz != self.circbuf_scratch.atom_sz):
                 self.circbuf_scratch.minibatch_multiplier *= 2
-            start = self.circbuf_scratch.start
-            atom_sz = self.circbuf_scratch.atom_sz
+            new_scratch_start = self.circbuf_residue.start
+            new_scratch_atom_sz = self.circbuf_residue.atom_sz
+            if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: scratch -> residue (atom_sz %d start %d), keep ifmaps, new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_residue = self.circbuf_scratch
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
             # keep IFMAPs
         elif (begin_of_first_leg):
-            start = self.circbuf_ifmaps.start
-            atom_sz = self.circbuf_ifmaps.atom_sz
+            new_scratch_start = self.circbuf_residue.start
+            new_scratch_atom_sz = self.circbuf_residue.atom_sz
+            if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: ifmaps -> residue (atom_sz %d start %d), scratch -> ifmaps (atom_sz %d start %d), new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_ifmaps.atom_sz, self.circbuf_ifmaps.start,  self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             if (self.circbuf_residue.atom_sz != self.circbuf_ifmaps.atom_sz):
                 self.circbuf_ifmaps.minibatch_multiplier *= 2
             self.circbuf_residue = self.circbuf_ifmaps
@@ -263,10 +265,12 @@ class StateBuffer:
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
         elif (end_of_first_leg):
-            start = self.circbuf_residue.start
-            atom_sz = self.circbuf_residue.atom_sz
+            # TODO: what's the correct initial scratch start/atom_sz here??
+            new_scratch_start = self.circbuf_ifmaps.start
+            new_scratch_atom_sz = self.circbuf_ifmaps.atom_sz
+            if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: residue -> ifmaps (atom_sz %d start %d), scratch -> residue (atom_sz %d start %d), new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_residue.atom_sz, self.circbuf_residue.start,  self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_ifmaps = self.circbuf_residue
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             if (self.circbuf_residue.atom_sz != self.circbuf_scratch.atom_sz):
@@ -275,15 +279,16 @@ class StateBuffer:
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
         else:
-            start = self.circbuf_ifmaps.start
-            atom_sz = self.circbuf_ifmaps.atom_sz
+            new_scratch_start = self.circbuf_ifmaps.start
+            new_scratch_atom_sz = self.circbuf_ifmaps.atom_sz
+            if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: scratch -> ifmaps (atom_sz %d start %d), keep residue, new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_ifmaps = self.circbuf_scratch
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], atom_sz, start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
         self.circbuf_weights.reset()    # TODO: allow weights to be reused for depth-first batching
         self.circbuf_bias.reset()
 
