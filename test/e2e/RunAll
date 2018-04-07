@@ -93,27 +93,29 @@ def calcIsWaived(testName, testWaiver):
 def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSelect, argFilter):
   testList = []
   # Pre-select by level and the select method
-  for testName in sorted(testConfigMap):
-    isWaived = calcIsWaived(testName, testWaiver)
-    if getLevel(testName) <= level:
-      if argSelect == "any" or (isWaived and argSelect == "waived_only") or ((not isWaived) and argSelect == "not_waived"):
-        testList.append(testName)
-  # Check that all --test exist
-  if len(argTest) > 0:
-    wrongTests = []
-    for t in argTest:
-      if not t in testConfigMap:
-        wrongTests.append(t)
-    if len(wrongTests) > 0:
-      print("ERROR: the --test %s   do not exist" % str(wrongTests))
-      sys.exit(1)
-    testList = argTest
-  # Add--test_re
-  if len(argTestRe) > 0:
+  if len(argTest) == 0 and len(argTestRe) == 0:
     for testName in sorted(testConfigMap):
-      for regexp in argTestRe:
-        if re.search(regexp, testName):
+      isWaived = calcIsWaived(testName, testWaiver)
+      if getLevel(testName) <= level:
+        if argSelect == "any" or (isWaived and argSelect == "waived_only") or ((not isWaived) and argSelect == "not_waived"):
           testList.append(testName)
+  else:
+    # Check that all --test exist
+    if len(argTest) > 0:
+      wrongTests = []
+      for t in argTest:
+        if not t in testConfigMap:
+          wrongTests.append(t)
+      if len(wrongTests) > 0:
+        print("ERROR: the --test %s   do not exist" % str(wrongTests))
+        sys.exit(1)
+      testList = argTest
+    # Add--test_re
+    if len(argTestRe) > 0:
+      for testName in sorted(testConfigMap):
+        for regexp in argTestRe:
+          if re.search(regexp, testName):
+            testList.append(testName)
   # Filter by the --filter method
   testListFiltered = []
   for testName in testList:
@@ -607,7 +609,7 @@ class Ktests:
 # Execute
 testList = selectTests(test_list.testConfigMap, test_list.testWaiver, args.level, args.test, args.test_re, args.select, args.filter)
 if args.show_only:
-  print("INFO: --show_only mode: selected tests are " + "\n".join(testList))
+  print("INFO: --show_only mode: selected tests are\n" + "\n".join(testList))
 else:
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
   tests.run(parallel, args.report_only)

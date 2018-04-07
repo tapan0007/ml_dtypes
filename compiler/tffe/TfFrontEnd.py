@@ -13,6 +13,7 @@ import numpy as np
 from tensorflow.python.platform import gfile
 from tensorflow.core.framework import graph_pb2
 from tensorflow.python.framework import tensor_util
+from google.protobuf import text_format
 from graphviz import Digraph
 import re
 import KaenaOpGraph as kog
@@ -98,10 +99,15 @@ class TfFe:
     return(self.__kg)
   
   def loadPb(self, pbFile, focusNodeRe):
-    self.__gd = graph_pb2.GraphDef()
-    with gfile.FastGFile(pbFile,'rb') as f:
-      self.__gd.ParseFromString(f.read())
-    
+    if pbFile.endswith(".pbtxt"):
+      self.__gd = graph_pb2.GraphDef()
+      with open(pbFile) as f:
+        self.__gd = text_format.Parse(f.read(), tf.GraphDef())
+    else:
+      self.__gd = graph_pb2.GraphDef()
+      with gfile.FastGFile(pbFile,'rb') as f:
+        self.__gd.ParseFromString(f.read())
+
     self.__kg = kog.Graph(debugLevel=self.debugLevel)
     kog.Config.debugLevel = self.debugLevel
     numOps = 0
