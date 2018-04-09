@@ -11,19 +11,16 @@ print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--inputs', help='input image files',
-                    dest="inputs", default=[], nargs='+')
+                    dest="inputs", default=[], nargs='+', required=True)
 parser.add_argument('--output', help='Output fmap npy file',
-                    dest="output", default=None)
+                    dest="output", required=True)
 
 #TODO: add support
 
 
 args = parser.parse_args()
-assert(len(args.inputs) == 1)
 imgFile = args.inputs[0]
-assert(imgFile)
 ifmapFile = args.output
-assert(ifmapFile)
 
 print('Loading: ' + imgFile)
 img = Image.open(imgFile)

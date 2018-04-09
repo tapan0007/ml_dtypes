@@ -2080,7 +2080,7 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, [])
 
     # generate scaleadd instruction and add it to instruction stream
-    def gen_scaleadd_waveop_inline(self, op, tile_id, src_is_psum, psum_bank_src, src_sb_address, dst_is_psum, psum_bank_dst, dram_waveops, scale_val, add_val, ):
+    def gen_scaleadd_waveop_inline(self, op, tile_id, src_is_psum, psum_bank_src, src_sb_address, dst_is_psum, psum_bank_dst, dram_waveops, scale_val, add_val):
         layer_name = op.data["layer_name"]
         # TODO: update in_dtype when src_is_psum is added
         in_dtype = "float32"
@@ -2751,7 +2751,7 @@ class TPBSched:
         return result                   
 
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
-    def execute_multiply(self, inputs, result_file):
+    def execute_scalar_multiply(self, inputs, result_file):
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
         tile_id = TileID(0,0,0,0,1,1,1,1)
@@ -2761,7 +2761,7 @@ class TPBSched:
                                     0,
                                     1,
                                     1)
-        self.gen_scaleadd_waveop_inline(op_list[0], tile_id, 0, 0, 0 ,0 ,0 , dram_ifmaps_waveops, 0, 0)
+        self.gen_scaleadd_waveop_inline(op_list[0], tile_id, False, 0, 0, False, 0, dram_ifmaps_waveops, 0.0, 0.0)
         return result                   
 
 def print_stats_headers(stats, prefix):    
@@ -2855,8 +2855,11 @@ if __name__ == "__main__":
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             results = tpb.execute_softmax2(inputs, result_file)
         elif (first_op_type == "Multiply"):
-            inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
-            results = tpb.execute_multiply(inputs, result_file)
+            if (len(first_op.data['previous_layers']) == 1):
+                inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
+                results = tpb.execute_scalar_multiply(inputs, result_file)
+            else:                
+                print("FIX ME: Unrecognized first operation %s"%first_op_type)
         else:        
             print("ERROR: Unrecognized first operation %s"%first_op_type)
             exit(-1)

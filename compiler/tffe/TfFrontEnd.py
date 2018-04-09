@@ -10,6 +10,7 @@
 
 import tensorflow as tf
 import numpy as np
+from keras.applications.resnet50 import preprocess_input
 from tensorflow.python.platform import gfile
 from tensorflow.core.framework import graph_pb2
 from tensorflow.python.framework import tensor_util
@@ -267,7 +268,8 @@ class TfFe:
         img = np.fromstring(imageFile, dtype=inputType, sep=" ")
       else:
         img = Image.open(imageFile).resize(shapeXY)
-        img = np.array(img)
+        img = np.array(img, dtype=inputType)
+        img = preprocess_input(img)
       img = img.reshape(inputShape)
 
       tfVars = []
