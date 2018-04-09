@@ -95,6 +95,7 @@ class PEArray:
     num_of_ops_executed = 0
     total_pearray_latency_cycles = 0
     total_pearray_wave_elems = 0
+    batching_in_wave = 0
 
     def __init__(self):
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS), dtype=np.float32)
@@ -217,11 +218,11 @@ class StateBuffer:
     SB_NUM_64B_MORSELS = SB_PARTITION_SZ // 64
 
     def __init__(self):
-        self.circbuf_caps = { "ifmaps"  : 15*self.SB_ATOM_SZ, 
-                              "weights" : (self.SB_NUM_1K_ATOMS-28-15-15-1)*self.SB_ATOM_SZ, 
-                              "residue" : 15*self.SB_ATOM_SZ,
+        self.circbuf_caps = { "ifmaps"  : 16*self.SB_ATOM_SZ, 
+                              "weights" : (self.SB_NUM_1K_ATOMS-31-16-16-1)*self.SB_ATOM_SZ, 
+                              "residue" : 16*self.SB_ATOM_SZ,
                               "bias"    : 1*self.SB_ATOM_SZ, 
-                              "scratch" : 28*self.SB_ATOM_SZ}
+                              "scratch" : 31*self.SB_ATOM_SZ}
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         # initial sizes and start address, will be readjusted after loading data
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  self.circbuf_caps["ifmaps"],  self.SB_ATOM_SZ, 0)
@@ -240,7 +241,7 @@ class StateBuffer:
         # - When last operation in fusedop is not ResAdd, but next operation is ResAdd, then back-track, but first move Residue to IFMAPs, and scratch to Residue
         # - If both is true, just move scratch to Residue (IFMAPs is kept as input to next leg)
         # - When last operation is ResAdd, read data from Residue buffer to sum with PSUM data
-        self.circbuf_scratch.circbuf_ptrs.reset_ptrs_clear_endsink_mode()
+        #self.circbuf_scratch.circbuf_ptrs.reset_ptrs_clear_endsink_mode()
         if (begin_of_first_leg and end_of_first_leg):
             if (self.circbuf_residue.atom_sz != self.circbuf_scratch.atom_sz):
                 self.circbuf_scratch.minibatch_multiplier *= 2
@@ -554,31 +555,35 @@ class CircularBuffer:
                 print("ERROR %s: cannot yet handle case where number of IFMAPs > 128, and filter size is > 1"%(self.circbuf_type))
                 exit(-1)
             # To prevent crossing atom gaps for FMAPs, make it contiguous
-            elif (self.layer_type == 'Input' 
-                    and (C <= 128 or stride_sz > 1 or filter_sz > 1)):  # make contiguous if not folding, or folding but stride > 1, or filter size > 1
-                self.atom_data_sz = self.atom_sz
-                # need spare atoms for large images
-                self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
-                if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
-                        self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
-                print("Reserve %d as spare atoms"%self.need_spare_atoms)
-                if (C > 128):
-                    self.need_skip_atoms = True
-                    print("Reserving last atom for each wave load as skip atom")
+            #elif (self.layer_type == 'Input' 
+            #        and (C <= 128 or stride_sz > 1 or filter_sz > 1)):  # make contiguous if not folding, or folding but stride > 1, or filter size > 1
+            #    self.atom_data_sz = self.atom_sz
+            #    # need spare atoms for large images
+            #    self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
+            #    if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
+            #            self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
+            #    print("Reserve %d as spare atoms"%self.need_spare_atoms)
+            #    if (C > 128):
+            #        self.need_skip_atoms = True
+            #        print("Reserving last atom for each wave load as skip atom")
             # make atom size multiple of width data length if it is smaller than default atom size
             elif (ifmap_width_data_len <= self.atom_sz):
-                if (stride_sz > 1 or filter_sz > 1):
-                    self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_sz))
-                    if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
-                        self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
                 multiple = self.atom_sz // ifmap_width_data_len
                 multiple = min(H, multiple)
                 if (fmap_full_tiley_sz != 0):
                     if (fmap_full_tiley_sz < multiple):
-                        multiple = (multiple//fmap_full_tiley_sz)*fmap_full_tiley_sz
+                        multiple = fmap_full_tiley_sz
+                    elif (fmap_full_tiley_sz//stride_sz < multiple):
+                        multiple = fmap_full_tiley_sz//stride_sz
                 self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
             else:
                 self.atom_data_sz = self.atom_sz
+            # need spare atoms for the case that OFMAP tile needs overlaps in IFMAP tile                            
+            if (stride_sz > 1 or filter_sz > 1):
+                self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_data_sz))
+                print("Reserve %d as spare atoms"%self.need_spare_atoms)
+                if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
+                    self.num_kickout_atoms = self.need_spare_atoms + self.num_kickout_atoms
         # make atom_sz same as atom_data_sz
         self.capacity = self.total_size//self.atom_data_sz
         self.allocated = [False for x in range(self.capacity)]
@@ -915,8 +920,10 @@ class CircularBuffer:
                         or self.layer_type == "Output"
                         or args.save_layer_output
                         ):
+                    if (args.debug > 2): print("%s: saving atom ID %d (chunk %d)"%(self.circbuf_type, atom_id, i))
                     dram_waveops.append(self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count))
-                    if (self.is_in_kickout_range(atom_id)):
+                    if (self.is_in_kickout_range(atom_id) or self.item_sz == 4):
+                        if (args.debug > 2): print("%s: deleting atom ID %d (chunk %d)"%(self.circbuf_type, atom_id, i))
                         del self.chunk2atom_map[i]
                         self.num_evicted_atoms += 1
         return dram_waveops
