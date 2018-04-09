@@ -11,6 +11,10 @@
 #include "utils/inc/printers.hpp"
 #include "utils/inc/datatype.hpp"
 
+#include "nets/inc/network.hpp"
+#include "events/inc/events.hpp"
+#include "events/inc/eventmgr.hpp"
+
 #include "arch/inc/arch.hpp"
 #include "memmgr/inc/statebuffermgr.hpp"
 #include "codegen/inc/codegen.hpp"
@@ -57,6 +61,28 @@ FILE* openObjectFile(const std::string& objFileName, const char* engineName)
     return file;
 }
 
+static
+void writeOutJson(nets::Network* ntwk, const char* jsonInFileName)
+{
+    char JsonOutFileName[256];
+    const char* p = jsonInFileName;
+    char* q = JsonOutFileName;
+    while (*p) {
+        if (*p == '.') {
+            *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
+        }
+        *q++ = *p++;
+    }
+    *q = '\0';
+
+    std::ofstream os(JsonOutFileName);
+
+    std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
+    cereal::JSONOutputArchive ar(os);
+    ntwk->save(ar);
+    std::cout << "Finished writing NN JSON to file '" << JsonOutFileName << "'\n";
+}
+
 //------------------------------------------------
 
 int
@@ -72,6 +98,8 @@ Main(int argc, char* argv[])
     bool ParallelStreams = false;
     const char* JsonInFileName = nullptr;
     bool useWave = false;
+
+    kcc_int32 numTpbEvents = -1;
 
     int i = 1;
     while (i < argc) {
@@ -91,6 +119,9 @@ Main(int argc, char* argv[])
             DoBatching = true;
         } else if (arg == "--parallel_streams") {
             ParallelStreams = true;
+        } else if (arg == "--number-tpb-events") {
+            numTpbEvents = atoi(argv[i+1]);
+            ++i;
         } else
 #endif
         if (arg == "--json") {
@@ -110,6 +141,10 @@ Main(int argc, char* argv[])
             i += 1;
         } else {
             std::cerr << "Wrong argument: " << arg << "\n";
+            std::cerr << "Legal argumens:\n";
+            std::cerr << "  --parallel_streams\n";
+            std::cerr << "  --wavegraph\n";
+            std::cerr << "  --json\n";
             exit(1);
         }
 
@@ -123,16 +158,23 @@ Main(int argc, char* argv[])
 
 
     //------------------------------------------------
-    arch::Arch::init();
+    arch::Arch::init(numTpbEvents);
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer psumBuf(arch.gPsumBuffer());
     std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
 
     // Does not matter which DataType because entry index is 0.
     const utils::DataTypeFloat32 dtypeFloat32;
-    std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
-    std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  " << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
-    std::cout << "Arch: number TPB events = " << arch::Arch::gNumberTpbEvents() << "\n";
+    std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  "
+              << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
+    std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  "
+              << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
+    std::cout << "Arch: number all TPB events = "
+              << arch::Arch::gArch().gNumberAllTpbEvents()
+              << ", number reserved TPB events = "
+              << events::EventMgr::gNumberReservedTpbEvents()
+              << "\n";
+    std::cout << "Events: invalid EventId = " << events::EventId_Invalid() << "\n";
 
 #if 0
     const arch::StateBuffer stateBuf(arch.gStateBuffer());
@@ -208,6 +250,7 @@ Main(int argc, char* argv[])
                 std::cout << "\n";
             }
         }
+        writeOutJson(ntwk, JsonInFileName);
     } else {
         wavecode::WaveCode::InstrStreams instrStreams;
         if (ParallelStreams) {
@@ -228,6 +271,10 @@ Main(int argc, char* argv[])
             objFileName = ntwk->gName() + "-act.tpb";
             instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine");
 
+            if (ParallelStreams) {
+                events::EventMgr eventMgr(*ntwk);
+                eventMgr.processWaveops();
+            }
         } else {
             std::string objFileName(ntwk->gName() + ".tpb");
             FILE* file = openObjectFile(objFileName, "all");
@@ -239,34 +286,16 @@ Main(int argc, char* argv[])
             instrStreams.m_DmaInstrStream           = file;
         }
 
+        writeOutJson(ntwk, JsonInFileName);
+
         wavecode::WaveCode waveCode(ntwk, arch);
         waveCode.generate(instrStreams, ParallelStreams);
-    }
-
-    //--------------------------------------------------------
-    { // writing is after generate() because generate() sets events
-        char JsonOutFileName[256];
-        const char* p = JsonInFileName;
-        char* q = JsonOutFileName;
-        while (*p) {
-            if (*p == '.') {
-                *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
-            }
-            *q++ = *p++;
-        }
-        *q = '\0';
-
-        std::ofstream os(JsonOutFileName);
-
-        std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
-        cereal::JSONOutputArchive ar(os);
-        ntwk->save(ar);
     }
 
     return 0;
 }
 
-}
+} // namespace kcc
 
 int
 main(int argc, char* argv[])

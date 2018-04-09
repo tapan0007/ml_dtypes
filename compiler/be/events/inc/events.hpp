@@ -6,6 +6,8 @@
 #include "shared/inc/uarch_cfg.hpp"
 #include "shared/inc/tpb_isa.hpp"
 
+#include "arch/inc/arch.hpp"
+
 //Event_t
 static_assert(NUM_TPB_EVENTS <= (1U << 8*sizeof(TPB_CMD_SYNC::wait_event_id)),
     "Number of TPB events (NUM_TPB_EVENTS) too large for type Event_t");
@@ -19,10 +21,7 @@ namespace events {
 //**********************************************************************
 using EventId = kcc_int32;
 
-static constexpr EventId EventId_Invalid()
-{
-    return NUM_TPB_EVENTS - 1;
-}
+EventId EventId_Invalid();
 
 constexpr kcc_int32 KccMax3(kcc_int32 a, kcc_int32 b, kcc_int32 c)
 {
@@ -43,20 +42,23 @@ enum {
  *                                                              *
  ****************************************************************/
 enum class EventWaitMode {
-    NoEvent         = NO_WAIT_EVENT,
-    SetOnly         = WAIT_EVENT_SET,
-    SetThenClear    = WAIT_EVENT_SET_THEN_CLEAR,
+    DontWait        = NO_WAIT_EVENT,
+    WaitOnly        = WAIT_EVENT_SET,
+    WaitThenClear   = WAIT_EVENT_SET_THEN_CLEAR,
 
     Invalid         = WAIT_EVENT_INVALID
 };
 
 enum class EventSetMode {
-    NoEvent         = NO_SET_EVENT,
+    DontSet         = NO_SET_EVENT,
     OnEndRdSrc      = SET_EVENT_ON_END_RD_SRC,
     OnEndWrDst      = SET_EVENT_ON_END_WR_DST,
 
     Invalid         = SET_EVENT_INVALID
 };
+
+bool qEventWaitModeValid(kcc_int32 mode);
+bool qEventSetModeValid(kcc_int32 mode);
 
 
 

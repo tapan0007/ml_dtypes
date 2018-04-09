@@ -1,19 +1,25 @@
 
 #include "utils/inc/asserter.hpp"
 
+#include "arch/inc/arch.hpp"
 #include "events/inc/events.hpp"
 
 
 namespace kcc {
 namespace events {
 
+EventId EventId_Invalid()
+{
+    return arch::Arch::gArch().gNumberAllTpbEvents() - 1;
+}
+
 /****************************************************************
  *                                                              *
  ****************************************************************/
 Channel::Channel()
-    : m_SetEventMode(EventSetMode::NoEvent)
+    : m_SetEventMode(EventSetMode::DontSet)
     , m_EventId(EventId_Invalid())
-    , m_WaitEventMode(EventWaitMode::NoEvent)
+    , m_WaitEventMode(EventWaitMode::DontWait)
 { }
 
 
@@ -26,6 +32,15 @@ Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
 }
 
 
+bool qEventSetModeValid(kcc_int32 mode)
+{
+    return NO_WAIT_EVENT==mode || WAIT_EVENT_SET==mode || WAIT_EVENT_SET_THEN_CLEAR==mode;
+}
+
+bool qEventWaitModeValid(kcc_int32 mode)
+{
+    return NO_SET_EVENT==mode || SET_EVENT_ON_END_RD_SRC==mode || SET_EVENT_ON_END_WR_DST==mode;
+}
 
 
 /****************************************************************
@@ -35,13 +50,13 @@ int
 eventWaitMode2Int(EventWaitMode mode)
 {
     switch(mode) {
-    case EventWaitMode::NoEvent:
+    case EventWaitMode::DontWait:
         return NO_WAIT_EVENT;
         break;
-    case EventWaitMode::SetOnly:
+    case EventWaitMode::WaitOnly:
         return WAIT_EVENT_SET;
         break;
-    case EventWaitMode::SetThenClear:
+    case EventWaitMode::WaitThenClear:
         return WAIT_EVENT_SET_THEN_CLEAR;
         break;
     case EventWaitMode::Invalid:
@@ -61,7 +76,7 @@ int
 eventSetMode2Int(EventSetMode mode)
 {
     switch(mode) {
-    case EventSetMode::NoEvent:
+    case EventSetMode::DontSet:
         return NO_SET_EVENT;
         break;
     case EventSetMode::OnEndRdSrc:

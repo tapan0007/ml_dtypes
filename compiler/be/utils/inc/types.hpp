@@ -59,6 +59,17 @@ using TpbAddress            = Integer<kcc_int32, TpbAddressTag>;
 using TongaAddress          = Integer<kcc_int64, TongaAddressTag>;
 
 
+enum class EngineId {
+    None,
+    PeArray,
+    Activation,
+    Pooling,
+    StreamProc,
+    DmaEng,
+    AnyEng, // when an instruction can be execed on several engines: WAIT,SET,WRITE
+};
+enum { NumberRealEngines = 5 };  // PeArray, ..., DmaEng
+
 //**********************************************************************
 enum class WaveOpType {
     Load,
@@ -67,6 +78,9 @@ enum class WaveOpType {
     MatMul,
     Activation,
     ResAdd,
+    Barrier,
+    Nop,
+    ScaleAdd,
 };
 
 //**********************************************************************
@@ -112,6 +126,8 @@ namespace utils {
 
 const std::string& poolType2Str(PoolType poolType);
 PoolType           poolTypeStr2Id(const std::string&);
+const std::string& engineId2Str(EngineId engId);
+EngineId engineId2Str(const std::string& str);
 
 constexpr kcc_int64 power2(kcc_int64 b) {
     return 1 << (b);

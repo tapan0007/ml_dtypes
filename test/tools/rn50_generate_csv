@@ -62,16 +62,22 @@ def main():
         os.remove(f)
 
     # create csv
-    str = ""
+    csv_str = ""
     for d in glob.glob("%s/*jpg" % workingPath):
-        str += os.path.basename(d) + ", "
-        image_report = "%s/%s" %(d, "rn50_classify_out.txt")
-        with open(image_report, 'r') as myfile:
-            str += myfile.read().replace('\n', '')
-        str += "\n"
+        try:
+            line = ""
+            line += os.path.basename(d) + ", "
+            image_report = "%s/%s" %(d, "rn50_classify_out.txt")
+            with open(image_report, 'r') as myfile:
+                line += myfile.read().replace('\n', '')
+                line += "\n"
+        except:
+            line = ""
+            print("Could not load classify output for image %s" % myfile)
+        csv_str += line
     image_report = "%s/%s" %(workingPath, "report.csv")
     with open(image_report, 'w') as myfile:
-        myfile.write(str)
+        myfile.write(csv_str)
 
     # upload report
     bucket.upload_file(image_report, "%s/%s" %(args.testid, os.path.basename(image_report)))

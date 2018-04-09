@@ -91,9 +91,9 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     resaddInstr.dst_z_num       = resaddWaveop->gDstZNum();
 
     resaddInstr.sync.wait_event_id    = 0;
-    resaddInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    resaddInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::DontWait);
     resaddInstr.sync.set_event_id    = 0;
-    resaddInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+    resaddInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::DontSet);
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events

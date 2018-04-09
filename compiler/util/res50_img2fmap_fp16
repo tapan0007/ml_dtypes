@@ -4,6 +4,7 @@ import sys
 import numpy as np
 from PIL import Image
 import argparse
+from keras.applications.resnet50 import preprocess_input, decode_predictions
 
 
 print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
@@ -29,6 +30,7 @@ img = Image.open(imgFile)
 imgSized = img.resize((224, 224))
 npArr = np.array(imgSized, dtype=np.float16)
 fmap = npArr.reshape(1, 224, 224, 3)
+fmap = preprocess_input(fmap)
 #fmapNCHW = fmap.transpose(0, 3, 1, 2)
 np.save(ifmapFile, fmap)
 print('Wrote: '+ ifmapFile)

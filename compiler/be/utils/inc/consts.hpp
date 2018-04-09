@@ -9,15 +9,6 @@
 
 namespace kcc {
 
-enum class EngineId {
-    None,
-    PeArray,
-    Activation,
-    Pooling,
-    StreamProc,
-    DmaEng,
-};
-
 enum {
     FMAP_TENSOR_RANK = 4,
     FILTER_TENSOR_RANK = 4,
@@ -71,6 +62,16 @@ constexpr const char* const WaveOpTypeStr_MatMul        = "MatMul";
 constexpr const char* const WaveOpTypeStr_Pool          = "Pool";
 constexpr const char* const WaveOpTypeStr_Activation    = "Activation";
 constexpr const char* const WaveOpTypeStr_ResAdd        = "ResAdd";
+constexpr const char* const WaveOpTypeStr_Barrier       = "Barrier";
+constexpr const char* const WaveOpTypeStr_Nop           = "Nop";
+constexpr const char* const WaveOpTypeStr_ScaleAdd      = "ScaleAdd";
+
+
+constexpr const char* const EngineIdStr_PeArray         = "PeArrayEng";
+constexpr const char* const EngineIdStr_Pool            = "PoolEng";
+constexpr const char* const EngineIdStr_Activation      = "ActivationEng";
+constexpr const char* const EngineIdStr_StreamProc      = "StreamProcEng";
+constexpr const char* const EngineIdStr_Dma             = "DmaEng";
 
 } // namespace kcc
 

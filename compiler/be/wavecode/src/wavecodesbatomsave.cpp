@@ -55,14 +55,14 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     compisa::SimMemCpyInstr statebufToDramInstr;
 
     statebufToDramInstr.sync.set_event_id       = 0;
-    statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::NoEvent);
+    statebufToDramInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::DontSet);
     statebufToDramInstr.sync.wait_event_id      = 0;
-    statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    statebufToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::DontWait);
 
-    events::EventId setEventId          = events::EventId_Invalid();
-    events::EventSetMode setEventMode   = events::EventSetMode::NoEvent;
-    events::EventId waitEventId         = events::EventId_Invalid();
-    events::EventWaitMode waitEventMode = events::EventWaitMode::NoEvent;
+    events::EventId setEventId          = 0; // events::EventId_Invalid();
+    events::EventSetMode setEventMode   = events::EventSetMode::DontSet;
+    events::EventId waitEventId         = 0; // events::EventId_Invalid();
+    events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
 
     //************************************************************************
     if (qParallelStreams()) { // Incoming edges/events: Wait for events from predecessors
@@ -88,9 +88,9 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
         // TODO: add synchronization during DMA through extra DMA descriptor
         if (qParallelStreams()) {
             statebufToDramInstr.sync.wait_event_id      = 0;
-            statebufToDramInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+            statebufToDramInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::DontWait);
             statebufToDramInstr.sync.set_event_id       = 0;
-            statebufToDramInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+            statebufToDramInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::DontSet);
 
             if (0 == partIdx) { // only the first reading waits for predecessors
                 statebufToDramInstr.sync.wait_event_id      = waitEventId;

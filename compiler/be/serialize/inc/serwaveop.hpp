@@ -182,6 +182,7 @@ constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
 
 constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
+constexpr static const char* WaveOpKey_EngineName           = "engine_name";
 
 
 
@@ -203,8 +204,7 @@ public:
     void load(Archive & archive);
 
 
-    void addPreviousWaveOp(const std::string& prevWaveOp) {
-        m_PreviousWaveOps.push_back(prevWaveOp);
+    void addPreviousWaveOp(const std::string& prevWaveOp) { m_PreviousWaveOps.push_back(prevWaveOp);
     }
     void addPreviousEventId(events::EventId eventId) {
         m_PreviousEventIds.push_back(eventId);
@@ -231,6 +231,8 @@ private:
     void saveMatMul(cereal::JSONOutputArchive& archive) const;
     void saveActivation(cereal::JSONOutputArchive& archive) const;
     void saveResAdd(cereal::JSONOutputArchive& archive) const;
+    void saveBarrier(cereal::JSONOutputArchive& archive) const;
+    void saveNop(cereal::JSONOutputArchive& archive) const;
 
 protected:
     bool verify() const;
@@ -243,6 +245,8 @@ private:
     bool verifyPool() const;
     bool verifyActivation() const;
     bool verifyResAdd() const;
+    bool verifyBarrier() const;
+    bool verifyNop() const;
 
 public:
     // common to all
@@ -253,6 +257,8 @@ public:
     std::vector<int>            m_PreviousEventIds;
     std::vector<int>            m_PreviousEventWaitModes;
     std::vector<int>            m_PreviousEventSetModes;
+
+    std::string                 m_EngineName;
 
     // SBAtom
     kcc_int64                   m_SbAddress         = -1;

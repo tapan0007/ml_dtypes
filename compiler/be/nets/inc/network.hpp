@@ -37,6 +37,8 @@ namespace wave {
     class PoolWaveOp;
     class ActivationWaveOp;
     class ResAddWaveOp;
+    class BarrierWaveOp;
+    class NopWaveOp;
 }
 namespace schedule {
     class LayerLevel;
@@ -114,6 +116,7 @@ public:
         return m_Layers.size();
     }
 
+
     std::vector<wave::WaveOp*>& gWaveOps() {
         return m_WaveOps;
     }
@@ -121,6 +124,15 @@ public:
     const std::vector<wave::WaveOp*>& gWaveOps() const {
         return m_WaveOps;
     }
+
+    wave::WaveOp* gWaveOp(kcc_int32 waveIdx) const {
+        return m_WaveOps[waveIdx];
+    }
+
+    kcc_int32 gNumberWaveops() const {
+        return m_WaveOps.size();
+    }
+
 
     const DataType& gDataType() const {
         return *m_DataType;
@@ -138,6 +150,8 @@ public:
     void rUseWave (bool useWave) {
         m_UseWave = useWave;
     }
+
+    void replaceWaveops(std::vector<wave::WaveOp*>& newWaveops);
 
 
 

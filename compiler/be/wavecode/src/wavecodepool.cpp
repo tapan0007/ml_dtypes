@@ -94,9 +94,9 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                                             poolWaveop->gDstSbAddress());
 
     poolInstr.sync.wait_event_id    = 0;
-    poolInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::NoEvent);
+    poolInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::DontWait);
     poolInstr.sync.set_event_id    = 0;
-    poolInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::NoEvent);
+    poolInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::DontSet);
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events

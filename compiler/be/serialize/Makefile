@@ -3,7 +3,9 @@ MODULE:=serialize
 MODS := $(MODULE) utils 
 
 ########################################################
-SRCS := serlayer serwaveop serwaveop_load serwaveop_save
+FILES := layer waveop waveop_load waveop_save
+SRCS := $(addprefix ser,$(FILES))
+########################################################
 
 ########################################################
 include ../Makefile.common
