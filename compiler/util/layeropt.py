@@ -211,18 +211,19 @@ class BiasAddAct:
 class StateBuffer:
 
     SB_NUM_PARTITIONS = 128
-    SB_ATOM_SZ = 1024 # can be down to 256B for maximum DMA efficiency
-    #SB_ATOM_SZ = 2048 # can be down to 256B for maximum DMA efficiency
-    SB_PARTITION_SZ = 96*SB_ATOM_SZ # 96KB per partition
+    #SB_ATOM_SZ = 1024
+    SB_ATOM_SZ = 2048
+    #SB_ATOM_SZ = 4096
+    SB_PARTITION_SZ = 96*1024# 96KB per partition
     SB_NUM_1K_ATOMS = SB_PARTITION_SZ//SB_ATOM_SZ
     SB_NUM_64B_MORSELS = SB_PARTITION_SZ // 64
 
     def __init__(self):
-        self.circbuf_caps = { "ifmaps"  : 16*self.SB_ATOM_SZ, 
-                              "weights" : (self.SB_NUM_1K_ATOMS-31-16-16-1)*self.SB_ATOM_SZ, 
-                              "residue" : 16*self.SB_ATOM_SZ,
-                              "bias"    : 1*self.SB_ATOM_SZ, 
-                              "scratch" : 31*self.SB_ATOM_SZ}
+        self.circbuf_caps = { "ifmaps"  : 16*1024, 
+                              "weights" : (96-30-16-16-2)*1024,
+                              "residue" : 16*1024,
+                              "bias"    : 2*1024,
+                              "scratch" : 30*1024}
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         # initial sizes and start address, will be readjusted after loading data
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  self.circbuf_caps["ifmaps"],  self.SB_ATOM_SZ, 0)
@@ -502,7 +503,9 @@ class CircularBuffer:
             folding_multiple = (C//PEArray.NUM_ROWS) * (M//PEArray.NUM_COLS)
             atom_sz_for_computation = StateBuffer.SB_ATOM_SZ
             if (folding_multiple > 16):
-                atom_sz_for_computation = StateBuffer.SB_ATOM_SZ // 2
+                atom_sz_for_computation = StateBuffer.SB_ATOM_SZ // 8
+            elif (folding_multiple > 8):
+                atom_sz_for_computation = StateBuffer.SB_ATOM_SZ // 4
             # If RSM is less than atom, use that as atom size                
             if (self.ifmap_data_len <= atom_sz_for_computation):
                 self.atom_data_sz = self.ifmap_data_len
