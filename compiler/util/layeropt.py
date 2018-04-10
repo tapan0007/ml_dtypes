@@ -202,7 +202,6 @@ class StateBuffer:
         self.circbuf_residue = CircularBuffer(self, "residue",  24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1-24))
         self.circbuf_bias    = CircularBuffer(self, "bias",    1,          self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1))
         self.circbuf_scratch = CircularBuffer(self, "scratch", 24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24))
-        self.saved_result_files = {}
         self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
 
     def print_stats(self):        
@@ -315,8 +314,9 @@ class CircularBuffer:
                 filter_x = 1
                 stride_x = 1
             for j in op.prev:
-                if j.data['layer_name'] in self.parent.saved_result_files:
-                    self.dram_data_in_file = self.parent.saved_result_files[j.data['layer_name']]
+                print("%s %s"%(j.data['layer_name'], j.result_file))
+                if j.result_file is not None:
+                    self.dram_data_in_file = j.result_file
                     self.layer_name = j.data['layer_name']
                     self.layer_format = j.data['ofmap_format']
                     self.layer_shape = j.data['ofmap_shape']
@@ -341,8 +341,8 @@ class CircularBuffer:
             if (op.data['layer_type'] == "ResAdd" and file_name == None):
                 assert(self.dram_data_in_file != None)  # make sure that scratch has been initialized with output data
                 for j in op.prev:
-                    if j.data['layer_name'] in self.parent.saved_result_files:
-                        self.dram_data_in_file = self.parent.saved_result_files[j.data['layer_name']]
+                    if j.result_file is not None:
+                        self.dram_data_in_file = j.result_file
                         self.layer_name = j.data['layer_name']
                         self.layer_format = j.data['ofmap_format']
                         self.layer_shape = j.data['ofmap_shape']
@@ -840,6 +840,7 @@ class KNode:
         self.ofmap_wave_total_elems = 0
         self.stridedslice_chan_offset = 0
         self.unstack_h_offset = 0
+        self.result_file = None
         self.pool_window_y = 1
         self.pool_window_x = 1
         self.stride_y = 1
@@ -1818,6 +1819,11 @@ class KGraph:
         }
         id_pool_op = KNode(id_pool_layer_data, self.item_sz, self.data_type)
         id_pool_op.prev.append(last_op)
+        for next_op in last_op.next:
+            for j in range(len(next_op.prev)):
+                if next_op.prev[j] == last_op:
+                    del next_op.prev[j]
+                    next_op.prev.append(id_pool_op)
         return id_pool_op
 
     def walk_ended(self):
@@ -2234,9 +2240,9 @@ class TPBSched:
         np.save(result_file, result)
         if (args.golden_inputs):
             # if using golden inputs, save the ref_file instead of result_file
-            self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = op_list[-1].data['ref_file']
+            op_list[-1].result_file = op_list[-1].data['ref_file']
         else:            
-            self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = result_file
+            op_list[-1].result_file = result_file
 
         # print circular buffer stats
         self.statebuffer.print_stats()
@@ -2271,8 +2277,8 @@ class TPBSched:
                             psum_temp = self.pool.avg(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley)
                         elif (pool_op.data['layer_type'] == "MaxPool"):
                             psum_temp = self.pool.max(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
-                        #elif (pool_op.data['layer_type'] == "Sigmoid" or pool_op.data['layer_type'] == "Tanh" or pool_op.data['layer_type'] == "Exp" or pool_op.data['layer_type'] == "Relu"):
-                        #    psum_temp = self.activate.act(pool_op.data['layer_type'], psum_fake_extract)
+                        elif (pool_op.data['layer_type'] == "Sigmoid" or pool_op.data['layer_type'] == "Tanh" or pool_op.data['layer_type'] == "Exp" or pool_op.data['layer_type'] == "Relu"):
+                            psum_temp = self.activate.act(pool_op.data['layer_type'], psum_fake_extract)
                         else:
                             print("ERROR: cannot execute %s in execute_unfused_pool_op"%pool_op.data['layer_type'])
                             exit(-1)
@@ -2314,9 +2320,9 @@ class TPBSched:
         np.save(result_file, result)
         if (args.golden_inputs):
             # if using golden inputs, save the ref_file instead of result_file
-            self.statebuffer.saved_result_files[pool_op.data['layer_name']] = pool_op.data['ref_file']
+            pool_op.result_file = pool_op.data['ref_file']
         else:            
-            self.statebuffer.saved_result_files[pool_op.data['layer_name']] = result_file
+            pool_op.result_file = result_file
 
         # print circular buffer stats
         self.statebuffer.print_stats()
@@ -2425,9 +2431,11 @@ class TPBSched:
         if ((args.golden_inputs or args.inference)
                 and os.path.isfile(op_list[-1].data['ref_file'])):
             # if using golden inputs, save the ref_file instead of result_file
-            self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = op_list[-1].data['ref_file']
+            op_list[-1].result_file = op_list[-1].data['ref_file']
+            print("%s %s"%(op_list[-1].data['layer_name'], op_list[-1].result_file))
         else:            
-            self.statebuffer.saved_result_files[op_list[-1].data['layer_name']] = result_file
+            op_list[-1].result_file = result_file
+            print("%s %s"%(op_list[-1].data['layer_name'], op_list[-1].result_file))
 
         # print circular buffer stats
         self.statebuffer.print_stats()
@@ -2497,11 +2505,11 @@ if __name__ == "__main__":
         first_op = op_list[0]
         first_op_type = first_op.data['layer_type'] 
         if (first_op_type == "Input"):
-            tpb.statebuffer.saved_result_files[first_op.data['layer_name']] = first_op.data['ref_file']
+            first_op.result_file = first_op.data['ref_file']
         elif (first_op_type == "Reshape"):
             for j in first_op.prev:
-                if j.data['layer_name'] in tpb.statebuffer.saved_result_files:
-                    tpb.statebuffer.saved_result_files[first_op.data['layer_name']] = tpb.statebuffer.saved_result_files[j.data['layer_name']]
+                if j.result_file is not None:
+                    first_op.result_file = j.result_file
                     break
         # Check conv fused op
         elif (first_op_type == "Conv" or first_op_type == "MatMul"):
