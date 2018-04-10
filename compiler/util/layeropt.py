@@ -178,8 +178,6 @@ class BiasAddAct:
             return np.exp(in_array)
         elif (type == 'Tanh'):
             return np.tanh(in_array)
-        elif (type == 'Sigmoid'):
-            return np.sigmoid(in_array)
         else:
             print("ERROR BiasAddAct.act: unrecognized activation type %s"%type)
             exit(-1)
@@ -356,16 +354,22 @@ class CircularBuffer:
                 self.layer_shape = op.data['ofmap_shape']
                 empty_tensor = np.zeros(self.layer_shape, dtype=data_type)
                 np.save(self.dram_data_in_file, empty_tensor)
-        assert (self.dram_data_in_file != None)
-        self.load_file(self.dram_data_in_file, fmap_full_tiley_sz, fmap_full_tilex_sz, filter_x, stride_x)
+        #assert (self.dram_data_in_file != None)
         if (file_name != None):
             self.dram_data_out_file = file_name
             self.layer_name_for_save = op.data['layer_name']
-        return self.dram_data
+        # if load_file returns None, scheduler need to follow another path            
+        loaded_data = self.load_file(self.dram_data_in_file, fmap_full_tiley_sz, fmap_full_tilex_sz, filter_x, stride_x)
+        return loaded_data
 
+    # Load numpy file and compute atom size
+    # Returns None if file is None, otherwise returns numpy file data
     def load_file(self, file, fmap_full_tiley_sz = 0, fmap_full_tilex_sz = 0, filter_sz=1, stride_sz=1):
         self.dram_data_in_file = file
-        self.dram_data = np.load(self.dram_data_in_file)
+        if (self.dram_data_in_file != None):
+            self.dram_data = np.load(self.dram_data_in_file)
+        else:
+            return None
         self.item_sz = self.dram_data.dtype.itemsize   
         self.data_type = self.dram_data.dtype.name
         self.dram_data_len = self.dram_data.size * self.item_sz
@@ -494,7 +498,7 @@ class CircularBuffer:
         offset_in_file = chunk_id*self.atom_data_sz
         length = self.atom_data_sz
         # for scratch buffer (output), if we have to load, then use the m_id (OFMAP fold) instead of c_id (IFMAP fold)
-        if (self.circbuf_type == "scratch"):              
+        if (self.circbuf_type == "scratch" or self.circbuf_type == "residue"):              
             fmap_fold_idx = wave_id.m_id
             fmap_data_len = self.ofmap_data_len
         else:            
@@ -834,6 +838,12 @@ class KNode:
         self.item_sz = item_sz
         self.data_type = data_type
         self.ofmap_wave_total_elems = 0
+        self.stridedslice_chan_offset = 0
+        self.unstack_h_offset = 0
+        self.pool_window_y = 1
+        self.pool_window_x = 1
+        self.stride_y = 1
+        self.stride_x = 1
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
     def add_next(self, next_node):
@@ -896,9 +906,6 @@ class KNode:
         if ('stride' in layer_info):            
             self.stride_y = layer_info['stride'][2]
             self.stride_x = layer_info['stride'][3]
-        else:
-            self.stride_y = 1
-            self.stride_x = 1
         # IFMAP and OFMAP total areas
         self.HW = self.H * self.W
         self.EF = self.E * self.F
@@ -1084,7 +1091,7 @@ class KNode:
         self.ofmap_wave_upper_coordy = 0
         self.psum_bank_offset = 0
         # for pooling, the "row" below actually means output columns
-        pe_row_start = fmap_folding_idx * out_array_dim_y
+        pe_row_start = fmap_folding_idx * out_array_dim_y + self.stridedslice_chan_offset
         pe_row_stop = min(fmap_total_count, pe_row_start + out_array_dim_y)
         assert(pe_row_start < pe_row_stop)
         r_id = wave_id.r_id
@@ -1101,7 +1108,7 @@ class KNode:
                     for x in range(ofmap_full_tilex_sz_per_batchitem):
                         for y in range(self.ofmap_full_tiley_sz):
                             ifmap_tilex = (wave_id.w_id * ofmap_full_tilex_sz_per_batchitem + x) * self.stride_x + s_id - self.pad_west
-                            ifmap_tiley = (wave_id.h_id * self.ofmap_full_tiley_sz + y) * self.stride_y + r_id - self.pad_north
+                            ifmap_tiley = ((wave_id.h_id + self.unstack_h_offset)* self.ofmap_full_tiley_sz + y) * self.stride_y + r_id - self.pad_north
                             last_r_id = r_id
                             last_s_id = s_id
                             ifmap_addr = i * self.ofmap_full_tile_sz//self.Tn + y * ofmap_full_tilex_sz_per_batchitem + x
@@ -1150,7 +1157,7 @@ class KNode:
         self.ifmap_wave_upper_coordy = 0
         self.psum_bank_offset = 0
         # for pooling, the "row" below actually means output columns
-        pe_row_start = fmap_folding_idx * out_array_dim_y
+        pe_row_start = fmap_folding_idx * out_array_dim_y + self.stridedslice_chan_offset
         pe_row_stop = min(fmap_total_count, pe_row_start + out_array_dim_y)
         self.ifmap_count = pe_row_stop - pe_row_start
         assert(pe_row_start < pe_row_stop)
@@ -1161,9 +1168,9 @@ class KNode:
             ofmap_full_tilex_sz_per_batchitem = self.ofmap_full_tilex_sz//self.Tn
             for i in range(self.Tn): #ignore Tn for now
                 self.ifmap_wave_lower_coordx = (wave_id.w_id * ofmap_full_tilex_sz_per_batchitem) * self.stride_x 
-                self.ifmap_wave_lower_coordy = (wave_id.h_id * self.ofmap_full_tiley_sz) * self.stride_y
+                self.ifmap_wave_lower_coordy = ((wave_id.h_id + self.unstack_h_offset) * self.ofmap_full_tiley_sz) * self.stride_y
                 self.ifmap_wave_upper_coordx = ((wave_id.w_id+1) * ofmap_full_tilex_sz_per_batchitem) * self.stride_x + (self.pool_window_x - self.stride_x) - 1
-                self.ifmap_wave_upper_coordy = ((wave_id.h_id+1) * self.ofmap_full_tiley_sz) * self.stride_y + (self.pool_window_y - self.stride_y) - 1 
+                self.ifmap_wave_upper_coordy = ((wave_id.h_id + self.unstack_h_offset +1) * self.ofmap_full_tiley_sz) * self.stride_y + (self.pool_window_y - self.stride_y) - 1 
                 if (self.ifmap_wave_upper_coordx > self.W-1):
                     self.ifmap_wave_upper_coordx = self.W-1
                 if (self.ifmap_wave_upper_coordy > self.H-1):
@@ -1466,7 +1473,12 @@ class FusedOp(list):
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
     def execute_matmul_waveop(self, tpb, wave_id, inputs, weights, psum_add):
         pearray_packed_weights = self.conv_op.pack_wave_conv_weights(weights, wave_id, tpb.statebuffer.circbuf_weights.replicate_multiple)
-        pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(inputs, wave_id, tpb.statebuffer.circbuf_weights.replicate_multiple, for_softmax=False)
+        pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(
+                                        inputs, 
+                                        wave_id, 
+                                        tpb.statebuffer.circbuf_weights.replicate_multiple, 
+                                        for_softmax=False
+                                        )
         #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
         #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
         if (self.conv_op.ifmap_wave_lower_addr < 0 or self.conv_op.ifmap_wave_upper_addr < 0):
@@ -1670,7 +1682,23 @@ class KGraph:
                     for i in prev_layers:
                         if i in self.node_dict:
                             #if (args.debug>0): print("Previous layer for ", new_node.data['layer_name'], " is ", i)
-                            new_node.add_prev(self.node_dict[i])
+                            prev_node = self.node_dict[i]
+                            # dissolve StridedSlice into the next operation
+                            if (prev_node.data['layer_type'] == "StridedSlice"):
+                                new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
+                                print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
+                                assert (len(self.node_dict[i].prev) == 1)
+                                new_node.add_prev(self.node_dict[i].prev[0])
+                            elif (prev_node.data['layer_type'] == "Unstack"):
+                                for j in prev_node.data['next_layer_order']:
+                                    if j[1] == new_node.data['layer_name']:
+                                        new_node.unstack_h_offset = j[0]
+                                        print("%s: unstack_h_offset %d"%(new_node.data['layer_name'], j[0]))
+                                        break
+                                assert (len(self.node_dict[i].prev) == 1)
+                                new_node.add_prev(self.node_dict[i].prev[0])
+                            else:
+                                new_node.add_prev(self.node_dict[i])
                         else:
                             print("ERROR: node %s isn't declared before %s"%(i, l['layer_name']))
                             exit(-1)
@@ -1944,8 +1972,13 @@ class TPBSched:
                 dst_z_num = conv_op.Tn  # Need CNHW data format
             num_partitions = conv_op.ofmap_count
         else:
-            print("ERROR: expecting a convolution/matmul before activation at %s!"%act_op.data['layer_name'])
-            exit -1
+            # unfused
+            dst_x_num = act_op.ofmap_cropped_tile_width
+            dst_y_step = act_op.ofmap_cropped_tile_width
+            dst_y_num = act_op.ofmap_cropped_tile_height
+            dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
+            dst_z_num = act_op.Tn  # Need CNHW data format
+            num_partitions = act_op.ofmap_count
         waveop_name = layer_name+"/Activation_"+tile_id.id_string()            
         instr = {
               'previous_waveops'        : [],
@@ -2238,6 +2271,8 @@ class TPBSched:
                             psum_temp = self.pool.avg(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley)
                         elif (pool_op.data['layer_type'] == "MaxPool"):
                             psum_temp = self.pool.max(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
+                        #elif (pool_op.data['layer_type'] == "Sigmoid" or pool_op.data['layer_type'] == "Tanh" or pool_op.data['layer_type'] == "Exp" or pool_op.data['layer_type'] == "Relu"):
+                        #    psum_temp = self.activate.act(pool_op.data['layer_type'], psum_fake_extract)
                         else:
                             print("ERROR: cannot execute %s in execute_unfused_pool_op"%pool_op.data['layer_type'])
                             exit(-1)
@@ -2246,7 +2281,10 @@ class TPBSched:
                                                     pool_op.ifmap_wave_lower_addr, 
                                                     pool_op.ifmap_wave_upper_addr,
                                                     pool_op.ifmap_count)
-                        self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops)
+                        if (pool_op.data['layer_type'] == "AvgPool" or pool_op.data['layer_type'] == "MaxPool"):
+                            self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops)
+                        else:                            
+                            self.gen_act_waveop_inline(None, pool_op, None, tile_id, 0, False, 0, dram_ifmaps_waveops, 0)
                         tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr, pool_op.ifmap_wave_upper_addr, self.waveop_stream.last_main_waveop)
                         for j in range(PEArray.NUM_COLS):
                             M_idx = wave_id.m_id * PEArray.NUM_COLS + j
@@ -2402,7 +2440,7 @@ class TPBSched:
 
         return result                   
 
-    # Execute conv and other operations in list: for each op, load parameters and perform op with input
+    # Execute multiply
     def execute_scalar_multiply(self, inputs, result_file):
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
@@ -2475,12 +2513,17 @@ if __name__ == "__main__":
         elif (first_op_type == "Softmax2"):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             results = tpb.execute_softmax2(inputs, result_file)
-        elif (first_op_type == "Multiply"):
+        elif (first_op_type == "Multiply" or first_op_type == "ResAdd"): # TODO: handle the scalar 
             if (len(first_op.data['previous_layers']) == 1):
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
                 results = tpb.execute_scalar_multiply(inputs, result_file)
             else:                
                 print("FIX ME: Unrecognized first operation %s"%first_op_type)
+            #inputs2 = tpb.statebuffer.circbuf_residue.load_data(first_op)
+            #results = tpb.execute_multiply(inputs, inputs2, result_file)
+        elif (first_op_type == "Sigmoid" or first_op_type == "Tanh"):
+            inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
+            results = tpb.execute_unfused_pool_op(inputs, result_file)
         else:        
             print("ERROR: Unrecognized first operation %s"%first_op_type)
             exit(-1)
