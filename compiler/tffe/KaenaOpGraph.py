@@ -830,9 +830,12 @@ class NodeMultiply(Node):
   def genCompilerLayerJson(self):
     fileList = []
     
-    # Output tensor is NC format
+    # LSTM Output tensor is NC format
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 1:
+    if len(npInfo.npShape) == 4:
+      # CNN unit test flow, no known large Tonga NNs use these shapes as of early 2018
+      tfShape4D = npInfo.npShape
+    elif len(npInfo.npShape) == 1:
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
     else:
       assert len(npInfo.npShape) == 2
