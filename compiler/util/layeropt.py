@@ -242,7 +242,7 @@ class StateBuffer:
         # - When last operation in fusedop is not ResAdd, but next operation is ResAdd, then back-track, but first move Residue to IFMAPs, and scratch to Residue
         # - If both is true, just move scratch to Residue (IFMAPs is kept as input to next leg)
         # - When last operation is ResAdd, read data from Residue buffer to sum with PSUM data
-        #self.circbuf_scratch.circbuf_ptrs.reset_ptrs_clear_endsink_mode()
+        self.circbuf_scratch.circbuf_ptrs.reset_ptrs_clear_endsink_mode()
         if (begin_of_first_leg and end_of_first_leg):
             if (self.circbuf_residue.atom_sz != self.circbuf_scratch.atom_sz):
                 self.circbuf_scratch.minibatch_multiplier *= 2
@@ -337,7 +337,9 @@ class CircularBuffer:
         self.atom_data_sz = self.atom_sz
         self.need_spare_atoms = 1
         self.need_skip_atoms = False
-        self.num_kickout_atoms = 0
+        # TODO: to make kickout work with OFMAP folding, looping over m need to loop over m/2 pairs, each
+        # pair (loop of 2) is inside the tile hw loops instead of outside
+        self.num_kickout_atoms = 0  # Disable this feature for now since it doesn't work with event-sync
         #self.num_kickout_atoms = 4 if self.circbuf_type == "scratch" else 0
         #self.num_kickout_atoms = self.capacity
         self.circbuf_ptrs = CircbufPtrs(self.capacity, self.num_kickout_atoms)
@@ -659,7 +661,7 @@ class CircularBuffer:
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
         if (self.circbuf_type == "weights"): # TODO: if space is reused for other regions, need to apply to other regions
-            for i in range(sb_addr//64, (sb_addr + length)//64):
+            for i in range(sb_addr//64, ceildiv(sb_addr + length, 64)):
                 if tpb.statebuffer.consumer_of_64byte_morsel[i] != "":
                     previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
                     tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
@@ -922,13 +924,13 @@ class CircularBuffer:
                 if (self.is_in_kickout_range(atom_id) 
                         or self.layer_type == "Output"
                         or args.save_layer_output
+                        or (self.num_kickout_atoms > 0 and self.item_sz == 4)    # Hack to make FP32 work (not optimal for performance)
                         ):
                     if (args.debug > 2): print("%s: saving atom ID %d (chunk %d)"%(self.circbuf_type, atom_id, i))
                     dram_waveops.append(self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count))
-                    if (self.is_in_kickout_range(atom_id) or self.item_sz == 4):
-                        if (args.debug > 2): print("%s: deleting atom ID %d (chunk %d)"%(self.circbuf_type, atom_id, i))
-                        del self.chunk2atom_map[i]
-                        self.num_evicted_atoms += 1
+                    if (args.debug > 2): print("%s: deleting atom ID %d (chunk %d)"%(self.circbuf_type, atom_id, i))
+                    del self.chunk2atom_map[i]
+                    self.num_evicted_atoms += 1
         return dram_waveops
 
     def free_data_region(self, lower_addr, upper_addr, waveop):
@@ -1006,7 +1008,7 @@ class CircularBuffer:
 ##################################################################################
 # Neural network node, containing data read from JSON
 class KNode:
-    def __init__(self, data, item_sz, data_type):
+    def __init__(self, data, item_sz, data_type, node_number):
         self.prev = []
         self.next = []
         self.data = data
@@ -1014,6 +1016,7 @@ class KNode:
         self.item_sz = item_sz
         self.data_type = data_type
         self.ofmap_wave_total_elems = 0
+        self.node_number = node_number
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
     def add_next(self, next_node):
@@ -1685,7 +1688,7 @@ class FusedOp(list):
             for i in dram_weights_waveops: # + dram_ifmaps_waveops:
                 sb_addr = i["sb_address"]
                 sb_length = i["length"]
-                for j in range(sb_addr//64, (sb_addr+sb_length)//64):
+                for j in range(sb_addr//64, ceildiv(sb_addr + sb_length, 64)):
                     tpb.statebuffer.consumer_of_64byte_morsel[j] = matmul_waveop_name
             # collect statistics
             if (args.debug > 1):
@@ -1884,9 +1887,11 @@ class KGraph:
         # process layers
         layers = kgraph_json["layers"]
         num_layers = len(layers)
+        node_number = 0
         if (num_layers >= 1):
             for l in layers:
-                new_node = KNode(l, self.item_sz, self.data_type)
+                new_node = KNode(l, self.item_sz, self.data_type, node_number)
+                node_number += 1 
                 prev_layers = l['previous_layers']
                 if (len(prev_layers) > 0):
                     for i in prev_layers:
@@ -1921,7 +1926,8 @@ class KGraph:
             num_layers = len(layers)
             if (num_layers >= 1):
                 for l in layers:
-                    new_node = KNode(l, self.item_sz, self.data_type)
+                    new_node = KNode(l, self.item_sz, self.data_type, node_number)
+                    node_number += 1 
                     prev_layers = l['previous_waveops']
                     if (len(prev_layers) > 0):
                         for i in prev_layers:
@@ -2025,7 +2031,7 @@ class KGraph:
           "stride"          : [ 1, 1, 1, 1 ],
           "ref_file"        : last_op.data['ref_file']
         }
-        id_pool_op = KNode(id_pool_layer_data, self.item_sz, self.data_type)
+        id_pool_op = KNode(id_pool_layer_data, self.item_sz, self.data_type, last_op.node_number + 1)
         id_pool_op.prev.append(last_op)
         return id_pool_op
 

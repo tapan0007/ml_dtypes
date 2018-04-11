@@ -24,8 +24,6 @@ class CircbufPtrs():
         for i in range(2):
             if self.ptr_in_endzone[i]:
                 self.ptr[i]    = self.capacity - self.endzone_sz 
-            else:
-                self.ptr[i]    = 0
     
     def reset_ptrs_clear_endsink_mode(self):
         self.reset_ptrs()
@@ -93,10 +91,6 @@ class TestCircbufPtrsMethods(unittest.TestCase):
                         test_obj.reset_ptrs()
                         self.assertEqual(test_obj.get(CircbufPtrs.TAIL), capacity - endzone_sz)
                         self.assertEqual(test_obj.get(CircbufPtrs.HEAD), capacity - endzone_sz)
-                    else:                        
-                        test_obj.reset_ptrs()
-                        self.assertEqual(test_obj.get(CircbufPtrs.TAIL), 0)
-                        self.assertEqual(test_obj.get(CircbufPtrs.HEAD), 0)
 
     def test_endsink_exception(self):
         for capacity in range(10,100):
