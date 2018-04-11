@@ -879,7 +879,6 @@ class KNode:
     def count_missing_input_results(self):
         count = 0
         for i in self.prev:
-            print("%s: %s %s %d"%(self.data["layer_name"], i.data["layer_name"], i.result_file, i.is_join))
             if (not i.is_const) and (i.result_file is None):
                 count += 1
         return count                
