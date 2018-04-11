@@ -1933,20 +1933,27 @@ class TPBSched:
             in_dtype = "float16"
         elif (op.item_sz == 1 and not src_is_psum):
             print("ERROR: item_sz %d not yet supported"%op.item_sz)
+            exit(-1)
         if (op.item_sz == 2 and not dst_is_psum):
             out_dtype = "float16"
         elif (op.item_sz == 1 and not dst_is_psum):
             print("ERROR: item_sz %d not yet supported"%op.item_sz)
+            exit(-1)
         if (src_is_psum):
+            print("ERROR: for scale/add waveop, cannot handle source coming from PSUM")
+            exit(-1)
             src_sb_address = 0
         else:
             src_sb_address = tpb.statebuffer.circbuf_ifmaps.get_sb_address(op.ifmap_wave_lower_addr)
-        dst_x_num = 1
-        dst_y_step = 1
-        dst_y_num = 1
-        dst_z_num = 1
-        dst_z_step = 1
-        num_partitions = PEArray.NUM_COLS
+        if (dst_is_psum):
+            print("ERROR: for scale/add waveop, cannot handle destination PSUM")
+            exit(-1)
+        dst_x_num = op.ofmap_full_tilex_sz
+        dst_y_step = op.E
+        dst_y_num = op.ofmap_full_tiley_sz
+        dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
+        dst_z_num = op.Tn  # Need CNHW data format
+        num_partitions = op.ofmap_count
         waveop_name = layer_name+"/ScaleAdd_"+tile_id.id_string()            
         instr = {
               'previous_waveops'        : [],
