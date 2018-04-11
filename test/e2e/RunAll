@@ -552,9 +552,10 @@ class Ktests:
     test2tops = {}
     for testName in self.testList:
       t = self.getTestByName(testName)
-      tops = t.qor.tops
-      if tops >= minTops:
-        test2tops[testName] = tops
+      if t.status == 'PASS':
+        tops = t.qor.tops
+        if tops >= minTops or testName in keyTests:
+          test2tops[testName] = tops
     labels = sorted(test2tops, key=test2tops.get, reverse=True)
     x = [x for x in range(len(labels))]
     y = [test2tops[t] for t in  labels]
@@ -569,12 +570,16 @@ class Ktests:
       plt.text(-3, val + 0.1, '%g%%' % p, color=color)
     for i,v in enumerate(y):
       color = 'black'
+      val = (100 * v / normalizeTo)
+      valStr = "%2.0f" % val
+      if val < 1:
+        valStr = "%.3f" % val
       if labels[i] in keyTests:
         color = 'red'
-      plt.text(i-0.3, v+0.5, "%2.0f" % (100 * v / normalizeTo), rotation='vertical', color=color)
+      plt.text(i-0.3, v+len(valStr)/4, "%s" % valStr, rotation='vertical', color=color)
     plt.xlabel('NN')
     plt.ylabel('Tops')
-    plt.title('TPB performance')
+    plt.title('TPB performance (Tops) and PE efficiency (%)')
     plt.tight_layout()
     plt.savefig(outFile)
       
@@ -582,11 +587,12 @@ class Ktests:
     test2infps = {}
     for testName in self.testList:
       t = self.getTestByName(testName)
-      cycles = t.qor.cycles
-      if cycles > 0:
-        infPs = freq / cycles
-        if infPs >= minInfps and infPs <= maxInfps:
-          test2infps[testName] = infPs
+      if t.status == 'PASS':
+        cycles = t.qor.cycles
+        if cycles > 0:
+          infPs = freq / cycles
+          if infPs >= minInfps and infPs <= maxInfps:
+            test2infps[testName] = infPs
     labels = sorted(test2infps, key=test2infps.get, reverse=True)
     x = [x for x in range(len(labels))]
     y = [test2infps[t] for t in  labels]
@@ -623,6 +629,6 @@ else:
     print("WARNING: matplotlib is not installed, skipped Qor plot")
   if plotQor:
     keyDesigns = ['7-rn50_nne_fp16_wave']
-    tests.plotTops("qor_tops.svg", 0.2, 16, {100 : 'lightgreen', 75 : 'yellow', 60 : 'orange'}, keyDesigns)
+    tests.plotTops("qor_tops.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'yellow', 60 : 'orange'}, keyDesigns)
     tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
     
