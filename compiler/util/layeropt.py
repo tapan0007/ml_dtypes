@@ -863,6 +863,8 @@ class KNode:
         self.pool_window_x = 1
         self.stride_y = 1
         self.stride_x = 1
+        self.is_const = False
+        self.is_join = False
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
     def add_next(self, next_node):
@@ -872,7 +874,15 @@ class KNode:
         for i in self.next:
             if (i == node):
                 return True
-        return False    
+        return False   
+    # Returns number of missing input results
+    def count_missing_input_results(self):
+        count = 0
+        for i in self.prev:
+            print("%s: %s %s %d"%(self.data["layer_name"], i.data["layer_name"], i.result_file, i.is_join))
+            if (not i.is_const) and (i.result_file is None):
+                count += 1
+        return count                
 
     # set/get dest PSUM bank
     def set_psum_bank(self, dest):
@@ -1661,9 +1671,13 @@ class KGraph:
         if (starting_node != None):
             #print (starting_node.data['layer_name'], len(starting_node.prev))
             if (len(starting_node.prev) > 0):
+                non_const_prev_count = 0
                 for i in starting_node.prev:
                     i.add_next(starting_node)
+                    if not i.is_const:
+                        non_const_prev_count += 1
                     self.add_forward_refs(i)
+                starting_node.is_join = (non_const_prev_count > 1)                    
 
     # add a copy of layer, and change it to a new type
     def add_copy_with_new_type(self, layer, new_type):
@@ -1735,6 +1749,8 @@ class KGraph:
                     # move ref file attribute to the last operation for final comparisons
                     self.last_node.data['ref_file'] = new_node.data['ref_file']
                     new_node.data['ref_file'] = new_node.data['ref_file'].replace(".npy", "_Exp.npy")
+                elif (l['layer_type'] == "Const"):
+                    new_node.is_const = True
             self.current_node = self.first_node
         else:
             print("ERROR: there are no layers!")
@@ -1773,8 +1789,7 @@ class KGraph:
         last_node_type = fused_ops[-1].data['layer_type']
         # if there's only one next node, check if it is fusable and add
         if (len(next_nodes) == 1):
-            if (last_node_type in next_is_fusable
-                    and not (next_nodes[0].data['layer_type'] == "ResAdd" and self.last_split_next_nodes != [])):
+            if (last_node_type in next_is_fusable and next_nodes[0].count_missing_input_results() <= 1):
                 regex = next_is_fusable[last_node_type]
                 if (re.search(regex, next_nodes[0].data['layer_type'])):               
                     # TODO: don't fuse if pool size != stride size
@@ -1789,8 +1804,8 @@ class KGraph:
             print("ERROR: found zero operations to fuse")
             exit(-1)
         # when we see ResAdd, backtrack to the last split and follow the next leg in list
-        if (self.current_node.data['layer_type'] == "ResAdd" and self.last_split_next_nodes != []):
-            if (args.debug > 0): print("DBG: found ResAdd, back-track to last split and follow next leg")
+        if (self.current_node.is_join and self.current_node.count_missing_input_results() > 0):
+            if (args.debug > 0): print("DBG: found join (ResAdd, Multiply, etc), back-track to last split and follow next leg")
             self.current_node = self.last_split_next_nodes[0] 
             self.last_split_next_nodes = self.last_split_next_nodes[1:]
         fused_ops.add(self.current_node)
