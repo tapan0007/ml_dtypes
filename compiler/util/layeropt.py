@@ -1628,7 +1628,7 @@ class FusedOp(list):
                 if (i != len(op_list)-1):
                     dst_is_psum = True
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
-                tpb.gen_resadd_waveop_inline(op_list[i], self.conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, self.conv_op.ofmap_tile_lower_addr)
+                tpb.gen_join_waveop_inline(op_list[i], self.conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, self.conv_op.ofmap_tile_lower_addr)
                 tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr, tpb.waveop_stream.last_main_waveop)
                 psum_bank_src = psum_bank_dst
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
@@ -2077,7 +2077,7 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, dram_bias_waveops)
 
     # generate ResAdd instruction and add it to instruction stream
-    def gen_resadd_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start):
+    def gen_join_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start):
         in_a_dtype = "float32"
         in_b_dtype = "float32"
         out_dtype = "float32"
@@ -2117,10 +2117,10 @@ class TPBSched:
         else:
             print("ERROR: expecting a convolution/matmul before activation at %s!"%act_op.data['layer_name'])
             exit -1
-        waveop_name = op.data['layer_name']+"/ResAdd_"+tile_id.id_string()
+        waveop_name = op.data['layer_name']+"/"+op.data['layer_type']+"_"+tile_id.id_string()
         instr = {
               'previous_waveops'        : [],
-              'waveop_type'             : 'ResAdd',
+              'waveop_type'             : op.data['layer_type'],
               'waveop_name'             : waveop_name,
               'layer_name'              : op.data['layer_name'],
               'tile_id_format'          : tile_id.format,
