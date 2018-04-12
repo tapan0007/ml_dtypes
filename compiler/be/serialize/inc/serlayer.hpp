@@ -94,6 +94,8 @@ public:
             // nothing specific to Tanh
         } else if (m_LayerType == LayerTypeStr_Relu) {
             // nothing specific to Relu
+        } else if (m_LayerType == LayerTypeStr_Sigmoid) {
+            // nothing specific to Relu
         } else if (m_LayerType == LayerTypeStr_MaxPool || m_LayerType == LayerTypeStr_AvgPool) {
             KCC_ARCHIVE(KernelShape);
             KCC_ARCHIVE(Stride);
@@ -101,6 +103,8 @@ public:
         } else if (m_LayerType == LayerTypeStr_BiasAdd) {
             // nothing specific to BiasAdd layer
         } else if (m_LayerType == LayerTypeStr_ResAdd || m_LayerType == LayerTypeStr_Multiply) {
+            // nothing specific to ResAdd layer
+        } else if (m_LayerType == LayerTypeStr_StridedSlice || m_LayerType == LayerTypeStr_Unstack) {
             // nothing specific to ResAdd layer
         } else {
             assert(false && "Serialization: unsupported layer");

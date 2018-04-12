@@ -52,10 +52,13 @@ constexpr const char* const LayerTypeStr_Reshape        = "Reshape";
 constexpr const char* const LayerTypeStr_Matmul         = "MatMul";
 constexpr const char* const LayerTypeStr_Relu           = "Relu";
 constexpr const char* const LayerTypeStr_Tanh           = "Tanh";
+constexpr const char* const LayerTypeStr_Sigmoid        = "Sigmoid";
 constexpr const char* const LayerTypeStr_MaxPool        = "MaxPool";
 constexpr const char* const LayerTypeStr_AvgPool        = "AvgPool";
 constexpr const char* const LayerTypeStr_SoftMax        = "SoftMax";
 constexpr const char* const LayerTypeStr_BatchNorm      = "BNorm";
+constexpr const char* const LayerTypeStr_StridedSlice   = "StridedSlice";
+constexpr const char* const LayerTypeStr_Unstack        = "Unstack";
 
 constexpr const char* const WaveOpTypeStr_SBAtomLoad    = "SBAtomFile";
 constexpr const char* const WaveOpTypeStr_SBAtomSave    = "SBAtomSave";

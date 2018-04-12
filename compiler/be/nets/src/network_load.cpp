@@ -210,7 +210,6 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             layers::Layer* prevLayer = findLayer(prevLayerName);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);
-
         } else if (serLayer.gTypeStr() == LayerTypeStr_ResAdd || serLayer.gTypeStr() == LayerTypeStr_Multiply) {
             // TODO: check dimensions and types of inputs
             ASSERT_NUM_LAYERS(serLayer, 2);
@@ -231,6 +230,14 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 prevLayers.push_back(prevLayer);
             }
             layer = new layers::BiasAddLayer(params, fmap_desc, prevLayers);
+        } else if (serLayer.gTypeStr() == LayerTypeStr_StridedSlice 
+                || serLayer.gTypeStr() == LayerTypeStr_Unstack 
+                || serLayer.gTypeStr() == LayerTypeStr_Sigmoid) {   // FIXME: placeholder
+            ASSERT_NUM_LAYERS(serLayer, 1);
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
+            layer = new layers::TanhLayer(params, prevLayer);   // FIXME: placeholder
         } else {
             Assert(false, "Unsuported layer type ", serLayer.gTypeStr());
         }
