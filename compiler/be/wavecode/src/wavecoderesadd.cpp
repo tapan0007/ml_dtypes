@@ -41,6 +41,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     resaddInstr.in_b_dtype          = resaddWaveop->gInBDtype().gSimTypeId();
     resaddInstr.out_dtype           = resaddWaveop->gOutDtype().gSimTypeId();
     resaddInstr.num_partitions      = resaddWaveop->gNumPartitions();
+    resaddInstr.multiply            = resaddWaveop->gMultiply();    /* Hack in ResAdd to get Multiply to work with old ISA */
 
     // SrcA
     if (resaddWaveop->qSrcAIsPsum()) {

@@ -100,7 +100,7 @@ public:
             KCC_ARCHIVE(Padding);
         } else if (m_LayerType == LayerTypeStr_BiasAdd) {
             // nothing specific to BiasAdd layer
-        } else if (m_LayerType == LayerTypeStr_ResAdd) {
+        } else if (m_LayerType == LayerTypeStr_ResAdd || m_LayerType == LayerTypeStr_Multiply) {
             // nothing specific to ResAdd layer
         } else {
             assert(false && "Serialization: unsupported layer");

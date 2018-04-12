@@ -345,7 +345,8 @@ class CircularBuffer:
                 assert(self.dram_data_in_file != None)  # make sure that scratch has been initialized with output data
                 found = False
                 for j in op.prev:
-                    if j.result_file is not None:
+                    # loading the second set of data for 2-input ResAdd/Multiply, checking if file has not be loaded for the first input
+                    if j.result_file is not None and j.result_file != self.parent.circbuf_ifmaps.dram_data_in_file:
                         self.dram_data_in_file = j.result_file
                         self.layer_name = j.data['layer_name']
                         self.layer_format = j.data['ofmap_format']
@@ -1128,7 +1129,7 @@ class KNode:
         self.psum_bank_offset = 0
         # for pooling, the "row" below actually means output columns
         pe_row_start = fmap_folding_idx * out_array_dim_y + self.stridedslice_chan_offset
-        pe_row_stop = min(fmap_total_count, pe_row_start + out_array_dim_y)
+        pe_row_stop = min(fmap_total_count + self.stridedslice_chan_offset, pe_row_start + out_array_dim_y)
         assert(pe_row_start < pe_row_stop)
         r_id = wave_id.r_id
         s_id = wave_id.s_id
@@ -1194,7 +1195,7 @@ class KNode:
         self.psum_bank_offset = 0
         # for pooling, the "row" below actually means output columns
         pe_row_start = fmap_folding_idx * out_array_dim_y + self.stridedslice_chan_offset
-        pe_row_stop = min(fmap_total_count, pe_row_start + out_array_dim_y)
+        pe_row_stop = min(fmap_total_count + self.stridedslice_chan_offset, pe_row_start + out_array_dim_y)
         self.ifmap_count = pe_row_stop - pe_row_start
         assert(pe_row_start < pe_row_stop)
         for row in range(pe_row_start, pe_row_stop):
@@ -1376,6 +1377,9 @@ class FusedOp(list):
             else:
                 self.biasadd_op = op
                 self.has_biasadd = True
+        # Unfused Join cannot be fused with any subsequent op at the moment                
+        elif (self.has_join and self.join_op == self[0]):
+            return False
         if (len(op.prev) > 0):
             op.populate_common_params(adjust_for_pool=self.has_pool)
         # recompute Conv params due to constrained Pooling tile dimensions
@@ -1672,7 +1676,7 @@ class KGraph:
     def __init__(self):
         # Node dictionary contains name -> Node pairs for quick reference
         self.node_dict = {}
-        self.first_node = None
+        #self.first_node = []
         self.last_node = None
         self.data_type = 'float16'
         self.item_sz = 2
@@ -1751,8 +1755,11 @@ class KGraph:
                             exit(-1)
                 else:
                     # Type "Input" node
-                    if (l['layer_type'] == "Input" and self.first_node == None):
-                        self.first_node = new_node
+                    if (l['layer_type'] == "Input" or l['layer_type'] == "Placeholder"):
+                        #self.first_node.append(new_node)
+                        if (self.last_split_next_nodes == []):
+                            self.last_split_next_nodes.append([])
+                        self.last_split_next_nodes[0].append(new_node)
                 # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                 self.last_node = new_node                
                 self.node_dict[ l['layer_name'] ] = new_node
@@ -1765,7 +1772,13 @@ class KGraph:
                     new_node.data['ref_file'] = new_node.data['ref_file'].replace(".npy", "_Exp.npy")
                 elif (l['layer_type'] == "Const"):
                     new_node.is_const = True
-            self.current_node = self.first_node
+            if (len(self.last_split_next_nodes) > 0 and len(self.last_split_next_nodes[0]) > 0) :                    
+                self.current_node = self.last_split_next_nodes[0].pop()
+                if self.last_split_next_nodes[-1] == []:
+                    self.last_split_next_nodes.pop()
+            else:
+                print("ERROR: can't find any Input layer!")
+                exit(-1)
         else:
             print("ERROR: there are no layers!")
             exit(-1)
@@ -1786,13 +1799,13 @@ class KGraph:
                             else:
                                 print("ERROR: node %s isn't declared before %s"%(i, l['waveop_name']))
                                 exit(-1)
-                    else:
+                    #else:
                         # the node with "Placeholder" type is input
-                        self.first_node = new_node
+                        #self.first_node.append(new_node)
                     # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                     self.last_node = new_node                
                     self.node_dict[ l['waveop_name'] ] = new_node
-                self.current_node = self.first_node
+                #self.current_node = self.first_node[0]
             else:
                 print("ERROR: there are no layers!")
                 exit(-1)
@@ -1820,8 +1833,13 @@ class KGraph:
         # when we see ResAdd/Multiply, backtrack to the last split and follow the next leg in list
         if (self.current_node.is_join and self.current_node.count_missing_input_results() > 0):
             if (args.debug > 0): print("DBG: found join (ResAdd, Multiply, etc), back-track to last split and follow next leg")
-            self.current_node = self.last_split_next_nodes[0] 
-            self.last_split_next_nodes = self.last_split_next_nodes[1:]
+            if self.last_split_next_nodes != []:
+                self.current_node = self.last_split_next_nodes[-1].pop()
+            else:
+                print("ERROR: back-track from a join %s, but can't find fork!"%(self.current_node.data['layer_name']))
+                exit(-1)
+            if self.last_split_next_nodes[-1] == []: 
+                self.last_split_next_nodes.pop()
         fused_ops.add(self.current_node)
         for i in self.current_node.next:
             print(i.data['layer_type'], ":", i.data['layer_name'])
@@ -1837,14 +1855,18 @@ class KGraph:
                 if (next_nodes[i].is_join):
                     resadd_node = next_nodes[i]
                     del next_nodes[i]
-                    next_nodes.insert(0, resadd_node)
+                    next_nodes.append(resadd_node)
             # pick the first leg as current_node                        
-            self.current_node = next_nodes[0]
+            self.current_node = next_nodes.pop()
             # save the remaining legs in a list
-            self.last_split_next_nodes = next_nodes[1:]
+            self.last_split_next_nodes.append(next_nodes)
         else:
-            self.current_node = None
-            self.last_split_next_nodes = []
+            if self.last_split_next_nodes != []:
+                self.current_node = self.last_split_next_nodes[-1].pop()
+                if self.last_split_next_nodes[-1] == []: 
+                    self.last_split_next_nodes.pop()
+            else:                
+                self.current_node = None
         # if the last node is Conv or MatMul, add an identity pool op
         if (last_node_type == "Conv" or last_node_type == "MatMul"):
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
@@ -1874,7 +1896,7 @@ class KGraph:
         return id_pool_op
 
     def walk_ended(self):
-        return self.current_node == None
+        return (self.current_node == None and self.last_split_next_nodes == [])
 
 ##################################################################################
 # The TPB scheduler has access to:
@@ -1999,6 +2021,7 @@ class TPBSched:
         in_dtype = "float32"
         out_dtype = "float32"
         if (biasadd_op != None):
+            act_or_biasadd_op = biasadd_op
             bias_add_en = True
             bias_sb_address = self.statebuffer.circbuf_bias.get_sb_address(bias_start)
             layer_name = biasadd_op.data['layer_name']
@@ -2008,6 +2031,7 @@ class TPBSched:
                 print("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
         act_type = "Identity"    
         if (act_op != None):
+            act_or_biasadd_op = act_op
             act_type = act_op.data['layer_type']
             layer_name = act_op.data['layer_name']
             # TODO: refactor to some class to determine in_dtype and out_dtype
@@ -2035,14 +2059,14 @@ class TPBSched:
                 dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
                 dst_z_num = conv_op.Tn  # Need CNHW data format
             num_partitions = conv_op.ofmap_count
-        else:
+        elif (act_or_biasadd_op !=  None):
             # unfused
-            dst_x_num = act_op.ofmap_cropped_tile_width
-            dst_y_step = act_op.ofmap_cropped_tile_width
-            dst_y_num = act_op.ofmap_cropped_tile_height
+            dst_x_num = act_or_biasadd_op.E
+            dst_y_step = act_or_biasadd_op.E
+            dst_y_num = act_or_biasadd_op.F
             dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
-            dst_z_num = act_op.Tn  # Need CNHW data format
-            num_partitions = act_op.ofmap_count
+            dst_z_num = act_or_biasadd_op.Tn  # Need CNHW data format
+            num_partitions = act_or_biasadd_op.ofmap_count
         waveop_name = layer_name+"/Activation_"+tile_id.id_string()            
         instr = {
               'previous_waveops'        : [],
@@ -2115,13 +2139,19 @@ class TPBSched:
                 dst_z_num = conv_op.Tn  # Need CNHW data format
             num_partitions = conv_op.ofmap_count
         else:
-            print("ERROR: expecting a convolution/matmul before activation at %s!"%act_op.data['layer_name'])
-            exit -1
+            # unfused
+            dst_x_num = op.E
+            dst_y_step = op.E
+            dst_y_num = op.F
+            dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
+            dst_z_num = op.Tn  # Need CNHW data format
+            num_partitions = op.ofmap_count
         waveop_name = op.data['layer_name']+"/"+op.data['layer_type']+"_"+tile_id.id_string()
         instr = {
               'previous_waveops'        : [],
-              'waveop_type'             : op.data['layer_type'],
+              'waveop_type'             : "ResAdd", #op.data['layer_type'],
               'waveop_name'             : waveop_name,
+              'multiply'                : op.data['layer_type'] == "Multiply",    # Hack to use ResAdd in old ISA to run Multiply 
               'layer_name'              : op.data['layer_name'],
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
@@ -2317,6 +2347,17 @@ class TPBSched:
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
 
+        # load bias values
+        bias = []
+        if (op_list.has_biasadd):
+            bias_temp = self.statebuffer.circbuf_bias.load_data(op_list.biasadd_op)
+            bias = bias_temp.flatten()
+
+        # for ResAdd/Multiply, retrieve the saved result file for one of the completed legs
+        # TODO: when merge in the fix to remove unnecessary SB saves/loads, make sure to use the right circbuf (residue) 
+        if (op_list.has_join):
+            self.statebuffer.circbuf_scratch.load_data(op_list.join_op)
+
         # wave loop ordering scheme: nmhw
         pool_op = op_list[0]
         for n_id in range(pool_op.n):
@@ -2337,12 +2378,43 @@ class TPBSched:
                             psum_temp = self.pool.avg(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley)
                         elif (pool_op.data['layer_type'] == "MaxPool"):
                             psum_temp = self.pool.max(psum_fake_extract, pool_op.stride_x, pool_op.pool_window_y, pool_op.Tn, input_tilex, input_tiley, output_tilex, output_tiley)
-                        elif (pool_op.data['layer_type'] == "Multiply"):
+                        elif (pool_op.data['layer_type'] == "Multiply" or pool_op.data['layer_type'] == "ResAdd"):
                             if ("mul_scalar" in pool_op.data):
+                                assert (pool_op.data['layer_type'] == "Multiply")
                                 psum_temp = self.pool.scale(psum_fake_extract, pool_op.data['mul_scalar'])
                             else:
-                                print("ERROR: layer %s is missing mul_scalar field"%pool_op.data['layer_name'])
-                                exit(-1)
+                                # TODO: when merge in the fix to remove unnecessary SB saves/loads, make sure to use the right circbuf (residue) 
+                                dram_resadd_waveops = tpb.statebuffer.circbuf_scratch.read_data_region(wave_id, pool_op.ofmap_tile_lower_addr, pool_op.ofmap_tile_upper_addr, pool_op.ofmap_count)
+                                residue_tile = np.zeros((pool_op.ofmap_full_tile_sz, PEArray.NUM_COLS))
+                                residue_ifmaps = np.zeros((pool_op.ofmap_full_tile_sz, PEArray.NUM_COLS), dtype=np.float32)
+                                for j in range(PEArray.NUM_COLS):
+                                    M_idx = tile_id.m_id * PEArray.NUM_COLS + j
+                                    if (M_idx >= pool_op.M):
+                                        break
+                                    else:
+                                        # NCHW
+                                        residue_tile_ifmap = np.zeros((pool_op.ofmap_full_tiley_sz, pool_op.ofmap_full_tilex_sz), dtype=np.float32)
+                                        # TODO: when merge in the fix to remove unnecessary SB saves/loads, make sure to use the right circbuf (residue) 
+                                        residue_tile_ifmap[0:pool_op.ofmap_cropped_tile_height, 0:pool_op.ofmap_cropped_tile_width] = tpb.statebuffer.circbuf_scratch.dram_data[
+                                                tile_id.n_id, 
+                                                M_idx, 
+                                                pool_op.ofmap_tile_y_start : pool_op.ofmap_tile_y_start + pool_op.ofmap_cropped_tile_height, 
+                                                pool_op.ofmap_tile_x_start : pool_op.ofmap_tile_x_start + pool_op.ofmap_cropped_tile_width]
+                                        residue_ifmaps[:,j] = residue_tile_ifmap.flatten()
+                                if (pool_op.data['layer_type'] == "ResAdd"):
+                                    psum_temp = tpb.pool.resadd(psum_fake_extract, residue_ifmaps)
+                                elif (pool_op.data['layer_type'] == "Multiply"):                                    
+                                    psum_temp = self.pool.multiply(psum_fake_extract, residue_ifmaps)
+                                else:
+                                    print("ERROR: don't know how to handle vector op %s for layer %s"%(pool_op.data['layer_type'], pool_op.data['layer_name']))
+                        elif (pool_op.data['layer_type'] == "BiasAdd"):
+                            bias_chan_start = tile_id.m_id * PEArray.NUM_COLS
+                            bias_chan_end = min(bias_chan_start + PEArray.NUM_COLS, pool_op.M)
+                            bias_extracted = np.zeros(PEArray.NUM_COLS)
+                            bias_extracted[0 : bias_chan_end - bias_chan_start] = bias[bias_chan_start : bias_chan_end]
+                            bias_addr = bias_chan_start * pool_op.item_sz
+                            dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, bias_chan_end - bias_chan_start)
+                            psum_temp = self.activate.biasadd(psum_fake_extract, bias_extracted)
                         elif (pool_op.data['layer_type'] == "Sigmoid" or pool_op.data['layer_type'] == "Tanh" or pool_op.data['layer_type'] == "Exp" or pool_op.data['layer_type'] == "Relu"):
                             psum_temp = self.activate.act(pool_op.data['layer_type'], psum_fake_extract)
                         else:
@@ -2355,8 +2427,14 @@ class TPBSched:
                                                     pool_op.ifmap_count)
                         if (pool_op.data['layer_type'] == "AvgPool" or pool_op.data['layer_type'] == "MaxPool"):
                             self.gen_unfused_pool_waveop_inline(op_list, tile_id, dram_ifmaps_waveops)
-                        elif (pool_op.data['layer_type'] == "Multiply"): 
-                            self.gen_scaleadd_waveop_inline(pool_op, tile_id, False, 0, False, 0, dram_ifmaps_waveops, pool_op.data['mul_scalar'], 0.0)
+                        elif (pool_op.data['layer_type'] == "Multiply" or pool_op.data['layer_type'] == "ResAdd"):
+                            if ("mul_scalar" in pool_op.data):
+                                self.gen_scaleadd_waveop_inline(pool_op, tile_id, False, 0, False, 0, dram_ifmaps_waveops, pool_op.data['mul_scalar'], 0.0)
+                            else:
+                                self.gen_join_waveop_inline(pool_op, None, tile_id, 0, False, 0, dram_ifmaps_waveops+dram_resadd_waveops, pool_op.ofmap_tile_lower_addr)
+                        elif (pool_op.data['layer_type'] == "BiasAdd"): 
+                            self.gen_act_waveop_inline(pool_op, None, None, tile_id, 0, False, 0, dram_ifmaps_waveops + dram_bias_waveops, bias_addr)
+                            tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr, self.waveop_stream.last_main_waveop)
                         else:                            
                             self.gen_act_waveop_inline(None, pool_op, None, tile_id, 0, False, 0, dram_ifmaps_waveops, 0)
                         tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr, pool_op.ifmap_wave_upper_addr, self.waveop_stream.last_main_waveop)
@@ -2384,6 +2462,8 @@ class TPBSched:
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool" 
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "ScaleAdd"
+                                or self.waveop_stream.last_main_waveop['waveop_type'] == "Multiply"
+                                or self.waveop_stream.last_main_waveop['waveop_type'] == "ResAdd"
                                 ):
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
                                                                                     + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
@@ -2571,7 +2651,7 @@ if __name__ == "__main__":
         # Check init op
         first_op = op_list[0]
         first_op_type = first_op.data['layer_type'] 
-        if (first_op_type == "Input"):
+        if (first_op_type == "Input" or first_op_type == "Placeholder"):
             first_op.result_file = first_op.data['ref_file']
         elif (first_op_type == "Reshape"):
             for j in first_op.prev:
@@ -2594,13 +2674,13 @@ if __name__ == "__main__":
                 results = tpb.execute_unfused_pool_op(inputs, result_file)
             elif (len(first_op.data['previous_layers']) == 2):
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
-                results = tpb.execute_vector_multiply(inputs, result_file)
+                results = tpb.execute_unfused_pool_op(inputs, result_file)
             else:                
                 print("ERROR: cannot handle more than two inputs for first operation %s, layer %s"%(first_op_type, first_op.data["layer_name"]))
                 exit(-1)
             #inputs2 = tpb.statebuffer.circbuf_residue.load_data(first_op)
             #results = tpb.execute_multiply(inputs, inputs2, result_file)
-        elif (first_op_type == "Sigmoid" or first_op_type == "Tanh"):
+        elif (first_op_type == "Sigmoid" or first_op_type == "Tanh" or first_op_type == "BiasAdd"):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             results = tpb.execute_unfused_pool_op(inputs, result_file)
         else:        
@@ -2608,7 +2688,7 @@ if __name__ == "__main__":
             exit(-1)
 
         # Check results against pre-computed results           
-        if (first_op_type != "Input" and first_op_type != "Reshape"):
+        if (first_op_type != "Input" and first_op_type != "Placeholder" and first_op_type != "Reshape"):
             if 'ref_file' in last_op.data and os.path.isfile(last_op.data['ref_file']):
                 outputs = np.load(last_op.data['ref_file'])
                 diff = results - outputs

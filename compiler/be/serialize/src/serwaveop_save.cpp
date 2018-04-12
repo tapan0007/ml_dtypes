@@ -194,6 +194,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(InBDtype);
     KCC_ARCHIVE(OutDtype);
     KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(Multiply);
 
     // SrcA
     KCC_ARCHIVE(SrcAIsPsum);

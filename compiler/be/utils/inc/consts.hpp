@@ -45,6 +45,7 @@ const char* const SCHED_MEM_FORMAT = "%-24s %10s %6s  %8s  %8s  %8s  %8s";
 constexpr const char* const LayerTypeStr_Input          = "Input";
 constexpr const char* const LayerTypeStr_Const          = "Const";
 constexpr const char* const LayerTypeStr_ResAdd         = "ResAdd";
+constexpr const char* const LayerTypeStr_Multiply       = "Multiply";
 constexpr const char* const LayerTypeStr_BiasAdd        = "BiasAdd";
 constexpr const char* const LayerTypeStr_Conv           = "Conv";
 constexpr const char* const LayerTypeStr_Reshape        = "Reshape";

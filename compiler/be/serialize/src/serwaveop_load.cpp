@@ -196,6 +196,7 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(InBDtype);
     KCC_ARCHIVE(OutDtype);
     KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(Multiply);
 
     // Src A
     KCC_ARCHIVE(SrcAIsPsum);

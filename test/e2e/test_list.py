@@ -321,7 +321,6 @@ testWaiver = [
     ['4-ptb_word_small1_wave$', 'WAIVE-LSTM'],
     ['4-ptb_word_small_sigmoid_wave$', 'WAIVE-LSTM'],
     ['0-scaleadd_wave',             'WAIVE-LSTM'],
-    ['0-3conv_ba_mult_fp32_wave',             'WAIVE-LSTM'],
 
     # accuracy fail, fp16
     ['7-rn50_nne_fp16_accfail$', 'WAIVE_FP16_ACC'],

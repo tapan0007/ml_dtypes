@@ -512,6 +512,7 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
     serWaveOp.m_InBDtype            = resAddWaveOp->gInBDtype().gName();
     serWaveOp.m_OutDtype            = resAddWaveOp->gOutDtype().gName();
     KCC_SERIALIZE(NumPartitions);
+    KCC_SERIALIZE(Multiply);       /* Hack in ResAdd to get Multiply to work with old ISA */
 
     serWaveOp.m_SrcAIsPsum = resAddWaveOp->qSrcAIsPsum();
     if (resAddWaveOp->qSrcAIsPsum()) {

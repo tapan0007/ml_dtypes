@@ -68,6 +68,7 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
     m_DstZNum                   = params.m_DstZNum;
 
     m_NumPartitions             = params.m_NumPartitions;
+    m_Multiply                  = params.m_Multiply;    /* Hack in ResAdd to get Multiply to work with old ISA */
 
     assert(verify());
 }

@@ -174,10 +174,10 @@ constexpr static const char* WaveOpKey_SrcBYStep	        = "src_b_y_step";
 constexpr static const char* WaveOpKey_SrcBZNum	            = "src_b_z_num";
 constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
-
 constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
 constexpr static const char* WaveOpKey_EngineName           = "engine_name";
 
+constexpr static const char* WaveOpKey_Multiply	            = "multiply";   /* Hack in ResAdd to get Multiply to work with old ISA */
 
 
 
@@ -388,6 +388,8 @@ public:
     kcc_int32                   m_DstPsumBankId     = -1;
     kcc_int32                   m_DstPsumBankOffset = -1;
     //kcc_int32                   m_SrcPsumBankId     = -1;
+    
+    bool                        m_Multiply          = false;    /* Hack in ResAdd to get Multiply to work with old ISA */
 }; // class SerWaveOp
 
 

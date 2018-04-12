@@ -211,7 +211,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);
 
-        } else if (serLayer.gTypeStr() == LayerTypeStr_ResAdd) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_ResAdd || serLayer.gTypeStr() == LayerTypeStr_Multiply) {
             // TODO: check dimensions and types of inputs
             ASSERT_NUM_LAYERS(serLayer, 2);
             std::vector<layers::Layer*> prevLayers;
@@ -522,6 +522,7 @@ Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
     resAddParams.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
     resAddParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     KCC_UNSERIALIZE(NumPartitions);
+    KCC_UNSERIALIZE(Multiply);       /* Hack in ResAdd to get Multiply to work with old ISA */
 
     // SrcA
     KCC_UNSERIALIZE(SrcAIsPsum);
