@@ -602,21 +602,24 @@ class NodeConv2D(NodeBasePaddedStrided):
     (batch, channels, height, width) = tpbShape
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
     filterShapeRSCM = npInfoW.npShape
-    # 7 loops - 4 in the filter, 3 in ofmap
-    opCount = 2 * np.empty(filterShapeRSCM).size * batch;
-    if padded:
+    # 7 loops based on the output tensor height * width - 4 in the filter, 3 in ofmap
+    opCount = 2 * np.empty(filterShapeRSCM).size * batch * height * width;
+    if not padded:
+      # Adjust by area ratio of the padded and unpadded input
       padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
-      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding
-      opCount *= (height + padNorth + padSouth) * (width + padWest + padEast)
-    else:
-      opCount *= height * width
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding     
+      tpbShapeIn = list(npt.reorderShape(npInfoIF.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (batchIn, channelsIn, heightIn, widthIn) = tpbShapeIn
+      areaIn = heightIn * widthIn
+      areaInPadded = (heightIn + padNorth + padSouth) * (widthIn + padWest + padEast)
+      opCount *= 1.0 * areaIn / areaInPadded
     return opCount
 
   def isSupported(self):
     return True
 
 ###############################################################################
-# Max Pool
+# Max, Avg Pool
 ###############################################################################
 class NodePool(NodeBasePaddedStrided):
   def __init__(self, name, opType, attrs):
@@ -702,13 +705,19 @@ class NodePool(NodeBasePaddedStrided):
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (batch, channels, height, width) = tpbShape
     kernelSizeNHWC = self.getKernelSize()
-    opCount = 2 * np.empty(kernelSizeNHWC).size * batch * channels;
-    if padded:
+    opCount = 2 * np.empty(kernelSizeNHWC).size * batch * channels * height * width;
+    if not padded:
+      # Adjust by area ratio of the padded and unpadded input
       padding = self.calcTpbPadding(self.getKernelSize2D(), self.getPaddingMode())
-      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding
-      opCount *= (height + padNorth + padSouth) * (width + padWest + padEast)
-    else:
-      opCount *= height * width
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding     
+      (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
+      tpbShapeIn = list(npt.reorderShape(npInfoIF.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (batchIn, channelsIn, heightIn, widthIn) = tpbShapeIn
+      #strideVec = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
+      #(batchStride, channelsStride, strideH, strideW) = strideVec
+      areaIn = heightIn * widthIn
+      areaInPadded = (heightIn + padNorth + padSouth) * (widthIn + padWest + padEast)
+      opCount *= 1.0 * areaIn / areaInPadded
     return opCount
 
 

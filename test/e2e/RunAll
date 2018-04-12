@@ -159,10 +159,10 @@ class QoR:
       for line in fh:
         match = re.search('INFO: total opcount is (\d+)', line)
         if match:
-          ops = int(match.groups(1)[0])
+          ops += int(match.groups(1)[0])
         match1 = re.search('INFO: total padded opcount is (\d+)', line)
         if match1:
-          opsPadded = int(match1.groups(1)[0])
+          opsPadded += int(match1.groups(1)[0])
     return ops, opsPadded
 
   def __init__(self, dirName):
