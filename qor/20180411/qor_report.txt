@@ -1,0 +1,466 @@
+
+INFO: started as   /home/zejdaj/work/git/Kaena/test/e2e/RunAll --level 10 --timeout 10000
+
+Done in 7292.880 sec
+
+SUMMARY: PASSRATE  219  99.545%  of  220  (32 were waived)
+
+DETAILED STATUS:  FAIL 1  PASS 186  PASS_WAIVE_FP16_ACC 1  WAIVE-BENCH 10  WAIVE-LSTM 6  WAIVE-ME_ACC 1  WAIVE-NNE 1  WAIVE-RESADD 3  WAIVE-RESADD_ME 3  WAIVE-S10_BE_SOFTMAX 1  WAIVE_BATCH 1  WAIVE_RN152 2  WAIVE_WAVESC 4  
+  FAIL
+     7-rn50_nne_fp32_wave
+  PASS_WAIVE_FP16_ACC
+     7-rn50_nne_fp16_accfail
+  WAIVE-BENCH
+     6-alexnet
+     8-resnet50
+     8-resnet50_fp16_keras
+     8-resnet50_fp16_keras_opt
+     8-resnet50_fp16_keras_opt_b16
+     8-resnet50_fp16_wave
+     8-resnet50_fp16_wave_b2
+     8-resnet50_fp32_keras
+     8-resnet50_fp32_keras_opt
+     8-resnet50_fp32_wave
+  WAIVE-LSTM
+     0-3conv_ba_mult_fp32_wave
+     0-scaleadd_wave
+     4-ptb_word_lm1
+     4-ptb_word_lm1_host
+     4-ptb_word_small1_wave
+     4-ptb_word_small_sigmoid_wave
+  WAIVE-ME_ACC
+     0-116conv_tanh_wave
+  WAIVE-NNE
+     8-rn50_nne_auto
+  WAIVE-RESADD
+     0-add
+     0-add_fp32
+     0-add_uint8
+  WAIVE-RESADD_ME
+     0-resadd_fp32_wave
+     0-resadd_uint8_wave
+     0-resadd_wave
+  WAIVE-S10_BE_SOFTMAX
+     4-rn50_matmul_fp32_wave
+  WAIVE_BATCH
+     7-rn50_nne_fp16_waveopt_b4
+  WAIVE_RN152
+     9-resnet152
+     9-resnet152_waveopt
+  WAIVE_WAVESC
+     0-1conv1maxpool_k3d2_wave
+     0-1conv1pool_b5_wave
+     0-1conv1pool_b5m3_wave
+     1-1conv0_r3h55c256_wave
+  PASS
+     0-10conv_relu
+     0-10conv_relu_wave
+     0-116conv_tanh
+     0-1ap0
+     0-1ap7x7
+     0-1conv0
+     0-1conv0_c1h16_wave
+     0-1conv0_c1h2
+     0-1conv0_c1h2_wave
+     0-1conv0_h16r2s2_wave
+     0-1conv0_h16r3s2_wave
+     0-1conv0_h55c256m1_wave
+     0-1conv0_padvalid_wave
+     0-1conv0_wave
+     0-1conv1avgpool_wave
+     0-1conv1ba1_fp32_wave
+     0-1conv1ba1_h1c64m64_fp32_wave
+     0-1conv1ba1_h1c64m64_wave
+     0-1conv1ba1_h4c1m1
+     0-1conv1ba1_h4c1m1_fp32
+     0-1conv1ba1_h4c1m1_fp32_wave
+     0-1conv1ba1_h4c2m2_fp32_wave
+     0-1conv1ba1_h4c2m2_wave
+     0-1conv1ba1_h55c1m1_fp32_wave
+     0-1conv1ba1_h55c1m1_wave
+     0-1conv1ba1_h55c64m64_fp32_wave
+     0-1conv1ba1_h55c64m64_wave
+     0-1conv1ba1_wave
+     0-1conv1pool
+     0-1conv1pool_wave
+     0-1conv_h4r1_wave
+     0-1conv_h4r2s2_wave
+     0-1conv_h4r3s1
+     0-1conv_h4r3s1_wave
+     0-1conv_h6r2s3_wave
+     0-1conv_h6r3s2_wave
+     0-1conv_s2
+     0-1conv_s8
+     0-1conv_s8_32b
+     0-1conv_tile
+     0-1conv_tile_r1_e1
+     0-1conv_tile_r1_e1_wave
+     0-1conv_tile_r1_wave
+     0-1conv_tile_r1h32
+     0-1conv_tile_r1h32_wave
+     0-1conv_tile_wave
+     0-1mp0
+     0-1mp0c64
+     0-1mp_r3s2
+     0-1mp_r3s2_112_55
+     0-2conv0
+     0-2conv3_32b
+     0-2conv3_relu
+     0-2conv_pad2
+     0-2conv_pad2as
+     0-2conv_pad3
+     0-2conv_pad5
+     0-30conv3
+     0-3conv_ba_resadd_fp32_wave
+     0-3conv_ba_resadd_h1_fp16_wave
+     0-3conv_ba_resadd_h1_fp32_wave
+     0-4conv_relu_nne
+     0-add_nne
+     0-ba_relu_fp32_wave
+     0-biasadd
+     0-biasadd_c2
+     0-neg
+     1-1conv0_c128
+     1-1conv0_c128_wave
+     1-1conv0_c256_wave
+     1-1conv0_h112c1m1_wave
+     1-1conv0_h16c128
+     1-1conv0_h16c128_wave
+     1-1conv0_h16c1m1_wave
+     1-1conv0_h16c256_wave
+     1-1conv0_h16c256m128_fp32_wave
+     1-1conv0_h16c256m128_wave
+     1-1conv0_h16c2m1_wave
+     1-1conv0_h224c1m1_wave
+     1-1conv0_h28c1m1_wave
+     1-1conv0_h32c128m128_wave
+     1-1conv0_h32c128m1_wave
+     1-1conv0_h32c128m64_wave
+     1-1conv0_h32c1m1_wave
+     1-1conv0_h32c1m2_wave
+     1-1conv0_h32c256m128_wave
+     1-1conv0_h32c256m64_wave
+     1-1conv0_h32c2m1_wave
+     1-1conv0_h32c4m1_wave
+     1-1conv0_h32c64m1_wave
+     1-1conv0_h32c8m1_wave
+     1-1conv0_h40c128m128_wave
+     1-1conv0_h40c128m1_wave
+     1-1conv0_h40c128m64_wave
+     1-1conv0_h40c1m1_wave
+     1-1conv0_h40c256m128_wave
+     1-1conv0_h40c256m64_wave
+     1-1conv0_h55c256_wave
+     1-1conv0_h55c64m256_wave
+     1-1conv0_h55m64_wave
+     1-1conv0_h56c1m1_wave
+     1-1conv0_m128_wave
+     1-1conv0_m2_wave
+     1-1conv0_m64_wave
+     1-1conv0_r3h16c128_wave
+     1-1conv0_wave
+     1-1conv7_64
+     1-1conv9_64
+     2-1conv3_64s8
+     2-1conv9_64s8
+     2-padasym_strd_h112r7s2
+     2-padasym_strd_h112r7s2_wave
+     2-padasym_strd_h224r7s2_fp32_wave
+     2-padasym_strd_h224r7s2_wave
+     2-padasym_strd_h3r2s2
+     2-padasym_strd_h4r2s3
+     2-padasym_strd_h5r2s2
+     2-padsym_strd_h3r3s2
+     2-padsym_strd_h4r3s3
+     2-padsym_strd_h5r3s2
+     3-rn50-01_fp32_wave
+     3-rn50-01_wave
+     3-rn50-02_fp32_wave
+     3-rn50-02_wave
+     3-rn50-03_fp32_wave
+     3-rn50-03_wave
+     3-rn50-04_fp32_wave
+     3-rn50-04_wave
+     3-rn50-05_fp32_wave
+     3-rn50-05_wave
+     3-rn50-06_fp32_wave
+     3-rn50-06_wave
+     3-rn50-07_fp32_wave
+     3-rn50-07_wave
+     3-rn50-08_fp32_wave
+     3-rn50-08_wave
+     3-rn50-09_fp32_wave
+     3-rn50-09_wave
+     3-rn50-10_fp32_wave
+     3-rn50-10_wave
+     3-rn50-11_fp32_wave
+     3-rn50-11_wave
+     3-rn50-12_fp32_wave
+     3-rn50-12_wave
+     3-rn50-13_fp32_wave
+     3-rn50-13_wave
+     3-rn50-14_fp32_wave
+     3-rn50-14_wave
+     3-rn50-15_fp32_wave
+     3-rn50-15_wave
+     3-rn50-16_fp32_wave
+     3-rn50-16_wave
+     3-rn50-17_fp32_wave
+     3-rn50-17_wave
+     3-rn50-18_fp32_wave
+     3-rn50-18_wave
+     3-rn50-19_fp32_wave
+     3-rn50-19_wave
+     3-rn50-20_fp32_wave
+     3-rn50-20_wave
+     3-rn50-t00_fp32_wave
+     3-rn50-t00_wave
+     3-rn50_ba_relu_fp32_wave
+     3-rn50_pool2
+     3-rn50_pool2_wave
+     3-rn50_relu_fp32_wave
+     4-ptb_word_small1_host
+     4-rn50_matmul_fp32_waveopt
+     4-rn50_matmul_nosm_fp32_wave
+     4-rn50_nne_fc
+     4-rn50_nne_from1_fp32_wave
+     4-rn50_nne_from1_wave
+     4-rn50_nne_from2_fp32_wave
+     4-rn50_nne_from2_wave
+     4-rn50_nne_from3_fp32_wave
+     4-rn50_nne_from3_wave
+     5-rn50_nne_to_act4_fp32_wave
+     5-rn50_nne_to_act4_wave
+     7-rn50_nne_conv_wave
+     7-rn50_nne_fc_wave
+     7-rn50_nne_fc_waveopt
+     7-rn50_nne_fp16_host
+     7-rn50_nne_fp16_wave
+     7-rn50_nne_fp32_host
+     7-rn50_nne_fp32_waveopt
+     8-rn50_nne_fp32_meauto
+
+
+Test                              Status              Tops          OpCount  TopsPa    OpCountPadded         SimCycles        SimTimeSec    SimCycles/sec  TotTimeSec  Description
+------------------------------------------------------------------------------------------------------------------------------------------------------
+0-10conv_relu                     PASS               0.000             2852   0.001             6092             11987             1.666          7193.02        24.0  Resnet-like network with 10 Conv2D and Relu layer pairs
+0-10conv_relu_wave                PASS               0.001             2852   0.001             6092              4631             0.632          7330.26        24.0  Resnet-like network with 10 Conv2D and Relu layer pairs
+0-116conv_tanh                    PASS               0.000            36242   0.001            77642            153073            26.113          5862.04        59.1  Resnet-like network with 116 Conv2D and Relu layer pairs
+0-116conv_tanh_wave               WAIVE-ME_ACC       0.000            36242   0.000            77642                 0            -0.000                0        33.1  Resnet-like network with 116 Conv2D and Relu layer pairs
+0-1ap0                            PASS               0.002               49   0.002               49                32             0.006          5224.49        20.0  Single AvgPoll layer
+0-1ap7x7                          PASS               0.007             9409   0.007             9409              1396             0.151          9275.32        20.0  Single AvgPoll layer
+0-1conv0                          PASS               0.000                6   0.000                6               142             0.022          6418.95        20.0  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_c1h16_wave               PASS               0.001              771   0.001              771               969             0.116          8348.77        23.0  Existance test for 1 conv2D layer with 1x1 filter, 16x16 image, 1 input channel
+0-1conv0_c1h2                     PASS               0.000               15   0.000               15               148             0.022          6875.73        22.0  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_c1h2_wave                PASS               0.000               15   0.000               15               276             0.048          5712.75        24.0  Existance test for 1 conv2D layer with 1x1 filter, 2x2 image, 1 input channel
+0-1conv0_h16r2s2_wave             PASS               0.001              774   0.001              774               708             0.088          8042.53        26.0  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h16r3s2_wave             PASS               0.001             1419   0.002             1725               988             0.241          4104.51        30.1  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h55c256m1_wave           PASS               0.008      2.32346e+06   0.008      2.32346e+06            303767            80.382          3779.03       119.2  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_padvalid_wave            PASS               0.002       1.2818e+06   0.002       1.2818e+06            638010           127.148          5017.84       194.3  Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_wave                     PASS               0.000                6   0.000                6               269             0.152          1773.35        36.1  Existence test for wave scheduler
+0-1conv1avgpool_wave              PASS               0.000               83   0.000               83               597             0.211          2833.08        40.1  Two Conv2D layers back to back
+0-1conv1ba1_fp32_wave             PASS               0.242      2.36991e+08   0.264      2.58535e+08            977817           182.020          5372.03       302.5  Two Conv2D layers back to back
+0-1conv1ba1_h1c64m64_fp32_wave    PASS               0.004            12484   0.004            12484              3532             0.860          4107.33        43.0  Two Conv2D layers back to back
+0-1conv1ba1_h1c64m64_wave         PASS               0.006            12484   0.006            12484              1996             0.521          3830.11        45.1  Two Conv2D layers back to back
+0-1conv1ba1_h4c1m1                PASS               0.000               70   0.000               70               207             0.031          6665.59        31.1  Two Conv2D layers back to back
+0-1conv1ba1_h4c1m1_fp32           PASS               0.000               70   0.000               70               225             0.047          4809.85        25.1  Two Conv2D layers back to back
+0-1conv1ba1_h4c1m1_fp32_wave      PASS               0.000               70   0.000               70               323             0.043          7537.04        25.0  Two Conv2D layers back to back
+0-1conv1ba1_h4c2m2_fp32_wave      PASS               0.001              202   0.001              202               351             0.099          3534.64        25.0  Two Conv2D layers back to back
+0-1conv1ba1_h4c2m2_wave           PASS               0.001              202   0.001              202               326             0.096          3404.49        30.0  Two Conv2D layers back to back
+0-1conv1ba1_h55c1m1_fp32_wave     PASS               0.001            12106   0.001            12106             13724             1.704           8052.6        35.0  Two Conv2D layers back to back
+0-1conv1ba1_h55c1m1_wave          PASS               0.001            12106   0.001            12106              9872             1.280          7712.25        33.0  Two Conv2D layers back to back
+0-1conv1ba1_h55c64m64_fp32_wave   PASS               0.083      2.51722e+07   0.083      2.51722e+07            303635            56.823          5343.49        97.1  Two Conv2D layers back to back
+0-1conv1ba1_h55c64m64_wave        PASS               0.163      2.51722e+07   0.163      2.51722e+07            154131            32.723          4710.19        72.1  Two Conv2D layers back to back
+0-1conv1ba1_wave                  PASS               0.000               70   0.000               70               311             0.095          3274.34        29.0  Two Conv2D layers back to back
+0-1conv1maxpool_k3d2_wave         WAIVE_WAVESC       0.000              123   0.000              213               617             0.076           8165.7        31.0  Two Conv2D layers back to back
+0-1conv1pool                      PASS               0.000               83   0.000               83               201             0.042          4768.46        28.0  Two Conv2D layers back to back
+0-1conv1pool_b5_wave              WAIVE_WAVESC       0.000              403   0.000              403                 0            -0.000                0        23.0  Two Conv2D layers back to back
+0-1conv1pool_b5m3_wave            WAIVE_WAVESC       0.000             1045   0.000             1045                 0            -0.000                0        24.0  Two Conv2D layers back to back
+0-1conv1pool_wave                 PASS               0.003             8338   0.003             8338              2751             0.449          6121.29        30.0  Two Conv2D layers back to back
+0-1conv_h4r1_wave                 PASS               0.000               51   0.000               51               309             0.042          7396.24        30.0  Two Conv2D layers back to back
+0-1conv_h4r2s2_wave               PASS               0.000               54   0.000               54               296             0.078          3785.84        32.1  Two Conv2D layers back to back
+0-1conv_h4r3s1                    PASS               0.000              315   0.001              675              1315             0.270          4865.67        29.0  Two Conv2D layers back to back
+0-1conv_h4r3s1_wave               PASS               0.001              315   0.002              675               403             0.051          7876.63        28.0  Two Conv2D layers back to back
+0-1conv_h6r2s3_wave               PASS               0.000               74   0.000               74               303             0.040          7518.42        28.0  Two Conv2D layers back to back
+0-1conv_h6r3s2_wave               PASS               0.001              209   0.001              335               364             0.043          8483.66        29.0  Two Conv2D layers back to back
+0-1conv_s2                        PASS               0.000               27   0.000               27               153             0.068          2243.99        30.0  Two Conv2D layers back to back
+0-1conv_s8                        PASS               0.001              267   0.001              267               243             0.065          3721.29        31.0  Two Conv2D layers back to back
+0-1conv_s8_32b                    PASS               0.001              267   0.001              267               340             0.042          8090.23        32.0  Two Conv2D layers back to back
+0-1conv_tile                      PASS               0.001            23286   0.001            25878             23383             3.407          6863.66        36.1  Single Conv2D layer with a large image
+0-1conv_tile_r1_e1                PASS               0.001             3678   0.001             3678              4565             1.109          4117.15        29.0  Single Conv2D layer with a large image
+0-1conv_tile_r1_e1_wave           PASS               0.001             3678   0.001             3678              4418             0.800          5520.47        29.0  Single Conv2D layer with a large image
+0-1conv_tile_r1_wave              PASS               0.001             3678   0.001             3678              4418             1.018          4341.43        29.0  Single Conv2D layer with a large image
+0-1conv_tile_r1h32                PASS               0.001             3075   0.001             3075              3351             0.417          8031.16        30.0  Single Conv2D layer with a large image
+0-1conv_tile_r1h32_wave           PASS               0.001             3075   0.001             3075              3603             0.667          5400.22        28.0  Single Conv2D layer with a large image
+0-1conv_tile_wave                 PASS               0.002            23286   0.002            25878             13337             2.452          5439.03        34.1  Single Conv2D layer with a large image
+0-1mp0                            PASS               0.002               49   0.002               49                32             0.007          4757.66        26.0  Single MaxPoll layer
+0-1mp0c64                         PASS               0.003             3073   0.003             3073               977             0.216          4521.81        26.0  Single MaxPoll layer
+0-1mp_r3s2                        PASS               0.002               98   0.002               98                51             0.023          2172.34        28.0  Single MaxPoll layer
+0-1mp_r3s2_112_55                 PASS               0.002            66995   0.002            66995             33089             6.151          5379.35        34.0  Single MaxPoll layer
+0-2conv0                          PASS               0.000               10   0.000               10               281             0.036          7911.93        27.0  A unit test
+0-2conv3_32b                      PASS               0.000              315   0.001              675              1330             0.229          5812.96        31.0  A unit test
+0-2conv3_relu                     PASS               0.000              332   0.001              692              1339             0.376          3564.02        35.0  A unit test
+0-2conv_pad2                      PASS               0.000              150   0.000              222               607             0.222          2739.68        39.0  Single Conv2D layer that exercises padding
+0-2conv_pad2as                    PASS               0.000               42   0.000               82               546             0.157          3479.13        42.1  Single Conv2D layer that exercises padding
+0-2conv_pad3                      PASS               0.000              315   0.001              675              1315             0.454          2895.39        45.1  Single Conv2D layer that exercises padding
+0-2conv_pad5                      PASS               0.000              843   0.001             3243              3513             1.025          3426.18        46.1  Single Conv2D layer that exercises padding
+0-30conv3                         PASS               0.000             8659   0.001            19099             37911            12.791          2963.78        61.1  A unit test
+0-3conv_ba_mult_fp32_wave         WAIVE-LSTM         0.000           501788   0.000           518060                 0            -0.000                0        52.1  A unit test
+0-3conv_ba_resadd_fp32_wave       PASS               0.002           501788   0.002           518060            278007            64.350           4320.2       126.2  Two layer, BiasAdd followed by ResAdd
+0-3conv_ba_resadd_h1_fp16_wave    PASS               0.000               68   0.001              356               553             0.136          4059.73        45.1  Two layer, BiasAdd followed by ResAdd
+0-3conv_ba_resadd_h1_fp32_wave    PASS               0.000               68   0.001              356               559             0.159          3525.01        41.1  Two layer, BiasAdd followed by ResAdd
+0-4conv_relu_nne                  PASS               0.000              315   0.000              675              2630             0.481          5462.89        50.1  A unit test
+0-add                             WAIVE-RESADD       0.001               17   0.001               17                13             0.004          3336.76        29.0  Two layer, BiasAdd followed by ResAdd
+0-add_fp32                        WAIVE-RESADD       0.002             3476   0.002             3476              2103             0.486          4328.61        26.0  Two layer, BiasAdd followed by ResAdd
+0-add_nne                         PASS               0.001               12   0.001               12                13             0.004          3569.47        42.1  Two layer, BiasAdd followed by ResAdd
+0-add_uint8                       WAIVE-RESADD       0.001              151   0.001              151               109             0.033          3260.25        29.1  Two layer, BiasAdd followed by ResAdd
+0-ba_relu_fp32_wave               PASS               0.000               12   0.000               12               271             0.108          2498.36        39.1  A unit test
+0-biasadd                         PASS               0.001               12   0.001               12                13             0.004          3593.15        40.0  Single BiasAdd layer
+0-biasadd_c2                      PASS               0.000               21   0.000               21                81             0.042          1933.87        43.1  Single BiasAdd layer
+0-neg                             PASS               0.000                0   0.000                0                 0            -0.000                0        15.0  Negative test
+0-resadd_fp32_wave                WAIVE-RESADD_ME    0.000             3476   0.000             3476                 0            -0.000                0        43.0  Two layer, BiasAdd followed by ResAdd
+0-resadd_uint8_wave               WAIVE-RESADD_ME    0.000              151   0.000              151                 0            -0.000                0        38.0  Two layer, BiasAdd followed by ResAdd
+0-resadd_wave                     WAIVE-RESADD_ME    0.000               17   0.000               17                 0            -0.000                0        32.0  Two layer, BiasAdd followed by ResAdd
+0-scaleadd_wave                   WAIVE-LSTM         0.000               36   0.000               36                 0            -0.000                0        34.1  Two layer, BiasAdd followed by ResAdd
+1-1conv0_c128                     PASS               0.001              514   0.001              514               396             0.100          3945.44        51.1  Two Conv2D layers back to back
+1-1conv0_c128_wave                PASS               0.001              514   0.001              514               523             0.168          3111.47        49.1  Two Conv2D layers back to back
+1-1conv0_c256_wave                PASS               0.001             1026   0.001             1026               779             0.424          1835.28        61.1  Two Conv2D layers back to back
+1-1conv0_h112c1m1_wave            PASS               0.001            37635   0.001            37635             40179            10.272          3911.43        68.1  Two Conv2D layers back to back
+1-1conv0_h16c128                  PASS               0.007            98434   0.007            98434             13287             4.323          3073.65        48.1  Two Conv2D layers back to back
+1-1conv0_h16c128_wave             PASS               0.007            98434   0.007            98434             13415             4.719          2842.58        50.2  Two Conv2D layers back to back
+1-1conv0_h16c1m1_wave             PASS               0.001             1540   0.001             1540              1067             0.339          3150.53        49.1  Two Conv2D layers back to back
+1-1conv0_h16c256_wave             PASS               0.008           196866   0.008           196866             25959             6.862          3782.89        47.1  Two Conv2D layers back to back
+1-1conv0_h16c256m128_fp32_wave    PASS               0.169      1.68755e+07   0.169      1.68755e+07             99717            30.955          3221.38        67.1  Two Conv2D layers back to back
+1-1conv0_h16c256m128_wave         PASS               0.334      1.68755e+07   0.334      1.68755e+07             50565            12.407          4075.38        79.1  Two Conv2D layers back to back
+1-1conv0_h16c2m1_wave             PASS               0.001             1540   0.001             1540              1067             0.177          6036.98        44.0  Two Conv2D layers back to back
+1-1conv0_h224c1m1_wave            PASS               0.001           150531   0.001           150531            158169            44.417          3561.03       101.1  Two Conv2D layers back to back
+1-1conv0_h28c1m1_wave             PASS               0.001             2355   0.001             2355              2943             1.177          2500.35        54.1  Two Conv2D layers back to back
+1-1conv0_h32c128m128_wave         PASS               0.312      3.37019e+07   0.312      3.37019e+07            107917            36.169          2983.68       109.1  Two Conv2D layers back to back
+1-1conv0_h32c128m1_wave           PASS               0.007           393346   0.007           393346             52752            17.298          3049.68        70.1  Two Conv2D layers back to back
+1-1conv0_h32c128m64_wave          PASS               0.211      1.69165e+07   0.211      1.69165e+07             80141            26.816           2988.5        88.1  Two Conv2D layers back to back
+1-1conv0_h32c1m1_wave             PASS               0.001             3075   0.001             3075              3603             1.556           2315.7        53.1  Two Conv2D layers back to back
+1-1conv0_h32c1m2_wave             PASS               0.001             5124   0.001             5124              3989             1.200          3322.81        48.1  Two Conv2D layers back to back
+1-1conv0_h32c256m128_wave         PASS               0.411      6.74038e+07   0.411      6.74038e+07            164111            52.860          3104.65       119.1  Two Conv2D layers back to back
+1-1conv0_h32c256m64_wave          PASS               0.254       3.3833e+07   0.254       3.3833e+07            133263            37.051          3596.76        95.1  Two Conv2D layers back to back
+1-1conv0_h32c2m1_wave             PASS               0.002             6148   0.002             6148              3990             0.726           5494.6        34.0  Two Conv2D layers back to back
+1-1conv0_h32c4m1_wave             PASS               0.003            12294   0.003            12294              4764             0.614          7763.19        26.0  Two Conv2D layers back to back
+1-1conv0_h32c64m1_wave            PASS               0.007           196674   0.007           196674             27984             3.397          8238.02        30.0  Two Conv2D layers back to back
+1-1conv0_h32c8m1_wave             PASS               0.004            24586   0.004            24586              6312             1.073          5881.96        27.0  Two Conv2D layers back to back
+1-1conv0_h40c128m128_wave         PASS               0.320        5.265e+07   0.320        5.265e+07            164597            29.705          5540.99        69.1  Two Conv2D layers back to back
+1-1conv0_h40c128m1_wave           PASS               0.007           393346   0.007           393346             52752             6.731          7836.84        28.0  Two Conv2D layers back to back
+1-1conv0_h40c128m64_wave          PASS               0.215      2.64274e+07   0.215      2.64274e+07            122869            15.869          7742.91        43.1  Two Conv2D layers back to back
+1-1conv0_h40c1m1_wave             PASS               0.001             3075   0.001             3075              3603             0.494          7296.59        21.0  Two Conv2D layers back to back
+1-1conv0_h40c256m128_wave         PASS               0.421        1.053e+08   0.421        1.053e+08            250045            48.654          5139.25        85.1  Two Conv2D layers back to back
+1-1conv0_h40c256m64_wave          PASS               0.258      5.28548e+07   0.258      5.28548e+07            205245            26.060          7875.92        54.1  Two Conv2D layers back to back
+1-1conv0_h55c256_wave             PASS               0.008      2.32346e+06   0.008      2.32346e+06            303767            38.722          7844.73        64.1  Two Conv2D layers back to back
+1-1conv0_h55c64m256_wave          PASS               0.263      9.93332e+07   0.263      9.93332e+07            377809            60.833          6210.55       116.1  Two Conv2D layers back to back
+1-1conv0_h55m64_wave              PASS               0.005           390291   0.005           390291             80671             9.872          8171.77        39.0  Two Conv2D layers back to back
+1-1conv0_h56c1m1_wave             PASS               0.001             9411   0.001             9411             10072             1.231           8180.2        22.0  Two Conv2D layers back to back
+1-1conv0_m128_wave                PASS               0.001              387   0.001              387               576             0.077          7521.64        20.0  Two Conv2D layers back to back
+1-1conv0_m2_wave                  PASS               0.000                9   0.000                9               271             0.039          6927.58        21.0  Two Conv2D layers back to back
+1-1conv0_m64_wave                 PASS               0.000              195   0.000              195               419             0.061          6896.44        21.0  Two Conv2D layers back to back
+1-1conv0_r3h16c128_wave           PASS               0.040           623746   0.050           780418             15666             2.023          7744.14        26.0  Two Conv2D layers back to back
+1-1conv0_r3h55c256_wave           WAIVE_WAVESC       0.000      1.47159e+07   0.000      1.57481e+07                 0            -0.000                0        20.0  Two Conv2D layers back to back
+1-1conv0_wave                     PASS               0.000              134   0.000              134               333             0.049          6861.31        21.0  Two Conv2D layers back to back
+1-1conv7_64                       PASS               0.955      1.02978e+08   1.804      1.94499e+08            107827            17.459          6176.07        80.1  Two Conv2D layers back to back
+1-1conv9_64                       PASS               1.009      1.70217e+08   2.267      3.82554e+08            168755            26.939          6264.28        94.1  Two Conv2D layers back to back
+2-1conv3_64s8                     PASS               0.016           348162   0.016           348162             22076             2.788          7917.37        29.0  Two Conv2D layers back to back
+2-1conv9_64s8                     PASS               0.020      3.00237e+06   0.043      6.32013e+06            147337            18.757          7855.01        86.1  Two Conv2D layers back to back
+2-padasym_strd_h112r7s2           PASS               0.001           319923   0.001           377253            260776            33.031          7894.93        55.1  Single Conv2D layer with asymmetric padding
+2-padasym_strd_h112r7s2_wave      PASS               0.002           319923   0.002           377253            156816            35.042          4475.13        79.1  Single Conv2D layer with asymmetric padding
+2-padasym_strd_h224r7s2_fp32_wave  PASS               0.242      2.36188e+08   0.264      2.57732e+08            977317           141.878          6888.45       261.3  Single Conv2D layer with asymmetric padding
+2-padasym_strd_h224r7s2_wave      PASS               0.293      2.36188e+08   0.319      2.57732e+08            807051           117.524           6867.1       214.2  Single Conv2D layer with asymmetric padding
+2-padasym_strd_h3r2s2             PASS               0.000               47   0.000               87               548             0.072          7649.25        22.0  Single Conv2D layer with asymmetric padding
+2-padasym_strd_h4r2s3             PASS               0.000               54   0.000               94               551             0.071          7737.57        25.0  Single Conv2D layer with asymmetric padding
+2-padasym_strd_h5r2s2             PASS               0.000              103   0.000              159               576             0.074          7744.75        22.0  Single Conv2D layer with asymmetric padding
+2-padsym_strd_h3r3s2              PASS               0.000               92   0.000              308              1212             0.153          7903.95        23.0  Single Conv2D layer with symmetric padding
+2-padsym_strd_h4r3s3              PASS               0.000               99   0.000              315              1215             0.155          7817.07        22.0  Single Conv2D layer with symmetric padding
+2-padsym_strd_h5r3s2              PASS               0.000              198   0.000              486              1257             0.156           8044.9        22.0  Single Conv2D layer with symmetric padding
+3-rn50-01_fp32_wave               PASS               0.445      2.31851e+08   0.581       3.0263e+08            521139            64.975          8020.66       107.1  A unit test
+3-rn50-01_wave                    PASS               0.888      2.31851e+08   1.159       3.0263e+08            261043            34.992          7460.12       155.2  Sprint 9 Step 1  b1  h14  r3  s1  c256   m256    pad NSWE 0-0  0-0  1-1  1-1 
+3-rn50-02_fp32_wave               PASS               0.262      1.03073e+08   0.262      1.03073e+08            393768            50.305          7827.64        89.1  A unit test
+3-rn50-02_wave                    PASS               0.524      1.03073e+08   0.524      1.03073e+08            196852            25.399          7750.31        95.1  Sprint 9 Step 1  b1  h14  r1  s1  c256   m1024   pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-03_fp32_wave               PASS               0.265      1.03223e+08   0.265      1.03223e+08            389466            50.968          7641.45        82.1  A unit test
+3-rn50-03_wave                    PASS               0.530      1.03223e+08   0.530      1.03223e+08            194701            25.690          7578.85        90.1  Sprint 9 Step 1  b1  h14  r1  s1  c1024  m256    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-04_fp32_wave               PASS               0.132      9.93332e+07   0.132      9.93332e+07            751185           102.272          7344.98       160.2  A unit test
+3-rn50-04_wave                    PASS               0.263      9.93332e+07   0.263      9.93332e+07            377809            50.618          7463.88       110.2  Sprint 9 Step 1  b1  h55  r1  s1  c64    m256    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-05_fp32_wave               PASS               0.859      2.31459e+08   0.986      2.65669e+08            269394            34.571          7792.49        73.1  A unit test
+3-rn50-05_wave                    PASS               1.668      2.31459e+08   1.914      2.65669e+08            138770            24.361          5696.34        81.1  Sprint 9 Step 1  b1  h28  r3  s1  c128   m128    pad NSWE 0-0  0-0  1-1  1-1 
+3-rn50-06_fp32_wave               PASS               0.238      1.02926e+08   0.238      1.02926e+08            433180            59.142          7324.38       103.1  A unit test
+3-rn50-06_wave                    PASS               0.475      1.02926e+08   0.475      1.02926e+08            216493            32.678          6625.07        81.1  Sprint 9 Step 1  b1  h28  r1  s1  c128   m512    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-07_fp32_wave               PASS               0.652      2.23258e+08   0.701      2.39773e+08            342236            43.563          7856.05        84.1  A unit test
+3-rn50-07_wave                    PASS               1.227      2.23258e+08   1.317      2.39773e+08            182021            26.208           6945.2        76.3  Sprint 9 Step 1  b1  h55  r3  s1  c64    m64     pad NSWE 0-0  0-0  1-1  1-1 
+3-rn50-08_fp32_wave               PASS               0.128      2.33595e+08   0.210       3.8459e+08       1.82806e+06           228.323          8006.49       309.5  A unit test
+3-rn50-08_wave                    PASS               0.253      2.33595e+08   0.417       3.8459e+08            922089           121.697          7576.89       489.5  Sprint 9 Step 1  b1  h7   r3  s1  c512   m512    pad NSWE 0-0  0-0  1-1  1-1 
+3-rn50-09_fp32_wave               PASS               0.116      1.03834e+08   0.116      1.03834e+08            896048           112.917          7935.45       159.2  A unit test
+3-rn50-09_wave                    PASS               0.231      1.03834e+08   0.231      1.03834e+08            449272            59.031           7610.8       237.2  Sprint 9 Step 1  b1  h7   r1  s1  c512   m2048   pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-10_fp32_wave               PASS               0.239      1.03227e+08   0.239      1.03227e+08            431153            57.484          7500.46        93.1  A unit test
+3-rn50-10_wave                    PASS               0.473      1.03227e+08   0.473      1.03227e+08            218059            28.391          7680.52        66.1  Sprint 9 Step 1  b1  h28  r1  s1  c512   m128    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-11_fp32_wave               PASS               0.133       9.9914e+07   0.133       9.9914e+07            752795            99.407          7572.86       131.1  A unit test
+3-rn50-11_wave                    PASS               0.262       9.9914e+07   0.262       9.9914e+07            381793            48.993          7792.85        87.1  Sprint 9 Step 1  b1  h55  r1  s1  c256   m64     pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-12_fp32_wave               PASS               0.117      1.03909e+08   0.117      1.03909e+08            890972           110.930          8031.85       156.2  A unit test
+3-rn50-12_wave                    PASS               0.233      1.03909e+08   0.233      1.03909e+08            446752            75.522          5915.53       245.3  Sprint 9 Step 1  b1  h7   r1  s1  c2048  m512    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-13_fp32_wave               PASS               0.082      2.49785e+07   0.082      2.49785e+07            303633            38.290          7929.74        68.1  A unit test
+3-rn50-13_wave                    PASS               0.162      2.49785e+07   0.162      2.49785e+07            154129            20.123          7659.43        48.1  Sprint 9 Step 1  b1  h55  r1  s1  c64    m64     pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-14_fp32_wave               PASS               0.120      5.19127e+07   0.120      5.19127e+07            433807            58.620          7400.32        90.1  A unit test
+3-rn50-14_wave                    PASS               0.235      5.19127e+07   0.235      5.19127e+07            220815            31.075          7105.87        76.1  Sprint 9 Step 1  b1  h14  r1  s2  c512   m256    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-15_fp32_wave               PASS               0.243      2.06447e+08   0.243      2.06447e+08            850986           128.804          6606.82       177.4  A unit test
+3-rn50-15_wave                    PASS               0.481      2.06447e+08   0.481      2.06447e+08            428790            75.610          5671.07       199.4  Sprint 9 Step 1  b1  h14  r1  s2  c512   m1024   pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-16_fp32_wave               PASS               0.242      2.36188e+08   0.264      2.57732e+08            977317           151.697          6442.57       240.4  A unit test
+3-rn50-16_wave                    PASS               0.293      2.36188e+08   0.319      2.57732e+08            807051           109.979           7338.2       219.2  Sprint 9 Step 1  b1  h112 r7  s2  c3     m64     pad NSWE 0-0  0-0  2-3  2-3 
+3-rn50-17_fp32_wave               PASS               0.035      2.06426e+08   0.035      2.06426e+08       5.87315e+06           671.991          8739.93       729.8  A unit test
+3-rn50-17_wave                    PASS               0.321      2.06426e+08   0.321      2.06426e+08            642589            83.184          7724.87       159.2  Sprint 9 Step 1  b1  h28  r1  s2  c256   m512    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-18_fp32_wave               PASS               0.036      5.21874e+07   0.036      5.21874e+07       1.46965e+06           198.085          7419.28       229.3  A unit test
+3-rn50-18_wave                    PASS               0.106      5.21874e+07   0.106      5.21874e+07            492061            71.311          6900.22       110.1  Sprint 9 Step 1  b1  h28  r1  s2  c256   m128    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-19_fp32_wave               PASS               0.092      5.21052e+07   0.092      5.21052e+07            569436            70.839          8038.48       117.1  A unit test
+3-rn50-19_wave                    PASS               0.183      5.21052e+07   0.183      5.21052e+07            284942            42.100          6768.27       143.2  Sprint 9 Step 1  b1  h7   r1  s2  c1024  m512    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-20_fp32_wave               PASS               0.114      2.07819e+08   0.114      2.07819e+08       1.82354e+06           218.040          8363.35       288.3  A unit test
+3-rn50-20_wave                    PASS               0.228      2.07819e+08   0.228      2.07819e+08            912632            81.340            11220       339.4  Sprint 9 Step 1  b1  h7   r1  s2  c1024  m2048   pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-t00_fp32_wave              PASS               0.000                6   0.000                6               269             0.037          7349.53        24.0  A unit test
+3-rn50-t00_wave                   PASS               0.000                6   0.000                6               269             0.036          7494.92        23.0  A unit test
+3-rn50_ba_relu_fp32_wave          PASS               0.243      2.37794e+08   0.265      2.59338e+08            977817           106.207           9206.7       174.2  A unit test
+3-rn50_pool2                      PASS               0.112           823554   0.112           823554              7384             0.882          8372.98        21.0  A unit test
+3-rn50_pool2_wave                 PASS               0.094           823554   0.094           823554              8800             1.289          6824.94        26.0  A unit test
+3-rn50_relu_fp32_wave             PASS               0.018      1.12524e+07   0.019      1.22623e+07            629394            79.972          7870.17       140.2  A unit test
+4-ptb_word_lm1                    WAIVE-LSTM         0.000                0   0.000                0                 0            -0.000                0        13.2  Full size networks
+4-ptb_word_lm1_host               WAIVE-LSTM         0.000                0   0.000                0                 0            -0.000                0       162.4  Full size networks
+4-ptb_word_small1_host            PASS               0.000                0   0.000                0                 0            -0.000                0        26.0  Full size networks
+4-ptb_word_small1_wave            WAIVE-LSTM         0.000      4.40341e+06   0.000      4.40341e+06                 0            -0.000                0        17.0  Full size networks using wave scheduler
+4-ptb_word_small_sigmoid_wave     WAIVE-LSTM         0.000      2.17006e+06   0.000      2.17006e+06                 0            -0.000                0        19.2  Full size networks using wave scheduler
+4-rn50_matmul_fp32_wave           WAIVE-S10_BE_SOFTMAX   0.000      2.35813e+06   0.000      2.35813e+06                 0            -0.000                0        19.0  Sprint 10 avgpool, reshape, matmult, softmax on wave backend, rest on host
+4-rn50_matmul_fp32_waveopt        PASS               0.000      2.35813e+06   0.000      2.35813e+06                -1            -1.000                0        38.1  Sprint 10 avgpool, reshape, matmult, softmax on ME   backend, rest on host
+4-rn50_matmul_nosm_fp32_wave      PASS               0.001      2.35513e+06   0.001      2.35513e+06       1.64994e+06           211.795           7790.3       247.3  Full size networks using wave scheduler
+4-rn50_nne_fc                     PASS               0.000                0   0.000                0                 0            -0.000                0        29.0  Full size networks
+4-rn50_nne_from1_fp32_wave        PASS               0.242      2.36188e+08   0.264      2.57732e+08            977317           129.772          7531.05       204.2  Full size networks using wave scheduler
+4-rn50_nne_from1_wave             PASS               0.293      2.36188e+08   0.319      2.57732e+08            807051           127.213          6344.11       220.2  Full size networks using wave scheduler
+4-rn50_nne_from2_fp32_wave        PASS               0.242      2.36991e+08   0.264      2.58535e+08            977817           125.693          7779.39       199.2  Full size networks using wave scheduler
+4-rn50_nne_from2_wave             PASS               0.294      2.36991e+08   0.321      2.58535e+08            805974           111.728          7213.69       190.3  Full size networks using wave scheduler
+4-rn50_nne_from3_fp32_wave        PASS               0.243      2.37794e+08   0.265      2.59338e+08            977817           142.004          6885.84       223.2  Full size networks using wave scheduler
+4-rn50_nne_from3_wave             PASS               0.295      2.37794e+08   0.322      2.59338e+08            805974           108.836          7405.42       190.2  Full size networks using wave scheduler
+5-rn50_nne_to_act4_fp32_wave      PASS               0.152      6.90505e+08   0.161      7.28564e+08        4.5382e+06           629.208          7212.56       799.0  Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave           PASS               0.264      6.90505e+08   0.279      7.28564e+08       2.61421e+06           512.794          5097.98       710.0  Full size networks using wave scheduler
+6-alexnet                         WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0        16.0  Full size networks
+7-rn50_nne_conv_wave              PASS               0.003      1.03834e+08   0.003      1.03834e+08       3.93334e+07          4621.952          8510.12      5989.0  Sprint 9 Story 1 - all convolutions on Inkling other ops on host
+7-rn50_nne_fc_wave                PASS               0.383       7.7165e+09   0.436      8.80209e+09        2.0169e+07          3086.179          6535.26      4185.1  Full size networks using wave scheduler
+7-rn50_nne_fc_waveopt             PASS               0.000      7.71876e+09   0.000      8.80434e+09                -1            -1.000                0      1878.2  Full size networks using wave scheduler
+7-rn50_nne_fp16_accfail           PASS_WAIVE_FP16_ACC   0.335      7.71876e+09   0.382      8.80434e+09       2.30675e+07          3625.298          6362.93      4758.0  Full size networks
+7-rn50_nne_fp16_host              PASS               0.000                0   0.000                0                 0            -0.000                0        70.1  Full size networks
+7-rn50_nne_fp16_wave              PASS               0.367      7.71876e+09   0.419      8.80434e+09       2.10088e+07          3407.004          6166.36      4518.5  Full Resnet50 fp16 inference all layers on Inkling except the softmax
+7-rn50_nne_fp16_waveopt_b4        WAIVE_BATCH        0.000      3.07984e+10   0.000      3.51408e+10                -1            -1.000                0        55.1  Full Resnet50 fp16 inference all layers on Inkling except the softmax
+7-rn50_nne_fp32_host              PASS               0.000                0   0.000                0                 0            -0.000                0        58.1  Full size networks
+7-rn50_nne_fp32_wave              FAIL               0.000      7.71876e+09   0.000      8.80434e+09                 0            -0.000                0      1045.3  Full Resnet50 fp32 inference all layers on Inkling except the softmax
+7-rn50_nne_fp32_waveopt           PASS               0.000      7.71876e+09   0.000      8.80434e+09                -1            -1.000                0      2016.4  Full Resnet50 fp32 inference all layers on Inkling except the softmax
+8-resnet50                        WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0         7.0  Full size networks
+8-resnet50_fp16_keras             WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0        14.0  Full size networks
+8-resnet50_fp16_keras_opt         WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0        11.0  Full size networks
+8-resnet50_fp16_keras_opt_b16     WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0         8.0  Full size networks
+8-resnet50_fp16_wave              WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0        10.0  Full size networks using wave scheduler
+8-resnet50_fp16_wave_b2           WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0         8.0  Full size networks using wave scheduler
+8-resnet50_fp32_keras             WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0         9.0  Full size networks
+8-resnet50_fp32_keras_opt         WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0         9.0  Full size networks
+8-resnet50_fp32_wave              WAIVE-BENCH        0.000                0   0.000                0                 0            -0.000                0        11.0  Full size networks using wave scheduler
+8-rn50_nne_auto                   WAIVE-NNE          0.000             2073   0.000             2073                 0            -0.000                0       849.3  Full size networks
+8-rn50_nne_fp32_meauto            PASS               0.010      4.41894e+08   0.014      5.92889e+08       4.27971e+07          6127.535          6984.39      6954.5  Sprint 9 Story 2 - all fanout-resadd subgraphs on Inkling except FC, softmax on host
+9-resnet152                       WAIVE_RN152        0.000                0   0.000                0                 0            -0.000                0        14.0  Full size networks
+9-resnet152_waveopt               WAIVE_RN152        0.000                0   0.000                0                 0            -0.000                0       153.3  Full size networks using wave scheduler
+INFO: wrote dashboard status into sprint9-dashboard.txt
