@@ -150,27 +150,34 @@ class QoR:
           elapsedTimeSec = found.group(1)
     return int(cycles), float(elapsedTimeSec)
 
+  # Returns unpadded and padded op counts
   @staticmethod
   def feLogGetOps(filepath):
     ops = 0
+    opsPadded = 0
     with open(filepath, 'r') as fh:
       for line in fh:
         match = re.search('INFO: total opcount is (\d+)', line)
         if match:
           ops = int(match.groups(1)[0])
-    return ops
+        match1 = re.search('INFO: total padded opcount is (\d+)', line)
+        if match1:
+          opsPadded = int(match1.groups(1)[0])
+    return ops, opsPadded
 
   def __init__(self, dirName):
     self.freq = 1e9
     self.testName = dirName
     feLog = self.testName + "/" + "log-fe.txt"
     self.tops = 0
+    self.topsPadded = 0
     self.ops = 0
+    self.opsPadded = 0
     self.cycles = 0
     self.elapsedTimeSec = -1e-6
     self.cyclesPerSec = 0
     if os.path.isfile(feLog):
-      self.ops = QoR.feLogGetOps(feLog)
+      self.ops, self.opsPadded = QoR.feLogGetOps(feLog)
       for subdir, dirs, files in os.walk(dirName):
         for file in files:
           #print("DEBUG: visited file  " + os.path.join(subdir, file))
@@ -184,18 +191,24 @@ class QoR:
             self.elapsedTimeSec += sgElapsedTimeSec
     if self.cycles > 0:
       self.tops = 1.0 * self.ops / self.cycles / 1e12 * self.freq
+      self.topsPadded = 1.0 * self.opsPadded / self.cycles / 1e12 * self.freq
     if self.elapsedTimeSec > 0:
       self.cyclesPerSec = self.cycles / self.elapsedTimeSec
 
   @staticmethod
   def printHeader():
-    print("%-32s  %-16s  %6s  %16s %16s  %16s %16s  %10s  %s" %
-          ("Test", "Status", "Tops", "Ops", "SimCycles", "SimTimeSec", "SimCycles/sec", "TotTimeSec", "Description"))
+    print("%-32s  %-16s  %6s %16s  %6s %16s  %16s  %16s %16s  %10s  %s" %
+          ("Test", "Status",
+           "Tops", "OpCount",
+           "TopsPa", "OpCountPadded",
+           "SimCycles", "SimTimeSec", "SimCycles/sec", "TotTimeSec", "Description"))
     print("-" * 150)
 
   def printValues(self, status, testTime, description):
-    print("%-32s  %-16s  %6.3f  %16g %16g  %16.3f %16g  %10.1f  %s" %
-          (self.testName, status, self.tops, self.ops,
+    print("%-32s  %-16s  %6.3f %16g  %6.3f %16g  %16g  %16.3f %16g  %10.1f  %s" %
+          (self.testName, status,
+           self.tops, self.ops,
+           self.topsPadded, self.opsPadded,
            self.cycles, self.elapsedTimeSec, self.cyclesPerSec,
            testTime, description))
 
@@ -548,12 +561,14 @@ class Ktests:
       fh.write("-" * 79 + "\n" + "PASSRATE  %d of %d  %.3f%%\n" % (countPass, countAll, 100 * countPass / countAll))
     print("INFO: wrote dashboard status into %s" % outFileName)
       
-  def plotTops(self, outFile, minTops, normalizeTo, pctLines, keyTests):
+  def plotTops(self, outFile, minTops, normalizeTo, pctLines, keyTests, padded=False):
     test2tops = {}
     for testName in self.testList:
       t = self.getTestByName(testName)
       if t.status == 'PASS':
         tops = t.qor.tops
+        if padded:
+          tops = t.qor.topsPadded
         if tops >= minTops or testName in keyTests:
           test2tops[testName] = tops
     labels = sorted(test2tops, key=test2tops.get, reverse=True)
@@ -572,14 +587,17 @@ class Ktests:
       color = 'black'
       val = (100 * v / normalizeTo)
       valStr = "%2.0f" % val
-      if val < 1:
+      if val < 10:
         valStr = "%.3f" % val
       if labels[i] in keyTests:
         color = 'red'
       plt.text(i-0.3, v+len(valStr)/4, "%s" % valStr, rotation='vertical', color=color)
     plt.xlabel('NN')
-    plt.ylabel('Tops')
-    plt.title('TPB performance (Tops) and PE efficiency (%)')
+    paddedStr = ''
+    if padded:
+      paddedStr = "Padded"
+    plt.ylabel('Tops%s' % paddedStr)
+    plt.title('TPB performance (Tops%s) and %s PE efficiency (%%)' % (paddedStr, paddedStr) )
     plt.tight_layout()
     plt.savefig(outFile)
       
@@ -629,6 +647,7 @@ else:
     print("WARNING: matplotlib is not installed, skipped Qor plot")
   if plotQor:
     keyDesigns = ['7-rn50_nne_fp16_wave']
-    tests.plotTops("qor_tops.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'yellow', 60 : 'orange'}, keyDesigns)
+    tests.plotTops("qor_tops.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns)
+    tests.plotTops("qor_tops_padded.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns, padded=True)
     tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
     

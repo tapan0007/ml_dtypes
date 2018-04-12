@@ -157,8 +157,24 @@ class Node(Object):
             "layer_name" :  self.getOpName(),
             "#comment"   :  "unsupported layer"
             }], [])
-  def getOpCount(self):
-    return 1
+  
+  # Helper for op counts - number of scalar elements in all output tensors
+  def getNpyInfoSize(self):
+    size = 0;
+    npInfos = self.getNpInfo()
+    # Count 1 op per each output's tensor scalar
+    for i in range(len(npInfos)):
+      size += np.empty(npInfos[i].npShape).size
+    return size
+    
+  
+  # Describes computational complexity of the operation
+  def getOpCount(self, padded=False):
+    opCount = 1
+    npInfos = self.getNpInfo()
+    if len(npInfos) > 0:
+      opCount += self.getNpyInfoSize()
+    return opCount
   def getDotText(self):
     text = self.getOpType()
     text += "\n" + str(self.protoShape)
@@ -323,6 +339,12 @@ class NodeSoftmax(Node):
 
   def isSupported(self):
     return True
+
+  def getOpCount(self, padded=False):
+    # Softmax computes, exp, sum, and divide so 3x
+    opCount = 3 * self.getNpyInfoSize()
+    return opCount
+
 
 ###############################################################################
 # Input Node
@@ -574,14 +596,20 @@ class NodeConv2D(NodeBasePaddedStrided):
 
   # Number of add, multiply ops for performance analysis and reporting
   # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
-  def getOpCount(self):
+  def getOpCount(self, padded=False):
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (batch, channels, height, width) = tpbShape
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
     filterShapeRSCM = npInfoW.npShape
     # 7 loops - 4 in the filter, 3 in ofmap
-    opCount = 2 * np.empty(filterShapeRSCM).size * batch * height * width;
+    opCount = 2 * np.empty(filterShapeRSCM).size * batch;
+    if padded:
+      padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding
+      opCount *= (height + padNorth + padSouth) * (width + padWest + padEast)
+    else:
+      opCount *= height * width
     return opCount
 
   def isSupported(self):
@@ -669,12 +697,18 @@ class NodePool(NodeBasePaddedStrided):
   # Number of add, multiply, max or move, copy ops for performance
   # analysis and reporting
   # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
-  def getOpCount(self):
+  def getOpCount(self, padded=False):
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (batch, channels, height, width) = tpbShape
     kernelSizeNHWC = self.getKernelSize()
-    opCount = 2 * np.empty(kernelSizeNHWC).size * batch * height * width * channels;
+    opCount = 2 * np.empty(kernelSizeNHWC).size * batch * channels;
+    if padded:
+      padding = self.calcTpbPadding(self.getKernelSize2D(), self.getPaddingMode())
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding
+      opCount *= (height + padNorth + padSouth) * (width + padWest + padEast)
+    else:
+      opCount *= height * width
     return opCount
 
 
@@ -816,6 +850,21 @@ class NodeMatMul(Node):
   def isSupported(self):
     return True
 
+  def getOpCount(self, padded=False):
+    npInfo = self.getNpInfo()[0]
+    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (batch, channels, height, width) = tpbShape
+    # The IFMAP comes from reshape,  the other is (weight) matrix 
+    ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    # Get the depth dimension of MatMul by treating the 2nd input as Fmap (unlike TPB's implementation)
+    tfShape4D1 = npt.ncShapeToNHWC(npInfoIF1.npShape)
+    tpbShape1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
+    (batch1_unused, channels1_unused, height1, width1_unused) = tpbShape1
+    
+    # 5 loops - batch, channels, and 3 for GEMM
+    opCount = 2 * batch * channels * height * width * height1;
+    return opCount
 
 ###############################################################################
 # Mul - element-wise multiplication
@@ -1230,6 +1279,7 @@ class Graph(Object):
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
     totalOpCount = 0
+    totalOpCountPadded = 0
     layers = OrderedDict()
     fileLists = OrderedDict()
     for level in range(0, len(levelizedNodes)):
@@ -1251,9 +1301,12 @@ class Graph(Object):
             layers[l["layer_name"]] = l
             fileLists[l["layer_name"]] = fileListLayer
         opCount = n.getOpCount()
+        opCountPadded = n.getOpCount(padded=True)
         totalOpCount += opCount
+        totalOpCountPadded += opCountPadded
         if Config.debugLevel >= 1:
           print("DEBUG: opcount is %d for %s  %s" % (opCount, n.getOpType(), n.getOpName()))
+          print("DEBUG: padded opcount is %d for %s  %s" % (opCountPadded, n.getOpType(), n.getOpName()))
 
     for l in layers:
       jsonData["layers"] += [layers[l]]
@@ -1262,6 +1315,7 @@ class Graph(Object):
       outNpy = fileListLayer[-1]
 
     print("INFO: total opcount is %d" % totalOpCount)
+    print("INFO: total padded opcount is %d" % totalOpCountPadded)
         
 
     if verbose > 0:
