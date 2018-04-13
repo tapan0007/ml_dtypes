@@ -24,15 +24,15 @@ print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
 parser = argparse.ArgumentParser()
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
 parser.add_argument('--input_tensors', help='Tensors to set, pairs tensorName tensorValue.npy ...',
-                    dest="input_tensors", default=[], nargs='+',)
-parser.add_argument('--output_tensor', help='Output tensor to compute, pair tensorName tensorValue.npy',
-                    dest="output_tensor", default=[], nargs=2)
+                    default=[], nargs='+',)
+parser.add_argument('--output_tensors', help='Output tensor to compute, pair tensorName tensorValue.npy',
+                    default=[], nargs='+')
 
 args = parser.parse_args()
 inputTensors = args.input_tensors
-outputTensor = args.output_tensor
+outputTensors = args.output_tensors
 assert(len(inputTensors) >= 2)
-assert(len(outputTensor) == 2)
+assert(len(outputTensors) >= 2)
 
 tfpbFile = args.tfpb
 if not os.path.isfile(tfpbFile):
@@ -49,9 +49,9 @@ class RuntimeTf:
     with gfile.FastGFile(tfpbFile,'rb') as f:
       self.tfg.ParseFromString(f.read())
   
-  def run(self, inputTensors, outputTensor):
+  def run(self, inputTensors, outputTensors):
     self.inputTensors = inputTensors
-    self.outputTensor = outputTensor
+    self.outputTensors = outputTensors
 
     # Grow GPU memory as needed at the cost of fragmentation.
     config = tf.ConfigProto()
@@ -69,11 +69,15 @@ class RuntimeTf:
         feedDict[inputTensor] = inputValue
       
       # Collect results
-      outputTensor,outputFile = outputTensor
-      outputVars = [outputTensor]
+      outputVars = []
+      var2file = {}
+      for tensorName,tensorFile in zip(outputTensors[::2], outputTensors[1::2]):
+        outputVars.append(tensorName)
+        var2file[tensorName] = tensorFile
       tfResults = sess.run(outputVars, feed_dict=feedDict)
       for (var, nd) in zip(outputVars, tfResults):
         if nd.size > 0:
+          outputFile = var2file[var]
           np.save(outputFile, nd)
           print("\nINFO: wrote tensor %s into %s" %
                 (var, outputFile), flush=True)
@@ -81,5 +85,5 @@ class RuntimeTf:
 
 runtime = RuntimeTf()
 runtime.load(tfpbFile)
-runtime.run(inputTensors, outputTensor)
+runtime.run(inputTensors, outputTensors)
 

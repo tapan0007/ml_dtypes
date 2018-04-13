@@ -1168,14 +1168,34 @@ class Graph(Object):
         preNodes.append(edge.getFromPosNode().node)
     return(preNodes)
   
+  # Get the nodes with no successors - highest in the data flow level
+  def getTopNodes(self):
+    nextNodes = self.getNodes()
+    topNodes = []
+    visitedNodes = set()
+    while len(nextNodes) > 0:
+      newNextNodes = []
+      for n in nextNodes:
+        if not n in visitedNodes:
+          nodeSuccessors = self.nodeSuccessors(n)
+          if len(nodeSuccessors) > 0:
+            newNextNodes += nodeSuccessors
+          else:
+            topNodes.append(n)
+          visitedNodes.add(n)
+      nextNodes = list(set(newNextNodes))
+      assert len(topNodes) == len(list(set(topNodes)))
+    return topNodes
+  
   # Get the node with most computation - highest in the data flow level
   def getTopNode(self):
-    nextNodes = self.getNodes()
-    while len(nextNodes) > 0:
-      n = nextNodes[0]
-      nextNodes = self.nodeSuccessors(n)
-    return(n)
-  
+    #nextNodes = self.getNodes()
+    #while len(nextNodes) > 0:
+    #  n = nextNodes[0]
+    #  nextNodes = self.nodeSuccessors(n)
+    #return(n)
+    return self.getTopNodes()[0]
+
   def setInputNodes(self, nodeList):
     self.__inputNodes = nodeList
   def getInputNodes(self):

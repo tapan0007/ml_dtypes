@@ -19,7 +19,7 @@ def calcTransform(sf, st):
 
 class NpTrans:
   # See spec for method  genCompilerPy
-  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "HNC", "HNWC"]:
+  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "C", "NC", "HNC", "HNWC"]:
     exec("%s = '%s'" %(c, c))
   
   # Define tensorFlow (TF) to Inkling simulator (SIM) translation
@@ -51,6 +51,7 @@ class NpTrans:
   @staticmethod
   def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None):
     arr = np.load(npFile)
+    assert len(srcFormat) == len(arr.shape)
     srcShape = arr.shape
     sf = srcFormat
     if len(srcFormat) > len(dstFormat):

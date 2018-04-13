@@ -15,7 +15,7 @@ class KsubGraph:
   def __init__(self, debugLevel):
     self.graph = kog.Graph(debugLevel=debugLevel)
     self.__inputs = []
-    self.__output = None
+    self.__outputs = []
     self.__maxLevel = 0    # highest level of any node (== output) in the src graph
     self.debugLevel = debugLevel
     self.isSupported = True
@@ -39,14 +39,15 @@ class KsubGraph:
       inNpFile = ni.getNpInfo()[0].npFile
       inShape = ni.getNpInfo()[0].npShape
       jsonDict["Inputs"].append({"name" : ni.getName() + ":0", "file" : inNpFile, "shape" : inShape})
-    o = self.__output
-    outNpFile = o.getNpInfo()[0].npFile
-    outShape = o.getNpInfo()[0].npShape
-    jsonDict["Outputs"] = [{"name" : o.getName() + ":0", "file" : outNpFile, "shape" : outShape}]
+    jsonDict["Outputs"] = []
+    for no in self.__outputs:
+      outNpFile = no.getNpInfo()[0].npFile
+      outShape = no.getNpInfo()[0].npShape
+      jsonDict["Outputs"].append({"name" : no.getName() + ":0", "file" : outNpFile, "shape" : outShape})
     return jsonDict
   def addSideNodes(self, srcGraph):
     self.__inputs = self.graph.transferSideNodes(srcGraph)
-    self.__output = self.graph.getTopNode()
+    self.__outputs = self.graph.getTopNodes()
     # In the very first subgraph the original input node needs to be added too
     srcInputName = srcGraph.getInputNode().getName()
     if self.graph.hasNode(srcInputName):
@@ -54,7 +55,7 @@ class KsubGraph:
       if not srcInpEqNode in self.__inputs:
         self.__inputs.insert(0, srcInpEqNode)
     if len(self.__inputs) == 0:
-      self.__inputs.append(self.__output)
+      self.__inputs += self.__output
     # Make one of the nodes input for the backend, should not matter which one
     inputNodes = self.__inputs
     if self.debugLevel > 0:

@@ -301,6 +301,7 @@ class Ktests:
     self.numRunning = 0
     self.sleepSec = 1
     self.numPass = 0
+    self.numWaive = 0
     self.numFail = 0
     self.msg = ""
     self.statusCount = 0
@@ -321,16 +322,23 @@ class Ktests:
     numRunPct = numRun / numAll * 100
     numPass = self.numPass
     numPassPct = numPass / numAll * 100
+    numWaive = self.numWaive
+    numWaivePct = numWaive / numAll * 100
     numFail = self.numFail
     numFailPct = numFail / numAll * 100
-    numOther = numAll - numPass - numFail - numRun
+    numOther = numAll - numPass - numWaive - numFail - numRun
     numOtherPct = numOther / numAll * 100
     if self.statusCount %60 == 0:
-      print("\n  #Time    Running    Passed    Failed     Other")
+      print("\n  #Time    Running    Passed    Waived    Failed     Other")
     if self.msg or self.statusCount %10 == 0:
-      print("  %6s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %s" %
+      print("  %6s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %s" %
             (int(time.time() - self.startTime),
-             numRun, numRunPct, numPass, numPassPct, numFail, numFailPct, numOther, numOtherPct, self.msg),
+             numRun, numRunPct,
+             numPass, numPassPct,
+             numWaive, numWaivePct,
+             numFail, numFailPct,
+             numOther, numOtherPct,
+             self.msg),
             flush=True
            )
     self.statusCount += 1
@@ -387,9 +395,14 @@ class Ktests:
     t.calcQoR()
     if t.passed():
       self.numPass += 1
-    if t.failed() or t.timedout():
+    if t.timedout():
       self.numFail += 1
     reportStatus = self.calcWaivedStatus(t.name, t.status)
+    if t.failed():
+      if 'WAIVE' in  reportStatus:
+        self.numWaive += 1
+      else:
+        self.numFail += 1
     self.msg += "  %s %s" % (t.name, reportStatus)
     if not t.status == "TIMEOUT":
       t.testTime = time.time() - t.startTime
