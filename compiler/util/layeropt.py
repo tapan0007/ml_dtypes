@@ -1632,7 +1632,7 @@ class FusedOp(list):
                 if (i != len(op_list)-1):
                     dst_is_psum = True
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
-                tpb.gen_join_waveop_inline(op_list[i], self.conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, self.conv_op.ofmap_tile_lower_addr)
+                tpb.gen_join_waveop_inline(op_list[i], self.conv_op, tile_id, True, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, self.conv_op.ofmap_tile_lower_addr)
                 tpb.statebuffer.circbuf_scratch.free_data_region(self.conv_op.ofmap_tile_lower_addr, self.conv_op.ofmap_tile_upper_addr, tpb.waveop_stream.last_main_waveop)
                 psum_bank_src = psum_bank_dst
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
@@ -2101,7 +2101,7 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, dram_bias_waveops)
 
     # generate ResAdd instruction and add it to instruction stream
-    def gen_join_waveop_inline(self, op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start):
+    def gen_join_waveop_inline(self, op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start):
         in_a_dtype = "float32"
         in_b_dtype = "float32"
         out_dtype = "float32"
@@ -2146,6 +2146,9 @@ class TPBSched:
             dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
             dst_z_num = op.Tn  # Need CNHW data format
             num_partitions = op.ofmap_count
+        src_b_sb_address = 0
+        if not src_is_psum:
+            src_b_sb_address = self.statebuffer.circbuf_ifmaps.get_sb_address(op.ifmap_wave_lower_addr)
         waveop_name = op.data['layer_name']+"/"+op.data['layer_type']+"_"+tile_id.id_string()
         instr = {
               'previous_waveops'        : [],
@@ -2168,10 +2171,10 @@ class TPBSched:
               'src_a_y_num'             : dst_y_num,
               'src_a_z_step'            : dst_z_step,
               'src_a_z_num'             : dst_z_num,
-              'src_b_is_psum'           : True,
+              'src_b_is_psum'           : src_is_psum,
               'src_b_psum_bank_id'      : psum_bank_src,
               'src_b_psum_bank_offset'  : 0,
-              'src_b_sb_address'        : 0,
+              'src_b_sb_address'        : src_b_sb_address,
               'src_b_x_step'            : 1,
               'src_b_x_num'             : dst_x_num,
               'src_b_y_step'            : dst_y_step,
@@ -2431,7 +2434,7 @@ class TPBSched:
                             if ("mul_scalar" in pool_op.data):
                                 self.gen_scaleadd_waveop_inline(pool_op, tile_id, False, 0, False, 0, dram_ifmaps_waveops, pool_op.data['mul_scalar'], 0.0)
                             else:
-                                self.gen_join_waveop_inline(pool_op, None, tile_id, 0, False, 0, dram_ifmaps_waveops+dram_resadd_waveops, pool_op.ofmap_tile_lower_addr)
+                                self.gen_join_waveop_inline(pool_op, None, tile_id, False, 0, False, 0, dram_ifmaps_waveops+dram_resadd_waveops, pool_op.ofmap_tile_lower_addr)
                         elif (pool_op.data['layer_type'] == "BiasAdd"): 
                             self.gen_act_waveop_inline(pool_op, None, None, tile_id, 0, False, 0, dram_ifmaps_waveops + dram_bias_waveops, bias_addr)
                             tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr, self.waveop_stream.last_main_waveop)
