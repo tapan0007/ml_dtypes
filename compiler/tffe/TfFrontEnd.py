@@ -87,12 +87,13 @@ class TfOp:
     return shape
 
 class TfFe:
-  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, batch):
+  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, batch, showOpNameInKgraph):
     self.__gd = None
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
     self.debugLevel = debugLevel
     kog.Config.Dot.timeout = dotTimeout
+    kog.Config.Graph.showOpNameInKgraph = showOpNameInKgraph
     self.kaenaPath = os.environ["KAENA_PATH"]
     self.batch = batch
   

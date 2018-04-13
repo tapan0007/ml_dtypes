@@ -39,6 +39,7 @@ class Config:
   1-2-5    ... recommended batches for roofline-minWave-maxWave
                Batch 0 means tiling required
 """
+    showOpNameInKgraph = False
   class Dot:
     timeout = 60
 
@@ -177,6 +178,8 @@ class Node(Object):
     return opCount
   def getDotText(self):
     text = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      text += "\n" + self.getName()
     text += "\n" + str(self.protoShape)
     return text
   # Supported ops/nodes are passed down through the compiler and simulator flow
@@ -568,6 +571,8 @@ class NodeConv2D(NodeBasePaddedStrided):
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      dotText += "\n" + self.getName()
     if len(self.getNpInfo()) > 0:
       dotText += "\nStrides " + str(self.getStrides())
       ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
@@ -675,6 +680,8 @@ class NodePool(NodeBasePaddedStrided):
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      text += "\n" + self.getName()
     if len(self.getNpInfo()) > 0:
       # Data sizes
       npInfoOF = self.getNpInfo()[0]
@@ -987,6 +994,8 @@ class NodeStridedSlice(Node):
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      dotText += "\n" + self.getName()
     for attrName in ["begin_mask", "ellipsis_mask", "end_mask", "new_axis_mask", "shrink_axis_mask"]:
       attrVal = self.getAttr(attrName)
       if not attrVal == None:
