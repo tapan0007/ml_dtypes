@@ -175,7 +175,13 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(BiasDtype);
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(OutDtype);
-    KCC_ARCHIVE(SrcPsumBankId);
+    KCC_ARCHIVE(SrcIsPsum);
+    if (m_SrcIsPsum) {
+        KCC_ARCHIVE(SrcPsumBankId);
+    } else {
+        KCC_ARCHIVE(SrcSbAddress);
+    }
+
     KCC_ARCHIVE(SrcXNum);
     KCC_ARCHIVE(SrcXStep);
     KCC_ARCHIVE(SrcYNum);

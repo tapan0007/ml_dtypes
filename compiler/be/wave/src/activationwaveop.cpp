@@ -27,7 +27,7 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
     , m_BiasDtype(DataType::dataTypeId2DataType(params.m_BiasDtypeId))
     , m_NumPartitions(params.m_NumPartitions)
     , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtypeId))
-    , m_SrcPsumBankId(params.m_SrcPsumBankId)
+    , m_SrcIsPsum(params.m_SrcIsPsum)
     , m_SrcXNum(params.m_SrcXNum)
     , m_SrcXStep(params.m_SrcXStep)
     , m_SrcYNum(params.m_SrcYNum)
@@ -48,6 +48,11 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
         m_DstPsumBankId     = params.m_DstPsumBankId;
     } else {
         m_DstSbAddress      = params.m_DstSbAddress;
+    }
+    if (m_SrcIsPsum) {
+        m_SrcPsumBankId     = params.m_SrcPsumBankId;
+    } else {
+        m_SrcSbAddress      = params.m_SrcSbAddress;
     }
     assert(verify());
 }
@@ -111,9 +116,6 @@ ActivationWaveOp::verify() const
         RETURN_ASSERT(false);
     }
     // m_OutDtype
-    if (m_SrcPsumBankId < 1) {
-        RETURN_ASSERT(false);
-    }
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
     }
@@ -133,6 +135,17 @@ ActivationWaveOp::verify() const
     if (m_SrcZStep <1 ){
         RETURN_ASSERT(false);
     }
+
+    if (m_SrcIsPsum) {
+        if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+
     std::array<kcc_int32, 4>    m_TileId;
     if (m_TileIdFormat == "") {
         RETURN_ASSERT(false);

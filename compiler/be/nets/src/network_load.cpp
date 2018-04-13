@@ -494,7 +494,14 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     activationParams.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype);
     KCC_UNSERIALIZE(NumPartitions);
     activationParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
-    KCC_UNSERIALIZE(SrcPsumBankId);
+
+    KCC_UNSERIALIZE(SrcIsPsum);
+    if (serWaveOp.m_SrcIsPsum) {
+        KCC_UNSERIALIZE(SrcPsumBankId);
+    } else {
+        KCC_UNSERIALIZE(SrcSbAddress);
+    }
+
     KCC_UNSERIALIZE(SrcXNum);
     KCC_UNSERIALIZE(SrcXStep);
     KCC_UNSERIALIZE(SrcYNum);

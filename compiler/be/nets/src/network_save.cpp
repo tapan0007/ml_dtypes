@@ -483,7 +483,13 @@ Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     KCC_SERIALIZE(NumPartitions);
     serWaveOp.m_OutDtype            = activationWaveOp->gOutDtype().gName();
 
-    KCC_SERIALIZE(SrcPsumBankId);
+    serWaveOp.m_SrcIsPsum = activationWaveOp->qSrcIsPsum();
+    if (activationWaveOp->qSrcIsPsum()) {
+        KCC_SERIALIZE(SrcPsumBankId);
+    } else {
+        KCC_SERIALIZE(SrcSbAddress);
+    }
+
     KCC_SERIALIZE(SrcXNum);
     KCC_SERIALIZE(SrcXStep);
     KCC_SERIALIZE(SrcYNum);

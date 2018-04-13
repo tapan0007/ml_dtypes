@@ -1566,7 +1566,7 @@ class FusedOp(list):
                     dst_is_psum = True
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
                 tpb.gen_act_waveop_inline(None, op_list[i], self.conv_op, tile_id, 
-                                          psum_bank_src, dst_is_psum, psum_bank_dst, [], 0)
+                                          True, psum_bank_src, dst_is_psum, psum_bank_dst, [], 0)
                 psum_bank_src = psum_bank_dst
             elif (layer_type == 'BiasAdd'):
                 tpb.activate.wait_tile_done(tile_id)
@@ -1588,7 +1588,7 @@ class FusedOp(list):
                         dst_is_psum = True
                         tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
                     tpb.gen_act_waveop_inline(op_list[i], op_list[i+1], self.conv_op, tile_id, 
-                                              psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_addr)
+                                              True, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_addr)
                     tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr, tpb.waveop_stream.last_main_waveop)
                     psum_bank_src = psum_bank_dst
                     next(op_list_iter)
@@ -1597,7 +1597,7 @@ class FusedOp(list):
                         dst_is_psum = True
                         tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz, psum_temp)
                     tpb.gen_act_waveop_inline(op_list[i], None, self.conv_op, tile_id, 
-                                              psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_addr)
+                                              True, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_addr)
                     tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr, tpb.waveop_stream.last_main_waveop)
                     psum_bank_src = psum_bank_dst
             elif (self[i].is_join):
@@ -2013,18 +2013,23 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, dram_waveops)
 
     # generate activation instruction and add it to instruction stream
-    def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
+    def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
         layer_name = ""
         bias_add_en = False
         bias_sb_address = 0
         # TODO: update in_dtype when src_is_psum is added
         in_dtype = "float32"
         out_dtype = "float32"
+        act_or_biasadd_op = None
         if (biasadd_op != None):
             act_or_biasadd_op = biasadd_op
             bias_add_en = True
             bias_sb_address = self.statebuffer.circbuf_bias.get_sb_address(bias_start)
             layer_name = biasadd_op.data['layer_name']
+            if (biasadd_op.item_sz == 2 and not src_is_psum):
+                in_dtype = "float16"
+            elif (biasadd_op.item_sz == 1 and not src_is_psum):
+                print("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
             if (biasadd_op.item_sz == 2 and not dst_is_psum):
                 out_dtype = "float16"
             elif (biasadd_op.item_sz == 1 and not dst_is_psum):
@@ -2035,10 +2040,15 @@ class TPBSched:
             act_type = act_op.data['layer_type']
             layer_name = act_op.data['layer_name']
             # TODO: refactor to some class to determine in_dtype and out_dtype
+            if (act_op.item_sz == 2 and not src_is_psum):
+                in_dtype = "float16"
+            elif (act_op.item_sz == 1 and not src_is_psum):
+                print("ERROR: item_sz %d not yet supported"%act_op.item_sz)
             if (act_op.item_sz == 2 and not dst_is_psum):
                 out_dtype = "float16"
             elif (act_op.item_sz == 1 and not dst_is_psum):
-                print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
+                print("ERROR: item_sz %d not yet supported"%act_op.item_sz)
+        assert(act_or_biasadd_op != None)
         dst_x_num = 1
         dst_y_step = 1
         dst_y_num = 1
@@ -2067,6 +2077,9 @@ class TPBSched:
             dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
             dst_z_num = act_or_biasadd_op.Tn  # Need CNHW data format
             num_partitions = act_or_biasadd_op.ofmap_count
+        src_sb_address = 0
+        if not src_is_psum:
+            src_sb_address = self.statebuffer.circbuf_ifmaps.get_sb_address(act_or_biasadd_op.ifmap_wave_lower_addr)
         waveop_name = layer_name+"/Activation_"+tile_id.id_string()            
         instr = {
               'previous_waveops'        : [],
@@ -2079,7 +2092,8 @@ class TPBSched:
               'in_dtype'                : in_dtype,
               'bias_dtype'              : tpb.statebuffer.circbuf_bias.data_type, 
               'out_dtype'               : out_dtype,
-              # TODO: add src_sb_address
+              'src_is_psum'             : src_is_psum,
+              'src_sb_address'          : src_sb_address,
               'src_psum_bank_id'        : psum_bank_src,
               'src_x_step'              : 1,
               'src_x_num'               : dst_x_num,
@@ -2418,7 +2432,7 @@ class TPBSched:
                             bias_addr = bias_chan_start * pool_op.item_sz
                             dram_bias_waveops = tpb.statebuffer.circbuf_bias.read_data_region(wave_id, bias_addr, bias_addr, bias_chan_end - bias_chan_start)
                             psum_temp = self.activate.biasadd(psum_fake_extract, bias_extracted)
-                        elif (pool_op.data['layer_type'] == "Sigmoid" or pool_op.data['layer_type'] == "Tanh" or pool_op.data['layer_type'] == "Exp" or pool_op.data['layer_type'] == "Relu"):
+                        elif re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", pool_op.data['layer_type']):
                             psum_temp = self.activate.act(pool_op.data['layer_type'], psum_fake_extract)
                         else:
                             print("ERROR: cannot execute %s in execute_unfused_pool_op"%pool_op.data['layer_type'])
@@ -2436,10 +2450,10 @@ class TPBSched:
                             else:
                                 self.gen_join_waveop_inline(pool_op, None, tile_id, False, 0, False, 0, dram_ifmaps_waveops+dram_resadd_waveops, pool_op.ofmap_tile_lower_addr)
                         elif (pool_op.data['layer_type'] == "BiasAdd"): 
-                            self.gen_act_waveop_inline(pool_op, None, None, tile_id, 0, False, 0, dram_ifmaps_waveops + dram_bias_waveops, bias_addr)
+                            self.gen_act_waveop_inline(pool_op, None, None, tile_id, False, 0, False, 0, dram_ifmaps_waveops + dram_bias_waveops, bias_addr)
                             tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr, self.waveop_stream.last_main_waveop)
                         else:                            
-                            self.gen_act_waveop_inline(None, pool_op, None, tile_id, 0, False, 0, dram_ifmaps_waveops, 0)
+                            self.gen_act_waveop_inline(None, pool_op, None, tile_id, False, 0, False, 0, dram_ifmaps_waveops, 0)
                         tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr, pool_op.ifmap_wave_upper_addr, self.waveop_stream.last_main_waveop)
                         for j in range(PEArray.NUM_COLS):
                             M_idx = wave_id.m_id * PEArray.NUM_COLS + j
@@ -2641,6 +2655,8 @@ if __name__ == "__main__":
 
     # go through all layers and add the fusable operations
     tpb = TPBSched()
+    tpb.statebuffer.circbuf_bias.data_type = kgraph.data_type
+    tpb.statebuffer.circbuf_bias.item_sz = kgraph.item_sz
     result_file = None
     num_mismatches = 0
     while (not kgraph.walk_ended()):
@@ -2683,7 +2699,7 @@ if __name__ == "__main__":
                 exit(-1)
             #inputs2 = tpb.statebuffer.circbuf_residue.load_data(first_op)
             #results = tpb.execute_multiply(inputs, inputs2, result_file)
-        elif (first_op_type == "Sigmoid" or first_op_type == "Tanh" or first_op_type == "BiasAdd"):
+        elif re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu|BiasAdd", first_op_type):
             inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             results = tpb.execute_unfused_pool_op(inputs, result_file)
         else:        
