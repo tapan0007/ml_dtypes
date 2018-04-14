@@ -201,8 +201,8 @@ class StateBuffer:
     def __init__(self):
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*0)
-        self.circbuf_weights = CircularBuffer(self, "weights", 96-24-1-24-24, self.SB_ATOM_SZ, self.SB_ATOM_SZ*24)
-        self.circbuf_residue = CircularBuffer(self, "residue",  24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1-24))
+        self.circbuf_weights = CircularBuffer(self, "weights", 96-24-1-8-24, self.SB_ATOM_SZ, self.SB_ATOM_SZ*24)
+        self.circbuf_residue = CircularBuffer(self, "residue",  8,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1-8))
         self.circbuf_bias    = CircularBuffer(self, "bias",    1,          self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24-1))
         self.circbuf_scratch = CircularBuffer(self, "scratch", 24,         self.SB_ATOM_SZ, self.SB_ATOM_SZ*(96-24))
         self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
