@@ -26,6 +26,8 @@ class KsubGraph:
     return self.__maxLevel
   def updateMaxLevel(self, level):
     self.__maxLevel = max(self.__maxLevel, level)
+  def addOutput(self, node):
+    self.__outputs.append(node)
   # Links the npyinfo files used by the graph from the srcDir
   def relinkNpFiles(self, srcDir):
     for n in self.graph.getNodes():
@@ -47,7 +49,7 @@ class KsubGraph:
     return jsonDict
   def addSideNodes(self, srcGraph):
     self.__inputs = self.graph.transferSideNodes(srcGraph)
-    self.__outputs = self.graph.getTopNodes()
+    #self.__outputs = self.graph.getTopNodes()
     # In the very first subgraph the original input node needs to be added too
     srcInputName = srcGraph.getInputNode().getName()
     if self.graph.hasNode(srcInputName):
@@ -95,13 +97,30 @@ class KgraphPart(object):
   def getSubgraphs(self):
     return self.__subgraphs
   
-  # Returns the predecessor nodes along main flow edges only
+  # Returns the successor nodes along main flow edges only
+  def getSuccessorMainFlowNodes(self, node):
+    fanoutEdges = node.getFanoutMainFlowEdges()
+    succNodes = [e.getToNode() for e in fanoutEdges]
+    return succNodes
+
+  # Returns True if the node has at least one successor with a different color or no fanout
+  def nodeIsSgOutput(self, node):
+    fanoutEdges = node.getFanoutMainFlowEdges()
+    if len(fanoutEdges) == 0:
+      return True
+    else:
+      succNodes = [e.getToNode() for e in fanoutEdges]
+      succColors = [self.getNodeColor(n) for n in succNodes]
+      nodeColor = self.getNodeColor(node)
+      return any(c != nodeColor for c in succColors)
+
+   # Returns the predecessor nodes along main flow edges only
   def getPredecessorMainFlowNodes(self, node):
     faninEdges = node.getFaninMainFlowEdges()
     predNodes = [e.getFromNode() for e in faninEdges]
     return(predNodes)
 
-  # Returns the node, asserts that there is exactly one
+ # Returns the node, asserts that there is exactly one
   def getPredecessorMainFlowNode(self, node):
     predNodes = self.getPredecessorMainFlowNodes(node)
     assert len(predNodes) == 1
@@ -396,6 +415,8 @@ class KgraphPart(object):
           assert(not n.getFaninEdges == None)
           subGraph.addNode(nCopy)
           subGraph.updateMaxLevel(level)
+          if self.nodeIsSgOutput(n):
+            subGraph.addOutput(nCopy)
     # Edges
     for i in range(self.__numColors):
       sg = self.__subgraphs[i]
