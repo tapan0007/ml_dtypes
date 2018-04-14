@@ -531,7 +531,7 @@ class CircularBuffer:
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
         if (self.circbuf_type == "weights"): # TODO: if space is reused for other regions, need to apply to other regions
-            for i in range(sb_addr//64, (sb_addr + length)//64):
+            for i in range(sb_addr//64, ceildiv(sb_addr + length, 64)):
                 # SB WAW dependency for weights
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
                 # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
@@ -1545,7 +1545,7 @@ class FusedOp(list):
             for i in dram_weights_waveops: # + dram_ifmaps_waveops:
                 sb_addr = i["sb_address"]
                 sb_length = i["length"]
-                for j in range(sb_addr//64, (sb_addr+sb_length)//64):
+                for j in range(sb_addr//64, ceildiv(sb_addr + sb_length, 64)):
                     tpb.statebuffer.consumer_of_64byte_morsel[j] = matmul_waveop_name
             # collect statistics
             tpb.pearray.num_ops_executed += self.conv_op.ofmap_count * self.conv_op.ofmap_full_tile_sz * self.conv_op.ifmap_count
