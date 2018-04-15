@@ -1,3 +1,6 @@
+#include <set>
+
+
 #include "utils/inc/asserter.hpp"
 
 #include "compisa/inc/compisawait.hpp"
@@ -59,11 +62,16 @@ void
 WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop)
 {
     const EngineId engineId = waveop->gEngineId();
+    std::set<events::EventId> eventIds;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
         if (! prevWaveEdge->qNeedToImplementWait()) {
             continue;
         }
+        const auto evtId = prevWaveEdge->gEventId();
+        Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+        eventIds.insert(evtId);
+
         writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
     }
 }
@@ -80,14 +88,19 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
 {
     const EngineId engineId = waveop->gEngineId();
     bool firstEmb = true;
+    std::set<events::EventId> eventIds;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
         if (! prevWaveEdge->qNeedToImplementWait()) {
             continue;
         }
+        const auto evtId = prevWaveEdge->gEventId();
+        Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+        eventIds.insert(evtId);
+
         if (firstEmb) {
             firstEmb = false;
-            sync.wait_event_id      = prevWaveEdge->gEventId();
+            sync.wait_event_id      = evtId;
             sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
         } else {
             writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
@@ -107,15 +120,20 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, events::EventId& wait
         events::EventWaitMode& waitEventMode)
 {
     const EngineId engineId = waveop->gEngineId();
+    std::set<events::EventId> eventIds;
     bool firstEmb = true;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
         if (! prevWaveEdge->qNeedToImplementWait()) {
             continue;
         }
+        const auto evtId = prevWaveEdge->gEventId();
+        Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+        eventIds.insert(evtId);
+
         if (firstEmb) {
             firstEmb = false;
-            waitEventId = prevWaveEdge->gEventId();
+            waitEventId = evtId;
             waitEventMode = prevWaveEdge->gWaitEventMode();
         } else {
             writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
@@ -152,13 +170,18 @@ WaveCodeWaveOp::findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEve
 void
 WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
 {
+    std::set<events::EventId> eventIds;
 
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
         if (! succWaveEdge->qNeedToImplementWait()) {
             continue;
         }
+        const auto evtId = succWaveEdge->gEventId();
+        Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+        eventIds.insert(evtId);
+
         compisa::SetInstr setEventInstr;
-        setEventInstr.event_id          = succWaveEdge->gEventId();
+        setEventInstr.event_id = evtId;
         m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
     }
 }

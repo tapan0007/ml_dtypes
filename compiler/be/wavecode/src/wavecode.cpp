@@ -4,6 +4,8 @@
 //#include "shared/inc/uarch_cfg.hpp"
 
 
+#include "utils/inc/debug.hpp"
+
 #include "compisa/inc/compisaldweights.hpp"
 #include "compisa/inc/compisamatmul.hpp"
 
@@ -267,10 +269,18 @@ void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& in
     }
 }
 
+int cnt = 0;
+int brkCnt = 2;
 
 template<>
 void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& instruction, EngineId engId)
 {
+    if (instruction.event_id == 0x0 && EngineId::PeArray == engId) {
+        if (brkCnt == cnt) {
+            utils::breakFunc(__LINE__);
+        }
+        ++cnt;
+    }
     Assert(qParallelStreams(), "Cannot generate SET event instruction in serial mode");
 
     switch (engId) {

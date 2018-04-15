@@ -111,7 +111,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
 
     //************************************************************************
     if (qParallelStreams()) { // Write remaining SETs
-        processOutgoingEdgesAlreadyEmb(sbAtomSaveWaveop);
+        processOutgoingEdgesAlreadyEmb(sbAtomSaveWaveop, setEventId);
     }
 }
 
