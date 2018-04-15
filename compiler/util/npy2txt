@@ -33,6 +33,7 @@ q=''''
 qq='"'
 
 #python3_cmd =  'import numpy as np; x=np.load("' ^ $file ^ '"); print("Output OFMAP\n", x)'
+#python3_cmd='import numpy as np; np.set_printoptions(threshold=np.nan); x=np.load("'${file}'"); print("FMAP", x.shape, "\n", x.view(dtype=np.'${TYPE}'))'
 python3_cmd='import numpy as np; x=np.load("'${file}'"); print("FMAP", x.shape, "\n", x.view(dtype=np.'${TYPE}'))'
 
 exec python3 -c "$python3_cmd"
