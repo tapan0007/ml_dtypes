@@ -78,7 +78,7 @@ class RuntimeTf:
       for (var, nd) in zip(outputVars, tfResults):
         if nd.size > 0:
           outputFile = var2file[var]
-          np.save(outputFile, nd)
+          np.save(outputFile, np.ascontiguousarray(nd))
           print("\nINFO: wrote tensor %s into %s" %
                 (var, outputFile), flush=True)
 

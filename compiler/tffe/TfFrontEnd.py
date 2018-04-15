@@ -203,7 +203,7 @@ class TfFe:
         #print("WeightFile=", weightFile,
         #      "  Dtype=", nd.dtype,
         #      "  Size=", nd.size)
-        np.save(weightFile, nd)
+        np.save(weightFile, np.ascontiguousarray(nd))
         numWeights += 1
     print("INFO: wrote %d weights" % numWeights)
 
@@ -360,7 +360,7 @@ class TfFe:
           #print("ImageFile=", weightFile,
           #      "  Dtype=", nd.dtype,
           #      "  Size=", nd.size)
-          np.save(imageFile, nd)
+          np.save(imageFile, np.ascontiguousarray(nd))
           numImages += 1
           if numImages % perDot == 0:
             print(".", end='', flush=True)

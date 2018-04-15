@@ -791,7 +791,7 @@ class NodeSimple2(Node):
       # Scalar add is fused (e.g. for LSTMs)
       if len(npInfoIF1.npShape) == 0:
         val = npInfoIF1.getValues()
-        assert len(val.shape) == 0
+        assert val.size == 1
         layerDataBase[0]['add_scalar'] = np.asscalar(val.ravel()[0])
       else:
     
@@ -923,7 +923,7 @@ class NodeMultiply(Node):
 
     if isScalar:
       val = npInfoIF0.getValues()
-      assert len(val.shape) == 0
+      assert val.size == 1
       layerData['mul_scalar'] = np.asscalar(val.ravel()[0])
     else:
       layerData["previous_layers"].insert(0, fromIfNode0.getName()),

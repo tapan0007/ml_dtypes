@@ -75,7 +75,7 @@ class NpTrans:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
     else:
       npFileDest = outFile
-    np.save(npFileDest, arr)
+    np.save(npFileDest, np.ascontiguousarray(arr))
     return(npFileDest, arr.shape)
 
   # Ulility function to convert npy files, returns new file name and the destination format
@@ -94,7 +94,7 @@ class NpTrans:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
     else:
       npFileDest = outFile
-    np.save(npFileDest, arr)
+    np.save(npFileDest, np.ascontiguousarray(arr))
     return(npFileDest, dstFormat)
 
   @staticmethod
@@ -142,7 +142,7 @@ class NpTrans:
       #print("DEBUG: reshapeFilePerRefFile reshaped  %s  %s -> %s  based on shape of  %s"
       #      % (npyFile, arr.shape, refArr.shape, refShapeFile))
       arr = arr.reshape(refArr.shape)
-      np.save(npyFile, arr)
+      np.save(npyFile, np.ascontiguousarray(arr))
     #else:
       #print("DEBUG: reshapeFilePerRefFile no reshape was needed for  %s" % npyFile)
 

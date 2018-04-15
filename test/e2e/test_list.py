@@ -336,7 +336,7 @@ testWaiver = [
     ['4-ptb_word_small_sigmoid_wave$', 'WAIVE-LSTM'],
     ['0-scaleadd_wave',             'WAIVE-LSTM'],
     ['4-ptb_word_small_sigmoid_2l_wave$',             'WAIVE-LSTM'],
-    ['2-ptb_word_unstack_.*',             'WAIVE-LSTM'],
+    ['2-ptb_word_unstack_.*',             'WAIVE-SG00'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
 
     # accuracy fail, fp16
