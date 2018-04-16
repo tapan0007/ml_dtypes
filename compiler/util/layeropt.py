@@ -214,8 +214,8 @@ class BiasAddAct:
 class StateBuffer:
 
     SB_NUM_PARTITIONS = 128
-    SB_ATOM_SZ = 1024
-    #SB_ATOM_SZ = 2048   # For FP32, use this to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
+    #SB_ATOM_SZ = 1024
+    SB_ATOM_SZ = 2048   # For FP32, use this to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
     #SB_ATOM_SZ = 4096
     SB_PARTITION_SZ = 96*1024# 96KB per partition
     SB_NUM_1K_ATOMS = SB_PARTITION_SZ//SB_ATOM_SZ
