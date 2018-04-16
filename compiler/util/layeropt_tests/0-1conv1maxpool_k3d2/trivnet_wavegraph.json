@@ -67,7 +67,7 @@
       "ref_file": "trivnet_1conv1pool__weight1__read:0_CRSM.npy",
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,1,1,1],
-      "sb_address": 24576,
+      "sb_address": 16384,
       "start_at_mid_part": false,
       "waveop_name": "1conv1pool/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
@@ -131,10 +131,10 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24576
+      "weights_sb_address": 16384
     },
     {
-      "dst_sb_address": 73728,
+      "dst_sb_address": 67584,
       "dst_start_at_mid_part": false,
       "dst_x_num": 4,
       "dst_x_step": 1,
@@ -186,10 +186,30 @@
       "ref_file": "trivnet_1conv1pool__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,4,4],
-      "sb_address": 73728,
+      "sb_address": 67584,
       "start_at_mid_part": false,
       "waveop_name": "1conv1pool/i1/SBAtomSave_scratch_0_n0_m0_h0_w0",
       "waveop_type": "SBAtomSave"
+    },
+    {
+      "batch_fold_idx": 0,
+      "contain_weights": false,
+      "data_type": "float16",
+      "ifmap_count": 1,
+      "ifmaps_fold_idx": 0,
+      "ifmaps_replicate": false,
+      "layer_name": "1conv1pool/i1",
+      "length": 32,
+      "offset_in_file": 0,
+      "partition_step_bytes": 32,
+      "previous_waveops": [],
+      "ref_file": "trivnet_1conv1pool__i1:0_NCHW.npy",
+      "ref_file_format": "NCHW",
+      "ref_file_shape": [1,1,4,4],
+      "sb_address": 67616,
+      "start_at_mid_part": false,
+      "waveop_name": "1conv1pool/i1/SBAtomFile_ifmaps_1_n0_m0_h0_w0_c0_r0_s0",
+      "waveop_type": "SBAtomFile"
     },
     {
       "dst_sb_address": 0,
@@ -208,12 +228,13 @@
       "pool_func": "MaxPool",
       "pool_scale": 0.1111111111111111,
       "previous_waveops": [
+        "1conv1pool/i1/SBAtomFile_ifmaps_1_n0_m0_h0_w0_c0_r0_s0",
         "1conv1pool/i1/Pool_n0_m0_h0_w0"
       ],
       "src_is_psum": false,
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
-      "src_sb_address": 73728,
+      "src_sb_address": 67616,
       "src_start_at_mid_part": false,
       "src_w_num": 2,
       "src_w_step": 8,

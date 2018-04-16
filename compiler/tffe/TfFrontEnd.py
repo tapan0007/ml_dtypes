@@ -291,6 +291,10 @@ class TfFe:
               shapeRaw = tensor.get_shape()
               if shapeRaw == None:
                 print("INFO: Skipping capture on node with shape None %s" % tensor.name)
+                # FIX_THIS: some transform graph results loose shape so
+                #   we we may need to add 2nd pass of tensor capture (those with none shape)
+                #if tensor.name == "resnet_v2_152/block1/unit_1/bottleneck_v2/preact/Relu:0":
+                #  print("DEBUG")
                 continue
               shape = shapeRaw.as_list()
               # Handle missing batch dimension on some input nodes

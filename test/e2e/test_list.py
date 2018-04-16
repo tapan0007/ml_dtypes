@@ -98,13 +98,15 @@ testConfigMap = {
   "0-add"         : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add"],
   "0-add_fp32"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add"],
   "0-add_uint8"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add"],
-  "0-scaleadd_wave"       : [ "trivnet_scaleadd",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "scaleadd", "--scheduler wave"],
+  "0-scaleadd_wave"       : [ "trivnet_scaleadd",    "tfloat16-b1-h1-c16-wmin2-wmax2.2-imin3-imax6", "scaleadd", "--scheduler wave"],
   "0-resadd_wave"         : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--scheduler wave"],
   "0-resadd_fp32_wave"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add", "--scheduler wave"],
   "0-resadd_uint8_wave"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add", "--scheduler wave"],
   "0-3conv_ba_resadd_fp32_wave"  : [ "trivnet_conv_ba_add", "tfloat32-b1-h112-r3-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "add", "--scheduler wave"],
+  "0-3conv_ba_resadd_fp16_wave"  : [ "trivnet_conv_ba_add", "tfloat16-b1-h112-r3-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "add", "--scheduler wave"],
   "0-3conv_ba_resadd_h1_fp32_wave"  : [ "trivnet_conv_ba_add", "tfloat32-b1-h1-r3-s1-c64-m256-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "add", "--scheduler wave --debug 1"],
   "0-3conv_ba_resadd_h1_fp16_wave"  : [ "trivnet_conv_ba_add", "tfloat16-b1-h1-r3-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "add", "--scheduler wave --debug 1"],
+  "0-3conv_ba_mult_fp32_wave"  : [ "trivnet_conv_ba_mult", "tfloat32-b1-h112-r3-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "mult", "--scheduler wave"],
 
   "0-1conv_s8_32b": [ "trivnet_lin",    "tfloat32-l2-b1-h16-r1-s8-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv32"],
   "1-1conv7_64"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv"],
@@ -256,7 +258,7 @@ testConfigMap = {
   "4-rn50_nne_from1_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from bn_conv1/batchnorm_1/add_1   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
   "4-rn50_nne_from2_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from activation_1/Relu   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
   "4-rn50_nne_from3_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from max_pooling2d_1/MaxPool   --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
-  "5-rn50_nne_to_act4_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 3 --preprocessor %s --postprocessor %s --partition from activation_4/Relu --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
+  "5-rn50_nne_to_act4_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from activation_4/Relu --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
   "5-rn50_nne_to_act4_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from activation_4/Relu --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
   "7-rn50_nne_fc_waveopt"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
   "7-rn50_nne_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
@@ -282,7 +284,7 @@ testConfigMap = {
   "4-ptb_word_lm1"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b16s32h512.pb", "lm", " --input_node input_1  --depth 3  --debug 0 --preprocessor %s --postprocessor %s  --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave --images %s"% (rnPreFp32, rnPost, rnDogJpg), "--input_files %s" % rnDogJpg ],
   "4-ptb_word_small1_host"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 3  --debug 0   --partition from  lstm_2_1/transpose_1  --executors host all --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s" % lstmD0B4, "--input_files %s" % lstmD0B4],
   "4-ptb_word_small1_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 3  --debug 0   --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1  lstm_2_1/transpose_1  --executors host 0 2 wave 1 --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s" % lstmD0B4, "--input_files %s" % lstmD0B4],
-  "4-ptb_word_small_sigmoid_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 3  --debug 0   --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack  lstm_2_1/transpose_1  --adjust_node_color lstm_1_1/Tile 0 lstm_1_1/Tile_1 0  --executors host 0 2 wave 1 --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False  --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s" % lstmD0B4, "--input_files %s" % lstmD0B4],
+  "4-ptb_word_small_sigmoid_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm", " --input_node embedding_1_input_1  --depth 3  --debug 3   --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack  lstm_2_1/transpose_1  --adjust_node_color lstm_1_1/Tile 0 lstm_1_1/Tile_1 0  --executors host 0 2 wave 1 --scheduler wave --input_constants dropout_1/keras_learning_phase:0 False  --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s" % lstmD0B4, "--input_files %s" % lstmD0B4],
   
 }
 
@@ -320,6 +322,7 @@ testWaiver = [
     ['4-ptb_word_small1_wave$', 'WAIVE-LSTM'],
     ['4-ptb_word_small_sigmoid_wave$', 'WAIVE-LSTM'],
     ['0-scaleadd_wave',             'WAIVE-LSTM'],
+    ['0-3conv_ba_mult_fp32_wave',             'WAIVE-LSTM'],
 
     # accuracy fail, fp16
     ['7-rn50_nne_fp16_accfail$', 'WAIVE_FP16_ACC'],
