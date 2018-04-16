@@ -1324,6 +1324,7 @@ class FusedOp(list):
         self.biasadd_op = None
         self.out_data_type = out_data_type 
         self.prev_weight_wave_lower_addr = -1
+        self.num_pearray_inputs_dumps = args.dump_pearray_inputs
 
     # Add operation to list of fused operations.
     # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
@@ -1519,6 +1520,10 @@ class FusedOp(list):
                                         tpb.statebuffer.circbuf_weights.replicate_multiple, 
                                         for_softmax=False
                                         )
+        if (self.num_pearray_inputs_dumps > 0):
+            self.num_pearray_inputs_dumps -= 1
+            np.save("pearray_inputs_ifmaps_"+wave_id.id_string(), pearray_packed_ifmaps)
+            np.save("pearray_inputs_weights_"+wave_id.id_string(), pearray_packed_weights)
         #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
         #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
         if (self.conv_op.ifmap_wave_lower_addr < 0 or self.conv_op.ifmap_wave_upper_addr < 0):
@@ -2634,6 +2639,7 @@ if __name__ == "__main__":
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
+    parser.add_argument("--dump_pearray_inputs", type=int, default=0, help="Dump PEArray inputs for N number of waves")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
