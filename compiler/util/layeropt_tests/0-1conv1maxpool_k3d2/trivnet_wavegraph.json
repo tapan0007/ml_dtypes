@@ -229,7 +229,8 @@
       "pool_scale": 0.1111111111111111,
       "previous_waveops": [
         "1conv1pool/i1/SBAtomFile_ifmaps_1_n0_m0_h0_w0_c0_r0_s0",
-        "1conv1pool/i1/Pool_n0_m0_h0_w0"
+        "1conv1pool/i1/Pool_n0_m0_h0_w0",
+        "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
       "src_is_psum": false,
       "src_psum_bank_id": 0,
