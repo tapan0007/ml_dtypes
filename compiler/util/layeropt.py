@@ -377,6 +377,7 @@ class CircularBuffer:
         self.dram_data_in_file = file
         if (self.dram_data_in_file != None):
             self.dram_data = np.load(self.dram_data_in_file)
+            assert(self.dram_data.flags.c_contiguous == True)
         else:
             return None
         self.item_sz = self.dram_data.dtype.itemsize   
@@ -1520,10 +1521,6 @@ class FusedOp(list):
                                         tpb.statebuffer.circbuf_weights.replicate_multiple, 
                                         for_softmax=False
                                         )
-        if (self.num_pearray_inputs_dumps > 0):
-            self.num_pearray_inputs_dumps -= 1
-            np.save("pearray_inputs_ifmaps_"+wave_id.id_string(), pearray_packed_ifmaps)
-            np.save("pearray_inputs_weights_"+wave_id.id_string(), pearray_packed_weights)
         #print("\npearray_packed_ifmaps", wave_id.show(), "\n", pearray_packed_ifmaps)
         #print("\npearray_packed_weights", wave_id.show(), "\n", pearray_packed_weights)
         if (self.conv_op.ifmap_wave_lower_addr < 0 or self.conv_op.ifmap_wave_upper_addr < 0):
@@ -1554,6 +1551,16 @@ class FusedOp(list):
                     tpb.statebuffer.consumer_of_64byte_morsel[j] = matmul_waveop_name
             # collect statistics
             tpb.pearray.num_ops_executed += self.conv_op.ofmap_count * self.conv_op.ofmap_full_tile_sz * self.conv_op.ifmap_count
+            # dump PEArray inputs
+            if (self.num_pearray_inputs_dumps > 0):
+                self.num_pearray_inputs_dumps -= 1
+                actual_wave_ifmaps = pearray_packed_ifmaps[self.conv_op.psum_bank_offset:self.conv_op.psum_bank_offset+self.conv_op.ofmap_full_tile_sz, 0:self.conv_op.ifmap_count]
+                actual_wave_weights = pearray_packed_weights[0:self.conv_op.ifmap_count, 0:self.conv_op.ofmap_count]
+                matmul_waveop_name = re.sub("/", "_", matmul_waveop_name)
+                #np.save("pearray_inputs_ifmaps_"+matmul_waveop_name, actual_wave_ifmaps.astype(self.conv_op.data_type))
+                #np.save("pearray_inputs_weights_"+matmul_waveop_name, actual_wave_weights.astype(self.conv_op.data_type))
+                np.savetxt("pearray_inputs_ifmaps_"+matmul_waveop_name, actual_wave_ifmaps.astype(self.conv_op.data_type))
+                np.savetxt("pearray_inputs_weights_"+matmul_waveop_name, actual_wave_weights.astype(self.conv_op.data_type))
             return True
         
     # execute remaining fused ops
@@ -2716,6 +2723,7 @@ if __name__ == "__main__":
         if (first_op_type != "Input" and first_op_type != "Placeholder" and first_op_type != "Reshape"):
             if 'ref_file' in last_op.data and os.path.isfile(last_op.data['ref_file']):
                 outputs = np.load(last_op.data['ref_file'])
+                assert(outputs.flags.c_contiguous == True)
                 diff = results - outputs
                 if (args.debug > 2): print("\nInput IFMAPS:\n", inputs)
                 if (args.debug > 1): print("\nComputed OFMAPS:\n", results)
