@@ -106,6 +106,12 @@ private:
     nets::Network*                m_Network;
     const arch::Arch&                   m_Arch;
 
+    kcc_int32                           m_StreamProcPc = 0;
+    kcc_int32                           m_PeArrayPc = 0;
+    kcc_int32                           m_PoolEngPc = 0;
+    kcc_int32                           m_ActEngPc = 0;
+    kcc_int32                           m_DmaPc = 0;
+
     const InstrStreams*                 m_InstrStreams;
     std::unique_ptr<WaveCodeMatMul>     m_CodeMatMul;
     std::unique_ptr<WaveCodeSbAtomLoad> m_CodeSbAtomLoad;
