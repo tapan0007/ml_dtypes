@@ -5,7 +5,7 @@
 
 
 
-#include "shared/inc/tpb_isa_matmul.hpp"
+#include "aws_tonga_isa_tpb_matmul.h"
 
 #include "compisa/inc/compisacommon.hpp"
 
@@ -16,15 +16,15 @@ namespace kcc {
 namespace compisa {
 
 
-class MatMulInstr : public MATMUL {
+class MatMulInstr : public TONGA_ISA_TPB_MATMUL_INST {
 public:
     static constexpr EngineId engineId = EngineId::PeArray;
 public:
     //----------------------------------------------------------------
     MatMulInstr()
-        : MATMUL()
+        : TONGA_ISA_TPB_MATMUL_INST()
     {
-        InitSync(sync);
+        InitSync(inst_events);
     }
 
 };

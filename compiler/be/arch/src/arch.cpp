@@ -1,3 +1,5 @@
+#include "aws_tonga_isa_tpb_common.h"
+
 #include "shared/inc/uarch_cfg.hpp"
 
 #include "utils/inc/types.hpp"

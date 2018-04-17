@@ -1,8 +1,14 @@
+#include "uarch_cfg.hpp"
 
 #include "utils/inc/asserter.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "events/inc/events.hpp"
+
+//Event_t
+static_assert(NUM_TPB_EVENTS <= 
+             (1U << 8*sizeof(TONGA_ISA_TPB_INST_EVENTS::wait_event_idx)),
+    "Number of TPB events (NUM_TPB_EVENTS) too large for type Event_t");
 
 
 namespace kcc {
@@ -34,37 +40,37 @@ Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
 
 bool qEventSetModeValid(kcc_int32 mode)
 {
-    return NO_WAIT_EVENT==mode || WAIT_EVENT_SET==mode || WAIT_EVENT_SET_THEN_CLEAR==mode;
+    return TONGA_ISA_TPB_MODE_WAIT_NONE==mode || TONGA_ISA_TPB_MODE_WAIT_FOR_SET==mode || TONGA_ISA_TPB_MODE_WAIT_FOR_SET_THEN_CLEAR==mode;
 }
 
 bool qEventWaitModeValid(kcc_int32 mode)
 {
-    return NO_SET_EVENT==mode || SET_EVENT_ON_END_RD_SRC==mode || SET_EVENT_ON_END_WR_DST==mode;
+    return TONGA_ISA_TPB_MODE_WAIT_NONE==mode || TONGA_ISA_TPB_MODE_SET_ON_DONE_RD_SRC==mode || TONGA_ISA_TPB_MODE_SET_ON_DONE_WR_DST==mode;
 }
 
 
 /****************************************************************
  *                                                              *
  ****************************************************************/
-int
-eventWaitMode2Int(EventWaitMode mode)
+TONGA_ISA_TPB_WAIT_EVENT_MODE
+eventWaitMode2Isa(EventWaitMode mode)
 {
     switch(mode) {
     case EventWaitMode::DontWait:
-        return NO_WAIT_EVENT;
+        return TONGA_ISA_TPB_MODE_WAIT_NONE;
         break;
     case EventWaitMode::WaitOnly:
-        return WAIT_EVENT_SET;
+        return TONGA_ISA_TPB_MODE_WAIT_FOR_SET;
         break;
     case EventWaitMode::WaitThenClear:
-        return WAIT_EVENT_SET_THEN_CLEAR;
+        return TONGA_ISA_TPB_MODE_WAIT_FOR_SET_THEN_CLEAR;
         break;
     case EventWaitMode::Invalid:
-        return events::WAIT_EVENT_INVALID;
+        return TONGA_ISA_TPB_MODE_WAIT_INVALID;
         break;
     }
     Assert(false, "Wrong EventWaitMode: ", static_cast<kcc_int32>(mode));
-    return 0;
+    return TONGA_ISA_TPB_MODE_WAIT_INVALID;
 }
 
 
@@ -72,25 +78,25 @@ eventWaitMode2Int(EventWaitMode mode)
 /****************************************************************
  *                                                              *
  ****************************************************************/
-int
-eventSetMode2Int(EventSetMode mode)
+TONGA_ISA_TPB_SET_EVENT_MODE
+eventSetMode2Isa(EventSetMode mode)
 {
     switch(mode) {
     case EventSetMode::DontSet:
-        return NO_SET_EVENT;
+        return TONGA_ISA_TPB_MODE_SET_NONE;
         break;
     case EventSetMode::OnEndRdSrc:
-        return SET_EVENT_ON_END_RD_SRC;
+        return TONGA_ISA_TPB_MODE_SET_ON_DONE_RD_SRC;
         break;
     case EventSetMode::OnEndWrDst:
-        return SET_EVENT_ON_END_WR_DST;
+        return TONGA_ISA_TPB_MODE_SET_ON_DONE_WR_DST;
         break;
     case EventSetMode::Invalid:
-        return events::SET_EVENT_INVALID;
+        return TONGA_ISA_TPB_MODE_SET_INVALID;
         break;
     }
     Assert(false, "Wrong EventSetMode: ", static_cast<kcc_int32>(mode));
-    return 0;
+    return TONGA_ISA_TPB_MODE_SET_INVALID;
 }
 
 }} // namespace

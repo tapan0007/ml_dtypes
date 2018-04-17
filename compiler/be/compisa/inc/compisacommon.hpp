@@ -3,15 +3,12 @@
 #ifndef KCC_COMPISA_COMMON_H
 #define KCC_COMPISA_COMMON_H
 
-//#include "tpb_isa.hpp"
-//#include "events/inc/events.hpp"
-
-struct TPB_CMD_SYNC;
+struct TONGA_ISA_TPB_INST_EVENTS;
 
 namespace kcc {
 namespace compisa {
 
-void InitSync(TPB_CMD_SYNC& sync);
+void InitSync(TONGA_ISA_TPB_INST_EVENTS& sync);
 
 }}
 

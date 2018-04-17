@@ -10,6 +10,7 @@
 #include <array>
 
 
+#include "aws_tonga_isa_tpb_common.h"
 
 
 
@@ -49,7 +50,7 @@ public:
     ActivationFunc gActivationFunc () const {
         return m_ActivationFunc;
     }
-    ACTIVATIONFUNC gSimActivationFunc() const;
+    TONGA_ISA_TPB_ACTIVATION_FUNC gSimActivationFunc() const;
 
     bool qBiasAddEn () const {
         return m_BiasAddEn;

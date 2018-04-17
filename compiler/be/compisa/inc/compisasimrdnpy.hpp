@@ -5,7 +5,7 @@
 
 
 
-#include "shared/inc/tpb_isa_simrdnpy.hpp"
+#include "aws_tonga_isa_tpb_sim_rdnpy.h"
 
 #include "compisa/inc/compisacommon.hpp"
 #include "utils/inc/types.hpp"

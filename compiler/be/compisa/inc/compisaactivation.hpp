@@ -5,7 +5,7 @@
 
 
 
-#include "shared/inc/tpb_isa_activate.hpp"
+#include "aws_tonga_isa_tpb_activate.h"
 
 #include "compisa/inc/compisacommon.hpp"
 
@@ -18,15 +18,15 @@ namespace kcc {
 namespace compisa {
 
 
-class ActivationInstr : public ACTIVATION {
+class ActivationInstr : public TONGA_ISA_TPB_ACTIVATE_INST {
 public:
     static constexpr EngineId engineId = EngineId::Activation;
 public:
     //----------------------------------------------------------------
     ActivationInstr()
-        : ACTIVATION()
+        : TONGA_ISA_TPB_ACTIVATE_INST()
     {
-        InitSync(sync);
+        InitSync(inst_events);
     }
 
 };

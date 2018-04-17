@@ -7,7 +7,8 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
 
-#include "shared/inc/tpb_isa.hpp"
+#include "aws_tonga_isa_tpb_common.h"
+
 
 #include "utils/inc/types.hpp"
 
@@ -39,7 +40,7 @@ public:
     virtual kcc_int64 gSizeInBytes() const = 0;
 
     virtual DataTypeId  gDataTypeId() const = 0;
-    virtual ARBPRECTYPE gSimTypeId() const = 0;
+    virtual TONGA_ISA_TPB_DTYPE gSimTypeId() const = 0;
 
     virtual const char* gName() const = 0;
 
@@ -58,7 +59,7 @@ public:
     }
 
     DataTypeId  gDataTypeId() const override;
-    ARBPRECTYPE gSimTypeId() const override;
+    TONGA_ISA_TPB_DTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
@@ -92,7 +93,7 @@ public:
     }
 
     DataTypeId  gDataTypeId() const override;
-    ARBPRECTYPE gSimTypeId() const override;
+    TONGA_ISA_TPB_DTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
@@ -125,7 +126,7 @@ public:
     }
 
     DataTypeId  gDataTypeId() const override;
-    ARBPRECTYPE gSimTypeId() const override;
+    TONGA_ISA_TPB_DTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
@@ -160,7 +161,7 @@ public:
     }
 
     DataTypeId  gDataTypeId() const override;
-    ARBPRECTYPE gSimTypeId() const override;
+    TONGA_ISA_TPB_DTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
@@ -196,7 +197,7 @@ public:
     }
 
     DataTypeId  gDataTypeId() const override;
-    ARBPRECTYPE gSimTypeId() const override;
+    TONGA_ISA_TPB_DTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {
@@ -232,7 +233,7 @@ public:
     }
 
     DataTypeId  gDataTypeId() const override;
-    ARBPRECTYPE gSimTypeId() const override;
+    TONGA_ISA_TPB_DTYPE gSimTypeId() const override;
 
     kcc_int64 gSizeInBytes() const override
     {

@@ -1,5 +1,6 @@
 #include <map>
 
+#include "aws_tonga_isa_tpb_common.h"
 
 //#include "shared/inc/uarch_cfg.hpp"
 
@@ -10,7 +11,7 @@
 #include "compisa/inc/compisamatmul.hpp"
 
 #include "compisa/inc/compisapool.hpp"
-#include "compisa/inc/compisamatadd.hpp"
+//#include "compisa/inc/compisamatadd.hpp"
 
 #include "compisa/inc/compisaactivation.hpp"
 
@@ -433,7 +434,7 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
 
 
 void
-WaveCode::checkForNoSync(const TPB_CMD_SYNC& sync) const
+WaveCode::checkForNoSync(const TONGA_ISA_TPB_INST_EVENTS& sync) const
 {
     Assert(events::qEventSetModeValid(sync.set_event_mode), "Invalid set event mode");
     Assert(events::qEventWaitModeValid(sync.wait_event_mode), "Invalid wait event mode");
@@ -457,7 +458,7 @@ WaveCode::NpyFileInfo::NpyFileInfo()
 {
     m_FileDramOffset    = -1;
     m_Dirty             = false;
-    m_SimTypeId         = INVALID_ARBPRECTYPE;
+    m_SimTypeId         = TONGA_ISA_TPB_DTYPE_INVALID;
 }
 
 }}

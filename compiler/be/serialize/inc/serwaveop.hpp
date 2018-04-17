@@ -204,10 +204,10 @@ public:
         m_PreviousEventIds.push_back(eventId);
     }
     void addPreviousEventWaitMode(events::EventWaitMode mode) {
-        m_PreviousEventWaitModes.push_back(eventWaitMode2Int(mode));
+        m_PreviousEventWaitModes.push_back(eventWaitMode2Isa(mode));
     }
     void addPrevEventSetMode(events::EventSetMode mode) {
-        m_PreviousEventSetModes.push_back(eventSetMode2Int(mode));
+        m_PreviousEventSetModes.push_back(eventSetMode2Isa(mode));
     }
 
     static ActivationFunc str2ActivationFunc(const std::string& s);

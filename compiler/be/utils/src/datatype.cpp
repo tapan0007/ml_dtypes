@@ -10,10 +10,10 @@ DataTypeUint8::gDataTypeId () const {
     return DataTypeId::Uint8;
 }
 
-ARBPRECTYPE
+TONGA_ISA_TPB_DTYPE
 DataTypeUint8::gSimTypeId() const
 {
-    return ARBPRECTYPE::UINT8;
+    return TONGA_ISA_TPB_DTYPE::TONGA_ISA_TPB_DTYPE_UINT8;
 }
 
 DataTypeId
@@ -21,10 +21,10 @@ DataTypeUint16::gDataTypeId () const {
     return DataTypeId::Uint16;
 }
 
-ARBPRECTYPE
+TONGA_ISA_TPB_DTYPE
 DataTypeUint16::gSimTypeId() const
 {
-    return ARBPRECTYPE::UINT16;
+    return TONGA_ISA_TPB_DTYPE::TONGA_ISA_TPB_DTYPE_UINT16;
 }
 
 DataTypeId
@@ -32,10 +32,10 @@ DataTypeFloat16::gDataTypeId () const {
     return DataTypeId::Float16;
 }
 
-ARBPRECTYPE
+TONGA_ISA_TPB_DTYPE
 DataTypeFloat16::gSimTypeId() const
 {
-    return ARBPRECTYPE::FP16;
+    return TONGA_ISA_TPB_DTYPE::TONGA_ISA_TPB_DTYPE_FP16;
 }
 
 DataTypeId
@@ -43,10 +43,10 @@ DataTypeFloat32::gDataTypeId () const {
     return DataTypeId::Float32;
 }
 
-ARBPRECTYPE
+TONGA_ISA_TPB_DTYPE
 DataTypeFloat32::gSimTypeId() const
 {
-    return ARBPRECTYPE::FP32;
+    return TONGA_ISA_TPB_DTYPE::TONGA_ISA_TPB_DTYPE_FP32;
 }
 
 DataTypeId
@@ -54,10 +54,10 @@ DataTypeInt32::gDataTypeId () const {
     return DataTypeId::Int32;
 }
 
-ARBPRECTYPE
+TONGA_ISA_TPB_DTYPE
 DataTypeInt32::gSimTypeId() const
 {
-    return ARBPRECTYPE::INT32;
+    return TONGA_ISA_TPB_DTYPE::TONGA_ISA_TPB_DTYPE_INT32;
 }
 
 DataTypeId
@@ -65,10 +65,10 @@ DataTypeInt64::gDataTypeId () const {
     return DataTypeId::Int64;
 }
 
-ARBPRECTYPE
+TONGA_ISA_TPB_DTYPE
 DataTypeInt64::gSimTypeId() const
 {
-    return ARBPRECTYPE::INT64;
+    return TONGA_ISA_TPB_DTYPE::TONGA_ISA_TPB_DTYPE_INT64;
 }
 
 

@@ -21,11 +21,15 @@ CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 
 COMPILER_BE := $(KAENA_PATH)/compiler/be
 
-ISA := $(SIOPT_PATH)/runtime/isa
-ISA_INC := $(ISA)/common $(ISA)/tpb
+RUNTIME := $(KAENA_DIR)/runtime
+ISA     := $(RUNTIME)/isa
+HAL     := $(RUNTIME)/hal/include
 
-#CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
-CINC := $(CEREAL_INC) -I$(ISA_INC) -I./inc -I$(COMPILER_BE)
+ISA_INC := -I$(ISA)/common -I$(ISA)/tpb 
+HAL_INC := -I$(HAL)/common -I$(HAL)/plat/dv -I$(HAL)/tpb
+
+#INC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
+CINC := $(CEREAL_INC) $(ISA_INC) $(HAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
 
 CFLAGS := $(COMPILE_OPTS) $(CINC)
 

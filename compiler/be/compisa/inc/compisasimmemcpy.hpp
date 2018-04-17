@@ -5,7 +5,7 @@
 
 
 
-#include "shared/inc/tpb_isa_simmemcpy.hpp"
+#include "aws_tonga_isa_tpb_sim_memcpy.h"
 
 #include "compisa/inc/compisacommon.hpp"
 #include "utils/inc/types.hpp"
@@ -16,15 +16,15 @@ namespace kcc {
 namespace compisa {
 
 
-class SimMemCpyInstr : public SIM_MEMCPY {
+class SimMemCpyInstr : public TONGA_ISA_TPB_SIM_MEMCPY_INST {
 public:
     static constexpr EngineId engineId = EngineId::DmaEng;
 public:
     //----------------------------------------------------------------
     SimMemCpyInstr()
-        : SIM_MEMCPY()
+        : TONGA_ISA_TPB_SIM_MEMCPY_INST()
     {
-        InitSync(sync);
+        InitSync(inst_events);
     }
 
 };

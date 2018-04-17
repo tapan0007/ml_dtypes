@@ -1,6 +1,6 @@
 #include "compisa/inc/compisaldweights.hpp"
 #include "compisa/inc/compisawrite.hpp"
-#include "compisa/inc/compisasimwrnpy.hpp"
+#include "compisa/inc/compisasimrdfromnpy.hpp"
 #include "compisa/inc/compisasimmemcpy.hpp"
 
 

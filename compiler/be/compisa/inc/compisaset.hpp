@@ -5,7 +5,7 @@
 
 
 
-#include "shared/inc/tpb_isa_set.hpp"
+#include "aws_tonga_isa_tpb_event_set.h"
 
 
 #include "utils/inc/types.hpp"
@@ -16,13 +16,13 @@ namespace kcc {
 namespace compisa {
 
 
-class SetInstr : public SET {
+class SetInstr : public TONGA_ISA_TPB_EVENT_SET_INST {
 public:
     static constexpr EngineId engineId = EngineId::DmaEng;
 public:
     //----------------------------------------------------------------
     SetInstr()
-        : SET()
+        : TONGA_ISA_TPB_EVENT_SET_INST()
     {
     }
 

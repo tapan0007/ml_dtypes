@@ -5,7 +5,7 @@
 
 
 
-#include "shared/inc/tpb_isa_pool.hpp"
+#include "aws_tonga_isa_tpb_pool.h"
 
 #include "compisa/inc/compisacommon.hpp"
 #include "utils/inc/types.hpp"
@@ -16,15 +16,15 @@ namespace kcc {
 namespace compisa {
 
 
-class PoolInstr : public POOL {
+class PoolInstr : public TONGA_ISA_TPB_POOL_INST {
 public:
     static constexpr EngineId engineId = EngineId::Pooling;
 public:
     //----------------------------------------------------------------
     PoolInstr()
-        : POOL()
+        : TONGA_ISA_TPB_POOL_INST()
     {
-        InitSync(sync);
+        InitSync(inst_events);
     }
 
 };
