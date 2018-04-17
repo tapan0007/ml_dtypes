@@ -33,17 +33,17 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
     switch (waitEventMode) {
     case events::EventWaitMode::WaitOnly: {
         compisa::WaitInstr waitInstr;
-        waitInstr.event_id  = waveEdge->gEventId();
+        waitInstr.event_idx  = waveEdge->gEventId();
         m_WaveCode.writeInstruction(waitInstr, engineId);
         break;
     }
     case events::EventWaitMode::WaitThenClear: {
         compisa::WaitInstr waitInstr;
-        waitInstr.event_id  = waveEdge->gEventId();
+        waitInstr.event_idx  = waveEdge->gEventId();
         m_WaveCode.writeInstruction(waitInstr, engineId);
 
         compisa::ClearInstr clearInstr;
-        clearInstr.event_id  = waveEdge->gEventId();
+        clearInstr.event_idx  = waveEdge->gEventId();
         m_WaveCode.writeInstruction(clearInstr, engineId);
         break;
     }
@@ -100,7 +100,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
 
         if (firstEmb) {
             firstEmb = false;
-            sync.wait_event_id      = evtId;
+            sync.wait_event_idx      = evtId;
             sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
         } else {
             writeWaitOrWaitClearInstr(prevWaveEdge, engineId);

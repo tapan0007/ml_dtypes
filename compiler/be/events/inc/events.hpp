@@ -3,8 +3,6 @@
 #ifndef KCC_EVENTS_EVENTS_H
 #define KCC_EVENTS_EVENTS_H 1
 
-//#include "shared/inc/uarch_cfg.hpp"
-//#include "shared/inc/tpb_isa.hpp"
 
 #include "aws_tonga_isa_tpb_common.h"
 

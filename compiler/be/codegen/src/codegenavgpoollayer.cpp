@@ -1,3 +1,5 @@
+#include "aws_tonga_isa_tpb_pool.h"
+
 #include "layers/inc/avgpoollayer.hpp"
 
 #include "codegen/inc/codegenavgpoollayer.hpp"
@@ -17,7 +19,7 @@ CodeGenAvgPoolLayer::generate(layers::Layer* layer)
 {
     layers::AvgPoolLayer* const avgpoolLayer = dynamic_cast<layers::AvgPoolLayer*>(layer);
     assert(avgpoolLayer && "CodeGenLayer::generate: layer is not an AvgPool layer");
-    Generate(layer, POOLFUNC::AVG_POOL);
+    Generate(layer, TONGA_ISA_TPB_POOL_TYPE_AVGPOOL);
 }
 
 }}

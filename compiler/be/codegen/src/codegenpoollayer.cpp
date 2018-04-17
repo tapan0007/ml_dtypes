@@ -1,3 +1,4 @@
+
 #include "layers/inc/poollayer.hpp"
 #include "codegen/inc/codegenpoollayer.hpp"
 
@@ -15,7 +16,7 @@ CodeGenPoolLayer::CodeGenPoolLayer(CodeGen* codegen)
 
 
 void
-CodeGenPoolLayer::Generate(layers::Layer* layer, POOLFUNC poolFunc)
+CodeGenPoolLayer::Generate(layers::Layer* layer, TONGA_ISA_TPB_POOL_TYPE poolFunc)
 {
     FILE* const objFile = gObjFile();
     const auto poolLayer = dynamic_cast<layers::PoolLayer*>(layer);

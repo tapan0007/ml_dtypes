@@ -38,7 +38,7 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, event
             eventIds.insert(evtId);
 
             compisa::SetInstr setInstr;
-            setInstr.event_id  = evtId;
+            setInstr.event_idx  = evtId;
             m_WaveCode.writeInstruction(setInstr, engineId);
         }
     }

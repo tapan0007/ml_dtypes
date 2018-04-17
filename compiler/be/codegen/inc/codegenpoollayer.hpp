@@ -23,7 +23,7 @@ public:
 protected:
 public:
     //----------------------------------------------------------------
-    void Generate(layers::Layer* layer, POOLFUNC poolFunc);
+    void Generate(layers::Layer* layer, TONGA_ISA_TPB_POOL_TYPE poolFunc);
 
 protected:
     uint64_t m_PoolStride[4];

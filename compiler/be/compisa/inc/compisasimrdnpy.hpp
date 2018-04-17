@@ -16,15 +16,15 @@ namespace kcc {
 namespace compisa {
 
 
-class SimRdNpyInstr : public SIM_RDNPY {
+class SimRdNpyInstr : public TONGA_ISA_TPB_SIM_RDNPY_INST {
 public:
     static constexpr EngineId engineId = EngineId::DmaEng;
 public:
     //----------------------------------------------------------------
     SimRdNpyInstr()
-        : SIM_RDNPY()
+        : TONGA_ISA_TPB_SIM_RDNPY_INST()
     {
-        InitSync(sync);
+        InitSync(inst_events);
     }
 
 };
