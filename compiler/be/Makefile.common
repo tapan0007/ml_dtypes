@@ -19,11 +19,14 @@ INK_INC := -I$(INKLING_PATH) -I$(INKLING_PATH)/shared/inc
 
 CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 
-CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I
-COMPILER_BE ?= ../
+COMPILER_BE := $(KAENA_PATH)/compiler/be
 
-###CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(KAENA_PATH)/compiler/be $(addsuffix /inc,$(addprefix -I../,$(MODS)))
-CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
+ISA := $(SIOPT_PATH)/runtime/isa
+ISA_INC := $(ISA)/common $(ISA)/tpb
+
+#CINC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
+CINC := $(CEREAL_INC) -I$(ISA_INC) -I./inc -I$(COMPILER_BE)
+
 CFLAGS := $(COMPILE_OPTS) $(CINC)
 
 
