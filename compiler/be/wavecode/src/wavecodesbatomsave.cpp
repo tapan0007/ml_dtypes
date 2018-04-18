@@ -103,8 +103,8 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             }
         }
 
-        statebufToDramInstr.src_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
-        statebufToDramInstr.dst_address = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
+        statebufToDramInstr.src_addr = stateBuf.gEntrySysAddress(partIdx, addressInPart);
+        statebufToDramInstr.dst_addr = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
         m_WaveCode.writeInstruction(statebufToDramInstr);
         m_WaveCode.markDramDirty(sbAtomSaveWaveop->gRefFileName());
     }

@@ -2,7 +2,7 @@
 
 #include "aws_tonga_isa_tpb_common.h"
 
-//#include "shared/inc/uarch_cfg.hpp"
+#include "shared/inc/uarch_cfg.hpp"
 
 
 #include "utils/inc/debug.hpp"
@@ -393,12 +393,12 @@ WaveCode::saveAllNpyFiles ()
 
         strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);
-        dramToNpyInstr.src_address          = npyFileInfo.m_FileDramOffset;
-        dramToNpyInstr.dst_ndims            = 4;
+        dramToNpyInstr.src_addr         = npyFileInfo.m_FileDramOffset;
+        dramToNpyInstr.dst_ndims        = 4;
         for (int i = 0; i < dramToNpyInstr.dst_ndims; ++i) {
-            dramToNpyInstr.dst_dims[i]   = npyFileInfo.m_RefFileShape[i];
+            dramToNpyInstr.dst_dims[i]  = npyFileInfo.m_RefFileShape[i];
         }
-        dramToNpyInstr.dtype             = npyFileInfo.m_SimTypeId;
+        dramToNpyInstr.dtype            = npyFileInfo.m_SimTypeId;
 
         this->writeInstruction(dramToNpyInstr);
     }

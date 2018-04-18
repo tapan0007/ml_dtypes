@@ -71,7 +71,7 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
         strcpy(npyToDramInstr.src_fname, sbAtomLoadWaveOp->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
 
-        npyToDramInstr.dst_address  = npyFileDramOffset;
+        npyToDramInstr.dst_addr     = npyFileDramOffset;
         m_WaveCode.writeInstruction(npyToDramInstr);
 
         WaveCode::NpyFileInfo npyFileInfo;
@@ -132,8 +132,8 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
             }
         }
 
-        dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomLoadWaveOp->gOffsetInFile() + (partIdx * stepSize);
-        dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
+        dramToStateBufInstr.src_addr = npyFileDramOffset + sbAtomLoadWaveOp->gOffsetInFile() + (partIdx * stepSize);
+        dramToStateBufInstr.dst_addr = stateBuf.gEntrySysAddress(partIdx, addressInPart);
 
         m_WaveCode.writeInstruction(dramToStateBufInstr);
     }
