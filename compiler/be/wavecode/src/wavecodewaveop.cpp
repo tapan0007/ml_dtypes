@@ -84,7 +84,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop)
  * 2. Issue WAIT instruction for other in-edges
  */
 void
-WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EVENTS& sync)
 {
     const EngineId engineId = waveop->gEngineId();
     bool firstEmb = true;
@@ -101,7 +101,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
         if (firstEmb) {
             firstEmb = false;
             sync.wait_event_idx      = evtId;
-            sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+            sync.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
         } else {
             writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
         }
@@ -181,7 +181,7 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
         eventIds.insert(evtId);
 
         compisa::SetInstr setEventInstr;
-        setEventInstr.event_id = evtId;
+        setEventInstr.event_idx = evtId;
         m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
     }
 }

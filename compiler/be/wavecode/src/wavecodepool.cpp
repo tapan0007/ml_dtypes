@@ -47,10 +47,10 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     /* pool args */
     switch (poolWaveop->gPoolFunc()) {
     case PoolType::Max:
-        poolInstr.pool_func = POOLFUNC::MAX_POOL;
+        poolInstr.pool_func = TONGA_ISA_TPB_POOL_TYPE_MAXPOOL;
         break;
     case PoolType::Avg:
-        poolInstr.pool_func = POOLFUNC::AVG_POOL;
+        poolInstr.pool_func = TONGA_ISA_TPB_POOL_TYPE_AVGPOOL;
         break;
     default:
         assert(false && "Bad PoolType in PoolWaveOp");
@@ -59,48 +59,56 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
 
     poolInstr.in_dtype          = poolWaveop->gInDtype().gSimTypeId();
     poolInstr.out_dtype         = poolWaveop->gOutDtype().gSimTypeId();
+
+    initMemAccess(poolInstr.src_mem_pattern);
     if (poolWaveop->qSrcIsPsum()) {
-        poolInstr.src_start_addr = psumBuf.gEntryTpbAddress(
-                                            poolWaveop->gSrcPsumBankId(),
-                                            poolWaveop->gSrcPsumBankOffset(),
-                                            poolWaveop->gInDtype());
+        poolInstr.src_mem_pattern.start_addr = psumBuf.gEntryTpbAddress(
+                                                    poolWaveop->gSrcPsumBankId(),
+                                                    poolWaveop->gSrcPsumBankOffset(),
+                                                    poolWaveop->gInDtype());
     } else { // State buffer
-        poolInstr.src_start_addr = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
-                                            poolWaveop->gSrcSbAddress());
+        poolInstr.src_mem_pattern.start_addr = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
+                                                    poolWaveop->gSrcSbAddress());
     }
 
-    poolInstr.src_x_step        = poolWaveop->gSrcXStep();
-    poolInstr.src_x_num         = poolWaveop->gSrcXNum();
-    poolInstr.src_y_step        = poolWaveop->gSrcYStep();
-    poolInstr.src_y_num         = poolWaveop->gSrcYNum();
-    poolInstr.pool_frequency    = poolWaveop->gPoolFrequency();
-    poolInstr.pool_scale        = static_cast<float>(1.0/poolWaveop->gPoolFrequency());
+    poolInstr.src_mem_pattern.step_elem[0]        = poolWaveop->gSrcXStep();
+    poolInstr.src_mem_pattern.num_elem[0]         = poolWaveop->gSrcXNum();
+    poolInstr.src_mem_pattern.step_elem[1]        = poolWaveop->gSrcYStep();
+    poolInstr.src_mem_pattern.num_elem[1]         = poolWaveop->gSrcYNum();
+
     /* strides */
-    poolInstr.src_z_step        = poolWaveop->gSrcZStep();
-    poolInstr.src_z_num         = poolWaveop->gSrcZNum();
-    poolInstr.src_w_step        = poolWaveop->gSrcWStep();
-    poolInstr.src_w_num         = poolWaveop->gSrcWNum();
-    poolInstr.num_partitions    = poolWaveop->gNumPartitions();
+    poolInstr.src_mem_pattern.step_elem[2]        = poolWaveop->gSrcZStep();
+    poolInstr.src_mem_pattern.num_elem[2]         = poolWaveop->gSrcZNum();
+    poolInstr.src_mem_pattern.step_elem[3]        = poolWaveop->gSrcWStep();
+    poolInstr.src_mem_pattern.num_elem[3]         = poolWaveop->gSrcWNum();
+
+    poolInstr.num_active_channels   = poolWaveop->gNumPartitions();
+
+    //poolInstr.pool_frequency        = poolWaveop->gPoolFrequency();
+    poolInstr.pool_dim              = TONGA_ISA_TPB_TENSOR_SUBDIM_XY;
+    poolInstr.pool_scale            = static_cast<float>(1.0/poolWaveop->gPoolFrequency());
 
     /* Pool  */
-    poolInstr.dst_x_step        = poolWaveop->gDstXStep();
-    poolInstr.dst_x_num         = poolWaveop->gDstXNum();
-    poolInstr.dst_y_step        = poolWaveop->gDstYStep();
-    poolInstr.dst_y_num         = poolWaveop->gDstYNum();
-    poolInstr.dst_z_step        = poolWaveop->gDstZStep();
-    poolInstr.dst_z_num         = poolWaveop->gDstZNum();
+    initMemAccess(poolInstr.dst_mem_pattern);
     // For now DST is always StateBuf
-    poolInstr.dst_start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
-                                            poolWaveop->gDstSbAddress());
+    poolInstr.dst_mem_pattern.start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
+                                                    poolWaveop->gDstSbAddress());
 
-    poolInstr.sync.wait_event_id    = 0;
-    poolInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::DontWait);
-    poolInstr.sync.set_event_id    = 0;
-    poolInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::DontSet);
+    poolInstr.dst_mem_pattern.step_elem[0]  = poolWaveop->gDstXStep();
+    poolInstr.dst_mem_pattern.num_elem[0]   = poolWaveop->gDstXNum();
+    poolInstr.dst_mem_pattern.step_elem[1]  = poolWaveop->gDstYStep();
+    poolInstr.dst_mem_pattern.num_elem[1]   = poolWaveop->gDstYNum();
+    poolInstr.dst_mem_pattern.step_elem[2]  = poolWaveop->gDstZStep();
+    poolInstr.dst_mem_pattern.num_elem[2]   = poolWaveop->gDstZNum();
+
+    poolInstr.inst_events.wait_event_idx    = 0;
+    poolInstr.inst_events.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    poolInstr.inst_events.set_event_idx     = 0;
+    poolInstr.inst_events.set_event_mode    = events::eventSetMode2Isa(events::EventSetMode::DontSet);
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
-        processIncomingEdges(poolWaveop, poolInstr.sync);
+        processIncomingEdges(poolWaveop, poolInstr.inst_events);
     } // end incoming events
 
 

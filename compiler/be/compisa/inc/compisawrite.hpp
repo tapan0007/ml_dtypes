@@ -23,7 +23,7 @@ public:
     WriteInstr()
         : TONGA_ISA_TPB_WRITE_INST()
     {
-        InitSync(sync);
+        InitSync(inst_events);
     }
 
 };

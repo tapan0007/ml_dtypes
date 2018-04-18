@@ -11,7 +11,6 @@
 #include "compisa/inc/compisamatmul.hpp"
 
 #include "compisa/inc/compisapool.hpp"
-//#include "compisa/inc/compisamatadd.hpp"
 
 #include "compisa/inc/compisaactivation.hpp"
 
@@ -19,6 +18,7 @@
 #include "compisa/inc/compisawait.hpp"
 #include "compisa/inc/compisaclear.hpp"
 #include "compisa/inc/compisawrite.hpp"
+#include "compisa/inc/compisatensortensorop.hpp"
 
 #include "compisa/inc/compisasimmemcpy.hpp"
 #include "compisa/inc/compisasimwrnpy.hpp"
@@ -146,7 +146,7 @@ WaveCode::gCurrentDramAddress(kcc_int64 sizeInBytes)
 template<>
 void WaveCode::writeInstruction<compisa::MatMulInstr>(const compisa::MatMulInstr& instruction)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
@@ -156,7 +156,7 @@ void WaveCode::writeInstruction<compisa::MatMulInstr>(const compisa::MatMulInstr
 template<>
 void WaveCode::writeInstruction<compisa::LdWeightsInstr>(const compisa::LdWeightsInstr& instruction)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
@@ -166,7 +166,7 @@ void WaveCode::writeInstruction<compisa::LdWeightsInstr>(const compisa::LdWeight
 template<>
 void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& instruction)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
@@ -177,7 +177,7 @@ void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& in
 template<>
 void WaveCode::writeInstruction<compisa::ActivationInstr >(const compisa::ActivationInstr & instruction)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
@@ -186,9 +186,9 @@ void WaveCode::writeInstruction<compisa::ActivationInstr >(const compisa::Activa
 
 
 template<>
-void WaveCode::writeInstruction<compisa::MatAddInstr>(const compisa::MatAddInstr & instruction)
+void WaveCode::writeInstruction<compisa::TensorTensorOpInstr>(const compisa::TensorTensorOpInstr& instruction)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
@@ -199,7 +199,7 @@ void WaveCode::writeInstruction<compisa::MatAddInstr>(const compisa::MatAddInstr
 template<>
 void WaveCode::writeInstruction<compisa::SimRdNpyInstr>(const compisa::SimRdNpyInstr& instruction)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
@@ -209,7 +209,7 @@ void WaveCode::writeInstruction<compisa::SimRdNpyInstr>(const compisa::SimRdNpyI
 template<>
 void WaveCode::writeInstruction<compisa::SimWrNpyInstr>(const compisa::SimWrNpyInstr& instruction)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
@@ -219,7 +219,7 @@ void WaveCode::writeInstruction<compisa::SimWrNpyInstr>(const compisa::SimWrNpyI
 template<>
 void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCpyInstr& instruction)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
@@ -234,7 +234,7 @@ void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCp
 template<>
 void WaveCode::writeInstruction<compisa::WriteInstr>(const compisa::WriteInstr& instruction, EngineId engId)
 {
-    checkForNoSync(instruction.sync);
+    checkForNoSync(instruction.inst_events);
 
     switch (engId) {
     case EngineId::Pooling:
@@ -386,10 +386,10 @@ WaveCode::saveAllNpyFiles ()
             continue;
         }
         compisa::SimRdNpyInstr dramToNpyInstr;
-        dramToNpyInstr.sync.wait_event_id      = 0;
-        dramToNpyInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::DontWait);
-        dramToNpyInstr.sync.set_event_id      = 0;
-        dramToNpyInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::DontSet);
+        dramToNpyInstr.inst_events.wait_event_idx    = 0;
+        dramToNpyInstr.inst_events.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::DontWait);
+        dramToNpyInstr.inst_events.set_event_idx     = 0;
+        dramToNpyInstr.inst_events.set_event_mode    = eventSetMode2Isa(events::EventSetMode::DontSet);
 
         strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);
@@ -434,19 +434,19 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
 
 
 void
-WaveCode::checkForNoSync(const TONGA_ISA_TPB_INST_EVENTS& sync) const
+WaveCode::checkForNoSync(const TONGA_ISA_TPB_INST_EVENTS& inst_events) const
 {
-    Assert(events::qEventSetModeValid(sync.set_event_mode), "Invalid set event mode");
-    Assert(events::qEventWaitModeValid(sync.wait_event_mode), "Invalid wait event mode");
+    Assert(events::qEventSetModeValid(inst_events.set_event_mode), "Invalid set event mode");
+    Assert(events::qEventWaitModeValid(inst_events.wait_event_mode), "Invalid wait event mode");
 
     if (qParallelStreams()) {
         return;
     }
 
-    Assert(NO_SET_EVENT == sync.set_event_mode,
+    Assert(TONGA_ISA_TPB_MODE_SET_NONE == inst_events.set_event_mode,
         "Code generation: set event mode should be NONE in serial execution");
 
-    Assert(NO_WAIT_EVENT == sync.wait_event_mode,
+    Assert(TONGA_ISA_TPB_MODE_WAIT_NONE == inst_events.wait_event_mode,
         "Code generation: wait event mode should be NONE in serial execution");
 }
 
