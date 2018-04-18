@@ -9,6 +9,7 @@
 
 
 #include "utils/inc/types.hpp"
+#include "compisa/inc/compisacommon.hpp"
 
 
 namespace kcc {
