@@ -13,6 +13,7 @@ ifeq ($(platform),Darwin)
 	COMPILE_OPTS := $(COMPILE_OPTS) -Wno-unused-private-field
 endif
 
+########################################################
 INK_INC_DIR := shared tcc
 #INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
 INK_INC := -I$(INKLING_PATH) -I$(INKLING_PATH)/shared/inc
@@ -31,7 +32,11 @@ HAL_INC := -I$(HAL)/common -I$(HAL)/plat/dv -I$(HAL)/tpb
 #INC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
 CINC := $(CEREAL_INC) $(ISA_INC) $(HAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
 
-CFLAGS := $(COMPILE_OPTS) $(CINC)
+########################################################
+DEFINES := -DSIM_ONLY=1
+
+########################################################
+CFLAGS := $(COMPILE_OPTS) $(DEFINES) $(CINC)
 
 
 ########################################################
