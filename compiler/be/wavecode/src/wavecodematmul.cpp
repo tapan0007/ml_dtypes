@@ -81,6 +81,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     ldweightsInstr.src_mem_pattern.num_elem[1]  = matmulWaveop->gOfmapCount();
 
     ldweightsInstr.num_active_rows              = matmulWaveop->gIfmapCount();
+    ldweightsInstr.num_active_cols              = matmulWaveop->gOfmapCount();
 
     ldweightsInstr.inst_events.wait_event_idx   = 0;
     ldweightsInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);

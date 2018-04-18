@@ -146,6 +146,7 @@ WaveCode::gCurrentDramAddress(kcc_int64 sizeInBytes)
 template<>
 void WaveCode::writeInstruction<compisa::MatMulInstr>(const compisa::MatMulInstr& instruction)
 {
+    instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
@@ -156,6 +157,7 @@ void WaveCode::writeInstruction<compisa::MatMulInstr>(const compisa::MatMulInstr
 template<>
 void WaveCode::writeInstruction<compisa::LdWeightsInstr>(const compisa::LdWeightsInstr& instruction)
 {
+    instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
@@ -166,6 +168,7 @@ void WaveCode::writeInstruction<compisa::LdWeightsInstr>(const compisa::LdWeight
 template<>
 void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& instruction)
 {
+    instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
@@ -177,6 +180,7 @@ void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& in
 template<>
 void WaveCode::writeInstruction<compisa::ActivationInstr >(const compisa::ActivationInstr & instruction)
 {
+    instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
@@ -188,6 +192,7 @@ void WaveCode::writeInstruction<compisa::ActivationInstr >(const compisa::Activa
 template<>
 void WaveCode::writeInstruction<compisa::TensorTensorOpInstr>(const compisa::TensorTensorOpInstr& instruction)
 {
+    instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
@@ -199,6 +204,7 @@ void WaveCode::writeInstruction<compisa::TensorTensorOpInstr>(const compisa::Ten
 template<>
 void WaveCode::writeInstruction<compisa::SimRdNpyInstr>(const compisa::SimRdNpyInstr& instruction)
 {
+    instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
@@ -209,6 +215,7 @@ void WaveCode::writeInstruction<compisa::SimRdNpyInstr>(const compisa::SimRdNpyI
 template<>
 void WaveCode::writeInstruction<compisa::SimWrNpyInstr>(const compisa::SimWrNpyInstr& instruction)
 {
+    instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
@@ -219,6 +226,7 @@ void WaveCode::writeInstruction<compisa::SimWrNpyInstr>(const compisa::SimWrNpyI
 template<>
 void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCpyInstr& instruction)
 {
+    instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
@@ -264,6 +272,7 @@ template<>
 void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& instruction, EngineId engId)
 {
     Assert(qParallelStreams(), "Cannot generate WAIT for event instruction in serial mode");
+    instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
     switch (engId) {
@@ -297,6 +306,7 @@ template<>
 void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& instruction, EngineId engId)
 {
     Assert(qParallelStreams(), "Cannot generate SET event instruction in serial mode");
+    instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
     switch (engId) {
@@ -330,6 +340,7 @@ template<>
 void WaveCode::writeInstruction<compisa::ClearInstr>(const compisa::ClearInstr& instruction, EngineId engId)
 {
     Assert(qParallelStreams(), "Cannot generate SET event instruction in serial mode");
+    instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
     switch (engId) {

@@ -27,7 +27,7 @@ public:
         InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_SIM_RDNPY);
     }
 
-    void CheckValidity()
+    void CheckValidity() const
     {}
 };
 

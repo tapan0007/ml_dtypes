@@ -27,7 +27,7 @@ public:
         InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_MATMUL);
     }
 
-    void CheckValidity()
+    void CheckValidity() const
     {
         tonga_isa_tpb_matmul_check_validity(this);
     }

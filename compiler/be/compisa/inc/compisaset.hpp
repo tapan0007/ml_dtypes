@@ -28,7 +28,7 @@ public:
         InitEventInstruction(*this, TONGA_ISA_TPB_OPCODE_EVENT_SET);
     }
 
-    void CheckValidity()
+    void CheckValidity() const
     {
         tonga_isa_tpb_eventset_check_validity(this);
     }

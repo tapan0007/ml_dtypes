@@ -26,7 +26,7 @@ public:
         InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_OP);
     }
 
-	void CheckValidity()
+	void CheckValidity() const
     {
 		tonga_isa_tpb_tensortensor_check_validity(this);
     }

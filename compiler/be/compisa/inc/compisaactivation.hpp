@@ -29,7 +29,7 @@ public:
         InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_ACTIVATE);
     }
 
-    void CheckValidity()
+    void CheckValidity() const
     {
         tonga_isa_tpb_activate_check_validity(this);
     }
