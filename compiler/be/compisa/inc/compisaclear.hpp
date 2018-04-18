@@ -24,6 +24,7 @@ public:
     ClearInstr()
         : TONGA_ISA_TPB_EVENT_CLEAR_INST()
     {
+        InitEventInstruction(*this, TONGA_ISA_TPB_OPCODE_EVENT_CLEAR);
     }
 
 };
