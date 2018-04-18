@@ -72,12 +72,12 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
         resaddInstr.src_state_buf_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
                                                                     resaddWaveop->gSrcASbAddress());
     }
-    SrcAPat.step_elem[0]    = resaddWaveop->gSrcAXStep();
-    SrcAPat.num_elem[0]     = resaddWaveop->gSrcAXNum();
-    SrcAPat.step_elem[1]    = resaddWaveop->gSrcAYStep();
-    SrcAPat.num_elem[1]     = resaddWaveop->gSrcAYNum();
-    SrcAPat.step_elem[2]    = resaddWaveop->gSrcAZStep();
-    SrcAPat.num_elem[2]     = resaddWaveop->gSrcAZNum();
+    SrcAPat.step_elem[PatDim_X]    = resaddWaveop->gSrcAXStep();
+    SrcAPat.num_elem[PatDim_X]     = resaddWaveop->gSrcAXNum();
+    SrcAPat.step_elem[PatDim_Y]    = resaddWaveop->gSrcAYStep();
+    SrcAPat.num_elem[PatDim_Y]     = resaddWaveop->gSrcAYNum();
+    SrcAPat.step_elem[PatDim_Z]    = resaddWaveop->gSrcAZStep();
+    SrcAPat.num_elem[PatDim_Z]     = resaddWaveop->gSrcAZNum();
 
     // SrcB
     TONGA_ISA_TPB_MEM_ACCESS_3D& SrcBPat(resaddWaveop->qSrcBIsPsum()
@@ -91,12 +91,12 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
         resaddInstr.src_state_buf_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
                                                                     resaddWaveop->gSrcBSbAddress());
     }
-    SrcBPat.step_elem[0]    = resaddWaveop->gSrcBXStep();
-    SrcBPat.num_elem[0]     = resaddWaveop->gSrcBXNum();
-    SrcBPat.step_elem[1]    = resaddWaveop->gSrcBYStep();
-    SrcBPat.num_elem[1]     = resaddWaveop->gSrcBYNum();
-    SrcBPat.step_elem[2]    = resaddWaveop->gSrcBZStep();
-    SrcBPat.num_elem[2]     = resaddWaveop->gSrcBZNum();
+    SrcBPat.step_elem[PatDim_X]    = resaddWaveop->gSrcBXStep();
+    SrcBPat.num_elem[PatDim_X]     = resaddWaveop->gSrcBXNum();
+    SrcBPat.step_elem[PatDim_Y]    = resaddWaveop->gSrcBYStep();
+    SrcBPat.num_elem[PatDim_Y]     = resaddWaveop->gSrcBYNum();
+    SrcBPat.step_elem[PatDim_Z]    = resaddWaveop->gSrcBZStep();
+    SrcBPat.num_elem[PatDim_Z]     = resaddWaveop->gSrcBZNum();
 
     // Dst
     initMemAccess(resaddInstr.dst_mem_pattern);
@@ -108,12 +108,12 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
         resaddInstr.dst_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
                                                             resaddWaveop->gDstSbAddress());
     }
-    resaddInstr.dst_mem_pattern.step_elem[0]      = resaddWaveop->gDstXStep();
-    resaddInstr.dst_mem_pattern.num_elem[0]       = resaddWaveop->gDstXNum();
-    resaddInstr.dst_mem_pattern.step_elem[1]      = resaddWaveop->gDstYStep();
-    resaddInstr.dst_mem_pattern.num_elem[1]       = resaddWaveop->gDstYNum();
-    resaddInstr.dst_mem_pattern.step_elem[2]      = resaddWaveop->gDstZStep();
-    resaddInstr.dst_mem_pattern.num_elem[2]       = resaddWaveop->gDstZNum();
+    resaddInstr.dst_mem_pattern.step_elem[PatDim_X]      = resaddWaveop->gDstXStep();
+    resaddInstr.dst_mem_pattern.num_elem[PatDim_X]       = resaddWaveop->gDstXNum();
+    resaddInstr.dst_mem_pattern.step_elem[PatDim_Y]      = resaddWaveop->gDstYStep();
+    resaddInstr.dst_mem_pattern.num_elem[PatDim_Y]       = resaddWaveop->gDstYNum();
+    resaddInstr.dst_mem_pattern.step_elem[PatDim_Z]      = resaddWaveop->gDstZStep();
+    resaddInstr.dst_mem_pattern.num_elem[PatDim_Z]       = resaddWaveop->gDstZNum();
 
     resaddInstr.inst_events.wait_event_idx     = 0;
     resaddInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);

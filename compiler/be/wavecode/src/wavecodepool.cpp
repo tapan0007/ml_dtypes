@@ -71,16 +71,16 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
                                                     poolWaveop->gSrcSbAddress());
     }
 
-    poolInstr.src_mem_pattern.step_elem[0]        = poolWaveop->gSrcXStep();
-    poolInstr.src_mem_pattern.num_elem[0]         = poolWaveop->gSrcXNum();
-    poolInstr.src_mem_pattern.step_elem[1]        = poolWaveop->gSrcYStep();
-    poolInstr.src_mem_pattern.num_elem[1]         = poolWaveop->gSrcYNum();
+    poolInstr.src_mem_pattern.step_elem[PatDim_X]        = poolWaveop->gSrcXStep();
+    poolInstr.src_mem_pattern.num_elem[PatDim_X]         = poolWaveop->gSrcXNum();
+    poolInstr.src_mem_pattern.step_elem[PatDim_Y]        = poolWaveop->gSrcYStep();
+    poolInstr.src_mem_pattern.num_elem[PatDim_Y]         = poolWaveop->gSrcYNum();
 
     /* strides */
-    poolInstr.src_mem_pattern.step_elem[2]        = poolWaveop->gSrcZStep();
-    poolInstr.src_mem_pattern.num_elem[2]         = poolWaveop->gSrcZNum();
-    poolInstr.src_mem_pattern.step_elem[3]        = poolWaveop->gSrcWStep();
-    poolInstr.src_mem_pattern.num_elem[3]         = poolWaveop->gSrcWNum();
+    poolInstr.src_mem_pattern.step_elem[PatDim_Z]        = poolWaveop->gSrcZStep();
+    poolInstr.src_mem_pattern.num_elem[PatDim_Z]         = poolWaveop->gSrcZNum();
+    poolInstr.src_mem_pattern.step_elem[PatDim_W]        = poolWaveop->gSrcWStep();
+    poolInstr.src_mem_pattern.num_elem[PatDim_W]         = poolWaveop->gSrcWNum();
 
     poolInstr.num_active_channels   = poolWaveop->gNumPartitions();
 
@@ -94,12 +94,12 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_mem_pattern.start_addr    = stateBuf.gEntryTpbAddress(0, /*row 0 for now*/
                                                     poolWaveop->gDstSbAddress());
 
-    poolInstr.dst_mem_pattern.step_elem[0]  = poolWaveop->gDstXStep();
-    poolInstr.dst_mem_pattern.num_elem[0]   = poolWaveop->gDstXNum();
-    poolInstr.dst_mem_pattern.step_elem[1]  = poolWaveop->gDstYStep();
-    poolInstr.dst_mem_pattern.num_elem[1]   = poolWaveop->gDstYNum();
-    poolInstr.dst_mem_pattern.step_elem[2]  = poolWaveop->gDstZStep();
-    poolInstr.dst_mem_pattern.num_elem[2]   = poolWaveop->gDstZNum();
+    poolInstr.dst_mem_pattern.step_elem[PatDim_X]  = poolWaveop->gDstXStep();
+    poolInstr.dst_mem_pattern.num_elem[PatDim_X]   = poolWaveop->gDstXNum();
+    poolInstr.dst_mem_pattern.step_elem[PatDim_Y]  = poolWaveop->gDstYStep();
+    poolInstr.dst_mem_pattern.num_elem[PatDim_Y]   = poolWaveop->gDstYNum();
+    poolInstr.dst_mem_pattern.step_elem[PatDim_Z]  = poolWaveop->gDstZStep();
+    poolInstr.dst_mem_pattern.num_elem[PatDim_Z]   = poolWaveop->gDstZNum();
 
     poolInstr.inst_events.wait_event_idx    = 0;
     poolInstr.inst_events.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);

@@ -59,12 +59,12 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
         activationInstr.src_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
                                                             activationWaveop->gSrcSbAddress());
     }
-    activationInstr.src_mem_pattern.step_elem[0]    = activationWaveop->gSrcXStep();
-    activationInstr.src_mem_pattern.num_elem[0]     = activationWaveop->gSrcXNum();
-    activationInstr.src_mem_pattern.step_elem[1]    = activationWaveop->gSrcYStep();
-    activationInstr.src_mem_pattern.num_elem[1]     = activationWaveop->gSrcYNum();
-    activationInstr.src_mem_pattern.step_elem[2]    = activationWaveop->gSrcZStep();
-    activationInstr.src_mem_pattern.num_elem[2]     = activationWaveop->gSrcZNum();
+    activationInstr.src_mem_pattern.step_elem[PatDim_X]    = activationWaveop->gSrcXStep();
+    activationInstr.src_mem_pattern.num_elem[PatDim_X]     = activationWaveop->gSrcXNum();
+    activationInstr.src_mem_pattern.step_elem[PatDim_Y]    = activationWaveop->gSrcYStep();
+    activationInstr.src_mem_pattern.num_elem[PatDim_Y]     = activationWaveop->gSrcYNum();
+    activationInstr.src_mem_pattern.step_elem[PatDim_Z]    = activationWaveop->gSrcZStep();
+    activationInstr.src_mem_pattern.num_elem[PatDim_Z]     = activationWaveop->gSrcZNum();
 
 
     initMemAccess(activationInstr.dst_mem_pattern);
@@ -76,12 +76,12 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
         activationInstr.dst_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
                                                             activationWaveop->gDstSbAddress());
     }
-    activationInstr.dst_mem_pattern.step_elem[0]    = activationWaveop->gDstXStep();
-    activationInstr.dst_mem_pattern.num_elem[0]     = activationWaveop->gDstXNum();
-    activationInstr.dst_mem_pattern.step_elem[1]    = activationWaveop->gDstYStep();
-    activationInstr.dst_mem_pattern.num_elem[1]     = activationWaveop->gDstYNum();
-    activationInstr.dst_mem_pattern.step_elem[2]    = activationWaveop->gDstZStep();
-    activationInstr.dst_mem_pattern.num_elem[2]     = activationWaveop->gDstZNum();
+    activationInstr.dst_mem_pattern.step_elem[PatDim_X]    = activationWaveop->gDstXStep();
+    activationInstr.dst_mem_pattern.num_elem[PatDim_X]     = activationWaveop->gDstXNum();
+    activationInstr.dst_mem_pattern.step_elem[PatDim_Y]    = activationWaveop->gDstYStep();
+    activationInstr.dst_mem_pattern.num_elem[PatDim_Y]     = activationWaveop->gDstYNum();
+    activationInstr.dst_mem_pattern.step_elem[PatDim_Z]    = activationWaveop->gDstZStep();
+    activationInstr.dst_mem_pattern.num_elem[PatDim_Z]     = activationWaveop->gDstZNum();
 
     activationInstr.scale_value         = activationWaveop->gScale();
     if (activationWaveop->qBiasAddEn ()) {

@@ -77,8 +77,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     initMemAccess(ldweightsInstr.src_mem_pattern);
     ldweightsInstr.src_mem_pattern.start_addr   = addressInSbPart
                             + (matmulWaveop->gOfmapCount() - 1) * inDtype.gSizeInBytes();
-    ldweightsInstr.src_mem_pattern.step_elem[0] = -1; // last column goes first, so decrement
-    ldweightsInstr.src_mem_pattern.num_elem[1]  = matmulWaveop->gOfmapCount();
+    ldweightsInstr.src_mem_pattern.step_elem[PatDim_X] = -1; // last column goes first, so decrement
+    ldweightsInstr.src_mem_pattern.num_elem[PatDim_X]  = matmulWaveop->gOfmapCount();
 
     ldweightsInstr.num_active_rows              = matmulWaveop->gIfmapCount();
     ldweightsInstr.num_active_cols              = matmulWaveop->gOfmapCount();
@@ -162,12 +162,12 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
     initMemAccess(matmulInstr.src_mem_pattern);
     matmulInstr.src_mem_pattern.start_addr      = matmulWaveop->gIfmapsSbAddress();
-    matmulInstr.src_mem_pattern.num_elem[0]     = matmulWaveop->gFmapXNum();
-    matmulInstr.src_mem_pattern.step_elem[0]    = matmulWaveop->gFmapXStep();
-    matmulInstr.src_mem_pattern.num_elem[1]     = matmulWaveop->gFmapYNum();
-    matmulInstr.src_mem_pattern.step_elem[1]    = matmulWaveop->gFmapYStep();
-    matmulInstr.src_mem_pattern.num_elem[2]     = matmulWaveop->gFmapZNum();
-    matmulInstr.src_mem_pattern.step_elem[2]    = 1;
+    matmulInstr.src_mem_pattern.num_elem[PatDim_X]     = matmulWaveop->gFmapXNum();
+    matmulInstr.src_mem_pattern.step_elem[PatDim_X]    = matmulWaveop->gFmapXStep();
+    matmulInstr.src_mem_pattern.num_elem[PatDim_Y]     = matmulWaveop->gFmapYNum();
+    matmulInstr.src_mem_pattern.step_elem[PatDim_Y]    = matmulWaveop->gFmapYStep();
+    matmulInstr.src_mem_pattern.num_elem[PatDim_Z]     = matmulWaveop->gFmapZNum();
+    matmulInstr.src_mem_pattern.step_elem[PatDim_Z]    = 1;
 
 
     initMemAccess(matmulInstr.dst_mem_pattern);
@@ -175,10 +175,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                                                         matmulWaveop->gPsumBankId(),
                                                         matmulWaveop->gPsumBankOffset(),
                                                         matmulWaveop->gOutDtype());
-    matmulInstr.dst_mem_pattern.num_elem[0]        = matmulWaveop->gPsumXNum();
-    matmulInstr.dst_mem_pattern.step_elem[0]       = matmulWaveop->gPsumXStep();
-    matmulInstr.dst_mem_pattern.num_elem[1]        = matmulWaveop->gPsumYNum();
-    matmulInstr.dst_mem_pattern.step_elem[1]       = matmulWaveop->gPsumYStep();
+    matmulInstr.dst_mem_pattern.num_elem[PatDim_X]        = matmulWaveop->gPsumXNum();
+    matmulInstr.dst_mem_pattern.step_elem[PatDim_X]       = matmulWaveop->gPsumXStep();
+    matmulInstr.dst_mem_pattern.num_elem[PatDim_Y]        = matmulWaveop->gPsumYNum();
+    matmulInstr.dst_mem_pattern.step_elem[PatDim_Y]       = matmulWaveop->gPsumYStep();
 
 
     matmulInstr.timing_flags = 0;

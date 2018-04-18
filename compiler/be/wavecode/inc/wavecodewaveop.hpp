@@ -66,6 +66,12 @@ public:
     }
 
 protected:
+    enum PatDim {
+        PatDim_X = 0,
+        PatDim_Y = 1,
+        PatDim_Z = 2,
+        PatDim_W = 3,
+    };
     void epilogue(const wave::WaveOp* waveOp);
     bool qParallelStreams() const;
 

@@ -30,28 +30,11 @@ void
 WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId engineId)
 {
     const events::EventWaitMode waitEventMode = waveEdge->gWaitEventMode();
-    switch (waitEventMode) {
-    case events::EventWaitMode::WaitOnly: {
-        compisa::WaitInstr waitInstr;
-        waitInstr.event_idx  = waveEdge->gEventId();
-        m_WaveCode.writeInstruction(waitInstr, engineId);
-        break;
-    }
-    case events::EventWaitMode::WaitThenClear: {
-        compisa::WaitInstr waitInstr;
-        waitInstr.event_idx  = waveEdge->gEventId();
-        m_WaveCode.writeInstruction(waitInstr, engineId);
 
-        compisa::ClearInstr clearInstr;
-        clearInstr.event_idx  = waveEdge->gEventId();
-        m_WaveCode.writeInstruction(clearInstr, engineId);
-        break;
-    }
-    default:
-        Assert(false, "Cannot wait on edge with DontWait mode");
-        break;
-    }
-
+    compisa::WaitInstr waitInstr;
+    waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
+    waitInstr.event_idx         = waveEdge->gEventId();
+    m_WaveCode.writeInstruction(waitInstr, engineId);
 }
 
 
