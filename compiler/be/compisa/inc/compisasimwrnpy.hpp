@@ -24,9 +24,11 @@ public:
     SimWrNpyInstr()
         : TONGA_ISA_TPB_SIM_WRNPY_INST()
     {
-        InitSync(inst_events);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_SIM_WRNPY);
     }
 
+    void CheckValidity()
+    {}
 };
 
 

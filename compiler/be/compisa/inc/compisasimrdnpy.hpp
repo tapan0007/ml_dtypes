@@ -24,9 +24,11 @@ public:
     SimRdNpyInstr()
         : TONGA_ISA_TPB_SIM_RDNPY_INST()
     {
-        InitSync(inst_events);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_SIM_RDNPY);
     }
 
+    void CheckValidity()
+    {}
 };
 
 

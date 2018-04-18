@@ -23,9 +23,13 @@ public:
     TensorTensorOpInstr()
         : TONGA_ISA_TPB_TENSOR_TENSOR_OP_INST()
     {
-        InitSync(inst_events);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_OP);
     }
 
+	void CheckValidity()
+    {
+		tonga_isa_tpb_tensortensor_check_validity(this);
+    }
 };
 
 

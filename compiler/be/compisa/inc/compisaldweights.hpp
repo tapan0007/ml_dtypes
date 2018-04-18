@@ -25,9 +25,13 @@ public:
     LdWeightsInstr()
         : TONGA_ISA_TPB_LDWEIGHTS_INST()
     {
-        InitSync(inst_events);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_LDWEIGHTS);
     }
 
+    void CheckValidity()
+    {
+        tonga_isa_tpb_ldweights_check_validity(this);
+    }
 };
 
 

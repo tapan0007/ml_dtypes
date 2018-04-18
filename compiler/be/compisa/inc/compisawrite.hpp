@@ -23,9 +23,12 @@ public:
     WriteInstr()
         : TONGA_ISA_TPB_WRITE_INST()
     {
-        InitSync(inst_events);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_WRITE);
     }
 
+    void CheckValidity() {
+        tonga_isa_tpb_write_check_validity(this);
+    }
 };
 
 

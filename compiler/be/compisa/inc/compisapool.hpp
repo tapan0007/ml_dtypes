@@ -24,7 +24,12 @@ public:
     PoolInstr()
         : TONGA_ISA_TPB_POOL_INST()
     {
-        InitSync(inst_events);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_POOL);
+    }
+
+    void CheckValidity()
+    {
+        tonga_isa_tpb_pool_check_validity(this);
     }
 
 };

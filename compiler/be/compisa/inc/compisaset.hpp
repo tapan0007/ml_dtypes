@@ -24,8 +24,13 @@ public:
     SetInstr()
         : TONGA_ISA_TPB_EVENT_SET_INST()
     {
+        InitEventInstruction(*this, TONGA_ISA_TPB_OPCODE_EVENT_SET);
     }
 
+    void CheckValidity()
+    {
+        tonga_isa_tpb_eventset_check_validity(this);
+    }
 };
 
 

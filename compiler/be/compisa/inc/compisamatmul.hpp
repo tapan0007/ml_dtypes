@@ -24,9 +24,13 @@ public:
     MatMulInstr()
         : TONGA_ISA_TPB_MATMUL_INST()
     {
-        InitSync(inst_events);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_MATMUL);
     }
 
+    void CheckValidity()
+    {
+        tonga_isa_tpb_matmul_check_validity(this);
+    }
 };
 
 

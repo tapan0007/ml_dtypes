@@ -24,9 +24,11 @@ public:
     SimMemCpyInstr()
         : TONGA_ISA_TPB_SIM_MEMCPY_INST()
     {
-        InitSync(inst_events);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_SIM_MEMCPY);
     }
 
+    void CheckValidity()
+    {}
 };
 
 

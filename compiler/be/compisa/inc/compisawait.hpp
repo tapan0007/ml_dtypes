@@ -24,8 +24,13 @@ public:
     WaitInstr()
         : TONGA_ISA_TPB_EVENT_WAIT_INST()
     {
+        InitEventInstruction(*this, TONGA_ISA_TPB_OPCODE_EVENT_WAIT);
     }
 
+    void CheckValidity()
+    {
+        tonga_isa_tpb_eventwait_check_validity(this);
+    }
 };
 
 
