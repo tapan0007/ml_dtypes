@@ -35,13 +35,18 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
                 || waitEventMode == events::EventWaitMode::WaitOnly,
            "Cannot wait on edge with DontWait mode");
 
-    if (0) {
+    enum { WAIT, WAIT_CLEAR, NOP };
+
+    switch (NOP) {
+    case WAIT: {
         // Not sure whether wait_event_mode works in SIM.
         compisa::WaitInstr waitInstr;
         waitInstr.event_idx         = waveEdge->gEventId();
         waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
         m_WaveCode.writeInstruction(waitInstr, engineId);
-    } else if (0) {
+        break;
+    }
+    case NOP: {
         // New Nop instruction can wait and set (should use for barrier too)
         compisa::NopInstr nopInstr;
         nopInstr.inst_events.wait_event_idx   = waveEdge->gEventId();
@@ -49,7 +54,9 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
         nopInstr.inst_events.set_event_idx    = 0;
         nopInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
         m_WaveCode.writeInstruction(nopInstr, engineId);
-    } else {
+        break;
+    }
+    case WAIT_CLEAR: {
         // old style: Wait(wait-only); Clear
         {
             compisa::WaitInstr waitInstr;
@@ -63,6 +70,11 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
             clearInstr.event_idx  = waveEdge->gEventId();
             m_WaveCode.writeInstruction(clearInstr, engineId);
         }
+        break;
+    }
+    default:
+        Assert(false, "Unknown waiting method");
+        break;
     }
 }
 

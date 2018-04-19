@@ -4,8 +4,30 @@
 
 #include "utils/inc/asserter.hpp"
 
-#include "compisa/inc/compisacommon.hpp"
 #include "events/inc/events.hpp"
+
+#include "compisa/inc/compisacommon.hpp"
+
+#include "compisa/inc/compisaactivation.hpp"
+#include "compisa/inc/compisaclear.hpp"
+#include "compisa/inc/compisacommon.hpp"
+#include "compisa/inc/compisacopy.hpp"
+#include "compisa/inc/compisaldweights.hpp"
+#include "compisa/inc/compisamatmul.hpp"
+#include "compisa/inc/compisamemset.hpp"
+#include "compisa/inc/compisanop.hpp"
+#include "compisa/inc/compisapool.hpp"
+#include "compisa/inc/compisareciprocal.hpp"
+#include "compisa/inc/compisaset.hpp"
+#include "compisa/inc/compisasimmemcpy.hpp"
+#include "compisa/inc/compisasimrdnpy.hpp"
+#include "compisa/inc/compisasimwrnpy.hpp"
+#include "compisa/inc/compisatensorreduceop.hpp"
+#include "compisa/inc/compisatensorscalarop.hpp"
+#include "compisa/inc/compisatensorscalarptrop.hpp"
+#include "compisa/inc/compisatensortensorop.hpp"
+#include "compisa/inc/compisawait.hpp"
+#include "compisa/inc/compisawrite.hpp"
 
 namespace kcc {
 namespace compisa {
@@ -39,6 +61,30 @@ InitHeader (TONGA_ISA_TPB_INST_HEADER& header, TONGA_ISA_TPB_OPCODE opcode, uint
     header.inst_word_len = sz / BYTES_PER_WORD;
     header.debug_level = 0;
     header.sw_reserved = 0;
+}
+
+void
+AllInstructions()
+{
+    ActivationInstr         actInstr;
+    ClearInstr              clearInstr;
+    CopyInstr               copyInstr;
+    LdWeightsInstr          ldweightsInstr;
+    MatMulInstr             matmulInstr;
+    MemSetInstr             memsetInstr;
+    NopInstr                nopInstr;
+    PoolInstr               poolInstr;
+    ReciprocalInstr         reciprocalInstr;
+    SetInstr                setInstr;
+    SimMemCpyInstr          memcpyInstr;
+    SimRdNpyInstr           rdnpyInstr;
+    SimWrNpyInstr           wrnpyInstr;
+    TensorReduceOpInstr     tensorredInstr;
+    TensorScalarOpInstr     tensorscalarInstr;
+    TensorScalarPtrOpInstr  tensorscalarptrInstr;
+    TensorTensorOpInstr     tensortensorInstr;
+    WaitInstr               waitInstr;
+    WriteInstr              writeInstr;
 }
 
 }}
