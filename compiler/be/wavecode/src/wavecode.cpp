@@ -12,7 +12,7 @@
 
 #include "compisa/inc/compisapool.hpp"
 
-#include "compisa/inc/compisaactivation.hpp"
+#include "compisa/inc/compisaactivate.hpp"
 
 #include "compisa/inc/compisaset.hpp"
 #include "compisa/inc/compisawait.hpp"
@@ -309,7 +309,7 @@ void WaveCode::writeInstruction<compisa::RegShuffleInstr>(const compisa::RegShuf
  * Activation Eng
 ***********************************************************************/
 template<>
-void WaveCode::writeInstruction<compisa::ActivationInstr >(const compisa::ActivationInstr & instruction)
+void WaveCode::writeInstruction<compisa::ActivateInstr >(const compisa::ActivateInstr & instruction)
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);

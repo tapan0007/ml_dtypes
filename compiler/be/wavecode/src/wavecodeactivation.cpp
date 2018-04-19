@@ -1,5 +1,5 @@
 
-#include "compisa/inc/compisaactivation.hpp"
+#include "compisa/inc/compisaactivate.hpp"
 
 
 #include "utils/inc/asserter.hpp"
@@ -40,7 +40,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     const EngineId engineId = activationWaveop->gEngineId();
     Assert(EngineId::Activation == engineId, "Engine id for Activation waveop should be Activation");
 
-    compisa::ActivationInstr activationInstr;
+    compisa::ActivateInstr activationInstr;
 
     activationInstr.activation_func     = activationWaveop->gSimActivationFunc();
     activationInstr.in_dtype            = activationWaveop->gInDtype().gSimTypeId();

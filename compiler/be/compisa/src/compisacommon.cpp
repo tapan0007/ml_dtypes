@@ -8,7 +8,7 @@
 
 #include "compisa/inc/compisacommon.hpp"
 
-#include "compisa/inc/compisaactivation.hpp"
+#include "compisa/inc/compisaactivate.hpp"
 #include "compisa/inc/compisacast.hpp"
 #include "compisa/inc/compisaclear.hpp"
 #include "compisa/inc/compisacopy.hpp"
@@ -69,7 +69,7 @@ InitHeader (TONGA_ISA_TPB_INST_HEADER& header, TONGA_ISA_TPB_OPCODE opcode, uint
 void
 AllInstructions()
 {
-    ActivationInstr         actInstr;
+    ActivateInstr          actInstr;
     CastInstr               castInstr;
     ClearInstr              clearInstr;
     CopyInstr               copyInstr;

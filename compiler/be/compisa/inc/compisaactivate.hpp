@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_COMPISA_ACTIVATION_H
-#define KCC_COMPISA_ACTIVATION_H
+#ifndef KCC_COMPISA_ACTIVATE_H
+#define KCC_COMPISA_ACTIVATE_H
 
 
 
@@ -18,12 +18,12 @@ namespace kcc {
 namespace compisa {
 
 
-class ActivationInstr : public TONGA_ISA_TPB_ACTIVATE_INST {
+class ActivateInstr : public TONGA_ISA_TPB_ACTIVATE_INST {
 public:
     static constexpr EngineId engineId = EngineId::Activation;
 public:
     //----------------------------------------------------------------
-    ActivationInstr()
+    ActivateInstr()
         : TONGA_ISA_TPB_ACTIVATE_INST()
     {
         InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_ACTIVATE);
@@ -38,5 +38,5 @@ public:
 
 }}
 
-#endif // KCC_COMPISA_ACTIVATION_H
+#endif // KCC_COMPISA_ACTIVATE_H
 
