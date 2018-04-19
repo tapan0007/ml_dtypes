@@ -74,6 +74,9 @@ public:
     kcc_int64 gSrcASbAddress () const {
         return m_SrcASbAddress;
     }
+    bool gSrcAStartAtMidPart () const {
+        return m_SrcAStartAtMidPart;
+    }
     kcc_int32 gSrcAPsumBankId() const {
         return m_SrcAPsumBankId;
     }
@@ -111,6 +114,9 @@ public:
     kcc_int64 gSrcBSbAddress () const {
         return m_SrcBSbAddress;
     }
+    bool gSrcBStartAtMidPart () const {
+        return m_SrcBStartAtMidPart;
+    }
     kcc_int32 gSrcBPsumBankId() const {
         return m_SrcBPsumBankId;
     }
@@ -142,6 +148,9 @@ public:
     }
     kcc_int64 gDstSbAddress () const {
         return m_DstSbAddress;
+    }
+    bool gDstStartAtMidPart () const {
+        return m_DstStartAtMidPart;
     }
     kcc_int32 gDstPsumBankId() const {
         return m_DstPsumBankId;
@@ -183,6 +192,7 @@ private:
     kcc_int32       m_SrcAPsumBankId        = -1;
     kcc_int32       m_SrcAPsumBankOffset    = -1;
     kcc_int32       m_SrcASbAddress         = -1;
+    bool            m_SrcAStartAtMidPart    = false;
 
     kcc_int32       m_SrcAXStep             = -1;
     kcc_int32       m_SrcAXNum              = -1;
@@ -196,6 +206,7 @@ private:
     kcc_int32       m_SrcBPsumBankId        = -1;
     kcc_int32       m_SrcBPsumBankOffset    = -1;
     kcc_int64       m_SrcBSbAddress         = -1;
+    bool            m_SrcBStartAtMidPart    = false;
 
     kcc_int32       m_SrcBXStep             = -1;
     kcc_int32       m_SrcBXNum              = -1;
@@ -209,6 +220,7 @@ private:
     kcc_int32       m_DstPsumBankId         = -1;
     kcc_int32       m_DstPsumBankOffset     = -1;
     kcc_int64       m_DstSbAddress          = -1;
+    bool            m_DstStartAtMidPart     = false;
 
     kcc_int32       m_DstXStep              = -1;
     kcc_int32       m_DstXNum               = -1;
@@ -239,6 +251,7 @@ public:
     kcc_int32       m_SrcAPsumBankId        = -1;
     kcc_int32       m_SrcAPsumBankOffset    = -1;
     kcc_int64       m_SrcASbAddress         = -1;
+    bool            m_SrcAStartAtMidPart    = false;
 
     kcc_int32       m_SrcAXStep             = -1;
     kcc_int32       m_SrcAXNum              = -1;
@@ -252,6 +265,7 @@ public:
     kcc_int32       m_SrcBPsumBankId        = -1;
     kcc_int32       m_SrcBPsumBankOffset    = -1;
     kcc_int64       m_SrcBSbAddress         = -1;
+    bool            m_SrcBStartAtMidPart    = false;
 
     kcc_int32       m_SrcBXStep             = -1;
     kcc_int32       m_SrcBXNum              = -1;
@@ -265,6 +279,7 @@ public:
     kcc_int32       m_DstPsumBankId         = -1;
     kcc_int32       m_DstPsumBankOffset     = -1;
     kcc_int64       m_DstSbAddress          = -1;
+    bool            m_DstStartAtMidPart     = false;
 
     kcc_int32       m_DstXStep              = -1;
     kcc_int32       m_DstXNum               = -1;

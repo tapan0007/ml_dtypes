@@ -22,6 +22,7 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     : PoolEngWaveOp(params, prevWaveOps)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_DstSbAddress(params.m_DstSbAddress)
+    , m_DstStartAtMidPart(params.m_DstStartAtMidPart)
     , m_DstXNum(params.m_DstXNum)
     , m_DstXStep(params.m_DstXStep)
     , m_DstYNum(params.m_DstYNum)
@@ -40,6 +41,7 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
         m_SrcPsumBankOffset = params.m_SrcPsumBankOffset;
     } else {
         m_SrcSbAddress      = params.m_SrcSbAddress;
+        m_SrcStartAtMidPart      = params.m_SrcStartAtMidPart;
     }
 
     m_SrcWNum           = params.m_SrcWNum;

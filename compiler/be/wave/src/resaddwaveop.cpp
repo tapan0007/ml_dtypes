@@ -31,6 +31,7 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
         m_SrcAPsumBankOffset    = params.m_SrcAPsumBankOffset;
     } else {
         m_SrcASbAddress         = params.m_SrcASbAddress;
+        m_SrcAStartAtMidPart         = params.m_SrcAStartAtMidPart;
     }
     m_SrcAXStep                 = params.m_SrcAXStep;
     m_SrcAXNum                  = params.m_SrcAXNum;
@@ -45,6 +46,7 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
         m_SrcBPsumBankOffset    = params.m_SrcBPsumBankOffset;
     } else {
         m_SrcBSbAddress         = params.m_SrcBSbAddress;
+        m_SrcBStartAtMidPart         = params.m_SrcBStartAtMidPart;
     }
     m_SrcBXStep                 = params.m_SrcBXStep;
     m_SrcBXNum                  = params.m_SrcBXNum;
@@ -59,6 +61,7 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
         m_DstPsumBankOffset     = params.m_DstPsumBankOffset;
     } else {
         m_DstSbAddress          = params.m_DstSbAddress;
+        m_DstStartAtMidPart          = params.m_DstStartAtMidPart;
     }
     m_DstXStep                  = params.m_DstXStep;
     m_DstXNum                   = params.m_DstXNum;

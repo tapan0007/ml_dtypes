@@ -11,7 +11,7 @@ SANITY_TESTS=0-2conv3_relu 0-1conv_tile 0-1conv1pool 0-1conv1maxpool_k3d2 0-1con
 
 gen_test:
 	#@$(foreach var, $(TESTS), echo "\n*******************$(var)********************\n"; pushd .; cd $(var); if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/tffe/tffe.py --tfpb graph.pb --image linspace1; rm -f *.npy; tar -xzf *.tgz; else rm -rf $(notdir $(var)); $(KAENA_PATH)/compiler/tffe/test/RunAll --test $(notdir $(var)); cp $(notdir $(var))/*.tgz .; tar -xzf *.tgz; rm -rf $(notdir $(var)); fi; popd;)
-	@$(foreach var, $(TESTS), echo "\n*******************$(var)********************\n"; pushd .; cd $(var); if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/tffe/tffe.py --tfpb graph.pb --image linspace1; rm -f *.npy; tar -xzf *.tgz; fi; popd;)
+	@$(foreach var, $(TESTS), echo "\n*******************$(var)********************\n"; pushd .; cd $(var); if [ -e graph.pb ]; then mkdir temp; cd temp; python3 $(KAENA_PATH)/compiler/tffe/tffe.py --tfpb ../graph.pb --image linspace1; cp -RH sg00/* ../; cd ../; rm -rf temp; fi; popd;)
 
 layeropt_sanity:
 	cd layeropt_tests/0-2conv3_relu/ && python3 $(KAENA_PATH)/compiler/util/layeropt.py --kgraph trivnet_compiler.json 
@@ -26,6 +26,6 @@ check:
 	sanity
 
 %: 
-	@echo "******************* $* (layeropt_tests/$*/$*.log) ********************" && cd layeropt_tests/$* && if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 3 --golden_inputs --kgraph out_compiler.json --wavegraph out_wavegraph.json --dot out_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi && if [ -e trivnet_compiler.json ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 3 --golden_inputs --kgraph trivnet_compiler.json --wavegraph trivnet_wavegraph.json --dot trivnet_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi
+	@echo "******************* $* (layeropt_tests/$*/$*.log) ********************" && cd layeropt_tests/$* && if [ -e compiler.json ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 3 --golden_inputs --kgraph compiler.json --wavegraph trivnet_wavegraph.json --dot trivnet_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi
 
 

@@ -49,7 +49,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
                                                                  resaddWaveop->gSrcAPsumBankOffset(),
                                                                  resaddWaveop->gInADtype());
     } else {
-        resaddInstr.src_a_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
+        resaddInstr.src_a_start_addr  = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcAStartAtMidPart(),
                                                 resaddWaveop->gSrcASbAddress());
     }
     resaddInstr.src_a_x_step      = resaddWaveop->gSrcAXStep();
@@ -65,7 +65,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
                                                                  resaddWaveop->gSrcBPsumBankOffset(),
                                                                  resaddWaveop->gInBDtype());
     } else {
-        resaddInstr.src_b_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
+        resaddInstr.src_b_start_addr  = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcBStartAtMidPart(),
                                                 resaddWaveop->gSrcBSbAddress());
     }
     resaddInstr.src_b_x_step      = resaddWaveop->gSrcBXStep();
@@ -81,7 +81,7 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
                                                                  resaddWaveop->gDstPsumBankOffset(),
                                                                  resaddWaveop->gOutDtype());
     } else {
-        resaddInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
+        resaddInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * resaddWaveop->gDstStartAtMidPart(),
                                                 resaddWaveop->gDstSbAddress());
     }
     resaddInstr.dst_x_step      = resaddWaveop->gDstXStep();

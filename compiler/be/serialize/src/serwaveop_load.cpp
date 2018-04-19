@@ -43,6 +43,7 @@ void
 SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
 {
     KCC_ARCHIVE(SbAddress);
+    KCC_ARCHIVE(StartAtMidPart);
     KCC_ARCHIVE(BatchFoldIdx);
     KCC_ARCHIVE(DataType);
     KCC_ARCHIVE(Length);
@@ -67,6 +68,7 @@ void
 SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
 {
     KCC_ARCHIVE(DstSbAddress);
+    KCC_ARCHIVE(DstStartAtMidPart);
     KCC_ARCHIVE(DstXNum);
     KCC_ARCHIVE(DstXStep);
     KCC_ARCHIVE(DstYNum);
@@ -87,6 +89,7 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(SrcPsumBankId);
     } else {
         KCC_ARCHIVE(SrcSbAddress);
+        KCC_ARCHIVE(SrcStartAtMidPart);
     }
     KCC_ARCHIVE(SrcWNum);
     KCC_ARCHIVE(SrcWStep);
@@ -110,7 +113,7 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(FmapYNum);
     KCC_ARCHIVE(FmapYStep);
     KCC_ARCHIVE(FmapZNum);
-    KCC_ARCHIVE(FmapZStepAtoms);
+    KCC_ARCHIVE(FmapZStep);
     KCC_ARCHIVE(IfmapCount);
     KCC_ARCHIVE(IfmapTileHeight);
     KCC_ARCHIVE(IfmapTileWidth);
@@ -154,6 +157,7 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(ActivationFunc);
     KCC_ARCHIVE(BiasAddEn);
     KCC_ARCHIVE(BiasSbAddress);
+    KCC_ARCHIVE(BiasStartAtMidPart);
 
     KCC_ARCHIVE(DstXNum);
     KCC_ARCHIVE(DstXStep);
@@ -167,6 +171,7 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(DstPsumBankId);
     } else {
         KCC_ARCHIVE(DstSbAddress);
+        KCC_ARCHIVE(DstStartAtMidPart);
     }
 
     KCC_ARCHIVE(InDtype);
@@ -179,6 +184,7 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(SrcPsumBankId);
     } else {
         KCC_ARCHIVE(SrcSbAddress);
+        KCC_ARCHIVE(SrcStartAtMidPart);
     }
 
     KCC_ARCHIVE(SrcXNum);
@@ -211,6 +217,7 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(SrcAPsumBankOffset);
     } else {
         KCC_ARCHIVE(SrcASbAddress);
+        KCC_ARCHIVE(SrcAStartAtMidPart);
     }
     KCC_ARCHIVE(SrcAXNum);
     KCC_ARCHIVE(SrcAXStep);
@@ -226,6 +233,7 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(SrcBPsumBankOffset);
     } else {
         KCC_ARCHIVE(SrcBSbAddress);
+        KCC_ARCHIVE(SrcBStartAtMidPart);
     }
     KCC_ARCHIVE(SrcBXNum);
     KCC_ARCHIVE(SrcBXStep);
@@ -241,6 +249,7 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(DstPsumBankOffset);
     } else {
         KCC_ARCHIVE(DstSbAddress);
+        KCC_ARCHIVE(DstStartAtMidPart);
     }
     KCC_ARCHIVE(DstXNum);
     KCC_ARCHIVE(DstXStep);
