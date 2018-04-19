@@ -55,6 +55,7 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
         m_SrcPsumBankId     = params.m_SrcPsumBankId;
     } else {
         m_SrcSbAddress      = params.m_SrcSbAddress;
+        m_SrcStartAtMidPart      = params.m_SrcStartAtMidPart;
     }
     assert(verify());
 }

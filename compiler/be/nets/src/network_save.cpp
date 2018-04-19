@@ -493,6 +493,7 @@ Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
         KCC_SERIALIZE(SrcPsumBankId);
     } else {
         KCC_SERIALIZE(SrcSbAddress);
+        KCC_SERIALIZE(SrcStartAtMidPart);
     }
 
     KCC_SERIALIZE(SrcXNum);

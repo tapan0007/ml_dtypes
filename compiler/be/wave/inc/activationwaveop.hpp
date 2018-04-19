@@ -117,6 +117,9 @@ public:
     kcc_int64 gSrcSbAddress () const {
         return m_SrcSbAddress;
     }
+    bool gSrcStartAtMidPart () const {
+        return m_SrcStartAtMidPart;
+    }
     kcc_int32 gSrcPsumBankId () const {
         return m_SrcPsumBankId;
     }
@@ -189,6 +192,7 @@ private:
     kcc_int32                   m_SrcZNum               = 1; // until resolution of SIM
     kcc_int32                   m_SrcZStep              = 1; // //issues.amazon.com/issues/kaena-198
     kcc_int64                   m_SrcSbAddress          = -1;
+    bool                        m_SrcStartAtMidPart     = false;
     std::array<kcc_int32, 4>    m_TileId;
     std::string                 m_TileIdFormat          = "";
 }; // class ActivationWaveOp : public WaveOp
@@ -227,6 +231,7 @@ public:
     kcc_int32                   m_SrcZNum               = 1; // until resolution of SIM
     kcc_int32                   m_SrcZStep              = 1; // //issues.amazon.com/issues/kaena-198
     kcc_int64                   m_SrcSbAddress          = -1;
+    bool                        m_SrcStartAtMidPart     = false;
     std::array<kcc_int32, 4>    m_TileId;
     std::string                 m_TileIdFormat          = "";
 }; // class ActivationWaveOp::Params : public WaveOp::Params

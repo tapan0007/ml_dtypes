@@ -1598,9 +1598,9 @@ class FusedOp(list):
                 if (args.debug > 2):
                     print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
                 return False
-            # kaena-147: cannot fuse ResAdd with current region-swapping scheme
-            #elif (len(self) != 0):
-            #    return False
+            # cannot fuse join if there's more than one missing result
+            elif op.count_missing_input_results() > 1:
+                return False
             else:
                 self.join_op = op
                 self.has_join = True
@@ -2047,7 +2047,7 @@ class KGraph:
                     new_node.is_const = True
             if (len(self.last_split_next_nodes) > 0 and len(self.last_split_next_nodes[0]) > 0) :                    
                 self.current_node = self.last_split_next_nodes[0].pop()
-                if self.last_split_next_nodes[-1] == []:
+                if self.last_split_next_nodes[0] == []:
                     self.last_split_next_nodes.pop()
             else:
                 print("ERROR: can't find any Input layer!")
@@ -2107,13 +2107,13 @@ class KGraph:
         # when we see ResAdd/Multiply, backtrack to the last split and follow the next leg in list
         if (self.current_node.is_join and self.current_node.count_missing_input_results() > 0):
             if (args.debug > 0): print("DBG: found join (ResAdd, Multiply, etc), back-track to last split and follow next leg")
-            if self.last_split_next_nodes != []:
+            if self.last_split_next_nodes != [] and self.last_split_next_nodes[-1] != []:
                 self.current_node = self.last_split_next_nodes[-1].pop()
+                if self.last_split_next_nodes[-1] == []: 
+                    self.last_split_next_nodes.pop()
             else:
                 print("ERROR: back-track from a join %s, but can't find fork!"%(self.current_node.data['layer_name']))
                 exit(-1)
-            if self.last_split_next_nodes[-1] == []: 
-                self.last_split_next_nodes.pop()
             self.first_leg = False
         fused_ops.add(self.current_node)
         if (self.first_leg and not self.seen_begin_of_first_leg):
@@ -2134,15 +2134,16 @@ class KGraph:
                 if (next_nodes[i].is_join):
                     resadd_node = next_nodes[i]
                     del next_nodes[i]
-                    next_nodes.append(resadd_node)
+                    #next_nodes.insert(0, resadd_node)
             # pick the first leg as current_node                        
             self.current_node = next_nodes.pop()
             self.first_leg = True
             self.seen_begin_of_first_leg = False
             # save the remaining legs in a list
-            self.last_split_next_nodes.append(next_nodes)
+            if (next_nodes != []):
+                self.last_split_next_nodes.append(next_nodes)
         else:
-            if self.last_split_next_nodes != []:
+            if self.last_split_next_nodes != [] and self.last_split_next_nodes[-1] != []:
                 self.current_node = self.last_split_next_nodes[-1].pop()
                 if self.last_split_next_nodes[-1] == []: 
                     self.last_split_next_nodes.pop()
@@ -2701,8 +2702,11 @@ class TPBSched:
         self.collect_stats(op_list[-1].data['layer_name'])
 
         # reset scratch buffer for now (TODO: keep some atoms for next layer)
-        #self.statebuffer.reset_all()
-        self.statebuffer.keep_scratch_and_reset()
+
+        if (args.nname == "lm"):            
+            self.statebuffer.reset_all()
+        else:            
+            self.statebuffer.keep_scratch_and_reset()
         return result
 
     # Execute an unfused pooling operator
@@ -2720,8 +2724,12 @@ class TPBSched:
             bias = bias_temp.flatten()
 
         # for ResAdd/Multiply, retrieve the saved result file for one of the completed legs if it's not already loaded
-        if (op_list.has_join and self.statebuffer.circbuf_residue.dram_data_in_file == None):
-            self.statebuffer.circbuf_residue.load_data(op_list.join_op)
+        if op_list.has_join:
+            if (self.statebuffer.circbuf_residue.dram_data_in_file == None
+                    or (op_list.join_op.prev[0] is not None and self.statebuffer.circbuf_residue.dram_data_in_file != op_list.join_op.prev[0].result_file)
+                    or (op_list.join_op.prev[1] is not None and self.statebuffer.circbuf_residue.dram_data_in_file != op_list.join_op.prev[1].result_file)):
+                self.statebuffer.circbuf_residue.reset()
+                self.statebuffer.circbuf_residue.load_data(op_list.join_op)
 
         # wave loop ordering scheme: nmhw
         pool_op = op_list[0]
@@ -2881,8 +2889,10 @@ class TPBSched:
         self.collect_stats(op_list[-1].data['layer_name'])
 
         # reset scratch buffer for now (TODO: keep some atoms for next layer)
-        self.statebuffer.reset_all()
-        #self.statebuffer.keep_scratch_and_reset()
+        if (args.nname == "lm"):
+            self.statebuffer.reset_all()
+        else:            
+            self.statebuffer.keep_scratch_and_reset()
         return result
 
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
@@ -2904,8 +2914,12 @@ class TPBSched:
         result = self.statebuffer.circbuf_scratch.load_data(op_list[-1], result_file)
 
         # for ResAdd/Multiply, retrieve the saved result file for one of the completed legs if it's not already loaded
-        if (op_list.has_join and self.statebuffer.circbuf_residue.dram_data_in_file == None):
-            self.statebuffer.circbuf_residue.load_data(op_list.join_op)
+        if op_list.has_join:
+            if (self.statebuffer.circbuf_residue.dram_data_in_file == None
+                    or (op_list.join_op.prev[0] is not None and self.statebuffer.circbuf_residue.dram_data_in_file != op_list.join_op.prev[0].result_file)
+                    or (op_list.join_op.prev[1] is not None and self.statebuffer.circbuf_residue.dram_data_in_file != op_list.join_op.prev[1].result_file)):
+                self.statebuffer.circbuf_residue.reset()
+                self.statebuffer.circbuf_residue.load_data(op_list.join_op)
 
         # initial psum bank is 0
         op_list.conv_op.set_psum_bank(0)
@@ -3022,8 +3036,10 @@ class TPBSched:
         #self.calculate_compute_to_load_ratio(op_list[-1].data['layer_name'])
 
         # reset scratch buffer for now (TODO: keep some atoms for next layer)
-        self.statebuffer.reset_all()
-        #self.statebuffer.keep_scratch_and_reset(op_list.begin_of_first_leg, op_list.end_of_first_leg)
+        if (args.nname == "lm"):
+            self.statebuffer.reset_all()
+        else:            
+            self.statebuffer.keep_scratch_and_reset(op_list.begin_of_first_leg, op_list.end_of_first_leg)
 
         if (args.debug > 1): print("DBG: Total wave elements: ", op_list.conv_op.ofmap_wave_total_elems)
 
@@ -3053,6 +3069,7 @@ if __name__ == "__main__":
     parser.add_argument("--kgraph", help="K-graph Json file to read")
     parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
     parser.add_argument("--dot", help="Dot file to write")
+    parser.add_argument("--nname", default="resnet50", help="Network name, resnet50 or lm")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     parser.add_argument("--save_layer_output", action='store_true', help="Save intermediate layer output into files")
@@ -3104,22 +3121,28 @@ if __name__ == "__main__":
                     break
         # Check conv fused op
         elif (first_op_type == "Conv" or first_op_type == "MatMul"):
-            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != None):
-                inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
-            else:                
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None
+                    or tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != first_op.prev[0].result_file):
+                tpb.statebuffer.circbuf_ifmaps.reset()
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
+            else:                
+                inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
             results = tpb.execute_conv_ops(inputs, result_file)
         elif (first_op_type == "AvgPool" or first_op_type == "MaxPool"):
-            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != None):
-                inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
-            else:                
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None
+                    or tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != first_op.prev[0].result_file):
+                tpb.statebuffer.circbuf_ifmaps.reset()
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
+            else:                
+                inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
             results = tpb.execute_unfused_pool_op(inputs, result_file)
         elif (first_op_type == "Softmax2"):
-            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != None):
-                inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
-            else:                
+            if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None
+                    or tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != first_op.prev[0].result_file):
+                tpb.statebuffer.circbuf_ifmaps.reset()
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
+            else:                
+                inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
             results = tpb.execute_softmax2(inputs, result_file)
         elif (first_op_type == "Multiply" or first_op_type == "ResAdd"): # TODO: handle the scalar 
             if (len(first_op.data['previous_layers']) == 1):

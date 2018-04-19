@@ -53,7 +53,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
                                                                   0, /* bank offset 0 */
                                                                   activationWaveop->gInDtype());
     } else {
-        activationInstr.src_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
+        activationInstr.src_start_addr  = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * activationWaveop->gSrcStartAtMidPart(),
                                                 activationWaveop->gSrcSbAddress());
     }
 

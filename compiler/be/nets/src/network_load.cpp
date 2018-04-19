@@ -506,6 +506,7 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
         KCC_UNSERIALIZE(SrcPsumBankId);
     } else {
         KCC_UNSERIALIZE(SrcSbAddress);
+        KCC_UNSERIALIZE(SrcStartAtMidPart);
     }
 
     KCC_UNSERIALIZE(SrcXNum);
