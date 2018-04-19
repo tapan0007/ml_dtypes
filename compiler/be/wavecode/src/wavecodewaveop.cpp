@@ -30,11 +30,26 @@ void
 WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId engineId)
 {
     const events::EventWaitMode waitEventMode = waveEdge->gWaitEventMode();
+    Assert(waitEventMode == events::EventWaitMode::WaitThenClear
+                || waitEventMode == events::EventWaitMode::WaitOnly,
+           "Cannot wait on edge with DontWait mode");
 
     compisa::WaitInstr waitInstr;
-    waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
     waitInstr.event_idx         = waveEdge->gEventId();
+#if 0
+    // Not sure whether wait_event_mode works in SIM.
+    waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
     m_WaveCode.writeInstruction(waitInstr, engineId);
+#else
+    waitInstr.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::WaitOnly);
+    m_WaveCode.writeInstruction(waitInstr, engineId);
+
+    if (waitEventMode == events::EventWaitMode::WaitThenClear) {
+        compisa::ClearInstr clearInstr;
+        clearInstr.event_idx  = waveEdge->gEventId();
+        m_WaveCode.writeInstruction(clearInstr, engineId);
+    }
+#endif
 }
 
 
