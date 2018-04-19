@@ -184,6 +184,7 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(SrcPsumBankId);
     } else {
         KCC_ARCHIVE(SrcSbAddress);
+        KCC_ARCHIVE(SrcStartAtMidPart);
     }
 
     KCC_ARCHIVE(SrcXNum);
