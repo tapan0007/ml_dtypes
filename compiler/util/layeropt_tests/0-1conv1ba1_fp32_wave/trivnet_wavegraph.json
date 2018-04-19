@@ -182,6 +182,7 @@
       "src_is_psum": true,
       "src_psum_bank_id": 0,
       "src_sb_address": 0,
+      "src_start_at_mid_part": false,
       "src_x_num": 4,
       "src_x_step": 1,
       "src_y_num": 4,

@@ -192,6 +192,26 @@
       "waveop_type": "SBAtomSave"
     },
     {
+      "batch_fold_idx": 0,
+      "contain_weights": false,
+      "data_type": "float16",
+      "ifmap_count": 1,
+      "ifmaps_fold_idx": 0,
+      "ifmaps_replicate": false,
+      "layer_name": "1conv1pool/i1",
+      "length": 32,
+      "offset_in_file": 0,
+      "partition_step_bytes": 32,
+      "previous_waveops": [],
+      "ref_file": "trivnet_1conv1pool__i1:0_NCHW.npy",
+      "ref_file_format": "NCHW",
+      "ref_file_shape": [1,1,4,4],
+      "sb_address": 67584,
+      "start_at_mid_part": false,
+      "waveop_name": "1conv1pool/i1/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
+      "waveop_type": "SBAtomFile"
+    },
+    {
       "dst_sb_address": 0,
       "dst_start_at_mid_part": false,
       "dst_x_num": 2,
@@ -208,6 +228,7 @@
       "pool_func": "MaxPool",
       "pool_scale": 0.1111111111111111,
       "previous_waveops": [
+        "1conv1pool/i1/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv1pool/i1/Pool_n0_m0_h0_w0",
         "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
