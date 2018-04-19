@@ -18,6 +18,7 @@
 #include "compisa/inc/compisanop.hpp"
 #include "compisa/inc/compisapool.hpp"
 #include "compisa/inc/compisareciprocal.hpp"
+#include "compisa/inc/compisaregload.hpp"
 #include "compisa/inc/compisaset.hpp"
 #include "compisa/inc/compisasimmemcpy.hpp"
 #include "compisa/inc/compisasimrdnpy.hpp"
@@ -76,6 +77,7 @@ AllInstructions()
     NopInstr                nopInstr;
     PoolInstr               poolInstr;
     ReciprocalInstr         reciprocalInstr;
+    RegLoadInstr            regloadInstr;
     SetInstr                setInstr;
     SimMemCpyInstr          memcpyInstr;
     SimRdNpyInstr           rdnpyInstr;
