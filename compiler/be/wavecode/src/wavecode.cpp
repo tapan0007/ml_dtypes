@@ -28,6 +28,7 @@
 #include "compisa/inc/compisacast.hpp"
 #include "compisa/inc/compisamemset.hpp"
 #include "compisa/inc/compisaregload.hpp"
+#include "compisa/inc/compisaregstore.hpp"
 
 #include "compisa/inc/compisasimmemcpy.hpp"
 #include "compisa/inc/compisasimwrnpy.hpp"
@@ -271,6 +272,17 @@ void WaveCode::writeInstruction<compisa::CastInstr>(const compisa::CastInstr& in
 
 template<>
 void WaveCode::writeInstruction<compisa::RegLoadInstr>(const compisa::RegLoadInstr& instruction)
+{
+    instruction.CheckValidity();
+    checkForNoSync(instruction.inst_events);
+
+    const kcc_int32 instSize = sizeof(instruction);
+    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
+    m_PoolEngPc += instSize;
+}
+
+template<>
+void WaveCode::writeInstruction<compisa::RegStoreInstr>(const compisa::RegStoreInstr& instruction)
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
