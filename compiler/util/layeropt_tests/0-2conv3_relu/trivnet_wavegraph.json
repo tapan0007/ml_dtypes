@@ -468,7 +468,9 @@
       "previous_waveops": [
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s2"
       ],
+      "src_is_psum": true,
       "src_psum_bank_id": 0,
+      "src_sb_address": 0,
       "src_x_num": 4,
       "src_x_step": 1,
       "src_y_num": 4,

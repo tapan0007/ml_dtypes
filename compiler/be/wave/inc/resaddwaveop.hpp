@@ -59,6 +59,10 @@ public:
         return m_NumPartitions;
     }
 
+    /* Hack in ResAdd to get Multiply to work with old ISA */
+    bool gMultiply () const {
+        return m_Multiply;
+    }
 
     // SrcA
     const DataType& gInADtype () const {
@@ -178,6 +182,7 @@ private:
     const DataType& m_InBDtype;
 
     kcc_int32       m_NumPartitions         = -1;
+    bool            m_Multiply;     /* Hack in ResAdd to get Multiply to work with old ISA */
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */
@@ -236,6 +241,7 @@ public:
     DataTypeId      m_InBDtypeId            = DataTypeId::None;
 
     kcc_int32       m_NumPartitions         = -1;
+    bool            m_Multiply;     /* Hack in ResAdd to get Multiply to work with old ISA */
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */

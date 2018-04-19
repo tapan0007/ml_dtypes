@@ -26,6 +26,7 @@ class KelfJson(object):
   e2c = {
     "processor"     : "green",
     "wave"  : "red",
+    "waveopt"  : "brown",
     "host"  : "blue",
     }
   def executor2color(self, executor):

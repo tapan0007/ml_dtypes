@@ -1,3 +1,7 @@
+#include <set>
+
+
+
 #include "utils/inc/asserter.hpp"
 
 #include "compisa/inc/compisawait.hpp"
@@ -85,7 +89,10 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     // incoming events
     //************************************************************************
     bool firstEmbEvt = true;
+
     if (qParallelStreams()) { // incoming events
+        std::set<events::EventId> eventIds;
+
         for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
             if (! prevWaveEdge->qNeedToImplementWait()) {
                 continue;
@@ -94,9 +101,13 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                 continue;
             }
 
+            const auto evtId = prevWaveEdge->gEventId();
+            Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+            eventIds.insert(evtId);
+
             if (firstEmbEvt) {
                 firstEmbEvt = false;
-                ldweightsInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
+                ldweightsInstr.sync.wait_event_id      = evtId;
                 ldweightsInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
             } else {
                 writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
@@ -173,6 +184,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
+        std::set<events::EventId> eventIds;
         bool firstEmb = true;
 
         // Inspect incoming edges/events
@@ -184,9 +196,13 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                 continue;
             }
 
+            const auto evtId = prevWaveEdge->gEventId();
+            Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+            eventIds.insert(evtId);
+
             if (firstEmb) {
                 firstEmb = false;
-                matmulInstr.sync.wait_event_id      = prevWaveEdge->gEventId();
+                matmulInstr.sync.wait_event_id      = evtId;
                 matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
             } else {
                 writeWaitOrWaitClearInstr(prevWaveEdge, engineId);

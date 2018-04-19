@@ -39,6 +39,7 @@ class Config:
   1-2-5    ... recommended batches for roofline-minWave-maxWave
                Batch 0 means tiling required
 """
+    showOpNameInKgraph = False
   class Dot:
     timeout = 60
 
@@ -157,10 +158,28 @@ class Node(Object):
             "layer_name" :  self.getOpName(),
             "#comment"   :  "unsupported layer"
             }], [])
-  def getOpCount(self):
-    return 1
+  
+  # Helper for op counts - number of scalar elements in all output tensors
+  def getNpyInfoSize(self):
+    size = 0;
+    npInfos = self.getNpInfo()
+    # Count 1 op per each output's tensor scalar
+    for i in range(len(npInfos)):
+      size += np.empty(npInfos[i].npShape).size
+    return size
+    
+  
+  # Describes computational complexity of the operation
+  def getOpCount(self, padded=False):
+    opCount = 1
+    npInfos = self.getNpInfo()
+    if len(npInfos) > 0:
+      opCount += self.getNpyInfoSize()
+    return opCount
   def getDotText(self):
     text = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      text += "\n" + self.getName()
     text += "\n" + str(self.protoShape)
     return text
   # Supported ops/nodes are passed down through the compiler and simulator flow
@@ -323,6 +342,12 @@ class NodeSoftmax(Node):
 
   def isSupported(self):
     return True
+
+  def getOpCount(self, padded=False):
+    # Softmax computes, exp, sum, and divide so 3x
+    opCount = 3 * self.getNpyInfoSize()
+    return opCount
+
 
 ###############################################################################
 # Input Node
@@ -546,6 +571,8 @@ class NodeConv2D(NodeBasePaddedStrided):
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      dotText += "\n" + self.getName()
     if len(self.getNpInfo()) > 0:
       dotText += "\nStrides " + str(self.getStrides())
       ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
@@ -574,21 +601,30 @@ class NodeConv2D(NodeBasePaddedStrided):
 
   # Number of add, multiply ops for performance analysis and reporting
   # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
-  def getOpCount(self):
+  def getOpCount(self, padded=False):
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (batch, channels, height, width) = tpbShape
     ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
     filterShapeRSCM = npInfoW.npShape
-    # 7 loops - 4 in the filter, 3 in ofmap
+    # 7 loops based on the output tensor height * width - 4 in the filter, 3 in ofmap
     opCount = 2 * np.empty(filterShapeRSCM).size * batch * height * width;
+    if not padded:
+      # Adjust by area ratio of the padded and unpadded input
+      padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding     
+      tpbShapeIn = list(npt.reorderShape(npInfoIF.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (batchIn, channelsIn, heightIn, widthIn) = tpbShapeIn
+      areaIn = heightIn * widthIn
+      areaInPadded = (heightIn + padNorth + padSouth) * (widthIn + padWest + padEast)
+      opCount *= 1.0 * areaIn / areaInPadded
     return opCount
 
   def isSupported(self):
     return True
 
 ###############################################################################
-# Max Pool
+# Max, Avg Pool
 ###############################################################################
 class NodePool(NodeBasePaddedStrided):
   def __init__(self, name, opType, attrs):
@@ -644,6 +680,8 @@ class NodePool(NodeBasePaddedStrided):
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      text += "\n" + self.getName()
     if len(self.getNpInfo()) > 0:
       # Data sizes
       npInfoOF = self.getNpInfo()[0]
@@ -669,12 +707,24 @@ class NodePool(NodeBasePaddedStrided):
   # Number of add, multiply, max or move, copy ops for performance
   # analysis and reporting
   # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
-  def getOpCount(self):
+  def getOpCount(self, padded=False):
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (batch, channels, height, width) = tpbShape
     kernelSizeNHWC = self.getKernelSize()
-    opCount = 2 * np.empty(kernelSizeNHWC).size * batch * height * width * channels;
+    opCount = 2 * np.empty(kernelSizeNHWC).size * batch * channels * height * width;
+    if not padded:
+      # Adjust by area ratio of the padded and unpadded input
+      padding = self.calcTpbPadding(self.getKernelSize2D(), self.getPaddingMode())
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding     
+      (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
+      tpbShapeIn = list(npt.reorderShape(npInfoIF.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (batchIn, channelsIn, heightIn, widthIn) = tpbShapeIn
+      #strideVec = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
+      #(batchStride, channelsStride, strideH, strideW) = strideVec
+      areaIn = heightIn * widthIn
+      areaInPadded = (heightIn + padNorth + padSouth) * (widthIn + padWest + padEast)
+      opCount *= 1.0 * areaIn / areaInPadded
     return opCount
 
 
@@ -741,7 +791,7 @@ class NodeSimple2(Node):
       # Scalar add is fused (e.g. for LSTMs)
       if len(npInfoIF1.npShape) == 0:
         val = npInfoIF1.getValues()
-        assert len(val.shape) == 0
+        assert val.size == 1
         layerDataBase[0]['add_scalar'] = np.asscalar(val.ravel()[0])
       else:
     
@@ -816,6 +866,21 @@ class NodeMatMul(Node):
   def isSupported(self):
     return True
 
+  def getOpCount(self, padded=False):
+    npInfo = self.getNpInfo()[0]
+    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (batch, channels, height, width) = tpbShape
+    # The IFMAP comes from reshape,  the other is (weight) matrix 
+    ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
+    # Get the depth dimension of MatMul by treating the 2nd input as Fmap (unlike TPB's implementation)
+    tfShape4D1 = npt.ncShapeToNHWC(npInfoIF1.npShape)
+    tpbShape1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
+    (batch1_unused, channels1_unused, height1, width1_unused) = tpbShape1
+    
+    # 5 loops - batch, channels, and 3 for GEMM
+    opCount = 2 * batch * channels * height * width * height1;
+    return opCount
 
 ###############################################################################
 # Mul - element-wise multiplication
@@ -858,7 +923,7 @@ class NodeMultiply(Node):
 
     if isScalar:
       val = npInfoIF0.getValues()
-      assert len(val.shape) == 0
+      assert val.size == 1
       layerData['mul_scalar'] = np.asscalar(val.ravel()[0])
     else:
       layerData["previous_layers"].insert(0, fromIfNode0.getName()),
@@ -929,6 +994,8 @@ class NodeStridedSlice(Node):
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      dotText += "\n" + self.getName()
     for attrName in ["begin_mask", "ellipsis_mask", "end_mask", "new_axis_mask", "shrink_axis_mask"]:
       attrVal = self.getAttr(attrName)
       if not attrVal == None:
@@ -1101,14 +1168,34 @@ class Graph(Object):
         preNodes.append(edge.getFromPosNode().node)
     return(preNodes)
   
+  # Get the nodes with no successors - highest in the data flow level
+  def getTopNodes(self):
+    nextNodes = self.getNodes()
+    topNodes = []
+    visitedNodes = set()
+    while len(nextNodes) > 0:
+      newNextNodes = []
+      for n in nextNodes:
+        if not n in visitedNodes:
+          nodeSuccessors = self.nodeSuccessors(n)
+          if len(nodeSuccessors) > 0:
+            newNextNodes += nodeSuccessors
+          else:
+            topNodes.append(n)
+          visitedNodes.add(n)
+      nextNodes = list(set(newNextNodes))
+      assert len(topNodes) == len(list(set(topNodes)))
+    return topNodes
+  
   # Get the node with most computation - highest in the data flow level
   def getTopNode(self):
-    nextNodes = self.getNodes()
-    while len(nextNodes) > 0:
-      n = nextNodes[0]
-      nextNodes = self.nodeSuccessors(n)
-    return(n)
-  
+    #nextNodes = self.getNodes()
+    #while len(nextNodes) > 0:
+    #  n = nextNodes[0]
+    #  nextNodes = self.nodeSuccessors(n)
+    #return(n)
+    return self.getTopNodes()[0]
+
   def setInputNodes(self, nodeList):
     self.__inputNodes = nodeList
   def getInputNodes(self):
@@ -1230,6 +1317,7 @@ class Graph(Object):
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
     totalOpCount = 0
+    totalOpCountPadded = 0
     layers = OrderedDict()
     fileLists = OrderedDict()
     for level in range(0, len(levelizedNodes)):
@@ -1251,9 +1339,12 @@ class Graph(Object):
             layers[l["layer_name"]] = l
             fileLists[l["layer_name"]] = fileListLayer
         opCount = n.getOpCount()
+        opCountPadded = n.getOpCount(padded=True)
         totalOpCount += opCount
+        totalOpCountPadded += opCountPadded
         if Config.debugLevel >= 1:
           print("DEBUG: opcount is %d for %s  %s" % (opCount, n.getOpType(), n.getOpName()))
+          print("DEBUG: padded opcount is %d for %s  %s" % (opCountPadded, n.getOpType(), n.getOpName()))
 
     for l in layers:
       jsonData["layers"] += [layers[l]]
@@ -1262,6 +1353,7 @@ class Graph(Object):
       outNpy = fileListLayer[-1]
 
     print("INFO: total opcount is %d" % totalOpCount)
+    print("INFO: total padded opcount is %d" % totalOpCountPadded)
         
 
     if verbose > 0:

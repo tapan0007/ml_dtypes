@@ -15,7 +15,7 @@ class KsubGraph:
   def __init__(self, debugLevel):
     self.graph = kog.Graph(debugLevel=debugLevel)
     self.__inputs = []
-    self.__output = None
+    self.__outputs = []
     self.__maxLevel = 0    # highest level of any node (== output) in the src graph
     self.debugLevel = debugLevel
     self.isSupported = True
@@ -26,6 +26,8 @@ class KsubGraph:
     return self.__maxLevel
   def updateMaxLevel(self, level):
     self.__maxLevel = max(self.__maxLevel, level)
+  def addOutput(self, node):
+    self.__outputs.append(node)
   # Links the npyinfo files used by the graph from the srcDir
   def relinkNpFiles(self, srcDir):
     for n in self.graph.getNodes():
@@ -39,14 +41,15 @@ class KsubGraph:
       inNpFile = ni.getNpInfo()[0].npFile
       inShape = ni.getNpInfo()[0].npShape
       jsonDict["Inputs"].append({"name" : ni.getName() + ":0", "file" : inNpFile, "shape" : inShape})
-    o = self.__output
-    outNpFile = o.getNpInfo()[0].npFile
-    outShape = o.getNpInfo()[0].npShape
-    jsonDict["Outputs"] = [{"name" : o.getName() + ":0", "file" : outNpFile, "shape" : outShape}]
+    jsonDict["Outputs"] = []
+    for no in self.__outputs:
+      outNpFile = no.getNpInfo()[0].npFile
+      outShape = no.getNpInfo()[0].npShape
+      jsonDict["Outputs"].append({"name" : no.getName() + ":0", "file" : outNpFile, "shape" : outShape})
     return jsonDict
   def addSideNodes(self, srcGraph):
     self.__inputs = self.graph.transferSideNodes(srcGraph)
-    self.__output = self.graph.getTopNode()
+    #self.__outputs = self.graph.getTopNodes()
     # In the very first subgraph the original input node needs to be added too
     srcInputName = srcGraph.getInputNode().getName()
     if self.graph.hasNode(srcInputName):
@@ -54,7 +57,7 @@ class KsubGraph:
       if not srcInpEqNode in self.__inputs:
         self.__inputs.insert(0, srcInpEqNode)
     if len(self.__inputs) == 0:
-      self.__inputs.append(self.__output)
+      self.__inputs += self.__outputs
     # Make one of the nodes input for the backend, should not matter which one
     inputNodes = self.__inputs
     if self.debugLevel > 0:
@@ -94,13 +97,30 @@ class KgraphPart(object):
   def getSubgraphs(self):
     return self.__subgraphs
   
-  # Returns the predecessor nodes along main flow edges only
+  # Returns the successor nodes along main flow edges only
+  def getSuccessorMainFlowNodes(self, node):
+    fanoutEdges = node.getFanoutMainFlowEdges()
+    succNodes = [e.getToNode() for e in fanoutEdges]
+    return succNodes
+
+  # Returns True if the node has at least one successor with a different color or no fanout
+  def nodeIsSgOutput(self, node):
+    fanoutEdges = node.getFanoutMainFlowEdges()
+    if len(fanoutEdges) == 0:
+      return True
+    else:
+      succNodes = [e.getToNode() for e in fanoutEdges]
+      succColors = [self.getNodeColor(n) for n in succNodes]
+      nodeColor = self.getNodeColor(node)
+      return any(c != nodeColor for c in succColors)
+
+   # Returns the predecessor nodes along main flow edges only
   def getPredecessorMainFlowNodes(self, node):
     faninEdges = node.getFaninMainFlowEdges()
     predNodes = [e.getFromNode() for e in faninEdges]
     return(predNodes)
 
-  # Returns the node, asserts that there is exactly one
+ # Returns the node, asserts that there is exactly one
   def getPredecessorMainFlowNode(self, node):
     predNodes = self.getPredecessorMainFlowNodes(node)
     assert len(predNodes) == 1
@@ -223,6 +243,64 @@ class KgraphPart(object):
         print("DEBUG: colorSuppAuto setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
 
+  # Levelized (bi) coloring based on supported nodes. It should replace colorNodesSuppAuto
+  # FIX_THIS: this is partial code; needs to have auto-detection for first partion type added
+  # to avoid generating empty subgraph
+  def colorNodesLevelAuto(self):
+    sourceGraph = self.__kgraph
+    edge2color = {}
+    visitedNodes = set()
+    nodeFront = sourceGraph.getInputNodes()
+    color = self.getNewColor()
+    sgSupported = True
+    for n in nodeFront:
+      self.setNodeColor(n, color)
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesLevelAuto INPUTS setColor %d on %-12s %s" %
+              (self.getNodeColor(n), n.getOpType(), n.getName()))
+
+    newNodeFrontNext = [None]
+    # Black/white loop
+    while len(newNodeFrontNext) > 0:
+      newNodeFrontNext = []
+      change = True
+      # Same color expansion loop
+      while change:
+        change = False
+        newNodeFront = []
+        for n in nodeFront:
+          if not n in visitedNodes:
+            visitedNodes.add(n)
+            if self.debugLevel > 0:
+              print("      DEBUG: colorNodesLevelAuto visiting %s" %
+                    n.getName())
+            for e in n.getFanoutMainFlowEdges():
+              if edge2color.get(e, None) == None:
+                edge2color[e] = color
+                toNode = e.getToNode()
+                nodeSup = toNode.isSupported()
+                if  nodeSup == sgSupported:
+                  # Consider for expansion
+                  if all(edge2color.get(eIn, None) == color for eIn in toNode.getFaninMainFlowEdges()):
+                    self.setNodeColor(toNode, color)
+                    newNodeFront.append(toNode)
+                    change = True
+                    if self.debugLevel > 0:
+                      print("    DEBUG: colorNodesLevelAuto EXPANDED setColor %d on %-12s %s" %
+                            (self.getNodeColor(toNode), toNode.getOpType(), toNode.getName()))
+                else:
+                  newNodeFrontNext.append(toNode)
+        nodeFront = newNodeFront
+        if self.debugLevel > 0:
+          print("    DEBUG: colorNodesLevelAuto new wavefront ",
+                [n.getName() for n in nodeFront])
+      nodeFront = newNodeFrontNext
+      color = self.getNewColor()
+      sgSupported = not sgSupported
+      if self.debugLevel > 0:
+        print("  DEBUG: colorNodesLevelAuto starting new color %d wavefront " % color,
+              [n.getName() for n in nodeFront])
+  
 
   def edgeHasOp(self, edge, opType):
     nodes = [edge.getFromNode(), edge.getToNode()]
@@ -369,6 +447,8 @@ class KgraphPart(object):
       self.colorNodesConv()
     elif strategy == "suppauto":
       self.colorNodesSuppAuto()
+    elif strategy == "levelauto":
+      self.colorNodesLevelAuto()
     elif strategy == "from":
       self.colorNodesFrom( partitioningStrategy[1:])
     elif strategy == "from_multi":
@@ -395,6 +475,8 @@ class KgraphPart(object):
           assert(not n.getFaninEdges == None)
           subGraph.addNode(nCopy)
           subGraph.updateMaxLevel(level)
+          if self.nodeIsSgOutput(n):
+            subGraph.addOutput(nCopy)
     # Edges
     for i in range(self.__numColors):
       sg = self.__subgraphs[i]

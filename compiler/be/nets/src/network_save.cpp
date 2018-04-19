@@ -488,7 +488,13 @@ Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     KCC_SERIALIZE(NumPartitions);
     serWaveOp.m_OutDtype            = activationWaveOp->gOutDtype().gName();
 
-    KCC_SERIALIZE(SrcPsumBankId);
+    serWaveOp.m_SrcIsPsum = activationWaveOp->qSrcIsPsum();
+    if (activationWaveOp->qSrcIsPsum()) {
+        KCC_SERIALIZE(SrcPsumBankId);
+    } else {
+        KCC_SERIALIZE(SrcSbAddress);
+    }
+
     KCC_SERIALIZE(SrcXNum);
     KCC_SERIALIZE(SrcXStep);
     KCC_SERIALIZE(SrcYNum);
@@ -517,6 +523,7 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
     serWaveOp.m_InBDtype            = resAddWaveOp->gInBDtype().gName();
     serWaveOp.m_OutDtype            = resAddWaveOp->gOutDtype().gName();
     KCC_SERIALIZE(NumPartitions);
+    KCC_SERIALIZE(Multiply);       /* Hack in ResAdd to get Multiply to work with old ISA */
 
     serWaveOp.m_SrcAIsPsum = resAddWaveOp->qSrcAIsPsum();
     if (resAddWaveOp->qSrcAIsPsum()) {

@@ -16,12 +16,14 @@ if kPath is None:
 sys.path.insert(0, kPath + "/compiler/")
 from tffe.NpTransforms import NpTrans as npt
 
+print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--kelf_dir', help='kelf directory', default="")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
 parser.add_argument('--input_files', help='Files to be passed in to the first subgraph', default=[], nargs='+')
-parser.add_argument('--output_files', help='Specify output file for last subgraph', default=[], nargs='+')
-parser.add_argument('--check_against_ref', help='compare last produced output npy file against compiler provided golden', action='store_true')
+parser.add_argument('--output_files', help='Specify output files for last subgraph', default=[], nargs='+')
+parser.add_argument('--check_against_ref', help='compare last produced outputs npy file against compiler provided goldens', action='store_true')
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
 parser.add_argument('--inkling_debugflags', help='inkling extra args', default=[], nargs='*')
 
@@ -31,15 +33,9 @@ kelf_dir = os.path.abspath(kelf_dir)
 assert(kelf_dir != "")
 nnGraphFile = kelf_dir + "/nn_graph.json"
 
-input_files = []
-for f in args.input_files:
-  input_files.append(os.path.abspath(f))
-
+input_files = [os.path.abspath(f) for f in args.input_files]
 assert(1 >= len(input_files))
-output_files = []
-for f in args.output_files:
-  output_files.append(os.path.abspath(f))
-check_against_ref = args.check_against_ref
+output_files = [os.path.abspath(f) for f in args.output_files]
 working_dir = args.working_dir
 if (working_dir == ""):
   working_dir = "%s/working_dir" % kelf_dir
@@ -63,13 +59,6 @@ class NnSubgraph:
     if self.executor == "processor":
       self.cmd = sgJson["cmd"]
 
-    assert (len(self.outputs) <= 1) # TODO: handle multiple outputs
-
-  def getOutputNpyFile(self):
-    return self.outputs[0]["file"]
-  def getOutputNpyFileBase(self):
-    return self.getOutputNpyFile()[:-4]
-  
   # Translate and relink npy files that are inputs to this subgraph
   # Each subgraph produces output in the host format. So just rename npy
   # files A:0.npy to point to ../A:0-out.npy
@@ -106,7 +95,11 @@ class NnSubgraph:
 
       # Translate and write the previous subgraph file
       if os.path.isfile(tfFile):
-        npt.copyNpyFileAs(tfFile, npt.TF, npt.SIM, npt.Fmaps, outFile=tpbInpFile)
+        inputShapeTf = input["shape"]
+        # FIX_THIS: longterm we should store both TF and TBP IO formats in the nn_graph.json
+        tfShapes = [None, npt.C, npt.NC, npt.HNC, npt.Formats[npt.TF][npt.Fmaps]]
+        inputFormatTf = tfShapes[len(input['shape'])]
+        npt.formatNpyFileAs(tfFile, inputFormatTf, npt.Formats[npt.SIM][npt.Fmaps], outFile=tpbInpFile)
         print("INFO: translated TF format  %s  to TPB Fmap format  %s" % (tfFile, tpbInpFile))
       else:
         print("ERROR: no tf file not found %s" % tfFile, flush=True)
@@ -134,9 +127,6 @@ class NnSubgraph:
   def run(self):
     executor = self.executor
     logFile = "log-exec-%s-%s.txt" % (self.sgDir, executor)
-    OutFile = ""
-    if len(self.outputs) > 0:
-      OutFile = self.outputs[0]["file"].replace(".npy", "-out.npy")
 
     if executor == "host":
       cmd = "PATH=%s/runtime/util:$PATH runtime_tf" % kPath
@@ -147,7 +137,10 @@ class NnSubgraph:
         inputs += [input["file"]]
 
       cmd += "  --input_tensors %s" % " ".join(inputs)
-      cmd += "  --output_tensor %s %s" % (self.outputs[0]["name"], OutFile)
+      outputs = []
+      for output in self.outputs:
+        outputs += [output["name"], output["file"].replace(".npy", "-out.npy")]
+      cmd += "  --output_tensors %s" % " ".join(outputs)
     elif executor == "tcc" or executor == "wave":
       self.linkConsts()
       self.createTpbFormatInputs()
@@ -155,8 +148,6 @@ class NnSubgraph:
       cmd += "  --tpb_dir %s" % "%s/%s" %(kelf_dir, self.sgDir)
       if self.parallel_streams:
         cmd += " --parallel_streams"
-      #cmd += "  --input_fmaps %s" % " ".join(self.getUpdatedInputs())
-      #cmd += "  --output_fmap %s %s" % (self.outputs[0], OutFile)A
       cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
     elif executor == "processor":
       inputs = []
@@ -166,6 +157,9 @@ class NnSubgraph:
       cmd = "%s/%s/%s" % (kelf_dir, self.sgDir, self.cmd)
 
       cmd += "  --inputs %s" % " ".join(inputs)
+      OutFile = ""
+      if len(self.outputs) > 0:
+        OutFile = self.outputs[0]["file"].replace(".npy", "-out.npy")
       if OutFile != "":
         cmd += "  --output %s" % (OutFile)
     elif executor == "waveopt":
@@ -182,19 +176,22 @@ class NnSubgraph:
 
 
     # Translate TPB format back to TF format.
-    if (executor == "tcc" or  executor == "wave" or executor == "waveopt") and OutFile != "":
-      outBase = self.getOutputNpyFileBase()
-      simExt = "simout"
-      if executor == "waveopt":
-        simExt = "midout"
-      tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
-      tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
-      if os.path.isfile(tpbOutFile):
-        outShape = self.outputs[0]["shape"]
-        npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=OutFile, dstShape=outShape)
-      else:
-        print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
-        return -1
+    if (executor == "tcc" or  executor == "wave" or executor == "waveopt") and len(self.outputs) > 0:
+      for jsonOutput in self.outputs:
+        outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
+        outFile = outFileRaw.replace(".npy", "-out.npy")
+        outBase = outFileRaw[:-4]
+        simExt = "simout"
+        if executor == "waveopt":
+          simExt = "midout"
+        tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
+        tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
+        if os.path.isfile(tpbOutFile):
+          outShape = self.outputs[0]["shape"]
+          npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=outFile, dstShape=outShape)
+        else:
+          print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
+          return -1
 
     return 0
     
@@ -255,12 +252,15 @@ class NnExec:
     for sg in self.subGraphs:
       if sg.executor != "processor":
         lastSg = sg
-    outBase = lastSg.getOutputNpyFileBase()
-    flowOutFile = outBase + "-out.npy"
-    refOutFile = lastSg.getOutputNpyFile()
-    cmd = "%s/compiler/util/npy_diff_files --gold %s/%s --new %s" % (kPath, kelf_dir, refOutFile, flowOutFile)
-    print("INFO: executing %s" % cmd, flush=True)
-    ret = os.system(cmd)
+    ret = 0
+    for jsonOutput in lastSg.outputs:
+      refOutFile = jsonOutput['file']
+      outBase = refOutFile[:-4]
+      flowOutFile = outBase + "-out.npy"
+      cmd = "%s/compiler/util/npy_diff_files --gold %s/%s --new %s" % (kPath, kelf_dir, refOutFile, flowOutFile)
+      print("INFO: executing %s" % cmd, flush=True)
+      if ret == 0:
+        ret = os.system(cmd)
     return ret
 
 ret = 0
@@ -268,7 +268,7 @@ os.chdir(working_dir)
 nnExec = NnExec(nnGraphFile)
 ret = nnExec.run()
 assert(ret == 0)
-if check_against_ref:
+if args.check_against_ref:
   ret = nnExec.check()
   assert(ret == 0)
 

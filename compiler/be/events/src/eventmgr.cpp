@@ -219,7 +219,7 @@ EventMgr::insertBarriers() {
             //  POOL
             wave::WaveOp* prevWaveop = nullptr;
 
-            for (size_t k = 0; k < engineIds.size(); ++k) {
+            for (size_t k = 0; k < engineIds.size(); ++k) { // loop1
                 const auto engId = engineIds[k];
                 if (barrierEngId == engId) {
                     continue;
@@ -235,7 +235,7 @@ EventMgr::insertBarriers() {
                 prevWaveop = nopWaveop;
             }
 
-            for (size_t k = 0; k < engineIds.size(); ++k) {
+            for (ssize_t k = engineIds.size() - 1; k >= 0; --k) { // loop2: must be in reverse order than loop1
                 const auto engId = engineIds[k];
                 if (barrierEngId == engId) {
                     continue;

@@ -210,8 +210,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             layers::Layer* prevLayer = findLayer(prevLayerName);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);
-
-        } else if (serLayer.gTypeStr() == LayerTypeStr_ResAdd) {
+        } else if (serLayer.gTypeStr() == LayerTypeStr_ResAdd || serLayer.gTypeStr() == LayerTypeStr_Multiply) {
             // TODO: check dimensions and types of inputs
             ASSERT_NUM_LAYERS(serLayer, 2);
             std::vector<layers::Layer*> prevLayers;
@@ -231,6 +230,14 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 prevLayers.push_back(prevLayer);
             }
             layer = new layers::BiasAddLayer(params, fmap_desc, prevLayers);
+        } else if (serLayer.gTypeStr() == LayerTypeStr_StridedSlice 
+                || serLayer.gTypeStr() == LayerTypeStr_Unstack 
+                || serLayer.gTypeStr() == LayerTypeStr_Sigmoid) {   // FIXME: placeholder
+            ASSERT_NUM_LAYERS(serLayer, 1);
+            const std::string& prevLayerName = serLayer.gPrevLayer(0);
+            layers::Layer* prevLayer = findLayer(prevLayerName);
+            ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
+            layer = new layers::TanhLayer(params, prevLayer);   // FIXME: placeholder
         } else {
             Assert(false, "Unsuported layer type ", serLayer.gTypeStr());
         }
@@ -493,7 +500,14 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     activationParams.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype);
     KCC_UNSERIALIZE(NumPartitions);
     activationParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
-    KCC_UNSERIALIZE(SrcPsumBankId);
+
+    KCC_UNSERIALIZE(SrcIsPsum);
+    if (serWaveOp.m_SrcIsPsum) {
+        KCC_UNSERIALIZE(SrcPsumBankId);
+    } else {
+        KCC_UNSERIALIZE(SrcSbAddress);
+    }
+
     KCC_UNSERIALIZE(SrcXNum);
     KCC_UNSERIALIZE(SrcXStep);
     KCC_UNSERIALIZE(SrcYNum);
@@ -528,6 +542,7 @@ Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
     resAddParams.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
     resAddParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     KCC_UNSERIALIZE(NumPartitions);
+    KCC_UNSERIALIZE(Multiply);       /* Hack in ResAdd to get Multiply to work with old ISA */
 
     // SrcA
     KCC_UNSERIALIZE(SrcAIsPsum);

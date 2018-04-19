@@ -179,7 +179,9 @@
         "1conv1ba/bias1/read/SBAtomFile_bias_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv1ba/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
+      "src_is_psum": true,
       "src_psum_bank_id": 0,
+      "src_sb_address": 0,
       "src_x_num": 4,
       "src_x_step": 1,
       "src_y_num": 4,

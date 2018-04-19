@@ -287,8 +287,14 @@ SerWaveOp::verifyActivation() const
     if (m_OutDtype == "") {
         RETURN_ASSERT(false);
     }
-    if (m_SrcPsumBankId < 0) {
-        RETURN_ASSERT(false);
+    if (m_SrcIsPsum) {
+        if (m_SrcPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
     }
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);

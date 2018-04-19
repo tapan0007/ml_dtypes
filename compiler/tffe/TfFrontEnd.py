@@ -87,12 +87,13 @@ class TfOp:
     return shape
 
 class TfFe:
-  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, batch):
+  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, batch, showOpNameInKgraph):
     self.__gd = None
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
     self.debugLevel = debugLevel
     kog.Config.Dot.timeout = dotTimeout
+    kog.Config.Graph.showOpNameInKgraph = showOpNameInKgraph
     self.kaenaPath = os.environ["KAENA_PATH"]
     self.batch = batch
   
@@ -202,7 +203,7 @@ class TfFe:
         #print("WeightFile=", weightFile,
         #      "  Dtype=", nd.dtype,
         #      "  Size=", nd.size)
-        np.save(weightFile, nd)
+        np.save(weightFile, np.ascontiguousarray(nd))
         numWeights += 1
     print("INFO: wrote %d weights" % numWeights)
 
@@ -359,7 +360,7 @@ class TfFe:
           #print("ImageFile=", weightFile,
           #      "  Dtype=", nd.dtype,
           #      "  Size=", nd.size)
-          np.save(imageFile, nd)
+          np.save(imageFile, np.ascontiguousarray(nd))
           numImages += 1
           if numImages % perDot == 0:
             print(".", end='', flush=True)

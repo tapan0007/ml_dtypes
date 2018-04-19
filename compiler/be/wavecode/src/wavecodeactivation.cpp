@@ -48,7 +48,14 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     activationInstr.out_dtype           = activationWaveop->gOutDtype().gSimTypeId();
 
     // TODO: for now Activation reads from 0 elem in bank.
-    activationInstr.src_start_addr      = psumBuf.gEntryTpbAddress(activationWaveop->gSrcPsumBankId(), 0, activationWaveop->gInDtype());
+    if (activationWaveop->qSrcIsPsum()) {
+        activationInstr.src_start_addr  = psumBuf.gEntryTpbAddress(activationWaveop->gSrcPsumBankId(),
+                                                                  0, /* bank offset 0 */
+                                                                  activationWaveop->gInDtype());
+    } else {
+        activationInstr.src_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
+                                                activationWaveop->gSrcSbAddress());
+    }
 
     activationInstr.src_x_step          = activationWaveop->gSrcXStep();
     activationInstr.src_y_step          = activationWaveop->gSrcYStep();

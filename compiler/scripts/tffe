@@ -71,6 +71,8 @@ parser.add_argument('--parallel_streams', help='run execution engines in paralle
 parser.add_argument('--preprocessor', help='Specify preprocessor script to be part of inference run', default="")
 parser.add_argument('--postprocessor', help='Specify postprocessor script to be part of inference run', default="")
 parser.add_argument('--exclude_ops_from_capture', help='Regexp for op names that will not be captured. TF errors out when capturing cond-false branch', default=None)
+parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph graphical output more verbose', dest="show_op_name_in_kgraph",
+                    action="store_true",  default=False)
 
 args = parser.parse_args()
 inputNodeName = args.input_node
@@ -91,7 +93,7 @@ def writeBackEndFiles(kGraph, outPrefix, verbose):
 
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
-tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch)
+tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch, args.show_op_name_in_kgraph)
 tffe.loadPb(tfpbFile, args.focus)
 kog = tffe.getKaenaOpGraph()
 kog.setSchedulerMode(args.scheduler)

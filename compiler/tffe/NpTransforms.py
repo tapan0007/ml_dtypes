@@ -19,7 +19,7 @@ def calcTransform(sf, st):
 
 class NpTrans:
   # See spec for method  genCompilerPy
-  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "HNC", "HNWC"]:
+  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "C", "NC", "HNC", "HNWC"]:
     exec("%s = '%s'" %(c, c))
   
   # Define tensorFlow (TF) to Inkling simulator (SIM) translation
@@ -51,6 +51,7 @@ class NpTrans:
   @staticmethod
   def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None):
     arr = np.load(npFile)
+    assert len(srcFormat) == len(arr.shape)
     srcShape = arr.shape
     sf = srcFormat
     if len(srcFormat) > len(dstFormat):
@@ -74,7 +75,7 @@ class NpTrans:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
     else:
       npFileDest = outFile
-    np.save(npFileDest, arr)
+    np.save(npFileDest, np.ascontiguousarray(arr))
     return(npFileDest, arr.shape)
 
   # Ulility function to convert npy files, returns new file name and the destination format
@@ -93,7 +94,7 @@ class NpTrans:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
     else:
       npFileDest = outFile
-    np.save(npFileDest, arr)
+    np.save(npFileDest, np.ascontiguousarray(arr))
     return(npFileDest, dstFormat)
 
   @staticmethod
@@ -141,7 +142,7 @@ class NpTrans:
       #print("DEBUG: reshapeFilePerRefFile reshaped  %s  %s -> %s  based on shape of  %s"
       #      % (npyFile, arr.shape, refArr.shape, refShapeFile))
       arr = arr.reshape(refArr.shape)
-      np.save(npyFile, arr)
+      np.save(npyFile, np.ascontiguousarray(arr))
     #else:
       #print("DEBUG: reshapeFilePerRefFile no reshape was needed for  %s" % npyFile)
 
