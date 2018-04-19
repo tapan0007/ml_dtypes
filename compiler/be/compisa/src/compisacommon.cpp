@@ -9,8 +9,8 @@
 #include "compisa/inc/compisacommon.hpp"
 
 #include "compisa/inc/compisaactivation.hpp"
+#include "compisa/inc/compisacast.hpp"
 #include "compisa/inc/compisaclear.hpp"
-#include "compisa/inc/compisacommon.hpp"
 #include "compisa/inc/compisacopy.hpp"
 #include "compisa/inc/compisaldweights.hpp"
 #include "compisa/inc/compisamatmul.hpp"
@@ -67,6 +67,7 @@ void
 AllInstructions()
 {
     ActivationInstr         actInstr;
+    CastInstr               castInstr;
     ClearInstr              clearInstr;
     CopyInstr               copyInstr;
     LdWeightsInstr          ldweightsInstr;

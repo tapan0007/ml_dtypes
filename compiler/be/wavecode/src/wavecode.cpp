@@ -25,6 +25,7 @@
 #include "compisa/inc/compisatensorscalarptrop.hpp"
 #include "compisa/inc/compisatensorreduceop.hpp"
 #include "compisa/inc/compisacopy.hpp"
+#include "compisa/inc/compisacast.hpp"
 #include "compisa/inc/compisamemset.hpp"
 
 #include "compisa/inc/compisasimmemcpy.hpp"
@@ -209,7 +210,7 @@ void WaveCode::writeInstruction<compisa::TensorScalarOpInstr>(const compisa::Ten
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_DmaPc += instSize;
+    m_PoolEngPc += instSize;
 }
 
 template<>
@@ -220,7 +221,7 @@ void WaveCode::writeInstruction<compisa::TensorScalarPtrOpInstr>(const compisa::
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_DmaPc += instSize;
+    m_PoolEngPc += instSize;
 }
 
 template<>
@@ -231,7 +232,7 @@ void WaveCode::writeInstruction<compisa::TensorReduceOpInstr>(const compisa::Ten
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_DmaPc += instSize;
+    m_PoolEngPc += instSize;
 }
 
 template<>
@@ -242,7 +243,7 @@ void WaveCode::writeInstruction<compisa::CopyInstr>(const compisa::CopyInstr& in
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_DmaPc += instSize;
+    m_PoolEngPc += instSize;
 }
 
 template<>
@@ -253,7 +254,18 @@ void WaveCode::writeInstruction<compisa::MemSetInstr>(const compisa::MemSetInstr
 
     const kcc_int32 instSize = sizeof(instruction);
     fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_DmaPc += instSize;
+    m_PoolEngPc += instSize;
+}
+
+template<>
+void WaveCode::writeInstruction<compisa::CastInstr>(const compisa::CastInstr& instruction)
+{
+    instruction.CheckValidity();
+    checkForNoSync(instruction.inst_events);
+
+    const kcc_int32 instSize = sizeof(instruction);
+    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
+    m_PoolEngPc += instSize;
 }
 
 
