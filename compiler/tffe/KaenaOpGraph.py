@@ -42,6 +42,8 @@ class Config:
     showOpNameInKgraph = False
   class Dot:
     timeout = 60
+  class Scheduler:
+    waveoptOptions = ""
 
 class Object:
   def __init__(self, name, attrs):
@@ -1140,8 +1142,6 @@ class Graph(Object):
     
   def setSchedulerMode(self, mode):
     self.schedulerMode = mode
-  def setSchedulerMode(self, mode):
-    self.schedulerMode = mode
   
   def addNode(self, node):
     self.__name2node[node.getName()] = node
@@ -1544,8 +1544,8 @@ class Graph(Object):
       if True:
         waveDotFile = outPrefix + "wavegraph.plain"
         #cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s --nname %s --debug %d > log-me.txt 2>&1" % (
-        cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s --nname %s --save_layer_output --debug %d > log-me.txt 2>&1" % (
-              waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, waveDotFile, "resnet50", Config.debugLevel)
+        cmd = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --nname %s --save_layer_output --debug %d > log-me.txt 2>&1" % (
+              waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, "resnet50", Config.debugLevel)
       else:
         waveDotFile = outPrefix + "wavegraph.svg"
         cmd = "python3 %s --kgraph %s --wavegraph %s  --debug %d > log-me.txt 2>&1" % (

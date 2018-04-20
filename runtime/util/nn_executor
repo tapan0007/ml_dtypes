@@ -54,6 +54,7 @@ class NnSubgraph:
     self.inputs = sgJson["Inputs"]
     self.outputs = sgJson["Outputs"]
     self.executor = sgJson["executor"]
+    self.execOptions = sgJson.get("execOptions", "")
     self.parallel_streams = sgJson.get("parallel_streams", False)
     self.cmd = ""
     if self.executor == "processor":
@@ -168,6 +169,7 @@ class NnSubgraph:
       cmd = "python3 %s//compiler/util/layeropt.py" % kPath
       cmd += "  --kgraph %s/%s/compiler.json" % (kelf_dir, self.sgDir)
       cmd += "  --inference"
+    cmd += "  " + self.execOptions
     cmd = "%s > %s 2>&1" % (cmd, logFile)
     print("\nINFO: executing %s" % cmd, flush=True)
     ret = os.system(cmd)
