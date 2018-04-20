@@ -343,6 +343,7 @@ testWaiver = [
     ['2-ptb_word_unstack_.*',             'WAIVE-SG00'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
+    ['^(4-ptb_word_small_sigmoid_wave|4-ptb_word_small_sigmoid_2l_waveopt| 4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
 
     # accuracy fail, fp16
     #['7-rn50_nne_fp16_accfail$', 'WAIVE_FP16_ACC'],
