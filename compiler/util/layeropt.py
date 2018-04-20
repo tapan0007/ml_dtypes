@@ -380,6 +380,7 @@ class CircularBuffer:
         self.chunk2skip_map = {}
         self.item_sz = 2
         self.data_type = 'float16'
+        self.outgoing_tile_waveops = []
         self.circbuf_stats = CircbufStats()
 
     def reset_keep_consumers(self):
@@ -965,6 +966,7 @@ class CircularBuffer:
             self.tracked_lower_addr_chunked = lower_addr // self.atom_data_sz
         if (args.debug > 2): print("%s: written range is now %d to %d"%(self.circbuf_type, self.tracked_lower_addr, upper_addr))
         dram_waveops = []
+        self.outgoing_tile_waveops.append(waveop['waveop_name'])
         lower_addr_chunked = self.get_chunk_addr(lower_addr)
         upper_addr_chunked = self.get_chunk_addr(upper_addr)
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
@@ -992,6 +994,11 @@ class CircularBuffer:
             if (args.debug > 2): print("%s: freeing range %d to %d"%(self.circbuf_type, self.tracked_lower_addr, upper_addr))
             for i in range(self.tracked_lower_addr_chunked, upper_addr_chunked+1):
                 atom_id = self.chunk2atom_map[i]
+                dram_save_waveop = self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count)
+                for op in self.outgoing_tile_waveops:
+                    dram_save_waveop['previous_waveops'].append(op)
+                dram_waveops.append(dram_save_waveop)
+                self.outgoing_tile_waveops = []
                 self.free_atom(atom_id)
                 self.tracked_lower_addr = -1
                 if (self.is_in_kickout_range(atom_id) 
