@@ -48,7 +48,8 @@
       "ref_file": "trivnet_1conv__weight1__read:0_CRSM.npy",
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,3,3,1],
-      "sb_address": 24576,
+      "sb_address": 16384,
+      "start_at_mid_part": false,
       "waveop_name": "1conv/i1/SBAtomFile_weights_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
@@ -60,7 +61,7 @@
       "ifmaps_fold_idx": 0,
       "ifmaps_replicate": false,
       "layer_name": "input",
-      "length": 1024,
+      "length": 1960,
       "offset_in_file": 0,
       "partition_step_bytes": 2450,
       "previous_waveops": [],
@@ -68,6 +69,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
       "sb_address": 0,
+      "start_at_mid_part": false,
       "waveop_name": "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "SBAtomFile"
     },
@@ -78,7 +80,7 @@
       "fmap_y_num": 6,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 34,
@@ -110,7 +112,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24576
+      "weights_sb_address": 16384
     },
     {
       "batching_in_wave": 1,
@@ -119,7 +121,7 @@
       "fmap_y_num": 6,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 35,
@@ -150,7 +152,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24578
+      "weights_sb_address": 16386
     },
     {
       "batching_in_wave": 1,
@@ -159,7 +161,7 @@
       "fmap_y_num": 6,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 34,
@@ -190,7 +192,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24580
+      "weights_sb_address": 16388
     },
     {
       "batching_in_wave": 1,
@@ -199,7 +201,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -230,7 +232,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24582
+      "weights_sb_address": 16390
     },
     {
       "batching_in_wave": 1,
@@ -239,7 +241,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -270,7 +272,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24584
+      "weights_sb_address": 16392
     },
     {
       "batching_in_wave": 1,
@@ -279,7 +281,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -310,7 +312,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24586
+      "weights_sb_address": 16394
     },
     {
       "batching_in_wave": 1,
@@ -319,7 +321,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -350,7 +352,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24588
+      "weights_sb_address": 16396
     },
     {
       "batching_in_wave": 1,
@@ -359,7 +361,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -390,7 +392,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24590
+      "weights_sb_address": 16398
     },
     {
       "batching_in_wave": 1,
@@ -399,7 +401,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -430,10 +432,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24592
+      "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 73728,
+      "dst_sb_address": 67584,
+      "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -454,6 +457,7 @@
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
       "src_sb_address": 0,
+      "src_start_at_mid_part": false,
       "src_w_num": 7,
       "src_w_step": 35,
       "src_x_num": 1,
@@ -474,7 +478,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -505,7 +509,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24576
+      "weights_sb_address": 16384
     },
     {
       "batching_in_wave": 1,
@@ -514,7 +518,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -545,7 +549,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24578
+      "weights_sb_address": 16386
     },
     {
       "batching_in_wave": 1,
@@ -554,7 +558,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -585,7 +589,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24580
+      "weights_sb_address": 16388
     },
     {
       "batching_in_wave": 1,
@@ -594,7 +598,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -625,7 +629,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24582
+      "weights_sb_address": 16390
     },
     {
       "batching_in_wave": 1,
@@ -634,7 +638,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -665,7 +669,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24584
+      "weights_sb_address": 16392
     },
     {
       "batching_in_wave": 1,
@@ -674,7 +678,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -705,26 +709,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24586
-    },
-    {
-      "batch_fold_idx": 0,
-      "contain_weights": false,
-      "data_type": "float16",
-      "ifmap_count": 1,
-      "ifmaps_fold_idx": 0,
-      "ifmaps_replicate": false,
-      "layer_name": "input",
-      "length": 1024,
-      "offset_in_file": 1024,
-      "partition_step_bytes": 2450,
-      "previous_waveops": [],
-      "ref_file": "trivnet_input:0_NCHW.npy",
-      "ref_file_format": "NCHW",
-      "ref_file_shape": [1,1,35,35],
-      "sb_address": 1024,
-      "waveop_name": "input/SBAtomFile_ifmaps_1_n0_m0_h1_w0_c0_r2_s0",
-      "waveop_type": "SBAtomFile"
+      "weights_sb_address": 16394
     },
     {
       "batching_in_wave": 1,
@@ -733,7 +718,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -747,7 +732,6 @@
       "ofmap_tile_width": 34,
       "out_dtype": "float32",
       "previous_waveops": [
-        "input/SBAtomFile_ifmaps_1_n0_m0_h1_w0_c0_r2_s0",
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2"
       ],
       "psum_bank_id": 1,
@@ -765,7 +749,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24588
+      "weights_sb_address": 16396
     },
     {
       "batching_in_wave": 1,
@@ -774,7 +758,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -805,7 +789,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24590
+      "weights_sb_address": 16398
     },
     {
       "batching_in_wave": 1,
@@ -814,7 +798,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -845,10 +829,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24592
+      "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 74218,
+      "dst_sb_address": 68074,
+      "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -869,6 +854,7 @@
       "src_psum_bank_id": 1,
       "src_psum_bank_offset": 0,
       "src_sb_address": 0,
+      "src_start_at_mid_part": false,
       "src_w_num": 7,
       "src_w_step": 35,
       "src_x_num": 1,
@@ -883,33 +869,13 @@
       "waveop_type": "Pool"
     },
     {
-      "batch_fold_idx": 0,
-      "data_type": "float16",
-      "last": false,
-      "layer_name": "1conv/i1",
-      "length": 980,
-      "offset_in_file": 0,
-      "ofmap_count": 1,
-      "ofmaps_fold_idx": 0,
-      "partition_step_bytes": 2450,
-      "previous_waveops": [
-        "1conv/i1/Pool_n0_m0_h1_w0"
-      ],
-      "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
-      "ref_file_format": "NCHW",
-      "ref_file_shape": [1,1,35,35],
-      "sb_address": 73728,
-      "waveop_name": "1conv/i1/SBAtomSave_scratch_0_n0_m0_h1_w0",
-      "waveop_type": "SBAtomSave"
-    },
-    {
       "batching_in_wave": 1,
       "fmap_x_num": 34,
       "fmap_x_step": 1,
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -940,7 +906,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24576
+      "weights_sb_address": 16384
     },
     {
       "batching_in_wave": 1,
@@ -949,7 +915,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -980,7 +946,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24578
+      "weights_sb_address": 16386
     },
     {
       "batching_in_wave": 1,
@@ -989,7 +955,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1020,7 +986,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24580
+      "weights_sb_address": 16388
     },
     {
       "batching_in_wave": 1,
@@ -1029,7 +995,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1060,7 +1026,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24582
+      "weights_sb_address": 16390
     },
     {
       "batching_in_wave": 1,
@@ -1069,7 +1035,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -1100,7 +1066,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24584
+      "weights_sb_address": 16392
     },
     {
       "batching_in_wave": 1,
@@ -1109,7 +1075,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1140,7 +1106,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24586
+      "weights_sb_address": 16394
     },
     {
       "batching_in_wave": 1,
@@ -1149,7 +1115,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1180,7 +1146,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24588
+      "weights_sb_address": 16396
     },
     {
       "batching_in_wave": 1,
@@ -1189,7 +1155,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -1220,7 +1186,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24590
+      "weights_sb_address": 16398
     },
     {
       "batching_in_wave": 1,
@@ -1229,7 +1195,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1260,10 +1226,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24592
+      "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 74708,
+      "dst_sb_address": 68564,
+      "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -1284,6 +1251,7 @@
       "src_psum_bank_id": 2,
       "src_psum_bank_offset": 0,
       "src_sb_address": 0,
+      "src_start_at_mid_part": false,
       "src_w_num": 7,
       "src_w_step": 35,
       "src_x_num": 1,
@@ -1304,7 +1272,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1335,7 +1303,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24576
+      "weights_sb_address": 16384
     },
     {
       "batching_in_wave": 1,
@@ -1344,7 +1312,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -1375,7 +1343,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24578
+      "weights_sb_address": 16386
     },
     {
       "batching_in_wave": 1,
@@ -1384,7 +1352,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1415,7 +1383,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24580
+      "weights_sb_address": 16388
     },
     {
       "batching_in_wave": 1,
@@ -1424,7 +1392,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1455,7 +1423,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24582
+      "weights_sb_address": 16390
     },
     {
       "batching_in_wave": 1,
@@ -1464,7 +1432,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -1495,7 +1463,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24584
+      "weights_sb_address": 16392
     },
     {
       "batching_in_wave": 1,
@@ -1504,7 +1472,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1535,7 +1503,27 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24586
+      "weights_sb_address": 16394
+    },
+    {
+      "batch_fold_idx": 0,
+      "contain_weights": false,
+      "data_type": "float16",
+      "ifmap_count": 1,
+      "ifmaps_fold_idx": 0,
+      "ifmaps_replicate": false,
+      "layer_name": "input",
+      "length": 490,
+      "offset_in_file": 1960,
+      "partition_step_bytes": 2450,
+      "previous_waveops": [],
+      "ref_file": "trivnet_input:0_NCHW.npy",
+      "ref_file_format": "NCHW",
+      "ref_file_shape": [1,1,35,35],
+      "sb_address": 1960,
+      "start_at_mid_part": false,
+      "waveop_name": "input/SBAtomFile_ifmaps_1_n0_m0_h3_w0_c0_r2_s0",
+      "waveop_type": "SBAtomFile"
     },
     {
       "batching_in_wave": 1,
@@ -1544,7 +1532,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1558,6 +1546,7 @@
       "ofmap_tile_width": 34,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_1_n0_m0_h3_w0_c0_r2_s0",
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2"
       ],
       "psum_bank_id": 3,
@@ -1575,7 +1564,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24588
+      "weights_sb_address": 16396
     },
     {
       "batching_in_wave": 1,
@@ -1584,7 +1573,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -1615,7 +1604,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24590
+      "weights_sb_address": 16398
     },
     {
       "batching_in_wave": 1,
@@ -1624,7 +1613,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1655,10 +1644,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24592
+      "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 75198,
+      "dst_sb_address": 69054,
+      "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -1679,6 +1669,7 @@
       "src_psum_bank_id": 3,
       "src_psum_bank_offset": 0,
       "src_sb_address": 0,
+      "src_start_at_mid_part": false,
       "src_w_num": 7,
       "src_w_step": 35,
       "src_x_num": 1,
@@ -1697,8 +1688,8 @@
       "data_type": "float16",
       "last": false,
       "layer_name": "1conv/i1",
-      "length": 980,
-      "offset_in_file": 980,
+      "length": 1960,
+      "offset_in_file": 0,
       "ofmap_count": 1,
       "ofmaps_fold_idx": 0,
       "partition_step_bytes": 2450,
@@ -1708,28 +1699,10 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 74708,
-      "waveop_name": "1conv/i1/SBAtomSave_scratch_1_n0_m0_h3_w0",
+      "sb_address": 67584,
+      "start_at_mid_part": false,
+      "waveop_name": "1conv/i1/SBAtomSave_scratch_0_n0_m0_h3_w0",
       "waveop_type": "SBAtomSave"
-    },
-    {
-      "batch_fold_idx": 0,
-      "contain_weights": false,
-      "data_type": "float16",
-      "ifmap_count": 1,
-      "ifmaps_fold_idx": 0,
-      "ifmaps_replicate": false,
-      "layer_name": "input",
-      "length": 402,
-      "offset_in_file": 2048,
-      "partition_step_bytes": 2450,
-      "previous_waveops": [],
-      "ref_file": "trivnet_input:0_NCHW.npy",
-      "ref_file_format": "NCHW",
-      "ref_file_shape": [1,1,35,35],
-      "sb_address": 2048,
-      "waveop_name": "input/SBAtomFile_ifmaps_2_n0_m0_h4_w0_c0_r0_s0",
-      "waveop_type": "SBAtomFile"
     },
     {
       "batching_in_wave": 1,
@@ -1738,7 +1711,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1752,7 +1725,6 @@
       "ofmap_tile_width": 34,
       "out_dtype": "float32",
       "previous_waveops": [
-        "input/SBAtomFile_ifmaps_2_n0_m0_h4_w0_c0_r0_s0",
         "1conv/i1/Pool_n0_m0_h3_w0"
       ],
       "psum_bank_id": 0,
@@ -1770,7 +1742,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24576
+      "weights_sb_address": 16384
     },
     {
       "batching_in_wave": 1,
@@ -1779,7 +1751,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -1810,7 +1782,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24578
+      "weights_sb_address": 16386
     },
     {
       "batching_in_wave": 1,
@@ -1819,7 +1791,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1850,7 +1822,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24580
+      "weights_sb_address": 16388
     },
     {
       "batching_in_wave": 1,
@@ -1859,7 +1831,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1890,7 +1862,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24582
+      "weights_sb_address": 16390
     },
     {
       "batching_in_wave": 1,
@@ -1899,7 +1871,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
@@ -1930,7 +1902,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24584
+      "weights_sb_address": 16392
     },
     {
       "batching_in_wave": 1,
@@ -1939,7 +1911,7 @@
       "fmap_y_num": 7,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
@@ -1970,7 +1942,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24586
+      "weights_sb_address": 16394
     },
     {
       "batching_in_wave": 1,
@@ -1979,7 +1951,7 @@
       "fmap_y_num": 6,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 34,
@@ -2010,7 +1982,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24588
+      "weights_sb_address": 16396
     },
     {
       "batching_in_wave": 1,
@@ -2019,7 +1991,7 @@
       "fmap_y_num": 6,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 35,
@@ -2050,7 +2022,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24590
+      "weights_sb_address": 16398
     },
     {
       "batching_in_wave": 1,
@@ -2059,7 +2031,7 @@
       "fmap_y_num": 6,
       "fmap_y_step": 35,
       "fmap_z_num": 1,
-      "fmap_z_step_atoms": 1,
+      "fmap_z_step": 1960,
       "ifmap_count": 1,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 34,
@@ -2090,10 +2062,11 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s2",
       "waveop_type": "MatMul",
-      "weights_sb_address": 24592
+      "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 75688,
+      "dst_sb_address": 69544,
+      "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
       "dst_y_num": 7,
@@ -2114,6 +2087,7 @@
       "src_psum_bank_id": 0,
       "src_psum_bank_offset": 0,
       "src_sb_address": 0,
+      "src_start_at_mid_part": false,
       "src_w_num": 7,
       "src_w_step": 35,
       "src_x_num": 1,
@@ -2143,8 +2117,9 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 75688,
-      "waveop_name": "1conv/i1/SBAtomSave_scratch_2_n0_m0_h4_w0",
+      "sb_address": 69544,
+      "start_at_mid_part": false,
+      "waveop_name": "1conv/i1/SBAtomSave_scratch_1_n0_m0_h4_w0",
       "waveop_type": "SBAtomSave"
     }
   ]

@@ -53,7 +53,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
                                                                   0, /* bank offset 0 */
                                                                   activationWaveop->gInDtype());
     } else {
-        activationInstr.src_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
+        activationInstr.src_start_addr  = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * activationWaveop->gSrcStartAtMidPart(),
                                                 activationWaveop->gSrcSbAddress());
     }
 
@@ -69,7 +69,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
                                                                   0, /* bank offset 0 */
                                                                   activationWaveop->gOutDtype());
     } else {
-        activationInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(0, /* row 0 */
+        activationInstr.dst_start_addr  = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * activationWaveop->gDstStartAtMidPart(),
                                                 activationWaveop->gDstSbAddress());
     }
     activationInstr.dst_x_step      = activationWaveop->gDstXStep();
@@ -82,7 +82,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     activationInstr.scale_value         = activationWaveop->gScale();
     if (activationWaveop->qBiasAddEn ()) {
         activationInstr.acc_addr        = stateBuf.gEntryTpbAddress(
-                                            0,   //row 0 for now
+                                            arch.gNumberPeArrayRows()/2 * activationWaveop->gBiasStartAtMidPart(),
                                             activationWaveop->gBiasSbAddress());
     } else {
         activationInstr.acc_addr        = stateBuf.gAllZeroOffsetTpbAddress(activationWaveop->gBiasDtype());

@@ -24,7 +24,7 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_FmapYNum(params.m_FmapYNum)
     , m_FmapYStep(params.m_FmapYStep)
     , m_FmapZNum(params.m_FmapZNum)
-    , m_FmapZStepAtoms(params.m_FmapZStepAtoms)
+    , m_FmapZStep(params.m_FmapZStep)
     , m_IfmapCount(params.m_IfmapCount)
     , m_IfmapTileHeight(params.m_IfmapTileHeight)
     , m_IfmapTileWidth(params.m_IfmapTileWidth)
@@ -86,7 +86,7 @@ MatMulWaveOp::verify() const
     if (m_FmapZNum < 1) {
         return false;
     }
-    if (m_FmapZStepAtoms < 1) {
+    if (m_FmapZStep < 1) {
         return false;
     }
     if (m_IfmapCount <= 0) {
@@ -288,7 +288,7 @@ MatMulWaveOp::Params::verify() const
     if (m_FmapZNum < 1) {
         return false;
     }
-    if (m_FmapZStepAtoms < 1) {
+    if (m_FmapZStep < 1) {
         return false;
     }
     if (m_IfmapCount <= 0) {
