@@ -315,15 +315,9 @@ class StateBuffer:
     def reset_all(self):        
         self.circbuf_bias.reset()
         self.circbuf_weights.reset()
-        consumer_of_freed_atom_old = self.circbuf_ifmaps.consumer_of_freed_atom
-        self.circbuf_ifmaps.reset()
-        self.circbuf_ifmaps.consumer_of_freed_atom_old = consumer_of_freed_atom_old
-        consumer_of_freed_atom_old = self.circbuf_residue.consumer_of_freed_atom
-        self.circbuf_residue.reset()
-        self.circbuf_residue.consumer_of_freed_atom_old = consumer_of_freed_atom_old
-        consumer_of_freed_atom_old = self.circbuf_scratch.consumer_of_freed_atom
-        self.circbuf_scratch.reset()
-        self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
+        self.circbuf_ifmaps.reset_keep_consumers()
+        self.circbuf_residue.reset_keep_consumers()
+        self.circbuf_scratch.reset_keep_consumers()
 
 
 ##################################################################################
@@ -388,6 +382,12 @@ class CircularBuffer:
         self.data_type = 'float16'
         self.circbuf_stats = CircbufStats()
 
+    def reset_keep_consumers(self):
+        consumer_of_freed_atom_old = self.consumer_of_freed_atom
+        self.reset()
+        self.consumer_of_freed_atom_old = consumer_of_freed_atom_old
+
+
     def get_chunk_addr(self, addr):
         return addr // self.atom_data_sz
 
@@ -434,13 +434,14 @@ class CircularBuffer:
                 fmap_full_tilex_sz = op.ofmap_full_tilex_sz
                 filter_x = 1
                 stride_x = 1
-            for j in op.prev:
-                print("%s %s"%(j.data['layer_name'], j.result_file))
-                if j.result_file is not None:
-                    self.dram_data_in_file = j.result_file
-                    self.layer_name = j.data['layer_name']
-                    self.layer_format = j.data['ofmap_format']
-                    self.layer_shape = j.data['ofmap_shape']
+            for j in range(len(op.prev)):
+                #print("%s %s"%(op.prev[j].data['layer_name'], op.prev[j].result_file))
+                if op.prev[j].result_file is not None:
+                    self.dram_data_in_file = op.prev[j].result_file
+                    self.layer_name = op.prev[j].data['layer_name']
+                    self.layer_format = op.prev[j].data['ofmap_format']
+                    self.layer_shape = op.prev[j].data['ofmap_shape']
+                    op.residue_index = 1 - j
                     break
         elif (self.circbuf_type == "bias"):                
             for j in op.prev:
@@ -463,19 +464,12 @@ class CircularBuffer:
                 data_type = op.data_type
             if (op.is_join and file_name == None):
                 assert(self.parent.circbuf_scratch.dram_data_in_file != None)  # make sure that scratch has been initialized with output data
-                found = False
-                for j in op.prev:
-                    # loading the second set of data for 2-input ResAdd/Multiply, checking if file has not be loaded for the first input
-                    if j.result_file is not None and j.result_file != self.parent.circbuf_ifmaps.dram_data_in_file:
-                        self.dram_data_in_file = j.result_file
-                        self.layer_name = j.data['layer_name']
-                        self.layer_format = j.data['ofmap_format']
-                        self.layer_shape = j.data['ofmap_shape']
-                        found = True
-                        break
-                if not found:
-                    print("ERROR: executing join operation %s but there's no result file to load!"%j.data['layer_name'])
-                    exit(-1)
+                assert(self.parent.circbuf_ifmaps.dram_data_in_file != None)
+                assert(op.prev[op.residue_index].result_file != None)
+                self.dram_data_in_file = op.prev[op.residue_index].result_file
+                self.layer_name = op.prev[op.residue_index].data['layer_name']
+                self.layer_format = op.prev[op.residue_index].data['ofmap_format']
+                self.layer_shape = op.prev[op.residue_index].data['ofmap_shape']
             else:
                 assert(file_name != None)
                 self.dram_data_in_file = file_name
@@ -1097,6 +1091,8 @@ class KNode:
         self.stride_x = 1
         self.is_const = False
         self.is_join = False
+        self.residue_index = 0
+
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
     def add_next(self, next_node):
@@ -1604,8 +1600,10 @@ class FusedOp(list):
             elif op.count_missing_input_results() > 1:
                 return False
             else:
-                self.join_op = op
                 self.has_join = True
+                self.join_op = op
+                if (op.prev[0] == self[-1]):
+                    self.join_op.residue_index = 1
         elif (op.data['layer_type'] == 'BiasAdd'):
             if (self.has_biasadd):
                 if (args.debug > 2):
@@ -2737,10 +2735,10 @@ class TPBSched:
 
         # for ResAdd/Multiply, retrieve the saved result file for one of the completed legs if it's not already loaded
         if op_list.has_join:
-            if (self.statebuffer.circbuf_residue.dram_data_in_file == None
-                    or (op_list.join_op.prev[0] is not None and self.statebuffer.circbuf_residue.dram_data_in_file != op_list.join_op.prev[0].result_file)
-                    or (op_list.join_op.prev[1] is not None and self.statebuffer.circbuf_residue.dram_data_in_file != op_list.join_op.prev[1].result_file)):
-                self.statebuffer.circbuf_residue.reset()
+            if (self.statebuffer.circbuf_residue.dram_data_in_file == None):
+                self.statebuffer.circbuf_residue.load_data(op_list.join_op)
+            elif (op_list.join_op.prev[op_list.join_op.residue_index].result_file != self.statebuffer.circbuf_residue.dram_data_in_file):
+                self.statebuffer.circbuf_residue.reset_keep_consumers()
                 self.statebuffer.circbuf_residue.load_data(op_list.join_op)
 
         # wave loop ordering scheme: nmhw
@@ -2927,10 +2925,10 @@ class TPBSched:
 
         # for ResAdd/Multiply, retrieve the saved result file for one of the completed legs if it's not already loaded
         if op_list.has_join:
-            if (self.statebuffer.circbuf_residue.dram_data_in_file == None
-                    or (op_list.join_op.prev[0] is not None and self.statebuffer.circbuf_residue.dram_data_in_file != op_list.join_op.prev[0].result_file)
-                    or (op_list.join_op.prev[1] is not None and self.statebuffer.circbuf_residue.dram_data_in_file != op_list.join_op.prev[1].result_file)):
-                self.statebuffer.circbuf_residue.reset()
+            if (self.statebuffer.circbuf_residue.dram_data_in_file == None):
+                self.statebuffer.circbuf_residue.load_data(op_list.join_op)
+            elif (op_list.join_op.prev[op_list.join_op.residue_index].result_file != self.statebuffer.circbuf_residue.dram_data_in_file):
+                self.statebuffer.circbuf_residue.reset_keep_consumers()
                 self.statebuffer.circbuf_residue.load_data(op_list.join_op)
 
         # initial psum bank is 0
@@ -3136,7 +3134,7 @@ if __name__ == "__main__":
         elif (first_op_type == "Conv" or first_op_type == "MatMul"):
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None
                     or tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != first_op.prev[0].result_file):
-                tpb.statebuffer.circbuf_ifmaps.reset()
+                tpb.statebuffer.circbuf_ifmaps.reset_keep_consumers()
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             else:                
                 inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
@@ -3144,7 +3142,7 @@ if __name__ == "__main__":
         elif (first_op_type == "AvgPool" or first_op_type == "MaxPool"):
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None
                     or tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != first_op.prev[0].result_file):
-                tpb.statebuffer.circbuf_ifmaps.reset()
+                tpb.statebuffer.circbuf_ifmaps.reset_keep_consumers()
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             else:                
                 inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
@@ -3152,7 +3150,7 @@ if __name__ == "__main__":
         elif (first_op_type == "Softmax2"):
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None
                     or tpb.statebuffer.circbuf_ifmaps.dram_data_in_file != first_op.prev[0].result_file):
-                tpb.statebuffer.circbuf_ifmaps.reset()
+                tpb.statebuffer.circbuf_ifmaps.reset_keep_consumers()
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             else:                
                 inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
