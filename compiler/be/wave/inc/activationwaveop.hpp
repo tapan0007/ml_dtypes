@@ -58,6 +58,9 @@ public:
     kcc_int64 gBiasSbAddress () const {
         return m_BiasSbAddress;
     }
+    bool gBiasStartAtMidPart () const {
+        return m_BiasStartAtMidPart;
+    }
     bool qActivationWaveOp() const override {
         return true;
     }
@@ -115,6 +118,9 @@ public:
     kcc_int64 gSrcSbAddress () const {
         return m_SrcSbAddress;
     }
+    bool gSrcStartAtMidPart () const {
+        return m_SrcStartAtMidPart;
+    }
     kcc_int32 gSrcPsumBankId () const {
         return m_SrcPsumBankId;
     }
@@ -154,11 +160,15 @@ public:
     kcc_int64 gDstSbAddress () const {
         return m_DstSbAddress;
     }
+    bool gDstStartAtMidPart () const {
+        return m_DstStartAtMidPart;
+    }
 
 private:
     ActivationFunc              m_ActivationFunc        = ActivationFunc::Invalid;
     bool                        m_BiasAddEn;
     kcc_int64                   m_BiasSbAddress         = -1;
+    bool                        m_BiasStartAtMidPart    = false;
     kcc_float32                 m_Scale                 = 1.0; // TODO: deserialize when available in wavegraph.json
     bool                        m_DstIsPsum;
     kcc_int32                   m_DstPsumBankId         = -1;
@@ -169,6 +179,7 @@ private:
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
     kcc_int64                   m_DstSbAddress          = -1;
+    bool                        m_DstStartAtMidPart     = false;
     const DataType&             m_InDtype;
     const DataType&             m_BiasDtype;
     kcc_int32                   m_NumPartitions         = -1;
@@ -182,6 +193,7 @@ private:
     kcc_int32                   m_SrcZNum               = 1; // until resolution of SIM
     kcc_int32                   m_SrcZStep              = 1; // //issues.amazon.com/issues/kaena-198
     kcc_int64                   m_SrcSbAddress          = -1;
+    bool                        m_SrcStartAtMidPart     = false;
     std::array<kcc_int32, 4>    m_TileId;
     std::string                 m_TileIdFormat          = "";
 }; // class ActivationWaveOp : public WaveOp
@@ -196,6 +208,7 @@ public:
     ActivationFunc              m_ActivationFunc        = ActivationFunc::Invalid;
     bool                        m_BiasAddEn;
     kcc_int64                   m_BiasSbAddress         = -1;
+    bool                        m_BiasStartAtMidPart    = false;
     bool                        m_DstIsPsum;
     kcc_int32                   m_DstPsumBankId         = -1;
     kcc_int32                   m_DstXNum               = -1;
@@ -205,6 +218,7 @@ public:
     kcc_int32                   m_DstZNum               = -1;
     kcc_int32                   m_DstZStep              = -1;
     kcc_int64                   m_DstSbAddress          = -1;
+    bool                        m_DstStartAtMidPart     = false;
     DataTypeId                  m_InDtypeId             = DataTypeId::None;
     DataTypeId                  m_BiasDtypeId           = DataTypeId::None;
     kcc_int32                   m_NumPartitions         = -1;
@@ -218,6 +232,7 @@ public:
     kcc_int32                   m_SrcZNum               = 1; // until resolution of SIM
     kcc_int32                   m_SrcZStep              = 1; // //issues.amazon.com/issues/kaena-198
     kcc_int64                   m_SrcSbAddress          = -1;
+    bool                        m_SrcStartAtMidPart     = false;
     std::array<kcc_int32, 4>    m_TileId;
     std::string                 m_TileIdFormat          = "";
 }; // class ActivationWaveOp::Params : public WaveOp::Params

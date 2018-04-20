@@ -227,8 +227,8 @@ public:
         return m_FmapZNum;
     }
 
-    kcc_int16 gFmapZStepAtoms () const {
-        return m_FmapZStepAtoms;
+    kcc_int16 gFmapZStep () const {
+        return m_FmapZStep;
     }
 
     kcc_int16 gPsumXNum () const {
@@ -282,7 +282,7 @@ private:
     kcc_int16       m_FmapYNum              = -1;
     kcc_int16       m_FmapYStep             = -1;
     kcc_int16       m_FmapZNum              = -1;
-    kcc_int16       m_FmapZStepAtoms        = -1;
+    kcc_int16       m_FmapZStep        = -1;
     kcc_int16       m_IfmapCount            = -1;
     kcc_int16       m_IfmapTileHeight       = -1;
     kcc_int16       m_IfmapTileWidth        = -1;
@@ -328,7 +328,7 @@ public:
     kcc_int16       m_FmapYNum              = -1;
     kcc_int16       m_FmapYStep             = -1;
     kcc_int16       m_FmapZNum              = -1;
-    kcc_int16       m_FmapZStepAtoms        = -1;
+    kcc_int16       m_FmapZStep             = -1;
     kcc_int16       m_IfmapCount            = -1;
     kcc_int16       m_IfmapTileHeight       = -1;
     kcc_int16       m_IfmapTileWidth        = -1;

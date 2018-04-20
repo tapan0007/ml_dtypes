@@ -111,10 +111,11 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     const kcc_int64 numBytesPerPart = sbAtomLoadWaveOp->gLength();
     const kcc_int64 addressInPart   = sbAtomLoadWaveOp->gSbAddress();
     const kcc_int64 stepSize        = sbAtomLoadWaveOp->gPartitionStepBytes();
+    const kcc_int64 startPart       = sbAtomLoadWaveOp->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
 
     dramToStateBufInstr.nbytes      = numBytesPerPart;
 
-    for (kcc_int32 partIdx = 0; partIdx < numPartitions; ++partIdx) {
+    for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         if (qParallelStreams()) {
             dramToStateBufInstr.inst_events.wait_event_idx      = 0;
             dramToStateBufInstr.inst_events.wait_event_mode     = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
