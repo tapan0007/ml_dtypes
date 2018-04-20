@@ -68,6 +68,7 @@ testConfigMap = {
   "0-2conv_pad5"  : [ "trivnet_conv1",  "tfloat16-b1-h4-r5-s1-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.22", "2conv_pad5"],
   "0-1conv_s2"    : [ "trivnet_conv1",  "tfloat16-b1-h4-r1-s2-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.22", "1conv"],
   "0-1conv_s8"    : [ "trivnet_conv1",  "tfloat16-b1-h16-r1-s8-c1-m1-wmin2-wmax22-imin1-imax256", "1conv"],
+  "0-1conv_s8_wave"    : [ "trivnet_conv1",  "tfloat16-b1-h16-r1-s8-c1-m1-wmin2-wmax22-imin1-imax256", "1conv", "--scheduler wave"],
   "0-1mp0"        : [ "trivnet_mp1",    "b1-h4-r1-s1-c1-m1-wmin0-wmax0.1-imin1-imax16", "1mp"],
   "0-1mp0c64"     : [ "trivnet_mp1",    "b1-h4-r1-s1-c64-m64-wmin0-wmax0.1-imin1-imax1024", "1mp"],
   "0-1mp_r3s2"    : [ "trivnet_mp1",    "b1-h5-r3-s2-c1-m1-wmin0-wmax0.1-imin1-imax25", "1mp"],
@@ -344,6 +345,7 @@ testWaiver = [
     ['2-ptb_word_unstack_.*',             'WAIVE-SG00'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
+    ['^(4-ptb_word_small_sigmoid_wave|4-ptb_word_small_sigmoid_2l_waveopt| 4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
 
     # accuracy fail, fp16
     #['7-rn50_nne_fp16_accfail$', 'WAIVE_FP16_ACC'],

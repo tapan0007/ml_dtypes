@@ -1089,6 +1089,8 @@ class KNode:
         self.pool_window_x = 1
         self.stride_y = 1
         self.stride_x = 1
+        self.eigenlib_offset_x = 0
+        self.eigenlib_offset_y = 0
         self.is_const = False
         self.is_join = False
         self.residue_index = 0
@@ -1162,6 +1164,9 @@ class KNode:
         if ('stride' in layer_info):            
             self.stride_y = layer_info['stride'][2]
             self.stride_x = layer_info['stride'][3]
+        if (args.eigenlib_stride):
+            self.eigenlib_offset_x = ceildiv(self.stride_x, 2) - 1
+            self.eigenlib_offset_y = ceildiv(self.stride_y, 2) - 1
         # IFMAP and OFMAP total areas
         self.HW = self.H * self.W
         self.EF = self.E * self.F
@@ -1234,6 +1239,11 @@ class KNode:
         self.pool_window_x = layer_info['kernel_shape'][3]
         self.stride_y = layer_info['stride'][2]
         self.stride_x = layer_info['stride'][3]
+        if (args.eigenlib_stride):
+            self.eigenlib_offset_x = ceildiv(self.stride_x, 2) - 1
+            self.eigenlib_offset_y = ceildiv(self.stride_y, 2) - 1
+        self.ifmap_wave_lower_addr = -1
+        self.ifmap_wave_upper_addr = -1
         print("Pooling params for layer %s: pool_window_x=%d, pool_window_y=%d, stride_x=%d, stride_y=%d"
                 %(self.data['layer_name'], self.pool_window_x, self.pool_window_y, self.stride_x, self.stride_y))
 
@@ -1367,8 +1377,8 @@ class KNode:
                     batch_id = (wave_id.n_id * self.Tn) + z
                     for x in range(self.ofmap_full_tilex_sz):
                         for y in range(self.ofmap_full_tiley_sz):
-                            ifmap_tilex = (wave_id.w_id * self.ofmap_full_tilex_sz + x) * self.stride_x + s_id - self.pad_west
-                            ifmap_tiley = ((wave_id.h_id + self.unstack_h_offset)* self.ofmap_full_tiley_sz + y) * self.stride_y + r_id - self.pad_north
+                            ifmap_tilex = (wave_id.w_id * self.ofmap_full_tilex_sz + x) * self.stride_x + self.eigenlib_offset_x + s_id - self.pad_west
+                            ifmap_tiley = ((wave_id.h_id + self.unstack_h_offset)* self.ofmap_full_tiley_sz + y) * self.stride_y + self.eigenlib_offset_y + r_id - self.pad_north
                             last_r_id = r_id
                             last_s_id = s_id
                             ifmap_addr = z * self.ofmap_full_tile_sz + y * self.ofmap_full_tilex_sz + x
@@ -3081,6 +3091,7 @@ if __name__ == "__main__":
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--nname", default="resnet50", help="Network name, resnet50 or lm")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
+    parser.add_argument("--eigenlib_stride", action='store_true', help="Use Eigenlib style of striding starting in the center (-1) of striding window")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     parser.add_argument("--dump_pearray_inputs", type=int, default=0, help="Dump PEArray inputs for N number of waves")
     parser.add_argument("--save_layer_output", action='store_true', help="Save intermediate layer output into files")
