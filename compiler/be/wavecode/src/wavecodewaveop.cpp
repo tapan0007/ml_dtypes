@@ -37,7 +37,7 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
 
     enum { WAIT, WAIT_CLEAR, NOP };
 
-    switch (NOP) {
+    switch (WAIT_CLEAR) {
     case WAIT: {
         // Not sure whether wait_event_mode works in SIM.
         compisa::WaitInstr waitInstr;

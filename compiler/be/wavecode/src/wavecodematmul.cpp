@@ -75,13 +75,48 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     const kcc_int64 addressInSbPart     = matmulWaveop->gWeightsSbAddress();
 
     initMemAccess(ldweightsInstr.src_mem_pattern);
-    ldweightsInstr.src_mem_pattern.start_addr   = addressInSbPart
-                            + (matmulWaveop->gOfmapCount() - 1) * inDtype.gSizeInBytes();
-    ldweightsInstr.src_mem_pattern.step_elem[PatDim_X] = -1; // last column goes first, so decrement
-    ldweightsInstr.src_mem_pattern.num_elem[PatDim_X]  = matmulWaveop->gOfmapCount();
+    if (false) {
+        const kcc_int32 dtypeSize                           = inDtype.gSizeInBytes();
+        const kcc_int32 numWeights                          = matmulWaveop->gOfmapCount(); 
+        const kcc_int32 lastAddressInSbPart                 = addressInSbPart + (numWeights - 1) * dtypeSize;
+        ldweightsInstr.src_mem_pattern.start_addr           = lastAddressInSbPart;
+        ldweightsInstr.src_mem_pattern.step_elem[PatDim_X]  = -1; // last column goes first, so decrement
+        ldweightsInstr.src_mem_pattern.num_elem[PatDim_X]   = numWeights;
+        ldweightsInstr.num_active_cols                      = numWeights;
+    } else {
+        // if weights are not properly aligned (end of octet), load more weights so that the 
+        // last weight (first loaded) is at the end of octet. Those extra junk weights will
+        // be ignored.
+        // Let a be starting address of the weights and N number of weights.
+        // Let b be the address of the last real weight, i.e., b = a + (N-1), for dtype size = 1.
+        // If  (b%8)==7, we are done. Otherwise we need to add x so that (b+x)%8==7.
+        // (b + x) % 8 = [(b%8)+(x%8)] % 8 = [b%8 + x] % 8.
+        // So [b%8 + x]%8 = 7. However, b%8 + x < 8, so x = 7 - b%8
+        //
+        // For size=2 (fp16), b = a + N*2, and we want b%8=6. Similarly, x = 6 - b%8
+        //
+        // This calculation should also take into account perf-mode for int8, so that the
+        // last address for int8 in any perf mode is 8*n+6 as in fp16 mode.
+
+        enum { OCTET_SIZE = 8 };
+        const kcc_int32 dtypeSize               = inDtype.gSizeInBytes();
+        const kcc_int32 realNumWeights          = matmulWaveop->gOfmapCount();
+        const kcc_int32 realLastAddressInSbPart = addressInSbPart + (realNumWeights - 1) * dtypeSize;
+        const kcc_int32 deltaAddress            = (OCTET_SIZE - dtypeSize) - (realLastAddressInSbPart % OCTET_SIZE);
+        Assert(deltaAddress >= 0, "Delta address for extra weights must be non-negative, but it is ", deltaAddress);
+        const kcc_int32 newLastAddressInSbPart  = realLastAddressInSbPart + deltaAddress;
+        Assert(newLastAddressInSbPart % OCTET_SIZE == OCTET_SIZE - dtypeSize,
+            "(New LdWeights address) % ", OCTET_SIZE, " is ", newLastAddressInSbPart % OCTET_SIZE, " should be ", OCTET_SIZE - dtypeSize);
+        const kcc_int32 deltaNumWeights         = deltaAddress / dtypeSize;
+        const kcc_int32 newNumWeights           = realNumWeights + deltaNumWeights;
+
+        ldweightsInstr.src_mem_pattern.start_addr           = newLastAddressInSbPart;
+        ldweightsInstr.src_mem_pattern.step_elem[PatDim_X]  = -1; // last column goes first, so decrement
+        ldweightsInstr.src_mem_pattern.num_elem[PatDim_X]   = newNumWeights;
+        ldweightsInstr.num_active_cols                      = newNumWeights;
+    }
 
     ldweightsInstr.num_active_rows              = matmulWaveop->gIfmapCount();
-    ldweightsInstr.num_active_cols              = matmulWaveop->gOfmapCount();
 
     ldweightsInstr.inst_events.wait_event_idx   = 0;
     ldweightsInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
