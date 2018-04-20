@@ -1602,7 +1602,7 @@ class FusedOp(list):
             else:
                 self.has_join = True
                 self.join_op = op
-                if (op.prev[0] == self[-1]):
+                if (len(self) > 0 and op.prev[0] == self[-1]):
                     self.join_op.residue_index = 1
         elif (op.data['layer_type'] == 'BiasAdd'):
             if (self.has_biasadd):
