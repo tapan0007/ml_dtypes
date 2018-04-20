@@ -59,17 +59,17 @@ InitSync(TONGA_ISA_TPB_INST_EVENTS& inst_events)
 void
 InitHeader (TONGA_ISA_TPB_INST_HEADER& header, TONGA_ISA_TPB_OPCODE opcode, uint8_t sz)
 {
-    header.opcode = opcode;
+    header.opcode           = opcode;
     Assert((sz % BYTES_PER_WORD) == 0, "Instruction size must be integral multiple of word size");
-    header.inst_word_len = sz / BYTES_PER_WORD;
-    header.debug_level = 0;
-    header.sw_reserved = 0;
+    header.inst_word_len    = sz / BYTES_PER_WORD;
+    header.debug_cmd        = 0;
+    header.debug_hint       = 0;
 }
 
 void
 AllInstructions()
 {
-    ActivateInstr          actInstr;
+    ActivateInstr           actInstr;
     CastInstr               castInstr;
     ClearInstr              clearInstr;
     CopyInstr               copyInstr;
