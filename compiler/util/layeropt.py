@@ -601,16 +601,19 @@ class CircularBuffer:
             # make atom size multiple of width data length if it is smaller than default atom size
             # For FP32, use initial atom of 2KB to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
             elif (ifmap_width_data_len <= self.atom_sz):
-                multiple = self.atom_sz // ifmap_width_data_len
-                multiple = min(H, multiple)
-                # eliminate skip atoms by requiring atom size is multiple of tile size 
-                ofmap_full_tiley_sz = fmap_full_tiley_sz//stride_sz
-                if (fmap_full_tiley_sz != 0):
-                    if (fmap_full_tiley_sz < multiple):
-                        multiple = (multiple//fmap_full_tiley_sz) * fmap_full_tiley_sz
-                    elif (ofmap_full_tiley_sz < multiple):
-                        multiple = (multiple//ofmap_full_tiley_sz) * ofmap_full_tiley_sz
-                self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
+                if (args.abstract_mem):
+                    self.atom_data_sz = ifmap_width_data_len * fmap_full_tiley_sz
+                else:
+                    multiple = self.atom_sz // ifmap_width_data_len
+                    multiple = min(H, multiple)
+                    # eliminate skip atoms by requiring atom size is multiple of tile size 
+                    ofmap_full_tiley_sz = fmap_full_tiley_sz//stride_sz
+                    if (fmap_full_tiley_sz != 0):
+                        if (fmap_full_tiley_sz < multiple):
+                            multiple = (multiple//fmap_full_tiley_sz) * fmap_full_tiley_sz
+                        elif (ofmap_full_tiley_sz < multiple):
+                            multiple = (multiple//ofmap_full_tiley_sz) * ofmap_full_tiley_sz
+                    self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
                 #if (stride_sz > 1 or filter_sz > 1):
                 #    self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_data_sz))
                 #    print("Reserve %d as spare atoms"%self.need_spare_atoms)
@@ -619,7 +622,7 @@ class CircularBuffer:
             else:
                 self.atom_data_sz = self.atom_sz
             # need spare atoms for the case that OFMAP tile needs overlaps in IFMAP tile                            
-            if (stride_sz > 1 or filter_sz > 1):
+            if (stride_sz > 1 or filter_sz > 1) and not args.abstract_mem:
                 self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_data_sz))
                 print("Reserve %d as spare atoms"%self.need_spare_atoms)
                 if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
@@ -692,7 +695,10 @@ class CircularBuffer:
             simout_file = self.dram_data_in_file.replace("-midout.", ".")
         else:            
             simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
-        waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
+        if args.abstract_mem:
+            waveop_name = simout_file + "_%d"%(chunk_id)
+        else:            
+            waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
         sb_addr = self.start + atom_id*self.atom_sz
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
@@ -701,7 +707,7 @@ class CircularBuffer:
                 # SB WAW dependency for weights
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
                 # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "":
+                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "" and not args.abstract_mem:
                     previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
                     tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
                     break
@@ -710,13 +716,13 @@ class CircularBuffer:
         # (SB WAR dependency doesn't exist for bias region since it is read-only)
         # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
         if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
-            if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0):
+            if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0 and not args.abstract_mem):
                 previous_waveops.append(self.last_biasweight_waveop)
             self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         # DRAM RAW dependency for scratch (OFMAPS)
         # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-        if (chunk_name in tpb.statebuffer.chunk2saved_map):
+        if (chunk_name in tpb.statebuffer.chunk2saved_map and not args.abstract_mem):
             previous_waveops.append(tpb.statebuffer.chunk2saved_map[chunk_name])
         if (args.debug > 2): print("LOAD FROM DRAM: region %s layer %s file %s start %d length %d fmap_count %d fmap_data_len %d"%(self.circbuf_type, self.layer_name, simout_file, offset_in_file, length, fmap_count, fmap_data_len))
         return {
@@ -762,7 +768,10 @@ class CircularBuffer:
         # use "simout" tag for Back-end/Inkling result file
         assert(self.dram_data_out_file != None)
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
-        waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
+        if args.abstract_mem:
+            waveop_name = simout_file + "_%d"%(chunk_id)
+        else:            
+            waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         self.parent.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
         self.parent.outfile2atomsz_map[self.dram_data_out_file] = self.atom_sz
         fmap_count = ofmap_count*((tile_id.m_id%2)+1)
@@ -863,10 +872,12 @@ class CircularBuffer:
             # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop, or the writing waveop feeding the depending waveop)
             prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, lower_addr_chunked)
             if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, lower_addr_chunked, atom_id))
-            if (prev_consumer != None):
+            if (prev_consumer != None and not args.abstract_mem):
                 dram_waveops[-1]["previous_waveops"].append(prev_consumer)
         else:
             atom_id = self.chunk2atom_map[lower_addr_chunked]
+            if args.abstract_mem:
+                dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, lower_addr_chunked, ifmap_count, ifmaps_replicate))
             if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, lower_addr_chunked, atom_id));
         # allocate the remaining chunks
         # check whether chunk is already in the spares
@@ -881,6 +892,8 @@ class CircularBuffer:
                 if (args.debug > 2): print("%s: reusing atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, atom_id, i, lower_addr, upper_addr))
             elif i in self.chunk2atom_map:
                 atom_id = self.chunk2atom_map[i]
+                if args.abstract_mem:
+                    dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
                 if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, i, atom_id));
             else:
                 if (self.is_a_spare_atom(self.circbuf_ptrs.get(CircbufPtrs.TAIL))):
@@ -919,7 +932,7 @@ class CircularBuffer:
                         if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                         # SB WAW dependency for general region at atom/chunk granularity
                         prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, i)
-                        if (prev_consumer != None):
+                        if (prev_consumer != None and not args.abstract_mem):
                             dram_waveops[-1]["previous_waveops"].append(prev_consumer)
                         if (self.skipped[atom_id]):
                             self.skipped[atom_id] = False
@@ -963,13 +976,14 @@ class CircularBuffer:
                 prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, i)
                 if (args.debug > 2): print("%s: writing chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                 # for WAR dependencies, check for DRAM reading from same SB atom as the destination
-                if prev_consumer is not None:
-                    waveop["previous_waveops"].append(prev_consumer)
-                elif self.consumer_of_freed_atom_old is not None:
-                    atom_id_converted = atom_id//self.old2new_atom_sz_ratio
-                    if self.consumer_of_freed_atom_old[atom_id_converted] is not None:
-                        waveop["previous_waveops"].append(self.consumer_of_freed_atom_old[atom_id_converted])
-                        self.consumer_of_freed_atom_old[atom_id_converted] = None
+                if not args.abstract_mem:
+                    if prev_consumer is not None:
+                        waveop["previous_waveops"].append(prev_consumer)
+                    elif self.consumer_of_freed_atom_old is not None:
+                        atom_id_converted = atom_id//self.old2new_atom_sz_ratio
+                        if self.consumer_of_freed_atom_old[atom_id_converted] is not None:
+                            waveop["previous_waveops"].append(self.consumer_of_freed_atom_old[atom_id_converted])
+                            self.consumer_of_freed_atom_old[atom_id_converted] = None
         # assuming that we always write to the last piece of atom last, when 
         # there's a write to last piece of atom, trigger to dump to DRAM and deallocate atom
         # TODO: optimize by keep some atoms between layers
@@ -983,6 +997,7 @@ class CircularBuffer:
                 if (self.is_in_kickout_range(atom_id) 
                         or self.layer_type == "Output"
                         or args.save_layer_output
+                        or args.abstract_mem
                         #or self.item_sz == 2
                         or (self.num_kickout_atoms > 0 and self.item_sz == 4)    # Hack to make FP32 work (not optimal for performance)
                         ):
@@ -1513,11 +1528,14 @@ class WaveopStream(list):
     def append_check(self, item):
         item_name = item['waveop_name']
         i = 0
-        while (item_name in self.waveop_name_set):
-            new_name = item_name + "__" + str(i)
-            print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
-            item_name = new_name
-            i += 1
+        if args.abstract_mem and item_name in self.waveop_name_set:
+            return
+        else:
+            while (item_name in self.waveop_name_set):
+                new_name = item_name + "__" + str(i)
+                print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
+                item_name = new_name
+                i += 1
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                
         self.append(item)
@@ -2703,6 +2721,9 @@ class TPBSched:
                                     exit(-1)
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
+                        if args.abstract_mem:
+                            if len(dram_output_waveops) > 0:
+                                self.waveop_stream.last_main_waveop = None
 
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
@@ -2894,6 +2915,9 @@ class TPBSched:
                                     exit(-1)
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
+                        if args.abstract_mem:
+                            if len(dram_output_waveops) > 0:
+                                self.waveop_stream.last_main_waveop = None
 
         # save layer results to file, for retrieval by next layer                        
 
@@ -3028,6 +3052,10 @@ class TPBSched:
                                     exit(-1)
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
+                        if args.abstract_mem:
+                            if len(dram_output_waveops) > 0:
+                                self.waveop_stream.last_main_waveop = None
+
                         if (m_id+1 == tile_id.m or m_id%2 == 1):
                             self.statebuffer.circbuf_scratch.free_data_region(
                                                         output_params_op.ofmap_tile_lower_addr[0], 
@@ -3095,6 +3123,7 @@ if __name__ == "__main__":
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     parser.add_argument("--dump_pearray_inputs", type=int, default=0, help="Dump PEArray inputs for N number of waves")
     parser.add_argument("--save_layer_output", action='store_true', help="Save intermediate layer output into files")
+    parser.add_argument("--abstract_mem", action='store_true', help="Keep data chunks as abstract objects")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
