@@ -1,10 +1,10 @@
 
 
-
-
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/datatype.hpp"
 
 #include "compisa/inc/compisatensortensorop.hpp"
+#include "compisa/inc/compisatensorreduceop.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "arch/inc/psumbuffer.hpp"
@@ -17,61 +17,80 @@
 namespace kcc {
 namespace wavecode {
 
+/**********************************************************************
+**********************************************************************/
 WaveCodeResAdd::WaveCodeResAdd(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
 {}
 
 
-
+/**********************************************************************
+**********************************************************************/
 void
 WaveCodeResAdd::generate(wave::WaveOp* waveOp)
 {
     auto resaddWaveop = dynamic_cast<wave::ResAddWaveOp*>(waveOp);
     assert(resaddWaveop);
 
+    if (resaddWaveop->qSrcAIsPsum() != resaddWaveop->qSrcBIsPsum()) {
+        generateDiffBufSrc(resaddWaveop);
+    } else {
+        generateSameBufSrc(resaddWaveop);
+    }
+}
+
+/**********************************************************************
+**********************************************************************/
+void
+WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
+{
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
     const arch::StateBuffer& stateBuf(arch.gStateBuffer());
 
     const EngineId engineId = resaddWaveop->gEngineId();
-    Assert(EngineId::Pooling == engineId, "Engine id for Pool should be Pooling");
+    Assert(EngineId::Pooling == engineId, "Engine id for ResAdd should be Pooling");
 
-    Assert(resaddWaveop->qSrcAIsPsum() != resaddWaveop->qSrcBIsPsum(), "In ResAdd one source must be PSUM and another SB");
+    //-----------------------------------------------------------------
+    compisa::TensorTensorOpInstr tensortensorInstr;
 
-    compisa::TensorTensorOpInstr resaddInstr;
+    TONGA_ISA_TPB_DTYPE& SrcADtype(resaddWaveop->qSrcAIsPsum() ? tensortensorInstr.in_psum_buf_dtype : tensortensorInstr.in_state_buf_dtype);
+    TONGA_ISA_TPB_DTYPE& SrcBDtype(resaddWaveop->qSrcBIsPsum() ? tensortensorInstr.in_psum_buf_dtype : tensortensorInstr.in_state_buf_dtype);
 
-    TONGA_ISA_TPB_DTYPE& SrcADtype(resaddWaveop->qSrcAIsPsum() ? resaddInstr.in_psum_buf_dtype : resaddInstr.in_state_buf_dtype);
-    TONGA_ISA_TPB_DTYPE& SrcBDtype(resaddWaveop->qSrcBIsPsum() ? resaddInstr.in_psum_buf_dtype : resaddInstr.in_state_buf_dtype);
-
+    //-----------------------------------------------------------------
     SrcADtype = resaddWaveop->gInADtype().gSimTypeId();
     SrcBDtype = resaddWaveop->gInBDtype().gSimTypeId();
 
-    resaddInstr.out_dtype           = resaddWaveop->gOutDtype().gSimTypeId();
+    tensortensorInstr.out_dtype           = resaddWaveop->gOutDtype().gSimTypeId();
 
-    resaddInstr.num_active_channels = resaddWaveop->gNumPartitions();
-    if (resaddWaveop->gMultiply()) {    /* Hack in ResAdd to get Multiply to work with old ISA */
-        resaddInstr.op = TONGA_ISA_TPB_ALU_OP_MULT;
+    tensortensorInstr.num_active_channels = resaddWaveop->gNumPartitions();
+    if (resaddWaveop->gMultiply()) {
+        tensortensorInstr.op = TONGA_ISA_TPB_ALU_OP_MULT;
     } else {
-        resaddInstr.op = TONGA_ISA_TPB_ALU_OP_ADD;
+        tensortensorInstr.op = TONGA_ISA_TPB_ALU_OP_ADD;
     }
 
 
-    // SrcA
-    initMemAccess(resaddInstr.src_psum_buf_mem_pattern);
-    initMemAccess(resaddInstr.src_state_buf_mem_pattern);
-
-
+    //-----------------------------------------------------------------
     TONGA_ISA_TPB_MEM_ACCESS_3D& SrcAPat(resaddWaveop->qSrcAIsPsum()
-                                         ? resaddInstr.src_psum_buf_mem_pattern
-                                         : resaddInstr.src_state_buf_mem_pattern);
+                                         ? tensortensorInstr.src_psum_buf_mem_pattern
+                                         : tensortensorInstr.src_state_buf_mem_pattern);
+    initMemAccess(SrcAPat);
+    TONGA_ISA_TPB_MEM_ACCESS_3D& SrcBPat(resaddWaveop->qSrcBIsPsum()
+                                         ? tensortensorInstr.src_psum_buf_mem_pattern
+                                         : tensortensorInstr.src_state_buf_mem_pattern);
+    initMemAccess(SrcBPat);
+
+    //-----------------------------------------------------------------
+    // SrcA
     if (resaddWaveop->qSrcAIsPsum()) {
-        resaddInstr.src_psum_buf_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcAPsumBankId(),
-                                                                    resaddWaveop->gSrcAPsumBankOffset(),
-                                                                    resaddWaveop->gInADtype());
+        SrcAPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcAPsumBankId(),
+                                                       resaddWaveop->gSrcAPsumBankOffset(),
+                                                       resaddWaveop->gInADtype());
     } else {
-        resaddInstr.src_state_buf_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(
-                                                                    arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcAStartAtMidPart(),
-                                                                    resaddWaveop->gSrcASbAddress());
+        SrcAPat.start_addr  = stateBuf.gEntryTpbAddress(
+                                        arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcAStartAtMidPart(),
+                                        resaddWaveop->gSrcASbAddress());
     }
     SrcAPat.step_elem[PatDim_X]    = resaddWaveop->gSrcAXStep();
     SrcAPat.num_elem[PatDim_X]     = resaddWaveop->gSrcAXNum();
@@ -80,18 +99,16 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     SrcAPat.step_elem[PatDim_Z]    = resaddWaveop->gSrcAZStep();
     SrcAPat.num_elem[PatDim_Z]     = resaddWaveop->gSrcAZNum();
 
+    //-----------------------------------------------------------------
     // SrcB
-    TONGA_ISA_TPB_MEM_ACCESS_3D& SrcBPat(resaddWaveop->qSrcBIsPsum()
-                                         ? resaddInstr.src_psum_buf_mem_pattern
-                                         : resaddInstr.src_state_buf_mem_pattern);
     if (resaddWaveop->qSrcBIsPsum()) {
-        resaddInstr.src_psum_buf_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcBPsumBankId(),
-                                                                    resaddWaveop->gSrcBPsumBankOffset(),
-                                                                    resaddWaveop->gInBDtype());
+        SrcBPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcBPsumBankId(),
+                                                       resaddWaveop->gSrcBPsumBankOffset(),
+                                                       resaddWaveop->gInBDtype());
     } else {
-        resaddInstr.src_state_buf_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(
-                                                                    arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcBStartAtMidPart(),
-                                                                    resaddWaveop->gSrcBSbAddress());
+        SrcBPat.start_addr  = stateBuf.gEntryTpbAddress(
+                                        arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcBStartAtMidPart(),
+                                        resaddWaveop->gSrcBSbAddress());
     }
     SrcBPat.step_elem[PatDim_X]    = resaddWaveop->gSrcBXStep();
     SrcBPat.num_elem[PatDim_X]     = resaddWaveop->gSrcBXNum();
@@ -100,46 +117,175 @@ WaveCodeResAdd::generate(wave::WaveOp* waveOp)
     SrcBPat.step_elem[PatDim_Z]    = resaddWaveop->gSrcBZStep();
     SrcBPat.num_elem[PatDim_Z]     = resaddWaveop->gSrcBZNum();
 
+    //-----------------------------------------------------------------
     // Dst
-    initMemAccess(resaddInstr.dst_mem_pattern);
+    TONGA_ISA_TPB_MEM_ACCESS_3D& DstPat(tensortensorInstr.dst_mem_pattern);
+    initMemAccess(DstPat);
     if (resaddWaveop->qDstIsPsum()) {
-        resaddInstr.dst_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gDstPsumBankId(),
-                                                                 resaddWaveop->gDstPsumBankOffset(),
-                                                                 resaddWaveop->gOutDtype());
+        DstPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gDstPsumBankId(),
+                                                      resaddWaveop->gDstPsumBankOffset(),
+                                                      resaddWaveop->gOutDtype());
     } else {
-        resaddInstr.dst_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(
-                                                            arch.gNumberPeArrayRows()/2 * resaddWaveop->gDstStartAtMidPart(),
-                                                            resaddWaveop->gDstSbAddress());
+        DstPat.start_addr  = stateBuf.gEntryTpbAddress(
+                                        arch.gNumberPeArrayRows()/2 * resaddWaveop->gDstStartAtMidPart(),
+                                        resaddWaveop->gDstSbAddress());
     }
-    resaddInstr.dst_mem_pattern.step_elem[PatDim_X]      = resaddWaveop->gDstXStep();
-    resaddInstr.dst_mem_pattern.num_elem[PatDim_X]       = resaddWaveop->gDstXNum();
-    resaddInstr.dst_mem_pattern.step_elem[PatDim_Y]      = resaddWaveop->gDstYStep();
-    resaddInstr.dst_mem_pattern.num_elem[PatDim_Y]       = resaddWaveop->gDstYNum();
-    resaddInstr.dst_mem_pattern.step_elem[PatDim_Z]      = resaddWaveop->gDstZStep();
-    resaddInstr.dst_mem_pattern.num_elem[PatDim_Z]       = resaddWaveop->gDstZNum();
+    DstPat.step_elem[PatDim_X]      = resaddWaveop->gDstXStep();
+    DstPat.num_elem[PatDim_X]       = resaddWaveop->gDstXNum();
+    DstPat.step_elem[PatDim_Y]      = resaddWaveop->gDstYStep();
+    DstPat.num_elem[PatDim_Y]       = resaddWaveop->gDstYNum();
+    DstPat.step_elem[PatDim_Z]      = resaddWaveop->gDstZStep();
+    DstPat.num_elem[PatDim_Z]       = resaddWaveop->gDstZNum();
 
-    resaddInstr.inst_events.wait_event_idx     = 0;
-    resaddInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    resaddInstr.inst_events.set_event_idx      = 0;
-    resaddInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    //-----------------------------------------------------------------
+    tensortensorInstr.inst_events.wait_event_idx     = 0;
+    tensortensorInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    tensortensorInstr.inst_events.set_event_idx      = 0;
+    tensortensorInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
-        processIncomingEdges(resaddWaveop, resaddInstr.inst_events);
+        processIncomingEdges(resaddWaveop, tensortensorInstr.inst_events);
     } // end incoming events
 
     //************************************************************************
     bool instructionWritten = false;
     if (qParallelStreams()) { // Outgoing events
-        instructionWritten = processOutgoingEdges(resaddWaveop, resaddInstr);
+        instructionWritten = processOutgoingEdges(resaddWaveop, tensortensorInstr);
     }
-
-
     if (! instructionWritten) {
-        m_WaveCode.writeInstruction(resaddInstr);
+        m_WaveCode.writeInstruction(tensortensorInstr);
     }
 }
 
+/**********************************************************************
+**********************************************************************/
+void
+WaveCodeResAdd::generateSameBufSrc(wave::ResAddWaveOp* resaddWaveop)
+{
+    const arch::Arch& arch(arch::Arch::gArch());
+    const arch::PsumBuffer& psumBuf(arch.gPsumBuffer());
+    const arch::StateBuffer& stateBuf(arch.gStateBuffer());
+
+    const EngineId engineId = resaddWaveop->gEngineId();
+    Assert(EngineId::Pooling == engineId, "Engine id for ResAdd should be Pooling");
+
+    //-----------------------------------------------------------------
+    compisa::TensorReduceOpInstr tensorReduceInstr;
+
+    Assert(resaddWaveop->gInADtype().gSimTypeId() == resaddWaveop->gInBDtype().gSimTypeId(),
+        "ResAdd waveop that has sources in one buffer cannot have different data types");
+    Assert(resaddWaveop->gSrcAXNum() == resaddWaveop->gSrcBXNum(),
+        "When tensors for ResAdd are in the same buffer, X count must be equal");
+    Assert(resaddWaveop->gSrcAYNum() == resaddWaveop->gSrcBYNum(),
+        "When tensors for ResAdd are in the same buffer, Y count must be equal");
+    Assert(resaddWaveop->gSrcAZNum() == resaddWaveop->gSrcBZNum(),
+        "When tensors for ResAdd are in the same buffer, Z count must be equal");
+    Assert(resaddWaveop->gSrcAXStep() == resaddWaveop->gSrcBXStep(),
+        "When tensors for ResAdd are in the same buffer, X step must be equal");
+    Assert(resaddWaveop->gSrcAYStep() == resaddWaveop->gSrcBYStep(),
+        "When tensors for ResAdd are in the same buffer, Y step must be equal");
+    Assert(resaddWaveop->gSrcAZStep() == resaddWaveop->gSrcBZStep(),
+        "When tensors for ResAdd are in the same buffer, Z step must be equal");
+
+    //-----------------------------------------------------------------
+    const utils::DataType& inDtype(resaddWaveop->gInADtype());
+    tensorReduceInstr.in_dtype  = inDtype.gSimTypeId();
+    tensorReduceInstr.out_dtype = resaddWaveop->gOutDtype().gSimTypeId();
+    tensorReduceInstr.num_active_channels = resaddWaveop->gNumPartitions();
+    if (resaddWaveop->gMultiply()) {
+        tensorReduceInstr.op = TONGA_ISA_TPB_ALU_OP_MULT;
+    } else {
+        tensorReduceInstr.op = TONGA_ISA_TPB_ALU_OP_ADD;
+    }
+
+    //-----------------------------------------------------------------
+    tensorReduceInstr.op_dim = TONGA_ISA_TPB_TENSOR_SUBDIM_X;
+
+    //-----------------------------------------------------------------
+    TONGA_ISA_TPB_MEM_ACCESS_4D& srcPat(tensorReduceInstr.src_mem_pattern);
+    initMemAccess(srcPat);
+
+    kcc_int64 addrA;
+    kcc_int64 addrB;
+    if (resaddWaveop->qSrcAIsPsum()) {
+        addrA = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcAPsumBankId(),
+                                                         resaddWaveop->gSrcAPsumBankOffset(),
+                                                         resaddWaveop->gInADtype());
+        addrB = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcBPsumBankId(),
+                                                         resaddWaveop->gSrcBPsumBankOffset(),
+                                                         resaddWaveop->gInBDtype());
+    } else {
+        addrA = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcAStartAtMidPart(),
+                                          resaddWaveop->gSrcASbAddress());
+        addrB = stateBuf.gEntryTpbAddress(arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcBStartAtMidPart(),
+                                          resaddWaveop->gSrcBSbAddress());
+    }
+    kcc_int64 deltaAddr;
+    if (addrA < addrB) {
+        srcPat.start_addr  = addrA;
+        deltaAddr = addrB - addrA;
+    } else {
+        srcPat.start_addr  = addrB;
+        deltaAddr = addrA - addrB;
+    }
+    const kcc_int32 inDtypeSize = inDtype.gSizeInBytes();
+    Assert((deltaAddr % inDtypeSize) == 0,
+            "ResAdd from same buffer: delta address is not multiple of data size");
+
+    srcPat.step_elem[PatDim_X]  = deltaAddr/inDtypeSize;
+    srcPat.num_elem[PatDim_X]   = 2; // reduction of 2 tensors is on X
+    srcPat.step_elem[PatDim_Y]  = resaddWaveop->gSrcAXStep();
+    srcPat.num_elem[PatDim_Y]   = resaddWaveop->gSrcAXNum();
+    srcPat.step_elem[PatDim_Z]  = resaddWaveop->gSrcAYStep();
+    srcPat.num_elem[PatDim_Z]   = resaddWaveop->gSrcAYNum();
+    srcPat.step_elem[PatDim_W]  = resaddWaveop->gSrcAZStep();
+    srcPat.num_elem[PatDim_W]   = resaddWaveop->gSrcAZNum();
+
+    //-----------------------------------------------------------------
+    TONGA_ISA_TPB_MEM_ACCESS_4D& dstPat(tensorReduceInstr.dst_mem_pattern);
+    initMemAccess(dstPat);
+
+    if (resaddWaveop->qDstIsPsum()) {
+        dstPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gDstPsumBankId(),
+                                                      resaddWaveop->gDstPsumBankOffset(),
+                                                      resaddWaveop->gOutDtype());
+    } else {
+        dstPat.start_addr  = stateBuf.gEntryTpbAddress(
+                                        arch.gNumberPeArrayRows()/2 * resaddWaveop->gDstStartAtMidPart(),
+                                        resaddWaveop->gDstSbAddress());
+    }
+
+    dstPat.step_elem[PatDim_X]  = 0; // Destination pattern should be 3D
+    dstPat.num_elem[PatDim_X]   = 1;
+    dstPat.step_elem[PatDim_Y]  = resaddWaveop->gDstXStep();
+    dstPat.num_elem[PatDim_Y]   = resaddWaveop->gDstXNum();
+    dstPat.step_elem[PatDim_Z]  = resaddWaveop->gDstYStep();
+    dstPat.num_elem[PatDim_Z]   = resaddWaveop->gDstYNum();
+    dstPat.step_elem[PatDim_W]  = resaddWaveop->gDstZStep();
+    dstPat.num_elem[PatDim_W]   = resaddWaveop->gDstZNum();
+
+
+    //-----------------------------------------------------------------
+    tensorReduceInstr.inst_events.wait_event_idx     = 0;
+    tensorReduceInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    tensorReduceInstr.inst_events.set_event_idx      = 0;
+    tensorReduceInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+
+    //************************************************************************
+    if (qParallelStreams()) { // incoming events
+        processIncomingEdges(resaddWaveop, tensorReduceInstr.inst_events);
+    } // end incoming events
+
+    //************************************************************************
+    bool instructionWritten = false;
+    if (qParallelStreams()) { // Outgoing events
+        instructionWritten = processOutgoingEdges(resaddWaveop, tensorReduceInstr);
+    }
+    if (! instructionWritten) {
+        m_WaveCode.writeInstruction(tensorReduceInstr);
+    }
+}
 
 }}
 
