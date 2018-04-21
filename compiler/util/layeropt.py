@@ -6,7 +6,8 @@ import numpy as np
 import copy
 import argparse
 import inspect
-from layeropt_utils import CircbufPtrs
+from layeropt_utils import CircbufPtrs 
+from layeropt_utils import ShapeDims
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 from enum import Enum
@@ -550,6 +551,8 @@ class CircularBuffer:
         else:
             if (self.layer_format == 'NCHW'):
                 N, C, H, W = self.dram_data.shape
+            elif (self.layer_format == 'HNWC'):
+                H, N, W, C = self.dram_data.shape
             elif (self.layer_format == 'NC'):
                 N, C = self.dram_data.shape
                 H, W = 1, 1
@@ -569,6 +572,8 @@ class CircularBuffer:
             # layer_shape is the ofmap_shape, in the format of N, M, E, F
             if (self.layer_format == 'NCHW' or self.layer_format == 'CNHW'):
                 self.ofmap_data_len = self.layer_shape[2]*self.layer_shape[3]*self.item_sz
+            elif (self.layer_format == 'HNWC'):
+                self.ofmap_data_len = self.layer_shape[0]*self.layer_shape[2]*self.item_sz
             elif (self.layer_format == 'NC' or self.layer_format == 'C'):
                 self.ofmap_data_len = self.item_sz
             ifmap_width_data_len = W * self.item_sz
@@ -1094,6 +1099,7 @@ class KNode:
         self.is_const = False
         self.is_join = False
         self.residue_index = 0
+        self.shape_dims = None
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
@@ -1126,6 +1132,7 @@ class KNode:
             if i.data['layer_type'] != "Const":
                 input_layer = i.data
                 break
+        self.shape_dims = ShapeDims(input_layer['ofmap_format'], input_layer['ofmap_shape'])            
         self.ifmap_shape = input_layer['ofmap_shape']
         self.internal_ifmap_shape = input_layer['ofmap_shape']
         if (input_layer['ofmap_format'] == 'NCHW'):

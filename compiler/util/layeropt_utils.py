@@ -104,5 +104,87 @@ class TestCircbufPtrsMethods(unittest.TestCase):
                     else:                            
                         self.assertLess (test_obj.advance(CircbufPtrs.TAIL), capacity)
 
+
+# Class to manage N-dimensional shapes
+
+class ShapeDims():
+    supported_dims = set(["N", "H", "W", "C", "M", "R", "S"])
+
+    def __init__(self, format_str, shape_tuple):
+        var_list = vars(self)            
+        self.dim = {}
+        self.axis = {}
+        self.format_str = format_str
+        self.shape_tuple = shape_tuple
+        if (len(format_str) != len(shape_tuple)):
+            raise RuntimeError("ERROR ShapeDims: format_str %s doesn't have the same length as shape_tuple %s"%(format_str, ",".join(shape_tuple)))
+        for d in self.supported_dims:
+            var_list[d] = 1
+            var_list[d+"_axis"] = -1
+            self.dim[d] = 1
+            self.axis[d] = -1
+        for i in range(len(format_str)):
+            if format_str[i] not in self.supported_dims:
+                raise RuntimeError("ERROR ShapeDims: format_str char %s is not supported (supported list %s)"%(format_str[i], ",".join(self.supported_dims)))
+            #if format_str[i] in self.dim:
+            #    raise RuntimeError("ERROR ShapeDims: duplicate format_str char %s (format_st %s)"%(format_str[i], format_str))
+            var_list[format_str[i]] = shape_tuple[i]
+            var_list[format_str[i]+"_axis"] = i
+            self.dim[format_str[i]] = shape_tuple[i]
+            self.axis[format_str[i]] = i
+
+    def check_format_str(self, format_str):
+        if (format_str != self.format_str):
+            raise RuntimeError("ERROR ShapeDims: format_str %s doesn't match initialized format %s"%(format_str, self.format_str))
+
+    def check_shape(self, shape_tuple):
+        if (shape_tuple != self.shape_tuple):
+            raise RuntimeError("ERROR ShapeDims: shape_tuple %s doesn't match %s"%(",".join(shape_tuple), ",".join(self.shape_tuple)))
+
+    # from a window (subshape), extract start/end offsets
+    def get_startend_for_subshape(self, subshape_tuple):        
+        pass
+
+    # get the size of per-partition chunk size that is less than size limit
+    def compute_fmap_params(self, item_sz, chunk_sz_limit):
+        self.item_sz = item_sz
+        self.chunk_sz_limit = chunk_sz_limit
+        pass
+
+class TestShapeDims(unittest.TestCase):
+    def test_instantiation_and_retrieval(self):
+        test_obj = ShapeDims("NHWC", [10,20,30,40]) 
+        self.assertEqual(test_obj.N, 10)
+        self.assertEqual(test_obj.H, 20)
+        self.assertEqual(test_obj.W, 30)
+        self.assertEqual(test_obj.C, 40)
+        self.assertEqual(test_obj.N_axis, 0)
+        self.assertEqual(test_obj.H_axis, 1)
+        self.assertEqual(test_obj.W_axis, 2)
+        self.assertEqual(test_obj.C_axis, 3)
+        test_obj = ShapeDims("WHCN", [100,200,300,400]) 
+        self.assertEqual(test_obj.dim["N"], 400)
+        self.assertEqual(test_obj.dim["H"], 200)
+        self.assertEqual(test_obj.dim["W"], 100)
+        self.assertEqual(test_obj.dim["C"], 300)
+        self.assertEqual(test_obj.dim["M"], 1)
+        self.assertEqual(test_obj.dim["R"], 1)
+        self.assertEqual(test_obj.dim["S"], 1)
+        self.assertEqual(test_obj.axis["N"], 3)
+        self.assertEqual(test_obj.axis["H"], 1)
+        self.assertEqual(test_obj.axis["W"], 0)
+        self.assertEqual(test_obj.axis["C"], 2)
+        self.assertEqual(test_obj.axis["M"], -1)
+        self.assertEqual(test_obj.axis["R"], -1)
+        self.assertEqual(test_obj.axis["S"], -1)
+        with self.assertRaises(RuntimeError):
+            test_obj = ShapeDims("XHWC", [10,20,30,40]) 
+        #with self.assertRaises(RuntimeError):
+        #    test_obj = ShapeDims("CHWC", [10,20,30,40], 1) 
+        with self.assertRaises(RuntimeError):
+            test_obj = ShapeDims("CHWNX", [10,20,30,40], 1) 
+        with self.assertRaises(RuntimeError):
+            test_obj = ShapeDims("CHWC", [1,10,20,30,40], 1) 
+
 if __name__ == '__main__':
     unittest.main()
