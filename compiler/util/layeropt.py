@@ -2906,6 +2906,7 @@ class TPBSched:
                                                         pool_op.ofmap_tile_upper_addr[z], 
                                                         pool_op.ofmap_count, 
                                                         self.waveop_stream.last_main_waveop)
+                        if (args.debug > 3): print("TRACE execute_unfused_pool_op %s: tile %s done, input region type %s start %d ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, output region type %s start %d ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(pool_op.data["layer_name"], tile_id.id_string(), self.statebuffer.circbuf_ifmaps.circbuf_type, self.statebuffer.circbuf_ifmaps.start, pool_op.ifmap_wave_lower_addr[0], pool_op.ifmap_wave_upper_addr[0], -1, self.statebuffer.circbuf_scratch.circbuf_type, self.statebuffer.circbuf_scratch.start, pool_op.ofmap_tile_lower_addr[0], pool_op.ofmap_tile_upper_addr[0]))
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool" 
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
@@ -3044,6 +3045,7 @@ class TPBSched:
                                                         output_params_op.ofmap_tile_upper_addr[z], 
                                                         output_params_op.ofmap_count,
                                                         self.waveop_stream.last_psum_waveop[psum_bank_src])
+                        if (args.debug > 3): print("TRACE execute_conv_ops %s: tile %s done, input region type %s start %d ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, output region type %s start %d ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(op_list[-1].data["layer_name"], tile_id.id_string(), self.statebuffer.circbuf_ifmaps.circbuf_type, self.statebuffer.circbuf_ifmaps.start, op_list.conv_op.ifmap_tile_lower_addr[0], op_list.conv_op.ifmap_tile_upper_addr[0], psum_bank_src, self.statebuffer.circbuf_scratch.circbuf_type, self.statebuffer.circbuf_scratch.start, output_params_op.ofmap_tile_lower_addr[0], output_params_op.ofmap_tile_upper_addr[0]))
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "Pool"
                                 or self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "Activation"

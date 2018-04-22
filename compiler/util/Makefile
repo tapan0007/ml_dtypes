@@ -26,6 +26,6 @@ check:
 	sanity
 
 %: 
-	@echo "******************* $* (layeropt_tests/$*/$*.log) ********************" && cd layeropt_tests/$* && if [ -e compiler.json ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 3 --kgraph compiler.json --wavegraph trivnet_wavegraph.json --dot trivnet_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi
+	@echo "******************* $* (layeropt_tests/$*/$*.log) ********************" && cd layeropt_tests/$* && if [ -e compiler.json ]; then python3 $(KAENA_PATH)/compiler/util/layeropt.py --debug 4 --kgraph compiler.json --wavegraph trivnet_wavegraph.json --dot trivnet_wavegraph.plain > $*.log && grep -e ERROR -e PASS -e FAIL $*.log; fi
 
 
