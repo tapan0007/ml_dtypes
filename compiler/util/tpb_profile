@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--log', help='Inkling debug log file (seenv SIM_DEBUG all; RunAll ...)', default=None)
+parser.add_argument('--tpb', help='Tpb binary program files named ...-pe.tpb, ..-act.tpb', nargs='+', default=[])
 parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
 parser.add_argument('--show', help='Invoke interactive viewer', action='store_true', default=False)
 parser.add_argument('--cycle_range', help='Display only activity within the cycle range, default 0 2e6', type=float, nargs=2, default=[0,2e6])
@@ -17,6 +18,68 @@ parser.add_argument('--geometry', help='Output size width height', type=int, nar
 parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (unused)', type=float, default=0)
 
 args = parser.parse_args()
+
+class Instr:
+  def __init__(self, instrType):
+    self.instrType = instrType
+    self.fields = {}
+  def addField(self, field, value):
+    self.fields[field] = value
+  def getInstrType(self):
+    return self.instrType
+  def getWaveCycles(self):
+    cycles = 0;
+    if self.instrType == 'MATMUL':
+      cycles = self.fields['src_mem_pattern.num_elem[0]'] * self.fields['src_mem_pattern.num_elem[1]'] * self.fields['src_mem_pattern.num_elem[2]']
+    return cycles
+  def getOpCount(self):
+    opCount = 0;
+    if self.instrType == 'MATMUL':
+      waveCycles = self.getWaveCycles()
+      opCount = waveCycles * self.fields['num_active_rows'] * self.fields['num_active_cols']
+    return opCount
+
+class TpbProgram:
+  def __init__(self, tpbFile):
+    self.instructions = []
+    print("INFO: Loading " + tpbFile)
+    with os.popen('$INKLING_PATH/objdump/objdump ' + tpbFile) as fh:
+      instr = None
+      for line in fh:
+        match = re.match('^(\S+) @ (\S+):', line)
+        if match:
+          pc, instrType = match.groups()
+          instr = Instr(instrType)
+          self.instructions.append(instr)
+          assert self.pc2idx(pc) == len(self.instructions) - 1
+        else:
+          match = re.match('^  (\S+) .+: (0x\S+)', line)
+          if match:
+            instrField, value = match.groups()
+            instr.addField(instrField, int(value, 0))
+  def getInstrAt(self, pc):
+    idx = self.pc2idx(pc)
+    if idx < len(self.instructions):
+      return self.instructions[idx]
+    else:
+      return None
+  def pc2idx(self, pc):
+    return int(int(pc, 0)/64)
+
+class TongaProgram:
+  def __init__(self, tongaFiles):
+    self.tpbPrograms = {}
+    for f in tongaFiles:
+      match = re.search('(dma|pe|act|pool)\.tpb', f)
+      if match:
+        engine = match.groups()[0]
+        self.tpbPrograms[engine] = TpbProgram(f)
+  def getInstr(self, engine, pc):
+    tpbProgram = self.tpbPrograms.get(engine, None)
+    instr = None
+    if tpbProgram != None:
+      instr = tpbProgram.getInstrAt(pc)
+    return instr
 
 class InklingEvent(object):
   def __init__(self, cycle, engine, pc, opcode, mode, event):
@@ -27,8 +90,9 @@ class InklingEvent(object):
     self.event = event
 
 class InklingProfile(object):
-  def __init__(self, logFile, verbose, cycleRange, show, geometry):
+  def __init__(self, logFile, tongaProgram, verbose, cycleRange, show, geometry):
     self.logFile = logFile
+    self.tongaProgram = tongaProgram
     self.verbose = verbose
     self.show = show
     self.geometry = geometry
@@ -43,6 +107,8 @@ class InklingProfile(object):
         match = re.match('^(\d+) : tpb\d+\.([^ ]+) : Execute PC=(\S+) opcode=(\S+) set_mode=(\S+) set_event=(\S+)', line)
         if match:
           (cycle, engine, pc, opcode, mode, event) = match.groups()
+          if engine == 'pool_seq':
+            engine = 'pool'
           if int(cycle) >= self.cycleRange[0] and int(cycle) <= self.cycleRange[1]:
             e = InklingEvent(cycle, engine, pc, opcode, mode, event)
             self.events.append(e)
@@ -58,7 +124,7 @@ class InklingProfile(object):
 
   e2c = {
     "pe"    : "red",
-    "pool_seq"  : "orange",
+    "pool"  : "orange",
     "act"   : "blue",
     "angel" : "green",
     }
@@ -68,7 +134,7 @@ class InklingProfile(object):
     return self.numCycles
   
   def plotProfile(self, outFile):
-    ylabels = ["pool_seq", "act", "pe", "angel"]
+    ylabels = ["pool", "act", "pe", "angel"]
     y = [y for y in range(len(ylabels))]
     plt.figure(figsize=(self.geometry))
     plt.yticks(y, ylabels)
@@ -80,7 +146,17 @@ class InklingProfile(object):
       color = self.engine2color(engine)
       yval = ylabels.index(engine)
       xval = int(e.cycle)
+      instr = self.tongaProgram.getInstr(engine, e.pc)
+      #if instr.getInstrType() == 'MATMUL': 
       plt.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+      if instr != None:
+        instrCycles = instr.getWaveCycles()
+        if instrCycles > 1:
+          plt.plot([xval, xval+instrCycles], [yval-0.3, yval-0.3], color=color, linestyle='-', linewidth=2)
+          plt.plot([xval, xval+instrCycles], [yval+0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+          plt.plot([xval+instrCycles, xval+instrCycles], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+          if self.verbose:
+            plt.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
       eventCount += 1
       if eventCount % 100 == 0:
         print("\r%7.3f %%" % (100.0 * eventCount / len(self.events)), end='', flush=True)
@@ -101,7 +177,9 @@ class InklingProfile(object):
       #plt.savefig(outFileZoom)
       #print("INFO: wrote  %s" % (outFileZoom))
 
-p = InklingProfile(args.log, args.verbose, args.cycle_range, args.show, args.geometry)
+tongaProgram = TongaProgram(args.tpb)
+
+p = InklingProfile(args.log, tongaProgram, args.verbose, args.cycle_range, args.show, args.geometry)
 if args.long > 0:
   totalCycles = p.getNumCycles()
   cycleStep = int(args.long)
@@ -112,7 +190,7 @@ if args.long > 0:
     pngs.append(outPng)
     pid = os.fork()
     if pid == 0:
-      pi = InklingProfile(args.log, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry)
+      pi = InklingProfile(args.log, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry)
       pi.plotProfile(outPng)
       sys.exit(0)
     else:
