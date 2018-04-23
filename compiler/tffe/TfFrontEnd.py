@@ -45,6 +45,7 @@ def preprocess(imgFiles, ifmapFile, dtype):
     :return:
     """
 
+
     npArrList = [np.array(_img_to_numpy_array(img, (224, 224), dtype)) for img in imgFiles]
     npArr = np.array(npArrList)
     fmap = npArr.reshape(len(imgFiles), 224, 224, 3)

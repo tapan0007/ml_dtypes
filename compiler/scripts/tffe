@@ -42,7 +42,7 @@ parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb
 parser.add_argument('--out_prefix', help='Prefix for output files', default="out_")
 parser.add_argument('--weights', help='Generate weight files', dest="weights",
                     action="store_true",  default=False)
-parser.add_argument('--images', help='Generate images (IFMAP and OFMAP files) for an input image', dest="images", default=None, nargs='+')
+parser.add_argument('--images', help='Generate images (IFMAP and OFMAP files) for an input image', dest="images", default=[], nargs='+')
 parser.add_argument('--input_constants', help='Additional constants appended to the framework feed dictionary during calibration, key, value, key, value ...', default={})
 parser.add_argument('--depth', help='Depth of layer name hierarchy to show in the dot output',
                     type=int, default=5)
@@ -73,6 +73,8 @@ parser.add_argument('--executors', help='Specifies executors per subgraph, e.g.,
 parser.add_argument('--parallel_streams', help='run execution engines in parallel', action='store_true', default=False)
 parser.add_argument('--preprocessor', help='Specify preprocessor script to be part of inference run', default="")
 parser.add_argument('--postprocessor', help='Specify postprocessor script to be part of inference run', default="")
+parser.add_argument('--preprocessor-args', help='Options to pass to preprocessor', default="")
+parser.add_argument('--postprocessor-args', help='Options to pas to postprocessor', default="")
 parser.add_argument('--exclude_ops_from_capture', help='Regexp for op names that will not be captured. TF errors out when capturing cond-false branch', default=None)
 parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph graphical output more verbose', dest="show_op_name_in_kgraph",
                     action="store_true",  default=False)
@@ -164,7 +166,8 @@ if args.images != None:
     sgId += 1
 
   if ret == 0:
-    KgraphPartitions.attachPrePost(sgJsonList, args.preprocessor, args.postprocessor)
+    KgraphPartitions.attachPrePost(sgJsonList, args.preprocessor, args.postprocessor,
+                                   args.preprocessor_args, args.postprocessor_args)
 
     #package tfpb file in kelf.
     shutil.copy2(tfpbFile, "%s/%s"%(os.getcwd(), "tf.pb"))

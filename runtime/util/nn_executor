@@ -56,8 +56,10 @@ class NnSubgraph:
     self.execOptions = sgJson.get("execOptions", "")
     self.parallel_streams = sgJson.get("parallel_streams", False)
     self.cmd = ""
+    self.cmd_args = ""
     if self.executor == "processor":
       self.cmd = sgJson["cmd"]
+      self.cmd_args = sgJson["cmd_args"]
 
   # Translate and relink npy files that are inputs to this subgraph
   # Each subgraph produces output in the host format. So just rename npy
@@ -157,6 +159,8 @@ class NnSubgraph:
       cmd = "%s/%s/%s" % (kelf_dir, self.sgDir, self.cmd)
 
       cmd += "  --inputs %s" % " ".join(inputs)
+      if self.cmd_args:
+        cmd += " " + self.cmd_args
       OutFile = ""
       if len(self.outputs) > 0:
         OutFile = self.outputs[0]["file"].replace(".npy", "-out.npy")
