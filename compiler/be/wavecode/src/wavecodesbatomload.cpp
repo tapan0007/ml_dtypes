@@ -62,16 +62,16 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveOp->gRefFileName());
     if (npyFileDramOffset < 0) { // Load whole numpy file to DRAM
         compisa::SimWrNpyInstr npyToDramInstr;
-        npyToDramInstr.sync.wait_event_id      = 0;
-        npyToDramInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::DontWait);
-        npyToDramInstr.sync.set_event_id      = 0;
-        npyToDramInstr.sync.set_event_mode    = eventSetMode2Int(events::EventSetMode::DontSet);
+        npyToDramInstr.inst_events.wait_event_idx   = 0;
+        npyToDramInstr.inst_events.wait_event_mode  = eventWaitMode2Isa(events::EventWaitMode::DontWait);
+        npyToDramInstr.inst_events.set_event_idx    = 0;
+        npyToDramInstr.inst_events.set_event_mode   = eventSetMode2Isa(events::EventSetMode::DontSet);
 
         const kcc_int64 numPySize = sbAtomLoadWaveOp->gLoadDataSizeInBytes();
         strcpy(npyToDramInstr.src_fname, sbAtomLoadWaveOp->gRefFileName().c_str());
         npyFileDramOffset           = m_WaveCode.gCurrentDramAddress(numPySize);
 
-        npyToDramInstr.dst_address  = npyFileDramOffset;
+        npyToDramInstr.dst_addr     = npyFileDramOffset;
         m_WaveCode.writeInstruction(npyToDramInstr);
 
         WaveCode::NpyFileInfo npyFileInfo;
@@ -84,10 +84,10 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 
     //************************************************************************
     compisa::SimMemCpyInstr dramToStateBufInstr;
-    dramToStateBufInstr.sync.wait_event_id      = 0;
-    dramToStateBufInstr.sync.wait_event_mode    = eventWaitMode2Int(events::EventWaitMode::DontWait);
-    dramToStateBufInstr.sync.set_event_id       = 0;
-    dramToStateBufInstr.sync.set_event_mode     = eventSetMode2Int(events::EventSetMode::DontSet);
+    dramToStateBufInstr.inst_events.wait_event_idx  = 0;
+    dramToStateBufInstr.inst_events.wait_event_mode = eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    dramToStateBufInstr.inst_events.set_event_idx   = 0;
+    dramToStateBufInstr.inst_events.set_event_mode  = eventSetMode2Isa(events::EventSetMode::DontSet);
 
     events::EventId setEventId = 0; // events::EventId_Invalid();
     events::EventSetMode setEventMode = events::EventSetMode::DontSet;
@@ -117,24 +117,24 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         if (qParallelStreams()) {
-            dramToStateBufInstr.sync.wait_event_id      = 0;
-            dramToStateBufInstr.sync.wait_event_mode    = events::eventWaitMode2Int(events::EventWaitMode::DontWait);
-            dramToStateBufInstr.sync.set_event_id       = 0;
-            dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(events::EventSetMode::DontSet);
+            dramToStateBufInstr.inst_events.wait_event_idx      = 0;
+            dramToStateBufInstr.inst_events.wait_event_mode     = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+            dramToStateBufInstr.inst_events.set_event_idx       = 0;
+            dramToStateBufInstr.inst_events.set_event_mode      = events::eventSetMode2Isa(events::EventSetMode::DontSet);
 
             if (0 == partIdx) { // only the first reading waits for predecessors
-                dramToStateBufInstr.sync.wait_event_id      = waitEventId;
-                dramToStateBufInstr.sync.wait_event_mode    = events::eventWaitMode2Int(waitEventMode);
+                dramToStateBufInstr.inst_events.wait_event_idx  = waitEventId;
+                dramToStateBufInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(waitEventMode);
             }
 
             if (numPartitions-1 == partIdx) { // only the last reading informs successors
-                dramToStateBufInstr.sync.set_event_id       = setEventId;
-                dramToStateBufInstr.sync.set_event_mode     = events::eventSetMode2Int(setEventMode);
+                dramToStateBufInstr.inst_events.set_event_idx   = setEventId;
+                dramToStateBufInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(setEventMode);
             }
         }
 
-        dramToStateBufInstr.src_address = npyFileDramOffset + sbAtomLoadWaveOp->gOffsetInFile() + (partIdx * stepSize);
-        dramToStateBufInstr.dst_address = stateBuf.gEntrySysAddress(partIdx, addressInPart);
+        dramToStateBufInstr.src_addr = npyFileDramOffset + sbAtomLoadWaveOp->gOffsetInFile() + (partIdx * stepSize);
+        dramToStateBufInstr.dst_addr = stateBuf.gEntrySysAddress(partIdx, addressInPart);
 
         m_WaveCode.writeInstruction(dramToStateBufInstr);
     }

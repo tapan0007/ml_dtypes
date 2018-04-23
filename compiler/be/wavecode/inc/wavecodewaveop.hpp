@@ -7,6 +7,7 @@
 #include <cstdio>
 
 
+#include "aws_tonga_isa_tpb_common.h"
 
 #include "compisa/inc/compisaset.hpp"
 #include "compisa/inc/compisaclear.hpp"
@@ -22,6 +23,7 @@
 
 #include "wavecode/inc/wavecode.hpp"
 
+// struct TONGA_ISA_TPB_INST_EVENTS;
 
 namespace kcc {
 
@@ -64,6 +66,12 @@ public:
     }
 
 protected:
+    enum PatDim {
+        PatDim_X = 0,
+        PatDim_Y = 1,
+        PatDim_Z = 2,
+        PatDim_W = 3,
+    };
     void epilogue(const wave::WaveOp* waveOp);
     bool qParallelStreams() const;
 
@@ -76,7 +84,7 @@ protected:
     * 1. Assign embedded wait for one in-edge
     * 2. Issue WAIT instruction for other in-edges
     */
-    void processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync);
+    void processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EVENTS& sync);
 
     /* Process incoming edges for instructions with embedded events (with SYNC)
     * But don't assign embedded events to instruction
@@ -111,14 +119,14 @@ protected:
 
             if (firstEmb) {
                 firstEmb = false;
-                instr.sync.set_event_id    = succWaveEdge->gEventId();
-                instr.sync.set_event_mode  = events::eventSetMode2Int(
+                instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
+                instr.inst_events.set_event_mode  = events::eventSetMode2Isa(
                                                 succWaveEdge->gSetEventMode());
                 m_WaveCode.writeInstruction(instr); // this requires template
                 instructionWritten = true;
             } else {
                 compisa::SetInstr setEventInstr;
-                setEventInstr.event_id = succWaveEdge->gEventId();
+                setEventInstr.event_idx = succWaveEdge->gEventId();
                 m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
             }
         }
@@ -127,6 +135,16 @@ protected:
 
     void writeWaitOrWaitClearInstr(const wave::WaveEdge* edge, EngineId engineId);
 
+
+    template<typename MEM_ACCESS>
+    static void initMemAccess(MEM_ACCESS& mem_pattern) // e.g., TONGA_ISA_TPB_MEM_ACCESS_3D
+    {
+        const int numDims = sizeof(mem_pattern.step_elem)/sizeof(mem_pattern.step_elem[0]);
+        for (int i = 0; i < numDims ; ++i) {
+            mem_pattern.step_elem[i] = 0;
+            mem_pattern.num_elem[i]  = 1;
+        }
+    }
 
 protected:
     WaveCodeRef     m_WaveCode;

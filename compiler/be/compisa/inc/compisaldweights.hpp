@@ -5,7 +5,7 @@
 
 
 
-#include "shared/inc/tpb_isa_ldweights.hpp"
+#include "aws_tonga_isa_tpb_ldweights.h"
 
 #include "compisa/inc/compisacommon.hpp"
 
@@ -17,17 +17,21 @@ namespace kcc {
 namespace compisa {
 
 
-class LdWeightsInstr : public LDWEIGHTS {
+class LdWeightsInstr : public TONGA_ISA_TPB_LDWEIGHTS_INST {
 public:
     static constexpr EngineId engineId = EngineId::PeArray;
 public:
     //----------------------------------------------------------------
     LdWeightsInstr()
-        : LDWEIGHTS()
+        : TONGA_ISA_TPB_LDWEIGHTS_INST()
     {
-        InitSync(sync);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_LDWEIGHTS);
     }
 
+    void CheckValidity() const
+    {
+        tonga_isa_tpb_ldweights_check_validity(this);
+    }
 };
 
 

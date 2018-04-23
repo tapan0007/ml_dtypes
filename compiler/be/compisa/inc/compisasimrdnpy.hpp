@@ -5,7 +5,7 @@
 
 
 
-#include "shared/inc/tpb_isa_simrdnpy.hpp"
+#include "aws_tonga_isa_tpb_sim_rdnpy.h"
 
 #include "compisa/inc/compisacommon.hpp"
 #include "utils/inc/types.hpp"
@@ -16,17 +16,19 @@ namespace kcc {
 namespace compisa {
 
 
-class SimRdNpyInstr : public SIM_RDNPY {
+class SimRdNpyInstr : public TONGA_ISA_TPB_SIM_RDNPY_INST {
 public:
     static constexpr EngineId engineId = EngineId::DmaEng;
 public:
     //----------------------------------------------------------------
     SimRdNpyInstr()
-        : SIM_RDNPY()
+        : TONGA_ISA_TPB_SIM_RDNPY_INST()
     {
-        InitSync(sync);
+        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_SIM_RDNPY);
     }
 
+    void CheckValidity() const
+    {}
 };
 
 

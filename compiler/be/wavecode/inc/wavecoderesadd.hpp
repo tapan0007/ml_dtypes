@@ -33,6 +33,9 @@ public:
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;
 
+private:
+    void generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop);
+    void generateSameBufSrc(wave::ResAddWaveOp* resaddWaveop);
 };
 
 

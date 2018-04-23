@@ -60,8 +60,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     compisa::LdWeightsInstr ldweightsInstr;
 
     //TPB_CMD_HEADER  hdr;
-    const utils::DataType& dtype(matmulWaveop->gInDtype());
-    ldweightsInstr.dtype                 = dtype.gSimTypeId();
+    const utils::DataType& inDtype(matmulWaveop->gInDtype());
+    ldweightsInstr.in_dtype                 = inDtype.gSimTypeId();
     //uint8_t         perf_opt = OPT_NONE;
     //uint8_t         dquant_table_idx  = 0;
     //uint8_t         dquant_in_dsize   = 0;
@@ -74,16 +74,54 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     //} TONGA_PACKED;
     const kcc_int64 addressInSbPart     = matmulWaveop->gWeightsSbAddress();
 
-    ldweightsInstr.start_addr            = addressInSbPart + (matmulWaveop->gOfmapCount() - 1) * dtype.gSizeInBytes();
+    initMemAccess(ldweightsInstr.src_mem_pattern);
+    if (false) {
+        const kcc_int32 dtypeSize                           = inDtype.gSizeInBytes();
+        const kcc_int32 numWeights                          = matmulWaveop->gOfmapCount(); 
+        const kcc_int32 lastAddressInSbPart                 = addressInSbPart + (numWeights - 1) * dtypeSize;
+        ldweightsInstr.src_mem_pattern.start_addr           = lastAddressInSbPart;
+        ldweightsInstr.src_mem_pattern.step_elem[PatDim_X]  = -1; // last column goes first, so decrement
+        ldweightsInstr.src_mem_pattern.num_elem[PatDim_X]   = numWeights;
+        ldweightsInstr.num_active_cols                      = numWeights;
+    } else {
+        // if weights are not properly aligned (end of octet), load more weights so that the 
+        // last weight (first loaded) is at the end of octet. Those extra junk weights will
+        // be ignored.
+        // Let a be starting address of the weights and N number of weights.
+        // Let b be the address of the last real weight, i.e., b = a + (N-1), for dtype size = 1.
+        // If  (b%8)==7, we are done. Otherwise we need to add x so that (b+x)%8==7.
+        // (b + x) % 8 = [(b%8)+(x%8)] % 8 = [b%8 + x] % 8.
+        // So [b%8 + x]%8 = 7. However, b%8 + x < 8, so x = 7 - b%8
+        //
+        // For size=2 (fp16), b = a + N*2, and we want b%8=6. Similarly, x = 6 - b%8
+        //
+        // This calculation should also take into account perf-mode for int8, so that the
+        // last address for int8 in any perf mode is 8*n+6 as in fp16 mode.
 
-    ldweightsInstr.x_step                = -1; // last column goes first, so decrement
-    ldweightsInstr.x_num                 = matmulWaveop->gOfmapCount();
-    ldweightsInstr.num_row_partitions    = matmulWaveop->gIfmapCount();
+        enum { OCTET_SIZE = 8 };
+        const kcc_int32 dtypeSize               = inDtype.gSizeInBytes();
+        const kcc_int32 realNumWeights          = matmulWaveop->gOfmapCount();
+        const kcc_int32 realLastAddressInSbPart = addressInSbPart + (realNumWeights - 1) * dtypeSize;
+        const kcc_int32 deltaAddress            = (OCTET_SIZE - dtypeSize) - (realLastAddressInSbPart % OCTET_SIZE);
+        Assert(deltaAddress >= 0, "Delta address for extra weights must be non-negative, but it is ", deltaAddress);
+        const kcc_int32 newLastAddressInSbPart  = realLastAddressInSbPart + deltaAddress;
+        Assert(newLastAddressInSbPart % OCTET_SIZE == OCTET_SIZE - dtypeSize,
+            "(New LdWeights address) % ", OCTET_SIZE, " is ", newLastAddressInSbPart % OCTET_SIZE, " should be ", OCTET_SIZE - dtypeSize);
+        const kcc_int32 deltaNumWeights         = deltaAddress / dtypeSize;
+        const kcc_int32 newNumWeights           = realNumWeights + deltaNumWeights;
 
-    ldweightsInstr.sync.wait_event_id    = 0;
-    ldweightsInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::DontWait);
-    ldweightsInstr.sync.set_event_id     = 0;
-    ldweightsInstr.sync.set_event_mode   = events::eventSetMode2Int(events::EventSetMode::DontSet);
+        ldweightsInstr.src_mem_pattern.start_addr           = newLastAddressInSbPart;
+        ldweightsInstr.src_mem_pattern.step_elem[PatDim_X]  = -1; // last column goes first, so decrement
+        ldweightsInstr.src_mem_pattern.num_elem[PatDim_X]   = newNumWeights;
+        ldweightsInstr.num_active_cols                      = newNumWeights;
+    }
+
+    ldweightsInstr.num_active_rows              = matmulWaveop->gIfmapCount();
+
+    ldweightsInstr.inst_events.wait_event_idx   = 0;
+    ldweightsInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    ldweightsInstr.inst_events.set_event_idx    = 0;
+    ldweightsInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
 
     //************************************************************************
     // incoming events
@@ -107,8 +145,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
             if (firstEmbEvt) {
                 firstEmbEvt = false;
-                ldweightsInstr.sync.wait_event_id      = evtId;
-                ldweightsInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+                ldweightsInstr.inst_events.wait_event_idx     = evtId;
+                ldweightsInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
             } else {
                 writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
             }
@@ -153,34 +191,43 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     Assert(EngineId::PeArray == engineId, "Engine id for MatMul should be PeArray");
 
     compisa::MatMulInstr matmulInstr;
-    matmulInstr.dtype                   = matmulWaveop->gInDtype().gSimTypeId();
-    matmulInstr.num_row_partitions      = matmulWaveop->gNumRowPartitions();
-    matmulInstr.num_column_partitions   = matmulWaveop->gNumColumnPartitions();
+    matmulInstr.in_dtype        = matmulWaveop->gInDtype().gSimTypeId();
+    matmulInstr.num_active_rows = matmulWaveop->gNumRowPartitions();
+    matmulInstr.num_active_cols = matmulWaveop->gNumColumnPartitions();
 
-    matmulInstr.fmap_start_addr         = matmulWaveop->gIfmapsSbAddress();
-    matmulInstr.fmap_x_num              = matmulWaveop->gFmapXNum();
-    matmulInstr.fmap_x_step             = matmulWaveop->gFmapXStep();
-    matmulInstr.fmap_y_num              = matmulWaveop->gFmapYNum();
-    matmulInstr.fmap_y_step             = matmulWaveop->gFmapYStep();
-    matmulInstr.fmap_z_num              = matmulWaveop->gFmapZNum();
-    matmulInstr.fmap_z_step             = 1;
+    initMemAccess(matmulInstr.src_mem_pattern);
+    matmulInstr.src_mem_pattern.start_addr      = matmulWaveop->gIfmapsSbAddress();
+    matmulInstr.src_mem_pattern.num_elem[PatDim_X]     = matmulWaveop->gFmapXNum();
+    matmulInstr.src_mem_pattern.step_elem[PatDim_X]    = matmulWaveop->gFmapXStep();
+    matmulInstr.src_mem_pattern.num_elem[PatDim_Y]     = matmulWaveop->gFmapYNum();
+    matmulInstr.src_mem_pattern.step_elem[PatDim_Y]    = matmulWaveop->gFmapYStep();
+    matmulInstr.src_mem_pattern.num_elem[PatDim_Z]     = matmulWaveop->gFmapZNum();
+    matmulInstr.src_mem_pattern.step_elem[PatDim_Z]    = 1;
 
-    matmulInstr.psum_start_addr         = psumBuf.gEntryTpbAddress(
-                                                    matmulWaveop->gPsumBankId(),
-                                                    matmulWaveop->gPsumBankOffset(),
-                                                    matmulWaveop->gOutDtype());
-    matmulInstr.psum_x_num              = matmulWaveop->gPsumXNum();
-    matmulInstr.psum_x_step             = matmulWaveop->gPsumXStep();
-    matmulInstr.psum_y_num              = matmulWaveop->gPsumYNum();
-    matmulInstr.psum_y_step             = matmulWaveop->gPsumYStep();
 
-    matmulInstr.start_tensor_calc       = matmulWaveop->qStartTensorCalc();
-    matmulInstr.stop_tensor_calc        = matmulWaveop->qStopTensorCalc();
+    initMemAccess(matmulInstr.dst_mem_pattern);
+    matmulInstr.dst_mem_pattern.start_addr         = psumBuf.gEntryTpbAddress(
+                                                        matmulWaveop->gPsumBankId(),
+                                                        matmulWaveop->gPsumBankOffset(),
+                                                        matmulWaveop->gOutDtype());
+    matmulInstr.dst_mem_pattern.num_elem[PatDim_X]        = matmulWaveop->gPsumXNum();
+    matmulInstr.dst_mem_pattern.step_elem[PatDim_X]       = matmulWaveop->gPsumXStep();
+    matmulInstr.dst_mem_pattern.num_elem[PatDim_Y]        = matmulWaveop->gPsumYNum();
+    matmulInstr.dst_mem_pattern.step_elem[PatDim_Y]       = matmulWaveop->gPsumYStep();
 
-    matmulInstr.sync.wait_event_id    = 0;
-    matmulInstr.sync.wait_event_mode  = events::eventWaitMode2Int(events::EventWaitMode::DontWait);
-    matmulInstr.sync.set_event_id    = 0;
-    matmulInstr.sync.set_event_mode  = events::eventSetMode2Int(events::EventSetMode::DontSet);
+
+    matmulInstr.timing_flags = 0;
+    if (matmulWaveop->qStartTensorCalc()) {
+        matmulInstr.timing_flags |= TONGA_ISA_TPB_MATMUL_TIMING_FLAG_BEGIN_TENSOR_CALC;
+    }
+    if (matmulWaveop->qStopTensorCalc()) {
+        matmulInstr.timing_flags |= TONGA_ISA_TPB_MATMUL_TIMING_FLAG_END_TENSOR_CALC;
+    }
+
+    matmulInstr.inst_events.wait_event_idx  = 0;
+    matmulInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    matmulInstr.inst_events.set_event_idx   = 0;
+    matmulInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
 
     //************************************************************************
     if (qParallelStreams()) { // incoming events
@@ -202,8 +249,8 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
             if (firstEmb) {
                 firstEmb = false;
-                matmulInstr.sync.wait_event_id      = evtId;
-                matmulInstr.sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+                matmulInstr.inst_events.wait_event_idx     = evtId;
+                matmulInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
             } else {
                 writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
             }

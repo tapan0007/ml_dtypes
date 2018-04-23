@@ -4,6 +4,7 @@
 #include "utils/inc/asserter.hpp"
 
 #include "compisa/inc/compisawait.hpp"
+#include "compisa/inc/compisanop.hpp"
 
 
 #include "wave/inc/waveedge.hpp"
@@ -30,28 +31,51 @@ void
 WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId engineId)
 {
     const events::EventWaitMode waitEventMode = waveEdge->gWaitEventMode();
-    switch (waitEventMode) {
-    case events::EventWaitMode::WaitOnly: {
+    Assert(waitEventMode == events::EventWaitMode::WaitThenClear
+                || waitEventMode == events::EventWaitMode::WaitOnly,
+           "Cannot wait on edge with DontWait mode");
+
+    enum { WAIT, WAIT_CLEAR, NOP };
+
+    switch (WAIT_CLEAR) {
+    case WAIT: {
+        // Not sure whether wait_event_mode works in SIM.
         compisa::WaitInstr waitInstr;
-        waitInstr.event_id  = waveEdge->gEventId();
+        waitInstr.event_idx         = waveEdge->gEventId();
+        waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
         m_WaveCode.writeInstruction(waitInstr, engineId);
         break;
     }
-    case events::EventWaitMode::WaitThenClear: {
-        compisa::WaitInstr waitInstr;
-        waitInstr.event_id  = waveEdge->gEventId();
-        m_WaveCode.writeInstruction(waitInstr, engineId);
+    case NOP: {
+        // New Nop instruction can wait and set (should use for barrier too)
+        compisa::NopInstr nopInstr;
+        nopInstr.inst_events.wait_event_idx   = waveEdge->gEventId();
+        nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(waitEventMode);
+        nopInstr.inst_events.set_event_idx    = 0;
+        nopInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+        m_WaveCode.writeInstruction(nopInstr, engineId);
+        break;
+    }
+    case WAIT_CLEAR: {
+        // old style: Wait(wait-only); Clear
+        {
+            compisa::WaitInstr waitInstr;
+            waitInstr.event_idx         = waveEdge->gEventId();
+            waitInstr.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::WaitOnly);
+            m_WaveCode.writeInstruction(waitInstr, engineId);
+        }
 
-        compisa::ClearInstr clearInstr;
-        clearInstr.event_id  = waveEdge->gEventId();
-        m_WaveCode.writeInstruction(clearInstr, engineId);
+        if (waitEventMode == events::EventWaitMode::WaitThenClear) {
+            compisa::ClearInstr clearInstr;
+            clearInstr.event_idx  = waveEdge->gEventId();
+            m_WaveCode.writeInstruction(clearInstr, engineId);
+        }
         break;
     }
     default:
-        Assert(false, "Cannot wait on edge with DontWait mode");
+        Assert(false, "Unknown waiting method");
         break;
     }
-
 }
 
 
@@ -84,7 +108,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop)
  * 2. Issue WAIT instruction for other in-edges
  */
 void
-WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EVENTS& sync)
 {
     const EngineId engineId = waveop->gEngineId();
     bool firstEmb = true;
@@ -100,8 +124,8 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TPB_CMD_SYNC& sync)
 
         if (firstEmb) {
             firstEmb = false;
-            sync.wait_event_id      = evtId;
-            sync.wait_event_mode    = eventWaitMode2Int(prevWaveEdge->gWaitEventMode());
+            sync.wait_event_idx      = evtId;
+            sync.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
         } else {
             writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
         }
@@ -181,7 +205,7 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
         eventIds.insert(evtId);
 
         compisa::SetInstr setEventInstr;
-        setEventInstr.event_id = evtId;
+        setEventInstr.event_idx = evtId;
         m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
     }
 }

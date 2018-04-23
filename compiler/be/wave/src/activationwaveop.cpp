@@ -163,35 +163,35 @@ ActivationWaveOp::verify() const
     return true;
 }
 
-ACTIVATIONFUNC
+TONGA_ISA_TPB_ACTIVATION_FUNC
 ActivationWaveOp::gSimActivationFunc() const
 {
     switch(gActivationFunc()) {
     case ActivationFunc::Identity:
-        return ACTIVATIONFUNC::IDENTITY;
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_IDENTITY;
         break;
     case ActivationFunc::Relu:
-        return ACTIVATIONFUNC::RELU;
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_RELU;
         break;
     case ActivationFunc::LeakyRelu:
-        return ACTIVATIONFUNC::LEAKY_RELU;
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_LEAKY_RELU;
         break;
     case ActivationFunc::PRelu:
-        return ACTIVATIONFUNC::LEAKY_RELU; // TODO: use real one when added
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_PARAMETRIC_RELU;
         break;
     case ActivationFunc::Sigmoid:
-        return ACTIVATIONFUNC::SIGMOID;
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_SIGMOID;
         break;
     case ActivationFunc::Tanh:
-        return ACTIVATIONFUNC::TANH;
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_TANH;
         break;
     case ActivationFunc::Exp:
-        return ACTIVATIONFUNC::EXP;
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_EXP;
         break;
     default:
         break;
     }
-    return ACTIVATIONFUNC::INVALID_ACTIVATIONFUNC;
+    return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_INVALID;
 }
 
 
