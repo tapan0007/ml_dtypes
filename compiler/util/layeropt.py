@@ -1381,7 +1381,6 @@ class KNode:
         last_s_id = s_id
         for repl in range(replicate_multiple):
             for row in range(pe_row_start, pe_row_stop):
-                ifmap = ifmaps[:, row]  # NCHW
                 pe_row_offset = row - pe_row_start
                 for z in range(self.Tn):
                     batch_id = (wave_id.n_id * self.Tn) + z
@@ -1397,8 +1396,10 @@ class KNode:
                             elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
                                 out_array[ifmap_addr, pe_row_offset] = 0
                             else:
-                                #out_array[ifmap_addr, pe_row_offset] = tpb.statebuffer.circbuf_ifmaps.file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
-                                out_array[ifmap_addr, pe_row_offset] = ifmap[batch_id, ifmap_tiley, ifmap_tilex]
+                                if (args.nname == "lm"):
+                                    out_array[ifmap_addr, pe_row_offset] = tpb.statebuffer.circbuf_ifmaps.file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
+                                else:                                    
+                                    out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
                                 # Check bounds of actual pixels within the original ifmaps for the first ifmap (which should reside in first SB partition)
                                 # TODO: check how N/C are arrange in memory; batching within waves may cause different atoms to be accessed by same wave
                                 # TODO: for Tn>1, need to have multiple bounds for each batch item
