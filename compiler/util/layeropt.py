@@ -3126,6 +3126,8 @@ if __name__ == "__main__":
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
+    print("Running in %s mode"%(args.nname))
+
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
 
     stats_per_layer = []
