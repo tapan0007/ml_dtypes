@@ -109,7 +109,8 @@ if args.weights:
   tffe.writeWeights(args.out_prefix)
   
 if args.images != None:
-  tffe.writeImages(args.out_prefix, args.images, inputNodeName, args.input_constants, args.exclude_ops_from_capture)
+  tffe.writeImages(args.out_prefix, args.images, inputNodeName, args.input_constants, args.exclude_ops_from_capture,
+                   args.preprocessor, args.preprocessor_args)
   kog.identifyMainFlowEdges()
   kog.optimizeForInference()
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")

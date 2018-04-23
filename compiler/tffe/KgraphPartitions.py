@@ -541,7 +541,7 @@ def attachPrePost(sgJsonList, preprocessor, postprocessor, preprocessor_args, po
       sgDir = sgname
       print("\nINFO: processing subgraph %s" % sgDir)
       os.makedirs(sgname)
-      print("XXXX::cmd : " + f)
+      print("INFO: cmd : " + f)
       assert(os.path.isfile(f) and os.access(f, os.X_OK))
       shutil.copy2(f, os.getcwd() + "/" + sgname)
       sgJson = {}
