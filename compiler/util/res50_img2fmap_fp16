@@ -7,29 +7,35 @@ import argparse
 from keras.applications.resnet50 import preprocess_input, decode_predictions
 
 
-print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--inputs', help='input image files',
-                    dest="inputs", default=[], nargs='+', required=True)
-parser.add_argument('--output', help='Output fmap npy file',
-                    dest="output", required=True)
-
-#TODO: add support
-
-
-args = parser.parse_args()
-imgFile = args.inputs[0]
-ifmapFile = args.output
-
-print('Loading: ' + imgFile)
-img = Image.open(imgFile)
-imgSized = img.resize((224, 224))
-npArr = np.array(imgSized, dtype=np.float16)
-fmap = npArr.reshape(1, 224, 224, 3)
-fmap = preprocess_input(fmap)
-#fmapNCHW = fmap.transpose(0, 3, 1, 2)
-np.save(ifmapFile, fmap)
-print('Wrote: '+ ifmapFile)
+def preprocess(imgFile, ifmapFile):
+    print('Loading: ' + imgFile)
+    img = Image.open(imgFile)
+    imgSized = img.resize((224, 224))
+    npArr = np.array(imgSized, dtype=np.float16)
+    fmap = npArr.reshape(1, 224, 224, 3)
+    fmap = preprocess_input(fmap)
+    # fmapNCHW = fmap.transpose(0, 3, 1, 2)
+    np.save(ifmapFile, fmap)
+    print('Wrote: ' + ifmapFile)
 
 
+def main():
+    print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--inputs', help='input image files',
+                        dest="inputs", default=[], nargs='+', required=True)
+    parser.add_argument('--output', help='Output fmap npy file',
+                        dest="output", required=True)
+
+    #TODO: add support
+
+    args = parser.parse_args()
+    imgFile = args.inputs[0]
+    ifmapFile = args.output
+
+    preprocess(imgFile, ifmapFile)
+
+
+if __name__ == "__main__":
+    main()
