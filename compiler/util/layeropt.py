@@ -6,7 +6,9 @@ import numpy as np
 import copy
 import argparse
 import inspect
-from layeropt_utils import CircbufPtrs
+from layeropt_utils import CircbufPtrs 
+from layeropt_utils import ShapeDims
+from layeropt_utils import FileParams
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 from enum import Enum
@@ -450,6 +452,7 @@ class CircularBuffer:
                     self.layer_name = j.data['layer_name']
                     self.layer_format = j.data['ofmap_format']
                     self.layer_shape = j.data['ofmap_shape']
+                    op.bias_shape_dims = ShapeDims(self.layer_format, self.layer_shape)
                     break
         elif (self.circbuf_type == "scratch" or self.circbuf_type == "residue"):
             self.layer_type = "Scratch" #op.data['layer_type']
@@ -482,12 +485,12 @@ class CircularBuffer:
             self.dram_data_out_file = file_name
             self.layer_name_for_save = op.data['layer_name']
         # if load_file returns None, scheduler need to follow another path            
-        loaded_data = self.load_file(self.dram_data_in_file, fmap_full_tiley_sz, fmap_full_tilex_sz, filter_x, stride_x)
+        loaded_data = self.load_file(op, self.dram_data_in_file, fmap_full_tiley_sz, fmap_full_tilex_sz, filter_x, stride_x)
         return loaded_data
 
     # Load numpy file and compute atom size
     # Returns None if file is None, otherwise returns numpy file data
-    def load_file(self, file, fmap_full_tiley_sz = 0, fmap_full_tilex_sz = 0, filter_sz=1, stride_sz=1):
+    def load_file(self, op, file, fmap_full_tiley_sz = 0, fmap_full_tilex_sz = 0, filter_sz=1, stride_sz=1):
         self.dram_data_in_file = file
         if (self.dram_data_in_file != None):
             self.dram_data = np.load(self.dram_data_in_file)
@@ -520,9 +523,6 @@ class CircularBuffer:
                 print("ERROR: wrong weights format %s"%self.layer_format)
                 exit(-1)
             assert(C * R * S * M * self.item_sz == self.dram_data_len)                
-            self.total_filter_size = R * S
-            #if (C < PEArray.NUM_ROWS and (R > 1 or S > 1)):
-            #   self.replicate_multiple = min(PEArray.NUM_ROWS//C, self.total_filter_size)
             # Here ifmap is RSM
             self.ifmap_data_len = self.dram_data_len//C
             m_data_len = M * self.item_sz
@@ -550,6 +550,8 @@ class CircularBuffer:
         else:
             if (self.layer_format == 'NCHW'):
                 N, C, H, W = self.dram_data.shape
+            elif (self.layer_format == 'HNWC'):
+                H, N, W, C = self.dram_data.shape
             elif (self.layer_format == 'NC'):
                 N, C = self.dram_data.shape
                 H, W = 1, 1
@@ -569,6 +571,8 @@ class CircularBuffer:
             # layer_shape is the ofmap_shape, in the format of N, M, E, F
             if (self.layer_format == 'NCHW' or self.layer_format == 'CNHW'):
                 self.ofmap_data_len = self.layer_shape[2]*self.layer_shape[3]*self.item_sz
+            elif (self.layer_format == 'HNWC'):
+                self.ofmap_data_len = self.layer_shape[0]*self.layer_shape[2]*self.item_sz
             elif (self.layer_format == 'NC' or self.layer_format == 'C'):
                 self.ofmap_data_len = self.item_sz
             ifmap_width_data_len = W * self.item_sz
@@ -601,16 +605,19 @@ class CircularBuffer:
             # make atom size multiple of width data length if it is smaller than default atom size
             # For FP32, use initial atom of 2KB to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
             elif (ifmap_width_data_len <= self.atom_sz):
-                multiple = self.atom_sz // ifmap_width_data_len
-                multiple = min(H, multiple)
-                # eliminate skip atoms by requiring atom size is multiple of tile size 
-                ofmap_full_tiley_sz = fmap_full_tiley_sz//stride_sz
-                if (fmap_full_tiley_sz != 0):
-                    if (fmap_full_tiley_sz < multiple):
-                        multiple = (multiple//fmap_full_tiley_sz) * fmap_full_tiley_sz
-                    elif (ofmap_full_tiley_sz < multiple):
-                        multiple = (multiple//ofmap_full_tiley_sz) * ofmap_full_tiley_sz
-                self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
+                if (args.abstract_mem):
+                    self.atom_data_sz = ifmap_width_data_len * fmap_full_tiley_sz
+                else:
+                    multiple = self.atom_sz // ifmap_width_data_len
+                    multiple = min(H, multiple)
+                    # eliminate skip atoms by requiring atom size is multiple of tile size 
+                    ofmap_full_tiley_sz = fmap_full_tiley_sz//stride_sz
+                    if (fmap_full_tiley_sz != 0):
+                        if (fmap_full_tiley_sz < multiple):
+                            multiple = (multiple//fmap_full_tiley_sz) * fmap_full_tiley_sz
+                        elif (ofmap_full_tiley_sz < multiple):
+                            multiple = (multiple//ofmap_full_tiley_sz) * ofmap_full_tiley_sz
+                    self.atom_data_sz = ifmap_width_data_len * min(H, multiple)
                 #if (stride_sz > 1 or filter_sz > 1):
                 #    self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_data_sz))
                 #    print("Reserve %d as spare atoms"%self.need_spare_atoms)
@@ -619,7 +626,7 @@ class CircularBuffer:
             else:
                 self.atom_data_sz = self.atom_sz
             # need spare atoms for the case that OFMAP tile needs overlaps in IFMAP tile                            
-            if (stride_sz > 1 or filter_sz > 1):
+            if (stride_sz > 1 or filter_sz > 1) and not args.abstract_mem:
                 self.need_spare_atoms = max(1, ceildiv(fmap_full_tiley_sz * fmap_full_tilex_sz * self.item_sz, self.atom_data_sz))
                 print("Reserve %d as spare atoms"%self.need_spare_atoms)
                 if self.circbuf_type == "scratch" and self.num_kickout_atoms > 0:
@@ -632,7 +639,19 @@ class CircularBuffer:
         self.circbuf_ptrs.reset_full(self.capacity, self.num_kickout_atoms)
         self.old2new_atom_sz_ratio = self.atom_sz // self.atom_data_sz
         self.atom_sz = self.atom_data_sz
-        print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.old2new_atom_sz_ratio, self.replicate_multiple)) 
+        if (self.circbuf_type == "weights"):            
+            self.file_params = FileParams(self.dram_data_in_file, op.weights_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params.load_file()
+        elif (self.circbuf_type == "bias"):            
+            self.file_params = FileParams(self.dram_data_in_file, op.bias_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params.load_file()
+        elif (self.circbuf_type == "ifmaps"):            
+            self.file_params = FileParams(self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.item_sz, 2048, PEArray, op_list[0])
+            self.file_params.load_file()
+        else:            
+            self.file_params = FileParams(self.dram_data_in_file, op.ofmaps_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params.load_file()
+        print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, (chunk_sz %d), old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.file_params.chunk_sz, self.old2new_atom_sz_ratio, self.replicate_multiple)) 
         return self.dram_data
 
     def recompute_ifmaps_params(self, op):
@@ -692,7 +711,10 @@ class CircularBuffer:
             simout_file = self.dram_data_in_file.replace("-midout.", ".")
         else:            
             simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
-        waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
+        if args.abstract_mem:
+            waveop_name = simout_file + "_%d"%(chunk_id)
+        else:            
+            waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
         sb_addr = self.start + atom_id*self.atom_sz
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
@@ -701,7 +723,7 @@ class CircularBuffer:
                 # SB WAW dependency for weights
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
                 # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "":
+                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "" and not args.abstract_mem:
                     previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
                     tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
                     break
@@ -710,13 +732,13 @@ class CircularBuffer:
         # (SB WAR dependency doesn't exist for bias region since it is read-only)
         # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
         if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
-            if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0):
+            if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0 and not args.abstract_mem):
                 previous_waveops.append(self.last_biasweight_waveop)
             self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         # DRAM RAW dependency for scratch (OFMAPS)
         # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-        if (chunk_name in tpb.statebuffer.chunk2saved_map):
+        if (chunk_name in tpb.statebuffer.chunk2saved_map and not args.abstract_mem):
             previous_waveops.append(tpb.statebuffer.chunk2saved_map[chunk_name])
         if (args.debug > 2): print("LOAD FROM DRAM: region %s layer %s file %s start %d length %d fmap_count %d fmap_data_len %d"%(self.circbuf_type, self.layer_name, simout_file, offset_in_file, length, fmap_count, fmap_data_len))
         return {
@@ -762,7 +784,10 @@ class CircularBuffer:
         # use "simout" tag for Back-end/Inkling result file
         assert(self.dram_data_out_file != None)
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
-        waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
+        if args.abstract_mem:
+            waveop_name = simout_file + "_%d"%(chunk_id)
+        else:            
+            waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         self.parent.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
         self.parent.outfile2atomsz_map[self.dram_data_out_file] = self.atom_sz
         fmap_count = ofmap_count*((tile_id.m_id%2)+1)
@@ -863,10 +888,12 @@ class CircularBuffer:
             # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop, or the writing waveop feeding the depending waveop)
             prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, lower_addr_chunked)
             if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, lower_addr_chunked, atom_id))
-            if (prev_consumer != None):
+            if (prev_consumer != None and not args.abstract_mem):
                 dram_waveops[-1]["previous_waveops"].append(prev_consumer)
         else:
             atom_id = self.chunk2atom_map[lower_addr_chunked]
+            if args.abstract_mem:
+                dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, lower_addr_chunked, ifmap_count, ifmaps_replicate))
             if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, lower_addr_chunked, atom_id));
         # allocate the remaining chunks
         # check whether chunk is already in the spares
@@ -881,6 +908,8 @@ class CircularBuffer:
                 if (args.debug > 2): print("%s: reusing atom_id %d as skip for chunk %d (range %d-%d)"%(self.circbuf_type, atom_id, i, lower_addr, upper_addr))
             elif i in self.chunk2atom_map:
                 atom_id = self.chunk2atom_map[i]
+                if args.abstract_mem:
+                    dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
                 if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, i, atom_id));
             else:
                 if (self.is_a_spare_atom(self.circbuf_ptrs.get(CircbufPtrs.TAIL))):
@@ -919,7 +948,7 @@ class CircularBuffer:
                         if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                         # SB WAW dependency for general region at atom/chunk granularity
                         prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, i)
-                        if (prev_consumer != None):
+                        if (prev_consumer != None and not args.abstract_mem):
                             dram_waveops[-1]["previous_waveops"].append(prev_consumer)
                         if (self.skipped[atom_id]):
                             self.skipped[atom_id] = False
@@ -963,13 +992,14 @@ class CircularBuffer:
                 prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, i)
                 if (args.debug > 2): print("%s: writing chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                 # for WAR dependencies, check for DRAM reading from same SB atom as the destination
-                if prev_consumer is not None:
-                    waveop["previous_waveops"].append(prev_consumer)
-                elif self.consumer_of_freed_atom_old is not None:
-                    atom_id_converted = atom_id//self.old2new_atom_sz_ratio
-                    if self.consumer_of_freed_atom_old[atom_id_converted] is not None:
-                        waveop["previous_waveops"].append(self.consumer_of_freed_atom_old[atom_id_converted])
-                        self.consumer_of_freed_atom_old[atom_id_converted] = None
+                if not args.abstract_mem:
+                    if prev_consumer is not None:
+                        waveop["previous_waveops"].append(prev_consumer)
+                    elif self.consumer_of_freed_atom_old is not None:
+                        atom_id_converted = atom_id//self.old2new_atom_sz_ratio
+                        if self.consumer_of_freed_atom_old[atom_id_converted] is not None:
+                            waveop["previous_waveops"].append(self.consumer_of_freed_atom_old[atom_id_converted])
+                            self.consumer_of_freed_atom_old[atom_id_converted] = None
         # assuming that we always write to the last piece of atom last, when 
         # there's a write to last piece of atom, trigger to dump to DRAM and deallocate atom
         # TODO: optimize by keep some atoms between layers
@@ -983,6 +1013,7 @@ class CircularBuffer:
                 if (self.is_in_kickout_range(atom_id) 
                         or self.layer_type == "Output"
                         or args.save_layer_output
+                        or args.abstract_mem
                         #or self.item_sz == 2
                         or (self.num_kickout_atoms > 0 and self.item_sz == 4)    # Hack to make FP32 work (not optimal for performance)
                         ):
@@ -1094,6 +1125,12 @@ class KNode:
         self.is_const = False
         self.is_join = False
         self.residue_index = 0
+        self.ifmaps_shape_dims = None
+        self.ofmaps_shape_dims = None
+        self.weights_shape_dims = None
+        self.bias_shape_dims = None
+        self.src_is_psum = True
+        self.dst_is_psum = True
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
@@ -1126,34 +1163,14 @@ class KNode:
             if i.data['layer_type'] != "Const":
                 input_layer = i.data
                 break
+        self.ifmaps_shape_dims = ShapeDims(input_layer['ofmap_format'], input_layer['ofmap_shape'])            
         self.ifmap_shape = input_layer['ofmap_shape']
-        self.internal_ifmap_shape = input_layer['ofmap_shape']
-        if (input_layer['ofmap_format'] == 'NCHW'):
-            self.N, self.C, self.H, self.W = input_layer['ofmap_shape']
-        elif (input_layer['ofmap_format'] == 'NC'):            
-            self.N, self.C = input_layer['ofmap_shape']
-            self.H, self.W = 1, 1
-            self.internal_ifmap_shape = [self.N, self.C, self.H, self.W]
-        elif (input_layer['ofmap_format'] == 'CNHW'):            
-            self.C, self.N, self.H, self.W = input_layer['ofmap_shape']
-        else:
-            print("ERROR in populate_common_params: Unrecognized previous layer %s format %s"%(input_layer['layer_name'], input_layer['ofmap_format']))
-            exit(-1)
+        self.N, self.C, self.H, self.W = self.ifmaps_shape_dims.N, self.ifmaps_shape_dims.C, self.ifmaps_shape_dims.H, self.ifmaps_shape_dims.W
         # get output shape from current layer's data
         layer_info = self.data
+        self.ofmaps_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])            
         self.ofmap_shape = layer_info['ofmap_shape']
-        self.internal_ofmap_shape = layer_info['ofmap_shape']
-        if (layer_info['ofmap_format'] == 'NCHW'):
-            self.N, self.M, self.E, self.F = layer_info['ofmap_shape']
-        elif (layer_info['ofmap_format'] == 'NC'):            
-            self.N, self.M = layer_info['ofmap_shape']
-            self.E, self.F = 1, 1
-            self.internal_ofmap_shape = [self.N, self.M, self.E, self.F]
-        elif (layer_info['ofmap_format'] == 'CNHW'):            
-            self.M, self.N, self.E, self.F = layer_info['ofmap_shape']
-        else:
-            print("ERROR in populate_common_params: Unrecognized current layer %s format %s"%(layer_info['layer_name'], layer_info['ofmap_format']))
-            exit(-1)
+        self.M, self.E, self.F = self.ofmaps_shape_dims.C, self.ofmaps_shape_dims.H, self.ofmaps_shape_dims.W
         if (layer_info['layer_type'] == 'Softmax2'): self.M = 1
         if ('padding' in layer_info):            
             self.pad_north, self.pad_south = layer_info['padding'][2]
@@ -1222,8 +1239,10 @@ class KNode:
         if (layer_info['layer_type'] == 'Softmax2'):
             self.R, self.S = 1, 1 
         elif (layer_info['kernel_format'] == 'CRSM'):
+            self.weights_shape_dims = ShapeDims(layer_info['kernel_format'], layer_info['kernel_shape'])            
             self.C, self.R, self.S, self.M = layer_info['kernel_shape']
         elif (layer_info['kernel_format'] == 'CM'):
+            self.weights_shape_dims = ShapeDims(layer_info['kernel_format'], layer_info['kernel_shape'])            
             self.C, self.M = layer_info['kernel_shape']
             self.R, self.S = 1, 1
         else:
@@ -1281,31 +1300,29 @@ class KNode:
         self.ifmap_tile_lower_addr = []
         self.ifmap_tile_upper_addr = []
         for z in range(self.Tn):
-            self.ofmap_tile_lower_addr.append(int(np.ravel_multi_index(
-                                                (tile_id.n_id * self.Tn + z, 
+            self.ofmap_tile_lower_addr.append(tpb.statebuffer.circbuf_scratch.file_params.ravel_nchw(
+                                                tile_id.n_id * self.Tn + z, 
                                                     tile_id.m_id//2 * PEArray.NUM_ROWS,
                                                     self.ofmap_tile_y_start, 
-                                                    self.ofmap_tile_x_start),
-                                            dims=self.internal_ofmap_shape) * self.item_sz))
+                                                    self.ofmap_tile_x_start))
             # NCHW
-            self.ofmap_tile_upper_addr.append(int(np.ravel_multi_index(
-                                                (tile_id.n_id * self.Tn + z, 
+            self.ofmap_tile_upper_addr.append(tpb.statebuffer.circbuf_scratch.file_params.ravel_nchw(
+                                                tile_id.n_id * self.Tn + z, 
                                                     tile_id.m_id//2 * PEArray.NUM_ROWS,
                                                     self.ofmap_tile_y_start + self.ofmap_cropped_tile_height - 1, 
-                                                    self.ofmap_tile_x_start + self.ofmap_cropped_tile_width - 1),
-                                            dims=self.internal_ofmap_shape) * self.item_sz))
+                                                    self.ofmap_tile_x_start + self.ofmap_cropped_tile_width - 1))
 
             # compute the address bounds for IFMAP tile within IFMAPs tensor
-            # TODO: for Tn>1, need to have multiple bounds for each batch item
             # NCHW
             ifmap_tile_lower_coordx = self.ofmap_tile_x_start * self.stride_x
             ifmap_tile_lower_coordy = self.ofmap_tile_y_start * self.stride_y
-            self.ifmap_tile_lower_addr.append(int(np.ravel_multi_index(
-                                                (tile_id.n_id * self.Tn + z, 
+
+            if not self.src_is_psum:
+                self.ifmap_tile_lower_addr.append(tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(
+                                                tile_id.n_id * self.Tn + z, 
                                                     0,
                                                     ifmap_tile_lower_coordy,
-                                                    ifmap_tile_lower_coordx),
-                                            dims=self.internal_ifmap_shape) * self.item_sz))
+                                                    ifmap_tile_lower_coordx))
 
             ifmap_tile_upper_coordx = ifmap_tile_lower_coordx + self.ofmap_cropped_tile_width * self.stride_x - 1
             ifmap_tile_upper_coordy = ifmap_tile_lower_coordy + self.ofmap_cropped_tile_height * self.stride_y - 1
@@ -1314,12 +1331,12 @@ class KNode:
             if (ifmap_tile_upper_coordy > self.H-1):
                 ifmap_tile_upper_coordy = self.H-1
             # NCHW
-            self.ifmap_tile_upper_addr.append(int(np.ravel_multi_index(
-                                                (tile_id.n_id * self.Tn + z, 
+            if not self.src_is_psum:
+                self.ifmap_tile_upper_addr.append(tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(
+                                                tile_id.n_id * self.Tn + z, 
                                                     (self.c-1) * PEArray.NUM_ROWS,
                                                     ifmap_tile_upper_coordy,
-                                                    ifmap_tile_upper_coordx),
-                                            dims=self.internal_ifmap_shape) * self.item_sz))
+                                                    ifmap_tile_upper_coordx))
 
         self.ifmap_cropped_tile_width = ifmap_tile_upper_coordx - ifmap_tile_lower_coordx + 1
         self.ifmap_cropped_tile_height = ifmap_tile_upper_coordy - ifmap_tile_lower_coordy + 1
@@ -1328,14 +1345,8 @@ class KNode:
         # Address bounds of weights used for tile
         pe_col_start = tile_id.m_id * PEArray.NUM_COLS
         pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
-        self.weight_tile_lower_addr = int(np.ravel_multi_index(
-                                            (0, 0, 0, pe_col_start), # CRSM
-                                            dims=weights.shape) 
-                                            * weights.dtype.itemsize)
-        self.weight_tile_upper_addr = int(np.ravel_multi_index(
-                                            (self.C-1, self.R-1, self.S-1, pe_col_stop-1), # CRSM
-                                            dims=weights.shape) 
-                                            * weights.dtype.itemsize)
+        self.weight_tile_lower_addr = tpb.statebuffer.circbuf_weights.file_params.ravel_crsm (0, 0, 0, pe_col_start)
+        self.weight_tile_upper_addr = tpb.statebuffer.circbuf_weights.file_params.ravel_crsm (self.C-1, self.R-1, self.S-1, pe_col_stop-1)
 
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format
@@ -1370,8 +1381,6 @@ class KNode:
         last_s_id = s_id
         for repl in range(replicate_multiple):
             for row in range(pe_row_start, pe_row_stop):
-                #out_array[:,row] = self.pack_wave_ifmap(ifmaps[:, wave_id.c_id * out_array_dim_y + row], wave_id)
-                ifmap = ifmaps[:, row]  # NCHW
                 pe_row_offset = row - pe_row_start
                 for z in range(self.Tn):
                     batch_id = (wave_id.n_id * self.Tn) + z
@@ -1387,14 +1396,16 @@ class KNode:
                             elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
                                 out_array[ifmap_addr, pe_row_offset] = 0
                             else:
-                                out_array[ifmap_addr, pe_row_offset] = ifmap[batch_id, ifmap_tiley, ifmap_tilex]
+                                if (args.nname == "lm"):
+                                    out_array[ifmap_addr, pe_row_offset] = tpb.statebuffer.circbuf_ifmaps.file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
+                                else:                                    
+                                    out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
                                 # Check bounds of actual pixels within the original ifmaps for the first ifmap (which should reside in first SB partition)
                                 # TODO: check how N/C are arrange in memory; batching within waves may cause different atoms to be accessed by same wave
                                 # TODO: for Tn>1, need to have multiple bounds for each batch item
                                 if (row == pe_row_start):                                
                                     # NCHW
-                                    self.ifmap_wave_upper_addr[z] = int(np.ravel_multi_index((batch_id, row, ifmap_tiley, ifmap_tilex),
-                                                                        dims=ifmaps.shape) * ifmaps.dtype.itemsize)
+                                    self.ifmap_wave_upper_addr[z] = tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
                                     self.ofmap_wave_upper_coordx[z] = x
                                     self.ofmap_wave_upper_coordy[z] = y
                                     if (self.ifmap_wave_lower_addr[z] < 0):
@@ -1455,11 +1466,11 @@ class KNode:
                 out_array[z * len(row_temp) : (z+1) * len(row_temp), pe_row_offset] = row_temp
                 if (row == pe_row_start):                               
                     # NCHW
-                    self.ifmap_wave_lower_addr[z] = int(np.ravel_multi_index((batch_id, row - row_adjust, self.ifmap_wave_lower_coordy[z], self.ifmap_wave_lower_coordx[z]),
-                                                        dims=ifmaps.shape) * ifmaps.dtype.itemsize)
-                    self.ifmap_wave_upper_addr[z] = int(np.ravel_multi_index((batch_id, row - row_adjust, self.ifmap_wave_upper_coordy[z], self.ifmap_wave_upper_coordx[z]),
-                                                        dims=ifmaps.shape) * ifmaps.dtype.itemsize)
-        #print(self.ifmap_wave_lower_coordx, self.ifmap_wave_lower_coordy, self.ifmap_wave_upper_coordx, self.ifmap_wave_upper_coordy)                    
+                    self.ifmap_wave_lower_addr[z] = tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(
+                                                    batch_id, row - row_adjust, self.ifmap_wave_lower_coordy[z], self.ifmap_wave_lower_coordx[z])
+                    self.ifmap_wave_upper_addr[z] = tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(
+                                                    batch_id, row - row_adjust, self.ifmap_wave_upper_coordy[z], self.ifmap_wave_upper_coordx[z])
+        #print(self.ifmap_wave_lower_coordx[0], self.ifmap_wave_lower_coordy[0], self.ifmap_wave_upper_coordx[0], self.ifmap_wave_upper_coordy[0])                    
         return out_array
 
     # Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
@@ -1491,14 +1502,10 @@ class KNode:
                 s_id = 0
                 if (r_id >= self.R): break
 
-        self.weight_wave_lower_addr = int(np.ravel_multi_index(
-                                            (pe_row_start, wave_id.r_id, wave_id.s_id, pe_col_start), # CRSM
-                                            dims=weights.shape) 
-                                            * weights.dtype.itemsize)
-        self.weight_wave_upper_addr = int(np.ravel_multi_index(
-                                            (pe_row_start, last_r_id, last_s_id, pe_col_stop-1), # CRSM
-                                            dims=weights.shape) 
-                                            * weights.dtype.itemsize)
+        self.weight_wave_lower_addr = tpb.statebuffer.circbuf_weights.file_params.ravel_crsm(
+                                            pe_row_start, wave_id.r_id, wave_id.s_id, pe_col_start)
+        self.weight_wave_upper_addr = tpb.statebuffer.circbuf_weights.file_params.ravel_crsm(
+                                            pe_row_start, last_r_id, last_s_id, pe_col_stop-1)
         return out_array
 
 
@@ -1513,11 +1520,14 @@ class WaveopStream(list):
     def append_check(self, item):
         item_name = item['waveop_name']
         i = 0
-        while (item_name in self.waveop_name_set):
-            new_name = item_name + "__" + str(i)
-            print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
-            item_name = new_name
-            i += 1
+        if args.abstract_mem and item_name in self.waveop_name_set:
+            return
+        else:
+            while (item_name in self.waveop_name_set):
+                new_name = item_name + "__" + str(i)
+                print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
+                item_name = new_name
+                i += 1
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                
         self.append(item)
@@ -2107,6 +2117,7 @@ class KGraph:
     # get next fused op            
     def get_next_fused_op(self, fused_ops):
         next_nodes = fused_ops[-1].next
+        last_node = fused_ops[-1]
         last_node_type = fused_ops[-1].data['layer_type']
         # if there's only one next node, check if it is fusable and add
         if (len(next_nodes) == 1):
@@ -2172,6 +2183,11 @@ class KGraph:
         # if the last node is Conv or MatMul, add an identity pool op
         if (last_node_type == "Conv" or last_node_type == "MatMul"):
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
+        # set the first op source is not PSUM, and last op dest is not PSUM
+        fused_ops.first_op = fused_ops[0]
+        fused_ops.first_op.src_is_psum = False
+        fused_ops.last_op = fused_ops[-1]
+        fused_ops.last_op.dst_is_psum = False
         # mark fusedops to be at end of first leg if the following op is ResAdd
         if (self.first_leg 
                 and self.current_node != None 
@@ -2703,6 +2719,9 @@ class TPBSched:
                                     exit(-1)
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
+                        if args.abstract_mem:
+                            if len(dram_output_waveops) > 0:
+                                self.waveop_stream.last_main_waveop = None
 
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
@@ -2894,6 +2913,9 @@ class TPBSched:
                                     exit(-1)
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
+                        if args.abstract_mem:
+                            if len(dram_output_waveops) > 0:
+                                self.waveop_stream.last_main_waveop = None
 
         # save layer results to file, for retrieval by next layer                        
 
@@ -3028,6 +3050,10 @@ class TPBSched:
                                     exit(-1)
                             self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
+                        if args.abstract_mem:
+                            if len(dram_output_waveops) > 0:
+                                self.waveop_stream.last_main_waveop = None
+
                         if (m_id+1 == tile_id.m or m_id%2 == 1):
                             self.statebuffer.circbuf_scratch.free_data_region(
                                                         output_params_op.ofmap_tile_lower_addr[0], 
@@ -3095,6 +3121,7 @@ if __name__ == "__main__":
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     parser.add_argument("--dump_pearray_inputs", type=int, default=0, help="Dump PEArray inputs for N number of waves")
     parser.add_argument("--save_layer_output", action='store_true', help="Save intermediate layer output into files")
+    parser.add_argument("--abstract_mem", action='store_true', help="Keep data chunks as abstract objects")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
