@@ -31,6 +31,7 @@ sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 
 import TfFrontEnd
 import KgraphPartitions
+import KaenaOpGraph
 from MiscUtil import remove_write_permissions
 
 kPath = os.environ.get('KAENA_PATH')
@@ -59,6 +60,8 @@ parser.add_argument('--dot_timeout', help='Timeout for planarization of op and f
                     type=int, default=60)
 parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, default is tcc',
                     default='tcc')
+parser.add_argument('--schedule_options', help='Configuration passed to scheduler, e.g. opt1=v1,opt2=v2,..., default is None',
+                    default='')
 parser.add_argument('--batch', help='Batch override for late-binding networks',
                     type=int, default=1)
 parser.add_argument('--partition', help='Partition into subgraphs; use from, from_multi, meauto, or auto. The from_multi is followed by list of comma-separate cut nodes, e.g. from a,b c e,f,g . The default is none',
@@ -97,6 +100,7 @@ tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch, args.show
 tffe.loadPb(tfpbFile, args.focus)
 kog = tffe.getKaenaOpGraph()
 kog.setSchedulerMode(args.scheduler)
+KaenaOpGraph.Config.Scheduler.waveoptOptions = args.schedule_options
 kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
 ret = 0
 if args.weights:
@@ -151,6 +155,8 @@ if args.images != None:
     os.chdir("..")
     sgJson = sg.genExecutorGraphJson(sgDir)
     sgJson["executor"] = executor
+    if executor == "waveopt":
+      sgJson["execOptions"] = KaenaOpGraph.Config.Scheduler.waveoptOptions
     sgJson["parallel_streams"] = False
     if args.scheduler == 'wave':
         sgJson["parallel_streams"] = args.parallel_streams
