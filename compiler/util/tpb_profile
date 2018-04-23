@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+#
+# Kgraph visualization
+#
+import argparse
+import os, json, sys, re
+import matplotlib.pyplot as plt
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--log', help='Inkling debug log file (seenv SIM_DEBUG all; RunAll ...)', default=None)
+parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
+parser.add_argument('--show', help='Invoke interactive viewer', action='store_true', default=False)
+parser.add_argument('--cycle_range', help='Display only activity within the cycle range, default 0 2e6', type=float, nargs=2, default=[0,2e6])
+parser.add_argument('--geometry', help='Output size width height', type=int, nargs=2, default=[12,2])
+parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (unused)', type=float, default=0)
+
+args = parser.parse_args()
+
+class InklingEvent(object):
+  def __init__(self, cycle, engine, pc, opcode, mode, event):
+    self.cycle = cycle
+    self.engine = engine
+    self.pc = pc
+    self.mode = mode
+    self.event = event
+
+class InklingProfile(object):
+  def __init__(self, logFile, verbose, cycleRange, show, geometry):
+    self.logFile = logFile
+    self.verbose = verbose
+    self.show = show
+    self.geometry = geometry
+    self.cycleRange = cycleRange
+    self.ops = []
+    self.events = []
+    self.numCycles = 1
+    print("INFO: parsing %s" % logFile)
+    lineCount = 0
+    with open(self.logFile) as fh:
+      for line in fh:
+        match = re.match('^(\d+) : tpb\d+\.([^ ]+) : Execute PC=(\S+) opcode=(\S+) set_mode=(\S+) set_event=(\S+)', line)
+        if match:
+          (cycle, engine, pc, opcode, mode, event) = match.groups()
+          if int(cycle) >= self.cycleRange[0] and int(cycle) <= self.cycleRange[1]:
+            e = InklingEvent(cycle, engine, pc, opcode, mode, event)
+            self.events.append(e)
+        else:
+          match = re.match('^Cycles: (\d+)', line)
+          if match:
+            self.numCycles = int(match.groups()[0])
+        lineCount += 1
+        if lineCount % 100000 == 0:
+          print(".", end='', flush=True)
+      print()
+
+
+  e2c = {
+    "pe"    : "red",
+    "pool_seq"  : "orange",
+    "act"   : "blue",
+    "angel" : "green",
+    }
+  def engine2color(self, engine):
+    return InklingProfile.e2c.get(engine, "black")
+  def getNumCycles(self):
+    return self.numCycles
+  
+  def plotProfile(self, outFile):
+    ylabels = ["pool_seq", "act", "pe", "angel"]
+    y = [y for y in range(len(ylabels))]
+    plt.figure(figsize=(self.geometry))
+    plt.yticks(y, ylabels)
+    #plt.bar(x, y, width=0.5, color = 'blue')
+    print("INFO: processing %d instructions" % len(self.events))
+    eventCount = 0
+    for e in self.events:
+      engine = e.engine
+      color = self.engine2color(engine)
+      yval = ylabels.index(engine)
+      xval = int(e.cycle)
+      plt.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+      eventCount += 1
+      if eventCount % 100 == 0:
+        print("\r%7.3f %%" % (100.0 * eventCount / len(self.events)), end='', flush=True)
+      #if eventCount % 1000 == 0:
+      #  break
+    print()
+    plt.grid(True)
+    plt.xlabel('Cycle')
+    plt.ylabel('Engine')
+    plt.title('Inkling execution profile %s' % self.logFile)
+    plt.tight_layout()
+    plt.savefig(outFile)
+    print("INFO: wrote  %s" % (outFile))
+    if self.show:
+      #os.system("firefox %s" % (outFile))
+      plt.show()
+      #outFileZoom = outFile[:-4] + "-zoom.svg"
+      #plt.savefig(outFileZoom)
+      #print("INFO: wrote  %s" % (outFileZoom))
+
+p = InklingProfile(args.log, args.verbose, args.cycle_range, args.show, args.geometry)
+if args.long > 0:
+  totalCycles = p.getNumCycles()
+  cycleStep = int(args.long)
+  pids = []
+  pngs = []
+  for i in range(int((totalCycles + cycleStep - 1) / cycleStep)):
+    outPng = "out_profile-%d.png" % i
+    pngs.append(outPng)
+    pid = os.fork()
+    if pid == 0:
+      pi = InklingProfile(args.log, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry)
+      pi.plotProfile(outPng)
+      sys.exit(0)
+    else:
+      pids.append(pid)
+  for pid in pids:
+    os.wait()
+  outPng = "out_profile.png"
+  cmd = "convert -append %s %s" % (" ".join(pngs), outPng)
+  print("INFO: executing " + cmd)
+  os.system(cmd)
+  if args.show:
+    os.system("firefox %s" % (outPng))  
+  
+else:
+  p.plotProfile("out_profile.svg")
