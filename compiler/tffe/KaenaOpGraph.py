@@ -1543,7 +1543,7 @@ class Graph(Object):
       # From Jeff: to generate dot with placeemnt, but not svg:  waveDotFile = outPrefix + "wavegraph.dot"
       if True:
         waveDotFile = outPrefix + "wavegraph.plain"
-        #cmd = "python3 %s --kgraph %s --wavegraph %s --dot %s --nname %s --debug %d > log-me.txt 2>&1" % (
+        #cmd = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --nname %s --debug %d > log-me.txt 2>&1" % (
         cmd = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --save_layer_output --debug %d > log-me.txt 2>&1" % (
               waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
       else:
