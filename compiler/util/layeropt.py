@@ -1237,6 +1237,7 @@ class KNode:
         # convolution kernel shape
         layer_info = self.data
         if (layer_info['layer_type'] == 'Softmax2'):
+            self.weights_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])            
             self.R, self.S = 1, 1 
         elif (layer_info['kernel_format'] == 'CRSM'):
             self.weights_shape_dims = ShapeDims(layer_info['kernel_format'], layer_info['kernel_shape'])            
