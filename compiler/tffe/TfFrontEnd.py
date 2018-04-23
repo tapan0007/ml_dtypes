@@ -26,6 +26,34 @@ import os
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 import MiscUtil
 
+
+def _img_to_numpy_array(imgFile, size, dtype):
+    """ Coverts given image to numpy array.
+
+    :param imgFile: Image file path.
+    :return: numpy.array.
+    """
+    img = Image.open(imgFile)
+    return np.array(img.resize(size), dtype=dtype)
+
+
+def preprocess(imgFiles, ifmapFile, dtype):
+    """ Pre-processes given image files using keras.resnet50
+
+    :param imgFiles: Image files to be processed.
+    :param ifmapFile: Output file location.
+    :return:
+    """
+
+    npArrList = [np.array(_img_to_numpy_array(img, (224, 224), dtype)) for img in imgFiles]
+    npArr = np.array(npArrList)
+    fmap = npArr.reshape(len(imgFiles), 224, 224, 3)
+    fmap = preprocess_input(fmap)
+    if ifmapFile:
+      np.save(ifmapFile, fmap)
+    return fmap
+
+
 class TfOp:
   def __init__(self, name, op, tfNode):
     self.name = name
@@ -220,7 +248,7 @@ class TfFe:
         feedDict[var] = val
     return feedDict
   
-  def writeImages(self, outPrefix, imageFile, inputNodeName, inputConstants, excludeOpsFromCaptureRe):
+  def writeImages(self, outPrefix, imageFiles, inputNodeName, inputConstants, excludeOpsFromCaptureRe):
     self.__kg.levelize()
     inputNodes = []
     if inputNodeName == None:
@@ -254,7 +282,8 @@ class TfFe:
       # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
       if inputShape[0] == None:
         inputShape[0] = self.batch
-      
+
+      imageFile = imageFiles[0]
       if imageFile.endswith(".npy"):
         img = np.load(imageFile)
       elif imageFile == "linear":
@@ -268,9 +297,7 @@ class TfFe:
       elif " " in imageFile:
         img = np.fromstring(imageFile, dtype=inputType, sep=" ")
       else:
-        img = Image.open(imageFile).resize(shapeXY)
-        img = np.array(img, dtype=inputType)
-        img = preprocess_input(img)
+        img = preprocess(imageFiles, None, dtype=inputType)
       img = img.reshape(inputShape)
 
       tfVars = []

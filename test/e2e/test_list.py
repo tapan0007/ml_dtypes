@@ -14,7 +14,10 @@ kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
 
 rnDogJpg = "%s/%s" % (kePath, "images/dog.jpg")
+rnCatJpg = "%s/%s" % (kePath, "images/cat.jpeg")
 fp16AccJpg = "%s/%s" % (kePath, "images/3404.jpg")
+
+rnDogCatB2Fp32 = "%s/%s" % (kePath, "images/res50_dog_cat_fp32.npy")
 
 rnPreFp32 = "%s/%s" % (kPath, "compiler/util/res50_img2fmap_fp32")
 rnPreFp16 = "%s/%s" % (kPath, "compiler/util/res50_img2fmap_fp16")
@@ -266,10 +269,10 @@ testConfigMap = {
   "7-rn50_nne_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
   "7-rn50_nne_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
   "7-rn50_nne_fp16_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp16_host"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors host all --images %s" % (rnPreFp16, rnPost, rnDogJpg) , "--input_files %s" % rnDogJpg],
+  "7-rn50_nne_fp16_host"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors host all --batch 2 --images %s %s" % (rnPreFp16, rnPost, rnDogJpg, rnCatJpg) , "--input_files %s %s" % (rnDogJpg, rnCatJpg)],
   "7-rn50_nne_fc_wave"     : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from avg_pool/AvgPool --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
   "7-rn50_nne_conv_wave" : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition conv --executors host all wave 01 03 04 07 09 12 14 16 19 21 23 26 27 30 32 35 37 39 42 44 46 49 51 53 56 57 60 62 65 67 69 72 74 76 79 81 83 86 88 90 93 95 97 100 101 104 106 109 111 113 116 118 120  --scheduler wave --images %s" %(rnPreFp32, rnPost, rnDogJpg) ,"--input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp32_host"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s   --partition from fc1000/Softmax --executors host all --images %s" %(rnPreFp32, rnPost, rnDogJpg),"--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp32_host"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --preprocessor %s --postprocessor %s --partition from fc1000/Softmax --executors host all --batch 2 --images %s" %(rnPreFp32, rnPost, rnDogCatB2Fp32), "--input_files %s %s" % (rnDogJpg, rnCatJpg)],
 
 
   # Matmult
