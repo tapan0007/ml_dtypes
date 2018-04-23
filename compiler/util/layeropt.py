@@ -1114,8 +1114,8 @@ class KNode:
         self.ofmaps_shape_dims = None
         self.weights_shape_dims = None
         self.bias_shape_dims = None
-        self.ifmaps_in_psum = False
-        self.ofmaps_in_psum = False
+        self.src_is_psum = True
+        self.dst_is_psum = True
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
@@ -1302,7 +1302,7 @@ class KNode:
             ifmap_tile_lower_coordx = self.ofmap_tile_x_start * self.stride_x
             ifmap_tile_lower_coordy = self.ofmap_tile_y_start * self.stride_y
 
-            if not self.ifmaps_in_psum:
+            if not self.src_is_psum:
                 self.ifmap_tile_lower_addr.append(tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(
                                                 tile_id.n_id * self.Tn + z, 
                                                     0,
@@ -1316,7 +1316,7 @@ class KNode:
             if (ifmap_tile_upper_coordy > self.H-1):
                 ifmap_tile_upper_coordy = self.H-1
             # NCHW
-            if not self.ifmaps_in_psum:
+            if not self.src_is_psum:
                 self.ifmap_tile_upper_addr.append(tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(
                                                 tile_id.n_id * self.Tn + z, 
                                                     (self.c-1) * PEArray.NUM_ROWS,
@@ -2107,8 +2107,6 @@ class KGraph:
                 if (re.search(regex, next_nodes[0].data['layer_type'])):               
                     # TODO: don't fuse if pool size != stride size
                     if (fused_ops.add(next_nodes[0])):
-                        last_node.ofmaps_in_psum = True
-                        fused_ops[-1].ifmaps_in_psum = True
                         fused_ops = self.get_next_fused_op(fused_ops)
         return fused_ops                    
 
@@ -2165,9 +2163,12 @@ class KGraph:
                 self.current_node = None
         # if the last node is Conv or MatMul, add an identity pool op
         if (last_node_type == "Conv" or last_node_type == "MatMul"):
-            fused_ops[-1].ofmaps_in_psum = True
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
-            fused_ops[-1].ifmaps_in_psum = True
+        # set the first op source is not PSUM, and last op dest is not PSUM
+        fused_ops.first_op = fused_ops[0]
+        fused_ops.first_op.src_is_psum = False
+        fused_ops.last_op = fused_ops[-1]
+        fused_ops.last_op.dst_is_psum = False
         # mark fusedops to be at end of first leg if the following op is ResAdd
         if (self.first_leg 
                 and self.current_node != None 
