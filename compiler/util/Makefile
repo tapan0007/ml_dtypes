@@ -30,4 +30,5 @@ check:
 
 unittest:
 	#python -m unittest layeropt_utils.py 
-	python -m unittest layeropt_utils.py TestShapeDims
+	python -m unittest layeropt_utils.TestShapeDims
+	python -m unittest layeropt_utils.TestFileParams
