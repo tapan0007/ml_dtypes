@@ -403,6 +403,10 @@ class CircularBuffer:
             sb_address = self.start + self.chunk2atom_map[addr_chunked]*self.atom_sz + self.get_atom_offset(addr)
             assert (sb_address < StateBuffer.SB_PARTITION_SZ)
             return sb_address
+        elif (addr_chunked in self.chunk2spare_map):
+            sb_address = self.start + self.chunk2spare_map[addr_chunked]*self.atom_sz + self.get_atom_offset(addr)
+            assert (sb_address < StateBuffer.SB_PARTITION_SZ)
+            return sb_address
         else:
             print("WARNING %s: addr/atom_data_sz %d (addr %d) not found in chunk2atom_map of %s (returning -1):"%(self.circbuf_type, addr_chunked, addr, self.layer_name))
             for i in self.chunk2atom_map.keys():
@@ -1419,7 +1423,7 @@ class KNode:
                                         self.ofmap_wave_lower_coordx[z] = x
                                         self.ofmap_wave_lower_coordy[z] = y
                                         self.psum_bank_offset = (y * self.ofmap_full_tilex_sz + x)
-                            #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx, self.ofmap_wave_lower_coordy, self.ofmap_wave_upper_coordx, self.ofmap_wave_upper_coordy))                                    
+                            #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
@@ -1677,44 +1681,73 @@ class FusedOp(list):
             if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
         else:            
             self.prev_weight_wave_lower_addr = weights_sb_address
-        matmul_waveop = {
-              'previous_waveops'        : [],   # to be added later
-              'waveop_type'             : 'MatMul',
-              'waveop_name'             : waveop_name,
-              'layer_name'              : self.conv_op.data['layer_name'],
-              'weights_sb_address'      : weights_sb_address,
-              'ifmaps_sb_address'       : tpb.statebuffer.circbuf_ifmaps.get_sb_address(self.conv_op.ifmap_wave_lower_addr[0]),
-              'in_dtype'                : in_dtype,
-              'out_dtype'               : out_dtype,
-              'wave_id_format'          : wave_id.format, # to be removed
-              'wave_id'                 : wave_id.show(), # to be removed
-              'start'                   : not(psum_add),    # to be removed
-              'stride_x'                : self.conv_op.stride_x, # to be removed
-              'stride_y'                : self.conv_op.stride_y, # to be removed
-              'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
-              'ifmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed 
-              'ifmap_tile_height'       : self.conv_op.ofmap_wave_height, # to be removed
-              'ofmap_count'             : self.conv_op.ofmap_count, # to be removed
-              'ofmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed
-              'ofmap_tile_height'       : self.conv_op.ofmap_wave_height,  # to be removed
-              'batching_in_wave'        : self.conv_op.Tn, # to be removed
-              'start_tensor_calc'       : not(psum_add),
-              'stop_tensor_calc'        : False,
-              'fmap_x_step'             : self.conv_op.stride_x,
-              'fmap_x_num'              : self.conv_op.ofmap_wave_width,
-              'fmap_y_step'             : self.conv_op.W * self.conv_op.stride_y,
-              'fmap_y_num'              : self.conv_op.ofmap_wave_height,
-              'fmap_z_step'             : tpb.statebuffer.circbuf_ifmaps.atom_sz,
-              'fmap_z_num'              : self.conv_op.Tn,
-              'num_row_partitions'      : self.conv_op.ifmap_count,
-              'psum_bank_id'            : self.conv_op.psum_bank_dst,
-              'psum_bank_offset'        : self.conv_op.psum_bank_offset,
-              'psum_x_step'             : 1,
-              'psum_x_num'              : self.conv_op.ofmap_wave_width,
-              'psum_y_step'             : self.conv_op.ofmap_cropped_tile_width,
-              'psum_y_num'              : self.conv_op.ofmap_wave_height * self.conv_op.Tn,
-              'num_column_partitions'   : self.conv_op.ofmap_count,
-            }
+        # If wave crosses atom boundaries, break it into multiple waves
+        # The following assumes noodle tile (width is equal to FMAP width)
+        current_chunk_id = -1
+        break_at_y = []
+        break_addr = []
+        addr_step_y = self.conv_op.W * self.conv_op.stride_y * self.conv_op.item_sz
+        for i in range(self.conv_op.ofmap_wave_height):
+            address = self.conv_op.ifmap_wave_lower_addr[0] + i * addr_step_y
+            if (address > self.conv_op.ifmap_wave_upper_addr[0]):
+                break
+            chunk_id = tpb.statebuffer.circbuf_ifmaps.get_chunk_addr(address)
+            if (chunk_id != current_chunk_id):
+                break_at_y.append(i)
+                break_addr.append(tpb.statebuffer.circbuf_ifmaps.get_sb_address(address))
+                current_chunk_id = chunk_id
+        matmul_waveop = []
+        for i in range(len(break_at_y)):                
+            if (i == len(break_at_y)-1):
+                next_break = self.conv_op.ofmap_wave_height
+            else:
+                next_break = break_at_y[i+1]
+            fmap_y_num = next_break - break_at_y[i]
+            psum_bank_additional_offset = break_at_y[i] * self.conv_op.ofmap_cropped_tile_width
+            assert((self.conv_op.psum_bank_offset + psum_bank_additional_offset) < PEArray.MAX_WAVE_SIZE)
+            ifmaps_sb_address = break_addr[i]
+            if i>0: weights_sb_address = -1
+            if (args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, ifmaps_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, ifmaps_sb_address, fmap_y_num))                
+            matmul_waveop.append({ 
+                  'previous_waveops'        : [],   # to be added later
+                  'waveop_type'             : 'MatMul',
+                  'waveop_name'             : waveop_name,
+                  'layer_name'              : self.conv_op.data['layer_name'],
+                  'weights_sb_address'      : weights_sb_address,
+                  'ifmaps_sb_address'       : ifmaps_sb_address,
+                  'in_dtype'                : in_dtype,
+                  'out_dtype'               : out_dtype,
+                  'wave_id_format'          : wave_id.format, # to be removed
+                  'wave_id'                 : wave_id.show(), # to be removed
+                  'start'                   : not(psum_add),    # to be removed
+                  'stride_x'                : self.conv_op.stride_x, # to be removed
+                  'stride_y'                : self.conv_op.stride_y, # to be removed
+                  'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
+                  'ifmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed 
+                  'ifmap_tile_height'       : self.conv_op.ofmap_wave_height, # to be removed
+                  'ofmap_count'             : self.conv_op.ofmap_count, # to be removed
+                  'ofmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed
+                  'ofmap_tile_height'       : self.conv_op.ofmap_wave_height,  # to be removed
+                  'batching_in_wave'        : self.conv_op.Tn, # to be removed
+                  'start_tensor_calc'       : not(psum_add),
+                  'stop_tensor_calc'        : False,
+                  'fmap_x_step'             : self.conv_op.stride_x,
+                  'fmap_x_num'              : self.conv_op.ofmap_wave_width,
+                  'fmap_y_step'             : self.conv_op.W * self.conv_op.stride_y,
+                  'fmap_y_num'              : fmap_y_num,
+                  'fmap_z_step'             : tpb.statebuffer.circbuf_ifmaps.atom_sz,
+                  'fmap_z_num'              : self.conv_op.Tn,
+                  'num_row_partitions'      : self.conv_op.ifmap_count,
+                  'psum_bank_id'            : self.conv_op.psum_bank_dst,
+                  'psum_bank_offset'        : self.conv_op.psum_bank_offset + psum_bank_additional_offset,
+                  'psum_x_step'             : 1,
+                  'psum_x_num'              : self.conv_op.ofmap_wave_width,
+                  'psum_y_step'             : self.conv_op.ofmap_cropped_tile_width,
+                  'psum_y_num'              : fmap_y_num,
+                  'psum_z_step'             : self.conv_op.ofmap_full_tile_sz,
+                  'psum_z_num'              : self.conv_op.Tn,
+                  'num_column_partitions'   : self.conv_op.ofmap_count,
+                })
         return matmul_waveop
 
     # generate Pool waveop and add it to waveop stream
@@ -1803,12 +1836,18 @@ class FusedOp(list):
                                             self.conv_op.ifmap_wave_upper_addr[i],
                                             self.conv_op.ifmap_count,
                                             self.conv_op.ifmap_count > self.conv_op.C)
+            if (args.debug > 2): print("DBG %s: MatMul ifmaps_wave_lower_addr %d ifmap_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.ifmap_wave_lower_addr[0], self.conv_op.ifmap_wave_upper_addr[0]))                
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             tpb.pearray.batching_in_wave = self.conv_op.Tn
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
-            tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops + dram_ifmaps_waveops, self.conv_op.psum_bank_dst)
+            assert(len(matmul_waveop) >= len(dram_ifmaps_waveops))            
+            for i in range(len(matmul_waveop)):
+                dram_waveops = []
+                if (i < len(dram_ifmaps_waveops)):
+                    dram_waveops.append(dram_ifmaps_waveops[i])
+                tpb.waveop_stream.add_linked(matmul_waveop[i], (dram_weights_waveops if i==0 else []) + dram_waveops, self.conv_op.psum_bank_dst)
             # mark this matmul as consumer of the 64B weights morsel
-            matmul_waveop_name = matmul_waveop["waveop_name"]
+            matmul_waveop_name = matmul_waveop[-1]["waveop_name"]
             for i in dram_weights_waveops: # + dram_ifmaps_waveops:
                 sb_addr = i["sb_address"]
                 sb_length = i["length"]
@@ -1827,7 +1866,7 @@ class FusedOp(list):
             # collect statistics
             if (args.debug > 1):
                 tpb.pearray.total_pearray_wave_elems += self.conv_op.ofmap_wave_elems
-                if (matmul_waveop["weights_sb_address"] < 0):
+                if (matmul_waveop[0]["weights_sb_address"] < 0):
                     tpb.pearray.total_pearray_latency_cycles += self.conv_op.ofmap_wave_elems
                 else:    
                     tpb.pearray.total_pearray_latency_cycles += max(self.conv_op.ofmap_count, self.conv_op.ofmap_wave_elems)

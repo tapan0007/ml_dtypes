@@ -122,6 +122,8 @@
       "psum_x_step": 1,
       "psum_y_num": 4,
       "psum_y_step": 4,
+      "psum_z_num": 1,
+      "psum_z_step": 16,
       "start": true,
       "start_tensor_calc": true,
       "stop_tensor_calc": true,
