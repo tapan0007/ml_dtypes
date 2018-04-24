@@ -61,7 +61,10 @@ class RuntimeSim:
       cmd += " %s/TrivNet.tpb" % (tpb_dir)
     if len(args.inkling_debugflags) != 0:
       cmd += " --debugflags %s" %  " ".join(args.inkling_debugflags)
-
+    
+    # Additional flags, such as for profiling
+    sim_add_flags = os.environ.get('SIM_ADD_FLAGS', '')
+    cmd += " " + sim_add_flags
 
     print("INFO: executing %s" % cmd, flush=True)
     ret = os.system(cmd)
