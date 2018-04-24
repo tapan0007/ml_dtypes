@@ -23,6 +23,10 @@ class Instr:
   def __init__(self, instrType):
     self.instrType = instrType
     self.fields = {}
+  def __str__(self):
+    s = self.instrType
+    s += "\n" + "\n".join(["%s : %s" % (k, v) for k,v in self.fields.items()])
+    return s
   def addField(self, field, value):
     self.fields[field] = value
   def getInstrType(self):
@@ -36,12 +40,32 @@ class Instr:
     opCount = 0;
     if self.instrType == 'MATMUL':
       waveCycles = self.getWaveCycles()
-      opCount = waveCycles * self.fields['num_active_rows'] * self.fields['num_active_cols']
+      opCount = 2 * waveCycles * self.fields['num_active_rows'] * self.fields['num_active_cols']
     return opCount
+  # https://matplotlib.org/examples/color/named_colors.html
+  i2c = {
+     # PE
+    "MATMUL"     : "red",
+    "LDWEIGHTS"  : "rosybrown",
+    "SET"        : "blue",
+    "WAIT"       : "gray",
+    "CLEAR"      : "aqua",
+    # DMA
+    "SIM_MEMCPY" : "green",
+    "SIM_RDNPY:" : "darkgreen",
+    "SIM_WRNPY:" : "olive",
+    # ACT
+    "ACTIVATION" : "orange",
+    # POOL
+    "POOL"       : "tan",
+    "TENSOR_TENSOR_OP" : "khaki",
+    }
+  def getColor(self):
+    return Instr.i2c.get(self.getInstrType(), "black")
 
 class TpbProgram:
   def __init__(self, tpbFile):
-    self.instructions = []
+    self.instructions = {}
     print("INFO: Loading " + tpbFile)
     with os.popen('$INKLING_PATH/objdump/objdump ' + tpbFile) as fh:
       instr = None
@@ -50,21 +74,14 @@ class TpbProgram:
         if match:
           pc, instrType = match.groups()
           instr = Instr(instrType)
-          self.instructions.append(instr)
-          assert self.pc2idx(pc) == len(self.instructions) - 1
+          self.instructions[pc] = instr
         else:
           match = re.match('^  (\S+) .+: (0x\S+)', line)
           if match:
             instrField, value = match.groups()
             instr.addField(instrField, int(value, 0))
   def getInstrAt(self, pc):
-    idx = self.pc2idx(pc)
-    if idx < len(self.instructions):
-      return self.instructions[idx]
-    else:
-      return None
-  def pc2idx(self, pc):
-    return int(int(pc, 0)/64)
+    return self.instructions.get(pc, None)
 
 class TongaProgram:
   def __init__(self, tongaFiles):
@@ -88,6 +105,13 @@ class InklingEvent(object):
     self.pc = pc
     self.mode = mode
     self.event = event
+  def __str__(self):
+    s = "Cycle=%d" % self.cycle
+    s += "  Engine=%s" % self.engine
+    s += "  PC=%s" % self.pc
+    s += "  mode=%s" %self.mode
+    s += "  event=%s" % self.event
+    return s
 
 class InklingProfile(object):
   def __init__(self, logFile, tongaProgram, verbose, cycleRange, show, geometry):
@@ -100,18 +124,28 @@ class InklingProfile(object):
     self.ops = []
     self.events = []
     self.numCycles = 1
+    self.engines = ["pool", "act", "pe", "dma"]
+    self.cycle2event = {engine : {} for engine in self.engines}
     print("INFO: parsing %s" % logFile)
     lineCount = 0
     with open(self.logFile) as fh:
       for line in fh:
-        match = re.match('^(\d+) : tpb\d+\.([^ ]+) : Execute PC=(\S+) opcode=(\S+) set_mode=(\S+) set_event=(\S+)', line)
+        match = re.match('^(\d+) : tpb\d+\.([^ ]+) : Execute PC=(\S+) opcode=(\S+)(.*)', line)
         if match:
-          (cycle, engine, pc, opcode, mode, event) = match.groups()
+          (mode, event) = ('', '')
+          (cycle, engine, pc, opcode, suffix) = match.groups()
+          match = re.search('set_mode=(\S+) set_event=(\S+)', suffix)
+          if match:
+            (mode, event) = match.groups()
           if engine == 'pool_seq':
             engine = 'pool'
-          if int(cycle) >= self.cycleRange[0] and int(cycle) <= self.cycleRange[1]:
+          if engine == 'angel':
+            engine = 'dma'
+          cycle = int(cycle)
+          if cycle >= self.cycleRange[0] and cycle <= self.cycleRange[1]:
             e = InklingEvent(cycle, engine, pc, opcode, mode, event)
             self.events.append(e)
+            self.cycle2event[engine][cycle] = e
         else:
           match = re.match('^Cycles: (\d+)', line)
           if match:
@@ -126,17 +160,36 @@ class InklingProfile(object):
     "pe"    : "red",
     "pool"  : "orange",
     "act"   : "blue",
-    "angel" : "green",
+    "dma" : "green",
     }
   def engine2color(self, engine):
     return InklingProfile.e2c.get(engine, "black")
   def getNumCycles(self):
     return self.numCycles
   
+  def getEngineFromY(self, y):
+    for yidx in range(len(self.engines)):
+      if yidx - 0.3 <= y and y <= yidx + 0.3:
+        return  self.engines[yidx]
+    return None
+
+  def getEventByXY(self, x, y):
+    engine = self.getEngineFromY(y)
+    if engine == None:
+      return None
+    for tol in range(5):
+      for sign in [1, -1]:
+        cycle = int(round(x + sign * tol))
+        e = self.cycle2event[engine].get(cycle, None)
+        if e != None:
+          return e
+    return None
+  
   def plotProfile(self, outFile):
-    ylabels = ["pool", "act", "pe", "angel"]
+    ylabels = self.engines
     y = [y for y in range(len(ylabels))]
-    plt.figure(figsize=(self.geometry))
+    fig = plt.figure(figsize=(self.geometry))
+    ax = fig.add_subplot(111)
     plt.yticks(y, ylabels)
     #plt.bar(x, y, width=0.5, color = 'blue')
     print("INFO: processing %d instructions" % len(self.events))
@@ -148,30 +201,68 @@ class InklingProfile(object):
       xval = int(e.cycle)
       instr = self.tongaProgram.getInstr(engine, e.pc)
       #if instr.getInstrType() == 'MATMUL': 
-      plt.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+      #print("DEBUG: got  instruction %s  engine %s  pc %s" % (str(instr), engine, e.pc))
       if instr != None:
+        color = instr.getColor()
         instrCycles = instr.getWaveCycles()
         if instrCycles > 1:
-          plt.plot([xval, xval+instrCycles], [yval-0.3, yval-0.3], color=color, linestyle='-', linewidth=2)
-          plt.plot([xval, xval+instrCycles], [yval+0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
-          plt.plot([xval+instrCycles, xval+instrCycles], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+          ax.plot([xval, xval+instrCycles], [yval-0.3, yval-0.3], color=color, linestyle='-', linewidth=2)
+          ax.plot([xval, xval+instrCycles], [yval+0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+          ax.plot([xval+instrCycles, xval+instrCycles], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
           if self.verbose:
-            plt.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
+            ax.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
+      ax.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
       eventCount += 1
       if eventCount % 100 == 0:
         print("\r%7.3f %%" % (100.0 * eventCount / len(self.events)), end='', flush=True)
       #if eventCount % 1000 == 0:
       #  break
     print()
-    plt.grid(True)
+    ax.grid(True)
     plt.xlabel('Cycle')
     plt.ylabel('Engine')
-    plt.title('Inkling execution profile %s' % self.logFile)
+    ax.set_title('Inkling execution profile %s' % self.logFile)
     plt.tight_layout()
     plt.savefig(outFile)
     print("INFO: wrote  %s" % (outFile))
     if self.show:
       #os.system("firefox %s" % (outFile))
+
+      ax.set_title('')
+      annot = ax.annotate("", xy=(0,0), xytext=(20,-60),textcoords="offset points",
+                          bbox=dict(boxstyle="round", fc="w"),
+                          arrowprops=dict(arrowstyle="->"))
+      annot.set_visible(False)
+
+      def update_annot(e, x, y):
+        text = str(e)
+        engine = e.engine
+        instr = self.tongaProgram.getInstr(engine, e.pc)
+        if instr != None:
+          text += "\n" + str(instr)
+          #annot.get_bbox_patch().set_facecolor(instr.getColor())
+          annot.get_bbox_patch().set_edgecolor(instr.getColor())
+        annot.xy = (x,y)
+        annot.set_text(text)
+        annot.get_bbox_patch().set_alpha(0.95)
+        print(text)
+        print()
+
+      def hover(event):
+        vis = annot.get_visible()
+        if event.inaxes == ax:
+          x, y = event.xdata, event.ydata
+          e = self.getEventByXY(x, y)
+          if e != None:
+            update_annot(e, x, y)
+            annot.set_visible(True)
+            fig.canvas.draw_idle()
+          else:
+            if vis:
+              annot.set_visible(False)
+              fig.canvas.draw_idle()
+
+      fig.canvas.mpl_connect("motion_notify_event", hover)      
       plt.show()
       #outFileZoom = outFile[:-4] + "-zoom.svg"
       #plt.savefig(outFileZoom)
