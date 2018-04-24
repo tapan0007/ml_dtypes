@@ -382,6 +382,7 @@ class CircularBuffer:
         self.chunk2skip_map = {}
         self.item_sz = 2
         self.data_type = 'float16'
+        self.outgoing_tile_waveops = []
         self.circbuf_stats = CircbufStats()
 
     def reset_keep_consumers(self):
@@ -981,6 +982,7 @@ class CircularBuffer:
             self.tracked_lower_addr_chunked = lower_addr // self.atom_data_sz
         if (args.debug > 2): print("%s: written range is now %d to %d"%(self.circbuf_type, self.tracked_lower_addr, upper_addr))
         dram_waveops = []
+        self.outgoing_tile_waveops.append(waveop['waveop_name'])
         lower_addr_chunked = self.get_chunk_addr(lower_addr)
         upper_addr_chunked = self.get_chunk_addr(upper_addr)
         if (self.atom_data_sz < self.atom_sz and lower_addr_chunked != upper_addr_chunked):
@@ -1019,6 +1021,8 @@ class CircularBuffer:
                         ):
                     if (args.debug > 2): print("%s: saving atom ID %d (chunk %d)"%(self.circbuf_type, atom_id, i))
                     new_waveop = self.gen_dram_save_waveop(tile_id, atom_id, i, ofmap_count)
+                    for op in self.outgoing_tile_waveops:
+                        new_waveop['previous_waveops'].append(op)
                     dram_waveops.append(new_waveop)
                     self.consumer_of_freed_atom[atom_id] = new_waveop["waveop_name"] 
                     # Do eviction earlier in write_data_region
@@ -1026,6 +1030,7 @@ class CircularBuffer:
                     #    if (args.debug > 2): print("%s: deleting atom ID %d (chunk %d)"%(self.circbuf_type, atom_id, i))
                     #    del self.chunk2atom_map[i]
                     #    self.num_evicted_atoms += 1
+            self.outgoing_tile_waveops = []
         return dram_waveops
 
     def free_data_region(self, lower_addr, upper_addr, waveop):
@@ -1516,6 +1521,7 @@ class WaveopStream(list):
 
     def __init__(self):
         self.last_main_waveop = None
+        self.last_psum_waveop = [None for i in range(PEArray.PSUM_NUM_BANKS)]
         self.waveop_name_set = set()
 
     def append_check(self, item):
@@ -1533,28 +1539,31 @@ class WaveopStream(list):
         self.waveop_name_set.add(item['waveop_name'])                
         self.append(item)
 
-    def add_linked(self, waveop, side_waveops):
+    def add_linked(self, waveop, side_waveops, psum_bank):
         input_list = []
         for i in side_waveops:
             self.append_check(i)
             input_list.append(i['waveop_name'])
-        if (self.last_main_waveop != None):
-            input_list.append(self.last_main_waveop['waveop_name'])
+        if (psum_bank < 0):
+            if (self.last_main_waveop != None):
+                input_list.append(self.last_main_waveop['waveop_name'])
+        else:                
+            if (self.last_psum_waveop[psum_bank] != None):
+                input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
+            elif (self.last_main_waveop != None):
+                input_list.append(self.last_main_waveop['waveop_name'])
         waveop['previous_waveops'] = input_list
         self.append_check(waveop)
-        self.last_main_waveop = waveop
+        if (psum_bank < 0):
+            self.last_main_waveop = waveop
+        else:            
+            self.last_psum_waveop[psum_bank] = waveop
+            if (waveop['waveop_type'] == "MatMul"):
+                self.last_main_waveop = waveop
 
     def add_outputs(self, waveops):
         for i in waveops:
-            i['previous_waveops'].append(self.last_main_waveop['waveop_name'])
             self.append_check(i)
-
-    def add_group(self, waveops):
-        if (len(waveops)>0):
-            if (self.last_main_waveop != None):
-                waveops[0]['previous_waveops'].append(self.last_main_waveop)
-            self = self + waveops
-            self.last_main_waveop = waveops.last_main_waveop
 
 ##################################################################################
 # FusedOp: consist of list of K-Nodes that are fused (communicate through PSUM buffers)
@@ -1797,7 +1806,7 @@ class FusedOp(list):
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             tpb.pearray.batching_in_wave = self.conv_op.Tn
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
-            tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops + dram_ifmaps_waveops)
+            tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops + dram_ifmaps_waveops, self.conv_op.psum_bank_dst)
             # mark this matmul as consumer of the 64B weights morsel
             matmul_waveop_name = matmul_waveop["waveop_name"]
             for i in dram_weights_waveops: # + dram_ifmaps_waveops:
@@ -2267,7 +2276,7 @@ class TPBSched:
               'dst_z_num'               : 1,
               'num_partitions'          : 1
             }
-        self.waveop_stream.add_linked(instr, [])
+        self.waveop_stream.add_linked(instr, [], -1)
 
     # generate scaleadd instruction and add it to instruction stream
     def gen_scaleadd_waveop_inline(self, op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, scale_val, add_val):
@@ -2337,7 +2346,7 @@ class TPBSched:
               'scale'                   : scale_val,
               'add'                     : add_val,
             }
-        self.waveop_stream.add_linked(instr, dram_waveops)
+        self.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
 
     # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
@@ -2442,7 +2451,7 @@ class TPBSched:
               'bias_sb_address'         : bias_sb_address,
               'bias_start_at_mid_part'  : tile_id.m_id%2 == 1,
             }
-        self.waveop_stream.add_linked(instr, dram_bias_waveops)
+        self.waveop_stream.add_linked(instr, dram_bias_waveops, psum_bank_src if src_is_psum else -1)
 
     # generate ResAdd instruction and add it to instruction stream
     def gen_join_waveop_inline(self, op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start, start_at_mid_part):
@@ -2540,15 +2549,15 @@ class TPBSched:
               'dst_z_num'               : dst_z_num,
               'num_partitions'          : num_partitions,
             }
-        self.waveop_stream.add_linked(instr, dram_resadd_waveops)
+        self.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1)
 
     def gen_fused_pool_waveop_inline (self, fused_ops, tile_id, psum_bank_src, start_at_mid_part):
         pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, True, psum_bank_src, start_at_mid_part)
-        self.waveop_stream.add_linked(pool_waveop, [])
+        self.waveop_stream.add_linked(pool_waveop, [], psum_bank_src)
 
     def gen_unfused_pool_waveop_inline (self, fused_ops, tile_id, dram_waveops, start_at_mid_part):
         pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, False, 0, start_at_mid_part)
-        self.waveop_stream.add_linked(pool_waveop, dram_waveops)
+        self.waveop_stream.add_linked(pool_waveop, dram_waveops, -1)
 
     # collect stats
     def collect_stats(self, layer_name):        
@@ -2896,6 +2905,7 @@ class TPBSched:
                                                         pool_op.ofmap_tile_upper_addr[z], 
                                                         pool_op.ofmap_count, 
                                                         self.waveop_stream.last_main_waveop)
+                        if (args.debug > 3): print("TRACE execute_unfused_pool_op %s: tile %s done, input region type %s start %d ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, output region type %s start %d ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(pool_op.data["layer_name"], tile_id.id_string(), self.statebuffer.circbuf_ifmaps.circbuf_type, self.statebuffer.circbuf_ifmaps.start, pool_op.ifmap_wave_lower_addr[0], pool_op.ifmap_wave_upper_addr[0], -1, self.statebuffer.circbuf_scratch.circbuf_type, self.statebuffer.circbuf_scratch.start, pool_op.ofmap_tile_lower_addr[0], pool_op.ofmap_tile_upper_addr[0]))
                         # The pooling destination need to be adjusted after the above writes to data region
                         if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool" 
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
@@ -3033,13 +3043,14 @@ class TPBSched:
                                                         output_params_op.ofmap_tile_lower_addr[z], 
                                                         output_params_op.ofmap_tile_upper_addr[z], 
                                                         output_params_op.ofmap_count,
-                                                        self.waveop_stream.last_main_waveop)
+                                                        self.waveop_stream.last_psum_waveop[psum_bank_src])
+                        if (args.debug > 3): print("TRACE execute_conv_ops %s: tile %s done, input region type %s start %d ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, output region type %s start %d ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(op_list[-1].data["layer_name"], tile_id.id_string(), self.statebuffer.circbuf_ifmaps.circbuf_type, self.statebuffer.circbuf_ifmaps.start, op_list.conv_op.ifmap_tile_lower_addr[0], op_list.conv_op.ifmap_tile_upper_addr[0], psum_bank_src, self.statebuffer.circbuf_scratch.circbuf_type, self.statebuffer.circbuf_scratch.start, output_params_op.ofmap_tile_lower_addr[0], output_params_op.ofmap_tile_upper_addr[0]))
                         # The pooling destination need to be adjusted after the above writes to data region
-                        if (self.waveop_stream.last_main_waveop['waveop_type'] == "Pool"
-                                or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
-                                or self.waveop_stream.last_main_waveop['waveop_type'] == "ResAdd"
+                        if (self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "Pool"
+                                or self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "Activation"
+                                or self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "ResAdd"
                                 ):
-                            #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
+                            #self.waveop_stream.last_psum_waveop[psum_bank_src]['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
                             #                                                        + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
                             #                                                        + self.statebuffer.circbuf_scratch.get_atom_offset(output_params_op.ofmap_tile_lower_addr[0])
                             sb_addr = self.statebuffer.circbuf_scratch.get_sb_address(output_params_op.ofmap_tile_lower_addr[0])
@@ -3049,11 +3060,11 @@ class TPBSched:
                                 else:
                                     print("ERROR execute_conv_op: addr %d not found in chunk2atom_map, and also not found in dram_output_waveops; giving up"%(output_params_op.ofmap_tile_lower_addr[0]))
                                     exit(-1)
-                            self.waveop_stream.last_main_waveop['dst_sb_address'] = sb_addr
+                            self.waveop_stream.last_psum_waveop[psum_bank_src]['dst_sb_address'] = sb_addr
                         self.waveop_stream.add_outputs(dram_output_waveops)
                         if args.abstract_mem:
                             if len(dram_output_waveops) > 0:
-                                self.waveop_stream.last_main_waveop = None
+                                self.waveop_stream.last_psum_waveop[psum_bank_src] = None
 
                         if (m_id+1 == tile_id.m or m_id%2 == 1):
                             self.statebuffer.circbuf_scratch.free_data_region(
@@ -3274,6 +3285,7 @@ if __name__ == "__main__":
             f.write("digraph {\n")
             for i in tpb.waveop_stream:
                 f.write("\"%s\" [label=\"%s\"]\n"%(i['waveop_name'], i['waveop_name']))
+            for i in tpb.waveop_stream:
                 for j in i['previous_waveops']:
                     f.write("\"%s\" -> \"%s\"\n"%(j, i['waveop_name']))
             f.write("}")
