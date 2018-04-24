@@ -5,10 +5,11 @@
 
 
 
-#include "shared/inc/tpb_isa_clear.hpp"
+#include "aws_tonga_isa_tpb_event_clear.h"
 
 
 #include "utils/inc/types.hpp"
+#include "compisa/inc/compisacommon.hpp"
 
 
 namespace kcc {
@@ -16,14 +17,20 @@ namespace kcc {
 namespace compisa {
 
 
-class ClearInstr : public CLEAR {
+class ClearInstr : public TONGA_ISA_TPB_EVENT_CLEAR_INST {
 public:
     static constexpr EngineId engineId = EngineId::AnyEng;
 public:
     //----------------------------------------------------------------
     ClearInstr()
-        : CLEAR()
+        : TONGA_ISA_TPB_EVENT_CLEAR_INST()
     {
+        InitEventInstruction(*this, TONGA_ISA_TPB_OPCODE_EVENT_CLEAR);
+    }
+
+    void CheckValidity() const
+    {
+        tonga_isa_tpb_eventclear_check_validity(this);
     }
 
 };

@@ -3,7 +3,6 @@
 #ifndef KCC_CODEGEN_CODEGENADDLAYER_H
 #define KCC_CODEGEN_CODEGENADDLAYER_H
 
-#include "shared/inc/tpb_isa_activate.hpp"
 
 #include "codegen/inc/codegenarithmeticlayer.hpp"
 

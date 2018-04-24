@@ -1,3 +1,5 @@
+#include "aws_tonga_isa_tpb_pool.h"
+
 #include "layers/inc/maxpoollayer.hpp"
 
 #include "codegen/inc/codegenmaxpoollayer.hpp"
@@ -17,7 +19,7 @@ CodeGenMaxPoolLayer::generate(layers::Layer* layer)
 {
     layers::MaxPoolLayer* const maxpoolLayer = dynamic_cast<layers::MaxPoolLayer*>(layer);
     assert(maxpoolLayer && "CodeGen::generate: layer is not a MaxPool layer");
-    Generate(maxpoolLayer, POOLFUNC::MAX_POOL);
+    Generate(maxpoolLayer, TONGA_ISA_TPB_POOL_TYPE_MAXPOOL);
 }
 
 }}

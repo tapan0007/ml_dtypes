@@ -3,7 +3,7 @@
 #ifndef KCC_CODEGEN_CODEGENBIASADDLAYER_H
 #define KCC_CODEGEN_CODEGENBIASADDLAYER_H
 
-#include "shared/inc/tpb_isa_activate.hpp"
+#include "aws_tonga_isa_tpb_activate.h"
 
 #include "codegen/inc/codegenaddlayer.hpp"
 

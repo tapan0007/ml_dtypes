@@ -16,7 +16,7 @@ public:
         : CodeGenActivLayer(codegen)
     {}
 
-    ACTIVATIONFUNC gActivFunc() const override;
+    TONGA_ISA_TPB_ACTIVATION_FUNC gActivFunc() const override;
 };
 
 }}

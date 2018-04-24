@@ -3,7 +3,7 @@
 #ifndef KCC_CODEGEN_CODEGENACTIVLAYER_H
 #define KCC_CODEGEN_CODEGENACTIVLAYER_H
 
-#include "shared/inc/tpb_isa_activate.hpp"
+#include "aws_tonga_isa_tpb_common.h"
 
 #include "codegen/inc/codegenlayer.hpp"
 
@@ -18,7 +18,7 @@ public:
         : CodeGenLayer(codegen)
     {}
 
-    virtual ACTIVATIONFUNC gActivFunc() const = 0;
+    virtual TONGA_ISA_TPB_ACTIVATION_FUNC gActivFunc() const = 0;
 
     void generate(layers::Layer* layer) override;
 };

@@ -103,7 +103,7 @@ Main(int argc, char* argv[])
 
     int i = 1;
     while (i < argc) {
-        std::string arg(argv[i]);
+        const std::string arg(argv[i]);
 #if 1
         if (arg == "--print-layers") {
             PrintLayers = true;
@@ -117,7 +117,7 @@ Main(int argc, char* argv[])
             PrintDot = true;
         } else if (arg == "--batch" or arg == "--batching") {
             DoBatching = true;
-        } else if (arg == "--parallel_streams") {
+        } else if (arg == "--parallel_streams" || arg == "--parallel-streams") {
             ParallelStreams = true;
         } else if (arg == "--number-tpb-events") {
             numTpbEvents = atoi(argv[i+1]);

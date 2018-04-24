@@ -17,6 +17,7 @@
 #include "events/inc/events.hpp"
 
 
+struct TONGA_ISA_TPB_INST_EVENTS;
 
 namespace kcc {
 
@@ -51,7 +52,7 @@ public:
     public:
         kcc_int64                   m_FileDramOffset    = -1;
         bool                        m_Dirty             = false;
-        ARBPRECTYPE                 m_SimTypeId         = INVALID_ARBPRECTYPE;
+        TONGA_ISA_TPB_DTYPE         m_SimTypeId         = TONGA_ISA_TPB_DTYPE_INVALID;
         std::array<kcc_int32, 4>    m_RefFileShape;
     };
 public:
@@ -100,7 +101,7 @@ private:
     WaveCodeWaveOp& getCodeGen(const wave::WaveOp* waveOp);
     void saveAllNpyFiles();
 
-    void checkForNoSync(const TPB_CMD_SYNC&) const;
+    void checkForNoSync(const TONGA_ISA_TPB_INST_EVENTS&) const;
 
 private:
     nets::Network*                m_Network;

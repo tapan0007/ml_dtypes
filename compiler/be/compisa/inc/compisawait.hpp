@@ -5,10 +5,11 @@
 
 
 
-#include "shared/inc/tpb_isa_wait.hpp"
+#include "aws_tonga_isa_tpb_event_wait.h"
 
 
 #include "utils/inc/types.hpp"
+#include "compisa/inc/compisacommon.hpp"
 
 
 namespace kcc {
@@ -16,16 +17,21 @@ namespace kcc {
 namespace compisa {
 
 
-class WaitInstr : public WAIT {
+class WaitInstr : public TONGA_ISA_TPB_EVENT_WAIT_INST {
 public:
     static constexpr EngineId engineId = EngineId::AnyEng;
 public:
     //----------------------------------------------------------------
     WaitInstr()
-        : WAIT()
+        : TONGA_ISA_TPB_EVENT_WAIT_INST()
     {
+        InitEventInstruction(*this, TONGA_ISA_TPB_OPCODE_EVENT_WAIT);
     }
 
+    void CheckValidity() const
+    {
+        tonga_isa_tpb_eventwait_check_validity(this);
+    }
 };
 
 

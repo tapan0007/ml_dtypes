@@ -1237,6 +1237,7 @@ class KNode:
         # convolution kernel shape
         layer_info = self.data
         if (layer_info['layer_type'] == 'Softmax2'):
+            self.weights_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])            
             self.R, self.S = 1, 1 
         elif (layer_info['kernel_format'] == 'CRSM'):
             self.weights_shape_dims = ShapeDims(layer_info['kernel_format'], layer_info['kernel_shape'])            
@@ -3124,6 +3125,8 @@ if __name__ == "__main__":
     parser.add_argument("--abstract_mem", action='store_true', help="Keep data chunks as abstract objects")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
+
+    print("Running in %s mode"%(args.nname))
 
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
 

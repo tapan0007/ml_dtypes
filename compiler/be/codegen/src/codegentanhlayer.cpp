@@ -4,10 +4,10 @@
 namespace kcc {
 namespace codegen {
 
-ACTIVATIONFUNC
+TONGA_ISA_TPB_ACTIVATION_FUNC
 CodeGenTanhLayer::gActivFunc() const
 {
-    return ACTIVATIONFUNC::TANH;
+    return TONGA_ISA_TPB_ACTIVATION_FUNC_TANH;
 }
 
 }}

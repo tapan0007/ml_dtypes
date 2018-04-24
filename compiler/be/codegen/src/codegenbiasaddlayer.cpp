@@ -45,7 +45,7 @@ CodeGenBiasAddLayer::generate(layers::Layer* layer)
         m_IfmapAddrs[0], m_IfmapDims,
         m_OfmapAddrs, m_OfmapDims,
         inDataType, outDataType,
-        ACTIVATIONFUNC::IDENTITY,
+        TONGA_ISA_TPB_ACTIVATION_FUNC_IDENTITY,
         1.0f,
         constLayer->gOfmapAddress());
     assert(ofmapWidth == m_OfmapDims[m_FmapIndex_W] && "BiasAdd layer: Ofmap width mismatch");
