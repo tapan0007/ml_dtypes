@@ -35,7 +35,7 @@ import KaenaOpGraph
 from MiscUtil import remove_write_permissions
 
 kPath = os.environ.get('KAENA_PATH')
-print("\nINFO: started as  ", " ".join(sys.argv))
+print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
