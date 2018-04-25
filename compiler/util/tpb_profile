@@ -14,33 +14,55 @@ parser.add_argument('--tpb', help='Tpb binary program files named ...-pe.tpb, ..
 parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
 parser.add_argument('--show', help='Invoke interactive viewer', action='store_true', default=False)
 parser.add_argument('--cycle_range', help='Display only activity within the cycle range, default 0 2e6', type=float, nargs=2, default=[0,2e6])
-parser.add_argument('--geometry', help='Output size width height', type=int, nargs=2, default=[12,2])
+parser.add_argument('--geometry', help='Output size width height', type=int, nargs=2, default=[])
 parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (unused)', type=float, default=0)
 
 args = parser.parse_args()
+
+if len(args.geometry) == 0:
+  if args.long > 0:
+    args.geometry = [12,4]
+  else:
+    args.geometry = [12,8]
 
 class Instr:
   def __init__(self, instrType):
     self.instrType = instrType
     self.fields = {}
+    self.textFields = ""
   def __str__(self):
     s = self.instrType
-    s += "\n" + "\n".join(["%s : %s" % (k, v) for k,v in self.fields.items()])
+    #s += "\n" + "\n".join(["%s : %s" % (k, v) for k,v in self.fields.items()])
+    s += "\n" + self.textFields
     return s
   def addField(self, field, value):
     self.fields[field] = value
   def getInstrType(self):
     return self.instrType
+  def getSrcNumElem4D(self, src='mem', dim=4):
+    num = 1
+    for d in range(dim):
+      num *= self.fields['src_%s_pattern.num_elem[%d]' % (src, d)]
+    return num
   def getWaveCycles(self):
     cycles = 0;
-    if self.instrType == 'MATMUL':
-      cycles = self.fields['src_mem_pattern.num_elem[0]'] * self.fields['src_mem_pattern.num_elem[1]'] * self.fields['src_mem_pattern.num_elem[2]']
+    if self.instrType == 'MATMUL' or self.instrType == 'ACTIVATION':
+      cycles = self.getSrcNumElem4D('mem',3)
+    elif self.instrType == 'POOL':
+      cycles = self.getSrcNumElem4D('mem', 4)
+    elif self.instrType == 'TENSOR_TENSOR_OP':
+      cycles = self.getSrcNumElem4D('psum_buf_mem', 3)
     return cycles
+  def getOPC(self):
+    opc = 0
+    if self.instrType == 'MATMUL':
+      opc = 2 * self.fields['num_active_rows'] * self.fields['num_active_cols']
+    return opc
   def getOpCount(self):
     opCount = 0;
     if self.instrType == 'MATMUL':
       waveCycles = self.getWaveCycles()
-      opCount = 2 * waveCycles * self.fields['num_active_rows'] * self.fields['num_active_cols']
+      opCount = self.getOPC() * waveCycles
     return opCount
   # https://matplotlib.org/examples/color/named_colors.html
   i2c = {
@@ -80,6 +102,8 @@ class TpbProgram:
           if match:
             instrField, value = match.groups()
             instr.addField(instrField, int(value, 0))
+          instr.textFields += line
+  
   def getInstrAt(self, pc):
     return self.instructions.get(pc, None)
 
@@ -188,12 +212,18 @@ class InklingProfile(object):
   def plotProfile(self, outFile):
     ylabels = self.engines
     y = [y for y in range(len(ylabels))]
-    fig = plt.figure(figsize=(self.geometry))
-    ax = fig.add_subplot(111)
-    plt.yticks(y, ylabels)
-    #plt.bar(x, y, width=0.5, color = 'blue')
+    #fig = plt.figure(figsize=(self.geometry))
+    fig, axarr = plt.subplots(2, sharex=True, figsize=(self.geometry))
+    axPeUtil, axEvents  = axarr
+    
+    
     print("INFO: processing %d instructions" % len(self.events))
     eventCount = 0
+    peCycles = []
+    peUtil = [0]
+    peUtilTot = [0]
+    firstCycle = -1
+    opsTot = 0
     for e in self.events:
       engine = e.engine
       color = self.engine2color(engine)
@@ -202,34 +232,61 @@ class InklingProfile(object):
       instr = self.tongaProgram.getInstr(engine, e.pc)
       #if instr.getInstrType() == 'MATMUL': 
       #print("DEBUG: got  instruction %s  engine %s  pc %s" % (str(instr), engine, e.pc))
+      if len(peCycles) == 0:
+        firstCycle = xval
+        peCycles.append(firstCycle)
       if instr != None:
         color = instr.getColor()
         instrCycles = instr.getWaveCycles()
         if instrCycles > 1:
-          ax.plot([xval, xval+instrCycles], [yval-0.3, yval-0.3], color=color, linestyle='-', linewidth=2)
-          ax.plot([xval, xval+instrCycles], [yval+0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
-          ax.plot([xval+instrCycles, xval+instrCycles], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+          axEvents.plot([xval, xval+instrCycles], [yval-0.3, yval-0.3], color=color, linestyle='-', linewidth=2)
+          axEvents.plot([xval, xval+instrCycles], [yval+0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+          axEvents.plot([xval+instrCycles, xval+instrCycles], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
           if self.verbose:
-            ax.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
-      ax.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+            axEvents.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
+        if instr.getInstrType() == 'MATMUL':
+          peuVal = 100.0*instr.getOPC() / 128 / 64 / 2
+          waveCycles = instr.getWaveCycles()
+          div = xval - firstCycle
+          if div == 0:
+            div = 1
+          UtilTot1 = 100.0 * opsTot / 128 / 64 / 2 / div
+          opsTot += instr.getOpCount()
+          UtilTot2 = 100.0 * opsTot / 128 / 64 / 2 / (xval - firstCycle + waveCycles)
+          peCycles  += [xval-0.1,   xval, xval+waveCycles, xval+waveCycles+0.1]
+          peUtil    += [0,        peuVal,          peuVal,                   0]
+          peUtilTot += [UtilTot1, UtilTot1,      UtilTot2,            UtilTot2]
+      axEvents.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
       eventCount += 1
       if eventCount % 100 == 0:
         print("\r%7.3f %%" % (100.0 * eventCount / len(self.events)), end='', flush=True)
       #if eventCount % 1000 == 0:
       #  break
     print()
-    ax.grid(True)
-    plt.xlabel('Cycle')
-    plt.ylabel('Engine')
-    ax.set_title('Inkling execution profile %s' % self.logFile)
+    
+    axEvents.set_yticks(y)
+    axEvents.set_yticklabels(ylabels)
+    axEvents.grid(True)
+    axEvents.set_xlabel('Cycle')
+    axEvents.set_ylabel('Engine')
+    #axEvents.set_title('Inkling execution profile %s' % self.logFile)
+    
+    # PE utilization
+    axPeUtil.grid(True)
+    axPeUtil.set_ylabel('PE Utilization [%]')
+    axPeUtil.set_ylim([-2, 102])
+    handleInst, = axPeUtil.plot(peCycles, peUtil, label='Instantaneous')
+    handleCum, = axPeUtil.plot(peCycles, peUtilTot, color='red', label='Cumulative')
+    axPeUtil.legend(handles=[handleInst, handleCum])
+
     plt.tight_layout()
     plt.savefig(outFile)
     print("INFO: wrote  %s" % (outFile))
     if self.show:
       #os.system("firefox %s" % (outFile))
 
-      ax.set_title('')
-      annot = ax.annotate("", xy=(0,0), xytext=(20,-60),textcoords="offset points",
+      axEvents.set_title('')
+      annot = axEvents.annotate("", xy=(0,0), xytext=(20,-60),textcoords="offset points",
                           bbox=dict(boxstyle="round", fc="w"),
                           arrowprops=dict(arrowstyle="->"))
       annot.set_visible(False)
@@ -244,13 +301,14 @@ class InklingProfile(object):
           annot.get_bbox_patch().set_edgecolor(instr.getColor())
         annot.xy = (x,y)
         annot.set_text(text)
+        annot.set_family('monospace')
         annot.get_bbox_patch().set_alpha(0.95)
         print(text)
         print()
 
       def hover(event):
         vis = annot.get_visible()
-        if event.inaxes == ax:
+        if event.inaxes == axEvents:
           x, y = event.xdata, event.ydata
           e = self.getEventByXY(x, y)
           if e != None:
