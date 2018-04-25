@@ -46,7 +46,7 @@ def main():
                         required=True)
 
     args = parser.parse_args()
-    if args.data_type == 'f16':
+    if args.data_type == 'fp16':
         datatype = np.float16
     else:
         datatype = np.float32
