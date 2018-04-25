@@ -1,8 +1,9 @@
 #! /usr/bin/env  bash
 
 set -x
-yum_packages="python36 gcc64-c++ libzip-devel zlib-static createrepo"
-pip_packages="numpy pillow keras graphviz tensorflow==1.5 filelock boto"
+
+yum_packages="python36 gcc64-c++ libzip-devel zlib-static createrepo aws-cli unzip"
+pip_packages="numpy pillow keras graphviz tensorflow==1.5 filelock boto3"
 
 
 for p in $yum_packages; do
