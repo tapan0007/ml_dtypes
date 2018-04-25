@@ -148,6 +148,7 @@
       "ofmap_tile_width": 4,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s0"
       ],
       "psum_bank_id": 0,
@@ -190,6 +191,7 @@
       "ofmap_tile_width": 3,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s1"
       ],
       "psum_bank_id": 0,
@@ -232,6 +234,7 @@
       "ofmap_tile_width": 3,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r0_s2"
       ],
       "psum_bank_id": 0,
@@ -274,6 +277,7 @@
       "ofmap_tile_width": 4,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s0"
       ],
       "psum_bank_id": 0,
@@ -316,6 +320,7 @@
       "ofmap_tile_width": 3,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s1"
       ],
       "psum_bank_id": 0,
@@ -358,6 +363,7 @@
       "ofmap_tile_width": 3,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r1_s2"
       ],
       "psum_bank_id": 0,
@@ -400,6 +406,7 @@
       "ofmap_tile_width": 4,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s0"
       ],
       "psum_bank_id": 0,
@@ -442,6 +449,7 @@
       "ofmap_tile_width": 3,
       "out_dtype": "float32",
       "previous_waveops": [
+        "input/SBAtomFile_ifmaps_0_n0_m0_h0_w0_c0_r0_s0",
         "1conv3/conv1/MatMul_n0_m0_h0_w0_c0_r2_s1"
       ],
       "psum_bank_id": 0,
@@ -510,7 +518,6 @@
       "ofmaps_fold_idx": 0,
       "partition_step_bytes": 32,
       "previous_waveops": [
-        "1conv3/relu1/Activation_n0_m0_h0_w0",
         "1conv3/relu1/Activation_n0_m0_h0_w0"
       ],
       "ref_file": "trivnet_1conv3__relu1:0_NCHW-simout.npy",
@@ -519,27 +526,6 @@
       "sb_address": 67584,
       "start_at_mid_part": false,
       "waveop_name": "1conv3/relu1/SBAtomSave_scratch_0_n0_m0_h0_w0",
-      "waveop_type": "SBAtomSave"
-    },
-    {
-      "batch_fold_idx": 0,
-      "data_type": "float16",
-      "last": true,
-      "layer_name": "1conv3/relu1",
-      "length": 32,
-      "offset_in_file": 0,
-      "ofmap_count": 1,
-      "ofmaps_fold_idx": 0,
-      "partition_step_bytes": 32,
-      "previous_waveops": [
-        "1conv3/relu1/Activation_n0_m0_h0_w0"
-      ],
-      "ref_file": "trivnet_1conv3__relu1:0_NCHW-simout.npy",
-      "ref_file_format": "NCHW",
-      "ref_file_shape": [1,1,4,4],
-      "sb_address": 67584,
-      "start_at_mid_part": false,
-      "waveop_name": "1conv3/relu1/SBAtomSave_scratch_0_n0_m0_h0_w0__0",
       "waveop_type": "SBAtomSave"
     }
   ]
