@@ -1683,7 +1683,7 @@ class FusedOp(list):
             self.prev_weight_wave_lower_addr = weights_sb_address
         # If wave crosses atom boundaries, break it into multiple waves
         # The following assumes noodle tile (width is equal to FMAP width)
-        current_chunk_id = -1
+        current_chunk_id = -100
         break_at_y = []
         break_addr = []
         addr_step_y = self.conv_op.W * self.conv_op.stride_y * self.conv_op.item_sz
@@ -1692,11 +1692,16 @@ class FusedOp(list):
             if (address > self.conv_op.ifmap_wave_upper_addr[0]):
                 break
             chunk_id = tpb.statebuffer.circbuf_ifmaps.get_chunk_addr(address)
-            if (chunk_id != current_chunk_id):
+            if args.abstract_mem:
+                break_cond = chunk_id != current_chunk_id
+            else:
+                break_cond = not (chunk_id == current_chunk_id or chunk_id == current_chunk_id+1)
+            if break_cond:
                 break_at_y.append(i)
                 break_addr.append(tpb.statebuffer.circbuf_ifmaps.get_sb_address(address))
                 current_chunk_id = chunk_id
         matmul_waveop = []
+        start_tensor_calc = not(psum_add)
         for i in range(len(break_at_y)):                
             if (i == len(break_at_y)-1):
                 next_break = self.conv_op.ofmap_wave_height
@@ -1719,7 +1724,7 @@ class FusedOp(list):
                   'out_dtype'               : out_dtype,
                   'wave_id_format'          : wave_id.format, # to be removed
                   'wave_id'                 : wave_id.show(), # to be removed
-                  'start'                   : not(psum_add),    # to be removed
+                  'start'                   : start_tensor_calc,    # to be removed
                   'stride_x'                : self.conv_op.stride_x, # to be removed
                   'stride_y'                : self.conv_op.stride_y, # to be removed
                   'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
@@ -1729,7 +1734,7 @@ class FusedOp(list):
                   'ofmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed
                   'ofmap_tile_height'       : self.conv_op.ofmap_wave_height,  # to be removed
                   'batching_in_wave'        : self.conv_op.Tn, # to be removed
-                  'start_tensor_calc'       : not(psum_add),
+                  'start_tensor_calc'       : start_tensor_calc,
                   'stop_tensor_calc'        : False,
                   'fmap_x_step'             : self.conv_op.stride_x,
                   'fmap_x_num'              : self.conv_op.ofmap_wave_width,
@@ -1748,6 +1753,7 @@ class FusedOp(list):
                   'psum_z_num'              : self.conv_op.Tn,
                   'num_column_partitions'   : self.conv_op.ofmap_count,
                 })
+            start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
         return matmul_waveop
 
     # generate Pool waveop and add it to waveop stream
@@ -1840,11 +1846,16 @@ class FusedOp(list):
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             tpb.pearray.batching_in_wave = self.conv_op.Tn
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
-            assert(len(matmul_waveop) >= len(dram_ifmaps_waveops))            
             for i in range(len(matmul_waveop)):
                 dram_waveops = []
+                # pair up dram waveops and matmul
                 if (i < len(dram_ifmaps_waveops)):
-                    dram_waveops.append(dram_ifmaps_waveops[i])
+                    # if there are more dram waveops, assign to last matmul                    
+                    if (i == (len(matmul_waveop) - 1) 
+                        and len(matmul_waveop) < len(dram_ifmaps_waveops)):           
+                        dram_waveops += dram_ifmaps_waveops[i:]
+                    else:
+                        dram_waveops.append(dram_ifmaps_waveops[i])
                 tpb.waveop_stream.add_linked(matmul_waveop[i], (dram_weights_waveops if i==0 else []) + dram_waveops, self.conv_op.psum_bank_dst)
             # mark this matmul as consumer of the 64B weights morsel
             matmul_waveop_name = matmul_waveop[-1]["waveop_name"]
