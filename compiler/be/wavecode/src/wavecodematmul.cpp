@@ -159,6 +159,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     //************************************************************************
 
     //************************************************************************
+    {
+        SaveName(ldweightsInstr, matmulWaveop->gName().c_str());
+    }
     m_WaveCode.writeInstruction(ldweightsInstr);
 }
 

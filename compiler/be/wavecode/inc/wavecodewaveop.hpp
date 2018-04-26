@@ -146,6 +146,14 @@ protected:
         }
     }
 
+    template <typename INSTR>
+    void SaveName(INSTR& instr, const char* name)
+    {
+        snprintf(reinterpret_cast<char*>(&instr.reserved[0]), sizeof(instr.reserved),
+                "%s", name);
+        instr.reserved[sizeof(instr.reserved)-1] = 0;
+    }
+
 protected:
     WaveCodeRef     m_WaveCode;
     wave::WaveOp*   m_WaveOp;

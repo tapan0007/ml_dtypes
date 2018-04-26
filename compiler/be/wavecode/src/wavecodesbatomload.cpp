@@ -136,6 +136,11 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
         dramToStateBufInstr.src_addr = npyFileDramOffset + sbAtomLoadWaveOp->gOffsetInFile() + (partIdx * stepSize);
         dramToStateBufInstr.dst_addr = stateBuf.gEntrySysAddress(partIdx, addressInPart);
 
+        {
+            char buf[256];
+            sprintf(buf, "%s-%d", sbAtomLoadWaveOp->gName().c_str(), partIdx);
+            SaveName(dramToStateBufInstr, buf);
+        }
         m_WaveCode.writeInstruction(dramToStateBufInstr);
     }
 
