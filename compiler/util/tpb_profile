@@ -84,11 +84,49 @@ class Instr:
     }
   def getColor(self):
     return Instr.i2c.get(self.getInstrType(), "black")
+  def hasEventModeNz(self, waitOrSet):
+    mode = self.fields.get('inst_events.%s_event_mode' % waitOrSet, None)
+    if mode != None:
+      if mode > 0:
+        return True
+    return False
+  def getEvents(self):
+    ''' Event related ISA fields:
+      167954   inst_events.wait_event_mode             [4, 4]: 0xXX
+      167954   inst_events.wait_event_idx              [5, 5]: 0xXX
+      167954   inst_events.set_event_mode              [6, 6]: 0xXX
+      167954   inst_events.set_event_idx               [7, 7]: 0xXX
+        2917   event_idx                               [4, 4]: 0xXX
+        1241   wait_event_mode                         [4, 4]: 0xXX
+        1241   event_idx                               [5, 5]: 0xXX
+    '''
+    waitEvents = []
+    setEvents = []
+    if self.hasEventModeNz('wait'):
+      eventId = self.fields.get('inst_events.wait_event_idx', None)
+      if eventId != None:
+        waitEvents.append(eventId)
+    if self.hasEventModeNz('set'):
+      eventId = self.fields.get('inst_events.set_event_idx', None)
+      if eventId != None:
+        setEvents.append(eventId)
+    eventId = self.fields.get('event_idx', None)
+    if eventId != None:
+      if self.getInstrType() == "WAIT":
+        waitEvents.append(eventId)
+      elif self.getInstrType() == "SET":
+        setEvents.append(eventId)
+      elif self.getInstrType() == "CLEAR":
+        pass
+      else:
+        print("ERROR: instruction %s has unexpected event_idx" % self.getInstrType())
+    return waitEvents, setEvents
+    
 
 class TpbProgram:
   def __init__(self, tpbFile):
     self.instructions = {}
-    print("INFO: Loading " + tpbFile)
+    print("INFO: Loading " + tpbFile, flush=True)
     with os.popen('$INKLING_PATH/objdump/objdump ' + tpbFile) as fh:
       instr = None
       for line in fh:
@@ -150,6 +188,7 @@ class InklingProfile(object):
     self.numCycles = 1
     self.engines = ["pool", "act", "pe", "dma"]
     self.cycle2event = {engine : {} for engine in self.engines}
+    self.toEventIds = {}
     print("INFO: parsing %s" % logFile)
     lineCount = 0
     with open(self.logFile) as fh:
@@ -209,6 +248,25 @@ class InklingProfile(object):
           return e
     return None
   
+  def calcEventIdGraph(self):
+    self.toEventIds = {}
+    inFlight = {}
+    for eIdx in range(len(self.events)):
+      e = self.events[eIdx]
+      instr = self.tongaProgram.getInstr(e.engine, e.pc)
+      if instr != None:
+        waitEvents, sendEvents = instr.getEvents()
+        for we in waitEvents:
+          senderIdx = inFlight.pop(we, -1)
+          if senderIdx > -1:
+            if self.toEventIds.get(senderIdx, None) == None:
+              self.toEventIds[senderIdx] = []
+            self.toEventIds[senderIdx].append((eIdx, we))
+            #print("DEBUG: ", self.toEventIds)
+        for se in sendEvents:
+          inFlight[se] = eIdx
+    print("DEBUG: event graph  %s" % str(self.toEventIds))
+  
   def plotProfile(self, outFile):
     ylabels = self.engines
     y = [y for y in range(len(ylabels))]
@@ -224,7 +282,8 @@ class InklingProfile(object):
     peUtilTot = [0]
     firstCycle = -1
     opsTot = 0
-    for e in self.events:
+    for eIdx in range(len(self.events)):
+      e = self.events[eIdx]
       engine = e.engine
       color = self.engine2color(engine)
       yval = ylabels.index(engine)
@@ -236,6 +295,7 @@ class InklingProfile(object):
         firstCycle = xval
         peCycles.append(firstCycle)
       if instr != None:
+        #print("DEBUG: %s %s  instr events  %s" % (instr.getInstrType(), e.pc, instr.getEvents()))
         color = instr.getColor()
         instrCycles = instr.getWaveCycles()
         if instrCycles > 1:
@@ -257,6 +317,33 @@ class InklingProfile(object):
           peUtil    += [0,        peuVal,          peuVal,                   0]
           peUtilTot += [UtilTot1, UtilTot1,      UtilTot2,            UtilTot2]
       axEvents.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+      
+      # Plot events
+      if self.toEventIds.get(eIdx, None) != None:
+        for toIdx, eventId in self.toEventIds[eIdx]:
+          toE = self.events[toIdx]
+          toCycle = int(toE.cycle)
+          toEngine = toE.engine
+          toYval = ylabels.index(toEngine)
+          xArr = xval+ instrCycles
+          yArr = yval
+          xDelta = toCycle - xval-instrCycles
+          yDelta = toYval - yval
+          #axEvents.arrow(xArr, yArr, xDelta, yDelta,
+          #              length_includes_head=True,
+          #              #head_width=1, head_length=2,
+          #              fc='k', ec='k')
+          axEvents.annotate("",
+            xy=(xArr, yArr), xycoords='data',
+            xytext=(xArr+xDelta, yArr+yDelta), textcoords='data',
+            arrowprops=dict(arrowstyle="<-, head_width=0.5, head_length=1.5", linestyle="dotted",
+                            color="black",
+                            patchB=None,
+                            shrinkB=0,
+                            #connectionstyle="arc3,rad=0.3",
+                            ))
+          axEvents.text(xArr + 0.5 * xDelta, yArr + 0.5 * yDelta, "0x%x" % eventId)
+      
       eventCount += 1
       if eventCount % 100 == 0:
         print("\r%7.3f %%" % (100.0 * eventCount / len(self.events)), end='', flush=True)
@@ -275,9 +362,10 @@ class InklingProfile(object):
     axPeUtil.grid(True)
     axPeUtil.set_ylabel('PE Utilization [%]')
     axPeUtil.set_ylim([-2, 102])
-    handleInst, = axPeUtil.plot(peCycles, peUtil, label='Instantaneous')
-    handleCum, = axPeUtil.plot(peCycles, peUtilTot, color='red', label='Cumulative')
-    axPeUtil.legend(handles=[handleInst, handleCum])
+    if len(peCycles) > 1:
+      handleInst, = axPeUtil.plot(peCycles, peUtil, label='Instantaneous')
+      handleCum, = axPeUtil.plot(peCycles, peUtilTot, color='red', label='Cumulative')
+      axPeUtil.legend(handles=[handleInst, handleCum])
 
     plt.tight_layout()
     plt.savefig(outFile)
@@ -329,6 +417,7 @@ class InklingProfile(object):
 tongaProgram = TongaProgram(args.tpb)
 
 p = InklingProfile(args.log, tongaProgram, args.verbose, args.cycle_range, args.show, args.geometry)
+
 if args.long > 0:
   totalCycles = p.getNumCycles()
   cycleStep = int(args.long)
@@ -354,4 +443,5 @@ if args.long > 0:
     os.system("firefox %s" % (outPng))  
   
 else:
+  p.calcEventIdGraph()
   p.plotProfile("out_profile.svg")
