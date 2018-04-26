@@ -1,51 +1,63 @@
 #!/usr/bin/env python3
 
+import os
 import argparse
-import sys
 import time
 from datetime import datetime
-
-import boto3
-from botocore.compat import total_seconds
-import tarfile, zipfile
-import uuid
-import os, sys
 import glob
 import math
+import logging
+
+import boto3
+import tarfile
+import zipfile
 import getpass
+import tempfile
 
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+from progress.bar import Bar
+from progress.spinner import Spinner
 
-#parser.add_argument("--name", help="name of the job", type=str, required=True)
-parser.add_argument("--job-queue", help="name of the job queue to submit this job", type=str, required=True)
-parser.add_argument("--job-definition", help="name of the job job definition", type=str, required=True)
-parser.add_argument("--wait", help="block wait until the job completes", action='store_true')
-parser.add_argument("--aws-profile", help="name of aws credentials profile to use", required=True)
-
-parser.add_argument("--kelf-dir", help="precompiled kelf directory used for inference", required=True)
-parser.add_argument("--input-bucket", help="input bucket", required=True)
-parser.add_argument("--output-bucket", help="output bucket", required=True)
-parser.add_argument("--repo-name", help="repo name", type=str, default=None, required=True)
-parser.add_argument("--dry-run", help="dry run mode",  default=False, action='store_true')
-
-args = parser.parse_args()
+MAX_NUM_WORKERS = 1000
+S3_SCRIPT_FILE_NAME = "script.tar.gz"
+S3_KELF_FILE_NAME = "kelf.tar.gz"
 
 
-session = boto3.Session( profile_name  = args.aws_profile)
-batch = session.client(
-    service_name='batch',
-    region_name='us-east-1')
+def upload_files(session, testid, kelf_dir, output_bucket):
+    """ Creates needed files as zip or  and uploads them to S3 bucket.
 
-cloudwatch = session.client(
-    service_name='logs',
-    region_name='us-east-1')
+    :param session: aws session to use.
+    :param testid: unique test id.
+    :param kelf_dir: Local path of the kelf directory.
+    :param output_bucket: Remote (S3) bucket name.
+    :return: script zip file name in s3 bucket.
+    """
 
-s3 = session.resource(
-    service_name='s3',
-    region_name='us-east-1')
+    def make_tarfile(output_filename, source_dir):
+        with tarfile.open(output_filename, "w:gz") as tar:
+            for f in glob.glob("%s/*" % source_dir):
+                tar.add(f, arcname=os.path.basename(f))
+
+    s3 = session.resource(service_name='s3', region_name='us-east-1')
+
+    with tempfile.NamedTemporaryFile(suffix='.tar.gz') as kelf_temp:
+        kelf_tar_path = kelf_temp.name
+        make_tarfile(kelf_tar_path, kelf_dir)
+        s3.Bucket(output_bucket).upload_file(kelf_tar_path, os.path.join(testid, S3_KELF_FILE_NAME))
 
 
-def printLogs(logGroupName, logStreamName, startTime):
+    # zip up and push run scripts to s3
+    # inference_runner and kaena_install
+    with tempfile.NamedTemporaryFile(suffix='.tar.gz') as script_temp:
+        script_zip_path = script_temp.name
+        with zipfile.ZipFile(script_zip_path, 'w') as myzip:
+            myzip.write("kaena_install")
+            myzip.write("inference_runner")
+        s3.Bucket(output_bucket).upload_file(script_zip_path, os.path.join(testid, S3_SCRIPT_FILE_NAME))
+
+    return
+
+
+def printLogs(cloudwatch, logGroupName, logStreamName, startTime):
     kwargs = {'logGroupName': logGroupName,
               'logStreamName': logStreamName,
               'startTime': startTime,
@@ -58,7 +70,7 @@ def printLogs(logGroupName, logStreamName, startTime):
         for event in logEvents['events']:
             lastTimestamp = event['timestamp']
             timestamp = datetime.utcfromtimestamp(lastTimestamp / 1000.0).isoformat()
-            print ('[%s] %s' % ((timestamp + ".000")[:23] + 'Z', event['message']))
+            logging.info ('[%s] %s' % ((timestamp + ".000")[:23] + 'Z', event['message']))
 
         nextToken = logEvents['nextForwardToken']
         if nextToken and kwargs.get('nextToken') != nextToken:
@@ -68,7 +80,7 @@ def printLogs(logGroupName, logStreamName, startTime):
     return lastTimestamp
 
 
-def getLogStream(logGroupName, jobName, jobId):
+def getLogStream(cloudwatch, logGroupName, jobName, jobId):
     response = cloudwatch.describe_log_streams(
         logGroupName=logGroupName,
         logStreamNamePrefix=jobName + '/' + jobId
@@ -79,131 +91,165 @@ def getLogStream(logGroupName, jobName, jobId):
     else:
         return logStreams[0]['logStreamName']
 
-def nowInMillis():
-    endTime = long(total_seconds(datetime.utcnow() - datetime(1970, 1, 1))) * 1000
-    return endTime
 
-def make_tarfile(output_filename, source_dir):
-    with tarfile.open(output_filename, "w:gz") as tar:
-        for f in glob.glob("%s/*" % source_dir):
-            tar.add(f, arcname=os.path.basename(f))
+class InferenceRequest(object):
+    """ A simple class to represent a inference request.
+    """
+    def __init__(self, aws_session, job_queue, job_definition, input_bucket, output_bucket,
+                 repo_name, batch_size):
+        self.aws_session = aws_session
+        self.job_queue = job_queue
+        self.job_definition = job_definition
+        self.input_bucket = input_bucket
+        self.output_bucket = output_bucket
+        self.repo_name = repo_name
+        self.batch_size = batch_size
 
-def main():
-    spin = ['-', '/', '|', '\\', '-', '/', '|', '\\']
-    logGroupName = '/aws/batch/job'
+        self.job_ids = []
+        self.job_names = {}
 
-    jobQueue = args.job_queue
-    jobDefinition = args.job_definition
+        self.aws_batch = aws_session.client(service_name='batch', region_name='us-east-1')
+        self.aws_cloudwatch = aws_session.client(service_name='logs', region_name='us-east-1')
+        self.aws_s3 = aws_session.resource(service_name='s3', region_name='us-east-1')
 
-    wait = args.wait
+    def _submit_job(self, test_id, file_index, dry_run):
+        """ Submit a single inference job to amazon batch.
 
-    # test id: kelf basename + user+ time. 
-    username = getpass.getuser()
-    testid = "%s_%s_%s" %( os.path.basename(args.kelf_dir), username,  time.strftime("%Y%m%d-%H%M%S"))
-
-    # get list of all file names in input bucket
-    input_bucket = s3.Bucket(args.input_bucket)
-    num_inputs = len(list(input_bucket.objects.all()))
-    print ("num of input files is %s " % num_inputs)
-
-    # decide on partitioning
-    num_inputs = 10000
-    MAX_NUM_WORKERS = 1000
-
-    num_workers = min(num_inputs, MAX_NUM_WORKERS)
-    num_images_per = math.ceil(num_inputs/num_workers)
-
-
-    # push kelf to s3
-    kelfTarName = "kelf_%s.tar.gz" % testid
-    kelfTarPath = "/tmp/%s" % kelfTarName
-    kelfS3Path = "%s/%s" % (testid, kelfTarName)
-    make_tarfile(kelfTarPath, args.kelf_dir)
-    s3.Bucket(args.output_bucket).upload_file(kelfTarPath, kelfS3Path)
-
-
-    # zip up and push run scripts to s3
-    # inference_runner and kaena_install
-
-    scriptsZipFile = 'scripts_%s.tar.gz' % testid
-    scriptsZipPath = "/tmp/%s" % scriptsZipFile
-    scriptsZipS3Path = "%s/%s" % (testid, scriptsZipFile)
-    with zipfile.ZipFile(scriptsZipPath, 'w') as myzip:
-        myzip.write("kaena_install")
-        myzip.write("inference_runner")
-    s3.Bucket(args.output_bucket).upload_file(scriptsZipPath, scriptsZipFile)
-
-
-    # submit k jobs, wait
-    jobIds = []
-    worker_index = 0
-    job_names = {}
-
-    while (worker_index < num_workers):
-        offset = num_images_per * worker_index
-        if  offset > num_inputs:
-            break # done
-        cmd = "inference_runner --input-bucket %s --output-bucket %s --test-id %s --repo-name %s --num %s --offset %s" % (args.input_bucket, args.output_bucket, testid, args.repo_name, num_images_per, offset)
-
-        worker_index += 1
-
-        if args.dry_run:
+        :param test_id: unique id for this test session.
+        :param file_index: file index inside the s3 bucket
+        :param dry_run: dont submit but just print the command.
+        :return:
+        """
+        cmd = "inference_runner --input-bucket %s --output-bucket %s --test-id %s --repo-name %s --num %s --offset %s" % (
+            self.input_bucket, self.output_bucket, test_id, self.repo_name, self.batch_size, file_index)
+        if dry_run:
             print("dry run: executing: %s" % cmd)
-            continue
+            return
 
-        jobName = "%s_%s" %(testid, offset)
-        submitJobResponse = batch.submit_job(
-            jobName=jobName,
-            jobQueue=jobQueue,
-            jobDefinition=jobDefinition,
+        job_name = "{test_id}_{start}_to_{end}".format(test_id=test_id, start=file_index, end=file_index + self.batch_size)
+        logging.info('job name = %s' % job_name)
+        submitJobResponse = self.aws_batch.submit_job(
+            jobName=job_name,
+            jobQueue=self.job_queue,
+            jobDefinition=self.job_definition,
             containerOverrides={
                 'command': cmd.split(),
-                'environment' : [
-                    {'name':'BATCH_FILE_TYPE',
+                'environment': [
+                    {'name': 'BATCH_FILE_TYPE',
                      'value': 'zip'},
-                    {'name':'BATCH_FILE_S3_URL',
-                     'value': 's3://%s/%s'%(args.output_bucket, scriptsZipFile)}]
+                    {'name': 'BATCH_FILE_S3_URL',
+                     'value': 's3://%s/%s' % (self.output_bucket, os.path.join(test_id, S3_SCRIPT_FILE_NAME))}]
             }
         )
-        jobId = submitJobResponse['jobId']
-        jobIds.append(jobId)
-        job_names[jobId] = jobName
-        print ('Submitted job [%s - %s] to the job queue [%s]' % (jobName, jobId, jobQueue))
+        job_id = submitJobResponse['jobId']
+        self.job_ids.append(job_id)
+        self.job_names[job_id] = job_name
+        logging.info('Submitted job [%s - %s] to the job queue [%s]' % (job_name, job_id, self.job_queue))
 
-    print ("started jobs list is", jobIds)
+    def submit_jobs(self, testid, file_limit, dry_run=False):
+        """ Helper function to create multiple jobs.
+        :param testid:
+        :param dry_run:
+        :return:
+        """
 
-    spinner = 0
-    running = {}
-    startTime = {}
+        # get list of all file names in input bucket
+        input_bucket = self.aws_s3.Bucket(self.input_bucket)
+        file_count = len(list(input_bucket.objects.all()))
+        print("file count {} limit {}".format(file_count, file_limit))
+        # limit number of files(if file_limit > 0 and < file_count)
+        if 0 < file_limit < file_count:
+            file_count = min(file_count, file_limit)
 
-    while wait and len(jobIds) != 0:
-        time.sleep(1)
-        for jobId in jobIds:
-            jobName = job_names[jobId]
-            describeJobsResponse = batch.describe_jobs(jobs=[jobId])
-            status = describeJobsResponse['jobs'][0]['status']
-            if status == 'SUCCEEDED' or status == 'FAILED':
-                print ('%s' % ('=' * 80))
-                print ('Job [%s - %s] %s' % (jobName, jobId, status))
-                jobIds.remove(jobId)
-                logStreamName = getLogStream(logGroupName, jobName, jobId)
-                if logStreamName:
-                    printLogs(logGroupName, logStreamName, 0)
-            elif status == 'RUNNING':
-                logStreamName = getLogStream(logGroupName, jobName, jobId)
-                if not running.get(jobId, False) and logStreamName:
-                    running[jobId] = True
-                    print ('\rJob [%s - %s] is RUNNING.' % (jobName, jobId))
-                    print ('Output [%s]:\n %s' % (logStreamName, '=' * 80))
-                if logStreamName:
-                    startTime[jobId] = printLogs(logGroupName, logStreamName, startTime.get(jobId, 0)) + 1
-            else:
-                print ('\rJob [%s - %s] is %-9s... %s' % (jobName, jobId, status, spin[spinner % len(spin)])),
-                sys.stdout.flush()
-                spinner += 1
+        # calculate number of workers needed to handle given batch size in parallel(and limit to MAX_NUM_WORKERS) .
+        num_workers = min(math.ceil(file_count / self.batch_size), MAX_NUM_WORKERS)
+        # input_file_count ~= batch_size
+        input_file_count = math.ceil(self.batch_size / num_workers)
 
+        bar = Bar('Processing', max=num_workers)
+        for worker_index in range(num_workers):
+            file_index = input_file_count * worker_index
+            if file_index > file_count:
+                break  # done
+            self._submit_job(testid, file_index, dry_run)
+            bar.next()
+        bar.finish()
 
+    def wait_for_jobs(self):
+        """ Wait for all submitted to jobs to finish.
 
+        :return:
+        """
+        spinner = 0
+        running = {}
+        startTime = {}
+        spin = ['-', '/', '|', '\\', '-', '/', '|', '\\']
+
+        logGroupName = '/aws/batch/job'
+
+        spinner_p = Spinner('Waiting for jobs to finish ')
+        while len(self.job_ids) != 0:
+            time.sleep(1)
+            for jobId in self.job_ids:
+                job_name = self.job_names[jobId]
+                describeJobsResponse = self.aws_batch.describe_jobs(jobs=[jobId])
+                status = describeJobsResponse['jobs'][0]['status']
+                if status == 'SUCCEEDED' or status == 'FAILED':
+                    logging.info ('%s' % ('=' * 80))
+                    logging.info ('Job [%s - %s] %s' % (job_name, jobId, status))
+                    self.job_ids.remove(jobId)
+                    logStreamName = getLogStream(self.aws_cloudwatch, logGroupName, job_name, jobId)
+                    if logStreamName:
+                        printLogs(self.aws_cloudwatch, logGroupName, logStreamName, 0)
+                elif status == 'RUNNING':
+                    logStreamName = getLogStream(self.aws_cloudwatch, logGroupName, job_name, jobId)
+                    if not running.get(jobId, False) and logStreamName:
+                        running[jobId] = True
+                        logging.info ('\rJob [%s - %s] is RUNNING.' % (job_name, jobId))
+                        logging.info ('Output [%s]:\n %s' % (logStreamName, '=' * 80))
+                    if logStreamName:
+                        startTime[jobId] = printLogs(self.aws_cloudwatch, logGroupName, logStreamName, startTime.get(jobId, 0)) + 1
+                else:
+                    logging.info('\rJob [%s - %s] is %-9s... %s' % (job_name, jobId, status, spin[spinner % len(spin)])),
+                    spinner += 1
+                spinner_p.next()
+        print("done")
+
+def main():
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--job-queue", help="name of the job queue to submit this job", default='bigDisk-queue')
+    parser.add_argument("--job-definition", help="name of the job job definition", choices=['infer'], default='infer')
+    parser.add_argument("--wait", help="block wait until the job completes", action='store_true')
+    parser.add_argument("--aws-profile", help="name of aws credentials profile to use", default='kaena')
+    parser.add_argument("--kelf-dir", help="precompiled kelf directory used for inference", required=True)
+    parser.add_argument("--input-bucket", help="Name of the bucket where inference input data is stored.", default='kaena-imagenet-data')
+    parser.add_argument("--output-bucket", help="Name of the bucket where the inference output should be stored.", default='kaena-test-bucket')
+    parser.add_argument("--input-file-limit", type=int, help="Max number of input files to use. (Use zero to use all files in the specified bucket)", default=0)
+    parser.add_argument("--input-batch-size", type=int, help="How many input files for a single job.", default=16)
+    parser.add_argument("--repo-name", help="repo name", required=True)
+    parser.add_argument("--dry-run", help="dry run mode", default=False, action='store_true')
+    args = parser.parse_args()
+
+    log_file_name = 'inference_submitter.log'
+    logging.basicConfig(filename=log_file_name, level=logging.INFO)
+    print("Log file : ", log_file_name)
+
+    testid = "{user}_{kelf}_{date}".format(user=getpass.getuser(),
+                                           kelf=os.path.basename(os.path.normpath(args.kelf_dir)),
+                                           date=time.strftime("%Y%m%d-%H%M%S"))
+    logging.info("Test ID %s" % testid)
+
+    print("Creating AWS session")
+    session = boto3.Session(profile_name=args.aws_profile)
+    print("Uploading files to S3 buckets")
+    upload_files(session, testid, args.kelf_dir, args.output_bucket)
+    inference_req = InferenceRequest(session, args.job_queue, args.job_definition,
+                                     args.input_bucket, args.output_bucket,
+                                     args.repo_name, args.input_batch_size)
+    print("Submitting job request to AWS batch")
+    inference_req.submit_jobs(testid, file_limit=args.input_file_limit, dry_run=args.dry_run)
+    if args.wait:
+        inference_req.wait_for_jobs()
 
 
 if __name__ == "__main__":

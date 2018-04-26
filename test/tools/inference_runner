@@ -1,103 +1,106 @@
 #!/usr/bin/env python3
+import sys
 import os
-import csv
 import argparse
-import shutil
-import uuid
 import glob
 import boto3
 import tarfile
 import subprocess
+import tempfile
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--input-bucket', help='', required=True)
-parser.add_argument('--output-bucket', help='', required=True)
-parser.add_argument('--test-id', help='test id', required=True)
-parser.add_argument('--offset', help='offset into input data set', type=int,  required=True)
-parser.add_argument('--num', help='number of files to process from input data set', type=int, required=True)
-parser.add_argument("--repo-name", help="repo name", type=str, default=None, required=True)
-args = parser.parse_args()
-
-def make_tarfile(output_filename, source_dir):
-    with tarfile.open(output_filename, "w:gz") as tar:
-        for f in glob.glob("%s/*" % source_dir):
-            tar.add(f, arcname=os.path.basename(f))
-
-session = boto3.Session()
-
-s3 = session.resource(
-    service_name='s3',
-    region_name='us-east-1')
-
-# download & install repo
-cmd = "%s/kaena_install --repo-name %s  " % (os.getcwd(), args.repo_name)
-cmd = cmd.split()
-print("executing: ", cmd)
-try:
-    out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    print(out)
-except subprocess.CalledProcessError as e:
-    print("cought exception")
-    raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
-except:
-    e = sys.exc_info()[0]
-    print("not cought exception!")
-    print(e)
-    
-# download kelf, extract
-
-kelfTarName = "kelf_%s.tar.gz" % args.test_id
-kelfTarPath = "/tmp/%s" % kelfTarName
-kelfS3Path = "%s/%s" % (args.test_id, kelfTarName)
-print("Downloading kelf file %s"%kelfTarName )
-s3.Bucket(args.output_bucket).download_file(kelfS3Path, kelfTarPath)
-
-kelfPath = '/tmp/kelf_dir/'
-shutil.rmtree(kelfPath, ignore_errors=True)
-os.mkdir(kelfPath)
-
-tar = tarfile.open(kelfTarPath)
-tar.extractall(kelfPath)
-tar.close()
+S3_KELF_FILE_NAME = "kelf.tar.gz"
 
 
-input_bucket = s3.Bucket(args.input_bucket)
-fileList = list(input_bucket.objects.all())
+def run_command(cmd):
+    result = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+    output = result.communicate()[0]
+    errcode = result.returncode
+    print("Executed:{}\nreturned {}\noutput:: {}".format(cmd, errcode, output))
+    return errcode, output
 
-input_files = fileList[args.offset:args.offset+args.num]
-print ("processing %s files for test %s"%(len(input_files), args.test_id))
-for obj in input_files:
-    f = obj.key
+
+def download_kelf(s3, bucket, test_id):
+    with tempfile.NamedTemporaryFile(suffix='.tar.gz') as kelf_temp:
+        kelf_tar_path = kelf_temp.name
+        print("Downloading kelf file - s3:://{}/{}/{}".format(bucket, test_id, S3_KELF_FILE_NAME))
+        s3.Bucket(bucket).download_file(os.path.join(test_id, S3_KELF_FILE_NAME), kelf_tar_path)
+
+        kelf_dir = tempfile.mkdtemp()
+        with tarfile.open(kelf_tar_path) as tar:
+            tar.extractall(kelf_dir)
+
+    return kelf_dir
+
+
+def download_input_files(s3, bucket, test_id, offset, count):
+    input_bucket = s3.Bucket(bucket)
+    file_list = list(input_bucket.objects.all())
+
+    input_files = file_list[offset:offset+count]
+    print ("processing %s files for test %s" % (len(input_files), test_id))
+
     # run inference into temporary directory
-    workingPath = "/tmp/working_dir"
-    shutil.rmtree(workingPath, ignore_errors=True)
-    os.mkdir(workingPath)
+    working_dir = tempfile.mkdtemp()
+    img_dir = tempfile.mkdtemp()
+    image_file_names = []
+    for obj in input_files:
+        f = obj.key
 
-    imgWorkingPath = "%s/%s" %(workingPath, f)
-    os.mkdir(imgWorkingPath)
+        image_path = "{}/{}".format(img_dir, f)
+        s3.Bucket(bucket).download_file(f, image_path)
+        image_file_names.append(image_path)
 
-    imgPath = "/tmp/%s" %(f)
-    if os.path.exists(imgPath):
-        os.remove(imgPath)
-    s3.Bucket(args.input_bucket).download_file(f,  imgPath)
+    return working_dir, image_file_names
 
-    cmd = "nn_executor --kelf_dir  %s   --input_files %s  --working_dir %s  2>&1 | tee %s/log.txt" % (kelfPath, imgPath, imgWorkingPath, imgWorkingPath)
-    ret = os.system(cmd)
-    print("Executing: %s \n ret %s"%(cmd, ret))
-    cmd = cmd.split()
 
+def run_inference(test_id, kelf_dir, working_dir, file_names, result_sufix, s3, output_bucket):
+    cmd = [
+        '/usr/bin/nn_executor',
+        '--kelf_dir', kelf_dir,
+        '--input_files', *file_names,
+        '--working_dir', working_dir
+    ]
+    run_command(cmd)
 
     # reduce size of results..
-    for toRemove in glob.glob('%s/*.npy'%imgWorkingPath):
+    for toRemove in glob.glob('%s/*.npy' % working_dir):
         os.remove(toRemove)
 
-    # pack and push to s3
-    resultTarName = "result_%s.tar.gz" % (f)
-    resultTarPath = "/tmp/%s" %resultTarName
-    resultS3Name = "%s/%s" % (args.test_id, resultTarName)
-    if os.path.exists(resultTarPath):
-        os.remove(resultTarPath)
-    make_tarfile(resultTarPath, workingPath)
-    s3.Bucket(args.output_bucket).upload_file(resultTarPath, resultS3Name)
+    # create tar and push to s3
+    with tempfile.NamedTemporaryFile(suffix='.tar.gz') as tar_temp:
+        result_tar_path = tar_temp.name
+        with tarfile.open(result_tar_path, "w:gz") as tar:
+            for f in glob.glob("%s/*" % working_dir):
+                tar.add(f, arcname=os.path.basename(f))
+        s3_name = 'result_{}.tar.gz'.format(result_sufix)
+        s3.Bucket(output_bucket).upload_file(result_tar_path, os.path.join(test_id, s3_name))
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input-bucket', help='', required=True)
+    parser.add_argument('--output-bucket', help='', required=True)
+    parser.add_argument('--test-id', help='test id', required=True)
+    parser.add_argument('--offset', help='offset into input data set', type=int,  required=True)
+    parser.add_argument('--num', help='number of files to process from input data set', type=int, required=True)
+    parser.add_argument("--repo-name", help="repo name", type=str, default=None, required=True)
+    args = parser.parse_args()
+
+    session = boto3.Session()
+    s3 = session.resource(service_name='s3', region_name='us-east-1')
+
+    kaena_install = os.path.join(os.getcwd(), "kaena_install")
+    print("install repo = {} using script {}".format(args.repo_name, kaena_install))
+    run_command([kaena_install, "--repo-name", args.repo_name])
+
+    kelf_dir = download_kelf(s3, args.output_bucket, args.test_id)
+    print('Content of KELF directory:')
+    run_command(["/bin/ls", kelf_dir])
+    working_dir, input_files = download_input_files(s3, args.input_bucket, args.test_id,
+                                                    args.offset, args.num)
+    suffix = "{}_to_{}".format(args.offset, args.num)
+    run_inference(args.test_id, kelf_dir, working_dir, input_files, suffix, s3, args.output_bucket)
+
+
+if __name__ == "__main__":
+    main()
