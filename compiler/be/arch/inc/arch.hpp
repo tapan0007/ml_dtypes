@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 
+#include "aws_tonga_isa_tpb_common.h"
 
 #include "utils/inc/types.hpp"
 
@@ -18,6 +19,18 @@
 namespace kcc {
 namespace arch {
 
+
+// This is the only row/column configuration for float16 and int16 data types
+// For int8 it is possible to configure pe-array as nrow=256,ncol=64 or as nrow=128,ncol=128
+enum : kcc_int32 {
+    Arch_NumberPeRows           = TONGA_ISA_TPB_PE_ARRAY_NUM_ROWS,
+    Arch_NumberPeColumns        = TONGA_ISA_TPB_PE_ARRAY_NUM_COLS,
+
+    Arch_NumberPsumBanks        = TONGA_ISA_TPB_PSUM_BUF_NUM_BANKS,
+    Arch_PsumEntrySize          = 8, // int64, 4 for fp32
+    Arch_NumberPsumBankEntries  = TPB_MMAP_PSUM_BUF_PARTITION_ACTIVE_SIZE
+                                  / (Arch_PsumEntrySize * TONGA_ISA_TPB_PSUM_BUF_NUM_BANKS),
+};
 
 //--------------------------------------------------------
 class Arch {

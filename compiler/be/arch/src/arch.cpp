@@ -1,6 +1,7 @@
 #include "aws_tonga_isa_tpb_common.h"
 
 #include "shared/inc/uarch_cfg.hpp"
+#include "aws_hal_tpb_common_mmap.h"
 
 #include "utils/inc/types.hpp"
 #include "utils/inc/asserter.hpp"
@@ -14,16 +15,6 @@
 
 namespace kcc {
 namespace arch {
-
-// This is the only row/column configuration for float16 and int16 data types
-// For int8 it is possible to configure pe-array as nrow=256,ncol=64 or as nrow=128,ncol=128
-enum : kcc_int32 {
-    Arch_NumberPeRows            = utils::power2(ROW_BITS),
-    Arch_NumberPeColumns         = utils::power2(COLUMN_BITS),
-
-    Arch_NumberPsumBanks         = utils::power2(BANKS_PER_COLUMN_BITS),
-    Arch_NumberPsumBankEntries   = utils::power2(PSUM_NUM_ENTRY_BITS),
-};
 
 static_assert(Arch_NumberPeRows == 128, "Number PE rows not 128"); // temporary
 static_assert(Arch_NumberPeColumns == 64, "Number PE columns not 64"); // temporary
