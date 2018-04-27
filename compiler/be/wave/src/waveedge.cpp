@@ -21,21 +21,21 @@ WaveEdge::rEvent(events::EventSetMode setMode, events::EventId eventId, events::
 }
 
 bool
-WaveEdge::qNeedToImplementWait() const
+WaveEdge::qNeedToImplementSync() const
 {
     if (this->gEventId() == events::EventId_Invalid()) {
-        Assert(! qNeedToWaitFor(), "Invalid event ID on an edge that need be waited for: from waveop '",
+        Assert(! qNeedToSync(), "Invalid event ID on an edge that need be waited for: from waveop '",
             gFromOp()->gName(), "', to waveop '", gToOp()->gName(), "'");
         return false;
     } else {
-        Assert(qNeedToWaitFor(), "Valid event ID on an edge that need not be waited for: from waveop '",
+        Assert(qNeedToSync(), "Valid event ID on an edge that need not be waited for: from waveop '",
             gFromOp()->gName(), "', to waveop '", gToOp()->gName(), "'");
     }
     return true;
 }
 
 bool
-WaveEdge::qNeedToWaitFor() const
+WaveEdge::qNeedToSync() const
 {
     const wave::WaveOp* const prevWaveop = gFromOp();
     const wave::WaveOp* const succWaveop = gToOp();

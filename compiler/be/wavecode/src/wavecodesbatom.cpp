@@ -25,7 +25,7 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, event
     eventIds.insert(embEvtId);
 
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-        if (! succWaveEdge->qNeedToImplementWait()) {
+        if (! succWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         if (firstEmb) {

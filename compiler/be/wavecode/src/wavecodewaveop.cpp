@@ -91,7 +91,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop)
     std::set<events::EventId> eventIds;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToImplementWait()) {
+        if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
@@ -117,7 +117,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EV
     std::set<events::EventId> eventIds;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToImplementWait()) {
+        if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
@@ -150,7 +150,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, events::EventId& wait
     bool firstEmb = true;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToImplementWait()) {
+        if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
@@ -176,7 +176,7 @@ WaveCodeWaveOp::findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEve
     bool firstEmb = true;
 
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-        if (! succWaveEdge->qNeedToImplementWait()) {
+        if (! succWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         if (firstEmb) {
@@ -199,7 +199,7 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
     std::set<events::EventId> eventIds;
 
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-        if (! succWaveEdge->qNeedToImplementWait()) {
+        if (! succWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         const auto evtId = succWaveEdge->gEventId();

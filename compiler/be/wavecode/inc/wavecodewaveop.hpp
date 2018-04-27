@@ -114,7 +114,7 @@ protected:
         bool firstEmb = true;
 
         for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-            if (! succWaveEdge->qNeedToImplementWait()) {
+            if (! succWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
 

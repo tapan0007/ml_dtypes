@@ -69,7 +69,7 @@ void
 EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
 {
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-        if (! succWaveEdge->qNeedToWaitFor()) {
+        if (! succWaveEdge->qNeedToSync()) {
             continue;
         }
         // Available --> InFlight
@@ -87,7 +87,7 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
 {
     // For each prev edge move evt id from in-flight to completed.
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToWaitFor()) {
+        if (! prevWaveEdge->qNeedToSync()) {
             continue;
         }
         const EventId evtId = prevWaveEdge->gEventId();
@@ -116,7 +116,7 @@ void
 EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
 {
     for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToWaitFor()) {
+        if (! prevWaveEdge->qNeedToSync()) {
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
@@ -138,7 +138,7 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
         // when two waveops execute on the same engine, no need for sync
         // except for DMA. If Load depends on a Save, Load must wait on Save
-        if (! prevWaveEdge->qNeedToWaitFor()) {
+        if (! prevWaveEdge->qNeedToSync()) {
             continue;
         }
         auto prevWaveop = prevWaveEdge->gFromOp();
@@ -150,7 +150,7 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
                     " cannot be another waveop of the same type: ", prevWaveop->gName());
             }
         } else {
-            if (prevWaveEdge->qNeedToWaitFor()) {
+            if (prevWaveEdge->qNeedToSync()) {
                 Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
                         "Need to wait on edge from ", prevWaveop->gName(), " to ",
                         waveop->gName(), ", but event id is invalid");

@@ -86,8 +86,8 @@ public:
         return m_Channel.gSetEventMode();
     }
 
-    bool qNeedToImplementWait() const;
-    bool qNeedToWaitFor() const;
+    bool qNeedToImplementSync() const;
+    bool qNeedToSync() const;
 
 private:
     WaveOp*                 m_FromOp;
