@@ -93,7 +93,8 @@ i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
 i1 = tf.nn.conv2d(i0, w1, strides, padding, name=netName + "/i1")
 output = tf.identity(i1, name=netName+"/output")
 
-i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType)).reshape(IF1.shape)
+#i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType)).reshape(IF1.shape)
+i0val = np.random.random(IF1.shape)
 
 # Overide the values:
 for row,col,val in fmapValList:
