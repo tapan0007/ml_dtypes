@@ -35,10 +35,12 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
                 || waitEventMode == events::EventWaitMode::WaitOnly,
            "Cannot wait on edge with DontWait mode");
 
-    enum { WAIT, WAIT_CLEAR, NOP };
+    enum { WAIT_CLEAR_MODE, WAIT_PLUS_CLEAR, NOP };
 
-    switch (WAIT_CLEAR) {
-    case WAIT: {
+    //switch (WAIT_PLUS_CLEAR)
+    switch (WAIT_CLEAR_MODE)
+    {
+    case WAIT_CLEAR_MODE: {
         // Not sure whether wait_event_mode works in SIM.
         compisa::WaitInstr waitInstr;
         waitInstr.event_idx         = waveEdge->gEventId();
@@ -56,7 +58,7 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
         m_WaveCode.writeInstruction(nopInstr, engineId);
         break;
     }
-    case WAIT_CLEAR: {
+    case WAIT_PLUS_CLEAR: {
         // old style: Wait(wait-only); Clear
         {
             compisa::WaitInstr waitInstr;
