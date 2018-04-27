@@ -347,7 +347,7 @@ testWaiver = [
     ['2-ptb_word_unstack_.*',             'WAIVE-SG00'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
-    ['^(4-ptb_word_small_sigmoid_wave|4-ptb_word_small_sigmoid_2l_waveopt| 4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
+    ['^(4-ptb_word_small_sigmoid_wave|4-ptb_word_small_sigmoid_2l_waveopt|4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
 
     # accuracy fail, fp16
     #['7-rn50_nne_fp16_accfail$', 'WAIVE_FP16_ACC'],
@@ -356,8 +356,10 @@ testWaiver = [
     ['7-rn50_nne_fp16_waveopt_b4$', 'WAIVE_BATCH'],
     ['7-rn50_nne_fp32_wave$', 'WAIVE_SB_PRESERVE'],
     ['8-rn50_nne_fp32_meauto$', 'WAIVE_SB_PRESERVE'],
-    ['3-rn50-17_.*_wave$', 'WAIVE_KAENA_381'],
-    ['3-rn50-18_.*_wave$', 'WAIVE_KAENA_381'],
+    ['3-rn50-17_.*wave$', 'WAIVE_KAENA_381'],
+    ['3-rn50-18_.*wave$', 'WAIVE_KAENA_381'],
+    ['7-rn50_nne_conv_wave$', 'WAIVE_KAENA_381'],
+    ['8-rn50_nne_fp16_meauto$', 'WAIVE_KAENA_381'],
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],
