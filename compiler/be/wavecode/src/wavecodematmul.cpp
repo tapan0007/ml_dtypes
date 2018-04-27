@@ -267,6 +267,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         instructionWritten = processOutgoingEdges(matmulWaveop, matmulInstr);
     }
     if (! instructionWritten) {
+        SaveName(matmulInstr, matmulWaveop->gName().c_str());
         m_WaveCode.writeInstruction(matmulInstr);
     }
 }

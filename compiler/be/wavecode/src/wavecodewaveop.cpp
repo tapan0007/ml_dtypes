@@ -210,6 +210,13 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
     }
 }
 
+void
+WaveCodeWaveOp::SaveName(compisa::MatMulInstr& instr, const char* name)
+{
+    snprintf(reinterpret_cast<char*>(&instr.reserved_2[0]), sizeof(instr.reserved_2),
+            "%s", name);
+    instr.reserved_2[sizeof(instr.reserved_2)-1] = 0;
+}
 
 }}
 

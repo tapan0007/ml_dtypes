@@ -154,6 +154,7 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
         instructionWritten = processOutgoingEdges(resaddWaveop, tensortensorInstr);
     }
     if (! instructionWritten) {
+        SaveName(tensortensorInstr, resaddWaveop->gName().c_str());
         m_WaveCode.writeInstruction(tensortensorInstr);
     }
 }
@@ -283,6 +284,7 @@ WaveCodeResAdd::generateSameBufSrc(wave::ResAddWaveOp* resaddWaveop)
         instructionWritten = processOutgoingEdges(resaddWaveop, tensorReduceInstr);
     }
     if (! instructionWritten) {
+        SaveName(tensorReduceInstr, resaddWaveop->gName().c_str());
         m_WaveCode.writeInstruction(tensorReduceInstr);
     }
 }
