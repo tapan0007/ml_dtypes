@@ -44,7 +44,7 @@ private:
             return *m_Available.begin();
         }
 
-        void initEventSets();
+        void init();
         void mvFromAvailableToInFlight(EventId eventId);
         void moveCompletedEventsToAvailable();
         void mvFromInFlightToCompleted(EventId eventId);
@@ -106,7 +106,6 @@ private:
         ReservedEvent_FirstNonReserved
     };
 
-    void initEventSets();
     void assignEventsToNewSuccEdges(wave::WaveOp* waveop);
     void completeEventsOnPrevEdges(wave::WaveOp* waveop);
 

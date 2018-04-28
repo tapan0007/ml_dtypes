@@ -78,8 +78,18 @@ void writeOutJson(nets::Network* ntwk, const char* jsonInFileName)
     std::ofstream os(JsonOutFileName);
 
     std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
-    cereal::JSONOutputArchive ar(os);
-    ntwk->save(ar);
+    
+    try {
+        cereal::JSONOutputArchive ar(os);
+        ntwk->save(ar);
+    } catch (const cereal::Exception& except) {
+        std::cerr << "Error <"  << except.what() << "> when writing JSON file '" << JsonOutFileName << "'\n";
+        exit(1);
+    } catch (...) {
+        std::cerr << "Error writing JSON file '" << JsonOutFileName << "'\n";
+        exit(1);
+    }
+
     std::cout << "Finished writing NN JSON to file '" << JsonOutFileName << "'\n";
 }
 
@@ -196,9 +206,18 @@ Main(int argc, char* argv[])
         std::ifstream is(JsonInFileName);
         const bool isOpen = is.is_open();
         Assert(isOpen, "JSON input file '", JsonInFileName, "' is not open\n");
-        cereal::JSONInputArchive ar(is);
-        ntwk->rUseWave(useWave);
-        ntwk->load(ar);
+
+        try {
+            cereal::JSONInputArchive ar(is);
+            ntwk->rUseWave(useWave);
+            ntwk->load(ar);
+        } catch (const cereal::Exception& except) {
+            std::cerr << "Error <"  << except.what() << "> when reading JSON file '" << JsonInFileName << "'\n";
+            exit(1);
+        } catch (...) {
+            std::cerr << "Error reading JSON file '" << JsonInFileName << "'\n";
+            exit(1);
+        }
     }
 
     ntwk->rDoBatching(DoBatching);

@@ -35,7 +35,7 @@ namespace events {
 EventMgr::EventMgr(nets::Network& network)
     : m_Network(network)
 {
-    m_EventState.initEventSets();
+    m_EventState.init();
 }
 
 
@@ -169,7 +169,7 @@ EventMgr::insertBarriers() {
     const kcc_int32 numWaveops = m_Network.gNumberWaveops();
     std::vector<wave::WaveOp*> newWaveops;
 
-    initEventSets();
+    m_EventState.init();
 
     const std::array<EngineId, 4> engineIds { {
         EngineId::PeArray, EngineId::Activation,
@@ -444,7 +444,7 @@ EventMgr::EventState::moveCompletedEventsToAvailable()
 
 
 void
-EventMgr::EventState::initEventSets()
+EventMgr::EventState::init()
 {
     clearAll();
 
