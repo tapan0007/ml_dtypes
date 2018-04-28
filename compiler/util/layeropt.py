@@ -391,9 +391,16 @@ class CircularBuffer:
         self.reset()
         self.consumer_of_freed_atom_old = consumer_of_freed_atom_old
 
-
     def get_chunk_addr(self, addr):
         return addr // self.atom_data_sz
+
+    def get_atom_id(self, chunk_id):
+        if chunk_id in self.chunk2atom_map:
+            return self.chunk2atom_map[chunk_id]
+        elif (chunk_id in self.chunk2spare_map):
+            return self.chunk2spare_map[chunk_id]
+        else:
+            raise RuntimeError("Chunk ID %d not found in chunk2atom_map of %s"%(chunk_id, self.circbuf_type))
 
     def get_atom_offset(self, addr):
         return addr % self.atom_data_sz
@@ -1711,7 +1718,8 @@ class FusedOp(list):
             self.prev_weight_wave_lower_addr = weights_sb_address
         # If wave crosses atom boundaries, break it into multiple waves
         # The following assumes noodle tile (width is equal to FMAP width)
-        current_chunk_id = -100
+        current_chunk_id = -10000   # force the first break at start address
+        current_atom_id = -10000
         break_at_y = []
         break_addr = []
         addr_step_y = self.conv_op.W * self.conv_op.stride_y * self.conv_op.item_sz
@@ -1720,14 +1728,17 @@ class FusedOp(list):
             if (address > self.conv_op.ifmap_wave_upper_addr[0]):
                 break
             chunk_id = tpb.statebuffer.circbuf_ifmaps.get_chunk_addr(address)
+            atom_id = tpb.statebuffer.circbuf_ifmaps.get_atom_id(chunk_id)
             if args.abstract_mem:
                 break_cond = chunk_id != current_chunk_id
             else:
-                break_cond = not (chunk_id == current_chunk_id or chunk_id == current_chunk_id+1)
+                break_cond = not (atom_id == current_atom_id or atom_id == current_atom_id+1)
             if break_cond:
                 break_at_y.append(i)
                 break_addr.append(tpb.statebuffer.circbuf_ifmaps.get_sb_address(address))
                 current_chunk_id = chunk_id
+                current_atom_id = atom_id
+                if (args.debug > 1): print("DBG: breaking wave at row %d addr %d"%(i, break_addr[-1]))
         matmul_waveop = []
         start_tensor_calc = not(psum_add)
         for i in range(len(break_at_y)):                
