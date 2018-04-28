@@ -33,6 +33,9 @@ public:
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;
 
+private:
+    void generateWithWaitSet(wave::NopWaveOp* nopWaveop);
+    void generateWithNop(wave::NopWaveOp* nopWaveop);
 };
 
 
