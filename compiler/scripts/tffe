@@ -42,7 +42,7 @@ parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb
 parser.add_argument('--out_prefix', help='Prefix for output files', default="out_")
 parser.add_argument('--weights', help='Generate weight files', dest="weights",
                     action="store_true",  default=False)
-parser.add_argument('--images', help='Generate images (IFMAP and OFMAP files) for an input image', dest="images", default=[], nargs='+')
+parser.add_argument('--images', help='Generate images (IFMAP and OFMAP files) for an input image', dest="images", default=None, nargs='+')
 parser.add_argument('--input_constants', help='Additional constants appended to the framework feed dictionary during calibration, key, value, key, value ...', default={}, nargs='+')
 parser.add_argument('--depth', help='Depth of layer name hierarchy to show in the dot output',
                     type=int, default=5)
