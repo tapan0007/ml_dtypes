@@ -4,6 +4,15 @@
 #
 # Kgraph visualization
 #
+# Sample commands:
+'''
+firefox /home/zejdaj/work/git/Kaena/qor/20180426/*
+
+set d = 3-rn50-13_wave-zero ; cd $d ; $ku/tpb_profile --log working_dir/log-exec-sg00-*.txt --tpb sg00/*.tpb --verbose --show &
+
+set d = 7-rn50_nne_fp16_wave-zero/ ; cd $d ; $ku/tpb_profile --log working_dir/log-exec-sg00-*.txt --tpb sg00/*.tpb --verbose --show --cycle_range  1.11565e6 1.142e6 &
+'''
+
 import argparse
 import os, json, sys, re
 import matplotlib.pyplot as plt
@@ -15,7 +24,7 @@ parser.add_argument('--verbose', help='Verbose node content', action='store_true
 parser.add_argument('--show', help='Invoke interactive viewer', action='store_true', default=False)
 parser.add_argument('--cycle_range', help='Display only activity within the cycle range, default 0 2e6', type=float, nargs=2, default=[0,2e6])
 parser.add_argument('--geometry', help='Output size width height', type=int, nargs=2, default=[])
-parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (unused)', type=float, default=0)
+parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (off)', type=float, default=0)
 
 args = parser.parse_args()
 

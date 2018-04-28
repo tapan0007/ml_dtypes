@@ -46,7 +46,7 @@ if kPath == None or kePath == None or iPath == None or \
   exit(1)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--level', help='Run tests upto this level, default 4. This defines the base set of tests', type=int, default=4)
+parser.add_argument('--level', help='Run tests upto this level, default 7. This defines the base set of tests', type=int, default=7)
 parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any. This reduces test set from defined by --level', default="any")
 parser.add_argument('--test', help='Run specific tests (list). This overrides --level, --select', nargs='+', default=[])
 parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
