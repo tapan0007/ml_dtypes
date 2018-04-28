@@ -33,7 +33,8 @@ WaveCodeNop::generate(wave::WaveOp* waveOp)
 
     //************************************************************************
     if (qParallelStreams()) {
-        if (nopWaveop->gPrevWaveEdges().size() > 1
+        // NopInstr not ready in Inkling yet. "true" forces processIn/OutEdges.
+        if (true || nopWaveop->gPrevWaveEdges().size() > 1
                 || nopWaveop->gSuccWaveEdges().size() > 1)
         {
             processIncomingEdges(nopWaveop);
