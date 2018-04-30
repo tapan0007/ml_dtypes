@@ -618,6 +618,7 @@ class CircularBuffer:
             # make atom size multiple of width data length if it is smaller than default atom size
             # For FP32, use initial atom of 2KB to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
             elif (ifmap_width_data_len <= self.atom_sz):
+                #fmap_full_tiley_sz  here is the input fmap full tiley
                 if (args.abstract_mem):
                     self.atom_data_sz = ifmap_width_data_len * fmap_full_tiley_sz
                 else:
@@ -653,18 +654,19 @@ class CircularBuffer:
         self.old2new_atom_sz_ratio = self.atom_sz // self.atom_data_sz
         self.atom_sz = self.atom_data_sz
         if (self.circbuf_type == "weights"):            
-            self.file_params = FileParams(self.dram_data_in_file, op.weights_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params = FileParams(self.dram_data_in_file, op.weights_shape_dims, self.item_sz, 2048, PEArray, op, args.abstract_mem)
             self.file_params.load_file()
         elif (self.circbuf_type == "bias"):            
-            self.file_params = FileParams(self.dram_data_in_file, op.bias_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params = FileParams(self.dram_data_in_file, op.bias_shape_dims, self.item_sz, 2048, PEArray, op, args.abstract_mem)
             self.file_params.load_file()
         elif (self.circbuf_type == "ifmaps"):            
-            self.file_params = FileParams(self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.item_sz, 2048, PEArray, op_list[0])
+            self.file_params = FileParams(self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.item_sz, 2048, PEArray, op_list[0], args.abstract_mem)
             self.file_params.load_file()
         else:            
-            self.file_params = FileParams(self.dram_data_in_file, op.ofmaps_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params = FileParams(self.dram_data_in_file, op.ofmaps_shape_dims, self.item_sz, 2048, PEArray, op, args.abstract_mem)
             self.file_params.load_file()
-        print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, (chunk_sz %d), old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.file_params.chunk_sz, self.old2new_atom_sz_ratio, self.replicate_multiple)) 
+        print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, (chunk_sz %d), old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.file_params.chunk_sz, self.old2new_atom_sz_ratio, self.replicate_multiple))
+        #assert(self.atom_data_sz == self.file_params.chunk_sz)
         return self.dram_data
 
     def recompute_ifmaps_params(self, op):

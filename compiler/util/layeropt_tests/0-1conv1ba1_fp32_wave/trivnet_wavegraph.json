@@ -133,7 +133,7 @@
       "stride_y": 1,
       "wave_id": [0,0,0,0,0,0,0],
       "wave_id_format": "nmhwcrs",
-      "waveop_name": "1conv1ba/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
+      "waveop_name": "1conv1ba/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
       "weights_sb_address": 16384
     },
@@ -179,7 +179,7 @@
       "out_dtype": "float32",
       "previous_waveops": [
         "1conv1ba/bias1/read/SBAtomFile_bias_0_n0_m0_h0_w0_c0_r0_s0",
-        "1conv1ba/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
+        "1conv1ba/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0"
       ],
       "src_is_psum": true,
       "src_psum_bank_id": 0,

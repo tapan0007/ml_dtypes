@@ -131,7 +131,7 @@
       "stride_y": 1,
       "wave_id": [0,0,0,0,0,0,0],
       "wave_id_format": "nmhwcrs",
-      "waveop_name": "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
+      "waveop_name": "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
       "weights_sb_address": 16384
     },
@@ -152,7 +152,7 @@
       "pool_func": "MaxPool",
       "pool_scale": 1.0,
       "previous_waveops": [
-        "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
+        "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0"
       ],
       "src_is_psum": true,
       "src_psum_bank_id": 0,
@@ -210,8 +210,8 @@
       "pool_func": "MaxPool",
       "pool_scale": 0.1111111111111111,
       "previous_waveops": [
-        "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0",
-        "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0"
+        "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0",
+        "1conv1pool/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0"
       ],
       "src_is_psum": false,
       "src_psum_bank_id": 0,

@@ -202,12 +202,12 @@ class TestShapeDims(unittest.TestCase):
             test_obj = ShapeDims("CHWC", [1,10,20,30,40]) 
 
 class FileParams():
-    def __init__(self, file_name, file_dims, item_sz, chunk_sz_limit, pearray_params, op_params):
+    def __init__(self, file_name, file_dims, item_sz, chunk_sz_limit, pearray_params, op_params, abstract_mem):
         self.file_name = file_name
         self.file_dims = file_dims
         self.item_sz = item_sz
         self.chunk_sz_limit = chunk_sz_limit
-        self.compute_params(pearray_params, op_params)
+        self.compute_params(pearray_params, op_params, abstract_mem)
 
     def load_file(self):
         if (self.file_name != None):
@@ -246,7 +246,7 @@ class FileParams():
         coord[self.file_dims.W_axis] = W
         return self.dram_data[tuple(coord)]
 
-    def compute_params(self, pearray_params, op_params):
+    def compute_params(self, pearray_params, op_params, abstract_mem):
         # Single FMAP elem count (unified formula for weights and FMAP)
         self.fmap_elem_count = self.file_dims.R * self.file_dims.S * self.file_dims.M * self.file_dims.H * self.file_dims.W
         self.fmap_data_len = self.fmap_elem_count * self.item_sz
@@ -289,16 +289,21 @@ class FileParams():
             # make atom size multiple of width data length if it is smaller than default atom size
             # For FP32, use initial atom of 2KB to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
             elif (ifmap_width_data_len <= self.chunk_sz_limit):
-                multiple = self.chunk_sz_limit // ifmap_width_data_len
-                multiple = min(self.file_dims.H, multiple)
-                # eliminate skip atoms by requiring atom size is multiple of tile size 
                 input_fmap_full_tiley_sz = self.fmap_full_tiley_sz * op_params.stride_y
-                input_fmap_full_tilex_sz = self.fmap_full_tilex_sz * op_params.stride_x
-                if (input_fmap_full_tiley_sz < multiple):
-                    multiple = (multiple//input_fmap_full_tiley_sz) * input_fmap_full_tiley_sz
-                elif (self.fmap_full_tiley_sz < multiple):
-                    multiple = (multiple//self.fmap_full_tiley_sz) * self.fmap_full_tiley_sz
-                self.chunk_sz = ifmap_width_data_len * min(self.file_dims.H, multiple)
+                if (abstract_mem):
+                    self.chunk_sz = ifmap_width_data_len * input_fmap_full_tiley_sz
+                else:
+                    multiple = self.chunk_sz_limit // ifmap_width_data_len
+                    multiple = min(self.file_dims.H, multiple)
+                    # eliminate skip atoms by requiring atom size is multiple of tile size 
+                    if (input_fmap_full_tiley_sz < multiple):
+                        multiple = (multiple//input_fmap_full_tiley_sz) * input_fmap_full_tiley_sz
+                    elif (self.fmap_full_tiley_sz < multiple):
+                        multiple = (multiple//self.fmap_full_tiley_sz) * self.fmap_full_tiley_sz
+                    self.chunk_sz = ifmap_width_data_len * min(self.file_dims.H, multiple)
+                    # warn if FMAP size is not multiple of chunk size (i.e. 55x55) where c>=1 addresses don't align to chunks
+                    if (self.fmap_data_len % self.chunk_sz) != 0:
+                        print("WARNING: FMAP size %d is not a multiple of chunk size %d for shape %s, so c>=1 addresses don't align to chunks!"%(self.fmap_data_len, self.chunk_sz, str(self.file_dims.shape_tuple)))
             else:
                 self.chunk_sz = self.chunk_sz_limit
             # need spare atoms for the case that OFMAP tile needs overlaps in IFMAP tile                            
@@ -324,33 +329,36 @@ class TestFileParams(unittest.TestCase):
 
     def test_file_params_instantiation(self):
         shape_dims = ShapeDims("CRSM", [1,7,7,64]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1, False)
         self.assertEqual(test_obj.chunk_sz, 1792)
         shape_dims = ShapeDims("CRSM", [256,1,1,128]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1, False)
         self.assertEqual(test_obj.chunk_sz, 256)
         self.assertEqual(test_obj.ravel_crsm(0,0,0,0), 0)
         self.assertEqual(test_obj.ravel_crsm(1,0,0,0), 128*test_obj.item_sz)
         shape_dims = ShapeDims("NHWC", [1,224,224,3]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride2)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride2, True)
+        self.assertEqual(test_obj.chunk_sz, 896)
+        shape_dims = ShapeDims("NHWC", [1,224,224,3]) 
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride2, False)
         self.assertEqual(test_obj.chunk_sz, 1792)
         shape_dims = ShapeDims("NHWC", [1,112,112,64]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1, False)
         self.assertEqual(test_obj.chunk_sz, 1792)
         shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride2)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride2, False)
         self.assertEqual(test_obj.chunk_sz, 1760)
         shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1, False)
         self.assertEqual(test_obj.chunk_sz, 1760)
         shape_dims = ShapeDims("NHWC", [1,28,28,256]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1, False)
         self.assertEqual(test_obj.chunk_sz, 1568)
         shape_dims = ShapeDims("NHWC", [1,14,14,256]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1, False)
         self.assertEqual(test_obj.chunk_sz, 392)
         shape_dims = ShapeDims("NHWC", [1,7,7,256]) 
-        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, 2, 2048, self.pearray_params, self.op_params_stride1, False)
         self.assertEqual(test_obj.chunk_sz, 98)
         self.assertEqual(test_obj.ravel_nchw(0,0,0,0), 0)
         self.assertEqual(test_obj.ravel_nchw(0,0,0,1), 256*test_obj.item_sz)
