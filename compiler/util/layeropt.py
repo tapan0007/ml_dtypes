@@ -1562,8 +1562,9 @@ class KNode:
 class WaveopStream(list):
 
     def __init__(self):
-        self.last_main_waveop = None
-        self.last_psum_waveop = [None for i in range(PEArray.PSUM_NUM_BANKS)]
+        self.last_main_waveop = None    # main stream waveop (PEArray resource)
+        self.last_main_using_psum_bank = 0    # last main waveop using PSUM bank
+        self.last_psum_waveop = [None for i in range(PEArray.PSUM_NUM_BANKS)]   # PSUM streams (PSUM resouce)
         self.waveop_name_set = set()
 
     def append_check(self, item):
@@ -1590,18 +1591,23 @@ class WaveopStream(list):
             if (self.last_main_waveop != None):
                 input_list.append(self.last_main_waveop['waveop_name'])
         else:                
-            if (self.last_psum_waveop[psum_bank] != None):
+            if (self.last_psum_waveop[psum_bank] != None and waveop['waveop_type'] != "MatMul"):
                 input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
             elif (self.last_main_waveop != None):
                 input_list.append(self.last_main_waveop['waveop_name'])
+                if (self.last_main_using_psum_bank != psum_bank):
+                    if (self.last_psum_waveop[psum_bank] != None):
+                        input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
         waveop['previous_waveops'] += input_list
         self.append_check(waveop)
         if (psum_bank < 0):
             self.last_main_waveop = waveop
+            self.last_main_using_psum_bank = psum_bank
         else:            
             self.last_psum_waveop[psum_bank] = waveop
             if (waveop['waveop_type'] == "MatMul"):
                 self.last_main_waveop = waveop
+                self.last_main_using_psum_bank = psum_bank
 
     def add_outputs(self, waveops):
         for i in waveops:
