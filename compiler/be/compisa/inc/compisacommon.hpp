@@ -3,6 +3,8 @@
 #ifndef KCC_COMPISA_COMMON_H
 #define KCC_COMPISA_COMMON_H
 
+#include <cstring>
+
 #include "aws_tonga_isa_tpb_common.h"
 
 struct TONGA_ISA_TPB_INST_EVENTS;
@@ -20,7 +22,7 @@ void InitEvent(uint8_t& event_idx);
 template <typename Instr>
 void ZeroInstr(Instr& instr)
 {
-    memset(&instr, 0, sizeof(Instr)); // zero out instruction
+    std::memset(&instr, 0, sizeof(Instr)); // zero out instruction
 }
 
 template <typename Instr>
