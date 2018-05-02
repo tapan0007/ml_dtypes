@@ -6,10 +6,5 @@ yum_packages="python36 gcc64-c++ libzip-devel zlib-static createrepo aws-cli unz
 pip_packages="numpy pillow keras graphviz tensorflow==1.5 filelock boto3"
 
 
-for p in $yum_packages; do
-  yum -y install $p || exit -1
-done
-
-for p in $pip_packages; do
-  pip-3.6 install --user $p || exit -1
-done
+yum -y install $yum_packages
+pip-3.6 install --user $pip_packages
