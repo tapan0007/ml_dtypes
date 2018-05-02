@@ -158,7 +158,8 @@ class Pool:
         input_tiley_with_pad = ofmap_tiley_sz * stride + pool_window_size - stride
         input_tile_with_pad_sz = input_tilex_with_pad*input_tiley_with_pad
         tile_array = np.empty((input_tiley_with_pad, input_tilex_with_pad))
-        tile_array[:] = -np.inf  # set all padding values to -inf to allow only actual tile values to be analyzed
+        #tile_array[:] = -np.inf  # set all padding values to -inf to allow only actual tile values to be analyzed
+        tile_array[:] = 0.0
         ifmap_tile_sz = ifmap_tilex_sz*ifmap_tiley_sz
         ofmap_tile_sz = ofmap_tilex_sz*ofmap_tiley_sz
         pool_result = np.zeros((ofmap_tile_sz * Tn, num_cols))
@@ -738,10 +739,10 @@ class CircularBuffer:
                 # SB WAW dependency for weights
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
                 # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "" and not args.abstract_mem:
-                    previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
+                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "" \
+                        and not args.abstract_mem: 
+                    previous_waveops = [tpb.statebuffer.consumer_of_64byte_morsel[i]]  # just keep the last one
                     tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
-                    break
         # string bias reads together (TODO: include weights?)
         # SB WAW dependency for bias (loose)
         # (SB WAR dependency doesn't exist for bias region since it is read-only)
@@ -1505,8 +1506,10 @@ class KNode:
                 self.ifmap_wave_upper_coordx[z] = ((wave_id.w_id+1) * self.ofmap_full_tilex_sz) * self.stride_x + (self.pool_window_x - self.stride_x) - 1
                 self.ifmap_wave_upper_coordy[z] = ((wave_id.h_id + self.unstack_h_offset +1) * self.ofmap_full_tiley_sz) * self.stride_y + (self.pool_window_y - self.stride_y) - 1 
                 if (self.ifmap_wave_upper_coordx[z] > self.W-1):
+                    #raise RuntimeError("cannot handling padding for pooling operation %s at the moment"%(self.data['layer_name']))
                     self.ifmap_wave_upper_coordx[z] = self.W-1
                 if (self.ifmap_wave_upper_coordy[z] > self.H-1):
+                    #raise RuntimeError("cannot handling padding for pooling operation %s at the moment"%(self.data['layer_name']))
                     self.ifmap_wave_upper_coordy[z] = self.H-1
                 row_temp = ifmap[batch_id,
                                  self.ifmap_wave_lower_coordy[z]:self.ifmap_wave_upper_coordy[z]+1,
@@ -1724,6 +1727,7 @@ class FusedOp(list):
             if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
         else:            
             self.prev_weight_wave_lower_addr = weights_sb_address
+
         # If wave crosses atom boundaries, break it into multiple waves
         # The following assumes noodle tile (width is equal to FMAP width)
         current_chunk_id = -10000   # force the first break at start address
@@ -1813,6 +1817,11 @@ class FusedOp(list):
                   'num_column_partitions'   : self.conv_op.ofmap_count,
                 })
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
+
+        # kaena-383: record current users of weight morsels (just keep the last one if there are multiple wave-pieces)
+        for j in range(weights_sb_address//64, ceildiv(weights_sb_address + self.conv_op.ofmap_count * self.conv_op.item_sz, 64)):
+            tpb.statebuffer.consumer_of_64byte_morsel[j] = waveop_name
+
         return matmul_waveop
 
     # generate Pool waveop and add it to waveop stream
@@ -1911,11 +1920,12 @@ class FusedOp(list):
                 tpb.waveop_stream.add_linked(matmul_waveop[i], [], self.conv_op.psum_bank_dst)
             # mark this matmul as consumer of the 64B weights morsel
             matmul_waveop_name = matmul_waveop[-1]["waveop_name"]
-            for i in dram_weights_waveops: # + dram_ifmaps_waveops:
-                sb_addr = i["sb_address"]
-                sb_length = i["length"]
-                for j in range(sb_addr//64, ceildiv(sb_addr + sb_length, 64)):
-                    tpb.statebuffer.consumer_of_64byte_morsel[j] = matmul_waveop_name
+            # kaena-383: the code below only record users of weights when there's actual DRAM loads
+            #for i in dram_weights_waveops: # + dram_ifmaps_waveops:
+            #    sb_addr = i["sb_address"]
+            #    sb_length = i["length"]
+            #    for j in range(sb_addr//64, ceildiv(sb_addr + sb_length, 64)):
+            #        tpb.statebuffer.consumer_of_64byte_morsel[j] = matmul_waveop_name
             # dump PEArray inputs
             if (self.num_pearray_inputs_dumps > 0):
                 self.num_pearray_inputs_dumps -= 1
@@ -2501,17 +2511,17 @@ class TPBSched:
                 dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
                 dst_z_num = conv_op.Tn  # Need CNHW data format
             else:                
-                dst_x_num = conv_op.ofmap_full_tilex_sz
-                dst_y_step = conv_op.E
-                dst_y_num = conv_op.ofmap_full_tiley_sz
+                dst_x_num = conv_op.ofmap_cropped_tile_width
+                dst_y_step = conv_op.F
+                dst_y_num = conv_op.ofmap_cropped_tile_height
                 dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
                 dst_z_num = conv_op.Tn  # Need CNHW data format
             num_partitions = conv_op.ofmap_count
         elif (act_or_biasadd_op !=  None):
             # unfused
-            dst_x_num = act_or_biasadd_op.E
-            dst_y_step = act_or_biasadd_op.E
-            dst_y_num = act_or_biasadd_op.F
+            dst_x_num = act_or_biasadd_op.F
+            dst_y_step = act_or_biasadd_op.F
+            dst_y_num = act_or_biasadd_op.E
             dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
             dst_z_num = act_or_biasadd_op.Tn  # Need CNHW data format
             num_partitions = act_or_biasadd_op.ofmap_count
@@ -3242,6 +3252,7 @@ if __name__ == "__main__":
     parser.add_argument("--dump_pearray_inputs", type=int, default=0, help="Dump PEArray inputs for N number of waves")
     parser.add_argument("--save_layer_output", action='store_true', help="Save intermediate layer output into files")
     parser.add_argument("--abstract_mem", action='store_true', help="Keep data chunks as abstract objects")
+    parser.add_argument("--stop_after_layer_num", type=int, default=0, help="Stop execution after fused op number. 0 means execute all fused ops. 1 means execute 1 fused op after Input. If there's a fork, there will be two outputs.")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
@@ -3272,8 +3283,13 @@ if __name__ == "__main__":
     tpb.statebuffer.circbuf_bias.item_sz = kgraph.item_sz
     result_file = None
     num_mismatches = 0
-    while (not kgraph.walk_ended()):
+    op_list_count = 0
+    while (not kgraph.walk_ended()
+            and (args.stop_after_layer_num == 0 or op_list_count <= args.stop_after_layer_num)):
         op_list = kgraph.get_fused_ops()
+        if (args.stop_after_layer_num > 0 and op_list_count == args.stop_after_layer_num):
+            op_list[-1].next = []
+        op_list_count += 1
 
         # get the result file for the fused operation
         last_op = op_list[-1]
