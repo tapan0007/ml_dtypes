@@ -1,0 +1,61 @@
+
+pipeline{
+
+    agent {
+        docker {
+            image 'amazonlinux:latest'
+            args '-u root -v /home/jenkins:/home/jenkins'
+            label 'tonga'
+            
+        }
+    }
+    stages {
+        stage('Prep'){
+            steps {
+                sh 'ls -ltrA && rm -rf $WORKSPACE/* '
+                sh 'mkdir -p ~/.ssh/ && echo "Host 10.206.*.*" >> ~/.ssh/config && echo "    User jenkins"  >> ~/.ssh/config && echo "    StrictHostKeyChecking no" >> ~/.ssh/config && echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config && chmod 600 ~/.ssh/config'
+    
+                sh 'yum -y install git'
+                sh 'cat /etc/os-release'
+                sh 'cat /proc/cpuinfo'
+            }
+        }
+        stage('Checkout'){
+    
+            steps {
+                sh 'ls -ltr'
+                sh 'git clone ssh://10.206.30.60:29418/tonga/sw/kaena kaena-runtime'
+                sh 'git clone ssh://10.206.30.60:29418/tonga/sw/kaena/compiler kaena-compiler'
+                sh 'git clone ssh://10.206.30.60:29418/tonga/sw/kaena/ext kaena-ext'
+                sh 'git clone ssh://10.206.30.60:29418/tonga/model/inkling inkling'
+                sh '''
+                echo "export KAENA_PATH=$WORKSPACE/kaena-compiler" >> ~/.bashrc
+                echo "export KAENA_EXT_PATH=$WORKSPACE/Kaena-ext" >> ~/.bashrc
+                echo "export INKLING_PATH=$WORKSPACE/inkling" >> ~/.bashrc
+                echo "export KAENA_ISA_PATH=$WORKSPACE/kaena-runtime" >> ~/.bashrc
+                echo "export KAENA_RT_PATH=$WORKSPACE/kaena-runtime" >> ~/.bashrc
+                '''
+            }
+        }
+        stage('install deps'){
+            steps {
+                sh 'source ~/.bashrc && $KAENA_PATH/test/tools/fetch-and-run/alinux_deps_install || echo install deps failed'
+            }
+        }
+        stage('Build') {
+         
+            steps {
+                sh 'ls -ltr'
+                sh 'source ~/.bashrc && make -C $KAENA_PATH'
+                //archiveArtifacts artifacts: '**/output/*.tgz'
+            }
+        }
+        stage('Regressions') {
+    
+            steps {
+                sh 'source ~/.bashrc && make -C $KAENA_PATH check'
+            }
+        }
+    }
+}
+
