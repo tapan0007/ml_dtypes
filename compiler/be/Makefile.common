@@ -2,8 +2,10 @@ AR := ar
 COMPILER := g++
 
 ########################################################
-WARNING_OPTS := -W -Wall -Werror -pedantic -Wno-missing-field-initializers -Wparentheses
+WARNING_OPTS := -ansi -W -Wall -Werror -pedantic -pedantic-errors -Wno-missing-field-initializers -Wparentheses -Wno-enum-compare
 ## -Wdangling-else 
+
+########################################################
 LINK_OPTS := $(WARNING_OPTS) -g -ggdb -std=c++14
 COMPILE_OPTS := -ansi $(LINK_OPTS)
 
@@ -15,7 +17,7 @@ endif
 
 ########################################################
 INK_INC_DIR := shared tcc
-#INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
+##INK_INC := $(addprefix -I$(INKLING_PATH)/,$(addsuffix /inc,$(INK_INC_DIR)))
 INK_INC := -I$(INKLING_PATH) -I$(INKLING_PATH)/shared/inc
 
 CEREAL_INC := -I$(KAENA_EXT_PATH)/packages

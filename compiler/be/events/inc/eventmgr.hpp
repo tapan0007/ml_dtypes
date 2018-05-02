@@ -24,6 +24,46 @@ class BarrierWaveOp;
 namespace events {
 
 class EventMgr {
+private:
+    using EventSet = std::set<EventId>;
+    class EventState {
+    public:
+        void clearAll();
+        void clearCompleted();
+
+        decltype(auto)
+        addAvailable(EventId eventId) {
+            return m_Available.insert(eventId);
+        }
+
+        bool availableEmpty() const {
+            return m_Available.empty();
+        }
+
+        EventId gFirstAvailable() const {
+            return *m_Available.begin();
+        }
+
+        void init();
+        void mvFromAvailableToInFlight(EventId eventId);
+        void moveCompletedEventsToAvailable();
+        void mvFromInFlightToCompleted(EventId eventId);
+        void mvFromCompletedToAvailable(EventId eventId);
+
+        static void mvEventFromSetToSet(EventId evtId, EventSet& from, EventSet& to,
+            const char* fromStr, const char* toStr);
+
+        size_t gNumAvailable() const {
+            return m_Available.size();
+        }
+
+
+    private:
+        EventSet m_Available;
+        EventSet m_InFlight;
+        EventSet m_Completed;
+    };
+
 public:
     EventMgr(nets::Network& network);
     void processWaveops();
@@ -31,8 +71,6 @@ public:
         return ReservedEvent_FirstNonReserved;
     }
 
-private:
-    using EventSet = std::set<EventId>;
 private:
     void processMatMult(wave::MatMulWaveOp* matmulWaveop);
     void processWaveop(wave::WaveOp* waveop);
@@ -68,9 +106,7 @@ private:
         ReservedEvent_FirstNonReserved
     };
 
-    void initEventSets();
     void assignEventsToNewSuccEdges(wave::WaveOp* waveop);
-    void moveCompletedEventsToAvailable();
     void completeEventsOnPrevEdges(wave::WaveOp* waveop);
 
     static EngineId gBarrierEngineId();
@@ -89,11 +125,6 @@ private:
 
     wave::NopWaveOp* mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId, kcc_int32 waveopIdx);
 
-    void mvFromInFlightToCompleted(EventId eventId);
-    void mvFromAvailableToInFlight(EventId eventId);
-    void mvFromCompletedToAvailable(EventId eventId);
-    void mvEventFromSetToSet(EventId evtId, EventSet& from, EventSet& to,
-            const char* fromStr, const char* toStr);
 
     void verifyWaveop(const wave::WaveOp* waveop) const;
 
@@ -101,9 +132,7 @@ private:
     nets::Network& m_Network;
 
 
-    EventSet m_Available;
-    EventSet m_InFlight;
-    EventSet m_Completed;
+    EventState m_EventState;
     kcc_int32 m_NopIdx = 0;
 };
 

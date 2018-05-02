@@ -34,7 +34,6 @@ assert(kelf_dir != "")
 nnGraphFile = kelf_dir + "/nn_graph.json"
 
 input_files = [os.path.abspath(f) for f in args.input_files]
-assert(1 >= len(input_files))
 output_files = [os.path.abspath(f) for f in args.output_files]
 working_dir = args.working_dir
 if (working_dir == ""):
@@ -57,8 +56,10 @@ class NnSubgraph:
     self.execOptions = sgJson.get("execOptions", "")
     self.parallel_streams = sgJson.get("parallel_streams", False)
     self.cmd = ""
+    self.cmd_args = ""
     if self.executor == "processor":
       self.cmd = sgJson["cmd"]
+      self.cmd_args = sgJson["cmd_args"]
 
   # Translate and relink npy files that are inputs to this subgraph
   # Each subgraph produces output in the host format. So just rename npy
@@ -158,6 +159,8 @@ class NnSubgraph:
       cmd = "%s/%s/%s" % (kelf_dir, self.sgDir, self.cmd)
 
       cmd += "  --inputs %s" % " ".join(inputs)
+      if self.cmd_args:
+        cmd += " " + self.cmd_args
       OutFile = ""
       if len(self.outputs) > 0:
         OutFile = self.outputs[0]["file"].replace(".npy", "-out.npy")
@@ -211,11 +214,12 @@ class NnExec:
     # Attach supplied input file to first subgraph
     if len(input_files) != 0:
       if len(sg_first.inputs) == 0:
-        sg_first.inputs.append({"name" : "", "file" : input_files[0]})
+        for i, input_file in enumerate(input_files):
+          sg_first.inputs.append({"name" : "", "file" : input_file})
       else:
         assert (len(sg_first.inputs) == len(input_files))
-        # we only support single input file for now
-        sg_first.inputs[0]["file"] = input_files[0]
+        for i, input_file in enumerate(input_files):
+          sg_first.inputs[i]["file"] = input_file
 
     # Attach supplied output file to last subgraph
     if len(output_files) != 0:

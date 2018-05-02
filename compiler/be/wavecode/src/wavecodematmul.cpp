@@ -132,7 +132,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
         std::set<events::EventId> eventIds;
 
         for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-            if (! prevWaveEdge->qNeedToImplementWait()) {
+            if (! prevWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
             if (! qLoadWeightsWaitsFor(prevWaveEdge)) {
@@ -159,6 +159,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     //************************************************************************
 
     //************************************************************************
+    {
+        SaveName(ldweightsInstr, matmulWaveop->gName().c_str());
+    }
     m_WaveCode.writeInstruction(ldweightsInstr);
 }
 
@@ -236,7 +239,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
         // Inspect incoming edges/events
         for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-            if (! prevWaveEdge->qNeedToImplementWait()) {
+            if (! prevWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
             if (qLoadWeightsWaitsFor(prevWaveEdge)) {
@@ -264,6 +267,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         instructionWritten = processOutgoingEdges(matmulWaveop, matmulInstr);
     }
     if (! instructionWritten) {
+        SaveName(matmulInstr, matmulWaveop->gName().c_str());
         m_WaveCode.writeInstruction(matmulInstr);
     }
 }

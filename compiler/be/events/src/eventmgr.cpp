@@ -35,33 +35,9 @@ namespace events {
 EventMgr::EventMgr(nets::Network& network)
     : m_Network(network)
 {
-    initEventSets();
+    m_EventState.init();
 }
 
-
-void
-EventMgr::initEventSets()
-{
-    m_Available.clear();
-    m_InFlight.clear();
-    m_Completed.clear();
-
-    for (EventId eventId = ReservedEvent_FirstNonReserved; eventId < EventId_Invalid(); ++eventId) {
-        m_Available.insert(eventId);
-    }
-}
-
-
-void
-EventMgr::moveCompletedEventsToAvailable()
-{
-    // Avaliable += Completed;
-    for (auto evtId : m_Completed) {
-        const auto ret = m_Available.insert(evtId); // ret.second is false if element already exists
-        Assert(ret.second, "Event id ", evtId, " already in completed and available event sets");
-    }
-    m_Completed.clear();
-}
 
 
 // For each succ edge take one available event and assign it
@@ -69,14 +45,14 @@ void
 EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
 {
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-        if (! succWaveEdge->qNeedToWaitFor()) {
+        if (! succWaveEdge->qNeedToSync()) {
             continue;
         }
         // Available --> InFlight
-        Assert(!m_Available.empty(), "Trying to get event from empty available set of events");
-        const auto evtId = (*m_Available.begin());
+        Assert(!m_EventState.availableEmpty(), "Trying to get event from empty available set of events");
+        const auto evtId = m_EventState.gFirstAvailable();
 
-        mvFromAvailableToInFlight(evtId);
+        m_EventState.mvFromAvailableToInFlight(evtId);
         succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::WaitThenClear);
     }
 }
@@ -87,14 +63,14 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
 {
     // For each prev edge move evt id from in-flight to completed.
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToWaitFor()) {
+        if (! prevWaveEdge->qNeedToSync()) {
             continue;
         }
         const EventId evtId = prevWaveEdge->gEventId();
         const wave::WaveOp* const precWaveop = prevWaveEdge->gFromOp();
         Assert(!precWaveop->qNopWaveOp(),
             "Non-nop waveop ", waveop->gName(), " has incomiing nop-waveop ", precWaveop->gName()); 
-        mvFromInFlightToCompleted(evtId);
+        m_EventState.mvFromInFlightToCompleted(evtId);
     }
 }
 
@@ -116,7 +92,7 @@ void
 EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
 {
     for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToWaitFor()) {
+        if (! prevWaveEdge->qNeedToSync()) {
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
@@ -138,7 +114,7 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
         // when two waveops execute on the same engine, no need for sync
         // except for DMA. If Load depends on a Save, Load must wait on Save
-        if (! prevWaveEdge->qNeedToWaitFor()) {
+        if (! prevWaveEdge->qNeedToSync()) {
             continue;
         }
         auto prevWaveop = prevWaveEdge->gFromOp();
@@ -150,7 +126,7 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
                     " cannot be another waveop of the same type: ", prevWaveop->gName());
             }
         } else {
-            if (prevWaveEdge->qNeedToWaitFor()) {
+            if (prevWaveEdge->qNeedToSync()) {
                 Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
                         "Need to wait on edge from ", prevWaveop->gName(), " to ",
                         waveop->gName(), ", but event id is invalid");
@@ -193,7 +169,7 @@ EventMgr::insertBarriers() {
     const kcc_int32 numWaveops = m_Network.gNumberWaveops();
     std::vector<wave::WaveOp*> newWaveops;
 
-    initEventSets();
+    m_EventState.init();
 
     const std::array<EngineId, 4> engineIds { {
         EngineId::PeArray, EngineId::Activation,
@@ -208,7 +184,7 @@ EventMgr::insertBarriers() {
         }
         const auto waveop = m_Network.gWaveOp(waveopIdx);
         kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
-        if (numSuccEvents > m_Available.size()) {
+        if (numSuccEvents > m_EventState.gNumAvailable()) {
             //
             //  PE   -> EvPeAct ->
             //      ACT  -> EvActPool ->
@@ -245,9 +221,9 @@ EventMgr::insertBarriers() {
                 prevWaveop = nopWaveop;
             }
 
-            moveCompletedEventsToAvailable();
-            Assert(numSuccEvents <= m_Available.size(), "Not enough event IDs after barrrier. Required: ",
-                    numSuccEvents, ", available: ", m_Available.size(), ". Next waveop is ", waveop->gName());
+            m_EventState.moveCompletedEventsToAvailable();
+            Assert(numSuccEvents <= m_EventState.gNumAvailable(), "Not enough event IDs after barrrier. Required: ",
+                    numSuccEvents, ", available: ", m_EventState.gNumAvailable(), ". Next waveop is ", waveop->gName());
 
         }
         assignEventsToNewSuccEdges(waveop);
@@ -406,7 +382,7 @@ EventMgr::processWaveops()
 /***************************************************************
 ***************************************************************/
 void
-EventMgr::mvEventFromSetToSet(EventId evtId, EventSet& fromSet, EventSet& toSet,
+EventMgr::EventState::mvEventFromSetToSet(EventId evtId, EventSet& fromSet, EventSet& toSet,
         const char* fromStr, const char* toStr)
 {
     Assert(qEventRegular(evtId), "Cannot move non-regular event id from ", fromStr, " to ", toStr);
@@ -417,23 +393,65 @@ EventMgr::mvEventFromSetToSet(EventId evtId, EventSet& fromSet, EventSet& toSet,
 }
 
 void
-EventMgr::mvFromInFlightToCompleted(EventId evtId)
+EventMgr::EventState::mvFromInFlightToCompleted(EventId evtId)
 {
     mvEventFromSetToSet(evtId, m_InFlight, m_Completed, "InFlight", "Completed");
 }
 
+
+/***********************************************************************
+***********************************************************************/
 void
-EventMgr::mvFromAvailableToInFlight(EventId evtId)
+EventMgr::EventState::mvFromAvailableToInFlight(EventId evtId)
 {
     mvEventFromSetToSet(evtId, m_Available, m_InFlight, "Available", "InFlight");
 }
 
 void
-EventMgr::mvFromCompletedToAvailable(EventId evtId)
+EventMgr::EventState::mvFromCompletedToAvailable(EventId evtId)
 {
     mvEventFromSetToSet(evtId, m_Completed, m_Available, "Completed", "Available");
 }
 
+
+
+
+void
+EventMgr::EventState::clearAll()
+{
+    m_Available.clear();
+    m_InFlight.clear();
+    m_Completed.clear();
+}
+
+void
+EventMgr::EventState::clearCompleted()
+{
+    m_Completed.clear();
+}
+
+
+void
+EventMgr::EventState::moveCompletedEventsToAvailable()
+{
+    // Avaliable += Completed;
+    for (auto evtId : m_Completed) {
+        const auto ret = addAvailable(evtId); // ret.second is false if element already exists
+        Assert(ret.second, "Event id ", evtId, " already in completed and available event sets");
+    }
+    clearCompleted();
+}
+
+
+void
+EventMgr::EventState::init()
+{
+    clearAll();
+
+    for (EventId eventId = ReservedEvent_FirstNonReserved; eventId < EventId_Invalid(); ++eventId) {
+        addAvailable(eventId);
+    }
+}
 
 
 } // namespace events

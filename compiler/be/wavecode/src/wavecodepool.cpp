@@ -121,6 +121,7 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     }
 
     if (! instructionWritten) {
+        SaveName(poolInstr, poolWaveop->gName().c_str());
         m_WaveCode.writeInstruction(poolInstr);
     }
 }

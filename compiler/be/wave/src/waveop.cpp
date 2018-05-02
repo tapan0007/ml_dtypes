@@ -49,7 +49,7 @@ WaveOp::gNumberPrevWaitEdges() const
 {
     kcc_int32 numWait = 0;
     for (auto prevWaveEdge : m_PrevWaveEdges) {
-        if (prevWaveEdge->qNeedToWaitFor()) {
+        if (prevWaveEdge->qNeedToSync()) {
             ++numWait;
         }
     }
@@ -61,7 +61,7 @@ WaveOp::gNumberSuccWaitEdges() const
 {
     kcc_int32 numWait = 0;
     for (auto succWaveEdge : m_SuccWaveEdges) {
-        if (succWaveEdge->qNeedToWaitFor()) {
+        if (succWaveEdge->qNeedToSync()) {
             ++numWait;
         }
     }

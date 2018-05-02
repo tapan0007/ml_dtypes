@@ -11,6 +11,7 @@
 
 #include "compisa/inc/compisaset.hpp"
 #include "compisa/inc/compisaclear.hpp"
+#include "compisa/inc/compisamatmul.hpp"
 
 
 
@@ -113,7 +114,7 @@ protected:
         bool firstEmb = true;
 
         for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-            if (! succWaveEdge->qNeedToImplementWait()) {
+            if (! succWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
 
@@ -122,6 +123,7 @@ protected:
                 instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
                 instr.inst_events.set_event_mode  = events::eventSetMode2Isa(
                                                 succWaveEdge->gSetEventMode());
+                SaveName(instr, waveop->gName().c_str());
                 m_WaveCode.writeInstruction(instr); // this requires template
                 instructionWritten = true;
             } else {
@@ -145,6 +147,17 @@ protected:
             mem_pattern.num_elem[i]  = 1;
         }
     }
+
+    template <typename INSTR>
+    static void SaveName(INSTR& instr, const char* name)
+    {
+        snprintf(reinterpret_cast<char*>(&instr.reserved[0]), sizeof(instr.reserved),
+                "%s", name);
+        instr.reserved[sizeof(instr.reserved)-1] = 0;
+    }
+
+    static void SaveName(compisa::MatMulInstr& instr, const char* name);
+
 
 protected:
     WaveCodeRef     m_WaveCode;

@@ -35,10 +35,12 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
                 || waitEventMode == events::EventWaitMode::WaitOnly,
            "Cannot wait on edge with DontWait mode");
 
-    enum { WAIT, WAIT_CLEAR, NOP };
+    enum { WAIT_CLEAR_MODE, WAIT_PLUS_CLEAR, NOP };
 
-    switch (WAIT_CLEAR) {
-    case WAIT: {
+    //switch (WAIT_PLUS_CLEAR)
+    switch (WAIT_CLEAR_MODE)
+    {
+    case WAIT_CLEAR_MODE: {
         // Not sure whether wait_event_mode works in SIM.
         compisa::WaitInstr waitInstr;
         waitInstr.event_idx         = waveEdge->gEventId();
@@ -56,7 +58,7 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
         m_WaveCode.writeInstruction(nopInstr, engineId);
         break;
     }
-    case WAIT_CLEAR: {
+    case WAIT_PLUS_CLEAR: {
         // old style: Wait(wait-only); Clear
         {
             compisa::WaitInstr waitInstr;
@@ -89,7 +91,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop)
     std::set<events::EventId> eventIds;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToImplementWait()) {
+        if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
@@ -115,7 +117,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EV
     std::set<events::EventId> eventIds;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToImplementWait()) {
+        if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
@@ -148,7 +150,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, events::EventId& wait
     bool firstEmb = true;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToImplementWait()) {
+        if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
@@ -174,7 +176,7 @@ WaveCodeWaveOp::findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEve
     bool firstEmb = true;
 
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-        if (! succWaveEdge->qNeedToImplementWait()) {
+        if (! succWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         if (firstEmb) {
@@ -197,7 +199,7 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
     std::set<events::EventId> eventIds;
 
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-        if (! succWaveEdge->qNeedToImplementWait()) {
+        if (! succWaveEdge->qNeedToImplementSync()) {
             continue;
         }
         const auto evtId = succWaveEdge->gEventId();
@@ -210,6 +212,13 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
     }
 }
 
+void
+WaveCodeWaveOp::SaveName(compisa::MatMulInstr& instr, const char* name)
+{
+    snprintf(reinterpret_cast<char*>(&instr.reserved_2[0]), sizeof(instr.reserved_2),
+            "%s", name);
+    instr.reserved_2[sizeof(instr.reserved_2)-1] = 0;
+}
 
 }}
 

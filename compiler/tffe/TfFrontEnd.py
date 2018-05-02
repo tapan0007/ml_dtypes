@@ -26,6 +26,7 @@ import os
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 import MiscUtil
 
+
 class TfOp:
   def __init__(self, name, op, tfNode):
     self.name = name
@@ -220,7 +221,8 @@ class TfFe:
         feedDict[var] = val
     return feedDict
   
-  def writeImages(self, outPrefix, imageFile, inputNodeName, inputConstants, excludeOpsFromCaptureRe):
+  def writeImages(self, outPrefix, imageFiles, inputNodeName, inputConstants, excludeOpsFromCaptureRe,
+                  preprocessor, preprocessor_args):
     self.__kg.levelize()
     inputNodes = []
     if inputNodeName == None:
@@ -254,7 +256,8 @@ class TfFe:
       # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
       if inputShape[0] == None:
         inputShape[0] = self.batch
-      
+
+      imageFile = imageFiles[0]
       if imageFile.endswith(".npy"):
         img = np.load(imageFile)
       elif imageFile == "linear":
@@ -268,9 +271,15 @@ class TfFe:
       elif " " in imageFile:
         img = np.fromstring(imageFile, dtype=inputType, sep=" ")
       else:
-        img = Image.open(imageFile).resize(shapeXY)
-        img = np.array(img, dtype=inputType)
-        img = preprocess_input(img)
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.npy') as ntf:
+          tfName = ntf.name
+          cmd = "{cmd} {args} --inputs {images} --output {output}".format(cmd=preprocessor, args=preprocessor_args,
+                                                                          images=' '.join(imageFiles), output=tfName)
+          print("INFO: Running preprocessor:: ", cmd)
+          os.system(cmd)
+          img = np.load(tfName)
+
       img = img.reshape(inputShape)
 
       tfVars = []

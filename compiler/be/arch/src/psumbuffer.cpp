@@ -4,6 +4,7 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/types.hpp"
 
+#include "arch/inc/arch.hpp"
 #include "arch/inc/pearray.hpp"
 #include "arch/inc/psumbuffer.hpp"
 
@@ -33,9 +34,9 @@ PsumBuffer::gBankOffsetDelta() const
 }
 
 kcc_int32
-PsumBuffer::gEntrySize () const
+PsumBuffer::gEntrySize() const
 {
-    return utils::power2(PSUM_ENTRY_BITS);
+    return Arch_PsumEntrySize;
 }
 
 bool

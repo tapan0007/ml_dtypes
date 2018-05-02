@@ -380,6 +380,7 @@ class CircularBuffer:
         self.chunk2atom_map = {}
         self.chunk2spare_map = {}
         self.chunk2skip_map = {}
+        self.chunk2waveop_map = {}
         self.item_sz = 2
         self.data_type = 'float16'
         self.outgoing_tile_waveops = []
@@ -390,9 +391,16 @@ class CircularBuffer:
         self.reset()
         self.consumer_of_freed_atom_old = consumer_of_freed_atom_old
 
-
     def get_chunk_addr(self, addr):
         return addr // self.atom_data_sz
+
+    def get_atom_id(self, chunk_id):
+        if chunk_id in self.chunk2atom_map:
+            return self.chunk2atom_map[chunk_id]
+        elif (chunk_id in self.chunk2spare_map):
+            return self.chunk2spare_map[chunk_id]
+        else:
+            raise RuntimeError("Chunk ID %d not found in chunk2atom_map of %s"%(chunk_id, self.circbuf_type))
 
     def get_atom_offset(self, addr):
         return addr % self.atom_data_sz
@@ -401,6 +409,10 @@ class CircularBuffer:
         addr_chunked = self.get_chunk_addr(addr) 
         if (addr_chunked in self.chunk2atom_map):
             sb_address = self.start + self.chunk2atom_map[addr_chunked]*self.atom_sz + self.get_atom_offset(addr)
+            assert (sb_address < StateBuffer.SB_PARTITION_SZ)
+            return sb_address
+        elif (addr_chunked in self.chunk2spare_map):
+            sb_address = self.start + self.chunk2spare_map[addr_chunked]*self.atom_sz + self.get_atom_offset(addr)
             assert (sb_address < StateBuffer.SB_PARTITION_SZ)
             return sb_address
         else:
@@ -606,6 +618,7 @@ class CircularBuffer:
             # make atom size multiple of width data length if it is smaller than default atom size
             # For FP32, use initial atom of 2KB to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
             elif (ifmap_width_data_len <= self.atom_sz):
+                #fmap_full_tiley_sz  here is the input fmap full tiley
                 if (args.abstract_mem):
                     self.atom_data_sz = ifmap_width_data_len * fmap_full_tiley_sz
                 else:
@@ -641,18 +654,19 @@ class CircularBuffer:
         self.old2new_atom_sz_ratio = self.atom_sz // self.atom_data_sz
         self.atom_sz = self.atom_data_sz
         if (self.circbuf_type == "weights"):            
-            self.file_params = FileParams(self.dram_data_in_file, op.weights_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params = FileParams(self.dram_data_in_file, op.weights_shape_dims, self.item_sz, 2048, PEArray, op, args.abstract_mem)
             self.file_params.load_file()
         elif (self.circbuf_type == "bias"):            
-            self.file_params = FileParams(self.dram_data_in_file, op.bias_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params = FileParams(self.dram_data_in_file, op.bias_shape_dims, self.item_sz, 2048, PEArray, op, args.abstract_mem)
             self.file_params.load_file()
         elif (self.circbuf_type == "ifmaps"):            
-            self.file_params = FileParams(self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.item_sz, 2048, PEArray, op_list[0])
+            self.file_params = FileParams(self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.item_sz, 2048, PEArray, op_list[0], args.abstract_mem)
             self.file_params.load_file()
         else:            
-            self.file_params = FileParams(self.dram_data_in_file, op.ofmaps_shape_dims, self.item_sz, 2048, PEArray, op)
+            self.file_params = FileParams(self.dram_data_in_file, op.ofmaps_shape_dims, self.item_sz, 2048, PEArray, op, args.abstract_mem)
             self.file_params.load_file()
-        print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, (chunk_sz %d), old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.file_params.chunk_sz, self.old2new_atom_sz_ratio, self.replicate_multiple)) 
+        print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, (chunk_sz %d), old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.file_params.chunk_sz, self.old2new_atom_sz_ratio, self.replicate_multiple))
+        #assert(self.atom_data_sz == self.file_params.chunk_sz)
         return self.dram_data
 
     def recompute_ifmaps_params(self, op):
@@ -713,7 +727,7 @@ class CircularBuffer:
         else:            
             simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
         if args.abstract_mem:
-            waveop_name = simout_file + "_%d"%(chunk_id)
+            waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
         else:            
             waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
         sb_addr = self.start + atom_id*self.atom_sz
@@ -786,7 +800,7 @@ class CircularBuffer:
         assert(self.dram_data_out_file != None)
         simout_file = self.dram_data_out_file.replace("-midout.", "-simout.")
         if args.abstract_mem:
-            waveop_name = simout_file + "_%d"%(chunk_id)
+            waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
         else:            
             waveop_name = self.layer_name_for_save + "/SBAtomSave_%s_%d_%s"%(self.circbuf_type, atom_id, tile_id.id_string())
         self.parent.chunk2saved_map["%s_%d"%(simout_file, chunk_id)] = waveop_name
@@ -868,6 +882,22 @@ class CircularBuffer:
         self.chunk2skip_map[chunk_id] = atom_id
         return consumer_of_evicted_atom
 
+    def get_dram_waveop_names(self, lower_addr, upper_addr, consumer_name):
+        dram_waveop_names = []
+        lower_addr_chunked = self.get_chunk_addr(lower_addr)
+        upper_addr_chunked = self.get_chunk_addr(upper_addr)
+        for i in range(lower_addr_chunked, upper_addr_chunked+1):
+            if (i in self.chunk2waveop_map):
+                dram_waveop_names.append(self.chunk2waveop_map[i]["waveop_name"])
+                if not args.abstract_mem:
+                    # Only need to load data once (transitive dependency for later matmuls)
+                    del self.chunk2waveop_map[i]
+            if (i in self.chunk2atom_map):
+                self.consumer_of_freed_atom[self.chunk2atom_map[i]] = consumer_name
+            if (i in self.chunk2spare_map):
+                self.consumer_of_freed_atom[self.chunk2spare_map[i]] = consumer_name
+        return dram_waveop_names            
+
     def read_data_region(self, wave_id, lower_addr, upper_addr, ifmap_count, ifmaps_replicate=False, start_at_mid_part=False):
         if (args.debug > 2): print("%s: read byte range %d to %d"%(self.circbuf_type, lower_addr, upper_addr))
         dram_waveops = []
@@ -884,7 +914,9 @@ class CircularBuffer:
                 self.circbuf_ptrs.advance(CircbufPtrs.TAIL)
                 if (args.debug > 2): self.circbuf_ptrs.print(self.circbuf_type)
             atom_id = self.allocate_atom()
-            dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, lower_addr_chunked, ifmap_count, ifmaps_replicate))
+            new_dram_waveop = self.gen_dram_read_waveop(wave_id, atom_id, lower_addr_chunked, ifmap_count, ifmaps_replicate)
+            dram_waveops.append(new_dram_waveop)
+            self.chunk2waveop_map[lower_addr_chunked] = new_dram_waveop
             # SB WAW dependency for general region at atom/chunk granularity
             # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop, or the writing waveop feeding the depending waveop)
             prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, lower_addr_chunked)
@@ -894,7 +926,7 @@ class CircularBuffer:
         else:
             atom_id = self.chunk2atom_map[lower_addr_chunked]
             if args.abstract_mem:
-                dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, lower_addr_chunked, ifmap_count, ifmaps_replicate))
+                dram_waveops.append(self.chunk2waveop_map[lower_addr_chunked])
             if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, lower_addr_chunked, atom_id));
         # allocate the remaining chunks
         # check whether chunk is already in the spares
@@ -910,14 +942,16 @@ class CircularBuffer:
             elif i in self.chunk2atom_map:
                 atom_id = self.chunk2atom_map[i]
                 if args.abstract_mem:
-                    dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
+                    dram_waveops.append(self.chunk2waveop_map[i])
                 if (args.debug > 2): print("%s: chunk %d is already mapped to atom %d"%(self.circbuf_type, i, atom_id));
             else:
                 if (self.is_a_spare_atom(self.circbuf_ptrs.get(CircbufPtrs.TAIL))):
                     starting_spares = True
                     if (i not in self.chunk2spare_map):
                         atom_id = self.allocate_atom()
-                        dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
+                        new_dram_waveop = self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate)
+                        dram_waveops.append(new_dram_waveop)
+                        self.chunk2waveop_map[i] = new_dram_waveop
                         if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                         # SB WAW dependency for general region at atom/chunk granularity
                         prev_consumer = self.map_chunk_to_spare_atom(atom_id, i)
@@ -933,7 +967,9 @@ class CircularBuffer:
                     # if multiple atoms used, and need skip atoms, then keep the last atom as skip-atom
                     if (self.need_skip_atoms and i == upper_addr_chunked):
                         atom_id = self.allocate_atom()
-                        dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
+                        new_dram_waveop = self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate)
+                        dram_waveops.append(new_dram_waveop)
+                        self.chunk2waveop_map[i] = new_dram_waveop
                         if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                         # SB WAW dependency for general region at atom/chunk granularity
                         prev_consumer = self.map_chunk_to_skip_atom(atom_id, i)
@@ -945,7 +981,9 @@ class CircularBuffer:
                         self.skipped[atom_id] = True
                     else:                        
                         atom_id = self.allocate_atom()
-                        dram_waveops.append(self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate))
+                        new_dram_waveop = self.gen_dram_read_waveop(wave_id, atom_id, i, ifmap_count, ifmaps_replicate)
+                        dram_waveops.append(new_dram_waveop)
+                        self.chunk2waveop_map[i] = new_dram_waveop
                         if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, i, atom_id))
                         # SB WAW dependency for general region at atom/chunk granularity
                         prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, i)
@@ -1024,6 +1062,7 @@ class CircularBuffer:
                     for op in self.outgoing_tile_waveops:
                         new_waveop['previous_waveops'].append(op)
                     dram_waveops.append(new_waveop)
+                    self.chunk2waveop_map[i] = new_waveop
                     self.consumer_of_freed_atom[atom_id] = new_waveop["waveop_name"] 
                     # Do eviction earlier in write_data_region
                     # if self.is_in_kickout_range(atom_id):
@@ -1038,10 +1077,13 @@ class CircularBuffer:
         lower_addr_chunked = self.get_chunk_addr(lower_addr)
         upper_addr_chunked = self.get_chunk_addr(upper_addr)
         for i in range(lower_addr_chunked, upper_addr_chunked+1):
+            #if i in self.chunk2spare_map:
+                #if waveop != None:
+                #    self.consumer_of_freed_atom[self.chunk2spare_map[i]] = waveop["waveop_name"] 
             if i in self.chunk2atom_map:
                 self.free_atom(self.chunk2atom_map[i])
-                if waveop != None:
-                    self.consumer_of_freed_atom[self.chunk2atom_map[i]] = waveop["waveop_name"] 
+                #if waveop != None:
+                #    self.consumer_of_freed_atom[self.chunk2atom_map[i]] = waveop["waveop_name"] 
                 if (args.debug > 2): print("%s: freeing atom_id %d for chunk %d (lower_addr %d, upper_addr %d), but keep around for any subsequent read"%(self.circbuf_type, self.chunk2atom_map[i], i, lower_addr, upper_addr))
                 # keep data around just in case, but allow pointers to wrap around
                 #del self.chunk2atom_map[i]
@@ -1419,7 +1461,7 @@ class KNode:
                                         self.ofmap_wave_lower_coordx[z] = x
                                         self.ofmap_wave_lower_coordy[z] = y
                                         self.psum_bank_offset = (y * self.ofmap_full_tilex_sz + x)
-                            #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx, self.ofmap_wave_lower_coordy, self.ofmap_wave_upper_coordx, self.ofmap_wave_upper_coordy))                                    
+                            #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
@@ -1520,8 +1562,9 @@ class KNode:
 class WaveopStream(list):
 
     def __init__(self):
-        self.last_main_waveop = None
-        self.last_psum_waveop = [None for i in range(PEArray.PSUM_NUM_BANKS)]
+        self.last_main_waveop = None    # main stream waveop (PEArray resource)
+        self.last_main_using_psum_bank = 0    # last main waveop using PSUM bank
+        self.last_psum_waveop = [None for i in range(PEArray.PSUM_NUM_BANKS)]   # PSUM streams (PSUM resouce)
         self.waveop_name_set = set()
 
     def append_check(self, item):
@@ -1548,18 +1591,23 @@ class WaveopStream(list):
             if (self.last_main_waveop != None):
                 input_list.append(self.last_main_waveop['waveop_name'])
         else:                
-            if (self.last_psum_waveop[psum_bank] != None):
+            if (self.last_psum_waveop[psum_bank] != None and waveop['waveop_type'] != "MatMul"):
                 input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
             elif (self.last_main_waveop != None):
                 input_list.append(self.last_main_waveop['waveop_name'])
-        waveop['previous_waveops'] = input_list
+                if (self.last_main_using_psum_bank != psum_bank):
+                    if (self.last_psum_waveop[psum_bank] != None):
+                        input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
+        waveop['previous_waveops'] += input_list
         self.append_check(waveop)
         if (psum_bank < 0):
             self.last_main_waveop = waveop
+            self.last_main_using_psum_bank = psum_bank
         else:            
             self.last_psum_waveop[psum_bank] = waveop
             if (waveop['waveop_type'] == "MatMul"):
                 self.last_main_waveop = waveop
+                self.last_main_using_psum_bank = psum_bank
 
     def add_outputs(self, waveops):
         for i in waveops:
@@ -1660,7 +1708,7 @@ class FusedOp(list):
             print("    ", i.data["layer_type"],":",i.data["layer_name"], )
 
     # generate MatMul waveop and add it to waveop stream
-    def gen_matmul_waveop(self, tpb, wave_id, psum_add):
+    def gen_matmul_waveop(self, tpb, wave_id, psum_add, dram_weights_waveops):
         if (self.conv_op.item_sz == 2):
             in_dtype = "float16"
             out_dtype = "float32"
@@ -1669,7 +1717,6 @@ class FusedOp(list):
             out_dtype = "float32"
         else:            
             print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
-        waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()           
         # find the weights offset within atom; -1 means don't load new weights
         weights_sb_address = tpb.statebuffer.circbuf_weights.get_sb_address(self.conv_op.weight_wave_lower_addr)
         if (weights_sb_address == self.prev_weight_wave_lower_addr):
@@ -1677,44 +1724,95 @@ class FusedOp(list):
             if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
         else:            
             self.prev_weight_wave_lower_addr = weights_sb_address
-        matmul_waveop = {
-              'previous_waveops'        : [],   # to be added later
-              'waveop_type'             : 'MatMul',
-              'waveop_name'             : waveop_name,
-              'layer_name'              : self.conv_op.data['layer_name'],
-              'weights_sb_address'      : weights_sb_address,
-              'ifmaps_sb_address'       : tpb.statebuffer.circbuf_ifmaps.get_sb_address(self.conv_op.ifmap_wave_lower_addr[0]),
-              'in_dtype'                : in_dtype,
-              'out_dtype'               : out_dtype,
-              'wave_id_format'          : wave_id.format, # to be removed
-              'wave_id'                 : wave_id.show(), # to be removed
-              'start'                   : not(psum_add),    # to be removed
-              'stride_x'                : self.conv_op.stride_x, # to be removed
-              'stride_y'                : self.conv_op.stride_y, # to be removed
-              'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
-              'ifmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed 
-              'ifmap_tile_height'       : self.conv_op.ofmap_wave_height, # to be removed
-              'ofmap_count'             : self.conv_op.ofmap_count, # to be removed
-              'ofmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed
-              'ofmap_tile_height'       : self.conv_op.ofmap_wave_height,  # to be removed
-              'batching_in_wave'        : self.conv_op.Tn, # to be removed
-              'start_tensor_calc'       : not(psum_add),
-              'stop_tensor_calc'        : False,
-              'fmap_x_step'             : self.conv_op.stride_x,
-              'fmap_x_num'              : self.conv_op.ofmap_wave_width,
-              'fmap_y_step'             : self.conv_op.W * self.conv_op.stride_y,
-              'fmap_y_num'              : self.conv_op.ofmap_wave_height,
-              'fmap_z_step'             : tpb.statebuffer.circbuf_ifmaps.atom_sz,
-              'fmap_z_num'              : self.conv_op.Tn,
-              'num_row_partitions'      : self.conv_op.ifmap_count,
-              'psum_bank_id'            : self.conv_op.psum_bank_dst,
-              'psum_bank_offset'        : self.conv_op.psum_bank_offset,
-              'psum_x_step'             : 1,
-              'psum_x_num'              : self.conv_op.ofmap_wave_width,
-              'psum_y_step'             : self.conv_op.ofmap_cropped_tile_width,
-              'psum_y_num'              : self.conv_op.ofmap_wave_height * self.conv_op.Tn,
-              'num_column_partitions'   : self.conv_op.ofmap_count,
-            }
+        # If wave crosses atom boundaries, break it into multiple waves
+        # The following assumes noodle tile (width is equal to FMAP width)
+        current_chunk_id = -10000   # force the first break at start address
+        current_atom_id = -10000
+        break_at_y = []
+        break_addr = []
+        addr_step_y = self.conv_op.W * self.conv_op.stride_y * self.conv_op.item_sz
+        for i in range(self.conv_op.ofmap_wave_height):
+            address = self.conv_op.ifmap_wave_lower_addr[0] + i * addr_step_y
+            if (address > self.conv_op.ifmap_wave_upper_addr[0]):
+                break
+            chunk_id = tpb.statebuffer.circbuf_ifmaps.get_chunk_addr(address)
+            atom_id = tpb.statebuffer.circbuf_ifmaps.get_atom_id(chunk_id)
+            if args.abstract_mem:
+                break_cond = chunk_id != current_chunk_id
+            else:
+                break_cond = not (atom_id == current_atom_id or atom_id == current_atom_id+1)
+            if break_cond:
+                break_at_y.append(i)
+                break_addr.append(tpb.statebuffer.circbuf_ifmaps.get_sb_address(address))
+                current_chunk_id = chunk_id
+                current_atom_id = atom_id
+                if (args.debug > 1): print("DBG: breaking wave at row %d addr %d"%(i, break_addr[-1]))
+        matmul_waveop = []
+        start_tensor_calc = not(psum_add)
+        for i in range(len(break_at_y)):                
+            if (i == len(break_at_y)-1):
+                next_break = self.conv_op.ofmap_wave_height
+            else:
+                next_break = break_at_y[i+1]
+            fmap_y_num = next_break - break_at_y[i]
+            psum_bank_additional_offset = break_at_y[i] * self.conv_op.ofmap_cropped_tile_width
+            assert((self.conv_op.psum_bank_offset + psum_bank_additional_offset) < PEArray.MAX_WAVE_SIZE)
+            ifmaps_sb_address = break_addr[i]
+            if i>0: weights_sb_address = -1
+
+            waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()+"__"+str(i)
+
+            # get dram waveops for each matmul
+            dram_waveop_names = []
+            if i==0:
+                for j in dram_weights_waveops:
+                    dram_waveop_names.append(j["waveop_name"])
+            lower_file_address = self.conv_op.ifmap_wave_lower_addr[0] + break_at_y[i] * addr_step_y
+            upper_file_address = min(self.conv_op.ifmap_wave_lower_addr[0] + next_break * addr_step_y - self.conv_op.item_sz, self.conv_op.ifmap_wave_upper_addr[0])
+            dram_waveop_names += tpb.statebuffer.circbuf_ifmaps.get_dram_waveop_names(lower_file_address, upper_file_address, waveop_name)
+
+            if (args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, ifmaps_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, ifmaps_sb_address, fmap_y_num))                
+            matmul_waveop.append({ 
+                  'previous_waveops'        : dram_waveop_names,
+                  'waveop_type'             : 'MatMul',
+                  'waveop_name'             : waveop_name,
+                  'layer_name'              : self.conv_op.data['layer_name'],
+                  'weights_sb_address'      : weights_sb_address,
+                  'ifmaps_sb_address'       : ifmaps_sb_address,
+                  'in_dtype'                : in_dtype,
+                  'out_dtype'               : out_dtype,
+                  'wave_id_format'          : wave_id.format, # to be removed
+                  'wave_id'                 : wave_id.show(), # to be removed
+                  'start'                   : start_tensor_calc,    # to be removed
+                  'stride_x'                : self.conv_op.stride_x, # to be removed
+                  'stride_y'                : self.conv_op.stride_y, # to be removed
+                  'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
+                  'ifmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed 
+                  'ifmap_tile_height'       : self.conv_op.ofmap_wave_height, # to be removed
+                  'ofmap_count'             : self.conv_op.ofmap_count, # to be removed
+                  'ofmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed
+                  'ofmap_tile_height'       : self.conv_op.ofmap_wave_height,  # to be removed
+                  'batching_in_wave'        : self.conv_op.Tn, # to be removed
+                  'start_tensor_calc'       : start_tensor_calc,
+                  'stop_tensor_calc'        : False,
+                  'fmap_x_step'             : self.conv_op.stride_x,
+                  'fmap_x_num'              : self.conv_op.ofmap_wave_width,
+                  'fmap_y_step'             : self.conv_op.W * self.conv_op.stride_y,
+                  'fmap_y_num'              : fmap_y_num,
+                  'fmap_z_step'             : tpb.statebuffer.circbuf_ifmaps.atom_sz,
+                  'fmap_z_num'              : self.conv_op.Tn,
+                  'num_row_partitions'      : self.conv_op.ifmap_count,
+                  'psum_bank_id'            : self.conv_op.psum_bank_dst,
+                  'psum_bank_offset'        : self.conv_op.psum_bank_offset + psum_bank_additional_offset,
+                  'psum_x_step'             : 1,
+                  'psum_x_num'              : self.conv_op.ofmap_wave_width,
+                  'psum_y_step'             : self.conv_op.ofmap_cropped_tile_width,
+                  'psum_y_num'              : fmap_y_num,
+                  'psum_z_step'             : self.conv_op.ofmap_full_tile_sz,
+                  'psum_z_num'              : self.conv_op.Tn,
+                  'num_column_partitions'   : self.conv_op.ofmap_count,
+                })
+            start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
         return matmul_waveop
 
     # generate Pool waveop and add it to waveop stream
@@ -1795,6 +1893,7 @@ class FusedOp(list):
                                         self.conv_op.weight_wave_upper_addr,
                                         self.conv_op.ifmap_count,
                                         ifmaps_replicate=False)
+            for i in dram_weights_waveops: tpb.waveop_stream.append_check(i)
             dram_ifmaps_waveops = []
             for i in range(self.conv_op.Tn):
                 dram_ifmaps_waveops += tpb.statebuffer.circbuf_ifmaps.read_data_region(
@@ -1803,12 +1902,15 @@ class FusedOp(list):
                                             self.conv_op.ifmap_wave_upper_addr[i],
                                             self.conv_op.ifmap_count,
                                             self.conv_op.ifmap_count > self.conv_op.C)
+            for i in dram_ifmaps_waveops: tpb.waveop_stream.append_check(i)
+            if (args.debug > 2): print("DBG %s: MatMul ifmaps_wave_lower_addr %d ifmap_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.ifmap_wave_lower_addr[0], self.conv_op.ifmap_wave_upper_addr[0]))                
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             tpb.pearray.batching_in_wave = self.conv_op.Tn
-            matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add)
-            tpb.waveop_stream.add_linked(matmul_waveop, dram_weights_waveops + dram_ifmaps_waveops, self.conv_op.psum_bank_dst)
+            matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add, dram_weights_waveops)
+            for i in range(len(matmul_waveop)):
+                tpb.waveop_stream.add_linked(matmul_waveop[i], [], self.conv_op.psum_bank_dst)
             # mark this matmul as consumer of the 64B weights morsel
-            matmul_waveop_name = matmul_waveop["waveop_name"]
+            matmul_waveop_name = matmul_waveop[-1]["waveop_name"]
             for i in dram_weights_waveops: # + dram_ifmaps_waveops:
                 sb_addr = i["sb_address"]
                 sb_length = i["length"]
@@ -1827,7 +1929,7 @@ class FusedOp(list):
             # collect statistics
             if (args.debug > 1):
                 tpb.pearray.total_pearray_wave_elems += self.conv_op.ofmap_wave_elems
-                if (matmul_waveop["weights_sb_address"] < 0):
+                if (matmul_waveop[0]["weights_sb_address"] < 0):
                     tpb.pearray.total_pearray_latency_cycles += self.conv_op.ofmap_wave_elems
                 else:    
                     tpb.pearray.total_pearray_latency_cycles += max(self.conv_op.ofmap_count, self.conv_op.ofmap_wave_elems)
@@ -2876,6 +2978,12 @@ class TPBSched:
                             tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr, self.waveop_stream.last_main_waveop)
                         else:                            
                             self.gen_act_waveop_inline(None, pool_op, None, tile_id, False, 0, False, 0, dram_ifmaps_waveops, 0)
+    
+                        # record consumer of the DRAM atoms
+                        for z in range(pool_op.Tn):
+                            tpb.statebuffer.circbuf_ifmaps.get_dram_waveop_names(pool_op.ifmap_wave_lower_addr[z], pool_op.ifmap_wave_upper_addr[z], self.waveop_stream.last_main_waveop['waveop_name'])
+                            if (pool_op.data['layer_type'] == "Multiply" or pool_op.data['layer_type'] == "ResAdd"):
+                                tpb.statebuffer.circbuf_residue.get_dram_waveop_names(pool_op.ofmap_tile_lower_addr[z], pool_op.ofmap_tile_upper_addr[z], self.waveop_stream.last_main_waveop['waveop_name'])
 
                         dram_output_waveops = []                            
                         for z in range(pool_op.Tn):
