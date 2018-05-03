@@ -3,7 +3,7 @@
 set -x
 
 yum_packages="python36 gcc64-c++ gcc48-c++ libzip-devel zlib-static createrepo aws-cli unzip"
-pip_packages="numpy pillow keras graphviz tensorflow==1.5 filelock boto3"
+pip_packages="numpy pillow keras graphviz tensorflow==1.5 filelock boto3 psutil"
 
 
 yum -y install $yum_packages
