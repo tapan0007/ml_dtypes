@@ -734,7 +734,7 @@ class CircularBuffer:
         sb_addr = self.start + atom_id*self.atom_sz
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
-        if (self.circbuf_type == "weights"): # TODO: if space is reused for other regions, need to apply to other regions
+        if (self.circbuf_type == "weights" or self.circbuf_type == "bias"): # TODO: if space is reused for other regions, need to apply to other regions
             for i in range(sb_addr//64, ceildiv(sb_addr + length, 64)):
                 # SB WAW dependency for weights
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
@@ -747,10 +747,10 @@ class CircularBuffer:
         # SB WAW dependency for bias (loose)
         # (SB WAR dependency doesn't exist for bias region since it is read-only)
         # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-        if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
-            if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0 and not args.abstract_mem):
-                previous_waveops.append(self.last_biasweight_waveop)
-            self.last_biasweight_waveop = waveop_name                
+        #if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
+        #    if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0 and not args.abstract_mem):
+        #        previous_waveops.append(self.last_biasweight_waveop)
+        #    self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         # DRAM RAW dependency for scratch (OFMAPS)
         # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
@@ -2564,6 +2564,9 @@ class TPBSched:
               'bias_start_at_mid_part'  : tile_id.m_id%2 == 1,
             }
         self.waveop_stream.add_linked(instr, dram_bias_waveops, psum_bank_src if src_is_psum else -1)
+        # kaena-383: record current users of weight morsels (just keep the last one if there are multiple wave-pieces)
+        for j in range(bias_sb_address//64, ceildiv(bias_sb_address + act_or_biasadd_op.item_sz, 64)):
+            tpb.statebuffer.consumer_of_64byte_morsel[j] = waveop_name
 
     # generate ResAdd instruction and add it to instruction stream
     def gen_join_waveop_inline(self, op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start, start_at_mid_part):
