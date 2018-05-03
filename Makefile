@@ -11,6 +11,10 @@ endif
 ifndef INKLING_PATH
 $(error INKLING_PATH is not set)
 endif
+ifndef INKLING_EXT_PATH
+$(error INKLING_EXT_PATH is not set)
+endif
+
 
 RPMDIR ?= ${KAENA_PATH}/build/rpmdir/
 export RPMDIR
