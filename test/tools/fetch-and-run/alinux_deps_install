@@ -2,7 +2,7 @@
 
 set -x
 
-yum_packages="python36 gcc64-c++ gcc48-c++ libzip-devel zlib-static createrepo aws-cli unzip"
+yum_packages="python36 gcc64-c++ gcc48-c++ libzip-devel zlib-static createrepo aws-cli unzip python36-devel"
 pip_packages="numpy pillow keras graphviz tensorflow==1.5 filelock boto3 psutil"
 
 
