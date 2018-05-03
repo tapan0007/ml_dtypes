@@ -11,8 +11,8 @@ endif
 ifndef INKLING_PATH
 $(error INKLING_PATH is not set)
 endif
-ifndef INKLING_EXT_PATH
-$(error INKLING_EXT_PATH is not set)
+ifndef KAENA_EXT_PATH
+$(error KAENA_EXT_PATH is not set)
 endif
 
 
