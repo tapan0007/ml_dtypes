@@ -1,8 +1,16 @@
 
 SHELL := /bin/bash
+# use g++48 to build inkling if available.
+
+G++48_EXISTS := $(shell command -v g++48 2> /dev/null)
+
+INKLING_CXX = g++
+ifdef G++48_EXISTS
+INKLING_CXX = g++48
+endif
 
 build:
-	make -C ${INKLING_PATH}
+	make -C ${INKLING_PATH} CXX=${INKLING_CXX}
 check:
 
 clean:
