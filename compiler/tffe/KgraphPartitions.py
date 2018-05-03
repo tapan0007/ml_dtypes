@@ -9,6 +9,7 @@ import os
 import KaenaOpGraph as kog
 import re
 import shutil
+import numpy as np
 
 # Describes a (small) Kgraph with inputs and the output node
 class KsubGraph:
@@ -22,6 +23,10 @@ class KsubGraph:
   def print(self, title):
     print(title)
     self.graph.print()
+  def getInputs(self):
+    return self.__inputs
+  def getOutputs(self):
+    return self.__outputs
   def getMaxLevel(self):
     return self.__maxLevel
   def updateMaxLevel(self, level):
@@ -435,6 +440,99 @@ class KgraphPart(object):
           self.__numColors = color + 1
         print("INFO: overrode color %d to %d on node %s" % (oldColor, color, node.getName()))
 
+  class Cut(object):
+    def __init__(self, nodes, visitedNodes, srcKgraph, costFunctionName, debugLevel):
+      self.nodes = nodes
+      self.visitedNodes = visitedNodes # visitedNodes maintains full single-color subgraph created by cut expansion
+      #assert type(visitedNodes) == 'set'
+      self.srcKgraph = srcKgraph
+      self.debugLevel = debugLevel
+      self.costFunctionName = costFunctionName
+
+    def getCost(self):
+      cost = 0
+      allNodes = self.visitedNodes | set(self.nodes)
+      for n in allNodes:
+        costFunction = getattr(n, self.costFunctionName)
+        cost += costFunction(n)
+        #if self.debugLevel > 0:
+        #  print("      DEBUG: colorNodesMultiTpb  %-12s  %s has  %d  ops" % (n.getOpType(), n.getName(), costFunction(n)))
+      return cost
+
+    # Greedy search for a next cut with the cost closest to the target
+    def expand(self, costTarget, allVisited):
+      cuts = []
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesMultiTpb expanding nodes %s " % str([n.getName() for n in self.nodes]))
+      if len(self.nodes) == 0:
+        return self
+      for n in self.nodes:
+        nextNodes = n.getFanoutMainFlowNodes()
+        newNodes = self.nodes.copy()
+        fullyExapandedN = True
+        for nextNode in nextNodes:
+          if nextNode not in (set(newNodes) | self.visitedNodes | allVisited):
+            if nextNode.hasMainFlowPredecessorsInSet(self.visitedNodes | set([n])):
+              newNodes.append(nextNode)
+            else:
+              fullyExapandedN = False
+        newVisited = self.visitedNodes.copy()
+        if fullyExapandedN:
+          newNodes.remove(n)
+        if not n in allVisited:
+          newVisited.add(n)
+        if not set(self.nodes) == set(newNodes):
+          cuts.append(KgraphPart.Cut(newNodes, newVisited, self.srcKgraph, self.costFunctionName, self.debugLevel))
+          if self.debugLevel > 0:
+            print("    DEBUG: colorNodesMultiTpb expanded ### %s #### ---->  $$$ %s $$$" %
+                  (str([n.getName() for n in self.nodes]), str([n.getName() for n in newNodes])))
+      if len(cuts) == 0:
+        # We should try to expand from all subsets of nodes. For simplicity start with all nodes (sufficient for resnet/googlenet like)
+        newNodes = []
+        for n in self.nodes:
+          for nextNode in n.getFanoutMainFlowNodes():
+            if nextNode not in (set(newNodes) | self.visitedNodes | allVisited):
+              assert nextNode.hasMainFlowPredecessorsInSet(self.visitedNodes | set(self.nodes))
+              newNodes.append(nextNode)
+        newVisited = self.visitedNodes.copy()
+        for n in self.nodes:
+          if not n in allVisited:
+            newVisited.add(n)
+        cuts.append(KgraphPart.Cut(newNodes, newVisited, self.srcKgraph, self.costFunctionName, self.debugLevel))
+      bestCuts = sorted(cuts, key=lambda x : abs(x.getCost() - costTarget))
+      if len(bestCuts) > 0:
+        if self.debugLevel > 0:
+          print("  DEBUG: colorNodesMultiTpb cost [Gop] is %.3f of %.3f" % (bestCuts[0].getCost() / 1e9,  costTarget/1e9))
+        return bestCuts[0]
+      else:
+        return KgraphPart.Cut([], self.visitedNodes | set(self.nodes), self.srcKgraph, self.costFunctionName, self.debugLevel)
+
+  # Color nodes to a pipeline of TPBs of about equal Op count
+  def colorNodesMultiTpb(self, numTpbs):
+    sourceGraph = self.__kgraph
+    
+    # Op counts
+    srcTotNumOps = 0
+    for n in sourceGraph.getNodes():
+      srcTotNumOps += n.getOpCount()
+    cutOpTarget = 1.0 * srcTotNumOps / numTpbs
+    
+    cut = KgraphPart.Cut(sourceGraph.getInputNodes(), set(), sourceGraph, 'getOpCount', self.debugLevel)
+    allVisited = set()
+    while len(cut.nodes) > 0:
+      color = self.getNewColor()
+      while len(cut.nodes) > 0 and cut.getCost() < cutOpTarget:
+        cut = cut.expand(cutOpTarget, allVisited)
+        allVisited |= cut.visitedNodes
+      for n in cut.visitedNodes:
+        assert self.getNodeColor(n) == None
+        self.setNodeColor(n, color)
+        if self.debugLevel > 0:
+          print("DEBUG: colorNodesMultiTpb colored %d  %-12s %s " %
+                (color, n.getOpType(), n.getName()))
+      cut = KgraphPart.Cut(cut.nodes, set(), sourceGraph, 'getOpCount', self.debugLevel)
+
+
   # Color nodes given the partitioning strategy
   # The strategy is a keyword and arguments (for some)
   def colorNodes(self, partitioningStrategy, nodeColorAdjustment):
@@ -453,6 +551,9 @@ class KgraphPart(object):
       self.colorNodesFrom( partitioningStrategy[1:])
     elif strategy == "from_multi":
       self.colorNodesFromMulti( partitioningStrategy[1:])
+    elif strategy == "multi_tpb":
+      numTpbs = float(partitioningStrategy[1])
+      self.colorNodesMultiTpb(numTpbs)
     else:
       assert 0
     if len(nodeColorAdjustment) > 0:
@@ -495,12 +596,28 @@ class KgraphPart(object):
     # Order subgraphs that runtime dependencies are satisfied
     # Simple sorting by the level of the output node is enough
     self.__subgraphs.sort(key = lambda sg : sg.getMaxLevel())
-
+    
   # Print textual connectivity info to STDOUT
   def print(self):
     for i in range(self.__numColors):
       sg = self.__subgraphs[i]
       sg.print("Subgraph %d" % i)
+  
+  # Report SG properties such as ops, weights, if and of map sizes
+  def reportOpsAndSizes(self):
+    propNp = np.zeros((self.__numColors, 4))
+    for i in range(self.__numColors):
+      sg = self.__subgraphs[i]
+      opCount, weightSize, ifmapSize, ofmapSize = sg.graph.getOpsAndSizes(sg.getInputs(), sg.getOutputs())
+      propNp[i] = [opCount / 1e9, weightSize / 2**20, ifmapSize / 2**20, ofmapSize / 2**20]
+    # Statistics
+    print("%-4s    %-7s  %-7s  %-7s  %-7s" % ("SG", 'opCountGop', 'weightSizeMiB', 'ifmapSizeMiB', 'ofmapSizeMiB'))
+    for i in range(self.__numColors):
+      print("sg%02d  " %i, "%7.3f  %7.3f  %7.3f  %7.3f" % (tuple(propNp[i])))
+    print("%-36s" % ("OpsG mean std  min max"))
+    ops = propNp[...,0]
+    print("%12.2f %12.2f  %12.2f %12.2f" % (ops.mean(), ops.std(), ops.min(), ops.max()))
+
   
   # Note nn_executor has a similar function, sharing compiler-runtime is not desirable
   def calcExecutorMap(self, executorsList):
