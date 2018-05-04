@@ -12,12 +12,14 @@ pipeline{
     stages {
         stage('Prep'){
             steps {
+                sh 'cat /etc/os-release'
+                sh 'cat /proc/cpuinfo'
+                sh 'df -h'
+
                 sh 'ls -ltrA && rm -rf $WORKSPACE/* '
                 sh 'mkdir -p ~/.ssh/ && echo "Host 10.206.*.*" >> ~/.ssh/config && echo "    User jenkins"  >> ~/.ssh/config && echo "    StrictHostKeyChecking no" >> ~/.ssh/config && echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config && chmod 600 ~/.ssh/config'
     
                 sh 'yum -y install git'
-                sh 'cat /etc/os-release'
-                sh 'cat /proc/cpuinfo'
             }
         }
         stage('Checkout'){
@@ -62,5 +64,22 @@ pipeline{
             }
         }
     }
+    post {
+        changed {
+            script {
+                    // Send an email only if the build status has changed from green/unstable to red
+                    emailext subject: '$DEFAULT_SUBJECT',
+                        body: '$DEFAULT_CONTENT',
+                        recipientProviders: [
+                            [$class: 'CulpritsRecipientProvider'],
+                            [$class: 'DevelopersRecipientProvider'],
+                            [$class: 'RequesterRecipientProvider']
+                        ], 
+                        replyTo: '$DEFAULT_REPLYTO',
+                        to: '$DEFAULT_RECIPIENTS'
+                }
+        }
+    }
+
 }
 

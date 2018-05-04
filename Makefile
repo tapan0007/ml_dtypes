@@ -50,7 +50,7 @@ uninstall:
 
 
 check:
-	cd ${KAENA_PATH}/test/e2e; ./RunAll
+	cd ${KAENA_PATH}/test/e2e; ./RunAll 
 
 check_clean:
 	cd ${KAENA_PATH}/test/e2e; /bin/rm -rf [0-9]*
