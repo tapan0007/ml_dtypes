@@ -454,13 +454,13 @@ class KgraphPart(object):
       allNodes = self.visitedNodes | set(self.nodes)
       for n in allNodes:
         costFunction = getattr(n, self.costFunctionName)
-        cost += costFunction(n)
+        cost += costFunction()
         #if self.debugLevel > 0:
-        #  print("      DEBUG: colorNodesMultiTpb  %-12s  %s has  %d  ops" % (n.getOpType(), n.getName(), costFunction(n)))
+        #  print("      DEBUG: colorNodesMultiTpb  %-12s  %s has  %d  cost" % (n.getOpType(), n.getName(), costFunction(n)))
       return cost
 
     # Greedy search for a next cut with the cost closest to the target
-    def expand(self, costTarget, allVisited):
+    def expand(self, metric, costTarget, allVisited):
       cuts = []
       if self.debugLevel > 0:
         print("DEBUG: colorNodesMultiTpb expanding nodes %s " % str([n.getName() for n in self.nodes]))
@@ -508,21 +508,26 @@ class KgraphPart(object):
         return KgraphPart.Cut([], self.visitedNodes | set(self.nodes), self.srcKgraph, self.costFunctionName, self.debugLevel)
 
   # Color nodes to a pipeline of TPBs of about equal Op count
-  def colorNodesMultiTpb(self, numTpbs):
+  # The metric can be "ops" or "weights"
+  def colorNodesMultiTpb(self, metric, numTpbs):
     sourceGraph = self.__kgraph
+    metric2costFunc = {'ops' : 'getOpCount', 'weights' : 'getWeightBytes'}
+    costFunctionName = metric2costFunc.get(metric, None)
+    assert costFunctionName != None
     
-    # Op counts
-    srcTotNumOps = 0
+    # Cost - op counts, weights
+    srcTotCost = 0
     for n in sourceGraph.getNodes():
-      srcTotNumOps += n.getOpCount()
-    cutOpTarget = 1.0 * srcTotNumOps / numTpbs
+      costFunction = getattr(n, costFunctionName)
+      srcTotCost += costFunction()
+    cutTarget = 1.0 * srcTotCost / numTpbs
     
-    cut = KgraphPart.Cut(sourceGraph.getInputNodes(), set(), sourceGraph, 'getOpCount', self.debugLevel)
+    cut = KgraphPart.Cut(sourceGraph.getInputNodes(), set(), sourceGraph, costFunctionName, self.debugLevel)
     allVisited = set()
     while len(cut.nodes) > 0:
       color = self.getNewColor()
-      while len(cut.nodes) > 0 and cut.getCost() < cutOpTarget:
-        cut = cut.expand(cutOpTarget, allVisited)
+      while len(cut.nodes) > 0 and cut.getCost() < cutTarget:
+        cut = cut.expand(metric, cutTarget, allVisited)
         allVisited |= cut.visitedNodes
       for n in cut.visitedNodes:
         assert self.getNodeColor(n) == None
@@ -530,7 +535,7 @@ class KgraphPart(object):
         if self.debugLevel > 0:
           print("DEBUG: colorNodesMultiTpb colored %d  %-12s %s " %
                 (color, n.getOpType(), n.getName()))
-      cut = KgraphPart.Cut(cut.nodes, set(), sourceGraph, 'getOpCount', self.debugLevel)
+      cut = KgraphPart.Cut(cut.nodes, set(), sourceGraph, costFunctionName, self.debugLevel)
 
 
   # Color nodes given the partitioning strategy
@@ -552,8 +557,9 @@ class KgraphPart(object):
     elif strategy == "from_multi":
       self.colorNodesFromMulti( partitioningStrategy[1:])
     elif strategy == "multi_tpb":
-      numTpbs = float(partitioningStrategy[1])
-      self.colorNodesMultiTpb(numTpbs)
+      metric = partitioningStrategy[1]
+      numTpbs = float(partitioningStrategy[2])
+      self.colorNodesMultiTpb(metric, numTpbs)
     else:
       assert 0
     if len(nodeColorAdjustment) > 0:

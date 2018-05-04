@@ -286,7 +286,8 @@ testConfigMap = {
   "7-rn50_nne_fp16_waveopt_b4"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --batch 4 --images linspace1", ],
   
   # Multi-tpb
-  "7-rn50_fp16_multi_tpb_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--show_op_name_in_kgraph --input_node input_1  --depth 2  --debug 1 %s --partition multi_tpb 6.7 --executors wave all host 7  --scheduler wave --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
+  "7-rn50_fp16_multi_tpb_o_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--show_op_name_in_kgraph --input_node input_1  --depth 2  --debug 1 %s --partition multi_tpb ops 6.7 --executors host all host 7  --scheduler wave --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
+  "7-rn50_fp16_multi_tpb_w_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt.pb","resnet50", "--show_op_name_in_kgraph --input_node input_1  --depth 2  --debug 1 %s --partition multi_tpb weights 4 --executors host all host 7  --scheduler wave --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
 
   
   # LSTM
@@ -355,8 +356,9 @@ testWaiver = [
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
     ['^(4-ptb_word_small_sigmoid_wave|4-ptb_word_small_sigmoid_2l_waveopt|4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
 
-    # Multi-tpb partitioning
-    ['7-rn50_fp16_multi_tpb_wave', 'WAIVE_MTPB'],
+    # Multi-tpb partitioning - passes in host mode so no need to waive
+    #['7-rn50_fp16_multi_tpb_o_wave', 'WAIVE_MTPB'],
+    #['7-rn50_fp16_multi_tpb_w_wave', 'WAIVE_MTPB'],
 
     # batching
     ['7-rn50_nne_fp16_waveopt_b4$', 'WAIVE_BATCH'],

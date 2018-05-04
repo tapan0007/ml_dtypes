@@ -212,6 +212,8 @@ class Node(Object):
     return len(self.getFaninMainFlowEdges()) > 0 or len(self.getFanoutMainFlowEdges()) > 0
   def setProtoShape(self, shape):
     self.protoShape = shape
+  def getWeightBytes(self):
+    return 0
 
 class PosNode:
   def __init__(self, node, index):
