@@ -274,7 +274,7 @@ class InklingProfile(object):
             #print("DEBUG: ", self.toEventIds)
         for se in sendEvents:
           inFlight[se] = eIdx
-    print("DEBUG: event graph  %s" % str(self.toEventIds))
+    #print("DEBUG: event graph  %s" % str(self.toEventIds))
   
   def plotProfile(self, outFile):
     ylabels = self.engines
@@ -436,6 +436,7 @@ if args.long > 0:
     outPng = "out_profile-%d.png" % i
     pngs.append(outPng)
     pid = os.fork()
+    #pid = 0
     if pid == 0:
       pi = InklingProfile(args.log, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry)
       pi.plotProfile(outPng)
