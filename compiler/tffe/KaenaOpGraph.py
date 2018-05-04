@@ -1568,7 +1568,7 @@ class Graph(Object):
         if True:
             fmt = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --save_layer_output --debug %d > log-me.txt 2>&1"
         else:
-            fmt = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --nname %s --debug %d > log-me.txt 2>&1"
+            fmt = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --debug %d > log-me.txt 2>&1"
         cmd = fmt % (waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
 
       else:
