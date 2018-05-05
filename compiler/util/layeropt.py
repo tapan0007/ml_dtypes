@@ -226,17 +226,17 @@ class StateBuffer:
 
     def __init__(self):
         self.circbuf_caps = { "ifmaps"  : 16*1024, 
-                              "weights" : (96-30-16-16-2)*1024,
+                              "weights" : (96-32-16-16-1)*1024,
                               "residue" : 16*1024,
-                              "bias"    : 2*1024,
-                              "scratch" : 30*1024}
+                              "bias"    : 1*1024,
+                              "scratch" : 32*1024}
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         # initial sizes and start address, will be readjusted after loading data
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  self.circbuf_caps["ifmaps"],  self.SB_ATOM_SZ, 0)
         self.circbuf_weights = CircularBuffer(self, "weights", self.circbuf_caps["weights"], self.SB_ATOM_SZ, self.circbuf_ifmaps.total_size)
-        self.circbuf_residue = CircularBuffer(self, "residue", self.circbuf_caps["residue"], self.SB_ATOM_SZ, self.circbuf_weights.start + self.circbuf_weights.total_size)
-        self.circbuf_bias    = CircularBuffer(self, "bias",    self.circbuf_caps["bias"],    self.SB_ATOM_SZ, self.circbuf_residue.start + self.circbuf_residue.total_size)
-        self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], self.SB_ATOM_SZ, self.circbuf_bias.start + self.circbuf_bias.total_size)
+        self.circbuf_residue = CircularBuffer(self, "residue", self.circbuf_caps["residue"], 6272, self.circbuf_weights.start + self.circbuf_weights.total_size)
+        self.circbuf_bias    = CircularBuffer(self, "bias",    self.circbuf_caps["bias"],    1024, self.circbuf_residue.start + self.circbuf_residue.total_size)
+        self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], 6272, self.circbuf_bias.start + self.circbuf_bias.total_size)
         # dictionary of saved result files, needed if the files are to be reread
         self.saved_result_files = {}
         self.chunk2saved_map = {}   # holds the chunk-waveop map (for DRAM RAW dependencies)
@@ -254,19 +254,19 @@ class StateBuffer:
                 self.circbuf_scratch.minibatch_multiplier *= 2
             new_scratch_start = self.circbuf_residue.start
             new_scratch_atom_sz = self.circbuf_residue.atom_sz
-            consumer_of_freed_atom_old = self.circbuf_residue.consumer_of_freed_atom
+            consumer_of_freed_atom_old = copy.copy(self.circbuf_residue.consumer_of_freed_atom)
             if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: scratch -> residue (atom_sz %d start %d), keep ifmaps, new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_residue = self.circbuf_scratch
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], 6272, new_scratch_start)
             self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
             # keep IFMAPs
         elif (begin_of_first_leg):
             new_scratch_start = self.circbuf_residue.start
             new_scratch_atom_sz = self.circbuf_residue.atom_sz
-            consumer_of_freed_atom_old = self.circbuf_residue.consumer_of_freed_atom
+            consumer_of_freed_atom_old = copy.copy(self.circbuf_residue.consumer_of_freed_atom)
             if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: ifmaps -> residue (atom_sz %d start %d), scratch -> ifmaps (atom_sz %d start %d), new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_ifmaps.atom_sz, self.circbuf_ifmaps.start,  self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             if (self.circbuf_residue.atom_sz != self.circbuf_ifmaps.atom_sz):
                 self.circbuf_ifmaps.minibatch_multiplier *= 2
@@ -276,13 +276,13 @@ class StateBuffer:
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], 6272, new_scratch_start)
             self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
         elif (end_of_first_leg):
             # TODO: what's the correct initial scratch start/atom_sz here??
             new_scratch_start = self.circbuf_ifmaps.start
             new_scratch_atom_sz = self.circbuf_ifmaps.atom_sz
-            consumer_of_freed_atom_old = self.circbuf_ifmaps.consumer_of_freed_atom
+            consumer_of_freed_atom_old = copy.copy(self.circbuf_ifmaps.consumer_of_freed_atom)
             if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: residue -> ifmaps (atom_sz %d start %d), scratch -> residue (atom_sz %d start %d), new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_residue.atom_sz, self.circbuf_residue.start,  self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_ifmaps = self.circbuf_residue
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
@@ -292,18 +292,18 @@ class StateBuffer:
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], 6272, new_scratch_start)
             self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
         else:
             new_scratch_start = self.circbuf_ifmaps.start
             new_scratch_atom_sz = self.circbuf_ifmaps.atom_sz
-            consumer_of_freed_atom_old = self.circbuf_ifmaps.consumer_of_freed_atom
+            consumer_of_freed_atom_old = copy.copy(self.circbuf_ifmaps.consumer_of_freed_atom)
             if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: scratch -> ifmaps (atom_sz %d start %d), keep residue, new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_ifmaps = self.circbuf_scratch
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], 6272, new_scratch_start)
             self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
         self.circbuf_weights.reset()    # TODO: allow weights to be reused for depth-first batching
         self.circbuf_bias.reset()
@@ -388,7 +388,7 @@ class CircularBuffer:
         self.circbuf_stats = CircbufStats()
 
     def reset_keep_consumers(self):
-        consumer_of_freed_atom_old = self.consumer_of_freed_atom
+        consumer_of_freed_atom_old = copy.copy(self.consumer_of_freed_atom)
         self.reset()
         self.consumer_of_freed_atom_old = consumer_of_freed_atom_old
 
@@ -740,8 +740,10 @@ class CircularBuffer:
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
                 # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
                 if tpb.statebuffer.consumer_of_64byte_morsel[i] != "" \
+                        and tpb.statebuffer.consumer_of_64byte_morsel[i] not in previous_waveops \
                         and not args.abstract_mem: 
-                    previous_waveops = [tpb.statebuffer.consumer_of_64byte_morsel[i]]  # just keep the last one
+                    #previous_waveops = [tpb.statebuffer.consumer_of_64byte_morsel[i]]  # just keep the last one
+                    previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
                     tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
         # string bias reads together (TODO: include weights?)
         # SB WAW dependency for bias (loose)
@@ -1750,7 +1752,7 @@ class FusedOp(list):
                 break_addr.append(tpb.statebuffer.circbuf_ifmaps.get_sb_address(address))
                 current_chunk_id = chunk_id
                 current_atom_id = atom_id
-                if (args.debug > 1): print("DBG: breaking wave at row %d addr %d"%(i, break_addr[-1]))
+                if (args.debug > 3): print("DBG: breaking wave at row %d addr %d"%(i, break_addr[-1]))
         matmul_waveop = []
         start_tensor_calc = not(psum_add)
         for i in range(len(break_at_y)):                
@@ -1819,6 +1821,7 @@ class FusedOp(list):
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
 
         # kaena-383: record current users of weight morsels (just keep the last one if there are multiple wave-pieces)
+        weights_sb_address = tpb.statebuffer.circbuf_weights.get_sb_address(self.conv_op.weight_wave_lower_addr)
         for j in range(weights_sb_address//64, ceildiv(weights_sb_address + self.conv_op.ofmap_count * self.conv_op.item_sz, 64)):
             tpb.statebuffer.consumer_of_64byte_morsel[j] = waveop_name
 
@@ -2052,6 +2055,8 @@ class FusedOp(list):
                         dram_resadd_waveops, 
                         self.conv_op.ofmap_tile_lower_addr[0], 
                         (tile_id.m_id%2)==1)
+                for z in range(op_list.conv_op.Tn):
+                    tpb.statebuffer.circbuf_residue.get_dram_waveop_names(self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z], tpb.waveop_stream.last_main_waveop['waveop_name'])
                 if ((tile_id.m_id%2)==1 or tile_id.m_id == tile_id.m-1):                
                     for z in range(op_list.conv_op.Tn):
                         tpb.statebuffer.circbuf_residue.free_data_region(self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z], tpb.waveop_stream.last_main_waveop)
@@ -2276,7 +2281,7 @@ class KGraph:
             print(i.data['layer_type'], ":", i.data['layer_name'])
         fused_ops = self.get_next_fused_op(fused_ops)
         # if there are multiple next nodes
-        next_nodes = fused_ops[-1].next
+        next_nodes = [i for i in fused_ops[-1].next]
         last_node_type = fused_ops[-1].data['layer_type']
         if (len(next_nodes) == 1):
             self.current_node = next_nodes[0]   
@@ -2313,7 +2318,7 @@ class KGraph:
         # mark fusedops to be at end of first leg if the following op is ResAdd
         if (self.first_leg 
                 and self.current_node != None 
-                and self.current_node.data['layer_type'] == "ResAdd"):
+                and (self.current_node.data['layer_type'] == "ResAdd" or self.current_node.data['layer_type'] == "Multiply")):
             fused_ops.end_of_first_leg = True
         if (args.debug > 0):
             fused_ops.show()
@@ -3032,6 +3037,7 @@ class TPBSched:
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "ScaleAdd"
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "ResAdd"
+                                or self.waveop_stream.last_main_waveop['waveop_type'] == "Multiply"
                                 ):
                             #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
                             #                                                        + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
