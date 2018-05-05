@@ -234,14 +234,16 @@ class StateBuffer:
         # initial sizes and start address, will be readjusted after loading data
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  self.circbuf_caps["ifmaps"],  self.SB_ATOM_SZ, 0)
         self.circbuf_weights = CircularBuffer(self, "weights", self.circbuf_caps["weights"], self.SB_ATOM_SZ, self.circbuf_ifmaps.total_size)
-        self.circbuf_residue = CircularBuffer(self, "residue", self.circbuf_caps["residue"], 6272, self.circbuf_weights.start + self.circbuf_weights.total_size)
+        #self.circbuf_residue = CircularBuffer(self, "residue", self.circbuf_caps["residue"], 6272, self.circbuf_weights.start + self.circbuf_weights.total_size)
+        self.circbuf_residue = CircularBuffer(self, "residue", self.circbuf_caps["residue"], self.SB_ATOM_SZ, self.circbuf_weights.start + self.circbuf_weights.total_size)
         self.circbuf_bias    = CircularBuffer(self, "bias",    self.circbuf_caps["bias"],    1024, self.circbuf_residue.start + self.circbuf_residue.total_size)
-        self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], 6272, self.circbuf_bias.start + self.circbuf_bias.total_size)
+        #self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], 6272, self.circbuf_bias.start + self.circbuf_bias.total_size)
+        self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], self.SB_ATOM_SZ, self.circbuf_bias.start + self.circbuf_bias.total_size)
         # dictionary of saved result files, needed if the files are to be reread
         self.saved_result_files = {}
         self.chunk2saved_map = {}   # holds the chunk-waveop map (for DRAM RAW dependencies)
         self.outfile2atomsz_map = {} # holds the atom size for each output file
-        self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
+        self.consumer_of_64byte_morsel = [None for i in range(self.SB_NUM_64B_MORSELS)]
 
     def keep_scratch_and_reset(self, begin_of_first_leg = False, end_of_first_leg = False):        
         # - At the completion of first fused op in the first leg of fork, move IFMAPs to Residue buffer, and scratch to IFMAPs
@@ -734,17 +736,19 @@ class CircularBuffer:
         sb_addr = self.start + atom_id*self.atom_sz
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
+        order_number = -1
         if (self.circbuf_type == "weights" or self.circbuf_type == "bias"): # TODO: if space is reused for other regions, need to apply to other regions
             for i in range(sb_addr//64, ceildiv(sb_addr + length, 64)):
                 # SB WAW dependency for weights
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
                 # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "" \
-                        and tpb.statebuffer.consumer_of_64byte_morsel[i] not in previous_waveops \
+                if tpb.statebuffer.consumer_of_64byte_morsel[i] != None \
+                        and tpb.statebuffer.consumer_of_64byte_morsel[i][0] > order_number \
                         and not args.abstract_mem: 
                     #previous_waveops = [tpb.statebuffer.consumer_of_64byte_morsel[i]]  # just keep the last one
-                    previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
-                    tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
+                    previous_waveops = [tpb.statebuffer.consumer_of_64byte_morsel[i][1]]
+                    order_number = tpb.statebuffer.consumer_of_64byte_morsel[i][0]
+                    tpb.statebuffer.consumer_of_64byte_morsel[i] = None
         # string bias reads together (TODO: include weights?)
         # SB WAW dependency for bias (loose)
         # (SB WAR dependency doesn't exist for bias region since it is read-only)
@@ -1571,6 +1575,7 @@ class WaveopStream(list):
         self.last_main_using_psum_bank = 0    # last main waveop using PSUM bank
         self.last_psum_waveop = [None for i in range(PEArray.PSUM_NUM_BANKS)]   # PSUM streams (PSUM resouce)
         self.waveop_name_set = set()
+        self.waveop_count = 0
 
     def append_check(self, item):
         item_name = item['waveop_name']
@@ -1586,6 +1591,7 @@ class WaveopStream(list):
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                
         self.append(item)
+        self.waveop_count += 1
 
     def add_linked(self, waveop, side_waveops, psum_bank):
         input_list = []
@@ -1823,7 +1829,7 @@ class FusedOp(list):
         # kaena-383: record current users of weight morsels (just keep the last one if there are multiple wave-pieces)
         weights_sb_address = tpb.statebuffer.circbuf_weights.get_sb_address(self.conv_op.weight_wave_lower_addr)
         for j in range(weights_sb_address//64, ceildiv(weights_sb_address + self.conv_op.ofmap_count * self.conv_op.item_sz, 64)):
-            tpb.statebuffer.consumer_of_64byte_morsel[j] = waveop_name
+            tpb.statebuffer.consumer_of_64byte_morsel[j] = (tpb.waveop_stream.waveop_count, waveop_name)
 
         return matmul_waveop
 
@@ -2571,7 +2577,7 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, dram_bias_waveops, psum_bank_src if src_is_psum else -1)
         # kaena-383: record current users of weight morsels (just keep the last one if there are multiple wave-pieces)
         for j in range(bias_sb_address//64, ceildiv(bias_sb_address + act_or_biasadd_op.item_sz, 64)):
-            tpb.statebuffer.consumer_of_64byte_morsel[j] = waveop_name
+            tpb.statebuffer.consumer_of_64byte_morsel[j] = (self.waveop_stream.waveop_count, waveop_name)
 
     # generate ResAdd instruction and add it to instruction stream
     def gen_join_waveop_inline(self, op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start, start_at_mid_part):
