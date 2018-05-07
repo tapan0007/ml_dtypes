@@ -25,6 +25,7 @@ parser.add_argument('--show', help='Invoke interactive viewer', action='store_tr
 parser.add_argument('--cycle_range', help='Display only activity within the cycle range, default 0 2e6', type=float, nargs=2, default=[0,2e6])
 parser.add_argument('--geometry', help='Output size width height', type=int, nargs=2, default=[])
 parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (off)', type=float, default=0)
+parser.add_argument('--event_statistics', help='Load profile data and compile event statistics, no visualization is done. Also overrides cycle_range to 0 1e9', action='store_true', default=False)
 
 args = parser.parse_args()
 
@@ -423,35 +424,65 @@ class InklingProfile(object):
       #plt.savefig(outFileZoom)
       #print("INFO: wrote  %s" % (outFileZoom))
 
+  def printEventStatistics(self):
+    event2count = {}
+    print("\nEvent sender and receiver list:")
+    for senderIdx, recList in self.toEventIds.items():
+      assert len(recList) == 1  # only 1 instruction can wait for this sender
+      receiverIdx, eventId = recList[0]
+      e1 = self.events[senderIdx]
+      engine1 = e1.engine
+      c1 = e1.cycle
+      instrSender = self.tongaProgram.getInstr(engine1, e1.pc)
+      e2 = self.events[receiverIdx]
+      engine2 = e2.engine
+      c2 = e2.cycle
+      instrReceiver = self.tongaProgram.getInstr(engine2, e2.pc)
+      
+      count = event2count.get(eventId, 0)
+      event2count[eventId] = count + 1
+      print("  Engine %s instr %s sent event %d to engine %s instr %s  Distance  cycles %d  waves %d    Abs cycles sender %d receiver %d" %
+            (engine1, instrSender.instrType, eventId, engine2, instrReceiver.instrType, c2 - c1, receiverIdx - senderIdx, c1, c2))
+    
+    print("\n  Event  Count")
+    for eventId in sorted(event2count):
+      print("  %4d  %4d" % (eventId, event2count[eventId]))
+
+
 tongaProgram = TongaProgram(args.tpb)
 
-p = InklingProfile(args.log, tongaProgram, args.verbose, args.cycle_range, args.show, args.geometry)
 
-if args.long > 0:
-  totalCycles = p.getNumCycles()
-  cycleStep = int(args.long)
-  pids = []
-  pngs = []
-  for i in range(int((totalCycles + cycleStep - 1) / cycleStep)):
-    outPng = "out_profile-%d.png" % i
-    pngs.append(outPng)
-    pid = os.fork()
-    #pid = 0
-    if pid == 0:
-      pi = InklingProfile(args.log, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry)
-      pi.plotProfile(outPng)
-      sys.exit(0)
-    else:
-      pids.append(pid)
-  for pid in pids:
-    os.wait()
-  outPng = "out_profile.png"
-  cmd = "convert -append %s %s" % (" ".join(pngs), outPng)
-  print("INFO: executing " + cmd)
-  os.system(cmd)
-  if args.show:
-    os.system("firefox %s" % (outPng))  
-  
-else:
+if args.event_statistics:
+  p = InklingProfile(args.log, tongaProgram, args.verbose, [0, 1e9], args.show, args.geometry)
   p.calcEventIdGraph()
-  p.plotProfile("out_profile.svg")
+  p.printEventStatistics()
+else:
+  p = InklingProfile(args.log, tongaProgram, args.verbose, args.cycle_range, args.show, args.geometry)
+  if args.long > 0:
+    totalCycles = p.getNumCycles()
+    cycleStep = int(args.long)
+    pids = []
+    pngs = []
+    for i in range(int((totalCycles + cycleStep - 1) / cycleStep)):
+      outPng = "out_profile-%d.png" % i
+      pngs.append(outPng)
+      pid = os.fork()
+      #pid = 0
+      if pid == 0:
+        pi = InklingProfile(args.log, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry)
+        pi.plotProfile(outPng)
+        sys.exit(0)
+      else:
+        pids.append(pid)
+    for pid in pids:
+      os.wait()
+    outPng = "out_profile.png"
+    cmd = "convert -append %s %s" % (" ".join(pngs), outPng)
+    print("INFO: executing " + cmd)
+    os.system(cmd)
+    if args.show:
+      os.system("firefox %s" % (outPng))  
+
+  else:
+    p.calcEventIdGraph()
+    p.plotProfile("out_profile.svg")
