@@ -427,7 +427,8 @@ class InklingProfile(object):
   def printEventStatistics(self):
     event2count = {}
     print("\nEvent sender and receiver list:")
-    for senderIdx, recList in self.toEventIds.items():
+    for senderIdx in sorted(self.toEventIds):
+      recList = self.toEventIds[senderIdx]
       assert len(recList) == 1  # only 1 instruction can wait for this sender
       receiverIdx, eventId = recList[0]
       e1 = self.events[senderIdx]
@@ -441,7 +442,7 @@ class InklingProfile(object):
       
       count = event2count.get(eventId, 0)
       event2count[eventId] = count + 1
-      print("  Engine %s instr %s sent event %d to engine %s instr %s  Distance  cycles %d  waves %d    Abs cycles sender %d receiver %d" %
+      print("  Engine %-4s instr %-10s sent event %3d to engine %-4s instr %-10s  Distance  cycles %6d  waves %4d    Abs cycles sender %8d receiver %8d" %
             (engine1, instrSender.instrType, eventId, engine2, instrReceiver.instrType, c2 - c1, receiverIdx - senderIdx, c1, c2))
     
     print("\n  Event  Count")

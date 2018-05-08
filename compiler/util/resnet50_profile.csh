@@ -12,12 +12,17 @@ endif
 # Run the test with profile info from Inkling
 mkdir default
 pushd default
-( setenv SIM_ADD_FLAGS '--debug_flags tpb_exec ' ; $KAENA_PATH/test/e2e/RunAll --test 7-rn50_nne_fp16_wave ) >& log ;  $KAENA_PATH/compiler/util/tpb_profile --log 7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt  --tpb 7-rn50_nne_fp16_wave/sg00/*.tpb --long 2e6 --show >& log1; mv out_profile.png ../tpb_profile_rn50_float16_default.png &
+( setenv SIM_ADD_FLAGS '--debug_flags tpb_exec ' ; $KAENA_PATH/test/e2e/RunAll --test 7-rn50_nne_fp16_wave ) >& log ;  $KAENA_PATH/compiler/util/tpb_profile --log 7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt  --tpb 7-rn50_nne_fp16_wave/sg00/*.tpb --long 2e6 --show >& log1; mv out_profile.png ../tpb_profile_rn50_float16_default.png; $KAENA_PATH/compiler/util/tpb_profile --log 7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt --tpb 7-rn50_nne_fp16_wave/sg00/*.tpb --event_statistics > event_stats.txt &
 popd
 
 mkdir fast_dram
 pushd fast_dram
 ( setenv SIM_ADD_FLAGS '--debug_flags tpb_exec --dram_latency 0 --dram_frequency 0' ; $KAENA_PATH/test/e2e/RunAll --test 7-rn50_nne_fp16_wave ) >& log;  $KAENA_PATH/compiler/util/tpb_profile --log 7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt --tpb 7-rn50_nne_fp16_wave/sg00/*.tpb --long 2e5 --show >& log1; mv out_profile.png ../tpb_profile_rn50_float16_fast_dram.png &
+popd
+
+mkdir two_banks
+pushd two_banks
+( setenv SIM_ADD_FLAGS '--debug_flags tpb_exec --dram_frequency 6400' ; $KAENA_PATH/test/e2e/RunAll --test 7-rn50_nne_fp16_wave ) >& log ;  $KAENA_PATH/compiler/util/tpb_profile --log 7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt  --tpb 7-rn50_nne_fp16_wave/sg00/*.tpb --long 2e6 --show >& log1; mv out_profile.png ../tpb_profile_rn50_float16_two_banks.png &
 popd
 
 wait
