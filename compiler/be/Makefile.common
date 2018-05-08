@@ -24,7 +24,7 @@ CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 
 COMPILER_BE := $(KAENA_PATH)/compiler/be
 
-RUNTIME := $(KAENA_ISA_PATH)/runtime
+RUNTIME := $(KAENA_ISA_PATH)
 ISA     := $(RUNTIME)/isa
 HAL     := $(RUNTIME)/hal/include
 
