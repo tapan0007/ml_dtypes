@@ -15,6 +15,8 @@ set d = 7-rn50_nne_fp16_wave-zero/ ; cd $d ; $ku/tpb_profile --log working_dir/l
 
 import argparse
 import os, json, sys, re
+#import matplotlib
+#matplotlib.use('gtk3agg')
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
