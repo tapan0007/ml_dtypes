@@ -64,7 +64,7 @@ parser.add_argument('--schedule_options', help='Configuration passed to schedule
                     default='')
 parser.add_argument('--batch', help='Batch override for late-binding networks',
                     type=int, default=1)
-parser.add_argument('--partition', help='Partition into subgraphs; use from, from_multi, meauto, or auto. The from_multi is followed by list of comma-separate cut nodes, e.g. from a,b c e,f,g . The default is none',
+parser.add_argument('--partition', help='Partition into subgraphs; use from, from_multi, meauto, multi_tpb, or auto. The from_multi is followed by list of comma-separate cut nodes, e.g. from a,b c e,f,g . The default is none',
                     nargs='+', default=["suppauto"])
 parser.add_argument('--adjust_node_color', help='Applied after --partition; Node color Node1 color1 ...',
                     nargs='+', default=[])
@@ -165,6 +165,8 @@ if args.images != None:
         sgJson["parallel_streams"] = args.parallel_streams
     sgJsonList.append(sgJson)
     sgId += 1
+
+  kp.reportOpsAndSizes()
 
   if ret == 0:
     KgraphPartitions.attachPrePost(sgJsonList, args.preprocessor, args.postprocessor,

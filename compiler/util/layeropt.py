@@ -158,7 +158,8 @@ class Pool:
         input_tiley_with_pad = ofmap_tiley_sz * stride + pool_window_size - stride
         input_tile_with_pad_sz = input_tilex_with_pad*input_tiley_with_pad
         tile_array = np.empty((input_tiley_with_pad, input_tilex_with_pad))
-        tile_array[:] = -np.inf  # set all padding values to -inf to allow only actual tile values to be analyzed
+        #tile_array[:] = -np.inf  # set all padding values to -inf to allow only actual tile values to be analyzed
+        tile_array[:] = 0.0
         ifmap_tile_sz = ifmap_tilex_sz*ifmap_tiley_sz
         ofmap_tile_sz = ofmap_tilex_sz*ofmap_tiley_sz
         pool_result = np.zeros((ofmap_tile_sz * Tn, num_cols))
@@ -225,22 +226,24 @@ class StateBuffer:
 
     def __init__(self):
         self.circbuf_caps = { "ifmaps"  : 16*1024, 
-                              "weights" : (96-30-16-16-2)*1024,
+                              "weights" : (96-32-16-16-1)*1024,
                               "residue" : 16*1024,
-                              "bias"    : 2*1024,
-                              "scratch" : 30*1024}
+                              "bias"    : 1*1024,
+                              "scratch" : 32*1024}
         #self.data = np.zeros((self.SB_NUM_PARTITIONS, self.SB_PARTITION_SZ))
         # initial sizes and start address, will be readjusted after loading data
         self.circbuf_ifmaps  = CircularBuffer(self, "ifmaps",  self.circbuf_caps["ifmaps"],  self.SB_ATOM_SZ, 0)
         self.circbuf_weights = CircularBuffer(self, "weights", self.circbuf_caps["weights"], self.SB_ATOM_SZ, self.circbuf_ifmaps.total_size)
+        #self.circbuf_residue = CircularBuffer(self, "residue", self.circbuf_caps["residue"], 6272, self.circbuf_weights.start + self.circbuf_weights.total_size)
         self.circbuf_residue = CircularBuffer(self, "residue", self.circbuf_caps["residue"], self.SB_ATOM_SZ, self.circbuf_weights.start + self.circbuf_weights.total_size)
-        self.circbuf_bias    = CircularBuffer(self, "bias",    self.circbuf_caps["bias"],    self.SB_ATOM_SZ, self.circbuf_residue.start + self.circbuf_residue.total_size)
+        self.circbuf_bias    = CircularBuffer(self, "bias",    self.circbuf_caps["bias"],    1024, self.circbuf_residue.start + self.circbuf_residue.total_size)
+        #self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], 6272, self.circbuf_bias.start + self.circbuf_bias.total_size)
         self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["scratch"], self.SB_ATOM_SZ, self.circbuf_bias.start + self.circbuf_bias.total_size)
         # dictionary of saved result files, needed if the files are to be reread
         self.saved_result_files = {}
         self.chunk2saved_map = {}   # holds the chunk-waveop map (for DRAM RAW dependencies)
         self.outfile2atomsz_map = {} # holds the atom size for each output file
-        self.consumer_of_64byte_morsel = ["" for i in range(self.SB_NUM_64B_MORSELS)]
+        self.consumer_of_64byte_morsel = [None for i in range(self.SB_NUM_64B_MORSELS)]
 
     def keep_scratch_and_reset(self, begin_of_first_leg = False, end_of_first_leg = False):        
         # - At the completion of first fused op in the first leg of fork, move IFMAPs to Residue buffer, and scratch to IFMAPs
@@ -253,19 +256,19 @@ class StateBuffer:
                 self.circbuf_scratch.minibatch_multiplier *= 2
             new_scratch_start = self.circbuf_residue.start
             new_scratch_atom_sz = self.circbuf_residue.atom_sz
-            consumer_of_freed_atom_old = self.circbuf_residue.consumer_of_freed_atom
+            consumer_of_freed_atom_old = copy.copy(self.circbuf_residue.consumer_of_freed_atom)
             if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: scratch -> residue (atom_sz %d start %d), keep ifmaps, new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_residue = self.circbuf_scratch
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], 6272, new_scratch_start)
             self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
             # keep IFMAPs
         elif (begin_of_first_leg):
             new_scratch_start = self.circbuf_residue.start
             new_scratch_atom_sz = self.circbuf_residue.atom_sz
-            consumer_of_freed_atom_old = self.circbuf_residue.consumer_of_freed_atom
+            consumer_of_freed_atom_old = copy.copy(self.circbuf_residue.consumer_of_freed_atom)
             if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: ifmaps -> residue (atom_sz %d start %d), scratch -> ifmaps (atom_sz %d start %d), new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_ifmaps.atom_sz, self.circbuf_ifmaps.start,  self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             if (self.circbuf_residue.atom_sz != self.circbuf_ifmaps.atom_sz):
                 self.circbuf_ifmaps.minibatch_multiplier *= 2
@@ -275,13 +278,13 @@ class StateBuffer:
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], 6272, new_scratch_start)
             self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
         elif (end_of_first_leg):
             # TODO: what's the correct initial scratch start/atom_sz here??
             new_scratch_start = self.circbuf_ifmaps.start
             new_scratch_atom_sz = self.circbuf_ifmaps.atom_sz
-            consumer_of_freed_atom_old = self.circbuf_ifmaps.consumer_of_freed_atom
+            consumer_of_freed_atom_old = copy.copy(self.circbuf_ifmaps.consumer_of_freed_atom)
             if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: residue -> ifmaps (atom_sz %d start %d), scratch -> residue (atom_sz %d start %d), new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_residue.atom_sz, self.circbuf_residue.start,  self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_ifmaps = self.circbuf_residue
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
@@ -291,18 +294,18 @@ class StateBuffer:
             self.circbuf_residue.circbuf_type = "residue"
             self.circbuf_residue.dram_data_in_file = self.circbuf_residue.dram_data_out_file
             self.circbuf_residue.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], 6272, new_scratch_start)
             self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
         else:
             new_scratch_start = self.circbuf_ifmaps.start
             new_scratch_atom_sz = self.circbuf_ifmaps.atom_sz
-            consumer_of_freed_atom_old = self.circbuf_ifmaps.consumer_of_freed_atom
+            consumer_of_freed_atom_old = copy.copy(self.circbuf_ifmaps.consumer_of_freed_atom)
             if (args.debug > 2): print("DBG: begin_of_first_leg %d end_of_first_leg %d: scratch -> ifmaps (atom_sz %d start %d), keep residue, new scratch with atom_sz %d and start %d"%(begin_of_first_leg, self.circbuf_scratch.atom_sz, self.circbuf_scratch.start, end_of_first_leg, new_scratch_atom_sz, new_scratch_start))
             self.circbuf_ifmaps = self.circbuf_scratch
             self.circbuf_ifmaps.circbuf_type = "ifmaps"
             self.circbuf_ifmaps.dram_data_in_file = self.circbuf_ifmaps.dram_data_out_file
             self.circbuf_ifmaps.dram_data_out_file = None
-            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], new_scratch_atom_sz, new_scratch_start)
+            self.circbuf_scratch = CircularBuffer(self, "scratch", self.circbuf_caps["residue"], 6272, new_scratch_start)
             self.circbuf_scratch.consumer_of_freed_atom_old = consumer_of_freed_atom_old
         self.circbuf_weights.reset()    # TODO: allow weights to be reused for depth-first batching
         self.circbuf_bias.reset()
@@ -387,7 +390,7 @@ class CircularBuffer:
         self.circbuf_stats = CircbufStats()
 
     def reset_keep_consumers(self):
-        consumer_of_freed_atom_old = self.consumer_of_freed_atom
+        consumer_of_freed_atom_old = copy.copy(self.consumer_of_freed_atom)
         self.reset()
         self.consumer_of_freed_atom_old = consumer_of_freed_atom_old
 
@@ -733,23 +736,27 @@ class CircularBuffer:
         sb_addr = self.start + atom_id*self.atom_sz
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
-        if (self.circbuf_type == "weights"): # TODO: if space is reused for other regions, need to apply to other regions
+        order_number = -1
+        if (self.circbuf_type == "weights" or self.circbuf_type == "bias"): # TODO: if space is reused for other regions, need to apply to other regions
             for i in range(sb_addr//64, ceildiv(sb_addr + length, 64)):
                 # SB WAW dependency for weights
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
                 # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-                if tpb.statebuffer.consumer_of_64byte_morsel[i] != "" and not args.abstract_mem:
-                    previous_waveops.append(tpb.statebuffer.consumer_of_64byte_morsel[i])
-                    tpb.statebuffer.consumer_of_64byte_morsel[i] = ""
-                    break
+                if tpb.statebuffer.consumer_of_64byte_morsel[i] != None \
+                        and tpb.statebuffer.consumer_of_64byte_morsel[i][0] > order_number \
+                        and not args.abstract_mem: 
+                    #previous_waveops = [tpb.statebuffer.consumer_of_64byte_morsel[i]]  # just keep the last one
+                    previous_waveops = [tpb.statebuffer.consumer_of_64byte_morsel[i][1]]
+                    order_number = tpb.statebuffer.consumer_of_64byte_morsel[i][0]
+                    tpb.statebuffer.consumer_of_64byte_morsel[i] = None
         # string bias reads together (TODO: include weights?)
         # SB WAW dependency for bias (loose)
         # (SB WAR dependency doesn't exist for bias region since it is read-only)
         # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
-        if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
-            if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0 and not args.abstract_mem):
-                previous_waveops.append(self.last_biasweight_waveop)
-            self.last_biasweight_waveop = waveop_name                
+        #if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
+        #    if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0 and not args.abstract_mem):
+        #        previous_waveops.append(self.last_biasweight_waveop)
+        #    self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         # DRAM RAW dependency for scratch (OFMAPS)
         # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
@@ -1505,8 +1512,10 @@ class KNode:
                 self.ifmap_wave_upper_coordx[z] = ((wave_id.w_id+1) * self.ofmap_full_tilex_sz) * self.stride_x + (self.pool_window_x - self.stride_x) - 1
                 self.ifmap_wave_upper_coordy[z] = ((wave_id.h_id + self.unstack_h_offset +1) * self.ofmap_full_tiley_sz) * self.stride_y + (self.pool_window_y - self.stride_y) - 1 
                 if (self.ifmap_wave_upper_coordx[z] > self.W-1):
+                    #raise RuntimeError("cannot handling padding for pooling operation %s at the moment"%(self.data['layer_name']))
                     self.ifmap_wave_upper_coordx[z] = self.W-1
                 if (self.ifmap_wave_upper_coordy[z] > self.H-1):
+                    #raise RuntimeError("cannot handling padding for pooling operation %s at the moment"%(self.data['layer_name']))
                     self.ifmap_wave_upper_coordy[z] = self.H-1
                 row_temp = ifmap[batch_id,
                                  self.ifmap_wave_lower_coordy[z]:self.ifmap_wave_upper_coordy[z]+1,
@@ -1566,6 +1575,7 @@ class WaveopStream(list):
         self.last_main_using_psum_bank = 0    # last main waveop using PSUM bank
         self.last_psum_waveop = [None for i in range(PEArray.PSUM_NUM_BANKS)]   # PSUM streams (PSUM resouce)
         self.waveop_name_set = set()
+        self.waveop_count = 0
 
     def append_check(self, item):
         item_name = item['waveop_name']
@@ -1581,6 +1591,7 @@ class WaveopStream(list):
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                
         self.append(item)
+        self.waveop_count += 1
 
     def add_linked(self, waveop, side_waveops, psum_bank):
         input_list = []
@@ -1724,6 +1735,7 @@ class FusedOp(list):
             if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
         else:            
             self.prev_weight_wave_lower_addr = weights_sb_address
+
         # If wave crosses atom boundaries, break it into multiple waves
         # The following assumes noodle tile (width is equal to FMAP width)
         current_chunk_id = -10000   # force the first break at start address
@@ -1746,7 +1758,7 @@ class FusedOp(list):
                 break_addr.append(tpb.statebuffer.circbuf_ifmaps.get_sb_address(address))
                 current_chunk_id = chunk_id
                 current_atom_id = atom_id
-                if (args.debug > 1): print("DBG: breaking wave at row %d addr %d"%(i, break_addr[-1]))
+                if (args.debug > 3): print("DBG: breaking wave at row %d addr %d"%(i, break_addr[-1]))
         matmul_waveop = []
         start_tensor_calc = not(psum_add)
         for i in range(len(break_at_y)):                
@@ -1813,6 +1825,12 @@ class FusedOp(list):
                   'num_column_partitions'   : self.conv_op.ofmap_count,
                 })
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
+
+        # kaena-383: record current users of weight morsels (just keep the last one if there are multiple wave-pieces)
+        weights_sb_address = tpb.statebuffer.circbuf_weights.get_sb_address(self.conv_op.weight_wave_lower_addr)
+        for j in range(weights_sb_address//64, ceildiv(weights_sb_address + self.conv_op.ofmap_count * self.conv_op.item_sz, 64)):
+            tpb.statebuffer.consumer_of_64byte_morsel[j] = (tpb.waveop_stream.waveop_count, waveop_name)
+
         return matmul_waveop
 
     # generate Pool waveop and add it to waveop stream
@@ -1911,11 +1929,12 @@ class FusedOp(list):
                 tpb.waveop_stream.add_linked(matmul_waveop[i], [], self.conv_op.psum_bank_dst)
             # mark this matmul as consumer of the 64B weights morsel
             matmul_waveop_name = matmul_waveop[-1]["waveop_name"]
-            for i in dram_weights_waveops: # + dram_ifmaps_waveops:
-                sb_addr = i["sb_address"]
-                sb_length = i["length"]
-                for j in range(sb_addr//64, ceildiv(sb_addr + sb_length, 64)):
-                    tpb.statebuffer.consumer_of_64byte_morsel[j] = matmul_waveop_name
+            # kaena-383: the code below only record users of weights when there's actual DRAM loads
+            #for i in dram_weights_waveops: # + dram_ifmaps_waveops:
+            #    sb_addr = i["sb_address"]
+            #    sb_length = i["length"]
+            #    for j in range(sb_addr//64, ceildiv(sb_addr + sb_length, 64)):
+            #        tpb.statebuffer.consumer_of_64byte_morsel[j] = matmul_waveop_name
             # dump PEArray inputs
             if (self.num_pearray_inputs_dumps > 0):
                 self.num_pearray_inputs_dumps -= 1
@@ -2042,6 +2061,8 @@ class FusedOp(list):
                         dram_resadd_waveops, 
                         self.conv_op.ofmap_tile_lower_addr[0], 
                         (tile_id.m_id%2)==1)
+                for z in range(op_list.conv_op.Tn):
+                    tpb.statebuffer.circbuf_residue.get_dram_waveop_names(self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z], tpb.waveop_stream.last_main_waveop['waveop_name'])
                 if ((tile_id.m_id%2)==1 or tile_id.m_id == tile_id.m-1):                
                     for z in range(op_list.conv_op.Tn):
                         tpb.statebuffer.circbuf_residue.free_data_region(self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z], tpb.waveop_stream.last_main_waveop)
@@ -2266,7 +2287,7 @@ class KGraph:
             print(i.data['layer_type'], ":", i.data['layer_name'])
         fused_ops = self.get_next_fused_op(fused_ops)
         # if there are multiple next nodes
-        next_nodes = fused_ops[-1].next
+        next_nodes = [i for i in fused_ops[-1].next]
         last_node_type = fused_ops[-1].data['layer_type']
         if (len(next_nodes) == 1):
             self.current_node = next_nodes[0]   
@@ -2303,7 +2324,7 @@ class KGraph:
         # mark fusedops to be at end of first leg if the following op is ResAdd
         if (self.first_leg 
                 and self.current_node != None 
-                and self.current_node.data['layer_type'] == "ResAdd"):
+                and (self.current_node.data['layer_type'] == "ResAdd" or self.current_node.data['layer_type'] == "Multiply")):
             fused_ops.end_of_first_leg = True
         if (args.debug > 0):
             fused_ops.show()
@@ -2501,17 +2522,17 @@ class TPBSched:
                 dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
                 dst_z_num = conv_op.Tn  # Need CNHW data format
             else:                
-                dst_x_num = conv_op.ofmap_full_tilex_sz
-                dst_y_step = conv_op.E
-                dst_y_num = conv_op.ofmap_full_tiley_sz
+                dst_x_num = conv_op.ofmap_cropped_tile_width
+                dst_y_step = conv_op.F
+                dst_y_num = conv_op.ofmap_cropped_tile_height
                 dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
                 dst_z_num = conv_op.Tn  # Need CNHW data format
             num_partitions = conv_op.ofmap_count
         elif (act_or_biasadd_op !=  None):
             # unfused
-            dst_x_num = act_or_biasadd_op.E
-            dst_y_step = act_or_biasadd_op.E
-            dst_y_num = act_or_biasadd_op.F
+            dst_x_num = act_or_biasadd_op.F
+            dst_y_step = act_or_biasadd_op.F
+            dst_y_num = act_or_biasadd_op.E
             dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
             dst_z_num = act_or_biasadd_op.Tn  # Need CNHW data format
             num_partitions = act_or_biasadd_op.ofmap_count
@@ -2554,6 +2575,9 @@ class TPBSched:
               'bias_start_at_mid_part'  : tile_id.m_id%2 == 1,
             }
         self.waveop_stream.add_linked(instr, dram_bias_waveops, psum_bank_src if src_is_psum else -1)
+        # kaena-383: record current users of weight morsels (just keep the last one if there are multiple wave-pieces)
+        for j in range(bias_sb_address//64, ceildiv(bias_sb_address + act_or_biasadd_op.item_sz, 64)):
+            tpb.statebuffer.consumer_of_64byte_morsel[j] = (self.waveop_stream.waveop_count, waveop_name)
 
     # generate ResAdd instruction and add it to instruction stream
     def gen_join_waveop_inline(self, op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start, start_at_mid_part):
@@ -3019,6 +3043,7 @@ class TPBSched:
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "Activation"
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "ScaleAdd"
                                 or self.waveop_stream.last_main_waveop['waveop_type'] == "ResAdd"
+                                or self.waveop_stream.last_main_waveop['waveop_type'] == "Multiply"
                                 ):
                             #self.waveop_stream.last_main_waveop['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
                             #                                                        + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \
@@ -3242,6 +3267,7 @@ if __name__ == "__main__":
     parser.add_argument("--dump_pearray_inputs", type=int, default=0, help="Dump PEArray inputs for N number of waves")
     parser.add_argument("--save_layer_output", action='store_true', help="Save intermediate layer output into files")
     parser.add_argument("--abstract_mem", action='store_true', help="Keep data chunks as abstract objects")
+    parser.add_argument("--stop_after_layer_num", type=int, default=0, help="Stop execution after fused op number. 0 means execute all fused ops. 1 means execute 1 fused op after Input. If there's a fork, there will be two outputs.")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     args = parser.parse_args()
 
@@ -3272,8 +3298,13 @@ if __name__ == "__main__":
     tpb.statebuffer.circbuf_bias.item_sz = kgraph.item_sz
     result_file = None
     num_mismatches = 0
-    while (not kgraph.walk_ended()):
+    op_list_count = 0
+    while (not kgraph.walk_ended()
+            and (args.stop_after_layer_num == 0 or op_list_count <= args.stop_after_layer_num)):
         op_list = kgraph.get_fused_ops()
+        if (args.stop_after_layer_num > 0 and op_list_count == args.stop_after_layer_num):
+            op_list[-1].next = []
+        op_list_count += 1
 
         # get the result file for the fused operation
         last_op = op_list[-1]

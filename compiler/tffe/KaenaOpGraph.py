@@ -124,6 +124,13 @@ class Node(Object):
     return([item for edgelist in self.__fanout for item in edgelist])
   def getFanoutMainFlowEdges(self):
     return [e for e in self.getFanoutEdges() if e.isInMainFlow()]
+  def getFanoutMainFlowNodes(self):
+    return [e.getToNode() for e in self.getFanoutMainFlowEdges()]
+  def getFaninMainFlowNodes(self):
+    return [e.getFromNode() for e in self.getFaninMainFlowEdges()]
+  def hasMainFlowPredecessorsInSet(self, nodeSet):
+    predNodes = set(self.getFaninMainFlowNodes())
+    return predNodes.issubset(nodeSet)
   # Like graph class nodeSuccesors, but a) localized to Node class, 2) return list of [position, node name]
   def getFanoutNodePosNames(self):
     nodeList = []
@@ -169,7 +176,14 @@ class Node(Object):
     for i in range(len(npInfos)):
       size += np.empty(npInfos[i].npShape).size
     return size
-    
+
+  # Size in bytes in all output tensors
+  def getNpyInfoBytes(self):
+    numBytes = 0;
+    npInfos = self.getNpInfo()
+    for npInfo in npInfos:
+      numBytes += npInfo.nbytes()
+    return numBytes
   
   # Describes computational complexity of the operation
   def getOpCount(self, padded=False):
@@ -198,6 +212,8 @@ class Node(Object):
     return len(self.getFaninMainFlowEdges()) > 0 or len(self.getFanoutMainFlowEdges()) > 0
   def setProtoShape(self, shape):
     self.protoShape = shape
+  def getWeightBytes(self):
+    return 0
 
 class PosNode:
   def __init__(self, node, index):
@@ -586,7 +602,14 @@ class NodeConv2D(NodeBasePaddedStrided):
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
-
+  
+  def getWeightBytes(self):
+    weightSizeBytes = 0
+    if len(self.getNpInfo()) > 0:
+      ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+      weightSizeBytes = npInfoW.nbytes()
+    return weightSizeBytes
+  
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
@@ -700,7 +723,7 @@ class NodePool(NodeBasePaddedStrided):
   def getDotText(self):
     dotText = self.getOpType()
     if Config.Graph.showOpNameInKgraph:
-      text += "\n" + self.getName()
+      dotText += "\n" + self.getName()
     if len(self.getNpInfo()) > 0:
       # Data sizes
       npInfoOF = self.getNpInfo()[0]
@@ -1543,9 +1566,10 @@ class Graph(Object):
       # From Jeff: to generate dot with placeemnt, but not svg:  waveDotFile = outPrefix + "wavegraph.dot"
       if True:
         waveDotFile = outPrefix + "wavegraph.plain"
-        #cmd = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --nname %s --debug %d > log-me.txt 2>&1" % (
-        cmd = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --save_layer_output --debug %d > log-me.txt 2>&1" % (
-              waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
+
+        fmt = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --debug %d > log-me.txt 2>&1"
+        cmd = fmt % (waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
+
       else:
         waveDotFile = outPrefix + "wavegraph.svg"
         cmd = "python3 %s --kgraph %s --wavegraph %s  --debug %d > log-me.txt 2>&1" % (
@@ -1572,6 +1596,26 @@ class Graph(Object):
     # For a legacy resnet152
     #self.convertOpsWithNoArgsToConstNodes(["Multiply", "Sub"])
 
+  def getOpsAndSizes(self, inputs, outputs):
+    opCount = 0
+    ifmapBytes = 0
+    ofmapBytes = 0
+    weightBytes = 0
+    
+    # Opcounts
+    for n in self.getNodes():
+      opCount += n.getOpCount()
+    # Separate nodes into inputs, outputs, constants
+    inputNodes = set(inputs)
+    outputNodes = set(outputs)
+    weightNodes = set([n for n in self.getNodes() if len(n.getFaninEdges()) == 0]) - inputNodes
+    for n in inputNodes:
+      ifmapBytes += n.getNpyInfoBytes()
+    for n in outputNodes:
+      ofmapBytes += n.getNpyInfoBytes()
+    for n in weightNodes:
+      weightBytes += n.getNpyInfoBytes()
+    return opCount, weightBytes, ifmapBytes, ofmapBytes
 
 
 
