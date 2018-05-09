@@ -30,5 +30,8 @@ wait
 # Open detailed interactive profile debug
 echo 'Run interactive by   $KAENA_PATH/compiler/util/tpb_profile --log fast_dram/7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt --tpb fast_dram/7-rn50_nne_fp16_wave/sg00/*.tpb --verbose --show --cycle_range 1e6 1.1e6'
 
+# Open full-network hierachical fast interactive profile debug
+echo 'Run interactive by   $KAENA_PATH/compiler/util/tpb_profile --log default/7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt --tpb default/7-rn50_nne_fp16_wave/sg00/*.tpb --show --cycle_range 0 1e9 --resolution 300'
+
 # Event statistics
 echo '$KAENA_PATH/compiler/util/tpb_profile --log default/7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt --tpb default/7-rn50_nne_fp16_wave/sg00/*.tpb --event_statistics > event_stats.txt'
