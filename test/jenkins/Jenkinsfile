@@ -5,7 +5,7 @@ pipeline{
         docker {
             image 'amazonlinux:latest'
             args '-u root -v /home/jenkins:/home/jenkins'
-            label 'tonga'
+            label 'kaena_c5.18xl'
             
         }
     }
@@ -80,6 +80,5 @@ pipeline{
                 }
         }
     }
-
 }
 
