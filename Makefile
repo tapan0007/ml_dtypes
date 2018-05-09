@@ -48,12 +48,11 @@ uninstall:
 	done
 
 
-
 check:
-	cd ${KAENA_PATH}/test/e2e; ./RunAll 
+	make check -C ${KAENA_PATH}/test/e2e
 
 check_clean:
-	cd ${KAENA_PATH}/test/e2e; /bin/rm -rf [0-9]*
+	make clean -C ${KAENA_PATH}/test/e2e
 
 clean:  build_clean check_clean repo_clean
 

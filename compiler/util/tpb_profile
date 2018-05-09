@@ -15,7 +15,13 @@ set d = 7-rn50_nne_fp16_wave-zero/ ; cd $d ; $ku/tpb_profile --log working_dir/l
 
 import argparse
 import os, json, sys, re
+import matplotlib
+#matplotlib.use('gtk3agg')
+matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
+
+argStr = " ".join(sys.argv)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--log', help='Inkling debug log file (seenv SIM_DEBUG all; RunAll ...)', default=None)
@@ -26,6 +32,7 @@ parser.add_argument('--cycle_range', help='Display only activity within the cycl
 parser.add_argument('--geometry', help='Output size width height', type=int, nargs=2, default=[])
 parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (off)', type=float, default=0)
 parser.add_argument('--event_statistics', help='Load profile data and compile event statistics, no visualization is done. Also overrides cycle_range to 0 1e9', action='store_true', default=False)
+parser.add_argument('--resolution', help='Speed up plot by not showing instructions below equivalent pixel width resolution, use 2000 for faster run, default 1e9', type=float, default=-1)
 
 args = parser.parse_args()
 
@@ -186,13 +193,14 @@ class InklingEvent(object):
     return s
 
 class InklingProfile(object):
-  def __init__(self, logFile, tongaProgram, verbose, cycleRange, show, geometry):
+  def __init__(self, logFile, tongaProgram, verbose, cycleRange, show, geometry, resolution):
     self.logFile = logFile
     self.tongaProgram = tongaProgram
     self.verbose = verbose
     self.show = show
     self.geometry = geometry
     self.cycleRange = cycleRange
+    self.resolution = resolution
     self.ops = []
     self.events = []
     self.numCycles = 1
@@ -292,6 +300,14 @@ class InklingProfile(object):
     peUtilTot = [0]
     firstCycle = -1
     opsTot = 0
+    
+    # For --resolution
+    lastEngineCycle = {}  
+    startCycle = self.events[0].cycle
+    endCycle = self.events[-1].cycle
+    resolutionCycles = 1.0 * (endCycle - startCycle) / self.resolution
+    print("INFO: start cycle %d, end cycle %d, resolution %f cycles" % (startCycle, endCycle, resolutionCycles))
+    
     for eIdx in range(len(self.events)):
       e = self.events[eIdx]
       engine = e.engine
@@ -301,6 +317,15 @@ class InklingProfile(object):
       instr = self.tongaProgram.getInstr(engine, e.pc)
       #if instr.getInstrType() == 'MATMUL': 
       #print("DEBUG: got  instruction %s  engine %s  pc %s" % (str(instr), engine, e.pc))
+      
+      # The --resolution
+      doPlot = True
+      instrText = "None" if instr == None else instr.getInstrType()
+      if lastEngineCycle.get(engine+instrText, None) != None and e.cycle - lastEngineCycle[engine+instrText] < resolutionCycles:
+        doPlot = False
+      else:
+        lastEngineCycle[engine+instrText] = e.cycle
+      
       if len(peCycles) == 0:
         firstCycle = xval
         peCycles.append(firstCycle)
@@ -308,12 +333,13 @@ class InklingProfile(object):
         #print("DEBUG: %s %s  instr events  %s" % (instr.getInstrType(), e.pc, instr.getEvents()))
         color = instr.getColor()
         instrCycles = instr.getWaveCycles()
-        if instrCycles > 1:
-          axEvents.plot([xval, xval+instrCycles], [yval-0.3, yval-0.3], color=color, linestyle='-', linewidth=2)
-          axEvents.plot([xval, xval+instrCycles], [yval+0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
-          axEvents.plot([xval+instrCycles, xval+instrCycles], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
-          if self.verbose:
-            axEvents.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
+        if doPlot:
+          if instrCycles > 1:
+            axEvents.plot([xval, xval+instrCycles], [yval-0.3, yval-0.3], color=color, linestyle='-', linewidth=2)
+            axEvents.plot([xval, xval+instrCycles], [yval+0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+            axEvents.plot([xval+instrCycles, xval+instrCycles], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+            if self.verbose:
+              axEvents.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
         if instr.getInstrType() == 'MATMUL':
           peuVal = 100.0*instr.getOPC() / 128 / 64 / 2
           waveCycles = instr.getWaveCycles()
@@ -323,36 +349,39 @@ class InklingProfile(object):
           UtilTot1 = 100.0 * opsTot / 128 / 64 / 2 / div
           opsTot += instr.getOpCount()
           UtilTot2 = 100.0 * opsTot / 128 / 64 / 2 / (xval - firstCycle + waveCycles)
-          peCycles  += [xval-0.1,   xval, xval+waveCycles, xval+waveCycles+0.1]
-          peUtil    += [0,        peuVal,          peuVal,                   0]
-          peUtilTot += [UtilTot1, UtilTot1,      UtilTot2,            UtilTot2]
-      axEvents.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
+          if doPlot:
+            peCycles  += [xval-0.1,   xval, xval+waveCycles, xval+waveCycles+0.1]
+            peUtil    += [0,        peuVal,          peuVal,                   0]
+            peUtilTot += [UtilTot1, UtilTot1,      UtilTot2,            UtilTot2]
+      if doPlot:
+        axEvents.plot([xval, xval], [yval-0.3, yval+0.3], color=color, linestyle='-', linewidth=2)
       
       # Plot events
-      if self.toEventIds.get(eIdx, None) != None:
-        for toIdx, eventId in self.toEventIds[eIdx]:
-          toE = self.events[toIdx]
-          toCycle = int(toE.cycle)
-          toEngine = toE.engine
-          toYval = ylabels.index(toEngine)
-          xArr = xval+ instrCycles
-          yArr = yval
-          xDelta = toCycle - xval-instrCycles
-          yDelta = toYval - yval
-          #axEvents.arrow(xArr, yArr, xDelta, yDelta,
-          #              length_includes_head=True,
-          #              #head_width=1, head_length=2,
-          #              fc='k', ec='k')
-          axEvents.annotate("",
-            xy=(xArr, yArr), xycoords='data',
-            xytext=(xArr+xDelta, yArr+yDelta), textcoords='data',
-            arrowprops=dict(arrowstyle="<-, head_width=0.5, head_length=1.5", linestyle="dotted",
-                            color="black",
-                            patchB=None,
-                            shrinkB=0,
-                            #connectionstyle="arc3,rad=0.3",
-                            ))
-          axEvents.text(xArr + 0.5 * xDelta, yArr + 0.5 * yDelta, "0x%x" % eventId)
+      if doPlot:
+        if self.verbose and self.toEventIds.get(eIdx, None) != None:
+          for toIdx, eventId in self.toEventIds[eIdx]:
+            toE = self.events[toIdx]
+            toCycle = int(toE.cycle)
+            toEngine = toE.engine
+            toYval = ylabels.index(toEngine)
+            xArr = xval+ instrCycles
+            yArr = yval
+            xDelta = toCycle - xval-instrCycles
+            yDelta = toYval - yval
+            #axEvents.arrow(xArr, yArr, xDelta, yDelta,
+            #              length_includes_head=True,
+            #              #head_width=1, head_length=2,
+            #              fc='k', ec='k')
+            axEvents.annotate("",
+              xy=(xArr, yArr), xycoords='data',
+              xytext=(xArr+xDelta, yArr+yDelta), textcoords='data',
+              arrowprops=dict(arrowstyle="<-, head_width=0.5, head_length=1.5", linestyle="dotted",
+                              color="black",
+                              patchB=None,
+                              shrinkB=0,
+                              #connectionstyle="arc3,rad=0.3",
+                              ))
+            axEvents.text(xArr + 0.5 * xDelta, yArr + 0.5 * yDelta, "0x%x" % eventId)
       
       eventCount += 1
       if eventCount % 100 == 0:
@@ -360,6 +389,42 @@ class InklingProfile(object):
       #if eventCount % 1000 == 0:
       #  break
     print()
+
+    # Zoom size notification
+    class Detail:
+      def __init__(self, ax):
+        self.ax = ax
+        self.xlim = axEvents.get_xlim()
+        self.ylim = axEvents.get_ylim()
+      def on_xlims_change(self, axes):
+        self.xlim = axEvents.get_xlim()
+        print("INFO: updated xlims: ", self.xlim)
+      def on_ylims_change(self, axes):
+        self.ylim = axEvents.get_ylim()
+        print("INFO: updated ylims: ", self.ylim)
+      def startDetail(self, event):
+        cmd = argStr + " --cycle_range %g %g" % (self.xlim)
+        print("INFO: executing  ", cmd)
+        os.system(cmd)
+      def startDetailFullRes(self, event):
+        cmd = argStr + " --verbose --resolution 1e9 --cycle_range %g %g" % (self.xlim)
+        print("INFO: executing  ", cmd)
+        os.system(cmd)
+    
+    detail = Detail(axEvents)
+    axEvents.callbacks.connect('xlim_changed', detail.on_xlims_change)
+    axEvents.callbacks.connect('ylim_changed', detail.on_ylims_change)
+    
+    # Increased resolution button
+    if resolutionCycles > 1:
+      buttonLocation1 = plt.axes([0.01, 0.01, 0.4, 0.03])
+      detailButton1 = Button(buttonLocation1, 'Resolution %.1f cycles. Zoom in and click to get finer details' % resolutionCycles)
+      detailButton1.on_clicked(detail.startDetail)
+      buttonLocation2 = plt.axes([0.41, 0.01, 0.06, 0.03])
+      detailButton2 = Button(buttonLocation2, 'Full')
+      detailButton2.on_clicked(detail.startDetailFullRes)
+
+
     
     axEvents.set_yticks(y)
     axEvents.set_yticklabels(ylabels)
@@ -427,7 +492,8 @@ class InklingProfile(object):
   def printEventStatistics(self):
     event2count = {}
     print("\nEvent sender and receiver list:")
-    for senderIdx, recList in self.toEventIds.items():
+    for senderIdx in sorted(self.toEventIds):
+      recList = self.toEventIds[senderIdx]
       assert len(recList) == 1  # only 1 instruction can wait for this sender
       receiverIdx, eventId = recList[0]
       e1 = self.events[senderIdx]
@@ -441,7 +507,7 @@ class InklingProfile(object):
       
       count = event2count.get(eventId, 0)
       event2count[eventId] = count + 1
-      print("  Engine %s instr %s sent event %d to engine %s instr %s  Distance  cycles %d  waves %d    Abs cycles sender %d receiver %d" %
+      print("  Engine %-4s instr %-10s sent event %3d to engine %-4s instr %-10s  Distance  cycles %6d  waves %4d    Abs cycles sender %8d receiver %8d" %
             (engine1, instrSender.instrType, eventId, engine2, instrReceiver.instrType, c2 - c1, receiverIdx - senderIdx, c1, c2))
     
     print("\n  Event  Count")
@@ -453,11 +519,11 @@ tongaProgram = TongaProgram(args.tpb)
 
 
 if args.event_statistics:
-  p = InklingProfile(args.log, tongaProgram, args.verbose, [0, 1e9], args.show, args.geometry)
+  p = InklingProfile(args.log, tongaProgram, args.verbose, [0, 1e9], args.show, args.geometry, args.resolution)
   p.calcEventIdGraph()
   p.printEventStatistics()
 else:
-  p = InklingProfile(args.log, tongaProgram, args.verbose, args.cycle_range, args.show, args.geometry)
+  p = InklingProfile(args.log, tongaProgram, args.verbose, args.cycle_range, args.show, args.geometry, args.resolution)
   if args.long > 0:
     totalCycles = p.getNumCycles()
     cycleStep = int(args.long)
@@ -469,7 +535,7 @@ else:
       pid = os.fork()
       #pid = 0
       if pid == 0:
-        pi = InklingProfile(args.log, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry)
+        pi = InklingProfile(args.log, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry, args.resolution)
         pi.plotProfile(outPng)
         sys.exit(0)
       else:
