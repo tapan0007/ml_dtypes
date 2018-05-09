@@ -57,6 +57,9 @@ pipeline{
             steps {
                 sh 'ls -ltr'
                 sh 'source ~/.bashrc && make -C $KAENA_PATH'
+                sh 'source ~/.bashrc && make PLAT=uio -C $KAENA_RT_PATH/hal/'
+                sh 'source ~/.bashrc && make PLAT=dv -C $KAENA_RT_PATH/hal/'
+                sh 'source ~/.bashrc && make PLAT=dummy -C $KAENA_RT_PATH/hal/'
                 //archiveArtifacts artifacts: '**/output/*.tgz'
             }
         }
@@ -64,6 +67,7 @@ pipeline{
     
             steps {
                 sh 'source ~/.bashrc && make -C $KAENA_PATH check'
+                //sh 'source ~/.bashrc && make -C $KAENA_INK_PATH check'
             }
         }
     }
