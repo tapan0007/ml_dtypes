@@ -666,4 +666,8 @@ else:
     tests.plotTops("qor_tops_raw.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns)
     tests.plotTops("qor_tops_effective.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns, padded=True)
     tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
+
+  if tests.numFail:
+    exit(-1)
+    
     
