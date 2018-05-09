@@ -31,15 +31,18 @@ pipeline{
                 git clone ssh://10.206.30.60:29418/tonga/sw/kaena/kcc  ||  echo clone failed
                 git clone ssh://10.206.30.60:29418/tonga/sw/kaena/ext  ||  echo clone failed
                 git clone ssh://10.206.30.60:29418/tonga/model/inkling ||  echo clone failed
+                git clone ssh://10.206.30.60:29418/tonga/arch-isa ||  echo clone failed
                 git -C krt pull origin $GERRIT_REFSPEC || echo "using kaena-runtime master"
                 git -C kcc pull origin $GERRIT_REFSPEC || echo "using kaena-compiler master"
                 git -C ext pull origin $GERRIT_REFSPEC || echo "using kaena-ext master"
                 git -C inkling pull origin $GERRIT_REFSPEC || echo "using inkling master"
+                git -C arch-isa pull origin $GERRIT_REFSPEC || echo "using arch-isa master"
 		chmod -R 755 ./ 
                 echo "export KAENA_PATH=$WORKSPACE/kcc" >> ~/.bashrc
                 echo "export KAENA_EXT_PATH=$WORKSPACE/ext" >> ~/.bashrc
                 echo "export INKLING_PATH=$WORKSPACE/inkling" >> ~/.bashrc
-                echo "export KAENA_ISA_PATH=$WORKSPACE/krt" >> ~/.bashrc
+                echo "export KAENA_ISA_PATH=$WORKSPACE/arch-isa" >> ~/.bashrc
+                echo "export ARCH_ISA_PATH=$WORKSPACE/arch-isa" >> ~/.bashrc
                 echo "export KAENA_RT_PATH=$WORKSPACE/krt" >> ~/.bashrc
                 '''
             }
