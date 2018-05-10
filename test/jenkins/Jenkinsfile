@@ -6,7 +6,7 @@ pipeline{
             image 'amazonlinux:latest'
             args '-u root -v /home/jenkins:/home/jenkins'
             label 'tonga'
-            
+
         }
     }
     stages {
@@ -19,24 +19,24 @@ pipeline{
                 sh 'ls -ltrA && rm -rf $WORKSPACE/* '
                 sh '''
 		mkdir -p ~/.ssh/
-                echo "Host siopt.vpc" >> ~/.ssh/config 
-                echo "    User jenkins" >> ~/.ssh/config 
-                echo "    HostName 10.206.30.60" >> ~/.ssh/config 
-                echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config 
-                echo "    StrictHostKeyChecking no" >> ~/.ssh/config 
+                echo "Host siopt.vpc" >> ~/.ssh/config
+                echo "    User jenkins" >> ~/.ssh/config
+                echo "    HostName 10.206.30.60" >> ~/.ssh/config
+                echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config
+                echo "    StrictHostKeyChecking no" >> ~/.ssh/config
 
-                echo "Host siopt.review" >> ~/.ssh/config 
-                echo "    User jenkins" >> ~/.ssh/config 
-                echo "    HostName review" >> ~/.ssh/config 
-                echo "    Port 29418" >> ~/.ssh/config 
-                echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config 
-                echo "    ProxyCommand ssh -W %h:%p siopt.vpc" >> ~/.ssh/config 
-                echo "    StrictHostKeyChecking no" >> ~/.ssh/config 
+                echo "Host siopt.review" >> ~/.ssh/config
+                echo "    User jenkins" >> ~/.ssh/config
+                echo "    HostName review" >> ~/.ssh/config
+                echo "    Port 29418" >> ~/.ssh/config
+                echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config
+                echo "    ProxyCommand ssh -W %h:%p siopt.vpc" >> ~/.ssh/config
+                echo "    StrictHostKeyChecking no" >> ~/.ssh/config
 
 
 		chmod 600 ~/.ssh/config
 		'''
-    
+
                 sh 'yum -y install git'
 
                 sh '''
@@ -47,12 +47,14 @@ pipeline{
             }
         }
         stage('Checkout'){
-    
+
             steps {
                 sh 'ls -ltr'
                 sh '''
 
 		./repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
+		[ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
+		./repo init -m $MANIFEST_FILE_NAME
 		./repo sync
 
                 git -C kaena-runtime pull origin $GERRIT_REFSPEC || echo "using kaena-runtime master"
@@ -60,7 +62,7 @@ pipeline{
                 git -C kaena-ext pull origin $GERRIT_REFSPEC || echo "using kaena-ext master"
                 git -C inkling pull origin $GERRIT_REFSPEC || echo "using inkling master"
                 git -C isa pull origin $GERRIT_REFSPEC || echo "using isa master"
-		chmod -R 755 ./ 
+		chmod -R 755 ./
                 echo "export KAENA_PATH=$WORKSPACE/kaena-compiler" >> ~/.bashrc
                 echo "export KAENA_EXT_PATH=$WORKSPACE/kaena-ext" >> ~/.bashrc
                 echo "export INKLING_PATH=$WORKSPACE/inkling" >> ~/.bashrc
@@ -76,7 +78,7 @@ pipeline{
             }
         }
         stage('Build') {
-         
+
             steps {
                 sh 'ls -ltr'
                 sh 'source ~/.bashrc && make -C $KAENA_PATH'
@@ -87,7 +89,7 @@ pipeline{
             }
         }
         stage('Regressions') {
-    
+
             steps {
                 sh 'source ~/.bashrc && make -C $KAENA_PATH check'
                 //sh 'source ~/.bashrc && make -C $KAENA_INK_PATH check'
@@ -104,7 +106,7 @@ pipeline{
                             [$class: 'CulpritsRecipientProvider'],
                             [$class: 'DevelopersRecipientProvider'],
                             [$class: 'RequesterRecipientProvider']
-                        ], 
+                        ],
                         replyTo: '$DEFAULT_REPLYTO',
                         to: '$DEFAULT_RECIPIENTS'
                 }
