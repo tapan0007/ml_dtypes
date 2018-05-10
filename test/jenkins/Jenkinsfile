@@ -17,9 +17,33 @@ pipeline{
                 sh 'df -h'
 
                 sh 'ls -ltrA && rm -rf $WORKSPACE/* '
-                sh 'mkdir -p ~/.ssh/ && echo "Host 10.206.*.*" >> ~/.ssh/config && echo "    User jenkins"  >> ~/.ssh/config && echo "    StrictHostKeyChecking no" >> ~/.ssh/config && echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config && chmod 600 ~/.ssh/config'
+                sh '''
+		mkdir -p ~/.ssh/
+                echo "Host siopt.vpc" >> ~/.ssh/config 
+                echo "    User jenkins" >> ~/.ssh/config 
+                echo "    HostName 10.206.30.60" >> ~/.ssh/config 
+                echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config 
+                echo "    StrictHostKeyChecking no" >> ~/.ssh/config 
+
+                echo "Host siopt.review" >> ~/.ssh/config 
+                echo "    User jenkins" >> ~/.ssh/config 
+                echo "    HostName review" >> ~/.ssh/config 
+                echo "    Port 29418" >> ~/.ssh/config 
+                echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config 
+                echo "    ProxyCommand ssh -W %h:%p siopt.vpc" >> ~/.ssh/config 
+                echo "    StrictHostKeyChecking no" >> ~/.ssh/config 
+
+
+		chmod 600 ~/.ssh/config
+		'''
     
                 sh 'yum -y install git'
+
+                sh '''
+		curl https://storage.googleapis.com/git-repo-downloads/repo > ./repo
+		chmod a+x ./repo
+                '''
+
             }
         }
         stage('Checkout'){
@@ -27,23 +51,22 @@ pipeline{
             steps {
                 sh 'ls -ltr'
                 sh '''
-                git clone ssh://10.206.30.60:29418/tonga/sw/kaena/krt  || echo clone failed
-                git clone ssh://10.206.30.60:29418/tonga/sw/kaena/kcc  ||  echo clone failed
-                git clone ssh://10.206.30.60:29418/tonga/sw/kaena/ext  ||  echo clone failed
-                git clone ssh://10.206.30.60:29418/tonga/model/inkling ||  echo clone failed
-                git clone ssh://10.206.30.60:29418/tonga/arch-isa ||  echo clone failed
-                git -C krt pull origin $GERRIT_REFSPEC || echo "using kaena-runtime master"
-                git -C kcc pull origin $GERRIT_REFSPEC || echo "using kaena-compiler master"
-                git -C ext pull origin $GERRIT_REFSPEC || echo "using kaena-ext master"
+
+		./repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
+		./repo sync
+
+                git -C kaena-runtime pull origin $GERRIT_REFSPEC || echo "using kaena-runtime master"
+                git -C kaena-compiler pull origin $GERRIT_REFSPEC || echo "using kaena-compiler master"
+                git -C kaena-ext pull origin $GERRIT_REFSPEC || echo "using kaena-ext master"
                 git -C inkling pull origin $GERRIT_REFSPEC || echo "using inkling master"
-                git -C arch-isa pull origin $GERRIT_REFSPEC || echo "using arch-isa master"
+                git -C isa pull origin $GERRIT_REFSPEC || echo "using isa master"
 		chmod -R 755 ./ 
-                echo "export KAENA_PATH=$WORKSPACE/kcc" >> ~/.bashrc
-                echo "export KAENA_EXT_PATH=$WORKSPACE/ext" >> ~/.bashrc
+                echo "export KAENA_PATH=$WORKSPACE/kaena-compiler" >> ~/.bashrc
+                echo "export KAENA_EXT_PATH=$WORKSPACE/kaena-ext" >> ~/.bashrc
                 echo "export INKLING_PATH=$WORKSPACE/inkling" >> ~/.bashrc
-                echo "export KAENA_ISA_PATH=$WORKSPACE/arch-isa" >> ~/.bashrc
-                echo "export ARCH_ISA_PATH=$WORKSPACE/arch-isa" >> ~/.bashrc
-                echo "export KAENA_RT_PATH=$WORKSPACE/krt" >> ~/.bashrc
+                echo "export KAENA_ISA_PATH=$WORKSPACE/isa" >> ~/.bashrc
+                echo "export ARCH_ISA_PATH=$WORKSPACE/isa" >> ~/.bashrc
+                echo "export KAENA_RT_PATH=$WORKSPACE/kaena-runtime" >> ~/.bashrc
                 '''
             }
         }
