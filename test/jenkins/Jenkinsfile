@@ -17,6 +17,7 @@ pipeline{
                 sh 'df -h'
 
                 sh 'ls -ltrA && rm -rf $WORKSPACE/* '
+                sh 'ls -ltrA && rm -rf $WORKSPACE/* && rm -rf $WORKSPACE/.repo '
                 sh '''
 		mkdir -p ~/.ssh/
                 echo "Host siopt.vpc" >> ~/.ssh/config
@@ -49,7 +50,7 @@ pipeline{
         stage('Checkout'){
 
             steps {
-                sh 'ls -ltr'
+                sh 'ls -ltrA'
                 sh '''
 
 		./repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
@@ -111,6 +112,9 @@ pipeline{
                         to: '$DEFAULT_RECIPIENTS'
                 }
         }
+	always {
+		cleanWs()
+	}
     }
 
 }
