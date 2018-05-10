@@ -67,3 +67,5 @@ conv_pad      Single Conv2D layer that exercises padding
 # Project tests
 4-rn50_matmul_fp32_wave     Sprint 10 avgpool, reshape, matmult, softmax on wave backend, rest on host
 4-rn50_matmul_fp32_waveopt  Sprint 10 avgpool, reshape, matmult, softmax on ME   backend, rest on host
+
+# Noop - Gerrit test
