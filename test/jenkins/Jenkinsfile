@@ -8,6 +8,9 @@ pipeline{
             label 'tonga'
         }
     }
+    environment {
+        REPO_BUILD = "/workdir/repo-build"
+    }
     stages {
         stage('Prep'){
             steps {
@@ -15,7 +18,8 @@ pipeline{
                 sh 'cat /proc/cpuinfo'
                 sh 'df -h'
 
-                sh 'ls -ltrA && rm -rf $WORKSPACE/* && rm -rf $WORKSPACE/.repo '
+                sh 'ls -ltrA'
+                sh 'rm -rf $REPO_BUILD && mkdir -p $REPO_BUILD'
             }
         }
         stage('Checkout'){
@@ -25,6 +29,7 @@ pipeline{
                 sh '''
 		set -x
 
+                cd $REPO_BUILD
 		repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
 		[ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
 		repo init -m $MANIFEST_FILE_NAME
@@ -41,11 +46,11 @@ pipeline{
                 git -C isa pull origin $GERRIT_REFSPEC
 
 		chmod -R 755 ./
-                echo "export KAENA_PATH=$WORKSPACE/kaena-compiler" >> ~/.bashrc
-                echo "export KAENA_EXT_PATH=$WORKSPACE/kaena-ext" >> ~/.bashrc
-                echo "export INKLING_PATH=$WORKSPACE/inkling" >> ~/.bashrc
-                echo "export ARCH_ISA_PATH=$WORKSPACE/isa" >> ~/.bashrc
-                echo "export KAENA_RT_PATH=$WORKSPACE/kaena-runtime" >> ~/.bashrc
+                echo "export KAENA_PATH=$REPO_BUILD/kaena-compiler" >> ~/.bashrc
+                echo "export KAENA_EXT_PATH=$REPO_BUILD/kaena-ext" >> ~/.bashrc
+                echo "export INKLING_PATH=$REPO_BUILD/inkling" >> ~/.bashrc
+                echo "export ARCH_ISA_PATH=$REPO_BUILD/isa" >> ~/.bashrc
+                echo "export KAENA_RT_PATH=$REPO_BUILD/kaena-runtime" >> ~/.bashrc
                 '''
             }
         }
