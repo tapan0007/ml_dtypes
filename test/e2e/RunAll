@@ -17,6 +17,7 @@ import multiprocessing as mp
 import time
 import multiprocessing
 import test_list
+import csv
 
 
 kPath = os.environ.get('KAENA_PATH')
@@ -55,7 +56,7 @@ parser.add_argument('--verbose', help='Verbose output', action='store_true', def
 parser.add_argument('--eigenlib_stride', help='Use Eigenlib style of striding starting in the center (-1) of striding window', action='store_true', default=False)
 parser.add_argument('--golden_inputs', help='Use golden (ref_file) files as inputs instead of generated outputs from previous stage', action='store_true', default=False)
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
-parser.add_argument('--report_only', help='Print QoR report for the logs in teh current directory', action='store_true', default=False)
+parser.add_argument('--report_only', help='Print QoR report for the logs in the current directory', action='store_true', default=False)
 parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=multiprocessing.cpu_count())
 parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=True)
 parser.add_argument('--serial_streams_for_wave', help='run execution engines in series', action='store_true', default=False)
@@ -168,6 +169,11 @@ class QoR:
           opsPadded += int(match1.groups(1)[0])
     return ops, opsPadded
 
+  headerFields = ("Test", "Status",
+                  "TopsRaw", "OpCountRaw",
+                  "TopsEff", "OpCountEff",
+                  "SimCycles", "SimTimeSec", "SimCycles/sec",
+                  "TotTimeSec", "Description")
   def __init__(self, dirName):
     self.freq = 1e9
     self.testName = dirName
@@ -201,19 +207,18 @@ class QoR:
   @staticmethod
   def printHeader():
     print("%-32s  %-16s  %6s %16s  %6s %16s  %16s  %16s %16s  %10s  %s" %
-          ("Test", "Status",
-           "Tops", "OpCount",
-           "TopsPa", "OpCountPadded",
-           "SimCycles", "SimTimeSec", "SimCycles/sec", "TotTimeSec", "Description"))
+          QoR.headerFields)
     print("-" * 150)
 
-  def printValues(self, status, testTime, description):
-    print("%-32s  %-16s  %6.3f %16g  %6.3f %16g  %16g  %16.3f %16g  %10.1f  %s" %
-          (self.testName, status,
+  def getValues(self, status, testTime, description):
+    return (self.testName, status,
            self.tops, self.ops,
            self.topsPadded, self.opsPadded,
            self.cycles, self.elapsedTimeSec, self.cyclesPerSec,
-           testTime, description))
+           testTime, description)
+  def printValues(self, status, testTime, description):
+    print("%-32s  %-16s  %6.3f %16g  %6.3f %16g  %16g  %16.3f %16g  %10.1f  %s" %
+          self.getValues(status, testTime, description))
 
 
 ###############################################################################
@@ -557,6 +562,23 @@ class Ktests:
       testDescription = self.getTestDescription(testName)
       reportStatus = self.calcWaivedStatus(testName, t.status)
       t.qor.printValues(reportStatus, t.testTime, testDescription)
+    
+    # Generate csv
+    csvFile = "qor.csv"
+    with open(csvFile, 'w') as csvHandle:
+      fieldNames = QoR.headerFields
+      rows = []
+      for testName in self.testList:
+        t = self.getTestByName(testName)
+        testDescription = self.getTestDescription(testName)
+        reportStatus = self.calcWaivedStatus(testName, t.status)
+        rowValues = t.qor.getValues(reportStatus, t.testTime, testDescription)
+        row = dict(zip(fieldNames, rowValues))
+        rows.append(row)
+      writer = csv.DictWriter(csvHandle, fieldnames=fieldNames)
+      writer.writeheader()
+      writer.writerows(rows)
+    print("INFO: Wrote op sequences into " + csvFile)
 
   def dashboard(self, testRe, outFileName):
     with open(outFileName, "w") as fh:

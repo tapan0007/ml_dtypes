@@ -1,0 +1,2 @@
+Test,Status,TopsRaw,OpCountRaw,TopsEff,OpCountEff,SimCycles,SimTimeSec,SimCycles/sec,TotTimeSec,Description
+7-rn50_nne_fp16_wave,PASS,0.464,6.94406e+09,0.516,7.71876e+09,1.49629e+07,2320.131,6449.18,3186.5,Full Resnet50 fp16 inference all layers on Inkling except the softmax
