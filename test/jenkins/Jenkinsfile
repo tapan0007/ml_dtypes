@@ -36,8 +36,6 @@ pipeline{
 		chmod 600 ~/.ssh/config
 		'''
 
-                sh 'yum -y install git'
-
                 sh '''
 		curl https://storage.googleapis.com/git-repo-downloads/repo > ./repo
 		chmod a+x ./repo
