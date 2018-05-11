@@ -52,17 +52,23 @@ pipeline{
             steps {
                 sh 'ls -ltrA'
                 sh '''
+		set -x
 
 		./repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
 		[ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
 		./repo init -m $MANIFEST_FILE_NAME
 		./repo sync
+		
+		git config --global user.name "Jenkins"
+		git config --global user.email aws-tonga-kaena@amazon.com
 
-                git -C kaena-runtime pull origin $GERRIT_REFSPEC || echo "using kaena-runtime master"
-                git -C kaena-compiler pull origin $GERRIT_REFSPEC || echo "using kaena-compiler master"
-                git -C kaena-ext pull origin $GERRIT_REFSPEC || echo "using kaena-ext master"
-                git -C inkling pull origin $GERRIT_REFSPEC || echo "using inkling master"
-                git -C isa pull origin $GERRIT_REFSPEC || echo "using isa master"
+		[ -z $GERRIT_REFSPEC ] || \
+                git -C kaena-runtime pull origin $GERRIT_REFSPEC || \
+                git -C kaena-compiler pull origin $GERRIT_REFSPEC || \
+                git -C kaena-ext pull origin $GERRIT_REFSPEC || \
+                git -C inkling pull origin $GERRIT_REFSPEC || \
+                git -C isa pull origin $GERRIT_REFSPEC
+
 		chmod -R 755 ./
                 echo "export KAENA_PATH=$WORKSPACE/kaena-compiler" >> ~/.bashrc
                 echo "export KAENA_EXT_PATH=$WORKSPACE/kaena-ext" >> ~/.bashrc
