@@ -73,7 +73,6 @@ pipeline{
                 echo "export KAENA_PATH=$WORKSPACE/kaena-compiler" >> ~/.bashrc
                 echo "export KAENA_EXT_PATH=$WORKSPACE/kaena-ext" >> ~/.bashrc
                 echo "export INKLING_PATH=$WORKSPACE/inkling" >> ~/.bashrc
-                echo "export KAENA_ISA_PATH=$WORKSPACE/isa" >> ~/.bashrc
                 echo "export ARCH_ISA_PATH=$WORKSPACE/isa" >> ~/.bashrc
                 echo "export KAENA_RT_PATH=$WORKSPACE/kaena-runtime" >> ~/.bashrc
                 '''

@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-if ! ( -d "$KAENA_PATH" && -d "$INKLING_PATH" && -d "$KAENA_EXT_PATH" && -d "$KAENA_ISA_PATH" ) then
+if ! ( -d "$KAENA_PATH" && -d "$INKLING_PATH" && -d "$KAENA_EXT_PATH" && -d "$ARCH_ISA_PATH" ) then
   echo ERROR: Setup Kaena envvar and restart
   exit 1
 endif

@@ -2,8 +2,8 @@ SHELL := /bin/bash
 ifndef KAENA_PATH
 $(error KAENA_PATH is not set)
 endif
-ifndef KAENA_ISA_PATH
-$(error KAENA_ISA_PATH is not set)
+ifndef ARCH_ISA_PATH
+$(error ARCH_ISA_PATH is not set)
 endif
 ifndef KAENA_RT_PATH
 $(error KAENA_RT_PATH is not set)
