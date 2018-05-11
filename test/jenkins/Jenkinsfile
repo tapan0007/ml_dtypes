@@ -16,31 +16,6 @@ pipeline{
                 sh 'df -h'
 
                 sh 'ls -ltrA && rm -rf $WORKSPACE/* && rm -rf $WORKSPACE/.repo '
-                sh '''
-		mkdir -p ~/.ssh/
-                echo "Host siopt.vpc" >> ~/.ssh/config
-                echo "    User jenkins" >> ~/.ssh/config
-                echo "    HostName 10.206.30.60" >> ~/.ssh/config
-                echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config
-                echo "    StrictHostKeyChecking no" >> ~/.ssh/config
-
-                echo "Host siopt.review" >> ~/.ssh/config
-                echo "    User jenkins" >> ~/.ssh/config
-                echo "    HostName review" >> ~/.ssh/config
-                echo "    Port 29418" >> ~/.ssh/config
-                echo "    IdentityFile /home/jenkins/.ssh/id_rsa" >> ~/.ssh/config
-                echo "    ProxyCommand ssh -W %h:%p siopt.vpc" >> ~/.ssh/config
-                echo "    StrictHostKeyChecking no" >> ~/.ssh/config
-
-
-		chmod 600 ~/.ssh/config
-		'''
-
-                sh '''
-		curl https://storage.googleapis.com/git-repo-downloads/repo > ./repo
-		chmod a+x ./repo
-                '''
-
             }
         }
         stage('Checkout'){
@@ -50,10 +25,10 @@ pipeline{
                 sh '''
 		set -x
 
-		./repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
+		repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
 		[ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
-		./repo init -m $MANIFEST_FILE_NAME
-		./repo sync
+		repo init -m $MANIFEST_FILE_NAME
+		repo sync
 
 		git config --global user.name "Jenkins"
 		git config --global user.email aws-tonga-kaena@amazon.com

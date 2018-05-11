@@ -1,0 +1,14 @@
+Host siopt.vpc
+    User jenkins
+    HostName 10.206.30.60
+    IdentityFile /home/jenkins/.ssh/id_rsa
+    StrictHostKeyChecking no
+
+Host siopt.review
+    User jenkins
+    Hostname review
+    Port 29418
+    IdentityFile /home/jenkins/.ssh/id_rsa
+    ProxyJump siopt.vpc
+    StrictHostKeyChecking no
+

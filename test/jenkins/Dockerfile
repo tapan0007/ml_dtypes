@@ -25,3 +25,9 @@ RUN pip-3.6 install --no-cache-dir \
         psutil \
         scikit-image \
         tensorflow==1.5
+
+ADD https://storage.googleapis.com/git-repo-downloads/repo /usr/bin/repo
+RUN chmod a+x /usr/bin/repo
+
+COPY ssh-config /tmp/ssh-config
+RUN cat /tmp/ssh-config >> /etc/ssh/ssh_config
