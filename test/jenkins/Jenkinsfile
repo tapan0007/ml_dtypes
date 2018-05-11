@@ -2,11 +2,10 @@
 pipeline{
 
     agent {
-        docker {
-            image 'amazonlinux:latest'
+        dockerfile {
+            dir 'test/jenkins'
             args '-u root -v /home/jenkins:/home/jenkins'
             label 'tonga'
-
         }
     }
     stages {
@@ -16,7 +15,6 @@ pipeline{
                 sh 'cat /proc/cpuinfo'
                 sh 'df -h'
 
-                sh 'ls -ltrA && rm -rf $WORKSPACE/* '
                 sh 'ls -ltrA && rm -rf $WORKSPACE/* && rm -rf $WORKSPACE/.repo '
                 sh '''
 		mkdir -p ~/.ssh/
@@ -58,7 +56,7 @@ pipeline{
 		[ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
 		./repo init -m $MANIFEST_FILE_NAME
 		./repo sync
-		
+
 		git config --global user.name "Jenkins"
 		git config --global user.email aws-tonga-kaena@amazon.com
 
