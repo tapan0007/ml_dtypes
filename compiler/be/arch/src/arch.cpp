@@ -22,7 +22,7 @@ static_assert(Arch_NumberPsumBanks == 4, "Number PSUM banks not 4"); // temporar
 static_assert(Arch_NumberPsumBankEntries == 256, "Number PSUM entries not 256"); // temporary
 
 enum : kcc_int64 {
-    sbPartitionSizeInBytes  = TPB_MMAP_STATE_BUF_PARTITION_ACTIVE_SIZE,
+    sbPartitionSizeInBytes  = TONGA_ISA_TPB_STATE_BUF_PARTITION_ACTIVE_SIZE,
     stateBuffersSizeInBytes = sbPartitionSizeInBytes  * Arch_NumberPeRows
 };
 

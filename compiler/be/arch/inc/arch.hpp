@@ -28,7 +28,7 @@ enum : kcc_int32 {
 
     Arch_NumberPsumBanks        = TONGA_ISA_TPB_PSUM_BUF_NUM_BANKS,
     Arch_PsumEntrySize          = 8, // int64, 4 for fp32
-    Arch_NumberPsumBankEntries  = TPB_MMAP_PSUM_BUF_PARTITION_ACTIVE_SIZE
+    Arch_NumberPsumBankEntries  = TONGA_ISA_TPB_PSUM_BUF_PARTITION_ACTIVE_SIZE
                                   / (Arch_PsumEntrySize * TONGA_ISA_TPB_PSUM_BUF_NUM_BANKS),
 };
 
