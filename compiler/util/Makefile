@@ -17,10 +17,10 @@ layeropt_sanity:
 	cd layeropt_tests/0-2conv3_relu/ && python3 $(KAENA_PATH)/compiler/util/layeropt.py --kgraph trivnet_compiler.json 
 
 all:
-	@$(foreach var, $(TESTS), make $(notdir $(var));)
+	@$(foreach var, $(TESTS), $(MAKE) $(notdir $(var));)
 
 sanity:
-	@$(foreach var,$(SANITY_TESTS),make $(var);)
+	@$(foreach var,$(SANITY_TESTS), $(MAKE) $(var);)
 
 check:
 	sanity

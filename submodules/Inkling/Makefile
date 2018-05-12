@@ -10,11 +10,11 @@ INKLING_CXX = g++48
 endif
 
 build:
-	make -C ${INKLING_PATH} CXX=${INKLING_CXX}
+	$(MAKE) -C ${INKLING_PATH} CXX=${INKLING_CXX}
 check:
 
 clean:
-	make -C ${INKLING_PATH} clean
+	$(MAKE) -C ${INKLING_PATH} clean
 
 # default install prefix
 PREFIX=/tmp/

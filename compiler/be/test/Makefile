@@ -41,7 +41,7 @@ $(EXE) : $(OBJ) $(TCCAR)
 	g++ $(LFLAGS) -o $@ $(OBJ) $(LIBDIR_FLAGS) $(LIB_FLAGS)
 
 $(CPP) :
-	cd .. ; make $(NET)
+	cd .. ; $(MAKE) $(NET)
 
 $(OBJ) : $(CPP)
 	g++ $(CPPFLAGS) -c $(CPP) 2>&1 | tee LOG
