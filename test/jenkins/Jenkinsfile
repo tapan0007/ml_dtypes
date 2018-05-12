@@ -63,17 +63,17 @@ pipeline{
 
             steps {
                 sh 'ls -ltr'
-                sh 'source ~/.bashrc && make -C $KAENA_PATH'
-                sh 'source ~/.bashrc && make PLAT=uio -C $KAENA_RT_PATH/hal/'
-                sh 'source ~/.bashrc && make PLAT=dv -C $KAENA_RT_PATH/hal/'
-                sh 'source ~/.bashrc && make PLAT=dummy -C $KAENA_RT_PATH/hal/'
+                sh 'source ~/.bashrc && make -j4 -C $KAENA_PATH'
+                sh 'source ~/.bashrc && make -j4 PLAT=uio -C $KAENA_RT_PATH/hal/'
+                sh 'source ~/.bashrc && make -j4 PLAT=dv -C $KAENA_RT_PATH/hal/'
+                sh 'source ~/.bashrc && make -j4 PLAT=dummy -C $KAENA_RT_PATH/hal/'
                 //archiveArtifacts artifacts: '**/output/*.tgz'
             }
         }
         stage('Regressions') {
 
             steps {
-                sh 'source ~/.bashrc && make -C $KAENA_PATH/test/e2e/ check'
+                sh 'source ~/.bashrc && make -j4 -C $KAENA_PATH/test/e2e/ check'
                 sh 'source ~/.bashrc && [ -z "$RUNALL_ARGS" ] || $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS'
                 //sh 'source ~/.bashrc && make -C $KAENA_INK_PATH check'
             }
