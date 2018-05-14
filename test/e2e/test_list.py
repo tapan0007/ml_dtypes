@@ -370,3 +370,10 @@ testWaiver = [
     ['^9-resnet152', 'WAIVE_RN152'],
 
   ]
+
+noGpuTestWaiver = [
+    ['0-1conv_s8$',  'WAIVE-NO-GPU'],
+    ['0-1conv_s8_32b$',  'WAIVE-NO-GPU'],
+    ['0-1conv_s8_wave$',  'WAIVE-NO-GPU'],
+    ['2-1conv3_s8_64s8$',  'WAIVE-NO-GPU'],
+]

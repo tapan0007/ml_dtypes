@@ -62,7 +62,7 @@ pipeline{
 		git config --global user.name "Jenkins"
 		git config --global user.email aws-tonga-kaena@amazon.com
 
-		[ -z $GERRIT_REFSPEC ] || \
+		[ -z "$GERRIT_REFSPEC" ] || \
                 git -C kaena-runtime pull origin $GERRIT_REFSPEC || \
                 git -C kaena-compiler pull origin $GERRIT_REFSPEC || \
                 git -C kaena-ext pull origin $GERRIT_REFSPEC || \
@@ -97,7 +97,8 @@ pipeline{
         stage('Regressions') {
 
             steps {
-                sh 'source ~/.bashrc && make -C $KAENA_PATH check'
+                sh 'source ~/.bashrc && make -C $KAENA_PATH/test/e2e/ check'
+                sh 'source ~/.bashrc && [ -z "$RUNALL_ARGS" ] || $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS'
                 //sh 'source ~/.bashrc && make -C $KAENA_INK_PATH check'
             }
         }
