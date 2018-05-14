@@ -95,6 +95,7 @@ pipeline{
                 }
         }
 	always {
+		sh 'df -h'
 		cleanWs()
 	}
     }
