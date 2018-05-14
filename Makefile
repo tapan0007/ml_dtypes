@@ -51,10 +51,7 @@ uninstall:
 check:
 	$(MAKE) check -C ${KAENA_PATH}/test/e2e
 
-check_clean:
-	$(MAKE) clean -C ${KAENA_PATH}/test/e2e
-
-clean:  build_clean check_clean repo_clean
+clean:  build_clean repo_clean
 
 
 build_clean:
