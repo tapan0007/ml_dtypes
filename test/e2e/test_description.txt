@@ -58,7 +58,7 @@ conv_pad      Single Conv2D layer that exercises padding
 3-rn50-20_wave   Sprint 9 Step 1  b1  h7   r1  s2  c1024  m2048   pad NSWE 0-0  0-0  0-0  0-0 
 
 # Benchmarks
-7-rn50_nne_conv_wave    Sprint 9 Story 1 - all convolutions on Inkling other ops on host
+8-rn50_nne_conv_wave    Sprint 9 Story 1 - all convolutions on Inkling other ops on host
 8-rn50_nne_fp32_meauto  Sprint 9 Story 2 - all fanout-resadd subgraphs on Inkling except FC, softmax on host
 7-rn50_nne_fp32_waveopt Full Resnet50 fp32 inference all layers on ME except the softmax
 7-rn50_nne_fp32_wave    Full Resnet50 fp32 inference all layers on Inkling except the softmax
