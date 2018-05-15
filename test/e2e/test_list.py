@@ -377,4 +377,9 @@ noGpuTestWaiver = [
     ['0-1conv_s8_wave$',  'WAIVE-NO-GPU'],
     ['2-1conv3_64s8$',  'WAIVE-NO-GPU'],
     ['2-1conv3_s8_64s8$',  'WAIVE-NO-GPU'],
+    ['3-rn50-02_wave$',  'WAIVE-NO-GPU'],
+    ['3-rn50-03_wave$',  'WAIVE-NO-GPU'],
+    ['3-rn50-06_wave$',  'WAIVE-NO-GPU'],
+    ['3-rn50-10_wave$',  'WAIVE-NO-GPU'],
+    ['3-rn50-11_wave$',  'WAIVE-NO-GPU'],
 ]
