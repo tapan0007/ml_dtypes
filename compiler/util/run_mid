@@ -1,0 +1,8 @@
+#!/bin/sh
+if [ $# -eq 0 ]; then
+    x=0
+else
+    x=$1
+fi
+rm -f *-midout.npy
+python3 $KAENA_PATH/compiler/util/layeropt2.py --kgraph compiler.json --wavegraph wavegraph.json --debug 3 --stop_after_layer_num $x --no_inter_layer_load | tee log-me.txt

@@ -1558,7 +1558,7 @@ class Graph(Object):
       return True, []
     elif self.schedulerMode == 'wave' or self.schedulerMode == 'wave2':
       # Invoke wave scheduler
-      waveSchedulerExec = self.kaenaPath + "/compiler/util/layeropt.py"
+      waveSchedulerExec = self.kaenaPath + ("/compiler/util/layeropt2.py" if self.schedulerMode == 'wave2' else "/compiler/util/layeropt.py")
       kGraphJsonFile =  "compiler.json"
       waveGraphJsonFile = "wavegraph.json"
 

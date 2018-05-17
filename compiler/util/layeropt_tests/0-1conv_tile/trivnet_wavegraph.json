@@ -453,7 +453,7 @@
       "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 67584,
+      "dst_sb_address": 64512,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -868,7 +868,7 @@
       "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 68074,
+      "dst_sb_address": 65002,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1283,7 +1283,7 @@
       "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 68564,
+      "dst_sb_address": 65492,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1719,7 +1719,7 @@
       "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 69054,
+      "dst_sb_address": 65982,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1774,7 +1774,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 67584,
+      "sb_address": 64512,
       "start_at_mid_part": false,
       "waveop_name": "1conv/i1/SBAtomSave_scratch_0_n0_m0_h3_w0",
       "waveop_type": "SBAtomSave"
@@ -1800,6 +1800,7 @@
       "ofmap_tile_width": 34,
       "out_dtype": "float32",
       "previous_waveops": [
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2__0",
         "1conv/i1/Pool_n0_m0_h0_w0"
       ],
       "psum_bank_id": 0,
@@ -2158,7 +2159,7 @@
       "weights_sb_address": 16400
     },
     {
-      "dst_sb_address": 69544,
+      "dst_sb_address": 66472,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -2210,7 +2211,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 69544,
+      "sb_address": 66472,
       "start_at_mid_part": false,
       "waveop_name": "1conv/i1/SBAtomSave_scratch_1_n0_m0_h4_w0",
       "waveop_type": "SBAtomSave"
