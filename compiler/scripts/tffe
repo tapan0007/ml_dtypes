@@ -160,8 +160,11 @@ if args.images != None:
     sgJson["executor"] = executor
     if executor == "waveopt":
       sgJson["execOptions"] = KaenaOpGraph.Config.Scheduler.waveoptOptions
+      if args.scheduler == "wave2":
+        # Adjust the nn_executor "waveopt" to "waveopt2" when using "wave2" (layeropt2.py) scheduler
+        sgJson["executor"] += '2'
     sgJson["parallel_streams"] = False
-    if args.scheduler == 'wave':
+    if args.scheduler == 'wave' or args.scheduler == 'wave2':
         sgJson["parallel_streams"] = args.parallel_streams
     sgJsonList.append(sgJson)
     sgId += 1
