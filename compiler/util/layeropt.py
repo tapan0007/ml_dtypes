@@ -563,6 +563,13 @@ class CircularBuffer:
                 self.atom_data_sz = m_data_len * min(S, multiple)
             else:
                 self.atom_data_sz = atom_sz_for_computation
+            # kaena-141: replicate IFMAP a number of times.
+            # The number is determined by S, multiplied by a portion of R to match r*S*C <= 128
+            # In the case of 1st layer ResNet50, R=7, S=7, C=3 so R can be broken a number of ways. 
+            # For now, split evenly among two waves.
+            if args.enable_replication:
+                num_replicated_waves = ceildiv(R * S * C,  PEArray.NUM_ROWS)
+                self.replicate_multiple = ceildiv(R, num_replicated_waves) * S
         else:
             if (self.layer_format == 'NCHW'):
                 N, C, H, W = self.dram_data.shape
@@ -1434,9 +1441,11 @@ class KNode:
         s_id = wave_id.s_id
         last_r_id = r_id
         last_s_id = s_id
+        num_rows = pe_row_stop - pe_row_start
         for repl in range(replicate_multiple):
+            pe_row_repl_start = num_rows * repl
             for row in range(pe_row_start, pe_row_stop):
-                pe_row_offset = row - pe_row_start
+                pe_row_offset = pe_row_repl_start + row - pe_row_start
                 for z in range(self.Tn):
                     batch_id = (wave_id.n_id * self.Tn) + z
                     for x in range(self.ofmap_full_tilex_sz):
@@ -1468,7 +1477,7 @@ class KNode:
                                         self.ofmap_wave_lower_coordx[z] = x
                                         self.ofmap_wave_lower_coordy[z] = y
                                         self.psum_bank_offset = (y * self.ofmap_full_tilex_sz + x)
-                            #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
+                            #if (args.debug > 3): print("DBG: pack_wave_ifmaps for wave %s batch_id %d x %d y %d r_id %d s_id %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(wave_id.show(), batch_id, x, y, r_id, s_id, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
@@ -1547,12 +1556,16 @@ class KNode:
         s_id = wave_id.s_id
         last_r_id = r_id
         last_s_id = s_id
+        num_rows = pe_row_stop - pe_row_start
         for repl in range(replicate_multiple):
+            pe_row_repl_start = num_rows * repl
             for row in range(pe_row_start, pe_row_stop):
+                pe_row_offset = pe_row_repl_start + row - pe_row_start
                 for col in range(pe_col_start, pe_col_stop):
-                    out_array[row - pe_row_start, col - pe_col_start] = weights[row, r_id, s_id, col] # CRSM
+                    out_array[pe_row_offset, col - pe_col_start] = weights[row, r_id, s_id, col] # CRSM
                     last_r_id = r_id
                     last_s_id = s_id
+            if (args.debug > 2): print("DBG: pack_wave_conv_weights for wave %s r_id %d s_id %d"%(wave_id.show(), r_id, s_id))
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
@@ -3269,6 +3282,7 @@ if __name__ == "__main__":
     parser.add_argument("--abstract_mem", action='store_true', help="Keep data chunks as abstract objects")
     parser.add_argument("--stop_after_layer_num", type=int, default=0, help="Stop execution after fused op number. 0 means execute all fused ops. 1 means execute 1 fused op after Input. If there's a fork, there will be two outputs.")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
+    parser.add_argument("--enable_replication", action='store_true', help="Enable replication for cases where number of FMAP channels is lower than PEArray rows")
     args = parser.parse_args()
 
     print("Running in %s mode"%(args.nname))
