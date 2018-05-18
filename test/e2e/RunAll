@@ -147,7 +147,9 @@ class QoR:
   def simLogGetCycles(filepath):
     cycles = -1
     elapsedTimeSec = -1
+    #print("DEBUG: opening %s" % filepath)
     with open(filepath, 'rb') as fh:
+      fh.seek(-200, os.SEEK_END)
       for lineBinary in fh.readlines():
         line = lineBinary.decode('ascii')
         found = re.search('Cycles:\s+(\d+)', line)
@@ -223,7 +225,36 @@ class QoR:
   def printValues(self, status, testTime, description):
     print("%-32s  %-16s  %6.3f %16g  %6.3f %16g  %16g  %16.3f %16g  %10.1f  %s" %
           self.getValues(status, testTime, description))
-
+  
+  
+  class HistoryDatabase(object):
+    def __init__(self, csvDir):
+      self.data = {} # date -> testName -> property -> value
+      if os.path.isdir(csvDir):
+        for subdir, dirs, files in os.walk(csvDir):
+          for f in files:
+            csvFile = subdir + '/' + f
+            #print(csvFile)
+            match = re.search(r'\/?(\d+)\/qor.csv$', csvFile)
+            if match:
+              date = match.groups()[0]
+              self.add(date, csvFile)
+    def add(self, date, csvFile):
+      self.data[date] = {}
+      with open(csvFile) as fh:
+        csvReader = csv.DictReader(fh, delimiter=',')
+        for row in csvReader:
+          #print('DEBUG row:  ', row)
+          test = row['Test']
+          self.data[date][test] = row
+    def getDates(self):
+      return sorted(list(self.data.keys()))
+    def getValue(self, date, test, prop):
+      val = None
+      row = self.data[date].get(test, None)
+      if row != None:
+        val = row.get(prop, None)
+      return val
 
 ###############################################################################
 # Storage for test name, results
@@ -670,6 +701,45 @@ class Ktests:
     plt.tight_layout()
     plt.savefig(outFile)
       
+  def plotHistory(self, outFile, histDb, keyTests):
+    histDb.add('new', 'qor.csv')
+    xlabels = histDb.getDates()
+    x = [x for x in range(len(xlabels))]
+    #print("DEBUG x: ", x)
+    #print("DEBUG x: ", xlabels)
+    fig, axarr = plt.subplots(1, sharex=True, figsize=(12,8))
+    axPeUtil  = axarr
+    axPeUtil.set_xticks(x)
+    axPeUtil.set_xticklabels(xlabels, rotation=90)
+    yLineHandles = []
+    for testName in keyTests:
+      y = []
+      for date in xlabels:
+        util = None
+        status = histDb.getValue(date, testName, 'Status')
+        topsEff = histDb.getValue(date, testName, 'TopsEff')
+        if status == "PASS":
+          if topsEff != None:
+            util = 100.0 * float(topsEff) / 16
+        y.append(util)
+      #print("DEBUG y: ", y)
+      cleanX = []
+      cleanY = []
+      for i in range(len(x)):
+        if y[i] != None:
+          cleanX.append(x[i])
+          cleanY.append(y[i])
+      yLineHandles.append(axPeUtil.plot(cleanX, cleanY, marker='o', label=testName)[0])
+    axPeUtil.legend(handles=yLineHandles)
+    axPeUtil.grid(True)
+    axPeUtil.set_xlabel('Date')
+    axPeUtil.set_ylabel('PE Utilization [%]')
+    axPeUtil.set_ylim(0, 100)
+    axPeUtil.set_title('PE utilization historical data')
+    #fig.autofmt_xdate()
+    plt.tight_layout()
+    plt.savefig(outFile)
+      
  
 ###############################################################################
 # Execute
@@ -692,9 +762,13 @@ else:
     print("WARNING: matplotlib is not installed, skipped Qor plot")
   if plotQor:
     keyDesigns = ['7-rn50_nne_fp16_wave']
+    keyDesignsHistory = ['7-rn50_nne_fp16_wave', '7-rn50_nne_fp16_wave-two_banks', '7-rn50_nne_fp16_wave-fast_dram']
+    #keyDesignsHistory = ['7-rn50_nne_fp16_wave']
     tests.plotTops("qor_tops_raw.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns)
     tests.plotTops("qor_tops_effective.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns, padded=True)
     tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
+    histDb = QoR.HistoryDatabase(kPath + '/qor')
+    tests.plotHistory("qor_history.svg", histDb, keyDesignsHistory)
 
   if tests.numFail:
     exit(-1)
