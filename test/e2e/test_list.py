@@ -369,6 +369,7 @@ testWaiver = [
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],
+    ['0-10conv_relu_wave', 'WAIVE_BUG_KAENA411'],
 
   ]
 
