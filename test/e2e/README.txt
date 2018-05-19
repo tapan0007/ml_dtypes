@@ -35,3 +35,40 @@ Steps to run, and extract TPB instruction streams
       Utilities to compare, visualize, edit numpy files are in
         https://code.amazon.com/packages/Kaena/trees/mainline/--/compiler/util
   
+
+Harness list
+------------
+  Harnesses are small python scripts that create fully functional neural
+  networks (more accurately compute graphs). Typically they are heavily
+  parametrizable using a simple text string.
+
+Single-operator:
+  trivnet_act.py -> activation tanh, relu
+  trivnet_biasadd.py -> bias add
+  trivnet_ap1.py -> average pool
+  trivnet_mp1.py -> max pool
+  trivnet_conv1.py -> conv2d
+  trivnet_matmult1.py
+
+Short operator sequences:
+  trivnet_add.py -> bias_add with residual add
+  trivnet_conv2.py -> 2 layers of Conv2D
+  trivnet_conv_pool.py
+  trivnet_conv_pool_conv.py
+  trivnet_matmul_add.py
+  trivnet_scaleadd.py -> scalar multiply followed by add
+
+Longer patterns
+  trivnet_conv_ba.py - conv + bias_add + relu/tanh
+  trivnet_conv_ba_add.py -> residual add with resnet-like conv branches
+  trivnet_conv_ba_mult.py -> residual multioply with resnet-like conv branches
+  trivnet_lin.py - multi layer sequence of conv2d followed by act (tanh or relu)
+
+Full networks (and their slices):
+  tf_pb -> bypass harness that just passes an existing  tensorflow freeze
+           graph neural network representation directly to Kaena compiler
+
+Obsoleted (same can be done more efficiently by other hanesses)
+  trivnet_conv1_padvalid.py
+
+  
