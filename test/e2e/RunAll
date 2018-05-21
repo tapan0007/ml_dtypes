@@ -38,7 +38,8 @@ class Logger(object):
 sys.stdout = Logger('log-RunAll.txt')
 sys.stderr = Logger('log-RunAll.txt')
 
-print("\nINFO: started as  ", " ".join(sys.argv))
+startedAsStr = "\nINFO: started as  %s" % " ".join(sys.argv)
+print(startedAsStr)
 
 
 if kPath == None or kePath == None or iPath == None or \
@@ -211,10 +212,10 @@ class QoR:
       self.cyclesPerSec = self.cycles / self.elapsedTimeSec
 
   @staticmethod
-  def printHeader():
-    print("%-32s  %-16s  %6s %16s  %6s %16s  %16s  %16s %16s  %10s  %s" %
+  def printHeader(fh):
+    fh.write("%-32s  %-16s  %6s %16s  %6s %16s  %16s  %16s %16s  %10s  %s" %
           QoR.headerFields)
-    print("-" * 150)
+    fh.write("-" * 150)
 
   def getValues(self, status, testTime, description):
     return (self.testName, status,
@@ -222,9 +223,9 @@ class QoR:
            self.topsPadded, self.opsPadded,
            self.cycles, self.elapsedTimeSec, self.cyclesPerSec,
            testTime, description)
-  def printValues(self, status, testTime, description):
-    print("%-32s  %-16s  %6.3f %16g  %6.3f %16g  %16g  %16.3f %16g  %10.1f  %s" %
-          self.getValues(status, testTime, description))
+  def printValues(self, fh, status, testTime, description):
+    fh.write("%-32s  %-16s  %6.3f %16g  %6.3f %16g  %16g  %16.3f %16g  %10.1f  %s" %
+             self.getValues(status, testTime, description))
   
   
   class HistoryDatabase(object):
@@ -527,7 +528,9 @@ class Ktests:
         self.checkProcesses(0)
 
     end_time = time.time()
-    print("\nDone in %.3f sec" % (end_time - start_time))
+    elapsedTimeSec = end_time - start_time
+    print("\nDone in %.3f sec" % elapsedTimeSec)
+    return elapsedTimeSec
 
   def getTestDescription(self, testName):
     description = "Missing Description"
@@ -559,47 +562,50 @@ class Ktests:
         numWaived += 1
     return numWaived
 
-  def report(self):
+  def report(self, outFileName, csvFile, prefixText):
     numAll = self.getNumTests()
     numWaived = self.calcNumWaivedTest()
     numPass = self.numPass + numWaived
     numPassPct = numPass / numAll * 100
-    print("\nSUMMARY: PASSRATE  %d  %.3f%%  of  %d  (%d were waived)\n" %
-          (numPass, numPassPct, numAll, numWaived) )
+    with open(outFileName, "w") as fh:
+      fh.write(prefixText)
+      fh.write("\nSUMMARY: PASSRATE  %d  %.3f%%  of  %d  (%d were waived)\n" %
+              (numPass, numPassPct, numAll, numWaived) )
     
-    status2count = {}
-    status2test = {}
-    for testName in self.testList:
-      t = self.getTestByName(testName)
-      reportStatus = self.calcWaivedStatus(testName, t.status)
-      count = status2count.get(reportStatus, 0)
-      status2count[reportStatus] = count + 1
-      if not reportStatus in status2test:
-        status2test[reportStatus] = []
-      status2test[reportStatus].append(testName)
-    strStatus = ""
-    for status in sorted(status2count):
-      strStatus += "%s %d  " % (status, status2count[status])
-    print("DETAILED STATUS: ", strStatus)
-    
-    statusList = sorted(status2test)
-    if 'PASS' in statusList:
-      statusList.append(statusList.pop(statusList.index('PASS')))
-    for status in statusList:
-      print("  %s" % status)
-      for test in sorted(status2test[status]):
-        print("    ", test)
-    print("\n")
-    
-    QoR.printHeader()
-    for testName in self.testList:
-      t = self.getTestByName(testName)
-      testDescription = self.getTestDescription(testName)
-      reportStatus = self.calcWaivedStatus(testName, t.status)
-      t.qor.printValues(reportStatus, t.testTime, testDescription)
+      status2count = {}
+      status2test = {}
+      for testName in self.testList:
+        t = self.getTestByName(testName)
+        reportStatus = self.calcWaivedStatus(testName, t.status)
+        count = status2count.get(reportStatus, 0)
+        status2count[reportStatus] = count + 1
+        if not reportStatus in status2test:
+          status2test[reportStatus] = []
+        status2test[reportStatus].append(testName)
+      strStatus = ""
+      for status in sorted(status2count):
+        strStatus += "%s %d  " % (status, status2count[status])
+      fh.write("DETAILED STATUS: %s\n" % strStatus)
+
+      statusList = sorted(status2test)
+      if 'PASS' in statusList:
+        statusList.append(statusList.pop(statusList.index('PASS')))
+      for status in statusList:
+        fh.write("  %s\n" % status)
+        for test in sorted(status2test[status]):
+          fh.write("    %s\n" % test)
+      fh.write("\n\n")
+
+      #  Textual QoR was moved to qor.csv
+      #QoR.printHeader(fh)
+      #for testName in self.testList:
+      #  t = self.getTestByName(testName)
+      #  testDescription = self.getTestDescription(testName)
+      #  reportStatus = self.calcWaivedStatus(testName, t.status)
+      #  t.qor.printValues(fh, reportStatus, t.testTime, testDescription)
+    print("INFO: Wrote QoR report into  %s" % outFileName)
     
     # Generate csv
-    csvFile = "qor.csv"
     with open(csvFile, 'w') as csvHandle:
       fieldNames = QoR.headerFields
       rows = []
@@ -751,8 +757,8 @@ else:
     test_list.testWaiver += test_list.noGpuTestWaiver
 
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
-  tests.run(parallel, args.report_only)
-  tests.report()
+  elapsedTimeSec = tests.run(parallel, args.report_only)
+  tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
   plotQor = False
   try:
