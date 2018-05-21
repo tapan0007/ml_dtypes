@@ -632,7 +632,7 @@ class KgraphPart(object):
     # setup default executor: host if SG unsupported
     for sgId in range(len(self.__subgraphs)):
       if self.__subgraphs[sgId].isSupported:
-        self.sgId2executor[sgId] = "tcc"
+        self.sgId2executor[sgId] = "wave"
       else:
         self.sgId2executor[sgId] = "host"
 

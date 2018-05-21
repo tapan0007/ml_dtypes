@@ -483,7 +483,7 @@ class Ktests:
       (nnStruct, nnConfig, nnLabel, nnArgs, rtArgs) = self.testConfigMap[testName]
       if verbose:
         print("\n############## %s ##############" % testName)
-      if parallelStreamsForWave and "wave" in testName:
+      if parallelStreamsForWave and "--scheduler wave" in nnArgs:
         nnArgs += " --parallel_streams" # forward option to compiler
       # default ref omage
       default_image =  "%sref_input.npy" % outPrefix
@@ -569,8 +569,9 @@ class Ktests:
     numPassPct = numPass / numAll * 100
     with open(outFileName, "w") as fh:
       fh.write(prefixText)
-      fh.write("\nSUMMARY: PASSRATE  %d  %.3f%%  of  %d  (%d were waived)\n" %
-              (numPass, numPassPct, numAll, numWaived) )
+      summaryText = "\nSUMMARY: PASSRATE  %d  %.3f%%  of  %d  (%d were waived)\n" % (numPass, numPassPct, numAll, numWaived)
+      fh.write(summaryText)
+      print(summaryText)
     
       status2count = {}
       status2test = {}
