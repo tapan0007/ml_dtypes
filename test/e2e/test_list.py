@@ -371,7 +371,7 @@ testWaiver = [
     #['7-rn50_fp16_multi_tpb_w_wave', 'WAIVE_MTPB'],
 
     # batching
-    #['7-rn50_nne_fp16_waveopt_b\d+$', 'WAIVE_BATCH'],
+    ['7-rn50_nne_fp16_waveopt_b\d+$', 'WAIVE_BATCH'],
     ['7-rn50_nne_fp32_wave$', 'WAIVE_SB_PRESERVE'],
     ['8-rn50_nne_fp32_meauto$', 'WAIVE_SB_PRESERVE'],
 
