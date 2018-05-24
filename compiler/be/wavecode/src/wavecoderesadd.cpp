@@ -54,8 +54,9 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
     //-----------------------------------------------------------------
     compisa::TensorTensorOpInstr tensortensorInstr;
 
-    TONGA_ISA_TPB_DTYPE& SrcADtype(resaddWaveop->qSrcAIsPsum() ? tensortensorInstr.in_psum_buf_dtype : tensortensorInstr.in_state_buf_dtype);
-    TONGA_ISA_TPB_DTYPE& SrcBDtype(resaddWaveop->qSrcBIsPsum() ? tensortensorInstr.in_psum_buf_dtype : tensortensorInstr.in_state_buf_dtype);
+    Assert(resaddWaveop->qSrcAIsPsum() != resaddWaveop->qSrcBIsPsum(), "Sources for ResAdd must come from PSUM and SB, not from one");
+    TONGA_ISA_TPB_DTYPE& SrcADtype(resaddWaveop->qSrcAIsPsum() ? tensortensorInstr.in_dtype[0] : tensortensorInstr.in_dtype[1]);
+    TONGA_ISA_TPB_DTYPE& SrcBDtype(resaddWaveop->qSrcBIsPsum() ? tensortensorInstr.in_dtype[0] : tensortensorInstr.in_dtype[1]);
 
     //-----------------------------------------------------------------
     SrcADtype = resaddWaveop->gInADtype().gSimTypeId();
@@ -73,12 +74,12 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
 
     //-----------------------------------------------------------------
     TONGA_ISA_TPB_MEM_ACCESS_3D& SrcAPat(resaddWaveop->qSrcAIsPsum()
-                                         ? tensortensorInstr.src_psum_buf_mem_pattern
-                                         : tensortensorInstr.src_state_buf_mem_pattern);
+                                         ? tensortensorInstr.src_mem_pattern[0]
+                                         : tensortensorInstr.src_mem_pattern[1]);
     initMemAccess(SrcAPat);
     TONGA_ISA_TPB_MEM_ACCESS_3D& SrcBPat(resaddWaveop->qSrcBIsPsum()
-                                         ? tensortensorInstr.src_psum_buf_mem_pattern
-                                         : tensortensorInstr.src_state_buf_mem_pattern);
+                                         ? tensortensorInstr.src_mem_pattern[0]
+                                         : tensortensorInstr.src_mem_pattern[1]);
     initMemAccess(SrcBPat);
 
     //-----------------------------------------------------------------

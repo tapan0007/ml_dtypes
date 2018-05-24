@@ -8,7 +8,6 @@
 
 
 
-#include "tcc/inc/tcc.hpp"
 
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
@@ -62,11 +61,11 @@ protected:
     CodeGen* const m_CodeGen;
     layers::Layer* m_Layer;
 
-    addr_t   m_OfmapAddrs;
+    tonga_addr m_OfmapAddrs;
     uint64_t m_OfmapDims[FMAP_TENSOR_RANK];
     std::string   m_OfmapFormat;
 
-    addr_t   m_IfmapAddrs[2] = {0, 0};// 2 is tmp for single Ifmap
+    tonga_addr   m_IfmapAddrs[2] = {0, 0};// 2 is tmp for single Ifmap
     uint64_t m_IfmapDims[FMAP_TENSOR_RANK];
     std::string   m_IfmapFormat;
     std::string   m_IfmapFileName;

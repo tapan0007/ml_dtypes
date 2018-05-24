@@ -1,3 +1,5 @@
+#include "tcc/inc/tcc.hpp"
+
 #include "utils/inc/asserter.hpp"
 
 #include "layers/inc/activlayer.hpp"
@@ -17,7 +19,7 @@ CodeGenActivLayer::generate(layers::Layer* layer)
     const auto activLayer = dynamic_cast<layers::ActivLayer*>(layer);
     Assert(activLayer, "CodeGen::generate: layer is not an activiation layer: ", layer->gTypeStr());
 
-    const ACTIVATIONFUNC activFunc  = gActivFunc();
+    const TONGA_ISA_TPB_ACTIVATION_FUNC activFunc  = gActivFunc();
     layers::Layer* const prevLayer  = activLayer->gPrevLayer(0);
     const unsigned numIfmaps        = prevLayer->gNumOfmaps();
     const unsigned ifmapWidth       = prevLayer->gOfmapWidth();
@@ -27,8 +29,8 @@ CodeGenActivLayer::generate(layers::Layer* layer)
     const unsigned ofmapHeight      = activLayer->gOfmapHeight();
     const unsigned numBatches       = 1;
 
-    const ARBPRECTYPE inDataType    = prevLayer->gDataType().gSimTypeId();
-    const ARBPRECTYPE outDataType   = activLayer->gDataType().gSimTypeId();
+    const TONGA_ISA_TPB_DTYPE inDataType    = prevLayer->gDataType().gSimTypeId();
+    const TONGA_ISA_TPB_DTYPE outDataType   = activLayer->gDataType().gSimTypeId();
 
     m_IfmapAddrs[0] = activLayer->gIfmapAddress();
 

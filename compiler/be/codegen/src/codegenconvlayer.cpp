@@ -1,3 +1,5 @@
+#include "tcc/inc/tcc.hpp"
+
 #include "layers/inc/convlayer.hpp"
 
 #include "codegen/inc/codegenconvlayer.hpp"
@@ -31,8 +33,8 @@ CodeGenConvLayer::generate(layers::Layer* layer)
     const unsigned kernelWidth   = convLayer->gKernelWidth();
     const unsigned numBatches    = 1;
 
-    const ARBPRECTYPE inDataType  = prevLayer->gDataType().gSimTypeId();
-    const ARBPRECTYPE outDataType = convLayer->gDataType().gSimTypeId();
+    const TONGA_ISA_TPB_DTYPE inDataType  = prevLayer->gDataType().gSimTypeId();
+    const TONGA_ISA_TPB_DTYPE outDataType = convLayer->gDataType().gSimTypeId();
 
     m_FilterAddr[0] = convLayer->gWeightAddress();
     m_FilterFileNames[0] = convLayer->gFilterFileName();

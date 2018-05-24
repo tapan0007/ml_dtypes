@@ -22,7 +22,7 @@ public:
     {}
 
 protected:
-    void Generate(layers::DataLayer* dataLayer, addr_t sbAddress);
+    void Generate(layers::DataLayer* dataLayer, tonga_addr sbAddress);
 };
 
 

@@ -1,3 +1,5 @@
+#include "tcc/inc/tcc.hpp"
+
 #include "nets/inc/network.hpp"
 
 #include "codegen/inc/codegen.hpp"
@@ -46,7 +48,7 @@ CodeGenLayer::epilogue(const layers::Layer* const layer)
         }
 
         FILE* const objFile = gObjFile();
-        const ARBPRECTYPE outDataType = layer->gDataType().gSimTypeId();
+        const TONGA_ISA_TPB_DTYPE outDataType = layer->gDataType().gSimTypeId();
         compile_write_ofmap(objFile,
                 outNpyFileName,
                 m_OfmapAddrs, m_OfmapDims, outDataType);

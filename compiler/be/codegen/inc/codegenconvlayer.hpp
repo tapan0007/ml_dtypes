@@ -30,7 +30,7 @@ private:
     kcc_int32 m_FilterIndex_R = FilterIndex_R; // filter height",
     kcc_int32 m_FilterIndex_S = FilterIndex_S; // filter width",
 
-    addr_t   m_FilterAddr[2];
+    tonga_addr   m_FilterAddr[2];
     uint64_t m_FilterDims[FMAP_TENSOR_RANK];
     std::string   m_FilterFormat;
     std::string   m_FilterFileNames[2]; // more when #ofmaps > #cols

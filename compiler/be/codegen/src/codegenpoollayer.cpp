@@ -1,3 +1,5 @@
+#include "tcc/inc/tcc.hpp"
+
 
 #include "layers/inc/poollayer.hpp"
 #include "codegen/inc/codegenpoollayer.hpp"
@@ -33,8 +35,8 @@ CodeGenPoolLayer::Generate(layers::Layer* layer, TONGA_ISA_TPB_POOL_TYPE poolFun
     const unsigned kernelWidth      = poolLayer->gKernelWidth();
     const unsigned numBatches       = 1;
 
-    const ARBPRECTYPE inDataType    = prevLayer->gDataType().gSimTypeId();
-    const ARBPRECTYPE outDataType   = poolLayer->gDataType().gSimTypeId();
+    const TONGA_ISA_TPB_DTYPE inDataType    = prevLayer->gDataType().gSimTypeId();
+    const TONGA_ISA_TPB_DTYPE outDataType   = poolLayer->gDataType().gSimTypeId();
 
 
     m_IfmapAddrs[0] = poolLayer->gIfmapAddress();

@@ -1,3 +1,5 @@
+#include "tcc/inc/tcc.hpp"
+
 
 #include "layers/inc/inputlayer.hpp"
 #include "layers/inc/constlayer.hpp"
@@ -27,9 +29,9 @@ CodeGenBiasAddLayer::generate(layers::Layer* layer)
         otherLayer = prevLayers[0];
     }
 
-    const ARBPRECTYPE inDataType    = otherLayer->gDataType().gSimTypeId();
+    const TONGA_ISA_TPB_DTYPE inDataType    = otherLayer->gDataType().gSimTypeId();
     assert(constLayer->gDataType().gSimTypeId() == inDataType);
-    const ARBPRECTYPE outDataType   = biasaddLayer->gDataType().gSimTypeId();
+    const TONGA_ISA_TPB_DTYPE outDataType   = biasaddLayer->gDataType().gSimTypeId();
     const unsigned int ofmapWidth   = biasaddLayer->gOfmapWidth();
     const unsigned int ofmapHeight  = biasaddLayer->gOfmapHeight();
     m_IfmapAddrs[0]                 = otherLayer->gOfmapAddress();

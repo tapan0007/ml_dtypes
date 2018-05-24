@@ -5,6 +5,8 @@
 
 #include <cstdio>
 
+#include "aws_tonga_isa_tpb_pool.h"
+
 #include "codegen/inc/codegenlayer.hpp"
 
 namespace kcc {
