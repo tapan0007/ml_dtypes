@@ -134,6 +134,8 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(PsumXStep);
     KCC_ARCHIVE(PsumYNum);
     KCC_ARCHIVE(PsumYStep);
+    KCC_ARCHIVE(PsumZNum);
+    KCC_ARCHIVE(PsumZStep);
     KCC_ARCHIVE(StartTensorCalc);
     KCC_ARCHIVE(StopTensorCalc);
     KCC_ARCHIVE(StrideX);

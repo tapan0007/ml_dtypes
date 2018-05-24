@@ -123,6 +123,12 @@ SerWaveOp::verifyMatMul () const
     if (m_PsumYStep < 1) {
         RETURN_ASSERT(false);
     }
+    if (m_PsumZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_PsumZStep < 1) {
+        RETURN_ASSERT(false);
+    }
     // "start": true,
     if (! m_WaveId.verify()) {
         RETURN_ASSERT(false);

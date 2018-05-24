@@ -344,6 +344,7 @@ class CircularBuffer:
         self.DRAM_atoms_written = 0
         self.minibatch_multiplier = 1
         self.last_biasweight_waveop = ""
+        self.replicate_multiple = 1
 
     def reset(self):
         #self.head_pointer = self.tail_pointer
@@ -664,16 +665,16 @@ class CircularBuffer:
         self.old2new_atom_sz_ratio = self.atom_sz // self.atom_data_sz
         self.atom_sz = self.atom_data_sz
         if (self.circbuf_type == "weights"):            
-            self.file_params = FileParams(0, self.dram_data_in_file, op.weights_shape_dims, self.data_type, 2048, PEArray, op, args.abstract_mem)
+            self.file_params = FileParams(0, self.dram_data_in_file, op.weights_shape_dims, self.data_type, 2048, PEArray, op, args)
             self.file_params.load_file()
         elif (self.circbuf_type == "bias"):            
-            self.file_params = FileParams(0, self.dram_data_in_file, op.bias_shape_dims, self.data_type, 2048, PEArray, op, args.abstract_mem)
+            self.file_params = FileParams(0, self.dram_data_in_file, op.bias_shape_dims, self.data_type, 2048, PEArray, op, args)
             self.file_params.load_file()
         elif (self.circbuf_type == "ifmaps"):            
-            self.file_params = FileParams(0, self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.data_type, 2048, PEArray, op_list[0], args.abstract_mem)
+            self.file_params = FileParams(0, self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.data_type, 2048, PEArray, op_list[0], args)
             self.file_params.load_file()
         else:            
-            self.file_params = FileParams(0, self.dram_data_in_file, op.ofmaps_shape_dims, self.data_type, 2048, PEArray, op, args.abstract_mem)
+            self.file_params = FileParams(0, self.dram_data_in_file, op.ofmaps_shape_dims, self.data_type, 2048, PEArray, op, args)
             self.file_params.load_file()
         print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, (chunk_sz %d), old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.file_params.chunk_sz, self.old2new_atom_sz_ratio, self.replicate_multiple))
         #assert(self.atom_data_sz == self.file_params.chunk_sz)
@@ -729,13 +730,14 @@ class CircularBuffer:
         ifmap_replication_step_bytes = 0
         if conv_op is not None and tpb.statebuffer.circbuf_weights.replicate_multiple > 1:
             src_step_elem = conv_op.stride_x
-            ifmap_replication_resolution = conv_op.C * conv_op.stride_x
             if self.circbuf_type == "weights":
                 ifmap_replication_num_rows = conv_op.C
+                ifmap_replication_resolution = conv_op.C
                 ifmap_replication_step_bytes = conv_op.M * conv_op.item_sz
             else:
                 ifmap_replication_num_rows = conv_op.C * conv_op.S
-                ifmap_replication_step_bytes = conv_op.W * conv_op.item_sz
+                ifmap_replication_resolution = conv_op.C * conv_op.stride_x
+                ifmap_replication_step_bytes = conv_op.W * conv_op.stride_x * conv_op.item_sz
 
         # collect stats
         if (args.debug > 1):
@@ -1211,6 +1213,7 @@ class KNode:
         self.bias_shape_dims = None
         self.src_is_psum = True
         self.dst_is_psum = True
+        self.replicate_multiple = 1
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)

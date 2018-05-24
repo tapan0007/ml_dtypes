@@ -247,6 +247,14 @@ public:
         return m_PsumYStep;
     }
 
+    kcc_int16 gPsumZNum () const {
+        return m_PsumZNum;
+    }
+
+    kcc_int16 gPsumZStep () const {
+        return m_PsumZStep;
+    }
+
     kcc_int16 gNumColumnPartitions () const {
         return m_NumColumnPartitions;
     }
@@ -302,6 +310,8 @@ private:
     kcc_int16       m_PsumXStep             = -1;
     kcc_int16       m_PsumYNum              = -1;
     kcc_int16       m_PsumYStep             = -1;
+    kcc_int16       m_PsumZNum              = -1;
+    kcc_int16       m_PsumZStep             = -1;
     bool            m_StartTensorCalc       = true;
     bool            m_StopTensorCalc        = true;
     kcc_int16       m_StrideX               = -1;
@@ -348,6 +358,8 @@ public:
     kcc_int16       m_PsumXStep             = -1;
     kcc_int16       m_PsumYNum              = -1;
     kcc_int16       m_PsumYStep             = -1;
+    kcc_int16       m_PsumZNum              = -1;
+    kcc_int16       m_PsumZStep             = -1;
     bool            m_StartTensorCalc       = true;
     bool            m_StopTensorCalc        = true;
     kcc_int16       m_StrideX               = -1;

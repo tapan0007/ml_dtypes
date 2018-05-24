@@ -218,6 +218,8 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     matmulInstr.dst_mem_pattern.step_elem[PatDim_X]       = matmulWaveop->gPsumXStep();
     matmulInstr.dst_mem_pattern.num_elem[PatDim_Y]        = matmulWaveop->gPsumYNum();
     matmulInstr.dst_mem_pattern.step_elem[PatDim_Y]       = matmulWaveop->gPsumYStep();
+    matmulInstr.dst_mem_pattern.num_elem[PatDim_Z]        = matmulWaveop->gPsumZNum();
+    matmulInstr.dst_mem_pattern.step_elem[PatDim_Z]       = matmulWaveop->gPsumZStep();
 
 
     matmulInstr.timing_flags = 0;

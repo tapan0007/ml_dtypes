@@ -44,6 +44,8 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     , m_PsumXStep(params.m_PsumXStep)
     , m_PsumYNum(params.m_PsumYNum)
     , m_PsumYStep(params.m_PsumYStep)
+    , m_PsumZNum(params.m_PsumZNum)
+    , m_PsumZStep(params.m_PsumZStep)
     , m_StartTensorCalc(params.m_StartTensorCalc)
     , m_StopTensorCalc(params.m_StopTensorCalc)
     , m_StrideX(params.m_StrideX)
@@ -135,6 +137,12 @@ MatMulWaveOp::verify() const
         return false;
     }
     if (m_PsumYStep < 1) {
+        return false;
+    }
+    if (m_PsumZNum < 1) {
+        return false;
+    }
+    if (m_PsumZStep < 1) {
         return false;
     }
     // start

@@ -133,6 +133,8 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(PsumXStep);
     KCC_ARCHIVE(PsumYNum);
     KCC_ARCHIVE(PsumYStep);
+    KCC_ARCHIVE(PsumZNum);
+    KCC_ARCHIVE(PsumZStep);
     KCC_ARCHIVE(StartTensorCalc);
     KCC_ARCHIVE(StopTensorCalc);
     KCC_ARCHIVE(StrideX);

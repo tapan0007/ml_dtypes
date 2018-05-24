@@ -449,6 +449,8 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(PsumXStep);
     KCC_UNSERIALIZE(PsumYNum);
     KCC_UNSERIALIZE(PsumYStep);
+    KCC_UNSERIALIZE(PsumZNum);
+    KCC_UNSERIALIZE(PsumZStep);
 
     KCC_UNSERIALIZE(StartTensorCalc);
     KCC_UNSERIALIZE(StopTensorCalc);

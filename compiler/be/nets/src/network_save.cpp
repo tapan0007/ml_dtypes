@@ -353,6 +353,8 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     KCC_SERIALIZE(PsumXStep);
     KCC_SERIALIZE(PsumYNum);
     KCC_SERIALIZE(PsumYStep);
+    KCC_SERIALIZE(PsumZNum);
+    KCC_SERIALIZE(PsumZStep);
     serWaveOp.m_StartTensorCalc = matmulWaveOp->qStartTensorCalc();
     serWaveOp.m_StopTensorCalc = matmulWaveOp->qStopTensorCalc();
     KCC_SERIALIZE(StrideX);

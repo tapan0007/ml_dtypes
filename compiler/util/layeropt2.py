@@ -271,6 +271,7 @@ class KNode:
         self.weights_file_params = None
         self.bias_file_params = None
         self.fused_op = None
+        self.replicate_multiple = 1
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
@@ -311,7 +312,7 @@ class KNode:
                                     2048, 
                                     PEArray, 
                                     self,
-                                    args.abstract_mem)
+                                    args)
         self.ofmaps_file_params.layer_name =  layer_info['layer_name']
         self.parent.current_file_id += 1
         self.N, self.M, self.E, self.F = self.ofmaps_file_params.get_nchw_shape()
@@ -332,7 +333,7 @@ class KNode:
                                             2048, 
                                             PEArray, 
                                             self,
-                                            args.abstract_mem)
+                                            args)
                 self.bias_file_params.layer_name =  prev_node.data['layer_name']
                 self.parent.current_file_id += 1
                 self.bias_file_params.load_file()
@@ -433,13 +434,21 @@ class KNode:
         else:
             weights_shape_dims = ShapeDims(layer_info['kernel_format'], layer_info['kernel_shape'])            
             weights_file = self.data['kernel_file']
-        self.weights_file_params = FileParams(self.parent.current_file_id, weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, args.abstract_mem)
+        # kaena-141: replicate IFMAP a number of times.
+        # The number is determined by S, multiplied by a portion of R to match r*S*C <= 128
+        # In the case of 1st layer ResNet50, R=7, S=7, C=3 so R can be broken a number of ways. 
+        # For now, split evenly among two waves.
+        self.replicate_multiple = 1
+        if args.enable_replication:
+            num_replicated_waves = ceildiv(weights_shape_dims.R * weights_shape_dims.S * weights_shape_dims.C,  PEArray.NUM_ROWS)
+            self.replicate_multiple = ceildiv(weights_shape_dims.R, num_replicated_waves) * weights_shape_dims.S
+        self.weights_file_params = FileParams(self.parent.current_file_id, weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, args)
         self.weights_file_params.layer_name =  self.data['layer_name']
         self.parent.current_file_id += 1
         self.weights_file_params.load_file()
         self.R = self.weights_file_params.file_dims.R
         self.S = self.weights_file_params.file_dims.S
-        print("Conv params for layer %s: R=%d, S=%d"%(self.data['layer_name'], self.weights_file_params.file_dims.R, self.weights_file_params.file_dims.S))
+        print("Conv params for layer %s: R=%d, S=%d, replicate_multiple=%d"%(self.data['layer_name'], self.weights_file_params.file_dims.R, self.weights_file_params.file_dims.S, self.replicate_multiple))
 
     # Compute pooling params
     def populate_pooling_params(self):
@@ -452,8 +461,6 @@ class KNode:
         if (args.eigenlib_stride):
             self.eigenlib_offset_x = ceildiv(self.stride_x, 2) - 1
             self.eigenlib_offset_y = ceildiv(self.stride_y, 2) - 1
-        self.ifmap_wave_lower_addr = -1
-        self.ifmap_wave_upper_addr = -1
         print("Pooling params for layer %s: pool_window_x=%d, pool_window_y=%d, stride_x=%d, stride_y=%d"
                 %(self.data['layer_name'], self.pool_window_x, self.pool_window_y, self.stride_x, self.stride_y))
 
@@ -570,9 +577,11 @@ class KNode:
         s_id = wave_id.s_id
         last_r_id = r_id
         last_s_id = s_id
+        num_rows = pe_row_stop - pe_row_start
         for repl in range(replicate_multiple):
+            pe_row_repl_start = num_rows * repl
             for row in range(pe_row_start, pe_row_stop):
-                pe_row_offset = row - pe_row_start
+                pe_row_offset = pe_row_repl_start + row - pe_row_start
                 for z in range(self.Tn):
                     batch_id = (wave_id.n_id * self.Tn) + z
                     for x in range(self.ofmap_full_tilex_sz):
@@ -594,7 +603,7 @@ class KNode:
                                 # Check bounds of actual pixels within the original ifmaps for the first ifmap (which should reside in first SB partition)
                                 # TODO: check how N/C are arrange in memory; batching within waves may cause different atoms to be accessed by same wave
                                 # TODO: for Tn>1, need to have multiple bounds for each batch item
-                                if (row == pe_row_start):                                
+                                if (repl == 0 and row == pe_row_start):                                
                                     # NCHW
                                     self.ifmap_wave_upper_addr[z] = self.ifmaps_file_params.ravel_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
                                     self.ofmap_wave_upper_coordx[z] = x
@@ -605,6 +614,7 @@ class KNode:
                                         self.ofmap_wave_lower_coordy[z] = y
                                         self.psum_bank_offset = (y * self.ofmap_full_tilex_sz + x)
                             #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx, self.ofmap_wave_lower_coordy, self.ofmap_wave_upper_coordx, self.ofmap_wave_upper_coordy))                                    
+                            #if (args.debug > 3): print("DBG: pack_wave_ifmaps for wave %s batch_id %d x %d y %d r_id %d s_id %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(wave_id.show(), batch_id, x, y, r_id, s_id, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
@@ -675,23 +685,29 @@ class KNode:
         pe_col_start = wave_id.m_id * PEArray.NUM_COLS
         pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
         self.ifmap_count = pe_row_stop - pe_row_start
-        self.ifmap_count = self.ifmap_count * replicate_multiple           
         self.ofmap_count = pe_col_stop - pe_col_start
         r_id = wave_id.r_id
         s_id = wave_id.s_id
         last_r_id = r_id
         last_s_id = s_id
+        num_rows = pe_row_stop - pe_row_start
         for repl in range(replicate_multiple):
+            pe_row_repl_start = num_rows * repl
             for row in range(pe_row_start, pe_row_stop):
+                pe_row_offset = pe_row_repl_start + row - pe_row_start
                 for col in range(pe_col_start, pe_col_stop):
-                    out_array[row - pe_row_start, col - pe_col_start] = weights[row, r_id, s_id, col] # CRSM
+                    out_array[pe_row_offset, col - pe_col_start] = weights[row, r_id, s_id, col] # CRSM
                     last_r_id = r_id
                     last_s_id = s_id
+            if (args.debug > 2): print("DBG: pack_wave_conv_weights for wave %s r_id %d s_id %d"%(wave_id.show(), r_id, s_id))
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
                 s_id = 0
                 if (r_id >= self.R): break
+
+        # use repl+1 here for replication multiple (for example, R=7 is broken into replicate_multiple of 4 for first wave and replicate_multiple of 3 for second wave)
+        self.ifmap_count = self.ifmap_count * (repl + 1)
 
         self.weight_wave_lower_addr = self.weights_file_params.ravel_crsm(
                                             pe_row_start, wave_id.r_id, wave_id.s_id, pe_col_start)
@@ -1092,10 +1108,10 @@ class FusedOp(list):
                     if (not npu.allclose(ofmaps, expected_ofmaps_extracted, 1/100, 1e-5, verbose=True)):
                         print("\nERROR: layer %s batch item %d computed OFMAPS is not equal to expected OFMAPS!\n"%(self.last_op.data['layer_name'], i))
                         tpb.num_mismatches += 1
+                    if self.last_op.is_output:
+                        waveops = tpb.statebuffer.file_mapper.flush_file(tpb.waveop_stream.nonload_waveop_list, self.last_op.ofmaps_file_params, i)
+                        tpb.waveop_stream.add_outputs(waveops)
                 self.last_op.ofmaps_file_params.save_file()
-                if self.last_op.is_output:
-                    waveops = tpb.statebuffer.file_mapper.flush_file(tpb.waveop_stream.nonload_waveop_list, self.last_op.ofmaps_file_params, batch_item)
-                    tpb.waveop_stream.add_outputs(waveops)
 
     # generate MatMul waveop and add it to waveop stream
     def gen_matmul_waveop(self, tpb, wave_id, psum_add, dram_weights_waveops):
@@ -1124,23 +1140,34 @@ class FusedOp(list):
         break_addr = []
         addr_step_y = self.conv_op.W * self.conv_op.stride_y * self.conv_op.item_sz
         for i in range(self.conv_op.ofmap_wave_height):
+            # TODO: how to deal with partial batching here?
             address = self.conv_op.ifmap_wave_lower_addr[0] + i * addr_step_y
             if (address > self.conv_op.ifmap_wave_upper_addr[0]):
                 break
-            chunk_id = tpb.statebuffer.file_mapper.get_chunk_id_from_file_addr(self.conv_op.ifmaps_file_params, 0, address)
-            atom_id = tpb.statebuffer.file_mapper.get_atom_id_from_file_addr(self.conv_op.ifmaps_file_params, 0, address)
+            chunk_id = tpb.statebuffer.file_mapper.get_chunk_id_from_file_addr(self.conv_op.ifmaps_file_params, batch_item, address)
+            atom_id = tpb.statebuffer.file_mapper.get_atom_id_from_file_addr(self.conv_op.ifmaps_file_params, batch_item, address)
             if args.abstract_mem:
                 break_cond = chunk_id != current_chunk_id
             else:
                 break_cond = not (atom_id == current_atom_id or atom_id == current_atom_id+1)
             if break_cond:
                 break_at_y.append(i)
-                break_addr.append(tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.conv_op.ifmaps_file_params, 0, address))
+                break_addr.append(tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.conv_op.ifmaps_file_params, batch_item, address))
                 current_chunk_id = chunk_id
                 current_atom_id = atom_id
                 if (args.debug > 3): print("DBG: breaking wave at row %d addr %d"%(i, break_addr[-1]))
         matmul_waveop = []
         start_tensor_calc = not(psum_add)
+
+        # replication parameters
+        ifmap_replication_resolution = 0
+        ifmap_replication_num_rows = 0
+        ifmap_replication_shift_amnt = 0
+        if self.conv_op.ifmaps_file_params.replicate_multiple > 1:
+            ifmap_replication_resolution = self.conv_op.C * self.conv_op.stride_x
+            ifmap_replication_num_rows = self.conv_op.C * self.conv_op.S
+            ifmap_replication_shift_amnt = 1
+
         for i in range(len(break_at_y)):                
             if (i == len(break_at_y)-1):
                 next_break = self.conv_op.ofmap_wave_height
@@ -1159,9 +1186,10 @@ class FusedOp(list):
             if i==0:
                 for j in dram_weights_waveops:
                     dram_waveop_names.append(j["waveop_name"])
-            lower_file_address = self.conv_op.ifmap_wave_lower_addr[0] + break_at_y[i] * addr_step_y
-            upper_file_address = min(self.conv_op.ifmap_wave_lower_addr[0] + next_break * addr_step_y - self.conv_op.item_sz, self.conv_op.ifmap_wave_upper_addr[0])
-            dram_waveop_names += tpb.statebuffer.file_mapper.get_dram_waveop_names(self.conv_op.ifmaps_file_params, batch_item, lower_file_address, upper_file_address)
+            for z in range(self.conv_op.Tn):                    
+                lower_file_address = self.conv_op.ifmap_wave_lower_addr[z] + break_at_y[i] * addr_step_y
+                upper_file_address = min(self.conv_op.ifmap_wave_lower_addr[z] + next_break * addr_step_y - self.conv_op.item_sz, self.conv_op.ifmap_wave_upper_addr[z])
+                dram_waveop_names += tpb.statebuffer.file_mapper.get_dram_waveop_names(self.conv_op.ifmaps_file_params, batch_item + z, lower_file_address, upper_file_address)
             fmap_z_step = (self.conv_op.ifmaps_file_params.batch_item_partition_usage_sz//self.conv_op.item_sz) if self.conv_op.Tn > 1 else 1
 
             if (args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, ifmaps_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, ifmaps_sb_address, fmap_y_num))                
@@ -1204,13 +1232,17 @@ class FusedOp(list):
                   'psum_z_step'             : self.conv_op.ofmap_full_tile_sz,
                   'psum_z_num'              : self.conv_op.Tn,
                   'num_column_partitions'   : self.conv_op.ofmap_count,
+                  'ifmap_replication_resolution' : ifmap_replication_resolution, 
+                  'ifmap_replication_num_rows' : ifmap_replication_num_rows,
+                  'ifmap_replication_shift_amnt' : ifmap_replication_shift_amnt,
                 })
             start_tensor_calc = False   # this is only true for the first MatMul, even when there's a break
         return matmul_waveop
 
     # generate Pool waveop and add it to waveop stream
     # TODO: currently, always go to SB after Pooling
-    def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id, start_at_mid_part):
+    # TODO: currently, cannot process multiple batch items in one instruction
+    def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id, start_at_mid_part, partial_batch_item):
         if (src_is_psum):
             src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
             src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
@@ -1222,13 +1254,14 @@ class FusedOp(list):
         else:
             src_ifmap_width = self.pool_op.W
             src_ifmap_height = self.pool_op.H
-            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ifmaps_file_params, 0, self.pool_op.ifmap_wave_lower_addr[0])
+            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ifmaps_file_params, partial_batch_item, self.pool_op.ifmap_wave_lower_addr[partial_batch_item])
             in_dtype = self.out_data_type
+        src_psum_bank_offset = src_ifmap_width * src_ifmap_height * partial_batch_item
         psum_step_multiplier = 1   # kaena-174, tonga-310: after Inkling fix, no need for multiplier         
         waveop_name = self.pool_op.data['layer_name']+"/Pool_"+tile_id.id_string()
         pool_frequency = self.pool_op.pool_window_x * self.pool_op.pool_window_y
         pool_scale = float(1/pool_frequency)
-        dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ofmaps_file_params, 0, self.pool_op.ofmap_tile_lower_addr[0])
+        dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ofmaps_file_params, partial_batch_item, self.pool_op.ofmap_tile_lower_addr[partial_batch_item])
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
@@ -1241,7 +1274,7 @@ class FusedOp(list):
               'out_dtype'               : self.out_data_type,
               'src_is_psum'             : src_is_psum,
               'src_psum_bank_id'        : src_psum_bank_id,
-              'src_psum_bank_offset'    : 0,
+              'src_psum_bank_offset'    : src_psum_bank_offset,
               'src_sb_address'          : src_sb_address, 
               'src_start_at_mid_part'   : start_at_mid_part, 
               'src_x_step'              : 1 * psum_step_multiplier,
@@ -1261,8 +1294,8 @@ class FusedOp(list):
               'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
               'dst_y_step'              : self.pool_op.E,
               'dst_y_num'               : self.pool_op.ofmap_cropped_tile_height,
-              'dst_z_step'              : self.pool_op.E * self.pool_op.F,  # Need CNHW data format
-              'dst_z_num'               : self.pool_op.Tn,  # Need CNHW data format
+              'dst_z_step'              : 1, 
+              'dst_z_num'               : 1,
             }
         return pool_waveop
 
@@ -1759,6 +1792,13 @@ class KGraph:
         if fused_ops.last_op.ofmaps_file_params is not None:
             fused_ops.last_op.ofmaps_file_params.zero_file()
             fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(fused_ops.last_op)
+        # transfer replicate_multiple from weights_file_params to ifmaps_file_params
+        if fused_ops.has_conv:
+            fused_ops.conv_op.ifmaps_file_params.replicate_multiple = fused_ops.conv_op.weights_file_params.replicate_multiple
+            fused_ops.conv_op.ifmaps_file_params.weights_S_dim = fused_ops.conv_op.weights_file_params.file_dims.S
+            fused_ops.conv_op.ifmaps_file_params.stride_x = fused_ops.conv_op.stride_x
+            fused_ops.conv_op.ifmaps_file_params.stride_y = fused_ops.conv_op.stride_y
+            print("copied ifmaps_file_params.replicate_multiple = weights_file_params.replicate_multiple %d"%(fused_ops.conv_op.weights_file_params.replicate_multiple))
         # mark fusedops to be at end of first leg if the following op is ResAdd
         if (self.first_leg 
                 and self.current_node != None 
@@ -1871,7 +1911,7 @@ class TPBSched:
         dst_x_num = op.ofmap_full_tilex_sz
         dst_y_step = op.E
         dst_y_num = op.ofmap_full_tiley_sz
-        dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
+        dst_z_step = (op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz) if op.Tn > 1 else 1
         dst_z_num = op.Tn  # Need CNHW data format
         num_partitions = op.ofmap_count
         dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, 0, op.ofmap_tile_lower_addr[0])
@@ -1950,6 +1990,7 @@ class TPBSched:
             elif (act_op.item_sz == 1 and not dst_is_psum):
                 print("ERROR: item_sz %d not yet supported"%act_op.item_sz)
         assert(act_or_biasadd_op != None)
+        batch_item = tile_id.n_id * act_or_biasadd_op.Tn
         dst_x_num = 1
         dst_y_step = 1
         dst_y_num = 1
@@ -1961,14 +2002,14 @@ class TPBSched:
                 dst_x_num = conv_op.ofmap_cropped_tile_width
                 dst_y_step = conv_op.ofmap_cropped_tile_width
                 dst_y_num = conv_op.ofmap_cropped_tile_height
-                dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
-                dst_z_num = conv_op.Tn  # Need CNHW data format
+                dst_z_step = dst_y_step * dst_y_num 
+                dst_z_num = conv_op.Tn
             else:                
                 dst_x_num = conv_op.ofmap_cropped_tile_width
                 dst_y_step = conv_op.F
                 dst_y_num = conv_op.ofmap_cropped_tile_height
-                dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
-                dst_z_num = conv_op.Tn  # Need CNHW data format
+                dst_z_step = (conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz) if conv_op.Tn > 1 else 1
+                dst_z_num = conv_op.Tn
             num_partitions = conv_op.ofmap_count
         elif (act_or_biasadd_op !=  None):
             # unfused
@@ -1980,13 +2021,13 @@ class TPBSched:
             num_partitions = act_or_biasadd_op.ofmap_count
         src_sb_address = 0
         if not src_is_psum:
-            src_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ifmaps_file_params, 0, act_or_biasadd_op.ifmap_wave_lower_addr[0])
+            src_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ifmaps_file_params, batch_item, act_or_biasadd_op.ifmap_wave_lower_addr[0])
         dst_sb_address = 0
         if not dst_is_psum:
             if (conv_op != None):
-                dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ofmaps_file_params, 0, conv_op.ofmap_tile_lower_addr[0])
+                dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ofmaps_file_params, batch_item, conv_op.ofmap_tile_lower_addr[0])
             else:                
-                dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ofmaps_file_params, 0, act_or_biasadd_op.ofmap_tile_lower_addr[0])
+                dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ofmaps_file_params, batch_item, act_or_biasadd_op.ofmap_tile_lower_addr[0])
         waveop_name = layer_name+"/Activation_"+tile_id.id_string()            
         instr = {
               'previous_waveops'        : [],
@@ -2053,14 +2094,14 @@ class TPBSched:
                 dst_x_num = conv_op.ofmap_cropped_tile_width
                 dst_y_step = conv_op.ofmap_cropped_tile_width
                 dst_y_num = conv_op.ofmap_cropped_tile_height
-                dst_z_step = dst_y_step * dst_y_num # Need CNHW data format if HW is large
-                dst_z_num = conv_op.Tn  # Need CNHW data format if HW is large
+                dst_z_step = dst_y_step * dst_y_num 
+                dst_z_num = conv_op.Tn
             else:                
                 dst_x_num = conv_op.ofmap_full_tilex_sz
                 dst_y_step = conv_op.E
                 dst_y_num = conv_op.ofmap_cropped_tile_height
-                dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
-                dst_z_num = conv_op.Tn  # Need CNHW data format
+                dst_z_step = (conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz) if conv_op.Tn > 1 else 1
+                dst_z_num = conv_op.Tn
             num_partitions = conv_op.ofmap_count
         else:
             # unfused
@@ -2130,12 +2171,14 @@ class TPBSched:
         self.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1)
 
     def gen_fused_pool_waveop_inline (self, fused_ops, tile_id, psum_bank_src, start_at_mid_part):
-        pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, True, psum_bank_src, start_at_mid_part)
-        self.waveop_stream.add_linked(pool_waveop, [], psum_bank_src)
+        for z in range(fused_ops.pool_op.Tn):
+            pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, True, psum_bank_src, start_at_mid_part, z)
+            self.waveop_stream.add_linked(pool_waveop, [], psum_bank_src)
 
     def gen_unfused_pool_waveop_inline (self, fused_ops, tile_id, dram_waveops, start_at_mid_part):
-        pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, False, 0, start_at_mid_part)
-        self.waveop_stream.add_linked(pool_waveop, dram_waveops, -1)
+        for z in range(fused_ops.pool_op.Tn):
+            pool_waveop = fused_ops.gen_pool_waveop(self, tile_id, False, 0, start_at_mid_part, z)
+            self.waveop_stream.add_linked(pool_waveop, dram_waveops if z==0 else [], -1)
 
     # collect stats
     def collect_stats(self, layer_name):        
@@ -2633,9 +2676,10 @@ if __name__ == "__main__":
     parser.add_argument("--no_inter_layer_load", action='store_true', help="Don't allow inter-layer loads")
     parser.add_argument("--stop_after_layer_num", type=int, default=0, help="Stop execution after fused op number. 0 means execute all fused ops. 1 means execute 1 fused op after Input. If there's a fork, there will be two outputs.")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
+    parser.add_argument("--enable_replication", action='store_true', help="Enable replication for cases where number of FMAP channels is lower than PEArray rows")
     args = parser.parse_args()
 
-    print("Running in %s mode"%(args.nname))
+    print("Middle Sched v2: Running in %s mode"%(args.nname))
 
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
 

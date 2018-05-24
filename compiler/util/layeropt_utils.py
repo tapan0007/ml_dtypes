@@ -7,17 +7,7 @@ def ceildiv(x, y):
     return -(-x//y)
 
 def data_type_to_item_sz(data_type):
-    if (data_type == 'float16'):
-        item_sz = 2
-    elif (data_type == 'float32'):
-        item_sz = 4
-    elif (data_type == 'uint8'):
-        item_sz = 1
-    else:
-        print("ERROR: cannot handle data type %s"%data_type)
-        exit(-1)
-        item_sz = -1
-    return item_sz        
+    return np.dtype(data_type).itemsize
 
 # Class to manage head and tail pointers for circular buffer with two modes:
 #   - endzone_sz = 0: Normal mode: advance pointer until capacity, where it wraps to 0
@@ -175,7 +165,7 @@ class ShapeDims():
 
 # Class to manage file-related parameters
 class FileParams():
-    def __init__(self, file_id, file_name, file_dims, data_type, chunk_sz_limit, pearray_params, op_params, abstract_mem):
+    def __init__(self, file_id, file_name, file_dims, data_type, chunk_sz_limit, pearray_params, op_params, args=None):
         self.layer_name = "DEPRECATED"
         self.file_id = file_id
         self.file_name = file_name
@@ -197,12 +187,11 @@ class FileParams():
         self.batch_item_partition_usage_sz = -1
         self.batch_item_num_chunks = -1
         self.mapped_params = None
-        self.replicate_multiple = 1
         self.file_addr_skip_per_fmap_fold = -1
         # Keeping a list of ops that writes to the same OFMAP, so that all can be transfered if OFMAP file is combined with another
         self.writers_of_shared_fmap = []
         self.readers_of_shared_fmap = []
-        self.compute_params(pearray_params, op_params, abstract_mem)
+        self.compute_params(pearray_params, op_params, args)
 
     def load_file(self):
         if (self.file_name != None):
@@ -287,12 +276,14 @@ class FileParams():
         coord[self.file_dims.W_axis] = W
         return self.dram_data[tuple(coord)]
 
-    def compute_params(self, pearray_params, op_params, abstract_mem):
+    def compute_params(self, pearray_params, op_params, args):
         # Single FMAP elem count (unified formula for weights and FMAP)
         fmap_elem_count = self.file_dims.R * self.file_dims.S * self.file_dims.M * self.file_dims.H * self.file_dims.W
         self.fmap_data_len = fmap_elem_count * self.item_sz
-        #if (C < PEArray.NUM_ROWS and (R > 1 or S > 1)):                                                                <
-        #   self.replicate_multiple = min(PEArray.NUM_ROWS//C, self.total_filter_size)                                  <
+        self.stride_x = op_params.stride_x
+        self.stride_y = op_params.stride_y
+        self.replicate_multiple = op_params.replicate_multiple
+        self.weights_S_dim = self.file_dims.S
         # per kaena-85, use noodle shapes for tiles
         # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
         self.fmap_full_tilex_sz = min(self.file_dims.W, pearray_params.MAX_WAVE_SIZE)
@@ -327,7 +318,7 @@ class FileParams():
             # For FP32, use initial atom of 2KB to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
             elif (ifmap_width_data_len <= self.chunk_sz_limit):
                 input_fmap_full_tiley_sz = self.fmap_full_tiley_sz * op_params.stride_y
-                if (abstract_mem):
+                if (args is not None and args.abstract_mem):
                     self.chunk_sz = ifmap_width_data_len * input_fmap_full_tiley_sz
                 else:
                     multiple = self.chunk_sz_limit // ifmap_width_data_len
@@ -343,7 +334,7 @@ class FileParams():
                     #    print("WARNING: FMAP size %d is not a multiple of chunk size %d for shape %s, so c>=1 addresses don't align to chunks!"%(self.fmap_data_len, self.chunk_sz, str(self.file_dims.shape_tuple)))
             else:
                 self.chunk_sz = self.chunk_sz_limit
-        self.tot_partition_usage_sz         = self.file_dims.tot_elems * self.item_sz // min(self.file_dims.C, pearray_params.NUM_ROWS)
+        self.tot_partition_usage_sz         = ceildiv(self.file_dims.tot_elems * self.item_sz, min(self.file_dims.C, pearray_params.NUM_ROWS))
         self.batch_item_partition_usage_sz  = self.tot_partition_usage_sz // self.file_dims.N
         self.fmap_num_chunks                = ceildiv(self.fmap_data_len, self.chunk_sz)
         self.fmap_channels_folds            = ceildiv(self.file_dims.C, pearray_params.NUM_ROWS)  # num of folds (same as lowercase "c" computed elsewhere):
@@ -617,9 +608,9 @@ class FileMapper():
         return (list_of_writers, list_of_readers, list_of_waveops)
 
     def flush_file (self, nonload_waveop_list, file_params, batch_item):
-        start_chunk_id      = 0
-        end_chunk_id        = file_params.tot_num_chunks - 1
-        num_chunks          = file_params.tot_num_chunks
+        start_chunk_id      = batch_item * file_params.batch_item_num_chunks
+        end_chunk_id        = start_chunk_id + file_params.batch_item_num_chunks - 1
+        num_chunks          = file_params.batch_item_num_chunks
         if num_chunks > file_params.mapped_params.num_region_chunks:
             raise RuntimeError("Number of chunks written %d is larger than mapped number of chunks %d"%(num_chunks, file_params.mapped_params.num_region_chunks))
         list_of_waveops = []
@@ -730,6 +721,23 @@ class FileMapper():
         sb_addr         = self.get_sb_addr_from_chunk_id(file_params, batch_item, chunk_id)
         fmap_count      = self.get_fmap_count_from_chunk_id(file_params, batch_item, chunk_id)
         assert (length > 0)           
+        # IFMAP replication parameters
+        src_step_elem = 1
+        ifmap_replication_num_rows = 0
+        ifmap_replication_resolution = 0
+        ifmap_replication_step_bytes = 0
+        if file_params.replicate_multiple > 1:
+            src_step_elem = file_params.stride_x
+            fmap_count = fmap_count * file_params.replicate_multiple
+            if file_params.file_dims.has_M:
+                ifmap_replication_num_rows = file_params.file_dims.C
+                ifmap_replication_resolution = file_params.file_dims.C
+                ifmap_replication_step_bytes = file_params.file_dims.M * file_params.item_sz
+            else:
+                ifmap_replication_num_rows = file_params.file_dims.C * file_params.weights_S_dim
+                ifmap_replication_resolution = file_params.file_dims.C * file_params.stride_x
+                ifmap_replication_step_bytes = file_params.file_dims.W * file_params.stride_x * file_params.item_sz
+
         # collect stats
         #if (args.debug > 1):
         #    self.DRAM_elem_read += length * fmap_count / self.item_sz
@@ -760,11 +768,15 @@ class FileMapper():
               'offset_in_file'   : offset_in_file,
               'length'           : length,
               'start_at_mid_part' : False,  # TODO: is this always false for loads?
-              'ifmaps_replicate' : False,   # TODO: use replicate_multiple
+              'ifmaps_replicate' : ifmap_replication_resolution > 0,  # TODO: is this still needed?
               'ifmaps_fold_idx'  : 0,    # TODO: is this still needed?
               'batch_fold_idx'   : 0, #wave_id.n_id,
               'ifmap_count'      : fmap_count,  # if this is larger than C, replicate fmap_count/C times
               'partition_step_bytes': file_params.fmap_data_len,
+              'src_step_elem'     : src_step_elem,
+              'ifmap_replication_resolution' : ifmap_replication_resolution, 
+              'ifmap_replication_num_rows' : ifmap_replication_num_rows,
+              'ifmap_replication_step_bytes' : ifmap_replication_step_bytes,
             }
 
     def gen_dram_save_waveop(self, file_params, batch_item, chunk_id, previous_waveops):
@@ -860,43 +872,45 @@ class TestFileParams(unittest.TestCase):
     class op_params_stride2():
         stride_x = 2
         stride_y = 2
+        replicate_multiple = 1
 
     class op_params_stride1():
         stride_x = 1
         stride_y = 1
+        replicate_multiple = 1
 
     def test_file_params_instantiation(self):
         shape_dims = ShapeDims("CRSM", [1,7,7,64]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 896)
         shape_dims = ShapeDims("CRSM", [256,1,1,128]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 256)
         self.assertEqual(test_obj.ravel_crsm(0,0,0,0), 0)
         self.assertEqual(test_obj.ravel_crsm(1,0,0,0), 128*test_obj.item_sz)
         shape_dims = ShapeDims("NHWC", [1,224,224,3]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
         self.assertEqual(test_obj.chunk_sz, 1792)
         shape_dims = ShapeDims("NHWC", [1,112,112,64]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 1792)
         shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
         self.assertEqual(test_obj.chunk_sz, 1760)
         shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 1760)
         shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 1210, self.pearray_params, self.op_params_stride1, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 1210, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 880)
         shape_dims = ShapeDims("NHWC", [1,28,28,256]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 1568)
         shape_dims = ShapeDims("NHWC", [1,14,14,256]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 392)
         shape_dims = ShapeDims("NHWC", [1,7,7,256]) 
-        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 98)
         self.assertEqual(test_obj.ravel_nchw(0,0,0,0), 0)
         self.assertEqual(test_obj.ravel_nchw(0,0,0,1), 256*test_obj.item_sz)
@@ -911,15 +925,17 @@ class TestFileMapper(unittest.TestCase):
     class op_params_stride2():
         stride_x = 2
         stride_y = 2
+        replicate_multiple = 1
 
     class op_params_stride1():
         stride_x = 1
         stride_y = 1
+        replicate_multiple = 1
 
     def test_map_file(self):
         current_file_id = 0
         shape_dims = ShapeDims("CRSM", [256,7,7,64]) 
-        file_params = FileParams(current_file_id, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        file_params = FileParams(current_file_id, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(file_params.chunk_sz, 896)
         test_obj = FileMapper(96*1024, "float16")
         self.assertEqual(test_obj.item_sz, 2)
@@ -1014,7 +1030,7 @@ class TestFileMapper(unittest.TestCase):
 
     def test_map_file2(self):
         shape_dims = ShapeDims("NCHW", [16,3,224,224]) 
-        file_params = FileParams(0, "testfile2.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2, False)
+        file_params = FileParams(0, "testfile2.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
         file_params.load_file()
         test_obj = FileMapper(96*1024, "float16")
         test_obj.map_file(file_params, 50240, True, region_sz=55*55*file_params.item_sz)
@@ -1041,7 +1057,7 @@ class TestFileMapper(unittest.TestCase):
 
     def test_map_file_55x55(self):
         shape_dims = ShapeDims("NCHW", [1,256,55,55]) 
-        file_params = FileParams(0, "testfile_55x55.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2, False)
+        file_params = FileParams(0, "testfile_55x55.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
         file_params.load_file()
         test_obj = FileMapper(96*1024, "float16")
         #test_obj.map_file(file_params, 0, True, region_sz=55*55*file_params.item_sz)
@@ -1067,7 +1083,7 @@ class TestFileMapper(unittest.TestCase):
 
     def test_zero_file(self):
         shape_dims = ShapeDims("NCHW", [16,3,224,224]) 
-        file_params = FileParams(0, "testfile2.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2, False)
+        file_params = FileParams(0, "testfile2.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
         x = file_params.load_file()
         y = np.random.rand(x.size)
         z = y.astype(x.dtype)
@@ -1082,7 +1098,7 @@ class TestFileMapper(unittest.TestCase):
 
     def map_chunk_id_single(self, shape_tuple, region_sz):
         shape_dims = ShapeDims("NCHW", shape_tuple)
-        file_params = FileParams(0, "testfile_"+str(shape_tuple)+".npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1, False)
+        file_params = FileParams(0, "testfile_"+str(shape_tuple)+".npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         file_params.load_file()
         test_obj = FileMapper(96*1024, "float16")
         #test_obj.map_file(file_params, 0, True, region_sz=55*55*file_params.item_sz)
@@ -1091,6 +1107,7 @@ class TestFileMapper(unittest.TestCase):
         tile_size = file_params.fmap_full_tilex_sz * file_params.fmap_full_tiley_sz * 2
         num_tiles = ceildiv(file_params.file_dims.H * file_params.file_dims.W * 2, tile_size)
         last_tile_size = (file_params.file_dims.H * file_params.file_dims.W * 2) % tile_size
+        if last_tile_size == 0: last_tile_size = tile_size
         current_offset = 0
         # check read_file_data_region
         for i in range(file_params.file_dims.N):
@@ -1098,6 +1115,7 @@ class TestFileMapper(unittest.TestCase):
             for k in range(file_params.fmap_channels_folds):
                 last_channel_offset = current_offset
                 for j in range(num_tiles):
+                    #print("fmap_full_tilex_sz %d fmap_full_tiley_sz %d num_tiles %d tile_size %d last_tile_size %d"%(file_params.fmap_full_tilex_sz, file_params.fmap_full_tiley_sz, num_tiles, tile_size, last_tile_size))
                     current_tile_size = last_tile_size if (j == num_tiles-1) else tile_size
                     (writers, readers, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, i, current_offset, current_tile_size)
                     current_offset += current_tile_size
@@ -1135,6 +1153,8 @@ class TestFileMapper(unittest.TestCase):
     # mapping tests
     def test_map_chunk_id_var_shape (self):
         self.map_chunk_id_single([4,256,55,55], 55*55*2)
+        #self.map_chunk_id_single([4,2048,1,1], 4*2048*1*1//128)
+        self.map_chunk_id_single([4,1000,1,1], 4*1000*1*1//128)
 
 if __name__ == '__main__':
     unittest.main()

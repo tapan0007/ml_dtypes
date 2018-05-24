@@ -69,6 +69,8 @@ constexpr static const char* WaveOpKey_PsumXNum             = "psum_x_num";
 constexpr static const char* WaveOpKey_PsumXStep            = "psum_x_step";
 constexpr static const char* WaveOpKey_PsumYNum             = "psum_y_num";
 constexpr static const char* WaveOpKey_PsumYStep            = "psum_y_step";
+constexpr static const char* WaveOpKey_PsumZNum             = "psum_z_num";
+constexpr static const char* WaveOpKey_PsumZStep            = "psum_z_step";
 constexpr static const char* WaveOpKey_StartTensorCalc      = "start_tensor_calc";
 constexpr static const char* WaveOpKey_StopTensorCalc       = "stop_tensor_calc";
 constexpr static const char* WaveOpKey_StrideX              = "stride_x";
@@ -314,6 +316,8 @@ public:
     kcc_int32                   m_PsumXStep             = -1;
     kcc_int32                   m_PsumYNum              = -1;
     kcc_int32                   m_PsumYStep             = -1;
+    kcc_int32                   m_PsumZNum              = -1;
+    kcc_int32                   m_PsumZStep             = -1;
     bool                        m_StartTensorCalc       = true;
     bool                        m_StopTensorCalc        = true;
     kcc_int32                   m_StrideX               = -1;
