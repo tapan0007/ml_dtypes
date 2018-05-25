@@ -1189,7 +1189,10 @@ class FusedOp(list):
             for z in range(self.conv_op.Tn):                    
                 lower_file_address = self.conv_op.ifmap_wave_lower_addr[z] + break_at_y[i] * addr_step_y
                 upper_file_address = min(self.conv_op.ifmap_wave_lower_addr[z] + next_break * addr_step_y - self.conv_op.item_sz, self.conv_op.ifmap_wave_upper_addr[z])
-                dram_waveop_names += tpb.statebuffer.file_mapper.get_dram_waveop_names(self.conv_op.ifmaps_file_params, batch_item + z, lower_file_address, upper_file_address)
+                list_of_names = tpb.statebuffer.file_mapper.get_dram_waveop_names(self.conv_op.ifmaps_file_params, batch_item + z, lower_file_address, upper_file_address)
+                for name in list_of_names:
+                    if name not in dram_waveop_names:
+                        dram_waveop_names.append(name)
             fmap_z_step = (self.conv_op.ifmaps_file_params.batch_item_partition_usage_sz//self.conv_op.item_sz) if self.conv_op.Tn > 1 else 1
 
             if (args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, ifmaps_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, ifmaps_sb_address, fmap_y_num))                
