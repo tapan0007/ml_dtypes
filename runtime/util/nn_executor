@@ -189,13 +189,14 @@ class NnSubgraph:
 
 
     # Translate TPB format back to TF format.
-    if (executor == "tcc" or  executor == "wave" or executor == "waveopt") and len(self.outputs) > 0:
+    isWaveopt = (executor == "waveopt" or executor == "waveopt2")
+    if (executor == "tcc" or  executor == "wave" or isWaveopt) and len(self.outputs) > 0:
       for jsonOutput in self.outputs:
         outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
         outFile = outFileRaw.replace(".npy", "-out.npy")
         outBase = outFileRaw[:-4]
         simExt = "simout"
-        if executor == "waveopt":
+        if isWaveopt:
           simExt = "midout"
         tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
         tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
