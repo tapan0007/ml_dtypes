@@ -104,6 +104,7 @@ class PEArray:
     def __init__(self):
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS), dtype=np.float32)
         self.Tn = 0
+        self.last_psum_bank_used = 0
 
     def trig_tile_done(self, tile_id):
         if (args.debug > 2): print("Tile done %s"%tile_id.id_string())
@@ -2263,7 +2264,7 @@ class TPBSched:
         #self.statebuffer.reallocate_capacities()
 
         # initial psum bank is 0
-        op_list.conv_op.set_psum_bank(0)
+        op_list.conv_op.set_psum_bank(tpb.pearray.last_psum_bank_used)
         # start tensor computation by clearing psum bank
         psum_add = False                               
 
@@ -2343,6 +2344,7 @@ class TPBSched:
 
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
+                        tpb.pearray.last_psum_bank_used = op_list.conv_op.get_psum_bank()
                         psum_add = False
 
         return result
@@ -2555,7 +2557,7 @@ class TPBSched:
         #        self.statebuffer.circbuf_residue.load_data(op_list.join_op)
 
         # initial psum bank is 0
-        op_list.conv_op.set_psum_bank(0)
+        op_list.conv_op.set_psum_bank(tpb.pearray.last_psum_bank_used)
         # start tensor computation by clearing psum bank
         psum_add = False                               
 
@@ -2641,6 +2643,7 @@ class TPBSched:
                         #        self.waveop_stream.last_psum_waveop[psum_bank_src] = None
                         # Advance to new bank (ping-pong between 0 and 1) for PEArray, while the old bank is being processed by other engines
                         op_list.conv_op.set_psum_bank((op_list.conv_op.get_psum_bank()+1)%4)
+                        tpb.pearray.last_psum_bank_used = op_list.conv_op.get_psum_bank()
                         psum_add = False
 
         return result                   
