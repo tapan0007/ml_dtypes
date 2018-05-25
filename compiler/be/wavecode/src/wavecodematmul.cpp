@@ -206,7 +206,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     matmulInstr.src_mem_pattern.num_elem[PatDim_Y]     = matmulWaveop->gFmapYNum();
     matmulInstr.src_mem_pattern.step_elem[PatDim_Y]    = matmulWaveop->gFmapYStep();
     matmulInstr.src_mem_pattern.num_elem[PatDim_Z]     = matmulWaveop->gFmapZNum();
-    matmulInstr.src_mem_pattern.step_elem[PatDim_Z]    = 1;
+    matmulInstr.src_mem_pattern.step_elem[PatDim_Z]     = matmulWaveop->gFmapZStep();
 
 
     initMemAccess(matmulInstr.dst_mem_pattern);
