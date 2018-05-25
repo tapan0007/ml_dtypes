@@ -1,0 +1,17 @@
+[1;34mINFO: [0mAverage degree = 1.5
+[1;34mINFO: [0mStarting Structure Inspection
+Error : activation_49/Relu/Activation_n0_m31_h0_w0 does not have an input operand
+[1;31mERROR: [0mactivation_49/Relu/Activation_n0_m31_h0_w0 does not have an output operand
+Error : activation_1/Relu/Activation_n0_m0_h0_w0 does not have an input operand
+[1;31mERROR: [0mactivation_1/Relu/Activation_n0_m0_h0_w0 does not have an output operand
+[1;34mINFO: [0mFinished Structure Inspection
+[1;34mINFO: [0mChecking data race between SBAtomFile and SBAtomSave
+[1;34mINFO: [0mChecking data race between SBAtomFile and Activation
+[1;34mINFO: [0mChecking data race between SBAtomFile and Pool
+[1;34mINFO: [0mChecking data race between SBAtomFile and MatMul
+[1;34mINFO: [0mChecking data race between SBAtomSave and Activation
+[1;34mINFO: [0mChecking data race between SBAtomSave and Pool
+[1;34mINFO: [0mChecking data race between Activation and Pool
+[1;34mINFO: [0mChecking data race between Activation and MatMul
+[1;34mINFO: [0mChecking data race between Pool and MatMul
+[1;34mINFO: [0mChecking data race between SBAtomFile and SBAtomFile

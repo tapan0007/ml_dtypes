@@ -1,0 +1,19 @@
+* Description
+wave-checker is designed to examine compliance of a wave graph with instruction set architecture (ISA) and execution model of Tonga. It currently supports checks listed below.
+- Detection of structural defects
+   o Non-DRAM wave ops such as MatMul, Activation, ResAdd and Pool should have
+   both incoming and outgoing edges.
+   o An wave op should not have duplicated edges.
+- Detection of potential data race between wave ops
+   o It detects potential WAW/RAW/WAR hazards between indepdent wave ops
+
+* Build
+1. export GTEST_DIR=YOUR-GOOGLETEST-LOCATION
+2. Create build directory and move to the directory (e.g. mkdir wc-build;cd wc-build)
+3. Run 'cmake ${KAENA_PATH}/compiler/wave-checker'
+4. Run 'make'
+
+* Usage
+In the build directory, 
+run 'src/wave-checker wave_graph.json'
+run 'test/wc_gtest' to run regression test

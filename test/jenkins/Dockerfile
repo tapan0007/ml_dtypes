@@ -12,6 +12,8 @@ RUN yum update -y && \
         python36-devel \
         unzip \
         which \
+        boost-devel \
+        cmake \
         zlib-static && \
     yum clean all -y
 

@@ -1,0 +1,22 @@
+{  
+  "waveops": [
+  {
+    "previous_waveops": [],
+    "waveop_name": "a",
+    "waveop_type": "SBAtomFile"
+  },
+  {
+    "previous_waveops": [],
+    "waveop_name": "b",
+    "waveop_type": "MatMul"
+  },
+  {
+    "previous_waveops": [
+      "a",
+      "b"
+    ],
+    "waveop_name": "c",
+    "waveop_type": "MatMul"
+  }
+  ]
+}

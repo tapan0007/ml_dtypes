@@ -68,6 +68,7 @@ pipeline{
                 sh 'source ~/.bashrc && make -j4 PLAT=uio -C $KAENA_RT_PATH/hal/'
                 sh 'source ~/.bashrc && make -j4 PLAT=dv -C $KAENA_RT_PATH/hal/'
                 sh 'source ~/.bashrc && make -j4 PLAT=dummy -C $KAENA_RT_PATH/hal/'
+                sh 'source ~/.bashrc && mkdir wave-checker-build &&cd wave-checker-build && cp $KAENA_PATH/compiler/wave-checker/test/gtest-build . && source gtest-build && mkdir bbb && cd bbb && cmake $KAENA_PATH/compiler/wave-checker && make'
                 //archiveArtifacts artifacts: '**/output/*.tgz'
             }
         }

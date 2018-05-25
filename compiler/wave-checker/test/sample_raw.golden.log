@@ -1,0 +1,14 @@
+[1;34mINFO: [0mAverage degree = 0.857143
+[1;34mINFO: [0mStarting Structure Inspection
+[1;34mINFO: [0mFinished Structure Inspection
+[1;34mINFO: [0mChecking data race between SBAtomFile and SBAtomSave
+[1;34mINFO: [0mChecking data race between SBAtomFile and Activation
+[1;34mINFO: [0mChecking data race between SBAtomFile and Pool
+[1;34mINFO: [0mChecking data race between SBAtomFile and MatMul
+[1;31mERROR: [0mPotential RAW or WAR hazard in SB between R:mm_a and W:ld_c
+[1;34mINFO: [0mChecking data race between SBAtomSave and Activation
+[1;34mINFO: [0mChecking data race between SBAtomSave and Pool
+[1;34mINFO: [0mChecking data race between Activation and Pool
+[1;34mINFO: [0mChecking data race between Activation and MatMul
+[1;34mINFO: [0mChecking data race between Pool and MatMul
+[1;34mINFO: [0mChecking data race between SBAtomFile and SBAtomFile
