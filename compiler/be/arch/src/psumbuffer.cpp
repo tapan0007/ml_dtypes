@@ -21,13 +21,13 @@ PsumBuffer::PsumBuffer(const PeArray& peArray, kcc_int32 numberBanks, kcc_int32 
 
 
 //----------------------------------------------------------------
-kcc_int64
-PsumBuffer::gPsumBaseAddress() const
+TpbAddress
+PsumBuffer::gPsumBaseTpbAddress() const
 {
     return MMAP_PSUM_BASE;
 }
 
-kcc_int64
+TongaAddress
 PsumBuffer::gBankOffsetDelta() const
 {
     return utils::power2(COLUMN_BANK_SIZE_BITS);
@@ -55,12 +55,12 @@ PsumBuffer::qLegalDataType(const utils::DataType& dtype)
     return false;
 }
 
-kcc_int64
+TpbAddress
 PsumBuffer::gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx,
                              const utils::DataType& dtype) const
 {
     Assert(qLegalDataType(dtype), "Wrong data type for PSUM TPB address calculation: ", dtype.gName());
-    return gPsumBaseAddress()
+    return gPsumBaseTpbAddress()
            + gBankOffsetDelta() * bankId
            + dtype.gSizeInBytes() * bankEntryIdx;
 }

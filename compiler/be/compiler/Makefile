@@ -16,6 +16,7 @@ MODS :=  \
 	wave		\
 	arch		\
 	utils		\
+	kelf 		\
 	compisa
 
 

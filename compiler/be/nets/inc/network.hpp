@@ -152,6 +152,7 @@ public:
     }
 
     void replaceWaveops(std::vector<wave::WaveOp*>& newWaveops);
+    void revertSavedWaveops();
 
 
 
@@ -165,6 +166,7 @@ private:
     std::string                             m_Name;
     std::vector<layers::Layer*>             m_Layers;
     std::vector<wave::WaveOp*>              m_WaveOps;
+    std::vector<wave::WaveOp*>              m_SaveWaveOps;
     bool                                    m_DoBatching;
     std::map<std::string, layers::Layer*>   m_Name2Layer;
     std::map<std::string, wave::WaveOp*>    m_Name2WaveOp;

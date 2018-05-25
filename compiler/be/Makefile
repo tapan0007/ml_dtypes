@@ -1,7 +1,7 @@
 # codegen compiler
 #egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' |
 
-MODS := arch layers memmgr nets utils schedule serialize codegen events wavecode wave compisa
+MODS := arch layers memmgr nets utils schedule serialize codegen events wavecode wave kelf compisa
 MAINMOD := compiler 
 COMPILER_BE := $(shell pwd)
 

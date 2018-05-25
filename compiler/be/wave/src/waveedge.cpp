@@ -2,6 +2,8 @@
 
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
+#include "wave/inc/sbatomloadwaveop.hpp"
+#include "wave/inc/matmulwaveop.hpp"
 
 
 namespace kcc {
@@ -42,6 +44,16 @@ WaveEdge::qNeedToSync() const
 
     // when two waveops execute on different engines, need for sync
     if (prevWaveop->gEngineId() != succWaveop->gEngineId()) {
+        // LoadWeight -> Matmul (sb address < 0) => no event needed.
+        // There shouldn't be an arrow there
+        if (prevWaveop->qSbAtomLoadWaveOp() && succWaveop-> qMatMulWaveOp()) {
+            const auto atomLoadWaveop = dynamic_cast<const wave::SbAtomLoadWaveOp*>(prevWaveop);
+            const auto matmulWaveop = dynamic_cast<const wave::MatMulWaveOp*>(succWaveop);
+            if (atomLoadWaveop->qContainWeights() && matmulWaveop->gWeightsSbAddress() < 0) {
+                Assert(false, "MatMul waveop ", matmulWaveop->gName(),
+                    " has SbAddress<0, but depends on Load-weights waveop ", atomLoadWaveop->gName());
+            }
+        }
         return true;
     }
     // when two waveops execute on the same engine, no need for sync except for DMA.
@@ -61,9 +73,8 @@ WaveEdge::qNeedToSync() const
     if (EngineId::DmaEng == prevWaveop->gEngineId()) {
         if (prevWaveop->qSbAtomSaveWaveOp() && succWaveop->qSbAtomSaveWaveOp()) {
             return false;
-        } else {
-            return true;
         }
+        return true;
     }
     return false;
 }

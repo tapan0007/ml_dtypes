@@ -22,7 +22,6 @@
 #include "events/inc/events.hpp"
 #include "events/inc/eventmgr.hpp"
 
-kcc::kcc_int32 waveopIdxBrk = 9212;
 
 namespace kcc {
 namespace events {
@@ -37,7 +36,6 @@ EventMgr::EventMgr(nets::Network& network)
 {
     m_EventState.init();
 }
-
 
 
 // For each succ edge take one available event and assign it
@@ -75,12 +73,6 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
 }
 
 
-
-EngineId
-EventMgr::gBarrierEngineId()
-{
-    return EngineId::DmaEng;
-}
 
 
 
@@ -165,23 +157,23 @@ EventMgr::mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
  *    All events on the edges that are completed have been consumed
 ***************************************************************/
 void
-EventMgr::insertBarriers() {
+EventMgr::insertBarriers()
+{
     const kcc_int32 numWaveops = m_Network.gNumberWaveops();
     std::vector<wave::WaveOp*> newWaveops;
 
     m_EventState.init();
 
     const std::array<EngineId, 4> engineIds { {
-        EngineId::PeArray, EngineId::Activation,
-        EngineId::Pooling, EngineId::DmaEng
+        EngineId::PeArray,
+        EngineId::Activation,
+        EngineId::Pooling,
+        EngineId::DmaEng
     } };
-    const EngineId barrierEngId = gBarrierEngineId();
+    const kcc_int32 numEngines = m_Kelf ? 3 : 4;
     m_NopIdx = 0;
 
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
-        if (waveopIdxBrk == waveopIdx) {
-            utils::breakFunc(waveopIdx);
-        }
         const auto waveop = m_Network.gWaveOp(waveopIdx);
         kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
         if (numSuccEvents > m_EventState.gNumAvailable()) {
@@ -195,27 +187,21 @@ EventMgr::insertBarriers() {
             //  POOL
             wave::WaveOp* prevWaveop = nullptr;
 
-            for (size_t k = 0; k < engineIds.size(); ++k) { // loop1
+            for (auto k = 0; k < numEngines-1; ++k) { // loop1
                 const auto engId = engineIds[k];
-                if (barrierEngId == engId) {
-                    continue;
-                }
                 wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, waveopIdx);
                 newWaveops.push_back(nopWaveop);
                 prevWaveop = nopWaveop;
             }
 
-            { // DMA
-                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, barrierEngId, waveopIdx);
+            { // last engine (Pooling in Kelf, Dma with Angel)
+                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engineIds[numEngines-1], waveopIdx);
                 newWaveops.push_back(nopWaveop);
                 prevWaveop = nopWaveop;
             }
 
-            for (ssize_t k = engineIds.size() - 1; k >= 0; --k) { // loop2: must be in reverse order than loop1
+            for (auto k = numEngines - 2; k >= 0; --k) { // loop2: must be in reverse order than loop1
                 const auto engId = engineIds[k];
-                if (barrierEngId == engId) {
-                    continue;
-                }
                 wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, waveopIdx);
                 newWaveops.push_back(nopWaveop);
                 prevWaveop = nopWaveop;
@@ -364,8 +350,9 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
 
 
 void
-EventMgr::processWaveops()
+EventMgr::processWaveops(bool kelf)
 {
+    m_Kelf = kelf;
     insertBarriers();
 
     for (auto waveOp : m_Network.gWaveOps()) {

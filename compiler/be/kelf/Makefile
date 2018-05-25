@@ -1,11 +1,11 @@
 ########################################################
-MODULE:=wavecode
-MODS := $(MODULE) kelf utils nets layers wave
+MODULE:=kelf
+MODS := $(MODULE) utils nets layers wave
 
 ########################################################
-FILES := waveop sbatom sbatomload sbatomsave matmul pool activation resadd barrier nop
+FILES := dmadescription dmablock
 
-SRCS := wavecode $(addprefix $(MODULE),$(FILES))
+SRCS := $(addprefix $(MODULE),$(FILES))
 
 ########################################################
 include ../Makefile.common

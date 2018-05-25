@@ -43,13 +43,14 @@ public:
 
 
     //--------------------------------------------------------
-    kcc_int64 gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;
-    kcc_int64 gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;
+    TpbAddress gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;
+    TongaAddress gEntryTongaAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;
 
-    kcc_int64 gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const;
-    kcc_int64 gAllOneOffsetTpbAddress(const utils::DataType& dataType) const;
-    kcc_int64 gAllZeroOffsetSysAddress(const utils::DataType& dataType) const;
-    kcc_int64 gAllOneOffsetSysAddress(const utils::DataType& dataType) const;
+    TpbAddress gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const;
+    TpbAddress gAllOneOffsetTpbAddress(const utils::DataType& dataType) const;
+
+    TongaAddress gAllZeroOffsetTongaAddress(const utils::DataType& dataType) const;
+    TongaAddress gAllOneOffsetTongaAddress(const utils::DataType& dataType) const;
 
 private:
 

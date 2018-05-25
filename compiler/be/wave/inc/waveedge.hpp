@@ -89,10 +89,18 @@ public:
     bool qNeedToImplementSync() const;
     bool qNeedToSync() const;
 
+    bool qChosenForSuccSbAtom() const {
+        return m_ChosenForSuccSbAtom;
+    }
+    void rChosenForSuccSbAtom(bool chosen) {
+        m_ChosenForSuccSbAtom = chosen;
+    }
+
 private:
     WaveOp*                 m_FromOp;
     WaveOp*                 m_ToOp;
     events::Channel         m_Channel;
+    bool                    m_ChosenForSuccSbAtom = false;
 }; // class WaveEdge
 
 

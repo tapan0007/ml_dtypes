@@ -33,7 +33,8 @@ WaveCodeNop::generate(wave::WaveOp* waveOp)
     //************************************************************************
     if (qParallelStreams()) {
         // NopInstr not ready in Inkling yet. "true" forces processIn/OutEdges.
-        if (true || nopWaveop->gPrevWaveEdges().size() > 1
+        if (true ||
+            nopWaveop->gPrevWaveEdges().size() > 1
                 || nopWaveop->gSuccWaveEdges().size() > 1)
         {
             generateWithWaitSet(nopWaveop);
@@ -51,8 +52,10 @@ WaveCodeNop::generate(wave::WaveOp* waveOp)
 void
 WaveCodeNop::generateWithWaitSet(wave::NopWaveOp* nopWaveop)
 {
-    processIncomingEdges(nopWaveop);
-    processOutgoingEdges(nopWaveop);
+    int numSyncs = 0;
+    numSyncs += processIncomingEdges(nopWaveop);
+    numSyncs += processOutgoingEdges(nopWaveop);
+    Assert(numSyncs > 0, "NOP waveop ", nopWaveop->gName(), " does not sync at all");
 }
 
 
@@ -60,16 +63,21 @@ void
 WaveCodeNop::generateWithNop(wave::NopWaveOp* nopWaveop)
 {
     compisa::NopInstr nopInstr;
-    nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    nopInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-    nopInstr.inst_events.wait_event_idx   = 0;
-    nopInstr.inst_events.set_event_idx    = 0;
-    int numSyncs = 0;
+    nopInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(
+                                                    events::EventWaitMode::DontWait);
+    nopInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(
+                                                    events::EventSetMode::DontSet);
+    nopInstr.inst_events.wait_event_idx     = 0;
+    nopInstr.inst_events.set_event_idx      = 0;
+    nopInstr.cycle_cnt                      = 1;
+
+    int numSyncs                            = 0;
 
     if (nopWaveop->gPrevWaveEdges().size() > 0) {
         const wave::WaveEdge* prevWaveEdge = nopWaveop->gPrevWaveEdges()[0];
         if (prevWaveEdge->qNeedToSync()) {
-            nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
+            nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(
+                                                    prevWaveEdge->gWaitEventMode());
             nopInstr.inst_events.wait_event_idx   = prevWaveEdge->gEventId();
             ++numSyncs;
         }
@@ -77,7 +85,8 @@ WaveCodeNop::generateWithNop(wave::NopWaveOp* nopWaveop)
     if (nopWaveop->gSuccWaveEdges().size() > 0) {
         const wave::WaveEdge* succWaveEdge = nopWaveop->gSuccWaveEdges()[0];
         if (succWaveEdge->qNeedToSync()) {
-            nopInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(succWaveEdge->gSetEventMode());
+            nopInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(
+                                                    succWaveEdge->gSetEventMode());
             nopInstr.inst_events.set_event_idx   = succWaveEdge->gEventId();
             ++numSyncs;
         }

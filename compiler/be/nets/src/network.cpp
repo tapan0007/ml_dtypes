@@ -105,6 +105,11 @@ Network::findWaveOp(const std::string& waveOpName)
     return waveOp;
 }
 
+void
+Network::revertSavedWaveops()
+{
+    std::swap(m_WaveOps, m_SaveWaveOps);
+}
 
 void
 Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops)
@@ -113,7 +118,8 @@ Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops)
     for (kcc_int32 k = 0; k < numWaveops; ++k) {
         newWaveops[k]->rOrder(k);
     }
-    m_WaveOps.clear();
+    //m_WaveOps.clear();
+    std::swap(m_WaveOps, m_SaveWaveOps);
     std::swap(m_WaveOps, newWaveops);
     //std::copy(newWaveops.begin(), newWaveops.end(), m_WaveOps.begin());
 }

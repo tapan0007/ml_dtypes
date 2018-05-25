@@ -66,7 +66,7 @@ private:
 
 public:
     EventMgr(nets::Network& network);
-    void processWaveops();
+    void processWaveops(bool kelf);
     static kcc_int32 gNumberReservedTpbEvents() {
         return ReservedEvent_FirstNonReserved;
     }
@@ -109,7 +109,6 @@ private:
     void assignEventsToNewSuccEdges(wave::WaveOp* waveop);
     void completeEventsOnPrevEdges(wave::WaveOp* waveop);
 
-    static EngineId gBarrierEngineId();
     void insertBarriers();
 
     static EventId gEventIdBetweenEngines(EngineId fromId, EngineId toId);
@@ -134,6 +133,7 @@ private:
 
     EventState m_EventState;
     kcc_int32 m_NopIdx = 0;
+    bool m_Kelf;
 };
 
 }}

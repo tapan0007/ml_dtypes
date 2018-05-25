@@ -1,0 +1,72 @@
+
+{
+    "name" : "test pe",
+    "instr" : [
+    instructions in bin
+        ## pseudo instr, refers to (only) queue in "dma"
+        {"opc": "#DMA_REARM", "queue": "$W_QID" },
+		## pseudo instr, refers to first entry in "dma":[]
+        {"opc": "#DMA_TRIGGER", "queue": "$W_QID", "id": 0 },
+        {"opc": "#WAIT", "event": "^EV_DATA_READY" },
+        {"opc": "#CLEAR", "event": "^EV_DATA_READY" },
+        {"opc": "#WAIT", "event": "^EV_W_READY" },
+        {"opc": "#CLEAR", "event": "^EV_W_READY" },
+        {"opc": "#NOP", "duration": 200 },
+        {"opc": "#NOP", "duration": 200 },
+		## pseudo instr, refers to second entry in "dma":[]
+        {"opc": "#DMA_TRIGGER", "queue": "$W_QID", "id": 1 },
+        {"opc": "#WAIT", "event": "^EV_W_READY" },
+        {"opc": "#CLEAR", "event": "^EV_W_READY" },
+        {"opc": "#NOP", "duration": 200 },
+        {"opc": "#NOP", "duration": 200 },
+        {"opc": "#DMA_TRIGGER", "queue": "$OUT_QID", "count": 1 } ],
+
+    "dma": [
+        { "queue": "$W_QID", "id": 0, "event": "^EV_W_READY", "desc": [
+			# descriptor 1 for 1st multi-descriptor transfer
+            { "from": "$W", "from_off": 0, "to": "$SB", "to_off": 200, "size": 50 }, # descriptor
+			# descriptor 2 for 1st multi-descriptor transfer
+            { "from": "$W", "from_off": 100, "to": "$SB", "to_off": 300, "size": 50 } ]
+        },
+        { "queue": "$W_QID", "id": 1, "event": "^EV_W_READY", "desc": [
+			# descriptor 1 for 2nd multi-descriptor transfer
+            { "from": "$W", "from_off": 200, "to": "$SB", "to_off": 400, "size": 50 },
+			# descriptor 2 for 2nd multi-descriptor transfer
+            { "from": "$W", "from_off": 300, "to": "$SB", "to_off": 500, "size": 50 } ]
+        } ]
+}
+
+
+
+
+
+
+{
+    "name" : "the test that does nothing",
+    "var" : {
+        "$W" : { "type":"file", "file_name":"weights.bin"},
+        "$SB" : { "type": "state-buffer" },
+        "$IN" : { "type": "io", "size": 1024 },
+        "$OUT" : { "type": "io", "size": 1024 }
+    },
+    "dma" : {
+        "$IN_QID" : { "type": "in" },
+        "$OUT_QID" : { "type": "out" },
+        "$W_QID" : { "type" : "data" }
+    },
+    "pe" : "pe.json",
+    "in" : { 
+        "instr" : [ 
+            {"opc": "#DMA_DESC", "queue": "$IN_QID", "descriptors": [
+                { "type": "data", "from": "$IN", "from_off": 0, "to": "$SB", "to_off": 0, "size": 50},
+                { "type": "event", "val": 1, "to": "^EV_DATA_READY" } ] },
+            {"opc": "#DMA_TRIGGER", "queue": "$IN_QID", "val": 2 } ]
+    },
+    "out" : { 
+        "instr": [
+            {"opc": "#DMA", "queue": "$OUT_QID", "descriptors": [
+                { "type": "data", "from": "$SB", "from_off": 0, "to": "$OUT", "to_off": 0, "size" : 50 } ] },
+            {"opc": "#DMA_WAIT", "queue": "$OUT_QID" } ]
+    }
+}
+

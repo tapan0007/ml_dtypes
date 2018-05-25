@@ -3,6 +3,7 @@
 
 
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/debug.hpp"
 
 #include "compisa/inc/compisawait.hpp"
 #include "compisa/inc/compisaldweights.hpp"

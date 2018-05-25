@@ -79,29 +79,38 @@ protected:
     /* Process incoming edges for instructions without embedded events (no SYNC)
     * 1. Issue WAIT instruction for all in-edges
     */
-    void processIncomingEdges(wave::WaveOp* waveop);
+    kcc_int32 processIncomingEdges(wave::WaveOp* waveop);
+
+    kcc_int32 processIncomingEdges(wave::WaveOp* waveop, EngineId engineId);
 
     /* Process incoming edges for instructions with embedded events (with SYNC)
     * 1. Assign embedded wait for one in-edge
     * 2. Issue WAIT instruction for other in-edges
     */
-    void processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EVENTS& sync);
+    kcc_int32 processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EVENTS& sync);
 
     /* Process incoming edges for instructions with embedded events (with SYNC)
     * But don't assign embedded events to instruction
     * 1. Remember embedded wait id/mode for one in-edge
     */
-    void processIncomingEdges(wave::WaveOp* waveop, events::EventId& waitEventId,
-                              events::EventWaitMode& waitEventMode);
+    kcc_int32 processIncomingEdges(wave::WaveOp* waveop,
+                        events::EventId& waitEventId, events::EventWaitMode& waitEventMode);
 
+    kcc_int32 processIncomingEdgesForceWait(wave::WaveOp* waveop, EngineId engId,
+                        events::EventId& waitEventId, events::EventWaitMode& waitEventMode);
 
-    void findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEventId,
+    kcc_int32 processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
+                   bool allowEmb,
+                   TONGA_ISA_TPB_INST_EVENTS* sync,
+                   events::EventId* waitEventId, events::EventWaitMode* waitEventMode);
+
+    void findFirstSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEventId,
                             events::EventSetMode& setEventMode);
 
     /* Process outgoing edges for instructions without embedded events (no SYNC)
     * 1. Issue SET instruction for all out-edges
     */
-    void processOutgoingEdges(wave::WaveOp* waveop);
+    kcc_int32 processOutgoingEdges(wave::WaveOp* waveop);
 
     /* Process outgoing edges for instructions with embedded events (with SYNC)
     * 1. Assign embedded set for one out-edge
@@ -115,6 +124,9 @@ protected:
 
         for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
             if (! succWaveEdge->qNeedToImplementSync()) {
+                continue;
+            }
+            if (succWaveEdge->qChosenForSuccSbAtom()) {
                 continue;
             }
 
@@ -148,16 +160,33 @@ protected:
         }
     }
 
+    template <int N>
+    static void saveName(uint8_t (&res)[N], const char* name)
+    {
+        for (int i = 0; i < N; ++i) {
+            res[i] = '\0';
+        }
+        strncpy(reinterpret_cast<char*>(&res[0]), name, N - 1);
+        res[N-1] = 0;
+    }
+
     template <typename INSTR>
     static void SaveName(INSTR& instr, const char* name)
     {
-        snprintf(reinterpret_cast<char*>(&instr.reserved[0]), sizeof(instr.reserved),
-                "%s", name);
-        instr.reserved[sizeof(instr.reserved)-1] = 0;
+        saveName(instr.reserved, name);
     }
 
     static void SaveName(compisa::MatMulInstr& instr, const char* name);
 
+    bool qGenerateKelf() const {
+        return m_WaveCode.qGenerateKelf();
+    }
+
+    //void rGenerateKelf(bool genKelf) {
+    //    m_WaveCode.rGenerateKelf(genKelf);
+    //}
+
+private:
 
 protected:
     WaveCodeRef     m_WaveCode;

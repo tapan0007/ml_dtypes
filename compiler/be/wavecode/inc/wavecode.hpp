@@ -15,6 +15,7 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 #include "events/inc/events.hpp"
+#include "kelf/inc/kelfdmadescription.hpp"
 
 
 struct TONGA_ISA_TPB_INST_EVENTS;
@@ -59,11 +60,19 @@ public:
 
     using OneInstrStream = FILE*;
     struct InstrStreams {
-        OneInstrStream m_StreamProcInstrStream;
-        OneInstrStream m_PeArrayInstrStream;
-        OneInstrStream m_PoolEngInstrStream;
-        OneInstrStream m_ActEngInstrStream;
-        OneInstrStream m_DmaInstrStream;
+        ~InstrStreams();
+        void closeAll();
+
+        std::string     m_StreamProcBinFile;
+        std::string     m_PeArrayBinFile;
+        std::string     m_PoolEngBinFile;
+        std::string     m_ActEngBinFile;
+        std::string     m_DmaBinFile;
+        OneInstrStream  m_StreamProcInstrStream = nullptr;
+        OneInstrStream  m_PeArrayInstrStream = nullptr;
+        OneInstrStream  m_PoolEngInstrStream = nullptr;
+        OneInstrStream  m_ActEngInstrStream = nullptr;
+        OneInstrStream  m_DmaInstrStream = nullptr;
     };
 public:
     //----------------------------------------------------------------
@@ -93,6 +102,25 @@ public:
         return m_ParallelStreams;
     }
 
+    bool qBinFileSimAngel() const {
+        return BinFileType::SimAngel == m_BinFileType;
+    }
+    bool qBinFileSimKelf() const {
+        return BinFileType::SimKelf == m_BinFileType;
+    }
+    bool qBinFileRuntimeKelf() const {
+        return BinFileType::RuntimeKelf == m_BinFileType;
+    }
+    bool qGenerateKelf() const {
+        return qBinFileSimKelf() || qBinFileRuntimeKelf();
+    }
+    void rBinFileType(BinFileType typ) {
+        m_BinFileType = typ;
+    }
+    kelf::DmaDescription& gDmaDescription() {
+        return m_DmaDescription;
+    }
+
 private:
     WaveCode() = delete;
     WaveCode(const WaveCode&) = delete;
@@ -103,8 +131,10 @@ private:
 
     void checkForNoSync(const TONGA_ISA_TPB_INST_EVENTS&) const;
 
+    void determinePrecSbEdges();
+
 private:
-    nets::Network*                m_Network;
+    nets::Network*                      m_Network;
     const arch::Arch&                   m_Arch;
 
     kcc_int32                           m_StreamProcPc = 0;
@@ -114,6 +144,7 @@ private:
     kcc_int32                           m_DmaPc = 0;
 
     const InstrStreams*                 m_InstrStreams;
+
     std::unique_ptr<WaveCodeMatMul>     m_CodeMatMul;
     std::unique_ptr<WaveCodeSbAtomLoad> m_CodeSbAtomLoad;
     std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
@@ -126,6 +157,9 @@ private:
     kcc_int64                           m_CurrentDramAddress;
     std::map<std::string, NpyFileInfo>  m_NpyFile2DramAddress;
     bool                                m_ParallelStreams = false;
+    BinFileType                         m_BinFileType = BinFileType::SimAngel;
+    
+    kelf::DmaDescription                m_DmaDescription;
 };
 
 }}

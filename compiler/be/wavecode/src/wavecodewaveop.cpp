@@ -16,10 +16,12 @@
 namespace kcc {
 namespace wavecode {
 
+//======================================================================
 WaveCodeWaveOp::WaveCodeWaveOp(WaveCodeRef wavecode)
     : m_WaveCode(wavecode)
 {}
 
+//======================================================================
 bool
 WaveCodeWaveOp::qParallelStreams() const
 {
@@ -27,6 +29,7 @@ WaveCodeWaveOp::qParallelStreams() const
 }
 
 
+//======================================================================
 void
 WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId engineId)
 {
@@ -81,72 +84,21 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
 }
 
 
-/* Process incoming edges for instructions without embedded events (no SYNC)
- * 1. Issue WAIT instruction for all in-edges
- */
-void
-WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop)
+//======================================================================
+kcc_int32
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
+    bool allowEmb,
+    TONGA_ISA_TPB_INST_EVENTS* sync,
+    events::EventId* waitEventId, events::EventWaitMode* waitEventMode)
 {
-    const EngineId engineId = waveop->gEngineId();
-    std::set<events::EventId> eventIds;
-
-    for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToImplementSync()) {
-            continue;
-        }
-        const auto evtId = prevWaveEdge->gEventId();
-        Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
-        eventIds.insert(evtId);
-
-        writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+    Assert((waitEventId==nullptr) == (waitEventMode==nullptr), "Event id and mode must be equal");
+    if (allowEmb) {
+        Assert(sync || (waitEventId && waitEventMode), "For embedded event need place to store");
+        Assert((sync==nullptr) != (waitEventId==nullptr || waitEventMode==nullptr),
+            "Embedded event id/mode should go in exactly one place");
     }
-}
 
-
-
-
-/* Process incoming edges for instructions with embedded events (with SYNC)
- * 1. Assign embedded wait for one in-edge
- * 2. Issue WAIT instruction for other in-edges
- */
-void
-WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EVENTS& sync)
-{
-    const EngineId engineId = waveop->gEngineId();
-    bool firstEmb = true;
-    std::set<events::EventId> eventIds;
-
-    for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-        if (! prevWaveEdge->qNeedToImplementSync()) {
-            continue;
-        }
-        const auto evtId = prevWaveEdge->gEventId();
-        Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
-        eventIds.insert(evtId);
-
-        if (firstEmb) {
-            firstEmb = false;
-            sync.wait_event_idx      = evtId;
-            sync.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
-        } else {
-            writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
-        }
-    }
-}
-
-
-
-
-/* Process incoming edges for instructions with embedded events (with SYNC)
- * But don't assign embedded events to instruction
- * 1. Remember embedded wait id/mode for one in-edge
- */
-void
-WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, events::EventId& waitEventId,
-        events::EventWaitMode& waitEventMode)
-{
-    const EngineId engineId = waveop->gEngineId();
-    std::set<events::EventId> eventIds;
+    kcc_int32 numSyncs = 0;
     bool firstEmb = true;
 
     for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
@@ -154,23 +106,35 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, events::EventId& wait
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
-        Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
-        eventIds.insert(evtId);
+        ++numSyncs;
 
-        if (firstEmb) {
+        if (allowEmb && firstEmb) {
             firstEmb = false;
-            waitEventId = evtId;
-            waitEventMode = prevWaveEdge->gWaitEventMode();
+            if (sync) {
+                sync->wait_event_idx     = evtId;
+                sync->wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
+            } else {
+                *waitEventId = evtId;
+                *waitEventMode = prevWaveEdge->gWaitEventMode();
+            }
         } else {
+            if (firstEmb) {
+                firstEmb = false;
+                if (waitEventId && waitEventMode) {
+                    *waitEventId = evtId;
+                    *waitEventMode = prevWaveEdge->gWaitEventMode();
+                }
+            }
             writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
         }
     }
+    return numSyncs;
 }
 
 
-
+//======================================================================
 void
-WaveCodeWaveOp::findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEventId,
+WaveCodeWaveOp::findFirstSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEventId,
                                    events::EventSetMode& setEventMode)
 {
     bool firstEmb = true;
@@ -189,35 +153,94 @@ WaveCodeWaveOp::findSetEventIdMode(wave::WaveOp* waveop, events::EventId& setEve
 }
 
 
+//======================================================================
+/* Process incoming edges for instructions without embedded events (no SYNC)
+ * 1. Issue WAIT instruction for all in-edges
+ */
+kcc_int32
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop)
+{
+    return processIncomingEdges(waveop, waveop->gEngineId(), false, nullptr, nullptr, nullptr);
+}
 
+
+//======================================================================
+kcc_int32
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId)
+{
+    return processIncomingEdges(waveop, engineId, false, nullptr, nullptr, nullptr);
+}
+
+
+//======================================================================
+/* Process incoming edges for instructions with embedded events (with SYNC)
+ * 1. Assign embedded wait for one in-edge
+ * 2. Issue WAIT instruction for other in-edges
+ */
+kcc_int32
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EVENTS& sync)
+{
+    return processIncomingEdges(waveop, waveop->gEngineId(), true, &sync, nullptr, nullptr);
+}
+
+
+//======================================================================
+/* Process incoming edges for instructions with embedded events (with SYNC)
+ * But don't assign embedded events to instruction
+ * 1. Remember embedded wait id/mode for one in-edge
+ */
+kcc_int32
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, 
+                        events::EventId& waitEventId, events::EventWaitMode& waitEventMode)
+{
+    return processIncomingEdges(waveop, waveop->gEngineId(), true, nullptr, &waitEventId, &waitEventMode);
+}
+
+
+kcc_int32
+WaveCodeWaveOp::processIncomingEdgesForceWait(wave::WaveOp* waveop, EngineId engId,
+                        events::EventId& waitEventId, events::EventWaitMode& waitEventMode)
+{
+    return processIncomingEdges(waveop, engId, false, nullptr, &waitEventId, &waitEventMode);
+}
+
+
+
+
+
+
+
+//======================================================================
 /* Process outgoing edges for instructions without embedded events (no SYNC)
 * 1. Issue SET instruction for all out-edges
 */
-void
+kcc_int32
 WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
 {
-    std::set<events::EventId> eventIds;
+    int numSyncs = 0;
 
     for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
         if (! succWaveEdge->qNeedToImplementSync()) {
             continue;
         }
+        if (succWaveEdge->qChosenForSuccSbAtom()) {
+            continue;
+        }
         const auto evtId = succWaveEdge->gEventId();
-        Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
-        eventIds.insert(evtId);
 
+        ++numSyncs;
         compisa::SetInstr setEventInstr;
         setEventInstr.event_idx = evtId;
         m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
     }
+    return numSyncs;
 }
 
+//======================================================================
 void
 WaveCodeWaveOp::SaveName(compisa::MatMulInstr& instr, const char* name)
 {
-    snprintf(reinterpret_cast<char*>(&instr.reserved_2[0]), sizeof(instr.reserved_2),
-            "%s", name);
-    instr.reserved_2[sizeof(instr.reserved_2)-1] = 0;
+    saveName(instr.reserved_2, name);
 }
 
 }}

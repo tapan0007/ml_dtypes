@@ -54,10 +54,21 @@ static_assert(sizeof(kcc_uint32) == 4, "sizeof(uint32) != 4");
 static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 
 //**********************************************************************
-using SbPartitionAddress    = Integer<kcc_int16, SbPartitionAddressTag>;
-using TpbAddress            = Integer<kcc_int32, TpbAddressTag>;
-using TongaAddress          = Integer<kcc_int64, TongaAddressTag>;
+//using SbPartitionAddress    = Integer<kcc_int16, SbPartitionAddressTag>;
+//using TpbAddress            = Integer<kcc_int32, TpbAddressTag>;
+//using TongaAddress          = Integer<kcc_int64, TongaAddressTag>;
 
+using SbPartitionAddress    = kcc_uint16;
+using TpbAddress            = kcc_uint32;
+using TongaAddress          = kcc_uint64;
+
+
+
+enum class BinFileType {
+    SimAngel,
+    SimKelf,
+    RuntimeKelf
+};
 
 enum class EngineId {
     None,

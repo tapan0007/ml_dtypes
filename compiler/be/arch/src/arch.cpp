@@ -86,23 +86,29 @@ Arch::gArchVersion() const
     return version;
 }
 
-kcc_int64
+TongaAddress
 Arch::gTpbEventBase()
 {
     return MMAP_EVENTS;
 
 }
 
-kcc_int64
+TongaAddress
 Arch::gSpEventBase()
 {
     return SP_EVENTS_BASE;
 }
 
-kcc_int64
-Arch::gTpbBaseSysAddress()
+TongaAddress
+Arch::gTpbBaseTongaAddress()
 {
     return TPB_BASE;
+}
+
+TpbAddress
+Arch::gTpbAddressOfStateBuffer()
+{
+    return MMAP_SB_BASE;
 }
 
 kcc_int64

@@ -86,10 +86,12 @@ public:
     //----------------------------------------------------------------
     const std::string& gArchVersion() const;
 
-    static kcc_int64 gTpbBaseSysAddress();
+    static TongaAddress gTpbBaseTongaAddress();
 
-    static kcc_int64 gTpbEventBase();
-    static kcc_int64 gSpEventBase();
+    static TongaAddress gTpbEventBase();
+    static TongaAddress gSpEventBase();
+
+    static TpbAddress gTpbAddressOfStateBuffer();
 
     kcc_int64 gNumberAllTpbEvents() const;
 

@@ -35,9 +35,20 @@ public:
     void generate(wave::WaveOp* waveOp) override;
 
 
-private:
 
+private:
+    void generateForSim(wave::SbAtomSaveWaveOp* waveOp);
+    void generateForKelf(wave::SbAtomSaveWaveOp* waveOp);
+    //void generateDmaTrigger(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
+    //                EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
+    void generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
+                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
+    void generateDmaCopySimKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
+                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
+    kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
+                        EngineId& chosenEngId, std::vector<events::EventId>& succEventIds);
 };
+
 
 }}
 

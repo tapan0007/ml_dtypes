@@ -37,16 +37,16 @@ public:
         return m_NumberColumns;
     }
 
-    kcc_int64 gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx, const utils::DataType& dtype) const;
+    TpbAddress gEntryTpbAddress(kcc_int32 bankId, kcc_int32 bankEntryIdx, const utils::DataType& dtype) const;
 
 private:
-    kcc_int64 gPsumBaseAddress() const;
-    kcc_int64 gBankOffsetDelta() const;
+    TpbAddress gPsumBaseTpbAddress() const;
+    TongaAddress gBankOffsetDelta() const;
     kcc_int32 gEntrySize () const;
     static bool qLegalDataType(const utils::DataType& dtype);
 
     //----------------------------------------------------------------
-    kcc_int64 gAddress() const;
+    //TongaAddress gAddress() const;
 
 private:
     const kcc_int32  m_NumberColumns;

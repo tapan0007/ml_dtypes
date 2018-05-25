@@ -57,19 +57,22 @@ FILE* openObjectFile(const std::string& objFileName, const char* engineName)
     std::cout << "Wavegraph code generation: Generating " << engineName
               << " instructions to file '" << objFileName << "'\n";
     FILE* file = fopen(objFileName.c_str(), "wb");
-    Assert(file, "Cannot open PE array object file ", objFileName.c_str());
+    Assert(file, "Cannot open %s object file: %s", engineName, objFileName.c_str());
     return file;
 }
 
 static
-void writeOutJson(nets::Network* ntwk, const char* jsonInFileName)
+void writeOutJson(nets::Network* ntwk, const char* jsonInFileName, const char* ext)
 {
     char JsonOutFileName[256];
     const char* p = jsonInFileName;
     char* q = JsonOutFileName;
     while (*p) {
         if (*p == '.') {
-            *q++ = '-'; *q++ = 'o'; *q++ = 'u'; *q++ = 't';
+            *q++ = '-';
+            while (*ext) {
+                *q++ = *ext++;
+            }
         }
         *q++ = *p++;
     }
@@ -129,6 +132,8 @@ Main(int argc, char* argv[])
             DoBatching = true;
         } else if (arg == "--parallel_streams" || arg == "--parallel-streams") {
             ParallelStreams = true;
+        } else if (arg == "--sequential_stream" || arg == "--sequential-stream") {
+            ParallelStreams = false;
         } else if (arg == "--number-tpb-events") {
             numTpbEvents = atoi(argv[i+1]);
             ++i;
@@ -269,31 +274,91 @@ Main(int argc, char* argv[])
                 std::cout << "\n";
             }
         }
-        writeOutJson(ntwk, JsonInFileName);
+        writeOutJson(ntwk, JsonInFileName, "lay");
     } else {
         wavecode::WaveCode::InstrStreams instrStreams;
         if (ParallelStreams) {
+            //==========================================================
+            // with Angel/Dma
+            bool kelf = false;
             std::string objFileName;
 
-            objFileName = ntwk->gName() + "-pe.tpb";
+            instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.tpb";
             instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array");
 
-            objFileName = ntwk->gName() + "-sp.tpb";
+            instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.tpb";
             instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor");
 
-            objFileName = ntwk->gName() + "-dma.tpb";
+            instrStreams.m_DmaBinFile = objFileName = ntwk->gName() + "-dma.tpb";
             instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA");
 
-            objFileName = ntwk->gName() + "-pool.tpb";
+            instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.tpb";
             instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine");
 
-            objFileName = ntwk->gName() + "-act.tpb";
+            instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.tpb";
             instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine");
 
-            if (ParallelStreams) {
-                events::EventMgr eventMgr(*ntwk);
-                eventMgr.processWaveops();
-            }
+            events::EventMgr eventMgr(*ntwk);
+            eventMgr.processWaveops(kelf);
+
+            writeOutJson(ntwk, JsonInFileName, "out");
+            wavecode::WaveCode waveCode(ntwk, arch);
+
+            waveCode.rBinFileType(BinFileType::SimAngel);
+            waveCode.generate(instrStreams, ParallelStreams);
+
+            instrStreams.closeAll();
+
+            //==========================================================
+            // Sim Kelf
+            kelf = true;
+
+            instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.kbin";
+            instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array KELF");
+
+            instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.kbin";
+            instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor KELF");
+
+            instrStreams.m_DmaInstrStream    = nullptr;
+
+            instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.kbin";
+            instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine KELF");
+
+            instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.kbin";
+            instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine KELF");
+
+            ntwk->revertSavedWaveops();
+            eventMgr.processWaveops(kelf);
+
+            writeOutJson(ntwk, JsonInFileName, "kelf");
+
+            waveCode.rBinFileType(BinFileType::SimKelf);
+            waveCode.generate(instrStreams, ParallelStreams);
+
+            instrStreams.closeAll();
+
+            //==========================================================
+            // Runtime Kelf
+            kelf = true;
+            instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.bin";
+            instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array KELF");
+
+            instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.bin";
+            instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor KELF");
+
+            instrStreams.m_DmaInstrStream    = nullptr;
+
+            instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.bin";
+            instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine KELF");
+
+            instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.bin";
+            instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine KELF");
+
+            waveCode.rBinFileType(BinFileType::RuntimeKelf);
+            waveCode.generate(instrStreams, ParallelStreams);
+
+            instrStreams.closeAll();
+
         } else {
             std::string objFileName(ntwk->gName() + ".tpb");
             FILE* file = openObjectFile(objFileName, "all");
@@ -303,12 +368,16 @@ Main(int argc, char* argv[])
             instrStreams.m_PoolEngInstrStream       = file;
             instrStreams.m_ActEngInstrStream        = file;
             instrStreams.m_DmaInstrStream           = file;
+
+            writeOutJson(ntwk, JsonInFileName, "seq");
+            wavecode::WaveCode waveCode(ntwk, arch);
+            waveCode.generate(instrStreams, ParallelStreams);
+
+            fclose(file);
         }
 
-        writeOutJson(ntwk, JsonInFileName);
 
-        wavecode::WaveCode waveCode(ntwk, arch);
-        waveCode.generate(instrStreams, ParallelStreams);
+
     }
 
     return 0;

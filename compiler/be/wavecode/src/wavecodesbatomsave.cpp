@@ -1,19 +1,21 @@
-
-#include "compisa/inc/compisasimmemcpy.hpp"
-
 #include "utils/inc/asserter.hpp"
-#include "events/inc/events.hpp"
 
 #include "arch/inc/statebuffer.hpp"
 #include "arch/inc/arch.hpp"
 
+
+#include "compisa/inc/compisasimmemcpy.hpp"
+#include "compisa/inc/compisadmatrigger.hpp"
+#include "compisa/inc/compisasimdmacopy.hpp"
+
+#include "events/inc/events.hpp"
+
 #include "layers/inc/layer.hpp"
 
 #include "wave/inc/waveedge.hpp"
-#include "wave/inc/poolwaveop.hpp"
-#include "wave/inc/matmulwaveop.hpp"
-#include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
+
+#include "kelf/inc/kelfdmadescription.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecodesbatomsave.hpp"
@@ -23,17 +25,29 @@ namespace wavecode {
 
 
 
+//************************************************************************
 WaveCodeSbAtomSave::WaveCodeSbAtomSave(WaveCodeRef waveCode)
     : WaveCodeSbAtom(waveCode)
 {}
 
-
-
+//************************************************************************
 void
 WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
 {
     auto sbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveop);
-    assert(sbAtomSaveWaveop);
+    Assert(sbAtomSaveWaveop, "Expecting Save waveop");
+    if (qGenerateKelf()) {
+        generateForKelf(sbAtomSaveWaveop);
+    } else {
+        generateForSim(sbAtomSaveWaveop);
+    }
+}
+
+
+//************************************************************************
+void
+WaveCodeSbAtomSave::generateForSim(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
+{
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const EngineId engineId = sbAtomSaveWaveop->gEngineId();
     Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomSave waveop should be DmaEng");
@@ -71,7 +85,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
 
 
     if (qParallelStreams()) { // Find first successor for embedded
-        findSetEventIdMode(sbAtomSaveWaveop, setEventId,  setEventMode);
+        findFirstSetEventIdMode(sbAtomSaveWaveop, setEventId,  setEventMode);
     }
 
     //************************************************************************
@@ -104,7 +118,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
             }
         }
 
-        statebufToDramInstr.src_addr = stateBuf.gEntrySysAddress(partIdx, addressInPart);
+        statebufToDramInstr.src_addr = stateBuf.gEntryTongaAddress(partIdx, addressInPart);
         statebufToDramInstr.dst_addr = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
 
         {
@@ -123,6 +137,173 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
     }
 }
 
+
+//************************************************************************
+void
+WaveCodeSbAtomSave::generateForKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
+{
+    EngineId chosenEngId;
+    std::vector<events::EventId> succEventIds;
+    /*const kcc_int32 numSyncs =*/ findSuccEventsAndChosenEngine(sbAtomSaveWaveop,
+                                        chosenEngId, succEventIds);
+
+    if (m_WaveCode.qBinFileSimKelf()) {
+        generateDmaCopySimKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
+    } else{
+        generateDmaTriggerRuntimeKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
+    }
+}
+
+
+
+//************************************************************************
+void
+WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
+                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds)
+{
+    Assert(m_WaveCode.qBinFileRuntimeKelf(), "Must be binary for Runtime Kelf");
+    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
+    kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
+
+
+    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gOfmapCount();
+    const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
+    const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
+    const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
+    const kcc_int64 startPart       = sbAtomSaveWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
+
+    Assert(succEventIds.size() == 1, "AtomSave: only one succ event id");
+    //************************************************************************
+    const bool qOut = sbAtomSaveWaveop->gSuccWaveEdges().size() == 0;
+    kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(chosenEngId, qOut));
+    const std::string refFileName(sbAtomSaveWaveop->gRefFileName());
+
+    for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
+        const TongaAddress  fileAddress = sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
+        const TpbAddress    sbAddress = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
+        dmaBlock.addDmaDesc(sbAddress, fileAddress, refFileName, numBytesPerPart);
+    }
+    for (auto eventId : succEventIds) {
+        dmaBlock.addTailEventId(eventId);
+    }
+    //************************************************************************
+    // Incoming events were processed in 
+    // WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(),
+    // so processing them again in processIncomingEdgesForceWait is wrong.
+    // The event on the chosen pred edge is replaced by sequential execution of
+    // the previous waveop and TRIGGER. 
+    //
+    // Of non-chosen pred edges, one of the Waits can be implemented as embedded.
+    // The current code does not do that yet.
+
+    if (false && qParallelStreams()) { // incoming events, adds wait for each
+        events::EventId waitEventId = 0; // events::EventId_Invalid();
+        events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
+
+        processIncomingEdgesForceWait(sbAtomSaveWaveop, chosenEngId, waitEventId, waitEventMode);
+    } // end incoming events
+
+    //************************************************************************
+    compisa::DmaTriggerInstr dmaTriggerInstr;
+    strncpy(dmaTriggerInstr.dma_queue_name, dmaBlock.gQueueName().c_str(),
+            sizeof(dmaTriggerInstr.dma_queue_name)/sizeof(dmaTriggerInstr.dma_queue_name[0]) - 1);
+
+    dmaTriggerInstr.use_raw_count = 0; // get from JSON
+    dmaTriggerInstr.block_id = dmaBlock.gBlockId();
+
+    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ event is in desc
+    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    // dummy
+    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    dmaTriggerInstr.inst_events.set_event_idx   = 0;
+    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+}
+
+
+
+
+
+
+//************************************************************************
+void
+WaveCodeSbAtomSave::generateDmaCopySimKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
+                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds)
+{
+    Assert(m_WaveCode.qBinFileSimKelf(), "Must be binary for SIM Kelf");
+    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
+
+    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gOfmapCount();
+    const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
+    const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
+    const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
+    const kcc_int64 startPart       = sbAtomSaveWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
+
+    compisa::SimDmaCopyInstr simDmaCopyInstr;
+
+    const TongaAddress sbStartTongaAddress = stateBuf.gEntryTongaAddress(startPart, addressInPart);
+    const kcc_int64 fileAddress = sbAtomSaveWaveop->gOffsetInFile() + (startPart * stepSize);
+
+    // SB
+    simDmaCopyInstr.src_start_addr   = sbStartTongaAddress;
+    simDmaCopyInstr.src_num_elem[0]  = numBytesPerPart;
+    simDmaCopyInstr.src_step_elem[0] = 1;
+    simDmaCopyInstr.src_num_elem[1]  = numPartitions;
+    simDmaCopyInstr.src_step_elem[1] = stepSize;
+
+    // DRAM
+    simDmaCopyInstr.dst_start_addr   = fileAddress;
+    simDmaCopyInstr.dst_num_elem[0]  = numPartitions * numBytesPerPart;
+    simDmaCopyInstr.dst_step_elem[0] = 1;
+    simDmaCopyInstr.dst_num_elem[1]  = 1;
+    simDmaCopyInstr.dst_step_elem[1] = 0;
+
+    // Should we assert that size <= 1?
+    if (succEventIds.size() > 0) {
+        simDmaCopyInstr.queue_idx    = succEventIds[0];
+    } else {
+        simDmaCopyInstr.queue_idx    = 0;
+    }
+
+    m_WaveCode.writeInstruction(simDmaCopyInstr, chosenEngId);
+}
+
+//======================================================================
+kcc_int32
+WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
+                        EngineId& chosenEngId,
+                        std::vector<events::EventId>& succEventIds)
+{
+    kcc_int32 numSyncs = 0;
+    wave::WaveEdge* chosenPrevEdge = nullptr;
+
+    for (auto prevWaveEdge : sbAtomWaveop->gPrevWaveEdges()) {
+        if (prevWaveEdge->qChosenForSuccSbAtom()) {
+            chosenPrevEdge = prevWaveEdge;
+            break;
+        }
+    }
+    Assert(chosenPrevEdge, "Save: must have prev chosen edge");
+    chosenEngId = chosenPrevEdge->gFromOp()->gEngineId();
+
+    // First wait on all other engines
+    for (auto prevWaveEdge : sbAtomWaveop->gPrevWaveEdges()) {
+        if (! prevWaveEdge->qNeedToImplementSync()) {
+            continue;
+        }
+        if (prevWaveEdge == chosenPrevEdge) {
+            continue;
+        }
+        ++numSyncs;
+        writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
+    }
+    succEventIds.push_back(chosenPrevEdge->gEventId());
+    return numSyncs;
+}
 
 }}
 

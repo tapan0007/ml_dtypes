@@ -26,18 +26,27 @@ void ZeroInstr(Instr& instr)
 }
 
 template <typename Instr>
-void InitInstructionWithEmbEvent(Instr &instr, TONGA_ISA_TPB_OPCODE opcode)
+void InitNonEventInstruction(Instr& instr, TONGA_ISA_TPB_OPCODE opcode)
 {
     ZeroInstr(instr);
     InitHeader(instr.inst_header, opcode, sizeof(instr));
+}
+
+template <typename Instr>
+void InitInstructionWithEmbEvent(Instr &instr, TONGA_ISA_TPB_OPCODE opcode)
+{
+    InitNonEventInstruction(instr,opcode);
+    //ZeroInstr(instr);
+    //InitHeader(instr.inst_header, opcode, sizeof(instr));
     InitSync(instr.inst_events);
 }
 
 template <typename Instr>
 void InitEventInstruction(Instr& instr, TONGA_ISA_TPB_OPCODE opcode)
 {
-    ZeroInstr(instr);
-    InitHeader(instr.inst_header, opcode, sizeof(instr));
+    InitNonEventInstruction(instr,opcode);
+    //ZeroInstr(instr);
+    //InitHeader(instr.inst_header, opcode, sizeof(instr));
     InitEvent(instr.event_idx);
 }
 

@@ -23,23 +23,23 @@ StateBuffer::StateBuffer(const PeArray& peArray, kcc_int64 partitionSizeInBytes)
 
 
 
-kcc_int64
+TpbAddress
 StateBuffer::gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 {
-    return MMAP_SB_BASE + row * utils::power2(ROW_SIZE_BITS) + elmtOffInBytes;
+    return Arch::gTpbAddressOfStateBuffer() + row * TONGA_ISA_TPB_STATE_BUF_PARTITION_SIZE + elmtOffInBytes;
 }
 
-kcc_int64
-StateBuffer::gEntrySysAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
+TongaAddress
+StateBuffer::gEntryTongaAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 {
-    kcc_int64 sysAddr = gEntryTpbAddress(row, elmtOffInBytes);
-    sysAddr += Arch::gTpbBaseSysAddress();
+    TongaAddress sysAddr = gEntryTpbAddress(row, elmtOffInBytes);
+    sysAddr += Arch::gTpbBaseTongaAddress();
     return sysAddr;
 }
 
 
 
-kcc_int64
+TpbAddress
 StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
 {
     if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
@@ -66,7 +66,7 @@ StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
     return 0;
 }
 
-kcc_int64
+TpbAddress
 StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
 {
     if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
@@ -96,16 +96,16 @@ StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
 
 
 
-kcc_int64
-StateBuffer::gAllZeroOffsetSysAddress(const utils::DataType& dataType) const
+TongaAddress
+StateBuffer::gAllZeroOffsetTongaAddress(const utils::DataType& dataType) const
 {
-    return Arch::gTpbBaseSysAddress() + gAllZeroOffsetTpbAddress(dataType);
+    return Arch::gTpbBaseTongaAddress() + gAllZeroOffsetTpbAddress(dataType);
 }
 
-kcc_int64
-StateBuffer::gAllOneOffsetSysAddress(const utils::DataType& dataType) const
+TongaAddress
+StateBuffer::gAllOneOffsetTongaAddress(const utils::DataType& dataType) const
 {
-    return Arch::gTpbBaseSysAddress() + gAllOneOffsetTpbAddress(dataType);
+    return Arch::gTpbBaseTongaAddress() + gAllOneOffsetTpbAddress(dataType);
 }
 
 }}

@@ -36,6 +36,9 @@
 #include "compisa/inc/compisasimrdnpy.hpp"
 #include "compisa/inc/compisasimrdnpy.hpp"
 
+#include "compisa/inc/compisadmatrigger.hpp"
+#include "compisa/inc/compisasimdmacopy.hpp"
+
 
 #include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
@@ -88,16 +91,68 @@ WaveCode::~WaveCode() = default;
 
 
 void
+WaveCode::determinePrecSbEdges()
+{
+    const std::array<EngineId, 3> engineIds = { {
+        EngineId::Pooling,
+        EngineId::Activation,
+        EngineId::PeArray
+    } };
+
+    for (auto waveop : m_Network->gWaveOps()) {
+        if (!waveop->qSbAtomWaveOp()) {
+            continue;
+        }
+        if (waveop->gPrevWaveEdges().size() == 0) {
+            continue; // initial loads
+        }
+
+        wave::WaveEdge* chosenPrevEdge = nullptr;
+        for (auto engId : engineIds) {
+            if (!chosenPrevEdge) {
+                for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
+                    if (prevWaveEdge->gFromOp()->gEngineId() == engId) {
+                        chosenPrevEdge = prevWaveEdge;
+                        break;
+                    }
+                }
+                if (chosenPrevEdge) {
+                    break;
+                }
+            }
+        }
+        // Chosen edge exist if on TPB engine.
+        // If this is SbAtomSave --> SbAtomLoad, there will not be a chosen edge.
+        if (chosenPrevEdge) {
+            chosenPrevEdge->rChosenForSuccSbAtom(true);
+        }
+    }
+}
+
+void
 WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
 {
     m_ParallelStreams = parallelStreams;
 
     m_InstrStreams = &instrStreams;
+    if (qGenerateKelf()) {
+        determinePrecSbEdges();
+    }
     for (auto waveOp : m_Network->gWaveOps()) {
         auto& codeGen = getCodeGen(waveOp);
         codeGen.generate(waveOp);
     }
-    saveAllNpyFiles();
+    if (! qGenerateKelf()) {
+        saveAllNpyFiles();
+    }
+    if (qBinFileRuntimeKelf()) {
+        kelf::DmaDescription& dmaDescr(gDmaDescription());
+        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_PeArrayBinFile.c_str(), EngineId::PeArray);
+        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_ActEngBinFile.c_str(), EngineId::Activation);
+        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_PoolEngBinFile.c_str(), EngineId::Pooling);
+        dmaDescr.writeInOutDescriptors();
+        dmaDescr.writeDefinitions();
+    }
 }
 
 WaveCodeWaveOp&
@@ -532,6 +587,68 @@ void WaveCode::writeInstruction<compisa::NopInstr>(const compisa::NopInstr& inst
     }
 }
 
+template<>
+void WaveCode::writeInstruction<compisa::DmaTriggerInstr>(const compisa::DmaTriggerInstr& instruction, EngineId engId)
+{
+    Assert(qBinFileRuntimeKelf(), "DmaTriggerInstr is available in RuntimeKelf binary only");
+    instruction.CheckValidity();
+    const kcc_int32 instSize = sizeof(instruction);
+
+    switch (engId) {
+    case EngineId::Pooling:
+        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
+        m_PoolEngPc += instSize;
+        break;
+    case EngineId::PeArray:
+        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
+        m_PeArrayPc += instSize;
+        break;
+    case EngineId::Activation:
+        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
+        m_ActEngPc += instSize;
+        break;
+    /*
+    case EngineId::StreamProc:
+        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
+        m_StreamProcPc += instSize;
+        break;
+    */
+    default:
+        Assert(false, "Wrong EngineId for DmaTrigger instruction: ", static_cast<int>(engId));
+    }
+}
+
+
+template<>
+void WaveCode::writeInstruction<compisa::SimDmaCopyInstr>(const compisa::SimDmaCopyInstr& instruction, EngineId engId)
+{
+    Assert(qBinFileSimKelf(), "SimDmaCopy is available in SimKelf binary only");
+    instruction.CheckValidity();
+    const kcc_int32 instSize = sizeof(instruction);
+
+    switch (engId) {
+    case EngineId::Pooling:
+        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
+        m_PoolEngPc += instSize;
+        break;
+    case EngineId::PeArray:
+        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
+        m_PeArrayPc += instSize;
+        break;
+    case EngineId::Activation:
+        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
+        m_ActEngPc += instSize;
+        break;
+    /*
+    case EngineId::StreamProc:
+        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
+        m_StreamProcPc += instSize;
+        break;
+    */
+    default:
+        Assert(false, "Wrong EngineId for DmaTrigger instruction: ", static_cast<int>(engId));
+    }
+}
 
 
 
@@ -635,6 +752,38 @@ WaveCode::NpyFileInfo::NpyFileInfo()
     m_FileDramOffset    = -1;
     m_Dirty             = false;
     m_SimTypeId         = TONGA_ISA_TPB_DTYPE_INVALID;
+}
+
+
+
+WaveCode::InstrStreams::~InstrStreams()
+{
+    closeAll();
+}
+
+void
+WaveCode::InstrStreams::closeAll()
+{
+    if (m_StreamProcInstrStream) {
+        fclose(m_StreamProcInstrStream);
+        m_StreamProcInstrStream = nullptr;
+    }
+    if (m_PeArrayInstrStream) {
+        fclose(m_PeArrayInstrStream);
+        m_PeArrayInstrStream = nullptr;
+    }
+    if (m_PoolEngInstrStream) {
+        fclose(m_PoolEngInstrStream);
+        m_PoolEngInstrStream = nullptr;
+    }
+    if (m_ActEngInstrStream) {
+        fclose(m_ActEngInstrStream);
+        m_ActEngInstrStream = nullptr;
+    }
+    if (m_DmaInstrStream) {
+        fclose(m_DmaInstrStream);
+        m_DmaInstrStream = nullptr;
+    }
 }
 
 }}
