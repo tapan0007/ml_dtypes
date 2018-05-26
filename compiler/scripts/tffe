@@ -125,7 +125,9 @@ if args.images != None:
   sgId = 0
   jsonFileOptionGeneric = "--wavegraph wavegraph.json"
   jsonFileOption = {"tcc" : "--json compiler.json",
-                    "wave" : jsonFileOptionGeneric}
+                    "wave" : jsonFileOptionGeneric,
+                    "wave2" : jsonFileOptionGeneric
+                    }
   parallelStreamsOption= ""
   if args.parallel_streams:
       parallelStreamsOption = "--parallel_streams"

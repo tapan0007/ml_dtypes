@@ -766,7 +766,9 @@ class WaveopStream(list):
                 if (self.last_main_using_psum_bank != psum_bank):
                     if (self.last_psum_waveop[psum_bank] != None):
                         input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
-        waveop['previous_waveops'] += input_list
+        for i in input_list:                        
+            if i not in waveop['previous_waveops']:
+                waveop['previous_waveops'].append(i)
         self.append_check(waveop)
         if (psum_bank < 0):
             self.last_main_waveop = waveop
@@ -1348,18 +1350,22 @@ class FusedOp(list):
                 dram_ifmaps_waveops += waveops
                 # TODO: roll this code into read_file_data_region
                 if waveops == []:
-                    accessors = writers + readers
+                    accessors = writers # + readers # don't include readers since this matmul is a reader, and we don't need to add RAR dependency
                     if accessors != []:
                         latest_accessor = max(accessors)
                         if latest_accessor >= 0:
-                            prev_waveops.append(tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name'])
+                            accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                            prev_waveops.append(accessor_name)
 
             for i in dram_ifmaps_waveops: tpb.waveop_stream.append_check(i)
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add, dram_weights_waveops)
             for i in range(len(matmul_waveop)):
                 tpb.waveop_stream.add_linked(matmul_waveop[i], [], self.conv_op.psum_bank_dst)
                 # TODO: move the following into gen_matmul_waveop to handle breaking wave into two
-                matmul_waveop[i]['previous_waveops'] += prev_waveops                
+                if i==0:    # only need to satisfy the first in group of matmul waveops
+                    for j in prev_waveops:
+                        if j not in matmul_waveop[i]['previous_waveops']:
+                            matmul_waveop[i]['previous_waveops'].append(j)
             # mark this matmul as consumer of the 64B weights morsel
             #matmul_waveop_name = matmul_waveop[-1]["waveop_name"]
             #matmul_waveop_name = ""
@@ -2466,11 +2472,13 @@ class TPBSched:
                                 dram_ifmaps_waveops += waveops
                                 # TODO: roll this code into read_file_data_region
                                 if waveops == []:
-                                    accessors = writers + readers
+                                    accessors = writers # + readers # don't include readers since this matmul is a reader, and we don't need to add RAR dependency
                                     if accessors != []:
                                         latest_accessor = max(accessors)
                                         if latest_accessor >= 0:
-                                            prev_waveops.append(tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name'])
+                                            accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                                            if accessor_name not in prev_waveops:
+                                                prev_waveops.append(accessor_name)
 
                         start_at_mid_part = tile_id.m_id%2 == 1
                         if (pool_op.data['layer_type'] == "AvgPool" or pool_op.data['layer_type'] == "MaxPool"):
@@ -2522,12 +2530,14 @@ class TPBSched:
                             assert(len(waveops) == 0)                            
                             # TODO: roll this code into write_file_data_region
                             accessors = writers + readers
-                            prev_waveops = []
+                            prev_waveops = tpb.waveop_stream.last_main_waveop['previous_waveops']
                             if accessors != []:
                                 latest_accessor = max(accessors)
                                 if latest_accessor >= 0:
-                                    prev_waveops.append(tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name'])
-                                    tpb.waveop_stream.last_main_waveop['previous_waveops'] += prev_waveops
+                                    accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                                    if accessor_name not in prev_waveops:
+                                        prev_waveops.append(accessor_name)
+
                             if (args.debug > 3): print("TRACE execute_unfused_pool_op %s: tile %s done, ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(pool_op.data["layer_name"], tile_id.id_string(), pool_op.ifmap_wave_lower_addr[z], pool_op.ifmap_wave_upper_addr[z], -1, pool_op.ofmap_tile_lower_addr[z], pool_op.ofmap_tile_upper_addr[z]))
                         #if args.abstract_mem:
                         #    if len(dram_output_waveops) > 0:
@@ -2631,12 +2641,14 @@ class TPBSched:
                             assert(len(waveops) == 0)                            
                             # TODO: roll this code into write_file_data_region
                             accessors = writers + readers
+                            prev_waveops = self.waveop_stream.last_psum_waveop[psum_bank_src]['previous_waveops']
                             prev_waveops = []
                             if accessors != []:
                                 latest_accessor = max(accessors)
                                 if latest_accessor >= 0:
-                                    prev_waveops.append(tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name'])
-                                    self.waveop_stream.last_psum_waveop[psum_bank_src]['previous_waveops'] += prev_waveops
+                                    accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                                    if accessor_name not in prev_waveops:
+                                        prev_waveops.append(accessor_name)
                         #if (args.debug > 3): print("TRACE execute_conv_ops %s: tile %s done, input region type %s start %d ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, output region type %s start %d ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(op_list[-1].data["layer_name"], tile_id.id_string(), self.statebuffer.circbuf_ifmaps.circbuf_type, self.statebuffer.circbuf_ifmaps.start, op_list.conv_op.ifmap_tile_lower_addr[0], op_list.conv_op.ifmap_tile_upper_addr[0], psum_bank_src, self.statebuffer.circbuf_scratch.circbuf_type, self.statebuffer.circbuf_scratch.start, output_params_op.ofmap_tile_lower_addr[0], output_params_op.ofmap_tile_upper_addr[0]))
                         #if args.abstract_mem:
                         #    if len(dram_output_waveops) > 0:
@@ -2819,8 +2831,8 @@ if __name__ == "__main__":
 
     # Execute fused ops
     batch_count = fused_ops_list[0].first_op.ofmaps_file_params.file_dims.N
+    Tn = fused_ops_list[0].first_op.Tn
     b = 0
-    Tn = 1
     while b < batch_count:
         i = 0
         while i < len(fused_ops_list):
@@ -2834,14 +2846,13 @@ if __name__ == "__main__":
             # kaena-409: the marker must be qualified with the condition that the fused-op contains a join or fork, 
             # because the marker is set for both branches before the join 
             # (the fork condition also must be considered for the first MaxPool, since we double-up there too).
-            if op_list.partial_batch_pairup and (op_list.has_join or op_list.has_pool):
+            if op_list.partial_batch_pairup and (op_list.has_join or op_list.has_pool) and i != len(fused_ops_list)-1:
                 if (b % capped_next_batch_count) == (capped_next_batch_count - 1):
                     if (args.debug > 2): print("TRACE: batch element %d is last of the next partial-batch group (count %d), continuing to next pairup location"%(b, capped_next_batch_count))
                     i += 1                    
                 else:
-                    #f (b%2) == 0:
                     i = 0
-                    b += Tn
+                    b += 1
                     if (args.debug > 2): print("TRACE: go back to beginning for batch element %d"%(b))
             else:                    
                 i += 1                    

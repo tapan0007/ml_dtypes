@@ -639,10 +639,11 @@ class FileMapper():
             list_of_accessors = list_of_writers_per_chunk + list_of_readers_per_chunk
             prev_waveops = []
             if list_of_accessors != []:
-                latest_accessor = max(list_of_accessors)
-                # allow for the fact that when generating matmul waveops, there could be read to the same space before waveop is added to nonload_waveop_list
-                if latest_accessor >= 0 and latest_accessor < len(nonload_waveop_list):
-                    prev_waveops.append(nonload_waveop_list[latest_accessor]['waveop_name'])
+                # include all accessors for saving to DRAM, instead of just the latest accessor
+                for accessor in list_of_accessors:
+                    # allow for the fact that when generating matmul waveops, there could be read to the same space before waveop is added to nonload_waveop_list
+                    if accessor >= 0 and accessor < len(nonload_waveop_list) and accessor not in prev_waveops:
+                        prev_waveops.append(nonload_waveop_list[accessor]['waveop_name'])
             new_dram_waveop = self.gen_dram_save_waveop(file_params, batch_item, i, prev_waveops)
             list_of_waveops.append(new_dram_waveop)
         return list_of_waveops
