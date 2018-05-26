@@ -1808,7 +1808,7 @@ class KGraph:
             fused_ops.conv_op.ifmaps_file_params.weights_S_dim = fused_ops.conv_op.weights_file_params.file_dims.S
             fused_ops.conv_op.ifmaps_file_params.stride_x = fused_ops.conv_op.stride_x
             fused_ops.conv_op.ifmaps_file_params.stride_y = fused_ops.conv_op.stride_y
-            print("copied ifmaps_file_params.replicate_multiple = weights_file_params.replicate_multiple %d"%(fused_ops.conv_op.weights_file_params.replicate_multiple))
+            #print("copied ifmaps_file_params.replicate_multiple = weights_file_params.replicate_multiple %d"%(fused_ops.conv_op.weights_file_params.replicate_multiple))
         # mark fusedops to be at end of first leg if the following op is ResAdd
         if (self.first_leg 
                 and self.current_node != None 
