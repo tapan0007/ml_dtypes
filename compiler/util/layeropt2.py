@@ -818,6 +818,9 @@ class FusedOp(list):
         self.partial_batch_pre_pairup = False
         self.next_batch_count = 1
         self.current_batch_count = 1
+        if args.force_batch_count > 1:
+            self.next_batch_count = args.force_batch_count
+            self.current_batch_count = args.force_batch_count
 
     # Add operation to list of fused operations.
     # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
@@ -923,9 +926,14 @@ class FusedOp(list):
 
         # Input/residue uses upper portion of the shared space
         if self.first_op.is_input:
-            ifmaps_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[0] \
-                                      + tpb.statebuffer.batcher.sb_partialbatch_start[1] 
-            ifmaps_region_sz = 56*56*tpb.statebuffer.batcher.item_sz
+            ifmaps_region_start_addr =   tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
+                                       + tpb.statebuffer.batcher.sb_partialbatch_start[self.current_batch_count]
+            #ifmaps_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[0] \
+            #                          + tpb.statebuffer.batcher.sb_partialbatch_start[1] 
+            if self.first_op.C <= 128:
+                ifmaps_region_sz = 56*56*tpb.statebuffer.batcher.item_sz
+            else:                
+                ifmaps_region_sz = self.current_batch_count * self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
             # for first IFMAP, use the residue size, which is roughly equal to 3 chunks of 224x4 input tiles
             tpb.statebuffer.file_mapper.map_file(self.first_op.ifmaps_file_params, ifmaps_region_start_addr, wrap_around=True, region_sz=ifmaps_region_sz)
             # obtain the adjusted region size
@@ -1249,6 +1257,7 @@ class FusedOp(list):
     # TODO: currently, always go to SB after Pooling
     # TODO: currently, cannot process multiple batch items in one instruction
     def gen_pool_waveop(self, tpb, tile_id, src_is_psum, src_psum_bank_id, start_at_mid_part, partial_batch_item):
+        batch_item = tile_id.n_id * self.pool_op.Tn
         if (src_is_psum):
             src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
             src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
@@ -1260,14 +1269,14 @@ class FusedOp(list):
         else:
             src_ifmap_width = self.pool_op.W
             src_ifmap_height = self.pool_op.H
-            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ifmaps_file_params, partial_batch_item, self.pool_op.ifmap_wave_lower_addr[partial_batch_item])
+            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ifmaps_file_params, batch_item + partial_batch_item, self.pool_op.ifmap_wave_lower_addr[partial_batch_item])
             in_dtype = self.out_data_type
         src_psum_bank_offset = src_ifmap_width * src_ifmap_height * partial_batch_item
         psum_step_multiplier = 1   # kaena-174, tonga-310: after Inkling fix, no need for multiplier         
         waveop_name = self.pool_op.data['layer_name']+"/Pool_"+tile_id.id_string()
         pool_frequency = self.pool_op.pool_window_x * self.pool_op.pool_window_y
         pool_scale = float(1/pool_frequency)
-        dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ofmaps_file_params, partial_batch_item, self.pool_op.ofmap_tile_lower_addr[partial_batch_item])
+        dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ofmaps_file_params, batch_item + partial_batch_item, self.pool_op.ofmap_tile_lower_addr[partial_batch_item])
         pool_waveop = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
@@ -1894,6 +1903,7 @@ class TPBSched:
 
     # generate scaleadd instruction and add it to instruction stream
     def gen_scaleadd_waveop_inline(self, op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, scale_val, add_val):
+        batch_item = tile_id.n_id * op.Tn
         layer_name = op.data["layer_name"]
         # TODO: update in_dtype when src_is_psum is added
         in_dtype = "float32"
@@ -1914,7 +1924,7 @@ class TPBSched:
             exit(-1)
             src_sb_address = 0
         else:
-            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_address(op.ifmaps_file_params, 0, op.ifmap_wave_lower_addr[0])
+            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_address(op.ifmaps_file_params, batch_item, op.ifmap_wave_lower_addr[0])
         if (dst_is_psum):
             print("ERROR: for scale/add waveop, cannot handle destination PSUM")
             exit(-1)
@@ -1924,7 +1934,7 @@ class TPBSched:
         dst_z_step = (op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz) if op.Tn > 1 else 1
         dst_z_num = op.Tn  # Need CNHW data format
         num_partitions = op.ofmap_count
-        dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, 0, op.ofmap_tile_lower_addr[0])
+        dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, op.ofmap_tile_lower_addr[0])
         waveop_name = layer_name+"/ScaleAdd_"+tile_id.id_string()            
         instr = {
               'previous_waveops'        : [],
@@ -2077,6 +2087,7 @@ class TPBSched:
 
     # generate ResAdd instruction and add it to instruction stream
     def gen_join_waveop_inline(self, op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, data_start, start_at_mid_part):
+        batch_item = tile_id.n_id * op.Tn
         in_a_dtype = "float32"
         in_b_dtype = "float32"
         out_dtype = "float32"
@@ -2098,6 +2109,7 @@ class TPBSched:
         dst_y_num = 1
         dst_z_num = 1
         dst_z_step = 1
+        sb_z_step = 1
         num_partitions = PEArray.NUM_COLS
         if (conv_op != None):
             if (dst_is_psum):
@@ -2112,6 +2124,7 @@ class TPBSched:
                 dst_y_num = conv_op.ofmap_cropped_tile_height
                 dst_z_step = (conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz) if conv_op.Tn > 1 else 1
                 dst_z_num = conv_op.Tn
+            sb_z_step = (conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz) if conv_op.Tn > 1 else 1
             num_partitions = conv_op.ofmap_count
         else:
             # unfused
@@ -2120,17 +2133,18 @@ class TPBSched:
             dst_y_num = op.F
             dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
             dst_z_num = op.Tn  # Need CNHW data format
+            sb_z_step = (op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz) if op.Tn > 1 else 1
             num_partitions = op.ofmap_count
         src_b_sb_address = 0
         if not src_is_psum:
-            src_b_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, 0, data_start)
-        src_a_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, 0, data_start)
+            src_b_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, data_start)
+        src_a_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, data_start)
         dst_sb_address = 0
         if not dst_is_psum:
             if (conv_op != None):
-                dst_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, 0, conv_op.ofmap_tile_lower_addr[0])
+                dst_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, conv_op.ofmap_tile_lower_addr[0])
             else:                
-                dst_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, 0, op.ofmap_tile_lower_addr[0])
+                dst_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, op.ofmap_tile_lower_addr[0])
         waveop_name = op.data['layer_name']+"/"+op.data['layer_type']+"_"+tile_id.id_string()
         instr = {
               'previous_waveops'        : [],
@@ -2143,7 +2157,7 @@ class TPBSched:
               'in_a_dtype'              : in_a_dtype,
               'in_b_dtype'              : in_b_dtype,
               'out_dtype'               : out_dtype,
-              'src_a_is_psum'           : False,
+              'src_a_is_psum'           : False,    # Source-A is always SB for now (TODO: make swappable for flexibility)
               'src_a_psum_bank_id'      : 0,
               'src_a_psum_bank_offset'  : 0,
               'src_a_sb_address'        : src_a_sb_address,
@@ -2152,7 +2166,7 @@ class TPBSched:
               'src_a_x_num'             : dst_x_num,
               'src_a_y_step'            : dst_y_step,
               'src_a_y_num'             : dst_y_num,
-              'src_a_z_step'            : dst_z_step,
+              'src_a_z_step'            : sb_z_step,
               'src_a_z_num'             : dst_z_num,
               'src_b_is_psum'           : src_is_psum,
               'src_b_psum_bank_id'      : psum_bank_src,
@@ -2695,6 +2709,7 @@ if __name__ == "__main__":
     parser.add_argument("--stop_after_layer_num", type=int, default=0, help="Stop execution after fused op number. 0 means execute all fused ops. 1 means execute 1 fused op after Input. If there's a fork, there will be two outputs.")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     parser.add_argument("--enable_replication", action='store_true', help="Enable replication for cases where number of FMAP channels is lower than PEArray rows")
+    parser.add_argument("--force_batch_count", type=int, default=1, help="Force batch count number to a certain value, to simulate batched execution in middle of network")
     args = parser.parse_args()
 
     print("Middle Sched v2: Running in %s mode"%(args.nname))
@@ -2832,7 +2847,7 @@ if __name__ == "__main__":
     # Execute fused ops
     batch_count = fused_ops_list[0].first_op.ofmaps_file_params.file_dims.N
     Tn = fused_ops_list[0].first_op.Tn
-    b = 0
+    b = Tn-1
     while b < batch_count:
         i = 0
         while i < len(fused_ops_list):
