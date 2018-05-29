@@ -763,7 +763,9 @@ else:
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
   plotQor = False
   try:
-    import matplotlib.pyplot as plt
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt    
     plotQor = True
   except:
     print("WARNING: matplotlib is not installed, skipped Qor plot")
