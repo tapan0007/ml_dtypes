@@ -71,10 +71,10 @@
 namespace kcc {
 namespace wavecode {
 
-WaveCode::WaveCode(nets::Network* network, const arch::Arch& arch)
+WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch)
     : m_Network(network)
     , m_Arch(arch)
-    , m_DmaDescription()
+    , m_DmaDescription(network)
 {
     m_CodeMatMul            = std::make_unique<WaveCodeMatMul>(*this);
     m_CodeSbAtomLoad        = std::make_unique<WaveCodeSbAtomLoad>(*this);
@@ -100,7 +100,7 @@ WaveCode::determinePrecSbEdges()
         EngineId::PeArray
     } };
 
-    for (auto waveop : m_Network->gWaveOps()) {
+    for (auto waveop : m_Network.gWaveOps()) {
         if (!waveop->qSbAtomWaveOp()) {
             continue;
         }
@@ -139,7 +139,7 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
     if (qGenerateKelf()) {
         determinePrecSbEdges();
     }
-    for (auto waveOp : m_Network->gWaveOps()) {
+    for (auto waveOp : m_Network.gWaveOps()) {
         auto& codeGen = getCodeGen(waveOp);
         codeGen.generate(waveOp);
     }

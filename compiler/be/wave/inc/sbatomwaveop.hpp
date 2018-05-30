@@ -67,7 +67,7 @@ public:
         m_RefFileName = refFileName;
     }
 
-    std::string     gRefFileFormat () const {
+    const std::string& gRefFileFormat () const {
         return m_RefFileFormat;
     }
 

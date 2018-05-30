@@ -56,14 +56,20 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
     if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
         KCC_ARCHIVE(IfmapCount);
         KCC_ARCHIVE(IfmapsFoldIdx);
-        KCC_ARCHIVE(IfmapsReplicate);
         KCC_ARCHIVE(ContainWeights);
+
+        KCC_ARCHIVE(IfmapReplicationNumRows);
+        KCC_ARCHIVE(IfmapReplicationResolution);
+        KCC_ARCHIVE(IfmapReplicationStepBytes);
+        KCC_ARCHIVE(IfmapsReplicate);
+
+        KCC_ARCHIVE(SrcStepElem);
     } else {
         KCC_ARCHIVE(OfmapCount);
         KCC_ARCHIVE(OfmapsFoldIdx);
         KCC_ARCHIVE(FinalLayerOfmap);
     }
-}
+} // SerWaveOp::loadSbAtom
 
 void
 SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
@@ -144,6 +150,9 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
     // waveop name
     // waveop type
     KCC_ARCHIVE(WeightsSbAddress);
+    KCC_ARCHIVE(IfmapReplicationNumRows);
+    KCC_ARCHIVE(IfmapReplicationResolution);
+    KCC_ARCHIVE(IfmapReplicationShiftAmnt);
 
     assert(m_WaveIdFormat.size() == WaveIdFormatSize);
     std::vector<int> waveId(WaveIdFormatSize, -1); // undefined value before deserial

@@ -270,6 +270,10 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         }
     } // end incoming events
 
+    //************************************************************************
+    matmulInstr.ifmap_replication_num_rows      = matmulWaveop->gIfmapReplicationNumRows();
+    matmulInstr.ifmap_replication_resolution    = matmulWaveop->gIfmapReplicationResolution();
+    matmulInstr.ifmap_replication_shift_amnt    = matmulWaveop->gIfmapReplicationShiftAmnt();
 
     //************************************************************************
     bool instructionWritten = false;

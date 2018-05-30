@@ -56,6 +56,17 @@ constexpr static const char* WaveOpKey_IfmapTileHeight      = "ifmap_tile_height
 constexpr static const char* WaveOpKey_IfmapTileWidth       = "ifmap_tile_width";
 constexpr static const char* WaveOpKey_IfmapsSbAddress      = "ifmaps_sb_address";
 constexpr static const char* WaveOpKey_DataType             = "data_type";
+
+// MatMul
+constexpr static const char* WaveOpKey_IfmapReplicationNumRows      = "ifmap_replication_num_rows";
+constexpr static const char* WaveOpKey_IfmapReplicationResolution   = "ifmap_replication_resolution";
+constexpr static const char* WaveOpKey_IfmapReplicationShiftAmnt    = "ifmap_replication_shift_amnt";
+
+// SBAtomLoad
+constexpr static const char* WaveOpKey_IfmapReplicationStepBytes    = "ifmap_replication_step_bytes";
+constexpr static const char* WaveOpKey_IfmapsReplicate              = "ifmaps_replicate"; // will be removed
+constexpr static const char* WaveOpKey_SrcStepElem                  = "src_step_elem"; // will be changed to "stride"
+
 // layer name
 constexpr static const char* WaveOpKey_NumColumnPartitions  = "num_column_partitions";
 constexpr static const char* WaveOpKey_NumRowPartitions     = "num_row_partitions";
@@ -94,7 +105,6 @@ constexpr static const char* WaveOpKey_RefFileShape         = "ref_file_shape";
 
 // SBAtomLoad
 constexpr static const char* WaveOpKey_IfmapsFoldIdx        = "ifmaps_fold_idx";
-constexpr static const char* WaveOpKey_IfmapsReplicate      = "ifmaps_replicate";
 
 // SBAtomSave
 constexpr static const char* WaveOpKey_OfmapsFoldIdx        = "ofmaps_fold_idx";
@@ -282,7 +292,6 @@ public:
     // SBAtomLoad
     kcc_int32                   m_IfmapCount        = -1;
     kcc_int32                   m_IfmapsFoldIdx     = -1;
-    bool                        m_IfmapsReplicate   = false;
     bool                        m_ContainWeights    = false;
 
     // SBAtomSave
@@ -408,6 +417,15 @@ public:
     //kcc_int32                   m_SrcPsumBankId     = -1;
     
     bool                        m_Multiply          = false;    /* Hack in ResAdd to get Multiply to work with old ISA */
+
+    // MatMul and SbAtomLoad
+    kcc_int32                   m_IfmapReplicationNumRows       = -1; // MM, Load
+    kcc_int32                   m_IfmapReplicationResolution    = -1; // MM, Load
+    kcc_int32                   m_IfmapReplicationShiftAmnt     = -1; // MatMul
+    kcc_int32                   m_IfmapReplicationStepBytes     = -1; // SbAtomLoad
+    bool                        m_IfmapsReplicate               = false; // SbAtomLoad
+
+    kcc_int32                   m_SrcStepElem                   = -1; // SbAtomLoad
 }; // class SerWaveOp
 
 

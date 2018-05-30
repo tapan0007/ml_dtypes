@@ -63,6 +63,18 @@ SerWaveOp::verifySbAtomLoad () const
     if (m_IfmapsFoldIdx  < 0) {
         RETURN_ASSERT(false);
     }
+    if (m_IfmapReplicationNumRows < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_IfmapReplicationResolution < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_IfmapReplicationStepBytes < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcStepElem < 0) {
+        RETURN_ASSERT(false);
+    }
     return true;
 }
 
@@ -137,6 +149,15 @@ SerWaveOp::verifyMatMul () const
         RETURN_ASSERT(false);
     }
     if (m_WeightsSbAddress < -1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_IfmapReplicationNumRows < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_IfmapReplicationResolution < 0) {
+        RETURN_ASSERT(false);
+    }
+    if (m_IfmapReplicationShiftAmnt < 0) {
         RETURN_ASSERT(false);
     }
     return true;

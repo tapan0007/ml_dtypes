@@ -76,7 +76,7 @@ public:
     };
 public:
     //----------------------------------------------------------------
-    WaveCode(nets::Network* network, const arch::Arch& arch);
+    WaveCode(nets::Network& network, const arch::Arch& arch);
 
     ~WaveCode();
 
@@ -134,7 +134,7 @@ private:
     void determinePrecSbEdges();
 
 private:
-    nets::Network*                      m_Network;
+    nets::Network&                      m_Network;
     const arch::Arch&                   m_Arch;
 
     kcc_int32                           m_StreamProcPc = 0;

@@ -137,6 +137,15 @@ public:
     const DataType& gDataType() const {
         return *m_DataType;
     }
+    const DataType& gInDataType() const {
+        return gDataType();
+    }
+    const std::string& gInTensorFormat() const;
+    const std::array<kcc_int32, 4>& gInTensorDimensions() const;
+    kcc_int32 gInLayerStride() const;
+
+    kcc_int32 gInDataSizeInBytes() const;
+    kcc_int32 gOutDataSizeInBytes() const;
 
     void addLayer(layers::Layer* layer);
 

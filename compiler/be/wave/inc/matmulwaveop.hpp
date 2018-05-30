@@ -277,6 +277,16 @@ public:
         return m_OutDtype;
     }
 
+    kcc_int32 gIfmapReplicationNumRows() const {
+        return m_IfmapReplicationNumRows;
+    }
+    kcc_int32 gIfmapReplicationResolution() const {
+        return m_IfmapReplicationResolution;
+    }
+    kcc_int32 gIfmapReplicationShiftAmnt() const {
+        return m_IfmapReplicationShiftAmnt;
+    }
+
 private:
     MatMulWaveOp() = delete;
     MatMulWaveOp(const MatMulWaveOp&) = delete;
@@ -321,6 +331,10 @@ private:
     // waveop name
     // waveop type
     kcc_int32       m_WeightsSbAddress      = -2; // -1 means do not load weights
+
+    kcc_int32       m_IfmapReplicationNumRows     = -1;
+    kcc_int32       m_IfmapReplicationResolution  = -1;
+    kcc_int32       m_IfmapReplicationShiftAmnt   = -1;
 }; // class MatMulWaveOp : public WaveOp
 
 
@@ -369,6 +383,10 @@ public:
     // waveop name
     // waveop type
     kcc_int32       m_WeightsSbAddress      = -2;
+
+    kcc_int32       m_IfmapReplicationNumRows     = -1;
+    kcc_int32       m_IfmapReplicationResolution  = -1;
+    kcc_int32       m_IfmapReplicationShiftAmnt   = -1;
 };
 
 }}

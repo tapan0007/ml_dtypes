@@ -23,8 +23,12 @@ SbAtomLoadWaveOp::SbAtomLoadWaveOp(
     : SbAtomWaveOp(params, prevWaveOps)
     , m_IfmapCount(params.m_IfmapCount)
     , m_IfmapsFoldIdx(params.m_IfmapsFoldIdx)
-    , m_IfmapsReplicate(params.m_IfmapsReplicate)
     , m_ContainWeights(params.m_ContainWeights)
+    , m_IfmapReplicationNumRows(params.m_IfmapReplicationNumRows)
+    , m_IfmapReplicationResolution(params.m_IfmapReplicationResolution)
+    , m_IfmapReplicationStepBytes(params.m_IfmapReplicationStepBytes)
+    , m_IfmapsReplicate(params.m_IfmapsReplicate)
+    , m_SrcStepElem(params.m_SrcStepElem)
 {
     assert(params.verify());
 }
@@ -34,8 +38,10 @@ SbAtomLoadWaveOp::gLoadDataSizeInBytes () const
 {
     kcc_int64 numPySize = gDataType().gSizeInBytes();
 
-    for (int i = 0; i < 4; ++i) {
-        numPySize *= gRefFileShape()[i];
+//    for (int i = 0; i < 4; ++i) {
+//        numPySize *= gRefFileShape()[i];
+    for (auto n : gRefFileShape()) {
+        numPySize *= n;
     }
     return numPySize;
 }
@@ -53,9 +59,20 @@ SbAtomLoadWaveOp::verify() const
     if (m_IfmapsFoldIdx < 0) {
         return false;
     }
-    // bool m_IfmapsReplicate
+    if (m_IfmapReplicationNumRows < 0) {
+        return false;
+    }
+    if (m_IfmapReplicationResolution < 0) {
+        return false;
+    }
+    if (m_IfmapReplicationStepBytes < 0) {
+        return false;
+    }
+    if (m_SrcStepElem < 0) {
+        return false;
+    }
     return true;
-}
+} // SbAtomLoadWaveOp::verify
 
 
 

@@ -7,6 +7,12 @@
 
 namespace kcc {
 
+template <typename T, int N>
+size_t ArraySizeof(T (&)[N])
+{
+    return N;
+}
+
 static inline kcc_int64 
 roundUpToMultipleOfM(kcc_int64 k, kcc_int64 M)
 {

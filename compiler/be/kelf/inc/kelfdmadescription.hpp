@@ -9,6 +9,11 @@
 #include "events/inc/events.hpp"
 
 namespace kcc {
+
+namespace nets {
+class Network;
+}
+
 namespace kelf {
 
 
@@ -31,7 +36,8 @@ private:
 
 
 public:
-    DmaDescription();
+    DmaDescription(const nets::Network& network);
+    DmaDescription() = delete;
     DmaDescription(const DmaDescription&) = delete;
 
 public:
@@ -76,6 +82,8 @@ private:
     const char* const                   m_PoolJsonFileName  = "pool.json";
     const char* const                   m_HostJsonFileName  = "host.json";
     const char* const                   m_DefJsonFileName   = "def.json";
+
+    const nets::Network&                m_Network;
 }; // class DmaDescription
 
 

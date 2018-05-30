@@ -10,6 +10,8 @@
 #include "utils/inc/types.hpp"
 #include "utils/inc/asserter.hpp"
 
+#include "nets/inc/network.hpp"
+
 #include "kelf/inc/kelfdmadescription.hpp"
 
 namespace kcc {
@@ -19,7 +21,8 @@ using json = nlohmann::json;
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaDescription()
+DmaDescription::DmaDescription(const nets::Network& network)
+    : m_Network(network)
 {
 }
 
@@ -380,33 +383,46 @@ DmaDescription::writeDefinitions()
         json jVars;
         {
             json varDesc;
-
             varDesc["type"] = "state-buffer";
             jVars["$SB"] = varDesc; 
+        }
 
+
+        {
+            json varDesc;
+
+            varDesc["type"] = "io";
             kcc_int64 numInBytes = 0;
             for (const auto& inBlock : m_DmaBlocksInput) {
                 numInBytes += inBlock.size();
             }
-            varDesc["type"] = "io";
             varDesc["size"] = numInBytes;
-            jVars[gSymbolicInput()] = varDesc;
-
+            if (false) { // to be used by RT to verify incoming requests
+                varDesc["tensor_dtype"]         = m_Network.gInDataType().gName();
+                varDesc["tensor_format"]        = m_Network.gInTensorFormat();
+                varDesc["tensor_dimensions"]    = m_Network.gInTensorDimensions();
+                varDesc["data_shuffle"]         = m_Network.gInLayerStride();
+            }
+            jVars[gSymbolicInput()]         = varDesc;
+        }
+        {
+            json varDesc;
+            varDesc["type"] = "io";
             kcc_int64 numOutBytes = 0;
             for (const auto& outBlock : m_DmaBlocksFromTpb) {
                 if (outBlock.qOut()) {
                     numOutBytes += outBlock.size();
                 }
             }
-            varDesc["type"] = "io";
             varDesc["size"] = numOutBytes;
             jVars[gSymbolicOutput()] = varDesc;
         }
+
+
         {
             json varDesc;
             varDesc["type"] = "file";
             for (const auto& kv : m_FileNameToId) {
-                //std::map<std::string, FileIdType>   
                 varDesc["file_name"] = kv.first;
                 jVars[kv.second] = varDesc;
             }

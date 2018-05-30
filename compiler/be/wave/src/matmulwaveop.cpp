@@ -55,6 +55,9 @@ MatMulWaveOp::MatMulWaveOp(const MatMulWaveOp::Params& params,
     // waveop name
     // waveop type
     , m_WeightsSbAddress(params.m_WeightsSbAddress)
+    , m_IfmapReplicationNumRows(params.m_IfmapReplicationNumRows)
+    , m_IfmapReplicationResolution(params.m_IfmapReplicationResolution)
+    , m_IfmapReplicationShiftAmnt(params.m_IfmapReplicationShiftAmnt)
 {
     assert(params.verify());
     assert(verify());
@@ -162,6 +165,15 @@ MatMulWaveOp::verify() const
     // waveop name
     // waveop type
     if (m_WeightsSbAddress < -1) {
+        return false;
+    }
+    if (m_IfmapReplicationNumRows < 0) {
+        return false;
+    }
+    if (m_IfmapReplicationResolution < 0) {
+        return false;
+    }
+    if (m_IfmapReplicationShiftAmnt < 0) {
         return false;
     }
     return true;

@@ -54,10 +54,6 @@ public:
         return m_IfmapsFoldIdx;
     }
 
-    bool qIfmapsReplicate() const {
-        return m_IfmapsReplicate;
-    }
-
     bool qContainWeights() const {
         return m_ContainWeights;
     }
@@ -68,14 +64,36 @@ public:
 
     kcc_int64 gLoadDataSizeInBytes () const;
 
+    kcc_int32 gIfmapReplicationNumRows() const {
+        return m_IfmapReplicationNumRows;
+    }
+    kcc_int32 gIfmapReplicationResolution() const {
+        return m_IfmapReplicationResolution;
+    }
+    kcc_int32       gIfmapReplicationStepBytes() const {
+        return m_IfmapReplicationStepBytes;
+    }
+    bool qIfmapsReplicate() const {
+        return m_IfmapsReplicate;
+    }
+
+    kcc_int32 gSrcStepElem() const {
+        return m_SrcStepElem;
+    }
+
 private:
     kcc_int32       m_IfmapCount        = -1;
     kcc_int32       m_IfmapsFoldIdx     = -1;
-    bool            m_IfmapsReplicate   = false;
     bool            m_ContainWeights    = false;
-};
 
-using SbAtomLoadWaveOp = SbAtomLoadWaveOp;
+    kcc_int32       m_IfmapReplicationNumRows       = -1;
+    kcc_int32       m_IfmapReplicationResolution    = -1;
+    kcc_int32       m_IfmapReplicationStepBytes     = -1;
+    bool            m_IfmapsReplicate               = false;
+
+    kcc_int32       m_SrcStepElem                   = -1;
+}; // class SbAtomLoadWaveOp : public SbAtomWaveOp
+
 
 
 
@@ -86,9 +104,15 @@ public:
 public:
     kcc_int32       m_IfmapCount        = -1;
     kcc_int32       m_IfmapsFoldIdx     = -1;
-    bool            m_IfmapsReplicate   = false;
     bool            m_ContainWeights    = false;
-};
+
+    kcc_int32       m_IfmapReplicationNumRows       = -1;
+    kcc_int32       m_IfmapReplicationResolution    = -1;
+    kcc_int32       m_IfmapReplicationStepBytes     = -1;
+    bool            m_IfmapsReplicate               = false;
+
+    kcc_int32       m_SrcStepElem                   = -1;
+}; // class SbAtomLoadWaveOp::Params : public SbAtomWaveOp::Params
 
 }}
 

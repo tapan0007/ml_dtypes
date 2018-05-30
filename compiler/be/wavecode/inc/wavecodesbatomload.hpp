@@ -36,6 +36,8 @@ public:
 
 private:
     void generateForSim(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
+    void generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
+    void generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
 
     void generateDmaCopySimKelf(wave::SbAtomLoadWaveOp*sbAtomLoadWaveop,
             EngineId chosenEngId,
@@ -44,6 +46,9 @@ private:
     void generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*sbAtomLoadWaveop,
             EngineId chosenEngId,
             const std::vector<events::EventId>& succEventIds);
+
+    void generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
+                    EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
 
     kcc_int32 generateForKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
 
@@ -54,6 +59,10 @@ private:
 
     kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
                         EngineId& chosenEngId, std::vector<events::EventId>& succEventIds);
+
+    static void setInstructionEvents(compisa::SimMemCpyInstr& dramToStateBufInstr, bool first, bool last, 
+                    events::EventId waitEventId, events::EventWaitMode waitEventMode,
+                    events::EventId setEventId, events::EventSetMode setEventMode);
 };
 
 }}

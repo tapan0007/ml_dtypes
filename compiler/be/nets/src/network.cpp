@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <array>
 #include <map>
 
 
@@ -18,6 +19,9 @@
 #include "layers/inc/avgpoollayer.hpp"
 #include "layers/inc/resaddlayer.hpp"
 #include "layers/inc/biasaddlayer.hpp"
+
+#include "wave/inc/sbatomloadwaveop.hpp"
+#include "wave/inc/sbatomsavewaveop.hpp"
 
 #include "nets/inc/network.hpp"
 #include "nets/inc/network_load.hpp"
@@ -97,6 +101,7 @@ Network::findLayer(const std::string& layerName)
     return layer;
 }
 
+//--------------------------------------------------------
 wave::WaveOp*
 Network::findWaveOp(const std::string& waveOpName)
 {
@@ -105,12 +110,14 @@ Network::findWaveOp(const std::string& waveOpName)
     return waveOp;
 }
 
+//--------------------------------------------------------
 void
 Network::revertSavedWaveops()
 {
     std::swap(m_WaveOps, m_SaveWaveOps);
 }
 
+//--------------------------------------------------------
 void
 Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops)
 {
@@ -124,6 +131,86 @@ Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops)
     //std::copy(newWaveops.begin(), newWaveops.end(), m_WaveOps.begin());
 }
 
+//--------------------------------------------------------
+const std::string&
+Network::gInTensorFormat() const
+{
+    static const std::string emptyStr;
+
+    for (auto waveop : m_WaveOps) {
+        const auto sbLoadWaveop =
+                dynamic_cast<const wave::SbAtomLoadWaveOp*>(waveop);
+        if (sbLoadWaveop && ! sbLoadWaveop->qContainWeights()) {
+            return sbLoadWaveop->gRefFileFormat();
+        }
+    }
+    Assert(false, "Network::gTensorFormat: did not find IFMAP Load waveop");
+    return emptyStr;
+}
+
+//--------------------------------------------------------
+const std::array<kcc_int32, 4>&
+Network::gInTensorDimensions() const
+{
+    static const std::array<kcc_int32, 4> badDim = {{ -1, -1, -1, -1 }};
+
+    for (auto waveop : m_WaveOps) {
+        const auto sbLoadWaveop =
+                dynamic_cast<const wave::SbAtomLoadWaveOp*>(waveop);
+        if (sbLoadWaveop && ! sbLoadWaveop->qContainWeights()) {
+            return sbLoadWaveop->gRefFileShape();
+        }
+    }
+    Assert(false, "Network::gTensorDimensions: did not find IFMAP Load waveop");
+    return badDim;
+}
+
+//--------------------------------------------------------
+kcc_int32
+Network::gInLayerStride() const
+{
+    for (auto waveop : m_WaveOps) {
+        const auto sbLoadWaveop =
+                dynamic_cast<const wave::SbAtomLoadWaveOp*>(waveop);
+        if (sbLoadWaveop && ! sbLoadWaveop->qContainWeights()) {
+            return sbLoadWaveop->gSrcStepElem();
+        }
+    }
+    Assert(false, "Network::gInLayerStride: did not find IFMAP Load waveop");
+    return -1;
+}
+
+//--------------------------------------------------------
+kcc_int32
+Network::gInDataSizeInBytes() const
+{
+    kcc_int64 inSizeInBytes = gDataType().gSizeInBytes();
+    const auto& refShape(gInTensorDimensions());
+
+    for (auto n : refShape) {
+        inSizeInBytes *= n;
+    }
+    return inSizeInBytes;
+}
+
+//--------------------------------------------------------
+kcc_int32
+Network::gOutDataSizeInBytes() const
+{
+    for (auto waveop : m_WaveOps) {
+        const auto sbSaveWaveop =
+                dynamic_cast<const wave::SbAtomSaveWaveOp*>(waveop);
+        if (sbSaveWaveop) {
+            kcc_int64 outSizeInBytes = gDataType().gSizeInBytes();
+            for (auto n : sbSaveWaveop->gRefFileShape()) {
+                outSizeInBytes *= n;
+            }
+            return outSizeInBytes;
+        }
+    }
+    Assert(false, "Network::gOutDataSizeInBytes: did not find IFMAP Load waveop");
+    return -1;
+}
 
 }}
 

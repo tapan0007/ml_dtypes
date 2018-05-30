@@ -317,8 +317,14 @@ Network::Load::loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp)
 
     KCC_UNSERIALIZE(IfmapCount);
     KCC_UNSERIALIZE(IfmapsFoldIdx);
-    KCC_UNSERIALIZE(IfmapsReplicate);
     KCC_UNSERIALIZE(ContainWeights);
+
+    KCC_UNSERIALIZE(IfmapReplicationNumRows);
+    KCC_UNSERIALIZE(IfmapReplicationResolution);
+    KCC_UNSERIALIZE(IfmapReplicationStepBytes);
+    KCC_UNSERIALIZE(IfmapsReplicate);
+
+    KCC_UNSERIALIZE(SrcStepElem);
 
     auto waveOp = new wave::SbAtomLoadWaveOp(sbatomLoadParams, prevWaveOps);
     Assert(waveOp && waveOp->gName() == sbatomLoadParams.m_WaveOpName,
@@ -464,11 +470,15 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     // waveop type
     KCC_UNSERIALIZE(WeightsSbAddress);
 
+    KCC_UNSERIALIZE(IfmapReplicationNumRows);
+    KCC_UNSERIALIZE(IfmapReplicationResolution);
+    KCC_UNSERIALIZE(IfmapReplicationShiftAmnt);
+
     auto waveOp = new wave::MatMulWaveOp(matmulParams, prevWaveOps);
     Assert(waveOp->gName() == matmulParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
-}
+} // Network::Load::loadMatMul
 
 wave::ActivationWaveOp*
 Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)

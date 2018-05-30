@@ -302,7 +302,7 @@ Main(int argc, char* argv[])
             eventMgr.processWaveops(kelf);
 
             writeOutJson(ntwk, JsonInFileName, "out");
-            wavecode::WaveCode waveCode(ntwk, arch);
+            wavecode::WaveCode waveCode(*ntwk, arch);
 
             waveCode.rBinFileType(BinFileType::SimAngel);
             waveCode.generate(instrStreams, ParallelStreams);
@@ -370,7 +370,7 @@ Main(int argc, char* argv[])
             instrStreams.m_DmaInstrStream           = file;
 
             writeOutJson(ntwk, JsonInFileName, "seq");
-            wavecode::WaveCode waveCode(ntwk, arch);
+            wavecode::WaveCode waveCode(*ntwk, arch);
             waveCode.generate(instrStreams, ParallelStreams);
 
             fclose(file);
