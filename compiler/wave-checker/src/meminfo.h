@@ -192,7 +192,7 @@ class MMMemInfo {
 
     AddrRange weight_footprint(
         w_start_addr
-        , w_start_addr + ofmap_cnt * wmap_mi.elem_size
+        , (w_start_addr + ofmap_cnt * wmap_mi.elem_size - 1)
         );
     psum_mi.compute_footprint();
     ifmap_mi.merge_addr_range(weight_footprint);

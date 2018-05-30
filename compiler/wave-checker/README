@@ -9,6 +9,7 @@ wave-checker is designed to examine compliance of a wave graph with instruction 
 
 * Build
 1. export GTEST_DIR=YOUR-GOOGLETEST-LOCATION
+   o Note : If you don't want to be bothered by googletest installation and environment variable setup, please do 'source ${KAENA_PATH}/compiler/wave-checker/test/gtest-build'. It will automatically download and build googletest for you and set GTEST_DIR.
 2. Create build directory and move to the directory (e.g. mkdir wc-build;cd wc-build)
 3. Run 'cmake ${KAENA_PATH}/compiler/wave-checker'
 4. Run 'make'
