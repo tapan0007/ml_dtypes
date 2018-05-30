@@ -9,7 +9,14 @@ pipeline{
         }
     }
     environment {
-        REPO_BUILD = "/workdir/repo-build"
+        REPO_BUILD = "/workdir/repo-build" 
+        KAENA_PATH = "$REPO_BUILD/kaena-compiler"
+        KAENA_EXT_PATH = "$REPO_BUILD/kaena-ext"
+        INKLING_PATH = "$REPO_BUILD/inkling" 
+        QEMU_INKLING_PATH = "$REPO_BUILD/qemu_inkling" 
+        ARCH_ISA_PATH = "$REPO_BUILD/isa"
+        KAENA_RT_PATH = "$REPO_BUILD/kaena-runtime"
+     
     }
     stages {
         stage('Prep'){
@@ -25,11 +32,12 @@ pipeline{
         stage('Checkout'){
 
             steps {
-                sh 'ls -ltrA'
                 sh '''
 		set -x
 
                 cd $REPO_BUILD
+		ls -ltrA
+
 		repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
 		[ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
 		repo init -m $MANIFEST_FILE_NAME
@@ -47,37 +55,36 @@ pipeline{
                 git -C isa pull origin $GERRIT_REFSPEC
 
 		chmod -R 755 ./
-                echo "export KAENA_PATH=$REPO_BUILD/kaena-compiler" >> ~/.bashrc
-                echo "export KAENA_EXT_PATH=$REPO_BUILD/kaena-ext" >> ~/.bashrc
-                echo "export INKLING_PATH=$REPO_BUILD/inkling" >> ~/.bashrc
-                echo "export ARCH_ISA_PATH=$REPO_BUILD/isa" >> ~/.bashrc
-                echo "export KAENA_RT_PATH=$REPO_BUILD/kaena-runtime" >> ~/.bashrc
+		ls -ltrA
                 '''
             }
         }
         stage('install deps'){
             steps {
-                sh 'source ~/.bashrc && $KAENA_PATH/test/tools/fetch-and-run/alinux_deps_install || echo install deps failed'
+                sh '$KAENA_PATH/test/tools/fetch-and-run/alinux_deps_install || echo install deps failed'
             }
         }
         stage('Build') {
 
             steps {
-                sh 'ls -ltr'
-                sh 'source ~/.bashrc && make -j4 -C $KAENA_PATH'
-                sh 'source ~/.bashrc && make -j4 PLAT=uio -C $KAENA_RT_PATH/hal/'
-                sh 'source ~/.bashrc && make -j4 PLAT=dv -C $KAENA_RT_PATH/hal/'
-                sh 'source ~/.bashrc && make -j4 PLAT=dummy -C $KAENA_RT_PATH/hal/'
-                sh 'source ~/.bashrc && cd $REPO_BUILD && mkdir wave-checker-build && cd wave-checker-build && cp $KAENA_PATH/compiler/wave-checker/test/gtest-build . && source gtest-build && mkdir bbb && cd bbb && cmake $KAENA_PATH/compiler/wave-checker && make'
+                sh 'ls -ltrA $REPO_BUILD'
+                sh 'make -j4 -C $KAENA_PATH'
+                sh 'make -j4 PLAT=uio -C $KAENA_RT_PATH/hal/'
+                sh 'make -j4 PLAT=dv -C $KAENA_RT_PATH/hal/'
+                sh 'make -j4 PLAT=dummy -C $KAENA_RT_PATH/hal/'
+                sh 'cd $REPO_BUILD && mkdir wave-checker-build &&cd wave-checker-build && cp $KAENA_PATH/compiler/wave-checker/test/gtest-build . && source gtest-build && mkdir bbb && cd bbb && cmake $KAENA_PATH/compiler/wave-checker && make'
+
+                //sh 'cd $QEMU_INKLING_PATH && ./configure --target-list=x86_64-softmmu && make -j'
+
                 //archiveArtifacts artifacts: '**/output/*.tgz'
             }
         }
         stage('Regressions') {
 
             steps {
-                sh 'source ~/.bashrc && make -j4 -C $KAENA_PATH/test/e2e/ check'
-                sh 'source ~/.bashrc && [ -z "$RUNALL_ARGS" ] || $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS'
-                //sh 'source ~/.bashrc && make -C $KAENA_INK_PATH check'
+                sh 'make -j4 -C $KAENA_PATH/test/e2e/ check'
+                sh '[ -z "$RUNALL_ARGS" ] || $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS'
+                //sh 'make -C $KAENA_INK_PATH check'
             }
         }
     }

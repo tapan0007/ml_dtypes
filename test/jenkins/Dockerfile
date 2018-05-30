@@ -14,7 +14,12 @@ RUN yum update -y && \
         which \
         boost-devel \
         cmake \
+        zlib-devel \
+        glib* \
+        pixman \
+        pixman-devel \
         zlib-static && \
+    yum groupinstall -y "Development tools" && \
     yum clean all -y
 
 RUN pip-3.6 install --no-cache-dir \
