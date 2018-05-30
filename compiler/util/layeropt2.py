@@ -955,6 +955,7 @@ class FusedOp(list):
             sb_size_set_index = tpb.statebuffer.batcher.sb_size_set_index[(ofmap_batch_count, False)]
         if ((self.last_op.is_fork or self.ofmap_is_for_join) != self.residue_in_scratch):
             # special case for stage after MaxPool: use scratch space for OFMAP instead of residue space
+            #ofmaps_region_sz = ofmap_batch_count * self.last_op.ofmaps_file_params.batch_item_partition_usage_sz_rounded
             ofmaps_region_sz = ofmap_batch_count * self.last_op.ofmaps_file_params.batch_item_partition_usage_sz
             ofmaps_region_start_addr =   tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
                                        + tpb.statebuffer.batcher.sb_partialbatch_start[ofmap_batch_count]
@@ -968,6 +969,7 @@ class FusedOp(list):
                 and ofmaps_region_start_addr < ifmaps_region_start_addr + ifmaps_region_sz:
             if (self.last_op.ofmaps_file_params.file_dims.C > 64) or (self.conv_op is not None and (self.conv_op.stride_x > 1 or self.conv_op.S > 1)):
                 ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz * self.last_op.Tn                               
+                #ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz_rounded * self.last_op.Tn                               
             # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
             self.first_op.ifmaps_file_params.mapped_params.modify_in_place = 1
 
@@ -1120,7 +1122,7 @@ class FusedOp(list):
                         print("\nERROR: layer %s batch item %d computed OFMAPS is not equal to expected OFMAPS!\n"%(self.last_op.data['layer_name'], i))
                         tpb.num_mismatches += 1
                     if self.last_op.is_output:
-                        waveops = tpb.statebuffer.file_mapper.flush_file(tpb.waveop_stream.nonload_waveop_list, self.last_op.ofmaps_file_params, i)
+                        waveops = tpb.statebuffer.file_mapper.flush_file(tpb.waveop_stream.nonload_waveop_count, tpb.waveop_stream.nonload_waveop_list, self.last_op.ofmaps_file_params, i)
                         tpb.waveop_stream.add_outputs(waveops)
                 self.last_op.ofmaps_file_params.save_file()
 
@@ -1137,9 +1139,11 @@ class FusedOp(list):
             print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
         # find the weights offset within atom; -1 means don't load new weights
         weights_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.conv_op.weights_file_params, 0, self.conv_op.weight_wave_lower_addr)
-        if (weights_sb_address == self.prev_weight_wave_lower_addr):
+        # kaena-421: during execution for batch item other than the first one, need to check if there's any SBAtomFile due to eviction
+        # when the fused-op is reexecuted (since self.prev_weight_wave_lower_addr is preserved across batch item calls) 
+        if (weights_sb_address == self.prev_weight_wave_lower_addr and dram_weights_waveops == []):
             weights_sb_address = -1
-            if (args.debug > 1): print("DBG: weights has been previously loaded; reusing them instead of reloading")
+            if (args.debug > 1): print("DBG: weights has been previously loaded into PEArray; reusing them instead of reloading")
         else:            
             self.prev_weight_wave_lower_addr = weights_sb_address
 
@@ -2119,7 +2123,7 @@ class TPBSched:
                 dst_z_step = dst_y_step * dst_y_num 
                 dst_z_num = conv_op.Tn
             else:                
-                dst_x_num = conv_op.ofmap_full_tilex_sz
+                dst_x_num = conv_op.ofmap_cropped_tile_width
                 dst_y_step = conv_op.E
                 dst_y_num = conv_op.ofmap_cropped_tile_height
                 dst_z_step = (conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz) if conv_op.Tn > 1 else 1
@@ -2778,15 +2782,20 @@ if __name__ == "__main__":
                     first_op.populate_ofmaps_file_params()
                     first_op.ofmaps_file_params = j.ofmaps_file_params
                     break
-        else:                
+        else:       
+            # maintain a linked-list of fused_ops
+            # grab the current batch count from previous fused_ops
             if len(fused_ops_list) > 0:
                 op_list.prev = fused_ops_list[-1]
                 op_list.current_batch_count = op_list.prev.next_batch_count
             fused_ops_list.append(op_list)
-            op_list.partial_batch_pairup = False
+            # make sure minimum batch count = Tn
+            op_list.current_batch_count = max(op_list.current_batch_count, op_list.last_op.Tn)
+            # set result file
             op_list.last_op.result_file = last_op.ofmaps_file_params.file_name
             print("Output file for layer %s is %s"%(op_list.last_op.data['layer_name'], op_list.last_op.result_file))
             # Check for convenient location to pair-up batch items for processing together
+            op_list.partial_batch_pairup = False
             op_list.next_batch_count = op_list.current_batch_count
             if op_list.has_join or op_list.has_pool:
                 if prev_join_batch_item_partition_usage_sz > op_list.last_op.ofmaps_file_params.batch_item_partition_usage_sz:
@@ -2846,17 +2855,21 @@ if __name__ == "__main__":
 
     # Execute fused ops
     batch_count = fused_ops_list[0].first_op.ofmaps_file_params.file_dims.N
-    Tn = fused_ops_list[0].first_op.Tn
-    b = Tn-1
+    current_Tn = fused_ops_list[0].first_op.Tn
+    first_Tn = current_Tn
+    b = current_Tn-1
     while b < batch_count:
         i = 0
         while i < len(fused_ops_list):
             op_list = fused_ops_list[i]
-            Tn = op_list.first_op.Tn
+            current_Tn = op_list.first_op.Tn
             capped_current_batch_count = min(batch_count, op_list.current_batch_count)
             capped_next_batch_count = min(batch_count, op_list.next_batch_count)
-            for j in range(capped_current_batch_count-1, -1, -Tn):
-                if (args.debug > 2): print("TRACE: executing fused op %s, batch elem %d to %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, has_join %d, has_pool %d"%(op_list.last_op.data['layer_name'], b - j, b - j + Tn - 1, op_list.partial_batch_pre_pairup, op_list.partial_batch_pairup, op_list.has_join, op_list.has_pool))
+            assert(capped_next_batch_count >= capped_current_batch_count)
+            if (capped_current_batch_count < current_Tn):
+                raise RuntimeError("Please use --force_batch_count to at %d (or higher powers of 2) to simulate batching in middle of network"%(current_Tn))
+            for j in range(capped_current_batch_count-1, -1, -current_Tn):
+                if (args.debug > 2): print("TRACE: executing fused op %s, batch elem %d to %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, has_join %d, has_pool %d"%(op_list.last_op.data['layer_name'], b - j, b - j + current_Tn - 1, op_list.partial_batch_pre_pairup, op_list.partial_batch_pairup, op_list.has_join, op_list.has_pool))
                 op_list.execute(b - j)
             # kaena-409: the marker must be qualified with the condition that the fused-op contains a join or fork, 
             # because the marker is set for both branches before the join 
@@ -2867,11 +2880,11 @@ if __name__ == "__main__":
                     i += 1                    
                 else:
                     i = 0
-                    b += 1
+                    b += first_Tn
                     if (args.debug > 2): print("TRACE: go back to beginning for batch element %d"%(b))
             else:                    
                 i += 1                    
-        b += Tn
+        b += current_Tn
 
     # write out wavegraph           
     wavegraph_json = kgraph_json
@@ -2899,9 +2912,11 @@ if __name__ == "__main__":
         # create graph from JSON file        
         wavegraph = KGraph()
         wavegraph.populate_from_kgraph_json(wavegraph_json)
+        #wavegraph.add_forward_refs(wavegraph.last_node)    # exceeds maximum recursion depth!
 
         # check for SBAtomFile nodes with no input
         if (args.debug > 2):
+            node_has_output_edge = {}
             print("DBG: check for all SBAtomFile nodes with no input")
             for i in wavegraph.node_dict:
                 entry = wavegraph.node_dict[i]
@@ -2909,6 +2924,17 @@ if __name__ == "__main__":
                     if entry.data['waveop_type'] == "SBAtomFile":
                         if entry.data['previous_waveops'] == []:
                             print(entry.data['waveop_name'])
+                    if entry.data['waveop_type'] != "SBAtomSave":
+                        node_has_output_edge[entry.data['waveop_name']] = False
+            print("DBG: check for all non-SBAtomSave nodes with no output")
+            for i in wavegraph.node_dict:
+                entry = wavegraph.node_dict[i]
+                if 'previous_waveops' in entry.data:
+                    for j in entry.data['previous_waveops']:
+                        node_has_output_edge[j] = True
+            for i in node_has_output_edge:
+                if not node_has_output_edge[i]:
+                    raise RuntimeError("There's no output edge for node %s"%i)
 
     # write out dot graph in SVG format
     if (args.dot != None and args.inference == False):            
