@@ -43,6 +43,7 @@ pipeline{
                 git -C kaena-compiler pull origin $GERRIT_REFSPEC || \
                 git -C kaena-ext pull origin $GERRIT_REFSPEC || \
                 git -C inkling pull origin $GERRIT_REFSPEC || \
+                git -C qemu_inkling pull origin $GERRIT_REFSPEC || \
                 git -C isa pull origin $GERRIT_REFSPEC
 
 		chmod -R 755 ./
