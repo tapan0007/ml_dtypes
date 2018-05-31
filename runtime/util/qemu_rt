@@ -60,7 +60,10 @@ class Qemu:
     self.fh.send("\r")
   def stop(self):
     self.rsyncFromVm("/var/log/syslog", ".")
-    self.fh.expect("Something non-existing to flush logs...", timeout=5)
+    try:
+      self.fh.expect("Something non-existing to flush logs...", timeout=5)
+    except:
+      pass
     self.fh.close()
   def rsyncToVm(self, fromDir, toVmDir, opts=None):
     cmd = '%s %s ubuntu@localhost:%s' % (self.cmdForRsync, fromDir, toVmDir)
@@ -103,6 +106,9 @@ class Krt:
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/krt-log.txt", ".")
+    debug = True
+    if debug:
+      self.qemu.rsyncFromVm(self.kelfVmDir, "debug_kelf")
     #self.fh.close()
   def inference(self, ifmap, ofmap):
     self.qemu.rsyncToVm(os.path.realpath(ifmap), self.ifmapDir, "--copy-links")
