@@ -136,28 +136,44 @@ struct MemInfo {
   tonga_addr last_end(int64_t start_addr, int step, int elem_size, int num_elem)
   {
     return (last_begin(start_addr,step,elem_size,num_elem)
-      + (tonga_addr)elem_size - 1);
+      + (tonga_addr)(elem_size - 1)*(tonga_addr)(num_elem > 1));
   }
   inline tonga_addr last_w_begin()
-  { return last_begin(start_addr, w_step, elem_size, w_num); }
+  {
+    return last_begin(start_addr, w_step, elem_size, w_num);
+  }
   inline tonga_addr last_w_end()
-  { return last_end(start_addr, w_step, elem_size, w_num); }
+  {
+    return last_end(start_addr, w_step, elem_size, w_num);
+  }
   //inline tonga_addr last_z_begin()
   //{ return last_begin(start_addr, z_step, elem_size, z_num); }
   //inline tonga_addr last_z_end()
   //{ return last_end(start_addr, z_step, elem_size, z_num); }
   inline tonga_addr last_z_begin()
-  { return (last_w_begin() + elem_size * z_step * (z_num - 1)); }
+  {
+    return (last_w_begin() + elem_size * z_step * (z_num - 1));
+  }
   inline tonga_addr last_z_end()
-  { return (last_z_begin() + elem_size - 1); }
+  {
+    return (last_z_begin() + elem_size - 1);
+  }
   inline tonga_addr last_y_begin()
-  { return (last_z_begin() + elem_size * y_step * (y_num - 1)); }
+  {
+    return (last_z_begin() + elem_size * y_step * (y_num - 1));
+  }
   inline tonga_addr last_y_end()
-  { return (last_y_begin() + elem_size - 1); }
+  {
+    return (last_y_begin() + elem_size - 1);
+  }
   inline tonga_addr last_x_begin()
-  { return (last_y_begin() + elem_size * x_step * (x_num - 1)); }
+  {
+    return (last_y_begin() + elem_size * x_step * (x_num - 1));
+  }
   inline tonga_addr last_x_end()
-  { return (last_x_begin() + elem_size - 1); }
+  {
+    return (last_x_begin() + elem_size - 1);
+  }
   void compute_footprint()
   {
     if (enable)
@@ -167,7 +183,16 @@ struct MemInfo {
       tonga_addr end = 
         (std::max(std::max(last_w_end(), last_z_end())
                   , std::max(last_y_end(), last_x_end())));
-      AddrRange addr_range(start_addr, end);
+      tonga_addr r_end;
+      tonga_addr r_start;
+      if (start_addr > end) {
+        r_end = start_addr;
+        r_start = end;
+      } else {
+        r_start = start_addr;
+        r_end = end;
+      }
+      AddrRange addr_range(r_start, r_end);
       //addr_range = AddrRange(start_addr, end);
       mem_footprints.push_back(addr_range);
     }

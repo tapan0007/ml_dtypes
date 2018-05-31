@@ -15,6 +15,11 @@ wave-checker is designed to examine compliance of a wave graph with instruction 
 4. Run 'make'
 
 * Usage
+src/wave-checker [Options]
+   --help, -h : Help
+   --wave-graph-file, -w : Specifies wave graph file name and location
+   --structure-check : Enable structure check
+   --data-race-check : Enable data race check
 In the build directory, 
-run 'src/wave-checker wave_graph.json'
+run 'src/wave-checker --wave-graph-file "YOUR_WAVE_GRAPH" [--structure-check] [--data-race-check]
 run 'test/wc_gtest' to run regression test

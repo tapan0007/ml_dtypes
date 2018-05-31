@@ -26,7 +26,7 @@ MemInfo_Params MMOp::extract_sb_params(json& op)
   mp.enable = true;
   mp.nx = op["fmap_x_num"];
   mp.sx = op["fmap_x_step"];
-  mp.ny = 0;mp.nz = 0;mp.nw = 0;mp.sy = 0;mp.sz = 0;mp.sw = 0;
+  mp.ny = 1;mp.nz = 1;mp.nw = 1;mp.sy = 0;mp.sz = 0;mp.sw = 0;
   if (op["fmap_z_num"] != nullptr) {
     mp.nz = op["fmap_z_num"];
     mp.sz = op["fmap_z_step"];
@@ -48,7 +48,7 @@ MemInfo_PSUM_Params MMOp::extract_psum_params(json& op)
   mp.enable = true;
   mp.nx = op["psum_x_num"];
   mp.sx = op["psum_x_step"];
-  mp.ny = 0;mp.nz = 0;mp.nw = 0;
+  mp.ny = 1;mp.nz = 1;mp.nw = 1;
   mp.sy = 0;mp.sz = 0;mp.sw = 0;
   mp.pbid = op["psum_bank_id"];
   if (op["psum_z_num"] != nullptr) {
@@ -74,7 +74,7 @@ MemInfo_Params PoolActOp::extract_sb_in_params(json& op)
   mp_in.enable = !src_is_psum;
   mp_in.nx = op["src_x_num"];
   mp_in.sx = op["src_x_step"];
-  mp_in.ny = 0;mp_in.nz = 0;mp_in.nw = 0;
+  mp_in.ny = 1;mp_in.nz = 1;mp_in.nw = 1;
   mp_in.sy = 0;mp_in.sz = 0;mp_in.sw = 0;
   if (op["src_z_num"] != nullptr) {
     mp_in.nz = op["src_z_num"];
@@ -99,7 +99,7 @@ MemInfo_Params PoolActOp::extract_sb_out_params(json& op)
   mp_out.enable = !dst_is_psum;
   mp_out.nx = op["dst_x_num"];
   mp_out.sx = op["dst_x_step"];
-  mp_out.ny = 0;mp_out.nz = 0;mp_out.nw = 0;
+  mp_out.ny = 1;mp_out.nz = 1;mp_out.nw = 1;
   mp_out.sy = 0;mp_out.sz = 0;mp_out.sw = 0;
   if (op["dst_z_num"] != nullptr) {
     mp_out.nz = op["dst_z_num"];
@@ -110,7 +110,7 @@ MemInfo_Params PoolActOp::extract_sb_out_params(json& op)
     mp_out.ny = op["dst_y_num"];
     mp_out.sy = op["dst_y_step"];
   } 
-  mp_out.dtype = op["in_dtype"];
+  mp_out.dtype = op["out_dtype"];
 
   return mp_out;
 }
@@ -124,7 +124,7 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_in_params(json& op)
   mp_in.enable = src_is_psum;
   mp_in.nx = op["src_x_num"];
   mp_in.sx = op["src_x_step"];
-  mp_in.ny = 0;mp_in.nz = 0;mp_in.nw = 0;
+  mp_in.ny = 1;mp_in.nz = 1;mp_in.nw = 1;
   mp_in.sy = 0;mp_in.sz = 0;mp_in.sw = 0;
   mp_in.pbid = op["src_psum_bank_id"];
   if (op["src_z_num"] != nullptr) {
@@ -150,7 +150,7 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_out_params(json& op)
   mp_out.enable = dst_is_psum;
   mp_out.nx = op["dst_x_num"];
   mp_out.sx = op["dst_x_step"];
-  mp_out.ny = 0;mp_out.nz = 0;mp_out.nw = 0;
+  mp_out.ny = 1;mp_out.nz = 1;mp_out.nw = 1;
   mp_out.sy = 0;mp_out.sz = 0;mp_out.sw = 0;
   if (op["dst_z_num"] != nullptr) {
     mp_out.nz = op["dst_z_num"];
@@ -161,7 +161,7 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_out_params(json& op)
     mp_out.ny = op["dst_y_num"];
     mp_out.sy = op["dst_y_step"];
   } 
-  mp_out.dtype = op["in_dtype"];
+  mp_out.dtype = op["out_dtype"];
   if (dst_is_psum) mp_out.pbid = op["dst_psum_bank_id"];
 
   return mp_out;
@@ -600,6 +600,12 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_sb_in_footprint(),v->get_sb_out_footprint()))
     {
       DataRacePrint(u, v, RAW_SB);
+      std::cout << "\tSB Read range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          u->get_sb_in_footprint());
+      std::cout << "\tSB Write range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          v->get_sb_out_footprint());
     }
   }
   if (u->get_sb_out_footprint_size() && v->get_sb_in_footprint_size())
@@ -607,6 +613,12 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_sb_out_footprint(),v->get_sb_in_footprint()))
     {
       DataRacePrint(v, u, RAW_SB);
+      std::cout << "\tSB Write range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          u->get_sb_out_footprint());
+      std::cout << "\tSB Read range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          v->get_sb_in_footprint());
     }
   }
   if (u->get_sb_out_footprint_size() && v->get_sb_out_footprint_size())
@@ -614,6 +626,12 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_sb_out_footprint(),v->get_sb_out_footprint()))
     {
       DataRacePrint(u, v, WAW_SB);
+      std::cout << "\tSB Write range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          u->get_sb_out_footprint());
+      std::cout << "\tSB Write range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          v->get_sb_out_footprint());
     }
   }
   if (u->get_psum_in_footprint_size() && v->get_psum_out_footprint_size())
@@ -621,6 +639,12 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_psum_in_footprint(),v->get_psum_out_footprint()))
     {
       DataRacePrint(u, v, RAW_PSUM);
+      std::cout << "\tPSUM Read range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          u->get_psum_in_footprint());
+      std::cout << "\tPSUM Write range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          v->get_psum_out_footprint());
     }
   }
   if (u->get_psum_out_footprint_size() && v->get_psum_in_footprint_size())
@@ -628,6 +652,12 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_psum_out_footprint(),v->get_psum_in_footprint()))
     {
       DataRacePrint(v, u, RAW_PSUM);
+      std::cout << "\tPSUM Write range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          u->get_psum_out_footprint());
+      std::cout << "\tPSUM Read range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          v->get_psum_in_footprint());
     }
   }
   if (u->get_psum_out_footprint_size() && v->get_psum_out_footprint_size())
@@ -635,6 +665,12 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_psum_out_footprint(),v->get_psum_out_footprint()))
     {
       DataRacePrint(u, v, WAW_PSUM);
+      std::cout << "\tPSUM Write range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          u->get_psum_out_footprint());
+      std::cout << "\tPSUM Write range : ";
+      AddrRange::print_text_ars<std::list<AddrRange> >(
+          v->get_psum_out_footprint());
     }
   }
 }
