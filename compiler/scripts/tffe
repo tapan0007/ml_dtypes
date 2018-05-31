@@ -58,7 +58,7 @@ parser.add_argument('--input_node', help='Input node in the neural network graph
                     default=None)
 parser.add_argument('--dot_timeout', help='Timeout for planarization of op and flow graphs in Graphviz, default 60 sec ',
                     type=int, default=60)
-parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, default is tcc',
+parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, wave2, qemu_wave, default is tcc',
                     default='tcc')
 parser.add_argument('--schedule_options', help='Configuration passed to scheduler, e.g. opt1=v1,opt2=v2,..., default is None',
                     default='')
@@ -120,11 +120,12 @@ if args.images != None:
   sgJsonList = []
   kp.colorNodes(args.partition, args.adjust_node_color)
   kp.partitionByColor()
-  kp.calcExecutorMap(args.executors)
+  kp.calcExecutorMap(args.scheduler, args.executors)
 
   sgId = 0
+  jsonFileOptionGeneric = "--wavegraph wavegraph.json"
   jsonFileOption = {"tcc" : "--json compiler.json",
-                    "wave" : "--wavegraph wavegraph.json"}
+                    "wave" : jsonFileOptionGeneric}
   parallelStreamsOption= ""
   if args.parallel_streams:
       parallelStreamsOption = "--parallel_streams"
@@ -148,7 +149,7 @@ if args.images != None:
       meOk, fileList = sg.graph.runScheduler(args.out_prefix)
       if not executor == 'waveopt':
         if meOk:
-          cmd = "%s/compiler/be/compiler/compiler.exe %s %s> log-be.txt 2>&1" % (kPath, jsonFileOption[args.scheduler], parallelStreamsOption)
+          cmd = "%s/compiler/be/compiler/compiler.exe %s %s> log-be.txt 2>&1" % (kPath, jsonFileOption.get(args.scheduler, jsonFileOptionGeneric), parallelStreamsOption)
           print("INFO: executing %s" % cmd, flush=True)
           ret += abs(os.system(cmd))
         else:
@@ -164,7 +165,7 @@ if args.images != None:
         # Adjust the nn_executor "waveopt" to "waveopt2" when using "wave2" (layeropt2.py) scheduler
         sgJson["executor"] += '2'
     sgJson["parallel_streams"] = False
-    if args.scheduler == 'wave' or args.scheduler == 'wave2':
+    if args.scheduler == 'wave' or args.scheduler == 'wave2' or args.scheduler == 'qemu_wave':
         sgJson["parallel_streams"] = args.parallel_streams
     sgJsonList.append(sgJson)
     sgId += 1

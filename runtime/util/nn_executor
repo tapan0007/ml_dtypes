@@ -16,6 +16,7 @@ if kPath is None:
 sys.path.insert(0, kPath + "/compiler/")
 
 sys.path.insert(0, "/usr/lib/python3.6/site-packages/")
+import numpy as np
 from tffe.NpTransforms import NpTrans as npt
 
 print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
@@ -79,18 +80,20 @@ class NnSubgraph:
 
     return newInputs
 
-
+  # Returns input file names in TPB format
   def createTpbFormatInputs(self):
-    if self.sgId == 0:
-      # The inputs for the first subgraph are same as when compiled
-      return
+    inputFilesInTpbFotmat = []
     for input in self.inputs:
       name = input["name"]
       f = input["file"]
       fBase = f[:-4]  # removes .npy
       # Only Fmaps come from the previous subgraph
       tpbInpFile = "%s_%s.npy"      % (fBase, npt.Formats[npt.SIM][npt.Fmaps])
-      tfFile = "%s-out.npy" % fBase
+      if self.sgId == 0:
+        # The inputs for the first subgraph are same as when compiled
+        tfFile = f
+      else:
+        tfFile = "%s-out.npy" % fBase
 
       if os.path.isfile(tpbInpFile):
         # Move the compiler generated input file
@@ -103,11 +106,18 @@ class NnSubgraph:
         # FIX_THIS: longterm we should store both TF and TBP IO formats in the nn_graph.json
         tfShapes = [None, npt.C, npt.NC, npt.HNC, npt.Formats[npt.TF][npt.Fmaps]]
         inputFormatTf = tfShapes[len(input['shape'])]
-        npt.formatNpyFileAs(tfFile, inputFormatTf, npt.Formats[npt.SIM][npt.Fmaps], outFile=tpbInpFile)
-        print("INFO: translated TF format  %s  to TPB Fmap format  %s" % (tfFile, tpbInpFile))
+        if self.sgId == 0:
+          # The inputs for the first subgraph are same as when compiled
+          tpbInpFile = "%s/%s_%s_%s.npy" % (os.getcwd(), "trivnet", self.inputs[0]["name"], npt.Formats[npt.SIM][npt.Fmaps])
+          assert os.path.isfile(tpbInpFile)  # exists from compilation
+        else:
+          npt.formatNpyFileAs(tfFile, inputFormatTf, npt.Formats[npt.SIM][npt.Fmaps], outFile=tpbInpFile)
+          print("INFO: translated TF format  %s  to TPB Fmap format  %s" % (tfFile, tpbInpFile))
+        inputFilesInTpbFotmat.append(tpbInpFile)
       else:
         print("ERROR: no tf file not found %s" % tfFile, flush=True)
         sys.exit(-1)
+    return inputFilesInTpbFotmat
 
   # There is no good way to identify consts (weights, biases, ..) in the kelf file yet.
   # This is a hack to link required files so that SIM can find them.
@@ -153,6 +163,15 @@ class NnSubgraph:
       if self.parallel_streams:
         cmd += " --parallel_streams"
       cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
+    elif executor == "qemu_wave":
+      self.linkConsts()
+      ifmapFiles = self.createTpbFormatInputs()
+      cmd = "cd %s; " % kelf_dir
+      cmd += "PATH=%s/runtime/util:$PATH qemu_rt" % kPath
+      cmd += "  --action inference --kelf %s/%s" % (kelf_dir, self.sgDir)
+      cmd += "  --ifmaps %s" % "".join(map(str, ifmapFiles))
+      assert len(ifmapFiles) == 1 # qemu inkling supports single input  subgraphs only
+      #cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
     elif executor == "processor":
       inputs = []
       for input in self.getUpdatedInputs():
@@ -171,13 +190,13 @@ class NnSubgraph:
     elif executor == "waveopt":
       self.linkConsts()
       self.createTpbFormatInputs()
-      cmd = "python3 %s//compiler/util/layeropt.py" % kPath
+      cmd = "python3 %s/compiler/util/layeropt.py" % kPath
       cmd += "  --kgraph %s/%s/compiler.json" % (kelf_dir, self.sgDir)
       cmd += "  --inference"
     elif executor == "waveopt2":
       self.linkConsts()
       self.createTpbFormatInputs()
-      cmd = "python3 %s//compiler/util/layeropt2.py" % kPath
+      cmd = "python3 %s/compiler/util/layeropt2.py" % kPath
       cmd += "  --kgraph %s/%s/compiler.json" % (kelf_dir, self.sgDir)
       cmd += "  --inference"
     cmd += "  " + self.execOptions
@@ -190,7 +209,7 @@ class NnSubgraph:
 
     # Translate TPB format back to TF format.
     isWaveopt = (executor == "waveopt" or executor == "waveopt2")
-    if (executor == "tcc" or  executor == "wave" or isWaveopt) and len(self.outputs) > 0:
+    if (executor == "tcc" or  executor == "wave" or  executor == "qemu_wave" or isWaveopt) and len(self.outputs) > 0:
       for jsonOutput in self.outputs:
         outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
         outFile = outFileRaw.replace(".npy", "-out.npy")
@@ -200,6 +219,22 @@ class NnSubgraph:
           simExt = "midout"
         tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
         tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
+        
+        if executor == "qemu_wave":
+          # qemu_inkling runtime outputs raw binary portion of the ofmap in TPB format (not full npy)
+          assert len(self.outputs) == 1   # qemu_inkling only support single output subgraphs
+          outFileQuemu = "out-local.bin"
+          print("INFO: nn_executor: translating Qemu output %s to %s" % (outFileQuemu, tpbOutFile))
+          if os.path.isfile(outFileQuemu):
+            outFileOrig = tpbOutFile.replace(".npy", "-orig.npy")
+            ofmapOrig = np.load(outFileOrig)
+            ofmapTpbShape = ofmapOrig.shape
+            ofmapTpbDtype = ofmapOrig.dtype
+            ofmapQuemu = np.fromfile(outFileQuemu, dtype=ofmapTpbDtype).reshape(ofmapTpbShape)
+            np.save(tpbOutFile, ofmapQuemu)
+          else:
+            print("ERROR: nn_executor: missing Quemu Inkling output file %s" % outFileQuemu)
+        
         if os.path.isfile(tpbOutFile):
           outShape = self.outputs[0]["shape"]
           npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=outFile, dstShape=outShape)

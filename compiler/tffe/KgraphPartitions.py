@@ -626,13 +626,15 @@ class KgraphPart(object):
 
   
   # Note nn_executor has a similar function, sharing compiler-runtime is not desirable
-  def calcExecutorMap(self, executorsList):
+  def calcExecutorMap(self, scheduler, executorsList):
     self.sgId2executor = {}
     
     # setup default executor: host if SG unsupported
     for sgId in range(len(self.__subgraphs)):
       if self.__subgraphs[sgId].isSupported:
         self.sgId2executor[sgId] = "wave"
+        if scheduler == "qemu_wave":
+          self.sgId2executor[sgId] = "qemu_wave"
       else:
         self.sgId2executor[sgId] = "host"
 

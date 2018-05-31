@@ -19,7 +19,9 @@ print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word fo
 qiPath = os.environ["KAENA_PATH"] + "/../qemu_inkling"
 if not os.path.isdir(qiPath):
   raise("ERROR: missing $KAENA_PATH/../qemu_inkling path  at %s" % qiPath)
-krtVmPath = '/home/ubuntu/git'
+krtPath = os.environ["KAENA_RT_PATH"]
+gitVmPath = '/home/ubuntu/git'
+krtVmPath = '/home/ubuntu/git/kaena-runtime'
 #if not os.path.isdir(krtPath):
 #  raise("ERROR: missing kaena runtime path on the qemu")
 
@@ -46,7 +48,9 @@ class Qemu:
     
     self.cmd = '%s/x86_64-softmmu/qemu-system-x86_64 %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22' % (qiPath, localVdi, mem, qemuOpts, port)
     self.port = port
-    self.cmdForSsh = 'ssh -p %d -i %s ubuntu@localhost' % (self.port, self.pem)
+    self.cmdForSsh = 'ssh -n -p %d -i %s ubuntu@localhost' % (self.port, self.pem)
+    #self.cmdForRsync = 'rsync -av --copy-links --progress -e "ssh -p %s -i %s"' % (self.port, self.pem)
+    self.cmdForRsync = 'rsync -av --progress -e "ssh -p %s -i %s"' % (self.port, self.pem)
   def start(self):
     print("INFO: Qemu started  %s" % self.cmd)
     #self.fh = os.popen(self.cmd)
@@ -56,18 +60,21 @@ class Qemu:
     self.fh.send("\r")
   def stop(self):
     self.rsyncFromVm("/var/log/syslog", ".")
+    self.fh.expect("Something non-existing to flush logs...", timeout=5)
     self.fh.close()
-  def rsyncToVm(self, fromDir, toVmDir):
-    cmd = 'rsync -av --progress -e "ssh -p %s -i %s" %s ubuntu@localhost:%s' % (self.port, self.pem, fromDir, toVmDir)
-    print("INFO: rsyncToVm executing %s" % cmd)
+  def rsyncToVm(self, fromDir, toVmDir, opts=None):
+    cmd = '%s %s ubuntu@localhost:%s' % (self.cmdForRsync, fromDir, toVmDir)
+    if opts != None:
+      cmd = cmd.replace("rsync ", "rsync %s " % opts)
+    print("INFO: rsyncToVm executing %s" % cmd, flush=True)
     os.system(cmd)
   def rsyncFromVm(self, fromVmDir, toDir):
-    cmd = 'rsync -av --progress -e "ssh -p %s -i %s" ubuntu@localhost:%s %s' % (self.port, self.pem, fromVmDir, toDir)
-    print("INFO: rsyncFromVm executing %s" % cmd)
+    cmd = '%s ubuntu@localhost:%s %s' % (self.cmdForRsync, fromVmDir, toDir)
+    print("INFO: rsyncFromVm executing %s" % cmd, flush=True)
     os.system(cmd)
   def sshCmd(self, cmd):
     fullCmd = "%s '%s'" % (self.cmdForSsh, cmd)
-    print("INFO: sshCmd executing %s" % fullCmd)
+    print("INFO: sshCmd executing %s" % fullCmd, flush=True)
     os.system(fullCmd)
     
     
@@ -75,23 +82,30 @@ class Krt:
   def __init__(self, qemu):
     self.qemu = qemu
     self.cwd = os.getcwd()
+    self.qemu.rsyncToVm(krtPath, gitVmPath + "/")
   def addModel(self, kelfDir, kelfVmDir):
     self.kelfVmDir = kelfVmDir
-    self.qemu.rsyncToVm(kelfDir + "/", kelfVmDir)
-    cmdCompile = 'cd %s; %s/kelf-parse/out/test def.json' % (kelfVmDir, krtVmPath)
+    # Symlinks do not seem to work in ssh/rsync/qemu
+    self.qemu.rsyncToVm(kelfDir + "/", kelfVmDir, "--copy-links")
+    #kelfDirDeref = "kelf_no_links"
+    #cmd = "/bin/cp -rL %s %s" % (kelfDir, kelfDirDeref)
+    #os.system(cmd)
+    #self.qemu.rsyncToVm(kelfDir + "/", kelfVmDir)
+    cmdCompile = 'cd %s; %s/kelf-parse/out/kelf2kbin def.json' % (kelfVmDir, krtVmPath)
     self.qemu.sshCmd(cmdCompile)
   def start(self):
     self.ifmapDir = "%s/ifmap" % self.kelfVmDir
     self.ofmapDir = "%s/ofmap" % self.kelfVmDir
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
-    self.qemu.sshCmd("cd /home/ubuntu/git/udmabuf; sudo ./load.sh; cd /home/ubuntu/git/uio_drv; sudo ./load.sh")
+    self.qemu.sshCmd("cd %s; cd uio_drv; make; cd ../udmabuf; make" % krtVmPath)
+    self.qemu.sshCmd("cd %s/udmabuf; sudo ./load.sh; cd %s/uio_drv; sudo ./load.sh" % (krtVmPath, krtVmPath))
     cmdRuntime = 'cd %s; %s/kbin_rt/out/lkbin %s %s %s > krt-log.txt 2>&1 &' % (self.kelfVmDir, krtVmPath, self.kelfVmDir, self.ifmapDir, self.ofmapDir)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/krt-log.txt", ".")
     #self.fh.close()
   def inference(self, ifmap, ofmap):
-    self.qemu.rsyncToVm(ifmap, self.ifmapDir)
+    self.qemu.rsyncToVm(os.path.realpath(ifmap), self.ifmapDir, "--copy-links")
     self.qemu.sshCmd("until test -f %s/out.bin; do sleep 1; done" % self.ofmapDir)
     self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap)
 
@@ -138,6 +152,8 @@ ssh -p 5555 -i "~/.ssh/lubuntu.pem" ubuntu@localhost
   cd ../kbinlib
   make
   cd ../kbin_rt
+  make
+  cd ../kelf-parse
   make
   
   # Inference

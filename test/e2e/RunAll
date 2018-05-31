@@ -483,7 +483,7 @@ class Ktests:
       (nnStruct, nnConfig, nnLabel, nnArgs, rtArgs) = self.testConfigMap[testName]
       if verbose:
         print("\n############## %s ##############" % testName)
-      if parallelStreamsForWave and "--scheduler wave" in nnArgs:
+      if parallelStreamsForWave and ("--scheduler wave" in nnArgs or "--scheduler qemu_wave" in nnArgs):
         nnArgs += " --parallel_streams" # forward option to compiler
       # default ref omage
       default_image =  "%sref_input.npy" % outPrefix
