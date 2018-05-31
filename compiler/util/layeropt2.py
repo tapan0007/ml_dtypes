@@ -736,11 +736,12 @@ class WaveopStream(list):
         if args.abstract_mem and item_name in self.waveop_name_set:
             return
         else:
-            while (item_name in self.waveop_name_set):
+            new_name = item_name
+            while (new_name in self.waveop_name_set):
                 new_name = item_name + "__" + str(i)
                 print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
-                item_name = new_name
                 i += 1
+            item_name = new_name
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                
         self.append(item)
@@ -1461,27 +1462,28 @@ class FusedOp(list):
             elif (self[i].is_join):
                 dram_resadd_waveops = []
                 prev_waveops = []
-                #for z in range(op_list.conv_op.Tn):
-                #    (writers, readers, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
-                #                                tpb.waveop_stream.nonload_waveop_count,
-                #                                tpb.waveop_stream.nonload_waveop_list,
-                #                                self.last_op.ofmaps_file_params,
-                #                                batch_item + z,
-                #                                self.conv_op.ofmap_tile_lower_addr[z], 
-                #                                self.conv_op.ofmap_tile_upper_addr[z] - self.conv_op.ofmap_tile_lower_addr[z] + self.conv_op.item_sz)
-                #    if args.no_inter_layer_load:
-                #        if (not self.conv_op.is_input and len(waveops) > 0):
-                #            raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
-                #    if (args.debug > 2): print("DBG %s: ResAdd/Mult ofmaps_tile_lower_addr %d ofmap_tile_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z]))                
-                #    dram_resadd_waveops += waveops
-                #    # TODO: roll this code into read_file_data_region
-                #    if waveops == []:
-                #        accessors = writers + readers
-                #        if accessors != []:
-                #            latest_accessor = max(accessors)
-                #            if latest_accessor >= 0:
-                #                prev_waveops.append(tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name'])
+                for z in range(op_list.conv_op.Tn):
+                    (writers, readers, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
+                                                tpb.waveop_stream.nonload_waveop_count,
+                                                tpb.waveop_stream.nonload_waveop_list,
+                                                self.last_op.ofmaps_file_params,
+                                                batch_item + z,
+                                                self.conv_op.ofmap_tile_lower_addr[z], 
+                                                self.conv_op.ofmap_tile_upper_addr[z] - self.conv_op.ofmap_tile_lower_addr[z] + self.conv_op.item_sz)
+                    if args.no_inter_layer_load:
+                        if (not self.conv_op.is_input and len(waveops) > 0):
+                            raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
+                    if (args.debug > 2): print("DBG %s: ResAdd/Mult ofmaps_tile_lower_addr %d ofmap_tile_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z]))                
+                    dram_resadd_waveops += waveops
 
+                    # TODO: roll this code into read_file_data_region
+                    if waveops == []:
+                        accessors = writers # + readers # don't include readers since this matmul is a reader, and we don't need to add RAR dependency
+                        if accessors != []:
+                            latest_accessor = max(accessors)
+                            if latest_accessor >= 0:
+                                accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                                prev_waveops.append(accessor_name)
                 # Do the actual math
                 residue_ifmaps = np.zeros((self.conv_op.ofmap_full_tile_sz * self.conv_op.Tn, PEArray.NUM_COLS), dtype=np.float32)
                 for z in range(op_list.conv_op.Tn):
@@ -1523,13 +1525,9 @@ class FusedOp(list):
                         dram_resadd_waveops, 
                         self.conv_op.ofmap_tile_lower_addr[0], 
                         (tile_id.m_id%2)==1)
-                #tpb.waveop_stream.last_main_waveop['previous_waveops'] += prev_waveops
-                # TODO: fix waveop generation
-                #for z in range(op_list.conv_op.Tn):
-                #    tpb.statebuffer.circbuf_residue.get_dram_waveop_names(self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z], tpb.waveop_stream.last_main_waveop['waveop_name'])
-                #if ((tile_id.m_id%2)==1 or tile_id.m_id == tile_id.m-1):                
-                #    for z in range(op_list.conv_op.Tn):
-                #        tpb.statebuffer.circbuf_residue.free_data_region(self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z], tpb.waveop_stream.last_main_waveop)
+                for j in prev_waveops:
+                    if j not in tpb.waveop_stream.last_main_waveop['previous_waveops']:
+                        tpb.waveop_stream.last_main_waveop['previous_waveops'].append(j)
                 psum_bank_src = psum_bank_dst
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
                 tpb.activate.wait_tile_done(tile_id)
@@ -2015,39 +2013,44 @@ class TPBSched:
                 print("ERROR: item_sz %d not yet supported"%act_op.item_sz)
         assert(act_or_biasadd_op != None)
         batch_item = tile_id.n_id * act_or_biasadd_op.Tn
-        dst_x_num = 1
-        dst_y_step = 1
-        dst_y_num = 1
-        dst_z_num = 1
-        dst_z_step = 1
+        dst_x_num, dst_y_num, dst_z_num = 1, 1, 1
+        dst_y_step, dst_z_step = 1, 1
         num_partitions = PEArray.NUM_COLS
         if (conv_op != None):
+            dst_x_num = conv_op.ofmap_cropped_tile_width
+            dst_y_num = conv_op.ofmap_cropped_tile_height
+            dst_z_num = conv_op.Tn
             if (dst_is_psum):
-                dst_x_num = conv_op.ofmap_cropped_tile_width
                 dst_y_step = conv_op.ofmap_cropped_tile_width
-                dst_y_num = conv_op.ofmap_cropped_tile_height
                 dst_z_step = dst_y_step * dst_y_num 
-                dst_z_num = conv_op.Tn
             else:                
-                dst_x_num = conv_op.ofmap_cropped_tile_width
-                dst_y_step = conv_op.F
-                dst_y_num = conv_op.ofmap_cropped_tile_height
-                dst_z_step = (conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz) if conv_op.Tn > 1 else 1
-                dst_z_num = conv_op.Tn
+                dst_y_step = conv_op.E
+                dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
+            if src_is_psum:
+                src_y_step = conv_op.ofmap_cropped_tile_width
+                src_z_step = conv_op.ofmap_cropped_tile_width * conv_op.ofmap_cropped_tile_height
+            else:
+                src_y_step = conv_op.E
+                src_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
             num_partitions = conv_op.ofmap_count
         elif (act_or_biasadd_op !=  None):
             # unfused
-            dst_x_num = act_or_biasadd_op.F
-            dst_y_step = act_or_biasadd_op.F
-            dst_y_num = act_or_biasadd_op.E
-            dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
-            dst_z_num = act_or_biasadd_op.Tn  # Need CNHW data format
+            dst_x_num = act_or_biasadd_op.E
+            dst_y_num = act_or_biasadd_op.F
+            dst_z_num = act_or_biasadd_op.Tn
+            dst_y_step = act_or_biasadd_op.E
+            dst_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_sz//act_or_biasadd_op.item_sz
+            src_y_step = act_or_biasadd_op.E
+            src_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_sz//act_or_biasadd_op.item_sz
             num_partitions = act_or_biasadd_op.ofmap_count
-        src_sb_address = 0
-        if not src_is_psum:
+        # SB start addresses
+        if src_is_psum:
+            src_sb_address = 0
+        else:            
             src_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ifmaps_file_params, batch_item, act_or_biasadd_op.ifmap_wave_lower_addr[0])
-        dst_sb_address = 0
-        if not dst_is_psum:
+        if dst_is_psum:
+            dst_sb_address = 0
+        else:            
             if (conv_op != None):
                 dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ofmaps_file_params, batch_item, conv_op.ofmap_tile_lower_addr[0])
             else:                
@@ -2108,43 +2111,60 @@ class TPBSched:
             out_dtype = "float32"
         else:            
             print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
-        dst_x_num = 1
-        dst_y_step = 1
-        dst_y_num = 1
-        dst_z_num = 1
-        dst_z_step = 1
-        sb_z_step = 1
+
+        # setup source/destination memory patterns (x step is always 1 here)
+        dst_x_num, dst_y_num, dst_z_num = 1, 1, 1
+        dst_y_step, dst_z_step = 1, 1
+        src_a_y_step, src_a_z_step = 1, 1
+        src_b_y_step, src_b_z_step = 1, 1
         num_partitions = PEArray.NUM_COLS
-        if (conv_op != None):
-            if (dst_is_psum):
-                dst_x_num = conv_op.ofmap_cropped_tile_width
+        if conv_op is not None:
+            # fused
+            dst_x_num = conv_op.ofmap_cropped_tile_width
+            dst_y_num = conv_op.ofmap_cropped_tile_height
+            dst_z_num = conv_op.Tn
+            if dst_is_psum:
                 dst_y_step = conv_op.ofmap_cropped_tile_width
-                dst_y_num = conv_op.ofmap_cropped_tile_height
-                dst_z_step = dst_y_step * dst_y_num 
-                dst_z_num = conv_op.Tn
+                dst_z_step = conv_op.ofmap_cropped_tile_width * conv_op.ofmap_cropped_tile_height
             else:                
-                dst_x_num = conv_op.ofmap_cropped_tile_width
                 dst_y_step = conv_op.E
-                dst_y_num = conv_op.ofmap_cropped_tile_height
-                dst_z_step = (conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz) if conv_op.Tn > 1 else 1
-                dst_z_num = conv_op.Tn
-            sb_z_step = (conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz) if conv_op.Tn > 1 else 1
+                dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
+            # Source-B is PSUM if fused, or SB if unfused               
+            if src_is_psum:
+                src_b_y_step = conv_op.ofmap_cropped_tile_width
+                src_b_z_step = conv_op.ofmap_cropped_tile_width * conv_op.ofmap_cropped_tile_height
+            else:
+                src_b_y_step = conv_op.E
+                src_b_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
+            # Source-A (Residue) is always SB for now (TODO: make swappable for flexibility)              
+            src_a_y_step = conv_op.E
+            src_a_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
             num_partitions = conv_op.ofmap_count
         else:
             # unfused
             dst_x_num = op.E
-            dst_y_step = op.E
             dst_y_num = op.F
-            dst_z_step = dst_y_step * dst_y_num # Need CNHW data format
-            dst_z_num = op.Tn  # Need CNHW data format
-            sb_z_step = (op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz) if op.Tn > 1 else 1
+            dst_z_num = op.Tn
+            dst_y_step = op.E
+            dst_z_step = dst_y_step * dst_y_num
+            src_b_y_step = op.E
+            src_b_z_step = op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz
+            # Source-A (Residue) is always SB for now (TODO: make swappable for flexibility)              
+            src_a_y_step = op.E
+            src_a_z_step = op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz
             num_partitions = op.ofmap_count
-        src_b_sb_address = 0
-        if not src_is_psum:
+        # SB start addresses
+        # Source-B is PSUM if fused, or SB if unfused
+        if src_is_psum:
+            src_b_sb_address = 0
+        else:            
             src_b_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, data_start)
+        # Source-A (Residue) is always SB for now (TODO: make swappable for flexibility)             
         src_a_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, data_start)
-        dst_sb_address = 0
-        if not dst_is_psum:
+        # Destination SB address
+        if dst_is_psum:
+            dst_sb_address = 0
+        else:            
             if (conv_op != None):
                 dst_sb_address = self.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, conv_op.ofmap_tile_lower_addr[0])
             else:                
@@ -2166,34 +2186,34 @@ class TPBSched:
               'src_a_psum_bank_offset'  : 0,
               'src_a_sb_address'        : src_a_sb_address,
               'src_a_start_at_mid_part' : start_at_mid_part,
-              'src_a_x_step'            : 1,
               'src_a_x_num'             : dst_x_num,
-              'src_a_y_step'            : dst_y_step,
               'src_a_y_num'             : dst_y_num,
-              'src_a_z_step'            : sb_z_step,
               'src_a_z_num'             : dst_z_num,
+              'src_a_x_step'            : 1,
+              'src_a_y_step'            : src_a_y_step,
+              'src_a_z_step'            : src_a_z_step,
               'src_b_is_psum'           : src_is_psum,
               'src_b_psum_bank_id'      : psum_bank_src,
               'src_b_psum_bank_offset'  : 0,
               'src_b_sb_address'        : src_b_sb_address,
               'src_b_start_at_mid_part' : start_at_mid_part,
-              'src_b_x_step'            : 1,
               'src_b_x_num'             : dst_x_num,
-              'src_b_y_step'            : dst_y_step,
               'src_b_y_num'             : dst_y_num,
-              'src_b_z_step'            : dst_z_step,
               'src_b_z_num'             : dst_z_num,
+              'src_b_x_step'            : 1,
+              'src_b_y_step'            : src_b_y_step,
+              'src_b_z_step'            : src_b_z_step,
               'dst_is_psum'             : dst_is_psum,
               'dst_psum_bank_id'        : psum_bank_dst,
               'dst_psum_bank_offset'    : 0,
               'dst_sb_address'          : dst_sb_address,
               'dst_start_at_mid_part'   : start_at_mid_part,
-              'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
-              'dst_y_step'              : dst_y_step,
               'dst_y_num'               : dst_y_num,
-              'dst_z_step'              : dst_z_step,
               'dst_z_num'               : dst_z_num,
+              'dst_x_step'              : 1,
+              'dst_y_step'              : dst_y_step,
+              'dst_z_step'              : dst_z_step,
               'num_partitions'          : num_partitions,
             }
         self.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1)
