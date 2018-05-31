@@ -4,18 +4,20 @@ pipeline{
     agent {
         dockerfile {
             dir 'test/jenkins'
-            args '-u root -v /home/jenkins:/home/jenkins'
+            args '-u root -v /home/jenkins:/home/jenkins -v ${PWD}:/artifact'
             label 'kaena_c5.18xl'
         }
     }
     environment {
-        REPO_BUILD = "/workdir/repo-build" 
-        KAENA_PATH = "$REPO_BUILD/kaena-compiler"
-        KAENA_EXT_PATH = "$REPO_BUILD/kaena-ext"
-        INKLING_PATH = "$REPO_BUILD/inkling" 
-        QEMU_INKLING_PATH = "$REPO_BUILD/qemu_inkling" 
-        ARCH_ISA_PATH = "$REPO_BUILD/isa"
-        KAENA_RT_PATH = "$REPO_BUILD/kaena-runtime"
+        SRC_DIR = "/workdir/src"
+        BLD_DIR = "/workdir/build"
+
+        KAENA_PATH = "$SRC_DIR/kaena-compiler"
+        KAENA_EXT_PATH = "$SRC_DIR/kaena-ext"
+        INKLING_PATH = "$SRC_DIR/inkling"
+        QEMU_INKLING_PATH = "$SRC_DIR/qemu_inkling"
+        ARCH_ISA_PATH = "$SRC_DIR/isa"
+        KAENA_RT_PATH = "$SRC_DIR/kaena-runtime"
      
     }
     stages {
@@ -26,7 +28,8 @@ pipeline{
                 sh 'df -h'
 
                 sh 'ls -ltrA'
-                sh 'rm -rf $REPO_BUILD && mkdir -p $REPO_BUILD'
+                sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
+                sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
             }
         }
         stage('Checkout'){
@@ -35,7 +38,7 @@ pipeline{
                 sh '''
 		set -x
 
-                cd $REPO_BUILD
+                cd $SRC_DIR
 		ls -ltrA
 
 		repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
@@ -65,18 +68,24 @@ pipeline{
             }
         }
         stage('Build') {
-
             steps {
-                sh 'ls -ltrA $REPO_BUILD'
+                sh 'ls -ltrA $SRC_DIR'
                 sh 'make -j4 -C $KAENA_PATH'
                 sh 'make -j4 PLAT=uio -C $KAENA_RT_PATH/hal/'
                 sh 'make -j4 PLAT=dv -C $KAENA_RT_PATH/hal/'
                 sh 'make -j4 PLAT=dummy -C $KAENA_RT_PATH/hal/'
-                sh 'cd $REPO_BUILD && mkdir wave-checker-build &&cd wave-checker-build && cp $KAENA_PATH/compiler/wave-checker/test/gtest-build . && source gtest-build && mkdir bbb && cd bbb && cmake $KAENA_PATH/compiler/wave-checker && make'
+                sh 'cd $BLD_DIR && mkdir runtime && cd runtime && cmake $KAENA_RT_PATH && make package'
+                sh 'cd $SRC_DIR && mkdir wave-checker-build &&cd wave-checker-build && cp $KAENA_PATH/compiler/wave-checker/test/gtest-build . && source gtest-build && mkdir bbb && cd bbb && cmake $KAENA_PATH/compiler/wave-checker && make'
 
                 sh 'cd $QEMU_INKLING_PATH && ./configure --target-list=x86_64-softmmu --cxx=c++48 --cc=gcc48 && make -j'
-
-                //archiveArtifacts artifacts: '**/output/*.tgz'
+            }
+            post {
+                success {
+                    sh 'ls -lh $BLD_DIR'
+                    sh 'ls -lh $BLD_DIR/runtime'
+                    sh 'cp $BLD_DIR/runtime/*.* /artifact/'
+                    archiveArtifacts artifacts: '**/*.*'
+                }
             }
         }
         stage('Regressions') {
@@ -103,10 +112,10 @@ pipeline{
                         to: '$DEFAULT_RECIPIENTS'
                 }
         }
-	always {
-		sh 'df -h'
-		cleanWs()
-	}
+        always {
+            sh 'df -h'
+            cleanWs()
+        }
     }
 
 }

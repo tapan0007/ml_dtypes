@@ -30,6 +30,7 @@ RUN pip-3.6 install --no-cache-dir \
         numpy \
         pillow \
         psutil \
+        virtualenv \
         scikit-image \
         tensorflow==1.5
 
