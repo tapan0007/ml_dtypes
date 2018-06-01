@@ -4,7 +4,7 @@ pipeline{
     agent {
         dockerfile {
             dir 'test/jenkins'
-            args '-u root -v /home/jenkins:/home/jenkins -v ${PWD}:/artifact'
+            args '-u root -v /home/jenkins:/home/jenkins'
             label 'kaena_c5.18xl'
         }
     }
@@ -83,8 +83,6 @@ pipeline{
                 success {
                     sh 'ls -lh $BLD_DIR'
                     sh 'ls -lh $BLD_DIR/runtime'
-                    sh 'cp $BLD_DIR/runtime/*.* /artifact/'
-                    archiveArtifacts artifacts: '**/*.*'
                 }
             }
         }
