@@ -74,7 +74,7 @@ pipeline{
                 sh 'make -j4 PLAT=dummy -C $KAENA_RT_PATH/hal/'
                 sh 'cd $REPO_BUILD && mkdir wave-checker-build &&cd wave-checker-build && cp $KAENA_PATH/compiler/wave-checker/test/gtest-build . && source gtest-build && mkdir bbb && cd bbb && cmake $KAENA_PATH/compiler/wave-checker && make'
 
-                //sh 'cd $QEMU_INKLING_PATH && ./configure --target-list=x86_64-softmmu && make -j'
+                sh 'cd $QEMU_INKLING_PATH && ./configure --target-list=x86_64-softmmu --cxx=c++48 --cc=gcc48 && make -j'
 
                 //archiveArtifacts artifacts: '**/output/*.tgz'
             }
