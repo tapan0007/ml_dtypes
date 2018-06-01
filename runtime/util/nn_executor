@@ -7,7 +7,7 @@
 
 import argparse
 import os.path
-import sys, json, re
+import sys, json, re, getpass
 import glob
 import shutil
 kPath = os.environ.get('KAENA_PATH')
@@ -166,9 +166,15 @@ class NnSubgraph:
     elif executor == "qemu_wave":
       self.linkConsts()
       ifmapFiles = self.createTpbFormatInputs()
+      user = getpass.getuser()
+      testName = os.path.split(kelf_dir)[-1]
+      hashStr = '%s-%s/%s' % (user, testName, self.sgDir)
+      port = 5555 + abs(hash(hashStr)) % 8000
+      print("INFO: qemu_wave hashed %s to qemu guest ssh port %d" % (hashStr, port))
       cmd = "cd %s; " % kelf_dir
       cmd += "PATH=%s/runtime/util:$PATH qemu_rt" % kPath
       cmd += "  --action inference --kelf %s/%s" % (kelf_dir, self.sgDir)
+      cmd += "  --port %d" % port
       cmd += "  --ifmaps %s" % "".join(map(str, ifmapFiles))
       assert len(ifmapFiles) == 1 # qemu inkling supports single input  subgraphs only
       #cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
