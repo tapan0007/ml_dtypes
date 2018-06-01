@@ -8,18 +8,15 @@ wave-checker is designed to examine compliance of a wave graph with instruction 
    o It detects potential WAW/RAW/WAR hazards between indepdent wave ops
 
 * Build
-1. export GTEST_DIR=YOUR-GOOGLETEST-LOCATION
-   o Note : If you don't want to be bothered by googletest installation and environment variable setup, please do 'source ${KAENA_PATH}/compiler/wave-checker/test/gtest-build'. It will automatically download and build googletest for you and set GTEST_DIR.
-2. Create build directory and move to the directory (e.g. mkdir wc-build;cd wc-build)
-3. Run 'cmake ${KAENA_PATH}/compiler/wave-checker'
-4. Run 'make'
+Run $KAENA_PATH/compiler/wave-checker/build.csh
+It will create wc-build directory and build wave-checker inside it.
 
 * Usage
-src/wave-checker [Options]
+bin/wave-checker [Options]
    --help, -h : Help
    --wave-graph-file, -w : Specifies wave graph file name and location
    --structure-check : Enable structure check
    --data-race-check : Enable data race check
 In the build directory, 
-run 'src/wave-checker --wave-graph-file "YOUR_WAVE_GRAPH" [--structure-check] [--data-race-check]
+run 'bin/wave-checker --wave-graph-file "YOUR_WAVE_GRAPH" [--structure-check] [--data-race-check]
 run 'test/wc_gtest' to run regression test
