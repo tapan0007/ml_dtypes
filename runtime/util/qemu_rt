@@ -8,14 +8,14 @@
 #   # Unpack kelf to ./kelf
 #   \rm -rf qemu-log.txt copy.vdi
 #   /work1/zejdaj/git_repo/kaena-compiler/runtime/util/qemu_rt --kelf kelf --ifmaps kelf/trivnet_input:0_NCHW.npy
-
+#  Test regressions by e.g.
+#    RunAll --force_qemu --parallel 16 --test_re wave --select not_waived >& log
 
 import argparse
-import os.path
-import sys, json, re
+import os, sys, json, re, stat, time
 import shutil, pexpect
 
-print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]))
+print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
 qiPath = os.environ["KAENA_PATH"] + "/../qemu_inkling"
 if not os.path.isdir(qiPath):
   raise("ERROR: missing $KAENA_PATH/../qemu_inkling path  at %s" % qiPath)
@@ -38,30 +38,91 @@ if args.kelf == None:
 
 class Qemu:
   def __init__(self, vdi, mem, port):
-    self.pem = "%s/%s" % (qiPath, "lubuntu.pem")
-    qemuOpts = '-monitor stdio -vnc :55'
+    #qemuOpts = '-monitor stdio'
+    qemuOpts = '-nographic'
     localVdi = "copy.vdi"
     cmd = "/bin/cp %s %s" % (vdi, localVdi)
-    print("INFO: copying vdi  %s" % cmd)
+    print("INFO: copying vdi  %s" % cmd, flush=True)
     os.system(cmd)
+    
+    # Create on the fly to avoid issues with git chmod
+    self.pemText = '''
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA2T87/SGMJkXPqDtZ2paK315Nh6aEZciDj4YiTwOJ70Ti0yiG
+ej1iDrtnBy40TFWzvcwIkus3a/cTlOuflk2yE1kaVbnMMUMIGBV/K82nG9m4/c+G
+0rdnz3PwAtCnuDkeGGP7ew6FVp8XQ4GSdCt8qgdHuhIKAiVgb0xNXwXo1++mgQBU
+hPCHKhNHCRdw7Z3GgRTdtddUe3xPZNaBA0qk2HKe/LtqJGik490/yhNW+QIBnXye
+XFoT32hPbTkU3GymmNCrSET+HxmwdeUqpspRrZnDZeJ7JV/H4cDpBkWjQFY5D1PX
+g8G8ia+szTZyDauA5gZJM/Z7PD66vOm8lY0UzwIDAQABAoIBAFwkwvfxg7U0BQjQ
+66KYGZz2LaIskZluO8bjWKf000tmB2MSnD86y919xQw5n7sE2rDU2ooeNCqZ6HdQ
+nSauG6qzL0VPAfme+c7lR0Q3/PoGFb2piQDVA7Xs8c7v20N7DnW/6oleNlXwMnjS
+e2DElSK05cpZHl+cpNNwJJz6L7FuTvvcltfn9DluDkqODTr/dfJ8JXXedudBCYP5
+GL/74rnUsxhk7aozrIZy3Q4sCUyvgyjRU9mMLqIWmK2SPrrYsMGU5QTalVlHpSnG
+GtkmVD+eGCPL07kN5ZuEQ7CAgfHq3ViUC3F+3qmR4vEmNs4Bt8rbKsqvvunNgjcm
+iYx/kmECgYEA+CsDqsAJpQmX1pMSgniDcPUsMoVLF06eTyLUAYYY5LnWDnP8losi
+7lL6+OcULorF1eXw+FqK4IhNpIk3MZC2uVCT2WkK/B8WAOQtB+OHb1kV8wkEQPbY
+UUQfvkp9E/D3ByV6CRpuMhE6jrBUR37HXqEr7+HWSJ1koj3lD9nR6V8CgYEA4Bpn
+lJd2pPZTv5Wh/DdWNNpT9hwcwi7r5oRQPTAtdiHNq8Z+6USMwjvBd7KI6UOrfSxP
+VBatl8ve9FhYFlNQXeUeGaUZXfWd5Z3dQ2Y5VtnP13SHJT162Wmt4i6nPpVwwVvJ
+6QgPggfM3xdNDbiF5x6T/Zgh5V/Tmky+xGkz2pECgYEAnZ/kkl2rQpIXSQjdJtWY
+1vRCgEw9Z65dyvHaKqWbxhtrJH7zHkN9ilZWZiWPoggupC+KoJQRxY+NkUY+MlMy
+W/4cCmk3uu+bsDE9kNcpvMWetWEyvHiM6QEWEG2LiFDy9i0NmB6bg12CDgNdZJPX
+2fkQySpuSmz98DbT+P9m3o0CgYBwWcyEGktI+JWT/xhuse9uH+boA8AHOi7aKotv
+oa+pAdlyvNjzaYKH/h1IPSGWkG5xGr3KknQFHhhwt7mxt6Ma77rfcH3/NRwr+bDs
+EVu9xwUEJ095xBDK3shmFK2UGqekyLe5NGlR70cusSfYMSIwdIwNHzAfJqOXP9KD
+9ZohgQKBgQCVgkGXKhncre6t8JYgjLplwAnuMWTatMQK+qtCaR29KSy6LeXW71Je
+1J2fk91Z6+o0d31eTI5mOH9RBvJMGLpOkWw5769vDGNiIn3PiVK4ezdd2Zwz2T3U
+c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
+-----END RSA PRIVATE KEY-----
+'''
+    self.pemFile = "%s/qemu.pem" % os.getcwd()
+    with open(self.pemFile, 'w') as fhPem:
+      fhPem.write(self.pemText)
+    os.chmod(self.pemFile, stat.S_IREAD)
     
     self.cmd = '%s/x86_64-softmmu/qemu-system-x86_64 %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22' % (qiPath, localVdi, mem, qemuOpts, port)
     self.port = port
-    self.cmdForSsh = 'ssh -n -o "StrictHostKeyChecking no" -p %d -i %s ubuntu@localhost' % (self.port, self.pem)
-    self.cmdForRsync = 'rsync -av --progress -e "ssh -o \'StrictHostKeyChecking no\' -p %s -i %s"' % (self.port, self.pem)
+    self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %d -i %s ubuntu@localhost' % (self.port, self.pemFile)
+    self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %s -i %s"' % (self.port, self.pemFile)
   def start(self):
-    print("INFO: Qemu started  %s" % self.cmd)
+    print("INFO: starting Qemu  %s" % self.cmd, flush=True)
     logFh = open("log-qemu.txt", 'wb')
     self.fh = pexpect.spawn(self.cmd, logfile=logFh)
     self.fh.expect("Inkling SOC")
     self.fh.send("\r")
+    time.sleep(60)  # ssh to the qemu guest is getting random errors, maybe this can help
+
+  def testGuest(self, numAttempts):
+    # Make sure the qemu quest is functional
+    for attempId in range(numAttempts):
+      print("\nINFO: testGuest attempt %d" % attempId, flush=True)
+      testFile = "test_qemu_guest-%02d.txt" % attempId
+      testFileVm = "/tmp/" + testFile
+      testFileReturned = testFile.replace(".txt", "-ret.txt")
+      with open(testFile, 'w') as f:
+        f.write("Test attempt %02d" % attempId)
+      self.rsyncToVm(testFile, testFileVm)
+      self.rsyncFromVm(testFileVm, testFileReturned)
+      if os.path.isfile(testFileReturned):
+        print("INFO: testGuest PASSED after attempt %d\n" % attempId, flush=True)
+        return True
+      print("INFO: testGuest diagnosing ssh connection %d" % attempId, flush=True)
+      self.sshCmd("/bin/true", "-vvv")  # Baseline diagnostics
+    return False
+  
   def stop(self):
     self.rsyncFromVm("/var/log/syslog", ".")
     try:
       self.fh.expect("Something non-existing to flush logs...", timeout=5)
     except:
       pass
-    self.fh.close()
+    print("INFO: checking for zero-size files:", flush=True)
+    os.system("find -size 0")
+    print("INFO: stopping QEMU")
+    try:
+      self.fh.close()
+    except:
+      pass
   def rsyncToVm(self, fromDir, toVmDir, opts=None):
     cmd = '%s %s ubuntu@localhost:%s' % (self.cmdForRsync, fromDir, toVmDir)
     if opts != None:
@@ -72,8 +133,8 @@ class Qemu:
     cmd = '%s ubuntu@localhost:%s %s' % (self.cmdForRsync, fromVmDir, toDir)
     print("INFO: rsyncFromVm executing %s" % cmd, flush=True)
     os.system(cmd)
-  def sshCmd(self, cmd):
-    fullCmd = "%s '%s'" % (self.cmdForSsh, cmd)
+  def sshCmd(self, cmd, opt=""):
+    fullCmd = "%s %s '%s'" % (self.cmdForSsh, opt, cmd)
     print("INFO: sshCmd executing %s" % fullCmd, flush=True)
     os.system(fullCmd)
     
@@ -100,22 +161,25 @@ class Krt:
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
     debug = True
     if debug:
-      self.qemu.rsyncFromVm(self.kelfVmDir, "debug_kelf")
+      self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf")
   def inference(self, ifmap, ofmap):
     self.qemu.rsyncToVm(os.path.realpath(ifmap), self.ifmapDir, "--copy-links")
-    inlingTimeout = 300  # For now for bringup of small tests
-    self.qemu.sshCmd('count=0; until [ -f %s/out.bin -o $count -gt 10 ]; do sleep 1 ; let count++; echo $count; done' % self.ofmapDir)
+    inklingTimeout = 300  # For now for bringup of small tests
+    self.qemu.sshCmd('count=0; until [ -f %s/out.bin -o $count -gt %d ]; do sleep 1 ; let count++; echo $count; done' % (self.ofmapDir, inklingTimeout))
     self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap)
 
 
 qemu = Qemu(args.vdi, args.mem, args.port)
 qemu.start()
-krt = Krt(qemu)
-krt.addModel(args.kelf, "/tmp/reg-1")
-krt.start()
-for ifmap in args.ifmaps:
-  krt.inference(ifmap, "out-local.bin")
-krt.stop()
+if qemu.testGuest(10):
+  krt = Krt(qemu)
+  krt.addModel(args.kelf, "/tmp/reg-1")
+  krt.start()
+  for ifmap in args.ifmaps:
+    krt.inference(ifmap, "out-local.bin")
+  krt.stop()
+else:
+  raise("Failed to start QEMU")
 qemu.stop()
 
 
