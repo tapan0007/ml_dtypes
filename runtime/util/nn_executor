@@ -7,9 +7,10 @@
 
 import argparse
 import os.path
-import sys, json, re, getpass
+import sys, json, re, getpass, random
 import glob
 import shutil
+import socket, errno
 kPath = os.environ.get('KAENA_PATH')
 if kPath is None:
   kPath =''
@@ -47,7 +48,18 @@ if not os.path.exists(working_dir):
 
 print("INFO: using working directory  %s" % (working_dir))
 
-
+def portInUse(port):
+  inUse = True
+  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    try:
+      s.bind(("localhost", port))
+      inUse = False
+    except socket.error as e:
+      if e.errno == errno.EADDRINUSE:
+        print("INFO portInUse: Port %d is already in use" % port, flush=True)
+      else:
+        print("INFO portInUse: ", e, flush=True)
+  return inUse
 
 class NnSubgraph:
   def __init__(self, sgId, sgJson):
@@ -163,13 +175,14 @@ class NnSubgraph:
       if self.parallel_streams:
         cmd += " --parallel_streams"
       cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
-    elif executor == "qemu_wave":
+    elif executor == "qemu_wave" or executor == "qemu_wave2":
       self.linkConsts()
       ifmapFiles = self.createTpbFormatInputs()
       user = getpass.getuser()
-      testName = os.path.split(kelf_dir)[-1]
-      hashStr = '%s-%s/%s' % (user, testName, self.sgDir)
+      hashStr = '%s-%s/%s' % (user, kelf_dir, self.sgDir)
       port = 5555 + abs(hash(hashStr)) % 8000
+      while portInUse(port) and port < 60000:
+        port += int(random.random()*100)
       print("INFO: qemu_wave hashed %s to qemu guest ssh port %d" % (hashStr, port))
       cmd = "cd %s; " % kelf_dir
       cmd += "PATH=%s/runtime/util:$PATH qemu_rt" % kPath
@@ -215,7 +228,7 @@ class NnSubgraph:
 
     # Translate TPB format back to TF format.
     isWaveopt = (executor == "waveopt" or executor == "waveopt2")
-    if (executor == "tcc" or  executor == "wave" or  executor == "qemu_wave" or isWaveopt) and len(self.outputs) > 0:
+    if (executor == "tcc" or  executor == "wave" or  executor == "qemu_wave" or executor == "qemu_wave2" or isWaveopt) and len(self.outputs) > 0:
       for jsonOutput in self.outputs:
         outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
         outFile = outFileRaw.replace(".npy", "-out.npy")
@@ -226,7 +239,7 @@ class NnSubgraph:
         tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
         tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
         
-        if executor == "qemu_wave":
+        if executor == "qemu_wave" or executor == "qemu_wave2":
           # qemu_inkling runtime outputs raw binary portion of the ofmap in TPB format (not full npy)
           assert len(self.outputs) == 1   # qemu_inkling only support single output subgraphs
           outFileQuemu = "../out-local.bin" # cwd is testName/working_dir, Qemu outputs to testName/ dir

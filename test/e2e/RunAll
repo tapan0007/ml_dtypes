@@ -65,7 +65,7 @@ parser.add_argument('--timeout', help='Timeout for each test, default 20000', ty
 parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
 parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
 parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='store_true', default=False)
-parser.add_argument('--force_qemu', help='Run wave-inkling tests using wave-qemu_inkling instead by auto modifying --scheduler wave  to  --scheduler qemu_wave', action='store_true', default=False)
+parser.add_argument('--force_qemu', help='Run wave-inkling tests using wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*', action='store_true', default=False)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -485,7 +485,8 @@ class Ktests:
       if verbose:
         print("\n############## %s ##############" % testName)
       if forceQemu:
-        nnArgs = re.sub(r'--scheduler wave\b', "--scheduler qemu_wave", nnArgs)
+        # Both wave and wave2
+        nnArgs = re.sub(r'--scheduler wave', "--scheduler qemu_wave", nnArgs)
       if parallelStreamsForWave and ("--scheduler wave" in nnArgs or "--scheduler qemu_wave" in nnArgs):
         nnArgs += " --parallel_streams" # forward option to compiler
       # default ref omage
@@ -784,7 +785,7 @@ else:
     print("WARNING: matplotlib is not installed, skipped Qor plot")
   if plotQor:
     keyDesigns = ['7-rn50_nne_fp16_wave']
-    keyDesignsHistory = ['7-rn50_nne_fp16_wave', '7-rn50_nne_fp16_wave-two_banks', '7-rn50_nne_fp16_wave-fast_dram']
+    keyDesignsHistory = keyDesigns + ['7-rn50_nne_fp16_wave-two_banks', '7-rn50_nne_fp16_wave-fast_dram']
     #keyDesignsHistory = ['7-rn50_nne_fp16_wave']
     tests.plotTops("qor_tops_raw.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns)
     tests.plotTops("qor_tops_effective.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns, padded=True)

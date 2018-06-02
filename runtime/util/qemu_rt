@@ -164,7 +164,7 @@ class Krt:
       self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf")
   def inference(self, ifmap, ofmap):
     self.qemu.rsyncToVm(os.path.realpath(ifmap), self.ifmapDir, "--copy-links")
-    inklingTimeout = 300  # For now for bringup of small tests
+    inklingTimeout = 3600  # Later pass from the client
     self.qemu.sshCmd('count=0; until [ -f %s/out.bin -o $count -gt %d ]; do sleep 1 ; let count++; echo $count; done' % (self.ofmapDir, inklingTimeout))
     self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap)
 

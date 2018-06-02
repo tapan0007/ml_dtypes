@@ -1556,9 +1556,9 @@ class Graph(Object):
     if self.schedulerMode == 'tcc':
       # Noop, wave scheduling is done in the backend
       return True, []
-    elif self.schedulerMode == 'wave' or self.schedulerMode == 'wave2' or self.schedulerMode == 'qemu_wave':
+    elif self.schedulerMode == 'wave' or self.schedulerMode == 'wave2' or self.schedulerMode == 'qemu_wave' or self.schedulerMode == 'qemu_wave2':
       # Invoke wave scheduler
-      waveSchedulerExec = self.kaenaPath + ("/compiler/util/layeropt2.py" if self.schedulerMode == 'wave2' else "/compiler/util/layeropt.py")
+      waveSchedulerExec = self.kaenaPath + ("/compiler/util/layeropt2.py" if 'wave2' in self.schedulerMode else "/compiler/util/layeropt.py")
       kGraphJsonFile =  "compiler.json"
       waveGraphJsonFile = "wavegraph.json"
 

@@ -633,7 +633,7 @@ class KgraphPart(object):
     for sgId in range(len(self.__subgraphs)):
       if self.__subgraphs[sgId].isSupported:
         self.sgId2executor[sgId] = "wave"
-        if scheduler == "qemu_wave":
+        if scheduler == "qemu_wave" or scheduler == "qemu_wave2":
           self.sgId2executor[sgId] = "qemu_wave"
       else:
         self.sgId2executor[sgId] = "host"
