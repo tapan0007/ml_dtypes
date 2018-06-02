@@ -872,7 +872,7 @@ class FusedOp(list):
                 self.has_join = True
                 self.join_op = op
                 # set the residue selection index to the other input
-                if len(self) > 1:
+                if len(self) > 0:
                     self.join_op.residue_index = 1 if op.prev[0] == self[-1] else 0
                 else:
                     raise RuntimeError("Please implement unfused join, where both inputs need to be sourced from SB")
@@ -1768,6 +1768,7 @@ class KGraph:
                     resadd_node = next_nodes[i]
                     del next_nodes[i]
                     #next_nodes.insert(0, resadd_node)
+                    break
             # pick the first leg as current_node                        
             self.current_node = next_nodes.pop()
             self.first_leg = True

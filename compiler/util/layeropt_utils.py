@@ -335,10 +335,10 @@ class FileParams():
                     #    print("WARNING: FMAP size %d is not a multiple of chunk size %d for shape %s, so c>=1 addresses don't align to chunks!"%(self.fmap_data_len, self.chunk_sz, str(self.file_dims.shape_tuple)))
             else:
                 self.chunk_sz = self.chunk_sz_limit
-        self.tot_partition_usage_sz         = ceildiv(self.file_dims.tot_elems * self.item_sz, min(self.file_dims.C, pearray_params.NUM_ROWS))
-        self.batch_item_partition_usage_sz  = self.tot_partition_usage_sz // self.file_dims.N
-        self.fmap_num_chunks                = ceildiv(self.fmap_data_len, self.chunk_sz)
         self.fmap_channels_folds            = ceildiv(self.file_dims.C, pearray_params.NUM_ROWS)  # num of folds (same as lowercase "c" computed elsewhere):
+        self.batch_item_partition_usage_sz  = self.fmap_data_len * self.fmap_channels_folds
+        self.tot_partition_usage_sz         = self.batch_item_partition_usage_sz * self.file_dims.N
+        self.fmap_num_chunks                = ceildiv(self.fmap_data_len, self.chunk_sz)
         self.fmap_count                     = min(self.file_dims.C, pearray_params.NUM_ROWS)
         self.fmap_last_fold_channels        = self.file_dims.C % pearray_params.NUM_ROWS
         if self.fmap_last_fold_channels == 0: 
@@ -354,6 +354,7 @@ class FileParams():
         W_rounded = ((self.file_dims.W + 1) // 2) * 2
         self.batch_item_partition_usage_sz_rounded = self.batch_item_partition_usage_sz // self.file_dims.H // self.file_dims.W
         self.batch_item_partition_usage_sz_rounded = self.batch_item_partition_usage_sz_rounded * H_rounded * W_rounded
+        #print("INFO: file %s shape %s tot_partition_usage_sz %d batch_item_partition_usage_sz %d"%(self.file_name, str(self.file_dims.shape_tuple), self.tot_partition_usage_sz, self.batch_item_partition_usage_sz))
 
 # Class to hold map information related to a file
 class MappedParams():
@@ -939,6 +940,23 @@ class TestFileParams(unittest.TestCase):
         self.assertEqual(test_obj.ravel_nchw(0,0,0,0), 0)
         self.assertEqual(test_obj.ravel_nchw(0,0,0,1), 256*test_obj.item_sz)
         self.assertEqual(test_obj.ravel_nchw(0,0,1,0), 7*256*test_obj.item_sz)
+        shape_dims = ShapeDims("NHWC", [4,1,1,2048]) 
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        self.assertEqual(test_obj.tot_partition_usage_sz, 2048*4//128*test_obj.item_sz)
+        self.assertEqual(test_obj.batch_item_partition_usage_sz, 2048//128*test_obj.item_sz)
+        shape_dims = ShapeDims("NHWC", [4,55,55,512]) 
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        self.assertEqual(test_obj.tot_partition_usage_sz, 55*55*512*4//128*test_obj.item_sz)
+        self.assertEqual(test_obj.batch_item_partition_usage_sz, 55*55*512//128*test_obj.item_sz)
+        shape_dims = ShapeDims("NHWC", [4,1,1,1000]) 
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        self.assertEqual(test_obj.tot_partition_usage_sz, 64)
+        self.assertEqual(test_obj.batch_item_partition_usage_sz, 16)
+        shape_dims = ShapeDims("NHWC", [16,1,1,1000]) 
+        test_obj = FileParams(0, "testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        self.assertEqual(test_obj.tot_partition_usage_sz, 4*64)
+        self.assertEqual(test_obj.batch_item_partition_usage_sz, 16)
+
 
 class TestFileMapper(unittest.TestCase):
     class pearray_params():
