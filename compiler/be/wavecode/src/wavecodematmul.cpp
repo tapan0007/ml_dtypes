@@ -51,10 +51,25 @@ void
 WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 {
     assert(matmulWaveop->verify());
-    if (matmulWaveop->gWeightsSbAddress() < 0) {
-        return; // this MatMul reuses weights
-    }
     const EngineId engineId = matmulWaveop->gEngineId();
+    if (matmulWaveop->gWeightsSbAddress() < 0 && qParallelStreams()) {
+        // this MatMul reuses weights, but even though weights are not loaded,
+        // wait might need to be implemnted
+        std::set<events::EventId> eventIds;
+        for (auto prevWaveEdge : matmulWaveop->gPrevWaveEdges()) {
+            if (! prevWaveEdge->qNeedToImplementSync()) {
+                continue;
+            }
+            if (! qLoadWeightsWaitsFor(prevWaveEdge)) {
+                continue;
+            }
+            const auto evtId = prevWaveEdge->gEventId();
+            Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+            eventIds.insert(evtId);
+            writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+        }
+        return; // No LdWeights instructions
+    }
     //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveop->gWaveId());
 
@@ -76,15 +91,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     const kcc_int64 addressInSbPart     = matmulWaveop->gWeightsSbAddress();
 
     initMemAccess(ldweightsInstr.src_mem_pattern);
-    if (false) {
-        const kcc_int32 dtypeSize                           = inDtype.gSizeInBytes();
-        const kcc_int32 numWeights                          = matmulWaveop->gOfmapCount(); 
-        const kcc_int32 lastAddressInSbPart                 = addressInSbPart + (numWeights - 1) * dtypeSize;
-        ldweightsInstr.src_mem_pattern.start_addr           = lastAddressInSbPart;
-        ldweightsInstr.src_mem_pattern.step_elem[PatDim_X]  = -1; // last column goes first, so decrement
-        ldweightsInstr.src_mem_pattern.num_elem[PatDim_X]   = numWeights;
-        ldweightsInstr.num_active_cols                      = numWeights;
-    } else {
+    {
         // if weights are not properly aligned (end of octet), load more weights so that the 
         // last weight (first loaded) is at the end of octet. Those extra junk weights will
         // be ignored.

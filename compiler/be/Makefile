@@ -1,5 +1,23 @@
+
+## instructions
+ifndef ARCH_ISA_PATH
+$(error ARCH_ISA_PATH is not set)
+endif
+## compiler
+ifndef KAENA_PATH
+$(error KAENA_PATH is not set)
+endif
+## JSON
+ifndef KAENA_EXT_PATH
+$(error KAENA_EXT_PATH is not set)
+endif
+## Still some common defines (e.g., MMAP)
+ifndef INKLING_PATH
+$(error INKLING_PATH is not set)
+endif
+
 # codegen compiler
-#egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' |
+#egrep -v --line-buffered 'pedantic|ing director|rm |ar rc'
 
 MODS := arch layers memmgr nets utils schedule serialize codegen events wavecode wave kelf compisa
 MAINMOD := compiler 
