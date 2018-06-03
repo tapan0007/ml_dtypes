@@ -809,8 +809,6 @@ class FusedOp(list):
         self.out_data_type = out_data_type 
         self.prev_weight_wave_lower_addr = -1
         self.num_pearray_inputs_dumps = args.dump_pearray_inputs
-        self.begin_of_first_leg = False
-        self.end_of_first_leg = False
         self.ofmap_is_for_join = False
         self.residue_in_scratch = False
         # "pairup" is the region or boundary where OFMAP shrinks by 1/4 and partial-batch count doubles.
@@ -898,7 +896,7 @@ class FusedOp(list):
         return True            
 
     def show(self):
-        print("DBG: fused_ops collected: (begin_of_first_leg %d, end_of_first_leg %d, ofmap_is_for_join %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, residue_in_scratch %d)"%(self.begin_of_first_leg,self.end_of_first_leg, self.ofmap_is_for_join, self.partial_batch_pre_pairup, self.partial_batch_pairup, self.residue_in_scratch))
+        print("DBG: fused_ops collected: (ofmap_is_for_join %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, residue_in_scratch %d)"%(self.ofmap_is_for_join, self.partial_batch_pre_pairup, self.partial_batch_pairup, self.residue_in_scratch))
         for i in self:
             print("    ", i.data["layer_type"],":",i.data["layer_name"], )
 
@@ -1575,8 +1573,6 @@ class KGraph:
         self.item_sz = 2
         self.current_node = None
         self.last_split_next_nodes = []
-        self.first_leg = False
-        self.seen_begin_of_first_leg = False
         self.current_file_id = 0
 
     # add forward edges for forward traversals        
@@ -1736,9 +1732,9 @@ class KGraph:
         if (self.current_node == None):
             print("ERROR: found zero operations to fuse")
             exit(-1)
-        # when we see ResAdd/Multiply, backtrack to the last split and follow the next leg in list
+        # when we see ResAdd/Multiply, backtrack to the last split and follow the next branch in list
         if (self.current_node.is_join and self.current_node.count_missing_input_results() > 0):
-            if (args.debug > 0): print("DBG: found join (ResAdd, Multiply, etc), back-track to last split and follow next leg")
+            if (args.debug > 0): print("DBG: found join (ResAdd, Multiply, etc), back-track to last split and follow next branch")
             if self.last_split_next_nodes != [] and self.last_split_next_nodes[-1] != []:
                 self.current_node = self.last_split_next_nodes[-1].pop()
                 if self.last_split_next_nodes[-1] == []: 
@@ -1746,11 +1742,7 @@ class KGraph:
             else:
                 print("ERROR: back-track from a join %s, but can't find fork!"%(self.current_node.data['layer_name']))
                 exit(-1)
-            self.first_leg = False
         fused_ops.add(self.current_node)
-        if (self.first_leg and not self.seen_begin_of_first_leg):
-            fused_ops.begin_of_first_leg = True
-            self.seen_begin_of_first_leg = True
         for i in self.current_node.next:
             print(i.data['layer_type'], ":", i.data['layer_name'])
         fused_ops = self.get_next_fused_op(fused_ops)
@@ -1761,19 +1753,16 @@ class KGraph:
             self.current_node = next_nodes[0]   
         elif (len(next_nodes) > 1):
             fused_ops[-1].is_fork = True
-            # Delete the leg that goes to ResAdd directly first, if it exists.
-            # At the first fusedop, begin_of_first_leg=1, and the IFMAPs will be saved to residue and used by ResAdd
+            # Delete the branch that goes to ResAdd directly first, if it exists.
             for i in range(len(next_nodes)):
                 if (next_nodes[i].is_join):
                     resadd_node = next_nodes[i]
                     del next_nodes[i]
                     #next_nodes.insert(0, resadd_node)
                     break
-            # pick the first leg as current_node                        
+            # pick the first branch as current_node                        
             self.current_node = next_nodes.pop()
-            self.first_leg = True
-            self.seen_begin_of_first_leg = False
-            # save the remaining legs in a list
+            # save the remaining branches in a list
             if (next_nodes != []):
                 self.last_split_next_nodes.append(next_nodes)
         else:
@@ -1821,11 +1810,6 @@ class KGraph:
             fused_ops.conv_op.ifmaps_file_params.stride_x = fused_ops.conv_op.stride_x
             fused_ops.conv_op.ifmaps_file_params.stride_y = fused_ops.conv_op.stride_y
             #print("copied ifmaps_file_params.replicate_multiple = weights_file_params.replicate_multiple %d"%(fused_ops.conv_op.weights_file_params.replicate_multiple))
-        # mark fusedops to be at end of first leg if the following op is ResAdd
-        if (self.first_leg 
-                and self.current_node != None 
-                and (self.current_node.data['layer_type'] == "ResAdd" or self.current_node.data['layer_type'] == "Multiply")):
-            fused_ops.end_of_first_leg = True
         if (args.debug > 0):
             fused_ops.show()
         return fused_ops                   
@@ -2407,7 +2391,7 @@ class TPBSched:
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = op_list.last_op.ofmaps_file_params.dram_data
 
-        # for ResAdd/Multiply, retrieve the saved result file for one of the completed legs if it's not already loaded
+        # for ResAdd/Multiply, retrieve the saved result file for one of the completed branches if it's not already loaded
         #if op_list.has_join:
         #    if (self.statebuffer.circbuf_residue.dram_data_in_file == None):
         #        self.statebuffer.circbuf_residue.load_data(op_list.join_op)
@@ -2597,7 +2581,7 @@ class TPBSched:
         # save result to create a scratch space (in DRAM), then use circular buffer load to populate params
         result = op_list.last_op.ofmaps_file_params.dram_data
 
-        # for ResAdd/Multiply, retrieve the saved result file for one of the completed legs if it's not already loaded
+        # for ResAdd/Multiply, retrieve the saved result file for one of the completed branches if it's not already loaded
         #if op_list.has_join:
         #    if (self.statebuffer.circbuf_residue.dram_data_in_file == None):
         #        self.statebuffer.circbuf_residue.load_data(op_list.join_op)
@@ -2874,6 +2858,25 @@ if __name__ == "__main__":
 
         # increment count of fused ops (for ID purpose)
         fused_op_count += 1
+
+    # After a fork, if one branch directly goes to ResAdd, that branch was already deleted.
+    # If one branch has one convolution before ResAdd ("short" branch), that conv would need to 
+    # write to new residue space, which overlaps the old residue space in upper half. 
+    # To keep old residue space intact, we need to execute the first conv in the "long" branch 
+    # before executing the conv in the "short" branch.
+    if len(fused_ops_list) >= 3:
+        for i in range(1, len(fused_ops_list)-1):
+            op_list = fused_ops_list[i]
+            op_list_next = fused_ops_list[i+1]
+            # if two consecutive fused-ops share the same source, and source is fork, then swap fused-ops orders
+            # (except for the stage after MaxPool, where residue and scratch regions are reversed, and the following stage)
+            if op_list.first_op.prev[0] == op_list_next.first_op.prev[0] \
+                    and op_list.first_op.prev[0].is_fork \
+                    and not op_list.residue_in_scratch \
+                    and not op_list.prev.residue_in_scratch:
+                fused_ops_list[i], fused_ops_list[i+1] = fused_ops_list[i+1], fused_ops_list[i]
+                fused_ops_list[i].prev = fused_ops_list[i-1]
+                fused_ops_list[i+1].prev = fused_ops_list[i]
 
     # Execute fused ops
     batch_count = fused_ops_list[0].first_op.ofmaps_file_params.file_dims.N
