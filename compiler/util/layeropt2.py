@@ -930,7 +930,7 @@ class FusedOp(list):
             #ifmaps_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[0] \
             #                          + tpb.statebuffer.batcher.sb_partialbatch_start[1] 
             if self.first_op.C <= 128:
-                ifmaps_region_sz = 56*56*tpb.statebuffer.batcher.item_sz
+                ifmaps_region_sz = 55*55*tpb.statebuffer.batcher.item_sz
             else:                
                 ifmaps_region_sz = self.current_batch_count * self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
             # for first IFMAP, use the residue size, which is roughly equal to 3 chunks of 224x4 input tiles
@@ -993,6 +993,9 @@ class FusedOp(list):
             # right before pairup to batch count of 16, there's a jump in weights elem count, so take from partial batch space (shared space)
             weights_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
                                 + tpb.statebuffer.batcher.sb_partialbatch_sz[sb_size_set_index]
+            # align to 8B
+            weights_region_start_addr = ceildiv(weights_region_start_addr, 8) * 8
+            # compute region size
             weights_region_sz = ofmaps_region_start_addr - weights_region_start_addr
             # try a different start adddress based on the last allocation                
             weights_file_start_addr = tpb.statebuffer.next_weights_file_start
@@ -1099,7 +1102,7 @@ class FusedOp(list):
         #    exit(-1)
 
         # Check results against pre-computed results           
-        if len(self) > 1 or (not self.first_op.is_placeholder and not self.first_op.is_nop):
+        if not args.no_verify and (len(self) > 1 or (not self.first_op.is_placeholder and not self.first_op.is_nop)):
         #if False:
             if 'ref_file' in self.last_op.data and os.path.isfile(last_op.data['ref_file']):
                 try:
@@ -2665,12 +2668,11 @@ class TPBSched:
                             # TODO: roll this code into write_file_data_region
                             accessors = writers + readers
                             prev_waveops = self.waveop_stream.last_psum_waveop[psum_bank_src]['previous_waveops']
-                            prev_waveops = []
                             if accessors != []:
                                 latest_accessor = max(accessors)
                                 if latest_accessor >= 0:
                                     accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
-                                    if accessor_name not in prev_waveops:
+                                    if accessor_name not in prev_waveops and accessor_name != self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_name']:
                                         prev_waveops.append(accessor_name)
                         #if (args.debug > 3): print("TRACE execute_conv_ops %s: tile %s done, input region type %s start %d ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, output region type %s start %d ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(op_list[-1].data["layer_name"], tile_id.id_string(), self.statebuffer.circbuf_ifmaps.circbuf_type, self.statebuffer.circbuf_ifmaps.start, op_list.conv_op.ifmap_tile_lower_addr[0], op_list.conv_op.ifmap_tile_upper_addr[0], psum_bank_src, self.statebuffer.circbuf_scratch.circbuf_type, self.statebuffer.circbuf_scratch.start, output_params_op.ofmap_tile_lower_addr[0], output_params_op.ofmap_tile_upper_addr[0]))
                         #if args.abstract_mem:
@@ -2719,6 +2721,7 @@ if __name__ == "__main__":
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     parser.add_argument("--enable_replication", action='store_true', help="Enable replication for cases where number of FMAP channels is lower than PEArray rows")
     parser.add_argument("--force_batch_count", type=int, default=1, help="Force batch count number to a certain value, to simulate batched execution in middle of network")
+    parser.add_argument("--no_verify", action='store_true', help="Disable verification in order to speed up compiler time")
     args = parser.parse_args()
 
     print("Middle Sched v2: Running in %s mode"%(args.nname))
@@ -2874,6 +2877,7 @@ if __name__ == "__main__":
                     and op_list.first_op.prev[0].is_fork \
                     and not op_list.residue_in_scratch \
                     and not op_list.prev.residue_in_scratch:
+                print("Swapping order between fused-op ID %d (%s) and fused-op ID %d (%s)"%(op_list.fused_op_id, op_list.last_op.data['layer_name'], op_list_next.fused_op_id, op_list_next.last_op.data['layer_name']))
                 fused_ops_list[i], fused_ops_list[i+1] = fused_ops_list[i+1], fused_ops_list[i]
                 fused_ops_list[i].prev = fused_ops_list[i-1]
                 fused_ops_list[i+1].prev = fused_ops_list[i]

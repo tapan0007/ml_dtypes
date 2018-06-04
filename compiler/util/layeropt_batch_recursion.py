@@ -38,13 +38,16 @@ class BatchMachine:
 
         # below are sizing for Layeropt2 batching scheme
         bias_sz = 512
-        ofmap_sz_56x56x64   = 56 * 56 * self.item_sz            # = 6272
-        ofmap_sz_56x56x256  = 56 * 56 * 256 * self.item_sz // 128    # = 12544
+        #ofmap_sz_56x56x64   = 56 * 56 * self.item_sz            # = 6272
+        ofmap_sz_55x55x64   = 55 * 55 * self.item_sz            # = 6050
+        #ofmap_sz_56x56x256  = 56 * 56 * 256 * self.item_sz // 128    # = 12544
+        ofmap_sz_55x55x256  = 55 * 55 * 256 * self.item_sz // 128    # = 12100
         ofmap_sz_28x28x512  = 28 * 28 * 512 * self.item_sz // 128    # = 6272
         ofmap_sz_14x14x1024 = 14 * 14 * 1024 * self.item_sz // 128   # = 3136
         ofmap_sz_7x7x2048   = 7 * 7 * 2048 * self.item_sz // 128     # = 1568
-        partialbatch_sz     = ofmap_sz_7x7x2048 * 9 + ofmap_sz_14x14x1024 * 5 + ofmap_sz_28x28x512 * 3 + ofmap_sz_56x56x64 * 1 + ofmap_sz_56x56x64 * 1 # includes extra space to prevent overwrite
-        partialbatch_sz_8   = ofmap_sz_7x7x2048 * 9 + ofmap_sz_14x14x1024 * 8
+        #partialbatch_sz     = ofmap_sz_7x7x2048 * 12 + ofmap_sz_14x14x1024 * 5 + ofmap_sz_28x28x512 * 3 + ofmap_sz_56x56x64 * 1 + ofmap_sz_56x56x64 * 1 # includes extra space to prevent overwrite
+        partialbatch_sz     = ofmap_sz_7x7x2048 * 12 + ofmap_sz_14x14x1024 * 5 + ofmap_sz_28x28x512 * 3 + ofmap_sz_55x55x64 * 1 + ofmap_sz_55x55x64 * 1 # includes extra space to prevent overwrite
+        partialbatch_sz_8   = ofmap_sz_7x7x2048 * 12 + ofmap_sz_14x14x1024 * 8
         partialbatch_sz_16  = ofmap_sz_7x7x2048 * 16
         
         #                         batch=1, pre-pairup=X      batch=2                     batch=2, pre-pairup=T       batch=4                     batch=4, pre-pairup=T       batch=8                     batch=8, pre-pairup=T         batch=16
@@ -52,7 +55,9 @@ class BatchMachine:
         self.sb_partialbatch_sz = [partialbatch_sz,          partialbatch_sz,            partialbatch_sz,            partialbatch_sz,            partialbatch_sz,            partialbatch_sz_8,          partialbatch_sz_8,            partialbatch_sz_16]
         self.sb_weights_sz =      [7*7*64*self.item_sz,      3*3*64*self.item_sz,        3*3*64*2*self.item_sz,      3*3*128*self.item_sz,       3*3*256*2*self.item_sz,     3*3*256*2*self.item_sz,     3*3*512*4*self.item_sz,       3*3*512*4*self.item_sz]
         #self.sb_scratch_sz =      [112*112*self.item_sz,     ofmap_sz_56x56x256*2,       28*28*self.item_sz*3,       28*28*self.item_sz*5,       14*14*2*self.item_sz*5,     14*14*2*self.item_sz*9,     7*7*4*self.item_sz*12,        7*7*4*self.item_sz*20 ]
-        self.sb_scratch_sz =      [112*112*self.item_sz,     ofmap_sz_56x56x256*2,       28*28*self.item_sz*2,       28*28*self.item_sz*4,       14*14*2*self.item_sz*4,     14*14*2*self.item_sz*8,     7*7*4*self.item_sz*8,        7*7*4*self.item_sz*16]
+        #self.sb_scratch_sz =      [112*112*self.item_sz,     ofmap_sz_56x56x256*2,       28*28*self.item_sz*2,       28*28*self.item_sz*4,       14*14*2*self.item_sz*4,     14*14*2*self.item_sz*8,     7*7*4*self.item_sz*8,        7*7*4*self.item_sz*16]
+        self.sb_scratch_sz =      [112*112*self.item_sz,     56*56*2*self.item_sz*2,      28*28*self.item_sz*2,       28*28*self.item_sz*4,       14*14*2*self.item_sz*4,     14*14*2*self.item_sz*8,     7*7*4*self.item_sz*8,        7*7*4*self.item_sz*16]
+        # (using 56*56 in sb_scratch_sz[1] to accomodate one-layer test that mimics ResNet50 input layer, ie. 3-1conv0_padvalid_wave)
 
         # Set of sizes for each current batch level and "pre-pairup" flag.
         # "pairup" is the region or boundary where OFMAP shrinks by 1/4 and partial-batch count doubles.
@@ -73,10 +78,11 @@ class BatchMachine:
         # start addresses for each batch level
         self.sb_partialbatch_start = {}
         self.sb_partialbatch_start[16] = 0
-        self.sb_partialbatch_start[8] = ofmap_sz_7x7x2048 * 9 
+        self.sb_partialbatch_start[8] = ofmap_sz_7x7x2048 * 12 
         self.sb_partialbatch_start[4] = self.sb_partialbatch_start[8] + ofmap_sz_14x14x1024 * 5
         self.sb_partialbatch_start[2] = self.sb_partialbatch_start[4] + ofmap_sz_28x28x512 * 3      # MaxPool output, followed by conv layer outputing to scratch 
-        self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + ofmap_sz_56x56x64 * 1       # IFMAP input space, 1st layer output goes to scratch
+        #self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + ofmap_sz_56x56x64 * 1       # IFMAP input space, 1st layer output goes to scratch
+        self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + ofmap_sz_55x55x64 * 1       # IFMAP input space, 1st layer output goes to scratch
 
     def show_slots(self):
         for i in range(len(self.pairup_at_layer_item_sz)-1):

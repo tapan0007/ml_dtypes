@@ -355,7 +355,7 @@ class FileParams():
         W_rounded = ((self.file_dims.W + 1) // 2) * 2
         self.batch_item_partition_usage_sz_rounded = self.batch_item_partition_usage_sz // self.file_dims.H // self.file_dims.W
         self.batch_item_partition_usage_sz_rounded = self.batch_item_partition_usage_sz_rounded * H_rounded * W_rounded
-        #print("INFO: file %s shape %s tot_partition_usage_sz %d batch_item_partition_usage_sz %d"%(self.file_name, str(self.file_dims.shape_tuple), self.tot_partition_usage_sz, self.batch_item_partition_usage_sz))
+        print("INFO: file %s shape %s tot_partition_usage_sz %d batch_item_partition_usage_sz %d"%(self.file_name, str(self.file_dims.shape_tuple), self.tot_partition_usage_sz, self.batch_item_partition_usage_sz))
 
 # Class to hold map information related to a file
 class MappedParams():
@@ -589,10 +589,11 @@ class FileMapper():
                     owner_batch_item = self.morsels[sb_addr].batch_item
                     if file_id in self.file_params_list:
                         if (file_id != file_params.file_id) or (chunk_id != i):
-                            #print("INFO: batch item %d: Writer ID %d is writing chunk_id %d (addr %d) of file %s (ID %d), clearing previous owner which is chunk_id %d of file %s (ID %d)"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
+                            #print("INFO: batch item %d: Writer waveop (non-load) ID %d is writing chunk_id %d (addr %d) of file %s (file ID %d), clearing previous owner which is chunk_id %d of file %s (file ID %d)"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
                             self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
                     elif file_id != -1:
-                        raise RuntimeError("File_id %d not found in list of file_params"%(file_id))
+                        raise RuntimeError("File ID %d not found in list of file_params"%(file_id))
+                    #print("INFO: batch item %d: Writer waveop (non-load) ID %d is writing chunk_id %d (addr %d) of file %s (file ID %d), clearing previous writer_id %s or reader_id %d, and replacing with writer_id %d"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, self.morsels[sb_addr].writer_id, self.morsels[sb_addr].reader_id, nonload_waveop_id))
                     self.morsels[sb_addr].file_id = file_params.file_id
                     self.morsels[sb_addr].writer_id = nonload_waveop_id
                     self.morsels[sb_addr].reader_id = -1
@@ -603,7 +604,7 @@ class FileMapper():
                 #    file_params.mapped_params.chunk_is_mapped[batch_item][i] = True
                 if not file_params.mapped_params.chunk_is_mapped[i]:
                     file_params.mapped_params.chunk_is_mapped[i] = True
-                    #print("INFO: batch item %d: Writer ID %d is writing chunk_id %d (start %d, end %d) of file %s"%(batch_item, nonload_waveop_id, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
+                    #print("INFO: batch item %d: Writer waveop (non-load) ID %d is writing chunk_id %d (start %d, end %d) of file %s"%(batch_item, nonload_waveop_id, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
                 #if file_params.dump_to_file:
                 #    list_of_accessors = list_of_writers + list_of_readers
                 #    prev_waveops = []
@@ -644,9 +645,9 @@ class FileMapper():
                 owner_batch_item = self.morsels[sb_addr].batch_item
                 if file_id in self.file_params_list:
                     self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
-                    #print("INFO: batch item %d: Reader ID %d is reading chunk_id %d (addr %d) of file %s (ID %d), clearing previous owner which is chunk_id %d of file %s (ID %d)"%(batch_item, nonload_waveop_id_tmp, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
+                    #print("INFO: batch item %d: Reader waveop (non-load) ID %d is reading chunk_id %d (addr %d) of file %s (file ID %d), clearing previous owner which is chunk_id %d of file %s (file ID %d)"%(batch_item, nonload_waveop_id_tmp, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
                 elif file_id != -1:
-                    raise RuntimeError("File_id %d not found in list of file_params"%(file_id))
+                    raise RuntimeError("File ID %d not found in list of file_params"%(file_id))
                 self.morsels[sb_addr].file_id = file_params.file_id
                 self.morsels[sb_addr].writer_id = -1
                 self.morsels[sb_addr].reader_id = nonload_waveop_id_tmp
@@ -667,7 +668,7 @@ class FileMapper():
                             prev_waveops.append(accessor_name)
             new_dram_waveop = self.gen_dram_save_waveop(file_params, batch_item, i, prev_waveops)
             list_of_waveops.append(new_dram_waveop)
-            #print("INFO: batch item %d: DRAM saver (SBAtomSave) ID %d is reading chunk_id %d (start %d, end %d) of file %s"%(batch_item, nonload_waveop_id_tmp, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
+            #print("INFO: batch item %d: DRAM saver (SBAtomSave) waveop (non-load) ID %d is reading chunk_id %d (start %d, end %d) of file %s"%(batch_item, nonload_waveop_id_tmp, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
             # trace waveop_id for newly created SBAtomSaves (to trace dependency so that new writer to same space need to wait for this save to complete)
             nonload_waveop_id_tmp += 1
         return list_of_waveops
@@ -706,10 +707,10 @@ class FileMapper():
                 owner_batch_item = self.morsels[sb_addr].batch_item
                 if file_id in self.file_params_list:
                     if (file_id != file_params.file_id) or (chunk_id != i):
-                        #print("INFO: batch item %d: Reader ID %d is reading chunk_id %d (addr %d) of file %s (ID %d), clearing previous owner which is chunk_id %d of file %s (ID %d)"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
+                        #print("INFO: batch item %d: Reader waveop (non-load) ID %d is reading chunk_id %d (addr %d) of file %s (file ID %d), clearing previous owner which is chunk_id %d of file %s (file ID %d)"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
                         self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
                 elif file_id != -1:
-                    raise RuntimeError("File_id %d not found in list of file_params"%(file_id))
+                    raise RuntimeError("File ID %d not found in list of file_params"%(file_id))
                 self.morsels[sb_addr].file_id = file_params.file_id
                 self.morsels[sb_addr].writer_id = -1
                 self.morsels[sb_addr].reader_id = nonload_waveop_id
