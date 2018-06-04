@@ -59,3 +59,8 @@ d-i	cdrom-detect/eject	boolean false
 d-i	debian-installer/exit/halt	boolean false
 d-i	debian-installer/exit/poweroff	boolean true
 d-i	pkgsel/include string vim openssh-server
+
+
+d-i preseed/late_command string \
+    echo 'kaena ALL=(ALL) NOPASSWD: ALL' > /target/etc/sudoers.d/kaena ; \
+    in-target chmod 440 /etc/sudoers.d/kaena ;
