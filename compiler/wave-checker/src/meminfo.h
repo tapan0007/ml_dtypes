@@ -5,6 +5,7 @@
 #include "common/aws_tonga_isa_common.h"
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <list>
 #include <vector>
 #include <stdlib.h>
@@ -68,13 +69,15 @@ struct AddrRange {
     std::cout << std::endl;
   }
   template<class T>
-  static void print_text_ars(T& ars)
+  static std::string print_text_ars(T& ars)
   {
+    std::ostringstream msg;
     for(auto a : ars)
     {
-      std::cout << "[" << a.begin << ", " << a.end << "]" << " ";
+      msg << "[" << a.begin << ", " << a.end << "]" << " ";
     }
-    std::cout << std::endl;
+    msg << std::endl;
+    return msg.str();
   }
 };//AddrRange
 

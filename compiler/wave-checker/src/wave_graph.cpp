@@ -370,8 +370,8 @@ WaveGraphChecker::WaveGraphChecker(json& j)
       num_neighs += op["previous_waveops"].size();
     }
   }
-  std::cout << "\033[1;34mINFO: \033[0m";
-  std::cout << "Average degree = "
+  InfoPrefix();
+  messages << "Average degree = "
     << ((float)num_neighs / (float)j["waveops"].size())
     << std::endl;
 }
@@ -409,24 +409,25 @@ void WaveGraphChecker::write_graph_viz()
   std::cout << std::flush;
 }
 
-void WaveGraphChecker::structure_check()
+bool WaveGraphChecker::structure_check()
 {
+  bool err = false;
   typedef boost::graph_traits<graph_t>::vertex_iterator v_itr;
   std::pair<v_itr, v_itr> vp = boost::vertices(wg);
-  std::cout << "\033[1;34mINFO: \033[0m";
-  std::cout << "Starting Structure Inspection" << std::endl;
+  InfoPrefix();
+  messages << "Starting Structure Inspection" << std::endl;
   for(;vp.first != vp.second;++vp.first) {
-    CheckImmNeighbors_NonDRAMOp(*vp.first);
-    CheckDuplicatedEdges(*vp.first);
-    //std::cout << wg[*vp.first]->get_name() << std::endl;
+    err |= CheckImmNeighbors_NonDRAMOp(*vp.first);
+    err |= CheckDuplicatedEdges(*vp.first);
   }
-  std::cout << "\033[1;34mINFO: \033[0m";
-  std::cout << "Finished Structure Inspection" << std::endl;
-
+  InfoPrefix();
+  messages << "Finished Structure Inspection" << std::endl;
+  return err;
 }
 
-void WaveGraphChecker::CheckDuplicatedEdges(vertex_t v)
+bool WaveGraphChecker::CheckDuplicatedEdges(vertex_t v)
 {
+  bool err = false;
   struct comp {
     bool operator() (const std::string a, const std::string b) const
     {
@@ -442,43 +443,53 @@ void WaveGraphChecker::CheckDuplicatedEdges(vertex_t v)
       pred_n.insert(n);
     else
     {
-      std::cout << "\033[1;31mERROR: \033[0m";
-      std::cout << wg[v]->get_name()
+      err = true;
+      ErrorPrefix();
+      messages << wg[v]->get_name()
         << " has duplicated incoming edges" << std::endl;
       break;
     }
   }
+  return err;
 }
 
-inline void WaveGraphChecker::InputOperandCheck(vertex_t v)
+inline bool WaveGraphChecker::InputOperandCheck(vertex_t v)
 {
+  bool err = false;
   std::pair<ie_itr, ie_itr> iep;
   iep = boost::in_edges(v, wg);
-  if (iep.first == iep.second)
-    std::cout << "Error : " << wg[v]->get_name()
+  if (iep.first == iep.second) {
+    err = true;
+    ErrorPrefix();
+    messages << wg[v]->get_name()
       << " does not have an input operand" << std::endl;
+  }
   if (wg[v]->IsMatMul()) {
     for(;iep.first != iep.second;++iep.first)
     {
       vertex_t s = boost::source(*iep.first, wg);
       if (wg[s]->get_waveop_type() == WaveOp::SBAtomSave)
       {
-        std::cout << "Warning : Input operand of " << wg[v]->get_name()
+        WarningPrefix();
+        messages << "Input operand of " << wg[v]->get_name()
           << " is SBAtomSave" << std::endl;
-        std::cout << "\t" << wg[s]->get_name() << std::endl;
+        messages << "\t" << wg[s]->get_name() << std::endl;
       }
     }
   }
+  return err;
 }
 
-inline void WaveGraphChecker::OutputOperandCheck(vertex_t v)
+inline bool WaveGraphChecker::OutputOperandCheck(vertex_t v)
 {
+  bool err = false;
   std::pair<oe_itr, oe_itr> oep;
   oep = boost::out_edges(v, wg);
   if (oep.first == oep.second)
   {
-    std::cout << "\033[1;31mERROR: \033[0m";
-    std::cout << wg[v]->get_name()
+    err = true;
+    ErrorPrefix();
+    messages << wg[v]->get_name()
       << " does not have an output operand" << std::endl;
   }
   /*
@@ -493,15 +504,18 @@ inline void WaveGraphChecker::OutputOperandCheck(vertex_t v)
     }
   }
   */
+  return err;
 }
 
-void WaveGraphChecker::CheckImmNeighbors_NonDRAMOp(vertex_t v)
+bool WaveGraphChecker::CheckImmNeighbors_NonDRAMOp(vertex_t v)
 {
+  bool err = false;
   if (!wg[v]->IsDRAMOp())
   {
-    InputOperandCheck(v);
-    OutputOperandCheck(v);
+    err |= InputOperandCheck(v);
+    err |= OutputOperandCheck(v);
   }
+  return err;
 }
 
 /// WaveGraphChecker
@@ -561,7 +575,7 @@ bool WaveGraphChecker::DataRaceChecker (
       if (v2reachable_v[u_]->find(v_) == v2reachable_v[u_]->end() &&
           v2reachable_v[v_]->find(u_) == v2reachable_v[v_]->end())
       {
-        DataRace(wg[u_], wg[v_]);
+        race |= DataRace(wg[u_], wg[v_]);
       }
     }
   }
@@ -593,18 +607,20 @@ bool WaveGraphChecker::DataRaceChecker (
   return race;
 }
 
-void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
+bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
 {
+  bool err = false;
   if (u->get_sb_in_footprint_size() && v->get_sb_out_footprint_size())
   {
     if (AddrSOverlap(u->get_sb_in_footprint(),v->get_sb_out_footprint()))
     {
+      err = true;
       DataRacePrint(u, v, RAW_SB);
-      std::cout << "\tSB Read range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tSB Read range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           u->get_sb_in_footprint());
-      std::cout << "\tSB Write range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tSB Write range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           v->get_sb_out_footprint());
     }
   }
@@ -612,12 +628,13 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
   {
     if (AddrSOverlap(u->get_sb_out_footprint(),v->get_sb_in_footprint()))
     {
+      err = true;
       DataRacePrint(v, u, RAW_SB);
-      std::cout << "\tSB Write range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tSB Write range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           u->get_sb_out_footprint());
-      std::cout << "\tSB Read range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tSB Read range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           v->get_sb_in_footprint());
     }
   }
@@ -625,12 +642,13 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
   {
     if (AddrSOverlap(u->get_sb_out_footprint(),v->get_sb_out_footprint()))
     {
+      err = true;
       DataRacePrint(u, v, WAW_SB);
-      std::cout << "\tSB Write range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tSB Write range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           u->get_sb_out_footprint());
-      std::cout << "\tSB Write range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tSB Write range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           v->get_sb_out_footprint());
     }
   }
@@ -638,12 +656,13 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
   {
     if (AddrSOverlap(u->get_psum_in_footprint(),v->get_psum_out_footprint()))
     {
+      err = true;
       DataRacePrint(u, v, RAW_PSUM);
-      std::cout << "\tPSUM Read range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tPSUM Read range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           u->get_psum_in_footprint());
-      std::cout << "\tPSUM Write range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tPSUM Write range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           v->get_psum_out_footprint());
     }
   }
@@ -651,12 +670,13 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
   {
     if (AddrSOverlap(u->get_psum_out_footprint(),v->get_psum_in_footprint()))
     {
+      err = true;
       DataRacePrint(v, u, RAW_PSUM);
-      std::cout << "\tPSUM Write range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tPSUM Write range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           u->get_psum_out_footprint());
-      std::cout << "\tPSUM Read range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tPSUM Read range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           v->get_psum_in_footprint());
     }
   }
@@ -664,36 +684,38 @@ void WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
   {
     if (AddrSOverlap(u->get_psum_out_footprint(),v->get_psum_out_footprint()))
     {
+      err = true;
       DataRacePrint(u, v, WAW_PSUM);
-      std::cout << "\tPSUM Write range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tPSUM Write range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           u->get_psum_out_footprint());
-      std::cout << "\tPSUM Write range : ";
-      AddrRange::print_text_ars<std::list<AddrRange> >(
+      messages << "\tPSUM Write range : "
+      << AddrRange::print_text_ars<std::list<AddrRange> >(
           v->get_psum_out_footprint());
     }
   }
+  return err;
 }
 
 void WaveGraphChecker::DataRacePrint(WaveOp* u, WaveOp*v, RaceKind rk)
 {
   //std::cout << "ERROR: ";
-  std::cout << "\033[1;31mERROR: \033[0m";
-  std::cout << "Potential ";
+  ErrorPrefix();
+  messages << "Potential ";
   
   switch (rk)
   {
     case WAW_SB:
-      std::cout << "WAW hazard in SB between W:";break;
+      messages << "WAW hazard in SB between W:";break;
     case WAW_PSUM:
-      std::cout << "WAW hazard in PSUM between W:";break;
+      messages << "WAW hazard in PSUM between W:";break;
     case RAW_PSUM:WAR_PSUM:
-      std::cout << "RAW or WAR hazard in PSUM between R:";break;
+      messages << "RAW or WAR hazard in PSUM between R:";break;
     case RAW_SB:WAR_SB:
-      std::cout << "RAW or WAR hazard in SB between R:";break;
+      messages << "RAW or WAR hazard in SB between R:";break;
     default:break;
   }
-  std::cout << u->get_name() << " and "
+  messages << u->get_name() << " and "
     << "W:" << v->get_name() << std::endl;
 }
 
@@ -723,8 +745,9 @@ inline bool WaveGraphChecker::AddrOverlap (AddrRange a, AddrRange b)
   return (!(a.end < b.begin || a.begin > b.end));
 }
 
-void WaveGraphChecker::RunDataRaceChecker()
+bool WaveGraphChecker::RunDataRaceChecker()
 {
+  bool err = false;
   //enum OPS {LD, ST, ACT, POOL, MM};
   std::vector<std::list<vertex_t>*> v_list;
 
@@ -740,18 +763,16 @@ void WaveGraphChecker::RunDataRaceChecker()
       if (i == ST && j == MM)
       {
       } else {
-        std::cout << "\033[1;34mINFO: \033[0m";
-        std::cout << "Checking data race between "
+        InfoPrefix();
+        messages << "Checking data race between "
           << WaveOpType(i) << " and " << WaveOpType(j) << std::endl;;
-        DataRaceChecker(*v_list[i], *v_list[j]);
-        //std::cout << "INFO: Checking data race between "
-          //<< j << " and " << i << std::endl;;
-        //DataRaceChecker(*v_list[j], *v_list[i]);
+        err |= DataRaceChecker(*v_list[i], *v_list[j]);
       }
     }
   }
-  std::cout << "\033[1;34mINFO: \033[0m";
-  std::cout << "Checking data race between "
+  InfoPrefix();
+  messages << "Checking data race between "
     << WaveOpType(0) << " and " << WaveOpType(0) << std::endl;;
-  DataRaceChecker(*v_list[0], *v_list[0]);
+  err |= DataRaceChecker(*v_list[0], *v_list[0]);
+  return err;
 }

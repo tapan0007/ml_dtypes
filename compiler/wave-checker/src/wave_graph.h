@@ -12,6 +12,9 @@
 #include "packages/nlohmann/json.hpp"
 #include "common/aws_tonga_isa_common.h"
 #include "meminfo.h"
+#include "wc_common.h"
+
+extern po::variables_map g_cli;
 
 using namespace boost;
 using json = nlohmann::json;
@@ -292,7 +295,7 @@ class WaveGraphChecker {
   ~WaveGraphChecker(){};
 
   void write_graph_viz();
-  void structure_check();
+  bool structure_check();
   /// CheckImmNeighbors_NonDRAMOp
   /// This perfoms simple rules that a Non-DRAM waveop has to satisfy
   /// as described below.
@@ -301,11 +304,15 @@ class WaveGraphChecker {
   ///    2.1 This is not really an error but more like warning that does not
   //         affect functionality but do affect performance
   /// 3. Each non-dram waveop should have at least one successor
-  void CheckImmNeighbors_NonDRAMOp(vertex_t v);
-  void InputOperandCheck(vertex_t v);
-  void OutputOperandCheck(vertex_t v);
-  void CheckDuplicatedEdges(vertex_t v);
-  void RunDataRaceChecker();
+  bool CheckImmNeighbors_NonDRAMOp(vertex_t v);
+  bool InputOperandCheck(vertex_t v);
+  bool OutputOperandCheck(vertex_t v);
+  bool CheckDuplicatedEdges(vertex_t v);
+  bool RunDataRaceChecker();
+  const std::ostringstream& get_msg() const {return messages;}
+  //const std::ostringstream& get_errors() const {return errors;}
+  //const std::ostringstream& get_warnings() const {return warnings;}
+  //const std::ostringstream& get_infos() const {return infos;}
   private:
   void ConstructPathInfo(
       vertex_t u
@@ -315,7 +322,7 @@ class WaveGraphChecker {
       std::list<vertex_t>& u
       , std::list<vertex_t>& v
       );
-  void DataRace(WaveOp* u, WaveOp* v);
+  bool DataRace(WaveOp* u, WaveOp* v);
   bool AddrSOverlap(std::list<AddrRange>& a, std::list<AddrRange>& b);
   bool AddrOverlap(AddrRange a, AddrRange b);
   std::string WaveOpType (int i)
@@ -326,10 +333,38 @@ class WaveGraphChecker {
     if ((OPS)i == ACT) o = "Activation";
     if ((OPS)i == POOL) o = "Pool";
     if ((OPS)i == MM) o = "MatMul";
+    if ((OPS)i == RESADD) o = "ResAdd";
     return o;
   }
   WaveOp* ConstructWaveOp(json& op);
   void DataRacePrint(WaveOp*u, WaveOp*v, RaceKind rk);
+  void InfoPrefix() {
+    if (g_cli["stdout"].as<bool>()) {
+      messages << "\033[1;34m";
+    }
+    messages << "INFO: ";
+    if (g_cli["stdout"].as<bool>()) {
+      messages << "\033[0m";
+    }
+  }
+  void WarningPrefix() {
+    if (g_cli["stdout"].as<bool>()) {
+      messages << "\033[1;34m";
+    }
+    messages << "WARNING: ";
+    if (g_cli["stdout"].as<bool>()) {
+      messages << "\033[0m";
+    }
+  }
+  void ErrorPrefix() {
+    if (g_cli["stdout"].as<bool>()) {
+      messages << "\033[1;31m";
+    }
+    messages << "ERROR: ";
+    if (g_cli["stdout"].as<bool>()) {
+      messages << "\033[0m";
+    }
+  }
   private:
   graph_t wg;
   //WaveOp* Source;
@@ -343,5 +378,9 @@ class WaveGraphChecker {
   std::list<vertex_t> mPOOLops;
   std::list<vertex_t> mMMops;
   std::list<vertex_t> mResAddops;
+  std::ostringstream messages;
+  //std::ostringstream errors;
+  //std::ostringstream warnings;
+  //std::ostringstream infos;
 }; // WaveGraphChecker
 #endif //__WAVE_GRAPH_H__
