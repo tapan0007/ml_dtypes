@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 import mxnet as mx
 
+from keras.utils.data_utils import get_file
 from keras.preprocessing import image
 from keras.applications.resnet50 import preprocess_input, decode_predictions
 from keras import backend
