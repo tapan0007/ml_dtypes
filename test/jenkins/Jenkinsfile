@@ -90,7 +90,7 @@ pipeline{
 
             steps {
                 sh 'make -j4 -C $KAENA_PATH/test/e2e/ check'
-                sh '[ -z "$RUNALL_ARGS" ] || $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS'
+                sh 'cd $KAENA_PATH/test/e2e; [ -z "$RUNALL_ARGS" ] || ./RunAll $RUNALL_ARGS'
                 //sh 'make -C $KAENA_INK_PATH check'
             }
         }
