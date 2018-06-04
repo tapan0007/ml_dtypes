@@ -1,4 +1,5 @@
 import os
+import stat
 import tempfile
 import shutil
 import sh
@@ -12,6 +13,15 @@ def copy_dir(src, dst):
     import sh
     cp("-ar", sh.glob(src + '/*'), dst)
     cp("-ar", sh.glob(src + '/.*'), dst)
+
+
+def rm_dir(dir_path):
+    """ Helper to delete a directory tree.
+    :param dir_path:
+    :return:
+    """
+    sh.chmod("-R", "+w", dir_path)
+    shutil.rmtree(dir_path)
 
 
 class KickstartIso(object):
@@ -34,24 +44,40 @@ class KickstartIso(object):
 
     def destroy(self):
         if self.delete_iso_dir:
-            sh.umount(self.iso_dir)
-            shutil.rmtree(self.new_iso_dir)
+            rm_dir(self.new_iso_dir)
+            sh.fusermount("-u", self.iso_dir)
         else:
             print(self.new_iso_dir, 'is not deleted.')
         self.iso_dir = None
 
     def _mount_iso(self):
-        from sh import mount
+        from sh import fuseiso
         iso_dir = tempfile.mkdtemp(suffix='iso.vanilla')
         print("Mounting {} on {}".format(self.iso_path, iso_dir))
-        mount("-oloop", self.iso_path, iso_dir)
+        fuseiso(self.iso_path, iso_dir)
         return iso_dir
+
+    def _make_iso_dir_writeable(self, path):
+        """ Make given dir/file writeable.
+
+        :param path: Relative path from the new iso dir.
+        """
+        full_path = os.path.join(self.new_iso_dir, path)
+        st = os.stat(full_path)
+        os.chmod(full_path, st.st_mode | stat.S_IWUSR)
 
     def build(self):
         """ Build new ISO
         :return: Path of the new ISO file.
         """
         copy_dir(self.iso_dir, self.new_iso_dir)
+
+        self._make_iso_dir_writeable("")
+        self._make_iso_dir_writeable("isolinux")
+        self._make_iso_dir_writeable("preseed")
+        self._make_iso_dir_writeable(os.path.join("isolinux", "txt.cfg"))
+        self._make_iso_dir_writeable(os.path.join("isolinux", "isolinux.cfg"))
+        self._make_iso_dir_writeable(os.path.join("isolinux", "isolinux.bin"))
 
         # set lang as English
         with open(os.path.join(self.new_iso_dir, "isolinux", "lang"), "w") as f:

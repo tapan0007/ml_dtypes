@@ -13,7 +13,7 @@
 
     Requirements:
         pip3 install sh boto3
-        sudo apt-get install syslinux-utils
+        sudo apt-get install syslinux-utils fuseiso
 
     Example usage:
         sudo ./vdi_manager.py create --iso-path ~/iso/ubuntu-16.04.4-server-amd64.iso --qemu /build/qemu_inkling/x86_64-softmmu/qemu-system-x86_64
