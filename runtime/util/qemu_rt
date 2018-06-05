@@ -205,10 +205,11 @@ rsync -av --progress -e 'ssh -p 5555 -i ~/.ssh/lubuntu.pem' /tmp/0-1conv0.tgz ub
 ssh -p 5555 -i "~/.ssh/lubuntu.pem" ubuntu@localhost
   sudo apt install make libelf-dev gcc tcl tcl8.5-dev environment-modules python3-pip 
   sudo pip3 install numpy scipy
+  git clean -f -d -x
   cd udmabuf/
   make
   cd ../hal
-  make PLAN=uio
+  make PLAT=uio
   cd ../uio_drv/
   make
   cd ../kbinlib
