@@ -36,20 +36,20 @@ pipeline{
 
             steps {
                 sh '''
-		set -x
+        set -x
 
                 cd $SRC_DIR
-		ls -ltrA
+        ls -ltrA
 
-		repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
-		[ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
-		repo init -m $MANIFEST_FILE_NAME
-		repo sync
+        repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
+        [ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
+        repo init -m $MANIFEST_FILE_NAME
+        repo sync
 
-		git config --global user.name "Jenkins"
-		git config --global user.email aws-tonga-kaena@amazon.com
+        git config --global user.name "Jenkins"
+        git config --global user.email aws-tonga-kaena@amazon.com
 
-		[ -z "$GERRIT_REFSPEC" ] || \
+        [ -z "$GERRIT_REFSPEC" ] || \
                 git -C kaena-runtime pull origin $GERRIT_REFSPEC || \
                 git -C kaena-compiler pull origin $GERRIT_REFSPEC || \
                 git -C kaena-ext pull origin $GERRIT_REFSPEC || \
@@ -57,8 +57,8 @@ pipeline{
                 git -C qemu_inkling pull origin $GERRIT_REFSPEC || \
                 git -C isa pull origin $GERRIT_REFSPEC
 
-		chmod -R 755 ./
-		ls -ltrA
+        chmod -R 755 ./
+        ls -ltrA
                 '''
             }
         }
@@ -98,17 +98,19 @@ pipeline{
     post {
         changed {
             script {
-                    // Send an email only if the build status has changed from green/unstable to red
-                    emailext subject: '$DEFAULT_SUBJECT',
-                        body: '$DEFAULT_CONTENT',
-                        recipientProviders: [
-                            [$class: 'CulpritsRecipientProvider'],
-                            [$class: 'DevelopersRecipientProvider'],
-                            [$class: 'RequesterRecipientProvider']
-                        ],
-                        replyTo: '$DEFAULT_REPLYTO',
-                        to: '$DEFAULT_RECIPIENTS'
-                }
+                 if (!env.GERRIT_REFSPEC) { 
+                     // Send an email only if the build status has changed from green/unstable to red
+                     emailext subject: '$DEFAULT_SUBJECT',
+                     body: '$DEFAULT_CONTENT',
+                     recipientProviders: [
+                             [$class: 'CulpritsRecipientProvider'],
+                             [$class: 'DevelopersRecipientProvider'],
+                             [$class: 'RequesterRecipientProvider']
+                     ],
+                       replyTo: '$DEFAULT_REPLYTO',
+                     to: 'aws-tonga-kaena@amazon.com'
+                 }
+            }
         }
         always {
             sh 'df -h'
