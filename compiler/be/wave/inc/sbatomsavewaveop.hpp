@@ -60,9 +60,14 @@ public:
 
     kcc_int64 gSaveDataSizeInBytes() const;
 
+    bool qFinalLayerOfmap() const {
+        return m_FinalLayerOfmap;
+    }
+
 private:
-    kcc_int32       m_OfmapCount       = -1;
+    kcc_int32       m_OfmapCount        = -1;
     kcc_int32       m_OfmapsFoldIdx     = -1;
+    bool            m_FinalLayerOfmap   = false;
 };
 
 
@@ -72,8 +77,9 @@ class SbAtomSaveWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32       m_OfmapCount       = -1;
+    kcc_int32       m_OfmapCount        = -1;
     kcc_int32       m_OfmapsFoldIdx     = -1;
+    bool            m_FinalLayerOfmap   = false;
 };
 
 }}

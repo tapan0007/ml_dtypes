@@ -98,6 +98,7 @@ constexpr static const char* WaveOpKey_IfmapsReplicate      = "ifmaps_replicate"
 
 // SBAtomSave
 constexpr static const char* WaveOpKey_OfmapsFoldIdx        = "ofmaps_fold_idx";
+constexpr static const char* WaveOpKey_FinalLayerOfmap      = "final_layer_ofmap";
 
 // Pool
 constexpr static const char* WaveOpKey_DstIsPsum            = "dst_is_psum";
@@ -287,6 +288,7 @@ public:
     // SBAtomSave
     kcc_int32                   m_OfmapCount        = -1;
     kcc_int32                   m_OfmapsFoldIdx     = -1;
+    bool                        m_FinalLayerOfmap;
 
     // MatMul
     enum {

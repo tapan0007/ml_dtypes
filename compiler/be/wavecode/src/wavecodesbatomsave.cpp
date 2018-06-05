@@ -150,7 +150,10 @@ WaveCodeSbAtomSave::generateForKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
     if (m_WaveCode.qBinFileSimKelf()) {
         generateDmaCopySimKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
     } else{
-        generateDmaTriggerRuntimeKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
+        // TODO: handle debug and off-load SbAtomSaves
+        if (sbAtomSaveWaveop->qFinalLayerOfmap()) {
+            generateDmaTriggerRuntimeKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
+        }
     }
 }
 

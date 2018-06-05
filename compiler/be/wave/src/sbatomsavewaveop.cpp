@@ -18,6 +18,7 @@ SbAtomSaveWaveOp::SbAtomSaveWaveOp(const SbAtomSaveWaveOp::Params& params,
     : SbAtomWaveOp(params, prevWaveOps)
     , m_OfmapCount(params.m_OfmapCount)
     , m_OfmapsFoldIdx(params.m_OfmapsFoldIdx)
+    , m_FinalLayerOfmap(params.m_FinalLayerOfmap)
 {
     assert(params.verify());
 }

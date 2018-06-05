@@ -352,6 +352,7 @@ Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
 
     KCC_UNSERIALIZE(OfmapCount);
     KCC_UNSERIALIZE(OfmapsFoldIdx);
+    KCC_UNSERIALIZE(FinalLayerOfmap);
 
     auto waveOp = new wave::SbAtomSaveWaveOp(sbatomsaveParams, prevWaveOps);
     Assert(waveOp && waveOp->gName() == sbatomsaveParams.m_WaveOpName,

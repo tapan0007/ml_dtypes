@@ -62,6 +62,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
     } else {
         KCC_ARCHIVE(OfmapCount);
         KCC_ARCHIVE(OfmapsFoldIdx);
+        KCC_ARCHIVE(FinalLayerOfmap);
     }
 }
 

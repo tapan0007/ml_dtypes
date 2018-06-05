@@ -452,6 +452,7 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
         serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStrStatic();
         KCC_SERIALIZE(OfmapCount);
         KCC_SERIALIZE(OfmapsFoldIdx);
+        serWaveOp.m_FinalLayerOfmap = sbatomsaveWaveOp->qFinalLayerOfmap();
 #undef WAVE_OP
     }
 }
