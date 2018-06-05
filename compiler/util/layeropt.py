@@ -860,6 +860,7 @@ class CircularBuffer:
               'ofmap_count'      : fmap_count,
               'partition_step_bytes': self.ofmap_data_len,
               'last'             : last_atom_of_file,
+              'final_layer_ofmap' : self.layer_type == "Output",
             }
 
     def is_a_spare_atom(self, atom_id):
