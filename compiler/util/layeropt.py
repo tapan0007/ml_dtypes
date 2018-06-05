@@ -3323,6 +3323,7 @@ if __name__ == "__main__":
     parser.add_argument("--stop_after_layer_num", type=int, default=0, help="Stop execution after fused op number. 0 means execute all fused ops. 1 means execute 1 fused op after Input. If there's a fork, there will be two outputs.")
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     parser.add_argument("--enable_replication", action='store_true', help="Enable replication for cases where number of FMAP channels is lower than PEArray rows")
+    parser.add_argument("--verify_output_only", action='store_true', help="Verify only the output; disable intermediate FMAP verifications in order to speed up compiler time")
     args = parser.parse_args()
 
     print("Running in %s mode"%(args.nname))
@@ -3420,7 +3421,8 @@ if __name__ == "__main__":
             exit(-1)
 
         # Check results against pre-computed results           
-        if (first_op_type != "Input" and first_op_type != "Placeholder" and first_op_type != "Reshape"):
+        if first_op_type != "Input" and first_op_type != "Placeholder" and first_op_type != "Reshape" \
+                and (not args.verify_output_only or last_op.next == []):
             if 'ref_file' in last_op.data and os.path.isfile(last_op.data['ref_file']):
                 outputs = np.load(last_op.data['ref_file'])
                 assert(outputs.flags.c_contiguous == True)

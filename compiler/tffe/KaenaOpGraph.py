@@ -1564,16 +1564,10 @@ class Graph(Object):
 
       # From Jeff: to generate dot without placement, but not svg:  waveDotFile = outPrefix + "wavegraph.plain"
       # From Jeff: to generate dot with placeemnt, but not svg:  waveDotFile = outPrefix + "wavegraph.dot"
-      if True:
-        waveDotFile = outPrefix + "wavegraph.plain"
-
-        fmt = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --debug %d > log-me.txt 2>&1"
-        cmd = fmt % (waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
-
-      else:
-        waveDotFile = outPrefix + "wavegraph.svg"
-        cmd = "python3 %s --kgraph %s --wavegraph %s  --debug %d > log-me.txt 2>&1" % (
-              waveSchedulerExec, kGraphJsonFile, waveGraphJsonFile, Config.debugLevel)
+      #waveDotFile = outPrefix + "wavegraph.svg"
+      waveDotFile = outPrefix + "wavegraph.plain"
+      fmt = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --debug %d --verify_output_only > log-me.txt 2>&1"
+      cmd = fmt % (waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
 
       print("INFO: executing wave scheduler by  " + cmd)
       os.system(cmd)

@@ -1102,7 +1102,8 @@ class FusedOp(list):
         #    exit(-1)
 
         # Check results against pre-computed results           
-        if not args.no_verify and (len(self) > 1 or (not self.first_op.is_placeholder and not self.first_op.is_nop)):
+        if (not args.verify_output_only or self.last_op.is_output) \
+                and (len(self) > 1 or (not self.first_op.is_placeholder and not self.first_op.is_nop)):
         #if False:
             if 'ref_file' in self.last_op.data and os.path.isfile(last_op.data['ref_file']):
                 try:
@@ -2721,7 +2722,7 @@ if __name__ == "__main__":
     parser.add_argument("--inference", action='store_true', help="Inference mode: don't write intermediate -midout.npy and -ones.npy, except for the last -midout.npy")
     parser.add_argument("--enable_replication", action='store_true', help="Enable replication for cases where number of FMAP channels is lower than PEArray rows")
     parser.add_argument("--force_batch_count", type=int, default=1, help="Force batch count number to a certain value, to simulate batched execution in middle of network")
-    parser.add_argument("--no_verify", action='store_true', help="Disable verification in order to speed up compiler time")
+    parser.add_argument("--verify_output_only", action='store_true', help="Verify only the output; disable intermediate FMAP verifications in order to speed up compiler time")
     args = parser.parse_args()
 
     print("Middle Sched v2: Running in %s mode"%(args.nname))
