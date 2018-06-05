@@ -167,6 +167,7 @@ class ShapeDims():
 class FileParams():
     def __init__(self, file_id, file_name, file_dims, data_type, chunk_sz_limit, pearray_params, op_params, args=None):
         self.layer_name = "DEPRECATED"
+        self.final_layer_ofmap = False
         self.file_id = file_id
         self.file_name = file_name
         self.file_loaded = False
@@ -839,6 +840,7 @@ class FileMapper():
               'ofmap_count'      : fmap_count,
               'partition_step_bytes': file_params.fmap_data_len,
               'last'             : last_atom_of_file,
+              'final_layer_ofmap' : file_params.final_layer_ofmap,
             }
 
 #######################################################################

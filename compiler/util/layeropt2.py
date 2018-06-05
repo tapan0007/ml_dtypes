@@ -2858,6 +2858,7 @@ if __name__ == "__main__":
         # Mark the last node as output node
         if last_op.next == []:
             last_op.is_output = True
+            last_op.ofmaps_file_params.final_layer_ofmap = True
 
         # TODO: put back golden_inputs option for debugging
         #if ((args.golden_inputs or args.inference) # TODO: why is args.inference here???
