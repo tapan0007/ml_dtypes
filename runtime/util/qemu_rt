@@ -10,6 +10,9 @@
 #   /work1/zejdaj/git_repo/kaena-compiler/runtime/util/qemu_rt --kelf kelf --ifmaps kelf/trivnet_input:0_NCHW.npy
 #  Test regressions by e.g.
 #    RunAll --force_qemu --parallel 16 --test_re wave --select not_waived >& log
+#  The disk image is added to S3 by e.g,
+#    aws s3 cp /work1/zejdaj/git_repo/qemu_inkling/my_vm.img s3://kaena-vdi/lubuntu_20180525 --profile kaena
+#  and in future we'll use the  kaena-compiler/runtime/util/vdi/vdi_manager.py to create and populate VDIs
 
 import argparse
 import os, sys, json, re, stat, time
@@ -25,9 +28,11 @@ krtVmPath = '/home/ubuntu/git/kaena-runtime'
 if not os.path.isdir(krtPath):
   raise("ERROR: missing kaena runtime path on the qemu")
 
+defaultVdi = "s3://kaena-vdi/lubuntu_20180525.img"
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--action', help='Default is inference, others are vdi, build', default="inference")
-parser.add_argument('--vdi', help='Path to virtual disk image for the qemu VM', default="/work1/zejdaj/git_repo/qemu_inkling/my_vm.img")
+parser.add_argument('--vdi', help='Path to virtual disk image for the qemu VM. It can be file or S3 URL including options, the default is ' + defaultVdi, default=defaultVdi)
 parser.add_argument('--port', help='SSH port for the qemu VM', type=int, default=5555)
 parser.add_argument('--mem', help='Memory for the qemu VM, default 1024MB', type=int, default=1024)
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
@@ -41,9 +46,17 @@ class Qemu:
     #qemuOpts = '-monitor stdio'
     qemuOpts = '-nographic'
     localVdi = "copy.vdi"
-    cmd = "/bin/cp %s %s" % (vdi, localVdi)
-    print("INFO: copying vdi  %s" % cmd, flush=True)
-    os.system(cmd)
+    if os.path.isfile(vdi):
+      cmd = "/bin/cp %s %s" % (vdi, localVdi)
+      print('INFO: copying vdi  "%s"' % cmd, flush=True)
+      os.system(cmd)
+    elif vdi[0:5].upper() == 'S3://':
+      cmd = "aws s3 cp %s %s %s" % (vdi, localVdi, "--profile kaena")
+      print('INFO: copying vdi from S3 by  "%s"' % cmd, flush=True)
+      os.system(cmd)
+    else:
+      raise('ERROR: unknown vdi specification "%s"' % vdi)
+    assert os.path.isfile(localVdi)
     
     # Create on the fly to avoid issues with git chmod
     self.pemText = '''
