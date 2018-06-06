@@ -8,7 +8,7 @@ wave-checker is designed to examine compliance of a wave graph with instruction 
    o It detects potential WAW/RAW/WAR hazards between indepdent wave ops
 
 * Build
-Run $KAENA_PATH/compiler/wave-checker/build.csh
+Run $KAENA_PATH/compiler/wave-checker/scr/build.sh
 It will create wc-build directory and build wave-checker inside it.
 
 * Usage
