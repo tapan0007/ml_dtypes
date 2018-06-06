@@ -784,7 +784,7 @@ else:
   except:
     print("WARNING: matplotlib is not installed, skipped Qor plot")
   if plotQor:
-    keyDesigns = ['7-rn50_nne_fp16_wave', '7-rn50_nne_fp16_b4_wave']
+    keyDesigns = ['7-rn50_nne_fp16_wave', '7-rn50_nne_fp16_b4_wave', '7-rn50_nne_fp16_b16_wave']
     keyDesignsHistory = keyDesigns + ['7-rn50_nne_fp16_wave-two_banks', '7-rn50_nne_fp16_wave-fast_dram']
     #keyDesignsHistory = ['7-rn50_nne_fp16_wave']
     tests.plotTops("qor_tops_raw.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns)

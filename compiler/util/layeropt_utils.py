@@ -619,6 +619,7 @@ class FileMapper():
                 list_of_readers += list_of_readers_per_chunk                
         return (list_of_writers, list_of_readers, list_of_waveops)
 
+    # Save data to file 
     def flush_file (self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item):
         nonload_waveop_id_tmp = nonload_waveop_id
         start_chunk_id      = batch_item * file_params.batch_item_num_chunks
