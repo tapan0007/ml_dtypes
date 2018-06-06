@@ -229,6 +229,7 @@ class StateBuffer:
     def __init__(self, batcher):
         self.batcher = batcher
         self.file_mapper = FileMapper(self.SB_PARTITION_SZ, self.batcher.data_type)
+        self.zero_bias_file_params = None
         self.next_bias_file_start = 0
         self.next_weights_file_start = 0
         self.printed_map_trace_header = False
@@ -1413,6 +1414,15 @@ class FusedOp(list):
         for i in op_list_iter:
             layer_type = self[i].data['layer_type'] 
             if (re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", layer_type)):
+                dram_bias_waveops = []
+                if (tile_id.m_id%2 == 0):
+                    (writers, readers, dram_bias_waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
+                                                    tpb.waveop_stream.nonload_waveop_count,
+                                                    tpb.waveop_stream.nonload_waveop_list,
+                                                    tpb.statebuffer.zero_bias_file_params,
+                                                    0,  # batch_item is not needed for bias
+                                                    0,
+                                                    tpb.statebuffer.zero_bias_file_params.item_sz)
                 psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp)
                 psum_bank_dst = psum_bank_src
                 dst_is_psum = False
@@ -1420,7 +1430,7 @@ class FusedOp(list):
                     dst_is_psum = True
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz * self.conv_op.Tn, psum_temp)
                 tpb.gen_act_waveop_inline(None, op_list[i], self.conv_op, tile_id, 
-                                          True, psum_bank_src, dst_is_psum, psum_bank_dst, [], 0)
+                                          True, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, 0)
                 psum_bank_src = psum_bank_dst
             elif (layer_type == 'BiasAdd'):
                 bias_chan_start = (tile_id.m_id//2) * PEArray.NUM_ROWS
@@ -1429,7 +1439,6 @@ class FusedOp(list):
                 bias_extracted = np.zeros(PEArray.NUM_ROWS)
                 bias_extracted[0 : bias_chan_end - bias_chan_start] = bias[bias_chan_start : bias_chan_end]
                 bias_addr = bias_chan_start * op_list[i].item_sz
-                # TODO: fix waveop generation
                 dram_bias_waveops = []
                 if (tile_id.m_id%2 == 0):
                     (writers, readers, dram_bias_waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
@@ -1967,7 +1976,8 @@ class TPBSched:
     # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, biasadd_op, act_op, conv_op, tile_id, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
         layer_name = ""
-        bias_add_en = False
+        # kaena-452: load zeros into start of SB and use it for Activation instruction when there's no BiasAdd
+        bias_add_en = True
         bias_sb_address = 0
         # TODO: update in_dtype when src_is_psum is added
         in_dtype = "float32"
@@ -2783,6 +2793,26 @@ if __name__ == "__main__":
             prev_join_batch_item_partition_usage_sz = op_list.last_op.ofmaps_file_params.batch_item_partition_usage_sz
             # Mark the first node after Input/Placeholder as input node
             for i in first_op.next: i.is_input = True
+            # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
+            # Format matches existing bias formats, but it should be more like CRSM to match weights
+            bias_shape_dims = ShapeDims("NCHW", [1, PEArray.NUM_ROWS, 1, 1])           
+            bias_file_params = FileParams(
+                                        kgraph.current_file_id, 
+                                        first_op.data['ref_file'].replace(".npy", "-zeros.npy"), 
+                                        bias_shape_dims, 
+                                        kgraph.data_type, 
+                                        2048, 
+                                        PEArray, 
+                                        first_op,
+                                        args)
+            bias_file_params.layer_name = first_op.data['layer_name']
+            bias_file_params.load_file()
+            kgraph.current_file_id += 1
+            bias_file_start_addr = tpb.statebuffer.next_bias_file_start
+            bias_file_sz = tpb.statebuffer.batcher.item_sz
+            tpb.statebuffer.file_mapper.map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
+            tpb.statebuffer.next_bias_file_start += bias_file_sz
+            tpb.statebuffer.zero_bias_file_params = bias_file_params
         # Dissolve Reshape
         elif first_op.is_nop:
             for j in first_op.prev:
