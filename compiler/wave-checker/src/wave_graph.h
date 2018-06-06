@@ -275,11 +275,12 @@ class WaveGraphChecker {
   /// Based on
   /// https://www.boost.org/doc/libs/1_64_0/libs/graph/example/dfs-example.cpp
   //class dfs_target_visitor:public boost::default_dfs_visitor {
+  template<class T>
   class bfs_target_visitor:public boost::default_bfs_visitor {
     //typedef std::set<vertex_t> PathSet;
     public:
-    //dfs_target_visitor(PathSet& p_set)
-    bfs_target_visitor(std::set<vertex_t>* pi) : m_pset(pi)
+    //bfs_target_visitor(std::set<vertex_t>* pi) : m_pset(pi)
+    bfs_target_visitor(T* pi) : m_pset(pi)
     {
     }
     template < typename Vertex, typename Graph >
@@ -288,7 +289,8 @@ class WaveGraphChecker {
       {
         m_pset->insert(u);
       }
-    std::set<vertex_t>* m_pset;
+    //std::set<vertex_t>* m_pset;
+    T* m_pset;
   };
   public:
   WaveGraphChecker(json& j);

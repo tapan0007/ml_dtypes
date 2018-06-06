@@ -1,6 +1,8 @@
 #include <boost/graph/graphviz.hpp>
 #include <iostream>
 #include "wave_graph.h"
+#include <unordered_set>
+#include <unordered_map>
 
 WaveOp::WaveOpType WaveOp::ExtractWaveOpType (std::string& wot)
 {
@@ -342,6 +344,7 @@ WaveGraphChecker::WaveGraphChecker(json& j)
   //mName2WaveOp.insert(std::pair("source", Source));
   //mName2WaveOp.insert(std::pair("sink", Sink));
   uint32_t num_neighs = 0;
+  uint32_t num_ops = 0;
   for(auto op : j["waveops"])
   {
     std::string n = op["waveop_name"];
@@ -542,6 +545,7 @@ bool WaveGraphChecker::DataRaceChecker (
     )
 {
   bool race = false;
+  /*
   std::map<vertex_t, std::set<vertex_t>*> v2reachable_v;
   for(auto u_ : u)
   {
@@ -583,27 +587,70 @@ bool WaveGraphChecker::DataRaceChecker (
   {
     delete p.second;
   }
-  /*
-  for(auto u_ : u)
-  {
-    std::set<vertex_t> pathinfo;
-    bfs_target_visitor vis(&pathinfo);
-    auto indexmap = boost::get(boost::vertex_index, wg);
+  */
+  typedef std::unordered_set<vertex_t> set_v;
+  //typedef std::set<vertex_t> set_v;
+  typedef std::unordered_map<vertex_t, set_v* > map_v2reach_v;
+  //typedef std::map<vertex_t, set_v* > map_v2reach_v;
+  //auto b_search = [](std::set<vertex_t>* pi, vertex_t v, graph_t& g)
+  auto b_search = [](set_v* pi, vertex_t v, graph_t& g)
+  { 
+    bfs_target_visitor<set_v> vis(pi);
+    auto indexmap = boost::get(boost::vertex_index, g);
     auto colormap = boost::make_vector_property_map<boost::default_color_type>
       (indexmap);
     boost::queue<vertex_t> buffer;
-    
-    boost::breadth_first_search(wg, u_, buffer, vis, colormap);
-    for(auto v_ : v)
+
+    boost::breadth_first_search(g, v, buffer, vis, colormap);
+  };
+
+  //std::cout << "DataRaceChecker:: Reachability computation is done"
+  //<< std::endl;
+  map_v2reach_v v2reach_u;
+  //map_v2reach_v v2reach_v;
+  for(auto v_ : v)
+  {
+    //pi_v = new set_v
+    set_v* pi_v = new set_v;
+    b_search(pi_v, v_, wg);
+    //v2u.insert(std::pair<vertex_t, set_v* >(v_, pi_v));
+    set_v* pruned_pi_v = new set_v;
+    for(auto u_ : u)
     {
-      /// No path from u_ to v_. Thus, they are independent.
-      if (pathinfo.find(v_) == pathinfo.end())
+      if (pi_v->find(u_) != pi_v->end())
       {
-        DataRace(wg[u_], wg[v_]);
+        pruned_pi_v->insert(u_);
       }
     }
+    delete pi_v;
+    v2reach_u.insert(std::pair<vertex_t, set_v* >(v_, pruned_pi_v));
   }
-  */
+  for(auto u_ : u)
+  {
+    set_v* pi_u = new set_v;
+    //std::set<vertex_t>* pi_v;
+    b_search(pi_u, u_, wg);
+    for(auto v_ : v)
+    {
+      //pi_v = new std::set<vertex_t>;
+      //b_search(pi_v, v_, wg);
+      /// No path from u_ to v_. Thus, they are independent.
+      //if (pi_u->find(v_) == pi_u->end() && pi_v->find(u_) == pi_v->end())
+      if (pi_u->find(v_) == pi_u->end()
+          && v2reach_u[v_]->find(u_) == v2reach_u[v_]->end())
+      {
+        race |= DataRace(wg[u_], wg[v_]);
+      }
+      //delete pi_v;
+    }
+    delete pi_u;
+  }
+
+  for(auto v_ : v)
+  {
+    delete v2reach_u[v_];
+  }
+
   return race;
 }
 
