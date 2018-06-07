@@ -197,7 +197,6 @@ Test,Status,TopsRaw,OpCountRaw,TopsEff,OpCountEff,SimCycles,SimTimeSec,SimCycles
 7-rn50_fp16_multi_tpb_w_wave,PASS,0,0,0,0,0,-1e-06,0,65.72018432617188,Full size networks using wave scheduler
 7-rn50_nne_fc_wave,PASS,5.225828781246119,6941808049,5.809022551030779,7716502241,1328365,298.00577400000003,4457.514303061792,507.86581587791443,Full size networks using wave scheduler
 7-rn50_nne_fp16_host,PASS,0,0,0,0,0,-1e-06,0,55.536405086517334,Full size networks
-7-rn50_nne_fp16_wave,PASS,5.158725833735117,6944062829,5.734244091551697,7718757021,1346081,323.433802,4161.84391265326,528.9431166648865,Full Resnet50 fp16 inference all layers on Inkling except the softmax
 7-rn50_nne_fp16_waveopt_b2,PASS,0,13862594933,0,15411983317,-1,-1.000001,0,657.2251489162445,Full Resnet50 fp16 inference all layers on Inkling except the softmax
 7-rn50_nne_fp32_host,PASS,0,0,0,0,0,-1e-06,0,52.53061580657959,Full size networks
 8-resnet50,WAIVE-BENCH,0,0,0,0,0,-1e-06,0,7.015124320983887,Full size networks
@@ -215,4 +214,3 @@ Test,Status,TopsRaw,OpCountRaw,TopsEff,OpCountEff,SimCycles,SimTimeSec,SimCycles
 9-resnet152,WAIVE_RN152,0,0,0,0,0,-1e-06,0,16.10558271408081,Full size networks
 9-resnet152_waveopt,WAIVE_RN152,0,0,0,0,0,-1e-06,0,24.222257375717163,Full size networks using wave scheduler
 7-rn50_nne_fp16_wave-fast_dram,PASS,5.158725833735117,6944062829,5.734244091551697,7718757021,1346081,463.36778,2904.994818586653,623.6559700965881,Full Resnet50 fp16 inference all layers on Inkling except the softmax
-7-rn50_nne_fp16_wave-two_banks,PASS,5.158725833735117,6944062829,5.734244091551697,7718757021,1346081,467.168438,2881.3611762017194,616.6481931209564,Full Resnet50 fp16 inference all layers on Inkling except the softmax
