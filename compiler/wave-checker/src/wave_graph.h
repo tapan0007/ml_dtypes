@@ -341,29 +341,35 @@ class WaveGraphChecker {
   WaveOp* ConstructWaveOp(json& op);
   void DataRacePrint(WaveOp*u, WaveOp*v, RaceKind rk);
   void InfoPrefix() {
-    if (g_cli["stdout"].as<bool>()) {
+    //if (g_cli["stdout"].as<bool>()) {
+    if (g_cli["color"].as<bool>()) {
       messages << "\033[1;34m";
     }
     messages << "INFO: ";
-    if (g_cli["stdout"].as<bool>()) {
+    //if (g_cli["stdout"].as<bool>()) {
+    if (g_cli["color"].as<bool>()) {
       messages << "\033[0m";
     }
   }
   void WarningPrefix() {
-    if (g_cli["stdout"].as<bool>()) {
+    //if (g_cli["stdout"].as<bool>()) {
+    if (g_cli["color"].as<bool>()) {
       messages << "\033[1;34m";
     }
     messages << "WARNING: ";
-    if (g_cli["stdout"].as<bool>()) {
+    //if (g_cli["stdout"].as<bool>()) {
+    if (g_cli["color"].as<bool>()) {
       messages << "\033[0m";
     }
   }
   void ErrorPrefix() {
-    if (g_cli["stdout"].as<bool>()) {
+    //if (g_cli["stdout"].as<bool>()) {
+    if (g_cli["color"].as<bool>()) {
       messages << "\033[1;31m";
     }
     messages << "ERROR: ";
-    if (g_cli["stdout"].as<bool>()) {
+    //if (g_cli["stdout"].as<bool>()) {
+    if (g_cli["color"].as<bool>()) {
       messages << "\033[0m";
     }
   }

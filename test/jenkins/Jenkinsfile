@@ -70,12 +70,11 @@ pipeline{
         stage('Build') {
             steps {
                 sh 'ls -ltrA $SRC_DIR'
-                sh 'make -j4 -C $KAENA_PATH'
+                sh 'cd $KAENA_PATH && ./build.sh'
                 sh 'make -j4 PLAT=uio -C $KAENA_RT_PATH/hal/'
                 sh 'make -j4 PLAT=dv -C $KAENA_RT_PATH/hal/'
                 sh 'make -j4 PLAT=dummy -C $KAENA_RT_PATH/hal/'
                 sh 'cd $BLD_DIR && mkdir runtime && cd runtime && cmake $KAENA_RT_PATH && make package'
-                sh 'cd $BLD_DIR && $KAENA_PATH/compiler/wave-checker/scr/build.sh'
 
                 sh 'cd $QEMU_INKLING_PATH && ./configure --target-list=x86_64-softmmu --cxx=c++48 --cc=gcc48 && make -j'
             }

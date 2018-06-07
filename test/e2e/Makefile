@@ -49,7 +49,7 @@ tf_pb:
 	$(KCC)/scripts/tffe --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(KAENA_EXT)/apps/tf/$(NN_CONFIG) --depth 5 --width 30 $(NN_ARGS) > log-fe.txt 2>&1
 	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(KAENA_EXT)/apps/tf/$(NN_CONFIG) --check_against_ref $(RT_ARGS) > log-rt.txt 2>&1
 
-TEST_ARGS_CHECK = --test 0-1ap0  0-1ap7x7  0-1conv0_wave  3-rn50-t00_wave 3-rn50_pool2_wave 4-ptb_word_small1_host 3-rn50-13_wave 0-1conv1ba1_h4c2m2_wave 0-1conv0_qemu_wave  
+TEST_ARGS_CHECK = --test 0-1ap0  0-1ap7x7  0-1conv0_wave  3-rn50-t00_wave 3-rn50_pool2_wave 4-ptb_word_small1_host 3-rn50-13_wave 0-1conv1ba1_h4c2m2_wave 0-1conv0_qemu_wave 0-1conv0_b16_wave 
 TEST_ARGS_CHECK_LEVEL7 = --level 7 --select not_waived
 
 check:
