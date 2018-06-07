@@ -78,6 +78,7 @@ parser.add_argument('--postprocessor-args', help='Options to pas to postprocesso
 parser.add_argument('--exclude_ops_from_capture', help='Regexp for op names that will not be captured. TF errors out when capturing cond-false branch', default=None)
 parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph graphical output more verbose', dest="show_op_name_in_kgraph",
                     action="store_true",  default=False)
+parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=[])
 
 args = parser.parse_args()
 inputNodeName = args.input_node
@@ -153,7 +154,20 @@ if args.images != None:
         if meOk:
           cmd = "%s/compiler/be/compiler/compiler.exe %s %s> log-be.txt 2>&1" % (kPath, jsonFileOption.get(args.scheduler, jsonFileOptionGeneric), parallelStreamsOption)
           print("INFO: executing %s" % cmd, flush=True)
-          ret += abs(os.system(cmd))
+          kccRet = abs(os.system(cmd))
+          ret += kccRet
+          if kccRet == 0:
+            # Wave graph checker
+            if len(args.wavegraph_checks) > 0:
+              checksStr = " ".join(["--%s-check" % c for c in args.wavegraph_checks])
+              cmd = "%s/compiler/wave-checker/wc-build/bin/wave_graph_checker --stdout --wave-graph-file wavegraph.json %s > log-wc.txt 2>&1" % (kPath, checksStr)
+              print("INFO: executing %s" % cmd, flush=True)
+              wcRet = abs(os.system(cmd))
+              ret += wcRet
+              if wcRet != 0:
+                print("ERROR: wave_graph_checker failed, see %s/log-wc.txt" % sgDir);
+          else:
+            print("ERROR: compiler.exe failed");
         else:
           print("ERROR: skipping backend compilation since the mid scheduler failed", flush=True)
           ret += 1
