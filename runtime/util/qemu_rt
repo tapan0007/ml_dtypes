@@ -97,6 +97,20 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     self.port = port
     self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %d -i %s ubuntu@localhost' % (self.port, self.pemFile)
     self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %s -i %s"' % (self.port, self.pemFile)
+  def checkBuild(self):
+    keyExecFiles = [
+        '%s/x86_64-softmmu/qemu-system-x86_64' % qiPath,
+        '%s/kbin_rt/out/lkbin' % krtPath,
+        '%s/kelf-parse/out/kelf2kbin' % krtPath,
+      ]
+    ok = True
+    for f in keyExecFiles:
+      if os.path.isfile(f) and os.access(f, os.X_OK):
+        print('INFO: Quemu.checkBuild : checking required file "%s" ...' % f)
+      else:
+        ok = False
+        print('ERROR: Quemu.checkBuild:  file "%s" does not exist' % f)
+    return ok
   def start(self):
     print("INFO: starting Qemu  %s" % self.cmd, flush=True)
     logFh = open("log-qemu.txt", 'wb')
@@ -183,17 +197,21 @@ class Krt:
 
 
 qemu = Qemu(args.vdi, args.mem, args.port)
-qemu.start()
-if qemu.testGuest(10):
-  krt = Krt(qemu)
-  krt.addModel(args.kelf, "/tmp/reg-1")
-  krt.start()
-  for ifmap in args.ifmaps:
-    krt.inference(ifmap, "out-local.bin")
-  krt.stop()
+if not qemu.checkBuild():
+  print("ERROR: Please build Kaena software and rerun, exiting ...")
+  os.exit(1)
 else:
-  raise("Failed to start QEMU")
-qemu.stop()
+  qemu.start()
+  if qemu.testGuest(10):
+    krt = Krt(qemu)
+    krt.addModel(args.kelf, "/tmp/reg-1")
+    krt.start()
+    for ifmap in args.ifmaps:
+      krt.inference(ifmap, "out-local.bin")
+    krt.stop()
+  else:
+    raise("Failed to start QEMU")
+  qemu.stop()
 
 
 ''' Dump of random instructions for future --action vdi and --action buil
