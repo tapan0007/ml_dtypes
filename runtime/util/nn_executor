@@ -30,12 +30,19 @@ parser.add_argument('--output_files', help='Specify output files for last subgra
 parser.add_argument('--check_against_ref', help='compare last produced outputs npy file against compiler provided goldens', action='store_true')
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
 parser.add_argument('--inkling_debugflags', help='inkling extra args', default=[], nargs='*')
+parser.add_argument('--env', help='Set envvars pairs var=val var1=val1. Used to pass experimental controls to low-level tools', nargs='+', default=[])
 
 args = parser.parse_args()
 kelf_dir = args.kelf_dir
 kelf_dir = os.path.abspath(kelf_dir)
 assert(kelf_dir != "")
 nnGraphFile = kelf_dir + "/nn_graph.json"
+
+# The --env support
+if len(args.env) > 0:
+  for varEqVal in args.env:
+    var, val = varEqVal.split("=")
+    os.environ[var] = val
 
 input_files = [os.path.abspath(f) for f in args.input_files]
 output_files = [os.path.abspath(f) for f in args.output_files]
