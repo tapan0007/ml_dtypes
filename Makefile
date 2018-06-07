@@ -30,21 +30,21 @@ SUBDIRS ?= \
 
 .PHONY: build
 build:
-	@for subdir in $(SUBDIRS); do \
-		($(MAKE) -j -C $$subdir PREFIX=${PREFIX} DESTDIR=$(DESTDIR) PYTHON=$(PYTHON)); \
+	@for subdir in $(SUBDIRS); \
+		do $(MAKE) -j -C $$subdir PREFIX=${PREFIX} DESTDIR=$(DESTDIR) PYTHON=$(PYTHON) || exit -1; \
 	done
 	
 PREFIX=/tmp
 .PHONY: install
 install:
 	@for subdir in $(SUBDIRS); do \
-		($(MAKE) -C $$subdir install PREFIX=${PREFIX} DESTDIR=$(DESTDIR) PYTHON=$(PYTHON));\
+		($(MAKE) -C $$subdir install PREFIX=${PREFIX} DESTDIR=$(DESTDIR) PYTHON=$(PYTHON)) || exit -1; \
 	done
 
 .PHONY: uninstall
 uninstall:
 	@for subdir in $(SUBDIRS); do \
-		($(MAKE) -C $$subdir uninstall PREFIX=${PREFIX} DESTDIR=$(DESTDIR));\
+		($(MAKE) -C $$subdir uninstall PREFIX=${PREFIX} DESTDIR=$(DESTDIR)) || exit -1; \
 	done
 
 
