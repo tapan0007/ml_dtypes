@@ -4,7 +4,7 @@ pipeline{
     agent {
         dockerfile {
             dir 'test/jenkins'
-            args '-u root -v /home/jenkins:/home/jenkins'
+            args '-u root -v /home/jenkins:/home/jenkins -v /home/jenkins/kaena/.aws:/root/.aws'
             label 'kaena_c5.18xl'
         }
     }
@@ -93,11 +93,11 @@ pipeline{
             }
         }
         stage('Regressions') {
-
             steps {
-                sh 'make -j4 -C $KAENA_PATH/test/e2e/ check'
-                sh 'cd $KAENA_PATH/test/e2e; [ -z "$RUNALL_ARGS" ] || ./RunAll $RUNALL_ARGS'
-                //sh 'make -C $KAENA_INK_PATH check'
+                timeout(time: 30, unit: 'MINUTES') {
+                    sh 'make -j4 -C $KAENA_PATH/test/e2e/ check'
+                    sh 'cd $KAENA_PATH/test/e2e; [ -z "$RUNALL_ARGS" ] || ./RunAll $RUNALL_ARGS'
+                }
             }
         }
     }
