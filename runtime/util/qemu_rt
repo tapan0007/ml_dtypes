@@ -15,18 +15,23 @@
 #  and in future we'll use the  kaena-compiler/runtime/util/vdi/vdi_manager.py to create and populate VDIs
 
 import argparse
-import os, sys, json, re, stat, time
-import shutil, pexpect
+import os, sys, stat, time
+import glob
+import pexpect
 
 print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
-qiPath = os.environ["KAENA_PATH"] + "/../qemu_inkling"
-if not os.path.isdir(qiPath):
-  raise("ERROR: missing $KAENA_PATH/../qemu_inkling path  at %s" % qiPath)
-krtPath = os.environ["KAENA_RT_PATH"]
+qiBldPath = os.environ["QEMU_BLD_DIR"]
+if not os.path.isdir(qiBldPath):
+  raise("ERROR: missing $KAENA_PATH/../qemu_inkling path  at %s" % qiBldPath)
+
+krtBldPath = os.environ["KRT_BLD_DIR"]
+if not os.path.isdir(krtBldPath):
+  raise("ERROR: missing kaena runtime build")
+
+qiPath = os.path.join(qiBldPath, "x86_64-softmmu", "qemu-system-x86_64")
+
 gitVmPath = '/home/ubuntu/git'
 krtVmPath = '/home/ubuntu/git/kaena-runtime'
-if not os.path.isdir(krtPath):
-  raise("ERROR: missing kaena runtime path on the qemu")
 
 defaultVdi = "s3://kaena-vdi/lubuntu_20180525.img"
 
@@ -92,25 +97,12 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     with open(self.pemFile, 'w') as fhPem:
       fhPem.write(self.pemText)
     os.chmod(self.pemFile, stat.S_IREAD)
-    
-    self.cmd = '%s/x86_64-softmmu/qemu-system-x86_64 %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22' % (qiPath, localVdi, mem, qemuOpts, port)
+
+    self.cmd = '%s %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22' % (qiPath, localVdi, mem, qemuOpts, port)
     self.port = port
     self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %d -i %s ubuntu@localhost' % (self.port, self.pemFile)
     self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %s -i %s"' % (self.port, self.pemFile)
-  def checkBuild(self):
-    keyExecFiles = [
-        '%s/x86_64-softmmu/qemu-system-x86_64' % qiPath,
-        '%s/kbin_rt/out/lkbin' % krtPath,
-        '%s/kelf-parse/out/kelf2kbin' % krtPath,
-      ]
-    ok = True
-    for f in keyExecFiles:
-      if os.path.isfile(f) and os.access(f, os.X_OK):
-        print('INFO: Quemu.checkBuild : checking required file "%s" ...' % f)
-      else:
-        ok = False
-        print('ERROR: Quemu.checkBuild:  file "%s" does not exist' % f)
-    return ok
+
   def start(self):
     print("INFO: starting Qemu  %s" % self.cmd, flush=True)
     logFh = open("log-qemu.txt", 'wb')
@@ -170,19 +162,34 @@ class Krt:
   def __init__(self, qemu):
     self.qemu = qemu
     self.cwd = os.getcwd()
-    self.qemu.rsyncToVm(krtPath, gitVmPath + "/")
+
+    self.install()
+
+  def install(self):
+    runtimSrcPath = os.environ["KAENA_RT_PATH"]
+    if not os.path.isdir(runtimSrcPath):
+      raise("ERROR: missing runtime src at %s" % runtimSrcPath)
+    krtPackages = glob.glob(os.path.join(krtBldPath, "krt-*.*-uio-core.tar.gz"))
+    if len(krtPackages) != 1:
+      raise("ERROR: Found {} runtime packages at {}".format(len(krtPackages), krtBldPath))
+    self.qemu.rsyncToVm(krtPackages[0], krtVmPath + "/")
+    self.qemu.sshCmd("sudo tar xfz {} -C /usr/".format(krtVmPath + "/krt-*.*-uio-core.tar.gz"))
+
+    self.qemu.rsyncToVm(os.path.join(runtimSrcPath, "uio_drv"), krtVmPath)
+    self.qemu.rsyncToVm(os.path.join(runtimSrcPath, "udmabuf"), krtVmPath)
+    self.qemu.sshCmd("cd %s; cd uio_drv; make; cd ../udmabuf; make" % krtVmPath)
+    self.qemu.sshCmd("cd %s/udmabuf; sudo ./load.sh; cd %s/uio_drv; sudo ./load.sh" % (krtVmPath, krtVmPath))
+
   def addModel(self, kelfDir, kelfVmDir):
     self.kelfVmDir = kelfVmDir
     self.qemu.rsyncToVm(kelfDir + "/", kelfVmDir, "--copy-links")
-    cmdCompile = 'cd %s; %s/kelf-parse/out/kelf2kbin def.json' % (kelfVmDir, krtVmPath)
+    cmdCompile = 'cd %s; kelf2kbin def.json' % (kelfVmDir)
     self.qemu.sshCmd(cmdCompile)
   def start(self):
     self.ifmapDir = "%s/ifmap" % self.kelfVmDir
     self.ofmapDir = "%s/ofmap" % self.kelfVmDir
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
-    self.qemu.sshCmd("cd %s; cd uio_drv; make; cd ../udmabuf; make" % krtVmPath)
-    self.qemu.sshCmd("cd %s/udmabuf; sudo ./load.sh; cd %s/uio_drv; sudo ./load.sh" % (krtVmPath, krtVmPath))
-    cmdRuntime = 'cd %s; %s/kbin_rt/out/lkbin %s %s %s > log-krt.txt 2>&1 &' % (self.kelfVmDir, krtVmPath, self.kelfVmDir, self.ifmapDir, self.ofmapDir)
+    cmdRuntime = 'cd %s; kbin_rt %s %s %s > log-krt.txt 2>&1 &' % (self.kelfVmDir, self.kelfVmDir, self.ifmapDir, self.ofmapDir)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
@@ -197,135 +204,15 @@ class Krt:
 
 
 qemu = Qemu(args.vdi, args.mem, args.port)
-if not qemu.checkBuild():
-  print("ERROR: Please build Kaena software and rerun, exiting ...")
-  os.exit(1)
+qemu.start()
+if qemu.testGuest(10):
+  krt = Krt(qemu)
+  krt.addModel(args.kelf, "/tmp/reg-1")
+  krt.start()
+  for ifmap in args.ifmaps:
+    krt.inference(ifmap, "out-local.bin")
+  krt.stop()
 else:
-  qemu.start()
-  if qemu.testGuest(10):
-    krt = Krt(qemu)
-    krt.addModel(args.kelf, "/tmp/reg-1")
-    krt.start()
-    for ifmap in args.ifmaps:
-      krt.inference(ifmap, "out-local.bin")
-    krt.stop()
-  else:
-    raise("Failed to start QEMU")
-  qemu.stop()
-
-
-''' Dump of random instructions for future --action vdi and --action buil
-cd ../qemu_inkling/
-./configure --target-list=x86_64-softmmu
-make
-
-#wget http://ro-mirrors.evowise.com/ubuntu-releases/18.04/ubuntu-18.04-live-server-amd64.iso
-wget http://cdimage.ubuntu.com/lubuntu/releases/18.04/release/lubuntu-18.04-alternate-amd64.iso
-
-./qemu-img create my_vm.img 4G
-#./x86_64-softmmu/qemu-system-x86_64 -boot d -cdrom ~/Downloads/ubuntu-18.04-live-server-amd64.iso -m 512 -hda my_vm.img
-./x86_64-softmmu/qemu-system-x86_64 -boot d -cdrom lubuntu-18.04-alternate-amd64.iso -m 512 -hda my_vm.img
-
-./x86_64-softmmu/qemu-system-x86_64 ./my_vm.img -m 1024 -device pci-inkling -monitor stdio -device e1000,netdev=net0,mac=52:55:00:d1:55:01 -netdev user,id=net0,hostfwd=tcp::5555-:22
-
-# copy runtime and arch isa
-rsync -av --progress -e 'ssh -p 5555 -i ~/.ssh/lubuntu.pem' $KAENA_RT_PATH/ ubuntu@localhost:/home/ubuntu/git/
-rsync -av --progress -e 'ssh -p 5555 -i ~/.ssh/lubuntu.pem' $ARCH_ISA_PATH/ ubuntu@localhost:/home/ubuntu/git/
-rsync -av --progress -e 'ssh -p 5555 -i ~/.ssh/lubuntu.pem' /tmp/0-1conv0.tgz ubuntu@localhost:/home/ubuntu/git/
-
-ssh -p 5555 -i "~/.ssh/lubuntu.pem" ubuntu@localhost
-  sudo apt install make libelf-dev gcc tcl tcl8.5-dev environment-modules python3-pip 
-  sudo pip3 install numpy scipy
-  git clean -f -d -x
-  cd udmabuf/
-  make
-  cd ../hal
-  make PLAT=uio
-  cd ../uio_drv/
-  make
-  cd ../kbinlib
-  make
-  cd ../kbin_rt
-  make
-  cd ../kelf-parse
-  make
-  
-  # Inference
-  cd ~/git/udmabuf;  sudo ./load.sh
-  cd ~/git/uio_drv; sudo ./load.sh
-  
-  
-  cd ~/git
-  rsync -av --progress -e "ssh -p 5555 -i ~/.ssh/lubuntu.pem" 0-1conv0_wave ubuntu@localhost:/home/ubuntu/git/ref-0-1conv0_wave
-  tar xvzf 0-1conv0.tgz 
-  mkdir ~/ifmap ~/ofmap
-  ./kbin_rt/out/lkbin ./0-1conv0 ~/ifmap ~/ofmap
-  cp ref-0-1conv0_wave/0-1conv0_wave/sg00/trivnet_input:0_NCHW.npy ~/ifmap/
-  python3
-    import numpy as np
-    a = np.fromfile("/home/ubuntu/ofmap/out.bin", dtype=np.float16)
-    print(a)
-
-   cd ~/gin/kelf-parse/
-   make
-  cd ~/git/t2
-  ~/git/kelf-parse/out/test def.json 
-  cd ~/git
-  ./kbin_rt/out/lkbin ./t2 ~/ifmap ~/ofmap
-
-
-
-/etc/init.d/kaena
-#!/bin/sh
-echo Executing Kaena RT drivers from /etc/rc.local
-cd /home/ubuntu/git/udmabuf; ./load.sh
-cd /home/ubuntu/git/uio_drv; ./load.sh
-exit 0
-
-cd /etc/rc2.d/
-ln -s ../init.d/kaena S90kaena
-2,3,4,5
-
-ls -la /dev/udmabuf* /dev/uio*
-/dev/udmabuf0  /dev/udmabuf1  /dev/udmabuf2  /dev/udmabuf3  /dev/uio0
-
-
-chmod a+rwX /dev/udmabuf*
-chmod a+rwX /dev/uio*
-
-
-
-#!/bin/sh
-echo Executing Kaena RT drivers
-
-echo KAENA before driver load
-lsmod
-cd /home/ubuntu/git/udmabuf; ./load.sh
-cd /home/ubuntu/git/uio_drv; ./load.sh
-
-echo KAENA after driver load
-lsmod
-
-echo Waiting for Kaena drivers ...
-until test -c /dev/udmabuf0; do sleep 1; done
-until test -c /dev/uio0; do sleep 1; done
-chmod a+rwX /dev/udmabuf* /dev/uio*
-/bin/ls -la /dev/udmabuf* /dev/uio*
-
-exit 0
-
-The above did not work due to udev, instead do sudo from user space later
-sudo visudo
-  ubuntu ALL=(ALL) NOPASSWD: ALL
-
-
-
-udevadm info -a -p $(udevadm info -q path -n /dev/uio0)
-
-/etc/udev/rules.d/80-kaena.rules
-SUBSYSTEM=="pci", ATTRS{vendor}=="0x1c36", ATTRS{device}=="0x0001", OWNER="root", GROUP="root", MODE="0660"
-
-
-
-'''
+  raise("Failed to start QEMU")
+qemu.stop()
 
