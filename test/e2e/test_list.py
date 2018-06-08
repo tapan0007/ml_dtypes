@@ -431,7 +431,7 @@ testWaiver = [
     #['0-3conv_relu_wave', 'WAIVE_BUG_KAENA411'],
 
     # Qemu only works on C5 (till we add VDI to S3)
-    ['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
+    #['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
   ]
 
 noGpuTestWaiver = [
