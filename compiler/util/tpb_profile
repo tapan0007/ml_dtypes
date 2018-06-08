@@ -59,7 +59,10 @@ class Instr:
   def getSrcNumElem4D(self, src='mem', dim=4):
     num = 1
     for d in range(dim):
-      num *= self.fields['src_%s_pattern.num_elem[%d]' % (src, d)]
+      try:
+        num *= self.fields['src_%s_pattern.num_elem[%d]' % (src, d)]
+      except:
+        num *= self.fields['src_%s_pattern[0].num_elem[%d]' % (src, d)]
     return num
   def getWaveCycles(self):
     cycles = 0;
@@ -68,7 +71,13 @@ class Instr:
     elif self.instrType == 'POOL':
       cycles = self.getSrcNumElem4D('mem', 4)
     elif self.instrType == 'TENSOR_TENSOR_OP':
-      cycles = self.getSrcNumElem4D('psum_buf_mem', 3)
+      try:
+        cycles = self.getSrcNumElem4D('psum_buf_mem', 3)
+      except:
+        try:
+          cycles = self.getSrcNumElem4D('mem', 3)
+        except:
+          cycles = self.getSrcNumElem4D('mem', 2)
     return cycles
   def getOPC(self):
     opc = 0
@@ -91,8 +100,8 @@ class Instr:
     "CLEAR"      : "aqua",
     # DMA
     "SIM_MEMCPY" : "green",
-    "SIM_RDNPY:" : "darkgreen",
-    "SIM_WRNPY:" : "olive",
+    "SIM_RDNPY" : "darkgreen",
+    "SIM_WRNPY" : "olive",
     # ACT
     "ACTIVATION" : "orange",
     # POOL
@@ -151,7 +160,7 @@ class TpbProgram:
         if match:
           pc, instrType = match.groups()
           instr = Instr(instrType)
-          self.instructions[pc] = instr
+          self.instructions[int(pc,0)] = instr
         else:
           match = re.match('^  (\S+) .+: (0x\S+)', line)
           if match:
@@ -160,7 +169,7 @@ class TpbProgram:
           instr.textFields += line
   
   def getInstrAt(self, pc):
-    return self.instructions.get(pc, None)
+    return self.instructions.get(int(pc,0), None)
 
 class TongaProgram:
   def __init__(self, tongaFiles):
@@ -211,10 +220,13 @@ class InklingProfile(object):
     lineCount = 0
     with open(self.logFile) as fh:
       for line in fh:
-        match = re.match('^(\d+) : tpb\d+\.([^ ]+) : Execute PC=(\S+) opcode=(\S+)(.*)', line)
+        match = re.match('^(\d+) : tpb\d+\.([^ ]+) : Execute PC=(\S+) opcode=0x\S+ \((\S+)\)(.*)', line)
         if match:
           (mode, event) = ('', '')
           (cycle, engine, pc, opcode, suffix) = match.groups()
+          if not opcode in Instr.i2c:
+            print('ERROR: uncognized opcode "%s" on line "%s"' % (opcode, line))
+            sys.exit(1)
           match = re.search('set_mode=(\S+) set_event=(\S+)', suffix)
           if match:
             (mode, event) = match.groups()
@@ -225,6 +237,7 @@ class InklingProfile(object):
           cycle = int(cycle)
           if cycle >= self.cycleRange[0] and cycle <= self.cycleRange[1]:
             e = InklingEvent(cycle, engine, pc, opcode, mode, event)
+            #print("  DEBUG: created inkling event record %s" % e)
             self.events.append(e)
             self.cycle2event[engine][cycle] = e
         else:
