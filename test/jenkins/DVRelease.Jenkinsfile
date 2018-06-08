@@ -55,10 +55,17 @@ pipeline{
             }
             post {
                 success {
-                    sh 'cp $KRT_BLD_DIR/krt-*.*.tar.gz /artifact/'
-                    sh 'cp $KRT_DV_BLD_DIR/krt-*.*.tar.gz /artifact/'
-                    archiveArtifacts artifacts:'krt-*.*.tar.gz'
+                    sh 'cp $KRT_DV_BLD_DIR/krt-*.*-dv-hal.tar.gz /artifact/'
+                    archiveArtifacts artifacts:'krt-*.*-dv-hal.tar.gz'
+                    stash includes: 'krt-*.*-dv-hal.tar.gz', name: 'dv_tar'
                 }
+            }
+        }
+        stage('Release') {
+            agent none
+            steps {
+                unstash 'dv_tar'
+                sh 'tar xvf krt-*.*-dv-hal.tar.gz -C /proj/trench/krt_release'
             }
         }
     }
