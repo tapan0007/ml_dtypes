@@ -11,6 +11,7 @@ pipeline{
     environment {
         SRC_DIR = "/workdir/src"
         BLD_DIR = "/workdir/build"
+        TEST_DIR = "/workdir/test"
 
         KAENA_PATH = "$SRC_DIR/kaena-compiler"
         KAENA_EXT_PATH = "$SRC_DIR/kaena-ext"
@@ -18,7 +19,10 @@ pipeline{
         QEMU_INKLING_PATH = "$SRC_DIR/qemu_inkling"
         ARCH_ISA_PATH = "$SRC_DIR/isa"
         KAENA_RT_PATH = "$SRC_DIR/kaena-runtime"
-     
+
+        KRT_BLD_DIR = "$BLD_DIR/krt"
+        KCC_BLD_DIR = "$BLD_DIR/kcc"
+        QEMU_BLD_DIR = "$BLD_DIR/qemu"
     }
     stages {
         stage('Prep'){
@@ -30,6 +34,8 @@ pipeline{
                 sh 'ls -ltrA'
                 sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
+                sh 'mkdir -p $KRT_BLD_DIR $QEMU_BLD_DIR $KCC_BLD_DIR'
+                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR'
             }
         }
         stage('Checkout'){
@@ -44,7 +50,7 @@ pipeline{
                 repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
                 [ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
                 repo init -m $MANIFEST_FILE_NAME
-                repo sync
+                repo sync -j 8
 
                 git config --global user.name "Jenkins"
                 git config --global user.email aws-tonga-kaena@amazon.com
@@ -68,20 +74,21 @@ pipeline{
             }
         }
         stage('Build') {
-            steps {
-                sh 'ls -ltrA $SRC_DIR'
-                sh 'cd $KAENA_PATH && ./build.sh'
-                sh 'make -j4 PLAT=uio -C $KAENA_RT_PATH/hal/'
-                sh 'make -j4 PLAT=dv -C $KAENA_RT_PATH/hal/'
-                sh 'make -j4 PLAT=dummy -C $KAENA_RT_PATH/hal/'
-                sh 'cd $BLD_DIR && mkdir runtime && cd runtime && cmake $KAENA_RT_PATH && make package'
-
-                sh 'cd $QEMU_INKLING_PATH && ./configure --target-list=x86_64-softmmu --cxx=c++48 --cc=gcc48 && make -j'
-            }
-            post {
-                success {
-                    sh 'ls -lh $BLD_DIR'
-                    sh 'ls -lh $BLD_DIR/runtime'
+            parallel {
+                stage('kcc') {
+                    steps {
+                        sh 'cd $KAENA_PATH && ./build.sh'
+                    }
+                }
+                stage('krt') {
+                    steps {
+                        sh 'cd $KRT_BLD_DIR && cmake $KAENA_RT_PATH && make package'
+                    }
+                }
+                stage('qemu') {
+                    steps {
+                        sh 'cd $QEMU_BLD_DIR && $QEMU_INKLING_PATH/configure --target-list=x86_64-softmmu --cxx=c++48 --cc=gcc48 && make -j'
+                    }
                 }
             }
         }
