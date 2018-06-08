@@ -4,7 +4,8 @@ pipeline{
     agent {
         dockerfile {
             dir 'test/jenkins'
-            args '-u root -v /home/jenkins:/home/jenkins -v /home/jenkins/kaena/.aws:/root/.aws'
+            customWorkspace './docker-shared'
+            args '-u root -v /home/jenkins:/home/jenkins -v /home/jenkins/kaena/.aws:/root/.aws -v $WORKSPACE:/artifact'
             label 'kaena_c5.18xl'
         }
     }
@@ -98,6 +99,14 @@ pipeline{
                     steps {
                         timeout(time: 15, unit: 'MINUTES') {
                             sh 'cd $TEST_DIR && $KAENA_PATH/test/e2e/RunAll --test 0-1conv0_qemu_wave'
+                        }
+                    }
+                    post {
+                        failure {
+                            sh 'find $TEST_DIR -type f -name "*.vdi" -delete'
+                            sh 'find $TEST_DIR -iname "*.txt" -print0 | xargs -0 tar -czvf /artifact/test-result-logs.tgz'
+                            sh 'tar -czvf /artifact/test-result-all.tgz $TEST_DIR'
+                            archiveArtifacts artifacts:'*.tgz'
                         }
                     }
                 }
