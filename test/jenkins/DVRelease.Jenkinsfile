@@ -57,15 +57,20 @@ pipeline{
                 success {
                     sh 'cp $KRT_DV_BLD_DIR/krt-*.*-dv-hal.tar.gz /artifact/'
                     archiveArtifacts artifacts:'krt-*.*-dv-hal.tar.gz'
-                    stash includes: 'krt-*.*-dv-hal.tar.gz', name: 'dv_tar'
+                    sh 'chown 506:505 /artifact/*.*
+                    stash includes: 'krt-*.*-dv-hal.tar.gz', name: 'krt_dv_package'
                 }
             }
         }
         stage('Release') {
-            agent none
+            agent {
+                label 'tonga-nodocker'
+            }
+
             steps {
-                unstash 'dv_tar'
-                sh 'tar xvf krt-*.*-dv-hal.tar.gz -C /proj/trench/krt_release'
+                dir('/proj/trench/kaena_release') {
+                    unstash 'krt_dv_package'
+                }
             }
         }
     }
