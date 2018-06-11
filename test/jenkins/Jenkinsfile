@@ -37,7 +37,7 @@ pipeline{
                 sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
                 sh 'mkdir -p $KRT_BLD_DIR $KRT_DV_BLD_DIR $QEMU_BLD_DIR $KCC_BLD_DIR'
-                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR'
+                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/hourly && mkdir -p $TEST_DIR/precheckin'
             }
         }
         stage('Checkout'){
@@ -104,46 +104,36 @@ pipeline{
         }
         stage('Regressions') {
             parallel {
-                stage('qemu') {
+                stage('check') {
                     steps {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            sh 'cd $TEST_DIR && $KAENA_PATH/test/e2e/RunAll --test 0-1conv0_qemu_wave'
+                        timeout(time: 50, unit: 'MINUTES') {
+                            sh 'cd $TEST_DIR/precheckin && make -f $KAENA_PATH/test/e2e/Makefile check'
                         }
                     }
                     post {
                         failure {
-                            sh 'find $TEST_DIR -type f -name "*.vdi" -delete'
-                            sh 'find $TEST_DIR -iname "*.txt" -print0 | xargs -0 tar -czvf /artifact/test-result-logs.tgz'
-                            sh 'tar -czvf /artifact/test-result-all.tgz $TEST_DIR'
+                            sh 'find $TEST_DIR/precheckin -type f -name "*.vdi" -delete'
+                            sh 'find $TEST_DIR/precheckin -iname "*.txt" -print0 | xargs -0 tar -czvf /artifact/test-precheckin-result-logs.tgz'
+                            sh 'tar -czvf /artifact/test-precheckin-result-all.tgz $TEST_DIR/precheckin'
                             archiveArtifacts artifacts:'*.tgz'
-                        }
-                    }
-                }
-                stage('level_0_1') {
-                    steps {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            sh 'cd $TEST_DIR && $KAENA_PATH/test/e2e/RunAll --test 0-1ap0 0-1ap7x7 0-1conv0_wave 0-1conv1ba1_h4c2m2_wave 0-1conv0_b16_wave'
-                        }
-                    }
-                }
-                stage('level_3') {
-                    steps {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            sh 'cd $TEST_DIR && $KAENA_PATH/test/e2e/RunAll --test 3-rn50-t00_wave 3-rn50_pool2_wave 3-rn50-13_wave'
-                        }
-                    }
-                }
-                stage('level_4') {
-                    steps {
-                        timeout(time: 15, unit: 'MINUTES') {
-                            sh 'cd $TEST_DIR && $KAENA_PATH/test/e2e/RunAll --test 4-ptb_word_small1_host'
                         }
                     }
                 }
                 stage('hourly') {
                     steps {
                         timeout(time: 150, unit: 'MINUTES') {
-                            sh 'cd $KAENA_PATH/test/e2e; [ -z "$RUNALL_ARGS" ] || ./RunAll $RUNALL_ARGS'
+                            sh '[ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/hourly && $KAENA_PATH/test/e2e/RunAll)'
+                        }
+                    }
+                    post {
+                        always {
+                            sh 'cd $TEST_DIR/hourly/ && date > qor_dummy.txt && tar -czvf /artifact/qor_hourly.tgz qor*'
+                            archiveArtifacts artifacts:'*.tgz'
+                        }
+                        failure {
+                            sh 'find $TEST_DIR/hourly -type f -name "*.vdi" -delete'
+                            sh 'find $TEST_DIR/hourly -iname "*.txt" -print0 | xargs -0 tar -czvf /artifact/test-precheckin-result-logs.tgz'
+                            archiveArtifacts artifacts:'*.tgz'
                         }
                     }
                 }
