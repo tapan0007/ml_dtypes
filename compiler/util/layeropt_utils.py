@@ -565,23 +565,19 @@ class FileMapper():
         #print("Writing batch item %d starting at %d for length %d (chunks %d to %d)"%(batch_item, start_addr, length, start_chunk_id, end_chunk_id))
         if num_chunks > file_params.mapped_params.num_region_chunks:
             raise RuntimeError("Number of chunks written %d for start %d length %d is larger than mapped number of chunks %d"%(num_chunks, start_addr, length, file_params.mapped_params.num_region_chunks))
-        list_of_writers = []
-        list_of_readers = []
+        last_writer = -1
+        last_reader = -1
         list_of_waveops = []
         for i in range(start_chunk_id, end_chunk_id + 1):
-            list_of_writers_per_chunk = []
-            list_of_readers_per_chunk = []
             # TODO: fix start_fmap_addr to match start_addr
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
             end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
             for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
                 sb_addr = j
                 if sb_addr >= start_sb_addr and sb_addr <= end_sb_addr:
-                    # return list of writers/readers for dependency
-                    if self.morsels[sb_addr].writer_id not in list_of_writers_per_chunk:
-                        list_of_writers_per_chunk.append(self.morsels[sb_addr].writer_id)
-                    if self.morsels[sb_addr].reader_id not in list_of_readers_per_chunk:
-                        list_of_readers_per_chunk.append(self.morsels[sb_addr].reader_id)
+                    # return last of wniters/readers for dependency
+                    last_writer = max(last_writer, self.morsels[sb_addr].writer_id)
+                    last_reader = max(last_reader, self.morsels[sb_addr].reader_id)
                     # Evict old owner                    
                     # TODO: remap atom_id back to file chunk ID
                     file_id = self.morsels[sb_addr].file_id
@@ -615,9 +611,7 @@ class FileMapper():
                 #            prev_waveops.append(nonload_waveop_list[list_of_accessors_sorted[-1]]['waveop_name'])
                 #    sb_addr = file_params.mapped_params.start_addr + atom_id*file_params.chunk_sz
                 #    list_of_waveops.append(self.gen_dram_save_waveop(file_params, batch_item, i, sb_addr, prev_waveops)) 
-                list_of_writers += list_of_writers_per_chunk                
-                list_of_readers += list_of_readers_per_chunk                
-        return (list_of_writers, list_of_readers, list_of_waveops)
+        return (last_writer, last_reader, list_of_waveops)
 
     # Save data to file 
     def flush_file (self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item):
@@ -687,21 +681,17 @@ class FileMapper():
         #print("Reading batch item %d starting at %d for length %d (chunks %d to %d)"%(batch_item, start_addr, length, start_chunk_id, end_chunk_id))
         if num_chunks > file_params.mapped_params.num_region_chunks:
             raise RuntimeError("Number of chunks read %d for start %d length %d is larger than mapped number of chunks %d"%(num_chunks, start_addr, length, file_params.mapped_params.num_region_chunks))
+        last_writer = -1
+        last_reader = -1
         list_of_waveops = []
-        list_of_writers = []
-        list_of_readers = []
         for i in range(start_chunk_id, end_chunk_id + 1):
-            list_of_writers_per_chunk = []
-            list_of_readers_per_chunk = []
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
             end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
             for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
                 sb_addr = j
-                # return list of writers/readers for dependency
-                if self.morsels[sb_addr].writer_id not in list_of_writers_per_chunk:
-                    list_of_writers_per_chunk.append(self.morsels[sb_addr].writer_id)
-                if self.morsels[sb_addr].reader_id not in list_of_readers_per_chunk:
-                    list_of_readers_per_chunk.append(self.morsels[sb_addr].reader_id)
+                # return last of wniters/readers for dependency
+                last_writer = max(last_writer, self.morsels[sb_addr].writer_id)
+                last_reader = max(last_reader, self.morsels[sb_addr].reader_id)
                 # Evict old owner                    
                 file_id = self.morsels[sb_addr].file_id
                 chunk_id = self.morsels[sb_addr].chunk_id
@@ -723,15 +713,13 @@ class FileMapper():
                 file_params.mapped_params.chunk_is_mapped[i] = True
                 # If modifying in place, don't create DRAM waveops for region
                 if not file_params.mapped_params.modify_in_place:
-                    list_of_accessors = list_of_writers_per_chunk + list_of_readers_per_chunk
                     prev_waveops = []
-                    if list_of_accessors != []:
-                        latest_accessor = max(list_of_accessors)
-                        # allow for the fact that when generating matmul waveops, there could be read to the same space before waveop is added to nonload_waveop_list
-                        if latest_accessor >= 0 and latest_accessor < len(nonload_waveop_list):
-                            latest_accessor_name = nonload_waveop_list[latest_accessor]['waveop_name']
-                            if latest_accessor_name not in prev_waveops:
-                                prev_waveops.append(latest_accessor_name)
+                    latest_accessor = max(last_writer, last_reader)
+                    # allow for the fact that when generating matmul waveops, there could be read to the same space before waveop is added to nonload_waveop_list
+                    if latest_accessor >= 0 and latest_accessor < len(nonload_waveop_list):
+                        latest_accessor_name = nonload_waveop_list[latest_accessor]['waveop_name']
+                        if latest_accessor_name not in prev_waveops:
+                            prev_waveops.append(latest_accessor_name)
                     new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, prev_waveops)
                     list_of_waveops.append(new_dram_waveop)
                     file_params.mapped_params.chunk2waveop_map[i] = new_dram_waveop
@@ -739,9 +727,7 @@ class FileMapper():
                     #print("INFO: batch item %d: Reader ID %d is reading chunk_id %d (start %d, end %d) of file %s, creating DRAM load waveops"%(batch_item, nonload_waveop_id, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
                 #else:
                 #    print("INFO: batch item %d: Reader ID %d is reading chunk_id %d (start %d, end %d) of file %s, which is being modified in place, so not creating DRAM load waveops"%(batch_item, nonload_waveop_id, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
-            list_of_writers += list_of_writers_per_chunk                
-            list_of_readers += list_of_readers_per_chunk                
-        return (list_of_writers, list_of_readers, list_of_waveops)
+        return (last_writer, last_reader, list_of_waveops)
 
     def gen_dram_read_waveop(self, file_params, batch_item, chunk_id, previous_waveops):
         length          = self.get_chunk_len_from_chunk_id(file_params, batch_item, chunk_id)
@@ -1021,57 +1007,56 @@ class TestFileMapper(unittest.TestCase):
         self.assertEqual(test_obj.get_sb_addr_from_file_addr(file_params, 0, 0), 40*1024)
         self.assertEqual(test_obj.get_chunk_offset_from_file_addr(file_params, 0, 100), 100)
         list_of_accessors = [{'waveop_name' : "waveop_%d"%i} for i in range(100)]
-        (writers, readers, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 0, 100)
+        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 0, 100)
         self.assertEqual(len(waveops), 1)
         self.assertEqual(waveops[0]['previous_waveops'], [])
-        self.assertEqual(writers, [-1])
-        self.assertEqual(readers, [-1])
-        (writers, readers, waveops) = test_obj.write_file_data_region(20, list_of_accessors, file_params, 0, 0, 10, False)
+        self.assertEqual(last_writer, -1)
+        self.assertEqual(last_reader, -1)
+        (last_writer, last_reader, waveops) = test_obj.write_file_data_region(20, list_of_accessors, file_params, 0, 0, 10, False)
         self.assertEqual(len(waveops), 0)
-        self.assertEqual(writers, [-1])
-        self.assertEqual(readers, [10])
-        (writers, readers, waveops) = test_obj.write_file_data_region(30, list_of_accessors, file_params, 0, 0, 100, False)
+        self.assertEqual(last_writer, -1)
+        self.assertEqual(last_reader, 10)
+        (last_writer, last_reader, waveops) = test_obj.write_file_data_region(30, list_of_accessors, file_params, 0, 0, 100, False)
         self.assertEqual(len(waveops), 0)
-        self.assertEqual(writers.sort(), [10, 20].sort())
-        self.assertEqual(readers, [-1])
-        (writers, readers, waveops) = test_obj.write_file_data_region(40, list_of_accessors, file_params, 0, 100, 200, False)
+        self.assertEqual(last_writer, 20)
+        self.assertEqual(last_reader, 10)
+        (last_writer, last_reader, waveops) = test_obj.write_file_data_region(40, list_of_accessors, file_params, 0, 100, 200, False)
         self.assertEqual(len(waveops), 0)
-        self.assertEqual(writers, [30])
-        self.assertEqual(readers, [-1])
-        (writers, readers, waveops) = test_obj.read_file_data_region(40, list_of_accessors, file_params, 0, 100, 200)
+        self.assertEqual(last_writer, -1)
+        self.assertEqual(last_reader, 10)
+        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(40, list_of_accessors, file_params, 0, 100, 200)
         self.assertEqual(len(waveops), 0)
-        self.assertEqual(writers, [40])
-        self.assertEqual(readers, [-1])
+        self.assertEqual(last_writer, 40)
+        self.assertEqual(last_reader, 10)
         self.assertEqual(test_obj.get_chunk_id_from_file_addr(file_params, 0, 100), 0)
         #self.assertEqual(file_params.mapped_params.chunk_is_mapped[0][test_obj.get_chunk_id_from_file_addr(file_params, 0, 100)], True)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[test_obj.get_chunk_id_from_file_addr(file_params, 0, 100)], True)
-        (writers, readers, waveops) = test_obj.read_file_data_region(40, list_of_accessors, file_params, 0, 100, 200)
+        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(40, list_of_accessors, file_params, 0, 100, 200)
         self.assertEqual(len(waveops), 0)
-        self.assertEqual(writers, [-1])
-        self.assertEqual(readers, [40])
-        (writers, readers, waveops) = test_obj.read_file_data_region(50, list_of_accessors, file_params, 0, 50, 150)
+        self.assertEqual(last_writer, -1)
+        self.assertEqual(last_reader, 40)
+        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(50, list_of_accessors, file_params, 0, 50, 150)
         self.assertEqual(len(waveops), 0)
-        self.assertEqual(writers, [-1])
-        self.assertEqual(readers, [40])
+        self.assertEqual(last_writer, -1)
+        self.assertEqual(last_reader, 40)
         # test reading from file
-        (writers, readers, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 7*7*64*file_params.item_sz, file_params.chunk_sz)
+        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 7*7*64*file_params.item_sz, file_params.chunk_sz)
         self.assertEqual(len(waveops), 1)
         self.assertEqual(waveops[0]['previous_waveops'], [])
         self.assertEqual(waveops[0]["sb_address"], 40*1024 + 7*7*64*file_params.item_sz)
         self.assertEqual(waveops[0]["offset_in_file"], 128*7*7*64*file_params.item_sz)
         # test writing to file
-        (writers, readers, waveops) = test_obj.write_file_data_region(40, list_of_accessors, file_params, 0, 100, 200, False)
+        (last_writer, last_reader, waveops) = test_obj.write_file_data_region(40, list_of_accessors, file_params, 0, 100, 200, False)
         self.assertEqual(len(waveops), 0)
-        self.assertEqual(writers, [-1])
-        self.assertEqual(readers, [50])
-        (writers, readers, waveops) = test_obj.write_file_data_region(40, list_of_accessors, file_params, 0, 100, 200, False)
+        self.assertEqual(last_writer, -1)
+        self.assertEqual(last_reader, 50)
+        (last_writer, last_reader, waveops) = test_obj.write_file_data_region(40, list_of_accessors, file_params, 0, 100, 200, False)
         self.assertEqual(len(waveops), 0)
-        #self.assertEqual(waveops[0]['previous_waveops'], ["waveop_40"])
-        self.assertEqual(writers, [40])
-        self.assertEqual(readers, [-1])
-        waveops = test_obj.flush_file(list_of_accessors, file_params, 0)
+        self.assertEqual(last_writer, 40)
+        self.assertEqual(last_reader, -1)
+        waveops = test_obj.flush_file(0, list_of_accessors, file_params, 0)
         self.assertEqual(len(waveops), file_params.tot_num_chunks)
-        self.assertEqual(waveops[0]['previous_waveops'], ["waveop_40"])
+        self.assertEqual(waveops[0]['previous_waveops'], ["waveop_40", "waveop_50"])
         self.assertEqual(waveops[1]['previous_waveops'], [])
 
     def test_map_file2(self):
@@ -1086,20 +1071,20 @@ class TestFileMapper(unittest.TestCase):
         self.assertEqual(file_params.mapped_params.num_file_chunks_per_batch_item, 56)
         self.assertEqual(file_params.mapped_params.end_addr, 50240 + 3*file_params.chunk_sz - file_params.item_sz)
         list_of_accessors = [{'waveop_name' : "waveop_%d"%i} for i in range(100)]
-        (writers, readers, waveops) = test_obj.write_file_data_region(10, list_of_accessors, file_params, 15, 15*3*224*224*file_params.item_sz + 0, 100, False)
+        (last_writer, last_reader, waveops) = test_obj.write_file_data_region(10, list_of_accessors, file_params, 15, 15*3*224*224*file_params.item_sz + 0, 100, False)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[15*file_params.batch_item_num_chunks + 0], True)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[15*file_params.batch_item_num_chunks + 1], False)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[0*file_params.batch_item_num_chunks + 0], False)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[0*file_params.batch_item_num_chunks + 1], False)
-        self.assertEqual(writers, [-1])
-        self.assertEqual(readers, [-1])
-        (writers, readers, waveops) = test_obj.write_file_data_region(20, list_of_accessors, file_params, 0, 0, 10, False)
+        self.assertEqual(last_writer, -1)
+        self.assertEqual(last_reader, -1)
+        (last_writer, last_reader, waveops) = test_obj.write_file_data_region(20, list_of_accessors, file_params, 0, 0, 10, False)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[15*file_params.batch_item_num_chunks + 0], False)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[15*file_params.batch_item_num_chunks + 1], False)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[0*file_params.batch_item_num_chunks + 0], True)
         self.assertEqual(file_params.mapped_params.chunk_is_mapped[0*file_params.batch_item_num_chunks + 1], False)
-        self.assertEqual(writers, [10])
-        self.assertEqual(readers, [-1])
+        self.assertEqual(last_writer, 10)
+        self.assertEqual(last_reader, -1)
 
     def test_map_file_55x55(self):
         shape_dims = ShapeDims("NCHW", [1,256,55,55]) 
@@ -1115,10 +1100,10 @@ class TestFileMapper(unittest.TestCase):
         self.assertEqual(file_params.mapped_params.num_file_chunks_per_batch_item, 8)
         self.assertEqual(file_params.mapped_params.end_addr, (55*55*2 - 1)*file_params.item_sz) 
         list_of_accessors = [{'waveop_name' : "waveop_%d"%i} for i in range(100)]
-        (writers, readers, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 0, 100)
+        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 0, 100)
         self.assertEqual(waveops[0]["sb_address"], 0)
         self.assertEqual(waveops[0]["offset_in_file"], 0)
-        (writers, readers, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 128*55*55*file_params.item_sz, 100)
+        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 128*55*55*file_params.item_sz, 100)
         self.assertEqual(test_obj.get_chunk_id_from_file_addr(file_params, 0, 0), 0)
         self.assertEqual(test_obj.get_file_addr_from_chunk_id(file_params, 0, 0), 0)
         self.assertEqual(test_obj.get_chunk_id_from_file_addr(file_params, 0, 128*55*55*file_params.item_sz), 4)
@@ -1163,7 +1148,7 @@ class TestFileMapper(unittest.TestCase):
                 for j in range(num_tiles):
                     #print("fmap_full_tilex_sz %d fmap_full_tiley_sz %d num_tiles %d tile_size %d last_tile_size %d"%(file_params.fmap_full_tilex_sz, file_params.fmap_full_tiley_sz, num_tiles, tile_size, last_tile_size))
                     current_tile_size = last_tile_size if (j == num_tiles-1) else tile_size
-                    (writers, readers, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, i, current_offset, current_tile_size)
+                    (last_writer, last_reader, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, i, current_offset, current_tile_size)
                     current_offset += current_tile_size
                 current_offset = last_channel_offset + file_params.file_addr_skip_per_fmap_fold
             current_offset = last_batch_offset + file_params.file_addr_skip_per_batch_item
@@ -1174,23 +1159,13 @@ class TestFileMapper(unittest.TestCase):
             for k in range(file_params.fmap_channels_folds):
                 last_channel_offset = current_offset
                 for j in range(num_tiles):
+                    # check write_file_data_region per tile
                     current_tile_size = last_tile_size if (j == num_tiles-1) else tile_size
-                    (writers, readers, waveops) = test_obj.write_file_data_region(10, list_of_accessors, file_params, i, current_offset, current_tile_size, False)
-                    current_offset += current_tile_size
-                current_offset = last_channel_offset + file_params.file_addr_skip_per_fmap_fold
-            current_offset = last_batch_offset + file_params.file_addr_skip_per_batch_item
-        # Check get_chunk_id_from_file_addr and get_file_addr_from_chunk_id
-        current_offset = 0
-        for i in range(file_params.file_dims.N):
-            last_batch_offset = current_offset
-            for k in range(file_params.fmap_channels_folds):
-                last_channel_offset = current_offset
-                for j in range(num_tiles):
-                    current_tile_size = last_tile_size if (j == num_tiles-1) else tile_size
+                    (last_writer, last_reader, waveops) = test_obj.write_file_data_region(10, list_of_accessors, file_params, i, current_offset, current_tile_size, False)
+                    # Check get_chunk_id_from_file_addr and get_file_addr_from_chunk_id
                     chunk_id = test_obj.get_chunk_id_from_file_addr(file_params, i, current_offset)
                     chunk_offset = test_obj.get_chunk_offset_from_file_addr(file_params, i, current_offset)
                     file_addr = test_obj.get_file_addr_from_chunk_id(file_params, i, chunk_id)
-                    #print("current_offset %d -> chunk_id %d chunk_offset %d file_addr %d"%(current_offset, chunk_id, chunk_offset, file_addr))
                     self.assertEqual(file_addr + chunk_offset, current_offset) 
                     current_offset += current_tile_size
                 current_offset = last_channel_offset + file_params.file_addr_skip_per_fmap_fold

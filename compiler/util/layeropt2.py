@@ -1350,10 +1350,10 @@ class FusedOp(list):
             for i in dram_weights_waveops: tpb.waveop_stream.append_check(i)
 
             dram_ifmaps_waveops = []
-            list_of_accessors = []
+            latest_accessor = -1
             for z in range(self.conv_op.Tn):
                 # TODO: move the following into gen_matmul_waveop to handle breaking wave into two
-                (writers, readers, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
+                (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                             tpb.waveop_stream.nonload_waveop_count,
                                             tpb.waveop_stream.nonload_waveop_list,
                                             self.conv_op.ifmaps_file_params,
@@ -1365,18 +1365,16 @@ class FusedOp(list):
                         raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
                 if (args.debug > 2): print("DBG %s: MatMul ifmaps_wave_lower_addr %d ifmap_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.ifmap_wave_lower_addr[z], self.conv_op.ifmap_wave_upper_addr[z]))                
                 dram_ifmaps_waveops += waveops
-                list_of_accessors += writers # + readers # don't include readers since this matmul is a reader, and we don't need to add RAR dependency
+                latest_accessor = max(last_writer, latest_accessor) # don't include readers since this matmul is a reader, and we don't need to add RAR dependency
             
             # consider all Tn batch items together to avoid redundant edges
             # TODO: roll this code into read_file_data_region
             prev_waveops = []
             if dram_ifmaps_waveops == []:
-                if list_of_accessors != []:
-                    latest_accessor = max(list_of_accessors)
-                    if latest_accessor >= 0:
-                        latest_accessor_waveop = tpb.waveop_stream.nonload_waveop_list[latest_accessor]
-                        if not args.relax_dependencies or (latest_accessor_waveop['waveop_type'] != 'Activation' and latest_accessor_waveop['waveop_type'] != 'Pool'):
-                            prev_waveops.append(latest_accessor_waveop['waveop_name'])
+                if latest_accessor >= 0:
+                    latest_accessor_waveop = tpb.waveop_stream.nonload_waveop_list[latest_accessor]
+                    if not args.relax_dependencies or (latest_accessor_waveop['waveop_type'] != 'Activation' and latest_accessor_waveop['waveop_type'] != 'Pool'):
+                        prev_waveops.append(latest_accessor_waveop['waveop_name'])
 
             for i in dram_ifmaps_waveops: tpb.waveop_stream.append_check(i)
             matmul_waveop = self.gen_matmul_waveop(tpb, wave_id, psum_add, dram_weights_waveops)
@@ -1476,9 +1474,9 @@ class FusedOp(list):
                     psum_bank_src = psum_bank_dst
             elif (self[i].is_join):
                 dram_resadd_waveops = []
-                list_of_accessors = []
+                latest_accessor = -1
                 for z in range(op_list.conv_op.Tn):
-                    (writers, readers, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
+                    (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                 tpb.waveop_stream.nonload_waveop_count,
                                                 tpb.waveop_stream.nonload_waveop_list,
                                                 self.last_op.ofmaps_file_params,
@@ -1490,18 +1488,16 @@ class FusedOp(list):
                             raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
                     if (args.debug > 2): print("DBG %s: ResAdd/Mult ofmaps_tile_lower_addr %d ofmap_tile_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.ofmap_tile_lower_addr[z], self.conv_op.ofmap_tile_upper_addr[z]))                
                     dram_resadd_waveops += waveops
-                    list_of_accessors += writers # + readers # don't include readers since this matmul is a reader, and we don't need to add RAR dependency
+                    latest_accessor = max(last_writer, latest_accessor) # don't include readers since this join is a reader, and we don't need to add RAR dependency
 
                 # consider all Tn batch items together to avoid redundant edges
                 # TODO: roll this code into read_file_data_region
                 prev_waveops = []
                 if dram_resadd_waveops == []:
-                    if list_of_accessors != []:
-                        latest_accessor = max(list_of_accessors)
-                        if latest_accessor >= 0:
-                            latest_accessor_waveop = tpb.waveop_stream.nonload_waveop_list[latest_accessor]
-                            if not args.relax_dependencies or (latest_accessor_waveop['waveop_type'] != 'Activation' and latest_accessor_waveop['waveop_type'] != 'Pool'):
-                                prev_waveops.append(latest_accessor_waveop['waveop_name'])
+                    if latest_accessor >= 0:
+                        latest_accessor_waveop = tpb.waveop_stream.nonload_waveop_list[latest_accessor]
+                        if not args.relax_dependencies or (latest_accessor_waveop['waveop_type'] != 'Activation' and latest_accessor_waveop['waveop_type'] != 'Pool'):
+                            prev_waveops.append(latest_accessor_waveop['waveop_name'])
 
                 # Do the actual math
                 residue_ifmaps = np.zeros((self.conv_op.ofmap_full_tile_sz * self.conv_op.Tn, PEArray.NUM_COLS), dtype=np.float32)
@@ -2501,13 +2497,13 @@ class TPBSched:
 
                         # TODO: fix waveop generation
                         dram_ifmaps_waveops = []
-                        list_of_accessors = []
+                        latest_accessor = -1
                         for z in range(pool_op.Tn):
                            if (tile_id.m_id%2 == 0):
                                 fmap_count = pool_op.ifmap_count
                                 if (tile_id.m_id+1 != tile_id.m):
                                     fmap_count = 2*pool_op.ifmap_count
-                                (writers, readers, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
+                                (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                             tpb.waveop_stream.nonload_waveop_count,
                                                             tpb.waveop_stream.nonload_waveop_list,
                                                             pool_op.ifmaps_file_params,
@@ -2515,20 +2511,18 @@ class TPBSched:
                                                             pool_op.ifmap_wave_lower_addr[z], 
                                                             pool_op.ifmap_wave_upper_addr[z] - pool_op.ifmap_wave_lower_addr[z] + pool_op.item_sz)
                                 dram_ifmaps_waveops += waveops
-                                list_of_accessors += writers # + readers # don't include readers since this matmul is a reader, and we don't need to add RAR dependency
+                                latest_accessor = max(last_writer, latest_accessor) # don't include readers since this pool is a reader, and we don't need to add RAR dependency
 
                         # TODO: roll this code into read_file_data_region
                         prev_waveops = []
                         if dram_ifmaps_waveops == []:
                             if args.relax_dependencies:
                                 # kaena-403/449 hack: reduce dependencies to prevent event overflow
-                                list_of_accessors = []
-                            if list_of_accessors != []:
-                                latest_accessor = max(list_of_accessors)
-                                if latest_accessor >= 0:
-                                    accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
-                                    if accessor_name not in prev_waveops:
-                                        prev_waveops.append(accessor_name)
+                                latest_accessor = -1
+                            if latest_accessor >= 0:
+                                accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                                if accessor_name not in prev_waveops:
+                                    prev_waveops.append(accessor_name)
 
                         start_at_mid_part = tile_id.m_id%2 == 1
                         if (pool_op.data['layer_type'] == "AvgPool" or pool_op.data['layer_type'] == "MaxPool"):
@@ -2547,6 +2541,7 @@ class TPBSched:
                         tpb.waveop_stream.last_main_waveop['previous_waveops'] += prev_waveops
 
                         dram_output_waveops = []                            
+                        latest_accessor = -1
                         for z in range(pool_op.Tn):
                             #if (tile_id.m_id+1 == tile_id.m or tile_id.m_id%2 == 1):
                             #    tpb.statebuffer.circbuf_ifmaps.free_data_region(pool_op.ifmap_wave_lower_addr[z], pool_op.ifmap_wave_upper_addr[z], self.waveop_stream.last_main_waveop)
@@ -2569,7 +2564,7 @@ class TPBSched:
                                         = result_tile[0:pool_op.ofmap_cropped_tile_height, 0:pool_op.ofmap_cropped_tile_width]
                             # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                             # only record the writer to SB chunks in below code; use flush_file to write chunks to DRAM
-                            (writers, readers, waveops) = self.statebuffer.file_mapper.write_file_data_region(
+                            (last_writer, last_reader, waveops) = self.statebuffer.file_mapper.write_file_data_region(
                                                         self.waveop_stream.nonload_waveop_count - 1,    # adjust since pool waveop already generated
                                                         self.waveop_stream.nonload_waveop_list,
                                                         pool_op.ofmaps_file_params,
@@ -2579,16 +2574,15 @@ class TPBSched:
                                                         start_at_mid_part)
                             assert(len(waveops) == 0)                            
                             # TODO: roll this code into write_file_data_region
-                            accessors = writers + readers
-                            prev_waveops = tpb.waveop_stream.last_main_waveop['previous_waveops']
-                            if accessors != []:
-                                latest_accessor = max(accessors)
-                                if latest_accessor >= 0:
-                                    accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
-                                    if accessor_name not in prev_waveops:
-                                        prev_waveops.append(accessor_name)
+                            latest_accessor = max(last_writer, last_reader, latest_accessor)
 
                             if (args.debug > 3): print("TRACE execute_unfused_pool_op %s: tile %s done, ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(pool_op.data["layer_name"], tile_id.id_string(), pool_op.ifmap_wave_lower_addr[z], pool_op.ifmap_wave_upper_addr[z], -1, pool_op.ofmap_tile_lower_addr[z], pool_op.ofmap_tile_upper_addr[z]))
+
+                        prev_waveops = tpb.waveop_stream.last_main_waveop['previous_waveops']
+                        if latest_accessor >= 0:
+                            accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                            if accessor_name not in prev_waveops:
+                                prev_waveops.append(accessor_name)
                         #if args.abstract_mem:
                         #    if len(dram_output_waveops) > 0:
                         #        self.waveop_stream.last_main_waveop = None
@@ -2661,7 +2655,7 @@ class TPBSched:
                         if (op_list.has_pool):
                             output_params_op = op_list.pool_op
                         dram_output_waveops = []                            
-                        list_of_accessors = []
+                        latest_accessor = -1
                         for z in range(op_list.conv_op.Tn):
                             for j in range(PEArray.NUM_COLS):
                                 M_idx = wave_id.m_id * PEArray.NUM_COLS + j
@@ -2681,7 +2675,7 @@ class TPBSched:
                             # for scheduling, map resulting tile into portion of atom that is itself mapped to a portion in DRAM (file)
                             # only record the writer to SB chunks in below code; use flush_file to write chunks to DRAM
                             start_at_mid_part = tile_id.m_id%2 == 1
-                            (writers, readers, waveops) = self.statebuffer.file_mapper.write_file_data_region(
+                            (last_writer, last_reader, waveops) = self.statebuffer.file_mapper.write_file_data_region(
                                                         self.waveop_stream.nonload_waveop_count - 1,    # adjust since pool waveop already generated
                                                         self.waveop_stream.nonload_waveop_list,
                                                         op_list.last_op.ofmaps_file_params,
@@ -2690,20 +2684,18 @@ class TPBSched:
                                                         output_params_op.ofmap_tile_upper_addr[z] - output_params_op.ofmap_tile_lower_addr[z] + output_params_op.item_sz, 
                                                         start_at_mid_part)
                             assert(len(waveops) == 0)                            
-                            list_of_accessors += writers + readers
+                            latest_accessor = max(last_writer, last_reader, latest_accessor) 
 
                         # consider all Tn batch items together to avoid redundant edges
                         # TODO: roll this code into write_file_data_region
                         prev_waveops = self.waveop_stream.last_psum_waveop[psum_bank_src]['previous_waveops']
                         if args.relax_dependencies:
                             # kaena-403/449 hack: reduce dependencies to prevent event overflow
-                            list_of_accessors = []
-                        if list_of_accessors != []:
-                            latest_accessor = max(list_of_accessors)
-                            if latest_accessor >= 0:
-                                accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
-                                if accessor_name not in prev_waveops and accessor_name != self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_name']:
-                                    prev_waveops.append(accessor_name)
+                            latest_accessor = -1
+                        if latest_accessor >= 0:
+                            accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                            if accessor_name not in prev_waveops and accessor_name != self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_name']:
+                                prev_waveops.append(accessor_name)
 
                         #if (args.debug > 3): print("TRACE execute_conv_ops %s: tile %s done, input region type %s start %d ifmap_tile_lower_addr %d ifmap_tile_upper_addr %d psum_bank %d, output region type %s start %d ofmap_tile_lower_addr %d ofmap_tile_upper_addr %dx"%(op_list[-1].data["layer_name"], tile_id.id_string(), self.statebuffer.circbuf_ifmaps.circbuf_type, self.statebuffer.circbuf_ifmaps.start, op_list.conv_op.ifmap_tile_lower_addr[0], op_list.conv_op.ifmap_tile_upper_addr[0], psum_bank_src, self.statebuffer.circbuf_scratch.circbuf_type, self.statebuffer.circbuf_scratch.start, output_params_op.ofmap_tile_lower_addr[0], output_params_op.ofmap_tile_upper_addr[0]))
                         #if args.abstract_mem:
