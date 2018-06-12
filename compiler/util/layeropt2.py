@@ -10,6 +10,7 @@ from layeropt_utils import CircbufPtrs
 from layeropt_utils import ShapeDims
 from layeropt_utils import FileParams
 from layeropt_utils import FileMapper
+from layeropt_utils import pad_and_split_file
 from layeropt_batch_recursion import BatchMachine
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
@@ -234,6 +235,27 @@ class StateBuffer:
         self.next_weights_file_start = 0
         self.printed_map_trace_header = False
 
+    def create_constants_file(self, op, args):
+        # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
+        # Format matches existing bias formats, but it should be more like CRSM to match weights
+        bias_shape_dims = ShapeDims("NCHW", [1, PEArray.NUM_ROWS, 1, 1])           
+        bias_file_params = FileParams(
+                                    op.data['ref_file'].replace(".npy", "-constants.npy"),
+                                    bias_shape_dims, 
+                                    self.batcher.data_type,
+                                    2048, 
+                                    PEArray, 
+                                    op,
+                                    args,
+                                    contain_weights=True)
+        bias_file_params.layer_name = op.data['layer_name']
+        bias_file_params.load_file()
+        bias_file_start_addr = self.next_bias_file_start
+        bias_file_sz = self.batcher.item_sz
+        self.file_mapper.map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
+        self.next_bias_file_start += bias_file_sz
+        self.zero_bias_file_params = bias_file_params
+
 ##################################################################################
 # Neural network node, containing data read from JSON
 class KNode:
@@ -274,6 +296,7 @@ class KNode:
         self.bias_file_params = None
         self.fused_op = None
         self.replicate_multiple = 1
+        self.ifmaps_padded_and_split = False
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
@@ -307,7 +330,6 @@ class KNode:
         else:
             file_name = layer_info['ref_file'].replace(".npy", "-midout.npy")
         self.ofmaps_file_params = FileParams(
-                                    self.parent.current_file_id, 
                                     file_name,
                                     ofmaps_shape_dims, 
                                     self.parent.data_type, 
@@ -316,7 +338,6 @@ class KNode:
                                     self,
                                     args)
         self.ofmaps_file_params.layer_name =  layer_info['layer_name']
-        self.parent.current_file_id += 1
         self.N, self.M, self.E, self.F = self.ofmaps_file_params.get_nchw_shape()
 
     # populate common parameters for Conv and Pool
@@ -328,7 +349,6 @@ class KNode:
             if prev_node.data['layer_type'] == "Const":
                 bias_shape_dims = ShapeDims(prev_node.data['ofmap_format'], prev_node.data['ofmap_shape'])           
                 self.bias_file_params = FileParams(
-                                            self.parent.current_file_id, 
                                             prev_node.data['ref_file'], 
                                             bias_shape_dims, 
                                             self.parent.data_type, 
@@ -338,7 +358,6 @@ class KNode:
                                             args,
                                             contain_weights=True)
                 self.bias_file_params.layer_name =  prev_node.data['layer_name']
-                self.parent.current_file_id += 1
                 self.bias_file_params.load_file()
                 del self.prev[i]
                 break
@@ -442,12 +461,11 @@ class KNode:
         # In the case of 1st layer ResNet50, R=7, S=7, C=3 so R can be broken a number of ways. 
         # For now, split evenly among two waves.
         self.replicate_multiple = 1
-        if args.enable_replication:
+        if args.enable_replication and self.is_input:
             num_replicated_waves = ceildiv(weights_shape_dims.R * weights_shape_dims.S * weights_shape_dims.C,  PEArray.NUM_ROWS)
             self.replicate_multiple = ceildiv(weights_shape_dims.R, num_replicated_waves) * weights_shape_dims.S
-        self.weights_file_params = FileParams(self.parent.current_file_id, weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, args, contain_weights=True)
+        self.weights_file_params = FileParams(weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, args, contain_weights=True)
         self.weights_file_params.layer_name =  self.data['layer_name']
-        self.parent.current_file_id += 1
         self.weights_file_params.load_file()
         self.R = self.weights_file_params.file_dims.R
         self.S = self.weights_file_params.file_dims.S
@@ -601,8 +619,12 @@ class KNode:
                             else:
                                 if (args.nname == "lm"):
                                     out_array[ifmap_addr, pe_row_offset] = self.ifmaps_file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
-                                else:                                    
-                                    out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
+                                else:                                   
+                                    if replicate_multiple > 1:
+                                        out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley + (ifmap_tilex%2)*self.H, ifmap_tilex//2]
+                                        #out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
+                                    else:                                        
+                                        out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
                                 # Check bounds of actual pixels within the original ifmaps for the first ifmap (which should reside in first SB partition)
                                 # TODO: check how N/C are arrange in memory; batching within waves may cause different atoms to be accessed by same wave
                                 # TODO: for Tn>1, need to have multiple bounds for each batch item
@@ -1180,10 +1202,14 @@ class FusedOp(list):
         start_tensor_calc = not(psum_add)
 
         # replication parameters
+        fmap_x_step = self.conv_op.stride_x
+        fmap_y_step = self.conv_op.W * self.conv_op.stride_y
         ifmap_replication_resolution = 0
         ifmap_replication_num_rows = 0
         ifmap_replication_shift_amnt = 0
         if self.conv_op.ifmaps_file_params.replicate_multiple > 1:
+            fmap_x_step = 1     # image gets split into even/odd
+            fmap_y_step = self.conv_op.W
             ifmap_replication_resolution = self.conv_op.C * self.conv_op.stride_x
             ifmap_replication_num_rows = self.conv_op.C * self.conv_op.S
             ifmap_replication_shift_amnt = 1
@@ -1239,9 +1265,9 @@ class FusedOp(list):
                   'batching_in_wave'        : self.conv_op.Tn, # to be removed
                   'start_tensor_calc'       : start_tensor_calc,
                   'stop_tensor_calc'        : False,
-                  'fmap_x_step'             : self.conv_op.stride_x,
+                  'fmap_x_step'             : fmap_x_step, #self.conv_op.stride_x,
                   'fmap_x_num'              : self.conv_op.ofmap_wave_width,
-                  'fmap_y_step'             : self.conv_op.W * self.conv_op.stride_y,
+                  'fmap_y_step'             : fmap_y_step, #self.conv_op.W * self.conv_op.stride_y,
                   'fmap_y_num'              : fmap_y_num,
                   'fmap_z_step'             : fmap_z_step,
                   'fmap_z_num'              : self.conv_op.Tn,
@@ -1604,13 +1630,12 @@ class KGraph:
     def __init__(self):
         # Node dictionary contains name -> Node pairs for quick reference
         self.node_dict = {}
-        #self.first_node = []
+        self.first_node = None
         self.last_node = None
         self.data_type = 'float16'
         self.item_sz = 2
         self.current_node = None
         self.last_split_next_nodes = []
-        self.current_file_id = 0
 
     # add forward edges for forward traversals        
     def add_forward_refs(self, starting_node):
@@ -1745,6 +1770,7 @@ class KGraph:
             else:
                 print("ERROR: there are no layers!")
                 exit(-1)
+        self.first_node = self.current_node
 
     # get next fused op            
     def get_next_fused_op(self, fused_ops):
@@ -2801,6 +2827,7 @@ if __name__ == "__main__":
     # obtain full list of fused ops in first pass
     fused_ops_list = FusedOpList()
     fused_op_count = 0
+    ifmaps_file_already_padded_and_split = False
     prev_join_batch_item_partition_usage_sz = -1
     prev_join_op_list = None
     last_pairup_batch_count = 1
@@ -2822,31 +2849,37 @@ if __name__ == "__main__":
         # Dissolve Input of Placeholder types
         if first_op.is_placeholder:
             first_op.result_file = first_op.data['ref_file']
+            # Populate OFMAP params                        
             first_op.populate_ofmaps_file_params()
+            # Treat the placeholder like a fork since there maybe multiple inputs 
             prev_join_batch_item_partition_usage_sz = op_list.last_op.ofmaps_file_params.batch_item_partition_usage_sz
             # Mark the first node after Input/Placeholder as input node
-            for i in first_op.next: i.is_input = True
-            # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
-            # Format matches existing bias formats, but it should be more like CRSM to match weights
-            bias_shape_dims = ShapeDims("NCHW", [1, PEArray.NUM_ROWS, 1, 1])           
-            bias_file_params = FileParams(
-                                        kgraph.current_file_id, 
-                                        first_op.data['ref_file'].replace(".npy", "-zeros.npy"), 
-                                        bias_shape_dims, 
-                                        kgraph.data_type, 
-                                        2048, 
-                                        PEArray, 
-                                        first_op,
-                                        args,
-                                        contain_weights=True)
-            bias_file_params.layer_name = first_op.data['layer_name']
-            bias_file_params.load_file()
-            kgraph.current_file_id += 1
-            bias_file_start_addr = tpb.statebuffer.next_bias_file_start
-            bias_file_sz = tpb.statebuffer.batcher.item_sz
-            tpb.statebuffer.file_mapper.map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
-            tpb.statebuffer.next_bias_file_start += bias_file_sz
-            tpb.statebuffer.zero_bias_file_params = bias_file_params
+            for i in first_op.next: 
+                i.is_input = True
+                if (i.data['layer_type'] == 'Conv' or i.data['layer_type'] == 'MatMul' or i.data['layer_type'] == 'Softmax2'):
+                    # compute early to detect replication and to obtain some params; will be recomputed in get_fused_ops
+                    i.populate_conv_params()
+                    i.populate_common_params(False)
+                    # IFMAP replication
+                    if i.replicate_multiple > 1 and not i.ifmaps_padded_and_split:
+                        (file_name, new_shape) = pad_and_split_file(
+                                                    first_op.data['ref_file'], 
+                                                    first_op.data['ofmap_format'],
+                                                    i.stride_x,
+                                                    i.pad_west, i.pad_east,
+                                                    i.pad_north, i.pad_south)
+                        first_op.data['ref_file'] = file_name
+                        # fake the shape to make convolution work
+                        [N, C, H, W] = new_shape
+                        first_op.data['ofmap_shape'] = [N, C, H//i.stride_x, W*i.stride_x]
+                        #first_op.data['ofmap_shape'] = new_shape
+                        # clear padding info after modifying IFMAP
+                        i.data['padding'][2] = [0, 0]
+                        i.data['padding'][3] = [0, 0]
+                        i.ifmaps_padded_and_split = True
+                        print("INFO: Pad and split input FMAPs due to replication")
+                        # Populate OFMAP params                        
+                        first_op.populate_ofmaps_file_params()
         # Dissolve Reshape
         elif first_op.is_nop:
             for j in first_op.prev:
@@ -2856,6 +2889,9 @@ if __name__ == "__main__":
                     first_op.ofmaps_file_params = j.ofmaps_file_params
                     break
         else:       
+            # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
+            # Format matches existing bias formats, but it should be more like CRSM to match weights
+            tpb.statebuffer.create_constants_file(first_op, args)
             # maintain a linked-list of fused_ops
             # grab the current batch count from previous fused_ops
             if len(fused_ops_list) > 0:

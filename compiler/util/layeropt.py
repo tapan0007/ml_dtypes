@@ -665,16 +665,16 @@ class CircularBuffer:
         self.old2new_atom_sz_ratio = self.atom_sz // self.atom_data_sz
         self.atom_sz = self.atom_data_sz
         if (self.circbuf_type == "weights"):            
-            self.file_params = FileParams(0, self.dram_data_in_file, op.weights_shape_dims, self.data_type, 2048, PEArray, op, args)
+            self.file_params = FileParams(self.dram_data_in_file, op.weights_shape_dims, self.data_type, 2048, PEArray, op, args)
             self.file_params.load_file()
         elif (self.circbuf_type == "bias"):            
-            self.file_params = FileParams(0, self.dram_data_in_file, op.bias_shape_dims, self.data_type, 2048, PEArray, op, args)
+            self.file_params = FileParams(self.dram_data_in_file, op.bias_shape_dims, self.data_type, 2048, PEArray, op, args)
             self.file_params.load_file()
         elif (self.circbuf_type == "ifmaps"):            
-            self.file_params = FileParams(0, self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.data_type, 2048, PEArray, op_list[0], args)
+            self.file_params = FileParams(self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.data_type, 2048, PEArray, op_list[0], args)
             self.file_params.load_file()
         else:            
-            self.file_params = FileParams(0, self.dram_data_in_file, op.ofmaps_shape_dims, self.data_type, 2048, PEArray, op, args)
+            self.file_params = FileParams(self.dram_data_in_file, op.ofmaps_shape_dims, self.data_type, 2048, PEArray, op, args)
             self.file_params.load_file()
         print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, (chunk_sz %d), old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.file_params.chunk_sz, self.old2new_atom_sz_ratio, self.replicate_multiple))
         #assert(self.atom_data_sz == self.file_params.chunk_sz)

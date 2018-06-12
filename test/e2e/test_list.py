@@ -203,7 +203,7 @@ testConfigMap = {
   "3-rn50_pool2"       : [ "trivnet_conv_pool", "tfloat16-b1-h7-r1-s1-c128-m64-SAME-AvgPool-k7-d7-PERM-wmin-0.1-wmax0.1-imin-1-imax2", "1conv1pool"],
   "3-rn50_pool2_wave"  : [ "trivnet_conv_pool", "tfloat16-b1-h7-r1-s1-c128-m64-SAME-AvgPool-k7-d7-PERM-wmin-0.1-wmax0.1-imin-1-imax2", "1conv1pool", "--scheduler wave"],
   "3-1conv1maxpool_k3d2_wave"  : [ "trivnet_conv_pool_conv", "tfloat16-b1-h224-r3-s2-c128-m64-VALID-MaxPool-k3-d2-wmin-0.2-wmax0.3-imin-0.2-imax0.3", "1conv1pool", "--scheduler wave"],
-  "3-1conv0_padvalid_wave" : [ "trivnet_conv1_padvalid",  "tfloat16-b1-h230-r7-s2-c3-m64-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --debug 1 --wavegraph_checks structure data-race"],
+  "3-1conv0_padvalid_wave" : [ "trivnet_conv1_padvalid",  "tfloat16-b1-h230-r7-s2-c3-m64-wmin-2-wmax2.2-imin-3-imax3.2", "1conv", "--scheduler wave2 --debug 1 --wavegraph_checks structure data-race"],
 
   # Sprint9 Story 1 milestone - all resnet50 float32 Conv2D layers as unit test
   # The 00 is just for testing the regression harness
@@ -247,11 +247,16 @@ testConfigMap = {
   "3-rn50-13_wave" : [ "trivnet_conv1",  "tfloat16-b1-h55-r1-s1-c64-m64-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave --wavegraph_checks structure data-race"], 
   "3-rn50-14_wave" : [ "trivnet_conv1",  "tfloat16-b1-h28-r1-s2-c512-m256-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-15_wave" : [ "trivnet_conv1",  "tfloat16-b1-h28-r1-s2-c512-m1024-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
-  "3-rn50-16_wave" : [ "trivnet_conv1",  "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
+  "3-rn50-16_wave" : [ "trivnet_conv1",  "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --wavegraph_checks structure data-race --schedule_options ' ' "],
   "3-rn50-17_wave" : [ "trivnet_conv1",  "tfloat16-b1-h55-r1-s2-c256-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-18_wave" : [ "trivnet_conv1",  "tfloat16-b1-h55-r1-s2-c256-m128-wmin0-wmax1-imin0-imax3",  "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-19_wave" : [ "trivnet_conv1",  "tfloat16-b1-h14-r1-s2-c1024-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-20_wave" : [ "trivnet_conv1",  "tfloat16-b1-h14-r1-s2-c1024-m2048-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
+
+  "0-rn50-16_wave_repl" : [ "trivnet_conv1",  "tfloat16-b1-h14-r7-s2-c3-m2-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication ' "],
+  "1-rn50-16_wave_repl" : [ "trivnet_conv1",  "tfloat16-b1-h56-r7-s2-c3-m2-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication ' "],
+  "2-rn50-16_wave_repl" : [ "trivnet_conv1",  "tfloat16-b1-h224-r7-s2-c3-m2-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication ' "],
+  "3-rn50-16_wave_repl" : [ "trivnet_conv1",  "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication ' "],
 
   #"5-lstm_ptb"     : [ "tf_pb",          "lstm_ptb_word_lm/ptb_word_lm.pb",  "lstm_ptb", "--input_node Valid/ValidInput/StridedSlice ", "linspace1"],
   "6-alexnet"     : [ "tf_pb",          "alexnet_v100/alexnet_fp32.pb",  "alexnet", "--input_node Variable ", "linspace1"],
@@ -425,6 +430,9 @@ testWaiver = [
 
     # bugs
     #['5-rn50_nne_to_act13_b16_wave-fast_dram$', 'WAIVE_BUG_KAENA454'],
+
+    # Replication
+    ['.*_repl$', 'WAIVE_REPLICATION'],
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],
