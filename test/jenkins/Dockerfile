@@ -32,7 +32,7 @@ RUN pip-3.6 install --no-cache-dir \
         psutil \
         virtualenv \
         scikit-image \
-        tensorflow==1.5 \
+        tensorflow==1.8 \
         pexpect
 
 COPY ssh-config /tmp/ssh-config
