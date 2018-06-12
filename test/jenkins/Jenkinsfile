@@ -132,7 +132,7 @@ pipeline{
                         }
                         failure {
                             sh 'find $TEST_DIR/hourly -type f -name "*.vdi" -delete'
-                            sh 'find $TEST_DIR/hourly -iname "*.txt" -print0 | xargs -0 tar -czvf /artifact/test-precheckin-result-logs.tgz'
+                            sh 'find $TEST_DIR/hourly -iname "*.txt" -print0 | tar -czvf /artifact/test-precheckin-result-logs.tgz -T -'
                             archiveArtifacts artifacts:'*.tgz'
                         }
                     }
