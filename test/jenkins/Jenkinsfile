@@ -141,7 +141,7 @@ pipeline{
         }
     }
     post {
-        changed {
+        failure {
             script {
                  if (!env.GERRIT_REFSPEC) { 
                      // Send an email only if the build status has changed from green/unstable to red
