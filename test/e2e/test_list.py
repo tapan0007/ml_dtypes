@@ -418,12 +418,9 @@ testWaiver = [
 
     # batching
     #['7-rn50_nne_fp16_waveopt_b\d+$', 'WAIVE_BATCH'],
-    #['7-rn50_nne_fc_b2_wave$', 'WAIVE_BATCH'],
-    #['7-rn50_nne_fp16_b4_wave$', 'WAIVE_BATCH'],
-    #['5-rn50_nne_to_act4_b4_wave$', 'WAIVE_BATCH'],
-    ['6-rn50_nne_to_act22_b16_wave$', 'WAIVE_BATCH'],
     ['7-rn50_nne_fp32_wave$', 'WAIVE_SB_PRESERVE'],
     ['8-rn50_nne_fp32_meauto$', 'WAIVE_SB_PRESERVE'],
+    ['8-rn50_nne_fp16_b16_wave-fast_dram$', 'WAIVE_BUG_KAENA454'],
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],
