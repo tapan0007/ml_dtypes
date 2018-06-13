@@ -18,6 +18,7 @@ import argparse
 import os, sys, stat, time
 import glob
 import pexpect
+import socket, errno
 
 print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
 qiBldPath = os.environ["QEMU_BLD_DIR"]
@@ -34,6 +35,21 @@ gitVmPath = '/home/ubuntu/git'
 krtVmPath = '/home/ubuntu/git/kaena-runtime'
 
 defaultVdi = "s3://kaena-vdi/lubuntu_20180525.img"
+
+def portInUse(port):
+  inUse = True
+  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    try:
+      s.bind(("localhost", port))
+      inUse = False
+    except socket.error as e:
+      if e.errno == errno.EADDRINUSE:
+        print("INFO portInUse: Port %d is already in use" % port, flush=True)
+      else:
+        print("INFO portInUse: ", e, flush=True)
+  return inUse
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--action', help='Default is inference, others are vdi, build', default="inference")
@@ -104,18 +120,18 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %s -i %s"' % (self.port, self.pemFile)
 
   def start(self):
-    print("INFO: starting Qemu  %s" % self.cmd, flush=True)
-    logFh = open("log-qemu.txt", 'wb')
-    self.fh = pexpect.spawn(self.cmd, logfile=logFh)
+    cmd = 'sh -c "%s 2>&1 | tee log-qemu.txt"' % self.cmd
+    print("INFO: starting Qemu  %s" % cmd, flush=True)
+    self.fh = pexpect.spawn(cmd)
     self.fh.expect("Inkling SOC")
     self.fh.send("\r")
     time.sleep(60)  # ssh to the qemu guest is getting random errors, maybe this can help
 
-  def testGuest(self, numAttempts):
+  def testGuest(self, phaseId, numAttempts):
     # Make sure the qemu quest is functional
     for attempId in range(numAttempts):
       print("\nINFO: testGuest attempt %d" % attempId, flush=True)
-      testFile = "test_qemu_guest-%02d.txt" % attempId
+      testFile = "test_qemu_guest-%02d-%02d.txt" % (phaseId, attempId)
       testFileVm = "/tmp/" + testFile
       testFileReturned = testFile.replace(".txt", "-ret.txt")
       with open(testFile, 'w') as f:
@@ -203,16 +219,27 @@ class Krt:
     self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap)
 
 
-qemu = Qemu(args.vdi, args.mem, args.port)
-qemu.start()
-if qemu.testGuest(10):
-  krt = Krt(qemu)
-  krt.addModel(args.kelf, "/tmp/reg-1")
-  krt.start()
-  for ifmap in args.ifmaps:
-    krt.inference(ifmap, "out-local.bin")
-  krt.stop()
-else:
-  raise("Failed to start QEMU")
-qemu.stop()
+qemuOk = False
+port = args.port
+for qemuRestartId in range(3):
+  while portInUse(port):
+    port += 3
+  print("INFO: using available port %d  (--port was %d)" % (port, args.port))
+  qemu = Qemu(args.vdi, args.mem, args.port)
+  qemu.start()
+  if qemu.testGuest(qemuRestartId, 4):
+    qemuOk = True
+    krt = Krt(qemu)
+    krt.addModel(args.kelf, "/tmp/reg-1")
+    krt.start()
+    for ifmap in args.ifmaps:
+      krt.inference(ifmap, "out-local.bin")
+    krt.stop()
+  else:
+    print("ERROR: Failed to start Qemu, restarting ...")
+  qemu.stop()
+  if qemuOk:
+    break
+if not qemuOk:
+    raise("Failed to start QEMU")
 
