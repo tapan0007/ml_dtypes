@@ -50,7 +50,7 @@ pipeline{
                 ls -ltrA
 
                 repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
-                [ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=master-newnames.xml
+                [ -z "$MANIFEST_FILE_NAME" ] && export MANIFEST_FILE_NAME=default.xml
                 repo init -m $MANIFEST_FILE_NAME
                 repo sync -j 8
 
