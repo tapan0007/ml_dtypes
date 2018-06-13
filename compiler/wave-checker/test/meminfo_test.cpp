@@ -236,10 +236,11 @@ void print_footprints_waveops (json& j)
       SBAtomMemInfo::atom_type at =
         (!waveop_type.compare("SBAtomFile")) ? SBAtomMemInfo::SBAtomFile :
         SBAtomMemInfo::SBAtomSave;
-      tonga_addr start_addr = op["sb_address"];
-      length_t len = op["length"];
-      bool mid = op["start_at_mid_part"];
-      SBAtomMemInfo m(start_addr, len, mid, at);
+      //tonga_addr start_addr = op["sb_address"];
+      //length_t len = op["length"];
+      //bool mid = op["start_at_mid_part"];
+      //SBAtomMemInfo m(start_addr, len, mid, at);
+      SBAtomMemInfo m(op, at);
       std::list<AddrRange> ar = m.get_footprint();
       if (at == SBAtomMemInfo::SBAtomSave) {
         std::cout << "SBAtomSave sb_in footprint: ";

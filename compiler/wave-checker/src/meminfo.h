@@ -247,7 +247,8 @@ class MMMemInfo {
 class WaveOpMemInfo {
   public:
     WaveOpMemInfo(MemInfo_Params mip_sb_in, MemInfo_Params mip_sb_out
-        , tonga_addr src_sb_addr, tonga_addr dst_sb_addr , tonga_addr bias_sb_addr
+        , tonga_addr src_sb_addr, tonga_addr dst_sb_addr
+        , tonga_addr bias_sb_addr
         , std::string bias_dtype
         , MemInfo_PSUM_Params mip_psum_in, MemInfo_PSUM_Params mip_psum_out
         , bool compute_bias_mi
@@ -370,12 +371,17 @@ class WaveOpGenericMemInfo {
 class SBAtomMemInfo {
   public:
     enum atom_type {SBAtomFile, SBAtomSave};
-    SBAtomMemInfo(tonga_addr start_addr, length_t len, bool mid_part
-        , atom_type at)
-      : m_sb_start_addr(start_addr), m_length(len)
-        , m_start_at_mid_part(mid_part), m_atom_type(at)
+    //SBAtomMemInfo(tonga_addr start_addr, length_t len, bool mid_part
+      //: m_sb_start_addr(start_addr), m_length(len)
+        //, m_start_at_mid_part(mid_part), m_atom_type(at)
+    SBAtomMemInfo(json& op, atom_type at): m_atom_type(at)
   {
-    AddrRange ar(start_addr, start_addr + len - 1);
+    m_sb_start_addr =
+      (op["sb_address"] != nullptr) ? op["sb_address"].get<tonga_addr>() : 0;
+    m_length = (op["length"] != nullptr) ? op["length"].get<length_t>() : 0;
+    m_start_at_mid_part = (op["start_at_mid_part"] != nullptr) ?
+      op["start_at_mid_part"].get<bool>() : false;
+    AddrRange ar(m_sb_start_addr, m_sb_start_addr + m_length - 1);
     mem_footprints.push_back(ar);
   }
     std::list<AddrRange>& get_footprint() {return mem_footprints;}

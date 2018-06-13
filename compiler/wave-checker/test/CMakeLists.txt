@@ -1,4 +1,5 @@
 include_directories (${WaveGraphChecker_SOURCE_DIR}/src $ENV{KAENA_EXT_PATH} $ENV{ARCH_ISA_PATH} ${GTEST_DIR}/include)
+add_definitions( -D__TEST_TURNON__)
 IF (EXISTS ${GTEST_DIR}/lib)
   link_directories (${GTEST_DIR}/lib)
 ENDIF()
@@ -8,7 +9,9 @@ ENDIF()
 add_executable (merge_addr_test merge_addr_range_test.cpp ${WaveGraphChecker_SOURCE_DIR}/src/meminfo.cpp)
 add_executable (meminfo_test meminfo_test.cpp ${WaveGraphChecker_SOURCE_DIR}/src/meminfo.cpp)
 add_executable (wc_gtest wc_gtest.cpp)
+add_executable (event_checker_gtest event_checker_gtest.cpp ${WaveGraphChecker_SOURCE_DIR}/src/wave_graph.cpp ${WaveGraphChecker_SOURCE_DIR}/src/event_check.cpp ${WaveGraphChecker_SOURCE_DIR}/src/meminfo.cpp)
 target_link_libraries(wc_gtest gtest pthread)
+target_link_libraries(event_checker_gtest gtest pthread boost_program_options)
 
 set(GOLDEN_LOGS
     ${CMAKE_CURRENT_SOURCE_DIR}/sample_clean1.golden.log

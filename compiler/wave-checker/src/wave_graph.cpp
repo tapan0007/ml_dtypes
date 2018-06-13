@@ -4,15 +4,17 @@
 #include <unordered_set>
 #include <unordered_map>
 
-WaveOp::WaveOpType WaveOp::ExtractWaveOpType (std::string& wot)
+std::pair<WaveOp::WaveOpType, WaveOp::Engine> WaveOp::ExtractWaveOpTypeEngine(
+    std::string& wot)
 {
-  WaveOpType res;
-  if (!wot.compare("SBAtomFile")) res = SBAtomFile;
-  else if (!wot.compare("SBAtomSave")) res = SBAtomSave;
-  else if (!wot.compare("MatMul")) res = MatMul;
-  else if (!wot.compare("Pool")) res = Pool;
-  else if (!wot.compare("ResAdd")) res = ResAdd;
-  else if (!wot.compare("Activation")) res = Activation;
+  std::pair<WaveOp::WaveOpType, WaveOp::Engine> res;
+  if (!wot.compare("SBAtomFile")) res = std::make_pair(SBAtomFile, DMA);
+  else if (!wot.compare("SBAtomSave")) res = std::make_pair(SBAtomSave, DMA);
+  else if (!wot.compare("MatMul")) res = std::make_pair(MatMul, PE);
+  else if (!wot.compare("Pool")) res = std::make_pair(Pool, POOL);
+  else if (!wot.compare("ResAdd")) res = std::make_pair(ResAdd, PE);
+  else if (!wot.compare("Activation")) res = std::make_pair(Activation, ACT);
+  else if (!wot.compare("Nop")) res = std::make_pair(Nop, NOP);
   else assert(0);
   return res;
 }
@@ -128,7 +130,13 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_in_params(json& op)
   mp_in.sx = op["src_x_step"];
   mp_in.ny = 1;mp_in.nz = 1;mp_in.nw = 1;
   mp_in.sy = 0;mp_in.sz = 0;mp_in.sw = 0;
-  mp_in.pbid = op["src_psum_bank_id"];
+  if (op["src_psum_bank_id"] != nullptr)
+  {
+    mp_in.pbid = op["src_psum_bank_id"];
+  } else 
+  {
+    mp_in.pbid = 0;
+  }
   if (op["src_z_num"] != nullptr) {
     mp_in.nz = op["src_z_num"];
     mp_in.sz = op["src_z_step"];
@@ -337,7 +345,8 @@ std::vector<tonga_addr> ResAddOp::extract_out_addrs(json& op)
   return as;
 }
 
-WaveGraphChecker::WaveGraphChecker(json& j)
+WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
+  : mJson(j), mCLI(cli)
 {
   //Source = new WaveOp("source", NULL);
   //Sink = new WaveOp("sink", NULL);
@@ -345,6 +354,9 @@ WaveGraphChecker::WaveGraphChecker(json& j)
   //mName2WaveOp.insert(std::pair("sink", Sink));
   uint32_t num_neighs = 0;
   uint32_t num_ops = 0;
+  int64_t eid = 0;
+  uint8_t event_wait_mode = 0;
+  uint8_t event_set_mode = 0;
   for(auto op : j["waveops"])
   {
     std::string n = op["waveop_name"];
@@ -362,15 +374,43 @@ WaveGraphChecker::WaveGraphChecker(json& j)
     mName2WaveOp.insert(std::pair<std::string, WaveOp*>(n, wo));
     mWaveOp2V.insert(std::pair<WaveOp*, vertex_t>(wo, v));
     if (op["previous_waveops"] != nullptr) {
+      int prev_idx = 0;
       for(std::string p : op["previous_waveops"])
       {
         if (mName2WaveOp.find(p) != mName2WaveOp.end())
         {
+          //std::cout << "prev event id = "
+            //<< op["previous_event_ids"][prev_idx].get<int64_t>()
+            //<< " "
+            //<< "previous op name = " << p << std::endl;
+          if (op["previous_event_ids"] != nullptr)
+          {
+            eid = op["previous_event_ids"][prev_idx].get<int64_t>();
+          }
+          if (op["previous_event_wait_modes"] != nullptr)
+          {
+            event_wait_mode =
+              op["previous_event_wait_modes"][prev_idx].get<uint8_t>();
+          }
+          if (op["previous_event_set_modes"] != nullptr)
+          {
+            event_set_mode =
+              op["previous_event_set_modes"][prev_idx].get<uint8_t>();
+          }
+          EventEdge ev = {eid, event_wait_mode, event_set_mode};
           vertex_t u = mWaveOp2V[mName2WaveOp[p]];
-          boost::add_edge(u, v, wg);
+          edge_t e = boost::add_edge(u, v, ev, wg).first;
+          //boost::property_map<graph_t, boost::edge_index_t>::type ev_id =
+            //boost::get(edge_index, wg);
+          //std::cout << e << " event id = " << ev_id[e] << std::endl;
         }
+        prev_idx++;
       }
       num_neighs += op["previous_waveops"].size();
+    }
+    if (mCLI.event_conflict_check)
+    {
+      mEventChecker = new EventChecker(wg);
     }
   }
   InfoPrefix();
@@ -389,20 +429,28 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
   else if (!wave_op_type.compare("SBAtomFile") ||
       !wave_op_type.compare("SBAtomSave")) wo = new SBAtomOp(op);
   else if (!wave_op_type.compare("ResAdd")) wo = new ResAddOp(op);
-  else assert(0);
+  else if (!wave_op_type.compare("Nop")) wo = new NopOp(op);
+  else 
+  {
+    std::cerr << "ASSERT:: " << wave_op_type
+      << " is not currently supported" << std::endl;
+    assert(0);
+  }
 
   return wo;
 }
 
-/*
 WaveGraphChecker::~WaveGraphChecker()
 {
   for(auto v : mName2WaveOp)
   {
     delete v.second;
   }
+  if (mCLI.event_conflict_check)
+  {
+    delete mEventChecker;
+  }
 }
-*/
 
 void WaveGraphChecker::write_graph_viz()
 {
@@ -777,11 +825,14 @@ bool WaveGraphChecker::AddrSOverlap (
     )
 {
   bool overlap = false;
-  for(auto ar : a)
+  if (a.size() && b.size())
   {
-    for(auto br : b)
+    for(auto ar : a)
     {
-      if ((overlap = AddrOverlap(ar, br))) break;
+      for(auto br : b)
+      {
+        if ((overlap = AddrOverlap(ar, br))) break;
+      }
     }
   }
   return overlap;
@@ -822,4 +873,110 @@ bool WaveGraphChecker::RunDataRaceChecker()
     << WaveOpType(0) << " and " << WaveOpType(0) << std::endl;;
   err |= DataRaceChecker(*v_list[0], *v_list[0]);
   return err;
+}
+
+// WaveGraphChecker::MakeImplicitEdgesExplicit()
+// This method creates an edge between wave ops that are excuted
+// on the same engine sequentially. For example, even if one of MatMuls
+// is not dependent on the other, since they are executed on PE,
+// they are supposed to start and finish sequentially, which makes the oder
+// from event-checker perspective. Thus, we create an edge between them. 
+// Note that this is only for event-checker.
+void WaveGraphChecker::MakeImplicitEdgesExplicit()
+{
+  struct prev_engine_op {
+    bool first;
+    vertex_t prev;
+  }; // prev_engine_op
+  prev_engine_op prev_pe; prev_pe.first = true;
+  prev_engine_op prev_dma; prev_dma.first = true;
+  prev_engine_op prev_act; prev_act.first = true;
+  prev_engine_op prev_pool; prev_pool.first = true;
+  vertex_t cur_v, prev_v;
+  bool create_edge = false;
+
+  auto prev_exam = [](prev_engine_op& p)
+  {
+    bool c_edge = false;
+    if (p.first == false)
+    {
+      c_edge = true;
+    } else
+    {
+      p.first = false;
+    }
+    return c_edge;
+  };
+
+  auto make_edge = [](bool make, vertex_t current_v, prev_engine_op& p
+      , graph_t& g)
+  {
+    if (make)
+    {
+      if (!boost::edge(p.prev, current_v, g).second)
+      {
+        EventEdge ev = {255, 0, 0};
+        boost::add_edge(p.prev, current_v, ev, g);
+      }
+    }
+    p.prev = current_v;
+  };
+  for(auto op : mJson["waveops"])
+  {
+    create_edge = false;
+    std::string wop_type = op["waveop_type"].get<std::string>();
+    cur_v = 
+      mWaveOp2V[mName2WaveOp[op["waveop_name"].get<std::string>()]];
+    if (!wop_type.compare("Activation"))
+    {
+      make_edge(prev_exam(prev_act), cur_v, prev_act, wg);
+    }
+    else if (!wop_type.compare("MatMul"))
+    {
+      make_edge(prev_exam(prev_pe), cur_v, prev_pe, wg);
+    }
+    else if (!wop_type.compare("Pool") || !wop_type.compare("ResAdd"))
+    {
+      make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
+    }
+    else if (!wop_type.compare("SBAtomSave") ||
+        !wop_type.compare("SBAtomFile"))
+    {
+      make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
+    }
+    else if (!wop_type.compare("Nop"))
+    {
+      std::string eng_name = op["engine_name"].get<std::string>();
+      if (!eng_name.compare("ActivationEng"))
+      {
+        make_edge(prev_exam(prev_act), cur_v, prev_act, wg);
+      }
+      else if (!eng_name.compare("PeArrayEng"))
+      {
+        make_edge(prev_exam(prev_pe), cur_v, prev_pe, wg);
+      }
+      else if (!eng_name.compare("PoolEng"))
+      {
+        make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
+      }
+      else if (!eng_name.compare("DmaEng"))
+      {
+        make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
+      }
+      else
+      {
+        assert(0);
+      }
+    }
+    else
+    {
+      assert(0);
+    }
+  }
+}
+
+bool WaveGraphChecker::RunEventConflictChecker()
+{
+  MakeImplicitEdgesExplicit();
+  return mEventChecker->Run();
 }

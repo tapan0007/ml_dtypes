@@ -5,6 +5,16 @@
 
 po::variables_map g_cli; // Global command line options
 
+CommandLineOptions parse_cli()
+{
+  CommandLineOptions cli;
+  cli.structure_check = g_cli["structure-check"].as<bool>();
+  cli.data_race_check = g_cli["data-race-check"].as<bool>();
+  cli.event_conflict_check = g_cli["event-conflict-check"].as<bool>();
+  cli.color = g_cli["color"].as<bool>();
+  return cli;
+}
+
 int main(int argc, char* argv[])
 {
 
@@ -24,7 +34,9 @@ int main(int argc, char* argv[])
     ("structure-check", po::bool_switch()->default_value(false)
      , "Enable structure checker")
     ("data-race-check", po::bool_switch()->default_value(false)
-     , "Enable data race checker");
+     , "Enable data race checker")
+    ("event-conflict-check", po::bool_switch()->default_value(false)
+     , "Enable event conflict checker");
   //po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), g_cli);
 
@@ -37,8 +49,7 @@ int main(int argc, char* argv[])
     {
       json j;
       in_wave >> j;
-      WaveGraphChecker wg(j);
-      //wg.write_graph_viz();
+      WaveGraphChecker wg(j, parse_cli());
       if (g_cli["structure-check"].as<bool>()) {
         if (wg.structure_check()) {
           err = ERROR;
@@ -46,6 +57,13 @@ int main(int argc, char* argv[])
       }
       if (g_cli["data-race-check"].as<bool>()) {
         if (wg.RunDataRaceChecker()) {
+          err = ERROR;
+        }
+      }
+      if (g_cli["event-conflict-check"].as<bool>())
+      {
+        if (wg.RunEventConflictChecker())
+        {
           err = ERROR;
         }
       }
@@ -60,6 +78,7 @@ int main(int argc, char* argv[])
           std::cout << wg.get_msg().str();
         }
       }
+      //wg.write_graph_viz();
     }
     else {
       std::cout << "Error opening file "

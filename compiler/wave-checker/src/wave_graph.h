@@ -9,12 +9,14 @@
 #include <boost/graph/adjacency_list.hpp>
 //#include <boost/graph/depth_first_search.hpp>
 #include <boost/graph/breadth_first_search.hpp>
-#include "packages/nlohmann/json.hpp"
+//#include "packages/nlohmann/json.hpp"
 #include "common/aws_tonga_isa_common.h"
 #include "meminfo.h"
 #include "wc_common.h"
+#include "event_check.h"
+#include <unordered_map>
 
-extern po::variables_map g_cli;
+//extern po::variables_map g_cli;
 
 using namespace boost;
 using json = nlohmann::json;
@@ -22,16 +24,19 @@ using json = nlohmann::json;
 
 class WaveOp {
   public:
-  enum WaveOpType {MatMul, SBAtomFile, SBAtomSave, Pool, Activation, ResAdd};
+  enum WaveOpType {MatMul, SBAtomFile, SBAtomSave, Pool, Activation, ResAdd
+    , Nop};
   WaveOp(std::string n, std::string wot) : name(n)
   {
-    waveop_type = ExtractWaveOpType(wot);
+    std::tie(waveop_type, engine) = ExtractWaveOpTypeEngine(wot);
   }
-  ~WaveOp()
+  enum Engine {PE, ACT, POOL, DMA, NOP};
+  virtual ~WaveOp()
   {
   }
   std::string get_name() {return name;}
   WaveOpType get_waveop_type() {return waveop_type;}
+  Engine get_engine() {return engine;}
   bool IsDRAMOp();
   bool IsMatMul(){ return (waveop_type == MatMul); }
   virtual size_t get_sb_in_footprint_size() {return 0;}
@@ -43,11 +48,38 @@ class WaveOp {
   virtual std::list<AddrRange>& get_psum_in_footprint() = 0;
   virtual std::list<AddrRange>& get_psum_out_footprint() = 0;
   private:
-  WaveOpType ExtractWaveOpType(std::string& wot);
+  std::pair<WaveOpType, Engine> ExtractWaveOpTypeEngine (std::string& wot);
   private:
   std::string name;
   WaveOpType waveop_type;
+  Engine engine;
 }; // WaveOp
+
+class NopOp : public WaveOp {
+  public:
+    NopOp(json& op) : WaveOp (op["waveop_name"].get<std::string>()
+        , op["waveop_type"].get<std::string>())
+    {}
+    ~NopOp() {}
+    std::list<AddrRange>& get_sb_in_footprint()
+    {
+      return empty_mem_footprint;
+    }
+    std::list<AddrRange>& get_sb_out_footprint()
+    {
+      return empty_mem_footprint;
+    }
+    std::list<AddrRange>& get_psum_in_footprint()
+    {
+      return empty_mem_footprint;
+    }
+    std::list<AddrRange>& get_psum_out_footprint()
+    {
+      return empty_mem_footprint;
+    }
+  private:
+    std::list<AddrRange> empty_mem_footprint;
+}; // NopOp
 
 class MMOp : public WaveOp {
   public:
@@ -96,11 +128,11 @@ class SBAtomOp : public WaveOp {
     SBAtomMemInfo m_mi;
     SBAtomOp (json& op) : WaveOp (op["waveop_name"].get<std::string>()
         , op["waveop_type"].get<std::string>())
-                               , m_mi(op["sb_address"].get<tonga_addr>()
-                                   , op["length"].get<length_t>()
-                                   , op["start_at_mid_part"].get<bool>()
-                                   , extract_atom_type(op)
-                                   )
+                               //, m_mi(op["sb_address"].get<tonga_addr>()
+                                   //, op["length"].get<length_t>()
+                                   //, op["start_at_mid_part"].get<bool>()
+                          , m_mi(op , extract_atom_type(op)
+                              )
     {
       m_atom_type = m_mi.get_atom_type();
     }
@@ -261,17 +293,21 @@ class ResAddOp : public WaveOp {
 //class ActOp : public WaveOp {
   //WaveOpMemInfo m_mi;
 //}; // ActOp
+//using graph_t  = adjacency_list<listS, vecS, bidirectionalS, WaveOp*
+//, EventEdge>;
+//using vertex_t = graph_traits<graph_t>::vertex_descriptor;
+//using edge_t   = graph_traits<graph_t>::edge_descriptor;
 
-using graph_t  = adjacency_list<listS, vecS, bidirectionalS, WaveOp* >;
-using vertex_t = graph_traits<graph_t>::vertex_descriptor;
-using edge_t   = graph_traits<graph_t>::edge_descriptor;
+class EventChecker;
 
 class WaveGraphChecker {
+  public:
   typedef boost::graph_traits<graph_t>::in_edge_iterator ie_itr;
   typedef boost::graph_traits<graph_t>::out_edge_iterator oe_itr;
   enum OPS {LD, ST, ACT, POOL, MM, RESADD};
   enum RaceKind {WAW_SB, WAW_PSUM, RAW_SB, RAW_PSUM, WAR_SB, WAR_PSUM};
 
+  /*
   /// Based on
   /// https://www.boost.org/doc/libs/1_64_0/libs/graph/example/dfs-example.cpp
   //class dfs_target_visitor:public boost::default_dfs_visitor {
@@ -292,9 +328,22 @@ class WaveGraphChecker {
     //std::set<vertex_t>* m_pset;
     T* m_pset;
   };
+  */
   public:
-  WaveGraphChecker(json& j);
-  ~WaveGraphChecker(){};
+  WaveGraphChecker(json& j, CommandLineOptions cli);
+  ~WaveGraphChecker();
+
+  template<typename Set, typename VertexT, typename GraphT>
+    static void b_search(Set* pi, VertexT v, GraphT& g)
+    {
+      bfs_target_visitor<Set> vis(pi);
+      auto indexmap = boost::get(boost::vertex_index, g);
+      auto colormap = boost::make_vector_property_map<boost::default_color_type>
+        (indexmap);
+      boost::queue<VertexT> buffer;
+
+      boost::breadth_first_search(g, v, buffer, vis, colormap);
+    }
 
   void write_graph_viz();
   bool structure_check();
@@ -311,10 +360,30 @@ class WaveGraphChecker {
   bool OutputOperandCheck(vertex_t v);
   bool CheckDuplicatedEdges(vertex_t v);
   bool RunDataRaceChecker();
-  const std::ostringstream& get_msg() const {return messages;}
-  //const std::ostringstream& get_errors() const {return errors;}
-  //const std::ostringstream& get_warnings() const {return warnings;}
-  //const std::ostringstream& get_infos() const {return infos;}
+  bool RunEventConflictChecker();
+  const std::ostringstream& get_msg() {
+    if (mCLI.event_conflict_check)
+    {
+      messages << mEventChecker->get_msg().str();
+    }
+    return messages;
+  }
+// __TEST_TURNON__ should be turned off when code is compiled in release mode
+// It allows to get access to private memers of the class.
+#ifdef __TEST_TURNON__
+  std::map<std::string, WaveOp*>& test_get_mName2WaveOp()
+  {return mName2WaveOp;}
+  std::map<WaveOp*, vertex_t> test_get_mWaveOp2V() {return mWaveOp2V;}
+  graph_t& test_get_wg() {return wg;}
+  void test_call_MakeImplicitEdgesExplicit() {MakeImplicitEdgesExplicit();}
+  std::list<vertex_t>& test_get_mMMops() {return mMMops;}
+  std::list<vertex_t>& test_get_mLDops() {return mLDops;}
+  std::list<vertex_t>& test_get_mSTops() {return mSTops;}
+  std::list<vertex_t>& test_get_mACTops() {return mACTops;}
+  std::list<vertex_t>& test_get_mPOOLops() {return mPOOLops;}
+  json& test_get_mJson() {return mJson;}
+#endif //__TEST_TURNON__
+
   private:
   void ConstructPathInfo(
       vertex_t u
@@ -341,42 +410,38 @@ class WaveGraphChecker {
   WaveOp* ConstructWaveOp(json& op);
   void DataRacePrint(WaveOp*u, WaveOp*v, RaceKind rk);
   void InfoPrefix() {
-    //if (g_cli["stdout"].as<bool>()) {
-    if (g_cli["color"].as<bool>()) {
+    if (mCLI.color) {
       messages << "\033[1;34m";
     }
     messages << "INFO: ";
-    //if (g_cli["stdout"].as<bool>()) {
-    if (g_cli["color"].as<bool>()) {
+    if (mCLI.color) {
       messages << "\033[0m";
     }
   }
   void WarningPrefix() {
-    //if (g_cli["stdout"].as<bool>()) {
-    if (g_cli["color"].as<bool>()) {
+    if (mCLI.color) {
       messages << "\033[1;34m";
     }
     messages << "WARNING: ";
-    //if (g_cli["stdout"].as<bool>()) {
-    if (g_cli["color"].as<bool>()) {
+    if (mCLI.color) {
       messages << "\033[0m";
     }
   }
   void ErrorPrefix() {
-    //if (g_cli["stdout"].as<bool>()) {
-    if (g_cli["color"].as<bool>()) {
+    if (mCLI.color) {
       messages << "\033[1;31m";
     }
     messages << "ERROR: ";
-    //if (g_cli["stdout"].as<bool>()) {
-    if (g_cli["color"].as<bool>()) {
+    if (mCLI.color) {
       messages << "\033[0m";
     }
   }
+  void MakeImplicitEdgesExplicit();
   private:
+  json& mJson;
+  CommandLineOptions mCLI;
   graph_t wg;
-  //WaveOp* Source;
-  //WaveOp* Sink;
+  EventChecker* mEventChecker;
 
   std::map<std::string, WaveOp*> mName2WaveOp;
   std::map<WaveOp*, vertex_t> mWaveOp2V;
@@ -387,8 +452,5 @@ class WaveGraphChecker {
   std::list<vertex_t> mMMops;
   std::list<vertex_t> mResAddops;
   std::ostringstream messages;
-  //std::ostringstream errors;
-  //std::ostringstream warnings;
-  //std::ostringstream infos;
 }; // WaveGraphChecker
 #endif //__WAVE_GRAPH_H__

@@ -6,20 +6,24 @@ wave-checker is designed to examine compliance of a wave graph with instruction 
    o An wave op should not have duplicated edges.
 - Detection of potential data race between wave ops
    o It detects potential WAW/RAW/WAR hazards between indepdent wave ops
+- Detection of potential conflicts between instances of a particular event
 
 * Build
 Run $KAENA_PATH/compiler/wave-checker/scr/build.sh
 It will create wc-build directory and build wave-checker inside it.
 
 * Usage
-bin/wave-checker [Options]
+bin/wave_graph_checker [Options]
+Options:
   -h [ --help ]                Help
   --stdout                     Redirects output streams to standard output
   --fileout arg                Name and location of an output file
+  --color                      Enables colored messages (default : no color)
   -w [ --wave-graph-file ] arg Name and location of an input wave graph
   --structure-check            Enable structure checker
   --data-race-check            Enable data race checker
+  --event-conflict-check       Enable event conflict checker
 
 In the build directory, 
-run 'bin/wave-checker --wave-graph-file "YOUR_WAVE_GRAPH" [--structure-check] [--data-race-check]
+run 'bin/wave_graph_checker --wave-graph-file "YOUR_WAVE_GRAPH" [--structure-check] [--data-race-check] [--event-conflict-check]
 run 'test/wc_gtest' to run regression test
