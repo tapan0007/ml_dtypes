@@ -192,9 +192,8 @@ class Krt:
     self.qemu.sshCmd("sudo tar xfz {} -C /usr/".format(krtVmPath + "/krt-*.*-uio-core.tar.gz"))
 
     self.qemu.rsyncToVm(os.path.join(runtimSrcPath, "uio_drv"), krtVmPath)
-    self.qemu.rsyncToVm(os.path.join(runtimSrcPath, "udmabuf"), krtVmPath)
-    self.qemu.sshCmd("cd %s; cd uio_drv; make; cd ../udmabuf; make" % krtVmPath)
-    self.qemu.sshCmd("cd %s/udmabuf; sudo ./load.sh; cd %s/uio_drv; sudo ./load.sh" % (krtVmPath, krtVmPath))
+    self.qemu.sshCmd("sudo sysctl -w vm.nr_hugepages=128")
+    self.qemu.sshCmd("cd %s/uio_drv; make; sudo ./load.sh" % krtVmPath)
 
   def addModel(self, kelfDir, kelfVmDir):
     self.kelfVmDir = kelfVmDir
