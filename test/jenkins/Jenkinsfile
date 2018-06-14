@@ -70,11 +70,6 @@ pipeline{
                 '''
             }
         }
-        stage('install deps'){
-            steps {
-                sh '$KAENA_PATH/test/tools/fetch-and-run/alinux_deps_install || echo install deps failed'
-            }
-        }
         stage('Build') {
             parallel {
                 stage('kcc') {
