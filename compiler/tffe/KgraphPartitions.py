@@ -646,6 +646,8 @@ class KgraphPart(object):
       elif re.search('^\d+$', word):
         sgId = int(word)
         self.sgId2executor[sgId] = executor
+        if executor == "wave" and (scheduler == "qemu_wave" or scheduler == "qemu_wave2"):
+          self.sgId2executor[sgId] = "qemu_wave"
       else:
         executor = word
     print("INFO: subgraph to executor map  %s" % str(self.sgId2executor), flush=True)
