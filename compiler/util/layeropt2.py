@@ -335,7 +335,8 @@ class KNode:
                                             2048, 
                                             PEArray, 
                                             self,
-                                            args)
+                                            args,
+                                            contain_weights=True)
                 self.bias_file_params.layer_name =  prev_node.data['layer_name']
                 self.parent.current_file_id += 1
                 self.bias_file_params.load_file()
@@ -444,7 +445,7 @@ class KNode:
         if args.enable_replication:
             num_replicated_waves = ceildiv(weights_shape_dims.R * weights_shape_dims.S * weights_shape_dims.C,  PEArray.NUM_ROWS)
             self.replicate_multiple = ceildiv(weights_shape_dims.R, num_replicated_waves) * weights_shape_dims.S
-        self.weights_file_params = FileParams(self.parent.current_file_id, weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, args)
+        self.weights_file_params = FileParams(self.parent.current_file_id, weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, args, contain_weights=True)
         self.weights_file_params.layer_name =  self.data['layer_name']
         self.parent.current_file_id += 1
         self.weights_file_params.load_file()
@@ -2817,7 +2818,8 @@ if __name__ == "__main__":
                                         2048, 
                                         PEArray, 
                                         first_op,
-                                        args)
+                                        args,
+                                        contain_weights=True)
             bias_file_params.layer_name = first_op.data['layer_name']
             bias_file_params.load_file()
             kgraph.current_file_id += 1

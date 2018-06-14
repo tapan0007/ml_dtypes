@@ -165,8 +165,9 @@ class ShapeDims():
 
 # Class to manage file-related parameters
 class FileParams():
-    def __init__(self, file_id, file_name, file_dims, data_type, chunk_sz_limit, pearray_params, op_params, args=None):
+    def __init__(self, file_id, file_name, file_dims, data_type, chunk_sz_limit, pearray_params, op_params, args=None, contain_weights=False):
         self.layer_name = "DEPRECATED"
+        self.contain_weights = contain_weights # True for weights and bias and constants (used to tie-off BiasAdd in standalone Act)
         self.final_layer_ofmap = False
         self.file_id = file_id
         self.file_name = file_name
@@ -775,7 +776,7 @@ class FileMapper():
               'layer_name'       : file_params.layer_name,
               'sb_address'       : sb_addr,
               'data_type'        : file_params.data_type,
-              'contain_weights'  : file_params.file_dims.has_M,
+              'contain_weights'  : file_params.contain_weights,
               'ref_file'         : simout_file,
               'ref_file_format'  : file_params.file_dims.format_str,
               'ref_file_shape'   : file_params.file_dims.shape_tuple,
