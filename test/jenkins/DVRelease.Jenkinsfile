@@ -13,7 +13,7 @@ pipeline{
         TEST_DIR = "/workdir/test"
 
         QEMU_INKLING_PATH = "$SRC_DIR/qemu_inkling"
-        ARCH_ISA_PATH = "$SRC_DIR/isa"
+        ARCH_ISA_PATH = "$SRC_DIR/arch-isa"
         KAENA_RT_PATH = "$SRC_DIR/krt"
 
         KRT_BLD_DIR = "$BLD_DIR/krt"
