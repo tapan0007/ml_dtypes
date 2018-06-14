@@ -24,6 +24,7 @@ public:
 private:
     class DmaBlock;
     class DmaBlockNonIo;
+    class DmaDesc;
     class DmaDescToTpb;
     class DmaDescFromTpb;
     using FileIdType = std::string;
@@ -31,6 +32,7 @@ private:
 
 public:
     DmaDescription();
+    DmaDescription(const DmaDescription&) = delete;
 
 public:
     DmaBlockToTpb&      startNewDmaBlockToTpb(EngineId engId, bool qWeights);
@@ -79,19 +81,44 @@ private:
 
 /***********************************************************************
 ***********************************************************************/
-class DmaDescription::DmaDescToTpb {
+class DmaDescription::DmaDesc {
 public:
+    DmaDesc(kcc_int64 nBytes)
+        : m_NumBytes(nBytes)
+    {}
+    DmaDesc() = delete;
+
+    kcc_int64 gNumBytes() const {
+        return m_NumBytes;
+    }
+private:
+    kcc_int64 m_NumBytes = 0;
+};
+
+/***********************************************************************
+***********************************************************************/
+class DmaDescription::DmaDescToTpb : public DmaDesc {
+public:
+    DmaDescToTpb(kcc_uint64 nBytes, TpbAddress    dstSbAddress,
+                 TongaAddress  srcFileAddress, FileIdType    srcFileId)
+        : DmaDesc(nBytes)
+        , m_DstSbAddress(dstSbAddress)
+        , m_SrcFileAddress(srcFileAddress)
+        , m_SrcFileId(srcFileId)
+    {}
+
+    DmaDescToTpb() = delete;
+
     TpbAddress gDstSbAddress() const {
         return m_DstSbAddress;
     }
-    TongaAddress g_SrcFileAddress() const {
+    TongaAddress gSrcFileAddress() const {
         return m_SrcFileAddress;
     }
-    kcc_int32 gNumBytes() const {
-        return m_NumBytes;
+    FileIdType    gSrcFileId () const {
+        return m_SrcFileId;
     }
-public:
-    kcc_int32     m_NumBytes;
+private:
     TpbAddress    m_DstSbAddress;
     TongaAddress  m_SrcFileAddress;
     FileIdType    m_SrcFileId;
@@ -100,16 +127,27 @@ public:
 
 /***********************************************************************
 ***********************************************************************/
-class DmaDescription::DmaDescFromTpb {
+class DmaDescription::DmaDescFromTpb : public DmaDesc {
 public:
+    DmaDescFromTpb(kcc_uint64 nBytes, TpbAddress srcSbAddress,
+                   TongaAddress    dstFileAddress, FileIdType dstFileId)
+        : DmaDesc(nBytes)
+        , m_SrcSbAddress(srcSbAddress)
+        , m_DstFileAddress(dstFileAddress)
+        , m_DstFileId(dstFileId)
+    {}
+
+    DmaDescFromTpb() = delete;
     TpbAddress gDstFileAddress() const {
         return m_DstFileAddress;
     }
     TpbAddress gSrcSbAddress() const {
         return m_SrcSbAddress;
     }
-public:
-    kcc_int32       m_NumBytes;
+    FileIdType gDstFileId() const {
+        return m_DstFileId;
+    }
+private:
     TpbAddress      m_SrcSbAddress;
     TongaAddress    m_DstFileAddress;
     FileIdType      m_DstFileId;
@@ -176,6 +214,8 @@ public:
         return m_Descs;
     }
 
+    kcc_uint64 size() const;
+
 private:
     std::vector<DmaDescToTpb> m_Descs;
 }; // class DmaDescription::DmaBlockInput
@@ -204,6 +244,8 @@ public:
     std::string gSymbolicQueueName(EngineId engId) const {
         return m_DmaDescription.gSymbolicQueue(engId, true, m_QWeights);
     }
+
+    kcc_uint64 size() const;
 
 private:
     bool m_QWeights;
@@ -235,6 +277,8 @@ public:
     bool qOut() const {
         return m_QOut;
     }
+
+    kcc_uint64 size() const;
 
 private:
     bool    m_QOut;

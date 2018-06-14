@@ -74,6 +74,7 @@ namespace wavecode {
 WaveCode::WaveCode(nets::Network* network, const arch::Arch& arch)
     : m_Network(network)
     , m_Arch(arch)
+    , m_DmaDescription()
 {
     m_CodeMatMul            = std::make_unique<WaveCodeMatMul>(*this);
     m_CodeSbAtomLoad        = std::make_unique<WaveCodeSbAtomLoad>(*this);

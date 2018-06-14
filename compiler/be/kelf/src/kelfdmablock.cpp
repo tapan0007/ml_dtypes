@@ -50,11 +50,9 @@ DmaDescription::DmaBlockToTpb::addDmaDesc(TongaAddress srcFileAddress,
         const std::string& refFile,
         TpbAddress dstTpbSbAddress, kcc_int32 numBytes)
 {
-    DmaDescToTpb desc;
-    desc.m_SrcFileAddress   = srcFileAddress;
-    desc.m_SrcFileId        = m_DmaDescription.gFileSymbolicId(refFile);
-    desc.m_DstSbAddress     = dstTpbSbAddress;
-    desc.m_NumBytes         = numBytes;
+    DmaDescToTpb desc(numBytes, dstTpbSbAddress, srcFileAddress,
+                      m_DmaDescription.gFileSymbolicId(refFile));
+
     m_Descs.push_back(desc);
 }
 
@@ -82,15 +80,10 @@ DmaDescription::DmaBlockFromTpb::addDmaDesc(TpbAddress srcTpbSbAddress,
         const std::string& refFile,
         kcc_int32 numBytes)
 {
-    DmaDescFromTpb desc;
-    desc.m_SrcSbAddress     = srcTpbSbAddress;
-    desc.m_DstFileAddress   = dstFileAddress;
-    if (m_QOut) {
-        desc.m_DstFileId        = m_DmaDescription.gSymbolicOutput();
-    } else {
-        desc.m_DstFileId        = m_DmaDescription.gFileSymbolicId(refFile);
-    }
-    desc.m_NumBytes         = numBytes;
+    DmaDescFromTpb desc(numBytes, srcTpbSbAddress, dstFileAddress,
+        m_QOut ? m_DmaDescription.gSymbolicOutput()
+               : m_DmaDescription.gFileSymbolicId(refFile));
+
     m_Descs.push_back(desc);
 }
 
@@ -111,11 +104,8 @@ void
 DmaDescription::DmaBlockInput::addDmaDesc(TongaAddress inputAddress,
         TongaAddress dstSbAddress, kcc_int32 numBytes)
 {
-    DmaDescToTpb desc;
-    desc.m_SrcFileId        = gSymbolicInput();
-    desc.m_SrcFileAddress   = inputAddress;
-    desc.m_DstSbAddress     = dstSbAddress;
-    desc.m_NumBytes         = numBytes;
+    DmaDescToTpb desc(numBytes, dstSbAddress, inputAddress, gSymbolicInput());
+
     m_Descs.push_back(desc);
 }
 

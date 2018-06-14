@@ -261,11 +261,11 @@ DmaDescription::writeDmaDescriptors(
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlockToTpb.gDescs()) {
             json jDmaDesc;
-            jDmaDesc["from"]         = desc.m_SrcFileId;
-            jDmaDesc["from_off"]     = desc.m_SrcFileAddress;
+            jDmaDesc["from"]         = desc.gSrcFileId();
+            jDmaDesc["from_off"]     = desc.gSrcFileAddress();
             jDmaDesc["to"]           = gSymbolicStateBuffer();
-            jDmaDesc["to_off"]       = desc.m_DstSbAddress;
-            jDmaDesc["size"]         = desc.m_NumBytes;
+            jDmaDesc["to_off"]       = desc.gDstSbAddress();
+            jDmaDesc["size"]         = desc.gNumBytes();
 
             jDmaDescs.push_back(jDmaDesc);
         }
@@ -291,10 +291,10 @@ DmaDescription::writeDmaDescriptors(
         for (const auto& desc : dmaBlockFromTpb.gDescs()) {
             json jDmaDesc;
             jDmaDesc["from"]         = gSymbolicStateBuffer();
-            jDmaDesc["from_off"]     = desc.m_SrcSbAddress;
-            jDmaDesc["to"]           = desc.m_DstFileId;
-            jDmaDesc["to_off"]       = desc.m_DstFileAddress;
-            jDmaDesc["size"]         = desc.m_NumBytes;
+            jDmaDesc["from_off"]     = desc.gSrcSbAddress();
+            jDmaDesc["to"]           = desc.gDstFileId();
+            jDmaDesc["to_off"]       = desc.gDstFileAddress();
+            jDmaDesc["size"]         = desc.gNumBytes();
 
             jDmaDescs.push_back(jDmaDesc);
         }
@@ -384,12 +384,22 @@ DmaDescription::writeDefinitions()
             varDesc["type"] = "state-buffer";
             jVars["$SB"] = varDesc; 
 
+            kcc_int64 numInBytes = 0;
+            for (const auto& inBlock : m_DmaBlocksInput) {
+                numInBytes += inBlock.size();
+            }
             varDesc["type"] = "io";
-            varDesc["size"] = 1024;
+            varDesc["size"] = numInBytes;
             jVars[gSymbolicInput()] = varDesc;
 
+            kcc_int64 numOutBytes = 0;
+            for (const auto& outBlock : m_DmaBlocksFromTpb) {
+                if (outBlock.qOut()) {
+                    numOutBytes += outBlock.size();
+                }
+            }
             varDesc["type"] = "io";
-            varDesc["size"] = 1024;
+            varDesc["size"] = numOutBytes;
             jVars[gSymbolicOutput()] = varDesc;
         }
         {
@@ -428,11 +438,11 @@ DmaDescription::writeInOutDescriptors()
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlock.gDescs()) {
             json jDmaDesc;
-            jDmaDesc["from"]         = desc.m_SrcFileId;
-            jDmaDesc["from_off"]     = desc.m_SrcFileAddress;
+            jDmaDesc["from"]         = desc.gSrcFileId();
+            jDmaDesc["from_off"]     = desc.gSrcFileAddress();
             jDmaDesc["to"]           = gSymbolicStateBuffer();
-            jDmaDesc["to_off"]       = desc.m_DstSbAddress;
-            jDmaDesc["size"]         = desc.m_NumBytes;
+            jDmaDesc["to_off"]       = desc.gDstSbAddress();
+            jDmaDesc["size"]         = desc.gNumBytes();
 
             jDmaDescs.push_back(jDmaDesc);
         }
@@ -455,10 +465,10 @@ DmaDescription::writeInOutDescriptors()
         for (const auto& desc : dmaBlock.gDescs()) {
             json jDmaDesc;
             jDmaDesc["from"]         = gSymbolicStateBuffer();
-            jDmaDesc["from_off"]     = desc.m_SrcSbAddress;
+            jDmaDesc["from_off"]     = desc.gSrcSbAddress();
             jDmaDesc["to"]           = gSymbolicOutput();
-            jDmaDesc["to_off"]       = desc.m_DstFileAddress;
-            jDmaDesc["size"]         = desc.m_NumBytes;
+            jDmaDesc["to_off"]       = desc.gDstFileAddress();
+            jDmaDesc["size"]         = desc.gNumBytes();
 
             jDmaDescs.push_back(jDmaDesc);
         }
@@ -473,7 +483,41 @@ DmaDescription::writeInOutDescriptors()
     o << std::setw(4) << j << std::endl;
 }
 
+/***********************************************************************
+***********************************************************************/
+kcc_uint64
+DmaDescription::DmaBlockInput::size() const
+{
+    kcc_uint64 numInBytes = 0;
+    for (const auto& desc : m_Descs) {
+        numInBytes += desc.gNumBytes();
+    }
+    return numInBytes;
+}
 
+/***********************************************************************
+***********************************************************************/
+kcc_uint64
+DmaDescription::DmaBlockFromTpb::size() const
+{
+    kcc_uint64 numBytes = 0;
+    for (const auto& desc : m_Descs) {
+        numBytes += desc.gNumBytes();
+    }
+    return numBytes;
+}
+
+/***********************************************************************
+***********************************************************************/
+kcc_uint64
+DmaDescription::DmaBlockToTpb::size() const
+{
+    kcc_uint64 numBytes = 0;
+    for (const auto& desc : m_Descs) {
+        numBytes += desc.gNumBytes();
+    }
+    return numBytes;
+}
 
 }}
 
