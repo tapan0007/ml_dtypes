@@ -1418,14 +1418,22 @@ class FusedOp(list):
             layer_type = self[i].data['layer_type'] 
             if (re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", layer_type)):
                 dram_bias_waveops = []
+                latest_accessor = -1
                 if (tile_id.m_id%2 == 0):
-                    (writers, readers, dram_bias_waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
+                    (last_writer, last_reader, dram_bias_waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.nonload_waveop_count,
                                                     tpb.waveop_stream.nonload_waveop_list,
                                                     tpb.statebuffer.zero_bias_file_params,
                                                     0,  # batch_item is not needed for bias
                                                     0,
                                                     tpb.statebuffer.zero_bias_file_params.item_sz)
+                    latest_accessor = max(last_writer, last_reader)
+                # TODO: roll this code into read_file_data_region
+                prev_waveops = []
+                if latest_accessor >= 0:
+                    latest_accessor_waveop = tpb.waveop_stream.nonload_waveop_list[latest_accessor]
+                    if not args.relax_dependencies or (latest_accessor_waveop['waveop_type'] != 'Activation' and latest_accessor_waveop['waveop_type'] != 'Pool'):
+                        prev_waveops.append(latest_accessor_waveop['waveop_name'])
                 psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp)
                 psum_bank_dst = psum_bank_src
                 dst_is_psum = False
@@ -1435,6 +1443,7 @@ class FusedOp(list):
                 tpb.gen_act_waveop_inline(None, op_list[i], self.conv_op, tile_id, 
                                           True, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, 0)
                 psum_bank_src = psum_bank_dst
+                tpb.waveop_stream.last_psum_waveop[psum_bank_dst]['previous_waveops'] += prev_waveops
             elif (layer_type == 'BiasAdd'):
                 bias_chan_start = (tile_id.m_id//2) * PEArray.NUM_ROWS
                 bias_chan_mid_part = (tile_id.m_id%2) == 1
@@ -1443,14 +1452,23 @@ class FusedOp(list):
                 bias_extracted[0 : bias_chan_end - bias_chan_start] = bias[bias_chan_start : bias_chan_end]
                 bias_addr = bias_chan_start * op_list[i].item_sz
                 dram_bias_waveops = []
+                latest_accessor = -1
                 if (tile_id.m_id%2 == 0):
-                    (writers, readers, dram_bias_waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
+                    (last_writer, last_reader, dram_bias_waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.nonload_waveop_count,
                                                     tpb.waveop_stream.nonload_waveop_list,
                                                     self.biasadd_op.bias_file_params,
                                                     0,  # batch_item is not needed for bias
                                                     bias_addr,
                                                     self.biasadd_op.item_sz)
+                    latest_accessor = max(last_writer, last_reader)
+
+                # TODO: roll this code into read_file_data_region
+                prev_waveops = []
+                if latest_accessor >= 0:
+                    latest_accessor_waveop = tpb.waveop_stream.nonload_waveop_list[latest_accessor]
+                    if not args.relax_dependencies or (latest_accessor_waveop['waveop_type'] != 'Activation' and latest_accessor_waveop['waveop_type'] != 'Pool'):
+                        prev_waveops.append(latest_accessor_waveop['waveop_name'])
                 #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted[bias_chan_mid_part*PEArray.NUM_COLS : (bias_chan_mid_part+1)*PEArray.NUM_COLS])
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
@@ -1473,6 +1491,7 @@ class FusedOp(list):
                     tpb.gen_act_waveop_inline(op_list[i], None, self.conv_op, tile_id, 
                                               True, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_addr)
                     psum_bank_src = psum_bank_dst
+                tpb.waveop_stream.last_psum_waveop[psum_bank_dst]['previous_waveops'] += prev_waveops
             elif (self[i].is_join):
                 dram_resadd_waveops = []
                 latest_accessor = -1
