@@ -52,7 +52,8 @@ pipeline{
                 repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
                 [ ! -z "$MANIFEST_FILE_NAME" ] || export MANIFEST_FILE_NAME=default.xml
                 export MANIFEST_REPO_REFSPEC=$GERRIT_REFSPEC
-                git fetch  ssh://siopt.review/tonga/sw/kaena/manifest $GERRIT_REFSPEC || export MANIFEST_REPO_REFSPEC=""
+                git clone  ssh://siopt.review/tonga/sw/kaena/manifest
+                git -C manifest fetch origin $GERRIT_REFSPEC || export MANIFEST_REPO_REFSPEC=""
                 [ -z "$MANIFEST_REPO_REFSPEC" ] || export MANIFEST_REPO_REFSPEC_OPT="-b $MANIFEST_REPO_REFSPEC"
                 repo init -m $MANIFEST_FILE_NAME $MANIFEST_REPO_REFSPEC_OPT
                 repo sync -j 8
@@ -67,7 +68,7 @@ pipeline{
                 git -C inkling pull origin $GERRIT_REFSPEC || \
                 git -C qemu_inkling pull origin $GERRIT_REFSPEC || \
                 git -C arch-isa pull origin $GERRIT_REFSPEC || \
-                git fetch  ssh://siopt.review/tonga/sw/kaena/manifest $GERRIT_REFSPEC
+                git -C manifest pull origin $GERRIT_REFSPEC
 
                 chmod -R 755 ./
                 ls -ltrA
