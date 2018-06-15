@@ -114,7 +114,7 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
       fhPem.write(self.pemText)
     os.chmod(self.pemFile, stat.S_IREAD)
 
-    self.cmd = '%s %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:./qemu_serial.log' % (qiPath, localVdi, mem, qemuOpts, port)
+    self.cmd = '%s %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % (qiPath, localVdi, mem, qemuOpts, port)
     if os.path.exists("/dev/kvm"):
         self.cmd += "  --enable-kvm "
     self.port = port
@@ -241,6 +241,8 @@ for qemuRestartId in range(3):
   qemu.stop()
   if qemuOk:
     break
+  else:
+    time.sleep(60)  # qemu was still failing upon several restarts. Delay after stop() may help.
 if not qemuOk:
     raise("Failed to start QEMU")
 
