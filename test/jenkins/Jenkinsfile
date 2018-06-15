@@ -116,6 +116,10 @@ pipeline{
                             sh '/bin/cp -r $TEST_DIR/precheckin /artifact/precheckin'
                             archiveArtifacts artifacts:'precheckin/qor_report.txt,*.tgz,precheckin/**/*.txt'
                         }
+                        failure {
+                            sh 'tar -czvf /artifact/test-precheckin-result-all.tgz $TEST_DIR/precheckin'
+                            archiveArtifacts artifacts:'*.tgz'
+                        }
                     }
                 }
                 stage('hourly') {
