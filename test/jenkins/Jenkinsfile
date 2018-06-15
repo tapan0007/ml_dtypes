@@ -106,11 +106,10 @@ pipeline{
                         }
                     }
                     post {
-                        failure {
+                        always {
                             sh 'find $TEST_DIR/precheckin -type f -name "*.vdi" -delete'
-                            sh 'find $TEST_DIR/precheckin -iname "*.txt" -print0 | xargs -0 tar -czvf /artifact/test-precheckin-result-logs.tgz'
-                            sh 'tar -czvf /artifact/test-precheckin-result-all.tgz $TEST_DIR/precheckin'
-                            archiveArtifacts artifacts:'*.tgz'
+                            sh '/bin/cp -r $TEST_DIR/precheckin /artifact/precheckin'
+                            archiveArtifacts artifacts:'precheckin/qor_report.txt,*.tgz,precheckin/**/*.txt'
                         }
                     }
                 }
@@ -122,13 +121,14 @@ pipeline{
                     }
                     post {
                         always {
-                            sh 'cd $TEST_DIR/hourly/ && date > qor_dummy.txt && tar -czvf /artifact/qor_hourly.tgz qor*'
-                            archiveArtifacts artifacts:'*.tgz'
+                            sh 'mkdir /artifact/hourly'
+                            sh '/bin/cp $TEST_DIR/hourly/qor* /artifact/hourly/ || touch /artifact/hourly/qor_hourly_qor_available.txt'
+                            archiveArtifacts artifacts:'hourly/qor*,*.tgz'
                         }
                         failure {
                             sh 'find $TEST_DIR/hourly -type f -name "*.vdi" -delete'
-                            sh 'find $TEST_DIR/hourly -iname "*.txt" -print0 | tar -czvf /artifact/test-precheckin-result-logs.tgz -T -'
-                            archiveArtifacts artifacts:'*.tgz'
+                            sh 'find $TEST_DIR/hourly -iname "*.txt" -print0 | tar -czvf /artifact/hourly/logs.tgz -T -'
+                            archiveArtifacts artifacts:'hourly/logs.tgz'
                         }
                     }
                 }
