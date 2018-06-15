@@ -23,11 +23,11 @@ import socket, errno
 print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
 qiBldPath = os.environ["QEMU_BLD_DIR"]
 if not os.path.isdir(qiBldPath):
-  raise("ERROR: missing $KAENA_PATH/../qemu_inkling path  at %s" % qiBldPath)
+  raise ValueError("ERROR: missing $KAENA_PATH/../qemu_inkling path  at %s" % qiBldPath)
 
 krtBldPath = os.environ["KRT_BLD_DIR"]
 if not os.path.isdir(krtBldPath):
-  raise("ERROR: missing kaena runtime build")
+  raise ValueError("ERROR: missing kaena runtime build")
 
 qiPath = os.path.join(qiBldPath, "x86_64-softmmu", "qemu-system-x86_64")
 
@@ -35,6 +35,7 @@ gitVmPath = '/home/ubuntu/git'
 krtVmPath = '/home/ubuntu/git/kaena-runtime'
 
 defaultVdi = "s3://kaena-vdi/lubuntu_20180525.img"
+checksumVdi = "eefa63e6cfa626f3f6ad0622f046b906637b0c4146854f707660da9ab7a71d55" # sha256sum
 
 def portInUse(port):
   inUse = True
@@ -60,7 +61,7 @@ parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
 parser.add_argument('--ifmaps', help='List of input images in sim ifmap format', nargs='+', default=None)
 args = parser.parse_args()
 if args.kelf == None:
-  raise(BaseException("ERROR: use --kelf"))
+  raise ValueError("ERROR: use --kelf")
 
 class Qemu:
   def __init__(self, vdi, mem, port):
@@ -72,11 +73,19 @@ class Qemu:
       print('INFO: copying vdi  "%s"' % cmd, flush=True)
       os.system(cmd)
     elif vdi[0:5].upper() == 'S3://':
-      cmd = "aws s3 cp %s %s %s" % (vdi, localVdi, "--profile kaena")
+      cmd = "aws s3 cp --quiet %s %s %s" % (vdi, localVdi, "--profile kaena")
       print('INFO: copying vdi from S3 by  "%s"' % cmd, flush=True)
       os.system(cmd)
+      cmd = "sha256sum %s" % localVdi
+      checksum = ""
+      with os.popen(cmd) as f:
+        checksum = f.read().split(" ")[0]
+      if checksum == checksumVdi:
+        print("INFO: verified vdi checksum for %s" % localVdi, flush=True)
+      else:
+        raise ValueError("ERROR: vdi checksum incorrect for %s  expected %s  got %s" % (localVdi, checksumVdi, checksum))
     else:
-      raise('ERROR: unknown vdi specification "%s"' % vdi)
+      raise ValueError('ERROR: unknown vdi specification "%s"' % vdi)
     assert os.path.isfile(localVdi)
     
     # Create on the fly to avoid issues with git chmod
@@ -140,7 +149,7 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
   def testGuest(self, phaseId, numAttempts):
     # Make sure the qemu quest is functional
     for attempId in range(numAttempts):
-      print("\nINFO: testGuest attempt %d" % attempId, flush=True)
+      print("\nINFO: testGuest  phase %d  attempt %d" % (phaseId, attempId), flush=True)
       testFile = "test_qemu_guest-%02d-%02d.txt" % (phaseId, attempId)
       testFileVm = "/tmp/" + testFile
       testFileReturned = testFile.replace(".txt", "-ret.txt")
@@ -194,10 +203,10 @@ class Krt:
   def install(self):
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
     if not os.path.isdir(runtimSrcPath):
-      raise("ERROR: missing runtime src at %s" % runtimSrcPath)
+      raise ValueError("ERROR: missing runtime src at %s" % runtimSrcPath)
     krtPackages = glob.glob(os.path.join(krtBldPath, "krt-*.*-uio-core.tar.gz"))
     if len(krtPackages) != 1:
-      raise("ERROR: Found {} runtime packages at {}".format(len(krtPackages), krtBldPath))
+      raise ValueError("ERROR: Found {} runtime packages at {}".format(len(krtPackages), krtBldPath))
     self.qemu.rsyncToVm(krtPackages[0], krtVmPath + "/")
     self.qemu.sshCmd("sudo tar xfz {} -C /usr/".format(krtVmPath + "/krt-*.*-uio-core.tar.gz"))
 
@@ -245,12 +254,12 @@ for qemuRestartId in range(3):
       krt.inference(ifmap, "out-local.bin")
     krt.stop()
   else:
-    print("ERROR: Failed to start Qemu, restarting ...")
+    print("ERROR: Failed to start Qemu  phase %d, restarting ..." % qemuRestartId)
   qemu.stop()
   if qemuOk:
     break
   else:
     time.sleep(60)  # qemu was still failing upon several restarts. Delay after stop() may help.
 if not qemuOk:
-    raise("Failed to start QEMU")
+    raise ValueError("Failed to start QEMU")
 
