@@ -224,6 +224,10 @@ public:
 
     kcc_uint64 size() const;
 
+    static std::string gSymbolicInputQueueName() {
+        return std::string(DmaDescription::gSymbolicInQueue());
+    }
+
 private:
     std::vector<DmaDescToTpb> m_Descs;
 }; // class DmaDescription::DmaBlockInput

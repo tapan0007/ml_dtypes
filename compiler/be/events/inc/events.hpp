@@ -19,6 +19,7 @@ namespace events {
 using EventId = kcc_int32;
 
 EventId EventId_Invalid();
+EventId EventId_StartInference();
 
 #if 0
 constexpr kcc_int32 KccMax3(kcc_int32 a, kcc_int32 b, kcc_int32 c)

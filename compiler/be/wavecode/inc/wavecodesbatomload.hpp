@@ -63,6 +63,9 @@ private:
     static void setInstructionEvents(compisa::SimMemCpyInstr& dramToStateBufInstr, bool first, bool last, 
                     events::EventId waitEventId, events::EventWaitMode waitEventMode,
                     events::EventId setEventId, events::EventSetMode setEventMode);
+
+private:
+    bool m_FirstInput = true;
 };
 
 }}

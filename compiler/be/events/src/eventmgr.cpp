@@ -435,7 +435,7 @@ EventMgr::EventState::init()
 {
     clearAll();
 
-    for (EventId eventId = ReservedEvent_FirstNonReserved; eventId < EventId_Invalid(); ++eventId) {
+    for (EventId eventId = ReservedEvent_FirstNonReserved; eventId < EventId_StartInference(); ++eventId) {
         addAvailable(eventId);
     }
 }

@@ -118,7 +118,7 @@ private:
     }
     static bool qEventRegular(EventId eventId) {
         return ReservedEvent_FirstNonReserved <= eventId
-               && eventId < EventId_Invalid();
+               && eventId < EventId_StartInference();
     }
 
 

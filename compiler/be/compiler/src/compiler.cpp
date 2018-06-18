@@ -146,7 +146,7 @@ Main(int argc, char* argv[])
             }
             JsonInFileName = argv[i+1];
             i += 1;
-        } else if (arg == "--wavegraph") {
+        } else if (arg == "--wavegraph" || arg == "-w") {
             if (JsonInFileName) {
                 std::cerr << "Must specify net" << "\n";
                 exit(1);
@@ -156,10 +156,8 @@ Main(int argc, char* argv[])
             i += 1;
         } else {
             std::cerr << "Wrong argument: " << arg << "\n";
-            std::cerr << "Legal argumens:\n";
-            std::cerr << "  --parallel_streams\n";
-            std::cerr << "  --wavegraph\n";
-            std::cerr << "  --json\n";
+            std::cerr << "Usage: " << argv[0]
+                      << "[[--parallel_streams] --wavegraph WAVEGRAPH.JSON|--json LAYER.JSON]\n";
             exit(1);
         }
 
@@ -180,16 +178,18 @@ Main(int argc, char* argv[])
 
     // Does not matter which DataType because entry index is 0.
     const utils::DataTypeFloat32 dtypeFloat32;
-    std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  "
-              << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
-    std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  "
-              << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
-    std::cout << "Arch: number all TPB events = "
-              << arch::Arch::gArch().gNumberAllTpbEvents()
-              << ", number reserved TPB events = "
-              << events::EventMgr::gNumberReservedTpbEvents()
-              << "\n";
-    std::cout << "Events: invalid EventId = " << events::EventId_Invalid() << "\n";
+    if (false) {
+        std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  "
+                << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
+        std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  "
+                << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
+        std::cout << "Arch: number all TPB events = "
+                << arch::Arch::gArch().gNumberAllTpbEvents()
+                << ", number reserved TPB events = "
+                << events::EventMgr::gNumberReservedTpbEvents()
+                << "\n";
+        std::cout << "Events: start inference EventId = " << events::EventId_StartInference() << "\n";
+    }
 
 #if 0
     const arch::StateBuffer stateBuf(arch.gStateBuffer());

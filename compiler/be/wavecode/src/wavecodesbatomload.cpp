@@ -530,17 +530,46 @@ WaveCodeSbAtomLoad::generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 
     /*const kcc_int32 numSyncs =*/ findSuccEventsAndChosenEngine(sbAtomLoadWaveop,
                                         chosenEngId, succEventIds);
+    // All input requests must come from the same engine so that none starts before
+    // that engine waits on start-inference signal => override chosen engine
+    chosenEngId = EngineId::Pooling;
 
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
     kelf::DmaDescription::DmaBlockInput& dmaBlock(kelfDma.startNewDmaBlockInput());
 
-    dmaBlock.addTailEventId(succEventIds[0]);
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         const kcc_uint64 fileAddress = sbAtomLoadWaveop->gOffsetInFile() + (partIdx * stepSize);
         const TpbAddress sbAddress = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
         dmaBlock.addDmaDesc(fileAddress, sbAddress, numBytesPerPart);
     }
+    dmaBlock.addTailEventId(succEventIds[0]);
+
+    //************************************************************************
+    compisa::DmaTriggerInstr dmaTriggerInstr;
+    strncpy(dmaTriggerInstr.dma_queue_name, 
+            dmaBlock.gSymbolicInputQueueName().c_str(),
+            ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
+    dmaTriggerInstr.use_raw_count = 0; // get from JSON
+    dmaTriggerInstr.block_id = dmaBlock.gBlockId();
+
+    if (m_FirstInput) {
+        m_FirstInput = false;
+        dmaTriggerInstr.inst_events.wait_event_idx  = events::EventId_StartInference();
+        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
+    } else {
+        dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    }
+    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
+    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    // dummy
+    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    dmaTriggerInstr.inst_events.set_event_idx   = 0;
+    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
 }
 
 //======================================================================

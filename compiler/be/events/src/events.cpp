@@ -16,6 +16,11 @@ namespace events {
 
 EventId EventId_Invalid()
 {
+    return -1;
+}
+
+EventId EventId_StartInference()
+{
     return arch::Arch::gArch().gNumberAllTpbEvents() - 1;
 }
 
