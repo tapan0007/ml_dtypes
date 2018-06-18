@@ -50,7 +50,13 @@ def portInUse(port):
         print("INFO portInUse: ", e, flush=True)
   return inUse
 
-
+def sha256checksum(fileName):
+  # Use unix instead of hashlib to ensure 100% match with the os cmd line
+  cmd = "sha256sum %s" % fileName
+  checksum = ""
+  with os.popen(cmd) as f:
+    checksum = f.read().split(" ")[0]
+  return checksum
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--action', help='Default is inference, others are vdi, build', default="inference")
@@ -64,29 +70,27 @@ if args.kelf == None:
   raise ValueError("ERROR: use --kelf")
 
 class Qemu:
-  def __init__(self, vdi, mem, port):
+  def __init__(self, restartId, vdi, mem, port):
     #qemuOpts = '-monitor stdio'
     qemuOpts = '-nographic'
-    localVdi = "copy.vdi"
+    self.restartId = restartId
+    self.localVdi = "copy.vdi"
     if os.path.isfile(vdi):
-      cmd = "/bin/cp %s %s" % (vdi, localVdi)
+      cmd = "/bin/cp %s %s" % (vdi, self.localVdi)
       print('INFO: copying vdi  "%s"' % cmd, flush=True)
       os.system(cmd)
     elif vdi[0:5].upper() == 'S3://':
-      cmd = "aws s3 cp --quiet %s %s %s" % (vdi, localVdi, "--profile kaena")
+      cmd = "aws s3 cp --quiet %s %s %s" % (vdi, self.localVdi, "--profile kaena")
       print('INFO: copying vdi from S3 by  "%s"' % cmd, flush=True)
       os.system(cmd)
-      cmd = "sha256sum %s" % localVdi
-      checksum = ""
-      with os.popen(cmd) as f:
-        checksum = f.read().split(" ")[0]
+      checksum = sha256checksum(self.localVdi)
       if checksum == checksumVdi:
-        print("INFO: verified vdi checksum for %s" % localVdi, flush=True)
+        print("INFO: verified vdi checksum for %s" % self.localVdi, flush=True)
       else:
-        raise ValueError("ERROR: vdi checksum incorrect for %s  expected %s  got %s" % (localVdi, checksumVdi, checksum))
+        raise ValueError("ERROR: vdi checksum incorrect for %s  expected %s  got %s" % (self.localVdi, checksumVdi, checksum))
     else:
       raise ValueError('ERROR: unknown vdi specification "%s"' % vdi)
-    assert os.path.isfile(localVdi)
+    assert os.path.isfile(self.localVdi)
     
     # Create on the fly to avoid issues with git chmod
     self.pemText = '''
@@ -120,18 +124,16 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
 '''
     self.pemFile = "%s/qemu.pem" % os.getcwd()
 
-    # remove file if exists..
-    try:
-        os.remove(self.pemFile)
-    except OSError:
-        pass
-
     with open(self.pemFile, 'w') as fhPem:
       fhPem.write(self.pemText)
 
     os.chmod(self.pemFile, stat.S_IREAD)
-
-    self.cmd = '%s %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % (qiPath, localVdi, mem, qemuOpts, port)
+    
+    qemuNoInkling = os.getenv("QEMU_NO_INKLING", None)
+    if qemuNoInkling == None:
+      self.cmd = '%s %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % (qiPath, self.localVdi, mem, qemuOpts, port)
+    else:
+      self.cmd = '%s %s -m %d                     %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % ("/usr/bin/qemu-system-x86_64", self.localVdi, mem, qemuOpts, port)
     if os.path.exists("/dev/kvm"):
         self.cmd += "  --enable-kvm "
     self.port = port
@@ -142,12 +144,13 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     cmd = 'sh -c "%s 2>&1 | tee log-qemu.txt"' % self.cmd
     print("INFO: starting Qemu  %s" % cmd, flush=True)
     self.fh = pexpect.spawn(cmd)
-    self.fh.expect("Inkling SOC")
+    self.fh.expect("QEMU")
     self.fh.send("\r")
     time.sleep(60)  # ssh to the qemu guest is getting random errors, maybe this can help
 
-  def testGuest(self, phaseId, numAttempts):
+  def testGuest(self, numAttempts):
     # Make sure the qemu quest is functional
+    phaseId = self.restartId
     for attempId in range(numAttempts):
       print("\nINFO: testGuest  phase %d  attempt %d" % (phaseId, attempId), flush=True)
       testFile = "test_qemu_guest-%02d-%02d.txt" % (phaseId, attempId)
@@ -166,17 +169,41 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
   
   def stop(self):
     self.rsyncFromVm("/var/log/syslog", ".")
+    checksum = sha256checksum(self.localVdi)
+    
+    # Remove vdi to reduce disk space (after printing its checksum for later forensics)
+    print("INFO: Qemu.stop: removing vdi file %s %s" % (self.localVdi, checksum), flush=True)
+    try:
+      os.remove(self.localVdi)
+    except OSError:
+      pass
+    
+    # Remove pem to avoid read-only file messages upon next restart
+    try:
+        os.remove(self.pemFile)
+    except OSError:
+        pass
+    
+    # Store previous attemp qemu logs
+    cmd = "tar cvzf logs-qemu-restart-%02d.tgz log-qemu*.txt" % self.restartId
+    print("INFO: Qemu.stop:  %s" % cmd)
+    os.system(cmd)
+    
+    # Clean up Qemu process
     try:
       self.fh.expect("Something non-existing to flush logs...", timeout=5)
     except:
-      pass
-    print("INFO: checking for zero-size files:", flush=True)
-    os.system("find -size 0")
+      pass    
     print("INFO: stopping QEMU")
     try:
       self.fh.close()
     except:
       pass
+
+    # Various reports
+    print("INFO: checking for zero-size files:", flush=True)
+    os.system("find -size 0")
+
   def rsyncToVm(self, fromDir, toVmDir, opts=None):
     cmd = '%s %s ubuntu@localhost:%s' % (self.cmdForRsync, fromDir, toVmDir)
     if opts != None:
@@ -243,9 +270,9 @@ for qemuRestartId in range(3):
   while portInUse(port):
     port += 3
   print("INFO: using available port %d  (--port was %d)" % (port, args.port))
-  qemu = Qemu(args.vdi, args.mem, args.port)
+  qemu = Qemu(qemuRestartId, args.vdi, args.mem, args.port)
   qemu.start()
-  if qemu.testGuest(qemuRestartId, 4):
+  if qemu.testGuest(4):
     qemuOk = True
     krt = Krt(qemu)
     krt.addModel(args.kelf, "/tmp/reg-1")
@@ -261,5 +288,5 @@ for qemuRestartId in range(3):
   else:
     time.sleep(60)  # qemu was still failing upon several restarts. Delay after stop() may help.
 if not qemuOk:
-    raise ValueError("Failed to start QEMU")
+    raise ValueError("ERROR: Failed to start QEMU")
 
