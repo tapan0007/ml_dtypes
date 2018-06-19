@@ -6,10 +6,12 @@ pipeline{
             dir 'test/jenkins'
             customWorkspace './docker-shared'
             args '-u root -v /home/jenkins:/home/jenkins -v /home/jenkins/kaena/.aws:/root/.aws -v $WORKSPACE:/artifact'
-            label 'kaena_c5.18xl'
+            label "${env.AGENT_LABEL}"
         }
     }
+
     environment {
+        AGENT_LABEL = "kaena_c5.18xl"
         SRC_DIR = "/workdir/src"
         BLD_DIR = "/workdir/build"
         TEST_DIR = "/workdir/test"
@@ -26,6 +28,7 @@ pipeline{
         KCC_BLD_DIR = "$BLD_DIR/kcc"
         QEMU_BLD_DIR = "$BLD_DIR/qemu"
     }
+
     stages {
         stage('Prep'){
             steps {
