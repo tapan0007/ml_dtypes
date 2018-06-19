@@ -34,8 +34,17 @@ qiPath = os.path.join(qiBldPath, "x86_64-softmmu", "qemu-system-x86_64")
 gitVmPath = '/home/ubuntu/git'
 krtVmPath = '/home/ubuntu/git/kaena-runtime'
 
-defaultVdi = "s3://kaena-vdi/lubuntu_20180525.img"
-checksumVdi = "eefa63e6cfa626f3f6ad0622f046b906637b0c4146854f707660da9ab7a71d55" # sha256sum
+# File paths / url and sha256sum
+vdis = {
+  "lubuntu1" : [
+    "s3://kaena-vdi/lubuntu_20180525.img",
+    "eefa63e6cfa626f3f6ad0622f046b906637b0c4146854f707660da9ab7a71d55" ],
+  "debian1" : [
+    "s3://kaena-vdi/debian-9.4.0.qcow",
+    "bf477b909bcca20c42e0c5026c5fad050a7aa926b5d567608486f842c8ad9ae6" ],
+  }
+
+defaultVdi, checksumVdi = vdis["debian1"]
 
 def portInUse(port):
   inUse = True
@@ -62,7 +71,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--action', help='Default is inference, others are vdi, build', default="inference")
 parser.add_argument('--vdi', help='Path to virtual disk image for the qemu VM. It can be file or S3 URL including options, the default is ' + defaultVdi, default=defaultVdi)
 parser.add_argument('--port', help='SSH port for the qemu VM', type=int, default=5555)
-parser.add_argument('--mem', help='Memory for the qemu VM, default 1024MB', type=int, default=1024)
+parser.add_argument('--mem', help='Memory for the qemu VM, default 512MB', type=int, default=512)
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
 parser.add_argument('--ifmaps', help='List of input images in sim ifmap format', nargs='+', default=None)
 args = parser.parse_args()
@@ -143,10 +152,10 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
   def start(self):
     cmd = 'sh -c "%s 2>&1 | tee log-qemu.txt"' % self.cmd
     print("INFO: starting Qemu  %s" % cmd, flush=True)
-    self.fh = pexpect.spawn(cmd)
+    self.fh = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
     self.fh.expect("QEMU")
     self.fh.send("\r")
-    time.sleep(60)  # ssh to the qemu guest is getting random errors, maybe this can help
+    time.sleep(30)  # ssh to the qemu guest is getting random errors, maybe this can help
 
   def testGuest(self, numAttempts):
     # Make sure the qemu quest is functional
@@ -286,7 +295,7 @@ for qemuRestartId in range(3):
   if qemuOk:
     break
   else:
-    time.sleep(60)  # qemu was still failing upon several restarts. Delay after stop() may help.
+    time.sleep(30)  # qemu was still failing upon several restarts. Delay after stop() may help.
 if not qemuOk:
     raise ValueError("ERROR: Failed to start QEMU")
 

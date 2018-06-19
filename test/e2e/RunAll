@@ -522,6 +522,9 @@ class Ktests:
         t = Ktest(testName, testName, cmd)
         self.process2test[p] = t
         self.name2test[testName] = t
+        if forceQemu:
+          time.sleep(15)
+          self.msg += "  force_qemu sleep 15"
       else:
         t = Ktest(testName, testName, cmd)
         self.name2test[testName] = t
