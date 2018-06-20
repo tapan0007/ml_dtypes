@@ -5,6 +5,7 @@
 
 #include <string>
 #include <cstdio>
+#include <sstream>
 
 
 #include "aws_tonga_isa_tpb_common.h"
@@ -135,7 +136,10 @@ protected:
                 instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
                 instr.inst_events.set_event_mode  = events::eventSetMode2Isa(
                                                 succWaveEdge->gSetEventMode());
-                SaveName(instr, waveop->gName().c_str());
+                std::ostringstream oss;
+                oss << waveop->gOrder() << "-" <<  waveop->gName();
+                SaveName(instr, oss.str().c_str());
+
                 m_WaveCode.writeInstruction(instr); // this requires template
                 instructionWritten = true;
             } else {

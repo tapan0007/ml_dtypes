@@ -794,7 +794,7 @@ class CircularBuffer:
               'layer_name'       : self.layer_name,
               'sb_address'       : sb_addr,
               'data_type'        : self.data_type,
-              'contain_weights'  : self.circbuf_type == "weights" or self.circbuf_type == "bias",
+              'contain_weights'  : (self.circbuf_type == "weights" or self.circbuf_type == "bias"),
               'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,

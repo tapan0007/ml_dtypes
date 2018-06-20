@@ -39,7 +39,10 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, event
 
             compisa::SetInstr setInstr;
             setInstr.event_idx  = evtId;
-            SaveName(setInstr, waveop->gName().c_str());
+
+            std::ostringstream oss;
+            oss << waveop->gOrder() << "-" << waveop->gName();
+            SaveName(setInstr, oss.str().c_str());
             m_WaveCode.writeInstruction(setInstr, engineId);
         }
     }

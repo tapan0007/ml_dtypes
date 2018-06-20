@@ -36,6 +36,7 @@ WaveCodeSbAtomSave::generate(wave::WaveOp* waveop)
 {
     auto sbAtomSaveWaveop = dynamic_cast<wave::SbAtomSaveWaveOp*>(waveop);
     Assert(sbAtomSaveWaveop, "Expecting Save waveop");
+    calcOutputSize(sbAtomSaveWaveop);
     if (qGenerateKelf()) {
         generateForKelf(sbAtomSaveWaveop);
     } else {
@@ -122,9 +123,9 @@ WaveCodeSbAtomSave::generateForSim(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
         statebufToDramInstr.dst_addr = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
 
         {
-            char buf[256];
-            sprintf(buf, "%s-%d", sbAtomSaveWaveop->gName().c_str(), partIdx);
-            SaveName(statebufToDramInstr, buf);
+            std::ostringstream oss;
+            oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName() << "-" <<partIdx;
+            SaveName(statebufToDramInstr, oss.str().c_str());
         }
         m_WaveCode.writeInstruction(statebufToDramInstr);
 
@@ -177,8 +178,12 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
 
     Assert(succEventIds.size() == 1, "AtomSave: only one succ event id");
     //************************************************************************
-    const bool qOut = sbAtomSaveWaveop->gSuccWaveEdges().size() == 0;
-    kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(chosenEngId, qOut));
+    //const bool qOut = sbAtomSaveWaveop->gSuccWaveEdges().size() == 0;
+    const bool qOut = sbAtomSaveWaveop-> qFinalLayerOfmap();
+    std::ostringstream oss;
+    oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName();
+    kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(
+                                        chosenEngId, qOut, oss.str().c_str()));
     const std::string refFileName(sbAtomSaveWaveop->gRefFileName());
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
@@ -218,6 +223,11 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ event is in desc
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    {
+        std::ostringstream oss;
+        oss << sbAtomSaveWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomSaveWaveop->gName();
+        SaveName(dmaTriggerInstr, oss.str().c_str());
+    }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     // dummy
     dmaTriggerInstr.inst_events.wait_event_idx  = 0;
@@ -306,6 +316,32 @@ WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWave
     }
     succEventIds.push_back(chosenPrevEdge->gEventId());
     return numSyncs;
+}
+
+void
+WaveCodeSbAtomSave::calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
+{
+    const bool qOut = sbAtomSaveWaveop-> qFinalLayerOfmap();
+    if (!qOut) {
+        return;
+    }
+    const utils::DataType&    dtype(sbAtomSaveWaveop->gDataType());
+    const std::array<kcc_int32,4>& shape(sbAtomSaveWaveop->gRefFileShape ());
+    kcc_int64 sz = dtype.gSizeInBytes();
+    for (auto n : shape) {
+        sz *= n;
+    }
+    kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
+    if (kelfDma.gOutputSizeBytes() < 0) {
+        kelfDma.rOutputSizeBytes(sz);
+    } else {
+        if (m_WaveCode.qBinFileRuntimeKelf()) {
+            Assert(kelfDma.gOutputSizeBytes() == sz,
+                "Previously calculated output size ", kelfDma.gOutputSizeBytes(),
+                " != current size ", sz, " from AtomSave ",
+                sbAtomSaveWaveop->gName());
+        }
+    }
 }
 
 }}

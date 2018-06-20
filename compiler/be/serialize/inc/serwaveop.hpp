@@ -42,6 +42,8 @@ constexpr static const char* WaveOpKey_PreviousEventIds         = "previous_even
 constexpr static const char* WaveOpKey_PreviousEventWaitModes   = "previous_event_wait_modes";
 constexpr static const char* WaveOpKey_PreviousEventSetModes    = "previous_event_set_modes";
 
+constexpr static const char* WaveOpKey_Order                    = "order";
+
 
 // MatMul
 constexpr static const char* WaveOpKey_BatchingInWave       = "batching_in_wave";
@@ -426,6 +428,8 @@ public:
     bool                        m_IfmapsReplicate               = false; // SbAtomLoad
 
     kcc_int32                   m_SrcStepElem                   = -1; // SbAtomLoad
+
+    kcc_int32                   m_Order                         = -1;
 }; // class SerWaveOp
 
 

@@ -23,6 +23,8 @@ using json = nlohmann::json;
 ***********************************************************************/
 DmaDescription::DmaDescription(const nets::Network& network)
     : m_Network(network)
+    , m_InputSizeBytes(-1)
+    , m_OutputSizeBytes(-1)
 {
 }
 
@@ -60,10 +62,10 @@ DmaDescription::gNumBlockIdsForQueue(const std::string& queName) const
 /***********************************************************************
 ***********************************************************************/
 auto
-DmaDescription::startNewDmaBlockToTpb(EngineId engId, bool qWeights)
+DmaDescription::startNewDmaBlockToTpb(EngineId engId, bool qWeights, const char* comment)
     -> DmaBlockToTpb&
 {
-    m_DmaBlocksToTpb.push_back(DmaBlockToTpb(*this, engId, qWeights));
+    m_DmaBlocksToTpb.push_back(DmaBlockToTpb(*this, engId, qWeights, comment));
     return m_DmaBlocksToTpb[m_DmaBlocksToTpb.size()-1];
 }
 
@@ -71,20 +73,20 @@ DmaDescription::startNewDmaBlockToTpb(EngineId engId, bool qWeights)
 /***********************************************************************
 ***********************************************************************/
 auto
-DmaDescription::startNewDmaBlockFromTpb(EngineId engId, bool qOut)
+DmaDescription::startNewDmaBlockFromTpb(EngineId engId, bool qOut, const char* comment)
     -> DmaBlockFromTpb&
 {
-    m_DmaBlocksFromTpb.push_back(DmaBlockFromTpb(*this, engId, qOut));
+    m_DmaBlocksFromTpb.push_back(DmaBlockFromTpb(*this, engId, qOut, comment));
     return m_DmaBlocksFromTpb[m_DmaBlocksFromTpb.size()-1];
 }
 
 /***********************************************************************
 ***********************************************************************/
 auto
-DmaDescription::startNewDmaBlockInput()
+DmaDescription::startNewDmaBlockInput( const char* comment)
     -> DmaBlockInput&
 {
-    m_DmaBlocksInput.push_back(DmaBlockInput(*this));
+    m_DmaBlocksInput.push_back(DmaBlockInput(*this, comment));
     return m_DmaBlocksInput[ m_DmaBlocksInput.size()-1];
 }
 
@@ -184,9 +186,9 @@ auto DmaDescription::gFileSymbolicId(const std::string& fileName)
 {
     auto it = m_FileNameToId.find(fileName);
     if (m_FileNameToId.end() == it) {
-        char buf[256];
-        snprintf(buf, sizeof(buf)/sizeof(buf[0])-1, "$F%d", m_FileIdCnt++);
-        FileIdType fileId(buf);
+        std::ostringstream oss;
+        oss << "$F" << m_FileIdCnt++;
+        FileIdType fileId(oss.str().c_str());
         m_FileNameToId[fileName] = fileId;
         return fileId;
     } else {
@@ -215,9 +217,9 @@ DmaDescription::gSymbolicQueue(EngineId engId, bool inpt, bool weight) const
         engName = nullptr;
         break;
     }
-    char buf[256];
-    sprintf(buf, "$%s_%s", engName, inpt ? (weight ? "in_w" : "in_d") : "out");
-    return std::string(buf);
+    std::ostringstream oss;
+    oss << "$" << engName << "_" << (inpt ? (weight ? "in_w" : "in_d") : "out");
+    return std::string(oss.str().c_str());
 }
 
 
@@ -260,6 +262,7 @@ DmaDescription::writeDmaDescriptors(
         jBlockToTpb["queue"]    = dmaBlockToTpb.gQueueName();
         jBlockToTpb["id"]       = dmaBlockToTpb.gBlockId();
         jBlockToTpb["event"]    = dmaBlockToTpb.gEventId();
+        jBlockToTpb["#comment"] = dmaBlockToTpb.gComment();
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlockToTpb.gDescs()) {
@@ -289,6 +292,7 @@ DmaDescription::writeDmaDescriptors(
         jBlockFromTpb["queue"]      = dmaBlockFromTpb.gQueueName();
         jBlockFromTpb["event"]      = dmaBlockFromTpb.gEventId();
         jBlockFromTpb["id"]         = dmaBlockFromTpb.gBlockId();
+        jBlockFromTpb["#comment"]   = dmaBlockFromTpb.gComment();
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlockFromTpb.gDescs()) {
@@ -392,11 +396,8 @@ DmaDescription::writeDefinitions()
             json varDesc;
 
             varDesc["type"] = "io";
-            kcc_int64 numInBytes = 0;
-            for (const auto& inBlock : m_DmaBlocksInput) {
-                numInBytes += inBlock.size();
-            }
-            varDesc["size"] = numInBytes;
+            Assert(gInputSizeBytes() > 0, "Number of input bytes must be positive");
+            varDesc["size"] = gInputSizeBytes();
             if (false) { // to be used by RT to verify incoming requests
                 varDesc["tensor_dtype"]         = m_Network.gInDataType().gName();
                 varDesc["tensor_format"]        = m_Network.gInTensorFormat();
@@ -408,13 +409,7 @@ DmaDescription::writeDefinitions()
         {
             json varDesc;
             varDesc["type"] = "io";
-            kcc_int64 numOutBytes = 0;
-            for (const auto& outBlock : m_DmaBlocksFromTpb) {
-                if (outBlock.qOut()) {
-                    numOutBytes += outBlock.size();
-                }
-            }
-            varDesc["size"] = numOutBytes;
+            varDesc["size"] = gOutputSizeBytes();
             jVars[gSymbolicOutput()] = varDesc;
         }
 
@@ -450,6 +445,7 @@ DmaDescription::writeInOutDescriptors()
         jDmaBlock["queue"]  = gSymbolicInQueue();
         jDmaBlock["event"]  = dmaBlock.gEventId();
         jDmaBlock["id"]     = dmaBlock.gBlockId();
+        jDmaBlock["#comment"] = dmaBlock.gComment();
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlock.gDescs()) {
@@ -473,9 +469,11 @@ DmaDescription::writeInOutDescriptors()
         }
         json jDmaBlock;
         jDmaBlock["queue"]  = gSymbolicOutQueue();
-        // Output queues are polled.
-        //jDmaBlock["event"]  = dmaBlock.gEventId();
+        // Output queues are polled, but events are used for
+        // TPB to know DMA transfer end.
+        jDmaBlock["event"]  = dmaBlock.gEventId();
         jDmaBlock["id"]     = dmaBlock.gBlockId();
+        jDmaBlock["#comment"] = dmaBlock.gComment();
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlock.gDescs()) {

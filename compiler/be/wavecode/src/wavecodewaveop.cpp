@@ -48,7 +48,11 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
         compisa::WaitInstr waitInstr;
         waitInstr.event_idx         = waveEdge->gEventId();
         waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
-        SaveName(waitInstr, waveEdge->gToOp()->gName().c_str());
+
+        const wave::WaveOp* const waveop = waveEdge->gToOp();
+        std::ostringstream oss;
+        oss << waveop->gOrder() << "-" << waveop->gName();
+        SaveName(waitInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(waitInstr, engineId);
         break;
     }
@@ -59,7 +63,11 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
         nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(waitEventMode);
         nopInstr.inst_events.set_event_idx    = 0;
         nopInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-        SaveName(nopInstr, waveEdge->gFromOp()->gName().c_str());
+
+        const wave::WaveOp* const waveop = waveEdge->gFromOp();
+        std::ostringstream oss;
+        oss << waveop->gOrder() << "-" << waveop->gName();
+        SaveName(nopInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(nopInstr, engineId);
         break;
     }
@@ -69,14 +77,22 @@ WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, Engine
             compisa::WaitInstr waitInstr;
             waitInstr.event_idx         = waveEdge->gEventId();
             waitInstr.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::WaitOnly);
-            SaveName(waitInstr, waveEdge->gToOp()->gName().c_str());
+
+            const wave::WaveOp* const waveop = waveEdge->gToOp();
+            std::ostringstream oss;
+            oss << waveop->gOrder() << "-" << waveop->gName();
+            SaveName(waitInstr, oss.str().c_str());
             m_WaveCode.writeInstruction(waitInstr, engineId);
         }
 
         if (waitEventMode == events::EventWaitMode::WaitThenClear) {
             compisa::ClearInstr clearInstr;
             clearInstr.event_idx  = waveEdge->gEventId();
-            SaveName(clearInstr, waveEdge->gToOp()->gName().c_str());
+
+            const wave::WaveOp* const waveop = waveEdge->gToOp();
+            std::ostringstream oss;
+            oss << waveop->gOrder() << "-" << waveop->gName();
+            SaveName(clearInstr, oss.str().c_str());
             m_WaveCode.writeInstruction(clearInstr, engineId);
         }
         break;
@@ -235,7 +251,10 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
         ++numSyncs;
         compisa::SetInstr setEventInstr;
         setEventInstr.event_idx = evtId;
-        SaveName(setEventInstr, waveop->gName().c_str());
+
+        std::ostringstream oss;
+        oss << waveop->gOrder() << "-" << waveop->gName();
+        SaveName(setEventInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
     }
     return numSyncs;

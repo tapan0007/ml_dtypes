@@ -271,6 +271,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             serWaveOp.addPreviousEventWaitMode(prevWaveEdge->gWaitEventMode());
             serWaveOp.addPrevEventSetMode(prevWaveEdge->gSetEventMode());
         }
+        serWaveOp.m_Order = waveOp->gOrder();
 
         if (auto sbatomWaveOp = dynamic_cast<const wave::SbAtomWaveOp*>(waveOp)) {
             m_Save->saveSbAtom(sbatomWaveOp, serWaveOp);

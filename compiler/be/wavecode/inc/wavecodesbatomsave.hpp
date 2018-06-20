@@ -47,6 +47,8 @@ private:
                     EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
     kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
                         EngineId& chosenEngId, std::vector<events::EventId>& succEventIds);
+
+    void calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveop);
 };
 
 

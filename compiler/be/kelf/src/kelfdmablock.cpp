@@ -8,8 +8,9 @@ namespace kelf {
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlock::DmaBlock(DmaDescription& dmaDescription)
+DmaDescription::DmaBlock::DmaBlock(DmaDescription& dmaDescription, const char* comment)
     : m_DmaDescription(dmaDescription)
+    , m_Comment(comment)
 {
 }
 
@@ -25,8 +26,8 @@ DmaDescription::DmaBlock::addTailEventId(events::EventId eventId)
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription& dmaDescription, EngineId engId)
-    : DmaBlock(dmaDescription)
+DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription& dmaDescription, EngineId engId, const char* comment)
+    : DmaBlock(dmaDescription, comment)
     , m_EngineId(engId)
 { }
 
@@ -35,8 +36,8 @@ DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription& dmaDescription, Eng
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockToTpb::DmaBlockToTpb(DmaDescription& dmaDescription, EngineId engId, bool qWeights)
-    : DmaBlockNonIo(dmaDescription, engId)
+DmaDescription::DmaBlockToTpb::DmaBlockToTpb(DmaDescription& dmaDescription, EngineId engId, bool qWeights, const char* comment)
+    : DmaBlockNonIo(dmaDescription, engId, comment)
     , m_QWeights(qWeights)
 {
     m_QueueName = m_DmaDescription.gSymbolicQueue(engId, true, qWeights);
@@ -60,8 +61,8 @@ DmaDescription::DmaBlockToTpb::addDmaDesc(TongaAddress srcFileAddress,
 /***********************************************************************
 ***********************************************************************/
 DmaDescription::DmaBlockFromTpb::DmaBlockFromTpb(DmaDescription& dmaDescription,
-        EngineId engId, bool qOut)
-    : DmaBlockNonIo(dmaDescription, engId)
+        EngineId engId, bool qOut, const char* comment)
+    : DmaBlockNonIo(dmaDescription, engId, comment)
     , m_QOut(qOut)
 {
     if (qOut) {
@@ -90,8 +91,8 @@ DmaDescription::DmaBlockFromTpb::addDmaDesc(TpbAddress srcTpbSbAddress,
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockInput::DmaBlockInput(DmaDescription& dmaDescription)
-    : DmaBlock(dmaDescription)
+DmaDescription::DmaBlockInput::DmaBlockInput(DmaDescription& dmaDescription, const char* comment)
+    : DmaBlock(dmaDescription, comment)
 {
     m_QueueName = m_DmaDescription.gSymbolicInQueue();
     m_BlockId = m_DmaDescription.gBlockIdForQueue(m_QueueName);

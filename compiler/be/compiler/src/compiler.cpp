@@ -374,6 +374,12 @@ Main(int argc, char* argv[])
             waveCode.generate(instrStreams, ParallelStreams);
 
             fclose(file);
+
+            instrStreams.m_StreamProcInstrStream    = nullptr;
+            instrStreams.m_PeArrayInstrStream       = nullptr;
+            instrStreams.m_PoolEngInstrStream       = nullptr;
+            instrStreams.m_ActEngInstrStream        = nullptr;
+            instrStreams.m_DmaInstrStream           = nullptr;
         }
 
 

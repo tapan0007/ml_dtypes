@@ -64,6 +64,8 @@ private:
                     events::EventId waitEventId, events::EventWaitMode waitEventMode,
                     events::EventId setEventId, events::EventSetMode setEventMode);
 
+
+    void calcInputSize(const wave::SbAtomLoadWaveOp* sbAtomLoadWaveop);
 private:
     bool m_FirstInput = true;
 };

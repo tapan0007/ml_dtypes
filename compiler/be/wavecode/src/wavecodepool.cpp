@@ -121,7 +121,9 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     }
 
     if (! instructionWritten) {
-        SaveName(poolInstr, poolWaveop->gName().c_str());
+        std::ostringstream oss;
+        oss << poolWaveop->gOrder() << "-" << poolWaveop->gName();
+        SaveName(poolInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(poolInstr);
     }
 }

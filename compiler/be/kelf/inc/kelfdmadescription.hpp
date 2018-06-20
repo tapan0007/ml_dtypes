@@ -41,14 +41,28 @@ public:
     DmaDescription(const DmaDescription&) = delete;
 
 public:
-    DmaBlockToTpb&      startNewDmaBlockToTpb(EngineId engId, bool qWeights);
-    DmaBlockFromTpb&    startNewDmaBlockFromTpb(EngineId engId, bool qOut);
-    DmaBlockInput&      startNewDmaBlockInput();
+    DmaBlockToTpb&      startNewDmaBlockToTpb(EngineId engId, bool qWeights, const char* comment);
+    DmaBlockFromTpb&    startNewDmaBlockFromTpb(EngineId engId, bool qOut, const char* comment);
+    DmaBlockInput&      startNewDmaBlockInput(const char* comment);
 
     void writeDmaDescriptors(const char* binFileName, EngineId engId);
 
     void writeInOutDescriptors();
     void writeDefinitions();
+
+    kcc_int64 gInputSizeBytes() const {
+        return m_InputSizeBytes;
+    }
+    void rInputSizeBytes(kcc_int64 sz) {
+        m_InputSizeBytes = sz;
+    }
+
+    kcc_int64 gOutputSizeBytes() const {
+        return m_OutputSizeBytes;
+    }
+    void rOutputSizeBytes(kcc_int64 sz) {
+        m_OutputSizeBytes = sz;
+    }
 
 private:
     static const char* gSymbolicOutput();
@@ -66,8 +80,8 @@ private:
     const char* gJsonFileName(EngineId engId);
     const char* gEngineName(EngineId engId);
 
-    kcc_int32 gBlockIdForQueue(const std::string&);
-    kcc_int32 gNumBlockIdsForQueue(const std::string&) const;
+    kcc_int32 gBlockIdForQueue(const std::string& queName);
+    kcc_int32 gNumBlockIdsForQueue(const std::string& queName) const;
 
 private:
     kcc_int32                           m_FileIdCnt = 0;
@@ -84,6 +98,9 @@ private:
     const char* const                   m_DefJsonFileName   = "def.json";
 
     const nets::Network&                m_Network;
+
+    kcc_int64                           m_InputSizeBytes         = -1;
+    kcc_int64                           m_OutputSizeBytes        = -1;
 }; // class DmaDescription
 
 
@@ -167,7 +184,7 @@ private:
 ***********************************************************************/
 class DmaDescription:: DmaBlock {
 public:
-    DmaBlock(DmaDescription& dmaDescription);
+    DmaBlock(DmaDescription& dmaDescription, const char* comment);
     DmaBlock() = delete;
 
     void addTailEventId(events::EventId eventId);
@@ -181,12 +198,16 @@ public:
     const std::string& gQueueName() const {
         return m_QueueName;
     }
+    const std::string& gComment() const {
+        return m_Comment;
+    }
 
 protected:
     DmaDescription&                 m_DmaDescription;
     std::vector<events::EventId>    m_TailEventIds;
     kcc_int32                       m_BlockId;
     std::string                     m_QueueName;
+    const std::string               m_Comment;
 }; // class DmaDescription::DmaBlock
 
 
@@ -194,7 +215,7 @@ protected:
 ***********************************************************************/
 class DmaDescription::DmaBlockNonIo : public DmaBlock {
 public:
-    DmaBlockNonIo(DmaDescription& dmaDescription, EngineId engId);
+    DmaBlockNonIo(DmaDescription& dmaDescription, EngineId engId, const char* comment);
     DmaBlockNonIo() = delete;
 
     EngineId gTriggerEngineId() const {
@@ -210,7 +231,7 @@ protected:
 ***********************************************************************/
 class DmaDescription::DmaBlockInput : public DmaBlock {
 public:
-    DmaBlockInput(DmaDescription& dmaDescription);
+    DmaBlockInput(DmaDescription& dmaDescription, const char* comment);
     DmaBlockInput() = delete;
 
     void addDmaDesc(kcc_uint64 srcFileAddress,
@@ -238,7 +259,7 @@ private:
 ***********************************************************************/
 class DmaDescription::DmaBlockToTpb : public DmaDescription::DmaBlockNonIo {
 public:
-    DmaBlockToTpb(DmaDescription& dmaDescription, EngineId engId, bool qWeights);
+    DmaBlockToTpb(DmaDescription& dmaDescription, EngineId engId, bool qWeights, const char* comment);
     DmaBlockToTpb() = delete;
 
     void addDmaDesc(TongaAddress srcFileAddress, const std::string& refFile,
@@ -270,7 +291,7 @@ private:
 ***********************************************************************/
 class DmaDescription::DmaBlockFromTpb : public DmaDescription::DmaBlockNonIo {
 public:
-    DmaBlockFromTpb(DmaDescription& dmaDescription, EngineId engId, bool qOut);
+    DmaBlockFromTpb(DmaDescription& dmaDescription, EngineId engId, bool qOut, const char* comment);
     DmaBlockFromTpb() = delete;
 
     kcc_int32 gId() const;

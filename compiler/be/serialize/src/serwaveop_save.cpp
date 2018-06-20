@@ -18,6 +18,7 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
     KCC_ARCHIVE(PreviousEventIds);
     KCC_ARCHIVE(PreviousEventWaitModes);
     KCC_ARCHIVE(PreviousEventSetModes);
+    KCC_ARCHIVE(Order);
 
 
     if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad ||

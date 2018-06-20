@@ -168,7 +168,9 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     //************************************************************************
     {
-        SaveName(ldweightsInstr, matmulWaveop->gName().c_str());
+        std::ostringstream oss;
+        oss << matmulWaveop->gOrder() << "-" <<  matmulWaveop->gName();
+        SaveName(ldweightsInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(ldweightsInstr);
 }
@@ -281,7 +283,9 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
         instructionWritten = processOutgoingEdges(matmulWaveop, matmulInstr);
     }
     if (! instructionWritten) {
-        SaveName(matmulInstr, matmulWaveop->gName().c_str());
+        std::ostringstream oss;
+        oss << matmulWaveop->gOrder() << "-" << matmulWaveop->gName();
+        SaveName(matmulInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(matmulInstr);
     }
 }

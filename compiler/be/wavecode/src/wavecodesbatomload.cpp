@@ -44,6 +44,7 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
 {
     const auto sbAtomLoadWaveOp = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveOp);
     assert(sbAtomLoadWaveOp);
+    calcInputSize(sbAtomLoadWaveOp);
     if (qGenerateKelf()) {
         if (sbAtomLoadWaveOp->qContainWeights() || m_WaveCode.qBinFileSimKelf()) {
             generateForKelf(sbAtomLoadWaveOp);
@@ -165,9 +166,10 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveO
         dramToStateBufInstr.dst_addr = stateBuf.gEntryTongaAddress(partIdx, addressInPart);
 
         {
-            char buf[256];
-            sprintf(buf, "%s-%d", sbAtomLoadWaveOp->gName().c_str(), partIdx);
-            SaveName(dramToStateBufInstr, buf);
+            std::ostringstream oss;
+            oss << sbAtomLoadWaveOp->gOrder() << "-" 
+                << sbAtomLoadWaveOp->gName()  << "-" << partIdx;
+            SaveName(dramToStateBufInstr, oss.str().c_str());
         }
         m_WaveCode.writeInstruction(dramToStateBufInstr);
     }
@@ -292,10 +294,11 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
                                                                             // + c_idx * 6272
                 dramToStateBufInstr.dst_addr = sbTongaAddress;
                 {
-                    char buf[256];
-                    sprintf(buf, "%s-p%dc%d", sbAtomLoadWaveop->gName().c_str(),
-                            part, c_idx);
-                    SaveName(dramToStateBufInstr, buf);
+                    std::ostringstream oss;
+                    oss << sbAtomLoadWaveop->gOrder()
+                        << "-" << sbAtomLoadWaveop->gName()
+                        << "-p" << part << "c" << c_idx;
+                    SaveName(dramToStateBufInstr, oss.str().c_str());
                 }
                 m_WaveCode.writeInstruction(dramToStateBufInstr);
 
@@ -338,10 +341,12 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
                     dramToStateBufInstr.src_addr = npyFileDramOffset + filePartAddress;
                     dramToStateBufInstr.dst_addr = sbTongaAddress;
                     {
-                        char buf[256];
-                        sprintf(buf, "%s-p%ds%dc%d", sbAtomLoadWaveop->gName().c_str(),
-                                activePartCnt + strideIdx*numChans + c_idx, strideIdx, c_idx);
-                        SaveName(dramToStateBufInstr, buf);
+                        std::ostringstream oss;
+                        oss << sbAtomLoadWaveop->gOrder()
+                            << "-"  << sbAtomLoadWaveop->gName()
+                            << "-p" << (activePartCnt + strideIdx*numChans + c_idx)
+                            << "s"  << strideIdx << "c"  << c_idx;
+                        SaveName(dramToStateBufInstr, oss.str().c_str());
                     }
                     m_WaveCode.writeInstruction(dramToStateBufInstr);
 
@@ -461,8 +466,11 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     Assert(succEventIds.size() == 1, "AtomLoad: only one succ event id");
     //************************************************************************
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
+
+    std::ostringstream oss;
+    oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
     kelf::DmaDescription::DmaBlockToTpb& dmaBlock(
-                        kelfDma.startNewDmaBlockToTpb(chosenEngId, weights));
+                        kelfDma.startNewDmaBlockToTpb(chosenEngId, weights, oss.str().c_str()));
     const std::string& refFileName(sbAtomLoadWaveop->gRefFileName());
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
@@ -502,7 +510,15 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    {
+        std::ostringstream oss;
+        oss << sbAtomLoadWaveop->gOrder()
+            << ":" << succEventIds[0]
+            << "-" << sbAtomLoadWaveop->gName();
+        SaveName(dmaTriggerInstr, oss.str().c_str());
+    }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+
     // dummy
     dmaTriggerInstr.inst_events.wait_event_idx  = 0;
     dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
@@ -536,7 +552,9 @@ WaveCodeSbAtomLoad::generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
-    kelf::DmaDescription::DmaBlockInput& dmaBlock(kelfDma.startNewDmaBlockInput());
+    std::ostringstream oss;
+    oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
+    kelf::DmaDescription::DmaBlockInput& dmaBlock(kelfDma.startNewDmaBlockInput(oss.str().c_str()));
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         const kcc_uint64 fileAddress = sbAtomLoadWaveop->gOffsetInFile() + (partIdx * stepSize);
@@ -563,6 +581,13 @@ WaveCodeSbAtomLoad::generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
     }
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    {
+        std::ostringstream oss;
+        oss << sbAtomLoadWaveop->gOrder()
+            << ":" << succEventIds[0]
+            << "-" << sbAtomLoadWaveop->gName();
+        SaveName(dmaTriggerInstr, oss.str().c_str());
+    }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     // dummy
     dmaTriggerInstr.inst_events.wait_event_idx  = 0;
@@ -624,7 +649,11 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
 
     const std::string& refFileName(sbAtomLoadWaveop->gRefFileName());
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
-    kelf::DmaDescription::DmaBlockToTpb& dmaBlock(kelfDma.startNewDmaBlockToTpb(chosenEngId, qWeights));
+
+    std::ostringstream oss;
+    oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
+    kelf::DmaDescription::DmaBlockToTpb& dmaBlock(kelfDma.startNewDmaBlockToTpb(
+                                                    chosenEngId, qWeights, oss.str().c_str()));
     if (qWeights) {
         Assert(1 == replStepElem, "Load weights should have stride 1 in replication");
 
@@ -681,6 +710,11 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
     dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    {
+        std::ostringstream oss;
+        oss << sbAtomLoadWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomLoadWaveop->gName();
+        SaveName(dmaTriggerInstr, oss.str().c_str());
+    }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     // dummy
     dmaTriggerInstr.inst_events.wait_event_idx  = 0;
@@ -830,6 +864,27 @@ WaveCodeSbAtomLoad::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWave
     return numSyncs;
 }
 
+
+/***********************************************************************
+***********************************************************************/
+void
+WaveCodeSbAtomLoad::calcInputSize(const wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
+{
+    if (sbAtomLoadWaveop->qContainWeights()) { // ifmap
+        return;
+    }
+    kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
+    if (kelfDma.gInputSizeBytes() > 0) { // only look at first non-weight load, other
+        return;                          // loads could be from some intermediate saves
+    }
+    const utils::DataType&    dtype(sbAtomLoadWaveop->gDataType());
+    const std::array<kcc_int32,4>& shape(sbAtomLoadWaveop->gRefFileShape ());
+    kcc_int64 sz = dtype.gSizeInBytes();
+    for (auto n : shape) {
+        sz *= n;
+    }
+    kelfDma.rInputSizeBytes(sz);
+}
 
 }}
 
