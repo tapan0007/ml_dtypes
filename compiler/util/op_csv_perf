@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2017, Amazon.com. All Rights Reserved
+#
+# Analyze and predict performance based on TFFE ops.csv 
+#
+
+import csv, os, argparse, re
+import numpy as np
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--csv', help='Op csv file from tffe', default=None)
+args = parser.parse_args()
+
+
+class Op(object):
+  def __init__(self, opName, opType, outputShape, input0Shape, input1Shape, opArgs):
+    self.opName = opName
+    self.opType = opType
+    self.outputShape = eval(outputShape)
+    self.input0Shape = eval(input0Shape)
+    self.input1Shape = eval(input1Shape)
+    self.opArgs = opArgs
+    #print("INFO: added op " + "  ".join([opName, opType, outputShape, input0Shape, input1Shape]))
+
+class Conv2D(Op):
+  def __init__(self, opName, opType, outputShape, input0Shape, input1Shape, opArgs):
+    Op.__init__(self, opName, opType, outputShape, input0Shape, input1Shape, opArgs)
+    (self.N, self.H, self.W, self.M) = self.outputShape
+    (self.N1, self.Hin, self.Win, self.C) = self.input0Shape
+    (self.R, self.S, self.C1, self.M1) = self.input1Shape
+    assert self.M == self.M1
+    assert self.C == self.C1
+    match = re.search(r'Gop (\S+) GopPad (\S+)', opArgs)
+    if match:
+      self.opsEff = 1e9 * float(match.groups(0)[0])
+      self.opsPadded = 1e9 * float(match.groups(0)[1])
+    else:
+      assert(0)
+  
+  def scaleToEff(self):
+    return self.opsEff / self.opsPadded
+  def opCountEff(self):
+    return self.opCountRaw() * self.scaleToEff()
+  def opCountRaw(self):
+    return 2 * self.H * self.W * self.R * self.S * self.C * self.M * self.N
+  def cycleCount(self, mode, dram):
+    cycles = -1
+    if mode == 'default':
+      m = 1 + (self.M - 1) // 64
+      c = 1 + (self.C - 1) // 128
+      hw = self.H * self.W
+      if 64 <= hw and hw <= 256:
+        cycles = hw * self.R * self.S * m * c * self.N
+      else:
+        hwn = 1 + (self.H * self.W * self.N - 1) // 128
+        cycles = 128 * self.R * self.S * m * c * hwn
+    elif mode == 'replic_all':
+      m = 1 + (self.M - 1) // 64
+      rsc = 1 + (self.R * self.S * self.C - 1) // 128
+      hw = self.H * self.W
+      if 64 <= hw and hw <= 256:
+        cycles = hw * rsc * m * self.N
+      else:
+        hwn = 1 + (self.H * self.W * self.N - 1) // 128
+        cycles = 128 * rsc * m * hwn
+    elif mode == 'replic_first':
+      if self.C == 3:
+        cycles = self.cycleCount('replic_all', 'fast')
+      else:
+        cycles = self.cycleCount('default', 'fast')
+      cycles /= self.scaleToEff()
+    cyclesPe = cycles * self.scaleToEff()
+    
+    # Adjust for dram
+    bytesPerCycle = -1
+    if dram == 'fast':
+      bytesPerCycle = 1e9
+    elif dram == '1bank':
+      bytesPerCycle = 19
+    elif dram == '2bank':
+      bytesPerCycle = 38
+    else:
+      bytesPerSec = 64
+    bytesWeight = np.empty(dtype=np.float16, shape=self.input1Shape).nbytes
+    cyclesDram = bytesWeight / bytesPerCycle
+    
+    cycles = max(cyclesDram, cyclesPe)
+    return cycles 
+
+class OpCsv(object):
+  def __init__(self, csvFile):
+    self.ops = []
+    with open(csvFile) as fh:
+      csvReader = csv.DictReader(fh, delimiter=',')
+      for row in csvReader:
+        #print('DEBUG row:  ', row)
+        opName = row["OpName"]
+        opType = row["OpType"]
+        outputShape = row["Output0Shape"]
+        input0Shape = row["Input0Shape"]
+        input1Shape = row["Input1Shape"]
+        opArgs = row["OpArgs"]
+        if opType == "Conv2D":
+          op = Conv2D(opName, opType, outputShape, input0Shape, input1Shape, opArgs)
+          self.ops.append(op)
+  def opCountRaw(self):
+    return sum([op.opCountRaw() for op in self.ops])
+  def opCountEff(self):
+    return sum([op.opCountEff() for op in self.ops])
+  def cycleCount(self, mode, dram):
+    return sum([op.cycleCount(mode, dram) for op in self.ops])
+
+opCsv = OpCsv(args.csv)
+opCountRaw = opCsv.opCountRaw()
+print("OpCountRaw: %-8d" % opCountRaw)
+opCountEff = opCsv.opCountEff()
+print("OpCountEff: %-8d" % opCountEff)
+cycles100pct = 1.0 * opCountRaw / (128 * 64 * 2)
+print("CyclesAt100pctPEutilization: %-8d  or  %.3f ms" % (cycles100pct, cycles100pct / 1e9 * 1e3))
+print("PE utilization [%]:")
+for dram in ['fast', '1bank', '2bank', '4bank']:
+  for mode in ["default", "replic_first", "replic_all"]:
+    cycleCount = opCsv.cycleCount(mode, dram)
+    peU = 100.0 * cycles100pct / cycleCount
+    print("  %-8s  %-12s %5.1f" % (dram, mode, peU))
+  print()
+  
+

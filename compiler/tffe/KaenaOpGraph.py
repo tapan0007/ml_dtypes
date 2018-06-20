@@ -636,7 +636,8 @@ class NodeConv2D(NodeBasePaddedStrided):
       dotText += " BT(%d) %d-%d-%d" % (Config.Tpb.numTpb, targetBatchRoofLine,
                                        targetBatchImgMin, targetBatchImgOpt)
       # Ops
-      dotText += "\nGop %.3f" % (opCount / Config.Tpb.freq)
+      dotText += "\nGop %.6f" % (opCount / 1e9)
+      dotText += "\nGopPad %.6f" % (self.getOpCount(padded=True) / 1e9)
     else:
       dotText += "\n" + str(self.protoShape)
     return dotText
