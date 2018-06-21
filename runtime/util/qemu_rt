@@ -42,9 +42,12 @@ vdis = {
   "debian1" : [
     "s3://kaena-vdi/debian-9.4.0.qcow",
     "bf477b909bcca20c42e0c5026c5fad050a7aa926b5d567608486f842c8ad9ae6" ],
+  "debian1-4G" : [
+    "s3://kaena-vdi/debian-9.4.0-4G.qcow",
+    "4243469768faf66e46298a240816f46152eeaed375d350d94b33d6e3c88475ce" ],
   }
 
-defaultVdi, checksumVdi = vdis["debian1"]
+defaultVdi, checksumVdi = vdis["debian1-4G"]
 
 def portInUse(port):
   inUse = True
