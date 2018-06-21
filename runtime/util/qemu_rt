@@ -177,6 +177,7 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
         return True
       print("INFO: testGuest diagnosing ssh connection %d" % attempId, flush=True)
       self.sshCmd("/bin/true", "-vvv")  # Baseline diagnostics
+      time.sleep(30)  # on c5 the ssh returns immediately so allow wait beween attempts
     return False
   
   def stop(self):
