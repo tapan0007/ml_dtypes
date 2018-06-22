@@ -14,27 +14,29 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--csv', help='Qor csv files followed optionally by label text', nargs='+', default=[])
 parser.add_argument('--prop', help='List of properties to compare', nargs='+', default=[])
 parser.add_argument('--annotate', help='Annotate individual values on the plot', action='store_true', default=False)
+parser.add_argument('--any_pass', help='Show tests that passed in ANY qor; default is to only show tests that passed in ALL', action='store_true', default=False)
 args = parser.parse_args()
 
 
 class QorDatabase(object):
-  def __init__(self, csvFiles):
+  def __init__(self, csvFiles, anyPass):
     self.data = {} # textOrCsvName -> testName -> property -> value
+    self.anyPass = anyPass
+    self.labels = []  # for plotting in user order 
     file2label = {}
     for i in range(len(csvFiles)):
       csvFile = csvFiles[i]
+      label = csvFile
       if csvFile.endswith(".csv"):
         if (i+1) < len(csvFiles):
-          label = csvFiles[i+1]
-          if label.endswith(".csv"):
-            file2label[csvFile] = csvFile
-          else:
-            file2label[csvFile] = label
+          if not csvFiles[i+1].endswith(".csv"):
+            label =csvFiles[i+1]
             i += 1
-        else:
-          file2label[csvFile] = csvFile
+        file2label[csvFile] = label
+        self.labels.append(label)
     for csvFile in file2label:
       self.add(file2label[csvFile], csvFile)
+      
   def add(self, label, csvFile):
     self.data[label] = {}
     with open(csvFile) as fh:
@@ -45,11 +47,23 @@ class QorDatabase(object):
         if row['Status'] == 'PASS':
           self.data[label][test] = row
   def getLabels(self):
-    return sorted(list(self.data.keys()))
+    return self.labels
   def getTests(self):
     tests = set()
     for label in self.getLabels():
       tests.update(self.data[label].keys())
+    return tests
+  def getTestAllPass(self):
+    allTests = self.getTests()
+    labels = self.getLabels()
+    tests = []
+    for test in allTests:
+      passed = True
+      for label in labels:
+        status = self.getValue(label, test, 'Status')
+        passed = passed and (status != None and status.startswith('PASS'))
+      if passed:
+        tests.append(test)
     return tests
   def getProps(self):
     props = set()
@@ -63,6 +77,11 @@ class QorDatabase(object):
     if row != None:
       val = row.get(prop, None)
     return val
+  def getValueStr(self, label, test, prop):
+    val = self.getValue(label, test, prop)
+    if val == None:
+      val = "None"
+    return val
 
   def plotProps(self, outFile, prop, annotate):
     
@@ -71,17 +90,18 @@ class QorDatabase(object):
       colors = ['red', 'blue', 'green', 'brown', 'orange', 'purple']
       colors += matplotlib.colors.CSS4_COLORS.keys()
       nextColor = 0
-      for t in sorted(labels):
+      for t in labels:
         ls = 'solid'
         c = colors[nextColor]
         nextColor += 1
         l2s[t] = [ls, c]
       return l2s
         
-    sortedLabels = sorted(self.getLabels())
+    sortedLabels = self.getLabels()
     baseLabel = sortedLabels[0]
     l2s = label2style(sortedLabels)
-    xlabels = sorted(self.getTests(), key=lambda testName: self.getValue(baseLabel, testName, prop))
+    tests = self.getTests() if self.anyPass else self.getTestAllPass()
+    xlabels = sorted(tests, key=lambda testName: self.getValueStr(baseLabel, testName, prop))
     x = [x for x in range(len(xlabels))]
     #print("DEBUG x: ", x)
     #print("DEBUG x: ", xlabels)
@@ -128,7 +148,7 @@ class QorDatabase(object):
     plt.savefig(outFile)
 
 
-qorDb = QorDatabase(args.csv)
+qorDb = QorDatabase(args.csv, args.any_pass)
 if len(args.prop) < 1:
   print("ERROR: use -prop with one or more of  %s" % "  ".join(qorDb.getProps()))
 else:
