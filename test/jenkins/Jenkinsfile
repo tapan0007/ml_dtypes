@@ -136,11 +136,13 @@ pipeline{
                         always {
                             sh 'mkdir /artifact/hourly'
                             sh '/bin/cp $TEST_DIR/hourly/qor* /artifact/hourly/ || touch /artifact/hourly/qor_hourly_qor_available.txt'
+                            sh 'chmod -R a+wX /artifact/'
                             archiveArtifacts artifacts:'hourly/qor*,*.tgz'
                         }
                         failure {
                             sh 'find $TEST_DIR/hourly -type f -name "*.vdi" -delete'
                             sh 'find $TEST_DIR/hourly -iname "*.txt" -print0 | tar -czvf /artifact/hourly/logs.tgz -T -'
+                            sh 'chmod -R a+wX /artifact/'
                             archiveArtifacts artifacts:'hourly/logs.tgz'
                         }
                     }
