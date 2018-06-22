@@ -470,13 +470,14 @@ class Ktests:
     return newArr
 
   # Run tests
-  def run(self, parallel, reportOnly, forceQemu):
+  def run(self, parallel, reportOnly, startSpacing, forceQemu):
     self.parallel = parallel
     start_time = time.time()
     self.numRunning = 0
     self.processes = []
 
     outPrefix = "trivnet_"
+    lastStartTime = 0
     for testName in self.interleaveFrontBack(self.testList, self.smallFirst):
       # Add default NN args
       while len(self.testConfigMap[testName]) < 5:
@@ -509,6 +510,8 @@ class Ktests:
 
         while self.numRunning >= self.parallel:
           self.checkProcesses(self.parallel)
+        while time.time() - lastStartTime < startSpacing:
+          self.checkProcesses(0)
 
         if verbose:
           print("Executing ", cmd)
@@ -522,9 +525,7 @@ class Ktests:
         t = Ktest(testName, testName, cmd)
         self.process2test[p] = t
         self.name2test[testName] = t
-        if forceQemu:
-          time.sleep(15)
-          self.msg += "  force_qemu sleep 15"
+        lastStartTime = time.time()
       else:
         t = Ktest(testName, testName, cmd)
         self.name2test[testName] = t
@@ -801,7 +802,7 @@ else:
     test_list.testWaiver += test_list.noGpuTestWaiver
 
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
-  elapsedTimeSec = tests.run(parallel, args.report_only, args.force_qemu)
+  elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0, args.force_qemu)
   tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
   plotQor = False
