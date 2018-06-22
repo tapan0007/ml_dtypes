@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+#
+# Compare properties in multiple qor files
+#
+
+import csv, os, argparse, re
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt    
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--csv', help='Qor csv files followed optionally by label text', nargs='+', default=[])
+parser.add_argument('--prop', help='List of properties to compare', nargs='+', default=[])
+parser.add_argument('--annotate', help='Annotate individual values on the plot', action='store_true', default=False)
+args = parser.parse_args()
+
+
+class QorDatabase(object):
+  def __init__(self, csvFiles):
+    self.data = {} # textOrCsvName -> testName -> property -> value
+    file2label = {}
+    for i in range(len(csvFiles)):
+      csvFile = csvFiles[i]
+      if csvFile.endswith(".csv"):
+        if (i+1) < len(csvFiles):
+          label = csvFiles[i+1]
+          if label.endswith(".csv"):
+            file2label[csvFile] = csvFile
+          else:
+            file2label[csvFile] = label
+            i += 1
+        else:
+          file2label[csvFile] = csvFile
+    for csvFile in file2label:
+      self.add(file2label[csvFile], csvFile)
+  def add(self, label, csvFile):
+    self.data[label] = {}
+    with open(csvFile) as fh:
+      csvReader = csv.DictReader(fh, delimiter=',')
+      for row in csvReader:
+        #print('DEBUG row:  ', row)
+        test = row['Test']
+        if row['Status'] == 'PASS':
+          self.data[label][test] = row
+  def getLabels(self):
+    return sorted(list(self.data.keys()))
+  def getTests(self):
+    tests = set()
+    for label in self.getLabels():
+      tests.update(self.data[label].keys())
+    return tests
+  def getProps(self):
+    props = set()
+    for label in self.getLabels():
+      for row in self.data[label].values():
+        props.update(row.keys())
+    return props
+  def getValue(self, label, test, prop):
+    val = None
+    row = self.data[label].get(test, None)
+    if row != None:
+      val = row.get(prop, None)
+    return val
+
+  def plotProps(self, outFile, prop, annotate):
+    
+    def label2style(labels):
+      l2s = {}
+      colors = ['red', 'blue', 'green', 'brown', 'orange', 'purple']
+      colors += matplotlib.colors.CSS4_COLORS.keys()
+      nextColor = 0
+      for t in sorted(labels):
+        ls = 'solid'
+        c = colors[nextColor]
+        nextColor += 1
+        l2s[t] = [ls, c]
+      return l2s
+        
+    sortedLabels = sorted(self.getLabels())
+    baseLabel = sortedLabels[0]
+    l2s = label2style(sortedLabels)
+    xlabels = sorted(self.getTests(), key=lambda testName: self.getValue(baseLabel, testName, prop))
+    x = [x for x in range(len(xlabels))]
+    #print("DEBUG x: ", x)
+    #print("DEBUG x: ", xlabels)
+    fig, axarr = plt.subplots(1, sharex=True, figsize=(12,8))
+    axProp  = axarr
+    axProp.set_xticks(x)
+    axProp.set_xticklabels(xlabels, rotation=90)
+    yLineHandles = []
+    for label in sortedLabels:
+      y = []
+      for testName in xlabels:
+        status = self.getValue(label, testName, 'Status')
+        propVal = self.getValue(label, testName, prop)
+        if not status == "PASS":
+          propVal = None
+        y.append(propVal)
+      #print("DEBUG y: ", y)
+      cleanX = []
+      cleanY = []
+      for i in range(len(x)):
+        if y[i] != None:
+          cleanX.append(x[i])
+          cleanY.append(float(y[i]))
+      ls, color = l2s[label]
+      yLineHandles.append(axProp.plot(cleanX, cleanY, marker='o', ls=ls, c=color, label=label)[0])
+      # Annotate values
+      if annotate:
+        for xv, yv in zip(cleanX, cleanY):
+          if yv != None:
+            valLabel = "%.1f" % yv
+            axProp.annotate(
+                valLabel,
+                xy=(xv, yv), xytext=(-20, 20),
+                textcoords='offset points', ha='right', va='bottom',
+                bbox=dict(boxstyle='round,pad=0.5', fc='lightyellow', alpha=0.5),
+                arrowprops=dict(arrowstyle = '->', connectionstyle='arc3,rad=0'))
+    axProp.legend(handles=yLineHandles)
+    axProp.grid(True)
+    axProp.set_xlabel('Test')
+    axProp.set_ylabel(prop)
+    axProp.set_title('Property comparison for  %s' % prop)
+    #fig.autofmt_xdate()
+    plt.tight_layout()
+    plt.savefig(outFile)
+
+
+qorDb = QorDatabase(args.csv)
+if len(args.prop) < 1:
+  print("ERROR: use -prop with one or more of  %s" % "  ".join(qorDb.getProps()))
+else:
+  for prop in args.prop:
+    outFile = "out_%s.svg" % prop
+    qorDb.plotProps(outFile, prop, args.annotate)
