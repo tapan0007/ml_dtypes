@@ -4,8 +4,11 @@
 #
 # Compare properties in multiple qor files
 #
+# Example - 3-way comparison
+#   $KAENA_PATH/compiler/util/qor_diff_csv --csv $KAENA_PATH/qor/20180621_qemu_c5/qor.csv 20180621_qemu_c5 $KAENA_PATH/qor/20180621_qemu_i3/qor.csv 20180621_qemu_i3 $KAENA_PATH/qor/20180621/qor.csv 20180621 --prop TotTimeSec
 
 import csv, os, argparse, re
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt    
@@ -110,6 +113,7 @@ class QorDatabase(object):
     axProp.set_xticks(x)
     axProp.set_xticklabels(xlabels, rotation=90)
     yLineHandles = []
+    yMeanRef = None
     for label in sortedLabels:
       y = []
       for testName in xlabels:
@@ -127,6 +131,14 @@ class QorDatabase(object):
           cleanY.append(float(y[i]))
       ls, color = l2s[label]
       yLineHandles.append(axProp.plot(cleanX, cleanY, marker='o', ls=ls, c=color, label=label)[0])
+      # Add mean
+      yMean = np.array(cleanY).mean()
+      if yMeanRef == None:
+        vsRef = 1.0
+        yMeanRef = yMean
+      else:
+        vsRef = yMean / yMeanRef
+      yLineHandles.append(axProp.axhline(y=yMean, ls=ls, c=color, lw=1, label="Mean %.3f or %.2f x" % (yMean, vsRef)))
       # Annotate values
       if annotate:
         for xv, yv in zip(cleanX, cleanY):
@@ -142,7 +154,7 @@ class QorDatabase(object):
     axProp.grid(True)
     axProp.set_xlabel('Test')
     axProp.set_ylabel(prop)
-    axProp.set_title('Property comparison for  %s' % prop)
+    axProp.set_title('Property comparison:  %s' % prop)
     #fig.autofmt_xdate()
     plt.tight_layout()
     plt.savefig(outFile)
