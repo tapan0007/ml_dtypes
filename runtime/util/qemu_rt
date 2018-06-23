@@ -31,8 +31,7 @@ if not os.path.isdir(krtBldPath):
 
 qiPath = os.path.join(qiBldPath, "x86_64-softmmu", "qemu-system-x86_64")
 
-gitVmPath = '/home/ubuntu/git'
-krtVmPath = '/home/ubuntu/git/kaena-runtime'
+krtVmPath = '/home/kaena/'
 
 # File paths / url and sha256sum
 vdis = {
@@ -45,9 +44,12 @@ vdis = {
   "debian1-4G" : [
     "s3://kaena-vdi/debian-9.4.0-4G.qcow",
     "4243469768faf66e46298a240816f46152eeaed375d350d94b33d6e3c88475ce" ],
+  "ubuntu-18.04": [
+    "s3://kaena-vdi/ubuntu-18.04.qcow2",
+    "a0b065d0edc5ba407531d422338348daf1f6779a764c5e149acec32b101fc562" ],
   }
 
-defaultVdi, checksumVdi = vdis["debian1-4G"]
+defaultVdi, checksumVdi = vdis["ubuntu-18.04"]
 
 def portInUse(port):
   inUse = True
@@ -143,13 +145,13 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     
     qemuNoInkling = os.getenv("QEMU_NO_INKLING", None)
     if qemuNoInkling == None:
-      self.cmd = '%s %s -m %d -device pci-inkling %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % (qiPath, self.localVdi, mem, qemuOpts, port)
+      self.cmd = '%s %s -m %d -device pci-inkling %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % (qiPath, self.localVdi, mem, qemuOpts, port)
     else:
-      self.cmd = '%s %s -m %d                     %s -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % ("/usr/bin/qemu-system-x86_64", self.localVdi, mem, qemuOpts, port)
+      self.cmd = '%s %s -m %d                     %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % ("/usr/bin/qemu-system-x86_64", self.localVdi, mem, qemuOpts, port)
     if os.path.exists("/dev/kvm"):
         self.cmd += "  --enable-kvm "
     self.port = port
-    self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %d -i %s ubuntu@localhost' % (self.port, self.pemFile)
+    self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %d -i %s kaena@localhost' % (self.port, self.pemFile)
     self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %s -i %s"' % (self.port, self.pemFile)
 
   def start(self):
@@ -218,13 +220,13 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     os.system("find -size 0")
 
   def rsyncToVm(self, fromDir, toVmDir, opts=None):
-    cmd = '%s %s ubuntu@localhost:%s' % (self.cmdForRsync, fromDir, toVmDir)
+    cmd = '%s %s kaena@localhost:%s' % (self.cmdForRsync, fromDir, toVmDir)
     if opts != None:
       cmd = cmd.replace("rsync ", "rsync %s " % opts)
     print("INFO: rsyncToVm executing %s" % cmd, flush=True)
     os.system(cmd)
   def rsyncFromVm(self, fromVmDir, toDir):
-    cmd = '%s ubuntu@localhost:%s %s' % (self.cmdForRsync, fromVmDir, toDir)
+    cmd = '%s kaena@localhost:%s %s' % (self.cmdForRsync, fromVmDir, toDir)
     print("INFO: rsyncFromVm executing %s" % cmd, flush=True)
     os.system(cmd)
   def sshCmd(self, cmd, opt=""):
@@ -248,11 +250,10 @@ class Krt:
     if len(krtPackages) != 1:
       raise ValueError("ERROR: Found {} runtime packages at {}".format(len(krtPackages), krtBldPath))
     self.qemu.rsyncToVm(krtPackages[0], krtVmPath + "/")
+    self.qemu.rsyncToVm(os.path.join(runtimSrcPath, "kbinlib", "vfio_bind.py"), krtVmPath + "/")
     self.qemu.sshCmd("sudo tar xfz {} -C /usr/".format(krtVmPath + "/krt-*.*-uio-core.tar.gz"))
-
-    self.qemu.rsyncToVm(os.path.join(runtimSrcPath, "uio_drv"), krtVmPath)
-    self.qemu.sshCmd("sudo sysctl -w vm.nr_hugepages=128")
-    self.qemu.sshCmd("cd %s/uio_drv; make; sudo ./load.sh" % krtVmPath)
+    self.qemu.sshCmd("sudo modprobe vfio enable_unsafe_noiommu_mode=Y")
+    self.qemu.sshCmd("sudo {}/vfio_bind.py".format(krtVmPath))
 
   def addModel(self, kelfDir, kelfVmDir):
     self.kelfVmDir = kelfVmDir
@@ -263,7 +264,7 @@ class Krt:
     self.ifmapDir = "%s/ifmap" % self.kelfVmDir
     self.ofmapDir = "%s/ofmap" % self.kelfVmDir
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
-    cmdRuntime = 'cd %s; sudo kbin_rt %s %s %s > log-krt.txt 2>&1 &' % (self.kelfVmDir, self.kelfVmDir, self.ifmapDir, self.ofmapDir)
+    cmdRuntime = 'cd %s; sudo kbin_rt %s %s %s 0000:00:04.0 > log-krt.txt 2>&1 &' % (self.kelfVmDir, self.kelfVmDir, self.ifmapDir, self.ofmapDir)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
@@ -274,6 +275,7 @@ class Krt:
     self.qemu.rsyncToVm(os.path.realpath(ifmap), self.ifmapDir, "--copy-links")
     inklingTimeout = 3600  # Later pass from the client
     self.qemu.sshCmd('pidofp=$(pidof kbin_rt); count=0; until [ -f %s/out.bin -o $count -gt %d ] || [ -z $pidofp ]; do sleep 1 ; pidofp=$(pidof kbin_rt); let count++; echo $count; done' % (self.ofmapDir, inklingTimeout))
+
     self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap)
 
 
