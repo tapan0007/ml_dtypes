@@ -805,7 +805,8 @@ class FileMapper():
                 ifmap_replication_resolution = file_params.file_dims.C * file_params.stride_x
                 ifmap_replication_step_bytes = (file_params.file_dims.W // file_params.stride_x) * file_params.item_sz
                 length = length // file_params.stride_x # TODO: adjust chunk size to match
-                offset_in_file = offset_in_file // file_params.stride_x # TODO: adjust chunk size to match
+                offset_in_file_batch_item = batch_item * file_params.file_addr_skip_per_batch_item
+                offset_in_file = (offset_in_file - offset_in_file_batch_item) // file_params.stride_x + offset_in_file_batch_item # TODO: adjust chunk size to match
                 #ifmap_replication_step_bytes = file_params.file_dims.W * file_params.item_sz
 
         # collect stats
