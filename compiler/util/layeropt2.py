@@ -987,10 +987,13 @@ class FusedOp(list):
             ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
             ofmaps_region_start_addr = tpb.statebuffer.SB_PARTITION_SZ - ofmaps_region_sz
 
-        # If OFMAP region overlaps IFMAP region, and numober of channels > 64 or stride > 1, offset it (to lower address) by OFMAP * Tn            
+        # If OFMAP region overlaps IFMAP region, and numober of channels > 64 or stride/filter-size > 1, offset it (to lower address) by OFMAP * Tn 
+        # (stride is only relevant to Conv/Pool, and filter-size is only relevant to Conv)
         if ofmaps_region_start_addr >= ifmaps_region_start_addr \
                 and ofmaps_region_start_addr < ifmaps_region_start_addr + ifmaps_region_sz:
-            if (self.last_op.ofmaps_file_params.file_dims.C > 64) or (self.conv_op is not None and (self.conv_op.stride_x > 1 or self.conv_op.S > 1)):
+            if (self.last_op.ofmaps_file_params.file_dims.C > 64) \
+                or (self.conv_op is not None and (self.conv_op.stride_x > 1 or self.conv_op.S > 1)) \
+                or (self.has_pool and self.pool_op.stride_x > 1):
                 ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz * self.last_op.Tn                               
                 #ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz_rounded * self.last_op.Tn                               
             # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
@@ -1893,11 +1896,14 @@ class KGraph:
         id_pool_op = KNode(self, id_pool_layer_data, self.item_sz, self.data_type, last_op.node_number + 1)
         id_pool_op.is_fork = last_op.is_fork
         id_pool_op.prev.append(last_op)
+        id_pool_op.next = []
         for next_op in last_op.next:
+            id_pool_op.next.append(next_op)
             for j in range(len(next_op.prev)):
                 if next_op.prev[j] == last_op:
                     del next_op.prev[j]
                     next_op.prev.append(id_pool_op)
+        last_op.next = [id_pool_op]                    
         return id_pool_op
 
     def walk_ended(self):
@@ -2947,6 +2953,7 @@ if __name__ == "__main__":
         if last_op.next == []:
             last_op.is_output = True
             last_op.ofmaps_file_params.final_layer_ofmap = True
+            #print("Fused op %s is output, mark final_layer_ofmap=True"%(last_op.data["layer_name"]))
 
         # TODO: put back golden_inputs option for debugging
         #if ((args.golden_inputs or args.inference) # TODO: why is args.inference here???

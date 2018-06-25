@@ -794,7 +794,7 @@ class CircularBuffer:
               'layer_name'       : self.layer_name,
               'sb_address'       : sb_addr,
               'data_type'        : self.data_type,
-              'contain_weights'  : self.circbuf_type == "weights",
+              'contain_weights'  : self.circbuf_type == "weights" or self.circbuf_type == "bias",
               'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
@@ -2397,11 +2397,14 @@ class KGraph:
         }
         id_pool_op = KNode(id_pool_layer_data, self.item_sz, self.data_type, last_op.node_number + 1)
         id_pool_op.prev.append(last_op)
+        id_pool_op.next = []
         for next_op in last_op.next:
+            id_pool_op.next.append(next_op)
             for j in range(len(next_op.prev)):
                 if next_op.prev[j] == last_op:
                     del next_op.prev[j]
                     next_op.prev.append(id_pool_op)
+        last_op.next = [id_pool_op]                    
         return id_pool_op
 
     def walk_ended(self):
