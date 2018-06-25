@@ -800,6 +800,8 @@ if args.show_only:
 else:
   if no_gpu:
     test_list.testWaiver += test_list.noGpuTestWaiver
+  if args.force_qemu:
+    test_list.testWaiver += test_list.qemuTestWaiver
 
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
   elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0, args.force_qemu)
