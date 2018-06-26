@@ -790,6 +790,8 @@ class Ktests:
     #fig.autofmt_xdate()
     plt.tight_layout()
     plt.savefig(outFile)
+    # Replot as png since Jenkins does not properly display svg
+    plt.savefig(os.path.splitext(outFile)[0] + ".png")
       
  
 ###############################################################################
