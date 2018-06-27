@@ -39,4 +39,4 @@ COPY ssh-config /tmp/ssh-config
 RUN cat /tmp/ssh-config >> /etc/ssh/ssh_config
 
 ADD https://storage.googleapis.com/git-repo-downloads/repo /usr/bin/repo
-RUN chmod a+x /usr/bin/repo
+RUN chmod a+rx /usr/bin/repo
