@@ -946,6 +946,11 @@ class TestFileParams(unittest.TestCase):
         stride_y = 2
         replicate_multiple = 1
 
+    class op_params_stride2_repl():
+        stride_x = 2
+        stride_y = 2
+        replicate_multiple = 28
+
     class op_params_stride1():
         stride_x = 1
         stride_y = 1
@@ -960,17 +965,6 @@ class TestFileParams(unittest.TestCase):
         self.assertEqual(test_obj.chunk_sz, 256)
         self.assertEqual(test_obj.ravel_crsm(0,0,0,0), 0)
         self.assertEqual(test_obj.ravel_crsm(1,0,0,0), 128*test_obj.item_sz)
-        shape_dims = ShapeDims("NCHW", [1,3,224,224]) 
-        test_obj = FileParams("testfile_1_3_224_224.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
-        self.assertEqual(test_obj.chunk_sz, 1792)
-        test_obj.load_file()
-        (new_file, new_shape) = pad_and_split_file("testfile_1_3_224_224.npy", "NCHW", 2, 3, 2, 3, 2)
-        shape_dims = ShapeDims("NCHW", new_shape)
-        test_obj = FileParams(new_file, shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
-        self.assertEqual(test_obj.file_dims.H, 229)
-        self.assertEqual(test_obj.file_dims.W, 230)
-        test_obj.load_file()
-        self.assertEqual(test_obj.dram_data.shape, (1, 3, 229, 230))
         shape_dims = ShapeDims("NHWC", [1,112,112,64]) 
         test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 1792)
@@ -1011,7 +1005,27 @@ class TestFileParams(unittest.TestCase):
         test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
         self.assertEqual(test_obj.tot_partition_usage_sz, 4*64)
         self.assertEqual(test_obj.batch_item_partition_usage_sz, 16)
-
+        # Test padding and split (replication)
+        shape_dims = ShapeDims("NCHW", [1,3,224,224]) 
+        test_obj = FileParams("testfile_1_3_224_224.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
+        self.assertEqual(test_obj.chunk_sz, 1792)
+        test_obj.load_file()
+        (new_file, new_shape) = pad_and_split_file("testfile_1_3_224_224.npy", "NCHW", 2, 3, 2, 3, 2)
+        shape_dims = ShapeDims("NCHW", new_shape)
+        test_obj = FileParams(new_file, shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
+        self.assertEqual(test_obj.file_dims.H, 458)
+        self.assertEqual(test_obj.file_dims.W, 115)
+        test_obj.load_file()
+        self.assertEqual(test_obj.dram_data.shape, (1, 3, 458, 115))
+        # Test replicated weights chunk size
+        shape_dims = ShapeDims("CRSM", [3,7,7,64]) 
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2_repl)
+        self.assertEqual(test_obj.chunk_sz, 896)
+        #self.assertEqual(test_obj.batch_item_partition_usage_sz, 256)
+        #self.assertEqual(test_obj.tot_partition_usage_sz, 256)
+        #self.assertEqual(test_obj.fmap_num_chunks, 2)
+        #self.assertEqual(test_obj.batch_item_num_chunks, 2)
+        #self.assertEqual(test_obj.tot_num_chunks, 2)
 
 class TestFileMapper(unittest.TestCase):
     class pearray_params():
