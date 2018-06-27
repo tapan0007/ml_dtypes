@@ -32,6 +32,7 @@ public:
 
 protected:
     void processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, events::EventId);
+    void addDmaBarrier(EngineId engId);
 
 private:
 };

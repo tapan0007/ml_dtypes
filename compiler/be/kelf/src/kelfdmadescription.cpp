@@ -196,6 +196,13 @@ auto DmaDescription::gFileSymbolicId(const std::string& fileName)
     }
 }
 
+bool
+DmaDescription::qHasFile(const std::string& fileName) const
+{
+    auto it = m_FileNameToId.find(fileName);
+    return m_FileNameToId.end() != it;
+}
+
 /***********************************************************************
 ***********************************************************************/
 std::string

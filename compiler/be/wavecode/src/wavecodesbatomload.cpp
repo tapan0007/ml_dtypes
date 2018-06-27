@@ -45,11 +45,16 @@ WaveCodeSbAtomLoad::generate(wave::WaveOp* waveOp)
     const auto sbAtomLoadWaveOp = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveOp);
     assert(sbAtomLoadWaveOp);
     calcInputSize(sbAtomLoadWaveOp);
+    const kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
     if (qGenerateKelf()) {
         if (sbAtomLoadWaveOp->qContainWeights() || m_WaveCode.qBinFileSimKelf()) {
             generateForKelf(sbAtomLoadWaveOp);
         } else {
-            generateInputDma(sbAtomLoadWaveOp);
+            if (kelfDma.qHasFile(sbAtomLoadWaveOp->gRefFileName())) {
+                generateForKelf(sbAtomLoadWaveOp); // intermediate load
+            } else {
+                generateInputDma(sbAtomLoadWaveOp);
+            }
         }
     } else {
         generateForSim(sbAtomLoadWaveOp);
@@ -499,6 +504,8 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     } // end incoming events
 
     //************************************************************************
+    addDmaBarrier(chosenEngId);
+    //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name, 
             dmaBlock.gSymbolicQueueName(chosenEngId).c_str(),
@@ -563,6 +570,7 @@ WaveCodeSbAtomLoad::generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
     }
     dmaBlock.addTailEventId(succEventIds[0]);
 
+    addDmaBarrier(chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name, 
@@ -698,6 +706,9 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
         dmaBlock.addTailEventId(eventId);
     }
 
+
+    //************************************************************************
+    addDmaBarrier(chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name, 

@@ -152,9 +152,7 @@ WaveCodeSbAtomSave::generateForKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
         generateDmaCopySimKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
     } else{
         // TODO: handle debug and off-load SbAtomSaves
-        if (sbAtomSaveWaveop->qFinalLayerOfmap()) {
-            generateDmaTriggerRuntimeKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
-        }
+        generateDmaTriggerRuntimeKelf(sbAtomSaveWaveop, chosenEngId, succEventIds);
     }
 }
 
@@ -211,6 +209,8 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
         processIncomingEdgesForceWait(sbAtomSaveWaveop, chosenEngId, waitEventId, waitEventMode);
     } // end incoming events
 
+    //************************************************************************
+    addDmaBarrier(chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name, dmaBlock.gQueueName().c_str(),

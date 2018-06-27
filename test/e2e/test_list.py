@@ -41,6 +41,7 @@ testConfigMap = {
   "0-1conv0_b16_wave" : [ "trivnet_conv1",  "tfloat16-b16-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv0m4_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m4-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "0-1conv0m8_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m8-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
+  "0-1conv0m16_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m16-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "0-1conv0_padvalid_wave" : [ "trivnet_conv1_padvalid",  "tfloat32-b1-h229-r7-s2-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave --debug 1"],
   "0-1conv0_h16r2s2_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h16-r2-s2-c1-m1-wmin-2-wmax2.2-imin-3-imax3.3", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "0-1conv0_h16r3s2_wave"      : [ "trivnet_conv1",  "tfloat16-b1-h16-r3-s2-c1-m1-wmin-2-wmax2.2-imin-3-imax3.3", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],

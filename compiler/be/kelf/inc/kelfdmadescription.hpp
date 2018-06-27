@@ -64,6 +64,8 @@ public:
         m_OutputSizeBytes = sz;
     }
 
+    bool qHasFile(const std::string& fileName) const;
+
 private:
     static const char* gSymbolicOutput();
 
