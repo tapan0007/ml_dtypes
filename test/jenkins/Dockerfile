@@ -1,4 +1,4 @@
-FROM amazonlinux:latest
+FROM amazonlinux:2018.03
 
 RUN yum update -y && \
     yum install -y \
