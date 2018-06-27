@@ -236,10 +236,10 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     
     
 class Krt:
-  def __init__(self, qemu):
+  def __init__(self, qemu, timeout):
     self.qemu = qemu
     self.cwd = os.getcwd()
-
+    self.inklingTimeout = timeout
     self.install()
 
   def install(self):
@@ -264,7 +264,8 @@ class Krt:
     self.ifmapDir = "%s/ifmap" % self.kelfVmDir
     self.ofmapDir = "%s/ofmap" % self.kelfVmDir
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
-    cmdRuntime = 'cd %s; sudo kbin_rt %s %s %s 0000:00:04.0 > log-krt.txt 2>&1 &' % (self.kelfVmDir, self.kelfVmDir, self.ifmapDir, self.ofmapDir)
+    cmdRuntime = 'cd %s; sudo kbin_rt %s %s %s 0000:00:04.0 %d > log-krt.txt 2>&1 &' % (self.kelfVmDir,
+                   self.kelfVmDir, self.ifmapDir, self.ofmapDir, self.inklingTimeout)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
@@ -273,14 +274,14 @@ class Krt:
       self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf")
   def inference(self, ifmap, ofmap):
     self.qemu.rsyncToVm(os.path.realpath(ifmap), self.ifmapDir, "--copy-links")
-    inklingTimeout = 3600  # Later pass from the client
-    self.qemu.sshCmd('pidofp=$(pidof kbin_rt); count=0; until [ -f %s/out.bin -o $count -gt %d ] || [ -z $pidofp ]; do sleep 1 ; pidofp=$(pidof kbin_rt); let count++; echo $count; done' % (self.ofmapDir, inklingTimeout))
+    self.qemu.sshCmd('pidofp=$(pidof kbin_rt); count=0; until [ -f %s/out.bin -o $count -gt %d ] || [ -z $pidofp ]; do sleep 1 ; pidofp=$(pidof kbin_rt); let count++; echo $count; done' % (self.ofmapDir, self.inklingTimeout))
 
     self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap)
 
 
 qemuOk = False
 port = args.port
+inklingTimeout = 3600
 for qemuRestartId in range(3):
   while portInUse(port):
     port += 3
@@ -289,7 +290,7 @@ for qemuRestartId in range(3):
   qemu.start()
   if qemu.testGuest(4):
     qemuOk = True
-    krt = Krt(qemu)
+    krt = Krt(qemu, inklingTimeout)
     krt.addModel(args.kelf, "/tmp/reg-1")
     krt.start()
     for ifmap in args.ifmaps:
