@@ -72,6 +72,7 @@ pipeline{
                 git -C inkling pull origin $GERRIT_REFSPEC || \
                 git -C qemu_inkling pull origin $GERRIT_REFSPEC || \
                 git -C arch-isa pull origin $GERRIT_REFSPEC || \
+                git -C shared pull origin $GERRIT_REFSPEC || \
                 git -C manifest pull origin $GERRIT_REFSPEC
 
                 chmod -R 755 ./
