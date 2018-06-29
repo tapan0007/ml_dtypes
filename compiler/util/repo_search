@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+#
+# Workaround for lack of git bisect in the repo tool
+#
+# Examples
+#  List code changes only
+#    $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago"
+#  A typical linear search
+#    cd /tmp/my_dir;  $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 1-1conv0_h224c1m1_wave --force_qemu' 
+#  A workaround for bad code
+#    cd /tmp/my_dir;  $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 1-1conv0_h224c1m1_wave --force_qemu' --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh && ./build.sh && cd ..' 
+
+import csv, os, argparse, re, time
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt    
+
+defaultBuildCmd = '/bin/rm -rf build; cd shared; . ./set_env.sh && ./build.sh && cd ..'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--repos', help='Repos to search', nargs='+', default=['arch-headers', 'arch-isa', 'ext', 'inkling', 'kcc', 'krt', 'qemu_inkling', 'shared'])
+parser.add_argument('--search', help='Search method, bisect or linear or sparse linear', nargs='+', default="linear")
+parser.add_argument('--since', help='Passed to git log command', default="10 days ago")
+parser.add_argument('--until', help='Passed to git log command', default="now")
+parser.add_argument('--run_cmd', help='Build and run command.If none only print changes and quit', default=None)
+parser.add_argument('--build_cmd', help='Customize the build, default %s' % defaultBuildCmd, default=defaultBuildCmd)
+args = parser.parse_args()
+
+def systemAndPrint(cmd):
+  print("INFO: executing  %s" % cmd, flush=True)
+  return os.system(cmd)
+
+
+class Commit(object):
+  def __init__(self, repo, gitHash, gitTime, text):
+    self.repo = repo
+    self.gitHash = gitHash
+    self.gitTime = int(gitTime)
+    self.text = text
+    self.index = None
+  def __str__(self):
+    return "%4d  %s  %s" % (self.index, self.repo, self.text)
+
+class Repo(object):
+  def __init__(self, repos, since, until, buildCmd, runCmd):
+    self.repos = repos
+    self.buildCmd = buildCmd
+    self.runCmd = runCmd
+    cmd = 'cd $KAENA_PATH/.. && repo forall -c git checkout origin/master'
+    systemAndPrint(cmd)
+    self.allCommits = self.getCommits('')
+    self.commits = self.getCommits('--since "' + since + '" --until "' + until + '"')
+    self.cwd = os.getcwd()
+  def getCommits(self, options):
+    tmpCommits = []
+    for repo in self.repos:
+      cmd = 'cd $KAENA_PATH/../' + repo + ' && git log origin/master ' + options + ' --pretty="format:%H %at %ct %ad %cd %s"'
+      print("INFO: executing %s" % cmd)
+      with os.popen(cmd) as pipe:
+        for line in pipe:
+          #print('DEBUG line:  ', line)
+          gitHash, gitAutherTime, gitCommitTime = line.split(" ")[0:3]
+          tmpCommits.append(Commit(repo, gitHash, gitCommitTime, line))
+    commits = sorted(tmpCommits, key=lambda x: x.gitTime)
+    numCommits = len(commits)
+    for i in range(numCommits):
+      commits[i].index = i
+    print("INFO: repo %s - loaded %d commits\n" % (repo, numCommits))
+    return commits
+    
+  def listCommits(self):
+    for commit in self.commits:
+      print(commit)
+  
+  def getRepoHashByTime(self, repo, gitTime):
+    gitHash = None
+    selectedCommit = None
+    for commit in self.allCommits:
+      if (commit.repo == repo) and (commit.gitTime <= gitTime):
+        selectedCommit = commit
+    gitHash = selectedCommit.gitHash
+    print("INFO: for  repo %s  and  time %d (%s)  the selected commit is  %s" % (repo, gitTime, time.ctime(gitTime), selectedCommit), flush=True)
+    return gitHash
+  
+  def search(self, method):
+    if method == "linear":
+      for commit in self.commits:
+        i = commit.index
+        d = "%s/%03d" % (self.cwd, i)
+        print("\n###################  Testing commit  %03d  %s  ###################" % (i, commit))
+        cmd = "/bin/cp -r $KAENA_PATH/.. %s" % d
+        systemAndPrint(cmd)
+        os.chdir(d)
+        gitHash = commit.gitHash
+        for repo in self.repos:
+          repoHash = self.getRepoHashByTime(repo, commit.gitTime)
+          cmd = "cd %s && git checkout %s && git clean -f -d -x" % (repo, repoHash)
+          assert systemAndPrint(cmd) == 0
+        # export ARCH_HEADERS_PATH=$REPO_DIR/arch-headers &&
+        cmd = "bash -c '(%s && env && mkdir run && cd run && %s) > log.txt 2>&1 &' " % (self.buildCmd, self.runCmd)
+        systemAndPrint(cmd)
+        time.sleep(60)
+    else:
+      raise RuntimeError("ERROR: Unsupported search method  %s" % method)
+
+repo = Repo(args.repos, args.since, args.until, args.build_cmd, args.run_cmd)
+if args.run_cmd == None:
+  repo.listCommits()
+else:
+  repo.search(args.search)
+  
