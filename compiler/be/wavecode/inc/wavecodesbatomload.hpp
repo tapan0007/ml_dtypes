@@ -56,6 +56,8 @@ private:
                 EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
 
     void generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
+    void generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
+    void generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
 
     kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
                         EngineId& chosenEngId, std::vector<events::EventId>& succEventIds);

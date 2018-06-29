@@ -301,7 +301,7 @@ Main(int argc, char* argv[])
             events::EventMgr eventMgr(*ntwk);
             eventMgr.processWaveops(kelf);
 
-            writeOutJson(ntwk, JsonInFileName, "out");
+            writeOutJson(ntwk, JsonInFileName, "tpb");
             wavecode::WaveCode waveCode(*ntwk, arch);
 
             waveCode.rBinFileType(BinFileType::SimAngel);
@@ -330,7 +330,7 @@ Main(int argc, char* argv[])
             ntwk->revertSavedWaveops();
             eventMgr.processWaveops(kelf);
 
-            writeOutJson(ntwk, JsonInFileName, "kelf");
+            writeOutJson(ntwk, JsonInFileName, "bin");
 
             waveCode.rBinFileType(BinFileType::SimKelf);
             waveCode.generate(instrStreams, ParallelStreams);
@@ -369,7 +369,7 @@ Main(int argc, char* argv[])
             instrStreams.m_ActEngInstrStream        = file;
             instrStreams.m_DmaInstrStream           = file;
 
-            writeOutJson(ntwk, JsonInFileName, "seq");
+            writeOutJson(ntwk, JsonInFileName, "seqtpb");
             wavecode::WaveCode waveCode(*ntwk, arch);
             waveCode.generate(instrStreams, ParallelStreams);
 

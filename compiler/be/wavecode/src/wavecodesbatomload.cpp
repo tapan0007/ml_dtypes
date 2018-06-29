@@ -538,6 +538,125 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
 void
 WaveCodeSbAtomLoad::generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 {
+    if (sbAtomLoadWaveop->gIfmapReplicationResolution() == 0) {
+        generateInputDmaNoRepl(sbAtomLoadWaveop);
+    } else {
+        generateInputDmaRepl(sbAtomLoadWaveop);
+    }
+}
+
+//======================================================================
+void
+WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
+{
+    Assert(m_WaveCode.qBinFileRuntimeKelf(), "Must be binary for Runtime Kelf");
+    const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
+
+    //************************************************************************
+    //const kcc_int64 numPartitions   = sbAtomLoadWaveop->gIfmapCount();
+    //const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
+    const kcc_int64 addressInPart   = sbAtomLoadWaveop->gSbAddress();
+    //const kcc_int64 stepSize        = sbAtomLoadWaveop->gPartitionStepBytes();
+    const kcc_int64 startPart       = sbAtomLoadWaveop->gStartAtMidPart()
+                                        ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
+    const kcc_int32 replResolution  = sbAtomLoadWaveop->gIfmapReplicationResolution();
+    const kcc_int32 replStepElem    = sbAtomLoadWaveop->gSrcStepElem();
+    const kcc_int32 numActiveParts  = sbAtomLoadWaveop->gIfmapCount();
+    const kcc_int32 ifmapReplNumRows    = sbAtomLoadWaveop->gIfmapReplicationNumRows();
+    const kcc_int32 ifmapReplStepBytes  = sbAtomLoadWaveop->gIfmapReplicationStepBytes();
+
+    EngineId chosenEngId;
+    std::vector<events::EventId> succEventIds;
+
+    /*const kcc_int32 numSyncs =*/ findSuccEventsAndChosenEngine(sbAtomLoadWaveop,
+                                        chosenEngId, succEventIds);
+    // All input requests must come from the same engine so that none starts before
+    // that engine waits on start-inference signal => override chosen engine
+    chosenEngId = EngineId::Pooling;
+
+    kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
+
+    std::ostringstream oss;
+    oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
+    //************************************************************************
+    kelf::DmaDescription::DmaBlockInput& dmaBlock(kelfDma.startNewDmaBlockInput(oss.str().c_str()));
+    {
+        const TpbAddress    sbPartStep = stateBuf.gEntryTpbAddress(1, addressInPart) - stateBuf.gEntryTpbAddress(0, addressInPart);
+        const kcc_int32 numInChans = replResolution / replStepElem;
+        Assert(numInChans*replStepElem == replResolution,
+                "Num in channels (", numInChans, ") * stride (", replStepElem, 
+                ") != Replication resolution (", replResolution, ")");
+
+        const kcc_int32     numBytesPerPart     = sbAtomLoadWaveop->gLength();
+        const TongaAddress  partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
+        TongaAddress        fileGroupAddress    = sbAtomLoadWaveop->gOffsetInFile();
+        TpbAddress          sbGroupTpbAddress   = stateBuf.gEntryTpbAddress(startPart, addressInPart);
+
+        // assume that H*W*dtypeSize == partStepBytes since when replication there is no input chan folding
+        kcc_int32 activePartCnt = 0;
+        while (activePartCnt < numActiveParts) {
+            TpbAddress sbTpbAddress = sbGroupTpbAddress;
+            TongaAddress fileAddress = fileGroupAddress;
+            for (kcc_int32 strideIdx = 0; strideIdx < replStepElem; ++strideIdx) {
+                const TongaAddress strideFileOffset = (partStepBytes/replStepElem) * strideIdx;
+                for (kcc_int32 chanIdx = 0; chanIdx < numInChans; ++chanIdx) {
+                    TongaAddress chanOffset = chanIdx * partStepBytes;
+                    TongaAddress filePartAddress = fileAddress + chanOffset + strideFileOffset;
+                    dmaBlock.addDmaDesc(filePartAddress, sbTpbAddress, numBytesPerPart);
+                    sbTpbAddress += sbPartStep;
+                }
+            }
+            activePartCnt       += ifmapReplNumRows;
+            fileGroupAddress    += ifmapReplStepBytes;
+            sbGroupTpbAddress   += ifmapReplNumRows * sbPartStep;
+        }
+    }
+
+    for (auto eventId : succEventIds) {
+        dmaBlock.addTailEventId(eventId);
+    }
+
+    //************************************************************************
+
+    //************************************************************************
+    addDmaBarrier(chosenEngId);
+    compisa::DmaTriggerInstr dmaTriggerInstr;
+    strncpy(dmaTriggerInstr.dma_queue_name, 
+            dmaBlock.gSymbolicInputQueueName().c_str(),
+            ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
+    dmaTriggerInstr.use_raw_count = 0; // get from JSON
+    dmaTriggerInstr.block_id = dmaBlock.gBlockId();
+
+    if (m_FirstInput) {
+        m_FirstInput = false;
+        dmaTriggerInstr.inst_events.wait_event_idx  = events::EventId_StartInference();
+        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
+    } else {
+        dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    }
+    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
+    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    {
+        std::ostringstream oss;
+        oss << sbAtomLoadWaveop->gOrder()
+            << ":" << succEventIds[0]
+            << "-" << sbAtomLoadWaveop->gName();
+        SaveName(dmaTriggerInstr, oss.str().c_str());
+    }
+    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    // dummy
+    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    dmaTriggerInstr.inst_events.set_event_idx   = 0;
+    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+}
+
+//======================================================================
+void
+WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
+{
     Assert(m_WaveCode.qBinFileRuntimeKelf(), "Must be binary for Runtime Kelf");
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
@@ -561,6 +680,7 @@ WaveCodeSbAtomLoad::generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 
     std::ostringstream oss;
     oss << sbAtomLoadWaveop->gOrder() << "-" << sbAtomLoadWaveop->gName();
+    //************************************************************************
     kelf::DmaDescription::DmaBlockInput& dmaBlock(kelfDma.startNewDmaBlockInput(oss.str().c_str()));
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
@@ -570,8 +690,8 @@ WaveCodeSbAtomLoad::generateInputDma(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
     }
     dmaBlock.addTailEventId(succEventIds[0]);
 
-    addDmaBarrier(chosenEngId);
     //************************************************************************
+    addDmaBarrier(chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name, 
             dmaBlock.gSymbolicInputQueueName().c_str(),
@@ -649,10 +769,10 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
                                         ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
     const bool      qWeights        = sbAtomLoadWaveop->qContainWeights();
 
-    const kcc_int32 replResolution  = sbAtomLoadWaveop->gIfmapReplicationResolution();
+    const kcc_int32 replResolution      = sbAtomLoadWaveop->gIfmapReplicationResolution();
     const kcc_int32 ifmapReplStepBytes  = sbAtomLoadWaveop->gIfmapReplicationStepBytes();
     const kcc_int32 replStepElem        = sbAtomLoadWaveop->gSrcStepElem();
-    const kcc_int32 numActiveParts         = sbAtomLoadWaveop->gIfmapCount();
+    const kcc_int32 numActiveParts      = sbAtomLoadWaveop->gIfmapCount();
     const kcc_int32 ifmapReplNumRows    = sbAtomLoadWaveop->gIfmapReplicationNumRows();
 
     const std::string& refFileName(sbAtomLoadWaveop->gRefFileName());
