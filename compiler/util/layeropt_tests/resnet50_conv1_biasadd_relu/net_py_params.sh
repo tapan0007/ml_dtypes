@@ -1,2 +1,0 @@
-OutputNpy=out_activation_1__Relu:0_NCHW.npy
-PythonFile=out_compiler.py

@@ -1,3 +1,10 @@
+"""
+Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
+"""
+
+"""Middle Scheduler (aka Middle-End, formerly Layer-Optimizer) v1
+"""
+
 import json
 import os
 import math
@@ -6,9 +13,9 @@ import numpy as np
 import copy
 import argparse
 import inspect
-from layeropt_utils import CircbufPtrs 
-from layeropt_utils import ShapeDims
-from layeropt_utils import FileParams
+from me_utils import CircbufPtrs 
+from me_utils import ShapeDims
+from me_utils import FileParams
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 from enum import Enum

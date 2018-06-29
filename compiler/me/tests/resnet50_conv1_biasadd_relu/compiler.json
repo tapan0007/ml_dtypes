@@ -2,6 +2,7 @@
   "data_type": "float16",
   "layers": [
     {
+      "#comment": "supported input layer",
       "layer_name": "input_1",
       "layer_type": "Input",
       "ofmap_format": "NCHW",

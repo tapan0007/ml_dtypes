@@ -1,3 +1,15 @@
+"""
+Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
+"""
+
+""" File/shape utility functions and classes for Middle Scheduler:
+
+    - pad_and_split_file: function to pad and split image for replication
+    - ShapeDims: a class to manage N-dimensional shapes
+    - FileParams: class to manage file-related parameters
+    - FileMapper: class to manage mapping file to SB regions
+"""
+
 import unittest
 import numpy as np
 import os.path
@@ -12,10 +24,11 @@ def ceildiv(x, y):
 def data_type_to_item_sz(data_type):
     return np.dtype(data_type).itemsize
 
-# for IFMAP replication (https://sim.amazon.com/issues/kaena-141), need to:
-# - pad image
-# - for num_to_split=2: split W columns into HWe and HWo where HWe include even columns and HWo includes odd columns
-# - for num_to_split>2: split W columns into multiple HWi, where HWi includes i columns, i = column idx % num_to_split
+"""For IFMAP replication (https://sim.amazon.com/issues/kaena-141), need to:
+ - pad image
+ - for num_to_split=2: split W columns into HWe and HWo where HWe include even columns and HWo includes odd columns
+ - for num_to_split>2: split W columns into multiple HWi, where HWi includes i columns, i = column idx % num_to_split
+""" 
 def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_east, pad_north, pad_south):
     assert(file_format == "NCHW")
     dram_data = np.load(file_to_split)
@@ -48,10 +61,11 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
         raise RuntimeError("Cannot save numpy file %s"%(new_file))
     return (new_file, new_shape)
 
-# Class to manage head and tail pointers for circular buffer with two modes:
-#   - endzone_sz = 0: Normal mode: advance pointer until capacity, where it wraps to 0
-#   - endzone_sz > 0: End-sink mode: advance pointer until endzone, where it wraps to (capacity - endzone_sz)
-#   - endzone_sz < 0: No wrap mode: advance pointer until capacity, where it wraps to 0, but there's no overflow error if tail hits head, only warning
+""" Class to manage head and tail pointers for circular buffer with two modes (for Middle Scheduler v1):
+    - endzone_sz = 0: Normal mode: advance pointer until capacity, where it wraps to 0
+    - endzone_sz > 0: End-sink mode: advance pointer until endzone, where it wraps to (capacity - endzone_sz)
+    - endzone_sz < 0: No wrap mode: advance pointer until capacity, where it wraps to 0, but there's no overflow error if tail hits head, only warning
+"""    
 class CircbufPtrs():
     TAIL = 0
     HEAD = 1
@@ -156,9 +170,8 @@ class TestCircbufPtrsMethods(unittest.TestCase):
     #                else:                            
     #                    self.assertLess (test_obj.advance(CircbufPtrs.TAIL), capacity)
 
-
-# Class to manage N-dimensional shapes
-
+""" Class to manage N-dimensional shapes
+"""
 class ShapeDims():
     supported_dims = set(["N", "H", "W", "C", "M", "R", "S"])
 
@@ -202,7 +215,8 @@ class ShapeDims():
     def get_startend_for_subshape(self, subshape_tuple):        
         pass
 
-# Class to manage file-related parameters
+""" Class to manage file-related parameters
+"""
 class FileParams():
     current_file_id = 0
 
@@ -400,8 +414,8 @@ class FileParams():
         self.batch_item_partition_usage_sz_rounded = self.batch_item_partition_usage_sz_rounded * H_rounded * W_rounded
         print("INFO: file %s shape %s tot_partition_usage_sz %d batch_item_partition_usage_sz %d"%(self.file_name, str(self.file_dims.shape_tuple), self.tot_partition_usage_sz, self.batch_item_partition_usage_sz))
 
-
-# Class to hold map information related to a file
+""" Class to hold map information related to a file
+"""
 class MappedParams():
     def __init__(self, N, start_addr, region_sz, num_region_chunks, num_file_chunks_per_batch_item, end_addr, modify_in_place):
         self.start_addr = start_addr
@@ -416,7 +430,8 @@ class MappedParams():
         self.end_addr = end_addr
         self.modify_in_place = modify_in_place
 
-# Class to represent a morsel of data
+"""Class to represent a morsel of data
+"""
 class SbMorsel():
     def __init__(self):
         self.file_id = -1
@@ -425,7 +440,8 @@ class SbMorsel():
         self.chunk_id = -1
         self.batch_item = -1
 
-# Class to manage mapping file to SB regions
+""" Class to manage mapping file to SB regions
+"""
 class FileMapper():
     def __init__(self, sb_partition_sz, data_type):
         self.item_sz         = data_type_to_item_sz(data_type)

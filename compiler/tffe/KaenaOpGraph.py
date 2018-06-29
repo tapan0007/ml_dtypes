@@ -1559,7 +1559,7 @@ class Graph(Object):
       return True, []
     elif self.schedulerMode == 'wave' or self.schedulerMode == 'wave2' or self.schedulerMode == 'qemu_wave' or self.schedulerMode == 'qemu_wave2':
       # Invoke wave scheduler
-      waveSchedulerExec = self.kaenaPath + ("/compiler/util/layeropt2.py" if 'wave2' in self.schedulerMode else "/compiler/util/layeropt.py")
+      waveSchedulerExec = self.kaenaPath + ("/compiler/me/me_main.py" if 'wave2' in self.schedulerMode else "/compiler/me/layeropt.py")
       kGraphJsonFile =  "compiler.json"
       waveGraphJsonFile = "wavegraph.json"
 

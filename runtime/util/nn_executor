@@ -216,13 +216,13 @@ class NnSubgraph:
     elif executor == "waveopt":
       self.linkConsts()
       self.createTpbFormatInputs()
-      cmd = "python3 %s/compiler/util/layeropt.py" % kPath
+      cmd = "python3 %s/compiler/me/layeropt.py" % kPath
       cmd += "  --kgraph %s/%s/compiler.json" % (kelf_dir, self.sgDir)
       cmd += "  --inference"
     elif executor == "waveopt2":
       self.linkConsts()
       self.createTpbFormatInputs()
-      cmd = "python3 %s/compiler/util/layeropt2.py" % kPath
+      cmd = "python3 %s/compiler/me/me_main.py" % kPath
       cmd += "  --kgraph %s/%s/compiler.json" % (kelf_dir, self.sgDir)
       cmd += "  --inference"
     cmd += "  " + self.execOptions

@@ -1,0 +1,13 @@
+This directory contains source files for the Middle-Scheduler (aka Middle-End)
+
+
+
+Simple tests with pregenerated KGraphs are located in layeropt_tests. These tests only test verification of execution. 
+
+To run tests do:
+
+    make sanity
+
+To see a list of tests do:
+
+    make help

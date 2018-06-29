@@ -1,25 +1,13 @@
-from layeropt_utils import data_type_to_item_sz
+"""
+Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
+"""
 
-class BatchSlot:
-    slot_count = 0
-    def __init__(self, size):
-        self.size = size
-        self.slot = BatchSlot.slot_count
-        BatchSlot.slot_count += 1
-        self.batch_item = -1
-    def assign(self, batch_item):
-        if (self.batch_item != -1):
-            raise RuntimeError("Cannot assign to an occupied slot %d, which contains batch item %d"%(self.slot, self.batch_item))
-        print("assigning slot %d to batch item %d"%(self.slot, batch_item))
-        self.batch_item = batch_item
-    def move_from(self, slot):
-        print("moving slot %d item to slot %d for batch item %d"%(slot.slot, self.slot, slot.batch_item))
-        self.assign(slot.batch_item)
-        slot.batch_item = -1
-    def show(self):
-        print("%d:%d (%d)"%(self.slot, self.batch_item, self.size), end=" ")
+"""SB data map for batching
+"""
 
-class BatchMachine:
+from me_utils import data_type_to_item_sz
+
+class BatchSBDataMap:
     def __init__(self, batch_size, data_type):
         self.item_sz         = data_type_to_item_sz(data_type)
         self.data_type       = data_type
@@ -27,16 +15,7 @@ class BatchMachine:
         assert(batch_size == 16)
         assert(self.item_sz == 2)
 
-        # below are sizing for the recursive walk demonstration
-        self.pairup_at_layer =         [2, 10, 20, 30, -1]
-        self.pairup_at_layer_item_sz = [6272*self.item_sz,  3136*self.item_sz,  1568*self.item_sz,  784*self.item_sz,   0]
-        # initialize residue and batch slots    
-        self.residue_slot = BatchSlot(self.pairup_at_layer_item_sz[0])
-        self.batch_slots_per_level = []
-        for i in range(len(self.pairup_at_layer_item_sz)-1):
-            self.batch_slots_per_level.append([BatchSlot(self.pairup_at_layer_item_sz[i]) for j in range(2**i)])
-
-        # below are sizing for Layeropt2 batching scheme
+        # below are sizing for ResNet50 batching scheme
         bias_sz = 512
         #ofmap_sz_56x56x64   = 56 * 56 * self.item_sz            # = 6272
         ofmap_sz_55x55x64   = 55 * 55 * self.item_sz            # = 6050
@@ -84,67 +63,14 @@ class BatchMachine:
         #self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + ofmap_sz_56x56x64 * 1       # IFMAP input space, 1st layer output goes to scratch
         self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + ofmap_sz_55x55x64 * 1       # IFMAP input space, 1st layer output goes to scratch
 
-    def show_slots(self):
-        for i in range(len(self.pairup_at_layer_item_sz)-1):
-            for j in self.batch_slots_per_level[i]:
-                j.show()
-        print("")            
-
-    def total_slots_size(self):
-        total = 0
-        for i in range(len(self.pairup_at_layer_item_sz)-1):
-            for j in self.batch_slots_per_level[i]:
-                total += j.size
-        return total
-
     def check_sb_usage(self):
-        # check SB usage
         for i in range(len(self.sb_bias_sz)):
             #total_sb = self.sb_bias_sz[i] + self.sb_ifmaps_sz[i] + self.sb_partialbatch_sz[i] + self.sb_weights_sz[i] + self.sb_residue_sz[i] + self.sb_scratch_sz[i]
             total_sb = self.sb_bias_sz[i] + self.sb_partialbatch_sz[i] + self.sb_weights_sz[i] + self.sb_scratch_sz[i]
-            print("Total SB usage %d (headroom %d, batch_slots check %d)"%(total_sb, 96*1024 - total_sb, self.total_slots_size()))
+            print("Total SB usage %d (headroom %d)"%(total_sb, 96*1024 - total_sb))
 
-    def process_subbatch(self, batch_items, level, left):
-        num = len(batch_items)
-        mid = num//2
-        print(batch_items)
-        level_adjusted = max(0, len(self.pairup_at_layer) - 1 - level)
-        if (num>1):
-            self.process_subbatch(batch_items[0:mid], level+1, True)
-            self.process_subbatch(batch_items[mid:], level+1, False)
-            print("Level %d: processing batch items %s until shrink point %d"%(level, str(tuple(batch_items)), self.pairup_at_layer[level_adjusted]))
-            if (num == 2):
-                if left:
-                    self.batch_slots_per_level[level_adjusted][0].move_from(self.residue_slot)
-                    self.batch_slots_per_level[level_adjusted][1].move_from(self.batch_slots_per_level[0][0])
-            elif (num == 4):           
-                if left:
-                    self.batch_slots_per_level[level_adjusted][0].move_from(self.residue_slot)
-                    self.batch_slots_per_level[level_adjusted][1].move_from(self.batch_slots_per_level[0][0])
-                    self.batch_slots_per_level[level_adjusted][2].move_from(self.batch_slots_per_level[1][0])
-                    self.batch_slots_per_level[level_adjusted][3].move_from(self.batch_slots_per_level[1][1])
-            elif (num == 8):            
-                if left:
-                    self.batch_slots_per_level[level_adjusted][0].move_from(self.residue_slot)
-                    self.batch_slots_per_level[level_adjusted][1].move_from(self.batch_slots_per_level[0][0])
-                    self.batch_slots_per_level[level_adjusted][2].move_from(self.batch_slots_per_level[1][0])
-                    self.batch_slots_per_level[level_adjusted][3].move_from(self.batch_slots_per_level[1][1])
-                    self.batch_slots_per_level[level_adjusted][4].move_from(self.batch_slots_per_level[2][0])
-                    self.batch_slots_per_level[level_adjusted][5].move_from(self.batch_slots_per_level[2][1])
-                    self.batch_slots_per_level[level_adjusted][6].move_from(self.batch_slots_per_level[2][2])
-                    self.batch_slots_per_level[level_adjusted][7].move_from(self.batch_slots_per_level[2][3])
-        elif (num == 1):
-            print("Level %d: processing batch item %d until shrink point %d"%(level, batch_items[0], self.pairup_at_layer[level_adjusted]))
-            if left:            
-                self.batch_slots_per_level[0][0].assign(batch_items[0])
-            else:            
-                self.residue_slot.assign(batch_items[0])
-        self.show_slots()                
-
-# Main program
 if __name__ == "__main__":
     # process batch
     batch_machine = BatchMachine(16,'float16')
     batch_machine.check_sb_usage()
-    batch_machine.process_subbatch(list(range(16)), 0, False)
 
