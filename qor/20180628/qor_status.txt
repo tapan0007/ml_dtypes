@@ -1,0 +1,20 @@
+Format: Predicted/t (achieved)
+
+PE utilization [%]:       Batch 1     Batch16              
+ 
+  1bank     default       14.7 (4.3)  43.1 (21.8)
+  1bank     replic_first  17.9 (4.5)  89.5 (27.0)
+  1bank     replic_all    18.1        95.7
+ 
+  2bank     default       23.2 (7.9)  43.7 (29.8)
+  2bank     replic_first  32.3 (8.6)  92.6 (43.8)
+  2bank     replic_all    33.1        99.3
+ 
+  4bank     default       39.2        43.7
+  4bank     replic_first  74.3        92.6
+  4bank     replic_all    78.6        99.3
+ 
+  fast      default       39.2 (35.5) 43.7
+  fast      replic_first  74.3 (62.6) 92.6 (85.3)
+  fast      replic_all    78.6        99.3
+ 
