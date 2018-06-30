@@ -1,28 +1,26 @@
-FROM amazonlinux:2018.03
+FROM ubuntu:16.04
 
-RUN yum update -y && \
-    yum install -y \
-        aws-cli \
+RUN apt update -y && \
+    apt install -y \
         createrepo \
-        gcc48-c++ \
-        gcc64-c++ \
+        gcc-4.8 \
+        g++-4.8 \
         git \
-        libzip-devel \
-        python36 \
-        python36-devel \
         unzip \
-        which \
-        boost-devel \
+        libboost-all-dev \
         cmake \
-        zlib-devel \
         glib* \
-        pixman \
-        pixman-devel \
-        zlib-static && \
-    yum groupinstall -y "Development tools" && \
-    yum clean all -y
+        libpixman-1-dev \
+        build-essential \
+        python3-pip \
+        libz-dev \
+        pkg-config \
+        libglib2.0-dev zlib1g-dev \
+        && \
+    apt clean -y
 
-RUN pip-3.6 install --no-cache-dir \
+RUN pip3 install --no-cache-dir \
+        awscli \
         boto3 \
         filelock \
         graphviz \

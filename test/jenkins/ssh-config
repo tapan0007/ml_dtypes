@@ -9,6 +9,6 @@ Host siopt.review
     Hostname review
     Port 29418
     IdentityFile /home/jenkins/.ssh/id_rsa
-    ProxyJump siopt.vpc
+    ProxyCommand ssh -W %h:%p siopt.vpc
     StrictHostKeyChecking no
 

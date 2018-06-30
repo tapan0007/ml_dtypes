@@ -102,7 +102,7 @@ pipeline{
                 }
                 stage('qemu') {
                     steps {
-                        sh 'cd $QEMU_BLD_DIR && $QEMU_INKLING_PATH/configure --target-list=x86_64-softmmu --cxx=c++48 --cc=gcc48 && make -j'
+                        sh 'cd $QEMU_BLD_DIR && $QEMU_INKLING_PATH/configure --target-list=x86_64-softmmu --cxx=g++-4.8 --cc=gcc-4.8 && make -j'
                     }
                 }
             }
