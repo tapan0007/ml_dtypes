@@ -17,17 +17,17 @@ class BatchSBDataMap:
 
         # below are sizing for ResNet50 batching scheme
         bias_sz = 512
-        #ofmap_sz_56x56x64   = 56 * 56 * self.item_sz            # = 6272
-        ofmap_sz_55x55x64   = 55 * 55 * self.item_sz            # = 6050
-        #ofmap_sz_56x56x256  = 56 * 56 * 256 * self.item_sz // 128    # = 12544
-        ofmap_sz_55x55x256  = 55 * 55 * 256 * self.item_sz // 128    # = 12100
-        ofmap_sz_28x28x512  = 28 * 28 * 512 * self.item_sz // 128    # = 6272
-        ofmap_sz_14x14x1024 = 14 * 14 * 1024 * self.item_sz // 128   # = 3136
-        ofmap_sz_7x7x2048   = 7 * 7 * 2048 * self.item_sz // 128     # = 1568
-        #partialbatch_sz     = ofmap_sz_7x7x2048 * 12 + ofmap_sz_14x14x1024 * 5 + ofmap_sz_28x28x512 * 3 + ofmap_sz_56x56x64 * 1 + ofmap_sz_56x56x64 * 1 # includes extra space to prevent overwrite
-        partialbatch_sz     = ofmap_sz_7x7x2048 * 12 + ofmap_sz_14x14x1024 * 5 + ofmap_sz_28x28x512 * 3 + ofmap_sz_55x55x64 * 1 + ofmap_sz_55x55x64 * 1 # includes extra space to prevent overwrite
-        partialbatch_sz_8   = ofmap_sz_7x7x2048 * 12 + ofmap_sz_14x14x1024 * 8
-        partialbatch_sz_16  = ofmap_sz_7x7x2048 * 16
+        #self.ofmap_sz_56x56x64   = 56 * 56 * self.item_sz            # = 6272
+        self.ofmap_sz_55x55x64   = 55 * 55 * self.item_sz            # = 6050
+        #self.ofmap_sz_56x56x256  = 56 * 56 * 256 * self.item_sz // 128    # = 12544
+        self.ofmap_sz_55x55x256  = 55 * 55 * 256 * self.item_sz // 128    # = 12100
+        self.ofmap_sz_28x28x512  = 28 * 28 * 512 * self.item_sz // 128    # = 6272
+        self.ofmap_sz_14x14x1024 = 14 * 14 * 1024 * self.item_sz // 128   # = 3136
+        self.ofmap_sz_7x7x2048   = 7 * 7 * 2048 * self.item_sz // 128     # = 1568
+        #partialbatch_sz     = self.ofmap_sz_7x7x2048 * 12 + self.ofmap_sz_14x14x1024 * 5 + self.ofmap_sz_28x28x512 * 3 + self.ofmap_sz_56x56x64 * 1 + self.ofmap_sz_56x56x64 * 1 # includes extra space to prevent overwrite
+        partialbatch_sz     = self.ofmap_sz_7x7x2048 * 12 + self.ofmap_sz_14x14x1024 * 5 + self.ofmap_sz_28x28x512 * 3 + self.ofmap_sz_55x55x64 * 1 + self.ofmap_sz_55x55x64 * 1 # includes extra space to prevent overwrite
+        partialbatch_sz_8   = self.ofmap_sz_7x7x2048 * 12 + self.ofmap_sz_14x14x1024 * 8
+        partialbatch_sz_16  = self.ofmap_sz_7x7x2048 * 16
         
         #                         batch=1, pre-pairup=X      batch=2                     batch=2, pre-pairup=T       batch=4                     batch=4, pre-pairup=T       batch=8                     batch=8, pre-pairup=T         batch=16
         self.sb_bias_sz =         [bias_sz,                  bias_sz,                    bias_sz,                    bias_sz,                    bias_sz,                    bias_sz,                    bias_sz,                      bias_sz]
@@ -57,11 +57,29 @@ class BatchSBDataMap:
         # start addresses for each batch level
         self.sb_partialbatch_start = {}
         self.sb_partialbatch_start[16] = 0
-        self.sb_partialbatch_start[8] = ofmap_sz_7x7x2048 * 12 
-        self.sb_partialbatch_start[4] = self.sb_partialbatch_start[8] + ofmap_sz_14x14x1024 * 5
-        self.sb_partialbatch_start[2] = self.sb_partialbatch_start[4] + ofmap_sz_28x28x512 * 3      # MaxPool output, followed by conv layer outputing to scratch 
-        #self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + ofmap_sz_56x56x64 * 1       # IFMAP input space, 1st layer output goes to scratch
-        self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + ofmap_sz_55x55x64 * 1       # IFMAP input space, 1st layer output goes to scratch
+        self.sb_partialbatch_start[8] = self.ofmap_sz_7x7x2048 * 12 
+        self.sb_partialbatch_start[4] = self.sb_partialbatch_start[8] + self.ofmap_sz_14x14x1024 * 5
+        self.sb_partialbatch_start[2] = self.sb_partialbatch_start[4] + self.ofmap_sz_28x28x512 * 3      # MaxPool output, followed by conv layer outputing to scratch 
+        #self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + self.ofmap_sz_56x56x64 * 1       # IFMAP input space, 1st layer output goes to scratch
+        self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2] + self.ofmap_sz_55x55x64 * 1       # IFMAP input space, 1st layer output goes to scratch
+
+    def reevaluate_set_select(self, fmap_sb_usage_size):
+        if fmap_sb_usage_size <= self.ofmap_sz_7x7x2048:
+            self.sb_size_set_index[(1, False)] = 7
+            self.sb_size_set_index[(1, True)] = 7
+            self.sb_partialbatch_start[1] = self.sb_partialbatch_start[16]
+        elif fmap_sb_usage_size <= self.ofmap_sz_14x14x1024:
+            self.sb_size_set_index[(1, False)] = 5
+            self.sb_size_set_index[(1, True)] = 6
+            self.sb_partialbatch_start[1] = self.sb_partialbatch_start[8]
+        elif fmap_sb_usage_size <= self.ofmap_sz_28x28x512:
+            self.sb_size_set_index[(1, False)] = 3
+            self.sb_size_set_index[(1, True)] = 4
+            self.sb_partialbatch_start[1] = self.sb_partialbatch_start[4]
+        elif fmap_sb_usage_size <= self.ofmap_sz_55x55x256:
+            self.sb_size_set_index[(1, False)] = 1
+            self.sb_size_set_index[(1, True)] = 2
+            self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2]
 
     def check_sb_usage(self):
         for i in range(len(self.sb_bias_sz)):

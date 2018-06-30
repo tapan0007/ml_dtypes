@@ -230,7 +230,8 @@ class FusedOp(list):
                 ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz * self.last_op.Tn                               
                 #ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz_rounded * self.last_op.Tn                               
             # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
-            self.first_op.ifmaps_file_params.mapped_params.modify_in_place = 1
+            if not self.first_op.is_input:
+                self.first_op.ifmaps_file_params.mapped_params.modify_in_place = True
 
         # Map the file to region and obtain adjusted region size
         tpb.statebuffer.file_mapper.map_file(self.last_op.ofmaps_file_params, ofmaps_region_start_addr, wrap_around=True, region_sz=ofmaps_region_sz)
@@ -324,8 +325,8 @@ class FusedOp(list):
                                 ))
 
         # weights cannot overlap OFMAP/IFMAP
-        assert(tpb.statebuffer.file_mapper.check_overlap(weights_file_start_addr, weights_region_sz, ofmaps_region_start_addr, ofmaps_region_sz)==False)
-        assert(tpb.statebuffer.file_mapper.check_overlap(weights_file_start_addr, weights_region_sz, ifmaps_region_start_addr, ifmaps_region_sz)==False)
+        assert(tpb.statebuffer.file_mapper.check_overlap(weights_file_start_addr, weights_region_sz, single_ofmap_start, min(single_ofmap_sz, ofmaps_region_sz))==False)
+        assert(tpb.statebuffer.file_mapper.check_overlap(weights_file_start_addr, weights_region_sz, single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz))==False)
 
         # check that regions are either exactly overlaping or not overlapping at all
         overlap_some_percent = tpb.statebuffer.file_mapper.check_overlap(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
