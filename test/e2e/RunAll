@@ -151,7 +151,9 @@ class QoR:
     elapsedTimeSec = -1
     #print("DEBUG: opening %s" % filepath)
     with open(filepath, 'rb') as fh:
-      fh.seek(-200, os.SEEK_END)
+      fh.seek(0, os.SEEK_END)
+      fileSize = fh.tell()
+      fh.seek(-min(200, fileSize), os.SEEK_END)
       for lineBinary in fh.readlines():
         line = lineBinary.decode('ascii')
         found = re.search('Cycles:\s+(\d+)', line)
@@ -237,9 +239,9 @@ class QoR:
           for f in files:
             csvFile = subdir + '/' + f
             #print(csvFile)
-            match = re.search(r'\/?(\d+)\/qor.csv$', csvFile)
+            match = re.search(r'(^|\/)(\d+)\/qor.csv$', csvFile)
             if match:
-              date = match.groups()[0]
+              date = match.groups()[1]
               self.add(date, csvFile)
     def add(self, date, csvFile):
       self.data[date] = {}

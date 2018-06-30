@@ -264,7 +264,7 @@ class Krt:
     self.ifmapDir = "%s/ifmap" % self.kelfVmDir
     self.ofmapDir = "%s/ofmap" % self.kelfVmDir
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
-    cmdRuntime = 'cd %s; sudo kbin_rt %s %s %s 0000:00:04.0 %d > log-krt.txt 2>&1 &' % (self.kelfVmDir,
+    cmdRuntime = 'cd %s; sudo kbin_rt %s %s %s 0000:00:04.0 -t %d > log-krt.txt 2>&1 &' % (self.kelfVmDir,
                    self.kelfVmDir, self.ifmapDir, self.ofmapDir, self.inklingTimeout)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
@@ -281,7 +281,7 @@ class Krt:
 
 qemuOk = False
 port = args.port
-inklingTimeout = 3600
+inklingTimeout = 40000
 for qemuRestartId in range(3):
   while portInUse(port):
     port += 3
