@@ -129,7 +129,7 @@ pipeline{
                 }
                 stage('hourly') {
                     steps {
-                        timeout(time: 250, unit: 'MINUTES') {
+                        timeout(time: 5, unit: 'HOURS') {
                             sh '[ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/hourly && $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS)'
                         }
                     }
