@@ -99,7 +99,7 @@ class FusedOp(list):
                 return False
             else:
                 self.pool_op = op
-                self.has_pool = True
+                self.has_pool = not self.pool_op.is_id_pool
         elif (op.data['layer_type'] == 'Conv' or op.data['layer_type'] == 'MatMul' or op.data['layer_type'] == 'Softmax2'):
             if (len(self) != 0):
                 if (self.args.debug > 2):
@@ -187,7 +187,7 @@ class FusedOp(list):
             #ifmaps_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[0] \
             #                          + tpb.statebuffer.batcher.sb_partialbatch_start[1] 
             if self.first_op.C <= 128:
-                ifmaps_region_sz = 55*55*tpb.statebuffer.batcher.item_sz
+                ifmaps_region_sz = tpb.statebuffer.batcher.first_ifmaps_region_sz
             else:                
                 ifmaps_region_sz = self.current_batch_count * self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
             # for first IFMAP, use the residue size, which is roughly equal to 3 chunks of 224x4 input tiles
@@ -251,9 +251,12 @@ class FusedOp(list):
         if self.has_conv:
             # reselect SB region sizing index based on input current_batch_count
             sb_size_set_index = tpb.statebuffer.batcher.sb_size_set_index[(self.current_batch_count, self.partial_batch_pre_pairup)]
-            # right before pairup to batch count of 16, there's a jump in weights elem count, so take from partial batch space (shared space)
-            weights_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
-                                + tpb.statebuffer.batcher.sb_partialbatch_sz[sb_size_set_index]
+            if self.first_op.is_input:
+                weights_region_start_addr = ifmaps_region_start_addr + ifmaps_region_sz
+            else:                
+                # right before pairup to batch count of 16, there's a jump in weights elem count, so take from partial batch space (shared space)
+                weights_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
+                                    + tpb.statebuffer.batcher.sb_partialbatch_sz[sb_size_set_index]
             # align to 8B
             weights_region_start_addr = ceildiv(weights_region_start_addr, 8) * 8
             # compute region size
@@ -1585,9 +1588,9 @@ class FusedOp(list):
                         # consider all Tn batch items together to avoid redundant edges
                         # TODO: roll this code into write_file_data_region
                         prev_waveops = tpb.waveop_stream.last_psum_waveop[psum_bank_src]['previous_waveops']
-                        if self.args.relax_dependencies:
+                        #if self.args.relax_dependencies:
                             # kaena-403/449 hack: reduce dependencies to prevent event overflow
-                            latest_accessor = -1
+                        #    latest_accessor = -1
                         if latest_accessor >= 0:
                             accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
                             if accessor_name not in prev_waveops and accessor_name != tpb.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_name']:

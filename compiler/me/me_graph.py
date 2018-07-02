@@ -44,6 +44,7 @@ class KNode:
         self.is_const = False
         self.is_join = False
         self.is_fork = False
+        self.is_id_pool = False
         self.residue_index = -1
         self.src_is_psum = True
         self.dst_is_psum = True
@@ -781,6 +782,7 @@ class KGraph:
         # WARNING: node_number is not unique when there's ID pool
         id_pool_op = KNode(self, id_pool_layer_data, self.item_sz, self.data_type, last_op.node_number + 1)
         id_pool_op.is_fork = last_op.is_fork
+        id_pool_op.is_id_pool = True
         id_pool_op.prev.append(last_op)
         id_pool_op.next = []
         for next_op in last_op.next:

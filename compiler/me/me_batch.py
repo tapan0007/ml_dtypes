@@ -19,6 +19,7 @@ class BatchSBDataMap:
         bias_sz = 512
         #self.ofmap_sz_56x56x64   = 56 * 56 * self.item_sz            # = 6272
         self.ofmap_sz_55x55x64   = 55 * 55 * self.item_sz            # = 6050
+        self.first_ifmaps_region_sz = self.ofmap_sz_55x55x64
         #self.ofmap_sz_56x56x256  = 56 * 56 * 256 * self.item_sz // 128    # = 12544
         self.ofmap_sz_55x55x256  = 55 * 55 * 256 * self.item_sz // 128    # = 12100
         self.ofmap_sz_28x28x512  = 28 * 28 * 512 * self.item_sz // 128    # = 6272

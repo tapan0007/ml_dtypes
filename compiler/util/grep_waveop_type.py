@@ -3,9 +3,12 @@
 import json
 import os
 import re
+import sys
 import argparse
-from layeropt_utils import CircbufPtrs
-from layeropt import KGraph, KNode
+
+sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/me")
+from me_utils import CircbufPtrs
+from me_graph import KGraph, KNode
 
 # Main program
 if __name__ == "__main__":
@@ -24,7 +27,7 @@ if __name__ == "__main__":
         exit(-1)
 
     # create graph from JSON file        
-    wavegraph = KGraph()
+    wavegraph = KGraph(args)
     wavegraph.populate_from_kgraph_json(wavegraph_json)
 
     # check for SBAtomFile nodes with no input

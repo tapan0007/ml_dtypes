@@ -221,6 +221,7 @@ class FileParams():
     current_file_id = 0
 
     def __init__(self, file_name, file_dims, data_type, chunk_sz_limit, pearray_params, op_params, args=None, contain_weights=False):
+        self.args = args
         self.layer_name = "DEPRECATED"
         self.contain_weights = contain_weights # True for weights and bias and constants (used to tie-off BiasAdd in standalone Act)
         self.final_layer_ofmap = False
@@ -636,7 +637,7 @@ class FileMapper():
             end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
             for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
                 sb_addr = j
-                if sb_addr >= start_sb_addr and sb_addr <= end_sb_addr:
+                if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) or (file_params.args is not None and file_params.args.relax_dependencies):
                     # return last of wniters/readers for dependency
                     last_writer = max(last_writer, self.morsels[sb_addr].writer_id)
                     last_reader = max(last_reader, self.morsels[sb_addr].reader_id)
