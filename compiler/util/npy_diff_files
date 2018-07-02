@@ -22,12 +22,40 @@ if not os.path.isfile(args.new):
   raise("ERROR: missing file --new ")
 
 gold = np.load(args.gold)
-new = np.load(args.new)
+if args.new.endswith(".bin"):
+  new = np.fromfile(args.new, dtype=gold.dtype)
+  try:
+    new = new.reshape(gold.shape)
+  except:
+    print("WARNING: failed to reshape file %s from shape %s to %s" % (args.new, new.shape, gold.shape))
+else:
+  new = np.load(args.new)
 
 verbose = int(args.verbose)
 
 if gold.shape != new.shape:
   print("ERROR: shapes differ, gold %s, new %s" %(gold.shape, new.shape))
+  if verbose >= 3:
+    gold1 = gold.flatten()
+    new1 = new.flatten()
+    print("  %-5s  %-12s  %-12s    %s" % ("Index", "Gold", "New", "Diff"))
+    for i in range(max(gold1.size, new1.size)):
+      if i < gold1.size:
+        valG = "%12g" % gold1[i]
+      else:
+        valG = "None"
+      if i < new.size:
+        valN = "%12g" % new1[i]
+      else:
+        valN = "None"
+      if i < min(gold1.size, new1.size):
+        valDiff = "%12g" % (new1[i] - gold1[i])
+      else:
+        valDiff = "Unknown"
+      print("  %-5d  %12s  %12s    %s" % (i, valG, valN, valDiff))
+        
+  else:
+    print("Use --verbose 3 to see the content anyway")
   exit(2)
 
 diffAbs = new.astype(np.float64) - gold.astype(np.float64)
