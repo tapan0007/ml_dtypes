@@ -65,7 +65,7 @@ parser.add_argument('--timeout', help='Timeout for each test, default 10000', ty
 parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
 parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
 parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='store_true', default=False)
-parser.add_argument('--force_qemu', help='Run wave-inkling tests using wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*', action='store_true', default=False)
+parser.add_argument('--force_qemu', help='Apply additional --filer and various customization for Qemu flow, e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*, only wave tests and not fp32 are filtered', action='store_true', default=False)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -100,7 +100,8 @@ def calcIsWaived(testName, testWaiver):
   return False
 
 
-def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSelect, argFilter):
+def selectTests(testConfigMap, testWaiver, arglevel, argTest,
+                argTestRe, argSelect, argFilter, forceQemu):
   testList = []
   # Pre-select by level and the select method
   if len(argTest) == 0 and len(argTestRe) == 0:
@@ -132,6 +133,14 @@ def selectTests(testConfigMap, testWaiver, arglevel, argTest, argTestRe, argSele
     isWaived = calcIsWaived(testName, testWaiver)
     if argFilter == "any" or (isWaived and argFilter == "waived_only") or ((not isWaived) and argFilter == "not_waived"):
       testListFiltered.append(testName)
+  # Apply custom filter
+  if forceQemu:
+    testsPreCustom = testListFiltered
+    testListFiltered = []
+    for testName in testsPreCustom:
+      isWaived = calcIsWaived(testName, testWaiver)
+      if re.search(r'wave', testName) and not re.search(r'waveopt', testName) and not re.search(r'fp32', testName):
+        testListFiltered.append(testName)
   # Remove duplicates
   testListFinal = sorted(list(set(testListFiltered)))
   return testListFinal
@@ -798,7 +807,9 @@ class Ktests:
  
 ###############################################################################
 # Execute
-testList = selectTests(test_list.testConfigMap, test_list.testWaiver, args.level, args.test, args.test_re, args.select, args.filter)
+testList = selectTests(test_list.testConfigMap, test_list.testWaiver, args.level,
+                       args.test, args.test_re, args.select, args.filter,
+                       args.force_qemu)
 if args.show_only:
   print("INFO: --show_only mode: selected tests are\n" + "\n".join(testList))
 else:
