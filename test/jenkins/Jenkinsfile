@@ -13,7 +13,7 @@ pipeline{
     environment {
         AGENT_LABEL = "kaena_c5.18xl"
         SRC_DIR = "/workdir/src"
-        BLD_DIR = "/workdir/build"
+        BLD_DIR = "$SRC_DIR/build"
         TEST_DIR = "/workdir/test"
 
         KAENA_PATH = "$SRC_DIR/kcc"
@@ -80,17 +80,17 @@ pipeline{
                 '''
             }
         }
-        stage('Build') {
-            parallel {
-                stage('kcc') {
-                    steps {
-                        sh 'cd $KAENA_PATH && ./build.sh'
-                    }
-                }
+        stage('build') {
+            stages {
                 stage('krt') {
                     steps {
                         sh 'cd $KRT_BLD_DIR && cmake $KAENA_RT_PATH && make package'
                         sh 'cd $KRT_DV_BLD_DIR && PLAT=dv cmake $KAENA_RT_PATH && make package'
+                    }
+                } 
+                stage('kaena') { 
+                    steps {
+                        sh 'cd $SRC_DIR/shared && ./build.sh'
                     }
                     post {
                         success {
@@ -98,11 +98,6 @@ pipeline{
                             sh 'cp $KRT_DV_BLD_DIR/krt-*.*.tar.gz /artifact/'
                             archiveArtifacts artifacts:'krt-*.*.tar.gz'
                         }
-                    }
-                }
-                stage('qemu') {
-                    steps {
-                        sh 'cd $QEMU_BLD_DIR && $QEMU_INKLING_PATH/configure --target-list=x86_64-softmmu --cxx=g++-4.8 --cc=gcc-4.8 && make -j'
                     }
                 }
             }

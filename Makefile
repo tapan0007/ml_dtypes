@@ -25,7 +25,6 @@ export PKG_RELEASE
 PYTHON=python3
 SUBDIRS ?= \
     runtime \
-    submodules/Inkling \
     compiler
 
 .PHONY: build
