@@ -281,7 +281,7 @@ class Krt:
 
 qemuOk = False
 port = args.port
-inklingTimeout = 40000
+inklingTimeout = 6000
 for qemuRestartId in range(3):
   while portInUse(port):
     port += 3
