@@ -7,10 +7,22 @@
 # Examples
 #  List code changes only
 #    $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago"
+#
 #  A typical linear search
 #    cd /tmp/my_dir;  $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 1-1conv0_h224c1m1_wave --force_qemu' 
+#
 #  A workaround for bad code
 #    cd /tmp/my_dir;  $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 1-1conv0_h224c1m1_wave --force_qemu' --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh && ./build.sh && cd ..' 
+#
+#  Qemu search of week of Jun 25
+#     # vi ~/bin/RunAllQemu.sh with
+#          #!/bin/sh
+#          $KAENA_PATH/test/e2e/RunAll --test_re '_wave($|[\b_-])' --force_qemu --parallel 32 --timeout 3600 --filter not_waived
+#    $KAENA_PATH/compiler/util/repo_search --since "Jun 25" --until "now" --sleep 600 --load 40 --run_cmd ~/bin/RunAllQemu.sh --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh && ./build.sh && cd ..' 
+#
+# Another example of a workaround for a missing build variable
+#    $KAENA_PATH/compiler/util/repo_search --since "Wed Jun 27 13:17:21 2018" --until "now" --sleep 600 --load 10  --run_cmd ~/bin/RunAllQemu.sh --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh ; export ARCH_HEADERS_PATH=$KAENA_PATH/../arch-headers && ./build.sh && cd ..' 
+#    KAENA_PATH/compiler/util/repo_search --report
 
 import csv, os, argparse, re, time
 import numpy as np
@@ -19,6 +31,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt    
 
 defaultBuildCmd = '/bin/rm -rf build; cd shared; . ./set_env.sh && ./build.sh && cd ..'
+defaultMetricCmd = [
+  "(egrep ',FAIL|,TIMEOUT' run/qor.csv | wc -l) || (egrep -A1 'Running    Passed' run/log-RunAll.txt | tail -1 | awk '{print $8}')", 'Num FAIL',
+  'ls pass_build.txt | wc -l | xargs expr -1 + 10 \*', "Build passed",
+  "(egrep ,PASS run/qor.csv | wc -l) || (egrep -A1 'Running    Passed' run/log-RunAll.txt | tail -1 | awk '{print $4}')", 'Num PASS',
+  'ls pass_run.txt | wc -l | xargs expr -2 + 20 \*', "Run passed",
+                    ]
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--repos', help='Repos to search', nargs='+', default=['arch-headers', 'arch-isa', 'ext', 'inkling', 'kcc', 'krt', 'qemu_inkling', 'shared'])
@@ -27,6 +45,11 @@ parser.add_argument('--since', help='Passed to git log command', default="10 day
 parser.add_argument('--until', help='Passed to git log command', default="now")
 parser.add_argument('--run_cmd', help='Build and run command.If none only print changes and quit', default=None)
 parser.add_argument('--build_cmd', help='Customize the build, default %s' % defaultBuildCmd, default=defaultBuildCmd)
+parser.add_argument('--metric_cmd', help='List of metric command for one run and its text label, default %s' % defaultMetricCmd, default=defaultMetricCmd)
+parser.add_argument('--sleep', help='Sleep between command starts to balance load for slow --run_cmd, default 60', type=int, default=60)
+parser.add_argument('--load', help='After applying --sleep wait will 1-minute loads drops below this, default 40', type=int, default=60)
+parser.add_argument('--report', help='Standalone reporting using the 000 to NNN directories on disk and the --metric_cmd', action='store_true', default=False)
+parser.add_argument('--annotate_re', help='Regexp to match metric names in --metric_cmd; upon match the metric points are annoated on the plot', default="Num")
 args = parser.parse_args()
 
 def systemAndPrint(cmd):
@@ -35,80 +58,235 @@ def systemAndPrint(cmd):
 
 
 class Commit(object):
-  def __init__(self, repo, gitHash, gitTime, text):
+  def __init__(self, repo, gitHash, gitShortHash, gitTime, gitCommitter, gitCommitDate, text):
     self.repo = repo
     self.gitHash = gitHash
+    self.gitShortHash = gitShortHash
     self.gitTime = int(gitTime)
+    self.gitCommitter = gitCommitter.split('@')[0]
+    self.gitCommitDate = gitCommitDate
     self.text = text
     self.index = None
   def __str__(self):
-    return "%4d  %s  %s" % (self.index, self.repo, self.text)
+    return "%03d  %-12s  %-10s  %-10s  %s  %s" % (self.index, self.repo, self.gitShortHash, self.gitCommitter, time.ctime(self.gitTime), self.text)
 
-class Repo(object):
-  def __init__(self, repos, since, until, buildCmd, runCmd):
-    self.repos = repos
-    self.buildCmd = buildCmd
-    self.runCmd = runCmd
-    cmd = 'cd $KAENA_PATH/.. && repo forall -c git checkout origin/master'
-    systemAndPrint(cmd)
-    self.allCommits = self.getCommits('')
-    self.commits = self.getCommits('--since "' + since + '" --until "' + until + '"')
-    self.cwd = os.getcwd()
-  def getCommits(self, options):
+class CommitOrder:
+  def __init__(self, repos, options):
+    self.commits = []
+    self.repo2order = {}
     tmpCommits = []
-    for repo in self.repos:
-      cmd = 'cd $KAENA_PATH/../' + repo + ' && git log origin/master ' + options + ' --pretty="format:%H %at %ct %ad %cd %s"'
+    for repo in repos:
+      self.repo2order[repo] = []
+      cmd = 'cd $KAENA_PATH/../' + repo + ' && git log master ' + options + ' --pretty="format:%H | %h | %at | %ct | %ae | %ce | %ad | %cd | %s"'
       print("INFO: executing %s" % cmd)
       with os.popen(cmd) as pipe:
         for line in pipe:
           #print('DEBUG line:  ', line)
-          gitHash, gitAutherTime, gitCommitTime = line.split(" ")[0:3]
-          tmpCommits.append(Commit(repo, gitHash, gitCommitTime, line))
+          lineWords = line.split(" | ")
+          gitHash, gitShortHash, gitAutherTime, gitCommitTime, gitAuthor, gitCommitter, gitAuthorDate, gitCommitDate = lineWords[0:8]
+          commit = Commit(repo, gitHash, gitShortHash, gitCommitTime, gitCommitter, gitCommitDate, " ".join(lineWords[8:]))
+          tmpCommits.append(commit)
+          self.repo2order[repo].append(commit)
     commits = sorted(tmpCommits, key=lambda x: x.gitTime)
     numCommits = len(commits)
     for i in range(numCommits):
       commits[i].index = i
     print("INFO: repo %s - loaded %d commits\n" % (repo, numCommits))
-    return commits
+    self.commits = commits
+  def getCommits(self):
+    return self.commits
+  def getNewestOlderThan(self, repo, timestamp):
+    foundCommit = None
+    for commit in self.repo2order[repo]:
+      if commit.gitTime <= timestamp:
+        foundCommit = commit
+        break
+    return foundCommit
+
+class Repo(object):
+  def __init__(self, repos, since, until, buildCmd, runCmd, sleep, load):
+    self.repos = repos
+    self.buildCmd = buildCmd
+    self.runCmd = runCmd
+    self.sleep = sleep
+    self.load = load
+    cmd = 'cd $KAENA_PATH/.. && repo forall -c git checkout master'
+    systemAndPrint(cmd)
+    self.allCommits = CommitOrder(self.repos, '')
+    self.commits = CommitOrder(self.repos, '--since "' + since + '" --until "' + until + '"')
+    self.cwd = os.getcwd()
     
   def listCommits(self):
-    for commit in self.commits:
+    for commit in self.commits.getCommits():
       print(commit)
   
   def getRepoHashByTime(self, repo, gitTime):
     gitHash = None
-    selectedCommit = None
-    for commit in self.allCommits:
-      if (commit.repo == repo) and (commit.gitTime <= gitTime):
-        selectedCommit = commit
-    gitHash = selectedCommit.gitHash
-    print("INFO: for  repo %s  and  time %d (%s)  the selected commit is  %s" % (repo, gitTime, time.ctime(gitTime), selectedCommit), flush=True)
+    commit = self.allCommits.getNewestOlderThan(repo, gitTime)
+    gitHash = commit.gitHash
+    print("INFO: for  repo %s  and  time %d (%s)  the selected commit is  %s" % (repo, gitTime, time.ctime(gitTime), commit), flush=True)
     return gitHash
   
   def search(self, method):
     if method == "linear":
-      for commit in self.commits:
+      for commit in self.commits.getCommits():
         i = commit.index
         d = "%s/%03d" % (self.cwd, i)
-        print("\n###################  Testing commit  %03d  %s  ###################" % (i, commit))
-        cmd = "/bin/cp -r $KAENA_PATH/.. %s" % d
+        print("\n###################  Testing commit  %s  ###################" % (commit))
+        cmd = "date; /bin/cp -r $KAENA_PATH/.. %s" % d
         systemAndPrint(cmd)
         os.chdir(d)
+        with open("git_commit.txt", 'w') as fh:
+          fh.write(str(commit))
         gitHash = commit.gitHash
         for repo in self.repos:
           repoHash = self.getRepoHashByTime(repo, commit.gitTime)
-          cmd = "cd %s && git checkout %s && git clean -f -d -x" % (repo, repoHash)
+          cmd = "(echo; date; cd %s && pwd && git checkout %s && git clean -f -d -x) >> log-sync.txt 2>&1" % (repo, repoHash)
           assert systemAndPrint(cmd) == 0
         # export ARCH_HEADERS_PATH=$REPO_DIR/arch-headers &&
-        cmd = "bash -c '(%s && env && mkdir run && cd run && %s) > log.txt 2>&1 &' " % (self.buildCmd, self.runCmd)
+        cmd = "bash --noprofile --norc -c '(%s && touch pass_build.txt && env && mkdir run && cd run && %s && cd .. && touch pass_run.txt) > log.txt 2>&1 &' " % (self.buildCmd, self.runCmd)
         systemAndPrint(cmd)
-        time.sleep(60)
+        print("INFO: sleep %d", self.sleep)
+        time.sleep(self.sleep)
+        load = os.getloadavg()[0]
+        while load > self.load:
+          print("INFO: sleep 10 sec due to load %.2f being greater than --load %.2f" % (load, self.load), flush=True)
+          load = os.getloadavg()[0]
+          time.sleep(10)
+          
     else:
       raise RuntimeError("ERROR: Unsupported search method  %s" % method)
 
-repo = Repo(args.repos, args.since, args.until, args.build_cmd, args.run_cmd)
-if args.run_cmd == None:
-  repo.listCommits()
+class Report(object):
+  def __init__(self, metricCmd, annotateRe):
+    self.metricCmd = metricCmd
+    self.annotateRe = annotateRe
+
+  def extractData(self, dataDir):
+    # collect data
+    data = {}
+    for subdir, dirs, files in os.walk(dataDir):
+      for d in dirs:
+        #print("DEBUG: visited directory  " + d)
+        match = re.search(r'^(\d+)$', d)
+        if match:
+          #print("DEBUG: processing run  %s " % ( d))
+          data[d] = {}
+          
+          # Git commit info
+          f = "%s/git_commit.txt" % d
+          if os.path.isfile(f):
+            with open(f) as fh:
+              data[d]["git_commit"] = fh.readline().rstrip()
+          # Metrics
+          for metric, cmd in zip(self.metricCmd[1::2], self.metricCmd[0::2]):
+            print("INFO: executing %s" % cmd)
+            with os.popen("cd %s && cd %s && %s" % (dataDir, d, cmd)) as fh:
+              val = fh.readline()
+              try:
+                data[d][metric] = float(val)
+              except:
+                print("INFO: dir '%s' metric '%s' failed to convert value '%s' to float" % (d, metric, val))
+      break
+    print(data)
+    self.data = data
+    self.dirs = sorted(data.keys())
+    self.numDirs = int(self.dirs[-1]) + 1
+
+  def getMetricLabels(self):
+    return self.metricCmd[1::2]
+
+  def plot(self, outFile):
+    
+    def label2style(labels):
+      l2s = {}
+      colors = ['red', 'blue', 'green', 'brown', 'orange', 'purple']
+      colors += matplotlib.colors.CSS4_COLORS.keys()
+      nextColor = 0
+      for t in labels:
+        ls = 'solid'
+        c = colors[nextColor]
+        nextColor += 1
+        l2s[t] = [ls, c]
+      return l2s
+    
+    sortedLabels = self.getMetricLabels()
+    l2s = label2style(sortedLabels)
+    x = list(range(self.numDirs))
+    xlabels = [("%03d" % xval) for xval in x]
+    for xindex in range(self.numDirs):
+      d = "%03d" % xindex
+      gitInfo = self.data[d].get("git_commit", None)
+      if gitInfo != None:
+        gitInfoShort = re.sub(' +', ' ', gitInfo)
+        xlabels[xindex] = gitInfoShort[0:80]
+    print("DEBUG x: ", x)
+    print("DEBUG xlabels: ", xlabels)
+    fig, axarr = plt.subplots(1, sharex=True, figsize=(10,10))
+    axProp  = axarr
+    axProp.set_xticks(x)
+    axProp.set_xticklabels(xlabels, rotation=-90)
+    yLineHandles = []
+    for label in sortedLabels:
+      y = []
+      for xval in x:
+        yval = None
+        #yval = 0
+        d = "%03d" % xval
+        dirData = self.data.get(d, None)
+        if dirData != None:
+          yval = dirData.get(label, None)
+        y.append(yval)
+      print("DEBUG y: ", y)
+      cleanX = []
+      cleanY = []
+      for i in range(len(x)):
+        if y[i] != None:
+          cleanX.append(x[i])
+          cleanY.append(float(y[i]))
+      ls, color = l2s[label]
+      yLineHandles.append(axProp.plot(cleanX, cleanY, marker='o', ls=ls, c=color, label=label)[0])
+      # Add mean
+      showMean = False
+      if showMean:
+        try:
+          yMean = np.array(cleanY).mean()
+        except:
+          yMean = 0
+        yLineHandles.append(axProp.axhline(y=yMean, ls=ls, c=color, lw=1, label="Mean %.3f" % yMean))
+      # Annotate values
+      annotate = re.match(self.annotateRe, label)
+      if annotate:
+        for xv, yv in zip(cleanX, cleanY):
+          if yv != None:
+            valLabel = "%.1f" % yv
+            axProp.annotate(
+                valLabel,
+                xy=(xv, yv), xytext=(-20, 20),
+                textcoords='offset points', ha='right', va='bottom',
+                bbox=dict(boxstyle='round,pad=0.5', fc='lightyellow', alpha=0.5),
+                arrowprops=dict(arrowstyle = '->', connectionstyle='arc3,rad=0'))
+    axProp.legend(handles=yLineHandles)
+    axProp.grid(True)
+    axProp.set_xlabel('Git commit')
+    axProp.set_ylabel('Metric value')
+    axProp.set_title('repo_search')
+    #fig.autofmt_xdate()
+    plt.tight_layout()
+    plt.savefig(outFile)
+    print("INFO: wrote  %s" % outFile)
+
+
+if args.report:
+  assert args.run_cmd == None
+  rpt = Report(args.metric_cmd, args.annotate_re)
+  rpt.extractData(".")
+  rpt.plot("out_search.svg")
 else:
-  repo.search(args.search)
+  repo = Repo(args.repos, args.since, args.until, args.build_cmd,
+              args.run_cmd, args.sleep, args.load)
+  print("INFO: the selected search commits are:")
+  repo.listCommits()
+  if not args.run_cmd == None:
+    repo.search(args.search)
   
