@@ -51,7 +51,7 @@ pipeline{
         }
         stage('Build') {
             steps {
-                sh 'cd $KRT_DV_BLD_DIR && PLAT=dv cmake $KAENA_RT_PATH && make doc package'
+                sh 'cd $KRT_DV_BLD_DIR && PLAT=dv cmake $KAENA_RT_PATH && make package'
             }
             post {
                 success {
