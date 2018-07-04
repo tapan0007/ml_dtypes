@@ -1,5 +1,4 @@
 
-
 #include "kelf/inc/kelfdmadescription.hpp"
 
 namespace kcc {
@@ -21,6 +20,21 @@ void
 DmaDescription::DmaBlock::addTailEventId(events::EventId eventId)
 {
     m_TailEventIds.push_back(eventId);
+}
+
+/***********************************************************************
+***********************************************************************/
+void
+DmaDescription::DmaBlock::setDmaEventField(nlohmann::json& jDmaBlock) const
+{
+    if (m_TailEventIds.size() > 0) {
+        if (m_TailEventIds.size() == 1) {
+            jDmaBlock["event"]  = m_TailEventIds[0];
+        }
+        else {
+            jDmaBlock["event"]  = m_TailEventIds;
+        }
+    }
 }
 
 

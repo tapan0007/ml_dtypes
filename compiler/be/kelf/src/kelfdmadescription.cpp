@@ -268,8 +268,8 @@ DmaDescription::writeDmaDescriptors(
         json jBlockToTpb;
         jBlockToTpb["queue"]    = dmaBlockToTpb.gQueueName();
         jBlockToTpb["id"]       = dmaBlockToTpb.gBlockId();
-        jBlockToTpb["event"]    = dmaBlockToTpb.gEventId();
         jBlockToTpb["#comment"] = dmaBlockToTpb.gComment();
+        dmaBlockToTpb.setDmaEventField(jBlockToTpb);
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlockToTpb.gDescs()) {
@@ -297,9 +297,9 @@ DmaDescription::writeDmaDescriptors(
 
         json jBlockFromTpb;
         jBlockFromTpb["queue"]      = dmaBlockFromTpb.gQueueName();
-        jBlockFromTpb["event"]      = dmaBlockFromTpb.gEventId();
         jBlockFromTpb["id"]         = dmaBlockFromTpb.gBlockId();
         jBlockFromTpb["#comment"]   = dmaBlockFromTpb.gComment();
+        dmaBlockFromTpb.setDmaEventField(jBlockFromTpb);
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlockFromTpb.gDescs()) {
@@ -450,9 +450,9 @@ DmaDescription::writeInOutDescriptors()
     for (const auto& dmaBlock : m_DmaBlocksInput) {
         json jDmaBlock;
         jDmaBlock["queue"]  = gSymbolicInQueue();
-        jDmaBlock["event"]  = dmaBlock.gEventId();
         jDmaBlock["id"]     = dmaBlock.gBlockId();
         jDmaBlock["#comment"] = dmaBlock.gComment();
+        dmaBlock.setDmaEventField(jDmaBlock);
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlock.gDescs()) {
@@ -476,11 +476,11 @@ DmaDescription::writeInOutDescriptors()
         }
         json jDmaBlock;
         jDmaBlock["queue"]  = gSymbolicOutQueue();
-        // Output queues are polled, but events are used for
-        // TPB to know DMA transfer end.
-        jDmaBlock["event"]  = dmaBlock.gEventId();
         jDmaBlock["id"]     = dmaBlock.gBlockId();
         jDmaBlock["#comment"] = dmaBlock.gComment();
+        // Output queues are polled, but events are used for
+        // TPB to know DMA transfer end.
+        dmaBlock.setDmaEventField(jDmaBlock);
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlock.gDescs()) {

@@ -174,7 +174,7 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
     const kcc_int64 startPart       = sbAtomSaveWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
 
-    Assert(succEventIds.size() == 1, "AtomSave: only one succ event id");
+    //Assert(succEventIds.size() == 1, "AtomSave: only one succ event id");
     //************************************************************************
     //const bool qOut = sbAtomSaveWaveop->gSuccWaveEdges().size() == 0;
     const bool qOut = sbAtomSaveWaveop-> qFinalLayerOfmap();
@@ -225,7 +225,10 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
     {
         std::ostringstream oss;
-        oss << sbAtomSaveWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomSaveWaveop->gName();
+        if (succEventIds.size() > 0)
+            oss << sbAtomSaveWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomSaveWaveop->gName();
+        else        
+            oss << sbAtomSaveWaveop->gOrder() << ":-1" << "-" << sbAtomSaveWaveop->gName();
         SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
@@ -314,7 +317,14 @@ WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWave
         ++numSyncs;
         writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
     }
-    succEventIds.push_back(chosenPrevEdge->gEventId());
+    //succEventIds.push_back(chosenPrevEdge->gEventId());
+    for (auto succWaveEdge : sbAtomWaveop->gSuccWaveEdges()) {
+        if (succWaveEdge->qNeedToImplementSync()) {
+            succEventIds.push_back(succWaveEdge->gEventId());
+            //std::cout << sbAtomWaveop->gName() << succWaveEdge->gEventId() << std::endl;
+            ++numSyncs;
+        }
+    }
     return numSyncs;
 }
 

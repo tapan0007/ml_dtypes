@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 
+#include "nlohmann/json.hpp"
 
 #include "utils/inc/types.hpp"
 #include "events/inc/events.hpp"
@@ -84,7 +85,6 @@ private:
 
     kcc_int32 gBlockIdForQueue(const std::string& queName);
     kcc_int32 gNumBlockIdsForQueue(const std::string& queName) const;
-
 private:
     kcc_int32                           m_FileIdCnt = 0;
     std::map<std::string, FileIdType>   m_FileNameToId;
@@ -190,12 +190,10 @@ public:
     DmaBlock() = delete;
 
     void addTailEventId(events::EventId eventId);
+    void setDmaEventField(nlohmann::json& jDmaBlock) const;
 
     kcc_int32 gBlockId() const {
         return m_BlockId;
-    }
-    events::EventId gEventId() const {
-        return m_TailEventIds[0];
     }
     const std::string& gQueueName() const {
         return m_QueueName;
