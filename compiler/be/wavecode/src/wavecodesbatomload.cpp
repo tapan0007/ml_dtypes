@@ -691,6 +691,12 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     dmaBlock.addTailEventId(succEventIds[0]);
 
     //************************************************************************
+    if (!m_FirstInput) {
+        events::EventId waitEventId = 0; // events::EventId_Invalid();
+        events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
+        processIncomingEdgesForceWait(sbAtomLoadWaveop, chosenEngId, waitEventId, waitEventMode);
+    }        
+    //************************************************************************
     addDmaBarrier(chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name, 

@@ -57,13 +57,13 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, event
 void
 WaveCodeSbAtom::addDmaBarrier(EngineId engId)
 {
-    const arch::PeArray& peArray(arch::Arch::gArch().gPeArray());
+    //const arch::PeArray& peArray(arch::Arch::gArch().gPeArray());
     compisa::NopInstr nopInstr;
     nopInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
     nopInstr.inst_events.wait_event_idx     = 0;
     nopInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
     nopInstr.inst_events.set_event_idx      = 0;
-    nopInstr.cycle_cnt                      = std::max(peArray.gNumberRows(), peArray.gNumberColumns());
+    nopInstr.cycle_cnt                      = 512; //std::max(peArray.gNumberRows(), peArray.gNumberColumns());
     m_WaveCode.writeInstruction(nopInstr, engId);
 }
 

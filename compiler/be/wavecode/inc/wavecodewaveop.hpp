@@ -127,9 +127,9 @@ protected:
             if (! succWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
-            if (succWaveEdge->qChosenForSuccSbAtom()) {
+            /*if (succWaveEdge->qChosenForSuccSbAtom()) {
                 continue;
-            }
+            }*/
 
             if (firstEmb) {
                 firstEmb = false;
@@ -142,10 +142,12 @@ protected:
 
                 m_WaveCode.writeInstruction(instr); // this requires template
                 instructionWritten = true;
+                //std::cout << waveop->gName() << " (embedded) " << succWaveEdge->gEventId() << std::endl;
             } else {
                 compisa::SetInstr setEventInstr;
                 setEventInstr.event_idx = succWaveEdge->gEventId();
                 m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
+                //std::cout << waveop->gName() << " (not embedded) " << succWaveEdge->gEventId() << " engine " << utils::engineId2Str(waveop->gEngineId()) << std::endl;
             }
         }
         return instructionWritten;
