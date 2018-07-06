@@ -224,11 +224,11 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     if opts != None:
       cmd = cmd.replace("rsync ", "rsync %s " % opts)
     print("INFO: rsyncToVm executing %s" % cmd, flush=True)
-    os.system(cmd)
+    return os.system(cmd) == 0
   def rsyncFromVm(self, fromVmDir, toDir):
     cmd = '%s kaena@localhost:%s %s' % (self.cmdForRsync, fromVmDir, toDir)
     print("INFO: rsyncFromVm executing %s" % cmd, flush=True)
-    os.system(cmd)
+    return os.system(cmd) == 0
   def sshCmd(self, cmd, opt=""):
     fullCmd = "%s %s '%s'" % (self.cmdForSsh, opt, cmd)
     print("INFO: sshCmd executing %s" % fullCmd, flush=True)
@@ -273,10 +273,16 @@ class Krt:
     if debug:
       self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf")
   def inference(self, ifmap, ofmap):
-    self.qemu.rsyncToVm(os.path.realpath(ifmap), self.ifmapDir, "--copy-links")
-    self.qemu.sshCmd('pidofp=$(pidof kbin_rt); count=0; until [ -f %s/out.bin -o $count -gt %d ] || [ -z $pidofp ]; do sleep 1 ; pidofp=$(pidof kbin_rt); let count++; echo $count; done' % (self.ofmapDir, self.inklingTimeout))
+    ifmapPath = os.path.realpath(ifmap)
+    if self.qemu.rsyncToVm(ifmapPath, self.ifmapDir, "--copy-links"):
+      self.qemu.sshCmd('pidofp=$(pidof kbin_rt); count=0; until [ -f %s/out.bin -o $count -gt %d ] || [ -z $pidofp ]; do sleep 1 ; pidofp=$(pidof kbin_rt); let count++; echo $count; done' % (self.ofmapDir, self.inklingTimeout))
 
-    self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap)
+      if self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap):
+        print("INFO: the qemu, guest os and krt sucessfully created the output fmap binary")
+      else:
+        print("ERROR: failed to transfer ofmap from the qemu guest os")
+    else:
+      print("ERROR: failed to transfer ifmap %s to the qemu guest os" % ifmapPath)
 
 
 qemuOk = False

@@ -47,6 +47,8 @@ if kPath == None or kePath == None or iPath == None or \
   print("ERROR: make sure KAENA_PATH, KAENA_EXT_PATH, and INKLING_PATH environment is set");
   exit(1)
 
+defaultParallel = multiprocessing.cpu_count()
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--level', help='Run tests upto this level, default 7. This defines the base set of tests', type=int, default=7)
 parser.add_argument('--select', help='Select a specific tests: waived_only, not_waived", default any. This reduces test set from defined by --level', default="any")
@@ -58,7 +60,7 @@ parser.add_argument('--eigenlib_stride', help='Use Eigenlib style of striding st
 parser.add_argument('--golden_inputs', help='Use golden (ref_file) files as inputs instead of generated outputs from previous stage', action='store_true', default=False)
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
 parser.add_argument('--report_only', help='Print QoR report for the logs in the current directory', action='store_true', default=False)
-parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=multiprocessing.cpu_count())
+parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=defaultParallel)
 parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=True)
 parser.add_argument('--serial_streams_for_wave', help='run execution engines in series', action='store_true', default=False)
 parser.add_argument('--timeout', help='Timeout for each test, default 10000', type=int, default=10000)
@@ -71,6 +73,9 @@ args = parser.parse_args()
 verbose = args.verbose
 level = args.level
 parallel = args.parallel
+if args.force_qemu and args.parallel == defaultParallel:
+  parallel = args.parallel // 2
+  print("INFO: using default --parallel %d due to --force_qemu" % parallel)
 select = args.select
 selectSet = set(["any", "waived_only", "not_waived"])
 parallelStreamsForWave = args.parallel_streams_for_wave and not args.serial_streams_for_wave
