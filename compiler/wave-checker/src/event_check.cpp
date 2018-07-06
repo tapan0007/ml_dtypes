@@ -38,8 +38,9 @@ bool EventChecker::RunEventConflictCheck(evid_t evid)
     for(int i = 0;i < mEventID2Edgelist[evid]->size();++i)
     {
       eog_v_t eog_v = boost::add_vertex(i, eog);
-      mEOG_V2WG_E.insert(std::pair<eog_v_t, edge_t>
-          (eog_v,(*mEventID2Edgelist[evid])[i]));
+      //mEOG_V2WG_E.insert(std::pair<eog_v_t, edge_t>
+          //(eog_v,(*mEventID2Edgelist[evid])[i]));
+      mEOG_V2WG_E[eog_v] = (*mEventID2Edgelist[evid])[i];
     }
     // Copy an input wave graph into a local wave graph where
     // topological sort will be performed. Note that the local copy

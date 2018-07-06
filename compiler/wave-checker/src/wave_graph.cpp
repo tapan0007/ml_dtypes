@@ -408,10 +408,10 @@ WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
       }
       num_neighs += op["previous_waveops"].size();
     }
-    if (mCLI.event_conflict_check)
-    {
-      mEventChecker = new EventChecker(wg);
-    }
+  }
+  if (mCLI.event_conflict_check)
+  {
+    mEventChecker = new EventChecker(wg);
   }
   InfoPrefix();
   messages << "Average degree = "
