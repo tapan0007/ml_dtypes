@@ -78,6 +78,7 @@ parser.add_argument('--vdi', help='Path to virtual disk image for the qemu VM. I
 parser.add_argument('--port', help='SSH port for the qemu VM', type=int, default=5555)
 parser.add_argument('--mem', help='Memory for the qemu VM, default 512MB', type=int, default=512)
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
+parser.add_argument('--sg', help='Subgraph label for identifying which SG executes', default=None)
 parser.add_argument('--ifmaps', help='List of input images in sim ifmap format', nargs='+', default=None)
 args = parser.parse_args()
 if args.kelf == None:
@@ -151,8 +152,8 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     if os.path.exists("/dev/kvm"):
         self.cmd += "  --enable-kvm "
     self.port = port
-    self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %d -i %s kaena@localhost' % (self.port, self.pemFile)
-    self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -p %s -i %s"' % (self.port, self.pemFile)
+    self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null -p %d -i %s kaena@localhost' % (self.port, self.pemFile)
+    self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null -p %s -i %s"' % (self.port, self.pemFile)
 
   def start(self):
     cmd = 'sh -c "%s 2>&1 | tee log-qemu.txt"' % self.cmd
@@ -255,8 +256,10 @@ class Krt:
     self.qemu.sshCmd("sudo modprobe vfio enable_unsafe_noiommu_mode=Y")
     self.qemu.sshCmd("sudo {}/vfio_bind.py".format(krtVmPath))
 
-  def addModel(self, kelfDir, kelfVmDir):
+  def addModel(self, kelfDir, kelfVmDir, sg):
     self.kelfVmDir = kelfVmDir
+    self.sg = sg
+    self.qemu.sshCmd("mkdir -p %s" % kelfVmDir)
     self.qemu.rsyncToVm(kelfDir + "/", kelfVmDir, "--copy-links")
     cmdCompile = 'cd %s; kelf2kbin def.json' % (kelfVmDir)
     self.qemu.sshCmd(cmdCompile)
@@ -268,10 +271,10 @@ class Krt:
                    self.kelfVmDir, self.ifmapDir, self.ofmapDir, self.inklingTimeout)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
-    self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
+    self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt_%s.txt" % self.sg, ".")
     debug = True
     if debug:
-      self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf")
+      self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf_%s" % self.sg)
   def inference(self, ifmap, ofmap):
     ifmapPath = os.path.realpath(ifmap)
     if self.qemu.rsyncToVm(ifmapPath, self.ifmapDir, "--copy-links"):
@@ -297,10 +300,10 @@ for qemuRestartId in range(3):
   if qemu.testGuest(4):
     qemuOk = True
     krt = Krt(qemu, inklingTimeout)
-    krt.addModel(args.kelf, "/tmp/reg-1")
+    krt.addModel(args.kelf, "/tmp/reg-1/%s" % args.sg, args.sg)
     krt.start()
     for ifmap in args.ifmaps:
-      krt.inference(ifmap, "out-local.bin")
+      krt.inference(ifmap, "out-%s.bin" % args.sg)
     krt.stop()
   else:
     print("ERROR: Failed to start Qemu  phase %d, restarting ..." % qemuRestartId)
