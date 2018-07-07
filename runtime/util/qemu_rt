@@ -46,7 +46,7 @@ vdis = {
     "4243469768faf66e46298a240816f46152eeaed375d350d94b33d6e3c88475ce" ],
   "ubuntu-18.04": [
     "s3://kaena-vdi/ubuntu-18.04.qcow2",
-    "a0b065d0edc5ba407531d422338348daf1f6779a764c5e149acec32b101fc562" ],
+    "aa5e19ffbc8fcec79d41412040144a0b8260522a415b410ab7d1d00a3350779f" ],
   }
 
 defaultVdi, checksumVdi = vdis["ubuntu-18.04"]
