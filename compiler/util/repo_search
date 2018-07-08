@@ -2,27 +2,35 @@
 
 # Copyright (C) 2018, Amazon.com. All Rights Reserved
 #
-# Workaround for lack of git bisect in the repo tool
-#
-# Examples
-#  List code changes only
-#    $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago"
-#
-#  A typical linear search
-#    cd /tmp/my_dir;  $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 1-1conv0_h224c1m1_wave --force_qemu' 
-#
-#  A workaround for bad code
-#    cd /tmp/my_dir;  $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 1-1conv0_h224c1m1_wave --force_qemu' --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh && ./build.sh && cd ..' 
-#
-#  Qemu search of week of Jun 25
-#     # vi ~/bin/RunAllQemu.sh with
-#          #!/bin/sh
-#          $KAENA_PATH/test/e2e/RunAll --test_re '_wave($|[\b_-])' --force_qemu --parallel 32 --timeout 3600 --filter not_waived
-#    $KAENA_PATH/compiler/util/repo_search --since "Jun 25" --until "now" --sleep 600 --load 40 --run_cmd ~/bin/RunAllQemu.sh --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh && ./build.sh && cd ..' 
-#
-# Another example of a workaround for a missing build variable
-#    $KAENA_PATH/compiler/util/repo_search --since "Wed Jun 27 13:17:21 2018" --until "now" --sleep 600 --load 10  --run_cmd ~/bin/RunAllQemu.sh --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh ; export ARCH_HEADERS_PATH=$KAENA_PATH/../arch-headers && ./build.sh && cd ..' 
-#    KAENA_PATH/compiler/util/repo_search --report
+
+description='''
+Workaround for lack of git bisect in the repo tool
+'''
+
+epilog = '''
+ Examples
+  List code changes only
+    $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago"
+
+  A typical linear search
+    cd /tmp/my_dir;  $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 1-1conv0_h224c1m1_wave --force_qemu' 
+
+  A workaround for bad code
+    cd /tmp/my_dir;  $KAENA_PATH/compiler/util/repo_search --since "8 days ago" --until "2 days ago" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 1-1conv0_h224c1m1_wave --force_qemu' --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh && ./build.sh && cd ..' 
+
+  Qemu search of week of Jun 25
+     # vi ~/bin/RunAllQemu.sh with
+          #!/bin/sh
+          $KAENA_PATH/test/e2e/RunAll --test_re '_wave($|[\b_-])' --force_qemu --parallel 32 --timeout 3600 --filter not_waived
+    $KAENA_PATH/compiler/util/repo_search --since "Jun 25" --until "now" --sleep 600 --load 40 --run_cmd ~/bin/RunAllQemu.sh --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh && ./build.sh && cd ..' 
+
+ Another example of a workaround for a missing build variable
+    $KAENA_PATH/compiler/util/repo_search --since "Wed Jun 27 13:17:21 2018" --until "now" --sleep 600 --load 10  --run_cmd ~/bin/RunAllQemu.sh --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh ; export ARCH_HEADERS_PATH=$KAENA_PATH/../arch-headers && ./build.sh && cd ..' 
+    KAENA_PATH/compiler/util/repo_search --report
+
+ Example - a workaround for a bad commit of S3 VDI qemu image:
+ $KAENA_PATH/compiler/util/repo_search --since "Wed Jul 3" --until "Jul 8" --sleep 600 --load 10 --run_cmd 'cp $KAENA_PATH/runtime/util/qemu_rt xxx; sed 's/a0b065d0edc5ba407531d422338348daf1f6779a764c5e149acec32b101fc562/aa5e19ffbc8fcec79d41412040144a0b8260522a415b410ab7d1d00a3350779f/' < xxx > $KAENA_PATH/runtime/util/qemu_rt; chmod a+rx $KAENA_PATH/runtime/util/qemu_rt; $KAENA_PATH/test/e2e/RunAll --test 0-1conv0_padvalid_wave    1-1conv0_h224c1m1_wave    3-rn50_ba_relu_fp16_wave    3-rn50_relu_fp16_wave    4-rn50_matmul_nosm_wave    5-rn50_nne_to_act4_wave --force_qemu' > & log &
+'''
 
 import csv, os, argparse, re, time
 import numpy as np
@@ -38,7 +46,8 @@ defaultMetricCmd = [
   'ls pass_run.txt | wc -l | xargs expr -2 + 20 \*', "Run passed",
                     ]
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description=description, epilog=epilog,
+           formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--repos', help='Repos to search', nargs='+', default=['arch-headers', 'arch-isa', 'ext', 'inkling', 'kcc', 'krt', 'qemu_inkling', 'shared'])
 parser.add_argument('--search', help='Search method, bisect or linear or sparse linear', nargs='+', default="linear")
 parser.add_argument('--since', help='Passed to git log command', default="10 days ago")
