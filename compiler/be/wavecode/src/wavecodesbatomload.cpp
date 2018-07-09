@@ -617,6 +617,11 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     }
 
     //************************************************************************
+    if (!m_FirstInput) {
+        events::EventId waitEventId = 0; // events::EventId_Invalid();
+        events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
+        processIncomingEdgesForceWait(sbAtomLoadWaveop, chosenEngId, waitEventId, waitEventMode);
+    }        
 
     //************************************************************************
     addDmaBarrier(chosenEngId);

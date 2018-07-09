@@ -24,6 +24,16 @@ EventId EventId_StartInference()
     return arch::Arch::gArch().gNumberAllTpbEvents() - 1;
 }
 
+// kaena-531: There's only 1 delay from MM to following event set instr when there are 
+// multiple SETs (multiple dependencies), so to properly trigger a dependent load, 
+// there must be an event from MM to a WAIT followed by the first SETs (no longer embedded)
+// followed by the next series of SETs. Reusing the last event ID (255) since that
+// was used only for the start of inference.
+EventId EventId_MMStartMultiSet()
+{
+    return arch::Arch::gArch().gNumberAllTpbEvents() - 1;
+}
+
 /****************************************************************
  *                                                              *
  ****************************************************************/
