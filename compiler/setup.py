@@ -8,5 +8,5 @@ setup(name="Kaena-compiler",
       description="Compiler that generates Kaena-elf file from a NN",
       cmdclass={'build_py': build_py},
       packages=['tffe'],
-      scripts = ['scripts/tffe'],
+      scripts = ['scripts/tffe', 'me/layeropt.py', 'me/me_main.py', 'util/npy_diff_files'],
 )

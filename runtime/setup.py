@@ -7,5 +7,5 @@ setup(name="kaena_runtime",
       description="kaena runtime package.",
       cmdclass={'build_py': build_py},
       packages=[],
-      scripts = ['util/nn_executor', 'util/runtime_tf', 'util/runtime_sim'],
+      scripts = ['util/qemu_rt', 'util/nn_executor', 'util/runtime_tf', 'util/runtime_sim'],
 )
