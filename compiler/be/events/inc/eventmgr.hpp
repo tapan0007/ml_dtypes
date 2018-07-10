@@ -2,9 +2,6 @@
 
 #include <set>
 
-
-//#include "shared/inc/uarch_cfg.hpp"
-
 #ifndef KCC_EVENTS_EVENTMGR_H
 #define KCC_EVENTS_EVENTMGR_H
 

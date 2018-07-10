@@ -1,4 +1,6 @@
-#include "shared/inc/uarch_cfg.hpp"
+#include "address_map.h"
+#include "tpb_addr_map.h"
+#include "sp_addr_map.h"
 
 #include "utils/inc/types.hpp"
 #include "utils/inc/asserter.hpp"
@@ -30,7 +32,7 @@ Arch::Arch(kcc_int32 numTpbEvents)
     , m_PoolingEng(m_PsumBuffer, *this)
     , m_ActivationEng(m_PsumBuffer, *this)
     , m_StateBuffer(m_PeArray, sbPartitionSizeInBytes)
-    , m_NumberTpbEvents(numTpbEvents > 0 ? numTpbEvents : NUM_TPB_EVENTS)
+    , m_NumberTpbEvents(numTpbEvents > 0 ? numTpbEvents : MMAP_TPB_TPB_EVT_SZ)
 {
 }
 
@@ -86,32 +88,32 @@ Arch::gArchVersion() const
 TongaAddress
 Arch::gTpbEventBase()
 {
-    return MMAP_EVENTS;
+    return P_0_TPB_0_TPB_EVT_RELBASE;
 
 }
 
 TongaAddress
 Arch::gSpEventBase()
 {
-    return SP_EVENTS_BASE;
+    return P_0_SP_0_EVENT_RELBASE;
 }
 
 TongaAddress
 Arch::gTpbBaseTongaAddress()
 {
-    return TPB_BASE;
+    return P_0_TPB_0_RELBASE;
 }
 
 TpbAddress
 Arch::gTpbAddressOfStateBuffer()
 {
-    return MMAP_SB_BASE;
+    return P_0_TPB_0_STATE_BUF_RELBASE;
 }
 
 kcc_int64
 Arch::gNumberSpEvents()
 {
-    return NUM_SP_EVENTS;
+    return MMAP_SP_EVENT_SZ;
 }
 
 kcc_int64

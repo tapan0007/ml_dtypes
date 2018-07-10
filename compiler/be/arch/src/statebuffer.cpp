@@ -1,5 +1,3 @@
-#include "shared/inc/uarch_cfg.hpp"
-
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"
 
@@ -37,7 +35,11 @@ StateBuffer::gEntryTongaAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
     return sysAddr;
 }
 
-
+/* Replace it with proper values. */
+#define MMAP_SB_FP32_ZERO_OFFSET       0x18000
+#define MMAP_SB_FP32_ONE_OFFSET        0x18100
+#define MMAP_SB_INT32_ZERO_OFFSET      0x18200
+#define MMAP_SB_INT32_ONE_OFFSET       0x18300
 
 TpbAddress
 StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const

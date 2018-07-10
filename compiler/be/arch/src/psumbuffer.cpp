@@ -1,4 +1,4 @@
-#include "shared/inc/uarch_cfg.hpp"
+#include "address_map.h"
 
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"
@@ -24,9 +24,11 @@ PsumBuffer::PsumBuffer(const PeArray& peArray, kcc_int32 numberBanks, kcc_int32 
 TpbAddress
 PsumBuffer::gPsumBaseTpbAddress() const
 {
-    return MMAP_PSUM_BASE;
+    return P_0_TPB_0_PSUM_BUF_RELBASE;
 }
 
+/* TODO - Replace it with proper value*/
+#define COLUMN_BANK_SIZE_BITS       11
 TongaAddress
 PsumBuffer::gBankOffsetDelta() const
 {

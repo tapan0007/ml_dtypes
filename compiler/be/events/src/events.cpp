@@ -1,12 +1,10 @@
-#include "uarch_cfg.hpp"
-
 #include "utils/inc/asserter.hpp"
 
 #include "arch/inc/arch.hpp"
 #include "events/inc/events.hpp"
 
 //Event_t
-static_assert(NUM_TPB_EVENTS <= 
+static_assert(MMAP_TPB_TPB_EVT_SZ <=
              (1U << 8*sizeof(TONGA_ISA_TPB_INST_EVENTS::wait_event_idx)),
     "Number of TPB events (NUM_TPB_EVENTS) too large for type Event_t");
 

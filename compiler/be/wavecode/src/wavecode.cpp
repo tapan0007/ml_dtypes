@@ -1,9 +1,7 @@
 #include <map>
 
+#include "address_map.h"
 #include "aws_tonga_isa_tpb_common.h"
-
-#include "shared/inc/uarch_cfg.hpp"
-
 
 #include "utils/inc/debug.hpp"
 
@@ -85,7 +83,7 @@ WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch)
     m_CodeBarrier           = std::make_unique<WaveCodeBarrier>(*this);
     m_CodeNop               = std::make_unique<WaveCodeNop>(*this);
 
-    m_CurrentDramAddress    = DDRC0_PORT0;
+    m_CurrentDramAddress    = P_0_DRAM_0_BASE;
 }
 
 WaveCode::~WaveCode() = default;
