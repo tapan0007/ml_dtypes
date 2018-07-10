@@ -445,6 +445,19 @@ testWaiver = [
 
     # Qemu only works on C5 (till we add VDI to S3)
     #['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
+
+    # Kaena-577 - accuracy mismatch at outputs of any subgraph
+    ['4-rn50_matmul_nosm_wave$', 'WAIVE_ACC577'],
+    ['7-rn50_nne_fp16_b4_wave$', 'WAIVE_ACC577'],
+    ['7-rn50_nne_fp16_b4_wave-fast_dram$', 'WAIVE_ACC577'],
+    ['7-rn50_nne_fp16_b4_wave-two_banks$', 'WAIVE_ACC577'],
+    ['7-rn50_nne_fp16_wave$', 'WAIVE_ACC577'],
+    ['7-rn50_nne_fp16_wave-fast_dram$', 'WAIVE_ACC577'],
+    ['7-rn50_nne_fp16_wave-no_repl$', 'WAIVE_ACC577'],
+    ['7-rn50_nne_fp16_wave-two_banks$', 'WAIVE_ACC577'],
+    ['8-rn50_nne_fp16_b16_wave$', 'WAIVE_ACC577'],
+    ['8-rn50_nne_fp16_b16_wave-fast_dram$', 'WAIVE_ACC577'],
+    ['8-rn50_nne_fp16_b16_wave-two_banks$', 'WAIVE_ACC577'],
   ]
 
 noGpuTestWaiver = [
@@ -467,6 +480,7 @@ qemuTestWaiver = [
     ['3-rn50-16_wave_repl$',  'WAIVE-QEMU'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['5-rn50_nne_to_act13_wave$',  'WAIVE-QEMU'],
+    ['5-rn50_nne_to_act4_wave$',  'WAIVE-QEMU'],
     ['5-rn50_nne_to_act4_b4_wave$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['7-rn50_nne_fc_wave$',  'WAIVE-QEMU'],

@@ -27,7 +27,7 @@ parser.add_argument('--kelf_dir', help='kelf directory', default="")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
 parser.add_argument('--input_files', help='Files to be passed in to the first subgraph', default=[], nargs='+')
 parser.add_argument('--output_files', help='Specify output files for last subgraph', default=[], nargs='+')
-parser.add_argument('--check_against_ref', help='compare last produced outputs npy file against compiler provided goldens', action='store_true')
+parser.add_argument('--check_against_ref', help='Compare produced subgraph output npy files against compiler provided goldens in local directory; use none (defalt), last, all', default='none')
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
 parser.add_argument('--inkling_debugflags', help='inkling extra args', default=[], nargs='*')
 parser.add_argument('--env', help='Set envvars pairs var=val var1=val1. Used to pass experimental controls to low-level tools', nargs='+', default=[])
@@ -321,32 +321,39 @@ class NnExec:
     return 0
 
 
-  # Return unix exit code
-  def check(self):
+  # Return unix exit code. Subgraph mode can be "last" or "all"
+  def check(self, sgMode):
     # find last non processor subgraph, compare output.
-    lastSg = None
-    for sg in self.subGraphs:
-      if sg.executor != "processor":
-        lastSg = sg
-    ret = 0
-    for jsonOutput in lastSg.outputs:
-      refOutFile = jsonOutput['file']
-      outBase = refOutFile[:-4]
-      flowOutFile = outBase + "-out.npy"
-      cmd = "%s/compiler/util/npy_diff_files --gold %s/%s --new %s" % (kPath, kelf_dir, refOutFile, flowOutFile)
-      print("INFO: executing %s" % cmd, flush=True)
-      if ret == 0:
+    sgList = []
+    if sgMode == 'last':
+      lastSg = None
+      for sg in self.subGraphs:
+        if sg.executor != "processor":
+          lastSg = sg
+      sgList = [lastSg]
+    elif sgMode == 'all':
+      sgList = self.subGraphs
+    else:
+      raise ValueError("ERROR: Unsupported subgraph mode --check_against_ref '%s'" % sgMode)
+    for sg in sgList:
+      for jsonOutput in sg.outputs:
+        refOutFile = jsonOutput['file']
+        outBase = refOutFile[:-4]
+        flowOutFile = outBase + "-out.npy"
+        cmd = "%s/compiler/util/npy_diff_files --gold %s/%s --new %s" % (kPath, kelf_dir, refOutFile, flowOutFile)
+        print("INFO: executing %s" % cmd, flush=True)
         ret = os.system(cmd)
-    return ret
+        if ret != 0:
+          return ret
+    return 0
 
 ret = 0
 os.chdir(working_dir)
 nnExec = NnExec(nnGraphFile)
 ret = nnExec.run()
 assert(ret == 0)
-if args.check_against_ref:
-  ret = nnExec.check()
-  assert(ret == 0)
+if (ret == 0) and (args.check_against_ref != "none"):
+  ret = nnExec.check(args.check_against_ref)
 
 print("INFO: Kaena RT status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
