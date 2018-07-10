@@ -5,8 +5,8 @@ endif
 ifndef ARCH_ISA_PATH
 $(error ARCH_ISA_PATH is not set)
 endif
-ifndef KAENA_RT_PATH
-$(error KAENA_RT_PATH is not set)
+ifndef ARCH_ARTIFACTS_PATH
+$(error ARCH_ARTIFACTS_PATH is not set)
 endif
 ifndef INKLING_PATH
 $(error INKLING_PATH is not set)

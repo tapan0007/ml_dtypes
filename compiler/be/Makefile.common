@@ -25,10 +25,10 @@ CEREAL_INC := -I$(KAENA_EXT_PATH)/packages
 COMPILER_BE := $(KAENA_PATH)/compiler/be
 
 ISA     := $(ARCH_ISA_PATH)
-HAL     := $(KAENA_RT_PATH)/hal/include
+HAL     := $(ARCH_ARTIFACTS_PATH)
 
 ISA_INC := -I$(ISA)/common -I$(ISA)/tpb 
-HAL_INC := -I$(HAL)/common -I$(HAL)/tpb -I$(HAL)/mmap
+HAL_INC := -I$(HAL)
 
 #INC := $(CEREAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
 CINC := $(CEREAL_INC) $(ISA_INC) $(HAL_INC) $(INK_INC) -I./inc -I$(COMPILER_BE)
