@@ -525,13 +525,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
         SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-
-    // dummy
-    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    dmaTriggerInstr.inst_events.set_event_idx   = 0;
-    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 }
 
 //======================================================================
@@ -650,12 +644,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
         SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    // dummy
-    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    dmaTriggerInstr.inst_events.set_event_idx   = 0;
-    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 }
 
 //======================================================================
@@ -728,12 +717,7 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    // dummy
-    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    dmaTriggerInstr.inst_events.set_event_idx   = 0;
-    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 }
 
 //======================================================================
@@ -858,12 +842,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
         SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-    // dummy
-    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    dmaTriggerInstr.inst_events.set_event_idx   = 0;
-    dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-    m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 }
 
 

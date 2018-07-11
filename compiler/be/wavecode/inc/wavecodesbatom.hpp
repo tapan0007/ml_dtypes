@@ -21,6 +21,10 @@ namespace wave {
     class SbAtomWaveOp;
 }
 
+namespace compisa {
+    class DmaTriggerInstr;
+}
+
 namespace wavecode {
 
 
@@ -33,6 +37,8 @@ public:
 protected:
     void processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, events::EventId);
     void addDmaBarrier(EngineId engId);
+    void addSecondDmaTrigger(compisa::DmaTriggerInstr& dmaTriggerInstr, EngineId chosenEngId);
+
 
 private:
 };

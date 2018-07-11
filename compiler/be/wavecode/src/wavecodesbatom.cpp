@@ -5,6 +5,7 @@
 
 #include "events/inc/events.hpp"
 #include "compisa/inc/compisanop.hpp"
+#include "compisa/inc/compisadmatrigger.hpp"
 
 #include "wave/inc/sbatomwaveop.hpp"
 #include "wavecode/inc/wavecodesbatom.hpp"
@@ -65,6 +66,25 @@ WaveCodeSbAtom::addDmaBarrier(EngineId engId)
     nopInstr.inst_events.set_event_idx      = 0;
     nopInstr.cycle_cnt                      = std::max(peArray.gNumberRows(), peArray.gNumberColumns());
     m_WaveCode.writeInstruction(nopInstr, engId);
+}
+
+//************************************************************************
+void
+WaveCodeSbAtom::addSecondDmaTrigger(
+    compisa::DmaTriggerInstr& dmaTriggerInstr, EngineId chosenEngId)
+{
+    enum {
+        TWO_DMA_TRIGGER_INST = 0,
+    };
+
+    if (TWO_DMA_TRIGGER_INST) {
+        // dummy
+        dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+        dmaTriggerInstr.inst_events.set_event_idx   = 0;
+        dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+        m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+    }
 }
 
 }}
