@@ -1,0 +1,2 @@
+$KAENA_PATH/compiler/wave-checker/wc-build/bin/wave_graph_checker -w wavegraph-bin.json --event-conflict-check --stdout | tee log-wc-event.txt
+#  --structure-check --data-race-check  --event-conflict-check 

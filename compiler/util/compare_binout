@@ -1,0 +1,1 @@
+for i in `ls *-simout.npy`; do $KAENA_PATH/compiler/util/npy_diff_files --new out.bin --gold $i; done  
