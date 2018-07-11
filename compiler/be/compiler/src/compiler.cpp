@@ -227,7 +227,8 @@ Main(int argc, char* argv[])
 
     ntwk->rDoBatching(DoBatching);
 
-    if (! useWave) {
+    assert(useWave);
+    if (false && ! useWave) {
         std::string objFileName(ntwk->gName());
         objFileName += ".tpb";
         //--------------------------------------------------------

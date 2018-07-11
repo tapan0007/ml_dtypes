@@ -1,5 +1,3 @@
-#include "tcc/inc/tcc.hpp"
-
 #include "layers/inc/inputlayer.hpp"
 
 #include "codegen/inc/codegendatalayer.hpp"

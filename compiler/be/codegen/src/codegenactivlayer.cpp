@@ -1,5 +1,3 @@
-#include "tcc/inc/tcc.hpp"
-
 #include "utils/inc/asserter.hpp"
 
 #include "layers/inc/activlayer.hpp"

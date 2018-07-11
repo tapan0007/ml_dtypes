@@ -1,6 +1,3 @@
-#include "tcc/inc/tcc.hpp"
-
-
 #include "layers/inc/poollayer.hpp"
 #include "codegen/inc/codegenpoollayer.hpp"
 

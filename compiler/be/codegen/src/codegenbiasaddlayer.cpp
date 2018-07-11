@@ -1,6 +1,3 @@
-#include "tcc/inc/tcc.hpp"
-
-
 #include "layers/inc/inputlayer.hpp"
 #include "layers/inc/constlayer.hpp"
 #include "layers/inc/biasaddlayer.hpp"
