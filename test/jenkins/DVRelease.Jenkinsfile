@@ -14,6 +14,7 @@ pipeline{
 
         QEMU_INKLING_PATH = "$SRC_DIR/qemu_inkling"
         ARCH_ISA_PATH = "$SRC_DIR/arch-isa"
+        ARCH_HEADERS_PATH = "$SRC_DIR/arch-headers"
         KAENA_RT_PATH = "$SRC_DIR/krt"
 
         KRT_BLD_DIR = "$BLD_DIR/krt"
