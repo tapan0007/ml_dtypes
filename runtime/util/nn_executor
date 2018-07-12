@@ -194,8 +194,12 @@ class NnSubgraph:
       cmd  = "PATH=%s/runtime/util:$PATH qemu_rt" % kPath
       cmd += "  --action inference --kelf %s/%s" % (kelf_dir, self.sgDir)
       cmd += "  --sg %s" % self.sgDir
-      cmd += "  --port %d" % port
       cmd += "  --ifmaps %s" % "".join(map(str, ifmapFiles))
+      qemuPool = os.getenv("KAENA_QEMU_RT_POOL", None)
+      if qemuPool == None:
+        cmd += "  --port %d" % port
+      else:
+        cmd += "  --pool %s" % qemuPool
       assert len(ifmapFiles) == 1 # qemu inkling supports single input  subgraphs only
       #cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
     elif executor == "processor":
@@ -351,7 +355,8 @@ ret = 0
 os.chdir(working_dir)
 nnExec = NnExec(nnGraphFile)
 ret = nnExec.run()
-assert(ret == 0)
+if ret != 0:
+  raise RuntimeError("ERROR: nn_executor failed to run")
 if (ret == 0) and (args.check_against_ref != "none"):
   ret = nnExec.check(args.check_against_ref)
 

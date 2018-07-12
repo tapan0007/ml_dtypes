@@ -3,19 +3,40 @@
 # Copyright (C) 2018, Amazon.com. All Rights Reserved
 
 
-# Kaena qemu Inkling runtime wrapper
-# Sample command
-#   # Unpack kelf to ./kelf
-#   \rm -rf qemu-log.txt copy.vdi
-#   /work1/zejdaj/git_repo/kaena-compiler/runtime/util/qemu_rt --kelf kelf --ifmaps kelf/trivnet_input:0_NCHW.npy
-#  Test regressions by e.g.
-#    RunAll --force_qemu --parallel 16 --test_re wave --select not_waived >& log
-#  The disk image is added to S3 by e.g,
-#    aws s3 cp /work1/zejdaj/git_repo/qemu_inkling/my_vm.img s3://kaena-vdi/lubuntu_20180525 --profile kaena
-#  and in future we'll use the  kaena-compiler/runtime/util/vdi/vdi_manager.py to create and populate VDIs
+# Kaena qemu Inkling and emulator runtime wrapper
+
+epilog = '''
+The command is automatically invoked from RunAll through the nn_executor
+
+The disk image is added to S3 by e.g,
+  aws s3 cp /work1/zejdaj/git_repo/qemu_inkling/my_vm.img s3://kaena-vdi/lubuntu_20180525 --profile kaena
+and in future we'll use the  kaena-compiler/runtime/util/vdi/vdi_manager.py to create and populate VDIs
+
+There are 2 basic use modes:
+ - Single port (--port) which starts qemu, boots its os, loads drivers, starts runtime and performs 1 inference
+ - Pool (--pool) whih decouples starting qemu (boot os, add drivers) and the inference
+
+The pool flow is https://issues.amazon.com/issues/kaena-574 . In Summary:
+
+# Start a qemu pool (with 5 qemus, 0 to 4)
+  $KAENA_PATH/runtime/util/qemu_rt --pool 7100 7105 --action start_pool > log_pool 2>&1 &
+    # The pool ports can be 1 number (eg 5555, ie 1 qemu), 2 for range (8000 8010 means 10 qemus on ports 8000 to 8009), 3+ for a list of individual ports (e.g., 8003 8009 19765).
+
+# Watch till pool completes initialization. It then prints env instructions:
+  tail -f log_pool
+   # prints 
+      INFO: holding quemus <i>. Sleep 10. Use  export KAENA_QEMU_RT_POOL="7100 7105"; RunAll --force_qemu --test ... to run.   Terminate this process to close the qemus
+
+# Use the above command to run regression tests. On small pools running slow tests also use --parallel <num ports ie 5> to make sure timeouts are properly applied
+   ( export KAENA_QEMU_RT_POOL="7100 7105"; $KAENA_PATH/test/e2e/RunAll --force_qemu --parallel 5 --level 10 ) > log 2>1 &
+     # Multiple runs or users can share the same pool - just remember that the time in the qemu_rt backend is part of the overall job timeout
+
+# To terminate the pool (days later) simply kill the first process and remove pool_* directories where you started the pools
+
+'''
 
 import argparse
-import os, sys, stat, time
+import os, sys, stat, time, random
 import glob
 import pexpect
 import socket, errno
@@ -72,40 +93,24 @@ def sha256checksum(fileName):
     checksum = f.read().split(" ")[0]
   return checksum
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--action', help='Default is inference, others are vdi, build', default="inference")
+parser = argparse.ArgumentParser(epilog=epilog,
+           formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('--action', help='Default is inference, others are: start_pool', default="inference")
 parser.add_argument('--vdi', help='Path to virtual disk image for the qemu VM. It can be file or S3 URL including options, the default is ' + defaultVdi, default=defaultVdi)
 parser.add_argument('--port', help='SSH port for the qemu VM', type=int, default=5555)
+parser.add_argument('--pool', help='Port range that defines Qemu process pool', type=int, nargs='+', default=[])
 parser.add_argument('--mem', help='Memory for the qemu VM, default 512MB', type=int, default=512)
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
 parser.add_argument('--sg', help='Subgraph label for identifying which SG executes', default=None)
 parser.add_argument('--ifmaps', help='List of input images in sim ifmap format', nargs='+', default=None)
 args = parser.parse_args()
-if args.kelf == None:
-  raise ValueError("ERROR: use --kelf")
 
 class Qemu:
-  def __init__(self, restartId, vdi, mem, port):
+  def __init__(self, vdi, mem, port):
     #qemuOpts = '-monitor stdio'
     qemuOpts = '-nographic'
-    self.restartId = restartId
+    self.vdi = vdi
     self.localVdi = "copy.vdi"
-    if os.path.isfile(vdi):
-      cmd = "/bin/cp %s %s" % (vdi, self.localVdi)
-      print('INFO: copying vdi  "%s"' % cmd, flush=True)
-      os.system(cmd)
-    elif vdi[0:5].upper() == 'S3://':
-      cmd = "aws s3 cp --quiet %s %s %s" % (vdi, self.localVdi, "--profile kaena")
-      print('INFO: copying vdi from S3 by  "%s"' % cmd, flush=True)
-      os.system(cmd)
-      checksum = sha256checksum(self.localVdi)
-      if checksum == checksumVdi:
-        print("INFO: verified vdi checksum for %s" % self.localVdi, flush=True)
-      else:
-        raise ValueError("ERROR: vdi checksum incorrect for %s  expected %s  got %s" % (self.localVdi, checksumVdi, checksum))
-    else:
-      raise ValueError('ERROR: unknown vdi specification "%s"' % vdi)
-    assert os.path.isfile(self.localVdi)
     
     # Create on the fly to avoid issues with git chmod
     self.pemText = '''
@@ -137,12 +142,11 @@ EVu9xwUEJ095xBDK3shmFK2UGqekyLe5NGlR70cusSfYMSIwdIwNHzAfJqOXP9KD
 c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
 -----END RSA PRIVATE KEY-----
 '''
-    self.pemFile = "%s/qemu.pem" % os.getcwd()
-
-    with open(self.pemFile, 'w') as fhPem:
-      fhPem.write(self.pemText)
-
-    os.chmod(self.pemFile, stat.S_IREAD)
+    self.pemFile = "%s/.ssh/qemu_rt.pem" % os.getenv('HOME')
+    if not os.path.isfile(self.pemFile):
+      with open(self.pemFile, 'w') as fhPem:
+        fhPem.write(self.pemText)
+      os.chmod(self.pemFile, stat.S_IREAD)
     
     qemuNoInkling = os.getenv("QEMU_NO_INKLING", None)
     if qemuNoInkling == None:
@@ -155,7 +159,24 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null -p %d -i %s kaena@localhost' % (self.port, self.pemFile)
     self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null -p %s -i %s"' % (self.port, self.pemFile)
 
-  def start(self):
+  def start(self, restartId):
+    self.restartId = restartId
+    if os.path.isfile(self.vdi):
+      cmd = "/bin/cp %s %s" % (self.vdi, self.localVdi)
+      print('INFO: copying vdi  "%s"' % cmd, flush=True)
+      os.system(cmd)
+    elif self.vdi[0:5].upper() == 'S3://':
+      cmd = "aws s3 cp --quiet %s %s %s" % (self.vdi, self.localVdi, "--profile kaena")
+      print('INFO: copying vdi from S3 by  "%s"' % cmd, flush=True)
+      os.system(cmd)
+      checksum = sha256checksum(self.localVdi)
+      if checksum == checksumVdi:
+        print("INFO: verified vdi checksum for %s" % self.localVdi, flush=True)
+      else:
+        raise ValueError("ERROR: vdi checksum incorrect for %s  expected %s  got %s" % (self.localVdi, checksumVdi, checksum))
+    else:
+      raise ValueError('ERROR: unknown vdi specification "%s"' % vdi)
+    assert os.path.isfile(self.localVdi)
     cmd = 'sh -c "%s 2>&1 | tee log-qemu.txt"' % self.cmd
     print("INFO: starting Qemu  %s" % cmd, flush=True)
     self.fh = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
@@ -193,13 +214,7 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
       os.remove(self.localVdi)
     except OSError:
       pass
-    
-    # Remove pem to avoid read-only file messages upon next restart
-    try:
-        os.remove(self.pemFile)
-    except OSError:
-        pass
-    
+        
     # Store previous attemp qemu logs
     cmd = "tar cvzf logs-qemu-restart-%02d.tgz log-qemu*.txt" % self.restartId
     print("INFO: Qemu.stop:  %s" % cmd)
@@ -233,15 +248,19 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
   def sshCmd(self, cmd, opt=""):
     fullCmd = "%s %s '%s'" % (self.cmdForSsh, opt, cmd)
     print("INFO: sshCmd executing %s" % fullCmd, flush=True)
-    os.system(fullCmd)
-    
+    return os.system(fullCmd)
+  def lock(self):
+    return self.sshCmd('l=/var/lock/qemu; test -f $l || echo $$ > $l; expr $$ == `cat $l`') == 0
+  def unlock(self):
+    return self.sshCmd('l=/var/lock/qemu; /bin/rm -f $l') == 0
     
 class Krt:
   def __init__(self, qemu, timeout):
     self.qemu = qemu
     self.cwd = os.getcwd()
     self.inklingTimeout = timeout
-    self.install()
+    self.kelfVmDir = "/tmp/reg-1"  # non-sg spefic, for --action cleanup_pool
+    self.sg = "sg00"
 
   def install(self):
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
@@ -267,7 +286,7 @@ class Krt:
     self.ifmapDir = "%s/ifmap" % self.kelfVmDir
     self.ofmapDir = "%s/ofmap" % self.kelfVmDir
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
-    cmdRuntime = 'cd %s; sudo kbin_rt %s %s %s 0000:00:04.0 -t %d > log-krt.txt 2>&1 &' % (self.kelfVmDir,
+    cmdRuntime = 'cd %s; sudo kbin_rt %s %s %s 0000:00:04.0 -n 1 -t %d > log-krt.txt 2>&1 &' % (self.kelfVmDir,
                    self.kelfVmDir, self.ifmapDir, self.ofmapDir, self.inklingTimeout)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
@@ -275,6 +294,7 @@ class Krt:
     debug = True
     if debug:
       self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf_%s" % self.sg)
+    self.qemu.sshCmd("/bin/rm -rf %s" % self.kelfVmDir)
   def inference(self, ifmap, ofmap):
     ifmapPath = os.path.realpath(ifmap)
     if self.qemu.rsyncToVm(ifmapPath, self.ifmapDir, "--copy-links"):
@@ -288,30 +308,114 @@ class Krt:
       print("ERROR: failed to transfer ifmap %s to the qemu guest os" % ifmapPath)
 
 
-qemuOk = False
-port = args.port
+class QemuPool:
+  def __init__(self, ports, vdi, mem, inklingTimeout):
+    if len(ports) == 2:
+      self.ports = range(ports[0], ports[1])
+    else:
+      self.ports = ports
+    self.qemus = []
+    for port in self.ports:
+      qemu = Qemu(vdi, mem, port)
+      krt = Krt(qemu, inklingTimeout)
+      self.qemus.append((qemu, krt))
+  def checkPorts(self):
+    for port in self.ports:
+      if portInUse(port):
+        return False
+    return True
+  def startPool(self):
+    if self.checkPorts():
+      for idx in range(len(self.ports)):
+        port = self.ports[idx]
+        qemu, krt = self.qemus[idx]
+        d = "pool_%d" % port
+        os.mkdir(d)
+        os.chdir(d)
+        for qemuRestartId in range(3):
+          qemu.start(qemuRestartId)
+          if qemu.testGuest(4):
+            krt.install()
+            break
+          else:
+            qemu.stop()
+        os.chdir("..")
+    else:
+      raise ValueError("ERROR: cannot start qemu pool - the ports are in use")
+    return len(self.qemus) == len(self.ports)
+  def getAvailQemu(self):
+    found = False
+    while not found:
+      idx = random.randint(0, len(self.qemus)-1)
+      print("INFO: trying to lock QEMU %d on port %d ..." % (idx, self.ports[idx]), flush=True)
+      qemu, krt = self.qemus[idx]
+      found = qemu.lock()
+      time.sleep(1)
+    print("INFO: locked QEMU %d on port %d" % (idx, self.ports[idx]), flush=True)
+    return qemu, krt
+  def cleanup(self):
+    for idx in range(len(self.ports)):
+      port = self.ports[idx]
+      qemu, krt = self.qemus[idx]
+      krt.stop()
+      qemu.unlock()
+
 inklingTimeout = 6000
-for qemuRestartId in range(3):
-  while portInUse(port):
-    port += 3
-  print("INFO: using available port %d  (--port was %d)" % (port, args.port))
-  qemu = Qemu(qemuRestartId, args.vdi, args.mem, args.port)
-  qemu.start()
-  if qemu.testGuest(4):
-    qemuOk = True
-    krt = Krt(qemu, inklingTimeout)
+
+
+if len(args.pool) > 0:
+  qp = QemuPool(args.pool, args.vdi, args.mem, inklingTimeout)
+  if args.action == 'start_pool':
+    if not qp.startPool():
+      raise RuntimeError('ERROR: failed to start qemus, %d requested while %d started' % (len(qp.ports), len(qp.qemus)))
+    print('INFO: your qemu pool has started. You can access it on ports %s. To stop them terminate this process' % qp.ports, flush=True)
+    i = 0
+    while True:
+      time.sleep(10)
+      print('INFO: holding quemus %d. Sleep 10. Use  export KAENA_QEMU_RT_POOL="%s"; RunAll --force_qemu --test ... to run.   Terminate this process to close the qemus' % (i, " ".join(str(p) for p in qp.ports)), flush=True)
+      i += 1
+  elif args.action == 'cleanup_pool':
+    qp.cleanup()
+  elif args.action == 'inference':
+    if args.kelf == None:
+      raise ValueError("ERROR: use --kelf")
+    qemu, krt = qp.getAvailQemu()
     krt.addModel(args.kelf, "/tmp/reg-1/%s" % args.sg, args.sg)
     krt.start()
+    assert len(args.ifmaps) == 1
     for ifmap in args.ifmaps:
       krt.inference(ifmap, "out-%s.bin" % args.sg)
     krt.stop()
-  else:
-    print("ERROR: Failed to start Qemu  phase %d, restarting ..." % qemuRestartId)
-  qemu.stop()
-  if qemuOk:
-    break
-  else:
-    time.sleep(30)  # qemu was still failing upon several restarts. Delay after stop() may help.
-if not qemuOk:
-    raise ValueError("ERROR: Failed to start QEMU")
+    qemu.unlock()
+    
+else:
+  # port mode
+  if args.kelf == None:
+    raise ValueError("ERROR: use --kelf")
+  qemuOk = False
+  port = args.port
+  for qemuRestartId in range(3):
+    while portInUse(port):
+      port += 3
+    print("INFO: using available port %d  (--port was %d)" % (port, args.port))
+    qemu = Qemu(args.vdi, args.mem, args.port)
+    qemu.start(qemuRestartId)
+    if qemu.testGuest(4):
+      qemuOk = True
+      krt = Krt(qemu, inklingTimeout)
+      krt.install()
+      krt.addModel(args.kelf, "/tmp/reg-1/%s" % args.sg, args.sg)
+      krt.start()
+      for ifmap in args.ifmaps:
+        krt.inference(ifmap, "out-%s.bin" % args.sg)
+      krt.stop()
+    else:
+      print("ERROR: Failed to start Qemu  phase %d, restarting ..." % qemuRestartId)
+    qemu.stop()
+    if qemuOk:
+      break
+    else:
+      time.sleep(30)  # qemu was still failing upon several restarts. Delay after stop() may help.
+  if not qemuOk:
+      raise ValueError("ERROR: Failed to start QEMU")
 
