@@ -51,7 +51,7 @@
       "ref_file": "trivnet_1conv__weight1__read:0_CRSM.npy",
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,3,3,1],
-      "sb_address": 65928,
+      "sb_address": 24232,
       "src_step_elem": 1,
       "start_at_mid_part": false,
       "waveop_name": "trivnet_1conv__weight1__read__0_CRSM.npy_0",
@@ -75,7 +75,7 @@
       "ref_file": "trivnet_input:0_NCHW.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 59874,
+      "sb_address": 19328,
       "src_step_elem": 1,
       "start_at_mid_part": false,
       "waveop_name": "trivnet_input__0_NCHW.npy_0",
@@ -95,7 +95,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 59874,
+      "ifmaps_sb_address": 19328,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -125,7 +125,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65928
+      "weights_sb_address": 24232
     },
     {
       "batching_in_wave": 1,
@@ -141,7 +141,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 59874,
+      "ifmaps_sb_address": 19328,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -170,7 +170,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65930
+      "weights_sb_address": 24234
     },
     {
       "batching_in_wave": 1,
@@ -186,7 +186,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 59876,
+      "ifmaps_sb_address": 19330,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -215,7 +215,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65932
+      "weights_sb_address": 24236
     },
     {
       "batching_in_wave": 1,
@@ -231,7 +231,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 59874,
+      "ifmaps_sb_address": 19328,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -260,7 +260,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65934
+      "weights_sb_address": 24238
     },
     {
       "batching_in_wave": 1,
@@ -276,7 +276,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 59874,
+      "ifmaps_sb_address": 19328,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -305,7 +305,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65936
+      "weights_sb_address": 24240
     },
     {
       "batching_in_wave": 1,
@@ -321,7 +321,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 59876,
+      "ifmaps_sb_address": 19330,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -350,7 +350,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65938
+      "weights_sb_address": 24242
     },
     {
       "batching_in_wave": 1,
@@ -366,7 +366,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 59944,
+      "ifmaps_sb_address": 19398,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -395,7 +395,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65940
+      "weights_sb_address": 24244
     },
     {
       "batching_in_wave": 1,
@@ -411,7 +411,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 59944,
+      "ifmaps_sb_address": 19398,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -440,7 +440,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65942
+      "weights_sb_address": 24246
     },
     {
       "batching_in_wave": 1,
@@ -456,7 +456,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 59946,
+      "ifmaps_sb_address": 19400,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -485,10 +485,10 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65944
+      "weights_sb_address": 24248
     },
     {
-      "dst_sb_address": 73216,
+      "dst_sb_address": 92032,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -538,7 +538,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60294,
+      "ifmaps_sb_address": 19748,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -567,7 +567,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65928
+      "weights_sb_address": 24232
     },
     {
       "batching_in_wave": 1,
@@ -583,7 +583,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 60294,
+      "ifmaps_sb_address": 19748,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -612,7 +612,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65930
+      "weights_sb_address": 24234
     },
     {
       "batching_in_wave": 1,
@@ -628,7 +628,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60296,
+      "ifmaps_sb_address": 19750,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -657,7 +657,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65932
+      "weights_sb_address": 24236
     },
     {
       "batching_in_wave": 1,
@@ -673,7 +673,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60364,
+      "ifmaps_sb_address": 19818,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -702,7 +702,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65934
+      "weights_sb_address": 24238
     },
     {
       "batching_in_wave": 1,
@@ -718,7 +718,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 60364,
+      "ifmaps_sb_address": 19818,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -747,7 +747,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65936
+      "weights_sb_address": 24240
     },
     {
       "batching_in_wave": 1,
@@ -763,7 +763,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60366,
+      "ifmaps_sb_address": 19820,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -792,7 +792,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65938
+      "weights_sb_address": 24242
     },
     {
       "batching_in_wave": 1,
@@ -808,7 +808,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60434,
+      "ifmaps_sb_address": 19888,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -837,7 +837,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65940
+      "weights_sb_address": 24244
     },
     {
       "batching_in_wave": 1,
@@ -853,7 +853,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 60434,
+      "ifmaps_sb_address": 19888,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -882,7 +882,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65942
+      "weights_sb_address": 24246
     },
     {
       "batching_in_wave": 1,
@@ -898,7 +898,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60436,
+      "ifmaps_sb_address": 19890,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -927,10 +927,10 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65944
+      "weights_sb_address": 24248
     },
     {
-      "dst_sb_address": 73706,
+      "dst_sb_address": 92522,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -980,7 +980,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60784,
+      "ifmaps_sb_address": 20238,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1009,7 +1009,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65928
+      "weights_sb_address": 24232
     },
     {
       "batching_in_wave": 1,
@@ -1025,7 +1025,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 60784,
+      "ifmaps_sb_address": 20238,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1054,7 +1054,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65930
+      "weights_sb_address": 24234
     },
     {
       "batching_in_wave": 1,
@@ -1070,7 +1070,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60786,
+      "ifmaps_sb_address": 20240,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1099,7 +1099,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65932
+      "weights_sb_address": 24236
     },
     {
       "batching_in_wave": 1,
@@ -1115,7 +1115,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60854,
+      "ifmaps_sb_address": 20308,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1144,7 +1144,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65934
+      "weights_sb_address": 24238
     },
     {
       "batching_in_wave": 1,
@@ -1160,7 +1160,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 60854,
+      "ifmaps_sb_address": 20308,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1189,7 +1189,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65936
+      "weights_sb_address": 24240
     },
     {
       "batching_in_wave": 1,
@@ -1205,7 +1205,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60856,
+      "ifmaps_sb_address": 20310,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1234,7 +1234,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65938
+      "weights_sb_address": 24242
     },
     {
       "batching_in_wave": 1,
@@ -1250,7 +1250,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60924,
+      "ifmaps_sb_address": 20378,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1279,7 +1279,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65940
+      "weights_sb_address": 24244
     },
     {
       "batching_in_wave": 1,
@@ -1295,7 +1295,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 60924,
+      "ifmaps_sb_address": 20378,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1324,7 +1324,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65942
+      "weights_sb_address": 24246
     },
     {
       "batching_in_wave": 1,
@@ -1340,7 +1340,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 60926,
+      "ifmaps_sb_address": 20380,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1369,10 +1369,10 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65944
+      "weights_sb_address": 24248
     },
     {
-      "dst_sb_address": 74196,
+      "dst_sb_address": 93012,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1422,7 +1422,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61274,
+      "ifmaps_sb_address": 20728,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1451,7 +1451,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65928
+      "weights_sb_address": 24232
     },
     {
       "batching_in_wave": 1,
@@ -1467,7 +1467,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 61274,
+      "ifmaps_sb_address": 20728,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1496,7 +1496,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65930
+      "weights_sb_address": 24234
     },
     {
       "batching_in_wave": 1,
@@ -1512,7 +1512,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61276,
+      "ifmaps_sb_address": 20730,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1541,7 +1541,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65932
+      "weights_sb_address": 24236
     },
     {
       "batching_in_wave": 1,
@@ -1557,7 +1557,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61344,
+      "ifmaps_sb_address": 20798,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1586,7 +1586,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65934
+      "weights_sb_address": 24238
     },
     {
       "batching_in_wave": 1,
@@ -1602,7 +1602,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 61344,
+      "ifmaps_sb_address": 20798,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1631,7 +1631,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65936
+      "weights_sb_address": 24240
     },
     {
       "batching_in_wave": 1,
@@ -1647,7 +1647,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61346,
+      "ifmaps_sb_address": 20800,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1676,7 +1676,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65938
+      "weights_sb_address": 24242
     },
     {
       "batch_fold_idx": 0,
@@ -1698,7 +1698,7 @@
       "ref_file": "trivnet_input:0_NCHW.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 61834,
+      "sb_address": 21288,
       "src_step_elem": 1,
       "start_at_mid_part": false,
       "waveop_name": "trivnet_input__0_NCHW.npy_1",
@@ -1718,7 +1718,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61414,
+      "ifmaps_sb_address": 20868,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1748,7 +1748,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65940
+      "weights_sb_address": 24244
     },
     {
       "batching_in_wave": 1,
@@ -1764,7 +1764,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 61414,
+      "ifmaps_sb_address": 20868,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1793,7 +1793,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65942
+      "weights_sb_address": 24246
     },
     {
       "batching_in_wave": 1,
@@ -1809,7 +1809,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61416,
+      "ifmaps_sb_address": 20870,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1838,10 +1838,10 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65944
+      "weights_sb_address": 24248
     },
     {
-      "dst_sb_address": 74686,
+      "dst_sb_address": 93502,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1891,7 +1891,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61764,
+      "ifmaps_sb_address": 21218,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1921,7 +1921,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65928
+      "weights_sb_address": 24232
     },
     {
       "batching_in_wave": 1,
@@ -1937,7 +1937,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 61764,
+      "ifmaps_sb_address": 21218,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -1966,7 +1966,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65930
+      "weights_sb_address": 24234
     },
     {
       "batching_in_wave": 1,
@@ -1982,7 +1982,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61766,
+      "ifmaps_sb_address": 21220,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -2011,7 +2011,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65932
+      "weights_sb_address": 24236
     },
     {
       "batching_in_wave": 1,
@@ -2027,7 +2027,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61834,
+      "ifmaps_sb_address": 21288,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -2056,7 +2056,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65934
+      "weights_sb_address": 24238
     },
     {
       "batching_in_wave": 1,
@@ -2072,7 +2072,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 61834,
+      "ifmaps_sb_address": 21288,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -2101,7 +2101,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65936
+      "weights_sb_address": 24240
     },
     {
       "batching_in_wave": 1,
@@ -2117,7 +2117,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 7,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61836,
+      "ifmaps_sb_address": 21290,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -2146,7 +2146,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65938
+      "weights_sb_address": 24242
     },
     {
       "batching_in_wave": 1,
@@ -2162,7 +2162,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61904,
+      "ifmaps_sb_address": 21358,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -2191,7 +2191,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65940
+      "weights_sb_address": 24244
     },
     {
       "batching_in_wave": 1,
@@ -2207,7 +2207,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 35,
-      "ifmaps_sb_address": 61904,
+      "ifmaps_sb_address": 21358,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -2236,7 +2236,7 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65942
+      "weights_sb_address": 24246
     },
     {
       "batching_in_wave": 1,
@@ -2252,7 +2252,7 @@
       "ifmap_replication_shift_amnt": 0,
       "ifmap_tile_height": 6,
       "ifmap_tile_width": 34,
-      "ifmaps_sb_address": 61906,
+      "ifmaps_sb_address": 21360,
       "in_dtype": "float16",
       "layer_name": "1conv/i1",
       "num_column_partitions": 1,
@@ -2281,10 +2281,10 @@
       "wave_id_format": "nmhwcrs",
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 65944
+      "weights_sb_address": 24248
     },
     {
-      "dst_sb_address": 75176,
+      "dst_sb_address": 93992,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -2340,7 +2340,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 73216,
+      "sb_address": 92032,
       "start_at_mid_part": false,
       "waveop_name": "trivnet_1conv__i1__0_NCHW-simout.npy_0",
       "waveop_type": "SBAtomSave"
@@ -2362,7 +2362,7 @@
       "ref_file": "trivnet_1conv__i1:0_NCHW-simout.npy",
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
-      "sb_address": 75176,
+      "sb_address": 93992,
       "start_at_mid_part": false,
       "waveop_name": "trivnet_1conv__i1__0_NCHW-simout.npy_1",
       "waveop_type": "SBAtomSave"

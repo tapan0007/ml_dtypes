@@ -1,13 +1,41 @@
 This directory contains source files for the Middle-Scheduler (aka Middle-End)
 
-
+High-level view:
+https://amazon.awsapps.com/workdocs/index.html#/document/15c8a77df42d1f18e324971354b60651fb24592260b7bffd0faa151f937d1093
 
 Simple tests with pregenerated KGraphs are located in layeropt_tests. These tests only test verification of execution. 
 
 To run tests do:
-
     make sanity
 
 To see a list of tests do:
-
     make help
+
+To run one test from “make help” list, do:
+    make <test name>
+ 
+There are some tests that are big and need to be generated using TFFE, like resnet50_act4_to_act7, so do the following:
+    make gen_test
+ 
+Files and directories:
+ 
+    me_main.py:
+        main for ME version 2 (formerly part of layeropt2.py); this has the batching outter loop
+    me_batch.py:
+        contain batching parameters, including data region map
+    me_graph.py:
+        graph/node classes to hold KGraph (and Wavegraph after read-back)
+    me_fused_op.py:
+        fused operation execution; this is where the inner loops are (after batching outter loop)
+    me_utils.py:
+        utilities to manage numpy shapes and files
+    me_models.py:
+        contains models of the major engines
+    layeropt.py:
+        older version of ME, still usable for some tests and for LSTM network
+    tests:
+        ME tests having either KGraph for simple tests, or TF Protobuf graph for bigger tests (use “make gen_test” to generate the files using TFFE)
+ 
+Link to code browser:
+https://siopt-294228977.us-east-1.elb.amazonaws.com/review/plugins/gitblit/tree/?r=tonga/sw/kaena/kcc.git&f=compiler/me&h=master
+

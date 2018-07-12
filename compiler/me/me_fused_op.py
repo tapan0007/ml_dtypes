@@ -158,21 +158,38 @@ class FusedOp(list):
             print("    ", i.data["layer_type"],":",i.data["layer_name"], )
 
     def map_files(self, tpb, batch_item):
-        # select SB region sizing index
+        # select SB region sizing index (only relevant for ResNet50 but we also use for BiasAdd)
+        # This maybe overwritten later if next batch count doubles (pairup)
         sb_size_set_index = tpb.statebuffer.batcher.sb_size_set_index[(self.current_batch_count, self.partial_batch_pre_pairup)]
 
-        # Bias region
+        # bias file/region defaults
+        bias_file_start_addr = tpb.statebuffer.next_bias_file_start
+        bias_file_sz = tpb.statebuffer.batcher.item_sz if not self.has_biasadd else self.biasadd_op.bias_file_params.tot_partition_usage_sz
         bias_region_start_addr = 0
-        bias_region_sz = tpb.statebuffer.batcher.item_sz
-        bias_file_start_addr = 0
-        bias_file_sz = tpb.statebuffer.batcher.item_sz
+        bias_region_sz = tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index]
+        if (bias_file_start_addr + bias_file_sz) > bias_region_sz:
+            bias_file_start_addr = 0
+        # weights file/region defaults            
+        weights_file_start_addr = 0
+        weights_file_sz = tpb.statebuffer.batcher.item_sz if not self.has_conv else self.conv_op.weights_file_params.tot_partition_usage_sz 
+        weights_region_start_addr  = 0
+        weights_region_sz = weights_file_sz
+        # ifmap file/region defaults            
+        single_ifmap_start = 0
+        single_ifmap_sz = self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
+        ifmaps_region_start_addr  = 0
+        ifmaps_region_sz = single_ifmap_sz
+        # ofmap file/region defaults            
+        single_ofmap_start = 0
+        single_ofmap_sz = self.last_op.ofmaps_file_params.batch_item_partition_usage_sz
+        ofmaps_region_start_addr  = 0
+        ofmaps_region_sz = single_ofmap_sz
+
+        # Bias region:
+        #   - keep in contiguous region to help DMA perf: an optimizer (TBD) will need to coalesce the bias files
+        #   - share bias mapping for all type of nets
+        #   - make sure to keep bias region the same in the batch map (BatchSBDataMap)
         if self.has_biasadd:
-            bias_region_start_addr = 0
-            bias_region_sz = tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index]
-            bias_file_start_addr = tpb.statebuffer.next_bias_file_start
-            bias_file_sz = self.biasadd_op.bias_file_params.tot_partition_usage_sz
-            if (bias_file_start_addr + bias_file_sz) > bias_region_sz:
-                bias_file_start_addr = 0
             tpb.statebuffer.file_mapper.map_file(self.biasadd_op.bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
             # in case that file is already mapped, keep the mapped values
             if bias_file_start_addr == self.biasadd_op.bias_file_params.mapped_params.start_addr:
@@ -180,115 +197,127 @@ class FusedOp(list):
             else:                
                 bias_file_start_addr = self.biasadd_op.bias_file_params.mapped_params.start_addr
 
-        # Input/residue uses upper portion of the shared space
-        if self.first_op.is_input:
-            ifmaps_region_start_addr =   tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
-                                       + tpb.statebuffer.batcher.sb_partialbatch_start[self.current_batch_count]
-            #ifmaps_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[0] \
-            #                          + tpb.statebuffer.batcher.sb_partialbatch_start[1] 
-            if self.first_op.C <= 128:
-                ifmaps_region_sz = tpb.statebuffer.batcher.first_ifmaps_region_sz
-            else:                
-                ifmaps_region_sz = self.current_batch_count * self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
-            # for first IFMAP, use the residue size, which is roughly equal to 3 chunks of 224x4 input tiles
-            tpb.statebuffer.file_mapper.map_file(self.first_op.ifmaps_file_params, ifmaps_region_start_addr, wrap_around=True, region_sz=ifmaps_region_sz)
-            # obtain the adjusted region size
-            ifmaps_region_sz = self.first_op.ifmaps_file_params.mapped_params.region_sz
-            # should be the same even if file was already mapped
-            assert(ifmaps_region_start_addr == self.first_op.ifmaps_file_params.mapped_params.start_addr)
-        else:            
-            ifmaps_region_start_addr = self.first_op.ifmaps_file_params.mapped_params.start_addr
-            ifmaps_region_sz  = self.first_op.ifmaps_file_params.mapped_params.region_sz
-        # Individual IFMAP info
-        single_ifmap_start = ifmaps_region_start_addr + (batch_item % self.current_batch_count) * self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
-        single_ifmap_sz = self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
-
-        # Join for partial-batch region
-        ofmap_batch_count = self.current_batch_count
-        # "pairup" is the region or boundary where OFMAP shrinks by 1/4 and partial-batch count doubles.
-        if self.partial_batch_pairup:
-            ofmap_batch_count = self.next_batch_count
-            sb_size_set_index = tpb.statebuffer.batcher.sb_size_set_index[(ofmap_batch_count, False)]
-        if ((self.last_op.is_fork or self.ofmap_is_for_join) != self.residue_in_scratch):
-            # special case for stage after MaxPool: use scratch space for OFMAP instead of residue space
-            #ofmaps_region_sz = ofmap_batch_count * self.last_op.ofmaps_file_params.batch_item_partition_usage_sz_rounded
-            ofmaps_region_sz = ofmap_batch_count * self.last_op.ofmaps_file_params.batch_item_partition_usage_sz
-            ofmaps_region_start_addr =   tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
-                                       + tpb.statebuffer.batcher.sb_partialbatch_start[ofmap_batch_count]
-        # Scratch (OFMAP)
-        else:
-            ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
-            ofmaps_region_start_addr = tpb.statebuffer.SB_PARTITION_SZ - ofmaps_region_sz
-
-        # If OFMAP region overlaps IFMAP region, and numober of channels > 64 or stride/filter-size > 1, offset it (to lower address) by OFMAP * Tn 
-        # (stride is only relevant to Conv/Pool, and filter-size is only relevant to Conv)
-        if ofmaps_region_start_addr >= ifmaps_region_start_addr \
-                and ofmaps_region_start_addr < ifmaps_region_start_addr + ifmaps_region_sz:
-            if (self.last_op.ofmaps_file_params.file_dims.C > 64) \
-                or (self.conv_op is not None and (self.conv_op.stride_x > 1 or self.conv_op.S > 1)) \
-                or (self.has_pool and self.pool_op.stride_x > 1):
-                ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz * self.last_op.Tn                               
-                #ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz_rounded * self.last_op.Tn                               
-            # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
-            if not self.first_op.is_input:
-                self.first_op.ifmaps_file_params.mapped_params.modify_in_place = True
-
-        # Map the file to region and obtain adjusted region size
-        tpb.statebuffer.file_mapper.map_file(self.last_op.ofmaps_file_params, ofmaps_region_start_addr, wrap_around=True, region_sz=ofmaps_region_sz)
-        ofmaps_region_sz = self.last_op.ofmaps_file_params.mapped_params.region_sz
-        # should be the same even if file was already mapped
-        assert(ofmaps_region_start_addr == self.last_op.ofmaps_file_params.mapped_params.start_addr)
-
-        # Individual OFMAP info
-        single_ofmap_start = ofmaps_region_start_addr + (batch_item % ofmap_batch_count) * self.last_op.ofmaps_file_params.batch_item_partition_usage_sz 
-        single_ofmap_sz = self.last_op.ofmaps_file_params.batch_item_partition_usage_sz
-
-        # Weights region: remaining space after allocating for bias, residue/IFMAP, and OFMAP/scratch
-        weights_region_start_addr  = 0
-        weights_region_sz = tpb.statebuffer.batcher.item_sz
-        weights_file_start_addr = 0
-        weights_file_sz = tpb.statebuffer.batcher.item_sz 
-        if self.has_conv:
-            # reselect SB region sizing index based on input current_batch_count
-            sb_size_set_index = tpb.statebuffer.batcher.sb_size_set_index[(self.current_batch_count, self.partial_batch_pre_pairup)]
+        if self.args.nname == "resnet50":
+            # Input/residue uses upper portion of the shared space
             if self.first_op.is_input:
-                weights_region_start_addr = ifmaps_region_start_addr + ifmaps_region_sz
-            else:                
-                # right before pairup to batch count of 16, there's a jump in weights elem count, so take from partial batch space (shared space)
-                weights_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
-                                    + tpb.statebuffer.batcher.sb_partialbatch_sz[sb_size_set_index]
-            # align to 8B
-            weights_region_start_addr = ceildiv(weights_region_start_addr, 8) * 8
-            # compute region size
-            weights_region_sz = ofmaps_region_start_addr - weights_region_start_addr
-            # try a different start adddress based on the last allocation                
-            weights_file_start_addr = tpb.statebuffer.next_weights_file_start
-            weights_file_sz = self.conv_op.weights_file_params.tot_partition_usage_sz
-            if (weights_file_start_addr < weights_region_start_addr):
-                weights_file_start_addr = weights_region_start_addr
-            elif (weights_file_start_addr + weights_file_sz > weights_region_start_addr + weights_region_sz):
-                weights_file_start_addr = weights_region_start_addr
-            tpb.statebuffer.next_weights_file_start = weights_file_start_addr + weights_file_sz
-            # map file to region                
-            tpb.statebuffer.file_mapper.map_file(self.conv_op.weights_file_params, weights_file_start_addr, wrap_around=False, region_sz=weights_file_sz)
-            # obtain the adjusted region size
-            weights_region_sz = self.conv_op.weights_file_params.mapped_params.region_sz
-            # also in case that file is already mapped, keep the mapped values
-            weights_file_start_addr = self.conv_op.weights_file_params.mapped_params.start_addr
+                ifmaps_region_start_addr =   tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
+                                           + tpb.statebuffer.batcher.sb_partialbatch_start[self.current_batch_count]
+                if self.first_op.C <= 128:
+                    ifmaps_region_sz = tpb.statebuffer.batcher.first_ifmaps_region_sz
+                else:                
+                    ifmaps_region_sz = self.current_batch_count * self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
+                # for first IFMAP, use the residue size, which is roughly equal to 3 chunks of 224x4 input tiles
+                tpb.statebuffer.file_mapper.map_file(self.first_op.ifmaps_file_params, ifmaps_region_start_addr, wrap_around=True, region_sz=ifmaps_region_sz)
+                # obtain the adjusted region size
+                ifmaps_region_sz = self.first_op.ifmaps_file_params.mapped_params.region_sz
+                # should be the same even if file was already mapped
+                assert(ifmaps_region_start_addr == self.first_op.ifmaps_file_params.mapped_params.start_addr)
+            else:            
+                ifmaps_region_start_addr = self.first_op.ifmaps_file_params.mapped_params.start_addr
+                ifmaps_region_sz  = self.first_op.ifmaps_file_params.mapped_params.region_sz
+            # Individual IFMAP info
+            single_ifmap_start = ifmaps_region_start_addr + (batch_item % self.current_batch_count) * self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
+            single_ifmap_sz = self.first_op.ifmaps_file_params.batch_item_partition_usage_sz
 
-        # Test by reading entire IFMAP
-        #num_ifmap_megachunks = ceildiv(single_ifmap_sz, ifmaps_region_sz)
-        #if num_ifmap_megachunks == 0:
-        #    tpb.statebuffer.file_mapper.read_file_data_region(0, self.first_op.ifmaps_file_params, batch_item, batch_item*self.first_op.ifmaps_file_params.dram_data_bytes_per_batch_item + 0, single_ifmap_sz)
-        #else:
-        #    # For layer 0, IFMAP is very large
-        #    for i in range(num_ifmap_megachunks):
-        #        megachunk_start = i*ifmaps_region_sz
-        #        #megachunk_sb_start = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.first_op.ifmaps_file_params, megachunk_start)
-        #        megachunk_sz = ifmaps_region_sz if (i < num_ifmap_megachunks - 1) else (single_ifmap_sz - i*ifmaps_region_sz)
-        #        tpb.statebuffer.file_mapper.read_file_data_region(0, self.first_op.ifmaps_file_params, batch_item, batch_item*self.first_op.ifmaps_file_params.dram_data_bytes_per_batch_item + megachunk_start, megachunk_sz)
-        # Test by writing entire OFMAP
-        #tpb.statebuffer.file_mapper.write_file_data_region(0, self.last_op.ofmaps_file_params, batch_item, batch_item*self.last_op.ofmaps_file_params.dram_data_bytes_per_batch_item + 0, single_ofmap_sz)
+            # Join for partial-batch region
+            ofmap_batch_count = self.current_batch_count
+            # "pairup" is the region or boundary where OFMAP shrinks by 1/4 and partial-batch count doubles.
+            if self.partial_batch_pairup:
+                ofmap_batch_count = self.next_batch_count
+                sb_size_set_index = tpb.statebuffer.batcher.sb_size_set_index[(ofmap_batch_count, False)]
+            if ((self.last_op.is_fork or self.ofmap_is_for_join) != self.residue_in_scratch):
+                # special case for stage after MaxPool: use scratch space for OFMAP instead of residue space
+                #ofmaps_region_sz = ofmap_batch_count * self.last_op.ofmaps_file_params.batch_item_partition_usage_sz_rounded
+                ofmaps_region_sz = ofmap_batch_count * self.last_op.ofmaps_file_params.batch_item_partition_usage_sz
+                ofmaps_region_start_addr =   tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
+                                           + tpb.statebuffer.batcher.sb_partialbatch_start[ofmap_batch_count]
+            # Scratch (OFMAP)
+            else:
+                ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
+                ofmaps_region_start_addr = tpb.statebuffer.SB_PARTITION_SZ - ofmaps_region_sz
+
+            # If OFMAP region overlaps IFMAP region, and numober of channels > 64 or stride/filter-size > 1, offset it (to lower address) by OFMAP * Tn 
+            # (stride is only relevant to Conv/Pool, and filter-size is only relevant to Conv)
+            if ofmaps_region_start_addr >= ifmaps_region_start_addr \
+                    and ofmaps_region_start_addr < ifmaps_region_start_addr + ifmaps_region_sz:
+                if (self.last_op.ofmaps_file_params.file_dims.C > 64) \
+                    or (self.conv_op is not None and (self.conv_op.stride_x > 1 or self.conv_op.S > 1)) \
+                    or (self.has_pool and self.pool_op.stride_x > 1):
+                    ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz * self.last_op.Tn                               
+                    #ofmaps_region_start_addr = ifmaps_region_start_addr - self.last_op.ofmaps_file_params.batch_item_partition_usage_sz_rounded * self.last_op.Tn                               
+                # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
+                if not self.first_op.is_input:
+                    self.first_op.ifmaps_file_params.mapped_params.modify_in_place = True
+
+            # Map the file to region and obtain adjusted region size
+            tpb.statebuffer.file_mapper.map_file(self.last_op.ofmaps_file_params, ofmaps_region_start_addr, wrap_around=True, region_sz=ofmaps_region_sz)
+            ofmaps_region_sz = self.last_op.ofmaps_file_params.mapped_params.region_sz
+            # should be the same even if file was already mapped
+            assert(ofmaps_region_start_addr == self.last_op.ofmaps_file_params.mapped_params.start_addr)
+
+            # Individual OFMAP info
+            single_ofmap_start = ofmaps_region_start_addr + (batch_item % ofmap_batch_count) * self.last_op.ofmaps_file_params.batch_item_partition_usage_sz 
+            single_ofmap_sz = self.last_op.ofmaps_file_params.batch_item_partition_usage_sz
+
+            # Weights region: remaining space after allocating for bias, residue/IFMAP, and OFMAP/scratch
+            if self.has_conv:
+                # reselect SB region sizing index based on input current_batch_count
+                sb_size_set_index = tpb.statebuffer.batcher.sb_size_set_index[(self.current_batch_count, self.partial_batch_pre_pairup)]
+                if self.first_op.is_input:
+                    weights_region_start_addr = ifmaps_region_start_addr + ifmaps_region_sz
+                else:                
+                    # right before pairup to batch count of 16, there's a jump in weights elem count, so take from partial batch space (shared space)
+                    weights_region_start_addr =  tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
+                                        + tpb.statebuffer.batcher.sb_partialbatch_sz[sb_size_set_index]
+                # align to 8B
+                weights_region_start_addr = ceildiv(weights_region_start_addr, 8) * 8
+                # compute region size
+                weights_region_sz = ofmaps_region_start_addr - weights_region_start_addr
+                # try a different start adddress based on the last allocation                
+                weights_file_start_addr = tpb.statebuffer.next_weights_file_start
+                weights_file_sz = self.conv_op.weights_file_params.tot_partition_usage_sz
+                if (weights_file_start_addr < weights_region_start_addr):
+                    weights_file_start_addr = weights_region_start_addr
+                elif (weights_file_start_addr + weights_file_sz > weights_region_start_addr + weights_region_sz):
+                    weights_file_start_addr = weights_region_start_addr
+                tpb.statebuffer.next_weights_file_start = weights_file_start_addr + weights_file_sz
+                # map file to region                
+                tpb.statebuffer.file_mapper.map_file(self.conv_op.weights_file_params, weights_file_start_addr, wrap_around=False, region_sz=weights_file_sz)
+                # obtain the adjusted region size
+                weights_region_sz = self.conv_op.weights_file_params.mapped_params.region_sz
+                # also in case that file is already mapped, keep the mapped values
+                weights_file_start_addr = self.conv_op.weights_file_params.mapped_params.start_addr
+        # Simple networks: use simple mapping                
+        else:
+            # Get start for IFMAPs
+            start_addr = tpb.statebuffer.next_nonbias_file_start
+            if start_addr < bias_region_sz:
+                start_addr = bias_region_sz
+            # IFMAPs regions                    
+            if start_addr + ifmaps_region_sz >= tpb.statebuffer.SB_PARTITION_SZ:                    
+                start_addr = bias_region_sz
+            single_ifmap_start          = start_addr
+            ifmaps_region_start_addr    = start_addr
+            tpb.statebuffer.file_mapper.map_file(self.first_op.ifmaps_file_params, ifmaps_region_start_addr, wrap_around=True, region_sz=ifmaps_region_sz)
+            start_addr                 += ifmaps_region_sz
+            # OFMAPs region
+            if start_addr + ofmaps_region_sz >= tpb.statebuffer.SB_PARTITION_SZ:                    
+                start_addr = bias_region_sz
+            single_ofmap_start          = start_addr
+            ofmaps_region_start_addr    = start_addr
+            tpb.statebuffer.file_mapper.map_file(self.last_op.ofmaps_file_params, ofmaps_region_start_addr, wrap_around=True, region_sz=ofmaps_region_sz)
+            start_addr                  += ofmaps_region_sz
+            # Weights region, align to 8B
+            if start_addr + weights_file_sz >= tpb.statebuffer.SB_PARTITION_SZ:                    
+                start_addr = bias_region_sz
+            start_addr                  = ceildiv(start_addr, 8) * 8
+            weights_file_start_addr     = start_addr
+            weights_region_start_addr   = start_addr
+            if self.has_conv:
+                tpb.statebuffer.file_mapper.map_file(self.conv_op.weights_file_params, weights_file_start_addr, wrap_around=False, region_sz=weights_file_sz)
+            start_addr                 += weights_file_sz
+            tpb.statebuffer.next_nonbias_file_start = start_addr
+
         # Trace printout
         if (self.args.debug > 2 and not tpb.statebuffer.printed_map_trace_header): 
             print("SB MAP TRACE, fused op, fused op ID, batch elem, Tn, current_batch_count, next_batch_count, partial_batch_pre_pairup, partial_batch_pairup, residue_in_scratch, \
@@ -337,6 +366,8 @@ class FusedOp(list):
         assert(overlap_some_percent == overlap_100_percent)
 
     def execute(self, tpb, batch_item):
+        assert (batch_item >= 0)
+        assert (batch_item < self.first_op.N)
         # Check conv fused op
         first_op_type = self.first_op.data['layer_type']
         if (first_op_type == "Conv" or first_op_type == "MatMul"):
@@ -389,7 +420,7 @@ class FusedOp(list):
                     if (not npu.allclose(ofmaps, expected_ofmaps_extracted, 1/100, 1e-5, verbose=True)):
                         print("\nERROR: layer %s batch item %d computed OFMAPS is not equal to expected OFMAPS!\n"%(self.last_op.data['layer_name'], i))
                         tpb.num_mismatches += 1
-                    if self.last_op.is_output:
+                    if self.last_op.is_output or self.args.save_layer_output:
                         waveops = tpb.statebuffer.file_mapper.flush_file(tpb.waveop_stream.nonload_waveop_count, tpb.waveop_stream.nonload_waveop_list, self.last_op.ofmaps_file_params, i)
                         tpb.waveop_stream.add_outputs(waveops)
                 self.last_op.ofmaps_file_params.save_file()

@@ -48,6 +48,7 @@ class StateBuffer:
         self.file_mapper = FileMapper(self.SB_PARTITION_SZ, self.batcher.data_type)
         self.zero_bias_file_params = None
         self.next_bias_file_start = 0
+        self.next_nonbias_file_start = 0
         self.next_weights_file_start = 0
         self.printed_map_trace_header = False
 
