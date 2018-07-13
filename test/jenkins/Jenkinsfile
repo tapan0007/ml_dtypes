@@ -26,6 +26,7 @@ pipeline{
 
         KRT_BLD_DIR = "$BLD_DIR/krt"
         KRT_DV_BLD_DIR = "$BLD_DIR/krt_dv"
+        KRT_EMU_BLD_DIR = "$BLD_DIR/krt_emu"
         KCC_BLD_DIR = "$BLD_DIR/kcc"
         QEMU_BLD_DIR = "$BLD_DIR/qemu"
     }
@@ -96,6 +97,7 @@ pipeline{
                         success {
                             sh 'cp $KRT_BLD_DIR/krt-*.*.tar.gz /artifact/'
                             sh 'cp $KRT_DV_BLD_DIR/krt-*.*.tar.gz /artifact/'
+                            sh 'cp $KRT_EMU_BLD_DIR/krt-*.*.tar.gz /artifact/'
                             archiveArtifacts artifacts:'krt-*.*.tar.gz'
                         }
                     }
