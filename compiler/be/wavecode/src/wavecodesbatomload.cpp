@@ -682,7 +682,9 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         const TpbAddress sbAddress = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
         dmaBlock.addDmaDesc(fileAddress, sbAddress, numBytesPerPart);
     }
-    dmaBlock.addTailEventId(succEventIds[0]);
+    for (auto eventId : succEventIds) {
+        dmaBlock.addTailEventId(eventId);
+    }
 
     //************************************************************************
     if (!m_FirstInput) {
@@ -969,9 +971,11 @@ WaveCodeSbAtomLoad::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWave
         if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
+        /*
         if (prevWaveEdge == chosenPrevEdge) {
             continue;
         }
+        */
         ++numSyncs;
         writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
     }

@@ -641,6 +641,11 @@ class KGraph:
                 for l in layers:
                     new_node = KNode(self, l, self.item_sz, self.data_type, node_number)
                     node_number += 1 
+                    try:
+                        new_node.order = l['order']
+                    except:
+                        new_node.order = -1
+
                     prev_layers = l['previous_waveops']
                     if (len(prev_layers) > 0):
                         for i in prev_layers:

@@ -35,7 +35,7 @@ if __name__ == "__main__":
         entry = wavegraph.node_dict[i]
         if 'waveop_type' in entry.data:
             if re.search(args.typefilter, entry.data['waveop_type']):
-                print("%d: %s"%(entry.node_number, entry.data['waveop_name']), end=" ")
+                print("%d: %s(%d)"%(entry.node_number, entry.data['waveop_name'], entry.order), end=" ")
                 for j in entry.data:
                     if re.search(args.fieldfilter, j):
                         print(j + "=", end="")
