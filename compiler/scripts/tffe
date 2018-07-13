@@ -84,7 +84,7 @@ args = parser.parse_args()
 inputNodeName = args.input_node
 
 tfpbFile = args.tfpb
-if not os.path.isfile(tfpbFile):
+if not os.path.exists(tfpbFile):
   raise("ERROR: missing --tfpb " + tfpbFile)
 if args.images != None and args.focus != ".*":
   raise("ERROR: Unsupported --images with --focus")

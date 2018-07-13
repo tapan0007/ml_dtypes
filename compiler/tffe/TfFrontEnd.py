@@ -14,6 +14,7 @@ from keras.applications.resnet50 import preprocess_input
 from tensorflow.python.platform import gfile
 from tensorflow.core.framework import graph_pb2
 from tensorflow.python.framework import tensor_util
+from tensorflow.python.saved_model import tag_constants
 from google.protobuf import text_format
 from graphviz import Digraph
 import re
@@ -102,7 +103,20 @@ class TfFe:
     return(self.__kg)
   
   def loadPb(self, pbFile, focusNodeRe):
-    if pbFile.endswith(".pbtxt"):
+    self.sess = None
+    if os.path.isdir(pbFile):
+      # Load model checkpoint
+      graph = tf.Graph()
+      with graph.as_default():
+        # Grow GPU memory as needed at the cost of fragmentation.
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = 0.08
+        with tf.Session(graph=graph, config=config) as sess:
+          tf.saved_model.loader.load( sess, [tag_constants.SERVING], pbFile)
+          self.__gd = graph.as_graph_def()
+          self.sess = sess
+    elif pbFile.endswith(".pbtxt"):
       self.__gd = graph_pb2.GraphDef()
       with open(pbFile) as f:
         self.__gd = text_format.Parse(f.read(), tf.GraphDef())
@@ -244,8 +258,10 @@ class TfFe:
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     config.gpu_options.per_process_gpu_memory_fraction = 0.08
-    with tf.Session(config=config) as sess:
+    if self.sess == None:
+      self.sess = tf.Session(config=config)
       tf.import_graph_def(self.__gd, name="")
+    with self.sess as sess:
       graph = sess.graph
       inputOp = graph.get_operation_by_name(inputTfOpName)
       inputTensor = inputOp.outputs[0]
