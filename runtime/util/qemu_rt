@@ -215,11 +215,6 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     except OSError:
       pass
         
-    # Store previous attemp qemu logs
-    cmd = "tar cvzf logs-qemu-restart-%02d.tgz log-qemu*.txt" % self.restartId
-    print("INFO: Qemu.stop:  %s" % cmd)
-    os.system(cmd)
-    
     # Clean up Qemu process
     try:
       self.fh.expect("Something non-existing to flush logs...", timeout=5)
@@ -231,6 +226,11 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     except:
       pass
 
+    # Store previous attempt qemu logs
+    cmd = "tar cvzf logs-qemu-restart-%02d.tgz log-qemu*.txt" % self.restartId
+    print("INFO: Qemu.stop:  %s" % cmd)
+    os.system(cmd)
+    
     # Various reports
     print("INFO: checking for zero-size files:", flush=True)
     os.system("find -size 0")
@@ -253,6 +253,10 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     return self.sshCmd('l=/var/lock/qemu; test -f $l || echo $$ > $l; expr $$ == `cat $l`') == 0
   def unlock(self):
     return self.sshCmd('l=/var/lock/qemu; /bin/rm -f $l') == 0
+  def checkDoubleEvents(self):  # Return: True is good, False is bad
+    cmd = "egrep 'Double .+ of event' log-qemu.txt"
+    print("INFO: performing double event check using  %s" % cmd)
+    return os.WEXITSTATUS(os.system(cmd)) == 1
     
 class Krt:
   def __init__(self, qemu, timeout):
@@ -290,7 +294,7 @@ class Krt:
                    self.kelfVmDir, self.ifmapDir, self.ofmapDir, self.inklingTimeout)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
-    self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt_%s.txt" % self.sg, ".")
+    self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
     debug = True
     if debug:
       self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf_%s" % self.sg)
@@ -387,6 +391,7 @@ if len(args.pool) > 0:
       krt.inference(ifmap, "out-%s.bin" % args.sg)
     krt.stop()
     qemu.unlock()
+    sys.exit(0)
     
 else:
   # port mode
@@ -412,10 +417,12 @@ else:
     else:
       print("ERROR: Failed to start Qemu  phase %d, restarting ..." % qemuRestartId)
     qemu.stop()
+    if not qemu.checkDoubleEvents():
+      raise ValueError("ERROR: double event check failed")
     if qemuOk:
       break
     else:
       time.sleep(30)  # qemu was still failing upon several restarts. Delay after stop() may help.
-  if not qemuOk:
-      raise ValueError("ERROR: Failed to start QEMU")
-
+  if qemuOk:
+    sys.exit(0)
+  raise ValueError("ERROR: Failed to start QEMU")
