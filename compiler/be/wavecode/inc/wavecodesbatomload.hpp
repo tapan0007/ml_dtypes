@@ -20,6 +20,9 @@ namespace kcc {
 namespace wave {
     class SbAtomLoadWaveOp;
 }
+namespace compisa {
+    class SimMemCpyInstr;
+}
 
 namespace wavecode {
 
@@ -59,7 +62,7 @@ private:
     void generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
     void generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
 
-    kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
+    kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
                         EngineId& chosenEngId, std::vector<events::EventId>& succEventIds);
 
     static void setInstructionEvents(compisa::SimMemCpyInstr& dramToStateBufInstr, bool first, bool last, 
@@ -69,7 +72,6 @@ private:
 
     void calcInputSize(const wave::SbAtomLoadWaveOp* sbAtomLoadWaveop);
 private:
-    bool m_FirstInput = true;
 };
 
 }}

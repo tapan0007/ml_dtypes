@@ -76,13 +76,17 @@ public:
     }
 
     EngineId gEngineId() const override {
-        return EngineId::DmaEng;
+        return m_EngineId;
+    }
+    void rEngineId(EngineId engId) {
+        m_EngineId = engId;
     }
 
 protected:
     bool verify() const override;
 
 private:
+    EngineId        m_EngineId          = EngineId::None;
     kcc_int64       m_SbAddress         = -1;
     bool            m_StartAtMidPart    = false;
     kcc_int32       m_BatchFoldIdx      = -1;

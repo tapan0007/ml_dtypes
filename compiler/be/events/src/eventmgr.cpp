@@ -181,10 +181,10 @@ EventMgr::insertBarriers()
             //  PE   -> EvPeAct ->
             //      ACT  -> EvActPool ->
             //          POOL -> EvPoolDma ->
-            //              DMA  -> EvDmaPe ->
-            //          PE   -> EvPeAct ->
-            //      ACT  -> EvActPool ->
-            //  POOL
+            //              DMA  -> EvDmaPool ->
+            //          POOL -> EvPoolAct ->
+            //      ACT  -> EvActPe ->
+            //  PE
             wave::WaveOp* prevWaveop = nullptr;
 
             for (auto k = 0; k < numEngines-1; ++k) { // loop1
@@ -248,39 +248,45 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
     switch (fromId) {
     case EngineId::Activation:
         switch (toId) {
-        case EngineId::DmaEng:
-            return ReservedEvent_ActDma;
+        case EngineId::Pooling:
+            return ReservedEvent_ActPool;
             break;
         case EngineId::PeArray:
             return ReservedEvent_ActPe;
             break;
-        case EngineId::Pooling:
-            return ReservedEvent_ActPool;
+        /*
+        case EngineId::DmaEng:
+            return ReservedEvent_ActDma;
             break;
         case EngineId::StreamProc:
             return ReservedEvent_ActSp;
             break;
+        */
         default:
-            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            Assert(false, "Bad to-engine id for from engine ",
+                   static_cast<int>(fromId), ": ", static_cast<int>(toId));
             break;
         }
 
     case EngineId::DmaEng:
         switch (toId) {
-        case EngineId::Activation:
-            return ReservedEvent_DmaAct;
+        case EngineId::Pooling:
+            return ReservedEvent_DmaPool;
             break;
+        /*
         case EngineId::PeArray:
             return ReservedEvent_DmaPe;
             break;
-        case EngineId::Pooling:
-            return ReservedEvent_DmaPool;
+        case EngineId::Activation:
+            return ReservedEvent_DmaAct;
             break;
         case EngineId::StreamProc:
             return ReservedEvent_DmaSp;
             break;
+        */
         default:
-            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            Assert(false, "Bad to-engine id for from engine ",
+                   static_cast<int>(fromId), ": ", static_cast<int>(toId));
             break;
         }
 
@@ -289,6 +295,7 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
         case EngineId::Activation:
             return ReservedEvent_PeAct;
             break;
+        /*
         case EngineId::DmaEng:
             return ReservedEvent_PeDma;
             break;
@@ -298,8 +305,10 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
         case EngineId::StreamProc:
             return ReservedEvent_PeSp;
             break;
+        */
         default:
-            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            Assert(false, "Bad to-engine id for from engine ",
+                   static_cast<int>(fromId), ": ", static_cast<int>(toId));
             break;
         }
 
@@ -311,17 +320,21 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
         case EngineId::DmaEng:
             return ReservedEvent_PoolDma;
             break;
+        /*
         case EngineId::PeArray:
             return ReservedEvent_PoolPe;
             break;
         case EngineId::StreamProc:
             return ReservedEvent_PoolSp;
             break;
+        */
         default:
-            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            Assert(false, "Bad to-engine id for from engine ",
+                   static_cast<int>(fromId), ": ", static_cast<int>(toId));
             break;
         }
 
+    /*
     case EngineId::StreamProc:
         switch (toId) {
         case EngineId::PeArray:
@@ -337,9 +350,11 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
             return ReservedEvent_SpDma;
             break;
         default:
-            Assert(false, "Bad to-engine id ", static_cast<int>(toId));
+            Assert(false, "Bad to-engine id for from engine ",
+                   static_cast<int>(fromId), ": ", static_cast<int>(toId));
             break;
         }
+    */
     default:
         Assert(false, "Bad from-engine id ", static_cast<int>(fromId));
         break;
@@ -435,7 +450,9 @@ EventMgr::EventState::init()
 {
     clearAll();
 
-    for (EventId eventId = ReservedEvent_FirstNonReserved; eventId < EventId_StartInference(); ++eventId) {
+    for (EventId eventId = ReservedEvent_FirstNonReserved; 
+         eventId <= EventId_LastNonReserved(); ++eventId)
+    {
         addAvailable(eventId);
     }
 }

@@ -135,9 +135,9 @@ protected:
             if (! succWaveEdge->qNeedToImplementSync()) {
                 continue;
             }
-            /*if (succWaveEdge->qChosenForSuccSbAtom()) {
+            if (succWaveEdge->qChosenForSuccSbAtom()) {
                 continue;
-            }*/
+            }
 
             if (firstEmb) {
                 firstEmb = false;
@@ -152,7 +152,7 @@ protected:
                     // 1. MatMul sets a reserved event
                     instr.inst_events.set_event_idx  = events::EventId_MMStartMultiSet();
                     instr.inst_events.set_event_mode = events::eventSetMode2Isa(succWaveEdge->gSetEventMode());
-                    SaveName(instr, oss.str().c_str());
+                    m_WaveCode.SaveName(instr, oss.str().c_str());
                     m_WaveCode.writeInstruction(instr); // this requires template
                     // 2. Wait for reserved event
                     compisa::WaitInstr waitEventInstr;
@@ -168,7 +168,7 @@ protected:
                     instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
                     instr.inst_events.set_event_mode  = events::eventSetMode2Isa(
                                                     succWaveEdge->gSetEventMode());
-                    SaveName(instr, oss.str().c_str());
+                    m_WaveCode.SaveName(instr, oss.str().c_str());
                     m_WaveCode.writeInstruction(instr); // this requires template
                 }
                 instructionWritten = true;
@@ -183,7 +183,9 @@ protected:
         return instructionWritten;
     }
 
-    void writeWaitOrWaitClearInstr(const wave::WaveEdge* edge, EngineId engineId);
+    //void writeWaitOrWaitClearInstr(const wave::WaveEdge* edge, EngineId engineId);
+    //void writeWaitOrWaitClearInstr(events::EventId evntId, events::EventWaitMode waitEventMode,
+    //                EngineId engineId, const char* const dbgTxt);
 
 
     template<typename MEM_ACCESS>
@@ -195,24 +197,6 @@ protected:
             mem_pattern.num_elem[i]  = 1;
         }
     }
-
-    template <int N>
-    static void saveName(uint8_t (&res)[N], const char* name)
-    {
-        for (int i = 0; i < N; ++i) {
-            res[i] = '\0';
-        }
-        strncpy(reinterpret_cast<char*>(&res[0]), name, N - 1);
-        res[N-1] = 0;
-    }
-
-    template <typename INSTR>
-    static void SaveName(INSTR& instr, const char* name)
-    {
-        saveName(instr.reserved, name);
-    }
-
-    static void SaveName(compisa::MatMulInstr& instr, const char* name);
 
     bool qGenerateKelf() const {
         return m_WaveCode.qGenerateKelf();

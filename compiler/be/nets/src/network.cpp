@@ -22,6 +22,7 @@
 
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
+#include "wave/inc/waveedge.hpp"
 
 #include "nets/inc/network.hpp"
 #include "nets/inc/network_load.hpp"
@@ -114,7 +115,10 @@ Network::findWaveOp(const std::string& waveOpName)
 void
 Network::revertSavedWaveops()
 {
-    std::swap(m_WaveOps, m_SaveWaveOps);
+    std::vector<wave::WaveOp*> empty;
+
+    std::swap(m_SaveWaveOps, m_WaveOps);
+    std::swap(m_SaveWaveOps, empty);
 }
 
 //--------------------------------------------------------
@@ -125,10 +129,24 @@ Network::replaceWaveops(std::vector<wave::WaveOp*>& newWaveops)
     for (kcc_int32 k = 0; k < numWaveops; ++k) {
         newWaveops[k]->rOrder(k);
     }
-    //m_WaveOps.clear();
+    Assert(m_SaveWaveOps.size()==0, "Saved waveops not empty");
     std::swap(m_WaveOps, m_SaveWaveOps);
-    std::swap(m_WaveOps, newWaveops);
-    //std::copy(newWaveops.begin(), newWaveops.end(), m_WaveOps.begin());
+    std::swap(newWaveops, m_WaveOps);
+}
+
+void
+Network::ClearEvents()
+{
+    const kcc_int32 numWaveops = gNumberWaveops();
+    for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
+        const auto waveop = gWaveOp(waveopIdx);
+        for (auto succEdge : waveop->gSuccWaveEdges()) {
+            succEdge->rEvent(
+                        events::EventSetMode::DontSet,
+                        events::EventId_Invalid(),
+                        events::EventWaitMode::DontWait);
+        }
+    }
 }
 
 //--------------------------------------------------------

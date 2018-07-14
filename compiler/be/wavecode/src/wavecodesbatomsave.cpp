@@ -51,7 +51,7 @@ WaveCodeSbAtomSave::generateForSim(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
 {
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const EngineId engineId = sbAtomSaveWaveop->gEngineId();
-    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomSave waveop should be DmaEng");
+    Assert(EngineId::None != engineId, "Engine id for SbAtomSave waveop should not be None");
 
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomSaveWaveop->gRefFileName());
 
@@ -125,7 +125,7 @@ WaveCodeSbAtomSave::generateForSim(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
         {
             std::ostringstream oss;
             oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName() << "-" <<partIdx;
-            SaveName(statebufToDramInstr, oss.str().c_str());
+            m_WaveCode.SaveName(statebufToDramInstr, oss.str().c_str());
         }
         m_WaveCode.writeInstruction(statebufToDramInstr);
 
@@ -229,7 +229,7 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
             oss << sbAtomSaveWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomSaveWaveop->gName();
         else        
             oss << sbAtomSaveWaveop->gOrder() << ":-1" << "-" << sbAtomSaveWaveop->gName();
-        SaveName(dmaTriggerInstr, oss.str().c_str());
+        m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
@@ -285,10 +285,12 @@ WaveCodeSbAtomSave::generateDmaCopySimKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWav
 
 //======================================================================
 kcc_int32
-WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
+WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomSaveWaveOp* sbAtomWaveop,
                         EngineId& chosenEngId,
                         std::vector<events::EventId>& succEventIds)
 {
+    chosenEngId = sbAtomWaveop->gEngineId();
+    Assert(chosenEngId != EngineId::None, "None engine in waveop ", sbAtomWaveop->gName());
     kcc_int32 numSyncs = 0;
     wave::WaveEdge* chosenPrevEdge = nullptr;
 
@@ -299,7 +301,9 @@ WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWave
         }
     }
     Assert(chosenPrevEdge, "Save: must have prev chosen edge");
-    chosenEngId = chosenPrevEdge->gFromOp()->gEngineId();
+    Assert(chosenEngId == chosenPrevEdge->gFromOp()->gEngineId(),
+        "Engine on chosen edge from ", chosenPrevEdge->gFromOp()->gName(), " to ", sbAtomWaveop->gName(),
+        " different than engine id ", utils::engineId2Str(chosenEngId));
 
     // First wait on all other engines
     for (auto prevWaveEdge : sbAtomWaveop->gPrevWaveEdges()) {
@@ -310,13 +314,11 @@ WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWave
             continue;
         }
         ++numSyncs;
-        writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
+        m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
     }
-    //succEventIds.push_back(chosenPrevEdge->gEventId());
     for (auto succWaveEdge : sbAtomWaveop->gSuccWaveEdges()) {
         if (succWaveEdge->qNeedToImplementSync()) {
             succEventIds.push_back(succWaveEdge->gEventId());
-            //std::cout << sbAtomWaveop->gName() << succWaveEdge->gEventId() << std::endl;
             ++numSyncs;
         }
     }

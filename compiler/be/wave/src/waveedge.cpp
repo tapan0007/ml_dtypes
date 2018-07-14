@@ -70,10 +70,7 @@ WaveEdge::qNeedToSync() const
     // the same memory with other weights. Since the first weights are already in DRAM
     // (they were loaded from DRAM), we don't need to save 
     //
-    if (EngineId::DmaEng == prevWaveop->gEngineId()) {
-        if (prevWaveop->qSbAtomSaveWaveOp() && succWaveop->qSbAtomSaveWaveOp()) {
-            return false;
-        }
+    if (prevWaveop->qSbAtomWaveOp()) {
         return true;
     }
     return false;

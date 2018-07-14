@@ -20,6 +20,8 @@ MODS :=  \
 
 SRCS := compiler
 
+GIT_SHA:=$(shell git describe --always --abbrev=12)
+GIT_SHA := -DGIT_SHA='"'$(GIT_SHA)'"'
 
 include ../Makefile.common
 

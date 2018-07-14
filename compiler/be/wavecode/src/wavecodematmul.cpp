@@ -66,7 +66,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
             const auto evtId = prevWaveEdge->gEventId();
             Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
             eventIds.insert(evtId);
-            writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+            m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
         }
         return; // No LdWeights instructions
     }
@@ -156,7 +156,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                 ldweightsInstr.inst_events.wait_event_idx     = evtId;
                 ldweightsInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
             } else {
-                writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+                m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
             }
         }
     }
@@ -170,7 +170,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
     {
         std::ostringstream oss;
         oss << matmulWaveop->gOrder() << "-" <<  matmulWaveop->gName();
-        SaveName(ldweightsInstr, oss.str().c_str());
+        m_WaveCode.SaveName(ldweightsInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(ldweightsInstr);
 }
@@ -267,7 +267,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                 matmulInstr.inst_events.wait_event_idx     = evtId;
                 matmulInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
             } else {
-                writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+                m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
             }
         }
     } // end incoming events
@@ -285,7 +285,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
     if (! instructionWritten) {
         std::ostringstream oss;
         oss << matmulWaveop->gOrder() << "-" << matmulWaveop->gName();
-        SaveName(matmulInstr, oss.str().c_str());
+        m_WaveCode.SaveName(matmulInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(matmulInstr);
     }
 }

@@ -46,6 +46,7 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
 void
 SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
 {
+    KCC_ARCHIVE(Engine);
     KCC_ARCHIVE(SbAddress);
     KCC_ARCHIVE(BatchFoldIdx);
     KCC_ARCHIVE(DataType);
@@ -270,7 +271,7 @@ SerWaveOp::saveBarrier(cereal::JSONOutputArchive& /*archive*/) const
 void
 SerWaveOp::saveNop(cereal::JSONOutputArchive& archive) const
 {
-    KCC_ARCHIVE(EngineName);
+    KCC_ARCHIVE(Engine);
 }
 
 

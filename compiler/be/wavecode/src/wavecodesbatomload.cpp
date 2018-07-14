@@ -88,8 +88,7 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveO
 {
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const EngineId engineId = sbAtomLoadWaveOp->gEngineId();
-    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomLoad waveop should be DmaEng, but is ",
-           static_cast<long>(engineId));
+    Assert(EngineId::None != engineId, "Engine id for SbAtomLoad waveop should not be None");
 
     //************************************************************************
     kcc_int64 npyFileDramOffset = m_WaveCode.getDramForNpyFile(sbAtomLoadWaveOp->gRefFileName());
@@ -174,7 +173,7 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveO
             std::ostringstream oss;
             oss << sbAtomLoadWaveOp->gOrder() << "-" 
                 << sbAtomLoadWaveOp->gName()  << "-" << partIdx;
-            SaveName(dramToStateBufInstr, oss.str().c_str());
+            m_WaveCode.SaveName(dramToStateBufInstr, oss.str().c_str());
         }
         m_WaveCode.writeInstruction(dramToStateBufInstr);
     }
@@ -211,8 +210,7 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 {
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     const EngineId engineId = sbAtomLoadWaveop->gEngineId();
-    Assert(EngineId::DmaEng == engineId, "Engine id for SbAtomLoad waveop should be DmaEng, but is ",
-           static_cast<long>(engineId));
+    Assert(EngineId::None != engineId, "Engine id for SbAtomLoad waveop should not be None");
 
     const std::string& refFileName(sbAtomLoadWaveop->gRefFileName());
     const utils::DataType&    dtype(sbAtomLoadWaveop->gDataType());
@@ -303,7 +301,7 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
                     oss << sbAtomLoadWaveop->gOrder()
                         << "-" << sbAtomLoadWaveop->gName()
                         << "-p" << part << "c" << c_idx;
-                    SaveName(dramToStateBufInstr, oss.str().c_str());
+                    m_WaveCode.SaveName(dramToStateBufInstr, oss.str().c_str());
                 }
                 m_WaveCode.writeInstruction(dramToStateBufInstr);
 
@@ -351,7 +349,7 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
                             << "-"  << sbAtomLoadWaveop->gName()
                             << "-p" << (activePartCnt + strideIdx*numChans + c_idx)
                             << "s"  << strideIdx << "c"  << c_idx;
-                        SaveName(dramToStateBufInstr, oss.str().c_str());
+                        m_WaveCode.SaveName(dramToStateBufInstr, oss.str().c_str());
                     }
                     m_WaveCode.writeInstruction(dramToStateBufInstr);
 
@@ -522,7 +520,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
         oss << sbAtomLoadWaveop->gOrder()
             << ":" << succEventIds[0]
             << "-" << sbAtomLoadWaveop->gName();
-        SaveName(dmaTriggerInstr, oss.str().c_str());
+        m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
@@ -564,9 +562,6 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
 
     /*const kcc_int32 numSyncs =*/ findSuccEventsAndChosenEngine(sbAtomLoadWaveop,
                                         chosenEngId, succEventIds);
-    // All input requests must come from the same engine so that none starts before
-    // that engine waits on start-inference signal => override chosen engine
-    chosenEngId = EngineId::Pooling;
 
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
@@ -611,11 +606,30 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     }
 
     //************************************************************************
-    if (!m_FirstInput) {
-        events::EventId waitEventId = 0; // events::EventId_Invalid();
-        events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
-        processIncomingEdgesForceWait(sbAtomLoadWaveop, chosenEngId, waitEventId, waitEventMode);
-    }        
+    events::EventId waitEventId = events::EventId_BeforeInputRead_PeArray();
+    events::EventWaitMode waitMode = events::EventWaitMode::DontWait;
+    switch (chosenEngId) {
+    case EngineId::Pooling:
+        // do nothing, waiting for interface already happened at the beginning of Pool
+        break;
+    case EngineId::PeArray:
+        if (m_WaveCode.gFirstInputDMA_PeArray()) {
+            m_WaveCode.rFirstInputDMA_PeArray(false);
+            waitMode = events::EventWaitMode::WaitThenClear;
+            waitEventId = events::EventId_BeforeInputRead_PeArray();
+        }
+        break;
+    case EngineId::Activation:
+        if (m_WaveCode.gFirstInputDMA_ActEng()) {
+            m_WaveCode.rFirstInputDMA_ActEng(false);
+            waitMode = events::EventWaitMode::WaitThenClear;
+            waitEventId = events::EventId_BeforeInputRead_ActEng();
+        }
+        break;
+    default:
+        Assert(false, "Bad engine ID for DMA load: ", static_cast<int>(chosenEngId));
+        break;
+    }
 
     //************************************************************************
     addDmaBarrier(chosenEngId);
@@ -626,14 +640,9 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     dmaTriggerInstr.use_raw_count = 0; // get from JSON
     dmaTriggerInstr.block_id = dmaBlock.gBlockId();
 
-    if (m_FirstInput) {
-        m_FirstInput = false;
-        dmaTriggerInstr.inst_events.wait_event_idx  = events::EventId_StartInference();
-        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
-    } else {
-        dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    }
+    dmaTriggerInstr.inst_events.wait_event_idx  = waitEventId;
+    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(waitMode);
+
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
     {
@@ -641,7 +650,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
         oss << sbAtomLoadWaveop->gOrder()
             << ":" << succEventIds[0]
             << "-" << sbAtomLoadWaveop->gName();
-        SaveName(dmaTriggerInstr, oss.str().c_str());
+        m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
@@ -666,9 +675,6 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
     /*const kcc_int32 numSyncs =*/ findSuccEventsAndChosenEngine(sbAtomLoadWaveop,
                                         chosenEngId, succEventIds);
-    // All input requests must come from the same engine so that none starts before
-    // that engine waits on start-inference signal => override chosen engine
-    chosenEngId = EngineId::Pooling;
 
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
@@ -687,11 +693,31 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     }
 
     //************************************************************************
-    if (!m_FirstInput) {
-        events::EventId waitEventId = 0; // events::EventId_Invalid();
-        events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
-        processIncomingEdgesForceWait(sbAtomLoadWaveop, chosenEngId, waitEventId, waitEventMode);
-    }        
+    events::EventId waitEventId = events::EventId_BeforeInputRead_PeArray();
+    events::EventWaitMode waitMode = events::EventWaitMode::DontWait;
+    switch (chosenEngId) {
+    case EngineId::Pooling:
+        // do nothing, waiting for interface already happened at the beginning of Pool
+        break;
+    case EngineId::PeArray:
+        if (m_WaveCode.gFirstInputDMA_PeArray()) {
+            m_WaveCode.rFirstInputDMA_PeArray(false);
+            waitMode = events::EventWaitMode::WaitThenClear;
+            waitEventId = events::EventId_BeforeInputRead_PeArray();
+        }
+        break;
+    case EngineId::Activation:
+        if (m_WaveCode.gFirstInputDMA_PeArray()) {
+            m_WaveCode.rFirstInputDMA_PeArray(false);
+            waitMode = events::EventWaitMode::WaitThenClear;
+            waitEventId = events::EventId_BeforeInputRead_ActEng();
+        }
+        break;
+    default:
+        Assert(false, "Bad engine ID for DMA load: ", static_cast<int>(chosenEngId));
+        break;
+    }
+
     //************************************************************************
     addDmaBarrier(chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
@@ -701,23 +727,19 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     dmaTriggerInstr.use_raw_count = 0; // get from JSON
     dmaTriggerInstr.block_id = dmaBlock.gBlockId();
 
-    if (m_FirstInput) {
-        m_FirstInput = false;
-        dmaTriggerInstr.inst_events.wait_event_idx  = events::EventId_StartInference();
-        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
-    } else {
-        dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-    }
-    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
+    dmaTriggerInstr.inst_events.wait_event_idx  = waitEventId;
+    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(waitMode);
+
+    dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt in the descr. block
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
             << ":" << succEventIds[0]
             << "-" << sbAtomLoadWaveop->gName();
-        SaveName(dmaTriggerInstr, oss.str().c_str());
+        m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
+
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 }
@@ -841,7 +863,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomLoadWaveop->gName();
-        SaveName(dmaTriggerInstr, oss.str().c_str());
+        m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
@@ -947,10 +969,12 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
 //======================================================================
 kcc_int32
-WaveCodeSbAtomLoad::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
+WaveCodeSbAtomLoad::findSuccEventsAndChosenEngine(wave::SbAtomLoadWaveOp* sbAtomWaveop,
                         EngineId& chosenEngId,
                         std::vector<events::EventId>& succEventIds)
 {
+    chosenEngId = sbAtomWaveop->gEngineId();
+    Assert(chosenEngId != EngineId::None, "None engine in waveop ", sbAtomWaveop->gName());
     kcc_int32 numSyncs = 0;
     wave::WaveEdge* chosenPrevEdge = nullptr;
 
@@ -961,9 +985,9 @@ WaveCodeSbAtomLoad::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWave
         }
     }
     if (chosenPrevEdge) {
-        chosenEngId = chosenPrevEdge->gFromOp()->gEngineId();
-    } else {
-        chosenEngId = EngineId::Pooling;
+        Assert(chosenEngId == chosenPrevEdge->gFromOp()->gEngineId(),
+            "Engine on chosen edge from ", chosenPrevEdge->gFromOp()->gName(), " to ", sbAtomWaveop->gName(),
+            " different than engine id ", utils::engineId2Str(chosenEngId));
     }
 
     // First wait on all other engines
@@ -972,12 +996,12 @@ WaveCodeSbAtomLoad::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWave
             continue;
         }
         /*
+        */
         if (prevWaveEdge == chosenPrevEdge) {
             continue;
         }
-        */
         ++numSyncs;
-        writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
+        m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
     }
 
     for (auto succWaveEdge : sbAtomWaveop->gSuccWaveEdges()) {

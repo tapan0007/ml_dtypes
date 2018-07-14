@@ -2,6 +2,7 @@
 
 
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/debug.hpp"
 
 #include "compisa/inc/compisawait.hpp"
 #include "compisa/inc/compisanop.hpp"
@@ -28,82 +29,6 @@ WaveCodeWaveOp::qParallelStreams() const
     return m_WaveCode.qParallelStreams();
 }
 
-
-//======================================================================
-void
-WaveCodeWaveOp::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId engineId)
-{
-    const events::EventWaitMode waitEventMode = waveEdge->gWaitEventMode();
-    Assert(waitEventMode == events::EventWaitMode::WaitThenClear
-                || waitEventMode == events::EventWaitMode::WaitOnly,
-           "Cannot wait on edge with DontWait mode");
-
-    enum { WAIT_CLEAR_MODE, WAIT_PLUS_CLEAR, NOP };
-
-    //switch (WAIT_PLUS_CLEAR)
-    switch (WAIT_CLEAR_MODE)
-    {
-    case WAIT_CLEAR_MODE: {
-        // Not sure whether wait_event_mode works in SIM.
-        compisa::WaitInstr waitInstr;
-        waitInstr.event_idx         = waveEdge->gEventId();
-        waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
-
-        const wave::WaveOp* const waveop = waveEdge->gToOp();
-        std::ostringstream oss;
-        oss << waveop->gOrder() << "-" << waveop->gName();
-        SaveName(waitInstr, oss.str().c_str());
-        m_WaveCode.writeInstruction(waitInstr, engineId);
-        break;
-    }
-    case NOP: {
-        // New Nop instruction can wait and set (should use for barrier too)
-        compisa::NopInstr nopInstr;
-        nopInstr.inst_events.wait_event_idx   = waveEdge->gEventId();
-        nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(waitEventMode);
-        nopInstr.inst_events.set_event_idx    = 0;
-        nopInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-
-        const wave::WaveOp* const waveop = waveEdge->gFromOp();
-        std::ostringstream oss;
-        oss << waveop->gOrder() << "-" << waveop->gName();
-        SaveName(nopInstr, oss.str().c_str());
-        m_WaveCode.writeInstruction(nopInstr, engineId);
-        break;
-    }
-    case WAIT_PLUS_CLEAR: {
-        {
-        // old style: Wait(wait-only); Clear
-            compisa::WaitInstr waitInstr;
-            waitInstr.event_idx         = waveEdge->gEventId();
-            waitInstr.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::WaitOnly);
-
-            const wave::WaveOp* const waveop = waveEdge->gToOp();
-            std::ostringstream oss;
-            oss << waveop->gOrder() << "-" << waveop->gName();
-            SaveName(waitInstr, oss.str().c_str());
-            m_WaveCode.writeInstruction(waitInstr, engineId);
-        }
-
-        if (waitEventMode == events::EventWaitMode::WaitThenClear) {
-            compisa::ClearInstr clearInstr;
-            clearInstr.event_idx  = waveEdge->gEventId();
-
-            const wave::WaveOp* const waveop = waveEdge->gToOp();
-            std::ostringstream oss;
-            oss << waveop->gOrder() << "-" << waveop->gName();
-            SaveName(clearInstr, oss.str().c_str());
-            m_WaveCode.writeInstruction(clearInstr, engineId);
-        }
-        break;
-    }
-    default:
-        Assert(false, "Unknown waiting method");
-        break;
-    }
-}
-
-
 //======================================================================
 kcc_int32
 WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
@@ -126,6 +51,9 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
+        if (evtId == 0x12 && m_WaveCode.qBinFileRuntimeKelf()) {
+            utils::breakFunc(__LINE__);
+        }
         ++numSyncs;
 
         if (allowEmb && firstEmb) {
@@ -145,7 +73,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
                     *waitEventMode = prevWaveEdge->gWaitEventMode();
                 }
             }
-            writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+            m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
         }
     }
     return numSyncs;
@@ -254,17 +182,10 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
 
         std::ostringstream oss;
         oss << waveop->gOrder() << "-" << waveop->gName();
-        SaveName(setEventInstr, oss.str().c_str());
+        m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
     }
     return numSyncs;
-}
-
-//======================================================================
-void
-WaveCodeWaveOp::SaveName(compisa::MatMulInstr& instr, const char* name)
-{
-    saveName(instr.reserved_2, name);
 }
 
 }}

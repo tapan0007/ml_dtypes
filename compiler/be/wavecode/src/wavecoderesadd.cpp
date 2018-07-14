@@ -157,7 +157,7 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
     if (! instructionWritten) {
         std::ostringstream oss;
         oss << resaddWaveop->gOrder() << "-" << resaddWaveop->gName();
-        SaveName(tensortensorInstr, oss.str().c_str());
+        m_WaveCode.SaveName(tensortensorInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(tensortensorInstr);
     }
 }
@@ -289,7 +289,7 @@ WaveCodeResAdd::generateSameBufSrc(wave::ResAddWaveOp* resaddWaveop)
     if (! instructionWritten) {
         std::ostringstream oss;
         oss << resaddWaveop->gOrder() << "-" << resaddWaveop->gName();
-        SaveName(tensorReduceInstr, oss.str().c_str());
+        m_WaveCode.SaveName(tensorReduceInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(tensorReduceInstr);
     }
 }

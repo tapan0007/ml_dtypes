@@ -66,6 +66,9 @@ conv_pad      Single Conv2D layer that exercises padding
 7-rn50_nne_fp16_wave-two_banks    Full Resnet50 as 7-rn50_nne_fp16_wave with 1 DDR bank of 2x bandwidth
 7-rn50_nne_fp16_wave-fast_dram    Full Resnet50 as 7-rn50_nne_fp16_wave with 1-cycle cost for any DDR transaction
 
+7-rn50_nne_fp16_ap_wave-no_repl   Resnet50 up and including AvgPool after Act49. No replication.
+7-rn50_nne_fp16_ap_wave           Resnet50 up and including AvgPool after Act49. With replication.
+
 # Project tests
 4-rn50_matmul_fp32_wave     Sprint 10 avgpool, reshape, matmult, softmax on wave backend, rest on host
 4-rn50_matmul_fp32_waveopt  Sprint 10 avgpool, reshape, matmult, softmax on ME   backend, rest on host

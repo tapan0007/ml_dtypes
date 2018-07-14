@@ -76,29 +76,34 @@ private:
 
     enum ReservedEvent {
         ReservedEvent_PeAct,
+        ReservedEvent_ActPool,
+        ReservedEvent_PoolDma,
+
+        ReservedEvent_DmaPool,
+        ReservedEvent_PoolAct,
+        ReservedEvent_ActPe,
+
+
+        /*
         ReservedEvent_PePool,
         ReservedEvent_PeDma,
         ReservedEvent_PeSp,
 
-        ReservedEvent_ActPe,
-        ReservedEvent_ActPool,
         ReservedEvent_ActDma,
         ReservedEvent_ActSp,
 
         ReservedEvent_PoolPe,
-        ReservedEvent_PoolAct,
-        ReservedEvent_PoolDma,
         ReservedEvent_PoolSp,
 
         ReservedEvent_DmaPe,
         ReservedEvent_DmaAct,
-        ReservedEvent_DmaPool,
         ReservedEvent_DmaSp,
 
         ReservedEvent_SpPe,
         ReservedEvent_SpAct,
         ReservedEvent_SpPool,
         ReservedEvent_SpDma,
+        */
 
         ReservedEvent_FirstNonReserved
     };

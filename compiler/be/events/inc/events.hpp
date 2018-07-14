@@ -19,8 +19,25 @@ namespace events {
 using EventId = kcc_int32;
 
 EventId EventId_Invalid();
+
+// After RT receives input image(data), it will send "StartInterface" signal
+// for Tonga. One engine (Pool) will wait for that signal before its first
+// Input DMA. As soon as it gets this signal, it will send to each remaining
+// engine (PE, Act) a signal for them to be able to inititate DMA as well.
+//
+// Dealing with the case when an engine does not initiate a DMA:
+// 1. One engine has to wait for interface start. We don't want that to
+//    be PE because PE can go ahead and load weights. We chose Pool.
+// 2. If another engine does not initiate any DMA at all, that engine will
+//    wait for its own signal at the very end.
+
 EventId EventId_StartInference();
+EventId EventId_BeforeInputRead_PeArray();
+EventId EventId_BeforeInputRead_ActEng();
+
 EventId EventId_MMStartMultiSet();
+
+EventId EventId_LastNonReserved();
 
 #if 0
 constexpr kcc_int32 KccMax3(kcc_int32 a, kcc_int32 b, kcc_int32 c)

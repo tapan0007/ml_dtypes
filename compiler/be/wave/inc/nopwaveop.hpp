@@ -66,7 +66,7 @@ public:
     const std::string& gLayerName() const override;
 
 private:
-    EngineId m_EngineId = EngineId::AnyEng;
+    EngineId m_EngineId = EngineId::None;
 }; // class NopWaveOp : public WaveOp
 
 

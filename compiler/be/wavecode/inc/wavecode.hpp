@@ -15,6 +15,8 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 #include "events/inc/events.hpp"
+
+#include "compisa/inc/compisamatmul.hpp"
 #include "kelf/inc/kelfdmadescription.hpp"
 
 
@@ -81,6 +83,7 @@ public:
     ~WaveCode();
 
     void generate(const InstrStreams& instrStreams, bool parallelStreams);
+    void DetermineEngines();
 
     // Instructions that execute on one engine only: POOL, MATMUL, LDWEIGHTS, etc.
     template<typename INSTR>
@@ -121,6 +124,45 @@ public:
         return m_DmaDescription;
     }
 
+    bool gFirstInputDMA_PeArray() const {
+        return m_FirstInputDMA_PeArray;
+    }
+    void rFirstInputDMA_PeArray(bool val) {
+        m_FirstInputDMA_PeArray = val;
+    }
+
+    bool gFirstInputDMA_ActEng() const {
+        return m_FirstInputDMA_ActEng;
+    }
+    void rFirstInputDMA_ActEng(bool val) {
+        m_FirstInputDMA_ActEng = val;
+    }
+
+public:
+    void writeWaitOrWaitClearInstr(const wave::WaveEdge* edge, EngineId engineId);
+    void writeWaitOrWaitClearInstr(events::EventId evntId,
+                    events::EventWaitMode waitEventMode,
+                    EngineId engineId, const char* const dbgTxt);
+
+public:
+    template <int N>
+    static void saveName(uint8_t (&res)[N], const char* name)
+    {
+        for (int i = 0; i < N; ++i) {
+            res[i] = '\0';
+        }
+        strncpy(reinterpret_cast<char*>(&res[0]), name, N - 1);
+        res[N-1] = 0;
+    }
+
+    template <typename INSTR>
+    static void SaveName(INSTR& instr, const char* name)
+    {
+        saveName(instr.reserved, name);
+    }
+
+    static void SaveName(compisa::MatMulInstr& instr, const char* name);
+
 private:
     WaveCode() = delete;
     WaveCode(const WaveCode&) = delete;
@@ -158,6 +200,8 @@ private:
     std::map<std::string, NpyFileInfo>  m_NpyFile2DramAddress;
     bool                                m_ParallelStreams = false;
     BinFileType                         m_BinFileType = BinFileType::SimAngel;
+    bool                                m_FirstInputDMA_ActEng  = true;
+    bool                                m_FirstInputDMA_PeArray = true;
     
     kelf::DmaDescription                m_DmaDescription;
 };

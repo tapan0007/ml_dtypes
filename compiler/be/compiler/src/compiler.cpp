@@ -98,6 +98,8 @@ void writeOutJson(nets::Network* ntwk, const char* jsonInFileName, const char* e
 
 //------------------------------------------------
 
+static const char git_sha[] = GIT_SHA;
+
 int
 Main(int argc, char* argv[])
 {
@@ -175,6 +177,7 @@ Main(int argc, char* argv[])
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer psumBuf(arch.gPsumBuffer());
     std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
+    std::cout << "Git commit " << git_sha << "\n";
 
     // Does not matter which DataType because entry index is 0.
     const utils::DataTypeFloat32 dtypeFloat32;
@@ -280,85 +283,93 @@ Main(int argc, char* argv[])
         wavecode::WaveCode::InstrStreams instrStreams;
         if (ParallelStreams) {
             //==========================================================
-            // with Angel/Dma
             bool kelf = false;
             std::string objFileName;
-
-            instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.tpb";
-            instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array");
-
-            instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.tpb";
-            instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor");
-
-            instrStreams.m_DmaBinFile = objFileName = ntwk->gName() + "-dma.tpb";
-            instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA");
-
-            instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.tpb";
-            instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine");
-
-            instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.tpb";
-            instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine");
-
             events::EventMgr eventMgr(*ntwk);
-            eventMgr.processWaveops(kelf);
-
-            writeOutJson(ntwk, JsonInFileName, "tpb");
             wavecode::WaveCode waveCode(*ntwk, arch);
 
-            waveCode.rBinFileType(BinFileType::SimAngel);
-            waveCode.generate(instrStreams, ParallelStreams);
+            // with Angel/Dma
+            if (true) {
+                instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.tpb";
+                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array");
 
-            instrStreams.closeAll();
+                instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.tpb";
+                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor");
 
-            //==========================================================
-            // Sim Kelf
-            kelf = true;
+                instrStreams.m_DmaBinFile = objFileName = ntwk->gName() + "-dma.tpb";
+                instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA");
 
-            instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.kbin";
-            instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array KELF");
+                instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.tpb";
+                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine");
 
-            instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.kbin";
-            instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor KELF");
+                instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.tpb";
+                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine");
 
-            instrStreams.m_DmaInstrStream    = nullptr;
+                waveCode.rBinFileType(BinFileType::SimAngel);
+                waveCode.DetermineEngines();
+                eventMgr.processWaveops(kelf);
+                waveCode.generate(instrStreams, ParallelStreams);
 
-            instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.kbin";
-            instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine KELF");
-
-            instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.kbin";
-            instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine KELF");
-
-            ntwk->revertSavedWaveops();
-            eventMgr.processWaveops(kelf);
-
-            writeOutJson(ntwk, JsonInFileName, "bin");
-
-            waveCode.rBinFileType(BinFileType::SimKelf);
-            waveCode.generate(instrStreams, ParallelStreams);
-
-            instrStreams.closeAll();
+                writeOutJson(ntwk, JsonInFileName, "tpb");
+                instrStreams.closeAll();
+            }
 
             //==========================================================
             // Runtime Kelf
-            kelf = true;
-            instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.bin";
-            instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array KELF");
+            if (true) {
+                kelf = true;
+                instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.bin";
+                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array KELF");
 
-            instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.bin";
-            instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor KELF");
+                instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.bin";
+                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor KELF");
 
-            instrStreams.m_DmaInstrStream    = nullptr;
+                instrStreams.m_DmaInstrStream    = nullptr;
 
-            instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.bin";
-            instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine KELF");
+                instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.bin";
+                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine KELF");
 
-            instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.bin";
-            instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine KELF");
+                instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.bin";
+                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine KELF");
 
-            waveCode.rBinFileType(BinFileType::RuntimeKelf);
-            waveCode.generate(instrStreams, ParallelStreams);
+                ntwk->revertSavedWaveops();
+                ntwk->ClearEvents();
 
-            instrStreams.closeAll();
+                waveCode.rBinFileType(BinFileType::RuntimeKelf);
+                waveCode.DetermineEngines();
+                eventMgr.processWaveops(kelf);
+                waveCode.generate(instrStreams, ParallelStreams);
+
+                writeOutJson(ntwk, JsonInFileName, "bin");
+                instrStreams.closeAll();
+            }
+
+            //==========================================================
+            // Sim Kelf
+            if (false) {
+                kelf = true;
+
+                instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.kbin";
+                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array KELF");
+
+                instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.kbin";
+                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor KELF");
+
+                instrStreams.m_DmaInstrStream    = nullptr;
+
+                instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.kbin";
+                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine KELF");
+
+                instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.kbin";
+                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine KELF");
+
+                //
+
+                waveCode.rBinFileType(BinFileType::SimKelf);
+                waveCode.generate(instrStreams, ParallelStreams);
+
+                instrStreams.closeAll();
+            }
 
         } else {
             std::string objFileName(ntwk->gName() + ".tpb");

@@ -162,6 +162,7 @@ public:
 
     void replaceWaveops(std::vector<wave::WaveOp*>& newWaveops);
     void revertSavedWaveops();
+    void ClearEvents();
 
 
 

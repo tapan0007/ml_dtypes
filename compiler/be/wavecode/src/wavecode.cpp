@@ -5,37 +5,15 @@
 
 #include "utils/inc/debug.hpp"
 
-#include "compisa/inc/compisaldweights.hpp"
-#include "compisa/inc/compisamatmul.hpp"
-
-#include "compisa/inc/compisapool.hpp"
-
-#include "compisa/inc/compisaactivate.hpp"
-
 #include "compisa/inc/compisaset.hpp"
 #include "compisa/inc/compisawait.hpp"
 #include "compisa/inc/compisaclear.hpp"
 #include "compisa/inc/compisanop.hpp"
-
-#include "compisa/inc/compisawrite.hpp"
-#include "compisa/inc/compisatensortensorop.hpp"
-#include "compisa/inc/compisatensorscalarop.hpp"
-#include "compisa/inc/compisatensorscalarptrop.hpp"
-#include "compisa/inc/compisatensorreduceop.hpp"
-#include "compisa/inc/compisacopy.hpp"
-#include "compisa/inc/compisacast.hpp"
-#include "compisa/inc/compisamemset.hpp"
-#include "compisa/inc/compisaregload.hpp"
-#include "compisa/inc/compisaregshuffle.hpp"
-#include "compisa/inc/compisaregstore.hpp"
-
-#include "compisa/inc/compisasimmemcpy.hpp"
-#include "compisa/inc/compisasimwrnpy.hpp"
-#include "compisa/inc/compisasimrdnpy.hpp"
+#include "compisa/inc/compisamatmul.hpp"
 #include "compisa/inc/compisasimrdnpy.hpp"
 
-#include "compisa/inc/compisadmatrigger.hpp"
-#include "compisa/inc/compisasimdmacopy.hpp"
+
+
 
 
 #include "utils/inc/asserter.hpp"
@@ -53,6 +31,7 @@
 #include "wave/inc/resaddwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
+#include "wave/inc/waveedge.hpp"
 
 //#include "wavecode/inc/wavecodewaveop.hpp"
 #include "wavecode/inc/wavecodesbatomload.hpp"
@@ -86,9 +65,11 @@ WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch)
     m_CurrentDramAddress    = P_0_DRAM_0_BASE;
 }
 
+//----------------------------------------------------------------
 WaveCode::~WaveCode() = default;
 
 
+//----------------------------------------------------------------
 void
 WaveCode::determinePrecSbEdges()
 {
@@ -102,45 +83,113 @@ WaveCode::determinePrecSbEdges()
         if (!waveop->qSbAtomWaveOp()) {
             continue;
         }
+
+        const auto sbWop = dynamic_cast<wave::SbAtomWaveOp*>(waveop);
         if (waveop->gPrevWaveEdges().size() == 0) {
-            continue; // initial loads
+            // initial loads
+            if (const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(sbWop)) {
+                if (loadWop->qContainWeights()) {
+                    loadWop->rEngineId(EngineId::PeArray);
+                } else {
+                    loadWop->rEngineId(EngineId::Pooling);
+                }
+            } else {
+                loadWop->rEngineId(EngineId::Pooling);
+            }
+
+            continue;
         }
 
         wave::WaveEdge* chosenPrevEdge = nullptr;
         for (auto engId : engineIds) {
-            if (!chosenPrevEdge) {
-                for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-                    if (prevWaveEdge->gFromOp()->gEngineId() == engId) {
-                        chosenPrevEdge = prevWaveEdge;
-                        break;
-                    }
-                }
-                if (chosenPrevEdge) {
+            for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
+                if (prevWaveEdge->gFromOp()->gEngineId() == engId) {
+                    chosenPrevEdge = prevWaveEdge;
                     break;
                 }
+            }
+            if (chosenPrevEdge) {
+                break;
             }
         }
         // Chosen edge exist if on TPB engine.
         // If this is SbAtomSave --> SbAtomLoad, there will not be a chosen edge.
-        if (chosenPrevEdge) {
-            chosenPrevEdge->rChosenForSuccSbAtom(true);
+        chosenPrevEdge->rChosenForSuccSbAtom(true);
+        sbWop->rEngineId(chosenPrevEdge->gFromOp()->gEngineId());
+    }
+}
+
+//----------------------------------------------------------------
+void
+WaveCode::DetermineEngines()
+{
+    if (qGenerateKelf()) {
+        determinePrecSbEdges();
+    } else {
+        for (auto waveop : m_Network.gWaveOps()) {
+            if (auto sbWaveop = dynamic_cast<wave::SbAtomWaveOp*>(waveop)) {
+                sbWaveop->rEngineId(EngineId::DmaEng);
+            }
         }
     }
 }
 
+//----------------------------------------------------------------
 void
 WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
 {
     m_ParallelStreams = parallelStreams;
 
     m_InstrStreams = &instrStreams;
-    if (qGenerateKelf()) {
-        determinePrecSbEdges();
+
+    /***********************************************************************************
+     * Pooling angine waits for inference and signals other engines (PE,Act) immediately.
+     * Other engines wait on signal from pool *before* any input DMA initiation is done
+     * on each respective engine.
+     * If any of the other engines never initiates DMA, 
+     ***********************************************************************************/
+    if (qBinFileRuntimeKelf()) {
+    // Pool wait for start inference at beginning
+        writeWaitOrWaitClearInstr(events::EventId_StartInference(), events::EventWaitMode::WaitThenClear,
+                        EngineId::Pooling, "Waiting on pooling engine to start inference");
+        { // Pool sets event for PeArray to read inputs
+            compisa::SetInstr setInstr;
+            setInstr.event_idx  = events::EventId_BeforeInputRead_PeArray();
+            writeInstruction(setInstr, EngineId::Pooling);
+        }
+        { // Pool sets event for Act to read inputs
+            compisa::SetInstr setInstr;
+            setInstr.event_idx  = events::EventId_BeforeInputRead_ActEng();
+            writeInstruction(setInstr, EngineId::Pooling);
+        }
     }
+
+    // Process waveops
     for (auto waveOp : m_Network.gWaveOps()) {
         auto& codeGen = getCodeGen(waveOp);
         codeGen.generate(waveOp);
     }
+
+    if (qBinFileRuntimeKelf()) {
+        // If PeArr never waited on input, wait at end for event from pooling
+        if (gFirstInputDMA_PeArray()) {
+            rFirstInputDMA_PeArray(false);
+            writeWaitOrWaitClearInstr(events::EventId_BeforeInputRead_PeArray(),
+                events::EventWaitMode::WaitThenClear,
+                EngineId::PeArray,
+                "At end of PeArray execution: wait for first input event from Pooling");
+        }
+        // If Act never waited on input, wait at end for event from pooling
+        if (gFirstInputDMA_ActEng()) {
+            rFirstInputDMA_ActEng(false);
+            writeWaitOrWaitClearInstr(events::EventId_BeforeInputRead_ActEng(),
+                events::EventWaitMode::WaitThenClear,
+                EngineId::Activation,
+                "At end of Act engine execution: wait for first input event from Pooling");
+        }
+    }
+
+    //**********************************************************************************
     if (! qGenerateKelf()) {
         saveAllNpyFiles();
     }
@@ -204,449 +253,6 @@ WaveCode::gCurrentDramAddress(kcc_int64 sizeInBytes)
     const kcc_int64 currAddress = m_CurrentDramAddress;
     m_CurrentDramAddress += sizeInBytes;
     return currAddress;
-}
-
-
-
-/***********************************************************************
- * PE Array
-***********************************************************************/
-template<>
-void WaveCode::writeInstruction<compisa::MatMulInstr>(const compisa::MatMulInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-    m_PeArrayPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::LdWeightsInstr>(const compisa::LdWeightsInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-    m_PeArrayPc += instSize;
-}
-
-/***********************************************************************
- * Pooling Eng
-***********************************************************************/
-template<>
-void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-
-template<>
-void WaveCode::writeInstruction<compisa::TensorTensorOpInstr>(const compisa::TensorTensorOpInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::TensorScalarOpInstr>(const compisa::TensorScalarOpInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::TensorScalarPtrOpInstr>(const compisa::TensorScalarPtrOpInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::TensorReduceOpInstr>(const compisa::TensorReduceOpInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::CopyInstr>(const compisa::CopyInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::MemSetInstr>(const compisa::MemSetInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::CastInstr>(const compisa::CastInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::RegLoadInstr>(const compisa::RegLoadInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::RegStoreInstr>(const compisa::RegStoreInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::RegShuffleInstr>(const compisa::RegShuffleInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
-}
-
-
-/***********************************************************************
- * Activation Eng
-***********************************************************************/
-template<>
-void WaveCode::writeInstruction<compisa::ActivateInstr >(const compisa::ActivateInstr & instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-    m_ActEngPc += instSize;
-}
-
-
-
-
-
-/***********************************************************************
- * DMA/Angel Eng
-***********************************************************************/
-template<>
-void WaveCode::writeInstruction<compisa::SimRdNpyInstr>(const compisa::SimRdNpyInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-    m_DmaPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::SimWrNpyInstr>(const compisa::SimWrNpyInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-    m_DmaPc += instSize;
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCpyInstr& instruction)
-{
-    instruction.CheckValidity();
-    checkForNoSync(instruction.inst_events);
-
-    const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-    m_DmaPc += instSize;
-}
-
-
-
-
-
-
-
-/***********************************************************************
- * Event related - Multiple Engines
-***********************************************************************/
-template<>
-void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& instruction, EngineId engId)
-{
-    Assert(qParallelStreams(), "Cannot generate wait-for-event instruction in serial mode");
-    instruction.CheckValidity();
-    const kcc_int32 instSize = sizeof(instruction);
-
-    switch (engId) {
-    case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
-        break;
-    case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
-        break;
-    case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
-        break;
-    case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
-        break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-        m_DmaPc += instSize;
-        break;
-    default:
-        Assert(false, "Wrong EngineId for Wait instruction: ", static_cast<int>(engId));
-    }
-}
-
-
-template<>
-void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& instruction, EngineId engId)
-{
-    Assert(qParallelStreams(), "Cannot generate set-event instruction in serial mode");
-    instruction.CheckValidity();
-    const kcc_int32 instSize = sizeof(instruction);
-
-    switch (engId) {
-    case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
-        break;
-    case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
-        break;
-    case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
-        break;
-    case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
-        break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-        m_DmaPc += instSize;
-        break;
-    default:
-        Assert(false, "Wrong EngineId for Set instruction: ", static_cast<int>(engId));
-    }
-}
-
-
-template<>
-void WaveCode::writeInstruction<compisa::ClearInstr>(const compisa::ClearInstr& instruction, EngineId engId)
-{
-    Assert(qParallelStreams(), "Cannot generate clear-event instruction in serial mode");
-    instruction.CheckValidity();
-    const kcc_int32 instSize = sizeof(instruction);
-
-    switch (engId) {
-    case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
-        break;
-    case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
-        break;
-    case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
-        break;
-    case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
-        break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-        m_DmaPc += instSize;
-        break;
-    default:
-        Assert(false, "Wrong EngineId for Clear instruction: ", static_cast<int>(engId));
-    }
-}
-
-
-/***********************************************************************
- * Multiple Eng
-***********************************************************************/
-template<>
-void WaveCode::writeInstruction<compisa::WriteInstr>(const compisa::WriteInstr& instruction, EngineId engId)
-{
-    checkForNoSync(instruction.inst_events);
-
-    switch (engId) {
-    case EngineId::Pooling:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
-        break;
-    case EngineId::PeArray:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
-        break;
-    case EngineId::Activation:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
-        break;
-    case EngineId::StreamProc:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
-        break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
-        break;
-    default:
-        Assert(false, "Wrong EngineId for Write instruction: ", static_cast<int>(engId));
-    }
-}
-
-
-template<>
-void WaveCode::writeInstruction<compisa::NopInstr>(const compisa::NopInstr& instruction, EngineId engId)
-{
-    instruction.CheckValidity();
-    const kcc_int32 instSize = sizeof(instruction);
-
-    switch (engId) {
-    case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
-        break;
-    case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
-        break;
-    case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
-        break;
-    case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
-        break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-        m_DmaPc += instSize;
-        break;
-    default:
-        Assert(false, "Wrong EngineId for Nop instruction: ", static_cast<int>(engId));
-    }
-}
-
-template<>
-void WaveCode::writeInstruction<compisa::DmaTriggerInstr>(const compisa::DmaTriggerInstr& instruction, EngineId engId)
-{
-    Assert(qBinFileRuntimeKelf(), "DmaTriggerInstr is available in RuntimeKelf binary only");
-    instruction.CheckValidity();
-    const kcc_int32 instSize = sizeof(instruction);
-
-    switch (engId) {
-    case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
-        break;
-    case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
-        break;
-    case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
-        break;
-    /*
-    case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
-        break;
-    */
-    default:
-        Assert(false, "Wrong EngineId for DmaTrigger instruction: ", static_cast<int>(engId));
-    }
-}
-
-
-template<>
-void WaveCode::writeInstruction<compisa::SimDmaCopyInstr>(const compisa::SimDmaCopyInstr& instruction, EngineId engId)
-{
-    Assert(qBinFileSimKelf(), "SimDmaCopy is available in SimKelf binary only");
-    instruction.CheckValidity();
-    const kcc_int32 instSize = sizeof(instruction);
-
-    switch (engId) {
-    case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
-        break;
-    case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
-        break;
-    case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
-        break;
-    /*
-    case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
-        break;
-    */
-    default:
-        Assert(false, "Wrong EngineId for DmaTrigger instruction: ", static_cast<int>(engId));
-    }
 }
 
 
@@ -783,6 +389,116 @@ WaveCode::InstrStreams::closeAll()
         fclose(m_DmaInstrStream);
         m_DmaInstrStream = nullptr;
     }
+}
+
+//======================================================================
+void
+WaveCode::writeWaitOrWaitClearInstr(
+                    events::EventId evntId, events::EventWaitMode waitEventMode,
+                    EngineId engineId, const char* const dbgTxt)
+{
+    Assert(waitEventMode == events::EventWaitMode::WaitThenClear
+                || waitEventMode == events::EventWaitMode::WaitOnly,
+           "Cannot wait on edge with DontWait mode");
+
+    enum { WAIT_CLEAR_MODE, WAIT_PLUS_CLEAR, NOP };
+
+    //switch (WAIT_PLUS_CLEAR)
+    switch (WAIT_CLEAR_MODE)
+    {
+    case WAIT_CLEAR_MODE: {
+        // Not sure whether wait_event_mode works in SIM.
+        compisa::WaitInstr waitInstr;
+        waitInstr.event_idx         = evntId;
+        waitInstr.wait_event_mode   = eventWaitMode2Isa(waitEventMode);
+
+        SaveName(waitInstr, dbgTxt);
+        writeInstruction(waitInstr, engineId);
+        break;
+    }
+    case NOP: {
+        // New Nop instruction can wait and set (should use for barrier too)
+        compisa::NopInstr nopInstr;
+        nopInstr.inst_events.wait_event_idx   = evntId;
+        nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(waitEventMode);
+        nopInstr.inst_events.set_event_idx    = 0;
+        nopInstr.inst_events.set_event_mode   = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+
+        SaveName(nopInstr, dbgTxt);
+        writeInstruction(nopInstr, engineId);
+        break;
+    }
+    case WAIT_PLUS_CLEAR: {
+        {
+        // old style: Wait(wait-only); Clear
+            compisa::WaitInstr waitInstr;
+            waitInstr.event_idx         = evntId;
+            waitInstr.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::WaitOnly);
+
+            SaveName(waitInstr, dbgTxt);
+            writeInstruction(waitInstr, engineId);
+        }
+
+        if (waitEventMode == events::EventWaitMode::WaitThenClear) {
+            compisa::ClearInstr clearInstr;
+            clearInstr.event_idx  = evntId;
+
+            SaveName(clearInstr, dbgTxt);
+            writeInstruction(clearInstr, engineId);
+        }
+        break;
+    }
+    default:
+        Assert(false, "Unknown waiting method");
+        break;
+    }
+}
+
+//======================================================================
+void
+WaveCode::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId engineId)
+{
+    events::EventWaitMode waitEventMode = waveEdge->gWaitEventMode();
+    Assert(waitEventMode == events::EventWaitMode::WaitThenClear
+                || waitEventMode == events::EventWaitMode::WaitOnly,
+           "Cannot wait on edge with DontWait mode");
+
+    enum { WAIT_CLEAR_MODE, WAIT_PLUS_CLEAR, NOP };
+
+    //switch (WAIT_PLUS_CLEAR)
+    const wave::WaveOp* waveop = NULL;
+    switch (WAIT_CLEAR_MODE)
+    {
+    case WAIT_CLEAR_MODE: {
+        // Not sure whether wait_event_mode works in SIM.
+        waveop = waveEdge->gToOp();
+        break;
+    }
+    case NOP: {
+        waveop = waveEdge->gFromOp();
+        break;
+    }
+    case WAIT_PLUS_CLEAR: {
+        waveop = waveEdge->gToOp();
+        waitEventMode = events::EventWaitMode::WaitOnly;
+        break;
+    }
+    default:
+        Assert(false, "Unknown waiting method", events::eventWaitMode2Isa(waitEventMode));
+        break;
+    }
+    std::ostringstream oss;
+    oss << waveop->gOrder() << "-" << waveop->gName();
+    writeWaitOrWaitClearInstr(waveEdge->gEventId(), waitEventMode,
+        engineId, oss.str().c_str());
+}
+
+
+//======================================================================
+void
+WaveCode::SaveName(compisa::MatMulInstr& instr, const char* name)
+{
+    saveName(instr.reserved_2, name);
 }
 
 }}

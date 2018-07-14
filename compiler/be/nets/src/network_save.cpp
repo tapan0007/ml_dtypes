@@ -426,6 +426,7 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP sbatomWaveOp
+    serWaveOp.m_Engine = engineId2Str(WAVE_OP->gEngineId());
     KCC_SERIALIZE(SbAddress);
     KCC_SERIALIZE(StartAtMidPart);
     KCC_SERIALIZE(BatchFoldIdx);
@@ -605,7 +606,7 @@ Network::Save::saveNop(const wave::NopWaveOp* nopWaveOp,
 {
 #define WAVE_OP nopWaveOp
     serWaveOp.m_WaveOpType = wave::NopWaveOp::gTypeStrStatic();
-    serWaveOp.m_EngineName = engineId2Str(nopWaveOp->gEngineId());
+    serWaveOp.m_Engine = engineId2Str(WAVE_OP->gEngineId());
 #undef WAVE_OP
 }
 

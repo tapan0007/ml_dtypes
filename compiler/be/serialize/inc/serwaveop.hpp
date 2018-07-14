@@ -196,7 +196,7 @@ constexpr static const char* WaveOpKey_SrcBZNum	            = "src_b_z_num";
 constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
 
 constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
-constexpr static const char* WaveOpKey_EngineName           = "engine_name";
+constexpr static const char* WaveOpKey_Engine               = "engine";
 
 constexpr static const char* WaveOpKey_Multiply	            = "multiply";   /* Hack in ResAdd to get Multiply to work with old ISA */
 
@@ -273,7 +273,7 @@ public:
     std::vector<int>            m_PreviousEventWaitModes;
     std::vector<int>            m_PreviousEventSetModes;
 
-    std::string                 m_EngineName;
+    std::string                 m_Engine;
 
     // SBAtom
     kcc_int64                   m_SbAddress         = -1;

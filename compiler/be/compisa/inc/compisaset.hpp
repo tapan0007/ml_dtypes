@@ -19,8 +19,6 @@ namespace compisa {
 
 class SetInstr : public TONGA_ISA_TPB_EVENT_SET_INST {
 public:
-    //static constexpr EngineId engineId = EngineId::DmaEng;
-public:
     //----------------------------------------------------------------
     SetInstr()
         : TONGA_ISA_TPB_EVENT_SET_INST()
