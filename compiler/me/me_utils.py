@@ -451,18 +451,35 @@ class FileMapper():
         self.file_params_list = {}
         self.morsels = [SbMorsel() for i in range(sb_partition_sz)]
 
-    def check_overlap(self, region_start0, region_sz0, region_start1, region_sz1):
-        #print("DBG: checking overlap: region 0 start %d sz %d, region 1 start %d sz %d"%(region_start0, region_sz0, region_start1, region_sz1))
-        if (region_start0 <= region_start1):
-            if (region_start0 + region_sz0 > region_start1):
+    def check_overlap(self, region0_start, region0_sz, region1_start, region1_sz):
+        #print("DBG: checking overlap: region 0 start %d sz %d, region 1 start %d sz %d"%(region0_start, region0_sz, region1_start, region1_sz))
+        if (region0_start <= region1_start):
+            if (region0_start + region0_sz > region1_start):
                 return True
         else:    
-            if (region_start1 + region_sz1 > region_start0):
+            if (region1_start + region1_sz > region0_start):
                 return True
         return False
 
-    def check_overlap100(self, region_start0, region_sz0, region_start1, region_sz1):
-        return (region_start0 == region_start1) and (region_sz0 == region_sz1)
+    def check_overlap100(self, region0_start, region0_sz, region1_start, region1_sz):
+        return (region0_start == region1_start) and (region0_sz == region1_sz)
+
+    """Align region start to multiple of 64B
+    """
+    def align_region(self, region_start):
+        return ceildiv(region_start, 64) * 64
+
+    """Adjust and return region0_start if there's overlap
+    """
+    def adjust0_if_overlap(self, region0_start, region0_sz, region1_start, region1_sz, min_region_start):
+        region0_start_adjusted = self.align_region(region0_start)
+        if region0_start_adjusted + region0_sz > self.sb_partition_sz:
+            region0_start_adjusted = self.align_region(min_region_start)
+        if self.check_overlap(region0_start, region0_sz, region1_start, region1_sz):
+            region0_start_adjusted = self.align_region(region1_start + region1_sz)
+            if region0_start_adjusted + region0_sz > self.sb_partition_sz:
+                region0_start_adjusted = min_region_start_aligned
+        return region0_start_adjusted
 
     # File_params contains information about file
     # Start_addr is start address in SB

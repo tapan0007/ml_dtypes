@@ -29,7 +29,7 @@ check:
 	@echo "******************* $* (tests/$*/log-me.txt) ********************" && cd tests/$* && if [ -e compiler.json ]; then python3 $(KAENA_PATH)/compiler/me/me_main.py --debug 4 --kgraph compiler.json --wavegraph wavegraph.json > log-me.txt && grep -e ERROR -e PASS -e FAIL log-me.txt; fi
 
 unittest:
-	#python3 -m unittest layeropt_utils.py 
-	python3 -m unittest layeropt_utils.TestShapeDims
-	python3 -m unittest layeropt_utils.TestFileParams
-	python3 -m unittest layeropt_utils.TestFileMapper
+	#python3 -m unittest me_utils.py 
+	python3 -m unittest me_utils.TestShapeDims
+	python3 -m unittest me_utils.TestFileParams
+	python3 -m unittest me_utils.TestFileMapper
