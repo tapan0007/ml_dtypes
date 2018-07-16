@@ -68,9 +68,12 @@ vdis = {
   "ubuntu-18.04": [
     "s3://kaena-vdi/ubuntu-18.04-compressed.qcow2",
     "7ec65012ea281be9f364575b8b371ba407b371f87c446d6bafeebf06aa8ebb8a" ],
+  "ubuntu-18.04-fixed_sshd": [
+    "s3://kaena-vdi/ubuntu-18.04-fixed_sshd.qcow2",
+    "53c8ecc732d7bc2304e7cb2c56b9df2af07967cfa7c790ed756c1c55da24352f" ],
   }
 
-defaultVdi, checksumVdi = vdis["ubuntu-18.04"]
+defaultVdi, checksumVdi = vdis["ubuntu-18.04-fixed_sshd"]
 
 def portInUse(port):
   inUse = True
