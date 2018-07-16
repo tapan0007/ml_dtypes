@@ -114,7 +114,8 @@ class KgraphJson(object):
         attrs = {}
         nodeName = layer["waveop_name"]
         layerType = layer["waveop_type"]
-        dotText = "%s\n%s" % (layerType, nodeName)
+        layerOrder = layer["order"]
+        dotText = "%s  %d\n%s" % (layerType, layerOrder, nodeName)
         if self.verbose:
           dotText = "\n".join(["%s : %s" % (k, v) for k,v in sorted(layer.items())]) 
         attrs["color"] = self.type2color(layerType)
