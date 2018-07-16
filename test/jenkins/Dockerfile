@@ -16,6 +16,7 @@ RUN apt update -y && \
         libz-dev \
         pkg-config \
         libglib2.0-dev zlib1g-dev \
+        swig \
         && \
     apt clean -y
 
