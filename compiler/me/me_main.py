@@ -377,7 +377,6 @@ class TPBSched:
             # create graph from JSON file        
             wavegraph = KGraph(args)
             wavegraph.populate_from_kgraph_json(wavegraph_json)
-            #wavegraph.add_forward_refs(wavegraph.last_node)    # exceeds maximum recursion depth!
 
             # check for SBAtomFile nodes with no input
             if (args.debug > 2):
@@ -463,7 +462,7 @@ if __name__ == "__main__":
     kgraph = KGraph(args)
     kgraph.populate_from_kgraph_json(kgraph_json)
     # add forward references
-    kgraph.add_forward_refs(kgraph.last_node)
+    kgraph.add_forward_refs(kgraph.final_nodes)
 
     # instantiate TPB scheduler
     tpb = TPBSched(BatchSBDataMap(16, kgraph.data_type))

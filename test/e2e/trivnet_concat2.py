@@ -88,12 +88,20 @@ strides = [1, S, S, 1]
 padding = "SAME"
 
 
-w1Values =  permuteArr(np.linspace(WMIN, WMAX, num=W1.size, dtype=npDataType))\
-            .reshape(W1.shape)
-w2Values =  permuteArr(np.linspace(WMIN, WMAX, num=W2.size, dtype=npDataType))\
-            .reshape(W2.shape)
-w3Values =  permuteArr(np.linspace(WMIN, WMAX, num=W3.size, dtype=npDataType))\
-            .reshape(W3.shape)
+#w1Values =  permuteArr(np.linspace(WMIN, WMAX, num=W1.size, dtype=npDataType))\
+#            .reshape(W1.shape)
+#w2Values =  permuteArr(np.linspace(WMIN, WMAX, num=W2.size, dtype=npDataType))\
+#            .reshape(W2.shape)
+#w3Values =  permuteArr(np.linspace(WMIN, WMAX, num=W3.size, dtype=npDataType))\
+#            .reshape(W3.shape)
+wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size + W2.size + W3.size), dtype=npDataType))
+w1Values =  wAllValues[0:W1.size].reshape(W1.shape)
+print("w1\n", w1Values, "  ", w1Values.dtype)
+w2Values =  wAllValues[W1.size:W1.size+W2.size].reshape(W2.shape)
+print("w2\n", w2Values, "  ", w2Values.dtype)
+w3Values =  wAllValues[W1.size+W2.size:W1.size+W2.size+W3.size].reshape(W3.shape)
+print("w2\n", w3Values, "  ", w3Values.dtype)
+
 wmoveValues = np.array([[[[0.0,1.0]]]], dtype=w3Values.dtype)
 print("w1\n", w1Values, "  ", w1Values.dtype)
 print("w2\n", w2Values, "  ", w2Values.dtype)

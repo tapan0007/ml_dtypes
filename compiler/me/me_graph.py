@@ -57,12 +57,15 @@ class KNode:
         self.fused_op = None
         self.replicate_multiple = 1
         self.ifmaps_padded_and_split = False
+        self.distance_to_next_join = 1000 
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
     def add_next(self, next_node):
         if (not self.in_next(next_node)):
             self.next.append(next_node)
+            return True
+        return False
     def in_next(self, node):
         for i in self.next:
             if (i == node):
@@ -519,8 +522,7 @@ class KGraph:
     def __init__(self, args):
         # Node dictionary contains name -> Node pairs for quick reference
         self.node_dict = {}
-        self.first_node = None
-        self.last_node = None
+        self.final_nodes = []
         self.data_type = 'float16'
         self.item_sz = 2
         self.current_node = None
@@ -528,29 +530,34 @@ class KGraph:
         self.args = args
 
     # add forward edges for forward traversals        
-    def add_forward_refs(self, starting_node):
-        if (starting_node != None):
-            #print (starting_node.data['layer_name'], len(starting_node.prev))
-            if (len(starting_node.prev) > 0):
-                non_const_prev_count = 0
-                for i in starting_node.prev:
-                    i.add_next(starting_node)
-                    if not i.is_const:
-                        non_const_prev_count += 1
-                    self.add_forward_refs(i)
-                assert(non_const_prev_count <= 2)
-                starting_node.is_join = (non_const_prev_count > 1)                    
+    def add_forward_refs(self, final_nodes):
+        if final_nodes != []:
+            for node in final_nodes:
+                #print (node.data['layer_name'], len(node.prev))
+                if len(node.prev) > 0:
+                    non_const_prev_count = 0
+                    for i in node.prev:
+                        if not i.is_const:
+                            non_const_prev_count += 1
+                    node.is_join = (non_const_prev_count > 1)                    
+                    if node.is_join:
+                        node.distance_to_next_join = 0
+                    for i in node.prev:
+                        i.distance_to_next_join = node.distance_to_next_join + 1
+                        if i.add_next(node):
+                            self.add_forward_refs([i])
 
     # add a copy of layer, and change it to a new type
-    def add_copy_with_new_type(self, layer, new_type, node_number):
+    def add_copy_with_new_type(self, node_to_copy, new_type, node_number):
+        layer = node_to_copy.data
         new_layer = copy.deepcopy(layer)
         new_layer['layer_type'] = new_type
         new_layer['layer_name'] = layer['layer_name'] + "_" + new_type
         new_layer['ref_file'] = layer['ref_file'].replace(".npy", "_" + new_type + ".npy")
         new_node = KNode(self, new_layer, self.item_sz, self.data_type, node_number)
-        new_node.add_prev(self.last_node)
+        new_node.add_prev(node_to_copy)
         self.node_dict[ new_layer['layer_name'] ] = new_node
-        self.last_node = new_node
+        node_top_copy = new_node
 
     # populate graph using layer info from JSON                    
     def populate_from_kgraph_json(self, kgraph_json):                    
@@ -603,20 +610,19 @@ class KGraph:
                     # Type "Input" node
                     if (l['layer_type'] == "Input" or l['layer_type'] == "Placeholder"):
                         new_node.is_placeholder = True
-                        #self.first_node.append(new_node)
                         if (self.last_split_next_nodes == []):
                             self.last_split_next_nodes.append([])
                         self.last_split_next_nodes[0].append(new_node)
                 # assume the last node is the last one processed (JSON graph is in order), at least for the last one
-                self.last_node = new_node                
+                self.final_nodes.append(new_node)
                 self.node_dict[ l['layer_name'] ] = new_node
                 # if softmax, expand to multiple subnodes
                 if (l['layer_type'] == "Softmax"):
-                    self.last_node.data['layer_type'] = "Exp"
-                    self.add_copy_with_new_type(l, "Softmax2", node_number)
+                    self.final_nodes[-1].data['layer_type'] = "Exp"
+                    self.add_copy_with_new_type(self.final_nodes[-1], "Softmax2", node_number)
                     node_number += 1 
                     # move ref file attribute to the last operation for final comparisons
-                    self.last_node.data['ref_file'] = new_node.data['ref_file']
+                    self.final_nodes[-1].data['ref_file'] = new_node.data['ref_file']
                     new_node.data['ref_file'] = new_node.data['ref_file'].replace(".npy", "_Exp.npy")
                 elif (l['layer_type'] == "Const"):
                     new_node.is_const = True
@@ -655,17 +661,12 @@ class KGraph:
                             else:
                                 print("ERROR: node %s isn't declared before %s"%(i, l['waveop_name']))
                                 exit(-1)
-                    #else:
-                        # the node with "Placeholder" type is input
-                        #self.first_node.append(new_node)
                     # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                     self.last_node = new_node                
                     self.node_dict[ l['waveop_name'] ] = new_node
-                #self.current_node = self.first_node[0]
             else:
                 print("ERROR: there are no layers!")
                 exit(-1)
-        self.first_node = self.current_node
 
     # get next fused op            
     def get_next_fused_op(self, fused_ops):
@@ -701,23 +702,27 @@ class KGraph:
                 print("ERROR: back-track from a join %s, but can't find fork!"%(self.current_node.data['layer_name']))
                 exit(-1)
         fused_ops.add(self.current_node)
-        for i in self.current_node.next:
-            print(i.data['layer_type'], ":", i.data['layer_name'])
+        #for i in self.current_node.next:
+        #    print(i.data['layer_type'], ":", i.data['layer_name'])
         fused_ops = self.get_next_fused_op(fused_ops)
         # if there are multiple next nodes
         next_nodes = [i for i in fused_ops[-1].next]
         last_node_type = fused_ops[-1].data['layer_type']
-        if (len(next_nodes) == 1):
+        num_next_nodes = len(next_nodes)
+        if (num_next_nodes == 1):
             self.current_node = next_nodes[0]   
-        elif (len(next_nodes) > 1):
+        elif (num_next_nodes > 1):
             fused_ops[-1].is_fork = True
             # Delete the branch that goes to ResAdd directly first, if it exists.
-            for i in range(len(next_nodes)):
+            for i in range(num_next_nodes):
                 if (next_nodes[i].is_join):
                     resadd_node = next_nodes[i]
                     del next_nodes[i]
                     #next_nodes.insert(0, resadd_node)
                     break
+            # sort next nodes list based on distance to next ResAdd    
+            if len(next_nodes) > 1:
+                next_nodes.sort(key=lambda x: x.distance_to_next_join, reverse=True)
             # pick the first branch as current_node                        
             self.current_node = next_nodes.pop()
             # save the remaining branches in a list
