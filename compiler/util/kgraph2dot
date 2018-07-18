@@ -54,6 +54,18 @@ class KgraphJson(object):
   def waveopt2engine(self, waveopType):
     return KgraphJson.w2e.get(waveopType, "SP")
   
+  def getWaveoptEngine(self, layer):
+    eng = layer.get("engine", None)
+    if eng == None:
+      layerType = layer["waveop_type"]
+      engine = self.waveopt2engine(layerType)
+      return engine
+    else:
+      for engine in ["PE", "ACT", "POOL", "SP"]:
+        if engine in eng.upper():
+          return engine
+      raise RunTimeError("ERROR: failed to identify engine for waveopt %s" % layer)
+  
   def plotLayers(self):
     dot = Digraph(comment="writeDot")
     for layer in self.jsonData["layers"]:
@@ -100,7 +112,7 @@ class KgraphJson(object):
           for layer in self.jsonData["waveops"]:
             nodeName = layer["waveop_name"]
             layerType = layer["waveop_type"]
-            if self.waveopt2engine(layerType) == engine:
+            if self.getWaveoptEngine(layer) == engine:
               ops.append(nodeName)
           rank = 1
           for i in range(0, len(ops)):
@@ -153,7 +165,7 @@ class KgraphJson(object):
               subGraph.attr(label=engine)
               for layer in self.jsonData["waveops"]:
                 layerType = layer["waveop_type"]
-                if self.waveopt2engine(layerType) == engine:
+                if self.getWaveoptEngine(layer) == engine:
                   nodeName = layer["waveop_name"]
                   subGraph.node(nodeName)
         if True:
@@ -161,7 +173,7 @@ class KgraphJson(object):
           for layer in self.jsonData["waveops"]:
             nodeName = layer["waveop_name"]
             layerType = layer["waveop_type"]
-            engineType = self.waveopt2engine(layerType)
+            engineType = self.getWaveoptEngine(layer)
             nodeAndType.append([nodeName, engineType])
           for engine in ["PE", "ACT", "POOL", "SP"]:
             with dot.subgraph(name="cluster_" + engine) as subGraph:
@@ -186,7 +198,7 @@ class KgraphJson(object):
             for layer in self.jsonData["waveops"]:
               nodeName = layer["waveop_name"]
               layerType = layer["waveop_type"]
-              if self.waveopt2engine(layerType) == engine:
+              if self.getWaveoptEngine(layer) == engine:
                 ops.append(nodeName)
             edgeAttrs["color"] = "yellow"
             for i in range(1, len(ops)):
