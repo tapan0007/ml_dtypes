@@ -508,9 +508,9 @@ class Ktests:
         nnArgs += " --parallel_streams" # forward option to compiler
       # default ref omage
       default_image =  "%sref_input.npy" % outPrefix
-      if "trivnet" in nnStruct and "--images" not in nnArgs:
+      if ("trivnet" in nnStruct or "ckpt" in nnStruct) and "--images" not in nnArgs:
           nnArgs += " --images %s " % default_image # default if none..
-      if "trivnet" in nnStruct and "--input_files" not in rtArgs:
+      if ("trivnet" in nnStruct or "ckpt" in nnStruct) and "--input_files" not in rtArgs:
           rtArgs += " --input_files %s " % default_image # default if none..
 
       rtArgs += ' --inkling_debugflags "%s"' % inklingArgs # add passed inkling args to rt Args

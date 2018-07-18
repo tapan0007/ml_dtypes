@@ -193,7 +193,10 @@ if args.images != None:
                                    args.preprocessor_args, args.postprocessor_args)
 
     #package tfpb file in kelf.
-    shutil.copy2(tfpbFile, "%s/%s"%(os.getcwd(), "tf.pb"))
+    if os.path.isfile(tfpbFile):
+      shutil.copy2(tfpbFile, "%s/%s"%(os.getcwd(), "tf.pb"))
+    else:
+      shutil.copytree(tfpbFile, "%s/%s"%(os.getcwd(), "tf.pb"))
 
     nnGraphFile = "nn_graph.json"
     with open(nnGraphFile, "w") as f:

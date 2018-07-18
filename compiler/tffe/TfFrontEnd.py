@@ -112,10 +112,10 @@ class TfFe:
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         config.gpu_options.per_process_gpu_memory_fraction = 0.08
-        with tf.Session(graph=graph, config=config) as sess:
-          tf.saved_model.loader.load( sess, [tag_constants.SERVING], pbFile)
-          self.__gd = graph.as_graph_def()
-          self.sess = sess
+        sess = tf.Session(graph=graph, config=config)
+        tf.saved_model.loader.load( sess, [tag_constants.SERVING], pbFile)
+        self.__gd = graph.as_graph_def()
+        self.sess = sess
     elif pbFile.endswith(".pbtxt"):
       self.__gd = graph_pb2.GraphDef()
       with open(pbFile) as f:
@@ -261,7 +261,7 @@ class TfFe:
     if self.sess == None:
       self.sess = tf.Session(config=config)
       tf.import_graph_def(self.__gd, name="")
-    with self.sess as sess:
+    with self.sess.as_default() as sess:
       graph = sess.graph
       inputOp = graph.get_operation_by_name(inputTfOpName)
       inputTensor = inputOp.outputs[0]
@@ -362,6 +362,8 @@ class TfFe:
           
       
       print("INFO: identified %d tensors, computing ..." % len(tfVars))
+      if self.debugLevel > 0:
+        print("DEBUG: tensor names: %s" % tfVars)
       numImages = 0
       inputFeedDict.update({inputTensor.name : img})
       #tfVars = ['dropout_1/keras_learning_phase:0']
@@ -380,6 +382,8 @@ class TfFe:
       perDot = max(1, int(len(tfVars) / 80))
       print("INFO: writing if/ofmap files ...")
       for ((n, npInfo), var, nd) in zip(kNodes, tfVars, tfResults):
+        if self.debugLevel > 0:
+           print("DEBUG: captured tensor %s of size %d" % (var, nd.size))
         if nd.size > 0:
           imageFile = outPrefix + var.replace("/", "__")
           #print("ImageFile=", weightFile,
