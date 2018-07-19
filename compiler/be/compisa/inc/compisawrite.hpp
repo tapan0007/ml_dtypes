@@ -11,26 +11,11 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
-
-class WriteInstr : public TONGA_ISA_TPB_WRITE_INST {
-public:
-    static constexpr EngineId engineId = EngineId::AnyEng;
-public:
-    //----------------------------------------------------------------
-    WriteInstr()
-        : TONGA_ISA_TPB_WRITE_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_WRITE);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_write_check_validity(this);
-    }
-};
+using WriteInstr = InstrTempl<TONGA_ISA_TPB_WRITE_INST,
+                             TONGA_ISA_TPB_OPCODE_WRITE,
+                             tonga_isa_tpb_write_check_validity>;
 
 
 }}

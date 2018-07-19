@@ -12,6 +12,7 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 
+#include "compisa/inc/compisadmatrigger.hpp"
 #include "wavecode/inc/wavecodewaveop.hpp"
 
 
@@ -21,12 +22,8 @@ namespace wave {
     class SbAtomWaveOp;
 }
 
-namespace compisa {
-    class DmaTriggerInstr;
-}
 
 namespace wavecode {
-
 
 
 class WaveCodeSbAtom : public WaveCodeWaveOp {

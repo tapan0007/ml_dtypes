@@ -14,26 +14,11 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
-
-class RegStoreInstr : public TONGA_ISA_TPB_REG_STORE_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    RegStoreInstr()
-        : TONGA_ISA_TPB_REG_STORE_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_REG_STORE);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_regstore_check_validity(this);
-    }
-};
+using RegStoreInstr = InstrTempl<TONGA_ISA_TPB_REG_STORE_INST,
+                             TONGA_ISA_TPB_OPCODE_REG_STORE,
+                             tonga_isa_tpb_regstore_check_validity>;
 
 
 }}

@@ -73,6 +73,7 @@ enum class EventSetMode {
     DontSet         = TONGA_ISA_TPB_MODE_WAIT_NONE,
     OnEndRdSrc      = TONGA_ISA_TPB_MODE_SET_ON_DONE_RD_SRC,
     OnEndWrDst      = TONGA_ISA_TPB_MODE_SET_ON_DONE_WR_DST,
+    OnEndInstr      = TONGA_ISA_TPB_MODE_SET_ON_INST_DONE,
 
     Invalid         = TONGA_ISA_TPB_MODE_SET_INVALID
 };

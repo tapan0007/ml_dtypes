@@ -12,24 +12,15 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
+inline void tonga_isa_tpb_sim_rdnpy_check_validity(const TONGA_ISA_TPB_SIM_RDNPY_INST*)
+{
+}
 
-class SimRdNpyInstr : public TONGA_ISA_TPB_SIM_RDNPY_INST {
-public:
-    static constexpr EngineId engineId = EngineId::DmaEng;
-public:
-    //----------------------------------------------------------------
-    SimRdNpyInstr()
-        : TONGA_ISA_TPB_SIM_RDNPY_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_SIM_RDNPY);
-    }
-
-    void CheckValidity() const
-    {}
-};
+using SimRdNpyInstr = InstrTempl<TONGA_ISA_TPB_SIM_RDNPY_INST,
+                             TONGA_ISA_TPB_OPCODE_SIM_RDNPY,
+                             tonga_isa_tpb_sim_rdnpy_check_validity>;
 
 
 }}

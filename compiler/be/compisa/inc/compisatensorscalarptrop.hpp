@@ -11,27 +11,11 @@
 #include "utils/inc/types.hpp"
 
 namespace kcc {
-
 namespace compisa {
 
-
-class TensorScalarPtrOpInstr : public TONGA_ISA_TPB_TENSOR_SCALAR_PTR_OP_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    TensorScalarPtrOpInstr()
-        : TONGA_ISA_TPB_TENSOR_SCALAR_PTR_OP_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_PTR_OP);
-    }
-
-	void CheckValidity() const
-    {
-        tonga_isa_tpb_tensorscalarptr_check_validity(this);
-    }
-};
-
+using TensorScalarPtrOpInstr = InstrTempl<TONGA_ISA_TPB_TENSOR_SCALAR_PTR_OP_INST,
+                             TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_PTR_OP,
+                             tonga_isa_tpb_tensorscalarptr_check_validity>;
 
 }}
 

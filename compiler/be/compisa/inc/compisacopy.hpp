@@ -14,26 +14,11 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
-
-class CopyInstr : public TONGA_ISA_TPB_COPY_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    CopyInstr()
-        : TONGA_ISA_TPB_COPY_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_COPY);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_copy_check_validity(this);
-    }
-};
+using CopyInstr = InstrTempl<TONGA_ISA_TPB_COPY_INST,
+                             TONGA_ISA_TPB_OPCODE_COPY,
+                             tonga_isa_tpb_copy_check_validity>;
 
 
 }}

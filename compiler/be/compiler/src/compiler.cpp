@@ -181,16 +181,26 @@ Main(int argc, char* argv[])
 
     // Does not matter which DataType because entry index is 0.
     const utils::DataTypeFloat32 dtypeFloat32;
-    if (false) {
+    if (true) {
         std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  "
                 << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
         std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  "
                 << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
-        std::cout << "Arch: number all TPB events = "
-                << arch::Arch::gArch().gNumberAllTpbEvents()
-                << ", number reserved TPB events = "
-                << events::EventMgr::gNumberReservedTpbEvents()
-                << "\n";
+
+        std::cout << "Events:\n"
+                << "Arch: number all TPB events = "
+                << arch::Arch::gArch().gNumberAllTpbEvents() << "\n"
+
+                << "Invalid: " << events::EventId_Invalid() << "\n"
+                << "Start inference: " << events::EventId_StartInference() << "\n"
+                << "Before PE ifmap read: " << events::EventId_BeforeInputRead_PeArray() << "\n"
+                << "Before Act ifmap read: " << events::EventId_BeforeInputRead_ActEng() << "\n"
+                << "MatMult multi fanout: " << events::EventId_MMStartMultiSet() << "\n"
+                << "Last non-reserved: " << events::EventId_LastNonReserved() << "\n"
+
+                << "EventMgr: Number reserved TPB events (i.e., first non reserved) = "
+                << events::EventMgr::gNumberReservedTpbEvents() << "\n"
+                ;
         std::cout << "Events: start inference EventId = " << events::EventId_StartInference() << "\n";
     }
 

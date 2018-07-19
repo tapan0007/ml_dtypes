@@ -12,27 +12,11 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
-
-class PoolInstr : public TONGA_ISA_TPB_POOL_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    PoolInstr()
-        : TONGA_ISA_TPB_POOL_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_POOL);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_pool_check_validity(this);
-    }
-
-};
+using PoolInstr = InstrTempl<TONGA_ISA_TPB_POOL_INST,
+                             TONGA_ISA_TPB_OPCODE_POOL,
+                             tonga_isa_tpb_pool_check_validity>;
 
 
 }}

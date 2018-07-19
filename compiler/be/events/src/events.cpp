@@ -4,7 +4,6 @@
 #include "events/inc/events.hpp"
 
 
-
 namespace kcc {
 namespace events {
 
@@ -69,12 +68,27 @@ Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
 
 bool qEventSetModeValid(kcc_int32 mode)
 {
-    return TONGA_ISA_TPB_MODE_WAIT_NONE==mode || TONGA_ISA_TPB_MODE_WAIT_FOR_SET==mode || TONGA_ISA_TPB_MODE_WAIT_FOR_SET_THEN_CLEAR==mode;
+    switch (mode) {
+    case TONGA_ISA_TPB_MODE_WAIT_NONE:
+    case TONGA_ISA_TPB_MODE_WAIT_FOR_SET:
+    case TONGA_ISA_TPB_MODE_WAIT_FOR_SET_THEN_CLEAR:
+        return true;
+    default:
+        return false;
+    }
 }
 
 bool qEventWaitModeValid(kcc_int32 mode)
 {
-    return TONGA_ISA_TPB_MODE_WAIT_NONE==mode || TONGA_ISA_TPB_MODE_SET_ON_DONE_RD_SRC==mode || TONGA_ISA_TPB_MODE_SET_ON_DONE_WR_DST==mode;
+    switch (mode) {
+    case TONGA_ISA_TPB_MODE_WAIT_NONE:
+    case TONGA_ISA_TPB_MODE_SET_ON_DONE_RD_SRC:
+    case TONGA_ISA_TPB_MODE_SET_ON_DONE_WR_DST:
+    case TONGA_ISA_TPB_MODE_SET_ON_INST_DONE:
+        return true;
+    default:
+        return false;
+    }
 }
 
 
@@ -119,6 +133,9 @@ eventSetMode2Isa(EventSetMode mode)
         break;
     case EventSetMode::OnEndWrDst:
         return TONGA_ISA_TPB_MODE_SET_ON_DONE_WR_DST;
+        break;
+    case EventSetMode::OnEndInstr:
+        return TONGA_ISA_TPB_MODE_SET_ON_INST_DONE;
         break;
     case EventSetMode::Invalid:
         return TONGA_ISA_TPB_MODE_SET_INVALID;

@@ -13,6 +13,31 @@ struct TONGA_ISA_TPB_INST_HEADER;
 namespace kcc {
 namespace compisa {
 
+
+using TongaTpbOpcode = TONGA_ISA_TPB_OPCODE;
+
+template<typename INSTR, TongaTpbOpcode opcode, void(*Checker)(const INSTR*)>
+class InstrTempl : public INSTR {
+public:
+    InstrTempl() : INSTR() {
+        enum { BYTES_PER_WORD = TONGA_ISA_TPB_INST_NBYTES / TONGA_ISA_TPB_INST_NWORDS };
+
+        std::memset(this, 0, sizeof(InstrTempl)); // zero out instruction
+        TONGA_ISA_TPB_INST_HEADER& header(this->inst_header);
+        header.opcode = opcode;
+        header.inst_word_len = sizeof(INSTR) / BYTES_PER_WORD;
+        header.debug_cmd        = 0;
+        header.debug_hint       = 0;
+    }
+
+    void CheckValidity() const
+    {
+        Checker(this);
+    }
+};
+
+
+
 void InitSync(TONGA_ISA_TPB_INST_EVENTS& sync);
 
 void InitHeader(TONGA_ISA_TPB_INST_HEADER& header, TONGA_ISA_TPB_OPCODE opcode, uint8_t sz);

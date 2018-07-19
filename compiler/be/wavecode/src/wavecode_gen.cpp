@@ -295,8 +295,20 @@ void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& in
 
 
 template<>
-void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setInstr, EngineId engId)
 {
+#if false
+    const auto& instruction(setInstr);
+#else
+    compisa::NopInstr instruction;
+    // TONGA_ISA_TPB_INST_EVENTS 
+    instruction.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    instruction.inst_events.wait_event_idx     = 0;
+    instruction.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::OnEndInstr);
+    instruction.inst_events.set_event_idx      = setInstr.event_idx;
+    instruction.cycle_cnt                      = 1;
+#endif
+
     Assert(qParallelStreams(), "Cannot generate set-event instruction in serial mode");
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);

@@ -209,7 +209,9 @@ EventMgr::insertBarriers()
 
             m_EventState.moveCompletedEventsToAvailable();
             Assert(numSuccEvents <= m_EventState.gNumAvailable(), "Not enough event IDs after barrrier. Required: ",
-                    numSuccEvents, ", available: ", m_EventState.gNumAvailable(), ". Next waveop is ", waveop->gName());
+                   numSuccEvents, ", available: ", m_EventState.gNumAvailable(),
+                   ". Total number of TPB events is ", arch::Arch::gArch().gNumberAllTpbEvents(),
+                   ". Next waveop is ", waveop->gName());
 
         }
         assignEventsToNewSuccEdges(waveop);

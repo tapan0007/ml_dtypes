@@ -16,23 +16,9 @@ namespace kcc {
 
 namespace compisa {
 
-
-class LdWeightsInstr : public TONGA_ISA_TPB_LDWEIGHTS_INST {
-public:
-    static constexpr EngineId engineId = EngineId::PeArray;
-public:
-    //----------------------------------------------------------------
-    LdWeightsInstr()
-        : TONGA_ISA_TPB_LDWEIGHTS_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_LDWEIGHTS);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_ldweights_check_validity(this);
-    }
-};
+using LdWeightsInstr = InstrTempl<TONGA_ISA_TPB_LDWEIGHTS_INST,
+                                  TONGA_ISA_TPB_OPCODE_LDWEIGHTS,
+                                  tonga_isa_tpb_ldweights_check_validity>;
 
 
 }}

@@ -11,27 +11,11 @@
 #include "utils/inc/types.hpp"
 
 namespace kcc {
-
 namespace compisa {
 
-
-class TensorTensorOpInstr : public TONGA_ISA_TPB_TENSOR_TENSOR_OP_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    TensorTensorOpInstr()
-        : TONGA_ISA_TPB_TENSOR_TENSOR_OP_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_OP);
-    }
-
-	void CheckValidity() const
-    {
-		tonga_isa_tpb_tensortensor_check_validity(this);
-    }
-};
-
+using TensorTensorOpInstr = InstrTempl<TONGA_ISA_TPB_TENSOR_TENSOR_OP_INST,
+                             TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_OP,
+                             tonga_isa_tpb_tensortensor_check_validity>;
 
 }}
 

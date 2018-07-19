@@ -14,26 +14,11 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
-
-class ReciprocalInstr : public TONGA_ISA_TPB_RECIPROCAL_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    ReciprocalInstr()
-        : TONGA_ISA_TPB_RECIPROCAL_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_RECIPROCAL);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_reciprocal_check_validity(this);
-    }
-};
+using ReciprocalInstr = InstrTempl<TONGA_ISA_TPB_RECIPROCAL_INST,
+                             TONGA_ISA_TPB_OPCODE_RECIPROCAL,
+                             tonga_isa_tpb_reciprocal_check_validity>;
 
 
 }}

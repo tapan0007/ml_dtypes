@@ -14,26 +14,11 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
-
-class RegShuffleInstr : public TONGA_ISA_TPB_REG_SHUFFLE_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    RegShuffleInstr()
-        : TONGA_ISA_TPB_REG_SHUFFLE_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_REG_SHUFFLE);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_regshuffle_check_validity(this);
-    }
-};
+using RegShuffleInstr = InstrTempl<TONGA_ISA_TPB_REG_SHUFFLE_INST,
+                             TONGA_ISA_TPB_OPCODE_REG_SHUFFLE,
+                             tonga_isa_tpb_regshuffle_check_validity>;
 
 
 }}

@@ -12,6 +12,8 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 
+#include "compisa/inc/compisasimmemcpy.hpp"
+
 #include "wavecode/inc/wavecodesbatom.hpp"
 
 
@@ -19,9 +21,6 @@ namespace kcc {
 
 namespace wave {
     class SbAtomLoadWaveOp;
-}
-namespace compisa {
-    class SimMemCpyInstr;
 }
 
 namespace wavecode {

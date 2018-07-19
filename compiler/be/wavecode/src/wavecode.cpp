@@ -155,7 +155,7 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
         { // Pool sets event for PeArray to read inputs
             compisa::SetInstr setInstr;
             setInstr.event_idx  = events::EventId_BeforeInputRead_PeArray();
-            writeInstruction(setInstr, EngineId::Pooling);
+            writeInstruction(setInstr, EngineId::Pooling); // Pooling engine sends signal to others
         }
         { // Pool sets event for Act to read inputs
             compisa::SetInstr setInstr;

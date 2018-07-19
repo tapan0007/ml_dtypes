@@ -693,7 +693,7 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     }
 
     //************************************************************************
-    events::EventId waitEventId = events::EventId_BeforeInputRead_PeArray();
+    events::EventId waitEventId = 0; // does not matter which one, but 
     events::EventWaitMode waitMode = events::EventWaitMode::DontWait;
     switch (chosenEngId) {
     case EngineId::Pooling:

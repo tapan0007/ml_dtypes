@@ -14,26 +14,11 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
-
-class CastInstr : public TONGA_ISA_TPB_CAST_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    CastInstr()
-        : TONGA_ISA_TPB_CAST_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_CAST);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_cast_check_validity(this);
-    }
-};
+using CastInstr = InstrTempl<TONGA_ISA_TPB_CAST_INST,
+                             TONGA_ISA_TPB_OPCODE_CAST,
+                             tonga_isa_tpb_cast_check_validity>;
 
 
 }}

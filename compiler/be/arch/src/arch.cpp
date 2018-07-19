@@ -33,18 +33,19 @@ Arch::Arch(kcc_int32 numTpbEvents)
     , m_ActivationEng(m_PsumBuffer, *this)
     , m_StateBuffer(m_PeArray, sbPartitionSizeInBytes)
 {
-     enum {
-         EVENT_STEP = 4,
-         NumTpbEvents = MMAP_TPB_TPB_EVT_SZ / EVENT_STEP
-     };
-     static_assert(NumTpbEvents * EVENT_STEP == MMAP_TPB_TPB_EVT_SZ,
-        "Event vector size is not exact multiple of 4");
+    enum {
+        // TONGA_ISA_TPB_NUM_EVENTS is in arch-isa repo in file tpb/aws_tonga_isa_tpb_common.h
+        // MMAP_TPB_TPB_EVT_SZ is in arch-headers repo in files rel_addr_map.h and tpb_addr_map.h
+        // The following should hold:
+        // MMAP_TPB_TPB_EVT_SZ = TONGA_ISA_TPB_NUM_EVENTS * TONGA_ISA_TPB_EVENT_SIZE
+        NumTpbEvents = TONGA_ISA_TPB_NUM_EVENTS  // this is from isa/tpb
+    };
  
-     static_assert(NumTpbEvents <=
-         (1U << 8*sizeof(TONGA_ISA_TPB_INST_EVENTS::wait_event_idx)),
-         "Number of TPB events too large for type Event_t");
+    static_assert(NumTpbEvents <=
+        (1U << 8*sizeof(TONGA_ISA_TPB_INST_EVENTS::wait_event_idx)),
+        "Number of TPB events too large for type Event_t");
  
-     m_NumberTpbEvents = numTpbEvents > 0 ? numTpbEvents : NumTpbEvents;
+    m_NumberTpbEvents = numTpbEvents > 0 ? numTpbEvents : NumTpbEvents;
 }
 
 //----------------------------------------------------------------
@@ -137,5 +138,6 @@ Arch::gNumberAllTpbEvents() const
 
 
 }}
+
 
 

@@ -14,26 +14,11 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
-
-class ActivateQuantizeInstr : public TONGA_ISA_TPB_ACTIVATE_QUANTIZE_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Activation;
-public:
-    //----------------------------------------------------------------
-    ActivateQuantizeInstr()
-        : TONGA_ISA_TPB_ACTIVATE_QUANTIZE_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_ACTIVATE);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_activate_quantize_check_validity(this);
-    }
-};
+using ActivateQuantizeInstr = InstrTempl<TONGA_ISA_TPB_ACTIVATE_QUANTIZE_INST,
+                             TONGA_ISA_TPB_OPCODE_ACTIVATE_QUANTIZE,
+                             tonga_isa_tpb_activate_quantize_check_validity>;
 
 
 }}

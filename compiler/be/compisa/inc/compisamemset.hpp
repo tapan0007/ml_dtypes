@@ -14,26 +14,12 @@
 
 
 namespace kcc {
-
 namespace compisa {
 
+using MemSetInstr = InstrTempl<TONGA_ISA_TPB_MEMSET_INST,
+                             TONGA_ISA_TPB_OPCODE_MEMSET,
+                             tonga_isa_tpb_memset_check_validity>;
 
-class MemSetInstr : public TONGA_ISA_TPB_MEMSET_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Pooling;
-public:
-    //----------------------------------------------------------------
-    MemSetInstr()
-        : TONGA_ISA_TPB_MEMSET_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_MEMSET);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_memset_check_validity(this);
-    }
-};
 
 
 }}

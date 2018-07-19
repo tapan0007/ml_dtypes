@@ -15,25 +15,9 @@ namespace kcc {
 
 namespace compisa {
 
-
-class NopInstr : public TONGA_ISA_TPB_NOP_INST {
-public:
-    static constexpr EngineId engineId = EngineId::AnyEng;
-public:
-    //----------------------------------------------------------------
-    NopInstr()
-        : TONGA_ISA_TPB_NOP_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_NOP);
-        cycle_cnt = 0;
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_nop_check_validity(this);
-    }
-
-};
+using NopInstr = InstrTempl<TONGA_ISA_TPB_NOP_INST,
+                             TONGA_ISA_TPB_OPCODE_NOP,
+                             tonga_isa_tpb_nop_check_validity>;
 
 
 }}

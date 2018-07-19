@@ -17,24 +17,9 @@ namespace kcc {
 
 namespace compisa {
 
-
-class ActivateInstr : public TONGA_ISA_TPB_ACTIVATE_INST {
-public:
-    static constexpr EngineId engineId = EngineId::Activation;
-public:
-    //----------------------------------------------------------------
-    ActivateInstr()
-        : TONGA_ISA_TPB_ACTIVATE_INST()
-    {
-        InitInstructionWithEmbEvent(*this, TONGA_ISA_TPB_OPCODE_ACTIVATE);
-    }
-
-    void CheckValidity() const
-    {
-        tonga_isa_tpb_activate_check_validity(this);
-    }
-};
-
+using ActivateInstr = InstrTempl<TONGA_ISA_TPB_ACTIVATE_INST,
+                                 TONGA_ISA_TPB_OPCODE_ACTIVATE,
+                                 tonga_isa_tpb_activate_check_validity>;
 
 }}
 
