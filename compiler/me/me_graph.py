@@ -7,6 +7,7 @@ Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
 
 import re
 import os
+import copy
 import numpy as np
 
 from me_utils import ceildiv
@@ -40,7 +41,6 @@ class KNode:
         self.is_nop = False
         self.is_placeholder = False
         self.is_input = False
-        self.is_output = False
         self.is_const = False
         self.is_join = False
         self.is_fork = False

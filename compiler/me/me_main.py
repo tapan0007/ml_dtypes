@@ -278,11 +278,16 @@ class TPBSched:
 
             #print("Fused op #%d, fmap data len %d"%(fused_op_count, op_list.last_op.ofmaps_file_params.fmap_data_len))                
 
-            # Mark the last node as output node
+            # Mark the last node of the fused-op as output node
             if last_op.next == []:
-                last_op.is_output = True
                 last_op.ofmaps_file_params.final_layer_ofmap = True
-                #print("Fused op %s is output, mark final_layer_ofmap=True"%(last_op.data["layer_name"]))
+                print("Fused op %s is output, mark final_layer_ofmap=True"%(last_op.data["layer_name"]))
+                # If the first operation of current fused-op is a NOP
+                # propagate these flags back to the previous op so that data can be saved to file
+                if first_op.is_nop:
+                    for j in first_op.prev:
+                        j.ofmaps_file_params.final_layer_ofmap = True
+                        print("NOP is output, mark previous %s final_layer_ofmap=True"%(j.data["layer_name"]))
 
             # increment count of fused ops (for ID purpose)
             fused_op_count += 1

@@ -34,6 +34,8 @@ lstmD0T4 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/data-t4-0.npy"
 lstmD0T4B64 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/sigmoid_b64/data-t4-b64-0.npy")
 lstmD0T32 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/data-t32-0.npy")
 
+melSpectra = "%s/%s" % (kePath, "apps/tf/parallel_wavenet/melspec_input.npy") 
+
 testConfigMap = {
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv0_ckpt_wave" : [ "ckpt_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race --show_op_name_in_kgraph --exclude_ops_from_capture 'save|Save|restore' --debug 1"],
@@ -237,6 +239,8 @@ testConfigMap = {
   "8-resnet50_fp16_wave_b2"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2 --scheduler wave --batch 2 --wavegraph_checks structure data-race", "linspace1"],
   "9-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", " --depth 2", "linspace1"],
   "9-resnet152_waveopt"       : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--partition from resnet_v2_152/conv1/convolution resnet_v2_152/postnorm/batchnorm/mul_1 --executors host all waveopt 1  --depth 2 --scheduler wave --images %s --wavegraph_checks structure data-race" % rnDogJpg, "--input_files %s" % rnDogJpg],
+
+  #"10-parwavenet_ckpt"            : [ "tf_pb",   "parallel_wavenet/saved_model",        "parallel_wavenet", "--input_node Placeholder --depth 2", "--input_files %s" % melSpectra],
   
   # Subgraph partioned flow using neural network executor
   "0-4conv_relu_nne" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1-imax2", "4conv_nne", "--partition conv --executors tcc 1 3 host 0 2 4 --debug 1 --scheduler wave --wavegraph_checks structure data-race"],
@@ -292,9 +296,9 @@ testConfigMap = {
   #"7-rn50_nne_fp32_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
 
   "7-rn50_nne_fp16_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp16_ap_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/MatMul --executors wave 0 host 1  --scheduler wave2 --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp16_ap_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from_multi flatten_1/Shape,flatten_1/Reshape --executors wave 0 host 1  --scheduler wave2 --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
   "7-rn50_nne_fp16_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --schedule_options ' --enable_replication ' --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp16_ap_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/MatMul --executors wave 0 host 1  --scheduler wave2 --schedule_options ' --enable_replication ' --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
+  "7-rn50_nne_fp16_ap_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from_multi flatten_1/Shape,flatten_1/Reshape --executors wave 0 host 1  --scheduler wave2 --schedule_options ' --enable_replication ' --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
 
   "7-rn50_nne_fp16_wave-two_banks" : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --schedule_options ' --enable_replication ' --images %s" %(rnPreFp16, rnDogJpg), "--env SIM_ADD_FLAGS=' --dram_frequency 6400'  --input_files %s" % rnDogJpg ],
   "7-rn50_nne_fp16_wave-fast_dram" : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --schedule_options ' --enable_replication ' --images %s" %(rnPreFp16, rnDogJpg), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --input_files %s" % rnDogJpg ],
@@ -416,29 +420,9 @@ testWaiver = [
     # Qemu only works on C5 (till we add VDI to S3)
     #['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
 
-    # Kaena-577 - accuracy mismatch at outputs of any subgraph
-    #['4-rn50_eatmul_nosm_wave$', 'WAIVE_ACC577'],
-    ['7-rn50_nne_fp16_b4_wave$', 'WAIVE_ACC577'],
-    ['7-rn50_nne_fp16_b4_wave-fast_dram$', 'WAIVE_ACC577'],
-    ['7-rn50_nne_fp16_b4_wave-two_banks$', 'WAIVE_ACC577'],
-    ['7-rn50_nne_fp16_wave$', 'WAIVE_ACC577'],
-    ['7-rn50_nne_fp16_wave-fast_dram$', 'WAIVE_ACC577'],
-    ['7-rn50_nne_fp16_wave-no_repl$', 'WAIVE_ACC577'],
-    ['7-rn50_nne_fp16_wave-two_banks$', 'WAIVE_ACC577'],
-    ['8-rn50_nne_fp16_b16_wave$', 'WAIVE_ACC577'],
-    ['8-rn50_nne_fp16_b16_wave-fast_dram$', 'WAIVE_ACC577'],
-    ['8-rn50_nne_fp16_b16_wave-two_banks$', 'WAIVE_ACC577'],
   ]
 
 noGpuTestWaiver = [
-    ['0-1conv_s8_32b_wave$',  'WAIVE-NO-GPU'],
-    ['0-1conv_s8_wave$',  'WAIVE-NO-GPU'],
-    ['2-1conv3_64s8_wave$',  'WAIVE-NO-GPU'],
-    ['3-rn50-02_wave$',  'WAIVE-NO-GPU'],
-    ['3-rn50-03_wave$',  'WAIVE-NO-GPU'],
-    ['3-rn50-06_wave$',  'WAIVE-NO-GPU'],
-    ['3-rn50-10_wave$',  'WAIVE-NO-GPU'],
-    ['3-rn50-11_wave$',  'WAIVE-NO-GPU'],
 ]
 
 qemuTestWaiver = [

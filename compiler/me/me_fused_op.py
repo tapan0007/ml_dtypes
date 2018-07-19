@@ -450,33 +450,43 @@ class FusedOp(list):
         #    print("ERROR: Unrecognized first operation %s"%first_op_type)
         #    exit(-1)
 
-        # Check results against pre-computed results           
-        if (not self.args.verify_output_only or self.last_op.is_output) \
-                and (len(self) > 1 or (not self.first_op.is_placeholder and not self.first_op.is_nop)):
-        #if False:
-            if 'ref_file' in self.last_op.data and os.path.isfile(self.last_op.data['ref_file']):
-                try:
-                    expected_ofmaps = np.load(self.last_op.data['ref_file'])
-                except:
-                    raise RuntimeError("Cannot load numpy file %s"%(self.last_op.data['ref_file']))
+        # Check results against pre-computed results and save data
+        # only if there's at least one node, and first node is not Placeholder or NOP (simple Reshape, etc.)
+        if len(self) > 0 and not self.first_op.is_placeholder and not self.first_op.is_nop:
+            # Check last output result, unless verify_output_only=False
+            if self.last_op.ofmaps_file_params.final_layer_ofmap or not self.args.verify_output_only:
+                if 'ref_file' in self.last_op.data and os.path.isfile(self.last_op.data['ref_file']):
+                    try:
+                        expected_ofmaps = np.load(self.last_op.data['ref_file'])
+                    except:
+                        raise RuntimeError("Cannot load numpy file %s"%(self.last_op.data['ref_file']))
+                    last_batch_item = batch_item + self.first_op.Tn
+                    for i in range(batch_item, last_batch_item):
+                        ifmaps = self.first_op.ifmaps_file_params.dram_data[i, :]
+                        ofmaps = self.last_op.ofmaps_file_params.dram_data[i, :]
+                        expected_ofmaps_extracted = expected_ofmaps[i, :]
+                        assert(expected_ofmaps_extracted.flags.c_contiguous == True)
+                        diff = ofmaps - expected_ofmaps_extracted
+                        if (self.args.debug > 2): print("\nInput IFMAPS:\n", ifmaps)
+                        if (self.args.debug > 1): print("\nComputed OFMAPS:\n", ofmaps)
+                        if (self.args.debug > 1): print("\nExpected OFMAPS:\n", expected_ofmaps_extracted)
+                        if (self.args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
+                        if (not npu.allclose(ofmaps, expected_ofmaps_extracted, 1/100, 1e-5, verbose=True)):
+                            print("\nERROR: layer %s batch item %d computed OFMAPS is not equal to expected OFMAPS!\n"%(self.last_op.data['layer_name'], i))
+                            tpb.num_mismatches += 1
+
+            # Save results for network output or we want to save debug intermediate results
+            if self.last_op.ofmaps_file_params.final_layer_ofmap or self.args.save_layer_output:
                 last_batch_item = batch_item + self.first_op.Tn
                 for i in range(batch_item, last_batch_item):
-                    ifmaps = self.first_op.ifmaps_file_params.dram_data[i, :]
-                    ofmaps = self.last_op.ofmaps_file_params.dram_data[i, :]
-                    expected_ofmaps_extracted = expected_ofmaps[i, :]
-                    assert(expected_ofmaps_extracted.flags.c_contiguous == True)
-                    diff = ofmaps - expected_ofmaps_extracted
-                    if (self.args.debug > 2): print("\nInput IFMAPS:\n", ifmaps)
-                    if (self.args.debug > 1): print("\nComputed OFMAPS:\n", ofmaps)
-                    if (self.args.debug > 1): print("\nExpected OFMAPS:\n", expected_ofmaps_extracted)
-                    if (self.args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
-                    if (not npu.allclose(ofmaps, expected_ofmaps_extracted, 1/100, 1e-5, verbose=True)):
-                        print("\nERROR: layer %s batch item %d computed OFMAPS is not equal to expected OFMAPS!\n"%(self.last_op.data['layer_name'], i))
-                        tpb.num_mismatches += 1
-                    if self.last_op.is_output or self.args.save_layer_output:
-                        waveops = tpb.statebuffer.file_mapper.flush_file(tpb.waveop_stream.nonload_waveop_count, tpb.waveop_stream.nonload_waveop_list, self.last_op.ofmaps_file_params, i)
-                        tpb.waveop_stream.add_outputs(waveops)
-                self.last_op.ofmaps_file_params.save_file()
+                    waveops = tpb.statebuffer.file_mapper.flush_file(
+                                    nonload_waveop_id   = tpb.waveop_stream.nonload_waveop_count, 
+                                    nonload_waveop_list = tpb.waveop_stream.nonload_waveop_list, 
+                                    file_params         = self.last_op.ofmaps_file_params, 
+                                    batch_item          = i
+                                    )
+                    tpb.waveop_stream.add_outputs(waveops)
+                    self.last_op.ofmaps_file_params.save_file()
 
     # generate MatMul waveop and add it to waveop stream
     def gen_matmul_waveop(self, tpb, wave_id, psum_add, dram_weights_waveops):
