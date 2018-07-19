@@ -539,10 +539,11 @@ class FusedOp(list):
         # replication parameters
         fmap_x_step = self.conv_op.stride_x
         fmap_y_step = self.conv_op.W * self.conv_op.stride_y
+        fmap_z_step = (self.conv_op.ifmaps_file_params.batch_item_partition_usage_sz//self.conv_op.item_sz) if self.conv_op.Tn > 1 else 1
         ifmap_replication_resolution = 0
         ifmap_replication_num_rows = 0
         ifmap_replication_shift_amnt = 0
-        if self.conv_op.ifmaps_file_params.replicate_multiple > 1:
+        if self.conv_op.repl_multiple_of_C > 1:
             fmap_x_step = 1     # image gets split into even/odd
             fmap_y_step = self.conv_op.W
             ifmap_replication_resolution = self.conv_op.C * self.conv_op.stride_x
@@ -558,15 +559,18 @@ class FusedOp(list):
             psum_bank_additional_offset = break_at_y[i] * self.conv_op.ofmap_cropped_tile_width
             assert((self.conv_op.psum_bank_offset + psum_bank_additional_offset) < PEArray.MAX_WAVE_SIZE)
             ifmaps_sb_address = break_addr[i]
-            if i>0: weights_sb_address = -1
+            if ifmap_replication_resolution > 1:
+                assert((ifmaps_sb_address%8) == 0), "Kaena-593: IFMAP start address must by 8B aligned for replication to work"
 
-            waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string+"__"+str(i)
-
-            # get dram waveops for each matmul
+            # get dram waveops (weights) for the first piece of broken matmul
             dram_waveop_names = []
             if i==0:
                 for j in dram_weights_waveops:
                     dram_waveop_names.append(j["waveop_name"])
+            else:
+                # reuse weights loaded with first piece of broken matmul
+                weights_sb_address = -1
+
             for z in range(self.conv_op.Tn):                    
                 lower_file_address = self.conv_op.ifmap_wave_lower_addr[z] + break_at_y[i] * addr_step_y
                 upper_file_address = min(self.conv_op.ifmap_wave_lower_addr[z] + next_break * addr_step_y - self.conv_op.item_sz, self.conv_op.ifmap_wave_upper_addr[z])
@@ -574,8 +578,8 @@ class FusedOp(list):
                 for name in list_of_names:
                     if name not in dram_waveop_names:
                         dram_waveop_names.append(name)
-            fmap_z_step = (self.conv_op.ifmaps_file_params.batch_item_partition_usage_sz//self.conv_op.item_sz) if self.conv_op.Tn > 1 else 1
 
+            waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string+"__"+str(i)
             if (self.args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, ifmaps_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, ifmaps_sb_address, fmap_y_num))                
             matmul_waveop.append({ 
                   'previous_waveops'        : dram_waveop_names,
@@ -685,13 +689,17 @@ class FusedOp(list):
         return pool_waveop
 
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
-    def execute_matmul_waveop(self, tpb, wave_id, inputs, weights, psum_add):
+    def execute_matmul_waveop(self, tpb, wave_id, inputs, weights, psum_add, repl_multiple_of_C):
         batch_item = wave_id.n_id * self.conv_op.Tn
-        pearray_packed_weights = self.conv_op.pack_wave_conv_weights(weights, wave_id, self.conv_op.ifmaps_file_params.replicate_multiple)
+        pearray_packed_weights = self.conv_op.pack_wave_conv_weights(
+                                        weights, 
+                                        wave_id, 
+                                        repl_multiple_of_C
+                                        )
         pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(
                                         inputs, 
                                         wave_id,
-                                        self.conv_op.ifmaps_file_params.replicate_multiple,
+                                        repl_multiple_of_C,
                                         for_softmax=False
                                         )
         #print("\npearray_packed_ifmaps", wave_id.id_array, "\n", pearray_packed_ifmaps)
@@ -701,14 +709,18 @@ class FusedOp(list):
             return False
         else:
             tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
-            # Generate waveops
+            # Generate weights waveops
             (writers, readers, dram_weights_waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                         tpb.waveop_stream.nonload_waveop_count,
                                         tpb.waveop_stream.nonload_waveop_list,
                                         self.conv_op.weights_file_params,
                                         0,  # batch_item doesn't apply for weights
                                         self.conv_op.weight_wave_lower_addr, 
-                                        self.conv_op.weight_wave_upper_addr - self.conv_op.weight_wave_lower_addr + self.conv_op.item_sz)
+                                        self.conv_op.weight_wave_upper_addr - self.conv_op.weight_wave_lower_addr + self.conv_op.item_sz,
+                                        repl_multiple_of_C
+                                        )
+            if (self.args.debug > 2): print("DBG %s: MatMul weight_wave_lower_addr %d weight_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.weight_wave_lower_addr, self.conv_op.weight_wave_upper_addr))                
+                                        
             for i in dram_weights_waveops: tpb.waveop_stream.append_check(i)
 
             dram_ifmaps_waveops = []
@@ -721,7 +733,9 @@ class FusedOp(list):
                                             self.conv_op.ifmaps_file_params,
                                             batch_item + z,
                                             self.conv_op.ifmap_wave_lower_addr[z], 
-                                            self.conv_op.ifmap_wave_upper_addr[z] - self.conv_op.ifmap_wave_lower_addr[z] + self.conv_op.item_sz)
+                                            self.conv_op.ifmap_wave_upper_addr[z] - self.conv_op.ifmap_wave_lower_addr[z] + self.conv_op.item_sz,
+                                            self.conv_op.repl_multiple_of_C
+                                            )
                 if self.args.no_inter_layer_load:
                     if (not self.conv_op.is_input and len(waveops) > 0):
                         raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
@@ -1345,7 +1359,7 @@ class FusedOp(list):
                                     wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, r_id, s_id)
                                     if (self.parent.args.debug > 2): print (wave_id.id_array)
                                     # execute PEArray matrix multiply, and add to PSUM after first wave
-                                    if (self.execute_matmul_waveop(self, wave_id, inputs, weights, psum_add)):
+                                    if (self.execute_matmul_waveop(self, wave_id, inputs, weights, psum_add, 1)):
                                         psum_add = True
                         # tile is done                                   
                         self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
@@ -1626,13 +1640,18 @@ class FusedOp(list):
                         for c_id in range(self.conv_op.c):
                             r_id = 0
                             s_id = 0
+                            remaining_filter_elems = self.conv_op.RS
                             while r_id < self.conv_op.weights_file_params.file_dims.R:
                                 while s_id < self.conv_op.weights_file_params.file_dims.S:
                                     wave_id = WaveID(n_id, m_id, h_id, w_id, c_id, r_id, s_id)
                                     # execute PEArray matrix multiply, and add to PSUM after first wave
-                                    if (self.execute_matmul_waveop(tpb, wave_id, inputs, weights, psum_add)):
+                                    repl_multiple_per_wave = 1
+                                    if self.conv_op.repl_multiple_of_C > 1:
+                                        repl_multiple_per_wave = min(remaining_filter_elems, self.conv_op.repl_multiple_of_C)
+                                        remaining_filter_elems -= self.conv_op.repl_multiple_of_C
+                                    if (self.execute_matmul_waveop(tpb, wave_id, inputs, weights, psum_add, repl_multiple_per_wave)):
                                         psum_add = True
-                                    s_id += self.conv_op.ifmaps_file_params.replicate_multiple
+                                    s_id += self.conv_op.repl_multiple_of_C
                                 r_id += s_id//self.conv_op.S
                                 s_id = s_id%self.conv_op.S
                         # tile is done                                   

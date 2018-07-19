@@ -24,6 +24,26 @@ def ceildiv(x, y):
 def data_type_to_item_sz(data_type):
     return np.dtype(data_type).itemsize
 
+"""Align address to multiple of NB
+"""
+def align_addr_NB(addr, N):
+    return ceildiv(addr, N) * N
+
+"""Align address to multiple of 8B
+"""
+def align_addr_8B(addr):
+    return align_addr_NB(addr, 8)
+
+"""Align address to multiple of 16B
+"""
+def align_addr_16B(addr):
+    return align_addr_NB(addr, 16)
+
+"""Align address to multiple of 64B
+"""
+def align_addr_64B(addr):
+    return align_addr_NB(addr, 64)
+
 """For IFMAP replication (https://sim.amazon.com/issues/kaena-141), need to:
  - pad image
  - for num_to_split=2: split W columns into HWe and HWo where HWe include even columns and HWo includes odd columns
@@ -342,7 +362,6 @@ class FileParams():
         self.fmap_data_len = fmap_elem_count * self.item_sz
         self.stride_x = op_params.stride_x
         self.stride_y = op_params.stride_y
-        self.replicate_multiple = op_params.replicate_multiple
         self.weights_S_dim = self.file_dims.S
         # per kaena-85, use noodle shapes for tiles
         # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
@@ -464,19 +483,14 @@ class FileMapper():
     def check_overlap100(self, region0_start, region0_sz, region1_start, region1_sz):
         return (region0_start == region1_start) and (region0_sz == region1_sz)
 
-    """Align region start to multiple of 64B
-    """
-    def align_region(self, region_start):
-        return ceildiv(region_start, 64) * 64
-
     """Adjust and return region0_start if there's overlap
     """
     def adjust0_if_overlap(self, region0_start, region0_sz, region1_start, region1_sz, min_region_start):
-        region0_start_adjusted = self.align_region(region0_start)
+        region0_start_adjusted = align_addr_64B(region0_start)
         if region0_start_adjusted + region0_sz > self.sb_partition_sz:
-            region0_start_adjusted = self.align_region(min_region_start)
+            region0_start_adjusted = align_addr_64B(min_region_start)
         if self.check_overlap(region0_start, region0_sz, region1_start, region1_sz):
-            region0_start_adjusted = self.align_region(region1_start + region1_sz)
+            region0_start_adjusted = align_addr_64B(region1_start + region1_sz)
             if region0_start_adjusted + region0_sz > self.sb_partition_sz:
                 region0_start_adjusted = min_region_start_aligned
         return region0_start_adjusted
@@ -540,8 +554,6 @@ class FileMapper():
         chunk_id_in_fold = fold_offset // file_params.chunk_sz
         chunk_id         = fold_idx * file_params.fmap_num_chunks + chunk_id_in_fold
         chunk_id        += batch_item * file_params.batch_item_num_chunks 
-        # readjust for replication
-        #chunk_id         = chunk_id//self.replicate_multiple
         return chunk_id
 
     def get_file_addr_from_chunk_id(self, file_params, batch_item, chunk_id):
@@ -750,7 +762,7 @@ class FileMapper():
 
     # Always read the maximum number of channels (min(C, 128))
     # TODO: add case for replication
-    def read_file_data_region(self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item, start_addr, length):
+    def read_file_data_region(self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item, start_addr, length, repl_multiple_of_C=1):
         assert(batch_item < file_params.file_dims.N)
         assert(length > 0)
         assert(length <= file_params.mapped_params.region_sz)
@@ -791,11 +803,11 @@ class FileMapper():
             #if not file_params.mapped_params.chunk_is_mapped[batch_item][i]:
             if not file_params.mapped_params.chunk_is_mapped[i]:
                 file_params.mapped_params.chunk_is_mapped[i] = True
-                # kaena-141,330: replication hack: squash unneeded waveops
+                # kaena-141,330: replication hack: squash unneeded weight reads waveops
                 replication_squash = False
-                if file_params.replicate_multiple > 1 and file_params.file_dims.has_M:
-                    num_of_filter_rows = file_params.replicate_multiple // file_params.weights_S_dim
-                    replication_squash = i != (i // num_of_filter_rows) * num_of_filter_rows
+                if repl_multiple_of_C > 1 and file_params.file_dims.has_M:
+                    num_of_filter_rows = repl_multiple_of_C // file_params.weights_S_dim
+                    replication_squash = i != start_chunk_id
                     print("chunk %d num_of_filter_rows %d squash %d"%(i, num_of_filter_rows, replication_squash))
                 # If modifying in place, don't create DRAM waveops for region
                 if not file_params.mapped_params.modify_in_place and not replication_squash:
@@ -806,7 +818,7 @@ class FileMapper():
                         latest_accessor_name = nonload_waveop_list[latest_accessor]['waveop_name']
                         if latest_accessor_name not in prev_waveops:
                             prev_waveops.append(latest_accessor_name)
-                    new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, prev_waveops)
+                    new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, prev_waveops, repl_multiple_of_C)
                     list_of_waveops.append(new_dram_waveop)
                     file_params.mapped_params.chunk2waveop_map[i] = new_dram_waveop
                     #file_params.mapped_params.chunk_is_mapped[batch_item][i] = True
@@ -815,24 +827,30 @@ class FileMapper():
                 #    print("INFO: batch item %d: Reader ID %d is reading chunk_id %d (start %d, end %d) of file %s, which is being modified in place, so not creating DRAM load waveops"%(batch_item, nonload_waveop_id, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
         return (last_writer, last_reader, list_of_waveops)
 
-    def gen_dram_read_waveop(self, file_params, batch_item, chunk_id, previous_waveops):
+    def gen_dram_read_waveop(self, file_params, batch_item, chunk_id, previous_waveops, repl_multiple_of_C):
         length          = self.get_chunk_len_from_chunk_id(file_params, batch_item, chunk_id)
         offset_in_file  = self.get_file_addr_from_chunk_id(file_params, batch_item, chunk_id)
         sb_addr         = self.get_sb_addr_from_chunk_id(file_params, batch_item, chunk_id)
         fmap_count      = self.get_fmap_count_from_chunk_id(file_params, batch_item, chunk_id)
+        assert (fmap_count > 0)
+        last_byte_offset = offset_in_file + (file_params.fmap_data_len * (fmap_count-1)) + length - file_params.item_sz
         assert (length > 0)           
         # IFMAP replication parameters
         src_step_elem = 1
         ifmap_replication_num_rows = 0
         ifmap_replication_resolution = 0
         ifmap_replication_step_bytes = 0
-        if file_params.replicate_multiple > 1:
-            fmap_count = fmap_count * file_params.replicate_multiple
+        if repl_multiple_of_C > 1:
+            fmap_count = fmap_count * repl_multiple_of_C
             if file_params.file_dims.has_M:
                 ifmap_replication_num_rows = file_params.file_dims.C
                 ifmap_replication_resolution = file_params.file_dims.C
                 ifmap_replication_step_bytes = file_params.file_dims.M * file_params.item_sz
                 length = file_params.file_dims.M * file_params.item_sz  # TODO: adjust chunk size to match
+                # compute last byte offset to check out of file bound
+                last_byte_offset  = offset_in_file + length - file_params.item_sz
+                last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
+                last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%ifmap_replication_resolution) 
             else:
                 src_step_elem = file_params.stride_x
                 ifmap_replication_num_rows = file_params.file_dims.C * file_params.weights_S_dim
@@ -840,8 +858,20 @@ class FileMapper():
                 ifmap_replication_step_bytes = (file_params.file_dims.W // file_params.stride_x) * file_params.item_sz
                 length = length // file_params.stride_x # TODO: adjust chunk size to match
                 offset_in_file_batch_item = batch_item * file_params.file_addr_skip_per_batch_item
+                # Adjust for the even/odd split
                 offset_in_file = (offset_in_file - offset_in_file_batch_item) // file_params.stride_x + offset_in_file_batch_item # TODO: adjust chunk size to match
-                #ifmap_replication_step_bytes = file_params.file_dims.W * file_params.item_sz
+                # compute last byte offset to check out of file bound
+                last_byte_offset  = offset_in_file + length - file_params.item_sz
+                last_byte_offset += file_params.fmap_data_len//2    # jump to the odd half
+                last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
+                last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%file_params.file_dims.C)
+
+        # Kaena-530: check that the last byte doesn't go outside of file
+        if (file_params.args.debug > 3): print("DBG: last_byte_offset %d file_sz %d"%(last_byte_offset, file_params.file_sz))
+        if repl_multiple_of_C > 1:
+            assert(last_byte_offset < file_params.file_sz + length*file_params.file_dims.C)
+        else:            
+            assert(last_byte_offset < file_params.file_sz)
 
         # collect stats
         #if (args.debug > 1):
@@ -978,17 +1008,10 @@ class TestFileParams(unittest.TestCase):
     class op_params_stride2():
         stride_x = 2
         stride_y = 2
-        replicate_multiple = 1
-
-    class op_params_stride2_repl():
-        stride_x = 2
-        stride_y = 2
-        replicate_multiple = 28
 
     class op_params_stride1():
         stride_x = 1
         stride_y = 1
-        replicate_multiple = 1
 
     def test_file_params_instantiation(self):
         shape_dims = ShapeDims("CRSM", [1,7,7,64]) 
@@ -1051,15 +1074,6 @@ class TestFileParams(unittest.TestCase):
         self.assertEqual(test_obj.file_dims.W, 115)
         test_obj.load_file()
         self.assertEqual(test_obj.dram_data.shape, (1, 3, 458, 115))
-        # Test replicated weights chunk size
-        shape_dims = ShapeDims("CRSM", [3,7,7,64]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2_repl)
-        self.assertEqual(test_obj.chunk_sz, 896)
-        #self.assertEqual(test_obj.batch_item_partition_usage_sz, 256)
-        #self.assertEqual(test_obj.tot_partition_usage_sz, 256)
-        #self.assertEqual(test_obj.fmap_num_chunks, 2)
-        #self.assertEqual(test_obj.batch_item_num_chunks, 2)
-        #self.assertEqual(test_obj.tot_num_chunks, 2)
 
 class TestFileMapper(unittest.TestCase):
     class pearray_params():
@@ -1070,12 +1084,10 @@ class TestFileMapper(unittest.TestCase):
     class op_params_stride2():
         stride_x = 2
         stride_y = 2
-        replicate_multiple = 1
 
     class op_params_stride1():
         stride_x = 1
         stride_y = 1
-        replicate_multiple = 1
 
     def test_map_file(self):
         shape_dims = ShapeDims("CRSM", [256,7,7,64]) 

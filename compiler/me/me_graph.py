@@ -55,7 +55,7 @@ class KNode:
         self.weights_file_params = None
         self.bias_file_params = None
         self.fused_op = None
-        self.replicate_multiple = 1
+        self.repl_multiple_of_C = 1
         self.ifmaps_padded_and_split = False
         self.distance_to_next_join = 1000 
 
@@ -219,20 +219,21 @@ class KNode:
         else:
             weights_shape_dims = ShapeDims(layer_info['kernel_format'], layer_info['kernel_shape'])            
             weights_file = self.data['kernel_file']
+        self.weights_file_params = FileParams(weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, self.parent.args, contain_weights=True)
+        self.weights_file_params.layer_name =  self.data['layer_name']
+        self.weights_file_params.load_file()
+        self.R = weights_shape_dims.R
+        self.S = weights_shape_dims.S
+        self.RS = self.R * self.S
         # kaena-141: replicate IFMAP a number of times.
         # The number is determined by S, multiplied by a portion of R to match r*S*C <= 128
         # In the case of 1st layer ResNet50, R=7, S=7, C=3 so R can be broken a number of ways. 
         # For now, split evenly among two waves.
-        self.replicate_multiple = 1
+        self.repl_multiple_of_C = 1
         if self.parent.args.enable_replication and self.is_input:
-            num_replicated_waves = ceildiv(weights_shape_dims.R * weights_shape_dims.S * weights_shape_dims.C,  PEArray.NUM_ROWS)
-            self.replicate_multiple = ceildiv(weights_shape_dims.R, num_replicated_waves) * weights_shape_dims.S
-        self.weights_file_params = FileParams(weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, self.parent.args, contain_weights=True)
-        self.weights_file_params.layer_name =  self.data['layer_name']
-        self.weights_file_params.load_file()
-        self.R = self.weights_file_params.file_dims.R
-        self.S = self.weights_file_params.file_dims.S
-        print("Conv params for layer %s: R=%d, S=%d, replicate_multiple=%d"%(self.data['layer_name'], self.weights_file_params.file_dims.R, self.weights_file_params.file_dims.S, self.replicate_multiple))
+            num_replicated_waves = ceildiv(self.RS * weights_shape_dims.C,  PEArray.NUM_ROWS)
+            self.repl_multiple_of_C = ceildiv(self.R, num_replicated_waves) * self.S
+        print("Conv params for layer %s: R=%d, S=%d, repl_multiple_of_C=%d"%(self.data['layer_name'], self.weights_file_params.file_dims.R, self.weights_file_params.file_dims.S, self.repl_multiple_of_C))
 
     # Compute pooling params
     def populate_pooling_params(self):
@@ -335,7 +336,7 @@ class KNode:
     #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
     #   layer_type: 'conv' or 'MaxPool'; can be extended to handle other layer types
     #   return: a 256x128 array
-    def pack_wave_ifmaps(self, ifmaps, wave_id, replicate_multiple, for_softmax):
+    def pack_wave_ifmaps(self, ifmaps, wave_id, repl_multiple_of_C, for_softmax):
         # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
         if (for_softmax):
             out_array_dim_y = PEArray.NUM_COLS
@@ -362,7 +363,7 @@ class KNode:
         last_r_id = r_id
         last_s_id = s_id
         num_rows = pe_row_stop - pe_row_start
-        for repl in range(replicate_multiple):
+        for repl in range(repl_multiple_of_C):
             pe_row_repl_start = num_rows * repl
             for row in range(pe_row_start, pe_row_stop):
                 pe_row_offset = pe_row_repl_start + row - pe_row_start
@@ -383,7 +384,7 @@ class KNode:
                                 if (self.parent.args.nname == "lm"):
                                     out_array[ifmap_addr, pe_row_offset] = self.ifmaps_file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
                                 else:                                   
-                                    if replicate_multiple > 1:
+                                    if repl_multiple_of_C > 1:
                                         out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley + (ifmap_tilex%2)*self.H, ifmap_tilex//2]
                                         #out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
                                     else:                                        
@@ -466,7 +467,7 @@ class KNode:
     #   weights: conv weights in CRSM format
     #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
     #   return: a 128x64 array
-    def pack_wave_conv_weights(self, weights, wave_id, replicate_multiple):
+    def pack_wave_conv_weights(self, weights, wave_id, repl_multiple_of_C):
         out_array = np.zeros((PEArray.NUM_ROWS, PEArray.NUM_COLS))
         pe_row_start = wave_id.c_id * PEArray.NUM_ROWS
         pe_row_stop = min(self.C, pe_row_start + PEArray.NUM_ROWS)
@@ -479,7 +480,7 @@ class KNode:
         last_r_id = r_id
         last_s_id = s_id
         num_rows = pe_row_stop - pe_row_start
-        for repl in range(replicate_multiple):
+        for repl in range(repl_multiple_of_C):
             pe_row_repl_start = num_rows * repl
             for row in range(pe_row_start, pe_row_stop):
                 pe_row_offset = pe_row_repl_start + row - pe_row_start
@@ -487,15 +488,14 @@ class KNode:
                     out_array[pe_row_offset, col - pe_col_start] = weights[row, r_id, s_id, col] # CRSM
                     last_r_id = r_id
                     last_s_id = s_id
-            if (self.parent.args.debug > 2): print("DBG: pack_wave_conv_weights for wave %s r_id %d s_id %d"%(wave_id.id_array, r_id, s_id))
+            if (self.parent.args.debug > 2): print("DBG: pack_wave_conv_weights for wave %s r_id %d s_id %d (repl_multiple_of_C %d)"%(wave_id.id_array, r_id, s_id, repl_multiple_of_C))
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
                 s_id = 0
                 if (r_id >= self.R): break
 
-        # use repl+1 here for replication multiple (for example, R=7 is broken into replicate_multiple of 4 for first wave and replicate_multiple of 3 for second wave)
-        self.ifmap_count = self.ifmap_count * (repl + 1)
+        self.ifmap_count = self.ifmap_count * repl_multiple_of_C
 
         self.weight_wave_lower_addr = self.weights_file_params.ravel_crsm(
                                             pe_row_start, wave_id.r_id, wave_id.s_id, pe_col_start)
@@ -766,13 +766,12 @@ class KGraph:
         if fused_ops.last_op.ofmaps_file_params is not None:
             fused_ops.last_op.ofmaps_file_params.zero_file()
             fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(fused_ops.last_op)
-        # transfer replicate_multiple from weights_file_params to ifmaps_file_params
+        # transfer replication info from Conv KNode to ifmaps_file_params
         if fused_ops.has_conv:
-            fused_ops.conv_op.ifmaps_file_params.replicate_multiple = fused_ops.conv_op.weights_file_params.replicate_multiple
             fused_ops.conv_op.ifmaps_file_params.weights_S_dim = fused_ops.conv_op.weights_file_params.file_dims.S
             fused_ops.conv_op.ifmaps_file_params.stride_x = fused_ops.conv_op.stride_x
             fused_ops.conv_op.ifmaps_file_params.stride_y = fused_ops.conv_op.stride_y
-            #print("copied ifmaps_file_params.replicate_multiple = weights_file_params.replicate_multiple %d"%(fused_ops.conv_op.weights_file_params.replicate_multiple))
+            #print("copied ifmaps_file_params.repl_multiple_of_C = weights_file_params.repl_multiple_of_C %d"%(fused_ops.conv_op.weights_file_params.repl_multiple_of_C))
         if (self.args.debug > 0):
             fused_ops.show()
         return fused_ops                   

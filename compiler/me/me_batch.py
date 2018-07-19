@@ -6,6 +6,8 @@ Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
 """
 
 from me_utils import data_type_to_item_sz
+from me_utils import align_addr_8B
+from me_utils import align_addr_16B
 
 class BatchSBDataMap:
     def __init__(self, batch_size, data_type):
@@ -17,14 +19,12 @@ class BatchSBDataMap:
 
         # below are sizing for ResNet50 batching scheme
         bias_sz = 512
-        #self.ofmap_sz_56x56x64   = 56 * 56 * self.item_sz            # = 6272
-        self.ofmap_sz_55x55x64   = 55 * 55 * self.item_sz            # = 6050
+        self.ofmap_sz_55x55x64   = align_addr_8B(55 * 55 * self.item_sz)                 # = 6050 -> 6056 aligned
         self.first_ifmaps_region_sz = self.ofmap_sz_55x55x64
-        #self.ofmap_sz_56x56x256  = 56 * 56 * 256 * self.item_sz // 128    # = 12544
-        self.ofmap_sz_55x55x256  = 55 * 55 * 256 * self.item_sz // 128    # = 12100
-        self.ofmap_sz_28x28x512  = 28 * 28 * 512 * self.item_sz // 128    # = 6272
-        self.ofmap_sz_14x14x1024 = 14 * 14 * 1024 * self.item_sz // 128   # = 3136
-        self.ofmap_sz_7x7x2048   = 7 * 7 * 2048 * self.item_sz // 128     # = 1568
+        self.ofmap_sz_55x55x256  = align_addr_16B(55 * 55 * 256 * self.item_sz // 128)   # = 12100 -> 12112 aligned (use 16B alignment to match 55x55x64)
+        self.ofmap_sz_28x28x512  = align_addr_8B(28 * 28 * 512 * self.item_sz // 128)    # = 6272
+        self.ofmap_sz_14x14x1024 = align_addr_8B(14 * 14 * 1024 * self.item_sz // 128)   # = 3136
+        self.ofmap_sz_7x7x2048   = align_addr_8B(7 * 7 * 2048 * self.item_sz // 128)     # = 1568
         #partialbatch_sz     = self.ofmap_sz_7x7x2048 * 12 + self.ofmap_sz_14x14x1024 * 5 + self.ofmap_sz_28x28x512 * 3 + self.ofmap_sz_56x56x64 * 1 + self.ofmap_sz_56x56x64 * 1 # includes extra space to prevent overwrite
         partialbatch_sz     = self.ofmap_sz_7x7x2048 * 12 + self.ofmap_sz_14x14x1024 * 5 + self.ofmap_sz_28x28x512 * 3 + self.ofmap_sz_55x55x64 * 1 + self.ofmap_sz_55x55x64 * 1 # includes extra space to prevent overwrite
         partialbatch_sz_8   = self.ofmap_sz_7x7x2048 * 12 + self.ofmap_sz_14x14x1024 * 8

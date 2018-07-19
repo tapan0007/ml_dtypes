@@ -196,7 +196,7 @@ class TPBSched:
                         i.populate_conv_params()
                         i.populate_common_params(False)
                         # IFMAP replication
-                        if i.replicate_multiple > 1 and not i.ifmaps_padded_and_split:
+                        if i.repl_multiple_of_C > 1 and not i.ifmaps_padded_and_split:
                             (file_name, new_shape) = pad_and_split_file(
                                                         first_op.data['ref_file'], 
                                                         first_op.data['ofmap_format'],
