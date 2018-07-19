@@ -62,7 +62,6 @@ conv_pad      Single Conv2D layer that exercises padding
 8-rn50_nne_fp32_meauto  Sprint 9 Story 2 - all fanout-resadd subgraphs on Inkling except FC, softmax on host
 7-rn50_nne_fp32_waveopt Full Resnet50 fp32 inference all layers on ME except the softmax
 7-rn50_nne_fp32_wave    Full Resnet50 fp32 inference all layers on Inkling except the softmax
-7-rn50_nne_fp16_wave    Full Resnet50 fp16 inference all layers on Inkling except the softmax
 7-rn50_nne_fp16_wave-two_banks    Full Resnet50 as 7-rn50_nne_fp16_wave with 1 DDR bank of 2x bandwidth
 7-rn50_nne_fp16_wave-fast_dram    Full Resnet50 as 7-rn50_nne_fp16_wave with 1-cycle cost for any DDR transaction
 
@@ -72,5 +71,13 @@ conv_pad      Single Conv2D layer that exercises padding
 # Project tests
 4-rn50_matmul_fp32_wave     Sprint 10 avgpool, reshape, matmult, softmax on wave backend, rest on host
 4-rn50_matmul_fp32_waveopt  Sprint 10 avgpool, reshape, matmult, softmax on ME   backend, rest on host
+
+# Qemu/ zebu deliverable NNs
+8-rn50_nne_fp16_b16_wave  Key performance test - Resnet50 except softmax, batch 16 with replication
+ 
+7-rn50_nne_fp16_wave    Key functional test - Resnet50 except softmax, batch 1 with replication
+ 
+7-rn50_nne_fp16_wave-no_repl  Key qemu functional test - Resnet50 except softmax, batch 1 without replication (slow)
+
 
 # Noop - Gerrit test
