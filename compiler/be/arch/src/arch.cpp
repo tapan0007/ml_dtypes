@@ -32,8 +32,19 @@ Arch::Arch(kcc_int32 numTpbEvents)
     , m_PoolingEng(m_PsumBuffer, *this)
     , m_ActivationEng(m_PsumBuffer, *this)
     , m_StateBuffer(m_PeArray, sbPartitionSizeInBytes)
-    , m_NumberTpbEvents(numTpbEvents > 0 ? numTpbEvents : MMAP_TPB_TPB_EVT_SZ)
 {
+     enum {
+         EVENT_STEP = 4,
+         NumTpbEvents = MMAP_TPB_TPB_EVT_SZ / EVENT_STEP
+     };
+     static_assert(NumTpbEvents * EVENT_STEP == MMAP_TPB_TPB_EVT_SZ,
+        "Event vector size is not exact multiple of 4");
+ 
+     static_assert(NumTpbEvents <=
+         (1U << 8*sizeof(TONGA_ISA_TPB_INST_EVENTS::wait_event_idx)),
+         "Number of TPB events too large for type Event_t");
+ 
+     m_NumberTpbEvents = numTpbEvents > 0 ? numTpbEvents : NumTpbEvents;
 }
 
 //----------------------------------------------------------------
