@@ -160,6 +160,7 @@ class NnSubgraph:
   def run(self):
     executor = self.executor
     logFile = "log-exec-%s-%s.txt" % (self.sgDir, executor)
+    self.logfile = logFile
 
     if executor == "host":
       cmd = "PATH=%s/runtime/util:$PATH runtime_tf" % kPath
@@ -196,10 +197,14 @@ class NnSubgraph:
       cmd += "  --sg %s" % self.sgDir
       cmd += "  --ifmaps %s" % "".join(map(str, ifmapFiles))
       qemuPool = os.getenv("KAENA_QEMU_RT_POOL", None)
-      if qemuPool == None:
-        cmd += "  --port %d" % port
+      qemuZebu = os.getenv("KAENA_ZEBU_SERVER", None)
+      if not qemuZebu == None:
+        cmd += "  --zebu %s" % qemuZebu
       else:
-        cmd += "  --pool %s" % qemuPool
+        if qemuPool == None:
+          cmd += "  --port %d" % port
+        else:
+          cmd += "  --pool %s" % qemuPool
       assert len(ifmapFiles) == 1 # qemu inkling supports single input  subgraphs only
       #cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
     elif executor == "processor":
@@ -234,6 +239,7 @@ class NnSubgraph:
     print("\nINFO: executing %s" % cmd, flush=True)
     ret = os.system(cmd)
     if ret != 0:
+      print("\nERROR: command  %s  returned non-zero exit code" % cmd, flush=True)
       return ret
 
 
@@ -356,7 +362,7 @@ os.chdir(working_dir)
 nnExec = NnExec(nnGraphFile)
 ret = nnExec.run()
 if ret != 0:
-  raise RuntimeError("ERROR: nn_executor failed to run")
+  raise RuntimeError("ERROR: nn_executor has returned non-zero exit status, please check log-exec*.txt")
 if (ret == 0) and (args.check_against_ref != "none"):
   ret = nnExec.check(args.check_against_ref)
 

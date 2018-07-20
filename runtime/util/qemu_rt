@@ -46,9 +46,6 @@ qiBldPath = os.environ["QEMU_BLD_DIR"]
 if not os.path.isdir(qiBldPath):
   raise ValueError("ERROR: missing $KAENA_PATH/../qemu_inkling path  at %s" % qiBldPath)
 
-krtBldPath = os.environ["KRT_BLD_DIR"]
-if not os.path.isdir(krtBldPath):
-  raise ValueError("ERROR: missing kaena runtime build")
 
 qiPath = os.path.join(qiBldPath, "x86_64-softmmu", "qemu-system-x86_64")
 
@@ -106,15 +103,27 @@ parser.add_argument('--mem', help='Memory for the qemu VM, default 512MB', type=
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
 parser.add_argument('--sg', help='Subgraph label for identifying which SG executes', default=None)
 parser.add_argument('--ifmaps', help='List of input images in sim ifmap format', nargs='+', default=None)
+parser.add_argument('--zebu', help='Zebu host to use emulator model of Tonga instead of starting Qemu with SW Tonga locally', default=None)
 args = parser.parse_args()
 
-class Qemu:
-  def __init__(self, vdi, mem, port):
-    #qemuOpts = '-monitor stdio'
-    qemuOpts = '-nographic'
-    self.vdi = vdi
-    self.localVdi = "copy.vdi"
-    
+krtBldPath = os.environ["KRT_BLD_DIR"]
+kelfVmDirGlobal = "/tmp/reg-1"
+if args.zebu:
+  krtBldPath = os.environ["KRT_EMU_BLD_DIR"]
+  kelfVmDirGlobal = "/media/sf_SharedFolder/reg-1"
+if not os.path.isdir(krtBldPath):
+  raise ValueError("ERROR: missing kaena runtime build")
+print("INFO: using runtime build  %s" % krtBldPath)
+
+
+# Common class for backend platforms like Qemu or Zebu
+
+class BePlat(object):
+  def __init__(self):
+    self.sshHost = None
+    self.sshUser = None
+    self.sshCommand = None
+    self.tongaDevice = "0000:00:04.0"
     # Create on the fly to avoid issues with git chmod
     self.pemText = '''
 -----BEGIN RSA PRIVATE KEY-----
@@ -150,6 +159,36 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
       with open(self.pemFile, 'w') as fhPem:
         fhPem.write(self.pemText)
       os.chmod(self.pemFile, stat.S_IREAD)
+
+  def sshCmd(self, cmd, opt=""):
+    fullCmd = "%s %s %s@%s '%s'" % (self.sshCommand, opt, self.sshUser, self.sshHost, cmd)
+    print("INFO: sshCmd executing %s" % fullCmd, flush=True)
+    return os.system(fullCmd)
+  def rsyncToVm(self, fromDir, toVmDir, opts=None):
+    cmd = '%s %s %s@%s:%s' % (self.cmdForRsync, fromDir, self.sshUser, self.sshHost, toVmDir)
+    if opts != None:
+      cmd = cmd.replace("rsync ", "rsync %s " % opts)
+    print("INFO: rsyncToVm executing %s" % cmd, flush=True)
+    return os.system(cmd) == 0
+  def rsyncFromVm(self, fromVmDir, toDir):
+    cmd = '%s %s@%s:%s %s' % (self.cmdForRsync, self.sshUser, self.sshHost, fromVmDir, toDir)
+    print("INFO: rsyncFromVm executing %s" % cmd, flush=True)
+    return os.system(cmd) == 0
+  def lock(self):
+    return self.sshCmd('l=/var/lock/qemu; test -f $l || echo $$ > $l; expr $$ == `cat $l`') == 0
+  def unlock(self):
+    return self.sshCmd('l=/var/lock/qemu; /bin/rm -f $l') == 0
+  def getTongaDevice(self):
+    return self.tongaDevice
+
+class Qemu(BePlat):
+  def __init__(self, vdi, mem, port):
+    BePlat.__init__(self)
+    
+    #qemuOpts = '-monitor stdio'
+    qemuOpts = '-nographic'
+    self.vdi = vdi
+    self.localVdi = "copy.vdi"
     
     qemuNoInkling = os.getenv("QEMU_NO_INKLING", None)
     if qemuNoInkling == None:
@@ -159,8 +198,11 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     if os.path.exists("/dev/kvm"):
         self.cmd += "  --enable-kvm "
     self.port = port
-    self.cmdForSsh = 'ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null -p %d -i %s kaena@localhost' % (self.port, self.pemFile)
-    self.cmdForRsync = 'rsync -av --progress -e "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null -p %s -i %s"' % (self.port, self.pemFile)
+    self.sshUser = "kaena"
+    self.sshHost = "localhost"
+    sshOpt = "-o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null"
+    self.sshCommand = 'ssh -n %s -p %d -i %s ' % (sshOpt, self.port, self.pemFile)
+    self.cmdForRsync = 'rsync -av --progress -e "ssh %s -p %s -i %s"' % (sshOpt, self.port, self.pemFile)
 
   def start(self, restartId):
     self.restartId = restartId
@@ -238,47 +280,198 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     print("INFO: checking for zero-size files:", flush=True)
     os.system("find -size 0")
 
-  def rsyncToVm(self, fromDir, toVmDir, opts=None):
-    cmd = '%s %s kaena@localhost:%s' % (self.cmdForRsync, fromDir, toVmDir)
-    if opts != None:
-      cmd = cmd.replace("rsync ", "rsync %s " % opts)
-    print("INFO: rsyncToVm executing %s" % cmd, flush=True)
-    return os.system(cmd) == 0
-  def rsyncFromVm(self, fromVmDir, toDir):
-    cmd = '%s kaena@localhost:%s %s' % (self.cmdForRsync, fromVmDir, toDir)
-    print("INFO: rsyncFromVm executing %s" % cmd, flush=True)
-    return os.system(cmd) == 0
-  def sshCmd(self, cmd, opt=""):
-    fullCmd = "%s %s '%s'" % (self.cmdForSsh, opt, cmd)
-    print("INFO: sshCmd executing %s" % fullCmd, flush=True)
-    return os.system(fullCmd)
-  def lock(self):
-    return self.sshCmd('l=/var/lock/qemu; test -f $l || echo $$ > $l; expr $$ == `cat $l`') == 0
-  def unlock(self):
-    return self.sshCmd('l=/var/lock/qemu; /bin/rm -f $l') == 0
   def checkDoubleEvents(self):  # Return: True is good, False is bad
     cmd = "egrep 'Double .+ of event' log-qemu.txt"
     print("INFO: performing double event check using  %s" % cmd)
-    return os.WEXITSTATUS(os.system(cmd)) == 1
+    ok = os.WEXITSTATUS(os.system(cmd)) == 1
+    print("INFO: double event check %s" % "PASS" if ok else "FAIL")
+    return ok
     
+
+class Zebu(BePlat):
+  def __init__(self, zebuHost):
+    BePlat.__init__(self)
+    self.zebuHost = zebuHost
+    self.sshHost = zebuHost.replace("server", "Guest")
+    self.sshUser = "synopsys"
+    self.tongaDevice = "0000:01:00.0"  # later get from lspci
+    sshOpt = "-o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null"
+    self.sshCommand = 'ssh -n %s -i %s ' % (sshOpt, self.pemFile)
+    self.cmdForRsync = 'rsync -av --progress -e "ssh %s -i %s"' % (sshOpt, self.pemFile)
+
+  def startTonga(self):
+    # Boot Tonga
+    tongaOk = False
+    cmd = 'sh -c "%s 2>&1 | tee log-zebu_tonga.txt"' % ("ssh %s" % self.zebuHost)
+    print("INFO: starting Zebu Tonga  %s" % cmd, flush=True)
+    self.fh = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
+    self.fh.expect("zebuadmin@zebu-server")
+
+    self.fh.send("source ~/.vbox_bashrc\r")
+    self.fh.expect("ZRT")
+    
+    self.fh.send("ptbkill -all\r")
+    self.fh.expect("ZRT")
+
+    self.fh.send("cdpt6\r")
+    self.fh.expect("ZRT-tb_vbox")
+
+    self.fh.send("rune -ptcr\r")
+    self.fh.expect("ZeBu")
+    self.fh.expect("Design loaded successfully")
+    self.fh.expect("Init DRAM")
+    try:
+      idx = self.fh.expect(["All ProxyXtors are ready to connect to the VM",
+                           "is already running for the same design"],
+                           timeout=120)
+      if idx == 0:
+        print("INFO: started new Tonga")
+      elif idx == 1:
+        print("INFO: recycled a Tonga")
+      tongaOk = True
+    except TIMEOUT:
+      print("ERROR: Try %d Zebu Tonga VM boot timeout out, please review log-zebu_tonga.txt" % self.restartId)
+    
+    if tongaOk:
+      print("INFO: Zebu Tonga started", flush=True)
+    else:
+      print("ERROR: Zebu Tonga failed to start", flush=True)
+      
+    return tongaOk
+
+  def startVm(self):
+    # Boot the VM:
+    vmOk = False
+    cmd = 'sh -c "%s 2>&1 | tee log-zebu_vm.txt"' % ("ssh %s" % self.zebuHost)
+    print("INFO: starting Zebu VM  %s" % cmd, flush=True)
+    self.fh1 = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
+    self.fh1.expect("zebuadmin@zebu-server")
+
+    self.fh1.send("source ~/.vbox_bashrc\r")
+    self.fh1.expect("ZRT")
+
+    self.fh1.send("cdpt6\r")
+    self.fh1.expect("ZRT-tb_vbox")
+
+    self.fh1.send("rune -vbrun\r")
+    self.fh1.expect("VBoxManage startvm")
+    try:
+      idx = self.fh1.expect(["has been successfully started",
+                           "add any error case here"],
+                           timeout=120)
+      if idx == 0:
+        print("INFO: started Zebu VM")
+        vmOk = True
+      elif idx == 1:
+        print("INFO: add error condition description here")
+    except TIMEOUT:
+      print("ERROR: Try %d Zebu Tonga VM boot timeout out, please review log-zebu_tonga.txt" % self.restartId)
+    
+    if vmOk:
+      print("INFO: Zebu Vm started OK", flush=True)
+    else:
+      print("ERROR: Zebu Vm failed to start", flush=True)
+    return vmOk
+  
+
+  def initGuestOs(self):
+    guestOk = False
+    self.fh1.send("\r")
+    self.fh1.send("rune -vbssh\r")
+    try:
+      self.fh1.expect("synopsys@localhost's password:", timeout=60)
+    except:
+      # Debug diagnostics, should not exist is normal use
+      print("WARNING: failed to receive guestOS password prompt. Debug manually, sleep 300, kill the sleep process to resume", flush=True)
+      os.system("sleep 300")
+    self.fh1.send("iltwas\r")
+    self.fh1.expect("Last login:")
+
+    self.fh1.send("sudo su\r")
+    self.fh1.expect("root@synopsys-VirtualBox:")
+
+    self.fh1.send("mount -t vboxsf SharedFolder /media/sf_SharedFolder/\r")
+    self.fh1.expect("root@synopsys-VirtualBox")
+    
+    # To unify with qemu flow
+    self.fh1.send("mkdir -p %s; chown synopsys %s\r" % (krtVmPath, krtVmPath))
+    self.fh1.expect("")
+    self.fh1.send("mkdir -p %s; chown synopsys %s\r" % (kelfVmDirGlobal, kelfVmDirGlobal))
+    self.fh1.expect("")
+
+    self.fh1.send("lspci -v\r")
+    try:
+      idx = self.fh1.expect(["System peripheral: Device 1d0f:7064",
+                           "add any error case here"],
+                           timeout=60)
+      if idx == 0:
+        print("INFO: started Zebu guest OS is up and lspi shows tonga", flush=True)
+        guestOk = True
+    except TIMEOUT:
+      print("INFO: Zebu guest OS lspi does NOT have any tonga", flush=True)
+    return guestOk
+
+  def start(self, restartId):
+    self.restartId = restartId
+    if self.startTonga():
+      if self.startVm():
+        return self.initGuestOs()
+    return False
+    
+    
+  def stop(self):
+    # Debug window for manual post-mortem
+    print("WARNING: Zebu.stop() sleep 900, kill the sleep process to resume", flush=True)
+    os.system("sleep 900")
+
+    # Clean up Zebu process
+    try:
+      # FIX_THIS: check with Ravi if there is a "nice quit" capability
+      self.fh.send("quit\r")
+      self.fh.expect("zebu really quit\r", timeout=5)
+    except:
+      pass    
+    print("INFO: stopping ZEBU TONGA", flush=True)
+    try:
+      self.fh.close()
+    except:
+      pass
+    
+    # Clean up VM
+    try:
+      # FIX_THIS: check with Ravi if there is a "nice quit" capability
+      self.fh1.send("exit\r")
+      self.fh1.expect("vm really quit\r", timeout=5)
+    except:
+      pass    
+    print("INFO: stopping ZEBU VM", flush=True)
+    try:
+      self.fh1.close()
+    except:
+      pass
+    
+
 class Krt:
   def __init__(self, qemu, timeout):
     self.qemu = qemu
     self.cwd = os.getcwd()
     self.inklingTimeout = timeout
-    self.kelfVmDir = "/tmp/reg-1"  # non-sg spefic, for --action cleanup_pool
+    self.kelfVmDir = kelfVmDirGlobal  # non-sg spefic, for --action cleanup_pool
     self.sg = "sg00"
 
   def install(self):
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
     if not os.path.isdir(runtimSrcPath):
       raise ValueError("ERROR: missing runtime src at %s" % runtimSrcPath)
-    krtPackages = glob.glob(os.path.join(krtBldPath, "krt-*.*-uio-core.tar.gz"))
+    krtPkgPattern = 'krt-*.*-*-core.tar.gz'
+    krtPackages = glob.glob(os.path.join(krtBldPath, krtPkgPattern))
     if len(krtPackages) != 1:
       raise ValueError("ERROR: Found {} runtime packages at {}".format(len(krtPackages), krtBldPath))
+    self.qemu.sshCmd("/bin/rm -rf %s/*" %krtVmPath )
     self.qemu.rsyncToVm(krtPackages[0], krtVmPath + "/")
     self.qemu.rsyncToVm(os.path.join(runtimSrcPath, "kbinlib", "vfio_bind.py"), krtVmPath + "/")
-    self.qemu.sshCmd("sudo tar xfz {} -C /usr/".format(krtVmPath + "/krt-*.*-uio-core.tar.gz"))
+    self.qemu.sshCmd("sudo sysctl -w vm.nr_hugepages=128")
+    self.qemu.sshCmd("sudo tar xvfz {} -C /usr/".format(krtVmPath + "/" + krtPkgPattern))
     self.qemu.sshCmd("sudo modprobe vfio enable_unsafe_noiommu_mode=Y")
     self.qemu.sshCmd("sudo {}/vfio_bind.py".format(krtVmPath))
 
@@ -293,11 +486,13 @@ class Krt:
     self.ifmapDir = "%s/ifmap" % self.kelfVmDir
     self.ofmapDir = "%s/ofmap" % self.kelfVmDir
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
-    cmdRuntime = 'cd %s; (sudo kbin_rt %s %s %s 0000:00:04.0 -n 1 -m 3 -t %d && touch krt.pass) < /dev/null > log-krt.txt 2>&1  &' % (self.kelfVmDir,
-                   self.kelfVmDir, self.ifmapDir, self.ofmapDir, self.inklingTimeout)
+    tongaDev = self.qemu.getTongaDevice()
+    cmdRuntime = 'cd %s; (sudo kbin_rt %s %s %s %s -n 1 -m 3 -t %d && touch krt.pass) < /dev/null > log-krt.txt 2>&1  &' % (self.kelfVmDir,
+                   self.kelfVmDir, self.ifmapDir, self.ofmapDir, tongaDev, self.inklingTimeout)
     self.qemu.sshCmd(cmdRuntime)
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
+    time.sleep(2)  # for kbin_rt to have time to return exit code after writing out.bin
     self.qemu.rsyncFromVm(self.kelfVmDir + "/krt.pass", ".")
     debug = True
     if debug:
@@ -374,10 +569,37 @@ class QemuPool:
       krt.stop()
       qemu.unlock()
 
+#########################################################
+
 inklingTimeout = 6000
 
 
-if len(args.pool) > 0:
+##############  zebu  ##############
+if args.zebu != None:
+  zebuOk = False
+  krtOk = False
+  for zebuRestartId in range(1):
+    zebu = Zebu(args.zebu)
+    if zebu.start(zebuRestartId):
+      zebuOk = True
+      krt = Krt(zebu, inklingTimeout)
+      krt.install()
+      krt.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
+      krt.start()
+      for ifmap in args.ifmaps:
+        krt.inference(ifmap, "out-%s.bin" % args.sg)
+      krtOk = krt.stop()
+    else:
+      print("ERROR: Failed to start Zebu  phase %d, restarting ..." % zebuRestartId)
+    zebu.stop()
+    if zebuOk:
+      break
+  if zebuOk:
+    sys.exit(0 if krtOk else 1)
+  raise ValueError("ERROR: Failed to start ZEBU")
+
+##############  qemu pool  ##############
+elif len(args.pool) > 0:
   qp = QemuPool(args.pool, args.vdi, args.mem, inklingTimeout)
   if args.action == 'start_pool':
     if not qp.startPool():
@@ -394,7 +616,7 @@ if len(args.pool) > 0:
     if args.kelf == None:
       raise ValueError("ERROR: use --kelf")
     qemu, krt = qp.getAvailQemu()
-    krt.addModel(args.kelf, "/tmp/reg-1/%s" % args.sg, args.sg)
+    krt.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
     krt.start()
     assert len(args.ifmaps) == 1
     for ifmap in args.ifmaps:
@@ -403,6 +625,7 @@ if len(args.pool) > 0:
     qemu.unlock()
     sys.exit(0 if krtOk else 1)
     
+##############  single qemu  ##############
 else:
   # port mode
   if args.kelf == None:
@@ -420,7 +643,7 @@ else:
       qemuOk = True
       krt = Krt(qemu, inklingTimeout)
       krt.install()
-      krt.addModel(args.kelf, "/tmp/reg-1/%s" % args.sg, args.sg)
+      krt.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
       krt.start()
       for ifmap in args.ifmaps:
         krt.inference(ifmap, "out-%s.bin" % args.sg)
