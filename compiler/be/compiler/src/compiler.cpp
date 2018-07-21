@@ -81,7 +81,7 @@ void writeOutJson(nets::Network* ntwk, const char* jsonInFileName, const char* e
     std::ofstream os(JsonOutFileName);
 
     std::cout << "Writing NN JSON to file '" << JsonOutFileName << "'\n";
-    
+
     try {
         cereal::JSONOutputArchive ar(os);
         ntwk->save(ar);

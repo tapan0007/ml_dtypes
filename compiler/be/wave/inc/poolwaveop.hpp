@@ -142,7 +142,7 @@ public:
 private:
     const DataType&             m_InDtype;
     kcc_int64                   m_DstSbAddress          = -1;
-    bool                        m_DstStartAtMidPart     = false; 
+    bool                        m_DstStartAtMidPart     = false;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
     kcc_int32                   m_DstYNum               = -1;

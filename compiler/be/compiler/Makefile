@@ -27,10 +27,9 @@ include ../Makefile.common
 
 
 ########################################################
-TCC_LIB := $(INKLING_PATH)/tcc/libs/libtcc.a
 
 LIBS1 := $(foreach L,$(MODS),$(COMPILER_BE)/$(L)/$(OBJDIR)/lib$(L).a)
-LIBS := $(LIBS1) $(TCC_LIB)
+LIBS := $(LIBS1) 
 ########################################################
 
 ########################################################

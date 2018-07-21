@@ -146,7 +146,7 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
      * Pooling angine waits for inference and signals other engines (PE,Act) immediately.
      * Other engines wait on signal from pool *before* any input DMA initiation is done
      * on each respective engine.
-     * If any of the other engines never initiates DMA, 
+     * If any of the other engines never initiates DMA,
      ***********************************************************************************/
     if (qBinFileRuntimeKelf()) {
     // Pool wait for start inference at beginning

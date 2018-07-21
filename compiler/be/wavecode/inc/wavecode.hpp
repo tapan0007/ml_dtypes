@@ -202,7 +202,7 @@ private:
     BinFileType                         m_BinFileType = BinFileType::SimAngel;
     bool                                m_FirstInputDMA_ActEng  = true;
     bool                                m_FirstInputDMA_PeArray = true;
-    
+
     kelf::DmaDescription                m_DmaDescription;
 };
 

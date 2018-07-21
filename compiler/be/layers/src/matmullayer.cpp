@@ -31,9 +31,9 @@ MatmulLayer::gTypeStr() const
 {
     return TypeStr();
 }
-    
+
 std::string
-MatmulLayer::gString() const 
+MatmulLayer::gString() const
 {
     return TypeStr();
 }

@@ -1,4 +1,4 @@
-FLAGS:= -W -Wall -Werror -ggdb -g 
+FLAGS:= -W -Wall -Werror -ggdb -g
 INC_FLAGS := -I$(INKLING)/shared/inc -I$(INKLING)/tcc/inc
 #-I$(INKLING)/tcc/test/convolve/src
 

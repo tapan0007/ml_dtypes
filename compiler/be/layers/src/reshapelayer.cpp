@@ -25,9 +25,9 @@ ReshapeLayer::gTypeStr() const
 {
     return TypeStr();
 }
-    
+
 std::string
-ReshapeLayer::gString() const 
+ReshapeLayer::gString() const
 {
     return TypeStr();
 }

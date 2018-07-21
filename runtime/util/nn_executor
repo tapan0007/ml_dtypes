@@ -128,6 +128,15 @@ class NnSubgraph:
         if self.sgId == 0:
           # The inputs for the first subgraph are same as when compiled
           tpbInpFile = "%s/%s_%s_%s.npy" % (os.getcwd(), "trivnet", self.inputs[0]["name"], npt.Formats[npt.SIM][npt.Fmaps])
+
+          ## # kaena-602: hack for testing one input file only; doesn't work for inferencing
+          ## tpbInpPadSplitFile = tpbInpFile[:-4] + "_padsplit.npy"
+          ## if os.path.isfile(tpbInpPadSplitFile):
+          ##   print("nn_executor: Replacing input npy ", tpbInpFile, " with padded input ", tpbInpPadSplitFile)
+          ##   tpbInpFile = tpbInpPadSplitFile
+          ## else:
+          ##   print("nn_executor: Using original input npy ", tpbInpFile, ", did not find padded input ", tpbInpPadSplitFile)
+
           assert os.path.isfile(tpbInpFile)  # exists from compilation
         else:
           npt.formatNpyFileAs(tfFile, inputFormatTf, npt.Formats[npt.SIM][npt.Fmaps], outFile=tpbInpFile)

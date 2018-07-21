@@ -198,7 +198,7 @@ SerWaveOp::verifyPool() const
     if (m_OutDtype == "") {
         RETURN_ASSERT(false);
     }
-    if (m_PoolFrequency	< 1) {
+    if (m_PoolFrequency < 1) {
         RETURN_ASSERT(false);
     }
     if (m_PoolFunc == "") {

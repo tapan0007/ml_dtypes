@@ -238,7 +238,7 @@ public:
                 TongaAddress dstTongaAddress, kcc_int32 numBytes);
     kcc_int32 gId() const;
 
-    //std::vector<DmaDescToTpb> 
+    //std::vector<DmaDescToTpb>
     const auto& gDescs() const {
         return m_Descs;
     }

@@ -16,7 +16,7 @@ endif
 #egrep -v --line-buffered 'pedantic|ing director|rm |ar rc'
 
 MODS := arch layers memmgr nets utils schedule serialize events wavecode wave kelf compisa
-MAINMOD := compiler 
+MAINMOD := compiler
 COMPILER_BE := $(shell pwd)
 
 top : alldeps
@@ -32,7 +32,7 @@ top : alldeps
 	else true; \
 	fi
 
-#	| egrep -v --line-buffered 'pedantic|ing director|rm |ar rc' 
+#	| egrep -v --line-buffered 'pedantic|ing director|rm |ar rc'
 
 clean :
 	rm -f */obj/*.o */obj/lib*.a *.exe */dep/*

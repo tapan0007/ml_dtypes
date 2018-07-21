@@ -44,6 +44,7 @@ StateBuffer::gEntryTongaAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const
 TpbAddress
 StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
 {
+    Assert(false, "Zeros in state buffer not supported");
     if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
         return MMAP_SB_FP32_ZERO_OFFSET;
     }
@@ -71,6 +72,7 @@ StateBuffer::gAllZeroOffsetTpbAddress(const utils::DataType& dataType) const
 TpbAddress
 StateBuffer::gAllOneOffsetTpbAddress(const utils::DataType& dataType) const
 {
+    Assert(false, "Ones in state buffer not supported");
     if (dynamic_cast<const utils::DataTypeFloat32*>(&dataType)) {
         return MMAP_SB_FP32_ONE_OFFSET;
     }

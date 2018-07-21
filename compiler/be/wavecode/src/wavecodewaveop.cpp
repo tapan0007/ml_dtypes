@@ -138,7 +138,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, TONGA_ISA_TPB_INST_EV
  * 1. Remember embedded wait id/mode for one in-edge
  */
 kcc_int32
-WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, 
+WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop,
                         events::EventId& waitEventId, events::EventWaitMode& waitEventMode)
 {
     return processIncomingEdges(waveop, waveop->gEngineId(), true, nullptr, &waitEventId, &waitEventMode);

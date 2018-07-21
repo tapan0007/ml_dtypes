@@ -92,7 +92,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     initMemAccess(ldweightsInstr.src_mem_pattern);
     {
-        // if weights are not properly aligned (end of octet), load more weights so that the 
+        // if weights are not properly aligned (end of octet), load more weights so that the
         // last weight (first loaded) is at the end of octet. Those extra junk weights will
         // be ignored.
         // Let a be starting address of the weights and N number of weights.

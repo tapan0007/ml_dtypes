@@ -4,6 +4,9 @@
 #define KCC_UTILS_TYPES_H
 
 #include <string>
+#include <array>
+
+#include "aws_tonga_isa_common.h"
 
 #include "utils/inc/consts.hpp"
 
@@ -58,10 +61,15 @@ static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
 //using TpbAddress            = Integer<kcc_int32, TpbAddressTag>;
 //using TongaAddress          = Integer<kcc_int64, TongaAddressTag>;
 
-using SbPartitionAddress    = kcc_uint16;
-using TpbAddress            = kcc_uint32;
-using TongaAddress          = kcc_uint64;
-
+#if true
+using SbPartitionAddress    = tpb_addr;
+using TpbAddress            = tpb_addr; //using TpbAddress            = kcc_uint32;
+using TongaAddress          = tonga_addr; //using TongaAddress          = kcc_uint64;
+#else
+using SbPartitionAddress    = Integer<tpb_addr, SbPartitionAddressTag>;
+using TpbAddress = Integer<tpb_addr, TpbAddressTag>;
+using TongaAddress = Integer<tonga_addr, TongaAddressTag>;
+#endif
 
 
 enum class BinFileType {
@@ -142,6 +150,7 @@ EngineId engineId2Str(const std::string& str);
 
 constexpr kcc_int64 power2(kcc_int64 b) {
     return 1 << (b);
+}
 
 
 class MemAccessPatternXY {
@@ -171,11 +180,92 @@ class MemAccessPatternXYZW {
     kcc_int32       m_WNum              = -1;
 };
 
+
+class TensorParams {
+public:
+    enum { NUM_DIMS = 4 };
+private:
+    using ShapeType = std::array<kcc_int32, NUM_DIMS>;
+public:
+    TensorParams(const ShapeType& shape, const char* format)
+    {
+        m_Shape = shape;
+        for (int i = 0; i < NUM_DIMS; ++i) {
+            m_Format[i] = format[i];
+        }
+        m_Format[NUM_DIMS] = '\0';
+    }
+    TensorParams() = delete;
+
+    const char* gFormat() const {
+        return m_Format;
+    }
+    kcc_int32 operator[] (kcc_int32 n) const {
+        return m_Shape[n];
+    }
+
+    kcc_int32 size() const {
+        return m_Shape.size();
+    }
+
+    kcc_int64 gSize() const {
+        kcc_int64 sz = 1;
+        for (auto n : m_Shape) {
+            sz *= n;
+        }
+        return sz;
+    }
+
+    class iterator;
+
+    inline iterator begin() const;
+    inline iterator end() const;
+
+private:
+    ShapeType m_Shape;
+    char m_Format[NUM_DIMS+1];
+};
+
+class TensorParams::iterator {
+public:
+    iterator(const TensorParams& params, kcc_int32 idx)
+        : m_Params(params)
+        , m_Idx(idx)
+    {
+    }
+
+    bool operator!= (const iterator& rhs) const {
+        return rhs.m_Idx != m_Idx;
+    }
+
+    kcc_int32 operator* () const {
+        return m_Params[m_Idx];
+    }
+
+    void operator++ () {
+        ++m_Idx;
+    }
+
+private:
+    const TensorParams& m_Params;
+    kcc_int32 m_Idx;
+};
+
+
+inline auto
+TensorParams::begin() const -> iterator
+{
+    return iterator(*this, 0);
 }
 
+inline auto
+TensorParams::end() const -> iterator
+{
+    return iterator(*this, NUM_DIMS);
 }
 
-}
+
+}} // namespace utils, kcc
 
 #endif
 

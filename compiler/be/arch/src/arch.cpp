@@ -40,11 +40,11 @@ Arch::Arch(kcc_int32 numTpbEvents)
         // MMAP_TPB_TPB_EVT_SZ = TONGA_ISA_TPB_NUM_EVENTS * TONGA_ISA_TPB_EVENT_SIZE
         NumTpbEvents = TONGA_ISA_TPB_NUM_EVENTS  // this is from isa/tpb
     };
- 
+
     static_assert(NumTpbEvents <=
         (1U << 8*sizeof(TONGA_ISA_TPB_INST_EVENTS::wait_event_idx)),
         "Number of TPB events too large for type Event_t");
- 
+
     m_NumberTpbEvents = numTpbEvents > 0 ? numTpbEvents : NumTpbEvents;
 }
 

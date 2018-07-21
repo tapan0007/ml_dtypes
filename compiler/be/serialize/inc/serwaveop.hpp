@@ -117,32 +117,32 @@ constexpr static const char* WaveOpKey_DstIsPsum            = "dst_is_psum";
 constexpr static const char* WaveOpKey_DstSbAddress         = "dst_sb_address";
 constexpr static const char* WaveOpKey_DstStartAtMidPart         = "dst_start_at_mid_part";
 constexpr static const char* WaveOpKey_DstXNum              = "dst_x_num";
-constexpr static const char* WaveOpKey_DstXStep	            = "dst_x_step";
-constexpr static const char* WaveOpKey_DstYNum	            = "dst_y_num";
-constexpr static const char* WaveOpKey_DstYStep	            = "dst_y_step";
-constexpr static const char* WaveOpKey_DstZNum	            = "dst_z_num";
-constexpr static const char* WaveOpKey_DstZStep	            = "dst_z_step";
+constexpr static const char* WaveOpKey_DstXStep             = "dst_x_step";
+constexpr static const char* WaveOpKey_DstYNum              = "dst_y_num";
+constexpr static const char* WaveOpKey_DstYStep             = "dst_y_step";
+constexpr static const char* WaveOpKey_DstZNum              = "dst_z_num";
+constexpr static const char* WaveOpKey_DstZStep             = "dst_z_step";
 constexpr static const char* WaveOpKey_InDtype              = "in_dtype";
 constexpr static const char* WaveOpKey_BiasDtype            = "bias_dtype";
 
 constexpr static const char* WaveOpKey_NumPartitions        = "num_partitions";
 constexpr static const char* WaveOpKey_OutDtype             = "out_dtype";
-constexpr static const char* WaveOpKey_PoolFrequency	    = "pool_frequency";
+constexpr static const char* WaveOpKey_PoolFrequency        = "pool_frequency";
 constexpr static const char* WaveOpKey_PoolFunc             = "pool_func";
 
 constexpr static const char* WaveOpKey_SrcIsPsum            = "src_is_psum";
 constexpr static const char* WaveOpKey_SrcPsumBankId        = "src_psum_bank_id";
 constexpr static const char* WaveOpKey_SrcPsumBankOffset    = "src_psum_bank_offset";
 constexpr static const char* WaveOpKey_SrcSbAddress         = "src_sb_address";
-constexpr static const char* WaveOpKey_SrcStartAtMidPart         = "src_start_at_mid_part";
-constexpr static const char* WaveOpKey_SrcWNum	            = "src_w_num";
-constexpr static const char* WaveOpKey_SrcWStep	            = "src_w_step";
-constexpr static const char* WaveOpKey_SrcXNum	            = "src_x_num";
-constexpr static const char* WaveOpKey_SrcXStep	            = "src_x_step";
-constexpr static const char* WaveOpKey_SrcYNum	            = "src_y_num";
-constexpr static const char* WaveOpKey_SrcYStep	            = "src_y_step";
-constexpr static const char* WaveOpKey_SrcZNum	            = "src_z_num";
-constexpr static const char* WaveOpKey_SrcZStep	            = "src_z_step";
+constexpr static const char* WaveOpKey_SrcStartAtMidPart    = "src_start_at_mid_part";
+constexpr static const char* WaveOpKey_SrcWNum              = "src_w_num";
+constexpr static const char* WaveOpKey_SrcWStep             = "src_w_step";
+constexpr static const char* WaveOpKey_SrcXNum              = "src_x_num";
+constexpr static const char* WaveOpKey_SrcXStep             = "src_x_step";
+constexpr static const char* WaveOpKey_SrcYNum              = "src_y_num";
+constexpr static const char* WaveOpKey_SrcYStep             = "src_y_step";
+constexpr static const char* WaveOpKey_SrcZNum              = "src_z_num";
+constexpr static const char* WaveOpKey_SrcZStep             = "src_z_step";
 
 constexpr static const char* WaveOpKey_TileId               = "tile_id";
 constexpr static const char* WaveOpKey_TileIdFormat         = "tile_id_format";
@@ -171,14 +171,14 @@ constexpr static const char* WaveOpKey_SrcAPsumBankId       = "src_a_psum_bank_i
 constexpr static const char* WaveOpKey_SrcAPsumBankOffset   = "src_a_psum_bank_offset";
 constexpr static const char* WaveOpKey_SrcASbAddress        = "src_a_sb_address";
 constexpr static const char* WaveOpKey_SrcAStartAtMidPart        = "src_a_start_at_mid_part";
-constexpr static const char* WaveOpKey_SrcAWNum	            = "src_a_w_num";
-constexpr static const char* WaveOpKey_SrcAWStep	        = "src_a_w_step";
-constexpr static const char* WaveOpKey_SrcAXNum	            = "src_a_x_num";
-constexpr static const char* WaveOpKey_SrcAXStep	        = "src_a_x_step";
-constexpr static const char* WaveOpKey_SrcAYNum	            = "src_a_y_num";
-constexpr static const char* WaveOpKey_SrcAYStep	        = "src_a_y_step";
-constexpr static const char* WaveOpKey_SrcAZNum	            = "src_a_z_num";
-constexpr static const char* WaveOpKey_SrcAZStep	        = "src_a_z_step";
+constexpr static const char* WaveOpKey_SrcAWNum             = "src_a_w_num";
+constexpr static const char* WaveOpKey_SrcAWStep            = "src_a_w_step";
+constexpr static const char* WaveOpKey_SrcAXNum             = "src_a_x_num";
+constexpr static const char* WaveOpKey_SrcAXStep            = "src_a_x_step";
+constexpr static const char* WaveOpKey_SrcAYNum             = "src_a_y_num";
+constexpr static const char* WaveOpKey_SrcAYStep            = "src_a_y_step";
+constexpr static const char* WaveOpKey_SrcAZNum             = "src_a_z_num";
+constexpr static const char* WaveOpKey_SrcAZStep            = "src_a_z_step";
 
 constexpr static const char* WaveOpKey_InBDtype             = "in_b_dtype";
 constexpr static const char* WaveOpKey_SrcBIsPsum           = "src_b_is_psum";
@@ -186,19 +186,19 @@ constexpr static const char* WaveOpKey_SrcBPsumBankId       = "src_b_psum_bank_i
 constexpr static const char* WaveOpKey_SrcBPsumBankOffset   = "src_b_psum_bank_offset";
 constexpr static const char* WaveOpKey_SrcBSbAddress        = "src_b_sb_address";
 constexpr static const char* WaveOpKey_SrcBStartAtMidPart        = "src_b_start_at_mid_part";
-constexpr static const char* WaveOpKey_SrcBWNum	            = "src_b_w_num";
-constexpr static const char* WaveOpKey_SrcBWStep	        = "src_b_w_step";
-constexpr static const char* WaveOpKey_SrcBXNum	            = "src_b_x_num";
-constexpr static const char* WaveOpKey_SrcBXStep	        = "src_b_x_step";
-constexpr static const char* WaveOpKey_SrcBYNum	            = "src_b_y_num";
-constexpr static const char* WaveOpKey_SrcBYStep	        = "src_b_y_step";
-constexpr static const char* WaveOpKey_SrcBZNum	            = "src_b_z_num";
-constexpr static const char* WaveOpKey_SrcBZStep	        = "src_b_z_step";
+constexpr static const char* WaveOpKey_SrcBWNum             = "src_b_w_num";
+constexpr static const char* WaveOpKey_SrcBWStep            = "src_b_w_step";
+constexpr static const char* WaveOpKey_SrcBXNum             = "src_b_x_num";
+constexpr static const char* WaveOpKey_SrcBXStep            = "src_b_x_step";
+constexpr static const char* WaveOpKey_SrcBYNum             = "src_b_y_num";
+constexpr static const char* WaveOpKey_SrcBYStep            = "src_b_y_step";
+constexpr static const char* WaveOpKey_SrcBZNum             = "src_b_z_num";
+constexpr static const char* WaveOpKey_SrcBZStep            = "src_b_z_step";
 
 constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
 constexpr static const char* WaveOpKey_Engine               = "engine";
 
-constexpr static const char* WaveOpKey_Multiply	            = "multiply";   /* Hack in ResAdd to get Multiply to work with old ISA */
+constexpr static const char* WaveOpKey_Multiply             = "multiply";   /* Hack in ResAdd to get Multiply to work with old ISA */
 
 
 
@@ -345,17 +345,17 @@ public:
     kcc_int64                   m_DstSbAddress      = -1;
     bool                        m_DstStartAtMidPart = false;
     kcc_int32                   m_DstXNum           = -1;
-    kcc_int32                   m_DstXStep	        = -1;
-    kcc_int32                   m_DstYNum	        = -1;
-    kcc_int32                   m_DstYStep	        = -1;
-    kcc_int32                   m_DstZNum	        = -1;
-    kcc_int32                   m_DstZStep	        = -1;
+    kcc_int32                   m_DstXStep          = -1;
+    kcc_int32                   m_DstYNum           = -1;
+    kcc_int32                   m_DstYStep          = -1;
+    kcc_int32                   m_DstZNum           = -1;
+    kcc_int32                   m_DstZStep          = -1;
     std::string                 m_InDtype           = "";
     std::string                 m_BiasDtype         = "";
     // "layername": "1conv/i1",
     kcc_int32                   m_NumPartitions     = -1;
     std::string                 m_OutDtype          = "";
-    kcc_int32                   m_PoolFrequency	    = -1;
+    kcc_int32                   m_PoolFrequency     = -1;
     std::string                 m_PoolFunc          = "";
 
     // previouswaveops": [ 1conv/i1/MatMuln0m0h0w0c0r0s0" ]
@@ -364,14 +364,14 @@ public:
     kcc_int32                   m_SrcPsumBankOffset = -1;
     kcc_int64                   m_SrcSbAddress      = -1;
     bool                        m_SrcStartAtMidPart = false;
-    kcc_int32                   m_SrcWNum	        = -1;
-    kcc_int32                   m_SrcWStep	        = -1;
-    kcc_int32                   m_SrcXNum	        = -1;
-    kcc_int32                   m_SrcXStep	        = -1;
-    kcc_int32                   m_SrcYNum	        = -1;
-    kcc_int32                   m_SrcYStep	        = -1;
-    kcc_int32                   m_SrcZNum	        = +1;
-    kcc_int32                   m_SrcZStep	        = +1;
+    kcc_int32                   m_SrcWNum           = -1;
+    kcc_int32                   m_SrcWStep          = -1;
+    kcc_int32                   m_SrcXNum           = -1;
+    kcc_int32                   m_SrcXStep          = -1;
+    kcc_int32                   m_SrcYNum           = -1;
+    kcc_int32                   m_SrcYStep          = -1;
+    kcc_int32                   m_SrcZNum           = +1;
+    kcc_int32                   m_SrcZStep          = +1;
 
     std::string                 m_InADtype           = "";
     bool                        m_SrcAIsPsum            = true;
@@ -379,14 +379,14 @@ public:
     kcc_int32                   m_SrcAPsumBankOffset    = -1;
     kcc_int64                   m_SrcASbAddress         = -1;
     bool                        m_SrcAStartAtMidPart    = false;
-    kcc_int32                   m_SrcAWNum	            = -1;
-    kcc_int32                   m_SrcAWStep	            = -1;
-    kcc_int32                   m_SrcAXNum	            = -1;
-    kcc_int32                   m_SrcAXStep	            = -1;
-    kcc_int32                   m_SrcAYNum	            = -1;
-    kcc_int32                   m_SrcAYStep	            = -1;
-    kcc_int32                   m_SrcAZNum	            = -1;
-    kcc_int32                   m_SrcAZStep	            = -1;
+    kcc_int32                   m_SrcAWNum              = -1;
+    kcc_int32                   m_SrcAWStep             = -1;
+    kcc_int32                   m_SrcAXNum              = -1;
+    kcc_int32                   m_SrcAXStep             = -1;
+    kcc_int32                   m_SrcAYNum              = -1;
+    kcc_int32                   m_SrcAYStep             = -1;
+    kcc_int32                   m_SrcAZNum              = -1;
+    kcc_int32                   m_SrcAZStep             = -1;
 
     std::string                 m_InBDtype           = "";
     bool                        m_SrcBIsPsum            = true;
@@ -394,14 +394,14 @@ public:
     kcc_int32                   m_SrcBPsumBankOffset    = -1;
     kcc_int64                   m_SrcBSbAddress         = -1;
     bool                        m_SrcBStartAtMidPart    = false;
-    kcc_int32                   m_SrcBWNum	            = -1;
-    kcc_int32                   m_SrcBWStep	            = -1;
-    kcc_int32                   m_SrcBXNum	            = -1;
-    kcc_int32                   m_SrcBXStep	            = -1;
-    kcc_int32                   m_SrcBYNum	            = -1;
-    kcc_int32                   m_SrcBYStep	            = -1;
-    kcc_int32                   m_SrcBZNum	            = -1;
-    kcc_int32                   m_SrcBZStep	            = -1;
+    kcc_int32                   m_SrcBWNum              = -1;
+    kcc_int32                   m_SrcBWStep             = -1;
+    kcc_int32                   m_SrcBXNum              = -1;
+    kcc_int32                   m_SrcBXStep             = -1;
+    kcc_int32                   m_SrcBYNum              = -1;
+    kcc_int32                   m_SrcBYStep             = -1;
+    kcc_int32                   m_SrcBZNum              = -1;
+    kcc_int32                   m_SrcBZStep             = -1;
 
     std::vector<kcc_int32>      m_TileId;
     std::string                 m_TileIdFormat          = "";
@@ -417,7 +417,7 @@ public:
     kcc_int32                   m_DstPsumBankId     = -1;
     kcc_int32                   m_DstPsumBankOffset = -1;
     //kcc_int32                   m_SrcPsumBankId     = -1;
-    
+
     bool                        m_Multiply          = false;    /* Hack in ResAdd to get Multiply to work with old ISA */
 
     // MatMul and SbAtomLoad

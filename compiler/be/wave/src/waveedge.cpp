@@ -66,9 +66,9 @@ WaveEdge::qNeedToSync() const
     // Save -> Load: We save data from one region of memory and load different data in
     // the same region => Load has to wait until Save is done.
     //
-    // Load -> Load: Suppose we load weights for one layer, and then want to overwrite 
+    // Load -> Load: Suppose we load weights for one layer, and then want to overwrite
     // the same memory with other weights. Since the first weights are already in DRAM
-    // (they were loaded from DRAM), we don't need to save 
+    // (they were loaded from DRAM), we don't need to save
     //
     if (prevWaveop->qSbAtomWaveOp()) {
         return true;

@@ -1,6 +1,6 @@
 ########################################################
 MODULE:=serialize
-MODS := $(MODULE) utils 
+MODS := $(MODULE) utils
 
 ########################################################
 FILES := layer waveop waveop_load waveop_save

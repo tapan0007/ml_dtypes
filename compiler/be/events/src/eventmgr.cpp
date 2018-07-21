@@ -67,7 +67,7 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
         const EventId evtId = prevWaveEdge->gEventId();
         const wave::WaveOp* const precWaveop = prevWaveEdge->gFromOp();
         Assert(!precWaveop->qNopWaveOp(),
-            "Non-nop waveop ", waveop->gName(), " has incomiing nop-waveop ", precWaveop->gName()); 
+            "Non-nop waveop ", waveop->gName(), " has incomiing nop-waveop ", precWaveop->gName());
         m_EventState.mvFromInFlightToCompleted(evtId);
     }
 }
@@ -151,7 +151,7 @@ EventMgr::mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
  * Events change state from Available -> InFlight -> Completed -> Available
  * 1. Available -> InFlight  This change occurs when the beginning of an
  *    edge is encountered and the event is assigned to the edge.
- * 2. InFlight -> Completed  This change occurs when the wavegraph sequence 
+ * 2. InFlight -> Completed  This change occurs when the wavegraph sequence
  *    encounteres the end of an edge with the event.
  * 3. Completed -> Available This change occurs when a barrier is set
  *    All events on the edges that are completed have been consumed
@@ -452,7 +452,7 @@ EventMgr::EventState::init()
 {
     clearAll();
 
-    for (EventId eventId = ReservedEvent_FirstNonReserved; 
+    for (EventId eventId = ReservedEvent_FirstNonReserved;
          eventId <= EventId_LastNonReserved(); ++eventId)
     {
         addAvailable(eventId);

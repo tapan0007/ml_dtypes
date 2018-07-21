@@ -3,7 +3,7 @@ COMPILER := g++
 
 ########################################################
 WARNING_OPTS := -ansi -W -Wall -Werror -pedantic -pedantic-errors -Wno-missing-field-initializers -Wparentheses -Wno-enum-compare
-## -Wdangling-else 
+## -Wdangling-else
 
 ########################################################
 LINK_OPTS := $(WARNING_OPTS) -g -ggdb -std=c++14
@@ -22,7 +22,7 @@ COMPILER_BE := $(KAENA_PATH)/compiler/be
 ISA     := $(ARCH_ISA_PATH)
 HAL     := $(ARCH_ARTIFACTS_PATH)
 
-ISA_INC := -I$(ISA)/common -I$(ISA)/tpb 
+ISA_INC := -I$(ISA)/common -I$(ISA)/tpb
 HAL_INC := -I$(HAL)
 
 CINC := $(CEREAL_INC) $(ISA_INC) $(HAL_INC) -I./inc -I$(COMPILER_BE)

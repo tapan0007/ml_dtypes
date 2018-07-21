@@ -193,11 +193,11 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
         dmaBlock.addTailEventId(eventId);
     }
     //************************************************************************
-    // Incoming events were processed in 
+    // Incoming events were processed in
     // WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(),
     // so processing them again in processIncomingEdgesForceWait is wrong.
     // The event on the chosen pred edge is replaced by sequential execution of
-    // the previous waveop and TRIGGER. 
+    // the previous waveop and TRIGGER.
     //
     // Of non-chosen pred edges, one of the Waits can be implemented as embedded.
     // The current code does not do that yet.
@@ -227,7 +227,7 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
         std::ostringstream oss;
         if (succEventIds.size() > 0)
             oss << sbAtomSaveWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomSaveWaveop->gName();
-        else        
+        else
             oss << sbAtomSaveWaveop->gOrder() << ":-1" << "-" << sbAtomSaveWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }

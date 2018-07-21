@@ -395,7 +395,7 @@ DmaDescription::writeDefinitions()
         {
             json varDesc;
             varDesc["type"] = "state-buffer";
-            jVars["$SB"] = varDesc; 
+            jVars["$SB"] = varDesc;
         }
 
 

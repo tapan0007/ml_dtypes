@@ -230,8 +230,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 prevLayers.push_back(prevLayer);
             }
             layer = new layers::BiasAddLayer(params, fmap_desc, prevLayers);
-        } else if (serLayer.gTypeStr() == LayerTypeStr_StridedSlice 
-                || serLayer.gTypeStr() == LayerTypeStr_Unstack 
+        } else if (serLayer.gTypeStr() == LayerTypeStr_StridedSlice
+                || serLayer.gTypeStr() == LayerTypeStr_Unstack
                 || serLayer.gTypeStr() == LayerTypeStr_Sigmoid) {   // FIXME: placeholder
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);

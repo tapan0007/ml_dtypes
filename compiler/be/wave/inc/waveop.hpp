@@ -103,7 +103,7 @@ public:
     virtual EngineId gEngineId() const = 0;
 
     virtual std::string gTypeStr() const = 0;
-    
+
     virtual WaveOpType gType() const = 0;
 
     //----------------------------------------------------------------

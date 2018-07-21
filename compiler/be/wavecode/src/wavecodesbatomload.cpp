@@ -171,7 +171,7 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveO
 
         {
             std::ostringstream oss;
-            oss << sbAtomLoadWaveOp->gOrder() << "-" 
+            oss << sbAtomLoadWaveOp->gOrder() << "-"
                 << sbAtomLoadWaveOp->gName()  << "-" << partIdx;
             m_WaveCode.SaveName(dramToStateBufInstr, oss.str().c_str());
         }
@@ -186,7 +186,7 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveO
 
 //************************************************************************
 void
-WaveCodeSbAtomLoad::setInstructionEvents(compisa::SimMemCpyInstr& dramToStateBufInstr, bool first, bool last, 
+WaveCodeSbAtomLoad::setInstructionEvents(compisa::SimMemCpyInstr& dramToStateBufInstr, bool first, bool last,
                     events::EventId waitEventId, events::EventWaitMode waitEventMode,
                     events::EventId setEventId, events::EventSetMode setEventMode)
 {
@@ -270,10 +270,9 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     const kcc_uint32     srcStepElem         = sbAtomLoadWaveop->gSrcStepElem();
     const kcc_uint32     numActiveParts      = sbAtomLoadWaveop->gIfmapCount();
     const kcc_uint32     ifmapReplNumRows    = sbAtomLoadWaveop->gIfmapReplicationNumRows();
-    const TpbAddress    partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
+    const TpbAddress     partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
 
-    const TongaAddress  sbPartStep          = stateBuf.gEntryTongaAddress(1, 0)
-                                              - stateBuf.gEntryTongaAddress(0, 0);
+    const TongaAddress  sbPartStep          = stateBuf.gEntryTongaAddress(1, 0) - stateBuf.gEntryTongaAddress(0, 0);
 
     if (qWeights) {
         Assert(1 == srcStepElem, "Load weights should have stride 1 in replication");
@@ -319,9 +318,15 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         const kcc_uint32 strideNumBytes      = partStepBytes / stride;
         Assert(strideNumBytes * stride == partStepBytes, "Part step bytes not divisible by stride");
 
-        dramToStateBufInstr.nbytes   = numBytesPerPart;
+        const utils::TensorParams tensorParams(sbAtomLoadWaveop->gRefFileShape(),
+                                               sbAtomLoadWaveop->gRefFileFormat().c_str());
+        kcc_uint64 inputSize = dtype.gSizeInBytes();
+        for (auto n : tensorParams) {
+            inputSize *= n;
+        }
 
-        TongaAddress    fileGroupAddress    = sbAtomLoadWaveop->gOffsetInFile();
+        const TongaAddress    fileStartAddress  = sbAtomLoadWaveop->gOffsetInFile();
+        TongaAddress    fileGroupAddress    = fileStartAddress;
         TongaAddress    sbGroupTongaAddress = stateBuf.gEntryTongaAddress(startPart, addressInPart);
 
         kcc_int32 activePartCnt = startPart;
@@ -329,29 +334,55 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
             TongaAddress sbTongaAddress = sbGroupTongaAddress;
 
             for (kcc_uint32 strideIdx = 0; strideIdx < stride; ++strideIdx) {
-                const kcc_int32 strideOffset = strideIdx * strideNumBytes;  // {0,1}*(105340/2)
+                const kcc_uint64 strideOffset = strideIdx * strideNumBytes;  // {0,1}*(105340/2)
                 for (kcc_uint32 c_idx = 0; c_idx < numChans; ++c_idx) {
                     const TongaAddress chanOffset = c_idx * partStepBytes;  // {0,1,2}*105340
 
                     const bool first = startPart == activePartCnt && 0 == strideIdx && 0 == c_idx;
                     const bool last = activePartCnt + ifmapReplNumRows >= startPart + numActiveParts
                                       && stride-1 == strideIdx && numChans-1 == c_idx;
-                    setInstructionEvents(dramToStateBufInstr, first, last, 
+                    setInstructionEvents(dramToStateBufInstr, first, last,
                             waitEventId, waitEventMode, setEventId, setEventMode);
 
                     const TongaAddress filePartAddress = fileGroupAddress + chanOffset + strideOffset;
 
-                    dramToStateBufInstr.src_addr = npyFileDramOffset + filePartAddress;
-                    dramToStateBufInstr.dst_addr = sbTongaAddress;
-                    {
-                        std::ostringstream oss;
-                        oss << sbAtomLoadWaveop->gOrder()
-                            << "-"  << sbAtomLoadWaveop->gName()
-                            << "-p" << (activePartCnt + strideIdx*numChans + c_idx)
-                            << "s"  << strideIdx << "c"  << c_idx;
-                        m_WaveCode.SaveName(dramToStateBufInstr, oss.str().c_str());
+                    if (filePartAddress < inputSize) {
+                        kcc_int64 numBytesToWrite;
+                        if (filePartAddress + numBytesPerPart <= inputSize) {
+                            numBytesToWrite = numBytesPerPart;
+                        } else {
+                            numBytesToWrite = inputSize - filePartAddress;
+                            if (true) {
+                                std::cout << "Trimming SbAtomLoad:\n"
+                                        << "    input size: " << inputSize << "\n"
+                                        << "    file address: " << filePartAddress << "\n"
+                                        << "    num bytes per part (requested): " << numBytesPerPart << "\n"
+                                        << "    num bytes to write: " << numBytesToWrite << "\n"
+                                        << "    part: " << activePartCnt << "\n"
+                                        << "    stride idx: " << strideIdx << "\n"
+                                        << "    chan idx: " << c_idx << "\n"
+                                        ;
+                                std::cout << "    Fmap tensor: ";
+                                for (auto n : tensorParams) {
+                                    std::cout << n << " ";
+                                }
+                                std::cout << "\n";
+                            }
+                        }
+                        dramToStateBufInstr.nbytes   = numBytesToWrite;
+
+                        dramToStateBufInstr.src_addr = npyFileDramOffset + filePartAddress;
+                        dramToStateBufInstr.dst_addr = sbTongaAddress;
+                        {
+                            std::ostringstream oss;
+                            oss << sbAtomLoadWaveop->gOrder()
+                                << "-"  << sbAtomLoadWaveop->gName()
+                                << "-p" << (activePartCnt + strideIdx*numChans + c_idx)
+                                << "s"  << strideIdx << "c"  << c_idx;
+                            m_WaveCode.SaveName(dramToStateBufInstr, oss.str().c_str());
+                        }
+                        m_WaveCode.writeInstruction(dramToStateBufInstr);
                     }
-                    m_WaveCode.writeInstruction(dramToStateBufInstr);
 
                     sbTongaAddress += sbPartStep;
                 }
@@ -364,7 +395,7 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     }
 
     processOutgoingEdgesAlreadyEmb(sbAtomLoadWaveop, setEventId);
-}
+} // WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 
 
 
@@ -485,11 +516,11 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
         dmaBlock.addTailEventId(eventId);
     }
     //************************************************************************
-    // Incoming events were processed in 
+    // Incoming events were processed in
     // WaveCodeSbAtomLoad::findSuccEventsAndChosenEngine(),
     // so processing them again in processIncomingEdgesForceWait is wrong.
     // The event on the chosen pred edge is replaced by sequential execution of
-    // the previous waveop and TRIGGER. 
+    // the previous waveop and TRIGGER.
     //
     // Of non-chosen pred edges, one of the Waits can be implemented as embedded.
     // The current code does not do that yet.
@@ -505,7 +536,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     addDmaBarrier(chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    strncpy(dmaTriggerInstr.dma_queue_name, 
+    strncpy(dmaTriggerInstr.dma_queue_name,
             dmaBlock.gSymbolicQueueName(chosenEngId).c_str(),
             ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
     dmaTriggerInstr.use_raw_count = 0; // get from JSON
@@ -544,6 +575,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     Assert(m_WaveCode.qBinFileRuntimeKelf(), "Must be binary for Runtime Kelf");
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
+    const utils::DataType& dataType(sbAtomLoadWaveop->gDataType());
     //************************************************************************
     //const kcc_int64 numPartitions   = sbAtomLoadWaveop->gIfmapCount();
     //const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
@@ -570,34 +602,74 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     //************************************************************************
     kelf::DmaDescription::DmaBlockInput& dmaBlock(kelfDma.startNewDmaBlockInput(oss.str().c_str()));
     {
-        const TpbAddress    sbPartStep = stateBuf.gEntryTpbAddress(1, addressInPart) - stateBuf.gEntryTpbAddress(0, addressInPart);
-        const kcc_int32 numInChans = replResolution / replStepElem;
-        Assert(numInChans*replStepElem == replResolution,
-                "Num in channels (", numInChans, ") * stride (", replStepElem, 
+        const TongaAddress sbPartStep = stateBuf.gEntryTpbAddress(1, 0) - stateBuf.gEntryTpbAddress(0, 0);
+        const kcc_int32 stride       = replStepElem;
+        const kcc_int32 numInChans    = replResolution / stride;
+        Assert(numInChans*stride == replResolution,
+                "Num in channels (", numInChans, ") * stride (", stride,
                 ") != Replication resolution (", replResolution, ")");
+        const TongaAddress  partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
+        const kcc_uint32 strideNumBytes      = partStepBytes / stride;
+        Assert(strideNumBytes * stride == partStepBytes, "Part step bytes not divisible by stride");
 
         const kcc_int32     numBytesPerPart     = sbAtomLoadWaveop->gLength();
-        const TongaAddress  partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
-        TongaAddress        fileGroupAddress    = sbAtomLoadWaveop->gOffsetInFile();
-        TpbAddress          sbGroupTpbAddress   = stateBuf.gEntryTpbAddress(startPart, addressInPart);
+
+        const TongaAddress    fileStartAddress  = sbAtomLoadWaveop->gOffsetInFile();
+        TongaAddress    fileGroupAddress    = fileStartAddress;
+        TpbAddress    sbGroupTpbAddress = stateBuf.gEntryTpbAddress(startPart, addressInPart);
 
         // assume that H*W*dtypeSize == partStepBytes since when replication there is no input chan folding
-        kcc_int32 activePartCnt = 0;
-        while (activePartCnt < numActiveParts) {
+
+        //const std::array<kcc_int32,4>& refFileShape(sbAtomLoadWaveop->gRefFileShape());
+        const utils::TensorParams tensorParams(sbAtomLoadWaveop->gRefFileShape(),
+                                               sbAtomLoadWaveop->gRefFileFormat().c_str());
+
+        kcc_uint64 inputSize = dataType.gSizeInBytes();
+        for (auto n : tensorParams) {
+            inputSize *= n;
+        }
+        kcc_int32 activePartCnt = startPart;
+
+        while (activePartCnt < startPart + numActiveParts) {
             TpbAddress sbTpbAddress = sbGroupTpbAddress;
-            TongaAddress fileAddress = fileGroupAddress;
-            for (kcc_int32 strideIdx = 0; strideIdx < replStepElem; ++strideIdx) {
-                const TongaAddress strideFileOffset = (partStepBytes/replStepElem) * strideIdx;
-                for (kcc_int32 chanIdx = 0; chanIdx < numInChans; ++chanIdx) {
-                    TongaAddress chanOffset = chanIdx * partStepBytes;
-                    TongaAddress filePartAddress = fileAddress + chanOffset + strideFileOffset;
-                    dmaBlock.addDmaDesc(filePartAddress, sbTpbAddress, numBytesPerPart);
+
+            for (kcc_int32 strideIdx = 0; strideIdx < stride; ++strideIdx) {
+                const kcc_uint64 strideOffset = strideIdx * strideNumBytes;  // {0,1}*(105340/2)
+                for (kcc_int32 c_idx = 0; c_idx < numInChans; ++c_idx) {
+                    const TongaAddress chanOffset = c_idx * partStepBytes;  // {0,1,2}*105340
+
+                    const TongaAddress filePartAddress = fileGroupAddress + chanOffset + strideOffset;
+                    if (filePartAddress < inputSize) {
+                        kcc_int64 numBytesToWrite;
+                        if (filePartAddress + numBytesPerPart <= inputSize) {
+                            numBytesToWrite = numBytesPerPart;
+                        } else {
+                            numBytesToWrite = inputSize - filePartAddress;
+                            if (true) {
+                                std::cout << "Trimming SbAtomLoad:\n"
+                                        << "    input size: " << inputSize << "\n"
+                                        << "    file address: " << filePartAddress << "\n"
+                                        << "    num bytes per part (requested): " << numBytesPerPart << "\n"
+                                        << "    num bytes to write: " << numBytesToWrite << "\n"
+                                        << "    part: " << activePartCnt << "\n"
+                                        << "    stride idx: " << strideIdx << "\n"
+                                        << "    chan idx: " << c_idx << "\n"
+                                        ;
+                                std::cout << "    Fmap tensor: ";
+                                for (auto n : tensorParams) {
+                                    std::cout << n << " ";
+                                }
+                                std::cout << "\n";
+                            }
+                        }
+                        dmaBlock.addDmaDesc(filePartAddress, sbTpbAddress, numBytesToWrite);
+                    }
                     sbTpbAddress += sbPartStep;
                 }
             }
-            activePartCnt       += ifmapReplNumRows;
-            fileGroupAddress    += ifmapReplStepBytes;
-            sbGroupTpbAddress   += ifmapReplNumRows * sbPartStep;
+            fileGroupAddress    += ifmapReplStepBytes;              // += 230  (in the 1st layer of RN50)
+            sbGroupTpbAddress += ifmapReplNumRows * sbPartStep;   // += 21*128k  (in the 1st layer of RN50)
+            activePartCnt       += ifmapReplNumRows;                // += 21  (in the 1st layer of RN50)
         }
     }
 
@@ -634,7 +706,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     //************************************************************************
     addDmaBarrier(chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    strncpy(dmaTriggerInstr.dma_queue_name, 
+    strncpy(dmaTriggerInstr.dma_queue_name,
             dmaBlock.gSymbolicInputQueueName().c_str(),
             ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
     dmaTriggerInstr.use_raw_count = 0; // get from JSON
@@ -654,7 +726,8 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
-}
+} // WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
+
 
 //======================================================================
 void
@@ -693,7 +766,7 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     }
 
     //************************************************************************
-    events::EventId waitEventId = 0; // does not matter which one, but 
+    events::EventId waitEventId = 0; // does not matter which one, but
     events::EventWaitMode waitMode = events::EventWaitMode::DontWait;
     switch (chosenEngId) {
     case EngineId::Pooling:
@@ -721,7 +794,7 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     //************************************************************************
     addDmaBarrier(chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    strncpy(dmaTriggerInstr.dma_queue_name, 
+    strncpy(dmaTriggerInstr.dma_queue_name,
             dmaBlock.gSymbolicInputQueueName().c_str(),
             ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
     dmaTriggerInstr.use_raw_count = 0; // get from JSON
@@ -742,10 +815,10 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
-}
+} // WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
 
 //======================================================================
-// If ifmap_replication_resolution = 2 * 3 (stride * C, where C is # channels), and contains_weights=False, and src_step_elem=2 (stride) 
+// If ifmap_replication_resolution = 2 * 3 (stride * C, where C is # channels), and contains_weights=False, and src_step_elem=2 (stride)
 // (only applicable when contains_weights=False), perform:
 // 1- sim_dma_copy 3 channels (C) starting at offset_in_file to sb_address (src_step_elem=2 indicates even indices)
 // 2- sim_dma_copy 3 channels (C) starting at offset_in_file + 2 bytes (2 bytes for 1 float16 element), to sb_address for channels following #1 (odd indices)
@@ -755,10 +828,10 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 // (we can generalize this better; in particular, stop as soon as number of channels copied so far >= ifmap_count which is number of active rows)
 // (2bytes indicates data item size for float16)
 //======================================================================
-// 
+//
 // If ifmap_replication_resolution= 3 (C, maybe assert), and contains_weights=True (src_step_elem should be 1 here, but not used, weights do not have stride), perform:
 // 1- sim_dma_copy ifmap_replication_resolution channels (C) starting at offset_in_file to sb_address
-// 2a- increment sb_address by ifmap_replication_resolution * SB partition size (ifmaps_replication_num_rows is 3 also, different from above, so can also 
+// 2a- increment sb_address by ifmap_replication_resolution * SB partition size (ifmaps_replication_num_rows is 3 also, different from above, so can also
 //     use it instead of ifmap_replication_resolution)
 // 2b- increment offset_in_file by ifmap_replication_step_bytes (equals M, maybe assert)
 // 3-  if number of channels copied so far < ifmap_count, goto #1
@@ -783,16 +856,17 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
     //const kcc_int32 dtypeSize = dataType.gSizeInBytes();
 
    //************************************************************************
-    const kcc_int64 addressInPart   = sbAtomLoadWaveop->gSbAddress();
-    const kcc_int64 startPart       = sbAtomLoadWaveop->gStartAtMidPart()
-                                        ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
-    const bool      qWeights        = sbAtomLoadWaveop->qContainWeights();
+    const kcc_int64 addressInPart       = sbAtomLoadWaveop->gSbAddress();
+    const kcc_int64 startPart           = sbAtomLoadWaveop->gStartAtMidPart()
+                                            ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
+    const bool      qWeights            = sbAtomLoadWaveop->qContainWeights();
 
     const kcc_int32 replResolution      = sbAtomLoadWaveop->gIfmapReplicationResolution();
     const kcc_int32 ifmapReplStepBytes  = sbAtomLoadWaveop->gIfmapReplicationStepBytes();
     const kcc_int32 replStepElem        = sbAtomLoadWaveop->gSrcStepElem();
     const kcc_int32 numActiveParts      = sbAtomLoadWaveop->gIfmapCount();
     const kcc_int32 ifmapReplNumRows    = sbAtomLoadWaveop->gIfmapReplicationNumRows();
+    const kcc_int64 numBytesPerPart     = sbAtomLoadWaveop->gLength();
 
     const std::string& refFileName(sbAtomLoadWaveop->gRefFileName());
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
@@ -803,17 +877,32 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
                                                     chosenEngId, qWeights, oss.str().c_str()));
     if (qWeights) {
         Assert(1 == replStepElem, "Load weights should have stride 1 in replication");
+        Assert(numBytesPerPart == ifmapReplStepBytes, "Replication step bytes should be equal to length");
+        const kcc_uint32 numChans    = replResolution;
+        const TpbAddress  partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
+        const TpbAddress  sbPartStep = stateBuf.gEntryTpbAddress(1, 0) - stateBuf.gEntryTpbAddress(0, 0);
 
-        for (kcc_int32 part = startPart; part < startPart + numActiveParts; ++part) {
-            const TongaAddress  fileAddress  = sbAtomLoadWaveop->gOffsetInFile() + part * ifmapReplStepBytes;
-            const TpbAddress    sbTpbAddress = stateBuf.gEntryTpbAddress(part, addressInPart);
-            dmaBlock.addDmaDesc(fileAddress, refFileName, sbTpbAddress, ifmapReplStepBytes);
+        TongaAddress fileAddress     = sbAtomLoadWaveop->gOffsetInFile();
+        TpbAddress   sbTpbAddress    = stateBuf.gEntryTpbAddress(startPart, addressInPart);
+
+        kcc_int32 part = startPart;
+        while (part < startPart + numActiveParts) {
+            for (kcc_uint32 c_idx = 0; c_idx < numChans; ++c_idx) {
+                const TongaAddress currFileAddress = fileAddress + c_idx * partStepBytes;
+                dmaBlock.addDmaDesc(currFileAddress, refFileName, sbTpbAddress, ifmapReplStepBytes);
+
+                sbTpbAddress += sbPartStep;   // += 128k
+                ++part;
+            }
+            fileAddress += ifmapReplStepBytes;  // += 128
         }
+
+
     } else {
         const TpbAddress    sbPartStep = stateBuf.gEntryTpbAddress(1, addressInPart) - stateBuf.gEntryTpbAddress(0, addressInPart);
         const kcc_int32 numInChans = replResolution / replStepElem;
         Assert(numInChans*replStepElem == replResolution,
-                "Num in channels (", numInChans, ") * stride (", replStepElem, 
+                "Num in channels (", numInChans, ") * stride (", replStepElem,
                 ") != Replication resolution (", replResolution, ")");
 
         const kcc_int32     numBytesPerPart     = sbAtomLoadWaveop->gLength();
@@ -850,7 +939,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
     addDmaBarrier(chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    strncpy(dmaTriggerInstr.dma_queue_name, 
+    strncpy(dmaTriggerInstr.dma_queue_name,
             dmaBlock.gSymbolicQueueName(chosenEngId).c_str(),
             ArraySizeof(dmaTriggerInstr.dma_queue_name) - 1);
     dmaTriggerInstr.use_raw_count = 0; // get from JSON
@@ -867,7 +956,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
-}
+} // WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
 
 
 

@@ -301,7 +301,7 @@ void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setI
     const auto& instruction(setInstr);
 #else
     compisa::NopInstr instruction;
-    // TONGA_ISA_TPB_INST_EVENTS 
+    // TONGA_ISA_TPB_INST_EVENTS
     instruction.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
     instruction.inst_events.wait_event_idx     = 0;
     instruction.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::OnEndInstr);

@@ -563,6 +563,13 @@ class Krt:
     return krtOk
   def inference(self, ifmap, ofmap):
     ifmapPath = os.path.realpath(ifmap)
+    # kaena-602: hack for testing one input file only; doesn't work for inferencing
+    ifmapPadSplitPath = ifmapPath[:-4] + "_padsplit.npy" 
+    if os.path.isfile(ifmapPadSplitPath):
+      print("qemu_rt: Replacing original npy input ", ifmapPath, " with padded input ", ifmapPadSplitPath)
+      ifmapPath = ifmapPadSplitPath
+    else:
+      print("qemu_rt: Using original npy input ", ifmapPath, " did not find padded input ", ifmapPadSplitPath)
     if self.qemu.rsyncToVm(ifmapPath, self.ifmapDir, "--copy-links"):
       self.qemu.sshCmd('pidofp=$(pidof kbin_rt); count=0; until [ -f %s/out.bin -o $count -gt %d ] || [ -z $pidofp ]; do sleep 1 ; pidofp=$(pidof kbin_rt); let count++; echo $count; done' % (self.ofmapDir, self.inklingTimeout))
 

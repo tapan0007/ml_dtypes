@@ -45,7 +45,7 @@ constexpr kcc_int32 KccMax3(kcc_int32 a, kcc_int32 b, kcc_int32 c)
     return a > b ? (a > c ? a : c)
                  : (b > c ? b : c);
 }
-                   
+
 
 enum {
     SET_EVENT_INVALID = 1 + std::max(TONGA_ISA_TPB_MODE_SET_NONE,
@@ -53,7 +53,7 @@ enum {
                                     TONGA_ISA_TPB_MODE_SET_ON_DONE_RD_SRC)),
 
     WAIT_EVENT_INVALID = 1 + std::max(TONGA_ISA_TPB_MODE_WAIT_NONE,
-                                std::max(TONGA_ISA_TPB_MODE_WAIT_FOR_SET, 
+                                std::max(TONGA_ISA_TPB_MODE_WAIT_FOR_SET,
                                     TONGA_ISA_TPB_MODE_WAIT_FOR_SET_THEN_CLEAR))
 };
 #endif
