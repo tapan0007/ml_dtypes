@@ -110,7 +110,7 @@ krtBldPath = os.environ["KRT_BLD_DIR"]
 kelfVmDirGlobal = "/tmp/reg-1"
 if args.zebu:
   krtBldPath = os.environ["KRT_EMU_BLD_DIR"]
-  kelfVmDirGlobal = "/media/sf_SharedFolder/reg-1"
+  #kelfVmDirGlobal = "/media/sf_SharedFolder/reg-1"
 if not os.path.isdir(krtBldPath):
   raise ValueError("ERROR: missing kaena runtime build")
 print("INFO: using runtime build  %s" % krtBldPath)
@@ -298,6 +298,7 @@ class Zebu(BePlat):
     sshOpt = "-o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null"
     self.sshCommand = 'ssh -n %s -i %s ' % (sshOpt, self.pemFile)
     self.cmdForRsync = 'rsync -av --progress -e "ssh %s -i %s"' % (sshOpt, self.pemFile)
+    #self.cmdForRsync = 'rsync --rsync-path "sudo rsync" -av --progress -e "ssh %s -i %s"' % (sshOpt, self.pemFile)
 
   def startTonga(self):
     # Boot Tonga
@@ -319,18 +320,25 @@ class Zebu(BePlat):
     self.fh.send("rune -ptcr\r")
     self.fh.expect("ZeBu")
     self.fh.expect("Design loaded successfully")
-    self.fh.expect("Init DRAM")
     try:
-      idx = self.fh.expect(["All ProxyXtors are ready to connect to the VM",
-                           "is already running for the same design"],
-                           timeout=120)
+      idx = self.fh.expect(["Init DRAM", "Test bench aborted"])
       if idx == 0:
-        print("INFO: started new Tonga")
+        print("INFO: Toga DRAM init ok")
+        try:
+          idx = self.fh.expect(["All ProxyXtors are ready to connect to the VM",
+                               "is already running for the same design"],
+                               timeout=120)
+          if idx == 0:
+            print("INFO: started new Tonga")
+          elif idx == 1:
+            print("INFO: recycled a Tonga")
+          tongaOk = True
+        except TIMEOUT:
+          print("ERROR: Try %d Zebu Tonga VM boot timeout out, psee log-zebu_tonga.txt" % self.restartId)
       elif idx == 1:
-        print("INFO: recycled a Tonga")
-      tongaOk = True
+        print("ERROR: Toga testbench aborted, see log-zebu_tonga.txt")
     except TIMEOUT:
-      print("ERROR: Try %d Zebu Tonga VM boot timeout out, please review log-zebu_tonga.txt" % self.restartId)
+      print("ERROR: Tonga DRAM init timed out, see log-zebu_tonga.txt" % self.restartId)
     
     if tongaOk:
       print("INFO: Zebu Tonga started", flush=True)
@@ -396,8 +404,9 @@ class Zebu(BePlat):
     # To unify with qemu flow
     self.fh1.send("mkdir -p %s; chown synopsys %s\r" % (krtVmPath, krtVmPath))
     self.fh1.expect("")
-    self.fh1.send("mkdir -p %s; chown synopsys %s\r" % (kelfVmDirGlobal, kelfVmDirGlobal))
-    self.fh1.expect("")
+    #  does NOT work on the Shared folder, replaed by sudo
+    #self.fh1.send("mkdir -p %s; chown synopsys %s\r" % (kelfVmDirGlobal, kelfVmDirGlobal))
+    #self.fh1.expect("")
 
     self.fh1.send("lspci -v\r")
     try:
