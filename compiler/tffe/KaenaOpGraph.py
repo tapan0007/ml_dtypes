@@ -542,7 +542,7 @@ class NodeBasePaddedStrided(Node):
   # Helper function to calculate padding in SAME mode given
   # stride, filter, image sizes
   @staticmethod
-  def calcSamePadding(S, R, H):
+  def calcSamePadding(S, R, H):        
     Ho = (H + S - 1) // S
     spacing = S - R  # negative spacing means overlap
     inPixels = Ho * R + (Ho - 1) * spacing
@@ -570,11 +570,18 @@ class NodeBasePaddedStrided(Node):
       # Stride 2 and up :
       #   Unified formula is based on uniform spacing (or overlap):
       #    Filter Spacing Filter ... Spacing Filter
-
-      (HoCalc, padNorth, padSouth) = NodeConv2D.calcSamePadding(Sv, R, Hi)
-      (WoCalc, padWest,  padEast)  = NodeConv2D.calcSamePadding(Sh, S, Wi)
-      assert Ho == HoCalc
-      assert Wo == WoCalc
+      if Ho <= Hi:  # conv
+        (HoCalc, padNorth, padSouth) = self.calcSamePadding(Sv, R, Hi)
+        assert Ho == HoCalc
+      else:  # conv transpose        
+        (HiCalc, padNorth, padSouth) = self.calcSamePadding(Sv, R, Ho)
+        assert Hi == HiCalc
+      if Wo <= Wi:  # conv
+        (WoCalc, padWest,  padEast)  = self.calcSamePadding(Sh, S, Wi)
+        assert Wo == WoCalc
+      else:   # conv transpose       
+        (WiCalc, padWest,  padEast)  = self.calcSamePadding(Sh, S, Wo)
+        assert Wi == WiCalc
     elif paddingMode == "VALID":
       # Valid mode should not have any padding so just assert on proper Fmap sizes
       #   assert Ho * Sv + R // 2 * 2 == Hi
@@ -715,9 +722,15 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
   def __init__(self, name, opType, attrs):
     super().__init__(name, opType, attrs)
 
+  # Return the 2 significant dimensions of batched multi channel IFMAP (of 2-D images)
+  def getIFmapImageSize(self):
+    (_, npInfoIF) = self.getInputNodesAndNpInfo()[2]
+    ifmapArr = self.dim2imgSize(npInfoIF.npShape)
+    return ifmapArr
+
   # Return the height and width dimensions of 2-D filter
   def getFilter2D(self):
-    ((fromOutShapeNode, npInfoS), (fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    (_, npInfoW) = self.getInputNodesAndNpInfo()[1]
     filterArr = npt.subShape(npInfoW.npShape, "RS", npt.TF, npt.Weights)
     return filterArr
 
@@ -726,7 +739,7 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
     fileList = []
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-    ((fromOutShapeNode, npInfoS), (fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    (_, (_, npInfoW), (fromIfNode, npInfoIF)) = self.getInputNodesAndNpInfo()
     tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.Weights))
     # OFMAP
     (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
@@ -757,7 +770,7 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
   def getWeightBytes(self):
     weightSizeBytes = 0
     if len(self.getNpInfo()) > 0:
-      ((fromOutShapeNode, npInfoS), (fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+      (_, npInfoW) = self.getInputNodesAndNpInfo()[1]
       weightSizeBytes = npInfoW.nbytes()
     return weightSizeBytes
   
@@ -768,7 +781,6 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
       dotText += "\n" + self.getName()
     if len(self.getNpInfo()) > 0:
       dotText += "\nStrides " + str(self.getStrides())
-      ((fromOutShapeNode, npInfoS), (fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
     else:
       dotText += "\n" + str(self.protoShape)
     return dotText

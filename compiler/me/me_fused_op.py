@@ -93,7 +93,7 @@ class FusedOp(list):
             else:
                 self.pool_op = op
                 self.has_pool = not self.pool_op.is_id_pool
-        elif (op.data['layer_type'] == 'Conv' or op.data['layer_type'] == 'MatMul' or op.data['layer_type'] == 'Softmax2'):
+        elif (op.data['layer_type'] == 'Conv' or op.data['layer_type'] == 'ConvTranspose' or op.data['layer_type'] == 'MatMul' or op.data['layer_type'] == 'Softmax2'):
             if (len(self) != 0):
                 if (self.args.debug > 2):
                     print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
@@ -424,7 +424,7 @@ class FusedOp(list):
         assert (batch_item < self.first_op.N)
         # Check conv fused op
         first_op_type = self.first_op.data['layer_type']
-        if (first_op_type == "Conv" or first_op_type == "MatMul"):
+        if (first_op_type == "Conv" or first_op_type == "ConvTranspose" or first_op_type == "MatMul"):
             results = self.execute_conv_ops(tpb, batch_item)
         elif (first_op_type == "AvgPool" or first_op_type == "MaxPool"):
             results = self.execute_unfused_pool_op(tpb, batch_item)
