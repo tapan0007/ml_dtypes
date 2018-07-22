@@ -145,7 +145,10 @@ class TfFe:
         add_attrs["tfop"] = tfop
         numOps += 1
         node = None
-        if (re.search("conv", tfop.op, re.I) != None):
+        if (re.search("Conv2DBackpropInput", tfop.op, re.I) != None):
+          numConv += 1
+          node = kog.NodeConv2DTranspose(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("conv", tfop.op, re.I) != None):
           numConv += 1
           node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeConv2D")

@@ -667,6 +667,74 @@ class NodeConv2D(NodeBasePaddedStrided):
     return True
 
 ###############################################################################
+# 2D transposed convolution (aka deconvolution)
+###############################################################################
+class NodeConv2DTranspose(NodeBasePaddedStrided):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Return the height and width dimensions of 2-D filter
+  def getFilter2D(self):
+    ((fromOutShapeNode, npInfoS), (fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    filterArr = npt.subShape(npInfoW.npShape, "RS", npt.TF, npt.Weights)
+    return filterArr
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+    ((fromOutShapeNode, npInfoS), (fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.Weights))
+    # OFMAP
+    (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    # WEIGHT
+    (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
+
+    fileList += [npFileSimW, npFileSim]
+    stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
+    padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
+    layerData = {
+      "layer_type"      : "ConvTranspose",
+      "kernel_file"     : npFileSimW,
+      "kernel_format"   : simFormatW,
+      "kernel_shape"    : tpbFilterShape,
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormatOF,
+      "ref_file"        : npFileSim,
+      "padding"         : padding,
+      "previous_layers" : [fromIfNode.getName()],
+      "stride"          : stride,
+      "#comment"        : "supported layer"
+    }
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+  
+  def getWeightBytes(self):
+    weightSizeBytes = 0
+    if len(self.getNpInfo()) > 0:
+      ((fromOutShapeNode, npInfoS), (fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+      weightSizeBytes = npInfoW.nbytes()
+    return weightSizeBytes
+  
+  # Node text for dot graph
+  def getDotText(self):
+    dotText = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      dotText += "\n" + self.getName()
+    if len(self.getNpInfo()) > 0:
+      dotText += "\nStrides " + str(self.getStrides())
+      ((fromOutShapeNode, npInfoS), (fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
+    else:
+      dotText += "\n" + str(self.protoShape)
+    return dotText
+
+  def isSupported(self):
+    return True
+
+###############################################################################
 # Max, Avg Pool
 ###############################################################################
 class NodePool(NodeBasePaddedStrided):
@@ -994,7 +1062,14 @@ class NodeReshape(Node):
     
     # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
-    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    if len(npInfo.npShape) == 4:
+      tfShape4D = npInfo.npShape
+    elif len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+    elif len(npInfo.npShape) == 2:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    else:
+      raise RuntimeError("Supported number of dimensions for Reshape's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
     
@@ -1474,10 +1549,14 @@ class Graph(Object):
     # Add subgraphs
     clusters = {}
     for n in sorted(self.getNodes(), key=lambda x: x.getName()):
-      clStrs = n.getName().split("/")
+      # depth negative means to squash top level
+      name = n.getName()
+      if depth < 0:
+        name = name.replace("/", "_", 1)
+      clStrs = name.split("/")
       c = clusters
       #for i in range(0, len(clStrs)):
-      for i in range(0, min(len(clStrs), depth)):
+      for i in range(0, min(len(clStrs), abs(depth))):
         if (c.get(clStrs[i]) == None):
           c[clStrs[i]] = {"nodes" : []}
         c = c[clStrs[i]]
