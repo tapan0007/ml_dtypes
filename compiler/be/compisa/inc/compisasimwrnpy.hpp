@@ -14,8 +14,9 @@
 namespace kcc {
 namespace compisa {
 
-inline void tonga_isa_tpb_sim_wrnpy_check_validity(const TONGA_ISA_TPB_SIM_WRNPY_INST*)
+inline TONGA_ISA_ERROR_CODE tonga_isa_tpb_sim_wrnpy_check_validity(const TONGA_ISA_TPB_SIM_WRNPY_INST*)
 {
+    return TONGA_ISA_ERR_CODE_SUCCESS;
 }
 
 using SimWrNpyInstr = InstrTempl<TONGA_ISA_TPB_SIM_WRNPY_INST,

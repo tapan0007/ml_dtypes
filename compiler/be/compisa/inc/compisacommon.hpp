@@ -7,6 +7,8 @@
 
 #include "aws_tonga_isa_tpb_common.h"
 
+#include "utils/inc/asserter.hpp"
+
 struct TONGA_ISA_TPB_INST_EVENTS;
 struct TONGA_ISA_TPB_INST_HEADER;
 
@@ -16,7 +18,8 @@ namespace compisa {
 
 using TongaTpbOpcode = TONGA_ISA_TPB_OPCODE;
 
-template<typename INSTR, TongaTpbOpcode opcode, void(*Checker)(const INSTR*)>
+
+template<typename INSTR, TongaTpbOpcode opcode, TONGA_ISA_ERROR_CODE (*Checker)(const INSTR*)>
 class InstrTempl : public INSTR {
 public:
     InstrTempl() : INSTR() {
@@ -32,7 +35,8 @@ public:
 
     void CheckValidity() const
     {
-        Checker(this);
+        const TONGA_ISA_ERROR_CODE errCode = Checker(this);
+        Assert(errCode == TONGA_ISA_ERR_CODE_SUCCESS, "Invalid instruction");
     }
 };
 
