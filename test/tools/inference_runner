@@ -49,13 +49,12 @@ def download_input_files(s3, bucket, test_id, offset, count):
         image_path = "{}/{}".format(img_dir, f)
         s3.Bucket(bucket).download_file(f, image_path)
         image_file_names.append(image_path)
-
     return working_dir, image_file_names
 
 
 def run_inference(test_id, kelf_dir, working_dir, file_names, result_sufix, s3, output_bucket):
     cmd = [
-        '/usr/bin/nn_executor',
+        'nn_executor',
         '--kelf_dir', kelf_dir,
         '--input_files', *file_names,
         '--working_dir', working_dir
@@ -92,13 +91,18 @@ def main():
     kaena_install = os.path.join(os.getcwd(), "kaena_install")
     print("install repo = {} using script {}".format(args.repo_name, kaena_install))
     run_command([kaena_install, "--repo-name", args.repo_name])
+    os.environ["PATH"] += ":/tmp/kaena_install_tmp/bin:/usr/bin"
+    try:
+        os.environ["PYTHONPATH"] += ":/tmp/kaena_install_tmp/lib/python3.5/site-packages"
+    except:
+        os.environ["PYTHONPATH"] = "/tmp/kaena_install_tmp/lib/python3.5/site-packages"
 
     kelf_dir = download_kelf(s3, args.output_bucket, args.test_id)
     print('Content of KELF directory:')
     run_command(["/bin/ls", kelf_dir])
     working_dir, input_files = download_input_files(s3, args.input_bucket, args.test_id,
                                                     args.offset, args.num)
-    suffix = "{}_to_{}".format(args.offset, args.num)
+    suffix = "{}_to_{}".format(args.offset, args.offset+args.num-1)
     run_inference(args.test_id, kelf_dir, working_dir, input_files, suffix, s3, args.output_bucket)
 
 

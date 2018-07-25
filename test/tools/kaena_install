@@ -26,7 +26,6 @@ s3 = session.client(
     service_name='s3',
     region_name='us-east-1')
 
-
 def main():
     log = '/tmp/log_kaena_installer.txt'
 
@@ -45,19 +44,6 @@ def main():
     tar.close()    
     
     print("Kaena_install: extracted tarball")
-
-    arch = platform.machine()
-
-    rpms = glob.glob("%s/%s/*.rpm" % (tmpPath, arch))
-   
-    print("installing rpms: ", rpms)
-    for rpm in rpms:
-        cmd = "rpm -ivh %s" % rpm
-        ret = os.system(cmd)
-        print("Kaena_install: ret %s for cmd %s" %(ret, cmd))
-        if ret != 0:
-            print("Kaena_install: max attempts, exiting")
-            sys.exit(-1)
 
 if __name__ == "__main__":
     main()

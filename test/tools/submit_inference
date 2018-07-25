@@ -112,7 +112,7 @@ class InferenceRequest(object):
         self.aws_cloudwatch = aws_session.client(service_name='logs', region_name='us-east-1')
         self.aws_s3 = aws_session.resource(service_name='s3', region_name='us-east-1')
 
-    def _submit_job(self, test_id, file_index, dry_run):
+    def _submit_job(self, test_id, file_index, dry_run, local_run):
         """ Submit a single inference job to amazon batch.
 
         :param test_id: unique id for this test session.
@@ -126,27 +126,37 @@ class InferenceRequest(object):
             print("dry run: executing: %s" % cmd)
             return
 
-        job_name = "{test_id}_{start}_to_{end}".format(test_id=test_id, start=file_index, end=file_index + self.batch_size)
+        job_name = "{test_id}_{start}_to_{end}".format(test_id=test_id, start=file_index, end=file_index + self.batch_size-1)
         logging.info('job name = %s' % job_name)
-        submitJobResponse = self.aws_batch.submit_job(
-            jobName=job_name,
-            jobQueue=self.job_queue,
-            jobDefinition=self.job_definition,
-            containerOverrides={
-                'command': cmd.split(),
-                'environment': [
-                    {'name': 'BATCH_FILE_TYPE',
-                     'value': 'zip'},
-                    {'name': 'BATCH_FILE_S3_URL',
-                     'value': 's3://%s/%s' % (self.output_bucket, os.path.join(test_id, S3_SCRIPT_FILE_NAME))}]
-            }
-        )
-        job_id = submitJobResponse['jobId']
-        self.job_ids.append(job_id)
-        self.job_names[job_id] = job_name
-        logging.info('Submitted job [%s - %s] to the job queue [%s]' % (job_name, job_id, self.job_queue))
+        if local_run:
+            os.environ["BATCH_FILE_TYPE"] = 'zip'
+            os.environ["BATCH_FILE_S3_URL"] = 's3://%s/%s' % (self.output_bucket, os.path.join(test_id, S3_SCRIPT_FILE_NAME))
+            logging.info('Running job %s' % job_name)
+            os.system('./%s' % (cmd))
+        else:
+            
+            submitJobResponse = self.aws_batch.submit_job(
+                jobName=job_name,
+                jobQueue=self.job_queue,
+                jobDefinition=self.job_definition,
+                containerOverrides={
+                    'memory': 1000,
+                    'command': cmd.split(),
+                    'environment': [
+                        {'name': 'BATCH_FILE_TYPE',
+                         'value': 'zip'},
+                        {'name': 'BATCH_FILE_S3_URL',
+                         'value': 's3://%s/%s' % (self.output_bucket, os.path.join(test_id, S3_SCRIPT_FILE_NAME))},
+                        {'name': 'INKLING_PATH',
+                         'value': '/tmp/kaena_install_tmp/bin'}]
+                }
+            )
+            job_id = submitJobResponse['jobId']
+            self.job_ids.append(job_id)
+            self.job_names[job_id] = job_name
+            logging.info('Submitted job [%s - %s] to the job queue [%s]' % (job_name, job_id, self.job_queue))
 
-    def submit_jobs(self, testid, file_limit, dry_run=False):
+    def submit_jobs(self, testid, file_limit, dry_run=False, local_run=False):
         """ Helper function to create multiple jobs.
         :param testid:
         :param dry_run:
@@ -165,15 +175,17 @@ class InferenceRequest(object):
         num_workers = min(math.ceil(file_count / self.batch_size), MAX_NUM_WORKERS)
         # input_file_count ~= batch_size
         input_file_count = math.ceil(self.batch_size / num_workers)
+        input_file_count = self.batch_size
 
         bar = Bar('Processing', max=num_workers)
         for worker_index in range(num_workers):
             file_index = input_file_count * worker_index
             if file_index > file_count:
                 break  # done
-            self._submit_job(testid, file_index, dry_run)
+            self._submit_job(testid, file_index, dry_run, local_run)
             bar.next()
         bar.finish()
+
 
     def wait_for_jobs(self):
         """ Wait for all submitted to jobs to finish.
@@ -215,6 +227,26 @@ class InferenceRequest(object):
                 spinner_p.next()
         print("done")
 
+    def wait_no_logs(self):
+        """ Wait for all submitted jobs to finish.
+            Does not write to inference_submitter log to avoid ThrottlingException for 10K.
+
+        :return:
+        """
+        running = {}
+        startTime = {}
+        while len(self.job_ids) != 0:
+            time.sleep(1)
+            for jobId in self.job_ids:
+                describeJobsResponse = self.aws_batch.describe_jobs(jobs=[jobId])
+                status = describeJobsResponse['jobs'][0]['status']
+                if status == 'SUCCEEDED' or status == 'FAILED':
+                    self.job_ids.remove(jobId)
+                elif status == 'RUNNING':
+                    if not running.get(jobId, False):
+                        running[jobId] = True
+        print("done")
+
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--job-queue", help="name of the job queue to submit this job", default='bigDisk-queue')
@@ -228,6 +260,8 @@ def main():
     parser.add_argument("--input-batch-size", type=int, help="How many input files for a single job.", default=16)
     parser.add_argument("--repo-name", help="repo name", required=True)
     parser.add_argument("--dry-run", help="dry run mode", default=False, action='store_true')
+    parser.add_argument("--local-run", help="run inference on local machine", default=False, action='store_true')
+    parser.add_argument("--wait-no-logs", help="block wait until job completes (no log)", default=False, action='store_true')
     args = parser.parse_args()
 
     log_file_name = 'inference_submitter.log'
@@ -237,20 +271,33 @@ def main():
     testid = "{user}_{kelf}_{date}".format(user=getpass.getuser(),
                                            kelf=os.path.basename(os.path.normpath(args.kelf_dir)),
                                            date=time.strftime("%Y%m%d-%H%M%S"))
+    with open('inference_info.txt', 'a') as variables:
+        variables.write('%s;%s\n' % (os.path.basename(os.path.normpath(args.kelf_dir)), testid))
     logging.info("Test ID %s" % testid)
 
     print("Creating AWS session")
     session = boto3.Session(profile_name=args.aws_profile)
     print("Uploading files to S3 buckets")
     upload_files(session, testid, args.kelf_dir, args.output_bucket)
+
+    # request more resources to run batch tests
+    if not args.local_run:
+        # Current limit on EC2 instances is 15.
+        aws_autoscale = session.client(service_name='autoscaling', region_name='us-east-1')
+        aws_autoscale.update_auto_scaling_group(
+            AutoScalingGroupName='bigDisk-c5-asg-8ecd519f-a2af-3d03-a830-63ec7952178e',
+            MaxSize = 15,
+            DesiredCapacity = 15
+        )
+
     inference_req = InferenceRequest(session, args.job_queue, args.job_definition,
                                      args.input_bucket, args.output_bucket,
                                      args.repo_name, args.input_batch_size)
-    print("Submitting job request to AWS batch")
-    inference_req.submit_jobs(testid, file_limit=args.input_file_limit, dry_run=args.dry_run)
-    if args.wait:
+    inference_req.submit_jobs(testid, file_limit=args.input_file_limit, dry_run=args.dry_run, local_run=args.local_run)
+    if args.wait_no_logs:
+        inference_req.wait_no_logs()
+    elif args.wait:
         inference_req.wait_for_jobs()
-
-
+    
 if __name__ == "__main__":
     main()

@@ -28,13 +28,17 @@ print('Loading: ' + ifmapFile)
 preds = np.load(ifmapFile)
 d = decode_predictions(preds)
 print('Predicted:', d)
-result = ''
-for t in d[0]:
+
+# remove old file if exists since we append results
+try:
+    os.remove(output)
+except:
+    pass
+
+for i in range(len(d)):
+  result = ''
+  for t in d[i]:
     (l, label, prob) = t
     result += '%s, %.14f,' % (label, prob)
-print(result)
-
-with open(output, "w") as outf:
-  print(result , file=outf)
-
-
+  with open(output, "a") as outf:
+    print(result , file=outf)
