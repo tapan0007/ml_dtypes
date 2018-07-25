@@ -59,25 +59,34 @@ def main():
         tar = tarfile.open(f)
         tar.extractall(workingPath)
         tar.close()
-        os.remove(f)
 
-    # create csv
-    csv_str = ""
-    for d in glob.glob("%s/*jpg" % workingPath):
+        # create csv
+        csv_str = ""
+        imgs = [os.path.basename(d) for d in glob.glob("%s/*jpg" % workingPath)]
+        imgs = sorted(imgs)
+        image_report = "%s/rn50_classify_out.txt" % workingPath
         try:
-            line = ""
-            line += os.path.basename(d) + ", "
-            image_report = "%s/%s" %(d, "rn50_classify_out.txt")
             with open(image_report, 'r') as myfile:
-                line += myfile.read().replace('\n', '')
-                line += "\n"
+                for img in imgs:
+                    try:
+                        line = ""
+                        line += img + ", "
+                        line += myfile.readline()
+                    except:
+                        line = ""
+                        print("Could not load classify output for image %s" % myfile)
+                    csv_str += line
+            image_report = "%s/%s" % (workingPath, "report.csv")
+            with open(image_report, 'a') as myfile:
+                myfile.write(csv_str)
         except:
-            line = ""
-            print("Could not load classify output for image %s" % myfile)
-        csv_str += line
-    image_report = "%s/%s" %(workingPath, "report.csv")
-    with open(image_report, 'w') as myfile:
-        myfile.write(csv_str)
+            print("Error writing results for %s ... Skipping ..." % f)
+
+        # cleanup files
+        for fil in os.listdir(workingPath):
+            if fil.endswith("txt") or fil.endswith("jpg"):
+                os.remove("%s/%s" % (workingPath, fil))
+        os.remove(f)
 
     # upload report
     bucket.upload_file(image_report, "%s/%s" %(args.testid, os.path.basename(image_report)))

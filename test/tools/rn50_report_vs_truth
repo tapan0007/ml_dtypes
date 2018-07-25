@@ -12,6 +12,7 @@ parser.add_argument('--label_bucket', help='specify bucket with true labels', re
 parser.add_argument('--new', help='Specify new test id', required=True)
 parser.add_argument("--aws-profile", help="name of aws credentials profile to use", required=True)
 parser.add_argument("--bucket", help="test results bucket", required=True)
+parser.add_argument("--quiet", help="print less output option", default=False, action='store_true')
 args = parser.parse_args()
 
 
@@ -54,9 +55,9 @@ for new_row in c_new:
     new_row_labels = []
     for label in new_row[1:10:2]:
         new_row_labels.append(label.strip())
-
-    print (new_row_labels)
-    print (trueLabel)
+    if not args.quiet:
+        print (new_row_labels)
+        print (trueLabel)
     if new_row_labels[0] == trueLabel:
         top1_match_cnt += 1
     if trueLabel in new_row_labels:
