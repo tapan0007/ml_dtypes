@@ -679,7 +679,7 @@ if args.zebu != None and args.zebu.startswith('pool'):
     i = 0
     while True:
       time.sleep(10)
-      print('\nINFO: holding zebus iteration %d. Sleep 10. Use  export KAENA_ZEBU_SERVER="%s"; RunAll --force_qemu --parallel %d --test ... to run.   Terminate this process to close the zebus' % (
+      print('\nINFO: holding zebus iteration %d. Sleep 10. Use  export KAENA_ZEBU_SERVER="pool %s"; RunAll --force_qemu --parallel %d --test ... to run.   Terminate this process to close the zebus' % (
              i, " ".join(str(p) for p in qp.zebuHosts), len(qp.zebus)), flush=True)
       i += 1
       # Zebu heartbeet
