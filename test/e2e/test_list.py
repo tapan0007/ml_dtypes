@@ -460,3 +460,4 @@ qemuTestWaiver = [
     ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-QEMU'],
     
 ]
+

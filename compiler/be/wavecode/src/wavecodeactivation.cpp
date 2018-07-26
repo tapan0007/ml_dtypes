@@ -85,14 +85,12 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     activationInstr.dst_mem_pattern.step_elem[PatDim_Z]    = activationWaveop->gDstZStep();
     activationInstr.dst_mem_pattern.num_elem[PatDim_Z]     = activationWaveop->gDstZNum();
 
-    activationInstr.scale_value         = activationWaveop->gScale();
-    if (activationWaveop->qBiasAddEn ()) {
-        activationInstr.bias_addr        = stateBuf.gEntryTpbAddress(
-                                            arch.gNumberPeArrayRows()/2 * activationWaveop->gBiasStartAtMidPart(),
-                                            activationWaveop->gBiasSbAddress());
-    } else {
-        activationInstr.bias_addr        = stateBuf.gAllZeroOffsetTpbAddress(activationWaveop->gBiasDtype());
-    }
+    activationInstr.scale_value = activationWaveop->gScale();
+
+    activationInstr.bias_addr   = stateBuf.gEntryTpbAddress(
+                                      arch.gNumberPeArrayRows()/2 * activationWaveop->gBiasStartAtMidPart(),
+                                      activationWaveop->gBiasSbAddress());
+
     activationInstr.num_active_channels = activationWaveop->gNumPartitions();
 
     activationInstr.inst_events.wait_event_idx  = 0;
