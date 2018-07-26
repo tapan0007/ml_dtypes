@@ -199,7 +199,7 @@ class NnSubgraph:
       qemuPool = os.getenv("KAENA_QEMU_RT_POOL", None)
       qemuZebu = os.getenv("KAENA_ZEBU_SERVER", None)
       if not qemuZebu == None:
-        cmd += "  --zebu %s" % qemuZebu
+        cmd += '  --zebu "%s"' % qemuZebu
       else:
         if qemuPool == None:
           cmd += "  --port %d" % port

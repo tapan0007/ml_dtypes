@@ -33,6 +33,17 @@ The pool flow is https://issues.amazon.com/issues/kaena-574 . In Summary:
 
 # To terminate the pool (days later) simply kill the first process and remove pool_* directories where you started the pools
 
+Zebu pool is similar:
+  # Start
+    $KAENA_PATH/runtime/util/qemu_rt --zebu "pool zebuserver2--6 zebuserver3--6" --action start_pool > log_pool 2>&1 &
+  # Follow the instructions printed in the log_pool, which for teh above is
+    ( setenv KAENA_ZEBU_SERVER "pool zebuserver2--6 zebuserver3--6"; $KAENA_PATH/test/e2e/RunAll --force_qemu --parallel 2 --test 0-1conv0_wave )
+  # Notes
+    - Starting the pool is sequential (ie, starting 2 takes 2x longer than 1)
+    - Pools can mix and match - ie, you start a pool of 2, one crashes, then start new pool of 1 on
+      the crashed host, but pass full list to RunAll as before
+    - Just like qemu, the pools are multi-user, ie your pool can be used by you (
+
 '''
 
 import argparse
@@ -342,7 +353,7 @@ class Zebu(BePlat):
     try:
       idx = self.fh.expect(["Init DRAM", " bind: Address already in use", "Test bench aborted"], timeout=120)
       if idx == 0:
-        print("INFO: Toga DRAM init ok")
+        print("INFO: Tonga DRAM init ok")
         try:
           idx = self.fh.expect(["All ProxyXtors are ready to connect to the VM",
                                "is already running for the same design"],
@@ -353,9 +364,9 @@ class Zebu(BePlat):
             print("INFO: recycled a Tonga")
           tongaOk = True
         except pexpect.exceptions.TIMEOUT:
-          print("ERROR: Try %d Zebu Tonga VM boot timeout out, psee log-zebu_tonga.txt" % self.restartId)
+          print("ERROR: Try %d Zebu Tonga VM boot timeout out, see log-zebu_tonga.txt" % self.restartId)
       elif idx == 1:
-        print("ERROR: Toga failed due to port address in use, see log-zebu_tonga.txt and use ")
+        print("ERROR: Tonga failed due to port address in use, see log-zebu_tonga.txt and use ")
         fixCmd = "netstat -plat | grep 32004 && ps -ef | grep defunct | awk '{print \$2}' | xargs -l1 kill -9"
         sshCmd = 'ssh %s "%s"' % (self.zebuHost, fixCmd)
         print("INFO: attempting to fix the host for next run by command   %s" % sshCmd, flush=True)
@@ -493,6 +504,12 @@ class Krt:
     self.inklingTimeout = timeout
     self.kelfVmDir = kelfVmDirGlobal  # non-sg spefic, for --action cleanup_pool
     self.sg = "sg00"
+    # env needed for the installed krt
+    p = krtVmPath
+    epath = os.getenv('PATH')
+    eldlp = os.getenv('LD_LIBRARY_PATH')
+    self.envStr = '  PATH=%s:%s:%s' % (p, p + '/bin', epath)
+    self.envStr += '  LD_LIBRARY_PATH=%s:%s:%s ' % ( p, p + "/lib", eldlp)
 
   def install(self):
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
@@ -510,13 +527,6 @@ class Krt:
     #self.qemu.sshCmd("cd %s &&  sudo modprobe vfio enable_unsafe_noiommu_mode=Y" % krtVmPath)
     self.qemu.sshCmd("sudo python3 %s/vfio_bind.py" % (krtVmPath + '/bin'))
    
-    # env needed for the installed krt
-    p = krtVmPath
-    epath = os.getenv('PATH')
-    eldlp = os.getenv('LD_LIBRARY_PATH')
-    self.envStr = '  PATH=%s:%s:%s' % (p, p + '/bin', epath)
-    self.envStr += '  LD_LIBRARY_PATH=%s:%s:%s ' % ( p, p + "/lib", eldlp)
-
   def addModel(self, kelfDir, kelfVmDir, sg):
     self.kelfVmDir = kelfVmDir
     self.sg = sg
@@ -533,8 +543,8 @@ class Krt:
     kbin_rt = '%s/bin/kbin_rt' % krtVmPath
     cmdKrt = '%s %s %s %s %s -n 1 -s -t %d' % (
                kbin_rt, self.kelfVmDir, self.ifmapDir, self.ofmapDir, tongaDev, self.inklingTimeout)
-    #cmdRuntime = 'sudo /bin/sh -c "cd %s && %s ldd %s && %s %s > log-krt.txt 2>&1 && touch krt.pass & "' %  (self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt) 
-    cmdRuntime = 'sudo /bin/sh -c "(cd %s && %s ldd %s && %s %s && touch krt.pass ) > log-krt.txt 2>&1 & "' %  (self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt) 
+    cmdRuntime = 'sudo /bin/sh -c "(cd %s && %s ldd %s && %s %s && touch krt.pass ) > %s/log-krt.txt 2>&1 & "' %  (
+                   self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt, self.kelfVmDir) 
     self.qemu.sshCmd(cmdRuntime)
     time.sleep(1)
   def stop(self):
@@ -616,6 +626,43 @@ class QemuPool:
       krt.stop()
       qemu.unlock()
 
+class ZebuPool:
+  def __init__(self, zebuHosts, inklingTimeout):
+    self.zebuHosts = zebuHosts
+    self.zebus = []
+    for host in self.zebuHosts:
+      zebu = Zebu(host)
+      krt = Krt(zebu, inklingTimeout)
+      self.zebus.append((host, zebu, krt))
+  def startPool(self):
+    for host, zebu, krt in self.zebus:
+      d = "pool_%s" % host
+      os.mkdir(d)
+      os.chdir(d)
+      for qemuRestartId in range(2):
+        if zebu.start(qemuRestartId):
+          krt.install()
+          break
+        else:
+          zebu.stop()
+      os.chdir("..")
+    return len(self.zebus) == len(self.zebuHosts)
+  def getAvailZebu(self):
+    found = False
+    while not found:
+      idx = random.randint(0, len(self.zebus)-1)
+      host, zebu, krt = self.zebus[idx]
+      print("INFO: trying to lock Zebu on host %s ..." % (host), flush=True)
+      found = zebu.lock()
+      time.sleep(1)
+    print("INFO: locked ZEBU on host %s" % (host), flush=True)
+    return zebu, krt
+  def cleanup(self):
+    for idx in range(len(self.zebus)):
+      host, zebu, krt = self.zebus[idx]
+      krt.stop()
+      zebu.unlock()
+
 #########################################################
 
 inklingTimeout = 6000
@@ -623,6 +670,35 @@ inklingTimeout = 6000
 
 ##############  zebu pool  ##############
 if args.zebu != None and args.zebu.startswith('pool'):
+  zebuPoolStr = args.zebu.replace('pool', '')
+  qp = ZebuPool(zebuPoolStr.split(), inklingTimeout)
+  if args.action == 'start_pool':
+    if not qp.startPool():
+      raise RuntimeError('ERROR: failed to start zebus, %d requested while %d started' % (len(qp.zebuHosts), len(qp.zebus)))
+    print('INFO: your zebu pool has started. You can access it on hosts %s. To stop them terminate this process' % qp.zebuHosts, flush=True)
+    i = 0
+    while True:
+      time.sleep(10)
+      print('\nINFO: holding zebus iteration %d. Sleep 10. Use  export KAENA_ZEBU_SERVER="%s"; RunAll --force_qemu --parallel %d --test ... to run.   Terminate this process to close the zebus' % (
+             i, " ".join(str(p) for p in qp.zebuHosts), len(qp.zebus)), flush=True)
+      i += 1
+      # Zebu heartbeet
+      for  host, zebu, krt in qp.zebus:
+        zebu.sshCmd('echo -n "  Zebu pool heartbeat on %s ";  TZ=America/Los_Angeles uptime' % host)
+  elif args.action == 'cleanup_pool':
+    qp.cleanup()
+  elif args.action == 'inference':
+    if args.kelf == None:
+      raise ValueError("ERROR: use --kelf")
+    zebu, krt = qp.getAvailZebu()
+    krt.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
+    krt.start()
+    assert len(args.ifmaps) == 1
+    for ifmap in args.ifmaps:
+      krt.inference(ifmap, "out-%s.bin" % args.sg)
+    krtOk = krt.stop()
+    zebu.unlock()
+    sys.exit(0 if krtOk else 1)
   raise RuntimeError("ERROR: zebu pool is not yet supported")
 
 ##############  zebu  ##############
