@@ -328,19 +328,19 @@ class Zebu(BePlat):
     self.fh.expect("zebuadmin@zebu-server")
 
     self.fh.send("source ~/.vbox_bashrc\r")
-    self.fh.expect("ZRT")
+    self.fh.expect("$")
     
     self.fh.send("ptbkill -all; sleep 5\r")
-    self.fh.expect("ZRT")
+    self.fh.expect("$")
 
     self.fh.send("cdpt%d\r" % self.rtlSandbox)
-    self.fh.expect("ZRT-tb_vbox")
+    self.fh.expect("$")
 
     self.fh.send("rune -ptcr -notbrst\r")
     self.fh.expect("ZeBu")
     self.fh.expect("Design loaded successfully")
     try:
-      idx = self.fh.expect(["Init DRAM", "Test bench aborted"], timeout=120)
+      idx = self.fh.expect(["Init DRAM", " bind: Address already in use", "Test bench aborted"], timeout=120)
       if idx == 0:
         print("INFO: Toga DRAM init ok")
         try:
@@ -355,7 +355,14 @@ class Zebu(BePlat):
         except pexpect.exceptions.TIMEOUT:
           print("ERROR: Try %d Zebu Tonga VM boot timeout out, psee log-zebu_tonga.txt" % self.restartId)
       elif idx == 1:
-        print("ERROR: Toga testbench aborted, see log-zebu_tonga.txt")
+        print("ERROR: Toga failed due to port address in use, see log-zebu_tonga.txt and use ")
+        fixCmd = "netstat -plat | grep 32004 && ps -ef | grep defunct | awk '{print \$2}' | xargs -l1 kill -9"
+        sshCmd = 'ssh %s "%s"' % (self.zebuHost, fixCmd)
+        print("INFO: attempting to fix the host for next run by command   %s" % sshCmd, flush=True)
+        os.system(sshCmd)
+      elif idx == 2:
+        print("ERROR: Tonga testbench aborted, see log-zebu_tonga.txt")
+        
     except pexpect.exceptions.TIMEOUT:
       print("ERROR: Try %d Tonga DRAM init timed out, see log-zebu_tonga.txt" % self.restartId)
     
@@ -375,10 +382,10 @@ class Zebu(BePlat):
     self.fh1.expect("zebuadmin@zebu-server")
 
     self.fh1.send("source ~/.vbox_bashrc\r")
-    self.fh1.expect("ZRT")
+    self.fh1.expect("$")
 
     self.fh1.send("cdpt%d\r" % self.rtlSandbox)
-    self.fh1.expect("ZRT-tb_vbox")
+    self.fh1.expect("$")
 
     self.fh1.send("rune -vbrun\r")
     self.fh1.expect("VBoxManage startvm")
@@ -409,8 +416,8 @@ class Zebu(BePlat):
       self.fh1.expect("synopsys@localhost's password:", timeout=60)
     except:
       # Debug diagnostics, should not exist is normal use
-      print("WARNING: failed to receive guestOS password prompt. Debug manually, sleep 300, kill the sleep process to resume", flush=True)
-      self.osSystem("sleep 300")
+      print("WARNING: failed to receive guestOS password prompt. Debug manually, sleep 61, kill the sleep process to resume", flush=True)
+      self.osSystem("sleep 61")
     self.fh1.send("iltwas\r")
     self.fh1.expect("Last login:")
 
@@ -449,8 +456,8 @@ class Zebu(BePlat):
     
   def stop(self):
     # Debug window for manual post-mortem
-    print("WARNING: Zebu.stop() sleep 900, kill the sleep process to resume", flush=True)
-    self.osSystem("sleep 900")
+    #print("WARNING: Zebu.stop() sleep 900, kill the sleep process to resume", flush=True)
+    #self.osSystem("sleep 900")
 
     # Clean up Zebu process
     try:
@@ -524,7 +531,7 @@ class Krt:
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
     tongaDev = self.qemu.getTongaDevice()
     kbin_rt = '%s/bin/kbin_rt' % krtVmPath
-    cmdKrt = '%s %s %s %s %s -n 1 -t %d' % (
+    cmdKrt = '%s %s %s %s %s -n 1 -s -t %d' % (
                kbin_rt, self.kelfVmDir, self.ifmapDir, self.ofmapDir, tongaDev, self.inklingTimeout)
     #cmdRuntime = 'sudo /bin/sh -c "cd %s && %s ldd %s && %s %s > log-krt.txt 2>&1 && touch krt.pass & "' %  (self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt) 
     cmdRuntime = 'sudo /bin/sh -c "(cd %s && %s ldd %s && %s %s && touch krt.pass ) > log-krt.txt 2>&1 & "' %  (self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt) 
@@ -622,7 +629,7 @@ if args.zebu != None and args.zebu.startswith('pool'):
 elif args.zebu != None:
   zebuOk = False
   krtOk = False
-  for zebuRestartId in range(1):
+  for zebuRestartId in range(2):
     zebu = Zebu(args.zebu)
     if zebu.start(zebuRestartId):
       zebuOk = True
