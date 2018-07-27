@@ -41,6 +41,16 @@ pipeline {
                 [ -z "$MANIFEST_REPO_REFSPEC" ] || export MANIFEST_REPO_REFSPEC_OPT="-b $MANIFEST_REPO_REFSPEC"
                 repo init -m $MANIFEST_FILE_NAME $MANIFEST_REPO_REFSPEC_OPT
                 repo sync -j 8
+
+                git config --global user.name "Jenkins"
+                git config --global user.email aws-tonga-kaena@amazon.com
+
+                [ -z "$GERRIT_REFSPEC" ] || \
+                git -C krt pull origin $GERRIT_REFSPEC || \
+                git -C kcc pull origin $GERRIT_REFSPEC || \
+
+                chmod -R 755 ./
+                ls -ltrA
                 '''
             }
         }
