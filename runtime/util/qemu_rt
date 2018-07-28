@@ -547,10 +547,18 @@ class Krt:
                    self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt, self.kelfVmDir) 
     self.qemu.sshCmd(cmdRuntime)
     time.sleep(1)
+  
+  def getFinalBin(self):
+    ##topFinalDir = self.kelfVmDir + "/"
+    topFinalDir = "/tmp/"
+    for fin in ["pe", "act", "pool"]:
+        self.qemu.rsyncFromVm(topFinalDir + fin + "-final.bin", ".")
+
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
     time.sleep(2)  # for kbin_rt to have time to return exit code after writing out.bin
     self.qemu.rsyncFromVm(self.kelfVmDir + "/krt.pass", ".")
+    self.getFinalBin()
     debug = True
     if debug:
       self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf_%s" % self.sg)
