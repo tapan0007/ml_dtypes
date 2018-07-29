@@ -24,7 +24,7 @@ using json = nlohmann::json;
 
 class WaveOp {
   public:
-  enum WaveOpType {MatMul, SBAtomFile, SBAtomSave, Pool, Activation, ResAdd
+  enum WaveOpType {MatMul, SBAtomLoad, SBAtomSave, Pool, Activation, ResAdd
     , Nop};
   WaveOp(std::string n, std::string wot) : name(n)
   {
@@ -87,9 +87,9 @@ class MMOp : public WaveOp {
     MMOp (json& op) : WaveOp (op["waveop_name"].get<std::string>()
         , op["waveop_type"].get<std::string>())
                       , m_mi(extract_sb_params(op), extract_psum_params(op)
-                          , op["ifmaps_sb_address"].get<tonga_addr>()
+                          , op["src_sb_address"].get<tonga_addr>()
                           , op["weights_sb_address"].get<tonga_addr>()
-                          , op["ofmap_count"].get<length_t>()
+                          , op["num_column_partitions"].get<length_t>()
                           )
     {
     }
@@ -123,7 +123,7 @@ class MMOp : public WaveOp {
 
 class SBAtomOp : public WaveOp {
   public:
-    //enum atom_type {SBAtomFile, SBAtomSave};
+    //enum atom_type {SBAtomLoad, SBAtomSave};
     SBAtomMemInfo::atom_type m_atom_type;
     SBAtomMemInfo m_mi;
     SBAtomOp (json& op) : WaveOp (op["waveop_name"].get<std::string>()
@@ -141,7 +141,7 @@ class SBAtomOp : public WaveOp {
     }
     size_t get_sb_in_footprint_size()
     {
-      if (m_atom_type == SBAtomMemInfo::SBAtomFile) return 0;
+      if (m_atom_type == SBAtomMemInfo::SBAtomLoad) return 0;
       else return m_mi.get_footprint().size();
     }
     size_t get_sb_out_footprint_size()
@@ -153,7 +153,7 @@ class SBAtomOp : public WaveOp {
     size_t get_psum_out_footprint_size() {return 0;}
     std::list<AddrRange>& get_sb_in_footprint()
     {
-      if (m_atom_type == SBAtomMemInfo::SBAtomFile) assert(0);
+      if (m_atom_type == SBAtomMemInfo::SBAtomLoad) assert(0);
       else return m_mi.get_footprint();
     }
     std::list<AddrRange>& get_sb_out_footprint()
@@ -171,7 +171,7 @@ class SBAtomOp : public WaveOp {
     }
   private:
     SBAtomMemInfo::atom_type extract_atom_type(json& op);
-}; // SBAtomFileOp
+}; // SBAtomLoadOp
 
 class PoolActOp : public WaveOp {
   public:
@@ -399,7 +399,7 @@ class WaveGraphChecker {
   std::string WaveOpType (int i)
   {
     std::string o;
-    if ((OPS)i == LD) o = "SBAtomFile";
+    if ((OPS)i == LD) o = "SBAtomLoad";
     if ((OPS)i == ST) o = "SBAtomSave";
     if ((OPS)i == ACT) o = "Activation";
     if ((OPS)i == POOL) o = "Pool";

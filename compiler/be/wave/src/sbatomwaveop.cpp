@@ -20,7 +20,6 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
     : WaveOp(params, prevWaveOps)
     , m_SbAddress(params.m_SbAddress)
     , m_StartAtMidPart(params.m_StartAtMidPart)
-    , m_BatchFoldIdx(params.m_BatchFoldIdx)
     , m_DataType(DataType::dataTypeId2DataType(params.m_DataType))
     , m_Length(params.m_Length)
     , m_OffsetInFile(params.m_OffsetInFile)
@@ -40,9 +39,6 @@ SbAtomWaveOp::verify() const
         ASSERT_RETURN(false);
     }
     if (m_SbAddress < 0) {
-        ASSERT_RETURN(false);
-    }
-    if (m_BatchFoldIdx < 0) {
         ASSERT_RETURN(false);
     }
     // m_DataType
@@ -81,9 +77,6 @@ SbAtomWaveOp::Params::verify() const
         return false;
     }
     if (m_RefFileName == "") {
-        return false;
-    }
-    if (m_BatchFoldIdx < 0) {
         return false;
     }
     if (m_SbAddress < 0) {

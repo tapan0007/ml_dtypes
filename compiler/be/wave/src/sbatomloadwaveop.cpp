@@ -21,13 +21,11 @@ SbAtomLoadWaveOp::SbAtomLoadWaveOp(
         const SbAtomLoadWaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps)
     : SbAtomWaveOp(params, prevWaveOps)
-    , m_IfmapCount(params.m_IfmapCount)
-    , m_IfmapsFoldIdx(params.m_IfmapsFoldIdx)
+    , m_NumPartitions(params.m_NumPartitions)
     , m_ContainWeights(params.m_ContainWeights)
     , m_IfmapReplicationNumRows(params.m_IfmapReplicationNumRows)
     , m_IfmapReplicationResolution(params.m_IfmapReplicationResolution)
     , m_IfmapReplicationStepBytes(params.m_IfmapReplicationStepBytes)
-    , m_IfmapsReplicate(params.m_IfmapsReplicate)
     , m_SrcStepElem(params.m_SrcStepElem)
 {
     assert(params.verify());
@@ -53,10 +51,7 @@ SbAtomLoadWaveOp::verify() const
     if (! this->SbAtomWaveOp::verify()) {
         return false;
     }
-    if (m_IfmapCount < 1) {
-        return false;
-    }
-    if (m_IfmapsFoldIdx < 0) {
+    if (m_NumPartitions < 1) {
         return false;
     }
     if (m_IfmapReplicationNumRows < 0) {
@@ -82,9 +77,6 @@ bool
 SbAtomLoadWaveOp::Params::verify() const
 {
     if (! this->SbAtomWaveOp::Params::verify()) {
-        return false;
-    }
-    if (m_IfmapsFoldIdx < 0) {
         return false;
     }
     // bool m_IfmapsReplicate

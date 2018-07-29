@@ -562,22 +562,24 @@ class KGraph:
     # populate graph using layer info from JSON                    
     def populate_from_kgraph_json(self, kgraph_json):                    
         # get the lowest significant bit
-        self.data_type = kgraph_json["data_type"]
-        if (self.data_type == 'float16'):
-            self.item_sz = 2
-        elif (self.data_type == 'float32'):
-            self.item_sz = 4
-        elif (self.data_type == 'uint8'):
-            self.item_sz = 1
-        else:
-            print("ERROR: cannot handle data type %s"%self.data_type)
-            exit(-1)
+        if ("data_type" in kgraph_json):
+            self.data_type = kgraph_json["data_type"]
+            if (self.data_type == 'float16'):
+                self.item_sz = 2
+            elif (self.data_type == 'float32'):
+                self.item_sz = 4
+            elif (self.data_type == 'uint8'):
+                self.item_sz = 1
+            else:
+                print("ERROR: cannot handle data type %s"%self.data_type)
+                exit(-1)
 
         # process layers
-        layers = kgraph_json["layers"]
-        num_layers = len(layers)
         node_number = 0
-        if (num_layers >= 1):
+        if ("layers" in kgraph_json):
+            layers = kgraph_json["layers"]
+            num_layers = len(layers)
+            assert(num_layers >= 1)
             for l in layers:
                 new_node = KNode(self, l, self.item_sz, self.data_type, node_number)
                 node_number += 1 
@@ -635,9 +637,6 @@ class KGraph:
             else:
                 print("ERROR: can't find any Input layer!")
                 exit(-1)
-        else:
-            print("ERROR: there are no layers!")
-            exit(-1)
 
         # process waveops 
         if ("waveops" in kgraph_json):

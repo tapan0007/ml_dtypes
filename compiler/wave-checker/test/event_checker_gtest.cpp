@@ -77,7 +77,7 @@ namespace {
         {
           eng = "Pool";
         }
-        else if (!waveop_type.compare("SBAtomFile")
+        else if (!waveop_type.compare("SBAtomLoad")
             || !waveop_type.compare("SBAtomSave"))
         {
           eng = "DMA";

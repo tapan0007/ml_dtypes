@@ -304,7 +304,6 @@ Network::Load::loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp)
 
     KCC_UNSERIALIZE(SbAddress);
     KCC_UNSERIALIZE(StartAtMidPart);
-    KCC_UNSERIALIZE(BatchFoldIdx);
     sbatomLoadParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
     KCC_UNSERIALIZE(Length);
     KCC_UNSERIALIZE(OffsetInFile);
@@ -315,14 +314,12 @@ Network::Load::loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp)
         sbatomLoadParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
     }
 
-    KCC_UNSERIALIZE(IfmapCount);
-    KCC_UNSERIALIZE(IfmapsFoldIdx);
+    KCC_UNSERIALIZE(NumPartitions);
     KCC_UNSERIALIZE(ContainWeights);
 
     KCC_UNSERIALIZE(IfmapReplicationNumRows);
     KCC_UNSERIALIZE(IfmapReplicationResolution);
     KCC_UNSERIALIZE(IfmapReplicationStepBytes);
-    KCC_UNSERIALIZE(IfmapsReplicate);
 
     KCC_UNSERIALIZE(SrcStepElem);
 
@@ -345,7 +342,6 @@ Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
 
     KCC_UNSERIALIZE(SbAddress);
     KCC_UNSERIALIZE(StartAtMidPart);
-    KCC_UNSERIALIZE(BatchFoldIdx);
     sbatomsaveParams.m_DataType = DataType::dataTypeStr2Id(serWaveOp.m_DataType);
     KCC_UNSERIALIZE(Length);
     KCC_UNSERIALIZE(OffsetInFile);
@@ -356,8 +352,7 @@ Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
         sbatomsaveParams.m_RefFileShape[i] = serWaveOp.m_RefFileShape[i];
     }
 
-    KCC_UNSERIALIZE(OfmapCount);
-    KCC_UNSERIALIZE(OfmapsFoldIdx);
+    KCC_UNSERIALIZE(NumPartitions);
     KCC_UNSERIALIZE(FinalLayerOfmap);
 
     auto waveOp = new wave::SbAtomSaveWaveOp(sbatomsaveParams, prevWaveOps);
@@ -430,24 +425,17 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     wave::MatMulWaveOp::Params matmulParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, matmulParams);
 
-    KCC_UNSERIALIZE(BatchingInWave);
     KCC_UNSERIALIZE(FmapXNum);
     KCC_UNSERIALIZE(FmapXStep);
     KCC_UNSERIALIZE(FmapYNum);
     KCC_UNSERIALIZE(FmapYStep);
     KCC_UNSERIALIZE(FmapZNum);
     KCC_UNSERIALIZE(FmapZStep);
-    KCC_UNSERIALIZE(IfmapCount);
-    KCC_UNSERIALIZE(IfmapTileHeight);
-    KCC_UNSERIALIZE(IfmapTileWidth);
     KCC_UNSERIALIZE(IfmapsSbAddress);
     matmulParams.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
     // layer_name
     KCC_UNSERIALIZE(NumColumnPartitions);
     KCC_UNSERIALIZE(NumRowPartitions);
-    KCC_UNSERIALIZE(OfmapCount);
-    KCC_UNSERIALIZE(OfmapTileHeight);
-    KCC_UNSERIALIZE(OfmapTileWidth);
     matmulParams.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     // previous layers
     KCC_UNSERIALIZE(PsumBankId);
@@ -461,11 +449,7 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
 
     KCC_UNSERIALIZE(StartTensorCalc);
     KCC_UNSERIALIZE(StopTensorCalc);
-    KCC_UNSERIALIZE(StrideX);
-    KCC_UNSERIALIZE(StrideY);
 
-    KCC_UNSERIALIZE(WaveId);
-    KCC_UNSERIALIZE(WaveIdFormat);
     // waveop name
     // waveop type
     KCC_UNSERIALIZE(WeightsSbAddress);

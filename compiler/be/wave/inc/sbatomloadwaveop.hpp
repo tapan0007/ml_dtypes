@@ -50,16 +50,12 @@ public:
 
     bool verify() const override;
 
-    kcc_int32 gIfmapsFoldIdx() const {
-        return m_IfmapsFoldIdx;
-    }
-
     bool qContainWeights() const {
         return m_ContainWeights;
     }
 
-    kcc_int32 gIfmapCount () const {
-        return m_IfmapCount;
+    kcc_int32 gNumPartitions () const {
+        return m_NumPartitions;
     }
 
     kcc_int64 gLoadDataSizeInBytes () const;
@@ -73,17 +69,13 @@ public:
     kcc_int32       gIfmapReplicationStepBytes() const {
         return m_IfmapReplicationStepBytes;
     }
-    bool qIfmapsReplicate() const {
-        return m_IfmapsReplicate;
-    }
 
     kcc_int32 gSrcStepElem() const {
         return m_SrcStepElem;
     }
 
 private:
-    kcc_int32       m_IfmapCount        = -1;
-    kcc_int32       m_IfmapsFoldIdx     = -1;
+    kcc_int32       m_NumPartitions     = -1;
     bool            m_ContainWeights    = false;
 
     kcc_int32       m_IfmapReplicationNumRows       = -1;
@@ -102,8 +94,7 @@ class SbAtomLoadWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32       m_IfmapCount        = -1;
-    kcc_int32       m_IfmapsFoldIdx     = -1;
+    kcc_int32       m_NumPartitions     = -1;
     bool            m_ContainWeights    = false;
 
     kcc_int32       m_IfmapReplicationNumRows       = -1;

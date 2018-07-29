@@ -92,7 +92,7 @@ WaveCodeSbAtomSave::generateForSim(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
     //************************************************************************
     // Instruction
     //************************************************************************
-    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gOfmapCount();
+    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gNumPartitions();
     const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
     const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
@@ -168,7 +168,7 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
 
-    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gOfmapCount();
+    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gNumPartitions();
     const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
     const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
@@ -248,7 +248,7 @@ WaveCodeSbAtomSave::generateDmaCopySimKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWav
     Assert(m_WaveCode.qBinFileSimKelf(), "Must be binary for SIM Kelf");
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
-    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gOfmapCount();
+    const kcc_int64 numPartitions   = sbAtomSaveWaveop->gNumPartitions();
     const kcc_int64 numBytesPerPart = sbAtomSaveWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
     const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();

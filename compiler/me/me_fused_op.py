@@ -501,7 +501,7 @@ class FusedOp(list):
             print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
         # find the weights offset within atom; -1 means don't load new weights
         weights_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.conv_op.weights_file_params, 0, self.conv_op.weight_wave_lower_addr)
-        # kaena-421: during execution for batch item other than the first one, need to check if there's any SBAtomFile due to eviction
+        # kaena-421: during execution for batch item other than the first one, need to check if there's any SBAtomLoad due to eviction
         # when the fused-op is reexecuted (since self.prev_weight_wave_lower_addr is preserved across batch item calls) 
         if (weights_sb_address == self.prev_weight_wave_lower_addr and dram_weights_waveops == []):
             weights_sb_address = -1
@@ -558,9 +558,9 @@ class FusedOp(list):
             fmap_y_num = next_break - break_at_y[i]
             psum_bank_additional_offset = break_at_y[i] * self.conv_op.ofmap_cropped_tile_width
             assert((self.conv_op.psum_bank_offset + psum_bank_additional_offset) < PEArray.MAX_WAVE_SIZE)
-            ifmaps_sb_address = break_addr[i]
+            fmap_sb_address = break_addr[i]
             if ifmap_replication_resolution > 1:
-                assert((ifmaps_sb_address%8) == 0), "Kaena-593: IFMAP start address must by 8B aligned for replication to work"
+                assert((fmap_sb_address%8) == 0), "Kaena-593: IFMAP start address must by 8B aligned for replication to work"
 
             # get dram waveops (weights) for the first piece of broken matmul
             dram_waveop_names = []
@@ -580,45 +580,36 @@ class FusedOp(list):
                         dram_waveop_names.append(name)
 
             waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string+"__"+str(i)
-            if (self.args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, ifmaps_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, ifmaps_sb_address, fmap_y_num))                
+            if (self.args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, fmap_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, fmap_sb_address, fmap_y_num))                
             matmul_waveop.append({ 
                   'previous_waveops'        : dram_waveop_names,
                   'waveop_type'             : 'MatMul',
                   'waveop_name'             : waveop_name,
                   'layer_name'              : self.conv_op.data['layer_name'],
                   'weights_sb_address'      : weights_sb_address,
-                  'ifmaps_sb_address'       : ifmaps_sb_address,
                   'in_dtype'                : in_dtype,
                   'out_dtype'               : out_dtype,
-                  'wave_id_format'          : wave_id.format, # to be removed
-                  'wave_id'                 : wave_id.id_array, # to be removed
-                  'start'                   : start_tensor_calc,    # to be removed
-                  'stride_x'                : self.conv_op.stride_x, # to be removed
-                  'stride_y'                : self.conv_op.stride_y, # to be removed
-                  'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
-                  'ifmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed 
-                  'ifmap_tile_height'       : self.conv_op.ofmap_wave_height, # to be removed
-                  'ofmap_count'             : self.conv_op.ofmap_count, # to be removed
-                  'ofmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed
-                  'ofmap_tile_height'       : self.conv_op.ofmap_wave_height,  # to be removed
-                  'batching_in_wave'        : self.conv_op.Tn, # to be removed
                   'start_tensor_calc'       : start_tensor_calc,
                   'stop_tensor_calc'        : False,
-                  'fmap_x_step'             : fmap_x_step, #self.conv_op.stride_x,
-                  'fmap_x_num'              : self.conv_op.ofmap_wave_width,
-                  'fmap_y_step'             : fmap_y_step, #self.conv_op.W * self.conv_op.stride_y,
-                  'fmap_y_num'              : fmap_y_num,
-                  'fmap_z_step'             : fmap_z_step,
-                  'fmap_z_num'              : self.conv_op.Tn,
+                  'src_is_psum'             : False,
+                  'src_sb_address'          : fmap_sb_address,
+                  'src_start_at_mid_part'   : False,
+                  'src_x_step'              : fmap_x_step, #self.conv_op.stride_x,
+                  'src_x_num'               : self.conv_op.ofmap_wave_width,
+                  'src_y_step'              : fmap_y_step, #self.conv_op.W * self.conv_op.stride_y,
+                  'src_y_num'               : fmap_y_num,
+                  'src_z_step'              : fmap_z_step,
+                  'src_z_num'               : self.conv_op.Tn,
                   'num_row_partitions'      : self.conv_op.ifmap_count,
-                  'psum_bank_id'            : self.conv_op.psum_bank_dst,
-                  'psum_bank_offset'        : self.conv_op.psum_bank_offset + psum_bank_additional_offset,
-                  'psum_x_step'             : 1,
-                  'psum_x_num'              : self.conv_op.ofmap_wave_width,
-                  'psum_y_step'             : self.conv_op.ofmap_cropped_tile_width,
-                  'psum_y_num'              : fmap_y_num,
-                  'psum_z_step'             : self.conv_op.ofmap_full_tile_sz,
-                  'psum_z_num'              : self.conv_op.Tn,
+                  'dst_is_psum'             : True,
+                  'dst_psum_bank_id'        : self.conv_op.psum_bank_dst,
+                  'dst_psum_bank_offset'    : self.conv_op.psum_bank_offset + psum_bank_additional_offset,
+                  'dst_x_step'              : 1,
+                  'dst_x_num'               : self.conv_op.ofmap_wave_width,
+                  'dst_y_step'              : self.conv_op.ofmap_cropped_tile_width,
+                  'dst_y_num'               : fmap_y_num,
+                  'dst_z_step'              : self.conv_op.ofmap_full_tile_sz,
+                  'dst_z_num'               : self.conv_op.Tn,
                   'num_column_partitions'   : self.conv_op.ofmap_count,
                   'ifmap_replication_resolution' : ifmap_replication_resolution, 
                   'ifmap_replication_num_rows' : ifmap_replication_num_rows,
@@ -651,7 +642,8 @@ class FusedOp(list):
         pool_frequency = self.pool_op.pool_window_x * self.pool_op.pool_window_y
         pool_scale = float(1/pool_frequency)
         dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.pool_op.ofmaps_file_params, batch_item + partial_batch_item, self.pool_op.ofmap_tile_lower_addr[partial_batch_item])
-        pool_waveop = {
+        dst_is_psum = False
+        instr = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
               'waveop_name'             : waveop_name,
@@ -662,10 +654,6 @@ class FusedOp(list):
               'in_dtype'                : in_dtype,
               'out_dtype'               : self.out_data_type,
               'src_is_psum'             : src_is_psum,
-              'src_psum_bank_id'        : src_psum_bank_id,
-              'src_psum_bank_offset'    : src_psum_bank_offset,
-              'src_sb_address'          : src_sb_address, 
-              'src_start_at_mid_part'   : start_at_mid_part, 
               'src_x_step'              : 1 * psum_step_multiplier,
               'src_x_num'               : self.pool_op.pool_window_x,
               'src_y_step'              : src_ifmap_width * psum_step_multiplier,
@@ -677,8 +665,7 @@ class FusedOp(list):
               'pool_frequency'          : pool_frequency,
               'pool_scale'              : pool_scale,
               'num_partitions'          : self.pool_op.ofmap_count,
-              'dst_sb_address'          : dst_sb_address,
-              'dst_start_at_mid_part'   : start_at_mid_part,
+              'dst_is_psum'             : dst_is_psum,
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
               'dst_y_step'              : self.pool_op.E,
@@ -686,7 +673,19 @@ class FusedOp(list):
               'dst_z_step'              : 1, 
               'dst_z_num'               : 1,
             }
-        return pool_waveop
+        if src_is_psum:
+            instr['src_psum_bank_id'] = src_psum_bank_id
+            instr['src_psum_bank_offset'] = src_psum_bank_offset
+        else:                
+            instr['src_sb_address'] = src_sb_address
+            instr['src_start_at_mid_part'] = start_at_mid_part 
+        if dst_is_psum:
+            instr['dst_psum_bank_id'] = dst_psum_bank_id
+            instr['dst_psum_bank_offset'] = dst_psum_bank_offset
+        else:                
+            instr['dst_sb_address'] = dst_sb_address
+            instr['dst_start_at_mid_part'] = start_at_mid_part 
+        return instr
 
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
     def execute_matmul_waveop(self, tpb, wave_id, inputs, weights, psum_add, repl_multiple_of_C):
@@ -964,6 +963,7 @@ class FusedOp(list):
         in_dtype = "float32"
         out_dtype = "float32"
         waveop_name = layer_name+"/Reciprocal"
+        assert(dst_is_psum == True)
         instr = {
               'previous_waveops'        : [],
               'waveop_type'             : 'Reciprocal',
@@ -971,7 +971,9 @@ class FusedOp(list):
               'layer_name'              : layer_name,
               'in_dtype'                : in_dtype,
               'out_dtype'               : out_dtype,
+              'src_is_psum'             : True,
               'src_psum_bank_id'        : psum_bank_src,
+              'src_psum_bank_offset'    : 0,
               'src_x_step'              : 1,
               'src_x_num'               : 1,
               'src_y_step'              : 1,
@@ -980,8 +982,7 @@ class FusedOp(list):
               'src_z_num'               : 1,
               'dst_is_psum'             : dst_is_psum, 
               'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_sb_address'          : 0, # Destination is PSUM, so no need for this
-              'dst_start_at_mid_part'   : False,
+              'dst_psum_bank_offset'    : 0,
               'dst_x_step'              : 1,
               'dst_x_num'               : 1,
               'dst_y_step'              : 1,
@@ -1037,31 +1038,35 @@ class FusedOp(list):
               'in_dtype'                : in_dtype,
               'out_dtype'               : out_dtype,
               'src_is_psum'             : src_is_psum,
-              'src_psum_bank_id'        : psum_bank_src,
-              'src_psum_bank_offset'    : 0,
-              'src_sb_address'          : src_sb_address, 
               'src_x_step'              : 1,
               'src_x_num'               : dst_x_num,
               'src_y_step'              : dst_y_step,
               'src_y_num'               : dst_y_num,
               'src_z_step'              : dst_z_step,
               'src_z_num'               : dst_z_num,
-              'src_start_at_mid_part'   : tile_id.m_id%2 == 1,
               'dst_is_psum'             : dst_is_psum,
-              'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_psum_bank_offset'    : 0,
-              'dst_sb_address'          : dst_sb_address,
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
               'dst_y_num'               : dst_y_num,
               'dst_z_step'              : dst_z_step,
               'dst_z_num'               : dst_z_num,
-              'dst_start_at_mid_part'   : tile_id.m_id%2 == 1,
               'num_partitions'          : num_partitions,
               'scale'                   : scale_val,
               'add'                     : add_val,
             }
+        if src_is_psum:
+            instr['src_psum_bank_id'] = psum_bank_src
+            instr['src_psum_bank_offset'] = 0 
+        else:                
+            instr['src_sb_address'] = src_sb_address
+            instr['src_start_at_mid_part'] = tile_id.m_id%2 == 1
+        if dst_is_psum:
+            instr['dst_psum_bank_id'] = psum_bank_dst
+            instr['dst_psum_bank_offset'] = 0
+        else:                
+            instr['dst_sb_address'] = dst_sb_address
+            instr['dst_start_at_mid_part'] = tile_id.m_id%2 == 1
         self.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
 
     # generate activation instruction and add it to instruction stream
@@ -1158,17 +1163,13 @@ class FusedOp(list):
               'bias_dtype'              : act_or_biasadd_op.ifmaps_file_params.data_type, 
               'out_dtype'               : out_dtype,
               'src_is_psum'             : src_is_psum,
-              'src_sb_address'          : src_sb_address,
-              'src_psum_bank_id'        : psum_bank_src,
-              'src_start_at_mid_part'   : tile_id.m_id%2 == 1,
               'src_x_step'              : 1,
               'src_x_num'               : dst_x_num,
               'src_y_step'              : dst_y_step,
               'src_y_num'               : dst_y_num * dst_z_num,
+              'src_z_step'              : dst_z_step,
+              'src_z_num'               : 1,
               'dst_is_psum'             : dst_is_psum,
-              'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_sb_address'          : dst_sb_address,
-              'dst_start_at_mid_part'   : tile_id.m_id%2 == 1,
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
@@ -1180,6 +1181,18 @@ class FusedOp(list):
               'bias_sb_address'         : bias_sb_address,
               'bias_start_at_mid_part'  : tile_id.m_id%2 == 1,
             }
+        if src_is_psum:
+            instr['src_psum_bank_id'] = psum_bank_src
+            instr['src_psum_bank_offset'] = 0 
+        else:                
+            instr['src_sb_address'] = src_sb_address
+            instr['src_start_at_mid_part'] = tile_id.m_id%2 == 1
+        if dst_is_psum:
+            instr['dst_psum_bank_id'] = psum_bank_dst
+            instr['dst_psum_bank_offset'] = 0
+        else:                
+            instr['dst_sb_address'] = dst_sb_address
+            instr['dst_start_at_mid_part'] = tile_id.m_id%2 == 1
         tpb.waveop_stream.add_linked(instr, dram_bias_waveops, psum_bank_src if src_is_psum else -1)
 
     # generate ResAdd instruction and add it to instruction stream
@@ -1272,8 +1285,6 @@ class FusedOp(list):
               'in_b_dtype'              : in_b_dtype,
               'out_dtype'               : out_dtype,
               'src_a_is_psum'           : False,    # Source-A is always SB for now (TODO: make swappable for flexibility)
-              'src_a_psum_bank_id'      : 0,
-              'src_a_psum_bank_offset'  : 0,
               'src_a_sb_address'        : src_a_sb_address,
               'src_a_start_at_mid_part' : start_at_mid_part,
               'src_a_x_num'             : dst_x_num,
@@ -1306,6 +1317,18 @@ class FusedOp(list):
               'dst_z_step'              : dst_z_step,
               'num_partitions'          : num_partitions,
             }
+        if src_is_psum:
+            instr['src_b_psum_bank_id'] = psum_bank_src 
+            instr['src_b_psum_bank_offset'] = 0 
+        else:                
+            instr['src_b_sb_address'] = src_b_sb_address
+            instr['src_b_start_at_mid_part'] = start_at_mid_part 
+        if dst_is_psum:
+            instr['dst_psum_bank_id'] = psum_bank_dst
+            instr['dst_psum_bank_offset'] = 0 
+        else:                
+            instr['dst_sb_address'] = dst_sb_address
+            instr['dst_start_at_mid_part'] = start_at_mid_part 
         tpb.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1)
 
     def gen_fused_pool_waveop_inline (self, tpb, tile_id, psum_bank_src, start_at_mid_part):

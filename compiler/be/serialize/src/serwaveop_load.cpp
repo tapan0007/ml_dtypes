@@ -44,7 +44,6 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
 {
     KCC_ARCHIVE(SbAddress);
     KCC_ARCHIVE(StartAtMidPart);
-    KCC_ARCHIVE(BatchFoldIdx);
     KCC_ARCHIVE(DataType);
     KCC_ARCHIVE(Length);
     KCC_ARCHIVE(OffsetInFile);
@@ -54,19 +53,16 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(RefFileShape);
 
     if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
-        KCC_ARCHIVE(IfmapCount);
-        KCC_ARCHIVE(IfmapsFoldIdx);
+        KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(ContainWeights);
 
         KCC_ARCHIVE(IfmapReplicationNumRows);
         KCC_ARCHIVE(IfmapReplicationResolution);
         KCC_ARCHIVE(IfmapReplicationStepBytes);
-        KCC_ARCHIVE(IfmapsReplicate);
 
         KCC_ARCHIVE(SrcStepElem);
     } else {
-        KCC_ARCHIVE(OfmapCount);
-        KCC_ARCHIVE(OfmapsFoldIdx);
+        KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(FinalLayerOfmap);
     }
 } // SerWaveOp::loadSbAtom
@@ -114,24 +110,17 @@ SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
 void
 SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
 {
-    KCC_ARCHIVE(BatchingInWave);
     KCC_ARCHIVE(FmapXNum);
     KCC_ARCHIVE(FmapXStep);
     KCC_ARCHIVE(FmapYNum);
     KCC_ARCHIVE(FmapYStep);
     KCC_ARCHIVE(FmapZNum);
     KCC_ARCHIVE(FmapZStep);
-    KCC_ARCHIVE(IfmapCount);
-    KCC_ARCHIVE(IfmapTileHeight);
-    KCC_ARCHIVE(IfmapTileWidth);
     KCC_ARCHIVE(IfmapsSbAddress);
     KCC_ARCHIVE(InDtype);
     // layer name
     KCC_ARCHIVE(NumColumnPartitions);
     KCC_ARCHIVE(NumRowPartitions);
-    KCC_ARCHIVE(OfmapCount);
-    KCC_ARCHIVE(OfmapTileHeight);
-    KCC_ARCHIVE(OfmapTileWidth);
     KCC_ARCHIVE(OutDtype);
     // previous waveops
     KCC_ARCHIVE(PsumBankId);
@@ -144,21 +133,12 @@ SerWaveOp::loadMatMul(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(PsumZStep);
     KCC_ARCHIVE(StartTensorCalc);
     KCC_ARCHIVE(StopTensorCalc);
-    KCC_ARCHIVE(StrideX);
-    KCC_ARCHIVE(StrideY);
-    KCC_ARCHIVE(WaveIdFormat);
     // waveop name
     // waveop type
     KCC_ARCHIVE(WeightsSbAddress);
     KCC_ARCHIVE(IfmapReplicationNumRows);
     KCC_ARCHIVE(IfmapReplicationResolution);
     KCC_ARCHIVE(IfmapReplicationShiftAmnt);
-
-    assert(m_WaveIdFormat.size() == WaveIdFormatSize);
-    std::vector<int> waveId(WaveIdFormatSize, -1); // undefined value before deserial
-    archive(cereal::make_nvp(WaveOpKey_WaveId, waveId));
-    assert(WaveIdFormatSize == waveId.size() && "Number of element in WaveId wrong");
-    m_WaveId.convertFrom(m_WaveIdFormat.c_str(), waveId);
 }
 
 void

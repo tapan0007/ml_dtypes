@@ -105,7 +105,7 @@ class WaveopStream(list):
         self.waveop_name_set.add(item['waveop_name'])                
         self.append(item)
         self.waveop_count += 1
-        if (item['waveop_type'] != 'SBAtomFile'):
+        if (item['waveop_type'] != 'SBAtomLoad'):
             if (args.debug > 3): print("INFO: Adding nonload waveop %s ID %d"%(item['waveop_name'], self.nonload_waveop_count))
             self.nonload_waveop_list.append(item)
             self.nonload_waveop_count += 1
@@ -383,14 +383,14 @@ class TPBSched:
             wavegraph = KGraph(args)
             wavegraph.populate_from_kgraph_json(wavegraph_json)
 
-            # check for SBAtomFile nodes with no input
+            # check for SBAtomLoad nodes with no input
             if (args.debug > 2):
                 node_has_output_edge = {}
-                print("DBG: check for all SBAtomFile nodes with no input")
+                print("DBG: check for all SBAtomLoad nodes with no input")
                 for i in wavegraph.node_dict:
                     entry = wavegraph.node_dict[i]
                     if 'waveop_type' in entry.data:
-                        if entry.data['waveop_type'] == "SBAtomFile":
+                        if entry.data['waveop_type'] == "SBAtomLoad":
                             if entry.data['previous_waveops'] == []:
                                 print(entry.data['waveop_name'])
                         if entry.data['waveop_type'] != "SBAtomSave":

@@ -19,9 +19,6 @@ SerWaveOp::verifySbAtom () const
     if (m_SbAddress < 0) {
         RETURN_ASSERT(false);
     }
-    if (m_BatchFoldIdx < 0) {
-        RETURN_ASSERT(false);
-    }
     if (m_DataType == "") {
         RETURN_ASSERT(false);
     }
@@ -57,10 +54,7 @@ SerWaveOp::verifySbAtomLoad () const
     if (! this->verifySbAtom()) {
         RETURN_ASSERT(false);
     }
-    if (m_IfmapCount <= 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_IfmapsFoldIdx  < 0) {
+    if (m_NumPartitions<= 0) {
         RETURN_ASSERT(false);
     }
     if (m_IfmapReplicationNumRows < 0) {
@@ -84,10 +78,7 @@ SerWaveOp::verifySbAtomSave () const
     if (! this->verifySbAtom()) {
         RETURN_ASSERT(false);
     }
-    if (m_OfmapCount  <= 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_OfmapsFoldIdx  < 0) {
+    if (m_NumPartitions  <= 0) {
         RETURN_ASSERT(false);
     }
     return true;
@@ -96,22 +87,10 @@ SerWaveOp::verifySbAtomSave () const
 bool
 SerWaveOp::verifyMatMul () const
 {
-    if (m_IfmapTileHeight < 0) {  // TODO: should be <=
-        RETURN_ASSERT(false);
-    }
-    if (m_IfmapTileWidth < 0) { // TODO: should be <=
-        RETURN_ASSERT(false);
-    }
     if (m_IfmapsSbAddress < 0) {
         RETURN_ASSERT(false);
     }
     if (m_InDtype == "") {
-        RETURN_ASSERT(false);
-    }
-    if (m_OfmapTileHeight < 0) {
-        RETURN_ASSERT(false);
-    }
-    if (m_OfmapTileWidth < 0) { // TODO: should be <=
         RETURN_ASSERT(false);
     }
     if (m_OutDtype == "") {
@@ -139,13 +118,6 @@ SerWaveOp::verifyMatMul () const
         RETURN_ASSERT(false);
     }
     if (m_PsumZStep < 1) {
-        RETURN_ASSERT(false);
-    }
-    // "start": true,
-    if (! m_WaveId.verify()) {
-        RETURN_ASSERT(false);
-    }
-    if (m_WaveIdFormat == "") {
         RETURN_ASSERT(false);
     }
     if (m_WeightsSbAddress < -1) {

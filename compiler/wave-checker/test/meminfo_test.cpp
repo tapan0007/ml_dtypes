@@ -25,32 +25,32 @@ mi_params parse_mm (json& op)
   //std::cout << waveop_type << std::endl;
   mi_params mp;
   mp.sb.enable = true;
-  mp.sb.nx = op["fmap_x_num"];
-  mp.sb.sx = op["fmap_x_step"];
+  mp.sb.nx = op["src_x_num"];
+  mp.sb.sx = op["src_x_step"];
   mp.sb.ny = 0;mp.sb.nz = 0;mp.sb.nw = 0;mp.sb.sy = 0;mp.sb.sz = 0;mp.sb.sw = 0;
   mp.psum.enable = true;
-  mp.psum.nx = op["psum_x_num"];
-  mp.psum.sx = op["psum_x_step"];
+  mp.psum.nx = op["dst_x_num"];
+  mp.psum.sx = op["dst_x_step"];
   mp.psum.ny = 0;mp.psum.nz = 0;mp.psum.nw = 0;
   mp.psum.sy = 0;mp.psum.sz = 0;mp.psum.sw = 0;
-  mp.psum.pbid = op["psum_bank_id"];
-  if (op["fmap_z_num"] != nullptr) {
-    mp.sb.nz = op["fmap_z_num"];
-    mp.sb.sz = op["fmap_z_step"];
-    mp.sb.ny = op["fmap_y_num"];
-    mp.sb.sy = op["fmap_y_step"];
-  } else if (op["fmap_y_num"] != nullptr) {
-    mp.sb.ny = op["fmap_y_num"];
-    mp.sb.sy = op["fmap_y_step"];
+  mp.psum.pbid = op["dst_psum_bank_id"];
+  if (op["src_z_num"] != nullptr) {
+    mp.sb.nz = op["src_z_num"];
+    mp.sb.sz = op["src_z_step"];
+    mp.sb.ny = op["src_y_num"];
+    mp.sb.sy = op["src_y_step"];
+  } else if (op["src_y_num"] != nullptr) {
+    mp.sb.ny = op["src_y_num"];
+    mp.sb.sy = op["src_y_step"];
   } 
-  if (op["psum_z_num"] != nullptr) {
-    mp.psum.nz = op["psum_z_num"];
-    mp.psum.sz = op["psum_z_step"];
-    mp.psum.ny = op["psum_y_num"];
-    mp.psum.sy = op["psum_y_step"];
-  } else if (op["psum_y_num"] != nullptr) {
-    mp.psum.ny = op["psum_y_num"];
-    mp.psum.sy = op["psum_y_step"];
+  if (op["dst_z_num"] != nullptr) {
+    mp.psum.nz = op["dst_z_num"];
+    mp.psum.sz = op["dst_z_step"];
+    mp.psum.ny = op["dst_y_num"];
+    mp.psum.sy = op["dst_y_step"];
+  } else if (op["dst_y_num"] != nullptr) {
+    mp.psum.ny = op["dst_y_num"];
+    mp.psum.sy = op["dst_y_step"];
   } 
   mp.sb.dtype = op["in_dtype"];
   mp.psum.dtype = op["out_dtype"];
@@ -153,9 +153,9 @@ void print_footprints_waveops (json& j)
       MMMemInfo m(
           mp.sb
           , mp.psum
-          , op["ifmaps_sb_address"]
+          , op["src_sb_address"]
           , op["weights_sb_address"]
-          , op["ofmap_count"]
+          , op["num_column_partitions"]
 	  );
       std::list<AddrRange> ar = m.get_sb_in_footprint();
       std::cout << "MM sb_in footprint: ";
@@ -189,7 +189,7 @@ void print_footprints_waveops (json& j)
         src_sb_addr = op["src_sb_address"];
       if (op["dst_sb_address"] != nullptr) // For Act and Pool
         dst_sb_addr = op["dst_sb_address"];
-      if (op["sb_address"] != nullptr) // For SBAtomFile
+      if (op["sb_address"] != nullptr) // For SBAtomLoad
         dst_sb_addr = op["dst_sb_address"];
       if (op["bias_add_en"] != nullptr)
         bias_add_en = op["bias_add_en"];
@@ -230,11 +230,11 @@ void print_footprints_waveops (json& j)
       }
       AddrRange::print_text_ars<std::list<AddrRange> >(ar);
     }
-    else if (!waveop_type.compare("SBAtomFile") ||
+    else if (!waveop_type.compare("SBAtomLoad") ||
         !waveop_type.compare("SBAtomSave"))
     {
       SBAtomMemInfo::atom_type at =
-        (!waveop_type.compare("SBAtomFile")) ? SBAtomMemInfo::SBAtomFile :
+        (!waveop_type.compare("SBAtomLoad")) ? SBAtomMemInfo::SBAtomLoad :
         SBAtomMemInfo::SBAtomSave;
       //tonga_addr start_addr = op["sb_address"];
       //length_t len = op["length"];
@@ -245,7 +245,7 @@ void print_footprints_waveops (json& j)
       if (at == SBAtomMemInfo::SBAtomSave) {
         std::cout << "SBAtomSave sb_in footprint: ";
       } else {
-        std::cout << "SBAtomFile sb_out footprint: ";
+        std::cout << "SBAtomLoad sb_out footprint: ";
       }
       AddrRange::print_text_ars<std::list<AddrRange> >(ar);
     }

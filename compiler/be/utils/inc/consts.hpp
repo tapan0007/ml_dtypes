@@ -60,7 +60,7 @@ constexpr const char* const LayerTypeStr_BatchNorm      = "BNorm";
 constexpr const char* const LayerTypeStr_StridedSlice   = "StridedSlice";
 constexpr const char* const LayerTypeStr_Unstack        = "Unstack";
 
-constexpr const char* const WaveOpTypeStr_SBAtomLoad    = "SBAtomFile";
+constexpr const char* const WaveOpTypeStr_SBAtomLoad    = "SBAtomLoad";
 constexpr const char* const WaveOpTypeStr_SBAtomSave    = "SBAtomSave";
 constexpr const char* const WaveOpTypeStr_MatMul        = "MatMul";
 constexpr const char* const WaveOpTypeStr_Pool          = "Pool";

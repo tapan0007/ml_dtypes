@@ -731,12 +731,12 @@ class CircularBuffer:
         if (length == 0): length = self.atom_data_sz
         assert (length > 0)           
         # IFMAP replication parameters
-        src_step_elem = 1
+        stride = 1
         ifmap_replication_resolution = 0
         ifmap_replication_num_rows = 0
         ifmap_replication_step_bytes = 0
         if conv_op is not None and tpb.statebuffer.circbuf_weights.replicate_multiple > 1:
-            src_step_elem = conv_op.stride_x
+            stride = conv_op.stride_x
             if self.circbuf_type == "weights":
                 ifmap_replication_num_rows = conv_op.C
                 ifmap_replication_resolution = conv_op.C
@@ -763,7 +763,7 @@ class CircularBuffer:
         if args.abstract_mem:
             waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
         else:            
-            waveop_name = self.layer_name+"/SBAtomFile_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
+            waveop_name = self.layer_name+"/SBAtomLoad_%s_%d_%s"%(self.circbuf_type, atom_id, wave_id.id_string())           
         sb_addr = self.start + atom_id*self.atom_sz
         # add dependency if the chunk belongs to a saved atom
         previous_waveops = []
@@ -772,7 +772,7 @@ class CircularBuffer:
             for i in range(sb_addr//64, ceildiv(sb_addr + length, 64)):
                 # SB WAW dependency for weights
                 # (SB WAR dependency doesn't exist for weights since they are read-only)
-                # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
+                # (SB RAW dependency is already taken care of by SBAtomLoad feeding the depending waveop)
                 if tpb.statebuffer.consumer_of_64byte_morsel[i] != None \
                         and tpb.statebuffer.consumer_of_64byte_morsel[i][0] > order_number \
                         and not args.abstract_mem: 
@@ -783,37 +783,35 @@ class CircularBuffer:
         # string bias reads together (TODO: include weights?)
         # SB WAW dependency for bias (loose)
         # (SB WAR dependency doesn't exist for bias region since it is read-only)
-        # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
+        # (SB RAW dependency is already taken care of by SBAtomLoad feeding the depending waveop)
         #if (self.circbuf_type == "bias"):  # or self.circbuf_type == "weights"):
         #    if (self.last_biasweight_waveop != "" and len(previous_waveops) == 0 and not args.abstract_mem):
         #        previous_waveops.append(self.last_biasweight_waveop)
         #    self.last_biasweight_waveop = waveop_name                
         chunk_name = "%s_%d"%(simout_file, chunk_id)
         # DRAM RAW dependency for scratch (OFMAPS)
-        # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop)
+        # (SB RAW dependency is already taken care of by SBAtomLoad feeding the depending waveop)
         if (chunk_name in tpb.statebuffer.chunk2saved_map and not args.abstract_mem):
             previous_waveops.append(tpb.statebuffer.chunk2saved_map[chunk_name])
         if (args.debug > 2): print("LOAD FROM DRAM: region %s layer %s file %s start %d length %d fmap_count %d fmap_data_len %d"%(self.circbuf_type, self.layer_name, simout_file, offset_in_file, length, fmap_count, fmap_data_len))
         return {
               'previous_waveops' : previous_waveops,
-              'waveop_type'      : "SBAtomFile",
+              'waveop_type'      : "SBAtomLoad",
               'waveop_name'      : waveop_name,
               'layer_name'       : self.layer_name,
               'sb_address'       : sb_addr,
               'data_type'        : self.data_type,
               'contain_weights'  : (self.circbuf_type == "weights" or self.circbuf_type == "bias"),
+              'ref_file_sz'      : fmap_data_len * fmap_count, # WARNING: batching not done in layeropt.py (see me_main.py)
               'ref_file'         : simout_file,
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset_in_file,
               'length'           : length,
-              'ifmaps_replicate' : ifmaps_replicate,
-              'ifmaps_fold_idx'  : fmap_fold_idx,
               'start_at_mid_part' : start_at_mid_part,   # TO BE REMOVED
-              'batch_fold_idx'   : wave_id.n_id,
-              'ifmap_count'      : fmap_count,  # if this is larger than C, replicate fmap_count/C times
+              'num_partitions'      : fmap_count,  # if this is larger than C, replicate fmap_count/C times
               'partition_step_bytes': fmap_data_len,
-              'src_step_elem'     : src_step_elem,
+              'stride'              : stride,
               'ifmap_replication_resolution' : ifmap_replication_resolution, 
               'ifmap_replication_num_rows' : ifmap_replication_num_rows,
               'ifmap_replication_step_bytes' : ifmap_replication_step_bytes,
@@ -857,16 +855,15 @@ class CircularBuffer:
               'sb_address'       : self.start + atom_id*self.atom_sz,
               'data_type'        : self.data_type,
               'ref_file'         : simout_file,
+              'ref_file_sz'      : self.ofmap_data_len * fmap_count, # WARNING: batching not done in layeropt.py (see me_main.py)
               'ref_file_format'  : self.layer_format,
               'ref_file_shape'   : self.layer_shape,
               'offset_in_file'   : offset_in_file,
               'length'           : length,
               'start_at_mid_part' : False, #(tile_id.m_id%2) == 1,
-              'ofmaps_fold_idx'  : tile_id.m_id,
-              'batch_fold_idx'   : tile_id.n_id,
-              'ofmap_count'      : fmap_count,
+              'num_partitions'    : fmap_count,
               'partition_step_bytes': self.ofmap_data_len,
-              'last'             : last_atom_of_file,
+              'last_save_of_file' : last_atom_of_file,
               'final_layer_ofmap' : self.layer_type == "Output",
             }
 
@@ -961,7 +958,7 @@ class CircularBuffer:
             dram_waveops.append(new_dram_waveop)
             self.chunk2waveop_map[lower_addr_chunked] = new_dram_waveop
             # SB WAW dependency for general region at atom/chunk granularity
-            # (SB RAW dependency is already taken care of by SBAtomFile feeding the depending waveop, or the writing waveop feeding the depending waveop)
+            # (SB RAW dependency is already taken care of by SBAtomLoad feeding the depending waveop, or the writing waveop feeding the depending waveop)
             prev_consumer = self.map_chunk_to_nonspare_atom(atom_id, lower_addr_chunked)
             if (args.debug > 2): print("%s: loading chunk %d into atom %d"%(self.circbuf_type, lower_addr_chunked, atom_id))
             if (prev_consumer != None and not args.abstract_mem):
@@ -1822,7 +1819,7 @@ class FusedOp(list):
             fmap_y_num = next_break - break_at_y[i]
             psum_bank_additional_offset = break_at_y[i] * self.conv_op.ofmap_cropped_tile_width
             assert((self.conv_op.psum_bank_offset + psum_bank_additional_offset) < PEArray.MAX_WAVE_SIZE)
-            ifmaps_sb_address = break_addr[i]
+            fmap_sb_address = break_addr[i]
             if i>0: weights_sb_address = -1
 
             waveop_name = self.conv_op.data['layer_name']+"/MatMul_"+wave_id.id_string()+"__"+str(i)
@@ -1836,45 +1833,35 @@ class FusedOp(list):
             upper_file_address = min(self.conv_op.ifmap_wave_lower_addr[0] + next_break * addr_step_y - self.conv_op.item_sz, self.conv_op.ifmap_wave_upper_addr[0])
             dram_waveop_names += tpb.statebuffer.circbuf_ifmaps.get_dram_waveop_names(lower_file_address, upper_file_address, waveop_name)
 
-            if (args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, ifmaps_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, ifmaps_sb_address, fmap_y_num))                
+            if (args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, fmap_sb_address %d, fmap_y_num %d"%(self.conv_op.data['layer_name'], waveop_name, i, weights_sb_address, fmap_sb_address, fmap_y_num))                
             matmul_waveop.append({ 
                   'previous_waveops'        : dram_waveop_names,
                   'waveop_type'             : 'MatMul',
                   'waveop_name'             : waveop_name,
                   'layer_name'              : self.conv_op.data['layer_name'],
                   'weights_sb_address'      : weights_sb_address,
-                  'ifmaps_sb_address'       : ifmaps_sb_address,
                   'in_dtype'                : in_dtype,
                   'out_dtype'               : out_dtype,
-                  'wave_id_format'          : wave_id.format, # to be removed
-                  'wave_id'                 : wave_id.show(), # to be removed
-                  'start'                   : start_tensor_calc,    # to be removed
-                  'stride_x'                : self.conv_op.stride_x, # to be removed
-                  'stride_y'                : self.conv_op.stride_y, # to be removed
-                  'ifmap_count'             : self.conv_op.ifmap_count, # to be removed
-                  'ifmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed 
-                  'ifmap_tile_height'       : self.conv_op.ofmap_wave_height, # to be removed
-                  'ofmap_count'             : self.conv_op.ofmap_count, # to be removed
-                  'ofmap_tile_width'        : self.conv_op.ofmap_wave_width, # to be removed
-                  'ofmap_tile_height'       : self.conv_op.ofmap_wave_height,  # to be removed
-                  'batching_in_wave'        : self.conv_op.Tn, # to be removed
                   'start_tensor_calc'       : start_tensor_calc,
                   'stop_tensor_calc'        : False,
-                  'fmap_x_step'             : self.conv_op.stride_x,
-                  'fmap_x_num'              : self.conv_op.ofmap_wave_width,
-                  'fmap_y_step'             : self.conv_op.W * self.conv_op.stride_y,
-                  'fmap_y_num'              : fmap_y_num,
-                  'fmap_z_step'             : tpb.statebuffer.circbuf_ifmaps.atom_sz,
-                  'fmap_z_num'              : self.conv_op.Tn,
+                  'src_is_psum'             : False,
+                  'src_sb_address'          : fmap_sb_address,
+                  'src_x_step'              : self.conv_op.stride_x,
+                  'src_x_num'               : self.conv_op.ofmap_wave_width,
+                  'src_y_step'              : self.conv_op.W * self.conv_op.stride_y,
+                  'src_y_num'               : fmap_y_num,
+                  'src_z_step'              : tpb.statebuffer.circbuf_ifmaps.atom_sz,
+                  'src_z_num'               : self.conv_op.Tn,
                   'num_row_partitions'      : self.conv_op.ifmap_count,
-                  'psum_bank_id'            : self.conv_op.psum_bank_dst,
-                  'psum_bank_offset'        : self.conv_op.psum_bank_offset + psum_bank_additional_offset,
-                  'psum_x_step'             : 1,
-                  'psum_x_num'              : self.conv_op.ofmap_wave_width,
-                  'psum_y_step'             : self.conv_op.ofmap_cropped_tile_width,
-                  'psum_y_num'              : fmap_y_num,
-                  'psum_z_step'             : self.conv_op.ofmap_full_tile_sz,
-                  'psum_z_num'              : self.conv_op.Tn,
+                  'dst_is_psum'             : True,
+                  'dst_psum_bank_id'        : self.conv_op.psum_bank_dst,
+                  'dst_psum_bank_offset'    : self.conv_op.psum_bank_offset + psum_bank_additional_offset,
+                  'dst_x_step'              : 1,
+                  'dst_x_num'               : self.conv_op.ofmap_wave_width,
+                  'dst_y_step'              : self.conv_op.ofmap_cropped_tile_width,
+                  'dst_y_num'               : fmap_y_num,
+                  'dst_z_step'              : self.conv_op.ofmap_full_tile_sz,
+                  'dst_z_num'               : self.conv_op.Tn,
                   'num_column_partitions'   : self.conv_op.ofmap_count,
                   'ifmap_replication_resolution' : ifmap_replication_resolution, 
                   'ifmap_replication_num_rows' : ifmap_replication_num_rows,
@@ -1909,7 +1896,8 @@ class FusedOp(list):
         waveop_name = self.pool_op.data['layer_name']+"/Pool_"+tile_id.id_string()
         pool_frequency = self.pool_op.pool_window_x * self.pool_op.pool_window_y
         pool_scale = float(1/pool_frequency)
-        pool_waveop = {
+        dst_is_psum = False
+        instr = {
               'previous_waveops'        : [],   # to be added later
               'waveop_type'             : 'Pool',
               'waveop_name'             : waveop_name,
@@ -1920,8 +1908,6 @@ class FusedOp(list):
               'in_dtype'                : in_dtype,
               'out_dtype'               : self.out_data_type,
               'src_is_psum'             : src_is_psum,
-              'src_psum_bank_id'        : src_psum_bank_id,
-              'src_psum_bank_offset'    : 0,
               'src_sb_address'          : src_sb_address, 
               'src_start_at_mid_part'   : start_at_mid_part, 
               'src_x_step'              : 1 * psum_step_multiplier,
@@ -1935,7 +1921,6 @@ class FusedOp(list):
               'pool_frequency'          : pool_frequency,
               'pool_scale'              : pool_scale,
               'num_partitions'          : self.pool_op.ofmap_count,
-              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
               'dst_start_at_mid_part'   : start_at_mid_part,
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
@@ -1944,7 +1929,19 @@ class FusedOp(list):
               'dst_z_step'              : self.pool_op.E * self.pool_op.F,  # Need CNHW data format
               'dst_z_num'               : self.pool_op.Tn,  # Need CNHW data format
             }
-        return pool_waveop
+        if src_is_psum:
+            instr['src_psum_bank_id'] = src_psum_bank_id
+            instr['src_psum_bank_offset'] = 0
+        else:                
+            instr['src_sb_address'] = src_sb_address
+            instr['src_start_at_mid_part'] = start_at_mid_part 
+        if dst_is_psum:
+            instr['dst_psum_bank_id'] = dst_psum_bank_id
+            instr['dst_psum_bank_offset'] = dst_psum_bank_offset
+        else:                
+            instr['dst_sb_address'] = 0 # Need to adjust this after allocating atoms
+            instr['dst_start_at_mid_part'] = start_at_mid_part 
+        return instr
 
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
     def execute_matmul_waveop(self, tpb, wave_id, inputs, weights, psum_add):
@@ -2436,6 +2433,7 @@ class TPBSched:
         in_dtype = "float32"
         out_dtype = "float32"
         waveop_name = layer_name+"/Reciprocal"
+        assert(dst_is_psum == True)
         instr = {
               'previous_waveops'        : [],
               'waveop_type'             : 'Reciprocal',
@@ -2443,7 +2441,9 @@ class TPBSched:
               'layer_name'              : layer_name,
               'in_dtype'                : in_dtype,
               'out_dtype'               : out_dtype,
+              'src_is_psum'             : True,
               'src_psum_bank_id'        : psum_bank_src,
+              'src_psum_bank_offset'    : 0,
               'src_x_step'              : 1,
               'src_x_num'               : 1,
               'src_y_step'              : 1,
@@ -2452,8 +2452,7 @@ class TPBSched:
               'src_z_num'               : 1,
               'dst_is_psum'             : dst_is_psum, 
               'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
-              'dst_start_at_mid_part'   : False,
+              'dst_psum_bank_offset'    : 0,
               'dst_x_step'              : 1,
               'dst_x_num'               : 1,
               'dst_y_step'              : 1,
@@ -2507,9 +2506,6 @@ class TPBSched:
               'in_dtype'                : in_dtype,
               'out_dtype'               : out_dtype,
               'src_is_psum'             : src_is_psum,
-              'src_psum_bank_id'        : psum_bank_src,
-              'src_psum_bank_offset'    : 0,
-              'src_sb_address'          : src_sb_address, 
               'src_x_step'              : 1,
               'src_x_num'               : dst_x_num,
               'src_y_step'              : dst_y_step,
@@ -2518,9 +2514,6 @@ class TPBSched:
               'src_z_num'               : dst_z_num,
               'src_start_at_mid_part'   : tile_id.m_id%2 == 1,
               'dst_is_psum'             : dst_is_psum,
-              'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_psum_bank_offset'    : 0,
-              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
@@ -2532,6 +2525,18 @@ class TPBSched:
               'scale'                   : scale_val,
               'add'                     : add_val,
             }
+        if src_is_psum:
+            instr['src_psum_bank_id'] = psum_bank_src
+            instr['src_psum_bank_offset'] = 0 
+        else:                
+            instr['src_sb_address'] = src_sb_address
+            instr['src_start_at_mid_part'] = tile_id.m_id%2 == 1
+        if dst_is_psum:
+            instr['dst_psum_bank_id'] = psum_bank_dst
+            instr['dst_psum_bank_offset'] = 0
+        else:                
+            instr['dst_sb_address'] = 0 # Need to adjust this after allocating atoms
+            instr['dst_start_at_mid_part'] = tile_id.m_id%2 == 1
         self.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
 
     # generate activation instruction and add it to instruction stream
@@ -2615,17 +2620,11 @@ class TPBSched:
               'bias_dtype'              : tpb.statebuffer.circbuf_bias.data_type, 
               'out_dtype'               : out_dtype,
               'src_is_psum'             : src_is_psum,
-              'src_sb_address'          : src_sb_address,
-              'src_psum_bank_id'        : psum_bank_src,
-              'src_start_at_mid_part'   : tile_id.m_id%2 == 1,
               'src_x_step'              : 1,
               'src_x_num'               : dst_x_num,
               'src_y_step'              : dst_y_step,
               'src_y_num'               : dst_y_num * dst_z_num,
               'dst_is_psum'             : dst_is_psum,
-              'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
-              'dst_start_at_mid_part'   : tile_id.m_id%2 == 1,
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
@@ -2637,6 +2636,18 @@ class TPBSched:
               'bias_sb_address'         : bias_sb_address,
               'bias_start_at_mid_part'  : tile_id.m_id%2 == 1,
             }
+        if src_is_psum:
+            instr['src_psum_bank_id'] = psum_bank_src
+            instr['src_psum_bank_offset'] = 0 
+        else:                
+            instr['src_sb_address'] = src_sb_address
+            instr['src_start_at_mid_part'] = tile_id.m_id%2 == 1
+        if dst_is_psum:
+            instr['dst_psum_bank_id'] = psum_bank_dst
+            instr['dst_psum_bank_offset'] = 0
+        else:                
+            instr['dst_sb_address'] = 0 # Need to adjust this after allocating atoms
+            instr['dst_start_at_mid_part'] = tile_id.m_id%2 == 1
         self.waveop_stream.add_linked(instr, dram_bias_waveops, psum_bank_src if src_is_psum else -1)
         # kaena-383: record current users of weight morsels (just keep the last one if there are multiple wave-pieces)
         for j in range(bias_sb_address//64, ceildiv(bias_sb_address + act_or_biasadd_op.item_sz, 64)):
@@ -2704,8 +2715,6 @@ class TPBSched:
               'in_b_dtype'              : in_b_dtype,
               'out_dtype'               : out_dtype,
               'src_a_is_psum'           : False,
-              'src_a_psum_bank_id'      : 0,
-              'src_a_psum_bank_offset'  : 0,
               'src_a_sb_address'        : self.statebuffer.circbuf_residue.get_sb_address(data_start),
               'src_a_start_at_mid_part' : start_at_mid_part,
               'src_a_x_step'            : 1,
@@ -2715,10 +2724,6 @@ class TPBSched:
               'src_a_z_step'            : dst_z_step,
               'src_a_z_num'             : dst_z_num,
               'src_b_is_psum'           : src_is_psum,
-              'src_b_psum_bank_id'      : psum_bank_src,
-              'src_b_psum_bank_offset'  : 0,
-              'src_b_sb_address'        : src_b_sb_address,
-              'src_b_start_at_mid_part' : start_at_mid_part,
               'src_b_x_step'            : 1,
               'src_b_x_num'             : dst_x_num,
               'src_b_y_step'            : dst_y_step,
@@ -2726,10 +2731,6 @@ class TPBSched:
               'src_b_z_step'            : dst_z_step,
               'src_b_z_num'             : dst_z_num,
               'dst_is_psum'             : dst_is_psum,
-              'dst_psum_bank_id'        : psum_bank_dst,
-              'dst_psum_bank_offset'    : 0,
-              'dst_sb_address'          : 0, # Need to adjust this after allocating atoms
-              'dst_start_at_mid_part'   : start_at_mid_part,
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
               'dst_y_step'              : dst_y_step,
@@ -2738,6 +2739,18 @@ class TPBSched:
               'dst_z_num'               : dst_z_num,
               'num_partitions'          : num_partitions,
             }
+        if src_is_psum:
+            instr['src_b_psum_bank_id'] = psum_bank_src 
+            instr['src_b_psum_bank_offset'] = 0 
+        else:                
+            instr['src_b_sb_address'] = src_b_sb_address
+            instr['src_b_start_at_mid_part'] = start_at_mid_part 
+        if dst_is_psum:
+            instr['dst_psum_bank_id'] = psum_bank_dst
+            instr['dst_psum_bank_offset'] = 0 
+        else:                
+            instr['dst_sb_address'] = 0  # Need to adjust this after allocating atoms
+            instr['dst_start_at_mid_part'] = start_at_mid_part 
         self.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1)
 
     def gen_fused_pool_waveop_inline (self, fused_ops, tile_id, psum_bank_src, start_at_mid_part):
@@ -3472,13 +3485,13 @@ if __name__ == "__main__":
         wavegraph = KGraph()
         wavegraph.populate_from_kgraph_json(wavegraph_json)
 
-        # check for SBAtomFile nodes with no input
+        # check for SBAtomLoad nodes with no input
         if (args.debug > 2):
-            print("DBG: check for all SBAtomFile nodes with no input")
+            print("DBG: check for all SBAtomLoad nodes with no input")
             for i in wavegraph.node_dict:
                 entry = wavegraph.node_dict[i]
                 if 'waveop_type' in entry.data:
-                    if entry.data['waveop_type'] == "SBAtomFile":
+                    if entry.data['waveop_type'] == "SBAtomLoad":
                         if entry.data['previous_waveops'] == []:
                             print(entry.data['waveop_name'])
 

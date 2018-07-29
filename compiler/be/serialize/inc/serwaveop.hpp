@@ -23,9 +23,6 @@
 
 #include "events/inc/events.hpp"
 
-// Must include matmulwaveop.hpp for WaveId
-#include "wave/inc/matmulwaveop.hpp"
-
 
 namespace kcc {
 using  namespace utils;
@@ -46,17 +43,13 @@ constexpr static const char* WaveOpKey_Order                    = "order";
 
 
 // MatMul
-constexpr static const char* WaveOpKey_BatchingInWave       = "batching_in_wave";
-constexpr static const char* WaveOpKey_FmapXNum             = "fmap_x_num";
-constexpr static const char* WaveOpKey_FmapXStep            = "fmap_x_step";
-constexpr static const char* WaveOpKey_FmapYNum             = "fmap_y_num";
-constexpr static const char* WaveOpKey_FmapYStep            = "fmap_y_step";
-constexpr static const char* WaveOpKey_FmapZNum             = "fmap_z_num";
-constexpr static const char* WaveOpKey_FmapZStep            = "fmap_z_step";
-constexpr static const char* WaveOpKey_IfmapCount           = "ifmap_count";
-constexpr static const char* WaveOpKey_IfmapTileHeight      = "ifmap_tile_height";
-constexpr static const char* WaveOpKey_IfmapTileWidth       = "ifmap_tile_width";
-constexpr static const char* WaveOpKey_IfmapsSbAddress      = "ifmaps_sb_address";
+constexpr static const char* WaveOpKey_FmapXNum             = "src_x_num";
+constexpr static const char* WaveOpKey_FmapXStep            = "src_x_step";
+constexpr static const char* WaveOpKey_FmapYNum             = "src_y_num";
+constexpr static const char* WaveOpKey_FmapYStep            = "src_y_step";
+constexpr static const char* WaveOpKey_FmapZNum             = "src_z_num";
+constexpr static const char* WaveOpKey_FmapZStep            = "src_z_step";
+constexpr static const char* WaveOpKey_IfmapsSbAddress      = "src_sb_address";
 constexpr static const char* WaveOpKey_DataType             = "data_type";
 
 // MatMul
@@ -66,30 +59,22 @@ constexpr static const char* WaveOpKey_IfmapReplicationShiftAmnt    = "ifmap_rep
 
 // SBAtomLoad
 constexpr static const char* WaveOpKey_IfmapReplicationStepBytes    = "ifmap_replication_step_bytes";
-constexpr static const char* WaveOpKey_IfmapsReplicate              = "ifmaps_replicate"; // will be removed
-constexpr static const char* WaveOpKey_SrcStepElem                  = "src_step_elem"; // will be changed to "stride"
+constexpr static const char* WaveOpKey_SrcStepElem                  = "stride";
 
 // layer name
 constexpr static const char* WaveOpKey_NumColumnPartitions  = "num_column_partitions";
 constexpr static const char* WaveOpKey_NumRowPartitions     = "num_row_partitions";
-constexpr static const char* WaveOpKey_OfmapCount           = "ofmap_count";
-constexpr static const char* WaveOpKey_OfmapTileHeight      = "ofmap_tile_height";
-constexpr static const char* WaveOpKey_OfmapTileWidth       = "ofmap_tile_width";
 // previous waveops
-constexpr static const char* WaveOpKey_PsumBankId           = "psum_bank_id";
-constexpr static const char* WaveOpKey_PsumBankOffset       = "psum_bank_offset";
-constexpr static const char* WaveOpKey_PsumXNum             = "psum_x_num";
-constexpr static const char* WaveOpKey_PsumXStep            = "psum_x_step";
-constexpr static const char* WaveOpKey_PsumYNum             = "psum_y_num";
-constexpr static const char* WaveOpKey_PsumYStep            = "psum_y_step";
-constexpr static const char* WaveOpKey_PsumZNum             = "psum_z_num";
-constexpr static const char* WaveOpKey_PsumZStep            = "psum_z_step";
+constexpr static const char* WaveOpKey_PsumBankId           = "dst_psum_bank_id";
+constexpr static const char* WaveOpKey_PsumBankOffset       = "dst_psum_bank_offset";
+constexpr static const char* WaveOpKey_PsumXNum             = "dst_x_num";
+constexpr static const char* WaveOpKey_PsumXStep            = "dst_x_step";
+constexpr static const char* WaveOpKey_PsumYNum             = "dst_y_num";
+constexpr static const char* WaveOpKey_PsumYStep            = "dst_y_step";
+constexpr static const char* WaveOpKey_PsumZNum             = "dst_z_num";
+constexpr static const char* WaveOpKey_PsumZStep            = "dst_z_step";
 constexpr static const char* WaveOpKey_StartTensorCalc      = "start_tensor_calc";
 constexpr static const char* WaveOpKey_StopTensorCalc       = "stop_tensor_calc";
-constexpr static const char* WaveOpKey_StrideX              = "stride_x";
-constexpr static const char* WaveOpKey_StrideY              = "stride_y";
-constexpr static const char* WaveOpKey_WaveId               = "wave_id";
-constexpr static const char* WaveOpKey_WaveIdFormat         = "wave_id_format";
 // waveop name
 // waveop type
 constexpr static const char* WaveOpKey_WeightsSbAddress     = "weights_sb_address";
@@ -97,7 +82,6 @@ constexpr static const char* WaveOpKey_WeightsSbAddress     = "weights_sb_addres
 // SBAtom common
 constexpr static const char* WaveOpKey_SbAddress            = "sb_address";
 constexpr static const char* WaveOpKey_StartAtMidPart            = "start_at_mid_part";
-constexpr static const char* WaveOpKey_BatchFoldIdx         = "batch_fold_idx";
 constexpr static const char* WaveOpKey_Length               = "length";
 constexpr static const char* WaveOpKey_OffsetInFile         = "offset_in_file";
 constexpr static const char* WaveOpKey_PartitionStepBytes   = "partition_step_bytes";
@@ -105,11 +89,7 @@ constexpr static const char* WaveOpKey_RefFile              = "ref_file";
 constexpr static const char* WaveOpKey_RefFileFormat        = "ref_file_format";
 constexpr static const char* WaveOpKey_RefFileShape         = "ref_file_shape";
 
-// SBAtomLoad
-constexpr static const char* WaveOpKey_IfmapsFoldIdx        = "ifmaps_fold_idx";
-
 // SBAtomSave
-constexpr static const char* WaveOpKey_OfmapsFoldIdx        = "ofmaps_fold_idx";
 constexpr static const char* WaveOpKey_FinalLayerOfmap      = "final_layer_ofmap";
 
 // Pool
@@ -278,7 +258,6 @@ public:
     // SBAtom
     kcc_int64                   m_SbAddress         = -1;
     bool                        m_StartAtMidPart    = false;
-    kcc_int32                   m_BatchFoldIdx      = -1;
     std::string                 m_DataType          = "";
     //layer name
     kcc_int64                   m_Length            = -1;
@@ -292,36 +271,22 @@ public:
     // waveop type
 
     // SBAtomLoad
-    kcc_int32                   m_IfmapCount        = -1;
-    kcc_int32                   m_IfmapsFoldIdx     = -1;
     bool                        m_ContainWeights    = false;
 
     // SBAtomSave
-    kcc_int32                   m_OfmapCount        = -1;
-    kcc_int32                   m_OfmapsFoldIdx     = -1;
     bool                        m_FinalLayerOfmap;
 
     // MatMul
-    enum {
-        WaveIdFormatSize = 7,
-    };
-    kcc_int32                   m_BatchingInWave        = -1;
     kcc_int32                   m_FmapXNum              = -1;
     kcc_int32                   m_FmapXStep             = -1;
     kcc_int32                   m_FmapYNum              = -1;
     kcc_int32                   m_FmapYStep             = -1;
     kcc_int32                   m_FmapZNum              = -1;
     kcc_int32                   m_FmapZStep             = -1;
-    //kcc_int32                   m_IfmapCount            = -1;
-    kcc_int32                   m_IfmapTileHeight       = -1;
-    kcc_int32                   m_IfmapTileWidth        = -1;
     kcc_int64                   m_IfmapsSbAddress       = -1;
     // layer name
     kcc_int32                   m_NumColumnPartitions   = -1;
     kcc_int32                   m_NumRowPartitions      = -1;
-    //kcc_int32                   m_OfmapCount            = -1;
-    kcc_int32                   m_OfmapTileHeight       = -1;
-    kcc_int32                   m_OfmapTileWidth        = -1;
     // previous waveops
     kcc_int32                   m_PsumBankId            = -1;
     kcc_int32                   m_PsumBankOffset        = -1;
@@ -333,10 +298,6 @@ public:
     kcc_int32                   m_PsumZStep             = -1;
     bool                        m_StartTensorCalc       = true;
     bool                        m_StopTensorCalc        = true;
-    kcc_int32                   m_StrideX               = -1;
-    kcc_int32                   m_StrideY               = -1;
-    wave::MatMulWaveOp::WaveId  m_WaveId;
-    std::string                 m_WaveIdFormat          = "";
     // waveop name
     // waveop type
     kcc_int64                   m_WeightsSbAddress      = -2;
@@ -425,7 +386,6 @@ public:
     kcc_int32                   m_IfmapReplicationResolution    = -1; // MM, Load
     kcc_int32                   m_IfmapReplicationShiftAmnt     = -1; // MatMul
     kcc_int32                   m_IfmapReplicationStepBytes     = -1; // SbAtomLoad
-    bool                        m_IfmapsReplicate               = false; // SbAtomLoad
 
     kcc_int32                   m_SrcStepElem                   = -1; // SbAtomLoad
 

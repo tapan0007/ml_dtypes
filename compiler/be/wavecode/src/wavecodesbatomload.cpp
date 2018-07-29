@@ -139,7 +139,7 @@ WaveCodeSbAtomLoad::generateForSimNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveO
     //************************************************************************
     // Instruction(s)
     //************************************************************************
-    const kcc_int64 numPartitions   = sbAtomLoadWaveOp->gIfmapCount();
+    const kcc_int64 numPartitions   = sbAtomLoadWaveOp->gNumPartitions();
     const kcc_int64 numBytesPerPart = sbAtomLoadWaveOp->gLength();
     const kcc_int64 addressInPart   = sbAtomLoadWaveOp->gSbAddress();
     const kcc_int64 stepSize        = sbAtomLoadWaveOp->gPartitionStepBytes();
@@ -268,7 +268,7 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     const kcc_uint32     replResolution      = sbAtomLoadWaveop->gIfmapReplicationResolution();
     const kcc_uint32     ifmapReplStepBytes  = sbAtomLoadWaveop->gIfmapReplicationStepBytes();
     const kcc_uint32     srcStepElem         = sbAtomLoadWaveop->gSrcStepElem();
-    const kcc_uint32     numActiveParts      = sbAtomLoadWaveop->gIfmapCount();
+    const kcc_uint32     numActiveParts      = sbAtomLoadWaveop->gNumPartitions();
     const kcc_uint32     ifmapReplNumRows    = sbAtomLoadWaveop->gIfmapReplicationNumRows();
     const TpbAddress     partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
 
@@ -489,7 +489,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
     //************************************************************************
-    const kcc_int64 numPartitions   = sbAtomLoadWaveop->gIfmapCount();
+    const kcc_int64 numPartitions   = sbAtomLoadWaveop->gNumPartitions();
     const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomLoadWaveop->gSbAddress();
     const kcc_int64 stepSize        = sbAtomLoadWaveop->gPartitionStepBytes();
@@ -577,7 +577,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
 
     const utils::DataType& dataType(sbAtomLoadWaveop->gDataType());
     //************************************************************************
-    //const kcc_int64 numPartitions   = sbAtomLoadWaveop->gIfmapCount();
+    //const kcc_int64 numPartitions   = sbAtomLoadWaveop->gNumPartitions();
     //const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomLoadWaveop->gSbAddress();
     //const kcc_int64 stepSize        = sbAtomLoadWaveop->gPartitionStepBytes();
@@ -585,7 +585,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
                                         ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
     const kcc_int32 replResolution  = sbAtomLoadWaveop->gIfmapReplicationResolution();
     const kcc_int32 replStepElem    = sbAtomLoadWaveop->gSrcStepElem();
-    const kcc_int32 numActiveParts  = sbAtomLoadWaveop->gIfmapCount();
+    const kcc_int32 numActiveParts  = sbAtomLoadWaveop->gNumPartitions();
     const kcc_int32 ifmapReplNumRows    = sbAtomLoadWaveop->gIfmapReplicationNumRows();
     const kcc_int32 ifmapReplStepBytes  = sbAtomLoadWaveop->gIfmapReplicationStepBytes();
 
@@ -737,7 +737,7 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
     //************************************************************************
-    const kcc_int64 numPartitions   = sbAtomLoadWaveop->gIfmapCount();
+    const kcc_int64 numPartitions   = sbAtomLoadWaveop->gNumPartitions();
     const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomLoadWaveop->gSbAddress();
     const kcc_int64 stepSize        = sbAtomLoadWaveop->gPartitionStepBytes();
@@ -839,7 +839,7 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 // The test for this is 3-1conv0_padvalid_wave.
 //======================================================================
 // In the previous comment, please ignore ifmap_replication_step_bytes for MatMul waveop.
-// Also, for weights SBAtomFile waveop, ifmap_replication_resolution is different from that in IFMAP SBAtomFile waveop (3 instead of 6 for ResNet50 first layer).
+// Also, for weights SBAtomLoad waveop, ifmap_replication_resolution is different from that in IFMAP SBAtomLoad waveop (3 instead of 6 for ResNet50 first layer).
 // Also, step #1 should say:
 // 1- sim_dma_copy ifmap_replication_resolution channels starting at offset_in_file to sb_address
 //======================================================================
@@ -864,7 +864,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
     const kcc_int32 replResolution      = sbAtomLoadWaveop->gIfmapReplicationResolution();
     const kcc_int32 ifmapReplStepBytes  = sbAtomLoadWaveop->gIfmapReplicationStepBytes();
     const kcc_int32 replStepElem        = sbAtomLoadWaveop->gSrcStepElem();
-    const kcc_int32 numActiveParts      = sbAtomLoadWaveop->gIfmapCount();
+    const kcc_int32 numActiveParts      = sbAtomLoadWaveop->gNumPartitions();
     const kcc_int32 ifmapReplNumRows    = sbAtomLoadWaveop->gIfmapReplicationNumRows();
     const kcc_int64 numBytesPerPart     = sbAtomLoadWaveop->gLength();
 
@@ -973,7 +973,7 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     Assert(m_WaveCode.qBinFileSimKelf(), "Must be binary for SIM Kelf");
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
 
-    const kcc_int64 numPartitions   = sbAtomLoadWaveop->gIfmapCount();
+    const kcc_int64 numPartitions   = sbAtomLoadWaveop->gNumPartitions();
     const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomLoadWaveop->gSbAddress();
     const kcc_int64 stepSize        = sbAtomLoadWaveop->gPartitionStepBytes();

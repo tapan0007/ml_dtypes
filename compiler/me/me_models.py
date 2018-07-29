@@ -20,7 +20,6 @@ class PEArray:
     num_of_ops_executed = 0
     total_pearray_latency_cycles = 0
     total_pearray_wave_elems = 0
-    batching_in_wave = 0
 
     def __init__(self):
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS), dtype=np.float32)

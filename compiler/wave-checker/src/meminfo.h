@@ -370,7 +370,7 @@ class WaveOpGenericMemInfo {
 
 class SBAtomMemInfo {
   public:
-    enum atom_type {SBAtomFile, SBAtomSave};
+    enum atom_type {SBAtomLoad, SBAtomSave};
     //SBAtomMemInfo(tonga_addr start_addr, length_t len, bool mid_part
       //: m_sb_start_addr(start_addr), m_length(len)
         //, m_start_at_mid_part(mid_part), m_atom_type(at)

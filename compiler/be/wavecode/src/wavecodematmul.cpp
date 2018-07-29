@@ -71,7 +71,6 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
         return; // No LdWeights instructions
     }
     //const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
-    //const wave::MatMulWaveOp::WaveId& waveId(matmulWaveop->gWaveId());
 
     compisa::LdWeightsInstr ldweightsInstr;
 
@@ -108,7 +107,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
         enum { OCTET_SIZE = 8 };
         const kcc_int32 dtypeSize               = inDtype.gSizeInBytes();
-        const kcc_int32 realNumWeights          = matmulWaveop->gOfmapCount();
+        const kcc_int32 realNumWeights          = matmulWaveop->gNumColumnPartitions();
         const kcc_int32 realLastAddressInSbPart = addressInSbPart + (realNumWeights - 1) * dtypeSize;
         const kcc_int32 deltaAddress            = (OCTET_SIZE - dtypeSize) - (realLastAddressInSbPart % OCTET_SIZE);
         Assert(deltaAddress >= 0, "Delta address for extra weights must be non-negative, but it is ", deltaAddress);
@@ -124,7 +123,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
         ldweightsInstr.num_active_cols                      = newNumWeights;
     }
 
-    ldweightsInstr.num_active_rows              = matmulWaveop->gIfmapCount();
+    ldweightsInstr.num_active_rows              = matmulWaveop->gNumRowPartitions();
 
     ldweightsInstr.inst_events.wait_event_idx   = 0;
     ldweightsInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);

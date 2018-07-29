@@ -8,7 +8,7 @@ std::pair<WaveOp::WaveOpType, WaveOp::Engine> WaveOp::ExtractWaveOpTypeEngine(
     std::string& wot)
 {
   std::pair<WaveOp::WaveOpType, WaveOp::Engine> res;
-  if (!wot.compare("SBAtomFile")) res = std::make_pair(SBAtomFile, DMA);
+  if (!wot.compare("SBAtomLoad")) res = std::make_pair(SBAtomLoad, DMA);
   else if (!wot.compare("SBAtomSave")) res = std::make_pair(SBAtomSave, DMA);
   else if (!wot.compare("MatMul")) res = std::make_pair(MatMul, PE);
   else if (!wot.compare("Pool")) res = std::make_pair(Pool, POOL);
@@ -21,24 +21,24 @@ std::pair<WaveOp::WaveOpType, WaveOp::Engine> WaveOp::ExtractWaveOpTypeEngine(
 
 inline bool WaveOp::IsDRAMOp()
 {
-  return ((waveop_type == SBAtomFile) || (waveop_type == SBAtomSave));
+  return ((waveop_type == SBAtomLoad) || (waveop_type == SBAtomSave));
 }
 
 MemInfo_Params MMOp::extract_sb_params(json& op)
 {
   MemInfo_Params mp;
   mp.enable = true;
-  mp.nx = op["fmap_x_num"];
-  mp.sx = op["fmap_x_step"];
+  mp.nx = op["src_x_num"];
+  mp.sx = op["src_x_step"];
   mp.ny = 1;mp.nz = 1;mp.nw = 1;mp.sy = 0;mp.sz = 0;mp.sw = 0;
-  if (op["fmap_z_num"] != nullptr) {
-    mp.nz = op["fmap_z_num"];
-    mp.sz = op["fmap_z_step"];
-    mp.ny = op["fmap_y_num"];
-    mp.sy = op["fmap_y_step"];
-  } else if (op["fmap_y_num"] != nullptr) {
-    mp.ny = op["fmap_y_num"];
-    mp.sy = op["fmap_y_step"];
+  if (op["src_z_num"] != nullptr) {
+    mp.nz = op["src_z_num"];
+    mp.sz = op["src_z_step"];
+    mp.ny = op["src_y_num"];
+    mp.sy = op["src_y_step"];
+  } else if (op["src_y_num"] != nullptr) {
+    mp.ny = op["src_y_num"];
+    mp.sy = op["src_y_step"];
   } 
   mp.dtype = op["in_dtype"];
 
@@ -50,19 +50,19 @@ MemInfo_PSUM_Params MMOp::extract_psum_params(json& op)
   MemInfo_PSUM_Params mp;
 
   mp.enable = true;
-  mp.nx = op["psum_x_num"];
-  mp.sx = op["psum_x_step"];
+  mp.nx = op["dst_x_num"];
+  mp.sx = op["dst_x_step"];
   mp.ny = 1;mp.nz = 1;mp.nw = 1;
   mp.sy = 0;mp.sz = 0;mp.sw = 0;
-  mp.pbid = op["psum_bank_id"];
-  if (op["psum_z_num"] != nullptr) {
-    mp.nz = op["psum_z_num"];
-    mp.sz = op["psum_z_step"];
-    mp.ny = op["psum_y_num"];
-    mp.sy = op["psum_y_step"];
-  } else if (op["psum_y_num"] != nullptr) {
-    mp.ny = op["psum_y_num"];
-    mp.sy = op["psum_y_step"];
+  mp.pbid = op["dst_psum_bank_id"];
+  if (op["dst_z_num"] != nullptr) {
+    mp.nz = op["dst_z_num"];
+    mp.sz = op["dst_z_step"];
+    mp.ny = op["dst_y_num"];
+    mp.sy = op["dst_y_step"];
+  } else if (op["dst_y_num"] != nullptr) {
+    mp.ny = op["dst_y_num"];
+    mp.sy = op["dst_y_step"];
   } 
   mp.dtype = op["out_dtype"];
 
@@ -221,7 +221,7 @@ SBAtomMemInfo::atom_type SBAtomOp::extract_atom_type(json& op)
 {
   std::string waveop_type = op["waveop_type"].get<std::string>();
   SBAtomMemInfo::atom_type at =
-    (!waveop_type.compare("SBAtomFile")) ? SBAtomMemInfo::SBAtomFile :
+    (!waveop_type.compare("SBAtomLoad")) ? SBAtomMemInfo::SBAtomLoad :
     SBAtomMemInfo::SBAtomSave;
   return at;
 }
@@ -368,7 +368,7 @@ WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
     if (wo->get_waveop_type() == WaveOp::MatMul) mMMops.push_back(v);
     if (wo->get_waveop_type() == WaveOp::Activation) mACTops.push_back(v);
     if (wo->get_waveop_type() == WaveOp::Pool) mPOOLops.push_back(v);
-    if (wo->get_waveop_type() == WaveOp::SBAtomFile) mLDops.push_back(v);
+    if (wo->get_waveop_type() == WaveOp::SBAtomLoad) mLDops.push_back(v);
     if (wo->get_waveop_type() == WaveOp::SBAtomSave) mSTops.push_back(v);
     if (wo->get_waveop_type() == WaveOp::ResAdd) mResAddops.push_back(v);
     mName2WaveOp.insert(std::pair<std::string, WaveOp*>(n, wo));
@@ -426,7 +426,7 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
   if (!wave_op_type.compare("MatMul")) wo = new MMOp(op);
   else if (!wave_op_type.compare("Activation") ||
       !wave_op_type.compare("Pool")) wo = new PoolActOp(op);
-  else if (!wave_op_type.compare("SBAtomFile") ||
+  else if (!wave_op_type.compare("SBAtomLoad") ||
       !wave_op_type.compare("SBAtomSave")) wo = new SBAtomOp(op);
   else if (!wave_op_type.compare("ResAdd")) wo = new ResAddOp(op);
   else if (!wave_op_type.compare("Nop")) wo = new NopOp(op);
@@ -547,10 +547,10 @@ inline bool WaveGraphChecker::OutputOperandCheck(vertex_t v)
   for(;oep.first != oep.second;++oep.first)
   {
     vertex_t t = boost::target(*oep.first, wg);
-    if (wg[t]->get_waveop_type() == WaveOp::SBAtomFile)
+    if (wg[t]->get_waveop_type() == WaveOp::SBAtomLoad)
     {
       std::cout << "Warning : Output operand of " << wg[v]->get_name()
-        << " is SBAtomFile" << std::endl;
+        << " is SBAtomLoad" << std::endl;
       std::cout << "\t" << wg[t]->get_name() << std::endl;
     }
   }
@@ -940,7 +940,7 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
       make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
     }
     else if (!wop_type.compare("SBAtomSave") ||
-        !wop_type.compare("SBAtomFile"))
+        !wop_type.compare("SBAtomLoad"))
     {
       make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
     }

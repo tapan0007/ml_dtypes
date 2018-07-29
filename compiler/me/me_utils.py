@@ -836,7 +836,7 @@ class FileMapper():
         last_byte_offset = offset_in_file + (file_params.fmap_data_len * (fmap_count-1)) + length - file_params.item_sz
         assert (length > 0)           
         # IFMAP replication parameters
-        src_step_elem = 1
+        stride = 1
         ifmap_replication_num_rows = 0
         ifmap_replication_resolution = 0
         ifmap_replication_step_bytes = 0
@@ -852,7 +852,7 @@ class FileMapper():
                 last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
                 last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%ifmap_replication_resolution) 
             else:
-                src_step_elem = file_params.stride_x
+                stride = file_params.stride_x
                 ifmap_replication_num_rows = file_params.file_dims.C * file_params.weights_S_dim
                 ifmap_replication_resolution = file_params.file_dims.C * file_params.stride_x
                 ifmap_replication_step_bytes = (file_params.file_dims.W // file_params.stride_x) * file_params.item_sz
@@ -891,24 +891,22 @@ class FileMapper():
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
         return {
               'previous_waveops' : previous_waveops,
-              'waveop_type'      : "SBAtomFile",
+              'waveop_type'      : "SBAtomLoad",
               'waveop_name'      : waveop_name,
               'layer_name'       : file_params.layer_name,
               'sb_address'       : sb_addr,
               'data_type'        : file_params.data_type,
               'contain_weights'  : file_params.contain_weights,
               'ref_file'         : simout_file,
+              'ref_file_sz'      : file_params.file_sz,
               'ref_file_format'  : file_params.file_dims.format_str,
               'ref_file_shape'   : file_params.file_dims.shape_tuple,
               'offset_in_file'   : offset_in_file,
               'length'           : length,
               'start_at_mid_part' : False,  # TODO: is this always false for loads?
-              'ifmaps_replicate' : ifmap_replication_resolution > 0,  # TODO: is this still needed?
-              'ifmaps_fold_idx'  : 0,    # TODO: is this still needed?
-              'batch_fold_idx'   : 0, #wave_id.n_id,
-              'ifmap_count'      : fmap_count,  # if this is larger than C, replicate fmap_count/C times
+              'num_partitions'    : fmap_count,  # if this is larger than C, replicate fmap_count/C times
               'partition_step_bytes': file_params.fmap_data_len,
-              'src_step_elem'     : src_step_elem,
+              'stride'              : stride,
               'ifmap_replication_resolution' : ifmap_replication_resolution, 
               'ifmap_replication_num_rows' : ifmap_replication_num_rows,
               'ifmap_replication_step_bytes' : ifmap_replication_step_bytes,
@@ -939,6 +937,7 @@ class FileMapper():
               'sb_address'       : sb_addr,
               'data_type'        : self.data_type,
               'ref_file'         : simout_file,
+              'ref_file_sz'      : file_params.file_sz,
               'ref_file_format'  : file_params.file_dims.format_str,
               'ref_file_shape'   : file_params.file_dims.shape_tuple,
               'offset_in_file'   : offset_in_file,
@@ -946,9 +945,9 @@ class FileMapper():
               'start_at_mid_part' : False, #(tile_id.m_id%2) == 1,
               'ofmaps_fold_idx'  : 0,   # TODO: is this still needed?
               'batch_fold_idx'   : 0,   # TODO: is this still needed?
-              'ofmap_count'      : fmap_count,
+              'num_partitions'   : fmap_count,
               'partition_step_bytes': file_params.fmap_data_len,
-              'last'             : last_atom_of_file,
+              'last_save_of_file' : last_atom_of_file,
               'final_layer_ofmap' : file_params.final_layer_ofmap,
             }
 

@@ -328,24 +328,17 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
 #define WAVE_OP matmulWaveOp
     serWaveOp.m_WaveOpType = wave::MatMulWaveOp::gTypeStrStatic();
 
-    KCC_SERIALIZE(BatchingInWave);
     KCC_SERIALIZE(FmapXNum);
     KCC_SERIALIZE(FmapXStep);
     KCC_SERIALIZE(FmapYNum);
     KCC_SERIALIZE(FmapYStep);
     KCC_SERIALIZE(FmapZNum);
     KCC_SERIALIZE(FmapZStep);
-    KCC_SERIALIZE(IfmapCount);
-    KCC_SERIALIZE(IfmapTileHeight);
-    KCC_SERIALIZE(IfmapTileWidth);
     KCC_SERIALIZE(IfmapsSbAddress);
     serWaveOp.m_InDtype  = matmulWaveOp->gInDtype().gName();
     // layer_name
     KCC_SERIALIZE(NumColumnPartitions);
     KCC_SERIALIZE(NumRowPartitions);
-    KCC_SERIALIZE(OfmapCount);
-    KCC_SERIALIZE(OfmapTileHeight);
-    KCC_SERIALIZE(OfmapTileWidth);
     serWaveOp.m_OutDtype = matmulWaveOp->gOutDtype().gName();
     // previous layers
     KCC_SERIALIZE(PsumBankId);
@@ -358,10 +351,6 @@ Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
     KCC_SERIALIZE(PsumZStep);
     serWaveOp.m_StartTensorCalc = matmulWaveOp->qStartTensorCalc();
     serWaveOp.m_StopTensorCalc = matmulWaveOp->qStopTensorCalc();
-    KCC_SERIALIZE(StrideX);
-    KCC_SERIALIZE(StrideY);
-    KCC_SERIALIZE(WaveId);
-    KCC_SERIALIZE(WaveIdFormat);
     // waveop name
     // waveop type
     KCC_SERIALIZE(WeightsSbAddress);
@@ -429,7 +418,6 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
     serWaveOp.m_Engine = engineId2Str(WAVE_OP->gEngineId());
     KCC_SERIALIZE(SbAddress);
     KCC_SERIALIZE(StartAtMidPart);
-    KCC_SERIALIZE(BatchFoldIdx);
     serWaveOp.m_DataType = DataType::dataTypeId2Str(
                               sbatomWaveOp->gDataType().gDataTypeId());
     KCC_SERIALIZE(Length);
@@ -446,14 +434,12 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
     if (auto sbatomLoadWaveOp = dynamic_cast<const wave::SbAtomLoadWaveOp*>(sbatomWaveOp)) {
 #define WAVE_OP sbatomLoadWaveOp
         serWaveOp.m_WaveOpType = wave::SbAtomLoadWaveOp::gTypeStrStatic();
-        KCC_SERIALIZE(IfmapCount);
-        KCC_SERIALIZE(IfmapsFoldIdx);
+        KCC_SERIALIZE(NumPartitions);
         serWaveOp.m_ContainWeights = sbatomLoadWaveOp->qContainWeights();
 
         KCC_SERIALIZE(IfmapReplicationNumRows);
         KCC_SERIALIZE(IfmapReplicationResolution);
         KCC_SERIALIZE(IfmapReplicationStepBytes);
-        serWaveOp.m_IfmapsReplicate = sbatomLoadWaveOp->qIfmapsReplicate();
 
         KCC_SERIALIZE(SrcStepElem);
 
@@ -463,8 +449,7 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
         auto sbatomsaveWaveOp = dynamic_cast<const wave::SbAtomSaveWaveOp*>(sbatomWaveOp);
         Assert(sbatomsaveWaveOp, "Wrong SbAtaom WaveOp", sbatomWaveOp->gTypeStr());
         serWaveOp.m_WaveOpType = wave::SbAtomSaveWaveOp::gTypeStrStatic();
-        KCC_SERIALIZE(OfmapCount);
-        KCC_SERIALIZE(OfmapsFoldIdx);
+        KCC_SERIALIZE(NumPartitions);
         serWaveOp.m_FinalLayerOfmap = sbatomsaveWaveOp->qFinalLayerOfmap();
 #undef WAVE_OP
     }

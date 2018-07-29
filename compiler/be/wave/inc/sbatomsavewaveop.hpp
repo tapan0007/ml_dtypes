@@ -50,12 +50,8 @@ public:
 
     bool verify() const override;
 
-    kcc_int32 gOfmapsFoldIdx() const {
-        return m_OfmapsFoldIdx;
-    }
-
-    kcc_int32 gOfmapCount () const {
-        return m_OfmapCount;
+    kcc_int32 gNumPartitions () const {
+        return m_NumPartitions;
     }
 
     kcc_int64 gSaveDataSizeInBytes() const;
@@ -65,8 +61,7 @@ public:
     }
 
 private:
-    kcc_int32       m_OfmapCount        = -1;
-    kcc_int32       m_OfmapsFoldIdx     = -1;
+    kcc_int32       m_NumPartitions     = -1;
     bool            m_FinalLayerOfmap   = false;
 };
 
@@ -77,8 +72,7 @@ class SbAtomSaveWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32       m_OfmapCount        = -1;
-    kcc_int32       m_OfmapsFoldIdx     = -1;
+    kcc_int32       m_NumPartitions     = -1;
     bool            m_FinalLayerOfmap   = false;
 };
 

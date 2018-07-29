@@ -48,7 +48,6 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
 {
     KCC_ARCHIVE(Engine);
     KCC_ARCHIVE(SbAddress);
-    KCC_ARCHIVE(BatchFoldIdx);
     KCC_ARCHIVE(DataType);
     KCC_ARCHIVE(Length);
     KCC_ARCHIVE(OffsetInFile);
@@ -57,19 +56,16 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(RefFileFormat);
     KCC_ARCHIVE(RefFileShape);
     if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
-        KCC_ARCHIVE(IfmapCount);
-        KCC_ARCHIVE(IfmapsFoldIdx);
+        KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(ContainWeights);
 
         KCC_ARCHIVE(IfmapReplicationNumRows);
         KCC_ARCHIVE(IfmapReplicationResolution);
         KCC_ARCHIVE(IfmapReplicationStepBytes);
-        KCC_ARCHIVE(IfmapsReplicate);
 
         KCC_ARCHIVE(SrcStepElem);
     } else {
-        KCC_ARCHIVE(OfmapCount);
-        KCC_ARCHIVE(OfmapsFoldIdx);
+        KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(FinalLayerOfmap);
     }
 } // SerWaveOp::saveSbAtom
@@ -117,25 +113,18 @@ SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
 void
 SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
 {
-    KCC_ARCHIVE(BatchingInWave);
     KCC_ARCHIVE(FmapXNum);
     KCC_ARCHIVE(FmapXStep);
     KCC_ARCHIVE(FmapYNum);
     KCC_ARCHIVE(FmapYStep);
     KCC_ARCHIVE(FmapZNum);
     KCC_ARCHIVE(FmapZStep);
-    KCC_ARCHIVE(IfmapCount);
-    KCC_ARCHIVE(IfmapTileHeight);
-    KCC_ARCHIVE(IfmapTileWidth);
     KCC_ARCHIVE(IfmapsSbAddress);
     KCC_ARCHIVE(InDtype);
     // layer name
     KCC_ARCHIVE(NumColumnPartitions);
     KCC_ARCHIVE(NumRowPartitions);
     KCC_ARCHIVE(OutDtype);
-    KCC_ARCHIVE(OfmapCount);
-    KCC_ARCHIVE(OfmapTileHeight);
-    KCC_ARCHIVE(OfmapTileWidth);
     // previous waveops
     KCC_ARCHIVE(PsumBankId);
     KCC_ARCHIVE(PsumBankOffset);
@@ -147,9 +136,6 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(PsumZStep);
     KCC_ARCHIVE(StartTensorCalc);
     KCC_ARCHIVE(StopTensorCalc);
-    KCC_ARCHIVE(StrideX);
-    KCC_ARCHIVE(StrideY);
-    KCC_ARCHIVE(WaveIdFormat);
     // waveop name
     // waveop type
     KCC_ARCHIVE(WeightsSbAddress);
@@ -158,10 +144,6 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(IfmapReplicationResolution);
     KCC_ARCHIVE(IfmapReplicationShiftAmnt);
 
-    assert(m_WaveIdFormat.size() == WaveIdFormatSize);
-    std::vector<int> waveId(WaveIdFormatSize, -1); // undefined value before converting
-    m_WaveId.convertTo(m_WaveIdFormat.c_str(), waveId);
-    archive(cereal::make_nvp(WaveOpKey_WaveId, waveId));
 } // SerWaveOp::saveMatMul
 
 
