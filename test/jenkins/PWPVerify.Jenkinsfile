@@ -56,7 +56,7 @@ pipeline {
         }
         stage('Verify') {
             steps {
-                sh 'export PYTHONUNBUFFERED=1 && cd $KRT_PWP_PATH && ./test_pwp.py'
+                sh 'export PYTHONUNBUFFERED=1 && cd $KRT_PWP_PATH && ./test_pwp.py --scan-walking-step 4 --omit sigmoid'
             }
             post {
                 always {
