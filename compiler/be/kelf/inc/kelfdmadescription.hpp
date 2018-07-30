@@ -234,7 +234,7 @@ public:
     DmaBlockInput(DmaDescription& dmaDescription, const char* comment);
     DmaBlockInput() = delete;
 
-    void addDmaDesc(kcc_uint64 srcFileAddress,
+    void addDmaDesc(TongaAddress srcFileAddress,
                 TongaAddress dstTongaAddress, kcc_int32 numBytes);
     kcc_int32 gId() const;
 
