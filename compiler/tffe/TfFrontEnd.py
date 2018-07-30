@@ -180,6 +180,8 @@ class TfFe:
           node = kog.NodeUnstack(tfNode.name, "Unstack", add_attrs)
         elif (re.search("^Multiply$|^Mul$", tfop.op, re.I) != None):
           node = kog.NodeMultiply(tfNode.name, "Multiply", add_attrs)
+        elif (re.search("Concat", tfop.op, re.I) != None):
+          node = kog.NodeConcat(tfNode.name, "Concat", add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)

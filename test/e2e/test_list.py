@@ -26,9 +26,12 @@ def getBatchedJpgs(batchLevel):
     return ' '.join(tuple(listExtraJpgs[0:batchLevel]))
 
 rnPre = os.path.join(kPath, "compiler/util/res50_preprocessor.py")
+incPre = os.path.join(kPath, "compiler/util/inceptv3_preprocessor.py")
 rnPost = os.path.join(kPath, "compiler/util/res50_classify")
 rnPreFp16 = "--preprocessor {} --preprocessor-args '--data-type fp16' --postprocessor {}".format(rnPre, rnPost)
 rnPreFp32 = "--preprocessor {} --preprocessor-args '--data-type fp32' --postprocessor {}".format(rnPre, rnPost)
+incPreFp16 = "--preprocessor {} --preprocessor-args '--data-type fp16 --input_height 299 --input_width 299' --postprocessor {}".format(incPre, rnPost)
+incPreFp32 = "--preprocessor {} --preprocessor-args '--data-type fp32 --input_height 299 --input_width 299' --postprocessor {}".format(incPre, rnPost)
 
 lstmD0T4 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/data-t4-0.npy")
 lstmD0T4B64 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/sigmoid_b64/data-t4-b64-0.npy")
@@ -79,7 +82,7 @@ testConfigMap = {
   "0-1conv_tile_r1h32_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv_tile_r1_e1_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h35-r1-s1-c1-m1-F_31_31=3-wmin2-wmax2-imin-0-imax0", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   #"0-2conv3_relu" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3"],
-  "0-3conv_1concat" : [ "trivnet_concat2",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1concat", "--scheduler wave2 --schedule_options ' --nname=generic --save_layer_output'"],
+  "0-3conv_1concat" : [ "trivnet_concat2",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1concat", "--scheduler wave2 --schedule_options ' --nname=generic --save_layer_output' --partition from 1concat/i3"],
   "0-2conv3_relu_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-2conv3_relu_b16_wave" : [ "trivnet_lin",    "tfloat16-l2-b16-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", "--scheduler wave2"],
   "3-rn50_relu_fp16_wave"  : [ "trivnet_lin","tfloat16-l2-b1-h224-r7-s2-c3-m3-relu-wmin-1-wmax1.1-imin-3-imax3.2", "2conv32b", "--scheduler wave2"],
@@ -451,6 +454,18 @@ testConfigMap = {
   
    # LSTM debug of matmult, only sg00 is usable
   "2-ptb_word_unstack_matmul1"  : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm", " --show_op_name_in_kgraph --input_node embedding_1_input_1  --depth 3  --debug 1   --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1   lstm_1_1/add_6,lstm_1_1/add_4,lstm_1_1/add_2,lstm_1_1/MatMul,lstm_1_1/MatMul_1,lstm_1_1/mul,lstm_1_1/mul_1  --adjust_node_color lstm_1_1/Tile 0 lstm_1_1/Tile_1 0 lstm_1_1/MatMul_2 0  lstm_1_1/MatMul_4 0  --executors wave 0 --scheduler wave --schedule_options ' --nname=lm' --input_constants dropout_1/keras_learning_phase:0 False  --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s --wavegraph_checks structure data-race" % lstmD0T4, "--input_files %s" % lstmD0T4],
+  # InceptionV3
+  "9-inceptionv3_wave" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "--partition from mixed0/concat --executors host all --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images linspace1", "--input_files trivnet_input_1:0.npy"],
+  "9-inceptionv3_wave_dog" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from mixed0/concat --executors host all --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+#"9-inceptionv3_wave_dog_pool" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from max_pooling2d_2/MaxPool --executors host all --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+#"9-inceptionv3_wave_dog_pool_sg00_tpb" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from max_pooling2d_2/MaxPool --executors host 1 wave 0 --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+  "9-inceptionv3_wave_dog_2nd_conv2d" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from conv2d_2/convolution --executors host all --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+  "9-inceptionv3_wave_dog_2nd_conv2d_sg00_tpb" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from conv2d_2/convolution --executors host 1 wave 0 --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+  "9-inceptionv3_wave_dog_1st_pool" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from max_pooling2d_1/MaxPool --executors host all --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+  "9-inceptionv3_wave_dog_1st_pool_sg00_tpb" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from max_pooling2d_1/MaxPool --executors host 1 wave 0 --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+  "9-inceptionv3_wave_dog_3rd_biasadd" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from batch_normalization_3/FusedBatchNorm_1 --executors host all --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+  "9-inceptionv3_wave_dog_3rd_biasadd_sg00_tpb" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from batch_normalization_3/FusedBatchNorm_1 --executors host 1 wave 0 --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+#"9-inceptionv3_wave_dog_sg00_tpb" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from mixed0/concat --executors host 1 wave 0 --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg]
   
 }
 
@@ -464,6 +479,9 @@ testWaiver = [
     ['0-3conv_1concat', 'WAIVE_INCEPTIONV3'],
     ['0-rtl-1conv3_h4r3_relu_wave', 'WAIVE_RTL'],
     ['0-rtl-act_h2c16_wave FAIL', 'WAIVE_RTL'],
+#    ['9-inceptionv3_wave', 'WAIVE_INCEPTIONV3'],
+#    ['9-inceptionv3_wave_dog', 'WAIVE_INCEPTIONV3'],
+    ['9-inceptionv3_wave_dog_sg00_tpb', 'WAIVE_INCEPTIONV3'],
 
     ['^0-act_wave$',   'WAIVE-KAENA452'],
 

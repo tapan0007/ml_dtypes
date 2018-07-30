@@ -336,6 +336,48 @@ class NodeSimple(Node):
     return True
 
 ###############################################################################
+# A node for Concat operation (Multi inputs and single output)
+###############################################################################
+class NodeConcat(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    if len(npInfo.npShape) == 4: # output dimension
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      assert (0)
+
+    # FIX_THIS - IFMAP, it should not be needed
+    #((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
+    fromIfNode = []
+    npInfoIf = []
+    for m in range (0, len(self.getInputNodesAndNpInfo()) - 1):
+      fromIfNode.append(self.getInputNodesAndNpInfo()[m][0].getName())
+      npInfoIf.append(self.getInputNodesAndNpInfo()[m][1])
+    #(npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    layerData = {
+#      "axis"            :
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "previous_layers" : fromIfNode,
+      "#comment"        : "supported simple layer"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
+###############################################################################
 # Softmax - specialized due to the 2D dimensions
 ###############################################################################
 class NodeSoftmax(Node):
@@ -851,8 +893,8 @@ class NodeSimple2(Node):
   def genCompilerLayerJson(self):
     fileList = []
     
-    if self.getName() == 'fc1000/BiasAdd':
-      print('HERE')
+#    if self.getName() == 'fc1000/BiasAdd':
+#      print('HERE')
     # Output tensor
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 2:
