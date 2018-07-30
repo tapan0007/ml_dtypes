@@ -69,8 +69,13 @@ pipeline{
             }
 
             steps {
-                dir('/proj/trench/kaena_release') {
+                dir('/proj/trench/sw/kaena-release') {
+                    sh 'rm *.tar.gz'
                     unstash 'krt_dv_package'
+                    sh 'basename *.tar.gz tar.gz | xargs -I{} mkdir {}'
+                    sh 'rm -f latest'
+                    sh 'basename *.tar.gz tar.gz | xargs -I{} ln -s {} latest'
+                    sh 'tar xvf *.tar.gz -C latest'
                 }
             }
         }
