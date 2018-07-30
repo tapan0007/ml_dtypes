@@ -545,7 +545,7 @@ noGpuTestWaiver = [
 qemuTestWaiver = [
     ['3-1conv1maxpool_k3d2_wave$',  'WAIVE-QEMU'],
     ['3-rn50-16_b2_wave_repl$',  'WAIVE-QEMU'],
-    ['3-rn50-16_wave_repl$',  'WAIVE-QEMU'],
+    #['3-rn50-16_wave_repl$',  'WAIVE-QEMU'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['5-rn50_nne_to_act4_b4_wave$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
