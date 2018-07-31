@@ -442,10 +442,8 @@ class FusedOp(list):
         #        exit(-1)
             #inputs2 = tpb.statebuffer.circbuf_residue.load_data(first_op)
             #results = tpb.execute_multiply(inputs, inputs2, result_file)
-        #elif re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu|BiasAdd", first_op_type):
-        #    first_op.src_circbuf = first_op.prev[0].dst_circbuf
-        #    inputs = first_op.src_circbuf.load_data(first_op)
-        #   results = tpb.execute_unfused_pool_op(inputs, result_file)
+        elif re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu|BiasAdd", first_op_type):
+            results = self.execute_unfused_pool_op(tpb, batch_item)
         #else:        
         #    print("ERROR: Unrecognized first operation %s"%first_op_type)
         #    exit(-1)
@@ -454,7 +452,7 @@ class FusedOp(list):
         # only if there's at least one node, and first node is not Placeholder or NOP (simple Reshape, etc.)
         if len(self) > 0 and not self.first_op.is_placeholder and not self.first_op.is_nop:
             # Check last output result, unless verify_output_only=False
-            if self.last_op.ofmaps_file_params.final_layer_ofmap or not self.args.verify_output_only:
+            if self.last_op.next == [] or not self.args.verify_output_only:
                 if 'ref_file' in self.last_op.data and os.path.isfile(self.last_op.data['ref_file']):
                     try:
                         expected_ofmaps = np.load(self.last_op.data['ref_file'])
@@ -476,7 +474,7 @@ class FusedOp(list):
                             tpb.num_mismatches += 1
 
             # Save results for network output or we want to save debug intermediate results
-            if self.last_op.ofmaps_file_params.final_layer_ofmap or self.args.save_layer_output:
+            if self.last_op.next == [] or self.args.save_layer_output:
                 last_batch_item = batch_item + self.first_op.Tn
                 for i in range(batch_item, last_batch_item):
                     waveops = tpb.statebuffer.file_mapper.flush_file(
@@ -1529,9 +1527,9 @@ class FusedOp(list):
                                                             0,  # batch_item is not needed for bias
                                                             bias_addr,
                                                             pool_op.item_sz)
-                            psum_temp = self.activate.biasadd(psum_fake_extract, bias_extracted)
+                            psum_temp = tpb.activate.biasadd(psum_fake_extract, bias_extracted)
                         elif re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", pool_op.data['layer_type']):
-                            psum_temp = self.activate.act(pool_op.data['layer_type'], psum_fake_extract)
+                            psum_temp = tpb.activate.act(pool_op.data['layer_type'], psum_fake_extract)
                         else:
                             print("ERROR: cannot execute %s in execute_unfused_pool_op"%pool_op.data['layer_type'])
                             exit(-1)
@@ -1576,8 +1574,8 @@ class FusedOp(list):
                        # elif (pool_op.data['layer_type'] == "BiasAdd"): 
                        #     self.gen_act_waveop_inline(tpb, pool_op, None, None, tile_id, False, 0, False, 0, dram_ifmaps_waveops + dram_bias_waveops, bias_addr)
                        #     #tpb.statebuffer.circbuf_bias.free_data_region(bias_addr, bias_addr, self.waveop_stream.last_main_waveop)
-                       # else:                            
-                       #     self.gen_act_waveop_inline(tpb, None, pool_op, None, tile_id, False, 0, False, 0, dram_ifmaps_waveops, 0)
+                        else:                            
+                            self.gen_act_waveop_inline(tpb, None, pool_op, None, tile_id, False, 0, False, 0, dram_ifmaps_waveops, 0)
 
                         tpb.waveop_stream.last_main_waveop['previous_waveops'] += prev_waveops
 
