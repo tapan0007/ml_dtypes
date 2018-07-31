@@ -165,7 +165,6 @@ class TPBSched:
     """
     def get_list_of_fused_ops(self, kgraph):
         fused_op_count = 0
-        ifmaps_file_already_padded_and_split = False
         prev_join_batch_item_partition_usage_sz = -1
         prev_join_op_list = None
         last_pairup_batch_count = 1

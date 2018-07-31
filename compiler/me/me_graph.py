@@ -385,7 +385,7 @@ class KNode:
                                     out_array[ifmap_addr, pe_row_offset] = self.ifmaps_file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
                                 else:                                   
                                     if repl_multiple_of_C > 1:
-                                        out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley + (ifmap_tilex%2)*self.H, ifmap_tilex//2]
+                                        out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, (ifmap_tiley%2)*ceildiv(self.H,2) + ifmap_tiley//2 + (ifmap_tilex%2)*self.H, ifmap_tilex//2]
                                         #out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
                                     else:                                        
                                         out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]

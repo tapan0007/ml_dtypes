@@ -315,9 +315,12 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         const kcc_uint32 stride              = srcStepElem;
         const kcc_uint32 numChans            = replResolution / stride;
         Assert(numChans*stride == replResolution, "Src step elem(stride) must equally divide repl resolution");
+
+        // Compute the offset within FMAP to get to odd elements (for stride=2)
         const kcc_uint32 strideNumBytes      = partStepBytes / stride;
         Assert(strideNumBytes * stride == partStepBytes, "Part step bytes not divisible by stride");
 
+        // TODO: use the new ref_file_sz field in waveop
         const utils::TensorParams tensorParams(sbAtomLoadWaveop->gRefFileShape(),
                                                sbAtomLoadWaveop->gRefFileFormat().c_str());
         kcc_uint64 inputSize = dtype.gSizeInBytes();
@@ -326,12 +329,21 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         }
 
         const TongaAddress    fileStartAddress  = sbAtomLoadWaveop->gOffsetInFile();
-        TongaAddress    fileGroupAddress    = fileStartAddress;
         TongaAddress    sbGroupTongaAddress = stateBuf.gEntryTongaAddress(startPart, addressInPart);
 
+        // Compute the row offset within FMAP to get to odd rows (for stride=2)
+        const kcc_uint32 fmapH        = strideNumBytes / ifmapReplStepBytes;
+        const kcc_uint64 strideNumRows = ceil(float(fmapH) / stride);
+
+        // Keep track of group count to determine even/odd row
+        // TODO: to be correct for all cases, need to recompute the actual starting row 
+        // (in this first layer of ResNet, starting row happens to be even for all tiles)
+        kcc_int32 fileGroupCnt = 0;    
         kcc_int32 activePartCnt = startPart;
         while (activePartCnt < startPart + numActiveParts) {
             TongaAddress sbTongaAddress = sbGroupTongaAddress;
+            TongaAddress fileGroupOffset = ((fileGroupCnt % stride) * strideNumRows + (fileGroupCnt / stride)) * ifmapReplStepBytes;
+            TongaAddress fileGroupAddress = fileStartAddress + fileGroupOffset;
 
             for (kcc_uint32 strideIdx = 0; strideIdx < stride; ++strideIdx) {
                 const kcc_uint64 strideOffset = strideIdx * strideNumBytes;  // {0,1}*(105340/2)
@@ -388,7 +400,8 @@ WaveCodeSbAtomLoad::generateForSimWithRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
                 }
             }
 
-            fileGroupAddress    += ifmapReplStepBytes;              // += 230  (in the 1st layer of RN50)
+            //fileGroupAddress    += ifmapReplStepBytes;              // += 230  (in the 1st layer of RN50)
+            fileGroupCnt++;
             sbGroupTongaAddress += ifmapReplNumRows * sbPartStep;   // += 21*128k  (in the 1st layer of RN50)
             activePartCnt       += ifmapReplNumRows;                // += 21  (in the 1st layer of RN50)
         }
@@ -578,7 +591,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     const utils::DataType& dataType(sbAtomLoadWaveop->gDataType());
     //************************************************************************
     //const kcc_int64 numPartitions   = sbAtomLoadWaveop->gNumPartitions();
-    //const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
+    const kcc_int64 numBytesPerPart = sbAtomLoadWaveop->gLength();
     const kcc_int64 addressInPart   = sbAtomLoadWaveop->gSbAddress();
     //const kcc_int64 stepSize        = sbAtomLoadWaveop->gPartitionStepBytes();
     const kcc_int64 startPart       = sbAtomLoadWaveop->gStartAtMidPart()
@@ -609,35 +622,42 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
                 "Num in channels (", numInChans, ") * stride (", stride,
                 ") != Replication resolution (", replResolution, ")");
         const TongaAddress  partStepBytes       = sbAtomLoadWaveop->gPartitionStepBytes();
+
+        // Compute the offset within FMAP to get to odd elements (for stride=2)
         const kcc_uint32 strideNumBytes      = partStepBytes / stride;
         Assert(strideNumBytes * stride == partStepBytes, "Part step bytes not divisible by stride");
 
-        const kcc_int32     numBytesPerPart     = sbAtomLoadWaveop->gLength();
-
-        const TongaAddress    fileStartAddress  = sbAtomLoadWaveop->gOffsetInFile();
-        TongaAddress    fileGroupAddress    = fileStartAddress;
-        TpbAddress    sbGroupTpbAddress = stateBuf.gEntryTpbAddress(startPart, addressInPart);
-
+        // TODO: use the new ref_file_sz field in waveop
         // assume that H*W*dtypeSize == partStepBytes since when replication there is no input chan folding
-
         //const std::array<kcc_int32,4>& refFileShape(sbAtomLoadWaveop->gRefFileShape());
         const utils::TensorParams tensorParams(sbAtomLoadWaveop->gRefFileShape(),
                                                sbAtomLoadWaveop->gRefFileFormat().c_str());
-
         kcc_uint64 inputSize = dataType.gSizeInBytes();
         for (auto n : tensorParams) {
             inputSize *= n;
         }
-        kcc_int32 activePartCnt = startPart;
 
+        const TongaAddress    fileStartAddress  = sbAtomLoadWaveop->gOffsetInFile();
+        TpbAddress    sbGroupTpbAddress = stateBuf.gEntryTpbAddress(startPart, addressInPart);
+
+        // Compute the row offset within FMAP to get to odd rows (for stride=2)
+        const kcc_uint64 fmapH         = strideNumBytes / ifmapReplStepBytes;
+        const kcc_uint64 strideNumRows = ceil(float(fmapH) / stride);
+
+        // Keep track of group count to determine even/odd row
+        // TODO: to be correct for all cases, need to recompute the actual starting row 
+        // (in this first layer of ResNet, starting row happens to be even for all tiles)
+        kcc_int32 fileGroupCnt = 0;    
+        kcc_int32 activePartCnt = startPart;
         while (activePartCnt < startPart + numActiveParts) {
             TpbAddress sbTpbAddress = sbGroupTpbAddress;
+            TongaAddress fileGroupOffset = ((fileGroupCnt % stride) * strideNumRows + (fileGroupCnt / stride)) * ifmapReplStepBytes;
+            TongaAddress fileGroupAddress = fileStartAddress + fileGroupOffset;
 
             for (kcc_int32 strideIdx = 0; strideIdx < stride; ++strideIdx) {
                 const kcc_uint64 strideOffset = strideIdx * strideNumBytes;  // {0,1}*(105340/2)
                 for (kcc_int32 c_idx = 0; c_idx < numInChans; ++c_idx) {
                     const TongaAddress chanOffset = c_idx * partStepBytes;  // {0,1,2}*105340
-
                     const TongaAddress filePartAddress = fileGroupAddress + chanOffset + strideOffset;
                     if (filePartAddress < inputSize) {
                         kcc_int64 numBytesToWrite;
@@ -667,9 +687,10 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
                     sbTpbAddress += sbPartStep;
                 }
             }
-            fileGroupAddress    += ifmapReplStepBytes;              // += 230  (in the 1st layer of RN50)
+            //fileGroupAddress    += ifmapReplStepBytes;              // += 230  (in the 1st layer of RN50)
+            fileGroupCnt++;
             sbGroupTpbAddress += ifmapReplNumRows * sbPartStep;   // += 21*128k  (in the 1st layer of RN50)
-            activePartCnt       += ifmapReplNumRows;                // += 21  (in the 1st layer of RN50)
+            activePartCnt     += ifmapReplNumRows;                // += 21  (in the 1st layer of RN50)
         }
     }
 

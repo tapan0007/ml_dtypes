@@ -64,13 +64,17 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
     for n in range(N):
         for c in range(C):
             #print("original channel %d:"%c)
-            #print(self.dram_data[n,c,:])
-            new_hw = np.pad(dram_data[n,c,:], ((pad_north, pad_south), (pad_west, new_pad_east)), 'constant')
+            #print(dram_data[n,c,:])
+            new_hw_padded = np.pad(dram_data[n,c,:], ((pad_north, pad_south), (pad_west, new_pad_east)), 'constant')
             new_hw_split = []
             for i in range(num_to_split):
-                #print("frame %d channel %d:"%(i,c))
-                new_hw_split.append(new_hw[:, i::num_to_split])
-                #print(new_hw[:, i::num_to_split])
+                # split even/odd elements in each row
+                new_hw_split_w = new_hw_padded[:, i::num_to_split]
+                # split even/odd rows
+                new_hw_split_h = []
+                for j in range(num_to_split):
+                    new_hw_split_h.append(new_hw_split_w[j::num_to_split, :])
+                new_hw_split.append(np.concatenate(new_hw_split_h, 0))
             new_dram_data[n, c, :] = np.concatenate(new_hw_split, 0)
             #print("all frames channel %d:"%c)
             #print(new_dram_data[n, c, :])
@@ -856,18 +860,18 @@ class FileMapper():
                 ifmap_replication_num_rows = file_params.file_dims.C * file_params.weights_S_dim
                 ifmap_replication_resolution = file_params.file_dims.C * file_params.stride_x
                 ifmap_replication_step_bytes = (file_params.file_dims.W // file_params.stride_x) * file_params.item_sz
-                length = length // file_params.stride_x # TODO: adjust chunk size to match
+                length = length // file_params.stride_x // file_params.stride_x  # TODO: adjust chunk size to match
                 offset_in_file_batch_item = batch_item * file_params.file_addr_skip_per_batch_item
                 # Adjust for the even/odd split
-                offset_in_file = (offset_in_file - offset_in_file_batch_item) // file_params.stride_x + offset_in_file_batch_item # TODO: adjust chunk size to match
+                offset_in_file = (offset_in_file - offset_in_file_batch_item) // file_params.stride_x // file_params.stride_x + offset_in_file_batch_item # TODO: adjust chunk size to match
                 # compute last byte offset to check out of file bound
                 last_byte_offset  = offset_in_file + length - file_params.item_sz
-                last_byte_offset += file_params.fmap_data_len//2    # jump to the odd half
+                last_byte_offset += file_params.fmap_data_len // file_params.stride_x // file_params.stride_x   # jump to the odd half
                 last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
                 last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%file_params.file_dims.C)
 
         # Kaena-530: check that the last byte doesn't go outside of file
-        if (file_params.args.debug > 3): print("DBG: last_byte_offset %d file_sz %d"%(last_byte_offset, file_params.file_sz))
+        if (file_params.args is not None and file_params.args.debug > 3): print("DBG: last_byte_offset %d file_sz %d"%(last_byte_offset, file_params.file_sz))
         if repl_multiple_of_C > 1:
             assert(last_byte_offset < file_params.file_sz + length*file_params.file_dims.C)
         else:            

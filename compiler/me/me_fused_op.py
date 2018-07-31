@@ -535,15 +535,25 @@ class FusedOp(list):
         start_tensor_calc = not(psum_add)
 
         # replication parameters
+        fmap_x_num = self.conv_op.ofmap_wave_width
         fmap_x_step = self.conv_op.stride_x
         fmap_y_step = self.conv_op.W * self.conv_op.stride_y
-        fmap_z_step = (self.conv_op.ifmaps_file_params.batch_item_partition_usage_sz//self.conv_op.item_sz) if self.conv_op.Tn > 1 else 1
+        if self.conv_op.Tn > 1:
+            fmap_z_step = self.conv_op.ifmaps_file_params.batch_item_partition_usage_sz//self.conv_op.item_sz
+        else:
+            fmap_z_step = 1
+        dst_x_num = self.conv_op.ofmap_wave_width
+        dst_y_step = self.conv_op.ofmap_cropped_tile_width
         ifmap_replication_resolution = 0
         ifmap_replication_num_rows = 0
         ifmap_replication_shift_amnt = 0
         if self.conv_op.repl_multiple_of_C > 1:
+            # Kaena-593: ensure no bubble during IFMAP streaming (packed pattern)
+            fmap_x_num = self.conv_op.W // self.conv_op.stride_x
             fmap_x_step = 1     # image gets split into even/odd
-            fmap_y_step = self.conv_op.W
+            fmap_y_step = self.conv_op.W // self.conv_op.stride_x
+            dst_x_num = fmap_x_num
+            dst_y_step = fmap_y_step
             ifmap_replication_resolution = self.conv_op.C * self.conv_op.stride_x
             ifmap_replication_num_rows = self.conv_op.C * self.conv_op.S
             ifmap_replication_shift_amnt = 1
@@ -592,9 +602,9 @@ class FusedOp(list):
                   'src_is_psum'             : False,
                   'src_sb_address'          : fmap_sb_address,
                   'src_start_at_mid_part'   : False,
-                  'src_x_step'              : fmap_x_step, #self.conv_op.stride_x,
-                  'src_x_num'               : self.conv_op.ofmap_wave_width,
-                  'src_y_step'              : fmap_y_step, #self.conv_op.W * self.conv_op.stride_y,
+                  'src_x_step'              : fmap_x_step,
+                  'src_x_num'               : fmap_x_num,
+                  'src_y_step'              : fmap_y_step,
                   'src_y_num'               : fmap_y_num,
                   'src_z_step'              : fmap_z_step,
                   'src_z_num'               : self.conv_op.Tn,
@@ -603,8 +613,8 @@ class FusedOp(list):
                   'dst_psum_bank_id'        : self.conv_op.psum_bank_dst,
                   'dst_psum_bank_offset'    : self.conv_op.psum_bank_offset + psum_bank_additional_offset,
                   'dst_x_step'              : 1,
-                  'dst_x_num'               : self.conv_op.ofmap_wave_width,
-                  'dst_y_step'              : self.conv_op.ofmap_cropped_tile_width,
+                  'dst_x_num'               : dst_x_num,
+                  'dst_y_step'              : dst_y_step,
                   'dst_y_num'               : fmap_y_num,
                   'dst_z_step'              : self.conv_op.ofmap_full_tile_sz,
                   'dst_z_num'               : self.conv_op.Tn,
@@ -623,6 +633,8 @@ class FusedOp(list):
         batch_item = tile_id.n_id * self.pool_op.Tn
         if (src_is_psum):
             src_ifmap_width = self.pool_op.ifmap_cropped_tile_width
+            if self.conv_op != None and self.conv_op.repl_multiple_of_C > 1:
+                src_ifmap_width = self.conv_op.W // self.conv_op.stride_x
             src_ifmap_height = self.pool_op.ifmap_cropped_tile_height
             src_sb_address = 0
             if (self.pool_op.item_sz == 2):
@@ -1108,6 +1120,7 @@ class FusedOp(list):
         batch_item = tile_id.n_id * act_or_biasadd_op.Tn
         dst_x_num, dst_y_num, dst_z_num = 1, 1, 1
         dst_y_step, dst_z_step = 1, 1
+        src_y_step, src_z_step = 1, 1
         num_partitions = PEArray.NUM_COLS
         if (conv_op != None):
             dst_x_num = conv_op.ofmap_cropped_tile_width
@@ -1121,6 +1134,9 @@ class FusedOp(list):
                 dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
             if src_is_psum:
                 src_y_step = conv_op.ofmap_cropped_tile_width
+                # Kaena-593: ensure no bubble during IFMAP streaming (packed pattern)
+                if conv_op.repl_multiple_of_C > 1:
+                    src_y_step = conv_op.W // conv_op.stride_x
                 src_z_step = conv_op.ofmap_cropped_tile_width * conv_op.ofmap_cropped_tile_height
             else:
                 src_y_step = conv_op.E
