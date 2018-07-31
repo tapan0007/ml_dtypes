@@ -26,6 +26,7 @@ class KgraphJson(object):
     self.waveOpRange = waveOpRange
     with open(self.jsonFile) as fh:
       self.jsonData = json.load(fh)
+    self.engineTypes = ["PE", "ACT", "POOL", "SP"]
 
   t2c = {
     "Conv"     : "red",
@@ -61,7 +62,7 @@ class KgraphJson(object):
       engine = self.waveopt2engine(layerType)
       return engine
     else:
-      for engine in ["PE", "ACT", "POOL", "SP"]:
+      for engine in self.engineTypes:
         if engine in eng.upper():
           return engine
       raise RunTimeError("ERROR: failed to identify engine for waveopt %s" % layer)
@@ -126,8 +127,12 @@ class KgraphJson(object):
         attrs = {}
         nodeName = layer["waveop_name"]
         layerType = layer["waveop_type"]
-        layerOrder = layer["order"]
-        dotText = "%s  %d\n%s" % (layerType, layerOrder, nodeName)
+        try:
+            layerOrder = layer["order"]
+            layerOrder = "  " + str(layerOrder)
+        except:
+            layerOrder = ""
+        dotText = "%s%s\n%s" % (layerType, layerOrder, nodeName)
         if self.verbose:
           dotText = "\n".join(["%s : %s" % (k, v) for k,v in sorted(layer.items())]) 
         attrs["color"] = self.type2color(layerType)
@@ -159,7 +164,7 @@ class KgraphJson(object):
       # subgraph
       if self.engineSubgraphs:
         if False: #  Base simple subgraph
-          for engine in ["PE", "ACT", "POOL", "SP"]:
+          for engine in self.engineTypes:
             with dot.subgraph(name="cluster_" + engine) as subGraph:
               subGraph.attr(color="purple")
               subGraph.attr(label=engine)
@@ -170,12 +175,20 @@ class KgraphJson(object):
                   subGraph.node(nodeName)
         if True:
           nodeAndType = []
+          engineNodeCnt = {}
+          for engineType in self.engineTypes:
+            engineNodeCnt[engineType] = 0
+
           for layer in self.jsonData["waveops"]:
             nodeName = layer["waveop_name"]
             layerType = layer["waveop_type"]
             engineType = self.getWaveoptEngine(layer)
             nodeAndType.append([nodeName, engineType])
-          for engine in ["PE", "ACT", "POOL", "SP"]:
+            engineNodeCnt[engineType] += 1
+
+          for engine in self.engineTypes:
+            if engineNodeCnt[engine] == 0:
+                continue
             with dot.subgraph(name="cluster_" + engine) as subGraph:
               subGraph.attr(color="purple")
               subGraph.attr(label=engine)
@@ -192,7 +205,7 @@ class KgraphJson(object):
                   subGraph.edge(tNode, nodeName, "", {"color" : "white"})
         # Serialization edges
         if False:
-          for engine in ["PE", "ACT", "POOL", "SP"]:
+          for engine in self.engineTypes:
             edgeAttrs = {}
             ops = []
             for layer in self.jsonData["waveops"]:
