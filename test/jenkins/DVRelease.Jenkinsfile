@@ -70,7 +70,7 @@ pipeline{
 
             steps {
                 dir('/proj/trench/sw/kaena-release') {
-                    sh 'rm *.tar.gz'
+                    sh 'rm -f *.tar.gz'
                     unstash 'krt_dv_package'
                     sh 'basename *.tar.gz tar.gz | xargs -I{} mkdir {}'
                     sh 'rm -f latest'
