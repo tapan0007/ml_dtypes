@@ -31,11 +31,10 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         loadActivation(archive);
     } else if (m_WaveOpType == WaveOpTypeStr_ResAdd) {
         loadResAdd(archive);
-
     } else {
-        assert(false && "Serialization: unsupported WaveOp");
+        Assert(false, "Unknown waveop type: ", m_WaveOpType);
     }
-    assert(verify());
+    Assert(verify(), "Failed verification on waveop of type ", m_WaveOpType);
 } // SerWaveOp::load
 
 

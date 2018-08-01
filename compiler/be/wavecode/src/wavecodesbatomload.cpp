@@ -748,6 +748,8 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
     /*const kcc_int32 numSyncs =*/ findSuccEventsAndChosenEngine(sbAtomLoadWaveop,
                                         chosenEngId, succEventIds);
+    Assert(succEventIds.size() > 0, "No successor events found for AtomLoad '",
+            sbAtomLoadWaveop->gName(), "'");
 
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
@@ -812,7 +814,6 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
             << "-" << sbAtomLoadWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
-
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
 } // WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop)
@@ -1053,6 +1054,13 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
         simDmaCopyInstr.queue_idx    = 0;
     }
 
+    {
+        std::ostringstream oss;
+        oss << sbAtomLoadWaveop->gOrder()
+            << ":" << succEventIds[0]
+            << "-" << sbAtomLoadWaveop->gName();
+        m_WaveCode.SaveName(simDmaCopyInstr, oss.str().c_str());
+    }
     m_WaveCode.writeInstruction(simDmaCopyInstr, chosenEngId);
 }
 

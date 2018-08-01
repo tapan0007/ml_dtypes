@@ -93,6 +93,9 @@ WaveCodeNop::generateWithNop(wave::NopWaveOp* nopWaveop)
     }
     Assert(numSyncs > 0, "NOP waveop ", nopWaveop->gName(), " does not sync at all");
     const EngineId engineId = nopWaveop->gEngineId();
+    std::ostringstream oss;
+    oss << nopWaveop->gOrder() << "-" <<  nopWaveop->gName();
+    m_WaveCode.SaveName(nopInstr, oss.str().c_str());
     m_WaveCode.writeInstruction(nopInstr, engineId);
 }
 

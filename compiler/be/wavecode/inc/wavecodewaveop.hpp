@@ -155,14 +155,20 @@ protected:
                     m_WaveCode.SaveName(instr, oss.str().c_str());
                     m_WaveCode.writeInstruction(instr); // this requires template
                     // 2. Wait for reserved event
-                    compisa::WaitInstr waitEventInstr;
-                    waitEventInstr.event_idx         = events::EventId_MMStartMultiSet();
-                    waitEventInstr.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
-                    m_WaveCode.writeInstruction(waitEventInstr, waveop->gEngineId());
-                    // 2. Set the actual event scheduled
-                    compisa::SetInstr setEventInstr;
-                    setEventInstr.event_idx          = succWaveEdge->gEventId();
-                    m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
+                    {
+                        compisa::WaitInstr waitEventInstr;
+                        waitEventInstr.event_idx         = events::EventId_MMStartMultiSet();
+                        waitEventInstr.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
+                        m_WaveCode.SaveName(waitEventInstr, oss.str().c_str());
+                        m_WaveCode.writeInstruction(waitEventInstr, waveop->gEngineId());
+                    }
+                    // 3. Set the actual event scheduled
+                    {
+                        compisa::SetInstr setEventInstr;
+                        setEventInstr.event_idx          = succWaveEdge->gEventId();
+                        m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
+                        m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
+                    }
                 }
                 else {
                     instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
@@ -174,8 +180,11 @@ protected:
                 instructionWritten = true;
                 //std::cout << waveop->gName() << " (embedded) " << succWaveEdge->gEventId() << std::endl;
             } else {
+                std::ostringstream oss;
+                oss << waveop->gOrder() << "-" <<  waveop->gName();
                 compisa::SetInstr setEventInstr;
                 setEventInstr.event_idx = succWaveEdge->gEventId();
+                m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
                 m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
                 //std::cout << waveop->gName() << " (not embedded) " << succWaveEdge->gEventId() << " engine " << utils::engineId2Str(waveop->gEngineId()) << std::endl;
             }

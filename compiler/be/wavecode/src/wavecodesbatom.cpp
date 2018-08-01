@@ -65,6 +65,8 @@ WaveCodeSbAtom::addDmaBarrier(EngineId engId)
     nopInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
     nopInstr.inst_events.set_event_idx      = 0;
     nopInstr.cycle_cnt                      = std::max(peArray.gNumberRows(), peArray.gNumberColumns());
+    std::ostringstream oss;
+    m_WaveCode.SaveName(nopInstr, "Delay before DMA due to END-WRITE signal being set at end of partition 0");
     m_WaveCode.writeInstruction(nopInstr, engId);
 }
 
@@ -83,6 +85,7 @@ WaveCodeSbAtom::addSecondDmaTrigger(
         dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
         dmaTriggerInstr.inst_events.set_event_idx   = 0;
         dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+        m_WaveCode.SaveName(dmaTriggerInstr, "Second DMA_TRIGGER for non-atomic double WRITE");
         m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     }
 }

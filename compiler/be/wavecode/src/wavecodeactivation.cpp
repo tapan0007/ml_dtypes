@@ -113,11 +113,9 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
 
 
     if (! instructionWritten) {
-        {
-            std::ostringstream oss;
-            oss << activationWaveop->gOrder() << "-" <<  activationWaveop->gName();
-            m_WaveCode.SaveName(activationInstr, oss.str().c_str());
-        }
+        std::ostringstream oss;
+        oss << activationWaveop->gOrder() << "-" <<  activationWaveop->gName();
+        m_WaveCode.SaveName(activationInstr, oss.str().c_str());
         m_WaveCode.writeInstruction(activationInstr);
     }
 }

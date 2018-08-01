@@ -151,15 +151,17 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
     if (qBinFileRuntimeKelf()) {
     // Pool wait for start inference at beginning
         writeWaitOrWaitClearInstr(events::EventId_StartInference(), events::EventWaitMode::WaitThenClear,
-                        EngineId::Pooling, "Waiting on pooling engine to start inference");
+                        EngineId::Pooling, "PoolEng waits on inference start");
         { // Pool sets event for PeArray to read inputs
             compisa::SetInstr setInstr;
             setInstr.event_idx  = events::EventId_BeforeInputRead_PeArray();
+            SaveName(setInstr, "PoolEng informs PeArray that inference is ready");
             writeInstruction(setInstr, EngineId::Pooling); // Pooling engine sends signal to others
         }
         { // Pool sets event for Act to read inputs
             compisa::SetInstr setInstr;
             setInstr.event_idx  = events::EventId_BeforeInputRead_ActEng();
+            SaveName(setInstr, "PoolEng informs ActEng that inference is ready");
             writeInstruction(setInstr, EngineId::Pooling);
         }
     }
@@ -177,7 +179,7 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
             writeWaitOrWaitClearInstr(events::EventId_BeforeInputRead_PeArray(),
                 events::EventWaitMode::WaitThenClear,
                 EngineId::PeArray,
-                "At end of PeArray execution: wait for first input event from Pooling");
+                "PeArray never waited for event from PoolEng, wait at end");
         }
         // If Act never waited on input, wait at end for event from pooling
         if (gFirstInputDMA_ActEng()) {
@@ -185,7 +187,7 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
             writeWaitOrWaitClearInstr(events::EventId_BeforeInputRead_ActEng(),
                 events::EventWaitMode::WaitThenClear,
                 EngineId::Activation,
-                "At end of Act engine execution: wait for first input event from Pooling");
+                "ActEng never waited for event from PoolEng, wait at end");
         }
     }
 
@@ -297,7 +299,6 @@ WaveCode::saveAllNpyFiles ()
             dramToNpyInstr.dst_dims[i]  = npyFileInfo.m_RefFileShape[i];
         }
         dramToNpyInstr.dtype            = npyFileInfo.m_SimTypeId;
-
         this->writeInstruction(dramToNpyInstr);
     }
 }

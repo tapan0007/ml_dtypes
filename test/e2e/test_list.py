@@ -480,7 +480,7 @@ testWaiver = [
 #    ['9-inceptionv3_wave_dog', 'WAIVE_INCEPTIONV3'],
     ['9-inceptionv3_wave_dog_sg00_tpb', 'WAIVE_INCEPTIONV3'],
 
-    ['^0-act_wave$',   'WAIVE-KAENA452'],
+    #['^0-act_wave$',   'WAIVE-KAENA452'],
 
     # ME does not support resadd as the first op which is ok
     ['^0-resadd.*_wave$', 'WAIVE-RESADD_ME'],
@@ -540,15 +540,15 @@ noGpuTestWaiver = [
 ]
 
 qemuTestWaiver = [
-    ['3-1conv1maxpool_k3d2_wave$',  'WAIVE-QEMU'],
-    ['3-rn50-16_b2_wave_repl$',  'WAIVE-QEMU'],
+    #['3-1conv1maxpool_k3d2_wave$',  'WAIVE-QEMU'],
+    #['3-rn50-16_b2_wave_repl$',  'WAIVE-QEMU'],
     #['3-rn50-16_wave_repl$',  'WAIVE-QEMU'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
-    ['5-rn50_nne_to_act4_b4_wave$',  'WAIVE-QEMU'],
+    #['5-rn50_nne_to_act4_b4_wave$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
-    ['7-rn50_nne_fp16_b4_wave-fast_dram$',  'WAIVE-QEMU'],
-    ['7-rn50_nne_fp16_b4_wave-two_banks$',  'WAIVE-QEMU'],
-    ['7-rn50_nne_fp16_b4_wave$',  'WAIVE-QEMU'],
+    #['7-rn50_nne_fp16_b4_wave-fast_dram$',  'WAIVE-QEMU'],
+    #['7-rn50_nne_fp16_b4_wave-two_banks$',  'WAIVE-QEMU'],
+    #['7-rn50_nne_fp16_b4_wave$',  'WAIVE-QEMU'],
     #['7-rn50_nne_fp16_wave-fast_dram$',  'WAIVE-QEMU'],
     #['7-rn50_nne_fp16_wave-two_banks$',  'WAIVE-QEMU'],
     #['7-rn50_nne_fp16_wave$',  'WAIVE-QEMU'],
