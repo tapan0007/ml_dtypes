@@ -34,3 +34,4 @@ unittest:
 	python3 -m unittest me_utils.TestFileParams
 	python3 -m unittest me_utils.TestFileMapper
 	python3 tests/padded_pool_test/pool_test.py
+	python3 tests/concat_test/concat_test.py

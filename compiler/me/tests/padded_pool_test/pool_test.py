@@ -36,6 +36,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 0) \
         , dst_start =  (0, 0) \
         )
@@ -54,6 +56,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 2) \
         , dst_start =  (0, 3) \
         )
@@ -72,6 +76,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (2, 0) \
         , dst_start =  (3, 0) \
         )
@@ -90,6 +96,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (2, 2) \
         , dst_start =  (3, 3) \
         )
@@ -108,6 +116,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 0) \
         , dst_start =  (0, 1) \
         )
@@ -126,6 +136,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (2, 0) \
         , dst_start =  (3, 1) \
         )
@@ -144,6 +156,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 2\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 0) \
         , dst_start =  (1, 0) \
         )
@@ -162,6 +176,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 2\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 2) \
         , dst_start =  (1, 3) \
         )
@@ -180,6 +196,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 2\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 0) \
         , dst_start =  (1, 1) \
         )
@@ -246,6 +264,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 0) \
         , dst_start =  (0, 0) \
         )
@@ -264,6 +284,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 2) \
         , dst_start =  (0, 2) \
         )
@@ -281,6 +303,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 4) \
         , dst_start =  (0, 3) \
         )
@@ -299,6 +323,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (2, 0) \
         , dst_start =  (2, 0) \
         )
@@ -316,6 +342,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (4, 0) \
         , dst_start =  (3, 0) \
         )
@@ -334,6 +362,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (2, 2) \
         , dst_start =  (2, 2) \
         )
@@ -351,6 +381,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (4, 2) \
         , dst_start =  (3, 2) \
         )
@@ -368,6 +400,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (2, 4) \
         , dst_start =  (2, 3) \
         )
@@ -385,6 +419,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (4, 4) \
         , dst_start =  (3, 3) \
         )
@@ -403,6 +439,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 0) \
         , dst_start =  (0, 1) \
         )
@@ -421,6 +459,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (2, 0) \
         , dst_start =  (2, 1) \
         )
@@ -438,6 +478,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (4, 0) \
         , dst_start =  (3, 1) \
         )
@@ -456,6 +498,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 0) \
         , dst_start =  (1, 0) \
         )
@@ -474,6 +518,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 2) \
         , dst_start =  (1, 2) \
         )
@@ -491,6 +537,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 4) \
         , dst_start =  (1, 3) \
         )
@@ -509,6 +557,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 4\
+        , dst_z_num = 1\
+        , dst_z_step = 16\
         , src_start =  (0, 0) \
         , dst_start =  (1, 1) \
         )
@@ -576,6 +626,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 0) \
         , dst_start =  (0, 0) \
         )
@@ -593,6 +645,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 0) \
         , dst_start =  (1, 0) \
         )
@@ -610,6 +664,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 0) \
         , dst_start =  (0, 1) \
         )
@@ -627,6 +683,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 0) \
         , dst_start =  (1, 1) \
         )
@@ -645,6 +703,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 5) \
         , dst_start =  (0, 4) \
         )
@@ -662,6 +722,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 5) \
         , dst_start =  (1, 4) \
         )
@@ -679,6 +741,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 7) \
         , dst_start =  (0, 5) \
         )
@@ -696,6 +760,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 7) \
         , dst_start =  (1, 5) \
         )
@@ -714,6 +780,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (5, 0) \
         , dst_start =  (4, 0) \
         )
@@ -731,6 +799,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (7, 0) \
         , dst_start =  (5, 0) \
         )
@@ -748,6 +818,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (5, 0) \
         , dst_start =  (4, 1) \
         )
@@ -765,6 +837,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (7, 0) \
         , dst_start =  (5, 1) \
         )
@@ -783,6 +857,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (5, 5) \
         , dst_start =  (4, 4) \
         )
@@ -800,6 +876,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (7, 5) \
         , dst_start =  (5, 4) \
         )
@@ -817,6 +895,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (5, 7) \
         , dst_start =  (4, 5) \
         )
@@ -834,6 +914,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (7, 7) \
         , dst_start =  (5, 5) \
         )
@@ -852,6 +934,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 1) \
         , dst_start =  (0, 2) \
         )
@@ -869,6 +953,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (0, 1) \
         , dst_start =  (1, 2) \
         )
@@ -887,6 +973,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (5, 1) \
         , dst_start =  (4, 2) \
         )
@@ -904,6 +992,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 1\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (7, 1) \
         , dst_start =  (5, 2) \
         )
@@ -922,6 +1012,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 2\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (1, 0) \
         , dst_start =  (2, 0) \
         )
@@ -939,6 +1031,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 2\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (1, 0) \
         , dst_start =  (2, 1) \
         )
@@ -957,6 +1051,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 2\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (1, 5) \
         , dst_start =  (2, 4) \
         )
@@ -974,6 +1070,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 2\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (1, 7) \
         , dst_start =  (2, 5) \
         )
@@ -992,6 +1090,8 @@ class TestPoolDecomposition(unittest.TestCase):
         , dst_x_step = 1\
         , dst_y_num = 2\
         , dst_y_step = 6\
+        , dst_z_num = 1\
+        , dst_z_step = 36\
         , src_start =  (1, 1) \
         , dst_start =  (2, 2) \
         )

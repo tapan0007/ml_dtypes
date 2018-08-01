@@ -38,6 +38,8 @@ class WaveOpInfo:
       self.dst_x_step = 0
       self.dst_y_num = 0
       self.dst_y_step = 0
+      self.dst_z_num = 0
+      self.dst_z_step = 0
       self.src_start = 0
       self.dst_start = 0
       return
@@ -55,6 +57,8 @@ class WaveOpInfo:
       , dst_x_step\
       , dst_y_num\
       , dst_y_step\
+      , dst_z_num\
+      , dst_z_step\
       , src_start\
       , dst_start\
       ):
@@ -70,6 +74,8 @@ class WaveOpInfo:
       self.dst_x_step = dst_x_step
       self.dst_y_num = dst_y_num
       self.dst_y_step = dst_y_step
+      self.dst_z_num = dst_z_num
+      self.dst_z_step = dst_z_step
       self.src_start = src_start
       self.dst_start = dst_start
       return
@@ -117,6 +123,8 @@ class WaveOpInfo:
     print(", dst_x_step = %d%s"%(self.dst_x_step, "\\"))
     print(", dst_y_num = %d%s"%(self.dst_y_num, "\\"))
     print(", dst_y_step = %d%s"%(self.dst_y_step, "\\"))
+    print(", dst_z_num = %d%s"%(self.dst_z_num, "\\"))
+    print(", dst_z_step = %d%s"%(self.dst_z_step, "\\"))
     print(", src_start = ",self.src_start,"\\")
     print(", dst_start = ",self.dst_start,"\\")
     print(")")
@@ -257,6 +265,8 @@ class Pool:
     dst_x_step = 1
     dst_y_num = 1
     dst_y_step = self.W
+    dst_z_num = 1
+    dst_z_step = (self.W * self.H)
     for i in range(nh):
       for j in range(nv):
         (src_x_num, src_y_num, src_start, dst_start) = \
@@ -274,6 +284,8 @@ class Pool:
             , dst_x_step\
             , dst_y_num\
             , dst_y_step\
+            , dst_z_num\
+            , dst_z_step\
             , src_start\
             , dst_start\
             )
@@ -331,6 +343,8 @@ class Pool:
     src_w_step = self.W * self.Tv
     dst_x_step = 1
     dst_y_step = self.W
+    dst_z_num = 1
+    dst_z_step = self.W * self.H
     for i in range(num_pools):
       (src_x_num, src_y_num, src_start, dst_start) = \
        self.ComputeEPVariables(edge_type, i)
@@ -347,6 +361,8 @@ class Pool:
           , dst_x_step\
           , dst_y_num\
           , dst_y_step\
+          , dst_z_num\
+          , dst_z_step\
           , src_start\
           , dst_start\
           )
@@ -374,6 +390,8 @@ class Pool:
     dst_x_step = 1
     dst_y_num = self.b + 1
     dst_y_step = self.W
+    dst_z_num = 1
+    dst_z_step = self.W * self.H
     src_start = (math.ceil(self.pN / self.Tv) * self.Tv - self.pN\
         , math.ceil(self.pW / self.Th) * self.Th - self.pW)
     dst_start = (math.ceil(self.pN / self.Tv), math.ceil(self.pW / self.Th))
@@ -390,6 +408,8 @@ class Pool:
         , dst_x_step\
         , dst_y_num\
         , dst_y_step\
+        , dst_z_num\
+        , dst_z_step\
         , src_start\
         , dst_start\
         )
