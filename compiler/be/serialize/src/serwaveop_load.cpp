@@ -183,8 +183,8 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(SrcXStep);
     KCC_ARCHIVE(SrcYNum);
     KCC_ARCHIVE(SrcYStep);
-    //KCC_ARCHIVE(SrcZNum);
-    //KCC_ARCHIVE(SrcZStep);
+    KCC_ARCHIVE(SrcZNum);
+    KCC_ARCHIVE(SrcZStep);
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
 }

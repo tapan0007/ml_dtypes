@@ -51,10 +51,14 @@ static_assert(sizeof(kcc_int8)  == 1, "sizeof(int8) != 1");
 static_assert(sizeof(kcc_int16) == 2, "sizeof(int16) != 2");
 static_assert(sizeof(kcc_int32) == 4, "sizeof(int32) != 4");
 static_assert(sizeof(kcc_int64) == 8, "sizeof(int64) != 8");
+
 static_assert(sizeof(kcc_uint8)  == 1, "sizeof(uint8) != 1");
 static_assert(sizeof(kcc_uint16) == 2, "sizeof(uint16) != 2");
 static_assert(sizeof(kcc_uint32) == 4, "sizeof(uint32) != 4");
 static_assert(sizeof(kcc_uint64) == 8, "sizeof(uint64) != 8");
+
+static_assert(sizeof(kcc_float32) == 4, "sizeof(float32) != 4");
+static_assert(sizeof(kcc_float64) == 8, "sizeof(float64) != 8");
 
 //**********************************************************************
 //using SbPartitionAddress    = Integer<kcc_int16, SbPartitionAddressTag>;

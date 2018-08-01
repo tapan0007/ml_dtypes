@@ -2624,6 +2624,8 @@ class TPBSched:
               'src_x_num'               : dst_x_num,
               'src_y_step'              : dst_y_step,
               'src_y_num'               : dst_y_num * dst_z_num,
+              'src_z_step'              : 1,    # Fixed in MEv2 (batching)
+              'src_z_num'               : 1,    # Fixed in MEv2 (batching)
               'dst_is_psum'             : dst_is_psum,
               'dst_x_step'              : 1,
               'dst_x_num'               : dst_x_num,
