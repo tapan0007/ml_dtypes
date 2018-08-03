@@ -1,5 +1,7 @@
 import math
 import me_common_ds
+import me_utils
+import numpy as np
 
 ###############################################################################
 # Filter Window Dimension
@@ -75,6 +77,52 @@ class Pool:
     self.b = math.floor((self.H - self.m - self.R) / self.Tv)
     self.pool_waveops = Pool_WaveOps()
     return
+
+  @classmethod
+  def init_from_rectangles(cls\
+                           , padded_ifmap_tile_rect\
+                           , ifmap_tile_rect\
+                           , ofmap_tile_rect\
+                           , org_pWN\
+                           , pool_window\
+                           , pool_stride\
+                          ):
+      ifmap_h = ifmap_tile_rect.get_width_height().y
+      ifmap_w = ifmap_tile_rect.get_width_height().x
+      ifmap = me_common_ds.FMAPDim(ifmap_h, ifmap_w)
+      #print ("ifmap_dim : ", ifmap)
+      filterspec = me_common_ds.FilterSpec(\
+        pool_window.y, pool_window.x, pool_stride.x, pool_stride.y)
+      lower_offset = ifmap_tile_rect.get_offset_from(padded_ifmap_tile_rect)
+      upper_offset = padded_ifmap_tile_rect.upper - ifmap_tile_rect.upper
+      padding = me_common_ds.PaddingSpec(\
+        abs(lower_offset.y), abs(upper_offset.y)\
+        , abs(lower_offset.x), abs(upper_offset.x))
+      cls.padded_ifmap_tile_rect = padded_ifmap_tile_rect
+      cls.ifmap_tile_rect = ifmap_tile_rect
+      cls.ofmap_tile_rect = ofmap_tile_rect
+      cls.pool_window_dim2d = pool_window
+      cls.pool_stride_dim2d = pool_stride
+      cls.org_pWN = org_pWN
+      assert(((padded_ifmap_tile_rect.lower.y + org_pWN.y)%filterspec.Tv) == 0)
+      assert(((padded_ifmap_tile_rect.lower.x + org_pWN.x)%filterspec.Th) == 0)
+      cls.ofmap_offset_y =\
+              int((padded_ifmap_tile_rect.lower.y+org_pWN.y)/filterspec.Tv)
+      cls.ofmap_offset_x =\
+              int((padded_ifmap_tile_rect.lower.x+org_pWN.x)/filterspec.Th)
+      print("ofmap_offset_x = %d ofmap_offset_y = %d"\
+            %(cls.ofmap_offset_x, cls.ofmap_offset_y))
+      return cls(
+          ifmap = ifmap\
+          , pool_window = filterspec\
+          , padding = padding\
+          , pool_func = ""\
+          , src_is_psum = False\
+          , dst_is_psum = False\
+          , ofmap = ifmap\
+          , dtype = np.float16\
+      )
+
   # CP : Corner Pool
   # HV : Horizontal and Vertical
   # LTCP : Left Top Corner Pool
@@ -415,3 +463,51 @@ class Pool:
           self.waveops.append(p)
           op_id += 1
       return
+
+  def ConvertWaveOpInfoToMEPoolSpec(self, waveopinfo):
+    ifmap_lower =\
+      me_utils.Coord(waveopinfo.src_start[1] + self.ifmap_tile_rect.lower.x\
+                     , waveopinfo.src_start[0] + self.ifmap_tile_rect.lower.y)
+    ifmap_upper =\
+      ifmap_lower\
+      + me_utils.Coord(waveopinfo.src_x_num\
+        + (waveopinfo.src_z_num - 1) * waveopinfo.src_z_step - 1\
+      , waveopinfo.src_y_num\
+        +(waveopinfo.src_w_num - 1) * waveopinfo.src_w_step - 1)
+    ifmap = me_utils.Rect(ifmap_lower, ifmap_upper)
+#    print ("ifmap_lower = ", ifmap_lower)
+#    print ("ifmap_upper = ", ifmap_upper)
+#    print ("ifmap = ", ifmap)
+    ofmap_lower =\
+      me_utils.Coord(waveopinfo.dst_start[1]+self.ofmap_offset_x\
+                     , waveopinfo.dst_start[0]+self.ofmap_offset_y)
+    ofmap_upper =\
+      ofmap_lower\
+      + me_utils.Coord(waveopinfo.dst_x_num - 1\
+      , waveopinfo.dst_y_num - 1)
+    ofmap = me_utils.Rect(ofmap_lower, ofmap_upper)
+    window_x = waveopinfo.src_x_num
+    window_y = waveopinfo.src_y_num
+    window = me_utils.Dim2D(window_x, window_y)
+    stride = me_utils.Dim2D(waveopinfo.src_z_step, waveopinfo.src_w_step)
+    return me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+
+  def CollectMEPoolSpecs(self):
+    pool_specs = []
+    for w in self.waveops:
+      pool_specs.append(self.ConvertWaveOpInfoToMEPoolSpec(w))
+    return pool_specs
+        
+
+  def Decompose(self):
+    result = []
+#    if (self.padded_ifmap_tile_rect == self.ifmap_tile_rect):
+#        result.append(me_common_ds.MEPoolSpec(self.ifmap_tile_rect\
+#                  , self.ofmap_tile_rect\
+#                  , self.pool_window_dim2d\
+#                  , self.pool_stride_dim2d))
+#    else:
+    self.ComputePool()
+    result = self.CollectMEPoolSpecs()
+    return result
+

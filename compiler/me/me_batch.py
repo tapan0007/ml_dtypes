@@ -15,7 +15,7 @@ class BatchSBDataMap:
         self.data_type       = data_type
         self.N = batch_size  # can only accept 16 at the moment
         assert(batch_size == 16)
-        assert(self.item_sz == 2)
+        #assert(self.item_sz == 2)
 
         # below are sizing for ResNet50 batching scheme
         bias_sz = 512

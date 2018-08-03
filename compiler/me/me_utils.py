@@ -14,6 +14,7 @@ import unittest
 import numpy as np
 import os.path
 from enum import Enum
+from me_models import PEArray
 
 #np.set_printoptions(precision=3)
 #np.set_printoptions(threshold=np.nan)
@@ -87,6 +88,182 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
     except:
         raise RuntimeError("Cannot save numpy file %s"%(new_file))
     return (new_file, new_shape)
+
+""" Class to manage coordinates (points)
+"""
+class Coord():
+    x = 0
+    y = 0
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __add__(self, coord):
+        x = self.x + coord.x
+        y = self.y + coord.y
+        return Coord(x, y)
+
+    def __sub__(self, coord):
+        x = self.x - coord.x
+        y = self.y - coord.y
+        return Coord(x, y)
+
+    def __mul__(self, coord):
+        x = self.x * coord.x
+        y = self.y * coord.y
+        return Coord(x, y)
+
+    def __floordiv__(self, coord):
+        x = self.x // coord.x
+        y = self.y // coord.y
+        return Coord(x, y)
+
+    def __lt__(self, coord):
+        return (self.x < coord.x) and (self.y < coord.y)
+
+    def __gt__(self, coord):
+        return (self.x > coord.x) and (self.y > coord.y)
+
+    def __le__(self, coord):
+        return (self.x <= coord.x) and (self.y <= coord.y)
+
+    def __ge__(self, coord):
+        return (self.x >= coord.x) and (self.y >= coord.y)
+
+    def __eq__(self, coord):
+        return (self.x == coord.x) and (self.y == coord.y)
+
+    def __str__(self):
+        return "(x=%d,y=%d)"%(self.x, self.y)
+
+    """ Make a rectangle from coordinate, taking it as the upper coordinates, and 0,0 as the lower coordinates
+    """
+    def make_rect(self):
+        return Rect(Coord(0,0), self)
+
+    """ Return the size equivalent of the rectangle with 0,0 as lower coordinates and own values as upper coordinates
+    """
+    def make_dim2d(self):
+        return Dim2D(self.x+1, self.y+1)
+
+""" Class to manage 2D sizes: related to Coord but is off by 1,1 generally
+"""
+class Dim2D(Coord):
+    """ Make a rectangle from size, taking it as the upper coordinates, and 0,0 as the lower coordinates
+    """
+    def make_rect(self):
+        assert(self.x > 0 and self.y > 0)
+        return Rect(Coord(0,0), self - Coord(1,1))
+
+    def get_tot_size(self):
+        return self.x * self.y
+
+""" Class to manage  rectangle
+
+Args:
+    - coord_lower: lower coordinates (lower in address)
+    - coord_upper: upper coordinates (higher in address)
+    - coord_stride: stride x and y
+    - parent: parent (enclosing) rectangle, if exists
+
+"""
+class Rect():
+    lower = None
+    upper = None
+    dim2d = None
+
+    def __init__(self, lower, upper):
+        assert(lower <= upper)
+        diff = upper - lower
+        self.dim2d = diff.make_dim2d()
+        self.lower = lower
+        self.upper = upper
+
+    def __eq__(self, another_rect):
+        return (self.lower == another_rect.lower) \
+            and (self.upper == another_rect.upper)
+
+    def __str__(self):
+        return "%s, %s"%(str(self.lower), str(self.upper))
+
+    def __add__(self, coord):
+        new_lower = self.lower + coord
+        new_upper = self.upper + coord
+        return Rect(new_lower, new_upper)
+
+    def __sub__(self, coord):
+        new_lower = self.lower - coord
+        new_upper = self.upper - coord
+        return Rect(new_lower, new_upper)
+
+    def __mul__(self, coord):
+        new_lower = self.lower * coord
+        new_dim2d = self.dim2d * coord
+        new_upper = new_lower + new_dim2d - Coord(1,1)
+        return Rect(new_lower, new_upper)
+
+    def get_width_height(self):
+        return self.dim2d
+
+    def get_tot_size(self):
+        return self.dim2d.get_tot_size()
+
+    def increase_size (self, incr_dim2d):
+        self.dim2d += incr_dim2d
+        self.upper += incr_dim2d
+        return self
+
+    def get_overlap (self, another_rect):
+        new_lower_x = max(self.lower.x, another_rect.lower.x)
+        new_lower_y = max(self.lower.y, another_rect.lower.y)
+        new_upper_x = min(self.upper.x, another_rect.upper.x)
+        new_upper_y = min(self.upper.y, another_rect.upper.y)
+        #print ("new_lower_x=%d new_lower_y=%d new_upper_x=%d new_upper_y=%d"%\
+        #       (new_lower_x,new_lower_y,new_upper_x,new_upper_y))
+        return Rect(Coord(new_lower_x, new_lower_y),\
+                           Coord(new_upper_x, new_upper_y))
+
+    def get_offset_from (self, another_rect):
+        return self.lower - another_rect.lower
+
+    def set_waveop_pattern (self, waveop, prefix, stride):
+        print(self)
+        waveop[prefix + "x_step"] = stride.x 
+        waveop[prefix + "x_num"] = self.dim2d.x
+        waveop[prefix + "y_step"] = stride.y * self.dim2d.x
+        waveop[prefix + "y_num"] = self.dim2d.y
+        return waveop
+        
+class TestRect(unittest.TestCase):
+    def test_coord0(self):
+        # Check coord arithmetic
+        a = Coord(10, -20)
+        b = Coord(100, 200)
+        c = b - a
+        #print(str(c))
+        self.assertEqual(c == Coord(100-10, 200+20), True)
+        # Check heigh/width computation
+        r = Rect(a, b)
+        #(h,w) = r.height_width()
+        #self.assertEqual(c + Coord(1,1) == Coord(w, h), True)
+        # Check overlap computation
+        r2 = Rect(Coord(0,0),Coord(20,20))
+        x = r.get_overlap(r2)
+        self.assertEqual(x == Rect(Coord(10,0),Coord(20,20)), True)
+        offset = x.get_offset_from(r)
+        #print(offset)
+        self.assertEqual(offset == Coord(0, 20), True)
+        # Check subrectangle
+        r3 = Rect(Coord(10,0),Coord(29,49))
+        s = r3.set_waveop_pattern({}, "dst_", Coord(2,5))
+        print(s)
+        r3 += Coord(100,100)
+        print(r3)
+        self.assertEqual(r3.lower == Coord(110, 100), True)
+        self.assertEqual(r3.upper == Coord(129, 149), True)
+        size = Dim2D(101,201)
+        self.assertEqual(b.make_dim2d() == size, True)
 
 """ Class to manage head and tail pointers for circular buffer with two modes (for Middle Scheduler v1):
     - endzone_sz = 0: Normal mode: advance pointer until capacity, where it wraps to 0
@@ -246,8 +423,9 @@ class ShapeDims():
 """
 class FileParams():
     current_file_id = 0
+    chunk_sz_limit = 2048
 
-    def __init__(self, file_name, file_dims, data_type, chunk_sz_limit, pearray_params, op_params, args=None, contain_weights=False):
+    def __init__(self, file_name, file_dims, data_type, op_params, args=None, contain_weights=False):
         self.args = args
         self.layer_name = "DEPRECATED"
         self.contain_weights = contain_weights # True for weights and bias and constants (used to tie-off BiasAdd in standalone Act)
@@ -262,7 +440,6 @@ class FileParams():
         self.file_addr_skip_per_batch_item = 0
         self.item_sz = data_type_to_item_sz(data_type)
         self.data_type = data_type
-        self.chunk_sz_limit = chunk_sz_limit
         self.chunk_sz = -1
         self.chunk_sz_padded = -1
         self.tot_partition_usage_sz = -1
@@ -283,7 +460,7 @@ class FileParams():
         # Keeping a list of ops that writes to the same OFMAP, so that all can be transfered if OFMAP file is combined with another
         self.writers_of_shared_fmap = []
         self.readers_of_shared_fmap = []
-        self.compute_params(pearray_params, op_params, args)
+        self.compute_params(op_params, args)
 
     def load_file(self):
         if (self.file_name != None):
@@ -368,22 +545,21 @@ class FileParams():
         coord[self.file_dims.W_axis] = W
         return self.dram_data[tuple(coord)]
 
-    def compute_params(self, pearray_params, op_params, args):
+    def compute_params(self, op_params, args):
         # Single FMAP elem count (unified formula for weights and FMAP)
         fmap_elem_count = self.file_dims.R * self.file_dims.S * self.file_dims.M * self.file_dims.H * self.file_dims.W
         self.fmap_data_len = fmap_elem_count * self.item_sz
-        self.stride_x = op_params.stride_x
-        self.stride_y = op_params.stride_y
+        self.stride = op_params.stride
         self.weights_S_dim = self.file_dims.S
         # per kaena-85, use noodle shapes for tiles
         # need to guard against small EF and build noodle tile to enable higher state buffer efficiency
-        self.fmap_full_tilex_sz = min(self.file_dims.W, pearray_params.MAX_WAVE_SIZE)
-        self.fmap_full_tiley_sz = min(self.file_dims.H, pearray_params.MAX_WAVE_SIZE // self.fmap_full_tilex_sz)
+        self.fmap_full_tilex_sz = min(self.file_dims.W, PEArray.MAX_WAVE_SIZE)
+        self.fmap_full_tiley_sz = min(self.file_dims.H, PEArray.MAX_WAVE_SIZE // self.fmap_full_tilex_sz)
         # Chunk (aka atom) size computation for weights
         if self.file_dims.has_M:
             m_data_len = self.file_dims.M * self.item_sz
             sm_data_len = self.file_dims.S * m_data_len
-            folding_multiple = (self.file_dims.C // pearray_params.NUM_ROWS) * (self.file_dims.M // pearray_params.NUM_COLS)
+            folding_multiple = (self.file_dims.C // PEArray.NUM_ROWS) * (self.file_dims.M // PEArray.NUM_COLS)
             atom_sz_for_computation = self.chunk_sz_limit
             # TODO: simplify to just limiting to 64 output channels
             if (folding_multiple > 16):
@@ -408,7 +584,7 @@ class FileParams():
             # make atom size multiple of width data length if it is smaller than default atom size
             # For FP32, use initial atom of 2KB to guarantee gapless spaces for 28x28 (without using skip-atoms), when folding is involved
             elif (ifmap_width_data_len <= self.chunk_sz_limit):
-                input_fmap_full_tiley_sz = self.fmap_full_tiley_sz * op_params.stride_y
+                input_fmap_full_tiley_sz = self.fmap_full_tiley_sz * op_params.stride.y
                 if (args is not None and args.abstract_mem):
                     self.chunk_sz = ifmap_width_data_len * input_fmap_full_tiley_sz
                 else:
@@ -425,20 +601,20 @@ class FileParams():
                     #    print("WARNING: FMAP size %d is not a multiple of chunk size %d for shape %s, so c>=1 addresses don't align to chunks!"%(self.fmap_data_len, self.chunk_sz, str(self.file_dims.shape_tuple)))
             else:
                 self.chunk_sz = self.chunk_sz_limit
-        self.fmap_channels_folds            = ceildiv(self.file_dims.C, pearray_params.NUM_ROWS)  # num of folds (same as lowercase "c" computed elsewhere):
+        self.fmap_channels_folds            = ceildiv(self.file_dims.C, PEArray.NUM_ROWS)  # num of folds (same as lowercase "c" computed elsewhere):
         self.batch_item_partition_usage_sz  = self.fmap_data_len * self.fmap_channels_folds
         self.tot_partition_usage_sz         = self.batch_item_partition_usage_sz * self.file_dims.N
         self.fmap_num_chunks                = ceildiv(self.fmap_data_len, self.chunk_sz)
-        self.fmap_count                     = min(self.file_dims.C, pearray_params.NUM_ROWS)
-        self.fmap_last_fold_channels        = self.file_dims.C % pearray_params.NUM_ROWS
+        self.fmap_count                     = min(self.file_dims.C, PEArray.NUM_ROWS)
+        self.fmap_last_fold_channels        = self.file_dims.C % PEArray.NUM_ROWS
         if self.fmap_last_fold_channels == 0: 
-            self.fmap_last_fold_channels = pearray_params.NUM_ROWS
+            self.fmap_last_fold_channels = PEArray.NUM_ROWS
         self.batch_item_num_chunks          = self.fmap_num_chunks * self.fmap_channels_folds
         self.tot_num_chunks                 = self.batch_item_num_chunks * self.file_dims.N
         self.fmap_last_chunk_sz             = self.fmap_data_len % self.chunk_sz
         if self.fmap_last_chunk_sz == 0:    
             self.fmap_last_chunk_sz         = self.chunk_sz
-        self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.C, pearray_params.NUM_ROWS)
+        self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.C, PEArray.NUM_ROWS)
         # kaena-643: pad sizes to 8B to satisfy HW 8B alignment requirement                
         self.chunk_sz_padded                          = align_addr_8B(self.chunk_sz)                
         self.fmap_data_len_padded                     = align_addr_8B(self.fmap_data_len)
@@ -538,13 +714,13 @@ class FileMapper():
             adj_region_sz     = file_params.tot_partition_usage_sz_padded
         else:
             if adj_region_sz >= file_params.fmap_data_len:
-                num_region_fmaps  = adj_region_sz // file_params.fmap_data_len
+                num_region_fmaps  = adj_region_sz // file_params.fmap_data_len_padded
                 num_region_chunks = num_region_fmaps * file_params.fmap_num_chunks
-                adj_region_sz     = num_region_fmaps * file_params.fmap_data_len
+                adj_region_sz     = num_region_fmaps * file_params.fmap_data_len_padded
             else:                
                 # If wrapping around and FMAP too big, waste the last odd chunk and just make sure to have chunk_sz pieces
-                num_region_chunks = adj_region_sz // file_params.chunk_sz
-                adj_region_sz     = num_region_chunks * file_params.chunk_sz
+                num_region_chunks = adj_region_sz // file_params.chunk_sz_padded
+                adj_region_sz     = num_region_chunks * file_params.chunk_sz_padded
 
         # Check number of chunks is reasonable            
         if num_region_chunks == 0:                
@@ -560,17 +736,21 @@ class FileMapper():
         return end_addr + file_params.item_sz
 
     def get_chunk_id_from_file_addr(self, file_params, batch_item, addr):
+        assert(file_params.file_dims.format_str == "NCHW" or file_params.file_dims.format_str == "CRSM")
         assert(addr >= 0)
         assert(addr >= batch_item * file_params.file_addr_skip_per_batch_item)
         addr_adj         = addr - batch_item * file_params.file_addr_skip_per_batch_item
         fold_idx         = addr_adj // file_params.file_addr_skip_per_fmap_fold 
         fold_offset      = addr_adj % file_params.file_addr_skip_per_fmap_fold 
-        chunk_id_in_fold = fold_offset // file_params.chunk_sz
+        # only consider fold_offset in partition 0 (take care of cases where channel starts in mid partition) 
+        fold_offset_part0 = fold_offset % file_params.fmap_data_len
+        chunk_id_in_fold = fold_offset_part0 // file_params.chunk_sz
         chunk_id         = fold_idx * file_params.fmap_num_chunks + chunk_id_in_fold
         chunk_id        += batch_item * file_params.batch_item_num_chunks 
         return chunk_id
 
     def get_file_addr_from_chunk_id(self, file_params, batch_item, chunk_id):
+        assert(file_params.file_dims.format_str == "NCHW" or file_params.file_dims.format_str == "CRSM")
         assert(chunk_id >= 0)
         assert(chunk_id >= batch_item * file_params.batch_item_num_chunks)
         assert(chunk_id < file_params.tot_num_chunks)
@@ -875,17 +1055,17 @@ class FileMapper():
                 last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
                 last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%ifmap_replication_resolution) 
             else:
-                stride = file_params.stride_x
+                stride = file_params.stride.x
                 ifmap_replication_num_rows = file_params.file_dims.C * file_params.weights_S_dim
-                ifmap_replication_resolution = file_params.file_dims.C * file_params.stride_x
-                ifmap_replication_step_bytes = (file_params.file_dims.W // file_params.stride_x) * file_params.item_sz
-                length = length // file_params.stride_x // file_params.stride_x  # TODO: adjust chunk size to match
+                ifmap_replication_resolution = file_params.file_dims.C * file_params.stride.x
+                ifmap_replication_step_bytes = (file_params.file_dims.W // file_params.stride.x) * file_params.item_sz
+                length = length // (file_params.stride.x * file_params.stride.x) # TODO: adjust chunk size to match
                 offset_in_file_batch_item = batch_item * file_params.file_addr_skip_per_batch_item
                 # Adjust for the even/odd split
-                offset_in_file = (offset_in_file - offset_in_file_batch_item) // file_params.stride_x // file_params.stride_x + offset_in_file_batch_item # TODO: adjust chunk size to match
+                offset_in_file = (offset_in_file - offset_in_file_batch_item) // (file_params.stride.x * file_params.stride.x) + offset_in_file_batch_item # TODO: adjust chunk size to match
                 # compute last byte offset to check out of file bound
                 last_byte_offset  = offset_in_file + length - file_params.item_sz
-                last_byte_offset += file_params.fmap_data_len // file_params.stride_x // file_params.stride_x   # jump to the odd half
+                last_byte_offset += file_params.fmap_data_len // (file_params.stride.x * file_params.stride.x)   # jump to the odd half
                 last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
                 last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%file_params.file_dims.C)
 
@@ -1026,98 +1206,84 @@ class TestShapeDims(unittest.TestCase):
             test_obj = ShapeDims("CHWC", [1,10,20,30,40]) 
 
 class TestFileParams(unittest.TestCase):
-    class pearray_params():
-        MAX_WAVE_SIZE=256
-        NUM_ROWS=128
-        NUM_COLS=64
-
     class op_params_stride2():
-        stride_x = 2
-        stride_y = 2
+        stride = Dim2D(2,2)
 
     class op_params_stride1():
-        stride_x = 1
-        stride_y = 1
+        stride = Dim2D(1,1)
 
     def test_file_params_instantiation(self):
         shape_dims = ShapeDims("CRSM", [1,7,7,64]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 896)
         shape_dims = ShapeDims("CRSM", [256,1,1,128]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 256)
         self.assertEqual(test_obj.ravel_crsm(0,0,0,0), 0)
         self.assertEqual(test_obj.ravel_crsm(1,0,0,0), 128*test_obj.item_sz)
         shape_dims = ShapeDims("NHWC", [1,112,112,64]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 1792)
         shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride2)
         self.assertEqual(test_obj.chunk_sz, 1760)
         shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 1760)
-        shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 1210, self.pearray_params, self.op_params_stride1)
-        self.assertEqual(test_obj.chunk_sz, 880)
+        #shape_dims = ShapeDims("NHWC", [1,55,55,128]) 
+        #test_obj = FileParams("testfile.npy", shape_dims, "float16", 1210, self.op_params_stride1)
+        #self.assertEqual(test_obj.chunk_sz, 880)
         shape_dims = ShapeDims("NHWC", [1,28,28,256]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 1568)
         shape_dims = ShapeDims("NHWC", [1,14,14,256]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 392)
         shape_dims = ShapeDims("NHWC", [1,7,7,256]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.chunk_sz, 98)
         self.assertEqual(test_obj.ravel_nchw(0,0,0,0), 0)
         self.assertEqual(test_obj.ravel_nchw(0,0,0,1), 256*test_obj.item_sz)
         self.assertEqual(test_obj.ravel_nchw(0,0,1,0), 7*256*test_obj.item_sz)
         shape_dims = ShapeDims("NHWC", [4,1,1,2048]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.tot_partition_usage_sz, 2048*4//128*test_obj.item_sz)
         self.assertEqual(test_obj.batch_item_partition_usage_sz, 2048//128*test_obj.item_sz)
         shape_dims = ShapeDims("NHWC", [4,55,55,512]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.tot_partition_usage_sz, 55*55*512*4//128*test_obj.item_sz)
         self.assertEqual(test_obj.batch_item_partition_usage_sz, 55*55*512//128*test_obj.item_sz)
         shape_dims = ShapeDims("NHWC", [4,1,1,1000]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.tot_partition_usage_sz, 64)
         self.assertEqual(test_obj.batch_item_partition_usage_sz, 16)
         shape_dims = ShapeDims("NHWC", [16,1,1,1000]) 
-        test_obj = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        test_obj = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(test_obj.tot_partition_usage_sz, 4*64)
         self.assertEqual(test_obj.batch_item_partition_usage_sz, 16)
         # Test padding and split (replication)
         shape_dims = ShapeDims("NCHW", [1,3,224,224]) 
-        test_obj = FileParams("testfile_1_3_224_224.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
+        test_obj = FileParams("testfile_1_3_224_224.npy", shape_dims, "float16", self.op_params_stride2)
         self.assertEqual(test_obj.chunk_sz, 1792)
         test_obj.load_file()
         (new_file, new_shape) = pad_and_split_file("testfile_1_3_224_224.npy", "NCHW", 2, 3, 2, 3, 2)
         shape_dims = ShapeDims("NCHW", new_shape)
-        test_obj = FileParams(new_file, shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
+        test_obj = FileParams(new_file, shape_dims, "float16", self.op_params_stride2)
         self.assertEqual(test_obj.file_dims.H, 458)
         self.assertEqual(test_obj.file_dims.W, 115)
         test_obj.load_file()
         self.assertEqual(test_obj.dram_data.shape, (1, 3, 458, 115))
 
 class TestFileMapper(unittest.TestCase):
-    class pearray_params():
-        MAX_WAVE_SIZE=256
-        NUM_ROWS=128
-        NUM_COLS=64
-
     class op_params_stride2():
-        stride_x = 2
-        stride_y = 2
+        stride = Dim2D(2,2)
 
     class op_params_stride1():
-        stride_x = 1
-        stride_y = 1
+        stride = Dim2D(1,1)
 
     def test_map_file(self):
         shape_dims = ShapeDims("CRSM", [256,7,7,64]) 
-        file_params = FileParams("testfile.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        file_params = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(file_params.chunk_sz, 896)
         test_obj = FileMapper(96*1024, "float16")
         self.assertEqual(test_obj.item_sz, 2)
@@ -1190,7 +1356,7 @@ class TestFileMapper(unittest.TestCase):
         self.assertEqual(last_writer, -1)
         self.assertEqual(last_reader, 40)
         # test reading from file
-        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 7*7*64*file_params.item_sz, file_params.chunk_sz)
+        (last_writer, last_reader, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 128*7*7*64*file_params.item_sz, file_params.chunk_sz)
         self.assertEqual(len(waveops), 1)
         self.assertEqual(waveops[0]['previous_waveops'], [])
         self.assertEqual(waveops[0]["sb_address"], 40*1024 + 7*7*64*file_params.item_sz)
@@ -1211,7 +1377,7 @@ class TestFileMapper(unittest.TestCase):
 
     def test_map_file2(self):
         shape_dims = ShapeDims("NCHW", [16,3,224,224]) 
-        file_params = FileParams("testfile2.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
+        file_params = FileParams("testfile2.npy", shape_dims, "float16", self.op_params_stride2)
         file_params.load_file()
         test_obj = FileMapper(96*1024, "float16")
         test_obj.map_file(file_params, 50240, True, region_sz=55*55*file_params.item_sz)
@@ -1238,7 +1404,7 @@ class TestFileMapper(unittest.TestCase):
 
     def test_map_file_55x55(self):
         shape_dims = ShapeDims("NCHW", [1,256,55,55]) 
-        file_params = FileParams("testfile_55x55.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
+        file_params = FileParams("testfile_55x55.npy", shape_dims, "float16", self.op_params_stride2)
         file_params.load_file()
         test_obj = FileMapper(96*1024, "float16")
         #test_obj.map_file(file_params, 0, True, region_sz=55*55*file_params.item_sz)
@@ -1264,7 +1430,7 @@ class TestFileMapper(unittest.TestCase):
 
     def test_zero_file(self):
         shape_dims = ShapeDims("NCHW", [16,3,224,224]) 
-        file_params = FileParams("testfile2.npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride2)
+        file_params = FileParams("testfile2.npy", shape_dims, "float16", self.op_params_stride2)
         x = file_params.load_file()
         y = np.random.rand(x.size)
         z = y.astype(x.dtype)
@@ -1279,7 +1445,7 @@ class TestFileMapper(unittest.TestCase):
 
     def map_chunk_id_single(self, shape_tuple, region_sz):
         shape_dims = ShapeDims("NCHW", shape_tuple)
-        file_params = FileParams("testfile_"+str(shape_tuple)+".npy", shape_dims, "float16", 2048, self.pearray_params, self.op_params_stride1)
+        file_params = FileParams("testfile_"+str(shape_tuple)+".npy", shape_dims, "float16", self.op_params_stride1)
         file_params.load_file()
         test_obj = FileMapper(96*1024, "float16")
         #test_obj.map_file(file_params, 0, True, region_sz=55*55*file_params.item_sz)

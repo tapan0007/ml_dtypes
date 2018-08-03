@@ -5,4 +5,4 @@ else
     x=$1
 fi
 rm -f *-midout.npy
-python3 $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json --debug 3 --stop_after_layer_num $x --no_inter_layer_load 2>&1 | tee log-me.txt
+python3 $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json --debug 3 --nname=generic --stop_after_layer_num $x --no_inter_layer_load 2>&1 | tee log-me.txt

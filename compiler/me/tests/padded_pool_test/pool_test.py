@@ -5,6 +5,7 @@ import sys
 kaena_path = os.environ['KAENA_PATH']+"/compiler/me"
 sys.path.append(kaena_path)
 import me_pool
+import me_utils
 import me_common_ds
 import numpy as np
 
@@ -1471,6 +1472,315 @@ class TestPoolDecomposition(unittest.TestCase):
     self.assertTrue(\
       self.compare_result(pool,ltcp,rtcp,lbcp,rbcp,uhep,bhep,lvep,rvep,cp))
 
+  def test_rect_io_4x4ifmap_3x3window_1x1stride(self):
+      golden = []
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(1,1))
+      ofmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(0,0))
+      window =  me_utils.Dim2D(2,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(2,0), me_utils.Coord(3,1))
+      ofmap = me_utils.Rect(me_utils.Coord(3,0), me_utils.Coord(3,0))
+      window =  me_utils.Dim2D(2,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(0,2), me_utils.Coord(1,3))
+      ofmap = me_utils.Rect(me_utils.Coord(0,3), me_utils.Coord(0,3))
+      window =  me_utils.Dim2D(2,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(2,2), me_utils.Coord(3,3))
+      ofmap = me_utils.Rect(me_utils.Coord(3,3), me_utils.Coord(3,3))
+      window =  me_utils.Dim2D(2,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(3,1))
+      ofmap = me_utils.Rect(me_utils.Coord(1,0), me_utils.Coord(2,0))
+      window =  me_utils.Dim2D(3,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(0,2), me_utils.Coord(3,3))
+      ofmap = me_utils.Rect(me_utils.Coord(1,3), me_utils.Coord(2,3))
+      window =  me_utils.Dim2D(3,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(1,3))
+      ofmap = me_utils.Rect(me_utils.Coord(0,1), me_utils.Coord(0,2))
+      window =  me_utils.Dim2D(2,3)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(2,0), me_utils.Coord(3,3))
+      ofmap = me_utils.Rect(me_utils.Coord(3,1), me_utils.Coord(3,2))
+      window =  me_utils.Dim2D(2,3)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(3,3))
+      ofmap = me_utils.Rect(me_utils.Coord(1,1), me_utils.Coord(2,2))
+      window =  me_utils.Dim2D(3,3)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      # 5x5 padded ifmap
+      padded_ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(5, 5))
+      ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(1, 1)\
+                            , me_utils.Coord(4, 4))
+      ofmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(1, 1)\
+                            , me_utils.Coord(3, 3))
+      pool_window = me_utils.Dim2D(3, 3)
+      pool_stride = me_utils.Dim2D(1, 1)
+      pool =\
+              me_pool.Pool.init_from_rectangles(\
+                padded_ifmap_rect_tile\
+                , ifmap_rect_tile\
+                , ofmap_rect_tile\
+                , me_utils.Dim2D(1, 1)\
+                , pool_window\
+                , pool_stride)
+      waves = pool.Decompose()
+#      print("num waves = %d"%len(waves))
+#      for wave in waves:
+#          print("======================")
+#          print("ifmap = ",wave.ifmap)
+#          print("ofmap = ",wave.ofmap)
+#          print("window = ",wave.window)
+#          print("stride = ",wave.stride)
+      same = True
+      for i in range(len(waves)):
+        if ((golden[i].ifmap != waves[i].ifmap) or\
+            (golden[i].ofmap != waves[i].ofmap) or\
+            (golden[i].window != waves[i].window) or\
+            (golden[i].stride != waves[i].stride)):
+            same = False
+            break
+      self.assertTrue(same)
+
+  def test_rect_io_3x4ifmap_3x3window_1x1stride(self):
+      golden = []
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(1,1))
+      ofmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(0,0))
+      window =  me_utils.Dim2D(2,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(2,0), me_utils.Coord(3,1))
+      ofmap = me_utils.Rect(me_utils.Coord(3,0), me_utils.Coord(3,0))
+      window =  me_utils.Dim2D(2,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(3,1))
+      ofmap = me_utils.Rect(me_utils.Coord(1,0), me_utils.Coord(2,0))
+      window =  me_utils.Dim2D(3,2)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(1,2))
+      ofmap = me_utils.Rect(me_utils.Coord(0,1), me_utils.Coord(0,1))
+      window =  me_utils.Dim2D(2,3)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(2,0), me_utils.Coord(3,2))
+      ofmap = me_utils.Rect(me_utils.Coord(3,1), me_utils.Coord(3,1))
+      window =  me_utils.Dim2D(2,3)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(3,2))
+      ofmap = me_utils.Rect(me_utils.Coord(1,1), me_utils.Coord(2,1))
+      window =  me_utils.Dim2D(3,3)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      # 5x5 padded ifmap
+      padded_ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(5, 3))
+      ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(1, 1)\
+                            , me_utils.Coord(4, 3))
+      ofmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(1, 1)\
+                            , me_utils.Coord(3, 3))
+      pool_window = me_utils.Dim2D(3, 3)
+      pool_stride = me_utils.Dim2D(1, 1)
+      pool =\
+              me_pool.Pool.init_from_rectangles(\
+                padded_ifmap_rect_tile\
+                , ifmap_rect_tile\
+                , ofmap_rect_tile\
+                , me_utils.Dim2D(1, 1)\
+                , pool_window\
+                , pool_stride)
+      waves = pool.Decompose()
+      same = True
+      for i in range(len(waves)):
+        if ((golden[i].ifmap != waves[i].ifmap) or\
+            (golden[i].ofmap != waves[i].ofmap) or\
+            (golden[i].window != waves[i].window) or\
+            (golden[i].stride != waves[i].stride)):
+            same = False
+            break
+#      print("num waves = %d"%len(waves))
+#      for wave in waves:
+#          print("======================")
+#          print("ifmap = ",wave.ifmap)
+#          print("ofmap = ",wave.ofmap)
+#          print("window = ",wave.window)
+#          print("stride = ",wave.stride)
+      self.assertTrue(same)
+      
+
+  def test_rect_io_4x4ifmap_3x3window_1x1stride_valid_padding(self):
+      golden = []
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(3,3))
+      ofmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(1,1))
+      window =  me_utils.Dim2D(3,3)
+      stride =  me_utils.Dim2D(1,1)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      # 5x5 padded ifmap
+      padded_ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(3, 3))
+      ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(3, 3))
+      ofmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(1, 1))
+      pool_window = me_utils.Dim2D(3, 3)
+      pool_stride = me_utils.Dim2D(1, 1)
+      pool =\
+              me_pool.Pool.init_from_rectangles(\
+                padded_ifmap_rect_tile\
+                , ifmap_rect_tile\
+                , ofmap_rect_tile\
+                , me_utils.Dim2D(0, 0)\
+                , pool_window\
+                , pool_stride)
+      waves = pool.Decompose()
+      #print("num waves = %d"%len(waves))
+      #for wave in waves:
+      #    print("======================")
+      #    print("ifmap = ",wave.ifmap)
+      #    print("ofmap = ",wave.ofmap)
+      #    print("window = ",wave.window)
+      #    print("stride = ",wave.stride)
+      same = True
+      for i in range(len(waves)):
+        if ((golden[i].ifmap != waves[i].ifmap) or\
+            (golden[i].ofmap != waves[i].ofmap) or\
+            (golden[i].window != waves[i].window) or\
+            (golden[i].stride != waves[i].stride)):
+            same = False
+            break
+      self.assertTrue(same)
+
+  def test_rect_io_4x4ifmap_2x2window_2x2stride_valid_padding(self):
+      golden = []
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(3,3))
+      ofmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(1,1))
+      window =  me_utils.Dim2D(2,2)
+      stride =  me_utils.Dim2D(2,2)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      # 5x5 padded ifmap
+      padded_ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(3, 3))
+      ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(3, 3))
+      ofmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(1, 1))
+      pool_window = me_utils.Dim2D(2, 2)
+      pool_stride = me_utils.Dim2D(2, 2)
+      pool =\
+              me_pool.Pool.init_from_rectangles(\
+                padded_ifmap_rect_tile\
+                , ifmap_rect_tile\
+                , ofmap_rect_tile\
+                , me_utils.Dim2D(0, 0)\
+                , pool_window\
+                , pool_stride)
+      waves = pool.Decompose()
+#      print("num waves = %d"%len(waves))
+#      for wave in waves:
+#          print("======================")
+#          print("ifmap = ",wave.ifmap)
+#          print("ofmap = ",wave.ofmap)
+#          print("window = ",wave.window)
+#          print("stride = ",wave.stride)
+#      pool.PrintWaves()
+      same = True
+      for i in range(len(waves)):
+        if ((golden[i].ifmap != waves[i].ifmap) or\
+            (golden[i].ofmap != waves[i].ofmap) or\
+            (golden[i].window != waves[i].window) or\
+            (golden[i].stride != waves[i].stride)):
+            same = False
+            break
+      self.assertTrue(same)
+
+  def test_rect_io_17x15ifmap_3x3window_1x1stride_pS_0(self):
+      golden = []
+      ifmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(3,3))
+      ofmap = me_utils.Rect(me_utils.Coord(0,0), me_utils.Coord(1,1))
+      window =  me_utils.Dim2D(2,2)
+      stride =  me_utils.Dim2D(2,2)
+      mepoolspec = me_common_ds.MEPoolSpec(ifmap, ofmap, window, stride)
+      golden.append(mepoolspec)
+      padded_ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(-1, 14)\
+                            , me_utils.Coord(17, 17))
+      ifmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 14)\
+                            , me_utils.Coord(16, 16))
+      ofmap_rect_tile =\
+              me_utils.Rect(me_utils.Coord(0, 0)\
+                            , me_utils.Coord(16, 13))
+      pool_window = me_utils.Dim2D(3, 3)
+      pool_stride = me_utils.Dim2D(1, 1)
+      pool =\
+              me_pool.Pool.init_from_rectangles(\
+                padded_ifmap_rect_tile\
+                , ifmap_rect_tile\
+                , ofmap_rect_tile\
+                , me_utils.Dim2D(1, 1)\
+                , pool_window\
+                , pool_stride)
+      waves = pool.Decompose()
+      print("num waves = %d"%len(waves))
+      for wave in waves:
+          print("======================")
+          print("ifmap = ",wave.ifmap)
+          print("ofmap = ",wave.ofmap)
+          print("window = ",wave.window)
+          print("stride = ",wave.stride)
+      pool.PrintWaves()
+      same = True
+      for i in range(len(waves)):
+        if ((golden[i].ifmap != waves[i].ifmap) or\
+            (golden[i].ofmap != waves[i].ofmap) or\
+            (golden[i].window != waves[i].window) or\
+            (golden[i].stride != waves[i].stride)):
+            same = False
+            break
+      self.assertTrue(same)
 
 if __name__ == '__main__':
     unittest.main()

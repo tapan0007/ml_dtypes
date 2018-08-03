@@ -59,7 +59,36 @@ class Concat:
         self.move_filters = deque()
         self.waveops = []
         self.datatype = datatype
+        self.subtile_infos = dict()
+        self.mfilters_for_one_move = []
+        self.ifmaps_for_one_move = []
+        self.ifmap_channel_ranges_for_one_move = []
         return
+    @classmethod
+    def init_from_file_params (cls, ifmap_file_params):
+        ifmaps = cls.CreateFMAPSpecsFromFileParams(ifmap_file_params)
+        num_output_channels = cls.SumIFMAPChannels(ifmap_file_params)
+        datatype = ifmap_file_params[0].data_type
+        return cls(ifmaps, num_output_channels, datatype)
+    
+    def CreateFMAPSpecsFromFileParams (ifmap_file_params):
+        ifmaps = []
+        for ifmap_file_param in ifmap_file_params:
+            N = ifmap_file_param.file_dims.dim["N"]
+            C = ifmap_file_param.file_dims.dim["C"]
+            H = ifmap_file_param.file_dims.dim["H"]
+            W = ifmap_file_param.file_dims.dim["W"]
+            fmap_dim = [N, C, H, W]
+            file_name = ifmap_file_param.file_name
+            ifmaps.append(me_common_ds.FMAPSpec(False,fmap_dim,file_name,""))
+        return ifmaps
+
+    def SumIFMAPChannels(ifmap_file_params):
+        ofmap_channel_cnt = 0
+        for ifmap_file_param in ifmap_file_params:
+            ofmap_channel_cnt += ifmap_file_param.file_dims.dim["C"]
+        return ofmap_channel_cnt
+
     def print_graph(self):
         print("digraph G{")
         for i in self.waveops:
@@ -96,7 +125,10 @@ class Concat:
             else:
                 ofmap_region = FMAPMovingRegion(0, self.PE_COL)
         else:
-            ofmap_region = FMAPMovingRegion(tail - 1, tail)
+            if (tail):
+                ofmap_region = FMAPMovingRegion(tail - 1, tail)
+            else:
+                ofmap_region = FMAPMovingRegion(self.PE_COL - 1, self.PE_COL)
         return ofmap_region
 
     def GetOFMAPRegion (self, forward_move):
@@ -128,7 +160,9 @@ class Concat:
                 start = False
         return start
 
-    def PerformConcatDecomposition(self, forward_move):
+    def PerformConcatDecomposition(self\
+                                   , forward_move\
+                                   , generate_weight_files = False):
         remaining_ifmaps = self.ifmaps.copy()
         remaining_ofmap_c = self.num_output_channels
         tail = self.num_output_channels % self.PE_COL
@@ -139,19 +173,33 @@ class Concat:
         ifmap = self.GetIFMAP(forward_move, remaining_ifmaps)
         ifmap_region = self.ConvertFMAPSpec2FMAPMovingRegion(ifmap,forward_move)
         ifmap_use_cnt = 0
+        ofmap_move_cnt = 0
         pool_prev_ops = []
         num_channels_moved_sofar = 0;
+        self.InitSubTileInfo()
         while remaining_ofmap_c > 0:
 #            print ("num_channels_moved_sofar = %d"%num_channels_moved_sofar)
             start_tensor_calc =\
                     self.ComputeStartTensorCalc(num_channels_moved_sofar\
                         , forward_move, tail)
             if (ofmap_region.moving_amt == 0):
-                pool = self.CreatePool(\
-                    ifmap, pool_prev_ops, pool_prev_ops[-1]\
-                    , ifmap_use_cnt - 1)
-                self.waveops.append(pool)
+                #print ("len(pool_prev_ops) = %d ifmap_use_cnt = %d"\
+                #       %(len(pool_prev_ops), ifmap_use_cnt))
+                #print ("pool_prev_ops[-1] = %s"%pool_prev_ops[-1])
+                if (len(pool_prev_ops) > 0):
+                    pool = self.CreatePool(\
+                        ifmap, pool_prev_ops, pool_prev_ops[-1]\
+                        , ifmap_use_cnt - 1)
+                    ofmap_c_start = ofmap_move_cnt * self.PE_COL
+                    ofmap_c_end = ofmap_c_start + self.PE_COL - 1
+                    self.AddSubTileInfo((ofmap_c_start, ofmap_c_end)
+                                , [self.mfilters_for_one_move\
+                                   , self.ifmaps_for_one_move\
+                                   , self.ifmap_channel_ranges_for_one_move])
+                    self.waveops.append(pool)
+                self.InitSubTileInfo()
                 pool_prev_ops = []
+                ofmap_move_cnt += 1
                 ofmap_region = self.GetOFMAPRegion(forward_move)
             if (ifmap_region.moving_amt == 0):
                 ifmap = self.GetIFMAP(forward_move, remaining_ifmaps)
@@ -170,6 +218,8 @@ class Concat:
                                                     , ifmap_region.moving_amt\
                                                     , forward_move\
                                                    )
+                moved_amt = ifmap_region.moving_amt
+                ifmap_region_start_pos_before_update = ifmap_region.start_pos
                 if (forward_move == True):
                     ofmap_region.start_pos =\
                         ofmap_region.start_pos + ifmap_region.moving_amt
@@ -188,6 +238,8 @@ class Concat:
                                                     , ofmap_region.moving_amt\
                                                     , forward_move\
                                                    )
+                moved_amt = ofmap_region.moving_amt
+                ifmap_region_start_pos_before_update = ifmap_region.start_pos
                 ifmap_region.moving_amt =\
                     ifmap_region.moving_amt - ofmap_region.moving_amt
                 if (forward_move == True):
@@ -199,6 +251,11 @@ class Concat:
                 remaining_ofmap_c = remaining_ofmap_c - ofmap_region.moving_amt
                 num_channels_moved_sofar += ofmap_region.moving_amt
                 ofmap_region.moving_amt = 0
+            self.UpdateSubTileInfo(ifmap\
+                                   , mfilter\
+                                   , ifmap_region_start_pos_before_update\
+                                   , moved_amt\
+                                  )
             mfilter.file_name = self.NameFilter(
                 ifmap.file_name, mfilter, ifmap_use_cnt)
             pool_prev_ops.extend(\
@@ -213,7 +270,64 @@ class Concat:
             pool = self.CreatePool(ifmap, pool_prev_ops, pool_prev_ops[-1]\
                 , ifmap_use_cnt - 1)
             self.waveops.append(pool)
+            #self.UpdateSubTileInfo(ifmap\
+            #                       , mfilter\
+            #                       , ifmap_region\
+            #                       , moved_amt\
+            #                      )
+            ofmap_c_start = ofmap_move_cnt * self.PE_COL
+            if (tail == 0):
+                ofmap_c_end = ofmap_c_start + self.PE_COL - 1
+            else:
+                ofmap_c_end = ofmap_c_start + tail - 1
+            self.AddSubTileInfo((ofmap_c_start, ofmap_c_end)
+                                , [self.mfilters_for_one_move\
+                                   , self.ifmaps_for_one_move\
+                                   , self.ifmap_channel_ranges_for_one_move])
+        if (generate_weight_files == True):
+            self.FilterWeightFileGeneration()
         return self.move_filters
+
+    def UpdateSubTileInfo (self\
+                           , ifmap\
+                           , mfilter\
+                           , ifmap_region_start_pos\
+                           , moved_amt\
+                          ):
+        self.ifmaps_for_one_move.append(ifmap)
+        self.mfilters_for_one_move.append(mfilter)
+        self.ifmap_channel_ranges_for_one_move.append(\
+                                                 (ifmap_region_start_pos\
+                                                  , ifmap_region_start_pos\
+                                                  + moved_amt - 1)\
+                                                )
+        return
+    
+    def InitSubTileInfo(self):
+        self.mfilters_for_one_move = []
+        self.ifmaps_for_one_move = []
+        self.ifmap_channel_ranges_for_one_move = []
+        return
+
+    def AddSubTileInfo(self, ofmap_channel_range, subtile_info):
+        self.subtile_infos[ofmap_channel_range] = subtile_info
+
+    def GetSubTile(self, ofmap_channel_ranges):
+        return self.subtile_infos[ofmap_channel_ranges]
+
+    def PrintSubTileInfos(self):
+        for (key, val) in self.subtile_infos.items():
+            print (key)
+            #print ("len(mfilters_for_one_move) = %d"\
+            #       %(len(val[0])))
+            #print ("len(ifmaps_for_one_move) = %d"\
+            #       %(len(val[1])))
+            print ("len(ifmap_channel_ranges_for_one_move) = %d"\
+                   %(len(val[2])))
+            for i in val[2]:
+                print (i)
+            print ("---")
+
 
     # Creates WaveOps for LDW and MatMul
     # Also creates dependency

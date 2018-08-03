@@ -59,14 +59,12 @@ class StateBuffer:
     def create_constants_file(self, op, args):
         bias_shape_dims = ShapeDims("NCHW", [1, PEArray.NUM_ROWS, 1, 1])           
         bias_file_params = FileParams(
-                                    op.data['ref_file'].replace(".npy", "-constants.npy"),
-                                    bias_shape_dims, 
-                                    self.batcher.data_type,
-                                    2048, 
-                                    PEArray, 
-                                    op,
-                                    args,
-                                    contain_weights=True)
+                                    file_name       = op.data['ref_file'].replace(".npy", "-constants.npy"),
+                                    file_dims       = bias_shape_dims, 
+                                    data_type       = self.batcher.data_type,
+                                    op_params       = op,
+                                    args            = args,
+                                    contain_weights = True)
         bias_file_params.layer_name = op.data['layer_name']
         bias_file_params.load_file()
         bias_file_start_addr = self.next_bias_file_start
@@ -199,13 +197,13 @@ class TPBSched:
                             (file_name, new_shape) = pad_and_split_file(
                                                         first_op.data['ref_file'], 
                                                         first_op.data['ofmap_format'],
-                                                        i.stride_x,
-                                                        i.pad_west, i.pad_east,
-                                                        i.pad_north, i.pad_south)
+                                                        i.stride.x,
+                                                        i.padWN.x, i.padES.x,
+                                                        i.padWN.y, i.padES.y)
                             first_op.data['ref_file'] = file_name
                             # fake the shape to make convolution work
                             [N, C, H, W] = new_shape
-                            first_op.data['ofmap_shape'] = [N, C, H//i.stride_x, W*i.stride_x]
+                            first_op.data['ofmap_shape'] = [N, C, H//i.stride.x, W*i.stride.x]
                             #first_op.data['ofmap_shape'] = new_shape
                             # clear padding info after modifying IFMAP
                             i.data['padding'][2] = [0, 0]
@@ -453,8 +451,8 @@ if __name__ == "__main__":
     print("Middle Sched v2: Running in %s mode"%(args.nname))
 
     # Report host configuration
-    with open("/proc/meminfo") as procFh:
-        print(procFh.read(), flush=True)
+#    with open("/proc/meminfo") as procFh:
+#        print(procFh.read(), flush=True)
 
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
 
@@ -488,8 +486,8 @@ if __name__ == "__main__":
     tpb.write_wavegraph()
     
     # Report memory
-    with open("/proc/%d/status" % os.getpid()) as procFh:
-        print(procFh.read(), flush=True)
+#    with open("/proc/%d/status" % os.getpid()) as procFh:
+#        print(procFh.read(), flush=True)
     
     # check for comparison errors
     if (tpb.num_mismatches > 0):

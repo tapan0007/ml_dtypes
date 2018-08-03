@@ -65,13 +65,13 @@ class Pool:
     def multiply(self, array_a, array_b):
         return array_a * array_b
 
-    def pool(self, type, in_array, stride, pool_window_size, Tn, ifmap_tilex_sz, ifmap_tiley_sz, ofmap_tilex_sz, ofmap_tiley_sz):
+    def pool(self, type, in_array, stride, pool_window, Tn, ifmap_tilex_sz, ifmap_tiley_sz, ofmap_tilex_sz, ofmap_tiley_sz):
         num_cols = in_array.shape[1]
         # view_as_windows needs in_array to be in the same dimension as window_shape
         # need to make sure the third dimension of stride_shape to be '1' since that is the column direction
         #print("ifmap_tilex_sz ", ifmap_tilex_sz, " ifmap_tiley_sz ", ifmap_tiley_sz)
-        input_tilex_with_pad = ofmap_tilex_sz * stride + pool_window_size - stride
-        input_tiley_with_pad = ofmap_tiley_sz * stride + pool_window_size - stride
+        input_tilex_with_pad = ofmap_tilex_sz * stride.x + pool_window.x - stride.x
+        input_tiley_with_pad = ofmap_tiley_sz * stride.y + pool_window.y - stride.y
         input_tile_with_pad_sz = input_tilex_with_pad*input_tiley_with_pad
         tile_array = np.empty((input_tiley_with_pad, input_tilex_with_pad))
         tile_array[:] = -np.inf  # set all padding values to -inf to allow only actual tile values to be analyzed
@@ -81,13 +81,33 @@ class Pool:
         for j in range(Tn):
             for i in range(num_cols):
                 tile_array[0:ifmap_tiley_sz, 0:ifmap_tilex_sz] = in_array[j*ifmap_tile_sz : (j+1)*ifmap_tile_sz, i].reshape(ifmap_tiley_sz, ifmap_tilex_sz) # ignoring Tn for now
-                window_shape = (pool_window_size, pool_window_size)
-                stride_shape = (stride, stride)
+                window_shape = (pool_window.y, pool_window.x)
+                stride_shape = (stride.y, stride.x)
                 pool_result_temp = view_as_windows(tile_array, window_shape, stride_shape)
                 if (type == "MaxPool"):
                     pool_result[j*ofmap_tile_sz : (j+1)*ofmap_tile_sz, i] = pool_result_temp.max(axis=(2,3)).reshape(-1)
                 elif (type == "AvgPool"):                    
                     pool_result[j*ofmap_tile_sz : (j+1)*ofmap_tile_sz, i] = pool_result_temp.mean(axis=(2,3)).reshape(-1)
+                else:                    
+                    print("ERROR: unknown type %s Pool.pool"%type)
+                    exit(-1)
+        return pool_result
+
+    def pool2(self, type, in_array, stride, pool_window, Tn, ifmap_tilex_sz, ifmap_tiley_sz, ofmap_tilex_sz, ofmap_tiley_sz):
+        num_cols = in_array.shape[1]
+        ifmap_tile_sz = ifmap_tilex_sz*ifmap_tiley_sz
+        ofmap_tile_sz = ofmap_tilex_sz*ofmap_tiley_sz
+        pool_result = np.zeros((Tn, num_cols, ofmap_tiley_sz, ofmap_tilex_sz))
+        for j in range(Tn):
+            for i in range(num_cols):
+                tile_array = in_array[j, i]
+                window_shape = (pool_window.y, pool_window.x)
+                stride_shape = (stride.y, stride.x)
+                pool_result_temp = view_as_windows(tile_array, window_shape, stride_shape)
+                if (type == "MaxPool"):
+                    pool_result[j, i] = pool_result_temp.max(axis=(2,3))
+                elif (type == "AvgPool"):                    
+                    pool_result[j, i] = pool_result_temp.mean(axis=(2,3))
                 else:                    
                     print("ERROR: unknown type %s Pool.pool"%type)
                     exit(-1)

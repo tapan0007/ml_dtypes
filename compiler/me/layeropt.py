@@ -16,6 +16,7 @@ import inspect
 from me_utils import CircbufPtrs 
 from me_utils import ShapeDims
 from me_utils import FileParams
+from me_utils import Dim2D
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
 from enum import Enum
@@ -672,16 +673,16 @@ class CircularBuffer:
         self.old2new_atom_sz_ratio = self.atom_sz // self.atom_data_sz
         self.atom_sz = self.atom_data_sz
         if (self.circbuf_type == "weights"):            
-            self.file_params = FileParams(self.dram_data_in_file, op.weights_shape_dims, self.data_type, 2048, PEArray, op, args)
+            self.file_params = FileParams(self.dram_data_in_file, op.weights_shape_dims, self.data_type, op, args)
             self.file_params.load_file()
         elif (self.circbuf_type == "bias"):            
-            self.file_params = FileParams(self.dram_data_in_file, op.bias_shape_dims, self.data_type, 2048, PEArray, op, args)
+            self.file_params = FileParams(self.dram_data_in_file, op.bias_shape_dims, self.data_type, op, args)
             self.file_params.load_file()
         elif (self.circbuf_type == "ifmaps"):            
-            self.file_params = FileParams(self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.data_type, 2048, PEArray, op_list[0], args)
+            self.file_params = FileParams(self.dram_data_in_file, op_list[0].ifmaps_shape_dims, self.data_type, op_list[0], args)
             self.file_params.load_file()
         else:            
-            self.file_params = FileParams(self.dram_data_in_file, op.ofmaps_shape_dims, self.data_type, 2048, PEArray, op, args)
+            self.file_params = FileParams(self.dram_data_in_file, op.ofmaps_shape_dims, self.data_type, op, args)
             self.file_params.load_file()
         print("%s: Loaded %s for layer %s, first data is %f, data size is %d bytes, atom size %d bytes, atom data size %d bytes, (chunk_sz %d), old2new_atom_sz_ratio %d, replicate multiple %d"%(self.circbuf_type, self.dram_data_in_file, self.layer_name, self.dram_data[0,0,0,0], self.item_sz, self.atom_sz, self.atom_data_sz, self.file_params.chunk_sz, self.old2new_atom_sz_ratio, self.replicate_multiple))
         #assert(self.atom_data_sz == self.file_params.chunk_sz)
@@ -1207,6 +1208,7 @@ class KNode:
         self.pool_window_x = 1
         self.stride_y = 1
         self.stride_x = 1
+        self.stride = Dim2D(1,1)
         self.eigenlib_offset_x = 0
         self.eigenlib_offset_y = 0
         self.is_const = False
@@ -1269,6 +1271,7 @@ class KNode:
         if ('stride' in layer_info):            
             self.stride_y = layer_info['stride'][2]
             self.stride_x = layer_info['stride'][3]
+            self.stride = Dim2D(self.stride_x, self.stride_y)
         if (args.eigenlib_stride):
             self.eigenlib_offset_x = ceildiv(self.stride_x, 2) - 1
             self.eigenlib_offset_y = ceildiv(self.stride_y, 2) - 1
@@ -1347,6 +1350,7 @@ class KNode:
         self.pool_window_x = layer_info['kernel_shape'][3]
         self.stride_y = layer_info['stride'][2]
         self.stride_x = layer_info['stride'][3]
+        self.stride = Dim2D(self.stride_x, self.stride_y)
         if (args.eigenlib_stride):
             self.eigenlib_offset_x = ceildiv(self.stride_x, 2) - 1
             self.eigenlib_offset_y = ceildiv(self.stride_y, 2) - 1

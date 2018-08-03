@@ -5,7 +5,9 @@ class FMAPDim:
   def __init__(self, H, W):
     self.H = H
     self.W = W
-    return
+  
+  def __str__(self):
+      return "H = %d, W = %d"%(self.H, self.W)
 
 class FMAPSpec:
     # fmap_dim : NCHW format
@@ -20,6 +22,10 @@ class FMAPSpec:
         self.file_name = file_name
         self.waveop_name = waveop_name
         return
+    def __str__(self):
+        return "N = %d, C = %d, H = %d, W = %d \
+                file_name = %s waveop_name = %s"\
+                %(self.N,self.C,self.H,self.W,self.file_name,self.waveop_name)
 
 
 # Th : y direction stride
@@ -39,6 +45,8 @@ class PaddingSpec:
     self.pW = pW;
     self.pE = pE;
     return
+  def __str__(self):
+      return "pN = %d pS = %d pW = %d pE = %d"%(self.pN,self.pS,self.pW,self.pE)
 
 class WaveOpInfo:
   def __init__(self):
@@ -280,3 +288,9 @@ class PoolWaveOpInfo(WaveOpInfo):
         for i in self.prev_waveops:
             print (i)
 
+class MEPoolSpec:
+    def __init__ (self, ifmap, ofmap, window, stride):
+        self.ifmap = ifmap
+        self.ofmap = ofmap
+        self.window = window
+        self.stride = stride

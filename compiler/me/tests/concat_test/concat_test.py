@@ -4,7 +4,9 @@ import os
 import sys
 kaena_path = os.environ['KAENA_PATH']+"/compiler/me"
 sys.path.append(kaena_path)
+import me_common_ds
 import me_concat
+import me_utils
 from collections import deque
 import numpy as np
 
@@ -37,20 +39,39 @@ class TestConcat (unittest.TestCase):
                 mm_id += 1
         return mm
 
-    def gen_test(self, channels, forward_move):
+    def gen_test(self, channels, forward_move, init_from_file_params = True):
+        self.init_from_file_params = init_from_file_params
         ifmaps = list()
         ofmap_channel = sum(channels[0:len(channels)])
         ifmap_id = 0
+        ifmap_file_params = []
+        class op_params_stride2():
+            stride = me_utils.Dim2D(1,1)
         for i in channels:
             file_name = "ifmap_"+str(ifmap_id)+"_"+str(i)+".npy"
             waveop_name = "ifmap_"+str(ifmap_id)+"_"+str(i)+".npy_0"
             ifmap =\
-              me_concat.FMAPSpec(False, [1, i, 35, 35], file_name, waveop_name)
+              me_common_ds.FMAPSpec(False,[1, i, 35, 35],file_name,waveop_name)
+            ifmap_file_param =\
+              me_utils.FileParams(\
+                                  file_name\
+                                  , me_utils.ShapeDims("NCHW", (1, i, 35, 35))\
+                                  , "float16"\
+                                  , op_params_stride2\
+                                 )
+            ifmap_file_params.append(ifmap_file_param)
             ifmaps.append(ifmap)
             ifmap_id += 1
-        concat = me_concat.Concat(ifmaps, ofmap_channel, np.float16)
-        self.waveops = concat.waveops
-        test = concat.PerformConcatDecomposition(forward_move)
+        if (init_from_file_params == False):
+            self.concat = me_concat.Concat(ifmaps, ofmap_channel, np.float16)
+            self.waveops = self.concat.waveops
+            test = self.concat.PerformConcatDecomposition(forward_move)
+        else:
+            self.concat =\
+                    me_concat.Concat.init_from_file_params(ifmap_file_params)
+            test = self.concat.PerformConcatDecomposition(forward_move)
+            #self.concat.PrintSubTileInfos()
+            self.waveops = self.concat.waveops
 #        concat.FilterWeightFileGeneration()
 #        for i in test:
 #            i.print()
@@ -101,6 +122,14 @@ class TestConcat (unittest.TestCase):
         self.assertTrue(mm[2].start_tensor_calc)
         self.assertTrue(mm[3].start_tensor_calc)
         self.assertFalse(mm[4].start_tensor_calc)
+        if (self.init_from_file_params == True):
+            keys = list(self.concat.subtile_infos.keys())
+            self.assertTrue(keys[0] == (0, 63))
+            self.assertTrue(len(self.concat.subtile_infos[keys[0]][0]) == 2)
+            self.assertTrue(keys[1] == (64, 127))
+            self.assertTrue(len(self.concat.subtile_infos[keys[1]][0]) == 1)
+            self.assertTrue(keys[2] == (128, 168))
+            self.assertTrue(len(self.concat.subtile_infos[keys[2]][0]) == 2)
         
     def gen_filters_32_118_tensors(self):
         filters = deque()
@@ -139,6 +168,14 @@ class TestConcat (unittest.TestCase):
         self.assertFalse(mm[1].start_tensor_calc)
         self.assertTrue(mm[2].start_tensor_calc)
         self.assertTrue(mm[3].start_tensor_calc)
+        if (self.init_from_file_params == True):
+            keys = list(self.concat.subtile_infos.keys())
+            self.assertTrue(keys[0] == (0, 63))
+            self.assertTrue(len(self.concat.subtile_infos[keys[0]][0]) == 2)
+            self.assertTrue(keys[1] == (64, 127))
+            self.assertTrue(len(self.concat.subtile_infos[keys[1]][0]) == 1)
+            self.assertTrue(keys[2] == (128, 149))
+            self.assertTrue(len(self.concat.subtile_infos[keys[2]][0]) == 1)
 
     def gen_filters_32_32_tensors(self):
         filters = deque()
@@ -169,6 +206,10 @@ class TestConcat (unittest.TestCase):
         mm = self.ExtractMM()
         self.assertTrue(mm[0].start_tensor_calc)
         self.assertFalse(mm[1].start_tensor_calc)
+        if (self.init_from_file_params == True):
+            keys = list(self.concat.subtile_infos.keys())
+            self.assertTrue(keys[0] == (0, 63))
+            self.assertTrue(len(self.concat.subtile_infos[keys[0]][0]) == 2)
 
     def gen_filters_1_1_tensors(self):
         filters = deque()
@@ -199,6 +240,10 @@ class TestConcat (unittest.TestCase):
         mm = self.ExtractMM()
         self.assertTrue(mm[0].start_tensor_calc)
         self.assertFalse(mm[1].start_tensor_calc)
+        if (self.init_from_file_params == True):
+            keys = list(self.concat.subtile_infos.keys())
+            self.assertTrue(keys[0] == (0, 1))
+            self.assertTrue(len(self.concat.subtile_infos[keys[0]][0]) == 2)
 
     def gen_filters_first_concat_inceptv3(self):
         filters = deque()
@@ -243,6 +288,16 @@ class TestConcat (unittest.TestCase):
         self.assertFalse(mm[2].start_tensor_calc)
         self.assertTrue(mm[3].start_tensor_calc)
         self.assertTrue(mm[4].start_tensor_calc)
+        if (self.init_from_file_params == True):
+            keys = list(self.concat.subtile_infos.keys())
+            self.assertTrue(keys[0] == (0, 63))
+            self.assertTrue(len(self.concat.subtile_infos[keys[0]][0]) == 1)
+            self.assertTrue(keys[1] == (64, 127))
+            self.assertTrue(len(self.concat.subtile_infos[keys[1]][0]) == 2)
+            self.assertTrue(keys[2] == (128, 191))
+            self.assertTrue(len(self.concat.subtile_infos[keys[2]][0]) == 1)
+            self.assertTrue(keys[3] == (192, 255))
+            self.assertTrue(len(self.concat.subtile_infos[keys[2]][0]) == 1)
         
 if __name__ == '__main__':
     unittest.main()

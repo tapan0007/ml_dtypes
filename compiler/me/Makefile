@@ -26,13 +26,14 @@ check:
 	sanity
 
 %: 
-	@echo "******************* $* (tests/$*/log-me.txt) ********************" && cd tests/$* && if [ -e compiler.json ]; then python3 $(KAENA_PATH)/compiler/me/me_main.py --debug 4 --kgraph compiler.json --wavegraph wavegraph.json > log-me.txt && grep -e ERROR -e PASS -e FAIL log-me.txt; fi
+	@echo "******************* $* (tests/$*/log-me.txt) ********************" && cd tests/$* && if [ -e compiler.json ]; then python3 $(KAENA_PATH)/compiler/me/me_main.py --debug 4 --nname "generic" --kgraph compiler.json --wavegraph wavegraph.json > log-me.txt && grep -e ERROR -e PASS -e FAIL log-me.txt; fi
 
 unittest:
 	#python3 -m unittest me_utils.py 
 	python3 -m unittest me_utils.TestShapeDims
 	python3 -m unittest me_utils.TestFileParams
 	python3 -m unittest me_utils.TestFileMapper
+	python3 -m unittest me_utils.TestRect
 	python3 tests/padded_pool_test/pool_test.py
 	python3 tests/concat_test/concat_test.py
 	python3 tests/concat_test/concat_sim_test.py

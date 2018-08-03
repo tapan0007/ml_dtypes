@@ -13,6 +13,9 @@ import numpy as np
 from me_utils import ceildiv
 from me_utils import ShapeDims
 from me_utils import FileParams
+from me_utils import Coord
+from me_utils import Dim2D
+from me_utils import Rect
 from me_models import PEArray
 from me_fused_op import FusedOp
 
@@ -32,12 +35,11 @@ class KNode:
         self.stridedslice_chan_offset = 0
         self.unstack_h_offset = 0
         self.result_file = None
-        self.pool_window_y = 1
-        self.pool_window_x = 1
-        self.stride_y = 1
-        self.stride_x = 1
-        self.eigenlib_offset_x = 0
-        self.eigenlib_offset_y = 0
+        self.filter = Dim2D(0,0)
+        self.pool_window = Dim2D(0,0)
+        self.stride = Dim2D(1,1)
+        self.padWN = Dim2D(0,0)
+        self.padES = Dim2D(0,0)
         self.is_nop = False
         self.is_placeholder = False
         self.is_input = False
@@ -93,13 +95,11 @@ class KNode:
         else:
             file_name = layer_info['ref_file'].replace(".npy", "-midout.npy")
         self.ofmaps_file_params = FileParams(
-                                    file_name,
-                                    ofmaps_shape_dims, 
-                                    self.parent.data_type, 
-                                    2048, 
-                                    PEArray, 
-                                    self,
-                                    self.parent.args)
+                                    file_name   = file_name,
+                                    file_dims   = ofmaps_shape_dims, 
+                                    data_type   = self.parent.data_type, 
+                                    op_params   = self,
+                                    args        = self.parent.args)
         self.ofmaps_file_params.layer_name =  layer_info['layer_name']
         self.N, self.M, self.E, self.F = self.ofmaps_file_params.get_nchw_shape()
 
@@ -112,14 +112,12 @@ class KNode:
             if prev_node.data['layer_type'] == "Const":
                 bias_shape_dims = ShapeDims(prev_node.data['ofmap_format'], prev_node.data['ofmap_shape'])           
                 self.bias_file_params = FileParams(
-                                            prev_node.data['ref_file'], 
-                                            bias_shape_dims, 
-                                            self.parent.data_type, 
-                                            2048, 
-                                            PEArray, 
-                                            self,
-                                            self.parent.args,
-                                            contain_weights=True)
+                                            file_name       = prev_node.data['ref_file'], 
+                                            file_dims       = bias_shape_dims, 
+                                            data_type       = self.parent.data_type, 
+                                            op_params       = self,
+                                            args            = self.parent.args,
+                                            contain_weights = True)
                 self.bias_file_params.layer_name =  prev_node.data['layer_name']
                 self.bias_file_params.load_file()
                 del self.prev[i]
@@ -145,19 +143,15 @@ class KNode:
         if (layer_info['layer_type'] == 'Softmax2'): self.M = 1
         # get padding and stride information
         if ('padding' in layer_info):            
-            self.pad_north, self.pad_south = layer_info['padding'][2]
-            self.pad_west, self.pad_east = layer_info['padding'][3]
-        else:
-            self.pad_north, self.pad_south = 0, 0
-            self.pad_west, self.pad_east = 0, 0
+            self.padWN = Dim2D(layer_info['padding'][3][0], layer_info['padding'][2][0])
+            self.padES = Dim2D(layer_info['padding'][3][1], layer_info['padding'][2][1])
         if ('stride' in layer_info):            
-            self.stride_y = layer_info['stride'][2]
-            self.stride_x = layer_info['stride'][3]
-        if (self.parent.args.eigenlib_stride):
-            self.eigenlib_offset_x = ceildiv(self.stride_x, 2) - 1
-            self.eigenlib_offset_y = ceildiv(self.stride_y, 2) - 1
+            self.stride = Dim2D(layer_info['stride'][3], layer_info['stride'][2])
         # OFMAP total areas
         self.EF = self.E * self.F
+        # Construct rectangles for later use            
+        self.ifmap_full_rect = Dim2D(self.W, self.H).make_rect()
+        self.ofmap_full_rect = Dim2D(self.F, self.E).make_rect()
         # compute batch folding and batching within wave, Tn cannot be greater than batch size N
         self.Tn = PEArray.MAX_WAVE_SIZE // self.EF
         if (self.Tn < 1):
@@ -180,10 +174,13 @@ class KNode:
             self.ofmap_full_tiley_sz  = fmap_rows
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
         #if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
-        if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window_y):
-            self.ofmap_full_tiley_sz = min(self.E, self.pool_window_y)
+        if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window.y):
+            self.ofmap_full_tiley_sz = min(self.E, self.pool_window.y)
             self.ofmap_full_tilex_sz = min(self.F, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz)
-        self.ofmap_full_tile_sz = self.ofmap_full_tilex_sz * self.ofmap_full_tiley_sz
+        # Construct rectangle for later use            
+        self.ofmap_full_tile_dim2d = Dim2D(self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz)
+        self.ofmap_full_tile_rect   = self.ofmap_full_tile_dim2d.make_rect()
+        self.ofmap_full_tile_sz     = self.ofmap_full_tile_rect.get_tot_size()
         self.ifmap_wave_lower_addr = [-1 for i in range(self.Tn)]
         self.ifmap_wave_upper_addr = [-1 for i in range(self.Tn)]
         # compute the IFMAP folds
@@ -194,8 +191,8 @@ class KNode:
         self.h, self.w, self.e, self.f = 1, 1, 1, 1
         # compute ofmap folding
         if (self.EF >= PEArray.MAX_WAVE_SIZE):
-            self.e = ceildiv(self.E, self.ofmap_full_tiley_sz)
-            self.f = ceildiv(self.F, self.ofmap_full_tilex_sz)
+            self.e = ceildiv(self.E, self.ofmap_full_tile_dim2d.y)
+            self.f = ceildiv(self.F, self.ofmap_full_tile_dim2d.x)
         # heigh/width folding is the same for IFMAP and OFMAP            
         self.h = self.e
         self.w = self.f
@@ -204,7 +201,7 @@ class KNode:
         print("Common params2 for layer %s:  n=%d, m=%d, h=%d, w=%d, c=%d, Tn=%d"
                 %(self.data['layer_name'], self.n, self.m, self.h, self.w, self.c, self.Tn))
         print("Common params3 for layer %s:  stride_x=%d, stride_y=%d, ofmap_full_tilex_sz=%d, ofmap_full_tiley_sz=%d, ofmap_full_tile_sz=%d"
-                %(self.data['layer_name'], self.stride_x, self.stride_y, self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz, self.ofmap_full_tile_sz))
+                %(self.data['layer_name'], self.stride.x, self.stride.y, self.ofmap_full_tile_dim2d.x, self.ofmap_full_tile_dim2d.y, self.ofmap_full_tile_rect.get_tot_size()))
 
     # Compute Conv looping params
     def populate_conv_params(self):
@@ -219,12 +216,19 @@ class KNode:
         else:
             weights_shape_dims = ShapeDims(layer_info['kernel_format'], layer_info['kernel_shape'])            
             weights_file = self.data['kernel_file']
-        self.weights_file_params = FileParams(weights_file, weights_shape_dims, self.data_type, 2048, PEArray, self, self.parent.args, contain_weights=True)
+        self.weights_file_params = FileParams(
+                                        file_name       = weights_file, 
+                                        file_dims       = weights_shape_dims, 
+                                        data_type       = self.data_type, 
+                                        op_params       = self, 
+                                        args            = self.parent.args, 
+                                        contain_weights = True)
         self.weights_file_params.layer_name =  self.data['layer_name']
         self.weights_file_params.load_file()
         self.R = weights_shape_dims.R
         self.S = weights_shape_dims.S
         self.RS = self.R * self.S
+        self.filter = Dim2D(self.S, self.R)
         # kaena-141: replicate IFMAP a number of times.
         # The number is determined by S, multiplied by a portion of R to match r*S*C <= 128
         # In the case of 1st layer ResNet50, R=7, S=7, C=3 so R can be broken a number of ways. 
@@ -239,110 +243,78 @@ class KNode:
     def populate_pooling_params(self):
         # are the dimensions from layer info correct?
         layer_info = self.data
-        self.pool_window_y = layer_info['kernel_shape'][2]
-        self.pool_window_x = layer_info['kernel_shape'][3]
-        self.stride_y = layer_info['stride'][2]
-        self.stride_x = layer_info['stride'][3]
-        if (self.parent.args.eigenlib_stride):
-            self.eigenlib_offset_x = ceildiv(self.stride_x, 2) - 1
-            self.eigenlib_offset_y = ceildiv(self.stride_y, 2) - 1
+        self.pool_window = Dim2D(layer_info['kernel_shape'][3], layer_info['kernel_shape'][2])
+        self.stride      = Dim2D(layer_info['stride'][3], layer_info['stride'][2])
         print("Pooling params for layer %s: pool_window_x=%d, pool_window_y=%d, stride_x=%d, stride_y=%d"
-                %(self.data['layer_name'], self.pool_window_x, self.pool_window_y, self.stride_x, self.stride_y))
+                %(self.data['layer_name'], self.pool_window.x, self.pool_window.y, self.stride.x, self.stride.y))
 
     # Recompute conv tile params due to fused pooling
-    def recompute_conv_params(self, pool_window_x, pool_window_y):        
+    def recompute_conv_params(self):
         # For pooling using PSUM (fused), max tile size must be a multiple of pooling window
-        self.ofmap_full_tiley_sz = (self.ofmap_full_tiley_sz // pool_window_y) * pool_window_y
-        self.ofmap_full_tilex_sz = (self.ofmap_full_tilex_sz // pool_window_x) * pool_window_x
-        self.ofmap_full_tile_sz = self.ofmap_full_tilex_sz * self.ofmap_full_tiley_sz
+        self.ofmap_full_tile_dim2d = (self.ofmap_full_tile_dim2d // pool_window) * pool_window
+        self.ofmap_full_tile_rect = self.ofmap_full_tile_dim2d.make_rect()
+        self.ofmap_full_tile_sz   = self.ofmap_full_tile_rect.get_tot_size()
         print("Recomputed Conv params due to fused pooling: pool_window_x=%d, pool_window_y=%d, ofmap_full_tilex_sz=%d, ofmap_full_tiley_sz=%d"
-                %(pool_window_x, pool_window_y, self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz))
+                %(self.pool_window.x, self.pool_window.y, self.ofmap_full_tile_dim2d.x, self.ofmap_full_tile_dim2d.y))
 
-    # compute output tile info
-    def compute_ofmap_tile_info(self, tile_id):        
-        self.ofmap_tile_x_start = tile_id.w_id * self.ofmap_full_tilex_sz
-        self.ofmap_tile_y_start = tile_id.h_id * self.ofmap_full_tiley_sz
-        self.ofmap_cropped_tile_height = self.ofmap_full_tiley_sz
-        self.ofmap_cropped_tile_width = self.ofmap_full_tilex_sz
-        if ((tile_id.h_id+1) * self.ofmap_full_tiley_sz > self.E):
-            self.ofmap_cropped_tile_height = self.E - self.ofmap_tile_y_start
-        if ((tile_id.w_id+1) * self.ofmap_full_tilex_sz > self.F):
-            self.ofmap_cropped_tile_width = self.F - self.ofmap_tile_x_start
-        self.tile_size = self.ofmap_cropped_tile_height * self.ofmap_cropped_tile_width
-
+    """ compute output tile info
+        Parameters:
+            - ifmap_tile, ofmap_tile: IFMAP/OFMAP tile objects being processed
+        Updates:
+            - ofmap_count: Number of output FMAP channels of the tile being processed
+            - ofmap_cropped_tile_rect: OFMAP tile rectangle, cropped to actual OFMAP rectangle (ie edge cases)
+            - ifmap_cropped_tile_rect: IFMAP tile rectangle (strided, with padding), cropped to actual IFMAP rectangle (ie edge cases)
+            - ofmap_tile_lower_addr/ofmap_tile_upper_addr: Addresses within file of OFMAP tile (for mappingt to SB)
+            - ifmap_tile_lower_addr/ifmap_tile_upper_addr: Addresses within file of IFMAP tile (for mappingt to SB)
+    """
+    def compute_ifmap_ofmap_tile_info(self, ifmap_tile, ofmap_tile):        
         # number of OFMAPs for this tile 
-        pe_col_start = tile_id.m_id * PEArray.NUM_COLS
-        pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
-        self.ofmap_count = pe_col_stop - pe_col_start
+        self.ofmap_count = ofmap_tile.get_ofmap_count()
 
-        # compute the address bounds for OFMAP tile within OFMAPs tensor
-        # TODO: for Tn>1, need to have multiple bounds for each batch item
-        # NCHW
-        self.ofmap_tile_lower_addr = []
-        self.ofmap_tile_upper_addr = []
-        self.ifmap_tile_lower_addr = []
-        self.ifmap_tile_upper_addr = []
-        for z in range(self.Tn):
-            self.ofmap_tile_lower_addr.append(self.ofmaps_file_params.ravel_nchw(
-                                                tile_id.n_id * self.Tn + z, 
-                                                    tile_id.m_id//2 * PEArray.NUM_ROWS,
-                                                    self.ofmap_tile_y_start, 
-                                                    self.ofmap_tile_x_start))
-            # NCHW
-            self.ofmap_tile_upper_addr.append(self.ofmaps_file_params.ravel_nchw(
-                                                tile_id.n_id * self.Tn + z, 
-                                                    tile_id.m_id//2 * PEArray.NUM_ROWS,
-                                                    self.ofmap_tile_y_start + self.ofmap_cropped_tile_height - 1, 
-                                                    self.ofmap_tile_x_start + self.ofmap_cropped_tile_width - 1))
+        assert(ifmap_tile.is_ifmap == True) 
+        assert(ofmap_tile.is_ifmap == False) 
 
-            # compute the address bounds for IFMAP tile within IFMAPs tensor
-            # NCHW
-            ifmap_tile_lower_coordx = self.ofmap_tile_x_start * self.stride_x
-            ifmap_tile_lower_coordy = self.ofmap_tile_y_start * self.stride_y
+        # compute the bounds for OFMAP tile within OFMAPs tensor (adjusted for boundary conditions)
+        ofmap_tile_start_coord       = ofmap_tile.get_fmap_coord(self.ofmap_full_tile_rect.get_width_height())
+        ofmap_tile_start_coord       = ofmap_tile_start_coord + Coord(0, self.unstack_h_offset)
+        ofmap_tile.padded_tile_rect  = self.ofmap_full_tile_rect + ofmap_tile_start_coord
+        ofmap_tile.tile_rect         = ofmap_tile.padded_tile_rect.get_overlap(self.ofmap_full_rect)
+        # extract addresses, which depends on file parameters and low-level batch count
+        (ofmap_tile.lower_addr, ofmap_tile.upper_addr) = ofmap_tile.make_pewave().get_file_addrs()
+        ofmap_tile.lower_to_upper_len_bytes = []
+        for i in range(len(ofmap_tile.lower_addr)):
+            ofmap_tile.lower_to_upper_len_bytes.append(ofmap_tile.upper_addr[i] - ofmap_tile.lower_addr[i] + self.item_sz)
 
-            if not self.src_is_psum:
-                self.ifmap_tile_lower_addr.append(self.ifmaps_file_params.ravel_nchw(
-                                                tile_id.n_id * self.Tn + z, 
-                                                    0,
-                                                    ifmap_tile_lower_coordy,
-                                                    ifmap_tile_lower_coordx))
-
-            ifmap_tile_upper_coordx = ifmap_tile_lower_coordx + self.ofmap_cropped_tile_width * self.stride_x - 1
-            ifmap_tile_upper_coordy = ifmap_tile_lower_coordy + self.ofmap_cropped_tile_height * self.stride_y - 1
-            if (ifmap_tile_upper_coordx > self.W-1):
-                ifmap_tile_upper_coordx = self.W-1
-            if (ifmap_tile_upper_coordy > self.H-1):
-                ifmap_tile_upper_coordy = self.H-1
-            # NCHW
-            if not self.src_is_psum:
-                self.ifmap_tile_upper_addr.append(self.ifmaps_file_params.ravel_nchw(
-                                                tile_id.n_id * self.Tn + z, 
-                                                    (self.c-1) * PEArray.NUM_ROWS,
-                                                    ifmap_tile_upper_coordy,
-                                                    ifmap_tile_upper_coordx))
-
-        self.ifmap_cropped_tile_width = ifmap_tile_upper_coordx - ifmap_tile_lower_coordx + 1
-        self.ifmap_cropped_tile_height = ifmap_tile_upper_coordy - ifmap_tile_lower_coordy + 1
-
-    def compute_tile_weight_bounds (self, weights, tile_id):        
-        # Address bounds of weights used for tile
-        pe_col_start = tile_id.m_id * PEArray.NUM_COLS
-        pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
-        self.weight_tile_lower_addr = self.weights_file_params.ravel_crsm (0, 0, 0, pe_col_start)
-        self.weight_tile_upper_addr = self.weights_file_params.ravel_crsm (self.weights_file_params.file_dims.C-1, self.weights_file_params.file_dims.R-1, self.weights_file_params.file_dims.S-1, pe_col_stop-1)
+        # compute the bounds for IFMAP tile within IFMAPs tensor (adjusted for boundary conditions)
+        # projecting backwards from OFMAP tile
+        ifmap_tile.padded_tile_rect  = ofmap_tile.tile_rect * self.stride
+        # TODO: handle the case of conv is followed by fused pool, so both pool_window and filter exists (two possible different OFMAPs)
+        if self.pool_window > self.stride:
+            ifmap_tile.padded_tile_rect = ifmap_tile.padded_tile_rect.increase_size(self.pool_window - self.stride)
+        if self.filter > self.stride:
+            ifmap_tile.padded_tile_rect = ifmap_tile.padded_tile_rect.increase_size(self.filter - self.stride)
+        ifmap_tile.padded_tile_rect  = ifmap_tile.padded_tile_rect - self.padWN
+        ifmap_tile.tile_rect         = ifmap_tile.padded_tile_rect.get_overlap(self.ifmap_full_rect)
+        if not self.src_is_psum:
+            (ifmap_tile.lower_addr, ifmap_tile.upper_addr) = ifmap_tile.make_pewave().get_file_addrs()
+        else:
+            (ifmap_tile.lower_addr, ifmap_tile.upper_addr) = (-1, -1)
+        ifmap_tile.lower_to_upper_len_bytes = []
+        for i in range(len(ifmap_tile.lower_addr)):
+            ifmap_tile.lower_to_upper_len_bytes.append(ifmap_tile.upper_addr[i] - ifmap_tile.lower_addr[i] + self.item_sz)
 
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format
-    #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
+    #   pewave: current tile wave, IDed by [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
     #   layer_type: 'conv' or 'MaxPool'; can be extended to handle other layer types
     #   return: a 256x128 array
-    def pack_wave_ifmaps(self, ifmaps, wave_id, repl_multiple_of_C, for_softmax):
+    def pack_wave_ifmaps(self, ifmaps, pewave, repl_multiple_of_C, for_softmax):
         # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
         if (for_softmax):
             out_array_dim_y = PEArray.NUM_COLS
         else:            
             out_array_dim_y = PEArray.NUM_ROWS
-        fmap_folding_idx = wave_id.c_id
+        fmap_folding_idx = pewave.c_id
         fmap_total_count = self.C
         out_array = np.zeros((PEArray.MAX_WAVE_SIZE, out_array_dim_y))
         # remember to extract IFMAPs starting at r_id, s_id (which should be zero for non-conv op)
@@ -358,8 +330,8 @@ class KNode:
         pe_row_start = fmap_folding_idx * out_array_dim_y + self.stridedslice_chan_offset
         pe_row_stop = min(fmap_total_count + self.stridedslice_chan_offset, pe_row_start + out_array_dim_y)
         assert(pe_row_start < pe_row_stop)
-        r_id = wave_id.r_id
-        s_id = wave_id.s_id
+        r_id = pewave.r_id
+        s_id = pewave.s_id
         last_r_id = r_id
         last_s_id = s_id
         num_rows = pe_row_stop - pe_row_start
@@ -368,14 +340,14 @@ class KNode:
             for row in range(pe_row_start, pe_row_stop):
                 pe_row_offset = pe_row_repl_start + row - pe_row_start
                 for z in range(self.Tn):
-                    batch_id = (wave_id.n_id * self.Tn) + z
-                    for x in range(self.ofmap_full_tilex_sz):
-                        for y in range(self.ofmap_full_tiley_sz):
-                            ifmap_tilex = (wave_id.w_id * self.ofmap_full_tilex_sz + x) * self.stride_x + self.eigenlib_offset_x + s_id - self.pad_west
-                            ifmap_tiley = ((wave_id.h_id + self.unstack_h_offset)* self.ofmap_full_tiley_sz + y) * self.stride_y + self.eigenlib_offset_y + r_id - self.pad_north
+                    batch_id = (pewave.tile.n_id * self.Tn) + z
+                    for x in range(self.ofmap_full_tile_dim2d.x):
+                        for y in range(self.ofmap_full_tile_dim2d.y):
+                            ifmap_tilex = (pewave.tile.w_id * self.ofmap_full_tile_dim2d.x + x) * self.stride.x + s_id - self.padWN.x
+                            ifmap_tiley = ((pewave.tile.h_id + self.unstack_h_offset) * self.ofmap_full_tile_dim2d.y + y) * self.stride.y + r_id - self.padWN.y
                             last_r_id = r_id
                             last_s_id = s_id
-                            ifmap_addr = z * self.ofmap_full_tile_sz + y * self.ofmap_full_tilex_sz + x
+                            ifmap_addr = z * self.ofmap_full_tile_rect.get_tot_size() + y * self.ofmap_full_tile_dim2d.x + x
                             if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
                                 out_array[ifmap_addr, pe_row_offset] = 0
                             elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
@@ -401,9 +373,9 @@ class KNode:
                                         self.ifmap_wave_lower_addr[z] = self.ifmap_wave_upper_addr[z]
                                         self.ofmap_wave_lower_coordx[z] = x
                                         self.ofmap_wave_lower_coordy[z] = y
-                                        self.psum_bank_offset = (y * self.ofmap_full_tilex_sz + x)
+                                        self.psum_bank_offset = (y * self.ofmap_full_tile_dim2d.x + x)
                             #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx, self.ofmap_wave_lower_coordy, self.ofmap_wave_upper_coordx, self.ofmap_wave_upper_coordy))                                    
-                            #if (self.parent.args.debug > 3): print("DBG: pack_wave_ifmaps for wave %s batch_id %d x %d y %d r_id %d s_id %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(wave_id.id_array, batch_id, x, y, r_id, s_id, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
+                            #if (self.parent.args.debug > 3): print("DBG: pack_wave_ifmaps for wave %s batch_id %d x %d y %d r_id %d s_id %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(pewave.tile.id_array, batch_id, x, y, r_id, s_id, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
@@ -415,68 +387,57 @@ class KNode:
         self.ofmap_wave_total_elems += self.ofmap_wave_elems
         return out_array
 
-    def pack_wave_ifmaps_unfused_pooling (self, ifmaps, wave_id):
+    """ Pack input data for unfused pooling (like a DMA operation)
+        Parameters:
+            - ifmaps: IFMAPs data in NCHW format
+            - pewave: current pewave, with ID=[n_id, m_id, h_id, w_id, c_id, r_id, s_id]
+        Returns:
+            - an array of IFMAPs arranged as NUM_COLS of flattened FMAPs
+    """            
+    def pack_wave_ifmaps_unfused_pooling (self, ifmaps, pewave):
         # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
         out_array_dim_y = PEArray.NUM_COLS
-        fmap_folding_idx = wave_id.m_id
+        fmap_folding_idx = pewave.tile.m_id
         fmap_total_count = self.M
-        out_array = np.zeros((PEArray.MAX_WAVE_SIZE * self.stride_x * self.stride_y * 2, out_array_dim_y))
+        out_array = np.zeros((PEArray.MAX_WAVE_SIZE * self.stride.x * self.stride.y * 2, out_array_dim_y))
         # remember to extract IFMAPs starting at r_id, s_id (which should be zero for non-conv op)
         # also need to add zeros for padding
-        self.ifmap_wave_lower_addr = [-1 for i in range(self.Tn)]
-        self.ifmap_wave_upper_addr = [-1 for i in range(self.Tn)]
-        self.ifmap_wave_lower_coordx = [0 for i in range(self.Tn)]
-        self.ifmap_wave_lower_coordy = [0 for i in range(self.Tn)]
-        self.ifmap_wave_upper_coordx = [0 for i in range(self.Tn)]
-        self.ifmap_wave_upper_coordy = [0 for i in range(self.Tn)]
         self.psum_bank_offset = 0
         # for pooling, the "row" below actually means output columns
         pe_row_start = fmap_folding_idx * out_array_dim_y + self.stridedslice_chan_offset
         pe_row_stop = min(fmap_total_count + self.stridedslice_chan_offset, pe_row_start + out_array_dim_y)
         assert(pe_row_start < pe_row_stop)
         # make use of the upper 64 partitions by resetting address back to 128-channels boundary
-        row_adjust = (wave_id.m_id%2)*PEArray.NUM_COLS
-        self.ifmap_count = pe_row_stop - (pe_row_start - row_adjust)
+        row_adjust = (pewave.tile.m_id%2)*PEArray.NUM_COLS
         for row in range(pe_row_start, pe_row_stop):
             ifmap = ifmaps[:, row]  # NCHW
             pe_row_offset = row - pe_row_start
             for z in range(self.Tn):
-                batch_id = (wave_id.n_id * self.Tn) + z
-                self.ifmap_wave_lower_coordx[z] = (wave_id.w_id * self.ofmap_full_tilex_sz) * self.stride_x 
-                self.ifmap_wave_lower_coordy[z] = ((wave_id.h_id + self.unstack_h_offset) * self.ofmap_full_tiley_sz) * self.stride_y
-                self.ifmap_wave_upper_coordx[z] = ((wave_id.w_id+1) * self.ofmap_full_tilex_sz) * self.stride_x + (self.pool_window_x - self.stride_x) - 1
-                self.ifmap_wave_upper_coordy[z] = ((wave_id.h_id + self.unstack_h_offset +1) * self.ofmap_full_tiley_sz) * self.stride_y + (self.pool_window_y - self.stride_y) - 1 
-                if (self.ifmap_wave_upper_coordx[z] > self.W-1):
-                    self.ifmap_wave_upper_coordx[z] = self.W-1
-                if (self.ifmap_wave_upper_coordy[z] > self.H-1):
-                    self.ifmap_wave_upper_coordy[z] = self.H-1
+                batch_id = (pewave.tile.n_id * self.Tn) + z
                 row_temp = ifmap[batch_id,
-                                 self.ifmap_wave_lower_coordy[z]:self.ifmap_wave_upper_coordy[z]+1,
-                                 self.ifmap_wave_lower_coordx[z]:self.ifmap_wave_upper_coordx[z]+1].flatten()
+                                 pewave.tile.tile_rect.lower.y : pewave.tile.tile_rect.upper.y + 1,
+                                 pewave.tile.tile_rect.lower.x : pewave.tile.tile_rect.upper.x + 1].flatten()
                 out_array[z * len(row_temp) : (z+1) * len(row_temp), pe_row_offset] = row_temp
-                if (row == pe_row_start):                               
-                    # NCHW
-                    self.ifmap_wave_lower_addr[z] = self.ifmaps_file_params.ravel_nchw(
-                                                    batch_id, row - row_adjust, self.ifmap_wave_lower_coordy[z], self.ifmap_wave_lower_coordx[z])
-                    self.ifmap_wave_upper_addr[z] = self.ifmaps_file_params.ravel_nchw(
-                                                    batch_id, row - row_adjust, self.ifmap_wave_upper_coordy[z], self.ifmap_wave_upper_coordx[z])
-        #print(self.ifmap_wave_lower_coordx[0], self.ifmap_wave_lower_coordy[0], self.ifmap_wave_upper_coordx[0], self.ifmap_wave_upper_coordy[0])                    
         return out_array
 
-    # Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
-    #   weights: conv weights in CRSM format
-    #   wave_id: current wave ID, [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
-    #   return: a 128x64 array
-    def pack_wave_conv_weights(self, weights, wave_id, repl_multiple_of_C):
+    """ Pack the conv weights in columns to create a PE-Array weights array for a particular wave number
+        Parameters:
+            - weights: conv weights in CRSM format
+            - pewave: current pewave, with ID=[n_id, m_id, h_id, w_id, c_id, r_id, s_id]
+        Returns: 
+            - a 128x64 array of weights values
+        Updates: 
+            - this KNode object's ifmap_count/ofmap_count (TODO: consolidate this elsewhere, maybe compute_ifmap_ofmap_tile_info)
+            - weight_wave_lower/upper_addr (TODO: consolidate this elsewhere, maybe compute within Wave object when needed to emit waveop)
+    """
+    def pack_wave_conv_weights(self, weights, pewave, repl_multiple_of_C):
         out_array = np.zeros((PEArray.NUM_ROWS, PEArray.NUM_COLS))
-        pe_row_start = wave_id.c_id * PEArray.NUM_ROWS
+        pe_row_start = pewave.c_id * PEArray.NUM_ROWS
         pe_row_stop = min(self.C, pe_row_start + PEArray.NUM_ROWS)
-        pe_col_start = wave_id.m_id * PEArray.NUM_COLS
+        pe_col_start = pewave.tile.m_id * PEArray.NUM_COLS
         pe_col_stop = min(self.M, pe_col_start + PEArray.NUM_COLS)
-        self.ifmap_count = pe_row_stop - pe_row_start
-        self.ofmap_count = pe_col_stop - pe_col_start
-        r_id = wave_id.r_id
-        s_id = wave_id.s_id
+        r_id = pewave.r_id
+        s_id = pewave.s_id
         last_r_id = r_id
         last_s_id = s_id
         num_rows = pe_row_stop - pe_row_start
@@ -488,17 +449,19 @@ class KNode:
                     out_array[pe_row_offset, col - pe_col_start] = weights[row, r_id, s_id, col] # CRSM
                     last_r_id = r_id
                     last_s_id = s_id
-            if (self.parent.args.debug > 2): print("DBG: pack_wave_conv_weights for wave %s r_id %d s_id %d (repl_multiple_of_C %d)"%(wave_id.id_array, r_id, s_id, repl_multiple_of_C))
+            if (self.parent.args.debug > 2): print("DBG: pack_wave_conv_weights for wave %s r_id %d s_id %d (repl_multiple_of_C %d)"%(pewave.tile.id_array, r_id, s_id, repl_multiple_of_C))
             s_id += 1
             if (s_id >= self.S): 
                 r_id += 1
                 s_id = 0
                 if (r_id >= self.R): break
 
+        self.ofmap_count = pe_col_stop - pe_col_start
+        self.ifmap_count = pe_row_stop - pe_row_start
         self.ifmap_count = self.ifmap_count * repl_multiple_of_C
 
         self.weight_wave_lower_addr = self.weights_file_params.ravel_crsm(
-                                            pe_row_start, wave_id.r_id, wave_id.s_id, pe_col_start)
+                                            pe_row_start, pewave.r_id, pewave.s_id, pe_col_start)
         self.weight_wave_upper_addr = self.weights_file_params.ravel_crsm(
                                             pe_row_start, last_r_id, last_s_id, pe_col_stop-1)
         return out_array
@@ -768,8 +731,7 @@ class KGraph:
         # transfer replication info from Conv KNode to ifmaps_file_params
         if fused_ops.has_conv:
             fused_ops.conv_op.ifmaps_file_params.weights_S_dim = fused_ops.conv_op.weights_file_params.file_dims.S
-            fused_ops.conv_op.ifmaps_file_params.stride_x = fused_ops.conv_op.stride_x
-            fused_ops.conv_op.ifmaps_file_params.stride_y = fused_ops.conv_op.stride_y
+            fused_ops.conv_op.ifmaps_file_params.stride = fused_ops.conv_op.stride
             #print("copied ifmaps_file_params.repl_multiple_of_C = weights_file_params.repl_multiple_of_C %d"%(fused_ops.conv_op.weights_file_params.repl_multiple_of_C))
         if (self.args.debug > 0):
             fused_ops.show()
