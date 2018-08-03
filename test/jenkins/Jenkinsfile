@@ -36,6 +36,7 @@ pipeline{
             steps {
                 sh 'cat /etc/os-release'
                 sh 'cat /proc/cpuinfo'
+                sh 'cat /proc/meminfo'
                 sh 'df -h'
 
                 sh 'ls -ltrA'
@@ -167,6 +168,7 @@ pipeline{
         }
         always {
             sh 'df -h'
+            sh 'cat /proc/meminfo'
             cleanWs()
         }
     }
