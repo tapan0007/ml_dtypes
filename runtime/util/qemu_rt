@@ -513,6 +513,8 @@ class Krt:
     eldlp = os.getenv('LD_LIBRARY_PATH')
     self.envStr = '  PATH=%s:%s:%s' % (p, p + '/bin', epath)
     self.envStr += '  LD_LIBRARY_PATH=%s:%s:%s ' % ( p, p + "/lib", eldlp)
+    self.krtPass = "krt.pass"
+    self.krtFail = "krt.fail"
 
   def install(self):
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
@@ -546,10 +548,14 @@ class Krt:
     kbin_rt = '%s/bin/kbin_rt' % krtVmPath
     cmdKrt = '%s %s %s %s %s -n 1 -s -t %d' % (
                kbin_rt, self.kelfVmDir, self.ifmapDir, self.ofmapDir, tongaDev, self.inklingTimeout)
-    cmdRuntime = 'sudo /bin/sh -c "(cd %s && %s ldd %s && %s %s && touch krt.pass ) > %s/log-krt.txt 2>&1 & "' %  (
-                   self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt, self.kelfVmDir) 
+
+    shCmd="cd %s && %s ldd %s && if %s %s; then touch %s; else touch %s; fi" % (
+        self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt, self.krtPass, self.krtFail)
+    cmdRuntime = 'sudo /bin/sh -c "(%s) > %s/log-krt.txt 2>&1 & "' %  (
+        shCmd, self.kelfVmDir)
+
     self.qemu.sshCmd(cmdRuntime)
-    time.sleep(1)
+    time.sleep(2)
   
   def getFinalBin(self):
     ##topFinalDir = self.kelfVmDir + "/"
@@ -560,13 +566,20 @@ class Krt:
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
     time.sleep(2)  # for kbin_rt to have time to return exit code after writing out.bin
-    self.qemu.rsyncFromVm(self.kelfVmDir + "/krt.pass", ".")
+
+    for _ in range(self.inklingTimeout):
+        time.sleep(1)
+        self.qemu.rsyncFromVm(self.kelfVmDir + "/" + self.krtPass, ".")
+        self.qemu.rsyncFromVm(self.kelfVmDir + "/" + self.krtFail, ".")
+        if os.path.isfile(self.krtPass) or os.path.isfile(self.krtFail):
+            break
+
     self.getFinalBin()
     debug = True
     if debug:
       self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf_%s" % self.sg)
     self.qemu.sshCmd("/bin/rm -rf %s" % self.kelfVmDir)
-    krtOk = os.path.isfile("krt.pass")
+    krtOk = os.path.isfile(self.krtPass)
     if not krtOk:
       print("ERROR: kbin_rt did not return zero exit code, check log-krt.txt")
       #print("INFO: FIX_THIS kbin_rt failed but temporrarily oveeriding till 0-1conv0_qemu_wave is fixed")
