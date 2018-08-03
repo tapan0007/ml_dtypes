@@ -483,7 +483,11 @@ if __name__ == "__main__":
 
     # write out wavegraph           
     tpb.write_wavegraph()
-
+    
+    # Report memory
+    with open("/proc/%d/status" % os.getpid()) as procFh:
+        print(procFh.read(), flush=True)
+    
     # check for comparison errors
     if (tpb.num_mismatches > 0):
         print("\nFAILED (num mismatches %d)"%tpb.num_mismatches)

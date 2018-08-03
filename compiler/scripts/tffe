@@ -207,6 +207,8 @@ if args.images != None:
     #if debugLevel > 0:
     #  remove_write_permissions(".")
 
+with open("/proc/%d/status" % os.getpid()) as procFh:
+  print(procFh.read(), flush=True)
 print("INFO: Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
 
