@@ -453,6 +453,10 @@ if __name__ == "__main__":
 
     print("Middle Sched v2: Running in %s mode"%(args.nname))
 
+    # Report host configuration
+    with open("/proc/meminfo") as procFh:
+        print(procFh.read(), flush=True)
+
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
 
     # loading Kgraph
