@@ -1,0 +1,10 @@
+
+INFO: started as  /work1/zejdaj/git_repo/kcc/test/e2e/RunAll --test 0-1conv0_wave
+Done in 13.017 sec
+
+SUMMARY: PASSRATE  1  100.000%  of  1  (0 were waived)
+DETAILED STATUS: PASS 1  
+  PASS
+    0-1conv0_wave
+
+

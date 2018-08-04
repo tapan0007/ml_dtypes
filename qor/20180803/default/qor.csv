@@ -1,0 +1,2 @@
+Test,Status,TopsRaw,OpCountRaw,TopsEff,OpCountEff,SimCycles,SimTimeSec,SimCycles/sec,TotTimeSec,Description
+0-1conv0_wave,PASS,2.1818181818181818e-05,6,2.1818181818181818e-05,6,275,0.039125,7028.753993610224,12.01535153388977,Existence test for wave scheduler
