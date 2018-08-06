@@ -2,6 +2,7 @@ import math
 import re
 from collections import deque
 import me_pool
+import numpy as np
 
 class LDWWaveOpInfo():
     def __init__(self, move_filter, shape_in_crsm):
@@ -40,6 +41,7 @@ class MMWaveOpInfo(me_pool.WaveOpInfo):
                  , stride_y\
                  , ifmap\
                  , prev_waveops\
+                 , start_tensor_calc\
                  , name\
                 ):
         me_pool.WaveOpInfo.__init__(\
@@ -67,6 +69,7 @@ class MMWaveOpInfo(me_pool.WaveOpInfo):
         self.stride_y = stride_y
         self.ifmap = ifmap
         self.prev_waveops = prev_waveops
+        self.start_tensor_calc = start_tensor_calc
         self.name = name
 
     def print_prev_ops(self):
@@ -95,6 +98,9 @@ class PoolWaveOpInfo(me_pool.WaveOpInfo):
                  , pool_func\
                  , pool_scale\
                  , prev_waveops\
+                 , input_tensor\
+                 , src_is_psum\
+                 , dst_is_psum\
                  , name\
                 ):
         me_pool.WaveOpInfo.__init__(\
@@ -120,7 +126,10 @@ class PoolWaveOpInfo(me_pool.WaveOpInfo):
         self.pool_func = pool_func
         self.pool_scale = pool_scale
         self.prev_waveops = prev_waveops
+        self.input_tensor = input_tensor
         self.name = name
+        self.src_is_psum = src_is_psum
+        self.dst_is_psum = dst_is_psum
 
     def print_prev_ops(self):
         for i in self.prev_waveops:
@@ -181,20 +190,29 @@ class Concat:
     # Currently, only C direction Concat is supported
     # FIXME : Need to support H and W direction Concat
     # ifmaps : Array of input feature map specs in FMAPSpec
-    def __init__(self, ifmaps, num_output_channels):
+    def __init__(self, ifmaps, num_output_channels, datatype):
         self.ifmaps = ifmaps 
+#        print ("size of ifmaps = %d"%len(self.ifmaps))
         assert(num_output_channels > 0)
         self.num_output_channels = num_output_channels
         self.PE_ROW = 128
         self.PE_COL = 64
+        #self.PE_ROW = 4
+        #self.PE_COL = 4
         self.move_filters = deque()
         self.waveops = []
+        self.datatype = datatype
         return
     def print_graph(self):
         print("digraph G{")
         for i in self.waveops:
             for j in i.prev_waveops:
-                print("%s"%("\"" + j + "\"" + "->" + "\"" + i.name + "\""))
+                if (i.__class__.__name__ == "MMWaveOpInfo"):
+                    print("%s"%("\"" + j + "\"" + "->" + "\"" + i.name\
+                        + "_" + str(i.start_tensor_calc)\
+                        + "\""))
+                else:
+                    print("%s"%("\"" + j + "\"" + "->" + "\"" + i.name + "\""))
         print("}")
 
     def ConvertFMAPSpec2FMAPMovingRegion(self, ifmap, forward_move):
@@ -239,8 +257,22 @@ class Concat:
         return ifmap
 
 
+    def ComputeStartTensorCalc (\
+            self, num_channels_moved_sofar, forward_move, tail
+                               ):
+        start = True
+        if (forward_move == True):
+            if ((num_channels_moved_sofar % self.PE_COL) != 0):
+                start = False
+        else:
+            if (num_channels_moved_sofar == 0):
+                start = True
+            elif (((num_channels_moved_sofar - tail) % self.PE_COL) != 0):
+                start = False
+        return start
+
     def PerformConcatDecomposition(self, forward_move):
-        remaining_ifmaps = self.ifmaps
+        remaining_ifmaps = self.ifmaps.copy()
         remaining_ofmap_c = self.num_output_channels
         tail = self.num_output_channels % self.PE_COL
 #        print ("tail = %d"%tail)
@@ -251,15 +283,20 @@ class Concat:
         ifmap_region = self.ConvertFMAPSpec2FMAPMovingRegion(ifmap,forward_move)
         ifmap_use_cnt = 0
         pool_prev_ops = []
+        num_channels_moved_sofar = 0;
         while remaining_ofmap_c > 0:
+#            print ("num_channels_moved_sofar = %d"%num_channels_moved_sofar)
+            start_tensor_calc =\
+                    self.ComputeStartTensorCalc(num_channels_moved_sofar\
+                        , forward_move, tail)
             if (ofmap_region.moving_amt == 0):
-                pool = self.CreatePool(ifmap, pool_prev_ops, ifmap_use_cnt - 1)
+                pool = self.CreatePool(\
+                    ifmap, pool_prev_ops, pool_prev_ops[-1]\
+                    , ifmap_use_cnt - 1)
                 self.waveops.append(pool)
                 pool_prev_ops = []
-#                ofmap_region = FMAPMovingRegion(self.PE_COL - 1, self.PE_COL)
                 ofmap_region = self.GetOFMAPRegion(forward_move)
             if (ifmap_region.moving_amt == 0):
-#                ifmap = remaining_ifmaps.pop()
                 ifmap = self.GetIFMAP(forward_move, remaining_ifmaps)
                 ifmap_use_cnt = 0
                 ifmap_region =\
@@ -285,6 +322,7 @@ class Concat:
                 ofmap_region.moving_amt =\
                     ofmap_region.moving_amt - ifmap_region.moving_amt
                 remaining_ofmap_c = remaining_ofmap_c - ifmap_region.moving_amt
+                num_channels_moved_sofar += ifmap_region.moving_amt
                 ifmap_region.moving_amt = 0
             else:
                 mfilter = self.ComputeMoveFilterSpec(\
@@ -302,29 +340,35 @@ class Concat:
                     ifmap_region.start_pos =\
                         ifmap_region.start_pos - ofmap_region.moving_amt
                 remaining_ofmap_c = remaining_ofmap_c - ofmap_region.moving_amt
+                num_channels_moved_sofar += ofmap_region.moving_amt
                 ofmap_region.moving_amt = 0
             mfilter.file_name = self.NameFilter(
                 ifmap.file_name, mfilter, ifmap_use_cnt)
             pool_prev_ops.extend(\
-                self.CreateWaveOps(ifmap, mfilter, ifmap_use_cnt)
+                self.CreateWaveOps(\
+                    ifmap, mfilter, ifmap_use_cnt, start_tensor_calc\
+                                  )
                                 )
 #            print("taemk::mfilter.file_name = %s"%mfilter.file_name)
             self.move_filters.append(mfilter)
             ifmap_use_cnt += 1
         if (len(pool_prev_ops) > 0):
-            pool = self.CreatePool(ifmap, pool_prev_ops, ifmap_use_cnt - 1)
+            pool = self.CreatePool(ifmap, pool_prev_ops, pool_prev_ops[-1]\
+                , ifmap_use_cnt - 1)
             self.waveops.append(pool)
         return self.move_filters
 
     # Creates WaveOps for LDW and MatMul
     # Also creates dependency
-    def CreateWaveOps(self, ifmap, mfilter, ifmap_use_cnt):
+    def CreateWaveOps(self, ifmap, mfilter, ifmap_use_cnt, start_tensor_calc):
         ops = []
         ldw = self.CreateLDW(mfilter)
         ops.append(ldw.name)
         self.waveops.append(ldw)
         prev_ops = [ldw.name, ifmap.waveop_name]
-        mm = self.CreateMM(ifmap, mfilter, prev_ops, ifmap_use_cnt)
+        mm = self.CreateMM(\
+           ifmap, mfilter, prev_ops, ifmap_use_cnt, start_tensor_calc\
+                          )
         ops.append(mm.name)
         self.waveops.append(mm)
         #pool = self.CreatePool(ifmap, [mm.name], ifmap_use_cnt)
@@ -337,14 +381,14 @@ class Concat:
                 + "_" + str(ifmap_use_cnt)\
                 + "_" + str(filter_spec.start_loc[0])\
                 + "_" + str(filter_spec.start_loc[1])\
-                + "_" + str(filter_spec.size) + "_concat_weight.npy"
+                + "_" + str(filter_spec.size) + "_concat_weight_CRSM.npy"
         return filter_name
 
     # ifmap : FMapSpec
     # weight : MoveFilterSpec
     # prev_waveops : an array of waveops that must be finished before current
     #                MM
-    def CreateMM (self, ifmap, weight, prev_waveops, mmid):
+    def CreateMM (self, ifmap, weight, prev_waveops, mmid, start_tensor_calc):
         src_x_num = ifmap.W
         src_x_step = 1
         src_y_num = ifmap.H
@@ -390,6 +434,7 @@ class Concat:
                           , stride_y\
                           , ifmap\
                           , prev_waveops\
+                          , start_tensor_calc\
                           , name\
                          )
         return mm
@@ -409,9 +454,9 @@ class Concat:
         return MoveFilterSpec((start_row, start_col), moving_amt)
 
     def CreateLDW (self, move_filter):
-        return LDWWaveOpInfo(move_filter, [128, 1, 1, 64])
+        return LDWWaveOpInfo(move_filter, [self.PE_ROW, 1, 1, self.PE_COL])
 
-    def CreatePool (self, ifmap, prev_ops, poolid):
+    def CreatePool (self, ifmap, prev_ops, input_tensor, poolid):
         ifmap_name_wo_extension = re.sub('\.npy',"", ifmap.file_name)
         name = ifmap_name_wo_extension + "_copy_" + str(poolid)
         return PoolWaveOpInfo (\
@@ -435,5 +480,18 @@ class Concat:
                                , pool_func = "MaxPool"\
                                , pool_scale = "1.0"\
                                , prev_waveops = prev_ops\
+                               , input_tensor = input_tensor\
+                               , src_is_psum = True\
+                               , dst_is_psum = False\
                                , name = name\
                               )
+
+    def FilterWeightFileGeneration (self):
+        # CRSM shape
+        shape = [self.PE_ROW, 1, 1, self.PE_COL]
+        for i in self.move_filters:
+            data = np.zeros(shape, self.datatype)
+            for j in range(i.size):
+                data[i.start_loc[0] + j][0][0][i.start_loc[1] + j] = 1
+            np.save(i.file_name, data)
+        return
