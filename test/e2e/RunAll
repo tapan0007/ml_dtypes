@@ -63,7 +63,7 @@ parser.add_argument('--report_only', help='Print QoR report for the logs in the 
 parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=defaultParallel)
 parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=True)
 parser.add_argument('--serial_streams_for_wave', help='run execution engines in series', action='store_true', default=False)
-parser.add_argument('--timeout', help='Timeout for each test, default 10000', type=int, default=10000)
+parser.add_argument('--timeout', help='Timeout for each test, default 100000 seconds', type=int, default=100000)
 parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
 parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
 parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='store_true', default=False)
