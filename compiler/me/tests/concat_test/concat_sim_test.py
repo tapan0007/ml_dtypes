@@ -4,6 +4,7 @@ import sys
 kaena_path = os.environ['KAENA_PATH']+"/compiler/me"
 sys.path.append(kaena_path)
 import me_concat
+import me_common_ds
 from collections import deque
 import numpy as np
 import sim_concat
@@ -30,7 +31,7 @@ class SimTest:
     def gen_fmap_specs (self):
         for i in range(len(self.ifmap_data)):
             self.ifmap_specs.append(\
-                me_concat.FMAPSpec(\
+                me_common_ds.FMAPSpec(\
                     False, self.ifmap_data[i].shape\
                     , self.ifmap_files[i], self.ifmap_files[i] +"_0")\
                                    )

@@ -1,135 +1,5 @@
 import math
-
-class FMAPDim:
-  def __init__(self, H, W):
-    self.H = H
-    self.W = W
-    return
-
-# Th : y direction stride
-# Tv : x direction stride
-class FilterSpec:
-  def __init__(self, R, S, Th, Tv):
-    self.R = R
-    self.S = S
-    self.Th = Th
-    self.Tv = Tv
-    return
-
-class PaddingSpec:
-  def __init__(self, pN, pS, pW, pE):
-    self.pN = pN;
-    self.pS = pS;
-    self.pW = pW;
-    self.pE = pE;
-    return
-
-class WaveOpInfo:
-  def __init__(self):
-      self.src_x_num = 0
-      self.src_x_step = 0
-      self.src_y_num = 0
-      self.src_y_step = 0
-      self.src_z_num = 0
-      self.src_z_step = 0
-      self.src_w_num = 0
-      self.src_w_step = 0
-      self.dst_x_num = 0
-      self.dst_x_step = 0
-      self.dst_y_num = 0
-      self.dst_y_step = 0
-      self.dst_z_num = 0
-      self.dst_z_step = 0
-      self.src_start = 0
-      self.dst_start = 0
-      return
-  def __init__(
-      self\
-      , src_x_num\
-      , src_x_step\
-      , src_y_num\
-      , src_y_step\
-      , src_z_num\
-      , src_z_step\
-      , src_w_num\
-      , src_w_step\
-      , dst_x_num\
-      , dst_x_step\
-      , dst_y_num\
-      , dst_y_step\
-      , dst_z_num\
-      , dst_z_step\
-      , src_start\
-      , dst_start\
-      ):
-      self.src_x_num = src_x_num
-      self.src_x_step = src_x_step
-      self.src_y_num = src_y_num
-      self.src_y_step = src_y_step
-      self.src_z_num = src_z_num
-      self.src_z_step = src_z_step
-      self.src_w_num = src_w_num
-      self.src_w_step = src_w_step
-      self.dst_x_num = dst_x_num
-      self.dst_x_step = dst_x_step
-      self.dst_y_num = dst_y_num
-      self.dst_y_step = dst_y_step
-      self.dst_z_num = dst_z_num
-      self.dst_z_step = dst_z_step
-      self.src_start = src_start
-      self.dst_start = dst_start
-      return
-  def __ne__(self, op):
-    return ((self.src_x_num != op.src_x_num) |\
-        (self.src_x_step != op.src_x_step) |\
-        (self.src_y_num != op.src_y_num) |\
-        (self.src_y_step != op.src_y_step) |\
-        (self.src_z_num != op.src_z_num) |\
-        (self.src_z_step != op.src_z_step) |\
-        (self.src_w_num != op.src_w_num) |\
-        (self.src_w_step != op.src_w_step) |\
-        (self.dst_x_num != op.dst_x_num) |\
-        (self.dst_x_step != op.dst_x_step) |\
-        (self.dst_y_num != op.dst_y_num) |\
-        (self.dst_y_step != op.dst_y_step) |\
-        (self.src_start != op.src_start) |\
-        (self.dst_start != op.dst_start))
-  def __eq__(self, op):
-    return ((self.src_x_num == op.src_x_num) &\
-        (self.src_x_step == op.src_x_step) &\
-        (self.src_y_num == op.src_y_num) &\
-        (self.src_y_step == op.src_y_step) &\
-        (self.src_z_num == op.src_z_num) &\
-        (self.src_z_step == op.src_z_step) &\
-        (self.src_w_num == op.src_w_num) &\
-        (self.src_w_step == op.src_w_step) &\
-        (self.dst_x_num == op.dst_x_num) &\
-        (self.dst_x_step == op.dst_x_step) &\
-        (self.dst_y_num == op.dst_y_num) &\
-        (self.dst_y_step == op.dst_y_step) &\
-        (self.src_start == op.src_start) &\
-        (self.dst_start == op.dst_start))
-  def print(self, name):
-    print("%s = WaveOpInfo(%s"%(name+"_waveop","\\"))
-    print("src_x_num = %d%s"%(self.src_x_num,"\\"))
-    print(", src_x_step = %d%s"%(self.src_x_step, "\\"))
-    print(", src_y_num = %d%s"%(self.src_y_num, "\\"))
-    print(", src_y_step = %d%s"%(self.src_y_step, "\\"))
-    print(", src_z_num = %d%s"%(self.src_z_num, "\\"))
-    print(", src_z_step = %d%s"%(self.src_z_step, "\\"))
-    print(", src_w_num = %d%s"%(self.src_w_num, "\\"))
-    print(", src_w_step = %d%s"%(self.src_w_step, "\\"))
-    print(", dst_x_num = %d%s"%(self.dst_x_num, "\\"))
-    print(", dst_x_step = %d%s"%(self.dst_x_step, "\\"))
-    print(", dst_y_num = %d%s"%(self.dst_y_num, "\\"))
-    print(", dst_y_step = %d%s"%(self.dst_y_step, "\\"))
-    print(", dst_z_num = %d%s"%(self.dst_z_num, "\\"))
-    print(", dst_z_step = %d%s"%(self.dst_z_step, "\\"))
-    print(", src_start = ",self.src_start,"\\")
-    print(", dst_start = ",self.dst_start,"\\")
-    print(")")
-    print(name+".append("+name+"_waveop)")
-    return
+import me_common_ds
 
 class Pool_WaveOps:
   def __init__(self):
@@ -145,7 +15,8 @@ class Pool_WaveOps:
     return
 
 class Pool:
-  def __init__(self, ifmap, pool_window, padding):
+  def __init__(self, ifmap, pool_window, padding, pool_func, src_is_psum\
+              , dst_is_psum, ofmap, dtype):
     self.ifmap = ifmap
     self.pool_window = pool_window
     self.padding = padding
@@ -159,6 +30,12 @@ class Pool:
     self.pN = self.padding.pN
     self.Th = self.pool_window.Th
     self.Tv = self.pool_window.Tv
+    self.pool_func = pool_func
+    self.src_is_psum = src_is_psum
+    self.dst_is_psum = dst_is_psum
+    self.waveops = []
+    self.ofmap = ofmap
+    self.datatype = dtype
     def getMinimum(a):
       int_a = int(a)
       return (int_a + 1)
@@ -256,22 +133,22 @@ class Pool:
   def ComputeCP (self, corner_type):
     (nh, nv) = self.CP_ComputeHVMoveCount(corner_type)
     src_x_step = 1
-    src_y_step = self.W
+    src_y_step = 1 #self.W
     src_z_num = 1
     src_z_step = self.Th
     src_w_num = 1
-    src_w_step = self.W
+    src_w_step = self.Tv #self.W
     dst_x_num = 1
     dst_x_step = 1
     dst_y_num = 1
-    dst_y_step = self.W
+    dst_y_step = 1 #self.W
     dst_z_num = 1
-    dst_z_step = (self.W * self.H)
+    dst_z_step = 1 #(self.W * self.H)
     for i in range(nh):
       for j in range(nv):
         (src_x_num, src_y_num, src_start, dst_start) = \
           self.ComputeCPVariables(corner_type, i, j)
-        waveop = WaveOpInfo(\
+        waveop = me_common_ds.WaveOpInfo(\
             src_x_num\
             , src_x_step\
             , src_y_num\
@@ -338,17 +215,17 @@ class Pool:
       dst_y_num = self.b + 1
       num_pools = nh
     src_x_step = 1
-    src_y_step = self.W
+    src_y_step = 1 #self.W
     src_z_step = self.Th
-    src_w_step = self.W * self.Tv
+    src_w_step = self.Tv #self.W * self.Tv
     dst_x_step = 1
-    dst_y_step = self.W
+    dst_y_step = 1 #self.W
     dst_z_num = 1
-    dst_z_step = self.W * self.H
+    dst_z_step = 1 #self.W * self.H
     for i in range(num_pools):
       (src_x_num, src_y_num, src_start, dst_start) = \
        self.ComputeEPVariables(edge_type, i)
-      waveop = WaveOpInfo(\
+      waveop = me_common_ds.WaveOpInfo(\
           src_x_num\
           , src_x_step\
           , src_y_num\
@@ -381,21 +258,21 @@ class Pool:
     src_x_num = self.S
     src_x_step = 1
     src_y_num = self.R
-    src_y_step = self.W
+    src_y_step = 1# self.W
     src_z_num = self.a + 1
     src_z_step = self.Th
     src_w_num = self.b + 1
-    src_w_step = self.W * self.Tv
+    src_w_step = self.Tv# self.W * self.Tv
     dst_x_num = self.a + 1
     dst_x_step = 1
     dst_y_num = self.b + 1
-    dst_y_step = self.W
+    dst_y_step = 1 #self.W
     dst_z_num = 1
-    dst_z_step = self.W * self.H
+    dst_z_step = 1 #self.W * self.H
     src_start = (math.ceil(self.pN / self.Tv) * self.Tv - self.pN\
         , math.ceil(self.pW / self.Th) * self.Th - self.pW)
     dst_start = (math.ceil(self.pN / self.Tv), math.ceil(self.pW / self.Th))
-    waveop = WaveOpInfo(\
+    waveop = me_common_ds.WaveOpInfo(\
         src_x_num\
         , src_x_step\
         , src_y_num\
@@ -425,6 +302,24 @@ class Pool:
     self.ComputeEP("LVEP")
     self.ComputeEP("RVEP")
     self.ComputeCeP()
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.ltcp_ops\
+        , self.pool_func + "_LTCP")
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.rtcp_ops\
+        , self.pool_func + "_RTCP")
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.lbcp_ops\
+        , self.pool_func + "_LBCP")
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.rbcp_ops\
+        , self.pool_func + "_RBCP")
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.uhep_ops\
+        , self.pool_func + "_UHEP")
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.bhep_ops\
+        , self.pool_func + "_BHEP")
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.lvep_ops\
+        , self.pool_func + "_LVEP")
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.rvep_ops\
+        , self.pool_func + "_RVEP")
+    self.ConstructPoolWaveOpInfo(self.pool_waveops.cp_ops\
+        , self.pool_func + "_CP")
 #    print ("ltcp = []")
 #    for i in self.pool_waveops.ltcp_ops:
 #      i.print("ltcp")
@@ -453,3 +348,47 @@ class Pool:
 #    for i in self.pool_waveops.cp_ops:
 #      i.print("cp")
     return
+
+    # ops in WaveOpInfo defined in me_common_ds
+  def ConstructPoolWaveOpInfo (self, ops, name_prefix):
+      op_id = 0
+      for i in ops:
+          pool_frequency = i.src_z_num * i.src_w_num
+          if (self.pool_func == "AvgPool"):
+              pool_scale = 1 / pool_frequency
+          else:
+              pool_scale = 1
+          if (self.ifmap.__class__.__name__ == "FMAPDim"):
+              input_tensor = ""
+          else:
+              input_tensor = self.ifmap.waveop_name
+          name = name_prefix + str(op_id)
+          p = me_common_ds.PoolWaveOpInfo(\
+              src_x_num = i.src_x_num\
+              , src_x_step = i.src_x_step\
+              , src_y_num = i.src_y_num\
+              , src_y_step = i.src_y_step\
+              , src_z_num = i.src_z_num\
+              , src_z_step = i.src_z_step\
+              , src_w_num = i.src_w_num\
+              , src_w_step = i.src_w_step\
+              , dst_x_num = i.dst_x_num\
+              , dst_x_step = i.dst_x_step\
+              , dst_y_num = i.dst_y_num\
+              , dst_y_step = i.dst_y_step\
+              , dst_z_num = i.dst_z_num\
+              , dst_z_step = i.dst_z_step\
+              , src_start = i.src_start\
+              , dst_start = i.dst_start\
+              , pool_frequency = pool_frequency\
+              , pool_func = self.pool_func\
+              , pool_scale = pool_scale\
+              , prev_waveops = []\
+              , input_tensor = input_tensor\
+              , src_is_psum = self.src_is_psum\
+              , dst_is_psum = self.dst_is_psum\
+              , name = name\
+              , ifmap = self.ifmap)
+          self.waveops.append(p)
+          op_id += 1
+      return

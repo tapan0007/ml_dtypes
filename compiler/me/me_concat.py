@@ -1,139 +1,9 @@
 import math
 import re
 from collections import deque
-import me_pool
+#import me_pool
+import me_common_ds
 import numpy as np
-
-class LDWWaveOpInfo():
-    def __init__(self, move_filter, shape_in_crsm):
-        self.ref_file = move_filter.file_name
-        self.name = move_filter.file_name + "_0"
-        self.ref_file_format = "CRSM"
-        # default shape : [128, 1, 1, 64]
-        self.ref_file_shape = shape_in_crsm
-        self.prev_waveops = []
-
-    def print_prev_ops(self):
-        return
-
-class MMWaveOpInfo(me_pool.WaveOpInfo):
-    #ifmap : FMapSpec
-    def __init__(self\
-                 , src_x_num\
-                 , src_x_step\
-                 , src_y_num\
-                 , src_y_step\
-                 , src_z_num\
-                 , src_z_step\
-                 , src_w_num\
-                 , src_w_step\
-                 , dst_x_num\
-                 , dst_x_step\
-                 , dst_y_num\
-                 , dst_y_step\
-                 , dst_z_num\
-                 , dst_z_step\
-                 , src_start\
-                 , dst_start\
-                 , num_row_partitions\
-                 , num_col_partitions\
-                 , stride_x\
-                 , stride_y\
-                 , ifmap\
-                 , prev_waveops\
-                 , start_tensor_calc\
-                 , name\
-                ):
-        me_pool.WaveOpInfo.__init__(\
-                                    self\
-                                    , src_x_num\
-                                    , src_x_step\
-                                    , src_y_num\
-                                    , src_y_step\
-                                    , src_z_num\
-                                    , src_z_step\
-                                    , src_w_num\
-                                    , src_w_step\
-                                    , dst_x_num\
-                                    , dst_x_step\
-                                    , dst_y_num\
-                                    , dst_y_step\
-                                    , dst_z_num\
-                                    , dst_z_step\
-                                    , src_start\
-                                    , dst_start\
-                                   )
-        self.num_row_partitions = num_row_partitions
-        self.num_col_partitions = num_col_partitions
-        self.stride_x = stride_x
-        self.stride_y = stride_y
-        self.ifmap = ifmap
-        self.prev_waveops = prev_waveops
-        self.start_tensor_calc = start_tensor_calc
-        self.name = name
-
-    def print_prev_ops(self):
-        for i in self.prev_waveops:
-            print (i)
-
-class PoolWaveOpInfo(me_pool.WaveOpInfo):
-    def __init__(self\
-                 , src_x_num\
-                 , src_x_step\
-                 , src_y_num\
-                 , src_y_step\
-                 , src_z_num\
-                 , src_z_step\
-                 , src_w_num\
-                 , src_w_step\
-                 , dst_x_num\
-                 , dst_x_step\
-                 , dst_y_num\
-                 , dst_y_step\
-                 , dst_z_num\
-                 , dst_z_step\
-                 , src_start\
-                 , dst_start\
-                 , pool_frequency\
-                 , pool_func\
-                 , pool_scale\
-                 , prev_waveops\
-                 , input_tensor\
-                 , src_is_psum\
-                 , dst_is_psum\
-                 , name\
-                ):
-        me_pool.WaveOpInfo.__init__(\
-                                    self\
-                                    , src_x_num\
-                                    , src_x_step\
-                                    , src_y_num\
-                                    , src_y_step\
-                                    , src_z_num\
-                                    , src_z_step\
-                                    , src_w_num\
-                                    , src_w_step\
-                                    , dst_x_num\
-                                    , dst_x_step\
-                                    , dst_y_num\
-                                    , dst_y_step\
-                                    , dst_z_num\
-                                    , dst_z_step\
-                                    , src_start\
-                                    , dst_start\
-                                   )
-        self.pool_frequency = pool_frequency
-        self.pool_func = pool_func
-        self.pool_scale = pool_scale
-        self.prev_waveops = prev_waveops
-        self.input_tensor = input_tensor
-        self.name = name
-        self.src_is_psum = src_is_psum
-        self.dst_is_psum = dst_is_psum
-
-    def print_prev_ops(self):
-        for i in self.prev_waveops:
-            print (i)
 
 class MoveFilterSpec:
     def __init__ (self, start_loc, size, file_name):
@@ -171,19 +41,6 @@ class FMAPMovingRegion:
     def __init__(self, start_pos, amt):
         self.start_pos = start_pos
         self.moving_amt = amt
-        return
-class FMAPSpec:
-    # fmap_dim : NCHW format
-    def __init__(self, start_mid, fmap_dim, file_name, waveop_name):
-        self.start_mid = start_mid
-#        self.channel_num = channel_num
-#        self.fmap_dim = fmap_dim
-        self.N = fmap_dim[0]
-        self.C = fmap_dim[1]
-        self.H = fmap_dim[2]
-        self.W = fmap_dim[3]
-        self.file_name = file_name
-        self.waveop_name = waveop_name
         return
 
 class Concat:
@@ -411,7 +268,7 @@ class Concat:
         stride_y = 1
         ifmap_name_wo_extension = re.sub('\.npy',"", ifmap.file_name)
         name = ifmap_name_wo_extension + "_MatMul_" + str(mmid)
-        mm = MMWaveOpInfo(\
+        mm = me_common_ds.MMWaveOpInfo(\
                           src_x_num\
                           , src_x_step\
                           , src_y_num\
@@ -454,12 +311,13 @@ class Concat:
         return MoveFilterSpec((start_row, start_col), moving_amt)
 
     def CreateLDW (self, move_filter):
-        return LDWWaveOpInfo(move_filter, [self.PE_ROW, 1, 1, self.PE_COL])
+        return me_common_ds.LDWWaveOpInfo(\
+                   move_filter, [self.PE_ROW, 1, 1, self.PE_COL])
 
     def CreatePool (self, ifmap, prev_ops, input_tensor, poolid):
         ifmap_name_wo_extension = re.sub('\.npy',"", ifmap.file_name)
         name = ifmap_name_wo_extension + "_copy_" + str(poolid)
-        return PoolWaveOpInfo (\
+        return me_common_ds.PoolWaveOpInfo (\
                                src_x_num = ifmap.W\
                                , src_x_step = 1\
                                , src_y_num = ifmap.H\
@@ -484,6 +342,7 @@ class Concat:
                                , src_is_psum = True\
                                , dst_is_psum = False\
                                , name = name\
+                               , ifmap = None
                               )
 
     def FilterWeightFileGeneration (self):
