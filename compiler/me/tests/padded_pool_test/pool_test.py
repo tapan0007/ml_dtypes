@@ -22,8 +22,59 @@ class TestPoolDecomposition(unittest.TestCase):
       return True
     return
 
+  def compare_result(self\
+                     , pool\
+                     , ltcp\
+                     , rtcp\
+                     , lbcp\
+                     , rbcp\
+                     , uhep\
+                     , bhep\
+                     , lvep\
+                     , rvep\
+                     , cp\
+                    ):
+    for i in range(len(pool.pool_waveops.ltcp_ops)):
+      if (self.compare_geometry(ltcp[i], pool.pool_waveops.ltcp_ops[i]) ==\
+          False):
+        return False
+    for i in range(len(pool.pool_waveops.rtcp_ops)):
+      if (self.compare_geometry(rtcp[i], pool.pool_waveops.rtcp_ops[i]) ==\
+          False):
+        return False
+    for i in range(len(pool.pool_waveops.lbcp_ops)):
+      if (self.compare_geometry(lbcp[i], pool.pool_waveops.lbcp_ops[i]) ==\
+          False):
+        return False
+    for i in range(len(pool.pool_waveops.rbcp_ops)):
+      if (self.compare_geometry(rbcp[i], pool.pool_waveops.rbcp_ops[i]) ==\
+          False):
+        return False
+    for i in range(len(pool.pool_waveops.uhep_ops)):
+      if (self.compare_geometry(uhep[i], pool.pool_waveops.uhep_ops[i]) ==\
+          False):
+        return False
+    for i in range(len(pool.pool_waveops.bhep_ops)):
+      if (self.compare_geometry(bhep[i], pool.pool_waveops.bhep_ops[i]) ==\
+          False):
+        return False
+    for i in range(len(pool.pool_waveops.rvep_ops)):
+      if (self.compare_geometry(rvep[i], pool.pool_waveops.rvep_ops[i]) ==\
+          False):
+        return False
+    for i in range(len(pool.pool_waveops.lvep_ops)):
+      if (self.compare_geometry(lvep[i], pool.pool_waveops.lvep_ops[i]) ==\
+          False):
+        return False
+    for i in range(len(pool.pool_waveops.cp_ops)):
+      if (self.compare_geometry(cp[i], pool.pool_waveops.cp_ops[i]) ==\
+          False):
+        return False
+    return True
+
+
   def _4x4ifmap_3x3window_1_1_stride(self):
-    print ("INFO::test_4x4ifmap_3x3window_1_1_stride")
+    #print ("INFO::test_4x4ifmap_3x3window_1_1_stride")
     ltcp = []
     ltcp_waveop = me_common_ds.WaveOpInfo(\
         src_x_num = 2\
@@ -210,49 +261,24 @@ class TestPoolDecomposition(unittest.TestCase):
     pool = me_pool.Pool(ifmap, pool_window, padding, "AvgPool", False, False\
                         , ifmap, np.float16)
     pool.ComputePool()
-    for i in range(len(pool.pool_waveops.ltcp_ops)):
-      if (self.compare_geometry(ltcp[i], pool.pool_waveops.ltcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rtcp_ops)):
-      if (self.compare_geometry(rtcp[i], pool.pool_waveops.rtcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.lbcp_ops)):
-      if (self.compare_geometry(lbcp[i], pool.pool_waveops.lbcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rbcp_ops)):
-      if (self.compare_geometry(rbcp[i], pool.pool_waveops.rbcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.uhep_ops)):
-      if (self.compare_geometry(uhep[i], pool.pool_waveops.uhep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.bhep_ops)):
-      if (self.compare_geometry(bhep[i], pool.pool_waveops.bhep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rvep_ops)):
-      if (self.compare_geometry(rvep[i], pool.pool_waveops.rvep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.lvep_ops)):
-      if (self.compare_geometry(lvep[i], pool.pool_waveops.lvep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.cp_ops)):
-      if (self.compare_geometry(cp[i], pool.pool_waveops.cp_ops[i]) ==\
-          False):
-        return False
-    return True
+    return self.compare_result(\
+                      pool\
+                      , ltcp\
+                      , rtcp\
+                      , lbcp\
+                      , rbcp\
+                      , uhep\
+                      , bhep\
+                      , lvep\
+                      , rvep\
+                      , cp\
+                     )
 
   def test_4x4ifmap_3x3window_1_1_stride(self):
     self.assertTrue(self._4x4ifmap_3x3window_1_1_stride())
 
   def _4x4ifmap_3x3window_2_2_stride(self):
-    print ("INFO::test_4x4ifmap_3x3window_2_2_stride")
+    #print ("INFO::test_4x4ifmap_3x3window_2_2_stride")
     ltcp = []
     ltcp_waveop = me_common_ds.WaveOpInfo(\
         src_x_num = 1\
@@ -572,50 +598,25 @@ class TestPoolDecomposition(unittest.TestCase):
     pool = me_pool.Pool(ifmap, pool_window, padding, "AvgPool", False, False\
                        , ifmap, np.float16)
     pool.ComputePool()
-    for i in range(len(pool.pool_waveops.ltcp_ops)):
-      if (self.compare_geometry(ltcp[i], pool.pool_waveops.ltcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rtcp_ops)):
-      if (self.compare_geometry(rtcp[i], pool.pool_waveops.rtcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.lbcp_ops)):
-      if (self.compare_geometry(lbcp[i], pool.pool_waveops.lbcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rbcp_ops)):
-      if (self.compare_geometry(rbcp[i], pool.pool_waveops.rbcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.uhep_ops)):
-      if (self.compare_geometry(uhep[i], pool.pool_waveops.uhep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.bhep_ops)):
-      if (self.compare_geometry(bhep[i], pool.pool_waveops.bhep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rvep_ops)):
-      if (self.compare_geometry(rvep[i], pool.pool_waveops.rvep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.lvep_ops)):
-      if (self.compare_geometry(lvep[i], pool.pool_waveops.lvep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.cp_ops)):
-      if (self.compare_geometry(cp[i], pool.pool_waveops.cp_ops[i]) ==\
-          False):
-        return False
-    return True
+    return self.compare_result(\
+                      pool\
+                      , ltcp\
+                      , rtcp\
+                      , lbcp\
+                      , rbcp\
+                      , uhep\
+                      , bhep\
+                      , lvep\
+                      , rvep\
+                      , cp\
+                     )
 
   def test_4x4ifmap_3x3window_2_2_stride(self):
     self.assertTrue(self._4x4ifmap_3x3window_2_2_stride())
     return
 
   def _6x6ifmap_3x3window_2_2_stride(self):
-    print ("INFO::test_6x6ifmap_3x3window_2_2_stride")
+    #print ("INFO::test_6x6ifmap_3x3window_2_2_stride")
     ltcp = []
     ltcp_waveop = me_common_ds.WaveOpInfo(\
         src_x_num = 0\
@@ -1106,46 +1107,369 @@ class TestPoolDecomposition(unittest.TestCase):
     pool = me_pool.Pool(ifmap, pool_window, padding, "AvgPool", False, False\
                        , ifmap, np.float16)
     pool.ComputePool()
-    for i in range(len(pool.pool_waveops.ltcp_ops)):
-      if (self.compare_geometry(ltcp[i], pool.pool_waveops.ltcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rtcp_ops)):
-      if (self.compare_geometry(rtcp[i], pool.pool_waveops.rtcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.lbcp_ops)):
-      if (self.compare_geometry(lbcp[i], pool.pool_waveops.lbcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rbcp_ops)):
-      if (self.compare_geometry(rbcp[i], pool.pool_waveops.rbcp_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.uhep_ops)):
-      if (self.compare_geometry(uhep[i], pool.pool_waveops.uhep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.bhep_ops)):
-      if (self.compare_geometry(bhep[i], pool.pool_waveops.bhep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.rvep_ops)):
-      if (self.compare_geometry(rvep[i], pool.pool_waveops.rvep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.lvep_ops)):
-      if (self.compare_geometry(lvep[i], pool.pool_waveops.lvep_ops[i]) ==\
-          False):
-        return False
-    for i in range(len(pool.pool_waveops.cp_ops)):
-      if (self.compare_geometry(cp[i], pool.pool_waveops.cp_ops[i]) ==\
-          False):
-        return False
-    return True
+    return self.compare_result(\
+                      pool\
+                      , ltcp\
+                      , rtcp\
+                      , lbcp\
+                      , rbcp\
+                      , uhep\
+                      , bhep\
+                      , lvep\
+                      , rvep\
+                      , cp\
+                     )
 
   def test_6x6ifmap_3x3window_2_2_stride(self):
     self.assertTrue(self._6x6ifmap_3x3window_2_2_stride())
+
+  def test_pS_0(self):
+    #print ("test_pS_0")
+    ifmap = me_common_ds.FMAPDim(3, 4)
+    pool_window = me_common_ds.FilterSpec(3, 3, 1, 1)
+    padding = me_common_ds.PaddingSpec(1, 0, 1, 1)
+    pool = me_pool.Pool(ifmap, pool_window, padding, "AvgPool", False, False\
+                       , ifmap, np.float16)
+    pool.ComputePool()
+    #pool.PrintWaves()
+    ltcp = []
+    ltcp_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 2\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 0) \
+    , dst_start =  (0, 0) \
+    )
+    ltcp.append(ltcp_waveop)
+    rtcp = []
+    rtcp_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 2\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 2) \
+    , dst_start =  (0, 3) \
+    )
+    rtcp.append(rtcp_waveop)
+    lbcp = []
+    rbcp = []
+    uhep = []
+    uhep_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 3\
+    , src_x_step = 1\
+    , src_y_num = 2\
+    , src_y_step = 1\
+    , src_z_num = 2\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 2\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 0) \
+    , dst_start =  (0, 1) \
+    )
+    uhep.append(uhep_waveop)
+    bhep = []
+    lvep = []
+    lvep_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 0) \
+    , dst_start =  (1, 0) \
+    )
+    lvep.append(lvep_waveop)
+    rvep = []
+    rvep_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 2) \
+    , dst_start =  (1, 3) \
+    )
+    rvep.append(rvep_waveop)
+    cp = []
+    cp_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 3\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 2\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 2\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 0) \
+    , dst_start =  (1, 1) \
+    )
+    cp.append(cp_waveop)
+    self.assertTrue(\
+      self.compare_result(pool,ltcp,rtcp,lbcp,rbcp,uhep,bhep,lvep,rvep,cp))
+
+  def test_pS_0_pN_0(self):
+    #print ("test_pS_0_pN_0")
+    ifmap = me_common_ds.FMAPDim(3, 4)
+    pool_window = me_common_ds.FilterSpec(3, 3, 1, 1)
+    padding = me_common_ds.PaddingSpec(0, 0, 1, 1)
+    pool = me_pool.Pool(ifmap, pool_window, padding, "AvgPool", False, False\
+                       , ifmap, np.float16)
+    pool.ComputePool()
+    #pool.PrintWaves()
+    ltcp = []
+    rtcp = []
+    lbcp = []
+    rbcp = []
+    uhep = []
+    bhep = []
+    lvep = []
+    lvep_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 0) \
+    , dst_start =  (0, 0) \
+    )
+    lvep.append(lvep_waveop)
+    rvep = []
+    rvep_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 2) \
+    , dst_start =  (0, 3) \
+    )
+    rvep.append(rvep_waveop)
+    cp = []
+    cp_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 3\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 2\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 2\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 0) \
+    , dst_start =  (0, 1) \
+    )
+    cp.append(cp_waveop)
+    self.assertTrue(\
+      self.compare_result(pool,ltcp,rtcp,lbcp,rbcp,uhep,bhep,lvep,rvep,cp))
+
+  def test_pN_0(self):
+    #print ("test_pN_0")
+    ifmap = me_common_ds.FMAPDim(3, 4)
+    pool_window = me_common_ds.FilterSpec(3, 3, 1, 1)
+    padding = me_common_ds.PaddingSpec(0, 1, 1, 1)
+    pool = me_pool.Pool(ifmap, pool_window, padding, "AvgPool", False, False\
+                       , ifmap, np.float16)
+    pool.ComputePool()
+    #pool.PrintWaves()
+    ltcp = []
+    rtcp = []
+    lbcp = []
+    lbcp_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 2\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (1, 0) \
+    , dst_start =  (1, 0) \
+    )
+    lbcp.append(lbcp_waveop)
+    rbcp = []
+    rbcp_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 2\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (1, 2) \
+    , dst_start =  (1, 3) \
+    )
+    rbcp.append(rbcp_waveop)
+    uhep = []
+    bhep = []
+    bhep_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 3\
+    , src_x_step = 1\
+    , src_y_num = 2\
+    , src_y_step = 1\
+    , src_z_num = 2\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 2\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (1, 0) \
+    , dst_start =  (1, 1) \
+    )
+    bhep.append(bhep_waveop)
+    lvep = []
+    lvep_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 0) \
+    , dst_start =  (0, 0) \
+    )
+    lvep.append(lvep_waveop)
+    rvep = []
+    rvep_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 2\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 1\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 1\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 2) \
+    , dst_start =  (0, 3) \
+    )
+    rvep.append(rvep_waveop)
+    cp = []
+    cp_waveop = me_common_ds.WaveOpInfo(\
+    src_x_num = 3\
+    , src_x_step = 1\
+    , src_y_num = 3\
+    , src_y_step = 1\
+    , src_z_num = 2\
+    , src_z_step = 1\
+    , src_w_num = 1\
+    , src_w_step = 1\
+    , dst_x_num = 2\
+    , dst_x_step = 1\
+    , dst_y_num = 1\
+    , dst_y_step = 1\
+    , dst_z_num = 1\
+    , dst_z_step = 1\
+    , src_start =  (0, 0) \
+    , dst_start =  (0, 1) \
+    )
+    cp.append(cp_waveop)
+    self.assertTrue(\
+      self.compare_result(pool,ltcp,rtcp,lbcp,rbcp,uhep,bhep,lvep,rvep,cp))
 
 
 if __name__ == '__main__':

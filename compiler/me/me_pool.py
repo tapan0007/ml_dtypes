@@ -1,6 +1,16 @@
 import math
 import me_common_ds
 
+###############################################################################
+# Filter Window Dimension
+#         S
+#    +---------+
+#    |         |
+#   R|         |
+#    |         |
+#    +---------+
+###############################################################################
+
 class Pool_WaveOps:
   def __init__(self):
     self.ltcp_ops = []
@@ -44,6 +54,8 @@ class Pool:
     self.o = int((self.pN + self.pS + self.H - self.R) / self.Tv - self.t)
     self.u = getMinimum((self.pW + self.W - self.S) / self.Th)
     self.q = int((self.pW + self.W + self.pE - self.S) / self.Th - self.u)
+    self.ofmap_H = int((self.H + self.pS + self.pN - self.R) / self.Tv +  1)
+    self.ofmap_W = int((self.W + self.pE + self.pW - self.S) / self.Th +  1)
     
     # l :
     # Gap between left edge of IFMAP and that of the left most pool window
@@ -116,18 +128,23 @@ class Pool:
       src_x_num = self.W + self.pW - (self.u + i) * self.Th
       src_y_num = self.R - self.pN + j * self.Tv
       src_start = (0, self.u * self.Th - self.pW + i * self.Th)
-      dst_start = (j, self.W - (self.q + 1) + i)
+      #dst_start = (j, self.W - (self.q + 1) + i)
+      dst_start = (j, self.ofmap_W - (self.q + 1) + i)
     elif (corner_type == "LBCP"):
       src_x_num = self.S - self.pW + i * self.Th
       src_y_num = self.H + self.pN - (self.t + j) * self.Tv
       src_start = (self.t * self.Tv - self.pN + j * self.Tv, 0)
-      dst_start = (self.H - (self.o + 1) + j, i)
+      #dst_start = (self.H - (self.o + 1) + j, i)
+      dst_start = (self.ofmap_H - (self.o + 1) + j, i)
     else:
       src_x_num = self.W + self.pW - (self.u + i) * self.Th
       src_y_num = self.H + self.pN - (self.t + j) * self.Tv
       src_start = (self.t * self.Tv - self.pN + j * self.Tv\
           , self.u * self.Th - self.pW + i * self.Th)
-      dst_start = (self.H - (self.o + 1) + j, self.W - (self.q + 1) + i)
+      #dst_start = (self.H - (self.o + 1) + j, self.W - (self.q + 1) + i)
+      #dst_start = (self.ofmap_H - (self.o + 1) + j, self.W - (self.q + 1) + i)
+      dst_start = (self.ofmap_H - (self.o + 1) + j\
+                   , self.ofmap_W - (self.q + 1) + i)
     return (src_x_num, src_y_num, src_start, dst_start)
 
   def ComputeCP (self, corner_type):
@@ -186,7 +203,9 @@ class Pool:
         src_y_num = self.H + self.pN - (self.t + i) * self.Tv
         src_start = (self.t * self.Tv - self.pN + i * self.Tv\
             , math.ceil(self.pW / self.Th) * self.Th - self.pW)
-        dst_start = (self.H - (self.o + 1) + i, math.ceil(self.pW / self.Th))
+        #dst_start = (self.H - (self.o + 1) + i, math.ceil(self.pW / self.Th))
+        dst_start = (self.ofmap_H - (self.o + 1) + i\
+                     , math.ceil(self.pW / self.Th))
     else:
       src_y_num = self.R
       if (edge_type == "LVEP"):
@@ -196,7 +215,9 @@ class Pool:
       else:
         src_start = (math.ceil(self.pN / self.Tv) * self.Tv - self.pN\
             , self.u * self.Th - self.pW + i * self.Th)
-        dst_start = (math.ceil(self.pN / self.Tv), self.W - (self.q + 1) + i)
+        #dst_start = (math.ceil(self.pN / self.Tv), self.W - (self.q + 1) + i)
+        dst_start = (math.ceil(self.pN / self.Tv)\
+                     , self.ofmap_W - (self.q + 1) + i)
         src_x_num = self.W + self.pW - (self.u + i) * self.Th
     return (src_x_num, src_y_num, src_start, dst_start)
   # EP : Edge Pool
@@ -320,33 +341,35 @@ class Pool:
         , self.pool_func + "_RVEP")
     self.ConstructPoolWaveOpInfo(self.pool_waveops.cp_ops\
         , self.pool_func + "_CP")
-#    print ("ltcp = []")
-#    for i in self.pool_waveops.ltcp_ops:
-#      i.print("ltcp")
-#    print ("rtcp = []")
-#    for i in self.pool_waveops.rtcp_ops:
-#      i.print("rtcp")
-#    print ("lbcp = []")
-#    for i in self.pool_waveops.lbcp_ops:
-#      i.print("lbcp")
-#    print ("rbcp = []")
-#    for i in self.pool_waveops.rbcp_ops:
-#      i.print("rbcp")
-#    print ("uhep = []")
-#    for i in self.pool_waveops.uhep_ops:
-#      i.print("uhep")
-#    print ("bhep = []")
-#    for i in self.pool_waveops.bhep_ops:
-#      i.print("bhep")
-#    print ("lvep = []")
-#    for i in self.pool_waveops.lvep_ops:
-#      i.print("lvep")
-#    print ("rvep = []")
-#    for i in self.pool_waveops.rvep_ops:
-#      i.print("rvep")
-#    print ("cp = []")
-#    for i in self.pool_waveops.cp_ops:
-#      i.print("cp")
+
+  def PrintWaves(self):
+    print ("ltcp = []")
+    for i in self.pool_waveops.ltcp_ops:
+      i.print("ltcp")
+    print ("rtcp = []")
+    for i in self.pool_waveops.rtcp_ops:
+      i.print("rtcp")
+    print ("lbcp = []")
+    for i in self.pool_waveops.lbcp_ops:
+      i.print("lbcp")
+    print ("rbcp = []")
+    for i in self.pool_waveops.rbcp_ops:
+      i.print("rbcp")
+    print ("uhep = []")
+    for i in self.pool_waveops.uhep_ops:
+      i.print("uhep")
+    print ("bhep = []")
+    for i in self.pool_waveops.bhep_ops:
+      i.print("bhep")
+    print ("lvep = []")
+    for i in self.pool_waveops.lvep_ops:
+      i.print("lvep")
+    print ("rvep = []")
+    for i in self.pool_waveops.rvep_ops:
+      i.print("rvep")
+    print ("cp = []")
+    for i in self.pool_waveops.cp_ops:
+      i.print("cp")
     return
 
     # ops in WaveOpInfo defined in me_common_ds
