@@ -1,3 +1,4 @@
+set -e
 rm -f *-simout.npy
 $KAENA_PATH/compiler/be/compiler/compiler.exe --wavegraph wavegraph.json  --parallel_streams 2>&1 | tee log-be.txt
 $INKLING_PATH/sim/sim --angel TrivNet-dma.tpb --sp TrivNet-sp.tpb --pe  TrivNet-pe.tpb --pool TrivNet-pool.tpb --act TrivNet-act.tpb 2>&1 | tee log-inkling.txt

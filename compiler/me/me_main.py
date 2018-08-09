@@ -70,9 +70,9 @@ class StateBuffer:
         bias_file_params.layer_name = op.data['layer_name']
         bias_file_params.load_file()
         bias_file_start_addr = self.next_bias_file_start
-        bias_file_sz = self.batcher.item_sz
+        bias_file_sz = align_addr_8B(self.batcher.item_sz)
         self.file_mapper.map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
-        self.next_bias_file_start += bias_file_sz
+        self.next_bias_file_start = align_addr_8B(self.next_bias_file_start + bias_file_sz)
         self.zero_bias_file_params = bias_file_params
 
 

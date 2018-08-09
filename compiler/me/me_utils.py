@@ -34,6 +34,9 @@ def align_addr_NB(addr, N):
 def align_addr_8B(addr):
     return align_addr_NB(addr, 8)
 
+def assert_align_addr_8B(addr):
+    assert(addr == align_addr_NB(addr, 8))
+
 """Align address to multiple of 16B
 """
 def align_addr_16B(addr):
@@ -261,14 +264,19 @@ class FileParams():
         self.data_type = data_type
         self.chunk_sz_limit = chunk_sz_limit
         self.chunk_sz = -1
+        self.chunk_sz_padded = -1
         self.tot_partition_usage_sz = -1
+        self.tot_partition_usage_sz_padded = -1
+        self.tot_partition_usage_elems_padded = -1
         self.tot_num_chunks = -1
         self.fmap_data_len = -1
+        self.fmap_data_len_padded = -1
         self.fmap_num_chunks = -1
         self.fmap_channels_folds = 1
         self.fmap_last_chunk_sz = -1
         self.batch_item_partition_usage_sz = -1
-        self.batch_item_partition_usage_sz_rounded = -1
+        self.batch_item_partition_usage_sz_padded = -1
+        self.batch_item_partition_usage_elems_padded = -1
         self.batch_item_num_chunks = -1
         self.mapped_params = None
         self.file_addr_skip_per_fmap_fold = -1
@@ -431,11 +439,13 @@ class FileParams():
         if self.fmap_last_chunk_sz == 0:    
             self.fmap_last_chunk_sz         = self.chunk_sz
         self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.C, pearray_params.NUM_ROWS)
-        # rounding up usage to make 55x55 takes up 56x56 space for more regular chunk/region divisions
-        H_rounded = ((self.file_dims.H + 1) // 2) * 2
-        W_rounded = ((self.file_dims.W + 1) // 2) * 2
-        self.batch_item_partition_usage_sz_rounded = self.batch_item_partition_usage_sz // self.file_dims.H // self.file_dims.W
-        self.batch_item_partition_usage_sz_rounded = self.batch_item_partition_usage_sz_rounded * H_rounded * W_rounded
+        # kaena-643: pad sizes to 8B to satisfy HW 8B alignment requirement                
+        self.chunk_sz_padded                          = align_addr_8B(self.chunk_sz)                
+        self.fmap_data_len_padded                     = align_addr_8B(self.fmap_data_len)
+        self.batch_item_partition_usage_sz_padded     = self.fmap_data_len_padded * self.fmap_channels_folds
+        self.batch_item_partition_usage_elems_padded  = self.fmap_data_len_padded * self.fmap_channels_folds // self.item_sz
+        self.tot_partition_usage_sz_padded            = self.batch_item_partition_usage_sz_padded * self.file_dims.N
+        self.tot_partition_usage_elems_padded         = self.batch_item_partition_usage_elems_padded * self.file_dims.N
         print("INFO: file %s shape %s tot_partition_usage_sz %d batch_item_partition_usage_sz %d"%(self.file_name, str(self.file_dims.shape_tuple), self.tot_partition_usage_sz, self.batch_item_partition_usage_sz))
 
 """ Class to hold map information related to a file
@@ -518,14 +528,14 @@ class FileMapper():
         if start_addr < 0 or start_addr >= self.sb_partition_sz:
             raise RuntimeError("Start address %d is less than 0 or exceeds partition size %d"%(start_addr, self.sb_partition_sz))
         # If region size is 0, allow it to expand to file size
-        adj_region_sz = file_params.tot_partition_usage_sz if region_sz == 0 else region_sz
+        adj_region_sz = file_params.tot_partition_usage_sz_padded if region_sz == 0 else region_sz
         if not wrap_around:
             # If not wrapping around, check that file can fit into alloted region
-            if file_params.tot_partition_usage_sz > adj_region_sz:
-                raise RuntimeError("File %s size %d is larger than region size %d, and wrap around is not enabled"%(file_params.file_name, file_params.tot_partition_usage_sz, adj_region_sz))
+            if file_params.tot_partition_usage_sz_padded > adj_region_sz:
+                raise RuntimeError("File %s size %d is larger than region size %d, and wrap around is not enabled"%(file_params.file_name, file_params.tot_partition_usage_sz_padded, adj_region_sz))
             # Compute number of chunks, including the last odd chunk
             num_region_chunks = file_params.tot_num_chunks
-            adj_region_sz     = file_params.tot_partition_usage_sz
+            adj_region_sz     = file_params.tot_partition_usage_sz_padded
         else:
             if adj_region_sz >= file_params.fmap_data_len:
                 num_region_fmaps  = adj_region_sz // file_params.fmap_data_len
@@ -621,9 +631,10 @@ class FileMapper():
             # if region_sz >= fmap_data_len, earlier computation guarantees that region_sz is multiple of fmap_data_len
             fold_idx         = chunk_id_offset // file_params.fmap_num_chunks
             chunk_id_in_fold = chunk_id_offset % file_params.fmap_num_chunks
-            sb_addr          = fold_idx * file_params.fmap_data_len + chunk_id_in_fold * file_params.chunk_sz 
+            # kaena- : pad chunk size and FMAP data length to align to 8B (hard requirement)
+            sb_addr          = fold_idx * file_params.fmap_data_len_padded + chunk_id_in_fold * file_params.chunk_sz_padded
         else:            
-            sb_addr         = chunk_id_offset * file_params.chunk_sz 
+            sb_addr         = chunk_id_offset * file_params.chunk_sz_padded
         sb_addr     += file_params.mapped_params.start_addr            
         return sb_addr
 
@@ -667,7 +678,11 @@ class FileMapper():
         for i in range(start_chunk_id, end_chunk_id + 1):
             # TODO: fix start_fmap_addr to match start_addr
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
-            end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
+            chunk_len = self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
+            # kaena-643: mark also the padded region due to 8B alignment requirement
+            if chunk_len == file_params.chunk_sz:
+                chunk_len = file_params.chunk_sz_padded
+            end_fmap_addr = start_fmap_addr + chunk_len
             for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
                 sb_addr = j
                 if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) or (file_params.args is not None and file_params.args.relax_dependencies):
@@ -782,7 +797,11 @@ class FileMapper():
         list_of_waveops = []
         for i in range(start_chunk_id, end_chunk_id + 1):
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
-            end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
+            chunk_len = self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
+            # kaena-643: mark also the padded region due to 8B alignment requirement
+            if chunk_len == file_params.chunk_sz:
+                chunk_len = file_params.chunk_sz_padded
+            end_fmap_addr = start_fmap_addr + chunk_len
             for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
                 sb_addr = j
                 # return last of wniters/readers for dependency
@@ -893,6 +912,8 @@ class FileMapper():
         #    simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
         simout_file = file_params.file_name.replace("-midout.", "-simout.")
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
+        #assert_align_addr_8B(file_params.fmap_data_len)
+        assert_align_addr_8B(sb_addr)
         return {
               'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomLoad",
@@ -933,6 +954,8 @@ class FileMapper():
         # use "simout" tag for Back-end/Inkling result file
         simout_file = file_params.file_name.replace("-midout.", "-simout.")
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
+        #assert_align_addr_8B(file_params.fmap_data_len)
+        assert_align_addr_8B(sb_addr)
         return {
               'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomSave",
@@ -1234,9 +1257,9 @@ class TestFileMapper(unittest.TestCase):
         self.assertEqual(test_obj.get_chunk_id_from_file_addr(file_params, 0, 0), 0)
         self.assertEqual(test_obj.get_file_addr_from_chunk_id(file_params, 0, 0), 0)
         self.assertEqual(test_obj.get_chunk_id_from_file_addr(file_params, 0, 128*55*55*file_params.item_sz), 4)
-        self.assertEqual(test_obj.get_sb_addr_from_file_addr(file_params, 0, 128*55*55*file_params.item_sz), 55*55*file_params.item_sz)
+        self.assertEqual(test_obj.get_sb_addr_from_file_addr(file_params, 0, 128*55*55*file_params.item_sz), align_addr_8B(55*55*file_params.item_sz))
         self.assertEqual(test_obj.get_file_addr_from_chunk_id(file_params, 0, 4), 128*55*55*file_params.item_sz)
-        self.assertEqual(waveops[0]["sb_address"], 55*55*file_params.item_sz)
+        self.assertEqual(waveops[0]["sb_address"], align_addr_8B(55*55*file_params.item_sz))
         self.assertEqual(waveops[0]["offset_in_file"], 128*55*55*file_params.item_sz)
 
     def test_zero_file(self):

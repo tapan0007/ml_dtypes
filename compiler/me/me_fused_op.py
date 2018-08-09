@@ -11,6 +11,7 @@ import sys
 import numpy as np
 from me_models import PEArray
 from me_utils import ceildiv
+from me_utils import align_addr_8B
 
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 from NpUtils import NpUtils as npu
@@ -163,7 +164,7 @@ class FusedOp(list):
         if self.has_biasadd:
             assert(self.biasadd_op is not None)
             bias_file_params = self.biasadd_op.bias_file_params
-            bias_file_sz = bias_file_params.tot_partition_usage_sz
+            bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
         bias_region_start_addr = 0
         bias_region_sz = tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index]
         if (bias_file_start_addr + bias_file_sz) > bias_region_sz:
@@ -175,21 +176,21 @@ class FusedOp(list):
         if self.has_conv:
             assert(self.conv_op is not None)
             weights_file_params = self.conv_op.weights_file_params
-            weights_file_sz = weights_file_params.tot_partition_usage_sz 
+            weights_file_sz = weights_file_params.tot_partition_usage_sz_padded
         weights_region_start_addr  = 0
         weights_region_sz = weights_file_sz
         # ifmap file/region defaults            
         assert(self.first_op is not None)
         ifmaps_file_params = self.first_op.ifmaps_file_params
         single_ifmap_start = 0
-        single_ifmap_sz = ifmaps_file_params.batch_item_partition_usage_sz
+        single_ifmap_sz = ifmaps_file_params.batch_item_partition_usage_sz_padded
         ifmaps_region_start_addr  = 0
         ifmaps_region_sz = single_ifmap_sz
         # ofmap file/region defaults            
         assert(self.last_op is not None)
         ofmaps_file_params = self.last_op.ofmaps_file_params
         single_ofmap_start = 0
-        single_ofmap_sz = ofmaps_file_params.batch_item_partition_usage_sz
+        single_ofmap_sz = ofmaps_file_params.batch_item_partition_usage_sz_padded
         ofmaps_region_start_addr  = 0
         ofmaps_region_sz = single_ofmap_sz
 
@@ -200,7 +201,7 @@ class FusedOp(list):
         if self.has_biasadd:
             if bias_file_params.mapped_params is None:
                 map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
-                tpb.statebuffer.next_bias_file_start = bias_file_start_addr + bias_file_sz
+                tpb.statebuffer.next_bias_file_start = align_addr_8B(bias_file_start_addr + bias_file_sz)
             else:                
                 # in case that file is already mapped, keep the mapped values
                 bias_file_start_addr = bias_file_params.mapped_params.start_addr
@@ -213,7 +214,7 @@ class FusedOp(list):
                 if self.first_op.C <= 128:
                     ifmaps_region_sz = tpb.statebuffer.batcher.first_ifmaps_region_sz
                 else:                
-                    ifmaps_region_sz = self.current_batch_count * ifmaps_file_params.batch_item_partition_usage_sz
+                    ifmaps_region_sz = self.current_batch_count * ifmaps_file_params.batch_item_partition_usage_sz_padded
                 # for first IFMAP, use the residue size, which is roughly equal to 3 chunks of 224x4 input tiles
                 map_file(ifmaps_file_params, ifmaps_region_start_addr, wrap_around=True, region_sz=ifmaps_region_sz)
                 # obtain the adjusted region size
@@ -224,8 +225,8 @@ class FusedOp(list):
                 ifmaps_region_start_addr = ifmaps_file_params.mapped_params.start_addr
                 ifmaps_region_sz  = ifmaps_file_params.mapped_params.region_sz
             # Individual IFMAP info
-            single_ifmap_start = ifmaps_region_start_addr + (batch_item % self.current_batch_count) * ifmaps_file_params.batch_item_partition_usage_sz
-            single_ifmap_sz = ifmaps_file_params.batch_item_partition_usage_sz
+            single_ifmap_start = ifmaps_region_start_addr + (batch_item % self.current_batch_count) * ifmaps_file_params.batch_item_partition_usage_sz_padded
+            single_ifmap_sz = ifmaps_file_params.batch_item_partition_usage_sz_padded
 
             # Join for partial-batch region
             ofmap_batch_count = self.current_batch_count
@@ -236,7 +237,7 @@ class FusedOp(list):
             if ((self.last_op.is_fork or self.ofmap_is_for_join) != self.residue_in_scratch):
                 # special case for stage after MaxPool: use scratch space for OFMAP instead of residue space
                 #ofmaps_region_sz = ofmap_batch_count * ofmaps_file_params.batch_item_partition_usage_sz_rounded
-                ofmaps_region_sz = ofmap_batch_count * ofmaps_file_params.batch_item_partition_usage_sz
+                ofmaps_region_sz = ofmap_batch_count * ofmaps_file_params.batch_item_partition_usage_sz_padded
                 ofmaps_region_start_addr =   tpb.statebuffer.batcher.sb_bias_sz[sb_size_set_index] \
                                            + tpb.statebuffer.batcher.sb_partialbatch_start[ofmap_batch_count]
             # Scratch (OFMAP)
@@ -251,7 +252,7 @@ class FusedOp(list):
                 if (ofmaps_file_params.file_dims.C > 64) \
                     or (self.conv_op is not None and (self.conv_op.stride_x > 1 or self.conv_op.S > 1)) \
                     or (self.has_pool and self.pool_op.stride_x > 1):
-                    ofmaps_region_start_addr = ifmaps_region_start_addr - ofmaps_file_params.batch_item_partition_usage_sz * self.last_op.Tn                               
+                    ofmaps_region_start_addr = ifmaps_region_start_addr - ofmaps_file_params.batch_item_partition_usage_sz_padded * self.last_op.Tn                               
                 # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
                 if not self.first_op.is_input:
                     ifmaps_file_params.mapped_params.modify_in_place = True
@@ -263,8 +264,8 @@ class FusedOp(list):
             assert(ofmaps_region_start_addr == ofmaps_file_params.mapped_params.start_addr)
 
             # Individual OFMAP info
-            single_ofmap_start = ofmaps_region_start_addr + (batch_item % ofmap_batch_count) * ofmaps_file_params.batch_item_partition_usage_sz 
-            single_ofmap_sz = ofmaps_file_params.batch_item_partition_usage_sz
+            single_ofmap_start = ofmaps_region_start_addr + (batch_item % ofmap_batch_count) * ofmaps_file_params.batch_item_partition_usage_sz_padded 
+            single_ofmap_sz = ofmaps_file_params.batch_item_partition_usage_sz_padded
 
             # Weights region: remaining space after allocating for bias, residue/IFMAP, and OFMAP/scratch
             if self.has_conv:
@@ -282,7 +283,7 @@ class FusedOp(list):
                 weights_region_sz = ofmaps_region_start_addr - weights_region_start_addr
                 # try a different start adddress based on the last allocation                
                 weights_file_start_addr = tpb.statebuffer.next_weights_file_start
-                weights_file_sz = weights_file_params.tot_partition_usage_sz
+                weights_file_sz = weights_file_params.tot_partition_usage_sz_padded
                 if (weights_file_start_addr < weights_region_start_addr):
                     weights_file_start_addr = weights_region_start_addr
                 elif (weights_file_start_addr + weights_file_sz > weights_region_start_addr + weights_region_sz):
@@ -538,10 +539,7 @@ class FusedOp(list):
         fmap_x_num = self.conv_op.ofmap_wave_width
         fmap_x_step = self.conv_op.stride_x
         fmap_y_step = self.conv_op.W * self.conv_op.stride_y
-        if self.conv_op.Tn > 1:
-            fmap_z_step = self.conv_op.ifmaps_file_params.batch_item_partition_usage_sz//self.conv_op.item_sz
-        else:
-            fmap_z_step = 1
+        fmap_z_step = self.conv_op.ifmaps_file_params.batch_item_partition_usage_elems_padded if self.conv_op.Tn > 1 else 1
         dst_x_num = self.conv_op.ofmap_wave_width
         dst_y_step = self.conv_op.ofmap_cropped_tile_width
         ifmap_replication_resolution = 0
@@ -1033,7 +1031,7 @@ class FusedOp(list):
         dst_x_num = op.ofmap_full_tilex_sz
         dst_y_step = op.E
         dst_y_num = op.ofmap_full_tiley_sz
-        dst_z_step = (op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz) if op.Tn > 1 else 1
+        dst_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded if op.Tn > 1 else 1
         dst_z_num = op.Tn  # Need CNHW data format
         num_partitions = op.ofmap_count
         dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, op.ofmap_tile_lower_addr[0])
@@ -1131,7 +1129,7 @@ class FusedOp(list):
                 dst_z_step = dst_y_step * dst_y_num 
             else:                
                 dst_y_step = conv_op.E
-                dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
+                dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             if src_is_psum:
                 src_y_step = conv_op.ofmap_cropped_tile_width
                 # Kaena-593: ensure no bubble during IFMAP streaming (packed pattern)
@@ -1140,7 +1138,7 @@ class FusedOp(list):
                 src_z_step = conv_op.ofmap_cropped_tile_width * conv_op.ofmap_cropped_tile_height
             else:
                 src_y_step = conv_op.E
-                src_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
+                src_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             num_partitions = conv_op.ofmap_count
         elif (act_or_biasadd_op !=  None):
             # unfused
@@ -1148,9 +1146,9 @@ class FusedOp(list):
             dst_y_num = act_or_biasadd_op.F
             dst_z_num = act_or_biasadd_op.Tn
             dst_y_step = act_or_biasadd_op.E
-            dst_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_sz//act_or_biasadd_op.item_sz
+            dst_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             src_y_step = act_or_biasadd_op.E
-            src_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_sz//act_or_biasadd_op.item_sz
+            src_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             num_partitions = act_or_biasadd_op.ofmap_count
         # SB start addresses
         if src_is_psum:
@@ -1245,17 +1243,17 @@ class FusedOp(list):
                 dst_z_step = conv_op.ofmap_cropped_tile_width * conv_op.ofmap_cropped_tile_height
             else:                
                 dst_y_step = conv_op.E
-                dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
+                dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             # Source-B is PSUM if fused, or SB if unfused               
             if src_is_psum:
                 src_b_y_step = conv_op.ofmap_cropped_tile_width
                 src_b_z_step = conv_op.ofmap_cropped_tile_width * conv_op.ofmap_cropped_tile_height
             else:
                 src_b_y_step = conv_op.E
-                src_b_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
+                src_b_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             # Source-A (Residue) is always SB for now (TODO: make swappable for flexibility)              
             src_a_y_step = conv_op.E
-            src_a_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_sz//conv_op.item_sz
+            src_a_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             num_partitions = conv_op.ofmap_count
         else:
             # unfused
@@ -1265,10 +1263,10 @@ class FusedOp(list):
             dst_y_step = op.E
             dst_z_step = dst_y_step * dst_y_num
             src_b_y_step = op.E
-            src_b_z_step = op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz
+            src_b_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             # Source-A (Residue) is always SB for now (TODO: make swappable for flexibility)              
             src_a_y_step = op.E
-            src_a_z_step = op.ofmaps_file_params.batch_item_partition_usage_sz//op.item_sz
+            src_a_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             num_partitions = op.ofmap_count
         # SB start addresses
         # Source-B is PSUM if fused, or SB if unfused
@@ -1578,6 +1576,9 @@ class FusedOp(list):
                                 accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
                                 if accessor_name not in prev_waveops:
                                     prev_waveops.append(accessor_name)
+                        elif self.args.no_inter_layer_load:
+                            if (not pool_op.is_input and len(dram_ifmaps_waveops) > 0):
+                                raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
 
                         start_at_mid_part = tile_id.m_id%2 == 1
                         if (pool_op.data['layer_type'] == "AvgPool" or pool_op.data['layer_type'] == "MaxPool"):
