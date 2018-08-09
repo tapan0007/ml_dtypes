@@ -118,6 +118,8 @@ public:
     kcc_int64 gNumBytes() const {
         return m_NumBytes;
     }
+    virtual void assertAccessCheck() const = 0;
+
 private:
     kcc_int64 m_NumBytes = 0;
 };
@@ -145,6 +147,7 @@ public:
     FileIdType    gSrcFileId () const {
         return m_SrcFileId;
     }
+    void assertAccessCheck() const override;
 private:
     TpbAddress    m_DstSbAddress;
     TongaAddress  m_SrcFileAddress;
@@ -174,6 +177,7 @@ public:
     FileIdType gDstFileId() const {
         return m_DstFileId;
     }
+    void assertAccessCheck() const override;
 private:
     TpbAddress      m_SrcSbAddress;
     TongaAddress    m_DstFileAddress;
@@ -201,6 +205,7 @@ public:
     const std::string& gComment() const {
         return m_Comment;
     }
+
 
 protected:
     DmaDescription&                 m_DmaDescription;

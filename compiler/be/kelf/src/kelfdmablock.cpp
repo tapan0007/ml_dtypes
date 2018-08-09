@@ -1,4 +1,6 @@
 
+#include "utils/inc/asserter.hpp"
+
 #include "kelf/inc/kelfdmadescription.hpp"
 
 namespace kcc {
@@ -124,6 +126,32 @@ DmaDescription::DmaBlockInput::addDmaDesc(TongaAddress inputAddress,
     m_Descs.push_back(desc);
 }
 
+
+/***********************************************************************
+***********************************************************************/
+void
+DmaDescription::DmaDescFromTpb::assertAccessCheck() const
+{
+    const arch::StateBuffer stateBuf(arch::Arch::gArch().gStateBuffer());
+    const kcc_uint32 size    = gNumBytes();
+    const tpb_addr sbReadAddr  = gSrcSbAddress();
+    Assert(stateBuf.qTpbReadAccessCheck(sbReadAddr, size),
+        "Unaligned DMA state buffer read access. Addr=",
+        std::hex, sbReadAddr, std::dec, " size=", std::dec, size);
+}
+
+/***********************************************************************
+***********************************************************************/
+void
+DmaDescription::DmaDescToTpb::assertAccessCheck() const
+{
+    const arch::StateBuffer stateBuf(arch::Arch::gArch().gStateBuffer());
+    const tpb_addr sbWriteAddr = gDstSbAddress(); 
+    const kcc_uint32 size   = gNumBytes();
+    Assert(stateBuf.qTpbWriteAccessCheck(sbWriteAddr, size),
+        "Unaligned DMA state buffer write access. Addr=",
+        std::hex, sbWriteAddr, std::dec, " size=", size);
+}
 
 }}
 

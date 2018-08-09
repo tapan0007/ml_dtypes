@@ -37,10 +37,21 @@ public:
     }
 
     //--------------------------------------------------------
-    bool qLittleEndian() const {
+    static bool qLittleEndian() {
         return true;
     }
 
+    //--------------------------------------------------------
+    static bool qTpbReadAccessCheck(TpbAddress address, kcc_uint32 /*size*/) {
+        // According to the table, address%4==0, size=4*K, size>=4
+        return 0 == (address % 4);
+    }
+
+    //--------------------------------------------------------
+    static bool qTpbWriteAccessCheck(TpbAddress address, kcc_uint32 /*size*/) {
+        // According to the table, address%4==0, size=4*K, size>=4
+        return 0 == (address % 4);
+    }
 
     //--------------------------------------------------------
     TpbAddress gEntryTpbAddress(kcc_int32 row, kcc_int32 elmtOffInBytes) const;

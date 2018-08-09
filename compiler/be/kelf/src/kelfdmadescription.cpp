@@ -273,6 +273,7 @@ DmaDescription::writeDmaDescriptors(
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlockToTpb.gDescs()) {
+            desc.assertAccessCheck();
             json jDmaDesc;
             jDmaDesc["from"]         = desc.gSrcFileId();
             jDmaDesc["from_off"]     = desc.gSrcFileAddress();
@@ -303,6 +304,7 @@ DmaDescription::writeDmaDescriptors(
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlockFromTpb.gDescs()) {
+            desc.assertAccessCheck();
             json jDmaDesc;
             jDmaDesc["from"]         = gSymbolicStateBuffer();
             jDmaDesc["from_off"]     = desc.gSrcSbAddress();
@@ -456,6 +458,7 @@ DmaDescription::writeInOutDescriptors()
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlock.gDescs()) {
+            desc.assertAccessCheck();
             json jDmaDesc;
             jDmaDesc["from"]         = desc.gSrcFileId();
             jDmaDesc["from_off"]     = desc.gSrcFileAddress();
@@ -484,6 +487,7 @@ DmaDescription::writeInOutDescriptors()
 
         std::vector<json> jDmaDescs;
         for (const auto& desc : dmaBlock.gDescs()) {
+            desc.assertAccessCheck();
             json jDmaDesc;
             jDmaDesc["from"]         = gSymbolicStateBuffer();
             jDmaDesc["from_off"]     = desc.gSrcSbAddress();

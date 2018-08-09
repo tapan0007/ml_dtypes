@@ -552,7 +552,7 @@ class Krt:
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
     tongaDev = self.qemu.getTongaDevice()
     kbin_rt = '%s/bin/kbin_rt' % krtVmPath
-    cmdKrt = '%s %s %s %s %s -n 1 -s -t %d' % (
+    cmdKrt = '%s %s %s %s %s -n 1 -s -a -t %d' % (
                kbin_rt, self.kelfVmDir, self.ifmapDir, self.ofmapDir, tongaDev, self.inklingTimeout)
 
     shCmd="cd %s && %s ldd %s && if %s %s; then touch %s; else touch %s; fi" % (

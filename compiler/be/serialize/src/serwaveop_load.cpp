@@ -1,3 +1,5 @@
+
+#include "arch/inc/statebuffer.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
 #include "wave/inc/matmulwaveop.hpp"
@@ -51,7 +53,14 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(RefFileFormat);
     KCC_ARCHIVE(RefFileShape);
 
+    const arch::StateBuffer stateBuf(arch::Arch::gArch().gStateBuffer());
     if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
+        Assert(stateBuf.qTpbWriteAccessCheck(m_SbAddress, m_Length),
+            "State buffer write address 0x",
+            std::hex, m_SbAddress, std::dec,
+            ", size=", m_Length,
+            " in SbAtomLoad Waveop '", m_WaveOpName,
+            "' not aligned correctly");
         KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(ContainWeights);
 
@@ -61,6 +70,12 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
 
         KCC_ARCHIVE(SrcStepElem);
     } else {
+        Assert(stateBuf.qTpbReadAccessCheck(m_SbAddress, m_Length),
+            "State buffer read address 0x",
+            std::hex, m_SbAddress, std::dec,
+            ", size=", m_Length,
+            " in SbAtomSave Waveop '", m_WaveOpName,
+            "' not aligned correctly");
         KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(FinalLayerOfmap);
     }
