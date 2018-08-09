@@ -216,7 +216,7 @@ Main(int argc, char* argv[])
 
 
     //------------------------------------------------
-    nets::Network network(arch);
+    nets::Network network(arch, git_sha);
     nets::Network* ntwk = &network;
 
     {

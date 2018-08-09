@@ -41,10 +41,11 @@ namespace wave {
 namespace nets {
 
 //--------------------------------------------------------
-Network::Network(const arch::Arch& arch)
+Network::Network(const arch::Arch& arch, const char* gitVersion)
     : m_Arch(arch)
     , m_DataType(nullptr)
     , m_Name()
+    , m_GitVersion(gitVersion)
     , m_DoBatching(false)
     , m_Load(std::make_unique<Load>(*this))
     , m_Save(std::make_unique<Save>(*this))

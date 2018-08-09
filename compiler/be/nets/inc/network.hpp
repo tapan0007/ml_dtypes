@@ -57,6 +57,7 @@ constexpr const char* const NetKey_Layers               = "layers";
 constexpr const char* const NetKey_WaveOps              = "waveops";
 constexpr const char* const NetKey_NetName              = "net_name";
 constexpr const char* const NetKey_DataType             = "data_type";
+constexpr const char* const NetKey_GitVersion           = "git_version";
 
 
 
@@ -89,9 +90,14 @@ private:
 
 public:
     //----------------------------------------------------------------
-    Network(const arch::Arch& arch);
+    Network(const arch::Arch& arch, const char* gitVersion);
 
     ~Network();
+
+
+    const std::string& gGitVersion() const {
+        return m_GitVersion;
+    }
 
 #if 0
     Network(const DataType* dataType, const std::string& netName);
@@ -174,6 +180,7 @@ private:
     const arch::Arch&                       m_Arch;
     std::unique_ptr<DataType>               m_DataType;
     std::string                             m_Name;
+    std::string                             m_GitVersion;
     std::vector<layers::Layer*>             m_Layers;
     std::vector<wave::WaveOp*>              m_WaveOps;
     std::vector<wave::WaveOp*>              m_SaveWaveOps;

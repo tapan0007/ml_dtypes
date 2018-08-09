@@ -150,8 +150,14 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
      ***********************************************************************************/
     if (qBinFileRuntimeKelf()) {
     // Pool wait for start inference at beginning
-        writeWaitOrWaitClearInstr(events::EventId_StartInference(), events::EventWaitMode::WaitThenClear,
-                        EngineId::Pooling, "PoolEng waits on inference start");
+        {
+            std::ostringstream oss;
+            oss << "(" << m_Network.gGitVersion() << ")"
+                << "PoolEng waits on inference start";
+            writeWaitOrWaitClearInstr(events::EventId_StartInference(),
+                events::EventWaitMode::WaitThenClear, EngineId::Pooling, oss.str().c_str());
+        }
+
         { // Pool sets event for PeArray to read inputs
             compisa::SetInstr setInstr;
             setInstr.event_idx  = events::EventId_BeforeInputRead_PeArray();

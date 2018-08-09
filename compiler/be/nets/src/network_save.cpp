@@ -60,6 +60,7 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
     archive(cereal::make_nvp(NetKey_NetName, m_Name));
     archive(cereal::make_nvp(NetKey_DataType,
                             std::string(m_DataType->gName())));
+    archive(cereal::make_nvp(NetKey_GitVersion, m_GitVersion));
 
     // Temporary to vector for Cereal
     std::vector<serialize::SerLayer> serLayers(m_Layers.size());

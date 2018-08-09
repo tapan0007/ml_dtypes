@@ -1,5 +1,6 @@
 #include "utils/inc/debug.hpp"
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/misc.hpp"
 
 #include "compisa/inc/compisaset.hpp"
 #include "compisa/inc/compisawait.hpp"
@@ -307,6 +308,11 @@ void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setI
     instruction.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::OnEndInstr);
     instruction.inst_events.set_event_idx      = setInstr.event_idx;
     instruction.cycle_cnt                      = 1;
+    strcpy(
+        reinterpret_cast<char*>(instruction.reserved),
+        reinterpret_cast<const char*>(setInstr.reserved));
+    instruction.reserved[ArraySizeof(instruction.reserved)-1] = '\0';
+    // kcc::ArraySizeof(T (&)[N])
 #endif
 
     Assert(qParallelStreams(), "Cannot generate set-event instruction in serial mode");
