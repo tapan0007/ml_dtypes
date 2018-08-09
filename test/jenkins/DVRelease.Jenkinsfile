@@ -17,13 +17,8 @@ pipeline {
                 set -x
 
                 rm -rf $SRC_DIR && mkdir -p $SRC_DIR && cd $SRC_DIR
-                git clone ssh://siopt.review/tonga/sw/kaena/krt
-                git clone ssh://siopt.review/tonga/sw/kaena/kcc
-                git clone ssh://siopt.review/tonga/sw/arch-artifacts arch-headers
-                cd arch-headers
-                git checkout tonga-arch-artifacts-v0.2
-                cd ..
-                git clone ssh://siopt.review/tonga/arch-isa isa
+                repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
+                repo sync -j 8 krt arch-isa arch-headers
                 '''
 
                 stash name: 'src_dir', includes: 'src/**/*'
