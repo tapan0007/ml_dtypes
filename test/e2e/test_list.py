@@ -465,6 +465,7 @@ testConfigMap = {
 #  "9-inceptionv3_wave_dog_3rd_biasadd" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from batch_normalization_3/FusedBatchNorm_1 --executors host all --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 #  "9-inceptionv3_wave_dog_3rd_biasadd_sg00_tpb" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from batch_normalization_3/FusedBatchNorm_1 --executors host 1 wave 0 --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 #"9-inceptionv3_wave_dog_sg00_tpb" : ["tf_pb", "inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from mixed0/concat --executors host 1 wave 0 --scheduler wave --schedule_options '--nname=generic --save_layer_output' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg]
+#  "0-1conv1maxpool_h71c192k3d1_wave"  : [ "trivnet_conv_pool", "tfloat16-b16-h71-r1-s1-c192-m1-VALID-MaxPool-k3-d1-wmin-0.2-wmax0.3-imin-0.2-imax0.3", "1conv1pool", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
   
 }
 
@@ -475,7 +476,7 @@ testWaiver = [
     ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
     ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
     ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
-    ['0-3conv_1concat', 'WAIVE_INCEPTIONV3'],
+#    ['0-3conv_1concat', 'WAIVE_INCEPTIONV3'],
 #    ['9-inceptionv3_wave', 'WAIVE_INCEPTIONV3'],
 #    ['9-inceptionv3_wave_dog', 'WAIVE_INCEPTIONV3'],
     ['9-inceptionv3_wave_dog_sg00_tpb', 'WAIVE_INCEPTIONV3'],
