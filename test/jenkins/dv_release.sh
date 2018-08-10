@@ -11,6 +11,7 @@ RELEASE_DIRECTORY=${RELEASE_ROOT}/${RELEASE_NAME}
 # Create release directory and unzip tar into it.
 mkdir -p ${RELEASE_DIRECTORY}
 tar -xzf ${RELEASE_NAME}.tar.gz -C ${RELEASE_DIRECTORY}
+unlink latest
 ln -s ${RELEASE_DIRECTORY} latest
 
 # Fix up permissions so everyone in the 'ml' group can read/write(/delete).
