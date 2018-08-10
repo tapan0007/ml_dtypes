@@ -166,7 +166,7 @@ class Node(Object):
   def genCompilerLayerJson(self, tensorFormatMap):
     return([{"layer_type" :  self.getOpType(),
             "layer_name" :  self.getOpName(),
-            "#comment"   :  "unsupported layer"
+            "#comment"   :  "Unsupported operation"
             }], [])
   
   # Helper for op counts - number of scalar elements in all output tensors
@@ -287,7 +287,7 @@ class NodeConst(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [],
-      "#comment"        : "supported const layer"
+      "#comment"        : "Constants such as weights or biases"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -345,7 +345,7 @@ class NodeSimple(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [fromIfNode.getName()],
-      "#comment"        : "supported simple layer"
+      "#comment"        : "Simple operation with single input tensor and single output tensor"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -391,7 +391,7 @@ class NodeConcat(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : fromIfNode,
-      "#comment"        : "supported simple layer"
+      "#comment"        : "Concatenate along channel dimension, using order in previous_layers list"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -426,7 +426,7 @@ class NodeSoftmax(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [fromIfNode.getName()],
-      "#comment"        : "supported softmax layer"
+      "#comment"        : "Softmax operation"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -500,7 +500,7 @@ class NodeInput(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [],
-      "#comment"        : "supported input layer"
+      "#comment"        : "Input placeholder"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -702,7 +702,7 @@ class NodeConv2D(NodeBasePaddedStrided):
       "padding"         : padding,
       "previous_layers" : [fromIfNode.getName()],
       "stride"          : stride,
-      "#comment"        : "supported layer"
+      "#comment"        : "Two dimensional convolution with explicit padding"
     }
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
@@ -825,7 +825,7 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
       "padding"         : padding,
       "previous_layers" : [fromIfNode.getName()],
       "stride"          : stride,
-      "#comment"        : "supported layer"
+      "#comment"        : "Two dimensional transpose convolution (deconvolution) with explicit padding"
     }
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
@@ -908,7 +908,7 @@ class NodePool(NodeBasePaddedStrided):
       "padding"         : padding,
       "previous_layers" : [fromIfNode.getName()],
       "stride"          : stride,
-      "#comment"        : "supported layer"
+      "#comment"        : "Two dimensional pool with explicit padding"
     }
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
@@ -1016,7 +1016,7 @@ class NodeSimple2(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [fromIfNode0.getName(), fromIfNode1.getName()],
-      "#comment"        : "supported simple layer with 2 inputs"
+      "#comment"        : "Element-wise operation on two input tensors"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -1060,7 +1060,7 @@ class NodeSimple2(Node):
           "ofmap_format"    : simFormat,
           "ref_file"        : npFileSimF1,
           "previous_layers" : [],
-         "#comment"   :  "captured constant"
+         "#comment"   :  "Captured constant"
         }
         fileListBase.insert(0, npFileSimF1)
         layerDataBase.insert(0, constLayerData)  # prepend - because the backend Json parser requires layers defined
@@ -1111,7 +1111,7 @@ class NodeMatMul(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [fromIfNode0.getName()],
-      "#comment"        : "supported matmul"
+      "#comment"        : "Two dimensional matrix multiply"
     }
     fileList.append(npFileSim)
     fileList.append(npFileSimW)
@@ -1182,7 +1182,7 @@ class NodeMultiply(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [fromIfNode1.getName()],
-      "#comment"        : "supported multiply"
+      "#comment"        : "Element-wise multiply two input tensors"
     }
 
     if isScalar:
@@ -1249,7 +1249,7 @@ class NodeReshape(Node):
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "previous_layers" : [ifNode.getName()],
-      "#comment"        : "supported reshape as copy"
+      "#comment"        : "Reshape implemented as a copy operation (output dims limited to between 2-4)"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -1335,7 +1335,7 @@ class NodeStridedSlice(Node):
       "ref_file"        : npFileSim,
       "channel_slice"   : [vectorStart, vectorEnd],
       "previous_layers" : [nIn.getName()],
-      "#comment"        : "supported const layer"
+      "#comment"        : "Extract slice along channel dimension"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
@@ -1384,7 +1384,7 @@ class NodeUnstack(Node):
       "unstack_axis"    : unstackAxis,
       "previous_layers" : [fromIfNode.getName()],
       "next_layer_order" : nextLayerPosList,
-      "#comment"        : "supported const layer"
+      "#comment"        : "Unstack along dimension specified by unstack_axis, using stacking order next_layer_order"
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
