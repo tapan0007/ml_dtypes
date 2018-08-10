@@ -8,23 +8,6 @@ pipeline {
         KRT_DV_BLD_DIR = "$BLD_DIR/krt_dv"
     }
     stages {
-        stage('Checkout'){
-            agent {
-                label 'tonga-nodocker'
-            }
-            steps {
-                sh '''
-                set -x
-
-                rm -rf $SRC_DIR && mkdir -p $SRC_DIR && cd $SRC_DIR
-                repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
-                repo sync -j 8 krt arch-isa arch-headers ext
-                rm -rf ext/apps ext/images
-                '''
-
-                stash name: 'src_dir', includes: 'src/**/*'
-            }
-        }
         stage('Build') {
             agent {
                 dockerfile {
@@ -35,8 +18,17 @@ pipeline {
                 }
             }
             steps {
+                sh '''
+                set -x
+
+                rm -rf $SRC_DIR && mkdir -p $SRC_DIR && cd $SRC_DIR
+                repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
+                repo sync -j 8 krt arch-isa arch-headers ext
+                rm -rf ext/apps ext/images
+                cd ..
+                '''
+
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
-                unstash 'src_dir'
                 sh 'ls src'
                 sh 'mkdir -p $KRT_DV_BLD_DIR'
 
@@ -59,6 +51,7 @@ pipeline {
             steps {
                 script {
                     unstash 'krt_dv_package'
+                    sh 'ls -l'
                     sh 'test/jenkins/dv_release.sh'
                 }
             }
