@@ -18,7 +18,8 @@ pipeline {
 
                 rm -rf $SRC_DIR && mkdir -p $SRC_DIR && cd $SRC_DIR
                 repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
-                repo sync -j 8 krt arch-isa arch-headers
+                repo sync -j 8 krt arch-isa arch-headers ext
+                rm -rf ext/apps ext/images
                 '''
 
                 stash name: 'src_dir', includes: 'src/**/*'
