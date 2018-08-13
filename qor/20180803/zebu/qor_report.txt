@@ -1,0 +1,65 @@
+
+INFO: started as  /work1/zejdaj/git_repo_triang/kcc/test/e2e/RunAll --force_qemu --timeout 1800 --parallel 1 --test 0-1conv0_wave 0-10conv_relu_wave 0-116conv_tanh_wave 0-1conv0_b16_wave 0-1conv0_c1h16_wave 0-1conv0_c1h2_wave 0-1conv0_ckpt_wave 0-1conv0_h16r2s2_wave 0-1conv0_h16r3s2_wave 0-1conv0_h55c256m1_wave 0-1conv0m16_wave 0-1conv0m4_wave 0-1conv0m8_wave 0-1conv0_padvalid_wave 0-1conv0_qemu_wave 0-1conv1avgpool_wave 0-1conv1ba1_h1c64m64_wave 0-1conv1ba1_h4c2m2_wave 0-1conv1ba1_h55c1m1_b2_wave 0-1conv1ba1_h55c1m1_wave 0-1conv1ba1_wave 0-1conv1pool_wave 0-1conv_b1h1r1s1c2m2_tile_wave 0-1conv_h4r1_b2_wave 0-1conv_h4r1_wave 0-1conv_h4r2s2_wave 0-1conv_h4r3s1_b2_wave 0-1conv_h4r3s1_wave 0-1conv_h6r2s3_wave 0-1conv_h6r3s2_b2_wave 0-1conv_h6r3s2_wave 0-1conv_s8_32b_wave 0-1conv_s8_wave 0-1conv_tile_r1_e1_wave 0-1conv_tile_r1h32_wave 0-1conv_tile_r1_wave 0-1conv_tile_wave 0-1mp_r3s2_16_wave 0-2conv3_relu_b16_wave 0-2conv3_relu_wave 0-3conv_ba_resadd_fp16_wave 0-3conv_ba_resadd_h1_fp16_wave 0-3conv_relu_wave 0-act_wave 0-rtl-1conv1avgpool_b1h4_same_wave 0-rtl-1conv1maxpool_h4_val_wave 0-rtl-1conv3_h4r3_relu_wave 0-rtl-1conv_h2c16_wave 0-rtl-1conv_h4r2c8m4_wave 0-rtl-1conv_h4r3c4m2_wave 0-rtl-1conv_h8r4c64m16_wave 0-rtl-1conv_m8_wave 0-rtl-1conv_relu_wave 0-rtl-1conv_wave 0-rtl-act_h2c16_wave --report_only
+Done in 0.568 sec
+
+SUMMARY: PASSRATE  31  56.364%  of  55  (0 were waived)
+DETAILED STATUS: FAIL 24  PASS 31  
+  FAIL
+    0-10conv_relu_wave
+    0-116conv_tanh_wave
+    0-1conv0_b16_wave
+    0-1conv0_h55c256m1_wave
+    0-1conv0_padvalid_wave
+    0-1conv1ba1_h1c64m64_wave
+    0-1conv1ba1_h4c2m2_wave
+    0-1conv1ba1_h55c1m1_b2_wave
+    0-1conv1ba1_h55c1m1_wave
+    0-1conv1ba1_wave
+    0-1conv1pool_wave
+    0-1conv_h6r3s2_b2_wave
+    0-1conv_s8_32b_wave
+    0-1conv_tile_r1_e1_wave
+    0-1conv_tile_r1_wave
+    0-1conv_tile_wave
+    0-2conv3_relu_b16_wave
+    0-3conv_ba_resadd_fp16_wave
+    0-3conv_ba_resadd_h1_fp16_wave
+    0-3conv_relu_wave
+    0-act_wave
+    0-rtl-1conv1avgpool_b1h4_same_wave
+    0-rtl-1conv_h8r4c64m16_wave
+    0-rtl-act_h2c16_wave
+  PASS
+    0-1conv0_c1h16_wave
+    0-1conv0_c1h2_wave
+    0-1conv0_ckpt_wave
+    0-1conv0_h16r2s2_wave
+    0-1conv0_h16r3s2_wave
+    0-1conv0_qemu_wave
+    0-1conv0_wave
+    0-1conv0m16_wave
+    0-1conv0m4_wave
+    0-1conv0m8_wave
+    0-1conv1avgpool_wave
+    0-1conv_b1h1r1s1c2m2_tile_wave
+    0-1conv_h4r1_b2_wave
+    0-1conv_h4r1_wave
+    0-1conv_h4r2s2_wave
+    0-1conv_h4r3s1_b2_wave
+    0-1conv_h4r3s1_wave
+    0-1conv_h6r2s3_wave
+    0-1conv_h6r3s2_wave
+    0-1conv_s8_wave
+    0-1conv_tile_r1h32_wave
+    0-1mp_r3s2_16_wave
+    0-2conv3_relu_wave
+    0-rtl-1conv1maxpool_h4_val_wave
+    0-rtl-1conv3_h4r3_relu_wave
+    0-rtl-1conv_h2c16_wave
+    0-rtl-1conv_h4r2c8m4_wave
+    0-rtl-1conv_h4r3c4m2_wave
+    0-rtl-1conv_m8_wave
+    0-rtl-1conv_relu_wave
+    0-rtl-1conv_wave
+
+

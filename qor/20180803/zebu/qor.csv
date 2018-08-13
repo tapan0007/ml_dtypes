@@ -1,0 +1,56 @@
+Test,Status,TopsRaw,OpCountRaw,TopsEff,OpCountEff,SimCycles,SimTimeSec,SimCycles/sec,TotTimeSec,Description
+0-10conv_relu_wave,FAIL,0,1412,0,2852,0,-1e-06,0,0.017945528030395508,Resnet-like network with 10 Conv2D and Relu layer pairs
+0-116conv_tanh_wave,FAIL,0,17842,0,36242,0,-1e-06,0,0.1649022102355957,Resnet-like network with 116 Conv2D and Relu layer pairs
+0-1conv0_b16_wave,FAIL,0,51,0,51,0,-1e-06,0,0.0042150020599365234,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_c1h16_wave,PASS,0,771,0,771,0,-1e-06,0,0.004237651824951172,"Existance test for 1 conv2D layer with 1x1 filter, 16x16 image, 1 input channel"
+0-1conv0_c1h2_wave,PASS,0,15,0,15,0,-1e-06,0,0.009068012237548828,"Existance test for 1 conv2D layer with 1x1 filter, 2x2 image, 1 input channel"
+0-1conv0_ckpt_wave,PASS,0,6,0,6,0,-1e-06,0,0.005101442337036133,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h16r2s2_wave,PASS,0,774,0,774,0,-1e-06,0,0.005241870880126953,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h16r3s2_wave,PASS,0,1287,0,1419,0,-1e-06,0,0.004174709320068359,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h55c256m1_wave,FAIL,0,2323458,0,2323458,0,-1e-06,0,0.0037376880645751953,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_padvalid_wave,FAIL,0,1281804,0,1281804,0,-1e-06,0,0.0031054019927978516,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_qemu_wave,PASS,0,6,0,6,0,-1e-06,0,0.0041315555572509766,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_wave,PASS,0,6,0,6,0,-1e-06,0,0.003627777099609375,Existence test for wave scheduler
+0-1conv0m16_wave,PASS,0,51,0,51,0,-1e-06,0,0.004071235656738281,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0m4_wave,PASS,0,15,0,15,0,-1e-06,0,0.0038063526153564453,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0m8_wave,PASS,0,27,0,27,0,-1e-06,0,0.004181623458862305,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv1avgpool_wave,PASS,0,83,0,83,0,-1e-06,0,0.004685640335083008,Two Conv2D layers back to back
+0-1conv1ba1_h1c64m64_wave,FAIL,0,12484,0,12484,0,-1e-06,0,0.0038385391235351562,Two Conv2D layers back to back
+0-1conv1ba1_h4c2m2_wave,FAIL,0,202,0,202,0,-1e-06,0,0.004117488861083984,Two Conv2D layers back to back
+0-1conv1ba1_h55c1m1_b2_wave,FAIL,0,24206,0,24206,0,-1e-06,0,0.020135879516601562,Two Conv2D layers back to back
+0-1conv1ba1_h55c1m1_wave,FAIL,0,12106,0,12106,0,-1e-06,0,0.01679849624633789,Two Conv2D layers back to back
+0-1conv1ba1_wave,FAIL,0,12820,0,12820,0,-1e-06,0,0.019930124282836914,Two Conv2D layers back to back
+0-1conv1pool_wave,FAIL,0,8338,0,8338,0,-1e-06,0,0.019904136657714844,Two Conv2D layers back to back
+0-1conv_b1h1r1s1c2m2_tile_wave,PASS,0,16,0,16,0,-1e-06,0,0.008931159973144531,Two Conv2D layers back to back
+0-1conv_h4r1_b2_wave,PASS,0,99,0,99,0,-1e-06,0,0.017130136489868164,Two Conv2D layers back to back
+0-1conv_h4r1_wave,PASS,0,51,0,51,0,-1e-06,0,0.004996776580810547,Two Conv2D layers back to back
+0-1conv_h4r2s2_wave,PASS,0,54,0,54,0,-1e-06,0,0.004489421844482422,Two Conv2D layers back to back
+0-1conv_h4r3s1_b2_wave,PASS,0,299,0,619,0,-1e-06,0,0.008252859115600586,Two Conv2D layers back to back
+0-1conv_h4r3s1_wave,PASS,0,155,0,315,0,-1e-06,0,0.00492405891418457,Two Conv2D layers back to back
+0-1conv_h6r2s3_wave,PASS,0,74,0,74,0,-1e-06,0,0.017454147338867188,Two Conv2D layers back to back
+0-1conv_h6r3s2_b2_wave,FAIL,0,321,0,407,0,-1e-06,0,0.007771015167236328,Two Conv2D layers back to back
+0-1conv_h6r3s2_wave,PASS,0,166,0,209,0,-1e-06,0,0.013336420059204102,Two Conv2D layers back to back
+0-1conv_s8_32b_wave,FAIL,0,267,0,267,0,-1e-06,0,0.0070574283599853516,Two Conv2D layers back to back
+0-1conv_s8_wave,PASS,0,267,0,267,0,-1e-06,0,0.004282712936401367,Two Conv2D layers back to back
+0-1conv_tile_r1_e1_wave,FAIL,0,3678,0,3678,0,-1e-06,0,0.004496097564697266,Single Conv2D layer with a large image
+0-1conv_tile_r1_wave,FAIL,0,3678,0,3678,0,-1e-06,0,0.004215240478515625,Single Conv2D layer with a large image
+0-1conv_tile_r1h32_wave,PASS,0,3075,0,3075,0,-1e-06,0,0.00411534309387207,Single Conv2D layer with a large image
+0-1conv_tile_wave,FAIL,0,20966,0,23286,0,-1e-06,0,0.004210472106933594,Single Conv2D layer with a large image
+0-1mp_r3s2_16_wave,PASS,0,1139,0,1139,0,-1e-06,0,0.005545139312744141,Single MaxPoll layer
+0-2conv3_relu_b16_wave,FAIL,0,2572,0,5132,0,-1e-06,0,0.0043964385986328125,A unit test
+0-2conv3_relu_wave,PASS,0,172,0,332,0,-1e-06,0,0.004526615142822266,A unit test
+0-3conv_ba_resadd_fp16_wave,FAIL,0,113519,0,121028,0,-1e-06,0,0.02194046974182129,"Two layer, BiasAdd followed by ResAdd"
+0-3conv_ba_resadd_h1_fp16_wave,FAIL,0,0,0,0,0,-1e-06,0,4.458427429199219e-05,"Two layer, BiasAdd followed by ResAdd"
+0-3conv_relu_wave,FAIL,0,0,0,0,0,-1e-06,0,3.337860107421875e-05,A unit test
+0-act_wave,FAIL,0,0,0,0,0,-1e-06,0,3.0994415283203125e-05,A unit test
+0-rtl-1conv1avgpool_b1h4_same_wave,FAIL,0,0,0,0,0,-1e-06,0,3.4332275390625e-05,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h4_val_wave,PASS,0,83,0,83,0,-1e-06,0,0.011693954467773438,Two Conv2D layers back to back
+0-rtl-1conv3_h4r3_relu_wave,PASS,0,172,0,332,0,-1e-06,0,0.006121397018432617,Two Conv2D layers back to back
+0-rtl-1conv_h2c16_wave,PASS,0,210,0,210,0,-1e-06,0,0.012012720108032227,Two Conv2D layers back to back
+0-rtl-1conv_h4r2c8m4_wave,PASS,0,2879,0,4354,0,-1e-06,0,0.012472152709960938,Two Conv2D layers back to back
+0-rtl-1conv_h4r3c4m2_wave,PASS,0,1162,0,2442,0,-1e-06,0,0.005680084228515625,Two Conv2D layers back to back
+0-rtl-1conv_h8r4c64m16_wave,FAIL,0,1129719,0,2117634,0,-1e-06,0,0.016736268997192383,Two Conv2D layers back to back
+0-rtl-1conv_m8_wave,PASS,0,27,0,27,0,-1e-06,0,0.004498481750488281,Two Conv2D layers back to back
+0-rtl-1conv_relu_wave,PASS,0,172,0,332,0,-1e-06,0,0.004467010498046875,Two Conv2D layers back to back
+0-rtl-1conv_wave,PASS,0,6,0,6,0,-1e-06,0,0.006310939788818359,Two Conv2D layers back to back
+0-rtl-act_h2c16_wave,FAIL,0,130,0,130,0,-1e-06,0,0.003943204879760742,A unit test
