@@ -252,8 +252,11 @@ class Qemu(BePlat):
     print("INFO: starting Qemu  %s" % cmd, flush=True)
     self.logReplay(cmd)
     self.fh = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
-    self.fh.expect("QEMU")
-    self.fh.send("\r")
+    try:
+      self.fh.expect("QEMU", timeout=120)
+      self.fh.send("\r")
+    except:
+      pass  # the guest OS is tested separately, no need for return code
     time.sleep(30)  # ssh to the qemu guest is getting random errors, maybe this can help
 
   def testGuest(self, numAttempts):
@@ -339,7 +342,10 @@ class Zebu(BePlat):
     print("INFO: starting Zebu Tonga  %s" % cmd, flush=True)
     self.logReplay(cmd)
     self.fh = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
-    self.fh.expect("zebuadmin@zebu-server")
+    try:
+      self.fh.expect("zebuadmin@zebu-server")
+    except:
+      return tongaOk
 
     self.fh.send("source ~/.vbox_bashrc\r")
     self.fh.expect("$")
