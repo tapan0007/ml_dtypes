@@ -53,6 +53,7 @@ class KNode:
         self.src_circbuf = None
         self.dst_circbuf = None
         self.ifmaps_file_params = None
+        self.ifmaps_file_params_concat = []
         self.ofmaps_file_params = None
         self.weights_file_params = None
         self.bias_file_params = None
@@ -63,6 +64,7 @@ class KNode:
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
+
     def add_next(self, next_node):
         if (not self.in_next(next_node)):
             self.next.append(next_node)
@@ -136,6 +138,12 @@ class KNode:
             self.ifmaps_file_params = self.prev[prev_index].ofmaps_file_params
             self.prev[prev_index].ofmaps_file_params.readers_of_shared_fmap.append(self)
             self.N, self.C, self.H, self.W = self.ifmaps_file_params.get_nchw_shape()
+            # taemk :
+            # Create a separate container for ifmap file params of Concat
+            # operation
+            self.ifmaps_file_params_concat = []
+            for i in (self.prev):
+                self.ifmaps_file_params_concat.append(i.ofmaps_file_params)
         else:
             print("Layer % has no input"%(self.data['layer_name']))
         # since M is set to C above, but for Softmax2, we just need one output channel (sum across input channels)
@@ -276,6 +284,7 @@ class KNode:
 
         # compute the bounds for OFMAP tile within OFMAPs tensor (adjusted for boundary conditions)
         ofmap_tile_start_coord       = ofmap_tile.get_fmap_coord(self.ofmap_full_tile_rect.get_width_height())
+        ofmap_tile_start_coord       = ofmap_tile_start_coord + Coord(0, self.unstack_h_offset)
         ofmap_tile_start_coord       = ofmap_tile_start_coord + Coord(0, self.unstack_h_offset)
         ofmap_tile.padded_tile_rect  = self.ofmap_full_tile_rect + ofmap_tile_start_coord
         ofmap_tile.tile_rect         = ofmap_tile.padded_tile_rect.get_overlap(self.ofmap_full_rect)
@@ -550,7 +559,7 @@ class KGraph:
                 if (len(prev_layers) > 0):
                     for i in prev_layers:
                         if i in self.node_dict:
-                            #if (args.debug>0): print("Previous layer for ", new_node.data['layer_name'], " is ", i)
+                            #if (self.args.debug>0): print("Previous layer for ", new_node.data['layer_name'], " is ", i)
                             prev_node = self.node_dict[i]
                             # dissolve StridedSlice into the next operation
                             if (prev_node.data['layer_type'] == "StridedSlice"):
@@ -698,20 +707,23 @@ class KGraph:
             else:                
                 self.current_node = None
         # if the last node is Conv or MatMul, add an identity pool op
-        if (last_node_type == "Conv" or last_node_type == "MatMul"):
+        if (last_node_type == "Conv" or last_node_type == "MatMul" or last_node_type == "Concat"):
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
         # set the first op source is not PSUM, and last op dest is not PSUM
         fused_ops.first_op = fused_ops[0]
         fused_ops.first_op.src_is_psum = False
         fused_ops.last_op = fused_ops[-1]
         fused_ops.last_op.dst_is_psum = False
-        # If ResAdd capture ofmaps_file_params from the other branch.
-        # Also, if it is followed by BiasAdd or Activate, use the same ofmaps_file_params for last op
-        if fused_ops.has_join:
+        # Optimization: share FMAP space for join operation that has same input shape as output shape
+        if fused_ops.has_join \
+                and fused_ops.join_op.data["layer_type"] != "Concat" \
+                and not fused_ops.join_op.is_input:
             if fused_ops.last_op != fused_ops.join_op:
+                # If join is followed by BiasAdd or Activate, use the same ofmaps_file_params as last op
                 assert(fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.last_op.ofmaps_file_params.file_dims.shape_tuple)
                 fused_ops.join_op.ofmaps_file_params = fused_ops.last_op.ofmaps_file_params
                 fused_ops.join_op.ofmaps_file_params.writers_of_shared_fmap.append(fused_ops.join_op)
+            # If join, capture ofmaps_file_params from the other branch (residue branch).
             residue_op = fused_ops.join_op.prev[fused_ops.join_op.residue_index]                
             assert(residue_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple)
             # must change readers of shared FMAP before changing writers, because one of the writers is residue_op itself
@@ -723,6 +735,9 @@ class KGraph:
                 i.ofmaps_file_params = fused_ops.join_op.ofmaps_file_params
             residue_op.ofmaps_file_params = fused_ops.join_op.ofmaps_file_params
         # preload files
+        for i in fused_ops.first_op.ifmaps_file_params_concat:
+            if i is not None:
+                i.load_file()
         if fused_ops.first_op.ifmaps_file_params is not None:
             fused_ops.first_op.ifmaps_file_params.load_file()
         if fused_ops.last_op.ofmaps_file_params is not None:
@@ -759,8 +774,7 @@ class KGraph:
             id_pool_op.next.append(next_op)
             for j in range(len(next_op.prev)):
                 if next_op.prev[j] == last_op:
-                    del next_op.prev[j]
-                    next_op.prev.append(id_pool_op)
+                    next_op.prev[j] = id_pool_op
         last_op.next = [id_pool_op]                    
         return id_pool_op
 

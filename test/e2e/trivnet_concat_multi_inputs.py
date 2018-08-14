@@ -79,70 +79,34 @@ except:
 for t in ["np", "tf"]:
   exec("%sDataType = %s.%s" % (t, t, dataType))
 
-mm = np.random.randint(low = (-M + 1), high = (2*M))
-#mm = 1
-print ("mm = %d"%mm)
 IF1 = np.zeros([B, H, H, C])
 IF2 = np.zeros([B, H, H, C])
-W1  = np.zeros([R, R, C, M])
-W2  = np.zeros([R, R, C, M + mm])
-#W3  = np.zeros([R, R, 2*M + cc, M])
 #Wmove = np.zeros([2*C, R, R, M])
 
-strides = [1, S, S, 1]
-padding = "SAME"
 
+i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input0")
+i1 = tf.placeholder(tfDataType, shape=IF2.shape, name="input1")
 
-#wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size + W2.size + W3.size), dtype=npDataType))
-wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size + W2.size), dtype=npDataType))
-w1Values =  wAllValues[0:W1.size].reshape(W1.shape)
-print("w1\n", w1Values, "  ", w1Values.dtype)
-w2Values =  wAllValues[W1.size:W1.size+W2.size].reshape(W2.shape)
-print("w2\n", w2Values, "  ", w2Values.dtype)
-#w3Values =  wAllValues[W1.size+W2.size:W1.size+W2.size+W3.size].reshape(W3.shape)
-#print("w3\n", w3Values, "  ", w3Values.dtype)
-
-#wmoveValues = np.array([[[[0.0,1.0]]]], dtype=w3Values.dtype)
-print("w1\n", w1Values, "  ", w1Values.dtype)
-print("w2\n", w2Values, "  ", w2Values.dtype)
-#print("w3\n", w3Values, "  ", w3Values.dtype)
-#print("wmove\n", wmoveValues, "  ", wmoveValues.shape)
-
-w1 = tf.get_variable(name=netName+"/weight1",
-                     initializer = w1Values.astype(npDataType),\
-                     dtype=tfDataType)
-w2 = tf.get_variable(name=netName+"/weight2",
-                     initializer = w2Values.astype(npDataType),\
-                     dtype=tfDataType)
-#w3 = tf.get_variable(name=netName+"/weight3",
-#                     initializer = w3Values.astype(npDataType),\
-#                     dtype=tfDataType)
-#wmove = tf.get_variable(name=netName+"/weight_move",
-#                     initializer = wmoveValues.astype(npDataType),\
-#                     dtype=tfDataType)
-#i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input0")
-#i1 = tf.placeholder(tfDataType, shape=IF2.shape, name="input1")
-i = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
-i1 = tf.nn.conv2d(i, w1, strides, padding, name=netName + "/i1")
-i2 = tf.nn.conv2d(i, w2, strides, padding, name=netName + "/i2")
-
-i3 = array_ops.concat([i1, i2], -1, name=netName+"/i3")
-#i4 = tf.nn.conv2d(i3, w3, strides, padding, name=netName + "/i4")
+i3 = array_ops.concat([i0, i1], -1, name=netName+"/i3")
 output = tf.identity(i3, name=netName+"/output")
 
 #i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType)).reshape(IF1.shape)
 np.random.seed(17)
 i0val = np.random.random(IF1.shape)
-#i1val = np.random.random(IF2.shape)
+i0val = i0val.astype(dataType)
+i1val = np.random.random(IF2.shape)
+i1val = i1val.astype(dataType)
 
 # Overide the values:
 for row,col,val in fmapValList:
   i0val[0, row, col, 0] = val
 
-np.save( outPrefix + 'ref_input.npy', i0val)
+np.save( outPrefix + 'ref_input0.npy', i0val)
+np.save( outPrefix + 'ref_input1.npy', i1val)
 #np.save( outPrefix + 'ref_weight_move.npy', wmoveValues)
 #np.save( outPrefix + 'ref_input1.npy', i1val)
 print("Inp0=\n", i0val)
+print("Inp1=\n", i1val)
 #print("wmoveValue=\n", wmoveValues)
 #print("Inp1=\n", i1val)
 
@@ -150,16 +114,17 @@ print("Inp0=\n", i0val)
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 with tf.Session(config=config) as sess:
-  sess.run(tf.global_variables_initializer())
-#res = sess.run(output, feed_dict={"input0:0" : i0val, "input1:0" : i1val})
-  res = sess.run(output, feed_dict={"input:0" : i0val})
+  #sess.run(tf.global_variables_initializer())
+  res = sess.run(output, feed_dict={'input0:0' : i0val, 'input1:0' : i1val})
+  #res = sess.run(output, feed_dict={"input0:0" : i0val})
   print("Res=\n", res)
   print("INFO: the result contains %d infinite numbers" % (res.size - np.count_nonzero(np.isfinite(res))))
   graph = tf.get_default_graph()
   tf.train.write_graph(graph, '.', outPrefix + 'graph.pb')
-  saver = tf.train.Saver()
+  tf.train.write_graph(graph, '.', outPrefix + 'freeze.pb', as_text=False)
+  #saver = tf.train.Saver()
   prefixTFfix = ""
   if not outPrefix.startswith("/"):
     prefixTFfix = "./"
-  saver.save(sess, prefixTFfix + outPrefix + "checkpoint.data")
+  #saver.save(sess, prefixTFfix + outPrefix + "checkpoint.data")
 

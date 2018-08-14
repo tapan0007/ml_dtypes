@@ -713,7 +713,7 @@ class FileMapper():
             num_region_chunks = file_params.tot_num_chunks
             adj_region_sz     = file_params.tot_partition_usage_sz_padded
         else:
-            if adj_region_sz >= file_params.fmap_data_len:
+            if adj_region_sz >= file_params.fmap_data_len_padded:
                 num_region_fmaps  = adj_region_sz // file_params.fmap_data_len_padded
                 num_region_chunks = num_region_fmaps * file_params.fmap_num_chunks
                 adj_region_sz     = num_region_fmaps * file_params.fmap_data_len_padded
@@ -807,7 +807,7 @@ class FileMapper():
         assert(chunk_id >= batch_item * file_params.batch_item_num_chunks)
         assert(chunk_id < file_params.tot_num_chunks)
         chunk_id_offset = chunk_id % file_params.mapped_params.num_region_chunks
-        if file_params.mapped_params.region_sz >= file_params.fmap_data_len:
+        if file_params.mapped_params.region_sz >= file_params.fmap_data_len_padded:
             # if region_sz >= fmap_data_len, earlier computation guarantees that region_sz is multiple of fmap_data_len
             fold_idx         = chunk_id_offset // file_params.fmap_num_chunks
             chunk_id_in_fold = chunk_id_offset % file_params.fmap_num_chunks
@@ -1414,7 +1414,8 @@ class TestFileMapper(unittest.TestCase):
         #self.assertEqual(file_params.mapped_params.region_sz, 6*file_params.chunk_sz)
         self.assertEqual(file_params.mapped_params.num_region_chunks, 8)
         self.assertEqual(file_params.mapped_params.num_file_chunks_per_batch_item, 8)
-        self.assertEqual(file_params.mapped_params.end_addr, (55*55*2 - 1)*file_params.item_sz) 
+        #self.assertEqual(file_params.mapped_params.end_addr, (55*55*2 - 1)*file_params.item_sz) 
+        self.assertEqual(file_params.mapped_params.end_addr, (align_addr_8B(55*55*2) - 1)*file_params.item_sz) # padded
         list_of_accessors = [{'waveop_name' : "waveop_%d"%i} for i in range(100)]
         (last_writer, last_reader, waveops) = test_obj.read_file_data_region(10, list_of_accessors, file_params, 0, 0, 100)
         self.assertEqual(waveops[0]["sb_address"], 0)

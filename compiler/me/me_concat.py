@@ -71,8 +71,10 @@ class Concat:
         datatype = ifmap_file_params[0].data_type
         return cls(ifmaps, num_output_channels, datatype)
     
-    def CreateFMAPSpecsFromFileParams (ifmap_file_params):
+    @classmethod
+    def CreateFMAPSpecsFromFileParams (cls, ifmap_file_params):
         ifmaps = []
+        cls.FMAPSpec2FileParams = dict()
         for ifmap_file_param in ifmap_file_params:
             N = ifmap_file_param.file_dims.dim["N"]
             C = ifmap_file_param.file_dims.dim["C"]
@@ -81,6 +83,7 @@ class Concat:
             fmap_dim = [N, C, H, W]
             file_name = ifmap_file_param.file_name
             ifmaps.append(me_common_ds.FMAPSpec(False,fmap_dim,file_name,""))
+            cls.FMAPSpec2FileParams[ifmaps[-1]] = ifmap_file_param
         return ifmaps
 
     def SumIFMAPChannels(ifmap_file_params):
@@ -212,46 +215,60 @@ class Concat:
 #            print("ifmap_region.moving_amt = ", ifmap_region.moving_amt)
 #            print("ifmap_region.start_pos = ", ifmap_region.start_pos)
             if (ofmap_region.moving_amt >= ifmap_region.moving_amt):
+                if (ifmap_region.start_pos + ifmap_region.moving_amt\
+                    >= self.PE_ROW):
+                    moved_amt = self.PE_ROW - ifmap_region.start_pos
+                else:
+                    moved_amt = ifmap_region.moving_amt
                 mfilter = self.ComputeMoveFilterSpec(\
                                                     ifmap_region.start_pos\
                                                     , ofmap_region.start_pos\
-                                                    , ifmap_region.moving_amt\
+                                                    #, ifmap_region.moving_amt\
+                                                    , moved_amt\
                                                     , forward_move\
                                                    )
-                moved_amt = ifmap_region.moving_amt
+                #moved_amt = ifmap_region.moving_amt
                 ifmap_region_start_pos_before_update = ifmap_region.start_pos
                 if (forward_move == True):
                     ofmap_region.start_pos =\
-                        ofmap_region.start_pos + ifmap_region.moving_amt
+                        ofmap_region.start_pos + moved_amt
                 else:
                     ofmap_region.start_pos =\
                         ofmap_region.start_pos - ifmap_region.moving_amt
                 ofmap_region.moving_amt =\
-                    ofmap_region.moving_amt - ifmap_region.moving_amt
-                remaining_ofmap_c = remaining_ofmap_c - ifmap_region.moving_amt
-                num_channels_moved_sofar += ifmap_region.moving_amt
-                ifmap_region.moving_amt = 0
+                    ofmap_region.moving_amt - moved_amt
+                remaining_ofmap_c = remaining_ofmap_c - moved_amt
+                num_channels_moved_sofar += moved_amt
+                ifmap_region.moving_amt -= moved_amt
+                ifmap_region.start_pos = (ifmap_region.start_pos + moved_amt)\
+                  % self.PE_ROW
             else:
+                if (ifmap_region.start_pos + ofmap_region.moving_amt\
+                    >= self.PE_ROW):
+                    moved_amt = self.PE_ROW - ifmap_region.start_pos
+                else:
+                    moved_amt = ofmap_region.moving_amt
                 mfilter = self.ComputeMoveFilterSpec(\
                                                     ifmap_region.start_pos\
                                                     , ofmap_region.start_pos\
-                                                    , ofmap_region.moving_amt\
+                                                    , moved_amt\
                                                     , forward_move\
                                                    )
-                moved_amt = ofmap_region.moving_amt
+                #moved_amt = ofmap_region.moving_amt
                 ifmap_region_start_pos_before_update = ifmap_region.start_pos
                 ifmap_region.moving_amt =\
-                    ifmap_region.moving_amt - ofmap_region.moving_amt
+                    ifmap_region.moving_amt - moved_amt
                 if (forward_move == True):
                     ifmap_region.start_pos =\
-                        ifmap_region.start_pos + ofmap_region.moving_amt
+                        (ifmap_region.start_pos + moved_amt) % self.PE_ROW
                 else:
                     ifmap_region.start_pos =\
                         ifmap_region.start_pos - ofmap_region.moving_amt
-                remaining_ofmap_c = remaining_ofmap_c - ofmap_region.moving_amt
-                num_channels_moved_sofar += ofmap_region.moving_amt
-                ofmap_region.moving_amt = 0
-            self.UpdateSubTileInfo(ifmap\
+                remaining_ofmap_c = remaining_ofmap_c - moved_amt
+                num_channels_moved_sofar += moved_amt
+                ofmap_region.moving_amt -= moved_amt
+                ofmap_region.start_pos += moved_amt
+            self.UpdateSubTileInfo(self.FMAPSpec2FileParams[ifmap]\
                                    , mfilter\
                                    , ifmap_region_start_pos_before_update\
                                    , moved_amt\

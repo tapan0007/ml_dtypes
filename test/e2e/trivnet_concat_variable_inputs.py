@@ -79,13 +79,18 @@ except:
 for t in ["np", "tf"]:
   exec("%sDataType = %s.%s" % (t, t, dataType))
 
-mm = np.random.randint(low = (-M + 1), high = (2*M))
 #mm = 1
-print ("mm = %d"%mm)
+#print ("mm = %d"%mm)
 IF1 = np.zeros([B, H, H, C])
 IF2 = np.zeros([B, H, H, C])
-W1  = np.zeros([R, R, C, M])
-W2  = np.zeros([R, R, C, M + mm])
+W = []
+w_size = 0
+for i in range(int(NI)):
+    mm = np.random.randint(low = (-M + 1), high = (2*M))
+    W.append(np.zeros([R, R, C, M + mm]))
+    w_size += W[-1].size
+#    print ("w_size = %d"%w_size)
+#W2  = np.zeros([R, R, C, M + mm])
 #W3  = np.zeros([R, R, 2*M + cc, M])
 #Wmove = np.zeros([2*C, R, R, M])
 
@@ -93,27 +98,28 @@ strides = [1, S, S, 1]
 padding = "SAME"
 
 
-#wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size + W2.size + W3.size), dtype=npDataType))
-wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=(W1.size + W2.size), dtype=npDataType))
-w1Values =  wAllValues[0:W1.size].reshape(W1.shape)
-print("w1\n", w1Values, "  ", w1Values.dtype)
-w2Values =  wAllValues[W1.size:W1.size+W2.size].reshape(W2.shape)
-print("w2\n", w2Values, "  ", w2Values.dtype)
-#w3Values =  wAllValues[W1.size+W2.size:W1.size+W2.size+W3.size].reshape(W3.shape)
-#print("w3\n", w3Values, "  ", w3Values.dtype)
+wAllValues = permuteArr(np.linspace(WMIN, WMAX, num=w_size, dtype=npDataType))
+wValues = []
+loc = 0
+w = []
+for i in range(int(NI)):
+#    print ("loc = %d W[%d].size = %d W[%d].shape = "\
+#           %(loc, i, W[i].size, i), W[i].shape)
+#    print ("wAllValues[%d:%d] = "\
+#           %(loc, W[i].size), wAllValues[loc:loc+W[i].size])
+    wValues.append(wAllValues[loc:loc+W[i].size].reshape(W[i].shape))
+    w.append(tf.get_variable(name=netName+"/weight"+str(i),
+                             initializer = wValues[i].astype(npDataType),\
+                             dtype=tfDataType))
+#    print("w%d\n"%i, wValues[i], "  ", wValues[i].dtype)
+    loc += W[i].size
 
-#wmoveValues = np.array([[[[0.0,1.0]]]], dtype=w3Values.dtype)
-print("w1\n", w1Values, "  ", w1Values.dtype)
-print("w2\n", w2Values, "  ", w2Values.dtype)
-#print("w3\n", w3Values, "  ", w3Values.dtype)
-#print("wmove\n", wmoveValues, "  ", wmoveValues.shape)
-
-w1 = tf.get_variable(name=netName+"/weight1",
-                     initializer = w1Values.astype(npDataType),\
-                     dtype=tfDataType)
-w2 = tf.get_variable(name=netName+"/weight2",
-                     initializer = w2Values.astype(npDataType),\
-                     dtype=tfDataType)
+#w1 = tf.get_variable(name=netName+"/weight1",
+#                     initializer = w1Values.astype(npDataType),\
+#                     dtype=tfDataType)
+#w2 = tf.get_variable(name=netName+"/weight2",
+#                     initializer = w2Values.astype(npDataType),\
+#                     dtype=tfDataType)
 #w3 = tf.get_variable(name=netName+"/weight3",
 #                     initializer = w3Values.astype(npDataType),\
 #                     dtype=tfDataType)
@@ -123,10 +129,20 @@ w2 = tf.get_variable(name=netName+"/weight2",
 #i0 = tf.placeholder(tfDataType, shape=IF1.shape, name="input0")
 #i1 = tf.placeholder(tfDataType, shape=IF2.shape, name="input1")
 i = tf.placeholder(tfDataType, shape=IF1.shape, name="input")
-i1 = tf.nn.conv2d(i, w1, strides, padding, name=netName + "/i1")
-i2 = tf.nn.conv2d(i, w2, strides, padding, name=netName + "/i2")
+ii = []
+for conv_cnt in range(int(NI)):
+    ii.append(tf.nn.conv2d(i\
+                           , w[conv_cnt]\
+                           , strides\
+                           , padding\
+                           , name=netName + "/i"+str(conv_cnt)\
+                          )\
+             )
+#i1 = tf.nn.conv2d(i, w1, strides, padding, name=netName + "/i1")
+#i2 = tf.nn.conv2d(i, w2, strides, padding, name=netName + "/i2")
 
-i3 = array_ops.concat([i1, i2], -1, name=netName+"/i3")
+#i3 = array_ops.concat([i1, i2], -1, name=netName+"/i3")
+i3 = array_ops.concat(ii, -1, name=netName+"/i3")
 #i4 = tf.nn.conv2d(i3, w3, strides, padding, name=netName + "/i4")
 output = tf.identity(i3, name=netName+"/output")
 
