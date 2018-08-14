@@ -191,13 +191,13 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     print("INFO: sshCmd executing %s" % fullCmd, flush=True)
     return self.osSystem(fullCmd)
   def rsyncToVm(self, fromDir, toVmDir, opts=None):
-    cmd = '%s %s %s@%s:%s' % (self.cmdForRsync, fromDir, self.sshUser, self.sshHost, toVmDir)
+    cmd = '%s "%s" %s@%s:%s' % (self.cmdForRsync, fromDir, self.sshUser, self.sshHost, toVmDir)
     if opts != None:
       cmd = cmd.replace("rsync ", "rsync %s " % opts)
     print("INFO: rsyncToVm executing %s" % cmd, flush=True)
     return self.osSystem(cmd) == 0
   def rsyncFromVm(self, fromVmDir, toDir):
-    cmd = '%s %s@%s:%s %s' % (self.cmdForRsync, self.sshUser, self.sshHost, fromVmDir, toDir)
+    cmd = '%s "%s@%s:%s" %s' % (self.cmdForRsync, self.sshUser, self.sshHost, fromVmDir, toDir)
     print("INFO: rsyncFromVm executing %s" % cmd, flush=True)
     return self.osSystem(cmd) == 0
   def lock(self):
@@ -552,8 +552,9 @@ class Krt:
     self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
     tongaDev = self.qemu.getTongaDevice()
     kbin_rt = '%s/bin/kbin_rt' % krtVmPath
+    infTimeout = 100000
     cmdKrt = '%s %s %s %s %s -n 1 -s -a -t %d' % (
-               kbin_rt, self.kelfVmDir, self.ifmapDir, self.ofmapDir, tongaDev, self.inklingTimeout)
+               kbin_rt, self.kelfVmDir, self.ifmapDir, self.ofmapDir, tongaDev, infTimeout)
 
     shCmd="cd %s && %s ldd %s && if %s %s; then touch %s; else touch %s; fi" % (
         self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt, self.krtPass, self.krtFail)
@@ -566,20 +567,28 @@ class Krt:
   def getFinalBin(self):
     ##topFinalDir = self.kelfVmDir + "/"
     topFinalDir = "/tmp/"
+    finalBinfiles = ""
     for fin in ["pe", "act", "pool"]:
-        self.qemu.rsyncFromVm(topFinalDir + fin + "-final.bin", ".")
+      finalBinfiles += topFinalDir + fin + "-final.bin "
+    self.qemu.rsyncFromVm(finalBinfiles, ".")
 
   def stop(self):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
     time.sleep(2)  # for kbin_rt to have time to return exit code after writing out.bin
-
-    for _ in range(self.inklingTimeout):
-        time.sleep(1)
-        self.qemu.rsyncFromVm(self.kelfVmDir + "/" + self.krtPass, ".")
-        self.qemu.rsyncFromVm(self.kelfVmDir + "/" + self.krtFail, ".")
-        if os.path.isfile(self.krtPass) or os.path.isfile(self.krtFail):
-            break
-
+    
+    filesToWaitForStr = "%s/%s %s/%s %s/%s" % (
+      self.kelfVmDir, self.krtPass, self.kelfVmDir, self.krtFail, self.ofmapDir, "out.bin")
+    for i in range(self.inklingTimeout):
+      print("  Waiting for krt_bin to complete %i" %i, flush=True)
+      time.sleep(1)
+      self.qemu.rsyncFromVm(filesToWaitForStr, ".")
+      if os.path.isfile(self.krtPass) or os.path.isfile(self.krtFail):
+        break
+    
+    cmdMoveOfmap = "mv out.bin %s" % self.ofmap  # ofmap name contains sg id, eg out-sg01.bin
+    print("INFO: " + cmdMoveOfmap)
+    os.system(cmdMoveOfmap)
+    
     self.getFinalBin()
     debug = True
     if debug:
@@ -593,6 +602,7 @@ class Krt:
     return krtOk
   def inference(self, ifmap, ofmap):
     ifmapPath = os.path.realpath(ifmap)
+    self.ofmap = ofmap
     # kaena-602: hack for testing one input file only; doesn't work for inferencing
     ifmapPadSplitPath = ifmapPath[:-4] + "_padsplit.npy" 
     if os.path.isfile(ifmapPadSplitPath):
@@ -601,12 +611,7 @@ class Krt:
     else:
       print("qemu_rt: Using original npy input ", ifmapPath, " did not find padded input ", ifmapPadSplitPath)
     if self.qemu.rsyncToVm(ifmapPath, self.ifmapDir, "--copy-links"):
-      self.qemu.sshCmd('pidofp=$(pidof kbin_rt); count=0; until [ -f %s/out.bin -o $count -gt %d ] || [ -z $pidofp ]; do sleep 1 ; pidofp=$(pidof kbin_rt); let count++; echo $count; done' % (self.ofmapDir, self.inklingTimeout))
-
-      if self.qemu.rsyncFromVm(self.ofmapDir + "/out.bin", ofmap):
-        print("INFO: the qemu, guest os and krt sucessfully created the output fmap binary")
-      else:
-        print("ERROR: failed to transfer ofmap from the qemu guest os")
+      pass  # end of inference is tested in stop()
     else:
       print("ERROR: failed to transfer ifmap %s to the qemu guest os" % ifmapPath)
 
@@ -703,6 +708,11 @@ class ZebuPool:
 #########################################################
 
 inklingTimeout = 6000
+# Override krt_bin inference timeout - this is used e.g.
+#   by the DV team to only collect final bin files
+envQemuKrtTimeout = os.getenv("QEMU_KRT_TIMEOUT", None)
+if envQemuKrtTimeout != None:
+  inklingTimeout = int(envQemuKrtTimeout)
 
 
 ##############  zebu pool  ##############
