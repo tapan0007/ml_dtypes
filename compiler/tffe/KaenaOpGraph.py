@@ -1395,6 +1395,56 @@ class NodeUnstack(Node):
   def isSupported(self):
     return True
 
+###############################################################################
+# ClipByValue
+#
+###############################################################################
+class NodeClipByValue(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  def genCompilerLayerJson(self, tensorFormatMap):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    if len(npInfo.npShape) == 4:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+    else:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tfFormat = npt.NC
+      
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
+
+    bes = {"clip_value_min" : (), "clip_value_max" : ()}
+    ((nIn, npInfoFrom), bes["clip_value_min"], bes["clip_value_max"]) = self.getInputNodesAndNpInfo()
+    npInfoIndexinBes = 1
+    clip_val_min = np.asscalar(bes["clip_value_min"][npInfoIndexinBes].getValues())
+    clip_val_max = np.asscalar(bes["clip_value_max"][npInfoIndexinBes].getValues())
+
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "clip_value_max"  : clip_val_min,
+      "clip_value_min"  : clip_val_max,
+      "previous_layers" : [nIn.getName()],
+      "#comment"        : "Clip values at min and max values"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
 
 
 ###############################################################################

@@ -29,7 +29,7 @@ def permuteArr(arr):
 # l10-relu-tanh-b1 => {"relu" : 1, "tanh" : 1}, return letover "l10-b1"
 def getConfOpts(confStr):
   conf = {}
-  for s in ["RELU", "TANH"]:
+  for s in ["RELU", "TANH", "SOFTPLUS", "SIGMOID"]:
     s1 = "-" + s
     if s1 in confStr:
       confStr = confStr.replace(s1, "")
@@ -102,6 +102,12 @@ for layerId in range(1, numConvLayers):
     layers.append(op)
   if (conf.get("TANH")):
     op = tf.nn.tanh(layers[-1], name=netName + "/tanh" + str(layerId))
+    layers.append(op)
+  if (conf.get("SOFTPLUS")):
+    op = tf.nn.softplus(layers[-1], name=netName + "/softplus" + str(layerId))
+    layers.append(op)
+  if (conf.get("SIGMOID")):
+    op = tf.nn.sigmoid(layers[-1], name=netName + "/sigmoid" + str(layerId))
     layers.append(op)
 output = tf.identity(layers[-1], name=netName+"/output")
 

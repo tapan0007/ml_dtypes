@@ -296,6 +296,21 @@ class Tile:
 """List of K-Nodes that are fused (pass data through PSUM buffers)
 """
 class FusedOp(list):
+    """RegExs to determine whether next node is fusable or not
+    """
+    act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu"
+    bias_ops_regex = "BiasAdd"
+    pool_ops_regex = ".*Pool|Add|Multiply|ResAdd"
+    next_is_fusable_regex = bias_ops_regex + "|" + act_ops_regex + "|" + pool_ops_regex
+    next_is_fusable = {
+            'Conv'     : next_is_fusable_regex,
+            'MatMul'   : next_is_fusable_regex,
+            'BiasAdd'  : next_is_fusable_regex,
+            'Add'      : next_is_fusable_regex,
+            'ResAdd'   : next_is_fusable_regex,
+            'Multiply' : next_is_fusable_regex,
+            'Relu'     : next_is_fusable_regex,
+            }
 
     def __init__(self, out_data_type, fused_op_id, args):
         self.fused_op_id = fused_op_id 
@@ -745,7 +760,9 @@ class FusedOp(list):
                 exit(-1)
             #inputs2 = tpb.statebuffer.circbuf_residue.load_data(first_op)
             #self.execute_multiply(inputs, inputs2, result_file)
-        elif re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu|BiasAdd", first_op_type):
+        elif re.search(self.act_ops_regex, first_op_type):
+            self.execute_unfused_pool_op(tpb, batch_item)
+        elif (first_op_type == "BiasAdd"):
             self.execute_unfused_pool_op(tpb, batch_item)
         elif (first_op_type == "Concat"):
             self.execute_unfused_concat_op(tpb, batch_item)
@@ -1174,7 +1191,7 @@ class FusedOp(list):
         batch_item = ofmap_tile.n_id * ofmap_tile.Tn
         for i in op_list_iter:
             layer_type = self[i].data['layer_type'] 
-            if (re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", layer_type)):
+            if (re.search(self.act_ops_regex, layer_type)):
                 dram_bias_waveops = []
                 latest_accessor = -1
                 if (ofmap_tile.m_id%2 == 0):
@@ -1237,7 +1254,7 @@ class FusedOp(list):
                 #print(y-x)
                 psum_bank_dst = psum_bank_src 
                 dst_is_psum = False
-                if (i+1 < len(op_list) and re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", op_list[i+1].data['layer_type'])):
+                if (i+1 < len(op_list) and re.search(self.act_ops_regex, op_list[i+1].data['layer_type'])):
                     psum_temp = tpb.activate.act(op_list[i+1].data['layer_type'], psum_temp)
                     if (i+1 != len(op_list)-1):
                         dst_is_psum = True
@@ -1970,7 +1987,7 @@ class FusedOp(list):
             #x = DBG_DUMP_PSUM_COL("BiasAdd: ", ifmaps_data_extract, 0)
             tile_data_flatten = tpb.activate.biasadd(ifmaps_data_extract, bias[bias_chan_start : bias_chan_end])
             #x = DBG_DUMP_PSUM_COL("BiasAdd: ", tile_data_flatten, 0)
-        elif re.search(r"Relu|Tanh|Sigmoid|Exp|Identity|Lrelu|Prelu", first_op.data['layer_type']):
+        elif re.search(self.act_ops_regex, first_op.data['layer_type']):
             tile_data_flatten = tpb.activate.act(first_op.data['layer_type'], ifmaps_data_extract)
         else:
             print("ERROR: cannot execute %s in execute_unfused_first_op"%first_op.data['layer_type'])

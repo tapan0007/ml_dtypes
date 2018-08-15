@@ -586,17 +586,6 @@ class KNode:
                                             ofmap_pewave.tile.channel_stop - 1)
         return out_array
 
-"""RegExs to determine whether next node is fusable or not
-"""
-next_is_fusable = {
-        'Conv'     : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|Multiply|ResAdd",
-        'MatMul'   : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|Multiply|ResAdd",
-        'BiasAdd'  : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|Multiply|ResAdd",
-        'Add'      : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|Multiply|ResAdd",
-        'ResAdd'   : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|Multiply|ResAdd",
-        'Multiply' : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|Multiply|ResAdd",
-        'Relu'     : "BiasAdd|Relu|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu|.*Pool|Add|Multiply|ResAdd",
-        }
 
 """Graph class for KGraph or WaveGraph
 """
@@ -759,9 +748,9 @@ class KGraph:
         last_node_type = fused_ops[-1].data['layer_type']
         # if there's only one next node, check if it is fusable and add
         if (len(next_nodes) == 1):
-            if last_node_type in next_is_fusable:
+            if last_node_type in FusedOp.next_is_fusable:
                 if next_nodes[0].count_missing_input_results() <= 1:
-                    regex = next_is_fusable[last_node_type]
+                    regex = FusedOp.next_is_fusable[last_node_type]
                     if re.search(regex, next_nodes[0].data['layer_type']):               
                         if fused_ops.add(next_nodes[0]):
                             fused_ops = self.get_next_fused_op(fused_ops)

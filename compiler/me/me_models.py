@@ -195,6 +195,8 @@ class BiasAddAct:
             return np.exp(in_array)
         elif (type == 'Tanh'):
             return np.tanh(in_array)
+        elif (type == 'Softplus'):
+            return np.log(1 + np.exp(in_array))
         else:
             print("ERROR BiasAddAct.act: unrecognized activation type %s"%type)
             exit(-1)

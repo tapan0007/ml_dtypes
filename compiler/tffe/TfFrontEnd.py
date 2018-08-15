@@ -206,7 +206,7 @@ class TfFe:
           node = kog.NodeMatMul(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Reshape", tfop.op, re.I) != None):
           node = kog.NodeReshape(tfNode.name, tfop.op, add_attrs)
-        elif  (re.search("relu|tanh|Sigmoid|Softmax", tfop.op, re.I) != None):
+        elif  (re.search("relu|tanh|Softplus|Sigmoid|Softmax", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
         elif (re.search("MaxPool|AvgPool", tfop.op, re.I) != None):
@@ -227,6 +227,8 @@ class TfFe:
           node = kog.NodeMultiply(tfNode.name, "Multiply", add_attrs)
         elif (re.search("Concat", tfop.op, re.I) != None):
           node = kog.NodeConcat(tfNode.name, "Concat", add_attrs)
+        elif (re.search("ClipByValue", tfop.op, re.I) != None):
+          node = kog.NodeClipByValue(tfNode.name, "ClipByValue", add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)
