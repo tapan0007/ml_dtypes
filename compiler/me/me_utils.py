@@ -13,6 +13,7 @@ Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
 import unittest
 import numpy as np
 import os.path
+import copy
 from enum import Enum
 from me_models import PEArray
 
@@ -148,22 +149,27 @@ class Coord():
     def __add__(self, coord):
         x = self.x + coord.x
         y = self.y + coord.y
-        return Coord(x, y)
+        return self.__class__(x, y)
 
     def __sub__(self, coord):
         x = self.x - coord.x
         y = self.y - coord.y
-        return Coord(x, y)
+        return self.__class__(x, y)
+
+    def __neg__(self):
+        x = - self.x
+        y = - self.y
+        return self.__class__(x, y)
 
     def __mul__(self, coord):
         x = self.x * coord.x
         y = self.y * coord.y
-        return Coord(x, y)
+        return self.__class__(x, y)
 
     def __floordiv__(self, coord):
         x = self.x // coord.x
         y = self.y // coord.y
-        return Coord(x, y)
+        return self.__class__(x, y)
 
     def __lt__(self, coord):
         return (self.x < coord.x) and (self.y < coord.y)
@@ -193,17 +199,46 @@ class Coord():
     def make_dim2d(self):
         return Dim2D(self.x+1, self.y+1)
 
+    """ Snap the coordinates up to nearest grid
+        Args:
+            - stride: the grid spacing
+        Return:
+            - none (coordinates are updated)
+    """
+    def snap_up_nearest_grid(self, origin, stride):
+        diff = self - origin
+        diff = ceildiv(diff, stride) * stride
+        new = origin + diff
+        self.x = new.x
+        self.y = new.y
+        
+    """ Snap the coordinates down to nearest grid
+        Args:
+            - stride: the grid spacing
+        Return:
+            - none (coordinates are updated)
+    """
+    def snap_down_nearest_grid(self, origin, stride):
+        diff = self - origin
+        diff = (diff // stride) * stride
+        new = origin + diff
+        self.x = new.x
+        self.y = new.y
+
 """ Class to manage 2D sizes: related to Coord but is off by 1,1 generally
 """
 class Dim2D(Coord):
     """ Make a rectangle from size, taking it as the upper coordinates, and 0,0 as the lower coordinates
     """
     def make_rect(self):
-        assert(self.x > 0 and self.y > 0)
-        return Rect(Coord(0,0), self - Coord(1,1))
+        #assert(self.x > 0 and self.y > 0)
+        return Rect(Coord(0,0), Coord(self.x-1, self.y-1))
 
     def get_tot_size(self):
         return self.x * self.y
+
+    def make_dim2d(self):
+        raise RuntimeError("Can't make Dim2D within Dim2D")
 
 """ Class to manage  rectangle
 
@@ -218,13 +253,15 @@ class Rect():
     lower = None
     upper = None
     dim2d = None
+    is_empty = False
 
     def __init__(self, lower, upper):
-        assert(lower <= upper)
+        #assert(lower <= upper)
         diff = upper - lower
         self.dim2d = diff.make_dim2d()
         self.lower = lower
         self.upper = upper
+        self.is_empty = not (lower <= upper)
 
     def __eq__(self, another_rect):
         return (self.lower == another_rect.lower) \
@@ -233,20 +270,26 @@ class Rect():
     def __str__(self):
         return "%s, %s"%(str(self.lower), str(self.upper))
 
-    def __add__(self, coord):
-        new_lower = self.lower + coord
-        new_upper = self.upper + coord
+    def __add__(self, offset_coord):
+        new_lower = self.lower + offset_coord
+        new_upper = self.upper + offset_coord
         return Rect(new_lower, new_upper)
 
-    def __sub__(self, coord):
-        new_lower = self.lower - coord
-        new_upper = self.upper - coord
+    def __sub__(self, offset_coord):
+        new_lower = self.lower - offset_coord
+        new_upper = self.upper - offset_coord
         return Rect(new_lower, new_upper)
 
-    def __mul__(self, coord):
-        new_lower = self.lower * coord
-        new_dim2d = self.dim2d * coord
-        new_upper = new_lower + new_dim2d - Coord(1,1)
+    def __mul__(self, mul_dim2d):
+        new_lower = self.lower * mul_dim2d
+        new_dim2d = self.dim2d * mul_dim2d
+        new_upper = new_lower + Coord(new_dim2d.x-1, new_dim2d.y-1)
+        return Rect(new_lower, new_upper)
+
+    def __floordiv__(self, dim2d):
+        new_lower = self.lower // dim2d
+        new_dim2d = self.dim2d // dim2d
+        new_upper = new_lower + Coord(new_dim2d.x-1, new_dim2d.y-1)
         return Rect(new_lower, new_upper)
 
     def get_width_height(self):
@@ -280,6 +323,15 @@ class Rect():
         waveop[prefix + "y_step"] = stride.y * self.dim2d.x
         waveop[prefix + "y_num"] = self.dim2d.y
         return waveop
+
+    def set_lower(self, new_lower):
+        self.lower = copy.copy(new_lower)
+        self.upper = new_lower + Coord(self.dim2d.x - 1, self.dim2d.y - 1)
+
+    def snap_rect_to_stride_grid(self, origin, stride):
+        self.lower.snap_up_nearest_grid(origin, stride)
+        self.upper.snap_down_nearest_grid(origin, stride)
+        self.__init__(self.lower, self.upper)
         
 class TestRect(unittest.TestCase):
     def test_coord0(self):
@@ -302,6 +354,7 @@ class TestRect(unittest.TestCase):
         self.assertEqual(offset == Coord(0, 20), True)
         # Check subrectangle
         r3 = Rect(Coord(10,0),Coord(29,49))
+        self.assertEqual(r3.is_empty, False)
         s = r3.set_waveop_pattern({}, "dst_", Coord(2,5))
         print(s)
         r3 += Coord(100,100)
@@ -310,6 +363,14 @@ class TestRect(unittest.TestCase):
         self.assertEqual(r3.upper == Coord(129, 149), True)
         size = Dim2D(101,201)
         self.assertEqual(b.make_dim2d() == size, True)
+        newsize = size + Dim2D(50,50)
+        self.assertEqual(newsize.get_tot_size(), 151*251)
+        c4 = Coord(0,0)
+        c4.snap_up_nearest_grid(Coord(-1,-2), Dim2D(2,2))
+        print(c4)
+        self.assertEqual(c4 == Coord(1,0), True)
+        r5 = Rect(Coord(200,0), Coord(100,0))
+        self.assertEqual(r5.is_empty, True)
 
 """ Class to manage head and tail pointers for circular buffer with two modes (for Middle Scheduler v1):
     - endzone_sz = 0: Normal mode: advance pointer until capacity, where it wraps to 0

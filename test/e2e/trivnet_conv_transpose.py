@@ -17,6 +17,6 @@ i0      = tf.placeholder(conf.tfDataType, shape = input_shape, name = "input")
 i1      = tf.nn.conv2d_transpose(i0, w1, output_shape = output_shape, strides = strides, padding = padding, name = conf.netName + "/conv2d_transpose")
 output  = tf.identity(i1, name = conf.netName + "/output")
 
-i0val   = conf.gen_array_rand(conf.IMIN, conf.IMAX, input_shape)
+i0val   = conf.gen_array_linspace(conf.IMIN, conf.IMAX, input_shape)
 
 conf.gen_graph(output=output, input_data=i0val)

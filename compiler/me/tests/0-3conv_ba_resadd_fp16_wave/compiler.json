@@ -1,0 +1,101 @@
+{
+  "data_type": "float16",
+  "layers": [
+    {
+      "#comment": "supported input layer",
+      "layer_name": "input",
+      "layer_type": "Input",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 55, 55 ],
+      "previous_layers": [],
+      "ref_file": "trivnet_input:0_NCHW.npy"
+    },
+    {
+      "#comment": "supported layer",
+      "kernel_file": "trivnet_add__weight1b__read:0_CRSM.npy",
+      "kernel_format": "CRSM",
+      "kernel_shape": [ 1, 3, 3, 1 ],
+      "layer_name": "add/i1b",
+      "layer_type": "Conv",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 55, 55 ],
+      "padding": [ [ 0, 0 ], [ 0, 0 ], [ 1, 1 ], [ 1, 1 ] ],
+      "previous_layers": [
+        "input"
+      ],
+      "ref_file": "trivnet_add__i1b:0_NCHW.npy",
+      "stride": [ 1, 1, 1, 1 ]
+    },
+    {
+      "#comment": "supported layer",
+      "kernel_file": "trivnet_add__weight1__read:0_CRSM.npy",
+      "kernel_format": "CRSM",
+      "kernel_shape": [ 1, 3, 3, 1 ],
+      "layer_name": "add/i1",
+      "layer_type": "Conv",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 55, 55 ],
+      "padding": [ [ 0, 0 ], [ 0, 0 ], [ 1, 1 ], [ 1, 1 ] ],
+      "previous_layers": [
+        "input"
+      ],
+      "ref_file": "trivnet_add__i1:0_NCHW.npy",
+      "stride": [ 1, 1, 1, 1 ]
+    },
+    {
+      "#comment": "captured constant",
+      "layer_name": "add/bias1b/read",
+      "layer_type": "Const",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 1, 1 ],
+      "previous_layers": [],
+      "ref_file": "trivnet_add__bias1b__read:0_NCHW.npy"
+    },
+    {
+      "#comment": "supported simple layer with 2 inputs",
+      "layer_name": "add/i2b",
+      "layer_type": "BiasAdd",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 55, 55 ],
+      "previous_layers": [
+        "add/i1b",
+        "add/bias1b/read"
+      ],
+      "ref_file": "trivnet_add__i2b:0_NCHW.npy"
+    },
+    {
+      "#comment": "captured constant",
+      "layer_name": "add/bias1/read",
+      "layer_type": "Const",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 1, 1 ],
+      "previous_layers": [],
+      "ref_file": "trivnet_add__bias1__read:0_NCHW.npy"
+    },
+    {
+      "#comment": "supported simple layer with 2 inputs",
+      "layer_name": "add/i2",
+      "layer_type": "BiasAdd",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 55, 55 ],
+      "previous_layers": [
+        "add/i1",
+        "add/bias1/read"
+      ],
+      "ref_file": "trivnet_add__i2:0_NCHW.npy"
+    },
+    {
+      "#comment": "supported simple layer with 2 inputs",
+      "layer_name": "add/i3",
+      "layer_type": "ResAdd",
+      "ofmap_format": "NCHW",
+      "ofmap_shape": [ 1, 1, 55, 55 ],
+      "previous_layers": [
+        "add/i2",
+        "add/i2b"
+      ],
+      "ref_file": "trivnet_add__i3:0_NCHW.npy"
+    }
+  ],
+  "net_name": "TrivNet"
+}

@@ -104,7 +104,16 @@ public:
             // nothing specific to BiasAdd layer
         } else if (m_LayerType == LayerTypeStr_ResAdd || m_LayerType == LayerTypeStr_Multiply) {
             // nothing specific to ResAdd layer
-        } else if (m_LayerType == LayerTypeStr_StridedSlice || m_LayerType == LayerTypeStr_Unstack || m_LayerType == LayerTypeStr_Concat) {
+        } else if (m_LayerType == LayerTypeStr_StridedSlice 
+                || m_LayerType == LayerTypeStr_Unstack 
+                || m_LayerType == LayerTypeStr_ConvTranspose
+                || m_LayerType == LayerTypeStr_ClipByValue
+                || m_LayerType == LayerTypeStr_Squeeze
+                || m_LayerType == LayerTypeStr_Slice
+                || m_LayerType == LayerTypeStr_Minimum
+                || m_LayerType == LayerTypeStr_SpaceToBatchND
+                || m_LayerType == LayerTypeStr_BatchToSpaceND
+                || m_LayerType == LayerTypeStr_Concat) {
             // nothing specific to ResAdd layer
         } else {
             assert(false && "Serialization: unsupported layer");

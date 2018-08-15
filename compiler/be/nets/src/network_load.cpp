@@ -233,6 +233,13 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         } else if (serLayer.gTypeStr() == LayerTypeStr_StridedSlice
                 || serLayer.gTypeStr() == LayerTypeStr_Unstack
                 || serLayer.gTypeStr() == LayerTypeStr_Sigmoid
+                || serLayer.gTypeStr() == LayerTypeStr_ConvTranspose
+                || serLayer.gTypeStr() == LayerTypeStr_ClipByValue
+                || serLayer.gTypeStr() == LayerTypeStr_Squeeze
+                || serLayer.gTypeStr() == LayerTypeStr_Slice
+                || serLayer.gTypeStr() == LayerTypeStr_Minimum
+                || serLayer.gTypeStr() == LayerTypeStr_SpaceToBatchND
+                || serLayer.gTypeStr() == LayerTypeStr_BatchToSpaceND
                 || serLayer.gTypeStr() == LayerTypeStr_Concat
                 ) {   // FIXME: placeholder
             if (serLayer.gTypeStr() != LayerTypeStr_Concat)

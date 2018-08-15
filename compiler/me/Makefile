@@ -7,7 +7,7 @@ help:
 
 TESTS=$(wildcard tests/*)
 
-SANITY_TESTS=0-2conv3_relu 0-1conv_tile 0-1conv1pool 0-1conv1maxpool_k3d2
+SANITY_TESTS=0-2conv3_relu 0-1conv_tile 0-1conv1pool 0-1conv1maxpool_k3d2 0-3conv_ba_resadd_fp16_wave 
 
 gen_test:
 	#@$(foreach var, $(TESTS), echo "\n*******************$(var)********************\n"; pushd .; cd $(var); if [ -e graph.pb ]; then python3 $(KAENA_PATH)/compiler/tffe/tffe.py --tfpb graph.pb --image linspace1; rm -f *.npy; tar -xzf *.tgz; else rm -rf $(notdir $(var)); $(KAENA_PATH)/compiler/tffe/test/RunAll --test $(notdir $(var)); cp $(notdir $(var))/*.tgz .; tar -xzf *.tgz; rm -rf $(notdir $(var)); fi; popd;)

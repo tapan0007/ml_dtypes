@@ -60,6 +60,13 @@ constexpr const char* const LayerTypeStr_BatchNorm      = "BNorm";
 constexpr const char* const LayerTypeStr_StridedSlice   = "StridedSlice";
 constexpr const char* const LayerTypeStr_Unstack        = "Unstack";
 constexpr const char* const LayerTypeStr_Concat         = "Concat";
+constexpr const char* const LayerTypeStr_ConvTranspose  = "ConvTranspose";
+constexpr const char* const LayerTypeStr_ClipByValue    = "ClipByValue";
+constexpr const char* const LayerTypeStr_Squeeze        = "Squeeze";
+constexpr const char* const LayerTypeStr_Slice          = "Slice";
+constexpr const char* const LayerTypeStr_Minimum        = "Minimum";
+constexpr const char* const LayerTypeStr_SpaceToBatchND = "SpaceToBatchND";
+constexpr const char* const LayerTypeStr_BatchToSpaceND = "BatchToSpaceND";
 
 constexpr const char* const WaveOpTypeStr_SBAtomLoad    = "SBAtomLoad";
 constexpr const char* const WaveOpTypeStr_SBAtomSave    = "SBAtomSave";

@@ -20,17 +20,6 @@ DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(precision=14)
 
-"""Macros for dumping arrays
-"""
-def DBG_DUMP_ARRAY(msg, a):
-    if (args.debug > 3): print (msg, "\n" , a)
-    return a
-
-def DBG_DUMP_PSUM_COL(msg, psum, col):
-    x = psum[:, col]
-    if (args.debug > 3): print (msg, "\n" , x)
-    return x
-
 """State buffer memory manager
 """
 class StateBuffer:
@@ -457,10 +446,6 @@ if __name__ == "__main__":
 
     print("Middle Sched v2: Running in %s mode"%(args.nname))
 
-    # Report host configuration
-#    with open("/proc/meminfo") as procFh:
-#        print(procFh.read(), flush=True)
-
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
 
     # loading Kgraph
@@ -491,10 +476,6 @@ if __name__ == "__main__":
 
     # write out wavegraph           
     tpb.write_wavegraph()
-    
-    # Report memory
-#    with open("/proc/%d/status" % os.getpid()) as procFh:
-#        print(procFh.read(), flush=True)
     
     # check for comparison errors
     if (tpb.num_mismatches > 0):

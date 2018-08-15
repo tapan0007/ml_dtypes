@@ -38,55 +38,94 @@ def DBG_DUMP_PSUM_COL(msg, psum, col):
 """PE array wave of a tile
 """
 class PEWave:
-    tile = None
-
-    def __init__(self, tile, c_id, r_id, s_id):
+    def __init__(self, tile, c_id, r_id, s_id, strided_channel_offset=0):
         self.format = "nmhwcrs"
         self.tile = tile
         self.c_id, self.r_id, self.s_id = c_id, r_id, s_id
         self.id_array = self.tile.id_array  + [self.c_id, self.r_id, self.s_id]
         self.id_string = self.tile.id_string + "_c%d_r%d_s%d"%(self.c_id, self.r_id, self.s_id)
+        self.ifmap_channel_start = self.c_id * PEArray.NUM_ROWS + strided_channel_offset
+        self.ifmap_channel_stop = min(self.tile.file_params.file_dims.C + strided_channel_offset,
+                                      self.ifmap_channel_start + PEArray.NUM_ROWS)
+        self.ifmap_channel_count = self.ifmap_channel_stop - self.ifmap_channel_start
+        self.subtile_psum_offset = 0
 
     def __str__(self):
         return self.id_string
 
     def get_sb_fmap_count (self):
         if self.tile.is_pe_input:
-            channel_start = self.c_id * PEArray.NUM_ROWS
-            channel_stop = min(self.tile.file_params.file_dims.C, channel_start + PEArray.NUM_ROWS)
+            return self.ifmap_channel_count
         else:            
-            channel_start = self.m_id * PEArray.NUM_COLS
-            channel_stop = min(self.tile.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
-        return channel_stop - channel_start
+            return self.tile.channel_count
+
+    def get_subtile_file_addrs(self):
+        lower_addrs = [-1 for z in range(self.tile.Tn)]
+        upper_addrs = [-1 for z in range(self.tile.Tn)]
+        if not self.subtile_rect.is_empty:
+            for z in range(self.tile.Tn):
+                if self.tile.is_pe_input:
+                    c_id = self.c_id
+                else:
+                    c_id = self.tile.m_id // 2
+                lower_addrs[z] = (self.tile.file_params.ravel_nchw(
+                    self.tile.n_id * self.tile.Tn + z,
+                    c_id * PEArray.NUM_ROWS,
+                    self.subtile_rect.lower.y,
+                    self.subtile_rect.lower.x))
+                upper_addrs[z] = (self.tile.file_params.ravel_nchw(
+                    self.tile.n_id * self.tile.Tn + z,
+                    c_id * PEArray.NUM_ROWS,
+                    self.subtile_rect.upper.y,
+                    self.subtile_rect.upper.x))
+        return (lower_addrs, upper_addrs)
 
     def get_file_addrs(self):
-        lower_addrs = []
-        upper_addrs = []
-        for z in range(self.tile.Tn):
-            if self.tile.is_pe_input:
-                lower_addrs.append(self.tile.file_params.ravel_nchw(
-                    self.tile.n_id * self.tile.Tn + z,
-                    self.c_id * PEArray.NUM_ROWS,
-                    self.tile.tile_rect.lower.y,
-                    self.tile.tile_rect.lower.x))
-                upper_addrs.append(self.tile.file_params.ravel_nchw(
-                    self.tile.n_id * self.tile.Tn + z,
-                    self.c_id * PEArray.NUM_ROWS,
-                    self.tile.tile_rect.upper.y,
-                    self.tile.tile_rect.upper.x))
-            else:
-                c_id = self.tile.m_id // 2
-                lower_addrs.append(self.tile.file_params.ravel_nchw(
+        lower_addrs = [-1 for z in range(self.tile.Tn)]
+        upper_addrs = [-1 for z in range(self.tile.Tn)]
+        if not self.tile.tile_rect.is_empty:
+            for z in range(self.tile.Tn):
+                if self.tile.is_pe_input:
+                    c_id = self.c_id
+                else:
+                    c_id = self.tile.m_id // 2
+                lower_addrs[z] = (self.tile.file_params.ravel_nchw(
                     self.tile.n_id * self.tile.Tn + z,
                     c_id * PEArray.NUM_ROWS,
                     self.tile.tile_rect.lower.y,
                     self.tile.tile_rect.lower.x))
-                upper_addrs.append(self.tile.file_params.ravel_nchw(
+                upper_addrs[z] = (self.tile.file_params.ravel_nchw(
                     self.tile.n_id * self.tile.Tn + z,
                     c_id * PEArray.NUM_ROWS,
                     self.tile.tile_rect.upper.y,
                     self.tile.tile_rect.upper.x))
         return (lower_addrs, upper_addrs)
+
+    def get_subtile_data_from_file(self, flatten=False):
+        if not self.subtile_rect.is_empty:
+            for z in range(self.tile.Tn):
+                if self.tile.is_pe_input:
+                    channel_start = self.ifmap_channel_start
+                    channel_stop = self.ifmap_channel_stop
+                else:
+                    channel_start = self.tile.channel_start
+                    channel_stop = self.tile.channel_stop
+            # NCHW
+            tile_data = self.tile.file_params.dram_data[self.tile.n_start : self.tile.n_stop,
+                                              channel_start : channel_stop,
+                                              self.subtile_rect.lower.y : self.subtile_rect.upper.y + 1,
+                                              self.subtile_rect.lower.x : self.subtile_rect.upper.x + 1]
+
+            if flatten:
+                tile_rect_sz = self.subtile_rect.dim2d.get_tot_size()
+                tile_data_flat = np.zeros((self.tile.Tn * tile_rect_sz, tile_data.shape[1]))
+                for z in range(self.tile.Tn):
+                    for i in range(tile_data.shape[1]):
+                        tile_data_flat[z * tile_rect_sz : (z+1) * tile_rect_sz, i] = tile_data[z, i, :, :].flatten()
+                tile_data = tile_data_flat                    
+            return tile_data
+        else:
+            raise RuntimeError("Cannot extract a view using empty rectangle ", self.subtile_rect)
 
 """ Pool subtile
 """
@@ -99,36 +138,7 @@ class PoolSubtile(PEWave):
         self.id_array = self.tile.id_array 
         self.id_string = self.tile.id_string #+ "_lx%d_ly%d_ux%d_uy%d"%(self.c_id, self.r_id, self.s_id)
         (self.lower_addr, self.upper_addr) = self.get_subtile_file_addrs()
-
-    def get_subtile_file_addrs(self):
-        lower_addrs = []
-        upper_addrs = []
-        self.c_id = 0
-        for z in range(self.tile.Tn):
-            #if self.tile.is_pe_input:
-            #    lower_addrs.append(self.tile.file_params.ravel_nchw(
-            #        self.tile.n_id * self.tile.Tn + z,
-            #        self.c_id * PEArray.NUM_ROWS,
-            #        self.subtile_rect.lower.y,
-            #        self.subtile_rect.lower.x))
-            #    upper_addrs.append(self.tile.file_params.ravel_nchw(
-            #        self.tile.n_id * self.tile.Tn + z,
-            #        self.c_id * PEArray.NUM_ROWS,
-            #        self.subtile_rect.upper.y,
-            #        self.subtile_rect.upper.x))
-            #else:
-                c_id = self.tile.m_id // 2
-                lower_addrs.append(self.tile.file_params.ravel_nchw(
-                    self.tile.n_id * self.tile.Tn + z,
-                    c_id * PEArray.NUM_ROWS,
-                    self.subtile_rect.lower.y,
-                    self.subtile_rect.lower.x))
-                upper_addrs.append(self.tile.file_params.ravel_nchw(
-                    self.tile.n_id * self.tile.Tn + z,
-                    c_id * PEArray.NUM_ROWS,
-                    self.subtile_rect.upper.y,
-                    self.subtile_rect.upper.x))
-        return (lower_addrs, upper_addrs)
+        assert(tile.is_pe_input == False)
 
 """ FMAP tile object
 """
@@ -145,90 +155,94 @@ class Tile:
         self.Tn = Tn
         self.is_ifmap = is_ifmap
         self.is_pe_input = is_pe_input
+        self.channel_start = self.m_id * PEArray.NUM_COLS
+        self.channel_stop = min(self.file_params.file_dims.C, self.channel_start + PEArray.NUM_COLS)
+        self.channel_count = self.channel_stop - self.channel_start
+        self.n_start = self.n_id * self.Tn
+        self.n_stop  = min(self.file_params.file_dims.N, self.n_start + self.Tn)
         #FIXME
         self.mepoolspec = None
+
+    def copy(self):
+        tile_id = (self.n_id, self.m_id, self.h_id, self.w_id, self.n, self.m, self.h, self.w)
+        new_tile = Tile(tile_id, self.file_params, self.Tn, is_ifmap=self.is_ifmap, is_pe_input=self.is_pe_input)
+        new_tile.tile_rect = self.tile_rect
+        new_tile.padded_tile_rect = self.padded_tile_rect
+        new_tile.mepoolspec = self.mepoolspec
+        return new_tile
 
     def make_pewave(self):
         return PEWave(self, 0, 0, 0)
 
     def get_fmap_coord(self, tile_sz):
-        return Coord(self.w_id, self.h_id) * tile_sz
+        x = self.w_id * tile_sz.x
+        y = self.h_id * tile_sz.y
+        return Coord(x, y)
 
     def get_ofmap_count(self):
-        channel_start = self.m_id * PEArray.NUM_COLS
-        channel_stop = min(self.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
-        return channel_stop - channel_start
+        return self.channel_count
 
-    def get_tile_data_from_file(self):
-        channel_start = self.m_id * PEArray.NUM_COLS
-        channel_stop = min(self.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
-        n_start = self.n_id * self.Tn
-        n_stop  = min(self.file_params.file_dims.N, n_start + self.Tn)
+    def get_tile_data_from_file(self, flatten=False):
         # NCHW
-        return self.file_params.dram_data[n_start : n_stop,
-                                          channel_start : channel_stop,
+        assert(self.file_params.file_dims.format_str == 'NCHW')
+        tile_data = self.file_params.dram_data[self.n_start : self.n_stop,
+                                          self.channel_start : self.channel_stop,
                                           self.tile_rect.lower.y : self.tile_rect.upper.y + 1,
                                           self.tile_rect.lower.x : self.tile_rect.upper.x + 1]
+        if flatten:
+            tile_rect_sz = self.tile_rect.dim2d.get_tot_size()
+            tile_data_flat = np.zeros((self.Tn * tile_rect_sz, tile_data.shape[1]))
+            for z in range(self.Tn):
+                for i in range(tile_data.shape[1]):
+                    tile_data_flat[z * tile_rect_sz : (z+1) * tile_rect_sz, i] = tile_data[z, i, :, :].flatten()
+            tile_data = tile_data_flat                    
+        return tile_data.astype(np.float32)
 
     def get_subtile_data_from_file(self, subtile_rect):
-        channel_start = self.m_id * PEArray.NUM_COLS
-        channel_stop = min(self.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
-        n_start = self.n_id * self.Tn
-        n_stop  = min(self.file_params.file_dims.N, n_start + self.Tn)
         # NCHW
-        return self.file_params.dram_data[n_start : n_stop,
-                                          channel_start : channel_stop,
+        assert(self.file_params.file_dims.format_str == 'NCHW')
+        return self.file_params.dram_data[self.n_start : self.n_stop,
+                                          self.channel_start : self.channel_stop,
                                           subtile_rect.lower.y : subtile_rect.upper.y + 1,
                                           subtile_rect.lower.x : subtile_rect.upper.x + 1]
 
     def set_tile_data_in_file2(self, tile_data):
-        channel_start = self.m_id * PEArray.NUM_COLS
-        channel_stop = min(self.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
-        n_start = self.n_id * self.Tn
-        n_stop  = min(self.file_params.file_dims.N, n_start + self.Tn)
         # NCHW
-        self.file_params.dram_data[n_start : n_stop,
-                                   channel_start : channel_stop,
+        assert(self.file_params.file_dims.format_str == 'NCHW')
+        self.file_params.dram_data[self.n_start : self.n_stop,
+                                   self.channel_start : self.channel_stop,
                                    self.tile_rect.lower.y : self.tile_rect.upper.y + 1,
                                    self.tile_rect.lower.x : self.tile_rect.upper.x + 1] = tile_data
 
     def set_subtile_data_in_file2(self, subtile_rect, subtile_data):
-        channel_start = self.m_id * PEArray.NUM_COLS
-        channel_stop = min(self.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
-        n_start = self.n_id * self.Tn
-        n_stop  = min(self.file_params.file_dims.N, n_start + self.Tn)
         # NCHW
-        self.file_params.dram_data[n_start : n_stop,
-                                   channel_start : channel_stop,
+        assert(self.file_params.file_dims.format_str == 'NCHW')
+        self.file_params.dram_data[self.n_start : self.n_stop,
+                                   self.channel_start : self.channel_stop,
                                    subtile_rect.lower.y : subtile_rect.upper.y + 1,
                                    subtile_rect.lower.x : subtile_rect.upper.x + 1] = subtile_data
 
-#    def set_tile_data_in_file(self, tile_data_flatten):
-#        channel_start = self.m_id * PEArray.NUM_COLS
-#        channel_stop = min(self.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
-#        for z in range(self.Tn):
-#            for j in range(channel_start, channel_stop):
-#                result_tile_tmp = (tile_data_flatten[      z * self.tile_rect.dim2d.y * self.tile_rect.dim2d.x 
-#                                                     : (z+1) * self.tile_rect.dim2d.y * self.tile_rect.dim2d.x, j - channel_start])
-#                result_tile = result_tile_tmp.reshape((self.tile_rect.dim2d.y, self.tile_rect.dim2d.x))
-#                # NCHW
-#                result = self.file_params.dram_data
-#                result[self.n_id * self.Tn + z, 
-#                        j, 
-#                        self.tile_rect.lower.y : self.tile_rect.lower.y + self.tile_rect.dim2d.y, 
-#                        self.tile_rect.lower.x : self.tile_rect.lower.x + self.tile_rect.dim2d.x]\
-#                    = result_tile[0:self.tile_rect.dim2d.y, 0:self.tile_rect.dim2d.x]
-#
-    def set_tile_data_in_file(self, tile_data_flatten):
-        channel_start = self.m_id * PEArray.NUM_COLS
-        channel_stop = min(self.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
+    def set_padded_tile_data_in_file(self, tile_data_flatten):
+        assert(self.file_params.file_dims.format_str == 'NCHW')
         for z in range(self.Tn):
-            for j in range(channel_start, channel_stop):
-                #result_tile_tmp = (tile_data_flatten[      z * self.padded_tile_rect.dim2d.get_tot_size()
-                #                                     : (z+1) * self.padded_tile_rect.dim2d.get_tot_size(), j - channel_start])
-                #result_tile = result_tile_tmp.reshape((self.padded_tile_rect.dim2d.y, self.padded_tile_rect.dim2d.x))
+            for j in range(self.channel_start, self.channel_stop):
+                result_tile_tmp = (tile_data_flatten[      z * self.padded_tile_rect.dim2d.get_tot_size()
+                                                     : (z+1) * self.padded_tile_rect.dim2d.get_tot_size(), j - self.channel_start])
+                result_tile = result_tile_tmp.reshape((self.padded_tile_rect.dim2d.y, self.padded_tile_rect.dim2d.x))
+                # NCHW
+                result = self.file_params.dram_data
+                result[self.n_id * self.Tn + z, 
+                        j, 
+                        self.tile_rect.lower.y : self.tile_rect.lower.y + self.tile_rect.dim2d.y, 
+                        self.tile_rect.lower.x : self.tile_rect.lower.x + self.tile_rect.dim2d.x]\
+                    = result_tile[0:self.tile_rect.dim2d.y, 0:self.tile_rect.dim2d.x]
+
+    def set_tile_data_in_file(self, tile_data_flatten):
+        assert(self.file_params.file_dims.format_str == 'NCHW')
+        for z in range(self.Tn):
+            for j in range(self.channel_start, self.channel_stop):
                 result_tile_tmp = (tile_data_flatten[      z * self.tile_rect.dim2d.get_tot_size()
-                                                     : (z+1) * self.tile_rect.dim2d.get_tot_size(), j - channel_start])
+                                                     : (z+1) * self.tile_rect.dim2d.get_tot_size(), j - self.channel_start])
                 result_tile = result_tile_tmp.reshape((self.tile_rect.dim2d.y, self.tile_rect.dim2d.x))
                 # NCHW
                 result = self.file_params.dram_data
@@ -239,12 +253,11 @@ class Tile:
                     = result_tile[0:self.tile_rect.dim2d.y, 0:self.tile_rect.dim2d.x]
 
     def set_subtile_data_in_tile(self, tile_data_flatten, subtile_rect, subtile_data_flatten):
-        channel_start = self.m_id * PEArray.NUM_COLS
-        channel_stop = min(self.file_params.file_dims.C, channel_start + PEArray.NUM_COLS)
+        assert(self.file_params.file_dims.format_str == 'NCHW')
         for z in range(self.Tn):
-            for j in range(channel_start, channel_stop):
+            for j in range(self.channel_start, self.channel_stop):
                 result_subtile_tmp = (subtile_data_flatten[      z * subtile_rect.dim2d.y * subtile_rect.dim2d.x 
-                                                           : (z+1) * subtile_rect.dim2d.y * subtile_rect.dim2d.x, j - channel_start])
+                                                           : (z+1) * subtile_rect.dim2d.y * subtile_rect.dim2d.x, j - self.channel_start])
                 result_subtile = result_tile_tmp.reshape((subtile_rect.dim2d.y, subtile_rect.dim2d.x))
                 # NCHW
                 tile_data_flatten[self.n_id * self.Tn + z, 
@@ -253,6 +266,32 @@ class Tile:
                         subtile_rect.lower.x : subtile_rect.lower.x + subtile_rect.dim2d.x]\
                     = result_tile[0:subtile_rect.dim2d.y, 0:subtile_rect.dim2d.x]
         return tile_data_flatten                    
+    
+    def set_subtile_data_strided_in_tile(self, tile_data_flatten, subtile_rect, subtile_data_flatten, stride, psum_add):
+        assert(self.file_params.file_dims.format_str == 'NCHW')
+        for z in range(self.Tn):
+            for j in range(self.channel_start, self.channel_stop):
+                result_subtile_tmp = (subtile_data_flatten[      z * subtile_rect.dim2d.y * subtile_rect.dim2d.x 
+                                                           : (z+1) * subtile_rect.dim2d.y * subtile_rect.dim2d.x, j - self.channel_start])
+                result_subtile = result_tile_tmp.reshape((subtile_rect.dim2d.y, subtile_rect.dim2d.x))
+                # NCHW
+                if not psum_add:
+                    tile_data_flatten[self.n_id * self.Tn + z, 
+                            j, 
+                            self.tile_rect.lower.y : self.tile_rect.lower.y + self.tile_rect.dim2d.y : stride.y, 
+                            self.tile_rect.lower.x : self.tile_rect.lower.x + self.tile_rect.dim2d.x : stride.x]\
+                        = result_tile[0:subtile_rect.dim2d.y, 0:subtile_rect.dim2d.x]
+                else:
+                    tile_data_flatten[self.n_id * self.Tn + z, 
+                            j, 
+                            self.tile_rect.lower.y : self.tile_rect.lower.y + self.tile_rect.dim2d.y : stride.y, 
+                            self.tile_rect.lower.x : self.tile_rect.lower.x + self.tile_rect.dim2d.x : stride.x]\
+                        += result_tile[0:subtile_rect.dim2d.y, 0:subtile_rect.dim2d.x]
+        return tile_data_flatten                    
+    
+    def snap_rect_to_stride_grid(self, origin, stride):
+        self.lower.snap_up_to_nearest_grid(origin, stride)
+        self.upper.snap_down_to_nearest_grid(origin, stride)
 
 """List of K-Nodes that are fused (pass data through PSUM buffers)
 """
@@ -755,8 +794,8 @@ class FusedOp(list):
                     self.last_op.ofmaps_file_params.save_file()
 
     # generate MatMul waveop and add it to waveop stream
-    def gen_matmul_waveop(self, tpb, pewave, psum_add, dram_weights_waveops):
-        batch_item = pewave.tile.n_id * self.first_op.Tn
+    def gen_matmul_waveop(self, tpb, ifmap_pewave, ofmap_pewave, psum_add, dram_weights_waveops, repl_multiple_of_C=1, conv_transpose=False):
+        batch_item = ofmap_pewave.tile.n_id * ofmap_pewave.tile.Tn
         if (self.first_op.item_sz == 2):
             in_dtype = "float16"
             out_dtype = "float32"
@@ -781,11 +820,12 @@ class FusedOp(list):
         current_atom_id = -10000
         break_at_y = []
         break_addr = []
+        subtile_rect_dim2d = ifmap_pewave.subtile_rect.dim2d if conv_transpose else ofmap_pewave.subtile_rect.dim2d
         addr_step_y = self.first_op.W * self.first_op.stride.y * self.first_op.item_sz
-        for i in range(self.first_op.ofmap_wave_height):
+        for i in range(subtile_rect_dim2d.y):
             # TODO: how to deal with partial batching here?
-            address = self.first_op.ifmap_wave_lower_addr[0] + i * addr_step_y
-            if (address > self.first_op.ifmap_wave_upper_addr[0]):
+            address = ifmap_pewave.lower_addr[0] + i * addr_step_y
+            if (address > ifmap_pewave.upper_addr[0]):
                 break
             chunk_id = tpb.statebuffer.file_mapper.get_chunk_id_from_file_addr(self.first_op.ifmaps_file_params, batch_item, address)
             atom_id = tpb.statebuffer.file_mapper.get_atom_id_from_file_addr(self.first_op.ifmaps_file_params, batch_item, address)
@@ -802,17 +842,24 @@ class FusedOp(list):
         matmul_waveop = []
         start_tensor_calc = not(psum_add)
 
-        # replication parameters
-        fmap_x_num = self.first_op.ofmap_wave_width
-        fmap_x_step = self.first_op.stride.x
-        fmap_y_step = self.first_op.W * self.first_op.stride.y
+        # source and destination patterns: x num elems
+        fmap_x_num = subtile_rect_dim2d.x
+        dst_x_num = subtile_rect_dim2d.x
+        # source and destination patterns: x step
+        fmap_x_step = 1 if conv_transpose else self.first_op.stride.x
+        dst_x_step = self.first_op.stride.x if conv_transpose else 1
+        # source and destination patterns: y step
+        fmap_y_step = self.first_op.W * (1 if conv_transpose else self.first_op.stride.y)
+        dst_y_step = ofmap_pewave.tile.tile_rect.dim2d.x * (self.first_op.stride.y if conv_transpose else 1)
+        # source and destination patterns: z step
         fmap_z_step = self.first_op.ifmaps_file_params.batch_item_partition_usage_elems_padded if self.first_op.Tn > 1 else 1
-        dst_x_num = self.first_op.ofmap_wave_width
-        dst_y_step = pewave.tile.tile_rect.dim2d.x
+
+        # replication parameters
         ifmap_replication_resolution = 0
         ifmap_replication_num_rows = 0
         ifmap_replication_shift_amnt = 0
         if self.first_op.repl_multiple_of_C > 1:
+            assert(conv_transpose == False)
             # Kaena-593: ensure no bubble during IFMAP streaming (packed pattern)
             fmap_x_num = self.first_op.W // self.first_op.stride.x
             fmap_x_step = 1     # image gets split into even/odd
@@ -825,12 +872,14 @@ class FusedOp(list):
 
         for i in range(len(break_at_y)):                
             if (i == len(break_at_y)-1):
-                next_break = self.first_op.ofmap_wave_height
+                next_break = subtile_rect_dim2d.y
             else:
                 next_break = break_at_y[i+1]
             fmap_y_num = next_break - break_at_y[i]
-            psum_bank_additional_offset = break_at_y[i] * pewave.tile.tile_rect.dim2d.x
-            assert((self.first_op.psum_bank_offset + psum_bank_additional_offset) < PEArray.MAX_WAVE_SIZE)
+            dst_psum_bank_offset = break_at_y[i] * ofmap_pewave.tile.tile_rect.dim2d.x
+            if not conv_transpose:
+                dst_psum_bank_offset += ofmap_pewave.subtile_psum_offset
+            assert(dst_psum_bank_offset < PEArray.MAX_WAVE_SIZE)
             fmap_sb_address = break_addr[i]
             if ifmap_replication_resolution > 1:
                 assert((fmap_sb_address%8) == 0), "Kaena-593: IFMAP start address must by 8B aligned for replication to work"
@@ -845,14 +894,14 @@ class FusedOp(list):
                 weights_sb_address = -1
 
             for z in range(self.first_op.Tn):                    
-                lower_file_address = self.first_op.ifmap_wave_lower_addr[z] + break_at_y[i] * addr_step_y
-                upper_file_address = min(self.first_op.ifmap_wave_lower_addr[z] + next_break * addr_step_y - self.first_op.item_sz, self.first_op.ifmap_wave_upper_addr[z])
+                lower_file_address = ifmap_pewave.lower_addr[z] + break_at_y[i] * addr_step_y
+                upper_file_address = min(ifmap_pewave.lower_addr[z] + next_break * addr_step_y - self.first_op.item_sz, ifmap_pewave.upper_addr[z])
                 list_of_names = tpb.statebuffer.file_mapper.get_dram_waveop_names(self.first_op.ifmaps_file_params, batch_item + z, lower_file_address, upper_file_address)
                 for name in list_of_names:
                     if name not in dram_waveop_names:
                         dram_waveop_names.append(name)
 
-            waveop_name = self.first_op.data['layer_name']+"/MatMul_"+pewave.id_string+"__"+str(i)
+            waveop_name = self.first_op.data['layer_name']+"/MatMul_"+ofmap_pewave.id_string+"__"+str(i)
             if (self.args.debug > 2): print("DBG %s: MatMul wave %s subwave %d weights_sb_address %d, fmap_sb_address %d, fmap_y_num %d"%(self.first_op.data['layer_name'], waveop_name, i, weights_sb_address, fmap_sb_address, fmap_y_num))                
             matmul_waveop.append({ 
                   'previous_waveops'        : dram_waveop_names,
@@ -873,17 +922,17 @@ class FusedOp(list):
                   'src_y_num'               : fmap_y_num,
                   'src_z_step'              : fmap_z_step,
                   'src_z_num'               : self.first_op.Tn,
-                  'num_row_partitions'      : self.first_op.ifmap_count,
+                  'num_row_partitions'      : ifmap_pewave.ifmap_channel_count * repl_multiple_of_C,
                   'dst_is_psum'             : True,
                   'dst_psum_bank_id'        : self.first_op.psum_bank_dst,
-                  'dst_psum_bank_offset'    : self.first_op.psum_bank_offset + psum_bank_additional_offset,
-                  'dst_x_step'              : 1,
+                  'dst_psum_bank_offset'    : dst_psum_bank_offset,
+                  'dst_x_step'              : dst_x_step,
                   'dst_x_num'               : dst_x_num,
                   'dst_y_step'              : dst_y_step,
                   'dst_y_num'               : fmap_y_num,
                   'dst_z_step'              : self.first_op.ofmap_full_tile_sz,
                   'dst_z_num'               : self.first_op.Tn,
-                  'num_column_partitions'   : self.first_op.ofmap_count,
+                  'num_column_partitions'   : ofmap_pewave.tile.channel_count,
                   'ifmap_replication_resolution' : ifmap_replication_resolution, 
                   'ifmap_replication_num_rows' : ifmap_replication_num_rows,
                   'ifmap_replication_shift_amnt' : ifmap_replication_shift_amnt,
@@ -967,26 +1016,81 @@ class FusedOp(list):
         return instr
 
     # execute PEArray matrix multiply; returns True if successful (IFMAP wave is non-zero)
-    def execute_matmul_waveop(self, tpb, pewave, inputs, weights, psum_add, repl_multiple_of_C):
-        batch_item = pewave.tile.n_id * self.conv_op.Tn
+    def execute_matmul_waveop(self, tpb, ifmap_pewave, ofmap_pewave, inputs, weights, psum_add, repl_multiple_of_C):
+        batch_item = ofmap_pewave.tile.n_id * self.conv_op.Tn
+        self.conv_op.compute_ifmap_ofmap_pewave_info(ifmap_pewave, ofmap_pewave, self.conv_op.is_conv_transpose)
         pearray_packed_weights = self.conv_op.pack_wave_conv_weights(
                                         weights, 
-                                        pewave, 
+                                        ifmap_pewave,
+                                        ofmap_pewave, 
                                         repl_multiple_of_C
                                         )
-        pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(
+        if self.conv_op.is_conv_transpose:
+            pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps_deconv(
+                                        ifmap_pewave,
+                                        ofmap_pewave
+                                        )
+        else:            
+            pearray_packed_ifmaps = self.conv_op.pack_wave_ifmaps(
                                         inputs, 
-                                        pewave,
+                                        ifmap_pewave,
+                                        ofmap_pewave,
                                         repl_multiple_of_C,
                                         for_softmax=False
                                         )
-        #print("\npearray_packed_ifmaps", pewave.id_array, "\n", pearray_packed_ifmaps)
-        #print("\npearray_packed_weights", pewave.id_array, "\n", pearray_packed_weights)
-        if (self.conv_op.ifmap_wave_lower_addr[0] < 0 or self.conv_op.ifmap_wave_upper_addr[0] < 0):
-            print("WARNING layer %s: IFMAP wave (%s) has no data, so don't create waveops for this wave"%(self[0].data['layer_name'], pewave.id_string))
+            """
+            length = self.conv_op.ifmap_wave_upper_addr[0] - self.conv_op.ifmap_wave_lower_addr[0] + self.conv_op.item_sz
+            print("ifmap tile rect: ", ifmap_pewave.tile.tile_rect, " ifmap wave rect: ", ifmap_pewave.subtile_rect)
+            print("ofmap tile rect: ", ofmap_pewave.tile.tile_rect, " ofmap wave rect: ", ofmap_pewave.subtile_rect)
+            print(self.conv_op.ifmap_wave_lower_addr[0], 
+                    "ifmap_wave_lower: ", self.conv_op.ifmap_wave_lower_coordx[0], self.conv_op.ifmap_wave_lower_coordy[0], 
+                    "ifmap_wave_upper: ", self.conv_op.ifmap_wave_upper_coordx[0], self.conv_op.ifmap_wave_upper_coordy[0], 
+                    "ofmap_wave_lower: ", self.conv_op.ofmap_wave_lower_coordx[0], self.conv_op.ofmap_wave_lower_coordy[0],
+                    "ofmap_wave_upper: ", self.conv_op.ofmap_wave_upper_coordx[0], self.conv_op.ofmap_wave_upper_coordy[0],
+                    "ofmap_wave_width: ", self.conv_op.ofmap_wave_width,
+                    "ofmap_wave_height: ", self.conv_op.ofmap_wave_height,
+                    "psum_bank_offset: ", self.conv_op.psum_bank_offset,
+                    "length: ", length,
+                    )
+            print(ifmap_pewave.lower_addr[0], 
+                    "ifmap_wave_lower: ", ifmap_pewave.subtile_rect.lower.x, ifmap_pewave.subtile_rect.lower.y, 
+                    "ifmap_wave_upper: ", ifmap_pewave.subtile_rect.upper.x, ifmap_pewave.subtile_rect.upper.y, 
+                    "ofmap_wave_lower: ", ofmap_pewave.subtile_rect.lower.x, ofmap_pewave.subtile_rect.lower.y,
+                    "ofmap_wave_upper: ", ofmap_pewave.subtile_rect.upper.x, ofmap_pewave.subtile_rect.upper.y,
+                    "ofmap_wave_width: ", ofmap_pewave.subtile_rect.dim2d.x,
+                    "ofmap_wave_height: ", ofmap_pewave.subtile_rect.dim2d.y,
+                    "psum_bank_offset: ", ofmap_pewave.subtile_psum_offset,
+                    "length: ", ifmap_pewave.lower_to_upper_len_bytes[0],
+                    )
+            """
+        #print("\npearray_packed_ifmaps", ofmap_pewave.id_array, "\n", pearray_packed_ifmaps)
+        #print("\npearray_packed_weights", ofmap_pewave.id_array, "\n", pearray_packed_weights)
+        if (ifmap_pewave.lower_addr[0] < 0 or ifmap_pewave.upper_addr[0] < 0):
+            assert(ifmap_pewave.subtile_rect.is_empty)
+            assert(ifmap_pewave.lower_addr[0] < 0)
+            assert(ifmap_pewave.upper_addr[0] < 0)
+            #print(ifmap_pewave.subtile_rect)
+            #print(ifmap_pewave.lower_addr[0])
+            print("WARNING layer %s: IFMAP wave (%s) has no data, so don't create waveops for this wave"%(self[0].data['layer_name'], ofmap_pewave.id_string))
             return False
         else:
-            tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
+            if self.conv_op.is_conv_transpose:
+                packed_ofmaps = np.matmul(pearray_packed_ifmaps.astype(np.float32), pearray_packed_weights.astype(np.float32))
+                print("pearray_packed_ifmaps: ", pearray_packed_ifmaps)
+                print("pearray_packed_weights: ", pearray_packed_weights)
+                print("packed_ofmaps: ", packed_ofmaps)
+                print(ifmap_pewave.subtile_rect)
+                print(ofmap_pewave.subtile_rect)
+                tpb.pearray.unpack_wave_ofmaps_deconv(
+                        packed_ofmaps
+                        , ifmap_pewave
+                        , ofmap_pewave
+                        , tpb.pearray.psum_buf[self.conv_op.psum_bank_dst]
+                        , not psum_add
+                        , self.conv_op.stride)         
+            else:
+                #assert(self.conv_op.psum_bank_offset == ofmap_pewave.subtile_psum_offset)
+                tpb.pearray.wave_fp16_mm(pearray_packed_ifmaps, pearray_packed_weights, self.conv_op.psum_bank_dst, psum_add)
             # Generate weights waveops
             (writers, readers, dram_weights_waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                         tpb.waveop_stream.nonload_waveop_count,
@@ -998,7 +1102,6 @@ class FusedOp(list):
                                         repl_multiple_of_C
                                         )
             if (self.args.debug > 2): print("DBG %s: MatMul weight_wave_lower_addr %d weight_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.weight_wave_lower_addr, self.conv_op.weight_wave_upper_addr))                
-                                        
             for i in dram_weights_waveops: tpb.waveop_stream.append_check(i)
 
             dram_ifmaps_waveops = []
@@ -1008,16 +1111,17 @@ class FusedOp(list):
                 (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                             tpb.waveop_stream.nonload_waveop_count,
                                             tpb.waveop_stream.nonload_waveop_list,
-                                            self.conv_op.ifmaps_file_params,
+                                            ifmap_pewave.tile.file_params,
                                             batch_item + z,
-                                            self.conv_op.ifmap_wave_lower_addr[z], 
-                                            self.conv_op.ifmap_wave_upper_addr[z] - self.conv_op.ifmap_wave_lower_addr[z] + self.conv_op.item_sz,
+                                            ifmap_pewave.lower_addr[z],
+                                            ifmap_pewave.lower_to_upper_len_bytes[z],
                                             self.conv_op.repl_multiple_of_C
                                             )
+
                 if self.args.no_inter_layer_load:
                     if (not self.conv_op.is_input and len(waveops) > 0):
                         raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
-                if (self.args.debug > 2): print("DBG %s: MatMul ifmaps_wave_lower_addr %d ifmap_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.ifmap_wave_lower_addr[z], self.conv_op.ifmap_wave_upper_addr[z]))                
+                if (self.args.debug > 2): print("DBG %s: MatMul ifmaps_wave_lower_addr %d ifmap_pewave rect "%(self.conv_op.data['layer_name'], ifmap_pewave.lower_addr[z]), ifmap_pewave.subtile_rect)
                 dram_ifmaps_waveops += waveops
                 latest_accessor = max(last_writer, latest_accessor) # don't include readers since this matmul is a reader, and we don't need to add RAR dependency
             
@@ -1031,7 +1135,7 @@ class FusedOp(list):
                         prev_waveops.append(latest_accessor_waveop['waveop_name'])
 
             for i in dram_ifmaps_waveops: tpb.waveop_stream.append_check(i)
-            matmul_waveop = self.gen_matmul_waveop(tpb, pewave, psum_add, dram_weights_waveops)
+            matmul_waveop = self.gen_matmul_waveop(tpb, ifmap_pewave, ofmap_pewave, psum_add, dram_weights_waveops, repl_multiple_of_C, self.conv_op.is_conv_transpose)
             for i in range(len(matmul_waveop)):
                 tpb.waveop_stream.add_linked(matmul_waveop[i], [], self.conv_op.psum_bank_dst)
                 # TODO: move the following into gen_matmul_waveop to handle breaking wave into two
@@ -1178,29 +1282,18 @@ class FusedOp(list):
                             prev_waveops.append(latest_accessor_waveop['waveop_name'])
 
                 # Do the actual math
-                residue_file_params = self[i].prev[self[i].residue_index].ofmaps_file_params 
-                residue_ifmaps = np.zeros((self.first_op.ofmap_full_tile_sz * ofmap_tile.Tn, PEArray.NUM_COLS), dtype=np.float32)
-                for z in range(op_list.first_op.Tn):
-                    for j in range(PEArray.NUM_COLS):
-                        M_idx = ofmap_tile.m_id * PEArray.NUM_COLS + j
-                        if (M_idx >= self.first_op.M):
-                            break
-                        else:
-                            # NCHW
-                            residue_tile_ifmap = np.zeros((self.first_op.ofmap_full_tiley_sz, self.first_op.ofmap_full_tilex_sz), dtype=np.float32)
-                            residue_tile_ifmap[0:ofmap_tile.tile_rect.dim2d.y, 0:ofmap_tile.tile_rect.dim2d.x] = \
-                                residue_file_params.dram_data[
-                                    ofmap_tile.n_id * op_list.first_op.Tn + z, 
-                                    M_idx, 
-                                    ofmap_tile.tile_rect.lower.y : ofmap_tile.tile_rect.upper.y + 1,
-                                    ofmap_tile.tile_rect.lower.x : ofmap_tile.tile_rect.lower.x + ofmap_tile.tile_rect.dim2d.x]
-                            residue_ifmaps[z * self.first_op.ofmap_full_tile_sz : (z+1) * self.first_op.ofmap_full_tile_sz,j] = residue_tile_ifmap.flatten()
+                residue_file_params = self[i].prev[self[i].residue_index].ofmaps_file_params
+                residue_tile = ofmap_tile.copy()
+                residue_tile.file_params = residue_file_params
+                residue_ifmaps = residue_tile.get_tile_data_from_file(flatten=True)
+                num_cols = residue_ifmaps.shape[1]
+                num_elems = residue_ifmaps.shape[0]
                 #x1 = DBG_DUMP_PSUM_COL("PSUM col0 before ResAdd (FP32): ", psum_temp, 0)
                 #x2 = DBG_DUMP_PSUM_COL("Residue col0 before ResAdd (FP32): ", residue_ifmaps, 0)
                 if (layer_type == 'ResAdd'):
-                    psum_temp = tpb.pool.resadd(psum_temp, residue_ifmaps)
+                    psum_temp[0:num_elems, 0:num_cols] = tpb.pool.resadd(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
                 elif (layer_type == 'Multiply'):    
-                    psum_temp = tpb.pool.multiply(psum_temp, residue_ifmaps)
+                    psum_temp[0:num_elems, 0:num_cols] = tpb.pool.multiply(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
                 else:
                     print("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, self[i].data["layer_name"]))
                 #y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
@@ -1746,10 +1839,11 @@ class FusedOp(list):
                         for c_id in range(self.conv_op.c):
                             for r_id in range(self.conv_op.R):
                                 for s_id in range(self.conv_op.S):
-                                    pewave = PEWave(ofmap_tile, c_id, r_id, s_id)
-                                    if (self.parent.args.debug > 2): print (pewave.id_array)
+                                    ifmap_pewave = PEWave(ifmap_tile, c_id, r_id, s_id)
+                                    ofmap_pewave = PEWave(ofmap_tile, c_id, r_id, s_id)
+                                    if (self.parent.args.debug > 2): print (ofmap_pewave.id_array)
                                     # execute PEArray matrix multiply, and add to PSUM after first wave
-                                    if (self.execute_matmul_waveop(self, pewave, inputs, weights, psum_add, 1)):
+                                    if (self.execute_matmul_waveop(self, ifmap_pewave, ofmap_pewave, inputs, weights, psum_add, 1)):
                                         psum_add = True
                         # tile is done                                   
                         self.waveop_stream.last_main_waveop['stop_tensor_calc'] = True
@@ -2361,8 +2455,8 @@ class FusedOp(list):
                     for w_id in range(self.conv_op.w):
                         tile_id = (n_id, m_id, h_id, w_id, self.conv_op.n, self.conv_op.m, self.conv_op.h, self.conv_op.w)
                         ifmap_tile = Tile(tile_id, self.conv_op.ifmaps_file_params, self.conv_op.Tn, is_ifmap=True, is_pe_input=True)
-                        ofmap_tile = Tile(tile_id, self.last_op.ofmaps_file_params, self.conv_op.Tn, is_ifmap=False, is_pe_input=False)
-                        self.conv_op.compute_ifmap_ofmap_tile_info(ifmap_tile, ofmap_tile)
+                        ofmap_tile = Tile(tile_id, self.last_op.ofmaps_file_params, self.last_op.Tn, is_ifmap=False, is_pe_input=False)
+                        self.conv_op.compute_ifmap_ofmap_tile_info(ifmap_tile, ofmap_tile, self.conv_op.is_conv_transpose)
                         # loops for constructing a tile
                         for c_id in range(self.conv_op.c):
                             r_id = 0
@@ -2370,13 +2464,14 @@ class FusedOp(list):
                             remaining_filter_elems = self.conv_op.RS
                             while r_id < self.conv_op.weights_file_params.file_dims.R:
                                 while s_id < self.conv_op.weights_file_params.file_dims.S:
-                                    wave_id = PEWave(ofmap_tile, c_id, r_id, s_id)
+                                    ifmap_pewave = PEWave(ifmap_tile, c_id, r_id, s_id)
+                                    ofmap_pewave = PEWave(ofmap_tile, c_id, r_id, s_id)
                                     # execute PEArray matrix multiply, and add to PSUM after first wave
                                     repl_multiple_per_wave = 1
                                     if self.conv_op.repl_multiple_of_C > 1:
                                         repl_multiple_per_wave = min(remaining_filter_elems, self.conv_op.repl_multiple_of_C)
                                         remaining_filter_elems -= self.conv_op.repl_multiple_of_C
-                                    if (self.execute_matmul_waveop(tpb, wave_id, inputs, weights, psum_add, repl_multiple_per_wave)):
+                                    if (self.execute_matmul_waveop(tpb, ifmap_pewave, ofmap_pewave, inputs, weights, psum_add, repl_multiple_per_wave)):
                                         psum_add = True
                                     s_id += self.conv_op.repl_multiple_of_C
                                 r_id += s_id//self.conv_op.S
@@ -2387,6 +2482,19 @@ class FusedOp(list):
                         #x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
                         # go through the remaining operations, using ofmap_tile as ifmap_tile (TODO: compute new shapes per operation)
                         psum_temp = self.execute_postconv_tile_ops(tpb, ofmap_tile, ofmap_tile, psum_bank_src)
+                        #x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
+                        # if operation is the last one, dump current result into a portion of final result
+                        output_params_op = self.conv_op
+                        if (self.has_pool):
+                            output_params_op = self.pool_op
+                        if self.conv_op.is_conv_transpose:
+                            ofmap_tile.set_tile_data_in_file(psum_temp)
+                        else:
+                            # TODO: to simplify fix regular convolution so that we use cropped tile (like conv transpose)
+                            # instead of padded tile
+                            ofmap_tile.set_padded_tile_data_in_file(psum_temp)
+                        waveop = tpb.waveop_stream.last_psum_waveop[psum_bank_src]
+                        self.mark_producers_for_subtile_region(tpb, ofmap_tile.make_pewave(), waveop)
 
                         #if self.parent.args.abstract_mem:
                         #    if len(dram_output_waveops) > 0:

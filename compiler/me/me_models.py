@@ -8,6 +8,17 @@ Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
 import numpy as np
 from skimage.util.shape import view_as_windows
 
+"""Macros for dumping arrays
+"""
+def DBG_DUMP_ARRAY(msg, a):
+    print (msg, "\n" , a)
+    return a
+
+def DBG_DUMP_PSUM_COL(msg, psum, col):
+    x = psum[:, col]
+    print (msg, "\n" , x)
+    return x
+
 """ PE Array properties and methods
 """
 class PEArray:
@@ -42,25 +53,69 @@ class PEArray:
     #   psum_bank: the PSUM bank number to write result to
     #   psum_add: if True, add to PSUM value in buffer; if False, replace with new value
     def wave_fp16_mm(self, packed_ifmaps, packet_weights, psum_bank, psum_add):
-        assert (packed_ifmaps.shape == (self.MAX_WAVE_SIZE, self.NUM_ROWS))
-        assert (packet_weights.shape == (self.NUM_ROWS, self.NUM_COLS))
+        #assert (packed_ifmaps.shape == (self.MAX_WAVE_SIZE, self.NUM_ROWS))
+        #assert (packet_weights.shape == (self.NUM_ROWS, self.NUM_COLS))
         assert (psum_bank < self.PSUM_NUM_BANKS)
         a = packed_ifmaps.astype(np.float32)
         b = packet_weights.astype(np.float32)
         #print(a.dtype, b.dtype, self.psum_buf.dtype)
-        self.matmul_result = np.matmul(a, b)
+        result = np.matmul(a, b)
+        shape = result.shape
         if (psum_add):
-            self.psum_buf[psum_bank] += self.matmul_result
+            self.psum_buf[psum_bank][0:shape[0], 0:shape[1]] += result
         else:            
-            self.psum_buf[psum_bank] = self.matmul_result
+            self.psum_buf[psum_bank] = np.zeros((self.MAX_WAVE_SIZE, self.NUM_COLS), dtype=np.float32)
+            self.psum_buf[psum_bank][0:shape[0], 0:shape[1]] = result
         self.num_wave_fp16_mm += 1
+
+    # Unpack the OFMAPs in columns to add to psum in strided pattern (for conv_tranpose/deconv)
+    #   packed_ofmaps: Packed OFMAPs in columns 
+    #   pewave: current output tile wave, IDed by [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
+    #   psum_data: PSUM data to accumulate unpacked OFMAPs (this will be modified and returned)
+    #   start_tensor_calc: True: replace PSUM contents; False: add to PSUM content
+    #   return: a 256x128 array
+    def unpack_wave_ofmaps_deconv(self, packed_ofmaps, ifmap_pewave, ofmap_pewave, psum_data, start_tensor_calc, stride):
+        out_array = psum_data
+        # remember to extract IFMAPs starting at r_id, s_id (which should be zero for non-conv op)
+        self.psum_bank_offset = 0
+        # for pooling, the "row" below actually means output columns
+        #DBG_DUMP_PSUM_COL("packed_ofmaps:", packed_ofmaps, 0)
+        #DBG_DUMP_PSUM_COL("out_array:", out_array, 0)
+        ifmap_subtile_dim2d = ifmap_pewave.subtile_rect.dim2d
+        ofmap_subtile_dim2d = ofmap_pewave.subtile_rect.dim2d
+        ofmap_tile_dim2d = ofmap_pewave.tile.tile_rect.dim2d
+        ofmap_subtile_offset = ofmap_pewave.subtile_rect.get_offset_from(ofmap_pewave.tile.tile_rect)
+        #print(subtile_rect, tile_rect)
+        #print(self.Tn, ofmap_pewave.tile.channel_start, ofmap_pewave.tile.channel_stop)
+        for z in range(ofmap_pewave.tile.Tn):
+            for j in range(ofmap_pewave.tile.channel_start, ofmap_pewave.tile.channel_stop):
+                result_subtile_data_tmp = (packed_ofmaps[      z * ifmap_subtile_dim2d.y * ifmap_subtile_dim2d.x 
+                                                        : (z+1) * ifmap_subtile_dim2d.y * ifmap_subtile_dim2d.x, j - ofmap_pewave.tile.channel_start])
+                result_subtile_data = result_subtile_data_tmp.reshape((ifmap_subtile_dim2d.y, ifmap_subtile_dim2d.x))
+                # NCHW
+                ofmap_tile_tmp = psum_data[  z * ofmap_tile_dim2d.y * ofmap_tile_dim2d.x 
+                                       : (z+1) * ofmap_tile_dim2d.y * ofmap_tile_dim2d.x, j - ofmap_pewave.tile.channel_start]
+                ofmap_tile = ofmap_tile_tmp.reshape((ofmap_tile_dim2d.y, ofmap_tile_dim2d.x))
+                if start_tensor_calc:
+                    ofmap_tile[0 : ofmap_tile_dim2d.y, 
+                               0 : ofmap_tile_dim2d.x] = np.zeros((ofmap_tile_dim2d.y, ofmap_tile_dim2d.x), dtype=np.float32)
+                    print(ofmap_tile, result_subtile_data)
+                    ofmap_tile[ofmap_subtile_offset.y : ofmap_subtile_offset.y + ofmap_subtile_dim2d.y : stride.y, 
+                               ofmap_subtile_offset.x : ofmap_subtile_offset.x + ofmap_subtile_dim2d.x : stride.x] = result_subtile_data 
+                else:
+                    print(ofmap_tile, result_subtile_data)
+                    ofmap_tile[ofmap_subtile_offset.y : ofmap_subtile_offset.y + ofmap_subtile_dim2d.y : stride.y, 
+                               ofmap_subtile_offset.x : ofmap_subtile_offset.x + ofmap_subtile_dim2d.x : stride.x] += result_subtile_data 
+                out_array[      z * ofmap_tile_dim2d.y * ofmap_tile_dim2d.x
+                          : (z+1) * ofmap_tile_dim2d.y * ofmap_tile_dim2d.x, j - ofmap_pewave.tile.channel_start] = ofmap_tile.flatten()
+        return out_array
 
 """Pooling properties and methods
 """
 class Pool:
 
     def resadd(self, array_a, array_b):
-        return array_a + array_b
+        return array_a + array_b 
 
     def multiply(self, array_a, array_b):
         return array_a * array_b
