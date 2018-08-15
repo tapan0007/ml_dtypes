@@ -19,6 +19,7 @@ sys.path.insert(0, kPath + "/compiler/")
 sys.path.insert(0, "/usr/lib/python3.6/site-packages/")
 import numpy as np
 from tffe.NpTransforms import NpTrans as npt
+from NpTransforms import TensorFormat, TensorFormatMap
 
 print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
 
@@ -77,11 +78,14 @@ class NnSubgraph:
     self.executor = sgJson["executor"]
     self.execOptions = sgJson.get("execOptions", "")
     self.parallel_streams = sgJson.get("parallel_streams", False)
+    self.tensorFormatMap = TensorFormatMap()
     self.cmd = ""
     self.cmd_args = ""
     if self.executor == "processor":
       self.cmd = sgJson["cmd"]
       self.cmd_args = sgJson["cmd_args"]
+    if self.executor == "wave":
+      self.tensorFormatMap.readJson("../%s/tensor_map.json" % self.sgDir)      
 
   # Translate and relink npy files that are inputs to this subgraph
   # Each subgraph produces output in the host format. So just rename npy

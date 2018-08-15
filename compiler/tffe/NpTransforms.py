@@ -9,6 +9,7 @@
 # the data format conversions.
 
 import numpy as np
+import json
 
 def calcTransform(sf, st):
   assert(len(sf) == len(st))
@@ -19,7 +20,7 @@ def calcTransform(sf, st):
 
 class NpTrans:
   # See spec for method  genCompilerPy
-  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "C", "NC", "HNC", "HNWC"]:
+  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "C", "NC", "HNC", "HNWC", "CM"]:
     exec("%s = '%s'" %(c, c))
   
   # Define tensorFlow (TF) to Inkling simulator (SIM) translation
@@ -153,4 +154,41 @@ class NpTrans:
       #print("DEBUG: reshapeFilePerRefFile no reshape was needed for  %s" % npyFile)
 
 
-  
+# Mapping of tensor, layer name - structure is in json format
+class TensorFormat:
+  def __init__(self, tensorName, layerName, tfFile, tfFormat, simFile, simFormat, isConst):
+    self.tensorName = tensorName
+    self.layerName = layerName
+    self.tfFile = tfFile
+    self.tfFormat = tfFormat
+    self.simFile = simFile
+    self.simFormat = simFormat
+    self.isConst = isConst
+  def asJsonDict(self):
+    jsonData = {}
+    jsonData["tensor_name"] = self.tensorName
+    jsonData["layer_name"] = self.layerName
+    jsonData["tf_file"] = self.tfFile
+    jsonData["tf_format"] = self.tfFormat
+    jsonData["sim_file"] = self.simFile
+    jsonData["sim_format"] = self.simFormat
+    jsonData["is_const"] = self.isConst
+    return jsonData
+
+class TensorFormatMap:
+  def __init__(self):
+    self.tensors = {}
+  def add(self, tensorname, tensorFormat):
+    self.tensors[tensorname] = tensorFormat
+  def writeJson(self, outFile):
+    jsonData = {}
+    for tensorname, tensorFormat in self.tensors.items():
+      jsonData[tensorname] = tensorFormat.asJsonDict()
+    with open(outFile, "w") as f:
+      s = json.dumps(jsonData, indent=2, sort_keys=True)
+      f.write(s)
+  def readJson(self, inFile):
+    with open(inFile) as fh:
+      jsonData = json.load(fh)
+    for tensorname, tfj in jsonData.items():
+      self.tensors[tensorname] = TensorFormat(tfj["tensor_name"], tfj["layer_name"], tfj["tf_file"], tfj["tf_format"], tfj["sim_file"], tfj["sim_format"], tfj["is_const"])

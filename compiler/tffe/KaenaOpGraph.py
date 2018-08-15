@@ -4,6 +4,7 @@
 # Suitable for TF freeze graph input and general op reduction and fusing
 
 from NpTransforms import NpTrans as npt
+from NpTransforms import TensorFormat, TensorFormatMap
 from NpUtils import NpUtils as npu
 import os, re, json, sys
 import numpy as np
@@ -162,7 +163,7 @@ class Node(Object):
   # E.g., activation, later possibly other simple layers
   # Returns list of layer maps (e.g., 2 for a node with a side constant),
   # and list of npy files (that need to be part of Kgraph package)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     return([{"layer_type" :  self.getOpType(),
             "layer_name" :  self.getOpName(),
             "#comment"   :  "unsupported layer"
@@ -259,16 +260,24 @@ class NodeConst(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4:
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                       npFileSim, simFormat, True))
     else:
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.C,
+                                       npFileSim, simFormat, True))
       
       # Spec for future global format tracking
       #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)
@@ -281,7 +290,7 @@ class NodeConst(Node):
       "#comment"        : "supported const layer"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -300,21 +309,33 @@ class NodeSimple(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4:
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                       npFileSim, simFormat, False))
     elif len(npInfo.npShape) == 2:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.NC,
+                                       npFileSim, simFormat, False))
     else:
       assert len(npInfo.npShape) == 1
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.C,
+                                       npFileSim, simFormat, False))
 
     # FIX_THIS - IFMAP, it should not be needed
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
@@ -327,7 +348,7 @@ class NodeSimple(Node):
       "#comment"        : "supported simple layer"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -343,12 +364,16 @@ class NodeConcat(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4: # output dimension
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                       npFileSim, simFormat, False))
     else:
       assert (0)
 
@@ -369,7 +394,7 @@ class NodeConcat(Node):
       "#comment"        : "supported simple layer"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -385,12 +410,16 @@ class NodeSoftmax(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, npt.NC,
+                                     npFileSim, simFormat, False))
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
     layerData = {
       "ofmap_shape"     : tpbShape,
@@ -400,7 +429,7 @@ class NodeSoftmax(Node):
       "#comment"        : "supported softmax layer"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -422,7 +451,7 @@ class NodeInput(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     #tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
@@ -431,10 +460,18 @@ class NodeInput(Node):
     if len(npInfo.npShape) == 4:
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                       npFileSim, simFormat, False))
     elif len(npInfo.npShape) == 3:
       # Special case of LSTM pre-unstack
       simFormat = npt.HNWC
       (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.HNC,
+                                       npFileSim, simFormat, False))
       print("INFO: derived format %s and shape %s based on batching on %s" % (str(simFormat), str(tpbShape), self.getName()))
       # FIX_THIS: the --batch is not passed here to compare, ok for now; longterm the shapes
       # should be derived from ops (like transpose)
@@ -442,10 +479,18 @@ class NodeInput(Node):
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.NC,
+                                       npFileSim, simFormat, False))
     else:
       assert len(npInfo.npShape) == 1
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.C,
+                                       npFileSim, simFormat, False))
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
 
     layerData = {
@@ -458,7 +503,7 @@ class NodeInput(Node):
       "#comment"        : "supported input layer"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -618,7 +663,7 @@ class NodeConv2D(NodeBasePaddedStrided):
     return img2D
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
@@ -626,10 +671,22 @@ class NodeConv2D(NodeBasePaddedStrided):
     tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.Weights))
     # OFMAP
     (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                     npFileSim, simFormatOF, False))
     # IFMAP, not needed
     (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    tensorFormatMap.add(npInfoIF.tensorName,
+                        TensorFormat(npInfoIF.tensorName, self.getOpName(),
+                                     npInfoIF.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                     npFileSimF, simFormatIF, False))
     # WEIGHT
     (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
+    tensorFormatMap.add(npInfoW.tensorName,
+                        TensorFormat(npInfoW.tensorName, self.getOpName(),
+                                     npInfoW.npFile, npt.Formats[npt.TF][npt.Weights],
+                                     npFileSimW, simFormatW, True))
 
     fileList += [npFileSimW, npFileSim]
     stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
@@ -647,7 +704,7 @@ class NodeConv2D(NodeBasePaddedStrided):
       "stride"          : stride,
       "#comment"        : "supported layer"
     }
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -735,7 +792,7 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
     return filterArr
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
@@ -743,8 +800,16 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
     tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.Weights))
     # OFMAP
     (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                     npFileSim, simFormatOF, False))
     # WEIGHT
     (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
+    tensorFormatMap.add(npInfoW.tensorName,
+                        TensorFormat(npInfoW.tensorName, self.getOpName(),
+                                     npInfoW.npFile, npt.Formats[npt.TF][npt.Weights],
+                                     npFileSimW, simFormatW, True))
 
     fileList += [npFileSimW, npFileSim]
     stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
@@ -762,7 +827,7 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
       "stride"          : stride,
       "#comment"        : "supported layer"
     }
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -809,7 +874,7 @@ class NodePool(NodeBasePaddedStrided):
     return kernelSize2D
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
@@ -819,8 +884,16 @@ class NodePool(NodeBasePaddedStrided):
     kernelSizeNCHW = [kernelSizeNHWC[i] for i in [0, 3, 1, 2]]
     # OFMAP
     (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                     npFileSim, simFormatOF, False))
     # IFMAP, not needed
     (npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
+    tensorFormatMap.add(npInfoIF.tensorName,
+                        TensorFormat(npInfoIF.tensorName, self.getOpName(),
+                                     npInfoIF.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                     npFileSimF, simFormatIF, False))
 
     fileList += [npFileSim]
     stride = npt.reorderShape(self.getStrides(), npt.TF, npt.SIM, npt.Fmaps)
@@ -837,7 +910,7 @@ class NodePool(NodeBasePaddedStrided):
       "stride"          : stride,
       "#comment"        : "supported layer"
     }
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -902,7 +975,7 @@ class NodeSimple2(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     
 #    if self.getName() == 'fc1000/BiasAdd':
@@ -911,13 +984,20 @@ class NodeSimple2(Node):
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 2:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NC
     elif len(npInfo.npShape) == 1:
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.C
     else:
       assert len(npInfo.npShape) == 4
       tfShape4D = npInfo.npShape
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
     
     # Residual Add has both inputs dependent on the input image
     # BiasAdd has the other input constant
@@ -939,7 +1019,7 @@ class NodeSimple2(Node):
       "#comment"        : "supported simple layer with 2 inputs"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
 
@@ -967,6 +1047,10 @@ class NodeSimple2(Node):
         # Side input has to be collapsed to a constant
         tfShape4D1 = npt.cShapeToNHWC(npInfoIF1.npShape)
         (npFileSimF1, simFormatIF1)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D1)
+        tensorFormatMap.add(npInfoIF1.tensorName,
+                            TensorFormat(npInfoIF1.tensorName, self.getOpName(),
+                                         npInfoIF1.npFile, npt.C,
+                                         npFileSimF1, simFormatIF1, True))
         tpbShape4D1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
 
         constLayerData = {
@@ -994,7 +1078,7 @@ class NodeMatMul(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     
     # Output tensor is NC format
@@ -1002,6 +1086,10 @@ class NodeMatMul(Node):
     tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, npt.NC,
+                                     npFileSim, simFormat, False))
     
     # The IFMAP comes from reshape,  the other is (weight) matrix 
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
@@ -1009,6 +1097,10 @@ class NodeMatMul(Node):
     # The matrix side input is handled like convolution weights
     tfShape4Dw = npt.cmShapeToRSCM(npInfoIF1.npShape)
     (npFileSimW, simFormatW)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Weights, tfShape4Dw)
+    tensorFormatMap.add(npInfoIF1.tensorName,
+                        TensorFormat(npInfoIF1.tensorName, self.getOpName(),
+                                     npInfoIF1.npFile, npt.CM,
+                                     npFileSimW, simFormatW, True))  # const in CNNs, may need to split the node class for LSTMs
     tpbShape4Dw = list(npt.reorderShape(tfShape4Dw, npt.TF, npt.SIM, npt.Weights))
 
     layerData = {
@@ -1023,7 +1115,7 @@ class NodeMatMul(Node):
     }
     fileList.append(npFileSim)
     fileList.append(npFileSimW)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -1057,7 +1149,7 @@ class NodeMultiply(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     
     # LSTM Output tensor is NC format
@@ -1065,13 +1157,20 @@ class NodeMultiply(Node):
     if len(npInfo.npShape) == 4:
       # CNN unit test flow, no known large Tonga NNs use these shapes as of early 2018
       tfShape4D = npInfo.npShape
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
     elif len(npInfo.npShape) == 1:
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.C
     else:
       assert len(npInfo.npShape) == 2
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NC
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
     fileList.append(npFileSim)
     
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
@@ -1093,7 +1192,7 @@ class NodeMultiply(Node):
     else:
       layerData["previous_layers"].insert(0, fromIfNode0.getName()),
 
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -1111,21 +1210,28 @@ class NodeReshape(Node):
     super().__init__(name, opType, attrs)
 
   # Returns layer json model in dictionary format, and list of files (npy data)
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     
     # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4:
       tfShape4D = npInfo.npShape
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
     elif len(npInfo.npShape) == 3:
       tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
     elif len(npInfo.npShape) == 2:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NC
     else:
       raise RuntimeError("Supported number of dimensions for Reshape's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
     
     # The IFMAP comes from reshape,  the other is (weight) matrix 
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
@@ -1146,7 +1252,7 @@ class NodeReshape(Node):
       "#comment"        : "supported reshape as copy"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -1184,7 +1290,7 @@ class NodeStridedSlice(Node):
       dotText += "\n" + str(self.protoShape)
     return dotText
 
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     bes = {"Begin" : (), "End" : (), "Stride" : ()}
@@ -1199,18 +1305,23 @@ class NodeStridedSlice(Node):
     if len(npInfo.npShape) == 4:
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
     else:
       if len(npInfo.npShape) == 2:
         tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
         channelAxis = 1
+        tfFormat = npt.NC
       else:
         tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
         channelAxis = 0
+        tfFormat = npt.C
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
       
-      # Spec for future global format tracking
-      #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
 
     vectorStart = np.asscalar(bes["Begin"][npInfoIndexinBes].getValues()[channelAxis])
     vectorEnd = np.asscalar(bes["End"][npInfoIndexinBes].getValues()[channelAxis])
@@ -1227,7 +1338,7 @@ class NodeStridedSlice(Node):
       "#comment"        : "supported const layer"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -1244,18 +1355,25 @@ class NodeUnstack(Node):
   def __init__(self, name, opType, attrs):
     super().__init__(name, opType, attrs)
 
-  def genCompilerLayerJson(self):
+  def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4:
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
     else:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tfFormat = npt.NC
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
       
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
+
     unstackAxis = self.getAttr("axis")
     nextLayerPosList = self.getFanoutNodePosNames()
     
@@ -1269,7 +1387,7 @@ class NodeUnstack(Node):
       "#comment"        : "supported const layer"
     }
     fileList.append(npFileSim)
-    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
@@ -1292,6 +1410,7 @@ class Graph(Object):
     self.kaenaPath = os.environ["KAENA_PATH"]
     self.schedulerMode = schedulerMode
     self.debugLevel = debugLevel
+    self.tensorFormatMap = TensorFormatMap()
     
   def setSchedulerMode(self, mode):
     self.schedulerMode = mode
@@ -1475,14 +1594,26 @@ class Graph(Object):
       jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
       if len(npInfo.npShape) == 4:
         (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+        self.tensorFormatMap.add(npInfo.tensorName,
+                                 TensorFormat(npInfo.tensorName, inputNode.getOpName(),
+                                              npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
+                                              npFileSim, simFormat, False))
       elif len(npInfo.npShape) == 3:
         # LSTM HNC input into Unstack
         simFormat = npt.HNWC
         (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
+        self.tensorFormatMap.add(npInfo.tensorName,
+                                 TensorFormat(npInfo.tensorName, inputNode.getOpName(),
+                                              npInfo.npFile, npt.HNC,
+                                              npFileSim, simFormat, False))
       else:
         tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
         (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
         tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+        self.tensorFormatMap.add(npInfo.tensorName,
+                                 TensorFormat(npInfo.tensorName, inputNode.getOpName(),
+                                              npInfo.npFile, npt.NC,
+                                              npFileSim, simFormat, False))
     outNpy = npFileSim
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
@@ -1498,7 +1629,7 @@ class Graph(Object):
         if not n.isSupported():
           print("WARNING: skipping layer data for layer: %s" % n.getName())
         else:
-          (layerData, fileListLayer) = n.genCompilerLayerJson()
+          (layerData, fileListLayer) = n.genCompilerLayerJson(self.tensorFormatMap)
           if Config.debugLevel >= 1:
             print("DEBUG: adding layer data for layer: %s, type %s" % (n.getName(), type(n)))
 
@@ -1540,6 +1671,7 @@ class Graph(Object):
       f.write(s)
     print("INFO: wrote ", outFile)
     fileList.append(outFile)
+    self.tensorFormatMap.writeJson("tensor_map.json")
     
     return(outNpy, fileList)
   
