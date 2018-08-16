@@ -174,10 +174,12 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
     const kcc_int64 startPart       = sbAtomSaveWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
 
-    //Assert(succEventIds.size() == 1, "AtomSave: only one succ event id");
     //************************************************************************
-    //const bool qOut = sbAtomSaveWaveop->gSuccWaveEdges().size() == 0;
     const bool qOut = sbAtomSaveWaveop-> qFinalLayerOfmap();
+#define OUT_DESCS_IN_MULTIPLE_BLOCKS false // Used to slow output DMAs (debugging Emulator)
+#if OUT_DESCS_IN_MULTIPLE_BLOCKS 
+  if (!qOut) {
+#endif
     std::ostringstream oss;
     oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName();
     kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(
@@ -224,15 +226,78 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ event is in desc
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
     {
+        const auto eventId = succEventIds.size() > 0 ?  succEventIds[0] : -1;
         std::ostringstream oss;
-        if (succEventIds.size() > 0)
-            oss << sbAtomSaveWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomSaveWaveop->gName();
-        else
-            oss << sbAtomSaveWaveop->gOrder() << ":-1" << "-" << sbAtomSaveWaveop->gName();
+        oss << sbAtomSaveWaveop->gOrder() << ":" << eventId << "-" << sbAtomSaveWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
+
+#if OUT_DESCS_IN_MULTIPLE_BLOCKS 
+  } else { // qOut, N dma block per descriptor, add one NOP+128 cycles in front of EVERY DMA block
+           // rather than only in front of the first block (the latter would be equivalent to having one
+           // NOP+128 cycles in front of the single block with multiple descriptors).
+    enum { NumDescsPerBlock = 4 };
+    const std::string refFileName(sbAtomSaveWaveop->gRefFileName());
+
+    kcc_int32 partIdx = startPart;
+
+    for (kcc_int32 blockIdx = 0; partIdx < startPart + numPartitions; ++blockIdx) {
+        std::ostringstream oss;
+        oss << sbAtomSaveWaveop->gOrder() << "-" << blockIdx << ":" << sbAtomSaveWaveop->gName();
+        kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(
+                                        chosenEngId, qOut, oss.str().c_str()));
+
+        for (kcc_int32 i = 0; i < NumDescsPerBlock && partIdx < startPart + numPartitions; ++i, ++partIdx) {
+            const TongaAddress  fileAddress = sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
+            const TpbAddress    sbAddress = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
+            dmaBlock.addDmaDesc(sbAddress, fileAddress, refFileName, numBytesPerPart);
+        }
+
+        //************************************************************************
+        // Incoming events were processed in
+        // WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(),
+        // so processing them again in processIncomingEdgesForceWait is wrong.
+        // The event on the chosen pred edge is replaced by sequential execution of
+        // the previous waveop and TRIGGER.
+        //
+        // Of non-chosen pred edges, one of the Waits can be implemented as embedded.
+        // The current code does not do that yet.
+
+        if (false && qParallelStreams()) { // incoming events, adds wait for each
+            events::EventId waitEventId = 0; // events::EventId_Invalid();
+            events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
+
+            processIncomingEdgesForceWait(sbAtomSaveWaveop, chosenEngId, waitEventId, waitEventMode);
+        } // end incoming events
+
+        //************************************************************************
+        addDmaBarrier(chosenEngId);
+        //************************************************************************
+
+        compisa::DmaTriggerInstr dmaTriggerInstr;
+        strncpy(dmaTriggerInstr.dma_queue_name, dmaBlock.gQueueName().c_str(),
+                    sizeof(dmaTriggerInstr.dma_queue_name)/sizeof(dmaTriggerInstr.dma_queue_name[0]) - 1);
+        dmaTriggerInstr.use_raw_count = 0; // get from JSON
+        dmaTriggerInstr.block_id = dmaBlock.gBlockId();
+
+        dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+        dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ event is in desc
+        dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+
+        {
+            std::ostringstream oss;
+            oss << sbAtomSaveWaveop->gOrder() << ":-1:" << blockIdx << "-" << sbAtomSaveWaveop->gName();
+            m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
+        }
+        m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
+
+        addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
+    }
+  }
+#endif
 }
 
 

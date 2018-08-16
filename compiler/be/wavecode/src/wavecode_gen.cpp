@@ -40,6 +40,9 @@
 #include "wave/inc/waveedge.hpp"
 #include "wavecode/inc/wavecode.hpp"
 
+
+#define NOP_FOR_WAIT_SET 1
+
 namespace kcc {
 namespace wavecode {
 
@@ -259,11 +262,24 @@ void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCp
  * Event related - Multiple Engines
 ***********************************************************************/
 template<>
-void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& waitInstr, EngineId engId)
 {
-    if (instruction.event_idx == 0x12 && qBinFileRuntimeKelf()) {
-        utils::breakFunc(__LINE__);
-    }
+#if ! NOP_FOR_WAIT_SET
+    const auto& instruction(waitInstr);
+#else
+    compisa::NopInstr instruction;
+    instruction.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
+    instruction.inst_events.wait_event_idx     = waitInstr.event_idx;
+    instruction.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+    instruction.inst_events.set_event_idx      = 0;
+
+    instruction.cycle_cnt                      = 1;
+    strcpy(
+        reinterpret_cast<char*>(instruction.reserved),
+        reinterpret_cast<const char*>(waitInstr.reserved));
+    instruction.reserved[ArraySizeof(instruction.reserved)-1] = '\0';
+#endif
+
     Assert(qParallelStreams(), "Cannot generate wait-for-event instruction in serial mode");
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
@@ -298,7 +314,7 @@ void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& in
 template<>
 void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setInstr, EngineId engId)
 {
-#if false
+#if ! NOP_FOR_WAIT_SET
     const auto& instruction(setInstr);
 #else
     compisa::NopInstr instruction;
@@ -307,6 +323,7 @@ void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setI
     instruction.inst_events.wait_event_idx     = 0;
     instruction.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::OnEndInstr);
     instruction.inst_events.set_event_idx      = setInstr.event_idx;
+
     instruction.cycle_cnt                      = 1;
     strcpy(
         reinterpret_cast<char*>(instruction.reserved),
