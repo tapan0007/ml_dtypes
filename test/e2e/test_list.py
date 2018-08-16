@@ -576,6 +576,9 @@ testWaiver = [
     #['7-rn50_nne_fp16_waveopt_b\d+$', 'WAIVE_BATCH'],
     ['7-rn50_nne_fp32_wave$', 'WAIVE_SB_PRESERVE'],
     ['8-rn50_nne_fp32_meauto$', 'WAIVE_SB_PRESERVE'],
+    ['8-rn50_nne_fp16_b16_wave-fast_dram$',  'WAIVE-ALIGNMENT'],
+    ['8-rn50_nne_fp16_b16_wave-two_banks$',  'WAIVE-ALIGNMENT'],
+    ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-ALIGNMENT'],
 
     # bugs
     #['5-rn50_nne_to_act13_b16_wave-fast_dram$', 'WAIVE_BUG_KAENA454'],
