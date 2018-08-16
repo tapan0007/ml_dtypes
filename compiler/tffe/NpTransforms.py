@@ -50,14 +50,14 @@ class NpTrans:
 
   # Ulility function to convert npy files given the precise format spec, returns new file name and the destination format
   @staticmethod
-  def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None):
+  def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None, dstShape=None):
     arr = np.load(npFile)
     assert len(srcFormat) == len(arr.shape)
     srcShape = arr.shape
     sf = srcFormat
     if len(srcFormat) > len(dstFormat):
       sf = ''
-      for c in list(srcFormat).reverse():
+      for c in reversed(list(srcFormat)):
         if not c in dstFormat:
           axis = srcFormat.index(c)
           assert srcShape[axis] == 1
@@ -72,6 +72,9 @@ class NpTrans:
     assert sorted(list(sf)) == sorted(list(dstFormat))
     transform = calcTransform(sf, dstFormat)
     arr = np.transpose(arr, transform)
+    if not dstShape == None:
+      assert arr.size == np.empty(dstShape).size
+      arr = arr.reshape(dstShape)
     if outFile == None:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
     else:
@@ -192,3 +195,7 @@ class TensorFormatMap:
       jsonData = json.load(fh)
     for tensorname, tfj in jsonData.items():
       self.tensors[tensorname] = TensorFormat(tfj["tensor_name"], tfj["layer_name"], tfj["tf_file"], tfj["tf_format"], tfj["sim_file"], tfj["sim_format"], tfj["is_const"])
+  def get(self, tensorName):
+    return self.tensors.get(tensorName, None)
+  def getConstFilesSim(self):
+    return [tff.simFile for tfn,tff in self.tensors.items() if tff.isConst]

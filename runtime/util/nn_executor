@@ -84,7 +84,7 @@ class NnSubgraph:
     if self.executor == "processor":
       self.cmd = sgJson["cmd"]
       self.cmd_args = sgJson["cmd_args"]
-    if self.executor == "wave":
+    if re.search(r'wave', self.executor):
       self.tensorFormatMap.readJson("../%s/tensor_map.json" % self.sgDir)      
 
   # Translate and relink npy files that are inputs to this subgraph
@@ -109,14 +109,16 @@ class NnSubgraph:
     for input in self.inputs:
       name = input["name"]
       f = input["file"]
-      fBase = f[:-4]  # removes .npy
-      # Only Fmaps come from the previous subgraph
-      tpbInpFile = "%s_%s.npy"      % (fBase, npt.Formats[npt.SIM][npt.Fmaps])
+      tff = self.tensorFormatMap.get(name)
+      assert tff != None
+      tpbInpFile = tff.simFile
       if self.sgId == 0:
         # The inputs for the first subgraph are same as when compiled
         tfFile = f
       else:
-        tfFile = "%s-out.npy" % fBase
+        assert f == tff.tfFile
+        # For next sungraph it is teh output of previous subgraph (hence -out.npy)
+        tfFile = f.replace(".npy", "-out.npy")
 
       if os.path.isfile(tpbInpFile):
         # Move the compiler generated input file
@@ -126,12 +128,10 @@ class NnSubgraph:
       # Translate and write the previous subgraph file
       if os.path.isfile(tfFile):
         inputShapeTf = input["shape"]
-        # FIX_THIS: longterm we should store both TF and TBP IO formats in the nn_graph.json
-        tfShapes = [None, npt.C, npt.NC, npt.HNC, npt.Formats[npt.TF][npt.Fmaps]]
-        inputFormatTf = tfShapes[len(input['shape'])]
+        inputFormatTf = tff.tfFormat
+        inputFormatSim = tff.simFormat
         if self.sgId == 0:
           # The inputs for the first subgraph are same as when compiled
-          tpbInpFile = "%s/%s_%s_%s.npy" % (os.getcwd(), "trivnet", self.inputs[0]["name"], npt.Formats[npt.SIM][npt.Fmaps])
 
           ## # kaena-602: hack for testing one input file only; doesn't work for inferencing
           tpbInpPadSplitFile = tpbInpFile[:-4] + "_padsplit.npy"
@@ -139,34 +139,35 @@ class NnSubgraph:
             print("nn_executor: Replacing input npy ", tpbInpFile, " with padded input ", tpbInpPadSplitFile)
             tpbInpFile = tpbInpPadSplitFile
           else:
+            npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile)
             print("nn_executor: Using original input npy ", tpbInpFile, ", did not find padded input ", tpbInpPadSplitFile)
+            print("INFO: nn_executor: did not find padded input therfore translated TF format %s %s  to TPB Fmap format %s %s" % (inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
 
           assert os.path.isfile(tpbInpFile)  # exists from compilation
         else:
-          npt.formatNpyFileAs(tfFile, inputFormatTf, npt.Formats[npt.SIM][npt.Fmaps], outFile=tpbInpFile)
-          print("INFO: translated TF format  %s  to TPB Fmap format  %s" % (tfFile, tpbInpFile))
+          npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile)
+          print("INFO: nn_executor: translated TF format %s %s  to TPB Fmap format %s %s" % (inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
         inputFilesInTpbFotmat.append(tpbInpFile)
       else:
         print("ERROR: no tf file not found %s" % tfFile, flush=True)
         sys.exit(-1)
     return inputFilesInTpbFotmat
 
-  # There is no good way to identify consts (weights, biases, ..) in the kelf file yet.
-  # This is a hack to link required files so that SIM can find them.
+  # Constant npy files like weights are crated by compiler (tffe)
+  # in sg* and thus linked for running inference (here, which is <test>/working_dir)
   def linkConsts(self):
-    g = []
-    g += glob.glob("%s/*%s*.npy"% (working_dir, npt.Formats[npt.SIM][npt.Weights]))
-    g += glob.glob("%s/*%s*.npy"% (working_dir, npt.Formats[npt.SIM][npt.Fmaps]))
-    for f in g:
-      os.remove(f)
-    g = []
-    g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Weights]))
-    g += glob.glob("%s/sg*/*%s*.npy"% (kelf_dir, npt.Formats[npt.SIM][npt.Fmaps]))
-    for f in g:
-      dst_f = "%s/%s" % (working_dir, os.path.basename(f))
-      if not os.path.isfile(dst_f) and not "out.npy" in f:
-          os.symlink(f, dst_f )
-
+    for f in self.tensorFormatMap.getConstFilesSim():
+      src_f = "../%s/%s" % (self.sgDir, f)
+      print("DEBUG3 linking", src_f, f)
+      os.symlink(src_f, f)
+    # ME creates files of constants that are not visible to TFFE, so link them too
+    files =  glob.glob("../%s/*-constants.npy" % self.sgDir)
+    files += glob.glob("../%s/*_padsplit.npy" % self.sgDir)
+    for f in files:
+      dst_f = os.path.basename(f)
+      print("DEBUG4 linking", f, dst_f)
+      os.symlink(f, dst_f)
+      
 
   # Executes a subgraph, calls appropriate executor as specified in nn_graph.json
   # Returns 0 on success, -1 or error code of failure.
@@ -261,12 +262,13 @@ class NnSubgraph:
     if (executor == "tcc" or  executor == "wave" or  executor == "qemu_wave" or executor == "qemu_wave2" or isWaveopt) and len(self.outputs) > 0:
       for jsonOutput in self.outputs:
         outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
+        tff = self.tensorFormatMap.get(outNodeName)
         outFile = outFileRaw.replace(".npy", "-out.npy")
         outBase = outFileRaw[:-4]
         simExt = "simout"
         if isWaveopt:
           simExt = "midout"
-        tpbFmapFormat = npt.Formats[npt.SIM][npt.Fmaps]
+        tpbFmapFormat = tff.simFormat
         tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
         
         if executor == "qemu_wave" or executor == "qemu_wave2":
@@ -275,7 +277,7 @@ class NnSubgraph:
           outFileQuemu = "out-%s.bin" % self.sgDir
           print("INFO: nn_executor: translating Qemu output %s to %s" % (outFileQuemu, tpbOutFile))
           if os.path.isfile(outFileQuemu):
-            outFileOrig = tpbOutFile.replace("-simout.npy", ".npy")
+            outFileOrig = "../%s/%s" % (self.sgDir, tpbOutFile.replace("-simout.npy", ".npy"))
             ofmapOrig = np.load(outFileOrig)
             ofmapTpbShape = ofmapOrig.shape
             ofmapTpbDtype = ofmapOrig.dtype
@@ -286,7 +288,7 @@ class NnSubgraph:
         
         if os.path.isfile(tpbOutFile):
           outShape = self.outputs[0]["shape"]
-          npt.copyNpyFileAs(tpbOutFile, npt.SIM, npt.TF, npt.Fmaps, outFile=outFile, dstShape=outShape)
+          npt.formatNpyFileAs(tpbOutFile,  tff.simFormat, tff.tfFormat, dstShape=outShape, outFile=outFile)
         else:
           print("ERROR: no tpb output file %s" % tpbOutFile, flush=True)
           return -1
