@@ -40,7 +40,7 @@
 #include "wave/inc/waveedge.hpp"
 #include "wavecode/inc/wavecode.hpp"
 
-
+// WAIT in ActEng does not work. SIM https://issues.amazon.com/tonga-1489
 #define NOP_FOR_WAIT_SET 1
 
 namespace kcc {

@@ -50,26 +50,18 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
 
     const EngineId engineId = resaddWaveop->gEngineId();
     Assert(EngineId::Pooling == engineId, "Engine id for ResAdd should be Pooling");
+    Assert(resaddWaveop->qSrcAIsPsum() != resaddWaveop->qSrcBIsPsum(), "Sources for ResAdd must come from PSUM and SB, not from one");
 
     //-----------------------------------------------------------------
     compisa::TensorTensorOpInstr tensortensorInstr;
 
-    Assert(resaddWaveop->qSrcAIsPsum() != resaddWaveop->qSrcBIsPsum(), "Sources for ResAdd must come from PSUM and SB, not from one");
+#if false // RTL bug, SIM https://issues.amazon.com/tonga-1786
     TONGA_ISA_TPB_DTYPE& SrcADtype(resaddWaveop->qSrcAIsPsum() ? tensortensorInstr.in_dtype[0] : tensortensorInstr.in_dtype[1]);
     TONGA_ISA_TPB_DTYPE& SrcBDtype(resaddWaveop->qSrcBIsPsum() ? tensortensorInstr.in_dtype[0] : tensortensorInstr.in_dtype[1]);
 
     //-----------------------------------------------------------------
     SrcADtype = resaddWaveop->gInADtype().gSimTypeId();
     SrcBDtype = resaddWaveop->gInBDtype().gSimTypeId();
-
-    tensortensorInstr.out_dtype           = resaddWaveop->gOutDtype().gSimTypeId();
-
-    tensortensorInstr.num_active_channels = resaddWaveop->gNumPartitions();
-    if (resaddWaveop->gMultiply()) {
-        tensortensorInstr.op = TONGA_ISA_TPB_ALU_OP_MULT;
-    } else {
-        tensortensorInstr.op = TONGA_ISA_TPB_ALU_OP_ADD;
-    }
 
 
     //-----------------------------------------------------------------
@@ -117,12 +109,73 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
     SrcBPat.num_elem[PatDim_Y]     = resaddWaveop->gSrcBYNum();
     SrcBPat.step_elem[PatDim_Z]    = resaddWaveop->gSrcBZStep();
     SrcBPat.num_elem[PatDim_Z]     = resaddWaveop->gSrcBZNum();
+#else
+    enum {
+        srcSbufIdx = 0,
+        srcPsumIdx = 1,
+    };
+    const bool qAIsPsum = resaddWaveop->qSrcAIsPsum();
+    const bool qAIsSbuf = !qAIsPsum;
+    //const kcc_int32 srcAIdx = qAIsPsum  ? srcPsumIdx : srcSbufIdx;
+    //const kcc_int32 srcBIdx = !qAIsPsum ? srcPsumIdx : srcSbufIdx;
+
+    //**********************************************************************
+    TONGA_ISA_TPB_DTYPE& srcPsumDtype(tensortensorInstr.in_dtype[srcPsumIdx]);
+    TONGA_ISA_TPB_DTYPE& srcSbufDtype(tensortensorInstr.in_dtype[srcSbufIdx]);
+
+    // Psum
+    const utils::DataType& srcPsumDataType(qAIsPsum ? resaddWaveop->gInADtype() : resaddWaveop->gInBDtype());
+    const kcc_int32 psumBankId  = qAIsPsum ? resaddWaveop->gSrcAPsumBankId()     : resaddWaveop->gSrcBPsumBankId();
+    const kcc_int32 psumBankOff = qAIsPsum ? resaddWaveop->gSrcAPsumBankOffset() : resaddWaveop->gSrcBPsumBankOffset();
+    // Sbuf related
+    const utils::DataType& srcSbufDataType(qAIsSbuf ? resaddWaveop->gInADtype() : resaddWaveop->gInBDtype());
+    const kcc_int32 midPoint    = qAIsSbuf ? resaddWaveop->gSrcAStartAtMidPart() : resaddWaveop->gSrcBStartAtMidPart();
+    const kcc_int32 sbAddress   = qAIsSbuf ? resaddWaveop->gSrcASbAddress()      : resaddWaveop->gSrcBSbAddress();
+    //**********************************************************************
+    srcPsumDtype = srcPsumDataType.gSimTypeId();
+    srcSbufDtype = srcSbufDataType.gSimTypeId();
+
+    TONGA_ISA_TPB_MEM_ACCESS_3D& srcPsumPat(tensortensorInstr.src_mem_pattern[srcPsumIdx]);
+    TONGA_ISA_TPB_MEM_ACCESS_3D& srcSbufPat(tensortensorInstr.src_mem_pattern[srcSbufIdx]);
+    TONGA_ISA_TPB_MEM_ACCESS_3D& srcAPat(qAIsPsum ? srcPsumPat : srcSbufPat);
+    TONGA_ISA_TPB_MEM_ACCESS_3D& srcBPat(qAIsSbuf ? srcPsumPat : srcSbufPat);
+
+    initMemAccess(srcPsumPat);
+    initMemAccess(srcSbufPat);
+
+    srcPsumPat.start_addr        = psumBuf.gEntryTpbAddress(psumBankId, psumBankOff, srcPsumDataType);
+    srcSbufPat.start_addr        = stateBuf.gEntryTpbAddress((arch.gNumberPeArrayRows()/2) * midPoint, sbAddress);
+
+    srcAPat.step_elem[PatDim_X]  = resaddWaveop->gSrcAXStep();
+    srcAPat.num_elem[PatDim_X]   = resaddWaveop->gSrcAXNum();
+    srcAPat.step_elem[PatDim_Y]  = resaddWaveop->gSrcAYStep();
+    srcAPat.num_elem[PatDim_Y]   = resaddWaveop->gSrcAYNum();
+    srcAPat.step_elem[PatDim_Z]  = resaddWaveop->gSrcAZStep();
+    srcAPat.num_elem[PatDim_Z]   = resaddWaveop->gSrcAZNum();
+
+    srcBPat.step_elem[PatDim_X]  = resaddWaveop->gSrcBXStep();
+    srcBPat.num_elem[PatDim_X]   = resaddWaveop->gSrcBXNum();
+    srcBPat.step_elem[PatDim_Y]  = resaddWaveop->gSrcBYStep();
+    srcBPat.num_elem[PatDim_Y]   = resaddWaveop->gSrcBYNum();
+    srcBPat.step_elem[PatDim_Z]  = resaddWaveop->gSrcBZStep();
+    srcBPat.num_elem[PatDim_Z]   = resaddWaveop->gSrcBZNum();
+#endif
+
+    tensortensorInstr.num_active_channels = resaddWaveop->gNumPartitions();
+    if (resaddWaveop->gMultiply()) {
+        tensortensorInstr.op = TONGA_ISA_TPB_ALU_OP_MULT;
+    } else {
+        tensortensorInstr.op = TONGA_ISA_TPB_ALU_OP_ADD;
+    }
+
 
     //-----------------------------------------------------------------
     // Dst
+    const bool qDstIsPsum = resaddWaveop->qDstIsPsum();
+    tensortensorInstr.out_dtype           = resaddWaveop->gOutDtype().gSimTypeId();
     TONGA_ISA_TPB_MEM_ACCESS_3D& DstPat(tensortensorInstr.dst_mem_pattern);
     initMemAccess(DstPat);
-    if (resaddWaveop->qDstIsPsum()) {
+    if (qDstIsPsum) {
         DstPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gDstPsumBankId(),
                                                       resaddWaveop->gDstPsumBankOffset(),
                                                       resaddWaveop->gOutDtype());
