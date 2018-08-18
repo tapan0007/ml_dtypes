@@ -103,19 +103,20 @@ class PoolSubtile(PEWave):
     def get_subtile_file_addrs(self):
         lower_addrs = []
         upper_addrs = []
+        self.c_id = 0
         for z in range(self.tile.Tn):
-            if self.tile.is_pe_input:
-                lower_addrs.append(self.tile.file_params.ravel_nchw(
-                    self.tile.n_id * self.tile.Tn + z,
-                    self.c_id * PEArray.NUM_ROWS,
-                    self.subtile_rect.lower.y,
-                    self.subtile_rect.lower.x))
-                upper_addrs.append(self.tile.file_params.ravel_nchw(
-                    self.tile.n_id * self.tile.Tn + z,
-                    self.c_id * PEArray.NUM_ROWS,
-                    self.subtile_rect.upper.y,
-                    self.subtile_rect.upper.x))
-            else:
+            #if self.tile.is_pe_input:
+            #    lower_addrs.append(self.tile.file_params.ravel_nchw(
+            #        self.tile.n_id * self.tile.Tn + z,
+            #        self.c_id * PEArray.NUM_ROWS,
+            #        self.subtile_rect.lower.y,
+            #        self.subtile_rect.lower.x))
+            #    upper_addrs.append(self.tile.file_params.ravel_nchw(
+            #        self.tile.n_id * self.tile.Tn + z,
+            #        self.c_id * PEArray.NUM_ROWS,
+            #        self.subtile_rect.upper.y,
+            #        self.subtile_rect.upper.x))
+            #else:
                 c_id = self.tile.m_id // 2
                 lower_addrs.append(self.tile.file_params.ravel_nchw(
                     self.tile.n_id * self.tile.Tn + z,
@@ -369,6 +370,44 @@ class FusedOp(list):
                 %(self.ofmap_is_for_join, self.partial_batch_pre_pairup, self.partial_batch_pairup, self.residue_in_scratch))
         for i in self:
             print("    ", i.data["layer_type"],":",i.data["layer_name"], )
+
+    # We allocate space in SB for files generated during execute
+    def map_files_gen_during_exec(self, tpb, file_params):
+        file_start_addr = tpb.statebuffer.next_nonbias_file_start
+        file_sz = file_params.tot_partition_usage_sz_padded
+        bias_region_sz = tpb.statebuffer.batcher.sb_bias_sz[0]
+        def check_overlap (file_param, start_addr):
+            print ("check_overlap::file_param.file_name = %s"\
+                   %file_param.file_name)
+            single_ifmap_start = file_param.mapped_params.start_addr
+            single_ifmap_sz = file_param.mapped_params.region_sz
+            next_nonbias_file_start =\
+                    tpb.statebuffer.file_mapper.adjust0_if_overlap(
+                        region0_start    = start_addr, 
+                        region0_sz       = file_sz, 
+                        region1_start    = single_ifmap_start, 
+                        region1_sz       = single_ifmap_sz,
+                        min_region_start = bias_region_sz
+                    )
+            return next_nonbias_file_start
+        if file_start_addr + file_sz >= tpb.statebuffer.SB_PARTITION_SZ:
+            file_start_addr = bias_region_sz
+        # Check overlap with IFMAP
+        for i in self.first_op.ifmaps_file_params_concat:
+            file_start_addr = check_overlap(i, file_start_addr)
+        # Check overlap with OFMAP
+        ofmap_file_params = self.last_op.ofmaps_file_params
+        assert(ofmap_file_params.mapped_params != None)
+        file_start_addr = check_overlap(ofmap_file_params, file_start_addr)
+        tpb.statebuffer.file_mapper.map_file(\
+                                             file_params\
+                                             , file_start_addr\
+                                             , wrap_around=False\
+                                             , region_sz=file_sz\
+                                            )
+        tpb.statebuffer.next_nonbias_file_start = file_start_addr\
+                + file_params.tot_partition_usage_sz_padded
+        return
 
     def map_files(self, tpb, batch_item):
         map_file = tpb.statebuffer.file_mapper.map_file
@@ -2054,7 +2093,6 @@ class FusedOp(list):
         #if self.args.abstract_mem:
         #    if len(dram_output_waveops) > 0:
         #        self.waveop_stream.last_main_waveop = None
-
     # Execute an unfused pooling operator
     def execute_unfused_pool_op(self, tpb, batch_item):
         first_op = self[0]
@@ -2079,7 +2117,9 @@ class FusedOp(list):
         def move_psum_to_ofmap (tpb, ifmap_tile, ofmap_tile):
             MM_data = tpb.pearray.extract_psum(0, 0\
                     , ifmap_tile.tile_rect.get_tot_size())
-            print ("MM_data.shape = ",MM_data.shape)
+            #print ("MM_data.shape = ",MM_data.shape)
+            #np.set_printoptions(threshold=np.inf)
+            #print ("MM_data = ", MM_data)
             ofmap_tile.set_tile_data_in_file(MM_data)
             return 
         def get_first_item(t):
@@ -2094,6 +2134,7 @@ class FusedOp(list):
         keys = list(concat.subtile_infos.keys())
         keys = sorted(keys, key=get_first_item)
         #print ("layer type = %s"%first_op.data)
+        #print ("len(keys) = %d"%len(keys), " keys = ", keys)
         for m_id in range(len(keys)):
             subtile_info = concat.subtile_infos[keys[m_id]]
             [mfilters,ifmap_file_params_tile,ifmap_channel_ranges]=subtile_info
@@ -2110,6 +2151,13 @@ class FusedOp(list):
                     #print (ofmap_tile_id)
                     next_ofmap_start = 0
                     for tile in range(len(ifmap_file_params_tile)):
+                        #print ("ifmap_file_param.file_dim = "\
+                        #       , ifmap_file_params_tile[tile].\
+                        #       file_dims.shape_tuple)
+                        #print ("ifmap_file_param.file_name = %s"\
+                        #       %ifmap_file_params_tile[tile].file_name)
+                        #print ("ifmap_channel_range = ",\
+                        #       ifmap_channel_ranges[tile])
                         ifmap_tile =\
                           Tile(ifmap_tile_id\
                                #, self.first_op.ifmaps_file_params\
@@ -2156,10 +2204,10 @@ class FusedOp(list):
                                                     )
                     move_psum_to_ofmap(tpb, ifmap_tile, ofmap_tile)
                     psum_bank_src = 0
-                    #self.execute_postconv_tile_ops(tpb\
-                    #                               , ifmap_tile\
-                    #                               , ofmap_tile\
-                    #                               , psum_bank_src)
+                    self.execute_postconv_tile_ops(tpb\
+                                                   , ifmap_tile\
+                                                   , ofmap_tile\
+                                                   , psum_bank_src)
 
     def emit_waveop_concat_tile (self\
                                  , tpb\
@@ -2224,11 +2272,19 @@ class FusedOp(list):
         # NCHW
         ifmap_data = ifmap_file_param.dram_data
         c_start_idx = int(math.floor(ifmap_channel_range[1] / PEArray.NUM_ROWS))
+        #print ("ifmap_tile.file_params.file_name= %s"\
+        #       %ifmap_tile.file_params.file_name)
+        #print ("ifmap_file_param.file_name = %s"%ifmap_file_param.file_name)
+        #print ("ifmap_channel_range[1] = %d c_start_idx = %d"\
+        #       %(ifmap_channel_range[1], c_start_idx))
+        self.first_op.ifmaps_file_params = ifmap_tile.file_params
         # Since Concat is executed using MatMul internally,
         # we need some parameters associated with MatMul such as
         # weight shape and weights_file_params. So we set them here
         # instead of calling populate_conv_params due to incompatibility.
-        def set_weight_params_for_concat_knode(knode,mfilter,ifmap_file_param):
+        def set_weight_params_for_concat_knode(knode\
+                                               ,mfilter\
+                                               ,ifmap_file_param):
             knode.R = 1
             knode.S = 1
             knode.N, knode.C, knode.H, knode.W =\
@@ -2246,26 +2302,37 @@ class FusedOp(list):
                 contain_weights = True)
             knode.weights_file_params.layer_name = knode.data['layer_name']
             knode.weights_file_params.load_file()
-            weight_file_start_addr = tpb.statebuffer.next_weights_file_start
-            weight_file_sz =\
-                    knode.weights_file_params.tot_partition_usage_sz_padded
-            tpb.statebuffer.file_mapper.map_file(\
-                                                 knode.weights_file_params\
-                                                 , weight_file_start_addr\
-                                                 , wrap_around=False\
-                                                 , region_sz=weight_file_sz\
-                                                )
+            self.map_files_gen_during_exec(tpb, knode.weights_file_params)
+            #weight_file_start_addr = tpb.statebuffer.next_nonbias_file_start
+            #tpb.statebuffer.next_nonbias_file_start +=\
+            #        knode.weights_file_params.tot_partition_usage_sz_padded
+            #weight_file_sz =\
+            #        knode.weights_file_params.tot_partition_usage_sz_padded
+            #tpb.statebuffer.file_mapper.map_file(\
+            #                                     knode.weights_file_params\
+            #                                     , weight_file_start_addr\
+            #                                     , wrap_around=False\
+            #                                     , region_sz=weight_file_sz\
+            #                                    )
             #else:
             #    knode.weights_file_params.file_name = weights_file
             return
         pewave = PEWave(ifmap_tile, c_start_idx, 0, 0)
         set_weight_params_for_concat_knode(self.first_op\
                                            , mfilter, ifmap_file_param)
+        #print ("...packing ifmap")
+        #print ("2.ifmap_tile.file_params.file_name= %s"\
+        #       %ifmap_tile.file_params.file_name)
+        #print ("2.ifmap_file_param.file_name = %s"%ifmap_file_param.file_name)
+        #print ("2.ifmap_channel_range[1] = %d c_start_idx = %d"\
+        #       %(ifmap_channel_range[1], c_start_idx))
         packed_ifmap =\
                 self.first_op.pack_wave_ifmaps(ifmap_data, pewave, 1, False)
         weight = np.load(mfilter.file_name)
+        pewave_for_weights = PEWave(ifmap_tile, 0, 0, 0)
         packed_weights =\
-                self.first_op.pack_wave_conv_weights(weight, pewave, 1)
+                self.first_op.pack_wave_conv_weights(weight, pewave_for_weights\
+                                                     , 1)
         # FIXME : psum_bank needs to be specificed correctly
         tpb.pearray.wave_fp16_mm(packed_ifmap\
                                  , packed_weights\
@@ -2273,7 +2340,6 @@ class FusedOp(list):
         next_ofmap_start = ofmap_start\
                 + (ifmap_channel_range[1] - ifmap_channel_range[0] + 1)
         return next_ofmap_start
-
 
     # Execute conv and other operations in list: for each op, load parameters and perform op with input
     def execute_conv_ops(self, tpb, batch_item):

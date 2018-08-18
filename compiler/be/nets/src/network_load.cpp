@@ -232,8 +232,13 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             layer = new layers::BiasAddLayer(params, fmap_desc, prevLayers);
         } else if (serLayer.gTypeStr() == LayerTypeStr_StridedSlice
                 || serLayer.gTypeStr() == LayerTypeStr_Unstack
-                || serLayer.gTypeStr() == LayerTypeStr_Sigmoid) {   // FIXME: placeholder
-            ASSERT_NUM_LAYERS(serLayer, 1);
+                || serLayer.gTypeStr() == LayerTypeStr_Sigmoid
+                || serLayer.gTypeStr() == LayerTypeStr_Concat
+                ) {   // FIXME: placeholder
+            if (serLayer.gTypeStr() != LayerTypeStr_Concat)
+            {
+                ASSERT_NUM_LAYERS(serLayer, 1);
+            }
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);

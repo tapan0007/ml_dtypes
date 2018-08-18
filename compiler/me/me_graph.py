@@ -142,8 +142,9 @@ class KNode:
             # Create a separate container for ifmap file params of Concat
             # operation
             self.ifmaps_file_params_concat = []
-            for i in (self.prev):
-                self.ifmaps_file_params_concat.append(i.ofmaps_file_params)
+            for i in range(len(self.prev)):
+                self.ifmaps_file_params_concat.append(\
+                    self.prev[i].ofmaps_file_params)
         else:
             print("Layer % has no input"%(self.data['layer_name']))
         # since M is set to C above, but for Softmax2, we just need one output channel (sum across input channels)

@@ -59,6 +59,7 @@ constexpr const char* const LayerTypeStr_SoftMax        = "SoftMax";
 constexpr const char* const LayerTypeStr_BatchNorm      = "BNorm";
 constexpr const char* const LayerTypeStr_StridedSlice   = "StridedSlice";
 constexpr const char* const LayerTypeStr_Unstack        = "Unstack";
+constexpr const char* const LayerTypeStr_Concat         = "Concat";
 
 constexpr const char* const WaveOpTypeStr_SBAtomLoad    = "SBAtomLoad";
 constexpr const char* const WaveOpTypeStr_SBAtomSave    = "SBAtomSave";

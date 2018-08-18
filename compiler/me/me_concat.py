@@ -38,8 +38,9 @@ class MoveFilterSpec:
 # | 63 |
 # |----|
 class FMAPMovingRegion:
-    def __init__(self, start_pos, amt):
+    def __init__(self, start_pos, amt, abs_start_pos = 0):
         self.start_pos = start_pos
+        self.abs_start_pos = abs_start_pos
         self.moving_amt = amt
         return
 
@@ -111,14 +112,20 @@ class Concat:
                     FMAPMovingRegion(0, ifmap.C)
             else:
                 ifmap_region =\
-                    FMAPMovingRegion(int(self.PE_ROW / 2) - 1,ifmap.C)
+                    FMAPMovingRegion(int(self.PE_ROW / 2) - 1\
+                                     ,ifmap.C\
+                                     ,int(self.PE_ROW / 2) - 1\
+                                    )
         else:
             if (ifmap.start_mid == False):
                 ifmap_region =\
                     FMAPMovingRegion(ifmap.C - 1, ifmap.C)
             else:
                 ifmap_region =\
-                    FMAPMovingRegion(ifmap.C - 1 + int(self.PE_ROW / 2),ifmap.C)
+                    FMAPMovingRegion(ifmap.C - 1 + int(self.PE_ROW / 2)\
+                                     ,ifmap.C\
+                                     ,ifmap.C - 1 + int(self.PE_ROW / 2)\
+                                    )
         return ifmap_region
 
     def FirstOFMAPRegion (self, forward_move, tail):
@@ -228,7 +235,7 @@ class Concat:
                                                     , forward_move\
                                                    )
                 #moved_amt = ifmap_region.moving_amt
-                ifmap_region_start_pos_before_update = ifmap_region.start_pos
+                ifmap_region_start_pos_before_update =ifmap_region.abs_start_pos
                 if (forward_move == True):
                     ofmap_region.start_pos =\
                         ofmap_region.start_pos + moved_amt
@@ -242,6 +249,8 @@ class Concat:
                 ifmap_region.moving_amt -= moved_amt
                 ifmap_region.start_pos = (ifmap_region.start_pos + moved_amt)\
                   % self.PE_ROW
+                ifmap_region.abs_start_pos =\
+                  ifmap_region.abs_start_pos + moved_amt
             else:
                 if (ifmap_region.start_pos + ofmap_region.moving_amt\
                     >= self.PE_ROW):
@@ -255,12 +264,14 @@ class Concat:
                                                     , forward_move\
                                                    )
                 #moved_amt = ofmap_region.moving_amt
-                ifmap_region_start_pos_before_update = ifmap_region.start_pos
+                ifmap_region_start_pos_before_update =ifmap_region.abs_start_pos
                 ifmap_region.moving_amt =\
                     ifmap_region.moving_amt - moved_amt
                 if (forward_move == True):
                     ifmap_region.start_pos =\
                         (ifmap_region.start_pos + moved_amt) % self.PE_ROW
+                    ifmap_region.abs_start_pos =\
+                        (ifmap_region.abs_start_pos + moved_amt)
                 else:
                     ifmap_region.start_pos =\
                         ifmap_region.start_pos - ofmap_region.moving_amt
