@@ -18,6 +18,7 @@ parser.add_argument('--csv', help='Qor csv files followed optionally by label te
 parser.add_argument('--prop', help='List of properties to compare', nargs='+', default=[])
 parser.add_argument('--annotate', help='Annotate individual values on the plot', action='store_true', default=False)
 parser.add_argument('--any_pass', help='Show tests that passed in ANY qor; default is to only show tests that passed in ALL', action='store_true', default=False)
+parser.add_argument('--geometry', help='Figure geometry to make test names easily readable, defaulr is 12 8 (x, y in inches)', nargs=2, type=int, default=[12,8])
 args = parser.parse_args()
 
 
@@ -85,8 +86,16 @@ class QorDatabase(object):
     if val == None:
       val = "None"
     return val
+  def getValueFloat(self, label, test, prop):
+    val = self.getValue(label, test, prop)
+    if val == None:
+      val = -1
+    else:
+      val = float(val)
+    return val
+  
 
-  def plotProps(self, outFile, prop, annotate):
+  def plotProps(self, outFile, prop, annotate, geometry):
     
     def label2style(labels):
       l2s = {}
@@ -104,11 +113,14 @@ class QorDatabase(object):
     baseLabel = sortedLabels[0]
     l2s = label2style(sortedLabels)
     tests = self.getTests() if self.anyPass else self.getTestAllPass()
-    xlabels = sorted(tests, key=lambda testName: self.getValueStr(baseLabel, testName, prop))
+    xlabels = sorted(tests, key=lambda testName: self.getValueFloat(baseLabel, testName, prop))
     x = [x for x in range(len(xlabels))]
     #print("DEBUG x: ", x)
     #print("DEBUG x: ", xlabels)
-    fig, axarr = plt.subplots(1, sharex=True, figsize=(12,8))
+    #for testName in xlabels:
+    #  val = self.getValue(baseLabel, testName, prop)
+    #  print("%-25s  %s" % (testName, val))
+    fig, axarr = plt.subplots(1, sharex=True, figsize=geometry)
     axProp  = axarr
     axProp.set_xticks(x)
     axProp.set_xticklabels(xlabels, rotation=90)
@@ -165,5 +177,7 @@ if len(args.prop) < 1:
   print("ERROR: use -prop with one or more of  %s" % "  ".join(qorDb.getProps()))
 else:
   for prop in args.prop:
-    outFile = "out_%s.svg" % prop
-    qorDb.plotProps(outFile, prop, args.annotate)
+    outFile = "out_%s.svg" % prop.replace('/', '_')
+    qorDb.plotProps(outFile, prop, args.annotate, args.geometry)
+    print("Wrote ", outFile)
+    
