@@ -582,6 +582,7 @@ testWaiver = [
     ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
     ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
     ['0-.*concat_.*', 'WAIVE_INCEPTIONV3'],
+    ['0-3conv_1concat', 'WAIVE_INCEPTIONV3'],
     ['9-inceptionv3_wave*', 'WAIVE_INCEPTIONV3'],
     ['9-inceptionv3_wave_dog_sg00_tpb', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_h16k3d1', 'WAIVE_INCEPTIONV3'],
