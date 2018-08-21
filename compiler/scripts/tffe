@@ -87,7 +87,7 @@ tfpbFile = args.tfpb
 if not os.path.exists(tfpbFile):
   raise("ERROR: missing --tfpb " + tfpbFile)
 if args.images != None and args.focus != ".*":
-  raise("ERROR: Unsupported --images with --focus")
+  print("WARNING: Using --images with --focus is expert mode only, make sure the focussed subgraph is capable of supporting the imput images")
 
 def writeBackEndFiles(kGraph, outPrefix, verbose):
   fileList = []
