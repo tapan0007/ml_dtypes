@@ -126,7 +126,10 @@ class Pool:
 class BiasAddAct:
 
     def biasadd(self, in_array, bias_array):
-        return in_array + bias_array
+        result = in_array
+        num_chan = bias_array.shape[0]
+        result[:, 0:num_chan] += bias_array
+        return result
 
     def act(self, type, in_array):
         if (type == 'Relu'):

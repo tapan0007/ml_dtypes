@@ -1051,7 +1051,7 @@ class FusedOp(list):
                 dst_is_psum = False
                 if (i != len(op_list)-1):
                     dst_is_psum = True
-                    tpb.pearray.write_psum(psum_bank_dst, 0, self.first_op.ofmap_full_tile_sz * ofmap_tile.Tn, psum_temp)
+                    tpb.pearray.write_psum(psum_bank_dst, 0, psum_temp.shape[0], psum_temp)
                 self.gen_act_waveop_inline(tpb, None, op_list[i], self.first_op, ifmap_tile, ofmap_tile, 
                                           True, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, 0)
                 psum_bank_src = psum_bank_dst
@@ -1412,21 +1412,23 @@ class FusedOp(list):
                 out_dtype = "float16"
             elif (act_op.item_sz == 1 and not dst_is_psum):
                 print("ERROR: item_sz %d not yet supported"%act_op.item_sz)
+        # Two combinations possible: conv + biasadd/act or just biasadd/act                
+        # In either cases, biasadd and/or act exists
         assert(act_or_biasadd_op != None)
         batch_item = ofmap_tile.n_id * act_or_biasadd_op.Tn
-        dst_x_num, dst_y_num, dst_z_num = 1, 1, 1
+        dst_x_num = ofmap_tile.tile_rect.dim2d.x
+        dst_y_num = ofmap_tile.tile_rect.dim2d.y
+        dst_z_num = act_or_biasadd_op.Tn
         dst_y_step, dst_z_step = 1, 1
         src_y_step, src_z_step = 1, 1
         num_partitions = PEArray.NUM_COLS
         if (conv_op != None):
-            dst_x_num = ofmap_tile.tile_rect.dim2d.x
-            dst_y_num = ofmap_tile.tile_rect.dim2d.y
-            dst_z_num = conv_op.Tn
+            assert(act_or_biasadd_op.Tn == conv_op.Tn)
             if (dst_is_psum):
                 dst_y_step = ofmap_tile.tile_rect.dim2d.x
                 dst_z_step = dst_y_step * dst_y_num 
             else:                
-                dst_y_step = conv_op.E
+                dst_y_step = conv_op.F
                 dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             if src_is_psum:
                 src_y_step = ofmap_tile.tile_rect.dim2d.x
@@ -1435,17 +1437,14 @@ class FusedOp(list):
                     src_y_step = conv_op.W // conv_op.stride.x
                 src_z_step = ofmap_tile.tile_rect.dim2d.x * ofmap_tile.tile_rect.dim2d.y
             else:
-                src_y_step = conv_op.E
+                src_y_step = conv_op.F
                 src_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             num_partitions = conv_op.ofmap_count
-        elif (act_or_biasadd_op !=  None):
+        else:
             # unfused
-            dst_x_num = act_or_biasadd_op.E
-            dst_y_num = act_or_biasadd_op.F
-            dst_z_num = act_or_biasadd_op.Tn
-            dst_y_step = act_or_biasadd_op.E
+            dst_y_step = ofmap_tile.tile_rect.dim2d.x
             dst_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
-            src_y_step = act_or_biasadd_op.E
+            src_y_step = ofmap_tile.tile_rect.dim2d.x
             src_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             num_partitions = act_or_biasadd_op.ofmap_count
         # SB start addresses
@@ -1844,7 +1843,7 @@ class FusedOp(list):
         # Set resulting tile data into OFMAP (for pooling, we went ahead and do subtile pooling)
         if not (first_op.data['layer_type'] == "AvgPool" or first_op.data['layer_type'] == "MaxPool"):
             if first_op.dst_is_psum:
-                tpb.pearray.write_psum(psum_bank_dst, 0, self.first_op.ofmap_full_tile_sz * ofmap_tile.Tn, tile_data_flatten)
+                tpb.pearray.write_psum(psum_bank_dst, 0, tile_data_flatten.shape[0], tile_data_flatten)
             else:
                 ofmap_tile.set_tile_data_in_file(tile_data_flatten)
 
