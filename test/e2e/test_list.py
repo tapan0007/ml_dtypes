@@ -665,6 +665,8 @@ testWaiver = [
     #['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
 
     [ '0-3resadd_fp16_wave', 'WAIVE_SBSB_ADD'],
+
+    [ '3-1conv1relupoolconv_k3d2_wave', 'WAIVE_RELU_POOL'],
   ]
 
 noGpuTestWaiver = [
