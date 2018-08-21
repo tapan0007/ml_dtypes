@@ -236,8 +236,6 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
 
     // Src B
     KCC_ARCHIVE(SrcBIsPsum);
-    Assert(!m_SrcAIsPsum != !m_SrcBIsPsum,
-        "Exactly one ResAdd input must be PSUM, waveop: ", m_WaveOpName);
     if (m_SrcBIsPsum) {
         KCC_ARCHIVE(SrcBPsumBankId);
         KCC_ARCHIVE(SrcBPsumBankOffset);
