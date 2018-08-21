@@ -510,7 +510,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
                                         ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
     const bool weights              = sbAtomLoadWaveop->qContainWeights();
 
-    Assert(succEventIds.size() == 1, "AtomLoad: only one succ event id");
+    //Assert(succEventIds.size() == 1, "AtomLoad: only one succ event id");
     //************************************************************************
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 

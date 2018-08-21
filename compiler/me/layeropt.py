@@ -2666,7 +2666,8 @@ class TPBSched:
         out_dtype = "float32"
         if (op.item_sz == 2):
             in_a_dtype = "float16"
-            in_b_dtype = "float32" # Source B is PSUM for now
+            if not src_is_psum:
+                in_b_dtype = "float16"
             if (dst_is_psum):
                 out_dtype = "float32"
             else:                
