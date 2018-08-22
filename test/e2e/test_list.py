@@ -41,6 +41,36 @@ melSpectra = "%s/%s" % (kePath, "apps/tf/parallel_wavenet/melspec_input.npy")
 
 testConfigMap = {
 
+#  Activation 
+  "0-rtl-2conv3_relu_h1c1m1r3_wave"      : [ "trivnet_lin", "tfloat16-l2-b1-h1-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-rtl-2conv3_relu_h16c64m64r3_wave"  : [ "trivnet_lin", "tfloat16-l2-b1-h16-r3-s1-c64-m64-relu-wmin0.23-wmax0.24-imin-0.1-imax0.2",   "1conv3", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-rtl-2conv3_relu_h32c128m128r3_wave" : [ "trivnet_lin", "tfloat16-l2-b1-h32-r3-s1-c128-m128-relu-wmin0.23-wmax0.24-imin-0.1-imax0.2","1conv3", "--scheduler wave2 --wavegraph_checks structure data-race"],
+
+# Activation with bias
+  "0-rtl-rn50_ba_relu_h1c1m1_fp16_wave"     : [ "trivnet_conv_ba","tfloat16-b1-h1-r1-s1-c1-m1-SAME-relu-wmin-1-wmax1.1-imin-3-imax3.2-amin-3-amax3", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic'"],
+  "0-rtl-rn50_ba_relu_h16c128m64_fp16_wave" : [ "trivnet_conv_ba","tfloat16-b1-h16-r1-s1-c128-m64-SAME-relu-wmin-0.01-wmax0.01-imin-0.3-imax0.2-amin-1-amax0.1", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic'"],
+  "0-rtl-rn50_ba_relu_h32c256m128_fp16_wave": [ "trivnet_conv_ba","tfloat16-b1-h32-r1-s1-c256-m128-SAME-relu-wmin-0.1-wmax0.11-imin-0.3-imax0.32-amin-1-amax0.1", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic'" ],
+
+# MaxPool
+  "0-rtl-1conv1maxpool_h1c1m1_wave"        : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k2-d2-wmin0.2-wmax2.2-imin-1-imax2", "1conv1pool", "--scheduler wave2"],
+  "0-rtl-1conv1maxpool_h16c128m64_wave"    : [ "trivnet_conv_pool","tfloat16-b1-h16-r1-s1-c128-m64-VALID-MaxPool-k2-d2-wmin0.1-wmax0.2-imin-1-imax2", "1conv1pool", "--scheduler wave2"],
+  "0-rtl-1conv1maxpool_h32c256m128_wave"   : [ "trivnet_conv_pool","tfloat16-b1-h32-r1-s1-c256-m128-VALID-MaxPool-k2-d2-wmin0.3-wmax0.4-imin-0.1-imax0.1", "1conv1pool", "--scheduler wave2"],
+
+# AvgPool
+  "0-rtl-1conv1avgpool_h4c1m1_same_wave"     : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-SAME-AvgPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2"],
+  "0-rtl-1conv1avgpool_h16c128m64_same_wave" : [ "trivnet_conv_pool","tfloat16-b1-h16-r1-s1-c128-m64-SAME-AvgPool-k2-d2-wmin2.1-wmax2.2-imin-0.1-imax2", "1conv1pool", "--scheduler wave2"],
+  "0-rtl-1conv1avgpool_h32c256m128_same_wave": [ "trivnet_conv_pool","tfloat16-b1-h32-r1-s1-c256-m128-SAME-AvgPool-k2-d2-wmin0.1-wmax0.2-imin-0.1-imax0.2", "1conv1pool", "--scheduler wave2"],
+
+# Bias -> ResAdd
+  "0-rtl-resadd_h1c1_wave"         : [ "trivnet_add",    "tfloat16-b1-h1-c1-wmin2-wmax2.2-imin3-imax6", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  "0-rtl-resadd_h16c128_wave"      : [ "trivnet_add",    "tfloat16-b1-h16-c128-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  "0-rtl-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+
+# Multiple convolves
+  "0-rtl-10conv_h4c1m1_relu_wave"      : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-rtl-10conv_h16c128m64_relu_wave"  : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.39-wmax0.4-imin-0.1-imax0.2", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-rtl-10conv_h32c256m128_relu_wave" : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.02-wmax0.4-imin-0.1-imax0.2", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
+ ########### ########### ########### ########### ########### ########### ########### ###########
   "0-rtl-1conv_wave"                   : [ "trivnet_conv1",    "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2",         "1conv" , "--scheduler wave2"],
   "0-rtl-1conv_m8_wave"                : [ "trivnet_conv1",    "tfloat16-b1-h1-r1-s1-c1-m8-wmin2-wmax2.2-imin3-imax3.2",         "1conv" , "--scheduler wave2"],
   "0-rtl-1conv_h2c16_wave"             : [ "trivnet_conv1",    "tfloat16-b1-h2-r1-s1-c16-m1-wmin2-wmax2.2-imin1-imax7",          "1conv" , "--scheduler wave2"],
@@ -50,7 +80,7 @@ testConfigMap = {
   "0-rtl-1conv_h8r4c64m16_wave"        : [ "trivnet_conv1",    "tfloat16-b1-h8-r4-s1-c64-m16-wmin0-wmax9-imin0-imax15",          "1conv" , "--scheduler wave2"],
   "0-rtl-1conv3_h4r3_relu_wave"        : [ "trivnet_lin",      "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", "--scheduler wave2"],
   "0-rtl-1conv1avgpool_b1h4_same_wave" : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-SAME-AvgPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2"],
-  "0-rtl-1conv1maxpool_h4_val_wave"    : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2"],
+  "0-rtl-1conv1maxpool_h4_val_wave"    : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k2-d2-wmin.2-wmax.21-imin1-imax1.1", "1conv1pool", "--scheduler wave2"],
   "0-rtl-act_h2c16_wave"               : [ "trivnet_act",      "tfloat16-b1-h2-c16-tanh-wmin2-wmax2.2-imin-1-imax2",                        "act", "--scheduler wave2"],
 
    "0-rn50_ba_relu_h32c256m128_fp16_wave": [ "trivnet_conv_ba","tfloat16-b1-h32-r1-s1-c256-m128-SAME-relu-wmin-0.1-wmax0.2-imin-0.1-imax0.2-amin-0.1-amax0.2", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race" ],
@@ -372,6 +402,14 @@ testConfigMap = {
     "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 1 --images %s --schedule_options ' --enable_replication ' "%(rnPreFp16, getBatchedJpgs(1)),
     "--input_files %s" % (getBatchedJpgs(1))
   ],
+
+  "5-rn50_nne_to_act13_wave-no_repl"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb",
+    "resnet50",
+    "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --images %s " %(rnPreFp16, rnDogJpg),
+    "--input_files %s" % rnDogJpg
+  ],
+
 
   #"5-rn50_nne_to_act13_b8_wave"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 8 --images %s"%(rnPreFp16, getBatchedJpgs(8)), "--input_files %s" % (getBatchedJpgs(8))],
   #"5-rn50_nne_to_act13_b8_wave-fast_dram"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 8 --images %s"%(rnPreFp16, getBatchedJpgs(8)), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --input_files %s" % (getBatchedJpgs(8))],
