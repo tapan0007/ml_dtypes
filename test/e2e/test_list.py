@@ -53,7 +53,7 @@ testConfigMap = {
   "0-rtl-1conv1maxpool_h4_val_wave"    : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2"],
   "0-rtl-act_h2c16_wave"               : [ "trivnet_act",      "tfloat16-b1-h2-c16-tanh-wmin2-wmax2.2-imin-1-imax2",                        "act", "--scheduler wave2"],
 
-   "0-rn50_ba_relu_h32c256m128_fp16_wave": [ "trivnet_conv_ba","tfloat16-b1-h32-r1-s1-c256-m128-SAME-relu-wmin-0.1-wmax0.11-imin-0.3-imax0.32-amin-1-amax0.1", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic'" ],
+   "0-rn50_ba_relu_h32c256m128_fp16_wave": [ "trivnet_conv_ba","tfloat16-b1-h32-r1-s1-c256-m128-SAME-relu-wmin-0.1-wmax0.2-imin-0.1-imax0.2-amin-0.1-amax0.2", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic'" ],
    "0-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
@@ -620,6 +620,7 @@ testWaiver = [
 
     # UINT8 support
     ['^0-resadd_uint8_wave$', 'WAIVE-UINT8'],
+    ['^0-resadd_.*_wave$', 'WAIVE-RESADD'],
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
     ['1-1conv_transpose_.*',     'WAIVE_KAENA570'],
