@@ -333,7 +333,8 @@ class TPBSched:
                 for j in range(capped_current_batch_count-1, -1, -current_Tn):
                     if (args.debug > 2): print("TRACE: executing fused op %s, batch elem %d to %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, has_join %d, has_pool %d"%(op_list.last_op.data['layer_name'], b - j, b - j + current_Tn - 1, op_list.partial_batch_pre_pairup, op_list.partial_batch_pairup, op_list.has_join, op_list.has_pool))
                     op_list.map_files(tpb, b - j)
-                    op_list.execute(tpb, b - j)
+                    if not args.run_malloc_only:
+                        op_list.execute(tpb, b - j)
                 # kaena-409: the marker must be qualified with the condition that the fused-op contains a join or fork, 
                 # because the marker is set for both branches before the join 
                 # (the fork condition also must be considered for the first MaxPool, since we double-up there too).
@@ -427,8 +428,8 @@ class TPBSched:
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kgraph", help="K-graph Json file to read")
-    parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
+    parser.add_argument("--kgraph", default="compiler.json", help="K-graph Json file to read")
+    parser.add_argument("--wavegraph", default="wavegraph.json", help="Wave-graph Json file to write")
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--nname", default="resnet50", help="Network name, resnet50 or lm")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
@@ -444,6 +445,7 @@ if __name__ == "__main__":
     parser.add_argument("--force_batch_count", type=int, default=1, help="Force batch count number to a certain value, to simulate batched execution in middle of network")
     parser.add_argument("--verify_output_only", action='store_true', help="Verify only the output; disable intermediate FMAP verifications in order to speed up compiler time")
     parser.add_argument("--relax_dependencies", action='store_true', help="To prevent running out of events (kaena-403,449), this option when true would relax the dependency requirement (kaena-411)")
+    parser.add_argument("--run_malloc_only", action='store_true', help="Run through memory allocation only; skipping verification")
     args = parser.parse_args()
 
     print("Middle Sched v2: Running in %s mode"%(args.nname))
