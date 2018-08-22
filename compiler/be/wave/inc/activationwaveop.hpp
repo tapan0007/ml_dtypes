@@ -82,6 +82,10 @@ public:
         return m_DstPsumBankId;
     }
 
+    kcc_int32 gDstPsumBankOffset() const {
+        return m_DstPsumBankOffset;
+    }
+
     kcc_int32 gDstXNum () const {
         return m_DstXNum;
     }
@@ -123,6 +127,9 @@ public:
     }
     kcc_int32 gSrcPsumBankId () const {
         return m_SrcPsumBankId;
+    }
+    kcc_int32 gSrcPsumBankOffset () const {
+        return m_SrcPsumBankOffset;
     }
     kcc_int32 gSrcXNum () const {
         return m_SrcXNum;
@@ -172,6 +179,7 @@ private:
     kcc_float32                 m_Scale                 = 1.0; // TODO: deserialize when available in wavegraph.json
     bool                        m_DstIsPsum;
     kcc_int32                   m_DstPsumBankId         = -1;
+    kcc_int32                   m_DstPsumBankOffset     = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
     kcc_int32                   m_DstYNum               = -1;
@@ -186,6 +194,7 @@ private:
     const DataType&             m_OutDtype;
     bool                        m_SrcIsPsum;
     kcc_int32                   m_SrcPsumBankId         = -1;
+    kcc_int32                   m_SrcPsumBankOffset     = -1;
     kcc_int32                   m_SrcXNum               = -1;
     kcc_int32                   m_SrcXStep              = -1;
     kcc_int32                   m_SrcYNum               = -1;
@@ -211,6 +220,7 @@ public:
     bool                        m_BiasStartAtMidPart    = false;
     bool                        m_DstIsPsum;
     kcc_int32                   m_DstPsumBankId         = -1;
+    kcc_int32                   m_DstPsumBankOffset     = -1;
     kcc_int32                   m_DstXNum               = -1;
     kcc_int32                   m_DstXStep              = -1;
     kcc_int32                   m_DstYNum               = -1;
@@ -225,6 +235,7 @@ public:
     DataTypeId                  m_OutDtypeId            = DataTypeId::None;
     bool                        m_SrcIsPsum;
     kcc_int32                   m_SrcPsumBankId         = -1;
+    kcc_int32                   m_SrcPsumBankOffset     = -1;
     kcc_int32                   m_SrcXNum               = -1;
     kcc_int32                   m_SrcXStep              = -1;
     kcc_int32                   m_SrcYNum               = -1;

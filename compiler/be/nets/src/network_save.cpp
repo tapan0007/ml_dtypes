@@ -473,6 +473,7 @@ Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     serWaveOp.m_DstIsPsum = activationWaveOp->qDstIsPsum();
     if (activationWaveOp->qDstIsPsum()) {
         KCC_SERIALIZE(DstPsumBankId);
+        KCC_SERIALIZE(DstPsumBankOffset);
     } else {
         KCC_SERIALIZE(DstSbAddress);
         KCC_SERIALIZE(DstStartAtMidPart);
@@ -493,6 +494,7 @@ Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     serWaveOp.m_SrcIsPsum = activationWaveOp->qSrcIsPsum();
     if (activationWaveOp->qSrcIsPsum()) {
         KCC_SERIALIZE(SrcPsumBankId);
+        KCC_SERIALIZE(SrcPsumBankOffset);
     } else {
         KCC_SERIALIZE(SrcSbAddress);
         KCC_SERIALIZE(SrcStartAtMidPart);

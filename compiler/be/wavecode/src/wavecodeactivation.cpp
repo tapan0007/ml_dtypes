@@ -53,7 +53,7 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     if (activationWaveop->qSrcIsPsum()) {
         activationInstr.src_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(
                                                             activationWaveop->gSrcPsumBankId(),
-                                                            0, /* bank offset 0 */
+                                                            activationWaveop->gSrcPsumBankOffset(),
                                                             activationWaveop->gInDtype());
     } else {
         activationInstr.src_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(
@@ -70,8 +70,9 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
 
     initMemAccess(activationInstr.dst_mem_pattern);
     if (activationWaveop->qDstIsPsum()) {
-        activationInstr.dst_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(activationWaveop->gDstPsumBankId(),
-                                                                  0, /* bank offset 0 */
+        activationInstr.dst_mem_pattern.start_addr  = psumBuf.gEntryTpbAddress(
+                                                                  activationWaveop->gDstPsumBankId(),
+                                                                  activationWaveop->gDstPsumBankOffset(),
                                                                   activationWaveop->gOutDtype());
     } else {
         activationInstr.dst_mem_pattern.start_addr  = stateBuf.gEntryTpbAddress(

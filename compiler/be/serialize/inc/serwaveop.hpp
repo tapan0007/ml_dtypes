@@ -377,7 +377,6 @@ public:
     bool                        m_DstIsPsum         = true;
     kcc_int32                   m_DstPsumBankId     = -1;
     kcc_int32                   m_DstPsumBankOffset = -1;
-    //kcc_int32                   m_SrcPsumBankId     = -1;
 
     bool                        m_Multiply          = false;    /* Hack in ResAdd to get Multiply to work with old ISA */
 

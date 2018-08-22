@@ -157,6 +157,7 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(DstIsPsum);
     if (m_DstIsPsum) {
         KCC_ARCHIVE(DstPsumBankId);
+        KCC_ARCHIVE(DstPsumBankOffset);
     } else {
         KCC_ARCHIVE(DstSbAddress);
     }
@@ -175,6 +176,7 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(SrcIsPsum);
     if (m_SrcIsPsum) {
         KCC_ARCHIVE(SrcPsumBankId);
+        KCC_ARCHIVE(SrcPsumBankOffset);
     } else {
         KCC_ARCHIVE(SrcSbAddress);
     }

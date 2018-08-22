@@ -8,6 +8,7 @@
 #include "aws_tonga_isa_tpb_common.h"
 
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/debug.hpp"
 
 struct TONGA_ISA_TPB_INST_EVENTS;
 struct TONGA_ISA_TPB_INST_HEADER;
@@ -36,7 +37,7 @@ public:
     void CheckValidity() const
     {
         const TONGA_ISA_ERROR_CODE errCode = Checker(this);
-        Assert(errCode == TONGA_ISA_ERR_CODE_SUCCESS, "Invalid instruction");
+        Assert(errCode == TONGA_ISA_ERR_CODE_SUCCESS, "Invalid instruction. Error code: ", errCode);
     }
 };
 

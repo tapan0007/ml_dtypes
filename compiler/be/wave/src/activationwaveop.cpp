@@ -47,12 +47,14 @@ ActivationWaveOp::ActivationWaveOp(const ActivationWaveOp::Params& params,
 
     if (m_DstIsPsum) {
         m_DstPsumBankId     = params.m_DstPsumBankId;
+        m_DstPsumBankOffset     = params.m_DstPsumBankOffset;
     } else {
         m_DstSbAddress      = params.m_DstSbAddress;
         m_DstStartAtMidPart      = params.m_DstStartAtMidPart;
     }
     if (m_SrcIsPsum) {
         m_SrcPsumBankId     = params.m_SrcPsumBankId;
+        m_SrcPsumBankOffset     = params.m_SrcPsumBankOffset;
     } else {
         m_SrcSbAddress      = params.m_SrcSbAddress;
         m_SrcStartAtMidPart      = params.m_SrcStartAtMidPart;
@@ -108,6 +110,9 @@ ActivationWaveOp::verify() const
         if (m_DstPsumBankId < 0 || m_DstPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
+        if (m_DstPsumBankOffset < 0 || m_DstPsumBankOffset >= psumBuf.gNumberBanks()) {
+            RETURN_ASSERT(false);
+        }
     } else {
         if (m_DstSbAddress < 0) {
             RETURN_ASSERT(false);
@@ -141,6 +146,9 @@ ActivationWaveOp::verify() const
 
     if (m_SrcIsPsum) {
         if (m_SrcPsumBankId < 0 || m_SrcPsumBankId >= psumBuf.gNumberBanks()) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcPsumBankOffset < 0 || m_SrcPsumBankOffset >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
     } else {

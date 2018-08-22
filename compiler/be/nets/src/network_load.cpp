@@ -493,6 +493,7 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(DstIsPsum);
     if (serWaveOp.m_DstIsPsum) {
         KCC_UNSERIALIZE(DstPsumBankId);
+        KCC_UNSERIALIZE(DstPsumBankOffset);
     } else {
         KCC_UNSERIALIZE(DstSbAddress);
         KCC_UNSERIALIZE(DstStartAtMidPart);
@@ -506,6 +507,7 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(SrcIsPsum);
     if (serWaveOp.m_SrcIsPsum) {
         KCC_UNSERIALIZE(SrcPsumBankId);
+        KCC_UNSERIALIZE(SrcPsumBankOffset);
     } else {
         KCC_UNSERIALIZE(SrcSbAddress);
         KCC_UNSERIALIZE(SrcStartAtMidPart);

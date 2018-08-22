@@ -268,6 +268,9 @@ SerWaveOp::verifyActivation() const
         if (m_DstPsumBankId < 0) {
             RETURN_ASSERT(false);
         }
+        if (m_DstPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
     } else {
         if (m_DstSbAddress < 0) {
             RETURN_ASSERT(false);
@@ -288,6 +291,9 @@ SerWaveOp::verifyActivation() const
     }
     if (m_SrcIsPsum) {
         if (m_SrcPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcPsumBankOffset < 0) {
             RETURN_ASSERT(false);
         }
     } else {
