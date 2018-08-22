@@ -620,7 +620,7 @@ testWaiver = [
 
     # UINT8 support
     ['^0-resadd_uint8_wave$', 'WAIVE-UINT8'],
-    ['^0-resadd_.*_wave$', 'WAIVE-RESADD'],
+    ['^0-resadd_.*_wave$', 'WAIVE-KAENA661'],
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
     ['1-1conv_transpose_.*',     'WAIVE_KAENA570'],
