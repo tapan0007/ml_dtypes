@@ -89,6 +89,52 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
         raise RuntimeError("Cannot save numpy file %s"%(new_file))
     return (new_file, new_shape)
 
+""" Unstack parameters: keep track of ifmap and ofmap shape dimensions
+"""
+class UnstackParams:
+    def __init__(self, knode, unstack_idx):
+        self.item_sz = knode.item_sz
+        assert(knode.data['layer_type'] == "Unstack")
+        input_shape = knode.prev[0].data['ofmap_shape']
+        input_format = knode.prev[0].data['ofmap_format']
+        output_shape = knode.data['ofmap_shape']
+        output_format = knode.data['ofmap_format']
+        self.ifmap_shape_dims = ShapeDims(input_format, input_shape)
+        self.ofmap_shape_dims = ShapeDims(output_format, output_shape)
+        self.unstack_axis = knode.data['unstack_axis']
+        self.unstack_sz = self.ofmap_shape_dims[output_format[self.unstack_axis]]
+        self.unstack_offset = unstack_idx * self.unstack_sz
+        assert(self.unstack_offset >= 0 and self.unstack_offset < self.ifmap_shape_dims[input_format[self.unstack_axis]])
+
+    """ Extract unstacked data for batch item from DRAM data
+        Args: 
+        - batch_item: the current batch item, value between 0 and N-1
+        - dram_data: the stacked data
+        Returns:
+        - unstacked data for the unstack offset specified within this object
+    """
+    def extract_data(self, batch_item, dram_data):
+        assert(dram_data is not None)
+        assert(len(self.ifmap_shape_dims.format_str) == 4)
+        assert(self.ifmap_shape_dims.shape_tuple == dram_data.shape)
+        slicer = slice(self.unstack_offset, self.unstack_offset + self.unstack_sz)
+        switcher = {    
+                0: dram_data[slicer],
+                1: dram_data[:, slicer],
+                2: dram_data[:, :, slicer],
+                3: dram_data[:, :, :, slicer],
+                }
+        extracted = switcher[self.unstack_axis]
+        extracted_reshaped = extracted.reshape(self.ofmap_shape_dims.shape_tuple)
+        return extracted_reshaped
+
+    def get_address_in_original_file(self, batch_item, address):
+        coord = [0, 0, 0, 0]
+        coord['N'] = batch_item
+        coord[unstack_idx] = self.unstack_offset
+        offset = int(np.ravel_multi_index(coord, dims=self.ifmap_shape_dims.shape_tuple) * self.item_sz)
+        return address + offset
+
 """ Class to manage coordinates (points)
 """
 class Coord():
@@ -384,7 +430,7 @@ class ShapeDims():
         self.dim = {}
         self.axis = {}
         self.format_str = format_str
-        self.shape_tuple = shape_tuple
+        self.shape_tuple = tuple(shape_tuple)
         self.tot_elems = 1
         self.has_M = False
         if (len(format_str) != len(shape_tuple)):
@@ -418,6 +464,10 @@ class ShapeDims():
     # from a window (subshape), extract start/end offsets
     def get_startend_for_subshape(self, subshape_tuple):        
         pass
+
+    # overload the [] operator
+    def __getitem__(self, key):
+        return self.dim[key]
 
 """ Class to manage file-related parameters
 """

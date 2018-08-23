@@ -16,6 +16,7 @@ import inspect
 from me_utils import CircbufPtrs 
 from me_utils import ShapeDims
 from me_utils import FileParams
+from me_utils import UnstackParams
 from me_utils import Dim2D
 from skimage.util.shape import view_as_windows
 from graphviz import Digraph
@@ -582,8 +583,12 @@ class CircularBuffer:
         else:
             if (self.layer_format == 'NCHW'):
                 N, C, H, W = self.dram_data.shape
+                if op.unstack_info is not None:
+                    N, C, H, W = op.unstack_info.ofmap_shape_dims.shape_tuple
             elif (self.layer_format == 'HNWC'):
                 H, N, W, C = self.dram_data.shape
+                if op.unstack_info is not None:
+                    H, N, W, C = op.unstack_info.ofmap_shape_dims.shape_tuple
             elif (self.layer_format == 'NC'):
                 N, C = self.dram_data.shape
                 H, W = 1, 1
@@ -598,8 +603,11 @@ class CircularBuffer:
             else:
                 print("ERROR in load_file: Unrecognized layer %s type %s format %s"%(self.layer_name, self.layer_type, self.layer_format))
                 exit(-1)
-            assert(N * C * H * W * self.item_sz == self.dram_data_len)                
-            self.ifmap_data_len = self.dram_data_len//(N*C)
+            if op.unstack_info is not None:
+                self.ifmap_data_len = H * W * self.item_sz
+            else:                
+                assert(N * C * H * W * self.item_sz == self.dram_data_len)                
+                self.ifmap_data_len = self.dram_data_len//(N*C)
             # layer_shape is the ofmap_shape, in the format of N, M, E, F
             if (self.layer_format == 'NCHW' or self.layer_format == 'CNHW'):
                 self.ofmap_data_len = self.layer_shape[2]*self.layer_shape[3]*self.item_sz
@@ -1202,7 +1210,7 @@ class KNode:
         self.ofmap_wave_total_elems = 0
         self.node_number = node_number
         self.stridedslice_chan_offset = 0
-        self.unstack_h_offset = 0
+        self.unstack_info = None
         self.result_file = None
         self.pool_window_y = 1
         self.pool_window_x = 1
@@ -1255,7 +1263,11 @@ class KNode:
                 break
         self.ifmaps_shape_dims = ShapeDims(input_layer['ofmap_format'], input_layer['ofmap_shape'])            
         self.ifmap_shape = input_layer['ofmap_shape']
-        self.N, self.C, self.H, self.W = self.ifmaps_shape_dims.N, self.ifmaps_shape_dims.C, self.ifmaps_shape_dims.H, self.ifmaps_shape_dims.W
+        if self.unstack_info is not None:
+            input_shape_dims = self.unstack_info.ofmap_shape_dims
+        else:
+            input_shape_dims = self.ifmaps_shape_dims
+        self.N, self.C, self.H, self.W = input_shape_dims.N, input_shape_dims.C, input_shape_dims.H, input_shape_dims.W
         # get output shape from current layer's data
         layer_info = self.data
         self.ofmaps_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])            
@@ -1482,7 +1494,7 @@ class KNode:
                     for x in range(self.ofmap_full_tilex_sz):
                         for y in range(self.ofmap_full_tiley_sz):
                             ifmap_tilex = (wave_id.w_id * self.ofmap_full_tilex_sz + x) * self.stride_x + self.eigenlib_offset_x + s_id - self.pad_west
-                            ifmap_tiley = ((wave_id.h_id + self.unstack_h_offset)* self.ofmap_full_tiley_sz + y) * self.stride_y + self.eigenlib_offset_y + r_id - self.pad_north
+                            ifmap_tiley = (wave_id.h_id * self.ofmap_full_tiley_sz + y) * self.stride_y + self.eigenlib_offset_y + r_id - self.pad_north
                             last_r_id = r_id
                             last_s_id = s_id
                             ifmap_addr = z * self.ofmap_full_tile_sz + y * self.ofmap_full_tilex_sz + x
@@ -1491,16 +1503,16 @@ class KNode:
                             elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
                                 out_array[ifmap_addr, pe_row_offset] = 0
                             else:
-                                if (args.nname == "lm"):
-                                    out_array[ifmap_addr, pe_row_offset] = tpb.statebuffer.circbuf_ifmaps.file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
-                                else:                                    
-                                    out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
+                                out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
                                 # Check bounds of actual pixels within the original ifmaps for the first ifmap (which should reside in first SB partition)
                                 # TODO: check how N/C are arrange in memory; batching within waves may cause different atoms to be accessed by same wave
                                 # TODO: for Tn>1, need to have multiple bounds for each batch item
                                 if (repl == 0 and row == pe_row_start):                                
                                     # NCHW
-                                    self.ifmap_wave_upper_addr[z] = tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
+                                    ifmap_tiley_offset = 0
+                                    if self.unstack_info is not None:
+                                        ifmap_tiley_offset = self.unstack_info.unstack_offset
+                                    self.ifmap_wave_upper_addr[z] = tpb.statebuffer.circbuf_ifmaps.file_params.ravel_nchw(batch_id, row, ifmap_tiley + ifmap_tiley_offset, ifmap_tilex)
                                     self.ofmap_wave_upper_coordx[z] = x
                                     self.ofmap_wave_upper_coordy[z] = y
                                     if (self.ifmap_wave_lower_addr[z] < 0):
@@ -1548,9 +1560,9 @@ class KNode:
             for z in range(self.Tn):
                 batch_id = (wave_id.n_id * self.Tn) + z
                 self.ifmap_wave_lower_coordx[z] = (wave_id.w_id * self.ofmap_full_tilex_sz) * self.stride_x 
-                self.ifmap_wave_lower_coordy[z] = ((wave_id.h_id + self.unstack_h_offset) * self.ofmap_full_tiley_sz) * self.stride_y
+                self.ifmap_wave_lower_coordy[z] = (wave_id.h_id * self.ofmap_full_tiley_sz) * self.stride_y
                 self.ifmap_wave_upper_coordx[z] = ((wave_id.w_id+1) * self.ofmap_full_tilex_sz) * self.stride_x + (self.pool_window_x - self.stride_x) - 1
-                self.ifmap_wave_upper_coordy[z] = ((wave_id.h_id + self.unstack_h_offset +1) * self.ofmap_full_tiley_sz) * self.stride_y + (self.pool_window_y - self.stride_y) - 1 
+                self.ifmap_wave_upper_coordy[z] = ((wave_id.h_id+1) * self.ofmap_full_tiley_sz) * self.stride_y + (self.pool_window_y - self.stride_y) - 1 
                 if (self.ifmap_wave_upper_coordx[z] > self.W-1):
                     #raise RuntimeError("cannot handling padding for pooling operation %s at the moment"%(self.data['layer_name']))
                     self.ifmap_wave_upper_coordx[z] = self.W-1
@@ -2237,12 +2249,12 @@ class KGraph:
                                 assert (len(self.node_dict[i].prev) == 1)
                                 new_node.add_prev(self.node_dict[i].prev[0])
                             elif (prev_node.data['layer_type'] == "Unstack"):
+                                assert (len(self.node_dict[i].prev) == 1)
                                 for j in prev_node.data['next_layer_order']:
                                     if j[1] == new_node.data['layer_name']:
-                                        new_node.unstack_h_offset = j[0]
+                                        new_node.unstack_info = UnstackParams(prev_node, j[0])
                                         print("%s: unstack_h_offset %d"%(new_node.data['layer_name'], j[0]))
                                         break
-                                assert (len(self.node_dict[i].prev) == 1)
                                 new_node.add_prev(self.node_dict[i].prev[0])
                             else:
                                 new_node.add_prev(self.node_dict[i])
@@ -3414,6 +3426,8 @@ if __name__ == "__main__":
                 inputs = tpb.statebuffer.circbuf_ifmaps.load_data(first_op)
             else:                
                 inputs = tpb.statebuffer.circbuf_ifmaps.dram_data
+            if first_op.unstack_info is not None:
+                inputs = first_op.unstack_info.extract_data(0, inputs)
             results = tpb.execute_conv_ops(inputs, result_file)
         elif (first_op_type == "AvgPool" or first_op_type == "MaxPool"):
             if (tpb.statebuffer.circbuf_ifmaps.dram_data_in_file == None

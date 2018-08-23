@@ -49,7 +49,7 @@ testConfigMap = {
 # Activation with bias
   "0-rtl-rn50_ba_relu_h1c1m1_fp16_wave"     : [ "trivnet_conv_ba","tfloat16-b1-h1-r1-s1-c1-m1-SAME-relu-wmin-1-wmax1.1-imin-3-imax3.2-amin-3-amax3", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic'"],
   "0-rtl-rn50_ba_relu_h16c128m64_fp16_wave" : [ "trivnet_conv_ba","tfloat16-b1-h16-r1-s1-c128-m64-SAME-relu-wmin-0.01-wmax0.01-imin-0.3-imax0.2-amin-1-amax0.1", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic'"],
-  "0-rtl-rn50_ba_relu_h32c256m128_fp16_wave": [ "trivnet_conv_ba","tfloat16-b1-h32-r1-s1-c256-m128-SAME-relu-wmin-0.1-wmax0.11-imin-0.3-imax0.32-amin-1-amax0.1", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic'" ],
+  "0-rtl-rn50_ba_relu_h32c256m128_fp16_wave": [ "trivnet_conv_ba","tfloat16-b1-h32-r1-s1-c256-m128-SAME-relu-wmin-0.1-wmax0.2-imin-0.1-imax0.2-amin-0.1-amax0.2", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race" ],
 
 # MaxPool
   "0-rtl-1conv1maxpool_h1c1m1_wave"        : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k2-d2-wmin0.2-wmax2.2-imin-1-imax2", "1conv1pool", "--scheduler wave2"],
@@ -79,12 +79,7 @@ testConfigMap = {
   "0-rtl-1conv_relu_wave"              : [ "trivnet_lin",      "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "1cr", "--scheduler wave2"],
   "0-rtl-1conv_h8r4c64m16_wave"        : [ "trivnet_conv1",    "tfloat16-b1-h8-r4-s1-c64-m16-wmin0-wmax9-imin0-imax15",          "1conv" , "--scheduler wave2"],
   "0-rtl-1conv3_h4r3_relu_wave"        : [ "trivnet_lin",      "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", "--scheduler wave2"],
-  "0-rtl-1conv1avgpool_b1h4_same_wave" : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-SAME-AvgPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2"],
-  "0-rtl-1conv1maxpool_h4_val_wave"    : [ "trivnet_conv_pool","tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k2-d2-wmin.2-wmax.21-imin1-imax1.1", "1conv1pool", "--scheduler wave2"],
   "0-rtl-act_h2c16_wave"               : [ "trivnet_act",      "tfloat16-b1-h2-c16-tanh-wmin2-wmax2.2-imin-1-imax2",                        "act", "--scheduler wave2"],
-
-   "0-rn50_ba_relu_h32c256m128_fp16_wave": [ "trivnet_conv_ba","tfloat16-b1-h32-r1-s1-c256-m128-SAME-relu-wmin-0.1-wmax0.2-imin-0.1-imax0.2-amin-0.1-amax0.2", "2conv32b", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race" ],
-   "0-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv0_wave_h35c288m64" : [ "trivnet_conv1",  "tfloat16-b1-h35-r1-s1-c288-m64-wmin0.1-wmax0.2-imin0.2-imax0.3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
@@ -133,8 +128,6 @@ testConfigMap = {
   "3-rn50_relu_fp16_wave"  : [ "trivnet_lin","tfloat16-l2-b1-h224-r7-s2-c3-m3-relu-wmin-1-wmax1.1-imin-3-imax3.2", "2conv32b", "--scheduler wave2"],
   "3-rn50_ba_relu_fp16_wave"  : [ "trivnet_conv_ba","tfloat16-b1-h224-r7-s2-c3-m64-SAME-relu-wmin-1-wmax1.1-imin-3-imax3.2-amin-3-amax3", "2conv32b", "--scheduler wave2"],
   "0-ba_relu_fp32_wave"  : [ "trivnet_conv_ba","tfloat32-b1-h1-r1-s1-c1-m1-SAME-relu-wmin-2-wmax2-imin3-imax10-amin-7-amax7", "2conv32b", "--scheduler wave --wavegraph_checks structure data-race"],
-  #"0-10conv_relu" : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr"],
-  "0-10conv_relu_wave" : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-3conv_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h1-r1-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
   #"0-116conv_tanh" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct"],
   "0-116conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct", "--scheduler wave2 --wavegraph_checks structure data-race"],
@@ -717,10 +710,10 @@ testWaiver = [
     #['4-ptb_word_small_sigmoid_wave$', 'WAIVE-LSTM'],
     ['0-scaleadd_wave',             'WAIVE-LSTM'],
     #['4-ptb_word_small_sigmoid_2l_wave$',             'WAIVE-LSTM'],
-    ['2-ptb_word_unstack_.*',             'WAIVE-SG00'],
+    ['2-ptb_word_unstack_.*',             'WAIVE-KAENA661'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
-    ['^(4-ptb_word_small_sigmoid_wave|4-ptb_word_small_sigmoid_2l_waveopt|4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
+    ['^(4-ptb_word_small_sigmoid_wave|4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
 
     # Multi-tpb partitioning - passes in host mode so no need to waive
     #['7-rn50_fp16_multi_tpb_o_wave', 'WAIVE_MTPB'],
