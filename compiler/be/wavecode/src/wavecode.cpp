@@ -504,7 +504,7 @@ WaveCode::writeWaitOrWaitClearInstr(const wave::WaveEdge* waveEdge, EngineId eng
 void
 WaveCode::SaveName(compisa::MatMulInstr& instr, const char* name)
 {
-    saveName(instr.reserved_2, name);
+    saveName(instr.reserved, name);
 }
 
 }}
