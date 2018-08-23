@@ -110,8 +110,8 @@ class Pool:
               int((padded_ifmap_tile_rect.lower.y+org_pWN.y)/filterspec.Tv)
       cls.ofmap_offset_x =\
               int((padded_ifmap_tile_rect.lower.x+org_pWN.x)/filterspec.Th)
-      print("ofmap_offset_x = %d ofmap_offset_y = %d"\
-            %(cls.ofmap_offset_x, cls.ofmap_offset_y))
+      #print("ofmap_offset_x = %d ofmap_offset_y = %d"\
+      #      %(cls.ofmap_offset_x, cls.ofmap_offset_y))
       return cls(
           ifmap = ifmap\
           , pool_window = filterspec\
@@ -475,9 +475,9 @@ class Pool:
       , waveopinfo.src_y_num\
         +(waveopinfo.src_w_num - 1) * waveopinfo.src_w_step - 1)
     ifmap = me_utils.Rect(ifmap_lower, ifmap_upper)
-#    print ("ifmap_lower = ", ifmap_lower)
-#    print ("ifmap_upper = ", ifmap_upper)
-#    print ("ifmap = ", ifmap)
+    #print ("ifmap_lower = ", ifmap_lower)
+    #print ("ifmap_upper = ", ifmap_upper)
+    #print ("ifmap = ", ifmap)
     ofmap_lower =\
       me_utils.Coord(waveopinfo.dst_start[1]+self.ofmap_offset_x\
                      , waveopinfo.dst_start[0]+self.ofmap_offset_y)

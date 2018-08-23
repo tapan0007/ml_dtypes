@@ -49,6 +49,7 @@ class PEWave:
                                       self.ifmap_channel_start + PEArray.NUM_ROWS)
         self.ifmap_channel_count = self.ifmap_channel_stop - self.ifmap_channel_start
         self.subtile_psum_offset = 0
+        self.subtile_rect = tile.tile_rect
 
     def __str__(self):
         return self.id_string
@@ -339,9 +340,15 @@ class FusedOp(list):
         if self.args.force_batch_count > 1:
             self.next_batch_count = self.args.force_batch_count
             self.current_batch_count = self.args.force_batch_count
+        #9-10-2018
+        self.concat_dram_weights_waveops = []
+        self.concat_dram_weights_file_params = dict()
 
     # Add operation to list of fused operations.
     # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
+    def set_live_mapped_file_params(self, live_mapped_file_params):
+        self.live_mapped_file_params = live_mapped_file_params 
+
     def add(self, op):
         if (self.args.debug > 2):
             print("DBG: adding layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
@@ -463,7 +470,54 @@ class FusedOp(list):
                 + file_params.tot_partition_usage_sz_padded
         return
 
-    def map_files(self, tpb, batch_item):
+    def adjust_if_overlap_with_concat_ifmaps(
+        self, tpb, st_addr, region_sz, bias_region_sz, single_ifmap_sz):
+        i_st_addr = 0
+        i_region_sz = 0
+        for f in self.first_op.ifmaps_file_params_concat:
+            self.print_SB_addr(f)
+            if (f.mapped_params.start_addr > st_addr):
+                i_st_addr = f.mapped_params.start_addr
+                i_region_sz = f.mapped_params.region_sz
+        o_st_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
+            region0_start    = st_addr,
+            region0_sz       = region_sz, 
+            region1_start    = i_st_addr,
+            region1_sz       = min(single_ifmap_sz, i_region_sz),
+            min_region_start = bias_region_sz
+        )
+        return o_st_addr
+
+    def adjust_if_overlap_with_live_fmaps(self
+                                          , tpb
+                                          , st_addr
+                                          , region_sz
+                                          , bias_region_sz
+                                          , live_mapped_file_params
+                                         ):
+        st = st_addr
+        for c in live_mapped_file_params:
+            c_mp = c.mapped_params
+            fmapper = tpb.statebuffer.file_mapper
+            r1_sz = c_mp.end_addr+c.item_sz-c_mp.start_addr
+            st =\
+                    fmapper.adjust0_if_overlap(
+                        region0_start = st,
+                        region0_sz = region_sz,
+                        region1_start = c_mp.start_addr,
+                        region1_sz = r1_sz,
+                        min_region_start = bias_region_sz
+                    )
+        return st
+
+
+    def print_SB_addr (self, file_params):
+        print ("file_name = %s"%file_params.file_name)
+        print ("\tstart_addr = %d"%file_params.mapped_params.start_addr)
+        print ("\tend_addr = %d"%file_params.mapped_params.end_addr)
+
+    def map_files(self, tpb, batch_item, last_concat_ofmap_file_params
+                 , live_mapped_file_params):
         map_file = tpb.statebuffer.file_mapper.map_file
 
         # select SB region sizing index (only relevant for ResNet50 but we also use for BiasAdd)
@@ -644,14 +698,54 @@ class FusedOp(list):
             if self.has_conv:
                 if weights_file_params.mapped_params is None:
                     weights_file_start_addr = start_addr
-                    weights_file_start_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
-                            region0_start    = weights_file_start_addr, 
-                            region0_sz       = weights_file_sz, 
-                            region1_start    = single_ifmap_start, 
-                            region1_sz       = min(single_ifmap_sz, ifmaps_region_sz),
-                            min_region_start = bias_region_sz
-                            )
+                    #weights_file_start_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
+                    #        region0_start    = weights_file_start_addr, 
+                    #        region0_sz       = weights_file_sz, 
+                    #        region1_start    = single_ifmap_start, 
+                    #        region1_sz       = min(single_ifmap_sz, ifmaps_region_sz),
+                    #        min_region_start = bias_region_sz
+                    #        )
+                    #if (len(last_concat_ofmap_file_params) != 0):
+                    t = weights_file_start_addr
+                    weights_file_start_addr =\
+                            self.adjust_if_overlap_with_live_fmaps(
+                                tpb
+                                , weights_file_start_addr 
+                                , weights_file_sz
+                                , bias_region_sz
+                                , live_mapped_file_params)
+                    #for c in last_concat_ofmap_file_params:
+                    #for c in live_mapped_file_params:
+                    #    c_mp = c.mapped_params
+                    #    fmapper = tpb.statebuffer.file_mapper
+                    #    r1_sz = c_mp.end_addr+c.item_sz-c_mp.start_addr
+                    #    weights_file_start_addr =\
+                    #        fmapper.adjust0_if_overlap(
+                    #            region0_start= weights_file_start_addr, 
+                    #            region0_sz = weights_file_sz, 
+                    #            region1_start = c_mp.start_addr,
+                    #            region1_sz = r1_sz,
+                    #            min_region_start = bias_region_sz
+                    #        )
+                        #else:
+                        #    last_concat_ofmap_file_params.remove(c)
+                        #    if (t != weights_file_start_addr):
+                        #        print ("INFO::weight file %s"%\
+                        #               weights_file_params.file_name, end=" ")
+                        #        print ("start address has been moved from %d to %d"\
+                        #               %(t, weights_file_start_addr), end=" ")
+                        #        print ("due to conflict with concat %s ofmap"%\
+                        #               c.file_name)
+                    #print ("taemk: after - weights_file_start_addr = %d"%(
+                    #    weights_file_start_addr))
+                    #print ("taemk: after - single_ifmap_start = %d"%(
+                    #    single_ifmap_start))
+                    #print ("taemk: after - single_ifmap_sz = %d"%(
+                    #    single_ifmap_sz))
+                    #print ("taemk: after - ifmaps_region_sz = %d"%(
+                    #    ifmaps_region_sz))
                     map_file(weights_file_params, weights_file_start_addr, wrap_around=False, region_sz=weights_file_sz)
+                    live_mapped_file_params.append(weights_file_params)
                     # obtain the adjusted region size
                     weights_region_sz = weights_file_params.mapped_params.region_sz
                     start_addr = weights_file_start_addr + weights_region_sz
@@ -661,22 +755,59 @@ class FusedOp(list):
                 weights_region_start_addr = weights_file_start_addr
             # OFMAPs region
             if ofmaps_file_params.mapped_params is None:
+                # When OFMAP can overwrite previous IFMAP
+#                if (ofmaps_file_params.file_dims.C <= PEArray.NUM_ROWS and\
+#                    not self.first_op.is_input and\
+#                    ifmaps_file_params.file_dims.C <= PEArray.NUM_ROWS and\
+#                    (ofmaps_file_params.tot_partition_usage_sz_padded <=\
+#                    ifmaps_file_params.tot_partition_usage_sz_padded)\
+#                   ):
+#                    ofmaps_region_start_addr = ifmaps_region_start_addr
+#                else:
                 ofmaps_region_start_addr = start_addr
-                ofmaps_region_start_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
-                        region0_start    = ofmaps_region_start_addr, 
-                        region0_sz       = ofmaps_region_sz, 
-                        region1_start    = weights_file_start_addr, 
-                        region1_sz       = weights_file_sz,
-                        min_region_start = bias_region_sz
-                        )
-                ofmaps_region_start_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
-                        region0_start    = ofmaps_region_start_addr, 
-                        region0_sz       = ofmaps_region_sz, 
-                        region1_start    = single_ifmap_start, 
-                        region1_sz       = min(single_ifmap_sz, ifmaps_region_sz),
-                        min_region_start = bias_region_sz
-                        )
-                map_file(ofmaps_file_params, ofmaps_region_start_addr, wrap_around=True, region_sz=ofmaps_region_sz)
+                #ofmaps_region_start_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
+                #        region0_start    = ofmaps_region_start_addr, 
+                #        region0_sz       = ofmaps_region_sz, 
+                #        region1_start    = weights_file_start_addr, 
+                #        region1_sz       = weights_file_sz,
+                #        min_region_start = bias_region_sz
+                #        )
+                #ofmaps_region_start_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
+                #        region0_start    = ofmaps_region_start_addr, 
+                #        region0_sz       = ofmaps_region_sz, 
+                #        region1_start    = single_ifmap_start, 
+                #        region1_sz       = min(single_ifmap_sz, ifmaps_region_sz),
+                #        min_region_start = bias_region_sz
+                #        )
+                #if (self.first_op.is_concat == True):
+                #    ofmaps_region_start_addr=\
+                #            self.adjust_if_overlap_with_concat_ifmaps(
+                #                tpb
+                #                , ofmaps_region_start_addr
+                #                , ofmaps_region_sz
+                #                , single_ifmap_sz
+                #                , bias_region_sz
+                #            )
+                ofmaps_region_start_addr =\
+                        self.adjust_if_overlap_with_live_fmaps(
+                            tpb
+                            , ofmaps_region_start_addr
+                            , ofmaps_region_sz
+                            , bias_region_sz
+                            , live_mapped_file_params)
+                #ofmaps_region_start_addr =\
+                #        tpb.statebuffer.file_mapper.skip_unfreed_region(
+                #            self.first_op
+                #            , ofmaps_region_start_addr)
+                map_file(ofmaps_file_params\
+                         , ofmaps_region_start_addr\
+                         , wrap_around=True, region_sz=ofmaps_region_sz)
+                if (self.first_op.is_concat == True):
+                    last_concat_ofmap_file_params.append(ofmaps_file_params)
+                live_mapped_file_params.append(ofmaps_file_params)
+                #print("map_files::%s is added to live_mapped_file_params"%\
+                #      ofmaps_file_params.file_name)
+                self.print_SB_addr(ofmaps_file_params)
                 # obtain the adjusted region size
                 ofmaps_region_sz = ofmaps_file_params.mapped_params.region_sz
                 single_ofmap_start = ofmaps_region_start_addr 
@@ -733,17 +864,70 @@ class FusedOp(list):
 
         # weights cannot overlap OFMAP/IFMAP
         assert(tpb.statebuffer.file_mapper.check_overlap(weights_file_start_addr, weights_region_sz, single_ofmap_start, min(single_ofmap_sz, ofmaps_region_sz))==False)
-        assert(tpb.statebuffer.file_mapper.check_overlap(weights_file_start_addr, weights_region_sz, single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz))==False)
+        assert(tpb.statebuffer.file_mapper.check_overlap(weights_file_start_addr, weights_region_sz, single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz))==False,\
+               "weights_file_start_addr = %d, weights_region_sz = %d, single_ifmap_start = %d, min(single_ifmap_sz, ifmaps_region_sz) = %d"%(
+                   weights_file_start_addr, weights_region_sz, single_ifmap_start, (min(single_ifmap_sz, ifmaps_region_sz)))
+               )
 
         # check that regions are either exactly overlaping or not overlapping at all
         overlap_some_percent = tpb.statebuffer.file_mapper.check_overlap(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
         overlap_100_percent = tpb.statebuffer.file_mapper.check_overlap100(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
-        assert(overlap_some_percent == overlap_100_percent)
+        if (ifmaps_file_params.mapped_params.modify_in_place == False):
+            assert(overlap_some_percent == overlap_100_percent)
+
+    def mark_ifmaps_are_consumed(self, live_mapped_file_params):
+        # Note that each of ifmaps of current knode is ofmap of its predecessor.
+        # That's why ofmap is retrieved from the predecessor knode.
+        if (self.has_conv):
+            weight = self.conv_op.weights_file_params
+            weight.mapped_params.mark_consumed(self.first_op)
+            if (weight.mapped_params.is_consumed_by_all_readers() == True):
+                live_mapped_file_params.remove(weight)
+        if (self.first_op.is_concat):
+            for w in self.first_op.weights_file_params_concat:
+                w.mapped_params.mark_consumed(self.first_op)
+                if (w.mapped_params.is_consumed_by_all_readers() == True):
+                    live_mapped_file_params.remove(w)
+        for pred in self.first_op.prev:
+            ofmap = pred.ofmaps_file_params
+            ofmap.mapped_params.mark_consumed(self.first_op)
+            #print ("mark_ifmaps_are_consumed::ofmap file name = %s"%\
+            #       ofmap.file_name)
+            #print ("mark_ifmaps_are_consumed::len(live_mapped_file_params)=%d"%\
+            #       len(live_mapped_file_params))
+            #print ("mark_ifmaps_are_consumed::ofmap = ", ofmap)
+            #print ("mark_ifmaps_are_consumed::live_mapped_files_params[0] = ",\
+            #       live_mapped_file_params[0].file_name)
+            #assert(ofmap in live_mapped_file_params)
+            if (ofmap in live_mapped_file_params and\
+                ofmap.mapped_params.is_consumed_by_all_readers() == True):
+                live_mapped_file_params.remove(ofmap)
+        return
 
     def execute(self, tpb, batch_item):
         assert (batch_item >= 0)
         assert (batch_item < self.first_op.N)
         # Check conv fused op
+#        if (self.first_op.data['layer_name'] == 'mixed10/concat'):
+#            print("file_name of %s ifmap : %s"%(
+#                self.first_op.data['layer_name']
+#                ,self.first_op.ifmaps_file_params_concat[-1].file_name))
+#            if (self.first_op.ifmaps_file_params_concat[-1].mapped_params == None):
+#                print("\tIt is not mapped")
+#            s = self.first_op.ifmaps_file_params_concat[-1].mapped_params.start_addr
+#            e = self.first_op.ifmaps_file_params_concat[-1].mapped_params.end_addr + 2
+#            print ("s = %d, e = %d"%(s, e))
+#            for sb_addr in range(s, e, 1):
+#                fmap = tpb.statebuffer.file_mapper
+#                morsel = fmap.morsels
+#                fid = morsel[sb_addr].file_id
+#                if (fid == -1):
+#                    print ("NO ONE is responsible for %d"%sb_addr)
+#                else:
+#                    if (fid != self.first_op.ifmaps_file_params_concat[-1].file_id):
+#                        print("MIXED9/CONCAT memory space has been already\
+#                              taken by %s"%fmap.file_params_list[fid].file_name)
+
         first_op_type = self.first_op.data['layer_type']
         if (first_op_type == "Conv" or first_op_type == "ConvTranspose" or first_op_type == "MatMul"):
             self.execute_conv_ops(tpb, batch_item)
@@ -776,26 +960,27 @@ class FusedOp(list):
         if len(self) > 0 and not self.first_op.is_placeholder and not self.first_op.is_nop:
             # Check last output result, unless verify_output_only=False
             if self.last_op.next == [] or not self.args.verify_output_only:
-                if 'ref_file' in self.last_op.data and os.path.isfile(self.last_op.data['ref_file']):
-                    try:
-                        expected_ofmaps = np.load(self.last_op.data['ref_file'])
-                    except:
-                        raise RuntimeError("Cannot load numpy file %s"%(self.last_op.data['ref_file']))
-                    last_batch_item = batch_item + self.first_op.Tn
-                    for i in range(batch_item, last_batch_item):
-                        ifmaps = self.first_op.ifmaps_file_params.dram_data[i, :]
-                        ofmaps = self.last_op.ofmaps_file_params.dram_data[i, :]
-                        print("ofmap name = %s",self.last_op.ofmaps_file_params.file_name)
-                        expected_ofmaps_extracted = expected_ofmaps[i, :]
-                        assert(expected_ofmaps_extracted.flags.c_contiguous == True)
-                        diff = ofmaps - expected_ofmaps_extracted
-                        if (self.args.debug > 2): print("\nInput IFMAPS:\n", ifmaps)
-                        if (self.args.debug > 1): print("\nComputed OFMAPS:\n", ofmaps)
-                        if (self.args.debug > 1): print("\nExpected OFMAPS:\n", expected_ofmaps_extracted)
-                        if (self.args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
-                        if (not npu.allclose(ofmaps, expected_ofmaps_extracted, 1/100, 1e-5, verbose=True)):
-                            print("\nERROR: layer %s batch item %d computed OFMAPS is not equal to expected OFMAPS!\n"%(self.last_op.data['layer_name'], i))
-                            tpb.num_mismatches += 1
+                if (not self.args.no_verify):
+                    if 'ref_file' in self.last_op.data and os.path.isfile(self.last_op.data['ref_file']):
+                        try:
+                            expected_ofmaps = np.load(self.last_op.data['ref_file'])
+                        except:
+                            raise RuntimeError("Cannot load numpy file %s"%(self.last_op.data['ref_file']))
+                        last_batch_item = batch_item + self.first_op.Tn
+                        for i in range(batch_item, last_batch_item):
+                            ifmaps = self.first_op.ifmaps_file_params.dram_data[i, :]
+                            ofmaps = self.last_op.ofmaps_file_params.dram_data[i, :]
+                            print("ofmap name = %s",self.last_op.ofmaps_file_params.file_name)
+                            expected_ofmaps_extracted = expected_ofmaps[i, :]
+                            assert(expected_ofmaps_extracted.flags.c_contiguous == True)
+                            diff = ofmaps - expected_ofmaps_extracted
+                            if (self.args.debug > 2): print("\nInput IFMAPS:\n", ifmaps)
+                            if (self.args.debug > 1): print("\nComputed OFMAPS:\n", ofmaps)
+                            if (self.args.debug > 1): print("\nExpected OFMAPS:\n", expected_ofmaps_extracted)
+                            if (self.args.debug > 1): print("\nDiffed   OFMAPS:\n", diff)
+                            if (not npu.allclose(ofmaps, expected_ofmaps_extracted, 1/100, 1e-5, verbose=True)):
+                                print("\nERROR: layer %s batch item %d computed OFMAPS is not equal to expected OFMAPS!\n"%(self.last_op.data['layer_name'], i))
+                                tpb.num_mismatches += 1
 
             # Save results for network output or we want to save debug intermediate results
             if self.last_op.next == [] or self.args.save_layer_output:
@@ -826,6 +1011,7 @@ class FusedOp(list):
         # kaena-421: during execution for batch item other than the first one, need to check if there's any SBAtomLoad due to eviction
         # when the fused-op is reexecuted (since self.prev_weight_wave_lower_addr is preserved across batch item calls) 
         if (weights_sb_address == self.prev_weight_wave_lower_addr and dram_weights_waveops == []):
+          if (self.first_op.is_concat == False):
             weights_sb_address = -1
             if (self.args.debug > 1): print("DBG: weights has been previously loaded into PEArray; reusing them instead of reloading")
         else:            
@@ -1400,7 +1586,7 @@ class FusedOp(list):
                                             ofmap_tile.lower_addr[z], 
                                             ofmap_tile.lower_to_upper_len_bytes[z], 
                                             start_at_mid_part)
-                assert(len(waveops) == 0)                            
+                #assert(len(waveops) == 0)                            
                 latest_accessor = max(last_writer, last_reader, latest_accessor) 
 
             # consider all Tn batch items together to avoid redundant edges
@@ -1409,10 +1595,27 @@ class FusedOp(list):
             #if self.args.relax_dependencies:
                 # kaena-403/449 hack: reduce dependencies to prevent event overflow
             #    latest_accessor = -1
-            if latest_accessor >= 0:
-                accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
-                if accessor_name not in prev_waveops and accessor_name != tpb.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_name']:
-                    prev_waveops.append(accessor_name)
+            if (len(waveops) > 0):
+                for i in waveops:
+                    # Since waveops has mixture of dictionarys and strings,
+                    # we distinguish one from another using try-except
+                    try:
+                        tpb.waveop_stream.append_check(i, -1)
+                        prev = i['waveop_name']
+                    except:
+                        prev = i
+                    if (prev not in prev_waveops and (
+                        prev != (
+                            tpb.waveop_stream.last_psum_waveop
+                            [psum_bank_src]['waveop_name'])
+                        )
+                       ):
+                        prev_waveops.append(prev)
+            else:
+                if latest_accessor >= 0:
+                    accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                    if accessor_name not in prev_waveops and accessor_name != tpb.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_name']:
+                        prev_waveops.append(accessor_name)
         return psum_temp
 
     # generate activation instruction and add it to instruction stream
@@ -2072,7 +2275,7 @@ class FusedOp(list):
                                         tile.lower_addr[z], 
                                         tile.lower_to_upper_len_bytes[z], 
                                         start_at_mid_part)
-            assert(len(waveops) == 0)                            
+            #assert(len(waveops) == 0)                            
             # TODO: roll this code into write_file_data_region
             latest_accessor = max(last_writer, last_reader, latest_accessor)
 
@@ -2086,10 +2289,21 @@ class FusedOp(list):
 
         # Attach WAW dependency on the first waveop of current Tn batch items
         prev_waveops = waveop['previous_waveops']
-        if latest_accessor >= 0:
-            accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
-            if accessor_name not in prev_waveops and accessor_name != waveop['waveop_name']:
-                prev_waveops.append(accessor_name)
+        if (len(waveops) > 0):
+            for i in waveops:
+                try:
+                    tpb.waveop_stream.append_check(i, -1)
+                    prev = i['waveop_name']
+                except:
+                    prev = i
+                if (prev not in prev_waveops and prev != waveop['waveop_name']):
+                    prev_waveops.append(prev)
+        else:
+            if latest_accessor >= 0:
+                accessor_name = tpb.waveop_stream.nonload_waveop_list[latest_accessor]['waveop_name']
+                if accessor_name not in prev_waveops and accessor_name != waveop['waveop_name']:
+                    prev_waveops.append(accessor_name)
+
 
     def emit_waveops_pool_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_dst):
         # wave loop ordering scheme: nmhw
@@ -2098,9 +2312,6 @@ class FusedOp(list):
         start_at_mid_part = ofmap_tile.m_id%2 == 1
         if (first_op.data['layer_type'] == "AvgPool" 
                 or first_op.data['layer_type'] == "MaxPool"):
-            print ("ifmap_tile.tile_rect = %s"%ifmap_tile.tile_rect)
-            print ("ifmap_tile.padded_tile_rect = %s"
-                    %ifmap_tile.padded_tile_rect)
             pool_decomposer = Pool.init_from_rectangles(
                                 ifmap_tile.padded_tile_rect,
                                 ifmap_tile.tile_rect,
@@ -2109,8 +2320,6 @@ class FusedOp(list):
                                 self.first_op.pool_window,
                                 self.first_op.stride)
             pool_waves = pool_decomposer.Decompose()
-            print("gen_unfused_pool_waveop_inline::pool_waves size = %d"
-                    %len(pool_waves))
             for pool_wave in pool_waves:
                 ifmap_tile_subtile \
                     = PoolSubtile(ifmap_tile, pool_wave.ifmap, pool_wave.window)
@@ -2222,9 +2431,9 @@ class FusedOp(list):
                     tpb.pearray.last_psum_bank_used = self.first_op.get_psum_bank()
 
     def execute_unfused_concat_op (self, tpb, batch_item):
-        print ("concat node name = %s"%self.first_op.data['layer_name'])
+        #print ("concat node name = %s"%self.first_op.data['layer_name'])
         def move_psum_to_ofmap (tpb, ifmap_tile, ofmap_tile):
-            MM_data = tpb.pearray.extract_psum(0, 0\
+            MM_data = tpb.pearray.extract_psum(self.first_op.psum_bank_dst, 0\
                     , ifmap_tile.tile_rect.get_tot_size())
             #print ("MM_data.shape = ",MM_data.shape)
             #np.set_printoptions(threshold=np.inf)
@@ -2247,7 +2456,7 @@ class FusedOp(list):
         for m_id in range(len(keys)):
             subtile_info = concat.subtile_infos[keys[m_id]]
             [mfilters,ifmap_file_params_tile,ifmap_channel_ranges]=subtile_info
-            #print ("h = %d w = %d"%(first_op.h, first_op.w))
+            first = True
             for h_id in range(first_op.h):
                 for w_id in range(first_op.w):
                     ifmap_tile_id = (n_id, 0, h_id, w_id, first_op.n\
@@ -2302,6 +2511,7 @@ class FusedOp(list):
                                                          , concat_collaterals\
                                                          , next_ofmap_start
                                                          , tile == 0
+                                                         , first
                                                         )
                         self.emit_waveop_concat_tile(\
                                                      tpb\
@@ -2310,13 +2520,20 @@ class FusedOp(list):
                                                      , concat_collaterals\
                                                      , next_ofmap_start
                                                      , tile == 0
+                                                     , 1
+                                                     , first
                                                     )
+                    if (first == True): first = False
                     move_psum_to_ofmap(tpb, ifmap_tile, ofmap_tile)
-                    psum_bank_src = 0
+                    psum_bank_src = self.first_op.psum_bank_dst
                     self.execute_postconv_tile_ops(tpb\
-                                                   , ifmap_tile\
+                                                   , ofmap_tile\
                                                    , ofmap_tile\
                                                    , psum_bank_src)
+                    tpb.pearray.last_psum_bank_used =\
+                                                   self.first_op.get_psum_bank()
+                    self.first_op.psum_bank_dst += 1
+                    self.first_op.psum_bank_dst %= PEArray.PSUM_NUM_BANKS
 
     def emit_waveop_concat_tile (self\
                                  , tpb\
@@ -2325,30 +2542,60 @@ class FusedOp(list):
                                  , concat_collaterals\
                                  , ofmap_start\
                                  , start_tensor_calc\
+                                 , num_weights\
+                                 , first = False
                                 ):
         [mfilter, ifmap_file_param, ifmap_channel_range, ofmap_range] =\
                 concat_collaterals
         c_start_idx = int(math.floor(ifmap_channel_range[1] / PEArray.NUM_ROWS))
         pewave = PEWave(ifmap_tile, c_start_idx, 0, 0)
+        pewave.ifmap_channel_count = PEArray.NUM_ROWS
+        ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
+        self.first_op.compute_ifmap_ofmap_pewave_info(pewave, pewave, False)
         (prev_waveops, dram_ifmaps_waveops) =\
                 self.get_producers_for_subtile_region (
                     tpb = tpb, fmap_subtile = pewave)
-        (writers, readers, dram_weights_waveops) =\
-                tpb.statebuffer.file_mapper.read_file_data_region(
-                    tpb.waveop_stream.nonload_waveop_count
-                    , tpb.waveop_stream.nonload_waveop_list
-                    , self.first_op.weights_file_params
-                    , 0  # batch_item doesn't apply for weights
-                    , self.first_op.weight_wave_lower_addr
-                    , self.first_op.weight_wave_upper_addr\
-                        - self.first_op.weight_wave_lower_addr\
-                        + self.first_op.item_sz\
-                    , 1
-                )
+#        (writers, readers, dram_weights_waveops) =\
+#                tpb.statebuffer.file_mapper.read_file_data_region(
+#                    tpb.waveop_stream.nonload_waveop_count
+#                    , tpb.waveop_stream.nonload_waveop_list
+#                    , self.first_op.weights_file_params
+#                    , 0  # batch_item doesn't apply for weights
+#                    , self.first_op.weight_wave_lower_addr
+#                    , self.first_op.weight_wave_upper_addr\
+#                        - self.first_op.weight_wave_lower_addr\
+#                        + self.first_op.item_sz\
+#                    , 1
+#                    , False
+#                )
+        # 9-10-2018
+        if (first == True):
+          total_size_weights =(
+           self.first_op.weight_wave_upper_addr
+             - self.first_op.weight_wave_lower_addr
+           + self.first_op.item_sz) * num_weights
+          print ("emit_waveop_concat_tile::weights_file_params.file_name = %s"%\
+              self.first_op.weights_file_params.file_name)
+          print ("\tstart_addr = %d"%self.first_op.weight_wave_lower_addr)
+          print ("\tend_addr = %d"%self.first_op.weight_wave_upper_addr)
+          (writers, readers, dram_weights_waveops) =\
+                  tpb.statebuffer.file_mapper.read_file_data_region(
+                      tpb.waveop_stream.nonload_waveop_count
+                      , tpb.waveop_stream.nonload_waveop_list
+                      , self.first_op.weights_file_params
+                      , 0  # batch_item doesn't apply for weights
+                      , self.first_op.weight_wave_lower_addr
+                      , total_size_weights
+                      , 1
+                      , False
+                  )
+          self.concat_dram_weights_waveops = dram_weights_waveops
+        dram_weights_waveops = self.concat_dram_weights_waveops
         #print ("len(dram_weights_waveops) = %d"%len(dram_weights_waveops))
         psum_add = start_tensor_calc == False
         mms = self.gen_matmul_waveop(tpb\
                                      , pewave\
+                                     , ofmap_pewave\
                                      , psum_add\
                                      , dram_weights_waveops)
         for i in range(len(mms)):
@@ -2357,7 +2604,12 @@ class FusedOp(list):
                 weights = dram_weights_waveops
             else:
                 weights = None
-            tpb.waveop_stream.add_linked(mms[i], weights, 0)
+            if (first == True):
+              tpb.waveop_stream.add_linked(
+                  mms[i], weights, self.first_op.psum_bank_dst)
+            else:
+              tpb.waveop_stream.add_linked(
+                  mms[i], [], self.first_op.psum_bank_dst)
             prev_record_in_waveop = mms[i]['previous_waveops']
             for prev in prev_waveops:
                 if prev not in prev_record_in_waveop:
@@ -2375,6 +2627,7 @@ class FusedOp(list):
                              , concat_collaterals\
                              , ofmap_start\
                              , start_tensor_calc\
+                             , first = False\
                             ):
         [mfilter, ifmap_file_param, ifmap_channel_range, ofmap_range] =\
                 concat_collaterals
@@ -2411,7 +2664,12 @@ class FusedOp(list):
                 contain_weights = True)
             knode.weights_file_params.layer_name = knode.data['layer_name']
             knode.weights_file_params.load_file()
+            knode.weights_file_params.consumers.append(knode)
+            knode.weights_file_params_concat.append(knode.weights_file_params)
             self.map_files_gen_during_exec(tpb, knode.weights_file_params)
+            self.live_mapped_file_params.append(knode.weights_file_params)
+            #if (knode.data['layer_name'] == 'mixed10/concat'):
+            self.print_SB_addr(knode.weights_file_params)
             #weight_file_start_addr = tpb.statebuffer.next_nonbias_file_start
             #tpb.statebuffer.next_nonbias_file_start +=\
             #        knode.weights_file_params.tot_partition_usage_sz_padded
@@ -2427,8 +2685,23 @@ class FusedOp(list):
             #    knode.weights_file_params.file_name = weights_file
             return
         pewave = PEWave(ifmap_tile, c_start_idx, 0, 0)
-        set_weight_params_for_concat_knode(self.first_op\
-                                           , mfilter, ifmap_file_param)
+        pewave.ifmap_channel_count = PEArray.NUM_ROWS
+        ofmap_tile_channel_stop = ofmap_tile.channel_stop
+        ofmap_tile_channel_count = ofmap_tile.channel_count
+        ofmap_tile_channel_start = ofmap_tile.channel_start
+        ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
+        ofmap_pewave.tile.channel_start = 0
+        ofmap_pewave.tile.channel_stop = PEArray.NUM_COLS
+        ofmap_pewave.tile.channel_count = PEArray.NUM_COLS
+        if (first == True):
+          print("weight is generated")
+          set_weight_params_for_concat_knode(self.first_op\
+                                             , mfilter, ifmap_file_param)
+          self.concat_dram_weights_file_params[mfilter] =\
+            self.first_op.weights_file_params
+        else:
+          self.first_op.weights_file_params =\
+            self.concat_dram_weights_file_params[mfilter]
         #print ("...packing ifmap")
         #print ("2.ifmap_tile.file_params.file_name= %s"\
         #       %ifmap_tile.file_params.file_name)
@@ -2436,18 +2709,26 @@ class FusedOp(list):
         #print ("2.ifmap_channel_range[1] = %d c_start_idx = %d"\
         #       %(ifmap_channel_range[1], c_start_idx))
         packed_ifmap =\
-                self.first_op.pack_wave_ifmaps(ifmap_data, pewave, 1, False)
+                self.first_op.pack_wave_ifmaps(ifmap_data,pewave,pewave,1,False)
         weight = np.load(mfilter.file_name)
         pewave_for_weights = PEWave(ifmap_tile, 0, 0, 0)
+        pewave_for_weights.ifmap_channel_count = PEArray.NUM_ROWS
+        pewave_for_weights.ifmap_channel_start = 0
+        pewave_for_weights.ifmap_channel_stop = PEArray.NUM_ROWS
+        pewave_for_weights.ifmap_channel_end = PEArray.NUM_ROWS - 1
         packed_weights =\
                 self.first_op.pack_wave_conv_weights(weight, pewave_for_weights\
-                                                     , 1)
+                                                     , ofmap_pewave, 1)
         # FIXME : psum_bank needs to be specificed correctly
         tpb.pearray.wave_fp16_mm(packed_ifmap\
                                  , packed_weights\
-                                 , 0, start_tensor_calc == False)
+                                 , self.first_op.psum_bank_dst
+                                 , start_tensor_calc == False)
         next_ofmap_start = ofmap_start\
                 + (ifmap_channel_range[1] - ifmap_channel_range[0] + 1)
+        ofmap_tile.channel_stop = ofmap_tile_channel_stop
+        ofmap_tile.channel_count = ofmap_tile_channel_count
+        ofmap_tile.channel_start = ofmap_tile_channel_start
         return next_ofmap_start
 
     # Execute conv and other operations in list: for each op, load parameters and perform op with input

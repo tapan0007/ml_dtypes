@@ -59,6 +59,7 @@ class KNode:
         self.is_fork = False
         self.is_id_pool = False
         self.is_conv_transpose = False
+        self.is_concat = False
         self.residue_index = -1
         self.src_is_psum = True
         self.dst_is_psum = True
@@ -66,6 +67,7 @@ class KNode:
         self.dst_circbuf = None
         self.ifmaps_file_params = None
         self.ifmaps_file_params_concat = []
+        self.weights_file_params_concat = []
         self.ofmaps_file_params = None
         self.weights_file_params = None
         self.bias_file_params = None
@@ -155,6 +157,7 @@ class KNode:
             # operation
             self.ifmaps_file_params_concat = []
             for i in range(len(self.prev)):
+                self.prev[i].ofmaps_file_params.consumers.append(self)
                 self.ifmaps_file_params_concat.append(\
                     self.prev[i].ofmaps_file_params)
         else:
@@ -246,6 +249,7 @@ class KNode:
                                         contain_weights = True)
         self.weights_file_params.layer_name =  self.data['layer_name']
         self.weights_file_params.load_file()
+        self.weights_file_params.consumers.append(self)
         self.R = weights_shape_dims.R
         self.S = weights_shape_dims.S
         self.RS = self.R * self.S
@@ -398,7 +402,7 @@ class KNode:
             out_array_dim_y = ofmap_pewave.tile.channel_count
         else:            
             out_array_dim_y = ifmap_pewave.ifmap_channel_count * repl_multiple_of_C
-        fmap_folding_idx = ofmap_pewave.c_id
+        fmap_folding_idx = ifmap_pewave.c_id
         fmap_total_count = self.C
         out_array = np.zeros((PEArray.MAX_WAVE_SIZE, out_array_dim_y))
         #out_array = np.zeros((ofmap_pewave.tile.tile_rect.get_tot_size(), out_array_dim_y))
@@ -715,6 +719,8 @@ class KGraph:
                     new_node.is_nop = True
                 elif (l['layer_type'] == "ConvTranspose"):
                     new_node.is_conv_transpose = True
+                elif (l['layer_type'] == "Concat"):
+                    new_node.is_concat = True
             if (len(self.last_split_next_nodes) > 0 and len(self.last_split_next_nodes[0]) > 0) :                    
                 self.current_node = self.last_split_next_nodes[0].pop()
                 if self.last_split_next_nodes[0] == []:

@@ -93,6 +93,7 @@ bool EventChecker::RunEventConflictCheck(evid_t evid)
     // Head(e_j^evid) and Tail(e_j^evid) (i.e. Tail(e_i^evid) -> Head(e_j^evid),
     // Tail(e_i^evid) -> Tail(e_j^evid))
     typedef std::unordered_set<vertex_t> set_v;
+    std::cout << "EVID = " << evid << std::endl;
     for(int i = 0;i < (int)(boost::num_vertices(eog));++i)
     {
       edge_t source_edge = (*mEventID2Edgelist[evid])[i];
@@ -112,6 +113,12 @@ bool EventChecker::RunEventConflictCheck(evid_t evid)
           // Tail(e_j^evid) and Head(e_j^evid)
           if (pi_v.find(tail) != pi_v.end() && pi_v.find(head) != pi_v.end())
           {
+            std::cout << wg[start]->get_name()
+              << " to T:" << wg[tail]->get_name() << std::endl;
+            std::cout << wg[start]->get_name()
+              << " to H:" << wg[head]->get_name() << std::endl;
+            std::cout << "EVID "<< evid
+              << ": Add edge from " << i << " to " << j << std::endl;
             boost::add_edge(boost::vertex(i, eog), boost::vertex(j, eog), eog);
           }
         }
@@ -137,9 +144,10 @@ bool EventChecker::RunEventConflictCheck(evid_t evid)
       }
     }
 
-    //boost::write_graphviz(std::cout, eog, [&] (std::ostream& out, eog_v_t v) {
+    boost::write_graphviz(std::cout, eog, [&] (std::ostream& out, eog_v_t v) {
         //out << "[label=\"" << (&eog[v]) << "\"]";
-        //});
+        out << "[label=\"" << (v) << "\"]";
+        });
     std::cout << std::flush;
 
     std::vector<eog_v_t> c;
@@ -148,6 +156,12 @@ bool EventChecker::RunEventConflictCheck(evid_t evid)
     // Check the uniqueness of topological sort of eog
     int loc_v = 0;
     eog_v_t prev_v;
+    std::cout << "TOPO for evid " << evid << std::endl;
+    for(auto ii : boost::adaptors::reverse(c))
+    {
+      std::cout << ii << " ";
+    }
+    std::cout << std::endl;
     for(auto ii : boost::adaptors::reverse(c))
     {
       if (loc_v)
@@ -198,38 +212,65 @@ void EventChecker::PrintNonOrderedPairsOfSetWait(
     , evid_t evid
     )
 {
-  std::unordered_map<eog_v_t, std::unordered_set<eog_v_t> > v2reachable_vs;
+  std::unordered_map<eog_v_t, std::unordered_set<eog_v_t>* > v2reachable_vs;
 
   eog_t::vertex_iterator v_itr, v_end;
   for (boost::tie(v_itr, v_end) = boost::vertices(eog);
         v_itr != v_end; ++v_itr)
   {
-    std::unordered_set<eog_v_t> v_set;
-    v2reachable_vs.insert(std::pair<eog_v_t, std::unordered_set<eog_v_t> >(
-          *v_itr, v_set));
+    std::unordered_set<eog_v_t>* v_set = new std::unordered_set<eog_v_t>;
+    //v2reachable_vs.insert(std::pair<eog_v_t, std::unordered_set<eog_v_t> >(
+    //      *v_itr, v_set));
+    v2reachable_vs.insert({*v_itr, v_set});
+    //std::cout << (&v_set) << std::endl;
     WaveGraphChecker::b_search<std::unordered_set<eog_v_t>, eog_v_t, eog_t>
-      (&v_set, *v_itr, eog);
+      (v_set, *v_itr, eog);
+    if (*v_itr == 0 && evid == 7)
+    {
+      auto a = v2reachable_vs[*v_itr];
+      std::cout << "Vertices reachable from " << *v_itr << std::endl;
+      for(auto i : *a)
+      {
+        std::cout << i << " ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << "size of v_set = " << v_set->size() << std::endl;
   }
+  std::cout << "size of v2reachable_vs = " << v2reachable_vs.size() <<std::endl;
   eog_t::vertex_iterator v_itr2;
   for (boost::tie(v_itr, v_end) = boost::vertices(eog);
         v_itr != v_end; ++v_itr)
   {
-    std::unordered_set<eog_v_t> left2right; // u -> v
+    std::unordered_set<eog_v_t>* left2right; // u -> v
     left2right = v2reachable_vs[*v_itr];
     v_itr2 = v_itr;
     ++v_itr2;
+    std::cout << "-"<<left2right << std::endl;
+    std::cout << "-size of left2right = " << left2right->size() << std::endl;
+    if (*v_itr == 0 && evid == 7)
+    {
+      std::cout << "Vertices reachable from " << *v_itr << std::endl;
+      for(auto i : *left2right)
+      {
+        std::cout << i << " ";
+      }
+      std::cout << std::endl;
+    }
     for (;v_itr2 != v_end; ++v_itr2)
     {
       if (*v_itr != *v_itr2)
       {
-        std::unordered_set<eog_v_t> right2left; // u <- v
+        std::unordered_set<eog_v_t>* right2left; // u <- v
         right2left = v2reachable_vs[*v_itr2];
-        if (left2right.find(*v_itr2) == left2right.end() &&
-            right2left.find(*v_itr) == right2left.end())
+        if (left2right->find(*v_itr2) == left2right->end() &&
+            right2left->find(*v_itr) == right2left->end())
         {
           edge_t e1 = mEOG_V2WG_E[*v_itr];
           edge_t e2 = mEOG_V2WG_E[*v_itr2];
           //std::cout << "ERROR : (Event " << evid
+          std::cout << "evid " << evid << " : "
+            << *v_itr <<", "<<*v_itr2 << std::endl;
           mMessages << "\t"
             << "(" << wg[boost::source(e1, wg)]->get_name()
             << "->" << wg[boost::target(e1, wg)]->get_name() << ")"

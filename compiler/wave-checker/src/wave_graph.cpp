@@ -942,11 +942,33 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
     else if (!wop_type.compare("SBAtomSave") ||
         !wop_type.compare("SBAtomLoad"))
     {
-      make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
+      //make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
+      std::string eng_name = op["engine"].get<std::string>();
+      if (!eng_name.compare("ActivationEng"))
+      {
+        make_edge(prev_exam(prev_act), cur_v, prev_act, wg);
+      }
+      else if (!eng_name.compare("PeArrayEng"))
+      {
+        make_edge(prev_exam(prev_pe), cur_v, prev_pe, wg);
+      }
+      else if (!eng_name.compare("PoolEng"))
+      {
+        make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
+      }
+      else if (!eng_name.compare("DmaEng"))
+      {
+        make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
+      }
+      else
+      {
+        assert(0);
+      }
     }
     else if (!wop_type.compare("Nop"))
     {
-      std::string eng_name = op["engine_name"].get<std::string>();
+      //std::string eng_name = op["engine_name"].get<std::string>();
+      std::string eng_name = op["engine"].get<std::string>();
       if (!eng_name.compare("ActivationEng"))
       {
         make_edge(prev_exam(prev_act), cur_v, prev_act, wg);

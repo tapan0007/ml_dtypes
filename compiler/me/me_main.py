@@ -10,6 +10,7 @@ import os
 import re
 import numpy as np
 import argparse
+import me_wavegraph_cleanup
 from me_utils import *
 from me_graph import *
 from me_models import *
@@ -34,7 +35,7 @@ class StateBuffer:
 
     def __init__(self, batcher):
         self.batcher = batcher
-        self.file_mapper = FileMapper(self.SB_PARTITION_SZ, self.batcher.data_type)
+        self.file_mapper = FileMapper(self.SB_PARTITION_SZ, self.batcher.data_type, args)
         self.zero_bias_file_params = None
         self.next_bias_file_start = 0
         self.next_nonbias_file_start = 0
@@ -76,7 +77,7 @@ class WaveopStream(list):
         self.nonload_waveop_count = 0
         self.nonload_waveop_list = []
 
-    def append_check(self, item):
+    def append_check(self, item, loc = None):
         item_name = item['waveop_name']
         i = 0
         if args.abstract_mem and item_name in self.waveop_name_set:
@@ -90,7 +91,11 @@ class WaveopStream(list):
             item_name = new_name
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                
-        self.append(item)
+        #self.append(item)
+        if (loc == None):
+            self.append(item)
+        else:
+            self.insert(loc, item)
         self.waveop_count += 1
         if (item['waveop_type'] != 'SBAtomLoad'):
             if (args.debug > 3): print("INFO: Adding nonload waveop %s ID %d"%(item['waveop_name'], self.nonload_waveop_count))
@@ -126,9 +131,9 @@ class WaveopStream(list):
                 self.last_main_waveop = waveop
                 self.last_main_using_psum_bank = psum_bank
 
-    def add_outputs(self, waveops):
+    def add_outputs(self, waveops, loc = None):
         for i in waveops:
-            self.append_check(i)
+            self.append_check(i, loc)
 
 """FusedOpList: a list of fused-op
 """
@@ -320,6 +325,8 @@ class TPBSched:
         current_Tn = self.fused_ops_list[0].first_op.Tn
         first_Tn = current_Tn
         b = current_Tn-1
+        last_concat_ofmap_file_params = []
+        live_mapped_file_params = []
         while b < batch_count:
             i = 0
             while i < len(self.fused_ops_list):
@@ -332,8 +339,13 @@ class TPBSched:
                     raise RuntimeError("Please use --force_batch_count to at %d (or higher powers of 2) to simulate batching in middle of network"%(current_Tn))
                 for j in range(capped_current_batch_count-1, -1, -current_Tn):
                     if (args.debug > 2): print("TRACE: executing fused op %s, batch elem %d to %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, has_join %d, has_pool %d"%(op_list.last_op.data['layer_name'], b - j, b - j + current_Tn - 1, op_list.partial_batch_pre_pairup, op_list.partial_batch_pairup, op_list.has_join, op_list.has_pool))
-                    op_list.map_files(tpb, b - j)
+                    op_list.set_live_mapped_file_params(live_mapped_file_params)
+                    op_list.map_files(
+                        tpb, b - j, last_concat_ofmap_file_params
+                    , live_mapped_file_params)
                     op_list.execute(tpb, b - j)
+                    if (args.nname == 'generic'):
+                      op_list.mark_ifmaps_are_consumed(live_mapped_file_params)
                 # kaena-409: the marker must be qualified with the condition that the fused-op contains a join or fork, 
                 # because the marker is set for both branches before the join 
                 # (the fork condition also must be considered for the first MaxPool, since we double-up there too).
@@ -355,6 +367,15 @@ class TPBSched:
         wavegraph_json = kgraph_json
         if (args.wavegraph != None and args.inference == False): 
             wavegraph_json['waveops'] = tpb.waveop_stream
+            if (args.enable_cleanup == True):
+#              print("Saving Wave-Graph %s before cleanup"%(args.wavegraph+"-b"))
+#              with (open(args.wavegraph+"-b", 'w')) as f:
+#                  s = json.dumps(wavegraph_json, indent=2, sort_keys=True)
+#                  s = re.sub(r'\s+(\d+,)\n\s+(\d+)', r'\1\2', s, flags=re.S)
+#                  s = re.sub(r',\s*(\d+)\n\s+\]', r',\1]', s, flags=re.S)
+#                  f.write(s)
+              wavegraph_json =\
+                    me_wavegraph_cleanup.remove_redundant_edges(wavegraph_json)
             try:
                 print("Saving Wave-Graph %s"%args.wavegraph)
                 with (open(args.wavegraph, 'w')) as f:
@@ -443,6 +464,9 @@ if __name__ == "__main__":
     parser.add_argument("--enable_replication", action='store_true', help="Enable replication for cases where number of FMAP channels is lower than PEArray rows")
     parser.add_argument("--force_batch_count", type=int, default=1, help="Force batch count number to a certain value, to simulate batched execution in middle of network")
     parser.add_argument("--verify_output_only", action='store_true', help="Verify only the output; disable intermediate FMAP verifications in order to speed up compiler time")
+    parser.add_argument("--no_verify", action='store_true', help="Disables FMAPs comparison")
+    parser.add_argument("--enable_eviction", action='store_true', help="Enable eviction")
+    parser.add_argument("--enable_cleanup", action='store_true', help="Enable wavegrpah cleanup for event pressure reduction")
     parser.add_argument("--relax_dependencies", action='store_true', help="To prevent running out of events (kaena-403,449), this option when true would relax the dependency requirement (kaena-411)")
     args = parser.parse_args()
 

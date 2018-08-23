@@ -31,6 +31,8 @@ def data_type_to_item_sz(data_type):
 def align_addr_NB(addr, N):
     return ceildiv(addr, N) * N
 
+def assert_align_addr_4B(addr):
+    assert(addr == align_addr_NB(addr, 4))
 """Align address to multiple of 8B
 """
 def align_addr_8B(addr):
@@ -185,10 +187,12 @@ class Coord():
         return self.__class__(x, y)
 
     def __lt__(self, coord):
-        return (self.x < coord.x) and (self.y < coord.y)
+        return (self.x < coord.x and self.y <= coord.y) or (self.x <= coord.x and self.y < coord.y)
+        #return (self.x < coord.x) and (self.y < coord.y)
 
     def __gt__(self, coord):
-        return (self.x > coord.x) and (self.y > coord.y)
+        return (self.x > coord.x and self.y >= coord.y) or (self.x >= coord.x and self.y > coord.y)
+        #return (self.x > coord.x) and (self.y > coord.y)
 
     def __le__(self, coord):
         return (self.x <= coord.x) and (self.y <= coord.y)
@@ -585,7 +589,9 @@ class FileParams():
         # Keeping a list of ops that writes to the same OFMAP, so that all can be transfered if OFMAP file is combined with another
         self.writers_of_shared_fmap = []
         self.readers_of_shared_fmap = []
+        self.consumers = []
         self.compute_params(op_params, args)
+        self.chunk_alignment_info = []
 
     def load_file(self):
         if (self.file_name != None):
@@ -742,7 +748,10 @@ class FileParams():
         self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.C, PEArray.NUM_ROWS)
         # Default unpadded sizes for internal FMAPs (see compute_padded_sizes for weights/input/output FMAPs)
         self.chunk_sz_padded                = self.chunk_sz                
-        self.fmap_data_len_padded           = self.fmap_data_len
+        if (args.nname == 'generic'):
+          self.fmap_data_len_padded           = align_addr_NB(self.fmap_data_len,4)
+        else:
+          self.fmap_data_len_padded           = self.fmap_data_len
         self.compute_padded_sizes()
 
     def compute_padded_sizes(self):
@@ -758,10 +767,14 @@ class FileParams():
         self.tot_partition_usage_elems_padded         = self.batch_item_partition_usage_elems_padded * self.file_dims.N
         print("INFO: file %s shape %s chunk_sz %d chunk_sz_padded %d fmap_data_len %d fmap_data_len_padded %d tot_partition_usage_sz %d batch_item_partition_usage_sz %d (compute_padded_sizes)"%(self.file_name, str(self.file_dims.shape_tuple), self.chunk_sz, self.chunk_sz_padded, self.fmap_data_len, self.fmap_data_len_padded, self.tot_partition_usage_sz, self.batch_item_partition_usage_sz))
 
+#    def compute_alignment_info(self):
+#        for i in self.tot_num_chunks:
+#            sb_addr = self.get_sb_addr_from_chunk_id(
+
 """ Class to hold map information related to a file
 """
 class MappedParams():
-    def __init__(self, N, start_addr, region_sz, num_region_chunks, num_file_chunks_per_batch_item, end_addr, modify_in_place):
+    def __init__(self, N, start_addr, region_sz, num_region_chunks, num_file_chunks_per_batch_item, end_addr, modify_in_place, readers):
         self.start_addr = start_addr
         self.region_sz  = region_sz
         self.num_region_chunks = num_region_chunks
@@ -773,6 +786,36 @@ class MappedParams():
         self.chunk_is_mapped = [False for i in range(N*num_file_chunks_per_batch_item)]
         self.end_addr = end_addr
         self.modify_in_place = modify_in_place
+        self.dirty = []
+        self.chunk_alignment_info = []
+        for i in range(num_file_chunks_per_batch_item*N):
+            self.dirty.append(False)
+        # taemk
+        # Mark if an instance of MappedParams has been consumed by its reader.
+        # One example of this field is that when all readers have already
+        # consumed the instance, we know that the mapped space in SB can be
+        # freed.
+        self.consumed_by_readers = dict()
+        if (readers != None):
+            self.init_consumers(readers)
+
+    def init_consumers (self, consumers):
+        print("taemk::MappedParams::init_consumers::readers ", end = "")
+        for r in consumers:
+            print ("%s "%r.data['layer_name'], end="")
+            self.consumed_by_readers[r] = False
+        print("")
+
+    def is_consumed_by_all_readers(self):
+        all_consumed = True
+        for (k, v) in self.consumed_by_readers.items():
+            all_consumed &= v
+        return all_consumed
+
+    def mark_consumed (self, reader):
+        assert(reader in self.consumed_by_readers),\
+          ("reader %s is not in reader list"%reader.data['layer_name'])
+        self.consumed_by_readers[reader] = True
 
 """Class to represent a morsel of data
 """
@@ -787,12 +830,15 @@ class SbMorsel():
 """ Class to manage mapping file to SB regions
 """
 class FileMapper():
-    def __init__(self, sb_partition_sz, data_type):
+    def __init__(self, sb_partition_sz, data_type, args):
         self.item_sz         = data_type_to_item_sz(data_type)
         self.sb_partition_sz = sb_partition_sz
         self.data_type       = data_type
         self.file_params_list = {}
         self.morsels = [SbMorsel() for i in range(sb_partition_sz)]
+        self.dramsaves = dict()
+        self.enable_eviction = args.enable_eviction
+        self.args = args
 
     def check_overlap(self, region0_start, region0_sz, region1_start, region1_sz):
         #print("DBG: checking overlap: region 0 start %d sz %d, region 1 start %d sz %d"%(region0_start, region0_sz, region1_start, region1_sz))
@@ -816,9 +862,35 @@ class FileMapper():
         if self.check_overlap(region0_start, region0_sz, region1_start, region1_sz):
             region0_start_adjusted = align_addr_64B(region1_start + region1_sz)
             if region0_start_adjusted + region0_sz > self.sb_partition_sz:
-                region0_start_adjusted = min_region_start_aligned
+                region0_start_adjusted = align_addr_64B(min_region_start)
         return region0_start_adjusted
 
+    def skip_unfreed_region (self, cur_knode, start_addr):
+        st = start_addr
+        while 1:
+            fid = self.morsels[st].file_id
+            if (fid == -1):
+                break
+            else:
+                fmap = self.file_params_list[fid]
+                print("FileMapper::skip_unfreed_region::cur_knode = %s"%(
+                    cur_knode.data['layer_name']))
+                if (fmap.mapped_params.is_consumed_by_all_readers() == True):
+                    print ("FileMapper::skip_unfreed_region::", end = " ")
+                    print ("%s starting from %d is completely consumed"%(
+                        fmap.file_name, st))
+                    break;
+                else:
+                    print ("FileMapper::skip_unfreed_region::", end = " ")
+                    print ("%s starting from %d is not consumed yet"%(
+                        fmap.file_name, st), end = ", ")
+                    for r in fmap.readers_of_shared_fmap:
+                        if (fmap.mapped_params.consumed_by_readers[r] == False):
+                            print ("%s", end = ", ")
+                    print ("need to read %s"%fmap.file_name)
+                    st = fmap.mapped_params.end_addr + fmap.item_sz
+                    assert(st != start_addr)
+        return st
     # File_params contains information about file
     # Start_addr is start address in SB
     # Region_sz is size of region used
@@ -864,7 +936,8 @@ class FileMapper():
         if end_addr >= self.sb_partition_sz:
             raise RuntimeError("End address %d falls outside partition size %d"%(end_addr, self.sb_partition_sz))
         # Save mapped information            
-        file_params.mapped_params = MappedParams(file_params.file_dims.N, start_addr, adj_region_sz, num_region_chunks, file_params.batch_item_num_chunks, end_addr, modify_in_place)
+        print("taemk::FileParams to be consumed = %s"%file_params.file_name)
+        file_params.mapped_params = MappedParams(file_params.file_dims.N, start_addr, adj_region_sz, num_region_chunks, file_params.batch_item_num_chunks, end_addr, modify_in_place, file_params.consumers)
         # Save file params in a list
         self.file_params_list[file_params.file_id] = file_params
         return end_addr + file_params.item_sz
@@ -988,7 +1061,9 @@ class FileMapper():
             raise RuntimeError("Number of chunks written %d for start %d length %d is larger than mapped number of chunks %d"%(num_chunks, start_addr, length, file_params.mapped_params.num_region_chunks))
         last_writer = -1
         last_reader = -1
+        last_writer_except_current_nonload_waveop = -1
         list_of_waveops = []
+        eviction_dict = dict()
         for i in range(start_chunk_id, end_chunk_id + 1):
             # TODO: fix start_fmap_addr to match start_addr
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
@@ -997,12 +1072,17 @@ class FileMapper():
             if chunk_len == file_params.chunk_sz:
                 chunk_len = file_params.chunk_sz_padded
             end_fmap_addr = start_fmap_addr + chunk_len
+            eviction_dict.clear()
             for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
                 sb_addr = j
                 if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) or (file_params.args is not None and file_params.args.relax_dependencies):
                     # return last of wniters/readers for dependency
                     last_writer = max(last_writer, self.morsels[sb_addr].writer_id)
                     last_reader = max(last_reader, self.morsels[sb_addr].reader_id)
+                    if (self.morsels[sb_addr].writer_id != nonload_waveop_id):
+                        last_w_id = last_writer_except_current_nonload_waveop
+                        last_writer_except_current_nonload_waveop =\
+                                max(last_w_id,self.morsels[sb_addr].writer_id)
                     # Evict old owner                    
                     # TODO: remap atom_id back to file chunk ID
                     file_id = self.morsels[sb_addr].file_id
@@ -1011,13 +1091,21 @@ class FileMapper():
                     if file_id in self.file_params_list:
                         if (file_id != file_params.file_id) or (chunk_id != i):
                             #print("INFO: batch item %d: Writer waveop (non-load) ID %d is writing chunk_id %d (addr %d) of file %s (file ID %d), clearing previous owner which is chunk_id %d of file %s (file ID %d)"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
-                            self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
+                            # taemk : when SB region for chunk i has been
+                            # updated by other file_param, we need to evict it.
+                            # Thus, we collect such file params here.
+                            self.GetEvictionChunk(file_id\
+                                                  , chunk_id\
+                                                  , eviction_dict)
+                            #self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
                     elif file_id != -1:
                         raise RuntimeError("File ID %d not found in list of file_params"%(file_id))
                     #print("INFO: batch item %d: Writer waveop (non-load) ID %d is writing chunk_id %d (addr %d) of file %s (file ID %d), clearing previous writer_id %s or reader_id %d, and replacing with writer_id %d"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, self.morsels[sb_addr].writer_id, self.morsels[sb_addr].reader_id, nonload_waveop_id))
                     self.morsels[sb_addr].file_id = file_params.file_id
                     self.morsels[sb_addr].writer_id = nonload_waveop_id
-                    self.morsels[sb_addr].reader_id = -1
+#                    if (self.args.nname != 'generic' and\
+                    if (self.args.enable_cleanup == False):
+                      self.morsels[sb_addr].reader_id = -1
                     self.morsels[sb_addr].chunk_id = i
                     self.morsels[sb_addr].batch_item = batch_item
                 # if data is not in SB, map region
@@ -1025,18 +1113,214 @@ class FileMapper():
                 #    file_params.mapped_params.chunk_is_mapped[batch_item][i] = True
                 if not file_params.mapped_params.chunk_is_mapped[i]:
                     file_params.mapped_params.chunk_is_mapped[i] = True
+                # taemk : Tracking the dirtiness of a chunk
+                file_params.mapped_params.dirty[i] = True
                     #print("INFO: batch item %d: Writer waveop (non-load) ID %d is writing chunk_id %d (start %d, end %d) of file %s"%(batch_item, nonload_waveop_id, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
-                #if file_params.dump_to_file:
-                #    list_of_accessors = list_of_writers + list_of_readers
-                #    prev_waveops = []
-                #    if list_of_accessors != []:
-                #        list_of_accessors_sorted = sorted(list_of_accessors)
-                #        assert(list_of_accessors_sorted[-1] < len(nonload_waveop_list))
-                #        if list_of_accessors_sorted[-1] >= 0:
-                #            prev_waveops.append(nonload_waveop_list[list_of_accessors_sorted[-1]]['waveop_name'])
-                #    sb_addr = file_params.mapped_params.start_addr + atom_id*file_params.chunk_sz
-                #    list_of_waveops.append(self.gen_dram_save_waveop(file_params, batch_item, i, sb_addr, prev_waveops)) 
+            prev_waveops = []
+            latest_accessor = max(last_writer, last_reader)
+            if (self.enable_eviction == True):
+                # allow for the fact that when generating matmul waveops, there could be read to the same space before waveop is added to nonload_waveop_list
+                if latest_accessor >= 0 and latest_accessor < len(nonload_waveop_list):
+                    latest_accessor_name = nonload_waveop_list[latest_accessor]['waveop_name']
+                    if latest_accessor_name not in prev_waveops:
+                        prev_waveops.append(latest_accessor_name)
+                # Perform eviction and read back data from i-th chunk of a file
+                # that is newly written in SB
+                # taemk : 08-27-2018
+                # Previous waveops for eviction waveop is the last writer to the
+                # region to be evicted. Note that current waveop calling
+                # this method should be excluded from the last writer. That's why
+                # last_writer_except_current_nonload_waveop is created.
+                prev_id = last_writer_except_current_nonload_waveop
+                prev_op_evict = []
+                if (prev_id != -1):
+                    prev_op_evict=[nonload_waveop_list[prev_id]['waveop_name']]
+                list_of_waveops, evicted =\
+                        self.PerformEviction(start_fmap_addr
+                                             ,end_fmap_addr
+                                             ,nonload_waveop_id
+                                             ,eviction_dict\
+                                             ,batch_item\
+                                             ,prev_op_evict\
+                                             ,file_params\
+                                             ,i)
+                list_of_waveops.extend(prev_waveops)
         return (last_writer, last_reader, list_of_waveops)
+
+    def UpdateDRAMSaves (self, file_params, chunk_id):
+        prev_save = None
+        if ((file_params, chunk_id) in self.dramsaves):
+            prev_save = self.dramsaves[(file_params, chunk_id)]
+            self.dramsaves.pop((file_params, chunk_id))
+        return prev_save
+
+    def UpdateMorselOwner (self, start_fmap_addr, end_fmap_addr
+                           , nonload_waveop_id, evicted_file_params
+                           , evicted_chunk_id, batch_item):
+        if (evicted_chunk_id % 2 == 0):
+            start_chunk_id = evicted_chunk_id
+            len_multiplier = 1
+        else:
+            start_chunk_id = evicted_chunk_id - 1
+            len_multiplier = 2
+        assert(start_chunk_id >= 0)
+        evicted_start_fmap_addr = self.get_sb_addr_from_chunk_id(
+            evicted_file_params, batch_item, start_chunk_id)
+        evicted_chunk_len = self.get_chunk_len_from_chunk_id(
+            evicted_file_params, batch_item, evicted_chunk_id)
+        if evicted_chunk_len == evicted_file_params.chunk_sz:
+            evicted_chunk_len = evicted_file_params.chunk_sz_padded
+        evicted_chunk_len *= len_multiplier
+        evicted_end_fmap_addr = evicted_start_fmap_addr + evicted_chunk_len
+        addr_range = range(evicted_start_fmap_addr
+                           ,evicted_end_fmap_addr
+                           ,evicted_file_params.item_sz)
+        for sb_addr in addr_range:
+            if (not (sb_addr >= start_fmap_addr and sb_addr <= end_fmap_addr)):
+                #self.morsels[sb_addr].file_id = evicted_file_params.file_id
+                #self.morsels[sb_addr].writer_id = -1
+                self.morsels[sb_addr].reader_id = nonload_waveop_id
+                #self.morsels[sb_addr].chunk_id = evicted_chunk_id
+                #self.morsels[sb_addr].batch_item = batch_item
+        return nonload_waveop_id
+
+    # Evict chunks in eviction_chunks and then reload chunk associated with
+    # load_file_params
+    def EvictChunk (self, file_params, batch_item, chunk_id, prev_waveops):
+        if (chunk_id % 2 == 0):
+            start_chunk_id = chunk_id
+            evict_two_chunks = False
+        else:
+            start_chunk_id = chunk_id - 1
+            evict_two_chunks = True
+        assert(start_chunk_id >= 0)
+        ev_waveop = self.gen_dram_save_waveop(file_params
+                                              ,batch_item
+                                              ,start_chunk_id
+                                              ,prev_waveops
+                                              ,evict_two_chunks
+                                             )
+        self.dramsaves[(file_params, chunk_id)] = ev_waveop
+        file_params.mapped_params.chunk_is_mapped[chunk_id]=False
+        if (evict_two_chunks == True):
+            ev_waveop['#comment']="this is evicted chunk %d and %d"%(
+                chunk_id - 1, chunk_id)
+            self.dramsaves[(file_params, chunk_id - 1)] = ev_waveop
+            file_params.mapped_params.chunk_is_mapped[chunk_id - 1]=False
+        else:
+            ev_waveop['#comment']="this is evicted chunk %d"%chunk_id
+        return ev_waveop
+
+    def PerformEviction (self\
+                         ,start_fmap_addr
+                         ,end_fmap_addr
+                         ,most_recent_nonload_waveop_id
+                         ,eviction_chunks\
+                         ,batch_item
+                         ,prev_waveops\
+                         ,load_file_params = None\
+                         ,chunk_id = -1\
+                        ):
+        #import inspect
+        #print ("INFO: %s is calling PerformEviction"%inspect.stack()[1][3])
+        eviction_waveops = []
+        if (self.enable_eviction == True):
+            ev_id = most_recent_nonload_waveop_id + 1
+            for (file_params, chunk_ids) in eviction_chunks.items():
+                if (not hasattr(chunk_ids, "__len__")):
+                    chunk_ids = [chunk_ids]
+                for i_chunk_id in chunk_ids:
+                    print("INFO: chunk_id %d of %s is evicted"\
+                          %(i_chunk_id, file_params.file_name))
+                    #ev_waveop = self.gen_dram_save_waveop(file_params\
+                    #                                      ,batch_item\
+                    #                                      ,i_chunk_id\
+                    #                                      ,prev_waveops)
+                    #ev_waveop['#comment']="this is evicted chunk %d"%i_chunk_id
+                    #self.dramsaves[(file_params, i_chunk_id)] = ev_waveop
+                    #file_params.mapped_params.chunk_is_mapped[i_chunk_id]=False
+                    #eviction_waveops.append(ev_waveop)
+                    ev_waveop = self.EvictChunk(
+                        file_params, batch_item, i_chunk_id, prev_waveops)
+                    eviction_waveops.append(ev_waveop)
+                    self.UpdateMorselOwner(start_fmap_addr, end_fmap_addr
+                                           , ev_id, file_params, i_chunk_id
+                                           , batch_item)
+                    ev_id += 1
+            if (len(eviction_chunks) != 0 and load_file_params != None):
+                if (chunk_id % 2 == 0):
+                    loading_chunk_id = chunk_id
+                    read_two_chunks = False
+                else:
+                    loading_chunk_id = chunk_id - 1
+                    read_two_chunks = True
+                assert(loading_chunk_id >= 0)
+                prev_save = self.UpdateDRAMSaves(
+                    load_file_params, loading_chunk_id)
+                dram_read_prevs = self.GetWaveOpNames(eviction_waveops)
+                if (prev_save != None):
+                    #print (prev_save['waveop_name'])
+                    dram_read_prevs.append(prev_save['waveop_name'])
+                    reload_waveop = self.gen_dram_read_waveop(\
+                                                              load_file_params
+                                                              ,batch_item
+                                                              ,loading_chunk_id
+                                                              ,dram_read_prevs
+                                                              ,0
+                                                              ,read_two_chunks
+                                                             )
+                    load_file_params.mapped_params.chunk_is_mapped[chunk_id] =\
+                            True
+                    load_file_params.mapped_params.chunk2waveop_map[chunk_id] =\
+                            reload_waveop 
+                    if (read_two_chunks == True):
+                        reload_waveop['#comment'] =\
+                                "this is reloaded chunk %d and %d"%\
+                                (chunk_id-1, chunk_id)
+                        load_file_params.mapped_params.\
+                                chunk_is_mapped[chunk_id-1] = True
+                        load_file_params.mapped_params.\
+                                chunk2waveop_map[chunk_id-1] = reload_waveop 
+                    else:
+                        reload_waveop['#comment'] =\
+                                "this is reloaded chunk %d"%(chunk_id)
+                    eviction_waveops.append(reload_waveop)
+        return (eviction_waveops, len(eviction_waveops) != 0)
+        #if (eviction_waveops == []):
+        #    return (prev_waveops, False)
+        #else:
+        #    return (eviction_waveops, True)
+
+    def GetWaveOpNames (self, waveops):
+        n = []
+        for w in waveops:
+            if (w['waveop_name'] != None):
+                n.append(w['waveop_name'])
+            else:
+                n.append(w)
+        return n
+
+    def GetEvictionChunk (self\
+                          ,evicted_file_id\
+                          ,evicted_chunk_id\
+                          ,eviction_container):
+        org_fparam = self.file_params_list[evicted_file_id]
+        if (self.args.nname == 'generic'):
+          if (self.enable_eviction == True):
+              if (org_fparam.mapped_params.chunk_is_mapped[evicted_chunk_id] ==\
+                  True):
+                  if (org_fparam.mapped_params.dirty[evicted_chunk_id] == True):
+                      org_fparam.mapped_params.dirty[evicted_chunk_id] = False
+                      if (org_fparam in eviction_container):
+                          eviction_container[org_fparam].append(evicted_chunk_id)
+                      else:
+                          eviction_container[org_fparam] = [evicted_chunk_id]
+              org_fparam.mapped_params.\
+                      chunk_is_mapped[evicted_chunk_id] = False
+        else:
+            org_fparam.mapped_params.\
+                    chunk_is_mapped[evicted_chunk_id] = False
+        return
 
     # Save data to file 
     def flush_file (self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item):
@@ -1047,11 +1331,13 @@ class FileMapper():
         if num_chunks > file_params.mapped_params.num_region_chunks:
             raise RuntimeError("Number of chunks written %d is larger than mapped number of chunks %d"%(num_chunks, file_params.mapped_params.num_region_chunks))
         list_of_waveops = []
+        eviction_dict = dict()
         for i in range(start_chunk_id, end_chunk_id + 1):
             list_of_writers_per_chunk = []
             list_of_readers_per_chunk = []
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
             end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
+            eviction_dict.clear()
             for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
                 sb_addr = j
                 # return list of writers/readers for dependency
@@ -1065,6 +1351,7 @@ class FileMapper():
                 owner_batch_item = self.morsels[sb_addr].batch_item
                 if file_id in self.file_params_list:
                     self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
+                    #self.GetEvictionChunk(file_id, chunk_id, eviction_dict)
                     #print("INFO: batch item %d: Reader waveop (non-load) ID %d is reading chunk_id %d (addr %d) of file %s (file ID %d), clearing previous owner which is chunk_id %d of file %s (file ID %d)"%(batch_item, nonload_waveop_id_tmp, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
                 elif file_id != -1:
                     raise RuntimeError("File ID %d not found in list of file_params"%(file_id))
@@ -1076,7 +1363,8 @@ class FileMapper():
             if not file_params.mapped_params.chunk_is_mapped[i]:
                 file_params.mapped_params.chunk_is_mapped[i] = True
             # generate DRAM save waveops (only need to depend on writers, when saving data to DRAM)                   
-            list_of_accessors = list_of_writers_per_chunk + list_of_readers_per_chunk
+            #list_of_accessors = list_of_writers_per_chunk + list_of_readers_per_chunk
+            list_of_accessors = list_of_writers_per_chunk
             prev_waveops = []
             if list_of_accessors != []:
                 # include all accessors for saving to DRAM, instead of just the latest accessor
@@ -1086,8 +1374,21 @@ class FileMapper():
                         accessor_name = nonload_waveop_list[accessor]['waveop_name']
                         if accessor_name not in prev_waveops:
                             prev_waveops.append(accessor_name)
-            new_dram_waveop = self.gen_dram_save_waveop(file_params, batch_item, i, prev_waveops)
+            #evicted_waveops, evicted =\
+            #        self.PerformEviction(\
+            #                             eviction_dict\
+            #                             , batch_item
+            #                             , prev_waveops\
+            #                             , file_params\
+            #                             , i\
+            #                            )
+            #if (len(evicted_waveops) > 0):
+            #    new_dram_waveop = self.gen_dram_save_waveop(file_params, batch_item, i, [evicted_waveops[-1]['waveop_name']])
+            #else:
+                new_dram_waveop = self.gen_dram_save_waveop(file_params, batch_item, i, prev_waveops)
+            #evicted_waveops.append(new_dram_waveop)
             list_of_waveops.append(new_dram_waveop)
+            #list_of_waveops += evicted_waveops
             #print("INFO: batch item %d: DRAM saver (SBAtomSave) waveop (non-load) ID %d is reading chunk_id %d (start %d, end %d) of file %s"%(batch_item, nonload_waveop_id_tmp, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
             # trace waveop_id for newly created SBAtomSaves (to trace dependency so that new writer to same space need to wait for this save to complete)
             nonload_waveop_id_tmp += 1
@@ -1095,7 +1396,7 @@ class FileMapper():
 
     # Always read the maximum number of channels (min(C, 128))
     # TODO: add case for replication
-    def read_file_data_region(self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item, start_addr, length, repl_multiple_of_C=1):
+    def read_file_data_region(self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item, start_addr, length, repl_multiple_of_C=1, dont_put_prev_ops = False):
         assert(batch_item < file_params.file_dims.N)
         assert(length > 0)
         assert(length <= file_params.mapped_params.region_sz)
@@ -1109,6 +1410,7 @@ class FileMapper():
         last_writer = -1
         last_reader = -1
         list_of_waveops = []
+        eviction_dict = dict()
         for i in range(start_chunk_id, end_chunk_id + 1):
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
             chunk_len = self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
@@ -1116,6 +1418,9 @@ class FileMapper():
             if chunk_len == file_params.chunk_sz:
                 chunk_len = file_params.chunk_sz_padded
             end_fmap_addr = start_fmap_addr + chunk_len
+            prev_file_id = -1
+            prev_chunk_id = -1
+            eviction_dict.clear()
             for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
                 sb_addr = j
                 # return last of wniters/readers for dependency
@@ -1127,15 +1432,22 @@ class FileMapper():
                 owner_batch_item = self.morsels[sb_addr].batch_item
                 if file_id in self.file_params_list:
                     if (file_id != file_params.file_id) or (chunk_id != i):
-                        #print("INFO: batch item %d: Reader waveop (non-load) ID %d is reading chunk_id %d (addr %d) of file %s (file ID %d), clearing previous owner which is chunk_id %d of file %s (file ID %d)"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
-                        self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
+                        #if (file_id != prev_file_id or\
+                        #    chunk_id != prev_chunk_id):
+                            #print("INFO: batch item %d: Reader waveop (non-load) ID %d is reading chunk_id %d (addr %d) of file %s (file ID %d), clearing previous owner which is chunk_id %d of file %s (file ID %d)"%(batch_item, nonload_waveop_id, i, sb_addr, file_params.file_name, file_params.file_id, chunk_id, self.file_params_list[file_id].file_name, file_id))
+                        self.GetEvictionChunk(file_id, chunk_id, eviction_dict)
+                        #self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
                 elif file_id != -1:
                     raise RuntimeError("File ID %d not found in list of file_params"%(file_id))
                 self.morsels[sb_addr].file_id = file_params.file_id
-                self.morsels[sb_addr].writer_id = -1
+#                if (self.args.nname != 'generic' and\
+                if (self.args.enable_cleanup == False):
+                  self.morsels[sb_addr].writer_id = -1
                 self.morsels[sb_addr].reader_id = nonload_waveop_id
                 self.morsels[sb_addr].chunk_id = i
                 self.morsels[sb_addr].batch_item = batch_item
+                prev_file_id = file_id
+                prev_chunk_id = chunk_id
             # if data is not in SB, issue DRAM loads
             #if not file_params.mapped_params.chunk_is_mapped[batch_item][i]:
             if not file_params.mapped_params.chunk_is_mapped[i]:
@@ -1155,8 +1467,34 @@ class FileMapper():
                         latest_accessor_name = nonload_waveop_list[latest_accessor]['waveop_name']
                         if latest_accessor_name not in prev_waveops:
                             prev_waveops.append(latest_accessor_name)
-                    new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, prev_waveops, repl_multiple_of_C)
-                    list_of_waveops.append(new_dram_waveop)
+                    prev_op_evict = []
+                    if (last_writer != -1):
+                        prev_op_evict =\
+                            [nonload_waveop_list[last_writer]['waveop_name']]
+                    evicted_waveops, evicted =\
+                            self.PerformEviction(
+                                                 start_fmap_addr
+                                                 , end_fmap_addr
+                                                 , nonload_waveop_id
+                                                 , eviction_dict
+                                                 , batch_item
+                                                 , prev_op_evict
+                                                )
+                    prev_save = self.UpdateDRAMSaves(file_params, i)
+                    dram_read_prevs = self.GetWaveOpNames(evicted_waveops)
+                    if (prev_save != None):
+                        dram_read_prevs.append(prev_save['waveop_name'])
+                        prev_waveops.append(prev_save['waveop_name'])
+                    if (len(evicted_waveops) > 0):
+                        new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, dram_read_prevs, repl_multiple_of_C)
+                    else:
+                        if (dont_put_prev_ops == False):
+                            new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, prev_waveops, repl_multiple_of_C)
+                        else:
+                            new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, [], repl_multiple_of_C)
+                    file_params.mapped_params.dirty[i] = False
+                    evicted_waveops.append(new_dram_waveop)
+                    list_of_waveops += evicted_waveops
                     file_params.mapped_params.chunk2waveop_map[i] = new_dram_waveop
                     #file_params.mapped_params.chunk_is_mapped[batch_item][i] = True
                     #print("INFO: batch item %d: Reader ID %d is reading chunk_id %d (start %d, end %d) of file %s, creating DRAM load waveops"%(batch_item, nonload_waveop_id, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
@@ -1164,12 +1502,18 @@ class FileMapper():
                 #    print("INFO: batch item %d: Reader ID %d is reading chunk_id %d (start %d, end %d) of file %s, which is being modified in place, so not creating DRAM load waveops"%(batch_item, nonload_waveop_id, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
         return (last_writer, last_reader, list_of_waveops)
 
-    def gen_dram_read_waveop(self, file_params, batch_item, chunk_id, previous_waveops, repl_multiple_of_C):
+    def gen_dram_read_waveop(self, file_params, batch_item, chunk_id, previous_waveops, repl_multiple_of_C, read_two_chunks = False):
         length          = self.get_chunk_len_from_chunk_id(file_params, batch_item, chunk_id)
         offset_in_file  = self.get_file_addr_from_chunk_id(file_params, batch_item, chunk_id)
         sb_addr         = self.get_sb_addr_from_chunk_id(file_params, batch_item, chunk_id)
         fmap_count      = self.get_fmap_count_from_chunk_id(file_params, batch_item, chunk_id)
         assert (fmap_count > 0)
+        if (read_two_chunks == True):
+            length_chunk_odd =\
+                    self.get_chunk_len_from_chunk_id(
+                        file_params, batch_item,chunk_id+1)
+        else: length_chunk_odd = 0
+        length += length_chunk_odd
         last_byte_offset = offset_in_file + (file_params.fmap_data_len * (fmap_count-1)) + length - file_params.item_sz
         assert (length > 0)           
         # IFMAP replication parameters
@@ -1251,11 +1595,17 @@ class FileMapper():
               'ifmap_replication_step_bytes' : ifmap_replication_step_bytes,
             }
 
-    def gen_dram_save_waveop(self, file_params, batch_item, chunk_id, previous_waveops):
+    def gen_dram_save_waveop(
+        self, file_params, batch_item, chunk_id, previous_waveops
+        , save_two_chunks = False):
         length          = self.get_chunk_len_from_chunk_id(file_params, batch_item, chunk_id)
         offset_in_file  = self.get_file_addr_from_chunk_id(file_params, batch_item, chunk_id)
         sb_addr         = self.get_sb_addr_from_chunk_id(file_params, batch_item, chunk_id)
         fmap_count      = self.get_fmap_count_from_chunk_id(file_params, batch_item, chunk_id)
+        if (save_two_chunks == True):
+            length +=\
+                    self.get_chunk_len_from_chunk_id(
+                        file_params, batch_item, chunk_id+1)
         # collect stats
         #if (args.debug > 1):
         #    self.DRAM_elem_written += length * ofmap_count / self.item_sz
@@ -1270,6 +1620,10 @@ class FileMapper():
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
         #assert_align_addr_sb_read(file_params.fmap_data_len)
         assert_align_addr_sb_read(sb_addr)
+        #if (waveop_name == 'trivnet_activation_1__Relu__0_NCHW-simout.npy_0'):
+        #    import inspect
+        #    print ("INFO: %s is calling gen_dram_save_waveop"%(
+        #        inspect.stack()[1][3]))
         return {
               'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomSave",

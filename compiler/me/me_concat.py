@@ -279,11 +279,14 @@ class Concat:
                 num_channels_moved_sofar += moved_amt
                 ofmap_region.moving_amt -= moved_amt
                 ofmap_region.start_pos += moved_amt
-            self.UpdateSubTileInfo(self.FMAPSpec2FileParams[ifmap]\
-                                   , mfilter\
-                                   , ifmap_region_start_pos_before_update\
-                                   , moved_amt\
-                                  )
+            try:
+                self.UpdateSubTileInfo(self.FMAPSpec2FileParams[ifmap]\
+                                       , mfilter\
+                                       , ifmap_region_start_pos_before_update\
+                                       , moved_amt\
+                                      )
+            except:
+                pass
             mfilter.file_name = self.NameFilter(
                 ifmap.file_name, mfilter, ifmap_use_cnt)
             pool_prev_ops.extend(\
@@ -495,4 +498,18 @@ class Concat:
             for j in range(i.size):
                 data[i.start_loc[0] + j][0][0][i.start_loc[1] + j] = 1
             np.save(i.file_name, data)
+        return
+
+    def GiganticFilterWeightFileGeneration (self):
+        # CRSM shape
+        shape = [self.PE_ROW, 1, 1, self.PE_COL * len(self.move_filters)]
+        data = np.zeros(shape, self.datatype)
+        filter_cnt = 0
+        for i in self.move_filters:
+            for j in range(i.size):
+                m_loc = filter_cnt * self.PE_COL + i.start_loc[1] + j
+                data[i.start_loc[0] + j][0][0][m_loc] = 1
+            filter_cnt += 1
+        # FIXME : Need to name properly
+        #np.save(.file_name, data)
         return

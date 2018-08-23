@@ -161,8 +161,9 @@ class NnSubgraph:
       print("DEBUG3 linking", src_f, f)
       os.symlink(src_f, f)
     # ME creates files of constants that are not visible to TFFE, so link them too
-    files =  glob.glob("%s/%s/*-constants.npy" % (kelf_dir, self.sgDir))
-    files += glob.glob("%s/%s/*_padsplit.npy" % (kelf_dir, self.sgDir))
+    files =  glob.glob("../%s/*-constants.npy" % self.sgDir)
+    files += glob.glob("../%s/*_padsplit.npy" % self.sgDir)
+    files += glob.glob("../%s/*_concat_weight*.npy" % self.sgDir)
     for f in files:
       dst_f = os.path.basename(f)
       print("DEBUG4 linking", f, dst_f)

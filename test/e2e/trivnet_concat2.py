@@ -132,7 +132,7 @@ output = tf.identity(i3, name=netName+"/output")
 
 #i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType)).reshape(IF1.shape)
 np.random.seed(17)
-i0val = np.random.random(IF1.shape)
+i0val = np.random.random(IF1.shape).astype(npDataType)
 #i1val = np.random.random(IF2.shape)
 
 # Overide the values:
