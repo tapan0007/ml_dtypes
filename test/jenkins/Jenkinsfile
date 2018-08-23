@@ -77,6 +77,16 @@ pipeline{
                 git -C shared pull origin $GERRIT_REFSPEC || \
                 git -C manifest pull origin $GERRIT_REFSPEC
 
+                git -C krt  describe --always --dirty 
+                git -C kcc  describe --always --dirty 
+                git -C ext  describe --always --dirty 
+                git -C inkling describe --always --dirty 
+                git -C qemu_inkling describe --always --dirty 
+                git -C arch-isa describe --always --dirty 
+                git -C shared  describe --always --dirty 
+                git -C manifest describe --always --dirty 
+
+
                 chmod -R 755 ./
                 ls -ltrA
                 '''
