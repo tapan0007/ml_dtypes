@@ -511,6 +511,12 @@ testConfigMap = {
     "--input_files %s" % rnDogJpg
   ],
 
+  "5-rn50_nne_to_act4_wave-no_repl-t1_focus_to"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    "--focus_to bn2a_branch2a/batchnorm_1/add_1  --input_node input_1  --depth 2 --show_op_name_in_kgraph  --debug 1 --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16'  --scheduler wave2 --schedule_options ' --nname=generic ' --images %s --wavegraph_checks structure data-race " %( rnDogJpg),
+    "--input_files %s" % rnDogJpg
+  ],
+ 
   "5-rn50_nne_to_act4_wave-no_repl-t2"     : [
     "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
     "--focus 'conv1/kernel|input_1|conv1/BiasAdd|bn_conv1/batchnorm_1/sub/_104__cf__104|bn_conv1/batchnorm_1/add_1|activation_1/Relu|max_pooling2d_1/MaxPool|res2a_branch2a/kernel|res2a_branch2a/BiasAdd|bn2a_branch2a/batchnorm_1/sub/_50__cf__50|bn2a_branch2a/batchnorm_1/add_1|activation_2/Relu|res2a_branch2b/kernel|res2a_branch2b/BiasAdd|bn2a_branch2b/batchnorm_1/sub/_48__cf__48|bn2a_branch2b/batchnorm_1/add_1' --input_node input_1  --depth 2 --show_op_name_in_kgraph  --debug 1 --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16'  --scheduler wave2 --schedule_options ' --nname=generic ' --images %s --wavegraph_checks structure data-race " %( rnDogJpg),

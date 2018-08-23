@@ -102,7 +102,7 @@ class TfFe:
   def getKaenaOpGraph(self):
     return(self.__kg)
   
-  def loadPb(self, pbFile, focusNodeRe):
+  def loadPb(self, pbFile, focusNodeRe, focusToName):
     self.sess = None
     if os.path.isdir(pbFile):
       # Load model checkpoint
@@ -130,12 +130,57 @@ class TfFe:
     numOps = 0
     numConv = 0
     
+    # Simplistic abstration of GraphDephs for --focus_to.
+    # It uses strings (not node pointers) to store basic graph connectivity
+    class tfGraph(object):
+      def __init__(self, tfGd):
+        #self.name2node = {}
+        #for tfNode in tfGd.node:
+        #  self.name2node[tfNode.name] = tfNode
+        self.name2predNameList = {}
+        for tfNode in tfGd.node:
+          predNames = []
+          for ni in tfNode.input:
+            m = re.findall("(.*):(\d+)$", ni)
+            if len(m) == 1:
+              (fromName, fromIndex) = m[0][0], int(m[0][1])
+            else:
+              (fromName, fromIndex) = (ni, 0)
+            predNames.append(fromName)
+          self.name2predNameList[tfNode.name] = predNames
+      # Returns set of node names
+      # All APIs are string based, not nodes (for simplicity & debug)
+      # Do not use for general graph operations due to efficiency
+      def faninConeNodes(self, toNode):
+        faninCone = set([toNode])
+        newFaninCone = set()
+        fLen = 0
+        while len(faninCone) > fLen:
+          newFaninCone = faninCone
+          fLen = len(faninCone)
+          for nodeName in faninCone:
+            newFaninCone = newFaninCone.union(set(self.name2predNameList[nodeName]))
+            #print(len(fanin), len(newFanin))
+          faninCone = newFaninCone
+        return faninCone
+    
+    if focusToName != None:
+      tfg = tfGraph(self.__gd)
+      focusToNameSet = tfg.faninConeNodes(focusToName)
+      if self.debugLevel >= 1:
+        print("INFO: --focus_to %s resulted in nodes:" % focusToName)
+        for nodeName in sorted(focusToNameSet):
+          print("  ", nodeName)
+    else:
+      focusToNameSet = None
+    
     # Add all nodes (ops) in TF graph definition
     for tfNode in self.__gd.node:
       tfop = TfOp(tfNode.name, tfNode.op, tfNode)
       if self.debugLevel >= 3:
         print("\nDEBUG loadPb ", tfop, tfNode)
-      if (re.search(focusNodeRe, tfNode.name) != None):
+      if (re.search(focusNodeRe, tfNode.name) != None) and (
+           focusToNameSet == None or tfNode.name in focusToNameSet):
       
         add_attrs = {}
         #for attr in ["data_format"]:

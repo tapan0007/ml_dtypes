@@ -50,6 +50,8 @@ parser.add_argument('--debug', help='Debug level, 1 minimal, 3 detailed op value
                     type=int, default=0)
 parser.add_argument('--focus', help='Regular expression to filter a subset of nodes',
                     default=".*")
+parser.add_argument('--focus_to', help='Filter out all nodes but the fanin of this node. The fanin includes the node itself.',
+                    default=None)
 parser.add_argument('--width', help='Highlight data paths wider than the width',
                     type=int, default=1000)
 parser.add_argument('--verbose', help='Verbosity level, 0 default, 1 shows in/outputs, 2 TBD',
@@ -100,7 +102,7 @@ def writeBackEndFiles(kGraph, outPrefix, verbose):
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
 tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch, args.show_op_name_in_kgraph)
-tffe.loadPb(tfpbFile, args.focus)
+tffe.loadPb(tfpbFile, args.focus, args.focus_to)
 kog = tffe.getKaenaOpGraph()
 kog.setSchedulerMode(args.scheduler)
 KaenaOpGraph.Config.Scheduler.waveoptOptions = args.schedule_options
