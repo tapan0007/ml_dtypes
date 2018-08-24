@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import sys, os
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--ifmap', help='Input feature map in NHWC format; after the preprocessor such as trivnet_input_1:0.npy',
+                    default=None)
+parser.add_argument('--width', help='New with and height of the submap, default 16', type=int, default=16)
+parser.add_argument('--offset', help='Offset (where --width starts), default 0', type=int, default=0)
+
+args = parser.parse_args()
+
+if not os.path.isfile(args.ifmap):
+  raise RuntimeError("ERROR: missing file --ifmap ")
+
+np.set_printoptions(threshold=1024)
+ifmap = np.load(args.ifmap)
+shape = ifmap.shape
+(n, h, w, c) = shape
+if len(shape) != 4 or (args.width + args.offset > w):
+  raise RuntimeError("ERROR: unsupported shape %s of the --ifmap " % str(shape))
+o = args.offset
+ow=args.offset + args.width
+ofmap = ifmap[0:n, o:ow, o:ow, 0:c]
+ofFile = "out_ofmap.npy"
+np.save(ofFile, ofmap)
+
+print("Input  %s  %s\n" % (str(ifmap.shape), args.ifmap), ifmap)
+print("\nOutput  %s  %s\n" % (str(ofmap.shape), ofFile), ofmap)
+
