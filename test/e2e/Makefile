@@ -40,6 +40,8 @@ $(info KCC is ${KCC})
 $(info TF_PATH is ${TF_PATH})
 $(info DATA_TYPE is ${DATA_TYPE})
 
+## --debug 3
+
 trivnet_%:
 	python3 ${KAENA_E2E}/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
 	export CUDA_VISIBLE_DEVICES=""; python3 $(TF_PATH)/python/tools/freeze_graph.py --input_graph $(OUT_PREFIX)graph.pb --input_checkpoint $(OUT_PREFIX)checkpoint.data --output_graph $(OUT_PREFIX)freeze.pb --output_node_names $(NN_NAME)/output

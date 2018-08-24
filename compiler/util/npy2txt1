@@ -8,6 +8,7 @@ parser.add_argument('--file', help='Npy file to print', default=None)
 parser.add_argument('--type', help='Numpy type to convert to', default=None)
 parser.add_argument('--cast', help='Numpy type to cast binary content to', default=None)
 parser.add_argument('--limit', help='How many values to print, default 64', type=float, default=64)
+parser.add_argument('--all',  help='Print all values', action='store_true', default=False)
 
 args = parser.parse_args()
 
@@ -19,6 +20,10 @@ try:
   print("Loaded ", v.shape, v.dtype, args.file)
 except:
   raise RuntimeError("ERROR: --file could not be loaded")
+
+print_all = False
+if args.all != None:
+  print_all = True
 
 if args.type != None:
   t = eval("np." + args.type)
@@ -32,4 +37,6 @@ else:
   print("Printing the original content")
   v1 = v
   
+if print_all:
+  np.set_printoptions(edgeitems=10000000)
 print(v1.shape, v1.dtype, v1)

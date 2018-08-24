@@ -118,12 +118,34 @@ class Node(Object):
     return(self.getName())
   def appendNpInfo(self, npInfo):
     self.__npInfo.append(npInfo)
+
+  def disconnectFaninEdge(self, edge):
+    assert(edge in self.__fanin)
+    for i in range(len(self.__fanin)):
+        if edge == self.__fanin[i]:
+            self.__fanin[i] = None
+            break
+    assert(not edge in self.__fanin)
+
+  def disconnectFanoutEdge(self, outPinIdx, edge):
+    assert(outPinIdx < len(self.__fanout))
+    edgesOfOutput = self.__fanout[outPinIdx]
+    assert(edge in edgesOfOutput)
+    edgesOfOutput.remove(edge)
+
   def getFaninEdges(self):
     return(self.__fanin)
   def getFaninMainFlowEdges(self):
     return [e for e in self.getFaninEdges() if e.isInMainFlow()]
   def getFanoutEdges(self):
     return([item for edgelist in self.__fanout for item in edgelist])
+
+  def getFanouts(self):
+    return self.__fanout
+
+  def getFanoutEdgesOfOutput(self, outIdx):
+    return [edge for edge in self.__fanout[outIdx]]
+
   def getFanoutMainFlowEdges(self):
     return [e for e in self.getFanoutEdges() if e.isInMainFlow()]
   def getFanoutMainFlowNodes(self):
@@ -160,6 +182,20 @@ class Node(Object):
     while len(self.__fanout) < index + 1:
       self.__fanout.append([])
     self.__fanout[index].append(edge)
+
+  #def addFanoutEdge(self, edge, outIdx):
+  #  if not self.__fanout:
+  #      self.__fanout = []
+  #  while len(self.__fanout) < outIdx + 1:
+  #    self.__fanout.append([])
+  #  self.__fanout[outIdx].append(edge)
+
+  #def addFaninEdge(self, edge):
+  #  if not self.__fanin:
+  #      self.__fanin = []
+  #  assert(not edge in self.__fanin)
+  #  self.__fanin.append(edge)
+
   # Base class support for single-input, single output layers
   # E.g., activation, later possibly other simple layers
   # Returns list of layer maps (e.g., 2 for a node with a side constant),
@@ -221,6 +257,9 @@ class PosNode:
   def __init__(self, node, index):
     self.node = node
     self.index = index
+
+  def getName(self):
+    return self.node.getName() + ":" + str(self.index)
     
 class Edge(Object):
   def __init__(self, fromPosNode, toPosNode, attrs):
@@ -1558,15 +1597,27 @@ class NodeSlice(Node):
     return dotText
 
   def genCompilerLayerJson(self, tensorFormatMap):
+    axis = self.getAttr("axis")
     fileList = []
     npInfo = self.getNpInfo()[0]
     bes = {"Begin" : (), "Size" : ()}
-    ((nIn, npInfoFrom), bes["Begin"], bes["Size"]) = self.getInputNodesAndNpInfo()
-    npInfoIndexinBes = 1
-    sliceBegin_tmp = bes["Begin"][npInfoIndexinBes].getValues()
-    sliceBegin = [np.asscalar(sliceBegin_tmp[i]) for i in range(sliceBegin_tmp.shape[0])]
-    sliceSize_tmp = bes["Size"][npInfoIndexinBes].getValues()
-    sliceSize = [np.asscalar(sliceSize_tmp[i]) for i in range(sliceSize_tmp.shape[0])]
+    inNodesAndNpInfos = self.getInputNodesAndNpInfo()
+    if len(inNodesAndNpInfos) == 3:
+        ((nIn, npInfoFrom), bes["Begin"], bes["Size"]) = inNodesAndNpInfos
+        npInfoIndexinBes = 1
+        sliceBegin_tmp = bes["Begin"][npInfoIndexinBes].getValues()
+        sliceBegin = [np.asscalar(sliceBegin_tmp[i]) for i in range(sliceBegin_tmp.shape[0])]
+        sliceSize_tmp = bes["Size"][npInfoIndexinBes].getValues()
+        sliceSize = [np.asscalar(sliceSize_tmp[i]) for i in range(sliceSize_tmp.shape[0])]
+
+    elif len(inNodesAndNpInfos) == 1:  ## This Slice is from Unstack
+        (nIn, npInfoFrom) = inNodesAndNpInfos[0]
+        sliceBegin = self.getAttr("slice_begin")
+        assert(sliceBegin)
+        sliceSize = self.getAttr("slice_size")
+        assert(sliceSize)
+    else:
+        assert(False)
     
     # Suppress StridedSlice in constant or reshape calculations in CNNs
     # FIX_THIS: this should be a graph transform
@@ -1586,8 +1637,13 @@ class NodeSlice(Node):
         tfFormat = npt.NWC
         sliceBegin.insert(widthAxis, 0)
         sliceSize.insert(widthAxis, -1)
+      elif len(npInfo.npShape) == 2:
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+        widthAxis = 1
+        tfFormat = npt.NC
       else:
         raise RuntimeError("Supported number of dimensions for Slice's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
+
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
       sliceBegin = npt.reorderShape(sliceBegin, npt.TF, npt.SIM, npt.Fmaps)
@@ -1662,6 +1718,7 @@ class NodeUnstack(Node):
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
+
 
   def isSupported(self):
     return True
@@ -1813,6 +1870,13 @@ class Graph(Object):
   
   def getEdges(self):
     return(self.__edges)
+
+  def deleteEdge(self, edge):
+        fromPosNode = edge.getFromPosNode()  ## A
+        toPosNode = edge.getToPosNode()   ## B
+        fromPosNode.node.disconnectFanoutEdge(fromPosNode.index, edge)
+        toPosNode.node.disconnectFaninEdge(edge)
+        self.__edges.remove(edge)
   
   def nodeSuccessors(self, fromNode):
     nextNodes = {}
@@ -1935,7 +1999,172 @@ class Graph(Object):
     print("INFO: executing  %s" %cmd)
     os.system(cmd)
 
+  ##############################################################################
+  # outIdx is the index in the __fanout (array of array of edges)
+  def CreateOneSliceNodeFromUnstack(self, unstackNode, driverPosNode, outIdx,
+                                    simInputUnstackAxisInt):
+        outputs = unstackNode.getFanouts()
+        unstackOutNpInfos = unstackNode.getNpInfo()
+        numOutPins = len(unstackOutNpInfos)
 
+        outEdges = unstackNode.getFanoutEdgesOfOutput(outIdx)
+        assert(len(outEdges) > 0)
+        outPinIdx = outEdges[0].getFromPosNode().index
+        for outEdge in outEdges:
+            assert(outEdge.getFromPosNode().index == outPinIdx)
+        outPinNpInfo = unstackOutNpInfos[outPinIdx]
+
+        unstackName = unstackNode.getName()
+        sliceName = unstackName + "_slc_" + str(outPinIdx)
+
+        sizes = []
+        begins = []
+        for i in range(numOutPins):
+            if i == simInputUnstackAxisInt:
+                beg = outIdx
+                siz = 1
+            else:
+                beg = 0
+                siz = -1
+            sizes.append(siz)
+            begins.append(beg)
+
+        sliceAttrs = {}
+        sliceAttrs["slice_begin"] = begins
+        sliceAttrs["slice_size"] = sizes
+        sliceAttrs["in_sim_unstack_axis"] = simInputUnstackAxisInt
+
+        sliceNode = NodeSlice(sliceName, "Slice", sliceAttrs)
+        self.addNode(sliceNode)
+
+        ##############################
+        ## input side of unstack
+        edgeAttrs = {}
+        self.addEdge(driverPosNode.node.getName(), driverPosNode.index, sliceNode.getName(), 0, {})
+
+        ##############################
+        ## output side of unstack
+        sliceNode.appendNpInfo(unstackOutNpInfos[outPinIdx])
+
+        oldEdges = []
+
+        toNodeNames = []
+        toIndices = []
+        for edge in outEdges:
+            oldEdges.append(edge)
+            toNodeNames.append(edge.getToPosNode().node.getName())
+            toIndices.append(edge.getToPosNode().index)
+
+        for edge in oldEdges:
+            self.deleteEdge(edge)
+
+        for i in range(len(toNodeNames)):
+            toNodeName = toNodeNames[i]
+            toIndex = toIndices[i]
+            newEdge = self.addEdge(sliceNode.getName(), 0, 
+                                   toNodeName, toIndex, {})
+
+        return sliceNode
+
+
+
+  ################################################################################
+  def findSimInputUnstackAxis(self, unstackNode):
+        inEdge0 = unstackNode.getFaninEdges()[0]
+        driverPin = inEdge0.getFromPosNode()
+        driverNode = driverPin.node
+        driverTensorName = driverPin.getName()
+
+        ## Calling genCompilerLayerJson() is unfortunate. There should
+        ## be a lighter method to get format of tensor
+        driverNode.genCompilerLayerJson(self.tensorFormatMap)
+
+        driverTensorFormat = self.tensorFormatMap.get(driverTensorName)
+        assert(driverTensorFormat)
+        driverTensorTfFormat = driverTensorFormat.tfFormat 
+        driverTensorSimFormat = driverTensorFormat.simFormat
+
+        tfInputUnstackAxisInt = unstackNode.getAttr("axis")
+        ## Find the letter for the axis (e.g., one of N, H, C, or W)
+        inputUnstackAxisName  = driverTensorTfFormat[tfInputUnstackAxisInt]
+        ## Find the axis for the letter, but in sim format for in tensor
+        simInputUnstackAxisInt = -1
+        for n in range(len(driverTensorSimFormat)):
+            if driverTensorSimFormat[n] == inputUnstackAxisName:
+                simInputUnstackAxisInt = n
+                break
+        return simInputUnstackAxisInt
+
+  ################################################################################
+  # Replace
+  #     A --> B(Unstack) --> C
+  #                      +-> D
+  # with
+  #     A --> B1(slice) --> C
+  #       +-> B2(slice) --> D
+  ################################################################################
+  # Graph method
+  def ReplaceOneUnstackNode(self, levelIdx, unstackNode):
+        simInputUnstackAxisInt = self.findSimInputUnstackAxis(unstackNode)
+        assert(simInputUnstackAxisInt >= 0)
+
+
+        levelizedNodes = self.getLevelizedNodes()
+        level = levelizedNodes[levelIdx]
+        ## Number of NpInfos can be larger than the number of sublists
+        ## in the Fanout list
+        outputs = unstackNode.getFanouts()
+        numOutputs = len(outputs)
+        unstackNodeNpInfos = unstackNode.getNpInfo()
+
+        assert(numOutputs <= len(unstackNodeNpInfos))
+
+        ## All output tensors have the same shape in Unstack
+        for np_info in unstackNodeNpInfos:
+            assert(np_info.npShape == unstackNodeNpInfos[0].npShape)
+
+        ## disconnect out edge from driver
+        inEdges = unstackNode.getFaninEdges()
+        assert(len(inEdges) == 1)
+        inEdge = inEdges[0]
+
+        driverPosNode = inEdge.getFromPosNode()  ## A
+        self.deleteEdge(inEdge)
+
+        sliceNodes=[]
+
+        for outIdx in range(numOutputs):
+            sliceNode = self.CreateOneSliceNodeFromUnstack(unstackNode,
+                                            driverPosNode, outIdx, 
+                                            simInputUnstackAxisInt)
+            sliceNodes.append(sliceNode)
+
+        return sliceNodes
+
+
+
+  ################################################################################
+  # Graph method
+  def ReplaceUnstackNodes(self):
+        levelizedNodes = self.getLevelizedNodes()
+        for levelIdx in range(0, len(levelizedNodes)):
+            level = levelizedNodes[levelIdx]
+            oldNodes = []
+            newNodes = []
+            for node in levelizedNodes[levelIdx]:
+                if not node.isSupported() or not isinstance(node, NodeUnstack):
+                    continue
+                print("Replacing unstack node", node)
+                oldNodes.append(node)
+                slicedNodes = self.ReplaceOneUnstackNode(levelIdx, node)
+                newNodes += slicedNodes
+
+            for node in oldNodes:
+                level.remove(node)
+            level += newNodes
+
+
+  ################################################################################
   # Generate Kaena Compiler input graph (in json format)
   # including weights, input and golden output imges (in numpy format)
   #
@@ -1951,6 +2180,8 @@ class Graph(Object):
   # Returns npy reference file for the last layer, and list of files to package into K-graph tgz
     
   def genCompilerJson(self, outFile, verbose):
+
+    self.ReplaceUnstackNodes()
     
     jsonData = {
       "net_name"  : "TrivNet",

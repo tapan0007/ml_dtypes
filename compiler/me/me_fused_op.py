@@ -2497,7 +2497,10 @@ class FusedOp(list):
         slice_h_begin = self.first_op.slice_offset.y
         slice_h_stop = self.first_op.slice_offset.y + self.first_op.slice_size.y
         print("Slice: w axis [%d:%d], h axis [%d:%d]"%(slice_w_begin, slice_w_stop, slice_h_begin, slice_h_stop))
-        if ofp.file_dims.format_str == 'NCW':
+        if ifp.file_dims.format_str == 'HNWC':
+            ofp.dram_data = ifp.dram_data[ slice_h_begin : slice_h_stop, :, slice_w_begin : slice_w_stop, : ]
+            ofp.dram_data.shape = ofp.file_dims.shape_tuple
+        elif ofp.file_dims.format_str == 'NCW':
             ofp.dram_data = ifp.dram_data[:, :, slice_w_begin : slice_w_stop]
         elif ofp.file_dims.format_str == 'NCHW':
             ofp.dram_data = ifp.dram_data[:, :, slice_h_begin : slice_h_stop, slice_w_begin : slice_w_stop]
@@ -2931,3 +2934,4 @@ class FusedOp(list):
                         self.conv_op.set_psum_bank((self.conv_op.get_psum_bank()+1)%4)
                         tpb.pearray.last_psum_bank_used = self.conv_op.get_psum_bank()
                         psum_add = False
+

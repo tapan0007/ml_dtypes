@@ -77,6 +77,7 @@ void
 SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
 {
     KCC_ARCHIVE(DstSbAddress);
+    KCC_ARCHIVE(DstStartAtMidPart);
     KCC_ARCHIVE(DstXNum);
     KCC_ARCHIVE(DstXStep);
     KCC_ARCHIVE(DstYNum);
@@ -97,6 +98,7 @@ SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(SrcPsumBankOffset);
     } else {
         KCC_ARCHIVE(SrcSbAddress);
+        KCC_ARCHIVE(SrcStartAtMidPart);
     }
 
     KCC_ARCHIVE(SrcWNum);
@@ -156,6 +158,7 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(ActivationFunc);
     KCC_ARCHIVE(BiasAddEn);
     KCC_ARCHIVE(BiasSbAddress);
+    KCC_ARCHIVE(BiasStartAtMidPart);
 
     KCC_ARCHIVE(DstIsPsum);
     if (m_DstIsPsum) {
@@ -163,6 +166,7 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(DstPsumBankOffset);
     } else {
         KCC_ARCHIVE(DstSbAddress);
+        KCC_ARCHIVE(DstStartAtMidPart);
     }
 
     KCC_ARCHIVE(DstXNum);
@@ -182,6 +186,7 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(SrcPsumBankOffset);
     } else {
         KCC_ARCHIVE(SrcSbAddress);
+        KCC_ARCHIVE(SrcStartAtMidPart);
     }
 
     KCC_ARCHIVE(SrcXNum);
@@ -256,6 +261,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(SrcAPsumBankOffset);
     } else {
         KCC_ARCHIVE(SrcASbAddress);
+        KCC_ARCHIVE(SrcAStartAtMidPart);
     }
     KCC_ARCHIVE(SrcAXNum);
     KCC_ARCHIVE(SrcAXStep);
@@ -271,6 +277,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(SrcBPsumBankOffset);
     } else {
         KCC_ARCHIVE(SrcBSbAddress);
+        KCC_ARCHIVE(SrcBStartAtMidPart);
     }
     KCC_ARCHIVE(SrcBXNum);
     KCC_ARCHIVE(SrcBXStep);
@@ -286,6 +293,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
         KCC_ARCHIVE(DstPsumBankOffset);
     } else {
         KCC_ARCHIVE(DstSbAddress);
+        KCC_ARCHIVE(DstStartAtMidPart);
     }
     KCC_ARCHIVE(DstXNum);
     KCC_ARCHIVE(DstXStep);

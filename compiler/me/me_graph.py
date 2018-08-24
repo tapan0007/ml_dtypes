@@ -861,7 +861,13 @@ class KGraph:
                     shape = l['ofmap_shape']
                     slicing_h = False
                     slicing_w = False
-                    if (l['ofmap_format'] == 'NCW'):
+
+                    assert(len(prev_layers) == 1)
+                    prev_layer_name = prev_layers[0]
+                    prev_format = self.node_dict[prev_layer_name].data['ofmap_format']
+                    prev_shape = self.node_dict[prev_layer_name].data['ofmap_shape']
+
+                    if (prev_format == 'NCW'):
                         if ssize[2] == -1: ssize[2] = shape[2]
                         new_node.slice_offset = Coord(sbegin[2], 0)
                         new_node.slice_size = Dim2D(ssize[2], 0)
@@ -869,24 +875,37 @@ class KGraph:
                         error = (sbegin[0] != 0 or sbegin[1] != 0) \
                               or (   (ssize[0] != shape[0] and ssize[0] != -1) \
                                   or (ssize[1] != shape[1] and ssize[1] != -1))
-                    elif (l['ofmap_format'] == 'NCHW'):
-                        if ssize[2] == -1: ssize[2] = shape[2]
-                        if ssize[3] == -1: ssize[3] = shape[3]
-                        new_node.slice_offset = Coord(sbegin[3], sbegin[2])
-                        new_node.slice_size = Dim2D(ssize[3], ssize[2])
-                        slicing_h = new_node.slice_size.y < shape[2]
-                        slicing_w = new_node.slice_size.x < shape[3]
-                        error = (sbegin[0] != 0 or sbegin[1] != 0) \
-                              or (   (ssize[0] != shape[0] and ssize[0] != -1) \
-                                  or (ssize[1] != shape[1] and ssize[1] != -1))
+                    elif prev_format == 'NCHW' or prev_format == "HNWC":
+                        if prev_format == 'NCHW':
+                            nAxis = 0; cAxis = 1
+                            hAxis = 2; wAxis = 3
+                            allAxis = (nAxis, cAxis, hAxis, wAxis)
+                        else:
+                            hAxis = 0; wAxis = 2
+                            nAxis = 1; cAxis = 3
+                            allAxis = (hAxis, nAxis, wAxis, cAxis)
+                        for axis in allAxis:
+                            if ssize[axis] == -1: ssize[axis] = prev_shape[axis]
+
+                        new_node.slice_offset = Coord(sbegin[wAxis], sbegin[hAxis])
+                        new_node.slice_size = Dim2D(ssize[wAxis], ssize[hAxis])
+                        slicing_h = new_node.slice_size.y < prev_shape[hAxis]
+                        slicing_w = new_node.slice_size.x < prev_shape[wAxis]
+                        error = (sbegin[nAxis] != 0 or sbegin[cAxis] != 0) \
+                              or (   (ssize[nAxis] != prev_shape[nAxis] and ssize[nAxis] != -1) \
+                                  or (ssize[cAxis] != prev_shape[cAxis] and ssize[cAxis] != -1))
+                        print("ssize=", ssize, ", sbegin=", sbegin, "new_node:slice_offset=", new_node.slice_offset,
+                              "slice_size=",new_node.slice_size)
                     else:
                         raise RuntimeError("Slice op %s format %s is not supported"%(l['layer_name'], l['ofmap_format']))
+
                     if error:
-                        raise RuntimeError("Slice op %s: only support slicing in W or H dimension; begin "%l['layer_name'], sbegin, " end ", ssize)
+                        raise RuntimeError("Slice op %s: only support slicing in W or H dimension; begin "%l['layer_name'], sbegin, " end ", ssize,
+                                        " ofmap ", l['ofmap_format'], " shape ", shape)
                     if slicing_h and slicing_w:
-                        raise RuntimeError("Cannot slice both H and W for Slice operation %s"%(new_op.data['layer_name']))
-                    if slicing_h and new_node.slice_size.y > 1:
-                        raise RuntimeError("Can only slice size of 1 for H axis"%(new_op.data['layer_name']))
+                        raise RuntimeError("Cannot slice both H and W for Slice operation %s"%(l['layer_name']))
+                    #if slicing_h and new_node.slice_size.y > 1:
+                    #    raise RuntimeError("Can only slice size of 1 for H axis"%(l['layer_name']))
                 elif (l['layer_type'] == "ConvTranspose"):
                     new_node.is_conv_transpose = True
                 elif (l['layer_type'] == "Concat"):
