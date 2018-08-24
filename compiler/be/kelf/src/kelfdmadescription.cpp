@@ -269,6 +269,7 @@ DmaDescription::writeDmaDescriptors(
         jBlockToTpb["queue"]    = dmaBlockToTpb.gQueueName();
         jBlockToTpb["id"]       = dmaBlockToTpb.gBlockId();
         jBlockToTpb["#comment"] = dmaBlockToTpb.gComment();
+        jBlockToTpb["#block_size"] = dmaBlockToTpb.size();
         dmaBlockToTpb.setDmaEventField(jBlockToTpb);
 
         std::vector<json> jDmaDescs;
@@ -300,6 +301,7 @@ DmaDescription::writeDmaDescriptors(
         jBlockFromTpb["queue"]      = dmaBlockFromTpb.gQueueName();
         jBlockFromTpb["id"]         = dmaBlockFromTpb.gBlockId();
         jBlockFromTpb["#comment"]   = dmaBlockFromTpb.gComment();
+        jBlockFromTpb["#block_size"]  = dmaBlockFromTpb.size();
         dmaBlockFromTpb.setDmaEventField(jBlockFromTpb);
 
         std::vector<json> jDmaDescs;
@@ -454,6 +456,7 @@ DmaDescription::writeInOutDescriptors()
         jDmaBlock["queue"]  = gSymbolicInQueue();
         jDmaBlock["id"]     = dmaBlock.gBlockId();
         jDmaBlock["#comment"] = dmaBlock.gComment();
+        jDmaBlock["#block_size"] = dmaBlock.size();
         dmaBlock.setDmaEventField(jDmaBlock);
 
         std::vector<json> jDmaDescs;
@@ -481,6 +484,7 @@ DmaDescription::writeInOutDescriptors()
         jDmaBlock["queue"]  = gSymbolicOutQueue();
         jDmaBlock["id"]     = dmaBlock.gBlockId();
         jDmaBlock["#comment"] = dmaBlock.gComment();
+        jDmaBlock["#block_size"] = dmaBlock.size();
         // Output queues are polled, but events are used for
         // TPB to know DMA transfer end.
         dmaBlock.setDmaEventField(jDmaBlock);

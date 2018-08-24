@@ -85,6 +85,10 @@ testConfigMap = {
   "0-1conv_dilated_wave" : [ "trivnet_conv_dilated",  "tfloat16-b1-h8-r3-s1-c1-m1-d2-wmin2-wmax2.2-imin0-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-1conv0_subnormal_wave" : [ "trivnet_conv1",
+      "tfloat16-b1-h1-r1-s1-c1-m1-wmin0.0000022-wmax0.0000022-imin33.3-imax33.3",
+      "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+
   "0-1conv0_wave_h35c288m64" : [ "trivnet_conv1",  "tfloat16-b1-h35-r1-s1-c288-m64-wmin0.1-wmax0.2-imin0.2-imax0.3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
   "0-1conv0_ckpt_wave" : [ "ckpt_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race --show_op_name_in_kgraph --exclude_ops_from_capture 'save|Save|restore' --debug 1"],
   "0-1conv0_qemu_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler qemu_wave --wavegraph_checks structure data-race"],
@@ -568,6 +572,12 @@ testConfigMap = {
   "5-rn50_nne_to_act4_wave-no_repl-t9"     : [
     "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
     "--focus 'conv1/kernel|input_1|conv1/BiasAdd' --input_node input_1  --depth 2 --show_op_name_in_kgraph  --debug 1 --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16'  --scheduler wave2 --schedule_options ' --nname=generic ' --images %s --wavegraph_checks structure data-race " %( rnDogJpg),
+    "--input_files %s" % rnDogJpg
+  ],
+
+  "5-rn50_nne_to_act4_wave-no_repl-t9_focus_to"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    "--focus_to conv1/BiasAdd --input_node input_1  --depth 2 --show_op_name_in_kgraph  --debug 1 --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16'  --scheduler wave2 --schedule_options ' --nname=generic ' --images %s --wavegraph_checks structure data-race " %( rnDogJpg),
     "--input_files %s" % rnDogJpg
   ],
 

@@ -40,7 +40,7 @@ EventId EventId_MMStartMultiSet()
 
 EventId EventId_LastNonReserved()
 {
-    return EventId_MMStartMultiSet() - 1;
+    return EventId_MMStartMultiSet() - 1 - 3;
 }
 
 
