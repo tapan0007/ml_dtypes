@@ -12,3 +12,74 @@ Host siopt.review
     ProxyCommand ssh -W %h:%p siopt.vpc
     StrictHostKeyChecking no
 
+
+
+######### zebu   #############
+Host lab
+  HostName soaus11-lab-fw.ant.amazon.com
+  IdentityFile ~/.ssh/qemu_rt.pem
+  Port 2222
+  User zejdaj
+  ProxyCommand ssh -W %h:%p mac
+
+Host zebuserver1
+  HostName 192.168.0.50
+  IdentityFile ~/.ssh/qemu_rt.pem
+  user zebuadmin
+  ProxyCommand ssh -W %h:%p lab
+  Host *
+  StrictHostKeyChecking no
+  CheckHostIP=no
+  ServerAliveInterval=60
+Host zebuserver2
+  HostName 192.168.0.51
+  IdentityFile ~/.ssh/qemu_rt.pem
+  user zebuadmin
+  ProxyCommand ssh -W %h:%p lab
+  Host *
+  StrictHostKeyChecking no
+  CheckHostIP=no
+  ServerAliveInterval=60
+Host zebuserver3
+  HostName 192.168.0.52
+  IdentityFile ~/.ssh/qemu_rt.pem
+  user zebuadmin
+  ProxyCommand ssh -W %h:%p lab
+  Host *
+  StrictHostKeyChecking no
+  CheckHostIP=no
+  ServerAliveInterval=60
+Host zebuserver4
+  HostName 192.168.0.53
+  IdentityFile ~/.ssh/qemu_rt.pem
+  user zebuadmin
+  ProxyCommand ssh -W %h:%p lab
+  Host *
+  StrictHostKeyChecking no
+  CheckHostIP=no
+  ServerAliveInterval=60
+
+Host zebuGuest1
+  HostName localhost
+  Port 3022
+  User synopsys
+  IdentityFile ~/.ssh/qemu_rt.pem
+  ProxyCommand ssh -W %h:%p zebuserver1
+Host zebuGuest2
+  HostName localhost
+  Port 3022
+  User synopsys
+  IdentityFile ~/.ssh/qemu_rt.pem
+  ProxyCommand ssh -W %h:%p zebuserver2
+Host zebuGuest3
+  HostName localhost
+  Port 3022
+  User synopsys
+  IdentityFile ~/.ssh/qemu_rt.pem
+  ProxyCommand ssh -W %h:%p zebuserver3
+Host zebuGuest4
+  HostName localhost
+  Port 3022
+  User synopsys
+  IdentityFile ~/.ssh/qemu_rt.pem
+  ProxyCommand ssh -W %h:%p zebuserver4
