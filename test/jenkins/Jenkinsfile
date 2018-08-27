@@ -38,12 +38,12 @@ pipeline{
                 sh 'cat /proc/cpuinfo'
                 sh 'cat /proc/meminfo'
                 sh 'df -h'
-
                 sh 'ls -ltrA'
+
+
                 sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
-                sh 'mkdir -p $KRT_BLD_DIR $KRT_DV_BLD_DIR $QEMU_BLD_DIR $KCC_BLD_DIR'
-                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/hourly && mkdir -p $TEST_DIR/precheckin'
+                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin'
             }
         }
         stage('Checkout'){
@@ -94,13 +94,7 @@ pipeline{
         }
         stage('build') {
             stages {
-                stage('krt') {
-                    steps {
-                        sh 'cd $KRT_BLD_DIR && cmake $KAENA_RT_PATH && make package'
-                        sh 'cd $KRT_DV_BLD_DIR && PLAT=dv cmake $KAENA_RT_PATH && make package'
-                    }
-                } 
-                stage('kaena') { 
+                stage('kaena') {
                     steps {
                         sh 'cd $SRC_DIR/shared && ./build.sh'
                     }
@@ -135,24 +129,26 @@ pipeline{
                         }
                     }
                 }
-                stage('hourly') {
+                stage('RunAllWithArgs') {
                     steps {
                         timeout(time: 5, unit: 'HOURS') {
-                            sh '[ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/hourly && $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS)'
+                            sh '''
+                            [ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/RunAllWithArgs && $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS)
+                            '''
                         }
                     }
                     post {
                         always {
-                            sh 'mkdir /artifact/hourly'
-                            sh '/bin/cp $TEST_DIR/hourly/qor* /artifact/hourly/ || touch /artifact/hourly/qor_hourly_qor_available.txt'
+                            sh 'mkdir /artifact/RunAllWithArgs'
+                            sh '/bin/cp $TEST_DIR/RunAllWithArgs/qor* /artifact/RunAllWithArgs/ || touch /artifact/RunAllWithArgs/qor_RunAllWithArgs_qor_available.txt'
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'hourly/qor*,*.tgz'
+                            archiveArtifacts artifacts:'RunAllWithArgs/qor*,*.tgz'
                         }
                         failure {
-                            sh 'find $TEST_DIR/hourly -type f -name "*.vdi" -delete'
-                            sh 'find $TEST_DIR/hourly -iname "*.txt" -print0 | tar -czvf /artifact/hourly/logs.tgz -T -'
+                            sh 'find $TEST_DIR/RunAllWithArgs -type f -name "*.vdi" -delete'
+                            sh 'find $TEST_DIR/RunAllWithArgs -iname "*.txt" -print0 | tar -czvf /artifact/RunAllWithArgs/logs.tgz -T -'
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'hourly/logs.tgz'
+                            archiveArtifacts artifacts:'RunAllWithArgs/logs.tgz'
                         }
                     }
                 }
