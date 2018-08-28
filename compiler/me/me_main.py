@@ -180,11 +180,13 @@ class TPBSched:
             first_op_type = first_op.data['layer_type'] 
             # Dissolve Input of Placeholder types
             if first_op.is_placeholder:
+                assert(len(op_list) == 1)
                 first_op.result_file = first_op.data['ref_file']
                 # Populate OFMAP params                        
                 first_op.populate_ofmaps_file_params()
                 # Treat the placeholder like a fork since there maybe multiple inputs 
-                prev_join_batch_item_partition_usage_sz = op_list.last_op.ofmaps_file_params.batch_item_partition_usage_sz
+                prev_join_batch_item_partition_usage_sz = first_op.ofmaps_file_params.batch_item_partition_usage_sz
+                first_op.ofmaps_file_params.input_layer_ifmap = True
                 # Mark the first node after Input/Placeholder as input node
                 for i in first_op.next: 
                     i.is_input = True
@@ -285,6 +287,11 @@ class TPBSched:
                     for j in first_op.prev:
                         j.ofmaps_file_params.final_layer_ofmap = True
                         print("NOP is output, mark previous %s final_layer_ofmap=True"%(j.data["layer_name"]))
+
+            # kaena-643: pad sizes to 8B to satisfy HW 8B alignment requirement
+            # Only for weights/bias, input IFMAP and final OFMAP.
+            # Internal layers will gang-up pairs of chunks (FP16) to satisfy 4B alignment requirement.
+            last_op.ofmaps_file_params.compute_padded_sizes()
 
             # increment count of fused ops (for ID purpose)
             fused_op_count += 1

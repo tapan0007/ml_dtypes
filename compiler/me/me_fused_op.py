@@ -511,7 +511,10 @@ class FusedOp(list):
                 if (ofmaps_file_params.file_dims.C > 64) \
                     or (self.conv_op is not None and (self.conv_op.stride.x > 1 or self.conv_op.S > 1)) \
                     or (self.has_pool and self.pool_op.stride.x > 1):
-                    ofmaps_region_start_addr = ifmaps_region_start_addr - ofmaps_file_params.batch_item_partition_usage_sz_padded * self.last_op.Tn                               
+                    if (ofmaps_file_params.batch_item_partition_usage_sz_padded <= ifmaps_file_params.batch_item_partition_usage_sz_padded):
+                        ofmaps_region_start_addr = ifmaps_region_start_addr - ofmaps_file_params.batch_item_partition_usage_sz_padded * self.last_op.Tn                               
+                    else:    
+                        ofmaps_region_start_addr = ifmaps_region_start_addr - ofmaps_file_params.tot_partition_usage_sz_padded
                 # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
                 if not self.first_op.is_input:
                     ifmaps_file_params.mapped_params.modify_in_place = True
@@ -1467,8 +1470,8 @@ class FusedOp(list):
                 dst_y_step = ofmap_tile.tile_rect.dim2d.x
                 dst_z_step = dst_y_step * dst_y_num 
             else:                
-                dst_y_step = conv_op.F
-                dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
+                dst_y_step = act_or_biasadd_op.F
+                dst_z_step = act_or_biasadd_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
             if src_is_psum:
                 src_y_step = ofmap_tile.tile_rect.dim2d.x
                 # Kaena-593: ensure no bubble during IFMAP streaming (packed pattern)
@@ -1810,7 +1813,6 @@ class FusedOp(list):
     def execute_pool_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_dst):
         first_op = self.first_op
         ifmaps_data = first_op.pack_wave_ifmaps_unfused_pooling(ifmap_tile.file_params.dram_data, ifmap_tile.make_pewave())
-        print(ifmap_tile.file_params.dram_data)
         input_tilex = ifmap_tile.tile_rect.dim2d.x
         input_tiley = ifmap_tile.tile_rect.dim2d.y
         output_tiley = first_op.ofmap_full_tiley_sz

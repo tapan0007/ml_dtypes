@@ -479,6 +479,7 @@ class FileParams():
         self.args = args
         self.layer_name = "DEPRECATED"
         self.contain_weights = contain_weights # True for weights and bias and constants (used to tie-off BiasAdd in standalone Act)
+        self.input_layer_ifmap = False
         self.final_layer_ofmap = False
         self.file_id = FileParams.current_file_id
         FileParams.current_file_id += 1
@@ -665,14 +666,23 @@ class FileParams():
         if self.fmap_last_chunk_sz == 0:    
             self.fmap_last_chunk_sz         = self.chunk_sz
         self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.C, PEArray.NUM_ROWS)
-        # kaena-643: pad sizes to 8B to satisfy HW 8B alignment requirement                
-        self.chunk_sz_padded                          = align_addr_8B(self.chunk_sz)                
-        self.fmap_data_len_padded                     = align_addr_8B(self.fmap_data_len)
+        # Default unpadded sizes for internal FMAPs (see compute_padded_sizes for weights/input/output FMAPs)
+        self.chunk_sz_padded                = self.chunk_sz                
+        self.fmap_data_len_padded           = self.fmap_data_len
+        self.compute_padded_sizes()
+
+    def compute_padded_sizes(self):
+        # kaena-643: pad sizes to 8B to satisfy HW 8B alignment requirement             
+        # Only for weights/bias, input IFMAP and final OFMAP.
+        # Internal layers will gang-up pairs of chunks (FP16) to satisfy 4B alignment requirement.
+        if self.contain_weights or self.final_layer_ofmap or self.input_layer_ifmap:
+            self.chunk_sz_padded                      = align_addr_8B(self.chunk_sz)                
+            self.fmap_data_len_padded                 = align_addr_8B(self.fmap_data_len)
         self.batch_item_partition_usage_sz_padded     = self.fmap_data_len_padded * self.fmap_channels_folds
         self.batch_item_partition_usage_elems_padded  = self.fmap_data_len_padded * self.fmap_channels_folds // self.item_sz
         self.tot_partition_usage_sz_padded            = self.batch_item_partition_usage_sz_padded * self.file_dims.N
         self.tot_partition_usage_elems_padded         = self.batch_item_partition_usage_elems_padded * self.file_dims.N
-        print("INFO: file %s shape %s tot_partition_usage_sz %d batch_item_partition_usage_sz %d"%(self.file_name, str(self.file_dims.shape_tuple), self.tot_partition_usage_sz, self.batch_item_partition_usage_sz))
+        print("INFO: file %s shape %s chunk_sz %d chunk_sz_padded %d fmap_data_len %d fmap_data_len_padded %d tot_partition_usage_sz %d batch_item_partition_usage_sz %d (compute_padded_sizes)"%(self.file_name, str(self.file_dims.shape_tuple), self.chunk_sz, self.chunk_sz_padded, self.fmap_data_len, self.fmap_data_len_padded, self.tot_partition_usage_sz, self.batch_item_partition_usage_sz))
 
 """ Class to hold map information related to a file
 """
