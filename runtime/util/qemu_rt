@@ -51,6 +51,7 @@ import os, sys, stat, time, random, datetime, re
 import glob
 import pexpect
 import socket, errno
+import xml.etree.ElementTree as ET
 
 print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
 qiBldPath = os.environ["QEMU_BLD_DIR"]
@@ -80,9 +81,12 @@ vdis = {
   "ubuntu-18.04-24G": [
     "s3://kaena-vdi/ubuntu-18.04-24G.qcow2",
     "38b7c79049c260ca497d8dc67617f7d6aa5a3cc6e62c8c1545217cfeb96859b4" ],
+  "ubuntu-18.04-24G_pytest": [
+    "s3://kaena-vdi/ubuntu-18.04-24G_pytest.qcow2",
+    "3ff185ea2110ec4f9943c594cadab3ea265414ee971497fc3762d3ceeacdb70e" ],
   }
 
-defaultVdi, checksumVdi = vdis["ubuntu-18.04-24G"]
+defaultVdi, checksumVdi = vdis["ubuntu-18.04-24G_pytest"]
 
 def portInUse(port):
   inUse = True
@@ -116,6 +120,7 @@ parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
 parser.add_argument('--sg', help='Subgraph label for identifying which SG executes', default=None)
 parser.add_argument('--ifmaps', help='List of input images in sim ifmap format', nargs='+', default=None)
 parser.add_argument('--zebu', help='Zebu host to use emulator model of Tonga instead of starting Qemu with SW Tonga locally', default=None)
+parser.add_argument('--pytest', action="store_true", help='Run non-compiler pytest')
 args = parser.parse_args()
 
 krtBldPath = os.environ["KRT_BLD_DIR"]
@@ -215,6 +220,7 @@ class Qemu(BePlat):
     qemuOpts = '-nographic'
     self.vdi = vdi
     self.localVdi = "copy.vdi"
+    self.type = "qemu"
     
     qemuNoInkling = os.getenv("QEMU_NO_INKLING", None)
     if qemuNoInkling == None:
@@ -327,6 +333,7 @@ class Zebu(BePlat):
       self.rtlSandbox = match.groups()[1]
     else:
       raise ValueError("ERROR: unparsable zebu host spec %s" % zebuHost)
+    self.type = "emu"
     self.sshHost = self.zebuHost.replace("server", "Guest")
     self.sshUser = "synopsys"
     self.tongaDevice = "0000:01:00.0"  # later get from lspci
@@ -506,7 +513,7 @@ class Zebu(BePlat):
       pass
     
 
-class Krt:
+class Krt(object):
   def __init__(self, qemu, timeout):
     self.qemu = qemu
     self.cwd = os.getcwd()
@@ -563,6 +570,8 @@ class Krt:
 
     self.qemu.sshCmd(cmdRuntime)
     time.sleep(2)
+
+
   
   def getFinalBin(self):
     ##topFinalDir = self.kelfVmDir + "/"
@@ -600,6 +609,7 @@ class Krt:
       #print("INFO: FIX_THIS kbin_rt failed but temporrarily oveeriding till 0-1conv0_qemu_wave is fixed")
       #return True
     return krtOk
+
   def inference(self, ifmap, ofmap):
     ifmapPath = os.path.realpath(ifmap)
     self.ofmap = ofmap
@@ -615,6 +625,117 @@ class Krt:
     else:
       print("ERROR: failed to transfer ifmap %s to the qemu guest os" % ifmapPath)
 
+  def execute(self, args):
+    self.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
+    self.start()
+    assert len(args.ifmaps) == 1
+    for ifmap in args.ifmaps:
+      self.inference(ifmap, "out-%s.bin" % args.sg)
+    krtOk = self.stop()
+    return krtOk
+
+class PythonTest:
+  """Class that is used for running/stopping python test
+
+  """
+
+  def __init__(self, krtd):
+    self.pytestRun = "pytest.run"
+    self.pytestNotRun = "pytest.notrun"
+    self.pytestResultXml = "pytestResult.xml"
+    self.krtd = krtd
+
+  def run(self):
+    pycmd = 'PYTHONPATH=%s/bin pytest-3 --junitxml=%s/%s --machine %s' % (krtVmPath, self.krtd.kelfVmDir, self.pytestResultXml, self.krtd.qemu.type) #check to see if PYTHONPATH etc needs to be set
+    cmdPytest = '%s %s/bin/tests -s' % (pycmd, krtVmPath)
+
+    shCmd="cd %s && if %s; then touch %s; else touch %s; fi" % (
+	    self.krtd.kelfVmDir, cmdPytest, self.pytestRun, self.pytestNotRun)
+    cmdRuntime = '/bin/sh -c "(%s) > %s/log-pytest.txt 2>&1 & "' %  (
+        shCmd, self.krtd.kelfVmDir)
+
+    self.krtd.qemu.sshCmd(cmdRuntime)
+
+  def parsePytestResultXml(self):
+    tree = ET.parse(self.pytestResultXml)
+    root = tree.getroot()
+    if root.attrib['errors'] != '0' or root.attrib['failures'] != '0':
+        return 0
+    return 1
+
+  def stop(self):
+    filesToWaitForStr = "%s/%s %s/%s %s/%s" % ( 
+	    self.krtd.kelfVmDir, self.pytestResultXml, self.krtd.kelfVmDir, self.pytestNotRun, self.krtd.kelfVmDir, self.pytestRun)
+    for i in range(self.krtd.inklingTimeout):
+      print("  Waiting for pytest to complete %i" %i, flush=True)
+      time.sleep(10)
+      self.krtd.qemu.rsyncFromVm(filesToWaitForStr, ".")
+      if os.path.isfile(self.pytestRun) or os.path.isfile(self.pytestNotRun):
+        break
+    
+    self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-krtd.txt", ".")
+    self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-pytest.txt", ".")
+
+    self.krtd.qemu.sshCmd("/bin/rm -rf %s" % self.krtd.kelfVmDir)
+    testOk = os.path.isfile(self.pytestRun) and os.path.isfile(self.pytestResultXml)
+    if testOk:
+      testOk = self.parsePytestResultXml()
+    if not testOk:
+      print("ERROR: pytest did not return zero exit code, check log-krtd.txt, log-pytest.txt, pytestResult.xml")
+    return testOk
+
+
+class Krtd(Krt):
+  """Class that is used for starting/stopping krtd daemon
+
+	This class is child class of the krt. krt is handling kbin_rt
+	Once all the tests start to use krtd, then this will become
+	the main class and krt will be removed
+
+	"""
+  def __init__(self, qemu, timeout):
+    Krt.__init__(self, qemu, timeout)
+    self.krtdPass = "krtd.pass"
+    self.krtdFail = "krtd.fail"
+    self.pytest = PythonTest(self)
+
+  def startDaemon(self):
+    self.qemu.sshCmd("mkdir -p %s" % kelfVmDirGlobal)
+    tongaDev = self.qemu.getTongaDevice()
+    krtd = '%s/bin/krtd' % krtVmPath
+    cmdKrtd = '%s -t %s' % (
+               krtd,tongaDev)
+
+    shCmd="cd %s && %s ldd %s && if %s %s; then touch %s; else touch %s; fi" % (
+        self.kelfVmDir, self.envStr, krtd, self.envStr, cmdKrtd, self.krtdPass, self.krtdFail)
+    cmdRuntime = 'sudo /bin/sh -c "(%s) > %s/log-krtd.txt 2>&1 & "' %  (
+        shCmd, self.kelfVmDir)
+
+
+    self.qemu.sshCmd(cmdRuntime)
+
+    # Now wait for the krtd to be ready
+    filesToWaitForStr = "%s/log-krtd.txt" % (self.kelfVmDir)
+    for i in range(self.inklingTimeout):
+      print("  Waiting for krtd to start %i" %i, flush=True)
+      time.sleep(1)
+      self.qemu.rsyncFromVm(filesToWaitForStr, ".")
+      if os.path.isfile("log-krtd.txt"):
+        f = open("log-krtd.txt", "rb")
+        filetext = f.read().decode('utf-8')
+        f.close()
+        found = re.search("Server listening", filetext)
+        if (found != None):
+          return True
+    print("ERROR: krtd did not start properly check log-krtd.txt")
+    return False
+
+  def execute(self, args):
+    krtOk = self.startDaemon()
+    if (krtOk):
+      self.pytest.run()
+      self.pytest.stop()
+    return krtOk
 
 class QemuPool:
   def __init__(self, ports, vdi, mem, inklingTimeout):
@@ -625,7 +746,7 @@ class QemuPool:
     self.qemus = []
     for port in self.ports:
       qemu = Qemu(vdi, mem, port)
-      krt = Krt(qemu, inklingTimeout)
+      krt = KrtClass(qemu, inklingTimeout)
       self.qemus.append((qemu, krt))
   def checkPorts(self):
     for port in self.ports:
@@ -674,7 +795,7 @@ class ZebuPool:
     self.zebus = []
     for host in self.zebuHosts:
       zebu = Zebu(host)
-      krt = Krt(zebu, inklingTimeout)
+      krt = KrtClass(zebu, inklingTimeout)
       self.zebus.append((host, zebu, krt))
   def startPool(self):
     for host, zebu, krt in self.zebus:
@@ -714,6 +835,15 @@ envQemuKrtTimeout = os.getenv("QEMU_KRT_TIMEOUT", None)
 if envQemuKrtTimeout != None:
   inklingTimeout = int(envQemuKrtTimeout)
 
+# for non compiler test we use krtd and compiler test we
+# we use krt_bin. For the time being, we are using 
+# 2 classes. Once we move compiler test also to krt_bin
+# then we will remove this
+if (args.pytest):
+  KrtClass = Krtd
+else:
+  KrtClass = Krt
+
 
 ##############  zebu pool  ##############
 if args.zebu != None and args.zebu.startswith('pool'):
@@ -738,12 +868,7 @@ if args.zebu != None and args.zebu.startswith('pool'):
     if args.kelf == None:
       raise ValueError("ERROR: use --kelf")
     zebu, krt = qp.getAvailZebu()
-    krt.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
-    krt.start()
-    assert len(args.ifmaps) == 1
-    for ifmap in args.ifmaps:
-      krt.inference(ifmap, "out-%s.bin" % args.sg)
-    krtOk = krt.stop()
+    krtOk = krt.execute(args)
     zebu.unlock()
     sys.exit(0 if krtOk else 1)
   raise RuntimeError("ERROR: zebu pool is not yet supported")
@@ -756,13 +881,9 @@ elif args.zebu != None:
     zebu = Zebu(args.zebu)
     if zebu.start(zebuRestartId):
       zebuOk = True
-      krt = Krt(zebu, inklingTimeout)
+      krt = KrtClass(zebu, inklingTimeout)
       krt.install()
-      krt.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
-      krt.start()
-      for ifmap in args.ifmaps:
-        krt.inference(ifmap, "out-%s.bin" % args.sg)
-      krtOk = krt.stop()
+      krtOk = krt.execute(args)
     else:
       print("ERROR: Failed to start Zebu  phase %d, restarting ..." % zebuRestartId)
     zebu.stop()
@@ -790,19 +911,14 @@ elif len(args.pool) > 0:
     if args.kelf == None:
       raise ValueError("ERROR: use --kelf")
     qemu, krt = qp.getAvailQemu()
-    krt.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
-    krt.start()
-    assert len(args.ifmaps) == 1
-    for ifmap in args.ifmaps:
-      krt.inference(ifmap, "out-%s.bin" % args.sg)
-    krtOk = krt.stop()
+    krtOk = krt.execute(args)
     qemu.unlock()
     sys.exit(0 if krtOk else 1)
     
 ##############  single qemu  ##############
 else:
   # port mode
-  if args.kelf == None:
+  if args.kelf == None and not args.pytest:
     raise ValueError("ERROR: use --kelf")
   qemuOk = False
   krtOk = False
@@ -815,13 +931,9 @@ else:
     qemu.start(qemuRestartId)
     if qemu.testGuest(4):
       qemuOk = True
-      krt = Krt(qemu, inklingTimeout)
+      krt = KrtClass(qemu, inklingTimeout)
       krt.install()
-      krt.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
-      krt.start()
-      for ifmap in args.ifmaps:
-        krt.inference(ifmap, "out-%s.bin" % args.sg)
-      krtOk = krt.stop()
+      krtOk = krt.execute(args)
     else:
       print("ERROR: Failed to start Qemu  phase %d, restarting ..." % qemuRestartId)
     qemu.stop()
