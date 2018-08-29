@@ -1411,10 +1411,7 @@ class NodeClipByValue(Node):
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
       tfFormat = npt.Formats[npt.TF][npt.Fmaps]
     else:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-      tfFormat = npt.NC
+      raise RuntimeError("NodeClipByValue: not able to process when len(shape) != 4")
       
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
@@ -1444,6 +1441,55 @@ class NodeClipByValue(Node):
 
   def isSupported(self):
     return True
+
+###############################################################################
+# Pad (explicit padding)
+#
+###############################################################################
+class NodePad(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  def genCompilerLayerJson(self, tensorFormatMap):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    if len(npInfo.npShape) == 4:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+    else:
+      raise RuntimeError("NodePad: not able to process when len(shape) != 4")
+      
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
+
+    ((nIn, npInfoFrom), padding_inp) = self.getInputNodesAndNpInfo()
+    npInfoIndexinBes = 1
+    padvec_tmp = padding_inp[npInfoIndexinBes].getValues()
+    padvec = [[np.asscalar(padvec_tmp[i][j]) for j in range(padvec_tmp.shape[1])] for i in range(padvec_tmp.shape[0])]
+    if len(npInfo.npShape) == 4:
+      padvec = npt.reorderShape(padvec, npt.TF, npt.SIM, npt.Fmaps)
+      print(padvec)
+
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "padding"         : padvec,
+      "previous_layers" : [nIn.getName()],
+      "#comment"        : "Pad FMAP using low/high values from 2 elem array per dimension"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
 
 
 

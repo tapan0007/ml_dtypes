@@ -238,6 +238,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 || serLayer.gTypeStr() == LayerTypeStr_Squeeze
                 || serLayer.gTypeStr() == LayerTypeStr_Slice
                 || serLayer.gTypeStr() == LayerTypeStr_Minimum
+                || serLayer.gTypeStr() == LayerTypeStr_Pad
                 || serLayer.gTypeStr() == LayerTypeStr_SpaceToBatchND
                 || serLayer.gTypeStr() == LayerTypeStr_BatchToSpaceND
                 || serLayer.gTypeStr() == LayerTypeStr_Concat

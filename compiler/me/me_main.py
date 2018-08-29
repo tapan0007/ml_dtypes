@@ -311,6 +311,8 @@ class TPBSched:
     """Execute fused operations with batching
     """
     def execute_fused_ops_w_batching(self):
+        if len(self.fused_ops_list) == 0:
+            raise RuntimeError("No fused ops found; please check input JSON")
         # Reevaluate batch set selection based on first FMAP size (for non-ResNet50 exec)
         tpb.statebuffer.batcher.reevaluate_set_select(
                 self.fused_ops_list[0].first_op.ifmaps_file_params.batch_item_partition_usage_sz)

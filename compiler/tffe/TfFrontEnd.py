@@ -229,6 +229,8 @@ class TfFe:
           node = kog.NodeConcat(tfNode.name, "Concat", add_attrs)
         elif (re.search("ClipByValue", tfop.op, re.I) != None):
           node = kog.NodeClipByValue(tfNode.name, "ClipByValue", add_attrs)
+        elif (re.search("Pad", tfop.op, re.I) != None):
+          node = kog.NodePad(tfNode.name, "Pad", add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)

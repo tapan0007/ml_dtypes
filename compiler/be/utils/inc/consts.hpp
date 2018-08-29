@@ -65,6 +65,7 @@ constexpr const char* const LayerTypeStr_ClipByValue    = "ClipByValue";
 constexpr const char* const LayerTypeStr_Squeeze        = "Squeeze";
 constexpr const char* const LayerTypeStr_Slice          = "Slice";
 constexpr const char* const LayerTypeStr_Minimum        = "Minimum";
+constexpr const char* const LayerTypeStr_Pad            = "Pad";
 constexpr const char* const LayerTypeStr_SpaceToBatchND = "SpaceToBatchND";
 constexpr const char* const LayerTypeStr_BatchToSpaceND = "BatchToSpaceND";
 

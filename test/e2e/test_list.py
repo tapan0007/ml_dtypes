@@ -82,6 +82,7 @@ testConfigMap = {
   "0-rtl-act_h2c16_wave"               : [ "trivnet_act",      "tfloat16-b1-h2-c16-tanh-wmin2-wmax2.2-imin-1-imax2",                        "act", "--scheduler wave2"],
 
   "0-1clipbyvalue_wave" : [ "trivnet_clipbyvalue",  "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-1conv_dilated_wave" : [ "trivnet_conv_dilated",  "tfloat16-b1-h8-r3-s1-c1-m1-d2-wmin2-wmax2.2-imin0-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv0_wave_h35c288m64" : [ "trivnet_conv1",  "tfloat16-b1-h35-r1-s1-c288-m64-wmin0.1-wmax0.2-imin0.2-imax0.3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
@@ -183,6 +184,7 @@ testConfigMap = {
   "0-2matmult_add_fp32_wave"  : [ "trivnet_matmul_add", "tfloat32-b1-h1-r1-s1-c512-m2048-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "matmult", "--scheduler wave --schedule_options ' --save_layer_output ' "],
 
   "0-1conv_s8_32b_wave": [ "trivnet_lin",    "tfloat32-l2-b1-h16-r1-s8-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv32", "--scheduler wave --wavegraph_checks structure data-race"],
+  "0-1conv_exp_pad_wave" : [ "trivnet_conv1",  "tfloat16-b1-h16-r7-s2-c1-m1-wmin2-wmax2.2-imin3-imax3.2-padw2-pade3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "1-1conv7_64_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r7-s1-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "1-1conv9_64_wave"   : [ "trivnet_conv1",  "tfloat16-b1-h16-r9-s1-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv", "--scheduler wave"],
 
@@ -712,6 +714,7 @@ testWaiver = [
     # Parallel wavenet
     ['.*clipbyvalue.*', 'WAIVE_KAENA636'],
     ['.*softplus.*', 'WAIVE_KAENA634'],
+    ['0-1conv_dilated_wave', 'WAIVE_KAENA569'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],
 

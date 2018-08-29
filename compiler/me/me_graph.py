@@ -662,7 +662,16 @@ class KGraph:
                             #if (self.args.debug>0): print("Previous layer for ", new_node.data['layer_name'], " is ", i)
                             prev_node = self.node_dict[i]
                             # dissolve StridedSlice into the next operation
-                            if (prev_node.data['layer_type'] == "StridedSlice"):
+                            if (prev_node.data['layer_type'] == "Pad"):
+                                # NCHW
+                                new_node.data['padding'] = prev_node.data['padding']
+                                prev_node.data['padding'] = [[0, 0], [0, 0], [0, 0], [0, 0]]
+                                prev_node.data['ofmap_shape'] = prev_node.prev[0].data['ofmap_shape']
+                                assert(new_node.data['padding'][0] == [0, 0])
+                                assert(new_node.data['padding'][1] == [0, 0])
+                                assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
+                                new_node.add_prev(prev_node.prev[0])
+                            elif (prev_node.data['layer_type'] == "StridedSlice"):
                                 new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
                                 print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
                                 assert (len(self.node_dict[i].prev) == 1)
@@ -701,6 +710,8 @@ class KGraph:
                 elif (l['layer_type'] == "Const"):
                     new_node.is_const = True
                 elif (l['layer_type'] == "Reshape"):
+                    new_node.is_nop = True
+                elif (l['layer_type'] == "Pad"):
                     new_node.is_nop = True
                 elif (l['layer_type'] == "ConvTranspose"):
                     new_node.is_conv_transpose = True

@@ -93,8 +93,9 @@ class trivnet_conf():
 
         dimList = re.split('([A-Z]+)(-?[\d\.]+)-', dimStr)
         params = ["self." + i for i in dimList[1::3]]
-        dimCmd = str(tuple(params)).replace("'", "") + " = " + str(tuple(map(float, dimList[2::3])))
+        dimCmd = str(tuple(params)).replace("'", "") + " = " + str(tuple(map(float, dimList[2::3]))) 
         dimCmd = dimCmd.replace(".0,", ",")
+        dimCmd = dimCmd.replace(".0)", ")")
         print(dimCmd)
         #assert(len(dimList[2::3]) == 1)
         exec(dimCmd)
