@@ -4,7 +4,7 @@ pipeline {
             dir 'test/jenkins'
             customWorkspace './docker-shared'
             args '-u root -v /home/jenkins:/home/jenkins -v /home/jenkins/kaena/.aws:/root/.aws -v $WORKSPACE:/artifact'
-            label 'kaena_z1d.xl_al2'
+            label 'kaena_z1d.3xl'
         }
     }
     environment {
