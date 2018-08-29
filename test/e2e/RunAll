@@ -520,8 +520,10 @@ class Ktests:
           rtArgs += " --input_files %s " % default_image # default if none..
 
       rtArgs += ' --inkling_debugflags "%s"' % inklingArgs # add passed inkling args to rt Args
+      mtMultiplier = 32
+      ulimitCpuTimeout = self.testTimeout * mtMultiplier
       cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f  $KAENA_PATH/test/e2e/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (
-            self.testTimeout * 10, self.testTimeout * 10, testName, testName, nnStruct, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs) 
+            ulimitCpuTimeout, ulimitCpuTimeout, testName, testName, nnStruct, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs) 
       cmd +=  ' > log-top.txt 2>&1'
       # Remove the old directory
       if not reportOnly:
