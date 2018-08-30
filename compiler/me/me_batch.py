@@ -90,6 +90,6 @@ class BatchSBDataMap:
 
 if __name__ == "__main__":
     # process batch
-    batch_machine = BatchSBDataMap(16,'float16')
+    batch_machine = BatchMachine(16,'float16')
     batch_machine.check_sb_usage()
 

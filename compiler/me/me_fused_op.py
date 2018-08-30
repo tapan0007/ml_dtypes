@@ -1272,20 +1272,16 @@ class FusedOp(list):
                     psum_bank_src = psum_bank_dst
                 tpb.waveop_stream.last_psum_waveop[psum_bank_dst]['previous_waveops'] += prev_waveops
             elif (self[i].is_join):
-                if self[i].prev[self[i].residue_index].is_placeholder:
-                    residue_file_params = self[i].prev[self[i].residue_index].ofmaps_file_params
-                else:                    
-                    residue_file_params = self.last_op.ofmaps_file_params
                 dram_resadd_waveops = []
                 latest_accessor = -1
                 for z in range(op_list.first_op.Tn):
                     (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                 tpb.waveop_stream.nonload_waveop_count,
                                                 tpb.waveop_stream.nonload_waveop_list,
-                                                residue_file_params,
+                                                self.last_op.ofmaps_file_params,
                                                 batch_item + z,
                                                 ofmap_tile.lower_addr[z], 
-                                                ofmap_tile.lower_to_upper_len_bytes[z])
+                                                ofmap_tile.upper_addr[z] - ofmap_tile.lower_addr[z] + self.first_op.item_sz)
                     if self.args.no_inter_layer_load:
                         if (not self.first_op.is_input and len(waveops) > 0):
                             raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
@@ -1303,6 +1299,7 @@ class FusedOp(list):
                             prev_waveops.append(latest_accessor_waveop['waveop_name'])
 
                 # Do the actual math
+                residue_file_params = self[i].prev[self[i].residue_index].ofmaps_file_params
                 residue_tile = ofmap_tile.copy()
                 residue_tile.file_params = residue_file_params
                 residue_ifmaps = residue_tile.get_tile_data_from_file(flatten=True)
