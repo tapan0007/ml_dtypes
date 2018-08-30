@@ -71,10 +71,6 @@ pipeline{
                 [ ! -z "$KRT_VERSION" ] || export $KRT_VERSION=master
                 git checkout $KRT_VERSION
 
-                git -C krt  describe --always --dirty
-                git -C arch-isa describe --always --dirty
-                git -C arch-headers describe --always --dirty
-
                 chmod -R 755 ./
                 ls -ltrA
                 '''
