@@ -1,0 +1,35 @@
+#!/usr/bin/python3
+
+import numpy as np
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--file', help='Npy file to print', default=None)
+parser.add_argument('--type', help='Numpy type to convert to', default=None)
+parser.add_argument('--cast', help='Numpy type to cast binary content to', default=None)
+parser.add_argument('--limit', help='How many values to print, default 64', type=float, default=64)
+
+args = parser.parse_args()
+
+np.set_printoptions(threshold=args.limit)
+if args.file == None:
+  raise RuntimeError("ERROR: use --file to spefify numpy file to load")
+try:
+  v = np.load(args.file)
+  print("Loaded ", v.shape, v.dtype, args.file)
+except:
+  raise RuntimeError("ERROR: --file could not be loaded")
+
+if args.type != None:
+  t = eval("np." + args.type)
+  print("Printing as type", t)
+  v1 = v.astype(t)
+elif args.cast != None:
+  t = eval("np." + args.cast)
+  print("Printing cast to type ", t)
+  v1 = v.view(dtype=t)
+else:
+  print("Printing the original content")
+  v1 = v
+  
+print(v1.shape, v1.dtype, v1)
