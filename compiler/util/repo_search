@@ -69,6 +69,7 @@ parser.add_argument('--sleep', help='Sleep between command starts to balance loa
 parser.add_argument('--load', help='After applying --sleep wait will 1-minute loads drops below this, default 40', type=int, default=60)
 parser.add_argument('--report', help='Standalone reporting using the 000 to NNN directories on disk and the --metric_cmd', action='store_true', default=False)
 parser.add_argument('--annotate_re', help='Regexp to match metric names in --metric_cmd; upon match the metric points are annoated on the plot', default="Num")
+parser.add_argument('--geometry', help='Size of teh --report figure, default is 10 10', type=int, nargs=2, default=[10,10])
 args = parser.parse_args()
 
 def systemAndPrint(cmd):
@@ -215,7 +216,7 @@ class Report(object):
   def getMetricLabels(self):
     return self.metricCmd[1::2]
 
-  def plot(self, outFile):
+  def plot(self, outFile, geometry):
     
     def label2style(labels):
       l2s = {}
@@ -241,7 +242,7 @@ class Report(object):
         xlabels[xindex] = gitInfoShort[0:80]
     print("DEBUG x: ", x)
     print("DEBUG xlabels: ", xlabels)
-    fig, axarr = plt.subplots(1, sharex=True, figsize=(10,10))
+    fig, axarr = plt.subplots(1, sharex=True, figsize=geometry)
     axProp  = axarr
     axProp.set_xticks(x)
     axProp.set_xticklabels(xlabels, rotation=-90)
@@ -300,7 +301,7 @@ if args.report:
   assert args.run_cmd == None
   rpt = Report(args.metric_cmd, args.annotate_re)
   rpt.extractData(".")
-  rpt.plot("out_search.svg")
+  rpt.plot("out_search.svg", args.geometry)
 else:
   repo = Repo(args.repos, args.since, args.until, args.build_cmd,
               args.run_cmd, args.sleep, args.load)
