@@ -350,13 +350,13 @@ class Zebu(BePlat):
     self.fh.send("source ~/.vbox_bashrc\r")
     self.fh.expect("$")
     
-    self.fh.send("ptbkill -all; sleep 5\r")
+    self.fh.send("rune -k all; sleep 5\r")
     self.fh.expect("$")
 
     self.fh.send("cdpt%s\r" % self.rtlSandbox)
     self.fh.expect("$")
 
-    self.fh.send("rune -ptcr -notbrst\r")
+    self.fh.send("rune -ptcr\r")
     self.fh.expect("ZeBu")
     self.fh.expect("Design loaded successfully")
     try:
