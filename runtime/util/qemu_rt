@@ -321,10 +321,10 @@ class Qemu(BePlat):
 class Zebu(BePlat):
   def __init__(self, zebuHost):
     BePlat.__init__(self)
-    match = re.search(r'(\S+)--(\d+)', zebuHost)
+    match = re.search(r'(\S+)--(\S+)', zebuHost)
     if match:
       self.zebuHost  = match.groups()[0]
-      self.rtlSandbox = int(match.groups()[1])
+      self.rtlSandbox = match.groups()[1]
     else:
       raise ValueError("ERROR: unparsable zebu host spec %s" % zebuHost)
     self.sshHost = self.zebuHost.replace("server", "Guest")
@@ -353,7 +353,7 @@ class Zebu(BePlat):
     self.fh.send("ptbkill -all; sleep 5\r")
     self.fh.expect("$")
 
-    self.fh.send("cdpt%d\r" % self.rtlSandbox)
+    self.fh.send("cdpt%s\r" % self.rtlSandbox)
     self.fh.expect("$")
 
     self.fh.send("rune -ptcr -notbrst\r")
@@ -404,7 +404,7 @@ class Zebu(BePlat):
     self.fh1.send("source ~/.vbox_bashrc\r")
     self.fh1.expect("$")
 
-    self.fh1.send("cdpt%d\r" % self.rtlSandbox)
+    self.fh1.send("cdpt%s\r" % self.rtlSandbox)
     self.fh1.expect("$")
 
     self.fh1.send("rune -vbrun\r")
