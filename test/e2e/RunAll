@@ -841,6 +841,13 @@ else:
   elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0, args.force_qemu)
   tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
+  
+  # Qemu Instruction statistics for DV
+  if args.force_qemu:
+    cmd = kPath + "/compiler/util/qemu_instr_stats --logdir . --out_csv qor_instr_stats.csv > log-instr_stats.txt 2>&1"
+    print("INFO: executing ", cmd)
+    os.system(cmd)    
+  
   plotQor = False
   try:
     import matplotlib

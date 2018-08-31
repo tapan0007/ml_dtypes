@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2018, Amazon.com. All Rights Reserved
+#
+# Parse log tree of qemu regressions and report instruction statistics
+
+
+import argparse
+import os, csv, sys, re
+
+argStr = " ".join(sys.argv)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--logdir', help='A directory where RunAll --force_qemu was run', default=".")
+parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
+parser.add_argument('--out_csv', help='Where to write the instruction statistics', default="instr_stats.csv")
+
+args = parser.parse_args()
+
+# Tpb program classes reused from  kcc/compiler/util/tpb_profile
+
+class Instr:
+  def __init__(self, instrType):
+    self.instrType = instrType
+    self.fields = {}
+    self.textFields = ""
+  def __str__(self):
+    s = self.instrType
+    #s += "\n" + "\n".join(["%s : %s" % (k, v) for k,v in self.fields.items()])
+    s += "\n" + self.textFields
+    return s
+  def addField(self, field, value):
+    self.fields[field] = value
+  def getField(self, fieldName):
+    return self.fields.get(fieldName, None)
+  def getFieldInt(self, fieldName):
+    return int(self.fields.get(fieldName, 0))
+  def getInstrType(self):
+    return self.instrType
+  def getSrcNumElem4D(self, src='mem', dim=4):
+    num = 1
+    for d in range(dim):
+      try:
+        num *= self.fields['src_%s_pattern.num_elem[%d]' % (src, d)]
+      except:
+        num *= self.fields['src_%s_pattern[0].num_elem[%d]' % (src, d)]
+    return num
+  def getWaveCycles(self):
+    cycles = 0;
+    if self.instrType == 'MATMUL' or self.instrType == 'ACTIVATION':
+      cycles = self.getSrcNumElem4D('mem',3)
+    elif self.instrType == 'POOL':
+      cycles = self.getSrcNumElem4D('mem', 4)
+    elif self.instrType == 'TENSOR_TENSOR_OP':
+      try:
+        cycles = self.getSrcNumElem4D('psum_buf_mem', 3)
+      except:
+        try:
+          cycles = self.getSrcNumElem4D('mem', 3)
+        except:
+          cycles = self.getSrcNumElem4D('mem', 2)
+    return cycles
+  def getOPC(self):
+    opc = 0
+    if self.instrType == 'MATMUL':
+      opc = 2 * self.fields['num_active_rows'] * self.fields['num_active_cols']
+    return opc
+  def getOpCount(self):
+    opCount = 0;
+    if self.instrType == 'MATMUL':
+      waveCycles = self.getWaveCycles()
+      opCount = self.getOPC() * waveCycles
+    return opCount
+  # https://matplotlib.org/examples/color/named_colors.html
+  i2c = {
+     # PE
+    "MATMUL"     : "red",
+    "LDWEIGHTS"  : "rosybrown",
+    "SET"        : "blue",
+    "WAIT"       : "gray",
+    "CLEAR"      : "aqua",
+    # DMA
+    "SIM_MEMCPY" : "green",
+    "SIM_RDNPY" : "darkgreen",
+    "SIM_WRNPY" : "olive",
+    # ACT
+    "ACTIVATION" : "orange",
+    # POOL
+    "POOL"       : "tan",
+    "TENSOR_TENSOR_OP" : "khaki",
+    }
+  def getColor(self):
+    return Instr.i2c.get(self.getInstrType(), "black")
+  def hasEventModeNz(self, waitOrSet):
+    mode = self.fields.get('inst_events.%s_event_mode' % waitOrSet, None)
+    if mode != None:
+      if mode > 0:
+        return True
+    return False
+  def getEvents(self):
+    ''' Event related ISA fields:
+      167954   inst_events.wait_event_mode             [4, 4]: 0xXX
+      167954   inst_events.wait_event_idx              [5, 5]: 0xXX
+      167954   inst_events.set_event_mode              [6, 6]: 0xXX
+      167954   inst_events.set_event_idx               [7, 7]: 0xXX
+        2917   event_idx                               [4, 4]: 0xXX
+        1241   wait_event_mode                         [4, 4]: 0xXX
+        1241   event_idx                               [5, 5]: 0xXX
+    '''
+    waitEvents = []
+    setEvents = []
+    if self.hasEventModeNz('wait'):
+      eventId = self.fields.get('inst_events.wait_event_idx', None)
+      if eventId != None:
+        waitEvents.append(eventId)
+    if self.hasEventModeNz('set'):
+      eventId = self.fields.get('inst_events.set_event_idx', None)
+      if eventId != None:
+        setEvents.append(eventId)
+    eventId = self.fields.get('event_idx', None)
+    if eventId != None:
+      if self.getInstrType() == "WAIT":
+        waitEvents.append(eventId)
+      elif self.getInstrType() == "SET":
+        setEvents.append(eventId)
+      elif self.getInstrType() == "CLEAR":
+        pass
+      else:
+        print("ERROR: instruction %s has unexpected event_idx" % self.getInstrType())
+    return waitEvents, setEvents
+    
+
+class TpbProgram:
+  def __init__(self, tpbFile):
+    self.instructions = {}
+    print("INFO: Loading " + tpbFile, flush=True)
+    with os.popen('$INKLING_PATH/objdump/objdump ' + tpbFile) as fh:
+      instr = None
+      for line in fh:
+        match = re.match('^(\S+) @ (\S+):', line)
+        if match:
+          pc, instrType = match.groups()
+          instr = Instr(instrType)
+          self.instructions[int(pc,0)] = instr
+        else:
+          match = re.match('^  (\S+) .+: (0x\S+)', line)
+          if match:
+            instrField, value = match.groups()
+            instr.addField(instrField, int(value, 0))
+          instr.textFields += line
+  def getInstrCount(self):
+    return len(self.instructions)
+  def getInstrTable(self):
+    instrTable = {}
+    eventWaitTable = {}
+    eventSetTable = {}
+    activeTable = {"rows" : 0, "cols" : 0, "channels" : 0}
+    for pc, instr in self.instructions.items():
+      i = instr.instrType
+      instrTable[i] = 1 + instrTable.get(i, 0)
+      waitEvents, setEvents = instr.getEvents()
+      for e in waitEvents:
+        eventWaitTable[e] = 1 + eventWaitTable.get(e, 0)
+      for e in setEvents:
+        eventSetTable[e] = 1 + eventSetTable.get(e, 0)
+      for t in activeTable.keys():
+        activeTable[t] = max(activeTable[t], instr.getFieldInt("num_active_%s" % t))
+    return instrTable, eventWaitTable, eventSetTable, activeTable
+
+
+class TongaProgram:
+  def __init__(self, tongaFiles):
+    self.tpbPrograms = {}
+    for f in tongaFiles:
+      engine = os.path.basename(f).split("-")[0]
+      self.tpbPrograms[engine] = TpbProgram(f)
+  def getInstrCountTable(self):
+    count = {}
+    instrTable = {}
+    for engine, program in self.tpbPrograms.items():
+      count[engine] = program.getInstrCount()
+      instrTable[engine] = program.getInstrTable()
+    return count, instrTable
+
+class QemuLogs(object):
+  def __init__(self, logDir):
+    self.tests = {}
+    for subdir, dirs, files in os.walk(logDir):
+      #print("Subdir", subdir)
+      if subdir.endswith("/working_dir"):
+        testName = subdir.split("/")[-2]
+        print("\nTest", testName)
+        tongaFiles = []
+        for f in files:
+          if f.endswith("-final.bin"):
+            print("  File", f)
+            tongaFiles.append(subdir + "/" + f)
+        program = TongaProgram(tongaFiles)
+        self.tests[testName] = program
+  def report(self, csvFile):
+    rows = []
+    for testName, program in sorted(self.tests.items()):
+      countTable, engineTables = program.getInstrCountTable()
+      print(testName, countTable)
+      totInstrCount = 0
+      instrCount = {}
+      instructions = {}
+      activeAll = {"rows" : 0, "cols" : 0, "channels" : 0}
+      activeAllInit = activeAll.copy()
+      for engine in ['pe', 'act', 'pool']:
+        instrTable, eventWaitTable, eventSetTable, activeTable = engineTables.get(engine, ({}, {}, {}, activeAllInit))
+        c = countTable.get(engine, 0)
+        instrCount[engine] = c
+        totInstrCount += c
+        totUniqWaitEventCount = 0
+        totWaitEventCount = 0
+        totUniqSetEventCount = 0
+        totSetEventCount = 0
+        for we, count in eventWaitTable.items():
+          totUniqWaitEventCount += 1
+          totWaitEventCount += count
+        for se, count in eventSetTable.items():
+          totUniqSetEventCount += 1
+          totSetEventCount += count
+        instructions[engine] = ""
+        for i, count in sorted(instrTable.items()):
+          instructions[engine] += "%s %s  " % (i, count)
+        for t in activeAll.keys():
+          activeAll[t] = max(activeAll[t], activeTable[t])
+          
+      row = {"TestName"        : testName,
+             "TotInstrCount"   : totInstrCount,
+             "PeInstrCount"    : instrCount['pe'],
+             "ActInstrCount"   : instrCount['act'],
+             "PoolInstrCount"  : instrCount['pool'],
+             "TotUniqWaitEventCount" : totUniqWaitEventCount,
+             "TotWaitEventCount"     : totWaitEventCount,
+             "TotUniqSetEventCount"  : totUniqSetEventCount,
+             "TotSetEventCount"      : totSetEventCount,
+             "PeInstructions"   : instructions['pe'],
+             "ActInstructions"  : instructions['act'],
+             "PoolInstructions" : instructions['pool'],
+             "ActiveRows"       : activeAll["rows"],
+             "ActiveCols"       : activeAll["cols"],
+             "ActiveChannels"   : activeAll["channels"],
+             }
+      if totInstrCount > 0:
+        rows.append(row)
+    rows = sorted(rows, key=lambda x: x["TotInstrCount"])
+
+    with open(csvFile, 'w') as csvHandle:
+      fieldNames = ["TestName",
+                    "TotInstrCount",
+                    "PeInstrCount",
+                    "ActInstrCount",
+                    "PoolInstrCount",
+                    "ActiveRows",
+                    "ActiveCols",
+                    "ActiveChannels",
+                    "TotUniqWaitEventCount",
+                    "TotWaitEventCount",
+                    "TotUniqSetEventCount",
+                    "TotSetEventCount",
+                    "PeInstructions",
+                    "ActInstructions",
+                    "PoolInstructions",
+                   ]
+      writer = csv.DictWriter(csvHandle, fieldnames=fieldNames)
+      writer.writeheader()
+      writer.writerows(rows)
+    print("Wrote", csvFile)
+  
+ql = QemuLogs(args.logdir)
+ql.report(args.out_csv)
+
