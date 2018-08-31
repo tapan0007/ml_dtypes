@@ -871,7 +871,7 @@ void
 WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
                     EngineId chosenEngId, const std::vector<events::EventId>& succEventIds)
 {
-    Assert(succEventIds.size() == 1, "AtomLoad: only one succ event id");
+    Assert(succEventIds.size() == 1, "AtomLoad: only one succ event id: ", sbAtomLoadWaveop->gName());
     Assert(m_WaveCode.qBinFileRuntimeKelf(), "Must be binary for Runtime Kelf");
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     //const utils::DataType& dataType(sbAtomLoadWaveop->gDataType());

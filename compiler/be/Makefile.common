@@ -58,7 +58,7 @@ all : $(LIBRARY)
 $(OBJDIR)/%.o : $(SRCDIR)/%.cpp
 	@test -d $(OBJDIR) || mkdir $(OBJDIR)
 	@echo CC $<
-	$(COMPILER) $(GIT_SHA) $(CFLAGS) -c -o $@ $<
+	$(COMPILER) $(GIT_SHA_LONG) $(GIT_SHA_SHORT) $(CFLAGS) -c -o $@ $<
 
 ########################################################
 ########################################################

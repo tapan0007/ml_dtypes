@@ -7,6 +7,7 @@
 #include "nlohmann/json.hpp"
 
 #include "utils/inc/types.hpp"
+#include "utils/inc/asserter.hpp"
 #include "events/inc/events.hpp"
 
 namespace kcc {
@@ -28,12 +29,42 @@ public:
     class DmaBlockInput;
 
 private:
+    enum class FileType {
+        Weight,             // files containing weights
+        Input,              // files containing IFMAPs
+        LoadSave,           // tmp for data eviction
+        Output,             // files for OFMAPs
+        Invalid
+    };
     class DmaBlock;
     class DmaBlockNonIo;
     class DmaDesc;
     class DmaDescToTpb;
     class DmaDescFromTpb;
-    using FileIdType = std::string;
+
+    struct FileIdType {
+    public:
+        FileIdType()
+            : m_VarName("INVALID_VAR")
+            , m_FileName("INVALID_FILE")
+            , m_FileType(FileType::Invalid)
+            , m_Size(-1)
+        { }
+
+        FileIdType(std::string varName, std::string fileName, FileType type)
+            : m_VarName(varName)
+            , m_FileName(fileName)
+            , m_FileType(type)
+            , m_Size(-1)
+        { }
+
+        FileIdType(const FileIdType&);
+
+        std::string m_VarName;
+        std::string m_FileName;
+        FileType    m_FileType;
+        kcc_int64   m_Size;
+    };
 
 
 public:
@@ -58,25 +89,27 @@ public:
         m_InputSizeBytes = sz;
     }
 
-    kcc_int64 gOutputSizeBytes() const {
-        return m_OutputSizeBytes;
-    }
-    void rOutputSizeBytes(kcc_int64 sz) {
-        m_OutputSizeBytes = sz;
-    }
+
+    void rOutputSizeBytes(kcc_int64 sz, const std::string& refFileName);
+    kcc_int64 gOutputSizeBytes(const std::string& refFileName);
 
     bool qHasFile(const std::string& fileName) const;
 
 private:
-    static const char* gSymbolicOutput();
 
     static const char* gSymbolicInQueue();
     static const char* gSymbolicOutQueue();
 
+    struct Keys;
+
 private:
-    FileIdType gFileSymbolicId(const std::string& fileName);
+    FileIdType& gFileSymbolicId(const std::string& fileName, FileType fileType);
+    FileIdType& gFileSymbolicId(const std::string& fileName);
+    const FileIdType& gFileSymbolicId(const std::string& fileName) const;
+
     static const char* gSymbolicStateBuffer();
     static const char* gSymbolicInput();
+
 
     std::string gSymbolicQueue(EngineId engId, bool inp, bool weight) const;
 
@@ -86,7 +119,7 @@ private:
     kcc_int32 gBlockIdForQueue(const std::string& queName);
     kcc_int32 gNumBlockIdsForQueue(const std::string& queName) const;
 private:
-    kcc_int32                           m_FileIdCnt = 0;
+    kcc_int32                           m_WeightFileIdCnt = 0;
     std::map<std::string, FileIdType>   m_FileNameToId;
     std::map<std::string, kcc_int32>    m_QueueToBlockId;
     std::vector<DmaBlockToTpb>          m_DmaBlocksToTpb;
@@ -104,6 +137,31 @@ private:
     kcc_int64                           m_InputSizeBytes         = -1;
     kcc_int64                           m_OutputSizeBytes        = -1;
 }; // class DmaDescription
+
+
+struct DmaDescription::Keys {
+    static const char* gBinFileName();
+    static const char* gWeightFileName();
+    static const char* gJsonName();
+    static const char* gQueueName();
+    static const char* gFromId();
+    static const char* gFromOffset();
+    static const char* gToId();
+    static const char* gToOffset();
+    static const char* gSize();
+    static const char* gDescriptor();
+    static const char* gBlockId();
+    static const char* gDescType();
+    static const char* gQueueType();
+    static const char* gOwner();
+    static const char* gDmaBlock();
+    static const char* gDmaQueue();
+
+    static const char* gHashComment();
+    static const char* gHashBlockSize();
+    static const char* gHashTransferType();
+    static const char* gHashFileName();
+};
 
 
 /***********************************************************************
@@ -129,12 +187,17 @@ private:
 class DmaDescription::DmaDescToTpb : public DmaDesc {
 public:
     DmaDescToTpb(kcc_uint64 nBytes, TpbAddress    dstSbAddress,
-                 TongaAddress  srcFileAddress, FileIdType    srcFileId)
+                 TongaAddress  srcFileAddress, const FileIdType&  srcFileId)
         : DmaDesc(nBytes)
         , m_DstSbAddress(dstSbAddress)
         , m_SrcFileAddress(srcFileAddress)
         , m_SrcFileId(srcFileId)
-    {}
+    {
+        Assert(FileType::Weight == srcFileId.m_FileType
+            || FileType::Input == srcFileId.m_FileType
+            || FileType::LoadSave == srcFileId.m_FileType,
+            "Wrong file type of Dma descriptor to TPB");
+    }
 
     DmaDescToTpb() = delete;
 
@@ -144,7 +207,7 @@ public:
     TongaAddress gSrcFileAddress() const {
         return m_SrcFileAddress;
     }
-    FileIdType    gSrcFileId () const {
+    const FileIdType&    gSrcFileId () const {
         return m_SrcFileId;
     }
     void assertAccessCheck() const override;
@@ -160,12 +223,16 @@ private:
 class DmaDescription::DmaDescFromTpb : public DmaDesc {
 public:
     DmaDescFromTpb(kcc_uint64 nBytes, TpbAddress srcSbAddress,
-                   TongaAddress    dstFileAddress, FileIdType dstFileId)
+                   TongaAddress    dstFileAddress, const FileIdType& dstFileId)
         : DmaDesc(nBytes)
         , m_SrcSbAddress(srcSbAddress)
         , m_DstFileAddress(dstFileAddress)
         , m_DstFileId(dstFileId)
-    {}
+    {
+        Assert(FileType::Output == dstFileId.m_FileType
+            || FileType::LoadSave == dstFileId.m_FileType,
+            "Wrong file type of Dma descriptor to TPB");
+    }
 
     DmaDescFromTpb() = delete;
     TpbAddress gDstFileAddress() const {
@@ -174,7 +241,7 @@ public:
     TpbAddress gSrcSbAddress() const {
         return m_SrcSbAddress;
     }
-    FileIdType gDstFileId() const {
+    const FileIdType& gDstFileId() const {
         return m_DstFileId;
     }
     void assertAccessCheck() const override;

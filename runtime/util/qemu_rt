@@ -540,17 +540,13 @@ class Krt(object):
     time.sleep(2)  # for kbin_rt to have time to return exit code after writing out.bin
     
     filesToWaitForStr = "%s/%s %s/%s %s/%s" % (
-      self.kelfVmDir, self.krtPass, self.kelfVmDir, self.krtFail, self.ofmapDir, "out.bin")
+      self.kelfVmDir, self.krtPass, self.kelfVmDir, self.krtFail, self.ofmapDir, "*.bin")
     for i in range(self.inklingTimeout):
       print("  Waiting for krt_bin to complete %i" %i, flush=True)
       time.sleep(1)
       self.qemu.rsyncFromVm(filesToWaitForStr, ".")
       if os.path.isfile(self.krtPass) or os.path.isfile(self.krtFail):
         break
-    
-    cmdMoveOfmap = "mv out.bin %s" % self.ofmap  # ofmap name contains sg id, eg out-sg01.bin
-    print("INFO: " + cmdMoveOfmap)
-    os.system(cmdMoveOfmap)
     
     self.getFinalBin()
     debug = True

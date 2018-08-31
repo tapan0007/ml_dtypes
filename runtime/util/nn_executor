@@ -270,11 +270,10 @@ class NnSubgraph:
           simExt = "midout"
         tpbFmapFormat = tff.simFormat
         tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
+        outFileQuemu = "%s_%s.bin" % (outBase, tpbFmapFormat)
         
         if executor == "qemu_wave" or executor == "qemu_wave2":
           # qemu_inkling runtime outputs raw binary portion of the ofmap in TPB format (not full npy)
-          assert len(self.outputs) == 1   # qemu_inkling only support single output subgraphs
-          outFileQuemu = "out-%s.bin" % self.sgDir
           print("INFO: nn_executor: translating Qemu output %s to %s" % (outFileQuemu, tpbOutFile))
           if os.path.isfile(outFileQuemu):
             outFileOrig = "%s/%s/%s" % (kelf_dir, self.sgDir, tpbOutFile.replace("-simout.npy", ".npy"))

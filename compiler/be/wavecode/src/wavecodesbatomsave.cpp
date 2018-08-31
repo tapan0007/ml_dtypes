@@ -176,10 +176,6 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
 
     //************************************************************************
     const bool qOut = sbAtomSaveWaveop-> qFinalLayerOfmap();
-#define OUT_DESCS_IN_MULTIPLE_BLOCKS false // Used to slow output DMAs (debugging Emulator)
-#if OUT_DESCS_IN_MULTIPLE_BLOCKS 
-  if (!qOut) {
-#endif
     std::ostringstream oss;
     oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName();
     kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(
@@ -233,71 +229,6 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
-
-#if OUT_DESCS_IN_MULTIPLE_BLOCKS 
-  } else { // qOut, N dma block per descriptor, add one NOP+128 cycles in front of EVERY DMA block
-           // rather than only in front of the first block (the latter would be equivalent to having one
-           // NOP+128 cycles in front of the single block with multiple descriptors).
-    enum { NumDescsPerBlock = 4 };
-    const std::string refFileName(sbAtomSaveWaveop->gRefFileName());
-
-    kcc_int32 partIdx = startPart;
-
-    for (kcc_int32 blockIdx = 0; partIdx < startPart + numPartitions; ++blockIdx) {
-        std::ostringstream oss;
-        oss << sbAtomSaveWaveop->gOrder() << "-" << blockIdx << ":" << sbAtomSaveWaveop->gName();
-        kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(
-                                        chosenEngId, qOut, oss.str().c_str()));
-
-        for (kcc_int32 i = 0; i < NumDescsPerBlock && partIdx < startPart + numPartitions; ++i, ++partIdx) {
-            const TongaAddress  fileAddress = sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
-            const TpbAddress    sbAddress = stateBuf.gEntryTpbAddress(partIdx, addressInPart);
-            dmaBlock.addDmaDesc(sbAddress, fileAddress, refFileName, numBytesPerPart);
-        }
-
-        //************************************************************************
-        // Incoming events were processed in
-        // WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(),
-        // so processing them again in processIncomingEdgesForceWait is wrong.
-        // The event on the chosen pred edge is replaced by sequential execution of
-        // the previous waveop and TRIGGER.
-        //
-        // Of non-chosen pred edges, one of the Waits can be implemented as embedded.
-        // The current code does not do that yet.
-
-        if (false && qParallelStreams()) { // incoming events, adds wait for each
-            events::EventId waitEventId = 0; // events::EventId_Invalid();
-            events::EventWaitMode waitEventMode = events::EventWaitMode::DontWait;
-
-            processIncomingEdgesForceWait(sbAtomSaveWaveop, chosenEngId, waitEventId, waitEventMode);
-        } // end incoming events
-
-        //************************************************************************
-        addDmaBarrier(chosenEngId);
-        //************************************************************************
-
-        compisa::DmaTriggerInstr dmaTriggerInstr;
-        strncpy(dmaTriggerInstr.dma_queue_name, dmaBlock.gQueueName().c_str(),
-                    sizeof(dmaTriggerInstr.dma_queue_name)/sizeof(dmaTriggerInstr.dma_queue_name[0]) - 1);
-        dmaTriggerInstr.use_raw_count = 0; // get from JSON
-        dmaTriggerInstr.block_id = dmaBlock.gBlockId();
-
-        dmaTriggerInstr.inst_events.wait_event_idx  = 0;
-        dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-        dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ event is in desc
-        dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
-
-        {
-            std::ostringstream oss;
-            oss << sbAtomSaveWaveop->gOrder() << ":-1:" << blockIdx << "-" << sbAtomSaveWaveop->gName();
-            m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
-        }
-        m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
-
-        addSecondDmaTrigger(dmaTriggerInstr, chosenEngId);
-    }
-  }
-#endif
 }
 
 
@@ -365,10 +296,12 @@ WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomSaveWaveOp* sbAtom
             break;
         }
     }
-    Assert(chosenPrevEdge, "Save: must have prev chosen edge");
-    Assert(chosenEngId == chosenPrevEdge->gFromOp()->gEngineId(),
-        "Engine on chosen edge from ", chosenPrevEdge->gFromOp()->gName(), " to ", sbAtomWaveop->gName(),
-        " different than engine id ", utils::engineId2Str(chosenEngId));
+    if (chosenPrevEdge) {
+        Assert(chosenPrevEdge->gFromOp()->gEngineId() == chosenEngId,
+            "Engine on chosen edge from ", chosenPrevEdge->gFromOp()->gName(), " to ", sbAtomWaveop->gName(),
+            " different than engine id ", utils::engineId2Str(chosenEngId));
+    }
+    Assert(EngineId::Pooling == chosenEngId, "AtomSave must be on PoolEng");
 
     // First wait on all other engines
     for (auto prevWaveEdge : sbAtomWaveop->gPrevWaveEdges()) {
@@ -393,10 +326,6 @@ WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomSaveWaveOp* sbAtom
 void
 WaveCodeSbAtomSave::calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
 {
-    const bool qOut = sbAtomSaveWaveop-> qFinalLayerOfmap();
-    if (!qOut) {
-        return;
-    }
     const utils::DataType&    dtype(sbAtomSaveWaveop->gDataType());
     const std::array<kcc_int32,4>& shape(sbAtomSaveWaveop->gRefFileShape ());
     kcc_int64 sz = dtype.gSizeInBytes();
@@ -404,12 +333,13 @@ WaveCodeSbAtomSave::calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveo
         sz *= n;
     }
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
-    if (kelfDma.gOutputSizeBytes() < 0) {
-        kelfDma.rOutputSizeBytes(sz);
+    const kcc_int64 existingSz = kelfDma.gOutputSizeBytes(sbAtomSaveWaveop->gRefFileName());
+    if (existingSz < 0) {
+        kelfDma.rOutputSizeBytes(sz, sbAtomSaveWaveop->gRefFileName());
     } else {
         if (m_WaveCode.qBinFileRuntimeKelf()) {
-            Assert(kelfDma.gOutputSizeBytes() == sz,
-                "Previously calculated output size ", kelfDma.gOutputSizeBytes(),
+            Assert(existingSz == sz,
+                "Previously calculated output size ", existingSz,
                 " != current size ", sz, " from AtomSave ",
                 sbAtomSaveWaveop->gName());
         }

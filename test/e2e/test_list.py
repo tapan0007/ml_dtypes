@@ -67,7 +67,24 @@ testConfigMap = {
   "0-rtl-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
 
 # Multiple convolves
-  "0-rtl-10conv_h4c1m1_relu_wave"      : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-4conv_multiout_wave"      : [ 
+    "trivnet_lin",
+    "tfloat16-l4-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010",
+    "10cr",
+    ( " --scheduler qemu_wave2  "
+     #+ " --wavegraph_checks structure data-race "
+     + " --wavegraph_checks structure "   ## With extra Saves, data races are present.
+     + " --schedule_options ' --save_layer_output ' "
+    )
+  ],
+
+  "0-rtl-10conv_h4c1m1_relu_wave"      : [
+    "trivnet_lin",
+    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010",
+    "10cr",
+    "--scheduler wave2 --wavegraph_checks structure data-race"
+  ],
+
   "0-rtl-10conv_h16c128m64_relu_wave"  : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.39-wmax0.4-imin-0.1-imax0.2", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-rtl-10conv_h32c256m128_relu_wave" : [ "trivnet_lin",    "tfloat16-l10-b1-h4-r3-s1-c1-m1-relu-wmin-0.02-wmax0.4-imin-0.1-imax0.2", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
  ########### ########### ########### ########### ########### ########### ########### ###########

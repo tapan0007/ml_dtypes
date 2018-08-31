@@ -94,28 +94,43 @@ WaveCode::determinePrecSbEdges()
                     loadWop->rEngineId(EngineId::Pooling);
                 }
             } else {
-                loadWop->rEngineId(EngineId::Pooling);
+                Assert(false, "Waveop without input edges must be Load");
+                sbWop->rEngineId(EngineId::Pooling);
             }
 
             continue;
         }
 
         wave::WaveEdge* chosenPrevEdge = nullptr;
-        for (auto engId : engineIds) {
-            for (auto prevWaveEdge : waveop->gPrevWaveEdges()) {
-                if (prevWaveEdge->gFromOp()->gEngineId() == engId) {
+        if (const auto saveWop = dynamic_cast<wave::SbAtomSaveWaveOp*>(sbWop)) {
+            for (auto prevWaveEdge : saveWop->gPrevWaveEdges()) {
+                if (prevWaveEdge->gFromOp()->gEngineId() == EngineId::Pooling) { // For now save must be on pooling
                     chosenPrevEdge = prevWaveEdge;
                     break;
                 }
             }
-            if (chosenPrevEdge) {
-                break;
+        } else {
+            const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(sbWop);
+            Assert(loadWop, "SbAtom must be Save or Load");
+            for (auto engId : engineIds) {
+                for (auto prevWaveEdge : loadWop->gPrevWaveEdges()) {
+                    if (prevWaveEdge->gFromOp()->gEngineId() == engId) {
+                        chosenPrevEdge = prevWaveEdge;
+                        break;
+                    }
+                }
+                if (chosenPrevEdge) {
+                    break;
+                }
             }
         }
-        // Chosen edge exist if on TPB engine.
-        // If this is SbAtomSave --> SbAtomLoad, there will not be a chosen edge.
-        chosenPrevEdge->rChosenForSuccSbAtom(true);
-        sbWop->rEngineId(chosenPrevEdge->gFromOp()->gEngineId());
+
+        if (chosenPrevEdge) {
+            chosenPrevEdge->rChosenForSuccSbAtom(true);
+            sbWop->rEngineId(chosenPrevEdge->gFromOp()->gEngineId());
+        } else {
+            sbWop->rEngineId(EngineId::Pooling);
+        }
     }
 }
 

@@ -6,6 +6,7 @@
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
 
+#include "utils/inc/version.hpp"
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/debug.hpp"
 #include "utils/inc/printers.hpp"
@@ -98,7 +99,6 @@ void writeOutJson(nets::Network* ntwk, const char* jsonInFileName, const char* e
 
 //------------------------------------------------
 
-static const char git_sha[] = GIT_SHA;
 
 int
 Main(int argc, char* argv[])
@@ -177,7 +177,7 @@ Main(int argc, char* argv[])
     const arch::Arch& arch(arch::Arch::gArch());
     const arch::PsumBuffer psumBuf(arch.gPsumBuffer());
     std::cout << "Generating Arch '" << arch.gArchVersion() << "'\n";
-    std::cout << "Git commit " << git_sha << "\n";
+    std::cout << "Git commit " << utils::Git::gShaLong() << "\n";
 
     // Does not matter which DataType because entry index is 0.
     const utils::DataTypeFloat32 dtypeFloat32;
@@ -216,7 +216,7 @@ Main(int argc, char* argv[])
 
 
     //------------------------------------------------
-    nets::Network network(arch, git_sha);
+    nets::Network network(arch, utils::Git::gShaLong());
     nets::Network* ntwk = &network;
 
     {
@@ -404,9 +404,8 @@ Main(int argc, char* argv[])
             instrStreams.m_DmaInstrStream           = nullptr;
         }
 
-
-
     }
+    std::cout << "Compiler BE: PASSED\n";
 
     return 0;
 }

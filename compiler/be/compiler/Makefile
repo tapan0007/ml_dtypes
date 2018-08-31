@@ -13,15 +13,12 @@ MODS :=  \
 	events		\
 	wave		\
 	arch		\
-	utils		\
 	kelf 		\
+	utils		\
 	compisa
 
 
 SRCS := compiler
-
-GIT_SHA:=$(shell git describe --dirty --always --abbrev=12)
-GIT_SHA := -DGIT_SHA='"'$(GIT_SHA)'"'
 
 include ../Makefile.common
 
