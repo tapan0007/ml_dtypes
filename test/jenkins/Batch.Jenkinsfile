@@ -106,24 +106,6 @@ pipeline{
         }
         stage('Regressions') {
             stages {
-                stage('check') {
-                    steps {
-                        timeout(time: 50, unit: 'MINUTES') {
-                            sh 'cd $TEST_DIR/precheckin && make -f $KAENA_PATH/test/e2e/Makefile check'
-                        }
-                    }
-                    post {
-                        always {
-                            sh 'find $TEST_DIR/precheckin -type f -name "*.vdi" -delete'
-                            sh '/bin/cp -r $TEST_DIR/precheckin /artifact/precheckin'
-                            archiveArtifacts artifacts:'precheckin/qor_report.txt,*.tgz,precheckin/**/*.txt'
-                        }
-                        failure {
-                            sh 'tar -czvf /artifact/test-precheckin-result-all.tgz $TEST_DIR/precheckin'
-                            archiveArtifacts artifacts:'*.tgz'
-                        }
-                    }
-                }
                 stage('daily') {
                     steps {
                         timeout(time: 24, unit: 'HOURS') {

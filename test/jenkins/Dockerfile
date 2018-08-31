@@ -32,7 +32,8 @@ RUN pip3 install --no-cache-dir \
         virtualenv \
         scikit-image \
         tensorflow==1.8 \
-        pexpect
+        pexpect \
+        progress
 
 COPY ssh-config /tmp/ssh-config
 RUN cat /tmp/ssh-config >> /etc/ssh/ssh_config
