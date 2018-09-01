@@ -42,9 +42,11 @@ pipeline {
                     stash includes: 'krt-*.*-dv-hal.tar.gz', name: 'krt_dv_package'
 
                     node ('tonga-nodocker'){
-                        // Trigger tonga_kaena_latest_dv_qual job
-                        def handle =
-                        triggerRemoteJob abortTriggeredJob: true, blockBuildUntilComplete: false, job: 'http://ci-server-tonga-hw:8080/ci-server-tonga-hw/job/tonga_kaena_latest_dv_qual/', maxConn: 1, remoteJenkinsName: 'ci-server-tonga-hw', shouldNotFailBuild: true, token: 'ka3Na'
+                        script {
+                            // Trigger tonga_kaena_latest_dv_qual job
+                            def handle =
+                            triggerRemoteJob abortTriggeredJob: true, blockBuildUntilComplete: false, job: 'http://ci-server-tonga-hw:8080/ci-server-tonga-hw/job/tonga_kaena_latest_dv_qual/', maxConn: 1, remoteJenkinsName: 'ci-server-tonga-hw', shouldNotFailBuild: true, token: 'ka3Na'
+                        }
                     }
                 }
             }
