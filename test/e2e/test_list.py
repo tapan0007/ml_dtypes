@@ -773,6 +773,7 @@ testWaiver = [
 
     # bugs
     #['5-rn50_nne_to_act13_b16_wave-fast_dram$', 'WAIVE_BUG_KAENA454'],
+    ['8-rn50_nne_fp16_meauto$', 'WAIVE_KAENA701'],
 
     # Replication
     ['^[0-2]-rn50-.*_wave_repl$', 'WAIVE_REPLICATION'],
