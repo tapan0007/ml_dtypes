@@ -133,14 +133,19 @@ class TfFe:
     # Simplistic abstration of GraphDephs for --focus_to.
     # It uses strings (not node pointers) to store basic graph connectivity
     class tfGraph(object):
-      def __init__(self, tfGd):
+      def __init__(self, tfGd, debugLevel):
+        self.debugLevel = debugLevel
         #self.name2node = {}
         #for tfNode in tfGd.node:
         #  self.name2node[tfNode.name] = tfNode
         self.name2predNameList = {}
         for tfNode in tfGd.node:
           predNames = []
+          if self.debugLevel >= 2:
+            print("  DEBUG tfGraph node", tfNode.name)
           for ni in tfNode.input:
+            if self.debugLevel >= 2:
+              print("    DEBUG tfGraph node input", ni)
             m = re.findall("(.*):(\d+)$", ni)
             if len(m) == 1:
               (fromName, fromIndex) = m[0][0], int(m[0][1])
@@ -148,6 +153,8 @@ class TfFe:
               (fromName, fromIndex) = (ni, 0)
             predNames.append(fromName)
           self.name2predNameList[tfNode.name] = predNames
+          if self.debugLevel >= 2:
+            print("  DEBUG tfGraph node", tfNode.name, "added predecessors", predNames)
       # Returns set of node names
       # All APIs are string based, not nodes (for simplicity & debug)
       # Do not use for general graph operations due to efficiency
@@ -165,7 +172,7 @@ class TfFe:
         return faninCone
     
     if focusToName != None:
-      tfg = tfGraph(self.__gd)
+      tfg = tfGraph(self.__gd, self.debugLevel)
       focusToNameSet = tfg.faninConeNodes(focusToName)
       if self.debugLevel >= 1:
         print("INFO: --focus_to %s resulted in nodes:" % focusToName)
