@@ -1210,6 +1210,7 @@ class KNode:
         self.ofmap_wave_total_elems = 0
         self.node_number = node_number
         self.stridedslice_chan_offset = 0
+        self.stridedslice_prev = False
         self.unstack_info = None
         self.result_file = None
         self.pool_window_y = 1
@@ -1760,6 +1761,9 @@ class FusedOp(list):
         # Unfused Join cannot be fused with any subsequent op at the moment                
         elif (self.has_join and self.join_op == self[0]):
             return False
+        elif len(self) > 0 and op.stridedslice_prev:
+            print("DBG: refusing to add layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
+            return False
         if (len(op.prev) > 0):
             op.populate_common_params(adjust_for_pool=self.has_pool)
         # recompute Conv params due to constrained Pooling tile dimensions
@@ -2245,6 +2249,7 @@ class KGraph:
                             # dissolve StridedSlice into the next operation
                             if (prev_node.data['layer_type'] == "StridedSlice"):
                                 new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
+                                new_node.stridedslice_prev = True
                                 print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
                                 assert (len(self.node_dict[i].prev) == 1)
                                 new_node.add_prev(self.node_dict[i].prev[0])
@@ -3352,8 +3357,8 @@ def print_stats_items(stats):
 # Main program
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kgraph", help="K-graph Json file to read")
-    parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
+    parser.add_argument("--kgraph", default="compiler.json", help="K-graph Json file to read; defaults to compiler.json")
+    parser.add_argument("--wavegraph", default="wavegraph.json", help="Wave-graph Json file to write; defaults to wavegraph.json")
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--nname", default="resnet50", help="Network name, resnet50 or lm")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")

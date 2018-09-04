@@ -427,8 +427,8 @@ class TPBSched:
 """
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kgraph", help="K-graph Json file to read")
-    parser.add_argument("--wavegraph", help="Wave-graph Json file to write")
+    parser.add_argument("--kgraph", default="compiler.json", help="K-graph Json file to read; defaults to compiler.json")
+    parser.add_argument("--wavegraph", default="wavegraph.json", help="Wave-graph Json file to write; defaults to wavegraph.json")
     parser.add_argument("--dot", help="Dot file to write")
     parser.add_argument("--nname", default="resnet50", help="Network name, resnet50 or lm")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
