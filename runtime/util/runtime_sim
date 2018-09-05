@@ -47,7 +47,7 @@ class RuntimeSim:
 
       if sim_debug:
         if "all" in sim_debug:
-          cmd += " --debug_flags all"
+          cmd += " --debug_flags all _axi"
         else:
           sim_engines = ["pe", "act", "pool", "tpb", "sync"]
           first = True

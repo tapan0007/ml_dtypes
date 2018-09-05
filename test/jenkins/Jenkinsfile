@@ -23,6 +23,7 @@ pipeline{
         ARCH_ISA_PATH = "$SRC_DIR/arch-isa"
         KAENA_RT_PATH = "$SRC_DIR/krt"
         ARCH_HEADERS_PATH = "$SRC_DIR/arch-headers"
+        ARCH_ARTIFACTS_PATH = "$SRC_DIR/arch-headers"
 
         KRT_BLD_DIR = "$BLD_DIR/krt"
         KRT_DV_BLD_DIR = "$BLD_DIR/krt_dv"
@@ -97,6 +98,7 @@ pipeline{
                 stage('kaena') {
                     steps {
                         sh 'cd $SRC_DIR/shared && ./build.sh'
+                        sh '[ -z "$SIM_DEBUG" ] || (cd $INKLING_PATH/sim && make opt)'
                     }
                     post {
                         success {
