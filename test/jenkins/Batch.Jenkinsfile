@@ -106,7 +106,7 @@ pipeline{
         }
         stage('Regressions') {
             stages {
-                stage('daily') {
+                stage('batch') {
                     steps {
                         timeout(time: 24, unit: 'HOURS') {
                             sh 'cd $KAENA_PATH/test/tools && python3 batch_test_10k.py --repo-name=kaena-4e5694e.tar.gz --aws-profile=kaena'
@@ -114,17 +114,17 @@ pipeline{
                     }
                     post {
                         always {
-                            sh 'mkdir /artifact/daily'
-                            sh '/bin/cp $KAENA_PATH/test/tools/*.csv /artifact/daily'
-                            sh '/bin/cp $KAENA_PATH/test/tools/*.png /artifact/daily'
+                            sh 'mkdir /artifact/batch'
+                            sh '/bin/cp $KAENA_PATH/test/tools/*.csv /artifact/batch'
+                            sh '/bin/cp $KAENA_PATH/test/tools/*.png /artifact/batch'
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'/artifact/daily/*'
+                            archiveArtifacts artifacts:'/artifact/batch/*'
                         }
                         failure {
-                            sh 'mkdir /artifact/daily'
-                            sh '/bin/cp $KAENA_PATH/test/tools/batch-fail.txt /artifact/daily'
+                            sh 'mkdir /artifact/batch'
+                            sh '/bin/cp $KAENA_PATH/test/tools/batch-fail.txt /artifact/batch'
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'/artifact/daily/*'
+                            archiveArtifacts artifacts:'/artifact/batch/*'
                         }
                     }
                 }

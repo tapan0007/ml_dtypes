@@ -280,16 +280,6 @@ def main():
     print("Uploading files to S3 buckets")
     upload_files(session, testid, args.kelf_dir, args.output_bucket)
 
-    # request more resources to run batch tests
-    if not args.local_run:
-        # Current limit on EC2 instances is 15.
-        aws_autoscale = session.client(service_name='autoscaling', region_name='us-east-1')
-        aws_autoscale.update_auto_scaling_group(
-            AutoScalingGroupName='bigDisk-c5-asg-8ecd519f-a2af-3d03-a830-63ec7952178e',
-            MaxSize = 15,
-            DesiredCapacity = 15
-        )
-
     inference_req = InferenceRequest(session, args.job_queue, args.job_definition,
                                      args.input_bucket, args.output_bucket,
                                      args.repo_name, args.input_batch_size)
