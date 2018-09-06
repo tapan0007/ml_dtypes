@@ -253,7 +253,7 @@ class QoR:
           for f in files:
             csvFile = subdir + '/' + f
             #print(csvFile)
-            match = re.search(r'(^|\/)(\d+)\/qor.csv$', csvFile)
+            match = re.search(r'(^|\/)(\d+)(\/default)?\/qor.csv$', csvFile)
             if match:
               date = match.groups()[1]
               self.add(date, csvFile)
@@ -747,7 +747,7 @@ class Ktests:
     x = [x for x in range(len(xlabels))]
     #print("DEBUG x: ", x)
     #print("DEBUG x: ", xlabels)
-    fig, axarr = plt.subplots(1, sharex=True, figsize=(12,8))
+    fig, axarr = plt.subplots(1, sharex=True, figsize=(16,8))
     axPeUtil  = axarr
     axPeUtil.set_xticks(x)
     axPeUtil.set_xticklabels(xlabels, rotation=90)
