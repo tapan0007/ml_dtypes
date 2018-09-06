@@ -24,20 +24,28 @@ epilog = '''
           $KAENA_PATH/test/e2e/RunAll --test_re '_wave($|[\b_-])' --force_qemu --parallel 32 --timeout 3600 --filter not_waived
     $KAENA_PATH/compiler/util/repo_search --since "Jun 25" --until "now" --sleep 600 --load 40 --run_cmd ~/bin/RunAllQemu.sh --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh && ./build.sh && cd ..' 
 
- Another example of a workaround for a missing build variable
+  Another example of a workaround for a missing build variable
     $KAENA_PATH/compiler/util/repo_search --since "Wed Jun 27 13:17:21 2018" --until "now" --sleep 600 --load 10  --run_cmd ~/bin/RunAllQemu.sh --build_cmd '/bin/rm -rf build; echo make_all: > inkling/objdump/makefile;  cd shared; . ./set_env.sh ; export ARCH_HEADERS_PATH=$KAENA_PATH/../arch-headers && ./build.sh && cd ..' 
     KAENA_PATH/compiler/util/repo_search --report
 
- Example - a workaround for a bad commit of S3 VDI qemu image:
- $KAENA_PATH/compiler/util/repo_search --since "Wed Jul 3" --until "Jul 8" --sleep 600 --load 10 --run_cmd 'cp $KAENA_PATH/runtime/util/qemu_rt xxx; sed 's/a0b065d0edc5ba407531d422338348daf1f6779a764c5e149acec32b101fc562/aa5e19ffbc8fcec79d41412040144a0b8260522a415b410ab7d1d00a3350779f/' < xxx > $KAENA_PATH/runtime/util/qemu_rt; chmod a+rx $KAENA_PATH/runtime/util/qemu_rt; $KAENA_PATH/test/e2e/RunAll --test 0-1conv0_padvalid_wave    1-1conv0_h224c1m1_wave    3-rn50_ba_relu_fp16_wave    3-rn50_relu_fp16_wave    4-rn50_matmul_nosm_wave    5-rn50_nne_to_act4_wave --force_qemu' > & log &
+  Example - a workaround for a bad commit of S3 VDI qemu image:
+    $KAENA_PATH/compiler/util/repo_search --since "Wed Jul 3" --until "Jul 8" --sleep 600 --load 10 --run_cmd 'cp $KAENA_PATH/runtime/util/qemu_rt xxx; sed 's/a0b065d0edc5ba407531d422338348daf1f6779a764c5e149acec32b101fc562/aa5e19ffbc8fcec79d41412040144a0b8260522a415b410ab7d1d00a3350779f/' < xxx > $KAENA_PATH/runtime/util/qemu_rt; chmod a+rx $KAENA_PATH/runtime/util/qemu_rt; $KAENA_PATH/test/e2e/RunAll --test 0-1conv0_padvalid_wave    1-1conv0_h224c1m1_wave    3-rn50_ba_relu_fp16_wave    3-rn50_relu_fp16_wave    4-rn50_matmul_nosm_wave    5-rn50_nne_to_act4_wave --force_qemu' > & log &
 
-  Tracking down an Inkling corruption (crashes in main with no arguments):
+  Example - Tracking down an Inkling corruption (crashes in main with no arguments):
     $KAENA_PATH/compiler/util/repo_search --since "Aug 19" --until "Aug 22" --run_cmd 'valgrind $INKLING_PATH/sim/sim ' --sleep 5 --build_cmd '/bin/rm -rf build; cd shared && . set_env.sh && cd .. &&  cd inkling/sim && make && cd ../..' > & log &
     vi ~/bin/m1
       #!/bin/sh
       egrep "ERROR SUMMARY" log.txt | awk '{print($4)}'
     $KAENA_PATH/compiler/util/repo_search --report --metric_cmd ~/bin/m1 ValgrindErrors
     firefox out_search.svg
+
+  Example - tracking down decrease in Tonga performance, Kaena-710:
+    Includes 2 workaround for compile issues in a) objdump, b) event checker google test
+      $KAENA_PATH/compiler/util/repo_search --since "Aug 16" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 0-1conv0_wave 7-rn50_nne_fp16_wave-fast_dram 7-rn50_nne_fp16_b4_wave-fast_dram' --build_cmd '/bin/rm -rf build; /bin/cp /work1/zejdaj/git_repo2/kcc/compiler/wave-checker/scr/gtest-build.sh kcc/compiler/wave-checker/scr/gtest-build.sh; echo make_all: > inkling/objdump/makefile;   cd shared; . ./set_env.sh && ./build.sh && cd ..'
+      $KAENA_PATH/compiler/util/repo_search --report --metric_cmd 'grep 7-rn50_nne_fp16_wave-fast_dram run/qor.csv | cut -d, -f 5' TopfEff_b1 'grep 7-rn50_nne_fp16_b4_wave-fast_dram run/qor.csv | cut -d, -f 5' TopfEff_b4
+      firefox out_search.svg
+
+  
 
 
 '''
@@ -78,17 +86,18 @@ def systemAndPrint(cmd):
 
 
 class Commit(object):
-  def __init__(self, repo, gitHash, gitShortHash, gitTime, gitCommitter, gitCommitDate, text):
+  def __init__(self, repo, gitHash, gitShortHash, gitTime, gitAuthor, gitCommitter, gitCommitDate, text):
     self.repo = repo
     self.gitHash = gitHash
     self.gitShortHash = gitShortHash
     self.gitTime = int(gitTime)
+    self.gitAuthor = gitAuthor.split('@')[0]
     self.gitCommitter = gitCommitter.split('@')[0]
     self.gitCommitDate = gitCommitDate
     self.text = text
     self.index = None
   def __str__(self):
-    return "%03d  %-12s  %-10s  %-10s  %s  %s" % (self.index, self.repo, self.gitShortHash, self.gitCommitter, time.ctime(self.gitTime), self.text)
+    return "%03d  %-12s  %-10s  %-10s  %s  %s" % (self.index, self.repo, self.gitShortHash, self.gitAuthor, time.ctime(self.gitTime), self.text)
 
 class CommitOrder:
   def __init__(self, repos, options):
@@ -104,7 +113,7 @@ class CommitOrder:
           #print('DEBUG line:  ', line)
           lineWords = line.split(" | ")
           gitHash, gitShortHash, gitAutherTime, gitCommitTime, gitAuthor, gitCommitter, gitAuthorDate, gitCommitDate = lineWords[0:8]
-          commit = Commit(repo, gitHash, gitShortHash, gitCommitTime, gitCommitter, gitCommitDate, " ".join(lineWords[8:]))
+          commit = Commit(repo, gitHash, gitShortHash, gitCommitTime, gitAuthor, gitCommitter, gitCommitDate, " ".join(lineWords[8:]))
           tmpCommits.append(commit)
           self.repo2order[repo].append(commit)
     commits = sorted(tmpCommits, key=lambda x: x.gitTime)
