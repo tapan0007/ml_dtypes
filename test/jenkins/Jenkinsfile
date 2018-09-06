@@ -98,7 +98,7 @@ pipeline{
                 stage('kaena') {
                     steps {
                         sh 'cd $SRC_DIR/shared && ./build.sh'
-                        sh '[ -z "$SIM_DEBUG" ] || (cd $INKLING_PATH/sim && make opt)'
+                        sh '[ -z "$SIM_DEBUG" ] || (cd $INKLING_PATH/sim && make clean && make opt)'
                     }
                     post {
                         success {
