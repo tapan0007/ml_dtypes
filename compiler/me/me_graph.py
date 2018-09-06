@@ -45,7 +45,7 @@ class KNode:
         self.node_number = node_number
         self.stridedslice_chan_offset = 0
         self.unstack_h_offset = 0
-        self.result_file = None
+        self.result_avail = False
         self.filter = Dim2D(0,0)
         self.pool_window = Dim2D(0,0)
         self.stride = Dim2D(1,1)
@@ -93,7 +93,7 @@ class KNode:
     def count_missing_input_results(self):
         count = 0
         for i in self.prev:
-            if (not i.is_const) and (i.result_file is None):
+            if (not i.is_const) and (not i.result_avail):
                 count += 1
         return count                
 
@@ -675,6 +675,7 @@ class KGraph:
                                 assert(new_node.data['padding'][1] == [0, 0])
                                 assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
                                 new_node.add_prev(prev_node.prev[0])
+                                prev_node.prev = []
                             elif (prev_node.data['layer_type'] == "StridedSlice"):
                                 new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
                                 print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
@@ -714,8 +715,6 @@ class KGraph:
                 elif (l['layer_type'] == "Const"):
                     new_node.is_const = True
                 elif (l['layer_type'] == "Reshape"):
-                    new_node.is_nop = True
-                elif (l['layer_type'] == "Pad"):
                     new_node.is_nop = True
                 elif (l['layer_type'] == "ConvTranspose"):
                     new_node.is_conv_transpose = True

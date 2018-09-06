@@ -1274,6 +1274,66 @@ class NodeReshape(Node):
   def isSupported(self):
     return True
 
+###############################################################################
+# Transpose
+# Initial implementation is simply identity since data format conversions are done
+# on all nodes
+###############################################################################
+class NodeTranspose(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self, tensorFormatMap):
+    fileList = []
+    
+    # Output tensor is NC format
+    npInfo = self.getNpInfo()[0]
+    if len(npInfo.npShape) == 4:
+      tfShape4D = npInfo.npShape
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+    elif len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
+    elif len(npInfo.npShape) == 2:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NC
+    else:
+      raise RuntimeError("Supported number of dimensions for Tranpose's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
+    
+    ((nIn, _), perm) = self.getInputNodesAndNpInfo()
+    npInfoIndexinBes = 1
+    permvec_tmp = perm[npInfoIndexinBes].getValues()
+    permvec = [np.asscalar(permvec_tmp[i]) for i in range(len(permvec_tmp))]
+    ordervec = [i for i in range(len(permvec_tmp))]
+    permvec = list(map(lambda x,y: x - y, permvec, ordervec))
+    if len(npInfo.npShape) == 4:
+      permvec = npt.reorderShape(permvec, npt.TF, npt.SIM, npt.Fmaps)
+    permvec = list(map(lambda x,y: x + y, permvec, ordervec))
+    
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "perm"            : permvec,
+      "previous_layers" : [nIn.getName()],
+      "#comment"        : "Transpose implemented as a copy operation (output dims limited to between 2-4)"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
 
 ###############################################################################
 # StridedSlice
@@ -1494,7 +1554,6 @@ class NodePad(Node):
     padvec = [[np.asscalar(padvec_tmp[i][j]) for j in range(padvec_tmp.shape[1])] for i in range(padvec_tmp.shape[0])]
     if len(npInfo.npShape) == 4:
       padvec = npt.reorderShape(padvec, npt.TF, npt.SIM, npt.Fmaps)
-      print(padvec)
 
     layerData = {
       "ofmap_shape"     : tpbShape,

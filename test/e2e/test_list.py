@@ -100,6 +100,9 @@ testConfigMap = {
 
   "0-1clipbyvalue_wave" : [ "trivnet_clipbyvalue",  "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv_dilated_wave" : [ "trivnet_conv_dilated",  "tfloat16-b1-h8-r3-s1-c1-m1-d2-wmin2-wmax2.2-imin0-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  #"0-1conv_dilated_old_wave" : [ "trivnet_conv_dilated_old",  "tfloat16-b1-h8-r3-s1-c1-m1-d2-wmin2-wmax2.2-imin0-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-1reshape_wave" : [ "trivnet_reshape",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2"],
+  "0-1transpose_wave" : [ "trivnet_transpose",  "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv0_subnormal_wave" : [ "trivnet_conv1",
@@ -274,6 +277,7 @@ testConfigMap = {
   "1-1conv_transpose_s2_wave" : [ "trivnet_conv_transpose",  "tfloat16-b1-h4-r1-s2-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "1-1conv_transpose_s4_wave" : [ "trivnet_conv_transpose",  "tfloat16-b1-h4-r1-s4-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "1-1conv_transpose_h8s4_wave" : [ "trivnet_conv_transpose",  "tfloat16-b1-h8-r1-s4-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h89r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h89-r40-s10-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
   "2-1conv3_64s8_wave" : [ "trivnet_conv1",  "tfloat16-b1-h16-r3-s8-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", "--scheduler wave"],
   "2-1conv9_64s8_wave" : [ "trivnet_conv1",  "tfloat16-b1-h16-r9-s8-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
@@ -786,9 +790,11 @@ testWaiver = [
     # Parallel wavenet
     ['.*clipbyvalue.*', 'WAIVE_KAENA636'],
     ['.*softplus.*', 'WAIVE_KAENA634'],
+    ['0-1transpose_wave', 'WAIVE_KAENA711'],
+    #['.*reshape.*', 'WAIVE_KAENA597'],
     ['0-1conv_dilated_wave', 'WAIVE_KAENA569'],
-    ['3-parwavenet_to_rs10_fp16_waveopt$', 'WAIVE_KAENA569'],
-    ['9-parwavenet_10_10_fp16_waveopt$', 'WAIVE_KAENA569'],
+    ['3-parwavenet_to_rs10_fp16_waveopt$', 'WAIVE_KAENA711'],
+    ['9-parwavenet_10_10_fp16_waveopt$', 'WAIVE_KAENA711'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],
 

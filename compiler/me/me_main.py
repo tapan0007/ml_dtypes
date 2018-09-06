@@ -176,7 +176,7 @@ class TPBSched:
             # Dissolve Input of Placeholder types
             if first_op.is_placeholder:
                 assert(len(op_list) == 1)
-                first_op.result_file = first_op.data['ref_file']
+                first_op.result_avail = True
                 # Populate OFMAP params                        
                 first_op.populate_ofmaps_file_params()
                 # Treat the placeholder like a fork since there maybe multiple inputs 
@@ -209,14 +209,24 @@ class TPBSched:
                             print("INFO: Pad and split input FMAPs due to replication")
                             # Populate OFMAP params                        
                             first_op.populate_ofmaps_file_params()
-            # Dissolve Reshape
-            elif first_op.is_nop:
-                for j in first_op.prev:
-                    if j.result_file is not None:
-                        first_op.result_file = j.result_file
-                        first_op.populate_ofmaps_file_params()
-                        first_op.ofmaps_file_params = j.ofmaps_file_params
-                        break
+                """                            
+                # For NOP output data, create a view into the input data with a new shape
+                elif first_op.is_nop:
+                    assert(len(first_op.prev) == 1)
+                    for j in first_op.prev:
+                        if j.ofmaps_file_params is not None:
+                            first_op.result_avail = j.result_avail
+                            first_op.populate_ofmaps_file_params()
+                            first_op.ofmaps_file_params.dram_data = j.ofmaps_file_params.dram_data.view()
+                            try:
+                                first_op.ofmaps_file_params.dram_data.shape = first_op.ofmaps_file_params.file_dims.shape_tuple
+                            except AttributeError as e:                            
+                                raise RuntimeError ("ERROR: Cannot reshape data without copying; please implement reshape with copy")
+                            break
+                    if len(self.fused_ops_list) > 0:
+                        op_list.prev = self.fused_ops_list[-1]
+                    self.fused_ops_list.append(op_list)
+                """                
             else:       
                 # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
                 # Format matches existing bias formats, but it should be more like CRSM to match weights
@@ -229,9 +239,8 @@ class TPBSched:
                 self.fused_ops_list.append(op_list)
                 # make sure minimum batch count = Tn
                 op_list.current_batch_count = max(op_list.current_batch_count, op_list.last_op.Tn)
-                # set result file
-                op_list.last_op.result_file = last_op.ofmaps_file_params.file_name
-                print("Output file for layer %s is %s"%(op_list.last_op.data['layer_name'], op_list.last_op.result_file))
+                op_list.last_op.result_avail = True
+                print("Output file for layer %s is %s"%(op_list.last_op.data['layer_name'], op_list.last_op.ofmaps_file_params.file_name))
                 # Check for convenient location to pair-up batch items for processing together
                 op_list.partial_batch_pairup = False
                 op_list.next_batch_count = op_list.current_batch_count
@@ -278,10 +287,10 @@ class TPBSched:
                 print("Fused op %s is output, mark final_layer_ofmap=True"%(last_op.data["layer_name"]))
                 # If the first operation of current fused-op is a NOP
                 # propagate these flags back to the previous op so that data can be saved to file
-                if first_op.is_nop:
-                    for j in first_op.prev:
-                        j.ofmaps_file_params.final_layer_ofmap = True
-                        print("NOP is output, mark previous %s final_layer_ofmap=True"%(j.data["layer_name"]))
+                #if first_op.is_nop:
+                #    for j in first_op.prev:
+                #        j.ofmaps_file_params.final_layer_ofmap = True
+                #        print("NOP is output, mark previous %s final_layer_ofmap=True"%(j.data["layer_name"]))
 
             # kaena-643: pad sizes to 8B to satisfy HW 8B alignment requirement
             # Only for weights/bias, input IFMAP and final OFMAP.

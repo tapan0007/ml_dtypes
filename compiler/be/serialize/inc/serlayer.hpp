@@ -112,6 +112,8 @@ public:
                 || m_LayerType == LayerTypeStr_Slice
                 || m_LayerType == LayerTypeStr_Minimum
                 || m_LayerType == LayerTypeStr_Pad
+                || m_LayerType == LayerTypeStr_Softplus
+                || m_LayerType == LayerTypeStr_Transpose
                 || m_LayerType == LayerTypeStr_SpaceToBatchND
                 || m_LayerType == LayerTypeStr_BatchToSpaceND
                 || m_LayerType == LayerTypeStr_Concat) {

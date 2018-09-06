@@ -1048,7 +1048,7 @@ class FileMapper():
     def write_file_data_region(self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item, start_addr, length, start_at_mid_part):
         assert(batch_item < file_params.file_dims.N)
         assert(length > 0)
-        assert(length <= file_params.mapped_params.region_sz)
+        #assert(length <= file_params.mapped_params.region_sz)
         assert(start_addr >= 0)
         end_file_addr       = start_addr + length - self.item_sz
         start_sb_addr       = self.get_sb_addr_from_file_addr(file_params, batch_item, start_addr)
@@ -1399,7 +1399,7 @@ class FileMapper():
     def read_file_data_region(self, nonload_waveop_id, nonload_waveop_list, file_params, batch_item, start_addr, length, repl_multiple_of_C=1, dont_put_prev_ops = False):
         assert(batch_item < file_params.file_dims.N)
         assert(length > 0)
-        assert(length <= file_params.mapped_params.region_sz)
+        #assert(length <= file_params.mapped_params.region_sz)
         assert(start_addr >= 0)
         start_chunk_id      = self.get_chunk_id_from_file_addr(file_params, batch_item, start_addr)
         end_chunk_id        = self.get_chunk_id_from_file_addr(file_params, batch_item, start_addr + length - self.item_sz)

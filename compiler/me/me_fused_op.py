@@ -609,13 +609,20 @@ class FusedOp(list):
                                            + tpb.statebuffer.batcher.sb_partialbatch_start[ofmap_batch_count]
             # Scratch (OFMAP)
             else:
-                ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
-                ofmaps_region_start_addr = tpb.statebuffer.SB_PARTITION_SZ - ofmaps_region_sz
+                print(ifmaps_file_params.file_name, ifmaps_file_params.dram_data)
+                print(ofmaps_file_params.file_name, ofmaps_file_params.dram_data.base)
+                if self.first_op.is_nop:
+                    ofmaps_region_sz = ifmaps_region_sz
+                    ofmaps_region_start_addr = ifmaps_region_start_addr
+                else:    
+                    ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
+                    ofmaps_region_start_addr = tpb.statebuffer.SB_PARTITION_SZ - ofmaps_region_sz
 
             # If OFMAP region overlaps IFMAP region, and numober of channels > 64 or stride/filter-size > 1, offset it (to lower address) by OFMAP * Tn 
             # (stride is only relevant to Conv/Pool, and filter-size is only relevant to Conv)
             if ofmaps_region_start_addr >= ifmaps_region_start_addr \
-                    and ofmaps_region_start_addr < ifmaps_region_start_addr + ifmaps_region_sz:
+                    and ofmaps_region_start_addr < ifmaps_region_start_addr + ifmaps_region_sz \
+                    and not self.first_op.is_nop:
                 if (ofmaps_file_params.file_dims.C > 64) \
                     or (self.conv_op is not None and (self.conv_op.stride.x > 1 or self.conv_op.S > 1)) \
                     or (self.has_pool and self.pool_op.stride.x > 1):
@@ -755,65 +762,32 @@ class FusedOp(list):
                 weights_region_start_addr = weights_file_start_addr
             # OFMAPs region
             if ofmaps_file_params.mapped_params is None:
-                # When OFMAP can overwrite previous IFMAP
-#                if (ofmaps_file_params.file_dims.C <= PEArray.NUM_ROWS and\
-#                    not self.first_op.is_input and\
-#                    ifmaps_file_params.file_dims.C <= PEArray.NUM_ROWS and\
-#                    (ofmaps_file_params.tot_partition_usage_sz_padded <=\
-#                    ifmaps_file_params.tot_partition_usage_sz_padded)\
-#                   ):
-#                    ofmaps_region_start_addr = ifmaps_region_start_addr
-#                else:
-                ofmaps_region_start_addr = start_addr
-                #ofmaps_region_start_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
-                #        region0_start    = ofmaps_region_start_addr, 
-                #        region0_sz       = ofmaps_region_sz, 
-                #        region1_start    = weights_file_start_addr, 
-                #        region1_sz       = weights_file_sz,
-                #        min_region_start = bias_region_sz
-                #        )
-                #ofmaps_region_start_addr = tpb.statebuffer.file_mapper.adjust0_if_overlap(
-                #        region0_start    = ofmaps_region_start_addr, 
-                #        region0_sz       = ofmaps_region_sz, 
-                #        region1_start    = single_ifmap_start, 
-                #        region1_sz       = min(single_ifmap_sz, ifmaps_region_sz),
-                #        min_region_start = bias_region_sz
-                #        )
-                #if (self.first_op.is_concat == True):
-                #    ofmaps_region_start_addr=\
-                #            self.adjust_if_overlap_with_concat_ifmaps(
-                #                tpb
-                #                , ofmaps_region_start_addr
-                #                , ofmaps_region_sz
-                #                , single_ifmap_sz
-                #                , bias_region_sz
-                #            )
-                ofmaps_region_start_addr =\
-                        self.adjust_if_overlap_with_live_fmaps(
-                            tpb
-                            , ofmaps_region_start_addr
-                            , ofmaps_region_sz
-                            , bias_region_sz
-                            , live_mapped_file_params)
-                #ofmaps_region_start_addr =\
-                #        tpb.statebuffer.file_mapper.skip_unfreed_region(
-                #            self.first_op
-                #            , ofmaps_region_start_addr)
-                map_file(ofmaps_file_params\
-                         , ofmaps_region_start_addr\
-                         , wrap_around=True, region_sz=ofmaps_region_sz)
-                if (self.first_op.is_concat == True):
-                    last_concat_ofmap_file_params.append(ofmaps_file_params)
-                live_mapped_file_params.append(ofmaps_file_params)
-                #print("map_files::%s is added to live_mapped_file_params"%\
-                #      ofmaps_file_params.file_name)
-                self.print_SB_addr(ofmaps_file_params)
+                if self.first_op.is_nop:
+                    ofmaps_region_start_addr = single_ifmap_start
+                else:    
+                    ofmaps_region_start_addr = start_addr
+                    ofmaps_region_start_addr =\
+                            self.adjust_if_overlap_with_live_fmaps(
+                                tpb
+                                , ofmaps_region_start_addr
+                                , ofmaps_region_sz
+                                , bias_region_sz
+                                , live_mapped_file_params)
+                    map_file(ofmaps_file_params\
+                             , ofmaps_region_start_addr\
+                             , wrap_around=True, region_sz=ofmaps_region_sz)
+                    if (self.first_op.is_concat == True):
+                        last_concat_ofmap_file_params.append(ofmaps_file_params)
+                    live_mapped_file_params.append(ofmaps_file_params)
+                    #print("map_files::%s is added to live_mapped_file_params"%\
+                    #      ofmaps_file_params.file_name)
+                    #self.print_SB_addr(ofmaps_file_params)
                 # obtain the adjusted region size
                 ofmaps_region_sz = ofmaps_file_params.mapped_params.region_sz
                 single_ofmap_start = ofmaps_region_start_addr 
                 start_addr = single_ofmap_start + ofmaps_region_sz
                 if single_ofmap_start == single_ifmap_start:
-                    assert(not self.first_op.is_input)
+                    #assert(not self.first_op.is_input)
                     # Allow modifying in place for IFMAPs which overlap the same region as OFMAPs
                     if not self.first_op.is_input:
                         ifmaps_file_params.mapped_params.modify_in_place = True
@@ -872,8 +846,7 @@ class FusedOp(list):
         # check that regions are either exactly overlaping or not overlapping at all
         overlap_some_percent = tpb.statebuffer.file_mapper.check_overlap(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
         overlap_100_percent = tpb.statebuffer.file_mapper.check_overlap100(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
-        if (ifmaps_file_params.mapped_params.modify_in_place == False):
-            assert(overlap_some_percent == overlap_100_percent)
+        assert(overlap_some_percent == overlap_100_percent)
 
     def mark_ifmaps_are_consumed(self, live_mapped_file_params):
         # Note that each of ifmaps of current knode is ofmap of its predecessor.
@@ -951,13 +924,17 @@ class FusedOp(list):
         elif (first_op_type == "Concat"):
             self.execute_unfused_concat_op(tpb, batch_item)
             #print("Bypassing Concat!! Need to implement!!")
-        #else:        
-        #    print("ERROR: Unrecognized first operation %s"%first_op_type)
-        #    exit(-1)
+        elif (first_op_type == "Transpose"):
+            self.execute_unfused_transpose_op(tpb, batch_item)
+        elif (first_op_type == "Reshape"):
+            self.execute_unfused_reshape_op(tpb, batch_item)
+        else:        
+            print("ERROR: Unrecognized first operation %s"%first_op_type)
+            exit(-1)
 
         # Check computed results against pre-computed results and save data
         # only if there's at least one node, and first node is not Placeholder or NOP (simple Reshape, etc.)
-        if len(self) > 0 and not self.first_op.is_placeholder and not self.first_op.is_nop:
+        if len(self) > 0 and not self.first_op.is_placeholder:
             # Check last output result, unless verify_output_only=False
             if self.last_op.next == [] or not self.args.verify_output_only:
                 if (not self.args.no_verify):
@@ -993,7 +970,7 @@ class FusedOp(list):
                                     batch_item          = i
                                     )
                     tpb.waveop_stream.add_outputs(waveops)
-                    self.last_op.ofmaps_file_params.save_file()
+                self.last_op.ofmaps_file_params.save_file()
 
     # generate MatMul waveop and add it to waveop stream
     def gen_matmul_waveop(self, tpb, ifmap_pewave, ofmap_pewave, psum_add, dram_weights_waveops, repl_multiple_of_C=1, conv_transpose=False):
@@ -2429,6 +2406,34 @@ class FusedOp(list):
                     self.execute_postconv_tile_ops(tpb, ofmap_tile, ofmap_tile, psum_bank_dst)
                     self.first_op.set_psum_bank((psum_bank_dst + 1) % 4)
                     tpb.pearray.last_psum_bank_used = self.first_op.get_psum_bank()
+
+    # Execute an unfused transpose operator
+    def execute_unfused_transpose_op(self, tpb, batch_item):
+        self.last_op.ofmaps_file_params.dram_data = \
+            np.transpose(self.first_op.ifmaps_file_params.dram_data, self.first_op.data['perm'])
+        (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
+                                    tpb.waveop_stream.nonload_waveop_count - 1,    # adjust since pool waveop already generated
+                                    tpb.waveop_stream.nonload_waveop_list,
+                                    self.last_op.ofmaps_file_params,
+                                    0,
+                                    0,
+                                    self.first_op.ifmaps_file_params.file_sz,   # mark entire file
+                                    False)
+
+    def execute_unfused_reshape_op(self, tpb, batch_item):
+        self.first_op.ofmaps_file_params.dram_data = self.first_op.ifmaps_file_params.dram_data.view()
+        try:
+            self.first_op.ofmaps_file_params.dram_data.shape = self.first_op.ofmaps_file_params.file_dims.shape_tuple
+        except AttributeError as e:                            
+            raise RuntimeError ("ERROR: Cannot reshape data without copying; please implement reshape with copy")
+        (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
+                                    tpb.waveop_stream.nonload_waveop_count - 1,    # adjust since pool waveop already generated
+                                    tpb.waveop_stream.nonload_waveop_list,
+                                    self.last_op.ofmaps_file_params,
+                                    0,
+                                    0,
+                                    self.first_op.ofmaps_file_params.file_sz,   # mark entire file
+                                    False)
 
     def execute_unfused_concat_op (self, tpb, batch_item):
         #print ("concat node name = %s"%self.first_op.data['layer_name'])
