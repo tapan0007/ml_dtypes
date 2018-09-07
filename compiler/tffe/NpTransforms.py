@@ -20,7 +20,7 @@ def calcTransform(sf, st):
 
 class NpTrans:
   # See spec for method  genCompilerPy
-  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "C", "NC", "HNC", "HNWC", "CM"]:
+  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "C", "NC", "HNC", "HNWC", "CM", "NWC"]:
     exec("%s = '%s'" %(c, c))
   
   # Define tensorFlow (TF) to Inkling simulator (SIM) translation

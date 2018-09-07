@@ -37,7 +37,7 @@ lstmD0T4 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/data-t4-0.npy"
 lstmD0T4B64 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/sigmoid_b64/data-t4-b64-0.npy")
 lstmD0T32 = "%s/%s" % (kePath, "apps/tf/ptb_word_lm/keras_unrolled/data-t32-0.npy")
 
-melSpectra = "%s/%s" % (kePath, "apps/tf/parallel_wavenet/melspec_input.npy")
+melSpectra = "%s/%s" % (kePath, "apps/tf/parallel_wavenet/example1/melspec_input.npy")
 
 testConfigMap = {
 
@@ -364,6 +364,7 @@ testConfigMap = {
   "9-resnet152_waveopt"       : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--partition from resnet_v2_152/conv1/convolution resnet_v2_152/postnorm/batchnorm/mul_1 --executors host all waveopt 1  --depth 2 --scheduler wave --images %s --wavegraph_checks structure data-race" % rnDogJpg, "--input_files %s" % rnDogJpg],
 
   #"10-parwavenet_ckpt"            : [ "tf_pb",   "parallel_wavenet/saved_model",        "parallel_wavenet", "--input_node Placeholder --depth 2", "--input_files %s" % melSpectra],
+  "9-parwavenet_10_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
 
   # Subgraph partioned flow using neural network executor
   "0-4conv_relu_nne" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1-imax2", "4conv_nne", "--partition conv --executors wave 1 3 host 0 2 4 --debug 1 --scheduler wave --wavegraph_checks structure data-race"],
