@@ -15,7 +15,7 @@ RUNALL_PATH = '$KAENA_PATH/test/e2e'
 TEST_10K = ['7-rn50_nne_fp16_b4_wave-no_repl', '7-rn50_nne_fp16_wave-no_repl', '8-rn50_nne_fp16_b16_wave-no_repl']
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--repo-name', help='repo name', required=True)
+parser.add_argument('--repo-name', help='repo name', default=None)
 parser.add_argument('--aws-profile', help='name of aws credentials profile to use', default='kaena')
 parser.add_argument('--bucket', help='output bucket name', default='kaena-test-bucket')
 args = parser.parse_args()
@@ -23,6 +23,15 @@ args = parser.parse_args()
 session = boto3.Session(profile_name = args.aws_profile)
 s3 = session.resource(service_name='s3', region_name='us-east-1')
 bucket = s3.Bucket(args.bucket)
+
+# get latest repo tar file from s3
+repo_name = args.repo_name
+if repo_name is None:
+    repo = bucket.objects.filter(Prefix='kaena-')
+    get_latest = lambda obj: int(obj.last_modified.strftime('%s'))
+    for obj in sorted(repo, key=get_latest, reverse=True):
+        repo_name = obj.key
+        break
 
 date = time.strftime("%Y%m%d")
 
@@ -149,7 +158,7 @@ def main():
                 batch_size = 16
             # TEMPORARY: use only 160 images to test on Jenkins
             # wait with no logs to avoid ThrottlingError when attempting to write to logs for 10K images
-            submit_inf_cmd = "submit_inference --kelf-dir=kelfs/%s --repo-name=%s --output-bucket=%s --input-file-limit=160 --input-batch-size=%s --wait-no-logs" % (kelf, args.repo_name, args.bucket, batch_size)
+            submit_inf_cmd = "submit_inference --aws-profile=%s --kelf-dir=kelfs/%s --repo-name=%s --output-bucket=%s --input-file-limit=160 --input-batch-size=%s --wait-no-logs" % (args.aws_profile, kelf, repo_name, args.bucket, batch_size)
             os.system('./%s' % submit_inf_cmd)
         except:
             with open('batch-fail.txt', 'w') as log:

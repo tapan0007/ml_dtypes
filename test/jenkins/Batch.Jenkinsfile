@@ -109,7 +109,7 @@ pipeline{
                 stage('batch') {
                     steps {
                         timeout(time: 24, unit: 'HOURS') {
-                            sh 'cd $KAENA_PATH/test/tools && python3 batch_test_10k.py --repo-name=kaena-4e5694e.tar.gz --aws-profile=kaena'
+                            sh 'cd $KAENA_PATH/test/tools && python3 batch_test_10k.py --aws-profile=kaena'
                         }
                     }
                     post {

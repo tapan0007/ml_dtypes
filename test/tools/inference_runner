@@ -93,9 +93,9 @@ def main():
     run_command([kaena_install, "--repo-name", args.repo_name])
     os.environ["PATH"] += ":/tmp/kaena_install_tmp/bin:/usr/bin"
     try:
-        os.environ["PYTHONPATH"] += ":/tmp/kaena_install_tmp/lib/python3.5/site-packages"
+        os.environ["PYTHONPATH"] += ":/tmp/kaena_install_tmp/lib/python3.5/site-packages:/tmp/kaena_install_tmp/lib/python3.5/site-packages/tffe"
     except:
-        os.environ["PYTHONPATH"] = "/tmp/kaena_install_tmp/lib/python3.5/site-packages"
+        os.environ["PYTHONPATH"] = "/tmp/kaena_install_tmp/lib/python3.5/site-packages:/tmp/kaena_install_tmp/lib/python3.5/site-packages/tffe"
 
     kelf_dir = download_kelf(s3, args.output_bucket, args.test_id)
     print('Content of KELF directory:')
