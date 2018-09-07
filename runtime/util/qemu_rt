@@ -345,60 +345,12 @@ class Zebu(BePlat):
   def startTonga(self):
     # Boot Tonga
     tongaOk = False
-    cmd = 'sh -c "%s 2>&1 | tee log-zebu_tonga.txt"' % ("ssh %s" % self.zebuHost)
-    print("INFO: starting Zebu Tonga  %s" % cmd, flush=True)
-    self.logReplay(cmd)
-    self.fh = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
-    try:
-      self.fh.expect("zebuadmin@zebu-server")
-    except:
-      return tongaOk
-
-    self.fh.send("source ~/.vbox_bashrc\r")
-    self.fh.expect("$")
-    
-    self.fh.send("rune -k all; sleep 5\r")
-    self.fh.expect("$")
-
-    self.fh.send("cdpt%s\r" % self.rtlSandbox)
-    self.fh.expect("$")
-
-    self.fh.send("rune -ptcr\r")
-    self.fh.expect("ZeBu")
-    self.fh.expect("Design loaded successfully")
-    try:
-      idx = self.fh.expect(["Init DRAM", " bind: Address already in use", "Test bench aborted"], timeout=120)
-      if idx == 0:
-        print("INFO: Tonga DRAM init ok")
-        try:
-          idx = self.fh.expect(["All ProxyXtors are ready to connect to the VM",
-                               "is already running for the same design"],
-                               timeout=120)
-          if idx == 0:
-            print("INFO: started new Tonga")
-          elif idx == 1:
-            print("INFO: recycled a Tonga")
-          tongaOk = True
-        except pexpect.exceptions.TIMEOUT:
-          print("ERROR: Try %d Zebu Tonga VM boot timeout out, see log-zebu_tonga.txt" % self.restartId)
-      elif idx == 1:
-        print("ERROR: Tonga failed due to port address in use, see log-zebu_tonga.txt and use ")
-        fixCmd = "netstat -plat | grep 32004 && ps -ef | grep defunct | awk '{print \$2}' | xargs -l1 kill -9"
-        sshCmd = 'ssh %s "%s"' % (self.zebuHost, fixCmd)
-        print("INFO: attempting to fix the host for next run by command   %s" % sshCmd, flush=True)
-        os.system(sshCmd)
-      elif idx == 2:
-        print("ERROR: Tonga testbench aborted, see log-zebu_tonga.txt")
-        
-    except pexpect.exceptions.TIMEOUT:
-      print("ERROR: Try %d Tonga DRAM init timed out, see log-zebu_tonga.txt" % self.restartId)
-    
-    if tongaOk:
-      print("INFO: Zebu Tonga started", flush=True)
-    else:
-      print("ERROR: Zebu Tonga failed to start", flush=True)
-      
-    return tongaOk
+    logo = "/tmp/log-%s-%s.txt" % (self.zebuHost,self.rtlSandbox)
+    cmd = "/rdata/aus11/proj/vbox/bin/runenohup -k all -ptrq -sbdir %s > %s ; " % (self.rtlSandbox, logo)
+    cmd+= "grep 'All ProxyXtors are ready to connect to the VM' %s" % logo
+    sshcmd = 'ssh %s "%s"' % (self.zebuHost, cmd)
+    print(sshcmd)
+    return os.system(sshcmd) == 0
 
   def startVm(self):
     # Boot the VM:
@@ -438,6 +390,8 @@ class Zebu(BePlat):
   def initGuestOs(self):
     guestOk = False
     self.fh1.send("\r")
+    print("Sleeping for a minute before vbssh")
+    self.osSystem("sleep 60") 
     self.fh1.send("rune -vbssh\r")
     try:
       self.fh1.expect("synopsys@localhost's password:", timeout=60)
