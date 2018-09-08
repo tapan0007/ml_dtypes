@@ -319,6 +319,14 @@ class NodeSimple(Node):
                           TensorFormat(npInfo.tensorName, self.getOpName(),
                                        npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
                                        npFileSim, simFormat, False))
+    elif len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tensorFormatMap.add(npInfo.tensorName,
+                          TensorFormat(npInfo.tensorName, self.getOpName(),
+                                       npInfo.npFile, npt.NWC,
+                                       npFileSim, simFormat, False))
     elif len(npInfo.npShape) == 2:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
@@ -982,7 +990,10 @@ class NodeSimple2(Node):
 #      print('HERE')
     # Output tensor
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 2:
+    if len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
+    elif len(npInfo.npShape) == 2:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
       tfFormat = npt.NC
     elif len(npInfo.npShape) == 1:
@@ -1158,6 +1169,9 @@ class NodeMultiply(Node):
       # CNN unit test flow, no known large Tonga NNs use these shapes as of early 2018
       tfShape4D = npInfo.npShape
       tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+    elif len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
     elif len(npInfo.npShape) == 1:
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
       tfFormat = npt.C
@@ -1454,12 +1468,21 @@ class NodePad(Node):
     fileList = []
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4:
-      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      # CNN unit test flow, no known large Tonga NNs use these shapes as of early 2018
+      tfShape4D = npInfo.npShape
       tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+    elif len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
+    elif len(npInfo.npShape) == 1:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.C
     else:
-      raise RuntimeError("NodePad: not able to process when len(shape) != 4")
-      
+      assert len(npInfo.npShape) == 2
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NC
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
@@ -1632,7 +1655,7 @@ class Graph(Object):
   # Marks edges that are important for visualization and data flow transformations
   # Typically it is transitive fanout of the input tensor
   def identifyMainFlowEdges(self):
-    nodes = {self.getInputNode(): 0}
+    nodes = {n : 0 for n in self.getInputNodes()}
     assert(len(nodes.keys()) > 0)
     nodeFront = nodes.copy()
     while len(nodeFront) > 0:

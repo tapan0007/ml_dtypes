@@ -364,6 +364,7 @@ testConfigMap = {
   "9-resnet152_waveopt"       : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--partition from resnet_v2_152/conv1/convolution resnet_v2_152/postnorm/batchnorm/mul_1 --executors host all waveopt 1  --depth 2 --scheduler wave --images %s --wavegraph_checks structure data-race" % rnDogJpg, "--input_files %s" % rnDogJpg],
 
   #"10-parwavenet_ckpt"            : [ "tf_pb",   "parallel_wavenet/saved_model",        "parallel_wavenet", "--input_node Placeholder --depth 2", "--input_files %s" % melSpectra],
+  "3-parwavenet_to_rs10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to Reshape_10 --show_op_name_in_kgraph --input_node random_uniform --depth 2 --partition from BiasAdd_2 --executors host all waveopt 1 --images linspace1", "--input_files trivnet_random_uniform:0.npy"],
   "9-parwavenet_10_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
 
   # Subgraph partioned flow using neural network executor
@@ -728,6 +729,8 @@ testWaiver = [
     ['.*clipbyvalue.*', 'WAIVE_KAENA636'],
     ['.*softplus.*', 'WAIVE_KAENA634'],
     ['0-1conv_dilated_wave', 'WAIVE_KAENA569'],
+    ['3-parwavenet_to_rs10_fp16_waveopt$', 'WAIVE_KAENA569'],
+    ['9-parwavenet_10_10_fp16_waveopt$', 'WAIVE_KAENA569'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],
 

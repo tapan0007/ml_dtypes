@@ -296,19 +296,21 @@ class TfFe:
         feedDict[var] = val
     return feedDict
   
-  def writeImages(self, outPrefix, imageFiles, inputNodeName, inputConstants, excludeOpsFromCaptureRe,
+  def writeImages(self, outPrefix, imageFiles, inputNodeNames, inputConstants, excludeOpsFromCaptureRe,
                   preprocessor, preprocessor_args):
     self.__kg.levelize()
     inputNodes = []
-    if inputNodeName == None:
+    if len(inputNodeNames) == 0:
       # Auto detect input - take 1st placeholder
       inputNodes = [x for x in self.__kg.getNodes() if x.getOpType() == "Placeholder"]
-    elif self.__kg.hasNode(inputNodeName):
-      inputNodes = [self.__kg.getNode(inputNodeName)]
     else:
-      lowestLevelNodes = self.__kg.getLowestLevelNodes()
-      print("ERROR: the  --input_node %s  was not found. Use one of  %s" % (inputNodeName, [ n.getName() for n in lowestLevelNodes]))
-      exit(1)
+      for inputName in inputNodeNames:
+        if self.__kg.hasNode(inputName):
+          inputNodes.append(self.__kg.getNode(inputName))
+        else:
+          lowestLevelNodes = self.__kg.getLowestLevelNodes()
+          print("ERROR: the  --input_node %s  was not found. Use one of  %s" % (inputNode, [ n.getName() for n in lowestLevelNodes]))
+          exit(1)
     assert len(inputNodes) > 0
     self.__kg.setInputNodes(inputNodes)
     inputTfOpName = inputNodes[0].getAttr("tfop").name
@@ -331,8 +333,9 @@ class TfFe:
       inputType = inputTensor.dtype.as_numpy_dtype()
       
       # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
-      if inputShape[0] == None:
-        inputShape[0] = self.batch
+      if len(inputShape) > 0:
+        if inputShape[0] == None:
+          inputShape[0] = self.batch
 
       imageFile = imageFiles[0]
       if imageFile.endswith(".npy"):

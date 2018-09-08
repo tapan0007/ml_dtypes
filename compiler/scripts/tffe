@@ -57,7 +57,7 @@ parser.add_argument('--width', help='Highlight data paths wider than the width',
 parser.add_argument('--verbose', help='Verbosity level, 0 default, 1 shows in/outputs, 2 TBD',
                     type=int, default=0)
 parser.add_argument('--input_node', help='Input node in the neural network graph (where --images should be injected during calibration)',
-                    default=None)
+                    nargs='+', default=[])
 parser.add_argument('--dot_timeout', help='Timeout for planarization of op and flow graphs in Graphviz, default 60 sec ',
                     type=int, default=60)
 parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, wave2, qemu_wave, default is tcc',
@@ -83,7 +83,7 @@ parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph 
 parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=[])
 
 args = parser.parse_args()
-inputNodeName = args.input_node
+inputNodeNames = args.input_node
 
 tfpbFile = args.tfpb
 if not os.path.exists(tfpbFile):
@@ -112,7 +112,7 @@ if args.weights:
   tffe.writeWeights(args.out_prefix)
   
 if args.images != None:
-  tffe.writeImages(args.out_prefix, args.images, inputNodeName, args.input_constants, args.exclude_ops_from_capture,
+  tffe.writeImages(args.out_prefix, args.images, inputNodeNames, args.input_constants, args.exclude_ops_from_capture,
                    args.preprocessor, args.preprocessor_args)
   kog.identifyMainFlowEdges()
   kog.optimizeForInference()
@@ -204,6 +204,9 @@ if args.images != None:
     with open(nnGraphFile, "w") as f:
       s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
       f.write(s)
+    cmd = "%s/compiler/util/kelf2dot --json %s" % (kPath, nnGraphFile)
+    print("INFO: executing", cmd)
+    os.system(cmd)
 
     # K-elf compilation is done. Make output directory read/execute only
     #if debugLevel > 0:

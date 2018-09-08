@@ -56,11 +56,12 @@ class KsubGraph:
     self.__inputs = self.graph.transferSideNodes(srcGraph)
     #self.__outputs = self.graph.getTopNodes()
     # In the very first subgraph the original input node needs to be added too
-    srcInputName = srcGraph.getInputNode().getName()
-    if self.graph.hasNode(srcInputName):
-      srcInpEqNode = self.graph.getNode(srcInputName)
-      if not srcInpEqNode in self.__inputs:
-        self.__inputs.insert(0, srcInpEqNode)
+    srcInputNames = [n.getName() for n in srcGraph.getInputNodes()]
+    for srcInputName in srcInputNames:
+      if self.graph.hasNode(srcInputName):
+        srcInpEqNode = self.graph.getNode(srcInputName)
+        if not srcInpEqNode in self.__inputs:
+          self.__inputs.insert(0, srcInpEqNode)
     if len(self.__inputs) == 0:
       self.__inputs += self.__outputs
     # Make one of the nodes input for the backend, should not matter which one
@@ -361,9 +362,10 @@ class KgraphPart(object):
     fromNodeSet = set(fromNodeList)
     edgeQueue = []
     visitedNodes = {}
-    n = sourceGraph.getInputNode()
+    inputNodes = sourceGraph.getInputNodes()
     color = self.getNewColor()
-    self.setNodeColor(n, color)
+    for n in inputNodes:
+      self.setNodeColor(n, color)
     edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
     while len(edgeQueue) > 0:
       e,color = edgeQueue.pop(0)
@@ -399,9 +401,10 @@ class KgraphPart(object):
       cut2color[cut] = None
     edgeQueue = []
     visitedNodes = {}
-    n = sourceGraph.getInputNode()
+    inputNodes = sourceGraph.getInputNodes()
     color = self.getNewColor()
-    self.setNodeColor(n, color)
+    for n in inputNodes:
+      self.setNodeColor(n, color)
     edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
     while len(edgeQueue) > 0:
       e,color = edgeQueue.pop(0)
