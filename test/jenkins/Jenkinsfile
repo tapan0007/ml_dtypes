@@ -44,7 +44,7 @@ pipeline{
 
                 sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
-                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin'
+                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest'
             }
         }
         stage('Checkout'){
@@ -138,18 +138,9 @@ pipeline{
                             [ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/RunAllWithArgs && $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS)
                             '''
                         }
-                        timeout(time: 50, unit: 'MINUTES') {
-                            sh '''
-                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/RunAllWithArgs && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS)
-                            '''
-                        }
                     }
                     post {
                         always {
-			    sh '''
-			    [ -z "$RUNNC_ARGS" ] || (/bin/cp $TEST_DIR/RunAllWithArgs/*.xml $WORKSPACE/.)
-			    '''
-			    junit allowEmptyResults: true, testResults: '*.xml'
                             sh 'mkdir /artifact/RunAllWithArgs'
                             sh '/bin/cp $TEST_DIR/RunAllWithArgs/qor* /artifact/RunAllWithArgs/ || touch /artifact/RunAllWithArgs/qor_RunAllWithArgs_qor_available.txt'
                             sh 'chmod -R a+wX /artifact/'
@@ -160,6 +151,26 @@ pipeline{
                             sh 'find $TEST_DIR/RunAllWithArgs -iname "*.txt" -print0 | tar -czvf /artifact/RunAllWithArgs/logs.tgz -T -'
                             sh 'chmod -R a+wX /artifact/'
                             archiveArtifacts artifacts:'RunAllWithArgs/logs.tgz'
+                        }
+                    }
+                }
+                stage('RunPytest') {
+                    steps {
+                        timeout(time: 50, unit: 'MINUTES') {
+                            sh '''
+                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/RunPytest && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS)
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+			    sh '''
+			    [ -z "$RUNNC_ARGS" ] || (/bin/cp $TEST_DIR/RunPytest/*.xml $WORKSPACE/.)
+			    '''
+			    junit allowEmptyResults: true, testResults: '*.xml'
+                        }
+                        failure {
+                            sh 'find $TEST_DIR/RunPytest -type f -name "*.vdi" -delete'
                         }
                     }
                 }
