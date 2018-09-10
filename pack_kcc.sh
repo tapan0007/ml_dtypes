@@ -28,4 +28,4 @@ cd ${KCC_INSTALL_DIR}
 tar -pcvzf ${pack_dir}/kcc-${version}-${patch}.tar.gz bin lib
 
 # clean the created directories
-rm -r $KCC_INSTALL_DIR
+rm -rf $KCC_INSTALL_DIR
