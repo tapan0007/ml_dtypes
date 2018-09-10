@@ -186,6 +186,7 @@ pipeline{
         always {
             sh 'df -h'
             sh 'cat /proc/meminfo'
+            sh 'ls -ltrA'
             cleanWs()
         }
     }
