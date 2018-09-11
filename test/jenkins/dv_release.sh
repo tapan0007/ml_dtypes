@@ -14,6 +14,6 @@ tar -xzf ${RELEASE_NAME}.tar.gz -C ${RELEASE_DIRECTORY}
 unlink latest
 ln -s ${RELEASE_DIRECTORY} latest
 
-# Fix up permissions so everyone in the 'ml' group can read/write(/delete).
+# Fix up permissions so everyone in the 'ml' group can read.
 chgrp -R ml ${RELEASE_DIRECTORY}
-chmod -R g+rw ${RELEASE_DIRECTORY}
+chmod -R g+r ${RELEASE_DIRECTORY}
