@@ -43,6 +43,8 @@ class KNode:
         self.data_type = data_type
         self.ofmap_wave_total_elems = 0
         self.node_number = node_number
+        self.slice_w_offset = 0
+        self.slice_w_size = 0
         self.stridedslice_chan_offset = 0
         self.unstack_h_offset = 0
         self.result_avail = False
@@ -716,6 +718,29 @@ class KGraph:
                     new_node.is_const = True
                 elif (l['layer_type'] == "Reshape"):
                     new_node.is_nop = True
+                elif (l['layer_type'] == "Squeeze"):
+                    new_node.is_nop = True
+                elif (l['layer_type'] == "ExpandDims"):
+                    new_node.is_nop = True
+                elif (l['layer_type'] == "Slice"):
+                    new_node.is_nop = True
+                    error = False
+                    sbegin  = l['slice_begin']
+                    ssize = l['slice_size']
+                    shape = l['ofmap_shape']
+                    if (l['ofmap_format'] == 'NCW'):
+                        new_node.slice_w_offset = sbegin[2]
+                        new_node.slice_w_size = ssize[2]
+                        error = (soffset[0] != 0 or sbegin[1] != 0) or (ssize[0] != shape[0] or ssize[1] != shape[1])
+                    elif (l['ofmap_format'] == 'NCHW'):
+                        new_node.slice_w_offset = sbegin[3]
+                        new_node.slice_w_size = ssize[3]
+                        error = (sbegin[0] != 0 or sbegin[1] != 0 or sbegin[2] != 0) \
+                                or (ssize[0] != shape[0] or ssize[1] != shape[1] or ssize[2] != shape[2])
+                    else:
+                        raise RuntimeError("Slice op %s format %s is not supported"%(l['layer_name'], l['ofmap_format']))
+                    if error:
+                        raise RuntimeError("Slice op %s: only support slicing in W dimension; begin "%l['layer_name'], sbegin, " end ", ssize)
                 elif (l['layer_type'] == "ConvTranspose"):
                     new_node.is_conv_transpose = True
                 elif (l['layer_type'] == "Concat"):
@@ -754,7 +779,7 @@ class KGraph:
                     self.last_node = new_node                
                     self.node_dict[ l['waveop_name'] ] = new_node
             else:
-                print("ERROR: there are no layers!")
+                print("ERROR: there are no waveops in wavegraph.json!")
                 exit(-1)
 
     # get next fused op            

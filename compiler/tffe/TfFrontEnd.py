@@ -204,7 +204,7 @@ class TfFe:
           numConv += 1
           node = kog.NodeConv2D(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeConv2D")
-        elif (re.search("Add|BiasAdd", tfop.op, re.I) != None):
+        elif (re.search("Add|BiasAdd|ExpandDims", tfop.op, re.I) != None):
           node = kog.NodeSimple2(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple2")
         elif (re.search("Softmax", tfop.op, re.I) != None):
@@ -213,7 +213,7 @@ class TfFe:
           node = kog.NodeMatMul(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Reshape", tfop.op, re.I) != None):
           node = kog.NodeReshape(tfNode.name, tfop.op, add_attrs)
-        elif  (re.search("relu|tanh|Softplus|Sigmoid|Softmax", tfop.op, re.I) != None):
+        elif  (re.search("relu|tanh|Softplus|Sigmoid|Softmax|Squeeze", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
         elif (re.search("MaxPool|AvgPool", tfop.op, re.I) != None):
@@ -236,6 +236,8 @@ class TfFe:
           node = kog.NodeConcat(tfNode.name, "Concat", add_attrs)   # Concat, ConcatV2
         elif (re.search("ClipByValue", tfop.op, re.I) != None):
           node = kog.NodeClipByValue(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("Slice", tfop.op, re.I) != None):
+          node = kog.NodeSlice(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Pad", tfop.op, re.I) != None):
           node = kog.NodePad(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Transpose", tfop.op, re.I) != None):

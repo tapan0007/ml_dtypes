@@ -109,6 +109,7 @@ public:
                 || m_LayerType == LayerTypeStr_ConvTranspose
                 || m_LayerType == LayerTypeStr_ClipByValue
                 || m_LayerType == LayerTypeStr_Squeeze
+                || m_LayerType == LayerTypeStr_ExpandDims
                 || m_LayerType == LayerTypeStr_Slice
                 || m_LayerType == LayerTypeStr_Minimum
                 || m_LayerType == LayerTypeStr_Pad

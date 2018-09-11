@@ -1037,7 +1037,7 @@ class NodeSimple2(Node):
     # Override layer name to backend
     #   BiasAdd - when one input is constant
     #   ResAdd - when both inputs depend on the input image
-    overrideType = "BiasAdd"
+    overrideType = self.getOpType()
     if isResAdd:
       overrideType = "ResAdd"
     layerDataBase[0]["layer_type"] = overrideType
@@ -1048,7 +1048,8 @@ class NodeSimple2(Node):
       if len(npInfoIF1.npShape) == 0:
         val = npInfoIF1.getValues()
         assert val.size == 1
-        layerDataBase[0]['add_scalar'] = np.asscalar(val.ravel()[0])
+        layerDataBase[0]["add_scalar"] = np.asscalar(val.ravel()[0])
+        layerDataBase[0]["previous_layers"] = [fromIfNode0.getName()]
       else:
     
         # Collapse the side node to a branch (except when it already is a real constant) 
@@ -1419,6 +1420,91 @@ class NodeStridedSlice(Node):
 
   def isSupported(self):
     return True
+
+###############################################################################
+# Slice
+#
+###############################################################################
+class NodeSlice(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Node text for dot graph
+  def getDotText(self):
+    dotText = self.getOpType()
+    if Config.Graph.showOpNameInKgraph:
+      dotText += "\n" + self.getName()
+    if len(self.getNpInfo()) > 0:
+      bes = {"Begin" : (), "Size" : ()}
+      ((nIn, npiIn), bes["Begin"], bes["Size"]) = self.getInputNodesAndNpInfo()
+      dotText += "\nShapeIn : %s" % str(npiIn.npShape)
+      for c in ["Begin", "Size"]:
+        (fromNode, fromNpInfo) = bes[c]
+        npVal = fromNpInfo.getValues()
+        dotText += "\n%s : %s" % (c, str([int(i) for i in npVal]))
+    else:
+      dotText += "\n" + str(self.protoShape)
+    return dotText
+
+  def genCompilerLayerJson(self, tensorFormatMap):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    bes = {"Begin" : (), "Size" : ()}
+    ((nIn, npInfoFrom), bes["Begin"], bes["Size"]) = self.getInputNodesAndNpInfo()
+    npInfoIndexinBes = 1
+    slice_begin_tmp = bes["Begin"][npInfoIndexinBes].getValues()
+    slice_begin = [np.asscalar(slice_begin_tmp[i]) for i in range(slice_begin_tmp.shape[0])]
+    slice_size_tmp = bes["Size"][npInfoIndexinBes].getValues()
+    slice_size = [np.asscalar(slice_size_tmp[i]) for i in range(slice_size_tmp.shape[0])]
+    
+    # Suppress StridedSlice in constant or reshape calculations in CNNs
+    # FIX_THIS: this should be a graph transform
+    if len(npInfo.npShape) == 1:
+      return {},[]
+    
+    if len(npInfo.npShape) == 4:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+      slice_begin = npt.reorderShape(slice_begin, npt.TF, npt.SIM, npt.Fmaps)
+      slice_size = npt.reorderShape(slice_size, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      if len(npInfo.npShape) == 2:
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+        channelAxis = 1
+        tfFormat = npt.NC
+      else:
+        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+        channelAxis = 0
+        tfFormat = npt.C
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      slice_begin = npt.reorderShape(slice_begin, npt.TF, npt.SIM, npt.Fmaps)
+      slice_size = npt.reorderShape(slice_size, npt.TF, npt.SIM, npt.Fmaps)
+      
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
+
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "slice_begin"     : slice_begin,
+      "slice_size"      : slice_size,
+      "previous_layers" : [nIn.getName()],
+      "#comment"        : "Extract slice along channel dimension"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
 
 
 ###############################################################################

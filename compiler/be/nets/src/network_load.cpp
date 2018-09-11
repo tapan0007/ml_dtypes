@@ -236,6 +236,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 || serLayer.gTypeStr() == LayerTypeStr_ConvTranspose
                 || serLayer.gTypeStr() == LayerTypeStr_ClipByValue
                 || serLayer.gTypeStr() == LayerTypeStr_Squeeze
+                || serLayer.gTypeStr() == LayerTypeStr_ExpandDims
                 || serLayer.gTypeStr() == LayerTypeStr_Slice
                 || serLayer.gTypeStr() == LayerTypeStr_Minimum
                 || serLayer.gTypeStr() == LayerTypeStr_Pad

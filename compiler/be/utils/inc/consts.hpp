@@ -63,6 +63,7 @@ constexpr const char* const LayerTypeStr_Concat         = "Concat";
 constexpr const char* const LayerTypeStr_ConvTranspose  = "ConvTranspose";
 constexpr const char* const LayerTypeStr_ClipByValue    = "ClipByValue";
 constexpr const char* const LayerTypeStr_Squeeze        = "Squeeze";
+constexpr const char* const LayerTypeStr_ExpandDims     = "ExpandDims";
 constexpr const char* const LayerTypeStr_Slice          = "Slice";
 constexpr const char* const LayerTypeStr_Minimum        = "Minimum";
 constexpr const char* const LayerTypeStr_Pad            = "Pad";

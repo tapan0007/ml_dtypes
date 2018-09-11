@@ -299,7 +299,7 @@ class Tile:
 class FusedOp(list):
     """RegExs to determine whether next node is fusable or not
     """
-    act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|Exp|Identity|Lrelu|Prelu"
+    act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|^Exp$|Identity|Lrelu|Prelu"
     bias_ops_regex = "BiasAdd"
     pool_ops_regex = ".*Pool|Add|Multiply|ResAdd"
     next_is_fusable_regex = bias_ops_regex + "|" + act_ops_regex + "|" + pool_ops_regex
@@ -613,7 +613,7 @@ class FusedOp(list):
                 print(ofmaps_file_params.file_name, ofmaps_file_params.dram_data.base)
                 if self.first_op.is_nop:
                     ofmaps_region_sz = ifmaps_region_sz
-                    ofmaps_region_start_addr = ifmaps_region_start_addr
+                    ofmaps_region_start_addr = ifmaps_region_start_addr + self.first_op.slice_w_offset * self.first_op.item_sz
                 else:    
                     ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
                     ofmaps_region_start_addr = tpb.statebuffer.SB_PARTITION_SZ - ofmaps_region_sz
@@ -763,7 +763,7 @@ class FusedOp(list):
             # OFMAPs region
             if ofmaps_file_params.mapped_params is None:
                 if self.first_op.is_nop:
-                    ofmaps_region_start_addr = single_ifmap_start
+                    ofmaps_region_start_addr = ifmaps_region_start_addr + self.first_op.slice_w_offset * self.first_op.item_sz
                 else:    
                     ofmaps_region_start_addr = start_addr
                     ofmaps_region_start_addr =\
@@ -843,10 +843,11 @@ class FusedOp(list):
                    weights_file_start_addr, weights_region_sz, single_ifmap_start, (min(single_ifmap_sz, ifmaps_region_sz)))
                )
 
-        # check that regions are either exactly overlaping or not overlapping at all
-        overlap_some_percent = tpb.statebuffer.file_mapper.check_overlap(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
-        overlap_100_percent = tpb.statebuffer.file_mapper.check_overlap100(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
-        assert(overlap_some_percent == overlap_100_percent)
+        if not self.first_op.is_nop:
+            # check that regions are either exactly overlaping or not overlapping at all
+            overlap_some_percent = tpb.statebuffer.file_mapper.check_overlap(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
+            overlap_100_percent = tpb.statebuffer.file_mapper.check_overlap100(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
+            assert(overlap_some_percent == overlap_100_percent)
 
     def mark_ifmaps_are_consumed(self, live_mapped_file_params):
         # Note that each of ifmaps of current knode is ofmap of its predecessor.
@@ -926,8 +927,10 @@ class FusedOp(list):
             #print("Bypassing Concat!! Need to implement!!")
         elif (first_op_type == "Transpose"):
             self.execute_unfused_transpose_op(tpb, batch_item)
-        elif (first_op_type == "Reshape"):
+        elif (re.search("Reshape|Squeeze|ExpandDims", first_op_type)):
             self.execute_unfused_reshape_op(tpb, batch_item)
+        elif (first_op_type == "Slice"):
+            self.execute_unfused_slice_op(tpb, batch_item)
         else:        
             print("ERROR: Unrecognized first operation %s"%first_op_type)
             exit(-1)
@@ -2421,6 +2424,7 @@ class FusedOp(list):
                                     False)
 
     def execute_unfused_reshape_op(self, tpb, batch_item):
+        print("execute_unfused_reshape_op ", self.first_op.data)
         self.first_op.ofmaps_file_params.dram_data = self.first_op.ifmaps_file_params.dram_data.view()
         try:
             self.first_op.ofmaps_file_params.dram_data.shape = self.first_op.ofmaps_file_params.file_dims.shape_tuple
@@ -2429,7 +2433,27 @@ class FusedOp(list):
         (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
                                     tpb.waveop_stream.nonload_waveop_count - 1,    # adjust since pool waveop already generated
                                     tpb.waveop_stream.nonload_waveop_list,
-                                    self.last_op.ofmaps_file_params,
+                                    self.first_op.ofmaps_file_params,
+                                    0,
+                                    0,
+                                    self.first_op.ofmaps_file_params.file_sz,   # mark entire file
+                                    False)
+
+    def execute_unfused_slice_op(self, tpb, batch_item):
+        ofp = self.first_op.ofmaps_file_params
+        ifp = self.first_op.ifmaps_file_params
+        slice_w_begin = self.first_op.slice_w_offset
+        slice_w_stop = self.first_op.slice_w_offset + self.first_op.slice_w_size
+        if ofp.file_dims.format_str == 'NCW':
+            ofp.dram_data = ifp.dram_data[:, :, slice_w_begin : slice_w_stop]
+        elif ofp.file_dims.format_str == 'NCHW':
+            ofp.dram_data = ifp.dram_data[:, :, :, slice_w_begin : slice_w_stop]
+        else:
+            raise RuntimeError("Format %s is not supported for Slice operation"%(ofp.file_dims.format_str))
+        (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
+                                    tpb.waveop_stream.nonload_waveop_count - 1,    # adjust since pool waveop already generated
+                                    tpb.waveop_stream.nonload_waveop_list,
+                                    self.first_op.ofmaps_file_params,
                                     0,
                                     0,
                                     self.first_op.ofmaps_file_params.file_sz,   # mark entire file

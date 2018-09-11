@@ -185,6 +185,8 @@ class TPBSched:
                 # Mark the first node after Input/Placeholder as input node
                 for i in first_op.next: 
                     i.is_input = True
+                    if i.is_nop:
+                        raise RuntimeError("Sorry, cannot have a data movement op (Reshape, Squeeze, ExpandDims) as the first node after placeholder")
                     if (i.data['layer_type'] == 'Conv' or i.data['layer_type'] == 'MatMul' or i.data['layer_type'] == 'Softmax2'):
                         # compute early to detect replication and to obtain some params; will be recomputed in get_fused_ops
                         i.populate_conv_params()
@@ -334,7 +336,7 @@ class TPBSched:
         batch_count = self.fused_ops_list[0].first_op.ofmaps_file_params.file_dims.N
         current_Tn = self.fused_ops_list[0].first_op.Tn
         first_Tn = current_Tn
-        b = current_Tn-1
+        b = min(batch_count-1, current_Tn-1)
         last_concat_ofmap_file_params = []
         live_mapped_file_params = []
         while b < batch_count:
