@@ -123,6 +123,7 @@ parser.add_argument('--zebu', help='Zebu host to use emulator model of Tonga ins
 parser.add_argument('--pytest', action="store_true", help='Run non-compiler pytest')
 args = parser.parse_args()
 
+QemuVdiCacheFile = "/tmp/ubuntu-18.04-24G_pytest.qcow2"
 krtBldPath = os.environ["KRT_BLD_DIR"]
 kelfVmDirGlobal = "/tmp/reg-1"
 if args.zebu:
@@ -242,15 +243,26 @@ class Qemu(BePlat):
       cmd = "/bin/cp %s %s" % (self.vdi, self.localVdi)
       print('INFO: copying vdi  "%s"' % cmd, flush=True)
       self.osSystem(cmd)
+    elif (os.path.isfile(QemuVdiCacheFile) and (sha256checksum(QemuVdiCacheFile) == checksumVdi)):
+      cmd = "/bin/cp %s %s" % (QemuVdiCacheFile, self.localVdi)
+      print('INFO: copying vdi from cache  "%s"' % cmd, flush=True)
+      self.osSystem(cmd)
     elif self.vdi[0:5].upper() == 'S3://':
-      cmd = "aws s3 cp --quiet %s %s %s" % (self.vdi, self.localVdi, "--profile kaena")
+      if not (os.path.isfile(QemuVdiCacheFile)):
+        copyLocation = QemuVdiCacheFile
+      else:
+        copyLocation = self.localVdi
+      cmd = "aws s3 cp --quiet %s %s %s" % (self.vdi, copyLocation, "--profile kaena")
       print('INFO: copying vdi from S3 by  "%s"' % cmd, flush=True)
       self.osSystem(cmd)
-      checksum = sha256checksum(self.localVdi)
+      checksum = sha256checksum(copyLocation)
       if checksum == checksumVdi:
-        print("INFO: verified vdi checksum for %s" % self.localVdi, flush=True)
+        print("INFO: verified vdi checksum for %s" % copyLocation, flush=True)
       else:
-        raise ValueError("ERROR: vdi checksum incorrect for %s  expected %s  got %s" % (self.localVdi, checksumVdi, checksum))
+        raise ValueError("ERROR: vdi checksum incorrect for %s  expected %s  got %s" % (copyLocation, checksumVdi, checksum))
+      if copyLocation != self.localVdi:
+        cmd = "/bin/cp %s %s" % (copyLocation, self.localVdi)
+        self.osSystem(cmd)
     else:
       raise ValueError('ERROR: unknown vdi specification "%s"' % vdi)
     assert os.path.isfile(self.localVdi)
