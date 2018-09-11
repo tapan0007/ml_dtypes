@@ -5,7 +5,7 @@ pipeline{
         dockerfile {
             dir 'test/jenkins'
             customWorkspace './docker-shared'
-            args '-u root -v /home/jenkins:/home/jenkins -v /home/jenkins/kaena/.aws:/root/.aws -v $WORKSPACE:/artifact'
+            args '-u root -v /home/jenkins:/home/jenkins -v /home/jenkins/kaena/.aws:/root/.aws -v $WORKSPACE:/artifact -v /proj/trench/sw/kaena-test:/kaena-test'
             label "${env.AGENT_LABEL}"
         }
     }
@@ -45,6 +45,9 @@ pipeline{
                 sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
                 sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest'
+                sh '''
+                [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/copy.vdi
+                '''
             }
         }
         stage('Checkout'){
