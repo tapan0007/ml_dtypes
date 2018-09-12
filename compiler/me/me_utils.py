@@ -39,6 +39,13 @@ def align_addr_8B(addr):
 def assert_align_addr_8B(addr):
     assert(addr == align_addr_NB(addr, 8))
 
+def assert_align_addr_sb_read(addr):
+    assert(addr == align_addr_sb_read(addr))
+
+def assert_align_addr_sb_write(addr):
+    assert(addr == align_addr_sb_write(addr))
+
+
 """Align address to multiple of 16B
 """
 def align_addr_16B(addr):
@@ -48,6 +55,12 @@ def align_addr_16B(addr):
 """
 def align_addr_64B(addr):
     return align_addr_NB(addr, 64)
+
+def align_addr_sb_read(addr):
+    return align_addr_NB(addr, 2)
+
+def align_addr_sb_write(addr):
+    return align_addr_NB(addr, 4)
 
 """For IFMAP replication (https://sim.amazon.com/issues/kaena-141), need to:
  - pad image
@@ -1213,8 +1226,8 @@ class FileMapper():
         #    simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
         simout_file = file_params.file_name.replace("-midout.", "-simout.")
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
-        #assert_align_addr_8B(file_params.fmap_data_len)
-        assert_align_addr_8B(sb_addr)
+        #assert_align_addr_sb_write(file_params.fmap_data_len)
+        assert_align_addr_sb_write(sb_addr)
         return {
               'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomLoad",
@@ -1255,8 +1268,8 @@ class FileMapper():
         # use "simout" tag for Back-end/Inkling result file
         simout_file = file_params.file_name.replace("-midout.", "-simout.")
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
-        #assert_align_addr_8B(file_params.fmap_data_len)
-        assert_align_addr_8B(sb_addr)
+        #assert_align_addr_sb_read(file_params.fmap_data_len)
+        assert_align_addr_sb_read(sb_addr)
         return {
               'previous_waveops' : previous_waveops,
               'waveop_type'      : "SBAtomSave",

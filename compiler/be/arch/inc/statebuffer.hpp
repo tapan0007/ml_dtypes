@@ -44,7 +44,7 @@ public:
     //--------------------------------------------------------
     static bool qTpbReadAccessCheck(TpbAddress address, kcc_uint32 /*size*/) {
         // According to the table, address%4==0, size=4*K, size>=4
-        return 0 == (address % 4);
+        return 0 == (address % 2);
     }
 
     //--------------------------------------------------------
