@@ -5,8 +5,9 @@ RELEASE_ROOT=/proj/trench/sw/kaena-release
 cp krt-*.*-dv-hal.tar.gz ${RELEASE_ROOT}
 
 cd ${RELEASE_ROOT}
-RELEASE_NAME=`find -maxdepth 1 -type f -name "*.tar.gz" -printf "%T+ %p\n" | sort -r | head -n 1 | cut -d " " -f 2 | xargs -I{} basename {} .tar.gz`
+RELEASE_NAME=`ls *.tar.gz | sort -V -r | head -n 1 xargs -I{} basename {} .tar.gz`
 RELEASE_DIRECTORY=${RELEASE_ROOT}/${RELEASE_NAME}
+echo 'Release directory ${RELEASE_DIRECTORY}'
 
 # Create release directory and unzip tar into it.
 mkdir -p ${RELEASE_DIRECTORY}
