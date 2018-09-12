@@ -498,6 +498,30 @@ class Krt(object):
     self.qemu.sshCmd("cd %s &&  sudo tar xvfz %s" % (krtVmPath, krtPkgPattern))
     #self.qemu.sshCmd("cd %s &&  sudo modprobe vfio enable_unsafe_noiommu_mode=Y" % krtVmPath)
     self.qemu.sshCmd("sudo python3 %s/vfio_bind.py" % (krtVmPath + '/bin'))
+
+  def scrub_dram(self):
+    tongaDev = self.qemu.getTongaDevice()
+    cmd = "sudo %s/krtd -t %s & \
+           sleep 10 && \
+           cd %s && \
+           python3 kdb.py 'attach' 'expert scrub' quit && \
+           sleep 1 && \
+           sudo pkill krtd" % (krtVmPath + '/bin', tongaDev, krtVmPath + '/bin/kdb')
+
+    self.qemu.sshCmd(cmd)
+
+  # block level reset for tpb/dma engines. 
+  def force_reset_blocks(self):
+    tongaDev = self.qemu.getTongaDevice()
+    cmd = "sudo %s/krtd -t %s & \
+           sleep 10 && \
+           cd %s && \
+           python3 kdb.py 'attach' 'expert reset_block --tpb --dma' quit && \
+           sleep 1 \
+           && sudo pkill krtd" % (krtVmPath + '/bin', tongaDev,krtVmPath + '/bin/kdb')
+
+    self.qemu.sshCmd(cmd)
+
    
   def addModel(self, kelfDir, kelfVmDir, sg):
     self.kelfVmDir = kelfVmDir
@@ -755,6 +779,7 @@ class ZebuPool:
       for qemuRestartId in range(2):
         if zebu.start(qemuRestartId):
           krt.install()
+          #krt.scrub_dram()
           break
         else:
           zebu.stop()
@@ -819,6 +844,7 @@ if args.zebu != None and args.zebu.startswith('pool'):
       raise ValueError("ERROR: use --kelf")
     zebu, krt = qp.getAvailZebu()
     krtOk = krt.execute(args)
+    #krt.force_reset_blocks()
     zebu.unlock()
     sys.exit(0 if krtOk else 1)
   raise RuntimeError("ERROR: zebu pool is not yet supported")
@@ -833,6 +859,7 @@ elif args.zebu != None:
       zebuOk = True
       krt = KrtClass(zebu, inklingTimeout)
       krt.install()
+      #krt.scrub_dram()
       krtOk = krt.execute(args)
     else:
       print("ERROR: Failed to start Zebu  phase %d, restarting ..." % zebuRestartId)
