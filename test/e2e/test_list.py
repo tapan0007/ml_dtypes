@@ -831,6 +831,7 @@ qemuTestWaiver = [
     ['8-rn50_nne_fp16_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-two_banks$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-QEMU'],
+    ['8-rn50_nne_fp16_b16_wave-no_repl', 'WAIVE-V49850304'],
 
 ]
 
