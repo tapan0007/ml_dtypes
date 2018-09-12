@@ -13,7 +13,7 @@ from me_graph import KGraph, KNode
 # Main program
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--wavegraph", help="Wave-graph Json file to read")
+    parser.add_argument("--wavegraph", default="wavegraph.json", help="Wave-graph Json file to read")
     parser.add_argument("--typefilter", default=".*", help="Filter on waveop type")
     parser.add_argument("--fieldfilter", default=".*", help="Filter on waveop field name")
     parser.add_argument("--cleanup0", action="store_true", help="Cleanup wavegraph by removing unused fields in MatMul, change SBAtomFile -> SBAtomLoad, and ofmap/ifmap_count in SBAtomSave/Load to num_partitions")

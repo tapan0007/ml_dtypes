@@ -106,6 +106,7 @@ testConfigMap = {
   "0-1squeeze_wave" : [ "trivnet_squeeze",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' "],
   "0-1expanddims_wave" : [ "trivnet_expanddims",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' "],
   "0-1transpose_wave" : [ "trivnet_transpose",  "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-1stridedslice_tanh_sigmoid_wave" : [ "trivnet_stridedslice_tanh_sigmoid",  "tfloat16-b1-h4-r1-s1-c2-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv0_subnormal_wave" : [ "trivnet_conv1",
@@ -279,7 +280,15 @@ testConfigMap = {
   "1-1conv_transpose_r3_wave" : [ "trivnet_conv_transpose",  "tfloat16-b1-h2-r3-s1-c1-m1-wmin0-wmax9-imin1-imax1", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "1-1conv_transpose_s2_wave" : [ "trivnet_conv_transpose",  "tfloat16-b1-h4-r1-s2-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "1-1conv_transpose_s4_wave" : [ "trivnet_conv_transpose",  "tfloat16-b1-h4-r1-s4-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
-  "1-1conv_transpose_h8s4_wave" : [ "trivnet_conv_transpose",  "tfloat16-b1-h8-r1-s4-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h8r4s1_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h8-r4-s1-c1-m1-wmin0-wmax3-imin0-imax7", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h8r4s2_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h8-r4-s2-c1-m1-wmin0-wmax3-imin0-imax7", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h32r4s2_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h32-r4-s2-c1-m1-wmin0-wmax3-imin0-imax7", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h32r4s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h32-r4-s10-c1-m1-wmin1-wmax1-imin1-imax32", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h128r4s8_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h128-r4-s8-c1-m1-wmin0-wmax3-imin0-imax7", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h128r4s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h128-r4-s8-c1-m1-wmin0-wmax3-imin0-imax7", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h128r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h128-r4-s8-c1-m1-wmin0-wmax3-imin0-imax7", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h30r20s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h30-r20-s10-c1-m1-wmin1-wmax1-imin1-imax26", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "1-1conv_transpose_1d_h30r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h30-r40-s10-c1-m1-wmin1-wmax1-imin1-imax1", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "1-1conv_transpose_1d_h89r40s10_wave" : [ "trivnet_conv_transpose_1d",  "tfloat16-b1-h89-r40-s10-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
   "2-1conv3_64s8_wave" : [ "trivnet_conv1",  "tfloat16-b1-h16-r3-s8-c64-m64-wmin-0.1-wmax0.11-imin-0.2-imax0.22", "1conv", "--scheduler wave"],
@@ -400,6 +409,7 @@ testConfigMap = {
 
   #"10-parwavenet_ckpt"            : [ "tf_pb",   "parallel_wavenet/saved_model",        "parallel_wavenet", "--input_node Placeholder --depth 2", "--input_files %s" % melSpectra],
   "3-parwavenet_to_rs10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to Reshape_10 --show_op_name_in_kgraph --input_node random_uniform --depth 2 --partition from BiasAdd_2 --executors host all waveopt 1 --images linspace1", "--input_files trivnet_random_uniform:0.npy"],
+  #"3-parwavenet_to_rs1_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to Reshape_1 --show_op_name_in_kgraph --input_node Placeholder --depth 2 --partition from BiasAdd_2 --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s"%melSpectra],
   "9-parwavenet_10_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
 
   # Subgraph partioned flow using neural network executor
@@ -796,6 +806,7 @@ testWaiver = [
     ['.*squeeze.*', 'WAIVE_KAENA634'],
     ['.*expanddims.*', 'WAIVE_KAENA634'],
     ['0-1transpose_wave', 'WAIVE_KAENA711'],
+    ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     #['.*reshape.*', 'WAIVE_KAENA597'],
     ['0-1conv_dilated_wave', 'WAIVE_KAENA569'],
     ['3-parwavenet_to_rs10_fp16_waveopt$', 'WAIVE_KAENA711'],
@@ -808,7 +819,6 @@ testWaiver = [
     ['0-3resadd_fp16_wave', 'WAIVE-KAENA661'],
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
-    ['1-1conv_transpose_r3_wave',     'WAIVE_KAENA570'],
 
     ['4-rn50_matmul_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
 

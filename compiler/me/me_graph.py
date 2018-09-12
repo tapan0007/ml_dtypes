@@ -199,6 +199,7 @@ class KNode:
         if (fmap_rows < self.ofmap_full_tiley_sz):            
             self.ofmap_full_tiley_sz  = fmap_rows
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
+        # (TODO: this seems wrong since it increases tiley, and thus may clip tilex
         #if ((self.EF > PEArray.MAX_WAVE_SIZE) and adjust_for_pool):
         if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window.y):
             self.ofmap_full_tiley_sz = min(self.E, self.pool_window.y)
@@ -312,8 +313,11 @@ class KNode:
             if self.filter > self.stride:
                 ofmap_tile.padded_tile_rect = ofmap_tile.padded_tile_rect.increase_size(self.filter - self.stride)
             ofmap_tile.padded_tile_rect  = ofmap_tile.padded_tile_rect - self.padWN
-            ofmap_tile.tile_rect         = ofmap_tile.padded_tile_rect.get_overlap(self.ofmap_full_rect)
-            ifmap_tile.padded_tile_rect  = ofmap_tile.tile_rect // self.stride
+            # make sure tile rectangle still fits in PSUM
+            ofmap_tile.tile_rect         = ofmap_tile.padded_tile_rect.get_overlap(ofmap_tile.tile_rect)
+            ifmap_tile_padded_tile_rect_dim2d = ceildiv(ofmap_tile.tile_rect.dim2d, self.stride)
+            ifmap_tile.padded_tile_rect  = ifmap_tile_padded_tile_rect_dim2d.make_rect()
+            ifmap_tile.padded_tile_rect.set_lower(ofmap_tile.tile_rect.lower // self.stride)
         else:
             ifmap_tile.padded_tile_rect  = ofmap_tile.tile_rect * self.stride
             # TODO: handle the case of conv is followed by fused pool, so both pool_window and filter exists (two possible different OFMAPs)
@@ -352,20 +356,27 @@ class KNode:
     def compute_ifmap_ofmap_pewave_info(self, ifmap_pewave, ofmap_pewave, conv_transpose=True):        
         # compute the bounds for OFMAP PE-Wave within OFMAP tile (adjusted for boundary conditions)a
         if conv_transpose:
-            # Compute padded PE-Wave rectangle
-            padded_ofmap_pewave_rect   = ifmap_pewave.tile.tile_rect * self.stride
-            padded_ofmap_pewave_rect   = padded_ofmap_pewave_rect + Coord(ofmap_pewave.s_id, ofmap_pewave.r_id)
-            padded_ofmap_pewave_rect   = padded_ofmap_pewave_rect - self.padWN
-            ofmap_pewave.subtile_rect  = padded_ofmap_pewave_rect.get_overlap(ofmap_pewave.tile.tile_rect)
-            # Snap rectangle to the striding grid
+            # Compute output PE-Wave/subtile rectangle 
+            filter_pad_offset                = self.filter - Dim2D(1,1) - Coord(ofmap_pewave.s_id, ofmap_pewave.r_id) - self.padWN
+            padded_ofmap_pewave_rect         = self.ofmap_full_rect + filter_pad_offset
+            ofmap_pewave.subtile_rect        = padded_ofmap_pewave_rect.get_overlap(ofmap_pewave.tile.tile_rect)
             ofmap_pewave.subtile_rect.snap_rect_to_stride_grid(padded_ofmap_pewave_rect.lower, self.stride)
-            # Offset from input tile to the IFMAP PE-Wave (to avoid computing explicit padding pixels)
-            ofmap_pewave_offset              = ofmap_pewave.subtile_rect.get_offset_from(padded_ofmap_pewave_rect)
+            # compute output PE-Wave/subtile offset in PSUM tile
+            ofmap_pewave_offset_from_actual  = ofmap_pewave.subtile_rect.get_offset_from(ofmap_pewave.tile.tile_rect)
+            ofmap_pewave.subtile_psum_offset = ofmap_pewave_offset_from_actual.y * ofmap_pewave.tile.tile_rect.dim2d.x \
+                                             + ofmap_pewave_offset_from_actual.x
+            # compute the input PE-Wave/subtile offset within input tile
+            padded_ofmap_pewave_rect_fwd     = ifmap_pewave.tile.tile_rect * self.stride + filter_pad_offset
+            ofmap_pewave_offset_from_padded  = ofmap_pewave.subtile_rect.get_offset_from(padded_ofmap_pewave_rect_fwd)
+            ifmap_pewave_offset              = ofmap_pewave_offset_from_padded // self.stride
+            # compute the final input PE-Wave/subtile rectangle by projecting from OFMAP PE-Wave back
             ifmap_pewave_rect_dim2d          = ceildiv(ofmap_pewave.subtile_rect.dim2d, self.stride)
             ifmap_pewave.subtile_rect        = ifmap_pewave_rect_dim2d.make_rect()
-            ifmap_pewave_offset              = ofmap_pewave_offset // self.stride
-            ifmap_pewave.subtile_psum_offset = ifmap_pewave_offset.y * ifmap_pewave.tile.tile_rect.dim2d.x + ifmap_pewave_offset.x
             ifmap_pewave.subtile_rect.set_lower(ifmap_pewave.tile.tile_rect.lower + ifmap_pewave_offset)
+            ifmap_pewave.subtile_rect        = ifmap_pewave.subtile_rect.get_overlap(self.ifmap_full_rect)
+            ofmap_pewave.subtile_rect        = Rect(ofmap_pewave.subtile_rect.lower, ofmap_pewave.subtile_rect.lower \
+                                                     + (ifmap_pewave.subtile_rect.dim2d * self.stride) - Coord(1,1))
+            #print("snapped final rect ", ofmap_pewave.subtile_rect)
         else:
             # Compute padded PE-Wave rectangle
             padded_ifmap_pewave_rect   = ofmap_pewave.tile.tile_rect * self.stride
@@ -377,10 +388,11 @@ class KNode:
             #print("compute_ifmap_ofmap_pewave_info: tile_rect ", ifmap_pewave.tile.tile_rect, " padded pewave_rect ", padded_ifmap_pewave_rect, " subtile_rect ", ifmap_pewave.subtile_rect)
             # Offset from input tile to the IFMAP PE-Wave (to avoid computing explicit padding pixels)
             ifmap_pewave_offset              = ifmap_pewave.subtile_rect.get_offset_from(padded_ifmap_pewave_rect)
-            ofmap_pewave_rect_dim2d          = ceildiv(ifmap_pewave.subtile_rect.dim2d, self.stride)
-            ofmap_pewave.subtile_rect        = ofmap_pewave_rect_dim2d.make_rect()
             ofmap_pewave_offset              = ifmap_pewave_offset // self.stride
             ofmap_pewave.subtile_psum_offset = ofmap_pewave_offset.y * ofmap_pewave.tile.tile_rect.dim2d.x + ofmap_pewave_offset.x
+            # compute the final subtile rectangle
+            ofmap_pewave_rect_dim2d          = ceildiv(ifmap_pewave.subtile_rect.dim2d, self.stride)
+            ofmap_pewave.subtile_rect        = ofmap_pewave_rect_dim2d.make_rect()
             ofmap_pewave.subtile_rect.set_lower(ofmap_pewave.tile.tile_rect.lower + ofmap_pewave_offset)
 
         # obtain file address bounds of the PE-Wave
@@ -678,19 +690,33 @@ class KGraph:
                                 assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
                                 new_node.add_prev(prev_node.prev[0])
                                 prev_node.prev = []
+                                print("Dissolving Pad op name %s"%prev_node.data['layer_name']) 
                             elif (prev_node.data['layer_type'] == "StridedSlice"):
                                 new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
                                 print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
-                                assert (len(self.node_dict[i].prev) == 1)
-                                new_node.add_prev(self.node_dict[i].prev[0])
+                                assert (len(prev_node.prev) == 1)
+                                new_node.add_prev(prev_node.prev[0])
+                                prev_node.prev = []
+                                print("Dissolving StrideSlice op name %s"%prev_node.data['layer_name']) 
                             elif (prev_node.data['layer_type'] == "Unstack"):
                                 for j in prev_node.data['next_layer_order']:
                                     if j[1] == new_node.data['layer_name']:
                                         new_node.unstack_h_offset = j[0]
                                         print("%s: unstack_h_offset %d"%(new_node.data['layer_name'], j[0]))
                                         break
-                                assert (len(self.node_dict[i].prev) == 1)
-                                new_node.add_prev(self.node_dict[i].prev[0])
+                                assert (len(prev_node.prev) == 1)
+                                new_node.add_prev(prev_node.prev[0])
+                                prev_node.prev = []
+                                print("Dissolving Unstack op name %s"%prev_node.data['layer_name']) 
+                            elif (prev_node.data['layer_type'] == "Reshape"):
+                                if prev_node.data['ofmap_format'] == self.node_dict[i].prev[0].data['ofmap_format'] \
+                                        and prev_node.data['ofmap_shape'] == self.node_dict[i].prev[0].data['ofmap_shape']:
+                                    assert (len(prev_node.prev) == 1)
+                                    new_node.add_prev(prev_node.prev[0])
+                                    prev_node.prev = []
+                                    print("Dissolving Reshape op name %s"%prev_node.data['layer_name']) 
+                                else:
+                                    new_node.add_prev(self.node_dict[i])
                             else:
                                 new_node.add_prev(self.node_dict[i])
                         else:

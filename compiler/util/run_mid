@@ -1,8 +1,12 @@
-#!/bin/sh
-if [ $# -eq 0 ]; then
-    x=0
-else
-    x=$1
-fi
+#!/usr/bin/env bash
+x=0
+pdb=""
+nname="generic"
+while [[ $# > 0 ]]; do case $1 in
+    -d) pdb="-m pdb"; shift;;
+    -r) nname="resnet50"; shift;;
+    *) x=$1;;
+esac; shift; done    
+
 rm -f *-midout.npy
-python3 $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json --debug 3 --nname=generic --stop_after_layer_num $x --no_inter_layer_load 2>&1 | tee log-me.txt
+python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json --debug 3 --nname=$nname --stop_after_layer_num $x --no_inter_layer_load 2>&1 | tee log-me.txt

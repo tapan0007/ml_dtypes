@@ -609,8 +609,6 @@ class FusedOp(list):
                                            + tpb.statebuffer.batcher.sb_partialbatch_start[ofmap_batch_count]
             # Scratch (OFMAP)
             else:
-                print(ifmaps_file_params.file_name, ifmaps_file_params.dram_data)
-                print(ofmaps_file_params.file_name, ofmaps_file_params.dram_data.base)
                 if self.first_op.is_nop:
                     ofmaps_region_sz = ifmaps_region_sz
                     ofmaps_region_start_addr = ifmaps_region_start_addr + self.first_op.slice_w_offset * self.first_op.item_sz
@@ -1060,8 +1058,7 @@ class FusedOp(list):
                 next_break = break_at_y[i+1]
             fmap_y_num = next_break - break_at_y[i]
             dst_psum_bank_offset = break_at_y[i] * ofmap_pewave.tile.tile_rect.dim2d.x
-            if not conv_transpose:
-                dst_psum_bank_offset += ofmap_pewave.subtile_psum_offset
+            dst_psum_bank_offset += ofmap_pewave.subtile_psum_offset
             assert(dst_psum_bank_offset < PEArray.MAX_WAVE_SIZE)
             fmap_sb_address = break_addr[i]
             if ifmap_replication_resolution > 1:
@@ -1246,24 +1243,15 @@ class FusedOp(list):
                     "length: ", ifmap_pewave.lower_to_upper_len_bytes[0],
                     )
             """
-        #print("\npearray_packed_ifmaps", ofmap_pewave.id_array, "\n", pearray_packed_ifmaps)
-        #print("\npearray_packed_weights", ofmap_pewave.id_array, "\n", pearray_packed_weights)
         if (ifmap_pewave.lower_addr[0] < 0 or ifmap_pewave.upper_addr[0] < 0):
             assert(ifmap_pewave.subtile_rect.is_empty)
             assert(ifmap_pewave.lower_addr[0] < 0)
             assert(ifmap_pewave.upper_addr[0] < 0)
-            #print(ifmap_pewave.subtile_rect)
-            #print(ifmap_pewave.lower_addr[0])
             print("WARNING layer %s: IFMAP wave (%s) has no data, so don't create waveops for this wave"%(self[0].data['layer_name'], ofmap_pewave.id_string))
             return False
         else:
             if self.conv_op.is_conv_transpose:
                 packed_ofmaps = np.matmul(pearray_packed_ifmaps.astype(np.float32), pearray_packed_weights.astype(np.float32))
-                print("pearray_packed_ifmaps: ", pearray_packed_ifmaps)
-                print("pearray_packed_weights: ", pearray_packed_weights)
-                print("packed_ofmaps: ", packed_ofmaps)
-                print(ifmap_pewave.subtile_rect)
-                print(ofmap_pewave.subtile_rect)
                 tpb.pearray.unpack_wave_ofmaps_deconv(
                         packed_ofmaps
                         , ifmap_pewave
@@ -1417,7 +1405,6 @@ class FusedOp(list):
                 #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted[bias_chan_mid_part*PEArray.NUM_COLS : (bias_chan_mid_part+1)*PEArray.NUM_COLS])
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
-                #print(y-x)
                 psum_bank_dst = psum_bank_src 
                 dst_is_psum = False
                 if (i+1 < len(op_list) and re.search(self.act_ops_regex, op_list[i+1].data['layer_type'])):

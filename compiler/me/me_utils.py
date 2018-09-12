@@ -188,11 +188,9 @@ class Coord():
 
     def __lt__(self, coord):
         return (self.x < coord.x and self.y <= coord.y) or (self.x <= coord.x and self.y < coord.y)
-        #return (self.x < coord.x) and (self.y < coord.y)
 
     def __gt__(self, coord):
         return (self.x > coord.x and self.y >= coord.y) or (self.x >= coord.x and self.y > coord.y)
-        #return (self.x > coord.x) and (self.y > coord.y)
 
     def __le__(self, coord):
         return (self.x <= coord.x) and (self.y <= coord.y)
@@ -299,12 +297,14 @@ class Rect():
 
     def __mul__(self, mul_dim2d):
         new_lower = self.lower * mul_dim2d
+        #new_upper = self.upper * mul_dim2d
         new_dim2d = self.dim2d * mul_dim2d
         new_upper = new_lower + Coord(new_dim2d.x-1, new_dim2d.y-1)
         return Rect(new_lower, new_upper)
 
     def __floordiv__(self, dim2d):
         new_lower = self.lower // dim2d
+        #new_upper = self.upper // dim2d
         new_dim2d = self.dim2d // dim2d
         new_upper = new_lower + Coord(new_dim2d.x-1, new_dim2d.y-1)
         return Rect(new_lower, new_upper)
@@ -343,7 +343,7 @@ class Rect():
 
     def set_lower(self, new_lower):
         self.lower = copy.copy(new_lower)
-        self.upper = new_lower + Coord(self.dim2d.x - 1, self.dim2d.y - 1)
+        self.upper = self.lower + Coord(self.dim2d.x - 1, self.dim2d.y - 1)
 
     def snap_rect_to_stride_grid(self, origin, stride):
         self.lower.snap_up_nearest_grid(origin, stride)

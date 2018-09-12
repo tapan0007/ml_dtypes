@@ -185,8 +185,8 @@ class TPBSched:
                 # Mark the first node after Input/Placeholder as input node
                 for i in first_op.next: 
                     i.is_input = True
-                    if i.is_nop:
-                        raise RuntimeError("Sorry, cannot have a data movement op (Reshape, Squeeze, ExpandDims) as the first node after placeholder")
+                    #if i.is_nop:
+                    #    raise RuntimeError("Sorry, cannot have a data movement op (Reshape, Squeeze, ExpandDims) as the first node after placeholder")
                     if (i.data['layer_type'] == 'Conv' or i.data['layer_type'] == 'MatMul' or i.data['layer_type'] == 'Softmax2'):
                         # compute early to detect replication and to obtain some params; will be recomputed in get_fused_ops
                         i.populate_conv_params()

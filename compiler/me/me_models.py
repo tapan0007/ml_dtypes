@@ -85,8 +85,8 @@ class PEArray:
         ofmap_subtile_dim2d = ofmap_pewave.subtile_rect.dim2d
         ofmap_tile_dim2d = ofmap_pewave.tile.tile_rect.dim2d
         ofmap_subtile_offset = ofmap_pewave.subtile_rect.get_offset_from(ofmap_pewave.tile.tile_rect)
-        #print(subtile_rect, tile_rect)
-        #print(self.Tn, ofmap_pewave.tile.channel_start, ofmap_pewave.tile.channel_stop)
+        #print("Deconv PSUM offset: ", ofmap_subtile_offset)
+        #print("Deconv PSUM offset: ", ofmap_pewave.subtile_psum_offset)
         for z in range(ofmap_pewave.tile.Tn):
             for j in range(ofmap_pewave.tile.channel_start, ofmap_pewave.tile.channel_stop):
                 result_subtile_data_tmp = (packed_ofmaps[      z * ifmap_subtile_dim2d.y * ifmap_subtile_dim2d.x 
@@ -99,11 +99,11 @@ class PEArray:
                 if start_tensor_calc:
                     ofmap_tile[0 : ofmap_tile_dim2d.y, 
                                0 : ofmap_tile_dim2d.x] = np.zeros((ofmap_tile_dim2d.y, ofmap_tile_dim2d.x), dtype=np.float32)
-                    print(ofmap_tile, result_subtile_data)
+                    #print(ofmap_tile, result_subtile_data)
                     ofmap_tile[ofmap_subtile_offset.y : ofmap_subtile_offset.y + ofmap_subtile_dim2d.y : stride.y, 
                                ofmap_subtile_offset.x : ofmap_subtile_offset.x + ofmap_subtile_dim2d.x : stride.x] = result_subtile_data 
                 else:
-                    print(ofmap_tile, result_subtile_data)
+                    #print(ofmap_tile, result_subtile_data)
                     ofmap_tile[ofmap_subtile_offset.y : ofmap_subtile_offset.y + ofmap_subtile_dim2d.y : stride.y, 
                                ofmap_subtile_offset.x : ofmap_subtile_offset.x + ofmap_subtile_dim2d.x : stride.x] += result_subtile_data 
                 out_array[      z * ofmap_tile_dim2d.y * ofmap_tile_dim2d.x
