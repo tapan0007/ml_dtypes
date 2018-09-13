@@ -359,7 +359,6 @@ class Zebu(BePlat):
     tongaOk = False
     logo = "/tmp/log-%s-%s.txt" % (self.zebuHost,self.rtlSandbox)
     cmd = "/rdata/aus11/proj/vbox/bin/runenohup -k all -ptrq -sbdir %s > %s ; " % (self.rtlSandbox, logo)
-    cmd+= "grep 'All ProxyXtors are ready to connect to the VM' %s" % logo
     sshcmd = 'ssh %s "%s"' % (self.zebuHost, cmd)
     print(sshcmd)
     return os.system(sshcmd) == 0
