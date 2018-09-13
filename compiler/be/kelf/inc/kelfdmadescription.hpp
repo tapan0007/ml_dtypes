@@ -98,7 +98,6 @@ public:
 private:
 
     static const char* gSymbolicInQueue();
-    static const char* gSymbolicOutQueue();
 
     struct Keys;
 

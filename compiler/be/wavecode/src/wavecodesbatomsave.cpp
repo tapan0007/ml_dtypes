@@ -301,7 +301,6 @@ WaveCodeSbAtomSave::findSuccEventsAndChosenEngine(wave::SbAtomSaveWaveOp* sbAtom
             "Engine on chosen edge from ", chosenPrevEdge->gFromOp()->gName(), " to ", sbAtomWaveop->gName(),
             " different than engine id ", utils::engineId2Str(chosenEngId));
     }
-    Assert(EngineId::Pooling == chosenEngId, "AtomSave must be on PoolEng");
 
     // First wait on all other engines
     for (auto prevWaveEdge : sbAtomWaveop->gPrevWaveEdges()) {

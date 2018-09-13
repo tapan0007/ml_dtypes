@@ -51,9 +51,6 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
             continue;
         }
         const auto evtId = prevWaveEdge->gEventId();
-        if (evtId == 0x12 && m_WaveCode.qBinFileRuntimeKelf()) {
-            utils::breakFunc(__LINE__);
-        }
         ++numSyncs;
 
         if (allowEmb && firstEmb) {

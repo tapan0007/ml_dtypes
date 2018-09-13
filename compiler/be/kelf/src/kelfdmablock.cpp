@@ -82,7 +82,8 @@ DmaDescription::DmaBlockFromTpb::DmaBlockFromTpb(DmaDescription& dmaDescription,
     , m_QOut(qOut)
 {
     if (qOut) {
-        m_QueueName = gSymbolicOutQueue();
+        //m_QueueName = gSymbolicOutQueue();
+        m_QueueName = m_DmaDescription.gSymbolicQueue(engId, false, false);
     } else {
         m_QueueName = m_DmaDescription.gSymbolicQueue(engId, false, false);
     }

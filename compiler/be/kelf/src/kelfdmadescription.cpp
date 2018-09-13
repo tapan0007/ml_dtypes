@@ -168,11 +168,7 @@ DmaDescription::gSymbolicInQueue()
 
 /***********************************************************************
 ***********************************************************************/
-const char*
-DmaDescription::gSymbolicOutQueue()
-{
-    return "OUT_QUE";
-}
+
 
 /***********************************************************************
 ***********************************************************************/
@@ -279,7 +275,7 @@ DmaDescription::gSymbolicQueue(EngineId engId, bool inpt, bool weight) const
     if (inpt) {
         oss << "q_" << engName << "_" << (weight ? "in_w" : "in_d");
     } else {
-        oss << gSymbolicOutQueue(); // only one queue supported today
+        oss << "q_" << engName << "_out";
     }
     return std::string(oss.str().c_str());
 }
@@ -425,20 +421,14 @@ DmaDescription::writeDefinitions()
         queDesc[Keys::gDescType()] = "in";
         jDmaQueue[gSymbolicInQueue()] = queDesc;
 
-        queDesc[Keys::gDescType()] = "out";
-        jDmaQueue[gSymbolicOutQueue()] = queDesc;
-
-if (false) {
         for (auto engId : engIds) {
             const std::string queName = gSymbolicQueue(engId, false, false);
             if (gNumBlockIdsForQueue(queName) > 0) {
                 queDesc[Keys::gDescType()] = "out";
                 queDesc[Keys::gOwner()] = gEngineName(engId);
                 jDmaQueue[queName]  = queDesc; // output
-                break; // only one queue supported today
             }
         }
-}
 
         for (auto engId : engIds) {
             std::string queName = gSymbolicQueue(engId, true, true);
@@ -558,38 +548,6 @@ DmaDescription::writeInOutDescriptors()
         jDmaBlock[Keys::gDescriptor()] = jDmaDescs;
         jDmaBlocks.push_back(jDmaBlock);
     }
-
-
-  if (false) {
-    for (const auto& dmaBlock : m_DmaBlocksFromTpb) {
-        if (!dmaBlock.qOut()) {
-            continue;
-        }
-        json jDmaBlock;
-        jDmaBlock[Keys::gQueueName()]  = gSymbolicOutQueue();
-        jDmaBlock[Keys::gBlockId()]     = dmaBlock.gBlockId();
-        jDmaBlock[Keys::gHashComment()] = dmaBlock.gComment();
-        jDmaBlock[Keys::gHashBlockSize()] = dmaBlock.size();
-        // Output queues are polled, but events are used for
-        // TPB to know DMA transfer end.
-        dmaBlock.setDmaEventField(jDmaBlock);
-
-        std::vector<json> jDmaDescs;
-        for (const auto& desc : dmaBlock.gDescs()) {
-            desc.assertAccessCheck();
-            json jDmaDesc;
-            jDmaDesc[Keys::gFromId()]         = gSymbolicStateBuffer();
-            jDmaDesc[Keys::gFromOffset()]     = desc.gSrcSbAddress();
-            jDmaDesc[Keys::gToId()]           = desc.gDstFileId().m_VarName;
-            jDmaDesc[Keys::gToOffset()]       = desc.gDstFileAddress();
-            jDmaDesc[Keys::gSize()]         = desc.gNumBytes();
-
-            jDmaDescs.push_back(jDmaDesc);
-        }
-        jDmaBlock[Keys::gDescriptor()] = jDmaDescs;
-        jDmaBlocks.push_back(jDmaBlock);
-    }
-  }
 
 
     j[Keys::gDmaBlock()] = jDmaBlocks;

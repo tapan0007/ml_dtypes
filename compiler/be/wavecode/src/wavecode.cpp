@@ -85,6 +85,7 @@ WaveCode::determinePrecSbEdges()
         }
 
         const auto sbWop = dynamic_cast<wave::SbAtomWaveOp*>(waveop);
+        Assert(sbWop, "SbAtom must be Save or Load");
         if (waveop->gPrevWaveEdges().size() == 0) {
             // initial loads
             if (const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(sbWop)) {
@@ -102,26 +103,15 @@ WaveCode::determinePrecSbEdges()
         }
 
         wave::WaveEdge* chosenPrevEdge = nullptr;
-        if (const auto saveWop = dynamic_cast<wave::SbAtomSaveWaveOp*>(sbWop)) {
-            for (auto prevWaveEdge : saveWop->gPrevWaveEdges()) {
-                if (prevWaveEdge->gFromOp()->gEngineId() == EngineId::Pooling) { // For now save must be on pooling
+        for (auto engId : engineIds) {
+            for (auto prevWaveEdge : sbWop->gPrevWaveEdges()) {
+                if (prevWaveEdge->gFromOp()->gEngineId() == engId) {
                     chosenPrevEdge = prevWaveEdge;
                     break;
                 }
             }
-        } else {
-            const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(sbWop);
-            Assert(loadWop, "SbAtom must be Save or Load");
-            for (auto engId : engineIds) {
-                for (auto prevWaveEdge : loadWop->gPrevWaveEdges()) {
-                    if (prevWaveEdge->gFromOp()->gEngineId() == engId) {
-                        chosenPrevEdge = prevWaveEdge;
-                        break;
-                    }
-                }
-                if (chosenPrevEdge) {
-                    break;
-                }
+            if (chosenPrevEdge) {
+                break;
             }
         }
 

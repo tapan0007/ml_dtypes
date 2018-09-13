@@ -476,6 +476,19 @@ testConfigMap = {
     "--input_files %s" % rnDogJpg
   ],
 
+  "5-rn50_nne_to_act13_wave-no_repl-all-layers"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb",
+    "resnet50",
+    ( "--input_node input_1  --depth 2  --debug 1 %s "
+    + " --partition from activation_13/Relu "
+    + " --executors wave 0 host 1  "
+    + " --scheduler wave2 "
+    + " --schedule_options ' --save_layer_output ' "
+    + " --images %s "
+    )%(rnPreFp16, rnDogJpg),
+    "--input_files %s" % rnDogJpg
+  ],
+
 
   #"5-rn50_nne_to_act13_b8_wave"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 8 --images %s"%(rnPreFp16, getBatchedJpgs(8)), "--input_files %s" % (getBatchedJpgs(8))],
   #"5-rn50_nne_to_act13_b8_wave-fast_dram"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 8 --images %s"%(rnPreFp16, getBatchedJpgs(8)), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --input_files %s" % (getBatchedJpgs(8))],
@@ -616,7 +629,25 @@ testConfigMap = {
 
   "5-rn50_nne_to_act4_wave-no_repl-t1_focus_to"     : [
     "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
-    "--focus_to bn2a_branch2a/batchnorm_1/add_1  --input_node input_1  --depth 2 --show_op_name_in_kgraph  --debug 1 --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16'  --scheduler wave2 --schedule_options ' --nname=generic ' --images %s --wavegraph_checks structure data-race " %( rnDogJpg),
+    ( "--focus_to bn2a_branch2a/batchnorm_1/add_1  --input_node input_1  --depth 2 "
+    + " --show_op_name_in_kgraph  --debug 1 "
+    + "--preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16' "
+    + " --scheduler wave2 --schedule_options ' --nname=generic ' "
+    + "--images %s --wavegraph_checks structure data-race "
+    )%( rnDogJpg),
+    "--input_files %s" % rnDogJpg
+  ],
+
+  ## This test has outputs on multiple output queues, Act and Pool.
+  "5-rn50_nne_to_act4_wave-no_repl-t1_focus_to-qemu-all_layers"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    ( "--focus_to bn2a_branch2a/batchnorm_1/add_1  --input_node input_1  --depth 2 "
+    + " --show_op_name_in_kgraph  --debug 1 "
+    + "--preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16' "
+    + " --scheduler qemu_wave2 "
+    + " --schedule_options ' --nname=generic --save_layer_output ' "
+    + "--images %s --wavegraph_checks structure "
+    )%( rnDogJpg),
     "--input_files %s" % rnDogJpg
   ],
  
@@ -882,6 +913,7 @@ qemuTestWaiver = [
     ['8-rn50_nne_fp16_b16_wave-two_banks$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-no_repl', 'WAIVE-V49850304'],
+    ['5-rn50_nne_to_act13_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
     ['6-rn50_nne_to_act22_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
     ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
