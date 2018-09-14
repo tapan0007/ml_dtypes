@@ -1955,12 +1955,8 @@ class Graph(Object):
       cmd = fmt % (waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
 
       print("INFO: executing wave scheduler by  " + cmd)
-      os.system(cmd)
-      meOk = False
-      with open("log-me.txt") as meFh:
-        for line in meFh:
-          if line.rstrip() == "PASSED":
-            meOk = True
+      status = os.system(cmd)
+      meOk = status == 0
       return meOk, [waveGraphJsonFile, waveDotFile]
     
   #def convertOpsWithNoArgsToConstNodes(self, OpTypes):

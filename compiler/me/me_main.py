@@ -8,6 +8,7 @@ Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
 import json
 import os
 import re
+import sys
 import numpy as np
 import argparse
 import me_wavegraph_cleanup
@@ -385,7 +386,7 @@ class TPBSched:
                     f.write(s)
             except Exception as e:
                 print(e)
-                exit(-1)
+                sys.exit(-1)
 
             # test by reading it back
             try:
@@ -393,7 +394,7 @@ class TPBSched:
                 wavegraph_json = json.load(open(args.wavegraph))
             except Exception as e:
                 print(e)
-                exit(-1)
+                sys.exit(-1)
 
             # create graph from JSON file        
             wavegraph = KGraph(args)
@@ -480,7 +481,7 @@ if __name__ == "__main__":
         kgraph_json = json.load(open(args.kgraph))
     except Exception as e:
         print(e)
-        exit(-1)
+        sys.exit(-1)
 
     # create graph from JSON file        
     kgraph = KGraph(args)
@@ -506,5 +507,7 @@ if __name__ == "__main__":
     # check for comparison errors
     if (tpb.num_mismatches > 0):
         print("\nFAILED (num mismatches %d)"%tpb.num_mismatches)
+        sys.exit(1)
     else:        
         print("\nPASSED")
+        sys.exit(0)

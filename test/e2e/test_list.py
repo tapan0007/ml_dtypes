@@ -794,7 +794,6 @@ testWaiver = [
 
     # UINT8 support
     ['^0-resadd_uint8_wave$', 'WAIVE-UINT8'],
-    ['^0-resadd_.*_wave$', 'WAIVE-KAENA661'],
     ['0-3resadd_fp16_wave', 'WAIVE-KAENA661'],
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
