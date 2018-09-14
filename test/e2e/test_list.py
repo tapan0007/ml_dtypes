@@ -64,7 +64,8 @@ testConfigMap = {
 # Bias -> ResAdd
   "0-rtl-resadd_h1c1_wave"         : [ "trivnet_add",    "tfloat16-b1-h1-c1-wmin2-wmax2.2-imin3-imax6", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
   "0-rtl-resadd_h16c128_wave"      : [ "trivnet_add",    "tfloat16-b1-h16-c128-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
-  "0-rtl-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  #"0-rtl-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  "0-rtl-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic'"],  # disabled checks due to kaena-735
 
 # Multiple convolves
   "0-4conv_multiout_wave"      : [ 
@@ -225,7 +226,8 @@ testConfigMap = {
   "0-act_softplus_wave"     : [ "trivnet_act", "tfloat16-b1-h2-c128-softplus-wmin2-wmax2.2-imin-1-imax2", "act", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-scaleadd_wave"       : [ "trivnet_scaleadd",    "tfloat16-b1-h1-c16-wmin2-wmax2.2-imin3-imax6", "scaleadd", "--scheduler wave --wavegraph_checks structure data-race"],
   "0-resadd_wave"         : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--scheduler wave2 --wavegraph_checks structure data-race"],
-  "0-resadd_fp32_wave"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  #"0-resadd_fp32_wave"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  "0-resadd_fp32_wave"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add", "--scheduler wave2 --schedule_options ' --nname=generic'"],  # disabled checks due to kaena-735 
   "0-resadd_uint8_wave"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add", "--scheduler wave --wavegraph_checks structure data-race"],
 
 
@@ -854,24 +856,21 @@ testWaiver = [
     ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
     ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
     ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
-#    ['0-.*concat_.*', 'WAIVE_INCEPTIONV3'],
-    ['0-3conv_1concat', 'WAIVE_INCEPTIONV3'],
-    ['9-inceptionv3_wave*', 'WAIVE_INCEPTIONV3'],
-    ['9-inceptionv3_wave_dog_sg00_tpb', 'WAIVE_INCEPTIONV3'],
+    ['9-inceptionv3_wave_dog_sg00_tpb$', 'WAIVE_INCEPTIONV3'],
+    ['9-inceptionv3_wave_dog_sg00_tpb_upto_concat[23589]$', 'WAIVE_INCEPTIONV3'],
+    ['9-inceptionv3_wave_dog_sg00_tpb_upto_concat10$', 'WAIVE_INCEPTIONV3'],
+    ['9-inceptionv3_wave_dog_sg00_tpb_upto_concat11$', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_h16k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_h17k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_h18k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_h32k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h35c128m128k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_h35c16k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h35c192m192k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_h35c196k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_h35k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1avgpool_wave_k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1maxpool_wave_h17c128k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1maxpool_wave_h17c196k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1maxpool_wave_h17k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1maxpool_wave_h71k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h65c1m1k3d1_valid', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h71c1m1k3d2_same', 'WAIVE_INCEPTIONV3'],
 
@@ -928,8 +927,6 @@ testWaiver = [
     ['8-rn50_nne_fp32_meauto$', 'WAIVE_SB_PRESERVE'],
 
     # bugs
-    #['5-rn50_nne_to_act13_b16_wave-fast_dram$', 'WAIVE_BUG_KAENA454'],
-    ['8-rn50_nne_fp16_meauto$', 'WAIVE_KAENA701'],
 
     # Replication
     ['^[0-2]-rn50-.*_wave_repl$', 'WAIVE_REPLICATION'],

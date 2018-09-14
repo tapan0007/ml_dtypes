@@ -99,7 +99,7 @@ class WaveopStream(list):
             self.insert(loc, item)
         self.waveop_count += 1
         if (item['waveop_type'] != 'SBAtomLoad'):
-            if (args.debug > 3): print("INFO: Adding nonload waveop %s ID %d"%(item['waveop_name'], self.nonload_waveop_count))
+            if (args.debug > 2): print("INFO: Adding nonload waveop %s ID %d"%(item['waveop_name'], self.nonload_waveop_count))
             self.nonload_waveop_list.append(item)
             self.nonload_waveop_count += 1
 
@@ -291,6 +291,11 @@ class TPBSched:
             if last_op.next == []:
                 last_op.ofmaps_file_params.final_layer_ofmap = True
                 print("Fused op %s is output, mark final_layer_ofmap=True"%(last_op.data["layer_name"]))
+                if op_list.has_join:
+                    for i in op_list.last_op.ofmaps_file_params.writers_of_shared_fmap:
+                        i.ofmaps_file_params.share_w_final_layer_ofmap = True
+                        i.ofmaps_file_params.compute_padded_sizes()
+                        print("Also for fused op %s sharing same output SB space, mark share_w_final_layer_ofmap=True"%(i.data["layer_name"]))
                 # If the first operation of current fused-op is a NOP
                 # propagate these flags back to the previous op so that data can be saved to file
                 #if first_op.is_nop:

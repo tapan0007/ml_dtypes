@@ -1026,26 +1026,6 @@ class KGraph:
         fused_ops.first_op.src_is_psum = False
         fused_ops.last_op = fused_ops[-1]
         fused_ops.last_op.dst_is_psum = False
-        # Optimization: share FMAP space for join operation that has same input shape as output shape
-        if fused_ops.has_join \
-                and fused_ops.join_op.data["layer_type"] != "Concat" \
-                and not fused_ops.join_op.is_input:
-            if fused_ops.last_op != fused_ops.join_op:
-                # If join is followed by BiasAdd or Activate, use the same ofmaps_file_params as last op
-                assert(fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.last_op.ofmaps_file_params.file_dims.shape_tuple)
-                fused_ops.join_op.ofmaps_file_params = fused_ops.last_op.ofmaps_file_params
-                fused_ops.join_op.ofmaps_file_params.writers_of_shared_fmap.append(fused_ops.join_op)
-            # If join, capture ofmaps_file_params from the other branch (residue branch).
-            residue_op = fused_ops.join_op.prev[fused_ops.join_op.residue_index]                
-            assert(residue_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple)
-            # must change readers of shared FMAP before changing writers, because one of the writers is residue_op itself
-            for i in residue_op.ofmaps_file_params.readers_of_shared_fmap:
-                fused_ops.join_op.ofmaps_file_params.readers_of_shared_fmap.append(i)
-                i.ifmaps_file_params = fused_ops.join_op.ofmaps_file_params
-            for i in residue_op.ofmaps_file_params.writers_of_shared_fmap:
-                fused_ops.join_op.ofmaps_file_params.writers_of_shared_fmap.append(i)
-                i.ofmaps_file_params = fused_ops.join_op.ofmaps_file_params
-            residue_op.ofmaps_file_params = fused_ops.join_op.ofmaps_file_params
         # preload files
         for i in fused_ops.first_op.ifmaps_file_params_concat:
             if i is not None:
@@ -1055,6 +1035,31 @@ class KGraph:
         if fused_ops.last_op.ofmaps_file_params is not None:
             fused_ops.last_op.ofmaps_file_params.zero_file()
             fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(fused_ops.last_op)
+        # Optimization: share FMAP space for join operation that has same input shape as output shape
+        if fused_ops.has_join \
+                and fused_ops.join_op.data["layer_type"] != "Concat" \
+                and not fused_ops.join_op.is_input:
+            if fused_ops.last_op != fused_ops.join_op:
+                # If join is followed by BiasAdd or Activate, use the same ofmaps_file_params as last op
+                assert(fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.last_op.ofmaps_file_params.file_dims.shape_tuple)
+                #fused_ops.join_op.ofmaps_file_params = fused_ops.last_op.ofmaps_file_params
+                #fused_ops.join_op.ofmaps_file_params.share_from(fused_ops.last_op.ofmaps_file_params)
+                fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(fused_ops.join_op)
+            # If join, capture ofmaps_file_params from the other branch (residue branch).
+            residue_op = fused_ops.join_op.prev[fused_ops.join_op.residue_index]                
+            assert(residue_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple)
+            # must change readers of shared FMAP before changing writers, because one of the writers is residue_op itself
+            for i in residue_op.ofmaps_file_params.readers_of_shared_fmap:
+                fused_ops.last_op.ofmaps_file_params.readers_of_shared_fmap.append(i)
+                #i.ifmaps_file_params = fused_ops.join_op.ofmaps_file_params
+            for i in residue_op.ofmaps_file_params.writers_of_shared_fmap:
+                fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(i)                
+                #i.ofmaps_file_params = fused_ops.join_op.ofmaps_file_params
+                #i.ofmaps_file_params.share_from(fused_ops.join_op.ofmaps_file_params)
+            #residue_op.ofmaps_file_params = fused_ops.join_op.ofmaps_file_params
+            print(fused_ops.last_op.data["layer_name"], fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap)
+            for i in fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap:
+                print(i.data["layer_name"])
         # transfer replication info from Conv KNode to ifmaps_file_params
         if fused_ops.has_conv:
             fused_ops.conv_op.ifmaps_file_params.weights_S_dim = fused_ops.conv_op.weights_file_params.file_dims.S
