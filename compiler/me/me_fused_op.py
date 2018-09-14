@@ -771,15 +771,15 @@ class FusedOp(list):
                                 , ofmaps_region_sz
                                 , bias_region_sz
                                 , live_mapped_file_params)
-                    map_file(ofmaps_file_params\
-                             , ofmaps_region_start_addr\
-                             , wrap_around=True, region_sz=ofmaps_region_sz)
-                    if (self.first_op.is_concat == True):
-                        last_concat_ofmap_file_params.append(ofmaps_file_params)
-                    live_mapped_file_params.append(ofmaps_file_params)
-                    #print("map_files::%s is added to live_mapped_file_params"%\
-                    #      ofmaps_file_params.file_name)
-                    #self.print_SB_addr(ofmaps_file_params)
+                map_file(ofmaps_file_params\
+                         , ofmaps_region_start_addr\
+                         , wrap_around=True, region_sz=ofmaps_region_sz)
+                if (self.first_op.is_concat == True):
+                    last_concat_ofmap_file_params.append(ofmaps_file_params)
+                live_mapped_file_params.append(ofmaps_file_params)
+                #print("map_files::%s is added to live_mapped_file_params"%\
+                #      ofmaps_file_params.file_name)
+                #self.print_SB_addr(ofmaps_file_params)
                 # obtain the adjusted region size
                 ofmaps_region_sz = ofmaps_file_params.mapped_params.region_sz
                 single_ofmap_start = ofmaps_region_start_addr 
