@@ -1,0 +1,2 @@
+TestName,TotInstrCount,PeInstrCount,ActInstrCount,PoolInstrCount,ActiveRows,ActiveCols,ActiveChannels,TotUniqWaitEventCount,TotWaitEventCount,TotUniqSetEventCount,TotSetEventCount,PeInstructions,ActInstructions,PoolInstructions
+0-rtl-10conv_h16c128m64_relu_wave,219,191,18,10,1,4,1,3,3,2,2,LDWEIGHTS 81  MATMUL 81  NOP 16  WRITE 13  ,ACTIVATION 9  NOP 7  WRITE 2  ,NOP 6  WRITE 4  

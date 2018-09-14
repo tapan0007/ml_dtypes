@@ -1,0 +1,29 @@
+Test,Status,TopsRaw,OpCountRaw,TopsEff,OpCountEff,SimCycles,SimTimeSec,SimCycles/sec,TotTimeSec,Description
+0-rtl-10conv_h16c128m64_relu_wave,PASS,0,1412,0,2852,0,-1e-06,0,501.53704714775085,A unit test
+0-rtl-10conv_h32c256m128_relu_wave,FAIL,0,1412,0,2852,0,-1e-06,0,247.26091861724854,A unit test
+0-rtl-10conv_h4c1m1_relu_wave,FAIL,0,1412,0,2852,0,-1e-06,0,251.26488184928894,A unit test
+0-rtl-1conv1avgpool_h16c128m64_same_wave,FAIL,0,4268034,0,4268034,0,-1e-06,0,249.26320886611938,Two Conv2D layers back to back
+0-rtl-1conv1avgpool_h32c256m128_same_wave,FAIL,0,67665922,0,67665922,0,-1e-06,0,249.2640187740326,Two Conv2D layers back to back
+0-rtl-1conv1avgpool_h4c1m1_same_wave,FAIL,0,83,0,83,0,-1e-06,0,246.25956320762634,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h16c128m64_wave,FAIL,0,4268034,0,4268034,0,-1e-06,0,247.25732469558716,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h1c1m1_wave,FAIL,0,83,0,83,0,-1e-06,0,323.33661437034607,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h32c256m128_wave,FAIL,0,67665922,0,67665922,0,-1e-06,0,248.25789666175842,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h8r3c5m4_val_wave,FAIL,0,13750,0,13750,0,-1e-06,0,1030.074488401413,Two Conv2D layers back to back
+0-rtl-1conv3_h4r3_relu_wave,FAIL,0,172,0,332,0,-1e-06,0,10.01113247871399,Two Conv2D layers back to back
+0-rtl-1conv_h2c16_wave,FAIL,0,210,0,210,0,-1e-06,0,10.011357545852661,Two Conv2D layers back to back
+0-rtl-1conv_h4r2c8m4_wave,FAIL,0,2879,0,4354,0,-1e-06,0,10.012047290802002,Two Conv2D layers back to back
+0-rtl-1conv_h4r3c4m2_wave,FAIL,0,1162,0,2442,0,-1e-06,0,10.01130747795105,Two Conv2D layers back to back
+0-rtl-1conv_h8r4c64m16_wave,FAIL,0,1129719,0,2117634,0,-1e-06,0,11.012829780578613,Two Conv2D layers back to back
+0-rtl-1conv_m8_wave,FAIL,0,27,0,27,0,-1e-06,0,11.012446165084839,Two Conv2D layers back to back
+0-rtl-1conv_relu_wave,FAIL,0,172,0,332,0,-1e-06,0,10.012026309967041,Two Conv2D layers back to back
+0-rtl-1conv_wave,FAIL,0,6,0,6,0,-1e-06,0,11.013147115707397,Two Conv2D layers back to back
+0-rtl-2conv3_relu_h16c64m64r3_wave,FAIL,0,14982715,0,18944003,0,-1e-06,0,13.014024019241333,A unit test
+0-rtl-2conv3_relu_h1c1m1r3_wave,FAIL,0,16,0,32,0,-1e-06,0,11.011866807937622,A unit test
+0-rtl-2conv3_relu_h32c128m128r3_wave,FAIL,0,267916216,0,302399491,0,-1e-06,0,21.02403974533081,A unit test
+0-rtl-act_h2c16_wave,FAIL,0,130,0,130,0,-1e-06,0,10.011103630065918,A unit test
+0-rtl-resadd_h16c128_wave,FAIL,0,98436,0,98436,0,-1e-06,0,11.012530326843262,"Two layer, BiasAdd followed by ResAdd"
+0-rtl-resadd_h1c1_wave,FAIL,0,8,0,8,0,-1e-06,0,11.012383222579956,"Two layer, BiasAdd followed by ResAdd"
+0-rtl-resadd_h32c256_wave,FAIL,0,786692,0,786692,0,-1e-06,0,12.013436079025269,"Two layer, BiasAdd followed by ResAdd"
+0-rtl-rn50_ba_relu_h16c128m64_fp16_wave,FAIL,0,4268101,0,4268101,0,-1e-06,0,11.012847423553467,A unit test
+0-rtl-rn50_ba_relu_h1c1m1_fp16_wave,FAIL,0,12,0,12,0,-1e-06,0,321.33660864830017,A unit test
+0-rtl-rn50_ba_relu_h32c256m128_fp16_wave,FAIL,0,67666053,0,67666053,0,-1e-06,0,250.26452612876892,A unit test

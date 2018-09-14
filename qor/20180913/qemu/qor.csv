@@ -1,0 +1,212 @@
+Test,Status,TopsRaw,OpCountRaw,TopsEff,OpCountEff,SimCycles,SimTimeSec,SimCycles/sec,TotTimeSec,Description
+0-116conv_tanh_wave,PASS,0,17842,0,36242,0,-1e-06,0,215.31386876106262,Resnet-like network with 116 Conv2D and Relu layer pairs
+0-11conv_tanh_wave,PASS,0,1567,0,3167,0,-1e-06,0,239.34087324142456,Two Conv2D layers back to back
+0-1avgpool_wave_h17c768m768k3d1_same,PASS,0,3420275,0,4217089,0,-1e-06,0,306.41463470458984,A unit test
+0-1avgpool_wave_h1c192m192k1d1_same,PASS,0,577,0,577,0,-1e-06,0,256.35712695121765,A unit test
+0-1avgpool_wave_h1c192m192k1d1_valid,PASS,0,577,0,577,0,-1e-06,0,274.3813211917877,A unit test
+0-1avgpool_wave_h35c192m192k3d1_same,PASS,0,4023484,0,4468801,0,-1e-06,0,318.42903876304626,A unit test
+0-1avgpool_wave_h35c256m256k3d1_same,PASS,0,5364645,0,5958401,0,-1e-06,0,345.45950078964233,A unit test
+0-1avgpool_wave_h35c288m288k3d1_same,PASS,0,6035226,0,6703201,0,-1e-06,0,375.4933862686157,A unit test
+0-1avgpool_wave_h71c192m192k3d1,PASS,0,17448032,0,18389569,0,-1e-06,0,478.57315373420715,A unit test
+0-1avgpool_wave_h71c1m1k3d1_same,PASS,0,90876,0,95780,0,-1e-06,0,371.4462060928345,A unit test
+0-1avgpool_wave_h71c1m1k3d1_valid,PASS,0,90740,0,90740,0,-1e-06,0,340.40858125686646,A unit test
+0-1avgpool_wave_h8c1280m1280k3d1_same,PASS,0,1025639,0,1556481,0,-1e-06,0,398.4727590084076,A unit test
+0-1avgpool_wave_h8c2048m2048k3d1_same,PASS,0,1641022,0,2490369,0,-1e-06,0,428.4981892108917,A unit test
+0-1conv-h8r3c4m4-relu_wave,PASS,0,12455,0,19091,0,-1e-06,0,368.421838760376,Two Conv2D layers back to back
+0-1conv0_b16_wave,PASS,0,51,0,51,0,-1e-06,0,372.4253454208374,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_c1h16_wave,PASS,0,771,0,771,0,-1e-06,0,365.4452877044678,"Existance test for 1 conv2D layer with 1x1 filter, 16x16 image, 1 input channel"
+0-1conv0_c1h2_wave,PASS,0,15,0,15,0,-1e-06,0,386.4605450630188,"Existance test for 1 conv2D layer with 1x1 filter, 2x2 image, 1 input channel"
+0-1conv0_ckpt_wave,PASS,0,6,0,6,0,-1e-06,0,371.444904088974,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h16r2s2_wave,PASS,0,774,0,774,0,-1e-06,0,390.4652395248413,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h16r3s2_wave,PASS,0,1287,0,1419,0,-1e-06,0,393.4639675617218,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_h55c256m1_wave,PASS,0,2323458,0,2323458,0,-1e-06,0,435.50215339660645,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_padvalid_wave,PASS,0,1281804,0,1281804,0,-1e-06,0,668.7639331817627,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_qemu_wave,PASS,0,6,0,6,0,-1e-06,0,415.47834825515747,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_subnormal_wave,PASS,0,6,0,6,0,-1e-06,0,419.4815468788147,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0_wave,PASS,0,6,0,6,0,-1e-06,0,409.4651052951813,Existence test for wave scheduler
+0-1conv0_wave_h35c288m64,PASS,0,45529634,0,45529634,0,-1e-06,0,438.4798278808594,Existence test for wave scheduler
+0-1conv0m16_wave,PASS,0,51,0,51,0,-1e-06,0,425.4658377170563,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0m4_wave,PASS,0,15,0,15,0,-1e-06,0,415.4549493789673,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv0m8_wave,PASS,0,27,0,27,0,-1e-06,0,417.4582600593567,Existence tests for 1 conv2D layer with 1x1 filter and 1x1 image. It multiplies 2 * 3 = 6.
+0-1conv1avgpool_wave,PASS,0,83,0,83,0,-1e-06,0,455.494264125824,Two Conv2D layers back to back
+0-1conv1ba1_h1c1m1_wave,PASS,0,10,0,10,0,-1e-06,0,472.5095100402832,Two Conv2D layers back to back
+0-1conv1ba1_h1c64m64_wave,PASS,0,12484,0,12484,0,-1e-06,0,471.50811648368835,Two Conv2D layers back to back
+0-1conv1ba1_h4c1m256_wave,PASS,0,12820,0,12820,0,-1e-06,0,490.520254611969,Two Conv2D layers back to back
+0-1conv1ba1_h4c2m2_wave,PASS,0,202,0,202,0,-1e-06,0,484.5161690711975,Two Conv2D layers back to back
+0-1conv1ba1_h55c1m1_b2_wave,PASS,0,24206,0,24206,0,-1e-06,0,480.51201605796814,Two Conv2D layers back to back
+0-1conv1ba1_h55c1m1_wave,PASS,0,12106,0,12106,0,-1e-06,0,484.514839887619,Two Conv2D layers back to back
+0-1conv1ba1_wave,PASS,0,12820,0,12820,0,-1e-06,0,503.5305733680725,Two Conv2D layers back to back
+0-1conv1maxpool_c128m64h128_val_wave,PASS,0,2345214466,0,2345214466,0,-1e-06,0,891.9402441978455,Two Conv2D layers back to back
+0-1conv1maxpool_c128m64h16_val_wave,PASS,0,29032962,0,29032962,0,-1e-06,0,501.5255672931671,Two Conv2D layers back to back
+0-1conv1maxpool_wave_k3d1,PASS,0,123,0,123,0,-1e-06,0,476.5024790763855,Two Conv2D layers back to back
+0-1conv1pool_wave,PASS,0,8338,0,8338,0,-1e-06,0,477.4985103607178,Two Conv2D layers back to back
+0-1conv_b1h1r1s1c2m2_tile_wave,PASS,0,16,0,16,0,-1e-06,0,463.4839913845062,Two Conv2D layers back to back
+0-1conv_c128m64h128_waveg,PASS,0,2344325828,0,2418089986,0,-1e-06,0,930.1474492549896,Two Conv2D layers back to back
+0-1conv_exp_pad_wave,PASS,0,7030,0,7030,0,-1e-06,0,446.4706792831421,Two Conv2D layers back to back
+0-1conv_h17c196r1_wave,PASS,0,170130,0,170130,0,-1e-06,0,441.45933723449707,Two Conv2D layers back to back
+0-1conv_h4_sigmoid_wave,PASS,0,68,0,68,0,-1e-06,0,426.4448585510254,Two Conv2D layers back to back
+0-1conv_h4r1_b2_wave,PASS,0,99,0,99,0,-1e-06,0,418.4347560405731,Two Conv2D layers back to back
+0-1conv_h4r1_wave,PASS,0,51,0,51,0,-1e-06,0,417.6104009151459,Two Conv2D layers back to back
+0-1conv_h4r2s2_wave,PASS,0,54,0,54,0,-1e-06,0,433.62179803848267,Two Conv2D layers back to back
+0-1conv_h4r3s1_b2_wave,PASS,0,299,0,619,0,-1e-06,0,442.63082122802734,Two Conv2D layers back to back
+0-1conv_h4r3s1_wave,PASS,0,155,0,315,0,-1e-06,0,446.4662902355194,Two Conv2D layers back to back
+0-1conv_h6r2s3_wave,PASS,0,74,0,74,0,-1e-06,0,431.4506618976593,Two Conv2D layers back to back
+0-1conv_h6r3s2_b2_wave,PASS,0,321,0,407,0,-1e-06,0,444.46140599250793,Two Conv2D layers back to back
+0-1conv_h6r3s2_wave,PASS,0,166,0,209,0,-1e-06,0,456.4711437225342,Two Conv2D layers back to back
+0-1conv_s8_32b_wave,PASS,0,267,0,267,0,-1e-06,0,456.47178769111633,Two Conv2D layers back to back
+0-1conv_s8_wave,PASS,0,267,0,267,0,-1e-06,0,454.4691479206085,Two Conv2D layers back to back
+0-1conv_tile_r1_e1_wave,PASS,0,3678,0,3678,0,-1e-06,0,459.46641397476196,Single Conv2D layer with a large image
+0-1conv_tile_r1_wave,PASS,0,3678,0,3678,0,-1e-06,0,462.4699513912201,Single Conv2D layer with a large image
+0-1conv_tile_r1h32_wave,PASS,0,3075,0,3075,0,-1e-06,0,455.4630329608917,Single Conv2D layer with a large image
+0-1conv_tile_wave,PASS,0,20966,0,23286,0,-1e-06,0,471.6618378162384,Single Conv2D layer with a large image
+0-1maxpool_wave_h1c192m192k1d1_same,PASS,0,577,0,577,0,-1e-06,0,472.65916895866394,A unit test
+0-1maxpool_wave_h1c192m192k1d1_valid,PASS,0,577,0,577,0,-1e-06,0,470.48489141464233,A unit test
+0-1maxpool_wave_h71c192m192k3d1_same,PASS,0,17448032,0,18389569,0,-1e-06,0,657.989527463913,A unit test
+0-1maxpool_wave_h71c192m192k3d1_valid,PASS,0,17421889,0,17421889,0,-1e-06,0,635.9672865867615,A unit test
+0-1maxpool_wave_h71c192m192k3d2_valid,PASS,0,5201473,0,5201473,0,-1e-06,0,532.7771036624908,A unit test
+0-1maxpool_wave_h71c1m1k3d1_same,PASS,0,90876,0,95780,0,-1e-06,0,471.619117975235,A unit test
+0-1maxpool_wave_h71c1m1k3d1_valid,PASS,0,90740,0,90740,0,-1e-06,0,466.54628682136536,A unit test
+0-1maxpool_wave_h71c1m1k3d2_valid,PASS,0,27092,0,27092,0,-1e-06,0,451.47010231018066,A unit test
+0-1mp_r3s2_16_wave,PASS,0,1139,0,1139,0,-1e-06,0,447.4611327648163,Single MaxPoll layer
+0-2conv3_relu_b16_wave,PASS,0,2572,0,5132,0,-1e-06,0,459.47333550453186,A unit test
+0-2conv3_relu_wave,PASS,0,172,0,332,0,-1e-06,0,459.4742183685303,A unit test
+0-2conv_tanh_wave,PASS,0,172,0,332,0,-1e-06,0,439.47631430625916,A unit test
+0-3conv_ba_resadd_fp16_wave,PASS,0,113519,0,121028,0,-1e-06,0,431.46584010124207,"Two layer, BiasAdd followed by ResAdd"
+0-3conv_ba_resadd_h1_fp16_wave,PASS,0,20,0,20,0,-1e-06,0,399.4331228733063,"Two layer, BiasAdd followed by ResAdd"
+0-3conv_relu_wave,PASS,0,14,0,14,0,-1e-06,0,378.3907034397125,A unit test
+0-4conv_multiout_wave,PASS,0,482,0,962,0,-1e-06,0,388.4004192352295,A unit test
+0-act_wave,PASS,0,1026,0,1026,0,-1e-06,0,356.36838841438293,A unit test
+0-resadd_wave,PASS,0,17,0,17,0,-1e-06,0,349.4108383655548,"Two layer, BiasAdd followed by ResAdd"
+0-rtl-10conv_h16c128m64_relu_wave,PASS,0,1412,0,2852,0,-1e-06,0,358.4192883968353,A unit test
+0-rtl-10conv_h32c256m128_relu_wave,PASS,0,1412,0,2852,0,-1e-06,0,368.38512349128723,A unit test
+0-rtl-10conv_h4c1m1_relu_wave,PASS,0,1412,0,2852,0,-1e-06,0,371.3825943470001,A unit test
+0-rtl-1conv1avgpool_h16c128m64_same_wave,PASS,0,4268034,0,4268034,0,-1e-06,0,356.40344285964966,Two Conv2D layers back to back
+0-rtl-1conv1avgpool_h32c256m128_same_wave,PASS,0,67665922,0,67665922,0,-1e-06,0,393.51496267318726,Two Conv2D layers back to back
+0-rtl-1conv1avgpool_h4c1m1_same_wave,PASS,0,83,0,83,0,-1e-06,0,391.5454750061035,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h16c128m64_wave,PASS,0,4268034,0,4268034,0,-1e-06,0,380.501576423645,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h1c1m1_wave,PASS,0,83,0,83,0,-1e-06,0,368.47292828559875,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h32c256m128_wave,PASS,0,67665922,0,67665922,0,-1e-06,0,394.48195910453796,Two Conv2D layers back to back
+0-rtl-1conv1maxpool_h8r3c5m4_val_wave,PASS,0,13750,0,13750,0,-1e-06,0,377.46805024147034,Two Conv2D layers back to back
+0-rtl-1conv3_h4r3_relu_wave,PASS,0,172,0,332,0,-1e-06,0,368.41410088539124,Two Conv2D layers back to back
+0-rtl-1conv_h2c16_wave,PASS,0,210,0,210,0,-1e-06,0,372.4185230731964,Two Conv2D layers back to back
+0-rtl-1conv_h4r2c8m4_wave,PASS,0,2879,0,4354,0,-1e-06,0,346.3916218280792,Two Conv2D layers back to back
+0-rtl-1conv_h4r3c4m2_wave,PASS,0,1162,0,2442,0,-1e-06,0,358.4036784172058,Two Conv2D layers back to back
+0-rtl-1conv_h8r4c64m16_wave,PASS,0,1129719,0,2117634,0,-1e-06,0,350.37531542778015,Two Conv2D layers back to back
+0-rtl-1conv_m8_wave,PASS,0,27,0,27,0,-1e-06,0,336.3616065979004,Two Conv2D layers back to back
+0-rtl-1conv_relu_wave,PASS,0,172,0,332,0,-1e-06,0,349.3747720718384,Two Conv2D layers back to back
+0-rtl-1conv_wave,PASS,0,6,0,6,0,-1e-06,0,341.36718821525574,Two Conv2D layers back to back
+0-rtl-2conv3_relu_h16c64m64r3_wave,PASS,0,14982715,0,18944003,0,-1e-06,0,353.5204017162323,A unit test
+0-rtl-2conv3_relu_h1c1m1r3_wave,PASS,0,16,0,32,0,-1e-06,0,341.50828862190247,A unit test
+0-rtl-2conv3_relu_h32c128m128r3_wave,PASS,0,267916216,0,302399491,0,-1e-06,0,396.5957787036896,A unit test
+0-rtl-act_h2c16_wave,PASS,0,130,0,130,0,-1e-06,0,328.51708340644836,A unit test
+0-rtl-resadd_h16c128_wave,PASS,0,98436,0,98436,0,-1e-06,0,341.50531482696533,"Two layer, BiasAdd followed by ResAdd"
+0-rtl-resadd_h1c1_wave,PASS,0,8,0,8,0,-1e-06,0,332.3997185230255,"Two layer, BiasAdd followed by ResAdd"
+0-rtl-resadd_h32c256_wave,PASS,0,786692,0,786692,0,-1e-06,0,369.44085144996643,"Two layer, BiasAdd followed by ResAdd"
+0-rtl-rn50_ba_relu_h16c128m64_fp16_wave,PASS,0,4268101,0,4268101,0,-1e-06,0,338.39910864830017,A unit test
+0-rtl-rn50_ba_relu_h1c1m1_fp16_wave,PASS,0,12,0,12,0,-1e-06,0,339.38637924194336,A unit test
+0-rtl-rn50_ba_relu_h32c256m128_fp16_wave,PASS,0,67666053,0,67666053,0,-1e-06,0,357.4054026603699,A unit test
+1-1conv0_c128_wave,PASS,0,514,0,514,0,-1e-06,0,347.39220213890076,Two Conv2D layers back to back
+1-1conv0_c256_wave,PASS,0,1026,0,1026,0,-1e-06,0,339.381231546402,Two Conv2D layers back to back
+1-1conv0_h112c1m1_wave,PASS,0,37635,0,37635,0,-1e-06,0,353.42481780052185,Two Conv2D layers back to back
+1-1conv0_h16c128_wave,PASS,0,98434,0,98434,0,-1e-06,0,347.42071294784546,Two Conv2D layers back to back
+1-1conv0_h16c1m1_wave,PASS,0,1540,0,1540,0,-1e-06,0,332.4049942493439,Two Conv2D layers back to back
+1-1conv0_h16c256_wave,PASS,0,196866,0,196866,0,-1e-06,0,350.423978805542,Two Conv2D layers back to back
+1-1conv0_h16c256m128_wave,PASS,0,16875522,0,16875522,0,-1e-06,0,348.41742062568665,Two Conv2D layers back to back
+1-1conv0_h16c2m1_wave,PASS,0,1540,0,1540,0,-1e-06,0,349.41916680336,Two Conv2D layers back to back
+1-1conv0_h224c1m1_wave,PASS,0,75267,0,75267,0,-1e-06,0,346.46114444732666,Two Conv2D layers back to back
+1-1conv0_h28c1m1_wave,PASS,0,2355,0,2355,0,-1e-06,0,353.46751403808594,Two Conv2D layers back to back
+1-1conv0_h32c128m1_wave,PASS,0,393346,0,393346,0,-1e-06,0,354.46781277656555,Two Conv2D layers back to back
+1-1conv0_h32c1m1_wave,PASS,0,3075,0,3075,0,-1e-06,0,346.45988059043884,Two Conv2D layers back to back
+1-1conv0_h32c1m2_wave,PASS,0,5124,0,5124,0,-1e-06,0,340.45840859413147,Two Conv2D layers back to back
+1-1conv0_h32c2m1_wave,PASS,0,6148,0,6148,0,-1e-06,0,340.45819759368896,Two Conv2D layers back to back
+1-1conv0_h32c4m1_wave,PASS,0,12294,0,12294,0,-1e-06,0,330.4021019935608,Two Conv2D layers back to back
+1-1conv0_h32c64m1_wave,PASS,0,196674,0,196674,0,-1e-06,0,328.39841866493225,Two Conv2D layers back to back
+1-1conv0_h32c8m1_wave,PASS,0,24586,0,24586,0,-1e-06,0,318.36798787117004,Two Conv2D layers back to back
+1-1conv0_h40c1m1_wave,PASS,0,4803,0,4803,0,-1e-06,0,324.36913228034973,Two Conv2D layers back to back
+1-1conv0_h55c256_wave,PASS,0,2323458,0,2323458,0,-1e-06,0,338.391722202301,Two Conv2D layers back to back
+1-1conv0_h55m64_wave,PASS,0,390291,0,390291,0,-1e-06,0,328.3825418949127,Two Conv2D layers back to back
+1-1conv0_h56c1m1_wave,PASS,0,9411,0,9411,0,-1e-06,0,319.3723347187042,Two Conv2D layers back to back
+1-1conv0_h64c2m1_wave,PASS,0,24580,0,24580,0,-1e-06,0,304.3564713001251,Two Conv2D layers back to back
+1-1conv0_m128_wave,PASS,0,387,0,387,0,-1e-06,0,301.35591197013855,Two Conv2D layers back to back
+1-1conv0_m2_wave,PASS,0,9,0,9,0,-1e-06,0,310.3759398460388,Two Conv2D layers back to back
+1-1conv0_m64_wave,PASS,0,195,0,195,0,-1e-06,0,303.36965823173523,Two Conv2D layers back to back
+1-1conv0_r3h16c128_wave,PASS,0,499955,0,623746,0,-1e-06,0,295.3602213859558,Two Conv2D layers back to back
+1-1conv0_wave,PASS,0,134,0,134,0,-1e-06,0,277.3385810852051,Two Conv2D layers back to back
+1-1conv7_64_wave,PASS,0,54569723,0,102977538,0,-1e-06,0,321.39060735702515,Two Conv2D layers back to back
+1-1conv9_64_wave,PASS,0,75845634,0,170217474,0,-1e-06,0,353.4295744895935,Two Conv2D layers back to back
+1-1conv_transpose_h8s4_wave,PASS,0,1097,0,1097,0,-1e-06,0,333.39459323883057,Two Conv2D layers back to back
+1-1conv_transpose_s2_wave,PASS,0,89,0,89,0,-1e-06,0,268.3335440158844,Two Conv2D layers back to back
+1-1conv_transpose_s4_wave,PASS,0,281,0,281,0,-1e-06,0,288.3540098667145,Two Conv2D layers back to back
+1-1conv_transpose_wave,PASS,0,41,0,41,0,-1e-06,0,269.3246545791626,Two Conv2D layers back to back
+2-1conv3_64s8_wave,PASS,0,348162,0,348162,0,-1e-06,0,258.31012892723083,Two Conv2D layers back to back
+2-1conv9_64s8_wave,PASS,0,2699294,0,3002370,0,-1e-06,0,298.34920382499695,Two Conv2D layers back to back
+2-padasym_strd_h112r7s2_wave,PASS,0,294216,0,319923,0,-1e-06,0,289.3454656600952,Single Conv2D layer with asymmetric padding
+2-padasym_strd_h224r7s2_wave,PASS,0,225993467,0,236187842,0,-1e-06,0,409.49369168281555,Single Conv2D layer with asymmetric padding
+3-1conv0_h298_wave,PASS,0,485764,0,488433,0,-1e-06,0,331.40223598480225,Two Conv2D layers back to back
+3-1conv0_padvalid_wave,PASS,0,236196014,0,236196014,0,-1e-06,0,430.54721665382385,Two Conv2D layers back to back
+3-1conv1maxpool_k3d2_wave,PASS,0,2050951600,0,2082733187,0,-1e-06,0,359.47330141067505,Two Conv2D layers back to back
+3-rn50-01_wave,PASS,0,177660930,0,231851010,0,-1e-06,0,267.33595609664917,Sprint 9 Step 1  b1  h14  r3  s1  c256   m256    pad NSWE 0-0  0-0  1-1  1-1 
+3-rn50-02_wave,PASS,0,103072770,0,103072770,0,-1e-06,0,238.2974169254303,Sprint 9 Step 1  b1  h14  r1  s1  c256   m1024   pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-03_wave,PASS,0,103223298,0,103223298,0,-1e-06,0,216.26917386054993,Sprint 9 Step 1  b1  h14  r1  s1  c1024  m256    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-04_wave,PASS,0,99333186,0,99333186,0,-1e-06,0,232.2886962890625,Sprint 9 Step 1  b1  h55  r1  s1  c64    m256    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-05_wave,PASS,0,201658288,0,231458818,0,-1e-06,0,208.29816913604736,Sprint 9 Step 1  b1  h28  r3  s1  c128   m128    pad NSWE 0-0  0-0  1-1  1-1 
+3-rn50-06_wave,PASS,0,102926338,0,102926338,0,-1e-06,0,202.29054880142212,Sprint 9 Step 1  b1  h28  r1  s1  c128   m512    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-07_wave,PASS,0,207881213,0,223257666,0,-1e-06,0,234.33185601234436,Sprint 9 Step 1  b1  h55  r3  s1  c64    m64     pad NSWE 0-0  0-0  1-1  1-1 
+3-rn50-08_wave,PASS,0,142252773,0,233595394,0,-1e-06,0,429.6591989994049,Sprint 9 Step 1  b1  h7   r3  s1  c512   m512    pad NSWE 0-0  0-0  1-1  1-1 
+3-rn50-09_wave,PASS,0,103834114,0,103834114,0,-1e-06,0,314.4897303581238,Sprint 9 Step 1  b1  h7   r1  s1  c512   m2048   pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-10_wave,PASS,0,103227394,0,103227394,0,-1e-06,0,188.278635263443,Sprint 9 Step 1  b1  h28  r1  s1  c512   m128    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-11_wave,PASS,0,99913986,0,99913986,0,-1e-06,0,261.3958947658539,Sprint 9 Step 1  b1  h55  r1  s1  c256   m64     pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-12_wave,PASS,0,103909378,0,103909378,0,-1e-06,0,302.4669337272644,Sprint 9 Step 1  b1  h7   r1  s1  c2048  m512    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-13_wave,PASS,0,24978498,0,24978498,0,-1e-06,0,271.41747283935547,Sprint 9 Step 1  b1  h55  r1  s1  c64    m64     pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-14_wave,PASS,0,51912706,0,51912706,0,-1e-06,0,262.41007828712463,Sprint 9 Step 1  b1  h14  r1  s2  c512   m256    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-15_wave,PASS,0,206446594,0,206446594,0,-1e-06,0,224.35803842544556,Sprint 9 Step 1  b1  h14  r1  s2  c512   m1024   pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-16_b2_wave_repl,PASS,0,451977524,0,472366274,0,-1e-06,0,346.4854085445404,A unit test
+3-rn50-16_wave,PASS,0,225993467,0,236187842,0,-1e-06,0,351.4860932826996,Sprint 9 Step 1  b1  h112 r7  s2  c3     m64     pad NSWE 0-0  0-0  2-3  2-3 
+3-rn50-16_wave_repl,PASS,0,225993467,0,236187842,0,-1e-06,0,279.3684706687927,Sprint 9 Step 1  b1  h112 r7  s2  c3     m64     pad NSWE 0-0  0-0  2-3  2-3 
+3-rn50-16_wave_repl-fast_dram,PASS,0,225993467,0,236187842,0,-1e-06,0,221.2803122997284,Sprint 9 Step 1  b1  h112 r7  s2  c3     m64     pad NSWE 0-0  0-0  2-3  2-3 
+3-rn50-17_wave,PASS,0,206426370,0,206426370,0,-1e-06,0,225.27723598480225,Sprint 9 Step 1  b1  h28  r1  s2  c256   m512    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-18_wave,PASS,0,52187394,0,52187394,0,-1e-06,0,242.29512476921082,Sprint 9 Step 1  b1  h28  r1  s2  c256   m128    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-19_wave,PASS,0,52105218,0,52105218,0,-1e-06,0,208.25002479553223,Sprint 9 Step 1  b1  h7   r1  s2  c1024  m512    pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-20_wave,PASS,0,207818754,0,207818754,0,-1e-06,0,271.3242654800415,Sprint 9 Step 1  b1  h7   r1  s2  c1024  m2048   pad NSWE 0-0  0-0  0-0  0-0 
+3-rn50-t00_wave,PASS,0,6,0,6,0,-1e-06,0,181.2169988155365,A unit test
+3-rn50_ba_relu_fp16_wave,PASS,0,227599166,0,237793541,0,-1e-06,0,333.43076181411743,A unit test
+3-rn50_pool2_wave,PASS,0,823554,0,823554,0,-1e-06,0,243.37406063079834,A unit test
+3-rn50_relu_fp16_wave,PASS,0,10774550,0,11252412,0,-1e-06,0,335.50636291503906,A unit test
+4-rn50_matmul_nosm_wave,PASS,0,2355133,0,2355133,0,-1e-06,0,257.38622093200684,Full size networks using wave scheduler
+4-rn50_nne_from3_wave,PASS,0,227599166,0,237793541,0,-1e-06,0,341.46488332748413,Full size networks using wave scheduler
+5-rn50_nne_to_act13_wave-no_repl,PASS,0,2046893657,0,2133017918,0,-1e-06,0,551.7246975898743,Full size networks using wave scheduler
+5-rn50_nne_to_act13_wave-repl,PASS,0,2046893657,0,2133017918,0,-1e-06,0,586.7378809452057,Full size networks using wave scheduler
+5-rn50_nne_to_act4_b4_wave,PASS,0,2659484008,0,2761767316,0,-1e-06,0,1129.4932742118835,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl,PASS,0,664933897,0,690504724,0,-1e-06,0,614.7458317279816,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t1,PASS,0,256062529,0,266256904,0,-1e-06,0,515.61900806427,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t1_focus_to,PASS,0,256062529,0,266256904,0,-1e-06,0,582.6778376102448,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t2,PASS,0,464137409,0,489708236,0,-1e-06,0,590.7559230327606,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t3,PASS,0,563470595,0,589041422,0,-1e-06,0,671.8410415649414,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t4,PASS,0,330998209,0,341192584,0,-1e-06,0,656.838235616684,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t5,PASS,0,664159239,0,689730066,0,-1e-06,0,741.9327931404114,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t8,PASS,0,226796349,0,236990724,0,-1e-06,0,618.6985061168671,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t9,PASS,0,225993467,0,236187842,0,-1e-06,0,593.7981176376343,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl-t9_focus_to,PASS,0,225993467,0,236187842,0,-1e-06,0,607.8309934139252,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-repl,PASS,0,664933897,0,690504724,0,-1e-06,0,599.7029747962952,Full size networks using wave scheduler
+6-rn50_nne_to_act22_wave-repl,PASS,0,3273342602,0,3448868453,0,-1e-06,0,1112.377408504486,Full size networks using wave scheduler
+6-rn50_nne_to_act25_wave-repl,PASS,0,3812739226,0,4042455157,0,-1e-06,0,1255.5141441822052,Full size networks using wave scheduler
+6-rn50_nne_to_act28_wave-repl,PASS,0,4197199527,0,4481105538,0,-1e-06,0,1415.6686663627625,Full size networks using wave scheduler
+6-rn50_nne_to_act37_wave-repl,PASS,0,5350580430,0,5797056681,0,-1e-06,0,1756.0184087753296,Full size networks using wave scheduler
+6-rn50_nne_to_act40_wave,PASS,0,5735040731,0,6235707062,0,-1e-06,0,2043.2733194828033,Full size networks using wave scheduler
+6-rn50_nne_to_act43_wave,PASS,0,6241207246,0,6833216198,0,-1e-06,0,2628.8998794555664,Full size networks using wave scheduler
+6-rn50_nne_to_act46_wave-repl,PASS,0,6591457471,0,7274809043,0,-1e-06,0,2929.4821252822876,Full size networks using wave scheduler
+7-rn50_nne_fc_wave,PASS,0,6941808049,0,7716502241,0,-1e-06,0,3540.25332736969,Full size networks using wave scheduler
+7-rn50_nne_fp16_ap_wave,PASS,0,6942008753,0,7716702945,0,-1e-06,0,3498.1652681827545,Resnet50 up and including AvgPool after Act49. With replication.
+7-rn50_nne_fp16_b4_wave,PASS,0,27699659141,0,30798435909,0,-1e-06,0,7225.584324121475,Full size networks using wave scheduler
+7-rn50_nne_fp16_b4_wave-fast_dram,PASS,0,27699659141,0,30798435909,0,-1e-06,0,7253.72235250473,Full size networks using wave scheduler
+7-rn50_nne_fp16_b4_wave-no_repl,PASS,0,27699659141,0,30798435909,0,-1e-06,0,8108.710627317429,Full size networks using wave scheduler
+7-rn50_nne_fp16_b4_wave-two_banks,PASS,0,27699659141,0,30798435909,0,-1e-06,0,7481.854818582535,Full size networks using wave scheduler
+7-rn50_nne_fp16_wave,PASS,0,6944062829,0,7718757021,0,-1e-06,0,3711.455801010132,"Key functional test - Resnet50 except softmax, batch 1 with replication"
+7-rn50_nne_fp16_wave-fast_dram,PASS,0,6944062829,0,7718757021,0,-1e-06,0,3894.5920481681824,"Key functional test - Resnet50 except softmax, batch 1 with replication"
+7-rn50_nne_fp16_wave-no_repl,PASS,0,6944062829,0,7718757021,0,-1e-06,0,4035.651330947876,"Key qemu functional test - Resnet50 except softmax, batch 1 without replication (slow)"
+7-rn50_nne_fp16_wave-two_banks,PASS,0,6944062829,0,7718757021,0,-1e-06,0,3744.2663481235504,"Key functional test - Resnet50 except softmax, batch 1 with replication"
+8-rn50_nne_conv_wave,WAIVE-QEMU,0,6923292149,0,7697986346,0,-1e-06,0,2303.6568236351013,Sprint 9 Story 1 - all convolutions on Inkling other ops on host
+8-rn50_nne_fp16_b16_wave,WAIVE-QEMU,0,110722044390,0,123117151461,0,-1e-06,0,12741.232517957687,"Key performance test - Resnet50 except softmax, batch 16 with replication"
+8-rn50_nne_fp16_b16_wave-fast_dram,WAIVE-QEMU,0,110722044390,0,123117151461,0,-1e-06,0,12805.310938119888,"Key performance test - Resnet50 except softmax, batch 16 with replication"
+8-rn50_nne_fp16_b16_wave-no_repl,WAIVE-V49850304,0,110722044390,0,123117151461,0,-1e-06,0,12953.55668926239,"Key performance test - Resnet50 except softmax, batch 16 with replication"
+8-rn50_nne_fp16_b16_wave-two_banks,WAIVE-QEMU,0,110722044390,0,123117151461,0,-1e-06,0,12854.400030374527,"Key performance test - Resnet50 except softmax, batch 16 with replication"
