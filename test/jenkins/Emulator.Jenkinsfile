@@ -44,6 +44,13 @@ pipeline{
 
                 sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
+		sh 'mkdir -p /root/.ssh'
+		sh 'cp /home/jenkins/.ssh/config /root/.ssh/config'
+		sh 'cp /home/jenkins/.ssh/siopt-vpc.pem /root/.ssh/siopt-vpc.pem'
+		sh 'cp /home/jenkins/.ssh/id_rsa /root/.ssh/id_rsa'
+		sh 'chmod 600 /root/.ssh/siopt-vpc.pem'
+		sh 'chmod 600 /root/.ssh/id_rsa'
+		sh 'export $KAENA_ZEBU_SERVER
                 sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
@@ -71,6 +78,7 @@ pipeline{
                 git config --global user.name "Jenkins"
                 git config --global user.email aws-tonga-kaena@amazon.com
 
+
                 [ -z "$GERRIT_REFSPEC" ] || \
                 git -C krt pull origin $GERRIT_REFSPEC || \
                 git -C kcc pull origin $GERRIT_REFSPEC || \
@@ -89,6 +97,14 @@ pipeline{
                 git -C arch-isa describe --always --dirty 
                 git -C shared  describe --always --dirty 
                 git -C manifest describe --always --dirty 
+
+                cd $ARCH_HEADERS_PATH
+                [ ! -z "$ARCH_HEADER_VERSION" ] || export ARCH_HEADER_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+                git checkout $ARCH_HEADER_VERSION
+
+                cd $ARCH_ISA_PATH
+                [ ! -z "$ARCH_ISA_VERSION" ] || export $ARCH_ISA_VERSION=master
+                git checkout $ARCH_ISA_VERSION
 
 
                 chmod -R 755 ./
@@ -116,24 +132,6 @@ pipeline{
         }
         stage('Regressions') {
             stages {
-                stage('check') {
-                    steps {
-                        timeout(time: 50, unit: 'MINUTES') {
-                            sh 'cd $TEST_DIR/precheckin && make -f $KAENA_PATH/test/e2e/Makefile check'
-                        }
-                    }
-                    post {
-                        always {
-                            sh 'find $TEST_DIR/precheckin -type f -name "*.vdi" -delete'
-                            sh '/bin/cp -r $TEST_DIR/precheckin /artifact/precheckin'
-                            archiveArtifacts artifacts:'precheckin/qor_report.txt,*.tgz,precheckin/**/*.txt'
-                        }
-                        failure {
-                            sh 'tar -czvf /artifact/test-precheckin-result-all.tgz $TEST_DIR/precheckin'
-                            archiveArtifacts artifacts:'*.tgz'
-                        }
-                    }
-                }
                 stage('RunAllWithArgs') {
                     steps {
                         timeout(time: 5, unit: 'HOURS') {

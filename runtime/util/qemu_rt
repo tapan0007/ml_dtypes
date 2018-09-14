@@ -369,7 +369,7 @@ class Zebu(BePlat):
     cmd = 'sh -c "%s 2>&1 | tee log-zebu_vm.txt"' % ("ssh %s" % self.zebuHost)
     print("INFO: starting Zebu VM  %s" % cmd, flush=True)
     self.fh1 = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
-    self.fh1.expect("zebuadmin@zebu-server")
+    self.fh1.expect("$")
 
     self.fh1.send("source ~/.vbox_bashrc\r")
     self.fh1.expect("$")
