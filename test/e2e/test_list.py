@@ -863,6 +863,8 @@ qemuTestWaiver = [
     ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-no_repl', 'WAIVE-V49850304'],
 
+    ['6-rn50_nne_to_act22_wave-no_repl-all-layers', 'WAVE-OFMAP-OVERWRITE'],
+    ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-MANYDESCR-SIM742'],
 ]
 
 
