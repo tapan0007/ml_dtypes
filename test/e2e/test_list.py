@@ -157,6 +157,17 @@ testConfigMap = {
   "0-1conv_h4_softplus_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r1-s1-c1-m1-softplus-wmin-0.2-wmax0.4-imin-1-imax1.2", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv_h4_sigmoid_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r1-s1-c1-m1-sigmoid-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-116conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct", "--scheduler wave2 --wavegraph_checks structure data-race"],
+
+  "0-300conv_tanh_wave-all-layers" : [
+    "trivnet_lin",
+    "tfloat16-l300-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8",
+    "300ct",
+    ( "--scheduler wave2 "
+    + " --wavegraph_checks structure "
+    + " --schedule_options ' --save_layer_output ' "
+    ),
+  ],
+
   "0-1conv_s8_wave"    : [ "trivnet_conv1",  "tfloat16-b1-h16-r1-s8-c1-m1-wmin2-wmax22-imin1-imax256", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1mp_r3s2_16_wave"  : [ "trivnet_mp1", "b1-h16-r3-s2-c1-m1-wmin0-wmax0.1-imin1-imax12544", "1mp", "--scheduler wave2"],
   "0-1conv1pool_wave"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m128-SAME-MaxPool-k2-d2-wmin1-wmax1-imin0-imax127", "1conv1pool", "--scheduler wave2 --wavegraph_checks structure data-race"],
@@ -844,27 +855,16 @@ noGpuTestWaiver = [
 ]
 
 qemuTestWaiver = [
-    #['3-1conv1maxpool_k3d2_wave$',  'WAIVE-QEMU'],
-    #['3-rn50-16_b2_wave_repl$',  'WAIVE-QEMU'],
-    #['3-rn50-16_wave_repl$',  'WAIVE-QEMU'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
-    #['5-rn50_nne_to_act4_b4_wave$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
-    #['7-rn50_nne_fp16_b4_wave-fast_dram$',  'WAIVE-QEMU'],
-    #['7-rn50_nne_fp16_b4_wave-two_banks$',  'WAIVE-QEMU'],
-    #['7-rn50_nne_fp16_b4_wave$',  'WAIVE-QEMU'],
-    #['7-rn50_nne_fp16_wave-fast_dram$',  'WAIVE-QEMU'],
-    #['7-rn50_nne_fp16_wave-two_banks$',  'WAIVE-QEMU'],
-    #['7-rn50_nne_fp16_wave$',  'WAIVE-QEMU'],
-    #['7-rn50_nne_fp16_ap_wave$',  'WAIVE-QEMU_REPLIC'],
     ['8-rn50_nne_conv_wave$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-two_banks$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-no_repl', 'WAIVE-V49850304'],
-
-    ['6-rn50_nne_to_act22_wave-no_repl-all-layers', 'WAVE-OFMAP-OVERWRITE'],
-    ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-MANYDESCR-SIM742'],
+    ['6-rn50_nne_to_act22_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
+    ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
+    ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
 ]
 
 
