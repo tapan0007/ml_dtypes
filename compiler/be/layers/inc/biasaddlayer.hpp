@@ -4,6 +4,7 @@
 #define KCC_LAYERS_BIASADDLAYER_H
 
 
+#include "layers/inc/layerconsts.hpp"
 #include "layers/inc/addlayer.hpp"
 
 namespace kcc {

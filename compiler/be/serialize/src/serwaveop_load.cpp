@@ -4,6 +4,7 @@
 #include "arch/inc/statebuffer.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
+#include "wave/inc/waveconsts.hpp"
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
@@ -23,17 +24,17 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(LayerName);
     KCC_ARCHIVE(PreviousWaveOps);
 
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad ||
-        m_WaveOpType == WaveOpTypeStr_SBAtomSave)
+    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad ||
+        m_WaveOpType == wave::WaveOpTypeStr_SBAtomSave)
     {
         loadSbAtom(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_Pool) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Pool) {
         loadPool(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_MatMul) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_MatMul) {
         loadMatMul(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_Activation) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
         loadActivation(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_ResAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         loadResAdd(archive);
     } else {
         Assert(false, "Unknown waveop type: ", m_WaveOpType);
@@ -56,7 +57,7 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(RefFileShape);
 
     const arch::StateBuffer stateBuf(arch::Arch::gArch().gStateBuffer());
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
+    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad) {
         Assert(stateBuf.qTpbWriteAccessCheck(m_SbAddress, m_Length),
             "State buffer write address 0x",
             std::hex, m_SbAddress, std::dec,

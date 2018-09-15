@@ -1,3 +1,4 @@
+#include "wave/inc/waveconsts.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
 
@@ -21,21 +22,21 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
     KCC_ARCHIVE(Order);
 
 
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad ||
-        m_WaveOpType == WaveOpTypeStr_SBAtomSave)
+    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad ||
+        m_WaveOpType == wave::WaveOpTypeStr_SBAtomSave)
     {
        saveSbAtom(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_Pool) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Pool) {
         savePool(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_MatMul) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_MatMul) {
         saveMatMul(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_Activation) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
         saveActivation(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_ResAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         saveResAdd(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_Barrier) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {
         saveBarrier(archive);
-    } else if (m_WaveOpType == WaveOpTypeStr_Nop) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Nop) {
         saveNop(archive);
     } else {
         assert(false && "Serialization: unsupported WaveOp");
@@ -55,7 +56,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(RefFile);
     KCC_ARCHIVE(RefFileFormat);
     KCC_ARCHIVE(RefFileShape);
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
+    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad) {
         KCC_ARCHIVE(NumPartitions);
         KCC_ARCHIVE(ContainWeights);
 

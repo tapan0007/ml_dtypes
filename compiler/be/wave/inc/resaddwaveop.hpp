@@ -44,9 +44,8 @@ public:
     bool qResAddWaveOp() const override {
         return true;
     }
-    static std::string gTypeStrStatic() {
-        return WaveOpTypeStr_ResAdd;
-    }
+    static std::string gTypeStrStatic();
+
     std::string gTypeStr() const override {
         return gTypeStrStatic();
     }

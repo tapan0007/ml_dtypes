@@ -21,6 +21,7 @@
 #include "utils/inc/types.hpp"
 #include "utils/inc/datatype.hpp"
 
+#include "layers/inc/layerconsts.hpp"
 
 namespace kcc {
 using  namespace utils;
@@ -70,11 +71,11 @@ public:
         KCC_ARCHIVE(OfmapFormat);
         KCC_ARCHIVE(RefFile);
 
-        if (m_LayerType == LayerTypeStr_Input) {
+        if (m_LayerType == layers::LayerTypeStr_Input) {
             // nothing specific to Input layer
-        } else if (m_LayerType == LayerTypeStr_Const) {
+        } else if (m_LayerType == layers::LayerTypeStr_Const) {
             // nothing specific to Const layer
-        } else if (m_LayerType == LayerTypeStr_Conv) {
+        } else if (m_LayerType == layers::LayerTypeStr_Conv) {
             KCC_ARCHIVE(KernelShape);
             KCC_ARCHIVE(KernelFile);
             KCC_ARCHIVE(KernelFormat);
@@ -84,40 +85,42 @@ public:
             /*
             KCC_ARCHIVE(BatchingInWave);
             */
-        } else if (m_LayerType == LayerTypeStr_Matmul) {
+        } else if (m_LayerType == layers::LayerTypeStr_Matmul) {
             KCC_ARCHIVE(KernelShape);
             KCC_ARCHIVE(KernelFile);
             KCC_ARCHIVE(KernelFormat);
-        } else if (m_LayerType == LayerTypeStr_Reshape) {
+        } else if (m_LayerType == layers::LayerTypeStr_Reshape) {
             // nothing specific to Reshape
-        } else if (m_LayerType == LayerTypeStr_Tanh) {
+        } else if (m_LayerType == layers::LayerTypeStr_Tanh) {
             // nothing specific to Tanh
-        } else if (m_LayerType == LayerTypeStr_Relu) {
+        } else if (m_LayerType == layers::LayerTypeStr_Softplus) {
+            // nothing specific to Softplus
+        } else if (m_LayerType == layers::LayerTypeStr_Relu) {
             // nothing specific to Relu
-        } else if (m_LayerType == LayerTypeStr_Sigmoid) {
+        } else if (m_LayerType == layers::LayerTypeStr_Sigmoid) {
             // nothing specific to Relu
-        } else if (m_LayerType == LayerTypeStr_MaxPool || m_LayerType == LayerTypeStr_AvgPool) {
+        } else if (m_LayerType == layers::LayerTypeStr_MaxPool || m_LayerType == layers::LayerTypeStr_AvgPool) {
             KCC_ARCHIVE(KernelShape);
             KCC_ARCHIVE(Stride);
             KCC_ARCHIVE(Padding);
-        } else if (m_LayerType == LayerTypeStr_BiasAdd) {
+        } else if (m_LayerType == layers::LayerTypeStr_BiasAdd) {
             // nothing specific to BiasAdd layer
-        } else if (m_LayerType == LayerTypeStr_ResAdd || m_LayerType == LayerTypeStr_Multiply) {
+        } else if (m_LayerType == layers::LayerTypeStr_ResAdd || m_LayerType == layers::LayerTypeStr_Multiply) {
             // nothing specific to ResAdd layer
-        } else if (m_LayerType == LayerTypeStr_StridedSlice 
-                || m_LayerType == LayerTypeStr_Unstack 
-                || m_LayerType == LayerTypeStr_ConvTranspose
-                || m_LayerType == LayerTypeStr_ClipByValue
-                || m_LayerType == LayerTypeStr_Squeeze
-                || m_LayerType == LayerTypeStr_ExpandDims
-                || m_LayerType == LayerTypeStr_Slice
-                || m_LayerType == LayerTypeStr_Minimum
-                || m_LayerType == LayerTypeStr_Pad
-                || m_LayerType == LayerTypeStr_Softplus
-                || m_LayerType == LayerTypeStr_Transpose
-                || m_LayerType == LayerTypeStr_SpaceToBatchND
-                || m_LayerType == LayerTypeStr_BatchToSpaceND
-                || m_LayerType == LayerTypeStr_Concat) {
+        } else if (m_LayerType == layers::LayerTypeStr_StridedSlice 
+                || m_LayerType == layers::LayerTypeStr_Unstack 
+                || m_LayerType == layers::LayerTypeStr_ConvTranspose
+                || m_LayerType == layers::LayerTypeStr_ClipByValue
+                || m_LayerType == layers::LayerTypeStr_Squeeze
+                || m_LayerType == layers::LayerTypeStr_ExpandDims
+                || m_LayerType == layers::LayerTypeStr_Slice
+                || m_LayerType == layers::LayerTypeStr_Minimum
+                || m_LayerType == layers::LayerTypeStr_Pad
+                || m_LayerType == layers::LayerTypeStr_Softplus
+                || m_LayerType == layers::LayerTypeStr_Transpose
+                || m_LayerType == layers::LayerTypeStr_SpaceToBatchND
+                || m_LayerType == layers::LayerTypeStr_BatchToSpaceND
+                || m_LayerType == layers::LayerTypeStr_Concat) {
             // nothing specific to ResAdd layer
         } else {
             assert(false && "Serialization: unsupported layer");

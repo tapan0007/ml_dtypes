@@ -5,6 +5,7 @@
 
 #include "utils/inc/datatype.hpp"
 #include "layers/inc/layer.hpp"
+#include "wave/inc/waveconsts.hpp"
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "nets/inc/network.hpp"
 
@@ -57,6 +58,11 @@ SbAtomSaveWaveOp::Params::verify() const
     return true;
 }
 
+std::string
+SbAtomSaveWaveOp::gTypeStrStatic()
+{
+    return WaveOpTypeStr_SBAtomSave;
+}
 
 }}
 

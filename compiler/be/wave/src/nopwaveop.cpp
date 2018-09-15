@@ -12,6 +12,7 @@
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 
+#include "wave/inc/waveconsts.hpp"
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/nopwaveop.hpp"
 
@@ -78,6 +79,12 @@ NopWaveOp::Params::verify() const
         RETURN_ASSERT(false);
     }
     return true;
+}
+
+std::string
+NopWaveOp::gTypeStrStatic()
+{
+    return WaveOpTypeStr_Nop;
 }
 
 }}

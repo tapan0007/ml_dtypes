@@ -128,9 +128,7 @@ public:
     }
 
 
-    static std::string gTypeStrStatic() {
-        return WaveOpTypeStr_Pool;
-    }
+    static std::string gTypeStrStatic();
     std::string gTypeStr() const override {
         return gTypeStrStatic();
     }

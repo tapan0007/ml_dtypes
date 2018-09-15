@@ -5,6 +5,7 @@
 #include "utils/inc/datatype.hpp"
 
 #include "arch/inc/arch.hpp"
+#include "wave/inc/waveconsts.hpp"
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 #include "wave/inc/activationwaveop.hpp"
@@ -69,6 +70,7 @@ ActivationWaveOp::verify() const
         RETURN_ASSERT(false);
     }
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
+
     switch (m_ActivationFunc) {
     case ActivationFunc::Identity:
     case ActivationFunc::Relu:
@@ -77,7 +79,8 @@ ActivationWaveOp::verify() const
     case ActivationFunc::Sigmoid:
     case ActivationFunc::Tanh:
     case ActivationFunc::Exp:
-        return true;
+    case ActivationFunc::Softplus:
+        break;
     default:
         RETURN_ASSERT(false);
     }
@@ -196,6 +199,9 @@ ActivationWaveOp::gSimActivationFunc() const
     case ActivationFunc::Exp:
         return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_EXP;
         break;
+    case ActivationFunc::Softplus:
+        return TONGA_ISA_TPB_ACTIVATION_FUNC::TONGA_ISA_TPB_ACTIVATION_FUNC_SOFTPLUS;
+        break;
     default:
         break;
     }
@@ -208,6 +214,12 @@ bool
 ActivationWaveOp::Params::verify() const
 {
     return true;
+}
+
+std::string
+ActivationWaveOp::gTypeStrStatic()
+{
+    return WaveOpTypeStr_Activation;
 }
 
 }}

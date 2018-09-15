@@ -15,6 +15,7 @@
 #include "events/inc/events.hpp"
 #include "arch/inc/arch.hpp"
 
+#include "layers/inc/layerconsts.hpp"
 #include "layers/inc/layer.hpp"
 #include "layers/inc/inputlayer.hpp"
 #include "layers/inc/constlayer.hpp"
@@ -212,12 +213,12 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             }
             if (const auto maxpoolLayer = dynamic_cast<layers::MaxPoolLayer*>(poolLayer)) {
                 Assert(maxpoolLayer, "Expected MaxPool layer, found ", poolLayer->gTypeStr());
-                serLayer.rLayerType(LayerTypeStr_MaxPool);
+                serLayer.rLayerType(layers::LayerTypeStr_MaxPool);
                 continue;
             }
             if (const auto avgpoolLayer = dynamic_cast<layers::AvgPoolLayer*>(poolLayer)) {
                 Assert(avgpoolLayer, "Expected AvgPool layer, found ", poolLayer->gTypeStr());
-                serLayer.rLayerType(LayerTypeStr_AvgPool);
+                serLayer.rLayerType(layers::LayerTypeStr_AvgPool);
                 continue;
             }
             continue;

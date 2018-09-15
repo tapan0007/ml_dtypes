@@ -9,6 +9,7 @@
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 
+#include "wave/inc/waveconsts.hpp"
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 
@@ -79,6 +80,12 @@ BarrierWaveOp::Params::verify() const
         RETURN_ASSERT(false);
     }
     return true;
+}
+
+std::string 
+BarrierWaveOp::gTypeStrStatic()
+{
+    return WaveOpTypeStr_Barrier;
 }
 
 }}

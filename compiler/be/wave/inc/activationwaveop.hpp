@@ -67,9 +67,8 @@ public:
     EngineId gEngineId() const override {
         return EngineId::Activation;
     }
-    static std::string gTypeStrStatic() {
-        return WaveOpTypeStr_Activation;
-    }
+    static std::string gTypeStrStatic();
+
     std::string gTypeStr() const override {
         return gTypeStrStatic();
     }

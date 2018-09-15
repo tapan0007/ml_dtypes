@@ -116,6 +116,7 @@ enum class ActivationFunc {
     Sigmoid,
     Tanh,
     Exp,
+    Softplus,
 };
 
 //**********************************************************************

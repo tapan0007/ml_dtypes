@@ -1,3 +1,4 @@
+#include "wave/inc/waveconsts.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
 
@@ -476,21 +477,21 @@ SerWaveOp::verify() const
         RETURN_ASSERT(false);
     }
 
-    if (m_WaveOpType == WaveOpTypeStr_SBAtomLoad) {
+    if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomLoad) {
         return verifySbAtomLoad();
-    } else if (m_WaveOpType == WaveOpTypeStr_SBAtomSave) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_SBAtomSave) {
         return verifySbAtomSave();
-    } else if (m_WaveOpType == WaveOpTypeStr_MatMul) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_MatMul) {
         return verifyMatMul();
-    } else if (m_WaveOpType == WaveOpTypeStr_Pool) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Pool) {
         return verifyPool();
-    } else if (m_WaveOpType == WaveOpTypeStr_Activation) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
         return verifyActivation();
-    } else if (m_WaveOpType == WaveOpTypeStr_ResAdd) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         return verifyResAdd();
-    } else if (m_WaveOpType == WaveOpTypeStr_Barrier) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {
         return verifyBarrier();
-    } else if (m_WaveOpType == WaveOpTypeStr_Nop) {
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Nop) {
         return verifyNop();
     } else {
         RETURN_ASSERT(false);
@@ -523,6 +524,9 @@ SerWaveOp::activationType2Str(ActivationFunc actType)
     case ActivationFunc::Exp:
         return WaveOpKey_ActivationFunc_Exp;
         break;
+    case ActivationFunc::Softplus:
+        return WaveOpKey_ActivationFunc_Softplus;
+        break;
     default:
         assert(false && "Wrong activation type");
         break;
@@ -548,6 +552,8 @@ SerWaveOp::str2ActivationFunc(const std::string& actType)
         return ActivationFunc::Tanh;
     } else if (actType  == WaveOpKey_ActivationFunc_Exp) {
         return ActivationFunc::Exp;
+    } else if (actType  == WaveOpKey_ActivationFunc_Softplus) {
+        return ActivationFunc::Softplus;
     } else {
         assert(false && "Wrong activation type");
     }

@@ -7,6 +7,7 @@
 #include "arch/inc/arch.hpp"
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
+#include "wave/inc/waveconsts.hpp"
 #include "wave/inc/poolwaveop.hpp"
 
 
@@ -157,6 +158,12 @@ bool
 PoolWaveOp::Params::verify() const
 {
     return true;
+}
+
+std::string
+PoolWaveOp::gTypeStrStatic()
+{
+    return WaveOpTypeStr_Pool;
 }
 
 }}

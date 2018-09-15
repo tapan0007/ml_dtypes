@@ -8,6 +8,7 @@
 #include "arch/inc/arch.hpp"
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
+#include "wave/inc/waveconsts.hpp"
 #include "wave/inc/matmulwaveop.hpp"
 
 
@@ -185,6 +186,11 @@ MatMulWaveOp::Params::verify() const
     return true;
 }
 
+std::string 
+MatMulWaveOp::gTypeStrStatic()
+{
+    return WaveOpTypeStr_MatMul;
+}
 
 }}
 

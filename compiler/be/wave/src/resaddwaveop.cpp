@@ -7,6 +7,7 @@
 #include "arch/inc/arch.hpp"
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
+#include "wave/inc/waveconsts.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 
 // #define RETURN_ASSERT(x) return (x)
@@ -195,6 +196,12 @@ bool
 ResAddWaveOp::Params::verify() const
 {
     return true;
+}
+
+std::string
+ResAddWaveOp::gTypeStrStatic()
+{
+    return WaveOpTypeStr_ResAdd;
 }
 
 }}

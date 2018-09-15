@@ -4,6 +4,7 @@
 #define KCC_LAYERS_INPUTLAYER_H
 
 
+#include "layers/inc/layerconsts.hpp"
 #include "layers/inc/datalayer.hpp"
 
 namespace kcc {

@@ -9,6 +9,7 @@
 #include "layers/inc/inputlayer.hpp"
 #include "layers/inc/constlayer.hpp"
 
+#include "wave/inc/waveconsts.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
 #include "nets/inc/network.hpp"
 
@@ -83,6 +84,11 @@ SbAtomLoadWaveOp::Params::verify() const
     return true;
 }
 
+std::string
+SbAtomLoadWaveOp::gTypeStrStatic()
+{
+    return WaveOpTypeStr_SBAtomLoad;
+}
 
 }}
 

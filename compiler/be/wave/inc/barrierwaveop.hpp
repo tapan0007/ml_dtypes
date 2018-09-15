@@ -53,9 +53,8 @@ public:
         return m_EngineId;
     }
 
-    static std::string gTypeStrStatic() {
-        return WaveOpTypeStr_Barrier;
-    }
+    static std::string gTypeStrStatic();
+
     std::string gTypeStr() const override {
         return gTypeStrStatic();
     }

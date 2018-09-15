@@ -14,6 +14,7 @@
 #include "utils/inc/consts.hpp"
 #include "arch/inc/arch.hpp"
 
+#include "layers/inc/layerconsts.hpp"
 #include "layers/inc/layer.hpp"
 #include "layers/inc/inputlayer.hpp"
 #include "layers/inc/constlayer.hpp"
@@ -94,14 +95,14 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
         FmapDesc fmap_desc(serLayer.gNumOfmaps(), serLayer.gOfmapHeight(), serLayer.gOfmapWidth());
         layers::Layer* layer = nullptr;
-        if (serLayer.gTypeStr() == LayerTypeStr_Input) {
+        if (serLayer.gTypeStr() == layers::LayerTypeStr_Input) {
             ASSERT_NUM_LAYERS(serLayer, 0);
             layer = new layers::InputLayer(params, fmap_desc);
-        } else if (serLayer.gTypeStr() == LayerTypeStr_Const) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Const) {
             ASSERT_NUM_LAYERS(serLayer, 0);
             layer = new layers::ConstLayer(params, fmap_desc);
 
-        } else if (serLayer.gTypeStr() == LayerTypeStr_Conv) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Conv) {
             ASSERT_NUM_LAYERS(serLayer, 1);
 
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
@@ -132,7 +133,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());
 
-        } else if (serLayer.gTypeStr() == LayerTypeStr_Matmul) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Matmul) {
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
@@ -151,7 +152,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                           filterFileName.c_str(),
                                           filterTensorDimSemantics.c_str());
 
-        } else if (serLayer.gTypeStr() == LayerTypeStr_Reshape) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Reshape) {
             ASSERT_NUM_LAYERS(serLayer, 1);
 
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
@@ -162,7 +163,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
 
             layer = new layers::ReshapeLayer(reshapeParams, prevLayer, fmap_desc);
 
-        } else if (serLayer.gTypeStr() == LayerTypeStr_MaxPool || serLayer.gTypeStr() == LayerTypeStr_AvgPool) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_MaxPool || serLayer.gTypeStr() == layers::LayerTypeStr_AvgPool) {
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
@@ -180,7 +181,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                                             serLayer.gPaddingLeft(),
                                             serLayer.gPaddingRight());
 
-            if (serLayer.gTypeStr() == LayerTypeStr_MaxPool) {
+            if (serLayer.gTypeStr() == layers::LayerTypeStr_MaxPool) {
                 layer = new layers::MaxPoolLayer(
                         params,
                         prevLayer,
@@ -198,19 +199,19 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                         padding);
             }
 
-        } else if (serLayer.gTypeStr() == LayerTypeStr_Relu) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Relu) {
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::ReluLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == LayerTypeStr_Tanh) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Tanh) {
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
             layers::Layer* prevLayer = findLayer(prevLayerName);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == LayerTypeStr_ResAdd || serLayer.gTypeStr() == LayerTypeStr_Multiply) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd || serLayer.gTypeStr() == layers::LayerTypeStr_Multiply) {
             // TODO: check dimensions and types of inputs
             ASSERT_NUM_LAYERS(serLayer, 2);
             std::vector<layers::Layer*> prevLayers;
@@ -220,7 +221,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 prevLayers.push_back(prevLayer);
             }
             layer = new layers::ResAddLayer(params, fmap_desc,prevLayers);
-        } else if (serLayer.gTypeStr() == LayerTypeStr_BiasAdd) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_BiasAdd) {
             // TODO check dimensions and types of inputs
             ASSERT_NUM_LAYERS(serLayer, 2);
             std::vector<layers::Layer*> prevLayers;
@@ -230,23 +231,23 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 prevLayers.push_back(prevLayer);
             }
             layer = new layers::BiasAddLayer(params, fmap_desc, prevLayers);
-        } else if (serLayer.gTypeStr() == LayerTypeStr_StridedSlice
-                || serLayer.gTypeStr() == LayerTypeStr_Unstack
-                || serLayer.gTypeStr() == LayerTypeStr_Sigmoid
-                || serLayer.gTypeStr() == LayerTypeStr_ConvTranspose
-                || serLayer.gTypeStr() == LayerTypeStr_ClipByValue
-                || serLayer.gTypeStr() == LayerTypeStr_Squeeze
-                || serLayer.gTypeStr() == LayerTypeStr_ExpandDims
-                || serLayer.gTypeStr() == LayerTypeStr_Slice
-                || serLayer.gTypeStr() == LayerTypeStr_Minimum
-                || serLayer.gTypeStr() == LayerTypeStr_Pad
-                || serLayer.gTypeStr() == LayerTypeStr_Softplus
-                || serLayer.gTypeStr() == LayerTypeStr_Transpose
-                || serLayer.gTypeStr() == LayerTypeStr_SpaceToBatchND
-                || serLayer.gTypeStr() == LayerTypeStr_BatchToSpaceND
-                || serLayer.gTypeStr() == LayerTypeStr_Concat
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_StridedSlice
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Unstack
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Sigmoid
+                || serLayer.gTypeStr() == layers::LayerTypeStr_ConvTranspose
+                || serLayer.gTypeStr() == layers::LayerTypeStr_ClipByValue
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Squeeze
+                || serLayer.gTypeStr() == layers::LayerTypeStr_ExpandDims
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Slice
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Minimum
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Pad
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Softplus
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Transpose
+                || serLayer.gTypeStr() == layers::LayerTypeStr_SpaceToBatchND
+                || serLayer.gTypeStr() == layers::LayerTypeStr_BatchToSpaceND
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Concat
                 ) {   // FIXME: placeholder
-            if (serLayer.gTypeStr() != LayerTypeStr_Concat)
+            if (serLayer.gTypeStr() != layers::LayerTypeStr_Concat)
             {
                 ASSERT_NUM_LAYERS(serLayer, 1);
             }

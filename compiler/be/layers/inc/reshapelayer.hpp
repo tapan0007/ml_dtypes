@@ -8,6 +8,7 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
+#include "layers/inc/layerconsts.hpp"
 #include "layers/inc/layer.hpp"
 
 namespace kcc {
