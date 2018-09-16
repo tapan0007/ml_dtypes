@@ -580,7 +580,7 @@ class Ktests:
       if re.search(regexp, testName):
         newTmpStatus = replacementStatus
     if not newTmpStatus == None:
-      if status == "FAIL":
+      if status == "FAIL" or status == "TIMEOUT":
         newStatus = newTmpStatus
       elif status == "PASS":
         newStatus = "%s_%s" % (status, newTmpStatus)
