@@ -53,7 +53,7 @@ import pexpect
 import socket, errno
 import xml.etree.ElementTree as ET
 
-print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
+print("\nINFO %s : started as  " % str(datetime.datetime.now()), " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
 qiBldPath = os.environ["QEMU_BLD_DIR"]
 if not os.path.isdir(qiBldPath):
   raise ValueError("ERROR: missing $KAENA_PATH/../qemu_inkling path  at %s" % qiBldPath)
@@ -194,17 +194,17 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
 
   def sshCmd(self, cmd, opt=""):
     fullCmd = "%s %s %s@%s '%s'" % (self.sshCommand, opt, self.sshUser, self.sshHost, cmd)
-    print("INFO: sshCmd executing %s" % fullCmd, flush=True)
+    print("INFO %s : sshCmd executing %s" % (str(datetime.datetime.now()),fullCmd), flush=True)
     return self.osSystem(fullCmd)
   def rsyncToVm(self, fromDir, toVmDir, opts=None):
     cmd = '%s "%s" %s@%s:%s' % (self.cmdForRsync, fromDir, self.sshUser, self.sshHost, toVmDir)
     if opts != None:
       cmd = cmd.replace("rsync ", "rsync %s " % opts)
-    print("INFO: rsyncToVm executing %s" % cmd, flush=True)
+    print("INFO %s : rsyncToVm executing %s" % (str(datetime.datetime.now()), cmd), flush=True)
     return self.osSystem(cmd) == 0
   def rsyncFromVm(self, fromVmDir, toDir):
     cmd = '%s "%s@%s:%s" %s' % (self.cmdForRsync, self.sshUser, self.sshHost, fromVmDir, toDir)
-    print("INFO: rsyncFromVm executing %s" % cmd, flush=True)
+    print("INFO %s : rsyncFromVm executing %s" % (str(datetime.datetime.now()), cmd), flush=True)
     return self.osSystem(cmd) == 0
   def lock(self):
     return self.sshCmd('l=/var/lock/qemu; test -f $l || echo $$ > $l; expr $$ == `cat $l`') == 0
