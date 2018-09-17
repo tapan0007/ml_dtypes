@@ -241,7 +241,12 @@ class KNode:
                 ones_tensor = np.ones(weights_shape_dims.shape_tuple, dtype=self.parent.data_type)
                 np.save(weights_file, ones_tensor)
         else:
-            weights_shape_dims = ShapeDims(layer_info['kernel_format'], layer_info['kernel_shape'])            
+            kernel_format = layer_info['kernel_format']
+            if self.is_conv_transpose:
+                # If conv-transpose/deconv, change weight's MRSC format string to CRSM for internal consumption
+                assert(kernel_format == 'MRSC')
+                kernel_format = 'CRSM'
+            weights_shape_dims = ShapeDims(kernel_format, layer_info['kernel_shape'])            
             weights_file = self.data['kernel_file']
         self.weights_file_params = FileParams(
                                         file_name       = weights_file, 
@@ -763,7 +768,7 @@ class KGraph:
                         slicing_w = new_node.slice_size.x < shape[3]
                         error = (sbegin[0] != 0 or sbegin[1] != 0) \
                               or (   (ssize[0] != shape[0] and ssize[0] != -1) \
-                                  or (ssize[1] != shape[1] and ssize[0] != -1))
+                                  or (ssize[1] != shape[1] and ssize[1] != -1))
                     elif (l['ofmap_format'] == 'NCHW'):
                         if ssize[2] == -1: ssize[2] = shape[2]
                         if ssize[3] == -1: ssize[3] = shape[3]

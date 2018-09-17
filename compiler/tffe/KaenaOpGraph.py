@@ -793,10 +793,16 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
     ifmapArr = self.dim2imgSize(npInfoIF.npShape)
     return ifmapArr
 
+  # Return the height and width dimensions of 2-D feature map
+  def getImg2D(self):
+    npInfo = self.getNpInfo()[0]
+    img2D = npt.subShape(npInfo.npShape, "HW", npt.TF, npt.Fmaps)
+    return img2D
+
   # Return the height and width dimensions of 2-D filter
   def getFilter2D(self):
     (_, npInfoW) = self.getInputNodesAndNpInfo()[1]
-    filterArr = npt.subShape(npInfoW.npShape, "RS", npt.TF, npt.Weights)
+    filterArr = npt.subShape(npInfoW.npShape, "RS", npt.TF, npt.WeightsTrans)
     return filterArr
 
   # Returns layer json model in dictionary format, and list of files (npy data)
@@ -805,7 +811,7 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
     npInfo = self.getNpInfo()[0]
     tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
     (_, (_, npInfoW), (fromIfNode, npInfoIF)) = self.getInputNodesAndNpInfo()
-    tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.Weights))
+    tpbFilterShape = list(npt.reorderShape(npInfoW.npShape, npt.TF, npt.SIM, npt.WeightsTrans))
     # OFMAP
     (npFileSim, simFormatOF) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
     tensorFormatMap.add(npInfo.tensorName,
@@ -813,10 +819,10 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
                                      npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
                                      npFileSim, simFormatOF, False))
     # WEIGHT
-    (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.Weights)
+    (npFileSimW, simFormatW) = npt.copyNpyFileAs(npInfoW.npFile, npt.TF, npt.SIM, npt.WeightsTrans)
     tensorFormatMap.add(npInfoW.tensorName,
                         TensorFormat(npInfoW.tensorName, self.getOpName(),
-                                     npInfoW.npFile, npt.Formats[npt.TF][npt.Weights],
+                                     npInfoW.npFile, npt.Formats[npt.TF][npt.WeightsTrans],
                                      npFileSimW, simFormatW, True))
 
     fileList += [npFileSimW, npFileSim]
@@ -854,9 +860,51 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
       dotText += "\n" + self.getName()
     if len(self.getNpInfo()) > 0:
       dotText += "\nStrides " + str(self.getStrides())
+      (_, (fromWeightNode, npInfoW), (fromIfNode, npInfoIF)) = self.getInputNodesAndNpInfo()
+      fmapSizeBytes = npInfoIF.nbytes()
+      weightSizeBytes = npInfoW.nbytes()
+      opCount = self.getOpCount()
+      opsPerWeightByte = math.ceil(opCount / weightSizeBytes)
+      # Data sizes
+      npInfoOF = self.getNpInfo()[0]
+      dotText += "\nw%.3f i%.3f o%.3f MiB" % (weightSizeBytes / 2**20,
+                                           fmapSizeBytes / 2**20, npInfoOF.nbytes() / 2**20)
+      dotText += "\nOpWB " + str(opsPerWeightByte)
+      # Roofile, wavesize batch targets
+      targetOpB = Config.Tpb.specTops*2**40 /(Config.Ddr.GiBps*2**30)/2 * Config.Tpb.numTpb
+      targetBatchRoofLine = math.ceil(targetOpB / opsPerWeightByte)
+      imgPixels = np.empty(self.getImg2D()).size
+      targetBatchImgMin = math.ceil(Config.Pe.minWave / imgPixels)
+      targetBatchImgOpt = math.floor(Config.Pe.maxWave / imgPixels)
+      dotText += " BT(%d) %d-%d-%d" % (Config.Tpb.numTpb, targetBatchRoofLine,
+                                       targetBatchImgMin, targetBatchImgOpt)
+      # Ops
+      dotText += "\nGop %.6f" % (opCount / 1e9)
+      dotText += "\nGopPad %.6f" % (self.getOpCount(padded=True) / 1e9)
     else:
       dotText += "\n" + str(self.protoShape)
     return dotText
+
+  # Number of add, multiply ops for performance analysis and reporting
+  # E.g., 1 multiply and 1 accumulate is reported as 2 ops.
+  def getOpCount(self, padded=False):
+    npInfo = self.getNpInfo()[0]
+    tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+    (batch, channels, height, width) = tpbShape
+    (_, (fromWeightNode, npInfoW), (fromIfNode, npInfoIF)) = self.getInputNodesAndNpInfo()
+    filterShapeRSCM = npInfoW.npShape
+    # 7 loops based on the output tensor height * width - 4 in the filter, 3 in ofmap
+    opCount = 2 * np.empty(filterShapeRSCM).size * batch * height * width;
+    if not padded:
+      # Adjust by area ratio of the padded and unpadded input
+      padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding     
+      tpbShapeIn = list(npt.reorderShape(npInfoIF.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (batchIn, channelsIn, heightIn, widthIn) = tpbShapeIn
+      areaIn = heightIn * widthIn
+      areaInPadded = (heightIn + padNorth + padSouth) * (widthIn + padWest + padEast)
+      opCount *= 1.0 * areaIn / areaInPadded
+    return opCount
 
   def isSupported(self):
     return True
@@ -1451,10 +1499,10 @@ class NodeSlice(Node):
     bes = {"Begin" : (), "Size" : ()}
     ((nIn, npInfoFrom), bes["Begin"], bes["Size"]) = self.getInputNodesAndNpInfo()
     npInfoIndexinBes = 1
-    slice_begin_tmp = bes["Begin"][npInfoIndexinBes].getValues()
-    slice_begin = [np.asscalar(slice_begin_tmp[i]) for i in range(slice_begin_tmp.shape[0])]
-    slice_size_tmp = bes["Size"][npInfoIndexinBes].getValues()
-    slice_size = [np.asscalar(slice_size_tmp[i]) for i in range(slice_size_tmp.shape[0])]
+    sliceBegin_tmp = bes["Begin"][npInfoIndexinBes].getValues()
+    sliceBegin = [np.asscalar(sliceBegin_tmp[i]) for i in range(sliceBegin_tmp.shape[0])]
+    sliceSize_tmp = bes["Size"][npInfoIndexinBes].getValues()
+    sliceSize = [np.asscalar(sliceSize_tmp[i]) for i in range(sliceSize_tmp.shape[0])]
     
     # Suppress StridedSlice in constant or reshape calculations in CNNs
     # FIX_THIS: this should be a graph transform
@@ -1465,21 +1513,21 @@ class NodeSlice(Node):
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
       tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-      slice_begin = npt.reorderShape(slice_begin, npt.TF, npt.SIM, npt.Fmaps)
-      slice_size = npt.reorderShape(slice_size, npt.TF, npt.SIM, npt.Fmaps)
+      sliceBegin = npt.reorderShape(sliceBegin, npt.TF, npt.SIM, npt.Fmaps)
+      sliceSize = npt.reorderShape(sliceSize, npt.TF, npt.SIM, npt.Fmaps)
     else:
-      if len(npInfo.npShape) == 2:
-        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-        channelAxis = 1
-        tfFormat = npt.NC
+      if len(npInfo.npShape) == 3:
+        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+        widthAxis = 1
+        tfFormat = npt.NWC
+        sliceBegin.insert(widthAxis, 0)
+        sliceSize.insert(widthAxis, -1)
       else:
-        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-        channelAxis = 0
-        tfFormat = npt.C
+        raise RuntimeError("Supported number of dimensions for Slice's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-      slice_begin = npt.reorderShape(slice_begin, npt.TF, npt.SIM, npt.Fmaps)
-      slice_size = npt.reorderShape(slice_size, npt.TF, npt.SIM, npt.Fmaps)
+      sliceBegin = npt.reorderShape(sliceBegin, npt.TF, npt.SIM, npt.Fmaps)
+      sliceSize = npt.reorderShape(sliceSize, npt.TF, npt.SIM, npt.Fmaps)
       
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
@@ -1490,8 +1538,8 @@ class NodeSlice(Node):
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
-      "slice_begin"     : slice_begin,
-      "slice_size"      : slice_size,
+      "slice_begin"     : sliceBegin,
+      "slice_size"      : sliceSize,
       "previous_layers" : [nIn.getName()],
       "#comment"        : "Extract slice along channel dimension"
     }

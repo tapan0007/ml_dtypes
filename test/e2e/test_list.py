@@ -426,6 +426,9 @@ testConfigMap = {
   "9-resnet152_waveopt"       : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--partition from resnet_v2_152/conv1/convolution resnet_v2_152/postnorm/batchnorm/mul_1 --executors host all waveopt 1  --depth 2 --scheduler wave --images %s --wavegraph_checks structure data-race" % rnDogJpg, "--input_files %s" % rnDogJpg],
 
   #"10-parwavenet_ckpt"            : [ "tf_pb",   "parallel_wavenet/saved_model",        "parallel_wavenet", "--input_node Placeholder --depth 2", "--input_files %s" % melSpectra],
+  "3-parwavenet_10_fp16_in_to_reshape3_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder --show_op_name_in_kgraph --depth 2 --partition from Reshape_3 --executors host all waveopt 0 --images %s"%melSpectra, "--input_files %s"%melSpectra],
+  "3-parwavenet_10_fp16_in_to_add1_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_1 --show_op_name_in_kgraph --depth 2 --executors host all waveopt 1 --images %s linspace1"%melSpectra, "--input_files %s trivnet_sub_1:0.npy"%melSpectra],
+  "3-parwavenet_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to truediv --show_op_name_in_kgraph --input_node sub_1 --depth 2 --partition from truediv --executors host all waveopt 1 --images linspace1", "--input_files trivnet_sub_1:0.npy"],
   "3-parwavenet_to_rs10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to Reshape_10 --show_op_name_in_kgraph --input_node random_uniform --depth 2 --partition from BiasAdd_2 --executors host all waveopt 1 --images linspace1", "--input_files trivnet_random_uniform:0.npy"],
   #"3-parwavenet_to_rs1_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to Reshape_1 --show_op_name_in_kgraph --input_node Placeholder --depth 2 --partition from BiasAdd_2 --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s"%melSpectra],
   "9-parwavenet_10_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
@@ -862,7 +865,7 @@ testWaiver = [
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     #['.*reshape.*', 'WAIVE_KAENA597'],
     ['0-1conv_dilated_wave', 'WAIVE_KAENA569'],
-    ['3-parwavenet_to_rs10_fp16_waveopt$', 'WAIVE_KAENA711'],
+    ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
     ['9-parwavenet_10_10_fp16_waveopt$', 'WAIVE_KAENA711'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],

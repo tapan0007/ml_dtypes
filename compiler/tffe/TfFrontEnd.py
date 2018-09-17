@@ -223,7 +223,7 @@ class TfFe:
         #  node = kog.NodeConst(tfNode.name, tfop.op, add_attrs)
         #  #print("DEBUG created NodeConst")
         elif (re.search("Placeholder", tfop.op, re.I) != None and
-              re.search("input", tfop.name, re.I) != None):
+              re.search("^input|^Placeholder", tfop.name, re.I) != None):
         #print("DEBUG created NodeInput")
           node = kog.NodeInput(tfNode.name, tfop.op, add_attrs)
         elif (re.search("StridedSlice", tfop.op, re.I) != None):

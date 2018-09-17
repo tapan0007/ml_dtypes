@@ -20,7 +20,7 @@ def calcTransform(sf, st):
 
 class NpTrans:
   # See spec for method  genCompilerPy
-  for c in ["TF", "SIM", "Fmaps", "Weights", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "C", "NC", "HNC", "HNWC", "CM", "NWC"]:
+  for c in ["TF", "SIM", "Fmaps", "Weights", "WeightsTrans", "NHWC", "NCHW", "RSCM", "MCRS", "CRSM", "MRSC", "C", "NC", "HNC", "HNWC", "CM", "NWC"]:
     exec("%s = '%s'" %(c, c))
   
   # Define tensorFlow (TF) to Inkling simulator (SIM) translation
@@ -32,12 +32,14 @@ class NpTrans:
   Formats = {
     TF : {
       Fmaps   : NHWC,
-      Weights : RSCM
+      Weights : RSCM,
+      WeightsTrans : RSCM
       },
     SIM : {
       Fmaps   : NCHW,
       #Weights : MCRS
-      Weights : CRSM
+      Weights : CRSM,
+      WeightsTrans : MRSC
       }
     }
   Transforms = {}
@@ -45,7 +47,7 @@ class NpTrans:
     Transforms[src] = {}
     for dst in [TF, SIM]:
       Transforms[src][dst] = {}
-      for d in [Fmaps, Weights]:
+      for d in [Fmaps, Weights, WeightsTrans]:
         Transforms[src][dst][d] = calcTransform(Formats[src][d], Formats[dst][d])
 
   # Ulility function to convert npy files given the precise format spec, returns new file name and the destination format
