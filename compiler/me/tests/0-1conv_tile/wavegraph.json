@@ -780,6 +780,7 @@
       "pool_func": "MaxPool",
       "pool_scale": 1.0,
       "previous_waveops": [
+        "1conv/i1/Pool_n0_m0_h0_w0",
         "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2__0"
       ],
       "src_is_psum": true,
@@ -1140,6 +1141,7 @@
       "pool_func": "MaxPool",
       "pool_scale": 1.0,
       "previous_waveops": [
+        "1conv/i1/Pool_n0_m0_h1_w0",
         "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2__0"
       ],
       "src_is_psum": true,
@@ -1525,6 +1527,7 @@
       "pool_func": "MaxPool",
       "pool_scale": 1.0,
       "previous_waveops": [
+        "1conv/i1/Pool_n0_m0_h2_w0",
         "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2__0"
       ],
       "src_is_psum": true,
@@ -1886,6 +1889,7 @@
       "pool_func": "MaxPool",
       "pool_scale": 1.0,
       "previous_waveops": [
+        "1conv/i1/Pool_n0_m0_h3_w0",
         "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s2__0"
       ],
       "src_is_psum": true,

@@ -131,12 +131,18 @@ class WaveopStream(list):
         if self.last_engine_waveop[engine] is not None \
                 and (engine == EngineEnum.ACT or engine == EngineEnum.POOL): 
             input_list.append(self.last_engine_waveop[engine]['waveop_name'])
+
+        if args.enable_cleanup:
+            if self.last_engine_waveop[engine] is not None \
+                    and (engine == EngineEnum.PEARRAY):
+                input_list.append(self.last_engine_waveop[engine]['waveop_name'])
+
         # Once we implement semaphore or qualified wavegraph-cleaner flow, 
         # switch to per engine tracking for the other engines
         # and remove the "main" tracking
         if psum_bank < 0:
             # If not using PSUM, include last "main" waveop in dependency
-            if self.last_main_waveop is not None:
+            if self.last_main_waveop is not None and not args.enable_cleanup:
                 input_list.append(self.last_main_waveop['waveop_name'])
         else:                
             # Handle PSUM bank dependency
@@ -385,7 +391,10 @@ class TPBSched:
                 current_Tn = op_list.first_op.Tn
                 capped_current_batch_count = min(batch_count, op_list.current_batch_count)
                 capped_next_batch_count = min(batch_count, op_list.next_batch_count)
+                print("N: ", batch_count, " Tn: ", current_Tn, " current_batch_count: ", op_list.current_batch_count, " capped_current_batch_count: ", capped_current_batch_count, " next_batch_count: ",  op_list.next_batch_count, " capped_next_batch_count: ", capped_next_batch_count)
                 assert(capped_next_batch_count >= capped_current_batch_count)
+                assert(capped_next_batch_count >= current_Tn)
+                assert(capped_current_batch_count >= current_Tn)
                 if (capped_current_batch_count < current_Tn):
                     raise RuntimeError("Please use --force_batch_count to at %d (or higher powers of 2) to simulate batching in middle of network"%(current_Tn))
                 for j in range(capped_current_batch_count-1, -1, -current_Tn):

@@ -40,7 +40,6 @@ class KNode:
         self.next = []
         self.parent = parent
         self.data = data
-        self.psum_bank_dst = 0
         self.item_sz = item_sz
         self.data_type = data_type
         self.ofmap_wave_total_elems = 0
@@ -120,12 +119,6 @@ class KNode:
             if (not i.is_const) and (not i.result_avail):
                 count += 1
         return count
-
-    # set/get dest PSUM bank
-    def set_psum_bank(self, dest):
-        self.psum_bank_dst = dest
-    def get_psum_bank(self):
-        return self.psum_bank_dst
 
     def populate_ofmaps_file_params(self):
         layer_info = self.data

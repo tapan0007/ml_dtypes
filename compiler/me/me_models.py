@@ -32,18 +32,58 @@ class PEArray:
     num_of_ops_executed = 0
     total_pearray_latency_cycles = 0
     total_pearray_wave_elems = 0
+    weights_file_params = None
+    weights_sb_addr = 0
+    weights_for_batch_item = 0
 
     def __init__(self):
         self.psum_buf = np.zeros((self.PSUM_NUM_BANKS, self.MAX_WAVE_SIZE, self.NUM_COLS), dtype=np.float32)
         self.Tn = 0
-        self.last_psum_bank_used = 0
+        self.next_psum_bank_id = 0
+
+    # Check if weights already loaded. 
+    # Returns true if weights are already loaded
+    # kaena-421: During execution for batch item other than the first one, 
+    # need to check if there's any SBAtomLoad due to eviction when fused-op 
+    # is reexecuted (since these states arespreserved across batch item calls).
+    # So just return false if batch item is different to force a read of SB 
+    def check_loaded_weights(self, file_params, sb_addr, batch_item):
+        if file_params == self.weights_file_params\
+                and sb_addr == self.weights_sb_addr \
+                and batch_item == self.weights_for_batch_item:
+            #print("check_loaded_weights: old ", self.weights_file_params, self.weights_sb_addr) 
+            return True
+        else: 
+            self.weights_file_params = file_params
+            self.weights_sb_addr = sb_addr
+            self.weights_for_batch_item = batch_item
+            #print("check_loaded_weights: new ", self.weights_file_params, self.weights_sb_addr) 
+            return False
+
+    """Pick psum bank to use, and advance pointer to new bank (cycle through 4 banks), 
+    while the old bank is being processed by other engines.
+        Args: 
+            - dst_is_psum: destination of operation is PSUM; if false, return -1 for psum_bank_id
+        Returns:
+            - psum_bank_id: 0 to PSUM_NUM_BANKS-1; -1 if PSUM is unused
+    """
+    def use_psum_bank_and_adv_ptr(self, dst_is_psum):
+        psum_bank_id = -1
+        if dst_is_psum:
+            psum_bank_id = self.next_psum_bank_id
+            self.next_psum_bank_id = (self.next_psum_bank_id + 1) % self.PSUM_NUM_BANKS
+        return psum_bank_id
 
     def extract_psum (self, psum_bank, start_entry, num_entries):
         assert(start_entry < self.MAX_WAVE_SIZE)
+        assert(psum_bank >= 0)
+        assert(psum_bank < self.PSUM_NUM_BANKS)
         #assert((start_entry+num_entries) < self.MAX_WAVE_SIZE)
         return self.psum_buf[psum_bank, start_entry:start_entry+num_entries, :]
 
     def write_psum (self, psum_bank, start_entry, num_entries, psum_temp):
+        assert(psum_bank >= 0)
+        assert(psum_bank < self.PSUM_NUM_BANKS)
         assert(start_entry < self.MAX_WAVE_SIZE)
         #assert((start_entry+num_entries) < self.MAX_WAVE_SIZE)
         self.psum_buf[psum_bank, start_entry:start_entry+num_entries, :] = psum_temp
@@ -56,7 +96,8 @@ class PEArray:
     def wave_fp16_mm(self, packed_ifmaps, packet_weights, psum_bank, psum_add):
         #assert (packed_ifmaps.shape == (self.MAX_WAVE_SIZE, self.NUM_ROWS))
         #assert (packet_weights.shape == (self.NUM_ROWS, self.NUM_COLS))
-        assert (psum_bank < self.PSUM_NUM_BANKS)
+        assert(psum_bank >= 0)
+        assert(psum_bank < self.PSUM_NUM_BANKS)
         a = packed_ifmaps.astype(np.float32)
         b = packet_weights.astype(np.float32)
         #print(a.dtype, b.dtype, self.psum_buf.dtype)

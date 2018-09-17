@@ -126,42 +126,24 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
 # Extract list of predecessor waveop names from list of accessors
 def extract_predecessors(list_of_accessors_wr, list_of_accessors_rd, waveop_list, dram_waveops, relax_dependencies, enable_cleanup = False):
     predec_list_by_name = []
-    if dram_waveops == []:
-        if list_of_accessors_wr != []:
-            if enable_cleanup:
-                for latest_accessor in list_of_accessors_wr:
-                    if latest_accessor >= 0:
-                        latest_accessor_waveop = waveop_list[latest_accessor]
-                        if not relax_dependencies \
-                                or (latest_accessor_waveop['waveop_type'] != 'Activation' \
-                                    and latest_accessor_waveop['waveop_type'] != 'Pool'):
-                            predec_list_by_name.append(latest_accessor_waveop['waveop_name'])
-            else:
-                latest_accessor = max(list_of_accessors_wr)
-                if latest_accessor >= 0:
-                    latest_accessor_waveop = waveop_list[latest_accessor]
-                    if not relax_dependencies \
-                            or (latest_accessor_waveop['waveop_type'] != 'Activation' \
-                                and latest_accessor_waveop['waveop_type'] != 'Pool'):
-                        predec_list_by_name.append(latest_accessor_waveop['waveop_name'])
-        for i in list_of_accessors_rd:
-            if i != []:
-                if enable_cleanup:
-                    for latest_accessor in i:
-                        if latest_accessor >= 0:
-                            latest_accessor_waveop = waveop_list[latest_accessor]
-                            if not relax_dependencies \
-                                    or (latest_accessor_waveop['waveop_type'] != 'Activation' \
-                                        and latest_accessor_waveop['waveop_type'] != 'Pool'):
-                                predec_list_by_name.append(latest_accessor_waveop['waveop_name'])
-                else:
-                    latest_accessor = max(i)
-                    if latest_accessor >= 0:
-                        latest_accessor_waveop = waveop_list[latest_accessor]
-                        if not relax_dependencies \
-                                or (latest_accessor_waveop['waveop_type'] != 'Activation' \
-                                    and latest_accessor_waveop['waveop_type'] != 'Pool'):
-                            predec_list_by_name.append(latest_accessor_waveop['waveop_name'])
+    list_of_accessors_combined = list_of_accessors_rd
+    list_of_accessors_combined.append(list_of_accessors_wr)
+    # extract predecessors from combed list of writers and per-engine readers
+    for accessors in list_of_accessors_combined:
+        filtered_accessors = accessors
+        if not enable_cleanup and accessors != []:
+            # Keep the latest from list of accessors
+            filtered_accessors = [max(accessors)]
+            # IF there are DRAM loads, they would be the latest among all dependencies
+            # (below is required to prevent running out of events)
+            if dram_waveops != []:
+                filtered_accessors = []
+        for accessor in filtered_accessors:
+            if accessor >= 0:
+                accessor_waveop = waveop_list[accessor]
+                if not relax_dependencies \
+                        or accessor_waveop['waveop_type'] != 'Activation':
+                    predec_list_by_name.append(accessor_waveop['waveop_name'])
     return predec_list_by_name                        
 
 # Attach dependencies on waveop
@@ -919,9 +901,11 @@ class FileMapper():
         if args is None:
             self.enable_eviction = False
             self.enable_cleanup = False
+            self.relax_dependencies = False
         else:            
             self.enable_eviction = args.enable_eviction
             self.enable_cleanup = args.enable_cleanup
+            self.relax_dependencies = args.relax_dependencies
         self.args = args
 
     def check_overlap(self, region0_start, region0_sz, region1_start, region1_sz):
@@ -1591,6 +1575,8 @@ class FileMapper():
                         if self.enable_cleanup:
                             if load_required:
                                 self.morsels_wr[k][sb_addr] = new_morsel_wr
+                            elif self.relax_dependencies:
+                                self.morsels_wr[k][sb_addr] = new_morsel_rd # See comments below
                         # For the old flow where we are limiting number of edges to prevent running out of events,
                         # tag the write side with the same morsel reader: to create implicit edge from reader to next reader
                         # (obviously, the cleanup flow is better once it is working).
@@ -1658,7 +1644,7 @@ class FileMapper():
                     file_params.mapped_params.chunk2waveop_map[i] = new_dram_waveop
             # Return reader morsels since the waveop_id may need to be updated (ie. after bias read)
             new_reader_morsels.append(new_morsel_rd)
-            #print("INFO SB TRACE: batch item %d: Reader ID %d (tentative, maybe fixed later) is reading chunk_id %d (full chunk SB range %d-%d, read SB range %d-%d) of file %s"%(batch_item, new_morsel_rd.accessor_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name))
+            #print("INFO SB TRACE: batch item %d: Reader ID %d (tentative, maybe fixed later) is reading chunk_id %d (full chunk SB range %d-%d, read SB range %d-%d) of file %s (load required %d)"%(batch_item, new_morsel_rd.accessor_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name, load_required))
             #print("INFO SB TRACE: ", list_of_writers, list_of_readers)
         return (list_of_writers, list_of_readers, list_of_waveops, new_reader_morsels)
 
