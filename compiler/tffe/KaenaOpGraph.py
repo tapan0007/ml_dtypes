@@ -1384,14 +1384,13 @@ class NodeStridedSlice(Node):
     else:
       if len(npInfo.npShape) == 2:
         tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-        channelAxis = 1
         tfFormat = npt.NC
       else:
         tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-        channelAxis = 0
         tfFormat = npt.C
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    channelAxis = tfFormat.find('C')
       
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
