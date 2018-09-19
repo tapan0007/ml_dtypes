@@ -50,7 +50,6 @@ pipeline{
 		sh 'cp /home/jenkins/.ssh/id_rsa /root/.ssh/id_rsa'
 		sh 'chmod 600 /root/.ssh/siopt-vpc.pem'
 		sh 'chmod 600 /root/.ssh/id_rsa'
-		sh 'export $KAENA_ZEBU_SERVER
                 sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
@@ -136,7 +135,7 @@ pipeline{
                     steps {
                         timeout(time: 5, unit: 'HOURS') {
                             sh '''
-                            [ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/RunAllWithArgs && $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS)
+                            [ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/RunAllWithArgs && export KAENA_ZEBU_SERVER=$KAENA_ZEBU_SERVER && $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS)
                             '''
                         }
                     }
@@ -159,7 +158,7 @@ pipeline{
                     steps {
                         timeout(time: 50, unit: 'MINUTES') {
                             sh '''
-                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/RunPytest && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS)
+                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/RunPytest && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS --zebu $KAENA_ZEBU_SERVER)
                             '''
                         }
                     }

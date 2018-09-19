@@ -16,7 +16,7 @@ Host siopt.review
 
 ######### zebu   #############
 Host zebuserver1
-  HostName 10.206.30.60
+  HostName 10.206.2.51
   IdentityFile /home/jenkins/.ssh/siopt-vpc.pem
   user zebuadmin
   Port 10000
@@ -25,7 +25,7 @@ Host zebuserver1
   CheckHostIP=no
   ServerAliveInterval=60
 Host zebuserver2
-  HostName 10.206.30.60
+  HostName 10.206.2.51
   IdentityFile /home/jenkins/.ssh/siopt-vpc.pem
   user zebuadmin
   Port 10001
@@ -34,7 +34,7 @@ Host zebuserver2
   CheckHostIP=no
   ServerAliveInterval=60
 Host zebuserver3
-  HostName 10.206.30.60
+  HostName 10.206.2.51
   IdentityFile /home/jenkins/.ssh/siopt-vpc.pem
   user zebuadmin
   Port 10002
@@ -43,7 +43,7 @@ Host zebuserver3
   CheckHostIP=no
   ServerAliveInterval=60
 Host zebuserver4
-  HostName 10.206.30.60
+  HostName 10.206.2.51
   IdentityFile /home/jenkins/.ssh/siopt-vpc.pem
   user zebuadmin
   Port 10003
