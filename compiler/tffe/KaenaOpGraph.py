@@ -1678,6 +1678,64 @@ class NodeSlice(Node):
     return True
 
 
+###############################################################################
+# Split
+#
+###############################################################################
+class NodeSplit(Node):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  def genCompilerLayerJson(self, tensorFormatMap):
+    fileList = []
+    npInfo = self.getNpInfo()[0]
+    if len(npInfo.npShape) == 4:
+      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+    else:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tfFormat = npt.NC
+
+    # extract input values
+    # FIXME: this works for amoebanetd, not clear if it is generalized
+    INAndNI = self.getInputNodesAndNpInfo()
+    assert len(INAndNI) == 2, "More inputs than I expected!"
+
+    splitDimVal = np.asscalar(INAndNI[0][1].getValues()[0])
+
+    numSplitVal = self.getAttr("num_split")
+
+    # get real input node
+    (fromIfNode, npInfoIF) = INAndNI[1]
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
+
+    nextLayerPosList = self.getFanoutNodePosNames()
+    
+    layerData = {
+      "ofmap_shape"     : tpbShape,
+      "ofmap_format"    : simFormat,
+      "ref_file"        : npFileSim,
+      "num_splits"      : numSplitVal,
+      "axis"            : splitDimVal,
+      "previous_layers" : [fromIfNode.getName()],
+      "next_layer_order" : nextLayerPosList,
+      "#comment"        : "Split a tensor into subtensors.  see https://www.tensorflow.org/api_docs/python/tf/split"
+    }
+    fileList.append(npFileSim)
+    (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
+    layerDataBase[0].update(layerData)
+    fileListBase += fileList
+    return(layerDataBase, fileListBase)
+
+  def isSupported(self):
+    return True
+
 
 ###############################################################################
 # Unstack

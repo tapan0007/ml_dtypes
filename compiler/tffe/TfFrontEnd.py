@@ -232,6 +232,8 @@ class TfFe:
           node = kog.NodeStridedSlice(tfNode.name, tfop.op, add_attrs)
         elif (re.search("^Unstack$|^Unpack$", tfop.op, re.I) != None):
           node = kog.NodeUnstack(tfNode.name, "Unstack", add_attrs)
+        elif (re.search("^Split$", tfop.op, re.I) != None):
+          node = kog.NodeSplit(tfNode.name, "Split", add_attrs)
         elif (re.search("^Multiply$|^Mul$", tfop.op, re.I) != None):
           node = kog.NodeMultiply(tfNode.name, "Multiply", add_attrs)
         elif (re.search("^Maximum$|^Minimum$", tfop.op, re.I) != None):
@@ -436,7 +438,8 @@ class TfFe:
           # update/collect attributes
           # Strides are in the pb but require complex parsing (op.get_attr)
           #   which seems only accessible from the graph so deferred to calibration
-          for attr in ["strides", "padding", "data_format", "ksize"]:
+          # num_split is for Split operator 
+          for attr in ["strides", "padding", "data_format", "ksize", "num_split"]:
             if attr in op.node_def.attr:
               n.setAttr(attr, op.get_attr(attr))
               #print("  DEBUG attr=", attr, "  ", op.get_attr(attr))          
