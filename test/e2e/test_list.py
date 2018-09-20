@@ -116,7 +116,8 @@ testConfigMap = {
 
 
   "0-1clipbyvalue_wave" : [ "trivnet_clipbyvalue",  "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race --partition from 1conv/output"],
-  "0-1slice_wave" : [ "trivnet_slice",  "tfloat16-b1-h100-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-sbegin16-ssize50", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-1slice_w_wave" : [ "trivnet_slice_w",  "tfloat16-b1-h100-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-sbegin16-ssize50", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-1slice_h_wave" : [ "trivnet_slice_h",  "tfloat16-b1-h100-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-sbegin16-ssize50", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv_dilated_wave" : [ "trivnet_conv_dilated",  "tfloat16-b1-h8-r3-s1-c1-m1-d2-wmin2-wmax2.2-imin0-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   #"0-1conv_dilated_old_wave" : [ "trivnet_conv_dilated_old",  "tfloat16-b1-h8-r3-s1-c1-m1-d2-wmin2-wmax2.2-imin0-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1reshape_wave" : [ "trivnet_reshape",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' "],

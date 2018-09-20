@@ -611,7 +611,9 @@ class FusedOp(list):
             else:
                 if self.first_op.is_nop:
                     ofmaps_region_sz = ifmaps_region_sz
-                    ofmaps_region_start_addr = ifmaps_region_start_addr + self.first_op.slice_w_offset * self.first_op.item_sz
+                    ofmaps_region_start_addr = ifmaps_region_start_addr \
+                                                + self.first_op.slice_offset.x * self.first_op.item_sz \
+                                                + self.first_op.slice_offset.y * self.first_op.item_sz * self.first_op.W 
                 else:    
                     ofmaps_region_sz = tpb.statebuffer.batcher.sb_scratch_sz[sb_size_set_index]
                     ofmaps_region_start_addr = tpb.statebuffer.SB_PARTITION_SZ - ofmaps_region_sz
@@ -761,7 +763,9 @@ class FusedOp(list):
             # OFMAPs region
             if ofmaps_file_params.mapped_params is None:
                 if self.first_op.is_nop:
-                    ofmaps_region_start_addr = ifmaps_region_start_addr + self.first_op.slice_w_offset * self.first_op.item_sz
+                    ofmaps_region_start_addr = ifmaps_region_start_addr \
+                                                + self.first_op.slice_offset.x * self.first_op.item_sz \
+                                                + self.first_op.slice_offset.y * self.first_op.item_sz * self.first_op.W 
                 else:    
                     ofmaps_region_start_addr = start_addr
                     ofmaps_region_start_addr =\
@@ -2429,12 +2433,15 @@ class FusedOp(list):
     def execute_unfused_slice_op(self, tpb, batch_item):
         ofp = self.first_op.ofmaps_file_params
         ifp = self.first_op.ifmaps_file_params
-        slice_w_begin = self.first_op.slice_w_offset
-        slice_w_stop = self.first_op.slice_w_offset + self.first_op.slice_w_size
+        slice_w_begin = self.first_op.slice_offset.x
+        slice_w_stop = self.first_op.slice_offset.x + self.first_op.slice_size.x
+        slice_h_begin = self.first_op.slice_offset.y
+        slice_h_stop = self.first_op.slice_offset.y + self.first_op.slice_size.y
+        print("Slice: w axis [%d:%d], h axis [%d:%d]"%(slice_w_begin, slice_w_stop, slice_h_begin, slice_h_stop))
         if ofp.file_dims.format_str == 'NCW':
             ofp.dram_data = ifp.dram_data[:, :, slice_w_begin : slice_w_stop]
         elif ofp.file_dims.format_str == 'NCHW':
-            ofp.dram_data = ifp.dram_data[:, :, :, slice_w_begin : slice_w_stop]
+            ofp.dram_data = ifp.dram_data[:, :, slice_h_begin : slice_h_stop, slice_w_begin : slice_w_stop]
         else:
             raise RuntimeError("Format %s is not supported for Slice operation"%(ofp.file_dims.format_str))
         (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(

@@ -43,8 +43,8 @@ class KNode:
         self.data_type = data_type
         self.ofmap_wave_total_elems = 0
         self.node_number = node_number
-        self.slice_w_offset = 0
-        self.slice_w_size = 0
+        self.slice_offset = Coord(0,0)
+        self.slice_size = Dim2D(0,0)
         self.stridedslice_chan_offset = 0
         self.unstack_h_offset = 0
         self.result_avail = False
@@ -754,19 +754,34 @@ class KGraph:
                     sbegin  = l['slice_begin']
                     ssize = l['slice_size']
                     shape = l['ofmap_shape']
+                    slicing_h = False
+                    slicing_w = False
                     if (l['ofmap_format'] == 'NCW'):
-                        new_node.slice_w_offset = sbegin[2]
-                        new_node.slice_w_size = ssize[2]
-                        error = (soffset[0] != 0 or sbegin[1] != 0) or (ssize[0] != shape[0] or ssize[1] != shape[1])
+                        if ssize[2] == -1: ssize[2] = shape[2]
+                        new_node.slice_offset = Coord(sbegin[2], 0)
+                        new_node.slice_size = Dim2D(ssize[2], 0)
+                        slicing_w = new_node.slice_size.x < shape[3]
+                        error = (sbegin[0] != 0 or sbegin[1] != 0) \
+                              or (   (ssize[0] != shape[0] and ssize[0] != -1) \
+                                  or (ssize[1] != shape[1] and ssize[0] != -1))
                     elif (l['ofmap_format'] == 'NCHW'):
-                        new_node.slice_w_offset = sbegin[3]
-                        new_node.slice_w_size = ssize[3]
-                        error = (sbegin[0] != 0 or sbegin[1] != 0 or sbegin[2] != 0) \
-                                or (ssize[0] != shape[0] or ssize[1] != shape[1] or ssize[2] != shape[2])
+                        if ssize[2] == -1: ssize[2] = shape[2]
+                        if ssize[3] == -1: ssize[3] = shape[3]
+                        new_node.slice_offset = Coord(sbegin[3], sbegin[2])
+                        new_node.slice_size = Dim2D(ssize[3], ssize[2])
+                        slicing_h = new_node.slice_size.y < shape[2]
+                        slicing_w = new_node.slice_size.x < shape[3]
+                        error = (sbegin[0] != 0 or sbegin[1] != 0) \
+                              or (   (ssize[0] != shape[0] and ssize[0] != -1) \
+                                  or (ssize[1] != shape[1] and ssize[1] != -1))
                     else:
                         raise RuntimeError("Slice op %s format %s is not supported"%(l['layer_name'], l['ofmap_format']))
                     if error:
-                        raise RuntimeError("Slice op %s: only support slicing in W dimension; begin "%l['layer_name'], sbegin, " end ", ssize)
+                        raise RuntimeError("Slice op %s: only support slicing in W or H dimension; begin "%l['layer_name'], sbegin, " end ", ssize)
+                    if slicing_h and slicing_w:
+                        raise RuntimeError("Cannot slice both H and W for Slice operation %s"%(new_op.data['layer_name']))
+                    if slicing_h and new_node.slice_size.y > 1:
+                        raise RuntimeError("Can only slice size of 1 for H axis"%(new_op.data['layer_name']))
                 elif (l['layer_type'] == "ConvTranspose"):
                     new_node.is_conv_transpose = True
                 elif (l['layer_type'] == "Concat"):
