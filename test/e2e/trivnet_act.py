@@ -13,7 +13,7 @@ import re
 # l10-relu-tanh-b1 => {"relu" : 1, "tanh" : 1}, return letover "l10-b1"
 def getConfOpts(confStr):
   conf = {}
-  for s in ["RELU", "TANH", "SOFTPLUS"]:
+  for s in ["RELU", "TANH", "SOFTPLUS", "LRELU", "IDENTITY", "SIGMOID", "EXP"]:
     s1 = "-" + s
     if s1 in confStr:
       confStr = confStr.replace(s1, "")
@@ -73,6 +73,14 @@ if (conf.get("TANH")):
     i1 = tf.nn.tanh(i0, name=netName + "/tanh")
 elif (conf.get("RELU")):
     i1 = tf.nn.relu(i0, name=netName + "/relu")
+elif (conf.get("LRELU")):
+    i1 = tf.nn.leaky_relu(i0, name=netName + "/lrelu", alpha=0.01)
+elif (conf.get("SIGMOID")):
+    i1 = tf.nn.sigmoid(i0, name=netName + "/sigmoid")
+elif (conf.get("EXP")):
+    i1 = tf.exp(i0, name=netName + "/exp")
+elif (conf.get("IDENTITY")):
+    i1 = tf.identity(i0, name=netName + "/identity")
 elif (conf.get("SOFTPLUS")):
     i1 = tf.nn.softplus(i0, name=netName + "/softplus")
 else:

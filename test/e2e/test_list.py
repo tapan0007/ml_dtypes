@@ -96,7 +96,24 @@ testConfigMap = {
   "0-rtl-1conv_relu_wave"              : [ "trivnet_lin",      "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "1cr", "--scheduler wave2"],
   "0-rtl-1conv_h8r4c64m16_wave"        : [ "trivnet_conv1",    "tfloat16-b1-h8-r4-s1-c64-m16-wmin0-wmax9-imin0-imax15",          "1conv" , "--scheduler wave2"],
   "0-rtl-1conv3_h4r3_relu_wave"        : [ "trivnet_lin",      "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", "--scheduler wave2"],
-  "0-rtl-act_h2c16_wave"               : [ "trivnet_act",      "tfloat16-b1-h2-c16-tanh-wmin2-wmax2.2-imin-1-imax2",                        "act", "--scheduler wave2"],
+  "0-rtl-act_h2c16_wave"               : [ "trivnet_act",      "tfloat16-b1-h2-c16-tanh-wmin2-wmax2.2-imin-1-imax2",             "act", "--scheduler wave2"],
+
+  # TODO: https://sim.amazon.com/issues/kaena-773
+  "0-rtl-act_tanh_sweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  #"0-rtl-act_exp_sweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-rtl-act_sigmoid_sweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  #"0-rtl-act_lrelu_sweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-rtl-act_relu_sweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  #"0-rtl-act_identity_sweep_wave"      : [ "trivnet_act",      "tfloat32-b1-h128-c64-identity-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+
+ 
+  "0-rtl-act_tanh_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin--imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  #"0-rtl-act_exp_minisweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-rtl-act_sigmoid_minisweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  #"0-rtl-act_lrelu_minisweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-rtl-act_relu_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  #"0-rtl-act_identity_minisweep_wave"      : [ "trivnet_act",      "tfloat32-b1-h128-c64-identity-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+
 
   "0-1clipbyvalue_wave" : [ "trivnet_clipbyvalue",  "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race --partition from 1conv/output"],
   "0-1slice_wave" : [ "trivnet_slice",  "tfloat16-b1-h100-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-sbegin16-ssize50", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
