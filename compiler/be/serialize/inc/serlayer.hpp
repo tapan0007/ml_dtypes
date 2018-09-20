@@ -122,10 +122,11 @@ public:
             // nothing specific to BiasAdd layer
         } else if (m_LayerType == layers::LayerTypeStr_ResAdd || m_LayerType == layers::LayerTypeStr_Multiply) {
             // nothing specific to ResAdd layer
-        } else if (m_LayerType == layers::LayerTypeStr_StridedSlice 
-                || m_LayerType == layers::LayerTypeStr_Unstack 
+        } else if (m_LayerType == layers::LayerTypeStr_StridedSlice
+                || m_LayerType == layers::LayerTypeStr_Unstack
                 || m_LayerType == layers::LayerTypeStr_ConvTranspose
                 || m_LayerType == layers::LayerTypeStr_ClipByValue
+                || m_LayerType == layers::LayerTypeStr_Split
                 || m_LayerType == layers::LayerTypeStr_Squeeze
                 || m_LayerType == layers::LayerTypeStr_ExpandDims
                 || m_LayerType == layers::LayerTypeStr_Slice

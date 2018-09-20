@@ -253,6 +253,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Sigmoid
                 || serLayer.gTypeStr() == layers::LayerTypeStr_ConvTranspose
                 || serLayer.gTypeStr() == layers::LayerTypeStr_ClipByValue
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Split
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Squeeze
                 || serLayer.gTypeStr() == layers::LayerTypeStr_ExpandDims
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Slice
