@@ -211,7 +211,8 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
         dmaDescr.writeDmaDescriptors(m_InstrStreams->m_ActEngBinFile.c_str(), EngineId::Activation);
         dmaDescr.writeDmaDescriptors(m_InstrStreams->m_PoolEngBinFile.c_str(), EngineId::Pooling);
         dmaDescr.writeInOutDescriptors();
-        dmaDescr.writeDefinitions();
+        dmaDescr.writeDefinitions(m_InstrStreams->m_PeArrayBinFile.c_str(),
+            m_InstrStreams->m_ActEngBinFile.c_str(), m_InstrStreams->m_PoolEngBinFile.c_str());
     }
 }
 

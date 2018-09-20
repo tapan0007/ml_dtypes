@@ -80,7 +80,8 @@ public:
     void writeDmaDescriptors(const char* binFileName, EngineId engId);
 
     void writeInOutDescriptors();
-    void writeDefinitions();
+    void writeDefinitions(const char* peInstrFileName,
+        const char* actInstrFileName, const char* poolInstrFileName);
 
     kcc_int64 gInputSizeBytes() const {
         return m_InputSizeBytes;

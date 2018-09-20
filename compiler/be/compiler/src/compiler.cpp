@@ -8,6 +8,7 @@
 
 #include "utils/inc/version.hpp"
 #include "utils/inc/asserter.hpp"
+#include "utils/inc/misc.hpp"
 #include "utils/inc/debug.hpp"
 #include "utils/inc/printers.hpp"
 #include "utils/inc/datatype.hpp"
@@ -66,18 +67,12 @@ static
 void writeOutJson(nets::Network* ntwk, const char* jsonInFileName, const char* ext)
 {
     char JsonOutFileName[256];
-    const char* p = jsonInFileName;
-    char* q = JsonOutFileName;
-    while (*p) {
-        if (*p == '.') {
-            *q++ = '-';
-            while (*ext) {
-                *q++ = *ext++;
-            }
-        }
-        *q++ = *p++;
-    }
-    *q = '\0';
+    strncpy(JsonOutFileName, jsonInFileName,
+        kcc::ArraySizeof(JsonOutFileName)-1);
+    char* q = JsonOutFileName + (strlen(JsonOutFileName) - 5);
+    Assert(0 == strcmp(q, ".json"),
+        "Input Json file name does not end in '.json'");
+    sprintf(q, "-%s.json", ext);
 
     std::ofstream os(JsonOutFileName);
 

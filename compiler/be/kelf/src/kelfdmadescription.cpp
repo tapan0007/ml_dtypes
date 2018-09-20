@@ -398,10 +398,12 @@ DmaDescription::writeDmaDescriptors(
     "act" : "act.json",
     "pool" : "pool.json",
     "host" : "host.json"
+    "pe_instr" : "Trivnet-pe.bin"
 }
 ***********************************************************************/
 void
-DmaDescription::writeDefinitions()
+DmaDescription::writeDefinitions(const char* peInstrFileName,
+    const char* actInstrFileName, const char* poolInstrFileName)
 {
     std::array<EngineId, 3> engIds = { {EngineId::PeArray, EngineId::Pooling, EngineId::Activation} };
     json j;
@@ -413,6 +415,26 @@ DmaDescription::writeDefinitions()
     for (auto engId : engIds) {
         j[gEngineName(engId)] = gJsonFileName(engId);
     }
+
+    { // "pe_instr" : "Trivnet-pe.bin"
+        std::string instrFileKey(gEngineName(EngineId::PeArray));
+        instrFileKey += "_";
+        instrFileKey += Keys::gBinFileName();
+        j[instrFileKey] = peInstrFileName;
+    }
+    {
+        std::string instrFileKey(gEngineName(EngineId::Pooling));
+        instrFileKey += "_";
+        instrFileKey += Keys::gBinFileName();
+        j[instrFileKey] = poolInstrFileName;
+    }
+    {
+        std::string instrFileKey(gEngineName(EngineId::Activation));
+        instrFileKey += "_";
+        instrFileKey += Keys::gBinFileName();
+        j[instrFileKey] = actInstrFileName;
+    }
+
     j["host"] = m_HostJsonFileName;
     {
         json jDmaQueue;
