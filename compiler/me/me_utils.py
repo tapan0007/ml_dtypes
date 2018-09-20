@@ -859,7 +859,8 @@ class FileMapper():
         region0_start_adjusted = align_addr_64B(region0_start)
         if region0_start_adjusted + region0_sz > self.sb_partition_sz:
             region0_start_adjusted = align_addr_64B(min_region_start)
-        if self.check_overlap(region0_start, region0_sz, region1_start, region1_sz):
+#        if self.check_overlap(region0_start, region0_sz, region1_start, region1_sz):
+        if self.check_overlap(region0_start_adjusted, region0_sz, region1_start, region1_sz):
             region0_start_adjusted = align_addr_64B(region1_start + region1_sz)
             if region0_start_adjusted + region0_sz > self.sb_partition_sz:
                 region0_start_adjusted = align_addr_64B(min_region_start)

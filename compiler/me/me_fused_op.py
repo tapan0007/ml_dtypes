@@ -460,6 +460,13 @@ class FusedOp(list):
         ofmap_file_params = self.last_op.ofmaps_file_params
         assert(ofmap_file_params.mapped_params != None)
         file_start_addr = check_overlap(ofmap_file_params, file_start_addr)
+        file_start_addr =\
+                self.adjust_if_overlap_with_live_fmaps(
+                    tpb
+                    , file_start_addr 
+                    , file_sz
+                    , bias_region_sz
+                    , self.live_mapped_file_params)
         tpb.statebuffer.file_mapper.map_file(\
                                              file_params\
                                              , file_start_addr\
@@ -685,6 +692,7 @@ class FusedOp(list):
                     start_addr = bias_region_sz
                 ifmaps_region_start_addr = start_addr
                 ifmaps_region_sz = ifmaps_file_params.tot_partition_usage_sz_padded
+                live_mapped_file_params.append(ifmaps_file_params)
                 if ifmaps_region_sz > (tpb.statebuffer.SB_PARTITION_SZ/4):
                     if self.first_op.data["layer_type"] == "AvgPool" or self.first_op.data["layer_type"] == "Pool":
                         if self.first_op.pool_window_x > 1:
@@ -867,14 +875,6 @@ class FusedOp(list):
         for pred in self.first_op.prev:
             ofmap = pred.ofmaps_file_params
             ofmap.mapped_params.mark_consumed(self.first_op)
-            #print ("mark_ifmaps_are_consumed::ofmap file name = %s"%\
-            #       ofmap.file_name)
-            #print ("mark_ifmaps_are_consumed::len(live_mapped_file_params)=%d"%\
-            #       len(live_mapped_file_params))
-            #print ("mark_ifmaps_are_consumed::ofmap = ", ofmap)
-            #print ("mark_ifmaps_are_consumed::live_mapped_files_params[0] = ",\
-            #       live_mapped_file_params[0].file_name)
-            #assert(ofmap in live_mapped_file_params)
             if (ofmap in live_mapped_file_params and\
                 ofmap.mapped_params.is_consumed_by_all_readers() == True):
                 live_mapped_file_params.remove(ofmap)
@@ -2454,13 +2454,9 @@ class FusedOp(list):
                                     False)
 
     def execute_unfused_concat_op (self, tpb, batch_item):
-        #print ("concat node name = %s"%self.first_op.data['layer_name'])
         def move_psum_to_ofmap (tpb, ifmap_tile, ofmap_tile):
             MM_data = tpb.pearray.extract_psum(self.first_op.psum_bank_dst, 0\
                     , ifmap_tile.tile_rect.get_tot_size())
-            #print ("MM_data.shape = ",MM_data.shape)
-            #np.set_printoptions(threshold=np.inf)
-            #print ("MM_data = ", MM_data)
             ofmap_tile.set_tile_data_in_file(MM_data)
             return 
         def get_first_item(t):
@@ -2474,8 +2470,6 @@ class FusedOp(list):
                                           , generate_weight_files = True)
         keys = list(concat.subtile_infos.keys())
         keys = sorted(keys, key=get_first_item)
-        #print ("layer type = %s"%first_op.data)
-        #print ("len(keys) = %d"%len(keys), " keys = ", keys)
         for m_id in range(len(keys)):
             subtile_info = concat.subtile_infos[keys[m_id]]
             [mfilters,ifmap_file_params_tile,ifmap_channel_ranges]=subtile_info
@@ -2486,19 +2480,8 @@ class FusedOp(list):
                                      , first_op.m, first_op.h, first_op.w)
                     ofmap_tile_id = (n_id, m_id, h_id, w_id, first_op.n\
                                      , first_op.m, first_op.h, first_op.w)
-                    #print ("execute_unfused_concat_op::ifmap_tile_id = ")
-                    #print (ifmap_tile_id)
-                    #print ("execute_unfused_concat_op::ofmap_tile_id = ")
-                    #print (ofmap_tile_id)
                     next_ofmap_start = 0
                     for tile in range(len(ifmap_file_params_tile)):
-                        #print ("ifmap_file_param.file_dim = "\
-                        #       , ifmap_file_params_tile[tile].\
-                        #       file_dims.shape_tuple)
-                        #print ("ifmap_file_param.file_name = %s"\
-                        #       %ifmap_file_params_tile[tile].file_name)
-                        #print ("ifmap_channel_range = ",\
-                        #       ifmap_channel_ranges[tile])
                         ifmap_tile =\
                           Tile(ifmap_tile_id\
                                #, self.first_op.ifmaps_file_params\
@@ -2515,12 +2498,6 @@ class FusedOp(list):
                         self.first_op.compute_ifmap_ofmap_tile_info(\
                                                                     ifmap_tile\
                                                                     ,ofmap_tile)
-                        #print ("ifmap_tile.tile_rect=%s"%ifmap_tile.tile_rect)
-                        #print ("ifmap_tile.padded_tile_rect = %s"\
-                        #       %ifmap_tile.padded_tile_rect)
-                        #print ("ofmap_tile.tile_rect=%s"%ofmap_tile.tile_rect)
-                        #print ("ofmap_tile.padded_tile_rect = %s"\
-                        #       %ofmap_tile.padded_tile_rect)
                         concat_collaterals =\
                                 [mfilters[tile]\
                                  , ifmap_file_params_tile[tile]\
@@ -2578,29 +2555,12 @@ class FusedOp(list):
         (prev_waveops, dram_ifmaps_waveops) =\
                 self.get_producers_for_subtile_region (
                     tpb = tpb, fmap_subtile = pewave)
-#        (writers, readers, dram_weights_waveops) =\
-#                tpb.statebuffer.file_mapper.read_file_data_region(
-#                    tpb.waveop_stream.nonload_waveop_count
-#                    , tpb.waveop_stream.nonload_waveop_list
-#                    , self.first_op.weights_file_params
-#                    , 0  # batch_item doesn't apply for weights
-#                    , self.first_op.weight_wave_lower_addr
-#                    , self.first_op.weight_wave_upper_addr\
-#                        - self.first_op.weight_wave_lower_addr\
-#                        + self.first_op.item_sz\
-#                    , 1
-#                    , False
-#                )
         # 9-10-2018
         if (first == True):
           total_size_weights =(
            self.first_op.weight_wave_upper_addr
              - self.first_op.weight_wave_lower_addr
            + self.first_op.item_sz) * num_weights
-          print ("emit_waveop_concat_tile::weights_file_params.file_name = %s"%\
-              self.first_op.weights_file_params.file_name)
-          print ("\tstart_addr = %d"%self.first_op.weight_wave_lower_addr)
-          print ("\tend_addr = %d"%self.first_op.weight_wave_upper_addr)
           (writers, readers, dram_weights_waveops) =\
                   tpb.statebuffer.file_mapper.read_file_data_region(
                       tpb.waveop_stream.nonload_waveop_count
@@ -2691,21 +2651,7 @@ class FusedOp(list):
             knode.weights_file_params_concat.append(knode.weights_file_params)
             self.map_files_gen_during_exec(tpb, knode.weights_file_params)
             self.live_mapped_file_params.append(knode.weights_file_params)
-            #if (knode.data['layer_name'] == 'mixed10/concat'):
             self.print_SB_addr(knode.weights_file_params)
-            #weight_file_start_addr = tpb.statebuffer.next_nonbias_file_start
-            #tpb.statebuffer.next_nonbias_file_start +=\
-            #        knode.weights_file_params.tot_partition_usage_sz_padded
-            #weight_file_sz =\
-            #        knode.weights_file_params.tot_partition_usage_sz_padded
-            #tpb.statebuffer.file_mapper.map_file(\
-            #                                     knode.weights_file_params\
-            #                                     , weight_file_start_addr\
-            #                                     , wrap_around=False\
-            #                                     , region_sz=weight_file_sz\
-            #                                    )
-            #else:
-            #    knode.weights_file_params.file_name = weights_file
             return
         pewave = PEWave(ifmap_tile, c_start_idx, 0, 0)
         pewave.ifmap_channel_count = PEArray.NUM_ROWS
@@ -2725,12 +2671,6 @@ class FusedOp(list):
         else:
           self.first_op.weights_file_params =\
             self.concat_dram_weights_file_params[mfilter]
-        #print ("...packing ifmap")
-        #print ("2.ifmap_tile.file_params.file_name= %s"\
-        #       %ifmap_tile.file_params.file_name)
-        #print ("2.ifmap_file_param.file_name = %s"%ifmap_file_param.file_name)
-        #print ("2.ifmap_channel_range[1] = %d c_start_idx = %d"\
-        #       %(ifmap_channel_range[1], c_start_idx))
         packed_ifmap =\
                 self.first_op.pack_wave_ifmaps(ifmap_data,pewave,pewave,1,False)
         weight = np.load(mfilter.file_name)

@@ -455,17 +455,6 @@ testConfigMap = {
     "--input_files %s" % rnDogJpg
   ],
 
-  "5-rn50_nne_to_act4_wave-no_repl-all-layers"     : [
-    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
-    ("--input_node input_1  --depth 2  --debug 1 %s "
-    + " --partition from activation_4/Relu "
-    + " --executors wave 0 host 1  "
-    + " --schedule_options ' --save_layer_output ' "
-    + " --scheduler wave2 --images %s --wavegraph_checks structure "
-    )%(rnPreFp16, rnDogJpg),
-    "--input_files %s" % rnDogJpg
-  ],
-
   "5-rn50_nne_to_act4_wave-repl"     : [
     "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
     "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_4/Relu --executors wave 0 host 1  --scheduler wave2 --images %s --schedule_options ' --enable_replication ' --wavegraph_checks structure data-race " %(rnPreFp16, rnDogJpg),
@@ -507,13 +496,23 @@ testConfigMap = {
     "--input_files %s" % rnDogJpg
   ],
 
+  "5-rn50_nne_to_act4_wave-no_repl-all-layers"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    ("--input_node input_1  --depth 2  --debug 1 %s "
+     + " --partition from activation_4/Relu "
+     + " --executors wave 0 host 1  "
+     + " --schedule_options ' --save_layer_output ' "
+     + " --scheduler wave2 --images %s --wavegraph_checks structure "
+    )%(rnPreFp16, rnDogJpg),
+    "--input_files %s" % rnDogJpg
+  ],
+
 
   #"5-rn50_nne_to_act13_b8_wave"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 8 --images %s"%(rnPreFp16, getBatchedJpgs(8)), "--input_files %s" % (getBatchedJpgs(8))],
   #"5-rn50_nne_to_act13_b8_wave-fast_dram"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 8 --images %s"%(rnPreFp16, getBatchedJpgs(8)), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --input_files %s" % (getBatchedJpgs(8))],
   #"5-rn50_nne_to_act13_b16_wave"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 16 --images %s"%(rnPreFp16, getBatchedJpgs(16)), "--input_files %s" % (getBatchedJpgs(16))],
   #"5-rn50_nne_to_act13_b16_wave-fast_dram"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --batch 16 --images %s"%(rnPreFp16, getBatchedJpgs(16)), "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1' --input_files %s" % (getBatchedJpgs(16))],
   #"6-rn50_nne_to_act22_wave"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_22/Relu --executors wave 0 host 1  --scheduler wave2 --images %s"%(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
-
   "6-rn50_nne_to_act22_wave-no_repl"     : [
     "tf_pb",
     "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
@@ -591,12 +590,11 @@ testConfigMap = {
   #"7-rn50_nne_fc_waveopt"       : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"7-rn50_nne_fp32_waveopt"     : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"7-rn50_nne_fp32_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
-
   "7-rn50_nne_fp16_wave-no_repl-all-layers"        : [ 
-    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", 
+      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", 
     ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
-    + " --executors wave 0 host 1  --scheduler wave2 --images %s"
-    + " --schedule_options ' --save_layer_output ' "
+      + " --executors wave 0 host 1  --scheduler wave2 --images %s"
+      + " --schedule_options ' --save_layer_output ' "
     ) %(rnPreFp16, rnDogJpg), 
     "--input_files %s" % rnDogJpg ],
 
@@ -753,16 +751,22 @@ testConfigMap = {
    # LSTM debug of matmult, only sg00 is usable
   "2-ptb_word_unstack_matmul1"  : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm", " --show_op_name_in_kgraph --input_node embedding_1_input_1  --depth 3  --debug 1   --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1   lstm_1_1/add_6,lstm_1_1/add_4,lstm_1_1/add_2,lstm_1_1/MatMul,lstm_1_1/MatMul_1,lstm_1_1/mul,lstm_1_1/mul_1  --adjust_node_color lstm_1_1/Tile 0 lstm_1_1/Tile_1 0 lstm_1_1/MatMul_2 0  lstm_1_1/MatMul_4 0  --executors wave 0 --scheduler wave --schedule_options ' --nname=lm' --input_constants dropout_1/keras_learning_phase:0 False  --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s --wavegraph_checks structure data-race" % lstmD0T4, "--input_files %s" % lstmD0T4],
   #InceptionV3
-"9-inceptionv3_wave_dog_sg00_tpb" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from mixed0/concat --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --enable_cleanup ' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+#"9-inceptionv3_wave_dog_sg00_tpb" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from mixed0/concat --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --enable_cleanup ' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "9-inceptionv3_wave_dog_sg00_tpb_upto_concat1" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_14/convolution,conv2d_16/convolution,conv2d_13/convolution,average_pooling2d_2/AvgPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic  --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
-"9-inceptionv3_wave_dog_sg00_tpb_upto_concat2" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_20/convolution conv2d_21/convolution conv2d_23/convolution average_pooling2d_3/AvgPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup ' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
-"9-inceptionv3_wave_dog_sg00_tpb_upto_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_28/convolution conv2d_27/convolution max_pooling2d_3/MaxPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup ' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+"9-inceptionv3_wave_dog_sg00_tpb_upto_concat2" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_20/convolution,conv2d_21/convolution,conv2d_23/convolution,average_pooling2d_3/AvgPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup ' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+"9-inceptionv3_wave_dog_sg00_tpb_upto_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+"9-inceptionv3_wave_dog_sg00_tpb_concat1_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_14/convolution,conv2d_16/convolution,conv2d_13/convolution,average_pooling2d_2/AvgPool conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool --executors host 0 2 wave 1 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+"9-inceptionv3_wave_dog_sg00_tpb_concat2_concat3" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_20/convolution,conv2d_21/convolution,conv2d_23/convolution,average_pooling2d_3/AvgPool conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool --executors host 0 2 wave 1 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup ' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "9-inceptionv3_wave_dog_sg00_tpb_upto_concat4" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_31/convolution,conv2d_32/convolution,conv2d_35/convolution,average_pooling2d_4/AvgPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic  --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+"9-inceptionv3_wave_dog_sg00_tpb_concat3_concat4" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_28/convolution,conv2d_27/convolution,max_pooling2d_3/MaxPool conv2d_31/convolution,conv2d_32/convolution,conv2d_35/convolution,average_pooling2d_4/AvgPool --executors host 0 2 wave 1 --scheduler wave2 --schedule_options '--nname=generic  --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "9-inceptionv3_wave_dog_sg00_tpb_upto_concat5" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_41/convolution,conv2d_42/convolution,conv2d_45/convolution,average_pooling2d_5/AvgPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+"9-inceptionv3_wave_dog_sg00_tpb_concat4_concat5" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_31/convolution,conv2d_32/convolution,conv2d_35/convolution,average_pooling2d_4/AvgPool conv2d_41/convolution,conv2d_42/convolution,conv2d_45/convolution,average_pooling2d_5/AvgPool --executors host 0 2 wave 1 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "9-inceptionv3_wave_dog_sg00_tpb_upto_concat8" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_71/convolution,conv2d_73/convolution,max_pooling2d_4/MaxPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "9-inceptionv3_wave_dog_sg00_tpb_concat8_concat9" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_73/convolution,conv2d_71/convolution,max_pooling2d_4/MaxPool conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool --executors host 0 2 wave 1 --scheduler wave2 --schedule_options '--nname=generic  --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "9-inceptionv3_wave_dog_sg00_tpb_upto_concat9" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic  --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+"9-inceptionv3_wave_dog_sg00_tpb_concat9_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 0 2 wave 1 --scheduler wave2 --schedule_options '--nname=generic  --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "9-inceptionv3_wave_dog_sg00_tpb_upto_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic  --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
+"9-inceptionv3_wave_dog_sg00_tpb_concat10_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool avg_pool/Mean --executors host 0 2 wave 1 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
 "9-inceptionv3_wave_dog_sg00_tpb_upto_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from avg_pool/Mean --executors host 1 wave 0 --scheduler wave2 --schedule_options '--nname=generic --relax_dependencies --enable_cleanup --no_verify' --input_node input_1 --images %s" %(incPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg],
   "0-1conv1maxpool_wave_k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
   "0-1conv1maxpool_wave_h17k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h17-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],

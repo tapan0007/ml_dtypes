@@ -112,13 +112,15 @@ class WaveopStream(list):
             if (self.last_main_waveop != None):
                 input_list.append(self.last_main_waveop['waveop_name'])
         else:                
+            if (self.last_psum_waveop[psum_bank] != None):
+                input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
             if (self.last_psum_waveop[psum_bank] != None and waveop['waveop_type'] != "MatMul"):
                 input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
             elif (self.last_main_waveop != None):
                 input_list.append(self.last_main_waveop['waveop_name'])
-                if (self.last_main_using_psum_bank != psum_bank):
-                    if (self.last_psum_waveop[psum_bank] != None):
-                        input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
+#                if (self.last_main_using_psum_bank != psum_bank):
+#                    if (self.last_psum_waveop[psum_bank] != None):
+#                        input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
         for i in input_list:                        
             if i not in waveop['previous_waveops']:
                 waveop['previous_waveops'].append(i)
@@ -128,6 +130,8 @@ class WaveopStream(list):
             self.last_main_using_psum_bank = psum_bank
         else:            
             self.last_psum_waveop[psum_bank] = waveop
+#            self.last_main_waveop = waveop
+#            self.last_main_using_psum_bank = psum_bank
             if (waveop['waveop_type'] == "MatMul"):
                 self.last_main_waveop = waveop
                 self.last_main_using_psum_bank = psum_bank
