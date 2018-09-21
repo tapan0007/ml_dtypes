@@ -18,6 +18,7 @@ import time
 import multiprocessing
 import test_list
 import csv
+import junit_xml as junit
 
 
 kPath = os.environ.get('KAENA_PATH')
@@ -595,6 +596,16 @@ class Ktests:
         numWaived += 1
     return numWaived
 
+  def report_junit_xml(self, xmlFileName):
+    testCases = []
+    for testName in self.testList:
+      t = self.getTestByName(testName)
+      reportStatus = self.calcWaivedStatus(testName, t.status)
+      testCases.append(junit.TestCase(name=testName,classname="RunAllTests.RunAllTests",status=reportStatus,elapsed_sec=t.testTime))
+    tSuite = junit.TestSuite(name="RunAll",test_cases=testCases)
+    with open(xmlFileName, "w") as fh:
+      junit.TestSuite.to_file(fh,[tSuite])
+
   def report(self, outFileName, csvFile, prefixText):
     numAll = self.getNumTests()
     numWaived = self.calcNumWaivedTest()
@@ -841,6 +852,7 @@ else:
   elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0, args.force_qemu)
   tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
+  tests.report_junit_xml("RunAllReport.xml")
   
   # Qemu Instruction statistics for DV
   if args.force_qemu:

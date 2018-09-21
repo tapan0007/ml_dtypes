@@ -33,6 +33,7 @@ RUN pip3 install --no-cache-dir \
         scikit-image \
         tensorflow==1.8 \
         pexpect \
+        junit_xml \
         progress
 
 COPY ssh-config /tmp/ssh-config

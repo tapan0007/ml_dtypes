@@ -141,6 +141,10 @@ pipeline{
                     }
                     post {
                         always {
+			    sh '''
+			    [ -z "$RUNALL_ARGS" ] || ([ -f $TEST_DIR/RunAllWithArgs/RunAllReport.xml ] && /bin/cp $TEST_DIR/RunAllWithArgs/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
+			    '''
+			    junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
                             sh 'mkdir /artifact/RunAllWithArgs'
                             sh '/bin/cp $TEST_DIR/RunAllWithArgs/qor* /artifact/RunAllWithArgs/ || touch /artifact/RunAllWithArgs/qor_RunAllWithArgs_qor_available.txt'
                             sh 'chmod -R a+wX /artifact/'
@@ -165,9 +169,9 @@ pipeline{
                     post {
                         always {
 			    sh '''
-			    [ -z "$RUNNC_ARGS" ] || (/bin/cp $TEST_DIR/RunPytest/*.xml $WORKSPACE/.)
+			    [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/RunPytest/pytestResult.xml ] && /bin/cp $TEST_DIR/RunPytest/pytestResult.xml $WORKSPACE/.)
 			    '''
-			    junit allowEmptyResults: true, testResults: '*.xml'
+			    junit allowEmptyResults: true, testResults: 'pytestResult.xml'
                         }
                         failure {
                             sh 'find $TEST_DIR/RunPytest -type f -name "*.vdi" -delete'
