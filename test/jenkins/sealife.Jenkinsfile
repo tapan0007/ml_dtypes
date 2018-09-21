@@ -88,7 +88,7 @@ pipeline {
 
         stage('Verify') {
             steps {
-                # TODO : sh 'mkdir -p $TEST_DIR && cd $AWS_TONGA_SRC/tvm && ./tests/scripts/task_python_topi.sh 2>&1 | tee $TEST_DIR/log-tvm.txt'
+                // TODO: sh 'mkdir -p $TEST_DIR && cd $AWS_TONGA_SRC/tvm && ./tests/scripts/task_python_topi.sh 2>&1 | tee $TEST_DIR/log-tvm.txt'
                 sh 'mkdir -p $TEST_DIR/starfish && cd $TEST_DIR/starfish && $AWS_TONGA_SRC/starfish/test/run.sh 2>&1 | tee $TEST_DIR/log-starfish.txt'
             }
             post {
