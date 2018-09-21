@@ -49,7 +49,7 @@
       "ref_file_format": "CRSM",
       "ref_file_shape": [1,3,3,1],
       "ref_file_sz": 18,
-      "sb_address": 2968,
+      "sb_address": 3008,
       "start_at_mid_part": false,
       "stride": 1,
       "waveop_name": "trivnet_1conv__weight1__read__0_CRSM.npy_0",
@@ -112,7 +112,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2968
+      "weights_sb_address": 3008
     },
     {
       "dst_is_psum": true,
@@ -133,7 +133,8 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0",
+        "trivnet_input__0_NCHW.npy_0"
       ],
       "src_is_psum": false,
       "src_sb_address": 512,
@@ -148,7 +149,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2970
+      "weights_sb_address": 3010
     },
     {
       "dst_is_psum": true,
@@ -184,7 +185,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2972
+      "weights_sb_address": 3012
     },
     {
       "dst_is_psum": true,
@@ -220,7 +221,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2974
+      "weights_sb_address": 3014
     },
     {
       "dst_is_psum": true,
@@ -256,7 +257,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2976
+      "weights_sb_address": 3016
     },
     {
       "dst_is_psum": true,
@@ -292,7 +293,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2978
+      "weights_sb_address": 3018
     },
     {
       "dst_is_psum": true,
@@ -328,7 +329,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2980
+      "weights_sb_address": 3020
     },
     {
       "dst_is_psum": true,
@@ -364,7 +365,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2982
+      "weights_sb_address": 3022
     },
     {
       "dst_is_psum": true,
@@ -400,11 +401,11 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h0_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2984
+      "weights_sb_address": 3024
     },
     {
       "dst_is_psum": false,
-      "dst_sb_address": 3008,
+      "dst_sb_address": 3072,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -472,7 +473,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2968
+      "weights_sb_address": 3008
     },
     {
       "dst_is_psum": true,
@@ -508,7 +509,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2970
+      "weights_sb_address": 3010
     },
     {
       "dst_is_psum": true,
@@ -544,7 +545,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2972
+      "weights_sb_address": 3012
     },
     {
       "dst_is_psum": true,
@@ -580,7 +581,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2974
+      "weights_sb_address": 3014
     },
     {
       "dst_is_psum": true,
@@ -616,7 +617,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2976
+      "weights_sb_address": 3016
     },
     {
       "dst_is_psum": true,
@@ -652,7 +653,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2978
+      "weights_sb_address": 3018
     },
     {
       "dst_is_psum": true,
@@ -688,7 +689,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2980
+      "weights_sb_address": 3020
     },
     {
       "dst_is_psum": true,
@@ -724,7 +725,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2982
+      "weights_sb_address": 3022
     },
     {
       "dst_is_psum": true,
@@ -760,11 +761,11 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h1_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2984
+      "weights_sb_address": 3024
     },
     {
       "dst_is_psum": false,
-      "dst_sb_address": 3498,
+      "dst_sb_address": 3562,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -832,7 +833,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2968
+      "weights_sb_address": 3008
     },
     {
       "dst_is_psum": true,
@@ -868,7 +869,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2970
+      "weights_sb_address": 3010
     },
     {
       "dst_is_psum": true,
@@ -904,7 +905,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2972
+      "weights_sb_address": 3012
     },
     {
       "dst_is_psum": true,
@@ -940,7 +941,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2974
+      "weights_sb_address": 3014
     },
     {
       "dst_is_psum": true,
@@ -976,7 +977,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2976
+      "weights_sb_address": 3016
     },
     {
       "dst_is_psum": true,
@@ -1012,7 +1013,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2978
+      "weights_sb_address": 3018
     },
     {
       "dst_is_psum": true,
@@ -1048,7 +1049,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2980
+      "weights_sb_address": 3020
     },
     {
       "dst_is_psum": true,
@@ -1084,7 +1085,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2982
+      "weights_sb_address": 3022
     },
     {
       "dst_is_psum": true,
@@ -1120,11 +1121,11 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h2_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2984
+      "weights_sb_address": 3024
     },
     {
       "dst_is_psum": false,
-      "dst_sb_address": 3988,
+      "dst_sb_address": 4052,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1192,7 +1193,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2968
+      "weights_sb_address": 3008
     },
     {
       "dst_is_psum": true,
@@ -1228,7 +1229,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2970
+      "weights_sb_address": 3010
     },
     {
       "dst_is_psum": true,
@@ -1264,7 +1265,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2972
+      "weights_sb_address": 3012
     },
     {
       "dst_is_psum": true,
@@ -1300,7 +1301,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2974
+      "weights_sb_address": 3014
     },
     {
       "dst_is_psum": true,
@@ -1336,7 +1337,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2976
+      "weights_sb_address": 3016
     },
     {
       "dst_is_psum": true,
@@ -1372,7 +1373,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2978
+      "weights_sb_address": 3018
     },
     {
       "contain_weights": false,
@@ -1433,7 +1434,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2980
+      "weights_sb_address": 3020
     },
     {
       "dst_is_psum": true,
@@ -1454,7 +1455,8 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0__0"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0__0",
+        "trivnet_input__0_NCHW.npy_1"
       ],
       "src_is_psum": false,
       "src_sb_address": 2052,
@@ -1469,7 +1471,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2982
+      "weights_sb_address": 3022
     },
     {
       "dst_is_psum": true,
@@ -1505,11 +1507,11 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2984
+      "weights_sb_address": 3024
     },
     {
       "dst_is_psum": false,
-      "dst_sb_address": 4478,
+      "dst_sb_address": 4542,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1578,7 +1580,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2968
+      "weights_sb_address": 3008
     },
     {
       "dst_is_psum": true,
@@ -1614,7 +1616,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2970
+      "weights_sb_address": 3010
     },
     {
       "dst_is_psum": true,
@@ -1650,7 +1652,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r0_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2972
+      "weights_sb_address": 3012
     },
     {
       "dst_is_psum": true,
@@ -1686,7 +1688,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2974
+      "weights_sb_address": 3014
     },
     {
       "dst_is_psum": true,
@@ -1722,7 +1724,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2976
+      "weights_sb_address": 3016
     },
     {
       "dst_is_psum": true,
@@ -1758,7 +1760,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r1_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2978
+      "weights_sb_address": 3018
     },
     {
       "dst_is_psum": true,
@@ -1794,7 +1796,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s0__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2980
+      "weights_sb_address": 3020
     },
     {
       "dst_is_psum": true,
@@ -1830,7 +1832,7 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s1__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2982
+      "weights_sb_address": 3022
     },
     {
       "dst_is_psum": true,
@@ -1866,11 +1868,11 @@
       "stop_tensor_calc": false,
       "waveop_name": "1conv/i1/MatMul_n0_m0_h4_w0_c0_r2_s2__0",
       "waveop_type": "MatMul",
-      "weights_sb_address": 2984
+      "weights_sb_address": 3024
     },
     {
       "dst_is_psum": false,
-      "dst_sb_address": 4968,
+      "dst_sb_address": 5032,
       "dst_start_at_mid_part": false,
       "dst_x_num": 35,
       "dst_x_step": 1,
@@ -1925,7 +1927,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
       "ref_file_sz": 2450,
-      "sb_address": 3008,
+      "sb_address": 3072,
       "start_at_mid_part": false,
       "waveop_name": "trivnet_1conv__i1__0_NCHW-simout.npy_0",
       "waveop_type": "SBAtomSave"
@@ -1948,7 +1950,7 @@
       "ref_file_format": "NCHW",
       "ref_file_shape": [1,1,35,35],
       "ref_file_sz": 2450,
-      "sb_address": 4968,
+      "sb_address": 5032,
       "start_at_mid_part": false,
       "waveop_name": "trivnet_1conv__i1__0_NCHW-simout.npy_1",
       "waveop_type": "SBAtomSave"

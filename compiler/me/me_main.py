@@ -12,6 +12,7 @@ import sys
 import numpy as np
 import argparse
 import me_wavegraph_cleanup
+from enum import IntEnum
 from me_utils import *
 from me_graph import *
 from me_models import *
@@ -21,6 +22,14 @@ from graphviz import Digraph
 DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(precision=14)
+
+"""Enum for engines
+"""
+class EngineEnum(IntEnum):
+    PEARRAY = 0
+    ACT = 1
+    POOL = 2
+    DMA = 3
 
 """State buffer memory manager
 """
@@ -65,18 +74,17 @@ class StateBuffer:
         self.zero_bias_file_params = bias_file_params
 
 
-"""Stream of waveops: consist of list of waveops that are fused (communicate through PSUM buffers)
+"""Stream of waveops: consist of list of waveops generated during scheduling loop unrolling
 """
 class WaveopStream(list):
 
     def __init__(self):
         self.last_main_waveop = None    # main stream waveop (PEArray resource)
         self.last_main_using_psum_bank = 0    # last main waveop using PSUM bank
+        self.last_engine_waveop = [None for i in list(EngineEnum)] # engine streams 
         self.last_psum_waveop = [None for i in range(PEArray.PSUM_NUM_BANKS)]   # PSUM streams (PSUM resouce)
         self.waveop_name_set = set()
         self.waveop_count = 0
-        self.nonload_waveop_count = 0
-        self.nonload_waveop_list = []
 
     def append_check(self, item, loc = None):
         item_name = item['waveop_name']
@@ -92,49 +100,77 @@ class WaveopStream(list):
             item_name = new_name
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                
+        if (args.debug > 2): print("INFO SB TRACE: Adding waveop %s ID %d"%(item['waveop_name'], self.waveop_count))
         #self.append(item)
         if (loc == None):
             self.append(item)
         else:
             self.insert(loc, item)
         self.waveop_count += 1
-        if (item['waveop_type'] != 'SBAtomLoad'):
-            if (args.debug > 2): print("INFO: Adding nonload waveop %s ID %d"%(item['waveop_name'], self.nonload_waveop_count))
-            self.nonload_waveop_list.append(item)
-            self.nonload_waveop_count += 1
 
-    def add_linked(self, waveop, side_waveops, psum_bank):
+    def add_linked(self, waveop, side_waveops, psum_bank, new_reader_morsels=[]):
+        # Decode the engine from waveop_type            
+        engine = EngineEnum.POOL
+        if waveop['waveop_type'] == 'MatMul':
+            engine = EngineEnum.PEARRAY
+        elif waveop['waveop_type'] == 'Activation':
+            engine = EngineEnum.ACT
+        elif waveop['waveop_type'] == 'SBAtomSave' or waveop['waveop_type'] == 'SBAtomLoad':
+            engine = EngineEnum.DMA
+
+        # Add the side waveops (DRAM loads) and start a dependency list
         input_list = []
         for i in side_waveops:
             self.append_check(i)
             input_list.append(i['waveop_name'])
-        if (psum_bank < 0):
-            if (self.last_main_waveop != None):
+        
+        # Handle engine dependency 
+        # Limit to Activation for now, to avoid running out of events
+        if self.last_engine_waveop[engine] is not None and engine == EngineEnum.ACT: 
+            input_list.append(self.last_engine_waveop[engine]['waveop_name'])
+        # Once we implement semaphore or qualified wavegraph-cleaner flow, 
+        # switch to per engine tracking for the other engines
+        # and remove the "main" tracking
+        if psum_bank < 0:
+            # If not using PSUM, include last "main" waveop in dependency
+            if self.last_main_waveop is not None:
                 input_list.append(self.last_main_waveop['waveop_name'])
         else:                
-            if (self.last_psum_waveop[psum_bank] != None):
+            # Handle PSUM bank dependency
+            if self.last_psum_waveop[psum_bank] is not None:
                 input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
-            if (self.last_psum_waveop[psum_bank] != None and waveop['waveop_type'] != "MatMul"):
-                input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
-            elif (self.last_main_waveop != None):
-                input_list.append(self.last_main_waveop['waveop_name'])
-#                if (self.last_main_using_psum_bank != psum_bank):
-#                    if (self.last_psum_waveop[psum_bank] != None):
-#                        input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
+            # If there no PSUM user (initial), or waveop is MatMul, include last "main" waveop in dependency
+            if self.last_psum_waveop[psum_bank] is None or waveop['waveop_type'] == "MatMul":
+                if self.last_main_waveop is not None:
+                    input_list.append(self.last_main_waveop['waveop_name'])
+
+        # Filter out duplicates            
         for i in input_list:                        
             if i not in waveop['previous_waveops']:
                 waveop['previous_waveops'].append(i)
+
+        # Update SB reader morsels
+        for i in new_reader_morsels:
+            #print("INFO SB TRACE: updating morsel reader ID for file ID %d chunk_id %d to ID %d (old %d)"%(i.file_id, i.chunk_id, self.waveop_count, i.accessor_id))
+            i.accessor_id = self.waveop_count
+
+        # Add waveop to stream
         self.append_check(waveop)
+
+        # "Main" execution path: tracking mainly PEArray and other waveops not using PSUM
+        # PSUM path: tracking last waveop using a particular PSUM bank
+        # TODO: split into reader/writer
         if (psum_bank < 0):
             self.last_main_waveop = waveop
-            self.last_main_using_psum_bank = psum_bank
         else:            
             self.last_psum_waveop[psum_bank] = waveop
-#            self.last_main_waveop = waveop
-#            self.last_main_using_psum_bank = psum_bank
             if (waveop['waveop_type'] == "MatMul"):
                 self.last_main_waveop = waveop
-                self.last_main_using_psum_bank = psum_bank
+
+        # Track last user of engine 
+        # (only using Activation for now, until we switch to semaphore or have wavegraph-cleaner fully qualified)
+        # TODO: split into reader/writer
+        self.last_engine_waveop[engine] = waveop  
 
     def add_outputs(self, waveops, loc = None):
         for i in waveops:
@@ -291,6 +327,10 @@ class TPBSched:
             if last_op.next == []:
                 last_op.ofmaps_file_params.final_layer_ofmap = True
                 print("Fused op %s is output, mark final_layer_ofmap=True"%(last_op.data["layer_name"]))
+                # If the fused operation has a join (ResAdd, Mult, etc), the joined FMAP may share
+                # the same SB space with the fused operations that feed the join's inputs.
+                # These fused operations need to be aware of the fact that they are writing to 
+                # the final OFMAP space, which requires alignment padding.
                 if op_list.has_join:
                     for i in op_list.last_op.ofmaps_file_params.writers_of_shared_fmap:
                         i.ofmaps_file_params.share_w_final_layer_ofmap = True
