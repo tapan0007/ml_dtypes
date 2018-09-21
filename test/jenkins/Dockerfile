@@ -12,6 +12,8 @@ RUN apt update -y && \
         glib* \
         libpixman-1-dev \
         build-essential \
+        python-setuptools \
+        python3-setuptools \
         python3-pip \
         libz-dev \
         pkg-config \
