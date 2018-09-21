@@ -748,7 +748,7 @@ class FileParams():
         self.file_addr_skip_per_fmap_fold   = self.fmap_data_len * min(self.file_dims.C, PEArray.NUM_ROWS)
         # Default unpadded sizes for internal FMAPs (see compute_padded_sizes for weights/input/output FMAPs)
         self.chunk_sz_padded                = self.chunk_sz                
-        if (args.nname == 'generic'):
+        if (args is not None and args.nname == 'generic'):
           self.fmap_data_len_padded           = align_addr_NB(self.fmap_data_len,4)
         else:
           self.fmap_data_len_padded           = self.fmap_data_len
@@ -800,6 +800,8 @@ class MappedParams():
             self.init_consumers(readers)
 
     def init_consumers (self, consumers):
+        # FIXME: what happens during batching, when the mapping is used again
+        # (init is only called once)
         print("taemk::MappedParams::init_consumers::readers ", end = "")
         for r in consumers:
             print ("%s "%r.data['layer_name'], end="")
@@ -1306,7 +1308,7 @@ class FileMapper():
                           ,evicted_chunk_id\
                           ,eviction_container):
         org_fparam = self.file_params_list[evicted_file_id]
-        if (self.args.nname == 'generic'):
+        if (self.args is not None and self.args.nname == 'generic'):
           if (self.enable_eviction == True):
               if (org_fparam.mapped_params.chunk_is_mapped[evicted_chunk_id] ==\
                   True):

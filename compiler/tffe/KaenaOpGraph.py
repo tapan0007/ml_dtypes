@@ -41,6 +41,7 @@ class Config:
                Batch 0 means tiling required
 """
     showOpNameInKgraph = False
+    inputNamesToFormat = {}
   class Dot:
     timeout = 60
   class Scheduler:
@@ -346,7 +347,9 @@ class NodeSimple(Node):
                                        npFileSim, simFormat, False))
 
     # FIX_THIS - IFMAP, it should not be needed
-    ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
+    in_nodes = self.getInputNodesAndNpInfo()
+    fromIfNode = in_nodes[0][0]
+    #((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
     #(npFileSimF, simFormatIF)  = npt.copyNpyFileAs(npInfoIF.npFile, npt.TF, npt.SIM, npt.Fmaps)
     layerData = {
       "ofmap_shape"     : tpbShape,
@@ -363,6 +366,44 @@ class NodeSimple(Node):
 
   def isSupported(self):
     return True
+
+###############################################################################
+# BatchToSpace and SpaceToBatch
+###############################################################################
+class NodeSpaceBatch(NodeSimple):
+  def __init__(self, name, opType, attrs):
+    super().__init__(name, opType, attrs)
+
+  # Returns layer json model in dictionary format, and list of files (npy data)
+  def genCompilerLayerJson(self, tensorFormatMap):
+    (layerDataBase, fileListBase) = super().genCompilerLayerJson(tensorFormatMap)
+    layerData = layerDataBase[0]
+    in_nodes = self.getInputNodesAndNpInfo()
+    # Extract block size
+    blk_shape_tmp = in_nodes[1][1].getValues()
+    #assert(blk_shape_tmp.shape == 2)
+    blk_shape = [np.asscalar(j) for j in blk_shape_tmp]
+    # Extract padding/crop values
+    values_tmp = in_nodes[2][1].getValues()
+    assert(values_tmp.shape == (2,2))
+    values  = [[np.asscalar(values_tmp[i][j]) 
+                for j in range(values_tmp.shape[1])]
+                for i in range(values_tmp.shape[0])]
+    # Convert values to NCHW
+    values_NCHW = [[0,0], [0,0], [0,0], [0,0]]
+    values_NCHW[2] = values[0]
+    values_NCHW[3] = values[1]
+    blk_shape_NCHW = [1, 1, 1, 1]
+    blk_shape_NCHW[2] = blk_shape[0]
+    blk_shape_NCHW[3] = blk_shape[1]
+    layerData["block_shape"] = blk_shape_NCHW
+    if re.search("SpaceToBatch", layerData["layer_type"]):
+        layerData["#comment"] = "Zero pad spatial dimensions and deinterleave spatial data (deinterleave dimension is merged with batch dimension)"
+        layerData["padding"] = values_NCHW
+    else:        
+        layerData["#comment"] = "Interleave spatial data (reverse of SpaceToBatch) followed by cropping"
+        layerData["crop"] = values_NCHW
+    return(layerDataBase, fileListBase)
 
 ###############################################################################
 # A node for Concat operation (Multi inputs and single output)
@@ -438,7 +479,7 @@ class NodeSoftmax(Node):
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
-    layerDataBase[0].update(layerData)
+    assert(layerDataBase[0]["ofmap_format"] == "NHWC")
     fileListBase += fileList
     return(layerDataBase, fileListBase)
 
@@ -462,44 +503,50 @@ class NodeInput(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    #tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-    #(npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-    
-    if len(npInfo.npShape) == 4:
-      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
-                                       npFileSim, simFormat, False))
-    elif len(npInfo.npShape) == 3:
-      # Special case of LSTM pre-unstack
-      simFormat = npt.HNWC
-      (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.HNC,
-                                       npFileSim, simFormat, False))
-      print("INFO: derived format %s and shape %s based on batching on %s" % (str(simFormat), str(tpbShape), self.getName()))
-      # FIX_THIS: the --batch is not passed here to compare, ok for now; longterm the shapes
-      # should be derived from ops (like transpose)
+    if len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
     elif len(npInfo.npShape) == 2:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.NC,
-                                       npFileSim, simFormat, False))
-    else:
-      assert len(npInfo.npShape) == 1
+      tfFormat = npt.NC
+    elif len(npInfo.npShape) == 1:
       tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.C,
-                                       npFileSim, simFormat, False))
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+      tfFormat = npt.C
+    else:
+      assert len(npInfo.npShape) == 4
+      tfShape4D = npInfo.npShape
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+
+    # Overwrite format from command line
+    simFormat = ""
+    if self.getName() in Config.Graph.inputNamesToFormat:
+      tfFormat = Config.Graph.inputNamesToFormat[self.getName()]
+      assert(len(tfFormat) == len(npInfo.npShape))
+      if tfFormat == npt.NWC:
+        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      elif tfFormat == npt.HNC:
+        tfShape4D = npt.hncShapeToHNWC(npInfo.npShape)
+        simFormat = npt.HNWC
+        (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
+      elif tfFormat == npt.NC:
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      elif tfFormat == npt.C:
+        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      elif tfFormat == npt.Formats[npt.TF][npt.Fmaps]:
+        tfShape4D = npInfo.npShape
+      else:
+        print("ERROR: input format %s is not recognized (must be one of C, NC, NWC, HNC, or NHWC)"%self.inputFormat)
+
+    if simFormat == "":
+        tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+        (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
+
+    # TODO: if assertion fires, this sequence of subgraphs cannot execute on tonga (without help from transpose code on cpu).
+    #assert npInfo.getValues().tobytes() == np.load(npFileSim).tobytes()                        
 
     layerData = {
       "layer_name"      : self.getName(),
@@ -1034,8 +1081,6 @@ class NodeSimple2(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     
-#    if self.getName() == 'fc1000/BiasAdd':
-#      print('HERE')
     # Output tensor
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 3:
@@ -1430,7 +1475,11 @@ class NodeStridedSlice(Node):
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
       tfFormat = npt.Formats[npt.TF][npt.Fmaps]
     else:
-      if len(npInfo.npShape) == 2:
+      if len(npInfo.npShape) == 3:
+        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+        channelAxis = 2
+        tfFormat = npt.NWC
+      elif len(npInfo.npShape) == 2:
         tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
         tfFormat = npt.NC
       else:
@@ -1704,9 +1753,6 @@ class NodePad(Node):
 
   def isSupported(self):
     return True
-
-
-
 
 ###############################################################################
 # Computational data flow graph

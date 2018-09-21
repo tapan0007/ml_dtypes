@@ -35,6 +35,7 @@ def DBG_DUMP_PSUM_COL(msg, psum, col):
 class KNode:
     def __init__(self, parent, data, item_sz, data_type, node_number):
         self.prev = []
+        self.prev_old = []
         self.next = []
         self.parent = parent
         self.data = data
@@ -51,6 +52,7 @@ class KNode:
         self.filter = Dim2D(0,0)
         self.pool_window = Dim2D(0,0)
         self.stride = Dim2D(1,1)
+        self.dilation = Dim2D(1,1)
         self.padWN = Dim2D(0,0)
         self.padES = Dim2D(0,0)
         self.is_nop = False
@@ -77,6 +79,20 @@ class KNode:
         self.repl_multiple_of_C = 1
         self.ifmaps_padded_and_split = False
         self.distance_to_next_join = 1000 
+
+    def dissolve_node(self, node_to_dissolve):
+        print("Dissolving %s op name %s before %s"%(node_to_dissolve.data['layer_type'], node_to_dissolve.data['layer_name'], self.data['layer_name'])) 
+        if node_to_dissolve.prev == []:
+            if node_to_dissolve.prev_old != []:
+                for i in node_to_dissolve.prev_old:
+                    self.add_prev(i)
+            else:                    
+                raise RuntimeError("Cannot dissolve %s since there's no predecessor"%node_to_dissolve.data['layer_name'])
+        else:
+            for i in node_to_dissolve.prev:
+                self.add_prev(i)
+            node_to_dissolve.prev_old = node_to_dissolve.prev
+            node_to_dissolve.prev = []
 
     def add_prev(self, prev_node):
         self.prev.append(prev_node)
@@ -223,8 +239,8 @@ class KNode:
         # heigh/width folding is the same for IFMAP and OFMAP            
         self.h = self.e
         self.w = self.f
-        print("Common params1 for layer %s:  N=%d, M=%d, H=%d, W=%d, C=%d, E=%d, F=%d"
-                %(self.data['layer_name'], self.N, self.M, self.H, self.W, self.C, self.E, self.F))
+        print("Common params1 for layer %s:  N=%d, M=%d, H=%d, W=%d, C=%d, E=%d, F=%d, padWN=%s, padES=%s"
+                %(self.data['layer_name'], self.N, self.M, self.H, self.W, self.C, self.E, self.F, str(self.padWN), str(self.padES)))
         print("Common params2 for layer %s:  n=%d, m=%d, h=%d, w=%d, c=%d, Tn=%d"
                 %(self.data['layer_name'], self.n, self.m, self.h, self.w, self.c, self.Tn))
         print("Common params3 for layer %s:  stride_x=%d, stride_y=%d, ofmap_full_tilex_sz=%d, ofmap_full_tiley_sz=%d, ofmap_full_tile_sz=%d"
@@ -255,6 +271,10 @@ class KNode:
                                         op_params       = self, 
                                         args            = self.parent.args, 
                                         contain_weights = True)
+        if 'dilation_rate' in self.data:
+            self.dilation = Dim2D(self.data['dilation_rate'][3], self.data['dilation_rate'][2])
+        else:
+            self.dilation = Dim2D(1,1)
         self.weights_file_params.layer_name =  self.data['layer_name']
         self.weights_file_params.load_file()
         self.weights_file_params.consumers.append(self)
@@ -270,7 +290,7 @@ class KNode:
         if self.parent.args.enable_replication and self.is_input:
             num_replicated_waves = ceildiv(self.RS * weights_shape_dims.C,  PEArray.NUM_ROWS)
             self.repl_multiple_of_C = ceildiv(self.R, num_replicated_waves) * self.S
-        print("Conv params for layer %s: R=%d, S=%d, repl_multiple_of_C=%d"%(self.data['layer_name'], self.weights_file_params.file_dims.R, self.weights_file_params.file_dims.S, self.repl_multiple_of_C))
+        print("Conv params for layer %s: R=%d, S=%d, dilation.y=%d, dilation.x=%d, repl_multiple_of_C=%d"%(self.data['layer_name'], self.weights_file_params.file_dims.R, self.weights_file_params.file_dims.S, self.repl_multiple_of_C, self.dilation.y, self.dilation.x))
 
     # Compute pooling params
     def populate_pooling_params(self):
@@ -328,8 +348,8 @@ class KNode:
             # TODO: handle the case of conv is followed by fused pool, so both pool_window and filter exists (two possible different OFMAPs)
             if self.pool_window > self.stride:
                 ifmap_tile.padded_tile_rect = ifmap_tile.padded_tile_rect.increase_size(self.pool_window - self.stride)
-            if self.filter > self.stride:
-                ifmap_tile.padded_tile_rect = ifmap_tile.padded_tile_rect.increase_size(self.filter - self.stride)
+            if (self.filter * self.dilation) > self.stride:
+                ifmap_tile.padded_tile_rect = ifmap_tile.padded_tile_rect.increase_size((self.filter * self.dilation) - self.stride)
             ifmap_tile.padded_tile_rect  = ifmap_tile.padded_tile_rect - self.padWN
         ifmap_tile.tile_rect         = ifmap_tile.padded_tile_rect.get_overlap(self.ifmap_full_rect)
         #print(ofmap_tile.padded_tile_rect, ofmap_tile.tile_rect, ifmap_tile.padded_tile_rect, ifmap_tile.tile_rect)
@@ -385,7 +405,7 @@ class KNode:
         else:
             # Compute padded PE-Wave rectangle
             padded_ifmap_pewave_rect   = ofmap_pewave.tile.tile_rect * self.stride
-            padded_ifmap_pewave_rect   = padded_ifmap_pewave_rect + Coord(ifmap_pewave.s_id, ifmap_pewave.r_id)
+            padded_ifmap_pewave_rect   = padded_ifmap_pewave_rect + Coord(ifmap_pewave.s_id, ifmap_pewave.r_id) * self.dilation
             padded_ifmap_pewave_rect   = padded_ifmap_pewave_rect - self.padWN
             ifmap_pewave.subtile_rect  = padded_ifmap_pewave_rect.get_overlap(ifmap_pewave.tile.tile_rect)
             # Snap rectangle to the striding grid
@@ -409,13 +429,70 @@ class KNode:
         for i in range(len(ifmap_pewave.lower_addr)):
             ifmap_pewave.lower_to_upper_len_bytes.append(ifmap_pewave.upper_addr[i] - ifmap_pewave.lower_addr[i] + self.item_sz)
 
-
     # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
     #   ifmaps: IFMAPs in NCHW format
     #   pewave: current tile wave, IDed by [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
     #   layer_type: 'conv' or 'MaxPool'; can be extended to handle other layer types
     #   return: a 256x128 array
     def pack_wave_ifmaps(self, ifmaps, ifmap_pewave, ofmap_pewave, repl_multiple_of_C, for_softmax):
+        # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
+        if (for_softmax):
+            out_array_dim_y = ofmap_pewave.tile.channel_count
+        else:            
+            out_array_dim_y = ifmap_pewave.ifmap_channel_count * repl_multiple_of_C
+        fmap_folding_idx = ifmap_pewave.c_id
+        fmap_total_count = self.C
+        out_array = np.zeros((PEArray.MAX_WAVE_SIZE, out_array_dim_y))
+        # for pooling, the "row" below actually means output columns
+        pe_row_start = ifmap_pewave.ifmap_channel_start
+        pe_row_stop = ifmap_pewave.ifmap_channel_stop
+        assert(pe_row_start < pe_row_stop)
+        r_id = ofmap_pewave.r_id
+        s_id = ofmap_pewave.s_id
+        num_rows = pe_row_stop - pe_row_start
+        for repl in range(repl_multiple_of_C):
+            pe_row_repl_start = num_rows * repl
+            for row in range(pe_row_start, pe_row_stop):
+                pe_row_offset = pe_row_repl_start + row - pe_row_start
+                for z in range(self.Tn):
+                    batch_id = (ofmap_pewave.tile.n_id * self.Tn) + z
+                    for x in range(self.ofmap_full_tile_dim2d.x):
+                        for y in range(self.ofmap_full_tile_dim2d.y):
+                            if self.is_conv_transpose:
+                                ifmap_tilex = ofmap_pewave.tile.w_id * self.ofmap_full_tile_dim2d.x + x
+                                ifmap_tiley = ofmap_pewave.tile.h_id * self.ofmap_full_tile_dim2d.y + y + self.unstack_h_offset
+                            else:
+                                ifmap_tilex = (ofmap_pewave.tile.w_id * self.ofmap_full_tile_dim2d.x + x) * self.stride.x + s_id * self.dilation.x - self.padWN.x
+                                ifmap_tiley = ((ofmap_pewave.tile.h_id + self.unstack_h_offset) * self.ofmap_full_tile_dim2d.y + y) * self.stride.y + r_id  * self.dilation.y - self.padWN.y
+                            ifmap_addr = z * self.ofmap_full_tile_rect.get_tot_size() + y * self.ofmap_full_tile_dim2d.x + x
+                            if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
+                                out_array[ifmap_addr, pe_row_offset] = 0
+                            elif (ifmap_tiley < 0 or ifmap_tiley >= self.H):
+                                out_array[ifmap_addr, pe_row_offset] = 0
+                            else:
+                                if (self.parent.args.nname == "lm"):
+                                    out_array[ifmap_addr, pe_row_offset] = self.ifmaps_file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
+                                else:                                   
+                                    if repl_multiple_of_C > 1:
+                                        out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, (ifmap_tiley%2)*ceildiv(self.H,2) + ifmap_tiley//2 + (ifmap_tilex%2)*self.H, ifmap_tilex//2]
+                                        #out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
+                                    else:                                        
+                                        out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
+            s_id += 1
+            if (s_id >= self.S): 
+                r_id += 1
+                s_id = 0
+                if (r_id >= self.R): break
+        return out_array
+
+
+    # Pack the IFMAPs in columns to create a PE-Array IFMAPs input for a particular wave number
+    # (Old version: for checking compute_ifmap_ofmap_pewave_info)
+    #   ifmaps: IFMAPs in NCHW format
+    #   pewave: current tile wave, IDed by [n_id, m_id, h_id, w_id, c_id, r_id, s_id]
+    #   layer_type: 'conv' or 'MaxPool'; can be extended to handle other layer types
+    #   return: a 256x128 array
+    def pack_wave_ifmaps_old(self, ifmaps, ifmap_pewave, ofmap_pewave, repl_multiple_of_C, for_softmax):
         # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
         if (for_softmax):
             out_array_dim_y = ofmap_pewave.tile.channel_count
@@ -447,11 +524,6 @@ class KNode:
         num_rows = pe_row_stop - pe_row_start
         for repl in range(repl_multiple_of_C):
             pe_row_repl_start = num_rows * repl
-            s_id_temp = s_id
-            r_id_temp = r_id
-            if self.is_conv_transpose:
-                s_id_temp = self.S - 1 - s_id
-                r_id_temp = self.R - 1 - r_id
             for row in range(pe_row_start, pe_row_stop):
                 pe_row_offset = pe_row_repl_start + row - pe_row_start
                 for z in range(self.Tn):
@@ -462,8 +534,8 @@ class KNode:
                                 ifmap_tilex = ofmap_pewave.tile.w_id * self.ofmap_full_tile_dim2d.x + x
                                 ifmap_tiley = ofmap_pewave.tile.h_id * self.ofmap_full_tile_dim2d.y + y + self.unstack_h_offset
                             else:
-                                ifmap_tilex = (ofmap_pewave.tile.w_id * self.ofmap_full_tile_dim2d.x + x) * self.stride.x + s_id - self.padWN.x
-                                ifmap_tiley = ((ofmap_pewave.tile.h_id + self.unstack_h_offset) * self.ofmap_full_tile_dim2d.y + y) * self.stride.y + r_id - self.padWN.y
+                                ifmap_tilex = (ofmap_pewave.tile.w_id * self.ofmap_full_tile_dim2d.x + x) * self.stride.x + s_id * self.dilation.x - self.padWN.x
+                                ifmap_tiley = ((ofmap_pewave.tile.h_id + self.unstack_h_offset) * self.ofmap_full_tile_dim2d.y + y) * self.stride.y + r_id  * self.dilation.y - self.padWN.y
                             ifmap_addr = z * self.ofmap_full_tile_rect.get_tot_size() + y * self.ofmap_full_tile_dim2d.x + x
                             if (ifmap_tilex < 0 or ifmap_tilex >= self.W):
                                 out_array[ifmap_addr, pe_row_offset] = 0
@@ -685,41 +757,56 @@ class KGraph:
                             #if (self.args.debug>0): print("Previous layer for ", new_node.data['layer_name'], " is ", i)
                             prev_node = self.node_dict[i]
                             # dissolve StridedSlice into the next operation
-                            if (prev_node.data['layer_type'] == "Pad"):
+                            if prev_node.prev_old != []:
+                                new_node.dissolve_node(prev_node)
+                            elif (prev_node.data['layer_type'] == "Pad"):
                                 # NCHW
                                 new_node.data['padding'] = prev_node.data['padding']
                                 prev_node.data['padding'] = [[0, 0], [0, 0], [0, 0], [0, 0]]
                                 prev_node.data['ofmap_shape'] = prev_node.prev[0].data['ofmap_shape']
+                                assert(len(new_node.data['padding']) == 4)
                                 assert(new_node.data['padding'][0] == [0, 0])
                                 assert(new_node.data['padding'][1] == [0, 0])
                                 assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
-                                new_node.add_prev(prev_node.prev[0])
-                                prev_node.prev = []
-                                print("Dissolving Pad op name %s"%prev_node.data['layer_name']) 
+                                new_node.dissolve_node(prev_node)
                             elif (prev_node.data['layer_type'] == "StridedSlice"):
-                                new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
-                                print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
-                                assert (len(prev_node.prev) == 1)
-                                new_node.add_prev(prev_node.prev[0])
-                                prev_node.prev = []
-                                print("Dissolving StrideSlice op name %s"%prev_node.data['layer_name']) 
+                                if (prev_node.data['channel_slice'][0]%128) == 0:
+                                    new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
+                                    print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
+                                    new_node.dissolve_node(prev_node)
+                                else:
+                                    new_node.add_prev(self.node_dict[i])
                             elif (prev_node.data['layer_type'] == "Unstack"):
                                 for j in prev_node.data['next_layer_order']:
                                     if j[1] == new_node.data['layer_name']:
                                         new_node.unstack_h_offset = j[0]
                                         print("%s: unstack_h_offset %d"%(new_node.data['layer_name'], j[0]))
                                         break
-                                assert (len(prev_node.prev) == 1)
-                                new_node.add_prev(prev_node.prev[0])
-                                prev_node.prev = []
-                                print("Dissolving Unstack op name %s"%prev_node.data['layer_name']) 
+                                new_node.dissolve_node(prev_node)
                             elif (prev_node.data['layer_type'] == "Reshape"):
-                                if prev_node.data['ofmap_format'] == self.node_dict[i].prev[0].data['ofmap_format'] \
-                                        and prev_node.data['ofmap_shape'] == self.node_dict[i].prev[0].data['ofmap_shape']:
-                                    assert (len(prev_node.prev) == 1)
-                                    new_node.add_prev(prev_node.prev[0])
-                                    prev_node.prev = []
-                                    print("Dissolving Reshape op name %s"%prev_node.data['layer_name']) 
+                                if len(prev_node.prev) == 1 \
+                                        and prev_node.data['ofmap_format'] == prev_node.prev[0].data['ofmap_format'] \
+                                        and prev_node.data['ofmap_shape'] == prev_node.prev[0].data['ofmap_shape']:
+                                    new_node.dissolve_node(prev_node)
+                                else:
+                                    new_node.add_prev(self.node_dict[i])
+                            elif (re.search("SpaceToBatch", prev_node.data['layer_type'])):
+                                if new_node.data['layer_type'] == "Conv":
+                                    new_padding = new_node.data['padding']
+                                    for i in range(len(new_padding)):
+                                        for j in range(len(new_padding[i])):
+                                            new_node.data['padding'][i][j] += prev_node.data['padding'][i][j]
+                                    new_node.data['dilation_rate'] = prev_node.data['block_shape']
+                                    new_node.dissolve_node(prev_node)
+                                else:
+                                    new_node.add_prev(self.node_dict[i])
+                            elif (re.search("BatchToSpace", prev_node.data['layer_type'])):
+                                if len(prev_node.prev) == 1 \
+                                        and 'dilation_rate' in prev_node.prev[0].data:
+                                    prev_node.prev[0].data['crop'] = prev_node.data['crop']
+                                    prev_node.prev[0].data['ofmap_format'] = prev_node.data['ofmap_format']
+                                    prev_node.prev[0].data['ofmap_shape'] = prev_node.data['ofmap_shape']
+                                    new_node.dissolve_node(prev_node)
                                 else:
                                     new_node.add_prev(self.node_dict[i])
                             else:

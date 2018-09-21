@@ -13,9 +13,14 @@ padding         = "SAME"
 w1val   = conf.gen_array_linspace(conf.WMIN, conf.WMAX, weight_shape)
 w1      = conf.gen_variable_tensor(name = conf.netName + "/weight1", initializer=w1val)
 
+w2val   = conf.gen_array_linspace(conf.WMIN, conf.WMAX, [conf.C])
+w2      = conf.gen_variable_tensor(name = conf.netName + "/bias1", initializer = w2val)
+
 i0      = tf.placeholder(conf.tfDataType, shape = input_shape, name = "input")
 i1      = tf.nn.conv2d_transpose(i0, w1, output_shape = output_shape, strides = strides, padding = padding, name = conf.netName + "/conv2d_transpose")
-output  = tf.identity(i1, name = conf.netName + "/output")
+i2      = tf.nn.bias_add(i1, w2, name = conf.netName + "/i2")
+i3      = tf.nn.tanh(i2, name = conf.netName + "/i3")
+output  = tf.identity(i3, name = conf.netName + "/output")
 
 i0val   = conf.gen_array_linspace(conf.IMIN, conf.IMAX, input_shape)
 

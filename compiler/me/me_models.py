@@ -6,6 +6,7 @@ Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
 """
 
 import numpy as np
+import copy
 from skimage.util.shape import view_as_windows
 
 """Macros for dumping arrays
@@ -115,10 +116,16 @@ class PEArray:
 class Pool:
 
     def resadd(self, array_a, array_b):
-        return array_a + array_b 
+        result = copy.copy(array_a)
+        num_chan = array_b.shape[1]
+        result[:, 0:num_chan] += array_b
+        return result
 
     def multiply(self, array_a, array_b):
-        return array_a * array_b
+        result = copy.copy(array_a)
+        num_chan = array_b.shape[1]
+        result[:, 0:num_chan] *= array_b
+        return result
 
     def pool(self, type, in_array, stride, pool_window, Tn, ifmap_tilex_sz, ifmap_tiley_sz, ofmap_tilex_sz, ofmap_tiley_sz):
         num_cols = in_array.shape[1]

@@ -21,7 +21,8 @@ i1      = tf.nn.convolution(
             strides = strides, 
             padding = padding, 
             name = conf.netName + "/i1")
-output  = tf.identity(i1, name = conf.netName + "/output")
+i2      = tf.nn.relu(i1, name = conf.netName + "/i2")
+output  = tf.identity(i2, name = conf.netName + "/output")
 
 i0val   = conf.gen_array_rand(conf.IMIN, conf.IMAX, input_shape)
 

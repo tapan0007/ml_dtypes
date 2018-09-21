@@ -349,12 +349,12 @@ class Concat:
     def PrintSubTileInfos(self):
         for (key, val) in self.subtile_infos.items():
             print (key)
-            #print ("len(mfilters_for_one_move) = %d"\
-            #       %(len(val[0])))
+            print ("len(mfilters_for_one_move) = %d"\
+                   %(len(val[0])))
             #print ("len(ifmaps_for_one_move) = %d"\
             #       %(len(val[1])))
-            print ("len(ifmap_channel_ranges_for_one_move) = %d"\
-                   %(len(val[2])))
+            #print ("len(ifmap_channel_ranges_for_one_move) = %d"\
+            #       %(len(val[2])))
             for i in val[2]:
                 print (i)
             print ("---")

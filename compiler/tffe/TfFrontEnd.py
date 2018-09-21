@@ -89,13 +89,14 @@ class TfOp:
     return shape
 
 class TfFe:
-  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, batch, showOpNameInKgraph):
+  def __init__(self, dataPathWidthThreshold, debugLevel, dotTimeout, batch, showOpNameInKgraph, inputNamesToFormat):
     self.__gd = None
     self.__kg = None
     self.dataPathWidthThreshold = dataPathWidthThreshold  # Min tensor size for visualization
     self.debugLevel = debugLevel
     kog.Config.Dot.timeout = dotTimeout
     kog.Config.Graph.showOpNameInKgraph = showOpNameInKgraph
+    kog.Config.Graph.inputNamesToFormat = inputNamesToFormat
     self.kaenaPath = os.environ["KAENA_PATH"]
     self.batch = batch
   
@@ -242,6 +243,8 @@ class TfFe:
           node = kog.NodePad(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Transpose", tfop.op, re.I) != None):
           node = kog.NodeTranspose(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("SpaceToBatch|BatchToSpace", tfop.op, re.I) != None):
+          node = kog.NodeSpaceBatch(tfNode.name, tfop.op, add_attrs)
         else:
           node = kog.Node(tfNode.name, tfop.op, add_attrs)
         node.setProtoShape(tfop.shape)

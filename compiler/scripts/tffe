@@ -58,6 +58,8 @@ parser.add_argument('--verbose', help='Verbosity level, 0 default, 1 shows in/ou
                     type=int, default=0)
 parser.add_argument('--input_node', help='Input node in the neural network graph (where --images should be injected during calibration)',
                     nargs='+', default=[])
+parser.add_argument('--sg_input_format', help='Subgraph input node format (original number of dimensions) to override default format, specified as alternating node and format: <node0> <format0> <node1> <format1>; check subgraphs for proper input node names',
+                    nargs='+', default=[])
 parser.add_argument('--dot_timeout', help='Timeout for planarization of op and flow graphs in Graphviz, default 60 sec ',
                     type=int, default=60)
 parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, wave2, qemu_wave, default is tcc',
@@ -83,7 +85,6 @@ parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph 
 parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=[])
 
 args = parser.parse_args()
-inputNodeNames = args.input_node
 
 tfpbFile = args.tfpb
 if not os.path.exists(tfpbFile):
@@ -98,10 +99,18 @@ def writeBackEndFiles(kGraph, outPrefix, verbose):
   fileList += [outPrefix + "graph_ann.dot.svg"]
   #kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
 
+inputNamesToFormat = {}
+iformat = args.sg_input_format
+if iformat != []:
+  if (len(iformat)%2) != 0:
+    print("ERROR: Length of --sg_input_format list needs to be even")
+    exit(1)
+  else:  
+    inputNamesToFormat = dict(zip(iformat[0::2], iformat[1::2]))
 
 debugLevel = args.debug
 dotTimeout = args.dot_timeout
-tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch, args.show_op_name_in_kgraph)
+tffe = TfFrontEnd.TfFe(args.width, debugLevel, dotTimeout, args.batch, args.show_op_name_in_kgraph, inputNamesToFormat)
 tffe.loadPb(tfpbFile, args.focus, args.focus_to)
 kog = tffe.getKaenaOpGraph()
 kog.setSchedulerMode(args.scheduler)
@@ -112,8 +121,13 @@ if args.weights:
   tffe.writeWeights(args.out_prefix)
   
 if args.images != None:
-  tffe.writeImages(args.out_prefix, args.images, inputNodeNames, args.input_constants, args.exclude_ops_from_capture,
-                   args.preprocessor, args.preprocessor_args)
+  tffe.writeImages(args.out_prefix, 
+                   args.images, 
+                   args.input_node, 
+                   args.input_constants, 
+                   args.exclude_ops_from_capture,
+                   args.preprocessor, 
+                   args.preprocessor_args)
   kog.identifyMainFlowEdges()
   kog.optimizeForInference()
   tffe.writeOpsCsv(args.out_prefix + "ops.csv")
