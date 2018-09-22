@@ -79,19 +79,19 @@ class KNode:
         self.fused_op = None
         self.repl_multiple_of_C = 1
         self.ifmaps_padded_and_split = False
-        self.distance_to_next_join = 1000 
+        self.distance_to_next_join = 1000
 
     def __str__(self):
         return self.data['layer_name']
 
     def dissolve_node(self, node_to_dissolve):
-        print("Dissolving %s op name %s before %s"%(node_to_dissolve.data['layer_type'], node_to_dissolve.data['layer_name'], self.data['layer_name'])) 
+        print("Dissolving %s op name %s before %s"%(node_to_dissolve.data['layer_type'], node_to_dissolve.data['layer_name'], self.data['layer_name']))
         node_to_dissolve.data['#comment'] += "(Dissolved by ME)"
         if node_to_dissolve.prev == []:
             if node_to_dissolve.prev_old != []:
                 for i in node_to_dissolve.prev_old:
                     self.add_prev(i)
-            else:                    
+            else:
                 raise RuntimeError("Cannot dissolve %s since there's no predecessor"%node_to_dissolve.data['layer_name'])
         else:
             for i in node_to_dissolve.prev:
@@ -112,14 +112,14 @@ class KNode:
         for i in self.next:
             if (i == node):
                 return True
-        return False   
+        return False
     # Returns number of missing input results
     def count_missing_input_results(self):
         count = 0
         for i in self.prev:
             if (not i.is_const) and (not i.result_avail):
                 count += 1
-        return count                
+        return count
 
     # set/get dest PSUM bank
     def set_psum_bank(self, dest):
@@ -129,15 +129,15 @@ class KNode:
 
     def populate_ofmaps_file_params(self):
         layer_info = self.data
-        ofmaps_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])            
+        ofmaps_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])
         if self.is_placeholder:
             file_name = layer_info['ref_file']
         else:
             file_name = layer_info['ref_file'].replace(".npy", "-midout.npy")
         self.ofmaps_file_params = FileParams(
                                     file_name   = file_name,
-                                    file_dims   = ofmaps_shape_dims, 
-                                    data_type   = self.parent.data_type, 
+                                    file_dims   = ofmaps_shape_dims,
+                                    data_type   = self.parent.data_type,
                                     op_params   = self,
                                     args        = self.parent.args)
         self.ofmaps_file_params.layer_name =  layer_info['layer_name']
@@ -150,11 +150,11 @@ class KNode:
             prev_node = self.prev[i]
             # Const node indicates bias/scale values
             if prev_node.data['layer_type'] == "Const":
-                bias_shape_dims = ShapeDims(prev_node.data['ofmap_format'], prev_node.data['ofmap_shape'])           
+                bias_shape_dims = ShapeDims(prev_node.data['ofmap_format'], prev_node.data['ofmap_shape'])
                 self.bias_file_params = FileParams(
-                                            file_name       = prev_node.data['ref_file'], 
-                                            file_dims       = bias_shape_dims, 
-                                            data_type       = self.parent.data_type, 
+                                            file_name       = prev_node.data['ref_file'],
+                                            file_dims       = bias_shape_dims,
+                                            data_type       = self.parent.data_type,
                                             op_params       = self,
                                             args            = self.parent.args,
                                             contain_weights = True)
@@ -190,14 +190,14 @@ class KNode:
         layer_info = self.data
         if (layer_info['layer_type'] == 'Softmax2'): self.M = 1
         # get padding and stride information
-        if ('padding' in layer_info):            
+        if ('padding' in layer_info):
             self.padWN = Dim2D(layer_info['padding'][3][0], layer_info['padding'][2][0])
             self.padES = Dim2D(layer_info['padding'][3][1], layer_info['padding'][2][1])
-        if ('stride' in layer_info):            
+        if ('stride' in layer_info):
             self.stride = Dim2D(layer_info['stride'][3], layer_info['stride'][2])
         # OFMAP total areas
         self.EF = self.E * self.F
-        # Construct rectangles for later use            
+        # Construct rectangles for later use
         self.ifmap_full_rect = Dim2D(self.W, self.H).make_rect()
         self.ofmap_full_rect = Dim2D(self.F, self.E).make_rect()
         # compute batch folding and batching within wave, Tn cannot be greater than batch size N
@@ -206,7 +206,7 @@ class KNode:
             self.Tn = 1
         elif (self.Tn > self.N):
             self.Tn = self.N
-        # Heuristic: for simplicity, cap at 4 instead of allowing Tn to reach max of 5 for 7x7           
+        # Heuristic: for simplicity, cap at 4 instead of allowing Tn to reach max of 5 for 7x7
         if (self.Tn > 4):
             self.Tn = 4
         self.n = ceildiv(self.N, self.Tn)
@@ -218,7 +218,7 @@ class KNode:
         fmap_rows = self.E
         while (fmap_rows % 2 == 0 and fmap_rows > self.ofmap_full_tiley_sz):
             fmap_rows = fmap_rows//2
-        if (fmap_rows < self.ofmap_full_tiley_sz):            
+        if (fmap_rows < self.ofmap_full_tiley_sz):
             self.ofmap_full_tiley_sz  = fmap_rows
         # If the EF is large, we need to make sure tiley is at least the same size as the pool_window
         # (TODO: this seems wrong since it increases tiley, and thus may clip tilex
@@ -226,7 +226,7 @@ class KNode:
         if (adjust_for_pool and self.ofmap_full_tiley_sz < self.pool_window.y):
             self.ofmap_full_tiley_sz = min(self.E, self.pool_window.y)
             self.ofmap_full_tilex_sz = min(self.F, PEArray.MAX_WAVE_SIZE // self.ofmap_full_tiley_sz)
-        # Construct rectangle for later use            
+        # Construct rectangle for later use
         self.ofmap_full_tile_dim2d = Dim2D(self.ofmap_full_tilex_sz, self.ofmap_full_tiley_sz)
         self.ofmap_full_tile_rect   = self.ofmap_full_tile_dim2d.make_rect()
         self.ofmap_full_tile_sz     = self.ofmap_full_tile_rect.get_tot_size()
@@ -236,13 +236,13 @@ class KNode:
         self.c = ceildiv(self.C, PEArray.NUM_ROWS)
         # compute the OFMAP folds
         self.m = ceildiv(self.M, PEArray.NUM_COLS)
-        # computing the input map tiling       
+        # computing the input map tiling
         self.h, self.w, self.e, self.f = 1, 1, 1, 1
         # compute ofmap folding
         if (self.EF >= PEArray.MAX_WAVE_SIZE):
             self.e = ceildiv(self.E, self.ofmap_full_tile_dim2d.y)
             self.f = ceildiv(self.F, self.ofmap_full_tile_dim2d.x)
-        # heigh/width folding is the same for IFMAP and OFMAP            
+        # heigh/width folding is the same for IFMAP and OFMAP
         self.h = self.e
         self.w = self.f
         print("Common params1 for layer %s:  N=%d, M=%d, H=%d, W=%d, C=%d, E=%d, F=%d, padWN=%s, padES=%s"
@@ -257,7 +257,7 @@ class KNode:
         # convolution kernel shape
         layer_info = self.data
         if (layer_info['layer_type'] == 'Softmax2'):
-            weights_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])            
+            weights_shape_dims = ShapeDims(layer_info['ofmap_format'], layer_info['ofmap_shape'])
             weights_file = self.data['ref_file'].replace(".npy", "-ones.npy")
             if (not self.parent.args.inference):
                 ones_tensor = np.ones(weights_shape_dims.shape_tuple, dtype=self.parent.data_type)
@@ -268,14 +268,14 @@ class KNode:
                 # If conv-transpose/deconv, change weight's MRSC format string to CRSM for internal consumption
                 assert(kernel_format == 'MRSC')
                 kernel_format = 'CRSM'
-            weights_shape_dims = ShapeDims(kernel_format, layer_info['kernel_shape'])            
+            weights_shape_dims = ShapeDims(kernel_format, layer_info['kernel_shape'])
             weights_file = self.data['kernel_file']
         self.weights_file_params = FileParams(
-                                        file_name       = weights_file, 
-                                        file_dims       = weights_shape_dims, 
-                                        data_type       = self.data_type, 
-                                        op_params       = self, 
-                                        args            = self.parent.args, 
+                                        file_name       = weights_file,
+                                        file_dims       = weights_shape_dims,
+                                        data_type       = self.data_type,
+                                        op_params       = self,
+                                        args            = self.parent.args,
                                         contain_weights = True)
         if 'dilation_rate' in self.data:
             self.dilation = Dim2D(self.data['dilation_rate'][3], self.data['dilation_rate'][2])
@@ -290,14 +290,14 @@ class KNode:
         self.filter = Dim2D(self.S, self.R)
         # kaena-141: replicate IFMAP a number of times.
         # The number is determined by S, multiplied by a portion of R to match r*S*C <= 128
-        # In the case of 1st layer ResNet50, R=7, S=7, C=3 so R can be broken a number of ways. 
+        # In the case of 1st layer ResNet50, R=7, S=7, C=3 so R can be broken a number of ways.
         # For now, split evenly among two waves.
         self.repl_multiple_of_C = 1
         if self.parent.args.enable_replication and self.is_input:
             num_replicated_waves = ceildiv(self.RS * weights_shape_dims.C,  PEArray.NUM_ROWS)
             self.repl_multiple_of_C = ceildiv(self.R, num_replicated_waves) * self.S
         print("Conv params for layer %s: R=%d, S=%d, dilation.y=%d, dilation.x=%d, repl_multiple_of_C=%d"
-                %(self.data['layer_name'], self.weights_file_params.file_dims.R, 
+                %(self.data['layer_name'], self.weights_file_params.file_dims.R,
                    self.weights_file_params.file_dims.S, self.dilation.y, self.dilation.x, self.repl_multiple_of_C))
 
     # Compute pooling params
@@ -328,12 +328,12 @@ class KNode:
             - ofmap_tile_lower_addr/ofmap_tile_upper_addr: Addresses within file of OFMAP tile (for mappingt to SB)
             - ifmap_tile_lower_addr/ifmap_tile_upper_addr: Addresses within file of IFMAP tile (for mappingt to SB)
     """
-    def compute_ifmap_ofmap_tile_info(self, ifmap_tile, ofmap_tile, conv_transpose=False):        
-        # number of OFMAPs for this tile 
+    def compute_ifmap_ofmap_tile_info(self, ifmap_tile, ofmap_tile, conv_transpose=False):
+        # number of OFMAPs for this tile
         self.ofmap_count = ofmap_tile.get_ofmap_count()
 
-        assert(ifmap_tile.is_ifmap == True) 
-        assert(ofmap_tile.is_ifmap == False) 
+        assert(ifmap_tile.is_ifmap == True)
+        assert(ofmap_tile.is_ifmap == False)
 
         # compute the bounds for OFMAP tile within OFMAPs tensor (adjusted for boundary conditions)
         ofmap_tile_start_coord       = ofmap_tile.get_fmap_coord(self.ofmap_full_tile_rect.get_width_height())
@@ -356,7 +356,7 @@ class KNode:
         else:
             ifmap_tile.padded_tile_rect  = ofmap_tile.tile_rect * self.stride
             # TODO: handle the case of conv is followed by fused pool, so both pool_window and filter exists (two possible different OFMAPs)
-            #if self.pool_window > self.stride: 
+            #if self.pool_window > self.stride:
             # kaena-826: allow incr_size to be negative, for case window=1 and stride=2 (so padded_tile_rect ends at valid pixel)
             if self.pool_window > Dim2D(0,0):
                 incr_size = self.pool_window - self.stride
@@ -391,10 +391,10 @@ class KNode:
             - ofmap_tile_lower_addr/ofmap_tile_upper_addr: Addresses within file of OFMAP tile (for mappingt to SB)
             - ifmap_tile_lower_addr/ifmap_tile_upper_addr: Addresses within file of IFMAP tile (for mappingt to SB)
     """
-    def compute_ifmap_ofmap_pewave_info(self, ifmap_pewave, ofmap_pewave, conv_transpose=True):        
+    def compute_ifmap_ofmap_pewave_info(self, ifmap_pewave, ofmap_pewave, conv_transpose=True):
         # compute the bounds for OFMAP PE-Wave within OFMAP tile (adjusted for boundary conditions)a
         if conv_transpose:
-            # Compute output PE-Wave/subtile rectangle 
+            # Compute output PE-Wave/subtile rectangle
             filter_pad_offset                = self.filter - Dim2D(1,1) - Coord(ofmap_pewave.s_id, ofmap_pewave.r_id) - self.padWN
             padded_ofmap_pewave_rect         = self.ofmap_full_rect + filter_pad_offset
             ofmap_pewave.subtile_rect        = padded_ofmap_pewave_rect.get_overlap(ofmap_pewave.tile.tile_rect)
@@ -451,7 +451,7 @@ class KNode:
         # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
         if (for_softmax):
             out_array_dim_y = ofmap_pewave.tile.channel_count
-        else:            
+        else:
             out_array_dim_y = ifmap_pewave.ifmap_channel_count * repl_multiple_of_C
         fmap_folding_idx = ifmap_pewave.c_id
         fmap_total_count = self.C
@@ -485,7 +485,7 @@ class KNode:
                             else:
                                 if (self.parent.args.nname == "lm"):
                                     out_array[ifmap_addr, pe_row_offset] = self.ifmaps_file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
-                                else:                                   
+                                else:
                                     if repl_multiple_of_C > 1:
                                         stride = self.stride.x
                                         row_odd = ifmap_tiley % stride
@@ -493,10 +493,10 @@ class KNode:
                                         x_elem_odd = ifmap_tilex % stride
                                         x_elem_pair_id = ifmap_tilex // stride
                                         out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, row_odd * ceildiv(self.H, stride) + row_pair_idx + x_elem_odd * self.H, x_elem_pair_id]
-                                    else:                                        
+                                    else:
                                         out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
             s_id += 1
-            if (s_id >= self.S): 
+            if (s_id >= self.S):
                 r_id += 1
                 s_id = 0
                 if (r_id >= self.R): break
@@ -513,7 +513,7 @@ class KNode:
         # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
         if (for_softmax):
             out_array_dim_y = ofmap_pewave.tile.channel_count
-        else:            
+        else:
             out_array_dim_y = ifmap_pewave.ifmap_channel_count * repl_multiple_of_C
         fmap_folding_idx = ifmap_pewave.c_id
         fmap_total_count = self.C
@@ -561,16 +561,16 @@ class KNode:
                             else:
                                 if (self.parent.args.nname == "lm"):
                                     out_array[ifmap_addr, pe_row_offset] = self.ifmaps_file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
-                                else:                                   
+                                else:
                                     if repl_multiple_of_C > 1:
                                         out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, (ifmap_tiley%2)*ceildiv(self.H,2) + ifmap_tiley//2 + (ifmap_tilex%2)*self.H, ifmap_tilex//2]
                                         #out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
-                                    else:                                        
+                                    else:
                                         out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
                                 # Check bounds of actual pixels within the original ifmaps for the first ifmap (which should reside in first SB partition)
                                 # TODO: check how N/C are arrange in memory; batching within waves may cause different atoms to be accessed by same wave
                                 # TODO: for Tn>1, need to have multiple bounds for each batch item
-                                if (repl == 0 and row == pe_row_start):                                
+                                if (repl == 0 and row == pe_row_start):
                                     # NCHW
                                     self.ifmap_wave_upper_addr[z] = self.ifmaps_file_params.ravel_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
                                     self.ifmap_wave_upper_coordx[z] = ifmap_tilex
@@ -584,10 +584,10 @@ class KNode:
                                         self.ofmap_wave_lower_coordx[z] = x
                                         self.ofmap_wave_lower_coordy[z] = y
                                         self.psum_bank_offset = (y * self.ofmap_full_tile_dim2d.x + x)
-                            #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
-                            #if (self.parent.args.debug > 3): print("DBG: pack_wave_ifmaps for wave %s batch_id %d x %d y %d r_id %d s_id %d padN %d padW %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(ofmap_pewave.tile.id_array, batch_id, x, y, r_id, s_id, self.padWN.y, self.padWN.x, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))                                    
+                            #print("x %d y %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(x, y, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))
+                            #if (self.parent.args.debug > 3): print("DBG: pack_wave_ifmaps for wave %s batch_id %d x %d y %d r_id %d s_id %d padN %d padW %d ifmap_tilex %d ifmap_tiley %d wave_lower_coordx %d wave_upper_coordy %d wave_upper_coordx %d wave_upper_coordy %d"%(ofmap_pewave.tile.id_array, batch_id, x, y, r_id, s_id, self.padWN.y, self.padWN.x, ifmap_tilex, ifmap_tiley, self.ofmap_wave_lower_coordx[0], self.ofmap_wave_lower_coordy[0], self.ofmap_wave_upper_coordx[0], self.ofmap_wave_upper_coordy[0]))
             s_id += 1
-            if (s_id >= self.S): 
+            if (s_id >= self.S):
                 r_id += 1
                 s_id = 0
                 if (r_id >= self.R): break
@@ -608,7 +608,7 @@ class KNode:
             - pewave: current pewave, with ID=[n_id, m_id, h_id, w_id, c_id, r_id, s_id]
         Returns:
             - an array of IFMAPs arranged as NUM_COLS of flattened FMAPs
-    """            
+    """
     def pack_wave_ifmaps_unfused_pooling (self, ifmaps, pewave):
         # If we are not doing convolution (aka pooling), set out_array_dim_y to be PEArray.NUM_COLS to match pooling/activation engines dimension
         out_array_dim_y = PEArray.NUM_COLS
@@ -639,9 +639,9 @@ class KNode:
         Parameters:
             - weights: conv weights in CRSM format
             - pewave: current pewave, with ID=[n_id, m_id, h_id, w_id, c_id, r_id, s_id]
-        Returns: 
+        Returns:
             - a 128x64 array of weights values
-        Updates: 
+        Updates:
             - this KNode object's ifmap_count/ofmap_count (TODO: consolidate this elsewhere, maybe compute_ifmap_ofmap_tile_info)
             - weight_wave_lower/upper_addr (TODO: consolidate this elsewhere, maybe compute within Wave object when needed to emit waveop)
     """
@@ -661,12 +661,12 @@ class KNode:
             last_r_id = r_id_temp
             last_s_id = s_id_temp
             for row in range(ifmap_pewave.ifmap_channel_start, ifmap_pewave.ifmap_channel_stop):
-                pe_row_offset = pe_row_repl_start + row - ifmap_pewave.ifmap_channel_start 
+                pe_row_offset = pe_row_repl_start + row - ifmap_pewave.ifmap_channel_start
                 for col in range(ofmap_pewave.tile.channel_start, ofmap_pewave.tile.channel_stop):
                     out_array[pe_row_offset, col - ofmap_pewave.tile.channel_start] = weights[row, r_id_temp, s_id_temp, col] # CRSM
             if (self.parent.args.debug > 2): print("DBG: pack_wave_conv_weights for wave %s conv_transpose %d r_id %d s_id %d (repl_multiple_of_C %d)"%(ofmap_pewave.tile.id_array, self.is_conv_transpose, r_id_temp, s_id_temp, repl_multiple_of_C))
             s_id += 1
-            if (s_id >= self.S): 
+            if (s_id >= self.S):
                 r_id += 1
                 s_id = 0
                 if (r_id >= self.R): break
@@ -676,23 +676,23 @@ class KNode:
 
         if self.is_conv_transpose:
             self.weight_wave_lower_addr = self.weights_file_params.ravel_crsm(
-                                            ifmap_pewave.ifmap_channel_start, 
-                                            last_r_id, 
-                                            last_s_id, 
+                                            ifmap_pewave.ifmap_channel_start,
+                                            last_r_id,
+                                            last_s_id,
                                             ofmap_pewave.tile.channel_start)
             self.weight_wave_upper_addr = self.weights_file_params.ravel_crsm(
-                                            ifmap_pewave.ifmap_channel_start, 
-                                            self.R - 1 - ofmap_pewave.r_id, 
-                                            self.S - 1 - ofmap_pewave.s_id, 
+                                            ifmap_pewave.ifmap_channel_start,
+                                            self.R - 1 - ofmap_pewave.r_id,
+                                            self.S - 1 - ofmap_pewave.s_id,
                                             ofmap_pewave.tile.channel_stop - 1)
-        else:            
+        else:
             self.weight_wave_lower_addr = self.weights_file_params.ravel_crsm(
-                                            ifmap_pewave.ifmap_channel_start, 
-                                            ofmap_pewave.r_id, 
-                                            ofmap_pewave.s_id, 
+                                            ifmap_pewave.ifmap_channel_start,
+                                            ofmap_pewave.r_id,
+                                            ofmap_pewave.s_id,
                                             ofmap_pewave.tile.channel_start)
             self.weight_wave_upper_addr = self.weights_file_params.ravel_crsm(
-                                            ifmap_pewave.ifmap_channel_start, 
+                                            ifmap_pewave.ifmap_channel_start,
                                             last_r_id,
                                             last_s_id,
                                             ofmap_pewave.tile.channel_stop - 1)
@@ -713,7 +713,7 @@ class KGraph:
         self.last_split_next_nodes = []
         self.args = args
 
-    # add forward edges for forward traversals        
+    # add forward edges for forward traversals
     def add_forward_refs(self, final_nodes):
         if final_nodes != []:
             for node in final_nodes:
@@ -723,7 +723,7 @@ class KGraph:
                     for i in node.prev:
                         if not i.is_const:
                             non_const_prev_count += 1
-                    node.is_join = (non_const_prev_count > 1)                    
+                    node.is_join = (non_const_prev_count > 1)
                     if node.is_join:
                         node.distance_to_next_join = 0
                     for i in node.prev:
@@ -747,8 +747,8 @@ class KGraph:
         self.node_dict[ new_layer['layer_name'] ] = new_node
         node_top_copy = new_node
 
-    # populate graph using layer info from JSON                    
-    def populate_from_kgraph_json(self, kgraph_json):                    
+    # populate graph using layer info from JSON
+    def populate_from_kgraph_json(self, kgraph_json):
         # get the lowest significant bit
         if ("data_type" in kgraph_json):
             self.data_type = kgraph_json["data_type"]
@@ -770,7 +770,7 @@ class KGraph:
             assert(num_layers >= 1)
             for l in layers:
                 new_node = KNode(self, l, self.item_sz, self.data_type, node_number)
-                node_number += 1 
+                node_number += 1
                 prev_layers = l['previous_layers']
                 if (len(prev_layers) > 0):
                     for i in prev_layers:
@@ -781,14 +781,40 @@ class KGraph:
                             if prev_node.prev_old != []:
                                 new_node.dissolve_node(prev_node)
                             elif (prev_node.data['layer_type'] == "Pad"):
-                                # NCHW
-                                new_node.data['padding'] = prev_node.data['padding']
-                                prev_node.data['ofmap_shape'] = prev_node.prev[0].data['ofmap_shape']
-                                assert(len(new_node.data['padding']) == 4)
-                                assert(new_node.data['padding'][0] == [0, 0])
-                                assert(new_node.data['padding'][1] == [0, 0])
-                                #assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
-                                new_node.dissolve_node(prev_node)
+                                if new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose":
+                                  # NCHW
+                                  new_node.data['padding'] = prev_node.data['padding']
+                                  prev_node.data['ofmap_shape'] = prev_node.prev[0].data['ofmap_shape']
+                                  assert(len(new_node.data['padding']) == 4)
+                                  assert(new_node.data['padding'][0] == [0, 0])
+                                  assert(new_node.data['padding'][1] == [0, 0])
+#assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
+                                  new_node.dissolve_node(prev_node)
+                                elif new_node.data['layer_type'] == "StridedSlice":
+                                  if any(new_node.data["begin_mask"]) or \
+                                      any(new_node.data["end_mask"]) :
+                                    # calculate padding
+                                    # a positive offset into the tensor
+                                    # translates to a negative padding
+                                    padLambda = lambda masks, indices :\
+                                             [ 0 if masks[axisId] else -indices[axisId] \
+                                               for axisId in range(len("NCHW"))]
+                                    prePad = padLambda(
+                                            new_node.data["begin_mask"],
+                                            new_node.data["begin_indices"])
+                                    postPad = padLambda(
+                                            new_node.data["end_mask"],
+                                            new_node.data["end_indices"])
+                                    padding = [[prePad[i], postPad[i]] for i in range(len("NCHW"))]
+                                    # in Amoebanet, we have pad->StrSl->Conv
+                                    # The pad has a positive padding, the StrSl
+                                    # has a negative padding (subset slice),
+                                    # so add the pads together
+                                    new_node.data['padding'] = np.add(padding, \
+                                            prev_node.data['padding'])
+                                    new_node.dissolve_node(prev_node)
+                                else:
+                                    assert False, "Could not dissolve Pad into {}".format(prev_node.data['layer_name'])
                             elif (prev_node.data['layer_type'] == "Slice"):
                                 if 'padding' in prev_node.data:
                                     new_node.data['padding'] = prev_node.data['padding']
@@ -798,6 +824,11 @@ class KGraph:
                                 else:
                                     new_node.add_prev(self.node_dict[i])
                             elif (prev_node.data['layer_type'] == "StridedSlice"):
+                                if new_node.data['layer_type'] == "AvgPool":
+                                    # For amoeba net, pad->stridedslice->avgpool, so pass padding onwarda
+                                    # to avg pool.  Should we always pass the padding on regardless of op?
+                                    # and when the padding is consumed, clear it??
+                                    new_node.data['padding'] = prev_node.data['padding']
                                 if (prev_node.data['channel_slice'][0]%128) == 0:
                                     new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
                                     print("%s: stridedslice_chan_offset %d"%(new_node.data['layer_name'], new_node.stridedslice_chan_offset))
@@ -811,7 +842,7 @@ class KGraph:
                                         print("%s: unstack_h_offset %d"%(new_node.data['layer_name'], j[0]))
                                         break
                                 new_node.dissolve_node(prev_node)
-                            elif (prev_node.data['layer_type'] == "Reshape" 
+                            elif (prev_node.data['layer_type'] == "Reshape"
                                     or prev_node.data['layer_type'] == "Identity"
                                     or prev_node.data['layer_type'] == "ExpandDims"
                                     or prev_node.data['layer_type'] == "Squeeze"
@@ -846,7 +877,7 @@ class KGraph:
                                     new_node.add_prev(self.node_dict[i])
                             # Leaky ReLU
                             elif (self.args.fuse_lrelu
-                                    and prev_node.data['layer_type'] == "Multiply" 
+                                    and prev_node.data['layer_type'] == "Multiply"
                                     and l['layer_type'] == "Maximum"):
                                 assert(len(prev_layers) == 2)
                                 prev_node_idx = prev_layers.index(i)
@@ -855,7 +886,7 @@ class KGraph:
                                         and prev_node.prev[0] == self.node_dict[other_prev_layer]:
                                     mult_scalar = prev_node.data['mul_scalar']
                                     mult_prev = prev_node.data['previous_layers']
-                                    new_node.dissolve_node(prev_node) 
+                                    new_node.dissolve_node(prev_node)
                                     new_node.data['mul_scalar'] = mult_scalar
                                     new_node.data['previous_layers'] = mult_prev
                                     new_node.data['layer_type'] = 'Lrelu'
@@ -880,7 +911,7 @@ class KGraph:
                 if (l['layer_type'] == "Softmax"):
                     self.final_nodes[-1].data['layer_type'] = "Exp"
                     self.add_copy_with_new_type(self.final_nodes[-1], "Softmax2", node_number)
-                    node_number += 1 
+                    node_number += 1
                     # move ref file attribute to the last operation for final comparisons
                     self.final_nodes[-1].data['ref_file'] = new_node.data['ref_file']
                     new_node.data['ref_file'] = new_node.data['ref_file'].replace(".npy", "_Exp.npy")
@@ -951,7 +982,7 @@ class KGraph:
                     new_node.is_conv_transpose = True
                 elif (l['layer_type'] == "Concat"):
                     new_node.is_concat = True
-            if (len(self.last_split_next_nodes) > 0 and len(self.last_split_next_nodes[0]) > 0) :                    
+            if (len(self.last_split_next_nodes) > 0 and len(self.last_split_next_nodes[0]) > 0) :
                 self.current_node = self.last_split_next_nodes[0].pop()
                 if self.last_split_next_nodes[0] == []:
                     self.last_split_next_nodes.pop()
@@ -959,14 +990,14 @@ class KGraph:
                 print("ERROR: can't find any Input layer!")
                 exit(-1)
 
-        # process waveops 
+        # process waveops
         if ("waveops" in kgraph_json):
             layers = kgraph_json["waveops"]
             num_layers = len(layers)
             if (num_layers >= 1):
                 for l in layers:
                     new_node = KNode(self, l, self.item_sz, self.data_type, node_number)
-                    node_number += 1 
+                    node_number += 1
                     try:
                         new_node.order = l['order']
                     except:
@@ -982,7 +1013,7 @@ class KGraph:
                                 print("ERROR: waveop %s isn't declared before %s"%(i, l['waveop_name']))
                                 exit(-1)
                     # assume the last node is the last one processed (JSON graph is in order), at least for the last one
-                    self.last_node = new_node                
+                    self.last_node = new_node
                     self.node_dict[ l['waveop_name'] ] = new_node
             else:
                 print("ERROR: there are no waveops in wavegraph.json!")
@@ -1012,7 +1043,7 @@ class KGraph:
         except:
             raise RuntimeError("Cannot save K-Graph %s"%mod_kgraph_name)
 
-    # get next fused op            
+    # get next fused op
     def get_next_fused_op(self, fused_ops):
         next_nodes = fused_ops[-1].next
         last_node = fused_ops[-1]
@@ -1022,14 +1053,14 @@ class KGraph:
             if last_node_type in FusedOp.next_is_fusable:
                 if next_nodes[0].count_missing_input_results() <= 1:
                     regex = FusedOp.next_is_fusable[last_node_type]
-                    if re.search(regex, next_nodes[0].data['layer_type']):               
+                    if re.search(regex, next_nodes[0].data['layer_type']):
                         if fused_ops.add(next_nodes[0]):
                             fused_ops = self.get_next_fused_op(fused_ops)
                 elif next_nodes[0].is_join:
                     fused_ops.ofmap_is_for_join = True
-        return fused_ops                    
+        return fused_ops
 
-    # starting from current node position, collect as many operations as possible            
+    # starting from current node position, collect as many operations as possible
     def get_fused_ops(self, fused_op_id):
         fused_ops = FusedOp(self.data_type, fused_op_id, self.args)
         if (self.current_node == None):
@@ -1038,12 +1069,12 @@ class KGraph:
         #print("DBG get_fused_ops: current_node ", self.current_node.data["layer_name"])
         # when we see ResAdd/Multiply, backtrack to the last split and follow the next branch in list
         if (self.current_node.is_join and self.current_node.count_missing_input_results() > 0):
-            if (self.args.debug > 0): 
+            if (self.args.debug > 0):
                 print("DBG: get_fused_ops: found join (ResAdd, Multiply, etc) at node %s, back-track to last split and follow next branch"%self.current_node.data["layer_name"])
             if self.last_split_next_nodes != [] and self.last_split_next_nodes[-1] != []:
                 self.current_node = self.last_split_next_nodes[-1].pop()
                 print("DBG: get_fused_ops: next node from current set of split:", self.current_node.data["layer_name"])
-                if self.last_split_next_nodes[-1] == []: 
+                if self.last_split_next_nodes[-1] == []:
                     self.last_split_next_nodes.pop()
             else:
                 raise RuntimeError("ERROR: back-track from a join %s, but can't find fork!"%(self.current_node.data['layer_name']))
@@ -1056,12 +1087,12 @@ class KGraph:
         last_node_type = fused_ops[-1].data['layer_type']
         num_next_nodes = len(next_nodes)
         if (num_next_nodes == 1):
-            self.current_node = next_nodes[0]   
+            self.current_node = next_nodes[0]
         elif (num_next_nodes > 1):
             print("DBG get_fused_ops: found fork at %s"%fused_ops[-1].data["layer_name"])
             fused_ops[-1].is_fork = True
-            # sort next nodes list based on distance to next ResAdd    
-            # pick the first branch as current_node                        
+            # sort next nodes list based on distance to next ResAdd
+            # pick the first branch as current_node
             if len(next_nodes) > 1:
                 next_nodes.sort(key=lambda x: x.distance_to_next_join, reverse=True)
             # Follow first the branch that goes directly to a join, if it exists
@@ -1079,15 +1110,15 @@ class KGraph:
         else:
             if self.last_split_next_nodes != [] and self.last_split_next_nodes[-1] != []:
                 self.current_node = self.last_split_next_nodes[-1].pop()
-                if self.last_split_next_nodes[-1] == []: 
+                if self.last_split_next_nodes[-1] == []:
                     self.last_split_next_nodes.pop()
-            else:                
+            else:
                 self.current_node = None
         # if the last node is Conv or MatMul, add an identity pool op
         if (last_node_type == "Conv"
-                or last_node_type == "ConvTranspose" 
-                or last_node_type == "MatMul" 
-                or last_node_type == "StridedSlice" 
+                or last_node_type == "ConvTranspose"
+                or last_node_type == "MatMul"
+                or last_node_type == "StridedSlice"
                 or last_node_type == "Concat"):
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
         # set the first op source is not PSUM, and last op dest is not PSUM
@@ -1115,7 +1146,7 @@ class KGraph:
                 #fused_ops.join_op.ofmaps_file_params.share_from(fused_ops.last_op.ofmaps_file_params)
                 fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(fused_ops.join_op)
             # If join, capture ofmaps_file_params from the other branch (residue branch).
-            residue_op = fused_ops.join_op.prev[fused_ops.join_op.residue_index]               
+            residue_op = fused_ops.join_op.prev[fused_ops.join_op.residue_index]
             if residue_op.ofmaps_file_params is not None:
                 residue_op.ofmaps_file_params.load_file()
             assert(residue_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple)
@@ -1124,7 +1155,7 @@ class KGraph:
                 fused_ops.last_op.ofmaps_file_params.readers_of_shared_fmap.append(i)
                 #i.ifmaps_file_params = fused_ops.join_op.ofmaps_file_params
             for i in residue_op.ofmaps_file_params.writers_of_shared_fmap:
-                fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(i)                
+                fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(i)
                 #i.ofmaps_file_params = fused_ops.join_op.ofmaps_file_params
                 #i.ofmaps_file_params.share_from(fused_ops.join_op.ofmaps_file_params)
             #residue_op.ofmaps_file_params = fused_ops.join_op.ofmaps_file_params
@@ -1138,7 +1169,7 @@ class KGraph:
             #print("copied ifmaps_file_params.repl_multiple_of_C = weights_file_params.repl_multiple_of_C %d"%(fused_ops.conv_op.weights_file_params.repl_multiple_of_C))
         if (self.args.debug > 0):
             fused_ops.show()
-        return fused_ops                   
+        return fused_ops
 
     def gen_identity_op(self, last_op):
         id_layer_data = {
@@ -1160,7 +1191,7 @@ class KGraph:
             for j in range(len(next_op.prev)):
                 if next_op.prev[j] == last_op:
                     next_op.prev[j] = id_op
-        last_op.next = [id_op]                    
+        last_op.next = [id_op]
         return id_op
 
     def gen_id_pool_op(self, last_op):
@@ -1186,7 +1217,7 @@ class KGraph:
             for j in range(len(next_op.prev)):
                 if next_op.prev[j] == last_op:
                     next_op.prev[j] = id_pool_op
-        last_op.next = [id_pool_op]                    
+        last_op.next = [id_pool_op]
         return id_pool_op
 
     def walk_ended(self):
