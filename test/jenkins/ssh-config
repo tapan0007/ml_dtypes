@@ -1,6 +1,6 @@
 Host siopt.vpc
     User jenkins
-    HostName 10.206.30.60
+    HostName 10.206.32.233
     IdentityFile /home/jenkins/.ssh/id_rsa
     StrictHostKeyChecking no
 
