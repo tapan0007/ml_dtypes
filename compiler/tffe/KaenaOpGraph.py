@@ -1684,8 +1684,8 @@ class NodeClipByValue(Node):
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
-      "clip_value_max"  : clip_val_min,
-      "clip_value_min"  : clip_val_max,
+      "clip_value_max"  : clip_val_max,
+      "clip_value_min"  : clip_val_min,
       "previous_layers" : [nIn.getName()],
       "#comment"        : "Clip values at min and max values"
     }

@@ -914,7 +914,7 @@ class FusedOp(list):
         first_op_type = self.first_op.data['layer_type']
         if (first_op_type == "Conv" or first_op_type == "ConvTranspose" or first_op_type == "MatMul"):
             self.execute_conv_ops(tpb, batch_item)
-        elif (first_op_type == "AvgPool" or first_op_type == "MaxPool"):
+        elif (first_op_type == "AvgPool" or first_op_type == "MaxPool" or first_op_type == "ClipByValue"):
             self.execute_unfused_pool_op(tpb, batch_item)
         #elif (first_op_type == "Softmax2"):
         #    self.execute_softmax2(result_file)
@@ -1595,7 +1595,7 @@ class FusedOp(list):
         return psum_temp
 
     # generate activation instruction and add it to instruction stream
-    def gen_recip_waveop_inline(self, op, psum_bank_src, dst_is_psum, psum_bank_dst):
+    def gen_recip_waveop_inline(self, tpb, op, psum_bank_src, dst_is_psum, psum_bank_dst):
         layer_name = op.data["layer_name"]
         in_dtype = "float32"
         out_dtype = "float32"
@@ -1628,10 +1628,11 @@ class FusedOp(list):
               'dst_z_num'               : 1,
               'num_partitions'          : 1
             }
-        self.waveop_stream.add_linked(instr, [], -1)
+        tpb.waveop_stream.add_linked(instr, [], -1)
+        return instr
 
     # generate scaleadd instruction and add it to instruction stream
-    def gen_scaleadd_waveop_inline(self, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, scale_val, add_val):
+    def gen_scaleadd_or_clip_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, scale_or_min_val, add_or_max_val):
         batch_item = ofmap_tile.n_id * op.Tn
         layer_name = op.data["layer_name"]
         # TODO: update in_dtype when src_is_psum is added
@@ -1650,7 +1651,7 @@ class FusedOp(list):
             raise RuntimeError("ERROR: for scale/add waveop, cannot handle source coming from PSUM")
             src_sb_address = 0
         else:
-            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_address(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
+            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
         if (dst_is_psum):
             raise RuntimeError("ERROR: for scale/add waveop, cannot handle destination PSUM")
         dst_x_num = op.ofmap_full_tilex_sz
@@ -1663,7 +1664,7 @@ class FusedOp(list):
         waveop_name = layer_name+"/ScaleAdd_" + ofmap_tile.id_string            
         instr = {
               'previous_waveops'        : [],
-              'waveop_type'             : 'ScaleAdd',
+              'waveop_type'             : op.data['layer_type'],
               'waveop_name'             : waveop_name,
               'layer_name'              : layer_name,
               'tile_id_format'          : ofmap_tile.format,
@@ -1685,9 +1686,14 @@ class FusedOp(list):
               'dst_z_step'              : dst_z_step,
               'dst_z_num'               : dst_z_num,
               'num_partitions'          : num_partitions,
-              'scale'                   : scale_val,
-              'add'                     : add_val,
             }
+        if op.data['layer_type'] == "ClipByValue":
+            instr['min_val'] = scale_or_min_val
+            instr['max_val'] = add_or_max_val
+        else:            
+            instr['waveop_type'] = "ScaleAdd"
+            instr['scale'] = scale_or_min_val
+            instr['add'] = add_or_max_val
         if src_is_psum:
             instr['src_psum_bank_id'] = psum_bank_src
             instr['src_psum_bank_offset'] = 0 
@@ -1700,7 +1706,8 @@ class FusedOp(list):
         else:                
             instr['dst_sb_address'] = dst_sb_address
             instr['dst_start_at_mid_part'] = ofmap_tile.m_id%2 == 1
-        self.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
+        tpb.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
+        return instr
 
     # generate activation instruction and add it to instruction stream
     def gen_act_waveop_inline(self, tpb, biasadd_op, act_op, conv_op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_bias_waveops, bias_start):
@@ -2042,7 +2049,7 @@ class FusedOp(list):
                         psum_temp = tpb.pool.reciprocate(psum_temp, self.conv_op.M)
                         psum_bank_dst = psum_bank_src
                         tpb.pearray.write_psum(psum_bank_dst, 0, self.conv_op.ofmap_full_tile_sz * self.conv_op.Tn, psum_temp)
-                        tpb.gen_recip_waveop_inline(self.conv_op, psum_bank_src, True, psum_bank_dst)
+                        tpb.gen_recip_waveop_inline(tpb, self.conv_op, psum_bank_src, True, psum_bank_dst)
                         psum_bank_src = psum_bank_dst
                         # loops for final scaling
                         for c_id in range(ceildiv(self.conv_op.C, PEArray.NUM_COLS)):
@@ -2148,6 +2155,10 @@ class FusedOp(list):
             #x = DBG_DUMP_PSUM_COL("BiasAdd: ", ifmaps_data_extract, 0)
             tile_data_flatten = tpb.activate.biasadd(ifmaps_data_extract, bias[bias_chan_start : bias_chan_end])
             #x = DBG_DUMP_PSUM_COL("BiasAdd: ", tile_data_flatten, 0)
+        elif (layer_type == "ClipByValue"):
+            min_val = self.first_op.data['clip_value_min']
+            max_val = self.first_op.data['clip_value_max']
+            tile_data_flatten = tpb.pool.clipbyvalue(ifmaps_data_extract, min_val, max_val)
         elif re.search(self.act_ops_regex, layer_type):
             tile_data_flatten = tpb.activate.act(layer_type, ifmaps_data_extract)
         else:
@@ -2331,9 +2342,26 @@ class FusedOp(list):
                 psum_bank_dst = first_op.get_psum_bank()
                 first_op.set_psum_bank((psum_bank_dst+1)%4)
                 tpb.pearray.last_psum_bank_used = first_op.get_psum_bank()
-            if (first_op.data['layer_type'] == "Multiply" or first_op.data['layer_type'] == "ResAdd"):
-                if ("mul_scalar" in first_op.data):
-                    waveop = self.gen_scaleadd_waveop_inline(first_op, tile_id, False, 0, False, 0, dram_ifmaps_waveops, pool_op.data['mul_scalar'], 0.0)
+            if re.search("Multiply|ResAdd|ClipByValue", first_op.data['layer_type']):
+                if ("mul_scalar" in first_op.data or first_op.data['layer_type'] == "ClipByValue"):
+                    if first_op.data['layer_type'] == "ClipByValue":
+                        scale_or_min_val = first_op.data['clip_value_min']
+                        add_or_max_val = first_op.data['clip_value_max']
+                    else:                        
+                        scale_or_min_val = first_op.data['mul_scalar']
+                        add_or_max_val = 0.0
+                    waveop = self.gen_scaleadd_or_clip_waveop_inline(
+                                tpb              = tpb,
+                                op               = first_op, 
+                                ifmap_tile       = ifmap_tile, 
+                                ofmap_tile       = ofmap_tile,
+                                src_is_psum      = False, 
+                                psum_bank_src    = 0, 
+                                dst_is_psum      = False, 
+                                psum_bank_dst    = 0, 
+                                dram_waveops     = dram_ifmaps_waveops, 
+                                scale_or_min_val = scale_or_min_val,
+                                add_or_max_val   = add_or_max_val)
                 else:
                     ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
                     (_, dram_resadd_waveops) = self.get_producers_for_subtile_region(tpb, ofmap_pewave)
