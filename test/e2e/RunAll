@@ -601,7 +601,14 @@ class Ktests:
     for testName in self.testList:
       t = self.getTestByName(testName)
       reportStatus = self.calcWaivedStatus(testName, t.status)
-      testCases.append(junit.TestCase(name=testName,classname="RunAllTests.RunAllTests",status=reportStatus,elapsed_sec=t.testTime))
+      jTestCase = junit.TestCase(name=testName,classname="RunAllTests.RunAllTests",status=reportStatus,elapsed_sec=t.testTime)
+      if reportStatus == "FAIL":
+        jTestCase.add_failure_info(message=reportStatus)
+      if reportStatus == "WAIVE":
+        jTestCase.add_skipped_info(message=reportStatus)
+      if reportStatus == "TIMEOUT":
+        jTestCase.add_error_info(message=reportStatus)
+      testCases.append(jTestCase)
     tSuite = junit.TestSuite(name="RunAll",test_cases=testCases)
     with open(xmlFileName, "w") as fh:
       junit.TestSuite.to_file(fh,[tSuite])
