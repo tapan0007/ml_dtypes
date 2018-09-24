@@ -462,13 +462,27 @@ class NodeSoftmax(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+    if len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
+    elif len(npInfo.npShape) == 2:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NC
+    elif len(npInfo.npShape) == 1:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.C
+    else:
+      assert len(npInfo.npShape) == 4
+      tfShape4D = npInfo.npShape
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, npt.NC,
+                                     npInfo.npFile, tfFormat,
                                      npFileSim, simFormat, False))
+
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
     layerData = {
       "ofmap_shape"     : tpbShape,
@@ -479,7 +493,8 @@ class NodeSoftmax(Node):
     }
     fileList.append(npFileSim)
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
-    assert(layerDataBase[0]["ofmap_format"] == "NHWC")
+    #assert(layerDataBase[0]["ofmap_format"] == "NHWC")
+    layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
 

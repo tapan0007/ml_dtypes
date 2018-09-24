@@ -652,7 +652,8 @@ testConfigMap = {
   "7-rn50_nne_fp32_host"        : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors host all --batch 2 --images %s" %(rnPreFp32, rnDogCatB2Fp32), "--input_files %s %s" % (rnDogJpg, rnCatJpg)],
 
   # Matmult
-  "4-rn50_matmul_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 %s --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave --images %s --wavegraph_checks structure data-race"% (rnPreFp32, rnDogJpg),"--input_files %s" % rnDogJpg ],
+  "4-rn50_matmul_plus_softmax_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt2.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 %s --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave --images %s --wavegraph_checks structure data-race"% (rnPreFp32, rnDogJpg),"--input_files %s" % rnDogJpg ],
+  "4-rn50_matmul_plus_softmax_fp16_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 %s --partition from avg_pool/AvgPool --executors host 0 wave 1 --scheduler wave --images %s --wavegraph_checks structure data-race"% (rnPreFp32, rnDogJpg),"--input_files %s" % rnDogJpg ],
   #"4-rn50_matmul_fp32_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 %s --partition from avg_pool/AvgPool --executors host 0 waveopt 1 --scheduler wave --images %s"% (rnPreFp32, rnDogJpg),"--input_files %s" % rnDogJpg ],
   #"4-rn50_matmul_nosm_fp32_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 %s  --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --scheduler wave --images %s" %(rnPreFp32, rnDogJpg),"--input_files %s" % rnDogJpg ],
   "4-rn50_matmul_nosm_wave"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", " --input_node input_1  --depth 2  --debug 1 %s  --partition from avg_pool/AvgPool fc1000/Softmax --executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images %s" %(rnPreFp16, rnDogJpg),"--input_files %s" % rnDogJpg ],
@@ -903,7 +904,8 @@ testWaiver = [
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
 
-    ['4-rn50_matmul_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
+    ['4-rn50_matmul_plus_softmax_fp32_wave$',      'WAIVE-S10_BE_SOFTMAX'],
+    ['4-rn50_matmul_plus_softmax_fp16_wave$',      'WAIVE-S10_BE_SOFTMAX'],
 
     ['^[6]-alexnet',  'WAIVE-BENCH'],
     #['7-rn50_nne_fc_wave$', 'WAIVE-WAVESC'],
