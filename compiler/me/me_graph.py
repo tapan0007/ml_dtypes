@@ -7,6 +7,7 @@ Copyright 2018, Amazon.com, Inc. or its affiliates. All Rights Reserved
 
 import re
 import os
+import json
 import copy
 import numpy as np
 
@@ -80,6 +81,9 @@ class KNode:
         self.ifmaps_padded_and_split = False
         self.distance_to_next_join = 1000 
 
+    def __str__(self):
+        return self.data['layer_name']
+
     def dissolve_node(self, node_to_dissolve):
         print("Dissolving %s op name %s before %s"%(node_to_dissolve.data['layer_type'], node_to_dissolve.data['layer_name'], self.data['layer_name'])) 
         if node_to_dissolve.prev == []:
@@ -100,6 +104,7 @@ class KNode:
     def add_next(self, next_node):
         if (not self.in_next(next_node)):
             self.next.append(next_node)
+            #print(self.data["layer_name"], " -> ", next_node.data["layer_name"])
             return True
         return False
     def in_next(self, node):
@@ -906,7 +911,7 @@ class KGraph:
                                 #if (args.debug > 0): print("Previous waveop for ", new_node.data['waveop_name'], " is ", i)
                                 new_node.add_prev(self.node_dict[i])
                             else:
-                                print("ERROR: node %s isn't declared before %s"%(i, l['waveop_name']))
+                                print("ERROR: waveop %s isn't declared before %s"%(i, l['waveop_name']))
                                 exit(-1)
                     # assume the last node is the last one processed (JSON graph is in order), at least for the last one
                     self.last_node = new_node                
@@ -914,6 +919,30 @@ class KGraph:
             else:
                 print("ERROR: there are no waveops in wavegraph.json!")
                 exit(-1)
+
+    def write_mod_kgraph(self, old_kgraph):
+        mod_kgraph_name = "mod-" + self.args.kgraph
+        mod_kgraph = {}
+        mod_kgraph["layers"] = []
+        mod_kgraph["data_type"] = old_kgraph["data_type"]
+        for i in old_kgraph["layers"]:
+            node = self.node_dict[i["layer_name"]]
+            if node.prev_old == []:
+                node.data["previous_layers"] = []
+                for i in node.prev:
+                    node.data["previous_layers"].append(i.data["layer_name"])
+                mod_kgraph["layers"].append(node.data)
+        try:
+            print("Saving K-Graph %s for verification"%mod_kgraph_name)
+            with (open(mod_kgraph_name, 'w')) as f:
+                s = json.dumps(mod_kgraph, indent=2, sort_keys=True)
+                s = re.sub(r'\s+(\d+,)\n', r' \1', s, flags=re.S)
+                s = re.sub(r',\s+(\d+)\n\s+\]', r', \1 ]', s, flags=re.S)
+                s = re.sub(r'\s+(\[ \d+, \d+ \],)\n', r' \1', s, flags=re.S)
+                s = re.sub(r',\s+(\[ \d+, \d+ \])\n\s+\]', r', \1 ]', s, flags=re.S)
+                f.write(s)
+        except:
+            raise RuntimeError("Cannot save K-Graph %s"%mod_kgraph_name)
 
     # get next fused op            
     def get_next_fused_op(self, fused_ops):
@@ -938,16 +967,18 @@ class KGraph:
         if (self.current_node == None):
             print("ERROR: found zero operations to fuse")
             exit(-1)
+        #print("DBG get_fused_ops: current_node ", self.current_node.data["layer_name"])
         # when we see ResAdd/Multiply, backtrack to the last split and follow the next branch in list
         if (self.current_node.is_join and self.current_node.count_missing_input_results() > 0):
-            if (self.args.debug > 0): print("DBG: found join (ResAdd, Multiply, etc), back-track to last split and follow next branch")
+            if (self.args.debug > 0): 
+                print("DBG: get_fused_ops: found join (ResAdd, Multiply, etc) at node %s, back-track to last split and follow next branch"%self.current_node.data["layer_name"])
             if self.last_split_next_nodes != [] and self.last_split_next_nodes[-1] != []:
                 self.current_node = self.last_split_next_nodes[-1].pop()
+                print("DBG: get_fused_ops: next node from current set of split:", self.current_node.data["layer_name"])
                 if self.last_split_next_nodes[-1] == []: 
                     self.last_split_next_nodes.pop()
             else:
-                print("ERROR: back-track from a join %s, but can't find fork!"%(self.current_node.data['layer_name']))
-                exit(-1)
+                raise RuntimeError("ERROR: back-track from a join %s, but can't find fork!"%(self.current_node.data['layer_name']))
         fused_ops.add(self.current_node)
         #for i in self.current_node.next:
         #    print(i.data['layer_type'], ":", i.data['layer_name'])
@@ -959,14 +990,16 @@ class KGraph:
         if (num_next_nodes == 1):
             self.current_node = next_nodes[0]   
         elif (num_next_nodes > 1):
+            print("DBG get_fused_ops: found fork at %s"%fused_ops[-1].data["layer_name"])
             fused_ops[-1].is_fork = True
             # Delete the branch that goes to ResAdd directly first, if it exists.
-            for i in range(num_next_nodes):
-                if (next_nodes[i].is_join):
-                    resadd_node = next_nodes[i]
-                    del next_nodes[i]
-                    #next_nodes.insert(0, resadd_node)
-                    break
+            #for i in range(num_next_nodes):
+            #    print("DBG get_fused_ops: next nodes %s"%next_nodes[i].data["layer_name"])
+            #    if (next_nodes[i].is_join):
+            #        resadd_node = next_nodes[i]
+            #        del next_nodes[i]
+            #        #next_nodes.insert(0, resadd_node)
+            #        break
             # sort next nodes list based on distance to next ResAdd    
             if len(next_nodes) > 1:
                 next_nodes.sort(key=lambda x: x.distance_to_next_join, reverse=True)

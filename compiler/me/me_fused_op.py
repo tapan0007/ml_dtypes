@@ -923,8 +923,7 @@ class FusedOp(list):
             if (len(self.first_op.data['previous_layers']) <= 2):
                 results = self.execute_unfused_pool_op(tpb, batch_item)
             else:                
-                print("ERROR: cannot handle more than two inputs for first operation %s, layer %s"%(first_op_type, first_op.data["layer_name"]))
-                exit(-1)
+                raise RuntimeError("ERROR: cannot handle more than two inputs for first operation %s, layer %s"%(first_op_type, first_op.data["layer_name"]))
             #inputs2 = tpb.statebuffer.circbuf_residue.load_data(first_op)
             #self.execute_multiply(inputs, inputs2, result_file)
         elif re.search(self.act_ops_regex, first_op_type):
@@ -942,8 +941,7 @@ class FusedOp(list):
         elif (first_op_type == "Slice"):
             self.execute_unfused_slice_op(tpb, batch_item)
         else:        
-            print("ERROR: Unrecognized first operation %s"%first_op_type)
-            exit(-1)
+            raise RuntimeError("ERROR: Unrecognized first operation %s"%first_op_type)
 
         # Check computed results against pre-computed results and save data
         # only if there's at least one node, and first node is not Placeholder or NOP (simple Reshape, etc.)
@@ -995,7 +993,7 @@ class FusedOp(list):
             in_dtype = "float32"
             out_dtype = "float32"
         else:            
-            print("ERROR: item_sz %d not yet supported"%self.first_op.item_sz)
+            raise RuntimeError("ERROR: item_sz %d not yet supported"%self.first_op.item_sz)
         # find the weights offset within atom; -1 means don't load new weights
         weights_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(self.first_op.weights_file_params, 0, self.first_op.weight_wave_lower_addr)
         # kaena-421: during execution for batch item other than the first one, need to check if there's any SBAtomLoad due to eviction
@@ -1477,7 +1475,7 @@ class FusedOp(list):
                 elif (layer_type == 'Multiply'):    
                     psum_temp[0:num_elems, 0:num_cols] = tpb.pool.multiply(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
                 else:
-                    print("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, self[i].data["layer_name"]))
+                    raise RuntimeError("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, self[i].data["layer_name"]))
                 #y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
                 psum_bank_dst = psum_bank_src
                 dst_is_psum = False
@@ -1524,8 +1522,7 @@ class FusedOp(list):
                 ofmap_subtile = PoolSubtile(ofmap_tile, ofmap_tile.tile_rect, None)
                 self.gen_fused_pool_waveop_inline(tpb, ifmap_subtile, ofmap_subtile, psum_bank_src, (ofmap_tile.m_id%2) == 1)
             else:
-                print ("ERROR: %s is currently not yet implemented"%layer_type)
-                exit(-1)
+                raise RuntimeError("ERROR: %s is currently not yet implemented"%layer_type)
 
 
             #x = DBG_DUMP_PSUM_COL("PSUM after PEArray: ", psum_temp, 0)
@@ -1644,22 +1641,18 @@ class FusedOp(list):
         if (op.item_sz == 2 and not src_is_psum):
             in_dtype = "float16"
         elif (op.item_sz == 1 and not src_is_psum):
-            print("ERROR: item_sz %d not yet supported"%op.item_sz)
-            exit(-1)
+            raise RuntimeError("ERROR: item_sz %d not yet supported"%op.item_sz)
         if (op.item_sz == 2 and not dst_is_psum):
             out_dtype = "float16"
         elif (op.item_sz == 1 and not dst_is_psum):
-            print("ERROR: item_sz %d not yet supported"%op.item_sz)
-            exit(-1)
+            raise RuntimeError("ERROR: item_sz %d not yet supported"%op.item_sz)
         if (src_is_psum):
-            print("ERROR: for scale/add waveop, cannot handle source coming from PSUM")
-            exit(-1)
+            raise RuntimeError("ERROR: for scale/add waveop, cannot handle source coming from PSUM")
             src_sb_address = 0
         else:
             src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_address(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
         if (dst_is_psum):
-            print("ERROR: for scale/add waveop, cannot handle destination PSUM")
-            exit(-1)
+            raise RuntimeError("ERROR: for scale/add waveop, cannot handle destination PSUM")
         dst_x_num = op.ofmap_full_tilex_sz
         dst_y_step = op.E
         dst_y_num = op.ofmap_full_tiley_sz
@@ -1727,11 +1720,11 @@ class FusedOp(list):
             if (biasadd_op.item_sz == 2 and not src_is_psum):
                 in_dtype = "float16"
             elif (biasadd_op.item_sz == 1 and not src_is_psum):
-                print("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
+                raise RuntimeError("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
             if (biasadd_op.item_sz == 2 and not dst_is_psum):
                 out_dtype = "float16"
             elif (biasadd_op.item_sz == 1 and not dst_is_psum):
-                print("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
+                raise RuntimeError("ERROR: item_sz %d not yet supported"%biasadd_op.item_sz)
         act_type = "Identity"    
         if (act_op != None):
             act_or_biasadd_op = act_op
@@ -1741,11 +1734,11 @@ class FusedOp(list):
             if (act_op.item_sz == 2 and not src_is_psum):
                 in_dtype = "float16"
             elif (act_op.item_sz == 1 and not src_is_psum):
-                print("ERROR: item_sz %d not yet supported"%act_op.item_sz)
+                raise RuntimeError("ERROR: item_sz %d not yet supported"%act_op.item_sz)
             if (act_op.item_sz == 2 and not dst_is_psum):
                 out_dtype = "float16"
             elif (act_op.item_sz == 1 and not dst_is_psum):
-                print("ERROR: item_sz %d not yet supported"%act_op.item_sz)
+                raise RuntimeError("ERROR: item_sz %d not yet supported"%act_op.item_sz)
         # Two combinations possible: conv + biasadd/act or just biasadd/act                
         # In either cases, biasadd and/or act exists
         assert(act_or_biasadd_op != None)
@@ -1863,7 +1856,7 @@ class FusedOp(list):
             in_b_dtype = "float32"
             out_dtype = "float32"
         else:            
-            print("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
+            raise RuntimeError("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
 
         # setup source/destination memory patterns (x step is always 1 here)
         dst_x_num, dst_y_num, dst_z_num = 1, 1, 1
@@ -2146,7 +2139,7 @@ class FusedOp(list):
                 elif (layer_type == "Multiply"):                                    
                     tile_data_flatten = tpb.pool.multiply(ifmaps_data_extract, residue_ifmaps)
                 else:
-                    print("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, first_op.data['layer_name']))
+                    raise RuntimeError("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, first_op.data['layer_name']))
         elif (layer_type == "BiasAdd"):
             bias_chan_start = ofmap_tile.m_id * PEArray.NUM_COLS
             bias_chan_end = min(bias_chan_start + PEArray.NUM_COLS, first_op.M)
@@ -2158,8 +2151,7 @@ class FusedOp(list):
         elif re.search(self.act_ops_regex, layer_type):
             tile_data_flatten = tpb.activate.act(layer_type, ifmaps_data_extract)
         else:
-            print("ERROR: cannot execute %s in execute_unfused_first_op"%layer_type)
-            exit(-1)
+            raise RuntimeError("ERROR: cannot execute %s in execute_unfused_first_op"%layer_type)
 
         # Set resulting tile data into OFMAP (for pooling, we went ahead and do subtile pooling)
         if not (layer_type == "AvgPool" or layer_type == "MaxPool"):

@@ -501,6 +501,8 @@ if __name__ == "__main__":
     # create graph from JSON file        
     kgraph = KGraph(args)
     kgraph.populate_from_kgraph_json(kgraph_json)
+    #kgraph.write_mod_kgraph(kgraph_json)  # check modifications
+
     # add forward references
     kgraph.add_forward_refs(kgraph.final_nodes)
 
