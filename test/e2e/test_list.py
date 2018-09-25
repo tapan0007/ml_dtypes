@@ -882,6 +882,7 @@ testWaiver = [
     ['0-1transpose_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     #['.*reshape.*', 'WAIVE_KAENA597'],
+    ['3-parwavenet_.*_wave$', 'WAIVE_KAENA711'],
     ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
     ['9-parwavenet_10_10_fp16_waveopt$', 'WAIVE_KAENA711'],
 
