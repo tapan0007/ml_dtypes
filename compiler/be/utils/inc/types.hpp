@@ -104,6 +104,7 @@ enum class WaveOpType {
     Barrier,
     Nop,
     ScaleAdd,
+    ClipByValue,
 };
 
 //**********************************************************************

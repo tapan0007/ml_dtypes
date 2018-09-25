@@ -181,6 +181,8 @@ constexpr static const char* WaveOpKey_Engine               = "engine";
 
 constexpr static const char* WaveOpKey_Multiply             = "multiply";   /* Hack in ResAdd to get Multiply to work with old ISA */
 
+constexpr static const char* WaveOpKey_MinValue             = "min_val";
+constexpr static const char* WaveOpKey_MaxValue             = "max_val";
 
 
 
@@ -221,12 +223,14 @@ private:
     void loadMatMul(cereal::JSONInputArchive& archive);
     void loadActivation(cereal::JSONInputArchive& archive);
     void loadResAdd(cereal::JSONInputArchive& archive);
+    void loadClipByValue(cereal::JSONInputArchive& archive);
 
     void saveSbAtom(cereal::JSONOutputArchive& archive) const;
     void savePool(cereal::JSONOutputArchive& archive) const;
     void saveMatMul(cereal::JSONOutputArchive& archive) const;
     void saveActivation(cereal::JSONOutputArchive& archive) const;
     void saveResAdd(cereal::JSONOutputArchive& archive) const;
+    void saveClipByValue(cereal::JSONOutputArchive& archive) const;
     void saveBarrier(cereal::JSONOutputArchive& archive) const;
     void saveNop(cereal::JSONOutputArchive& archive) const;
 
@@ -241,6 +245,7 @@ private:
     bool verifyPool() const;
     bool verifyActivation() const;
     bool verifyResAdd() const;
+    bool verifyClipByValue() const;
     bool verifyBarrier() const;
     bool verifyNop() const;
 
@@ -388,6 +393,9 @@ public:
     kcc_int32                   m_IfmapReplicationStepBytes     = -1; // SbAtomLoad
 
     kcc_int32                   m_SrcStepElem                   = -1; // SbAtomLoad
+
+    kcc_float32                 m_MinValue;
+    kcc_float32                 m_MaxValue;
 
     kcc_int32                   m_Order                         = -1;
 }; // class SerWaveOp

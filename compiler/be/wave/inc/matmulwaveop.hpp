@@ -17,7 +17,7 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
-#include "layers/inc/convlayer.hpp"
+//#include "layers/inc/convlayer.hpp"
 
 #include "wave/inc/waveop.hpp"
 

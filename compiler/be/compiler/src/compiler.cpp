@@ -105,7 +105,7 @@ Main(int argc, char* argv[])
     bool PrintLayers   = false;
 #endif
     bool DoBatching    = false;
-    bool ParallelStreams = false;
+    bool ParallelStreams = true;
     const char* JsonInFileName = nullptr;
     bool useWave = false;
 
@@ -154,7 +154,7 @@ Main(int argc, char* argv[])
         } else {
             std::cerr << "Wrong argument: " << arg << "\n";
             std::cerr << "Usage: " << argv[0]
-                      << "[[--parallel_streams] --wavegraph WAVEGRAPH.JSON|--json LAYER.JSON]\n";
+                      << "[[[--parallel_streams]|[--sequential_stream]] --wavegraph WAVEGRAPH.JSON|--json LAYER.JSON]\n";
             exit(1);
         }
 

@@ -41,6 +41,7 @@ class WaveCodeSbAtomLoad;
 class WaveCodeSbAtomSave;
 class WaveCodePool;
 class WaveCodeActivation;
+class WaveCodeClipByValue;
 class WaveCodeResAdd;
 class WaveCodeBarrier;
 class WaveCodeNop;
@@ -192,6 +193,7 @@ private:
     std::unique_ptr<WaveCodeSbAtomSave> m_CodeSbAtomSave;
     std::unique_ptr<WaveCodePool>       m_CodePool;
     std::unique_ptr<WaveCodeActivation> m_CodeActivation;
+    std::unique_ptr<WaveCodeClipByValue> m_CodeClipByValue;
     std::unique_ptr<WaveCodeResAdd>     m_CodeResAdd;
     std::unique_ptr<WaveCodeBarrier>    m_CodeBarrier;
     std::unique_ptr<WaveCodeNop>        m_CodeNop;

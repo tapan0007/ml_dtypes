@@ -28,6 +28,7 @@
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
+#include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
@@ -39,6 +40,7 @@
 #include "wavecode/inc/wavecodematmul.hpp"
 #include "wavecode/inc/wavecodepool.hpp"
 #include "wavecode/inc/wavecodeactivation.hpp"
+#include "wavecode/inc/wavecodeclipbyvalue.hpp"
 #include "wavecode/inc/wavecoderesadd.hpp"
 #include "wavecode/inc/wavecodebarrier.hpp"
 #include "wavecode/inc/wavecodenop.hpp"
@@ -58,6 +60,7 @@ WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch)
     m_CodeSbAtomSave        = std::make_unique<WaveCodeSbAtomSave>(*this);
     m_CodePool              = std::make_unique<WaveCodePool>(*this);
     m_CodeActivation        = std::make_unique<WaveCodeActivation>(*this);
+    m_CodeClipByValue       = std::make_unique<WaveCodeClipByValue>(*this);
     m_CodeResAdd            = std::make_unique<WaveCodeResAdd>(*this);
     m_CodeBarrier           = std::make_unique<WaveCodeBarrier>(*this);
     m_CodeNop               = std::make_unique<WaveCodeNop>(*this);
@@ -229,6 +232,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         return *m_CodePool;
     } else if (dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
         return *m_CodeActivation;
+    } else if (dynamic_cast<const wave::ClipByValueWaveOp*>(waveOp)) {
+        return *m_CodeClipByValue;
     } else if (dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
         return *m_CodeResAdd;
     } else if (dynamic_cast<const wave::BarrierWaveOp*>(waveOp)) {

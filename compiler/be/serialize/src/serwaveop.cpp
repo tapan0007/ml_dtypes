@@ -337,6 +337,100 @@ SerWaveOp::verifyActivation() const
 }
 
 bool
+SerWaveOp::verifyClipByValue() const
+{
+    if (m_DstXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstXStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZStep < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_DstIsPsum) {
+        if (m_DstPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_DstSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+
+    if (m_InDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_NumPartitions < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_OutDtype == "") {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_SrcIsPsum) {
+        if (m_SrcPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_SrcXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcXStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYStep < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZStep < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_TileId.size() != 4) {
+        RETURN_ASSERT(false);
+    }
+
+    for (auto n : m_TileId) {
+        if (n < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+
+    if (m_TileIdFormat == "") {
+        RETURN_ASSERT(false);
+    }
+    return true;
+}
+
+
+
+bool
 SerWaveOp::verifyResAdd() const
 {
     if (m_InADtype == "") {
@@ -487,6 +581,8 @@ SerWaveOp::verify() const
         return verifyPool();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
         return verifyActivation();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
+        return verifyClipByValue();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         return verifyResAdd();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {

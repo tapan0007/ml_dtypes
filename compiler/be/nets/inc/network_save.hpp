@@ -19,7 +19,9 @@ public:
                     serialize::SerWaveOp& serWaveOp) const;
     void saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const;
-    void saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
+    void saveActivation(const wave::ActivationWaveOp* activationWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const;
+    void saveClipByValue(const wave::ClipByValueWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
     void saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;

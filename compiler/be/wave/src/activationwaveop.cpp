@@ -113,7 +113,7 @@ ActivationWaveOp::verify() const
         if (m_DstPsumBankId < 0 || m_DstPsumBankId >= psumBuf.gNumberBanks()) {
             RETURN_ASSERT(false);
         }
-        if (m_DstPsumBankOffset < 0 || m_DstPsumBankOffset >= psumBuf.gNumberBanks()) {
+        if (m_DstPsumBankOffset < 0 || m_DstPsumBankOffset >= psumBuf.gNumberBankEntries()) {
             RETURN_ASSERT(false);
         }
     } else {
@@ -160,7 +160,6 @@ ActivationWaveOp::verify() const
         }
     }
 
-    std::array<kcc_int32, 4>    m_TileId;
     if (m_TileIdFormat == "") {
         RETURN_ASSERT(false);
     }

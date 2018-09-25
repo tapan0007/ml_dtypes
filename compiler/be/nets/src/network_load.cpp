@@ -36,6 +36,7 @@
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
+#include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 
 #include "serialize/inc/serlayer.hpp"
@@ -287,6 +288,8 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 waveOp = m_Load->loadMatMul(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ActivationWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadActivation(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::ClipByValueWaveOp::gTypeStrStatic()) {
+                waveOp = m_Load->loadClipByValue(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ResAddWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadResAdd(serWaveOp);
             } else {
@@ -542,6 +545,67 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
 
     auto waveOp = new wave::ActivationWaveOp(activationParams, prevWaveOps);
     Assert(waveOp->gName() == activationParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    return waveOp;
+#undef PARAMS
+}
+
+wave::ClipByValueWaveOp*
+Network::Load::loadClipByValue(const serialize::SerWaveOp& serWaveOp)
+{
+#define PARAMS clipByValueParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::ClipByValueWaveOp::Params clipByValueParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, clipByValueParams);
+
+    KCC_UNSERIALIZE(SrcIsPsum);
+    KCC_UNSERIALIZE(DstIsPsum);
+    clipByValueParams.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    clipByValueParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+
+    KCC_UNSERIALIZE(NumPartitions);
+    KCC_UNSERIALIZE(MinValue);
+    KCC_UNSERIALIZE(MaxValue);
+
+    if (serWaveOp.m_DstIsPsum) {
+        KCC_UNSERIALIZE(DstPsumBankId);
+        KCC_UNSERIALIZE(DstPsumBankOffset);
+    } else {
+        KCC_UNSERIALIZE(DstSbAddress);
+        KCC_UNSERIALIZE(DstStartAtMidPart);
+    }
+
+    KCC_UNSERIALIZE(DstXNum);
+    KCC_UNSERIALIZE(DstXStep);
+    KCC_UNSERIALIZE(DstYNum);
+    KCC_UNSERIALIZE(DstYStep);
+    KCC_UNSERIALIZE(DstZNum);
+    KCC_UNSERIALIZE(DstZStep);
+
+    if (serWaveOp.m_SrcIsPsum) {
+        KCC_UNSERIALIZE(SrcPsumBankId);
+        KCC_UNSERIALIZE(SrcPsumBankOffset);
+    } else {
+        KCC_UNSERIALIZE(SrcSbAddress);
+        KCC_UNSERIALIZE(SrcStartAtMidPart);
+    }
+
+    KCC_UNSERIALIZE(SrcXNum);
+    KCC_UNSERIALIZE(SrcXStep);
+    KCC_UNSERIALIZE(SrcYNum);
+    KCC_UNSERIALIZE(SrcYStep);
+    KCC_UNSERIALIZE(SrcZNum);
+    KCC_UNSERIALIZE(SrcZStep);
+
+    Assert(clipByValueParams.m_TileId.size() == serWaveOp.m_TileId.size(),
+        serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
+        "' has wrong tile id size: ", clipByValueParams.m_TileId.size());
+    for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
+        clipByValueParams.m_TileId[i] = serWaveOp.m_TileId[i];
+    }
+    KCC_UNSERIALIZE(TileIdFormat);
+
+    auto waveOp = new wave::ClipByValueWaveOp(clipByValueParams, prevWaveOps);
+    Assert(waveOp->gName() == clipByValueParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }

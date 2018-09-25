@@ -37,6 +37,7 @@
 #include "wave/inc/sbatomsavewaveop.hpp"
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
+#include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/resaddwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
@@ -290,7 +291,11 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             continue;
         }
         if (const auto activationWaveOp = dynamic_cast<const wave::ActivationWaveOp*>(waveOp)) {
-            m_Save->saveActivaton(activationWaveOp, serWaveOp);
+            m_Save->saveActivation(activationWaveOp, serWaveOp);
+            continue;
+        }
+        if (const auto clipByValueWaveOp = dynamic_cast<const wave::ClipByValueWaveOp*>(waveOp)) {
+            m_Save->saveClipByValue(clipByValueWaveOp, serWaveOp);
             continue;
         }
         if (const auto resAddWaveOp = dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
@@ -459,7 +464,7 @@ Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
 
 
 void
-Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
+Network::Save::saveActivation(const wave::ActivationWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const
 {
 #define WAVE_OP activationWaveOp
@@ -509,6 +514,61 @@ Network::Save::saveActivaton(const wave::ActivationWaveOp* activationWaveOp,
     KCC_SERIALIZE(SrcZStep);
 
     const std::array<kcc_int32, 4>& tileId(activationWaveOp->gTileId());
+    for (unsigned int i = 0; i < tileId.size(); ++i) {
+        serWaveOp.m_TileId[i]       = tileId[i];
+    }
+    KCC_SERIALIZE(TileIdFormat);
+#undef WAVE_OP
+}
+
+
+void
+Network::Save::saveClipByValue(const wave::ClipByValueWaveOp* clipByValueWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const
+{
+#define WAVE_OP clipByValueWaveOp
+    serWaveOp.m_WaveOpType = wave::ClipByValueWaveOp::gTypeStrStatic();
+
+    serWaveOp.m_DstIsPsum = clipByValueWaveOp->qDstIsPsum();
+    serWaveOp.m_SrcIsPsum = clipByValueWaveOp->qSrcIsPsum();
+    serWaveOp.m_InDtype             = clipByValueWaveOp->gInDtype().gName();
+    serWaveOp.m_OutDtype            = clipByValueWaveOp->gOutDtype().gName();
+
+    KCC_SERIALIZE(NumPartitions);
+    KCC_SERIALIZE(MinValue);
+    KCC_SERIALIZE(MaxValue);
+
+    if (clipByValueWaveOp->qDstIsPsum()) {
+        KCC_SERIALIZE(DstPsumBankId);
+        KCC_SERIALIZE(DstPsumBankOffset);
+    } else {
+        KCC_SERIALIZE(DstSbAddress);
+        KCC_SERIALIZE(DstStartAtMidPart);
+    }
+
+    KCC_SERIALIZE(DstXNum);
+    KCC_SERIALIZE(DstXStep);
+    KCC_SERIALIZE(DstYNum);
+    KCC_SERIALIZE(DstYStep);
+    KCC_SERIALIZE(DstZNum);
+    KCC_SERIALIZE(DstZStep);
+
+    if (clipByValueWaveOp->qSrcIsPsum()) {
+        KCC_SERIALIZE(SrcPsumBankId);
+        KCC_SERIALIZE(SrcPsumBankOffset);
+    } else {
+        KCC_SERIALIZE(SrcSbAddress);
+        KCC_SERIALIZE(SrcStartAtMidPart);
+    }
+
+    KCC_SERIALIZE(SrcXNum);
+    KCC_SERIALIZE(SrcXStep);
+    KCC_SERIALIZE(SrcYNum);
+    KCC_SERIALIZE(SrcYStep);
+    KCC_SERIALIZE(SrcZNum);
+    KCC_SERIALIZE(SrcZStep);
+
+    const std::array<kcc_int32, 4>& tileId(clipByValueWaveOp->gTileId());
     for (unsigned int i = 0; i < tileId.size(); ++i) {
         serWaveOp.m_TileId[i]       = tileId[i];
     }

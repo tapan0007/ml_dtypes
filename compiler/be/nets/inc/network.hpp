@@ -36,6 +36,7 @@ namespace wave {
     class MatMulWaveOp;
     class PoolWaveOp;
     class ActivationWaveOp;
+    class ClipByValueWaveOp;
     class ResAddWaveOp;
     class BarrierWaveOp;
     class NopWaveOp;

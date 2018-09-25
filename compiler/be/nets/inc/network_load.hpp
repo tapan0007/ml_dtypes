@@ -17,6 +17,7 @@ public:
     wave::PoolWaveOp* loadPool(const serialize::SerWaveOp& serWaveOp);
     wave::MatMulWaveOp* loadMatMul(const serialize::SerWaveOp& serWaveOp);
     wave::ActivationWaveOp* loadActivation(const serialize::SerWaveOp& serWaveOp);
+    wave::ClipByValueWaveOp* loadClipByValue(const serialize::SerWaveOp& serWaveOp);
     wave::ResAddWaveOp* loadResAdd(const serialize::SerWaveOp& serWaveOp);
 
 private:

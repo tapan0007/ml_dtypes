@@ -36,6 +36,8 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         loadActivation(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         loadResAdd(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
+        loadClipByValue(archive);
     } else {
         Assert(false, "Unknown waveop type: ", m_WaveOpType);
     }
@@ -206,6 +208,53 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(SrcZStep);
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
+}
+
+void
+SerWaveOp::loadClipByValue(cereal::JSONInputArchive& archive)
+{
+    KCC_ARCHIVE(InDtype);
+    KCC_ARCHIVE(OutDtype);
+    KCC_ARCHIVE(SrcIsPsum);
+    KCC_ARCHIVE(DstIsPsum);
+
+    if (m_DstIsPsum) {
+        KCC_ARCHIVE(DstPsumBankId);
+        KCC_ARCHIVE(DstPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(DstSbAddress);
+        KCC_ARCHIVE(DstStartAtMidPart);
+    }
+
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
+
+    if (m_SrcIsPsum) {
+        KCC_ARCHIVE(SrcPsumBankId);
+        KCC_ARCHIVE(SrcPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(SrcSbAddress);
+        KCC_ARCHIVE(SrcStartAtMidPart);
+    }
+
+    KCC_ARCHIVE(SrcXNum);
+    KCC_ARCHIVE(SrcXStep);
+    KCC_ARCHIVE(SrcYNum);
+    KCC_ARCHIVE(SrcYStep);
+    KCC_ARCHIVE(SrcZNum);
+    KCC_ARCHIVE(SrcZStep);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+
+    KCC_ARCHIVE(MinValue);
+    KCC_ARCHIVE(MaxValue);
+    Assert(m_MinValue <= m_MaxValue, "ClipByValue: MinValue(", m_MinValue, ") > MaxValue(", m_MaxValue, ")");
 }
 
 

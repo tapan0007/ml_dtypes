@@ -32,6 +32,8 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveMatMul(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Activation) {
         saveActivation(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
+        saveClipByValue(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         saveResAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {
@@ -192,6 +194,51 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(TileIdFormat);
 }
 
+
+void
+SerWaveOp::saveClipByValue(cereal::JSONOutputArchive& archive) const
+{
+    KCC_ARCHIVE(InDtype);
+    KCC_ARCHIVE(OutDtype);
+    KCC_ARCHIVE(SrcIsPsum);
+    KCC_ARCHIVE(DstIsPsum);
+
+    if (m_DstIsPsum) {
+        KCC_ARCHIVE(DstPsumBankId);
+        KCC_ARCHIVE(DstPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(DstSbAddress);
+    }
+
+    KCC_ARCHIVE(DstXNum);
+    KCC_ARCHIVE(DstXStep);
+    KCC_ARCHIVE(DstYNum);
+    KCC_ARCHIVE(DstYStep);
+    KCC_ARCHIVE(DstZNum);
+    KCC_ARCHIVE(DstZStep);
+
+    if (m_SrcIsPsum) {
+        KCC_ARCHIVE(SrcPsumBankId);
+        KCC_ARCHIVE(SrcPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(SrcSbAddress);
+        KCC_ARCHIVE(SrcStartAtMidPart);
+    }
+
+    KCC_ARCHIVE(SrcXNum);
+    KCC_ARCHIVE(SrcXStep);
+    KCC_ARCHIVE(SrcYNum);
+    KCC_ARCHIVE(SrcYStep);
+    KCC_ARCHIVE(SrcZNum);
+    KCC_ARCHIVE(SrcZStep);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+
+    KCC_ARCHIVE(MinValue);
+    KCC_ARCHIVE(MaxValue);
+}
 
 void
 SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
