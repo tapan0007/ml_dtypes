@@ -18,7 +18,6 @@ import time
 import multiprocessing
 import test_list
 import csv
-import junit_xml as junit
 
 
 kPath = os.environ.get('KAENA_PATH')
@@ -597,6 +596,12 @@ class Ktests:
     return numWaived
 
   def report_junit_xml(self, xmlFileName):
+    try:
+      import junit_xml as junit
+    except ImportError:
+      print("\nCould not import junit_xml and so junit test report will not be generated")
+      return
+
     testCases = []
     for testName in self.testList:
       t = self.getTestByName(testName)
