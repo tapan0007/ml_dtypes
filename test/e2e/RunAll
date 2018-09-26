@@ -635,15 +635,34 @@ class Ktests:
 
     wc_fail_list = "\n"
     wc_fail_cnt = 0
+    wc_pass_cnt = 0
+    wc_pass_waive_cnt = 0
+    wc_pass_waive_list = "\n"
+    wc_pass_list = "\n"
     for testName in self.testList:
+      (nnStruct, nnConfig, nnLabel, nnArgs, rtArgs) =\
+        self.testConfigMap[testName]
       if (calcWCStatus("./"+testName) == 'FAIL'):
         wc_fail_list += ("\t\t"+testName+"\n")
         wc_fail_cnt += 1
+      else:
+        if (re.search('--waive_wavegraph_checks',nnArgs)):
+          wc_pass_waive_list += ("\t\t"+testName+"\n")
+          wc_pass_waive_cnt += 1
+        else:
+          wc_pass_cnt += 1
+          wc_pass_list += ("\t\t"+testName+"\n")
     with open(rptFileName, "w") as fh:
       strStatus = "FAIL_WAVE-CHECKER %d" % wc_fail_cnt
+      strStatus += " PASS_WAIVE_WAVE-CHECKER %d" % wc_pass_waive_cnt
+      strStatus += " PASS_WAVE-CHECKER %d" % wc_pass_cnt
       fh.write("DETAILED STATUS: %s\n" % strStatus)
-      fh.write("\tFAIL_WAVE_CHECKER")
+      fh.write("\tFAIL_WAVE-CHECKER")
       fh.write(wc_fail_list)
+      fh.write("\tPASS_WAIVE_WAVE-CHECKER")
+      fh.write(wc_pass_waive_list)
+      fh.write("\tPASS_WAVE-CHECKER")
+      fh.write(wc_pass_list)
     print("INFO: wrote wave-checker status into %s" % rptFileName)
 
   def report(self, outFileName, csvFile, prefixText):
