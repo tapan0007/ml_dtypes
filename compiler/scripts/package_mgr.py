@@ -58,7 +58,7 @@ Example def.json:
 '''
 
 engine_list = ['pe', 'pool', 'act']
-
+json_file_list = ['host', 'pe', 'pool', 'act']
 class KPackageManager(object):
     
     def __init__(self, manifest):
@@ -96,7 +96,7 @@ class KPackageManager(object):
         ''' scans throgh the manifest dict and checks for all the required
         files.'''
         #check if the key exists for each engine and its pointing to .json file
-        for eng in engine_list:
+        for eng in json_file_list:
             if eng in self.manifest.keys():
                 if not self.manifest[eng].endswith(self.json_suffix):
                     self.logger.error('Invalid file format {}:{}'.format(eng, self.manifest[eng]))
