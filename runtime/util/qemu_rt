@@ -537,6 +537,7 @@ class Krt(object):
   def addModel(self, kelfDir, kelfVmDir, sg):
     self.kelfVmDir = kelfVmDir
     self.sg = sg
+    self.qemu.sshCmd("/bin/rm -rf %s/" % kelfVmDir)
     self.qemu.sshCmd("mkdir -p %s" % kelfVmDir)
     self.qemu.rsyncToVm(kelfDir + "/", kelfVmDir, "--copy-links")
     p = krtVmPath
@@ -574,15 +575,17 @@ class Krt(object):
     self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
     time.sleep(2)  # for kbin_rt to have time to return exit code after writing out.bin
     
-    filesToWaitForStr = "%s/%s %s/%s %s/%s" % (
-      self.kelfVmDir, self.krtPass, self.kelfVmDir, self.krtFail, self.ofmapDir, "*.bin")
+    statusFilesToWaitForStr = "%s/%s %s/%s" % (
+      self.kelfVmDir, self.krtPass, self.kelfVmDir, self.krtFail)
+    outputFilesToWaitForStr = "%s/%s" % (self.ofmapDir, "*.bin")
     for i in range(self.inklingTimeout):
       print("  Waiting for krt_bin to complete %i" %i, flush=True)
       time.sleep(1)
-      self.qemu.rsyncFromVm(filesToWaitForStr, ".")
+      self.qemu.rsyncFromVm(statusFilesToWaitForStr, ".")
       if os.path.isfile(self.krtPass) or os.path.isfile(self.krtFail):
         break
     
+    self.qemu.rsyncFromVm(outputFilesToWaitForStr, ".")
     self.getFinalBin()
     debug = True
     if debug:
