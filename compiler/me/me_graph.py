@@ -295,7 +295,9 @@ class KNode:
         if self.parent.args.enable_replication and self.is_input:
             num_replicated_waves = ceildiv(self.RS * weights_shape_dims.C,  PEArray.NUM_ROWS)
             self.repl_multiple_of_C = ceildiv(self.R, num_replicated_waves) * self.S
-        print("Conv params for layer %s: R=%d, S=%d, dilation.y=%d, dilation.x=%d, repl_multiple_of_C=%d"%(self.data['layer_name'], self.weights_file_params.file_dims.R, self.weights_file_params.file_dims.S, self.repl_multiple_of_C, self.dilation.y, self.dilation.x))
+        print("Conv params for layer %s: R=%d, S=%d, dilation.y=%d, dilation.x=%d, repl_multiple_of_C=%d"
+                %(self.data['layer_name'], self.weights_file_params.file_dims.R, 
+                   self.weights_file_params.file_dims.S, self.dilation.y, self.dilation.x, self.repl_multiple_of_C))
 
     # Compute pooling params
     def populate_pooling_params(self):
@@ -479,8 +481,12 @@ class KNode:
                                     out_array[ifmap_addr, pe_row_offset] = self.ifmaps_file_params.elem_nchw(batch_id, row, ifmap_tiley, ifmap_tilex)
                                 else:                                   
                                     if repl_multiple_of_C > 1:
-                                        out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, (ifmap_tiley%2)*ceildiv(self.H,2) + ifmap_tiley//2 + (ifmap_tilex%2)*self.H, ifmap_tilex//2]
-                                        #out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
+                                        stride = self.stride.x
+                                        row_odd = ifmap_tiley % stride
+                                        row_pair_idx = ifmap_tiley // stride
+                                        x_elem_odd = ifmap_tilex % stride
+                                        x_elem_pair_id = ifmap_tilex // stride
+                                        out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, row_odd * ceildiv(self.H, stride) + row_pair_idx + x_elem_odd * self.H, x_elem_pair_id]
                                     else:                                        
                                         out_array[ifmap_addr, pe_row_offset] = ifmaps[batch_id, row, ifmap_tiley, ifmap_tilex]
             s_id += 1

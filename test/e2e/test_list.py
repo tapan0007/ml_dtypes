@@ -400,6 +400,7 @@ testConfigMap = {
   "3-rn50-19_wave" : [ "trivnet_conv1",  "tfloat16-b1-h14-r1-s2-c1024-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
   "3-rn50-20_wave" : [ "trivnet_conv1",  "tfloat16-b1-h14-r1-s2-c1024-m2048-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
 
+  # Fewer than 32 channels not working yet
   "0-rn50-16_wave_repl" : [ "trivnet_conv1",  "tfloat16-b1-h14-r7-s2-c3-m2-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication ' --waive_wavegraph_checks"],
   "1-rn50-16_wave_repl" : [ "trivnet_conv1",  "tfloat16-b1-h56-r7-s2-c3-m2-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication '  --waive_wavegraph_checks"],
   "2-rn50-16_wave_repl" : [ "trivnet_conv1",  "tfloat16-b1-h224-r7-s2-c3-m2-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication '  --waive_wavegraph_checks"],
@@ -408,7 +409,7 @@ testConfigMap = {
     "trivnet_conv1",
     "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2",
     "1conv",
-    "--scheduler wave2 --schedule_options ' --enable_replication '  --waive_wavegraph_checks"
+    "--scheduler wave2 --schedule_options ' --enable_replication '"
   ],
 
   ## db
@@ -416,12 +417,110 @@ testConfigMap = {
     "trivnet_conv1",
     "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2",
     "1conv",
-    "--scheduler wave2 --schedule_options ' --enable_replication '  --waive_wavegraph_checks",
+    "--scheduler wave2 --schedule_options ' --enable_replication ' ",
     "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1 '"
   ],
 
+  "3-rn50-16_b2_wave_repl" : [ "trivnet_conv1",  "tfloat16-b2-h224-r7-s2-c3-m64-wmin1-wmax1-imin0-imax223",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication '"],
 
-  "3-rn50-16_b2_wave_repl" : [ "trivnet_conv1",  "tfloat16-b2-h224-r7-s2-c3-m64-wmin1-wmax1-imin0-imax223",    "1conv", "--scheduler wave2 --schedule_options ' --enable_replication '  --waive_wavegraph_checks"],
+  "3-incep_ameoba_h299r3s2c3m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h299-r3-s2-c3-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h400r3s2c3m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h400-r3-s2-c3-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h256r3s2c3m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h256-r3-s2-c3-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h128r3s2c3m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h128-r3-s2-c3-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h128r3s2c2m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h128-r3-s2-c2-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h128r3s2c1m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h128-r3-s2-c1-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h64r3s2c1m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h64-r3-s2-c1-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h16r3s2c1m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h16-r3-s2-c1-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h4r3s2c1m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h16-r3-s2-c1-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  # Replication with stride 1 not working yet
+  "3-h128r3s1c6m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h128-r2-s1-c6-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h128r2s1c6m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h128-r2-s1-c6-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h128r2s1c4m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h128-r2-s1-c4-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h128r2s1c2m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h128-r2-s1-c2-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
+
+  "3-h128r2s1c1m32_wave_repl" : [
+    "trivnet_conv1",
+    "tfloat16-b1-h128-r2-s1-c1-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2",
+    "1conv",
+    "--scheduler wave2 --schedule_options ' --enable_replication --nname=generic ' "
+  ],
 
   #"5-lstm_ptb"     : [ "tf_pb",          "lstm_ptb_word_lm/ptb_word_lm.pb",  "lstm_ptb", "--input_node Valid/ValidInput/StridedSlice ", "linspace1"],
   "6-alexnet"     : [ "tf_pb",          "alexnet_v100/alexnet_fp32.pb",  "alexnet", "--input_node Variable ", "linspace1"],
@@ -947,6 +1046,10 @@ testWaiver = [
 
     # Replication
     ['^[0-2]-rn50-.*_wave_repl$', 'WAIVE_REPLICATION'],
+    ['3-h128r2s1c6m32_wave_repl', 'WAIVE_KAENA817'],
+    ['3-h128r2s1c4m32_wave_repl', 'WAIVE_KAENA817'],
+    ['3-h128r2s1c2m32_wave_repl', 'WAIVE_KAENA817'],
+    ['3-h128r2s1c1m32_wave_repl', 'WAIVE_KAENA817'],
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],

@@ -682,7 +682,7 @@ class FileParams():
         coord[self.file_dims.W_axis] = W
         return self.dram_data[tuple(coord)]
 
-    def compute_params(self, op_params, args):
+    def compute_params(self, op_params, args, repl_multiple_of_C = 1, stride = 1):
         # Single FMAP elem count (unified formula for weights and FMAP)
         fmap_elem_count = self.file_dims.R * self.file_dims.S * self.file_dims.M * self.file_dims.H * self.file_dims.W
         self.fmap_data_len = fmap_elem_count * self.item_sz
@@ -727,6 +727,8 @@ class FileParams():
                 else:
                     multiple = self.chunk_sz_limit // ifmap_width_data_len
                     multiple = min(self.file_dims.H, multiple)
+                    if repl_multiple_of_C > 1:
+                        multiple = (multiple // stride) * stride
                     # eliminate skip atoms by requiring atom size is multiple of tile size 
                     if (input_fmap_full_tiley_sz < multiple):
                         multiple = (multiple//input_fmap_full_tiley_sz) * input_fmap_full_tiley_sz
@@ -1446,7 +1448,7 @@ class FileMapper():
         start_chunk_id      = self.get_chunk_id_from_file_addr(file_params, batch_item, start_addr)
         end_chunk_id        = self.get_chunk_id_from_file_addr(file_params, batch_item, end_file_addr)
         num_chunks          = end_chunk_id - start_chunk_id + 1
-        print("Reading batch item %d starting at %d for length %d (chunks %d to %d)"%(batch_item, start_addr, length, start_chunk_id, end_chunk_id))
+        #print("Reading batch item %d starting at %d for length %d (chunks %d to %d)"%(batch_item, start_addr, length, start_chunk_id, end_chunk_id))
         if num_chunks > file_params.mapped_params.num_region_chunks:
             raise RuntimeError("Number of chunks read %d for start %d length %d is larger than mapped number of chunks %d"%(num_chunks, start_addr, length, file_params.mapped_params.num_region_chunks))
         list_of_writers = []
@@ -1612,15 +1614,15 @@ class FileMapper():
             else:
                 stride = file_params.stride.x
                 ifmap_replication_num_rows = file_params.file_dims.C * file_params.weights_S_dim
-                ifmap_replication_resolution = file_params.file_dims.C * file_params.stride.x
-                ifmap_replication_step_bytes = (file_params.file_dims.W // file_params.stride.x) * file_params.item_sz
-                length = length // (file_params.stride.x * file_params.stride.x) # TODO: adjust chunk size to match
+                ifmap_replication_resolution = file_params.file_dims.C * stride
+                ifmap_replication_step_bytes = (file_params.file_dims.W // stride) * file_params.item_sz
+                length = length // (stride * stride) # TODO: adjust chunk size to match
                 offset_in_file_batch_item = batch_item * file_params.file_addr_skip_per_batch_item
                 # Adjust for the even/odd split
-                offset_in_file = (offset_in_file - offset_in_file_batch_item) // (file_params.stride.x * file_params.stride.x) + offset_in_file_batch_item # TODO: adjust chunk size to match
+                offset_in_file = (offset_in_file - offset_in_file_batch_item) // (stride * stride) + offset_in_file_batch_item # TODO: adjust chunk size to match
                 # compute last byte offset to check out of file bound
                 last_byte_offset  = offset_in_file + length - file_params.item_sz
-                last_byte_offset += file_params.fmap_data_len // (file_params.stride.x * file_params.stride.x)   # jump to the odd half
+                last_byte_offset += file_params.fmap_data_len // (stride * stride)   # jump to the odd half
                 last_byte_offset += ifmap_replication_step_bytes * (ceildiv(fmap_count, ifmap_replication_resolution) - 1)
                 last_byte_offset += file_params.fmap_data_len * ((fmap_count-1)%file_params.file_dims.C)
 

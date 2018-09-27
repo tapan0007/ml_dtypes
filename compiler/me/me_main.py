@@ -251,6 +251,7 @@ class TPBSched:
                             print("INFO: Pad and split input FMAPs due to replication")
                             # Populate OFMAP params                        
                             first_op.populate_ofmaps_file_params()
+                            first_op.ofmaps_file_params.compute_params(first_op, args, repl_multiple_of_C = i.repl_multiple_of_C, stride = i.stride.x)
                 """                            
                 # For NOP output data, create a view into the input data with a new shape
                 elif first_op.is_nop:

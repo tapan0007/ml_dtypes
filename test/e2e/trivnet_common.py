@@ -69,6 +69,34 @@ def getConfFmap(confStr):
       confStr = confStr.replace(match.group(0), "")
   return(conf, confStr)
 
+# Extract text-only config options from the config string
+# h4-PERM-k1  returns "PERM","h4-k1"
+def getPadType(confStr):
+  conf = {}
+  padType = None
+  poolType = None
+  usePerm = False
+  actType = None
+  for s in ["SAME", "VALID"]:
+    s1 = "-" + s
+    if s1 in confStr:
+      confStr = confStr.replace(s1, "")
+      padType = s
+      break
+  for s in ["PERM"]:
+    s1 = "-" + s
+    if s1 in confStr:
+      confStr = confStr.replace(s1, "")
+      usePerm = True
+      break
+  for s in ["RELU", "TANH"]:
+    s1 = "-" + s
+    if s1 in confStr:
+      confStr = confStr.replace(s1, "")
+      actType = s
+      break
+  return poolType,padType,usePerm,actType,confStr
+
 # Trivnet test configurations go into here
 class trivnet_conf():
     def __init__(self):
@@ -77,15 +105,16 @@ class trivnet_conf():
         print("\nINFO: started as  ", " ".join(sys.argv))
         dimStr = sys.argv[1]
 
-        self.fmapValList,dimStr = getConfFmap(dimStr)
+        # Sample dimStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
+        dimStr = dimStr.upper() + "-"
+        self.fmapValList, dimStr = getConfFmap(dimStr)
+        self.poolType, self.padType, self.usePerm, self.actType, dimStr = getPadType(dimStr)
 
         if len(sys.argv) > 2:
             self.outPrefix = sys.argv[2]
         else:
             self.outPrefix = "out_"
 
-        # Sample dimStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
-        dimStr = dimStr.upper() + "-"
         if len(sys.argv) > 3:
             self.netName = sys.argv[3]
         else:
