@@ -153,6 +153,18 @@ testConfigMap = {
   "0-neg"         : [ "trivnet_conv2",  "b1-Zh1-r1-s1-c1-m1-wmin2-wmax3-imin5-imax5.5", "I_ALWAYS_FAIL"],
   "0-1conv_tile_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h35-r3-s1-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
+  # Sealife existence tests
+  # Float16
+  "0-1conv_h16r1c128m64_wave"    : [ "trivnet_conv1","tfloat16-b1-h16-r1-s1-c128-m64-VALID-wmin0.1-wmax0.2-imin-1-imax2", "1conv", "--scheduler wave2"],
+  "0-1conv_h16r3c128m64_wave"    : [ "trivnet_conv1","tfloat16-b1-h16-r3-s1-c128-m64-VALID-wmin0.1-wmax0.2-imin-1-imax2", "1conv", "--scheduler wave2"],
+  "0-1avgpool_h16c128m64k1d1_valid_wave"  : [ "trivnet_pool", "tfloat16-b1-h16-r1-s1-c128-m64-VALID-AvgPool-k1-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' "],
+  "0-1avgpool_h16c128m64k3d1_valid_wave"  : [ "trivnet_pool", "tfloat16-b1-h16-r1-s1-c128-m64-VALID-AvgPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' "],
+  # Float32
+  "0-1conv_h16r1c128m64_fp32_wave"    : [ "trivnet_conv1","tfloat32-b1-h16-r1-s1-c128-m64-VALID-wmin0.1-wmax0.2-imin-1-imax2", "1conv", "--scheduler wave2"],
+  "0-1conv_h16r3c128m64_fp32_wave"    : [ "trivnet_conv1","tfloat32-b1-h16-r3-s1-c128-m64-VALID-wmin0.1-wmax0.2-imin-1-imax2", "1conv", "--scheduler wave2"],
+  "0-1avgpool_h16c128m64k1d1_valid_fp32_wave"  : [ "trivnet_pool", "tfloat32-b1-h16-r1-s1-c128-m64-VALID-AvgPool-k1-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' "],
+  "0-1avgpool_h16c128m64k3d1_valid_fp32_wave"  : [ "trivnet_pool", "tfloat32-b1-h16-r1-s1-c128-m64-VALID-AvgPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' "],
+
   "0-1conv_h4r1_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h4-r1-s1-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv_h4r1_b2_wave"  : [ "trivnet_conv1",  "tfloat16-b2-h4-r1-s1-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv_b1h1r1s1c2m2_tile_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c2-m2-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", "--scheduler wave2"],
