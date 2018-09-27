@@ -209,7 +209,7 @@ testConfigMap = {
   "0-1conv1maxpool_k3d2_wave"  : [ "trivnet_conv_pool", "tfloat16-b16-h1-r3-s2-c1-m1-SAME-MaxPool-k3-d2-wmin-0.2-wmax0.3-imin-0.2-imax0.3", "1conv1pool", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
 
   # Multi-threading on Multi-TPBs
-  "0-1conv1avgpool_wave_2tpbs"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-SAME-AvgPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2 --wavegraph_checks structure data-race --partition from 1conv1pool/i2 --executor wave 0 1"],
+  "0-1conv1avgpool_wave_2tpbs"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-SAME-AvgPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2 --wavegraph_checks structure data-race --partition from 1conv1pool/i2 1conv1pool/output --executor wave 0 1"],
 
   # Conv, BiasAdd
 
@@ -957,8 +957,6 @@ testWaiver = [
     #['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
 
     [ '3-1conv1relupoolconv_k3d2_wave', 'WAIVE_RELU_POOL'],
-    # Multi-Threading Waiver
-    ['0-1conv1avgpool_wave_2tpbs', 'WAIVE-MT'],
   ]
 
 noGpuTestWaiver = [
