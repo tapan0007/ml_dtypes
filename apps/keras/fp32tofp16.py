@@ -11,12 +11,20 @@ from tensorflow.python.platform import gfile
 from tensorflow.core.framework import attr_value_pb2
 from tensorflow.python.framework import tensor_util
 
-def ConvertFP32ToFP16(graphdef):
+def ConvertFP32ToOther(graphdef, cast_type, graph_type):
+  """Converts an FP32 network by casting all constants (weights) to a lower
+     precision floating point type (FP16 or BFLOAT16) and updating the dtypes
+     everywhere.
+
+     In addition, this supports a hack where the actual numbers are cast to one
+     type but the dtype stored in the graph is another (specified via
+     graph_type). This is used to generate a BFLOAT16 graph that 'pretends' to
+     be an FP16 graph (to work around limitations in tooling)."""
   sess = tf.Session(graph=tf.import_graph_def(graphdef))
   output_graph_def = graph_pb2.GraphDef()
   dummy_tensor = sess.run(tf.constant([0.1]))
   dummy_tensor_proto = tensor_util.make_tensor_proto(dummy_tensor, \
-      dtype=tf.float16, shape=dummy_tensor.shape)
+      dtype=graph_type, shape=dummy_tensor.shape)
   dummy_tensor32 = sess.run(tf.constant([0.1]))
   dummy_tensor_proto32 = tensor_util.make_tensor_proto(dummy_tensor, \
       dtype=tf.float32, shape=dummy_tensor.shape)
@@ -28,20 +36,20 @@ def ConvertFP32ToFP16(graphdef):
     if (node.op == "Const"):
       if (node.attr["dtype"] == dt_float_type_attr):
         a = tensor_util.MakeNdarray(node.attr["value"].tensor)
-        a = tf.cast(a, tf.float16)
+        a = tf.cast(a, cast_type)
         a = sess.run(a)
-        tensor=tensor_util.make_tensor_proto(a, dtype=tf.float16, shape=a.shape)
-        output_node.attr["dtype"].CopyFrom(
-            attr_value_pb2.AttrValue(type=tensor.dtype))
+        output_node.attr["dtype"].CopyFrom(dt_half_type_attr)
         output_node.attr["value"].CopyFrom(
             attr_value_pb2.AttrValue(
               tensor=tensor_util.make_tensor_proto(a,\
-                dtype=tf.float16, shape=a.shape)))
+                dtype=cast_type, shape=a.shape)))
+        # Hack: Override the type stored in the graph
+        if cast_type != graph_type:
+          output_node.attr["value"].tensor.dtype = dummy_tensor_proto.dtype
     else:
       if ("T" in node.attr.keys()):
         if (output_node.attr["T"] == dt_float_type_attr):
-          output_node.attr["T"].CopyFrom(
-            attr_value_pb2.AttrValue(type=dummy_tensor_proto.dtype))
+          output_node.attr["T"].CopyFrom(dt_half_type_attr)
       if ("dtype" in node.attr.keys()):
         if (node.attr["dtype"] == dt_float_type_attr):
           output_node.attr["dtype"].CopyFrom(dt_half_type_attr)
@@ -68,12 +76,25 @@ def load_graph(model_file):
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
-  parser.add_argument("--graph", help="graph/model to be executed")
-  parser.add_argument("--out_graph", help="graph/model to be generated")
+  parser.add_argument("--graph", help="graph/model to be executed",
+      required=True)
+  parser.add_argument("--out_graph", help="graph/model to be generated",
+      required=True)
+  parser.add_argument("--cast_type", help="type to cast to (float16 or "+
+     "bfloat16)", required=True)
+  parser.add_argument("--graph_type", help="dtype to set in the graph "+
+      "(optional, normally equal to cast_type unless you want to hack it)")
   args = parser.parse_args()
-  
+
+  types = {"float16": tf.float16, "bfloat16": tf.bfloat16}
+  cast_type = types[args.cast_type]
+  if not args.graph_type:
+    graph_type = cast_type
+  else:
+    graph_type = types[args.graph_type]
+
   graph_f32 = load_graph(args.graph)
-  graph_f16 = ConvertFP32ToFP16(graph_f32)
+  graph_f16 = ConvertFP32ToOther(graph_f32, cast_type, graph_type)
   output_xformed_graph_name = args.out_graph
   with gfile.GFile(output_xformed_graph_name, "wb") as f:
     f.write(graph_f16.SerializeToString())
