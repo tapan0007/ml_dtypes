@@ -847,6 +847,8 @@ class KGraph:
                     new_node.is_const = True
                 elif (l['layer_type'] == "Reshape"):
                     new_node.is_nop = True
+                elif (l['layer_type'] == "Identity"):
+                    new_node.is_nop = True
                 elif (l['layer_type'] == "Squeeze"):
                     new_node.is_nop = True
                 elif (l['layer_type'] == "ExpandDims"):
@@ -1025,6 +1027,7 @@ class KGraph:
         if (last_node_type == "Conv"
                 or last_node_type == "ConvTranspose" 
                 or last_node_type == "MatMul" 
+                or last_node_type == "StridedSlice" 
                 or last_node_type == "Concat"):
             fused_ops.add(self.gen_id_pool_op(fused_ops[-1]))
         # set the first op source is not PSUM, and last op dest is not PSUM
@@ -1074,6 +1077,29 @@ class KGraph:
         if (self.args.debug > 0):
             fused_ops.show()
         return fused_ops                   
+
+    def gen_identity_op(self, last_op):
+        id_layer_data = {
+          "layer_name"      : last_op.data['layer_name'],
+          "layer_type"      : "Identiy",
+          "ofmap_format"    : last_op.data['ofmap_format'],
+          "ofmap_shape"     : last_op.data['ofmap_shape'],
+          "previous_layers" : [ last_op.data['layer_name'] ],
+          "ref_file"        : last_op.data['ref_file']
+        }
+        # WARNING: node_number is not unique when there's ID pool
+        id_op = KNode(self, id_layer_data, self.item_sz, self.data_type, last_op.node_number + 1)
+        id_op.is_fork = last_op.is_fork
+        id_op.is_id_pool = True
+        id_op.prev.append(last_op)
+        id_op.next = []
+        for next_op in last_op.next:
+            id_op.next.append(next_op)
+            for j in range(len(next_op.prev)):
+                if next_op.prev[j] == last_op:
+                    next_op.prev[j] = id_op
+        last_op.next = [id_op]                    
+        return id_op
 
     def gen_id_pool_op(self, last_op):
         id_pool_layer_data = {

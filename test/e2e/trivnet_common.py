@@ -174,7 +174,10 @@ class trivnet_conf():
         config.gpu_options.allow_growth = True
         with tf.Session(config=config) as sess:
             sess.run(tf.global_variables_initializer())
-            res = sess.run(output, feed_dict={"input:0" : input_data})
+            if isinstance(input_data, dict):
+                res = sess.run(output, feed_dict=input_data)
+            else:                
+                res = sess.run(output, feed_dict={"input:0" : input_data})
             print("Res=\n", res)
             print("INFO: the result contains %d infinite numbers" % (res.size - np.count_nonzero(np.isfinite(res))))
             graph = tf.get_default_graph()

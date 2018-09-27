@@ -452,7 +452,7 @@ class NodeConcat(Node):
     return True
 
 ###############################################################################
-# Softmax - specialized due to the 2D dimensions
+# Softmax
 ###############################################################################
 class NodeSoftmax(Node):
   def __init__(self, name, opType, attrs):

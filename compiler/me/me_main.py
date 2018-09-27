@@ -95,8 +95,9 @@ class WaveopStream(list):
             new_name = item_name
             while (new_name in self.waveop_name_set):
                 new_name = item_name + "__" + str(i)
-                print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
                 i += 1
+            if new_name != item_name:
+                print("WARNING: waveop_name %s exists; so modifying name to %s before adding waveop to stream"%(item_name, new_name))
             item_name = new_name
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                

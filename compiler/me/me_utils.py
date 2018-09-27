@@ -859,9 +859,11 @@ class FileMapper():
         #print("DBG: checking overlap: region 0 start %d sz %d, region 1 start %d sz %d"%(region0_start, region0_sz, region1_start, region1_sz))
         if (region0_start <= region1_start):
             if (region0_start + region0_sz > region1_start):
+                print("DBG: found overlap: region 0 start %d sz %d, region 1 start %d sz %d"%(region0_start, region0_sz, region1_start, region1_sz))
                 return True
         else:    
             if (region1_start + region1_sz > region0_start):
+                print("DBG: found overlap: region 0 start %d sz %d, region 1 start %d sz %d"%(region0_start, region0_sz, region1_start, region1_sz))
                 return True
         return False
 
