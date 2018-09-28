@@ -133,7 +133,7 @@ pipeline{
             stages {
                 stage('RunAllWithArgs') {
                     steps {
-                        timeout(time: 5, unit: 'HOURS') {
+                        catchError {
                             sh '''
                             [ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/RunAllWithArgs && export KAENA_ZEBU_SERVER=$KAENA_ZEBU_SERVER && $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS)
                             '''
@@ -141,26 +141,30 @@ pipeline{
                     }
                     post {
                         always {
-			    sh '''
-			    [ -z "$RUNALL_ARGS" ] || ([ -f $TEST_DIR/RunAllWithArgs/RunAllReport.xml ] && /bin/cp $TEST_DIR/RunAllWithArgs/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
-			    '''
-			    junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
-                            sh 'mkdir /artifact/RunAllWithArgs'
-                            sh '/bin/cp $TEST_DIR/RunAllWithArgs/qor* /artifact/RunAllWithArgs/ || touch /artifact/RunAllWithArgs/qor_RunAllWithArgs_qor_available.txt'
-                            sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'RunAllWithArgs/qor*,*.tgz'
+                            catchError {
+                                sh '''
+                                [ -z "$RUNALL_ARGS" ] || ([ -f $TEST_DIR/RunAllWithArgs/RunAllReport.xml ] && /bin/cp $TEST_DIR/RunAllWithArgs/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
+                                '''
+                                junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
+                                sh 'mkdir /artifact/RunAllWithArgs'
+                                sh '/bin/cp $TEST_DIR/RunAllWithArgs/qor* /artifact/RunAllWithArgs/ || touch /artifact/RunAllWithArgs/qor_RunAllWithArgs_qor_available.txt'
+                                sh 'chmod -R a+wX /artifact/'
+                                archiveArtifacts artifacts:'RunAllWithArgs/qor*,*.tgz'
+                            }
                         }
                         failure {
-                            sh 'find $TEST_DIR/RunAllWithArgs -type f -name "*.vdi" -delete'
-                            sh 'find $TEST_DIR/RunAllWithArgs -iname "*.txt" -print0 | tar -czvf /artifact/RunAllWithArgs/logs.tgz -T -'
-                            sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'RunAllWithArgs/logs.tgz'
+                            catchError {
+                                sh 'find $TEST_DIR/RunAllWithArgs -type f -name "*.vdi" -delete'
+                                sh 'find $TEST_DIR/RunAllWithArgs -iname "*.txt" -print0 | tar -czvf /artifact/RunAllWithArgs/logs.tgz -T -'
+                                sh 'chmod -R a+wX /artifact/'
+                                archiveArtifacts artifacts:'RunAllWithArgs/logs.tgz'
+                            }
                         }
                     }
                 }
                 stage('RunPytest') {
                     steps {
-                        timeout(time: 50, unit: 'MINUTES') {
+                        catchError {
                             sh '''
                             [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/RunPytest && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS --zebu $KAENA_ZEBU_SERVER)
                             '''
@@ -168,13 +172,17 @@ pipeline{
                     }
                     post {
                         always {
-			    sh '''
-			    [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/RunPytest/pytestResult.xml ] && /bin/cp $TEST_DIR/RunPytest/pytestResult.xml $WORKSPACE/.)
-			    '''
-			    junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                            catchError {
+                               sh '''
+                               [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/RunPytest/pytestResult.xml ] && /bin/cp $TEST_DIR/RunPytest/pytestResult.xml $WORKSPACE/.)
+                               '''
+                               junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                            }
                         }
                         failure {
-                            sh 'find $TEST_DIR/RunPytest -type f -name "*.vdi" -delete'
+                            catchError {
+                                sh 'find $TEST_DIR/RunPytest -type f -name "*.vdi" -delete'
+                            }
                         }
                     }
                 }
