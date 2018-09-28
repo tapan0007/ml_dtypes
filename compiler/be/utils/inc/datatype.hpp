@@ -21,6 +21,7 @@ enum class DataTypeId {
     None,
     Uint8,
     Uint16,
+    BFloat16,
     Float16,
     Float32,
     Int32,
@@ -149,6 +150,37 @@ public:
     }
 };
 
+//########################################################
+class DataTypeBFloat16 : public DataType {
+public:
+    DataTypeBFloat16()
+        : DataType()
+    {
+    }
+
+    DataTypeId  gDataTypeId() const override;
+    TONGA_ISA_TPB_DTYPE gSimTypeId() const override;
+
+    kcc_int64 gSizeInBytes() const override
+    {
+        return 2; // No float16 in C++
+    }
+
+    static const char* gNameStatic()
+    {
+        return "bfloat16";
+    }
+
+    const char* gName() const override
+    {
+        return gNameStatic();
+    }
+
+    const char* gTccName() const override
+    {
+        return "BF16";
+    }
+};
 
 //########################################################
 class DataTypeFloat32 : public DataType {

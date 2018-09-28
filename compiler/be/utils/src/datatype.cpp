@@ -39,6 +39,17 @@ DataTypeFloat16::gSimTypeId() const
 }
 
 DataTypeId
+DataTypeBFloat16::gDataTypeId () const {
+    return DataTypeId::BFloat16;
+}
+
+TONGA_ISA_TPB_DTYPE
+DataTypeBFloat16::gSimTypeId() const
+{
+    return TONGA_ISA_TPB_DTYPE::TONGA_ISA_TPB_DTYPE_BFLOAT16;
+}
+
+DataTypeId
 DataTypeFloat32::gDataTypeId () const {
     return DataTypeId::Float32;
 }
@@ -79,6 +90,7 @@ DataType::dataTypeId2DataType(DataTypeId typeId)
     static const DataTypeUint8      typeUint8;
     static const DataTypeUint16     typeUint16;
     static const DataTypeFloat16    typeFloat16;
+    static const DataTypeBFloat16   typeBFloat16;
     static const DataTypeFloat32    typeFloat32;
     static const DataTypeInt32      typeInt32;
     static const DataTypeInt64      typeInt64;
@@ -89,6 +101,9 @@ DataType::dataTypeId2DataType(DataTypeId typeId)
         break;
     case DataTypeId::Uint16:
         return typeUint16;
+        break;
+    case DataTypeId::BFloat16:
+        return typeBFloat16;
         break;
     case DataTypeId::Float16:
         return typeFloat16;
@@ -119,6 +134,8 @@ DataType::dataTypeStr2Id(const std::string& dataTypeStr)
         return DataTypeId::Uint16;
     } else if (dataTypeStr == DataTypeFloat16::gNameStatic()) {
         return DataTypeId::Float16;
+    } else if (dataTypeStr == DataTypeBFloat16::gNameStatic()) {
+        return DataTypeId::BFloat16;
     } else if (dataTypeStr == DataTypeFloat32::gNameStatic()) {
         return DataTypeId::Float32;
     } else if (dataTypeStr == DataTypeInt32::gNameStatic()) {
@@ -139,6 +156,7 @@ DataType::dataTypeId2Str(DataTypeId typeId)
     static const std::string    uint8Str(DataTypeUint8::gNameStatic());
     static const std::string    uint16Str(DataTypeUint16::gNameStatic());
     static const std::string    float16Str(DataTypeFloat16::gNameStatic());
+    static const std::string    bfloat16Str(DataTypeBFloat16::gNameStatic());
     static const std::string    float32Str(DataTypeFloat32::gNameStatic());
     static const std::string    int32Str(DataTypeInt32::gNameStatic());
     static const std::string    int64Str(DataTypeInt64::gNameStatic());
@@ -152,6 +170,9 @@ DataType::dataTypeId2Str(DataTypeId typeId)
         break;
     case DataTypeId::Float16:
         return float16Str;
+        break;
+    case DataTypeId::BFloat16:
+        return bfloat16Str;
         break;
     case DataTypeId::Float32:
         return float32Str;

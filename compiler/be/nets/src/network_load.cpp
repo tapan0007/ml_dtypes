@@ -75,6 +75,9 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     } else if (dataType == DataTypeFloat16::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeFloat16>();
 
+    } else if (dataType == DataTypeBFloat16::gNameStatic()) {
+        m_DataType = std::make_unique<DataTypeBFloat16>();
+
     } else if (dataType == DataTypeFloat32::gNameStatic()) {
         m_DataType = std::make_unique<DataTypeFloat32>();
 
