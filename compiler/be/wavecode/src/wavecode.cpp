@@ -150,58 +150,11 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
 
     m_InstrStreams = &instrStreams;
 
-    /***********************************************************************************
-     * Pooling angine waits for inference and signals other engines (PE,Act) immediately.
-     * Other engines wait on signal from pool *before* any input DMA initiation is done
-     * on each respective engine.
-     * If any of the other engines never initiates DMA,
-     ***********************************************************************************/
-    if (qBinFileRuntimeKelf()) {
-    // Pool wait for start inference at beginning
-        {
-            std::ostringstream oss;
-            oss << "(" << m_Network.gGitVersion() << ")"
-                << "PoolEng waits on inference start";
-            writeWaitOrWaitClearInstr(events::EventId_StartInference(),
-                events::EventWaitMode::WaitThenClear, EngineId::Pooling, oss.str().c_str());
-        }
-        { // Pool sets event for PeArray to read inputs
-            compisa::SetInstr setInstr;
-            setInstr.event_idx  = events::EventId_BeforeInputRead_PeArray();
-            SaveName(setInstr, "PoolEng informs PeArray that inference is ready");
-            writeInstruction(setInstr, EngineId::Pooling); // Pooling engine sends signal to others
-        }
-        { // Pool sets event for Act to read inputs
-            compisa::SetInstr setInstr;
-            setInstr.event_idx  = events::EventId_BeforeInputRead_ActEng();
-            SaveName(setInstr, "PoolEng informs ActEng that inference is ready");
-            writeInstruction(setInstr, EngineId::Pooling);
-        }
-    }
 
     // Process waveops
     for (auto waveOp : m_Network.gWaveOps()) {
         auto& codeGen = getCodeGen(waveOp);
         codeGen.generate(waveOp);
-    }
-
-    if (qBinFileRuntimeKelf()) {
-        // If PeArr never waited on input, wait at end for event from pooling
-        if (gFirstInputDMA_PeArray()) {
-            rFirstInputDMA_PeArray(false);
-            writeWaitOrWaitClearInstr(events::EventId_BeforeInputRead_PeArray(),
-                events::EventWaitMode::WaitThenClear,
-                EngineId::PeArray,
-                "PeArray never waited for event from PoolEng, wait at end");
-        }
-        // If Act never waited on input, wait at end for event from pooling
-        if (gFirstInputDMA_ActEng()) {
-            rFirstInputDMA_ActEng(false);
-            writeWaitOrWaitClearInstr(events::EventId_BeforeInputRead_ActEng(),
-                events::EventWaitMode::WaitThenClear,
-                EngineId::Activation,
-                "ActEng never waited for event from PoolEng, wait at end");
-        }
     }
 
     //**********************************************************************************

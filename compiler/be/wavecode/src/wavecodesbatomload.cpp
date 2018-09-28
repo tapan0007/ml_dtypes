@@ -699,32 +699,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     }
 
     //************************************************************************
-    events::EventId waitEventId = events::EventId_BeforeInputRead_PeArray();
-    events::EventWaitMode waitMode = events::EventWaitMode::DontWait;
-    switch (chosenEngId) {
-    case EngineId::Pooling:
-        // do nothing, waiting for interface already happened at the beginning of Pool
-        break;
-    case EngineId::PeArray:
-        if (m_WaveCode.gFirstInputDMA_PeArray()) {
-            m_WaveCode.rFirstInputDMA_PeArray(false);
-            waitMode = events::EventWaitMode::WaitThenClear;
-            waitEventId = events::EventId_BeforeInputRead_PeArray();
-        }
-        break;
-    case EngineId::Activation:
-        if (m_WaveCode.gFirstInputDMA_ActEng()) {
-            m_WaveCode.rFirstInputDMA_ActEng(false);
-            waitMode = events::EventWaitMode::WaitThenClear;
-            waitEventId = events::EventId_BeforeInputRead_ActEng();
-        }
-        break;
-    default:
-        Assert(false, "Bad engine ID for DMA load: ", static_cast<int>(chosenEngId));
-        break;
-    }
 
-    //************************************************************************
     addDmaBarrier(chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name,
@@ -733,8 +708,8 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     dmaTriggerInstr.use_raw_count = 0; // get from JSON
     dmaTriggerInstr.block_id = dmaBlock.gBlockId();
 
-    dmaTriggerInstr.inst_events.wait_event_idx  = waitEventId;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(waitMode);
+    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
 
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt is in the descriptor block
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
@@ -789,32 +764,6 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     }
 
     //************************************************************************
-    events::EventId waitEventId = 0; // does not matter which one, but
-    events::EventWaitMode waitMode = events::EventWaitMode::DontWait;
-    switch (chosenEngId) {
-    case EngineId::Pooling:
-        // do nothing, waiting for interface already happened at the beginning of Pool
-        break;
-    case EngineId::PeArray:
-        if (m_WaveCode.gFirstInputDMA_PeArray()) {
-            m_WaveCode.rFirstInputDMA_PeArray(false);
-            waitMode = events::EventWaitMode::WaitThenClear;
-            waitEventId = events::EventId_BeforeInputRead_PeArray();
-        }
-        break;
-    case EngineId::Activation:
-        if (m_WaveCode.gFirstInputDMA_PeArray()) {
-            m_WaveCode.rFirstInputDMA_PeArray(false);
-            waitMode = events::EventWaitMode::WaitThenClear;
-            waitEventId = events::EventId_BeforeInputRead_ActEng();
-        }
-        break;
-    default:
-        Assert(false, "Bad engine ID for DMA load: ", static_cast<int>(chosenEngId));
-        break;
-    }
-
-    //************************************************************************
     addDmaBarrier(chosenEngId);
     compisa::DmaTriggerInstr dmaTriggerInstr;
     strncpy(dmaTriggerInstr.dma_queue_name,
@@ -823,8 +772,8 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     dmaTriggerInstr.use_raw_count = 0; // get from JSON
     dmaTriggerInstr.block_id = dmaBlock.gBlockId();
 
-    dmaTriggerInstr.inst_events.wait_event_idx  = waitEventId;
-    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(waitMode);
+    dmaTriggerInstr.inst_events.wait_event_idx  = 0;
+    dmaTriggerInstr.inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
 
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ evt in the descr. block
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);

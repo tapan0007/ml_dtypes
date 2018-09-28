@@ -12,38 +12,10 @@ EventId EventId_Invalid()
     return -1;
 }
 
-EventId EventId_StartInference()
-{
-    return arch::Arch::gArch().gNumberAllTpbEvents() - 1;  // 0xFF
-}
-
-EventId EventId_BeforeInputRead_PeArray()
-{
-    return  EventId_StartInference() - 1;
-}
-
-EventId EventId_BeforeInputRead_ActEng()
-{
-    return EventId_BeforeInputRead_PeArray() - 1;
-}
-
-
-// kaena-531: There's only 1 delay from MM to following event set instr when there are
-// multiple SETs (multiple dependencies), so to properly trigger a dependent load,
-// there must be an event from MM to a WAIT followed by the first SETs (no longer embedded)
-// followed by the next series of SETs. Reusing the last event ID (255) since that
-// was used only for the start of inference.
-EventId EventId_MMStartMultiSet()
-{
-    return EventId_BeforeInputRead_ActEng() - 1;
-}
-
 EventId EventId_LastNonReserved()
 {
-    return EventId_MMStartMultiSet() - 1 - 3;
+    return arch::Arch::gArch().gNumberAllTpbEvents() - 1; // 0xFF
 }
-
-
 
 
 

@@ -10,6 +10,7 @@ namespace kcc {
 namespace wave {
 class MatMulWaveOp;
 class PoolWaveOp;
+class NopWaveOp;
 class ActivationWaveOp;
 class SbAtomLoadWaveOp;
 class SbAtomSaveWaveOp;
@@ -67,14 +68,32 @@ public:
     static kcc_int32 gNumberReservedTpbEvents() {
         return ReservedEvent_FirstNonReserved;
     }
-
+    static EventId EventId_MMStartMultiSet()
+    {
+        return ReservedEvent_MMStartMultiSet;
+    }
+    static EventId EventId_RunTimeFirst()
+    {
+        return ReservedEvent_RunTimeFirst;
+    }
+    static EventId EventId_RunTimeLast()
+    {
+        return ReservedEvent_RunTimeLast;
+    }
 private:
     void processMatMult(wave::MatMulWaveOp* matmulWaveop);
     void processWaveop(wave::WaveOp* waveop);
 
     EventId getLocalEventId(const wave::WaveEdge* edge);
 
+    enum  {
+        RunTimeReservedEventsCount = 6
+    };
     enum ReservedEvent {
+        ReservedEvent_RunTimeFirst,
+        ReservedEvent_RunTimeLast = ReservedEvent_RunTimeFirst + RunTimeReservedEventsCount - 1,
+
+
         ReservedEvent_PeAct,
         ReservedEvent_ActPool,
         ReservedEvent_PoolDma,
@@ -82,6 +101,12 @@ private:
         ReservedEvent_DmaPool,
         ReservedEvent_PoolAct,
         ReservedEvent_ActPe,
+
+        // kaena-531: There's only 1 delay from MM to following event set instr when there are
+        // multiple SETs (multiple dependencies), so to properly trigger a dependent load,
+        // there must be an event from MM to a WAIT followed by the first SETs (no longer embedded)
+        // followed by the next series of SETs.
+        ReservedEvent_MMStartMultiSet,
 
 
         /*

@@ -187,16 +187,16 @@ Main(int argc, char* argv[])
                 << arch::Arch::gArch().gNumberAllTpbEvents() << "\n"
 
                 << "Invalid: " << events::EventId_Invalid() << "\n"
-                << "Start inference: " << events::EventId_StartInference() << "\n"
-                << "Before PE ifmap read: " << events::EventId_BeforeInputRead_PeArray() << "\n"
-                << "Before Act ifmap read: " << events::EventId_BeforeInputRead_ActEng() << "\n"
-                << "MatMult multi fanout: " << events::EventId_MMStartMultiSet() << "\n"
+
+                << "MatMult multi fanout: " << events::EventMgr::EventId_MMStartMultiSet() << "\n"
+                << "Runetime reserved events: First: " << events::EventMgr::EventId_RunTimeFirst() << "\n"
+                << "Runetime reserved events: Last: " << events::EventMgr::EventId_RunTimeLast() << "\n"
+
                 << "Last non-reserved: " << events::EventId_LastNonReserved() << "\n"
 
                 << "EventMgr: Number reserved TPB events (i.e., first non reserved) = "
                 << events::EventMgr::gNumberReservedTpbEvents() << "\n"
                 ;
-        std::cout << "Events: start inference EventId = " << events::EventId_StartInference() << "\n";
     }
 
 #if 0

@@ -13,7 +13,7 @@
 #include "utils/inc/misc.hpp"
 
 #include "nets/inc/network.hpp"
-
+#include "events/inc/eventmgr.hpp"
 #include "kelf/inc/kelfdmadescription.hpp"
 
 namespace kcc {
@@ -408,7 +408,7 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
     std::array<EngineId, 3> engIds = { {EngineId::PeArray, EngineId::Pooling, EngineId::Activation} };
     json j;
     j[Keys::gJsonName()] = "definition";
-    std::string version("0.1-");
+    std::string version("0.2-");
     version += utils::Git::gShaShort();
     j["version"] = version;
 
@@ -537,6 +537,14 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
         }
 
         j["var"] = jVars;
+
+        auto runtimeEventsJson = json::array();
+        for (uint8_t e = events::EventMgr::EventId_RunTimeFirst(); e <= events::EventMgr::EventId_RunTimeLast(); e++){
+            json e_json = e;
+            runtimeEventsJson.push_back(e_json);
+        }
+        j["runtime_events"] = runtimeEventsJson;
+
     }
 
     std::ofstream o(m_DefJsonFileName);

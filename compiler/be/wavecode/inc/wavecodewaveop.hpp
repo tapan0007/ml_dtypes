@@ -20,6 +20,7 @@
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 #include "events/inc/events.hpp"
+#include "events/inc/eventmgr.hpp"
 
 #include "wave/inc/waveop.hpp"
 #include "wave/inc/waveedge.hpp"
@@ -150,14 +151,14 @@ protected:
                     // followed by the next series of SETs. Reusing the last event ID (255) since that
                     // was used only for the start of inference.
                     // 1. MatMul sets a reserved event
-                    instr.inst_events.set_event_idx  = events::EventId_MMStartMultiSet();
+                    instr.inst_events.set_event_idx  = events::EventMgr::EventId_MMStartMultiSet();
                     instr.inst_events.set_event_mode = events::eventSetMode2Isa(succWaveEdge->gSetEventMode());
                     m_WaveCode.SaveName(instr, oss.str().c_str());
                     m_WaveCode.writeInstruction(instr); // this requires template
                     // 2. Wait for reserved event
                     {
                         compisa::WaitInstr waitEventInstr;
-                        waitEventInstr.event_idx         = events::EventId_MMStartMultiSet();
+                        waitEventInstr.event_idx         = events::EventMgr::EventId_MMStartMultiSet();
                         waitEventInstr.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
                         m_WaveCode.SaveName(waitEventInstr, oss.str().c_str());
                         m_WaveCode.writeInstruction(waitEventInstr, waveop->gEngineId());
