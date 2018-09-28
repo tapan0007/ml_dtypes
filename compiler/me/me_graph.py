@@ -798,7 +798,7 @@ class KGraph:
                                         print("%s: unstack_h_offset %d"%(new_node.data['layer_name'], j[0]))
                                         break
                                 new_node.dissolve_node(prev_node)
-                            elif (prev_node.data['layer_type'] == "Reshape"):
+                            elif (prev_node.data['layer_type'] == "Reshape" or prev_node.data['layer_type'] == "Identity"):
                                 if len(prev_node.prev) == 1 \
                                         and prev_node.data['ofmap_format'] == prev_node.prev[0].data['ofmap_format'] \
                                         and prev_node.data['ofmap_shape'] == prev_node.prev[0].data['ofmap_shape']:
@@ -822,6 +822,23 @@ class KGraph:
                                     prev_node.prev[0].data['ofmap_format'] = prev_node.data['ofmap_format']
                                     prev_node.prev[0].data['ofmap_shape'] = prev_node.data['ofmap_shape']
                                     new_node.dissolve_node(prev_node)
+                                else:
+                                    new_node.add_prev(self.node_dict[i])
+                            # Leaky ReLU
+                            elif (self.args.fuse_lrelu
+                                    and prev_node.data['layer_type'] == "Multiply" 
+                                    and l['layer_type'] == "Maximum"):
+                                assert(len(prev_layers) == 2)
+                                prev_node_idx = prev_layers.index(i)
+                                other_prev_layer = prev_layers[len(prev_layers) - 1 - prev_node_idx]
+                                if other_prev_layer in self.node_dict \
+                                        and prev_node.prev[0] == self.node_dict[other_prev_layer]:
+                                    mult_scalar = prev_node.data['mul_scalar']
+                                    mult_prev = prev_node.data['previous_layers']
+                                    new_node.dissolve_node(prev_node) 
+                                    new_node.data['mul_scalar'] = mult_scalar
+                                    new_node.data['previous_layers'] = mult_prev
+                                    new_node.data['layer_type'] = 'Lrelu'
                                 else:
                                     new_node.add_prev(self.node_dict[i])
                             else:

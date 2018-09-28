@@ -302,7 +302,7 @@ class FusedOp(list):
     """
     act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|^Exp$|Identity|Lrelu|Prelu"
     bias_ops_regex = "BiasAdd"
-    pool_ops_regex = ".*Pool|Add|Multiply|ResAdd"
+    pool_ops_regex = ".*Pool|Add|Multiply|ResAdd|Maximum|Minimum"
     identity_ops_regex = "Reshape|Squeeze|ExpandDims"
     next_is_fusable_regex = bias_ops_regex + "|" + act_ops_regex + "|" + pool_ops_regex # + "|" + identity_ops_regex
     next_is_fusable = {
@@ -713,7 +713,7 @@ class FusedOp(list):
                 live_mapped_file_params.append(ifmaps_file_params)
                 if ifmaps_region_sz > (tpb.statebuffer.SB_PARTITION_SZ/4):
                     if self.first_op.data["layer_type"] == "AvgPool" or self.first_op.data["layer_type"] == "Pool":
-                        if self.first_op.pool_window_x > 1:
+                        if self.first_op.pool_window.x > 1:
                             raise RuntimeError("Cannot support yet pooling with window size > 1 if IFMAP size (%d) takes more than quarter of SB partition. This requires wrapping around the region, causing discontinuity at the end of region. Feature required: breaking pool at the discontinuity."%(ifmaps_region_sz))
                     # cap region size to be 4 chunks
                     ifmaps_region_sz = 4 * ifmaps_file_params.chunk_sz_padded * ifmaps_file_params.fmap_channels_folds
@@ -778,6 +778,10 @@ class FusedOp(list):
                     ofmaps_region_start_addr = ifmaps_region_start_addr \
                                                 + self.first_op.slice_offset.x * self.first_op.item_sz \
                                                 + self.first_op.slice_offset.y * self.first_op.item_sz * self.first_op.W 
+                elif self.has_join and len(self.last_op.ofmaps_file_params.writers_of_shared_fmap) > 1 \
+                        and not self.join_op.is_input:
+                    residue_op = self.join_op.prev[self.join_op.residue_index]                
+                    ofmaps_region_start_addr = residue_op.ofmaps_file_params.mapped_params.start_addr
                 else:    
                     ofmaps_region_start_addr = start_addr
                     ofmaps_region_start_addr =\
@@ -892,7 +896,10 @@ class FusedOp(list):
             self.execute_unfused_pool_op(tpb, batch_item)
         elif (first_op_type == "Softmax2"):
             self.execute_softmax2(tpb, batch_item)
-        elif (first_op_type == "Multiply" or first_op_type == "ResAdd"): # TODO: handle the scalar 
+        elif (first_op_type == "Multiply" 
+                or first_op_type == "Maximum" 
+                or first_op_type == "Minimum" 
+                or first_op_type == "ResAdd"): # TODO: handle the scalar 
             if (len(self.first_op.data['previous_layers']) <= 2):
                 results = self.execute_unfused_pool_op(tpb, batch_item)
             else:                
@@ -1327,7 +1334,10 @@ class FusedOp(list):
                         relax_dependencies  = self.args.relax_dependencies,
                         enable_cleanup      = self.args.enable_cleanup)
 
-                psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp)
+                alpha = 1.0
+                if layer_type == 'Lrelu':
+                    alpha = self[i].data['mul_scalar']
+                psum_temp = tpb.activate.act(op_list[i].data['layer_type'], psum_temp, alpha)
                 psum_bank_dst = psum_bank_src
                 dst_is_psum = False
                 if (i != len(op_list)-1):
@@ -1373,7 +1383,11 @@ class FusedOp(list):
                 psum_bank_dst = psum_bank_src 
                 dst_is_psum = False
                 if (i+1 < len(op_list) and re.search(self.act_ops_regex, op_list[i+1].data['layer_type'])):
-                    psum_temp = tpb.activate.act(op_list[i+1].data['layer_type'], psum_temp)
+                    act_type = op_list[i+1].data['layer_type']
+                    alpha = 1.0
+                    if act_type == 'Lrelu':
+                        alpha = op_list[i+1].data['mul_scalar']
+                    psum_temp = tpb.activate.act(act_type, psum_temp, alpha)
                     if (i+1 != len(op_list)-1):
                         dst_is_psum = True
                         tpb.pearray.write_psum(psum_bank_dst, 0, self.first_op.ofmap_full_tile_sz * ofmap_tile.Tn, psum_temp)
@@ -1434,6 +1448,10 @@ class FusedOp(list):
                     psum_temp[0:num_elems, 0:num_cols] = tpb.pool.resadd(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
                 elif (layer_type == 'Multiply'):    
                     psum_temp[0:num_elems, 0:num_cols] = tpb.pool.multiply(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
+                elif (layer_type == 'Maximum'):    
+                    psum_temp[0:num_elems, 0:num_cols] = tpb.pool.maximum(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
+                elif (layer_type == 'Minimum'):    
+                    psum_temp[0:num_elems, 0:num_cols] = tpb.pool.minimum(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
                 else:
                     raise RuntimeError("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, self[i].data["layer_name"]))
                 #y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
@@ -1548,20 +1566,20 @@ class FusedOp(list):
         elif (op.item_sz == 1 and not dst_is_psum):
             raise RuntimeError("ERROR: item_sz %d not yet supported"%op.item_sz)
         if (src_is_psum):
-            raise RuntimeError("ERROR: for scale/add waveop, cannot handle source coming from PSUM")
             src_sb_address = 0
         else:
             src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
-        if (dst_is_psum):
-            raise RuntimeError("ERROR: for scale/add waveop, cannot handle destination PSUM")
         dst_x_num = op.ofmap_full_tilex_sz
         dst_y_step = op.E
         dst_y_num = op.ofmap_full_tiley_sz
         dst_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded if op.Tn > 1 else 1
         dst_z_num = op.Tn  # Need CNHW data format
         num_partitions = op.ofmap_count
-        dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
-        waveop_name = layer_name+"/ScaleAdd_" + ofmap_tile.id_string            
+        if dst_is_psum:
+            dst_sb_address = 0
+        else:            
+            dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
+        waveop_name = layer_name + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string            
         instr = {
               'previous_waveops'        : [],
               'waveop_type'             : op.data['layer_type'],
@@ -1619,6 +1637,7 @@ class FusedOp(list):
         in_dtype = "float32"
         out_dtype = "float32"
         act_or_biasadd_op = None
+        alpha = 1.0
         if (biasadd_op != None):
             act_or_biasadd_op = biasadd_op
             bias_add_en = True
@@ -1646,6 +1665,8 @@ class FusedOp(list):
                 out_dtype = "float16"
             elif (act_op.item_sz == 1 and not dst_is_psum):
                 raise RuntimeError("ERROR: item_sz %d not yet supported"%act_op.item_sz)
+            if act_type == 'Lrelu':
+                alpha = act_op.data['mul_scalar']
         # Two combinations possible: conv + biasadd/act or just biasadd/act                
         # In either cases, biasadd and/or act exists
         assert(act_or_biasadd_op != None)
@@ -1702,6 +1723,7 @@ class FusedOp(list):
               'tile_id_format'          : ofmap_tile.format,
               'tile_id'                 : ofmap_tile.id_array,
               'activation_func'         : act_type,
+              'alpha'                   : alpha,
               'in_dtype'                : in_dtype,
               'bias_dtype'              : act_or_biasadd_op.ifmaps_file_params.data_type, 
               'out_dtype'               : out_dtype,
@@ -1816,10 +1838,11 @@ class FusedOp(list):
             dst_sb_address = 0
         else:            
             dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
-        waveop_name = op.data['layer_name']+"/"+op.data['layer_type']+"_"+ofmap_tile.id_string
+        waveop_name = op.data['layer_name'] + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
+        waveop_type = op.data['layer_type'] if op.data['layer_type'] != "Multiply" else "ResAdd"
         instr = {
               'previous_waveops'        : [],
-              'waveop_type'             : "ResAdd", #op.data['layer_type'],
+              'waveop_type'             : waveop_type,
               'waveop_name'             : waveop_name,
               'multiply'                : op.data['layer_type'] == "Multiply",    # Hack to use ResAdd in old ISA to run Multiply 
               'layer_name'              : op.data['layer_name'],
@@ -2026,7 +2049,7 @@ class FusedOp(list):
                                         ofmap_tilex_sz   = pool_wave.ofmap.dim2d.x, 
                                         ofmap_tiley_sz   = pool_wave.ofmap.dim2d.y)
                 ofmap_tile.set_subtile_data_in_file2(pool_wave.ofmap, subtile_data)
-        elif (layer_type == "Multiply" or layer_type == "ResAdd"):
+        elif (layer_type == "Multiply" or layer_type == "ResAdd" or layer_type == "Maximum" or layer_type == "Minimum"):
             if ("mul_scalar" in first_op.data):
                 assert (layer_type == "Multiply")
                 tile_data_flatten = tpb.pool.scale(ifmaps_data_extract, first_op.data['mul_scalar'])
@@ -2039,6 +2062,10 @@ class FusedOp(list):
                     tile_data_flatten = tpb.pool.resadd(ifmaps_data_extract, residue_ifmaps)
                 elif (layer_type == "Multiply"):                                    
                     tile_data_flatten = tpb.pool.multiply(ifmaps_data_extract, residue_ifmaps)
+                elif (layer_type == "Maximum"):                                    
+                    tile_data_flatten = tpb.pool.maximum(ifmaps_data_extract, residue_ifmaps)
+                elif (layer_type == "Minimum"):                                    
+                    tile_data_flatten = tpb.pool.minimum(ifmaps_data_extract, residue_ifmaps)
                 else:
                     raise RuntimeError("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, first_op.data['layer_name']))
         elif (layer_type == "BiasAdd"):
@@ -2054,7 +2081,10 @@ class FusedOp(list):
             max_val = self.first_op.data['clip_value_max']
             tile_data_flatten = tpb.pool.clipbyvalue(ifmaps_data_extract, min_val, max_val)
         elif re.search(self.act_ops_regex, layer_type):
-            tile_data_flatten = tpb.activate.act(layer_type, ifmaps_data_extract)
+            alpha = 1.0
+            if layer_type == 'Lrelu':
+                alpha = self.first_op.data['mul_scalar']
+            tile_data_flatten = tpb.activate.act(layer_type, ifmaps_data_extract, alpha)
         else:
             raise RuntimeError("ERROR: cannot execute %s in execute_unfused_first_op"%layer_type)
 
@@ -2292,8 +2322,8 @@ class FusedOp(list):
                                 ofmap_tile       = ofmap_tile,
                                 src_is_psum      = False, 
                                 psum_bank_src    = 0, 
-                                dst_is_psum      = False, 
-                                psum_bank_dst    = 0, 
+                                dst_is_psum      = first_op.dst_is_psum, 
+                                psum_bank_dst    = psum_bank_dst, 
                                 dram_waveops     = dram_ifmaps_waveops, 
                                 scale_or_min_val = scale_or_min_val,
                                 add_or_max_val   = add_or_max_val)

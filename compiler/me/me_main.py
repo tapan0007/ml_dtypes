@@ -531,6 +531,7 @@ if __name__ == "__main__":
     parser.add_argument("--enable_eviction", action='store_true', help="Enable eviction")
     parser.add_argument("--enable_cleanup", action='store_true', help="Enable wavegrpah cleanup for event pressure reduction")
     parser.add_argument("--relax_dependencies", action='store_true', help="To prevent running out of events (kaena-403,449), this option when true would relax the dependency requirement (kaena-411)")
+    parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
     args = parser.parse_args()
 
     print("Middle Sched v2: Running in %s mode"%(args.nname))

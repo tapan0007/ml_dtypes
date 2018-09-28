@@ -99,20 +99,23 @@ testConfigMap = {
   "0-rtl-act_h2c16_wave"               : [ "trivnet_act",      "tfloat16-b1-h2-c16-tanh-wmin2-wmax2.2-imin-1-imax2",             "act", "--scheduler wave2 --waive_wavegraph_checks"],
 
   # TODO: https://sim.amazon.com/issues/kaena-773
-  "0-rtl-act_tanh_sweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c128-tanh-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  #"0-rtl-act_exp_sweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  "0-rtl-act_sigmoid_sweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  #"0-rtl-act_lrelu_sweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  "0-rtl-act_relu_sweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  #"0-rtl-act_identity_sweep_wave"      : [ "trivnet_act",      "tfloat32-b1-h128-c64-identity-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
+  "0-rtl-act_tanh_sweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c128-tanh-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-rtl-act_sigmoid_sweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-rtl-act_relu_sweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-rtl-act_identity_sweep_wave"      : [ "trivnet_biasadd",      "tfloat32-b1-h128-c64-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
 
+  "0-act_exp_sweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-5-imax5",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-act_lrelu_sweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-act_fused_lrelu_sweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu ' "],
  
-  "0-rtl-act_tanh_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  #"0-rtl-act_exp_minisweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  "0-rtl-act_sigmoid_minisweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  #"0-rtl-act_lrelu_minisweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  "0-rtl-act_relu_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
-  #"0-rtl-act_identity_minisweep_wave"      : [ "trivnet_act",      "tfloat32-b1-h128-c64-identity-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'  --waive_wavegraph_checks"],
+  "0-rtl-act_tanh_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
+  "0-rtl-act_sigmoid_minisweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
+  "0-rtl-act_relu_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
+  "0-rtl-act_identity_minisweep_wave"      : [ "trivnet_biasadd",      "tfloat32-b1-h128-c64-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
+
+  "0-act_exp_minisweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
+  "0-act_lrelu_minisweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
+  "0-act_fused_lrelu_minisweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu '"],
 
   "0-1clipbyvalue_wave" : [ "trivnet_clipbyvalue",
     "tfloat16-b1-h4-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv",
@@ -983,6 +986,8 @@ testConfigMap = {
   "0-1conv1avgpool_wave_h35c196k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h32-r1-s1-c196-m1-SAME-AvgPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
   "0-1conv_h17c196r1_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h17-r1-s1-c196-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1maxpool_wave_h65c1m1k3d1_valid"  : [ "trivnet_pool", "tfloat16-b1-h65-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
+  # AvgPool in AmeobaNet
+  "0-1avgpool_wave_h149c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h149-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
 
 
   "0-1conv-h8r3c4m4-relu_wave"              : [ "trivnet_lin",      "tfloat16-l2-b1-h8-r3-s1-c4-m4-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "1cr", "--scheduler wave2 --waive_wavegraph_checks"],
@@ -1029,6 +1034,8 @@ testWaiver = [
     ['0-1conv1maxpool_wave_h71k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h65c1m1k3d1_valid', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h71c1m1k3d2_same', 'WAIVE_INCEPTIONV3'],
+
+    ['0-1avgpool_wave_h149c1m1k1d2_valid', 'WAIVE_AMEOBANET'],
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
@@ -1088,6 +1095,12 @@ testWaiver = [
     ['8-rn50_nne_fp32_meauto$', 'WAIVE_SB_PRESERVE'],
 
     # bugs
+    ['0-act_exp_sweep_wave', 'WAIVE-KAENA773'],
+    ['0-act_lrelu_sweep_wave', 'WAIVE-KAENA773'],
+    ['0-act_fused_lrelu_sweep_wave', 'WAIVE-KAENA773'],
+    ['0-act_exp_minisweep_wave', 'WAIVE-KAENA773'],
+    ['0-act_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
+    ['0-act_fused_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
 
     # Replication
     ['^[0-2]-rn50-.*_wave_repl$', 'WAIVE_REPLICATION'],

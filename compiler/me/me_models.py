@@ -127,6 +127,18 @@ class Pool:
         result[:, 0:num_chan] *= array_b
         return result
 
+    def maximum(self, array_a, array_b):
+        result = copy.copy(array_a)
+        num_chan = array_b.shape[1]
+        result[:, 0:num_chan] = np.maximum(array_a[:, 0:num_chan], array_b)
+        return result
+
+    def minimum(self, array_a, array_b):
+        result = copy.copy(array_a)
+        num_chan = array_b.shape[1]
+        result[:, 0:num_chan] = np.minimum(array_a[:, 0:num_chan], array_b)
+        return result
+
     def clipbyvalue(self, array_a, min_val, max_val):
         return np.clip(array_a, min_val, max_val)
 
@@ -196,9 +208,11 @@ class BiasAddAct:
         result[:, 0:num_chan] += bias_array
         return result
 
-    def act(self, type, in_array):
+    def act(self, type, in_array, alpha = 1.0):
         if (type == 'Relu'):
             return self.__relu(in_array)
+        elif (type == 'Lrelu'):
+            return np.maximum(in_array, alpha*in_array)
         elif (type == 'Sigmoid'):
             return 1/(1 + np.exp(-in_array))
         elif (type == 'Exp'):

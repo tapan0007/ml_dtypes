@@ -214,7 +214,9 @@ class TfFe:
           node = kog.NodeMatMul(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Reshape", tfop.op, re.I) != None):
           node = kog.NodeReshape(tfNode.name, tfop.op, add_attrs)
-        elif  (re.search("relu|tanh|Softplus|Sigmoid|Softmax|Squeeze", tfop.op, re.I) != None):
+        elif  (re.search("relu|lrelu|tanh|Softplus|Sigmoid|Softmax", tfop.op, re.I) != None):
+          node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
+        elif (re.search("Squeeze|Exp", tfop.op, re.I) != None):
           node = kog.NodeSimple(tfNode.name, tfop.op, add_attrs)
           #print("DEBUG created NodeSimple")
         elif (re.search("MaxPool|AvgPool", tfop.op, re.I) != None):
@@ -232,6 +234,8 @@ class TfFe:
           node = kog.NodeUnstack(tfNode.name, "Unstack", add_attrs)
         elif (re.search("^Multiply$|^Mul$", tfop.op, re.I) != None):
           node = kog.NodeMultiply(tfNode.name, "Multiply", add_attrs)
+        elif (re.search("^Maximum$|^Minimum$", tfop.op, re.I) != None):
+          node = kog.NodeMultiply(tfNode.name, tfop.op, add_attrs)
         elif (re.search("Concat", tfop.op, re.I) != None):
           node = kog.NodeConcat(tfNode.name, "Concat", add_attrs)   # Concat, ConcatV2
         elif (re.search("ClipByValue", tfop.op, re.I) != None):
