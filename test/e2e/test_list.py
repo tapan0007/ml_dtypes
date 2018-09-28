@@ -1050,6 +1050,7 @@ testWaiver = [
     ['3-h128r2s1c4m32_wave_repl', 'WAIVE_KAENA817'],
     ['3-h128r2s1c2m32_wave_repl', 'WAIVE_KAENA817'],
     ['3-h128r2s1c1m32_wave_repl', 'WAIVE_KAENA817'],
+    ['3-h128r3s1c6m32_wave_repl', 'WAIVE_KAENA817'],
 
     # Resnet 152
     ['^9-resnet152', 'WAIVE_RN152'],
