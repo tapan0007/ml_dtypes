@@ -15,7 +15,7 @@
       "sb_address": 16384,
       "start_at_mid_part": false,
       "waveop_name": "ld_a",
-      "waveop_type": "SBAtomFile"
+      "waveop_type": "SBAtomLoad"
     },
     {
       "contain_weights": false,
@@ -32,7 +32,7 @@
       "sb_address": 0,
       "start_at_mid_part": false,
       "waveop_name": "ld_b",
-      "waveop_type": "SBAtomFile"
+      "waveop_type": "SBAtomLoad"
     },
     {
       "dst_psum_bank_id": 0,
@@ -80,7 +80,7 @@
       "sb_address": 8192,
       "start_at_mid_part": false,
       "waveop_name": "ld_c",
-      "waveop_type": "SBAtomFile"
+      "waveop_type": "SBAtomLoad"
     },
     {
       "dst_psum_bank_id": 0,

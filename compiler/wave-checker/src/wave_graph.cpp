@@ -348,10 +348,6 @@ std::vector<tonga_addr> ResAddOp::extract_out_addrs(json& op)
 WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
   : mJson(j), mCLI(cli)
 {
-  //Source = new WaveOp("source", NULL);
-  //Sink = new WaveOp("sink", NULL);
-  //mName2WaveOp.insert(std::pair("source", Source));
-  //mName2WaveOp.insert(std::pair("sink", Sink));
   uint32_t num_neighs = 0;
   uint32_t num_ops = 0;
   int64_t eid = 0;
@@ -361,7 +357,6 @@ WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
   {
     std::string n = op["waveop_name"];
     std::string wave_op_type_json = op["waveop_type"];
-    //WaveOp* wo = new WaveOp(n, wave_op_type_json);
     WaveOp* wo = ConstructWaveOp(op);
     assert(wo != nullptr);
     vertex_t v = boost::add_vertex(wo, wg);
@@ -379,10 +374,6 @@ WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
       {
         if (mName2WaveOp.find(p) != mName2WaveOp.end())
         {
-          //std::cout << "prev event id = "
-            //<< op["previous_event_ids"][prev_idx].get<int64_t>()
-            //<< " "
-            //<< "previous op name = " << p << std::endl;
           if (op["previous_event_ids"] != nullptr)
           {
             eid = op["previous_event_ids"][prev_idx].get<int64_t>();
@@ -400,9 +391,6 @@ WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
           EventEdge ev = {eid, event_wait_mode, event_set_mode};
           vertex_t u = mWaveOp2V[mName2WaveOp[p]];
           edge_t e = boost::add_edge(u, v, ev, wg).first;
-          //boost::property_map<graph_t, boost::edge_index_t>::type ev_id =
-            //boost::get(edge_index, wg);
-          //std::cout << e << " event id = " << ev_id[e] << std::endl;
         }
         prev_idx++;
       }
@@ -543,18 +531,6 @@ inline bool WaveGraphChecker::OutputOperandCheck(vertex_t v)
     messages << wg[v]->get_name()
       << " does not have an output operand" << std::endl;
   }
-  /*
-  for(;oep.first != oep.second;++oep.first)
-  {
-    vertex_t t = boost::target(*oep.first, wg);
-    if (wg[t]->get_waveop_type() == WaveOp::SBAtomLoad)
-    {
-      std::cout << "Warning : Output operand of " << wg[v]->get_name()
-        << " is SBAtomLoad" << std::endl;
-      std::cout << "\t" << wg[t]->get_name() << std::endl;
-    }
-  }
-  */
   return err;
 }
 
@@ -569,140 +545,35 @@ bool WaveGraphChecker::CheckImmNeighbors_NonDRAMOp(vertex_t v)
   return err;
 }
 
-/// WaveGraphChecker
-/// Construct path existence info for all pairs between vertex u
-/// and that in set v comprised of vertices in a graph
-/*
-void WaveGraphChecker::ConstructPathInfo(
-    vertex_t u
-    , std::set<vertex_t>& pathinfo
-    )
-{
-  //dfs_target_visitor vis(pathinfo);
-  dfs_target_visitor vis;
-  boost::depth_first_search(wg, boost::visitor(vis).root_vertex(u));
-}
-*/
-
 /// DataRaceChecker
 /// Checks if there are issues of potential data race between ops in u and
 /// those in v
 bool WaveGraphChecker::DataRaceChecker (
     std::list<vertex_t>& u
+    , map_v2reach_v* vtx_u_to_v
     , std::list<vertex_t>& v
+    , map_v2reach_v* vtx_v_to_u
     )
 {
   bool race = false;
-  /*
-  std::map<vertex_t, std::set<vertex_t>*> v2reachable_v;
   for(auto u_ : u)
   {
-    std::set<vertex_t>* pathinfo = new std::set<vertex_t>;
-    bfs_target_visitor vis(pathinfo);
-    v2reachable_v.insert(std::pair<vertex_t,std::set<vertex_t>*>(u_,pathinfo));
-    auto indexmap = boost::get(boost::vertex_index, wg);
-    auto colormap = boost::make_vector_property_map<boost::default_color_type>
-      (indexmap);
-    boost::queue<vertex_t> buffer;
-    
-    boost::breadth_first_search(wg, u_, buffer, vis, colormap);
-  }
-  for(auto v_ : v)
-  {
-    std::set<vertex_t>* pathinfo = new std::set<vertex_t>;
-    bfs_target_visitor vis(pathinfo);
-    v2reachable_v.insert(std::pair<vertex_t,std::set<vertex_t>*>(v_,pathinfo));
-    auto indexmap = boost::get(boost::vertex_index, wg);
-    auto colormap = boost::make_vector_property_map<boost::default_color_type>
-      (indexmap);
-    boost::queue<vertex_t> buffer;
-    
-    boost::breadth_first_search(wg, v_, buffer, vis, colormap);
-  }
-  for(auto u_ : u)
-  {
+    set_v* set_u_to_v = (*vtx_u_to_v)[u_];
     for(auto v_ : v)
     {
-      /// No path from u_ to v_. Thus, they are independent.
-      if (v2reachable_v[u_]->find(v_) == v2reachable_v[u_]->end() &&
-          v2reachable_v[v_]->find(u_) == v2reachable_v[v_]->end())
+      set_v* set_v_to_u = (*vtx_v_to_u)[v_];
+      if (set_u_to_v->find(v_) != set_u_to_v->end()
+          && set_v_to_u->find(u_) != set_v_to_u->end())
       {
-        race |= DataRace(wg[u_], wg[v_]);
+        race |= DataRace(wg[u_], wg[v_], true);
       }
     }
-  }
-  for(auto p : v2reachable_v)
-  {
-    delete p.second;
-  }
-  */
-  typedef std::unordered_set<vertex_t> set_v;
-  //typedef std::set<vertex_t> set_v;
-  typedef std::unordered_map<vertex_t, set_v* > map_v2reach_v;
-  //typedef std::map<vertex_t, set_v* > map_v2reach_v;
-  //auto b_search = [](std::set<vertex_t>* pi, vertex_t v, graph_t& g)
-  auto b_search = [](set_v* pi, vertex_t v, graph_t& g)
-  { 
-    bfs_target_visitor<set_v> vis(pi);
-    auto indexmap = boost::get(boost::vertex_index, g);
-    auto colormap = boost::make_vector_property_map<boost::default_color_type>
-      (indexmap);
-    boost::queue<vertex_t> buffer;
-
-    boost::breadth_first_search(g, v, buffer, vis, colormap);
-  };
-
-  //std::cout << "DataRaceChecker:: Reachability computation is done"
-  //<< std::endl;
-  map_v2reach_v v2reach_u;
-  //map_v2reach_v v2reach_v;
-  for(auto v_ : v)
-  {
-    //pi_v = new set_v
-    set_v* pi_v = new set_v;
-    b_search(pi_v, v_, wg);
-    //v2u.insert(std::pair<vertex_t, set_v* >(v_, pi_v));
-    set_v* pruned_pi_v = new set_v;
-    for(auto u_ : u)
-    {
-      if (pi_v->find(u_) != pi_v->end())
-      {
-        pruned_pi_v->insert(u_);
-      }
-    }
-    delete pi_v;
-    v2reach_u.insert(std::pair<vertex_t, set_v* >(v_, pruned_pi_v));
-  }
-  for(auto u_ : u)
-  {
-    set_v* pi_u = new set_v;
-    //std::set<vertex_t>* pi_v;
-    b_search(pi_u, u_, wg);
-    for(auto v_ : v)
-    {
-      //pi_v = new std::set<vertex_t>;
-      //b_search(pi_v, v_, wg);
-      /// No path from u_ to v_. Thus, they are independent.
-      //if (pi_u->find(v_) == pi_u->end() && pi_v->find(u_) == pi_v->end())
-      if (pi_u->find(v_) == pi_u->end()
-          && v2reach_u[v_]->find(u_) == v2reach_u[v_]->end())
-      {
-        race |= DataRace(wg[u_], wg[v_]);
-      }
-      //delete pi_v;
-    }
-    delete pi_u;
-  }
-
-  for(auto v_ : v)
-  {
-    delete v2reach_u[v_];
   }
 
   return race;
 }
 
-bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
+bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v, bool print)
 {
   bool err = false;
   if (u->get_sb_in_footprint_size() && v->get_sb_out_footprint_size())
@@ -710,13 +581,16 @@ bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_sb_in_footprint(),v->get_sb_out_footprint()))
     {
       err = true;
-      DataRacePrint(u, v, RAW_SB);
-      messages << "\tSB Read range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          u->get_sb_in_footprint());
-      messages << "\tSB Write range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          v->get_sb_out_footprint());
+      if (print)
+      {
+        DataRacePrint(u, v, RAW_SB);
+        messages << "\tSB Read range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            u->get_sb_in_footprint());
+        messages << "\tSB Write range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            v->get_sb_out_footprint());
+      }
     }
   }
   if (u->get_sb_out_footprint_size() && v->get_sb_in_footprint_size())
@@ -724,13 +598,16 @@ bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_sb_out_footprint(),v->get_sb_in_footprint()))
     {
       err = true;
-      DataRacePrint(v, u, RAW_SB);
-      messages << "\tSB Write range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          u->get_sb_out_footprint());
-      messages << "\tSB Read range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          v->get_sb_in_footprint());
+      if (print)
+      {
+        DataRacePrint(v, u, RAW_SB);
+        messages << "\tSB Write range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            u->get_sb_out_footprint());
+        messages << "\tSB Read range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            v->get_sb_in_footprint());
+      }
     }
   }
   if (u->get_sb_out_footprint_size() && v->get_sb_out_footprint_size())
@@ -738,13 +615,16 @@ bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_sb_out_footprint(),v->get_sb_out_footprint()))
     {
       err = true;
-      DataRacePrint(u, v, WAW_SB);
-      messages << "\tSB Write range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          u->get_sb_out_footprint());
-      messages << "\tSB Write range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          v->get_sb_out_footprint());
+      if (print)
+      {
+        DataRacePrint(u, v, WAW_SB);
+        messages << "\tSB Write range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            u->get_sb_out_footprint());
+        messages << "\tSB Write range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            v->get_sb_out_footprint());
+      }
     }
   }
   if (u->get_psum_in_footprint_size() && v->get_psum_out_footprint_size())
@@ -752,13 +632,16 @@ bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_psum_in_footprint(),v->get_psum_out_footprint()))
     {
       err = true;
-      DataRacePrint(u, v, RAW_PSUM);
-      messages << "\tPSUM Read range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          u->get_psum_in_footprint());
-      messages << "\tPSUM Write range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          v->get_psum_out_footprint());
+      if (print)
+      {
+        DataRacePrint(u, v, RAW_PSUM);
+        messages << "\tPSUM Read range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            u->get_psum_in_footprint());
+        messages << "\tPSUM Write range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            v->get_psum_out_footprint());
+      }
     }
   }
   if (u->get_psum_out_footprint_size() && v->get_psum_in_footprint_size())
@@ -766,13 +649,16 @@ bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_psum_out_footprint(),v->get_psum_in_footprint()))
     {
       err = true;
-      DataRacePrint(v, u, RAW_PSUM);
-      messages << "\tPSUM Write range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          u->get_psum_out_footprint());
-      messages << "\tPSUM Read range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          v->get_psum_in_footprint());
+      if (print)
+      {
+        DataRacePrint(v, u, RAW_PSUM);
+        messages << "\tPSUM Write range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            u->get_psum_out_footprint());
+        messages << "\tPSUM Read range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            v->get_psum_in_footprint());
+      }
     }
   }
   if (u->get_psum_out_footprint_size() && v->get_psum_out_footprint_size())
@@ -780,13 +666,16 @@ bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
     if (AddrSOverlap(u->get_psum_out_footprint(),v->get_psum_out_footprint()))
     {
       err = true;
-      DataRacePrint(u, v, WAW_PSUM);
-      messages << "\tPSUM Write range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          u->get_psum_out_footprint());
-      messages << "\tPSUM Write range : "
-      << AddrRange::print_text_ars<std::list<AddrRange> >(
-          v->get_psum_out_footprint());
+      if (print)
+      {
+        DataRacePrint(u, v, WAW_PSUM);
+        messages << "\tPSUM Write range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            u->get_psum_out_footprint());
+        messages << "\tPSUM Write range : "
+        << AddrRange::print_text_ars<std::list<AddrRange> >(
+            v->get_psum_out_footprint());
+      }
     }
   }
   return err;
@@ -794,7 +683,6 @@ bool WaveGraphChecker::DataRace(WaveOp* u, WaveOp* v)
 
 void WaveGraphChecker::DataRacePrint(WaveOp* u, WaveOp*v, RaceKind rk)
 {
-  //std::cout << "ERROR: ";
   ErrorPrefix();
   messages << "Potential ";
   
@@ -846,32 +734,101 @@ inline bool WaveGraphChecker::AddrOverlap (AddrRange a, AddrRange b)
 bool WaveGraphChecker::RunDataRaceChecker()
 {
   bool err = false;
-  //enum OPS {LD, ST, ACT, POOL, MM};
   std::vector<std::list<vertex_t>*> v_list;
+  std::vector<std::vector<map_v2reach_v*>* > vec_v2reach_v;
+  auto b_search = [](set_v* pi, vertex_t v, graph_t& g)
+  { 
+    bfs_target_visitor<set_v> vis(pi);
+    auto indexmap = boost::get(boost::vertex_index, g);
+    auto colormap = boost::make_vector_property_map<boost::default_color_type>
+      (indexmap);
+    boost::queue<vertex_t> buffer;
+
+    boost::breadth_first_search(g, v, buffer, vis, colormap);
+  };
 
   v_list.push_back(&mLDops);
   v_list.push_back(&mSTops);
   v_list.push_back(&mACTops);
   v_list.push_back(&mPOOLops);
   v_list.push_back(&mMMops);
+  for(int i = 0;i < v_list.size();++i)
+  {
+    std::vector<map_v2reach_v*>* vec_reachable_vtxs =
+      new std::vector<map_v2reach_v*>;
+    vec_v2reach_v.push_back(vec_reachable_vtxs);
+    for(auto v_ : *v_list[i])
+    {
+      set_v* pi_v = new set_v;
+      b_search(pi_v, v_, wg);
+      for(int j = 0;j < v_list.size();++j)
+      {
+        if (vec_v2reach_v[i]->size() != v_list.size())
+        {
+          vec_v2reach_v[i]->push_back(new map_v2reach_v);
+        }
+        if (i == 0 || i != j)
+        {
+          set_v* pruned_pi_v = new set_v;
+          for(auto u_ : *v_list[j])
+          {
+            if (pi_v->find(u_) == pi_v->end())
+            {
+              if (DataRace(wg[v_], wg[u_], false) ||
+                  DataRace(wg[u_], wg[v_], false))
+              {
+                pruned_pi_v->insert(u_);
+              }
+            }
+          }
+          std::vector<map_v2reach_v*>* t = vec_v2reach_v[i];
+          (*t)[j]->insert(
+              std::pair<vertex_t, set_v* >(v_, pruned_pi_v)
+              );
+        }
+      }
+      delete pi_v;
+    }
+  }
+  std::cout << "INFO:Starting Data Race Check "
+    << "after Reachability Data Construction!" << std::endl;
   for(int i = LD;i < v_list.size();++i)
   {
+    std::vector<map_v2reach_v*>* s = vec_v2reach_v[i];
     for(int j = i + 1;j < v_list.size();++j)
     {
+      std::vector<map_v2reach_v*>* t;
+      t = vec_v2reach_v[j];
       if (i == ST && j == MM)
       {
       } else {
         InfoPrefix();
         messages << "Checking data race between "
           << WaveOpType(i) << " and " << WaveOpType(j) << std::endl;;
-        err |= DataRaceChecker(*v_list[i], *v_list[j]);
+        if (v_list[i]->size() && v_list[j]->size())
+        {
+          err |= DataRaceChecker(
+              *v_list[i]
+              , (*s)[j]
+              , *v_list[j]
+              , (*t)[i]
+              );
+        }
       }
     }
   }
   InfoPrefix();
   messages << "Checking data race between "
     << WaveOpType(0) << " and " << WaveOpType(0) << std::endl;;
-  err |= DataRaceChecker(*v_list[0], *v_list[0]);
+  if (v_list[0]->size())
+  {
+    err |= DataRaceChecker(
+        *v_list[0]
+        , (*vec_v2reach_v[0])[0]
+        ,*v_list[0]
+        , (*vec_v2reach_v[0])[0]
+        );
+  }
   return err;
 }
 
@@ -942,7 +899,6 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
     else if (!wop_type.compare("SBAtomSave") ||
         !wop_type.compare("SBAtomLoad"))
     {
-      //make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
       std::string eng_name = op["engine"].get<std::string>();
       if (!eng_name.compare("ActivationEng"))
       {
@@ -967,7 +923,6 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
     }
     else if (!wop_type.compare("Nop"))
     {
-      //std::string eng_name = op["engine_name"].get<std::string>();
       std::string eng_name = op["engine"].get<std::string>();
       if (!eng_name.compare("ActivationEng"))
       {

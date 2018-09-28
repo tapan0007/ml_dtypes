@@ -301,6 +301,8 @@ class ResAddOp : public WaveOp {
 class EventChecker;
 
 class WaveGraphChecker {
+  typedef std::unordered_set<vertex_t> set_v;
+  typedef std::unordered_map<vertex_t, set_v* > map_v2reach_v;
   public:
   typedef boost::graph_traits<graph_t>::in_edge_iterator ie_itr;
   typedef boost::graph_traits<graph_t>::out_edge_iterator oe_itr;
@@ -389,11 +391,17 @@ class WaveGraphChecker {
       vertex_t u
       , std::set<vertex_t>& pathinfo
       );
+//  bool DataRaceChecker (
+//      std::list<vertex_t>& u
+//      , std::list<vertex_t>& v
+//      );
   bool DataRaceChecker (
       std::list<vertex_t>& u
+      , map_v2reach_v* vtx_u_to_v
       , std::list<vertex_t>& v
+      , map_v2reach_v* vtx_v_to_u
       );
-  bool DataRace(WaveOp* u, WaveOp* v);
+  bool DataRace(WaveOp* u, WaveOp* v, bool print);
   bool AddrSOverlap(std::list<AddrRange>& a, std::list<AddrRange>& b);
   bool AddrOverlap(AddrRange a, AddrRange b);
   std::string WaveOpType (int i)
