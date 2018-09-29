@@ -180,4 +180,5 @@ def main():
     pkg_mgr = KPackageManager(manifest)
     pkg_mgr.gen_pkg()
 
-main()
+if __name__ == 'main':
+    main()
