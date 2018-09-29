@@ -102,6 +102,8 @@ WaveCodePool::generate(wave::WaveOp* waveOp)
     poolInstr.dst_mem_pattern.num_elem[PatDim_Y]   = poolWaveop->gDstYNum();
     poolInstr.dst_mem_pattern.step_elem[PatDim_Z]  = poolWaveop->gDstZStep();
     poolInstr.dst_mem_pattern.num_elem[PatDim_Z]   = poolWaveop->gDstZNum();
+    poolInstr.dst_mem_pattern.step_elem[PatDim_W]  = 0;
+    poolInstr.dst_mem_pattern.num_elem[PatDim_W]   = 1;
 
     poolInstr.inst_events.wait_event_idx    = 0;
     poolInstr.inst_events.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
