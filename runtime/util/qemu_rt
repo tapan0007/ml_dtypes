@@ -691,8 +691,9 @@ class Krtd(Krt):
     self.qemu.sshCmd("mkdir -p %s" % kelfVmDirGlobal)
     tongaDev = self.qemu.getTongaDevice()
     krtd = '%s/bin/krtd' % krtVmPath
-    cmdKrtd = '%s -t %s' % (
-               krtd,tongaDev)
+    config = '%s/bin/default_config.json' % krtVmPath
+    cmdKrtd = '%s -t %s -c %s' % (
+               krtd,tongaDev,config)
 
     shCmd="cd %s && %s ldd %s && if %s %s; then touch %s; else touch %s; fi" % (
         self.kelfVmDir, self.envStr, krtd, self.envStr, cmdKrtd, self.krtdPass, self.krtdFail)
