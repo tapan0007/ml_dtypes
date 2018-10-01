@@ -725,6 +725,10 @@ class KGraph:
                         if i.add_next(node):
                             self.add_forward_refs([i])
 
+    def check_nodes(self):
+        for i in self.final_nodes:
+            print(i.data['layer_name'], " distanche_to_next_join ", i.distance_to_next_join)
+
     # add a copy of layer, and change it to a new type
     def add_copy_with_new_type(self, node_to_copy, new_type, node_number):
         layer = node_to_copy.data
@@ -1019,18 +1023,18 @@ class KGraph:
         elif (num_next_nodes > 1):
             print("DBG get_fused_ops: found fork at %s"%fused_ops[-1].data["layer_name"])
             fused_ops[-1].is_fork = True
-            # Delete the branch that goes to ResAdd directly first, if it exists.
-            #for i in range(num_next_nodes):
-            #    print("DBG get_fused_ops: next nodes %s"%next_nodes[i].data["layer_name"])
-            #    if (next_nodes[i].is_join):
-            #        resadd_node = next_nodes[i]
-            #        del next_nodes[i]
-            #        #next_nodes.insert(0, resadd_node)
-            #        break
             # sort next nodes list based on distance to next ResAdd    
+            # pick the first branch as current_node                        
             if len(next_nodes) > 1:
                 next_nodes.sort(key=lambda x: x.distance_to_next_join, reverse=True)
-            # pick the first branch as current_node                        
+            # Follow first the branch that goes directly to a join, if it exists
+            for i in range(num_next_nodes):
+                print("DBG get_fused_ops: next nodes %s"%next_nodes[i].data["layer_name"])
+                if (next_nodes[i].is_join):
+                    resadd_node = next_nodes[i]
+                    del next_nodes[i]
+                    next_nodes.append(resadd_node)
+                    break
             self.current_node = next_nodes.pop()
             # save the remaining branches in a list
             if (next_nodes != []):
@@ -1066,7 +1070,7 @@ class KGraph:
         # Optimization: share FMAP space for join operation that has same input shape as output shape
         if fused_ops.has_join \
                 and fused_ops.join_op.data["layer_type"] != "Concat" \
-                and not fused_ops.join_op.is_input:
+                and not fused_ops.first_op.is_input:
             if fused_ops.last_op != fused_ops.join_op:
                 # If join is followed by BiasAdd or Activate, use the same ofmaps_file_params as last op
                 assert(fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.last_op.ofmaps_file_params.file_dims.shape_tuple)
@@ -1074,7 +1078,9 @@ class KGraph:
                 #fused_ops.join_op.ofmaps_file_params.share_from(fused_ops.last_op.ofmaps_file_params)
                 fused_ops.last_op.ofmaps_file_params.writers_of_shared_fmap.append(fused_ops.join_op)
             # If join, capture ofmaps_file_params from the other branch (residue branch).
-            residue_op = fused_ops.join_op.prev[fused_ops.join_op.residue_index]                
+            residue_op = fused_ops.join_op.prev[fused_ops.join_op.residue_index]               
+            if residue_op.ofmaps_file_params is not None:
+                residue_op.ofmaps_file_params.load_file()
             assert(residue_op.ofmaps_file_params.file_dims.shape_tuple == fused_ops.join_op.ofmaps_file_params.file_dims.shape_tuple)
             # must change readers of shared FMAP before changing writers, because one of the writers is residue_op itself
             for i in residue_op.ofmaps_file_params.readers_of_shared_fmap:
@@ -1100,7 +1106,7 @@ class KGraph:
     def gen_identity_op(self, last_op):
         id_layer_data = {
           "layer_name"      : last_op.data['layer_name'],
-          "layer_type"      : "Identiy",
+          "layer_type"      : "Identity",
           "ofmap_format"    : last_op.data['ofmap_format'],
           "ofmap_shape"     : last_op.data['ofmap_shape'],
           "previous_layers" : [ last_op.data['layer_name'] ],

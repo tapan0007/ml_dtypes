@@ -361,7 +361,7 @@ class TPBSched:
     before executing the conv in the "short" branch.
     """
     def fix_order_1st_convs_after_fork(self):
-        if len(self.fused_ops_list) >= 3:
+        if len(self.fused_ops_list) >= 3 and args.nname == 'resnet50':
             for i in range(1, len(self.fused_ops_list)-1):
                 op_list = self.fused_ops_list[i]
                 op_list_next = self.fused_ops_list[i+1]
@@ -552,6 +552,7 @@ if __name__ == "__main__":
 
     # add forward references
     kgraph.add_forward_refs(kgraph.final_nodes)
+    #kgraph.check_nodes()
 
     # instantiate TPB scheduler
     tpb = TPBSched(BatchSBDataMap(16, kgraph.data_type))

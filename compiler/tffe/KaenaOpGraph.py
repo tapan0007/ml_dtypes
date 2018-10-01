@@ -1739,13 +1739,22 @@ class NodeClipByValue(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 4:
-      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+    if len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
+    elif len(npInfo.npShape) == 2:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NC
+    elif len(npInfo.npShape) == 1:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.C
     else:
-      raise RuntimeError("NodeClipByValue: not able to process when len(shape) != 4")
-      
+      assert len(npInfo.npShape) == 4
+      tfShape4D = npInfo.npShape
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+
+    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
@@ -2192,7 +2201,6 @@ class Graph(Object):
       "net_name"  : "TrivNet",
       "layers"   : []
     }
-       
     fileList = []
 
     # Input layers
