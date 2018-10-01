@@ -733,6 +733,17 @@ testConfigMap = {
     "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_46/Relu --executors wave 0 host 1  --scheduler wave2 --images %s --schedule_options ' --enable_replication '  --waive_wavegraph_checks"%(rnPreFp16, getBatchedJpgs(1)),
     "--input_files %s" % (getBatchedJpgs(1))],
 
+  # Kaena-820 Control over order of layers in compiler.json
+  "6-rn50_nne_to_act46_wave-repl-order0"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    "--level_order_seed 0 --input_node input_1  --depth 2  --debug 1 %s --partition from activation_46/Relu --executors wave 0 host 1  --scheduler wave2 --images %s --schedule_options ' --enable_replication '  --waive_wavegraph_checks"%(rnPreFp16, getBatchedJpgs(1)),
+    "--input_files %s" % (getBatchedJpgs(1))],
+
+  "6-rn50_nne_to_act46_wave-repl-order1"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    "--level_order_seed 1 --input_node input_1  --depth 2  --debug 1 %s --partition from activation_46/Relu --executors wave 0 host 1  --scheduler wave2 --images %s --schedule_options ' --enable_replication '  --waive_wavegraph_checks"%(rnPreFp16, getBatchedJpgs(1)),
+    "--input_files %s" % (getBatchedJpgs(1))],
+
   #"6-rn50_nne_to_act46_b4_wave"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_46/Relu --executors wave 0 host 1  --scheduler wave2 --batch 4 --images %s"%(rnPreFp16, getBatchedJpgs(4)), "--input_files %s" % (getBatchedJpgs(4))],
   #"6-rn50_nne_to_act46_b16_wave"     : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_46/Relu --executors wave 0 host 1  --scheduler wave2 --batch 16 --images %s"%(rnPreFp16, getBatchedJpgs(16)), "--input_files %s" % (getBatchedJpgs(16))],
   #"7-rn50_nne_fc_waveopt"       : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],

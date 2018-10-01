@@ -9,8 +9,10 @@ from NpUtils import NpUtils as npu
 import os, re, json, sys
 import numpy as np
 import math
+import random
 from graphviz import Digraph
 from collections import OrderedDict
+from functools import total_ordering
 
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 import MiscUtil
@@ -74,6 +76,7 @@ class NpInfo:
     return arr
 
 # NN operation
+@total_ordering
 class Node(Object):
   def __init__(self, name, opType, attrs):
     Object.__init__(self, name, attrs)
@@ -96,6 +99,8 @@ class Node(Object):
     return n
   def __str__(self):
     return("Node=" + self.getName())
+  def __lt__(self, other):
+    return self.getName() <= other.getName()
   def getLevel(self):
     return(self.__level)
   def setLevel(self, level):
@@ -2225,7 +2230,16 @@ class Graph(Object):
     layers = OrderedDict()
     fileLists = OrderedDict()
     for level in range(0, len(levelizedNodes)):
-      for n in levelizedNodes[level]:
+      
+      nodesAtLevelOrig = list(levelizedNodes[level])
+      nodesAtLevel = nodesAtLevelOrig.copy()
+      if Config.levelOrderSeed == None:
+        nodesAtLevel = sorted(nodesAtLevelOrig)
+      else:
+        random.Random(Config.levelOrderSeed).shuffle(nodesAtLevelOrig)
+      if nodesAtLevel != nodesAtLevelOrig:
+        print("INFO: reordered nodes at level %d to %s" % (level, [n.getName() for n in nodesAtLevel]))
+      for n in nodesAtLevel:
         #print("DEBUG graph::genCompilerJson: node=", n.getName(), "  op=", op)
         #isMainFlowConst = (n.getOpType() == "Const" and any(ns.isMainFlowNode() for ns in self.nodeSuccessors(n)))
         #print("  DEBUG const and successor in main flow " + str(isMainFlowConst))

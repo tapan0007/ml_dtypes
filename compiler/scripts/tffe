@@ -85,6 +85,7 @@ parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph 
                     action="store_true",  default=False)
 parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=[])
 parser.add_argument('--waive_wavegraph_checks', help='Exclude wavegraph checker status from determination of test status', action='store_true')
+parser.add_argument('--level_order_seed', help='Seed for randomization of Kgraph node order in compiler.json for stress testing of downstream flow, default is none which means alphabetic sort', type=int, default=None)
 
 args = parser.parse_args()
 
@@ -117,6 +118,7 @@ tffe.loadPb(tfpbFile, args.focus, args.focus_to)
 kog = tffe.getKaenaOpGraph()
 kog.setSchedulerMode(args.scheduler)
 KaenaOpGraph.Config.Scheduler.waveoptOptions = args.schedule_options
+KaenaOpGraph.Config.levelOrderSeed = args.level_order_seed
 kog.writeDot(args.depth, args.out_prefix + "graph.dot", "svg")
 ret = 0
 if args.weights:
