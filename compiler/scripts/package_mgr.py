@@ -206,7 +206,9 @@ def create_kelf(model_dir, subgraphs, output_file=None):
             manifest = json.loads(fd.read())
         sg_pkg = KPackageManager(manifest)
         ret = sg_pkg.get_files()
-        assert ret == 0
+        # Ignore errors since "host" executor wont have all the files.
+        if ret != 0:
+            continue
         for f in sg_pkg.files_to_pack:
             files_to_pack.append(os.path.join(sg, f))
 
