@@ -8,6 +8,7 @@
 #include <string>
 #include <cstdio>
 #include <memory>
+#include <limits>
 
 
 
@@ -207,6 +208,21 @@ private:
 
     kelf::DmaDescription                m_DmaDescription;
 };
+
+
+template<typename TypeTo, typename TypeFrom>
+void
+AssignWithSizeCheck(TypeTo& to, const TypeFrom from)
+{
+    const long Min = std::numeric_limits<TypeTo>::min();
+    const long Max = std::numeric_limits<TypeTo>::max();
+    const long From = from;
+    Assert(Min <= From && From <= Max,
+        "Value out of limits: min=", Min, "max=", Max, "val=", From);
+
+    // Assignment
+    to = from;
+}
 
 }}
 

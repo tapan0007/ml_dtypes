@@ -60,12 +60,12 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
                                                             arch.gNumberPeArrayRows()/2 * activationWaveop->gSrcStartAtMidPart(),
                                                             activationWaveop->gSrcSbAddress());
     }
-    activationInstr.src_mem_pattern.step_elem[PatDim_X]    = activationWaveop->gSrcXStep();
-    activationInstr.src_mem_pattern.num_elem[PatDim_X]     = activationWaveop->gSrcXNum();
-    activationInstr.src_mem_pattern.step_elem[PatDim_Y]    = activationWaveop->gSrcYStep();
-    activationInstr.src_mem_pattern.num_elem[PatDim_Y]     = activationWaveop->gSrcYNum();
-    activationInstr.src_mem_pattern.step_elem[PatDim_Z]    = activationWaveop->gSrcZStep();
-    activationInstr.src_mem_pattern.num_elem[PatDim_Z]     = activationWaveop->gSrcZNum();
+    AssignWithSizeCheck(activationInstr.src_mem_pattern.step_elem[PatDim_X], activationWaveop->gSrcXStep());
+    AssignWithSizeCheck(activationInstr.src_mem_pattern.num_elem[PatDim_X], activationWaveop->gSrcXNum());
+    AssignWithSizeCheck(activationInstr.src_mem_pattern.step_elem[PatDim_Y], activationWaveop->gSrcYStep());
+    AssignWithSizeCheck(activationInstr.src_mem_pattern.num_elem[PatDim_Y], activationWaveop->gSrcYNum());
+    AssignWithSizeCheck(activationInstr.src_mem_pattern.step_elem[PatDim_Z], activationWaveop->gSrcZStep());
+    AssignWithSizeCheck(activationInstr.src_mem_pattern.num_elem[PatDim_Z], activationWaveop->gSrcZNum());
 
 
     initMemAccess(activationInstr.dst_mem_pattern);
@@ -79,12 +79,12 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
                                                             arch.gNumberPeArrayRows()/2 * activationWaveop->gDstStartAtMidPart(),
                                                             activationWaveop->gDstSbAddress());
     }
-    activationInstr.dst_mem_pattern.step_elem[PatDim_X]    = activationWaveop->gDstXStep();
-    activationInstr.dst_mem_pattern.num_elem[PatDim_X]     = activationWaveop->gDstXNum();
-    activationInstr.dst_mem_pattern.step_elem[PatDim_Y]    = activationWaveop->gDstYStep();
-    activationInstr.dst_mem_pattern.num_elem[PatDim_Y]     = activationWaveop->gDstYNum();
-    activationInstr.dst_mem_pattern.step_elem[PatDim_Z]    = activationWaveop->gDstZStep();
-    activationInstr.dst_mem_pattern.num_elem[PatDim_Z]     = activationWaveop->gDstZNum();
+    AssignWithSizeCheck(activationInstr.dst_mem_pattern.step_elem[PatDim_X], activationWaveop->gDstXStep());
+    AssignWithSizeCheck(activationInstr.dst_mem_pattern.num_elem[PatDim_X], activationWaveop->gDstXNum());
+    AssignWithSizeCheck(activationInstr.dst_mem_pattern.step_elem[PatDim_Y], activationWaveop->gDstYStep());
+    AssignWithSizeCheck(activationInstr.dst_mem_pattern.num_elem[PatDim_Y], activationWaveop->gDstYNum());
+    AssignWithSizeCheck(activationInstr.dst_mem_pattern.step_elem[PatDim_Z], activationWaveop->gDstZStep());
+    AssignWithSizeCheck(activationInstr.dst_mem_pattern.num_elem[PatDim_Z], activationWaveop->gDstZNum());
 
     activationInstr.scale_value = activationWaveop->gScale();
 

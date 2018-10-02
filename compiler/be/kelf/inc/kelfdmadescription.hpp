@@ -130,6 +130,7 @@ private:
     const char* const                   m_ActJsonFileName   = "act.json";
     const char* const                   m_PoolJsonFileName  = "pool.json";
     const char* const                   m_HostJsonFileName  = "host.json";
+    const char* const                   m_WavegraphJson     = "wavegraph-bin.json";
     const char* const                   m_DefJsonFileName   = "def.json";
 
     const nets::Network&                m_Network;
@@ -140,6 +141,7 @@ private:
 
 
 struct DmaDescription::Keys {
+public:
     static const char* gBinFileName();
     static const char* gWeightFileName();
     static const char* gJsonName();
@@ -160,6 +162,8 @@ struct DmaDescription::Keys {
     static const char* gHashComment();
     static const char* gHashBlockSize();
     static const char* gHashTransferType();
+    static const char* gDebugInfo();
+    static const char* gWavegraph();
     static const char* gHashFileName();
 };
 

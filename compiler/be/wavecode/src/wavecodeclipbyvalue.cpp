@@ -58,12 +58,12 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
                                                             arch.gNumberPeArrayRows()/2 * clipByValueWaveop->gSrcStartAtMidPart(),
                                                             clipByValueWaveop->gSrcSbAddress());
     }
-    tensorScalarOpInstr.src_mem_pattern.step_elem[PatDim_X]    = clipByValueWaveop->gSrcXStep();
-    tensorScalarOpInstr.src_mem_pattern.num_elem[PatDim_X]     = clipByValueWaveop->gSrcXNum();
-    tensorScalarOpInstr.src_mem_pattern.step_elem[PatDim_Y]    = clipByValueWaveop->gSrcYStep();
-    tensorScalarOpInstr.src_mem_pattern.num_elem[PatDim_Y]     = clipByValueWaveop->gSrcYNum();
-    tensorScalarOpInstr.src_mem_pattern.step_elem[PatDim_Z]    = clipByValueWaveop->gSrcZStep();
-    tensorScalarOpInstr.src_mem_pattern.num_elem[PatDim_Z]     = clipByValueWaveop->gSrcZNum();
+    AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.step_elem[PatDim_X], clipByValueWaveop->gSrcXStep());
+    AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.num_elem[PatDim_X], clipByValueWaveop->gSrcXNum());
+    AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.step_elem[PatDim_Y], clipByValueWaveop->gSrcYStep());
+    AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.num_elem[PatDim_Y], clipByValueWaveop->gSrcYNum());
+    AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.step_elem[PatDim_Z], clipByValueWaveop->gSrcZStep());
+    AssignWithSizeCheck(tensorScalarOpInstr.src_mem_pattern.num_elem[PatDim_Z], clipByValueWaveop->gSrcZNum());
 
 
     initMemAccess(tensorScalarOpInstr.dst_mem_pattern);
@@ -77,12 +77,12 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
                                                             arch.gNumberPeArrayRows()/2 * clipByValueWaveop->gDstStartAtMidPart(),
                                                             clipByValueWaveop->gDstSbAddress());
     }
-    tensorScalarOpInstr.dst_mem_pattern.step_elem[PatDim_X]    = clipByValueWaveop->gDstXStep();
-    tensorScalarOpInstr.dst_mem_pattern.num_elem[PatDim_X]     = clipByValueWaveop->gDstXNum();
-    tensorScalarOpInstr.dst_mem_pattern.step_elem[PatDim_Y]    = clipByValueWaveop->gDstYStep();
-    tensorScalarOpInstr.dst_mem_pattern.num_elem[PatDim_Y]     = clipByValueWaveop->gDstYNum();
-    tensorScalarOpInstr.dst_mem_pattern.step_elem[PatDim_Z]    = clipByValueWaveop->gDstZStep();
-    tensorScalarOpInstr.dst_mem_pattern.num_elem[PatDim_Z]     = clipByValueWaveop->gDstZNum();
+    AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.step_elem[PatDim_X], clipByValueWaveop->gDstXStep());
+    AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.num_elem[PatDim_X], clipByValueWaveop->gDstXNum());
+    AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.step_elem[PatDim_Y], clipByValueWaveop->gDstYStep());
+    AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.num_elem[PatDim_Y], clipByValueWaveop->gDstYNum());
+    AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.step_elem[PatDim_Z], clipByValueWaveop->gDstZStep());
+    AssignWithSizeCheck(tensorScalarOpInstr.dst_mem_pattern.num_elem[PatDim_Z], clipByValueWaveop->gDstZNum());
 
     tensorScalarOpInstr.num_active_channels = clipByValueWaveop->gNumPartitions();
 

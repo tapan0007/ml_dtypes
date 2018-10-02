@@ -1056,17 +1056,17 @@ WaveCodeSbAtomLoad::generateDmaCopySimKelf(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
     // DRAM
     simDmaCopyInstr.src_start_addr   = fileAddress;
-    simDmaCopyInstr.src_num_elem[0]  = numPartitions * numBytesPerPart;
-    simDmaCopyInstr.src_step_elem[0] = 1;
-    simDmaCopyInstr.src_num_elem[1]  = 1;
-    simDmaCopyInstr.src_step_elem[1] = 0;
+    AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[0], numPartitions * numBytesPerPart);
+    AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[0], 1);
+    AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[1], 1);
+    AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[1], 0);
 
     // SB
     simDmaCopyInstr.dst_start_addr   = sbStartTongaAddress;
-    simDmaCopyInstr.dst_num_elem[0]  = numBytesPerPart;
-    simDmaCopyInstr.dst_step_elem[0] = 1;
-    simDmaCopyInstr.dst_num_elem[1]  = numPartitions;
-    simDmaCopyInstr.dst_step_elem[1] = stateBuf.gEntryTongaAddress(1, addressInPart) - stateBuf.gEntryTongaAddress(0, addressInPart);
+    AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[0], numBytesPerPart);
+    AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[0], 1);
+    AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[1], numPartitions);
+    AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[1], stateBuf.gEntryTongaAddress(1, addressInPart) - stateBuf.gEntryTongaAddress(0, addressInPart));
 
     // Should we assert that size <= 1?
     if (succEventIds.size() > 0) {

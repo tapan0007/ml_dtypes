@@ -85,12 +85,12 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
                                         arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcAStartAtMidPart(),
                                         resaddWaveop->gSrcASbAddress());
     }
-    SrcAPat.step_elem[PatDim_X]    = resaddWaveop->gSrcAXStep();
-    SrcAPat.num_elem[PatDim_X]     = resaddWaveop->gSrcAXNum();
-    SrcAPat.step_elem[PatDim_Y]    = resaddWaveop->gSrcAYStep();
-    SrcAPat.num_elem[PatDim_Y]     = resaddWaveop->gSrcAYNum();
-    SrcAPat.step_elem[PatDim_Z]    = resaddWaveop->gSrcAZStep();
-    SrcAPat.num_elem[PatDim_Z]     = resaddWaveop->gSrcAZNum();
+    AssignWithSizeCheck(SrcAPat.step_elem[PatDim_X], resaddWaveop->gSrcAXStep());
+    AssignWithSizeCheck(SrcAPat.num_elem[PatDim_X], resaddWaveop->gSrcAXNum());
+    AssignWithSizeCheck(SrcAPat.step_elem[PatDim_Y], resaddWaveop->gSrcAYStep());
+    AssignWithSizeCheck(SrcAPat.num_elem[PatDim_Y], resaddWaveop->gSrcAYNum());
+    AssignWithSizeCheck(SrcAPat.step_elem[PatDim_Z], resaddWaveop->gSrcAZStep());
+    AssignWithSizeCheck(SrcAPat.num_elem[PatDim_Z], resaddWaveop->gSrcAZNum());
 
     //-----------------------------------------------------------------
     // SrcB
@@ -103,12 +103,12 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
                                         arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcBStartAtMidPart(),
                                         resaddWaveop->gSrcBSbAddress());
     }
-    SrcBPat.step_elem[PatDim_X]    = resaddWaveop->gSrcBXStep();
-    SrcBPat.num_elem[PatDim_X]     = resaddWaveop->gSrcBXNum();
-    SrcBPat.step_elem[PatDim_Y]    = resaddWaveop->gSrcBYStep();
-    SrcBPat.num_elem[PatDim_Y]     = resaddWaveop->gSrcBYNum();
-    SrcBPat.step_elem[PatDim_Z]    = resaddWaveop->gSrcBZStep();
-    SrcBPat.num_elem[PatDim_Z]     = resaddWaveop->gSrcBZNum();
+    AssignWithSizeCheck(SrcBPat.step_elem[PatDim_X], resaddWaveop->gSrcBXStep());
+    AssignWithSizeCheck(SrcBPat.num_elem[PatDim_X], resaddWaveop->gSrcBXNum());
+    AssignWithSizeCheck(SrcBPat.step_elem[PatDim_Y], resaddWaveop->gSrcBYStep());
+    AssignWithSizeCheck(SrcBPat.num_elem[PatDim_Y], resaddWaveop->gSrcBYNum());
+    AssignWithSizeCheck(SrcBPat.step_elem[PatDim_Z], resaddWaveop->gSrcBZStep());
+    AssignWithSizeCheck(SrcBPat.num_elem[PatDim_Z], resaddWaveop->gSrcBZNum());
 #else
     enum {
         srcSbufIdx = 0,
@@ -146,19 +146,19 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
     srcPsumPat.start_addr        = psumBuf.gEntryTpbAddress(psumBankId, psumBankOff, srcPsumDataType);
     srcSbufPat.start_addr        = stateBuf.gEntryTpbAddress((arch.gNumberPeArrayRows()/2) * midPoint, sbAddress);
 
-    srcAPat.step_elem[PatDim_X]  = resaddWaveop->gSrcAXStep();
-    srcAPat.num_elem[PatDim_X]   = resaddWaveop->gSrcAXNum();
-    srcAPat.step_elem[PatDim_Y]  = resaddWaveop->gSrcAYStep();
-    srcAPat.num_elem[PatDim_Y]   = resaddWaveop->gSrcAYNum();
-    srcAPat.step_elem[PatDim_Z]  = resaddWaveop->gSrcAZStep();
-    srcAPat.num_elem[PatDim_Z]   = resaddWaveop->gSrcAZNum();
+    AssignWithSizeCheck(srcAPat.step_elem[PatDim_X], resaddWaveop->gSrcAXStep());
+    AssignWithSizeCheck(srcAPat.num_elem[PatDim_X], resaddWaveop->gSrcAXNum());
+    AssignWithSizeCheck(srcAPat.step_elem[PatDim_Y], resaddWaveop->gSrcAYStep());
+    AssignWithSizeCheck(srcAPat.num_elem[PatDim_Y], resaddWaveop->gSrcAYNum());
+    AssignWithSizeCheck(srcAPat.step_elem[PatDim_Z], resaddWaveop->gSrcAZStep());
+    AssignWithSizeCheck(srcAPat.num_elem[PatDim_Z], resaddWaveop->gSrcAZNum());
 
-    srcBPat.step_elem[PatDim_X]  = resaddWaveop->gSrcBXStep();
-    srcBPat.num_elem[PatDim_X]   = resaddWaveop->gSrcBXNum();
-    srcBPat.step_elem[PatDim_Y]  = resaddWaveop->gSrcBYStep();
-    srcBPat.num_elem[PatDim_Y]   = resaddWaveop->gSrcBYNum();
-    srcBPat.step_elem[PatDim_Z]  = resaddWaveop->gSrcBZStep();
-    srcBPat.num_elem[PatDim_Z]   = resaddWaveop->gSrcBZNum();
+    AssignWithSizeCheck(srcBPat.step_elem[PatDim_X], resaddWaveop->gSrcBXStep());
+    AssignWithSizeCheck(srcBPat.num_elem[PatDim_X], resaddWaveop->gSrcBXNum());
+    AssignWithSizeCheck(srcBPat.step_elem[PatDim_Y], resaddWaveop->gSrcBYStep());
+    AssignWithSizeCheck(srcBPat.num_elem[PatDim_Y], resaddWaveop->gSrcBYNum());
+    AssignWithSizeCheck(srcBPat.step_elem[PatDim_Z], resaddWaveop->gSrcBZStep());
+    AssignWithSizeCheck(srcBPat.num_elem[PatDim_Z], resaddWaveop->gSrcBZNum());
 #endif
 
     tensortensorInstr.num_active_channels = resaddWaveop->gNumPartitions();
@@ -184,12 +184,12 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
                                         arch.gNumberPeArrayRows()/2 * resaddWaveop->gDstStartAtMidPart(),
                                         resaddWaveop->gDstSbAddress());
     }
-    DstPat.step_elem[PatDim_X]      = resaddWaveop->gDstXStep();
-    DstPat.num_elem[PatDim_X]       = resaddWaveop->gDstXNum();
-    DstPat.step_elem[PatDim_Y]      = resaddWaveop->gDstYStep();
-    DstPat.num_elem[PatDim_Y]       = resaddWaveop->gDstYNum();
-    DstPat.step_elem[PatDim_Z]      = resaddWaveop->gDstZStep();
-    DstPat.num_elem[PatDim_Z]       = resaddWaveop->gDstZNum();
+    AssignWithSizeCheck(DstPat.step_elem[PatDim_X], resaddWaveop->gDstXStep());
+    AssignWithSizeCheck(DstPat.num_elem[PatDim_X], resaddWaveop->gDstXNum());
+    AssignWithSizeCheck(DstPat.step_elem[PatDim_Y], resaddWaveop->gDstYStep());
+    AssignWithSizeCheck(DstPat.num_elem[PatDim_Y], resaddWaveop->gDstYNum());
+    AssignWithSizeCheck(DstPat.step_elem[PatDim_Z], resaddWaveop->gDstZStep());
+    AssignWithSizeCheck(DstPat.num_elem[PatDim_Z], resaddWaveop->gDstZNum());
 
     //-----------------------------------------------------------------
     tensortensorInstr.inst_events.wait_event_idx     = 0;
@@ -290,14 +290,14 @@ WaveCodeResAdd::generateSameBufSrc(wave::ResAddWaveOp* resaddWaveop)
     Assert((deltaAddr % inDtypeSize) == 0,
             "ResAdd from same buffer: delta address is not multiple of data size");
 
-    srcPat.step_elem[PatDim_X]  = deltaAddr/inDtypeSize;
-    srcPat.num_elem[PatDim_X]   = 2; // reduction of 2 tensors is on X
-    srcPat.step_elem[PatDim_Y]  = resaddWaveop->gSrcAXStep();
-    srcPat.num_elem[PatDim_Y]   = resaddWaveop->gSrcAXNum();
-    srcPat.step_elem[PatDim_Z]  = resaddWaveop->gSrcAYStep();
-    srcPat.num_elem[PatDim_Z]   = resaddWaveop->gSrcAYNum();
-    srcPat.step_elem[PatDim_W]  = resaddWaveop->gSrcAZStep();
-    srcPat.num_elem[PatDim_W]   = resaddWaveop->gSrcAZNum();
+    AssignWithSizeCheck(srcPat.step_elem[PatDim_X], deltaAddr/inDtypeSize);
+    AssignWithSizeCheck(srcPat.num_elem[PatDim_X], 2); // reduction of 2 tensors is on X
+    AssignWithSizeCheck(srcPat.step_elem[PatDim_Y], resaddWaveop->gSrcAXStep());
+    AssignWithSizeCheck(srcPat.num_elem[PatDim_Y], resaddWaveop->gSrcAXNum());
+    AssignWithSizeCheck(srcPat.step_elem[PatDim_Z], resaddWaveop->gSrcAYStep());
+    AssignWithSizeCheck(srcPat.num_elem[PatDim_Z], resaddWaveop->gSrcAYNum());
+    AssignWithSizeCheck(srcPat.step_elem[PatDim_W], resaddWaveop->gSrcAZStep());
+    AssignWithSizeCheck(srcPat.num_elem[PatDim_W], resaddWaveop->gSrcAZNum());
 
     //-----------------------------------------------------------------
     TONGA_ISA_TPB_MEM_ACCESS_4D& dstPat(tensorReduceInstr.dst_mem_pattern);
@@ -313,14 +313,14 @@ WaveCodeResAdd::generateSameBufSrc(wave::ResAddWaveOp* resaddWaveop)
                                         resaddWaveop->gDstSbAddress());
     }
 
-    dstPat.step_elem[PatDim_X]  = 0; // Destination pattern should be 3D
-    dstPat.num_elem[PatDim_X]   = 1;
-    dstPat.step_elem[PatDim_Y]  = resaddWaveop->gDstXStep();
-    dstPat.num_elem[PatDim_Y]   = resaddWaveop->gDstXNum();
-    dstPat.step_elem[PatDim_Z]  = resaddWaveop->gDstYStep();
-    dstPat.num_elem[PatDim_Z]   = resaddWaveop->gDstYNum();
-    dstPat.step_elem[PatDim_W]  = resaddWaveop->gDstZStep();
-    dstPat.num_elem[PatDim_W]   = resaddWaveop->gDstZNum();
+    AssignWithSizeCheck(dstPat.step_elem[PatDim_X], 0); // Destination pattern should be 3D
+    AssignWithSizeCheck(dstPat.num_elem[PatDim_X], 1);
+    AssignWithSizeCheck(dstPat.step_elem[PatDim_Y], resaddWaveop->gDstXStep());
+    AssignWithSizeCheck(dstPat.num_elem[PatDim_Y], resaddWaveop->gDstXNum());
+    AssignWithSizeCheck(dstPat.step_elem[PatDim_Z], resaddWaveop->gDstYStep());
+    AssignWithSizeCheck(dstPat.num_elem[PatDim_Z], resaddWaveop->gDstYNum());
+    AssignWithSizeCheck(dstPat.step_elem[PatDim_W], resaddWaveop->gDstZStep());
+    AssignWithSizeCheck(dstPat.num_elem[PatDim_W], resaddWaveop->gDstZNum());
 
 
     //-----------------------------------------------------------------

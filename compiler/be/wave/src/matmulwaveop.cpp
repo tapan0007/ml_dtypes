@@ -65,19 +65,19 @@ MatMulWaveOp::verify() const
     if (m_FmapXNum < 1) {
         return false;
     }
-    if (m_FmapXStep < 1) {
+    if (m_FmapXStep == 0 && m_FmapXNum != 1) {
         return false;
     }
     if (m_FmapYNum < 1) {
         return false;
     }
-    if (m_FmapYStep < 1) {
+    if (m_FmapYStep == 0 && m_FmapYNum != 1) {
         return false;
     }
     if (m_FmapZNum < 1) {
         return false;
     }
-    if (m_FmapZStep < 1) {
+    if (m_FmapZStep == 0 && m_FmapZNum != 1) {
         return false;
     }
     if (m_IfmapsSbAddress < 0) {
@@ -98,20 +98,20 @@ MatMulWaveOp::verify() const
     if (m_PsumXNum < 1) {
         return false;
     }
-    if (m_PsumXStep < 1) {
+    if (m_PsumXStep == 0 && m_PsumXNum != 1) {
         return false;
     }
 
     if (m_PsumYNum < 1) {
         return false;
     }
-    if (m_PsumYStep < 1) {
+    if (m_PsumYStep == 0 && m_PsumYNum != 1) {
         return false;
     }
     if (m_PsumZNum < 1) {
         return false;
     }
-    if (m_PsumZStep < 1) {
+    if (m_PsumZStep == 0 && m_PsumZNum != 1) {
         return false;
     }
     if (m_WeightsSbAddress < -1) {
@@ -138,19 +138,19 @@ MatMulWaveOp::Params::verify() const
     if (m_FmapXNum < 1) {
         return false;
     }
-    if (m_FmapXStep < 1) {
+    if (m_FmapXStep == 0 && m_FmapXNum != 1) {
         return false;
     }
     if (m_FmapYNum < 1) {
         return false;
     }
-    if (m_FmapYStep < 1) {
+    if (m_FmapYStep == 0 && m_FmapYNum != 1) {
         return false;
     }
     if (m_FmapZNum < 1) {
         return false;
     }
-    if (m_FmapZStep < 1) {
+    if (m_FmapZStep == 0 && m_FmapZNum != 1) {
         return false;
     }
     if (m_IfmapsSbAddress < 0) {
@@ -171,13 +171,19 @@ MatMulWaveOp::Params::verify() const
     if (m_PsumXNum < 1) {
         return false;
     }
-    if (m_PsumXStep < 1) {
+    if (m_PsumXStep == 0 && m_PsumXNum != 1) {
         return false;
     }
     if (m_PsumYNum < 1) {
         return false;
     }
-    if (m_PsumYStep < 1) {
+    if (m_PsumYStep == 0 && m_PsumYNum != 1) {
+        return false;
+    }
+    if (m_PsumZNum < 1) {
+        return false;
+    }
+    if (m_PsumZStep == 0 && m_PsumZNum != 1) {
         return false;
     }
     if (m_WeightsSbAddress < -1) {

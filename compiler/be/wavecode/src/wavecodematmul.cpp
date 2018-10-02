@@ -118,8 +118,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
         const kcc_int32 newNumWeights           = realNumWeights + deltaNumWeights;
 
         ldweightsInstr.src_mem_pattern.start_addr           = newLastAddressInSbPart;
-        ldweightsInstr.src_mem_pattern.step_elem[PatDim_X]  = -1; // last column goes first, so decrement
-        ldweightsInstr.src_mem_pattern.num_elem[PatDim_X]   = newNumWeights;
+        AssignWithSizeCheck(ldweightsInstr.src_mem_pattern.step_elem[PatDim_X], -1); // last column goes first, so decrement
+        AssignWithSizeCheck(ldweightsInstr.src_mem_pattern.num_elem[PatDim_X], newNumWeights);
         ldweightsInstr.num_active_cols                      = newNumWeights;
     }
 
@@ -209,12 +209,14 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 
     initMemAccess(matmulInstr.src_mem_pattern);
     matmulInstr.src_mem_pattern.start_addr      = matmulWaveop->gIfmapsSbAddress();
-    matmulInstr.src_mem_pattern.num_elem[PatDim_X]     = matmulWaveop->gFmapXNum();
-    matmulInstr.src_mem_pattern.step_elem[PatDim_X]    = matmulWaveop->gFmapXStep();
-    matmulInstr.src_mem_pattern.num_elem[PatDim_Y]     = matmulWaveop->gFmapYNum();
-    matmulInstr.src_mem_pattern.step_elem[PatDim_Y]    = matmulWaveop->gFmapYStep();
-    matmulInstr.src_mem_pattern.num_elem[PatDim_Z]     = matmulWaveop->gFmapZNum();
-    matmulInstr.src_mem_pattern.step_elem[PatDim_Z]     = matmulWaveop->gFmapZStep();
+
+    AssignWithSizeCheck(matmulInstr.src_mem_pattern.num_elem[PatDim_X], matmulWaveop->gFmapXNum());
+    AssignWithSizeCheck(matmulInstr.src_mem_pattern.step_elem[PatDim_X], matmulWaveop->gFmapXStep());
+
+    AssignWithSizeCheck(matmulInstr.src_mem_pattern.num_elem[PatDim_Y], matmulWaveop->gFmapYNum());
+    AssignWithSizeCheck(matmulInstr.src_mem_pattern.step_elem[PatDim_Y], matmulWaveop->gFmapYStep());
+    AssignWithSizeCheck(matmulInstr.src_mem_pattern.num_elem[PatDim_Z], matmulWaveop->gFmapZNum());
+    AssignWithSizeCheck(matmulInstr.src_mem_pattern.step_elem[PatDim_Z], matmulWaveop->gFmapZStep());
 
 
     initMemAccess(matmulInstr.dst_mem_pattern);
@@ -222,12 +224,12 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                                                         matmulWaveop->gPsumBankId(),
                                                         matmulWaveop->gPsumBankOffset(),
                                                         matmulWaveop->gOutDtype());
-    matmulInstr.dst_mem_pattern.num_elem[PatDim_X]        = matmulWaveop->gPsumXNum();
-    matmulInstr.dst_mem_pattern.step_elem[PatDim_X]       = matmulWaveop->gPsumXStep();
-    matmulInstr.dst_mem_pattern.num_elem[PatDim_Y]        = matmulWaveop->gPsumYNum();
-    matmulInstr.dst_mem_pattern.step_elem[PatDim_Y]       = matmulWaveop->gPsumYStep();
-    matmulInstr.dst_mem_pattern.num_elem[PatDim_Z]        = matmulWaveop->gPsumZNum();
-    matmulInstr.dst_mem_pattern.step_elem[PatDim_Z]       = matmulWaveop->gPsumZStep();
+    AssignWithSizeCheck(matmulInstr.dst_mem_pattern.num_elem[PatDim_X], matmulWaveop->gPsumXNum());
+    AssignWithSizeCheck(matmulInstr.dst_mem_pattern.step_elem[PatDim_X], matmulWaveop->gPsumXStep());
+    AssignWithSizeCheck(matmulInstr.dst_mem_pattern.num_elem[PatDim_Y], matmulWaveop->gPsumYNum());
+    AssignWithSizeCheck(matmulInstr.dst_mem_pattern.step_elem[PatDim_Y], matmulWaveop->gPsumYStep());
+    AssignWithSizeCheck(matmulInstr.dst_mem_pattern.num_elem[PatDim_Z], matmulWaveop->gPsumZNum());
+    AssignWithSizeCheck(matmulInstr.dst_mem_pattern.step_elem[PatDim_Z], matmulWaveop->gPsumZStep());
 
 
     matmulInstr.timing_flags = 0;

@@ -202,8 +202,8 @@ protected:
     {
         const int numDims = sizeof(mem_pattern.step_elem)/sizeof(mem_pattern.step_elem[0]);
         for (int i = 0; i < numDims ; ++i) {
-            mem_pattern.step_elem[i] = 0;
-            mem_pattern.num_elem[i]  = 1;
+            AssignWithSizeCheck(mem_pattern.step_elem[i], 0);
+            AssignWithSizeCheck(mem_pattern.num_elem[i], 1);
         }
     }
 

@@ -43,11 +43,11 @@ public:
         return m_WeightsSbAddress;
     }
 
-    kcc_int16 gPsumBankId() const {
+    kcc_int32 gPsumBankId() const {
         return m_PsumBankId;
     }
 
-    kcc_int16 gPsumBankOffset () const {
+    kcc_int32 gPsumBankOffset () const {
         return m_PsumBankOffset;
     }
 
@@ -81,59 +81,59 @@ public:
     bool verify() const override;
 
 
-    kcc_int16 gFmapXNum () const {
+    kcc_int32 gFmapXNum () const {
         return m_FmapXNum;
     }
 
-    kcc_int16 gFmapXStep () const {
+    kcc_int32 gFmapXStep () const {
         return m_FmapXStep;
     }
 
-    kcc_int16 gFmapYNum () const {
+    kcc_int32 gFmapYNum () const {
         return m_FmapYNum;
     }
 
-    kcc_int16 gFmapYStep () const {
+    kcc_int32 gFmapYStep () const {
         return m_FmapYStep;
     }
 
-    kcc_int16 gFmapZNum () const {
+    kcc_int32 gFmapZNum () const {
         return m_FmapZNum;
     }
 
-    kcc_int16 gFmapZStep () const {
+    kcc_int32 gFmapZStep () const {
         return m_FmapZStep;
     }
 
-    kcc_int16 gPsumXNum () const {
+    kcc_int32 gPsumXNum () const {
         return m_PsumXNum;
     }
 
-    kcc_int16 gPsumXStep () const {
+    kcc_int32 gPsumXStep () const {
         return m_PsumXStep;
     }
 
-    kcc_int16 gPsumYNum () const {
+    kcc_int32 gPsumYNum () const {
         return m_PsumYNum;
     }
 
-    kcc_int16 gPsumYStep () const {
+    kcc_int32 gPsumYStep () const {
         return m_PsumYStep;
     }
 
-    kcc_int16 gPsumZNum () const {
+    kcc_int32 gPsumZNum () const {
         return m_PsumZNum;
     }
 
-    kcc_int16 gPsumZStep () const {
+    kcc_int32 gPsumZStep () const {
         return m_PsumZStep;
     }
 
-    kcc_int16 gNumColumnPartitions () const {
+    kcc_int32 gNumColumnPartitions () const {
         return m_NumColumnPartitions;
     }
 
-    kcc_int16 gNumRowPartitions () const {
+    kcc_int32 gNumRowPartitions () const {
         return m_NumRowPartitions;
     }
 
@@ -161,27 +161,27 @@ private:
     MatMulWaveOp& operator= (const MatMulWaveOp&) const = delete;
 
 private:
-    kcc_int16       m_FmapXNum              = -1;
-    kcc_int16       m_FmapXStep             = -1;
-    kcc_int16       m_FmapYNum              = -1;
-    kcc_int16       m_FmapYStep             = -1;
-    kcc_int16       m_FmapZNum              = -1;
-    kcc_int16       m_FmapZStep        = -1;
+    kcc_int32       m_FmapXNum              = -1;
+    kcc_int32       m_FmapXStep             = -1;
+    kcc_int32       m_FmapYNum              = -1;
+    kcc_int32       m_FmapYStep             = -1;
+    kcc_int32       m_FmapZNum              = -1;
+    kcc_int32       m_FmapZStep        = -1;
     kcc_int32       m_IfmapsSbAddress       = -1;
     const DataType& m_InDtype;
     // layer name
-    kcc_int16       m_NumColumnPartitions   = -1;
-    kcc_int16       m_NumRowPartitions      = -1;
+    kcc_int32       m_NumColumnPartitions   = -1;
+    kcc_int32       m_NumRowPartitions      = -1;
     const DataType& m_OutDtype;
     // previous layers
-    kcc_int16       m_PsumBankId            = -1;
-    kcc_int16       m_PsumBankOffset        = -1;
-    kcc_int16       m_PsumXNum              = -1;
-    kcc_int16       m_PsumXStep             = -1;
-    kcc_int16       m_PsumYNum              = -1;
-    kcc_int16       m_PsumYStep             = -1;
-    kcc_int16       m_PsumZNum              = -1;
-    kcc_int16       m_PsumZStep             = -1;
+    kcc_int32       m_PsumBankId            = -1;
+    kcc_int32       m_PsumBankOffset        = -1;
+    kcc_int32       m_PsumXNum              = -1;
+    kcc_int32       m_PsumXStep             = -1;
+    kcc_int32       m_PsumYNum              = -1;
+    kcc_int32       m_PsumYStep             = -1;
+    kcc_int32       m_PsumZNum              = -1;
+    kcc_int32       m_PsumZStep             = -1;
     bool            m_StartTensorCalc       = true;
     bool            m_StopTensorCalc        = true;
     // waveop name
@@ -202,27 +202,27 @@ class MatMulWaveOp::Params : public WaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int16       m_FmapXNum              = -1;
-    kcc_int16       m_FmapXStep             = -1;
-    kcc_int16       m_FmapYNum              = -1;
-    kcc_int16       m_FmapYStep             = -1;
-    kcc_int16       m_FmapZNum              = -1;
-    kcc_int16       m_FmapZStep             = -1;
+    kcc_int32       m_FmapXNum              = -1;
+    kcc_int32       m_FmapXStep             = -1;
+    kcc_int32       m_FmapYNum              = -1;
+    kcc_int32       m_FmapYStep             = -1;
+    kcc_int32       m_FmapZNum              = -1;
+    kcc_int32       m_FmapZStep             = -1;
     kcc_int32       m_IfmapsSbAddress       = -1;
     DataTypeId      m_InDtypeId             = DataTypeId::None;
     // layer name
-    kcc_int16       m_NumColumnPartitions   = -1;
-    kcc_int16       m_NumRowPartitions      = -1;
+    kcc_int32       m_NumColumnPartitions   = -1;
+    kcc_int32       m_NumRowPartitions      = -1;
     DataTypeId      m_OutDtypeId            = DataTypeId::None;
     // previous layers
-    kcc_int16       m_PsumBankId            = -1;
-    kcc_int16       m_PsumBankOffset        = -1;
-    kcc_int16       m_PsumXNum              = -1;
-    kcc_int16       m_PsumXStep             = -1;
-    kcc_int16       m_PsumYNum              = -1;
-    kcc_int16       m_PsumYStep             = -1;
-    kcc_int16       m_PsumZNum              = -1;
-    kcc_int16       m_PsumZStep             = -1;
+    kcc_int32       m_PsumBankId            = -1;
+    kcc_int32       m_PsumBankOffset        = -1;
+    kcc_int32       m_PsumXNum              = -1;
+    kcc_int32       m_PsumXStep             = -1;
+    kcc_int32       m_PsumYNum              = -1;
+    kcc_int32       m_PsumYStep             = -1;
+    kcc_int32       m_PsumZNum              = -1;
+    kcc_int32       m_PsumZStep             = -1;
     bool            m_StartTensorCalc       = true;
     bool            m_StopTensorCalc        = true;
     // waveop name

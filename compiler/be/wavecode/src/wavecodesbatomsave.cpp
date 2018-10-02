@@ -257,17 +257,17 @@ WaveCodeSbAtomSave::generateDmaCopySimKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWav
 
     // SB
     simDmaCopyInstr.src_start_addr   = sbStartTongaAddress;
-    simDmaCopyInstr.src_num_elem[0]  = numBytesPerPart;
-    simDmaCopyInstr.src_step_elem[0] = 1;
-    simDmaCopyInstr.src_num_elem[1]  = numPartitions;
-    simDmaCopyInstr.src_step_elem[1] = stepSize;
+    AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[0], numBytesPerPart);
+    AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[0], 1);
+    AssignWithSizeCheck(simDmaCopyInstr.src_num_elem[1], numPartitions);
+    AssignWithSizeCheck(simDmaCopyInstr.src_step_elem[1], stepSize);
 
     // DRAM
     simDmaCopyInstr.dst_start_addr   = fileAddress;
-    simDmaCopyInstr.dst_num_elem[0]  = numPartitions * numBytesPerPart;
-    simDmaCopyInstr.dst_step_elem[0] = 1;
-    simDmaCopyInstr.dst_num_elem[1]  = 1;
-    simDmaCopyInstr.dst_step_elem[1] = 0;
+    AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[0], numPartitions * numBytesPerPart);
+    AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[0], 1);
+    AssignWithSizeCheck(simDmaCopyInstr.dst_num_elem[1], 1);
+    AssignWithSizeCheck(simDmaCopyInstr.dst_step_elem[1], 0);
 
     // Should we assert that size <= 1?
     if (succEventIds.size() > 0) {

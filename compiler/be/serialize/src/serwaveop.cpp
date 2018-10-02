@@ -106,19 +106,19 @@ SerWaveOp::verifyMatMul () const
     if (m_PsumXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_PsumXStep < 1) {
+    if (m_PsumXStep == 0 && m_PsumXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_PsumYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_PsumYStep < 1) {
+    if (m_PsumYStep == 0 && m_PsumYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_PsumZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_PsumZStep < 1) {
+    if (m_PsumZStep == 0 && m_PsumZNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_WeightsSbAddress < -1) {
@@ -146,19 +146,19 @@ SerWaveOp::verifyPool() const
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstXStep < 1) {
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstYStep < 1) {
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstZStep < 1) {
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_InDtype == "") {
@@ -183,25 +183,25 @@ SerWaveOp::verifyPool() const
     if (m_SrcWNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcWStep < 1) {
+    if (m_SrcWStep == 0 && m_SrcWNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcXStep < 1) {
+    if (m_SrcXStep == 0 && m_SrcXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcYStep < 1) {
+    if (m_SrcYStep == 0 && m_SrcYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcZStep < 1) {
+    if (m_SrcZStep == 0 && m_SrcZNum != 1) {
         RETURN_ASSERT(false);
     }
 
@@ -249,19 +249,19 @@ SerWaveOp::verifyActivation() const
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstXStep < 1) {
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstYStep < 1) {
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstZStep < 1) {
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
         RETURN_ASSERT(false);
     }
 
@@ -305,19 +305,19 @@ SerWaveOp::verifyActivation() const
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcXStep < 1) {
+    if (m_SrcXStep == 0 && m_SrcXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcYStep < 1) {
+    if (m_SrcYStep == 0 && m_SrcYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcZStep < 1) {
+    if (m_SrcZStep == 0 && m_SrcZNum != 1) {
         RETURN_ASSERT(false);
     }
 
@@ -342,19 +342,19 @@ SerWaveOp::verifyClipByValue() const
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstXStep < 1) {
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstYStep < 1) {
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstZStep < 1) {
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
         RETURN_ASSERT(false);
     }
 
@@ -396,19 +396,19 @@ SerWaveOp::verifyClipByValue() const
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcXStep < 1) {
+    if (m_SrcXStep == 0 && m_SrcXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcYStep < 1) {
+    if (m_SrcYStep == 0 && m_SrcYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcZStep < 1) {
+    if (m_SrcZStep == 0 && m_SrcZNum != 1) {
         RETURN_ASSERT(false);
     }
 
@@ -461,19 +461,19 @@ SerWaveOp::verifyResAdd() const
     if (m_SrcAXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcAXStep < 1) {
+    if (m_SrcAXStep == 0 && m_SrcAXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcAYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcAYStep < 1) {
+    if (m_SrcAYStep == 0 && m_SrcAYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcAZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcAZStep < 1) {
+    if (m_SrcAZStep == 0 && m_SrcAZNum != 1) {
         RETURN_ASSERT(false);
     }
 
@@ -492,19 +492,19 @@ SerWaveOp::verifyResAdd() const
     if (m_SrcBXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcBXStep < 1) {
+    if (m_SrcBXStep == 0 && m_SrcBXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcBYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcBYStep < 1) {
+    if (m_SrcBYStep == 0 && m_SrcBYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcBZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcBZStep < 1) {
+    if (m_SrcBZStep == 0 && m_SrcBZNum != 1) {
         RETURN_ASSERT(false);
     }
 
@@ -523,19 +523,19 @@ SerWaveOp::verifyResAdd() const
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstXStep < 1) {
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstYStep < 1) {
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstZStep < 1) {
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
         RETURN_ASSERT(false);
     }
 

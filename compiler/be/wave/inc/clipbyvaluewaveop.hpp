@@ -46,10 +46,10 @@ public:
         return m_SrcStartAtMidPart;
     }
 
-    kcc_int16 gSrcPsumBankId() const {
+    kcc_int32 gSrcPsumBankId() const {
         return m_SrcPsumBankId;
     }
-    kcc_int16 gSrcPsumBankOffset () const {
+    kcc_int32 gSrcPsumBankOffset () const {
         return m_SrcPsumBankOffset;
     }
 
@@ -84,10 +84,10 @@ public:
         return m_DstStartAtMidPart;
     }
 
-    kcc_int16 gDstPsumBankId() const {
+    kcc_int32 gDstPsumBankId() const {
         return m_DstPsumBankId;
     }
-    kcc_int16 gDstPsumBankOffset () const {
+    kcc_int32 gDstPsumBankOffset () const {
         return m_DstPsumBankOffset;
     }
 

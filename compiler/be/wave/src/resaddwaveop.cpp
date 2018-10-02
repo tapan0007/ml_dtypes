@@ -90,19 +90,19 @@ ResAddWaveOp::verify() const
     if (m_SrcAXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcAXStep < 1) {
+    if (m_SrcAXStep == 0 && m_SrcAXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcAYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcAYStep < 1) {
+    if (m_SrcAYStep == 0 && m_SrcAYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcAZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcAZStep < 1) {
+    if (m_SrcAZStep == 0 && m_SrcAZNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcAIsPsum) {
@@ -121,19 +121,19 @@ ResAddWaveOp::verify() const
     if (m_SrcBXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcBXStep < 1) {
+    if (m_SrcBXStep == 0 && m_SrcBXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcBYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcBYStep < 1) {
+    if (m_SrcBYStep == 0 && m_SrcBYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcBZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcBZStep < 1) {
+    if (m_SrcBZStep == 0 && m_SrcBZNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcBIsPsum) {
@@ -152,19 +152,19 @@ ResAddWaveOp::verify() const
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstXStep < 1) {
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstYStep < 1) {
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstZStep < 1) {
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstIsPsum) {

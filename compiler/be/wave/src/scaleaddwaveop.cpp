@@ -61,19 +61,19 @@ ScaleAddWaveOp::verify() const
     if (m_DstXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstXStep < 0) {
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstYStep < 0) {
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_DstZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_DstZStep < 0) {
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
         RETURN_ASSERT(false);
     }
     // "layername;
@@ -97,19 +97,19 @@ ScaleAddWaveOp::verify() const
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcXStep < 0) {
+    if (m_SrcXStep == 0 && m_SrcXNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcYNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcYStep < 0) {
+    if (m_SrcYStep == 0 && m_SrcYNum != 1) {
         RETURN_ASSERT(false);
     }
     if (m_SrcZNum < 1) {
         RETURN_ASSERT(false);
     }
-    if (m_SrcZStep < 0) {
+    if (m_SrcZStep == 0 && m_SrcZNum != 1) {
         RETURN_ASSERT(false);
     }
 

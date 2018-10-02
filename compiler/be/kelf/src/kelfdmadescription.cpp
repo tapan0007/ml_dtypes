@@ -412,6 +412,12 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
     version += utils::Git::gShaShort();
     j["version"] = version;
 
+    {
+        json jDebugInfo;
+        jDebugInfo[Keys::gWavegraph()] = m_WavegraphJson;
+        j[Keys::gDebugInfo()] = jDebugInfo;
+    }
+
     for (auto engId : engIds) {
         j[gEngineName(engId)] = gJsonFileName(engId);
     }
@@ -717,6 +723,16 @@ const char* DmaDescription::Keys::gHashTransferType()
 const char* DmaDescription::Keys::gHashFileName()
 {
     return "#file-name";
+}
+
+const char* DmaDescription::Keys::gDebugInfo()
+{
+    return "debug_info";
+}
+
+const char* DmaDescription::Keys::gWavegraph()
+{
+    return "wavegraph";
 }
 
 }}
