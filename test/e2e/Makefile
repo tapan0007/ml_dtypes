@@ -23,6 +23,7 @@
 # On ubuntu ML AMI use pip from AMI TF directory (DO NOT USE pip3 or detault pip):
 #   pip install graphviz pillow
 
+MKFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
 #KAENA_PATH = ../..
 OUT_PREFIX = "out_"
 NN_NAME = "jdr"
@@ -40,20 +41,32 @@ $(info KCC is ${KCC})
 $(info TF_PATH is ${TF_PATH})
 $(info DATA_TYPE is ${DATA_TYPE})
 
-## --debug 3
+KCC_COMMAND = $(KCC)/scripts/tffe --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(PB_FILE) --depth 5 --width 30 $(NN_ARGS)
+ifeq ($(SEALIFE), 1)
+  KCC_COMMAND = $(AWS_TONGA_SRC)/starfish/bin/kcc_tf --verbose 1 --tfpb $(PB_FILE)
+endif
 
+# Internal targets
+compile_pb:
+	$(KCC_COMMAND) > log-fe.txt 2>&1
+
+run_kelf:
+	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(PB_FILE) --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
+
+# Main test flow targets
 trivnet_%:
 	python3 ${KAENA_E2E}/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
 	export CUDA_VISIBLE_DEVICES=""; python3 $(TF_PATH)/python/tools/freeze_graph.py --input_graph $(OUT_PREFIX)graph.pb --input_checkpoint $(OUT_PREFIX)checkpoint.data --output_graph $(OUT_PREFIX)freeze.pb --output_node_names $(NN_NAME)/output
-	$(KCC)/scripts/tffe --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(OUT_PREFIX)freeze.pb --depth 5 --width 30 $(NN_ARGS) > log-fe.txt 2>&1
-	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(OUT_PREFIX)freeze.pb --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
+	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(OUT_PREFIX)freeze.pb
+	$(MAKE) -f $(MKFILE) run_kelf    PB_FILE=$(OUT_PREFIX)freeze.pb
+
 tf_pb:
-	$(KCC)/scripts/tffe --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(KAENA_EXT)/apps/tf/$(NN_CONFIG) --depth 5 --width 30 $(NN_ARGS) > log-fe.txt 2>&1
-	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(KAENA_EXT)/apps/tf/$(NN_CONFIG) --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
+	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(KAENA_EXT)/apps/tf/$(NN_CONFIG)
+	$(MAKE) -f $(MKFILE) run_kelf    PB_FILE=$(KAENA_EXT)/apps/tf/$(NN_CONFIG)
 
 ckpt_%:
 	python3 ${KAENA_E2E}/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
-	$(KCC)/scripts/tffe --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(OUT_PREFIX)model --depth 5 --width 30 $(NN_ARGS) > log-fe.txt 2>&1
+	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(OUT_PREFIX)model
 	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(OUT_PREFIX)model --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
 
 TEST_ARGS_CHECK = --test 0-1conv0_wave  3-rn50-t00_wave 3-rn50_pool2_wave 4-ptb_word_small1_host 3-rn50-13_wave 0-1conv1ba1_h4c2m2_wave 0-1conv0_qemu_wave 0-1conv0_b16_wave 0-1conv0_ckpt_wave 0-1conv_h4r1_b2_wave 0-1conv_h4r1_wave 0-1conv_tile_r1_wave 0-1conv_tile_r1h32_wave 0-4conv_relu_nne 0-116conv_tanh_wave 0-4conv_multiout_wave 5-rn50_nne_to_act4_wave-no_repl-t1_focus_to-qemu-all_layers

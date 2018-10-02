@@ -68,6 +68,7 @@ parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, op
 parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
 parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='store_true', default=False)
 parser.add_argument('--force_qemu', help='Apply additional --filer and various customization for Qemu flow, e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*, only wave tests and not fp32 are filtered', action='store_true', default=False)
+parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -491,7 +492,7 @@ class Ktests:
       print("%-20s  %-12s  %s" % (testName, nnStruct, nnConfig))
 
   # Run tests
-  def run(self, parallel, reportOnly, startSpacing, forceQemu):
+  def run(self, parallel, reportOnly, startSpacing, forceQemu, sealife):
     self.parallel = parallel
     start_time = time.time()
     self.numRunning = 0
@@ -523,8 +524,13 @@ class Ktests:
       rtArgs += ' --inkling_debugflags "%s"' % inklingArgs # add passed inkling args to rt Args
       mtMultiplier = 32
       ulimitCpuTimeout = self.testTimeout * mtMultiplier
-      cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s && make -f  $KAENA_PATH/test/e2e/Makefile %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (
-            ulimitCpuTimeout, ulimitCpuTimeout, testName, testName, nnStruct, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs) 
+      sealifeOpt = ""
+      if sealife:
+        sealifeOpt = "SEALIFE=1"
+      cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s &&' % (
+            ulimitCpuTimeout, ulimitCpuTimeout, testName, testName)
+      cmd += 'make -f  $KAENA_PATH/test/e2e/Makefile %s %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (
+             nnStruct, sealifeOpt, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs)
       cmd +=  ' > log-top.txt 2>&1'
       # Remove the old directory
       if not reportOnly:
@@ -908,7 +914,8 @@ else:
     test_list.testWaiver += test_list.qemuTestWaiver
 
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
-  elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0, args.force_qemu)
+  elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0,
+                             args.force_qemu, args.sealife)
   tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
   tests.report_junit_xml("RunAllReport.xml")
