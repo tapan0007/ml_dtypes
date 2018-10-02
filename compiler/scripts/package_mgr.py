@@ -92,7 +92,7 @@ class KPackageManager(object):
         return 0
              
 
-    def __check_and_get_files_list(self):
+    def get_files(self):
         ''' scans throgh the manifest dict and checks for all the required
         files.'''
         #check if the key exists for each engine and its pointing to .json file
@@ -127,7 +127,7 @@ class KPackageManager(object):
             return self.error_codes['MISSING_ENTRY']
         self.files_to_pack.extend(numpy_files_list)
         self.files_to_pack.append(self.manifest_file_name)
-        
+
         return 0
 
 
@@ -152,7 +152,7 @@ class KPackageManager(object):
         self.logger.debug('Looking for model files under {}', working_dir)
         os.chdir(working_dir)
         print('working dir: {}'.format(working_dir)) 
-        ret = self.__check_and_get_files_list()
+        ret = self.get_files()
         if ret:
             self.logger.error('failed to get files list..')
             return ret
@@ -165,20 +165,76 @@ class KPackageManager(object):
                 tar.add(f)
         print("{} file generated successfully...".format(self.kout_name))
         return 0
-        
+
+
+def create_kelf(model_dir, subgraphs, output_file=None):
+    """ Creates kelf package(tar.gz) for give subgraphs.
+
+        Walks all subgraph directories and gathers file list.
+        Creates model.json to describe the NN.
+        Create tar.gz with all required files.
+    """
+    assert subgraphs
+    assert os.path.isdir(model_dir)
+
+    if output_file is None:
+        output_file = os.path.join(model_dir, 'kelf.tar.gz')
+
+    model_info = {}
+    for sg in subgraphs:
+        sg_name = sg['SubGraphDir']
+        sg_info = {
+            'executor': sg['executor'],
+            'inputs': [sg_input['name'] for sg_input in sg['Inputs']],
+            'outputs': [sg_output['name'] for sg_output in sg['Outputs']]
+        }
+        model_info[sg_name] = sg_info
+
+    model_json = os.path.join('model.json')
+    with open(model_json, 'w') as f:
+        f.write(json.dumps(model_info, indent=4))
+
+    files_to_pack = []
+    for sg in model_info:
+        sg_dir = os.path.join(model_dir, sg)
+        assert os.path.isdir(sg_dir)
+        manifest_file = os.path.join(sg_dir, 'def.json')
+        # host sg's wont have def.json - silently ignore them till runtime supports it.
+        if not os.path.isfile(manifest_file):
+            continue
+        with open(manifest_file, 'r') as fd:
+            manifest = json.loads(fd.read())
+        sg_pkg = KPackageManager(manifest)
+        ret = sg_pkg.get_files()
+        assert ret == 0
+        for f in sg_pkg.files_to_pack:
+            files_to_pack.append(os.path.join(sg, f))
+
+    with tarfile.open(output_file, 'w:gz') as tar:
+        for f in files_to_pack:
+            tar.add(os.path.join(model_dir, f), arcname=f)
+        tar.add(model_json)
+    print('Created {}'.format(output_file))
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--manifest', help='path to def.json file', type=str,
-            required=True)
+    parser.add_argument('--manifest', help='Path to def.json of a single subgraph(packages only single subgraph).')
+    parser.add_argument('--model', help='Location of a model directory(package all subgraphs in the model).')
 
     args = parser.parse_args()
 
-    manifest = {}
-    with open(args.manifest, 'r') as fd:
-        manifest = json.loads(fd.read())
+    if args.manifest:
+        manifest = {}
+        with open(args.manifest, 'r') as fd:
+            manifest = json.loads(fd.read())
+        pkg_mgr = KPackageManager(manifest)
+        pkg_mgr.gen_pkg()
+    else:
+        nn_json = os.path.join(args.model, 'nn_graph.json')
+        with open(nn_json, 'r') as fd:
+            json_file = json.loads(fd.read())
+            subgraphs = json_file['SubGraphs']
+        create_kelf(args.model, subgraphs)
 
-    pkg_mgr = KPackageManager(manifest)
-    pkg_mgr.gen_pkg()
-
-if __name__ == 'main':
+if __name__ == '__main__':
     main()

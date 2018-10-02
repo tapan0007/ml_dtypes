@@ -237,6 +237,8 @@ if args.images != None:
     cmd = "%s/compiler/util/kelf2dot --json %s" % (kPath, nnGraphFile)
     print("INFO: executing", cmd)
     os.system(cmd)
+    import package_mgr
+    package_mgr.create_kelf(model_dir=os.getcwd(), subgraphs=sgJsonList)
 
     # K-elf compilation is done. Make output directory read/execute only
     #if debugLevel > 0:
