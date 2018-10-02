@@ -115,7 +115,7 @@ parser.add_argument('--action', help='Default is inference, others are: start_po
 parser.add_argument('--vdi', help='Path to virtual disk image for the qemu VM. It can be file or S3 URL including options, the default is ' + defaultVdi, default=defaultVdi)
 parser.add_argument('--port', help='SSH port for the qemu VM', type=int, default=5555)
 parser.add_argument('--pool', help='Port range that defines Qemu process pool', type=int, nargs='+', default=[])
-parser.add_argument('--mem', help='Memory for the qemu VM, default 512MB', type=int, default=512)
+parser.add_argument('--mem', help='Memory for the qemu VM, default 1024MB', type=int, default=1024)
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
 parser.add_argument('--sg', help='Subgraph label for identifying which SG executes', default=None)
 parser.add_argument('--ifmaps', help='List of input images in sim ifmap format', nargs='+', default=None)
