@@ -360,13 +360,17 @@ class KgraphPart(object):
   def colorNodesFrom(self, fromNodeList):
     sourceGraph = self.__kgraph
     fromNodeSet = set(fromNodeList)
+    usedFromNodeSet = set()
     edgeQueue = []
     visitedNodes = {}
     inputNodes = sourceGraph.getInputNodes()
     color = self.getNewColor()
     for n in inputNodes:
       self.setNodeColor(n, color)
-    edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesFrom set input node color 0        %-12s %s" %
+              (n.getOpType(), n.getName()))
+      edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
     while len(edgeQueue) > 0:
       e,color = edgeQueue.pop(0)
       n = e.getToNode()
@@ -378,6 +382,7 @@ class KgraphPart(object):
               (n.getOpType(), n.getName()))
       # Coloring
       if n.getName() in fromNodeSet:
+        usedFromNodeSet.add(n.getName())
         color = self.getNewColor()
         self.setNodeColor(n, color)
       else:
@@ -387,6 +392,9 @@ class KgraphPart(object):
       if self.debugLevel > 0:
         print("DEBUG: colorNodesFrom setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
+    for n in fromNodeSet:
+      if not n in usedFromNodeSet:
+        raise ValueError("ERROR: unused node %s in --partition from. Make sure the node exists and is not input (use next node)" % n)
 
   # Color nodes to define subgraph partitions - start new partition from a multi node
   # The from list defines multi-nodes (cut levels) as comma-separated nodes
@@ -399,13 +407,17 @@ class KgraphPart(object):
       for n in cutNodes:
         node2cut[n] = cut
       cut2color[cut] = None
+    usedCutNodeSet = set()
     edgeQueue = []
     visitedNodes = {}
     inputNodes = sourceGraph.getInputNodes()
     color = self.getNewColor()
     for n in inputNodes:
       self.setNodeColor(n, color)
-    edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
+      if self.debugLevel > 0:
+        print("DEBUG: colorNodesFromMulti set input node color 0        %-12s %s" %
+              (n.getOpType(), n.getName()))
+      edgeQueue += [(e, color) for e in n.getFanoutMainFlowEdges()]
     while len(edgeQueue) > 0:
       e,color = edgeQueue.pop(0)
       n = e.getToNode()
@@ -417,6 +429,7 @@ class KgraphPart(object):
               (n.getOpType(), n.getName()))
       # Coloring
       if n.getName() in node2cut:
+        usedCutNodeSet.add(n.getName())
         cut = node2cut[n.getName()]
         if cut2color[cut] == None:
           color = self.getNewColor()
@@ -431,6 +444,9 @@ class KgraphPart(object):
       if self.debugLevel > 0:
         print("DEBUG: colorNodesFromMulti setColor %d on %-12s %s" %
               (self.getNodeColor(n), n.getOpType(), n.getName()))
+    for n in node2cut:
+      if not n in usedCutNodeSet:
+        raise ValueError("ERROR: unused node %s in --partition from_multi. Make sure the node exists and is not input (use next node)" % n)
 
   # Overrides existing colors using Node Color .Node1 Color1 ... list
   def adjustColor(self, nodeColorAdjustment):

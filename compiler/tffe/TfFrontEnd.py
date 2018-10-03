@@ -323,9 +323,9 @@ class TfFe:
           exit(1)
     assert len(inputNodes) > 0
     self.__kg.setInputNodes(inputNodes)
-    inputTfOpName = inputNodes[0].getAttr("tfop").name
     
     inputFeedDict = self.inputConst2dict(inputConstants)
+    inputOverrideDict = {}
     
     # Grow GPU memory as needed at the cost of fragmentation.
     config = tf.ConfigProto()
@@ -336,41 +336,53 @@ class TfFe:
       tf.import_graph_def(self.__gd, name="")
     with self.sess.as_default() as sess:
       graph = sess.graph
-      inputOp = graph.get_operation_by_name(inputTfOpName)
-      inputTensor = inputOp.outputs[0]
-      inputShape = inputTensor.get_shape().as_list()
-      shapeXY = inputShape[1:3]
-      inputType = inputTensor.dtype.as_numpy_dtype()
       
-      # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
-      if len(inputShape) > 0:
-        if inputShape[0] == None:
-          inputShape[0] = self.batch
+      # Batched proprocessor uses individual images. TO_DO: need multi-input preoprocessor UI
+      if preprocessor == "" and len(inputNodes) != len(imageFiles):
+        raise ValueError("ERROR: provide %d items in --images" % len(inputNodes))
+      for i in range(len(inputNodes)):
+        inputNode = inputNodes[i]
+        imageFile = imageFiles[i]
+        print("INFO: generating input image %d for node %s  using %s" % (i, inputNode.getName(), imageFile)) 
+       
+        inputTfOpName = inputNode.getAttr("tfop").name
+        inputOp = graph.get_operation_by_name(inputTfOpName)
+        inputTensor = inputOp.outputs[0]
+        inputShape = inputTensor.get_shape().as_list()
+        shapeXY = inputShape[1:3]
+        inputType = inputTensor.dtype.as_numpy_dtype
 
-      imageFile = imageFiles[0]
-      if imageFile.endswith(".npy"):
-        img = np.load(imageFile)
-      elif imageFile == "linear":
-        unusedArr = np.ndarray(inputShape)
-        img = np.arange(unusedArr.size, dtype=inputType).reshape(inputShape)
-        print("INFO: generated linear input=\n", img)
-      elif imageFile == "linspace1":
-        unusedArr = np.ndarray(inputShape)
-        img = np.linspace(0, 1, num=unusedArr.size, dtype=inputType).reshape(inputShape)
-        print("INFO: generated linear input=\n", img)
-      elif " " in imageFile:
-        img = np.fromstring(imageFile, dtype=inputType, sep=" ")
-      else:
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix='.npy') as ntf:
-          tfName = ntf.name
-          cmd = "{cmd} {args} --inputs {images} --output {output}".format(cmd=preprocessor, args=preprocessor_args,
-                                                                          images=' '.join(imageFiles), output=tfName)
-          print("INFO: Running preprocessor:: ", cmd)
-          os.system(cmd)
-          img = np.load(tfName)
+        # Handle resnet50 input shape without batching, e.g.,[None, 32, 32, 3]
+        if len(inputShape) > 0:
+          if inputShape[0] == None:
+            inputShape[0] = self.batch
 
-      img = img.reshape(inputShape)
+        if imageFile.endswith(".npy"):
+          img = np.load(imageFile)
+        elif imageFile == "linear":
+          unusedArr = np.ndarray(inputShape)
+          img = np.arange(unusedArr.size, dtype=inputType).reshape(inputShape)
+          print("INFO: generated linear input=\n", img)
+        elif imageFile == "linspace1":
+          unusedArr = np.ndarray(inputShape)
+          img = np.linspace(0, 1, num=unusedArr.size, dtype=inputType).reshape(inputShape)
+          print("INFO: generated linear input=\n", img)
+        elif " " in imageFile:
+          img = np.fromstring(imageFile, dtype=inputType, sep=" ")
+        else:
+          import tempfile
+          with tempfile.NamedTemporaryFile(suffix='.npy') as ntf:
+            tfName = ntf.name
+            cmd = "{cmd} {args} --inputs {images} --output {output}".format(cmd=preprocessor, args=preprocessor_args,
+                                                                            images=' '.join(imageFiles), output=tfName)
+            print("INFO: Running preprocessor:: ", cmd)
+            os.system(cmd)
+            img = np.load(tfName)
+
+        img = img.reshape(inputShape)
+        inputOverrideDict.update({inputTensor.name : img.copy()})
+        print("INFO: generated input image for node %s of shape %s and type %s" % (inputNode.getName(), img.shape, img.dtype)) 
+        
 
       tfVars = []
       kNodes = []
@@ -439,7 +451,7 @@ class TfFe:
       if self.debugLevel > 0:
         print("DEBUG: tensor names: %s" % tfVars)
       numImages = 0
-      inputFeedDict.update({inputTensor.name : img})
+      inputFeedDict.update(inputOverrideDict)
       #tfVars = ['dropout_1/keras_learning_phase:0']
       
       # For --exclude_ops_from_capture
