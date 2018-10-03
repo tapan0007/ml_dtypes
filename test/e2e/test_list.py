@@ -565,14 +565,14 @@ testConfigMap = {
   "5-parwavenet_10_fp16_in_to_add1_wave" : [ "tf_pb",   
           "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb",
           "parallel_wavenet",
-          "--input_node Placeholder sub_1 --focus_to add_1 --show_op_name_in_kgraph --depth -1 "
+          "--level_order_seed 0 --input_node Placeholder sub_1 --focus_to add_1 --show_op_name_in_kgraph --depth -1 "
           + "--executors host all wave 0 --scheduler wave2 --schedule_options ' --nname=generic --no_verify' "
-          + "--images %s linspace1 linspace1"%melSpectra, "--input_files %s trivnet_Squeeze:0.npy trivnet_Squeeze_1:0.npy"%melSpectra],
+          + "--images %s linspace1 linspace1"%melSpectra, "--input_files %s trivnet_Squeeze_1:0.npy trivnet_Squeeze:0.npy"%melSpectra],
 
   "5-parwavenet_10_fp16_in_to_add2_wave" : [ "tf_pb",   
           "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", 
           "parallel_wavenet", 
-          "--input_node Placeholder sub_1 --focus_to add_2 --show_op_name_in_kgraph --depth -1 "
+          "--level_order_seed 0 --input_node Placeholder sub_1 --focus_to add_2 --show_op_name_in_kgraph --depth -1 "
           + "--executors host all wave 0 --scheduler wave2 --schedule_options ' --nname=generic --no_verify' --waive_wavegraph_checks "
           + "--images %s linspace1 linspace1"%melSpectra, "--input_files %s trivnet_Squeeze:0.npy trivnet_Squeeze_1:0.npy"%melSpectra],
 

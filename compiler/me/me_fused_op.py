@@ -2330,7 +2330,7 @@ class FusedOp(list):
                 else:
                     residue_file_params = first_op.prev[first_op.residue_index].ofmaps_file_params
                     if residue_file_params.mapped_params.start_addr == ofmap_tile.file_params.mapped_params.start_addr:
-                        if not self[i].is_input:
+                        if not first_op.is_input:
                             residue_file_params.mapped_params.modify_in_place = True
                     residue_tile = copy.copy(ifmap_tile)
                     residue_tile.file_params = residue_file_params
