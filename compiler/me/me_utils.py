@@ -16,6 +16,7 @@ import os.path
 import copy
 from enum import Enum
 from me_models import PEArray
+from functools import reduce
 
 #np.set_printoptions(precision=3)
 #np.set_printoptions(threshold=np.nan)
@@ -593,6 +594,9 @@ class FileParams():
         self.consumers = []
         self.compute_params(op_params, args)
         self.chunk_alignment_info = []
+        self.unstack_from_file  = None
+        self.unstack_from_file_shape = []
+        self.unstack_start_addr = 0
 
     def load_file(self):
         if (self.file_name != None):
@@ -810,7 +814,7 @@ class MappedParams():
     def init_consumers (self, consumers):
         # FIXME: what happens during batching, when the mapping is used again
         # (init is only called once)
-        print("taemk::MappedParams::init_consumers::readers ", end = "")
+        #print("taemk::MappedParams::init_consumers::readers ", end = "")
         for r in consumers:
             print ("%s "%r.data['layer_name'], end="")
             self.consumed_by_readers[r] = False
@@ -954,7 +958,7 @@ class FileMapper():
         if end_addr >= self.sb_partition_sz:
             raise RuntimeError("End address %d falls outside partition size %d"%(end_addr, self.sb_partition_sz))
         # Save mapped information            
-        print("taemk::FileParams to be consumed = %s"%file_params.file_name)
+        #print("taemk::FileParams to be consumed = %s"%file_params.file_name)
         file_params.mapped_params = MappedParams(file_params.file_dims.N, start_addr, adj_region_sz, num_region_chunks, file_params.batch_item_num_chunks, end_addr, modify_in_place, file_params.consumers)
         # Save file params in a list
         self.file_params_list[file_params.file_id] = file_params
@@ -1005,7 +1009,9 @@ class FileMapper():
         addr_adj    = addr - batch_item * file_params.file_addr_skip_per_batch_item
         fold_idx    = addr_adj // file_params.file_addr_skip_per_fmap_fold 
         fold_offset = addr_adj % file_params.file_addr_skip_per_fmap_fold 
-        chunk_offset = fold_offset % file_params.chunk_sz
+        # only consider fold_offset in partition 0 (take care of cases where channel starts in mid partition) 
+        fold_offset_part0 = fold_offset % file_params.fmap_data_len
+        chunk_offset = fold_offset_part0 % file_params.chunk_sz
         return chunk_offset
 
     def get_chunk_len_from_chunk_id (self, file_params, batch_item, chunk_id):
@@ -1105,53 +1111,54 @@ class FileMapper():
             new_morsel_rd = SbMorsel(-1, file_params.file_id, i, batch_item)
             eviction_dict.clear()
             #print("INFO SB TRACE: batch item %d: Writer waveop ID %d is writing chunk_id %d (full chunk SB range %d-%d, write SB range %d-%d) of file %s"%(batch_item, waveop_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name))
-            for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
-                sb_addr = j
-                if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) \
-                        or (file_params.args is not None and file_params.args.relax_dependencies):
-                    #for k in (range(1,2) if start_at_mid_part else range(0,1)):    
-                    # TODO: more fine-grain tracking at 64-parition granularity
-                    for k in (range(2)):
-                        old_morsel_wr = self.morsels_wr[k][sb_addr]
-                        old_morsel_rd = self.morsels_rd[k][sb_addr]
-                        # return last of wniters/readers for dependency
-                        if old_morsel_wr.accessor_id not in list_of_writers_per_chunk:
-                            list_of_writers_per_chunk.append(old_morsel_wr.accessor_id)
-                        if old_morsel_rd.accessor_id not in list_of_readers_per_chunk:
-                            list_of_readers_per_chunk.append(old_morsel_rd.accessor_id)
-                        # TODO: review the following with Taemin regarding eviction
-                        if (old_morsel_wr.accessor_id != waveop_id):
-                            last_w_id = last_writer_except_current_waveop
-                            last_writer_except_current_waveop =\
-                                    max(last_w_id,old_morsel_wr.accessor_id)
-                        # Evict old owner                    
-                        file_id = old_morsel_wr.file_id
-                        chunk_id = old_morsel_wr.chunk_id
-                        owner_batch_item = old_morsel_wr.batch_item
-                        if file_id in self.file_params_list:
-                            if (file_id != file_params.file_id) or (chunk_id != i):
-                                # taemk : when SB region for chunk i has been
-                                # updated by other file_param, we need to evict it.
-                                # Thus, we collect such file params here.
-                                self.GetEvictionChunk(file_id\
-                                                      , chunk_id\
-                                                      , eviction_dict)
-                                #self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
-                        elif file_id != -1:
-                            raise RuntimeError("File ID %d not found in list of file_params"%(file_id))
-                        # Tag the morsel with the morsel writer
-                        self.morsels_wr[k][sb_addr] = new_morsel_wr
-                        # Clear the previous morsel reader
-                        self.morsels_rd[k][sb_addr] = new_morsel_rd
-                # if data is not in SB, map region
-                if not file_params.mapped_params.chunk_is_mapped[i]:
-                    file_params.mapped_params.chunk_is_mapped[i] = True
-                # taemk : Tracking the dirtiness of a chunk
-                file_params.mapped_params.dirty[i] = True
+            if waveop_id >= 0:
+                for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
+                    sb_addr = j
+                    if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) \
+                            or (file_params.args is not None and file_params.args.relax_dependencies):
+                        #for k in (range(1,2) if start_at_mid_part else range(0,1)):    
+                        # TODO: more fine-grain tracking at 64-parition granularity
+                        for k in (range(2)):
+                            old_morsel_wr = self.morsels_wr[k][sb_addr]
+                            old_morsel_rd = self.morsels_rd[k][sb_addr]
+                            # return last of wniters/readers for dependency
+                            if old_morsel_wr.accessor_id not in list_of_writers_per_chunk:
+                                list_of_writers_per_chunk.append(old_morsel_wr.accessor_id)
+                            if old_morsel_rd.accessor_id not in list_of_readers_per_chunk:
+                                list_of_readers_per_chunk.append(old_morsel_rd.accessor_id)
+                            # TODO: review the following with Taemin regarding eviction
+                            if (old_morsel_wr.accessor_id != waveop_id):
+                                last_w_id = last_writer_except_current_waveop
+                                last_writer_except_current_waveop =\
+                                        max(last_w_id,old_morsel_wr.accessor_id)
+                            # Evict old owner                    
+                            file_id = old_morsel_wr.file_id
+                            chunk_id = old_morsel_wr.chunk_id
+                            owner_batch_item = old_morsel_wr.batch_item
+                            if file_id in self.file_params_list:
+                                if (file_id != file_params.file_id) or (chunk_id != i):
+                                    # taemk : when SB region for chunk i has been
+                                    # updated by other file_param, we need to evict it.
+                                    # Thus, we collect such file params here.
+                                    self.GetEvictionChunk(file_id\
+                                                          , chunk_id\
+                                                          , eviction_dict)
+                                    #self.file_params_list[file_id].mapped_params.chunk_is_mapped[chunk_id] = False
+                            elif file_id != -1:
+                                raise RuntimeError("File ID %d not found in list of file_params"%(file_id))
+                            # Tag the morsel with the morsel writer
+                            self.morsels_wr[k][sb_addr] = new_morsel_wr
+                            # Clear the previous morsel reader
+                            self.morsels_rd[k][sb_addr] = new_morsel_rd
+            # if data is not in SB, map region
+            if not file_params.mapped_params.chunk_is_mapped[i]:
+                file_params.mapped_params.chunk_is_mapped[i] = True
+            # taemk : Tracking the dirtiness of a chunk
+            file_params.mapped_params.dirty[i] = True
             list_of_writers += list_of_writers_per_chunk                
             list_of_readers += list_of_readers_per_chunk                
 
-            if (self.enable_eviction == True):
+            if (self.enable_eviction == True and waveop_id >= 0):
                 prev_waveops = []
                 latest_accessor = max(list_of_writers + list_of_readers)
                 # allow for the fact that when generating matmul waveops, there could be read to the same space before waveop is added to waveop_list
@@ -1635,21 +1642,14 @@ class FileMapper():
         else:            
             assert(last_byte_offset < file_params.file_sz)
 
-        # collect stats
-        #if (args.debug > 1):
-        #    self.DRAM_elem_read += length * fmap_count / self.item_sz
-        #    self.DRAM_atoms_read += 1
-        #    self.circbuf_stats.sb_all_channels_memcpys_in += fmap_count
-        #    if (length < self.atom_data_sz):
-        #        self.DRAM_atoms_read_short += 1
-        #print("gen_dram_read_waveop - DRAM_elem_read: ", self.DRAM_elem_read, "length: ", length, "fmap_count: ",fmap_count)
-        #print("fmap_data_len",fmap_data_len, "atom_data_sz",self.atom_data_sz)
-        #print("chunk_id", chunk_id, "offset", offset)
-        #if (args.golden_inputs):            
-        #    simout_file = self.dram_data_in_file.replace("-midout.", ".")
-        #else:            
-        #    simout_file = self.dram_data_in_file.replace("-midout.", "-simout.")
         simout_file = file_params.file_name.replace("-midout.", "-simout.")
+        simout_file_sz = file_params.file_sz
+        simout_file_shape = file_params.file_dims.shape_tuple
+        if file_params.unstack_from_file is not None:
+            simout_file = file_params.unstack_from_file
+            simout_file_sz = reduce(lambda x,y: x*y, file_params.unstack_from_file_shape) * file_params.item_sz
+            simout_file_shape = file_params.unstack_from_file_shape
+            offset_in_file += file_params.unstack_start_addr
         waveop_name = simout_file.replace(":", "__") + "_%d"%(chunk_id)
         #assert_align_addr_sb_write(file_params.fmap_data_len)
         assert_align_addr_sb_write(sb_addr)
@@ -1662,9 +1662,9 @@ class FileMapper():
               'data_type'        : file_params.data_type,
               'contain_weights'  : file_params.contain_weights,
               'ref_file'         : simout_file,
-              'ref_file_sz'      : file_params.file_sz,
+              'ref_file_sz'      : simout_file_sz,
               'ref_file_format'  : file_params.file_dims.format_str,
-              'ref_file_shape'   : file_params.file_dims.shape_tuple,
+              'ref_file_shape'   : simout_file_shape,
               'offset_in_file'   : offset_in_file,
               'length'           : length,
               'start_at_mid_part' : False,  # TODO: is this always false for loads?

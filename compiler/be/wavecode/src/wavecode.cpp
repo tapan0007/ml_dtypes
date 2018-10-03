@@ -101,7 +101,7 @@ WaveCode::determinePrecSbEdges()
                     loadWop->rEngineId(EngineId::Pooling);
                 }
             } else {
-                Assert(false, "Waveop without input edges must be Load");
+                Assert(false, "Waveop without input edges (", sbWop->gName(), ") is not Load");
                 sbWop->rEngineId(EngineId::Pooling);
             }
 

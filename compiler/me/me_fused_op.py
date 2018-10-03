@@ -39,14 +39,14 @@ def DBG_DUMP_PSUM_COL(msg, psum, col):
 """PE array wave of a tile
 """
 class PEWave:
-    def __init__(self, tile, c_id, r_id, s_id, strided_channel_offset=0):
+    def __init__(self, tile, c_id, r_id, s_id, stridedslice_chan_offset=0):
         self.format = "nmhwcrs"
         self.tile = tile
         self.c_id, self.r_id, self.s_id = c_id, r_id, s_id
         self.id_array = self.tile.id_array  + [self.c_id, self.r_id, self.s_id]
         self.id_string = self.tile.id_string + "_c%d_r%d_s%d"%(self.c_id, self.r_id, self.s_id)
-        self.ifmap_channel_start = self.c_id * PEArray.NUM_ROWS + strided_channel_offset
-        self.ifmap_channel_stop = min(self.tile.file_params.file_dims.C + strided_channel_offset,
+        self.ifmap_channel_start = self.c_id * PEArray.NUM_ROWS + stridedslice_chan_offset
+        self.ifmap_channel_stop = min(self.tile.file_params.file_dims.C,
                                       self.ifmap_channel_start + PEArray.NUM_ROWS)
         self.ifmap_channel_count = self.ifmap_channel_stop - self.ifmap_channel_start
         self.subtile_psum_offset = 0
@@ -67,40 +67,19 @@ class PEWave:
         if not self.subtile_rect.is_empty:
             for z in range(self.tile.Tn):
                 if self.tile.is_pe_input:
-                    c_id = self.c_id
+                    channel_start = self.ifmap_channel_start
                 else:
-                    c_id = self.tile.m_id // 2
+                    channel_start = self.tile.channel_start
                 lower_addrs[z] = (self.tile.file_params.ravel_nchw(
                     self.tile.n_id * self.tile.Tn + z,
-                    c_id * PEArray.NUM_ROWS,
+                    channel_start,
                     self.subtile_rect.lower.y,
                     self.subtile_rect.lower.x))
                 upper_addrs[z] = (self.tile.file_params.ravel_nchw(
                     self.tile.n_id * self.tile.Tn + z,
-                    c_id * PEArray.NUM_ROWS,
+                    channel_start,
                     self.subtile_rect.upper.y,
                     self.subtile_rect.upper.x))
-        return (lower_addrs, upper_addrs)
-
-    def get_file_addrs(self):
-        lower_addrs = [-1 for z in range(self.tile.Tn)]
-        upper_addrs = [-1 for z in range(self.tile.Tn)]
-        if not self.tile.tile_rect.is_empty:
-            for z in range(self.tile.Tn):
-                if self.tile.is_pe_input:
-                    c_id = self.c_id
-                else:
-                    c_id = self.tile.m_id // 2
-                lower_addrs[z] = (self.tile.file_params.ravel_nchw(
-                    self.tile.n_id * self.tile.Tn + z,
-                    c_id * PEArray.NUM_ROWS,
-                    self.tile.tile_rect.lower.y,
-                    self.tile.tile_rect.lower.x))
-                upper_addrs[z] = (self.tile.file_params.ravel_nchw(
-                    self.tile.n_id * self.tile.Tn + z,
-                    c_id * PEArray.NUM_ROWS,
-                    self.tile.tile_rect.upper.y,
-                    self.tile.tile_rect.upper.x))
         return (lower_addrs, upper_addrs)
 
     def get_subtile_data_from_file(self, flatten=False):
@@ -176,7 +155,7 @@ class PoolSubtile(PEWave):
 """
 class Tile:
 
-    def __init__(self, tile_id, file_params, Tn, is_ifmap=False, is_pe_input=False):
+    def __init__(self, tile_id, file_params, Tn, is_pe_input=False, stridedslice_chan_offset=0):
         self.format = "nmhw"
         (self.n_id, self.m_id, self.h_id, self.w_id, self.n, self.m, self.h, self.w) = tile_id
         self.id_array = [self.n_id, self.m_id, self.h_id, self.w_id]
@@ -186,12 +165,12 @@ class Tile:
         self.file_params = file_params
         self.Tn = Tn
         self.batch_item_start = self.n_id * Tn
-        self.is_ifmap = is_ifmap
         self.is_pe_input = is_pe_input
-        self.channel_start = self.m_id * PEArray.NUM_COLS
+        self.channel_start = self.m_id * PEArray.NUM_COLS + stridedslice_chan_offset
         self.channel_stop = min(self.file_params.file_dims.C, self.channel_start + PEArray.NUM_COLS)
         self.channel_count = self.channel_stop - self.channel_start
         self.start_at_mid_part = (self.m_id % 2) == 1
+        self.stridedslice_chan_offset = stridedslice_chan_offset
         self.n_start = self.n_id * self.Tn
         self.n_stop  = min(self.file_params.file_dims.N, self.n_start + self.Tn)
         #FIXME
@@ -199,14 +178,18 @@ class Tile:
 
     def copy(self):
         tile_id = (self.n_id, self.m_id, self.h_id, self.w_id, self.n, self.m, self.h, self.w)
-        new_tile = Tile(tile_id, self.file_params, self.Tn, self.is_ifmap, self.is_pe_input)
+        new_tile = Tile(tile_id, 
+                        self.file_params, 
+                        self.Tn, 
+                        is_pe_input=self.is_pe_input, 
+                        stridedslice_chan_offset=self.stridedslice_chan_offset)
         new_tile.tile_rect = self.tile_rect
         new_tile.padded_tile_rect = self.padded_tile_rect
         new_tile.mepoolspec = self.mepoolspec
         return new_tile
 
-    def make_pewave(self):
-        return PEWave(self, 0, 0, 0)
+    def make_pewave(self, stridedslice_chan_offset=0):
+        return PEWave(self, 0, 0, 0, stridedslice_chan_offset)
 
     def get_fmap_coord(self, tile_sz):
         x = self.w_id * tile_sz.x
@@ -372,6 +355,7 @@ class FusedOp(list):
         self.prev_weight_wave_lower_addr = -1
         self.num_pearray_inputs_dumps = args.dump_pearray_inputs
         self.args = args
+        self.no_writer_for_save = False
         self.ofmap_is_for_join = False
         self.residue_in_scratch = False
         # "pairup" is the region or boundary where OFMAP shrinks by 1/4 and partial-batch count doubles.
@@ -480,7 +464,7 @@ class FusedOp(list):
         print("DBG: fused_ops collected: (ofmap_is_for_join %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, residue_in_scratch %d)"\
                 %(self.ofmap_is_for_join, self.partial_batch_pre_pairup, self.partial_batch_pairup, self.residue_in_scratch))
         for i in self:
-            print("    ", i.data["layer_type"],":",i.data["layer_name"], )
+            print("    ", i.data["layer_type"],":",i.data["layer_name"], "(end op)" if i.next == [] else "")
 
     # We allocate space in SB for files generated during execute
     def map_files_gen_during_exec(self, tpb, file_params):
@@ -807,9 +791,15 @@ class FusedOp(list):
             # OFMAPs region
             if ofmaps_file_params.mapped_params is None:
                 if self.first_op.is_nop:
-                    ofmaps_region_start_addr = ifmaps_region_start_addr \
-                                                + self.first_op.slice_offset.x * self.first_op.item_sz \
-                                                + self.first_op.slice_offset.y * self.first_op.item_sz * self.first_op.W 
+                    if self.first_op.ifmaps_file_params.file_dims.format_str == 'HNWC':
+                        assert(self.first_op.slice_offset.x == 0), "Unstacking HNWC: only slicing in H dimension allowed"
+                        ofmaps_region_start_addr = ifmaps_region_start_addr \
+                                                    + self.first_op.slice_offset.y \
+                                                        * self.first_op.ofmaps_file_params.tot_partition_usage_sz_padded
+                    else:                                                    
+                        ofmaps_region_start_addr = ifmaps_region_start_addr \
+                                                    + self.first_op.slice_offset.x * self.first_op.item_sz \
+                                                    + self.first_op.slice_offset.y * self.first_op.item_sz * self.first_op.W 
                 elif self.has_join and len(self.last_op.ofmaps_file_params.writers_of_shared_fmap) > 1 \
                         and not self.join_op.is_input:
                     residue_op = self.join_op.prev[self.join_op.residue_index]                
@@ -954,7 +944,7 @@ class FusedOp(list):
             raise RuntimeError("ERROR: Unrecognized first operation %s"%first_op_type)
 
         # Check computed results against pre-computed results and save data
-        # only if there's at least one node, and first node is not Placeholder or NOP (simple Reshape, etc.)
+        # only if there's at least one node, and first node is not Placeholder
         if len(self) > 0 and not self.first_op.is_placeholder:
             # Check last output result, unless verify_output_only=False
             if self.last_op.next == [] or not self.args.verify_output_only:
@@ -981,7 +971,7 @@ class FusedOp(list):
                                 tpb.num_mismatches += 1
 
             # Save results for network output or we want to save debug intermediate results
-            if self.last_op.next == [] or self.args.save_layer_output:
+            if self.last_op.next == [] or self.args.save_layer_output and not self.no_writer_for_save:
                 last_batch_item = batch_item + self.first_op.Tn
                 for i in range(batch_item, last_batch_item):
                     waveops = tpb.statebuffer.file_mapper.flush_file(
@@ -1311,7 +1301,9 @@ class FusedOp(list):
                                             )
 
                 if self.args.no_inter_layer_load:
-                    if (not self.conv_op.is_input and len(waveops) > 0):
+                    if (not self.conv_op.is_input 
+                            and self.conv_op.ifmaps_file_params.unstack_from_file is None
+                            and len(waveops) > 0):
                         raise RuntimeError("There are DRAM loads when option no_inter_layer_load is set")
                 if (self.args.debug > 2): print("DBG %s: MatMul ifmaps_wave_lower_addr %d ifmap_pewave rect "%(self.conv_op.data['layer_name'], ifmap_pewave.lower_addr[z]), ifmap_pewave.subtile_rect)
                 dram_ifmaps_waveops += waveops
@@ -1899,8 +1891,9 @@ class FusedOp(list):
                 for h_id in range(self.conv_op.h):
                     for w_id in range(self.conv_op.w):
                         tile_id = (n_id, m_id, h_id, w_id, self.conv_op.n, self.conv_op.m, self.conv_op.h, self.conv_op.w)
-                        ifmap_tile = Tile(tile_id, self.conv_op.ifmaps_file_params, self.conv_op.Tn, is_ifmap=True, is_pe_input=True)
-                        ofmap_tile = Tile(tile_id, self.conv_op.ofmaps_file_params, self.conv_op.Tn, is_ifmap=False, is_pe_input=False)
+                        ifmap_tile = Tile(tile_id, self.conv_op.ifmaps_file_params, self.conv_op.Tn, is_pe_input=True,
+                                            stridedslice_chan_offset = self.conv_op.stridedslice_chan_offset)
+                        ofmap_tile = Tile(tile_id, self.conv_op.ofmaps_file_params, self.conv_op.Tn, is_pe_input=False)
                         self.conv_op.compute_ifmap_ofmap_tile_info(ifmap_tile, ofmap_tile)
                         # compute ofmap tile information (tile startx, starty, height, width)
                         # loops for constructing a tile
@@ -1974,7 +1967,8 @@ class FusedOp(list):
 
     def execute_pool_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_dst):
         first_op = self.first_op
-        ifmaps_data = first_op.pack_wave_ifmaps_unfused_pooling(ifmap_tile.file_params.dram_data, ifmap_tile.make_pewave())
+        ifmap_subtile = ifmap_tile.make_pewave(self.first_op.stridedslice_chan_offset)
+        ifmaps_data = first_op.pack_wave_ifmaps_unfused_pooling(ifmap_tile.file_params.dram_data, ifmap_subtile)
         input_tilex = ifmap_tile.tile_rect.dim2d.x
         input_tiley = ifmap_tile.tile_rect.dim2d.y
         output_tiley = first_op.ofmap_full_tiley_sz
@@ -2290,7 +2284,7 @@ class FusedOp(list):
                             residue_file_params.mapped_params.modify_in_place = True
                     residue_tile = copy.copy(ifmap_tile)
                     residue_tile.file_params = residue_file_params
-                    residue_subtile = PEWave(residue_tile, 0, 0, 0)
+                    residue_subtile = PEWave(residue_tile, 0, 0, 0, first_op.stridedslice_chan_offset)
                     (_, dram_resadd_waveops, reader_morsels) = self.get_producers_for_subtile_region(tpb, residue_subtile)
                     new_reader_morsels += reader_morsels
                     residue_file_addr = residue_file_params.ravel_nchw(
@@ -2344,8 +2338,9 @@ class FusedOp(list):
             for h_id in range(first_op.h):
                 for w_id in range(first_op.w):
                     tile_id = (n_id, m_id, h_id, w_id, first_op.n, first_op.m, first_op.h, first_op.w)
-                    ifmap_tile = Tile(tile_id, self.first_op.ifmaps_file_params, self.first_op.Tn, is_ifmap=True, is_pe_input=False)
-                    ofmap_tile = Tile(tile_id, self.last_op.ofmaps_file_params, self.last_op.Tn, is_ifmap=False, is_pe_input=False)
+                    ifmap_tile = Tile(tile_id, self.first_op.ifmaps_file_params, self.first_op.Tn, is_pe_input=False,
+                                        stridedslice_chan_offset = first_op.stridedslice_chan_offset)
+                    ofmap_tile = Tile(tile_id, self.last_op.ofmaps_file_params, self.last_op.Tn, is_pe_input=False)
                     self.first_op.compute_ifmap_ofmap_tile_info(ifmap_tile, ofmap_tile)
                     psum_bank_dst = self.first_op.get_psum_bank()
                     self.execute_pool_tile(tpb, ifmap_tile, ofmap_tile, psum_bank_dst)
@@ -2360,7 +2355,7 @@ class FusedOp(list):
         self.last_op.ofmaps_file_params.dram_data = \
             np.transpose(self.first_op.ifmaps_file_params.dram_data, self.first_op.data['perm'])
         (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
-                                    tpb.waveop_stream.waveop_count - 1,    # adjust since pool waveop already generated
+                                    -1,  # signifies a pass-through (keep old writers of region)
                                     tpb.waveop_stream,
                                     self.last_op.ofmaps_file_params,
                                     batch_item,
@@ -2375,7 +2370,7 @@ class FusedOp(list):
         except AttributeError as e:                            
             raise RuntimeError ("ERROR: Cannot reshape data without copying; please implement reshape with copy")
         (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
-                                    tpb.waveop_stream.waveop_count - 1,    # adjust since pool waveop already generated
+                                    -1,  # signifies a pass-through (keep old writers of region)
                                     tpb.waveop_stream,
                                     self.first_op.ofmaps_file_params,
                                     batch_item,
@@ -2400,14 +2395,18 @@ class FusedOp(list):
             ofp.dram_data = ifp.dram_data[:, :, slice_h_begin : slice_h_stop, slice_w_begin : slice_w_stop]
         else:
             raise RuntimeError("Format %s is not supported for Slice operation"%(ofp.file_dims.format_str))
-        (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
-                                    tpb.waveop_stream.waveop_count - 1,    # adjust since pool waveop already generated
+
+        if not self.first_op.is_input:
+            (last_writer, last_reader, waveops) = tpb.statebuffer.file_mapper.write_file_data_region(
+                                    -1,  # signifies a pass-through (keep old writers of region)
                                     tpb.waveop_stream,
                                     self.first_op.ofmaps_file_params,
-                                    0,
+                                    batch_item,
                                     0,
                                     self.first_op.ofmaps_file_params.file_sz,   # mark entire file
                                     False)
+        else:
+            self.no_writer_for_save = True  # pass-thru so there's no writer for SBAtomSave (so don't save this fused-op output)
 
     # weights for simple channel slice extraction 
     def gen_weights_for_chan_slicing(self, tpb, slice_start, slice_stop, m_id):
@@ -2465,13 +2464,11 @@ class FusedOp(list):
                            #, self.first_op.ifmaps_file_params\
                            , ifmap_file_params\
                            , self.first_op.Tn\
-                           , is_ifmap=True\
                            , is_pe_input=True)
                     ofmap_tile =\
                         Tile(ofmap_tile_id\
                              , self.last_op.ofmaps_file_params\
                              , self.last_op.Tn\
-                             , is_ifmap=False\
                              , is_pe_input=False)
                     self.first_op.compute_ifmap_ofmap_tile_info(ifmap_tile
                                                                 ,ofmap_tile)
@@ -2550,12 +2547,10 @@ class FusedOp(list):
                         ifmap_tile = Tile(ifmap_tile_id
                                , ifmap_file_params_tile[tile]
                                , self.first_op.Tn
-                               , is_ifmap=True
                                , is_pe_input=True)
                         ofmap_tile = Tile(ofmap_tile_id
                                  , self.last_op.ofmaps_file_params
                                  , self.last_op.Tn
-                                 , is_ifmap=False
                                  , is_pe_input=False)
                         self.first_op.compute_ifmap_ofmap_tile_info(ifmap_tile
                                                                     ,ofmap_tile)
@@ -2765,8 +2760,9 @@ class FusedOp(list):
                 for h_id in range(self.conv_op.h):
                     for w_id in range(self.conv_op.w):
                         tile_id = (n_id, m_id, h_id, w_id, self.conv_op.n, self.conv_op.m, self.conv_op.h, self.conv_op.w)
-                        ifmap_tile = Tile(tile_id, self.conv_op.ifmaps_file_params, self.conv_op.Tn, is_ifmap=True, is_pe_input=True)
-                        ofmap_tile = Tile(tile_id, self.last_op.ofmaps_file_params, self.last_op.Tn, is_ifmap=False, is_pe_input=False)
+                        ifmap_tile = Tile(tile_id, self.conv_op.ifmaps_file_params, self.conv_op.Tn, is_pe_input=True,
+                                            stridedslice_chan_offset = self.conv_op.stridedslice_chan_offset)
+                        ofmap_tile = Tile(tile_id, self.last_op.ofmaps_file_params, self.last_op.Tn, is_pe_input=False)
                         self.conv_op.compute_ifmap_ofmap_tile_info(ifmap_tile, ofmap_tile, self.conv_op.is_conv_transpose)
                         # loops for constructing a tile
                         for c_id in range(self.conv_op.c):

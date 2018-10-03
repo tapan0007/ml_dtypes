@@ -1651,20 +1651,19 @@ class NodeSlice(Node):
     npInfo = self.getNpInfo()[0]
     bes = {"Begin" : (), "Size" : ()}
     inNodesAndNpInfos = self.getInputNodesAndNpInfo()
+    reorderSliceParams = True
     if len(inNodesAndNpInfos) == 3:
-        ((nIn, npInfoFrom), bes["Begin"], bes["Size"]) = inNodesAndNpInfos
+        ((nIn, _), bes["Begin"], bes["Size"]) = inNodesAndNpInfos
         npInfoIndexinBes = 1
         sliceBegin_tmp = bes["Begin"][npInfoIndexinBes].getValues()
         sliceBegin = [np.asscalar(sliceBegin_tmp[i]) for i in range(sliceBegin_tmp.shape[0])]
         sliceSize_tmp = bes["Size"][npInfoIndexinBes].getValues()
         sliceSize = [np.asscalar(sliceSize_tmp[i]) for i in range(sliceSize_tmp.shape[0])]
-
     elif len(inNodesAndNpInfos) == 1:  ## This Slice is from Unstack
-        (nIn, npInfoFrom) = inNodesAndNpInfos[0]
+        (nIn, _) = inNodesAndNpInfos[0]
         sliceBegin = self.getAttr("slice_begin")
-        assert(sliceBegin)
         sliceSize = self.getAttr("slice_size")
-        assert(sliceSize)
+        reorderSliceParams = False
     else:
         assert(False)
 
@@ -1677,8 +1676,9 @@ class NodeSlice(Node):
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
       tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-      sliceBegin = npt.reorderShape(sliceBegin, npt.TF, npt.SIM, npt.Fmaps)
-      sliceSize = npt.reorderShape(sliceSize, npt.TF, npt.SIM, npt.Fmaps)
+      if reorderSliceParams:
+        sliceBegin = npt.reorderShape(sliceBegin, npt.TF, npt.SIM, npt.Fmaps)
+        sliceSize = npt.reorderShape(sliceSize, npt.TF, npt.SIM, npt.Fmaps)
     else:
       if len(npInfo.npShape) == 3:
         tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
@@ -2148,7 +2148,6 @@ class Graph(Object):
                 siz = -1
             sizes.append(siz)
             begins.append(beg)
-
         sliceAttrs = {}
         sliceAttrs["slice_begin"] = begins
         sliceAttrs["slice_size"] = sizes
@@ -2314,28 +2313,49 @@ class Graph(Object):
     for inputNode in self.getInputNodes():
       npInfo = inputNode.getNpInfo()[0]
       jsonData["data_type"] = npInfo.dType   # No conversion by npu.dtypeToStr() was needed
-      if len(npInfo.npShape) == 4:
-        (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-        self.tensorFormatMap.add(npInfo.tensorName,
-                                 TensorFormat(npInfo.tensorName, inputNode.getOpName(),
-                                              npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
-                                              npFileSim, simFormat, False))
-      elif len(npInfo.npShape) == 3:
-        # LSTM HNC input into Unstack
-        simFormat = npt.HNWC
-        (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
-        self.tensorFormatMap.add(npInfo.tensorName,
-                                 TensorFormat(npInfo.tensorName, inputNode.getOpName(),
-                                              npInfo.npFile, npt.HNC,
-                                              npFileSim, simFormat, False))
-      else:
+
+      if len(npInfo.npShape) == 3:
+        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+        tfFormat = npt.NWC
+      elif len(npInfo.npShape) == 2:
         tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-        (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-        tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-        self.tensorFormatMap.add(npInfo.tensorName,
-                                 TensorFormat(npInfo.tensorName, inputNode.getOpName(),
-                                              npInfo.npFile, npt.NC,
-                                              npFileSim, simFormat, False))
+        tfFormat = npt.NC
+      elif len(npInfo.npShape) == 1:
+        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+        tfFormat = npt.C
+      else:
+        assert len(npInfo.npShape) == 4
+        tfShape4D = npInfo.npShape
+        tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+  
+      # Overwrite format from command line
+      simFormat = ""
+      if self.getName() in Config.Graph.inputNamesToFormat:
+        tfFormat = Config.Graph.inputNamesToFormat[self.getName()]
+        assert(len(tfFormat) == len(npInfo.npShape))
+        if tfFormat == npt.NWC:
+          tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+        elif tfFormat == npt.HNC:
+          tfShape4D = npt.hncShapeToHNWC(npInfo.npShape)
+          simFormat = npt.HNWC
+          (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
+        elif tfFormat == npt.NC:
+          tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+        elif tfFormat == npt.C:
+          tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+        elif tfFormat == npt.Formats[npt.TF][npt.Fmaps]:
+          tfShape4D = npInfo.npShape
+        else:
+          print("ERROR: input format %s is not recognized (must be one of C, NC, NWC, HNC, or NHWC)"%inputNode.inputFormat)
+
+      if simFormat == "":
+         tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+         (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+      self.tensorFormatMap.add(npInfo.tensorName,
+                         TensorFormat(npInfo.tensorName, inputNode.getOpName(),
+                                      npInfo.npFile, tfFormat,
+                                      npFileSim, simFormat, False))
+
     outNpy = npFileSim
     # Conv and other layers
     levelizedNodes = self.getLevelizedNodes()
@@ -2354,6 +2374,7 @@ class Graph(Object):
       if nodesAtLevel != nodesAtLevelOrig:
         print("INFO: reordered nodes at level %d to %s" % (level, [n.getName() for n in nodesAtLevel]))
       for n in nodesAtLevel:
+        nodeName = n.getName()
         #print("DEBUG graph::genCompilerJson: node=", n.getName(), "  op=", op)
         #isMainFlowConst = (n.getOpType() == "Const" and any(ns.isMainFlowNode() for ns in self.nodeSuccessors(n)))
         #print("  DEBUG const and successor in main flow " + str(isMainFlowConst))

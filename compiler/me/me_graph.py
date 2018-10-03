@@ -332,9 +332,6 @@ class KNode:
         # number of OFMAPs for this tile
         self.ofmap_count = ofmap_tile.get_ofmap_count()
 
-        assert(ifmap_tile.is_ifmap == True)
-        assert(ofmap_tile.is_ifmap == False)
-
         # compute the bounds for OFMAP tile within OFMAPs tensor (adjusted for boundary conditions)
         ofmap_tile_start_coord       = ofmap_tile.get_fmap_coord(self.ofmap_full_tile_rect.get_width_height())
         ofmap_tile_start_coord       = ofmap_tile_start_coord + Coord(0, self.unstack_h_offset)
@@ -368,14 +365,14 @@ class KNode:
         #print(ofmap_tile.padded_tile_rect, ofmap_tile.tile_rect, ifmap_tile.padded_tile_rect, ifmap_tile.tile_rect)
 
         # obtain file address bounds of the OFMAP tile
-        (ofmap_tile.lower_addr, ofmap_tile.upper_addr) = ofmap_tile.make_pewave().get_file_addrs()
+        (ofmap_tile.lower_addr, ofmap_tile.upper_addr) = ofmap_tile.make_pewave().get_subtile_file_addrs()
         ofmap_tile.lower_to_upper_len_bytes = []
         for i in range(len(ofmap_tile.lower_addr)):
             ofmap_tile.lower_to_upper_len_bytes.append(ofmap_tile.upper_addr[i] - ofmap_tile.lower_addr[i] + self.item_sz)
 
         # obtain file address bounds of the IFMAP tile
         if not self.src_is_psum:
-            (ifmap_tile.lower_addr, ifmap_tile.upper_addr) = ifmap_tile.make_pewave().get_file_addrs()
+            (ifmap_tile.lower_addr, ifmap_tile.upper_addr) = ifmap_tile.make_pewave().get_subtile_file_addrs()
         else:
             (ifmap_tile.lower_addr, ifmap_tile.upper_addr) = (-1, -1)
         ifmap_tile.lower_to_upper_len_bytes = []
@@ -967,7 +964,7 @@ class KGraph:
                         print("ssize=", ssize, ", sbegin=", sbegin, "new_node:slice_offset=", new_node.slice_offset,
                               "slice_size=",new_node.slice_size)
                     else:
-                        raise RuntimeError("Slice op %s format %s is not supported"%(l['layer_name'], l['ofmap_format']))
+                        raise RuntimeError("Slice op %s format %s is not supported"%(l['layer_name'], prev_format))
 
                     if error:
                         raise RuntimeError("Slice op %s: only support slicing in W or H dimension; begin "%l['layer_name'], sbegin, " end ", ssize,
@@ -1165,6 +1162,13 @@ class KGraph:
             fused_ops.conv_op.ifmaps_file_params.weights_S_dim = fused_ops.conv_op.weights_file_params.file_dims.S
             fused_ops.conv_op.ifmaps_file_params.stride = fused_ops.conv_op.stride
             #print("copied ifmaps_file_params.repl_multiple_of_C = weights_file_params.repl_multiple_of_C %d"%(fused_ops.conv_op.weights_file_params.repl_multiple_of_C))
+        ifp = fused_ops.first_op.ifmaps_file_params
+        ofp = fused_ops.last_op.ofmaps_file_params
+        if ifp is not None and ifp.file_dims.format_str == "HNWC":
+            ofp.unstack_from_file = ifp.file_name
+            ofp.unstack_from_file_shape = ifp.file_dims.shape_tuple
+            ofp.unstack_start_addr = ifp.ravel_nchw(0, 0, fused_ops.first_op.slice_offset.y, 0)
+            print("unstack_from_file " , ofp.unstack_from_file, " at address ", ofp.unstack_start_addr)
         if (self.args.debug > 0):
             fused_ops.show()
         return fused_ops

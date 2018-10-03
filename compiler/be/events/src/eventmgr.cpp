@@ -111,8 +111,11 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
 
         if (prevWaveop->gType() == waveop->gType()) {
             if (! (waveop->qNopWaveOp() || waveop->qSbAtomLoadWaveOp()) ) {
-                Assert(false, "A predecessor of non-NOP waveop ", waveop->gTypeStr(),
-                    " cannot be another waveop of the same type: ", prevWaveop->gName());
+                std::cerr << "WARNING: two dependent NOP waveops of the same type("
+                    << waveop->gTypeStr() << ") " << prevWaveop->gName() << " --> "
+                    << waveop->gName() << "\n";
+                //Assert(false, "A predecessor of non-NOP waveop ", waveop->gTypeStr(),
+                //    " cannot be another waveop of the same type: ", prevWaveop->gName());
             }
         } else {
             if (prevWaveEdge->qNeedToSync()) {

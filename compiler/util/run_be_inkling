@@ -1,4 +1,15 @@
+#!/usr/bin/env bash
 set -e
 rm -f *-simout.npy
+
+sim="sim"
+while [[ $# > 0 ]]; do case $1 in
+    -d) sim="sim_dbg --debug_flags tpb"; shift;;
+    *) x=$1; shift;
+esac; done    
+
 $KAENA_PATH/compiler/be/compiler/compiler.exe --wavegraph wavegraph.json  --parallel_streams 2>&1 | tee log-be.txt
-$INKLING_PATH/sim/sim --angel TrivNet-dma.tpb --sp TrivNet-sp.tpb --pe  TrivNet-pe.tpb --pool TrivNet-pool.tpb --act TrivNet-act.tpb 2>&1 | tee log-inkling.txt
+for i in dma sp pe pool act; do
+    $INKLING_PATH/objdump/objdump TrivNet-$i.tpb > TrivNet-$i.tpb.dump
+done
+$INKLING_PATH/sim/$sim --angel TrivNet-dma.tpb --sp TrivNet-sp.tpb --pe  TrivNet-pe.tpb --pool TrivNet-pool.tpb --act TrivNet-act.tpb 2>&1 | tee log-inkling.txt

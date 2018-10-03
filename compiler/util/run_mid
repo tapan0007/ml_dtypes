@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 x=0
 pdb=""
 nname="generic"
@@ -15,6 +16,7 @@ while [[ $# > 0 ]]; do case $1 in
 esac; done    
 
 rm -f *-midout.npy
+rm -f wavegraph.json
 cmd="python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json $dbg --nname=$nname $repl $cleanup --stop_after_layer_num $x --no_inter_layer_load"
 echo $cmd
 echo $cmd > log-me.txt
