@@ -26,7 +26,7 @@ print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
 parser = argparse.ArgumentParser()
 parser.add_argument('--kelf_dir', help='kelf directory', default="")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
-parser.add_argument('--input_files', help='Files to be passed in to the first subgraph', default=[], nargs='+')
+parser.add_argument('--input_files', help='Files to be passed in to the first subgraph (filenames or node=filename pairs)', default=[], nargs='+')
 parser.add_argument('--output_files', help='Specify output files for last subgraph', default=[], nargs='+')
 parser.add_argument('--check_against_ref', help='Compare produced subgraph output npy files against compiler provided goldens in local directory; use none (defalt), last, all', default='none')
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
@@ -45,7 +45,18 @@ if len(args.env) > 0:
     var, val = varEqVal.split("=")
     os.environ[var] = val
 
-input_files = [os.path.abspath(f) for f in args.input_files]
+def parseInputFilesArg(arg, input_files):
+  for i in range(len(args.input_files)):
+    if '=' in args.input_files[i]:
+      (node, fname) = args.input_files[i].split("=", 1)
+    else:
+      node = i
+      fname = args.input_files[i]
+    input_files[node] = os.path.abspath(fname)
+
+input_files = {}
+parseInputFilesArg(args.input_files, input_files)
+
 output_files = [os.path.abspath(f) for f in args.output_files]
 working_dir = args.working_dir
 if (working_dir == ""):
@@ -309,12 +320,25 @@ class NnExec:
     # Attach supplied input file to first subgraph
     if len(input_files) != 0:
       if len(sg_first.inputs) == 0:
-        for i, input_file in enumerate(input_files):
-          sg_first.inputs.append({"name" : "", "file" : input_file})
+        # Preprocessor case (e.g. batching)
+        for i in range(len(input_files)):
+          if i not in input_files:
+            print("ERROR: Input node names specified for graph with no named inputs.")
+            sys.exit(1)
+          else:
+            sg_first.inputs.append({"name": "", "file": input_files[i]})
       else:
         assert (len(sg_first.inputs) == len(input_files))
-        for i, input_file in enumerate(input_files):
-          sg_first.inputs[i]["file"] = input_file
+        for i in range(len(sg_first.inputs)):
+          # Try to find input by name
+          if sg_first.inputs[i]["name"] in input_files:
+            sg_first.inputs[i]["file"] = input_files[sg_first.inputs[i]["name"]]
+          # If it's the only input, we also allow just the file name
+          elif i == 0 and len(sg_first.inputs) == 1 and i in input_files:
+            sg_first.inputs[i]["file"] = input_files[i]
+          else:
+            print("ERROR: Could not find input file for node %s" % (sg_first.inputs[i]["name"]))
+            sys.exit(1)
 
     # Attach supplied output file to last subgraph
     if len(output_files) != 0:
@@ -334,7 +358,7 @@ class NnExec:
       sgId += 1
 
     # copy input files to local working directory
-    for f in input_files:
+    for f in input_files.values():
       shutil.copy(f, working_dir)
 
     self.update_io(input_files, output_files)
