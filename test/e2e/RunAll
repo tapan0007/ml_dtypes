@@ -56,8 +56,6 @@ parser.add_argument('--test', help='Run specific tests (list). This overrides --
 parser.add_argument('--test_re', help='Similar to --test but select by regexp instead of test name; the --test and --test_re are cumulative", default []', nargs='+', default=[])
 parser.add_argument('--filter', help='Like --select, but it is applied after --test, --test_re', default="any")
 parser.add_argument('--verbose', help='Verbose output', action='store_true', default=False)
-parser.add_argument('--eigenlib_stride', help='Use Eigenlib style of striding starting in the center (-1) of striding window', action='store_true', default=False)
-parser.add_argument('--golden_inputs', help='Use golden (ref_file) files as inputs instead of generated outputs from previous stage', action='store_true', default=False)
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
 parser.add_argument('--report_only', help='Print QoR report for the logs in the current directory', action='store_true', default=False)
 parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=defaultParallel)

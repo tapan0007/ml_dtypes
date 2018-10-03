@@ -12,7 +12,9 @@ The test_list.py contain a dictionary of test name to test specification.
 Each test specification is an array containing the following fields:
 - Harness name (name of harness file without extension; see section below)
 - Test configurations
--
+- Test class
+- TFFE options
+- NN Executor options
 
 The test name itself has some information. It starts with a value which represents 
 the test level (test complexity) followed by a dash. The rest should be brief description 
@@ -31,6 +33,23 @@ controlled by RunAll options. Some commonly used options are:
 
 - test_re: filter by name using regular expression
 - test: specific test or list of tests (space separated)
+- level: filter by the test level (the first number in test name)
+
+More information can be found in RunAll's help:
+$KAENA_PATH/tests/e2e/RunAll --help
+
+Subgraphing
+-----------
+
+
+
+More information can be found in RunAll's help:
+$KAENA_PATH/tests/e2e/RunAll --help
+
+Test target
+-----------
+
+To run test on QEMU (or emulator if you are in emulator environment), use --force_qemu.
 
 Test Output
 ------------
@@ -46,6 +65,27 @@ result comparison (as well as comparison for any other intermediate results)
     - log-exec-sg*-<target>.txt: The log for each subgraph, run on assigned executor target, which is 
       one of wave, host, qemu_wave.
     - log-exec-sg_<pre/post>-processor.txt: Log output from the pre/post processor; ex. would be image pre-processing.
+
+Debugging
+---------
+
+The following command execute RunAll across various repo checkouts, ie. to find when regression broke:
+$KAENA_PATH/compiler/util/repo_search --since "Sep 26" --until "Oct 2" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 0-1conv0_wave 6-rn50_nne_to_act46_wave-repl --force_qemu' --sleep 120 --load 60
+
+Profiling
+---------
+
+1. Compile inkling with profiling enabled:
+    cd Inkling/sim; make clean; make opt
+
+2. Run the test with profile info from Inkling:
+    ( setenv SIM_ADD_FLAGS '--debug_flags tpb_exec ' ; RunAll --test 7-rn50_nne_fp16_wave )
+
+3. Display overview profile:
+    $KAENA_PATH/compiler/util/tpb_profile --log 7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt --long 2e6 --show
+
+4. Open detailed interactive profile debug:
+    $KAENA_PATH/compiler/util/tpb_profile --log 7-rn50_nne_fp16_wave/working_dir/log-exec-sg00-wave.txt --tpb 7-rn50_nne_fp16_wave/sg00/*.tpb --verbose --show --cycle_range 1e6 1.1e6
 
 Harness list
 ------------

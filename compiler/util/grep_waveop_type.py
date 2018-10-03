@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("--fieldfilter", default=".*", help="Filter on waveop field name")
     parser.add_argument("--cleanup0", action="store_true", help="Cleanup wavegraph by removing unused fields in MatMul, change SBAtomFile -> SBAtomLoad, and ofmap/ifmap_count in SBAtomSave/Load to num_partitions")
     args = parser.parse_args()
+    args.fuse_lrelu = False
 
     # test by reading it back
     try:
