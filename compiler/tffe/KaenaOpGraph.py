@@ -210,7 +210,7 @@ class Node(Object):
             "layer_name" :  self.getOpName(),
             "#comment"   :  "Unsupported operation"
             }], [])
-  
+
   # Helper for op counts - number of scalar elements in all output tensors
   def getNpyInfoSize(self):
     size = 0;
@@ -227,7 +227,7 @@ class Node(Object):
     for npInfo in npInfos:
       numBytes += npInfo.nbytes()
     return numBytes
-  
+
   # Describes computational complexity of the operation
   def getOpCount(self, padded=False):
     opCount = 1
@@ -265,7 +265,7 @@ class PosNode:
 
   def getName(self):
     return self.node.getName() + ":" + str(self.index)
-    
+
 class Edge(Object):
   def __init__(self, fromPosNode, toPosNode, attrs):
     Object.__init__(self, "Edge", attrs)
@@ -323,10 +323,10 @@ class NodeConst(Node):
                           TensorFormat(npInfo.tensorName, self.getOpName(),
                                        npInfo.npFile, npt.C,
                                        npFileSim, simFormat, True))
-      
+
       # Spec for future global format tracking
       #  (newShape, newFile) = npTt.translate("NC", npt.FmapsSIM, npt.FmapsopName, npInfo.npShape, npInfo.npFile)
-      
+
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -430,7 +430,7 @@ class NodeSpaceBatch(NodeSimple):
     # Extract padding/crop values
     values_tmp = in_nodes[2][1].getValues()
     assert(values_tmp.shape == (2,2))
-    values  = [[np.asscalar(values_tmp[i][j]) 
+    values  = [[np.asscalar(values_tmp[i][j])
                 for j in range(values_tmp.shape[1])]
                 for i in range(values_tmp.shape[0])]
     # Convert values to NCHW
@@ -444,7 +444,7 @@ class NodeSpaceBatch(NodeSimple):
     if re.search("SpaceToBatch", layerData["layer_type"]):
         layerData["#comment"] = "Zero pad spatial dimensions and deinterleave spatial data (deinterleave dimension is merged with batch dimension)"
         layerData["padding"] = values_NCHW
-    else:        
+    else:
         layerData["#comment"] = "Interleave spatial data (reverse of SpaceToBatch) followed by cropping"
         layerData["crop"] = values_NCHW
     return(layerDataBase, fileListBase)
@@ -607,7 +607,7 @@ class NodeInput(Node):
                                      npFileSim, simFormat, False))
 
     # TODO: if assertion fires, this sequence of subgraphs cannot execute on tonga (without help from transpose code on cpu).
-    #assert npInfo.getValues().tobytes() == np.load(npFileSim).tobytes()                        
+    #assert npInfo.getValues().tobytes() == np.load(npFileSim).tobytes()
 
     layerData = {
       "layer_name"      : self.getName(),
@@ -663,7 +663,7 @@ class NodeBasePaddedStrided(Node):
 
   def getStrides(self):
     return self.getAttr("strides")
-  
+
   def getPaddingMode(self):
     return self.getAttr("padding").decode("utf-8")
 
@@ -672,7 +672,7 @@ class NodeBasePaddedStrided(Node):
 
   def isSupported(self):
     return True
-  
+
   # Utility to extract 2-D object dimensions from 4-D (batched, with channels) conv tensor dimension
   def dim2imgSize(self, dim):
     assert len(dim) == 4
@@ -681,7 +681,7 @@ class NodeBasePaddedStrided(Node):
     assert dim[0] > 0
     assert dim[3] > 0
     return arr
-  
+
   # Return the 2 significant dimensions of batched multi channel IFMAP (of 2-D images)
   def getIFmapImageSize(self):
     (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
@@ -703,13 +703,13 @@ class NodeBasePaddedStrided(Node):
   # Helper function to calculate padding in SAME mode given
   # stride, filter, image sizes
   @staticmethod
-  def calcSamePadding(S, R, H):        
+  def calcSamePadding(S, R, H):
     Ho = (H + S - 1) // S
     spacing = S - R  # negative spacing means overlap
     inPixels = Ho * R + (Ho - 1) * spacing
     leftover = max(0, inPixels - H)
     return(Ho, leftover // 2, (leftover + 1) // 2)
-  
+
   def calcTpbPadding(self, kernelShape2D, paddingMode):
     padding = None
     (R, S) = kernelShape2D
@@ -734,13 +734,13 @@ class NodeBasePaddedStrided(Node):
       if Ho <= Hi:  # conv
         (HoCalc, padNorth, padSouth) = self.calcSamePadding(Sv, R, Hi)
         assert Ho == HoCalc
-      else:  # conv transpose        
+      else:  # conv transpose
         (HiCalc, padNorth, padSouth) = self.calcSamePadding(Sv, R, Ho)
         assert Hi == HiCalc
       if Wo <= Wi:  # conv
         (WoCalc, padWest,  padEast)  = self.calcSamePadding(Sh, S, Wi)
         assert Wo == WoCalc
-      else:   # conv transpose       
+      else:   # conv transpose
         (WiCalc, padWest,  padEast)  = self.calcSamePadding(Sh, S, Wo)
         assert Wi == WiCalc
     elif paddingMode == "VALID":
@@ -824,14 +824,14 @@ class NodeConv2D(NodeBasePaddedStrided):
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
-  
+
   def getWeightBytes(self):
     weightSizeBytes = 0
     if len(self.getNpInfo()) > 0:
       ((fromIfNode, npInfoIF), (fromWeightNode, npInfoW)) = self.getInputNodesAndNpInfo()
       weightSizeBytes = npInfoW.nbytes()
     return weightSizeBytes
-  
+
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
@@ -877,7 +877,7 @@ class NodeConv2D(NodeBasePaddedStrided):
     if not padded:
       # Adjust by area ratio of the padded and unpadded input
       padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
-      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding     
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding
       tpbShapeIn = list(npt.reorderShape(npInfoIF.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (batchIn, channelsIn, heightIn, widthIn) = tpbShapeIn
       areaIn = heightIn * widthIn
@@ -953,14 +953,14 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
     layerDataBase[0].update(layerData)
     fileListBase += fileList
     return(layerDataBase, fileListBase)
-  
+
   def getWeightBytes(self):
     weightSizeBytes = 0
     if len(self.getNpInfo()) > 0:
       (_, npInfoW) = self.getInputNodesAndNpInfo()[1]
       weightSizeBytes = npInfoW.nbytes()
     return weightSizeBytes
-  
+
   # Node text for dot graph
   def getDotText(self):
     dotText = self.getOpType()
@@ -1006,7 +1006,7 @@ class NodeConv2DTranspose(NodeBasePaddedStrided):
     if not padded:
       # Adjust by area ratio of the padded and unpadded input
       padding = self.calcTpbPadding(self.getFilter2D(), self.getPaddingMode())
-      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding     
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding
       tpbShapeIn = list(npt.reorderShape(npInfoIF.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (batchIn, channelsIn, heightIn, widthIn) = tpbShapeIn
       areaIn = heightIn * widthIn
@@ -1096,7 +1096,7 @@ class NodePool(NodeBasePaddedStrided):
       dotText += "\nNonFuseDdr %.1f usec" %  nfCostDdrUsec
       nfCostSbUsec =   2 * npInfoIF.nbytes() / (Config.Tpb.poolGiBps*2**30) * 1e6
       dotText += "\nNonFuseSB %.1f usec" %  nfCostSbUsec
-      
+
       # Kernel
       kernelSizeNHWC = self.getKernelSize()
       dotText += "\nKernelSize " + str(kernelSizeNHWC)
@@ -1118,7 +1118,7 @@ class NodePool(NodeBasePaddedStrided):
     if not padded:
       # Adjust by area ratio of the padded and unpadded input
       padding = self.calcTpbPadding(self.getKernelSize2D(), self.getPaddingMode())
-      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding     
+      u1,u2, (padNorth,padSouth), (padWest,padEast) = padding
       (fromIfNode, npInfoIF) = self.getInputNodesAndNpInfo()[0]
       tpbShapeIn = list(npt.reorderShape(npInfoIF.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (batchIn, channelsIn, heightIn, widthIn) = tpbShapeIn
@@ -1141,7 +1141,7 @@ class NodeSimple2(Node):
   # Returns layer json model in dictionary format, and list of files (npy data)
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
-    
+
     # Output tensor
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 3:
@@ -1163,7 +1163,7 @@ class NodeSimple2(Node):
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
                                      npFileSim, simFormat, False))
-    
+
     # Residual Add has both inputs dependent on the input image
     # BiasAdd has the other input constant
     # In Keras plain Add can be of either of the above types
@@ -1172,10 +1172,10 @@ class NodeSimple2(Node):
     if not theOpIsInMainDataFlow:
       # This Add is a part of a side branch computation, no layer needed
       return [], []
-    
+
     isResAdd = faninEdgeOther.isInMainFlow()
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
-    
+
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -1195,9 +1195,9 @@ class NodeSimple2(Node):
     if isResAdd:
       overrideType = "ResAdd"
     layerDataBase[0]["layer_type"] = overrideType
-       
+
     if not isResAdd and not type(fromIfNode1) == NodeConst:
-    
+
       # Scalar add is fused (e.g. for LSTMs)
       if len(npInfoIF1.npShape) == 0:
         val = npInfoIF1.getValues()
@@ -1205,8 +1205,8 @@ class NodeSimple2(Node):
         layerDataBase[0]["add_scalar"] = np.asscalar(val.ravel()[0])
         layerDataBase[0]["previous_layers"] = [fromIfNode0.getName()]
       else:
-    
-        # Collapse the side node to a branch (except when it already is a real constant) 
+
+        # Collapse the side node to a branch (except when it already is a real constant)
         # Main input is covered by a previous layer
         #   tfShape4D0 = npt.cShapeToNHWC(npInfoIF0.npShape)
         #   (npFileSimF0, simFormatIF0)  = npt.copyNpyFileAs(npInfoIF0.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D0)
@@ -1246,7 +1246,7 @@ class NodeMatMul(Node):
   # Returns layer json model in dictionary format, and list of files (npy data)
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
-    
+
     # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
     tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
@@ -1256,10 +1256,10 @@ class NodeMatMul(Node):
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, npt.NC,
                                      npFileSim, simFormat, False))
-    
-    # The IFMAP comes from reshape,  the other is (weight) matrix 
+
+    # The IFMAP comes from reshape,  the other is (weight) matrix
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
-    
+
     # The matrix side input is handled like convolution weights
     tfShape4Dw = npt.cmShapeToRSCM(npInfoIF1.npShape)
     (npFileSimW, simFormatW)  = npt.copyNpyFileAs(npInfoIF1.npFile, npt.TF, npt.SIM, npt.Weights, tfShape4Dw)
@@ -1294,13 +1294,13 @@ class NodeMatMul(Node):
     tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (batch, channels, height, width) = tpbShape
-    # The IFMAP comes from reshape,  the other is (weight) matrix 
+    # The IFMAP comes from reshape,  the other is (weight) matrix
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
     # Get the depth dimension of MatMul by treating the 2nd input as Fmap (unlike TPB's implementation)
     tfShape4D1 = npt.ncShapeToNHWC(npInfoIF1.npShape)
     tpbShape1 = list(npt.reorderShape(tfShape4D1, npt.TF, npt.SIM, npt.Fmaps))
     (batch1_unused, channels1_unused, height1, width1_unused) = tpbShape1
-    
+
     # 5 loops - batch, channels, and 3 for GEMM
     opCount = 2 * batch * channels * height * width * height1;
     return opCount
@@ -1317,7 +1317,7 @@ class NodeMultiply(Node):
   # Returns layer json model in dictionary format, and list of files (npy data)
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
-    
+
     # LSTM Output tensor is NC format
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4:
@@ -1341,11 +1341,11 @@ class NodeMultiply(Node):
                                      npInfo.npFile, tfFormat,
                                      npFileSim, simFormat, False))
     fileList.append(npFileSim)
-    
+
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
     # scalar_mul - first arg is scalar; element-wise: both are vectors
     isScalar = len(npInfoIF0.npShape) == 0
-    
+
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -1381,7 +1381,7 @@ class NodeReshape(Node):
   # Returns layer json model in dictionary format, and list of files (npy data)
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
-    
+
     # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4:
@@ -1401,8 +1401,8 @@ class NodeReshape(Node):
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
                                      npFileSim, simFormat, False))
-    
-    # The IFMAP comes from reshape,  the other is (weight) matrix 
+
+    # The IFMAP comes from reshape,  the other is (weight) matrix
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
     # Both nodes are part of the main data flow
     # So use the tensor size to detect which one is reshape vector and which one IFMAP
@@ -1412,7 +1412,7 @@ class NodeReshape(Node):
       ifNode = fromIfNode0
     else:
       ifNode = fromIfNode1
-    
+
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -1441,7 +1441,7 @@ class NodeTranspose(Node):
   # Returns layer json model in dictionary format, and list of files (npy data)
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
-    
+
     # Output tensor is NC format
     npInfo = self.getNpInfo()[0]
     if len(npInfo.npShape) == 4:
@@ -1461,7 +1461,7 @@ class NodeTranspose(Node):
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
                                      npFileSim, simFormat, False))
-    
+
     ((nIn, _), perm) = self.getInputNodesAndNpInfo()
     npInfoIndexinBes = 1
     permvec_tmp = perm[npInfoIndexinBes].getValues()
@@ -1471,7 +1471,7 @@ class NodeTranspose(Node):
     if len(npInfo.npShape) == 4:
       permvec = npt.reorderShape(permvec, npt.TF, npt.SIM, npt.Fmaps)
     permvec = list(map(lambda x,y: x + y, permvec, ordervec))
-    
+
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -1525,12 +1525,13 @@ class NodeStridedSlice(Node):
     bes = {"Begin" : (), "End" : (), "Stride" : ()}
     ((nIn, npInfoFrom), bes["Begin"], bes["End"], bes["Stride"]) = self.getInputNodesAndNpInfo()
     npInfoIndexinBes = 1
-    
+
     # Suppress StridedSlice in constant or reshape calculations in CNNs
     # FIX_THIS: this should be a graph transform
     if len(npInfo.npShape) == 1:
       return {},[]
-    
+
+    # This is for splitting along channel Axis - -- for --  Resnet???
     if len(npInfo.npShape) == 4:
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
@@ -1549,7 +1550,7 @@ class NodeStridedSlice(Node):
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     channelAxis = tfFormat.find('C')
-      
+
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
@@ -1561,11 +1562,21 @@ class NodeStridedSlice(Node):
       vectorEnd = npInfoFrom.npShape[channelAxis]
       assert self.getAttr("end_mask") > 0
     assert all(bes['Stride'][npInfoIndexinBes].getValues()) == 1
+
+    get_mask = lambda mask_str : \
+                  npt.reorderShape(np.unpackbits(np.array([self.getAttr(mask_str)], dtype=np.uint8))[4:].tolist(), \
+                  npt.TF, npt.SIM, npt.Fmaps)
+    get_indices = lambda idx_str : [np.asscalar(X) for X in \
+                  list(npt.reorderShape(bes[idx_str][npInfoIndexinBes].getValues(), npt.TF, npt.SIM, npt.Fmaps))]
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "channel_slice"   : [vectorStart, vectorEnd],
+      "begin_mask"      : get_mask("begin_mask"),
+      "begin_indices"   : get_indices("Begin"),
+      "end_mask"        : get_mask("end_mask"),
+      "end_indices"     : get_indices("End"),
       "previous_layers" : [nIn.getName()],
       "#comment"        : "Extract slice along channel dimension"
     }
@@ -1625,12 +1636,12 @@ class NodeSlice(Node):
         assert(sliceSize)
     else:
         assert(False)
-    
+
     # Suppress StridedSlice in constant or reshape calculations in CNNs
     # FIX_THIS: this should be a graph transform
     if len(npInfo.npShape) == 1:
       return {},[]
-    
+
     if len(npInfo.npShape) == 4:
       tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
       (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
@@ -1655,7 +1666,7 @@ class NodeSlice(Node):
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
       sliceBegin = npt.reorderShape(sliceBegin, npt.TF, npt.SIM, npt.Fmaps)
       sliceSize = npt.reorderShape(sliceSize, npt.TF, npt.SIM, npt.Fmaps)
-      
+
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
@@ -1718,7 +1729,7 @@ class NodeSplit(Node):
                                      npFileSim, simFormat, False))
 
     nextLayerPosList = self.getFanoutNodePosNames()
-    
+
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -1760,7 +1771,7 @@ class NodeUnstack(Node):
       tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
       tfFormat = npt.NC
     ((fromIfNode, npInfoIF),) = self.getInputNodesAndNpInfo()
-      
+
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
@@ -1768,7 +1779,7 @@ class NodeUnstack(Node):
 
     unstackAxis = self.getAttr("axis")
     nextLayerPosList = self.getFanoutNodePosNames()
-    
+
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
@@ -1918,13 +1929,13 @@ class Graph(Object):
     self.schedulerMode = schedulerMode
     self.debugLevel = debugLevel
     self.tensorFormatMap = TensorFormatMap()
-    
+
   def setSchedulerMode(self, mode):
     self.schedulerMode = mode
-  
+
   def addNode(self, node):
     self.__name2node[node.getName()] = node
-  
+
   def addEdge(self, fromName, fromIndex, toName, toIndex, attrs = {}):
     fromNode = self.getNode(fromName)
     toNode = self.getNode(toName)
@@ -1942,10 +1953,10 @@ class Graph(Object):
 
   def getNode(self, name):
     return(self.__name2node[name])
-  
+
   def getNodes(self):
     return(list(self.__name2node.values()))
-  
+
   def getEdges(self):
     return(self.__edges)
 
@@ -1955,13 +1966,13 @@ class Graph(Object):
         fromPosNode.node.disconnectFanoutEdge(fromPosNode.index, edge)
         toPosNode.node.disconnectFaninEdge(edge)
         self.__edges.remove(edge)
-  
+
   def nodeSuccessors(self, fromNode):
     nextNodes = {}
     for edge in fromNode.getFanoutEdges():
       nextNodes[edge.getToPosNode().node] = 1
     return(list(nextNodes.keys()))
-  
+
   def nodePredecessors(self, toNode):
     preNodes = []
     for edge in toNode.getFaninEdges():
@@ -1970,7 +1981,7 @@ class Graph(Object):
       else:
         preNodes.append(edge.getFromPosNode().node)
     return(preNodes)
-  
+
   # Get the nodes with no successors - highest in the data flow level
   def getTopNodes(self):
     nextNodes = self.getNodes()
@@ -1989,7 +2000,7 @@ class Graph(Object):
       nextNodes = list(set(newNextNodes))
       assert len(topNodes) == len(list(set(topNodes)))
     return topNodes
-  
+
   # Get the node with most computation - highest in the data flow level
   def getTopNode(self):
     #nextNodes = self.getNodes()
@@ -2007,12 +2018,12 @@ class Graph(Object):
   def getInputNode(self):
     print("WARNING: using legacy API getInputNode")
     return(self.__inputNodes[0])
-  
+
   # On a levelized graph - max depth to reach node among all paths
   # It describes "computational readiness" in the data flow:
   #   all ops at level N done implies that an op at level N+1 can
   #   be safely executed
-  
+
   def levelize(self):
     nodes = self.getNodes()
     perDot = max(1, int(len(nodes) / 80))
@@ -2042,11 +2053,11 @@ class Graph(Object):
         if numLevelized % perDot == 0:
           print(".", end='', flush=True)
     print("", flush=True)
-  
+
   # array of node lists, index is level from leaves (inputs) to output (classify)
   def getLevelizedNodes(self):
     return(self.__level2nodes)
-  
+
   # Marks edges that are important for visualization and data flow transformations
   # Typically it is transitive fanout of the input tensor
   def identifyMainFlowEdges(self):
@@ -2067,10 +2078,10 @@ class Graph(Object):
       self.__mainFlowEdges += n.getFanoutEdges()
     for e in self.__mainFlowEdges:
       e.setIsInMainFlow(True)
-  
+
   def edgeIsInMainFlow(self, edge):
     return(edge in self.__mainFlowEdges)
-          
+
   def genCompilertgz(self, outTgzFile, fileList):
     # Tar all files as package
     cmd = ("tar cvzf %s " % outTgzFile) + " ".join(fileList)
@@ -2139,7 +2150,7 @@ class Graph(Object):
         for i in range(len(toNodeNames)):
             toNodeName = toNodeNames[i]
             toIndex = toIndices[i]
-            newEdge = self.addEdge(sliceNode.getName(), 0, 
+            newEdge = self.addEdge(sliceNode.getName(), 0,
                                    toNodeName, toIndex, {})
 
         return sliceNode
@@ -2159,7 +2170,7 @@ class Graph(Object):
 
         driverTensorFormat = self.tensorFormatMap.get(driverTensorName)
         assert(driverTensorFormat)
-        driverTensorTfFormat = driverTensorFormat.tfFormat 
+        driverTensorTfFormat = driverTensorFormat.tfFormat
         driverTensorSimFormat = driverTensorFormat.simFormat
 
         tfInputUnstackAxisInt = unstackNode.getAttr("axis")
@@ -2213,7 +2224,7 @@ class Graph(Object):
 
         for outIdx in range(numOutputs):
             sliceNode = self.CreateOneSliceNodeFromUnstack(unstackNode,
-                                            driverPosNode, outIdx, 
+                                            driverPosNode, outIdx,
                                             simInputUnstackAxisInt)
             sliceNodes.append(sliceNode)
 
@@ -2248,19 +2259,19 @@ class Graph(Object):
   #
   # NPY file formats:
   #   source (in TF) -> conversions to Inkling/Tonga -> NPY written by TFFE
-  # 
+  #
   # IFMAPS:
-  #   NHWC  -> NCHW 
-  # 
+  #   NHWC  -> NCHW
+  #
   # WEIGHTS:
   #   RSCM   ->  MCRS
   #
   # Returns npy reference file for the last layer, and list of files to package into K-graph tgz
-    
+
   def genCompilerJson(self, outFile, verbose):
 
     self.ReplaceUnstackNodes()
-    
+
     jsonData = {
       "net_name"  : "TrivNet",
       "layers"   : []
@@ -2302,7 +2313,7 @@ class Graph(Object):
     layers = OrderedDict()
     fileLists = OrderedDict()
     for level in range(0, len(levelizedNodes)):
-      
+
       nodesAtLevelOrig = list(levelizedNodes[level])
       nodesAtLevel = nodesAtLevelOrig.copy()
       if Config.levelOrderSeed == None:
@@ -2344,7 +2355,7 @@ class Graph(Object):
 
     print("INFO: total opcount is %d" % totalOpCount)
     print("INFO: total padded opcount is %d" % totalOpCountPadded)
-        
+
 
     if verbose > 0:
       npu.showNpyFile("Output OFMAPs", outNpy)
@@ -2361,9 +2372,9 @@ class Graph(Object):
     print("INFO: wrote ", outFile)
     fileList.append(outFile)
     self.tensorFormatMap.writeJson("tensor_map.json")
-    
+
     return(outNpy, fileList)
-  
+
 
   def getLowestLevelNodes(self):
     return self.getLevelizedNodes()[1]  # levels start from 1
@@ -2374,7 +2385,7 @@ class Graph(Object):
     for e in self.getEdges():
       print("  Edge  %s  ->  %s" % (e.getFromNode().getName(),
                                     e.getToNode().getName()))
-  
+
   # Copy edge from another graph into this one
   def copyEdge(self, e):
     fromPosNode = e.getFromPosNode()
@@ -2382,7 +2393,7 @@ class Graph(Object):
     fromName = fromPosNode.node.getName()
     toName = toPosNode.node.getName()
     if self.hasNode(fromName) and self.hasNode(toName):
-      eNew = self.addEdge(fromName, fromPosNode.index, 
+      eNew = self.addEdge(fromName, fromPosNode.index,
                    toName, toPosNode.index, e.getAttrs())
       eNew.setLabel(e.getLabel())
       eNew.setIsInMainFlow(e.isInMainFlow())
@@ -2391,12 +2402,12 @@ class Graph(Object):
               (fromName, fromPosNode.index, toName, toPosNode.index))
       return eNew
     return None
-  
+
   # Copy edges from a graph into this one based on node existance in this one
   def copyEdges(self, sourceGraph):
     for e in sourceGraph.getEdges():
       self.copyEdge(e)
-  
+
   # Writes graph in a given format using graphviz lib
   # Key operations like convolution are colored red
   # The depth determines subgraph clastering based on operation names
@@ -2410,7 +2421,7 @@ class Graph(Object):
       attrs = {}
       if re.search("conv", opType, re.I):
         attrs["color"] = "red"
-      
+
       dot.node(n.getName(), n.getDotText(), attrs)
 
     for edge in self.getEdges():
@@ -2462,12 +2473,12 @@ class Graph(Object):
     outFileAndExt = outFile + "." + outFormat
     print("INFO: invoking dot to render " + outFileAndExt)
     if MiscUtil.ExecTimeout.run(dot.render, outFile, Config.Dot.timeout):
-      print("INFO: wrote " + outFileAndExt)      
+      print("INFO: wrote " + outFileAndExt)
     else:
       print("INFO: dot rendering timed out, skipping")
       if os.path.exists(outFileAndExt):
         os.remove(outFileAndExt)
-  
+
   # Finds all fanin nodes that are missing in this graph and copies
   # them as Constants. This eg, completes the boundary condition
   # for a subgraph that has all main flow nodes.
@@ -2503,7 +2514,7 @@ class Graph(Object):
               # Note - This is a noop since edge color is stored in attributes (not
               # recalculated from subgraph state). Coloring based on main graph
               # is perhaps even better
-              #eNew.setIsInMainFlow(False)  
+              #eNew.setIsInMainFlow(False)
     return list(set(inputNodes))
 
   # Returns file to append to the Kaena backend package
@@ -2528,14 +2539,14 @@ class Graph(Object):
       status = os.system(cmd)
       meOk = status == 0
       return meOk, [waveGraphJsonFile, waveDotFile]
-    
+
   #def convertOpsWithNoArgsToConstNodes(self, OpTypes):
     #for n is self.getNodes():
     #  if n.getOpType in OpTypes:
     #    if len(n.getPredecessors()) == 0:
     #      nodeCopy = n.CopyAs(Node, "Const")
     #      nodeCopy.setLevel(n.getLevel())
-  
+
   def optimizeForInference(self):
     pass
     # For a legacy resnet152
@@ -2546,7 +2557,7 @@ class Graph(Object):
     ifmapBytes = 0
     ofmapBytes = 0
     weightBytes = 0
-    
+
     # Opcounts
     for n in self.getNodes():
       opCount += n.getOpCount()
