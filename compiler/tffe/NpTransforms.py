@@ -50,10 +50,8 @@ class NpTrans:
       for d in [Fmaps, Weights, WeightsTrans]:
         Transforms[src][dst][d] = calcTransform(Formats[src][d], Formats[dst][d])
 
-  # Ulility function to convert npy files given the precise format spec, returns new file name and the destination format
   @staticmethod
-  def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None, dstShape=None):
-    arr = np.load(npFile)
+  def formatNpyArrAs(arr, srcFormat, dstFormat, dstShape=None):
     assert len(srcFormat) == len(arr.shape)
     srcShape = arr.shape
     sf = srcFormat
@@ -77,6 +75,13 @@ class NpTrans:
     if not dstShape == None:
       assert arr.size == np.empty(dstShape).size
       arr = arr.reshape(dstShape)
+    return arr
+
+  # Ulility function to convert npy files given the precise format spec, returns new file name and the destination format
+  @staticmethod
+  def formatNpyFileAs(npFile, srcFormat, dstFormat, outFile=None, dstShape=None):
+    arr = np.load(npFile)
+    arr = NpTrans.formatNpyArrAs(arr, srcFormat, dstFormat, dstShape)
     if outFile == None:
       npFileDest = npFile.replace(".npy", "_" + dstFormat + ".npy")
     else:
