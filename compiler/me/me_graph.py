@@ -341,9 +341,11 @@ class KNode:
         ofmap_tile.tile_rect         = ofmap_tile.padded_tile_rect.get_overlap(self.ofmap_full_rect)
         # compute the bounds for IFMAP tile within IFMAPs tensor (adjusted for boundary conditions)
         # projecting backwards from OFMAP tile
+        incr_size = Dim2D(0,0)
         if conv_transpose:
             if self.filter > self.stride:
-                ofmap_tile.padded_tile_rect = ofmap_tile.padded_tile_rect.increase_size(self.filter - self.stride)
+                incr_size = self.filter - self.stride
+            ofmap_tile.padded_tile_rect  = ofmap_tile.padded_tile_rect.increase_size(incr_size)
             ofmap_tile.padded_tile_rect  = ofmap_tile.padded_tile_rect - self.padWN
             # make sure tile rectangle still fits in PSUM
             ofmap_tile.tile_rect         = ofmap_tile.padded_tile_rect.get_overlap(ofmap_tile.tile_rect)
@@ -353,10 +355,13 @@ class KNode:
         else:
             ifmap_tile.padded_tile_rect  = ofmap_tile.tile_rect * self.stride
             # TODO: handle the case of conv is followed by fused pool, so both pool_window and filter exists (two possible different OFMAPs)
-            if self.pool_window > self.stride:
-                ifmap_tile.padded_tile_rect = ifmap_tile.padded_tile_rect.increase_size(self.pool_window - self.stride)
+            #if self.pool_window > self.stride: 
+            # kaena-826: allow incr_size to be negative, for case window=1 and stride=2 (so padded_tile_rect ends at valid pixel)
+            if self.pool_window > Dim2D(0,0):
+                incr_size = self.pool_window - self.stride
             if (self.filter * self.dilation) > self.stride:
-                ifmap_tile.padded_tile_rect = ifmap_tile.padded_tile_rect.increase_size((self.filter * self.dilation) - self.stride)
+                incr_size = (self.filter * self.dilation) - self.stride
+            ifmap_tile.padded_tile_rect  = ifmap_tile.padded_tile_rect.increase_size(incr_size)
             ifmap_tile.padded_tile_rect  = ifmap_tile.padded_tile_rect - self.padWN
         ifmap_tile.tile_rect         = ifmap_tile.padded_tile_rect.get_overlap(self.ifmap_full_rect)
         #print(ofmap_tile.padded_tile_rect, ofmap_tile.tile_rect, ifmap_tile.padded_tile_rect, ifmap_tile.tile_rect)
