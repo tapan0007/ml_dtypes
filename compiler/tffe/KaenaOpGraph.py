@@ -589,6 +589,8 @@ class NodeInput(Node):
         (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
       elif tfFormat == npt.NC:
         tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      elif tfFormat == npt.NW:
+        tfShape4D = npt.nwShapeToNHWC(npInfo.npShape)
       elif tfFormat == npt.C:
         tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
       elif tfFormat == npt.Formats[npt.TF][npt.Fmaps]:
@@ -1853,33 +1855,37 @@ class NodePad(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
+
+    ((nIn, npInfoFrom), padding_inp) = self.getInputNodesAndNpInfo()
+    npInfoIndexinBes = 1
+    padvec_tmp = padding_inp[npInfoIndexinBes].getValues()
+    padvec = [[np.asscalar(padvec_tmp[i][j]) for j in range(padvec_tmp.shape[1])] for i in range(padvec_tmp.shape[0])]
+
     if len(npInfo.npShape) == 4:
       # CNN unit test flow, no known large Tonga NNs use these shapes as of early 2018
       tfShape4D = npInfo.npShape
       tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+      padvec = npt.reorderShape(padvec, npt.TF, npt.SIM, npt.Fmaps)
     elif len(npInfo.npShape) == 3:
       tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
       tfFormat = npt.NWC
-    elif len(npInfo.npShape) == 1:
-      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.C
-    else:
-      assert len(npInfo.npShape) == 2
+      padvec.insert(1, [0,0])
+      padvec = npt.reorderShape(padvec, npt.TF, npt.SIM, npt.Fmaps)
+    elif len(npInfo.npShape) == 2:
       tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
       tfFormat = npt.NC
+      padvec.insert(1, [0,0])
+      padvec.insert(1, [0,0])
+      padvec = npt.reorderShape(padvec, npt.TF, npt.SIM, npt.Fmaps)
+    else:
+      raise RuntimeError("Supported number of dimensions for Pad's output tensor is between 2 and 4; found %d dimensions instead"%(len(npInfo.npShape)))
+
     tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
     (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
                                      npFileSim, simFormat, False))
-
-    ((nIn, npInfoFrom), padding_inp) = self.getInputNodesAndNpInfo()
-    npInfoIndexinBes = 1
-    padvec_tmp = padding_inp[npInfoIndexinBes].getValues()
-    padvec = [[np.asscalar(padvec_tmp[i][j]) for j in range(padvec_tmp.shape[1])] for i in range(padvec_tmp.shape[0])]
-    if len(npInfo.npShape) == 4:
-      padvec = npt.reorderShape(padvec, npt.TF, npt.SIM, npt.Fmaps)
 
     layerData = {
       "ofmap_shape"     : tpbShape,

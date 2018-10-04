@@ -198,6 +198,7 @@ class TPBSched:
     """ Get a linearized list of fused ops and keep it locally
     """
     def get_list_of_fused_ops(self, kgraph):
+        print("INFO: Schedule fused operations")            
         fused_op_count = 0
         prev_join_batch_item_partition_usage_sz = -1
         prev_join_op_list = None
@@ -253,24 +254,6 @@ class TPBSched:
                             # Populate OFMAP params                        
                             first_op.populate_ofmaps_file_params()
                             first_op.ofmaps_file_params.compute_params(first_op, args, repl_multiple_of_C = i.repl_multiple_of_C, stride = i.stride.x)
-                """                            
-                # For NOP output data, create a view into the input data with a new shape
-                elif first_op.is_nop:
-                    assert(len(first_op.prev) == 1)
-                    for j in first_op.prev:
-                        if j.ofmaps_file_params is not None:
-                            first_op.result_avail = j.result_avail
-                            first_op.populate_ofmaps_file_params()
-                            first_op.ofmaps_file_params.dram_data = j.ofmaps_file_params.dram_data.view()
-                            try:
-                                first_op.ofmaps_file_params.dram_data.shape = first_op.ofmaps_file_params.file_dims.shape_tuple
-                            except AttributeError as e:                            
-                                raise RuntimeError ("ERROR: Cannot reshape data without copying; please implement reshape with copy")
-                            break
-                    if len(self.fused_ops_list) > 0:
-                        op_list.prev = self.fused_ops_list[-1]
-                    self.fused_ops_list.append(op_list)
-                """                
             else:       
                 # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
                 # Format matches existing bias formats, but it should be more like CRSM to match weights
@@ -352,6 +335,7 @@ class TPBSched:
 
             # increment count of fused ops (for ID purpose)
             fused_op_count += 1
+        print("INFO: Number of fused operations: ", fused_op_count)            
 
     """ Fix order of first 2 convolutions right after a fork
     After a fork, if one branch directly goes to ResAdd, that branch was already deleted.
@@ -362,6 +346,7 @@ class TPBSched:
     """
     def fix_order_1st_convs_after_fork(self):
         if len(self.fused_ops_list) >= 3 and args.nname == 'resnet50':
+            print("INFO: Fixing order of fused operations (ResNet50)")            
             for i in range(1, len(self.fused_ops_list)-1):
                 op_list = self.fused_ops_list[i]
                 op_list_next = self.fused_ops_list[i+1]
@@ -379,6 +364,7 @@ class TPBSched:
     """Execute fused operations with batching
     """
     def execute_fused_ops_w_batching(self):
+        print("INFO: Starting execution of fused operations")            
         if len(self.fused_ops_list) == 0:
             raise RuntimeError("No fused ops found; please check input JSON")
         # Reevaluate batch set selection based on first FMAP size (for non-ResNet50 exec)

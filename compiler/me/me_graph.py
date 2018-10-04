@@ -86,6 +86,7 @@ class KNode:
 
     def dissolve_node(self, node_to_dissolve):
         print("Dissolving %s op name %s before %s"%(node_to_dissolve.data['layer_type'], node_to_dissolve.data['layer_name'], self.data['layer_name'])) 
+        node_to_dissolve.data['#comment'] += "(Dissolved by ME)"
         if node_to_dissolve.prev == []:
             if node_to_dissolve.prev_old != []:
                 for i in node_to_dissolve.prev_old:
@@ -782,13 +783,20 @@ class KGraph:
                             elif (prev_node.data['layer_type'] == "Pad"):
                                 # NCHW
                                 new_node.data['padding'] = prev_node.data['padding']
-                                prev_node.data['padding'] = [[0, 0], [0, 0], [0, 0], [0, 0]]
                                 prev_node.data['ofmap_shape'] = prev_node.prev[0].data['ofmap_shape']
                                 assert(len(new_node.data['padding']) == 4)
                                 assert(new_node.data['padding'][0] == [0, 0])
                                 assert(new_node.data['padding'][1] == [0, 0])
-                                assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
+                                #assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
                                 new_node.dissolve_node(prev_node)
+                            elif (prev_node.data['layer_type'] == "Slice"):
+                                if 'padding' in prev_node.data:
+                                    new_node.data['padding'] = prev_node.data['padding']
+                                if prev_node.slice_offset == Coord(0, 0) \
+                                        and prev_node.data['ofmap_format'] == prev_node.prev[0].data['ofmap_format']:
+                                    new_node.dissolve_node(prev_node)
+                                else:
+                                    new_node.add_prev(self.node_dict[i])
                             elif (prev_node.data['layer_type'] == "StridedSlice"):
                                 if (prev_node.data['channel_slice'][0]%128) == 0:
                                     new_node.stridedslice_chan_offset = prev_node.data['channel_slice'][0]
@@ -803,10 +811,16 @@ class KGraph:
                                         print("%s: unstack_h_offset %d"%(new_node.data['layer_name'], j[0]))
                                         break
                                 new_node.dissolve_node(prev_node)
-                            elif (prev_node.data['layer_type'] == "Reshape" or prev_node.data['layer_type'] == "Identity"):
+                            elif (prev_node.data['layer_type'] == "Reshape" 
+                                    or prev_node.data['layer_type'] == "Identity"
+                                    or prev_node.data['layer_type'] == "ExpandDims"
+                                    or prev_node.data['layer_type'] == "Squeeze"
+                                    ):
                                 if len(prev_node.prev) == 1 \
                                         and prev_node.data['ofmap_format'] == prev_node.prev[0].data['ofmap_format'] \
                                         and prev_node.data['ofmap_shape'] == prev_node.prev[0].data['ofmap_shape']:
+                                    if 'padding' in prev_node.data:
+                                        new_node.data['padding'] = prev_node.data['padding']
                                     new_node.dissolve_node(prev_node)
                                 else:
                                     new_node.add_prev(self.node_dict[i])

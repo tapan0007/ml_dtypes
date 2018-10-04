@@ -4,16 +4,18 @@ pdb=""
 nname="generic"
 repl=""
 cleanup=""
+dbg="--debug 3"
 while [[ $# > 0 ]]; do case $1 in
     -d) pdb="-m pdb"; shift;;
     -r) nname="resnet50"; shift;;
     -x) repl="--enable_replication"; shift;;
     -c) cleanup="--enable_cleanup"; shift;;
+    -q) dbg="--debug 0"; shift;;
     *) x=$1; shift;
 esac; done    
 
 rm -f *-midout.npy
-cmd="python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json --debug 3 --nname=$nname $repl $cleanup --stop_after_layer_num $x --no_inter_layer_load"
+cmd="python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json $dbg --nname=$nname $repl $cleanup --stop_after_layer_num $x --no_inter_layer_load"
 echo $cmd
 echo $cmd > log-me.txt
 $cmd | tee -a log-me.txt

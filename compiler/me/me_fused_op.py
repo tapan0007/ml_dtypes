@@ -2408,13 +2408,12 @@ class FusedOp(list):
                                     tpb.waveop_stream.waveop_count - 1,    # adjust since pool waveop already generated
                                     tpb.waveop_stream,
                                     self.last_op.ofmaps_file_params,
-                                    0,
+                                    batch_item,
                                     0,
                                     self.first_op.ifmaps_file_params.file_sz,   # mark entire file
                                     False)
 
     def execute_unfused_reshape_op(self, tpb, batch_item):
-        print("execute_unfused_reshape_op ", self.first_op.data)
         self.first_op.ofmaps_file_params.dram_data = self.first_op.ifmaps_file_params.dram_data.view()
         try:
             self.first_op.ofmaps_file_params.dram_data.shape = self.first_op.ofmaps_file_params.file_dims.shape_tuple
@@ -2424,7 +2423,7 @@ class FusedOp(list):
                                     tpb.waveop_stream.waveop_count - 1,    # adjust since pool waveop already generated
                                     tpb.waveop_stream,
                                     self.first_op.ofmaps_file_params,
-                                    0,
+                                    batch_item,
                                     0,
                                     self.first_op.ofmaps_file_params.file_sz,   # mark entire file
                                     False)
@@ -2436,7 +2435,7 @@ class FusedOp(list):
         slice_w_stop = self.first_op.slice_offset.x + self.first_op.slice_size.x
         slice_h_begin = self.first_op.slice_offset.y
         slice_h_stop = self.first_op.slice_offset.y + self.first_op.slice_size.y
-        print("Slice: w axis [%d:%d], h axis [%d:%d]"%(slice_w_begin, slice_w_stop, slice_h_begin, slice_h_stop))
+        #print("Slice: w axis [%d:%d], h axis [%d:%d]"%(slice_w_begin, slice_w_stop, slice_h_begin, slice_h_stop))
         if ifp.file_dims.format_str == 'HNWC':
             ofp.dram_data = ifp.dram_data[ slice_h_begin : slice_h_stop, :, slice_w_begin : slice_w_stop, : ]
             ofp.dram_data.shape = ofp.file_dims.shape_tuple
@@ -2488,7 +2487,7 @@ class FusedOp(list):
         self.print_SB_addr(op.weights_file_params)
 
     def execute_unfused_stridedslice_op (self, tpb, batch_item):
-        print ("Stridedslice node name = %s"%self.first_op.data['layer_name'])
+        #print ("Stridedslice node name = %s"%self.first_op.data['layer_name'])
         first_op = self[0]
         n_id = batch_item // first_op.Tn
         ifmap_file_params = self.first_op.ifmaps_file_params

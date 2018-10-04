@@ -36,15 +36,31 @@ controlled by RunAll options. Some commonly used options are:
 - level: filter by the test level (the first number in test name)
 
 More information can be found in RunAll's help:
-$KAENA_PATH/tests/e2e/RunAll --help
+$KAENA_PATH/test/e2e/RunAll --help
 
 Subgraphing
 -----------
 
+The Front-End can partition a large graph into smaller ones for execution on various simulators/devices.
 
+  --focus_to FOCUS_TO   Filter out all nodes but the fanin of this node. The
+                        fanin includes the node itself.
+
+  --partition PARTITION [PARTITION ...]
+                        Partition into subgraphs; use from, from_multi,
+                        meauto, multi_tpb, or auto. The from_multi is followed
+                        by list of comma-separate cut nodes, e.g. from a,b c
+                        e,f,g . The default is none
+
+  --executors EXECUTORS [EXECUTORS ...]
+                        Specifies executors per subgraph, e.g., tcc 1 2 3
+                        (implies rest on host, host 0 4 5), default ""
+
+An example is 9-inceptionv3_wave_dog_sg00_tpb_upto_concat1 in test_list.py. To include the first concat
+in the first subgraph, specifies the nodes right after the first concat in from_multi list.
 
 More information can be found in RunAll's help:
-$KAENA_PATH/tests/e2e/RunAll --help
+$KAENA_PATH/compiler/scripts/tffe --help
 
 Test target
 -----------

@@ -562,25 +562,6 @@ testConfigMap = {
   "3-parwavenet_10_fp16_in_to_reshape1_wave" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder --show_op_name_in_kgraph --depth -1 --partition from Reshape_1 --executors host all wave 0 --scheduler wave2 --schedule_options ' --nname=generic --no_verify' --images %s"%melSpectra, "--input_files %s"%melSpectra],
   "3-parwavenet_10_fp16_in_to_reshape3_wave" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder --show_op_name_in_kgraph --depth -1 --partition from Reshape_3 --executors host all wave 0 --scheduler wave2 --schedule_options ' --nname=generic --no_verify' --images %s"%melSpectra, "--input_files %s"%melSpectra],
 
-
-  "5-parwavenet_10_fp16_in_to_add1_host" : [ "tf_pb",   
-          "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb",
-          "parallel_wavenet",
-          "--input_node Placeholder sub_1 --focus_to add_1 --show_op_name_in_kgraph --depth -1 "
-          + "--executors host all  --debug 2 --partition from_multi ExpandDims,Reshape "
-          + "--images %s linspace1" % melSpectra,
-          "--input_files trivnet_sub_1:0.npy %s " % melSpectra],
-
-  # SG01 failed in me, switched to host temporarily
-  "5-parwavenet_10_fp16_in_to_add2_wave" : [ "tf_pb",   
-          "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", 
-          "parallel_wavenet", 
-          "--input_node Placeholder sub_1 --focus_to add_2 --show_op_name_in_kgraph --depth -1 "
-          + "--executors host all host 1 --scheduler wave2 --partition from_multi ExpandDims,Reshape "
-          + "--schedule_options ' --nname=generic --no_verify' --waive_wavegraph_checks "
-          + "--images %s linspace1"%melSpectra,
-          "--input_files trivnet_sub_1:0.npy %s " % melSpectra],
-
   "3-parwavenet_10_fp16_in_to_add3_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_3 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files %s trivnet_sub_1:0.npy"%melSpectra],
   "3-parwavenet_10_fp16_reshape23_to_squeeze4_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_3 --show_op_name_in_kgraph --depth -1 --partition from multi Squeeze_4 Reshape_23 add_2 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files %s trivnet_sub_1:0.npy"%melSpectra],
   "3-parwavenet_10_fp16_in_to_add6_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_6 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files %s trivnet_sub_1:0.npy"%melSpectra],
@@ -1009,6 +990,27 @@ testConfigMap = {
   "0-2conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l2-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "2ct", "--scheduler wave2 --wavegraph_checks structure data-race"],
 }
 
+def gen_parwavenet_10_fp16_in_to(node, sgnum):
+    return  [ "tf_pb",   
+          "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb",
+          "parallel_wavenet",
+          "--input_node Placeholder sub_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
+          + "--sg_input_format sub_1 NW "
+          + "--executors host all wave %d  --scheduler wave2 --partition from_multi ExpandDims,Reshape "%sgnum
+          + "--schedule_options ' --nname=generic --no_verify' --waive_wavegraph_checks "
+          + "--images %s linspace1" % melSpectra,
+          "--input_files trivnet_sub_1:0.npy %s " % melSpectra]
+
+# Generated tests
+for i in [1, 2, 3, 6]:
+    testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to("add_%s"%i, 1)
+
+for i in [9, 12, 15, 18, 22]:
+    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to("add_%s"%i, 1)
+
+for i in [24]:
+    testConfigMap["7-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to("add_%s"%i, 0)
+
 # Regression waiver mechanism
 # If the testname matches the regexp then the FAIL status is replaced with
 # with the string
@@ -1049,6 +1051,8 @@ testWaiver = [
     #['.*reshape.*', 'WAIVE_KAENA597'],
     ['3-parwavenet_.*_wave$', 'WAIVE_KAENA711'],
     ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
+    ['6-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE_KAENA711'],
+    ['7-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE_KAENA711'],
     ['9-parwavenet_10_10_fp16_waveopt$', 'WAIVE_KAENA711'],
     ['3-1conv_transpose_1d_h100r80s20_wave', 'WAIVE_KAENA768'],
     ['3-1conv_transpose_1d_h10r40s10_wave', 'WAIVE_KAENA768'],
