@@ -95,6 +95,7 @@ class KPackageManager(object):
     def get_files(self):
         ''' scans throgh the manifest dict and checks for all the required
         files.'''
+        self.files_to_pack.append(self.manifest_file_name)
         #check if the key exists for each engine and its pointing to .json file
         for eng in json_file_list:
             if eng in self.manifest.keys():
@@ -124,9 +125,8 @@ class KPackageManager(object):
             return ret
         if len(numpy_files_list) == 0:
             self.logger.error('No numpy files found...')
-            return self.error_codes['MISSING_ENTRY']
+            return 0
         self.files_to_pack.extend(numpy_files_list)
-        self.files_to_pack.append(self.manifest_file_name)
 
         return 0
 
