@@ -44,7 +44,7 @@ public:
         return EngineId::Pooling;
     }
 
-private:
+protected:
     const DataType&             m_OutDtype;
 }; // class PoolEngWaveOp : public WaveOp
 

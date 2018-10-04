@@ -90,7 +90,10 @@ public:
     virtual bool qActivationWaveOp() const {
         return false;
     }
-    virtual bool qResAddWaveOp() const {
+    virtual bool qTensorTensorWaveOp() const {
+        return false;
+    }
+    virtual bool qTensorScalarConstWaveOp() const {
         return false;
     }
     virtual bool qBarrierWaveOp() const {

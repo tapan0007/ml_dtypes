@@ -8,7 +8,7 @@
 #include "layers/inc/layer.hpp"
 #include "nets/inc/network.hpp"
 #include "wave/inc/waveconsts.hpp"
-#include "wave/inc/resaddwaveop.hpp"
+#include "wave/inc/tensortensorwaveop.hpp"
 
 // #define RETURN_ASSERT(x) return (x)
 #define RETURN_ASSERT(x)  assert(x); return (x)
@@ -17,9 +17,12 @@
 namespace kcc {
 namespace wave {
 
-ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
-                       const std::vector<WaveOp*>& prevWaveOps)
+TensorTensorWaveOp::TensorTensorWaveOp(TensorAluOpType aluOp,
+                        const TensorTensorWaveOp::Params& params,
+                        const std::vector<WaveOp*>& prevWaveOps)
     : PoolEngWaveOp(params, prevWaveOps)
+    , m_AluOp(aluOp)
+    , m_TypeStr(params.m_WaveOpType)
     , m_InADtype(DataType::dataTypeId2DataType(params.m_InADtypeId))
     , m_InBDtype(DataType::dataTypeId2DataType(params.m_InBDtypeId))
     , m_SrcAIsPsum(params.m_SrcAIsPsum)
@@ -72,14 +75,13 @@ ResAddWaveOp::ResAddWaveOp(const ResAddWaveOp::Params& params,
     m_DstZNum                   = params.m_DstZNum;
 
     m_NumPartitions             = params.m_NumPartitions;
-    m_Multiply                  = params.m_Multiply;    /* Hack in ResAdd to get Multiply to work with old ISA */
 
     assert(verify());
 }
 
 
 bool
-ResAddWaveOp::verify() const
+TensorTensorWaveOp::verify() const
 {
     if (! this->WaveOp::verify()) {
         RETURN_ASSERT(false);
@@ -185,6 +187,9 @@ ResAddWaveOp::verify() const
     if (m_NumPartitions < 1) {
         RETURN_ASSERT(false);
     }
+    if (m_TypeStr == "") {
+        RETURN_ASSERT(false);
+    }
 
     return true;
 }
@@ -193,15 +198,15 @@ ResAddWaveOp::verify() const
 
 
 bool
-ResAddWaveOp::Params::verify() const
+TensorTensorWaveOp::Params::verify() const
 {
     return true;
 }
 
 std::string
-ResAddWaveOp::gTypeStrStatic()
+TensorTensorWaveOp::gTypeStr() const
 {
-    return WaveOpTypeStr_ResAdd;
+    return m_TypeStr;
 }
 
 }}

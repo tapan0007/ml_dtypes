@@ -105,7 +105,14 @@ testConfigMap = {
   "0-rtl-act_identity_sweep_wave"      : [ "trivnet_biasadd",      "tfloat32-b1-h128-c64-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
 
   "0-act_exp_sweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-5-imax5",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
-  "0-act_lrelu_sweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic' "],
+  "0-act_lrelu_sweep_wave"         : [ "trivnet_act",
+    "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act",
+    ("--scheduler wave2  "
+    + " --schedule_options ' --nname=generic' "
+    + " --waive_wavegraph_checks "
+    )
+  ],
+
   "0-act_fused_lrelu_sweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu ' "],
  
   "0-rtl-act_tanh_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
@@ -114,7 +121,17 @@ testConfigMap = {
   "0-rtl-act_identity_minisweep_wave"      : [ "trivnet_biasadd",      "tfloat32-b1-h128-c64-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
 
   "0-act_exp_minisweep_wave"           : [ "trivnet_act",      "tfloat32-b1-h128-c64-exp-wmin2-wmax2.2-imin-1-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
-  "0-act_lrelu_minisweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
+
+  "0-act_lrelu_minisweep_wave"         : [
+    "trivnet_act",
+    "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1",
+    "act",
+    ("--scheduler wave2  "
+    + " --schedule_options ' --nname=generic'"
+    + " --waive_wavegraph_checks "
+    )
+  ],
+
   "0-act_fused_lrelu_minisweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h128-c64-lrelu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu '"],
 
   "0-1clipbyvalue_wave" : [ "trivnet_clipbyvalue",
@@ -252,7 +269,13 @@ testConfigMap = {
 
   "0-act_wave"     : [ "trivnet_act", "tfloat16-b1-h2-c128-tanh-wmin2-wmax2.2-imin-1-imax2", "act", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-act_softplus_wave"     : [ "trivnet_act", "tfloat16-b1-h2-c128-softplus-wmin2-wmax2.2-imin-1-imax2", "act", "--scheduler wave2 --wavegraph_checks structure data-race"],  
-  "0-scaleadd_wave"       : [ "trivnet_scaleadd",    "tfloat16-b1-h1-c16-wmin2-wmax2.2-imin3-imax6", "scaleadd", "--scheduler wave --wavegraph_checks structure data-race"],
+  "0-scaleadd_wave"       : [
+    "trivnet_scaleadd",
+    "tfloat16-b1-h1-c16-wmin2-wmax2.2-imin3-imax6",
+    "scaleadd",
+    ("--scheduler wave "
+     + " --waive_wavegraph_checks "
+    )],
   "0-resadd_wave"         : [ "trivnet_add",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-resadd_fp32_wave"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
   "0-resadd_uint8_wave"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add", "--scheduler wave --wavegraph_checks structure data-race"],
@@ -267,6 +290,7 @@ testConfigMap = {
   "0-3conv_ba_resadd_fp16_wave"  : [ "trivnet_conv_ba_add", "tfloat16-b1-h55-r3-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "add", "--scheduler wave2 --schedule_options ' --nname=generic' --waive_wavegraph_checks"],
   "0-3conv_ba_resadd_h1_fp16_wave"  : [ "trivnet_conv_ba_add", "tfloat16-b1-h1-r1-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "add", "--scheduler wave2 --schedule_options ' --nname=generic' --waive_wavegraph_checks"],
   "0-3conv_ba_mult_fp32_wave"  : [ "trivnet_conv_ba_mult", "tfloat32-b1-h55-r3-s2-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "mult", "--scheduler wave --waive_wavegraph_checks"],
+  "0-3conv_ba_mult_fp16_wave"  : [ "trivnet_conv_ba_mult", "tfloat16-b1-h55-r3-s2-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "mult", "--scheduler wave --waive_wavegraph_checks"],
   "0-2matmult_add_fp32_wave"  : [ "trivnet_matmul_add", "tfloat32-b1-h1-r1-s1-c512-m2048-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "matmult", "--scheduler wave --schedule_options ' --save_layer_output '  --waive_wavegraph_checks"],
 
   "0-1conv_s8_32b_wave": [ "trivnet_lin",    "tfloat32-l2-b1-h16-r1-s8-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv32", "--scheduler wave --wavegraph_checks structure data-race"],
@@ -1095,7 +1119,7 @@ testWaiver = [
     ['4-ptb_word_lm1$', 'WAIVE-LSTM'],
     ['4-ptb_word_small1_wave$', 'WAIVE-LSTM'],
     #['4-ptb_word_small_sigmoid_wave$', 'WAIVE-LSTM'],
-    ['0-scaleadd_wave',             'WAIVE-LSTM'],
+    #['0-scaleadd_wave',             'WAIVE-LSTM'],
     #['4-ptb_word_small_sigmoid_2l_wave$',             'WAIVE-LSTM'],
     ['2-ptb_word_unstack_.*',             'WAIVE-KAENA661'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
@@ -1113,10 +1137,10 @@ testWaiver = [
 
     # bugs
     ['0-act_exp_sweep_wave', 'WAIVE-KAENA773'],
-    ['0-act_lrelu_sweep_wave', 'WAIVE-KAENA773'],
+    #['0-act_lrelu_sweep_wave', 'WAIVE-KAENA773'],
     ['0-act_fused_lrelu_sweep_wave', 'WAIVE-KAENA773'],
     ['0-act_exp_minisweep_wave', 'WAIVE-KAENA773'],
-    ['0-act_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
+    #['0-act_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
     ['0-act_fused_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
 
     # Replication

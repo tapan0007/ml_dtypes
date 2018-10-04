@@ -4,7 +4,7 @@ MODS := $(MODULE) kelf utils nets layers wave
 
 ########################################################
 FILES := waveop sbatom sbatomload sbatomsave matmul pool \
-activation clipbyvalue resadd barrier nop
+activation clipbyvalue tensortensor tensorscalarconst barrier nop
 
 SRCS := wavecode wavecode_gen $(addprefix $(MODULE),$(FILES))
 

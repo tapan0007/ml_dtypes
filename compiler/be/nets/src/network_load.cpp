@@ -37,23 +37,29 @@
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
-#include "wave/inc/resaddwaveop.hpp"
+#include "wave/inc/tensortensorwaveop.hpp"
+#include "wave/inc/tensorscalarconstwaveop.hpp"
 
 #include "serialize/inc/serlayer.hpp"
 #include "serialize/inc/serwaveop.hpp"
 
-#define KCC_UNSERIALIZE(X) PARAMS.KCC_CONCAT(m_,X) = serWaveOp.KCC_CONCAT(m_,X);
-namespace kcc {
 
 
 #define ASSERT_NUM_LAYERS(serLayer, N) \
     Assert((serLayer).gNumPrevLayers() == (N), (serLayer).gTypeStr(), " layer '", (serLayer).gLayerName(), \
                    "' should have ", (N), " input", ((N)==1 ? "" : "s"), ", but it has ", (serLayer).gNumPrevLayers())
 
+#define ASSERT_NUM_LAYERS2(serLayer, N1, N2) \
+    Assert( ((serLayer).gNumPrevLayers() == (N1) || (serLayer).gNumPrevLayers() == (N2) ), \
+                   (serLayer).gTypeStr(), " layer '", (serLayer).gLayerName(), \
+                   "' should have ", (N1), " or ", (N2), " inputs, but it has ", \
+                   (serLayer).gNumPrevLayers())
+
 #define ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName) \
     Assert((prevLayer) != nullptr, (serLayer).gTypeStr(), " layer '", (serLayer).gLayerName(), \
                        "': Previous layer '", (prevLayerName), "' not found");
 
+namespace kcc {
 namespace nets {
 
 //--------------------------------------------------------
@@ -217,7 +223,11 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             layer = new layers::TanhLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd || serLayer.gTypeStr() == layers::LayerTypeStr_Multiply) {
             // TODO: check dimensions and types of inputs
-            ASSERT_NUM_LAYERS(serLayer, 2);
+            if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd) {
+                ASSERT_NUM_LAYERS(serLayer, 2);
+            } else {
+                ASSERT_NUM_LAYERS2(serLayer, 1, 2);
+            }
             std::vector<layers::Layer*> prevLayers;
             for (const auto& prevLayerName : serLayer.gPrevLayers()) {
                 layers::Layer* prevLayer = findLayer(prevLayerName);
@@ -244,15 +254,21 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 || serLayer.gTypeStr() == layers::LayerTypeStr_ExpandDims
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Slice
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Minimum
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Maximum
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Pad
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Softplus
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Transpose
                 || serLayer.gTypeStr() == layers::LayerTypeStr_SpaceToBatchND
                 || serLayer.gTypeStr() == layers::LayerTypeStr_BatchToSpaceND
                 || serLayer.gTypeStr() == layers::LayerTypeStr_Concat
-                ) {   // FIXME: placeholder
-            if (serLayer.gTypeStr() != layers::LayerTypeStr_Concat)
-            {
+                )
+        {   // FIXME: placeholder
+            if (serLayer.gTypeStr() == layers::LayerTypeStr_Concat) {
+                // could have multiple inputs
+            } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Maximum
+                || serLayer.gTypeStr() == layers::LayerTypeStr_Minimum) {
+                ASSERT_NUM_LAYERS(serLayer, 2);
+            } else {
                 ASSERT_NUM_LAYERS(serLayer, 1);
             }
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
@@ -293,8 +309,16 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 waveOp = m_Load->loadActivation(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::ClipByValueWaveOp::gTypeStrStatic()) {
                 waveOp = m_Load->loadClipByValue(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::ResAddWaveOp::gTypeStrStatic()) {
-                waveOp = m_Load->loadResAdd(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::TensorTensorWaveOp::gTypeStrResAddStatic()) {
+                waveOp = m_Load->loadTensorTensor(serWaveOp, TensorAluOpType::Add);
+            } else if (serWaveOp.m_WaveOpType == wave::TensorTensorWaveOp::gTypeStrMultiplyStatic()) {
+                waveOp = m_Load->loadTensorTensor(serWaveOp, TensorAluOpType::Mult);
+            } else if (serWaveOp.m_WaveOpType == wave::TensorScalarConstWaveOp::gTypeStrScaleAddStatic()) {
+                waveOp = m_Load->loadScaleAdd(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::TensorTensorWaveOp::gTypeStrMinimum()) {
+                waveOp = m_Load->loadMinimum(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::TensorTensorWaveOp::gTypeStrMaximum()) {
+                waveOp = m_Load->loadMaximum(serWaveOp);
             } else {
                 Assert(false, "Wrong WaveOp type during deserialization: ", serWaveOp.m_WaveOpType);
             }
@@ -320,6 +344,7 @@ Network::Load::Load(Network& network)
 wave::SbAtomLoadWaveOp*
 Network::Load::loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp)
 {
+#undef PARAMS
 #define PARAMS sbatomLoadParams
     std::vector<wave::WaveOp*> prevWaveOps;
     wave::SbAtomLoadWaveOp::Params sbatomLoadParams;
@@ -358,6 +383,7 @@ Network::Load::loadSbAtomLoad(const serialize::SerWaveOp& serWaveOp)
 wave::SbAtomSaveWaveOp*
 Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
 {
+#undef PARAMS
 #define PARAMS sbatomsaveParams
     std::vector<wave::WaveOp*> prevWaveOps;
     wave::SbAtomSaveWaveOp::Params sbatomsaveParams;
@@ -389,42 +415,23 @@ Network::Load::loadSbAtomSave(const serialize::SerWaveOp& serWaveOp)
 wave::PoolWaveOp*
 Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
 {
+#undef PARAMS
 #define PARAMS poolParams
     std::vector<wave::WaveOp*> prevWaveOps;
     wave::PoolWaveOp::Params poolParams;
-    fillWaveOpParams(serWaveOp, prevWaveOps, poolParams);
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
 
-    KCC_UNSERIALIZE(DstSbAddress);
-    KCC_UNSERIALIZE(DstStartAtMidPart);
-    KCC_UNSERIALIZE(DstXNum);
-    KCC_UNSERIALIZE(DstXStep);
-    KCC_UNSERIALIZE(DstYNum);
-    KCC_UNSERIALIZE(DstYStep);
-    KCC_UNSERIALIZE(DstZNum);
-    KCC_UNSERIALIZE(DstZStep);
-    poolParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    KCC_UNSERIALIZE(NumPartitions);
-    poolParams.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
-    KCC_UNSERIALIZE(PoolFrequency);
-    poolParams.m_PoolFunc  = utils::poolTypeStr2Id(serWaveOp.m_PoolFunc);
-
-    KCC_UNSERIALIZE(SrcIsPsum);
-    if (serWaveOp.m_SrcIsPsum) {
-        KCC_UNSERIALIZE(SrcPsumBankId);
-        KCC_UNSERIALIZE(SrcPsumBankOffset);
-    } else {
-        KCC_UNSERIALIZE(SrcSbAddress);
-        KCC_UNSERIALIZE(SrcStartAtMidPart);
-    }
-
+    loadSrc(PARAMS, serWaveOp, Dims::XYZ);
     KCC_UNSERIALIZE(SrcWNum);
     KCC_UNSERIALIZE(SrcWStep);
-    KCC_UNSERIALIZE(SrcXNum);
-    KCC_UNSERIALIZE(SrcXStep);
-    KCC_UNSERIALIZE(SrcYNum);
-    KCC_UNSERIALIZE(SrcYStep);
-    KCC_UNSERIALIZE(SrcZNum);
-    KCC_UNSERIALIZE(SrcZStep);
+
+    loadDst(PARAMS, serWaveOp, Dims::XYZ);
+
+    poolParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+
+    KCC_UNSERIALIZE(NumPartitions);
+    KCC_UNSERIALIZE(PoolFrequency);
+    poolParams.m_PoolFunc  = utils::poolTypeStr2Id(serWaveOp.m_PoolFunc);
 
     Assert(poolParams.m_TileId.size() == serWaveOp.m_TileId.size(),
         serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
@@ -443,6 +450,7 @@ Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
 wave::MatMulWaveOp*
 Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
 {
+#undef PARAMS
 #define PARAMS matmulParams
     std::vector<wave::WaveOp*> prevWaveOps;
     wave::MatMulWaveOp::Params matmulParams;
@@ -490,6 +498,7 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
 wave::ActivationWaveOp*
 Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
 {
+#undef PARAMS
 #define PARAMS activationParams
     std::vector<wave::WaveOp*> prevWaveOps;
     wave::ActivationWaveOp::Params activationParams;
@@ -497,46 +506,16 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
 
     activationParams.m_ActivationFunc   = serialize::SerWaveOp::str2ActivationFunc(serWaveOp.m_ActivationFunc);
 
+    activationParams.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype);
     KCC_UNSERIALIZE(BiasAddEn);
     KCC_UNSERIALIZE(BiasSbAddress);
     KCC_UNSERIALIZE(BiasStartAtMidPart);
 
-    KCC_UNSERIALIZE(DstXNum);
-    KCC_UNSERIALIZE(DstXStep);
-    KCC_UNSERIALIZE(DstYNum);
-    KCC_UNSERIALIZE(DstYStep);
-    KCC_UNSERIALIZE(DstZNum);
-    KCC_UNSERIALIZE(DstZStep);
+    loadSrc(PARAMS, serWaveOp, Dims::XYZ);
+    loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
-    KCC_UNSERIALIZE(DstIsPsum);
-    if (serWaveOp.m_DstIsPsum) {
-        KCC_UNSERIALIZE(DstPsumBankId);
-        KCC_UNSERIALIZE(DstPsumBankOffset);
-    } else {
-        KCC_UNSERIALIZE(DstSbAddress);
-        KCC_UNSERIALIZE(DstStartAtMidPart);
-    }
-
-    activationParams.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    activationParams.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype);
     KCC_UNSERIALIZE(NumPartitions);
-    activationParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
 
-    KCC_UNSERIALIZE(SrcIsPsum);
-    if (serWaveOp.m_SrcIsPsum) {
-        KCC_UNSERIALIZE(SrcPsumBankId);
-        KCC_UNSERIALIZE(SrcPsumBankOffset);
-    } else {
-        KCC_UNSERIALIZE(SrcSbAddress);
-        KCC_UNSERIALIZE(SrcStartAtMidPart);
-    }
-
-    KCC_UNSERIALIZE(SrcXNum);
-    KCC_UNSERIALIZE(SrcXStep);
-    KCC_UNSERIALIZE(SrcYNum);
-    KCC_UNSERIALIZE(SrcYStep);
-    KCC_UNSERIALIZE(SrcZNum);
-    KCC_UNSERIALIZE(SrcZStep);
 
     Assert(activationParams.m_TileId.size() == serWaveOp.m_TileId.size(),
         serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
@@ -555,6 +534,7 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
 wave::ClipByValueWaveOp*
 Network::Load::loadClipByValue(const serialize::SerWaveOp& serWaveOp)
 {
+#undef PARAMS
 #define PARAMS clipByValueParams
     std::vector<wave::WaveOp*> prevWaveOps;
     wave::ClipByValueWaveOp::Params clipByValueParams;
@@ -614,51 +594,75 @@ Network::Load::loadClipByValue(const serialize::SerWaveOp& serWaveOp)
 }
 
 
-wave::ResAddWaveOp*
-Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
+wave::TensorTensorWaveOp*
+Network::Load::loadTensorTensor(const serialize::SerWaveOp& serWaveOp, TensorAluOpType aluOp)
 {
-#define PARAMS resAddParams
+#undef PARAMS
+#define PARAMS tensorTensorParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::ResAddWaveOp::Params resAddParams;
-    fillWaveOpParams(serWaveOp, prevWaveOps, resAddParams);
+    wave::TensorTensorWaveOp::Params tensorTensorParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, tensorTensorParams);
 
-    resAddParams.m_InADtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InADtype);
-    resAddParams.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
-    resAddParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    tensorTensorParams.m_InADtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InADtype);
+    tensorTensorParams.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
+    tensorTensorParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     KCC_UNSERIALIZE(NumPartitions);
-    KCC_UNSERIALIZE(Multiply);       /* Hack in ResAdd to get Multiply to work with old ISA */
 
-    // SrcA
-    KCC_UNSERIALIZE(SrcAIsPsum);
-    if (serWaveOp.m_SrcAIsPsum) {
-        KCC_UNSERIALIZE(SrcAPsumBankId);
-        KCC_UNSERIALIZE(SrcAPsumBankOffset);
-    } else {
-        KCC_UNSERIALIZE(SrcASbAddress);
-        KCC_UNSERIALIZE(SrcAStartAtMidPart);
-    }
-    KCC_UNSERIALIZE(SrcAXNum);
-    KCC_UNSERIALIZE(SrcAXStep);
-    KCC_UNSERIALIZE(SrcAYNum);
-    KCC_UNSERIALIZE(SrcAYStep);
-    KCC_UNSERIALIZE(SrcAZNum);
-    KCC_UNSERIALIZE(SrcAZStep);
+    loadSrcAB(PARAMS, serWaveOp, Dims::XYZ);
+    loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
-    // SrcB
-    KCC_UNSERIALIZE(SrcBIsPsum);
-    if (serWaveOp.m_SrcBIsPsum) {
-        KCC_UNSERIALIZE(SrcBPsumBankId);
-        KCC_UNSERIALIZE(SrcBPsumBankOffset);
+    KCC_UNSERIALIZE(WaveOpType);
+
+    auto waveOp = new wave::TensorTensorWaveOp(aluOp, tensorTensorParams, prevWaveOps);
+    Assert(waveOp->gName() == tensorTensorParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    return waveOp;
+#undef PARAMS
+}
+
+
+
+wave::TensorTensorWaveOp*
+Network::Load::loadMinimum(const serialize::SerWaveOp& serWaveOp)
+{
+    auto waveOp = loadTensorTensor(serWaveOp, TensorAluOpType::Min);
+    return waveOp;
+}
+
+wave::TensorTensorWaveOp*
+Network::Load::loadMaximum(const serialize::SerWaveOp& serWaveOp)
+{
+    auto waveOp = loadTensorTensor(serWaveOp, TensorAluOpType::Max);
+    return waveOp;
+}
+
+wave::TensorScalarConstWaveOp*
+Network::Load::loadScaleAdd(const serialize::SerWaveOp& serWaveOp)
+{
+#undef PARAMS
+#define PARAMS tensorScalarConstParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::TensorScalarConstWaveOp::Params tensorScalarConstParams;
+    fillWaveOpParams(serWaveOp, prevWaveOps, tensorScalarConstParams);
+
+    tensorScalarConstParams.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    tensorScalarConstParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    KCC_UNSERIALIZE(NumPartitions);
+
+    // Src
+    KCC_UNSERIALIZE(SrcIsPsum);
+    if (serWaveOp.m_SrcIsPsum) {
+        KCC_UNSERIALIZE(SrcPsumBankId);
+        KCC_UNSERIALIZE(SrcPsumBankOffset);
     } else {
-        KCC_UNSERIALIZE(SrcBSbAddress);
-        KCC_UNSERIALIZE(SrcBStartAtMidPart);
+        KCC_UNSERIALIZE(SrcSbAddress);
+        KCC_UNSERIALIZE(SrcStartAtMidPart);
     }
-    KCC_UNSERIALIZE(SrcBXNum);
-    KCC_UNSERIALIZE(SrcBXStep);
-    KCC_UNSERIALIZE(SrcBYNum);
-    KCC_UNSERIALIZE(SrcBYStep);
-    KCC_UNSERIALIZE(SrcBZNum);
-    KCC_UNSERIALIZE(SrcBZStep);
+    KCC_UNSERIALIZE(SrcXNum);
+    KCC_UNSERIALIZE(SrcXStep);
+    KCC_UNSERIALIZE(SrcYNum);
+    KCC_UNSERIALIZE(SrcYStep);
+    KCC_UNSERIALIZE(SrcZNum);
+    KCC_UNSERIALIZE(SrcZStep);
 
     // Dst
     KCC_UNSERIALIZE(DstIsPsum);
@@ -675,12 +679,23 @@ Network::Load::loadResAdd(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(DstYStep);
     KCC_UNSERIALIZE(DstZNum);
     KCC_UNSERIALIZE(DstZStep);
+    KCC_UNSERIALIZE(WaveOpType);
 
-    auto waveOp = new wave::ResAddWaveOp(resAddParams, prevWaveOps);
-    Assert(waveOp->gName() == resAddParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    if (serWaveOp.m_WaveOpType == wave::TensorScalarConstWaveOp::gTypeStrScaleAddStatic()) {
+        // y = aluOp[1] * (x + aluOp[0])
+        tensorScalarConstParams.m_AluOp[0] = TensorAluOpType::Mult; 
+        tensorScalarConstParams.m_AluOp[1] = TensorAluOpType::Add; 
+        tensorScalarConstParams.m_ImmVal[0] = serWaveOp.m_Scale;
+        tensorScalarConstParams.m_ImmVal[1] = serWaveOp.m_Add;
+    } else {
+        Assert(false, "Supported ALU ops are: Add, Mult");
+    }
+
+    auto waveOp = new wave::TensorScalarConstWaveOp(tensorScalarConstParams, prevWaveOps);
+    Assert(waveOp->gName() == tensorScalarConstParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
+#undef PARAMS
 }
-
 
 
 
@@ -711,6 +726,9 @@ Network::Load::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
         prevWaveOps.push_back(m_Network.findWaveOp(prevWaveOpName));
     }
 }
+
+
+
 
 #undef KCC_UNSERIALIZE
 #undef ASSERT_NUM_LAYERS

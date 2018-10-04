@@ -36,8 +36,16 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         loadActivation(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         loadResAdd(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
+        loadResAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
         loadClipByValue(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_ScaleAdd) {
+        loadScaleAdd(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Maximum) {
+        loadMaximum(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Minimum) {
+        loadMinimum(archive);
     } else {
         Assert(false, "Unknown waveop type: ", m_WaveOpType);
     }
@@ -89,38 +97,15 @@ SerWaveOp::loadSbAtom(cereal::JSONInputArchive& archive)
 void
 SerWaveOp::loadPool(cereal::JSONInputArchive& archive)
 {
-    KCC_ARCHIVE(DstSbAddress);
+    loadSrc(archive, Dims::XYZW);
+    loadDst(archive, Dims::XYZ);
     KCC_ARCHIVE(DstStartAtMidPart);
-    KCC_ARCHIVE(DstXNum);
-    KCC_ARCHIVE(DstXStep);
-    KCC_ARCHIVE(DstYNum);
-    KCC_ARCHIVE(DstYStep);
-    KCC_ARCHIVE(DstZNum);
-    KCC_ARCHIVE(DstZStep);
-    KCC_ARCHIVE(InDtype);
+
     // layername
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(OutDtype);
     KCC_ARCHIVE(PoolFrequency);
     KCC_ARCHIVE(PoolFunc);
     // previouswaveops
-
-    KCC_ARCHIVE(SrcIsPsum);
-    if (m_SrcIsPsum) {
-        KCC_ARCHIVE(SrcPsumBankOffset);
-        KCC_ARCHIVE(SrcPsumBankId);
-    } else {
-        KCC_ARCHIVE(SrcSbAddress);
-        KCC_ARCHIVE(SrcStartAtMidPart);
-    }
-    KCC_ARCHIVE(SrcWNum);
-    KCC_ARCHIVE(SrcWStep);
-    KCC_ARCHIVE(SrcXNum);
-    KCC_ARCHIVE(SrcXStep);
-    KCC_ARCHIVE(SrcYNum);
-    KCC_ARCHIVE(SrcYStep);
-    KCC_ARCHIVE(SrcZNum);
-    KCC_ARCHIVE(SrcZStep);
 
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
@@ -170,42 +155,13 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
     KCC_ARCHIVE(BiasSbAddress);
     KCC_ARCHIVE(BiasStartAtMidPart);
 
-    KCC_ARCHIVE(DstXNum);
-    KCC_ARCHIVE(DstXStep);
-    KCC_ARCHIVE(DstYNum);
-    KCC_ARCHIVE(DstYStep);
-    KCC_ARCHIVE(DstZNum);
-    KCC_ARCHIVE(DstZStep);
+    loadDst(archive, Dims::XYZ);
+    loadSrc(archive, Dims::XYZ);
 
-    KCC_ARCHIVE(DstIsPsum);
-    if (m_DstIsPsum) {
-        KCC_ARCHIVE(DstPsumBankId);
-        KCC_ARCHIVE(DstPsumBankOffset);
-    } else {
-        KCC_ARCHIVE(DstSbAddress);
-        KCC_ARCHIVE(DstStartAtMidPart);
-    }
-
-    KCC_ARCHIVE(InDtype);
     KCC_ARCHIVE(BiasDtype);
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(OutDtype);
 
-    KCC_ARCHIVE(SrcIsPsum);
-    if (m_SrcIsPsum) {
-        KCC_ARCHIVE(SrcPsumBankId);
-        KCC_ARCHIVE(SrcPsumBankOffset);
-    } else {
-        KCC_ARCHIVE(SrcSbAddress);
-        KCC_ARCHIVE(SrcStartAtMidPart);
-    }
-
-    KCC_ARCHIVE(SrcXNum);
-    KCC_ARCHIVE(SrcXStep);
-    KCC_ARCHIVE(SrcYNum);
-    KCC_ARCHIVE(SrcYStep);
-    KCC_ARCHIVE(SrcZNum);
-    KCC_ARCHIVE(SrcZStep);
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
 }
@@ -213,40 +169,9 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
 void
 SerWaveOp::loadClipByValue(cereal::JSONInputArchive& archive)
 {
-    KCC_ARCHIVE(InDtype);
-    KCC_ARCHIVE(OutDtype);
-    KCC_ARCHIVE(SrcIsPsum);
-    KCC_ARCHIVE(DstIsPsum);
+    loadSrc(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
 
-    if (m_DstIsPsum) {
-        KCC_ARCHIVE(DstPsumBankId);
-        KCC_ARCHIVE(DstPsumBankOffset);
-    } else {
-        KCC_ARCHIVE(DstSbAddress);
-        KCC_ARCHIVE(DstStartAtMidPart);
-    }
-
-    KCC_ARCHIVE(DstXNum);
-    KCC_ARCHIVE(DstXStep);
-    KCC_ARCHIVE(DstYNum);
-    KCC_ARCHIVE(DstYStep);
-    KCC_ARCHIVE(DstZNum);
-    KCC_ARCHIVE(DstZStep);
-
-    if (m_SrcIsPsum) {
-        KCC_ARCHIVE(SrcPsumBankId);
-        KCC_ARCHIVE(SrcPsumBankOffset);
-    } else {
-        KCC_ARCHIVE(SrcSbAddress);
-        KCC_ARCHIVE(SrcStartAtMidPart);
-    }
-
-    KCC_ARCHIVE(SrcXNum);
-    KCC_ARCHIVE(SrcXStep);
-    KCC_ARCHIVE(SrcYNum);
-    KCC_ARCHIVE(SrcYStep);
-    KCC_ARCHIVE(SrcZNum);
-    KCC_ARCHIVE(SrcZStep);
 
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(TileId);
@@ -257,20 +182,86 @@ SerWaveOp::loadClipByValue(cereal::JSONInputArchive& archive)
     Assert(m_MinValue <= m_MaxValue, "ClipByValue: MinValue(", m_MinValue, ") > MaxValue(", m_MaxValue, ")");
 }
 
+void
+SerWaveOp::loadScaleAdd(cereal::JSONInputArchive& archive)
+{
+    loadSrc(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(Add);
+    KCC_ARCHIVE(Scale);
+}
+
+void
+SerWaveOp::loadMinimum(cereal::JSONInputArchive& archive)
+{
+    loadSrcAB(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+}
+
+void
+SerWaveOp::loadMaximum(cereal::JSONInputArchive& archive)
+{
+    loadSrcAB(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+}
+
 
 void
 SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
 {
+    loadSrcAB(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
 
-    //archive(cereal::make_nvp(WaveOpKey_ActivationFunc, m_ActivationFunc);
-
-    KCC_ARCHIVE(InADtype);
-    KCC_ARCHIVE(InBDtype);
-    KCC_ARCHIVE(OutDtype);
     KCC_ARCHIVE(NumPartitions);
-    KCC_ARCHIVE(Multiply);
+}
 
-    // Src A
+
+
+
+void
+SerWaveOp::loadSrc(cereal::JSONInputArchive& archive, Dims dims)
+{
+    KCC_ARCHIVE(InDtype);
+    KCC_ARCHIVE(SrcIsPsum);
+    if (m_SrcIsPsum) {
+        KCC_ARCHIVE(SrcPsumBankId);
+        KCC_ARCHIVE(SrcPsumBankOffset);
+    } else {
+        KCC_ARCHIVE(SrcSbAddress);
+        KCC_ARCHIVE(SrcStartAtMidPart);
+    }
+    switch (dims) {
+    case Dims::XYZW:
+        KCC_ARCHIVE(SrcWNum);
+        KCC_ARCHIVE(SrcWStep);
+        // Fall through!
+    case Dims::XYZ:
+        KCC_ARCHIVE(SrcZNum);
+        KCC_ARCHIVE(SrcZStep);
+        // Fall through!
+    case Dims::XY:
+        KCC_ARCHIVE(SrcYNum);
+        KCC_ARCHIVE(SrcYStep);
+        // Fall through!
+    case Dims::X:
+        KCC_ARCHIVE(SrcXNum);
+        KCC_ARCHIVE(SrcXStep);
+        break;
+    default:
+        Assert(false, "Dims to load Src are wrong");
+    }
+}
+
+void
+SerWaveOp::loadSrcA(cereal::JSONInputArchive& archive, Dims dims)
+{
+    KCC_ARCHIVE(InADtype);
     KCC_ARCHIVE(SrcAIsPsum);
     if (m_SrcAIsPsum) {
         KCC_ARCHIVE(SrcAPsumBankId);
@@ -279,14 +270,32 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(SrcASbAddress);
         KCC_ARCHIVE(SrcAStartAtMidPart);
     }
-    KCC_ARCHIVE(SrcAXNum);
-    KCC_ARCHIVE(SrcAXStep);
-    KCC_ARCHIVE(SrcAYNum);
-    KCC_ARCHIVE(SrcAYStep);
-    KCC_ARCHIVE(SrcAZNum);
-    KCC_ARCHIVE(SrcAZStep);
+    switch (dims) {
+    case Dims::XYZW:
+        KCC_ARCHIVE(SrcAWNum);
+        KCC_ARCHIVE(SrcAWStep);
+        // Fall through!
+    case Dims::XYZ:
+        KCC_ARCHIVE(SrcAZNum);
+        KCC_ARCHIVE(SrcAZStep);
+        // Fall through!
+    case Dims::XY:
+        KCC_ARCHIVE(SrcAYNum);
+        KCC_ARCHIVE(SrcAYStep);
+        // Fall through!
+    case Dims::X:
+        KCC_ARCHIVE(SrcAXNum);
+        KCC_ARCHIVE(SrcAXStep);
+        break;
+    default:
+        Assert(false, "Dims to load SrcB are wrong");
+    }
+}
 
-    // Src B
+void
+SerWaveOp::loadSrcB(cereal::JSONInputArchive& archive, Dims dims)
+{
+    KCC_ARCHIVE(InBDtype);
     KCC_ARCHIVE(SrcBIsPsum);
     if (m_SrcBIsPsum) {
         KCC_ARCHIVE(SrcBPsumBankId);
@@ -295,14 +304,39 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(SrcBSbAddress);
         KCC_ARCHIVE(SrcBStartAtMidPart);
     }
-    KCC_ARCHIVE(SrcBXNum);
-    KCC_ARCHIVE(SrcBXStep);
-    KCC_ARCHIVE(SrcBYNum);
-    KCC_ARCHIVE(SrcBYStep);
-    KCC_ARCHIVE(SrcBZNum);
-    KCC_ARCHIVE(SrcBZStep);
+    switch (dims) {
+    case Dims::XYZW:
+        KCC_ARCHIVE(SrcBWNum);
+        KCC_ARCHIVE(SrcBWStep);
+        // Fall through!
+    case Dims::XYZ:
+        KCC_ARCHIVE(SrcBZNum);
+        KCC_ARCHIVE(SrcBZStep);
+        // Fall through!
+    case Dims::XY:
+        KCC_ARCHIVE(SrcBYNum);
+        KCC_ARCHIVE(SrcBYStep);
+        // Fall through!
+    case Dims::X:
+        KCC_ARCHIVE(SrcBXNum);
+        KCC_ARCHIVE(SrcBXStep);
+        break;
+    default:
+        Assert(false, "Dims to load SrcB are wrong");
+    }
+}
 
-    // Dst
+void
+SerWaveOp::loadSrcAB(cereal::JSONInputArchive& archive, Dims dims)
+{
+    loadSrcA(archive, dims);
+    loadSrcB(archive, dims);
+}
+
+void
+SerWaveOp::loadDst(cereal::JSONInputArchive& archive, Dims dims)
+{
+    KCC_ARCHIVE(OutDtype);
     KCC_ARCHIVE(DstIsPsum);
     if (m_DstIsPsum) {
         KCC_ARCHIVE(DstPsumBankId);
@@ -311,12 +345,26 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
         KCC_ARCHIVE(DstSbAddress);
         KCC_ARCHIVE(DstStartAtMidPart);
     }
-    KCC_ARCHIVE(DstXNum);
-    KCC_ARCHIVE(DstXStep);
-    KCC_ARCHIVE(DstYNum);
-    KCC_ARCHIVE(DstYStep);
-    KCC_ARCHIVE(DstZNum);
-    KCC_ARCHIVE(DstZStep);
+    switch (dims) {
+    //case Dims::XYZW:
+    //    KCC_ARCHIVE(DstWNum);
+    //    KCC_ARCHIVE(DstWStep);
+    //    // Fall through!
+    case Dims::XYZ:
+        KCC_ARCHIVE(DstZNum);
+        KCC_ARCHIVE(DstZStep);
+        // Fall through!
+    case Dims::XY:
+        KCC_ARCHIVE(DstYNum);
+        KCC_ARCHIVE(DstYStep);
+        // Fall through!
+    case Dims::X:
+        KCC_ARCHIVE(DstXNum);
+        KCC_ARCHIVE(DstXStep);
+        break;
+    default:
+        Assert(false, "Dims to load Dst are wrong");
+    }
 }
 
 #undef KCC_ARCHIVE

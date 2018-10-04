@@ -1941,6 +1941,7 @@ class FusedOp(list):
               'pool_frequency'          : pool_frequency,
               'pool_scale'              : pool_scale,
               'num_partitions'          : self.pool_op.ofmap_count,
+              'dst_is_psum'             : dst_is_psum,
               'dst_start_at_mid_part'   : start_at_mid_part,
               'dst_x_step'              : 1,
               'dst_x_num'               : self.pool_op.ofmap_cropped_tile_width,
@@ -2506,7 +2507,7 @@ class TPBSched:
             exit(-1)
             src_sb_address = 0
         else:
-            src_sb_address = tpb.statebuffer.circbuf_ifmaps.get_sb_address(op.ifmap_wave_lower_addr)
+            src_sb_address = tpb.statebuffer.circbuf_ifmaps.get_sb_address(op.ifmap_wave_lower_addr[0])
         if (dst_is_psum):
             print("ERROR: for scale/add waveop, cannot handle destination PSUM")
             exit(-1)
@@ -2729,9 +2730,8 @@ class TPBSched:
         waveop_name = op.data['layer_name']+"/"+op.data['layer_type']+"_"+tile_id.id_string()
         instr = {
               'previous_waveops'        : [],
-              'waveop_type'             : "ResAdd", #op.data['layer_type'],
+              'waveop_type'             : op.data['layer_type'],
               'waveop_name'             : waveop_name,
-              'multiply'                : op.data['layer_type'] == "Multiply",    # Hack to use ResAdd in old ISA to run Multiply 
               'layer_name'              : op.data['layer_name'],
               'tile_id_format'          : tile_id.format,
               'tile_id'                 : tile_id.show(),
@@ -3282,6 +3282,7 @@ class TPBSched:
                         if (self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "Pool"
                                 or self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "Activation"
                                 or self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "ResAdd"
+                                or self.waveop_stream.last_psum_waveop[psum_bank_src]['waveop_type'] == "Multiply"
                                 ):
                             #self.waveop_stream.last_psum_waveop[psum_bank_src]['dst_sb_address'] = self.statebuffer.circbuf_scratch.start \
                             #                                                        + self.statebuffer.circbuf_scratch.current_atom_id*self.statebuffer.circbuf_scratch.atom_sz \

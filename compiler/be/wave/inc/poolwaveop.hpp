@@ -80,11 +80,20 @@ public:
     bool qSrcIsPsum() const {
         return m_SrcIsPsum;
     }
+    bool qDstIsPsum() const {
+        return m_DstIsPsum;
+    }
     kcc_int32 gSrcPsumBankId () const {
         return m_SrcPsumBankId;
     }
     kcc_int32 gSrcPsumBankOffset () const {
         return m_SrcPsumBankOffset;
+    }
+    kcc_int32 gDstPsumBankId () const {
+        return m_DstPsumBankId;
+    }
+    kcc_int32 gDstPsumBankOffset () const {
+        return m_DstPsumBankOffset;
     }
     kcc_int64 gSrcSbAddress () const {
         return m_SrcSbAddress;
@@ -150,9 +159,12 @@ private:
     kcc_int32                   m_NumPartitions         = -1;
     kcc_int32                   m_PoolFrequency         = -1;
     PoolType                    m_PoolFunc              = PoolType::None;
+    bool                        m_DstIsPsum             = false;
     bool                        m_SrcIsPsum             = true;
     kcc_int32                   m_SrcPsumBankId         = -1;
     kcc_int32                   m_SrcPsumBankOffset     = -1;
+    kcc_int32                   m_DstPsumBankId         = -1;
+    kcc_int32                   m_DstPsumBankOffset     = -1;
     kcc_int64                   m_SrcSbAddress          = -1;
     bool                        m_SrcStartAtMidPart     = false;
     kcc_int32                   m_SrcWNum               = -1;
@@ -189,18 +201,23 @@ public:
     kcc_int32                   m_PoolFrequency         = 0.0;
     PoolType                    m_PoolFunc              = PoolType::None;
     bool                        m_SrcIsPsum;
-    kcc_int32                   m_SrcPsumBankId;
-    kcc_int32                   m_SrcPsumBankOffset;
-    kcc_int64                   m_SrcSbAddress;
+    bool                        m_DstIsPsum;
+    kcc_int32                   m_SrcPsumBankId = -1;
+    kcc_int32                   m_SrcPsumBankOffset = -1;
+    kcc_int32                   m_DstPsumBankId = -1;
+    kcc_int32                   m_DstPsumBankOffset = -1;
+    kcc_int32                   m_SrcSbAddress = -1;
+
     bool                        m_SrcStartAtMidPart;
-    kcc_int32                   m_SrcWNum;
-    kcc_int32                   m_SrcWStep;
-    kcc_int32                   m_SrcXNum;
-    kcc_int32                   m_SrcXStep;
-    kcc_int32                   m_SrcYNum;
-    kcc_int32                   m_SrcYStep;
-    kcc_int32                   m_SrcZNum;
-    kcc_int32                   m_SrcZStep;
+
+    kcc_int32                   m_SrcWNum = -1;
+    kcc_int32                   m_SrcWStep = -1;
+    kcc_int32                   m_SrcXNum = -1;
+    kcc_int32                   m_SrcXStep = -1;
+    kcc_int32                   m_SrcYNum = -1;
+    kcc_int32                   m_SrcYStep = -1;
+    kcc_int32                   m_SrcZNum = -1;
+    kcc_int32                   m_SrcZStep = -1;
     std::array<kcc_int32, 4>    m_TileId;
     std::string                 m_TileIdFormat;
 

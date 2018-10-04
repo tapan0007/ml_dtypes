@@ -22,17 +22,13 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
                        const std::vector<WaveOp*>& prevWaveOps)
     : PoolEngWaveOp(params, prevWaveOps)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
-    , m_DstSbAddress(params.m_DstSbAddress)
     , m_DstStartAtMidPart(params.m_DstStartAtMidPart)
-    , m_DstXNum(params.m_DstXNum)
-    , m_DstXStep(params.m_DstXStep)
-    , m_DstYNum(params.m_DstYNum)
-    , m_DstYStep(params.m_DstYStep)
-    , m_DstZNum(params.m_DstZNum)
-    , m_DstZStep(params.m_DstZStep)
+
     , m_NumPartitions(params.m_NumPartitions)
     , m_PoolFrequency(params.m_PoolFrequency)
     , m_PoolFunc(params.m_PoolFunc)
+
+    , m_DstIsPsum(params.m_DstIsPsum)
     , m_SrcIsPsum(params.m_SrcIsPsum)
     , m_TileId(params.m_TileId)
     , m_TileIdFormat(params.m_TileIdFormat)
@@ -53,6 +49,21 @@ PoolWaveOp::PoolWaveOp(const PoolWaveOp::Params& params,
     m_SrcYStep          = params.m_SrcYStep;
     m_SrcZNum           = params.m_SrcZNum;
     m_SrcZStep          = params.m_SrcZStep;
+
+    if (m_DstIsPsum) {
+        m_DstPsumBankId     = params.m_DstPsumBankId;
+        m_DstPsumBankOffset = params.m_DstPsumBankOffset;
+    } else {
+        m_DstSbAddress      = params.m_DstSbAddress;
+        m_DstStartAtMidPart      = params.m_DstStartAtMidPart;
+    }
+    m_DstXNum = params.m_DstXNum;
+    m_DstXStep = params.m_DstXStep;
+    m_DstYNum = params.m_DstYNum;
+    m_DstYStep = params.m_DstYStep;
+    m_DstZNum = params.m_DstZNum;
+    m_DstZStep = params.m_DstZStep;
+
     assert(verify());
 }
 

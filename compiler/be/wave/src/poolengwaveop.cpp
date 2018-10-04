@@ -19,6 +19,7 @@ PoolEngWaveOp::PoolEngWaveOp(const PoolEngWaveOp::Params& params,
     : WaveOp(params, prevWaveOps)
     , m_OutDtype(DataType::dataTypeId2DataType(params.m_OutDtypeId))
 {
+    Assert(params.m_OutDtypeId != DataTypeId::None, "None out data type");
 }
 
 

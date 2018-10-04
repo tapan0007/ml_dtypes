@@ -37,7 +37,8 @@ namespace wave {
     class PoolWaveOp;
     class ActivationWaveOp;
     class ClipByValueWaveOp;
-    class ResAddWaveOp;
+    class TensorTensorWaveOp;
+    class TensorScalarConstWaveOp;
     class BarrierWaveOp;
     class NopWaveOp;
 }
@@ -81,6 +82,7 @@ public:
     void load(Archive & archive);
 
 private:
+    class LoadSaveBase;
     class Load;
     class Save;
 

@@ -14,7 +14,6 @@ class NopWaveOp;
 class ActivationWaveOp;
 class SbAtomLoadWaveOp;
 class SbAtomSaveWaveOp;
-class ResAddWaveOp;
 class BarrierWaveOp;
 }
 

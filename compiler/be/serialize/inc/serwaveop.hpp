@@ -81,7 +81,7 @@ constexpr static const char* WaveOpKey_WeightsSbAddress     = "weights_sb_addres
 
 // SBAtom common
 constexpr static const char* WaveOpKey_SbAddress            = "sb_address";
-constexpr static const char* WaveOpKey_StartAtMidPart            = "start_at_mid_part";
+constexpr static const char* WaveOpKey_StartAtMidPart       = "start_at_mid_part";
 constexpr static const char* WaveOpKey_Length               = "length";
 constexpr static const char* WaveOpKey_OffsetInFile         = "offset_in_file";
 constexpr static const char* WaveOpKey_PartitionStepBytes   = "partition_step_bytes";
@@ -95,7 +95,7 @@ constexpr static const char* WaveOpKey_FinalLayerOfmap      = "final_layer_ofmap
 // Pool
 constexpr static const char* WaveOpKey_DstIsPsum            = "dst_is_psum";
 constexpr static const char* WaveOpKey_DstSbAddress         = "dst_sb_address";
-constexpr static const char* WaveOpKey_DstStartAtMidPart         = "dst_start_at_mid_part";
+constexpr static const char* WaveOpKey_DstStartAtMidPart    = "dst_start_at_mid_part";
 constexpr static const char* WaveOpKey_DstXNum              = "dst_x_num";
 constexpr static const char* WaveOpKey_DstXStep             = "dst_x_step";
 constexpr static const char* WaveOpKey_DstYNum              = "dst_y_num";
@@ -141,7 +141,7 @@ constexpr static const char* WaveOpKey_ActivationFunc_Softplus     = "Softplus";
 
 constexpr static const char* WaveOpKey_BiasAddEn            = "bias_add_en";
 constexpr static const char* WaveOpKey_BiasSbAddress        = "bias_sb_address";
-constexpr static const char* WaveOpKey_BiasStartAtMidPart        = "bias_start_at_mid_part";
+constexpr static const char* WaveOpKey_BiasStartAtMidPart   = "bias_start_at_mid_part";
 constexpr static const char* WaveOpKey_DstPsumBankId        = "dst_psum_bank_id";
 constexpr static const char* WaveOpKey_DstPsumBankOffset    = "dst_psum_bank_offset";
 
@@ -151,7 +151,7 @@ constexpr static const char* WaveOpKey_SrcAIsPsum           = "src_a_is_psum";
 constexpr static const char* WaveOpKey_SrcAPsumBankId       = "src_a_psum_bank_id";
 constexpr static const char* WaveOpKey_SrcAPsumBankOffset   = "src_a_psum_bank_offset";
 constexpr static const char* WaveOpKey_SrcASbAddress        = "src_a_sb_address";
-constexpr static const char* WaveOpKey_SrcAStartAtMidPart        = "src_a_start_at_mid_part";
+constexpr static const char* WaveOpKey_SrcAStartAtMidPart   = "src_a_start_at_mid_part";
 constexpr static const char* WaveOpKey_SrcAWNum             = "src_a_w_num";
 constexpr static const char* WaveOpKey_SrcAWStep            = "src_a_w_step";
 constexpr static const char* WaveOpKey_SrcAXNum             = "src_a_x_num";
@@ -166,7 +166,7 @@ constexpr static const char* WaveOpKey_SrcBIsPsum           = "src_b_is_psum";
 constexpr static const char* WaveOpKey_SrcBPsumBankId       = "src_b_psum_bank_id";
 constexpr static const char* WaveOpKey_SrcBPsumBankOffset   = "src_b_psum_bank_offset";
 constexpr static const char* WaveOpKey_SrcBSbAddress        = "src_b_sb_address";
-constexpr static const char* WaveOpKey_SrcBStartAtMidPart        = "src_b_start_at_mid_part";
+constexpr static const char* WaveOpKey_SrcBStartAtMidPart   = "src_b_start_at_mid_part";
 constexpr static const char* WaveOpKey_SrcBWNum             = "src_b_w_num";
 constexpr static const char* WaveOpKey_SrcBWStep            = "src_b_w_step";
 constexpr static const char* WaveOpKey_SrcBXNum             = "src_b_x_num";
@@ -179,10 +179,12 @@ constexpr static const char* WaveOpKey_SrcBZStep            = "src_b_z_step";
 constexpr static const char* WaveOpKey_ContainWeights       = "contain_weights";
 constexpr static const char* WaveOpKey_Engine               = "engine";
 
-constexpr static const char* WaveOpKey_Multiply             = "multiply";   /* Hack in ResAdd to get Multiply to work with old ISA */
 
 constexpr static const char* WaveOpKey_MinValue             = "min_val";
 constexpr static const char* WaveOpKey_MaxValue             = "max_val";
+
+constexpr static const char* WaveOpKey_Add             = "add";
+constexpr static const char* WaveOpKey_Scale           = "scale";
 
 
 
@@ -218,21 +220,39 @@ public:
     static std::string activationType2Str(ActivationFunc);
 
 private:
+    void loadSrc(cereal::JSONInputArchive& archive, Dims dims);
+    void loadSrcA(cereal::JSONInputArchive& archive, Dims dims);
+    void loadSrcB(cereal::JSONInputArchive& archive, Dims dims);
+    void loadSrcAB(cereal::JSONInputArchive& archive, Dims dims);
+    void loadDst(cereal::JSONInputArchive& archive, Dims dims);
+
+    void saveSrc(cereal::JSONOutputArchive& archive, Dims dims) const;
+    void saveSrcA(cereal::JSONOutputArchive& archive, Dims dims) const;
+    void saveSrcB(cereal::JSONOutputArchive& archive, Dims dims) const;
+    void saveSrcAB(cereal::JSONOutputArchive& archive, Dims dims) const;
+    void saveDst(cereal::JSONOutputArchive& archive, Dims dims) const;
+
     void loadSbAtom(cereal::JSONInputArchive& archive);
     void loadPool(cereal::JSONInputArchive& archive);
     void loadMatMul(cereal::JSONInputArchive& archive);
     void loadActivation(cereal::JSONInputArchive& archive);
     void loadResAdd(cereal::JSONInputArchive& archive);
+    void loadScaleAdd(cereal::JSONInputArchive& archive);
     void loadClipByValue(cereal::JSONInputArchive& archive);
+    void loadMaximum(cereal::JSONInputArchive& archive);
+    void loadMinimum(cereal::JSONInputArchive& archive);
 
     void saveSbAtom(cereal::JSONOutputArchive& archive) const;
     void savePool(cereal::JSONOutputArchive& archive) const;
     void saveMatMul(cereal::JSONOutputArchive& archive) const;
     void saveActivation(cereal::JSONOutputArchive& archive) const;
     void saveResAdd(cereal::JSONOutputArchive& archive) const;
+    void saveScaleAdd(cereal::JSONOutputArchive& archive) const;
     void saveClipByValue(cereal::JSONOutputArchive& archive) const;
     void saveBarrier(cereal::JSONOutputArchive& archive) const;
     void saveNop(cereal::JSONOutputArchive& archive) const;
+    void saveMaximum(cereal::JSONOutputArchive& archive) const;
+    void saveMinimum(cereal::JSONOutputArchive& archive) const;
 
 protected:
     bool verify() const;
@@ -245,6 +265,7 @@ private:
     bool verifyPool() const;
     bool verifyActivation() const;
     bool verifyResAdd() const;
+    bool verifyScaleAdd() const;
     bool verifyClipByValue() const;
     bool verifyBarrier() const;
     bool verifyNop() const;
@@ -384,8 +405,6 @@ public:
     kcc_int32                   m_DstPsumBankId     = -1;
     kcc_int32                   m_DstPsumBankOffset = -1;
 
-    bool                        m_Multiply          = false;    /* Hack in ResAdd to get Multiply to work with old ISA */
-
     // MatMul and SbAtomLoad
     kcc_int32                   m_IfmapReplicationNumRows       = -1; // MM, Load
     kcc_int32                   m_IfmapReplicationResolution    = -1; // MM, Load
@@ -396,6 +415,9 @@ public:
 
     kcc_float32                 m_MinValue;
     kcc_float32                 m_MaxValue;
+
+    kcc_float32                 m_Add;
+    kcc_float32                 m_Scale;
 
     kcc_int32                   m_Order                         = -1;
 }; // class SerWaveOp

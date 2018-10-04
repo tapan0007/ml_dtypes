@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_WAVE_RESADDWAVEOP_H
-#define KCC_WAVE_RESADDWAVEOP_H
+#ifndef KCC_WAVE_TENSORTENSORWAVEOP_H
+#define KCC_WAVE_TENSORTENSORWAVEOP_H
 
 
 #include <string>
@@ -18,7 +18,7 @@
 #include "utils/inc/datatype.hpp"
 #include "utils/inc/fmapdesc.hpp"
 
-#include "layers/inc/resaddlayer.hpp"
+//#include "layers/inc/resaddlayer.hpp"
 
 #include "wave/inc/poolengwaveop.hpp"
 
@@ -28,39 +28,44 @@ namespace kcc {
 namespace wave {
 
 
-class ResAddWaveOp : public PoolEngWaveOp {
+class TensorTensorWaveOp : public PoolEngWaveOp {
 public:
     class Params;
 public:
-    ResAddWaveOp(const ResAddWaveOp::Params& params,
-                           const std::vector<WaveOp*>& prevWaveOps);
+    TensorTensorWaveOp(TensorAluOpType aluOp,
+                       const TensorTensorWaveOp::Params& params,
+                       const std::vector<WaveOp*>& prevWaveOps);
 public:
     bool verify() const override;
 
 private:
-    ResAddWaveOp() = delete;
+    TensorTensorWaveOp() = delete;
 
 public:
-    bool qResAddWaveOp() const override {
+    bool qTensorTensorWaveOp() const override {
         return true;
     }
-    static std::string gTypeStrStatic();
 
-    std::string gTypeStr() const override {
-        return gTypeStrStatic();
+    std::string gTypeStr() const override;
+    static std::string gTypeStrResAddStatic() {
+        return "ResAdd";
+    }
+    static std::string gTypeStrMultiplyStatic() {
+        return "Multiply";
+    }
+    static std::string gTypeStrMaximum() {
+        return "Maximum";
+    }
+    static std::string gTypeStrMinimum() {
+        return "Minimum";
     }
 
     virtual WaveOpType gType() const override {
-        return WaveOpType::ResAdd;
+        return WaveOpType::TensorTensor;
     }
 
     kcc_int32 gNumPartitions () const {
         return m_NumPartitions;
-    }
-
-    /* Hack in ResAdd to get Multiply to work with old ISA */
-    bool gMultiply () const {
-        return m_Multiply;
     }
 
     // SrcA
@@ -176,12 +181,18 @@ public:
         return m_DstZStep;
     }
 
+    TensorAluOpType gAluOp() const {
+        return m_AluOp;
+    }
+
 private:
+    TensorAluOpType m_AluOp;   // operation in Pool ALU
+    std::string     m_TypeStr; // from JSON
+    
     const DataType& m_InADtype;
     const DataType& m_InBDtype;
 
     kcc_int32       m_NumPartitions         = -1;
-    bool            m_Multiply;     /* Hack in ResAdd to get Multiply to work with old ISA */
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */
@@ -227,12 +238,12 @@ private:
     kcc_int32       m_DstYNum               = -1;
     kcc_int32       m_DstZStep              = -1;
     kcc_int32       m_DstZNum               = -1;
-}; // class ResAddWaveOp : public PoolEngWaveOp
+}; // class TensorTensorWaveOp : public PoolEngWaveOp
 
 
 
 
-class ResAddWaveOp::Params : public PoolEngWaveOp::Params {
+class TensorTensorWaveOp::Params : public PoolEngWaveOp::Params {
 public:
     bool verify() const;
 public:
@@ -240,7 +251,6 @@ public:
     DataTypeId      m_InBDtypeId            = DataTypeId::None;
 
     kcc_int32       m_NumPartitions         = -1;
-    bool            m_Multiply;     /* Hack in ResAdd to get Multiply to work with old ISA */
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */
@@ -286,6 +296,7 @@ public:
     kcc_int32       m_DstYNum               = -1;
     kcc_int32       m_DstZStep              = -1;
     kcc_int32       m_DstZNum               = -1;
+    std::string     m_WaveOpType;
 };
 
 

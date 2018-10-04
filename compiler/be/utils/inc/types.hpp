@@ -7,6 +7,7 @@
 #include <array>
 
 #include "aws_tonga_isa_common.h"
+#include "aws_tonga_isa_tpb_common.h"
 
 #include "utils/inc/consts.hpp"
 
@@ -100,11 +101,40 @@ enum class WaveOpType {
     Pool,
     MatMul,
     Activation,
-    ResAdd,
+    TensorTensor,
+    TensorScalarConst,
+    TensorVectorConst,
     Barrier,
     Nop,
     ScaleAdd,
     ClipByValue,
+};
+
+enum class TensorAluOpType {
+    Bypass = TONGA_ISA_TPB_ALU_OP_BYPASS,
+    BwNot = TONGA_ISA_TPB_ALU_OP_BITWISE_NOT,
+    ArithShiftLeft = TONGA_ISA_TPB_ALU_OP_ARITH_SHIFT_LEFT,
+    ArithShiftRight = TONGA_ISA_TPB_ALU_OP_ARITH_SHIFT_RIGHT,
+    Add = TONGA_ISA_TPB_ALU_OP_ADD,
+    Sub = TONGA_ISA_TPB_ALU_OP_SUBTRACT,
+    Mult = TONGA_ISA_TPB_ALU_OP_MULT,
+    Div = TONGA_ISA_TPB_ALU_OP_DIVIDE,
+    Max = TONGA_ISA_TPB_ALU_OP_MAX,
+    Min = TONGA_ISA_TPB_ALU_OP_MIN,
+    BwAnd = TONGA_ISA_TPB_ALU_OP_BITWISE_AND,
+    BwOr = TONGA_ISA_TPB_ALU_OP_BITWISE_OR,
+    BwXor = TONGA_ISA_TPB_ALU_OP_BITWISE_XOR,
+    LogAnd = TONGA_ISA_TPB_ALU_OP_LOGICAL_AND,
+    LogOr = TONGA_ISA_TPB_ALU_OP_LOGICAL_OR,
+    LogXor = TONGA_ISA_TPB_ALU_OP_LOGICAL_XOR,
+    LogShiftLeft = TONGA_ISA_TPB_ALU_OP_LOGICAL_SHIFT_LEFT,
+    LogShiftRight = TONGA_ISA_TPB_ALU_OP_LOGICAL_SHIFT_RIGHT,
+    Equal = TONGA_ISA_TPB_ALU_OP_IS_EQUAL,
+    Gt = TONGA_ISA_TPB_ALU_OP_IS_GT,
+    Ge = TONGA_ISA_TPB_ALU_OP_IS_GE,
+    Lt = TONGA_ISA_TPB_ALU_OP_IS_LT,
+    Le = TONGA_ISA_TPB_ALU_OP_IS_LE,
+    Number,
 };
 
 //**********************************************************************
@@ -158,6 +188,12 @@ constexpr kcc_int64 power2(kcc_int64 b) {
     return 1 << (b);
 }
 
+enum class Dims {
+    X,
+    XY,
+    XYZ,
+    XYZW
+};
 
 class MemAccessPatternXY {
     kcc_int32       m_XStep             = -1;

@@ -544,6 +544,85 @@ SerWaveOp::verifyResAdd() const
 
 
 bool
+SerWaveOp::verifyScaleAdd() const
+{
+    if (m_InDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_OutDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_NumPartitions < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_SrcIsPsum) {
+        if (m_SrcPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_SrcXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcXStep == 0 && m_SrcXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYStep == 0 && m_SrcYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZStep == 0 && m_SrcZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_DstIsPsum) {
+        if (m_DstPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_DstSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_DstXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+    return true;
+}
+
+
+bool
 SerWaveOp::verifyBarrier() const
 {
     return true;
@@ -585,10 +664,18 @@ SerWaveOp::verify() const
         return verifyClipByValue();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         return verifyResAdd();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
+        return verifyResAdd();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_ScaleAdd) {
+        return verifyScaleAdd();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {
         return verifyBarrier();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Nop) {
         return verifyNop();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Maximum) {
+        return verifyResAdd();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Minimum) {
+        return verifyResAdd();
     } else {
         RETURN_ASSERT(false);
     }

@@ -43,9 +43,11 @@ class WaveCodeSbAtomSave;
 class WaveCodePool;
 class WaveCodeActivation;
 class WaveCodeClipByValue;
-class WaveCodeResAdd;
+class WaveCodeTensorTensor;
+class WaveCodeTensorScalarConst;
 class WaveCodeBarrier;
 class WaveCodeNop;
+class WaveCodeTensorTensor;
 
 
 
@@ -195,9 +197,10 @@ private:
     std::unique_ptr<WaveCodePool>       m_CodePool;
     std::unique_ptr<WaveCodeActivation> m_CodeActivation;
     std::unique_ptr<WaveCodeClipByValue> m_CodeClipByValue;
-    std::unique_ptr<WaveCodeResAdd>     m_CodeResAdd;
     std::unique_ptr<WaveCodeBarrier>    m_CodeBarrier;
     std::unique_ptr<WaveCodeNop>        m_CodeNop;
+    std::unique_ptr<WaveCodeTensorTensor> m_CodeTensorTensor;
+    std::unique_ptr<WaveCodeTensorScalarConst> m_CodeTensorScalarConst;
 
     kcc_int64                           m_CurrentDramAddress;
     std::map<std::string, NpyFileInfo>  m_NpyFile2DramAddress;
@@ -212,17 +215,19 @@ private:
 
 template<typename TypeTo, typename TypeFrom>
 void
-AssignWithSizeCheck(TypeTo& to, const TypeFrom from)
+AssignWithSizeCheckTempl(TypeTo& to, const TypeFrom from, const char* fileName, int lineNum)
 {
     const long Min = std::numeric_limits<TypeTo>::min();
     const long Max = std::numeric_limits<TypeTo>::max();
     const long From = from;
     Assert(Min <= From && From <= Max,
-        "Value out of limits: min=", Min, "max=", Max, "val=", From);
+        "File='", fileName, "', line=", lineNum, 
+        ", Value out of limits: min=", Min, "max=", Max, "val=", From);
 
     // Assignment
     to = from;
 }
+#define AssignWithSizeCheck(To, From) AssignWithSizeCheckTempl(To, From, __FILE__, __LINE__)
 
 }}
 

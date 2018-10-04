@@ -115,6 +115,7 @@ public:
                 || m_LayerType == layers::LayerTypeStr_ExpandDims
                 || m_LayerType == layers::LayerTypeStr_Slice
                 || m_LayerType == layers::LayerTypeStr_Minimum
+                || m_LayerType == layers::LayerTypeStr_Maximum
                 || m_LayerType == layers::LayerTypeStr_Pad
                 || m_LayerType == layers::LayerTypeStr_Softplus
                 || m_LayerType == layers::LayerTypeStr_Transpose

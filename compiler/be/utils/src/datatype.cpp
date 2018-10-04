@@ -1,4 +1,5 @@
 
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/datatype.hpp"
 
 
@@ -118,10 +119,10 @@ DataType::dataTypeId2DataType(DataTypeId typeId)
         return typeInt64;
         break;
     default:
-        assert(false && "Wrong DataTypeId");
+        Assert(false, "Wrong DataTypeId: ", static_cast<kcc_int64>(typeId));
         break;
     }
-    assert(false && "Wrong DataTypeId");
+    Assert(false, "Wrong DataTypeId: ", static_cast<kcc_int64>(typeId));
     return typeFloat16;
 }
 

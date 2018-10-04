@@ -31,6 +31,7 @@ constexpr const char* const LayerTypeStr_Squeeze        = "Squeeze";
 constexpr const char* const LayerTypeStr_ExpandDims     = "ExpandDims";
 constexpr const char* const LayerTypeStr_Slice          = "Slice";
 constexpr const char* const LayerTypeStr_Minimum        = "Minimum";
+constexpr const char* const LayerTypeStr_Maximum        = "Maximum";
 constexpr const char* const LayerTypeStr_Pad            = "Pad";
 constexpr const char* const LayerTypeStr_Transpose      = "Transpose";
 constexpr const char* const LayerTypeStr_SpaceToBatchND = "SpaceToBatchND";

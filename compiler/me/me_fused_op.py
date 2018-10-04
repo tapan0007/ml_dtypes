@@ -1844,7 +1844,6 @@ class FusedOp(list):
               'previous_waveops'        : [],
               'waveop_type'             : waveop_type,
               'waveop_name'             : waveop_name,
-              'multiply'                : op.data['layer_type'] == "Multiply",    # Hack to use ResAdd in old ISA to run Multiply 
               'layer_name'              : op.data['layer_name'],
               'tile_id_format'          : ofmap_tile.format,
               'tile_id'                 : ofmap_tile.id_array,

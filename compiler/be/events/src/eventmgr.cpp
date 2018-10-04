@@ -10,11 +10,8 @@
 #include "wave/inc/waveop.hpp"
 #include "wave/inc/matmulwaveop.hpp"
 #include "wave/inc/sbatomloadwaveop.hpp"
-#include "wave/inc/sbatomsavewaveop.hpp"
-#include "wave/inc/activationwaveop.hpp"
-#include "wave/inc/poolwaveop.hpp"
-#include "wave/inc/resaddwaveop.hpp"
-#include "wave/inc/barrierwaveop.hpp"
+//#include "wave/inc/sbatomsavewaveop.hpp"
+//#include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 
 #include "nets/inc/network.hpp"

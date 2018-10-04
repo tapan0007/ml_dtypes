@@ -12,10 +12,13 @@ constexpr const char* const WaveOpTypeStr_MatMul        = "MatMul";
 constexpr const char* const WaveOpTypeStr_Pool          = "Pool";
 constexpr const char* const WaveOpTypeStr_Activation    = "Activation";
 constexpr const char* const WaveOpTypeStr_ResAdd        = "ResAdd";
+constexpr const char* const WaveOpTypeStr_Multiply      = "Multiply";
 constexpr const char* const WaveOpTypeStr_Barrier       = "Barrier";
 constexpr const char* const WaveOpTypeStr_Nop           = "Nop";
 constexpr const char* const WaveOpTypeStr_ScaleAdd      = "ScaleAdd";
 constexpr const char* const WaveOpTypeStr_ClipByValue   = "ClipByValue";
+constexpr const char* const WaveOpTypeStr_Maximum       = "Maximum";
+constexpr const char* const WaveOpTypeStr_Minimum       = "Minimum";
 
 }}
 

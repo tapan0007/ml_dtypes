@@ -38,7 +38,8 @@
 #include "wave/inc/poolwaveop.hpp"
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
-#include "wave/inc/resaddwaveop.hpp"
+#include "wave/inc/tensortensorwaveop.hpp"
+#include "wave/inc/tensorscalarconstwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 
@@ -48,7 +49,8 @@
 namespace kcc {
 namespace nets {
 
-#define KCC_SERIALIZE(X) serWaveOp.KCC_CONCAT(m_,X) = WAVE_OP->KCC_CONCAT(g,X)()
+#undef KCC_SERIALIZE
+#define KCC_SERIALIZE(X) serWaveOp.KCC_CONCAT(m_,X) = (WAVE_OP)->KCC_CONCAT(g,X)()
 
 #define ASSERT_NUM_LAYERS(layer, N) \
     Assert((layer)->gPrevLayers().size() == (N), (layer)->gTypeStr(), " layer '", (layer)->gName(), \
@@ -298,8 +300,12 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             m_Save->saveClipByValue(clipByValueWaveOp, serWaveOp);
             continue;
         }
-        if (const auto resAddWaveOp = dynamic_cast<const wave::ResAddWaveOp*>(waveOp)) {
-            m_Save->saveResAdd(resAddWaveOp, serWaveOp);
+        if (const auto tensorTensorWaveOp = dynamic_cast<const wave::TensorTensorWaveOp*>(waveOp)) {
+            m_Save->saveTensorTensor(tensorTensorWaveOp, serWaveOp);
+            continue;
+        }
+        if (const auto tensorScalarConstWaveOp = dynamic_cast<const wave::TensorScalarConstWaveOp*>(waveOp)) {
+            m_Save->saveTensorScalarConst(tensorScalarConstWaveOp, serWaveOp);
             continue;
         }
         if (const auto barrierWaveOp = dynamic_cast<const wave::BarrierWaveOp*>(waveOp)) {
@@ -332,6 +338,7 @@ void
 Network::Save::saveMatmul(const wave::MatMulWaveOp* matmulWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
+#undef WAVE_OP
 #define WAVE_OP matmulWaveOp
     serWaveOp.m_WaveOpType = wave::MatMulWaveOp::gTypeStrStatic();
 
@@ -375,6 +382,7 @@ void
 Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
+#undef WAVE_OP
 #define WAVE_OP poolWaveOp
     serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStrStatic();
 
@@ -421,6 +429,7 @@ void
 Network::Save::saveSbAtom(const wave::SbAtomWaveOp* sbatomWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
+#undef WAVE_OP
 #define WAVE_OP sbatomWaveOp
     serWaveOp.m_Engine = engineId2Str(WAVE_OP->gEngineId());
     KCC_SERIALIZE(SbAddress);
@@ -467,6 +476,7 @@ void
 Network::Save::saveActivation(const wave::ActivationWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const
 {
+#undef WAVE_OP
 #define WAVE_OP activationWaveOp
     serWaveOp.m_WaveOpType = wave::ActivationWaveOp::gTypeStrStatic();
 
@@ -526,6 +536,7 @@ void
 Network::Save::saveClipByValue(const wave::ClipByValueWaveOp* clipByValueWaveOp,
                        serialize::SerWaveOp& serWaveOp) const
 {
+#undef WAVE_OP
 #define WAVE_OP clipByValueWaveOp
     serWaveOp.m_WaveOpType = wave::ClipByValueWaveOp::gTypeStrStatic();
 
@@ -579,20 +590,20 @@ Network::Save::saveClipByValue(const wave::ClipByValueWaveOp* clipByValueWaveOp,
 
 
 void
-Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
+Network::Save::saveTensorTensor(const wave::TensorTensorWaveOp* tensorTensorWaveOp,
                     serialize::SerWaveOp& serWaveOp) const
 {
-#define WAVE_OP resAddWaveOp
-    serWaveOp.m_WaveOpType = wave::ResAddWaveOp::gTypeStrStatic();
+#undef WAVE_OP
+#define WAVE_OP tensorTensorWaveOp
+    serWaveOp.m_WaveOpType = tensorTensorWaveOp->gTypeStr();
 
-    serWaveOp.m_InADtype            = resAddWaveOp->gInADtype().gName();
-    serWaveOp.m_InBDtype            = resAddWaveOp->gInBDtype().gName();
-    serWaveOp.m_OutDtype            = resAddWaveOp->gOutDtype().gName();
+    serWaveOp.m_InADtype            = tensorTensorWaveOp->gInADtype().gName();
+    serWaveOp.m_InBDtype            = tensorTensorWaveOp->gInBDtype().gName();
+    serWaveOp.m_OutDtype            = tensorTensorWaveOp->gOutDtype().gName();
     KCC_SERIALIZE(NumPartitions);
-    KCC_SERIALIZE(Multiply);       /* Hack in ResAdd to get Multiply to work with old ISA */
 
-    serWaveOp.m_SrcAIsPsum = resAddWaveOp->qSrcAIsPsum();
-    if (resAddWaveOp->qSrcAIsPsum()) {
+    serWaveOp.m_SrcAIsPsum = tensorTensorWaveOp->qSrcAIsPsum();
+    if (tensorTensorWaveOp->qSrcAIsPsum()) {
         KCC_SERIALIZE(SrcAPsumBankId);
         KCC_SERIALIZE(SrcAPsumBankOffset);
     } else {
@@ -606,8 +617,8 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
     KCC_SERIALIZE(SrcAZNum);
     KCC_SERIALIZE(SrcAZStep);
 
-    serWaveOp.m_SrcBIsPsum = resAddWaveOp->qSrcBIsPsum();
-    if (resAddWaveOp->qSrcBIsPsum()) {
+    serWaveOp.m_SrcBIsPsum = tensorTensorWaveOp->qSrcBIsPsum();
+    if (tensorTensorWaveOp->qSrcBIsPsum()) {
         KCC_SERIALIZE(SrcBPsumBankId);
         KCC_SERIALIZE(SrcBPsumBankOffset);
     } else {
@@ -621,8 +632,8 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
     KCC_SERIALIZE(SrcBZNum);
     KCC_SERIALIZE(SrcBZStep);
 
-    serWaveOp.m_DstIsPsum = resAddWaveOp->qDstIsPsum();
-    if (resAddWaveOp->qDstIsPsum()) {
+    serWaveOp.m_DstIsPsum = tensorTensorWaveOp->qDstIsPsum();
+    if (tensorTensorWaveOp->qDstIsPsum()) {
         KCC_SERIALIZE(DstPsumBankId);
         KCC_SERIALIZE(DstPsumBankOffset);
     } else {
@@ -639,11 +650,62 @@ Network::Save::saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
 #undef WAVE_OP
 }
 
+void
+Network::Save::saveTensorScalarConst(const wave::TensorScalarConstWaveOp* tensorScalarConstWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const
+{
+#undef WAVE_OP
+#define WAVE_OP tensorScalarConstWaveOp
+    serWaveOp.m_WaveOpType = tensorScalarConstWaveOp->gTypeStr();
+
+    serWaveOp.m_InDtype            = tensorScalarConstWaveOp->gInDtype().gName();
+    serWaveOp.m_OutDtype            = tensorScalarConstWaveOp->gOutDtype().gName();
+    KCC_SERIALIZE(NumPartitions);
+
+    serWaveOp.m_SrcIsPsum = tensorScalarConstWaveOp->qSrcIsPsum();
+    if (tensorScalarConstWaveOp->qSrcIsPsum()) {
+        KCC_SERIALIZE(SrcPsumBankId);
+        KCC_SERIALIZE(SrcPsumBankOffset);
+    } else {
+        KCC_SERIALIZE(SrcSbAddress);
+        KCC_SERIALIZE(SrcStartAtMidPart);
+    }
+    KCC_SERIALIZE(SrcXNum);
+    KCC_SERIALIZE(SrcXStep);
+    KCC_SERIALIZE(SrcYNum);
+    KCC_SERIALIZE(SrcYStep);
+    KCC_SERIALIZE(SrcZNum);
+    KCC_SERIALIZE(SrcZStep);
+
+    serWaveOp.m_DstIsPsum = tensorScalarConstWaveOp->qDstIsPsum();
+    if (tensorScalarConstWaveOp->qDstIsPsum()) {
+        KCC_SERIALIZE(DstPsumBankId);
+        KCC_SERIALIZE(DstPsumBankOffset);
+    } else {
+        KCC_SERIALIZE(DstSbAddress);
+        KCC_SERIALIZE(DstStartAtMidPart);
+    }
+    KCC_SERIALIZE(DstXNum);
+    KCC_SERIALIZE(DstXStep);
+    KCC_SERIALIZE(DstYNum);
+    KCC_SERIALIZE(DstYStep);
+    KCC_SERIALIZE(DstZNum);
+    KCC_SERIALIZE(DstZStep);
+
+    if (serWaveOp.m_WaveOpType == "ScaleAdd") {
+        serWaveOp.m_Scale = tensorScalarConstWaveOp->gImmVal(0);
+        serWaveOp.m_Add = tensorScalarConstWaveOp->gImmVal(1);
+    }
+#undef WAVE_OP
+}
+
+
 
 void
 Network::Save::saveBarrier(const wave::BarrierWaveOp* /*barrierWaveOp*/,
                            serialize::SerWaveOp& serWaveOp) const
 {
+#undef WAVE_OP
 #define WAVE_OP barrierWaveOp
     serWaveOp.m_WaveOpType = wave::BarrierWaveOp::gTypeStrStatic();
 #undef WAVE_OP
@@ -653,9 +715,10 @@ void
 Network::Save::saveNop(const wave::NopWaveOp* nopWaveOp,
                            serialize::SerWaveOp& serWaveOp) const
 {
+#undef WAVE_OP
 #define WAVE_OP nopWaveOp
     serWaveOp.m_WaveOpType = wave::NopWaveOp::gTypeStrStatic();
-    serWaveOp.m_Engine = engineId2Str(WAVE_OP->gEngineId());
+    serWaveOp.m_Engine = engineId2Str((WAVE_OP)->gEngineId());
 #undef WAVE_OP
 }
 

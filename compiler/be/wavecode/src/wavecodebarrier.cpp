@@ -9,7 +9,7 @@
 #include "arch/inc/psumbuffer.hpp"
 
 #include "wave/inc/waveedge.hpp"
-#include "wave/inc/resaddwaveop.hpp"
+#include "wave/inc/tensortensorwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"

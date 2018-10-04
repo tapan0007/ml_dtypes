@@ -23,15 +23,16 @@ public:
                        serialize::SerWaveOp& serWaveOp) const;
     void saveClipByValue(const wave::ClipByValueWaveOp* activationWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
-    void saveResAdd(const wave::ResAddWaveOp* resAddWaveOp,
+    void saveTensorTensor(const wave::TensorTensorWaveOp* tensorTensorWaveOp,
+                       serialize::SerWaveOp& serWaveOp) const;
+    void saveTensorScalarConst(const wave::TensorScalarConstWaveOp* tensorScalarConstWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
     void saveBarrier(const wave::BarrierWaveOp* barrierWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
     void saveNop(const wave::NopWaveOp* nopWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
-
 private:
-    const Network&    m_Network;
+    const Network& m_Network;
 };
 
 }}

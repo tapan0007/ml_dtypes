@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_WAVECODE_WAVECODERESADD_H
-#define KCC_WAVECODE_WAVECODERESADD_H
+#ifndef KCC_WAVECODE_WAVECODETENSORTENSOR_H
+#define KCC_WAVECODE_WAVECODETENSORTENSOR_H
 
 #include <string>
 #include <cstdio>
@@ -18,28 +18,28 @@
 namespace kcc {
 
 namespace wave {
-    class ResAddWaveOp;
+    class TensorTensorWaveOp;
 }
 
 namespace wavecode {
 
 
 
-class WaveCodeResAdd : public WaveCodeWaveOp {
+class WaveCodeTensorTensor : public WaveCodeWaveOp {
 public:
     //----------------------------------------------------------------
-    WaveCodeResAdd(WaveCodeRef wavecode);
+    WaveCodeTensorTensor(WaveCodeRef wavecode);
 
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;
 
 private:
-    void generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop);
-    void generateSameBufSrc(wave::ResAddWaveOp* resaddWaveop);
+    void generateDiffBufSrc(wave::TensorTensorWaveOp* tensortensorWaveop);
+    void generateSameBufSrc(wave::TensorTensorWaveOp* tensortensorWaveop);
 };
 
 
 }}
 
-#endif // KCC_WAVECODE_WAVECODERESADD_H
+#endif // KCC_WAVECODE_WAVECODETENSORTENSOR_H
 
