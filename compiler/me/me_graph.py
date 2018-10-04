@@ -815,6 +815,7 @@ class KGraph:
                                     or prev_node.data['layer_type'] == "Identity"
                                     or prev_node.data['layer_type'] == "ExpandDims"
                                     or prev_node.data['layer_type'] == "Squeeze"
+                                    or prev_node.data['layer_type'] == "Split"
                                     ):
                                 if len(prev_node.prev) == 1 \
                                         and prev_node.data['ofmap_format'] == prev_node.prev[0].data['ofmap_format'] \
