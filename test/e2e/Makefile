@@ -64,6 +64,12 @@ tf_pb:
 	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(KAENA_EXT)/apps/tf/$(NN_CONFIG)
 	$(MAKE) -f $(MKFILE) run_kelf    PB_FILE=$(KAENA_EXT)/apps/tf/$(NN_CONFIG)
 
+tf_s3:
+	aws --profile=kaena s3 cp $(NN_CONFIG)/$(NN_NAME) . --quiet
+	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(NN_NAME)
+	$(MAKE) -f $(MKFILE) run_kelf    PB_FILE=$(NN_NAME)
+	rm $(NN_NAME) # Free up some space
+
 ckpt_%:
 	python3 ${KAENA_E2E}/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
 	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(OUT_PREFIX)model

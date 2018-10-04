@@ -18,7 +18,7 @@ def _img_to_numpy_array(imgFile, size, dtype):
     return np.array(img.resize(size), dtype=dtype)
 
 
-def preprocess(imgFiles, ifmapFile, dtype):
+def preprocess(imgFiles, ifmapFile, dtype, size):
     """ Pre-processes given image files using keras.resnet50
 
     :param imgFiles: Image files to be processed.
@@ -26,9 +26,9 @@ def preprocess(imgFiles, ifmapFile, dtype):
     :return:
     """
 
-    npArrList = [np.array(_img_to_numpy_array(img, (224, 224), dtype)) for img in imgFiles]
+    npArrList = [np.array(_img_to_numpy_array(img, (size, size), dtype)) for img in imgFiles]
     npArr = np.array(npArrList)
-    fmap = npArr.reshape(len(imgFiles), 224, 224, 3)
+    fmap = npArr.reshape(len(imgFiles), size, size, 3)
     fmap = preprocess_input(fmap)
     np.save(ifmapFile, fmap)
     print('Wrote: ' + ifmapFile)
@@ -44,13 +44,15 @@ def main():
                         dest="output", required=True)
     parser.add_argument('--data-type', help='datatype', choices=['fp16', 'fp32'],
                         required=True)
+    parser.add_argument('--size', help='Width/Height of the square output image',
+                        default=224, type=int)
 
     args = parser.parse_args()
     if args.data_type == 'fp16':
         datatype = np.float16
     else:
         datatype = np.float32
-    preprocess(args.inputs, args.output, datatype)
+    preprocess(args.inputs, args.output, datatype, args.size)
 
 
 if __name__ == "__main__":

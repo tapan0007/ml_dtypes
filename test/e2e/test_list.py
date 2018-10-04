@@ -972,8 +972,6 @@ testConfigMap = {
   "0-1conv1avgpool_wave_h35c196k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h32-r1-s1-c196-m1-SAME-AvgPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
   "0-1conv_h17c196r1_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h17-r1-s1-c196-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1maxpool_wave_h65c1m1k3d1_valid"  : [ "trivnet_pool", "tfloat16-b1-h65-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
-  # AvgPool in AmeobaNet
-  "0-1avgpool_wave_h149c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h149-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
 
   "0-1conv-h8r3c4m4-relu_wave"              : [ "trivnet_lin",      "tfloat16-l2-b1-h8-r3-s1-c4-m4-relu-wmin-0.2-wmax0.4-imin-1000-imax1010", "1cr", "--scheduler wave2 --waive_wavegraph_checks"],
   "0-rtl-1conv1maxpool_h8r3c5m4_val_wave"    : [ "trivnet_conv_pool","tfloat16-b1-h8-r3-s1-c5-m4-VALID-MaxPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave2 --waive_wavegraph_checks"],
@@ -988,6 +986,13 @@ testConfigMap = {
 
   "0-11conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l11-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "11ct", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-2conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l2-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "2ct", "--scheduler wave2 --wavegraph_checks structure data-race"],
+
+  ### AmoebaNet tests
+
+  # AvgPool in AmeobaNet
+  "0-1avgpool_wave_h149c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h149-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
+  "7-amoebanet_fp16_host" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from predictions --executors host all --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+
 }
 
 def gen_parwavenet_10_fp16_in_to(node, sgnum):
@@ -1040,6 +1045,9 @@ testWaiver = [
     ['0-1conv1maxpool_wave_h71k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h65c1m1k3d1_valid', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h71c1m1k3d2_same', 'WAIVE_INCEPTIONV3'],
+
+    # AmoebaNet currently produces all NaN outputs when run on CPU
+    ['7-amoebanet_fp16_host', 'WAIVE_AMOEBA_NAN'],
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
