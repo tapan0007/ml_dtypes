@@ -53,98 +53,41 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
     Assert(resaddWaveop->qSrcAIsPsum() != resaddWaveop->qSrcBIsPsum(), "Sources for ResAdd must come from PSUM and SB, not from one");
 
     //-----------------------------------------------------------------
+    // In ISA: for TensorTensor instruction and op OP, the calculated value is
+    //     (src[0] OP src[1]).
+    // !!! It is NOT
+    //     (src[1] OP src[0]).
+    //
+    // In wavegraph.json the calculated value is
+    //     A OP B
+    // It is not
+    //     B - A
+    enum {
+        srcAIdx = 0,
+        srcBIdx = 1,
+    };
+    //-----------------------------------------------------------------
     compisa::TensorTensorOpInstr tensortensorInstr;
+    const utils::DataType& srcADtype(resaddWaveop->gInADtype());
+    const utils::DataType& srcBDtype(resaddWaveop->gInBDtype());
 
-#if false // RTL bug, SIM https://issues.amazon.com/tonga-1786
-    TONGA_ISA_TPB_DTYPE& SrcADtype(resaddWaveop->qSrcAIsPsum() ? tensortensorInstr.in_dtype[0] : tensortensorInstr.in_dtype[1]);
-    TONGA_ISA_TPB_DTYPE& SrcBDtype(resaddWaveop->qSrcBIsPsum() ? tensortensorInstr.in_dtype[0] : tensortensorInstr.in_dtype[1]);
+    TONGA_ISA_TPB_MEM_ACCESS_3D& srcAPat(tensortensorInstr.src_mem_pattern[srcAIdx]);
+    TONGA_ISA_TPB_MEM_ACCESS_3D& srcBPat(tensortensorInstr.src_mem_pattern[srcBIdx]);
+    initMemAccess(srcAPat);
+    initMemAccess(srcBPat);
 
-    //-----------------------------------------------------------------
-    SrcADtype = resaddWaveop->gInADtype().gSimTypeId();
-    SrcBDtype = resaddWaveop->gInBDtype().gSimTypeId();
+    tensortensorInstr.in_dtype[srcAIdx] = srcADtype.gSimTypeId();
+    tensortensorInstr.in_dtype[srcBIdx] = srcBDtype.gSimTypeId();
 
-
-    //-----------------------------------------------------------------
-    TONGA_ISA_TPB_MEM_ACCESS_3D& SrcAPat(resaddWaveop->qSrcAIsPsum()
-                                         ? tensortensorInstr.src_mem_pattern[0]
-                                         : tensortensorInstr.src_mem_pattern[1]);
-    initMemAccess(SrcAPat);
-    TONGA_ISA_TPB_MEM_ACCESS_3D& SrcBPat(resaddWaveop->qSrcBIsPsum()
-                                         ? tensortensorInstr.src_mem_pattern[0]
-                                         : tensortensorInstr.src_mem_pattern[1]);
-    initMemAccess(SrcBPat);
-
-    //-----------------------------------------------------------------
-    // SrcA
     if (resaddWaveop->qSrcAIsPsum()) {
-        SrcAPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcAPsumBankId(),
+        srcAPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcAPsumBankId(),
                                                        resaddWaveop->gSrcAPsumBankOffset(),
-                                                       resaddWaveop->gInADtype());
+                                                       srcADtype);
     } else {
-        SrcAPat.start_addr  = stateBuf.gEntryTpbAddress(
+        srcAPat.start_addr  = stateBuf.gEntryTpbAddress(
                                         arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcAStartAtMidPart(),
                                         resaddWaveop->gSrcASbAddress());
     }
-    AssignWithSizeCheck(SrcAPat.step_elem[PatDim_X], resaddWaveop->gSrcAXStep());
-    AssignWithSizeCheck(SrcAPat.num_elem[PatDim_X], resaddWaveop->gSrcAXNum());
-    AssignWithSizeCheck(SrcAPat.step_elem[PatDim_Y], resaddWaveop->gSrcAYStep());
-    AssignWithSizeCheck(SrcAPat.num_elem[PatDim_Y], resaddWaveop->gSrcAYNum());
-    AssignWithSizeCheck(SrcAPat.step_elem[PatDim_Z], resaddWaveop->gSrcAZStep());
-    AssignWithSizeCheck(SrcAPat.num_elem[PatDim_Z], resaddWaveop->gSrcAZNum());
-
-    //-----------------------------------------------------------------
-    // SrcB
-    if (resaddWaveop->qSrcBIsPsum()) {
-        SrcBPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcBPsumBankId(),
-                                                       resaddWaveop->gSrcBPsumBankOffset(),
-                                                       resaddWaveop->gInBDtype());
-    } else {
-        SrcBPat.start_addr  = stateBuf.gEntryTpbAddress(
-                                        arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcBStartAtMidPart(),
-                                        resaddWaveop->gSrcBSbAddress());
-    }
-    AssignWithSizeCheck(SrcBPat.step_elem[PatDim_X], resaddWaveop->gSrcBXStep());
-    AssignWithSizeCheck(SrcBPat.num_elem[PatDim_X], resaddWaveop->gSrcBXNum());
-    AssignWithSizeCheck(SrcBPat.step_elem[PatDim_Y], resaddWaveop->gSrcBYStep());
-    AssignWithSizeCheck(SrcBPat.num_elem[PatDim_Y], resaddWaveop->gSrcBYNum());
-    AssignWithSizeCheck(SrcBPat.step_elem[PatDim_Z], resaddWaveop->gSrcBZStep());
-    AssignWithSizeCheck(SrcBPat.num_elem[PatDim_Z], resaddWaveop->gSrcBZNum());
-#else
-    enum {
-        srcSbufIdx = 0,
-        srcPsumIdx = 1,
-    };
-    const bool qAIsPsum = resaddWaveop->qSrcAIsPsum();
-    const bool qAIsSbuf = !qAIsPsum;
-    //const kcc_int32 srcAIdx = qAIsPsum  ? srcPsumIdx : srcSbufIdx;
-    //const kcc_int32 srcBIdx = !qAIsPsum ? srcPsumIdx : srcSbufIdx;
-
-    //**********************************************************************
-    TONGA_ISA_TPB_DTYPE& srcPsumDtype(tensortensorInstr.in_dtype[srcPsumIdx]);
-    TONGA_ISA_TPB_DTYPE& srcSbufDtype(tensortensorInstr.in_dtype[srcSbufIdx]);
-
-    // Psum
-    const utils::DataType& srcPsumDataType(qAIsPsum ? resaddWaveop->gInADtype() : resaddWaveop->gInBDtype());
-    const kcc_int32 psumBankId  = qAIsPsum ? resaddWaveop->gSrcAPsumBankId()     : resaddWaveop->gSrcBPsumBankId();
-    const kcc_int32 psumBankOff = qAIsPsum ? resaddWaveop->gSrcAPsumBankOffset() : resaddWaveop->gSrcBPsumBankOffset();
-    // Sbuf related
-    const utils::DataType& srcSbufDataType(qAIsSbuf ? resaddWaveop->gInADtype() : resaddWaveop->gInBDtype());
-    const kcc_int32 midPoint    = qAIsSbuf ? resaddWaveop->gSrcAStartAtMidPart() : resaddWaveop->gSrcBStartAtMidPart();
-    const kcc_int32 sbAddress   = qAIsSbuf ? resaddWaveop->gSrcASbAddress()      : resaddWaveop->gSrcBSbAddress();
-    //**********************************************************************
-    srcPsumDtype = srcPsumDataType.gSimTypeId();
-    srcSbufDtype = srcSbufDataType.gSimTypeId();
-
-    TONGA_ISA_TPB_MEM_ACCESS_3D& srcPsumPat(tensortensorInstr.src_mem_pattern[srcPsumIdx]);
-    TONGA_ISA_TPB_MEM_ACCESS_3D& srcSbufPat(tensortensorInstr.src_mem_pattern[srcSbufIdx]);
-    TONGA_ISA_TPB_MEM_ACCESS_3D& srcAPat(qAIsPsum ? srcPsumPat : srcSbufPat);
-    TONGA_ISA_TPB_MEM_ACCESS_3D& srcBPat(qAIsSbuf ? srcPsumPat : srcSbufPat);
-
-    initMemAccess(srcPsumPat);
-    initMemAccess(srcSbufPat);
-
-    srcPsumPat.start_addr        = psumBuf.gEntryTpbAddress(psumBankId, psumBankOff, srcPsumDataType);
-    srcSbufPat.start_addr        = stateBuf.gEntryTpbAddress((arch.gNumberPeArrayRows()/2) * midPoint, sbAddress);
 
     AssignWithSizeCheck(srcAPat.step_elem[PatDim_X], resaddWaveop->gSrcAXStep());
     AssignWithSizeCheck(srcAPat.num_elem[PatDim_X], resaddWaveop->gSrcAXNum());
@@ -153,13 +96,24 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
     AssignWithSizeCheck(srcAPat.step_elem[PatDim_Z], resaddWaveop->gSrcAZStep());
     AssignWithSizeCheck(srcAPat.num_elem[PatDim_Z], resaddWaveop->gSrcAZNum());
 
+    if (resaddWaveop->qSrcBIsPsum()) {
+        srcBPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gSrcBPsumBankId(),
+                                                       resaddWaveop->gSrcBPsumBankOffset(),
+                                                       srcBDtype);
+    } else {
+        srcBPat.start_addr  = stateBuf.gEntryTpbAddress(
+                                        arch.gNumberPeArrayRows()/2 * resaddWaveop->gSrcBStartAtMidPart(),
+                                        resaddWaveop->gSrcBSbAddress());
+    }
+
     AssignWithSizeCheck(srcBPat.step_elem[PatDim_X], resaddWaveop->gSrcBXStep());
     AssignWithSizeCheck(srcBPat.num_elem[PatDim_X], resaddWaveop->gSrcBXNum());
     AssignWithSizeCheck(srcBPat.step_elem[PatDim_Y], resaddWaveop->gSrcBYStep());
     AssignWithSizeCheck(srcBPat.num_elem[PatDim_Y], resaddWaveop->gSrcBYNum());
     AssignWithSizeCheck(srcBPat.step_elem[PatDim_Z], resaddWaveop->gSrcBZStep());
     AssignWithSizeCheck(srcBPat.num_elem[PatDim_Z], resaddWaveop->gSrcBZNum());
-#endif
+
+    //**********************************************************************
 
     tensortensorInstr.num_active_channels = resaddWaveop->gNumPartitions();
     if (resaddWaveop->gMultiply()) {
@@ -171,11 +125,10 @@ WaveCodeResAdd::generateDiffBufSrc(wave::ResAddWaveOp* resaddWaveop)
 
     //-----------------------------------------------------------------
     // Dst
-    const bool qDstIsPsum = resaddWaveop->qDstIsPsum();
     tensortensorInstr.out_dtype           = resaddWaveop->gOutDtype().gSimTypeId();
     TONGA_ISA_TPB_MEM_ACCESS_3D& DstPat(tensortensorInstr.dst_mem_pattern);
     initMemAccess(DstPat);
-    if (qDstIsPsum) {
+    if (resaddWaveop->qDstIsPsum()) {
         DstPat.start_addr  = psumBuf.gEntryTpbAddress(resaddWaveop->gDstPsumBankId(),
                                                       resaddWaveop->gDstPsumBankOffset(),
                                                       resaddWaveop->gOutDtype());
