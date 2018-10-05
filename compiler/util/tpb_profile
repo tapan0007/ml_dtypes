@@ -24,7 +24,7 @@ from matplotlib.widgets import Button
 argStr = " ".join(sys.argv)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--log', help='Inkling debug log file (seenv SIM_DEBUG all; RunAll ...)', default=None)
+parser.add_argument('--log', help='Inkling debug log file (seenv SIM_DEBUG all; RunAll ...) or notification log in json format', default=None)
 parser.add_argument('--tpb', help='Tpb binary program files named ...-pe.tpb, ..-act.tpb', nargs='+', default=[])
 parser.add_argument('--verbose', help='Verbose node content', action='store_true', default=False)
 parser.add_argument('--show', help='Invoke interactive viewer', action='store_true', default=False)
@@ -107,6 +107,8 @@ class Instr:
     # POOL
     "POOL"       : "tan",
     "TENSOR_TENSOR_OP" : "khaki",
+    "WRITE"      : "lightgrey",
+    "NOP"        : "grey",
     }
   def getColor(self):
     return Instr.i2c.get(self.getInstrType(), "black")
@@ -175,7 +177,7 @@ class TongaProgram:
   def __init__(self, tongaFiles):
     self.tpbPrograms = {}
     for f in tongaFiles:
-      match = re.search('(dma|pe|act|pool)\.tpb', f)
+      match = re.search('(dma|pe|act|pool).*\.(tpb|bin)', f)
       if match:
         engine = match.groups()[0]
         self.tpbPrograms[engine] = TpbProgram(f)
@@ -216,37 +218,61 @@ class InklingProfile(object):
     self.engines = ["pool", "act", "pe", "dma"]
     self.cycle2event = {engine : {} for engine in self.engines}
     self.toEventIds = {}
-    print("INFO: parsing %s" % logFile)
+    print("INFO: parsing %s" % logFile)      
     lineCount = 0
-    with open(self.logFile) as fh:
-      for line in fh:
-        match = re.match('^(\d+) : tpb\d+\.([^ ]+) : Execute PC=(\S+) opcode=0x\S+ \((\S+)\)(.*)', line)
-        if match:
-          (mode, event) = ('', '')
-          (cycle, engine, pc, opcode, suffix) = match.groups()
-          if not opcode in Instr.i2c:
-            print('ERROR: uncognized opcode "%s" on line "%s"' % (opcode, line))
-            sys.exit(1)
-          match = re.search('set_mode=(\S+) set_event=(\S+)', suffix)
+    isJson = True
+    try:
+      with open(self.logFile) as fh:
+        jsonData = json.load(fh)
+    except:
+      isJson = False
+    if isJson:
+      for entry in jsonData:
+        pc = int(entry["program_counter"])
+        engine = entry['header']["block_id_str"]
+        cycle = int(entry["timestamp"]["low"])
+        # Notifications have buggy PC
+        pc *= 64
+        pcHex = "0x%x" %  pc
+        instr = tongaProgram.getInstr(engine, pcHex)
+        opcode = instr.getInstrType()
+        mode = "unknown"
+        event = 0
+        e = InklingEvent(cycle, engine, pcHex, opcode, mode, event)
+        #print("  DEBUG: created inkling event record %s" % e)
+        self.events.append(e)
+        self.cycle2event[engine][cycle] = e
+    else:
+      # Inkling log
+      with open(self.logFile) as fh:
+        for line in fh:
+          match = re.match('^(\d+) : tpb\d+\.([^ ]+) : Execute PC=(\S+) opcode=0x\S+ \((\S+)\)(.*)', line)
           if match:
-            (mode, event) = match.groups()
-          if engine == 'pool_seq':
-            engine = 'pool'
-          if engine == 'angel':
-            engine = 'dma'
-          cycle = int(cycle)
-          if cycle >= self.cycleRange[0] and cycle <= self.cycleRange[1]:
-            e = InklingEvent(cycle, engine, pc, opcode, mode, event)
-            #print("  DEBUG: created inkling event record %s" % e)
-            self.events.append(e)
-            self.cycle2event[engine][cycle] = e
-        else:
-          match = re.match('^Cycles: (\d+)', line)
-          if match:
-            self.numCycles = int(match.groups()[0])
-        lineCount += 1
-        if lineCount % 100000 == 0:
-          print(".", end='', flush=True)
+            (mode, event) = ('', '')
+            (cycle, engine, pc, opcode, suffix) = match.groups()
+            if not opcode in Instr.i2c:
+              print('ERROR: uncognized opcode "%s" on line "%s"' % (opcode, line))
+              sys.exit(1)
+            match = re.search('set_mode=(\S+) set_event=(\S+)', suffix)
+            if match:
+              (mode, event) = match.groups()
+            if engine == 'pool_seq':
+              engine = 'pool'
+            if engine == 'angel':
+              engine = 'dma'
+            cycle = int(cycle)
+            if cycle >= self.cycleRange[0] and cycle <= self.cycleRange[1]:
+              e = InklingEvent(cycle, engine, pc, opcode, mode, event)
+              #print("  DEBUG: created inkling event record %s" % e)
+              self.events.append(e)
+              self.cycle2event[engine][cycle] = e
+          else:
+            match = re.match('^Cycles: (\d+)', line)
+            if match:
+              self.numCycles = int(match.groups()[0])
+          lineCount += 1
+          if lineCount % 100000 == 0:
+            print(".", end='', flush=True)
       print()
 
 
