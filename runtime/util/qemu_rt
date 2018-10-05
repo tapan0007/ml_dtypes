@@ -47,11 +47,13 @@ Zebu pool is similar:
 '''
 
 import argparse
-import os, sys, stat, time, random, datetime, re
+import os, sys, stat, time, random, datetime, re, tempfile, shutil
 import glob
 import pexpect
 import socket, errno
 import xml.etree.ElementTree as ET
+import subprocess
+import getpass
 
 print("\nINFO %s : started as  " % str(datetime.datetime.now()), " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
 qiBldPath = os.environ["QEMU_BLD_DIR"]
@@ -87,6 +89,7 @@ vdis = {
   }
 
 defaultVdi, checksumVdi = vdis["ubuntu-18.04-24G_pytest"]
+defaultGrpcPort = 5556
 
 def portInUse(port):
   inUse = True
@@ -109,11 +112,25 @@ def sha256checksum(fileName):
     checksum = f.read().split(" ")[0]
   return checksum
 
+def getPortsToUse(port=None, grpcPort=None):
+  hashStr = '%s-%s' % (getpass.getuser(), os.getcwd())
+  if port != None and portInUse(port):
+    port += abs(hash(hashStr)) % 8000
+    while portInUse(port) and port < 60000:
+      port += int(random.random()*100)
+  if grpcPort != None and portInUse(grpcPort):
+    grpcPort += abs(hash(hashStr)) % 8000
+    while portInUse(grpcPort) and grpcPort < 60000:
+      grpcPort += int(random.random()*100)
+  return port, grpcPort
+
 parser = argparse.ArgumentParser(epilog=epilog,
            formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--action', help='Default is inference, others are: start_pool', default="inference")
 parser.add_argument('--vdi', help='Path to virtual disk image for the qemu VM. It can be file or S3 URL including options, the default is ' + defaultVdi, default=defaultVdi)
 parser.add_argument('--port', help='SSH port for the qemu VM', type=int, default=5555)
+parser.add_argument('--grpcHost', help='GRPC host to use for talking to krtd', default="localhost")
+parser.add_argument('--grpcPort', help='GRPC port to use for talking to krtd', type=int, default=defaultGrpcPort)
 parser.add_argument('--pool', help='Port range that defines Qemu process pool', type=int, nargs='+', default=[])
 parser.add_argument('--mem', help='Memory for the qemu VM, default 1024MB', type=int, default=1024)
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
@@ -138,7 +155,7 @@ krtVmPath = '/tmp/krt-1'
 # Common class for backend platforms like Qemu or Zebu
 
 class BePlat(object):
-  def __init__(self):
+  def __init__(self, port=None,grpcHost=None,grpcPort=None):
     self.sshHost = None
     self.sshUser = None
     self.sshCommand = None
@@ -181,6 +198,15 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     
     # Log all shell commands to a file
     self.cmdFh = open('replay-qemu_rt.txt', 'w')
+    newPort, newgrpcPort = getPortsToUse(port, grpcPort)
+    if port != None:
+      print("INFO: using available port %d  (--port was %d)" % (newPort, port))
+    if grpcPort != None:
+      print("INFO: using available port %d for grpc  (--grpcPort was %d)" % (newgrpcPort, grpcPort))
+    self.port = newPort
+    self.grpcHost = grpcHost
+    self.grpcPort = newgrpcPort
+
 
   def __del__(self):
     self.cmdFh.close()
@@ -191,7 +217,12 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
   def osSystem(self, cmd):
     self.logReplay(cmd)
     return os.system(cmd)
-
+  def createTempDir(self):
+    name = tempfile.mkdtemp()
+    print("INFO %s : Created tmp file %s" % (str(datetime.datetime.now()),name), flush=True)
+    return(name)
+  def removeTempDir(self, name):
+    shutil.rmtree(name)
   def sshCmd(self, cmd, opt=""):
     fullCmd = "%s %s %s@%s '%s'" % (self.sshCommand, opt, self.sshUser, self.sshHost, cmd)
     print("INFO %s : sshCmd executing %s" % (str(datetime.datetime.now()),fullCmd), flush=True)
@@ -214,23 +245,22 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     return self.tongaDevice
 
 class Qemu(BePlat):
-  def __init__(self, vdi, mem, port):
-    BePlat.__init__(self)
+  def __init__(self, vdi, mem, port, grpcHost="localhost", grpcPort=defaultGrpcPort):
+    BePlat.__init__(self, port, grpcHost=grpcHost, grpcPort=grpcPort)
     
     #qemuOpts = '-monitor stdio'
     qemuOpts = '-nographic'
     self.vdi = vdi
     self.localVdi = "copy.vdi"
     self.type = "qemu"
-    
     qemuNoInkling = os.getenv("QEMU_NO_INKLING", None)
+    assert not portInUse(self.grpcPort) and not portInUse(self.port)
     if qemuNoInkling == None:
-      self.cmd = '%s %s -m %d -device pci-inkling %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % (qiPath, self.localVdi, mem, qemuOpts, port)
+        self.cmd = '%s %s -m %d -device pci-inkling %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:%d -serial file:log-qemu_serial.txt' % (qiPath, self.localVdi, mem, qemuOpts, self.port, self.grpcPort, self.grpcPort)
     else:
-      self.cmd = '%s %s -m %d                     %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22 -serial file:log-qemu_serial.txt' % ("/usr/bin/qemu-system-x86_64", self.localVdi, mem, qemuOpts, port)
+        self.cmd = '%s %s -m %d                     %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:%d -serial file:log-qemu_serial.txt' % ("/usr/bin/qemu-system-x86_64", self.localVdi, mem, qemuOpts, self.port, self.grpcPort, self.grpcPort)
     if os.path.exists("/dev/kvm"):
         self.cmd += "  --enable-kvm "
-    self.port = port
     self.sshUser = "kaena"
     self.sshHost = "localhost"
     sshOpt = "-o StrictHostKeyChecking=no -o ConnectTimeout=600 -o UserKnownHostsFile=/dev/null"
@@ -337,8 +367,8 @@ class Qemu(BePlat):
     
 
 class Zebu(BePlat):
-  def __init__(self, zebuHost):
-    BePlat.__init__(self)
+  def __init__(self, zebuHost, grpcHost="localhost", grpcPort=defaultGrpcPort):
+    BePlat.__init__(self, grpcHost=grpcHost, grpcPort=grpcPort)
     match = re.search(r'(\S+)--(\S+)', zebuHost)
     if match:
       self.zebuHost  = match.groups()[0]
@@ -366,7 +396,8 @@ class Zebu(BePlat):
   def startVm(self):
     # Boot the VM:
     vmOk = False
-    cmd = 'sh -c "%s 2>&1 | tee log-zebu_vm.txt"' % ("ssh %s" % self.zebuHost)
+    assert not portInUse(self.grpcPort)
+    cmd = 'sh -c "%s 2>&1 | tee log-zebu_vm.txt"' % ("ssh -L %d:localhost:%d %s" % (self.grpcPort, self.grpcPort, self.zebuHost))
     print("INFO: starting Zebu VM  %s" % cmd, flush=True)
     self.fh1 = pexpect.spawn(cmd, maxread=200000, searchwindowsize=200000)
     self.fh1.expect("$")
@@ -395,6 +426,7 @@ class Zebu(BePlat):
       print("INFO: Zebu Vm started OK", flush=True)
     else:
       print("ERROR: Zebu Vm failed to start", flush=True)
+
     return vmOk
   
 
@@ -403,7 +435,9 @@ class Zebu(BePlat):
     self.fh1.send("\r")
     print("Sleeping for a minute before vbssh")
     self.osSystem("sleep 60") 
-    self.fh1.send("rune -vbssh\r")
+    runeCmd = "rune -vbqssh %d\r" % (self.grpcPort)
+    #self.fh1.send("rune -vbssh\r")
+    self.fh1.send(runeCmd)
     try:
       self.fh1.expect("synopsys@localhost's password:", timeout=60)
     except:
@@ -436,6 +470,7 @@ class Zebu(BePlat):
         guestOk = True
     except TIMEOUT:
       print("INFO: Zebu guest OS lspi does NOT have any tonga", flush=True)
+
     return guestOk
 
   def start(self, restartId):
@@ -477,8 +512,148 @@ class Zebu(BePlat):
     except:
       pass
     
+class PythonTest:
+  """Class that is used for running/stopping python test
 
-class Krt(object):
+  """
+
+  def __init__(self, krtd):
+    self.pytestFail = False
+    self.pytestResultXml = "pytestResult.xml"
+    self.krtd = krtd
+
+  def run(self, args):
+    krtOk = False
+    binDir = self.krtd.tempBinDir
+    workDir = self.krtd.tempWorkingDir
+    pyExec = 'pytest'
+    pyTest = '%s/bin/tests' % (binDir)
+    pytestLogFile = "%s/log-pytest.txt" % (workDir)
+    grpcAddress = "%s:%d" % (self.krtd.qemu.grpcHost,self.krtd.qemu.grpcPort)
+    machine = "%s" % (self.krtd.qemu.type)
+    junit = "--junitxml=%s/%s" % (workDir, self.pytestResultXml)
+    with open(pytestLogFile, "a+") as fp:
+      p = subprocess.Popen([pyExec, pyTest, "--address", grpcAddress, "--machine", machine, junit, "-s"], stdout=fp, stderr=fp)
+      p.communicate()
+      if p.returncode == 0:
+        krtOk = True
+      else:
+        self.pytestFail = True
+    self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-krtd.txt", ".")
+    cmdCpOutFile = 'cp %s/* %s' % (workDir,self.krtd.cwd)
+    self.krtd.qemu.osSystem(cmdCpOutFile)
+    if not krtOk:
+      print("ERROR: pytest did not run properly check log-pytest.txt")
+    else:
+      print("INFO: pytest ran fine")
+
+  def parsePytestResultXml(self):
+    binDir = self.krtd.tempBinDir
+    workingDir = self.krtd.tempWorkingDir
+    pyResultFile = "%s/%s" % (workingDir, self.pytestResultXml)
+    tree = ET.parse(self.pytestResultXml)
+    root = tree.getroot()
+    if root.attrib['errors'] != '0' or root.attrib['failures'] != '0':
+        return 0
+    return 1
+
+  def stop(self): 
+    if not self.pytestFail:
+      testOk = self.parsePytestResultXml()
+    else:
+      testOk = False
+    if not testOk:
+      print("ERROR: pytest did not return zero exit code, check log-krtd.txt, log-pytest.txt, pytestResult.xml")
+
+    return testOk
+
+
+class KrtcClient:
+  """Class that is used for running/stopping krtc client
+
+  """
+  def __init__(self, krtd):
+    self.loadPassFile = "krtc_load.pass"
+    self.loadFailFile = "krtc_load.fail"
+    self.krtd = krtd
+    self.loadFail = False
+    self.inferFail = False
+
+  def krtcLoadModel(self, binDir, workingDir):
+    krtcCmd = "%s/bin/krtc/krtc" % (binDir)
+    loadLogFile = "%s/log-load.txt" % (workingDir)
+    grpcAddress = "%s:%d" % (self.krtd.qemu.grpcHost,self.krtd.qemu.grpcPort)
+    kelfFile = "%s/kelf.tar.gz" % (workingDir)
+    with open(loadLogFile, "a+") as fp:
+      p = subprocess.Popen([krtcCmd, "load", kelfFile, "--address", grpcAddress], stdout=fp, stderr=fp)
+      p.communicate()
+      if p.returncode == 0:
+        krtOk = True
+      else:
+        self.loadFail = True
+    self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-krtd.txt", ".")
+    cmdCpOutFile = 'cp %s/* %s' % (workingDir,self.krtd.cwd)
+    self.krtd.qemu.osSystem(cmdCpOutFile)
+    if not krtOk:
+      print("ERROR: model did not load properly check log-load.txt")
+    else:
+      print("INFO: model load success")
+
+    return 1001,krtOk  #TODO need to remove the hard coding
+
+  def krtcInference(self, model_id, ifmap, ofmap, timeout, binDir, workingDir):
+    krtOk = False
+    binDir = self.krtd.tempBinDir
+    workDir = self.krtd.tempWorkingDir
+    (ifmapPath,ifmapFile) = self.krtd.getIfMapFile(ifmap, ofmap)
+    ofmapPath = "%s/t" % (workingDir)
+    krtcCmd = "%s/bin/krtc/krtc" % (binDir)
+    inferLogFile = "%s/log-infer.txt" % (workingDir)
+    modelId = "%s" % model_id
+    grpcAddress = "localhost:%d" % self.krtd.qemu.grpcPort
+    with open(inferLogFile, "a+") as fp:
+      p = subprocess.Popen([krtcCmd, "infer", "--model-id", modelId, "--ifmap", ifmapPath, "--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout], stdout=fp, stderr=fp)
+      p.communicate()
+      if p.returncode == 0:
+        krtOk = True
+      else:
+        self.inferFail = True
+    self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-krtd.txt", ".")
+    cmdCpOutFile = 'cp %s/* %s' % (workingDir,self.krtd.cwd)
+    self.krtd.qemu.osSystem(cmdCpOutFile)
+
+    if not krtOk:
+      print("ERROR: infer failure for ifmap:%s check log-infer.txt" % ifmapFile)
+    else:
+      print("INFO: infer success for ifmap:%s" % ifmapFile)
+    return krtOk
+
+  def addModel(self, kelfDir, workingDir):
+    cmdCpy = 'cd %s; cp kelf.tar.gz %s/.' % (kelfDir, workingDir)
+    self.krtd.qemu.osSystem(cmdCpy)
+
+  def run(self, args):
+    binDir = self.krtd.tempBinDir
+    workingDir = self.krtd.tempWorkingDir
+    self.addModel(args.kelf, workingDir)
+    (model_id, krtOk) = self.krtcLoadModel(binDir, workingDir)  #in future this would take the tpb in which to load
+    if not krtOk:
+      return
+    assert len(args.ifmaps) == 1
+    for ifmap in args.ifmaps:
+      krtOk = self.krtcInference(model_id, ifmap, "out-%s.bin" % args.sg,"3600",binDir, workingDir)
+      if not krtOk:
+        return
+    self.krtd.getFinalBin()
+
+  def stop(self):
+    if self.loadFail or self.inferFail:
+      return False
+    return True
+
+class Krtd():
+  """Class that is used for starting/stopping krtd daemon
+	"""
   def __init__(self, qemu, timeout):
     self.qemu = qemu
     self.cwd = os.getcwd()
@@ -491,8 +666,8 @@ class Krt(object):
     eldlp = os.getenv('LD_LIBRARY_PATH')
     self.envStr = '  PATH=%s:%s:%s' % (p, p + '/bin', epath)
     self.envStr += '  LD_LIBRARY_PATH=%s:%s:%s ' % ( p, p + "/lib", eldlp)
-    self.krtPass = "krt.pass"
-    self.krtFail = "krt.fail"
+    self.krtdPass = "krtd.pass"
+    self.krtdFail = "krtd.fail"
 
   def install(self):
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
@@ -534,35 +709,6 @@ class Krt(object):
     self.qemu.sshCmd(cmd)
 
    
-  def addModel(self, kelfDir, kelfVmDir, sg):
-    self.kelfVmDir = kelfVmDir
-    self.sg = sg
-    self.qemu.sshCmd("/bin/rm -rf %s/" % kelfVmDir)
-    self.qemu.sshCmd("mkdir -p %s" % kelfVmDir)
-    self.qemu.rsyncToVm(kelfDir + "/", kelfVmDir, "--copy-links")
-    p = krtVmPath
-    cmdCompile = 'cd %s; %s %s/bin/kelf2kbin def.json' % (kelfVmDir, self.envStr, p)
-    self.qemu.sshCmd(cmdCompile)
-  def start(self):
-    self.ifmapDir = "%s/ifmap" % self.kelfVmDir
-    self.ofmapDir = "%s/ofmap" % self.kelfVmDir
-    self.qemu.sshCmd("mkdir %s %s" % (self.ifmapDir, self.ofmapDir))
-    tongaDev = self.qemu.getTongaDevice()
-    kbin_rt = '%s/bin/kbin_rt' % krtVmPath
-    infTimeout = 100000
-    cmdKrt = '%s %s %s %s %s -n 1 -s -a -t %d' % (
-               kbin_rt, self.kelfVmDir, self.ifmapDir, self.ofmapDir, tongaDev, infTimeout)
-
-    shCmd="cd %s && %s ldd %s && if %s %s; then touch %s; else touch %s; fi" % (
-        self.kelfVmDir, self.envStr, kbin_rt, self.envStr, cmdKrt, self.krtPass, self.krtFail)
-    cmdRuntime = 'sudo /bin/sh -c "(%s) > %s/log-krt.txt 2>&1 & "' %  (
-        shCmd, self.kelfVmDir)
-
-    self.qemu.sshCmd(cmdRuntime)
-    time.sleep(2)
-
-
-  
   def getFinalBin(self):
     ##topFinalDir = self.kelfVmDir + "/"
     topFinalDir = "/tmp/"
@@ -571,129 +717,29 @@ class Krt(object):
       finalBinfiles += topFinalDir + fin + "-final.bin "
     self.qemu.rsyncFromVm(finalBinfiles, ".")
 
-  def stop(self):
-    self.qemu.rsyncFromVm(self.kelfVmDir + "/log-krt.txt", ".")
-    time.sleep(2)  # for kbin_rt to have time to return exit code after writing out.bin
-    
-    statusFilesToWaitForStr = "%s/%s %s/%s" % (
-      self.kelfVmDir, self.krtPass, self.kelfVmDir, self.krtFail)
-    outputFilesToWaitForStr = "%s/%s" % (self.ofmapDir, "*.bin")
-    for i in range(self.inklingTimeout):
-      print("  Waiting for krt_bin to complete %i" %i, flush=True)
-      time.sleep(1)
-      self.qemu.rsyncFromVm(statusFilesToWaitForStr, ".")
-      if os.path.isfile(self.krtPass) or os.path.isfile(self.krtFail):
-        break
-    
-    self.qemu.rsyncFromVm(outputFilesToWaitForStr, ".")
-    self.getFinalBin()
-    debug = True
-    if debug:
-      self.qemu.rsyncFromVm(self.kelfVmDir + "/", "debug_kelf_%s" % self.sg)
-    self.qemu.sshCmd("/bin/rm -rf %s" % self.kelfVmDir)
-    krtOk = os.path.isfile(self.krtPass)
-    if not krtOk:
-      print("ERROR: kbin_rt did not return zero exit code, check log-krt.txt")
-      #print("INFO: FIX_THIS kbin_rt failed but temporrarily oveeriding till 0-1conv0_qemu_wave is fixed")
-      #return True
-    return krtOk
-
-  def inference(self, ifmap, ofmap):
+  def getIfMapFile(self, ifmap, ofmap):
     ifmapPath = os.path.realpath(ifmap)
+    ifmapFile = ifmap
     self.ofmap = ofmap
     # kaena-602: hack for testing one input file only; doesn't work for inferencing
     ifmapPadSplitPath = ifmapPath[:-4] + "_padsplit.npy" 
+    ifmapPadFile = ifmapFile[:-4] + "_padsplit.npy"
     if os.path.isfile(ifmapPadSplitPath):
       print("qemu_rt: Replacing original npy input ", ifmapPath, " with padded input ", ifmapPadSplitPath)
       ifmapPath = ifmapPadSplitPath
+      ifmapFile = ifmapPadFile
     else:
       print("qemu_rt: Using original npy input ", ifmapPath, " did not find padded input ", ifmapPadSplitPath)
-    if self.qemu.rsyncToVm(ifmapPath, self.ifmapDir, "--copy-links"):
-      pass  # end of inference is tested in stop()
-    else:
-      print("ERROR: failed to transfer ifmap %s to the qemu guest os" % ifmapPath)
-
-  def execute(self, args):
-    self.addModel(args.kelf, "%s/%s" % (kelfVmDirGlobal, args.sg), args.sg)
-    self.start()
-    assert len(args.ifmaps) == 1
-    for ifmap in args.ifmaps:
-      self.inference(ifmap, "out-%s.bin" % args.sg)
-    krtOk = self.stop()
-    return krtOk
-
-class PythonTest:
-  """Class that is used for running/stopping python test
-
-  """
-
-  def __init__(self, krtd):
-    self.pytestRun = "pytest.run"
-    self.pytestNotRun = "pytest.notrun"
-    self.pytestResultXml = "pytestResult.xml"
-    self.krtd = krtd
-
-  def run(self):
-    pycmd = 'PYTHONPATH=%s/bin pytest-3 --junitxml=%s/%s --machine %s' % (krtVmPath, self.krtd.kelfVmDir, self.pytestResultXml, self.krtd.qemu.type) #check to see if PYTHONPATH etc needs to be set
-    cmdPytest = '%s %s/bin/tests -s' % (pycmd, krtVmPath)
-
-    shCmd="cd %s && if %s; then touch %s; else touch %s; fi" % (
-	    self.krtd.kelfVmDir, cmdPytest, self.pytestRun, self.pytestNotRun)
-    cmdRuntime = '/bin/sh -c "(%s) > %s/log-pytest.txt 2>&1 & "' %  (
-        shCmd, self.krtd.kelfVmDir)
-
-    self.krtd.qemu.sshCmd(cmdRuntime)
-
-  def parsePytestResultXml(self):
-    tree = ET.parse(self.pytestResultXml)
-    root = tree.getroot()
-    if root.attrib['errors'] != '0' or root.attrib['failures'] != '0':
-        return 0
-    return 1
-
-  def stop(self):
-    filesToWaitForStr = "%s/%s %s/%s %s/%s" % ( 
-	    self.krtd.kelfVmDir, self.pytestResultXml, self.krtd.kelfVmDir, self.pytestNotRun, self.krtd.kelfVmDir, self.pytestRun)
-    for i in range(self.krtd.inklingTimeout):
-      print("  Waiting for pytest to complete %i" %i, flush=True)
-      time.sleep(10)
-      self.krtd.qemu.rsyncFromVm(filesToWaitForStr, ".")
-      if os.path.isfile(self.pytestRun) or os.path.isfile(self.pytestNotRun):
-        break
-    
-    self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-krtd.txt", ".")
-    self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-pytest.txt", ".")
-
-    self.krtd.qemu.sshCmd("/bin/rm -rf %s" % self.krtd.kelfVmDir)
-    testOk = os.path.isfile(self.pytestRun) and os.path.isfile(self.pytestResultXml)
-    if testOk:
-      testOk = self.parsePytestResultXml()
-    if not testOk:
-      print("ERROR: pytest did not return zero exit code, check log-krtd.txt, log-pytest.txt, pytestResult.xml")
-    return testOk
-
-
-class Krtd(Krt):
-  """Class that is used for starting/stopping krtd daemon
-
-	This class is child class of the krt. krt is handling kbin_rt
-	Once all the tests start to use krtd, then this will become
-	the main class and krt will be removed
-
-	"""
-  def __init__(self, qemu, timeout):
-    Krt.__init__(self, qemu, timeout)
-    self.krtdPass = "krtd.pass"
-    self.krtdFail = "krtd.fail"
-    self.pytest = PythonTest(self)
+    return ifmapPath, ifmapFile
 
   def startDaemon(self):
     self.qemu.sshCmd("mkdir -p %s" % kelfVmDirGlobal)
     tongaDev = self.qemu.getTongaDevice()
     krtd = '%s/bin/krtd' % krtVmPath
     config = '%s/bin/default_config.json' % krtVmPath
-    cmdKrtd = '%s -t %s -c %s' % (
-               krtd,tongaDev,config)
+    grpc = '0.0.0.0:%d' % self.qemu.grpcPort
+    cmdKrtd = '%s -t %s -c %s -g %s' % (
+               krtd,tongaDev,config, grpc)
 
     shCmd="cd %s && %s ldd %s && if %s %s; then touch %s; else touch %s; fi" % (
         self.kelfVmDir, self.envStr, krtd, self.envStr, cmdKrtd, self.krtdPass, self.krtdFail)
@@ -719,12 +765,46 @@ class Krtd(Krt):
     print("ERROR: krtd did not start properly check log-krtd.txt")
     return False
 
+  def localInstall(self):
+    '''
+    If any install procedure changes, make sure to update the remote install also
+    '''
+    runtimSrcPath = os.environ["KAENA_RT_PATH"]
+    if not os.path.isdir(runtimSrcPath):
+      raise ValueError("ERROR: missing runtime src at %s" % runtimSrcPath)
+    krtPkgPattern = 'krt-*.*-*-core.tar.gz'
+    krtPackages = glob.glob(os.path.join(krtBldPath, krtPkgPattern))
+
+    if len(krtPackages) != 1:
+      raise ValueError("ERROR: Found {} runtime packages at {}".format(len(krtPackages), krtBldPath))
+    self.tempBinDir = self.qemu.createTempDir()
+    if not os.path.isdir(self.tempBinDir):
+      raise ValueError("ERROR: Could not create tmp dir for local binary")
+    self.qemu.osSystem("cd %s &&  tar xvfz %s/%s" % (self.tempBinDir, krtBldPath,krtPkgPattern))
+    self.tempWorkingDir = self.qemu.createTempDir()
+    if not os.path.isdir(self.tempWorkingDir):
+      raise ValueError("ERROR: Could not create tmp dir for local work")
+    self.qemu.osSystem("cd %s &&  rm -rf bin/__pycache__" % (self.tempBinDir))
+    self.qemu.osSystem("cd %s &&  rm -rf bin/tests/__pycache__" % (self.tempBinDir))
+
   def execute(self, args):
     krtOk = self.startDaemon()
-    if (krtOk):
-      self.pytest.run()
-      self.pytest.stop()
-    return krtOk
+    if not krtOk:
+      return krtOk
+    if (args.pytest):
+      self.client = PythonTest(self)
+    else:
+      self.client = KrtcClient(self)
+      
+    self.localInstall()
+    self.client.run(args)
+    return self.client.stop()
+
+  def __del__(self):
+    binDir = self.tempBinDir
+    workingDir = self.tempWorkingDir
+    if os.path.exists(binDir): self.qemu.removeTempDir(binDir)
+    if os.path.exists(workingDir): self.qemu.removeTempDir(workingDir)
 
 class QemuPool:
   def __init__(self, ports, vdi, mem, inklingTimeout):
@@ -735,7 +815,7 @@ class QemuPool:
     self.qemus = []
     for port in self.ports:
       qemu = Qemu(vdi, mem, port)
-      krt = KrtClass(qemu, inklingTimeout)
+      krt = Krtd(qemu, inklingTimeout)
       self.qemus.append((qemu, krt))
   def checkPorts(self):
     for port in self.ports:
@@ -784,7 +864,7 @@ class ZebuPool:
     self.zebus = []
     for host in self.zebuHosts:
       zebu = Zebu(host)
-      krt = KrtClass(zebu, inklingTimeout)
+      krt = Krtd(zebu, inklingTimeout)
       self.zebus.append((host, zebu, krt))
   def startPool(self):
     for host, zebu, krt in self.zebus:
@@ -825,16 +905,6 @@ envQemuKrtTimeout = os.getenv("QEMU_KRT_TIMEOUT", None)
 if envQemuKrtTimeout != None:
   inklingTimeout = int(envQemuKrtTimeout)
 
-# for non compiler test we use krtd and compiler test we
-# we use krt_bin. For the time being, we are using 
-# 2 classes. Once we move compiler test also to krt_bin
-# then we will remove this
-if (args.pytest):
-  KrtClass = Krtd
-else:
-  KrtClass = Krt
-
-
 ##############  zebu pool  ##############
 if args.zebu != None and args.zebu.startswith('pool'):
   zebuPoolStr = args.zebu.replace('pool', '')
@@ -869,10 +939,10 @@ elif args.zebu != None:
   zebuOk = False
   krtOk = False
   for zebuRestartId in range(2):
-    zebu = Zebu(args.zebu)
+    zebu = Zebu(args.zebu,grpcHost=args.grpcHost, grpcPort=args.grpcPort)
     if zebu.start(zebuRestartId):
       zebuOk = True
-      krt = KrtClass(zebu, inklingTimeout)
+      krt = Krtd(zebu, inklingTimeout)
       krt.install()
       #krt.scrub_dram()
       krtOk = krt.execute(args)
@@ -915,15 +985,14 @@ else:
   qemuOk = False
   krtOk = False
   port = args.port
+  grpcHost = args.grpcHost
+  grpcPort = args.grpcPort
   for qemuRestartId in range(3):
-    while portInUse(port):
-      port += 3
-    print("INFO: using available port %d  (--port was %d)" % (port, args.port))
-    qemu = Qemu(args.vdi, args.mem, args.port)
+    qemu = Qemu(args.vdi, args.mem, port, grpcHost=grpcHost, grpcPort=grpcPort)
     qemu.start(qemuRestartId)
     if qemu.testGuest(4):
       qemuOk = True
-      krt = KrtClass(qemu, inklingTimeout)
+      krt = Krtd(qemu, inklingTimeout)
       krt.install()
       krtOk = krt.execute(args)
     else:
