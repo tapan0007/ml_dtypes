@@ -781,18 +781,9 @@ class KGraph:
                             if prev_node.prev_old != []:
                                 new_node.dissolve_node(prev_node)
                             elif (prev_node.data['layer_type'] == "Pad"):
-                                if new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose":
-                                  # NCHW
-                                  new_node.data['padding'] = prev_node.data['padding']
-                                  prev_node.data['ofmap_shape'] = prev_node.prev[0].data['ofmap_shape']
-                                  assert(len(new_node.data['padding']) == 4)
-                                  assert(new_node.data['padding'][0] == [0, 0])
-                                  assert(new_node.data['padding'][1] == [0, 0])
-#assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
-                                  new_node.dissolve_node(prev_node)
-                                elif new_node.data['layer_type'] == "StridedSlice":
-                                  if any(new_node.data["begin_mask"]) or \
-                                      any(new_node.data["end_mask"]) :
+                                if new_node.data['layer_type'] == "StridedSlice"and \
+                                    (any(new_node.data["begin_mask"]) or \
+                                     any(new_node.data["end_mask"])) :
                                     # calculate padding
                                     # a positive offset into the tensor
                                     # translates to a negative padding
@@ -814,7 +805,14 @@ class KGraph:
                                             prev_node.data['padding'])
                                     new_node.dissolve_node(prev_node)
                                 else:
-                                    assert False, "Could not dissolve Pad into {}".format(prev_node.data['layer_name'])
+                                  # NCHW
+                                  new_node.data['padding'] = prev_node.data['padding']
+                                  prev_node.data['ofmap_shape'] = prev_node.prev[0].data['ofmap_shape']
+                                  assert(len(new_node.data['padding']) == 4)
+                                  assert(new_node.data['padding'][0] == [0, 0])
+                                  assert(new_node.data['padding'][1] == [0, 0])
+                                  #assert(new_node.data['layer_type'] == "Conv" or new_node.data['layer_type'] == "ConvTranspose")
+                                  new_node.dissolve_node(prev_node)
                             elif (prev_node.data['layer_type'] == "Slice"):
                                 if 'padding' in prev_node.data:
                                     new_node.data['padding'] = prev_node.data['padding']
