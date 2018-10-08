@@ -1531,52 +1531,72 @@ class NodeStridedSlice(Node):
     if len(npInfo.npShape) == 1:
       return {},[]
 
+    # get constants
+    # shift to get to
+    n_dims = len(npInfo.npShape)
     # This is for splitting along channel Axis - -- for --  Resnet???
-    if len(npInfo.npShape) == 4:
-      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-    else:
-      if len(npInfo.npShape) == 3:
-        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-        channelAxis = 2
-        tfFormat = npt.NWC
-      elif len(npInfo.npShape) == 2:
-        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-        tfFormat = npt.NC
-      else:
-        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-        tfFormat = npt.C
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-    channelAxis = tfFormat.find('C')
+    begin_indices = bes["Begin"][npInfoIndexinBes].getValues().tolist()
+    end_indices = bes["End"][npInfoIndexinBes].getValues().tolist()
+    # shift uint8 to get at masks shifted to the right and then reverse
+    # for indexing
+    begin_mask = np.unpackbits(np.array([self.getAttr("begin_mask")], \
+        dtype=np.uint8)).tolist()[8-n_dims:][::-1]
+    end_mask = np.unpackbits(np.array([self.getAttr("end_mask")], \
+        dtype=np.uint8)).tolist()[8-n_dims:][::-1]
+    to_nhwc = lambda l, val : None
+    if n_dims == 4:
+      tfFormat = npt.NHWC
+      tfShape4D = npInfo.npShape
+      to_nhwc = lambda l, val : None
+    elif n_dims == 3: #NWC
+      tfFormat = npt.NWC
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      to_nhwc = lambda l, val : l.insert(2, val)
+    elif n_dims == 2: #NC
+      tfFormat = npt.NC
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      to_nhwc = lambda l, val : l.insert(1, val) or l.insert(1, val)
+    else: #C
+      tfFormat = npt.C
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      to_nhwc = lambda l, val : l.insert(0, val) or l.insert(0, val) or l.insert(0, val)
+    # take not of channel axi in original input
+    channel_axis = tfFormat.find('C')
+    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+
+    # get everything to nchw format by going through nhwc
+    to_nhwc(begin_indices, 0)
+    to_nhwc(end_indices, 0)
+    to_nhwc(begin_mask, 1)
+    to_nhwc(end_mask, 1)
+
+    to_nchw = lambda l: list(npt.reorderShape(l, npt.TF, npt.SIM, npt.Fmaps))
+    begin_indices = to_nchw(begin_indices)
+    end_indices = to_nchw(end_indices)
+    begin_mask = to_nchw(begin_mask)
+    end_mask = to_nchw(end_mask)
+    tfShape4D = to_nchw(tfShape4D)
 
     tensorFormatMap.add(npInfo.tensorName,
                         TensorFormat(npInfo.tensorName, self.getOpName(),
                                      npInfo.npFile, tfFormat,
                                      npFileSim, simFormat, False))
-
-    vectorStart = np.asscalar(bes["Begin"][npInfoIndexinBes].getValues()[channelAxis])
-    vectorEnd = np.asscalar(bes["End"][npInfoIndexinBes].getValues()[channelAxis])
+    # we are in NCHW now
+    vectorStart = begin_indices[1]
+    vectorEnd = end_indices[1]
     if vectorEnd <= vectorStart:
-      vectorEnd = npInfoFrom.npShape[channelAxis]
+      vectorEnd = npInfoFrom.npShape[channel_axis]
       assert self.getAttr("end_mask") > 0
     assert all(bes['Stride'][npInfoIndexinBes].getValues()) == 1
-
-    get_mask = lambda mask_str : \
-                  npt.reorderShape(np.unpackbits(np.array([self.getAttr(mask_str)], dtype=np.uint8))[4:].tolist(), \
-                  npt.TF, npt.SIM, npt.Fmaps)
-    get_indices = lambda idx_str : [np.asscalar(X) for X in \
-                  list(npt.reorderShape(bes[idx_str][npInfoIndexinBes].getValues(), npt.TF, npt.SIM, npt.Fmaps))]
     layerData = {
-      "ofmap_shape"     : tpbShape,
+      "ofmap_shape"     : tfShape4D,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
       "channel_slice"   : [vectorStart, vectorEnd],
-      "begin_mask"      : get_mask("begin_mask"),
-      "begin_indices"   : get_indices("Begin"),
-      "end_mask"        : get_mask("end_mask"),
-      "end_indices"     : get_indices("End"),
+      "begin_mask"      : begin_mask,
+      "begin_indices"   : begin_indices,
+      "end_mask"        : end_mask,
+      "end_indices"     : end_indices,
       "previous_layers" : [nIn.getName()],
       "#comment"        : "Extract slice along channel dimension"
     }
