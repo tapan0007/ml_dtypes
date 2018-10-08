@@ -67,7 +67,7 @@ testConfigMap = {
   "0-rtl-resadd_h32c256_wave"      : [ "trivnet_add",    "tfloat16-b1-h32-c256-wmin2.19-wmax2.2-imin-0.1-imax0.2", "add", "--scheduler wave2  --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
 
 # Multiple convolves
-  "0-4conv_multiout_wave"      : [ 
+  "0-4conv_multiout_wave"      : [
     "trivnet_lin",
     "tfloat16-l4-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1000-imax1010",
     "10cr",
@@ -114,7 +114,7 @@ testConfigMap = {
   ],
 
   "0-act_fused_lrelu_sweep_wave"         : [ "trivnet_act",      "tfloat32-b1-h80-c64-lrelu-wmin2-wmax2.2-imin-10000000-imax10000000",          "act", "--scheduler wave2  --schedule_options ' --nname=generic --fuse_lrelu ' "],
- 
+
   "0-rtl-act_tanh_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-tanh-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
   "0-rtl-act_sigmoid_minisweep_wave"       : [ "trivnet_act",      "tfloat32-b1-h128-c64-sigmoid-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
   "0-rtl-act_relu_minisweep_wave"          : [ "trivnet_act",      "tfloat32-b1-h128-c64-relu-wmin2-wmax2.2-imin-1-imax1",          "act", "--scheduler wave2  --schedule_options ' --nname=generic'"],
@@ -268,7 +268,7 @@ testConfigMap = {
   "0-1conv1ba1_fp32_wave"  : [ "trivnet_conv_ba", "tfloat32-b1-h224-r7-s2-c3-m64-SAME-wmin1-wmax1-imin0-imax50175-amin-20000-amax-20000", "1conv1ba", "--scheduler wave --waive_wavegraph_checks"],
 
   "0-act_wave"     : [ "trivnet_act", "tfloat16-b1-h2-c128-tanh-wmin2-wmax2.2-imin-1-imax2", "act", "--scheduler wave2 --wavegraph_checks structure data-race"],
-  "0-act_softplus_wave"     : [ "trivnet_act", "tfloat16-b1-h2-c128-softplus-wmin2-wmax2.2-imin-1-imax2", "act", "--scheduler wave2 --wavegraph_checks structure data-race"],  
+  "0-act_softplus_wave"     : [ "trivnet_act", "tfloat16-b1-h2-c128-softplus-wmin2-wmax2.2-imin-1-imax2", "act", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-scaleadd_wave"       : [
     "trivnet_scaleadd",
     "tfloat16-b1-h1-c16-wmin2-wmax2.2-imin3-imax6",
@@ -430,14 +430,14 @@ testConfigMap = {
   "3-rn50-05_wave" : [ "trivnet_conv1",  "tfloat16-b1-h28-r3-s1-c128-m128-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-06_wave" : [ "trivnet_conv1",  "tfloat16-b1-h28-r1-s1-c128-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-07_wave" : [ "trivnet_conv1",  "tfloat16-b1-h55-r3-s1-c64-m64-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2"],
-  "3-rn50-08_wave" : [ "trivnet_conv1",  "tfloat16-b1-h7-r3-s1-c512-m512-wmin-1-wmax1.1-imin-3-imax3.2",   "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"], 
-  #"3-rn50-08_b2_wave" : [ "trivnet_conv1",  "tfloat16-b2-h7-r3-s1-c512-m512-wmin-1-wmax1.1-imin-3-imax3.2",   "1conv", "--scheduler wave --wavegraph_checks structure data-race"], 
+  "3-rn50-08_wave" : [ "trivnet_conv1",  "tfloat16-b1-h7-r3-s1-c512-m512-wmin-1-wmax1.1-imin-3-imax3.2",   "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  #"3-rn50-08_b2_wave" : [ "trivnet_conv1",  "tfloat16-b2-h7-r3-s1-c512-m512-wmin-1-wmax1.1-imin-3-imax3.2",   "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-09_wave" : [ "trivnet_conv1",  "tfloat16-b1-h7-r1-s1-c512-m2048-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
   "3-rn50-10_wave" : [ "trivnet_conv1",  "tfloat16-b1-h28-r1-s1-c512-m128-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
-  "3-rn50-11_wave" : [ "trivnet_conv1",  "tfloat16-b1-h55-r1-s1-c256-m64-wmin-1-wmax1.1-imin-3-imax3.2",   "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"], 
-  "3-rn50-12_wave" : [ "trivnet_conv1",  "tfloat16-b1-h7-r1-s1-c2048-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"], 
-  #"3-rn50-12_b2_wave" : [ "trivnet_conv1",  "tfloat16-b2-h7-r1-s1-c2048-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"], 
-  "3-rn50-13_wave" : [ "trivnet_conv1",  "tfloat16-b1-h55-r1-s1-c64-m64-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"], 
+  "3-rn50-11_wave" : [ "trivnet_conv1",  "tfloat16-b1-h55-r1-s1-c256-m64-wmin-1-wmax1.1-imin-3-imax3.2",   "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "3-rn50-12_wave" : [ "trivnet_conv1",  "tfloat16-b1-h7-r1-s1-c2048-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  #"3-rn50-12_b2_wave" : [ "trivnet_conv1",  "tfloat16-b2-h7-r1-s1-c2048-m512-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "3-rn50-13_wave" : [ "trivnet_conv1",  "tfloat16-b1-h55-r1-s1-c64-m64-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "3-rn50-14_wave" : [ "trivnet_conv1",  "tfloat16-b1-h28-r1-s2-c512-m256-wmin-1-wmax1.1-imin-3-imax3.2",  "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-15_wave" : [ "trivnet_conv1",  "tfloat16-b1-h28-r1-s2-c512-m1024-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", "--scheduler wave --wavegraph_checks structure data-race"],
   "3-rn50-16_wave" : [ "trivnet_conv1",  "tfloat16-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2",    "1conv", "--scheduler wave2 --wavegraph_checks structure data-race --schedule_options ' ' "],
@@ -776,13 +776,13 @@ testConfigMap = {
   #"7-rn50_nne_fc_waveopt"       : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"7-rn50_nne_fp32_waveopt"     : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"7-rn50_nne_fp32_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp16_wave-no_repl-all-layers"        : [ 
-      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", 
+  "7-rn50_nne_fp16_wave-no_repl-all-layers"        : [
+      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
     ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
       + " --executors wave 0 host 1  --scheduler wave2 --images %s"
       + " --schedule_options ' --save_layer_output ' "
       + " --waive_wavegraph_checks"
-    ) %(rnPreFp16, rnDogJpg), 
+    ) %(rnPreFp16, rnDogJpg),
     "--input_files %s" % rnDogJpg ],
 
   "7-rn50_nne_fp16_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --images %s --waive_wavegraph_checks" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
@@ -854,7 +854,7 @@ testConfigMap = {
     )%( rnDogJpg),
     "--input_files %s" % rnDogJpg
   ],
- 
+
   "5-rn50_nne_to_act4_wave-no_repl-t2"     : [
     "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
     "--focus 'conv1/kernel|input_1|conv1/BiasAdd|bn_conv1/batchnorm_1/sub/_104__cf__104|bn_conv1/batchnorm_1/add_1|activation_1/Relu|max_pooling2d_1/MaxPool|res2a_branch2a/kernel|res2a_branch2a/BiasAdd|bn2a_branch2a/batchnorm_1/sub/_50__cf__50|bn2a_branch2a/batchnorm_1/add_1|activation_2/Relu|res2a_branch2b/kernel|res2a_branch2b/BiasAdd|bn2a_branch2b/batchnorm_1/sub/_48__cf__48|bn2a_branch2b/batchnorm_1/add_1' --input_node input_1  --depth 2 --show_op_name_in_kgraph  --debug 1 --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16'  --scheduler wave2 --schedule_options ' --nname=generic --enable_cleanup ' --images %s --wavegraph_checks structure data-race " %( rnDogJpg),
@@ -1018,11 +1018,12 @@ testConfigMap = {
   # AvgPool in AmeobaNet
   "0-1avgpool_wave_h149c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h149-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
   "7-amoebanet_fp16_host" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from predictions --executors host all --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_pool" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_stem_1/AvgPool_1 --partition from cell_stem_1/Relu --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
 
 }
 
 def gen_parwavenet_10_fp16_in_to(node, sgnum):
-    return  [ "tf_pb",   
+    return  [ "tf_pb",
           "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb",
           "parallel_wavenet",
           "--input_node Placeholder sub_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
@@ -1075,6 +1076,7 @@ testWaiver = [
 
     # AmoebaNet currently produces all NaN outputs when run on CPU
     ['7-amoebanet_fp16_host', 'WAIVE_AMOEBA_NAN'],
+    ['7-amoebanet_fp16_pool', 'WAIVE_AMOEBA_NAN'],
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
