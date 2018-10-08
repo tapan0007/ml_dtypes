@@ -49,8 +49,6 @@
 namespace kcc {
 namespace nets {
 
-#undef KCC_SERIALIZE
-#define KCC_SERIALIZE(X) serWaveOp.KCC_CONCAT(m_,X) = (WAVE_OP)->KCC_CONCAT(g,X)()
 
 #define ASSERT_NUM_LAYERS(layer, N) \
     Assert((layer)->gPrevLayers().size() == (N), (layer)->gTypeStr(), " layer '", (layer)->gName(), \
@@ -386,37 +384,14 @@ Network::Save::savePool(const wave::PoolWaveOp* poolWaveOp,
 #define WAVE_OP poolWaveOp
     serWaveOp.m_WaveOpType = wave::PoolWaveOp::gTypeStrStatic();
 
-    KCC_SERIALIZE(DstSbAddress);
-    KCC_SERIALIZE(DstStartAtMidPart);
-    KCC_SERIALIZE(DstXNum);
-    KCC_SERIALIZE(DstXStep);
-    KCC_SERIALIZE(DstYNum);
-    KCC_SERIALIZE(DstYStep);
-    KCC_SERIALIZE(DstZNum);
-    KCC_SERIALIZE(DstZStep);
-    serWaveOp.m_InDtype  = poolWaveOp->gInDtype().gName();
     KCC_SERIALIZE(NumPartitions);
-    serWaveOp.m_OutDtype = poolWaveOp->gOutDtype().gName();
     KCC_SERIALIZE(PoolFrequency);
     serWaveOp.m_PoolFunc = utils::poolType2Str(poolWaveOp->gPoolFunc());
 
-    serWaveOp.m_SrcIsPsum = poolWaveOp->qSrcIsPsum();
-    if (poolWaveOp->qSrcIsPsum()) {
-        KCC_SERIALIZE(SrcPsumBankId);
-        KCC_SERIALIZE(SrcPsumBankOffset);
-    } else { // state buffer
-        KCC_SERIALIZE(SrcSbAddress);
-        KCC_SERIALIZE(SrcStartAtMidPart);
-    }
-
+    saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
     KCC_SERIALIZE(SrcWNum);
     KCC_SERIALIZE(SrcWStep);
-    KCC_SERIALIZE(SrcXNum);
-    KCC_SERIALIZE(SrcXStep);
-    KCC_SERIALIZE(SrcYNum);
-    KCC_SERIALIZE(SrcYStep);
-    KCC_SERIALIZE(SrcZNum);
-    KCC_SERIALIZE(SrcZStep);
+    saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
     for (unsigned int i = 0; i < poolWaveOp->gTileId().size(); ++i) {
         serWaveOp.m_TileId[i] = poolWaveOp->gTileId()[i];
@@ -485,43 +460,14 @@ Network::Save::saveActivation(const wave::ActivationWaveOp* activationWaveOp,
 
     KCC_SERIALIZE(BiasSbAddress);
     KCC_SERIALIZE(BiasStartAtMidPart);
-
-    serWaveOp.m_DstIsPsum = activationWaveOp->qDstIsPsum();
-    if (activationWaveOp->qDstIsPsum()) {
-        KCC_SERIALIZE(DstPsumBankId);
-        KCC_SERIALIZE(DstPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(DstSbAddress);
-        KCC_SERIALIZE(DstStartAtMidPart);
-    }
-
-    KCC_SERIALIZE(DstXNum);
-    KCC_SERIALIZE(DstXStep);
-    KCC_SERIALIZE(DstYNum);
-    KCC_SERIALIZE(DstYStep);
-    KCC_SERIALIZE(DstZNum);
-    KCC_SERIALIZE(DstZStep);
-
-    serWaveOp.m_InDtype             = activationWaveOp->gInDtype().gName();
     serWaveOp.m_BiasDtype           = activationWaveOp->gBiasDtype().gName();
+
+
+    saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
+    saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
+
     KCC_SERIALIZE(NumPartitions);
-    serWaveOp.m_OutDtype            = activationWaveOp->gOutDtype().gName();
 
-    serWaveOp.m_SrcIsPsum = activationWaveOp->qSrcIsPsum();
-    if (activationWaveOp->qSrcIsPsum()) {
-        KCC_SERIALIZE(SrcPsumBankId);
-        KCC_SERIALIZE(SrcPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(SrcSbAddress);
-        KCC_SERIALIZE(SrcStartAtMidPart);
-    }
-
-    KCC_SERIALIZE(SrcXNum);
-    KCC_SERIALIZE(SrcXStep);
-    KCC_SERIALIZE(SrcYNum);
-    KCC_SERIALIZE(SrcYStep);
-    KCC_SERIALIZE(SrcZNum);
-    KCC_SERIALIZE(SrcZStep);
 
     const std::array<kcc_int32, 4>& tileId(activationWaveOp->gTileId());
     for (unsigned int i = 0; i < tileId.size(); ++i) {
@@ -540,44 +486,12 @@ Network::Save::saveClipByValue(const wave::ClipByValueWaveOp* clipByValueWaveOp,
 #define WAVE_OP clipByValueWaveOp
     serWaveOp.m_WaveOpType = wave::ClipByValueWaveOp::gTypeStrStatic();
 
-    serWaveOp.m_DstIsPsum = clipByValueWaveOp->qDstIsPsum();
-    serWaveOp.m_SrcIsPsum = clipByValueWaveOp->qSrcIsPsum();
-    serWaveOp.m_InDtype             = clipByValueWaveOp->gInDtype().gName();
-    serWaveOp.m_OutDtype            = clipByValueWaveOp->gOutDtype().gName();
-
     KCC_SERIALIZE(NumPartitions);
     KCC_SERIALIZE(MinValue);
     KCC_SERIALIZE(MaxValue);
 
-    if (clipByValueWaveOp->qDstIsPsum()) {
-        KCC_SERIALIZE(DstPsumBankId);
-        KCC_SERIALIZE(DstPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(DstSbAddress);
-        KCC_SERIALIZE(DstStartAtMidPart);
-    }
-
-    KCC_SERIALIZE(DstXNum);
-    KCC_SERIALIZE(DstXStep);
-    KCC_SERIALIZE(DstYNum);
-    KCC_SERIALIZE(DstYStep);
-    KCC_SERIALIZE(DstZNum);
-    KCC_SERIALIZE(DstZStep);
-
-    if (clipByValueWaveOp->qSrcIsPsum()) {
-        KCC_SERIALIZE(SrcPsumBankId);
-        KCC_SERIALIZE(SrcPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(SrcSbAddress);
-        KCC_SERIALIZE(SrcStartAtMidPart);
-    }
-
-    KCC_SERIALIZE(SrcXNum);
-    KCC_SERIALIZE(SrcXStep);
-    KCC_SERIALIZE(SrcYNum);
-    KCC_SERIALIZE(SrcYStep);
-    KCC_SERIALIZE(SrcZNum);
-    KCC_SERIALIZE(SrcZStep);
+    saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
+    saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
     const std::array<kcc_int32, 4>& tileId(clipByValueWaveOp->gTileId());
     for (unsigned int i = 0; i < tileId.size(); ++i) {
@@ -597,55 +511,10 @@ Network::Save::saveTensorTensor(const wave::TensorTensorWaveOp* tensorTensorWave
 #define WAVE_OP tensorTensorWaveOp
     serWaveOp.m_WaveOpType = tensorTensorWaveOp->gTypeStr();
 
-    serWaveOp.m_InADtype            = tensorTensorWaveOp->gInADtype().gName();
-    serWaveOp.m_InBDtype            = tensorTensorWaveOp->gInBDtype().gName();
-    serWaveOp.m_OutDtype            = tensorTensorWaveOp->gOutDtype().gName();
     KCC_SERIALIZE(NumPartitions);
 
-    serWaveOp.m_SrcAIsPsum = tensorTensorWaveOp->qSrcAIsPsum();
-    if (tensorTensorWaveOp->qSrcAIsPsum()) {
-        KCC_SERIALIZE(SrcAPsumBankId);
-        KCC_SERIALIZE(SrcAPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(SrcASbAddress);
-        KCC_SERIALIZE(SrcAStartAtMidPart);
-    }
-    KCC_SERIALIZE(SrcAXNum);
-    KCC_SERIALIZE(SrcAXStep);
-    KCC_SERIALIZE(SrcAYNum);
-    KCC_SERIALIZE(SrcAYStep);
-    KCC_SERIALIZE(SrcAZNum);
-    KCC_SERIALIZE(SrcAZStep);
-
-    serWaveOp.m_SrcBIsPsum = tensorTensorWaveOp->qSrcBIsPsum();
-    if (tensorTensorWaveOp->qSrcBIsPsum()) {
-        KCC_SERIALIZE(SrcBPsumBankId);
-        KCC_SERIALIZE(SrcBPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(SrcBSbAddress);
-        KCC_SERIALIZE(SrcBStartAtMidPart);
-    }
-    KCC_SERIALIZE(SrcBXNum);
-    KCC_SERIALIZE(SrcBXStep);
-    KCC_SERIALIZE(SrcBYNum);
-    KCC_SERIALIZE(SrcBYStep);
-    KCC_SERIALIZE(SrcBZNum);
-    KCC_SERIALIZE(SrcBZStep);
-
-    serWaveOp.m_DstIsPsum = tensorTensorWaveOp->qDstIsPsum();
-    if (tensorTensorWaveOp->qDstIsPsum()) {
-        KCC_SERIALIZE(DstPsumBankId);
-        KCC_SERIALIZE(DstPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(DstSbAddress);
-        KCC_SERIALIZE(DstStartAtMidPart);
-    }
-    KCC_SERIALIZE(DstXNum);
-    KCC_SERIALIZE(DstXStep);
-    KCC_SERIALIZE(DstYNum);
-    KCC_SERIALIZE(DstYStep);
-    KCC_SERIALIZE(DstZNum);
-    KCC_SERIALIZE(DstZStep);
+    saveSrcAB(WAVE_OP, serWaveOp, Dims::XYZ);
+    saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
 #undef WAVE_OP
 }
@@ -658,39 +527,10 @@ Network::Save::saveTensorScalarConst(const wave::TensorScalarConstWaveOp* tensor
 #define WAVE_OP tensorScalarConstWaveOp
     serWaveOp.m_WaveOpType = tensorScalarConstWaveOp->gTypeStr();
 
-    serWaveOp.m_InDtype            = tensorScalarConstWaveOp->gInDtype().gName();
-    serWaveOp.m_OutDtype            = tensorScalarConstWaveOp->gOutDtype().gName();
     KCC_SERIALIZE(NumPartitions);
 
-    serWaveOp.m_SrcIsPsum = tensorScalarConstWaveOp->qSrcIsPsum();
-    if (tensorScalarConstWaveOp->qSrcIsPsum()) {
-        KCC_SERIALIZE(SrcPsumBankId);
-        KCC_SERIALIZE(SrcPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(SrcSbAddress);
-        KCC_SERIALIZE(SrcStartAtMidPart);
-    }
-    KCC_SERIALIZE(SrcXNum);
-    KCC_SERIALIZE(SrcXStep);
-    KCC_SERIALIZE(SrcYNum);
-    KCC_SERIALIZE(SrcYStep);
-    KCC_SERIALIZE(SrcZNum);
-    KCC_SERIALIZE(SrcZStep);
-
-    serWaveOp.m_DstIsPsum = tensorScalarConstWaveOp->qDstIsPsum();
-    if (tensorScalarConstWaveOp->qDstIsPsum()) {
-        KCC_SERIALIZE(DstPsumBankId);
-        KCC_SERIALIZE(DstPsumBankOffset);
-    } else {
-        KCC_SERIALIZE(DstSbAddress);
-        KCC_SERIALIZE(DstStartAtMidPart);
-    }
-    KCC_SERIALIZE(DstXNum);
-    KCC_SERIALIZE(DstXStep);
-    KCC_SERIALIZE(DstYNum);
-    KCC_SERIALIZE(DstYStep);
-    KCC_SERIALIZE(DstZNum);
-    KCC_SERIALIZE(DstZStep);
+    saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
+    saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
     if (serWaveOp.m_WaveOpType == "ScaleAdd") {
         serWaveOp.m_Scale = tensorScalarConstWaveOp->gImmVal(0);

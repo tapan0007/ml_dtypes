@@ -424,7 +424,6 @@ Network::Load::loadPool(const serialize::SerWaveOp& serWaveOp)
     loadSrc(PARAMS, serWaveOp, Dims::XYZ);
     KCC_UNSERIALIZE(SrcWNum);
     KCC_UNSERIALIZE(SrcWStep);
-
     loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
     poolParams.m_InDtypeId  = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
@@ -540,44 +539,12 @@ Network::Load::loadClipByValue(const serialize::SerWaveOp& serWaveOp)
     wave::ClipByValueWaveOp::Params clipByValueParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, clipByValueParams);
 
-    KCC_UNSERIALIZE(SrcIsPsum);
-    KCC_UNSERIALIZE(DstIsPsum);
-    clipByValueParams.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    clipByValueParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
-
     KCC_UNSERIALIZE(NumPartitions);
     KCC_UNSERIALIZE(MinValue);
     KCC_UNSERIALIZE(MaxValue);
 
-    if (serWaveOp.m_DstIsPsum) {
-        KCC_UNSERIALIZE(DstPsumBankId);
-        KCC_UNSERIALIZE(DstPsumBankOffset);
-    } else {
-        KCC_UNSERIALIZE(DstSbAddress);
-        KCC_UNSERIALIZE(DstStartAtMidPart);
-    }
-
-    KCC_UNSERIALIZE(DstXNum);
-    KCC_UNSERIALIZE(DstXStep);
-    KCC_UNSERIALIZE(DstYNum);
-    KCC_UNSERIALIZE(DstYStep);
-    KCC_UNSERIALIZE(DstZNum);
-    KCC_UNSERIALIZE(DstZStep);
-
-    if (serWaveOp.m_SrcIsPsum) {
-        KCC_UNSERIALIZE(SrcPsumBankId);
-        KCC_UNSERIALIZE(SrcPsumBankOffset);
-    } else {
-        KCC_UNSERIALIZE(SrcSbAddress);
-        KCC_UNSERIALIZE(SrcStartAtMidPart);
-    }
-
-    KCC_UNSERIALIZE(SrcXNum);
-    KCC_UNSERIALIZE(SrcXStep);
-    KCC_UNSERIALIZE(SrcYNum);
-    KCC_UNSERIALIZE(SrcYStep);
-    KCC_UNSERIALIZE(SrcZNum);
-    KCC_UNSERIALIZE(SrcZStep);
+    loadSrc(PARAMS, serWaveOp, Dims::XYZ);
+    loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
     Assert(clipByValueParams.m_TileId.size() == serWaveOp.m_TileId.size(),
         serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
@@ -644,41 +611,11 @@ Network::Load::loadScaleAdd(const serialize::SerWaveOp& serWaveOp)
     wave::TensorScalarConstWaveOp::Params tensorScalarConstParams;
     fillWaveOpParams(serWaveOp, prevWaveOps, tensorScalarConstParams);
 
-    tensorScalarConstParams.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
-    tensorScalarConstParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     KCC_UNSERIALIZE(NumPartitions);
 
-    // Src
-    KCC_UNSERIALIZE(SrcIsPsum);
-    if (serWaveOp.m_SrcIsPsum) {
-        KCC_UNSERIALIZE(SrcPsumBankId);
-        KCC_UNSERIALIZE(SrcPsumBankOffset);
-    } else {
-        KCC_UNSERIALIZE(SrcSbAddress);
-        KCC_UNSERIALIZE(SrcStartAtMidPart);
-    }
-    KCC_UNSERIALIZE(SrcXNum);
-    KCC_UNSERIALIZE(SrcXStep);
-    KCC_UNSERIALIZE(SrcYNum);
-    KCC_UNSERIALIZE(SrcYStep);
-    KCC_UNSERIALIZE(SrcZNum);
-    KCC_UNSERIALIZE(SrcZStep);
+    loadSrc(PARAMS, serWaveOp, Dims::XYZ);
+    loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
-    // Dst
-    KCC_UNSERIALIZE(DstIsPsum);
-    if (serWaveOp.m_DstIsPsum) {
-        KCC_UNSERIALIZE(DstPsumBankId);
-        KCC_UNSERIALIZE(DstPsumBankOffset);
-    } else {
-        KCC_UNSERIALIZE(DstSbAddress);
-        KCC_UNSERIALIZE(DstStartAtMidPart);
-    }
-    KCC_UNSERIALIZE(DstXNum);
-    KCC_UNSERIALIZE(DstXStep);
-    KCC_UNSERIALIZE(DstYNum);
-    KCC_UNSERIALIZE(DstYStep);
-    KCC_UNSERIALIZE(DstZNum);
-    KCC_UNSERIALIZE(DstZStep);
     KCC_UNSERIALIZE(WaveOpType);
 
     if (serWaveOp.m_WaveOpType == wave::TensorScalarConstWaveOp::gTypeStrScaleAddStatic()) {
