@@ -614,12 +614,14 @@ class Ktests:
       reportStatus = self.calcWaivedStatus(testName, t.status)
       jTestCase = junit.TestCase(name=testName,classname="RunAllTests.RunAllTests",status=reportStatus,elapsed_sec=t.testTime)
       if reportStatus == "FAIL":
-        result = subprocess.check_output("find . -name '*log*.txt' | xargs tail", shell=True).decode('utf-8')
+        cmd = "find %s -name '*log*.txt' | xargs tail" % (t.dir)
+        result = subprocess.check_output(cmd, shell=True).decode('utf-8')
         jTestCase.add_failure_info(message=reportStatus, output=result)
       if reportStatus == "WAIVE":
         jTestCase.add_skipped_info(message=reportStatus)
       if reportStatus == "TIMEOUT":
-        result = subprocess.check_output("find . -name '*log*.txt' | xargs tail", shell=True).decode('utf-8')
+        cmd = "find %s -name '*log*.txt' | xargs tail" % (t.dir)
+        result = subprocess.check_output(cmd, shell=True).decode('utf-8')
         jTestCase.add_error_info(message=reportStatus,output=result)
       testCases.append(jTestCase)
     tSuite = junit.TestSuite(name="RunAll",test_cases=testCases)
