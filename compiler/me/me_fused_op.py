@@ -129,6 +129,36 @@ class PEWave:
         else:
             raise RuntimeError("Cannot extract a view using empty rectangle ", self.subtile_rect)
 
+    def set_waveop_pattern(self, file_mapper, waveop, prefix, psum_bank_id, sb_address, start_at_mid_part):      
+        prefix2 = prefix.replace("src","in").replace("dst","out")
+        x_step = 1
+        x_num = self.subtile_rect.dim2d.x
+        y_num = self.subtile_rect.dim2d.y
+        z_num = 1 if waveop['waveop_type'] == 'Pool' else self.tile.Tn 
+        batch_item = self.tile.n_id * self.tile.Tn
+        if psum_bank_id >= 0:
+            dtype  = "float32"
+            y_step = self.subtile_rect.dim2d.x
+            z_step = y_step * y_num if z_num > 1 else 1
+            waveop[prefix + "_psum_bank_id"]      = psum_bank_id
+            waveop[prefix + "_psum_bank_offset"]  = self.subtile_psum_offset
+        else:   # negative psum_bank_id indicates SB
+            dtype  = self.tile.file_params.data_type
+            y_step = self.tile.file_params.file_dims.W
+            z_step = self.tile.file_params.batch_item_partition_usage_elems_padded if z_num > 1 else 1
+            waveop[prefix + "_start_at_mid_part"] = start_at_mid_part
+            waveop[prefix + "_sb_address"]        = sb_address
+        waveop[prefix2 + "_dtype"] = dtype
+        waveop[prefix + "_is_psum"] = psum_bank_id >= 0
+        waveop[prefix + "_x_step"] = x_step
+        waveop[prefix + "_y_step"] = y_step
+        waveop[prefix + "_z_step"] = z_step
+        waveop[prefix + "_x_num"] = x_num
+        waveop[prefix + "_y_num"] = y_num
+        waveop[prefix + "_z_num"] = z_num
+        # TODO: add pattern for pooling
+
+
 """ Pool subtile
 """
 class PoolSubtile(PEWave):
@@ -155,11 +185,13 @@ class Tile:
         self.padded_tile_rect = None
         self.file_params = file_params
         self.Tn = Tn
+        self.batch_item_start = self.n_id * Tn
         self.is_ifmap = is_ifmap
         self.is_pe_input = is_pe_input
         self.channel_start = self.m_id * PEArray.NUM_COLS
         self.channel_stop = min(self.file_params.file_dims.C, self.channel_start + PEArray.NUM_COLS)
         self.channel_count = self.channel_stop - self.channel_start
+        self.start_at_mid_part = (self.m_id % 2) == 1
         self.n_start = self.n_id * self.Tn
         self.n_stop  = min(self.file_params.file_dims.N, self.n_start + self.Tn)
         #FIXME
@@ -167,7 +199,7 @@ class Tile:
 
     def copy(self):
         tile_id = (self.n_id, self.m_id, self.h_id, self.w_id, self.n, self.m, self.h, self.w)
-        new_tile = Tile(tile_id, self.file_params, self.Tn, is_ifmap=self.is_ifmap, is_pe_input=self.is_pe_input)
+        new_tile = Tile(tile_id, self.file_params, self.Tn, self.is_ifmap, self.is_pe_input)
         new_tile.tile_rect = self.tile_rect
         new_tile.padded_tile_rect = self.padded_tile_rect
         new_tile.mepoolspec = self.mepoolspec
@@ -1455,10 +1487,11 @@ class FusedOp(list):
                 else:
                     raise RuntimeError("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, self[i].data["layer_name"]))
                 #y1 = DBG_DUMP_PSUM_COL("PSUM col0 after RessAdd (FP32): ", psum_temp, 0)
-                psum_bank_dst = psum_bank_src
                 dst_is_psum = False
+                psum_bank_dst = -1
                 if (i != len(op_list)-1):
                     dst_is_psum = True
+                    psum_bank_dst = psum_bank_src
                     tpb.pearray.write_psum(psum_bank_dst, 0, self.first_op.ofmap_full_tile_sz * ofmap_tile.Tn, psum_temp)
                 residue_file_addr = residue_file_params.ravel_nchw(
                         ofmap_tile.n_id * ofmap_tile.Tn,
@@ -1467,7 +1500,6 @@ class FusedOp(list):
                         ofmap_tile.tile_rect.lower.x)
                 residue_sb_addr =  tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(residue_file_params, batch_item, residue_file_addr)
                 waveop = self.gen_join_waveop_inline(tpb, op_list[i], 
-                        self.first_op, 
                         ifmap_tile, 
                         ofmap_tile, 
                         True,
@@ -1475,8 +1507,8 @@ class FusedOp(list):
                         dst_is_psum, 
                         psum_bank_dst, 
                         dram_resadd_waveops, 
-                        residue_sb_addr,
-                        (ofmap_tile.m_id%2)==1)
+                        self[i].residue_index,
+                        residue_sb_addr)
                 self.attach_predecessors(waveop, prev_waveops)
                 psum_bank_src = psum_bank_dst
             elif re.search("Reshape|Squeeze|ExpandDims", layer_type):
@@ -1767,77 +1799,29 @@ class FusedOp(list):
         return instr
 
     # generate ResAdd instruction and add it to instruction stream
-    def gen_join_waveop_inline(self, tpb, op, conv_op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, residue_sb_addr, start_at_mid_part, new_reader_morsels=[]):
-        batch_item = ofmap_tile.n_id * op.Tn
-        in_a_dtype = "float32"
-        in_b_dtype = "float32"
-        out_dtype = "float32"
-        if (op.item_sz == 2):
-            in_a_dtype = "float16"
-            if not src_is_psum:
-                in_b_dtype = "float16"
-            if (dst_is_psum):
-                out_dtype = "float32"
-            else:                
-                out_dtype = "float16"
-        elif (op.item_sz == 4):
-            in_a_dtype = "float32"
-            in_b_dtype = "float32"
-            out_dtype = "float32"
-        else:            
-            raise RuntimeError("ERROR: item_sz %d not yet supported"%self.conv_op.item_sz)
-
-        # setup source/destination memory patterns (x step is always 1 here)
-        dst_x_num = ofmap_tile.tile_rect.dim2d.x
-        dst_y_num = ofmap_tile.tile_rect.dim2d.y
-        dst_y_step, dst_z_step = 1, 1
-        src_a_y_step, src_a_z_step = 1, 1
-        src_b_y_step, src_b_z_step = 1, 1
+    def gen_join_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, residue_index, residue_sb_addr, new_reader_morsels=[]):
+        batch_item = ofmap_tile.batch_item_start
         num_partitions = PEArray.NUM_COLS
-        if conv_op is not None:
-            # fused
-            dst_z_num = conv_op.Tn
-            if dst_is_psum:
-                dst_y_step = ofmap_tile.tile_rect.dim2d.x
-                dst_z_step = dst_y_step * dst_y_num 
-            else:                
-                dst_y_step = conv_op.F
-                dst_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
-            # Source-B is PSUM if fused, or SB if unfused               
-            if src_is_psum:
-                src_b_y_step = ofmap_tile.tile_rect.dim2d.x
-                src_b_z_step = ofmap_tile.tile_rect.dim2d.x * ofmap_tile.tile_rect.dim2d.y
-            else:
-                src_b_y_step = conv_op.F
-                src_b_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
-            # Source-A (Residue) is always SB for now (TODO: make swappable for flexibility)              
-            src_a_y_step = conv_op.F
-            src_a_z_step = conv_op.ofmaps_file_params.batch_item_partition_usage_elems_padded
-            num_partitions = conv_op.ofmap_count
-        else:
-            # unfused
-            dst_z_num = op.Tn
-            dst_y_step = ofmap_tile.tile_rect.dim2d.x
-            dst_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded
-            src_b_y_step = ofmap_tile.tile_rect.dim2d.x
-            src_b_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded
-            # Source-A (Residue) is always SB for now (TODO: make swappable for flexibility)              
-            src_a_y_step = ofmap_tile.tile_rect.dim2d.x
-            src_a_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded
-            num_partitions = op.ofmap_count
+        num_partitions = ofmap_tile.channel_count
+        start_at_mid_part = ofmap_tile.start_at_mid_part
+        sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
         # SB start addresses
-        # Source-B is PSUM if fused, or SB if unfused
-        if src_is_psum:
-            src_b_sb_address = 0
-        else:            
-            src_b_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
-        # Source-A (Residue) is always SB for now (TODO: make swappable for flexibility)             
-        src_a_sb_address = residue_sb_addr
+        if residue_index == 0:
+            # Source-B is PSUM if fused, or SB if unfused
+            src_b_sb_address = 0 if src_is_psum else sb_addr
+            # Source-A (Residue) is SB
+            src_a_sb_address = residue_sb_addr
+        else:
+            # Source-A is PSUM if fused, or SB if unfused
+            src_a_sb_address = 0 if src_is_psum else sb_addr
+            # Source-B (Residue) is SB
+            src_b_sb_address = residue_sb_addr
+
         # Destination SB address
         if dst_is_psum:
             dst_sb_address = 0
         else:            
-            dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
+            dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ofmap_tile.file_params, batch_item, ofmap_tile.lower_addr[0])
         waveop_name = op.data['layer_name'] + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
         waveop_type = op.data['layer_type']
 
@@ -1848,47 +1832,19 @@ class FusedOp(list):
               'layer_name'              : op.data['layer_name'],
               'tile_id_format'          : ofmap_tile.format,
               'tile_id'                 : ofmap_tile.id_array,
-              'in_a_dtype'              : in_a_dtype,
-              'in_b_dtype'              : in_b_dtype,
-              'out_dtype'               : out_dtype,
-              'src_a_is_psum'           : False,    # Source-A is always SB for now (TODO: make swappable for flexibility)
-              'src_a_sb_address'        : src_a_sb_address,
-              'src_a_start_at_mid_part' : start_at_mid_part,
-              'src_a_x_num'             : dst_x_num,
-              'src_a_y_num'             : dst_y_num,
-              'src_a_z_num'             : dst_z_num,
-              'src_a_x_step'            : 1,
-              'src_a_y_step'            : src_a_y_step,
-              'src_a_z_step'            : src_a_z_step,
-              'src_b_is_psum'           : src_is_psum,
-              'src_b_x_num'             : dst_x_num,
-              'src_b_y_num'             : dst_y_num,
-              'src_b_z_num'             : dst_z_num,
-              'src_b_x_step'            : 1,
-              'src_b_y_step'            : src_b_y_step,
-              'src_b_z_step'            : src_b_z_step,
-              'dst_is_psum'             : dst_is_psum,
-              'dst_x_num'               : dst_x_num,
-              'dst_y_num'               : dst_y_num,
-              'dst_z_num'               : dst_z_num,
-              'dst_x_step'              : 1,
-              'dst_y_step'              : dst_y_step,
-              'dst_z_step'              : dst_z_step,
               'num_partitions'          : num_partitions,
             }
-        if src_is_psum:
-            instr['src_b_psum_bank_id'] = psum_bank_src 
-            instr['src_b_psum_bank_offset'] = 0 
-        else:                
-            instr['src_b_sb_address'] = src_b_sb_address
-            instr['src_b_start_at_mid_part'] = start_at_mid_part 
-        if dst_is_psum:
-            instr['dst_psum_bank_id'] = psum_bank_dst
-            instr['dst_psum_bank_offset'] = 0 
-        else:                
-            instr['dst_sb_address'] = dst_sb_address
-            instr['dst_start_at_mid_part'] = start_at_mid_part 
-        tpb.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1)
+
+        ofmap_subtile = ofmap_tile.make_pewave()
+        ifmap_subtile = ifmap_tile.make_pewave()
+        ofmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'dst', psum_bank_dst, dst_sb_address, start_at_mid_part)
+        if residue_index == 0:
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', psum_bank_src, src_b_sb_address, start_at_mid_part)
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', -1, src_a_sb_address, start_at_mid_part)
+        else:            
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', psum_bank_src, src_a_sb_address, start_at_mid_part)
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', -1, src_b_sb_address, start_at_mid_part)
+        tpb.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1, new_reader_morsels)
         return instr
 
     def gen_fused_pool_waveop_inline (self, tpb, ifmap_tile, ofmap_tile, psum_bank_src, start_at_mid_part):
@@ -2267,7 +2223,7 @@ class FusedOp(list):
                         fmap_subtile  = ofmap_tile_subtile, 
                         waveop        = waveop)
         else:   
-            psum_bank_dst = 0
+            psum_bank_dst = -1
             bias_start = 0
             biasadd_op = None
             act_op = None
@@ -2321,7 +2277,7 @@ class FusedOp(list):
                                 ifmap_tile       = ifmap_tile, 
                                 ofmap_tile       = ofmap_tile,
                                 src_is_psum      = False, 
-                                psum_bank_src    = 0, 
+                                psum_bank_src    = -1, 
                                 dst_is_psum      = first_op.dst_is_psum, 
                                 psum_bank_dst    = psum_bank_dst, 
                                 dram_waveops     = dram_ifmaps_waveops, 
@@ -2346,16 +2302,15 @@ class FusedOp(list):
                     waveop = self.gen_join_waveop_inline(
                             tpb             = tpb, 
                             op              = first_op, 
-                            conv_op         = None, 
                             ifmap_tile      = ifmap_tile,
                             ofmap_tile      = ofmap_tile,
                             src_is_psum     = False, 
-                            psum_bank_src   = 0, 
+                            psum_bank_src   = -1, 
                             dst_is_psum     = first_op.dst_is_psum, 
                             psum_bank_dst   = psum_bank_dst, 
                             dram_resadd_waveops = dram_ifmaps_waveops+dram_resadd_waveops,
+                            residue_index   = first_op.residue_index,
                             residue_sb_addr   = residue_sb_addr,
-                            start_at_mid_part = (ofmap_tile.m_id%2)==1,
                             new_reader_morsels = new_reader_morsels)
             else:                    
                 waveop = self.gen_act_waveop_inline(
@@ -2366,7 +2321,7 @@ class FusedOp(list):
                         ifmap_tile        = ifmap_tile, 
                         ofmap_tile        = ofmap_tile, 
                         src_is_psum       = False, 
-                        psum_bank_src     = 0, 
+                        psum_bank_src     = -1, 
                         dst_is_psum       = first_op.dst_is_psum, 
                         psum_bank_dst     = psum_bank_dst, 
                         dram_bias_waveops = dram_ifmaps_waveops, 

@@ -77,6 +77,13 @@ def getPadType(confStr):
   poolType = None
   usePerm = False
   actType = None
+  joinType = None
+  for s in ["MaxPool", "AvgPool"]:
+    s1 = "-" + s
+    if s1 in confStr:
+      confStr = confStr.replace(s1, "")
+      poolType = s
+      break
   for s in ["SAME", "VALID"]:
     s1 = "-" + s
     if s1 in confStr:
@@ -95,7 +102,13 @@ def getPadType(confStr):
       confStr = confStr.replace(s1, "")
       actType = s
       break
-  return poolType,padType,usePerm,actType,confStr
+  for s in ["ADD", "SUB"]:
+    s1 = "-" + s
+    if s1 in confStr:
+      confStr = confStr.replace(s1, "")
+      joinType = s
+      break
+  return poolType,padType,actType,joinType,usePerm,confStr
 
 # Trivnet test configurations go into here
 class trivnet_conf():
@@ -108,7 +121,7 @@ class trivnet_conf():
         # Sample dimStr : b1-h2-r2-s1-c4-m4-wmin-0.1-wmax0.1-imin1-imax5
         dimStr = dimStr.upper() + "-"
         self.fmapValList, dimStr = getConfFmap(dimStr)
-        self.poolType, self.padType, self.usePerm, self.actType, dimStr = getPadType(dimStr)
+        self.poolType, self.padType, self.actType, self.joinType, self.usePerm, dimStr = getPadType(dimStr)
 
         if len(sys.argv) > 2:
             self.outPrefix = sys.argv[2]

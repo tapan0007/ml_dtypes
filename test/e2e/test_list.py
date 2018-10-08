@@ -280,6 +280,7 @@ testConfigMap = {
   "0-resadd_fp32_wave"    : [ "trivnet_add",    "tfloat32-b1-h17-c4-wmin-0.1-wmax0.11-imin1-imax5", "add", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
   "0-resadd_uint8_wave"   : [ "trivnet_add",    "tuint8-b1-h4-c3-wmin1-wmax4-imin5-imax53", "add", "--scheduler wave --wavegraph_checks structure data-race"],
   "0-resadd_2in_wave"    : [ "trivnet_add_2in",    "tfloat16-b1-h2-c1-wmin2-wmax2.2-imin3-imax6", "add", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-subtract_psum_sb_wave"    : [ "trivnet_add",    "tfloat16-b1-h2-c1-SUB-wmin2-wmax2.2-imin3-imax6", "add", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
   "0-3resadd_fp16_wave"  : [ "trivnet_conv_ba_add",
     "tfloat16-b1-h4-r1-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03",
@@ -1145,6 +1146,7 @@ testWaiver = [
     ['0-act_exp_minisweep_wave', 'WAIVE-KAENA773'],
     #['0-act_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
     ['0-act_fused_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
+    ['0-subtract_psum_sb_wave', 'WAIVE-FE-SUBTRACT'],
 
     # Replication
     ['^[0-2]-rn50-.*_wave_repl$', 'WAIVE_REPLICATION'],
