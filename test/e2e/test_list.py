@@ -1080,7 +1080,6 @@ testWaiver = [
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
-    ['.*softplus.*', 'WAIVE_KAENA634'],
     ['.*squeeze.*', 'WAIVE_KAENA634'],
     ['0-1transpose_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
@@ -1168,7 +1167,7 @@ noGpuTestWaiver = [
 ]
 
 qemuTestWaiver = [
-    ['0-1conv1avgpool_wave_2tpbs', 'WAIVE-QEMU-KAENA830'],
+    #['0-1conv1avgpool_wave_2tpbs', 'WAIVE-QEMU-KAENA830'],
     ['5-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE-QEMU-KAENA831'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
@@ -1177,7 +1176,7 @@ qemuTestWaiver = [
     ['8-rn50_nne_fp16_b16_wave-two_banks$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-no_repl', 'WAIVE-V49850304'],
-    ['5-rn50_nne_to_act13_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
+    #['5-rn50_nne_to_act13_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
     ['6-rn50_nne_to_act22_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
     ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
