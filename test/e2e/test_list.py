@@ -1019,7 +1019,7 @@ testConfigMap = {
   "0-1avgpool_wave_h149c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h149-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
   "7-amoebanet_fp16_host" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from predictions --executors host all --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_pool" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_stem_1/AvgPool_1 --partition from cell_stem_1/Relu --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
-
+  "7-amoebanet_fp16_evict" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from_multi cell_stem_1/Relu,cell_stem_1/Relu_1,cell_0/Relu --executors wave 0 host 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
 }
 
 def gen_parwavenet_10_fp16_in_to(node, sgnum):
@@ -1076,7 +1076,8 @@ testWaiver = [
 
     # AmoebaNet currently produces all NaN outputs when run on CPU
     ['7-amoebanet_fp16_host', 'WAIVE_AMOEBA_NAN'],
-    ['7-amoebanet_fp16_pool', 'WAIVE_AMOEBA_NAN'],
+    ['7-amoebanet_fp16_pool', 'WAIVE_AMOEBA_POOL'],
+    ['7-amoebanet_fp16_evict', 'WAIVE_AMOEBA_SBEVICT'],
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
