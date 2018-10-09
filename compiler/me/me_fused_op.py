@@ -1839,7 +1839,8 @@ class FusedOp(list):
         else:            
             dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
         waveop_name = op.data['layer_name'] + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
-        waveop_type = op.data['layer_type'] if op.data['layer_type'] != "Multiply" else "ResAdd"
+        waveop_type = op.data['layer_type']
+
         instr = {
               'previous_waveops'        : [],
               'waveop_type'             : waveop_type,
