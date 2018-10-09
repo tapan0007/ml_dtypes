@@ -222,7 +222,7 @@ AssignWithSizeCheckTempl(TypeTo& to, const TypeFrom from, const char* fileName, 
     const long From = from;
     Assert(Min <= From && From <= Max,
         "File='", fileName, "', line=", lineNum, 
-        ", Value out of limits: min=", Min, "max=", Max, "val=", From);
+        ", Value out of limits: min=", Min, ", max=", Max, ", val=", From);
 
     // Assignment
     to = from;
