@@ -421,7 +421,7 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
     std::array<EngineId, 3> engIds = { {EngineId::PeArray, EngineId::Pooling, EngineId::Activation} };
     json j;
     j[Keys::gJsonName()] = "definition";
-    std::string version("0.2-");
+    std::string version("0.3-");
     version += utils::Git::gShaShort();
     j["version"] = version;
 
