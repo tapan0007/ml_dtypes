@@ -95,9 +95,16 @@ class Pool:
         pool_window.y, pool_window.x, pool_stride.x, pool_stride.y)
       lower_offset = ifmap_tile_rect.get_offset_from(padded_ifmap_tile_rect)
       upper_offset = padded_ifmap_tile_rect.upper - ifmap_tile_rect.upper
+#      print ("padded_ifmap_tile_rect.lower = %s ifmap_tile_rect.lower = %s"%(
+#            padded_ifmap_tile_rect.lower, ifmap_tile_rect.lower))
+#      print ("padded_ifmap_tile_rect.upper = %s ifmap_tile_rect.upper = %s"%(
+#            padded_ifmap_tile_rect.upper, ifmap_tile_rect.upper))
+#      padding = me_common_ds.PaddingSpec(\
+#        abs(lower_offset.y), abs(upper_offset.y)\
+#        , abs(lower_offset.x), abs(upper_offset.x))
       padding = me_common_ds.PaddingSpec(\
-        abs(lower_offset.y), abs(upper_offset.y)\
-        , abs(lower_offset.x), abs(upper_offset.x))
+        (lower_offset.y), (upper_offset.y)\
+        , (lower_offset.x), (upper_offset.x))
       cls.padded_ifmap_tile_rect = padded_ifmap_tile_rect
       cls.ifmap_tile_rect = ifmap_tile_rect
       cls.ofmap_tile_rect = ofmap_tile_rect
@@ -140,13 +147,25 @@ class Pool:
       nv = int(math.ceil(self.pN / self.Tv))
     elif (corner_type == "RTCP"):
       nv = int(math.ceil(self.pN / self.Tv))
-      nh = self.q + 1
+      if (self.u * self.Th >= self.W):
+        nh = 0
+      else: nh = self.q + 1
+#      print("self.q = %d self.u = %d nv = %d nh = %d"%(
+#            self.q, self.u, nv, nh))
+#      print("self.pW = %d self.W = %d, self.pE = %d self.S = %d self.Th = %d"%(
+#            self.pW, self.W, self.pE, self.S, self.Th))
     elif (corner_type == "LBCP"):
-      nv = self.o + 1
+      if (self.t * self.Tv >= self.H):
+        nv = 0
+      else: nv = self.o + 1
       nh = int(math.ceil(self.pW / self.Th))
     else:
-      nv = self.o + 1
-      nh = self.q + 1
+      if (self.t * self.Tv >= self.H):
+        nv = 0
+      else: nv = self.o + 1
+      if (self.u * self.Th >= self.W):
+        nh = 0
+      else: nh = self.q + 1
 #    print ("nh = %d, nv = %d"%(nh, nv))
     return (nh, nv)
   def EP_ComputeHVMoveCount (self, edge_type):
@@ -155,11 +174,15 @@ class Pool:
     if (edge_type == "UHEP"):
       nv = int(math.ceil(self.pN / self.Tv))
     elif (edge_type == "BHEP"):
-      nv = self.o + 1
+      if (self.t * self.Tv >= self.H):
+        nv = 0
+      else: nv = self.o + 1
     elif (edge_type == "LVEP"):
       nh = int(math.ceil(self.pW / self.Th))
     else:
-      nh = self.q + 1
+      if (self.u * self.Th >= self.W):
+        nh = 0
+      else: nh = self.q + 1
 #    print ("nh = %d, nv = %d"%(nh, nv))
     return (nh, nv)
 
@@ -197,6 +220,7 @@ class Pool:
 
   def ComputeCP (self, corner_type):
     (nh, nv) = self.CP_ComputeHVMoveCount(corner_type)
+#    print ("nh = %d nv = %d"%(nh, nv))
     src_x_step = 1
     src_y_step = 1 #self.W
     src_z_num = 1
@@ -271,6 +295,7 @@ class Pool:
   # EP : Edge Pool
   def ComputeEP (self, edge_type):
     (nh, nv) = self.EP_ComputeHVMoveCount(edge_type)
+#    print ("EP nh = %d nv = %d"%(nh, nv))
     if (edge_type == "UHEP" or edge_type == "BHEP"):
       src_z_num = self.a + 1
       src_w_num = 1
@@ -475,9 +500,12 @@ class Pool:
       , waveopinfo.src_y_num\
         +(waveopinfo.src_w_num - 1) * waveopinfo.src_w_step - 1)
     ifmap = me_utils.Rect(ifmap_lower, ifmap_upper)
-    #print ("ifmap_lower = ", ifmap_lower)
-    #print ("ifmap_upper = ", ifmap_upper)
-    #print ("ifmap = ", ifmap)
+    waveopinfo.print("cp")
+#    print ("src_start = (%d, %d)"%(
+#          waveopinfo.src_start[1], waveopinfo.src_start[0]))
+#    print ("ifmap_lower = ", ifmap_lower)
+#    print ("ifmap_upper = ", ifmap_upper)
+#    print ("ifmap = ", ifmap)
     ofmap_lower =\
       me_utils.Coord(waveopinfo.dst_start[1]+self.ofmap_offset_x\
                      , waveopinfo.dst_start[0]+self.ofmap_offset_y)
