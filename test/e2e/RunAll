@@ -296,7 +296,7 @@ class Ktest:
     if os.path.isfile(statusFile):
       with open(statusFile, 'r') as fh:
         for line in fh.readlines():
-          match = re.search('INFO: Kaena RT status (.*)', line)
+          match = re.search('INFO .* : Kaena RT status (.*)', line)
           if match:
             self.status_rt = match.group(1)
   def calcKCCStatus(self):
@@ -305,7 +305,7 @@ class Ktest:
     if os.path.isfile(statusFile):
       with open(statusFile, 'r') as fh:
         for line in fh.readlines():
-          match = re.search('INFO: Kaena Compiler status (.*)', line)
+          match = re.search('INFO .* : Kaena Compiler status (.*)', line)
           if match:
             self.status_kcc = match.group(1)
 

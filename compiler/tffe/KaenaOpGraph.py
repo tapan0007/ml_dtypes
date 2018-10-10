@@ -10,12 +10,16 @@ import os, re, json, sys
 import numpy as np
 import math
 import random
+import datetime
 from graphviz import Digraph
 from collections import OrderedDict
 from functools import total_ordering
 
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 import MiscUtil
+
+def getInfoDateStr():
+  return "INFO %s :" % str(datetime.datetime.now())
 
 class Config:
   debugLevel = 0
@@ -2112,7 +2116,7 @@ class Graph(Object):
   def genCompilertgz(self, outTgzFile, fileList):
     # Tar all files as package
     cmd = ("tar cvzf %s " % outTgzFile) + " ".join(fileList)
-    print("INFO: executing  %s" %cmd)
+    print(getInfoDateStr(), "executing  %s" %cmd)
     os.system(cmd)
 
   ##############################################################################
@@ -2562,7 +2566,7 @@ class Graph(Object):
       fmt = "python3 %s %s --kgraph %s --wavegraph %s --dot %s --debug %d --verify_output_only > log-me.txt 2>&1"
       cmd = fmt % (waveSchedulerExec, Config.Scheduler.waveoptOptions, kGraphJsonFile, waveGraphJsonFile, waveDotFile, Config.debugLevel)
 
-      print("INFO: executing wave scheduler by  " + cmd)
+      print(getInfoDateStr(), "executing wave scheduler by  " + cmd)
       status = os.system(cmd)
       meOk = status == 0
       return meOk, [waveGraphJsonFile, waveDotFile]

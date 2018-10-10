@@ -10,9 +10,13 @@ import argparse
 import os.path
 import sys
 import re
+import datetime
+
+def getInfoDateStr():
+  return "INFO %s :" % str(datetime.datetime.now())
 
 
-print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
+print("\n", getInfoDateStr(), "started as  ", " ".join(sys.argv), flush=True)
 
 InklingPath = os.environ.get('INKLING_PATH')
 
@@ -66,12 +70,13 @@ class RuntimeSim:
     sim_add_flags = os.environ.get('SIM_ADD_FLAGS', '')
     cmd += " " + sim_add_flags
 
-    print("INFO: executing %s" % cmd, flush=True)
+    print(getInfoDateStr(), "executing %s" % cmd, flush=True)
     ret = os.system(cmd)
     return ret
 
 
 runtime = RuntimeSim()
 ret = runtime.run(inputFmaps, outputFmap)
+print(getInfoDateStr(), "runtime_sim completed with status ", ret, flush=True)
 
 assert(ret == 0)

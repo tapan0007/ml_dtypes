@@ -11,6 +11,7 @@ import sys, json, re, getpass, random
 import glob
 import shutil
 import socket, errno
+import datetime
 kPath = os.environ.get('KAENA_PATH')
 if kPath is None:
   kPath =''
@@ -21,7 +22,11 @@ import numpy as np
 from tffe.NpTransforms import NpTrans as npt
 from NpTransforms import TensorFormat, TensorFormatMap
 
-print("\nINFO: started as  ", " ".join(sys.argv), flush=True)
+def getInfoDateStr():
+  return "INFO %s :" % str(datetime.datetime.now())
+
+
+print("\n", getInfoDateStr(), "started as  ", " ".join(sys.argv), flush=True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--kelf_dir', help='kelf directory', default="")
@@ -157,7 +162,7 @@ class NnSubgraph:
           assert os.path.isfile(tpbInpFile)  # exists from compilation
         else:
           npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile)
-          print("INFO: nn_executor: translated TF format %s %s  to TPB Fmap format %s %s" % (inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
+          print(getInfoDateStr(), "nn_executor: translated TF format %s %s  to TPB Fmap format %s %s" % (inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
         inputFilesInTpbFotmat.append(tpbInpFile)
       else:
         print("ERROR: no tf file not found %s" % tfFile, flush=True)
@@ -262,7 +267,7 @@ class NnSubgraph:
       cmd += "  --inference"
     cmd += "  " + self.execOptions
     cmd = "%s > %s 2>&1" % (cmd, logFile)
-    print("\nINFO: executing %s" % cmd, flush=True)
+    print("\n", getInfoDateStr(), "executing %s" % cmd, flush=True)
     ret = os.system(cmd)
     if ret != 0:
       print("\nERROR: command  %s  returned non-zero exit code" % cmd, flush=True)
@@ -405,7 +410,7 @@ if ret != 0:
 if (ret == 0) and (args.check_against_ref != "none"):
   ret = nnExec.check(args.check_against_ref)
 
-print("INFO: Kaena RT status %s" % ("PASS" if ret == 0 else "FAIL"))
+print(getInfoDateStr(), "Kaena RT status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
 
 

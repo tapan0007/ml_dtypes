@@ -26,6 +26,7 @@ import argparse
 import os.path
 import sys, json, re
 import shutil
+import datetime
 
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 
@@ -35,8 +36,11 @@ import KaenaOpGraph
 from package_mgr import KPackageManager
 from MiscUtil import remove_write_permissions
 
+def getInfoDateStr():
+  return "INFO %s :" % str(datetime.datetime.now())
+
 kPath = os.environ.get('KAENA_PATH')
-print("\nINFO: started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]))
+print("\n", getInfoDateStr(), "started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]))
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
@@ -154,7 +158,7 @@ if args.images != None:
       parallelStreamsOption = "--parallel_streams"
   for sg in kp.getSubgraphs():
     sgDir = "sg%02d" % sgId;
-    print("\nINFO: processing subgraph %s" % sgDir)
+    print("\n", getInfoDateStr(), "processing subgraph %s" % sgDir)
     if debugLevel > 1:
       sg.graph.print()
     os.makedirs(sgDir)
@@ -173,7 +177,7 @@ if args.images != None:
       if not executor == 'waveopt':
         if meOk:
           cmd = "%s/compiler/be/compiler/compiler.exe %s %s> log-be.txt 2>&1" % (kPath, jsonFileOption.get(args.scheduler, jsonFileOptionGeneric), parallelStreamsOption)
-          print("INFO: executing %s" % cmd, flush=True)
+          print(getInfoDateStr(), "executing %s" % cmd, flush=True)
           kccRet = abs(os.system(cmd))
           ret += kccRet
           if kccRet == 0:
@@ -182,7 +186,7 @@ if args.images != None:
               waive_wave_checker = args.waive_wavegraph_checks
               checksStr = " ".join(["--%s-check" % c for c in args.wavegraph_checks])
               cmd = "%s/compiler/wave-checker/wc-build/bin/wave_graph_checker --stdout --wave-graph-file wavegraph.json %s > log-wc.txt 2>&1" % (kPath, checksStr)
-              print("INFO: executing %s" % cmd, flush=True)
+              print(getInfoDateStr(), "executing %s" % cmd, flush=True)
               wcRet = abs(os.system(cmd))
               if (waive_wave_checker == False):
                 ret += wcRet
@@ -235,7 +239,7 @@ if args.images != None:
       s = json.dumps({"SubGraphs" : sgJsonList}, indent=2, sort_keys=True)
       f.write(s)
     cmd = "%s/compiler/util/kelf2dot --json %s" % (kPath, nnGraphFile)
-    print("INFO: executing", cmd)
+    print(getInfoDateStr(), "executing", cmd)
     os.system(cmd)
     import package_mgr
     package_mgr.create_kelf(model_dir=os.getcwd(), subgraphs=sgJsonList)
@@ -246,7 +250,7 @@ if args.images != None:
 
 with open("/proc/%d/status" % os.getpid()) as procFh:
   print(procFh.read(), flush=True)
-print("INFO: Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
+print(getInfoDateStr(), "Kaena Compiler status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)
 
 
