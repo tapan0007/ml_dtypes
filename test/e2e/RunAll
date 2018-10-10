@@ -456,10 +456,8 @@ class Ktests:
     t.calcQoR()
     if t.passed():
       self.numPass += 1
-    if t.timedout():
-      self.numFail += 1
     reportStatus = self.calcWaivedStatus(t.name, t.status)
-    if t.failed():
+    if t.failed() or t.timedout():
       if 'WAIVE' in  reportStatus:
         self.numWaive += 1
       else:
