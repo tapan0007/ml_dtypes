@@ -98,6 +98,58 @@ engineId2Str(EngineId engId)
     Assert(false, "Wrong Engine ID ", static_cast<int>(engId));
     return badEng;
 }
+/*
+typedef enum TONGA_ISA_TPB_ACTIVATION_FUNC{
+    TONGA_ISA_TPB_ACTIVATION_FUNC_INVALID         = 0x00,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_IDENTITY        = 0x01,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_RELU            = 0x02,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_LEAKY_RELU      = 0x03,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_PARAMETRIC_RELU = 0x04,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_SIGMOID         = 0x05,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_TANH            = 0x06,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_EXP             = 0x07,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_SQRT            = 0x08,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_SOFTPLUS        = 0x09,
+    TONGA_ISA_TPB_ACTIVATION_FUNC_NUM
+} TONGA_ISA_PACKED TONGA_ISA_TPB_ACTIVATION_FUNC;
+*/
+
+const std::string& ActivationFunc2Str(ActivationFunc actFunc)
+{
+    static const std::string InvalidStr("INVALID");
+    static const std::string IdentityStr("IDENTITY");
+    static const std::string ReluStr("RELU");
+    static const std::string LeakyReluStr("LEAKY_RELU");
+    static const std::string PReluStr("PARAMETRIC_RELU");
+    static const std::string SigmoidStr("SIGMOID");
+    static const std::string TanhStr("TANH");
+    static const std::string ExpStr("EXP");
+    static const std::string SqrtStr("SQRT");
+    static const std::string SoftplusStr("SOFTPLUS");
+
+    switch (actFunc) {
+    case ActivationFunc::Identity:
+        return IdentityStr;
+    case ActivationFunc::Relu:
+        return ReluStr;
+    case ActivationFunc::LeakyRelu:
+        return LeakyReluStr;
+    case ActivationFunc::PRelu:
+        return PReluStr;
+    case ActivationFunc::Sigmoid:
+        return SigmoidStr;
+    case ActivationFunc::Tanh:
+        return TanhStr;
+    case ActivationFunc::Exp:
+        return ExpStr;
+    case ActivationFunc::Sqrt:
+        return SqrtStr;
+    case ActivationFunc::Softplus:
+        return SoftplusStr;
+    default:
+        return InvalidStr;
+    }
+}
 
 }}
 

@@ -39,8 +39,11 @@ WaveCodeActivation::generate(wave::WaveOp* waveop)
     const arch::StateBuffer& stateBuf(arch.gStateBuffer());
     const EngineId engineId = activationWaveop->gEngineId();
     Assert(EngineId::Activation == engineId, "Engine id for Activation waveop should be Activation");
+    kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
     compisa::ActivateInstr activationInstr;
+
+    kelfDma.addActivationFunc(activationWaveop->gActivationFunc());
 
     activationInstr.activation_func     = activationWaveop->gSimActivationFunc();
     activationInstr.in_dtype            = activationWaveop->gInDtype().gSimTypeId();

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 #include <map>
 
 #include "nlohmann/json.hpp"
@@ -18,6 +19,7 @@ class Network;
 
 namespace kelf {
 
+using json = nlohmann::json;
 
 
 /***********************************************************************
@@ -95,10 +97,13 @@ public:
     kcc_int64 gOutputSizeBytes(const std::string& refFileName);
 
     bool qHasFile(const std::string& fileName) const;
+    void addActivationFunc(ActivationFunc);
 
 private:
+    std::set<ActivationFunc> m_ActivationFuncs;
 
     static const char* gSymbolicInQueue();
+    void writeActivationFuncs(json& j);
 
     struct Keys;
 
@@ -165,6 +170,7 @@ public:
     static const char* gDebugInfo();
     static const char* gWavegraph();
     static const char* gHashFileName();
+    static const char* gActivationFuncs();
 };
 
 

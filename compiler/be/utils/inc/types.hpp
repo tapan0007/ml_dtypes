@@ -147,8 +147,10 @@ enum class ActivationFunc {
     Sigmoid,
     Tanh,
     Exp,
+    Sqrt,
     Softplus,
 };
+
 
 //**********************************************************************
 enum class PoolType {
@@ -183,6 +185,7 @@ const std::string& poolType2Str(PoolType poolType);
 PoolType           poolTypeStr2Id(const std::string&);
 const std::string& engineId2Str(EngineId engId);
 EngineId engineId2Str(const std::string& str);
+const std::string& ActivationFunc2Str(ActivationFunc);
 
 constexpr kcc_int64 power2(kcc_int64 b) {
     return 1 << (b);

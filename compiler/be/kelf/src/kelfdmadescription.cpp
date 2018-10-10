@@ -286,7 +286,7 @@ DmaDescription::gSymbolicQueue(EngineId engId, bool inpt, bool weight) const
 void
 DmaDescription::writeDmaDescriptors(
     const char* binFileName,
-    EngineId engId)
+    const EngineId engId)
 {
     const char* const jsonFileName = gJsonFileName(engId);
     const char* name = nullptr;
@@ -306,6 +306,9 @@ DmaDescription::writeDmaDescriptors(
     }
 
     json j;
+    if (engId == EngineId::Activation) {
+        writeActivationFuncs(j);
+    }
     j[Keys::gBinFileName()] = binFileName;
     j[Keys::gJsonName()] = name;
 
@@ -401,6 +404,16 @@ DmaDescription::writeDmaDescriptors(
     "pe_instr" : "Trivnet-pe.bin"
 }
 ***********************************************************************/
+void DmaDescription::writeActivationFuncs(json& j)
+{
+    auto activationFuncs = json::array();
+    for (auto actFunc : m_ActivationFuncs) {
+        const json jActFunc(utils::ActivationFunc2Str(actFunc));
+        activationFuncs.push_back(jActFunc);
+    }
+    j[Keys::gActivationFuncs()] = activationFuncs;
+}
+
 void
 DmaDescription::writeDefinitions(const char* peInstrFileName,
     const char* actInstrFileName, const char* poolInstrFileName)
@@ -628,6 +641,13 @@ DmaDescription::DmaBlockToTpb::size() const
     return numBytes;
 }
 
+void
+DmaDescription::addActivationFunc(ActivationFunc actFunc)
+{
+    m_ActivationFuncs.insert(actFunc);
+}
+
+
 DmaDescription::FileIdType::FileIdType(const FileIdType&) = default;
 
 const char* DmaDescription::Keys::gBinFileName()
@@ -741,6 +761,11 @@ const char* DmaDescription::Keys::gDebugInfo()
 const char* DmaDescription::Keys::gWavegraph()
 {
     return "wavegraph";
+}
+
+const char* DmaDescription::Keys::gActivationFuncs()
+{
+    return "activation_functions";
 }
 
 }}
