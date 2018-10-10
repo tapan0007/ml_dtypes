@@ -118,7 +118,7 @@ pipeline{
             stages {
                 stage('check') {
                     steps {
-                        timeout(time: 50, unit: 'MINUTES') {
+                        timeout(time: 70, unit: 'MINUTES') {
                             sh 'cd $TEST_DIR/precheckin && make -f $KAENA_PATH/test/e2e/Makefile check'
                         }
                     }
