@@ -1341,25 +1341,32 @@ class NodeMultiply(Node):
                                      npInfo.npFile, tfFormat,
                                      npFileSim, simFormat, False))
     fileList.append(npFileSim)
+    isScalar = [None]*2
+    npInfoIF = [None]*2
+    fromIfNode = [None]*2
 
-    ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
-    # scalar_mul - first arg is scalar; element-wise: both are vectors
-    isScalar = len(npInfoIF0.npShape) == 0
+
+    ((fromIfNode[0], npInfoIF[0]), (fromIfNode[1], npInfoIF[1]),) = self.getInputNodesAndNpInfo()
+    # scalar (Mult, Min, Max) - one arg is scalar; element-wise: both are vectors
+    isScalar[0] = len(npInfoIF[0].npShape) == 0
+    isScalar[1] = len(npInfoIF[1].npShape) == 0
+    assert(not (isScalar[0] and isScalar[1]))
 
     layerData = {
       "ofmap_shape"     : tpbShape,
       "ofmap_format"    : simFormat,
       "ref_file"        : npFileSim,
-      "previous_layers" : [fromIfNode1.getName()],
+      "previous_layers" : [],
       "#comment"        : "Element-wise multiply two input tensors"
     }
 
-    if isScalar:
-      val = npInfoIF0.getValues()
-      assert val.size == 1
-      layerData['mul_scalar'] = np.asscalar(val.ravel()[0])
-    else:
-      layerData["previous_layers"].insert(0, fromIfNode0.getName()),
+    for i in (1, 0):
+        if isScalar[i]:
+            val = npInfoIF[i].getValues()
+            assert val.size == 1
+            layerData['mul_scalar'] = np.asscalar(val.ravel()[0])
+        else:
+            layerData["previous_layers"].insert(0, fromIfNode[i].getName()),
 
     (layerDataBase, fileListBase) = Node.genCompilerLayerJson(self, tensorFormatMap)
     layerDataBase[0].update(layerData)
