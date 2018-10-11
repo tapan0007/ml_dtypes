@@ -36,6 +36,13 @@ RUN pip3 install --no-cache-dir \
         tensorflow==1.8 \
         pexpect \
         junit_xml \
+        pytest \
+	grpcio \
+	protobuf \
+	tabulate \
+	retrying \
+	allpairspy \
+	hexdump \
         progress
 
 COPY ssh-config /tmp/ssh-config
