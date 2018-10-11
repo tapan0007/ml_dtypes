@@ -177,6 +177,10 @@ pipeline{
                                [ -z "$RUNNC_ARGS" ] || ([ -f $TEST_DIR/RunPytest/pytestResult.xml ] && /bin/cp $TEST_DIR/RunPytest/pytestResult.xml $WORKSPACE/.)
                                '''
                                junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                               sh 'mkdir /artifact/RunPytest'
+                               sh 'find $TEST_DIR/RunPytest -iname "*.txt" -print0 | tar -czvf /artifact/RunPytest/logs.tgz -T -'
+                               sh 'chmod -R a+wX /artifact/'
+                               archiveArtifacts artifacts:'RunPytest/logs.tgz'
                             }
                         }
                         failure {
