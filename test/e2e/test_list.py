@@ -1081,6 +1081,7 @@ testWaiver = [
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
+    #['.*softplus.*', 'WAIVE_KAENA634'],
     ['.*squeeze.*', 'WAIVE_KAENA634'],
     ['0-1transpose_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
@@ -1168,7 +1169,7 @@ noGpuTestWaiver = [
 ]
 
 qemuTestWaiver = [
-    #['0-1conv1avgpool_wave_2tpbs', 'WAIVE-QEMU-KAENA830'],
+    ['0-1conv1avgpool_wave_2tpbs', 'WAIVE-QEMU-KAENA830'],
     ['5-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE-QEMU-KAENA831'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
