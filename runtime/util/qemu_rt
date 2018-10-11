@@ -579,11 +579,12 @@ class KrtcClient:
     self.loadFail = False
     self.inferFail = False
 
-  def krtcLoadModel(self, binDir, workingDir):
+  def krtcLoadStartModel(self, binDir, workingDir):
     krtcCmd = "%s/bin/krtc/krtc" % (binDir)
-    loadLogFile = "%s/log-load.txt" % (workingDir)
+    loadLogFile = "%s/log-load-start.txt" % (workingDir)
     grpcAddress = "%s:%d" % (self.krtd.qemu.grpcHost,self.krtd.qemu.grpcPort)
     kelfFile = "%s/kelf.tar.gz" % (workingDir)
+    model_id = 1001 #TODO need to remove the hard coding
     with open(loadLogFile, "a+") as fp:
       p = subprocess.Popen([krtcCmd, "load", kelfFile, "--address", grpcAddress], stdout=fp, stderr=fp)
       p.communicate()
@@ -591,15 +592,23 @@ class KrtcClient:
         krtOk = True
       else:
         self.loadFail = True
+
+      p = subprocess.Popen([krtcCmd, "start", "--model-id", str(model_id), "--address", grpcAddress], stdout=fp, stderr=fp)
+      p.communicate()
+      if p.returncode == 0:
+        krtOk = True
+      else:
+        self.loadFail = True
+
     self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-krtd.txt", ".")
     cmdCpOutFile = 'cp %s/* %s' % (workingDir,self.krtd.cwd)
     self.krtd.qemu.osSystem(cmdCpOutFile)
     if not krtOk:
-      print("ERROR: model did not load properly check log-load.txt")
+      print("ERROR: model did not load properly check %s" % loadLogFile)
     else:
       print("INFO: model load success")
 
-    return 1001,krtOk  #TODO need to remove the hard coding
+    return model_id,krtOk
 
   def krtcInference(self, model_id, ifmap, ofmap, timeout, binDir, workingDir):
     krtOk = False
@@ -639,7 +648,7 @@ class KrtcClient:
     binDir = self.krtd.tempBinDir
     workingDir = self.krtd.tempWorkingDir
     self.addModel(args.kelf, workingDir)
-    (model_id, krtOk) = self.krtcLoadModel(binDir, workingDir)  #in future this would take the tpb in which to load
+    (model_id, krtOk) = self.krtcLoadStartModel(binDir, workingDir)  #in future this would take the tpb in which to load
     if not krtOk:
       return
     assert len(args.ifmaps) == 1
