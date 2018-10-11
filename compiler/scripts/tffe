@@ -200,14 +200,15 @@ if args.images != None:
         else:
           print("ERROR: skipping backend compilation since the mid scheduler failed", flush=True)
           ret += 1
-    print('Generating kelf.tar.gz for the sub graph...')
-    def_json = None
-    if os.path.isfile("def.json"):
-        def_json = json.loads(open("def.json", 'r').read())
-        pkmgr = KPackageManager(def_json)
-        pkmgr.gen_pkg()
-    else:
-        print('ERROR: No def.json file exist to generate tar package.')
+    if not executor == 'host':
+        print('Generating kelf.tar.gz for the sub graph {}'.format(sgDir))
+        def_json = None
+        if os.path.isfile("def.json"):
+            def_json = json.loads(open("def.json", 'r').read())
+            pkmgr = KPackageManager(def_json)
+            pkmgr.gen_pkg()
+        else:
+            print('ERROR: No def.json file exist to generate tar package.')
     os.chdir("..")
     sgJson = sg.genExecutorGraphJson(sgDir)
     sgJson["executor"] = executor
