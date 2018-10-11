@@ -12,6 +12,15 @@ while [[ $# > 0 ]]; do case $1 in
     -x) repl="--enable_replication"; shift;;
     -c) cleanup="--enable_cleanup"; shift;;
     -q) dbg="--debug 0"; shift;;
+    -h) echo "run_mid: Run Middle-End on subgraph (be sure compiler.json exists)
+        -d: Launch pdb
+        -r: ResNet50 performance mode
+        -x: Enable replication
+        -c: Enable WaveGraph cleanup
+        -q: Quiet (debug level 0)
+        <num>: Stop and dump results after <num> fused-ops"; 
+        exit 0;
+        shift;;
     *) x=$1; shift;
 esac; done    
 

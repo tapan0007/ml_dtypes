@@ -44,13 +44,20 @@ Subgraphing
 The Front-End can partition a large graph into smaller ones for execution on various simulators/devices.
 
   --focus_to FOCUS_TO   Filter out all nodes but the fanin of this node. The
-                        fanin includes the node itself.
+                        fanin includes the node itself. Partitioning
+                        (subgraphing) would operate on this new filtered graph
+                        instead of the original graph.
 
   --partition PARTITION [PARTITION ...]
                         Partition into subgraphs; use from, from_multi,
                         meauto, multi_tpb, or auto. The from_multi is followed
-                        by list of comma-separate cut nodes, e.g. from a,b c
-                        e,f,g . The default is none
+                        by list of comma-separate cut nodes. Example: Use
+                        from_multi a,b,c to cut a subgraph starting from nodes
+                        a,b,c down toward the output node; if there are two
+                        resulting subgraphs, sg00 would contain the input
+                        nodes and nodes up to before a,b,c and sg01 would
+                        contain a,b,c down toward the output node. The default
+                        is none.
 
   --executors EXECUTORS [EXECUTORS ...]
                         Specifies executors per subgraph, e.g., tcc 1 2 3
@@ -85,8 +92,22 @@ result comparison (as well as comparison for any other intermediate results)
 Debugging
 ---------
 
+Many debugging tools are located in $KAENA_PATH/compiler/util. It's convenient to add this to your PATH.
+
 The following command execute RunAll across various repo checkouts, ie. to find when regression broke:
 $KAENA_PATH/compiler/util/repo_search --since "Sep 26" --until "Oct 2" --run_cmd '$KAENA_PATH/test/e2e/RunAll --test 0-1conv0_wave 6-rn50_nne_to_act46_wave-repl --force_qemu' --sleep 120 --load 60
+
+To run ME by itself, go into the subgraph directory that has compiler.json file, and run:
+$KAENA_PATH/compiler/util/run_mid
+
+To compare ME results against golden results, run:
+$KAENA_PATH/compiler/util/compare_midout
+
+To run BE/Inkling (standalone), go into the subgraph directory that has compiler.json and wavegraph.json files, and run: 
+$KAENA_PATH/compiler/util/run_be_inkling
+
+To compare Inkling results against golden results, run:
+$KAENA_PATH/compiler/util/compare_simout
 
 Profiling
 ---------

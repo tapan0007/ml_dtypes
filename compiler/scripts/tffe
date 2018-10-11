@@ -55,7 +55,7 @@ parser.add_argument('--debug', help='Debug level, 1 minimal, 3 detailed op value
                     type=int, default=0)
 parser.add_argument('--focus', help='Regular expression to filter a subset of nodes',
                     default=".*")
-parser.add_argument('--focus_to', help='Filter out all nodes but the fanin of this node. The fanin includes the node itself.',
+parser.add_argument('--focus_to', help='Filter out all nodes but the fanin of this node. The fanin includes the node itself. Partitioning (subgraphing) would operate on this new filtered graph instead of the original graph.',
                     default=None)
 parser.add_argument('--width', help='Highlight data paths wider than the width',
                     type=int, default=1000)
@@ -71,9 +71,9 @@ parser.add_argument('--scheduler', help='Select scheduler method tcc or wave, wa
                     default='tcc')
 parser.add_argument('--schedule_options', help='Configuration passed to scheduler, e.g. opt1=v1,opt2=v2,..., default is None',
                     default='')
-parser.add_argument('--batch', help='Batch override for late-binding networks',
+parser.add_argument('--batch', help='Batch override for late-binding networks. Late-binding networks have undefined value (?) in the shape tuple. This option replaces the undefined value within the option value.',
                     type=int, default=1)
-parser.add_argument('--partition', help='Partition into subgraphs; use from, from_multi, meauto, multi_tpb, or auto. The from_multi is followed by list of comma-separate cut nodes, e.g. from a,b c e,f,g . The default is none',
+parser.add_argument('--partition', help='Partition into subgraphs; use from, from_multi, meauto, multi_tpb, or auto. The from_multi is followed by list of comma-separate cut nodes. Example: Use from_multi a,b,c to cut a subgraph starting from nodes a,b,c down toward the output node; if there are two resulting subgraphs, sg00 would contain the input nodes and nodes up to before a,b,c and sg01 would contain a,b,c down toward the output node. The default is none.',
                     nargs='+', default=["suppauto"])
 parser.add_argument('--adjust_node_color', help='Applied after --partition; Node color Node1 color1 ...',
                     nargs='+', default=[])
