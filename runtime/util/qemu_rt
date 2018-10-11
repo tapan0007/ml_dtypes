@@ -612,7 +612,10 @@ class KrtcClient:
     modelId = "%s" % model_id
     grpcAddress = "localhost:%d" % self.krtd.qemu.grpcPort
     with open(inferLogFile, "a+") as fp:
-      p = subprocess.Popen([krtcCmd, "infer", "--model-id", modelId, "--ifmap", ifmapPath, "--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout], stdout=fp, stderr=fp)
+      capture = "" # capture notifications
+      if self.krtd.qemu.type == "qemu":
+        capture = "--capture" # Only capture for Qemu, emulator hangs..
+      p = subprocess.Popen([krtcCmd, "infer", "--model-id", modelId, "--ifmap", ifmapPath, "--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout, capture], stdout=fp, stderr=fp)
       p.communicate()
       if p.returncode == 0:
         krtOk = True
