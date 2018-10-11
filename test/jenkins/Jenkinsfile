@@ -130,7 +130,7 @@ pipeline{
 			    junit allowEmptyResults: true, testResults: 'RunAllReportCheck.xml'
                             sh 'find $TEST_DIR/precheckin -type f -name "*.vdi" -delete'
                             sh '/bin/cp -r $TEST_DIR/precheckin /artifact/precheckin'
-                            archiveArtifacts artifacts:'precheckin/qor_report.txt,*.tgz,precheckin/**/*.txt'
+                            archiveArtifacts artifacts:'precheckin/*.txt,*.tgz,precheckin/**/*.txt,tgz,precheckin/**/*.json'
                         }
                         failure {
                             sh 'tar -czvf /artifact/test-precheckin-result-all.tgz $TEST_DIR/precheckin'
@@ -154,8 +154,9 @@ pipeline{
 			    junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
                             sh 'mkdir /artifact/RunAllWithArgs'
                             sh '/bin/cp $TEST_DIR/RunAllWithArgs/qor* /artifact/RunAllWithArgs/ || touch /artifact/RunAllWithArgs/qor_RunAllWithArgs_qor_available.txt'
+                            sh 'for f in `find $TEST_DIR/RunAllWithArgs  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" `; do cp $f --parents  /artifact/RunAllWithArgs/;done; '
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'RunAllWithArgs/qor*,*.tgz'
+                            archiveArtifacts artifacts:'RunAllWithArgs/*.txt,*.tgz,RunAllWithArgs/**/*.txt,tgz,RunAllWithArgs/**/*.json, RunAllWithArgs/**/*.bin, RunAllWithArgs/**/*.svg'
                         }
                         failure {
                             sh 'find $TEST_DIR/RunAllWithArgs -type f -name "*.vdi" -delete'
