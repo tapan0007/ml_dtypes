@@ -18,7 +18,7 @@ CommandLineOptions parse_cli()
 int main(int argc, char* argv[])
 {
 
-  enum ERROR_TYPE {OK, ERROR};
+  enum ERROR_TYPE {OK, ERROR, NOFILE};
   int err = OK;
   po::options_description desc{"Options"};
   desc.add_options()
@@ -83,6 +83,7 @@ int main(int argc, char* argv[])
     else {
       std::cout << "Error opening file "
         << g_cli["wave-graph-file"].as<std::string>() << std::endl;
+      err = NOFILE;
     }
   }
   return err;
