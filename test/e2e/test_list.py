@@ -585,31 +585,12 @@ testConfigMap = {
   "9-resnet152"               : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", " --depth 2", "linspace1"],
   "9-resnet152_waveopt"       : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--partition from resnet_v2_152/conv1/convolution resnet_v2_152/postnorm/batchnorm/mul_1 --executors host all waveopt 1  --depth 2 --scheduler wave --images %s --wavegraph_checks structure data-race" % rnDogJpg, "--input_files %s" % rnDogJpg],
 
-  #"10-parwavenet_ckpt"            : [ "tf_pb",   "parallel_wavenet/saved_model",        "parallel_wavenet", "--input_node Placeholder --depth 2", "--input_files %s" % melSpectra],
-  "3-parwavenet_10_fp16_in_to_reshape1_wave" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder --show_op_name_in_kgraph --depth -1 --partition from Reshape_1 --executors host all wave 0 --scheduler wave2 --schedule_options ' --nname=generic --no_verify' --images %s"%melSpectra, "--input_files %s"%melSpectra],
-  "3-parwavenet_10_fp16_in_to_reshape3_wave" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder --show_op_name_in_kgraph --depth -1 --partition from Reshape_3 --executors host all wave 0 --scheduler wave2 --schedule_options ' --nname=generic --no_verify' --images %s"%melSpectra, "--input_files %s"%melSpectra],
-
-  "3-parwavenet_10_fp16_in_to_add3_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_3 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-  "3-parwavenet_10_fp16_reshape23_to_squeeze4_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_3 --show_op_name_in_kgraph --depth -1 --partition from multi Squeeze_4 Reshape_23 add_2 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-  "3-parwavenet_10_fp16_in_to_add6_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_6 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-  "3-parwavenet_10_fp16_in_to_add9_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_9 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-  "3-parwavenet_10_fp16_in_to_add12_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_12 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-  "3-parwavenet_10_fp16_in_to_add15_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_15 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-  "3-parwavenet_10_fp16_in_to_add18_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_18 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-  "3-parwavenet_10_fp16_in_to_add21_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", "--input_node Placeholder sub_1 --focus_to add_21 --show_op_name_in_kgraph --depth -1 --executors host all waveopt 0 --images %s linspace1"%melSpectra, "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-
-  "3-parwavenet_10_fp16_add_to_mul_waveopt" : [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
-    "--input_node Placeholder sub_1 --focus_to add_1 --show_op_name_in_kgraph --depth -1 --partition from mult add Reshape_22 --adjust_node_color add_1 3 --executors host all waveopt 1 2 --images %s linspace1"%melSpectra,
-    "--input_files Placeholder:0=%s sub_1:0=trivnet_sub_1:0.npy"%melSpectra],
-
-  "3-parwavenet_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to truediv --show_op_name_in_kgraph --input_node sub_1 --depth -1 --partition from truediv --executors host all waveopt 1 --images linspace1", "--input_files trivnet_sub_1:0.npy"],
-  "3-parwavenet_to_rs10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to Reshape_10 --show_op_name_in_kgraph --input_node random_uniform --depth -1 --partition from BiasAdd_2 --executors host all waveopt 1 --images linspace1", "--input_files trivnet_random_uniform:0.npy"],
-  #"3-parwavenet_to_rs1_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to Reshape_1 --show_op_name_in_kgraph --input_node Placeholder --depth 2 --partition from BiasAdd_2 --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s"%melSpectra],
-  "9-parwavenet_10_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
+  # Parallel WaveNet (ME only)
+  "3-parwavenet_10_fp16_me_only" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to truediv --show_op_name_in_kgraph --input_node sub_1 --depth -1 --partition from truediv --executors host all waveopt 1 --images linspace1", "--input_files trivnet_sub_1:0.npy"],
+  "3-parwavenet_10_10_fp16_me_only" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
 
   # Subgraph partioned flow using neural network executor
   "0-4conv_relu_nne" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1-imax2", "4conv_nne", "--partition conv --executors wave 1 3 host 0 2 4 --debug 1 --scheduler wave --wavegraph_checks structure data-race"],
-
 
   # Resnet
   "8-rn50_nne_auto"             : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition auto --executors wave all  --scheduler wave --images %s --wavegraph_checks structure data-race" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
@@ -1171,11 +1152,9 @@ testWaiver = [
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_wave', 'WAIVE_KAENA711'],
     #['.*reshape.*', 'WAIVE_KAENA597'],
-    ['3-parwavenet_.*_wave$', 'WAIVE_KAENA711'],
-    ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
+    ['3-parwavenet_.*_me_only$', 'WAIVE_KAENA711'],
     ['6-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE_KAENA711'],
     ['7-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE_KAENA711'],
-    ['9-parwavenet_10_10_fp16_waveopt$', 'WAIVE_KAENA711'],
     ['3-1conv_transpose_1d_h100r80s20_wave', 'WAIVE_KAENA768'],
     ['3-1conv_transpose_1d_h10r40s10_wave', 'WAIVE_KAENA768'],
 

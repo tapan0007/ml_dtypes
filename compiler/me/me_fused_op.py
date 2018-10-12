@@ -1491,16 +1491,18 @@ class FusedOp(list):
                         ofmap_tile.tile_rect.lower.y,
                         ofmap_tile.tile_rect.lower.x)
                 residue_sb_addr =  tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(residue_file_params, batch_item, residue_file_addr)
-                waveop = self.gen_join_waveop_inline(tpb, op_list[i], 
-                        ifmap_tile, 
-                        ofmap_tile, 
-                        True,
-                        psum_bank_src, 
-                        dst_is_psum, 
-                        psum_bank_dst, 
-                        dram_resadd_waveops, 
-                        self[i].residue_index,
-                        residue_sb_addr)
+                waveop = self.gen_join_waveop_inline(
+                        tpb                 = tpb, 
+                        op                  = op_list[i], 
+                        ifmap_tile          = ifmap_tile, 
+                        ofmap_tile          = ofmap_tile, 
+                        src_is_psum         = True,
+                        psum_bank_src       = psum_bank_src, 
+                        dst_is_psum         = dst_is_psum, 
+                        psum_bank_dst       = psum_bank_dst, 
+                        dram_resadd_waveops = dram_resadd_waveops, 
+                        residue_index       = self[i].residue_index,
+                        residue_sb_addr     = residue_sb_addr)
                 self.attach_predecessors(waveop, prev_waveops)
                 psum_bank_src = psum_bank_dst
             elif re.search("Reshape|Squeeze|ExpandDims", layer_type):
@@ -1679,6 +1681,8 @@ class FusedOp(list):
         if (act_op != None):
             act_or_biasadd_op = act_op
             act_type = act_op.data['layer_type']
+            if not re.search(self.act_ops_regex, act_type):
+                act_type = "Identity"
             layer_name = act_op.data['layer_name']
             # TODO: refactor to some class to determine in_dtype and out_dtype
             if (act_op.item_sz == 2 and not src_is_psum):
@@ -2229,6 +2233,8 @@ class FusedOp(list):
                 = self.get_producers_for_subtile_region (
                         tpb          = tpb, 
                         fmap_subtile = ifmap_tile_subtile)
+            first_waveop = None
+            last_waveop = None
             if (first_op.data['layer_type'] == "BiasAdd"): 
                 bias_start = ofmap_tile.m_id * PEArray.NUM_COLS * first_op.item_sz
                 (writers, readers, dram_bias_waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
@@ -2265,7 +2271,7 @@ class FusedOp(list):
                     else:                        
                         scale_or_min_val = first_op.data['mul_scalar']
                         add_or_max_val = 0.0
-                    waveop = self.gen_scaleadd_or_clip_waveop_inline(
+                    last_waveop = self.gen_scaleadd_or_clip_waveop_inline(
                                 tpb              = tpb,
                                 op               = first_op, 
                                 ifmap_tile       = ifmap_tile, 
@@ -2285,7 +2291,7 @@ class FusedOp(list):
                     residue_tile = copy.copy(ifmap_tile)
                     residue_tile.file_params = residue_file_params
                     residue_subtile = PEWave(residue_tile, 0, 0, 0, first_op.stridedslice_chan_offset)
-                    (_, dram_resadd_waveops, reader_morsels) = self.get_producers_for_subtile_region(tpb, residue_subtile)
+                    (residue_prev_waveops, dram_resadd_waveops, reader_morsels) = self.get_producers_for_subtile_region(tpb, residue_subtile)
                     new_reader_morsels += reader_morsels
                     residue_file_addr = residue_file_params.ravel_nchw(
                             ofmap_tile.n_id * ofmap_tile.Tn,
@@ -2293,21 +2299,53 @@ class FusedOp(list):
                             ofmap_tile.tile_rect.lower.y,
                             ofmap_tile.tile_rect.lower.x)
                     residue_sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(residue_tile.file_params, batch_item, residue_file_addr)
-                    waveop = self.gen_join_waveop_inline(
-                            tpb             = tpb, 
-                            op              = first_op, 
-                            ifmap_tile      = ifmap_tile,
-                            ofmap_tile      = ofmap_tile,
-                            src_is_psum     = False, 
-                            psum_bank_src   = -1, 
-                            dst_is_psum     = first_op.dst_is_psum, 
-                            psum_bank_dst   = psum_bank_dst, 
-                            dram_resadd_waveops = dram_ifmaps_waveops+dram_resadd_waveops,
-                            residue_index   = first_op.residue_index,
-                            residue_sb_addr   = residue_sb_addr,
-                            new_reader_morsels = new_reader_morsels)
+                    main_sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
+                    if abs(residue_sb_addr - main_sb_addr) > (2**15 - 1):
+                        if psum_bank_dst < 0:
+                            psum_bank_temp = first_op.get_psum_bank()
+                            first_op.set_psum_bank((psum_bank_temp+1)%4)
+                            tpb.pearray.last_psum_bank_used = first_op.get_psum_bank()
+                        else:
+                            psum_bank_temp = psum_bank_dst
+                        first_waveop = self.gen_act_waveop_inline(
+                                tpb               = tpb, 
+                                biasadd_op        = None, 
+                                act_op            = first_op, 
+                                conv_op           = None, 
+                                ifmap_tile        = ifmap_tile, 
+                                ofmap_tile        = ofmap_tile, 
+                                src_is_psum       = False, 
+                                psum_bank_src     = -1, 
+                                dst_is_psum       = True,
+                                psum_bank_dst     = psum_bank_temp, 
+                                dram_bias_waveops = dram_resadd_waveops, 
+                                bias_start        = 0,
+                                new_reader_morsels = reader_morsels)
+                        self.attach_predecessors(first_waveop, residue_prev_waveops)
+                        src_is_psum = True
+                        psum_bank_src = psum_bank_temp
+                    else:                       
+                        act_waveop = None
+                        new_reader_morsels += reader_morsels
+                        prev_waveops += residue_prev_waveops
+                        dram_ifmaps_waveops += dram_resadd_waveops
+                        src_is_psum = False
+                        psum_bank_src = -1
+                    last_waveop = self.gen_join_waveop_inline(
+                            tpb                 = tpb, 
+                            op                  = first_op, 
+                            ifmap_tile          = ifmap_tile,
+                            ofmap_tile          = ofmap_tile,
+                            src_is_psum         = src_is_psum, 
+                            psum_bank_src       = psum_bank_src, 
+                            dst_is_psum         = first_op.dst_is_psum, 
+                            psum_bank_dst       = psum_bank_dst, 
+                            dram_resadd_waveops = dram_ifmaps_waveops,
+                            residue_index       = first_op.residue_index,
+                            residue_sb_addr     = residue_sb_addr,
+                            new_reader_morsels  = new_reader_morsels)
             else:                    
-                waveop = self.gen_act_waveop_inline(
+                last_waveop = self.gen_act_waveop_inline(
                         tpb               = tpb, 
                         biasadd_op        = biasadd_op, 
                         act_op            = act_op, 
@@ -2321,11 +2359,11 @@ class FusedOp(list):
                         dram_bias_waveops = dram_ifmaps_waveops, 
                         bias_start        = bias_start,
                         new_reader_morsels = new_reader_morsels)
-            self.attach_predecessors(waveop, prev_waveops)
+            self.attach_predecessors(last_waveop, prev_waveops)
             self.mark_producers_for_subtile_region(
                     tpb           = tpb, 
                     fmap_subtile  = ofmap_tile_subtile, 
-                    waveop        = waveop)
+                    waveop        = last_waveop)
 
         #if self.args.abstract_mem:
         #    if len(dram_output_waveops) > 0:
