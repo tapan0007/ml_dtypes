@@ -96,10 +96,12 @@ Network::gSchedRevLayers()
 
 //--------------------------------------------------------
 layers::Layer*
-Network::findLayer(const std::string& layerName)
+Network::findLayer(const std::string& layerName, bool mustFind)
 {
     layers::Layer* layer = m_Name2Layer[layerName];
-    Assert(layer, "Could not find layer ", layerName);
+    if (mustFind) {
+        Assert(layer, "Could not find layer ", layerName);
+    }
     return layer;
 }
 

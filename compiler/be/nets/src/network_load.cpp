@@ -116,7 +116,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             ASSERT_NUM_LAYERS(serLayer, 1);
 
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
                                             serLayer.gStrideVertical(),
@@ -146,7 +146,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Matmul) {
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             std::tuple<kcc_int32,kcc_int32> kernel = std::make_tuple(
                                             serLayer.gConvFilterHeight(),
@@ -166,7 +166,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             ASSERT_NUM_LAYERS(serLayer, 1);
 
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
 
             layers::ReshapeLayer::Params reshapeParams(params);
@@ -176,7 +176,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         } else if (serLayer.gTypeStr() == layers::LayerTypeStr_MaxPool || serLayer.gTypeStr() == layers::LayerTypeStr_AvgPool) {
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
 
             std::tuple<kcc_int32,kcc_int32> stride = std::make_tuple(
@@ -212,13 +212,13 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Relu) {
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::ReluLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == layers::LayerTypeStr_Tanh) {
             ASSERT_NUM_LAYERS(serLayer, 1);
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd || serLayer.gTypeStr() == layers::LayerTypeStr_Multiply) {
@@ -230,7 +230,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             }
             std::vector<layers::Layer*> prevLayers;
             for (const auto& prevLayerName : serLayer.gPrevLayers()) {
-                layers::Layer* prevLayer = findLayer(prevLayerName);
+                layers::Layer* prevLayer = findLayer(prevLayerName, true);
                 ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
                 prevLayers.push_back(prevLayer);
             }
@@ -240,7 +240,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             ASSERT_NUM_LAYERS(serLayer, 2);
             std::vector<layers::Layer*> prevLayers;
             for (const auto& prevLayerName : serLayer.gPrevLayers()) {
-                layers::Layer* prevLayer = findLayer(prevLayerName);
+                layers::Layer* prevLayer = findLayer(prevLayerName, true);
                 ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
                 prevLayers.push_back(prevLayer);
             }
@@ -272,7 +272,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 ASSERT_NUM_LAYERS(serLayer, 1);
             }
             const std::string& prevLayerName = serLayer.gPrevLayer(0);
-            layers::Layer* prevLayer = findLayer(prevLayerName);
+            layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);   // FIXME: placeholder
         } else {
@@ -656,9 +656,10 @@ Network::Load::fillWaveOpParams(const serialize::SerWaveOp& serWaveOp,
                      wave::WaveOp::Params& waveOpParams)
 {
     waveOpParams.m_WaveOpName   = serWaveOp.m_WaveOpName;
-    waveOpParams.m_Layer        = m_Network.findLayer(serWaveOp.m_LayerName);
+    waveOpParams.m_LayerName    = serWaveOp.m_LayerName;
+    waveOpParams.m_Layer        = m_Network.findLayer(serWaveOp.m_LayerName, false);
     waveOpParams.m_Order        = m_Network.gWaveOps().size();
-    Assert(waveOpParams.m_Layer, "Missing layer for waveop ", serWaveOp.m_WaveOpName);
+    Assert(waveOpParams.m_LayerName != "", "Missing layer name for waveop ", serWaveOp.m_WaveOpName);
     for (const auto& prevWaveOpName : serWaveOp.m_PreviousWaveOps) {
         prevWaveOps.push_back(m_Network.findWaveOp(prevWaveOpName));
     }

@@ -88,7 +88,7 @@ private:
 
 
 private:
-    layers::Layer* findLayer(const std::string& prevLayerName);
+    layers::Layer* findLayer(const std::string& prevLayerName, bool mustFind);
     wave::WaveOp*  findWaveOp(const std::string& prevWaveOpName);
 
 public:

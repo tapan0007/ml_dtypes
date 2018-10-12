@@ -52,12 +52,14 @@ namespace codegen {
     class CodeGen;
 }
 
+enum {
+    EnginePrintFormatSize = 20
+};
 
 static
 FILE* openObjectFile(const std::string& objFileName, const char* engineName)
 {
-    std::cout << "Wavegraph code generation: Generating " << engineName
-              << " instructions to file '" << objFileName << "'\n";
+    std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << engineName << objFileName << "\n";
     FILE* file = fopen(objFileName.c_str(), "wb");
     Assert(file, "Cannot open %s object file: %s", engineName, objFileName.c_str());
     return file;
@@ -88,8 +90,6 @@ void writeOutJson(nets::Network* ntwk, const char* jsonInFileName, const char* e
         std::cerr << "Error writing JSON file '" << JsonOutFileName << "'\n";
         exit(1);
     }
-
-    std::cout << "Finished writing NN JSON to file '" << JsonOutFileName << "'\n";
 }
 
 //------------------------------------------------
@@ -177,25 +177,25 @@ Main(int argc, char* argv[])
     // Does not matter which DataType because entry index is 0.
     const utils::DataTypeFloat32 dtypeFloat32;
     if (true) {
+        if (false) {
         std::cout << "PSUM buffer, bank 0, entry 0: TPB address =  "
                 << psumBuf.gEntryTpbAddress(0, 0, dtypeFloat32) << "'\n";
         std::cout << "PSUM buffer, bank 1, entry 0: TPB address =  "
                 << psumBuf.gEntryTpbAddress(1, 0, dtypeFloat32) << "'\n";
+        }
 
         std::cout << "Events:\n"
-                << "Arch: number all TPB events = "
-                << arch::Arch::gArch().gNumberAllTpbEvents() << "\n"
+                  << "    Arch: number of all TPB events = " << arch::Arch::gArch().gNumberAllTpbEvents() << "\n"
 
-                << "Invalid: " << events::EventId_Invalid() << "\n"
+                  << "    Invalid: " << events::EventId_Invalid() << "\n"
 
-                << "MatMult multi fanout: " << events::EventMgr::EventId_MMStartMultiSet() << "\n"
-                << "Runetime reserved events: First: " << events::EventMgr::EventId_RunTimeFirst() << "\n"
-                << "Runetime reserved events: Last: " << events::EventMgr::EventId_RunTimeLast() << "\n"
+                  << "    First runtime reserved events = " << events::EventMgr::EventId_RunTimeFirst() << "\n"
+                  << "    Last runtime reserved events = " << events::EventMgr::EventId_RunTimeLast() << "\n"
+                  << "    MatMult multi fanout = " << events::EventMgr::EventId_MMStartMultiSet() << "\n"
 
-                << "Last non-reserved: " << events::EventId_LastNonReserved() << "\n"
+                  << "    First non-reserved = " << events::EventMgr::gNumberReservedTpbEvents() << "\n"
+                  << "    Last non-reserved = " << events::EventId_LastNonReserved() << "\n"
 
-                << "EventMgr: Number reserved TPB events (i.e., first non reserved) = "
-                << events::EventMgr::gNumberReservedTpbEvents() << "\n"
                 ;
     }
 
@@ -295,20 +295,25 @@ Main(int argc, char* argv[])
 
             // with Angel/Dma
             if (true) {
+                std::cout << "Wavegraph code generation for SIM/Angel:\n";
+                std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
+                std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "------" << "----\n";
+
                 instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.tpb";
-                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array");
+                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE-Array");
 
                 instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.tpb";
-                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor");
+                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "Stream-Processor");
 
                 instrStreams.m_DmaBinFile = objFileName = ntwk->gName() + "-dma.tpb";
-                instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA");
+                instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA-Eng");
 
                 instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.tpb";
-                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine");
+                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "Pool-Eng");
 
                 instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.tpb";
-                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine");
+                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "Act-Eng");
+                std::cout << "\n";
 
                 waveCode.rBinFileType(BinFileType::SimAngel);
                 waveCode.DetermineEngines();
@@ -323,19 +328,23 @@ Main(int argc, char* argv[])
             // Runtime Kelf
             if (true) {
                 kelf = true;
+                std::cout << "Wavegraph code generation for Qemu/Emu:\n";
+                std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
+                std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "------" << "----\n";
                 instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.bin";
-                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array KELF");
+                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE-Array");
 
                 instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.bin";
-                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor KELF");
+                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "Stream-Processor");
 
                 instrStreams.m_DmaInstrStream    = nullptr;
 
                 instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.bin";
-                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine KELF");
+                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "Pool-Eng");
 
                 instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.bin";
-                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine KELF");
+                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "Act-Eng");
+                std::cout << "\n";
 
                 ntwk->revertSavedWaveops();
                 ntwk->ClearEvents();
@@ -353,20 +362,22 @@ Main(int argc, char* argv[])
             // Sim Kelf
             if (false) {
                 kelf = true;
+                std::cout << "Wavegraph code generation for SIM/DMA:\n";
 
                 instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.kbin";
-                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE array KELF");
+                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE-Array");
 
                 instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.kbin";
-                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "stream processor KELF");
+                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "Stream-Processor");
 
                 instrStreams.m_DmaInstrStream    = nullptr;
 
                 instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.kbin";
-                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "pooling engine KELF");
+                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "Pool-Eng");
 
                 instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.kbin";
-                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "activation engine KELF");
+                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "Act-Eng");
+                std::cout << "\n";
 
                 //
 
@@ -377,6 +388,7 @@ Main(int argc, char* argv[])
             }
 
         } else {
+            std::cout << "Wavegraph code generation: ";
             std::string objFileName(ntwk->gName() + ".tpb");
             FILE* file = openObjectFile(objFileName, "all");
 

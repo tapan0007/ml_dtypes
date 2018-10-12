@@ -22,6 +22,7 @@ WaveOp::WaveOp (const WaveOp::Params& params,
     : m_Name(params.m_WaveOpName)
     // , m_OfmapDesc(params.m_OfmapDesc)
     , m_Order(params.m_Order)
+    , m_LayerName(params.m_LayerName)
     , m_Layer(params.m_Layer)
 {
     const bool thisIsBarrier = this->qBarrierWaveOp();
@@ -40,7 +41,7 @@ WaveOp::WaveOp (const WaveOp::Params& params,
 const std::string&
 WaveOp::gLayerName () const
 {
-    return m_Layer->gName();
+    return m_LayerName;
 }
 
 
@@ -76,9 +77,10 @@ WaveOp::verify () const
     if (m_Name == "") {
         return false;
     }
-    if (! m_Layer) {
+    if (m_LayerName == "") {
         return false;
     }
+    //// OK to have null Layer.
     if (m_Order < 0) {
         return false;
     }
@@ -95,7 +97,7 @@ WaveOp::Params::verify() const
     if (m_WaveOpName == "") {
         return false;
     }
-    if (! m_Layer) {
+    if (m_LayerName == "") {
         return false;
     }
     return true;

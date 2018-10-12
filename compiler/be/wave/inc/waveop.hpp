@@ -173,6 +173,7 @@ protected:
     kcc_int32               m_Order             = -1;
     bool                    m_HasInBarrier  = false;
     bool                    m_HasOutBarrier = false;
+    std::string             m_LayerName     = "";
 
 private:
     layers::Layer*          m_Layer         = nullptr;
@@ -185,6 +186,7 @@ public:
 public:
     std::string             m_WaveOpName    = "";
     //FmapDesc                m_OfmapDesc;
+    std::string             m_LayerName     = "";
     layers::Layer*          m_Layer         = nullptr;
     kcc_int32               m_Order;
 };
