@@ -158,6 +158,7 @@ testConfigMap = {
   "0-1stridedslice_wave" : [ "trivnet_stridedslice",  "tfloat16-b1-h4-r1-s1-c2-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
 
   "0-1conv0_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
+  "0-1conv0_fp32_wave" : [ "trivnet_conv1",  "tfloat32-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv0_subnormal_wave" : [ "trivnet_conv1",
       "tfloat16-b1-h1-r1-s1-c1-m1-wmin0.0000022-wmax0.0000022-imin33.3-imax33.3",
       "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
