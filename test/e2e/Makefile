@@ -84,7 +84,10 @@ TEST_ARGS_CHECK = --test 0-1conv0_wave  3-rn50-t00_wave 3-rn50_pool2_wave 4-ptb_
 \
 0-11conv_tanh_wave_qemu  0-1clipbyvalue_wave_qemu  0-1concat_h1c1m1ni2_qemu  0-1conv0_subnormal_wave_qemu  \
 0-1conv1ba1_h4c2m2_wave_qemu  0-1conv_exp_pad_wave_qemu  0-1conv_h4_softplus_wave_qemu  \
-0-resadd_wave_qemu   0-subtract_psum_sb_wave  
+4-ptb_word_small_sigmoid_wave 4-ptb_word_small_sigmoid_2l_wave \
+0-resadd_wave_qemu   
+
+# 0-subtract_psum_sb_wave  
 
 # Tests that we want to run on qemu but they still fails as of Oct 2018
 # 0-1conv_h4_sigmoid_wave_qemu  0-1stridedslice_tanh_sigmoid_wave_qemu  0-scaleadd_wave_qemu

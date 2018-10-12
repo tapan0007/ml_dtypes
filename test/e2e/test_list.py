@@ -948,10 +948,10 @@ testConfigMap = {
     + " --executors host 0 2 wave 1 "
     + " --scheduler wave2 "
     + " --schedule_options ' --nname=generic --save_layer_output ' "
-    + " --waive_wavegraph_checks "
     + " --input_constants dropout_1/keras_learning_phase:0 False  "
     + " --exclude_ops_from_capture ^dropout_1_1/cond/ "
     + " --images %s "
+    + " --waive_wavegraph_checks "
     ) % lstmD0T4, "--input_files %s" % lstmD0T4],
 
 
@@ -969,7 +969,8 @@ testConfigMap = {
     + " --input_constants dropout_1/keras_learning_phase:0 False  "
     + " --exclude_ops_from_capture ^dropout_1_1/cond/ "
     + " --images %s "
-    + " --wavegraph_checks structure data-race"
+    + " --waive_wavegraph_checks "
+    #+ " --wavegraph_checks structure data-race"
     )% lstmD0T4,
     "--input_files %s" % lstmD0T4
   ],
@@ -982,10 +983,11 @@ testConfigMap = {
   + " --adjust_node_color  lstm_1_1/Tile 0 lstm_1_1/Tile_1 0 lstm_2_1/Tile 2 lstm_2_1/Tile_1 2    "
   + " --executors  wave 1 3   "
   + " --scheduler wave2  "
-  #+ " --schedule_options ' --nname=generic --save_layer_output '  "
-  + " --schedule_options ' --nname=generic '  "
+  + " --schedule_options ' --nname=generic --save_layer_output '  "
   + " --input_constants dropout_1/keras_learning_phase:0 False   "
-  + " --exclude_ops_from_capture ^dropout_1_1/cond/ --images %s"
+  + " --exclude_ops_from_capture ^dropout_1_1/cond/ "
+  + " --images %s"
+  + " --waive_wavegraph_checks "
   )% lstmD0T4, "--input_files %s" % lstmD0T4],
 
   # Batched small LSTM
@@ -1000,7 +1002,8 @@ testConfigMap = {
     + " --exclude_ops_from_capture ^dropout_1_1/cond/  "
     + " --images %s  "
     + " --batch 64  "
-    + " --wavegraph_checks structure data-race"
+    #+ " --wavegraph_checks structure data-race"
+    + " --waive_wavegraph_checks "
     )% lstmD0T4B64, "--input_files %s" % lstmD0T4B64],
 
 
@@ -1218,7 +1221,7 @@ testWaiver = [
     ['2-ptb_word_unstack_.*',             'WAIVE-KAENA661'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
-    ['^(4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
+    #['^(4-ptb_word_small_sigmoid_2l_wave)$',   'WAIVE-ME_HNWC'],
 
     # Multi-tpb partitioning - passes in host mode so no need to waive
     #['7-rn50_fp16_multi_tpb_o_wave', 'WAIVE_MTPB'],
@@ -1272,7 +1275,7 @@ qemuTestWaiver = [
     ['8-rn50_nne_fp16_b16_wave$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-no_repl', 'WAIVE-V49850304'],
     #['5-rn50_nne_to_act13_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
-    ['6-rn50_nne_to_act22_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
+    #['6-rn50_nne_to_act22_wave-no_repl-all-layers', 'WAIVE-OfmapOverwrite-SIM735'],
     ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
 ]

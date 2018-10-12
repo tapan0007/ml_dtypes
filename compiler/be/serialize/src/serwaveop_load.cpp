@@ -264,7 +264,6 @@ SerWaveOp::loadMultiply(cereal::JSONInputArchive& archive)
 
 
 
-
 void
 SerWaveOp::loadSrc(cereal::JSONInputArchive& archive, Dims dims)
 {
