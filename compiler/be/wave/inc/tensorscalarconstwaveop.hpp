@@ -49,6 +49,12 @@ public:
     static std::string gTypeStrScaleAddStatic() {
         return "ScaleAdd";
     }
+    static std::string gTypeStrMultiplyStatic() {
+        return "Multiply";
+    }
+    static std::string gTypeStrAddStatic() {
+        return "Add";
+    }
 
     virtual WaveOpType gType() const override {
         return WaveOpType::TensorScalarConst;

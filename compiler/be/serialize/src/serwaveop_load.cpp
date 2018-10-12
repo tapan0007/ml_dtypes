@@ -37,7 +37,9 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         loadResAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
-        loadResAdd(archive);
+        loadMultiply(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Add) {
+        loadAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
         loadClipByValue(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ScaleAdd) {
@@ -219,6 +221,37 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
     loadDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
+}
+
+
+void
+SerWaveOp::loadAdd(cereal::JSONInputArchive& archive)
+{
+    loadSrcAB(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    //if (m_PreviousWaveOps.size() == 1) {
+    //    KCC_ARCHIVE(AddScalar);
+    //}
+}
+
+void
+SerWaveOp::loadMultiply(cereal::JSONInputArchive& archive)
+{
+    loadSrcAB(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    // Multiply waveop is Tensor-Tensor for now.
+    // Cannot determine whether it is tensor-tensor
+    // or tensor-scalar by the number of previoius waveops
+    // because the number of previous waveops can be 1
+    // even when there are two input tensors - for example
+    // when one input tensor preceeds the other input tensor.
+    //if (m_PreviousWaveOps.size() == 1) {
+    //    KCC_ARCHIVE(MulScalar);
+    //}
 }
 
 

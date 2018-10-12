@@ -272,9 +272,9 @@ testConfigMap = {
   "0-act_softplus_wave"     : [ "trivnet_act", "tfloat16-b1-h2-c128-softplus-wmin2-wmax2.2-imin-1-imax2", "act", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-scaleadd_wave"       : [
     "trivnet_scaleadd",
-    "tfloat16-b1-h1-c16-wmin2-wmax2.2-imin3-imax6",
+    "tfloat16-b1-h1-c16-wmin2-wmax2.2-amin3-amax3.5-imin3-imax6",
     "scaleadd",
-    ("--scheduler wave "
+    ("--scheduler wave2 "
      + " --waive_wavegraph_checks "
     )
   ],
@@ -901,11 +901,12 @@ testConfigMap = {
 
   "4-ptb_word_small1_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/model-b32s4h512.pb","lm",
     (" --input_node embedding_1_input_1 --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose_1 HNC --depth 3  --debug 0    "
-    + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1  lstm_2_1/transpose_1   "
+    + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack  lstm_2_1/transpose_1  "
+    + " --adjust_node_color lstm_1_1/Tile 0 lstm_1_1/Tile_1 0  "
+    + " --show_op_name_in_kgraph --input_node embedding_1_input_1 "
     + " --executors host 0 2 wave 1  "
     + " --scheduler wave2  "
-    #+ " --schedule_options ' --nname=generic --save_layer_output '  "
-    + " --schedule_options ' --nname=generic '  "
+    + " --schedule_options ' --nname=generic --save_layer_output '  "
     + " --input_constants dropout_1/keras_learning_phase:0 False  "
     + " --exclude_ops_from_capture ^dropout_1_1/cond/  "
     + " --images %s  "

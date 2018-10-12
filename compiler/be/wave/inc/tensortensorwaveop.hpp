@@ -53,6 +53,9 @@ public:
     static std::string gTypeStrMultiplyStatic() {
         return "Multiply";
     }
+    static std::string gTypeStrAddStatic() {
+        return "Add";
+    }
     static std::string gTypeStrMaximum() {
         return "Maximum";
     }

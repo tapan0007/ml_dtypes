@@ -48,6 +48,9 @@ constexpr static const char* LayerKey_Stride            = "stride";
 constexpr static const char* LayerKey_Padding           = "padding";
 constexpr static const char* LayerKey_Batching          = "batching";
 
+constexpr static const char* LayerKey_MulScalar         = "mul_scalar";
+constexpr static const char* LayerKey_AddScalar         = "add_scalar";
+
 
 
 #define KCC_ARCHIVE(X) archive(cereal::make_nvp(KCC_CONCAT(LayerKey_,X), KCC_CONCAT(m_,X)))
@@ -103,6 +106,14 @@ public:
             KCC_ARCHIVE(KernelShape);
             KCC_ARCHIVE(Stride);
             KCC_ARCHIVE(Padding);
+        } else if (m_LayerType == layers::LayerTypeStr_Multiply) {
+            if (m_PrevLayers.size() == 1) {
+                KCC_ARCHIVE(MulScalar);
+            }
+        } else if (m_LayerType == layers::LayerTypeStr_Add) {
+            if (m_PrevLayers.size() == 1) {
+                KCC_ARCHIVE(AddScalar);
+            }
         } else if (m_LayerType == layers::LayerTypeStr_BiasAdd) {
             // nothing specific to BiasAdd layer
         } else if (m_LayerType == layers::LayerTypeStr_ResAdd || m_LayerType == layers::LayerTypeStr_Multiply) {
@@ -298,6 +309,8 @@ private:
     std::vector<std::vector<int> >        m_Padding;       // conv,pool
 
     std::vector<int>            m_Batching;
+    kcc_float32                 m_AddScalar;
+    kcc_float32                 m_MulScalar;
     /*
     int                         m_BatchingInWave  = -1;
     */

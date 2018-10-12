@@ -1505,6 +1505,44 @@ class FusedOp(list):
                         residue_sb_addr     = residue_sb_addr)
                 self.attach_predecessors(waveop, prev_waveops)
                 psum_bank_src = psum_bank_dst
+            elif (re.search("^Add$|Minimum|Maximum|Multiply", layer_type)):
+                add_scalar = 0.0
+                mul_scalar = 1.0
+                if layer_type == 'Add' or layer_type == 'Maximum' or layer_type == 'Minimum':
+                    assert('add_scalar' in self[i].data)
+                    add_scalar = self[i].data['add_scalar']
+                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, add_scalar)
+                else: # if layer_type == 'Multiply':
+                    assert('mul_scalar' in self[i].data)
+                    mul_scalar = self[i].data['mul_scalar']
+                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, mul_scalar)
+                psum_bank_dst = psum_bank_src
+                dst_is_psum = self[i].dst_is_psum
+                if dst_is_psum:
+                    tpb.pearray.write_psum(psum_bank_dst, 0, psum_temp.shape[0], psum_temp)
+                if layer_type == 'Add' or layer_type == 'Multiply':
+                    waveop = self.gen_scaleadd_or_clip_waveop_inline(
+                                tpb              = tpb,
+                                op               = self[i], 
+                                ifmap_tile       = ifmap_tile, 
+                                ofmap_tile       = ofmap_tile,
+                                src_is_psum      = True, 
+                                psum_bank_src    = psum_bank_src, 
+                                dst_is_psum      = dst_is_psum,
+                                psum_bank_dst    = psum_bank_src if dst_is_psum else -1, 
+                                dram_waveops     = [], 
+                                scale_or_min_val = mul_scalar,
+                                add_or_max_val   = add_scalar)
+                else:                    
+                    waveop = self.gen_tensor_scalar_waveop_inline(
+                                mapper        = tpb.statebuffer.file_mapper, 
+                                waveop_stream = tpb.waveop_stream,
+                                op            = self[i],
+                                ifmap_tile    = ifmap_tile, 
+                                ofmap_tile    = ofmap_tile, 
+                                psum_bank_id  = psum_bank_src) 
+                self.attach_predecessors(waveop, prev_waveops)
+                #tpb.waveop_stream.last_psum_waveop[psum_bank_dst]['previous_waveops'] += prev_waveops
             elif re.search("Reshape|Squeeze|ExpandDims", layer_type):
                 pass
             elif ((layer_type == 'AvgPool') or (layer_type == 'MaxPool')):
@@ -1600,7 +1638,7 @@ class FusedOp(list):
         dst_y_num = op.ofmap_full_tiley_sz
         dst_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded if op.Tn > 1 else 1
         dst_z_num = op.Tn  # Need CNHW data format
-        num_partitions = op.ofmap_count
+        num_partitions = ofmap_tile.channel_count
         if dst_is_psum:
             dst_sb_address = 0
         else:            
@@ -1843,6 +1881,47 @@ class FusedOp(list):
         tpb.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1, new_reader_morsels)
         return instr
 
+    # generate tensor-scalar waveop and add to waveop stream
+    def gen_tensor_scalar_waveop_inline(self, mapper, waveop_stream, op, ifmap_tile, ofmap_tile, psum_bank_id, dram_waveops=[], new_reader_morsels=[]):
+        batch_item = ofmap_tile.batch_item_start
+        num_partitions = ofmap_tile.channel_count
+        start_at_mid_part = ofmap_tile.start_at_mid_part
+        # Source SB address or PSUM bank
+        if op.src_is_psum:
+            src_sb_address = 0
+            src_psum_bank = psum_bank_id
+        else:            
+            src_sb_address = mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
+            src_psum_bank = -1
+
+        # Destination SB address or PSUM bank
+        if op.dst_is_psum:
+            dst_sb_address = 0
+            dst_psum_bank = psum_bank_id
+        else:            
+            dst_sb_address = mapper.get_sb_addr_from_file_addr(ofmap_tile.file_params, batch_item, ofmap_tile.lower_addr[0])
+            dst_psum_bank = -1
+
+        waveop_name = op.data['layer_name'] + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
+        waveop_type = op.data['layer_type']
+
+        waveop = {
+              'previous_waveops'        : [],
+              'waveop_type'             : waveop_type,
+              'waveop_name'             : waveop_name,
+              'layer_name'              : op.data['layer_name'],
+              'tile_id_format'          : ofmap_tile.format,
+              'tile_id'                 : ofmap_tile.id_array,
+              'num_partitions'          : num_partitions,
+            }
+
+        ifmap_subtile = ifmap_tile.make_pewave()
+        ofmap_subtile = ofmap_tile.make_pewave()
+        ifmap_subtile.set_waveop_pattern(mapper, waveop, 'src', src_psum_bank, src_sb_address, start_at_mid_part)
+        ofmap_subtile.set_waveop_pattern(mapper, waveop, 'dst', dst_psum_bank, dst_sb_address, start_at_mid_part)
+        waveop_stream.add_linked(waveop, dram_waveops, src_psum_bank, new_reader_morsels)
+        return waveop
+
     def gen_fused_pool_waveop_inline (self, tpb, ifmap_tile, ofmap_tile, psum_bank_src, start_at_mid_part):
         first_waveop = None
         for z in range(self.pool_op.Tn):
@@ -1975,8 +2054,6 @@ class FusedOp(list):
         ifmaps_data = first_op.pack_wave_ifmaps_unfused_pooling(ifmap_tile.file_params.dram_data, ifmap_subtile)
         input_tilex = ifmap_tile.tile_rect.dim2d.x
         input_tiley = ifmap_tile.tile_rect.dim2d.y
-        output_tiley = first_op.ofmap_full_tiley_sz
-        output_tilex = first_op.ofmap_full_tilex_sz
         ifmaps_data_extract = ifmaps_data [0:input_tiley*input_tilex*first_op.Tn, :]
         layer_type = first_op.data['layer_type'] 
         if (layer_type == "AvgPool" or layer_type == "MaxPool"):
@@ -2003,9 +2080,9 @@ class FusedOp(list):
                                         ofmap_tilex_sz   = pool_wave.ofmap.dim2d.x, 
                                         ofmap_tiley_sz   = pool_wave.ofmap.dim2d.y)
                 ofmap_tile.set_subtile_data_in_file2(pool_wave.ofmap, subtile_data)
-        elif (layer_type == "Multiply" or layer_type == "ResAdd" or layer_type == "Maximum" or layer_type == "Minimum"):
+        elif (layer_type == "Multiply" or layer_type == "ResAdd" or layer_type == "Maximum" 
+                    or layer_type == "Minimum" or layer_type == "Add"):
             if ("mul_scalar" in first_op.data):
-                assert (layer_type == "Multiply")
                 tile_data_flatten = tpb.pool.scale(ifmaps_data_extract, first_op.data['mul_scalar'])
             else:
                 residue_file_params = first_op.prev[first_op.residue_index].ofmaps_file_params
@@ -2263,7 +2340,7 @@ class FusedOp(list):
                 psum_bank_dst = first_op.get_psum_bank()
                 first_op.set_psum_bank((psum_bank_dst+1)%4)
                 tpb.pearray.last_psum_bank_used = first_op.get_psum_bank()
-            if re.search("Multiply|ResAdd|ClipByValue", first_op.data['layer_type']):
+            if re.search("Multiply|ResAdd|ClipByValue|^Add$|Minimum|Maximum", first_op.data['layer_type']):
                 if ("mul_scalar" in first_op.data or first_op.data['layer_type'] == "ClipByValue"):
                     if first_op.data['layer_type'] == "ClipByValue":
                         scale_or_min_val = first_op.data['clip_value_min']
@@ -2365,9 +2442,6 @@ class FusedOp(list):
                     fmap_subtile  = ofmap_tile_subtile, 
                     waveop        = last_waveop)
 
-        #if self.args.abstract_mem:
-        #    if len(dram_output_waveops) > 0:
-        #        self.waveop_stream.last_main_waveop = None
     # Execute an unfused pooling operator
     def execute_unfused_pool_op(self, tpb, batch_item):
         first_op = self[0]

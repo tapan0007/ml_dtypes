@@ -186,6 +186,9 @@ constexpr static const char* WaveOpKey_MaxValue             = "max_val";
 constexpr static const char* WaveOpKey_Add             = "add";
 constexpr static const char* WaveOpKey_Scale           = "scale";
 
+constexpr static const char* WaveOpKey_MulScalar       = "mul_scalar";
+constexpr static const char* WaveOpKey_AddScalar       = "add_scalar";
+
 
 
 class SerWaveOp {
@@ -236,8 +239,11 @@ private:
     void loadPool(cereal::JSONInputArchive& archive);
     void loadMatMul(cereal::JSONInputArchive& archive);
     void loadActivation(cereal::JSONInputArchive& archive);
+
     void loadResAdd(cereal::JSONInputArchive& archive);
     void loadScaleAdd(cereal::JSONInputArchive& archive);
+    void loadAdd(cereal::JSONInputArchive& archive);
+    void loadMultiply(cereal::JSONInputArchive& archive);
     void loadClipByValue(cereal::JSONInputArchive& archive);
     void loadMaximum(cereal::JSONInputArchive& archive);
     void loadMinimum(cereal::JSONInputArchive& archive);
@@ -416,6 +422,8 @@ public:
     kcc_float32                 m_MinValue;
     kcc_float32                 m_MaxValue;
 
+    kcc_float32                 m_AddScalar = 0.0;
+    kcc_float32                 m_MulScalar = 0.0;
     kcc_float32                 m_Add;
     kcc_float32                 m_Scale;
 

@@ -198,6 +198,17 @@ class Pool:
     def scale(self, in_array, scale_value):
         return in_array*scale_value
 
+    def tensor_scalar_op(self, op_type, in_array, scalar):
+        if op_type == 'Add':
+            return in_array + scalar
+        elif op_type == 'Multiply':
+            return in_array * scalar
+        elif op_type == 'Maximum':
+            return np.maximum(in_array, scalar)
+        elif op_type == 'Minimum':
+            return np.minimum(in_array, scalar)
+
+
 """Bias-Add and Activate properties and methods
 """
 class BiasAddAct:

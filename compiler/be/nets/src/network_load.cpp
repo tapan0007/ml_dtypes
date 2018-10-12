@@ -221,7 +221,9 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             layers::Layer* prevLayer = findLayer(prevLayerName, true);
             ASSERT_PREV_LAYER(prevLayer, serLayer, prevLayerName);
             layer = new layers::TanhLayer(params, prevLayer);
-        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd || serLayer.gTypeStr() == layers::LayerTypeStr_Multiply) {
+        } else if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd
+                   || serLayer.gTypeStr() == layers::LayerTypeStr_Multiply
+                   || serLayer.gTypeStr() == layers::LayerTypeStr_Add) {
             // TODO: check dimensions and types of inputs
             if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd) {
                 ASSERT_NUM_LAYERS(serLayer, 2);
@@ -312,7 +314,15 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             } else if (serWaveOp.m_WaveOpType == wave::TensorTensorWaveOp::gTypeStrResAddStatic()) {
                 waveOp = m_Load->loadTensorTensor(serWaveOp, TensorAluOpType::Add);
             } else if (serWaveOp.m_WaveOpType == wave::TensorTensorWaveOp::gTypeStrMultiplyStatic()) {
+                // Multiply waveop is Tensor-Tensor for now.
+                // Cannot determine whether it is tensor-tensor
+                // or tensor-scalar by the number of previoius waveops
+                // because the number of previous waveops can be 1
+                // even when there are two input tensors - for example
+                // when one input tensor preceeds the other input tensor.
                 waveOp = m_Load->loadTensorTensor(serWaveOp, TensorAluOpType::Mult);
+            } else if (serWaveOp.m_WaveOpType == wave::TensorTensorWaveOp::gTypeStrAddStatic()) {
+                waveOp = m_Load->loadTensorTensor(serWaveOp, TensorAluOpType::Add);
             } else if (serWaveOp.m_WaveOpType == wave::TensorScalarConstWaveOp::gTypeStrScaleAddStatic()) {
                 waveOp = m_Load->loadScaleAdd(serWaveOp);
             } else if (serWaveOp.m_WaveOpType == wave::TensorTensorWaveOp::gTypeStrMinimum()) {
@@ -452,8 +462,8 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
 #undef PARAMS
 #define PARAMS matmulParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::MatMulWaveOp::Params matmulParams;
-    fillWaveOpParams(serWaveOp, prevWaveOps, matmulParams);
+    wave::MatMulWaveOp::Params PARAMS;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
 
     KCC_UNSERIALIZE(FmapXNum);
     KCC_UNSERIALIZE(FmapXStep);
@@ -462,11 +472,11 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(FmapZNum);
     KCC_UNSERIALIZE(FmapZStep);
     KCC_UNSERIALIZE(IfmapsSbAddress);
-    matmulParams.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
+    PARAMS.m_InDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_InDtype);
     // layer_name
     KCC_UNSERIALIZE(NumColumnPartitions);
     KCC_UNSERIALIZE(NumRowPartitions);
-    matmulParams.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    PARAMS.m_OutDtypeId = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     // previous layers
     KCC_UNSERIALIZE(PsumBankId);
     KCC_UNSERIALIZE(PsumBankOffset);
@@ -488,8 +498,8 @@ Network::Load::loadMatMul(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(IfmapReplicationResolution);
     KCC_UNSERIALIZE(IfmapReplicationShiftAmnt);
 
-    auto waveOp = new wave::MatMulWaveOp(matmulParams, prevWaveOps);
-    Assert(waveOp->gName() == matmulParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    auto waveOp = new wave::MatMulWaveOp(PARAMS, prevWaveOps);
+    Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 } // Network::Load::loadMatMul
@@ -500,12 +510,12 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
 #undef PARAMS
 #define PARAMS activationParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::ActivationWaveOp::Params activationParams;
-    fillWaveOpParams(serWaveOp, prevWaveOps, activationParams);
+    wave::ActivationWaveOp::Params PARAMS;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
 
-    activationParams.m_ActivationFunc   = serialize::SerWaveOp::str2ActivationFunc(serWaveOp.m_ActivationFunc);
+    PARAMS.m_ActivationFunc   = serialize::SerWaveOp::str2ActivationFunc(serWaveOp.m_ActivationFunc);
 
-    activationParams.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype);
+    PARAMS.m_BiasDtypeId      = DataType::dataTypeStr2Id(serWaveOp.m_BiasDtype);
     KCC_UNSERIALIZE(BiasAddEn);
     KCC_UNSERIALIZE(BiasSbAddress);
     KCC_UNSERIALIZE(BiasStartAtMidPart);
@@ -516,16 +526,16 @@ Network::Load::loadActivation(const serialize::SerWaveOp& serWaveOp)
     KCC_UNSERIALIZE(NumPartitions);
 
 
-    Assert(activationParams.m_TileId.size() == serWaveOp.m_TileId.size(),
+    Assert(PARAMS.m_TileId.size() == serWaveOp.m_TileId.size(),
         serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
-        "' has wrong tile id size: ", activationParams.m_TileId.size());
+        "' has wrong tile id size: ", PARAMS.m_TileId.size());
     for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
-        activationParams.m_TileId[i] = serWaveOp.m_TileId[i];
+        PARAMS.m_TileId[i] = serWaveOp.m_TileId[i];
     }
     KCC_UNSERIALIZE(TileIdFormat);
 
-    auto waveOp = new wave::ActivationWaveOp(activationParams, prevWaveOps);
-    Assert(waveOp->gName() == activationParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    auto waveOp = new wave::ActivationWaveOp(PARAMS, prevWaveOps);
+    Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
@@ -536,8 +546,8 @@ Network::Load::loadClipByValue(const serialize::SerWaveOp& serWaveOp)
 #undef PARAMS
 #define PARAMS clipByValueParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::ClipByValueWaveOp::Params clipByValueParams;
-    fillWaveOpParams(serWaveOp, prevWaveOps, clipByValueParams);
+    wave::ClipByValueWaveOp::Params PARAMS;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
 
     KCC_UNSERIALIZE(NumPartitions);
     KCC_UNSERIALIZE(MinValue);
@@ -546,16 +556,16 @@ Network::Load::loadClipByValue(const serialize::SerWaveOp& serWaveOp)
     loadSrc(PARAMS, serWaveOp, Dims::XYZ);
     loadDst(PARAMS, serWaveOp, Dims::XYZ);
 
-    Assert(clipByValueParams.m_TileId.size() == serWaveOp.m_TileId.size(),
+    Assert(PARAMS.m_TileId.size() == serWaveOp.m_TileId.size(),
         serWaveOp.m_WaveOpType, " waveop '", serWaveOp.m_WaveOpName,
-        "' has wrong tile id size: ", clipByValueParams.m_TileId.size());
+        "' has wrong tile id size: ", PARAMS.m_TileId.size());
     for (unsigned int i = 0; i < serWaveOp.m_TileId.size(); ++i) {
-        clipByValueParams.m_TileId[i] = serWaveOp.m_TileId[i];
+        PARAMS.m_TileId[i] = serWaveOp.m_TileId[i];
     }
     KCC_UNSERIALIZE(TileIdFormat);
 
-    auto waveOp = new wave::ClipByValueWaveOp(clipByValueParams, prevWaveOps);
-    Assert(waveOp->gName() == clipByValueParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    auto waveOp = new wave::ClipByValueWaveOp(PARAMS, prevWaveOps);
+    Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
@@ -567,12 +577,12 @@ Network::Load::loadTensorTensor(const serialize::SerWaveOp& serWaveOp, TensorAlu
 #undef PARAMS
 #define PARAMS tensorTensorParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::TensorTensorWaveOp::Params tensorTensorParams;
-    fillWaveOpParams(serWaveOp, prevWaveOps, tensorTensorParams);
+    wave::TensorTensorWaveOp::Params PARAMS;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
 
-    tensorTensorParams.m_InADtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InADtype);
-    tensorTensorParams.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
-    tensorTensorParams.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
+    PARAMS.m_InADtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InADtype);
+    PARAMS.m_InBDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InBDtype);
+    PARAMS.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype);
     KCC_UNSERIALIZE(NumPartitions);
 
     loadSrcAB(PARAMS, serWaveOp, Dims::XYZ);
@@ -580,8 +590,8 @@ Network::Load::loadTensorTensor(const serialize::SerWaveOp& serWaveOp, TensorAlu
 
     KCC_UNSERIALIZE(WaveOpType);
 
-    auto waveOp = new wave::TensorTensorWaveOp(aluOp, tensorTensorParams, prevWaveOps);
-    Assert(waveOp->gName() == tensorTensorParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    auto waveOp = new wave::TensorTensorWaveOp(aluOp, PARAMS, prevWaveOps);
+    Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
@@ -608,8 +618,8 @@ Network::Load::loadScaleAdd(const serialize::SerWaveOp& serWaveOp)
 #undef PARAMS
 #define PARAMS tensorScalarConstParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::TensorScalarConstWaveOp::Params tensorScalarConstParams;
-    fillWaveOpParams(serWaveOp, prevWaveOps, tensorScalarConstParams);
+    wave::TensorScalarConstWaveOp::Params PARAMS;
+    fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
 
     KCC_UNSERIALIZE(NumPartitions);
 
@@ -620,20 +630,57 @@ Network::Load::loadScaleAdd(const serialize::SerWaveOp& serWaveOp)
 
     if (serWaveOp.m_WaveOpType == wave::TensorScalarConstWaveOp::gTypeStrScaleAddStatic()) {
         // y = aluOp[1] * (x + aluOp[0])
-        tensorScalarConstParams.m_AluOp[0] = TensorAluOpType::Mult; 
-        tensorScalarConstParams.m_AluOp[1] = TensorAluOpType::Add; 
-        tensorScalarConstParams.m_ImmVal[0] = serWaveOp.m_Scale;
-        tensorScalarConstParams.m_ImmVal[1] = serWaveOp.m_Add;
+        PARAMS.m_AluOp[0] = TensorAluOpType::Mult; 
+        PARAMS.m_AluOp[1] = TensorAluOpType::Add; 
+        PARAMS.m_ImmVal[0] = serWaveOp.m_Scale;
+        PARAMS.m_ImmVal[1] = serWaveOp.m_Add;
     } else {
         Assert(false, "Supported ALU ops are: Add, Mult");
     }
 
-    auto waveOp = new wave::TensorScalarConstWaveOp(tensorScalarConstParams, prevWaveOps);
-    Assert(waveOp->gName() == tensorScalarConstParams.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    auto waveOp = new wave::TensorScalarConstWaveOp(PARAMS, prevWaveOps);
+    Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
 }
 
+
+wave::TensorScalarConstWaveOp*
+Network::Load::loadTensorScalarConst(const serialize::SerWaveOp& serWaveOp, TensorAluOpType aluOp)
+{
+assert(false);
+#undef PARAMS
+#define PARAMS tensorScalarAddParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::TensorScalarConstWaveOp::Params PARAMS;
+    fillWaveOpParams(serWaveOp, prevWaveOps, tensorScalarAddParams);
+
+    KCC_UNSERIALIZE(NumPartitions);
+
+    loadSrc(PARAMS, serWaveOp, Dims::XYZ);
+    loadDst(PARAMS, serWaveOp, Dims::XYZ);
+
+    KCC_UNSERIALIZE(WaveOpType);
+
+    if (TensorAluOpType::Add == aluOp) {
+        PARAMS.m_AluOp[0] = TensorAluOpType::Bypass;
+        PARAMS.m_AluOp[1] = TensorAluOpType::Add; 
+        PARAMS.m_ImmVal[0] = 0.0;
+        PARAMS.m_ImmVal[1] = serWaveOp.m_AddScalar;
+    } else if (TensorAluOpType::Mult == aluOp) {
+        PARAMS.m_AluOp[0] = TensorAluOpType::Bypass;
+        PARAMS.m_AluOp[1] = TensorAluOpType::Mult; 
+        PARAMS.m_ImmVal[0] = 0.0;
+        PARAMS.m_ImmVal[1] = serWaveOp.m_MulScalar;
+    } else {
+        Assert(false, "Supported TensorScalar ops are: Add, Mult");
+    }
+
+    auto waveOp = new wave::TensorScalarConstWaveOp(PARAMS, prevWaveOps);
+    Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    return waveOp;
+#undef PARAMS
+}
 
 
 
