@@ -19,7 +19,7 @@ import multiprocessing
 import test_list
 import csv
 import subprocess
-
+import json
 
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
@@ -161,6 +161,24 @@ def runCmd(cmd):
 ###############################################################################
 class QoR:
   @staticmethod
+  def traceGetCycles(filepath):
+    cycles = -1
+    elapsedTimeSec = -1
+    with open(filepath) as data_file:
+      trace = json.load(data_file)
+      if len(trace) == 0:
+        return  int(cycles), float(elapsedTimeSec)
+
+      min_cycles = trace[0]['tts']
+      max_cycles = trace[0]['tts']
+      for trace_entry in trace:
+        tts = trace_entry['tts']
+        min_cycles = min(min_cycles, tts)
+        max_cycles = max(max_cycles, tts)
+      cycles = max_cycles - min_cycles
+    return int(cycles), float(elapsedTimeSec)
+
+  @staticmethod
   def simLogGetCycles(filepath):
     cycles = -1
     elapsedTimeSec = -1
@@ -216,13 +234,18 @@ class QoR:
         for file in files:
           #print("DEBUG: visited file  " + os.path.join(subdir, file))
           filepath = subdir + os.sep + file
-          if re.match(r'log-exec-sg\d+-(wave|tcc)', file):
+          testName = filepath.split("/")[0]
+          assert (testName == self.testName)
+          if re.match(r'.*trace_notifications.json', file):
             #print("DEBUG: processing file  " + os.path.join(subdir, file))
-            testName = filepath.split("/")[0]
-            assert(testName == self.testName)
+            sgCycles, sgElapsedTimeSec = QoR.traceGetCycles(filepath)
+            self.cycles += sgCycles
+            self.elapsedTimeSec += sgElapsedTimeSec
+          elif re.match(r'log-exec-sg\d+-(wave|tcc)', file):
             sgCycles, sgElapsedTimeSec = QoR.simLogGetCycles(filepath)
             self.cycles += sgCycles
             self.elapsedTimeSec += sgElapsedTimeSec
+
     if self.cycles > 0:
       self.tops = 1.0 * self.ops / self.cycles / 1e12 * self.freq
       self.topsPadded = 1.0 * self.opsPadded / self.cycles / 1e12 * self.freq
