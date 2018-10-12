@@ -1,5 +1,6 @@
 import json
 import re
+import numpy as np
 
 waveops = dict()
 weight_waveops = dict() # key : start address
@@ -26,36 +27,36 @@ def compute_sb_start (op, read):
     else:
       return None
 
-def compute_access_size (num, step, dtype):
-    size = num * step
-    if (dtype == 'float16' or dtype == 'int16'): size *= 2
-    elif (dtype == 'float32' or dtype == 'int32'): size *= 4
-    elif (dtype == 'float8' or dtype == 'int8'): size *= 1
-    else: assert(0)#, "Unsupported data type %s"%dtype)
-    return size
+def compute_start_pos (start, num, step, dtype):
+    return start + (num - 1) * step * np.dtype(dtype).itemsize
 
 def compute_access_size_w_access_pattern(prefix, op):
     if (prefix == 'src'): type_prefix = 'in'
     else: type_prefix = 'out'
 
+    w_num = prefix + '_w_num'
     z_num = prefix + '_z_num'
     y_num = prefix + '_y_num'
     x_num = prefix + '_x_num'
+    w_step = prefix + '_w_step'
     z_step = prefix + '_z_step'
     y_step = prefix + '_y_step'
     x_step = prefix + '_x_step'
     dtype = type_prefix + '_dtype'
-    if (op[z_num] == 1):
-      if (op[y_num] == 1):
-        size = compute_access_size(
-          op[x_num], op[x_step], op[dtype])
-      else:
-        size = compute_access_size(
-          op[y_num], op[y_step], op[dtype])
-    else:
-      size = compute_access_size(
-        op[z_num], op[z_step], op[dtype])
-    return size
+
+    w_start = 0
+    z_start = 0
+    y_start = 0
+    x_start = 0
+    if (w_num in op):
+        w_start = compute_start_pos (0, op[w_num], op[w_step], op[dtype])
+    if (z_num in op):
+        z_start = compute_start_pos (w_start, op[z_num], op[z_step], op[dtype])
+    if (y_num in op):
+        y_start = compute_start_pos (z_start, op[y_num], op[y_step], op[dtype])
+    if (x_num in op):
+        x_start = compute_start_pos (y_start, op[x_num], op[x_step], op[dtype])
+    return (x_start + np.dtype(op[dtype]).itemsize - 1)
 
 def compute_sb_access_size (op, read):
   if (op['waveop_type'] == 'SBAtomSave' or op['waveop_type'] == 'SBAtomLoad'):
@@ -86,11 +87,6 @@ def check_overlap (a_start, a_end, b_start, b_end):
       conf = True
     return conf
 
-def access_unit (dtype):
-  u = 1
-  if (dtype == 'float16' or dtype == 'int16'): u = 2
-  elif (dtype == 'float32' or dtype == 'int32'): u = 4
-  return u
 def conflict (cur_op, prev_op):
   prev_read = determine_read_write(prev_op)
   prev_sb_start = compute_sb_start(prev_op, prev_read)
@@ -110,13 +106,13 @@ def conflict (cur_op, prev_op):
         prev_sb_start = prev_op['weights_sb_address']
         num_weight_elem = prev_op['num_column_partitions']
         prev_sb_end=\
-          prev_sb_start+num_weight_elem*access_unit(prev_op['in_dtype'])
+          prev_sb_start+num_weight_elem*np.dtype(prev_op['in_dtype']).itemsize
         conf = check_overlap(cur_sb_start,cur_sb_end,prev_sb_start,prev_sb_end)
     if (prev_op['waveop_type'] == 'Activation' and conf == False):
       print ("2.prev_start = %d, prev_end = %d"%(prev_sb_start, prev_sb_end))
       if (prev_op['bias_add_en'] == True):
         prev_sb_start = prev_op['bias_sb_address']
-        prev_sb_end = prev_sb_start + access_unit(prev_op['bias_dtype']) - 1
+        prev_sb_end = prev_sb_start + np.dtype(prev_op['bias_dtype']).itemsize - 1
         conf = check_overlap(cur_sb_start,cur_sb_end,prev_sb_start,prev_sb_end)
       if (prev_op['dst_is_psum'] == False and conf == False):
         print ("3.prev_start = %d, prev_end = %d"%(prev_sb_start, prev_sb_end))
@@ -212,4 +208,4 @@ def remove_redundant_edges (wavegraph_json, is_file = False):
                 outfile.write(s)
     return wavegraph
 
-#remove_redundant_edges("wavegraph.json", True)
+#remove_redundant_edges("wavegraph.json-b", True)

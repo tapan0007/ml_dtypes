@@ -55,7 +55,14 @@ MemInfo_PSUM_Params MMOp::extract_psum_params(json& op)
   mp.ny = 1;mp.nz = 1;mp.nw = 1;
   mp.sy = 0;mp.sz = 0;mp.sw = 0;
   mp.pbid = op["dst_psum_bank_id"];
-  if (op["dst_z_num"] != nullptr) {
+  if (op["dst_w_num"] != nullptr) {
+    mp.nw = op["dst_w_num"];
+    mp.sw = op["dst_w_step"];
+    mp.nz = op["dst_z_num"];
+    mp.sz = op["dst_z_step"];
+    mp.ny = op["dst_y_num"];
+    mp.sy = op["dst_y_step"];
+  } else if (op["dst_z_num"] != nullptr) {
     mp.nz = op["dst_z_num"];
     mp.sz = op["dst_z_step"];
     mp.ny = op["dst_y_num"];
@@ -80,7 +87,14 @@ MemInfo_Params PoolActOp::extract_sb_in_params(json& op)
   mp_in.sx = op["src_x_step"];
   mp_in.ny = 1;mp_in.nz = 1;mp_in.nw = 1;
   mp_in.sy = 0;mp_in.sz = 0;mp_in.sw = 0;
-  if (op["src_z_num"] != nullptr) {
+  if (op["src_w_num"] != nullptr) {
+    mp_in.nw = op["src_w_num"];
+    mp_in.sw = op["src_w_step"];
+    mp_in.nz = op["src_z_num"];
+    mp_in.sz = op["src_z_step"];
+    mp_in.ny = op["src_y_num"];
+    mp_in.sy = op["src_y_step"];
+  } else if (op["src_z_num"] != nullptr) {
     mp_in.nz = op["src_z_num"];
     mp_in.sz = op["src_z_step"];
     mp_in.ny = op["src_y_num"];
@@ -105,7 +119,14 @@ MemInfo_Params PoolActOp::extract_sb_out_params(json& op)
   mp_out.sx = op["dst_x_step"];
   mp_out.ny = 1;mp_out.nz = 1;mp_out.nw = 1;
   mp_out.sy = 0;mp_out.sz = 0;mp_out.sw = 0;
-  if (op["dst_z_num"] != nullptr) {
+  if (op["dst_w_num"] != nullptr) {
+    mp_out.nw = op["dst_w_num"];
+    mp_out.sw = op["dst_w_step"];
+    mp_out.nz = op["dst_z_num"];
+    mp_out.sz = op["dst_z_step"];
+    mp_out.ny = op["dst_y_num"];
+    mp_out.sy = op["dst_y_step"];
+  } else if (op["dst_z_num"] != nullptr) {
     mp_out.nz = op["dst_z_num"];
     mp_out.sz = op["dst_z_step"];
     mp_out.ny = op["dst_y_num"];
@@ -137,7 +158,14 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_in_params(json& op)
   {
     mp_in.pbid = 0;
   }
-  if (op["src_z_num"] != nullptr) {
+  if (op["src_w_num"] != nullptr) {
+    mp_in.nw = op["src_w_num"];
+    mp_in.sw = op["src_w_step"];
+    mp_in.nz = op["src_z_num"];
+    mp_in.sz = op["src_z_step"];
+    mp_in.ny = op["src_y_num"];
+    mp_in.sy = op["src_y_step"];
+  } else if (op["src_z_num"] != nullptr) {
     mp_in.nz = op["src_z_num"];
     mp_in.sz = op["src_z_step"];
     mp_in.ny = op["src_y_num"];
@@ -162,7 +190,14 @@ MemInfo_PSUM_Params PoolActOp::extract_psum_out_params(json& op)
   mp_out.sx = op["dst_x_step"];
   mp_out.ny = 1;mp_out.nz = 1;mp_out.nw = 1;
   mp_out.sy = 0;mp_out.sz = 0;mp_out.sw = 0;
-  if (op["dst_z_num"] != nullptr) {
+  if (op["dst_w_num"] != nullptr) {
+    mp_out.nw = op["dst_w_num"];
+    mp_out.sw = op["dst_w_step"];
+    mp_out.nz = op["dst_z_num"];
+    mp_out.sz = op["dst_z_step"];
+    mp_out.ny = op["dst_y_num"];
+    mp_out.sy = op["dst_y_step"];
+  } else if (op["dst_z_num"] != nullptr) {
     mp_out.nz = op["dst_z_num"];
     mp_out.sz = op["dst_z_step"];
     mp_out.ny = op["dst_y_num"];
