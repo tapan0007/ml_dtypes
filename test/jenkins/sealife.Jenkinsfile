@@ -89,12 +89,13 @@ pipeline {
         stage('Verify') {
             steps {
                 // TODO: sh 'mkdir -p $TEST_DIR && cd $AWS_TONGA_SRC/tvm && ./tests/scripts/task_python_topi.sh 2>&1 | tee $TEST_DIR/log-tvm.txt'
-                sh 'mkdir -p $TEST_DIR/starfish && cd $TEST_DIR/starfish && $AWS_TONGA_SRC/starfish/test/run.sh 2>&1 | tee $TEST_DIR/log-starfish.txt'
-            }
+                sh 'mkdir -p $TEST_DIR/starfish && cd $TEST_DIR/starfish && $AWS_TONGA_SRC/starfish/test/run.sh'
+           }
             post {
                 always {
-                    sh '/bin/cp $TEST_DIR/log-*.txt /artifact/'
-                    archiveArtifacts artifacts:'log-*.txt'
+                    sh 'mkdir /artifact/starfish'
+                    sh 'for f in `find $TEST_DIR/starfish -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" `; do cp $f --parents  /artifact/starfish/; done; '
+                    archiveArtifacts artifacts:'starfish/**'
                 }
             }
         }

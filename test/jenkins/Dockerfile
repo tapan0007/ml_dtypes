@@ -6,6 +6,7 @@ RUN apt update -y && \
         gcc-4.8 \
         g++-4.8 \
         git \
+        graphviz \
         unzip \
         libboost-all-dev \
         cmake \
