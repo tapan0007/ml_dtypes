@@ -1,4 +1,5 @@
 #include <map>
+#include <array>
 
 #include "address_map.h"
 #include "aws_tonga_isa_tpb_common.h"
@@ -135,13 +136,81 @@ void
 WaveCode::DetermineEngines()
 {
     if (qGenerateKelf()) {
+        // First determine edges based on preceeding waveops
         determinePrecSbEdges();
+        // Then enforce the constraint that all input ports/vars
+        // have to be triggered on the same input queue.
+        // Cannot even be triggered on 2+ queues on the same engine.
+        moveOneInputToSingleInputQueue();
     } else {
         for (auto waveop : m_Network.gWaveOps()) {
             if (auto sbWaveop = dynamic_cast<wave::SbAtomWaveOp*>(waveop)) {
                 sbWaveop->rEngineId(EngineId::DmaEng);
             }
         }
+    }
+}
+
+//----------------------------------------------------------------
+void
+WaveCode::moveOneInputToSingleInputQueue()
+{
+    enum { NumEngines = 6 };
+    using EngineCount = std::array<kcc_int32, NumEngines>;
+    std::map<std::string, EngineCount> file2engineCount;
+
+    // Find engine counts for each input (file)
+    for (auto waveop : m_Network.gWaveOps()) {
+        const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveop);
+        if (!loadWop || loadWop->qContainWeights()){
+            continue;
+        }
+        const EngineId engId = loadWop->gEngineId();
+        const kcc_int32 engIdx = static_cast<kcc_int32>(engId);
+        const std::string& fileName(loadWop->gRefFileName());
+        auto it(file2engineCount.find(fileName));
+
+        if (it == file2engineCount.end()) {
+            EngineCount engineCount;
+            for (auto& i : engineCount) {
+                i = 0;
+            }
+            Assert(engId == EngineId::PeArray || engId == EngineId::Pooling
+                   || engId == EngineId::Activation, "Wrong engine id ", engIdx);
+            ++engineCount[engIdx];
+            file2engineCount[fileName] = engineCount;
+        } else {
+            auto& engineCount((*it).second);
+            ++engineCount[engIdx];
+        }
+    }
+
+    // Decide on the engine for a particular input (file) -- the one with max num occurrences
+    // Deciding on engine will decide on queue as well.
+    std::map<std::string, EngineId> file2engine;
+    for (auto fec : file2engineCount) {
+        auto& engineCount((fec).second);
+        kcc_int32 maxCount = -1;
+        kcc_int32 maxEngIdx = -1;
+        for (kcc_int32 engIdx = 0; engIdx < NumEngines; ++engIdx) {
+            if (engineCount[engIdx] > maxCount) {
+                maxEngIdx = engIdx;
+                maxCount = engineCount[maxEngIdx];
+            }
+        }
+        Assert(0 <= maxEngIdx && maxEngIdx < NumEngines, "Bad engine idx ", maxEngIdx);
+        file2engine[(fec).first] = static_cast<EngineId>(maxEngIdx);
+    }
+
+    // All loads on one input now use chosen engine (and queue)
+    for (auto waveop : m_Network.gWaveOps()) {
+        const auto loadWop = dynamic_cast<wave::SbAtomLoadWaveOp*>(waveop);
+        if (!loadWop || loadWop->qContainWeights()){
+            continue;
+        }
+        const std::string& fileName(loadWop->gRefFileName());
+        const EngineId chosenEng = file2engine[fileName];
+        loadWop->rEngineId(chosenEng);
     }
 }
 

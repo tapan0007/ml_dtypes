@@ -77,7 +77,7 @@ public:
 public:
     DmaBlockToTpb&      startNewDmaBlockToTpb(EngineId engId, bool qWeights, const char* comment);
     DmaBlockFromTpb&    startNewDmaBlockFromTpb(EngineId engId, bool qOut, const char* comment);
-    DmaBlockInput&      startNewDmaBlockInput(const char* comment);
+    DmaBlockInput&      startNewDmaBlockInput(EngineId engId, const char* comment);
 
     void writeDmaDescriptors(const char* binFileName, EngineId engId);
 
@@ -85,16 +85,14 @@ public:
     void writeDefinitions(const char* peInstrFileName,
         const char* actInstrFileName, const char* poolInstrFileName);
 
-    kcc_int64 gInputSizeBytes() const {
-        return m_InputSizeBytes;
-    }
-    void rInputSizeBytes(kcc_int64 sz) {
-        m_InputSizeBytes = sz;
-    }
+    kcc_int64 gInputSizeBytes(const std::string& refFileName) const;
+    void rInputSizeBytes(kcc_int64 sz, const std::string& refFileName);
 
 
     void rOutputSizeBytes(kcc_int64 sz, const std::string& refFileName);
     kcc_int64 gOutputSizeBytes(const std::string& refFileName);
+
+    void recordInFile(const std::string& refFileName);
 
     bool qHasFile(const std::string& fileName) const;
     void addActivationFunc(ActivationFunc);
@@ -102,7 +100,6 @@ public:
 private:
     std::set<ActivationFunc> m_ActivationFuncs;
 
-    static const char* gSymbolicInQueue();
     void writeActivationFuncs(json& j);
 
     struct Keys;
@@ -112,8 +109,10 @@ private:
     FileIdType& gFileSymbolicId(const std::string& fileName);
     const FileIdType& gFileSymbolicId(const std::string& fileName) const;
 
+    const FileIdType& gInFileSymbolicId(const std::string& fileName) const;
+    FileIdType& gInFileSymbolicId(const std::string& fileName);
+
     static const char* gSymbolicStateBuffer();
-    static const char* gSymbolicInput();
 
 
     std::string gSymbolicQueue(EngineId engId, bool inp, bool weight) const;
@@ -126,6 +125,7 @@ private:
 private:
     kcc_int32                           m_WeightFileIdCnt = 0;
     std::map<std::string, FileIdType>   m_FileNameToId;
+    std::map<std::string, FileIdType>   m_InFileNameToId;
     std::map<std::string, kcc_int32>    m_QueueToBlockId;
     std::vector<DmaBlockToTpb>          m_DmaBlocksToTpb;
     std::vector<DmaBlockFromTpb>        m_DmaBlocksFromTpb;
@@ -139,9 +139,6 @@ private:
     const char* const                   m_DefJsonFileName   = "def.json";
 
     const nets::Network&                m_Network;
-
-    kcc_int64                           m_InputSizeBytes         = -1;
-    kcc_int64                           m_OutputSizeBytes        = -1;
 }; // class DmaDescription
 
 
@@ -313,11 +310,14 @@ protected:
 ***********************************************************************/
 class DmaDescription::DmaBlockInput : public DmaBlock {
 public:
-    DmaBlockInput(DmaDescription& dmaDescription, const char* comment);
+    DmaBlockInput(DmaDescription& dmaDescription, EngineId engID, const char* comment);
     DmaBlockInput() = delete;
 
     void addDmaDesc(TongaAddress srcFileAddress,
-                TongaAddress dstTongaAddress, kcc_int32 numBytes);
+                TongaAddress dstTongaAddress,
+                const std::string& refFile,
+                kcc_int32 numBytes);
+
     kcc_int32 gId() const;
 
     //std::vector<DmaDescToTpb>
@@ -325,13 +325,14 @@ public:
         return m_Descs;
     }
 
-    kcc_uint64 size() const;
-
-    static std::string gSymbolicInputQueueName() {
-        return std::string(DmaDescription::gSymbolicInQueue());
+    std::string gSymbolicQueueName(EngineId engId) const {
+        return m_DmaDescription.gSymbolicQueue(engId, true, false);
     }
 
+    kcc_uint64 size() const;
+
 private:
+    const EngineId          m_EngineId;
     std::vector<DmaDescToTpb> m_Descs;
 }; // class DmaDescription::DmaBlockInput
 

@@ -98,8 +98,7 @@ DmaDescription::DmaBlockFromTpb::addDmaDesc(TpbAddress srcTpbSbAddress,
         const std::string& refFile,
         kcc_int32 numBytes)
 {
-    FileIdType idType;
-    idType = m_DmaDescription.gFileSymbolicId(refFile, FileType::LoadSave);
+    const FileIdType idType = m_DmaDescription.gFileSymbolicId(refFile, FileType::LoadSave);
     DmaDescFromTpb desc(numBytes, srcTpbSbAddress, dstFileAddress, idType);
 
     m_Descs.push_back(desc);
@@ -108,24 +107,26 @@ DmaDescription::DmaBlockFromTpb::addDmaDesc(TpbAddress srcTpbSbAddress,
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockInput::DmaBlockInput(DmaDescription& dmaDescription, const char* comment)
+DmaDescription::DmaBlockInput::DmaBlockInput(DmaDescription& dmaDescription,
+            EngineId engId, const char* comment)
     : DmaBlock(dmaDescription, comment)
+    , m_EngineId(engId)
 {
-    m_QueueName = m_DmaDescription.gSymbolicInQueue();
+    m_QueueName = m_DmaDescription.gSymbolicQueue(engId, true, false);
     m_BlockId = m_DmaDescription.gBlockIdForQueue(m_QueueName);
 }
+
 
 
 /***********************************************************************
 ***********************************************************************/
 void
 DmaDescription::DmaBlockInput::addDmaDesc(TongaAddress inputAddress,
-        TongaAddress dstSbAddress, kcc_int32 numBytes)
+        TongaAddress dstSbAddress,
+        const std::string& refFile,
+        kcc_int32 numBytes)
 {
-    FileIdType idType;
-    idType.m_VarName = gSymbolicInput();
-    idType.m_FileName = gSymbolicInput();
-    idType.m_FileType = FileType::Input;
+    const FileIdType& idType(m_DmaDescription.gInFileSymbolicId(refFile));
     DmaDescToTpb desc(numBytes, dstSbAddress, inputAddress, idType);
 
     m_Descs.push_back(desc);

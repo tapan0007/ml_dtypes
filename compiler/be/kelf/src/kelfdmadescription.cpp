@@ -21,12 +21,12 @@ namespace kelf {
 
 using json = nlohmann::json;
 
+static const char* const singleInputName = "IN";
+
 /***********************************************************************
 ***********************************************************************/
 DmaDescription::DmaDescription(const nets::Network& network)
     : m_Network(network)
-    , m_InputSizeBytes(-1)
-    , m_OutputSizeBytes(-1)
 {
 }
 
@@ -85,10 +85,10 @@ DmaDescription::startNewDmaBlockFromTpb(EngineId engId, bool qOut, const char* c
 /***********************************************************************
 ***********************************************************************/
 auto
-DmaDescription::startNewDmaBlockInput( const char* comment)
+DmaDescription::startNewDmaBlockInput(EngineId engId,  const char* comment)
     -> DmaBlockInput&
 {
-    m_DmaBlocksInput.push_back(DmaBlockInput(*this, comment));
+    m_DmaBlocksInput.push_back(DmaBlockInput(*this, engId, comment));
     return m_DmaBlocksInput[ m_DmaBlocksInput.size()-1];
 }
 
@@ -150,24 +150,7 @@ DmaDescription::gSymbolicStateBuffer()
 }
 
 
-/***********************************************************************
-***********************************************************************/
-const char*
-DmaDescription::gSymbolicInput()
-{
-    return "IN";
-}
 
-/***********************************************************************
-***********************************************************************/
-const char*
-DmaDescription::gSymbolicInQueue()
-{
-    return "IN_QUE";
-}
-
-/***********************************************************************
-***********************************************************************/
 
 
 /***********************************************************************
@@ -227,6 +210,28 @@ auto DmaDescription::gFileSymbolicId(const std::string& fileName) const
 
 /***********************************************************************
 ***********************************************************************/
+auto
+DmaDescription::gInFileSymbolicId(const std::string& refFile) const
+    -> const FileIdType&
+{
+    auto it = m_InFileNameToId.find(refFile);
+    Assert(m_InFileNameToId.end() != it, "Failed to find input ", refFile);
+    const FileIdType& fileId((*it).second);
+    return fileId;
+}
+
+auto
+DmaDescription::gInFileSymbolicId(const std::string& refFile)
+    -> FileIdType&
+{
+    auto it = m_InFileNameToId.find(refFile);
+    Assert(m_InFileNameToId.end() != it, "Failed to find input ", refFile);
+    FileIdType& fileId((*it).second);
+    return fileId;
+}
+
+/***********************************************************************
+***********************************************************************/
 void
 DmaDescription::rOutputSizeBytes(kcc_int64 sz, const std::string& refFileName)
 {
@@ -239,6 +244,45 @@ DmaDescription::gOutputSizeBytes(const std::string& refFileName)
 {
     const auto& idType(gFileSymbolicId(refFileName, FileType::LoadSave));
     return idType.m_Size;
+}
+
+kcc_int64
+DmaDescription::gInputSizeBytes(const std::string& refFileName) const
+{
+    const FileIdType& fileId(gInFileSymbolicId(refFileName));
+    Assert(fileId.m_Size > 0, "Size of input ", refFileName, " is not > 0");
+    return fileId.m_Size;
+}
+
+void
+DmaDescription::rInputSizeBytes(kcc_int64 sz, const std::string& refFileName)
+{
+    FileIdType& fileId(gInFileSymbolicId(refFileName));
+    if (fileId.m_Size > 0) {
+        Assert(fileId.m_Size == sz, "Two different values for input ", refFileName,
+                ", old=", fileId.m_Size, " and new=", sz);
+    } else {
+        fileId.m_Size = sz;
+    }
+}
+
+void
+DmaDescription::recordInFile(const std::string& refFileName)
+{
+    const char dotNpy[] = ".npy";
+    auto fileNameCopy(refFileName);
+    auto pos = fileNameCopy.find(dotNpy);
+    if (std::string::npos != pos) {
+        fileNameCopy.replace(pos, ArraySizeof(dotNpy)-1, "");
+    }
+
+    FileIdType fileId;
+    fileId.m_VarName = fileNameCopy;
+    fileId.m_FileName = refFileName;
+    fileId.m_FileType = FileType::Input;
+    fileId.m_Size = -1;
+
+    m_InFileNameToId[refFileName] = fileId;
 }
 
 /***********************************************************************
@@ -362,11 +406,11 @@ DmaDescription::writeDmaDescriptors(
         for (const auto& desc : dmaBlockFromTpb.gDescs()) {
             desc.assertAccessCheck();
             json jDmaDesc;
-            jDmaDesc[Keys::gFromId()]         = gSymbolicStateBuffer();
-            jDmaDesc[Keys::gFromOffset()]     = desc.gSrcSbAddress();
-            jDmaDesc[Keys::gToId()]           = desc.gDstFileId().m_VarName;
-            jDmaDesc[Keys::gToOffset()]       = desc.gDstFileAddress();
-            jDmaDesc[Keys::gSize()]         = desc.gNumBytes();
+            jDmaDesc[Keys::gFromId()]       = gSymbolicStateBuffer();
+            jDmaDesc[Keys::gFromOffset()]   = desc.gSrcSbAddress();
+            jDmaDesc[Keys::gToId()]         = desc.gDstFileId().m_VarName;
+            jDmaDesc[Keys::gToOffset()]     = desc.gDstFileAddress();
+            jDmaDesc[Keys::gSize()]           = desc.gNumBytes();
 
             jDmaDescs.push_back(jDmaDesc);
         }
@@ -457,35 +501,35 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
     j["host"] = m_HostJsonFileName;
     {
         json jDmaQueue;
-        json queDesc;
 
-        queDesc[Keys::gDescType()] = "in";
-        jDmaQueue[gSymbolicInQueue()] = queDesc;
+        for (auto engId : engIds) {
+            const std::string queName = gSymbolicQueue(engId, true, false);
+            if (gNumBlockIdsForQueue(queName) > 0) {
+                json queDesc;
+                queDesc[Keys::gDescType()] = "in";
+                //queDesc[Keys::gOwner()] = gEngineName(engId); // no owner for input queue
+                jDmaQueue[queName]  = queDesc;
+            }
+        }
 
         for (auto engId : engIds) {
             const std::string queName = gSymbolicQueue(engId, false, false);
             if (gNumBlockIdsForQueue(queName) > 0) {
-                queDesc[Keys::gDescType()] = "out";
+                json queDesc;
+                queDesc[Keys::gDescType()] = "out"; // no owner for output queue
                 queDesc[Keys::gOwner()] = gEngineName(engId);
                 jDmaQueue[queName]  = queDesc; // output
             }
         }
 
         for (auto engId : engIds) {
-            std::string queName = gSymbolicQueue(engId, true, true);
+            const std::string queName = gSymbolicQueue(engId, true, true);
             if (gNumBlockIdsForQueue(queName) > 0) {
+                json queDesc;
                 queDesc[Keys::gQueueType()] = "data";
                 queDesc[Keys::gOwner()] = gEngineName(engId);
                 jDmaQueue[queName]    = queDesc; // input for weights
             }
-
-            queName = gSymbolicQueue(engId, true, false);
-            if (gNumBlockIdsForQueue(queName) > 0) {
-                queDesc[Keys::gQueueType()] = "data";
-                queDesc[Keys::gOwner()] = gEngineName(engId);
-                jDmaQueue[queName]   = queDesc; // input for data
-            }
-
         }
 
         j[Keys::gDmaQueue()] = jDmaQueue;
@@ -499,20 +543,25 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
         }
 
 
-        { // input
-            json varDesc;
+        {
+            const kcc_int32 numInputs = m_InFileNameToId.size();
+            Assert(numInputs > 0, "The NN model should have at least one input");
 
-            varDesc[Keys::gHashTransferType()] = "input";
-            varDesc[Keys::gDescType()] = "input";
-            Assert(gInputSizeBytes() > 0, "Number of input bytes must be positive");
-            varDesc[Keys::gSize()] = gInputSizeBytes();
-            if (false) { // to be used by RT to verify incoming requests
-                varDesc["tensor_dtype"]         = m_Network.gInDataType().gName();
-                varDesc["tensor_format"]        = m_Network.gInTensorFormat();
-                varDesc["tensor_dimensions"]    = m_Network.gInTensorDimensions();
-                varDesc["data_shuffle"]         = m_Network.gInLayerStride();
+            for (const auto& kv : m_InFileNameToId) {
+                json varDesc;
+
+                const FileIdType& fileIdType(kv.second);
+                Assert(fileIdType.m_FileType == FileType::Input, "Must be Input");
+                varDesc[Keys::gHashTransferType()] = "input";
+                varDesc[Keys::gDescType()] = "input";
+                varDesc[Keys::gSize()] = fileIdType.m_Size;
+
+                if (numInputs > 1) {
+                    jVars[fileIdType.m_VarName] = varDesc;
+                } else {
+                    jVars[singleInputName] = varDesc;
+                }
             }
-            jVars[gSymbolicInput()]         = varDesc;
         }
 
 
@@ -574,19 +623,24 @@ DmaDescription::writeInOutDescriptors()
     j[Keys::gJsonName()] = "host_json";
     std::vector<json> jDmaBlocks;
 
-    for (const auto& dmaBlock : m_DmaBlocksInput) {
+    for (const auto& dmaInBlock : m_DmaBlocksInput) {
         json jDmaBlock;
-        jDmaBlock[Keys::gQueueName()]  = gSymbolicInQueue();
-        jDmaBlock[Keys::gBlockId()]     = dmaBlock.gBlockId();
-        jDmaBlock[Keys::gHashComment()] = dmaBlock.gComment();
-        jDmaBlock[Keys::gHashBlockSize()] = dmaBlock.size();
-        dmaBlock.setDmaEventField(jDmaBlock);
+        jDmaBlock[Keys::gQueueName()]  = dmaInBlock.gQueueName();
+        jDmaBlock[Keys::gBlockId()]     = dmaInBlock.gBlockId();
+        jDmaBlock[Keys::gHashComment()] = dmaInBlock.gComment();
+        jDmaBlock[Keys::gHashBlockSize()] = dmaInBlock.size();
+        dmaInBlock.setDmaEventField(jDmaBlock);
 
+        const kcc_int32 numInputs = m_InFileNameToId.size();
         std::vector<json> jDmaDescs;
-        for (const auto& desc : dmaBlock.gDescs()) {
+        for (const auto& desc : dmaInBlock.gDescs()) {
             desc.assertAccessCheck();
             json jDmaDesc;
-            jDmaDesc[Keys::gFromId()]         = desc.gSrcFileId().m_VarName;
+            if (numInputs > 1) {
+                jDmaDesc[Keys::gFromId()]         = desc.gSrcFileId().m_VarName;
+            } else {
+                jDmaDesc[Keys::gFromId()]         = singleInputName;
+            }
             jDmaDesc[Keys::gFromOffset()]     = desc.gSrcFileAddress();
             jDmaDesc[Keys::gToId()]           = gSymbolicStateBuffer();
             jDmaDesc[Keys::gToOffset()]       = desc.gDstSbAddress();
