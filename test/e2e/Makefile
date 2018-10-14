@@ -43,7 +43,7 @@ $(info DATA_TYPE is ${DATA_TYPE})
 
 KCC_COMMAND = $(KCC)/scripts/tffe --out_prefix $(OUT_PREFIX) --verbose 1 --tfpb $(PB_FILE) --depth 5 --width 30 $(NN_ARGS)
 ifeq ($(SEALIFE), 1)
-  KCC_COMMAND = $(AWS_TONGA_SRC)/starfish/bin/kcc_tf --verbose 1 --tfpb $(PB_FILE)
+  KCC_COMMAND = $(AWS_TONGA_SRC)/starfish/bin/kcc_tf --verbose 1 --tfpb $(PB_FILE) $(NN_ARGS)
 endif
 
 # Internal targets

@@ -68,6 +68,7 @@ parser.add_argument('--small_first', help='Start N small tests before next large
 parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='store_true', default=False)
 parser.add_argument('--force_qemu', help='Apply additional --filer and various customization for Qemu flow, e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*, only wave tests and not fp32 are filtered', action='store_true', default=False)
 parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
+parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -913,6 +914,8 @@ else:
     test_list.testWaiver += test_list.noGpuTestWaiver
   if args.force_qemu:
     test_list.testWaiver += test_list.qemuTestWaiver
+  if args.waive:
+    test_list.testWaiver += [ [t, "WAIVE_UI"] for t in args.waive]
 
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
   elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0,
