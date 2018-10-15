@@ -67,15 +67,22 @@ pipeline {
                 repo init -m $MANIFEST_FILE_NAME $MANIFEST_REPO_REFSPEC_OPT
                 repo sync -j 8
 
+                # Output the base revisions we have in all repos after repo sync
+                repo info
+                repo forall -p -c git rev-parse HEAD
+
                 git config --global user.name "Jenkins"
                 git config --global user.email aws-tonga-kaena@amazon.com
 
                 [ -z "$GERRIT_REFSPEC" ] || \
-                git -C krt pull origin $GERRIT_REFSPEC || \
-                git -C kcc pull origin $GERRIT_REFSPEC || \
+                git -C starfish pull origin $GERRIT_REFSPEC || \
+                git -C tvm pull origin $GERRIT_REFSPEC || \
+                git -C tvm/dmlc-core pull origin $GERRIT_REFSPEC || \
+                git -C tvm/HalideIR pull origin $GERRIT_REFSPEC || \
+                git -C tvm/dlpack pull origin $GERRIT_REFSPEC || \
+                git -C kcc pull origin $GERRIT_REFSPEC # kcc repo needed for the sealife_jenkinsfile builder
 
                 chmod -R 755 ./
-                ls -ltrA
                 '''
             }
         }
