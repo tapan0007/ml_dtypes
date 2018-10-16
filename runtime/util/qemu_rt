@@ -585,6 +585,7 @@ class KrtcClient:
     grpcAddress = "%s:%d" % (self.krtd.qemu.grpcHost,self.krtd.qemu.grpcPort)
     kelfFile = "%s/kelf.tar.gz" % (workingDir)
     model_id = 1001 #TODO need to remove the hard coding
+    krtOk = False
     with open(loadLogFile, "a+") as fp:
       p = subprocess.Popen([krtcCmd, "load", kelfFile, "--address", grpcAddress], stdout=fp, stderr=fp)
       p.communicate()
