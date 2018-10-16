@@ -3,20 +3,21 @@ set -e
 x=0
 pdb=""
 nname="generic"
-repl=""
-cleanup=""
 dbg="--debug 3"
+opts=""
 while [[ $# > 0 ]]; do case $1 in
     -d) pdb="-m pdb"; shift;;
     -r) nname="resnet50"; shift;;
-    -x) repl="--enable_replication"; shift;;
-    -c) cleanup="--enable_cleanup"; shift;;
+    -x) opts="$opts --enable_replication"; shift;;
+    -c) opts="$opts --enable_cleanup"; shift;;
+    -s) opts="$opts --save_layer_output"; shift;;
     -q) dbg="--debug 0"; shift;;
     -h) echo "run_mid: Run Middle-End on subgraph (be sure compiler.json exists)
         -d: Launch pdb
         -r: ResNet50 performance mode
         -x: Enable replication
         -c: Enable WaveGraph cleanup
+        -s: Save all layers output
         -q: Quiet (debug level 0)
         <num>: Stop and dump results after <num> fused-ops"; 
         exit 0;
@@ -26,7 +27,7 @@ esac; done
 
 rm -f *-midout.npy
 rm -f wavegraph.json
-cmd="python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json $dbg --nname=$nname $repl $cleanup --stop_after_layer_num $x --no_inter_layer_load"
+cmd="python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json $dbg --nname=$nname $opts --stop_after_layer_num $x --no_inter_layer_load"
 echo $cmd
 echo $cmd > log-me.txt
 $cmd | tee -a log-me.txt

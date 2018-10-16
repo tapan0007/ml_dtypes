@@ -500,7 +500,7 @@ class Pool:
       , waveopinfo.src_y_num\
         +(waveopinfo.src_w_num - 1) * waveopinfo.src_w_step - 1)
     ifmap = me_utils.Rect(ifmap_lower, ifmap_upper)
-    waveopinfo.print("cp")
+#    waveopinfo.print("cp")
 #    print ("src_start = (%d, %d)"%(
 #          waveopinfo.src_start[1], waveopinfo.src_start[0]))
 #    print ("ifmap_lower = ", ifmap_lower)

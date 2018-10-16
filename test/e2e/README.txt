@@ -109,6 +109,11 @@ $KAENA_PATH/compiler/util/run_be_inkling
 To compare Inkling results against golden results, run:
 $KAENA_PATH/compiler/util/compare_simout
 
+To compare two numpy files, do:
+$KAENA_PATH/compiler/util/npy_diff_files --gold <golden numpy> --new <new numpy>
+
+This will give a summary of the comparison, with a determination if the results are close enough (default is 1%-of-max relative error, 1e-5 abs error). Verbose 3 would allow you to see element by element comparison. Finally, option --csv would allow you to dump in csv format (golden matrices on the left, difference matrices on the right) that can be loaded into Excel for visual analysis.
+
 Profiling
 ---------
 

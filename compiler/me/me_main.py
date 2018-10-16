@@ -418,12 +418,12 @@ class TPBSched:
         if (args.wavegraph != None and args.inference == False): 
             wavegraph_json['waveops'] = tpb.waveop_stream
             if (args.enable_cleanup == True):
-#              print("Saving Wave-Graph %s before cleanup"%(args.wavegraph+"-b"))
-#              with (open(args.wavegraph+"-b", 'w')) as f:
-#                  s = json.dumps(wavegraph_json, indent=2, sort_keys=True)
-#                  s = re.sub(r'\s+(\d+,)\n\s+(\d+)', r'\1\2', s, flags=re.S)
-#                  s = re.sub(r',\s*(\d+)\n\s+\]', r',\1]', s, flags=re.S)
-#                  f.write(s)
+              print("Saving Wave-Graph %s before cleanup"%(args.wavegraph+"-b"))
+              with (open(args.wavegraph+"-b", 'w')) as f:
+                  s = json.dumps(wavegraph_json, indent=2, sort_keys=True)
+                  s = re.sub(r'\s+(\d+,)\n\s+(\d+)', r'\1\2', s, flags=re.S)
+                  s = re.sub(r',\s*(\d+)\n\s+\]', r',\1]', s, flags=re.S)
+                  f.write(s)
               wavegraph_json =\
                     me_wavegraph_cleanup.remove_redundant_edges(wavegraph_json)
             try:

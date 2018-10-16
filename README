@@ -4,3 +4,5 @@ Directory:
 compiler/
 runtime/
 
+End-to-end testing info: 
+test/e2e/README.txt 

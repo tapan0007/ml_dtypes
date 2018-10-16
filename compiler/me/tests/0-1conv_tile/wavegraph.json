@@ -133,8 +133,7 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0",
-        "trivnet_input__0_NCHW.npy_0"
+        "1conv/i1/MatMul_n0_m0_h0_w0_c0_r0_s0__0"
       ],
       "src_is_psum": false,
       "src_sb_address": 512,
@@ -1455,8 +1454,7 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0__0",
-        "trivnet_input__0_NCHW.npy_1"
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s0__0"
       ],
       "src_is_psum": false,
       "src_sb_address": 2052,
@@ -1564,8 +1562,8 @@
       "num_row_partitions": 1,
       "out_dtype": "float32",
       "previous_waveops": [
-        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2__0",
-        "1conv/i1/Pool_n0_m0_h0_w0"
+        "1conv/i1/Pool_n0_m0_h0_w0",
+        "1conv/i1/MatMul_n0_m0_h3_w0_c0_r2_s2__0"
       ],
       "src_is_psum": false,
       "src_sb_address": 2402,
