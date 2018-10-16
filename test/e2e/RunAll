@@ -270,17 +270,24 @@ class QoR:
   
   
   class HistoryDatabase(object):
-    def __init__(self, csvDir):
+    def __init__(self, csvDir, forceQemu):
       self.data = {} # date -> testName -> property -> value
+      qorType = 'default'
+      if forceQemu:
+        qorType = 'qemu'
+        if 'ZEBU_SERVER' in os.environ:
+          qorType = 'zebu'
       if os.path.isdir(csvDir):
         for subdir, dirs, files in os.walk(csvDir):
           for f in files:
             csvFile = subdir + '/' + f
             #print(csvFile)
-            match = re.search(r'(^|\/)(\d+)(\/default)?\/qor.csv$', csvFile)
+            match = re.search(r'(^|\/)(\d+)(\/%s)?\/qor.csv$' % qorType, csvFile)
             if match:
+              # Only for default runs allow the legacy directory (with date only, no type subdir)
               date = match.groups()[1]
-              self.add(date, csvFile)
+              if qorType == 'default' or re.search(r'(^|\/)(\d+)(\/%s)\/qor.csv$' % qorType, csvFile):
+                self.add(date, csvFile)
     def add(self, date, csvFile):
       self.data[date] = {}
       with open(csvFile) as fh:
@@ -969,7 +976,7 @@ else:
     tests.plotTops("qor_tops_raw.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns)
     tests.plotTops("qor_tops_effective.svg", 0.1, 16, {100 : 'lightgreen', 75 : 'gold', 60 : 'orange'}, keyDesigns, padded=True)
     tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
-    histDb = QoR.HistoryDatabase(kPath + '/qor')
+    histDb = QoR.HistoryDatabase(kPath + '/qor', args.force_qemu)
     tests.plotHistory("qor_history.svg", histDb, keyDesignsHistory)
 
   if tests.numFail:
