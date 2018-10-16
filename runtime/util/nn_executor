@@ -15,12 +15,12 @@ import datetime
 kPath = os.environ.get('KAENA_PATH')
 if kPath is None:
   kPath =''
-sys.path.insert(0, kPath + "/compiler/")
+sys.path.insert(0, kPath + "/compiler")
 
 sys.path.insert(0, "/usr/lib/python3.6/site-packages/")
 import numpy as np
 from tffe.NpTransforms import NpTrans as npt
-from NpTransforms import TensorFormat, TensorFormatMap
+from tffe.NpTransforms import TensorFormat, TensorFormatMap
 
 def getInfoDateStr():
   return "INFO %s :" % str(datetime.datetime.now())
@@ -33,7 +33,7 @@ parser.add_argument('--kelf_dir', help='kelf directory', default="")
 parser.add_argument('--tfpb', help='TensorFlow freeze graph file', default="f.pb")
 parser.add_argument('--input_files', help='Files to be passed in to the first subgraph (filenames or node=filename pairs)', default=[], nargs='+')
 parser.add_argument('--output_files', help='Specify output files for last subgraph', default=[], nargs='+')
-parser.add_argument('--check_against_ref', help='Compare produced subgraph output npy files against compiler provided goldens in local directory; use none (defalt), last, all', default='none')
+parser.add_argument('--check_against_ref', help='Compare produced subgraph output npy files against compiler provided goldens in local directory; use none (defalt), last, all, all_available, all_internal', default='none')
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
 parser.add_argument('--inkling_debugflags', help='inkling extra args', default=[], nargs='*')
 parser.add_argument('--env', help='Set envvars pairs var=val var1=val1. Used to pass experimental controls to low-level tools', nargs='+', default=[])
@@ -375,7 +375,9 @@ class NnExec:
     return 0
 
 
-  # Return unix exit code. Subgraph mode can be "last" or "all"
+  # Return unix exit code. Subgraph mode can be "last" or "all*"
+  #   all_available   includes tensors for which qemu output bin is present.
+  #   all_internal    includes all non-constant tensors in the subgraph
   def check(self, sgMode):
     # find last non processor subgraph, compare output.
     sgList = []
@@ -385,11 +387,13 @@ class NnExec:
         if sg.executor != "processor":
           lastSg = sg
       sgList = [lastSg]
-    elif sgMode == 'all':
+    elif sgMode.startswith('all'):
       sgList = self.subGraphs
     else:
       raise ValueError("ERROR: Unsupported subgraph mode --check_against_ref '%s'" % sgMode)
     for sg in sgList:
+      print("\nINFO: nn_executor.check subgraph  %s OUTPUT tensors" % (sg.sgDir), flush=True)
+      retAll = 0
       for jsonOutput in sg.outputs:
         refOutFile = jsonOutput['file']
         outBase = refOutFile[:-4]
@@ -397,8 +401,36 @@ class NnExec:
         cmd = "%s/compiler/util/npy_diff_files --gold %s/%s --new %s" % (kPath, kelf_dir, refOutFile, flowOutFile)
         print("INFO: executing %s" % cmd, flush=True)
         ret = os.system(cmd)
-        if ret != 0:
-          return ret
+        retAll = ret | retAll
+        print("INFO: subgraph  %s  output tensor  %s  status  %s" % (
+                sg.sgDir, jsonOutput['name'], ('PASS' if ret == 0 else 'FAIL')), flush=True)
+      if 'wave' in sg.executor and sgMode.startswith('all_'):
+        print("\nINFO: nn_executor.check subgraph  %s INTERNAL tensors" % (sg.sgDir), flush=True)
+        # Get all internal tensors
+        for tensorName, tff in sg.tensorFormatMap.getNonConstTensors():
+          print("\nINFO: comparing internal tensor ", tensorName)
+          # All files are in Tonga format
+          refFile = '%s/%s/%s' % (kelf_dir, sg.sgDir, tff.simFile)
+          newFile = tff.simFile
+          if 'qemu' in sg.executor:
+            newFile = newFile.replace('.npy', '.bin')
+          else:
+            newFile = newFile.replace('.npy', '-simout.npy')
+          if not os.path.isfile(newFile):
+            if sgMode == 'all_available':
+              print('WARNING: --check_against_ref all_available  ignoring missing file ', newFile)
+            else:
+              print('ERROR: --check_against_ref all_internal  missing file ', newFile)
+              retAll = 1
+          else:
+            cmd = "%s/compiler/util/npy_diff_files --gold %s --new %s" % (kPath, refFile, newFile)
+            print("INFO: executing %s" % cmd, flush=True)
+            ret = os.system(cmd)
+            retAll = ret | retAll
+            print("INFO: subgraph  %s  internal tensor  %s  status  %s" % (
+                    sg.sgDir, tensorName, ('PASS' if ret == 0 else 'FAIL')), flush=True)
+      if retAll != 0:
+        return retAll
     return 0
 
 ret = 0

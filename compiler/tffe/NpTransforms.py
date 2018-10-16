@@ -218,3 +218,5 @@ class TensorFormatMap:
     return self.tensors.get(tensorName, None)
   def getConstFilesSim(self):
     return [tff.simFile for tfn,tff in self.tensors.items() if tff.isConst]
+  def getNonConstTensors(self):
+    return [[tensorName, tff] for tensorName,tff in self.tensors.items() if not tff.isConst]

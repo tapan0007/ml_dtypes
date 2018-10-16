@@ -256,7 +256,7 @@ class Qemu(BePlat):
     qemuNoInkling = os.getenv("QEMU_NO_INKLING", None)
     assert not portInUse(self.grpcPort) and not portInUse(self.port)
     if qemuNoInkling == None:
-        self.cmd = '%s %s -m %d -device pci-inkling %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:%d -serial file:log-qemu_serial.txt' % (qiPath, self.localVdi, mem, qemuOpts, self.port, self.grpcPort, self.grpcPort)
+        self.cmd = 'nice %s %s -m %d -device pci-inkling %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:%d -serial file:log-qemu_serial.txt' % (qiPath, self.localVdi, mem, qemuOpts, self.port, self.grpcPort, self.grpcPort)
     else:
         self.cmd = '%s %s -m %d                     %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:%d -serial file:log-qemu_serial.txt' % ("/usr/bin/qemu-system-x86_64", self.localVdi, mem, qemuOpts, self.port, self.grpcPort, self.grpcPort)
     if os.path.exists("/dev/kvm"):

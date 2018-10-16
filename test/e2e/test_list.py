@@ -620,7 +620,7 @@ testConfigMap = {
      + " --schedule_options ' --save_layer_output ' "
      + " --scheduler wave2 --images %s --wavegraph_checks structure "
     )%(rnPreFp16, rnDogJpg),
-    "--input_files %s" % rnDogJpg
+    "--input_files %s --check_against_ref all_available" % rnDogJpg
   ],
 
   "5-rn50_nne_to_act4_wave-repl"     : [
