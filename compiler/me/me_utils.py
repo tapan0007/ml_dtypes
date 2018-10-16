@@ -1104,7 +1104,7 @@ class FileMapper():
             # kaena-643: track dependencies for the padded morsels also (due to alignment requirement)
             if chunk_len == file_params.chunk_sz:
                 chunk_len = file_params.chunk_sz_padded
-            end_fmap_addr = start_fmap_addr + chunk_len
+            end_fmap_addr = start_fmap_addr + chunk_len - self.item_sz
             # create morsel accessor objects
             new_morsel_wr = SbMorsel(waveop_id, file_params.file_id, i, batch_item)
             # (the morsel reader is initialized no owner, since we are writing fresh data)
@@ -1112,7 +1112,7 @@ class FileMapper():
             eviction_dict.clear()
             #print("INFO SB TRACE: batch item %d: Writer waveop ID %d is writing chunk_id %d (full chunk SB range %d-%d, write SB range %d-%d) of file %s"%(batch_item, waveop_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name))
             if waveop_id >= 0:
-                for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
+                for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
                     sb_addr = j
                     if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) \
                             or (file_params.args is not None and file_params.args.relax_dependencies):
@@ -1376,11 +1376,11 @@ class FileMapper():
             list_of_readers_per_chunk = []
             fmap_count      = self.get_fmap_count_from_chunk_id(file_params, batch_item, i)
             start_fmap_addr = self.get_sb_addr_from_chunk_id(file_params, batch_item, i)
-            end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i)
+            end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i) - self.item_sz
             new_morsel_rd = SbMorsel(waveop_id_tmp, file_params.file_id, i, batch_item)
             eviction_dict.clear()
             #print("INFO SB TRACE: batch item %d: DRAM saver (SBAtomSave) waveop ID %d is reading chunk_id %d (full chunk SB range %d-%d) of file %s"%(batch_item, waveop_id_tmp, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
-            for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
+            for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
                 sb_addr = j
                 for k in range(2):
                     old_morsel_wr = self.morsels_wr[k][sb_addr]
@@ -1474,7 +1474,7 @@ class FileMapper():
             # kaena-643: track dependencies for the padded morsels also (due to alignment requirement)
             if chunk_len == file_params.chunk_sz:
                 chunk_len = file_params.chunk_sz_padded
-            end_fmap_addr = start_fmap_addr + chunk_len
+            end_fmap_addr = start_fmap_addr + chunk_len - self.item_sz
             # create morsel accessor objects
             new_morsel_rd = SbMorsel(waveop_id, file_params.file_id, i, batch_item)
             # (the morsel writer is initialized no owner, and only use to tag morsel when we actually do a DRAM load)
@@ -1492,7 +1492,7 @@ class FileMapper():
             load_required = not file_params.mapped_params.chunk_is_mapped[i] \
                             and not file_params.mapped_params.modify_in_place \
                             and not replication_squash
-            for j in range(start_fmap_addr, end_fmap_addr, file_params.item_sz):
+            for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
                 sb_addr = j
                 if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) \
                         or not file_params.mapped_params.chunk_is_mapped[i] \

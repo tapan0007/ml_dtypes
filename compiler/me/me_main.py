@@ -127,7 +127,8 @@ class WaveopStream(list):
         
         # Handle engine dependency 
         # Limit to Activation for now, to avoid running out of events
-        if self.last_engine_waveop[engine] is not None and engine == EngineEnum.ACT: 
+        if self.last_engine_waveop[engine] is not None \
+                and (engine == EngineEnum.ACT or engine == EngineEnum.POOL): 
             input_list.append(self.last_engine_waveop[engine]['waveop_name'])
         # Once we implement semaphore or qualified wavegraph-cleaner flow, 
         # switch to per engine tracking for the other engines
