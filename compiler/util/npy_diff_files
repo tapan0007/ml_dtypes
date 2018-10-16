@@ -5,6 +5,7 @@ import sys, os
 import argparse
 sys.path.insert(0, os.environ["KAENA_PATH"] + "/compiler/tffe")
 from NpUtils import NpUtils as npu
+from npy_bf16_fp32_convert import ConvertBFP16FP32
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gold', help='Golden/reference file. Used as base for the computing relative diference',
@@ -32,6 +33,12 @@ else:
   new = np.load(args.new)
 
 verbose = int(args.verbose)
+
+# If this is bfloat16, upcast to fp32 so we can compare the numbers
+if gold.dtype == '|V2':
+  gold = ConvertBFP16FP32(gold)
+if new.dtype == '|V2':
+  new = ConvertBFP16FP32(new)
 
 if gold.shape != new.shape:
   print("ERROR: shapes differ, gold %s, new %s" %(gold.shape, new.shape))
