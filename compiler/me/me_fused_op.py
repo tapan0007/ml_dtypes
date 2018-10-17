@@ -973,7 +973,13 @@ class FusedOp(list):
                                 tpb.num_mismatches += 1
 
             # Save results for network output or we want to save debug intermediate results
-            if self.last_op.next == [] or self.args.save_layer_output and not self.no_writer_for_save:
+            save_layer = False
+            if self.args.save_layer_output > 0:
+                save_layer = self.fused_op_id < self.args.save_layer_output 
+            elif self.args.save_layer_output < 0:
+                save_layer = self.fused_op_id >= (len(tpb.fused_ops_list) + self.args.save_layer_output)
+
+            if self.last_op.next == [] or save_layer and not self.no_writer_for_save:
                 last_batch_item = batch_item + self.first_op.Tn
                 for i in range(batch_item, last_batch_item):
                     waveops = tpb.statebuffer.file_mapper.flush_file(

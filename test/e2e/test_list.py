@@ -661,7 +661,7 @@ testConfigMap = {
     + " --schedule_options ' --save_layer_output '  --waive_wavegraph_checks"
     + " --images %s "
     )%(rnPreFp16, rnDogJpg),
-    "--input_files %s" % rnDogJpg
+    "--input_files %s  --check_against_ref all_available" % rnDogJpg
   ],
 
 
@@ -783,6 +783,15 @@ testConfigMap = {
       + " --waive_wavegraph_checks"
     ) %(rnPreFp16, rnDogJpg),
     "--input_files %s" % rnDogJpg ],
+
+  "7-rn50_nne_fp16_wave-no_repl-save-last-n-layers"        : [
+      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
+      + " --executors wave 0 host 1  --scheduler wave2 --images %s"
+      + " --schedule_options ' --save_layer_output -10 ' "
+      + " --waive_wavegraph_checks"
+    ) %(rnPreFp16, rnDogJpg),
+    "--input_files %s --check_against_ref all_available" % rnDogJpg ],
 
   "7-rn50_nne_fp16_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave2 --images %s --waive_wavegraph_checks" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"7-rn50_nne_fp16_ap_wave-no_repl"        : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from_multi flatten_1/Shape,flatten_1/Reshape --executors wave 0 host 1  --scheduler wave2 --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],

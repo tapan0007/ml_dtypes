@@ -516,7 +516,7 @@ if __name__ == "__main__":
     parser.add_argument("--eigenlib_stride", action='store_true', help="Use Eigenlib style of striding starting in the center (-1) of striding window")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")
     parser.add_argument("--dump_pearray_inputs", type=int, default=0, help="Dump PEArray inputs for N number of waves")
-    parser.add_argument("--save_layer_output", action='store_true', help="Save intermediate layer output into files")
+    parser.add_argument("--save_layer_output", nargs='?', type=int, const=100000, default=0, help="Save intermediate layers output into files. Default 0 means no intermediate dump. N means first N fused-op layers. -N means last N fused-op layers.")
     parser.add_argument("--abstract_mem", action='store_true', help="Keep data chunks as abstract objects")
     parser.add_argument("--no_inter_layer_load", action='store_true', help="Don't allow inter-layer loads")
     parser.add_argument("--stop_after_layer_num", type=int, default=0, help="Stop execution after fused op number. 0 means execute all fused ops. 1 means execute 1 fused op after Input. If there's a fork, there will be two outputs.")
