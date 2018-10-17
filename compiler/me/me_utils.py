@@ -74,6 +74,14 @@ def align_addr_sb_read(addr):
 def align_addr_sb_write(addr):
     return align_addr_NB(addr, 4)
 
+"""Check if SB address is in (inclusive) bounds, which can cross chunk boundary
+"""
+def is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr):
+    if start_sb_addr <= end_sb_addr:
+        return sb_addr >= start_sb_addr and sb_addr <= end_sb_addr
+    else:
+        return sb_addr >= start_sb_addr or sb_addr <= end_sb_addr
+
 """For IFMAP replication (https://sim.amazon.com/issues/kaena-141), need to:
  - pad image
  - for num_to_split=2: split W columns into HWe and HWo where HWe include even columns and HWo includes odd columns
@@ -1171,7 +1179,7 @@ class FileMapper():
             if waveop_id >= 0:
                 for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
                     sb_addr = j
-                    if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) \
+                    if is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr) \
                             or (file_params.args is not None and file_params.args.relax_dependencies):
                         #for k in (range(1,2) if start_at_mid_part else range(0,1)):    
                         # TODO: more fine-grain tracking at 64-parition granularity
@@ -1514,7 +1522,7 @@ class FileMapper():
         #assert(start_sb_addr <= end_sb_addr)
         start_chunk_id      = self.get_chunk_id_from_file_addr(file_params, batch_item, start_addr)
         end_chunk_id        = self.get_chunk_id_from_file_addr(file_params, batch_item, end_file_addr)
-        #assert(start_chunk_id <= end_chunk_id)
+        assert(start_chunk_id <= end_chunk_id)
         num_chunks          = end_chunk_id - start_chunk_id + 1
         #print("Reading batch item %d starting at %d for length %d (chunks %d to %d)"%(batch_item, start_addr, length, start_chunk_id, end_chunk_id))
         if num_chunks > file_params.mapped_params.num_region_chunks:
@@ -1551,9 +1559,8 @@ class FileMapper():
             load_required = not file_params.mapped_params.chunk_is_mapped[i] \
                             and not file_params.mapped_params.modify_in_place \
                             and not replication_squash
-            for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
-                sb_addr = j
-                if (sb_addr >= start_sb_addr and sb_addr <= end_sb_addr) \
+            for sb_addr in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
+                if is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr) \
                         or not file_params.mapped_params.chunk_is_mapped[i] \
                         or (file_params.args is not None and file_params.args.relax_dependencies):
                     for k in range(start_at_mid_part+0, end_after_mid_part+1):
