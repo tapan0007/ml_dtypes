@@ -150,6 +150,8 @@ testConfigMap = {
   "0-1conv_dilated_1d_h32_wave" : [ "trivnet_conv_dilated_1d",  "tfloat16-b1-h32-r3-s1-c1-m1-d2-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv_dilated_1d_h32r3c64m64d2_wave" : [ "trivnet_conv_dilated_1d",  "tfloat16-b1-h32-r3-s1-c64-m64-d2-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-1conv_dilated_1d_h1536r3c64m64d2_wave" : [ "trivnet_conv_dilated_1d",  "tfloat16-b1-h1536-r3-s1-c64-m64-d2-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --wavegraph_checks structure data-race"],
+  "0-1conv_evict_host" : [ "trivnet_evict",  "tfloat16-b1-h340-r3-s2-c1-m1-d1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", "--executors host all --scheduler wave2 --schedule_options ' --nname=generic --enable_eviction' --wavegraph_checks structure data-race"],
+  "0-1conv_evict_wave" : [ "trivnet_evict",  "tfloat16-b1-h340-r3-s2-c1-m1-d1-wmin-0.1-wmax0.2-imin-0.1-imax0.2", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic --enable_eviction' --waive_wavegraph_checks"],
   "0-1reshape_wave" : [ "trivnet_reshape",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --waive_wavegraph_checks"],
   "0-1squeeze_wave" : [ "trivnet_squeeze",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --waive_wavegraph_checks"],
   "0-1expanddims_wave" : [ "trivnet_expanddims",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin2-wmax2.2-imin0-imax3.2-xmin1-xmax3", "1conv", "--scheduler wave2 --schedule_options ' --nname=generic' --waive_wavegraph_checks"],
@@ -1168,6 +1170,7 @@ testWaiver = [
     ['7-amoebanet_fp16_host', 'WAIVE_AMOEBA_NAN'],
     ['7-amoebanet_fp16_pool', 'WAIVE_AMOEBA_POOL'],
     ['7-amoebanet_fp16_evict', 'WAIVE_AMOEBA_SBEVICT'],
+    ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT'],
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],

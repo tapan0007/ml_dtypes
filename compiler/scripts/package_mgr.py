@@ -184,15 +184,20 @@ def create_kelf(model_dir, subgraphs, output_file=None):
     for sg in subgraphs:
         sg_name = sg['SubGraphDir']
         sg_info = {
-            'executor': sg['executor'],
-            'inputs': [sg_input['name'] for sg_input in sg['Inputs']],
-            'outputs': [sg_output['name'] for sg_output in sg['Outputs']]
+            'definition': (sg_name + "/def.json"),
+            'executor': 'tpb' if sg['executor'] == 'wave' else 'host',
+            'inputs': [{'connector':sg_input['name']\
+                        ,'variable':sg_input['name']}\
+                        for sg_input in sg['Inputs']],
+            'outputs': [{'connector':sg_output['name']\
+                        ,'variable':sg_output['name']}\
+                        for sg_output in sg['Outputs']],
         }
         model_info[sg_name] = sg_info
 
     model_json = os.path.join('model.json')
     with open(model_json, 'w') as f:
-        f.write(json.dumps(model_info, indent=4))
+        f.write(json.dumps({'graphs':model_info}, indent=4, sort_keys=True))
 
     files_to_pack = []
     for sg in model_info:
