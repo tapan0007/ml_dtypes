@@ -929,6 +929,7 @@ class Ktests:
  
 ###############################################################################
 # Execute
+os.nice(18)
 testList = selectTests(test_list.testConfigMap, test_list.testWaiver, args.level,
                        args.test, args.test_re, args.select, args.filter,
                        args.force_qemu)
