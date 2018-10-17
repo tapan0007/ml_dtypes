@@ -952,8 +952,6 @@ else:
                              args.force_qemu, args.sealife)
   tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
-  tests.report_junit_xml("RunAllReport.xml")
-  tests.report_wavechecker_status("wave_checker_report.txt")
   
   # Qemu Instruction statistics for DV
   if args.force_qemu:
@@ -978,6 +976,10 @@ else:
     tests.plotInf("qor_inf.svg", 1e9, 0, 5000, keyDesigns)
     histDb = QoR.HistoryDatabase(kPath + '/qor', args.force_qemu)
     tests.plotHistory("qor_history.svg", histDb, keyDesignsHistory)
+
+  # Slower or new (high-risk) reports and actions
+  tests.report_junit_xml("RunAllReport.xml")
+  tests.report_wavechecker_status("wave_checker_report.txt")
 
   if tests.numFail:
     exit(-1)
