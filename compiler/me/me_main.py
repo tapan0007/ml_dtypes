@@ -11,6 +11,7 @@ import re
 import sys
 import numpy as np
 import argparse
+import datetime
 import me_wavegraph_cleanup
 from enum import IntEnum
 from me_utils import *
@@ -521,7 +522,9 @@ if __name__ == "__main__":
     parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
     args = parser.parse_args()
 
-    print("Middle Sched v2: Running in %s mode"%(args.nname))
+    print("\nINFO: Middle Sched v2: Running in %s mode"%(args.nname))
+    print("\nINFO: Started at time %s" % str(datetime.datetime.now()))
+
 
     if (args.debug > 5): np.set_printoptions(threshold=np.nan)
 
@@ -556,7 +559,18 @@ if __name__ == "__main__":
 
     # write out wavegraph           
     tpb.write_wavegraph()
+
+    # dump process info
+    pid = os.getpid()
+    proc_status_file = "/proc/%d/status" % os.getpid()
+    try:
+        with open(proc_status_file) as procFh:
+            print("\n", procFh.read(), flush=True)
+    except Exception as e:
+        print("WARNING: Can't open process ID %d status file %s"%(pid, proc_status_file))
     
+    print("\nINFO: Finished at time %s" % str(datetime.datetime.now()))
+
     # check for comparison errors
     if (tpb.num_mismatches > 0):
         print("\nFAILED (num mismatches %d)"%tpb.num_mismatches)
