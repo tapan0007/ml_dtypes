@@ -50,8 +50,12 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveMinimum(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Maximum) {
         saveMaximum(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Add) {
+        saveAdd(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
+        saveMult(archive);
     } else {
-        assert(false && "Serialization: unsupported WaveOp");
+        Assert(false, "Serialization: unsupported WaveOp ", m_WaveOpType);
     }
 } // SerWaveOp::save
 
@@ -181,7 +185,12 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
 void
 SerWaveOp::saveMaximum(cereal::JSONOutputArchive& archive) const
 {
-    saveSrcAB(archive, Dims::XYZ);
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        saveSrc(archive, Dims::XYZ);
+    } else {
+        saveSrcAB(archive, Dims::XYZ);
+    }
     saveDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
@@ -190,7 +199,40 @@ SerWaveOp::saveMaximum(cereal::JSONOutputArchive& archive) const
 void
 SerWaveOp::saveMinimum(cereal::JSONOutputArchive& archive) const
 {
-    saveSrcAB(archive, Dims::XYZ);
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        saveSrc(archive, Dims::XYZ);
+    } else {
+        saveSrcAB(archive, Dims::XYZ);
+    }
+    saveDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+}
+
+void
+SerWaveOp::saveAdd(cereal::JSONOutputArchive& archive) const
+{
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        saveSrc(archive, Dims::XYZ);
+    } else {
+        saveSrcAB(archive, Dims::XYZ);
+    }
+    saveDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+}
+
+void
+SerWaveOp::saveMult(cereal::JSONOutputArchive& archive) const
+{
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        saveSrc(archive, Dims::XYZ);
+    } else {
+        saveSrcAB(archive, Dims::XYZ);
+    }
     saveDst(archive, Dims::XYZ);
 
     KCC_ARCHIVE(NumPartitions);
@@ -206,6 +248,9 @@ SerWaveOp::saveScaleAdd(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(Add);
     KCC_ARCHIVE(Scale);
 }
+
+
+
 
 void
 SerWaveOp::saveBarrier(cereal::JSONOutputArchive& /*archive*/) const

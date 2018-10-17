@@ -272,9 +272,9 @@ testConfigMap = {
   "0-act_softplus_wave"     : [ "trivnet_act", "tfloat16-b1-h2-c128-softplus-wmin2-wmax2.2-imin-1-imax2", "act", "--scheduler wave2 --wavegraph_checks structure data-race"],
   "0-scaleadd_wave"       : [
     "trivnet_scaleadd",
-    "tfloat16-b1-h1-c16-wmin2-wmax2.2-amin3-amax3.5-imin3-imax6",
+    "tfloat16-b1-h1-c16-wmin2-wmax2.2-amin3-amax3.5-imin3-imax6-xmin2-xmax5",
     "scaleadd",
-    ("--scheduler wave2 "
+    ("--scheduler wave2 --schedule_options ' --nname=generic' "
      + " --waive_wavegraph_checks "
     )
   ],

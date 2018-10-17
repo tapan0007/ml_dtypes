@@ -13,7 +13,9 @@ w2 = conf.gen_variable_tensor(name = conf.netName + "/add_const", initializer = 
 i0 = tf.placeholder(conf.tfDataType, shape=IF1.shape, name="input")
 i1 = tf.scalar_mul(w, i0)
 i2 = tf.add(i1, w2)
-output = tf.identity(i2, name = conf.netName+"/output")
+i3 = tf.minimum(i2, conf.XMIN)
+i4 = tf.maximum(i3, conf.XMAX)
+output = tf.identity(i4, name = conf.netName+"/output")
 
 i0val   = conf.gen_array_rand(conf.IMIN, conf.IMAX, IF1.shape)
 conf.gen_graph(output, input_data=i0val)

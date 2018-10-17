@@ -198,19 +198,29 @@ SerWaveOp::loadScaleAdd(cereal::JSONInputArchive& archive)
 void
 SerWaveOp::loadMinimum(cereal::JSONInputArchive& archive)
 {
-    loadSrcAB(archive, Dims::XYZ);
-    loadDst(archive, Dims::XYZ);
-
     KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        KCC_ARCHIVE(ScalarVal);
+        loadSrc(archive, Dims::XYZ);
+    } else {
+        loadSrcAB(archive, Dims::XYZ);
+    }
+    loadDst(archive, Dims::XYZ);
 }
 
 void
 SerWaveOp::loadMaximum(cereal::JSONInputArchive& archive)
 {
-    loadSrcAB(archive, Dims::XYZ);
-    loadDst(archive, Dims::XYZ);
-
     KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        KCC_ARCHIVE(ScalarVal);
+        loadSrc(archive, Dims::XYZ);
+    } else {
+        loadSrcAB(archive, Dims::XYZ);
+    }
+    loadDst(archive, Dims::XYZ);
 }
 
 
@@ -227,31 +237,29 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
 void
 SerWaveOp::loadAdd(cereal::JSONInputArchive& archive)
 {
-    loadSrcAB(archive, Dims::XYZ);
-    loadDst(archive, Dims::XYZ);
-
     KCC_ARCHIVE(NumPartitions);
-    //if (m_PreviousWaveOps.size() == 1) {
-    //    KCC_ARCHIVE(AddScalar);
-    //}
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        KCC_ARCHIVE(ScalarVal);
+        loadSrc(archive, Dims::XYZ);
+    } else {
+        loadSrcAB(archive, Dims::XYZ);
+    }
+    loadDst(archive, Dims::XYZ);
 }
 
 void
 SerWaveOp::loadMultiply(cereal::JSONInputArchive& archive)
 {
-    loadSrcAB(archive, Dims::XYZ);
-    loadDst(archive, Dims::XYZ);
-
     KCC_ARCHIVE(NumPartitions);
-    // Multiply waveop is Tensor-Tensor for now.
-    // Cannot determine whether it is tensor-tensor
-    // or tensor-scalar by the number of previoius waveops
-    // because the number of previous waveops can be 1
-    // even when there are two input tensors - for example
-    // when one input tensor preceeds the other input tensor.
-    //if (m_PreviousWaveOps.size() == 1) {
-    //    KCC_ARCHIVE(MulScalar);
-    //}
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        KCC_ARCHIVE(ScalarVal);
+        loadSrc(archive, Dims::XYZ);
+    } else {
+        loadSrcAB(archive, Dims::XYZ);
+    }
+    loadDst(archive, Dims::XYZ);
 }
 
 

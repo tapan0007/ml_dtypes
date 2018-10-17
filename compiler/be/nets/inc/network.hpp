@@ -37,6 +37,7 @@ namespace wave {
     class PoolWaveOp;
     class ActivationWaveOp;
     class ClipByValueWaveOp;
+    class TensorWaveOp;
     class TensorTensorWaveOp;
     class TensorScalarConstWaveOp;
     class BarrierWaveOp;

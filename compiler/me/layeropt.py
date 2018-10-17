@@ -2762,6 +2762,7 @@ class TPBSched:
               'dst_z_step'              : dst_z_step,
               'dst_z_num'               : dst_z_num,
               'num_partitions'          : num_partitions,
+              'is_scalar_op'            : False,
             }
         if src_is_psum:
             instr['src_b_psum_bank_id'] = psum_bank_src 

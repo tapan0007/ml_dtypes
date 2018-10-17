@@ -183,12 +183,13 @@ constexpr static const char* WaveOpKey_Engine               = "engine";
 constexpr static const char* WaveOpKey_MinValue             = "min_val";
 constexpr static const char* WaveOpKey_MaxValue             = "max_val";
 
-constexpr static const char* WaveOpKey_Add             = "add";
-constexpr static const char* WaveOpKey_Scale           = "scale";
+constexpr static const char* WaveOpKey_Add                  = "add";
+constexpr static const char* WaveOpKey_Scale                = "scale";
 
-constexpr static const char* WaveOpKey_MulScalar       = "mul_scalar";
-constexpr static const char* WaveOpKey_AddScalar       = "add_scalar";
-
+//constexpr static const char* WaveOpKey_MulScalar            = "mul_scalar";
+//constexpr static const char* WaveOpKey_AddScalar            = "add_scalar";
+constexpr static const char* WaveOpKey_IsScalarOp           = "is_scalar_op";
+constexpr static const char* WaveOpKey_ScalarVal            = "scalar_val";
 
 
 class SerWaveOp {
@@ -259,6 +260,8 @@ private:
     void saveNop(cereal::JSONOutputArchive& archive) const;
     void saveMaximum(cereal::JSONOutputArchive& archive) const;
     void saveMinimum(cereal::JSONOutputArchive& archive) const;
+    void saveAdd(cereal::JSONOutputArchive& archive) const;
+    void saveMult(cereal::JSONOutputArchive& archive) const;
 
 protected:
     bool verify() const;
@@ -275,6 +278,7 @@ private:
     bool verifyClipByValue() const;
     bool verifyBarrier() const;
     bool verifyNop() const;
+    bool verifyTensor() const;
 
 public:
     // common to all
@@ -419,14 +423,22 @@ public:
 
     kcc_int32                   m_SrcStepElem                   = -1; // SbAtomLoad
 
+    // ClipByValue
     kcc_float32                 m_MinValue;
     kcc_float32                 m_MaxValue;
 
-    kcc_float32                 m_AddScalar = 0.0;
-    kcc_float32                 m_MulScalar = 0.0;
+    //kcc_float32                 m_AddScalar = 0.0;
+    //kcc_float32                 m_MulScalar = 0.0;
+
+    // Min,Max,Add,Mult
+    bool                        m_IsScalarOp;
+    kcc_float32                 m_ScalarVal;
+
+    // ScaleAdd
     kcc_float32                 m_Add;
     kcc_float32                 m_Scale;
 
+    // Everyone
     kcc_int32                   m_Order                         = -1;
 }; // class SerWaveOp
 

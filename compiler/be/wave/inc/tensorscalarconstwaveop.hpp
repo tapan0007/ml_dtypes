@@ -20,15 +20,14 @@
 
 //#include "layers/inc/resaddlayer.hpp"
 
-#include "wave/inc/poolengwaveop.hpp"
+#include "wave/inc/tensorwaveop.hpp"
 
 
 namespace kcc {
-
 namespace wave {
 
 
-class TensorScalarConstWaveOp : public PoolEngWaveOp {
+class TensorScalarConstWaveOp : public TensorWaveOp {
 public:
     class Params;
 public:
@@ -45,28 +44,14 @@ public:
         return true;
     }
 
-    std::string gTypeStr() const override;
-    static std::string gTypeStrScaleAddStatic() {
-        return "ScaleAdd";
-    }
-    static std::string gTypeStrMultiplyStatic() {
-        return "Multiply";
-    }
-    static std::string gTypeStrAddStatic() {
-        return "Add";
-    }
-
     virtual WaveOpType gType() const override {
         return WaveOpType::TensorScalarConst;
-    }
-
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
     }
 
     const DataType& gInDtype () const {
         return m_InDtype;
     }
+
     bool qSrcIsPsum () const {
         return m_SrcIsPsum;
     }
@@ -103,40 +88,6 @@ public:
 
 
 
-    bool qDstIsPsum () const {
-        return m_DstIsPsum;
-    }
-    kcc_int64 gDstSbAddress () const {
-        return m_DstSbAddress;
-    }
-    bool gDstStartAtMidPart () const {
-        return m_DstStartAtMidPart;
-    }
-    kcc_int32 gDstPsumBankId() const {
-        return m_DstPsumBankId;
-    }
-    kcc_int32 gDstPsumBankOffset() const {
-        return m_DstPsumBankOffset;
-    }
-    kcc_int32 gDstXNum () const {
-        return m_DstXNum;
-    }
-    kcc_int32 gDstXStep () const {
-        return m_DstXStep;
-    }
-    kcc_int32 gDstYNum () const {
-        return m_DstYNum;
-    }
-    kcc_int32 gDstYStep () const {
-        return m_DstYStep;
-    }
-    kcc_int32 gDstZNum () const {
-        return m_DstZNum;
-    }
-    kcc_int32 gDstZStep () const {
-        return m_DstZStep;
-    }
-
     TensorAluOpType gAluOp(kcc_int32 i) const {
         return m_AluOp[i];
     }
@@ -147,11 +98,8 @@ public:
 private:
     TensorAluOpType m_AluOp[2];   // operation in Pool ALU
     kcc_float32     m_ImmVal[2];
-    std::string     m_TypeStr; // from JSON
     
     const DataType& m_InDtype;
-
-    kcc_int32       m_NumPartitions         = -1;
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */
@@ -169,32 +117,19 @@ private:
     kcc_int32       m_SrcYNum              = -1;
     kcc_int32       m_SrcZStep             = -1;
     kcc_int32       m_SrcZNum              = -1;
-
-    /* dst */
-    bool            m_DstIsPsum;
-    kcc_int32       m_DstPsumBankId         = -1;
-    kcc_int32       m_DstPsumBankOffset     = -1;
-    kcc_int64       m_DstSbAddress          = -1;
-    bool            m_DstStartAtMidPart     = false;
-
-    kcc_int32       m_DstXStep              = -1;
-    kcc_int32       m_DstXNum               = -1;
-    kcc_int32       m_DstYStep              = -1;
-    kcc_int32       m_DstYNum               = -1;
-    kcc_int32       m_DstZStep              = -1;
-    kcc_int32       m_DstZNum               = -1;
 }; // class TensorScalarConstWaveOp : public PoolEngWaveOp
 
 
 
 
-class TensorScalarConstWaveOp::Params : public PoolEngWaveOp::Params {
+class TensorScalarConstWaveOp::Params : public TensorWaveOp::Params {
 public:
     bool verify() const;
 public:
     DataTypeId      m_InDtypeId            = DataTypeId::None;
 
-    kcc_int32       m_NumPartitions         = -1;
+    kcc_float32     m_ImmVal[2];
+    TensorAluOpType m_AluOp[2];
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */
@@ -212,25 +147,6 @@ public:
     kcc_int32       m_SrcYNum              = -1;
     kcc_int32       m_SrcZStep             = -1;
     kcc_int32       m_SrcZNum              = -1;
-
-    /* dst */
-    bool            m_DstIsPsum;
-    kcc_int32       m_DstPsumBankId         = -1;
-    kcc_int32       m_DstPsumBankOffset     = -1;
-    kcc_int64       m_DstSbAddress          = -1;
-    bool            m_DstStartAtMidPart     = false;
-
-    kcc_int32       m_DstXStep              = -1;
-    kcc_int32       m_DstXNum               = -1;
-    kcc_int32       m_DstYStep              = -1;
-    kcc_int32       m_DstYNum               = -1;
-    kcc_int32       m_DstZStep              = -1;
-    kcc_int32       m_DstZNum               = -1;
-
-    kcc_float32     m_ImmVal[2];
-    TensorAluOpType m_AluOp[2];
-
-    std::string     m_WaveOpType;
 };
 
 

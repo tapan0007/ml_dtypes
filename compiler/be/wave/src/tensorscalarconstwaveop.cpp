@@ -20,11 +20,9 @@ namespace wave {
 TensorScalarConstWaveOp::TensorScalarConstWaveOp(
                         const TensorScalarConstWaveOp::Params& params,
                         const std::vector<WaveOp*>& prevWaveOps)
-    : PoolEngWaveOp(params, prevWaveOps)
-    , m_TypeStr(params.m_WaveOpType)
+    : TensorWaveOp(params, prevWaveOps)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
     , m_SrcIsPsum(params.m_SrcIsPsum)
-    , m_DstIsPsum(params.m_DstIsPsum)
 {
     Assert(params.m_InDtypeId != DataTypeId::None, "None in data type");
 
@@ -72,11 +70,10 @@ TensorScalarConstWaveOp::TensorScalarConstWaveOp(
 bool
 TensorScalarConstWaveOp::verify() const
 {
-    if (! this->WaveOp::verify()) {
+    if (! this->TensorWaveOp::verify()) {
         RETURN_ASSERT(false);
     }
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
-
 
     if (m_SrcXNum < 1) {
         RETURN_ASSERT(false);
@@ -109,45 +106,6 @@ TensorScalarConstWaveOp::verify() const
         }
     }
 
-    if (m_DstXNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstXStep == 0 && m_DstXNum != 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstYNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstYStep == 0 && m_DstYNum != 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstZNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstZStep == 0 && m_DstZNum != 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstIsPsum) {
-        if (m_DstPsumBankId < 0 || m_DstPsumBankId >= psumBuf.gNumberBanks()) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstPsumBankOffset < 0) {
-            RETURN_ASSERT(false);
-        }
-    } else {
-        if (m_DstSbAddress < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-
-
-    if (m_NumPartitions < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_TypeStr == "") {
-        RETURN_ASSERT(false);
-    }
-
     return true;
 }
 
@@ -158,12 +116,6 @@ bool
 TensorScalarConstWaveOp::Params::verify() const
 {
     return true;
-}
-
-std::string
-TensorScalarConstWaveOp::gTypeStr() const
-{
-    return m_TypeStr;
 }
 
 }}

@@ -20,14 +20,12 @@ namespace wave {
 TensorTensorWaveOp::TensorTensorWaveOp(TensorAluOpType aluOp,
                         const TensorTensorWaveOp::Params& params,
                         const std::vector<WaveOp*>& prevWaveOps)
-    : PoolEngWaveOp(params, prevWaveOps)
+    : TensorWaveOp(params, prevWaveOps)
     , m_AluOp(aluOp)
-    , m_TypeStr(params.m_WaveOpType)
     , m_InADtype(DataType::dataTypeId2DataType(params.m_InADtypeId))
     , m_InBDtype(DataType::dataTypeId2DataType(params.m_InBDtypeId))
     , m_SrcAIsPsum(params.m_SrcAIsPsum)
     , m_SrcBIsPsum(params.m_SrcBIsPsum)
-    , m_DstIsPsum(params.m_DstIsPsum)
 {
     /* src_a */
     if (m_SrcAIsPsum) {
@@ -83,11 +81,10 @@ TensorTensorWaveOp::TensorTensorWaveOp(TensorAluOpType aluOp,
 bool
 TensorTensorWaveOp::verify() const
 {
-    if (! this->WaveOp::verify()) {
+    if (! this->TensorWaveOp::verify()) {
         RETURN_ASSERT(false);
     }
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
-
 
     if (m_SrcAXNum < 1) {
         RETURN_ASSERT(false);
@@ -151,45 +148,6 @@ TensorTensorWaveOp::verify() const
         }
     }
 
-    if (m_DstXNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstXStep == 0 && m_DstXNum != 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstYNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstYStep == 0 && m_DstYNum != 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstZNum < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstZStep == 0 && m_DstZNum != 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_DstIsPsum) {
-        if (m_DstPsumBankId < 0 || m_DstPsumBankId >= psumBuf.gNumberBanks()) {
-            RETURN_ASSERT(false);
-        }
-        if (m_DstPsumBankOffset < 0) {
-            RETURN_ASSERT(false);
-        }
-    } else {
-        if (m_DstSbAddress < 0) {
-            RETURN_ASSERT(false);
-        }
-    }
-
-
-
-    if (m_NumPartitions < 1) {
-        RETURN_ASSERT(false);
-    }
-    if (m_TypeStr == "") {
-        RETURN_ASSERT(false);
-    }
 
     return true;
 }
@@ -201,12 +159,6 @@ bool
 TensorTensorWaveOp::Params::verify() const
 {
     return true;
-}
-
-std::string
-TensorTensorWaveOp::gTypeStr() const
-{
-    return m_TypeStr;
 }
 
 }}

@@ -27,8 +27,8 @@ public:
     wave::TensorTensorWaveOp* loadTensorTensor(const serialize::SerWaveOp&, TensorAluOpType);
     wave::TensorScalarConstWaveOp* loadTensorScalarConst(const serialize::SerWaveOp&, TensorAluOpType);
 
-    wave::TensorTensorWaveOp* loadMinimum(const serialize::SerWaveOp& serWaveOp);
-    wave::TensorTensorWaveOp* loadMaximum(const serialize::SerWaveOp& serWaveOp);
+    wave::TensorWaveOp* loadMinimum(const serialize::SerWaveOp& serWaveOp);
+    wave::TensorWaveOp* loadMaximum(const serialize::SerWaveOp& serWaveOp);
 
     wave::TensorScalarConstWaveOp* loadScaleAdd(const serialize::SerWaveOp& serWaveOp);
 

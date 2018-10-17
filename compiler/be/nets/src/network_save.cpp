@@ -509,6 +509,7 @@ Network::Save::saveTensorTensor(const wave::TensorTensorWaveOp* tensorTensorWave
 {
 #undef WAVE_OP
 #define WAVE_OP tensorTensorWaveOp
+    serWaveOp.m_IsScalarOp = false;
     serWaveOp.m_WaveOpType = tensorTensorWaveOp->gTypeStr();
 
     KCC_SERIALIZE(NumPartitions);
@@ -525,6 +526,7 @@ Network::Save::saveTensorScalarConst(const wave::TensorScalarConstWaveOp* tensor
 {
 #undef WAVE_OP
 #define WAVE_OP tensorScalarConstWaveOp
+    serWaveOp.m_IsScalarOp = true;
     serWaveOp.m_WaveOpType = tensorScalarConstWaveOp->gTypeStr();
 
     KCC_SERIALIZE(NumPartitions);
