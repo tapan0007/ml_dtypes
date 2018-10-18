@@ -991,7 +991,7 @@ testConfigMap = {
   )% lstmD0T4, "--input_files %s" % lstmD0T4],
 
   # Batched small LSTM
-  "4-ptb_word_small_sigmoid_2l_b64_wave"  : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid_b64/model-b64s4h512.pb","lm", 
+  "4-ptb_word_small_sigmoid_2l_b64_wave"  : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid_b64/model-b64s4h512.pb","lm",
     (" --show_op_name_in_kgraph   --depth 3  --debug 1 --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose_1 HNC    "
     + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack   lstm_2_1/unstack,lstm_2_1/Tile_1,lstm_2_1/Tile,lstm_2_1/Tile_1  lstm_2_1/stack      "
     + " --adjust_node_color  lstm_1_1/Tile 0 lstm_1_1/Tile_1 0 lstm_2_1/Tile 2 lstm_2_1/Tile_1 2    "
@@ -1113,9 +1113,24 @@ testConfigMap = {
   # AvgPool in AmeobaNet
   "0-1avgpool_wave_h149c1m1k1d2_valid"  : [ "trivnet_pool", "tfloat16-b1-h149-r1-s1-c1-m1-VALID-AvgPool-k1-d2-wmin-0.1-wmax0.2-imin-0.2-imax0.3", "1pool", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
   "7-amoebanet_fp16_host" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from predictions --executors host all --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
-  "7-amoebanet_fp16_pool" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_stem_1/AvgPool_1 --partition from cell_stem_1/Relu --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
-  "7-amoebanet_fp16_evict" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from_multi cell_stem_1/Relu,cell_stem_1/Relu_1,cell_0/Relu --executors wave 0 host 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_pool" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_stem_1/AvgPool_1 --partition from cell_stem_1/Relu --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp32 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_evict" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --partition from_multi cell_stem_1/Relu,cell_stem_1/Relu_1,cell_0/Relu --executors wave 0 host 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp32 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell0" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_0/cell_output/concat --partition from_multi cell_0/Relu,cell_0/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell1" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_1/cell_output/concat --partition from_multi cell_1/Relu,cell_1/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell2" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_2/cell_output/concat --partition from_multi cell_2/Relu,cell_2/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell3" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_3/cell_output/concat --partition from_multi cell_3/Relu,cell_3/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell4" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_4/cell_output/concat --partition from_multi cell_4/Relu,cell_4/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell5" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_5/cell_output/concat --partition from_multi cell_5/Relu,cell_5/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell6" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_6/cell_output/concat --partition from_multi cell_6/Relu,cell_6/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell7" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_7/cell_output/concat --partition from_multi cell_7/Relu,cell_7/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell8" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_8/cell_output/concat --partition from_multi cell_8/Relu,cell_8/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell9" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_9/cell_output/concat --partition from_multi cell_9/Relu,cell_9/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell10" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_10/cell_output/concat --partition from_multi cell_10/Relu,cell_10/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_cell11" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_11/cell_output/concat --partition from_multi cell_11/Relu,cell_11/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_rcell0" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to reduction_cell_0/cell_output/concat --partition from_multi reduction_cell_0/Relu,reduction_cell_0/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
+  "7-amoebanet_fp16_rcell1" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to reduction_cell_1/cell_output/concat --partition from_multi reduction_cell_1/Relu,reduction_cell_1/Relu_1 --executors host all wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (rnDogJpg), "--input_files %s" % (rnDogJpg)],
 }
+
 
 def gen_parwavenet_10_fp16_in_to(node, sgnum):
     return  [ "tf_pb",
@@ -1173,7 +1188,21 @@ testWaiver = [
     ['7-amoebanet_fp16_host', 'WAIVE_AMOEBA_NAN'],
     ['7-amoebanet_fp16_pool', 'WAIVE_AMOEBA_POOL'],
     ['7-amoebanet_fp16_evict', 'WAIVE_AMOEBA_SBEVICT'],
-    ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT'],
+    ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT'], # added by taemin
+    ['7-amoebanet_fp16_cell1', 'WAIVE_AMOEBA_PASS_ME'],
+    ['7-amoebanet_fp16_cell5', 'WAIVE_AMOEBA_PASS_ME'],
+    ['7-amoebanet_fp16_cell0', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_cell2', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_cell3', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_cell4', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_cell6', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_cell7', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_cell8', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_rcell0', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_rcell1', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_cell9', 'WAIVE_AMOEBA_OUTSIDESBRANGE'],
+    ['7-amoebanet_fp16_cell10', 'WAIVE_AMOEBA_OUTSIDESBRANGE'],
+    ['7-amoebanet_fp16_cell11', 'WAIVE_AMOEBA_OUTSIDESBRANGE'],
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
