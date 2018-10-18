@@ -655,7 +655,12 @@ class Ktests:
       testCases.append(jTestCase)
     tSuite = junit.TestSuite(name="RunAll",test_cases=testCases)
     with open(xmlFileName, "w") as fh:
-      junit.TestSuite.to_file(fh,[tSuite], encoding="utf-8")
+      try:
+        junit.TestSuite.to_file(fh,[tSuite], encoding="utf-8")
+      except UnicodeEncodeError:
+        print("\n Encoding Error and so junit test report will not be generated")
+        return
+
 
   def report_wavechecker_status (self, rptFileName):
     def calcWCStatus(file_dir):
