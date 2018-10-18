@@ -105,6 +105,18 @@ def calcIsWaived(testName, testWaiver):
   
   return False
 
+# Return True if the cloing was sucessful
+def cloneTest(testConfigMap, srcTest, dstTest, fieldIdx, origStr, newStr):
+  if not srcTest  in testConfigMap:
+    return False
+  if not origStr in testConfigMap[srcTest][fieldIdx]:
+    return False
+  testConfigMap[dstTest] = testConfigMap[srcTest].copy()
+  testConfigMap[dstTest][fieldIdx] = re.sub(r'--scheduler wave', "--scheduler qemu_wave", testConfigMap[srcTest][fieldIdx])
+  if testConfigMap[dstTest][fieldIdx] == testConfigMap[srcTest][fieldIdx]:
+    return False
+  print("INFO: cloned test  %s  as  %s" % (srcTest, dstTest))
+  return True
 
 def selectTests(testConfigMap, testWaiver, arglevel, argTest,
                 argTestRe, argSelect, argFilter, forceQemu):
@@ -120,6 +132,15 @@ def selectTests(testConfigMap, testWaiver, arglevel, argTest,
     # Check that all --test exist
     if len(argTest) > 0:
       wrongTests = []
+
+      # Auto-generate qemu versions of existing tests
+      for t in argTest:
+        if 'qemu' in t and not t in testConfigMap:
+          baseTest = t.replace('_qemu', '')
+          nnArgsIdx = 3
+          if not cloneTest(testConfigMap, baseTest, t, nnArgsIdx, '--scheduler wave', "--scheduler qemu_wave"):
+            wrongTests.append(t)
+      
       for t in argTest:
         if not t in testConfigMap:
           wrongTests.append(t)
