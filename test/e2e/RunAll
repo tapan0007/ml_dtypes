@@ -591,7 +591,11 @@ class Ktests:
 
         while self.numRunning >= self.parallel:
           self.checkProcesses(self.parallel)
-        while time.time() - lastStartTime < startSpacing:
+        localStartSpacing = startSpacing
+        if 'qemu' in testName:
+          # Ensure stacing workaround for qemu boot bug even for non-forces qemu tests
+          localStartSpacing = 15
+        while time.time() - lastStartTime < localStartSpacing:
           self.checkProcesses(0)
 
         if verbose:
