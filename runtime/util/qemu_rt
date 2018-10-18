@@ -38,6 +38,8 @@ Zebu pool is similar:
     $KAENA_PATH/runtime/util/qemu_rt --zebu "pool zebuserver2--6 zebuserver3--6" --action start_pool > log_pool 2>&1 &
   # Follow the instructions printed in the log_pool, which for teh above is
     ( setenv KAENA_ZEBU_SERVER "pool zebuserver2--6 zebuserver3--6"; $KAENA_PATH/test/e2e/RunAll --force_qemu --parallel 2 --test 0-1conv0_wave )
+  # Stop the pool process
+    $KAENA_PATH/runtime/util/qemu_rt --zebu "pool zebuserver2--6 zebuserver3--6" --action cleanup_pool
   # Notes
     - Starting the pool is sequential (ie, starting 2 takes 2x longer than 1)
     - Pools can mix and match - ie, you start a pool of 2, one crashes, then start new pool of 1 on
@@ -54,6 +56,7 @@ import socket, errno
 import xml.etree.ElementTree as ET
 import subprocess
 import getpass
+import signal
 
 print("\nINFO %s : started as  " % str(datetime.datetime.now()), " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
 qiBldPath = os.environ["QEMU_BLD_DIR"]
@@ -90,6 +93,14 @@ vdis = {
 
 defaultVdi, checksumVdi = vdis["ubuntu-18.04-24G_pytest"]
 defaultGrpcPort = 5556
+
+zebuGrpcHost = {
+  'zebuserver1': 20000,
+  'zebuserver2': 20001,
+  'zebuserver3': 20002,
+  'zebuserver4': 20003
+  }
+poolPidFileName = 'poolpid.txt'
 
 def portInUse(port):
   inUse = True
@@ -383,6 +394,8 @@ class Zebu(BePlat):
     self.sshCommand = 'ssh -n %s -i %s ' % (sshOpt, self.pemFile)
     self.cmdForRsync = 'rsync -av --progress -e "ssh %s -i %s"' % (sshOpt, self.pemFile)
     #self.cmdForRsync = 'rsync --rsync-path "sudo rsync" -av --progress -e "ssh %s -i %s"' % (sshOpt, self.pemFile)
+    self.grpcPort = zebuGrpcHost[self.zebuHost]
+    print("INFO: using port %d for grpc  (--grpcPort was %d)" % (self.grpcPort, grpcPort))
 
   def startTonga(self):
     # Boot Tonga
@@ -681,6 +694,8 @@ class Krtd():
     self.envStr += '  LD_LIBRARY_PATH=%s:%s:%s ' % ( p, p + "/lib", eldlp)
     self.krtdPass = "krtd.pass"
     self.krtdFail = "krtd.fail"
+    self.tempBinDir = ''
+    self.tempWorkingDir = ''
 
   def install(self):
     runtimSrcPath = os.environ["KAENA_RT_PATH"]
@@ -746,6 +761,7 @@ class Krtd():
     return ifmapPath, ifmapFile
 
   def startDaemon(self):
+    self.qemu.sshCmd("sudo killall krtd")
     self.qemu.sshCmd("mkdir -p %s" % kelfVmDirGlobal)
     tongaDev = self.qemu.getTongaDevice()
     krtd = '%s/bin/krtd' % krtVmPath
@@ -868,7 +884,6 @@ class QemuPool:
     for idx in range(len(self.ports)):
       port = self.ports[idx]
       qemu, krt = self.qemus[idx]
-      krt.stop()
       qemu.unlock()
 
 class ZebuPool:
@@ -906,7 +921,6 @@ class ZebuPool:
   def cleanup(self):
     for idx in range(len(self.zebus)):
       host, zebu, krt = self.zebus[idx]
-      krt.stop()
       zebu.unlock()
 
 #########################################################
@@ -928,6 +942,17 @@ if args.zebu != None and args.zebu.startswith('pool'):
       raise RuntimeError('ERROR: failed to start zebus, %d requested while %d started' % (len(qp.zebuHosts), len(qp.zebus)))
     print('INFO: your zebu pool has started. You can access it on hosts %s. To stop them terminate this process' % qp.zebuHosts, flush=True)
     i = 0
+    #Now save the pid of this process so that when we
+    #need to kill the pool we can use that. The file
+    #saved in the dir from which pool start command was
+    #issued. So cleanpool should also be called from
+    #the same place
+    pid = os.getpid()
+    if os.path.isfile(poolPidFileName):
+      os.remove(poolPidFileName)
+    with open(poolPidFileName, 'w') as fp:
+      fp.write(str(os.getpid()))
+
     while True:
       time.sleep(10)
       print('\nINFO: holding zebus iteration %d. Sleep 10. Use  export KAENA_ZEBU_SERVER="pool %s"; RunAll --force_qemu --parallel %d --test ... to run.   Terminate this process to close the zebus' % (
@@ -938,6 +963,12 @@ if args.zebu != None and args.zebu.startswith('pool'):
         zebu.sshCmd('echo -n "  Zebu pool heartbeat on %s ";  TZ=America/Los_Angeles uptime' % host)
   elif args.action == 'cleanup_pool':
     qp.cleanup()
+    if os.path.isfile(poolPidFileName):
+      with open(poolPidFileName, 'r') as fp:
+        os.kill(int(fp.read()), signal.SIGKILL)
+        os.remove(poolPidFileName)
+    sys.exit(0)
+
   elif args.action == 'inference':
     if args.kelf == None:
       raise ValueError("ERROR: use --kelf")
