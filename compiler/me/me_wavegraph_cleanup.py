@@ -1,9 +1,23 @@
 import json
 import re
 import numpy as np
+import networkx as nx
+#import pygraphviz
+#from networkx.drawing.nx_agraph import write_dot
 
 waveops = dict()
 weight_waveops = dict() # key : start address
+
+def compute_transitive_reduction (wavegraph_json):
+  wavegraph_nx = nx.DiGraph()
+  for wop in wavegraph_json["waveops"]:
+    if (len(wop["previous_waveops"]) > 0):
+      for p in wop["previous_waveops"]:
+        wavegraph_nx.add_edge(p, wop["waveop_name"])
+#  write_dot(wavegraph_nx, "wavegraph_nx.dot")
+  transitive_reduction_wg = nx.algorithms.dag.transitive_reduction(wavegraph_nx)
+#  write_dot(transitive_reduction_wg, "t_wavegraph_nx.dot")
+  return transitive_reduction_wg
 
 def update_wavegraph(layer, predecessors, closest_waveop):
     prev_waveops = layer["previous_waveops"]
@@ -145,67 +159,95 @@ def remove_wrong_data_dependency (wavegraph):
                     print ("%s is removed from previous_waveops of %s"%(
                           p, l['waveop_name']))
 
-def remove_redundant_edges (wavegraph_json, is_file = False):
+def compute_engine_based_transitive_reduction (wavegraph):
     total_engines = 4
     pe = 0
     act = 1
     pool = 2
     dma = 3
-
-    predecessors = []
-    closest_waveop = []
-#    waveops = dict()
-    for i in range(total_engines):
+    if ("waveops" in wavegraph):
+      predecessors = []
+      closest_waveop = []
+      for i in range(total_engines):
         predecessors.append(set())
         closest_waveop.append("")
+      layers = wavegraph["waveops"]
+      for l in layers:
+          waveop_type = l["waveop_type"]
+          update = True
+          if (waveop_type == "MatMul"):
+              predecessor = predecessors[pe]
+              wop = closest_waveop[pe]
+              closest_waveop[pe] = l
+          elif (waveop_type == "Pool" or waveop_type == "ResAdd"):
+              predecessor = predecessors[pool]
+              wop = closest_waveop[pool]
+              closest_waveop[pool] = l
+          elif (waveop_type == "Activation"):
+              predecessor = predecessors[act]
+              wop = closest_waveop[act]
+              closest_waveop[act] = l
+#            elif (waveop_type == "SBAtomLoad" or waveop_type == "SBAtomSave"):
+          elif (waveop_type == "SBAtomLoad"):
+              predecessor = predecessors[dma]
+              wop = closest_waveop[dma]
+              closest_waveop[dma] = l
+              update = False
+          elif (waveop_type == "SBAtomSave"):
+              predecessor = predecessors[dma]
+              wop = closest_waveop[dma]
+              closest_waveop[dma] = l
+              update = False
+          else: 
+              print (waveop_type)
+              assert(0)
+          if (update == True):
+            update_wavegraph(l, predecessor, wop)
+
+def convert_nx2wavegraph (nx_graph, waveop_dict):
+#  write_dot(nx_graph, "nx_wavegraph.dot")
+  num_edges_removed = 0
+  for n in nx_graph.nodes:
+    preds_itr = nx_graph.predecessors(n)
+    preds = set()
+    for p in preds_itr:
+      preds.add(p)
+
+#    print (preds)
+    wop = waveop_dict[n]
+    for p in wop["previous_waveops"]:
+      if (not p in preds):
+        wop["previous_waveops"].remove(p)
+        num_edges_removed += 1
+        print ("%s is removed from %s predecessors"%(
+          p, wop["waveop_name"]))
+  print ("INFO: %d edges are removed"%num_edges_removed)
+
+def create_waveop_dict (wavegraph_json, waveop_dict):
+  for wop in wavegraph_json:
+    waveop_dict[wop["waveop_name"]] = wop
+
+def remove_redundant_edges (wavegraph_json, is_file = False):
     if (is_file == True):
         with open(wavegraph_json) as f:
             wavegraph = json.load(f)
     else:
         wavegraph = wavegraph_json
-    remove_wrong_data_dependency(wavegraph)
-    if ("waveops" in wavegraph):
-        layers = wavegraph["waveops"]
-        for l in layers:
-#            waveops[l['waveop_name']] = l
-            waveop_type = l["waveop_type"]
-            update = True
-            if (waveop_type == "MatMul"):
-                predecessor = predecessors[pe]
-                wop = closest_waveop[pe]
-                closest_waveop[pe] = l
-            elif (waveop_type == "Pool" or waveop_type == "ResAdd"):
-                predecessor = predecessors[pool]
-                wop = closest_waveop[pool]
-                closest_waveop[pool] = l
-            elif (waveop_type == "Activation"):
-                predecessor = predecessors[act]
-                wop = closest_waveop[act]
-                closest_waveop[act] = l
-#            elif (waveop_type == "SBAtomLoad" or waveop_type == "SBAtomSave"):
-            elif (waveop_type == "SBAtomLoad"):
-                predecessor = predecessors[dma]
-                wop = closest_waveop[dma]
-                closest_waveop[dma] = l
-                update = False
-            elif (waveop_type == "SBAtomSave"):
-                predecessor = predecessors[dma]
-                wop = closest_waveop[dma]
-                closest_waveop[dma] = l
-                update = False
-            else: 
-                print (waveop_type)
-                assert(0)
-            if (update == True):
-              update_wavegraph(l, predecessor, wop)
-        if (is_file == True):
-            o_file_name = re.sub(r'\.json','',wavegraph_json)
-            o_file_name += "_new.json"
-            with open(o_file_name, 'w') as outfile:
-                s = json.dumps(wavegraph, indent=2, sort_keys = True)
-                s = re.sub(r'\s+(\d+,)\n\s+(\d+)', r'\1\2', s, flags=re.S)
-                s = re.sub(r',\s*(\d+)\n\s+\]', r',\1]', s, flags=re.S)
-                outfile.write(s)
+#    remove_wrong_data_dependency(wavegraph)
+#    compute_engine_based_transitive_reduction(wavegraph)
+    nx_wavegraph = compute_transitive_reduction(wavegraph)
+    waveop_dict = dict()
+    create_waveop_dict(wavegraph["waveops"], waveop_dict)
+    convert_nx2wavegraph(nx_wavegraph, waveop_dict)
+
+    if (is_file == True):
+        o_file_name = re.sub(r'\.json','',wavegraph_json)
+        o_file_name += "_new.json"
+        with open(o_file_name, 'w') as outfile:
+            s = json.dumps(wavegraph, indent=2, sort_keys = True)
+            s = re.sub(r'\s+(\d+,)\n\s+(\d+)', r'\1\2', s, flags=re.S)
+            s = re.sub(r',\s*(\d+)\n\s+\]', r',\1]', s, flags=re.S)
+            outfile.write(s)
     return wavegraph
 
-#remove_redundant_edges("wavegraph.json-b", True)
+#remove_redundant_edges("wavegraph.json", True)

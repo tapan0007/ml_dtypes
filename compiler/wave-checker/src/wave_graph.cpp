@@ -12,7 +12,8 @@ std::pair<WaveOp::WaveOpType, WaveOp::Engine> WaveOp::ExtractWaveOpTypeEngine(
   else if (!wot.compare("SBAtomSave")) res = std::make_pair(SBAtomSave, DMA);
   else if (!wot.compare("MatMul")) res = std::make_pair(MatMul, PE);
   else if (!wot.compare("Pool")) res = std::make_pair(Pool, POOL);
-  else if (!wot.compare("ResAdd")) res = std::make_pair(ResAdd, PE);
+  else if (!wot.compare("ResAdd")) res = std::make_pair(ResAdd, POOL);
+  else if (!wot.compare("Multiply")) res = std::make_pair(ResAdd, POOL);
   else if (!wot.compare("Activation")) res = std::make_pair(Activation, ACT);
   else if (!wot.compare("Nop")) res = std::make_pair(Nop, NOP);
   else assert(0);
@@ -452,6 +453,7 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
   else if (!wave_op_type.compare("SBAtomLoad") ||
       !wave_op_type.compare("SBAtomSave")) wo = new SBAtomOp(op);
   else if (!wave_op_type.compare("ResAdd")) wo = new ResAddOp(op);
+  else if (!wave_op_type.compare("Multiply")) wo = new ResAddOp(op);
   else if (!wave_op_type.compare("Nop")) wo = new NopOp(op);
   else 
   {
