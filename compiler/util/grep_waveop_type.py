@@ -16,6 +16,7 @@ if __name__ == "__main__":
     parser.add_argument("--wavegraph", default="wavegraph.json", help="Wave-graph Json file to read")
     parser.add_argument("--typefilter", default=".*", help="Filter on waveop type")
     parser.add_argument("--fieldfilter", default=".*", help="Filter on waveop field name")
+    parser.add_argument("--fanout_exceed", default=0, type=int, help="Print nodes with fanout larger than this value. 0 means don't check.")
     parser.add_argument("--cleanup0", action="store_true", help="Cleanup wavegraph by removing unused fields in MatMul, change SBAtomFile -> SBAtomLoad, and ofmap/ifmap_count in SBAtomSave/Load to num_partitions")
     args = parser.parse_args()
     args.fuse_lrelu = False
@@ -32,17 +33,32 @@ if __name__ == "__main__":
     wavegraph = KGraph(args)
     wavegraph.populate_from_kgraph_json(wavegraph_json)
 
-    # check for SBAtomFile nodes with no input
-    for i in wavegraph.node_dict:
-        entry = wavegraph.node_dict[i]
-        if 'waveop_type' in entry.data:
-            if re.search(args.typefilter, entry.data['waveop_type']):
-                print("%d: %s(%d)"%(entry.node_number, entry.data['waveop_name'], entry.order), end=" ")
-                for j in entry.data:
-                    if re.search(args.fieldfilter, j):
-                        print(j + "=", end="")
-                        print(entry.data[j], end=" ")
+    # sort nodes based on number of next nodes
+    if args.fanout_exceed > 0:
+        os.sys.setrecursionlimit(10000)
+        nodelist = [i for i in list(wavegraph.node_dict.values()) if 'waveop_name' in i.data]
+        wavegraph.add_forward_refs(nodelist)
+        nodelist.sort(key=lambda x: len(x.next), reverse=True)
+        for i in range(len(nodelist)):
+            entry = nodelist[i]
+            fanout = len(entry.next)
+            if 'waveop_name' in entry.data and fanout > args.fanout_exceed:
+                print("%s next count %d, nodes: "%(entry.data["waveop_name"], len(entry.next)))
+                for i in entry.next:
+                    print(i.data['waveop_name'], " ")
                 print("")
+    else:
+        # print fields of waveop (filtered by typefilter), fields specified by fieldfilter
+        for i in wavegraph.node_dict:
+            entry = wavegraph.node_dict[i]
+            if 'waveop_type' in entry.data:
+                if re.search(args.typefilter, entry.data['waveop_type']):
+                    print("%d: %s(%d) "%(entry.node_number, entry.data['waveop_name'], entry.order), end="")
+                    for j in entry.data:
+                        if re.search(args.fieldfilter, j):
+                            print(j + "=", end="")
+                            print(entry.data[j], end=" ")
+                    print("")
 
     def change_key(json, old, new):
         if old in json:

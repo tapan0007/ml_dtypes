@@ -124,14 +124,14 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
     return (new_file, new_shape)
 
 # Extract list of predecessor waveop names from list of accessors
-def extract_predecessors(list_of_accessors_wr, list_of_accessors_rd, waveop_list, dram_waveops, relax_dependencies, enable_cleanup = False):
+def extract_predecessors(list_of_accessors_wr, list_of_accessors_rd, waveop_list, dram_waveops, relax_dependencies, full_dependencies = False):
     predec_list_by_name = []
-    list_of_accessors_combined = list_of_accessors_rd
+    list_of_accessors_combined = copy.copy(list_of_accessors_rd)
     list_of_accessors_combined.append(list_of_accessors_wr)
     # extract predecessors from combed list of writers and per-engine readers
     for accessors in list_of_accessors_combined:
         filtered_accessors = accessors
-        if not enable_cleanup and accessors != []:
+        if not full_dependencies and accessors != []:
             # Keep the latest from list of accessors
             filtered_accessors = [max(accessors)]
             # IF there are DRAM loads, they would be the latest among all dependencies
@@ -141,9 +141,34 @@ def extract_predecessors(list_of_accessors_wr, list_of_accessors_rd, waveop_list
         for accessor in filtered_accessors:
             if accessor >= 0:
                 accessor_waveop = waveop_list[accessor]
-                if not relax_dependencies \
-                        or accessor_waveop['waveop_type'] != 'Activation':
-                    predec_list_by_name.append(accessor_waveop['waveop_name'])
+                if accessor_waveop['waveop_name'] not in predec_list_by_name:
+                    #if not relax_dependencies \
+                    #        or accessor_waveop['waveop_type'] != 'Activation':
+                        predec_list_by_name.append(accessor_waveop['waveop_name'])
+    # extract predecessors from combed list of writers and per-engine readers
+    #filtered_accessors = []
+    #for accessors in list_of_accessors_rd:
+    #    if not full_dependencies and accessors != []:
+    #        # IF there are DRAM loads, they would be the latest among all dependencies
+    #        # and the loads themselves would be dependent on earlier accessors,
+    #        # so no need to add previous dependencies
+    #        if dram_waveops == []:
+    #            # Keep the latest from list of accessors
+    #            filtered_accessors.append(max(accessors))
+    #        else:
+    #            print(dram_waveops[0]["waveop_name"], accessors)
+    #            assert(len([i for i in accessors if i>=0]) == 0)
+    #    else:
+    #        filtered_accessors += accessors
+    ## keep the full list of writers
+    #filtered_accessors += list_of_accessors_wr                
+    #for accessor in filtered_accessors:
+    #    if accessor >= 0:
+    #        accessor_waveop = waveop_list[accessor]
+    #        if accessor_waveop['waveop_name'] not in predec_list_by_name:
+    #            if not relax_dependencies \
+    #                    or accessor_waveop['waveop_type'] != 'Activation':
+    #                predec_list_by_name.append(accessor_waveop['waveop_name'])
     return predec_list_by_name                        
 
 # Attach dependencies on waveop
@@ -900,12 +925,14 @@ class FileMapper():
         self.dramsaves = dict()
         if args is None:
             self.enable_eviction = False
-            self.enable_cleanup = False
+            self.full_dependencies = False
             self.relax_dependencies = False
+            self.debug = 0
         else:            
             self.enable_eviction = args.enable_eviction
-            self.enable_cleanup = args.enable_cleanup
+            self.full_dependencies = args.full_dependencies
             self.relax_dependencies = args.relax_dependencies
+            self.debug = args.debug
         self.args = args
 
     def check_overlap(self, region0_start, region0_sz, region1_start, region1_sz):
@@ -1159,7 +1186,8 @@ class FileMapper():
             # (the morsel reader is initialized no owner, since we are writing fresh data)
             new_morsel_rd = SbMorsel(-1, file_params.file_id, i, batch_item)
             eviction_dict.clear()
-            #print("INFO SB TRACE: batch item %d: Writer waveop ID %d is writing chunk_id %d (full chunk SB range %d-%d, write SB range %d-%d) of file %s"%(batch_item, waveop_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name))
+            if self.debug > 4:
+                print("INFO SB TRACE: batch item %d: Writer waveop ID %d is writing chunk_id %d (full chunk SB range %d-%d, write SB range %d-%d) of file %s"%(batch_item, waveop_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name))
             if waveop_id >= 0:
                 for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
                     sb_addr = j
@@ -1213,11 +1241,11 @@ class FileMapper():
             if (self.enable_eviction == True and waveop_id >= 0):
                 prev_waveops = extract_predecessors(
                     list_of_accessors_wr = list_of_writers, 
-                    list_of_accessors_rd = [[]],
+                    list_of_accessors_rd = list_of_readers,
                     waveop_list         = waveop_list,
                     dram_waveops        = [],
                     relax_dependencies  = False,
-                    enable_cleanup      = self.enable_cleanup)
+                    full_dependencies      = self.full_dependencies)
                 # Perform eviction and read back data from i-th chunk of a file
                 # that is newly written in SB
                 # taemk : 08-27-2018
@@ -1239,7 +1267,8 @@ class FileMapper():
                                              ,file_params\
                                              ,i)
                 list_of_waveops.extend(prev_waveops)
-            #print("INFO SB TRACE: ", list_of_writers, list_of_readers)
+            if self.debug > 4:
+                print("INFO SB TRACE: ", list_of_writers, list_of_readers)
         return (list_of_writers, list_of_readers, list_of_waveops)
 
     def UpdateDRAMSaves (self, file_params, chunk_id):
@@ -1431,7 +1460,8 @@ class FileMapper():
             end_fmap_addr = start_fmap_addr + self.get_chunk_len_from_chunk_id(file_params, batch_item, i) - self.item_sz
             new_morsel_rd = SbMorsel(waveop_id_tmp, file_params.file_id, i, batch_item)
             eviction_dict.clear()
-            #print("INFO SB TRACE: batch item %d: DRAM saver (SBAtomSave) waveop ID %d is reading chunk_id %d (full chunk SB range %d-%d) of file %s"%(batch_item, waveop_id_tmp, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
+            if self.debug > 4:
+                print("INFO SB TRACE: batch item %d: DRAM saver (SBAtomSave) waveop ID %d is reading chunk_id %d (full chunk SB range %d-%d) of file %s"%(batch_item, waveop_id_tmp, i, start_fmap_addr, end_fmap_addr, file_params.file_name))
             for j in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
                 sb_addr = j
                 for k in range(2):
@@ -1545,8 +1575,8 @@ class FileMapper():
                             and not replication_squash
             for sb_addr in range(start_fmap_addr, end_fmap_addr + self.item_sz, file_params.item_sz):
                 if is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr) \
-                        or not file_params.mapped_params.chunk_is_mapped[i] \
-                        or (file_params.args is not None and file_params.args.relax_dependencies):
+                        or not file_params.mapped_params.chunk_is_mapped[i]:
+                        #or (file_params.args is not None and file_params.args.relax_dependencies):
                     for k in range(start_at_mid_part+0, end_after_mid_part+1):
                         old_morsel_wr = self.morsels_wr[k][sb_addr]
                         # return last of wniters/readers for dependency
@@ -1572,20 +1602,19 @@ class FileMapper():
                         self.morsels_rd[reader_engine][k][sb_addr] = new_morsel_rd
                         # Keep the old morsel writer unless load is required
                         # (For now, limiting to wavegraph cleanup flow, which is still WIP and working for Inception but not for ResNet)
-                        if self.enable_cleanup:
+                        if self.full_dependencies:
                             if load_required:
                                 self.morsels_wr[k][sb_addr] = new_morsel_wr
-                            elif self.relax_dependencies:
-                                self.morsels_wr[k][sb_addr] = new_morsel_rd # See comments below
                         # For the old flow where we are limiting number of edges to prevent running out of events,
                         # tag the write side with the same morsel reader: to create implicit edge from reader to next reader
                         # (obviously, the cleanup flow is better once it is working).
                         else:
-                            if reader_engine == EngineEnum.POOL:    # HACK: pooling requires overlap, so need to keep old writers info
-                                if k == 0:
-                                    self.morsels_wr[k][sb_addr] = new_morsel_rd
-                            else:                                
+                            if load_required:
                                 self.morsels_wr[k][sb_addr] = new_morsel_rd
+                            #if reader_engine == EngineEnum.ACT:
+                            #    self.morsels_wr[k][sb_addr] = new_morsel_rd
+                            #elif load_required:
+                            #    self.morsels_wr[k][sb_addr] = new_morsel_wr
                         prev_file_id = file_id
                         prev_chunk_id = chunk_id
             list_of_writers += list_of_writers_per_chunk                
@@ -1600,19 +1629,20 @@ class FileMapper():
                     assert(load_required)
                     prev_waveops = extract_predecessors(
                         list_of_accessors_wr = list_of_writers, 
-                        list_of_accessors_rd = [[]],
+                        list_of_accessors_rd = list_of_readers,
                         waveop_list         = waveop_list,
                         dram_waveops        = [],
                         relax_dependencies  = False,
-                        enable_cleanup      = self.enable_cleanup)
+                        full_dependencies      = self.full_dependencies)
 
                     evicted_waveops = []                            
                     if (self.enable_eviction == True):
                         prev_op_evict = []
                         if (list_of_writers != []):
-                            last_writer = max(list_of_writers)
-                            prev_op_evict =\
-                                [waveop_list[last_writer]['waveop_name']]
+                            for writer in list_of_writers:
+                                writer_name = waveop_list[writer]['waveop_name']
+                                if writer_name not in prev_op_evict:
+                                    prev_op_evict.append(writer_name)
                         evicted_waveops, evicted =\
                                 self.PerformEviction(
                                                      start_fmap_addr
@@ -1629,13 +1659,18 @@ class FileMapper():
                             prev_waveops.append(prev_save['waveop_name'])
                     if (len(evicted_waveops) > 0):
                         new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, dram_read_prevs, repl_multiple_of_C)
+                        list_of_writers = []
+                        list_of_readers = [[] for l in range(EngineEnum.COUNT)]
                     else:
                         if (dont_put_prev_ops == False):
                             new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, prev_waveops, repl_multiple_of_C)
+                            list_of_writers = []
+                            list_of_readers = [[] for l in range(EngineEnum.COUNT)]
                         else:
                             new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, [], repl_multiple_of_C)
                     # Record load as writer into SB region
                     new_morsel_wr.accessor_id = waveop_id
+                    print("new_morsel_wr.accessor_id =", new_morsel_wr.accessor_id)
                     # Update the reader ID (which maybe further updated if there's another load, like bias)
                     new_morsel_rd.accessor_id = waveop_id + 1 + len(evicted_waveops)  
                     file_params.mapped_params.dirty[i] = False
@@ -1644,8 +1679,9 @@ class FileMapper():
                     file_params.mapped_params.chunk2waveop_map[i] = new_dram_waveop
             # Return reader morsels since the waveop_id may need to be updated (ie. after bias read)
             new_reader_morsels.append(new_morsel_rd)
-            #print("INFO SB TRACE: batch item %d: Reader ID %d (tentative, maybe fixed later) is reading chunk_id %d (full chunk SB range %d-%d, read SB range %d-%d) of file %s (load required %d)"%(batch_item, new_morsel_rd.accessor_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name, load_required))
-            #print("INFO SB TRACE: ", list_of_writers, list_of_readers)
+            if self.debug > 4:
+                print("INFO SB TRACE: batch item %d: Reader ID %d (tentative, maybe fixed later) is reading chunk_id %d (full chunk SB range %d-%d, read SB range %d-%d) of file %s (load required %d)"%(batch_item, new_morsel_rd.accessor_id, i, start_fmap_addr, end_fmap_addr, start_sb_addr, end_sb_addr, file_params.file_name, load_required))
+                print("INFO SB TRACE: ", list_of_writers, list_of_readers)
         return (list_of_writers, list_of_readers, list_of_waveops, new_reader_morsels)
 
     def gen_dram_read_waveop(self, file_params, batch_item, chunk_id, previous_waveops, repl_multiple_of_C, read_two_chunks = False):
@@ -1913,7 +1949,7 @@ class TestFileMapper(unittest.TestCase):
         file_params = FileParams("testfile.npy", shape_dims, "float16", self.op_params_stride1)
         self.assertEqual(file_params.chunk_sz, 896)
         test_obj = FileMapper(96*1024, "float16")
-        test_obj.enable_cleanup = True
+        test_obj.full_dependencies = True
         self.assertEqual(test_obj.item_sz, 2)
         self.assertEqual(test_obj.data_type, "float16")
         self.assertEqual(test_obj.sb_partition_sz, 96*1024)
@@ -1959,21 +1995,21 @@ class TestFileMapper(unittest.TestCase):
         self.assertEqual(readers, [-1])
         (writers, readers, waveops) = test_obj.write_file_data_region(20, list_of_accessors, file_params, 0, 0, 10, False)
         self.assertEqual(len(waveops), 0)
-        if test_obj.enable_cleanup:
+        if test_obj.full_dependencies:
             self.assertEqual(writers, [10])
         else:            
             self.assertEqual(writers, [11])
         self.assertEqual(readers, [11])
         (writers, readers, waveops) = test_obj.write_file_data_region(30, list_of_accessors, file_params, 0, 0, 100, False)
         self.assertEqual(len(waveops), 0)
-        if test_obj.enable_cleanup:
+        if test_obj.full_dependencies:
             self.assertEqual(writers, [20, 10])
         else:            
             self.assertEqual(writers, [20, 11])
         self.assertEqual(readers, [-1, 11])
         (writers, readers, waveops) = test_obj.write_file_data_region(40, list_of_accessors, file_params, 0, 100, 200, False)
         self.assertEqual(len(waveops), 0)
-        if test_obj.enable_cleanup:
+        if test_obj.full_dependencies:
             self.assertEqual(writers, [10])
         else:            
             self.assertEqual(writers, [11])
@@ -2002,7 +2038,7 @@ class TestFileMapper(unittest.TestCase):
         # test writing to file
         (writers, readers, waveops) = test_obj.write_file_data_region(40, list_of_accessors, file_params, 0, 100, 200, False)
         self.assertEqual(len(waveops), 0)
-        if test_obj.enable_cleanup:
+        if test_obj.full_dependencies:
             self.assertEqual(writers, [40])
         else:            
             self.assertEqual(writers, [50, 40])
@@ -2013,7 +2049,7 @@ class TestFileMapper(unittest.TestCase):
         self.assertEqual(readers, [-1])
         waveops = test_obj.flush_file(0, list_of_accessors, file_params, 0)
         self.assertEqual(len(waveops), file_params.tot_num_chunks)
-        if test_obj.enable_cleanup:
+        if test_obj.full_dependencies:
             self.assertEqual(waveops[0]['previous_waveops'], ['waveop_30', 'waveop_40', 'waveop_10'])
         else:            
             self.assertEqual(waveops[0]['previous_waveops'], ['waveop_30', 'waveop_50', 'waveop_40', 'waveop_11'])

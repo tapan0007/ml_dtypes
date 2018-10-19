@@ -117,41 +117,47 @@ class WaveopStream(list):
             engine = EngineEnum.PEARRAY
         elif waveop['waveop_type'] == 'Activation':
             engine = EngineEnum.ACT
-        elif waveop['waveop_type'] == 'SBAtomSave' or waveop['waveop_type'] == 'SBAtomLoad':
+        elif waveop['waveop_type'] == 'SBAtomSave':
+            engine = EngineEnum.DMA
+        elif waveop['waveop_type'] == 'SBAtomLoad':
             engine = EngineEnum.DMA
 
         # Add the side waveops (DRAM loads) and start a dependency list
         input_list = []
         for i in side_waveops:
-            self.append_check(i)
+            self.add_linked(i, [], -1)
             input_list.append(i['waveop_name'])
         
         # Handle engine dependency 
         # Limit to Activation for now, to avoid running out of events
         if self.last_engine_waveop[engine] is not None \
-                and (engine == EngineEnum.ACT or engine == EngineEnum.POOL): 
+                and engine != EngineEnum.DMA:
+                #and (engine == EngineEnum.ACT or engine == EngineEnum.POOL): 
             input_list.append(self.last_engine_waveop[engine]['waveop_name'])
 
-        if args.enable_cleanup:
-            if self.last_engine_waveop[engine] is not None \
-                    and (engine == EngineEnum.PEARRAY):
-                input_list.append(self.last_engine_waveop[engine]['waveop_name'])
+        #if args.full_dependencies:
+        #    if self.last_engine_waveop[engine] is not None \
+        #            and (engine == EngineEnum.PEARRAY):
+        #        input_list.append(self.last_engine_waveop[engine]['waveop_name'])
 
         # Once we implement semaphore or qualified wavegraph-cleaner flow, 
         # switch to per engine tracking for the other engines
         # and remove the "main" tracking
         if psum_bank < 0:
             # If not using PSUM, include last "main" waveop in dependency
-            if self.last_main_waveop is not None and not args.enable_cleanup:
+            if self.last_main_waveop is not None \
+                    and not args.full_dependencies \
+                    and engine != EngineEnum.DMA:
                 input_list.append(self.last_main_waveop['waveop_name'])
         else:                
             # Handle PSUM bank dependency
             if self.last_psum_waveop[psum_bank] is not None:
                 input_list.append(self.last_psum_waveop[psum_bank]['waveop_name'])
             # If there no PSUM user (initial), or waveop is MatMul, include last "main" waveop in dependency
-            if self.last_psum_waveop[psum_bank] is None or waveop['waveop_type'] == "MatMul":
-                if self.last_main_waveop is not None:
-                    input_list.append(self.last_main_waveop['waveop_name'])
+            if not args.full_dependencies :
+                if self.last_psum_waveop[psum_bank] is None or engine == EngineEnum.PEARRAY:
+                    if self.last_main_waveop is not None:
+                        input_list.append(self.last_main_waveop['waveop_name'])
 
         # Filter out duplicates            
         for i in input_list:                        
@@ -170,10 +176,11 @@ class WaveopStream(list):
         # PSUM path: tracking last waveop using a particular PSUM bank
         # TODO: split into reader/writer
         if (psum_bank < 0):
-            self.last_main_waveop = waveop
+            if engine != EngineEnum.DMA:  # Add to main path if no bank is used, except for loads/stores
+                self.last_main_waveop = waveop
         else:            
             self.last_psum_waveop[psum_bank] = waveop
-            if (waveop['waveop_type'] == "MatMul"):
+            if engine == EngineEnum.PEARRAY or engine == EngineEnum.POOL:
                 self.last_main_waveop = waveop
 
         # Track last user of engine 
@@ -428,8 +435,11 @@ class TPBSched:
         if (args.wavegraph != None and args.inference == False): 
             wavegraph_json['waveops'] = tpb.waveop_stream
             if (args.enable_cleanup == True):
-              print("Saving Wave-Graph %s before cleanup"%(args.wavegraph+"-b"))
-              with (open(args.wavegraph+"-b", 'w')) as f:
+              b4_cleanup_name = args.wavegraph.replace(".json", "-b4clean.json")  
+              if b4_cleanup_name == args.wavegraph:
+                  b4_cleanup_name += "-b4clean"
+              print("Saving Wave-Graph %s before cleanup"%b4_cleanup_name)
+              with (open(b4_cleanup_name, 'w')) as f:
                   s = json.dumps(wavegraph_json, indent=2, sort_keys=True)
                   s = re.sub(r'\s+(\d+,)\n\s+(\d+)', r'\1\2', s, flags=re.S)
                   s = re.sub(r',\s*(\d+)\n\s+\]', r',\1]', s, flags=re.S)
@@ -527,7 +537,8 @@ if __name__ == "__main__":
     parser.add_argument("--verify_output_only", action='store_true', help="Verify only the output; disable intermediate FMAP verifications in order to speed up compiler time")
     parser.add_argument("--no_verify", action='store_true', help="Disables FMAPs comparison")
     parser.add_argument("--enable_eviction", action='store_true', help="Enable eviction")
-    parser.add_argument("--enable_cleanup", action='store_true', help="Enable wavegrpah cleanup for event pressure reduction")
+    parser.add_argument("--enable_cleanup", action='store_true', help="Enable wavegraph cleanup for event pressure reduction")
+    parser.add_argument("--full_dependencies", action='store_true', help="Insert all the dependencies in wavegraph")
     parser.add_argument("--relax_dependencies", action='store_true', help="To prevent running out of events (kaena-403,449), this option when true would relax the dependency requirement (kaena-411)")
     parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
     args = parser.parse_args()

@@ -1311,12 +1311,10 @@ class FusedOp(list):
                                         end_after_mid_part = True,
                                         repl_multiple_of_C = repl_multiple_of_C)
                 if (self.args.debug > 2): print("DBG %s: MatMul weight_wave_lower_addr %d weight_wave_upper_addr %d"%(self.conv_op.data['layer_name'], self.conv_op.weight_wave_lower_addr, self.conv_op.weight_wave_upper_addr))                
-                for i in dram_weights_waveops: tpb.waveop_stream.append_check(i)
+                for i in dram_weights_waveops: tpb.waveop_stream.add_linked(i, [], -1)
 
             dram_ifmaps_waveops = []
-            list_of_accessors = [] 
-            if self.args.enable_cleanup:
-                list_of_accessors = writers
+            list_of_accessors = writers
             for z in range(self.conv_op.Tn):
                 # TODO: move the following into gen_matmul_waveop to handle breaking wave into two
                 (writers, readers, waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
@@ -1343,16 +1341,16 @@ class FusedOp(list):
                 new_reader_morsels += reader_morsels
             
             for i in dram_ifmaps_waveops: 
-                tpb.waveop_stream.append_check(i)
+                tpb.waveop_stream.add_linked(i, [], -1)
 
             #print("DBG list_of_accessors ", list_of_accessors, len(dram_ifmaps_waveops))
             prev_waveops = extract_predecessors(
                     list_of_accessors_wr = list_of_accessors, 
                     list_of_accessors_rd = [[]],
-                    waveop_list         = tpb.waveop_stream,
-                    dram_waveops        = dram_ifmaps_waveops,
-                    relax_dependencies  = self.args.relax_dependencies,
-                    enable_cleanup      = self.args.enable_cleanup)
+                    waveop_list          = tpb.waveop_stream,
+                    dram_waveops         = dram_ifmaps_waveops,
+                    relax_dependencies   = self.args.relax_dependencies,
+                    full_dependencies    = self.args.full_dependencies)
             #print("DBG prev_waveops ", prev_waveops)
 
             matmul_waveop = self.gen_matmul_waveop(
@@ -1388,7 +1386,7 @@ class FusedOp(list):
                 list_of_accessors_wr = []
                 list_of_accessors_rd = [[] for l in range(EngineEnum.COUNT)]
                 if 1: # (ofmap_tile.m_id%2 == 0):
-                    (writers, readers, dram_bias_waveops, _) = tpb.statebuffer.file_mapper.read_file_data_region(
+                    (writers, readers, dram_bias_waveops, new_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.waveop_count,
                                                     tpb.waveop_stream,
                                                     tpb.statebuffer.zero_bias_file_params,
@@ -1397,9 +1395,10 @@ class FusedOp(list):
                                                     tpb.statebuffer.zero_bias_file_params.item_sz,
                                                     EngineEnum.ACT,
                                                     )
-                    list_of_accessors_wr += writers # Include readers for WAR dependencies and writers for WAW dependencies
-                    for l in range(EngineEnum.COUNT):
-                        list_of_accessors_rd[l] += readers[l]    # Include readers for WAR dependencies and writers for WAW dependencies
+                    list_of_accessors_wr += writers # writers for WAW dependencies
+                    # TODO: include readers for implicit dep on prev bias load?
+                    #for l in range(EngineEnum.COUNT):
+                    #    list_of_accessors_rd[l] += readers[l]    # Include readers for WAR dependencies and writers for WAW dependencies
                 #print("DBG:", list_of_accessors)
                 # TODO: roll this code into read_file_data_region
                 prev_waveops = extract_predecessors(
@@ -1408,7 +1407,7 @@ class FusedOp(list):
                         waveop_list         = tpb.waveop_stream,
                         dram_waveops        = [],
                         relax_dependencies  = self.args.relax_dependencies,
-                        enable_cleanup      = self.args.enable_cleanup)
+                        full_dependencies   = self.args.full_dependencies)
 
                 alpha = 1.0
                 if layer_type == 'Lrelu':
@@ -1418,7 +1417,7 @@ class FusedOp(list):
                 if dst_is_psum:
                     tpb.pearray.write_psum(psum_bank_dst, 0, psum_temp.shape[0], psum_temp)
                 waveop = self.gen_act_waveop_inline(tpb, None, op_list[i], self.first_op, ifmap_tile, ofmap_tile, 
-                                          True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, 0)
+                                          True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, 0, new_reader_morsels)
                 attach_predecessors(waveop, prev_waveops)
             elif (layer_type == 'BiasAdd'):
                 # load bias values
@@ -1435,7 +1434,7 @@ class FusedOp(list):
                 list_of_accessors_wr = []
                 list_of_accessors_rd = [[] for l in range(EngineEnum.COUNT)]
                 if 1: #(ofmap_tile.m_id%2 == 0):
-                    (writers, readers, dram_bias_waveops, _) = tpb.statebuffer.file_mapper.read_file_data_region(
+                    (writers, readers, dram_bias_waveops, new_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.waveop_count,
                                                     tpb.waveop_stream,
                                                     self.biasadd_op.bias_file_params,
@@ -1444,9 +1443,10 @@ class FusedOp(list):
                                                     self.biasadd_op.item_sz,
                                                     EngineEnum.ACT,
                                                     )
-                    list_of_accessors_wr += writers # Include readers for WAR dependencies and writers for WAW dependencies
-                    for l in range(EngineEnum.COUNT):
-                        list_of_accessors_rd[l] += readers[l]    # Include readers for WAR dependencies and writers for WAW dependencies
+                    list_of_accessors_wr += writers # writers for WAW dependencies 
+                    # TODO: include readers for implicit dep on prev bias load?
+                    #for l in range(EngineEnum.COUNT):
+                    #    list_of_accessors_rd[l] += readers[l]    # Include readers for WAR dependencies and writers for WAW dependencies
 
                 prev_waveops = extract_predecessors(
                         list_of_accessors_wr = list_of_accessors_wr, 
@@ -1454,7 +1454,7 @@ class FusedOp(list):
                         waveop_list         = tpb.waveop_stream,
                         dram_waveops        = [],
                         relax_dependencies  = self.args.relax_dependencies,
-                        enable_cleanup      = self.args.enable_cleanup)
+                        full_dependencies   = self.args.full_dependencies)
                 #x = DBG_DUMP_PSUM_COL("PSUM col0 before BiasAdd (FP32): ", psum_temp, 0)
                 psum_temp = tpb.activate.biasadd(psum_temp, bias_extracted[bias_chan_mid_part*PEArray.NUM_COLS : (bias_chan_mid_part+1)*PEArray.NUM_COLS])
                 #y = DBG_DUMP_PSUM_COL("PSUM col0 after BiasAdd: ", psum_temp, 0)
@@ -1469,14 +1469,14 @@ class FusedOp(list):
                         dst_is_psum = True
                         tpb.pearray.write_psum(psum_bank_id, 0, self.first_op.ofmap_full_tile_sz * ofmap_tile.Tn, psum_temp)
                     waveop = self.gen_act_waveop_inline(tpb, op_list[i], op_list[i+1], self.first_op, ifmap_tile, ofmap_tile, 
-                                              True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, bias_addr)
+                                              True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, bias_addr, new_reader_morsels)
                     next(op_list_iter)
                 else:                                    
                     if (i != len(op_list)-1):
                         dst_is_psum = True
                         tpb.pearray.write_psum(psum_bank_id, 0, self.first_op.ofmap_full_tile_sz * ofmap_tile.Tn, psum_temp)
                     waveop = self.gen_act_waveop_inline(tpb, op_list[i], None, self.first_op, ifmap_tile, ofmap_tile, 
-                                              True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, bias_addr)
+                                              True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, bias_addr, new_reader_morsels)
                 attach_predecessors(waveop, prev_waveops)
             elif (self[i].is_join):
                 residue_file_params = self[i].prev[self[i].residue_index].ofmaps_file_params
@@ -1485,9 +1485,11 @@ class FusedOp(list):
                         residue_file_params.mapped_params.modify_in_place = True
                 dram_resadd_waveops = []
                 list_of_accessors = []
+                new_reader_morsels = []
+
                 if 1: # (ofmap_tile.m_id%2 == 0):
                     for z in range(op_list.first_op.Tn):
-                        (writers, readers, waveops, _) = tpb.statebuffer.file_mapper.read_file_data_region(
+                        (writers, readers, waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
                                                     tpb.waveop_stream.waveop_count,
                                                     tpb.waveop_stream,
                                                     residue_file_params,
@@ -1502,15 +1504,16 @@ class FusedOp(list):
                         if (self.args.debug > 2): print("DBG %s: ResAdd/Mult ofmaps_tile_lower_addr %d ofmap_tile_upper_addr %d"%(self.first_op.data['layer_name'], ofmap_tile.lower_addr[z], ofmap_tile.upper_addr[z]))                
                         dram_resadd_waveops += waveops
                         list_of_accessors += writers    # only include writers for RAW dependency
+                        new_reader_morsels += reader_morsels
 
                 # consider all Tn batch items together to avoid redundant edges
                 prev_waveops = extract_predecessors(
                         list_of_accessors_wr = list_of_accessors, 
                         list_of_accessors_rd = [[]],
-                        waveop_list = tpb.waveop_stream,
-                        dram_waveops        = [],
-                        relax_dependencies  = self.args.relax_dependencies,
-                        enable_cleanup      = self.args.enable_cleanup)
+                        waveop_list          = tpb.waveop_stream,
+                        dram_waveops         = [],
+                        relax_dependencies   = self.args.relax_dependencies,
+                        full_dependencies    = self.args.full_dependencies)
 
                 # Do the actual math
                 residue_tile = ofmap_tile.copy()
@@ -1553,7 +1556,8 @@ class FusedOp(list):
                         psum_bank_dst       = psum_bank_id if dst_is_psum else -1, 
                         dram_resadd_waveops = dram_resadd_waveops, 
                         residue_index       = self[i].residue_index,
-                        residue_sb_addr     = residue_sb_addr)
+                        residue_sb_addr     = residue_sb_addr,
+                        new_reader_morsels  = new_reader_morsels)
                 attach_predecessors(waveop, prev_waveops)
             elif (re.search("^Add$|Minimum|Maximum|Multiply", layer_type)):
                 add_scalar = 0.0
@@ -1660,7 +1664,7 @@ class FusedOp(list):
               'dst_z_num'               : 1,
               'num_partitions'          : 1
             }
-        tpb.waveop_stream.add_linked(instr, [], -1)
+        tpb.waveop_stream.add_linked(instr, [], psum_bank_src)
         return instr
 
     # generate scaleadd instruction and add it to instruction stream
@@ -1981,20 +1985,20 @@ class FusedOp(list):
         waveop_stream.add_linked(waveop, dram_waveops, src_psum_bank, new_reader_morsels)
         return waveop
 
-    def gen_fused_pool_waveop_inline (self, tpb, ifmap_tile, ofmap_tile, psum_bank_src, start_at_mid_part):
+    def gen_fused_pool_waveop_inline (self, tpb, ifmap_tile, ofmap_tile, psum_bank_src, start_at_mid_part, new_reader_morsels=[]):
         first_waveop = None
         for z in range(self.pool_op.Tn):
             pool_waveop = self.gen_pool_waveop(tpb, ifmap_tile, ofmap_tile, True, psum_bank_src, start_at_mid_part, z)
-            tpb.waveop_stream.add_linked(pool_waveop, [], psum_bank_src)
+            tpb.waveop_stream.add_linked(pool_waveop, [], psum_bank_src, new_reader_morsels)
             if z==0:
                 first_waveop = pool_waveop                        
         return first_waveop
 
-    def gen_unfused_pool_waveop_inline (self, tpb, ifmap_tile, ofmap_tile, dram_waveops, prev_waveops, start_at_mid_part):
+    def gen_unfused_pool_waveop_inline (self, tpb, ifmap_tile, ofmap_tile, dram_waveops, prev_waveops, start_at_mid_part, new_reader_morsels=[]):
         first_waveop = None
         for z in range(self.pool_op.Tn):
             pool_waveop = self.gen_pool_waveop(tpb, ifmap_tile, ofmap_tile, False, 0, start_at_mid_part, z)
-            tpb.waveop_stream.add_linked(pool_waveop, dram_waveops if z==0 else [], -1)
+            tpb.waveop_stream.add_linked(pool_waveop, dram_waveops if z==0 else [], -1, new_reader_morsels)
             if z==0:
                 # Add non-DRAM waveops to a previouse_waveops list
                 existing_prev_waveops = pool_waveop['previous_waveops']
@@ -2224,7 +2228,7 @@ class FusedOp(list):
                 waveop_list         = tpb.waveop_stream,
                 dram_waveops        = dram_fmaps_waveops,
                 relax_dependencies  = self.args.relax_dependencies,
-                enable_cleanup      = self.args.enable_cleanup)
+                full_dependencies      = self.args.full_dependencies)
 
         if dram_fmaps_waveops != []  and self.args.no_inter_layer_load:
             if (not self.first_op.is_input and len(dram_fmaps_waveops) > 0):
@@ -2292,7 +2296,7 @@ class FusedOp(list):
                 waveop_list         = tpb.waveop_stream,
                 dram_waveops        = [],
                 relax_dependencies  = False,
-                enable_cleanup      = self.args.enable_cleanup)
+                full_dependencies      = self.args.full_dependencies)
         attach_predecessors(waveop, predec_list_by_name)
 
     def emit_waveops_pool_tile(self, tpb, ifmap_tile, ofmap_tile, psum_bank_id):
@@ -2316,7 +2320,7 @@ class FusedOp(list):
                     = PoolSubtile(ifmap_tile, pool_wave.ifmap, pool_wave.window)
                 ofmap_tile_subtile \
                     = PoolSubtile(ofmap_tile, pool_wave.ofmap, pool_wave.window)
-                (prev_waveops, dram_ifmaps_waveops, _) \
+                (prev_waveops, dram_ifmaps_waveops, new_reader_morsels) \
                     = self.get_producers_for_subtile_region (
                             tpb          = tpb, 
                             fmap_subtile = ifmap_tile_subtile,
@@ -2329,7 +2333,8 @@ class FusedOp(list):
                         ofmap_tile        = ofmap_tile_subtile, 
                         dram_waveops      = dram_ifmaps_waveops, 
                         prev_waveops      = prev_waveops, 
-                        start_at_mid_part = start_at_mid_part)
+                        start_at_mid_part = start_at_mid_part,
+                        new_reader_morsels = new_reader_morsels)
                 #print(waveop)
                 self.mark_producers_for_subtile_region(
                         tpb           = tpb, 
@@ -2344,11 +2349,15 @@ class FusedOp(list):
                     = PoolSubtile(ifmap_tile, ifmap_tile.tile_rect, Dim2D(1,1))
             ofmap_tile_subtile \
                     = PoolSubtile(ofmap_tile, ofmap_tile.tile_rect, Dim2D(1,1))
+            if first_op.data['layer_type'] == "BiasAdd" or first_op.data['layer_type'] == "Activation": 
+                reader_engine = EngineEnum.ACT
+            else:                
+                reader_engine = EngineEnum.POOL
             (prev_waveops, dram_ifmaps_waveops, new_reader_morsels) \
                 = self.get_producers_for_subtile_region (
                         tpb          = tpb, 
                         fmap_subtile = ifmap_tile_subtile,
-                        reader_engine = EngineEnum.POOL,
+                        reader_engine = reader_engine,
                         )
             first_waveop = None
             last_waveop = None
@@ -2361,7 +2370,7 @@ class FusedOp(list):
                                                 0,  # batch_item is not needed for bias
                                                 bias_start,
                                                 first_op.item_sz,
-                                                EngineEnum.ACT)
+                                                reader_engine)
                 #print(first_op.data['layer_name'], writers)
                 dram_ifmaps_waveops += dram_bias_waveops
                 new_reader_morsels += reader_morsels
@@ -2371,7 +2380,7 @@ class FusedOp(list):
                         waveop_list         = tpb.waveop_stream,
                         dram_waveops        = [],
                         relax_dependencies  = self.args.relax_dependencies,
-                        enable_cleanup      = self.args.enable_cleanup)
+                        full_dependencies   = self.args.full_dependencies)
                 for i in prev_wr_waveops:
                     if i not in prev_waveops:
                         prev_waveops.append(i)
@@ -2388,7 +2397,7 @@ class FusedOp(list):
                     residue_tile.file_params = residue_file_params
                     residue_subtile = PEWave(residue_tile, 0, 0, 0, first_op.stridedslice_chan_offset)
                     (residue_prev_waveops, dram_resadd_waveops, reader_morsels) = \
-                        self.get_producers_for_subtile_region(tpb, residue_subtile, EngineEnum.POOL)
+                        self.get_producers_for_subtile_region(tpb, residue_subtile, reader_engine)
                     new_reader_morsels += reader_morsels
                     residue_file_addr = residue_file_params.ravel_nchw(
                             ofmap_tile.n_id * ofmap_tile.Tn,
@@ -2763,16 +2772,17 @@ class FusedOp(list):
         pewave.ifmap_channel_count = PEArray.NUM_ROWS
         ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
         self.first_op.compute_ifmap_ofmap_pewave_info(pewave, pewave, False)
-        (prev_waveops, dram_ifmaps_waveops, _) =\
+        (prev_waveops, dram_ifmaps_waveops, new_reader_morsels) =\
                 self.get_producers_for_subtile_region (
                     tpb = tpb, fmap_subtile = pewave, reader_engine = EngineEnum.PEARRAY)
+        (writers, readers, dram_weights_waveops) = ([], [], [])
         # 9-10-2018
         if (first == True):
           total_size_weights =(
            self.first_op.weight_wave_upper_addr
              - self.first_op.weight_wave_lower_addr
            + self.first_op.item_sz) * num_weights
-          (writers, readers, dram_weights_waveops, _) =\
+          (writers, readers, dram_weights_waveops, reader_morsels) =\
                   tpb.statebuffer.file_mapper.read_file_data_region(
                       tpb.waveop_stream.waveop_count
                       , tpb.waveop_stream
@@ -2787,6 +2797,7 @@ class FusedOp(list):
                       , dont_put_prev_ops = False
                   )
           self.concat_dram_weights_waveops = dram_weights_waveops
+          new_reader_morsels += reader_morsels
         dram_weights_waveops = self.concat_dram_weights_waveops
         #print ("len(dram_weights_waveops) = %d"%len(dram_weights_waveops))
         psum_add = start_tensor_calc == False
@@ -2804,7 +2815,7 @@ class FusedOp(list):
                 weights = None
             if (first == True):
               tpb.waveop_stream.add_linked(
-                  mms[i], weights, psum_bank_id)
+                  mms[i], weights, psum_bank_id, new_reader_morsels)
             else:
               tpb.waveop_stream.add_linked(
                   mms[i], [], psum_bank_id)

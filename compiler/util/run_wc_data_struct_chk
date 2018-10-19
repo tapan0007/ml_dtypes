@@ -1,1 +1,1 @@
-$KAENA_PATH/compiler/wave-checker/wc-build/bin/wave_graph_checker -w wavegraph-bin.json --structure-check --data-race-check --stdout | tee log-wc-data_struct.txt
+$KAENA_PATH/compiler/wave-checker/wc-build/bin/wave_graph_checker -w wavegraph.json --structure-check --data-race-check --stdout | tee log-wc-data_struct.txt
