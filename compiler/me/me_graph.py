@@ -792,7 +792,7 @@ class KGraph:
                                     # has a negative padding (subset slice),
                                     # so add the pads together
                                     new_node.data['padding'] = np.add(padding, \
-                                            prev_node.data['padding'])
+                                            prev_node.data['padding']).tolist()
                                     new_node.dissolve_node(prev_node)
                                 else:
                                   # NCHW
