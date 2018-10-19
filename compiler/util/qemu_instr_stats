@@ -272,4 +272,4 @@ class QemuLogs(object):
   
 ql = QemuLogs(args.logdir)
 ql.report(args.out_csv)
-
+sys.exit(0)

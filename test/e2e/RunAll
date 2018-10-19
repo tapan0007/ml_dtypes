@@ -985,10 +985,12 @@ else:
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
   
   # Qemu Instruction statistics for DV
-  if args.force_qemu:
-    cmd = kPath + "/compiler/util/qemu_instr_stats --logdir . --out_csv qor_instr_stats.csv > log-instr_stats.txt 2>&1"
+  cmd = kPath + "/compiler/util/qemu_instr_stats --logdir . --out_csv qor_instr_stats.csv > log-instr_stats.txt 2>&1"
+  if args.verbose:
     print("INFO: executing ", cmd)
-    os.system(cmd)    
+  instrStatsRet = os.system(cmd)
+  if instrStatsRet:
+    print("ERROR: qemu_instr_stats failed, check log-instr_stats.txt")
   
   plotQor = False
   try:
@@ -1012,7 +1014,7 @@ else:
   tests.report_junit_xml("RunAllReport.xml")
   tests.report_wavechecker_status("wave_checker_report.txt")
 
-  if tests.numFail:
+  if tests.numFail or instrStatsRet:
     exit(-1)
     
     
