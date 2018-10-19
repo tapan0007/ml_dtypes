@@ -982,6 +982,8 @@ class FusedOp(list):
                 save_layer = self.fused_op_id < self.args.save_layer_output 
             elif self.args.save_layer_output < 0:
                 save_layer = self.fused_op_id >= (len(tpb.fused_ops_list) + self.args.save_layer_output)
+            if self.args.save_layer_regex != "":
+                save_layer = re.search(self.args.save_layer_regex, self.last_op.data['layer_name'])
 
             if self.last_op.next == [] or save_layer and not self.no_writer_for_save:
                 last_batch_item = batch_item + self.first_op.Tn
