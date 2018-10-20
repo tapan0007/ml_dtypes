@@ -110,6 +110,10 @@ public:
             if (m_PrevLayers.size() == 1) {
                 KCC_ARCHIVE(MulScalar);
             }
+        } else if (m_LayerType == layers::LayerTypeStr_Sub) {
+            if (m_PrevLayers.size() == 1) {
+                KCC_ARCHIVE(AddScalar);
+            }
         } else if (m_LayerType == layers::LayerTypeStr_Add) {
             if (m_PrevLayers.size() == 1) {
                 KCC_ARCHIVE(AddScalar);

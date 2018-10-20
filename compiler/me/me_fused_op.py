@@ -771,8 +771,10 @@ class FusedOp(list):
                     # Ff weights file is too large, make intake buffer a circular buffer.
                     # Due to channel folding there's high chance of thrashing (high eviction rate) with a factor of 4,
                     # so use an odd factor say 7.
-                    if weights_file_sz > (tpb.statebuffer.SB_PARTITION_SZ/2):
-                        weights_file_sz = 7 * weights_file_params.chunk_sz_padded * weights_file_params.fmap_channels_folds
+                    if weights_file_sz > (tpb.statebuffer.SB_PARTITION_SZ//2):
+                        chunk_sz_x_chan_folds = weights_file_params.chunk_sz_padded * weights_file_params.fmap_channels_folds
+                        multiplier = (tpb.statebuffer.SB_PARTITION_SZ//2) // chunk_sz_x_chan_folds
+                        weights_file_sz = multiplier * chunk_sz_x_chan_folds
                         wrap_around = True
                     t = weights_file_start_addr
                     weights_file_start_addr =\
@@ -924,6 +926,8 @@ class FusedOp(list):
         elif (first_op_type == "Multiply" 
                 or first_op_type == "Maximum" 
                 or first_op_type == "Minimum" 
+                or first_op_type == "Add" 
+                or first_op_type == "Sub" 
                 or first_op_type == "ResAdd"): # TODO: handle the scalar 
             if (len(self.first_op.data['previous_layers']) <= 2):
                 results = self.execute_unfused_pool_op(tpb, batch_item)
@@ -1514,8 +1518,10 @@ class FusedOp(list):
                 num_elems = residue_ifmaps.shape[0]
                 #x1 = DBG_DUMP_PSUM_COL("PSUM col0 before ResAdd (FP32): ", psum_temp, 0)
                 #x2 = DBG_DUMP_PSUM_COL("Residue col0 before ResAdd (FP32): ", residue_ifmaps, 0)
-                if (layer_type == 'ResAdd'):
+                if (layer_type == 'ResAdd' or layer_type == "Add"):
                     psum_temp[0:num_elems, 0:num_cols] = tpb.pool.resadd(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
+                elif (layer_type == 'Sub'):
+                    psum_temp[0:num_elems, 0:num_cols] = tpb.pool.sub(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
                 elif (layer_type == 'Multiply'):    
                     psum_temp[0:num_elems, 0:num_cols] = tpb.pool.multiply(psum_temp[0:num_elems, 0:num_cols], residue_ifmaps)
                 elif (layer_type == 'Maximum'):    
@@ -2126,8 +2132,10 @@ class FusedOp(list):
             residue_tile = ofmap_tile.copy()
             residue_tile.file_params = residue_file_params
             residue_ifmaps = residue_tile.get_tile_data_from_file(flatten=True)
-            if (layer_type == "ResAdd"):
+            if (layer_type == "ResAdd" or layer_type == "Add"):
                 tile_data_flatten = tpb.pool.resadd(ifmaps_data_extract, residue_ifmaps)
+            elif (layer_type == "Sub"):                                    
+                tile_data_flatten = tpb.pool.sub(ifmaps_data_extract, residue_ifmaps)
             elif (layer_type == "Multiply"):                                    
                 tile_data_flatten = tpb.pool.multiply(ifmaps_data_extract, residue_ifmaps)
             elif (layer_type == "Maximum"):                                    
@@ -2135,7 +2143,7 @@ class FusedOp(list):
             elif (layer_type == "Minimum"):                                    
                 tile_data_flatten = tpb.pool.minimum(ifmaps_data_extract, residue_ifmaps)
             else:
-                raise RuntimeError("ERROR: don't know how to handle vector op %s for layer %s"%(layer_type, first_op.data['layer_name']))
+                raise RuntimeError("ERROR: don't know how to handle tensor-tensor op %s for layer %s"%(layer_type, first_op.data['layer_name']))
         elif (re.search("^Add$|Minimum|Maximum|Multiply", layer_type)):
             add_scalar = 0.0
             mul_scalar = 1.0

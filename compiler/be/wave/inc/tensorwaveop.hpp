@@ -49,6 +49,9 @@ public:
     static std::string gTypeStrMultiplyStatic() {
         return "Multiply";
     }
+    static std::string gTypeStrSubStatic() {
+        return "Sub";
+    }
     static std::string gTypeStrAddStatic() {
         return "Add";
     }

@@ -10,6 +10,7 @@ constexpr const char* const LayerTypeStr_Input          = "Input";
 constexpr const char* const LayerTypeStr_Const          = "Const";
 constexpr const char* const LayerTypeStr_ResAdd         = "ResAdd";
 constexpr const char* const LayerTypeStr_Add            = "Add";
+constexpr const char* const LayerTypeStr_Sub            = "Sub";
 constexpr const char* const LayerTypeStr_Multiply       = "Multiply";
 constexpr const char* const LayerTypeStr_BiasAdd        = "BiasAdd";
 constexpr const char* const LayerTypeStr_Conv           = "Conv";

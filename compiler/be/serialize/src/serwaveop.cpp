@@ -826,6 +826,8 @@ SerWaveOp::verify() const
         return verifyTensor();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
         return verifyTensor();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Sub) {
+        return verifyTensor();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Add) {
         return verifyTensor();
     } else {

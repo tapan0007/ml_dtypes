@@ -162,6 +162,12 @@ class Pool:
         result[:, 0:num_chan] += array_b
         return result
 
+    def sub(self, array_a, array_b):
+        result = copy.copy(array_a)
+        num_chan = array_b.shape[1]
+        result[:, 0:num_chan] -= array_b
+        return result
+
     def multiply(self, array_a, array_b):
         result = copy.copy(array_a)
         num_chan = array_b.shape[1]

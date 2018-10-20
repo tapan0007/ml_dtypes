@@ -244,6 +244,7 @@ private:
     void loadResAdd(cereal::JSONInputArchive& archive);
     void loadScaleAdd(cereal::JSONInputArchive& archive);
     void loadAdd(cereal::JSONInputArchive& archive);
+    void loadSub(cereal::JSONInputArchive& archive);
     void loadMultiply(cereal::JSONInputArchive& archive);
     void loadClipByValue(cereal::JSONInputArchive& archive);
     void loadMaximum(cereal::JSONInputArchive& archive);
@@ -261,6 +262,7 @@ private:
     void saveMaximum(cereal::JSONOutputArchive& archive) const;
     void saveMinimum(cereal::JSONOutputArchive& archive) const;
     void saveAdd(cereal::JSONOutputArchive& archive) const;
+    void saveSub(cereal::JSONOutputArchive& archive) const;
     void saveMult(cereal::JSONOutputArchive& archive) const;
 
 protected:
@@ -430,7 +432,7 @@ public:
     //kcc_float32                 m_AddScalar = 0.0;
     //kcc_float32                 m_MulScalar = 0.0;
 
-    // Min,Max,Add,Mult
+    // Min,Max,Add,Sub,Mult
     bool                        m_IsScalarOp;
     kcc_float32                 m_ScalarVal;
 

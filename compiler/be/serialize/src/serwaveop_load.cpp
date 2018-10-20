@@ -38,6 +38,8 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         loadResAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
         loadMultiply(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Sub) {
+        loadSub(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Add) {
         loadAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
@@ -236,6 +238,20 @@ SerWaveOp::loadResAdd(cereal::JSONInputArchive& archive)
 
 void
 SerWaveOp::loadAdd(cereal::JSONInputArchive& archive)
+{
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        KCC_ARCHIVE(ScalarVal);
+        loadSrc(archive, Dims::XYZ);
+    } else {
+        loadSrcAB(archive, Dims::XYZ);
+    }
+    loadDst(archive, Dims::XYZ);
+}
+
+void
+SerWaveOp::loadSub(cereal::JSONInputArchive& archive)
 {
     KCC_ARCHIVE(NumPartitions);
     KCC_ARCHIVE(IsScalarOp);

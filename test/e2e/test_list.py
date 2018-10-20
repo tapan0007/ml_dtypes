@@ -1133,9 +1133,7 @@ testConfigMap = {
 
 
 def gen_parwavenet_10_fp16_in_to(node, sgnum):
-    return  [ "tf_pb",
-          "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb",
-          "parallel_wavenet",
+    return  [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
           "--input_node Placeholder sub_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
           + "--sg_input_format sub_1 NW "
           + "--executors host all wave %d  --scheduler wave2 --partition from_multi ExpandDims,Reshape "%sgnum
@@ -1150,8 +1148,42 @@ for i in [1, 2, 3, 6]:
 for i in [9, 12, 15, 18, 22]:
     testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to("add_%s"%i, 1)
 
+# In order to get add_24 in subgraph, has to cut graph before sub_1, and also mark all 2D nodes with NW format
+def gen_parwavenet_10_fp16_in_to2(node, sgnum):
+    return  [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
+          "--input_node Placeholder Log Log_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
+          + "--sg_input_format Log NW Log_1 NW sub_1 NW mul_13 NW add_24 NW Squeeze_36 NW Squeeze_35 NW "
+          + "--executors host all wave %d  --scheduler wave2 --partition from_multi sub_1,Reshape "%sgnum
+          + "--schedule_options ' --nname=generic --no_verify --save_layer_output ' --waive_wavegraph_checks "
+          + "--images %s linspace1 linspace1" % melSpectra,
+          "--input_files Placeholder:0=%s Log:0=trivnet_Log:0.npy Log_1:0=trivnet_Log_1:0.npy " % melSpectra]
+
+for i in [1, 2, 3, 6]:
+    testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave2"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
+
+for i in [9, 12, 15, 18, 22]:
+    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave2"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
+
 for i in [24]:
-    testConfigMap["7-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to("add_%s"%i, 0)
+    testConfigMap["7-parwavenet_10_fp16_in_to_add%s_wave2"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
+
+def gen_parwavenet_10_fp16_tanh1_to(node, sgnum):
+    return  [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
+          "--level_order_seed 2 --input_node Placeholder Log Log_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
+          + "--sg_input_format Log NW Log_1 NW sub_1 NW mul_13 NW add_24 NW Squeeze_36 NW Squeeze_35 NW "
+          + "--executors host all wave %d  --scheduler wave2 --partition from_multi sub_1,Tanh_1 "%sgnum
+          + "--schedule_options ' --nname=generic --no_verify' --waive_wavegraph_checks "
+          + "--images %s linspace1 linspace1" % melSpectra,
+          "--input_files Placeholder:0=%s Log:0=trivnet_Log:0.npy Log_1:0=trivnet_Log_1:0.npy " % melSpectra]
+
+for i in [1, 2, 3, 6]:
+    testConfigMap["5-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
+
+for i in [9, 12, 15, 18, 22]:
+    testConfigMap["6-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
+
+for i in [24]:
+    testConfigMap["7-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
 
 # Regression waiver mechanism
 # If the testname matches the regexp then the FAIL status is replaced with
@@ -1213,8 +1245,10 @@ testWaiver = [
     ['0-1stridedslice_wave', 'WAIVE_KAENA711'],
     #['.*reshape.*', 'WAIVE_KAENA597'],
     ['3-parwavenet_.*_me_only$', 'WAIVE_KAENA711'],
-    ['6-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE_KAENA711'],
-    ['7-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE_KAENA711'],
+    ['6-parwavenet_10_fp16_in_to_add.*_wave', 'WAIVE_KAENA711'],
+    ['7-parwavenet_10_fp16_in_to_add.*_wave', 'WAIVE_KAENA711'],
+    ['6-parwavenet_10_fp16_tanh_to_add.*_wave', 'WAIVE_KAENA711'],
+    ['7-parwavenet_10_fp16_tanh_to_add.*_wave', 'WAIVE_KAENA711'],
     ['3-1conv_transpose_1d_h100r80s20_wave', 'WAIVE_KAENA768'],
     ['3-1conv_transpose_1d_h10r40s10_wave', 'WAIVE_KAENA768'],
 

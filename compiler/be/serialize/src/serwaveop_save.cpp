@@ -38,8 +38,6 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveClipByValue(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         saveResAdd(archive);
-    } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
-        saveResAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ScaleAdd) {
         saveScaleAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {
@@ -52,6 +50,8 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveMaximum(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Add) {
         saveAdd(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_Sub) {
+        saveSub(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Multiply) {
         saveMult(archive);
     } else {
@@ -212,6 +212,20 @@ SerWaveOp::saveMinimum(cereal::JSONOutputArchive& archive) const
 
 void
 SerWaveOp::saveAdd(cereal::JSONOutputArchive& archive) const
+{
+    KCC_ARCHIVE(IsScalarOp);
+    if (m_IsScalarOp) {
+        saveSrc(archive, Dims::XYZ);
+    } else {
+        saveSrcAB(archive, Dims::XYZ);
+    }
+    saveDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+}
+
+void
+SerWaveOp::saveSub(cereal::JSONOutputArchive& archive) const
 {
     KCC_ARCHIVE(IsScalarOp);
     if (m_IsScalarOp) {

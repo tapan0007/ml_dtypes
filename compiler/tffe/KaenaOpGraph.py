@@ -232,6 +232,53 @@ class Node(Object):
       numBytes += npInfo.nbytes()
     return numBytes
 
+  def convertShape(self, npInfo, tensorFormatMap):
+    if len(npInfo.npShape) == 3:
+      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NWC
+    elif len(npInfo.npShape) == 2:
+      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.NC
+    elif len(npInfo.npShape) == 1:
+      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      tfFormat = npt.C
+    else:
+      assert len(npInfo.npShape) == 4
+      tfShape4D = npInfo.npShape
+      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
+
+    # Overwrite format from command line
+    simFormat = ""
+    if self.getName() in Config.Graph.inputNamesToFormat:
+      tfFormat = Config.Graph.inputNamesToFormat[self.getName()]
+      assert(len(tfFormat) == len(npInfo.npShape))
+      if tfFormat == npt.NWC:
+        tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
+      elif tfFormat == npt.HNC:
+        tfShape4D = npt.hncShapeToHNWC(npInfo.npShape)
+        simFormat = npt.HNWC
+        (npFileSim, tpbShape) = npt.formatNpyFileAs(npInfo.npFile, npt.HNC, simFormat)
+      elif tfFormat == npt.NC:
+        tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
+      elif tfFormat == npt.NW:
+        tfShape4D = npt.nwShapeToNHWC(npInfo.npShape)
+      elif tfFormat == npt.C:
+        tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
+      elif tfFormat == npt.Formats[npt.TF][npt.Fmaps]:
+        tfShape4D = npInfo.npShape
+      else:
+        print("ERROR: input format %s is not recognized (must be one of C, NC, NWC, HNC, or NHWC)"%self.inputFormat)
+
+    if simFormat == "":
+        tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
+        (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
+    tensorFormatMap.add(npInfo.tensorName,
+                        TensorFormat(npInfo.tensorName, self.getOpName(),
+                                     npInfo.npFile, tfFormat,
+                                     npFileSim, simFormat, False))
+    return (tpbShape, simFormat, npFileSim)                        
+       
+
   # Describes computational complexity of the operation
   def getOpCount(self, padded=False):
     opCount = 1
@@ -361,38 +408,7 @@ class NodeSimple(Node):
   def genCompilerLayerJson(self, tensorFormatMap):
     fileList = []
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 4:
-      tpbShape = list(npt.reorderShape(npInfo.npShape, npt.TF, npt.SIM, npt.Fmaps))
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps)
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.Formats[npt.TF][npt.Fmaps],
-                                       npFileSim, simFormat, False))
-    elif len(npInfo.npShape) == 3:
-      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.NWC,
-                                       npFileSim, simFormat, False))
-    elif len(npInfo.npShape) == 2:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.NC,
-                                       npFileSim, simFormat, False))
-    else:
-      assert len(npInfo.npShape) == 1
-      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-      tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-      tensorFormatMap.add(npInfo.tensorName,
-                          TensorFormat(npInfo.tensorName, self.getOpName(),
-                                       npInfo.npFile, npt.C,
-                                       npFileSim, simFormat, False))
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
     # FIX_THIS - IFMAP, it should not be needed
     in_nodes = self.getInputNodesAndNpInfo()
@@ -1148,25 +1164,7 @@ class NodeSimple2(Node):
 
     # Output tensor
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 3:
-      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NWC
-    elif len(npInfo.npShape) == 2:
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NC
-    elif len(npInfo.npShape) == 1:
-      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.C
-    else:
-      assert len(npInfo.npShape) == 4
-      tfShape4D = npInfo.npShape
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-    tensorFormatMap.add(npInfo.tensorName,
-                        TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, tfFormat,
-                                     npFileSim, simFormat, False))
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
 
     # Residual Add has both inputs dependent on the input image
     # BiasAdd has the other input constant
@@ -1177,7 +1175,7 @@ class NodeSimple2(Node):
       # This Add is a part of a side branch computation, no layer needed
       return [], []
 
-    isResAdd = faninEdgeOther.isInMainFlow()
+    isJoin = faninEdgeOther.isInMainFlow()
     ((fromIfNode0, npInfoIF0), (fromIfNode1, npInfoIF1),) = self.getInputNodesAndNpInfo()
 
     layerData = {
@@ -1196,11 +1194,11 @@ class NodeSimple2(Node):
     #   BiasAdd - when one input is constant
     #   ResAdd - when both inputs depend on the input image
     overrideType = self.getOpType()
-    if isResAdd:
+    if isJoin and overrideType == "Add":
       overrideType = "ResAdd"
     layerDataBase[0]["layer_type"] = overrideType
 
-    if not isResAdd and not type(fromIfNode1) == NodeConst:
+    if not isJoin and not type(fromIfNode1) == NodeConst:
 
       # Scalar add is fused (e.g. for LSTMs)
       if len(npInfoIF1.npShape) == 0:
@@ -1324,31 +1322,12 @@ class NodeMultiply(Node):
 
     # LSTM Output tensor is NC format
     npInfo = self.getNpInfo()[0]
-    if len(npInfo.npShape) == 4:
-      # CNN unit test flow, no known large Tonga NNs use these shapes as of early 2018
-      tfShape4D = npInfo.npShape
-      tfFormat = npt.Formats[npt.TF][npt.Fmaps]
-    elif len(npInfo.npShape) == 3:
-      tfShape4D = npt.nwcShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NWC
-    elif len(npInfo.npShape) == 1:
-      tfShape4D = npt.cShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.C
-    else:
-      assert len(npInfo.npShape) == 2
-      tfShape4D = npt.ncShapeToNHWC(npInfo.npShape)
-      tfFormat = npt.NC
-    tpbShape = list(npt.reorderShape(tfShape4D, npt.TF, npt.SIM, npt.Fmaps))
-    (npFileSim, simFormat) = npt.copyNpyFileAs(npInfo.npFile, npt.TF, npt.SIM, npt.Fmaps, tfShape4D)
-    tensorFormatMap.add(npInfo.tensorName,
-                        TensorFormat(npInfo.tensorName, self.getOpName(),
-                                     npInfo.npFile, tfFormat,
-                                     npFileSim, simFormat, False))
+    (tpbShape, simFormat, npFileSim) = self.convertShape(npInfo, tensorFormatMap)
+
     fileList.append(npFileSim)
     isScalar = [None]*2
     npInfoIF = [None]*2
     fromIfNode = [None]*2
-
 
     ((fromIfNode[0], npInfoIF[0]), (fromIfNode[1], npInfoIF[1]),) = self.getInputNodesAndNpInfo()
     # scalar (Mult, Min, Max) - one arg is scalar; element-wise: both are vectors

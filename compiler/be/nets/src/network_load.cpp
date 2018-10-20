@@ -223,6 +223,7 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             layer = new layers::TanhLayer(params, prevLayer);
         } else if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd
                    || serLayer.gTypeStr() == layers::LayerTypeStr_Multiply
+                   || serLayer.gTypeStr() == layers::LayerTypeStr_Sub
                    || serLayer.gTypeStr() == layers::LayerTypeStr_Add) {
             // TODO: check dimensions and types of inputs
             if (serLayer.gTypeStr() == layers::LayerTypeStr_ResAdd) {
@@ -315,6 +316,13 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
                 }
             } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrAddStatic()) {
                 const TensorAluOpType aluOp = TensorAluOpType::Add;
+                if (serWaveOp.m_IsScalarOp) {
+                    waveOp = m_Load->loadTensorScalarConst(serWaveOp, aluOp);
+                } else {
+                    waveOp = m_Load->loadTensorTensor(serWaveOp, aluOp);
+                }
+            } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrSubStatic()) {
+                const TensorAluOpType aluOp = TensorAluOpType::Sub;
                 if (serWaveOp.m_IsScalarOp) {
                     waveOp = m_Load->loadTensorScalarConst(serWaveOp, aluOp);
                 } else {
@@ -676,6 +684,7 @@ Network::Load::loadTensorScalarConst(const serialize::SerWaveOp& serWaveOp, Tens
 
     switch (aluOp) {
     case TensorAluOpType::Add:
+    case TensorAluOpType::Sub:
     case TensorAluOpType::Mult:
     case TensorAluOpType::Min:
     case TensorAluOpType::Max:
@@ -685,7 +694,7 @@ Network::Load::loadTensorScalarConst(const serialize::SerWaveOp& serWaveOp, Tens
         PARAMS.m_ImmVal[1] = serWaveOp.m_ScalarVal;
         break;
     default:
-        Assert(false, "Supported TensorScalar ops are: Add, Mult, Minimum, Maximum: ", 
+        Assert(false, "Supported TensorScalar ops are: Add, Sub, Mult, Minimum, Maximum: ", 
             static_cast<kcc_int32>(aluOp));
         break;
     }
