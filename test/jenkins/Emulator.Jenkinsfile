@@ -51,6 +51,7 @@ pipeline{
 		sh 'chmod 600 /root/.ssh/siopt-vpc.pem'
 		sh 'chmod 600 /root/.ssh/id_rsa'
                 sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest'
+                sh 'mkdir -p $TEST_DIR/EmulatorBringup'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
                 '''
@@ -131,6 +132,26 @@ pipeline{
         }
         stage('Regressions') {
             stages {
+                stage('EmulatorBringup') {
+                    steps {
+                        sh '''
+                        (cd $TEST_DIR/EmulatorBringup && export KAENA_ZEBU_SERVER=$KAENA_ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt --zebu "$KAENA_ZEBU_SERVER" --action start_pool > log_pool.txt 2>&1 &)
+                        '''
+                        timeout(time: 30, unit: 'MINUTES') {
+                            sh '''
+                            (cd $TEST_DIR/EmulatorBringup && while [ ! -f poolpid.txt ]; do tail log_pool.txt && sleep 1; done; )
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            sh 'mkdir /artifact/EmulatorBringup'
+                            sh 'find $TEST_DIR/EmulatorBringup -iname "*.txt" -print0 | tar -czvf /artifact/EmulatorBringup/logs.tgz -T -'
+                            sh 'chmod -R a+wX /artifact/'
+                            archiveArtifacts artifacts:'EmulatorBringup/logs.tgz'
+                        }
+                    }
+                }
                 stage('RunAllWithArgs') {
                     steps {
                         catchError {
@@ -166,7 +187,7 @@ pipeline{
                     steps {
                         catchError {
                             sh '''
-                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/RunPytest && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS --zebu $KAENA_ZEBU_SERVER)
+                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/RunPytest && export KAENA_ZEBU_SERVER=$KAENA_ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS --zebu "$KAENA_ZEBU_SERVER")
                             '''
                         }
                     }
