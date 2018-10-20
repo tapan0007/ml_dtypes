@@ -777,20 +777,29 @@ testConfigMap = {
   #"7-rn50_nne_fc_waveopt"       : [ "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp16, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"7-rn50_nne_fp32_waveopt"     : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
   #"7-rn50_nne_fp32_wave"        : [ "tf_pb", "resnet50_keras/resnet50_fp32_keras_opt.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1  --scheduler wave --images %s" %(rnPreFp32, rnDogJpg), "--input_files %s" % rnDogJpg ],
-  "7-rn50_nne_fp16_wave-no_repl-all-layers"        : [
-      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
-    ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
-      + " --executors wave 0 host 1  --scheduler wave2 --images %s"
-      + " --schedule_options ' --save_layer_output ' "
-      + " --waive_wavegraph_checks"
-    ) %(rnPreFp16, rnDogJpg),
-    "--input_files %s" % rnDogJpg ],
+#  "7-rn50_nne_fp16_wave-no_repl-all-layers"        : [
+#      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+#    ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
+#      + " --executors wave 0 host 1  --scheduler wave2 --images %s"
+#      + " --schedule_options ' --save_layer_output ' "
+#      + " --waive_wavegraph_checks"
+#    ) %(rnPreFp16, rnDogJpg),
+#    "--input_files %s" % rnDogJpg ],
 
   "7-rn50_nne_fp16_wave-no_repl-save-last-n-layers"        : [
       "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
     ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
       + " --executors wave 0 host 1  --scheduler wave2 --images %s"
-      + " --schedule_options ' --save_layer_output -10 ' "
+      + " --schedule_options ' --save_layer_output -13 ' "
+      + " --waive_wavegraph_checks"
+    ) %(rnPreFp16, rnDogJpg),
+    "--input_files %s --check_against_ref all_available" % rnDogJpg ],
+
+  "7-rn50_nne_fp16_wave-no_repl-save-first-n-layers"        : [
+      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
+      + " --executors wave 0 host 1  --scheduler wave2 --images %s"
+      + " --schedule_options ' --save_layer_output 13 ' "
       + " --waive_wavegraph_checks"
     ) %(rnPreFp16, rnDogJpg),
     "--input_files %s --check_against_ref all_available" % rnDogJpg ],
@@ -1184,6 +1193,19 @@ for i in [9, 12, 15, 18, 22]:
 
 for i in [24]:
     testConfigMap["7-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
+
+def gen_7_rn50_nne_fp16_wave_no_repl_save(layer_name):    
+    return [
+      "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
+      + " --executors wave 0 host 1  --scheduler wave2 --images %s"
+      + " --schedule_options ' --save_layer_regex %s ' "%layer_name
+      + " --waive_wavegraph_checks"
+    ) %(rnPreFp16, rnDogJpg),
+    "--input_files %s --check_against_ref all_available" % rnDogJpg ]
+
+#for i in range(49):
+#    testConfigMap["7-rn50_nne_fp16_wave-no_repl-save-act%s"%i] = gen_7_rn50_nne_fp16_wave_no_repl_save("activation_%s"%i)
 
 # Regression waiver mechanism
 # If the testname matches the regexp then the FAIL status is replaced with

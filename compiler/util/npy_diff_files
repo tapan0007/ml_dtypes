@@ -114,16 +114,21 @@ if verbose >= 2:
 
 if verbose >= 2:
   print("\nStatistics")
-  print("%-36s" % ("Relative Error % mean std  min max"))
-  print("%12.2f %12.2f  %12.2f %12.2f" % (diffRel.mean(), diffRel.std(), diffRel.min(), diffRel.max()))
+  print("%-20s %12s %12s  %12s %12s" % ("Relative Error (%):", "mean", "std", "min", "max"))
+  print("%-20s %12.2f %12.2f  %12.2f %12.2f" % ("", diffRel.mean(), diffRel.std(), diffRel.min(), diffRel.max()))
 
-  print("%-36s" % ("Absolute Error  mean std  min max"))
-  print("%12g %12g  %12g %12g" % (diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
+  print("%-20s %12s %12s  %12s %12s" % ("Absolute Error:", "mean", "std", "min", "max"))
+  print("%-20s %12g %12g  %12g %12g" % ("", diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
 
 (tolr, tola) = (1, 1e-5)
 resAllclose = npu.allclose(new, gold, tolr/100, tola, verbose=verbose)
 #resAllclose = np.allclose(new, gold, tolr/100, tola)
 if verbose >= 1:
-  print("Allclose info tolerance rel %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
+  #print("Allclose info tolerance relative %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
+  print("Allclose gold %s vs new %s result is %s (%s rel tolerance %g %% of max, abs tolerance %g)\n" 
+          % (os.path.basename(args.gold), os.path.basename(args.new),
+              "PASS" if resAllclose else "FAIL", 
+              "WITHIN" if resAllclose else "OUTSIDE", 
+              tolr, tola))
 
 exit(0 if resAllclose else 1)
