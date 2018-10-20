@@ -25,7 +25,7 @@ Asserter::operator() (bool expr) const
     }
     char buf[BUF_SIZE];
     snprintf(buf, sizeof(buf)/sizeof(buf[0]),
-        "error: File %s:%d, Assertion '%s' failed ", m_FileName, m_LineNumber, m_ExprStr);
+        "ERROR: File %s:%d, Assertion '%s' failed ", m_FileName, m_LineNumber, m_ExprStr);
     this->printer(buf);
     crash();
 }
