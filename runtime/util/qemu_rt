@@ -970,7 +970,10 @@ if args.zebu != None and args.zebu.startswith('pool'):
     sys.exit(0)
 
   elif args.action == 'inference':
-    if args.kelf == None:
+    # since the default action is inference and for pytest we don't
+    # set any action, we land up here. Don't check for kelf in
+    # that case
+    if args.kelf == None and not args.pytest:
       raise ValueError("ERROR: use --kelf")
     zebu, krt = qp.getAvailZebu()
     krtOk = krt.execute(args)
@@ -1015,7 +1018,10 @@ elif len(args.pool) > 0:
   elif args.action == 'cleanup_pool':
     qp.cleanup()
   elif args.action == 'inference':
-    if args.kelf == None:
+    # since the default action is inference and for pytest we don't
+    # set any action, we land up here. Don't check for kelf in
+    # that case
+    if args.kelf == None and not args.pytest:
       raise ValueError("ERROR: use --kelf")
     qemu, krt = qp.getAvailQemu()
     krtOk = krt.execute(args)
