@@ -1,6 +1,6 @@
-#include "address_map.h"
-#include "tpb_addr_map.h"
-#include "sp_addr_map.h"
+#include "tonga/address_map.h"
+#include "tonga/tpb_addr_map.h"
+#include "tonga/sp_addr_map.h"
 
 #include "utils/inc/types.hpp"
 #include "utils/inc/asserter.hpp"

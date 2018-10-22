@@ -1,7 +1,7 @@
 #include <map>
 #include <array>
 
-#include "address_map.h"
+#include "tonga/address_map.h"
 #include "aws_tonga_isa_tpb_common.h"
 
 #include "utils/inc/debug.hpp"
