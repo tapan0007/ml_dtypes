@@ -169,9 +169,9 @@ pipeline{
                                 junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
                                 sh 'mkdir /artifact/RunAllWithArgs'
                                 sh '/bin/cp $TEST_DIR/RunAllWithArgs/qor* /artifact/RunAllWithArgs/ || touch /artifact/RunAllWithArgs/qor_RunAllWithArgs_qor_available.txt'
-                                sh 'for f in `find $TEST_DIR/RunAllWithArgs  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" `; do cp $f --parents  /artifact/RunAllWithArgs/;done; '
+                                sh 'for f in `find $TEST_DIR/RunAllWithArgs  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/RunAllWithArgs/;done; '
                                 sh 'chmod -R a+wX /artifact/'
-                                archiveArtifacts artifacts:'RunAllWithArgs/*.txt,*.tgz,RunAllWithArgs/**/*.txt,tgz,RunAllWithArgs/**/*.json, RunAllWithArgs/**/*.bin, RunAllWithArgs/**/*.svg'
+                                archiveArtifacts artifacts:'RunAllWithArgs/*.txt,*.tgz,RunAllWithArgs/**/*.txt,tgz,RunAllWithArgs/**/*.json, RunAllWithArgs/**/*.bin, RunAllWithArgs/**/*.svg, RunAllWithArgs/**/*.png, RunAllWithArgs/**/*.csv, RunAllWithArgs/**/*.asm'
                             }
                         }
                         failure {
