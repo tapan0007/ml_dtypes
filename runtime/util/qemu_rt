@@ -401,7 +401,7 @@ class Zebu(BePlat):
     # Boot Tonga
     tongaOk = False
     logo = "/tmp/log-%s-%s.txt" % (self.zebuHost,self.rtlSandbox)
-    cmd = "/rdata/aus11/proj/vbox/bin/rune -nodbg -k all -ptrq -sbdir %s > %s ; " % (self.rtlSandbox, logo)
+    cmd = "/rdata/aus11/proj/vbox/bin/rune -ptbto 99999 -nodbg -k all -ptrq -sbdir %s > %s ; " % (self.rtlSandbox, logo)
     sshcmd = 'ssh %s "%s"' % (self.zebuHost, cmd)
     print(sshcmd)
     return os.system(sshcmd) == 0
@@ -761,8 +761,12 @@ class Krtd():
     return ifmapPath, ifmapFile
 
   def startDaemon(self):
+    # The following will go away once we start supporting switch model
+    # wait for few seconds after krtd is killed
     self.qemu.sshCmd("sudo killall krtd")
+    time.sleep(5) # wait for few seconds after killing krtd before starting
     self.qemu.sshCmd("mkdir -p %s" % kelfVmDirGlobal)
+    self.qemu.sshCmd("/bin/rm -rf %s/*" % kelfVmDirGlobal)
     tongaDev = self.qemu.getTongaDevice()
     krtd = '%s/bin/krtd' % krtVmPath
     config = '%s/bin/default_config.json' % krtVmPath
@@ -775,11 +779,10 @@ class Krtd():
     cmdRuntime = 'sudo /bin/sh -c "(%s) > %s/log-krtd.txt 2>&1 & "' %  (
         shCmd, self.kelfVmDir)
 
-
     self.qemu.sshCmd(cmdRuntime)
 
     # Now wait for the krtd to be ready
-    filesToWaitForStr = "%s/log-krtd.txt" % (self.kelfVmDir)
+    filesToWaitForStr = "%s/%s %s/log-krtd.txt" % (self.kelfVmDir, self.krtdFail, self.kelfVmDir)
     for i in range(self.inklingTimeout):
       print("  Waiting for krtd to start %i" %i, flush=True)
       time.sleep(1)
@@ -791,6 +794,8 @@ class Krtd():
         found = re.search("Server listening", filetext)
         if (found != None):
           return True
+      if os.path.isfile(self.krtdFail):
+        break
     print("ERROR: krtd did not start properly check log-krtd.txt")
     return False
 
