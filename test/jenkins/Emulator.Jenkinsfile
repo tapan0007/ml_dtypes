@@ -68,35 +68,19 @@ pipeline{
 
                 repo init -u ssh://siopt.review/tonga/sw/kaena/manifest
                 [ ! -z "$MANIFEST_FILE_NAME" ] || export MANIFEST_FILE_NAME=default.xml
-                export MANIFEST_REPO_REFSPEC=$GERRIT_REFSPEC
-                git clone  ssh://siopt.review/tonga/sw/kaena/manifest
-                git -C manifest fetch origin $GERRIT_REFSPEC || export MANIFEST_REPO_REFSPEC=""
-                [ -z "$MANIFEST_REPO_REFSPEC" ] || export MANIFEST_REPO_REFSPEC_OPT="-b $MANIFEST_REPO_REFSPEC"
-                repo init -m $MANIFEST_FILE_NAME $MANIFEST_REPO_REFSPEC_OPT
+                repo init -m $MANIFEST_FILE_NAME
                 repo sync -j 8
 
                 git config --global user.name "Jenkins"
                 git config --global user.email aws-tonga-kaena@amazon.com
+                for repo in krt kcc ext inkling qemu_inkling arch-isa shared;
+                do
+                   echo "Repo: $repo" -m
+                   git -C $repo  describe --always --dirty
 
+                   git -C $repo fetch && git -C $repo merge origin/master
+                ;done
 
-                [ -z "$GERRIT_REFSPEC" ] || \
-                git -C krt pull origin $GERRIT_REFSPEC || \
-                git -C kcc pull origin $GERRIT_REFSPEC || \
-                git -C ext pull origin $GERRIT_REFSPEC || \
-                git -C inkling pull origin $GERRIT_REFSPEC || \
-                git -C qemu_inkling pull origin $GERRIT_REFSPEC || \
-                git -C arch-isa pull origin $GERRIT_REFSPEC || \
-                git -C shared pull origin $GERRIT_REFSPEC || \
-                git -C manifest pull origin $GERRIT_REFSPEC
-
-                git -C krt  describe --always --dirty 
-                git -C kcc  describe --always --dirty 
-                git -C ext  describe --always --dirty 
-                git -C inkling describe --always --dirty 
-                git -C qemu_inkling describe --always --dirty 
-                git -C arch-isa describe --always --dirty 
-                git -C shared  describe --always --dirty 
-                git -C manifest describe --always --dirty 
 
                 cd $ARCH_HEADERS_PATH
                 [ ! -z "$ARCH_HEADER_VERSION" ] || export ARCH_HEADER_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
