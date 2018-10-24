@@ -86,7 +86,7 @@ pipeline {
                 git -C tvm clean -ffd
 
                 # Try to apply the gerrit CR to the submodules
-                git -C tvm submodule foreach 'git pull origin $GERRIT_REFSPEC || :'
+                [ -z "$GERRIT_REFSPEC" ] || git -C tvm submodule foreach 'git pull origin $GERRIT_REFSPEC || :'
 
                 chmod -R 755 ./
                 '''
