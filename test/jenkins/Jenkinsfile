@@ -44,7 +44,7 @@ pipeline{
 
                 sh 'rm -rf $SRC_DIR && mkdir -p $SRC_DIR'
                 sh 'rm -rf $BLD_DIR && mkdir -p $BLD_DIR'
-                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest'
+                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/RunAllWithArgs && mkdir -p $TEST_DIR/precheckin && mkdir -p $TEST_DIR/RunPytest && mkdir -p $TEST_DIR/RunToolsPytest'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
                 '''
@@ -187,6 +187,27 @@ pipeline{
                         }
                         failure {
                             sh 'find $TEST_DIR/RunPytest -type f -name "*.vdi" -delete'
+                        }
+                    }
+                }
+                stage('RunToolsPytest') {
+                    steps {
+                        timeout(time: 50, unit: 'MINUTES') {
+                            sh '''
+                            cd $TEST_DIR/RunToolsPytest && PYTHONPATH=$PYTHONPATH:$KRT_BLD_DIR/krtd/isa pytest $KAENA_PATH/../krt/tools/kasm/tests --junitxml=pytestResult.xml -s > log-pytest.txt 2>&1
+                            '''
+                        }
+                    }
+                    post {
+                        always {
+                            sh '''
+                            [ -f $TEST_DIR/RunToolsPytest/pytestResult.xml ] && /bin/cp $TEST_DIR/RunToolsPytest/pytestResult.xml $WORKSPACE/.
+                            '''
+                            junit allowEmptyResults: true, testResults: 'pytestResult.xml'
+                            sh 'mkdir /artifact/RunToolsPytest'
+                            sh 'find $TEST_DIR/RunToolsPytest -iname "*.txt" -print0 | tar -czvf /artifact/RunToolsPytest/logs.tgz -T -'
+                            sh 'chmod -R a+wX /artifact/'
+                            archiveArtifacts artifacts:'RunToolsPytest/logs.tgz'
                         }
                     }
                 }

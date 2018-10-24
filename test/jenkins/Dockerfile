@@ -44,7 +44,10 @@ RUN pip3 install --no-cache-dir \
 	retrying \
 	allpairspy \
 	hexdump \
-        progress
+        progress \
+        lark \
+        lark-parser \
+        mako
 
 COPY ssh-config /tmp/ssh-config
 RUN cat /tmp/ssh-config >> /etc/ssh/ssh_config
