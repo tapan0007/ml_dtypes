@@ -442,15 +442,16 @@ class Ktests:
     numOther = numAll - numPass - numWaive - numFail - numRun
     numOtherPct = numOther / numAll * 100
     if self.statusCount %60 == 0:
-      print("\n  #Time    Running    Passed    Waived    Failed     Other")
+      print("\n  #Time    Running    Passed    Waived    Failed     Other    Load")
     if self.msg or self.statusCount %10 == 0:
-      print("  %6s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %s" %
+      print("  %6s  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %3d %3.0f%%  %6.2f   %s" %
             (int(time.time() - self.startTime),
              numRun, numRunPct,
              numPass, numPassPct,
              numWaive, numWaivePct,
              numFail, numFailPct,
              numOther, numOtherPct,
+             os.getloadavg()[0],
              self.msg),
             flush=True
            )
@@ -491,7 +492,7 @@ class Ktests:
     self.processes = newProcesses
     self.numRunning = len(self.processes)
     self.reportStatusWhileRunning()
-    if self.numRunning >= sleepLimit:
+    if self.numRunning >= sleepLimit or os.getloadavg()[0] >= sleepLimit:
       #print(".", end='', flush=True)
       time.sleep(self.sleepSec)
     return(finishedProcesses)
@@ -589,7 +590,7 @@ class Ktests:
           os.rename(testName, oldDir)
           shutil.rmtree(oldDir)
 
-        while self.numRunning >= self.parallel:
+        while self.numRunning >= self.parallel or os.getloadavg()[0] >= self.parallel:
           self.checkProcesses(self.parallel)
         localStartSpacing = startSpacing
         if 'qemu' in testName:
