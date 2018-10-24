@@ -74,13 +74,19 @@ pipeline {
                 git config --global user.name "Jenkins"
                 git config --global user.email aws-tonga-kaena@amazon.com
 
+                # Try to apply the gerrit CR to each of the repos
                 [ -z "$GERRIT_REFSPEC" ] || \
                 git -C starfish pull origin $GERRIT_REFSPEC || \
                 git -C tvm pull origin $GERRIT_REFSPEC || \
-                git -C tvm/dmlc-core pull origin $GERRIT_REFSPEC || \
-                git -C tvm/HalideIR pull origin $GERRIT_REFSPEC || \
-                git -C tvm/dlpack pull origin $GERRIT_REFSPEC || \
-                git -C kcc pull origin $GERRIT_REFSPEC # kcc repo needed for the sealife_jenkinsfile builder
+                git -C kcc pull origin $GERRIT_REFSPEC || : # kcc repo needed for the sealife_jenkinsfile builder
+
+                # Resync the submodules in case tvm/.gitmodules was changed by the CR
+                git -C tvm submodule update --init
+                # Clean up in case old submodules are left behind
+                git -C tvm clean -ffd
+
+                # Try to apply the gerrit CR to the submodules
+                git -C tvm submodule foreach 'git pull origin $GERRIT_REFSPEC || :'
 
                 chmod -R 755 ./
                 '''
