@@ -460,7 +460,7 @@ class Ktests:
     self.msg = ""
 
   # check for running proceses
-  def checkProcesses(self, sleepLimit):
+  def checkProcesses(self, loadLimitForSleep):
     newProcesses = []
     finishedProcesses = []
     for p in self.processes:
@@ -493,7 +493,7 @@ class Ktests:
     self.processes = newProcesses
     self.numRunning = len(self.processes)
     self.reportStatusWhileRunning()
-    if self.numRunning >= sleepLimit or os.getloadavg()[0] >= sleepLimit:
+    if self.numRunning >= loadLimitForSleep or os.getloadavg()[0] >= loadLimitForSleep:
       #print(".", end='', flush=True)
       time.sleep(self.sleepSec)
     return(finishedProcesses)
