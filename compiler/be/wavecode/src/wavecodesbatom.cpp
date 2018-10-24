@@ -52,7 +52,7 @@ WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb(wave::SbAtomWaveOp* waveop, event
             m_WaveCode.writeInstruction(setInstr, engineId);
         }
     }
-}
+} // WaveCodeSbAtom::processOutgoingEdgesAlreadyEmb
 
 //************************************************************************
 void
@@ -68,7 +68,7 @@ WaveCodeSbAtom::addDmaBarrier(EngineId engId)
     std::ostringstream oss;
     m_WaveCode.SaveName(nopInstr, "Delay before DMA due to END-WRITE signal being set at end of partition 0");
     m_WaveCode.writeInstruction(nopInstr, engId);
-}
+} // WaveCodeSbAtom::addDmaBarrier
 
 //************************************************************************
 void
@@ -88,7 +88,7 @@ WaveCodeSbAtom::addSecondDmaTrigger(
         m_WaveCode.SaveName(dmaTriggerInstr, "Second DMA_TRIGGER for non-atomic double WRITE");
         m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);
     }
-}
+} // WaveCodeSbAtom::addSecondDmaTrigger
 
 //======================================================================
 kcc_int32

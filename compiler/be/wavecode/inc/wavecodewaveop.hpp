@@ -31,8 +31,6 @@
 
 namespace kcc {
 
-class WaveCode;
-
 namespace wave {
     class WaveOp;
 }
@@ -115,87 +113,11 @@ protected:
     */
     kcc_int32 processOutgoingEdges(wave::WaveOp* waveop);
 
-    /* Process outgoing edges for instructions with embedded events (with SYNC)
-    * 1. Assign embedded set for one out-edge
-    * 2. Issue SET instruction for other out-edges
-    */
+
+
     template <typename INST>
-    bool processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
-    {
-        bool instructionWritten = false; // for no succ edges with event, return false
-        bool firstEmb = true;
-        unsigned int  numSuccEdgesToSync = 0;
+    bool processOutgoingEdges(wave::WaveOp* waveop, INST& instr);
 
-        for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-            if (succWaveEdge->qNeedToImplementSync()) {
-                numSuccEdgesToSync++;
-            }
-        }
-
-        for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
-            if (! succWaveEdge->qNeedToImplementSync()) {
-                continue;
-            }
-            if (succWaveEdge->qChosenForSuccSbAtom()) {
-                continue;
-            }
-
-            if (firstEmb) {
-                firstEmb = false;
-                std::ostringstream oss;
-                oss << waveop->gOrder() << "-" <<  waveop->gName();
-                if (waveop->gType() == WaveOpType::MatMul && numSuccEdgesToSync > 1) {
-                    // kaena-531: There's only 1 delay from MM to following event set instr when there are
-                    // multiple SETs (multiple dependencies), so to properly trigger a dependent load,
-                    // there must be an event from MM to a WAIT followed by the first SETs (no longer embedded)
-                    // followed by the next series of SETs. Reusing the last event ID (255) since that
-                    // was used only for the start of inference.
-                    // 1. MatMul sets a reserved event
-                    instr.inst_events.set_event_idx  = events::EventMgr::EventId_MMStartMultiSet();
-                    instr.inst_events.set_event_mode = events::eventSetMode2Isa(succWaveEdge->gSetEventMode());
-                    m_WaveCode.SaveName(instr, oss.str().c_str());
-                    m_WaveCode.writeInstruction(instr); // this requires template
-                    // 2. Wait for reserved event
-                    {
-                        compisa::WaitInstr waitEventInstr;
-                        waitEventInstr.event_idx         = events::EventMgr::EventId_MMStartMultiSet();
-                        waitEventInstr.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
-                        m_WaveCode.SaveName(waitEventInstr, oss.str().c_str());
-                        m_WaveCode.writeInstruction(waitEventInstr, waveop->gEngineId());
-                    }
-                    // 3. Set the actual event scheduled
-                    {
-                        compisa::SetInstr setEventInstr;
-                        setEventInstr.event_idx          = succWaveEdge->gEventId();
-                        m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
-                        m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
-                    }
-                }
-                else {
-                    instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
-                    instr.inst_events.set_event_mode  = events::eventSetMode2Isa(
-                                                    succWaveEdge->gSetEventMode());
-                    m_WaveCode.SaveName(instr, oss.str().c_str());
-                    m_WaveCode.writeInstruction(instr); // this requires template
-                }
-                instructionWritten = true;
-                //std::cout << waveop->gName() << " (embedded) " << succWaveEdge->gEventId() << std::endl;
-            } else {
-                std::ostringstream oss;
-                oss << waveop->gOrder() << "-" <<  waveop->gName();
-                compisa::SetInstr setEventInstr;
-                setEventInstr.event_idx = succWaveEdge->gEventId();
-                m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
-                m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
-                //std::cout << waveop->gName() << " (not embedded) " << succWaveEdge->gEventId() << " engine " << utils::engineId2Str(waveop->gEngineId()) << std::endl;
-            }
-        }
-        return instructionWritten;
-    }
-
-    //void writeWaitOrWaitClearInstr(const wave::WaveEdge* edge, EngineId engineId);
-    //void writeWaitOrWaitClearInstr(events::EventId evntId, events::EventWaitMode waitEventMode,
-    //                EngineId engineId, const char* const dbgTxt);
 
 
     template<typename MEM_ACCESS>
@@ -216,12 +138,103 @@ protected:
     //    m_WaveCode.rGenerateKelf(genKelf);
     //}
 
+
+    void GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge);
+
 private:
 
 protected:
     WaveCodeRef     m_WaveCode;
     wave::WaveOp*   m_WaveOp;
-};
+}; // class WaveCodeWaveOp
+
+
+
+/* Process outgoing edges for instructions with embedded events (with SYNC)
+* 1. Assign embedded set for one out-edge
+* 2. Issue SET instruction for other out-edges
+*/
+template <typename INST>
+bool WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
+{
+    bool instructionWritten = false; // for no succ edges with event, return false
+    bool firstEmb = true;
+    unsigned int  numSuccEdgesToSync = 0;
+
+    for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
+        if (succWaveEdge->qNeedToImplementSync()) {
+            numSuccEdgesToSync++;
+        }
+    }
+
+    for (auto succWaveEdge : waveop->gSuccWaveEdges()) {
+        if (! succWaveEdge->qNeedToImplementSync()) {
+            continue;
+        }
+        if (succWaveEdge->qChosenForSuccSbAtom()) {
+            continue;
+        }
+
+        if (firstEmb) {
+            firstEmb = false;
+            std::ostringstream oss;
+            oss << waveop->gOrder() << "-" <<  waveop->gName();
+            if (waveop->gType() == WaveOpType::MatMul && numSuccEdgesToSync > 1) {
+                // kaena-531: There's only 1 delay from MM to following event set instr when there are
+                // multiple SETs (multiple dependencies), so to properly trigger a dependent load,
+                // there must be an event from MM to a WAIT followed by the first SETs (no longer embedded)
+                // 1. MatMul sets a reserved event
+                instr.inst_events.set_event_idx  = events::EventMgr::EventId_MMStartMultiSet();
+                instr.inst_events.set_event_mode = events::eventSetMode2Isa(succWaveEdge->gSetEventMode());
+                m_WaveCode.SaveName(instr, oss.str().c_str());
+                m_WaveCode.writeInstruction(instr); // this requires template
+                // 2. Wait for reserved event
+                {
+                    compisa::WaitInstr waitEventInstr;
+                    waitEventInstr.event_idx         = events::EventMgr::EventId_MMStartMultiSet();
+                    waitEventInstr.wait_event_mode   = events::eventWaitMode2Isa(events::EventWaitMode::WaitThenClear);
+                    m_WaveCode.SaveName(waitEventInstr, oss.str().c_str());
+                    m_WaveCode.writeInstruction(waitEventInstr, waveop->gEngineId());
+                }
+                // 3. Set the actual event scheduled
+                if (m_WaveCode.qUseEvent(succWaveEdge)) {
+                    compisa::SetInstr setEventInstr;
+                    setEventInstr.event_idx          = succWaveEdge->gEventId();
+                    m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
+                    m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
+                } else {
+                }
+            }
+            else {
+                if (m_WaveCode.qUseEvent(succWaveEdge)) {
+                    instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
+                    instr.inst_events.set_event_mode  = events::eventSetMode2Isa(
+                                                            succWaveEdge->gSetEventMode());
+                    m_WaveCode.SaveName(instr, oss.str().c_str());
+                    m_WaveCode.writeInstruction(instr); // this requires template
+                } else {
+                    Assert(succWaveEdge->qSyncedWithSemaphore(), "Need to sync with semaphore");
+                }
+            }
+            instructionWritten = true;
+            //std::cout << waveop->gName() << " (embedded) " << succWaveEdge->gEventId() << std::endl;
+        } else {
+            if (m_WaveCode.qUseEvent(succWaveEdge)) {
+                std::ostringstream oss;
+                oss << waveop->gOrder() << "-" <<  waveop->gName();
+                compisa::SetInstr setEventInstr;
+                setEventInstr.event_idx = succWaveEdge->gEventId();
+                m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
+                m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
+                //std::cout << waveop->gName() << " (not embedded) " << succWaveEdge->gEventId()
+                //  << " engine " << utils::engineId2Str(waveop->gEngineId()) << std::endl;
+            } else {
+                Assert(succWaveEdge->qSyncedWithSemaphore(), "Need to sync with semaphore");
+            }
+        }
+    } // for (auto succWaveEdge : waveop->gSuccWaveEdges())
+    return instructionWritten;
+} // processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
 
 }}
 

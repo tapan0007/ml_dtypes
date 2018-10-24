@@ -67,12 +67,12 @@ WaveCodeSbAtomSave::generateForSim(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
         m_WaveCode.recordDramForNpyFile(sbAtomSaveWaveop->gRefFileName(), npyFileInfo);
     }
 
-    compisa::SimMemCpyInstr statebufToDramInstr;
+    compisa::SimMemCpyInstr simStatebufToDramInstr;
 
-    statebufToDramInstr.inst_events.set_event_idx      = 0;
-    statebufToDramInstr.inst_events.set_event_mode     = eventSetMode2Isa(events::EventSetMode::DontSet);
-    statebufToDramInstr.inst_events.wait_event_idx     = 0;
-    statebufToDramInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(events::EventWaitMode::DontWait);
+    simStatebufToDramInstr.inst_events.set_event_idx      = 0;
+    simStatebufToDramInstr.inst_events.set_event_mode     = eventSetMode2Isa(events::EventSetMode::DontSet);
+    simStatebufToDramInstr.inst_events.wait_event_idx     = 0;
+    simStatebufToDramInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(events::EventWaitMode::DontWait);
 
     events::EventId setEventId          = 0; // events::EventId_Invalid();
     events::EventSetMode setEventMode   = events::EventSetMode::DontSet;
@@ -97,37 +97,37 @@ WaveCodeSbAtomSave::generateForSim(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop)
     const kcc_int64 addressInPart   = sbAtomSaveWaveop->gSbAddress();
     const kcc_int64 stepSize        = sbAtomSaveWaveop->gPartitionStepBytes();
     const kcc_int64 startPart       = sbAtomSaveWaveop->gStartAtMidPart() ? arch::Arch::gArch().gNumberPeArrayRows()/2 : 0;
-    statebufToDramInstr.nbytes      = numBytesPerPart;
+    simStatebufToDramInstr.nbytes      = numBytesPerPart;
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
         // TODO: add synchronization during DMA through extra DMA descriptor
         if (qParallelStreams()) {
-            statebufToDramInstr.inst_events.wait_event_idx     = 0;
-            statebufToDramInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
-            statebufToDramInstr.inst_events.set_event_idx      = 0;
-            statebufToDramInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
+            simStatebufToDramInstr.inst_events.wait_event_idx     = 0;
+            simStatebufToDramInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(events::EventWaitMode::DontWait);
+            simStatebufToDramInstr.inst_events.set_event_idx      = 0;
+            simStatebufToDramInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(events::EventSetMode::DontSet);
 
             if (0 == partIdx) { // only the first reading waits for predecessors
-                statebufToDramInstr.inst_events.wait_event_idx     = waitEventId;
-                statebufToDramInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(waitEventMode);
+                simStatebufToDramInstr.inst_events.wait_event_idx     = waitEventId;
+                simStatebufToDramInstr.inst_events.wait_event_mode    = events::eventWaitMode2Isa(waitEventMode);
             }
 
             if (numPartitions-1 == partIdx) { // only the last reading informs successors
-                statebufToDramInstr.inst_events.set_event_idx      = setEventId;
-                statebufToDramInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(setEventMode);
+                simStatebufToDramInstr.inst_events.set_event_idx      = setEventId;
+                simStatebufToDramInstr.inst_events.set_event_mode     = events::eventSetMode2Isa(setEventMode);
 
             }
         }
 
-        statebufToDramInstr.src_addr = stateBuf.gEntryTongaAddress(partIdx, addressInPart);
-        statebufToDramInstr.dst_addr = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
+        simStatebufToDramInstr.src_addr = stateBuf.gEntryTongaAddress(partIdx, addressInPart);
+        simStatebufToDramInstr.dst_addr = npyFileDramOffset + sbAtomSaveWaveop->gOffsetInFile() + (partIdx * stepSize);
 
         {
             std::ostringstream oss;
             oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName() << "-" <<partIdx;
-            m_WaveCode.SaveName(statebufToDramInstr, oss.str().c_str());
+            m_WaveCode.SaveName(simStatebufToDramInstr, oss.str().c_str());
         }
-        m_WaveCode.writeInstruction(statebufToDramInstr);
+        m_WaveCode.writeInstruction(simStatebufToDramInstr);
 
         m_WaveCode.markDramDirty(sbAtomSaveWaveop->gRefFileName());
     }
@@ -179,7 +179,8 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     std::ostringstream oss;
     oss << sbAtomSaveWaveop->gOrder() << "-" << sbAtomSaveWaveop->gName();
     kelf::DmaDescription::DmaBlockFromTpb& dmaBlock(kelfDma.startNewDmaBlockFromTpb(
-                                        chosenEngId, qOut, oss.str().c_str()));
+                                        sbAtomSaveWaveop->gDmaQueue(), chosenEngId,
+                                        qOut, oss.str().c_str()));
     const std::string refFileName(sbAtomSaveWaveop->gRefFileName());
 
     for (kcc_int32 partIdx = startPart; partIdx < startPart + numPartitions; ++partIdx) {
@@ -211,7 +212,7 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     addDmaBarrier(chosenEngId);
     //************************************************************************
     compisa::DmaTriggerInstr dmaTriggerInstr;
-    strncpy(dmaTriggerInstr.dma_queue_name, dmaBlock.gQueueName().c_str(),
+    strncpy(dmaTriggerInstr.dma_queue_name, dmaBlock.gDmaQueue()->gName().c_str(),
             sizeof(dmaTriggerInstr.dma_queue_name)/sizeof(dmaTriggerInstr.dma_queue_name[0]) - 1);
 
     dmaTriggerInstr.use_raw_count = 0; // get from JSON

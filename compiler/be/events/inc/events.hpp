@@ -96,11 +96,12 @@ bool qEventSetModeValid(kcc_int32 mode);
 /****************************************************************
  *                                                              *
  ****************************************************************/
-class Channel {
+class EventChannel {
 public:
-    Channel();
+    EventChannel();
 
     void rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode);
+    void clear();
 
     EventId gEventId() const {
         return m_EventId;
@@ -113,8 +114,8 @@ public:
     }
 
 private:
-    Channel(const Channel&) = delete;
-    Channel& operator= (const Channel&) = delete;
+    EventChannel(const EventChannel&) = delete;
+    EventChannel& operator= (const EventChannel&) = delete;
 
 private:
     EventSetMode        m_SetEventMode  = EventSetMode::Invalid;

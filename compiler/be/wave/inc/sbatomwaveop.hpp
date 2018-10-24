@@ -19,10 +19,13 @@
 #include "utils/inc/fmapdesc.hpp"
 #include "wave/inc/waveop.hpp"
 
-
 namespace kcc {
-namespace wave {
 
+namespace dma {
+class DmaQueue;
+}
+
+namespace wave {
 
 class SbAtomWaveOp : public WaveOp {
 public:
@@ -56,6 +59,10 @@ public:
         return m_OffsetInFile;
     }
 
+    kcc_int32 gNumPartitions () const {
+        return m_NumPartitions;
+    }
+
     kcc_int64 gPartitionStepBytes() const {
         return m_PartitionStepBytes;
     }
@@ -83,17 +90,36 @@ public:
         m_EngineId = engId;
     }
 
+    const dma::DmaQueue* gDmaQueue() const {
+        return m_DmaQueue;
+    }
+    void rDmaQueue(const dma::DmaQueue* dmaQueue) {
+        m_DmaQueue = dmaQueue;
+    }
+
+    kcc_int32 gTriggerOrd() const {
+        return m_TriggerOrd;
+    }
+    void rTriggerOrd(kcc_int32 ord) {
+        m_TriggerOrd = ord;
+    }
+
+
 protected:
     bool verify() const override;
 
 private:
     EngineId        m_EngineId          = EngineId::None;
+    const dma::DmaQueue* m_DmaQueue     = nullptr;
+    kcc_int32       m_TriggerOrd        = -1;
+
     kcc_int64       m_SbAddress         = -1;
     bool            m_StartAtMidPart    = false;
     kcc_int32       m_BatchFoldIdx      = -1;
     const utils::DataType& m_DataType;
     kcc_int64       m_Length            = -1;
     kcc_int64       m_OffsetInFile      = -1;
+    kcc_int32       m_NumPartitions     = -1;
     kcc_int64       m_PartitionStepBytes= -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";
@@ -113,6 +139,7 @@ public:
     DataTypeId      m_DataType          = DataTypeId::None;
     kcc_int64       m_Length            = -1;
     kcc_int64       m_OffsetInFile      = -1;
+    kcc_int32       m_NumPartitions     = -1;
     kcc_int64       m_PartitionStepBytes= -1;
     std::string     m_RefFileName       = "";
     std::string     m_RefFileFormat     = "";

@@ -22,7 +22,7 @@ EventId EventId_LastNonReserved()
 /****************************************************************
  *                                                              *
  ****************************************************************/
-Channel::Channel()
+EventChannel::EventChannel()
     : m_SetEventMode(EventSetMode::DontSet)
     , m_EventId(EventId_Invalid())
     , m_WaitEventMode(EventWaitMode::DontWait)
@@ -30,11 +30,19 @@ Channel::Channel()
 
 
 void
-Channel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
+EventChannel::rEvent(EventSetMode setMode, EventId eventId, EventWaitMode waitMode)
 {
-    m_SetEventMode = setMode;  // FromOp
-    m_EventId = eventId;
+    m_SetEventMode  = setMode;  // FromOp
+    m_EventId       = eventId;
     m_WaitEventMode = waitMode; // ToOp
+}
+
+void
+EventChannel::clear()
+{
+    m_SetEventMode  = EventSetMode::DontSet;
+    m_EventId       = EventId_Invalid();
+    m_WaitEventMode = EventWaitMode::DontWait;
 }
 
 

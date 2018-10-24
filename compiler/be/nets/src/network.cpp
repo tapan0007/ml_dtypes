@@ -144,10 +144,7 @@ Network::ClearEvents()
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
         const auto waveop = gWaveOp(waveopIdx);
         for (auto succEdge : waveop->gSuccWaveEdges()) {
-            succEdge->rEvent(
-                        events::EventSetMode::DontSet,
-                        events::EventId_Invalid(),
-                        events::EventWaitMode::DontWait);
+            succEdge->clearEvent();
         }
     }
 }

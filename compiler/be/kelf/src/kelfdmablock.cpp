@@ -9,8 +9,10 @@ namespace kelf {
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlock::DmaBlock(DmaDescription& dmaDescription, const char* comment)
+DmaDescription::DmaBlock::DmaBlock(DmaDescription& dmaDescription,
+                        const dma::DmaQueue* que, const char* comment)
     : m_DmaDescription(dmaDescription)
+    , m_Queue(que)
     , m_Comment(comment)
 {
 }
@@ -29,7 +31,7 @@ DmaDescription::DmaBlock::addTailEventId(events::EventId eventId)
 void
 DmaDescription::DmaBlock::setDmaEventField(nlohmann::json& jDmaBlock) const
 {
-    if (m_TailEventIds.size() > 0) {
+    if (m_DmaDescription.qUseEvents() && m_TailEventIds.size() > 0) {
         if (m_TailEventIds.size() == 1) {
             jDmaBlock["event"]  = m_TailEventIds[0];
         }
@@ -42,8 +44,9 @@ DmaDescription::DmaBlock::setDmaEventField(nlohmann::json& jDmaBlock) const
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription& dmaDescription, EngineId engId, const char* comment)
-    : DmaBlock(dmaDescription, comment)
+DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription& dmaDescription,
+            const dma::DmaQueue* que, EngineId engId, const char* comment)
+    : DmaBlock(dmaDescription, que, comment)
     , m_EngineId(engId)
 { }
 
@@ -52,12 +55,12 @@ DmaDescription::DmaBlockNonIo::DmaBlockNonIo(DmaDescription& dmaDescription, Eng
 
 /***********************************************************************
 ***********************************************************************/
-DmaDescription::DmaBlockToTpb::DmaBlockToTpb(DmaDescription& dmaDescription, EngineId engId, bool qWeights, const char* comment)
-    : DmaBlockNonIo(dmaDescription, engId, comment)
+DmaDescription::DmaBlockToTpb::DmaBlockToTpb(DmaDescription& dmaDescription,
+            const dma::DmaQueue* que, EngineId engId, bool qWeights, const char* comment)
+    : DmaBlockNonIo(dmaDescription, que, engId, comment)
     , m_QWeights(qWeights)
 {
-    m_QueueName = m_DmaDescription.gSymbolicQueue(engId, true, qWeights);
-    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_QueueName);
+    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_Queue);
 }
 
 /***********************************************************************
@@ -77,17 +80,11 @@ DmaDescription::DmaBlockToTpb::addDmaDesc(TongaAddress srcFileAddress,
 /***********************************************************************
 ***********************************************************************/
 DmaDescription::DmaBlockFromTpb::DmaBlockFromTpb(DmaDescription& dmaDescription,
-        EngineId engId, bool qOut, const char* comment)
-    : DmaBlockNonIo(dmaDescription, engId, comment)
+        const dma::DmaQueue* que, EngineId engId, bool qOut, const char* comment)
+    : DmaBlockNonIo(dmaDescription, que, engId, comment)
     , m_QOut(qOut)
 {
-    if (qOut) {
-        //m_QueueName = gSymbolicOutQueue();
-        m_QueueName = m_DmaDescription.gSymbolicQueue(engId, false, false);
-    } else {
-        m_QueueName = m_DmaDescription.gSymbolicQueue(engId, false, false);
-    }
-    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_QueueName);
+    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_Queue);
 }
 
 /***********************************************************************
@@ -108,12 +105,11 @@ DmaDescription::DmaBlockFromTpb::addDmaDesc(TpbAddress srcTpbSbAddress,
 /***********************************************************************
 ***********************************************************************/
 DmaDescription::DmaBlockInput::DmaBlockInput(DmaDescription& dmaDescription,
-            EngineId engId, const char* comment)
-    : DmaBlock(dmaDescription, comment)
+            const dma::DmaQueue* que, EngineId engId, const char* comment)
+    : DmaBlock(dmaDescription, que, comment)
     , m_EngineId(engId)
 {
-    m_QueueName = m_DmaDescription.gSymbolicQueue(engId, true, false);
-    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_QueueName);
+    m_BlockId = m_DmaDescription.gBlockIdForQueue(m_Queue);
 }
 
 

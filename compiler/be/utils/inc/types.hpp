@@ -89,10 +89,9 @@ enum class EngineId {
     Activation,
     Pooling,
     StreamProc,
-    DmaEng,
+    AngelEng,
     AnyEng, // when an instruction can be execed on several engines: WAIT,SET,WRITE
 };
-enum { NumberRealEngines = 5 };  // PeArray, ..., DmaEng
 
 //**********************************************************************
 enum class WaveOpType {

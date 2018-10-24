@@ -1,8 +1,8 @@
 ########################################################
-MODULE:=events
-MODS := $(MODULE) utils wave
+MODULE:=dma
+MODS := $(MODULE) utils
 
-SRCS := events eventstate eventmgr
+SRCS := dmaqueue 
 
 
 ########################################################

@@ -16,6 +16,7 @@
 
 #include "nets/inc/network.hpp"
 
+#include "dma/inc/dmaqueue.hpp"
 #include "events/inc/events.hpp"
 #include "events/inc/eventmgr.hpp"
 
@@ -28,13 +29,25 @@ namespace events {
 
 
 
+/***********************************************************************
+***********************************************************************/
 EventMgr::EventMgr(nets::Network& network)
     : m_Network(network)
 {
     m_EventState.init();
 }
 
+/***********************************************************************
+***********************************************************************/
+EventMgr::~EventMgr()
+{
+    for (auto que : m_Name2Queue) {
+        delete (que).second;
+    }
+}
 
+/***********************************************************************
+***********************************************************************/
 // For each succ edge take one available event and assign it
 void
 EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
@@ -43,15 +56,23 @@ EventMgr::assignEventsToNewSuccEdges(wave::WaveOp* waveop)
         if (! succWaveEdge->qNeedToSync()) {
             continue;
         }
-        // Available --> InFlight
-        Assert(!m_EventState.availableEmpty(), "Trying to get event from empty available set of events");
-        const auto evtId = m_EventState.gFirstAvailable();
+        if (qUseEvent(succWaveEdge)) {
 
-        m_EventState.mvFromAvailableToInFlight(evtId);
-        succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId, EventWaitMode::WaitThenClear);
+            Assert(!m_EventState.availableEmpty(),
+                   "Trying to get event from empty available set of events");
+            const auto evtId = m_EventState.gFirstAvailable();
+
+            m_EventState.mvFromAvailableToInFlight(evtId);
+            succWaveEdge->rEvent(EventSetMode::OnEndWrDst, evtId,
+                                 EventWaitMode::WaitThenClear);
+        } else {
+            succWaveEdge->DoSyncWithSemaphore();
+        }
     }
 }
 
+/***********************************************************************
+***********************************************************************/
 // For each prev edge move evt id from in-flight to completed.
 void
 EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
@@ -61,11 +82,15 @@ EventMgr::completeEventsOnPrevEdges(wave::WaveOp* waveop)
         if (! prevWaveEdge->qNeedToSync()) {
             continue;
         }
-        const EventId evtId = prevWaveEdge->gEventId();
-        const wave::WaveOp* const precWaveop = prevWaveEdge->gFromOp();
-        Assert(!precWaveop->qNopWaveOp(),
-            "Non-nop waveop ", waveop->gName(), " has incomiing nop-waveop ", precWaveop->gName());
-        m_EventState.mvFromInFlightToCompleted(evtId);
+        if (qUseEvent(prevWaveEdge)) {
+            const EventId evtId = prevWaveEdge->gEventId();
+            const wave::WaveOp* const precWaveop = prevWaveEdge->gFromOp();
+            Assert(!precWaveop->qNopWaveOp(),
+                "Non-nop waveop ", waveop->gName(), " has incomiing nop-waveop ", precWaveop->gName());
+            m_EventState.mvFromInFlightToCompleted(evtId);
+        } else {
+            Assert(prevWaveEdge->qSyncedWithSemaphore(), "Need to sync with semaphore not set");
+        }
     }
 }
 
@@ -85,9 +110,13 @@ EventMgr::processMatMult(wave::MatMulWaveOp* matmulWaveop)
             continue; // when two waveops execute on the same engine, no need for sync
         }
 
-        Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
+        if (qUseEvent(prevWaveEdge)) {
+            Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
                 "Need to wait on edge from ", prevWaveEdge->gFromOp()->gName(), " to ",
                 matmulWaveop->gName(), ", but event id is invalid");
+        } else {
+            Assert(prevWaveEdge->qSyncedWithSemaphore(), "Need to sync with semaphore not set");
+        }
     }
 }
 
@@ -119,14 +148,20 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
             }
         } else {
             if (prevWaveEdge->qNeedToSync()) {
-                Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
-                        "Need to wait on edge from ", prevWaveop->gName(), " to ",
-                        waveop->gName(), ", but event id is invalid");
+                if (qUseEvent(prevWaveEdge)) {
+                    Assert(prevWaveEdge->gEventId() != EventId_Invalid(),
+                            "Need to wait on edge from ", prevWaveop->gName(), " to ",
+                            waveop->gName(), ", but event id is invalid");
+                } else {
+                    Assert(prevWaveEdge->qSyncedWithSemaphore(), "Need to sync with semaphore not set");
+                }
             }
         }
     }
 }
 
+/***********************************************************************
+***********************************************************************/
 wave::NopWaveOp*
 EventMgr::mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
                       kcc_int32 waveopIdx)
@@ -147,6 +182,54 @@ EventMgr::mkNopWaveop(wave::WaveOp* prevWaveop, EngineId engId,
     return nopWaveop;
 }
 
+
+/***************************************************************
+***************************************************************/
+void
+EventMgr::insertOneBarrier(kcc_int32 waveopIdx, std::vector<wave::WaveOp*>& newWaveops)
+{
+
+    static const std::array<EngineId, 4> engineIds { {
+        EngineId::PeArray,
+        EngineId::Activation,
+        EngineId::Pooling,
+        EngineId::AngelEng
+    } };
+    const kcc_int32 numEngines = m_Kelf ? 3 : 4;
+
+    //
+    //  PE   -> EvPeAct ->-+
+    //                     ACT  -> EvActPool ->-+
+    //                                          POOL -> EvPoolAngel ->-+
+    //                                                                 ANGEL 
+    //                                          POOL <- EvAngelPool <--+
+    //                     ACT  <- EvPoolAct <--+
+    //  PE   <- EvActPe <--+
+    wave::WaveOp* prevWaveop = nullptr;
+
+    //loop1:
+    for (auto k = 0; k < numEngines-1; ++k) { // loop1
+        const auto engId = engineIds[k];
+        wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, waveopIdx);
+        newWaveops.push_back(nopWaveop);
+        prevWaveop = nopWaveop;
+    }
+
+    { // last engine (Pooling in Kelf, Dma with Angel)
+        wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engineIds[numEngines-1], waveopIdx);
+        newWaveops.push_back(nopWaveop);
+        prevWaveop = nopWaveop;
+    }
+
+    // loop2 must be in reverse order than loop1
+    for (auto k = numEngines - 2; k >= 0; --k) {
+        const auto engId = engineIds[k];
+        wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, waveopIdx);
+        newWaveops.push_back(nopWaveop);
+        prevWaveop = nopWaveop;
+    }
+}
+
 /***************************************************************
  * Events change state from Available -> InFlight -> Completed -> Available
  * 1. Available -> InFlight  This change occurs when the beginning of an
@@ -163,52 +246,16 @@ EventMgr::insertBarriers()
     std::vector<wave::WaveOp*> newWaveops;
 
     m_EventState.init();
-
-    const std::array<EngineId, 4> engineIds { {
-        EngineId::PeArray,
-        EngineId::Activation,
-        EngineId::Pooling,
-        EngineId::DmaEng
-    } };
-    const kcc_int32 numEngines = m_Kelf ? 3 : 4;
     m_NopIdx = 0;
 
     for (kcc_int32 waveopIdx = 0; waveopIdx < numWaveops; ++waveopIdx) {
         const auto waveop = m_Network.gWaveOp(waveopIdx);
         kcc_uint64 numSuccEvents = waveop->gNumberSuccWaitEdges();
         if (numSuccEvents > m_EventState.gNumAvailable()) {
-            //
-            //  PE   -> EvPeAct ->
-            //      ACT  -> EvActPool ->
-            //          POOL -> EvPoolDma ->
-            //              DMA  -> EvDmaPool ->
-            //          POOL -> EvPoolAct ->
-            //      ACT  -> EvActPe ->
-            //  PE
-            wave::WaveOp* prevWaveop = nullptr;
-
-            for (auto k = 0; k < numEngines-1; ++k) { // loop1
-                const auto engId = engineIds[k];
-                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, waveopIdx);
-                newWaveops.push_back(nopWaveop);
-                prevWaveop = nopWaveop;
-            }
-
-            { // last engine (Pooling in Kelf, Dma with Angel)
-                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engineIds[numEngines-1], waveopIdx);
-                newWaveops.push_back(nopWaveop);
-                prevWaveop = nopWaveop;
-            }
-
-            for (auto k = numEngines - 2; k >= 0; --k) { // loop2: must be in reverse order than loop1
-                const auto engId = engineIds[k];
-                wave::NopWaveOp* const nopWaveop = mkNopWaveop(prevWaveop, engId, waveopIdx);
-                newWaveops.push_back(nopWaveop);
-                prevWaveop = nopWaveop;
-            }
-
+            insertOneBarrier(waveopIdx, newWaveops);
             m_EventState.moveCompletedEventsToAvailable();
-            Assert(numSuccEvents <= m_EventState.gNumAvailable(), "Not enough event IDs after barrrier. Required: ",
+            Assert(numSuccEvents <= m_EventState.gNumAvailable(),
+                   "Not enough event IDs after barrrier. Required: ",
                    numSuccEvents, ", available: ", m_EventState.gNumAvailable(),
                    ". Total number of TPB events is ", arch::Arch::gArch().gNumberAllTpbEvents(),
                    ". Next waveop is ", waveop->gName());
@@ -229,6 +276,8 @@ EventMgr::insertBarriers()
 }
 
 
+/***********************************************************************
+***********************************************************************/
 void
 EventMgr::verifyWaveop(const wave::WaveOp* waveop) const
 {
@@ -244,6 +293,8 @@ EventMgr::verifyWaveop(const wave::WaveOp* waveop) const
     }
 }
 
+/***********************************************************************
+***********************************************************************/
 EventId
 EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
 {
@@ -256,36 +307,17 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
         case EngineId::PeArray:
             return ReservedEvent_ActPe;
             break;
-        /*
-        case EngineId::DmaEng:
-            return ReservedEvent_ActDma;
-            break;
-        case EngineId::StreamProc:
-            return ReservedEvent_ActSp;
-            break;
-        */
         default:
             Assert(false, "Bad to-engine id for from engine ",
                    static_cast<int>(fromId), ": ", static_cast<int>(toId));
             break;
         }
 
-    case EngineId::DmaEng:
+    case EngineId::AngelEng:
         switch (toId) {
         case EngineId::Pooling:
-            return ReservedEvent_DmaPool;
+            return ReservedEvent_AngelPool;
             break;
-        /*
-        case EngineId::PeArray:
-            return ReservedEvent_DmaPe;
-            break;
-        case EngineId::Activation:
-            return ReservedEvent_DmaAct;
-            break;
-        case EngineId::StreamProc:
-            return ReservedEvent_DmaSp;
-            break;
-        */
         default:
             Assert(false, "Bad to-engine id for from engine ",
                    static_cast<int>(fromId), ": ", static_cast<int>(toId));
@@ -297,17 +329,6 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
         case EngineId::Activation:
             return ReservedEvent_PeAct;
             break;
-        /*
-        case EngineId::DmaEng:
-            return ReservedEvent_PeDma;
-            break;
-        case EngineId::Pooling:
-            return ReservedEvent_PePool;
-            break;
-        case EngineId::StreamProc:
-            return ReservedEvent_PeSp;
-            break;
-        */
         default:
             Assert(false, "Bad to-engine id for from engine ",
                    static_cast<int>(fromId), ": ", static_cast<int>(toId));
@@ -319,44 +340,15 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
         case EngineId::Activation:
             return ReservedEvent_PoolAct;
             break;
-        case EngineId::DmaEng:
-            return ReservedEvent_PoolDma;
+        case EngineId::AngelEng:
+            return ReservedEvent_PoolAngel;
             break;
-        /*
-        case EngineId::PeArray:
-            return ReservedEvent_PoolPe;
-            break;
-        case EngineId::StreamProc:
-            return ReservedEvent_PoolSp;
-            break;
-        */
         default:
             Assert(false, "Bad to-engine id for from engine ",
                    static_cast<int>(fromId), ": ", static_cast<int>(toId));
             break;
         }
 
-    /*
-    case EngineId::StreamProc:
-        switch (toId) {
-        case EngineId::PeArray:
-            return ReservedEvent_SpPe;
-            break;
-        case EngineId::Pooling:
-            return ReservedEvent_SpPool;
-            break;
-        case EngineId::Activation:
-            return ReservedEvent_SpAct;
-            break;
-        case EngineId::DmaEng:
-            return ReservedEvent_SpDma;
-            break;
-        default:
-            Assert(false, "Bad to-engine id for from engine ",
-                   static_cast<int>(fromId), ": ", static_cast<int>(toId));
-            break;
-        }
-    */
     default:
         Assert(false, "Bad from-engine id ", static_cast<int>(fromId));
         break;
@@ -366,10 +358,14 @@ EventMgr::gEventIdBetweenEngines(EngineId fromId, EngineId toId)
 
 
 
+/***********************************************************************
+***********************************************************************/
 void
-EventMgr::processWaveops(bool kelf)
+EventMgr::processWaveops(bool kelf, bool useSem)
 {
     m_Kelf = kelf;
+    m_UseSemaphore = useSem;
+    determineQueuesAndSemaphoreValues();
     insertBarriers();
 
     for (auto waveOp : m_Network.gWaveOps()) {
@@ -382,84 +378,96 @@ EventMgr::processWaveops(bool kelf)
     }
 }
 
-
-/***************************************************************
-***************************************************************/
-void
-EventMgr::EventState::mvEventFromSetToSet(EventId evtId, EventSet& fromSet, EventSet& toSet,
-        const char* fromStr, const char* toStr)
-{
-    Assert(qEventRegular(evtId), "Cannot move non-regular event id from ", fromStr, " to ", toStr);
-    Assert(fromSet.find(evtId) != fromSet.end(), "Event from prev edge not in ", fromStr);
-    Assert(toSet.find(evtId) == toSet.end(), "Event from prev edge already in the ", toStr, " set");
-    fromSet.erase(evtId);
-    toSet.insert(evtId);
-}
-
-void
-EventMgr::EventState::mvFromInFlightToCompleted(EventId evtId)
-{
-    mvEventFromSetToSet(evtId, m_InFlight, m_Completed, "InFlight", "Completed");
-}
-
-
 /***********************************************************************
 ***********************************************************************/
 void
-EventMgr::EventState::mvFromAvailableToInFlight(EventId evtId)
+EventMgr::determineQueuesAndSemaphoreValues()
 {
-    mvEventFromSetToSet(evtId, m_Available, m_InFlight, "Available", "InFlight");
-}
+    for (auto waveop : m_Network.gWaveOps()) {
+        if (! waveop->qSbAtomWaveOp()) {
+            continue;
+        }
+        const auto sbatomWop = dynamic_cast<wave::SbAtomWaveOp*>(waveop);
+        Assert(sbatomWop, "Waveop ", waveop->gName(), " expected to be SbAtom");
 
-void
-EventMgr::EventState::mvFromCompletedToAvailable(EventId evtId)
-{
-    mvEventFromSetToSet(evtId, m_Completed, m_Available, "Completed", "Available");
-}
+        const dma::DmaQueue* que(findQueue(sbatomWop));
+        sbatomWop->rDmaQueue(que);
 
-
-
-
-void
-EventMgr::EventState::clearAll()
-{
-    m_Available.clear();
-    m_InFlight.clear();
-    m_Completed.clear();
-}
-
-void
-EventMgr::EventState::clearCompleted()
-{
-    m_Completed.clear();
-}
-
-
-void
-EventMgr::EventState::moveCompletedEventsToAvailable()
-{
-    // Avaliable += Completed;
-    for (auto evtId : m_Completed) {
-        const auto ret = addAvailable(evtId); // ret.second is false if element already exists
-        Assert(ret.second, "Event id ", evtId, " already in completed and available event sets");
-    }
-    clearCompleted();
-}
-
-
-void
-EventMgr::EventState::init()
-{
-    clearAll();
-
-    for (EventId eventId = ReservedEvent_FirstNonReserved;
-         eventId <= EventId_LastNonReserved(); ++eventId)
-    {
-        addAvailable(eventId);
+        const auto it = m_DmaQueueCount.find(que);
+        kcc_int32 n = -1;
+        if (it == m_DmaQueueCount.end()) {
+            n = 1;
+            m_DmaQueueCount[que] = n;
+        } else {
+            ++(*it).second;
+            n = (*it).second;
+        }
+        sbatomWop->rTriggerOrd(n);
     }
 }
 
+/***********************************************************************
+***********************************************************************/
+const dma::DmaQueue* 
+EventMgr::findQueue(const wave::SbAtomWaveOp* sbatomWop)
+{
+    dma::DmaQueue::QueueType typ = dma::DmaQueue::QueueType::None;
+    const EngineId engId = sbatomWop->gEngineId();
+    Assert(engId != EngineId::None, "Bad engine id for SbAtom ", sbatomWop->gName());
 
-} // namespace events
+    const char* engName = nullptr;
+    switch (engId) {
+    case EngineId::Pooling:
+        engName = "pool";
+        break;
+    case EngineId::Activation:
+        engName = "act";
+        break;
+    case EngineId::PeArray:
+        engName = "pe";
+        break;
+    case EngineId::AngelEng:
+        Assert(!m_Kelf, "Cannot have Angel engine with Kelf");
+        engName = "dma";
+        break;
+    default:
+        Assert(false, "Must be Pool, Act, or PeArray. It is ", static_cast<kcc_int32>(engId));
+        engName = nullptr;
+        break;
+    }
+    std::string queName("q_");
+    queName += engName;
+    if (sbatomWop->qSbAtomLoadWaveOp()) {
+        auto loadWop = dynamic_cast<const wave::SbAtomLoadWaveOp*>(sbatomWop);
+        if (loadWop->qContainWeights()) {
+            typ = dma::DmaQueue::QueueType::Weights;
+            queName += "_in_w";
+        } else {
+            typ = dma::DmaQueue::QueueType::Input;
+            queName += "_in_d";
+        }
+    } else {
+        queName += "_out";
+        typ = dma::DmaQueue::QueueType::Output;
+    }
+
+    const auto it = m_Name2Queue.find(queName);
+    if (it == m_Name2Queue.end()) {
+        const auto que = new dma::DmaQueue(queName, engId, typ, m_Name2Queue.size());
+        m_Name2Queue[queName] = que;
+        return que;
+    } else {
+        return (*it).second;
+    }
 }
+
+/***********************************************************************
+***********************************************************************/
+bool
+EventMgr::qUseEvent(const wave::WaveEdge* edge) const
+{
+    return qUseEventsOnly() || !edge->qCanSyncWithSemaphore();
+}
+
+}}
 

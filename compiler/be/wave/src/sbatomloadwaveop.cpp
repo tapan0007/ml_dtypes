@@ -22,7 +22,6 @@ SbAtomLoadWaveOp::SbAtomLoadWaveOp(
         const SbAtomLoadWaveOp::Params& params,
         const std::vector<WaveOp*>& prevWaveOps)
     : SbAtomWaveOp(params, prevWaveOps)
-    , m_NumPartitions(params.m_NumPartitions)
     , m_ContainWeights(params.m_ContainWeights)
     , m_IfmapReplicationNumRows(params.m_IfmapReplicationNumRows)
     , m_IfmapReplicationResolution(params.m_IfmapReplicationResolution)
@@ -50,9 +49,6 @@ bool
 SbAtomLoadWaveOp::verify() const
 {
     if (! this->SbAtomWaveOp::verify()) {
-        return false;
-    }
-    if (m_NumPartitions < 1) {
         return false;
     }
     if (m_IfmapReplicationNumRows < 0) {

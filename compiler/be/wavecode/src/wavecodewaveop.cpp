@@ -6,10 +6,12 @@
 
 #include "compisa/inc/compisawait.hpp"
 #include "compisa/inc/compisanop.hpp"
+#include "compisa/inc/compisasemaphore.hpp"
 
 
 #include "wave/inc/waveedge.hpp"
 #include "wave/inc/waveop.hpp"
+#include "wave/inc/sbatomwaveop.hpp"
 
 #include "wavecode/inc/wavecode.hpp"
 #include "wavecode/inc/wavecodewaveop.hpp"
@@ -50,32 +52,52 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
         if (! prevWaveEdge->qNeedToImplementSync()) {
             continue;
         }
-        const auto evtId = prevWaveEdge->gEventId();
-        ++numSyncs;
 
-        if (allowEmb && firstEmb) {
-            firstEmb = false;
-            if (sync) {
-                sync->wait_event_idx     = evtId;
-                sync->wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
-            } else {
-                *waitEventId = evtId;
-                *waitEventMode = prevWaveEdge->gWaitEventMode();
-            }
-        } else {
-            if (firstEmb) {
+        ++numSyncs;
+        if (m_WaveCode.qUseEvent(prevWaveEdge)) {
+            const auto evtId = prevWaveEdge->gEventId();
+
+            if (allowEmb && firstEmb) {
                 firstEmb = false;
-                if (waitEventId && waitEventMode) {
+                if (sync) {
+                    sync->wait_event_idx     = evtId;
+                    sync->wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
+                } else {
                     *waitEventId = evtId;
                     *waitEventMode = prevWaveEdge->gWaitEventMode();
                 }
+            } else {
+                if (firstEmb) {
+                    firstEmb = false;
+                    if (waitEventId && waitEventMode) {
+                        *waitEventId = evtId;
+                        *waitEventMode = prevWaveEdge->gWaitEventMode();
+                    }
+                }
+                m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
             }
-            m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+        } else {
+            GenerateSemaphoreInstr(prevWaveEdge);
         }
     }
     return numSyncs;
-}
+} // WaveCodeWaveOp::processIncomingEdges
 
+
+//----------------------------------------------------------------
+void
+WaveCodeWaveOp::GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge)
+{
+    const auto prevWaveop = prevWaveEdge->gFromOp();
+    auto prevSbAtomWaveop = dynamic_cast<const wave::SbAtomWaveOp*>(prevWaveop);
+    Assert(prevSbAtomWaveop, "WaveOp ", prevWaveop->gName(), " should be Load/Save");
+
+    compisa::SemaphoreInstr semInstr;
+    semInstr.semaphore_id = prevSbAtomWaveop->gDmaQueue()->gSemaphoreId();
+    semInstr.wait_cond    = TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_EQUAL;
+    semInstr.wait_value   = prevSbAtomWaveop->gTriggerOrd();
+    m_WaveCode.writeInstruction(semInstr, prevWaveEdge->gToOp()->gEngineId());
+} // WaveCodeWaveOp::GenerateSemaphoreInstr
 
 //======================================================================
 void
@@ -95,7 +117,7 @@ WaveCodeWaveOp::findFirstSetEventIdMode(wave::WaveOp* waveop, events::EventId& s
             break;
         }
     }
-}
+} // WaveCodeWaveOp::findFirstSetEventIdMode
 
 
 //======================================================================
@@ -183,7 +205,7 @@ WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop)
         m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
     }
     return numSyncs;
-}
+} // WaveCodeWaveOp::processOutgoingEdges
 
 }}
 

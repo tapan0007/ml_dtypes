@@ -66,36 +66,36 @@ public:
 
     using OneInstrStream = FILE*;
     struct InstrStreams {
+        struct OneEngInfo {
+            std::string     m_BinFile;
+            OneInstrStream  m_InstrStream = nullptr;
+            kcc_int32       m_Pc = 0;
+        };
         ~InstrStreams();
         void closeAll();
 
-        std::string     m_StreamProcBinFile;
-        std::string     m_PeArrayBinFile;
-        std::string     m_PoolEngBinFile;
-        std::string     m_ActEngBinFile;
-        std::string     m_DmaBinFile;
-        OneInstrStream  m_StreamProcInstrStream = nullptr;
-        OneInstrStream  m_PeArrayInstrStream = nullptr;
-        OneInstrStream  m_PoolEngInstrStream = nullptr;
-        OneInstrStream  m_ActEngInstrStream = nullptr;
-        OneInstrStream  m_DmaInstrStream = nullptr;
+        OneEngInfo      m_StreamProc;
+        OneEngInfo      m_PeArray;
+        OneEngInfo      m_PoolEng;
+        OneEngInfo      m_ActEng;
+        OneEngInfo      m_Angel;
     };
 public:
     //----------------------------------------------------------------
-    WaveCode(nets::Network& network, const arch::Arch& arch);
+    WaveCode(nets::Network& network, const arch::Arch& arch, bool useSem);
 
     ~WaveCode();
 
-    void generate(const InstrStreams& instrStreams, bool parallelStreams);
+    void generate(InstrStreams& instrStreams, bool parallelStreams);
     void DetermineEngines();
 
     // Instructions that execute on one engine only: POOL, MATMUL, LDWEIGHTS, etc.
     template<typename INSTR>
-    void writeInstruction(const INSTR& instruction);
+    void writeInstruction(const INSTR& instruction) const;
 
     // multi-engine instructions: WAIT_EVENT, SET_EVENT, CLEAR_EVENT, WRITE
     template<typename INSTR>
-    void writeInstruction(const INSTR& instruction, EngineId engId);
+    void writeInstruction(const INSTR& instruction, EngineId engId) const;
 
 
     kcc_int64 gCurrentDramAddress(kcc_int64 sizeInBytes);
@@ -167,6 +167,13 @@ public:
 
     static void SaveName(compisa::MatMulInstr& instr, const char* name);
 
+
+    bool qUseEvent(const wave::WaveEdge* edge) const;
+    bool qUseSemaphore(const wave::WaveEdge* edge) const;
+
+
+private:
+
 private:
     WaveCode() = delete;
     WaveCode(const WaveCode&) = delete;
@@ -183,13 +190,7 @@ private:
     nets::Network&                      m_Network;
     const arch::Arch&                   m_Arch;
 
-    kcc_int32                           m_StreamProcPc = 0;
-    kcc_int32                           m_PeArrayPc = 0;
-    kcc_int32                           m_PoolEngPc = 0;
-    kcc_int32                           m_ActEngPc = 0;
-    kcc_int32                           m_DmaPc = 0;
-
-    const InstrStreams*                 m_InstrStreams;
+    InstrStreams*                       m_InstrStreams;
 
     std::unique_ptr<WaveCodeMatMul>     m_CodeMatMul;
     std::unique_ptr<WaveCodeSbAtomLoad> m_CodeSbAtomLoad;

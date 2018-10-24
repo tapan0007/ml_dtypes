@@ -49,9 +49,6 @@ public:
 
     bool verify() const override;
 
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
-    }
 
     kcc_int64 gSaveDataSizeInBytes() const;
 
@@ -60,7 +57,6 @@ public:
     }
 
 private:
-    kcc_int32       m_NumPartitions     = -1;
     bool            m_FinalLayerOfmap   = false;
 };
 
@@ -71,7 +67,6 @@ class SbAtomSaveWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32       m_NumPartitions     = -1;
     bool            m_FinalLayerOfmap   = false;
 };
 

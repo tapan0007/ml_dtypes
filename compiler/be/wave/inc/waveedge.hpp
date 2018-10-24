@@ -40,7 +40,13 @@ using namespace utils;
 // The base class of all wave.
 //--------------------------------------------------------
 class WaveEdge {
-protected:
+public:
+public:
+    enum class SyncMethod {
+        None,
+        WithEvent,
+        WithSemaphore,
+    };
 
     //----------------------------------------------------
 public:
@@ -75,19 +81,27 @@ public:
      *                                                              *
      ****************************************************************/
     void rEvent(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode);
+    void clearEvent();
 
     events::EventId gEventId() const {
-        return m_Channel.gEventId();
+        return m_EventChannel.gEventId();
     }
     events::EventWaitMode gWaitEventMode() const {
-        return m_Channel.gWaitEventMode();
+        return m_EventChannel.gWaitEventMode();
     }
     events::EventSetMode gSetEventMode() const {
-        return m_Channel.gSetEventMode();
+        return m_EventChannel.gSetEventMode();
     }
 
     bool qNeedToImplementSync() const;
     bool qNeedToSync() const;
+    bool qCanSyncWithSemaphore() const;
+
+    bool qSyncedWithEvent() const;
+    bool qSyncedWithSemaphore() const;
+    void DoSyncWithSemaphore() {
+        m_SyncMethod = SyncMethod::WithSemaphore;
+    }
 
     bool qChosenForSuccSbAtom() const {
         return m_ChosenForSuccSbAtom;
@@ -97,10 +111,15 @@ public:
     }
 
 private:
+    void rSyncMethod(SyncMethod method) {
+        m_SyncMethod = method;
+    }
+private:
     WaveOp*                 m_FromOp;
     WaveOp*                 m_ToOp;
-    events::Channel         m_Channel;
+    events::EventChannel    m_EventChannel;
     bool                    m_ChosenForSuccSbAtom = false;
+    SyncMethod              m_SyncMethod = SyncMethod::None;
 }; // class WaveEdge
 
 

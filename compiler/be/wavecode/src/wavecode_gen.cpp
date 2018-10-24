@@ -28,12 +28,14 @@
 #include "compisa/inc/compisaregload.hpp"
 #include "compisa/inc/compisaregshuffle.hpp"
 #include "compisa/inc/compisaregstore.hpp"
+#include "compisa/inc/compisasemaphore.hpp"
+
+#include "compisa/inc/compisadmatrigger.hpp"
 
 #include "compisa/inc/compisasimmemcpy.hpp"
 #include "compisa/inc/compisasimwrnpy.hpp"
 #include "compisa/inc/compisasimrdnpy.hpp"
 
-#include "compisa/inc/compisadmatrigger.hpp"
 #include "compisa/inc/compisasimdmacopy.hpp"
 
 
@@ -51,150 +53,163 @@ namespace wavecode {
  * PE Array
 ***********************************************************************/
 template<>
-void WaveCode::writeInstruction<compisa::MatMulInstr>(const compisa::MatMulInstr& instruction)
+void WaveCode::writeInstruction<compisa::MatMulInstr>(const compisa::MatMulInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-    m_PeArrayPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PeArray;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::LdWeightsInstr>(const compisa::LdWeightsInstr& instruction)
+void WaveCode::writeInstruction<compisa::LdWeightsInstr>(const compisa::LdWeightsInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-    m_PeArrayPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PeArray;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 /***********************************************************************
  * Pooling Eng
 ***********************************************************************/
 template<>
-void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& instruction)
+void WaveCode::writeInstruction<compisa::PoolInstr>(const compisa::PoolInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
 template<>
-void WaveCode::writeInstruction<compisa::TensorTensorOpInstr>(const compisa::TensorTensorOpInstr& instruction)
+void WaveCode::writeInstruction<compisa::TensorTensorOpInstr>(const compisa::TensorTensorOpInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::TensorScalarOpInstr>(const compisa::TensorScalarOpInstr& instruction)
+void WaveCode::writeInstruction<compisa::TensorScalarOpInstr>(const compisa::TensorScalarOpInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::TensorScalarPtrOpInstr>(const compisa::TensorScalarPtrOpInstr& instruction)
+void WaveCode::writeInstruction<compisa::TensorScalarPtrOpInstr>(const compisa::TensorScalarPtrOpInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::TensorReduceOpInstr>(const compisa::TensorReduceOpInstr& instruction)
+void WaveCode::writeInstruction<compisa::TensorReduceOpInstr>(const compisa::TensorReduceOpInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::CopyInstr>(const compisa::CopyInstr& instruction)
+void WaveCode::writeInstruction<compisa::CopyInstr>(const compisa::CopyInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::MemSetInstr>(const compisa::MemSetInstr& instruction)
+void WaveCode::writeInstruction<compisa::MemSetInstr>(const compisa::MemSetInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::CastInstr>(const compisa::CastInstr& instruction)
+void WaveCode::writeInstruction<compisa::CastInstr>(const compisa::CastInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::RegLoadInstr>(const compisa::RegLoadInstr& instruction)
+void WaveCode::writeInstruction<compisa::RegLoadInstr>(const compisa::RegLoadInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::RegStoreInstr>(const compisa::RegStoreInstr& instruction)
+void WaveCode::writeInstruction<compisa::RegStoreInstr>(const compisa::RegStoreInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::RegShuffleInstr>(const compisa::RegShuffleInstr& instruction)
+void WaveCode::writeInstruction<compisa::RegShuffleInstr>(const compisa::RegShuffleInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-    m_PoolEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_PoolEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
@@ -202,14 +217,15 @@ void WaveCode::writeInstruction<compisa::RegShuffleInstr>(const compisa::RegShuf
  * Activation Eng
 ***********************************************************************/
 template<>
-void WaveCode::writeInstruction<compisa::ActivateInstr >(const compisa::ActivateInstr & instruction)
+void WaveCode::writeInstruction<compisa::ActivateInstr >(const compisa::ActivateInstr & instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-    m_ActEngPc += instSize;
+    auto engInfo = &m_InstrStreams->m_ActEng;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
@@ -220,36 +236,39 @@ void WaveCode::writeInstruction<compisa::ActivateInstr >(const compisa::Activate
  * DMA/Angel Eng
 ***********************************************************************/
 template<>
-void WaveCode::writeInstruction<compisa::SimRdNpyInstr>(const compisa::SimRdNpyInstr& instruction)
+void WaveCode::writeInstruction<compisa::SimRdNpyInstr>(const compisa::SimRdNpyInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-    m_DmaPc += instSize;
+    auto engInfo = &m_InstrStreams->m_Angel;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::SimWrNpyInstr>(const compisa::SimWrNpyInstr& instruction)
+void WaveCode::writeInstruction<compisa::SimWrNpyInstr>(const compisa::SimWrNpyInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-    m_DmaPc += instSize;
+    auto engInfo = &m_InstrStreams->m_Angel;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCpyInstr& instruction)
+void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCpyInstr& instruction) const
 {
     instruction.CheckValidity();
     checkForNoSync(instruction.inst_events);
 
     const kcc_int32 instSize = sizeof(instruction);
-    fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-    m_DmaPc += instSize;
+    auto engInfo = &m_InstrStreams->m_Angel;
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
@@ -262,7 +281,7 @@ void WaveCode::writeInstruction<compisa::SimMemCpyInstr>(const compisa::SimMemCp
  * Event related - Multiple Engines
 ***********************************************************************/
 template<>
-void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& waitInstr, EngineId engId)
+void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& waitInstr, EngineId engId) const
 {
 #if ! NOP_FOR_WAIT_SET
     const auto& instruction(waitInstr);
@@ -284,35 +303,33 @@ void WaveCode::writeInstruction<compisa::WaitInstr>(const compisa::WaitInstr& wa
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
+    InstrStreams::OneEngInfo* engInfo = nullptr;
     switch (engId) {
     case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
+        engInfo = &m_InstrStreams->m_PoolEng;
         break;
     case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
+        engInfo = &m_InstrStreams->m_PeArray;
         break;
     case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
+        engInfo = &m_InstrStreams->m_ActEng;
         break;
     case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
+        engInfo = &m_InstrStreams->m_StreamProc;
         break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-        m_DmaPc += instSize;
+    case EngineId::AngelEng:
+        engInfo = &m_InstrStreams->m_Angel;
         break;
     default:
         Assert(false, "Wrong EngineId for Wait instruction: ", static_cast<int>(engId));
     }
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
 template<>
-void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setInstr, EngineId engId)
+void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setInstr, EngineId engId) const
 {
 #if ! NOP_FOR_WAIT_SET
     const auto& instruction(setInstr);
@@ -336,64 +353,61 @@ void WaveCode::writeInstruction<compisa::SetInstr>(const compisa::SetInstr& setI
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
+
+    InstrStreams::OneEngInfo* engInfo = nullptr;
     switch (engId) {
     case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
+        engInfo = &m_InstrStreams->m_PoolEng;
         break;
     case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
+        engInfo = &m_InstrStreams->m_PeArray;
         break;
     case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
+        engInfo = &m_InstrStreams->m_ActEng;
         break;
     case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
+        engInfo = &m_InstrStreams->m_StreamProc;
         break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-        m_DmaPc += instSize;
+    case EngineId::AngelEng:
+        engInfo = &m_InstrStreams->m_Angel;
         break;
     default:
         Assert(false, "Wrong EngineId for Set instruction: ", static_cast<int>(engId));
     }
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
 template<>
-void WaveCode::writeInstruction<compisa::ClearInstr>(const compisa::ClearInstr& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::ClearInstr>(const compisa::ClearInstr& instruction, EngineId engId) const
 {
     Assert(qParallelStreams(), "Cannot generate clear-event instruction in serial mode");
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
+    InstrStreams::OneEngInfo* engInfo = nullptr;
     switch (engId) {
     case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
+        engInfo = &m_InstrStreams->m_PoolEng;
         break;
     case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
+        engInfo = &m_InstrStreams->m_PeArray;
         break;
     case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
+        engInfo = &m_InstrStreams->m_ActEng;
         break;
     case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
+        engInfo = &m_InstrStreams->m_StreamProc;
         break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-        m_DmaPc += instSize;
+    case EngineId::AngelEng:
+        engInfo = &m_InstrStreams->m_Angel;
         break;
     default:
         Assert(false, "Wrong EngineId for Clear instruction: ", static_cast<int>(engId));
     }
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
@@ -401,83 +415,103 @@ void WaveCode::writeInstruction<compisa::ClearInstr>(const compisa::ClearInstr& 
  * Multiple Eng
 ***********************************************************************/
 template<>
-void WaveCode::writeInstruction<compisa::WriteInstr>(const compisa::WriteInstr& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::WriteInstr>(const compisa::WriteInstr& instruction, EngineId engId) const
 {
     checkForNoSync(instruction.inst_events);
+    instruction.CheckValidity();
+    const kcc_int32 instSize = sizeof(instruction);
 
+    InstrStreams::OneEngInfo* engInfo = nullptr;
     switch (engId) {
     case EngineId::Pooling:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PoolEngInstrStream);
+        engInfo = &m_InstrStreams->m_PoolEng;
         break;
     case EngineId::PeArray:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_PeArrayInstrStream);
+        engInfo = &m_InstrStreams->m_PeArray;
         break;
     case EngineId::Activation:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_ActEngInstrStream);
+        engInfo = &m_InstrStreams->m_ActEng;
         break;
     case EngineId::StreamProc:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_StreamProcInstrStream);
-        break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, sizeof(instruction), 1, m_InstrStreams->m_DmaInstrStream);
+        engInfo = &m_InstrStreams->m_StreamProc;
         break;
     default:
         Assert(false, "Wrong EngineId for Write instruction: ", static_cast<int>(engId));
     }
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
 template<>
-void WaveCode::writeInstruction<compisa::NopInstr>(const compisa::NopInstr& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::NopInstr>(const compisa::NopInstr& instruction, EngineId engId) const
 {
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
+    InstrStreams::OneEngInfo* engInfo = nullptr;
     switch (engId) {
     case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
+        engInfo = &m_InstrStreams->m_PoolEng;
         break;
     case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
+        engInfo = &m_InstrStreams->m_PeArray;
         break;
     case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
+        engInfo = &m_InstrStreams->m_ActEng;
         break;
     case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
-        break;
-    case EngineId::DmaEng:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_DmaInstrStream);
-        m_DmaPc += instSize;
+        engInfo = &m_InstrStreams->m_StreamProc;
         break;
     default:
         Assert(false, "Wrong EngineId for Nop instruction: ", static_cast<int>(engId));
     }
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 template<>
-void WaveCode::writeInstruction<compisa::DmaTriggerInstr>(const compisa::DmaTriggerInstr& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::SemaphoreInstr >(const compisa::SemaphoreInstr & instruction, EngineId engId) const
+{
+    Assert(qBinFileRuntimeKelf(), "SemaphoreInstr is available in RuntimeKelf binary only");
+    instruction.CheckValidity();
+    const kcc_int32 instSize = sizeof(instruction);
+
+    InstrStreams::OneEngInfo* engInfo = nullptr;
+    switch (engId) {
+    case EngineId::Pooling:
+        engInfo = &m_InstrStreams->m_PoolEng;
+        break;
+    case EngineId::PeArray:
+        engInfo = &m_InstrStreams->m_PeArray;
+        break;
+    case EngineId::Activation:
+        engInfo = &m_InstrStreams->m_ActEng;
+        break;
+    default:
+        Assert(false, "Wrong EngineId for Semaphore instruction: ", static_cast<int>(engId));
+    }
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
+}
+
+template<>
+void WaveCode::writeInstruction<compisa::DmaTriggerInstr>(const compisa::DmaTriggerInstr& instruction, EngineId engId) const
 {
     Assert(qBinFileRuntimeKelf(), "DmaTriggerInstr is available in RuntimeKelf binary only");
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
+    InstrStreams::OneEngInfo* engInfo = nullptr;
     switch (engId) {
     case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
+        engInfo = &m_InstrStreams->m_PoolEng;
         break;
     case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
+        engInfo = &m_InstrStreams->m_PeArray;
         break;
     case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
+        engInfo = &m_InstrStreams->m_ActEng;
         break;
     /*
     case EngineId::StreamProc:
@@ -488,38 +522,34 @@ void WaveCode::writeInstruction<compisa::DmaTriggerInstr>(const compisa::DmaTrig
     default:
         Assert(false, "Wrong EngineId for DmaTrigger instruction: ", static_cast<int>(engId));
     }
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 
 template<>
-void WaveCode::writeInstruction<compisa::SimDmaCopyInstr>(const compisa::SimDmaCopyInstr& instruction, EngineId engId)
+void WaveCode::writeInstruction<compisa::SimDmaCopyInstr>(const compisa::SimDmaCopyInstr& instruction, EngineId engId) const
 {
     Assert(qBinFileSimKelf(), "SimDmaCopy is available in SimKelf binary only");
     instruction.CheckValidity();
     const kcc_int32 instSize = sizeof(instruction);
 
+    InstrStreams::OneEngInfo* engInfo = nullptr;
     switch (engId) {
     case EngineId::Pooling:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PoolEngInstrStream);
-        m_PoolEngPc += instSize;
+        engInfo = &m_InstrStreams->m_PoolEng;
         break;
     case EngineId::PeArray:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_PeArrayInstrStream);
-        m_PeArrayPc += instSize;
+        engInfo = &m_InstrStreams->m_PeArray;
         break;
     case EngineId::Activation:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_ActEngInstrStream);
-        m_ActEngPc += instSize;
+        engInfo = &m_InstrStreams->m_ActEng;
         break;
-    /*
-    case EngineId::StreamProc:
-        fwrite(&instruction, instSize, 1, m_InstrStreams->m_StreamProcInstrStream);
-        m_StreamProcPc += instSize;
-        break;
-    */
     default:
-        Assert(false, "Wrong EngineId for DmaTrigger instruction: ", static_cast<int>(engId));
+        Assert(false, "Wrong EngineId for SimDmaCopy instruction: ", static_cast<int>(engId));
     }
+    fwrite(&instruction, instSize, 1, engInfo->m_InstrStream);
+    engInfo->m_Pc += instSize;
 }
 
 }}

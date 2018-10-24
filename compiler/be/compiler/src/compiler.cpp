@@ -98,17 +98,11 @@ void writeOutJson(nets::Network* ntwk, const char* jsonInFileName, const char* e
 int
 Main(int argc, char* argv[])
 {
-#if 1
-    bool PrintLevels   = false;
-    bool PrintSchedule = false;
-    bool PrintDot      = false;
-    bool PrintLayers   = false;
-#endif
     bool DoBatching    = false;
     bool ParallelStreams = true;
     const char* JsonInFileName = nullptr;
-    bool useWave = false;
     bool dmaOnly = false;
+    bool useSem = false;
 
     kcc_int32 numTpbEvents = -1;
     {
@@ -121,18 +115,7 @@ Main(int argc, char* argv[])
     int i = 1;
     while (i < argc) {
         const std::string arg(argv[i]);
-#if 1
-        if (arg == "--print-layers") {
-            PrintLayers = true;
-        } else if (arg == "--print-levels") {
-            PrintLevels = true;
-        } else if (arg == "--print-sched") {
-            PrintSchedule = true;
-        } else if (arg == "--no-print-sched") {
-            PrintSchedule = false;
-        } else if (arg == "--print-dot") {
-            PrintDot = true;
-        } else if (arg == "--batch" or arg == "--batching") {
+        if (arg == "--batch" or arg == "--batching") {
             DoBatching = true;
         } else if (arg == "--parallel_streams" || arg == "--parallel-streams") {
             ParallelStreams = true;
@@ -143,21 +126,13 @@ Main(int argc, char* argv[])
         } else if (arg == "--number-tpb-events") {
             numTpbEvents = atoi(argv[i+1]);
             ++i;
-        } else
-#endif
-        if (arg == "--json") {
-            if (JsonInFileName) {
-                std::cerr << "Must specify net" << "\n";
-                exit(1);
-            }
-            JsonInFileName = argv[i+1];
-            i += 1;
+        } else if (arg == "--semaphore" || arg == "-s") {
+            useSem = true;
         } else if (arg == "--wavegraph" || arg == "-w") {
             if (JsonInFileName) {
                 std::cerr << "Must specify net" << "\n";
                 exit(1);
             }
-            useWave = true;
             JsonInFileName = argv[i+1];
             i += 1;
         } else {
@@ -231,7 +206,7 @@ Main(int argc, char* argv[])
 
         try {
             cereal::JSONInputArchive ar(is);
-            ntwk->rUseWave(useWave);
+            ntwk->rUseWave(true);
             ntwk->load(ar);
         } catch (const cereal::Exception& except) {
             std::cerr << "Error <"  << except.what() << "> when reading JSON file '" << JsonInFileName << "'\n";
@@ -244,89 +219,40 @@ Main(int argc, char* argv[])
 
     ntwk->rDoBatching(DoBatching);
 
-    assert(useWave);
-    if (false && ! useWave) {
-        std::string objFileName(ntwk->gName());
-        objFileName += ".tpb";
-        //--------------------------------------------------------
-        schedule::Scheduler* scheduler = new schedule::Scheduler();
-        std::cout << "Scheduling NN '" << ntwk->gName() << "'\n";
-        scheduler->Schedule(ntwk);
-        //ntwk->rLevels(scheduler->gLevels());
-
-        //--------------------------------------------------------
-        memmgr::StateBufferMgr* sbmgr = new memmgr::StateBufferMgr(arch, ntwk);
-        std::cout << "Calculating FMAP and weight state buffer addresses\n";
-        sbmgr->calcLayerFmapAddresses();
-
-        //--------------------------------------------------------
-        codegen::CodeGen codegen(ntwk, arch);
-
-        std::cout << "Codegen: Generating instructions to file '" << objFileName << "'\n";
-        codegen.generate(objFileName.c_str());
-
-        if (false) {
-            //--------------------------------------------------------
-            const auto printer = new kcc::utils::Printer(ntwk);
-
-            if (PrintLayers) {
-                printer->printNetwork();
-                std::cout << "\n";
-            }
-
-            if (PrintLevels) {
-                std::cout << "By level\n";
-                printer->printLevels(scheduler);
-                std::cout << "\n";
-            }
-
-            if (PrintSchedule) {
-                std::cout << "By scheduling\n";
-                printer->printSched();
-                std::cout << "\n";
-            }
-
-            if (PrintDot) {
-                std::cout << "Dot\n";
-                printer->printDot();
-                std::cout << "\n";
-            }
-        }
-        writeOutJson(ntwk, JsonInFileName, "lay");
-    } else {
+    {
         wavecode::WaveCode::InstrStreams instrStreams;
         if (ParallelStreams) {
             //==========================================================
             bool kelf = false;
             std::string objFileName;
             events::EventMgr eventMgr(*ntwk);
-            wavecode::WaveCode waveCode(*ntwk, arch);
+            wavecode::WaveCode waveCode(*ntwk, arch, useSem);
 
-            // with Angel/Dma
+            // with Angel
             if (!dmaOnly) {
                 std::cout << "Wavegraph code generation for SIM/Angel:\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "------" << "----\n";
 
-                instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.tpb";
-                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE-Array");
+                instrStreams.m_PeArray.m_BinFile = objFileName = ntwk->gName() + "-pe.tpb";
+                instrStreams.m_PeArray.m_InstrStream       = openObjectFile(objFileName, "PE-Array");
 
-                instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.tpb";
-                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "Stream-Processor");
+                instrStreams.m_StreamProc.m_BinFile = objFileName = ntwk->gName() + "-sp.tpb";
+                instrStreams.m_StreamProc.m_InstrStream    = openObjectFile(objFileName, "Stream-Processor");
 
-                instrStreams.m_DmaBinFile = objFileName = ntwk->gName() + "-dma.tpb";
-                instrStreams.m_DmaInstrStream    = openObjectFile(objFileName, "DMA-Eng");
+                instrStreams.m_Angel.m_BinFile = objFileName = ntwk->gName() + "-dma.tpb";
+                instrStreams.m_Angel.m_InstrStream    = openObjectFile(objFileName, "Angel-Eng");
 
-                instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.tpb";
-                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "Pool-Eng");
+                instrStreams.m_PoolEng.m_BinFile = objFileName = ntwk->gName() + "-pool.tpb";
+                instrStreams.m_PoolEng.m_InstrStream       = openObjectFile(objFileName, "Pool-Eng");
 
-                instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.tpb";
-                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "Act-Eng");
+                instrStreams.m_ActEng.m_BinFile = objFileName = ntwk->gName() + "-act.tpb";
+                instrStreams.m_ActEng.m_InstrStream        = openObjectFile(objFileName, "Act-Eng");
                 std::cout << "\n";
 
                 waveCode.rBinFileType(BinFileType::SimAngel);
                 waveCode.DetermineEngines();
-                eventMgr.processWaveops(kelf);
+                eventMgr.processWaveops(kelf, false);
                 waveCode.generate(instrStreams, ParallelStreams);
 
                 writeOutJson(ntwk, JsonInFileName, "tpb");
@@ -340,19 +266,19 @@ Main(int argc, char* argv[])
                 std::cout << "Wavegraph code generation for Qemu/Emu:\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "------" << "----\n";
-                instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.bin";
-                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE-Array");
+                instrStreams.m_PeArray.m_BinFile = objFileName = ntwk->gName() + "-pe.bin";
+                instrStreams.m_PeArray.m_InstrStream       = openObjectFile(objFileName, "PE-Array");
 
-                instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.bin";
-                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "Stream-Processor");
+                instrStreams.m_StreamProc.m_BinFile = objFileName = ntwk->gName() + "-sp.bin";
+                instrStreams.m_StreamProc.m_InstrStream    = openObjectFile(objFileName, "Stream-Processor");
 
-                instrStreams.m_DmaInstrStream    = nullptr;
+                instrStreams.m_Angel.m_InstrStream    = nullptr;
 
-                instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.bin";
-                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "Pool-Eng");
+                instrStreams.m_PoolEng.m_BinFile = objFileName = ntwk->gName() + "-pool.bin";
+                instrStreams.m_PoolEng.m_InstrStream       = openObjectFile(objFileName, "Pool-Eng");
 
-                instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.bin";
-                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "Act-Eng");
+                instrStreams.m_ActEng.m_BinFile = objFileName = ntwk->gName() + "-act.bin";
+                instrStreams.m_ActEng.m_InstrStream        = openObjectFile(objFileName, "Act-Eng");
                 std::cout << "\n";
 
                 if (!dmaOnly) {
@@ -362,64 +288,34 @@ Main(int argc, char* argv[])
 
                 waveCode.rBinFileType(BinFileType::RuntimeKelf);
                 waveCode.DetermineEngines();
-                eventMgr.processWaveops(kelf);
+                eventMgr.processWaveops(kelf, useSem);
                 waveCode.generate(instrStreams, ParallelStreams);
 
                 writeOutJson(ntwk, JsonInFileName, "bin");
                 instrStreams.closeAll();
             }
-
-            //==========================================================
-            // Sim Kelf
-            if (false) {
-                kelf = true;
-                std::cout << "Wavegraph code generation for SIM/DMA:\n";
-
-                instrStreams.m_PeArrayBinFile = objFileName = ntwk->gName() + "-pe.kbin";
-                instrStreams.m_PeArrayInstrStream       = openObjectFile(objFileName, "PE-Array");
-
-                instrStreams.m_StreamProcBinFile = objFileName = ntwk->gName() + "-sp.kbin";
-                instrStreams.m_StreamProcInstrStream    = openObjectFile(objFileName, "Stream-Processor");
-
-                instrStreams.m_DmaInstrStream    = nullptr;
-
-                instrStreams.m_PoolEngBinFile = objFileName = ntwk->gName() + "-pool.kbin";
-                instrStreams.m_PoolEngInstrStream       = openObjectFile(objFileName, "Pool-Eng");
-
-                instrStreams.m_ActEngBinFile = objFileName = ntwk->gName() + "-act.kbin";
-                instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "Act-Eng");
-                std::cout << "\n";
-
-                //
-
-                waveCode.rBinFileType(BinFileType::SimKelf);
-                waveCode.generate(instrStreams, ParallelStreams);
-
-                instrStreams.closeAll();
-            }
-
         } else {
             std::cout << "Wavegraph code generation: ";
             std::string objFileName(ntwk->gName() + ".tpb");
             FILE* file = openObjectFile(objFileName, "all");
 
-            instrStreams.m_StreamProcInstrStream    = file;
-            instrStreams.m_PeArrayInstrStream       = file;
-            instrStreams.m_PoolEngInstrStream       = file;
-            instrStreams.m_ActEngInstrStream        = file;
-            instrStreams.m_DmaInstrStream           = file;
+            instrStreams.m_StreamProc.m_InstrStream    = file;
+            instrStreams.m_PeArray.m_InstrStream       = file;
+            instrStreams.m_PoolEng.m_InstrStream       = file;
+            instrStreams.m_ActEng.m_InstrStream        = file;
+            instrStreams.m_Angel.m_InstrStream         = file;
 
             writeOutJson(ntwk, JsonInFileName, "seqtpb");
-            wavecode::WaveCode waveCode(*ntwk, arch);
+            wavecode::WaveCode waveCode(*ntwk, arch, false);
             waveCode.generate(instrStreams, ParallelStreams);
 
             fclose(file);
 
-            instrStreams.m_StreamProcInstrStream    = nullptr;
-            instrStreams.m_PeArrayInstrStream       = nullptr;
-            instrStreams.m_PoolEngInstrStream       = nullptr;
-            instrStreams.m_ActEngInstrStream        = nullptr;
-            instrStreams.m_DmaInstrStream           = nullptr;
+            instrStreams.m_StreamProc.m_InstrStream    = nullptr;
+            instrStreams.m_PeArray.m_InstrStream       = nullptr;
+            instrStreams.m_PoolEng.m_InstrStream       = nullptr;
+            instrStreams.m_ActEng.m_InstrStream        = nullptr;
+            instrStreams.m_Angel.m_InstrStream         = nullptr;
         }
 
     }

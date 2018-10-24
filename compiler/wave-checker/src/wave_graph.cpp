@@ -979,7 +979,7 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
         {
           make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
         }
-        else if (!eng_name.compare("DmaEng"))
+        else if (!eng_name.compare("DmaEng") || !eng_name.compare("AngelEng"))
         {
           make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
         }

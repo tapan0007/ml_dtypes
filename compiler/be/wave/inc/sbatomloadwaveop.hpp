@@ -53,10 +53,6 @@ public:
         return m_ContainWeights;
     }
 
-    kcc_int32 gNumPartitions () const {
-        return m_NumPartitions;
-    }
-
     kcc_int64 gLoadDataSizeInBytes () const;
 
     kcc_int32 gIfmapReplicationNumRows() const {
@@ -74,7 +70,6 @@ public:
     }
 
 private:
-    kcc_int32       m_NumPartitions     = -1;
     bool            m_ContainWeights    = false;
 
     kcc_int32       m_IfmapReplicationNumRows       = -1;
@@ -93,7 +88,6 @@ class SbAtomLoadWaveOp::Params : public SbAtomWaveOp::Params {
 public:
     bool verify() const;
 public:
-    kcc_int32       m_NumPartitions     = -1;
     bool            m_ContainWeights    = false;
 
     kcc_int32       m_IfmapReplicationNumRows       = -1;

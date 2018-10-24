@@ -14,7 +14,12 @@ class NopWaveOp;
 class ActivationWaveOp;
 class SbAtomLoadWaveOp;
 class SbAtomSaveWaveOp;
+class SbAtomWaveOp;
 class BarrierWaveOp;
+}
+
+namespace dma {
+class DmaQueue;
 }
 
 
@@ -63,7 +68,9 @@ private:
 
 public:
     EventMgr(nets::Network& network);
-    void processWaveops(bool kelf);
+    ~EventMgr();
+
+    void processWaveops(bool kelf, bool useSem);
     static kcc_int32 gNumberReservedTpbEvents() {
         return ReservedEvent_FirstNonReserved;
     }
@@ -95,9 +102,9 @@ private:
 
         ReservedEvent_PeAct,
         ReservedEvent_ActPool,
-        ReservedEvent_PoolDma,
+        ReservedEvent_PoolAngel,
 
-        ReservedEvent_DmaPool,
+        ReservedEvent_AngelPool,
         ReservedEvent_PoolAct,
         ReservedEvent_ActPe,
 
@@ -108,27 +115,6 @@ private:
         ReservedEvent_MMStartMultiSet,
 
 
-        /*
-        ReservedEvent_PePool,
-        ReservedEvent_PeDma,
-        ReservedEvent_PeSp,
-
-        ReservedEvent_ActDma,
-        ReservedEvent_ActSp,
-
-        ReservedEvent_PoolPe,
-        ReservedEvent_PoolSp,
-
-        ReservedEvent_DmaPe,
-        ReservedEvent_DmaAct,
-        ReservedEvent_DmaSp,
-
-        ReservedEvent_SpPe,
-        ReservedEvent_SpAct,
-        ReservedEvent_SpPool,
-        ReservedEvent_SpDma,
-        */
-
         ReservedEvent_FirstNonReserved
     };
 
@@ -136,6 +122,11 @@ private:
     void completeEventsOnPrevEdges(wave::WaveOp* waveop);
 
     void insertBarriers();
+    void insertOneBarrier(kcc_int32 waveopIdx,
+                          std::vector<wave::WaveOp*>& newWaveops);
+
+    void determineQueuesAndSemaphoreValues();
+    const dma::DmaQueue* findQueue(const wave::SbAtomWaveOp* sbatomWop);
 
     static EventId gEventIdBetweenEngines(EngineId fromId, EngineId toId);
 
@@ -154,7 +145,20 @@ private:
     void verifyWaveop(const wave::WaveOp* waveop) const;
 
 private:
+    bool qUseSemaphore() const {
+        return m_UseSemaphore;
+    }
+    bool qUseEventsOnly() const {
+        return !qUseSemaphore();
+    }
+    bool qUseEvent(const wave::WaveEdge* edge) const;
+
+private:
     nets::Network& m_Network;
+    bool m_UseSemaphore = false;
+
+    std::map<std::string, const dma::DmaQueue*> m_Name2Queue;
+    std::map<const dma::DmaQueue*, kcc_int32> m_DmaQueueCount;
 
 
     EventState m_EventState;

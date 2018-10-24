@@ -17,7 +17,6 @@ namespace wave {
 SbAtomSaveWaveOp::SbAtomSaveWaveOp(const SbAtomSaveWaveOp::Params& params,
                            const std::vector<WaveOp*>& prevWaveOps)
     : SbAtomWaveOp(params, prevWaveOps)
-    , m_NumPartitions(params.m_NumPartitions)
     , m_FinalLayerOfmap(params.m_FinalLayerOfmap)
 {
     assert(params.verify());
@@ -28,9 +27,6 @@ bool
 SbAtomSaveWaveOp::verify() const
 {
     if (! this->SbAtomWaveOp::verify()) {
-        return false;
-    }
-    if (m_NumPartitions < 1) {
         return false;
     }
     return true;

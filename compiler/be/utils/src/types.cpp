@@ -56,8 +56,8 @@ engineId2Str(const std::string& str)
         return EngineId::Pooling;
     } else if (str == EngineIdStr_StreamProc) {
         return EngineId::StreamProc;
-    } else if (str == EngineIdStr_Dma) {
-        return EngineId::DmaEng;
+    } else if (str == EngineIdStr_Angel) {
+        return EngineId::AngelEng;
     } else {
         Assert(false, "Wrong Engine name ", str);
     }
@@ -73,6 +73,7 @@ engineId2Str(EngineId engId)
     static const std::string poolEng(EngineIdStr_Pool);
     static const std::string spEng(EngineIdStr_StreamProc);
     static const std::string dmaEng(EngineIdStr_Dma);
+    static const std::string angelEng(EngineIdStr_Angel);
     static const std::string badEng("Bad Engine");
 
     switch(engId) {
@@ -86,8 +87,8 @@ engineId2Str(EngineId engId)
         return actEng;
         break;
 
-    case EngineId::DmaEng:
-        return dmaEng;
+    case EngineId::AngelEng:
+        return angelEng;
         break;
     case EngineId::StreamProc:
         return spEng;

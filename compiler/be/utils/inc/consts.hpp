@@ -46,6 +46,7 @@ constexpr const char* const EngineIdStr_Pool            = "PoolEng";
 constexpr const char* const EngineIdStr_Activation      = "ActivationEng";
 constexpr const char* const EngineIdStr_StreamProc      = "StreamProcEng";
 constexpr const char* const EngineIdStr_Dma             = "DmaEng";
+constexpr const char* const EngineIdStr_Angel             = "AngelEng";
 
 } // namespace kcc
 

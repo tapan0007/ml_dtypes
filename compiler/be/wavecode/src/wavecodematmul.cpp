@@ -29,12 +29,14 @@ namespace kcc {
 namespace wavecode {
 
 
+//************************************************************************
 WaveCodeMatMul::WaveCodeMatMul(WaveCodeRef waveCode)
     : WaveCodeWaveOp(waveCode)
 {}
 
 
 
+//************************************************************************
 void
 WaveCodeMatMul::generate(wave::WaveOp* waveOp)
 {
@@ -47,6 +49,7 @@ WaveCodeMatMul::generate(wave::WaveOp* waveOp)
 
 
 
+//************************************************************************
 void
 WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 {
@@ -65,10 +68,14 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
             if (! qLoadWeightsWaitsFor(prevWaveEdge)) {
                 continue;
             }
-            const auto evtId = prevWaveEdge->gEventId();
-            Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
-            eventIds.insert(evtId);
-            m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+            if (m_WaveCode.qUseEvent(prevWaveEdge)) {
+                const auto evtId = prevWaveEdge->gEventId();
+                Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+                eventIds.insert(evtId);
+                m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+            } else {
+                GenerateSemaphoreInstr(prevWaveEdge);
+            }
         }
         return; // No LdWeights instructions
     }
@@ -76,19 +83,8 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 
     compisa::LdWeightsInstr ldweightsInstr;
 
-    //TPB_CMD_HEADER  hdr;
     const utils::DataType& inDtype(matmulWaveop->gInDtype());
     ldweightsInstr.in_dtype                 = inDtype.gSimTypeId();
-    //uint8_t         perf_opt = OPT_NONE;
-    //uint8_t         dquant_table_idx  = 0;
-    //uint8_t         dquant_in_dsize   = 0;
-    //uint8_t         dquant_out_dtype  = INVALID_ARBPRECTYPE;
-    //uint8_t         dquant_enable  = 0;
-    ///* subtract this from each ldweights on way into PE Array */
-    //union {
-    //    uint8_t     zero_point_uint8[2];
-    //    uint16_t    zero_point_uint16   = 0;
-    //} TONGA_PACKED;
     const kcc_int64 addressInSbPart     = matmulWaveop->gWeightsSbAddress();
 
     initMemAccess(ldweightsInstr.src_mem_pattern);
@@ -152,16 +148,20 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                 continue;
             }
 
-            const auto evtId = prevWaveEdge->gEventId();
-            Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
-            eventIds.insert(evtId);
+            if (m_WaveCode.qUseEvent(prevWaveEdge)) {
+                const auto evtId = prevWaveEdge->gEventId();
+                Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+                eventIds.insert(evtId);
 
-            if (firstEmbEvt) {
-                firstEmbEvt = false;
-                ldweightsInstr.inst_events.wait_event_idx     = evtId;
-                ldweightsInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
+                if (firstEmbEvt) {
+                    firstEmbEvt = false;
+                    ldweightsInstr.inst_events.wait_event_idx     = evtId;
+                    ldweightsInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
+                } else {
+                    m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+                }
             } else {
-                m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+                GenerateSemaphoreInstr(prevWaveEdge);
             }
         }
     }
@@ -181,6 +181,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 }
 
 
+//************************************************************************
 bool
 WaveCodeMatMul::qLoadWeightsWaitsFor(const wave::WaveEdge* prevEdge) const
 {
@@ -198,6 +199,7 @@ WaveCodeMatMul::qLoadWeightsWaitsFor(const wave::WaveEdge* prevEdge) const
 
 
 
+//************************************************************************
 void
 WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
 {
@@ -265,16 +267,21 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                 continue;
             }
 
-            const auto evtId = prevWaveEdge->gEventId();
-            Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
-            eventIds.insert(evtId);
+            if (m_WaveCode.qUseEvent(prevWaveEdge)) {
+                const auto evtId = prevWaveEdge->gEventId();
+                Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
+                eventIds.insert(evtId);
 
-            if (firstEmb) {
-                firstEmb = false;
-                matmulInstr.inst_events.wait_event_idx     = evtId;
-                matmulInstr.inst_events.wait_event_mode    = eventWaitMode2Isa(prevWaveEdge->gWaitEventMode());
+                if (firstEmb) {
+                    firstEmb = false;
+                    matmulInstr.inst_events.wait_event_idx  = evtId;
+                    matmulInstr.inst_events.wait_event_mode = eventWaitMode2Isa(
+                                                    prevWaveEdge->gWaitEventMode());
+                } else {
+                    m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+                }
             } else {
-                m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
+                GenerateSemaphoreInstr(prevWaveEdge);
             }
         }
     } // end incoming events

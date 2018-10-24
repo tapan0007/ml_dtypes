@@ -10,32 +10,97 @@ namespace kcc {
 namespace wave {
 
 
+/****************************************************************
+****************************************************************/
 WaveEdge::WaveEdge(WaveOp* fromOp, WaveOp* toOp)
     : m_FromOp(fromOp)
     , m_ToOp(toOp)
+    , m_SyncMethod(SyncMethod::None)
 {
 }
 
+/****************************************************************
+****************************************************************/
 void
-WaveEdge::rEvent(events::EventSetMode setMode, events::EventId eventId, events::EventWaitMode waitMode)
+WaveEdge::rEvent(const events::EventSetMode setMode, events::EventId eventId,
+                 const events::EventWaitMode waitMode)
 {
-    m_Channel.rEvent(setMode, eventId, waitMode);
+    bool doSet = false;
+
+    switch (setMode) {
+    case events::EventSetMode::DontSet:
+        doSet = false;
+        break;
+    case events::EventSetMode::OnEndRdSrc:
+    case events::EventSetMode::OnEndWrDst:
+    case events::EventSetMode::OnEndInstr:
+        doSet = true;
+        break;
+    default:
+        Assert(false, "Bad event set mode ", static_cast<int>(setMode));
+        break;
+    }
+
+    bool doWait = false;
+    switch (waitMode) {
+    case events::EventWaitMode::DontWait:
+        doWait = false;
+        break;
+    case events::EventWaitMode::WaitOnly:
+    case events::EventWaitMode::WaitThenClear:
+        doWait = true;
+        break;
+    default:
+        Assert(false, "Bad event wait mode ", static_cast<int>(waitMode));
+        break;
+    }
+    Assert( doSet == doWait, "Set and wait mode must be equivalent");
+
+    m_EventChannel.rEvent(setMode, eventId, waitMode);
+    if (doSet) {
+        rSyncMethod(SyncMethod::WithEvent);
+    }
 }
 
+/****************************************************************
+****************************************************************/
+void
+WaveEdge::clearEvent()
+{
+    m_EventChannel.clear();
+    rSyncMethod(SyncMethod::None);
+}
+
+/****************************************************************
+****************************************************************/
+bool
+WaveEdge::qCanSyncWithSemaphore() const
+{
+    return m_FromOp->qSbAtomWaveOp() && !m_ToOp->qSbAtomWaveOp();
+}
+
+/****************************************************************
+****************************************************************/
 bool
 WaveEdge::qNeedToImplementSync() const
 {
-    if (this->gEventId() == events::EventId_Invalid()) {
-        Assert(! qNeedToSync(), "Invalid event ID on an edge that need be waited for: from waveop '",
-            gFromOp()->gName(), "', to waveop '", gToOp()->gName(), "'");
-        return false;
+    if (! qNeedToSync()) {
+        Assert( !qSyncedWithSemaphore() && 
+                gEventId() == events::EventId_Invalid() && !qSyncedWithEvent(),
+               "Dependency (", gFromOp()->gName(), ",", gToOp()->gName(), ") need not be waited for");
     } else {
-        Assert(qNeedToSync(), "Valid event ID on an edge that need not be waited for: from waveop '",
-            gFromOp()->gName(), "', to waveop '", gToOp()->gName(), "'");
+        Assert((qSyncedWithEvent() && gEventId() != events::EventId_Invalid()
+               && ! qSyncedWithSemaphore())
+               || (!qSyncedWithEvent() && gEventId() == events::EventId_Invalid()
+                 && qSyncedWithSemaphore()),
+               "Dependency (", gFromOp()->gName(), ",", gToOp()->gName(), ") must be waited for");
     }
-    return true;
+
+    return qNeedToSync();
 }
 
+/****************************************************************
+****************************************************************/
 bool
 WaveEdge::qNeedToSync() const
 {
@@ -77,6 +142,21 @@ WaveEdge::qNeedToSync() const
     return false;
 }
 
+/****************************************************************
+****************************************************************/
+bool
+WaveEdge::qSyncedWithEvent() const
+{
+    return SyncMethod::WithEvent == m_SyncMethod;
+}
+
+/****************************************************************
+****************************************************************/
+bool
+WaveEdge::qSyncedWithSemaphore() const
+{
+    return SyncMethod::WithSemaphore == m_SyncMethod;
+}
 
 
 } // namespace wave

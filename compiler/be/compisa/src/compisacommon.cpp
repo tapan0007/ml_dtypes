@@ -32,6 +32,7 @@
 #include "compisa/inc/compisatensortensorop.hpp"
 #include "compisa/inc/compisawait.hpp"
 #include "compisa/inc/compisawrite.hpp"
+#include "compisa/inc/compisasemaphore.hpp"
 
 namespace kcc {
 namespace compisa {

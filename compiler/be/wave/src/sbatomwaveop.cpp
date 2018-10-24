@@ -23,6 +23,7 @@ SbAtomWaveOp::SbAtomWaveOp(const SbAtomWaveOp::Params& params,
     , m_DataType(DataType::dataTypeId2DataType(params.m_DataType))
     , m_Length(params.m_Length)
     , m_OffsetInFile(params.m_OffsetInFile)
+    , m_NumPartitions(params.m_NumPartitions)
     , m_PartitionStepBytes(params.m_PartitionStepBytes)
     , m_RefFileName(params.m_RefFileName)
     , m_RefFileFormat(params.m_RefFileFormat)
@@ -46,6 +47,9 @@ SbAtomWaveOp::verify() const
         ASSERT_RETURN(false);
     }
     if (m_OffsetInFile < 0) {
+        ASSERT_RETURN(false);
+    }
+    if (m_NumPartitions < 1) {
         ASSERT_RETURN(false);
     }
     if (m_PartitionStepBytes < 1) {

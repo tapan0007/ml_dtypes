@@ -81,6 +81,9 @@ public:
     bool qSbAtomWaveOp() const {
         return qSbAtomLoadWaveOp() || qSbAtomSaveWaveOp();
     }
+    bool qTpbWaveOp() const {
+        return ! qSbAtomWaveOp();
+    }
     virtual bool qPoolWaveOp() const {
         return false;
     }

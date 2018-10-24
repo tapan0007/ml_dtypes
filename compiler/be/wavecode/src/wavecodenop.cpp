@@ -76,6 +76,7 @@ WaveCodeNop::generateWithNop(wave::NopWaveOp* nopWaveop)
     if (nopWaveop->gPrevWaveEdges().size() > 0) {
         const wave::WaveEdge* prevWaveEdge = nopWaveop->gPrevWaveEdges()[0];
         if (prevWaveEdge->qNeedToSync()) {
+            Assert(m_WaveCode.qUseEvent(prevWaveEdge), "Must use event to syn NOP");
             nopInstr.inst_events.wait_event_mode  = events::eventWaitMode2Isa(
                                                     prevWaveEdge->gWaitEventMode());
             nopInstr.inst_events.wait_event_idx   = prevWaveEdge->gEventId();

@@ -6,7 +6,6 @@ MODS :=  \
 	wavecode	\
 	schedule	\
 	memmgr		\
-	wavecode	\
 	nets		\
 	serialize	\
 	layers		\
@@ -14,6 +13,7 @@ MODS :=  \
 	wave		\
 	arch		\
 	kelf 		\
+	dma         \
 	utils		\
 	compisa
 

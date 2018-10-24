@@ -54,10 +54,10 @@
 namespace kcc {
 namespace wavecode {
 
-WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch)
+WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch, bool useSem)
     : m_Network(network)
     , m_Arch(arch)
-    , m_DmaDescription(network)
+    , m_DmaDescription(network, useSem)
 {
     m_CodeMatMul            = std::make_unique<WaveCodeMatMul>(*this);
     m_CodeSbAtomLoad        = std::make_unique<WaveCodeSbAtomLoad>(*this);
@@ -142,7 +142,7 @@ WaveCode::DetermineEngines()
     } else {
         for (auto waveop : m_Network.gWaveOps()) {
             if (auto sbWaveop = dynamic_cast<wave::SbAtomWaveOp*>(waveop)) {
-                sbWaveop->rEngineId(EngineId::DmaEng);
+                sbWaveop->rEngineId(EngineId::AngelEng);
             }
         }
     }
@@ -150,7 +150,7 @@ WaveCode::DetermineEngines()
 
 //----------------------------------------------------------------
 void
-WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
+WaveCode::generate(InstrStreams& instrStreams, bool parallelStreams)
 {
     m_ParallelStreams = parallelStreams;
 
@@ -169,12 +169,12 @@ WaveCode::generate(const InstrStreams& instrStreams, bool parallelStreams)
     }
     if (qBinFileRuntimeKelf()) {
         kelf::DmaDescription& dmaDescr(gDmaDescription());
-        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_PeArrayBinFile.c_str(), EngineId::PeArray);
-        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_ActEngBinFile.c_str(), EngineId::Activation);
-        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_PoolEngBinFile.c_str(), EngineId::Pooling);
+        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_PeArray.m_BinFile.c_str(), EngineId::PeArray);
+        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_ActEng.m_BinFile.c_str(), EngineId::Activation);
+        dmaDescr.writeDmaDescriptors(m_InstrStreams->m_PoolEng.m_BinFile.c_str(), EngineId::Pooling);
         dmaDescr.writeInOutDescriptors();
-        dmaDescr.writeDefinitions(m_InstrStreams->m_PeArrayBinFile.c_str(),
-            m_InstrStreams->m_ActEngBinFile.c_str(), m_InstrStreams->m_PoolEngBinFile.c_str());
+        dmaDescr.writeDefinitions(m_InstrStreams->m_PeArray.m_BinFile.c_str(),
+            m_InstrStreams->m_ActEng.m_BinFile.c_str(), m_InstrStreams->m_PoolEng.m_BinFile.c_str());
     }
 }
 
@@ -262,21 +262,21 @@ WaveCode::saveAllNpyFiles ()
         if (! (*it).second.m_Dirty) {
             continue;
         }
-        compisa::SimRdNpyInstr dramToNpyInstr;
-        dramToNpyInstr.inst_events.wait_event_idx    = 0;
-        dramToNpyInstr.inst_events.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::DontWait);
-        dramToNpyInstr.inst_events.set_event_idx     = 0;
-        dramToNpyInstr.inst_events.set_event_mode    = eventSetMode2Isa(events::EventSetMode::DontSet);
+        compisa::SimRdNpyInstr simDramToNpyInstr;
+        simDramToNpyInstr.inst_events.wait_event_idx    = 0;
+        simDramToNpyInstr.inst_events.wait_event_mode   = eventWaitMode2Isa(events::EventWaitMode::DontWait);
+        simDramToNpyInstr.inst_events.set_event_idx     = 0;
+        simDramToNpyInstr.inst_events.set_event_mode    = eventSetMode2Isa(events::EventSetMode::DontSet);
 
-        strcpy(dramToNpyInstr.dst_fname, (*it).first.c_str());
+        strcpy(simDramToNpyInstr.dst_fname, (*it).first.c_str());
         const NpyFileInfo& npyFileInfo((*it).second);
-        dramToNpyInstr.src_addr         = npyFileInfo.m_FileDramOffset;
-        dramToNpyInstr.dst_ndims        = 4;
-        for (int i = 0; i < dramToNpyInstr.dst_ndims; ++i) {
-            dramToNpyInstr.dst_dims[i]  = npyFileInfo.m_RefFileShape[i];
+        simDramToNpyInstr.src_addr         = npyFileInfo.m_FileDramOffset;
+        simDramToNpyInstr.dst_ndims        = 4;
+        for (int i = 0; i < simDramToNpyInstr.dst_ndims; ++i) {
+            simDramToNpyInstr.dst_dims[i]  = npyFileInfo.m_RefFileShape[i];
         }
-        dramToNpyInstr.dtype            = npyFileInfo.m_SimTypeId;
-        this->writeInstruction(dramToNpyInstr);
+        simDramToNpyInstr.dtype            = npyFileInfo.m_SimTypeId;
+        this->writeInstruction(simDramToNpyInstr);
     }
 }
 
@@ -295,7 +295,7 @@ WaveCode::calculateEventAddress(EngineId engId, events::EventId eventId) const
     case EngineId::StreamProc:
         return arch.gSpEventBase()  + eventId;
 
-    case EngineId::DmaEng:
+    case EngineId::AngelEng:
         return arch.gTpbEventBase() + eventId;
 
     case EngineId::AnyEng:
@@ -347,25 +347,25 @@ WaveCode::InstrStreams::~InstrStreams()
 void
 WaveCode::InstrStreams::closeAll()
 {
-    if (m_StreamProcInstrStream) {
-        fclose(m_StreamProcInstrStream);
-        m_StreamProcInstrStream = nullptr;
+    if (m_StreamProc.m_InstrStream) {
+        fclose(m_StreamProc.m_InstrStream);
+        m_StreamProc.m_InstrStream = nullptr;
     }
-    if (m_PeArrayInstrStream) {
-        fclose(m_PeArrayInstrStream);
-        m_PeArrayInstrStream = nullptr;
+    if (m_PeArray.m_InstrStream) {
+        fclose(m_PeArray.m_InstrStream);
+        m_PeArray.m_InstrStream = nullptr;
     }
-    if (m_PoolEngInstrStream) {
-        fclose(m_PoolEngInstrStream);
-        m_PoolEngInstrStream = nullptr;
+    if (m_PoolEng.m_InstrStream) {
+        fclose(m_PoolEng.m_InstrStream);
+        m_PoolEng.m_InstrStream = nullptr;
     }
-    if (m_ActEngInstrStream) {
-        fclose(m_ActEngInstrStream);
-        m_ActEngInstrStream = nullptr;
+    if (m_ActEng.m_InstrStream) {
+        fclose(m_ActEng.m_InstrStream);
+        m_ActEng.m_InstrStream = nullptr;
     }
-    if (m_DmaInstrStream) {
-        fclose(m_DmaInstrStream);
-        m_DmaInstrStream = nullptr;
+    if (m_Angel.m_InstrStream) {
+        fclose(m_Angel.m_InstrStream);
+        m_Angel.m_InstrStream = nullptr;
     }
 }
 
@@ -477,6 +477,21 @@ void
 WaveCode::SaveName(compisa::MatMulInstr& instr, const char* name)
 {
     saveName(instr.reserved, name);
+}
+
+
+//======================================================================
+bool
+WaveCode::qUseEvent(const wave::WaveEdge* edge) const
+{
+    return edge->qSyncedWithEvent();
+}
+
+//======================================================================
+bool
+WaveCode::qUseSemaphore(const wave::WaveEdge* edge) const
+{
+    return edge->qSyncedWithSemaphore();
 }
 
 }}
