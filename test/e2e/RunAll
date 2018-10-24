@@ -69,6 +69,7 @@ parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='st
 parser.add_argument('--force_qemu', help='Apply additional --filer and various customization for Qemu flow, e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*, only wave tests and not fp32 are filtered', action='store_true', default=False)
 parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
+parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path or s3 url', default=None)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -542,7 +543,7 @@ class Ktests:
       print("%-20s  %-12s  %s" % (testName, nnStruct, nnConfig))
 
   # Run tests
-  def run(self, parallel, reportOnly, startSpacing, forceQemu, sealife):
+  def run(self, parallel, reportOnly, startSpacing, forceQemu, sealife, cachedKelf):
     self.parallel = parallel
     start_time = time.time()
     self.numRunning = 0
@@ -579,8 +580,11 @@ class Ktests:
         sealifeOpt = "SEALIFE=1"
       cmd = 'ulimit -t %d; ulimit -H -t %d; mkdir %s && cd %s &&' % (
             ulimitCpuTimeout, ulimitCpuTimeout, testName, testName)
+      makeTarget = nnStruct
+      if cachedKelf:
+        makeTarget = "run_kelf_cached CACHED_KELF=%s/%s" % (cachedKelf, testName)
       cmd += 'make -f  $KAENA_PATH/test/e2e/Makefile %s %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (
-             nnStruct, sealifeOpt, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs)
+             makeTarget, sealifeOpt, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs)
       cmd +=  ' > log-top.txt 2>&1'
       # Remove the old directory
       if not reportOnly:
@@ -981,7 +985,7 @@ else:
 
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
   elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0,
-                             args.force_qemu, args.sealife)
+                             args.force_qemu, args.sealife, args.cached_kelf)
   tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
   

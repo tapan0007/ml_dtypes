@@ -51,7 +51,9 @@ compile_pb:
 	$(KCC_COMMAND) > log-fe.txt 2>&1
 
 run_kelf:
+	ln -s $(PB_FILE) cached_tf.pb
 	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(PB_FILE) --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
+
 
 # Main test flow targets
 
@@ -77,6 +79,11 @@ ckpt_%:
 	python3 ${KAENA_E2E}/$@.py $(NN_CONFIG) $(OUT_PREFIX) $(NN_NAME) $(DATA_TYPE)
 	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(OUT_PREFIX)model
 	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(OUT_PREFIX)model --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
+
+run_kelf_cached:
+	/bin/cp -au $(CACHED_KELF)/* . || aws --profile=kaena s3 cp $(CACHED_KELF)/"*" . --recursive --exclude "log-*" --quiet
+	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb cached_tf.pb --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
+
 
 # Tests that run as commit criteria.
 # The set after the blank line are auto-derived tests created by appending _qemu suffix to an explicit test.
