@@ -1,0 +1,5 @@
+FIND_PACKAGE( Boost 1.40 COMPONENTS program_options REQUIRED )
+include_directories (${Boost_INCLUDE_DIR} $ENV{KAENA_EXT_PATH} $ENV{ARCH_ISA_PATH})
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
+add_executable(cleaner cleaner.cpp)
+target_link_libraries(cleaner ${Boost_LIBRARIES} Boost::program_options)

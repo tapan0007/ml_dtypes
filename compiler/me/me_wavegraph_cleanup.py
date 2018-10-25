@@ -8,16 +8,31 @@ import networkx as nx
 waveops = dict()
 weight_waveops = dict() # key : start address
 
+#def compute_transitive_reduction (wavegraph_json):
+#  wavegraph_nx = nx.DiGraph()
+#  for wop in wavegraph_json["waveops"]:
+#    if (len(wop["previous_waveops"]) > 0):
+#      for p in wop["previous_waveops"]:
+#        wavegraph_nx.add_edge(p, wop["waveop_name"])
+#  transitive_reduction_wg = nx.algorithms.dag.transitive_reduction(wavegraph_nx)
+#  return transitive_reduction_wg
+
 def compute_transitive_reduction (wavegraph_json):
   wavegraph_nx = nx.DiGraph()
+  vtxid2wop = []
+  wop_name2vtxid = dict()
+  vtxid = 0
   for wop in wavegraph_json["waveops"]:
+    vtxid2wop.append(wop)
+    wop_name2vtxid[wop["waveop_name"]] = vtxid
     if (len(wop["previous_waveops"]) > 0):
       for p in wop["previous_waveops"]:
-        wavegraph_nx.add_edge(p, wop["waveop_name"])
+        wavegraph_nx.add_edge(wop_name2vtxid[p], vtxid)
+    vtxid += 1
 #  write_dot(wavegraph_nx, "wavegraph_nx.dot")
   transitive_reduction_wg = nx.algorithms.dag.transitive_reduction(wavegraph_nx)
 #  write_dot(transitive_reduction_wg, "t_wavegraph_nx.dot")
-  return transitive_reduction_wg
+  return (transitive_reduction_wg, vtxid2wop)
 
 def update_wavegraph(layer, predecessors, closest_waveop):
     prev_waveops = layer["previous_waveops"]
@@ -204,17 +219,37 @@ def compute_engine_based_transitive_reduction (wavegraph):
           if (update == True):
             update_wavegraph(l, predecessor, wop)
 
-def convert_nx2wavegraph (nx_graph, waveop_dict):
+#def convert_nx2wavegraph (nx_graph, waveop_dict):
+##  write_dot(nx_graph, "nx_wavegraph.dot")
+#  num_edges_removed = 0
+#  for n in nx_graph.nodes:
+#    preds_itr = nx_graph.predecessors(n)
+#    preds = set()
+#    for p in preds_itr:
+#      preds.add(p)
+#
+##    print (preds)
+#    wop = waveop_dict[n]
+#    for p in wop["previous_waveops"]:
+#      if (not p in preds):
+#        wop["previous_waveops"].remove(p)
+#        num_edges_removed += 1
+#        print ("%s is removed from %s predecessors"%(
+#          p, wop["waveop_name"]))
+#  print ("INFO: %d edges are removed"%num_edges_removed)
+
+def convert_nx2wavegraph (nx_graph, vtx2wop):
 #  write_dot(nx_graph, "nx_wavegraph.dot")
   num_edges_removed = 0
   for n in nx_graph.nodes:
     preds_itr = nx_graph.predecessors(n)
     preds = set()
     for p in preds_itr:
-      preds.add(p)
+      p_wop = vtx2wop[p]
+      preds.add(p_wop["waveop_name"])
 
 #    print (preds)
-    wop = waveop_dict[n]
+    wop = vtx2wop[n]
     for p in wop["previous_waveops"]:
       if (not p in preds):
         wop["previous_waveops"].remove(p)
@@ -222,6 +257,7 @@ def convert_nx2wavegraph (nx_graph, waveop_dict):
         print ("%s is removed from %s predecessors"%(
           p, wop["waveop_name"]))
   print ("INFO: %d edges are removed"%num_edges_removed)
+
 
 def create_waveop_dict (wavegraph_json, waveop_dict):
   for wop in wavegraph_json:
@@ -235,10 +271,11 @@ def remove_redundant_edges (wavegraph_json, is_file = False):
         wavegraph = wavegraph_json
 #    remove_wrong_data_dependency(wavegraph)
 #    compute_engine_based_transitive_reduction(wavegraph)
-    nx_wavegraph = compute_transitive_reduction(wavegraph)
-    waveop_dict = dict()
-    create_waveop_dict(wavegraph["waveops"], waveop_dict)
-    convert_nx2wavegraph(nx_wavegraph, waveop_dict)
+    (nx_wavegraph, vtx2wop) = compute_transitive_reduction(wavegraph)
+    convert_nx2wavegraph(nx_wavegraph, vtx2wop)
+#    waveop_dict = dict()
+#    create_waveop_dict(wavegraph["waveops"], waveop_dict)
+#    convert_nx2wavegraph(nx_wavegraph, waveop_dict)
 
     if (is_file == True):
         o_file_name = re.sub(r'\.json','',wavegraph_json)
@@ -250,4 +287,6 @@ def remove_redundant_edges (wavegraph_json, is_file = False):
             outfile.write(s)
     return wavegraph
 
-#remove_redundant_edges("wavegraph.json", True)
+if (__name__ == "__main__"):
+  import sys
+  remove_redundant_edges(sys.argv[1], True)

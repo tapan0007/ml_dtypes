@@ -89,6 +89,7 @@ parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph 
                     action="store_true",  default=False)
 parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=[])
 parser.add_argument('--waive_wavegraph_checks', help='Exclude wavegraph checker status from determination of test status', action='store_true')
+parser.add_argument('--wavegraph_transform', help='Wavegraph flow will be invoked to transofrm wavegraph into more optimzed form. Currently, transitive_reduction and edge lifetime reducer (EuLeR) are supported. The default is no optimization', nargs='+', default=["cleaner"])
 parser.add_argument('--level_order_seed', help='Seed for randomization of Kgraph node order in compiler.json for stress testing of downstream flow, default is none which means alphabetic sort', type=int, default=None)
 
 args = parser.parse_args()
@@ -105,6 +106,32 @@ def writeBackEndFiles(kGraph, outPrefix, verbose):
   fileList += fileListJson
   fileList += [outPrefix + "graph_ann.dot.svg"]
   #kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
+
+def invokeEuLeR (_kPath, _sgDir):
+  euler_path = "%s/compiler/me/edge_lifetime_reducer.py"%_kPath
+  euler_args = "--wavegraph wavegraph.json"
+  cmd = "python3 " + euler_path + " " + euler_args + " > log-euler.txt"
+  print(getInfoDateStr(), "executing %s" % cmd, flush=True)
+  EuLeRRet = abs(os.system(cmd))
+  if (EuLeRRet != 0):
+    print("ERROR: EuLeR failed, see %s/log-euler.txt" % _sgDir)
+  else:
+    cmd = "cp wavegraph.json-elr wavegraph.json"
+    os.system(cmd)
+  return EuLeRRet
+def invokeCleaner(_kPath, _sgDir):
+  cleaner_path = "%s/compiler/cleaner/build/bin/cleaner"%_kPath
+  cleaner_args = "--wavegraph wavegraph.json"
+  cleaner_args += " --fileout wavegraph_new.json"
+  cmd = cleaner_path + " " + cleaner_args + " > log-cleaner.txt"
+  print(getInfoDateStr(), "executing %s" % cmd, flush=True)
+  CLRet = abs(os.system(cmd))
+  if (CLRet != 0):
+    print("ERROR: Cleaner failed, see %s/log-cleaner.txt" % _sgDir)
+  else:
+    os.rename("wavegraph.json", "wavegraph.json.org")
+    shutil.copyfile("wavegraph_new.json", "wavegraph.json")
+  return CLRet
 
 inputNamesToFormat = {}
 iformat = args.sg_input_format
@@ -176,31 +203,42 @@ if args.images != None:
       meOk, fileList = sg.graph.runScheduler(args.out_prefix)
       if not executor == 'waveopt':
         if meOk:
-          beopts = ""
-          if args.scheduler.startswith("qemu"):
-            beopts = "--real-dma"
-          cmd = "%s/compiler/be/compiler/compiler.exe %s %s %s> log-be.txt 2>&1" % (kPath,
-                  beopts, jsonFileOption.get(args.scheduler, jsonFileOptionGeneric), parallelStreamsOption)
-          print(getInfoDateStr(), "executing %s" % cmd, flush=True)
-          kccRet = abs(os.system(cmd))
-          ret += kccRet
-          if kccRet == 0:
-            # Wave graph checker
-            if len(args.wavegraph_checks) > 0:
-              waive_wave_checker = args.waive_wavegraph_checks
-              checksStr = " ".join(["--%s-check" % c for c in args.wavegraph_checks])
-              cmd = "%s/compiler/wave-checker/wc-build/bin/wave_graph_checker --stdout --wave-graph-file wavegraph.json %s > log-wc.txt 2>&1" % (kPath, checksStr)
+          CLRet = invokeCleaner(kPath, sgDir)
+          if (CLRet == 0):
+            if "euler" in args.wavegraph_transform:
+              eulerRet = invokeEuLeR(kPath, sgDir)
+            else:
+              eulerRet = 0
+            if (eulerRet == 0):
+              beopts = ""
+              if args.scheduler.startswith("qemu"):
+                beopts = "--real-dma"
+              cmd = "%s/compiler/be/compiler/compiler.exe %s %s %s> log-be.txt 2>&1" % (kPath,
+                      beopts, jsonFileOption.get(args.scheduler, jsonFileOptionGeneric), parallelStreamsOption)
               print(getInfoDateStr(), "executing %s" % cmd, flush=True)
-              wcRet = abs(os.system(cmd))
-              if (waive_wave_checker == False):
-                ret += wcRet
-              if wcRet != 0:
-                if (waive_wave_checker == True):
-                  print("WARNING: wave_graph_checker failed, see %s/log-wc.txt but note that this is waived for tracking purpose" % sgDir);
-                else:
-                  print("ERROR: wave_graph_checker failed, see %s/log-wc.txt" % sgDir);
+              kccRet = abs(os.system(cmd))
+              ret += kccRet
+              if kccRet == 0:
+                # Wave graph checker
+                if len(args.wavegraph_checks) > 0:
+                  waive_wave_checker = args.waive_wavegraph_checks
+                  checksStr = " ".join(["--%s-check" % c for c in args.wavegraph_checks])
+                  cmd = "%s/compiler/wave-checker/wc-build/bin/wave_graph_checker --stdout --wave-graph-file wavegraph.json %s > log-wc.txt 2>&1" % (kPath, checksStr)
+                  print(getInfoDateStr(), "executing %s" % cmd, flush=True)
+                  wcRet = abs(os.system(cmd))
+                  if (waive_wave_checker == False):
+                    ret += wcRet
+                  if wcRet != 0:
+                    if (waive_wave_checker == True):
+                      print("WARNING: wave_graph_checker failed, see %s/log-wc.txt but note that this is waived for tracking purpose" % sgDir);
+                    else:
+                      print("ERROR: wave_graph_checker failed, see %s/log-wc.txt" % sgDir);
+              else:
+                print("ERROR: compiler.exe failed");
+            else:
+              print("ERROR: EuLeR failed");
           else:
-            print("ERROR: compiler.exe failed");
+            print("ERROR: Cleaner failed");
         else:
           print("ERROR: skipping backend compilation since the mid scheduler failed", flush=True)
           ret += 1

@@ -50,8 +50,9 @@ WaveEdge::qNeedToSync() const
             const auto atomLoadWaveop = dynamic_cast<const wave::SbAtomLoadWaveOp*>(prevWaveop);
             const auto matmulWaveop = dynamic_cast<const wave::MatMulWaveOp*>(succWaveop);
             if (atomLoadWaveop->qContainWeights() && matmulWaveop->gWeightsSbAddress() < 0) {
-                Assert(false, "MatMul waveop ", matmulWaveop->gName(),
-                    " has SbAddress<0, but depends on Load-weights waveop ", atomLoadWaveop->gName());
+                std::cerr <<"WARNING: MatMul waveop " << matmulWaveop->gName()
+                    << " has SbAddress<0, but depends on Load-weights waveop "
+                    << atomLoadWaveop->gName();
             }
         }
         return true;
