@@ -523,6 +523,14 @@ testConfigMap = {
   "3-parwavenet_10_fp16_me_only" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to truediv --show_op_name_in_kgraph --input_node sub_1 --depth -1 --partition from truediv --executors host all waveopt 1 --images linspace1", "--input_files trivnet_sub_1:0.npy"],
   "3-parwavenet_10_10_fp16_me_only" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
 
+  "3-parwavenet_10_fp16_ba15_ba16_reshape67_dbg" :
+    [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
+          "--level_order_seed 3 --input_node Placeholder Log Log_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%("Reshape_67")
+          + "--sg_input_format Log NW Log_1 NW sub_1 NW mul_13 NW add_24 NW Squeeze_36 NW Squeeze_35 NW "
+          + "--executors host all wave 2 --partition from_multi BiasAdd_15 BiasAdd_16 "
+          + "%s --images %s linspace1 linspace1" % (MEv2("Generic-NoVerify-SaveAll-CleanWG"), melSpectra),
+          "--input_files Placeholder:0=%s Log:0=trivnet_Log:0.npy Log_1:0=trivnet_Log_1:0.npy " % melSpectra],
+
   # Subgraph partioned flow using neural network executor
   "0-4conv_relu_nne" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.4-imin-1-imax2", "4conv_nne", "--partition conv --executors wave 1 3 host 0 2 4 --debug 1 --scheduler wave --wavegraph_checks structure data-race"],
 
@@ -818,11 +826,11 @@ testConfigMap = {
 "5-inceptionv3_wave_dog_sg00_tpb_concat9_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "5-inceptionv3_wave_dog_sg00_tpb_concat10_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool avg_pool/Mean --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "6-inceptionv3_wave_dog_sg00_tpb_upto_concat4" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_31/convolution,conv2d_32/convolution,conv2d_35/convolution,average_pooling2d_4/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"6-inceptionv3_wave_dog_sg00_tpb_upto_concat5" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_41/convolution,conv2d_42/convolution,conv2d_45/convolution,average_pooling2d_5/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-WaiveWC"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"6-inceptionv3_wave_dog_sg00_tpb_upto_concat8" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_71/convolution,conv2d_73/convolution,max_pooling2d_4/MaxPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"6-inceptionv3_wave_dog_sg00_tpb_upto_concat9" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"7-inceptionv3_wave_dog_sg00_tpb_upto_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"7-inceptionv3_wave_dog_sg00_tpb_upto_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from avg_pool/Mean --executors host 1 wave 0 --input_node input_1 %s --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
+"6-inceptionv3_wave_dog_sg00_tpb_upto_concat5" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_41/convolution,conv2d_42/convolution,conv2d_45/convolution,average_pooling2d_5/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-WaiveWC"), rnDogJpg), "--input_files %s" % rnDogJpg],
+"6-inceptionv3_wave_dog_sg00_tpb_upto_concat8" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_71/convolution,conv2d_73/convolution,max_pooling2d_4/MaxPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify-WaiveWC"), rnDogJpg), "--input_files %s" % rnDogJpg],
+"6-inceptionv3_wave_dog_sg00_tpb_upto_concat9" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify-WaiveWC"), rnDogJpg), "--input_files %s" % rnDogJpg],
+"7-inceptionv3_wave_dog_sg00_tpb_upto_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify-WaiveWC"), rnDogJpg), "--input_files %s" % rnDogJpg],
+"7-inceptionv3_wave_dog_sg00_tpb_upto_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from avg_pool/Mean --executors host 1 wave 0 --input_node input_1 %s --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify-WaiveWC"), rnDogJpg), "--input_files %s" % rnDogJpg],
 
   "0-1conv1maxpool_wave_k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h4-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
   "0-1conv1maxpool_wave_h17k3d1"  : [ "trivnet_conv_pool", "tfloat16-b1-h17-r1-s1-c1-m1-VALID-MaxPool-k3-d1-wmin2-wmax2.2-imin1-imax16", "1conv1pool", MEv2("Generic")],
@@ -917,42 +925,23 @@ for i in [22, 25, 28, 37, 40, 43, 46, 49]:
     testConfigMap["6-rn50_nne_to_act%d_wave-no_repl"%i] = gen_rn50_nne_to_act_norepl(i, 1)
     testConfigMap["6-rn50_nne_to_act%d_wave-repl"%i] = gen_rn50_nne_to_act_repl(i, 1)
 
-def gen_parwavenet_10_fp16_in_to(node, sgnum):
-    return  [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
-          "--input_node Placeholder sub_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
-          + "--sg_input_format sub_1 NW "
-          + "--executors host all wave %d  --partition from_multi ExpandDims,Reshape "%sgnum
-          + "%s --images %s linspace1" % (MEv2("Generic-NoVerify-CleanWG"), melSpectra),
-          "--input_files sub_1:0=trivnet_sub_1:0.npy Placeholder:0=%s " % melSpectra]
-
-# Generated tests
-for i in [1, 2, 3, 6]:
-    testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to("add_%s"%i, 1)
-
-# TODO: debug "ERROR: BiasAdd_13/Activation_n0_m0_h0_w7 does not have an output operand"
-# (maybe part of generated tensor is unconsumed in this subgraph)
-testConfigMap["5-parwavenet_10_fp16_in_to_add6_wave"][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "  
-
-for i in [9, 12, 15, 18, 22]:
-    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to("add_%s"%i, 1)
-
 # In order to get add_24 in subgraph, has to cut graph before sub_1, and also mark all 2D nodes with NW format
 def gen_parwavenet_10_fp16_in_to2(node, sgnum):
     return  [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
-          "--input_node Placeholder Log Log_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
+          "--level_order_seed 0 --input_node Placeholder Log Log_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
           + "--sg_input_format Log NW Log_1 NW sub_1 NW mul_13 NW add_24 NW Squeeze_36 NW Squeeze_35 NW "
           + "--executors host all wave %d  --partition from_multi sub_1,Reshape "%sgnum
           + "%s --images %s linspace1 linspace1" % (MEv2("Generic-NoVerify-CleanWG-WaiveWC"), melSpectra),
           "--input_files Placeholder:0=%s Log:0=trivnet_Log:0.npy Log_1:0=trivnet_Log_1:0.npy " % melSpectra]
 
 for i in [1, 2, 3, 6]:
-    testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave2"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
+    testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
 
 for i in [9, 12, 15, 18, 22]:
-    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave2"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
+    testConfigMap["6-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
 
 for i in [24]:
-    testConfigMap["7-parwavenet_10_fp16_in_to_add%s_wave2"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
+    testConfigMap["7-parwavenet_10_fp16_in_to_add%s_wave"%i] = gen_parwavenet_10_fp16_in_to2("add_%s"%i, 1)
 
 # Deconvolution requires very larger weights files, which can be fit into circular buffer, but this causes too many descriptors (8x maximum).
 # The following subgraphs starts after deconvolution to avoid descriptor explosion, so we can run on QEMU/EMU
@@ -961,7 +950,7 @@ def gen_parwavenet_10_fp16_tanh1_to(node, sgnum):
           "--level_order_seed 3 --input_node Placeholder Log Log_1 --focus_to %s --show_op_name_in_kgraph --depth -1 "%node
           + "--sg_input_format Log NW Log_1 NW sub_1 NW mul_13 NW add_24 NW Squeeze_36 NW Squeeze_35 NW "
           + "--executors host all wave %d  --partition from_multi sub_1,Tanh_1 "%sgnum
-          + "%s --images %s linspace1 linspace1" % (MEv2("Generic-NoVerify-CleanWG"), melSpectra),
+          + "%s --images %s linspace1 linspace1" % (MEv2("Generic-NoVerify-CleanWG-WaiveWC"), melSpectra),
           "--input_files Placeholder:0=%s Log:0=trivnet_Log:0.npy Log_1:0=trivnet_Log_1:0.npy " % melSpectra]
 
 for i in [1, 2, 3, 6]:

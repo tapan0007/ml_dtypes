@@ -2406,7 +2406,8 @@ class FusedOp(list):
                             ofmap_tile.tile_rect.lower.x)
                     residue_sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(residue_tile.file_params, batch_item, residue_file_addr)
                     main_sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
-                    if abs(residue_sb_addr - main_sb_addr) > (2**15 - 1):
+                    if abs(residue_sb_addr - main_sb_addr) > (2**15 - 1) \
+                            or first_op.data["layer_type"] == "Sub":
                         if psum_bank_id  < 0:
                             psum_bank_temp = tpb.pearray.use_psum_bank_and_adv_ptr(True)
                         else:

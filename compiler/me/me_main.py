@@ -405,7 +405,7 @@ class TPBSched:
                 if (capped_current_batch_count < current_Tn):
                     raise RuntimeError("Please use --force_batch_count to at %d (or higher powers of 2) to simulate batching in middle of network"%(current_Tn))
                 for j in range(capped_current_batch_count-1, -1, -current_Tn):
-                    if (args.debug > 2): print("TRACE: executing fused op %s, batch elem %d to %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, has_join %d, has_pool %d"%(op_list.last_op.data['layer_name'], b - j, b - j + current_Tn - 1, op_list.partial_batch_pre_pairup, op_list.partial_batch_pairup, op_list.has_join, op_list.has_pool))
+                    if (args.debug > 2): print("TRACE: executing fused op %s (ID %d), batch elem %d to %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, has_join %d, has_pool %d"%(op_list.last_op.data['layer_name'], op_list.fused_op_id, b - j, b - j + current_Tn - 1, op_list.partial_batch_pre_pairup, op_list.partial_batch_pairup, op_list.has_join, op_list.has_pool))
                     op_list.set_live_mapped_file_params(live_mapped_file_params)
                     op_list.map_files(
                         tpb, b - j, last_concat_ofmap_file_params
