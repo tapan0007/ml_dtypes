@@ -25,6 +25,7 @@
 import argparse
 import os.path
 import sys, json, re
+import shlex
 import shutil
 import datetime
 
@@ -90,7 +91,11 @@ parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph 
 parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=[])
 parser.add_argument('--waive_wavegraph_checks', help='Exclude wavegraph checker status from determination of test status', action='store_true')
 parser.add_argument('--euler_options', help='Euler options. E.g --max_events. Default is Non', default='')
-parser.add_argument('--wavegraph_transform', help='Wavegraph flow will be invoked to transofrm wavegraph into more optimzed form. Currently, transitive_reduction, edge lifetime reducer (EuLeR), and shell comands are supported. The default is no optimization', nargs='+', default=["cleaner"])
+parser.add_argument('--wavegraph_transform', 
+                    help=('Wavegraph flow will be invoked to transofrm wavegraph into more optimzed or instrumented form. '
+                          'Currently, transitive_reduction, edge lifetime reducer (EuLeR), shell command,s and watchpoint insertion are supported. '
+                          'The default is no optimization'), 
+                    nargs='+', default=["cleaner"])
 parser.add_argument('--level_order_seed', help='Seed for randomization of Kgraph node order in compiler.json for stress testing of downstream flow, default is none which means alphabetic sort', type=int, default=None)
 
 args = parser.parse_args()
@@ -124,10 +129,7 @@ def invokeCleaner(_kPath, _sgDir):
   cleaner_path = "%s/compiler/cleaner/build/bin/cleaner"%_kPath
   cleaner_args = "--wavegraph wavegraph.json"
   cleaner_args += " --fileout wavegraph_new.json"
-  if (os.path.isfile("log-cleaner.txt")):
-    cmd = cleaner_path + " " + cleaner_args + " >> log-cleaner.txt"
-  else:
-    cmd = cleaner_path + " " + cleaner_args + " > log-cleaner.txt"
+  cmd = cleaner_path + " " + cleaner_args + " >> log-cleaner.txt"
   print(getInfoDateStr(), "executing %s" % cmd, flush=True)
   CLRet = abs(os.system(cmd))
   if (CLRet != 0):
@@ -136,16 +138,20 @@ def invokeCleaner(_kPath, _sgDir):
     os.rename("wavegraph.json", "wavegraph.json.org")
     shutil.copyfile("wavegraph_new.json", "wavegraph.json")
   return CLRet
-
-def invokeShellScript(arg):
-  assert arg.startswith("shell="), "Invalid preprocessor argument: %s" % arg
-  (_, cmd) = arg.split("=", 1)
-  cmd = "%s > log-wavepreproc.txt 2>&1" % (cmd)
+def invokeWatchpointInsertion(_kPath, _sgDir, args):
+  tool_path = '%s/compiler/watchpoint/watchpoint_insert.py' % _kPath
+  tool_args = '-v --wavegraph wavegraph.json --kgraph-node-list '
+  for arg in shlex.split(args):
+    tool_args += arg + ' '
+  cmd = 'python3 ' + tool_path + ' ' + tool_args + ' > log-wp.txt 2>&1'
   print(getInfoDateStr(), "executing %s" % cmd, flush=True)
-  ppRet = os.system(cmd)
-  if ppRet != 0:
-    print("WARNING: wavegraph preprocessor failed, see %s/log-wavepreproc.txt" % sgDir);
-  return ppRet
+  wpRet = abs(os.system(cmd))
+  if wpRet != 0:
+    print("ERROR: watchpoint insertion failed, see %s/log-wp.txt" % sgDir) 
+  else:
+    os.rename("wavegraph.json", "wavegraph-before-watchpoint.json")  
+    shutil.copyfile("wavegraph.watchpoint.json", "wavegraph.json")
+  return wpRet
 
 inputNamesToFormat = {}
 iformat = args.sg_input_format
@@ -216,60 +222,64 @@ if args.images != None:
       writeBackEndFiles(sg.graph, args.out_prefix, args.verbose)
       meOk, fileList = sg.graph.runScheduler(args.out_prefix)
       if not executor == 'waveopt':
-        if meOk:
-          # Run wavegraph preprocessor (e.g. a perl script)
-          if "shell=" in args.wavegraph_transform:
-            tfms = args.wavegraph_transform.split(",")
-            for t in tfms:
-              if t.startswith("shell="):
-                ret += abs(invokeShellCommand(t))
+        if not meOk:
+          print("ERROR: skipping backend compilation since the mid scheduler failed")
+          ret = 1
 
-          CLRet = invokeCleaner(kPath, sgDir)
-          if (CLRet == 0):
-            if "euler" in args.wavegraph_transform:
-              eulerRet = invokeEuLeR(kPath, sgDir, args.euler_options)
-              # When EuLeR is run, invoke cleaner once again to clean up
-              # EuLeR'ed wavegraph
-              eulerRet += invokeCleaner(kPath, sgDir)
-            else:
-              eulerRet = 0
-            if (eulerRet == 0):
-              beopts = ""
-              if args.scheduler.startswith("qemu"):
-                beopts = "--real-dma"
-              cmd = "%s/compiler/be/compiler/compiler.exe %s %s %s> log-be.txt 2>&1" % (kPath,
-                      beopts, jsonFileOption.get(args.scheduler, jsonFileOptionGeneric), parallelStreamsOption)
-              print(getInfoDateStr(), "executing %s" % cmd, flush=True)
-              kccRet = abs(os.system(cmd))
-              ret += kccRet
-              if kccRet == 0:
-                # Wave graph checker
-                if len(args.wavegraph_checks) > 0:
-                  waive_wave_checker = args.waive_wavegraph_checks
-                  checksStr = " ".join(["--%s-check" % c for c in args.wavegraph_checks])
-                  if (args.scheduler.startswith("qemu")):
-                      wg = "wavegraph-bin.json"
-                  else:
-                      wg = "wavegraph-tpb.json"
-                  cmd = "%s/compiler/wave-checker/wc-build/bin/wave_graph_checker --stdout --wave-graph-file %s %s > log-wc.txt 2>&1" % (kPath, wg, checksStr)
-                  print(getInfoDateStr(), "executing %s" % cmd, flush=True)
-                  wcRet = abs(os.system(cmd))
-                  if (waive_wave_checker == False):
-                    ret += wcRet
-                  if wcRet != 0:
-                    if (waive_wave_checker == True):
-                      print("WARNING: wave_graph_checker failed, see %s/log-wc.txt but note that this is waived for tracking purpose" % sgDir);
-                    else:
-                      print("ERROR: wave_graph_checker failed, see %s/log-wc.txt" % sgDir);
-              else:
-                print("ERROR: compiler.exe failed");
-            else:
-              print("ERROR: EuLeR failed");
+        # Run wavegraph preprocessor (e.g. a perl script)
+        if "shell=" in args.wavegraph_transform:
+          tfms = args.wavegraph_transform.split(",")
+          for t in tfms:
+            if t.startswith("shell="):
+              ret += abs(invokeShellCommand(t))          
+
+        # Invoke wavegraph post-pass tools
+        if ret == 0 and invokeCleaner(kPath, sgDir) != 0:
+          print('ERROR: Cleaner failed')
+          ret = 1
+
+        if ret == 0 and ('watchpoint' in args.wavegraph_transform):
+          watchpoint_args = args.wavegraph_transform[args.wavegraph_transform.index('watchpoint')+1]
+          if invokeWatchpointInsertion(kPath, sgDir, watchpoint_args) != 0:
+            print('ERROR: Watchpoint insertion failed')
+            ret = 1
+
+        if ret == 0 and ("euler" in args.wavegraph_transform):
+          # When EuLeR is run, invoke cleaner once again to clean up
+          # EuLeR'ed wavegraph
+          if invokeEuLeR(kPath, sgDir, args.euler_options) != 0 or invokeCleaner(kPath, sgDir) != 0:
+            print ('ERROR: EuLer failed')
+            ret = 1
+
+        if ret == 0:
+          # Invoke backend
+          beopts = ""
+          if args.scheduler.startswith("qemu"):
+            beopts = "--real-dma"
+          cmd = "%s/compiler/be/compiler/compiler.exe %s %s %s> log-be.txt 2>&1" % (kPath,
+                  beopts, jsonFileOption.get(args.scheduler, jsonFileOptionGeneric), parallelStreamsOption)
+          print(getInfoDateStr(), "executing %s" % cmd, flush=True)
+          if abs(os.system(cmd)) != 0:
+            print('ERROR: compiler.exe failed')
+            ret = 1
+
+        # Wavegraph checker
+        if ret == 0 and len(args.wavegraph_checks) > 0:
+          waive_wave_checker = args.waive_wavegraph_checks
+          checksStr = " ".join(["--%s-check" % c for c in args.wavegraph_checks])
+          if (args.scheduler.startswith("qemu")):
+              wg = "wavegraph-bin.json"
           else:
-            print("ERROR: Cleaner failed");
-        else:
-          print("ERROR: skipping backend compilation since the mid scheduler failed", flush=True)
-          ret += 1
+              wg = "wavegraph-tpb.json"
+          cmd = "%s/compiler/wave-checker/wc-build/bin/wave_graph_checker --stdout --wave-graph-file %s %s > log-wc.txt 2>&1" % (kPath, wg, checksStr)
+          print(getInfoDateStr(), "executing %s" % cmd, flush=True)
+          if abs(os.system(cmd)) != 0:
+            if (waive_wave_checker == True):
+              print("WARNING: wave_graph_checker failed, see %s/log-wc.txt but note that this is waived for tracking purpose" % sgDir);
+            else:
+              print("ERROR: wave_graph_checker failed, see %s/log-wc.txt" % sgDir)
+              ret = 1
+
     if not executor == 'host':
         print('Generating kelf.tar.gz for the sub graph {}'.format(sgDir))
         def_json = None

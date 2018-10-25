@@ -60,6 +60,7 @@ NNE_OPTION_IDX = 4
 
 testConfigMap = {
 
+
 #  Activation
   "0-rtl-2conv3_relu_h1c1m1r3_wave"      : [ "trivnet_lin", "tfloat16-l2-b1-h1-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3", MEv2("Generic")],
   "0-rtl-2conv3_relu_h16c64m64r3_wave"  : [ "trivnet_lin", "tfloat16-l2-b1-h16-r3-s1-c64-m64-relu-wmin0.23-wmax0.24-imin-0.1-imax0.2",   "1conv3", MEv2("Generic")],
@@ -420,7 +421,7 @@ testConfigMap = {
   "3-rn50-16_fp32_wave" : [ "trivnet_conv1", "tfloat32-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv",
     "--scheduler wave --waive_wavegraph_checks" ],
 
-  "3-rn50-16_fp32_wave-fast_dram" : [ "trivnet_conv1", "tfloat32-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv", 
+  "3-rn50-16_fp32_wave-fast_dram" : [ "trivnet_conv1", "tfloat32-b1-h224-r7-s2-c3-m64-wmin-1-wmax1.1-imin-3-imax3.2", "1conv",
     "--scheduler wave --waive_wavegraph_checks",
     "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1'" ],
 
@@ -461,7 +462,7 @@ testConfigMap = {
     "--scheduler wave2 --schedule_options ' --enable_replication ' ",
     "--env SIM_ADD_FLAGS=' --dram_frequency 0 --dram_latency 1 '" ],
 
-  "3-rn50-16_b2_wave_repl" : [ "trivnet_conv1",  "tfloat16-b2-h224-r7-s2-c3-m64-wmin1-wmax1-imin0-imax223", "1conv", 
+  "3-rn50-16_b2_wave_repl" : [ "trivnet_conv1",  "tfloat16-b2-h224-r7-s2-c3-m64-wmin1-wmax1-imin0-imax223", "1conv",
     "--scheduler wave2 --schedule_options ' --enable_replication '"],
 
   "3-incep_amoeba_h299r3s2c3m32_wave_repl" : [ "trivnet_conv1", "tfloat16-b1-h299-r3-s2-c3-m32-VALID-wmin-1-wmax1.1-imin-3-imax3.2", "1conv",
@@ -985,6 +986,32 @@ testConfigMap = {
   "7-amoebanet_fp16_cell11" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to cell_11/cell_output/concat --partition from_multi cell_11/Relu,cell_11/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s --wavegraph_transform euler --euler_options '--max_events 210'" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_rcell0" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to reduction_cell_0/cell_output/concat --partition from_multi reduction_cell_0/Relu,reduction_cell_0/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
   "7-amoebanet_fp16_rcell1" : [ "tf_s3", "s3://kaena-nn-models", "amoebanet_inference_graph_fp16.pb", "--input_node=transpose --focus_to reduction_cell_1/cell_output/concat --partition from_multi reduction_cell_1/Relu,reduction_cell_1/Relu_1 --executors host all wave 1 %s --preprocessor $KAENA_PATH/compiler/util/res50_preprocessor.py  --preprocessor-args '--data-type fp16 --size 299' --images %s" % (MEv2("Generic"), rnDogJpg), "--input_files %s" % (rnDogJpg)],
+
+  #
+  # watchpoint tests
+  #
+
+  # c < 128
+  "0-watchpoint-3conv_b1_h4_c32_m32_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r1-s1-c32-m32-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race --wavegraph_transform watchpoint 10cr/relu1", "--check_against_ref all_available"],
+  # c, m = 128
+  "0-watchpoint-3conv_b1_h14_c128_m128_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h14-r1-s1-c128-m128-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", "--scheduler wave2 --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race --wavegraph_transform watchpoint 10cr/relu1", "--check_against_ref all_available"],
+  # c, m > 128
+  "0-watchpoint-3conv_b1_h4_c256_m256_relu_wave" : [ "trivnet_lin",    "tfloat16-l3-b1-h4-r1-s1-c256-m256-relu-wmin-0.2-wmax0.4-imin-10-imax11", "10cr", "--scheduler wave2  --wavegraph_checks structure data-race --wavegraph_transform watchpoint 10cr/relu1", "--check_against_ref all_available"],
+  # b=2
+  "0-watchpoint-2conv3_relu_b2_h20_m128_wave" : [ "trivnet_lin",    "tfloat16-l3-b2-h20-r1-s1-c128-m128-relu-wmin-0.2-wmax0.24-imin-10-imax11", "1conv3", "--scheduler wave2 --waive_wavegraph_checks --wavegraph_checks structure data-race --wavegraph_transform watchpoint 1conv3/relu1", "--check_against_ref all_available"],
+  # rn50 tests
+  "5-watchpoint-rn50_nne_to_act4_wave-repl"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
+    "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_4/Relu --executors wave 0 host 1  --scheduler wave2 --images %s --schedule_options ' --enable_replication ' --waive_wavegraph_checks --wavegraph_transform watchpoint activation_3/Relu" %(rnPreFp16, rnDogJpg),
+    "--input_files %s --check_against_ref all_available" % rnDogJpg
+  ],
+  "5-watchpoint-n50_nne_to_act13_wave-no_repl"     : [
+    "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb",
+    "resnet50",
+    "--input_node input_1  --depth 2  --debug 1 %s --partition from activation_13/Relu --executors wave 0 host 1  --scheduler wave2 --images %s  --waive_wavegraph_checks --wavegraph_transform watchpoint 'activation_3/Relu activation_9/Relu'" %(rnPreFp16, rnDogJpg),
+    "--input_files %s --check_against_ref all_available" % rnDogJpg
+  ],
+
 }
 
 def gen_rn50_nne_to_act_norepl(act_num, batch):
@@ -1043,7 +1070,7 @@ for i in [9, 12, 15, 18, 22]:
 for i in [24]:
     testConfigMap["7-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
 
-def gen_7_rn50_nne_fp16_wave_no_repl_save(layer_name):    
+def gen_7_rn50_nne_fp16_wave_no_repl_save(layer_name):
     return [
       "tf_pb", "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50",
     ( "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax "
@@ -1195,4 +1222,3 @@ qemuTestWaiver = [
     ['7-rn50_nne_fp16_wave-no_repl-all-layers', 'WAIVE-ManyDescr-SIM742'],
     ['0-300conv_tanh_wave-all-layers', 'WAIVE-TooManyOfmaps-SIM746'],
 ]
-
