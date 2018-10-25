@@ -75,12 +75,10 @@ pipeline{
                 git config --global user.email aws-tonga-kaena@amazon.com
                 for repo in krt kcc ext inkling qemu_inkling arch-isa shared;
                 do
-                   echo "Repo: $repo" -m
-                   git -C $repo  describe --always --dirty
-
-                   git -C $repo fetch && git -C $repo merge origin/master
-                ;done
-
+                    echo "Repo: $repo"
+                    git -C $repo  describe --always --dirty
+                    git -C $repo fetch && git -C $repo merge origin/master -m"merge"
+                done
 
                 cd $ARCH_HEADERS_PATH
                 [ ! -z "$ARCH_HEADER_VERSION" ] || export ARCH_HEADER_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
