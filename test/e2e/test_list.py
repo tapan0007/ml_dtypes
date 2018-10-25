@@ -868,6 +868,7 @@ testConfigMap = {
 
   "0-11conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l11-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "11ct", MEv2("Generic")],
   "0-2conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l2-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "2ct", MEv2("Generic")],
+  "0-3conv_h16r1c128m128_wave" : [ "trivnet_lin",   "tfloat16-l4-b1-h16-r1-s1-c128-m128-wmin-0.1-wmax0.1-imin-0.3-imax0.5", "3conv", MEv2("Generic")],
 
   ### AmoebaNet tests
 
