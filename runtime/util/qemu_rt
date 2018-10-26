@@ -658,9 +658,7 @@ class KrtcClient:
 
     ifmaps = self.krtc_ifmaps(ifmapPathList, ifmapFileList)
     with open(inferLogFile, "a+") as fp:
-      krtcArgs = [krtcCmd, "infer", "--model-id", modelId, "--ifmap"] +  ifmaps + ["--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout]
-      if self.krtd.qemu.type == "qemu":
-        krtcArgs += ["--capture"] # Only capture for Qemu, emulator hangs..
+      krtcArgs = [krtcCmd, "infer", "--model-id", modelId, "--ifmap"] +  ifmaps + ["--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout, "--capture"]
       p = subprocess.Popen(krtcArgs, stdout=fp, stderr=fp)
       p.communicate()
       if p.returncode == 0:
