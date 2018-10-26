@@ -624,18 +624,41 @@ class KrtcClient:
 
     return model_id,krtOk
 
-  def krtcInference(self, model_id, ifmap, ofmap, timeout, binDir, workingDir):
+  def krtc_ifmaps(self, ifmapPathList, ifmapFileList):
+    if len(ifmapPathList) != len(ifmapFileList):
+        return None
+
+    print("INFO:ifmapPathList:%s" % ifmapPathList)
+    print("INFO:ifmapFileList:%s" % ifmapFileList)
+    if len(ifmapFileList) == 1:
+        # currently we are using IN. When that changes, just remove this
+        return ifmapPathList
+
+    newifmapPathList = []
+    i = 0
+    for name in ifmapFileList:
+        newifmapPathList.append(name[:-4]) #remove the .npy
+        newifmapPathList.append(ifmapPathList[i])
+        i = i + 1
+
+    print("INFO:newifmapPathList:%s" % newifmapPathList)
+
+    return newifmapPathList
+
+  def krtcInference(self, model_id, ifmapList, ofmap, timeout, binDir, workingDir):
     krtOk = False
     binDir = self.krtd.tempBinDir
     workDir = self.krtd.tempWorkingDir
-    (ifmapPath,ifmapFile) = self.krtd.getIfMapFile(ifmap, ofmap)
+    (ifmapPathList,ifmapFileList) = self.krtd.getIfMapFile(ifmapList, ofmap)
     ofmapPath = "%s/t" % (workingDir)
     krtcCmd = "%s/bin/krtc/krtc" % (binDir)
     inferLogFile = "%s/log-infer.txt" % (workingDir)
     modelId = "%s" % model_id
     grpcAddress = "localhost:%d" % self.krtd.qemu.grpcPort
+
+    ifmaps = self.krtc_ifmaps(ifmapPathList, ifmapFileList)
     with open(inferLogFile, "a+") as fp:
-      krtcArgs = [krtcCmd, "infer", "--model-id", modelId, "--ifmap", ifmapPath, "--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout]
+      krtcArgs = [krtcCmd, "infer", "--model-id", modelId, "--ifmap"] +  ifmaps + ["--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout]
       if self.krtd.qemu.type == "qemu":
         krtcArgs += ["--capture"] # Only capture for Qemu, emulator hangs..
       p = subprocess.Popen(krtcArgs, stdout=fp, stderr=fp)
@@ -649,9 +672,9 @@ class KrtcClient:
     self.krtd.qemu.osSystem(cmdCpOutFile)
 
     if not krtOk:
-      print("ERROR: infer failure for ifmap:%s check log-infer.txt" % ifmapFile)
+      print("ERROR: infer failure for ifmap:%s check log-infer.txt" % ifmaps)
     else:
-      print("INFO: infer success for ifmap:%s" % ifmapFile)
+      print("INFO: infer success for ifmap:%s" % ifmaps)
     return krtOk
 
   def addModel(self, kelfDir, workingDir):
@@ -665,11 +688,9 @@ class KrtcClient:
     (model_id, krtOk) = self.krtcLoadStartModel(binDir, workingDir)  #in future this would take the tpb in which to load
     if not krtOk:
       return
-    assert len(args.ifmaps) == 1
-    for ifmap in args.ifmaps:
-      krtOk = self.krtcInference(model_id, ifmap, "out-%s.bin" % args.sg,"3600",binDir, workingDir)
-      if not krtOk:
-        return
+    krtOk = self.krtcInference(model_id, args.ifmaps, "out-%s.bin" % args.sg,"3600",binDir, workingDir)
+    if not krtOk:
+      return
     self.krtd.getFinalBin()
 
   def stop(self):
@@ -745,20 +766,28 @@ class Krtd():
       finalBinfiles += topFinalDir + fin + "-final.bin "
     self.qemu.rsyncFromVm(finalBinfiles, ".")
 
-  def getIfMapFile(self, ifmap, ofmap):
-    ifmapPath = os.path.realpath(ifmap)
-    ifmapFile = ifmap
+  def getIfMapFile(self, ifmapList, ofmap):
     self.ofmap = ofmap
-    # kaena-602: hack for testing one input file only; doesn't work for inferencing
-    ifmapPadSplitPath = ifmapPath[:-4] + "_padsplit.npy" 
-    ifmapPadFile = ifmapFile[:-4] + "_padsplit.npy"
-    if os.path.isfile(ifmapPadSplitPath):
-      print("qemu_rt: Replacing original npy input ", ifmapPath, " with padded input ", ifmapPadSplitPath)
-      ifmapPath = ifmapPadSplitPath
-      ifmapFile = ifmapPadFile
-    else:
-      print("qemu_rt: Using original npy input ", ifmapPath, " did not find padded input ", ifmapPadSplitPath)
-    return ifmapPath, ifmapFile
+    ifmapPathList = []
+    ifmapFileList = []
+    for ifmap in ifmapList:
+      ifmapFile = ifmap
+      ifmapPath = os.path.realpath(ifmap)
+      print("INFO ifmapFile:%s" % ifmapFile)
+      print("INFO ifmapPath:%s" % ifmapPath)
+      # kaena-602: hack for testing one input file only; doesn't work for inferencing
+      ifmapPadSplitPath = ifmapPath[:-4] + "_padsplit.npy" 
+      ifmapPadFile = ifmapFile[:-4] + "_padsplit.npy"
+      if os.path.isfile(ifmapPadSplitPath):
+        print("qemu_rt: Replacing original npy input ", ifmapPath, " with padded input ", ifmapPadSplitPath)
+        ifmapPath = ifmapPadSplitPath
+        ifmapFile = ifmapPadFile
+      else:
+        print("qemu_rt: Using original npy input ", ifmapPath, " did not find padded input ", ifmapPadSplitPath)
+      ifmapPathList.append(ifmapPath)
+      ifmapFileList.append(ifmapFile)
+
+    return ifmapPathList, ifmapFileList
 
   def startDaemon(self):
     # The following will go away once we start supporting switch model

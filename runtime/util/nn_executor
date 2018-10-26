@@ -228,7 +228,7 @@ class NnSubgraph:
       cmd  = "PATH=%s/runtime/util:$PATH qemu_rt" % kPath
       cmd += "  --action inference --kelf %s/%s" % (kelf_dir, self.sgDir)
       cmd += "  --sg %s" % self.sgDir
-      cmd += "  --ifmaps %s" % "".join(map(str, ifmapFiles))
+      cmd += "  --ifmaps %s" % " ".join(map(str, ifmapFiles))
       qemuPool = os.getenv("KAENA_QEMU_RT_POOL", None)
       qemuZebu = os.getenv("KAENA_ZEBU_SERVER", None)
       if not qemuZebu == None:
@@ -238,7 +238,6 @@ class NnSubgraph:
           cmd += "  --port %d" % port
         else:
           cmd += "  --pool %s" % qemuPool
-      assert len(ifmapFiles) == 1 # qemu inkling supports single input  subgraphs only
       #cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
     elif executor == "processor":
       inputs = []
