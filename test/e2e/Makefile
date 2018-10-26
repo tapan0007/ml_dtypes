@@ -70,6 +70,7 @@ tf_pb:
 	$(MAKE) -f $(MKFILE) run_kelf    PB_FILE=$(KAENA_EXT)/apps/tf/$(NN_CONFIG)
 
 tf_s3:
+	aws --profile=kaena s3 ls $(NN_CONFIG)/$(NN_NAME)
 	aws --profile=kaena s3 cp $(NN_CONFIG)/$(NN_NAME) . --quiet
 	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(NN_NAME)
 	$(MAKE) -f $(MKFILE) run_kelf    PB_FILE=$(NN_NAME)
