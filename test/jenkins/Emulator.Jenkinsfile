@@ -80,14 +80,8 @@ pipeline{
                     git -C $repo fetch && git -C $repo merge origin/master -m"merge"
                 done
 
-                cd $ARCH_HEADERS_PATH
-                [ ! -z "$ARCH_HEADER_VERSION" ] || export ARCH_HEADER_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-                git checkout $ARCH_HEADER_VERSION
-
-                cd $ARCH_ISA_PATH
-                [ ! -z "$ARCH_ISA_VERSION" ] || export $ARCH_ISA_VERSION=master
-                git checkout $ARCH_ISA_VERSION
-
+                [ -z "$ARCH_HEADER_VERSION" ] || (cd $ARCH_HEADERS_PATH && git checkout $ARCH_HEADER_VERSION)
+                [ -z "$ARCH_ISA_VERSION" ] || (cd $ARCH_ISA_PATH && git checkout $ARCH_ISA_VERSION)
 
                 chmod -R 755 ./
                 ls -ltrA
