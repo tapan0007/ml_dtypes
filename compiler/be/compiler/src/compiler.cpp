@@ -108,6 +108,7 @@ Main(int argc, char* argv[])
     bool ParallelStreams = true;
     const char* JsonInFileName = nullptr;
     bool useWave = false;
+    bool dmaOnly = false;
 
     kcc_int32 numTpbEvents = -1;
 
@@ -131,6 +132,8 @@ Main(int argc, char* argv[])
             ParallelStreams = true;
         } else if (arg == "--sequential_stream" || arg == "--sequential-stream") {
             ParallelStreams = false;
+        } else if (arg == "--real-dma") {
+            dmaOnly = true;
         } else if (arg == "--number-tpb-events") {
             numTpbEvents = atoi(argv[i+1]);
             ++i;
@@ -294,7 +297,7 @@ Main(int argc, char* argv[])
             wavecode::WaveCode waveCode(*ntwk, arch);
 
             // with Angel/Dma
-            if (true) {
+            if (!dmaOnly) {
                 std::cout << "Wavegraph code generation for SIM/Angel:\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "------" << "----\n";
@@ -346,8 +349,10 @@ Main(int argc, char* argv[])
                 instrStreams.m_ActEngInstrStream        = openObjectFile(objFileName, "Act-Eng");
                 std::cout << "\n";
 
-                ntwk->revertSavedWaveops();
-                ntwk->ClearEvents();
+                if (!dmaOnly) {
+                    ntwk->revertSavedWaveops();
+                    ntwk->ClearEvents();
+                }
 
                 waveCode.rBinFileType(BinFileType::RuntimeKelf);
                 waveCode.DetermineEngines();

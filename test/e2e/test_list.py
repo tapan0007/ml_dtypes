@@ -41,7 +41,10 @@ melSpectra = "%s/%s" % (kePath, "apps/tf/parallel_wavenet/example1/melspec_input
 
 # ME recipes
 def MEv2(optstr):
-    optsdec = {"cleanwg": "enable_cleanup", "rn50": "nname=resnet50", "generic": "nname=generic", "repl": "enable_replication", "saveall": "save_layer_output", "noverify": "no_verify", "waivewc": "waive_wavegraph_checks"}
+    optsdec = {"cleanwg": "enable_cleanup", "rn50": "nname=resnet50", "generic": "nname=generic",
+        "repl": "enable_replication", "saveall": "save_layer_output", "noverify": "no_verify", "waivewc": "waive_wavegraph_checks",
+        "relaxdep" : "relax_dependencies", "fulldep" : "full_dependencies",
+    }
     opts = optstr.lower().split("-")
     sched_options, tffe_options = [], []
     for i in opts:
@@ -808,7 +811,7 @@ testConfigMap = {
 "5-inceptionv3_wave_dog_sg00_tpb_concat9_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "5-inceptionv3_wave_dog_sg00_tpb_concat10_concat11" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool avg_pool/Mean --executors host 0 2 wave 1 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "6-inceptionv3_wave_dog_sg00_tpb_upto_concat4" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_31/convolution,conv2d_32/convolution,conv2d_35/convolution,average_pooling2d_4/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG"), rnDogJpg), "--input_files %s" % rnDogJpg],
-"6-inceptionv3_wave_dog_sg00_tpb_upto_concat5" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_41/convolution,conv2d_42/convolution,conv2d_45/convolution,average_pooling2d_5/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-WaiveWC"), rnDogJpg), "--input_files %s" % rnDogJpg],
+"6-inceptionv3_wave_dog_sg00_tpb_upto_concat5" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_41/convolution,conv2d_42/convolution,conv2d_45/convolution,average_pooling2d_5/AvgPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-WaiveWC"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "6-inceptionv3_wave_dog_sg00_tpb_upto_concat8" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_71/convolution,conv2d_73/convolution,max_pooling2d_4/MaxPool --executors host 1 wave 0 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "6-inceptionv3_wave_dog_sg00_tpb_upto_concat9" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_77/convolution,conv2d_78/convolution,conv2d_81/convolution,average_pooling2d_8/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
 "7-inceptionv3_wave_dog_sg00_tpb_upto_concat10" : ["tf_pb", "inceptionv3/inceptionv3_fp16_keras_opt.pb", "inceptionv3", "%s --partition from_multi conv2d_86/convolution,conv2d_87/convolution,conv2d_90/convolution,average_pooling2d_9/AvgPool --executors host 1 wave 0 --scheduler wave2 %s --input_node input_1 --images %s" %(incPreFp16, MEv2("Generic-CleanWG-NoVerify"), rnDogJpg), "--input_files %s" % rnDogJpg],
