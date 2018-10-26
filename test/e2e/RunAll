@@ -60,6 +60,7 @@ parser.add_argument('--verbose', help='Verbose output', action='store_true', def
 parser.add_argument('--show_only', help='Print list of selected tests and exit', action='store_true', default=False)
 parser.add_argument('--report_only', help='Print QoR report for the logs in the current directory', action='store_true', default=False)
 parser.add_argument('--parallel', help='Run concurrently, default is number of cores', type=int, default=defaultParallel)
+parser.add_argument('--max_load', help='Limit number of jobs if  1-minute load exceeds max_load, default is number of cores', type=int, default=defaultParallel)
 parser.add_argument('--parallel_streams_for_wave', help='run execution engines in parallel', action='store_true', default=True)
 parser.add_argument('--serial_streams_for_wave', help='run execution engines in series', action='store_true', default=False)
 parser.add_argument('--timeout', help='Timeout for each test, default 17000 seconds', type=int, default=17000)
@@ -493,7 +494,7 @@ class Ktests:
     self.processes = newProcesses
     self.numRunning = len(self.processes)
     self.reportStatusWhileRunning()
-    if self.numRunning >= loadLimitForSleep or os.getloadavg()[0] >= loadLimitForSleep:
+    if self.numRunning >= loadLimitForSleep or os.getloadavg()[0] >= self.maxLoad:
       #print(".", end='', flush=True)
       time.sleep(self.sleepSec)
     return(finishedProcesses)
@@ -543,8 +544,9 @@ class Ktests:
       print("%-20s  %-12s  %s" % (testName, nnStruct, nnConfig))
 
   # Run tests
-  def run(self, parallel, reportOnly, startSpacing, forceQemu, sealife, cachedKelf):
+  def run(self, parallel, maxLoad, reportOnly, startSpacing, forceQemu, sealife, cachedKelf):
     self.parallel = parallel
+    self.maxLoad = maxLoad
     start_time = time.time()
     self.numRunning = 0
     self.processes = []
@@ -594,7 +596,8 @@ class Ktests:
           os.rename(testName, oldDir)
           shutil.rmtree(oldDir)
 
-        while self.numRunning >= self.parallel or os.getloadavg()[0] >= self.parallel:
+        while self.numRunning >= self.parallel or (
+                os.getloadavg()[0] >= self.maxLoad and self.numRunning > 0):
           self.checkProcesses(self.parallel)
         localStartSpacing = startSpacing
         if 'qemu' in testName:
@@ -984,7 +987,7 @@ else:
     test_list.testWaiver += [ [t, "WAIVE_UI"] for t in args.waive]
 
   tests = Ktests(test_list.testConfigMap, testList, test_list.testWaiver, args.timeout, args.small_first)
-  elapsedTimeSec = tests.run(parallel, args.report_only, 15 if args.force_qemu else 0,
+  elapsedTimeSec = tests.run(parallel, args.max_load, args.report_only, 15 if args.force_qemu else 0,
                              args.force_qemu, args.sealife, args.cached_kelf)
   tests.report("qor_report.txt", "qor.csv", "%s\nDone in %.3f sec\n" % (startedAsStr, elapsedTimeSec))
   tests.dashboard('3-rn50-\d+_wave', "sprint9-dashboard.txt")
