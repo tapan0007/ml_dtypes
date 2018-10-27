@@ -65,6 +65,9 @@ def ConvertFP32ToOther(graphdef, cast_type, graph_type, zero_lower_bytes=False):
       if ("T" in node.attr.keys()):
         if (output_node.attr["T"] == dt_float_type_attr):
           output_node.attr["T"].CopyFrom(dt_half_type_attr)
+      if ("Tparams" in node.attr.keys()):
+        if (output_node.attr["Tparams"] == dt_float_type_attr):
+          output_node.attr["Tparams"].CopyFrom(dt_half_type_attr)
       if ("dtype" in node.attr.keys()):
         if (node.attr["dtype"] == dt_float_type_attr):
           output_node.attr["dtype"].CopyFrom(dt_half_type_attr)

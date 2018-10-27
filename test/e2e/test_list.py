@@ -736,7 +736,8 @@ testConfigMap = {
     + " %s --images %s  "
     )% (MEv2("Generic-SaveAll-WaiveWC"), lstmD0T4), "--input_files %s" % lstmD0T4],
 
-
+  ##########################################
+  ## fp32,b32 on Tonga
   "4-ptb_word_small_sigmoid_wave"   : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm",
     (" --input_node embedding_1_input_1 --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose_1 HNC --depth 3  "
     + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack  lstm_2_1/transpose_1  "
@@ -750,6 +751,39 @@ testConfigMap = {
     " --scheduler wave2 "
     + " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile\|lstm_1_1/Tile_1\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/stack ' " ,
     lstmD0T4), "--input_files %s" % lstmD0T4],
+
+  ## fp16,b32 on Tonga, model on s3
+  "4-ptb_word_small_sigmoid_fp16_b32_wave"   : [ "tf_s3", "s3://kaena-nn-models/lstm_fp16", "model-b32s4h512_fp16.pb",
+    (" --input_node embedding_1_input_1 --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose_1 HNC --depth 3  "
+    + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack  lstm_2_1/transpose_1  "
+    + " --adjust_node_color lstm_1_1/Tile 0 lstm_1_1/Tile_1 0  "
+    + " --executors host 0 2 wave 1 "
+    + " --input_constants dropout_1/keras_learning_phase:0 False  "
+    + " --exclude_ops_from_capture ^dropout_1_1/cond/ "
+    + " --waive_wavegraph_checks "
+    + " %s --images %s "
+    ) % (
+    " --scheduler wave2 "
+    + " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile\|lstm_1_1/Tile_1\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/stack ' " ,
+    lstmD0T4), "--input_files %s" % lstmD0T4
+    ],
+
+  ## fp16,b32 on host
+  "4-ptb_word_small_sigmoid_fp16_b32_host"   : [ "tf_s3", "s3://kaena-nn-models/lstm_fp16", "model-b32s4h512_fp16.pb",
+    (" --input_node embedding_1_input_1 --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose_1 HNC --depth 3  "
+    + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack  lstm_2_1/transpose_1  "
+    + " --adjust_node_color lstm_1_1/Tile 0 lstm_1_1/Tile_1 0  "
+    + " --executors host 0 1 2 "
+    + " --input_constants dropout_1/keras_learning_phase:0 False  "
+    + " --exclude_ops_from_capture ^dropout_1_1/cond/ "
+    + " --waive_wavegraph_checks "
+    + " %s --images %s "
+    ) % (
+    " --scheduler wave2 "
+    + " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile\|lstm_1_1/Tile_1\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/stack ' " ,
+    lstmD0T4), "--input_files %s" % lstmD0T4
+    ],
+
 
 
   # LSTM small: 5 color 2-layer small host-tpb-host-tpb-host - waveopt and wave versions
@@ -765,6 +799,8 @@ testConfigMap = {
     + " %s --images %s "
     ) % (MEv2("Generic-SaveAll-WaiveWC"), lstmD0T4), "--input_files %s" % lstmD0T4],
 
+  ##########################################
+  ## fp32,b32,2l on Tonga
   "4-ptb_word_small_sigmoid_2l_wave"  : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid/model-b32s4h512.pb","lm",
   (" --show_op_name_in_kgraph --input_node embedding_1_input_1  "
   + " --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose HNC  --depth 3  --debug 1    "
@@ -775,9 +811,43 @@ testConfigMap = {
   + " --exclude_ops_from_capture ^dropout_1_1/cond/ "
   + " %s --images %s "
   ) % (
-    " --scheduler wave2 "
-    + " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile_1\|lstm_1_1/Tile\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/transpose\|lstm_2_1/Tile\|lstm_2_1/Tile_1\|lstm_2_1/mul_2\|lstm_2_1/mul_5\|lstm_2_1/mul_8\|lstm_2_1/mul_11 ' " ,
+  " --scheduler wave2 "
+  + " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile_1\|lstm_1_1/Tile\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/transpose\|lstm_2_1/Tile\|lstm_2_1/Tile_1\|lstm_2_1/mul_2\|lstm_2_1/mul_5\|lstm_2_1/mul_8\|lstm_2_1/mul_11 ' " ,
     lstmD0T4), "--input_files %s" % lstmD0T4],
+
+  ## fp16,b32,2l on Tonga
+  #"4-ptb_word_small_sigmoid_2l_fp16_b32_wave"  : [ "tf_pb",
+  #"ptb_word_lm/keras_unrolled/sigmoid/fp16/model-b32s4h512_fp16.pb","lm",
+  #(" --show_op_name_in_kgraph --input_node embedding_1_input_1  "
+  #+ " --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose HNC  --depth 3  --debug 1    "
+  #+ " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack   lstm_2_1/unstack,lstm_2_1/Tile_1,lstm_2_1/Tile,lstm_2_1/Tile_1  lstm_2_1/stack      "
+  #+ " --adjust_node_color  lstm_1_1/Tile 0 lstm_1_1/Tile_1 0 lstm_2_1/Tile 2 lstm_2_1/Tile_1 2    "
+  #+ " --executors  wave 1 3   "
+  #+ " --input_constants dropout_1/keras_learning_phase:0 False   "
+  #+ " --exclude_ops_from_capture ^dropout_1_1/cond/ "
+  #+ " %s --images %s "
+  #) % (
+  #" --scheduler wave2 "
+  #+ " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile_1\|lstm_1_1/Tile\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/transpose\|lstm_2_1/Tile\|lstm_2_1/Tile_1\|lstm_2_1/mul_2\|lstm_2_1/mul_5\|lstm_2_1/mul_8\|lstm_2_1/mul_11 ' " ,
+  #lstmD0T4), "--input_files %s" % lstmD0T4],
+
+  ## fp16,b32,2l on host
+  #"4-ptb_word_small_sigmoid_2l_fp16_b32_host"  : [ "tf_pb",
+  #"ptb_word_lm/keras_unrolled/sigmoid/fp16/model-b32s4h512_fp16.pb","lm",
+  #(" --show_op_name_in_kgraph --input_node embedding_1_input_1  "
+  #+ " --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose HNC  --depth 3  --debug 1    "
+  #+ " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack   lstm_2_1/unstack,lstm_2_1/Tile_1,lstm_2_1/Tile,lstm_2_1/Tile_1  lstm_2_1/stack      "
+  #+ " --adjust_node_color  lstm_1_1/Tile 0 lstm_1_1/Tile_1 0 lstm_2_1/Tile 2 lstm_2_1/Tile_1 2    "
+  #+ " --executors  host 1 3   "
+  #+ " --input_constants dropout_1/keras_learning_phase:0 False   "
+  #+ " --exclude_ops_from_capture ^dropout_1_1/cond/ "
+  #+ " %s --images %s "
+  #) % (
+  #" --scheduler wave2 "
+  #+ " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile_1\|lstm_1_1/Tile\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/transpose\|lstm_2_1/Tile\|lstm_2_1/Tile_1\|lstm_2_1/mul_2\|lstm_2_1/mul_5\|lstm_2_1/mul_8\|lstm_2_1/mul_11 ' " ,
+  #lstmD0T4), "--input_files %s" % lstmD0T4],
+
+  ##########################################
 
   # Batched small LSTM
   "4-ptb_word_small_sigmoid_2l_b64_wave"  : [ "tf_pb",   "ptb_word_lm/keras_unrolled/sigmoid_b64/model-b64s4h512.pb","lm",
