@@ -1,0 +1,13 @@
+Test,Status,TopsRaw,OpCountRaw,TopsEff,OpCountEff,SimCycles,SimTimeSec,SimCycles/sec,TotTimeSec,Description
+5-inceptionv3_wave_dog_sg00_tpb_upto_concat1,PASS,0,3237431391,0,3331361183,0,-1e-06,0,292.4409222602844,Full size networks using wave scheduler
+5-inceptionv3_wave_dog_sg00_tpb_upto_concat2,PASS,0,3849460523,0,4016226990,0,-1e-06,0,415.0776014328003,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-no_repl,PASS,0,664933897,0,690504724,0,-1e-06,0,178.90825986862183,Full size networks using wave scheduler
+5-rn50_nne_to_act4_wave-repl,PASS,0,664933897,0,690504724,0,-1e-06,0,150.76980423927307,Full size networks using wave scheduler
+6-rn50_nne_to_act22_wave-no_repl,PASS,0,3273342602,0,3448868453,0,-1e-06,0,300.4594602584839,Full size networks using wave scheduler
+6-rn50_nne_to_act22_wave-repl,PASS,0,3273342602,0,3448868453,0,-1e-06,0,272.36297607421875,Full size networks using wave scheduler
+6-rn50_nne_to_act43_wave-no_repl,PASS,0,6241207246,0,6833216198,0,-1e-06,0,793.0218951702118,Full size networks using wave scheduler
+6-rn50_nne_to_act43_wave-repl,PASS,0,6241207246,0,6833216198,0,-1e-06,0,1061.370973110199,Full size networks using wave scheduler
+7-rn50_nne_fp16_b4_wave,PASS,0,27699659141,0,30798435909,0,-1e-06,0,2264.3299090862274,Full size networks using wave scheduler
+7-rn50_nne_fp16_b4_wave-no_repl,PASS,0,27699659141,0,30798435909,0,-1e-06,0,2991.0858442783356,Full size networks using wave scheduler
+7-rn50_nne_fp16_wave,PASS,0,6944062829,0,7718757021,0,-1e-06,0,1480.513743877411,"Key functional test - Resnet50 except softmax, batch 1 with replication"
+7-rn50_nne_fp16_wave-no_repl,PASS,0,6944062829,0,7718757021,0,-1e-06,0,1188.0291421413422,"Key qemu functional test - Resnet50 except softmax, batch 1 without replication (slow)"
