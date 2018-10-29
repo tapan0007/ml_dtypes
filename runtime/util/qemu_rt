@@ -686,7 +686,7 @@ class KrtcClient:
     (model_id, krtOk) = self.krtcLoadStartModel(binDir, workingDir)  #in future this would take the tpb in which to load
     if not krtOk:
       return
-    krtOk = self.krtcInference(model_id, args.ifmaps, "out-%s.bin" % args.sg,"3600",binDir, workingDir)
+    krtOk = self.krtcInference(model_id, args.ifmaps, "out-%s.bin" % args.sg,str(self.krtd.inklingTimeout),binDir, workingDir)
     if not krtOk:
       return
     self.krtd.getFinalBin()
