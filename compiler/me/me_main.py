@@ -68,12 +68,21 @@ class StateBuffer:
                                     contain_weights = True)
         bias_file_params.layer_name = op.data['layer_name']
         bias_file_params.load_file()
-        bias_file_start_addr = self.next_bias_file_start
-        bias_file_sz = align_addr_8B(self.batcher.item_sz)
+        bias_file_start_addr = 0
+        bias_file_sz = bias_file_params.tot_partition_usage_sz_padded
         self.file_mapper.map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
-        self.next_bias_file_start = align_addr_8B(self.next_bias_file_start + bias_file_sz)
+        self.next_bias_file_start = align_addr_8B(bias_file_sz)
         self.zero_bias_file_params = bias_file_params
 
+    """Advance next bias allocation pointer.
+        Args: 
+            - advance_bytes: number of bytes to advance next bias allocation pointer
+    """
+    def adv_next_bias_file_start(self, advance_bytes):
+        self.next_bias_file_start = align_addr_8B(self.next_bias_file_start + advance_bytes)
+        bias_region_sz = self.batcher.sb_bias_sz[0]
+        if self.next_bias_file_start > bias_region_sz:
+            self.next_bias_file_start = 0
 
 """Stream of waveops: consist of list of waveops generated during scheduling loop unrolling
 """
@@ -230,6 +239,12 @@ class TPBSched:
             # Check the first op of fused op
             first_op = op_list[0]
             first_op_type = first_op.data['layer_type'] 
+
+            # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
+            # Format matches existing bias formats, but it should be more like CRSM to match weights
+            if tpb.statebuffer.zero_bias_file_params is None:
+                tpb.statebuffer.create_constants_file(first_op, args)
+            
             # Dissolve Input of Placeholder types
             if first_op.is_placeholder:
                 assert(len(op_list) == 1)
@@ -270,9 +285,6 @@ class TPBSched:
                             first_op.populate_ofmaps_file_params()
                             first_op.ofmaps_file_params.compute_params(first_op, args, repl_multiple_of_C = i.repl_multiple_of_C, stride = i.stride.x)
             else:       
-                # kaena-452: create a file of zeros for use with Activation instruction without BiasAdd
-                # Format matches existing bias formats, but it should be more like CRSM to match weights
-                tpb.statebuffer.create_constants_file(first_op, args)
                 # maintain a linked-list of fused_ops
                 # grab the current batch count from previous fused_ops
                 if len(self.fused_ops_list) > 0:

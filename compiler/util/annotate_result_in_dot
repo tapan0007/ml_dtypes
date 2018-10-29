@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+import argparse
+import re
+import os
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--result_file", default="log-rt.txt", help="Result file to read; this should have allclose comparison result for each fused-op that were saved (i.e. log-rt.txt or output of compare_simout/compare_binout.")
+    parser.add_argument("--dot_file", default="trivnet_graph.dot", help="Dot file to read; this can be the subgraph or larger graph containing the fused-ops that were saved.")
+    parser.add_argument("--log_file", default="log", help="Log file that shows the ID of the fused-op (capture output of the sweep script)")
+    args = parser.parse_args()
+
+    # read results file
+    try:
+        with open(args.result_file, "r") as f:
+            result_lines = f.readlines()
+    except Exception as e:
+        print(e)
+        exit(1)
+
+    # parse results
+    passfail = {}
+    for line in result_lines:
+        if re.search("^Allclose", line):
+            m = re.search("gold (.*) vs .* (PASS|FAIL)", line)
+            if m:
+                name = m.group(1).split(":")[0]
+                name = re.sub("^([^_]+)_", "", name)
+                passfail[name] = m.group(2)
+                #print(name, m.group(2))
+
+    # read log file
+    try:
+        with open(args.log_file, "r") as f:
+            log_lines = f.readlines()
+    except Exception as e:
+        print(e)
+        exit(1)
+
+    # parse log
+    fusedop_id = {}
+    for line in log_lines:
+        if re.search("^TRACE: executing", line):
+            m = re.search("fused op (\w+) \(ID (\d+)\)", line)
+            if m:
+                fusedop_id[m.group(1)] = m.group(2)
+                #print(m.group(1), m.group(2))
+                
+    # read dot file
+    try:
+        with open(args.dot_file, "r") as f:
+            dot_lines = f.readlines()
+    except Exception as e:
+        print(e)
+        exit(1)
+
+    # insert new annotations
+    new_lines = []
+    seeking_end_of_node = False
+
+    for line in dot_lines:
+        if seeking_end_of_node:
+            m = re.search("\"\]", line)
+            if m:
+                seeking_end_of_node = False
+                fillcolor = "lightgreen" if last_status == "PASS" else "tomato"
+                line = re.sub("\"\]", "\" style=filled fillcolor=%s]"%fillcolor, line)
+        else:
+            m = re.search("^([0-9a-zA-Z_/]+)", line)
+            if m:
+                first_word = m.group(1)
+                if first_word in passfail:
+                    line = re.sub(first_word, first_word + " " + passfail[first_word], line)
+                    if first_word in fusedop_id:
+                        line = re.sub(first_word, first_word + " ID" + fusedop_id[first_word], line)
+                    seeking_end_of_node = True
+                    last_status = passfail[first_word]
+        new_lines.append(line)                    
+
+    # save out the annotated dot file
+    if not re.search(".dot$", args.dot_file):
+        new_dot_file = args.dot_file + "_comp.dot"
+    else:        
+        new_dot_file = args.dot_file.replace(".dot", "_comp.dot")
+    new_svg_file = new_dot_file.replace(".dot", ".svg")
+    print("New dot file is ", new_dot_file, " and new svg file is ", new_svg_file)
+    with open(new_dot_file, "w") as f:
+        f.write("".join(new_lines))
+
+    os.system("dot -Tsvg %s > %s"%(new_dot_file, new_svg_file))

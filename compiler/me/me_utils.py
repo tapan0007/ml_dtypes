@@ -886,9 +886,9 @@ class MappedParams():
     def init_consumers (self, consumers):
         # FIXME: what happens during batching, when the mapping is used again
         # (init is only called once)
-        #print("taemk::MappedParams::init_consumers::readers ", end = "")
+        #print("DBG: MappedParams::init_consumers: readers of region start %d size %d:"%(self.start_addr, self.region_sz))
         for r in consumers:
-            print ("%s "%r.data['layer_name'], end="")
+            #print ("DBG:    %s "%r.data['layer_name'], end="")
             self.consumed_by_readers[r] = False
         print("")
 
@@ -1032,7 +1032,7 @@ class FileMapper():
         # check end address            
         end_addr = start_addr + adj_region_sz - file_params.item_sz
         if end_addr >= self.sb_partition_sz:
-            raise RuntimeError("End address %d falls outside partition size %d"%(end_addr, self.sb_partition_sz))
+            raise RuntimeError("End address %d falls outside partition size %d. Something wrong during file mapping. Please check map_files function."%(end_addr, self.sb_partition_sz))
         # Save mapped information            
         #print("taemk::FileParams to be consumed = %s"%file_params.file_name)
         file_params.mapped_params = MappedParams(file_params.file_dims.N, start_addr, adj_region_sz, num_region_chunks, file_params.batch_item_num_chunks, end_addr, modify_in_place, file_params.consumers)

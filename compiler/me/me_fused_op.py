@@ -374,11 +374,11 @@ class FusedOp(list):
         self.concat_dram_weights_waveops = []
         self.concat_dram_weights_file_params = dict()
 
-    # Add operation to list of fused operations.
-    # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
     def set_live_mapped_file_params(self, live_mapped_file_params):
         self.live_mapped_file_params = live_mapped_file_params 
 
+    # Add operation to list of fused operations.
+    # Returns True if successful; False if cannot add (i.e. Pool cannot be fused)
     def add(self, op):
         if (self.args.debug > 2):
             print("DBG: adding layer_type ", op.data["layer_type"], " layer_name ", op.data["layer_name"])
@@ -540,10 +540,13 @@ class FusedOp(list):
                                           , live_mapped_file_params
                                          ):
         st = st_addr
+        print("DBG: checking for overlap, start addr %d size %d, against %d live mapped files"%(st_addr, region_sz, len(live_mapped_file_params)))
+        live_mapped_file_params.sort(key = lambda x : x.mapped_params.start_addr, reverse=False)
         for c in live_mapped_file_params:
             c_mp = c.mapped_params
             fmapper = tpb.statebuffer.file_mapper
             r1_sz = c_mp.end_addr+c.item_sz-c_mp.start_addr
+            #print("DBG:         live map %s start addr %d size %d"%(c.file_name, c_mp.start_addr, r1_sz))
             st =\
                     fmapper.adjust0_if_overlap(
                         region0_start = st,
@@ -612,7 +615,7 @@ class FusedOp(list):
         if self.has_biasadd:
             if bias_file_params.mapped_params is None:
                 map_file(bias_file_params, bias_file_start_addr, wrap_around=False, region_sz=bias_file_sz)
-                tpb.statebuffer.next_bias_file_start = align_addr_8B(bias_file_start_addr + bias_file_sz)
+                tpb.statebuffer.adv_next_bias_file_start(bias_file_sz)
             else:                
                 # in case that file is already mapped, keep the mapped values
                 bias_file_start_addr = bias_file_params.mapped_params.start_addr
@@ -1391,7 +1394,7 @@ class FusedOp(list):
                                                     tpb.waveop_stream,
                                                     tpb.statebuffer.zero_bias_file_params,
                                                     0,  # batch_item is not needed for bias
-                                                    0,
+                                                    tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr,
                                                     tpb.statebuffer.zero_bias_file_params.item_sz,
                                                     EngineEnum.ACT,
                                                     )
@@ -1556,6 +1559,7 @@ class FusedOp(list):
                         psum_bank_dst       = psum_bank_id if dst_is_psum else -1, 
                         dram_resadd_waveops = dram_resadd_waveops, 
                         residue_index       = self[i].residue_index,
+                        psum_bank_residue   = -1,
                         residue_sb_addr     = residue_sb_addr,
                         new_reader_morsels  = new_reader_morsels)
                 attach_predecessors(waveop, prev_waveops)
@@ -1829,14 +1833,11 @@ class FusedOp(list):
         if src_is_psum:
             src_sb_address = 0
         else:            
-            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
+            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
         if dst_is_psum:
             dst_sb_address = 0
         else:            
-            if (conv_op != None):
-                dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
-            else:                
-                dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(act_or_biasadd_op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
+            dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ofmap_tile.file_params, batch_item, ofmap_tile.lower_addr[0])
         waveop_name = layer_name+"/Activation_"+ofmap_tile.id_string            
         instr = {
               'previous_waveops'        : [],
@@ -1892,23 +1893,24 @@ class FusedOp(list):
         return instr
 
     # generate ResAdd instruction and add it to instruction stream
-    def gen_join_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, residue_index, residue_sb_addr, new_reader_morsels=[]):
+    def gen_join_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_resadd_waveops, residue_index, psum_bank_residue, residue_sb_addr, new_reader_morsels=[]):
         batch_item = ofmap_tile.batch_item_start
         num_partitions = PEArray.NUM_COLS
         num_partitions = ofmap_tile.channel_count
         start_at_mid_part = ofmap_tile.start_at_mid_part
         sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
+        assert(not(psum_bank_src >= 0 and psum_bank_residue >= 0)), "gen_join_waveop_inline for %s: cannot source both tensors from PSUM banks"%op.data['layer_name'] 
         # SB start addresses
         if residue_index == 0:
             # Source-B is PSUM if fused, or SB if unfused
             src_b_sb_address = 0 if src_is_psum else sb_addr
             # Source-A (Residue) is SB
-            src_a_sb_address = residue_sb_addr
+            src_a_sb_address = 0 if psum_bank_residue >= 0 else residue_sb_addr
         else:
             # Source-A is PSUM if fused, or SB if unfused
             src_a_sb_address = 0 if src_is_psum else sb_addr
             # Source-B (Residue) is SB
-            src_b_sb_address = residue_sb_addr
+            src_b_sb_address = 0 if psum_bank_residue >= 0 else residue_sb_addr
 
         # Destination SB address
         if dst_is_psum:
@@ -1934,11 +1936,16 @@ class FusedOp(list):
         ofmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'dst', psum_bank_dst, dst_sb_address, start_at_mid_part)
         if residue_index == 0:
             ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', psum_bank_src, src_b_sb_address, start_at_mid_part)
-            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', -1, src_a_sb_address, start_at_mid_part)
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', psum_bank_residue, src_a_sb_address, start_at_mid_part)
         else:            
             ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_a', psum_bank_src, src_a_sb_address, start_at_mid_part)
-            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', -1, src_b_sb_address, start_at_mid_part)
-        tpb.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_src if src_is_psum else -1, new_reader_morsels)
+            ifmap_subtile.set_waveop_pattern(tpb.statebuffer.file_mapper, instr, 'src_b', psum_bank_residue, src_b_sb_address, start_at_mid_part)
+        psum_bank_used = -1
+        if psum_bank_src >= 0:
+            psum_bank_used = psum_bank_src
+        elif psum_bank_residue >= 0:
+            psum_bank_used = psum_bank_residue
+        tpb.waveop_stream.add_linked(instr, dram_resadd_waveops, psum_bank_used, new_reader_morsels)
         return instr
 
     # generate tensor-scalar waveop and add to waveop stream
@@ -2406,47 +2413,46 @@ class FusedOp(list):
                             ofmap_tile.tile_rect.lower.x)
                     residue_sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(residue_tile.file_params, batch_item, residue_file_addr)
                     main_sb_addr = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ifmap_tile.file_params, batch_item, ifmap_tile.lower_addr[0])
-                    if abs(residue_sb_addr - main_sb_addr) > (2**15 - 1) \
-                            or first_op.data["layer_type"] == "Sub":
-                        if psum_bank_id  < 0:
-                            psum_bank_temp = tpb.pearray.use_psum_bank_and_adv_ptr(True)
-                        else:
-                            psum_bank_temp = psum_bank_id
+                    psum_bank_src = psum_bank_id 
+                    # If doing tensor-tensor op without PSUM, but distance between tensors is too far, or operation is non-commutativ, then move tile to PSUM
+                    if (abs(residue_sb_addr - main_sb_addr) > (2**15 - 1) \
+                            or first_op.data["layer_type"] == "Sub") \
+                                and psum_bank_src < 0:
+                        psum_bank_residue = tpb.pearray.use_psum_bank_and_adv_ptr(True)
+                        residue_tile.lower_addr[0] = residue_file_addr
                         first_waveop = self.gen_act_waveop_inline(
                                 tpb               = tpb, 
                                 biasadd_op        = None, 
                                 act_op            = first_op, 
                                 conv_op           = None, 
-                                ifmap_tile        = ifmap_tile, 
+                                ifmap_tile        = residue_tile, 
                                 ofmap_tile        = ofmap_tile, 
-                                src_is_psum       = False, 
+                                src_is_psum       = False,
                                 psum_bank_src     = -1, 
-                                dst_is_psum       = True,
-                                psum_bank_dst     = psum_bank_temp, 
+                                dst_is_psum       = psum_bank_residue >= 0,
+                                psum_bank_dst     = psum_bank_residue, 
                                 dram_bias_waveops = dram_resadd_waveops, 
                                 bias_start        = 0,
                                 new_reader_morsels = reader_morsels)
                         attach_predecessors(first_waveop, residue_prev_waveops)
-                        src_is_psum = True
-                        psum_bank_src = psum_bank_temp
                     else:                       
                         act_waveop = None
                         new_reader_morsels += reader_morsels
                         prev_waveops += residue_prev_waveops
                         dram_ifmaps_waveops += dram_resadd_waveops
-                        src_is_psum = False
-                        psum_bank_src = -1
+                        psum_bank_residue = -1
                     last_waveop = self.gen_join_waveop_inline(
                             tpb                 = tpb, 
                             op                  = first_op, 
                             ifmap_tile          = ifmap_tile,
                             ofmap_tile          = ofmap_tile,
-                            src_is_psum         = src_is_psum, 
+                            src_is_psum         = psum_bank_src >= 0, 
                             psum_bank_src       = psum_bank_src, 
                             dst_is_psum         = first_op.dst_is_psum, 
                             psum_bank_dst       = psum_bank_src if first_op.dst_is_psum else -1, 
                             dram_resadd_waveops = dram_ifmaps_waveops,
                             residue_index       = first_op.residue_index,
+                            psum_bank_residue   = psum_bank_residue,
                             residue_sb_addr     = residue_sb_addr,
                             new_reader_morsels  = new_reader_morsels)
             elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum", first_op.data['layer_type']):
@@ -2770,7 +2776,9 @@ class FusedOp(list):
                 concat_collaterals
         c_start_idx = int(math.floor(ifmap_channel_range[1] / PEArray.NUM_ROWS))
         pewave = PEWave(ifmap_tile, c_start_idx, 0, 0)
-        pewave.ifmap_channel_count = PEArray.NUM_ROWS
+        # Don't need to force IFMAP channel count because we need to emit
+        # instruction with proper num_partitions value, so keep previously computed ifmap_channel_count
+        #pewave.ifmap_channel_count = PEArray.NUM_ROWS
         ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
         self.first_op.compute_ifmap_ofmap_pewave_info(pewave, pewave, False)
         (prev_waveops, dram_ifmaps_waveops, new_reader_morsels) =\
