@@ -71,7 +71,7 @@ tf_pb:
 
 tf_s3:
 	aws --profile=kaena s3 ls $(NN_CONFIG)/$(NN_NAME)
-	aws --profile=kaena s3 cp $(NN_CONFIG)/$(NN_NAME) . --quiet
+	aws --profile=kaena s3 cp $(NN_CONFIG)/$(NN_NAME) . --only-show-errors
 	$(MAKE) -f $(MKFILE) compile_pb  PB_FILE=$(NN_NAME)
 	$(MAKE) -f $(MKFILE) run_kelf    PB_FILE=$(NN_NAME)
 	rm $(NN_NAME) # Free up some space
