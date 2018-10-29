@@ -4,20 +4,20 @@
 #include <unordered_set>
 #include <unordered_map>
 
-std::pair<WaveOp::WaveOpType, WaveOp::Engine> WaveOp::ExtractWaveOpTypeEngine(
+WaveOp::WaveOpType WaveOp::ExtractWaveOpTypeEngine(
     std::string& wot)
 {
-  std::pair<WaveOp::WaveOpType, WaveOp::Engine> res;
-  if (!wot.compare("SBAtomLoad")) res = std::make_pair(SBAtomLoad, DMA);
-  else if (!wot.compare("SBAtomSave")) res = std::make_pair(SBAtomSave, DMA);
-  else if (!wot.compare("MatMul")) res = std::make_pair(MatMul, PE);
-  else if (!wot.compare("Pool")) res = std::make_pair(Pool, POOL);
-  else if (!wot.compare("ResAdd")) res = std::make_pair(ResAdd, POOL);
-  else if (!wot.compare("Multiply")) res = std::make_pair(ResAdd, POOL);
-  else if (!wot.compare("Activation")) res = std::make_pair(Activation, ACT);
-  else if (!wot.compare("Nop")) res = std::make_pair(Nop, NOP);
+  WaveOpType t;
+  if (!wot.compare("SBAtomLoad")) t = SBAtomLoad;
+  else if (!wot.compare("SBAtomSave")) t = SBAtomSave;
+  else if (!wot.compare("MatMul")) t = MatMul;
+  else if (!wot.compare("Pool")) t = Pool;
+  else if (!wot.compare("ResAdd")) t = ResAdd;
+  else if (!wot.compare("Multiply")) t = ResAdd;
+  else if (!wot.compare("Activation")) t = Activation;
+  else if (!wot.compare("Nop")) t = Nop;
   else assert(0);
-  return res;
+  return t;
 }
 
 inline bool WaveOp::IsDRAMOp()
@@ -435,6 +435,7 @@ WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
   }
   if (mCLI.event_conflict_check)
   {
+    MakeImplicitEdgesExplicit();
     mEventChecker = new EventChecker(wg);
   }
   InfoPrefix();
@@ -934,31 +935,8 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
       make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
     }
     else if (!wop_type.compare("SBAtomSave") ||
-        !wop_type.compare("SBAtomLoad"))
-    {
-      std::string eng_name = op["engine"].get<std::string>();
-      if (!eng_name.compare("ActivationEng"))
-      {
-        make_edge(prev_exam(prev_act), cur_v, prev_act, wg);
-      }
-      else if (!eng_name.compare("PeArrayEng"))
-      {
-        make_edge(prev_exam(prev_pe), cur_v, prev_pe, wg);
-      }
-      else if (!eng_name.compare("PoolEng"))
-      {
-        make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
-      }
-      else if (!eng_name.compare("DmaEng"))
-      {
-        make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
-      }
-      else
-      {
-        assert(0);
-      }
-    }
-    else if (!wop_type.compare("Nop"))
+        !wop_type.compare("SBAtomLoad") ||
+        !wop_type.compare("Nop"))
     {
       std::string eng_name = op["engine"].get<std::string>();
       if (!eng_name.compare("ActivationEng"))
@@ -991,6 +969,6 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
 
 bool WaveGraphChecker::RunEventConflictChecker()
 {
-  MakeImplicitEdgesExplicit();
+  //MakeImplicitEdgesExplicit();
   return mEventChecker->Run();
 }

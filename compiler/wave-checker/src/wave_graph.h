@@ -28,7 +28,7 @@ class WaveOp {
     , Nop};
   WaveOp(std::string n, std::string wot) : name(n)
   {
-    std::tie(waveop_type, engine) = ExtractWaveOpTypeEngine(wot);
+    waveop_type = ExtractWaveOpTypeEngine(wot);
   }
   enum Engine {PE, ACT, POOL, DMA, NOP};
   virtual ~WaveOp()
@@ -36,7 +36,7 @@ class WaveOp {
   }
   std::string get_name() {return name;}
   WaveOpType get_waveop_type() {return waveop_type;}
-  Engine get_engine() {return engine;}
+  virtual Engine get_engine() = 0;
   bool IsDRAMOp();
   bool IsMatMul(){ return (waveop_type == MatMul); }
   virtual size_t get_sb_in_footprint_size() {return 0;}
@@ -48,7 +48,7 @@ class WaveOp {
   virtual std::list<AddrRange>& get_psum_in_footprint() = 0;
   virtual std::list<AddrRange>& get_psum_out_footprint() = 0;
   private:
-  std::pair<WaveOpType, Engine> ExtractWaveOpTypeEngine (std::string& wot);
+  WaveOpType ExtractWaveOpTypeEngine (std::string& wot);
   private:
   std::string name;
   WaveOpType waveop_type;
@@ -59,7 +59,28 @@ class NopOp : public WaveOp {
   public:
     NopOp(json& op) : WaveOp (op["waveop_name"].get<std::string>()
         , op["waveop_type"].get<std::string>())
-    {}
+    {
+      if (op["engine"] != nullptr)
+      {
+        std::string e = op["engine"].get<std::string>();
+        if (!e.compare("PeArrayEng"))
+        {
+          engine_type = PE;
+        }
+        else if (!e.compare("ActivationEng"))
+        {
+          engine_type = ACT;
+        }
+        else if (!e.compare("PoolEng"))
+        {
+          engine_type = POOL;
+        }
+        else
+        {
+          engine_type = DMA;
+        }
+      }
+    }
     ~NopOp() {}
     std::list<AddrRange>& get_sb_in_footprint()
     {
@@ -77,8 +98,10 @@ class NopOp : public WaveOp {
     {
       return empty_mem_footprint;
     }
+    virtual Engine get_engine() {return engine_type;}
   private:
     std::list<AddrRange> empty_mem_footprint;
+    Engine engine_type;
 }; // NopOp
 
 class MMOp : public WaveOp {
@@ -116,6 +139,7 @@ class MMOp : public WaveOp {
     }
     std::list<AddrRange>& get_psum_out_footprint()
     {return m_mi.get_psum_out_footprint();}
+    virtual Engine get_engine() {return PE;}
   private:
     MemInfo_Params extract_sb_params(json& op);
     MemInfo_PSUM_Params extract_psum_params(json& op);
@@ -134,7 +158,31 @@ class SBAtomOp : public WaveOp {
                           , m_mi(op , extract_atom_type(op)
                               )
     {
+      if (op["engine"] != nullptr)
+      {
+        std::string e = op["engine"].get<std::string>();
+        if (!e.compare("PeArrayEng"))
+        {
+          engine_type = PE;
+        }
+        else if (!e.compare("ActivationEng"))
+        {
+          engine_type = ACT;
+        }
+        else if (!e.compare("PoolEng"))
+        {
+          engine_type = POOL;
+        }
+        else
+        {
+          engine_type = DMA;
+        }
+      }
       m_atom_type = m_mi.get_atom_type();
+    }
+    virtual Engine get_engine()
+    {
+      return engine_type;
     }
     ~SBAtomOp()
     {
@@ -171,6 +219,8 @@ class SBAtomOp : public WaveOp {
     }
   private:
     SBAtomMemInfo::atom_type extract_atom_type(json& op);
+  private:
+    Engine engine_type;
 }; // SBAtomLoadOp
 
 class PoolActOp : public WaveOp {
@@ -188,6 +238,12 @@ class PoolActOp : public WaveOp {
                             , extract_psum_out_params(op)
                             , extract_bias_add_en(op))
     {
+      if (op["waveop_type"].get<std::string>() == "Activation")
+      {
+        engine_type = ACT;
+      } else {
+        engine_type = POOL;
+      }
     }
     ~PoolActOp()
     {
@@ -216,6 +272,7 @@ class PoolActOp : public WaveOp {
     {
       return m_mi.get_psum_out_footprint();
     }
+    virtual Engine get_engine() {return engine_type;}
   private:
     MemInfo_Params extract_sb_in_params(json& op);
     MemInfo_Params extract_sb_out_params(json& op);
@@ -226,6 +283,7 @@ class PoolActOp : public WaveOp {
     tonga_addr extract_dst_sb_addr(json& op);
     bool extract_bias_add_en(json& op);
     std::string extract_bias_dtype(json& op);
+    Engine engine_type;
 }; // PoolActOp
 
 class ResAddOp : public WaveOp {
@@ -283,6 +341,7 @@ class ResAddOp : public WaveOp {
     {
       return m_mi.get_psum_out_footprint();
     }
+    virtual Engine get_engine() {return POOL;}
   private:
     std::vector<MemInfo_Params> extract_in_params(json& op);
     std::vector<MemInfo_Params> extract_out_params(json& op);
