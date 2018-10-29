@@ -83,13 +83,14 @@ class BatchSBDataMap:
             self.sb_partialbatch_start[1] = self.sb_partialbatch_start[2]
 
     def check_sb_usage(self):
+        print("Bias, Partial-batch, Weights, Scratch, Total SB usage, Headroom")
         for i in range(len(self.sb_bias_sz)):
             #total_sb = self.sb_bias_sz[i] + self.sb_ifmaps_sz[i] + self.sb_partialbatch_sz[i] + self.sb_weights_sz[i] + self.sb_residue_sz[i] + self.sb_scratch_sz[i]
             total_sb = self.sb_bias_sz[i] + self.sb_partialbatch_sz[i] + self.sb_weights_sz[i] + self.sb_scratch_sz[i]
-            print("Total SB usage %d (headroom %d)"%(total_sb, 96*1024 - total_sb))
+            print(self.sb_bias_sz[i], ", ", self.sb_partialbatch_sz[i], ", ", self.sb_weights_sz[i], ", ", self.sb_scratch_sz[i], ", ", total_sb, ", ", 96*1024 - total_sb)
 
 if __name__ == "__main__":
     # process batch
-    batch_machine = BatchMachine(16,'float16')
+    batch_machine = BatchSBDataMap(16,'float16')
     batch_machine.check_sb_usage()
 

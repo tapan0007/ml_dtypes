@@ -24,7 +24,7 @@ DEBUG_LEVEL_DEFAULT=2
 
 #np.set_printoptions(precision=14)
 
-"""Enum for engines
+"""Enum for engines used by dependency trackers
 """
 class EngineEnum(IntEnum):
     PEARRAY = 0
@@ -96,6 +96,13 @@ class WaveopStream(list):
         self.waveop_name_set = set()
         self.waveop_count = 0
 
+    """Append waveop to stream and change name if there's duplicate
+        Args:
+            item: waveop (dictionary of waveop fields and values) to add
+            loc: specifies fixed location to insert; if None, append to end of stream 
+        Returns:
+            nothing
+    """
     def append_check(self, item, loc = None):
         item_name = item['waveop_name']
         i = 0
@@ -119,6 +126,13 @@ class WaveopStream(list):
             self.insert(loc, item)
         self.waveop_count += 1
 
+    """Insert dependencies for waveop and add it to stream 
+        Args:
+            waveop: dictionary of waveop fields and values
+            side_waveops: additional waveops to insert ahead of waveop (ie DRAM loads); their names are added to waveop's list of predecessors (previous_waveops)
+            psum_bank: PSUM bank ID the waveop is accessing
+            new_reader_morsels: readers of elements in SB (morsels) are tracked in FileMapper using reader objects; they have tentatively assigned waveop ID but due to on-demand loads, final waveop ID is determined after all the load waveops are added, so the waveop ID in reader objects are adjusted here.
+    """
     def add_linked(self, waveop, side_waveops, psum_bank, new_reader_morsels=[]):
         # Decode the engine from waveop_type            
         engine = EngineEnum.POOL
@@ -197,11 +211,13 @@ class WaveopStream(list):
         # TODO: split into reader/writer
         self.last_engine_waveop[engine] = waveop  
 
+    """Add waveops that are outgoing from a previous waveop
+    """
     def add_outputs(self, waveops, loc = None):
         for i in waveops:
             self.append_check(i, loc)
 
-"""FusedOpList: a list of fused-op
+"""FusedOpList: a list of fused-ops
 """
 class FusedOpList(list):
     def __init__(self):
@@ -388,7 +404,10 @@ class TPBSched:
                     self.fused_ops_list[i].prev = self.fused_ops_list[i-1]
                     self.fused_ops_list[i+1].prev = self.fused_ops_list[i]
 
-    """Execute fused operations with batching
+    """Execute fused operations with ResNet50 batching: (TODO: add simple batching) 
+        1- If there's not enough batch items for a partial batch, go back to beginning of list and start processing next batch item
+        2- Once there's a complete partial batch, process partial batch as far as possible down the list of fused-ops (until a double-up point)
+            - Now partial batch size is doubled, there's not enough batch items to continue, so #1 condition now applies
     """
     def execute_fused_ops_w_batching(self):
         print("INFO: Starting execution of fused operations")            
@@ -401,7 +420,6 @@ class TPBSched:
         current_Tn = self.fused_ops_list[0].first_op.Tn
         first_Tn = current_Tn
         b = min(batch_count-1, current_Tn-1)
-        last_concat_ofmap_file_params = []
         live_mapped_file_params = []
         while b < batch_count:
             i = 0
@@ -420,8 +438,9 @@ class TPBSched:
                     if (args.debug > 2): print("TRACE: executing fused op %s (ID %d), batch elem %d to %d, partial_batch_pre_pairup %d, partial_batch_pairup %d, has_join %d, has_pool %d"%(op_list.last_op.data['layer_name'], op_list.fused_op_id, b - j, b - j + current_Tn - 1, op_list.partial_batch_pre_pairup, op_list.partial_batch_pairup, op_list.has_join, op_list.has_pool))
                     op_list.set_live_mapped_file_params(live_mapped_file_params)
                     op_list.map_files(
-                        tpb, b - j, last_concat_ofmap_file_params
-                    , live_mapped_file_params)
+                        tpb = tpb, 
+                        batch_item = b - j, 
+                        live_mapped_file_params = live_mapped_file_params)
                     op_list.execute(tpb, b - j)
                     if (args.nname == 'generic'):
                       op_list.mark_ifmaps_are_consumed(live_mapped_file_params)

@@ -563,8 +563,16 @@ class FusedOp(list):
         print ("\tstart_addr = %d"%file_params.mapped_params.start_addr)
         print ("\tend_addr = %d"%file_params.mapped_params.end_addr)
 
-    def map_files(self, tpb, batch_item, last_concat_ofmap_file_params
-                 , live_mapped_file_params):
+    """Map tensors to SB
+        args:
+            tpb: TPB object (TODO: pass only needed objects: statebuffer batcher/file_mapper)
+            batch_item: batch item number of the start of the partial batch group  
+            live_mapped_file_params: current list of SB mapped tensor files that should remain (since they are still being used, and we don't want to evict unless we have to) 
+    """
+    def map_files(self, 
+                tpb, 
+                batch_item, 
+                live_mapped_file_params):
         map_file = tpb.statebuffer.file_mapper.map_file
 
         # select SB region sizing index (only relevant for ResNet50 but we also use for BiasAdd)
@@ -824,8 +832,6 @@ class FusedOp(list):
                 map_file(ofmaps_file_params\
                          , ofmaps_region_start_addr\
                          , wrap_around=True, region_sz=ofmaps_region_sz)
-                if (self.first_op.is_concat == True):
-                    last_concat_ofmap_file_params.append(ofmaps_file_params)
                 live_mapped_file_params.append(ofmaps_file_params)
                 # obtain the adjusted region size
                 ofmaps_region_sz = ofmaps_file_params.mapped_params.region_sz
@@ -891,7 +897,8 @@ class FusedOp(list):
             # check that regions are either exactly overlaping or not overlapping at all
             overlap_some_percent = tpb.statebuffer.file_mapper.check_overlap(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
             overlap_100_percent = tpb.statebuffer.file_mapper.check_overlap100(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz)
-            assert(overlap_some_percent == overlap_100_percent)
+            if overlap_some_percent != overlap_100_percent:
+                raise RuntimeError("There's overlap between IFMAP region (start %s size %s) and OFMAP region (start %s size %s). (This error should not raise if OFMAP overlaps IFMAP region 100 percent for SB space reuse purpose)"%(single_ifmap_start, min(single_ifmap_sz, ifmaps_region_sz), single_ofmap_start, single_ofmap_sz))
 
     def mark_ifmaps_are_consumed(self, live_mapped_file_params):
         # Note that each of ifmaps of current knode is ofmap of its predecessor.
