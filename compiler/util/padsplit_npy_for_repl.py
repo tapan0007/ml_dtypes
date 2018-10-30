@@ -8,14 +8,14 @@ from me_utils import pad_and_split_file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_file", required=True, help="Input numpy file to process. Currently, only NCHW format supported.")
-    parser.add_argument("--format", default="NCHW", help="Format of input file. Currently, only NCHW format supported.")
+    parser.add_argument("--input_file", required=True, help="Input numpy file to process.")
+    parser.add_argument("--format", default="NHWC", help="Format of input file. Currently, only NCHW or NHWC format supported.")
     parser.add_argument("--stride", default=2, help="Stride value of the convolution requiring replication.")
     parser.add_argument("--padding", default="[ [ 0, 0 ], [ 0, 0 ], [ 2, 3 ], [ 2, 3 ] ]", help="Padding info from compiler.json, expressed as a string; i.e. \"[ [ 0, 0 ], [ 0, 0 ], [ 2, 3 ], [ 2, 3 ] ]\"")
     args = parser.parse_args()
 
-    if args.format != "NCHW":
-        raise RuntimeError("Please convert numpy input file to NCHW format first.")
+    if args.format != "NCHW" and args.format != "NHWC":
+        raise RuntimeError("Please convert numpy input file to NCHW or NHWC format first.")
 
     if not os.path.isfile(args.input_file):
         raise RuntimeError("%s doesn't exist"%args.input_file)

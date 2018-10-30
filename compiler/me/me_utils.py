@@ -88,8 +88,10 @@ def is_sb_addr_in_bound(sb_addr, start_sb_addr, end_sb_addr):
  - for num_to_split>2: split W columns into multiple HWi, where HWi includes i columns, i = column idx % num_to_split
 """ 
 def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_east, pad_north, pad_south):
-    assert(file_format == "NCHW")
+    assert(file_format == "NCHW" or file_format == "NHWC")
     dram_data = np.load(file_to_split)
+    if file_format == "NHWC":
+        dram_data = np.transpose(dram_data, (0,3,1,2))
     N, C, H, W = dram_data.shape
     # compute pad dimensions: round width to multiple of num_to_split
     new_width = W + pad_west + pad_east
@@ -121,6 +123,8 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
         np.save(new_file, new_dram_data)
     except:
         raise RuntimeError("Cannot save numpy file %s"%(new_file))
+    print("Converted %s with format %s, stride %d, and padding W%d E%d N%d S%d, to %s with format %s"
+            %(file_to_split, file_format, num_to_split, pad_west, pad_east, pad_north, pad_south, new_file, "NCHW"))
     return (new_file, new_shape)
 
 # Extract list of predecessor waveop names from list of accessors
