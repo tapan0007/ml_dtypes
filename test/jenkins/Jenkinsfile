@@ -140,7 +140,7 @@ pipeline{
                 }
                 stage('RunAllWithArgs') {
                     steps {
-                        timeout(time: 6, unit: 'HOURS') {
+                        timeout(time: 12, unit: 'HOURS') {
                             sh '''
                             [ -z "$RUNALL_ARGS" ] || (cd $TEST_DIR/RunAllWithArgs && $KAENA_PATH/test/e2e/RunAll $RUNALL_ARGS)
                             '''
