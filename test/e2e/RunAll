@@ -67,7 +67,7 @@ parser.add_argument('--timeout', help='Timeout for each test, default 17000 seco
 parser.add_argument('--inkling_debugflags', help='Pass some arguments to sim, optional', nargs='+', default=[])
 parser.add_argument('--small_first', help='Start N small tests before next large one, default 4', type=int, default=4)
 parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='store_true', default=False)
-parser.add_argument('--force_qemu', help='Apply additional --filer and various customization for Qemu flow, e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*, only wave tests and not fp32 are filtered', action='store_true', default=False)
+parser.add_argument('--force_qemu', help='Apply additional --filer and various customization for Qemu flow, e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*; tests with \"fp32\", \"waveopt\", and \"host\" are filtered out.', action='store_true', default=False)
 parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
 parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path or s3 url', default=None)
@@ -168,7 +168,7 @@ def selectTests(testConfigMap, testWaiver, arglevel, argTest,
     testListFiltered = []
     for testName in testsPreCustom:
       isWaived = calcIsWaived(testName, testWaiver)
-      if re.search(r'wave', testName) and not re.search(r'waveopt', testName) and not re.search(r'fp32', testName):
+      if not re.search(r'waveopt', testName) and not re.search(r'host', testName) and not re.search(r'fp32', testName):
         testListFiltered.append(testName)
   # Remove duplicates
   testListFinal = sorted(list(set(testListFiltered)))

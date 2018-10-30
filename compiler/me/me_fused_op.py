@@ -53,7 +53,13 @@ class PEWave:
                                       self.ifmap_channel_start + PEArray.NUM_ROWS)
         self.ifmap_channel_count = self.ifmap_channel_stop - self.ifmap_channel_start
         self.subtile_psum_offset = 0
+        # Default rectangle info, works if subtile=tile; 
+        # compute_ifmap_ofmap_pewave_info will overwrite these with correct values
         self.subtile_rect = tile.tile_rect
+        (self.lower_addr, self.upper_addr) = self.get_subtile_file_addrs()
+        self.lower_to_upper_len_bytes = []
+        for i in range(len(self.lower_addr)):
+            self.lower_to_upper_len_bytes.append(self.upper_addr[i] - self.lower_addr[i] + self.tile.file_params.item_sz)
 
     def __str__(self):
         return self.id_string
@@ -152,6 +158,9 @@ class PoolSubtile(PEWave):
         self.id_array = self.tile.id_array 
         self.id_string = self.tile.id_string #+ "_lx%d_ly%d_ux%d_uy%d"%(self.c_id, self.r_id, self.s_id)
         (self.lower_addr, self.upper_addr) = self.get_subtile_file_addrs()
+        self.lower_to_upper_len_bytes = []
+        for i in range(len(self.lower_addr)):
+            self.lower_to_upper_len_bytes.append(self.upper_addr[i] - self.lower_addr[i] + self.tile.file_params.item_sz)
         assert(tile.is_pe_input == False)
 
 """ FMAP tile object
@@ -2226,8 +2235,8 @@ class FusedOp(list):
                         tpb.waveop_stream,
                         tile.file_params,
                         batch_item + z,
-                        tile.lower_addr[z], 
-                        tile.lower_to_upper_len_bytes[z],
+                        fmap_subtile.lower_addr[z], 
+                        fmap_subtile.lower_to_upper_len_bytes[z],
                         reader_engine,
                         )
                 dram_fmaps_waveops += waveops
@@ -2679,15 +2688,15 @@ class FusedOp(list):
                              , [0, first_op.weights_file_params.file_dims.M-1]]
 
                     self.emit_waveop_concat_tile(
-                                                 tpb
-                                                 , ifmap_tile
-                                                 , ofmap_tile
-                                                 , concat_collaterals
-                                                 , next_ofmap_start
-                                                 , 1
-                                                 , psum_bank_id
-                                                 , 1
-                                                 , first
+                                                 tpb                  = tpb
+                                                 , ifmap_tile         = ifmap_tile
+                                                 , ofmap_tile         = ofmap_tile
+                                                 , concat_collaterals = concat_collaterals
+                                                 , ofmap_start        = next_ofmap_start
+                                                 , start_tensor_calc  = 1
+                                                 , psum_bank_id       = psum_bank_id
+                                                 , num_weights        = 1
+                                                 , first              = first
                                                 )
                     first = False
                     MM_data = tpb.pearray.extract_psum(psum_bank_id, 0, ifmap_tile.tile_rect.get_tot_size())
@@ -2742,24 +2751,24 @@ class FusedOp(list):
                                  , ifmap_channel_ranges[tile]
                                  , keys[m_id]]
                         next_ofmap_start = self.execute_concat_tile(
-                                                         tpb
-                                                         , ifmap_tile
-                                                         , ofmap_tile
-                                                         , concat_collaterals
-                                                         , next_ofmap_start
-                                                         , tile == 0
-                                                         , psum_bank_id
-                                                         , first
+                                                         tpb                  = tpb
+                                                         , ifmap_tile         = ifmap_tile
+                                                         , ofmap_tile         = ofmap_tile
+                                                         , concat_collaterals = concat_collaterals
+                                                         , ofmap_start        = next_ofmap_start
+                                                         , start_tensor_calc  = tile == 0
+                                                         , psum_bank_id       = psum_bank_id
+                                                         , first              = first
                                                         )
-                        self.emit_waveop_concat_tile(tpb
-                                                     , ifmap_tile
-                                                     , ofmap_tile
-                                                     , concat_collaterals
-                                                     , next_ofmap_start
-                                                     , tile == 0
-                                                     , psum_bank_id
-                                                     , 1
-                                                     , first
+                        self.emit_waveop_concat_tile(tpb                  = tpb
+                                                     , ifmap_tile         = ifmap_tile
+                                                     , ofmap_tile         = ofmap_tile
+                                                     , concat_collaterals = concat_collaterals
+                                                     , ofmap_start        = next_ofmap_start
+                                                     , start_tensor_calc  = tile == 0
+                                                     , psum_bank_id       = psum_bank_id
+                                                     , num_weights        = 1
+                                                     , first              = first
                                                     )
                     if (first == True): first = False
                     move_psum_to_ofmap(tpb, ifmap_tile, ofmap_tile, psum_bank_id)
@@ -2787,17 +2796,16 @@ class FusedOp(list):
         # instruction with proper num_partitions value, so keep previously computed ifmap_channel_count
         #pewave.ifmap_channel_count = PEArray.NUM_ROWS
         ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
-        self.first_op.compute_ifmap_ofmap_pewave_info(pewave, pewave, False)
+        self.first_op.compute_ifmap_ofmap_pewave_info(pewave, ofmap_pewave, False)
         (prev_waveops, dram_ifmaps_waveops, new_reader_morsels) =\
                 self.get_producers_for_subtile_region (
                     tpb = tpb, fmap_subtile = pewave, reader_engine = EngineEnum.PEARRAY)
         (writers, readers, dram_weights_waveops) = ([], [], [])
         # 9-10-2018
-        if (first == True):
-          total_size_weights =(
-           self.first_op.weight_wave_upper_addr
-             - self.first_op.weight_wave_lower_addr
-           + self.first_op.item_sz) * num_weights
+        if (first or self.args.full_dependencies):
+          total_size_weights =(self.first_op.weight_wave_upper_addr
+                             - self.first_op.weight_wave_lower_addr
+                             + self.first_op.item_sz) * num_weights
           (writers, readers, dram_weights_waveops, reader_morsels) =\
                   tpb.statebuffer.file_mapper.read_file_data_region(
                       tpb.waveop_stream.waveop_count
@@ -2829,21 +2837,22 @@ class FusedOp(list):
                 weights = dram_weights_waveops
             else:
                 weights = None
-            if (first == True):
+            if (first or self.args.full_dependencies):
               tpb.waveop_stream.add_linked(
                   mms[i], weights, psum_bank_id, new_reader_morsels)
             else:
               tpb.waveop_stream.add_linked(
-                  mms[i], [], psum_bank_id)
+                  mms[i], [], psum_bank_id, new_reader_morsels)
             prev_record_in_waveop = mms[i]['previous_waveops']
             for prev in prev_waveops:
                 if prev not in prev_record_in_waveop:
                     prev_record_in_waveop.append(prev)
-            ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
-            self.mark_producers_for_subtile_region(
-                tpb           = tpb, 
-                fmap_subtile  = ofmap_pewave,
-                waveop        = mms[i])
+            # The following is only needed for engines writing to SB
+            #ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
+            #self.mark_producers_for_subtile_region(
+            #    tpb           = tpb, 
+            #    fmap_subtile  = ofmap_pewave,
+            #    waveop        = mms[i])
 
     def execute_concat_tile (self
                              , tpb

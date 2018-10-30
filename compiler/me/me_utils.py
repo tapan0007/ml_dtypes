@@ -1627,6 +1627,8 @@ class FileMapper():
                 # If modifying in place, don't create DRAM waveops for region
                 if not file_params.mapped_params.modify_in_place and not replication_squash:
                     assert(load_required)
+                    if self.debug > 4:
+                        print("INFO SB TRACE: (before generating DRAM read)", list_of_writers, list_of_readers)
                     prev_waveops = extract_predecessors(
                         list_of_accessors_wr = list_of_writers, 
                         list_of_accessors_rd = list_of_readers,
@@ -1670,7 +1672,6 @@ class FileMapper():
                             new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, [], repl_multiple_of_C)
                     # Record load as writer into SB region
                     new_morsel_wr.accessor_id = waveop_id
-                    print("new_morsel_wr.accessor_id =", new_morsel_wr.accessor_id)
                     # Update the reader ID (which maybe further updated if there's another load, like bias)
                     new_morsel_rd.accessor_id = waveop_id + 1 + len(evicted_waveops)  
                     file_params.mapped_params.dirty[i] = False

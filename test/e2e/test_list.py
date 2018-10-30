@@ -245,7 +245,7 @@ testConfigMap = {
   "0-1conv_h4_sigmoid_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r1-s1-c1-m1-sigmoid-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr", MEv2("Generic")],
   "0-116conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct", MEv2("Generic")],
 
-  "0-300conv_tanh_wave-all-layers" : [ "trivnet_lin", "tfloat16-l300-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "300ct", MEv2("Generic-CleanWG")],
+  "0-300conv_tanh_wave-all-layers" : [ "trivnet_lin", "tfloat16-l300-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "300ct", MEv2("Generic-CleanWG-SaveAll")],
 
   "0-1conv_s8_wave"    : [ "trivnet_conv1",  "tfloat16-b1-h16-r1-s8-c1-m1-wmin2-wmax22-imin1-imax256", "1conv", MEv2("Generic")],
   "0-1mp_r3s2_16_wave"  : [ "trivnet_mp1", "b1-h16-r3-s2-c1-m1-wmin0-wmax0.1-imin1-imax12544", "1mp", MEv2("Generic")],
@@ -520,8 +520,8 @@ testConfigMap = {
   "9-resnet152_waveopt"       : [ "tf_pb",   "resnet_v2_152/pb/resnet_v2_152_fp32.pb",   "resnet152", "--partition from resnet_v2_152/conv1/convolution resnet_v2_152/postnorm/batchnorm/mul_1 --executors host all waveopt 1  --depth 2 --scheduler wave --images %s --wavegraph_checks structure data-race" % rnDogJpg, "--input_files %s" % rnDogJpg],
 
   # Parallel WaveNet (ME only)
-  "3-parwavenet_10_fp16_me_only" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to truediv --show_op_name_in_kgraph --input_node sub_1 --depth -1 --partition from truediv --executors host all waveopt 1 --images linspace1", "--input_files trivnet_sub_1:0.npy"],
-  "3-parwavenet_10_10_fp16_me_only" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
+  "3-parwavenet_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet", " --focus_to truediv --show_op_name_in_kgraph --input_node sub_1 --depth -1 --partition from truediv --executors host all waveopt 1 --images linspace1", "--input_files trivnet_sub_1:0.npy"],
+  "3-parwavenet_10_10_fp16_waveopt" : [ "tf_pb",   "parallel_wavenet/example1/parwavenet_10_10_frozen_fp16.pb", "parallel_wavenet", " --input_node Placeholder --depth 2 --partition from truediv --executors waveopt 0 host 1 --images %s"%melSpectra, "--input_files %s" % melSpectra],
 
   "3-parwavenet_10_fp16_ba15_ba16_reshape67_dbg" :
     [ "tf_pb", "parallel_wavenet/example1/parwavenet_10_frozen_fp16.pb", "parallel_wavenet",
@@ -882,7 +882,7 @@ testConfigMap = {
   "0-1conv1maxpool_c128m64h128_val_wave"    : [ "trivnet_conv_pool","tfloat16-b1-h128-r3-s1-c128-m64-VALID-MaxPool-k2-d2-wmin2-wmax2.2-imin1-imax16", "1conv1pool", "--scheduler wave  --schedule_options ' --nname=generic '   --waive_wavegraph_checks"],
 
   ##"0-1conv_c128m64h128_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h128-r3-s1-c128-m64-wmin2-wmax2.2-imin1-imax16", "1conv", MEv2("Generic")],
-  "0-1conv_c128m64h128_waveg"  : [ "trivnet_conv1",  "tfloat16-b1-h128-r3-s1-c128-m64-wmin2-wmax2.2-imin-1-imax1.6", "1conv", "--scheduler wave --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
+  "0-1conv_c128m64h128_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h128-r3-s1-c128-m64-wmin2-wmax2.2-imin-1-imax1.6", "1conv", "--scheduler wave --schedule_options ' --nname=generic ' --wavegraph_checks structure data-race"],
 
   "0-11conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l11-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "11ct", MEv2("Generic")],
   "0-2conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l2-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "2ct", MEv2("Generic")],
@@ -989,20 +989,7 @@ testWaiver = [
     ['7-inceptionv3_wave_dog_sg00_tpb_upto_concat10$', 'WAIVE_INCEPTIONV3'],
     ['7-inceptionv3_wave_dog_sg00_tpb_upto_concat11$', 'WAIVE_INCEPTIONV3'],
     ['8-inceptionv3_wave_dog_sg00_tpb$', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h16k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h17k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h18k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h32k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h35c16k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h35c128m128k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h35c192m192k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h35c196k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_h35k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1avgpool_wave_k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1maxpool_wave_h17c128k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1conv1maxpool_wave_h17c196k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1maxpool_wave_h17k3d1', 'WAIVE_INCEPTIONV3'],
-    ['0-1conv1maxpool_wave_h71k3d1', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h65c1m1k3d1_valid', 'WAIVE_INCEPTIONV3'],
     ['0-1maxpool_wave_h71c1m1k3d2_same', 'WAIVE_INCEPTIONV3'],
 
@@ -1020,9 +1007,7 @@ testWaiver = [
     ['7-amoebanet_fp16_cell8', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
     ['7-amoebanet_fp16_rcell0', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
     ['7-amoebanet_fp16_rcell1', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_cell9', 'WAIVE_AMOEBA_OUTSIDESBRANGE'],
     ['7-amoebanet_fp16_cell10', 'WAIVE_AMOEBA_OUTSIDESBRANGE'],
-    ['7-amoebanet_fp16_cell11', 'WAIVE_AMOEBA_OUTSIDESBRANGE'],
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
@@ -1032,11 +1017,7 @@ testWaiver = [
     ['0-1stridedslice_tanh_sigmoid_wave', 'WAIVE_KAENA711'],
     ['0-1stridedslice_wave', 'WAIVE_KAENA711'],
     #['.*reshape.*', 'WAIVE_KAENA597'],
-    ['3-parwavenet_.*_me_only$', 'WAIVE_KAENA711'],
-    ['6-parwavenet_10_fp16_in_to_add.*_wave', 'WAIVE_KAENA711'],
-    ['7-parwavenet_10_fp16_in_to_add.*_wave', 'WAIVE_KAENA711'],
-    ['6-parwavenet_10_fp16_tanh_to_add.*_wave', 'WAIVE_KAENA711'],
-    ['7-parwavenet_10_fp16_tanh_to_add.*_wave', 'WAIVE_KAENA711'],
+    ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
     ['3-1conv_transpose_1d_h100r80s20_wave', 'WAIVE_KAENA768'],
     ['3-1conv_transpose_1d_h10r40s10_wave', 'WAIVE_KAENA768'],
 
@@ -1112,7 +1093,7 @@ noGpuTestWaiver = [
 
 qemuTestWaiver = [
     ['0-1conv1avgpool_wave_2tpbs', 'WAIVE-QEMU-KAENA830'],
-    ['5-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE-QEMU-KAENA831'],
+    ['.*-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE-QEMU-KAENA831'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['8-rn50_nne_conv_wave$',  'WAIVE-QEMU'],

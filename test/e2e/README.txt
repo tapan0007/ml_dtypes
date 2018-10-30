@@ -21,15 +21,19 @@ the test level (test complexity) followed by a dash. The rest should be brief de
 of the test. For example:
 - "rn50" means ResNet50
 - "nne" means using Neural Network Executor flow (break graph into smaller subgraphs)
-- "fp16" is float 16
 - "wave" means wavegraph flow
 - "two_banks" means double the single-bank DRAM BW of Inkling to imitate more realistic dual-bank scenario.
+- "fp16" is float16
+- "fp32" is float32 (ignored in QEMU run)
+- "waveopt" means runs ME only (no BE/Inkling, ignored in QEMU run)
+- "host" means runs on host only (no ME/BE/Inkling, ignored in QEMU run)
 
 Test List Filtering
 -------------------
 
-The test list is filtered automatically for QEMU (remove FP32 tests). Filtering can also be
-controlled by RunAll options. Some commonly used options are:
+The test list is filtered automatically for QEMU run with --force_qemu option
+(tests with "fp32" or "waveopt" in names are removed from list). 
+Filtering can also be controlled by RunAll options. Some commonly used options are:
 
 - test_re: filter by name using regular expression
 - test: specific test or list of tests (space separated)
