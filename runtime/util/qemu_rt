@@ -228,12 +228,6 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
   def osSystem(self, cmd):
     self.logReplay(cmd)
     return os.system(cmd)
-  def createTempDir(self):
-    name = tempfile.mkdtemp()
-    print("INFO %s : Created tmp file %s" % (str(datetime.datetime.now()),name), flush=True)
-    return(name)
-  def removeTempDir(self, name):
-    shutil.rmtree(name)
   def sshCmd(self, cmd, opt=""):
     fullCmd = "%s %s %s@%s '%s'" % (self.sshCommand, opt, self.sshUser, self.sshHost, cmd)
     print("INFO %s : sshCmd executing %s" % (str(datetime.datetime.now()),fullCmd), flush=True)
@@ -826,6 +820,16 @@ class Krtd():
     print("ERROR: krtd did not start properly check log-krtd.txt")
     return False
 
+  def createTempDir(self, name):
+    if os.path.exists(name):
+     shutil.rmtree(name)
+    os.makedirs(name)
+    print("INFO %s : Created tmp file %s" % (str(datetime.datetime.now()),name), flush=True)
+    return(name)
+
+  def removeTempDir(self, name):
+    shutil.rmtree(name)
+
   def localInstall(self):
     '''
     If any install procedure changes, make sure to update the remote install also
@@ -838,15 +842,21 @@ class Krtd():
 
     if len(krtPackages) != 1:
       raise ValueError("ERROR: Found {} runtime packages at {}".format(len(krtPackages), krtBldPath))
-    self.tempBinDir = self.qemu.createTempDir()
+    self.tempBinDir = self.createTempDir(os.getcwd() + "/krtdBin")
     if not os.path.isdir(self.tempBinDir):
       raise ValueError("ERROR: Could not create tmp dir for local binary")
     self.qemu.osSystem("cd %s &&  tar xvfz %s/%s" % (self.tempBinDir, krtBldPath,krtPkgPattern))
-    self.tempWorkingDir = self.qemu.createTempDir()
+    self.tempWorkingDir = self.createTempDir(os.getcwd() + "/krtdWork")
     if not os.path.isdir(self.tempWorkingDir):
       raise ValueError("ERROR: Could not create tmp dir for local work")
     self.qemu.osSystem("cd %s &&  rm -rf bin/__pycache__" % (self.tempBinDir))
     self.qemu.osSystem("cd %s &&  rm -rf bin/tests/__pycache__" % (self.tempBinDir))
+
+  def cleanup(self):
+    binDir = self.tempBinDir
+    workingDir = self.tempWorkingDir
+    if os.path.exists(binDir): self.removeTempDir(binDir)
+    if os.path.exists(workingDir): self.removeTempDir(workingDir)
 
   def execute(self, args):
     krtOk = self.startDaemon()
@@ -859,13 +869,12 @@ class Krtd():
       
     self.localInstall()
     self.client.run(args)
-    return self.client.stop()
+    krtOk = self.client.stop()
+    self.cleanup()
+    return krtOk
 
   def __del__(self):
-    binDir = self.tempBinDir
-    workingDir = self.tempWorkingDir
-    if os.path.exists(binDir): self.qemu.removeTempDir(binDir)
-    if os.path.exists(workingDir): self.qemu.removeTempDir(workingDir)
+    self.cleanup()
 
 class QemuPool:
   def __init__(self, ports, vdi, mem, inklingTimeout):
