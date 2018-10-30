@@ -102,6 +102,15 @@ zebuGrpcHost = {
   }
 poolPidFileName = 'poolpid.txt'
 
+# Using env variable to pass on the number of inference
+# request for each input. When nn_executor calls qemu_rt
+# for a sub-graph, the inference will be run using the 
+# input provided in the subgraph multiple times
+numInferences = 1
+envNumInferences = os.getenv("QEMU_KRT_NUM_INFERENCES", None)
+if envNumInferences != None:
+  numInferences = int(envNumInferences)
+
 def portInUse(port):
   inUse = True
   with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -576,6 +585,33 @@ class PythonTest:
 
     return testOk
 
+class KrtcInferResultCache:
+  """Class that saves the infer result files sha
+
+  """
+  def __init__(self,resultDir):
+    self.inferChecksumDict = {}
+    for fileName in os.listdir(resultDir):
+      fileFullPath = resultDir + "%s" % fileName
+      if os.path.isfile(fileFullPath):
+        self.inferChecksumDict[fileName] = sha256checksum(fileFullPath)
+        print("INFO: Saved checksum for %s:%s\n" % (fileFullPath, self.inferChecksumDict[fileName]))
+
+  def __eq__(self, other):
+    if isinstance(other, self.__class__):
+      for fileName in self.inferChecksumDict:
+        if not fileName in other.inferChecksumDict:
+          print("ERROR: filename :%s does not exist in first infer\n" % fileName)
+          return False
+        if self.inferChecksumDict[fileName] != other.inferChecksumDict[fileName]:
+          print("ERROR: inference SHA of output files does not match with first infer\n")
+          print("ERROR: checksum for %s:%s\n" % (fileName, other.inferChecksumDict[fileName]))
+          return False
+        print("INFO: checked checksum for %s:%s\n" % (fileName, other.inferChecksumDict[fileName]))
+      return True
+    else:
+      return False
+
 
 class KrtcClient:
   """Class that is used for running/stopping krtc client
@@ -641,12 +677,11 @@ class KrtcClient:
 
     return newifmapPathList
 
-  def krtcInference(self, model_id, ifmapList, ofmap, timeout, binDir, workingDir):
+  def krtcInference(self, model_id, ifmapList, ofmapPath, timeout, binDir, workingDir, capture):
     krtOk = False
     binDir = self.krtd.tempBinDir
     workDir = self.krtd.tempWorkingDir
-    (ifmapPathList,ifmapFileList) = self.krtd.getIfMapFile(ifmapList, ofmap)
-    ofmapPath = "%s/" % (workingDir)
+    (ifmapPathList,ifmapFileList) = self.krtd.getIfMapFile(ifmapList, ofmapPath)
     krtcCmd = "%s/bin/krtc/krtc" % (binDir)
     inferLogFile = "%s/log-infer.txt" % (workingDir)
     modelId = "%s" % model_id
@@ -654,7 +689,9 @@ class KrtcClient:
 
     ifmaps = self.krtc_ifmaps(ifmapPathList, ifmapFileList)
     with open(inferLogFile, "a+") as fp:
-      krtcArgs = [krtcCmd, "infer", "--model-id", modelId, "--ifmap"] +  ifmaps + ["--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout, "--capture"]
+      krtcArgs = [krtcCmd, "infer", "--model-id", modelId, "--ifmap"] +  ifmaps + ["--ofmap-path", ofmapPath, "--address", grpcAddress, "--timeout", timeout]
+      if capture:
+        krtcArgs += ["--capture"]
       p = subprocess.Popen(krtcArgs, stdout=fp, stderr=fp)
       p.communicate()
       if p.returncode == 0:
@@ -662,13 +699,51 @@ class KrtcClient:
       else:
         self.inferFail = True
     self.krtd.qemu.rsyncFromVm(self.krtd.kelfVmDir + "/log-krtd.txt", ".")
+
+    # copies the log files
     cmdCpOutFile = 'cp %s/* %s' % (workingDir,self.krtd.cwd)
     self.krtd.qemu.osSystem(cmdCpOutFile)
+
+    #copies the output files
+    cmdCpOutFile = 'cp %s* %s' % (ofmapPath,self.krtd.cwd)
+    self.krtd.qemu.osSystem(cmdCpOutFile)
+
 
     if not krtOk:
       print("ERROR: infer failure for ifmap:%s check log-infer.txt" % ifmaps)
     else:
       print("INFO: infer success for ifmap:%s" % ifmaps)
+    return krtOk
+
+  def doMultipleKrtcInference(self, model_id, ifmapList, timeout, binDir, workingDir):
+    krtOk = True
+    ofmapDirList = []
+    for inferenceNum in range(numInferences):
+      print("INFO: Doing Inference Number:%d\n" % inferenceNum)
+      ofmapDirList.append(self.krtd.createTempDir(workingDir + "/infer_%s/" % inferenceNum))
+      #once krtc to send capture o/p to different dir we might not need this and capture
+      #always. Right now the first time we don't capture in multi inference case
+      capture = (numInferences == 1) or (inferenceNum >=1)
+      krtOk = self.krtcInference(model_id, ifmapList, ofmapDirList[inferenceNum], timeout, binDir, workingDir, capture)
+      if not krtOk:
+        print("ERROR: inference %d failed\n" % inferenceNum)
+        break
+      if numInferences == 1:
+        break
+
+      # If we have more than one inference to run, then cache the result
+      # of first that will be used for subsequent to be compared with
+      if inferenceNum == 0:
+        firstInferClass = KrtcInferResultCache(ofmapDirList[inferenceNum])
+      else:
+        krtOk = (firstInferClass == KrtcInferResultCache(ofmapDirList[inferenceNum]))
+        if not krtOk:
+          self.inferFail = True
+          break
+
+    for dir in ofmapDirList:
+      self.krtd.removeTempDir(dir)
+
     return krtOk
 
   def addModel(self, kelfDir, workingDir):
@@ -682,7 +757,7 @@ class KrtcClient:
     (model_id, krtOk) = self.krtcLoadStartModel(binDir, workingDir)  #in future this would take the tpb in which to load
     if not krtOk:
       return
-    krtOk = self.krtcInference(model_id, args.ifmaps, "out-%s.bin" % args.sg,str(self.krtd.inklingTimeout),binDir, workingDir)
+    krtOk = self.doMultipleKrtcInference(model_id, args.ifmaps, str(self.krtd.inklingTimeout),binDir, workingDir)
     if not krtOk:
       return
     self.krtd.getFinalBin()
