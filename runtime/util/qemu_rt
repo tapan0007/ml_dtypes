@@ -650,7 +650,7 @@ class KrtcClient:
     binDir = self.krtd.tempBinDir
     workDir = self.krtd.tempWorkingDir
     (ifmapPathList,ifmapFileList) = self.krtd.getIfMapFile(ifmapList, ofmap)
-    ofmapPath = "%s/t" % (workingDir)
+    ofmapPath = "%s/" % (workingDir)
     krtcCmd = "%s/bin/krtc/krtc" % (binDir)
     inferLogFile = "%s/log-infer.txt" % (workingDir)
     modelId = "%s" % model_id
