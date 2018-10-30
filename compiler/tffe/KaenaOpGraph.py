@@ -1204,8 +1204,13 @@ class NodeSimple2(Node):
       if len(npInfoIF1.npShape) == 0:
         val = npInfoIF1.getValues()
         assert val.size == 1
-        layerDataBase[0]["add_scalar"] = np.asscalar(val.ravel()[0])
         layerDataBase[0]["previous_layers"] = [fromIfNode0.getName()]
+        if self.getOpType() == "ExpandDims":
+          layerDataBase[0]["axis"] = np.asscalar(val.ravel()[0])
+          layerDataBase[0]["#comment"] = "Insert new dimension of size 1 in the axis specified by \"axis\" field."
+        else:
+          layerDataBase[0]["add_scalar"] = np.asscalar(val.ravel()[0])
+          layerDataBase[0]["#comment"] = "Element-wise operation on one input tensor and scalar."
       else:
 
         # Collapse the side node to a branch (except when it already is a real constant)

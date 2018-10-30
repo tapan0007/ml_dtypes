@@ -1,4 +1,3 @@
-### WARNING: can's open 7-amoebanet_fp16_pool/sg01/wavegraph.json; error:  Expecting value: line 1 column 1 (char 0)
 --- # Top structure is a dictionary with following fields:
 data_type: Data type for the network (float16, bfloat16, uint8, uint16).
 net_name: Name of the network.
@@ -11,11 +10,12 @@ previous_waveops: A list of names for Waveops that feed this Waveop (predecessor
   Ex. []
 waveop_name: Name of waveop. This is used in the list of predecessors (previous_waveops)
   to indicate dependency. Ex. 1conv/i1/SBAtomLoad_weights_0_n0_m0_h0_w0_c0_r0_s0
-waveop_type: Type of waveop. The types are ScaleAdd, Pool, SBAtomLoad, Maximum, Minimum,
-  ClipByValue, ResAdd, Reciprocal, SBAtomSave, Activation, MatMul, Multiply. Ex. SBAtomLoad
+waveop_type: Type of waveop. The types are ClipByValue, Multiply, MatMul, SBAtomSave,
+  Add, ResAdd, Sub, Activation, Maximum, Minimum, ScaleAdd, Reciprocal, Pool, SBAtomLoad.
+  Ex. SBAtomLoad
 
 --- # The following are pattern fields common to many waveops:
-dst_is_psum: Destination is PSUM. Ex. False
+dst_is_psum: Destination is PSUM. Ex. True
 dst_psum_bank_id: Destination PSUM bank ID. Field exists only if PSUM is used (dst_is_psum
   == True). Ex. 0
 dst_psum_bank_offset: Destination PSUM bank element offset for the first write to
@@ -26,13 +26,13 @@ dst_start_at_mid_part: Destination starts at middle partition (parition 64), for
   that operate on up-to-64 channels. Field exists only if SB is used (dst_is_psum
   == False). Ex. False
 dst_x_num: Destination data spatial pattern (per channel) - X dimension (W for non-pool,
-  window-X for pool) number of elements. Ex. 128
+  window-X for pool) number of elements. Ex. 1
 dst_x_step: Destination data spatial pattern (per channel) - X dimension (W for non-pool,
   window-X for pool) step size in unit of elements. Ex. 1
 dst_y_num: Destination data spatial pattern (per channel) - Y dimension (H for non-pool,
-  window-Y for pool) number of elements. Ex. 2
+  window-Y for pool) number of elements. Ex. 1
 dst_y_step: Destination data spatial pattern (per channel) - Y dimension (H for non-pool,
-  window-Y for pool) step size in unit of elements. Ex. 128
+  window-Y for pool) step size in unit of elements. Ex. 1
 dst_z_num: Destination data spatial pattern (per channel) - Z dimension (N for non-pool,
   stride-X for pool) number of elements. Ex. 1
 dst_z_step: Destination data spatial pattern (per channel) - Z dimension (N for non-pool,
@@ -44,7 +44,7 @@ src_a_psum_bank_offset: Source (first of 2 inputs) PSUM bank element offset for 
   first write to PSUM. Field exists only if PSUM is used (src_a_is_psum == True).
   Ex. 0
 src_a_sb_address: Source (first of 2 inputs) SB address (one parition). Field exists
-  only if SB is used (src_a_is_psum == False). Ex. 10496
+  only if SB is used (src_a_is_psum == False). Ex. 16640
 src_a_start_at_mid_part: Source (first of 2 inputs) starts at middle partition (parition
   64), for operations that operate on up-to-64 channels. Field exists only if SB is
   used (src_a_is_psum == False). Ex. False
@@ -62,7 +62,7 @@ src_a_z_step: Source (first of 2 inputs) data spatial pattern (per channel) - Z 
   (N for non-pool, stride-X for pool) step size in unit of elements. Ex. 1
 src_b_is_psum: Source (second of 2 inputs) is PSUM. Ex. False
 src_b_psum_bank_id: Source (second of 2 inputs) PSUM bank ID. Field exists only if
-  PSUM is used (src_b_is_psum == True). Ex. 0
+  PSUM is used (src_b_is_psum == True). Ex. 2
 src_b_psum_bank_offset: Source (second of 2 inputs) PSUM bank element offset for the
   first write to PSUM. Field exists only if PSUM is used (src_b_is_psum == True).
   Ex. 0
@@ -83,13 +83,13 @@ src_b_z_num: Source (second of 2 inputs) data spatial pattern (per channel) - Z 
   (N for non-pool, stride-X for pool) number of elements. Ex. 1
 src_b_z_step: Source (second of 2 inputs) data spatial pattern (per channel) - Z dimension
   (N for non-pool, stride-X for pool) step size in unit of elements. Ex. 1
-src_is_psum: Source is PSUM. Ex. False
+src_is_psum: Source is PSUM. Ex. True
 src_psum_bank_id: Source PSUM bank ID. Field exists only if PSUM is used (src_is_psum
   == True). Ex. 0
 src_psum_bank_offset: Source PSUM bank element offset for the first write to PSUM.
   Field exists only if PSUM is used (src_is_psum == True). Ex. 0
 src_sb_address: Source SB address (one parition). Field exists only if SB is used
-  (src_is_psum == False). Ex. 512
+  (src_is_psum == False). Ex. 41152
 src_start_at_mid_part: Source starts at middle partition (parition 64), for operations
   that operate on up-to-64 channels. Field exists only if SB is used (src_is_psum
   == False). Ex. False
@@ -98,13 +98,13 @@ src_w_num: Source data spatial pattern (per channel) - W dimension (Unused for n
 src_w_step: Source data spatial pattern (per channel) - W dimension (Unused for non-pool,
   stride-Y for pool) step size in unit of elements. Ex. 32
 src_x_num: Source data spatial pattern (per channel) - X dimension (W for non-pool,
-  window-X for pool) number of elements. Ex. 128
+  window-X for pool) number of elements. Ex. 1
 src_x_step: Source data spatial pattern (per channel) - X dimension (W for non-pool,
   window-X for pool) step size in unit of elements. Ex. 1
 src_y_num: Source data spatial pattern (per channel) - Y dimension (H for non-pool,
-  window-Y for pool) number of elements. Ex. 2
+  window-Y for pool) number of elements. Ex. 1
 src_y_step: Source data spatial pattern (per channel) - Y dimension (H for non-pool,
-  window-Y for pool) step size in unit of elements. Ex. 128
+  window-Y for pool) step size in unit of elements. Ex. 1
 src_z_num: Source data spatial pattern (per channel) - Z dimension (N for non-pool,
   stride-X for pool) number of elements. Ex. 1
 src_z_step: Source data spatial pattern (per channel) - Z dimension (N for non-pool,
@@ -145,6 +145,8 @@ ClipByValue:
   in_dtype: Input (source) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float16
+  is_scalar_op: True indicates the operation is scalar operation (tensor-scalar),
+    and not tensor-tensor operation. Ex. True
   max_val: Limit maximum value to this value, which is of the same type as tensor.
     Ex. 3.0
   min_val: Limit minimum value to this value, which is of the same type as tensor.
@@ -192,7 +194,8 @@ MatMul:
     to load into PEArray. -1 means to not issue LdWeights instruction and reused previously
     loaded into PEArray. Ex. 16384
 Maximum:
-  '#comment': Minimum between two tensors, element-wise (aws_tonga_isa_tpb_tensor_tensor_op.h).
+  '#comment': Maximum between two tensors if is_scalar_op=false, or one tensor and
+    scalar if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).
   dst_*: Destination data pattern (see common fields section above)
   in_a_dtype: Input A data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
@@ -200,6 +203,8 @@ Maximum:
   in_b_dtype: Input B data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float32
+  is_scalar_op: True indicates the operation is scalar operation (tensor-scalar),
+    and not tensor-tensor operation. Ex. False
   num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
     is False, or partition 64 of start_at_mid_part is True. Ex. 64
   out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
@@ -209,8 +214,29 @@ Maximum:
   tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
     Ex. [0, 0, 0, 0]
   tile_id_format: Format of string representing the tile ID (for debug). Ex. nmhw
+Minimum:
+  '#comment': Minimum between two tensors if is_scalar_op=false, or one tensor and
+    scalar if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).
+  dst_*: Destination data pattern (see common fields section above)
+  in_dtype: Input (source) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
+    (see top of individual ISA instruction header for more detail/restrictions). Ex.
+    float32
+  is_scalar_op: True indicates the operation is scalar operation (tensor-scalar),
+    and not tensor-tensor operation. Ex. True
+  num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
+    is False, or partition 64 of start_at_mid_part is True. Ex. 1
+  out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
+    (see top of individual ISA instruction header for more detail/restrictions). Ex.
+    float16
+  scalar_val: Scalar constant that is used for scalar operation when is_scalar_op
+    is true. Ex. 1097.0
+  src_*: Source data pattern (see common fields section above)
+  tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
+    Ex. [0, 0, 0, 0]
+  tile_id_format: Format of string representing the tile ID (for debug). Ex. nmhw
 Multiply:
-  '#comment': Multiple two tensors. (aws_tonga_isa_tpb_tensor_tensor_op.h).
+  '#comment': Multiply two tensors if is_scalar_op=false, or one tensor and scalar
+    if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).
   dst_*: Destination data pattern (see common fields section above)
   in_a_dtype: Input A data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
@@ -218,6 +244,8 @@ Multiply:
   in_b_dtype: Input B data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float32
+  is_scalar_op: True indicates the operation is scalar operation (tensor-scalar),
+    and not tensor-tensor operation. Ex. False
   num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
     is False, or partition 64 of start_at_mid_part is True. Ex. 32
   out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
@@ -267,6 +295,8 @@ ResAdd:
   in_b_dtype: Input B data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float16
+  is_scalar_op: True indicates the operation is scalar operation (tensor-scalar),
+    and not tensor-tensor operation. Ex. False
   num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
     is False, or partition 64 of start_at_mid_part is True. Ex. 64
   out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
@@ -339,13 +369,36 @@ ScaleAdd:
   dst_*: Destination data pattern (see common fields section above)
   in_dtype: Input (source) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
-    float32
+    float16
+  is_scalar_op: True indicates the operation is scalar operation (tensor-scalar),
+    and not tensor-tensor operation. Ex. True
   num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
-    is False, or partition 64 of start_at_mid_part is True. Ex. 64
+    is False, or partition 64 of start_at_mid_part is True. Ex. 1
   out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
     (see top of individual ISA instruction header for more detail/restrictions). Ex.
     float32
-  scale: Scalar value to multiply result of input adder in ScaleAdd. Ex. 0.009999999776482582
+  scale: Scalar value to multiply result of input adder in ScaleAdd. Ex. 0.0
+  src_*: Source data pattern (see common fields section above)
+  tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
+    Ex. [0, 0, 0, 0]
+  tile_id_format: Format of string representing the tile ID (for debug). Ex. nmhw
+Sub:
+  '#comment': Sub tensor B from tensor A (A-B) if is_scalar_op=false, else A - scalar
+    if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).
+  dst_*: Destination data pattern (see common fields section above)
+  in_a_dtype: Input A data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
+    (see top of individual ISA instruction header for more detail/restrictions). Ex.
+    float16
+  in_b_dtype: Input B data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
+    (see top of individual ISA instruction header for more detail/restrictions). Ex.
+    float32
+  is_scalar_op: True indicates the operation is scalar operation (tensor-scalar),
+    and not tensor-tensor operation. Ex. False
+  num_partitions: Number of partitions to access, starting from partition 0 if start_at_mid_part
+    is False, or partition 64 of start_at_mid_part is True. Ex. 1
+  out_dtype: Output (destination) data type, one of fp16/bfloat16/uint8/uint16/fp32/int32/int64
+    (see top of individual ISA instruction header for more detail/restrictions). Ex.
+    float16
   src_*: Source data pattern (see common fields section above)
   tile_id: String representing the tile ID, consisting of tile loop indices (for debug).
     Ex. [0, 0, 0, 0]

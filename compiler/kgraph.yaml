@@ -20,7 +20,7 @@ ref_file: The name of numpy file containing a operator's output tensor data. Ex.
 --- # The layers with fields that are not in common list:
 Add:
   '#comment': Element-wise operation on two input tensors
-  add_scalar: Scalar for the add operation. Ex. 0.5
+  add_scalar: Scalar for the add operation. Ex. 3.0
 AvgPool:
   '#comment': Two dimensional pool with explicit padding
   kernel_shape: The shape of the weights tensor, specified as an array of dimensions.
@@ -74,8 +74,9 @@ ConvTranspose:
 Exp:
   '#comment': Simple operation with single input tensor and single output tensor
 ExpandDims:
-  '#comment': Element-wise operation on two input tensors
-  add_scalar: Scalar for the add operation. Ex. 2
+  '#comment': Insert new dimension of size 1 in the axis specified by "axis" field.
+  axis: The dimension that the operation applies to, specified as index into the shape/format
+    array. Ex. 2
 Input:
   '#comment': Input placeholder
 MatMul:
@@ -115,7 +116,7 @@ Sigmoid:
 Slice:
   '#comment': Extract slice along channel dimension
   slice_begin: Slice begin indices, specified as an array with one value for each
-    dimension. Ex. [0, 0, 0, 0]
+    dimension. Ex. [0, 0, 0, 232]
   slice_size: Slice size, specified as an array with one value for each dimension.
     Ex. [-1, -1, -1, 1536]
 Softmax:
@@ -135,8 +136,9 @@ Split:
   axis: The dimension that the operation applies to, specified as index into the shape/format
     array. Ex. 3
   next_layer_order: A list of 2-elem arrays, each 2-elem array specifies the order
-    of unstack followed by the KNode name. Ex. [[0, 'cell_stem_0/comb_iter_0/left/MaxPool2D/MaxPool'],
-    [0, 'cell_stem_0/comb_iter_0/right/MaxPool2D/MaxPool']]
+    of unstack followed by the KNode name. Ex. [[0, 'cell_9/comb_iter_1/right/Relu'],
+    [0, 'cell_9/comb_iter_2/left/Relu'], [0, 'cell_9/comb_iter_2/right/Relu'], [0,
+    'cell_9/cell_output/concat']]
   num_splits: PLEASE ADD DESCR Ex. 1
 Squeeze:
   '#comment': Simple operation with single input tensor and single output tensor
@@ -154,11 +156,13 @@ StridedSlice:
   end_mask: Mask for end indices, specified as a binary value with size equal to number
     of dimensions. Mask bit 1 means to ignore the corresponding end index. Ex. [1,
     1, 1, 1]
+Sub:
+  '#comment': Element-wise operation on two input tensors
 Tanh:
   '#comment': Simple operation with single input tensor and single output tensor
 Transpose:
   '#comment': Transpose implemented as a copy operation (output dims limited to between
     2-4)
   perm: A list specifying the mapping from old axis to new axis for each dimension.
-    Ex. [1, 0, 2]
+    Ex. [0, 1, 3, 2]
 

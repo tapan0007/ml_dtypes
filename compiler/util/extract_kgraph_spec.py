@@ -42,12 +42,14 @@ if args.wavegraph:
 op_types = {
         'MatMul': 'Description for Matrix Multiply instruction, preceded by Load Weights instruction if weights_sb_address is >= 0 (aws_tonga_isa_tpb_ldweights.h, aws_tonga_is_matmul.h).',
         'Pool': 'Description for Pool instruction (aws_tonga_isa_tpb_pool.h).',
-        'Multiply': 'Multiple two tensors. (aws_tonga_isa_tpb_tensor_tensor_op.h).',
+        'Multiply': 'Multiply two tensors if is_scalar_op=false, or one tensor and scalar if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).',
         'ResAdd': 'Add two tensors. (aws_tonga_isa_tpb_tensor_tensor_op.h).',
+        'Add': 'Add two tensors if is_scalar_op=false, or one tensor and scalar if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).',
         'Activation': 'Description for Activate instruction, which applies a scalar function on a set of input elements (in an element-wise manner) (aws_tonga_isa_tpb_activate.h).',
         'ClipByValue': 'Limit values in tensor to a maximum and minimum limits.', 
-        'Maximum': 'Minimum between two tensors, element-wise (aws_tonga_isa_tpb_tensor_tensor_op.h).', 
-        'Minimum': 'Minimum between two tensors, element-wise (aws_tonga_isa_tpb_tensor_tensor_op.h).', 
+        'Maximum': 'Maximum between two tensors if is_scalar_op=false, or one tensor and scalar if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).',
+        'Minimum': 'Minimum between two tensors if is_scalar_op=false, or one tensor and scalar if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).',
+        'Sub': 'Sub tensor B from tensor A (A-B) if is_scalar_op=false, else A - scalar if is_scalar_op=true. (aws_tonga_isa_tpb_tensor_tensor_op.h, aws_tonga_isa_tpb_tensor_scalar_op.h).',
         'ScaleAdd': 'Description for scale-and-add instruction (aws_tonga_isa_tpb_tensor_scalar_op.h).', 
         'Reciprocal': 'Compute the reciprocal of input tensor, element-wise (aws_tonga_isa_tpb_reciprocal).', 
         'SBAtomLoad': 'Description for DMA loads of tensor/file chunk into SB atom.', 
@@ -86,6 +88,7 @@ field_descr = {
         'clip_value_min': 'Limit minimum value to this value, which is of the same type as tensor.',
         'max_val': 'Limit maximum value to this value, which is of the same type as tensor.',
         'min_val': 'Limit minimum value to this value, which is of the same type as tensor.',
+        'num_split': 'Number of subtensors to split into.',
         # Wavegraph fields
         'waveop_name': 'Name of waveop. This is used in the list of predecessors (previous_waveops) to indicate dependency.',
         'waveop_type': 'Type of waveop. The types are ' + ', '.join(list(op_types.keys())) + ".",
@@ -132,6 +135,8 @@ field_descr = {
         'alpha': 'Multiplier for values less than 0, for modified leaky ReLu (original leaky ReLu value is 0.01). Ok for parametric ReLu if all channels share the same trained parameter.',
         'add': 'Scalar value to add to input in ScaleAdd.',
         'scale': 'Scalar value to multiply result of input adder in ScaleAdd.',
+        'is_scalar_op': 'True indicates the operation is scalar operation (tensor-scalar), and not tensor-tensor operation.',
+        'scalar_val': 'Scalar constant that is used for scalar operation when is_scalar_op is true.',
         }
 
 decode_srcdst = {
