@@ -1100,6 +1100,10 @@ testWaiver = [
     ['3-parwavenet_.*_waveopt$', 'WAIVE_KAENA711'],
     ['3-1conv_transpose_1d_h100r80s20_wave', 'WAIVE_KAENA768'],
     ['3-1conv_transpose_1d_h10r40s10_wave', 'WAIVE_KAENA768'],
+    ['6-parwavenet_10_fp16_in_to_add15_wave$', 'WAIVE-KAENA902'],
+    ['6-parwavenet_10_fp16_in_to_add18_wave$', 'WAIVE-KAENA902'],
+    ['6-parwavenet_10_fp16_in_to_add22_wave$', 'WAIVE-KAENA902'],
+    ['7-parwavenet_10_fp16_in_to_add24_wave$', 'WAIVE-KAENA902'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],
 
@@ -1174,8 +1178,10 @@ noGpuTestWaiver = [
 qemuTestWaiver = [
     ['0-1conv1avgpool_wave_2tpbs', 'WAIVE-QEMU-KAENA830'],
     ['.*-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE-QEMU-KAENA831'],
+    ['7-amoebanet_fp16_cell.*', 'WAIVE_AMOEBA_KAENA923'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
+    ['7-rn50_nne_fp16_wave-no_repl-save-.*-n-layers', 'WAIVE-QEMU-KAENA922'],
     ['8-rn50_nne_conv_wave$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['8-rn50_nne_fp16_b16_wave-two_banks$',  'WAIVE-QEMU'],
