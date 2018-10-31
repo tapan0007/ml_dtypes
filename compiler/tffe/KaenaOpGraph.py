@@ -2035,7 +2035,9 @@ class Graph(Object):
   #   be safely executed
 
   def levelize(self):
+    postponedCounts = {}
     nodes = self.getNodes()
+    postponedLimit = max(1000, len(nodes))
     perDot = max(1, int(len(nodes) / 80))
     print("INFO: levelizing ...")
     self.__level2nodes = []
@@ -2048,6 +2050,9 @@ class Graph(Object):
         if preNode.getLevel() < 0:
           #print("    DEBUG: postponed node  ", n.getName())
           nodes.append(n)
+          postponedCounts[n] = 1 + postponedCounts.get(n, 0)
+          if postponedCounts[n] > postponedLimit:
+            raise RuntimeError("\nERROR: levelize failed likely due to a loop involving node %s. Rerun without --images, and review the TF IR svg" % n)
           level = -1
           break
         else:
