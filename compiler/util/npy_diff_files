@@ -14,6 +14,10 @@ parser.add_argument('--new', help='New values', default="new.npy")
 parser.add_argument('--csv', help='Write golden values and difference in matrix form (CSV)', action='store_true', default=False)
 parser.add_argument('--verbose', help='Verbosity level, 0 exit code only (0 allclose match, 1 mismatch), 1 status line, 2 default with histograms and summaries,  3 individual values',
                     default=2)
+parser.add_argument('--binary_match', help='Compare binary content, no tolerance (--tolerance is ignored)',
+                    action='store_true', default=False)
+parser.add_argument('--tolerance', help='Relative in % and absolute, default is 1 % and 1e-5',
+                    type=float, nargs=2, default=[1, 1e-5])
 
 args = parser.parse_args()
 
@@ -22,7 +26,11 @@ if not os.path.isfile(args.gold):
 if not os.path.isfile(args.new):
   raise("ERROR: missing file --new ")
 
-gold = np.load(args.gold)
+if args.gold.endswith(".bin"):
+  dtype='float16'  # ok for now
+  gold = np.fromfile(args.gold, dtype=dtype)
+else:
+  gold = np.load(args.gold)
 if args.new.endswith(".bin"):
   new = np.fromfile(args.new, dtype=gold.dtype)
   try:
@@ -120,15 +128,31 @@ if verbose >= 2:
   print("%-20s %12s %12s  %12s %12s" % ("Absolute Error:", "mean", "std", "min", "max"))
   print("%-20s %12g %12g  %12g %12g" % ("", diffAbs.mean(), diffAbs.std(), diffAbs.min(), diffAbs.max()))
 
-(tolr, tola) = (1, 1e-5)
-resAllclose = npu.allclose(new, gold, tolr/100, tola, verbose=verbose)
-#resAllclose = np.allclose(new, gold, tolr/100, tola)
-if verbose >= 1:
-  #print("Allclose info tolerance relative %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
-  print("Allclose gold %s vs new %s result is %s (%s rel tolerance %g %% of max, abs tolerance %g)\n" 
-          % (os.path.basename(args.gold), os.path.basename(args.new),
-              "PASS" if resAllclose else "FAIL", 
-              "WITHIN" if resAllclose else "OUTSIDE", 
-              tolr, tola))
+if args.binary_match:
+  goldBytes = gold.tobytes()
+  newBytes = new.tobytes()
+  numBytes = len(goldBytes)
+  # Assert is fine since mismatching lengths are handled by shape comparison earlier
+  assert numBytes == len(newBytes)
+  for i in range(numBytes):
+    if goldBytes[i] != newBytes[i]:
+      if verbose >= 1:
+        print("ERROR: Binary match FAIL at byte %d of %d : gold %s != new %s" % (
+                i, numBytes, goldBytes[i], newBytes[i]))
+      exit(1)
+  if verbose >= 1:
+    print("INFO: Binary match PASS by comparing %d bytes" % numBytes)
+  exit(0)
 
-exit(0 if resAllclose else 1)
+else:
+  (tolr, tola) = args.tolerance
+  resAllclose = npu.allclose(new, gold, tolr/100, tola, verbose=verbose)
+  #resAllclose = np.allclose(new, gold, tolr/100, tola)
+  if verbose >= 1:
+    #print("Allclose info tolerance relative %g %%  absolute %g : %s" % (tolr, tola, resAllclose))
+    print("Allclose gold %s vs new %s result is %s (%s rel tolerance %g %% of max, abs tolerance %g)\n" 
+            % (os.path.basename(args.gold), os.path.basename(args.new),
+                "PASS" if resAllclose else "FAIL", 
+                "WITHIN" if resAllclose else "OUTSIDE", 
+                tolr, tola))
+  exit(0 if resAllclose else 1)

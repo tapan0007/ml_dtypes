@@ -37,6 +37,9 @@ parser.add_argument('--check_against_ref', help='Compare produced subgraph outpu
 parser.add_argument('--working_dir', help='all output will be stored here', default="")
 parser.add_argument('--inkling_debugflags', help='inkling extra args', default=[], nargs='*')
 parser.add_argument('--env', help='Set envvars pairs var=val var1=val1. Used to pass experimental controls to low-level tools', nargs='+', default=[])
+parser.add_argument('--cached_goldens', help='Path to a cached runs. New files created (and diffed against TF) in this run are also compared against the new file in the cached run', default=None)
+parser.add_argument('--diff_options', help='String passed to npy_diff_files utility, such as to control tolerance, default is ""', default="")
+parser.add_argument('--diff_options_cached', help='As diff options, but used for --cached_goldens. Default is "--binary_match"', default='--binary_match')
 
 args = parser.parse_args()
 kelf_dir = args.kelf_dir
@@ -379,7 +382,10 @@ class NnExec:
   # Return unix exit code. Subgraph mode can be "last" or "all*"
   #   all_available   includes tensors for which qemu output bin is present.
   #   all_internal    includes all non-constant tensors in the subgraph
-  def check(self, sgMode):
+  # The cachedGoldens 
+  #     additional comparison is done against all "new" (computed) tensor files
+  #     This is useful in eg running qemu, then rerun with --cached_kelf on zebu
+  def check(self, sgMode, diffOptions, cachedGoldensPath, diffOptionsCached):
     # find last non processor subgraph, compare output.
     sgList = []
     if sgMode == 'last':
@@ -392,6 +398,7 @@ class NnExec:
       sgList = self.subGraphs
     else:
       raise ValueError("ERROR: Unsupported subgraph mode --check_against_ref '%s'" % sgMode)
+    comparedFiles = []
     for sg in sgList:
       print("\nINFO: nn_executor.check subgraph  %s OUTPUT tensors" % (sg.sgDir), flush=True)
       retAll = 0
@@ -399,7 +406,9 @@ class NnExec:
         refOutFile = jsonOutput['file']
         outBase = refOutFile[:-4]
         flowOutFile = outBase + "-out.npy"
-        cmd = "%s/compiler/util/npy_diff_files --gold %s/%s --new %s" % (kPath, kelf_dir, refOutFile, flowOutFile)
+        comparedFiles.append(flowOutFile)
+        cmd = "%s/compiler/util/npy_diff_files %s --gold %s/%s --new %s" % (
+                kPath, diffOptions, kelf_dir, refOutFile, flowOutFile)
         print("INFO: executing %s" % cmd, flush=True)
         ret = os.system(cmd)
         retAll = ret | retAll
@@ -424,7 +433,9 @@ class NnExec:
               print('ERROR: --check_against_ref all_internal  missing file ', newFile)
               retAll = 1
           else:
-            cmd = "%s/compiler/util/npy_diff_files --gold %s --new %s" % (kPath, refFile, newFile)
+            cmd = "%s/compiler/util/npy_diff_files %s --gold %s --new %s" % (
+                    kPath, diffOptions, refFile, newFile)
+            comparedFiles.append(newFile)
             print("INFO: executing %s" % cmd, flush=True)
             ret = os.system(cmd)
             retAll = ret | retAll
@@ -432,6 +443,20 @@ class NnExec:
                     sg.sgDir, tensorName, ('PASS' if ret == 0 else 'FAIL')), flush=True)
       if retAll != 0:
         return retAll
+    
+    if cachedGoldensPath:
+      print("\nINFO: nn_executor.check Comparing %d cached golden tensors" % (len(comparedFiles)), flush=True)
+      for f in comparedFiles:
+        refFile = "%s/%s" % (cachedGoldensPath, f)
+        newFile = f
+        cmd = "%s/compiler/util/npy_diff_files %s --gold %s --new %s" % (
+                kPath, diffOptionsCached, refFile, newFile)
+        print("INFO: executing %s" % cmd, flush=True)
+        ret = os.system(cmd)
+        retAll = ret | retAll
+      if retAll != 0:
+        return retAll
+    
     return 0
 
 ret = 0
@@ -441,7 +466,8 @@ ret = nnExec.run()
 if ret != 0:
   raise RuntimeError("ERROR: nn_executor has returned non-zero exit status, please check log-exec*.txt")
 if (ret == 0) and (args.check_against_ref != "none"):
-  ret = nnExec.check(args.check_against_ref)
+  ret = nnExec.check(args.check_against_ref, args.diff_options,
+                     args.cached_goldens, args.diff_options_cached)
 
 print(getInfoDateStr(), "Kaena RT status %s" % ("PASS" if ret == 0 else "FAIL"))
 sys.exit(0 if ret == 0 else 1)

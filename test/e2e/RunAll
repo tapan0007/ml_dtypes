@@ -70,7 +70,7 @@ parser.add_argument('--no_gpu', help='wave tests that require a GPU', action='st
 parser.add_argument('--force_qemu', help='Apply additional --filer and various customization for Qemu flow, e.g., wave-qemu_inkling instead by auto modifying --scheduler wave.*  to  --scheduler qemu_wave.*; tests with \"fp32\", \"waveopt\", and \"host\" are filtered out.', action='store_true', default=False)
 parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
-parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path or s3 url', default=None)
+parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path or s3 url. Also triggers additional comparison with tensors computed by the cached run.', default=None)
 
 args = parser.parse_args()
 verbose = args.verbose
@@ -584,7 +584,9 @@ class Ktests:
             ulimitCpuTimeout, ulimitCpuTimeout, testName, testName)
       makeTarget = nnStruct
       if cachedKelf:
-        makeTarget = "run_kelf_cached CACHED_KELF=%s/%s" % (cachedKelf, testName)
+        cachedTestPath = "%s/%s" % (cachedKelf, testName)
+        makeTarget = "run_kelf_cached CACHED_KELF=%s" % cachedTestPath
+        rtArgs += " --cached_goldens %s/working_dir" % cachedTestPath
       cmd += 'make -f  $KAENA_PATH/test/e2e/Makefile %s %s NN_CONFIG=%s OUT_PREFIX=%s NN_NAME=%s NN_ARGS="%s" RT_ARGS="%s"' % (
              makeTarget, sealifeOpt, nnConfig, outPrefix, nnLabel, nnArgs, rtArgs)
       cmd +=  ' > log-top.txt 2>&1'
