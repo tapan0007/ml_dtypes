@@ -380,7 +380,8 @@ class FusedOp(list):
             self.next_batch_count = self.args.force_batch_count
             self.current_batch_count = self.args.force_batch_count
         #9-10-2018
-        self.concat_dram_weights_waveops = []
+        #self.concat_dram_weights_waveops = []
+        self.concat_dram_weights_waveops = dict()
         self.concat_dram_weights_file_params = dict()
 
     def set_live_mapped_file_params(self, live_mapped_file_params):
@@ -1118,6 +1119,7 @@ class FusedOp(list):
             dram_waveop_names = []
             if i==0:
                 for j in dram_weights_waveops:
+                    print("tamke:gen_matmuls:dram_weights_waveops = %s"%j["waveop_name"])
                     dram_waveop_names.append(j["waveop_name"])
             else:
                 # reuse weights loaded with first piece of broken matmul
@@ -2802,27 +2804,36 @@ class FusedOp(list):
                     tpb = tpb, fmap_subtile = pewave, reader_engine = EngineEnum.PEARRAY)
         (writers, readers, dram_weights_waveops) = ([], [], [])
         # 9-10-2018
-        if (first or self.args.full_dependencies):
-          total_size_weights =(self.first_op.weight_wave_upper_addr
-                             - self.first_op.weight_wave_lower_addr
-                             + self.first_op.item_sz) * num_weights
-          (writers, readers, dram_weights_waveops, reader_morsels) =\
-                  tpb.statebuffer.file_mapper.read_file_data_region(
-                      tpb.waveop_stream.waveop_count
-                      , tpb.waveop_stream
-                      , self.first_op.weights_file_params
-                      , 0  # batch_item doesn't apply for weights
-                      , self.first_op.weight_wave_lower_addr
-                      , total_size_weights
-                      , reader_engine = EngineEnum.PEARRAY
-                      , start_at_mid_part = False
-                      , end_after_mid_part = True
-                      , repl_multiple_of_C = 1
-                      , dont_put_prev_ops = False
-                  )
-          self.concat_dram_weights_waveops = dram_weights_waveops
-          new_reader_morsels += reader_morsels
-        dram_weights_waveops = self.concat_dram_weights_waveops
+        #if (first or self.args.full_dependencies):
+        total_size_weights =(self.first_op.weight_wave_upper_addr
+                            - self.first_op.weight_wave_lower_addr
+                            + self.first_op.item_sz) * num_weights
+        (writers, readers, dram_weights_waveops, reader_morsels) =\
+                tpb.statebuffer.file_mapper.read_file_data_region(
+                    tpb.waveop_stream.waveop_count
+                    , tpb.waveop_stream
+                    , self.first_op.weights_file_params
+                    , 0  # batch_item doesn't apply for weights
+                    , self.first_op.weight_wave_lower_addr
+                    , total_size_weights
+                    , reader_engine = EngineEnum.PEARRAY
+                    , start_at_mid_part = False
+                    , end_after_mid_part = True
+                    , repl_multiple_of_C = 1
+                    , dont_put_prev_ops = False
+                )
+          #self.concat_dram_weights_waveops[ifmap_tile.file_params.file_name] =\
+          #  dram_weights_waveops
+        prev_waveops += extract_predecessors(
+                list_of_accessors_wr = writers, 
+                list_of_accessors_rd = [[]],
+                waveop_list          = tpb.waveop_stream,
+                dram_waveops         = dram_weights_waveops,
+                relax_dependencies   = self.args.relax_dependencies,
+                full_dependencies    = self.args.full_dependencies)
+        new_reader_morsels += reader_morsels
+        #dram_weights_waveops =\
+        #    self.concat_dram_weights_waveops[ifmap_tile.file_params.file_name]
         #print ("len(dram_weights_waveops) = %d"%len(dram_weights_waveops))
         psum_add = start_tensor_calc == False
         mms = self.gen_matmul_waveop(tpb\
@@ -2843,10 +2854,11 @@ class FusedOp(list):
             else:
               tpb.waveop_stream.add_linked(
                   mms[i], [], psum_bank_id, new_reader_morsels)
-            prev_record_in_waveop = mms[i]['previous_waveops']
-            for prev in prev_waveops:
-                if prev not in prev_record_in_waveop:
-                    prev_record_in_waveop.append(prev)
+            attach_predecessors(mms[i], prev_waveops)
+            #prev_record_in_waveop = mms[i]['previous_waveops']
+            #for prev in prev_waveops:
+                #if prev not in prev_record_in_waveop:
+                    #prev_record_in_waveop.append(prev)
             # The following is only needed for engines writing to SB
             #ofmap_pewave = PEWave(ofmap_tile, 0, 0, 0)
             #self.mark_producers_for_subtile_region(
