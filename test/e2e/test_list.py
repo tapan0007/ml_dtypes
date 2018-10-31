@@ -21,6 +21,8 @@ fp16AccJpg = "%s/%s" % (kePath, "images/3404.jpg")
 
 rnDogCatB2Fp32 = "%s/%s" % (kePath, "images/res50_dog_cat_fp32.npy")
 
+rnBfloat16Npy = "%s/%s" % (kePath, "images/res50_bfp16infp16.npy")
+
 def getBatchedJpgs(batchLevel):
     listExtraJpgs = [rnDogJpg, rnCatJpg, rnKoalaJpg] * ((batchLevel+3)//3)
     return ' '.join(tuple(listExtraJpgs[0:batchLevel]))
@@ -656,6 +658,10 @@ testConfigMap = {
   #"7-rn50_nne_fp16_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave2 --batch 1 --images linspace1", ],
   #"7-rn50_nne_fp16_b2_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave2 --batch 2 --images %s %s"%(rnPreFp16, rnDogJpg, rnCatJpg), "--input_files %s %s" % (rnDogJpg, rnCatJpg)],
   #"7-rn50_nne_fp16_b16_waveopt"   : [ "tf_pb",   "resnet50_keras/resnet50_fp16_keras_opt2.pb","resnet50", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors waveopt 0 host 1  --scheduler wave2 --batch 16 --images %s"%(rnPreFp16, getBatchedJpgs(16)), "--input_files %s" % (getBatchedJpgs(16))],
+
+  # Resnet50 bfloat16
+  "7-rn50_nne_bfloat16_wave": [ "tf_s3", "s3://kaena-nn-models", "resnet50_bfp16infp16_keras_opt.pb", "--input_node input_1  --depth 2  --debug 1 %s --partition from fc1000/Softmax --executors wave 0 host 1 --wavegraph_transform 'cleaner,shell=perl -i -p -e s/float16/bfloat16/g wavegraph.json' --images %s " % (MEv2("RN50-WaiveWC-no_verify"), rnBfloat16Npy), "--input_files %s --check_against_ref none" % rnBfloat16Npy ],
+
 
 ##################################################################
 # act4 initial subgraphs

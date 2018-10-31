@@ -78,6 +78,11 @@ class RuntimeTf:
       for tensorName,tensorFile in zip(inputTensors[::2], inputTensors[1::2]):
         inputTensor = graph.get_tensor_by_name(tensorName)
         inputValue = np.load(tensorFile)
+
+        # Check whether the input is bfloat16, convert if needed
+        if inputValue.dtype == '|V2':
+          inputValue = np.frombuffer(inputValue.tobytes(), dtype=tf.bfloat16.as_numpy_dtype).reshape(inputValue.shape)
+
         feedDict[inputTensor] = inputValue
       
       # Collect results
