@@ -535,6 +535,8 @@ class PythonTest:
     workDir = self.krtd.tempWorkingDir
     pyExec = 'pytest'
     pyTest = '%s/bin/tests' % (binDir)
+    krt_python_path = "%s/bin/" % (binDir)
+    os.environ['KRT_PYTHON_PATH'] = krt_python_path
     pytestLogFile = "%s/log-pytest.txt" % (workDir)
     grpcAddress = "%s:%d" % (self.krtd.qemu.grpcHost,self.krtd.qemu.grpcPort)
     machine = "%s" % (self.krtd.qemu.type)
