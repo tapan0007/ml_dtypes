@@ -44,6 +44,9 @@ uninstall:
 check:
 	$(MAKE) check -C ${KAENA_PATH}/test/e2e
 
+check_emu:
+	$(MAKE) check_emu -C ${KAENA_PATH}/test/e2e
+
 clean:  build_clean repo_clean
 
 

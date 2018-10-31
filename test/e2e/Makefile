@@ -96,6 +96,42 @@ TEST_ARGS_CHECK = --test 0-1conv0_wave  3-rn50-t00_wave 3-rn50_pool2_wave 4-ptb_
 4-ptb_word_small_sigmoid_fp16_b32_wave_qemu \
 0-resadd_wave_qemu   
 
+# Tests that will be run on emulator. These tests are run to check if RTL is fine.
+# Using parallel 1 till we figure out the lock issue
+TEST_ARGS_CHECK_EMU= --force_qemu --parallel 1 --test \
+5-inceptionv3_wave_dog_sg00_tpb_upto_concat1 \
+5-inceptionv3_wave_dog_sg00_tpb_upto_concat2 \
+6-inceptionv3_wave_dog_sg00_tpb_upto_concat4 \
+6-inceptionv3_wave_dog_sg00_tpb_upto_concat5 \
+5-rn50_nne_to_act13_wave-no_repl \
+5-rn50_nne_to_act13_wave-repl \
+5-rn50_nne_to_act4_wave-no_repl \
+5-rn50_nne_to_act4_wave-repl \
+6-rn50_nne_to_act22_wave-no_repl \
+6-rn50_nne_to_act22_wave-repl \
+6-rn50_nne_to_act25_wave-repl \
+6-rn50_nne_to_act28_wave-repl \
+6-rn50_nne_to_act37_wave-repl \
+6-rn50_nne_to_act40_wave-repl \
+6-rn50_nne_to_act43_wave-repl \
+6-rn50_nne_to_act46_wave-no_repl \
+6-rn50_nne_to_act46_wave-repl \
+6-rn50_nne_to_act49_wave-no_repl \
+6-rn50_nne_to_act49_wave-repl \
+7-rn50_nne_fp16_b4_wave \
+7-rn50_nne_fp16_b4_wave-no_repl \
+7-rn50_nne_fp16_wave-no_repl \
+6-parwavenet_10_fp16_tanh_to_add9_wave \
+6-parwavenet_10_fp16_tanh_to_add12_wave \
+6-parwavenet_10_fp16_tanh_to_add15_wave \
+6-parwavenet_10_fp16_tanh_to_add18_wave \
+6-parwavenet_10_fp16_tanh_to_add22_wave \
+7-parwavenet_10_fp16_tanh_to_add24_wave \
+7-amoebanet_fp16_cell1 \
+7-amoebanet_fp16_cell11 \
+7-amoebanet_fp16_cell5 \
+7-amoebanet_fp16_cell9
+
 # 0-subtract_psum_sb_wave  
 
 # Tests that we want to run on qemu but they still fails as of Oct 2018
@@ -108,3 +144,6 @@ check:
 
 check_level7:
 	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_LEVEL7}
+
+check_emu:
+	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_EMU}
