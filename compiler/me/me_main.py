@@ -569,7 +569,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_verify", action='store_true', help="Disables FMAPs comparison")
     parser.add_argument("--enable_eviction", action='store_true', help="Enable eviction")
     parser.add_argument("--enable_cleanup", action='store_true', help="Enable wavegraph cleanup for event pressure reduction")
-    parser.add_argument("--full_dependencies", action='store_true', help="Insert all the dependencies in wavegraph")
+    parser.add_argument("--full_dependencies", default=True, action='store_true', help="Insert all the dependencies in wavegraph")
     parser.add_argument("--relax_dependencies", action='store_true', help="To prevent running out of events (kaena-403,449), this option when true would relax the dependency requirement (kaena-411)")
     parser.add_argument("--fuse_lrelu", action='store_true', help="Fuse the function max(y, a*y) into Lrelu activation function")
     args = parser.parse_args()
