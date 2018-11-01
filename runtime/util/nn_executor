@@ -219,7 +219,7 @@ class NnSubgraph:
       if self.parallel_streams:
         cmd += " --parallel_streams"
       cmd += ' --inkling_debugflags %s' % " ".join(args.inkling_debugflags)
-    elif executor == "qemu_wave" or executor == "qemu_wave2":
+    elif 'qemu' in executor:
       self.linkConsts()
       ifmapFiles = self.createTpbFormatInputs()
       user = getpass.getuser()
@@ -280,7 +280,7 @@ class NnSubgraph:
 
     # Translate TPB format back to TF format.
     isWaveopt = (executor == "waveopt" or executor == "waveopt2")
-    if (executor == "tcc" or  executor == "wave" or  executor == "qemu_wave" or executor == "qemu_wave2" or isWaveopt) and len(self.outputs) > 0:
+    if (executor == "tcc" or  executor == "wave" or 'qemu' in executor or isWaveopt) and len(self.outputs) > 0:
       for jsonOutput in self.outputs:
         outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
         tff = self.tensorFormatMap.get(outNodeName)
@@ -293,7 +293,7 @@ class NnSubgraph:
         tpbOutFile = "%s_%s-%s.npy" % (outBase, tpbFmapFormat, simExt)
         outFileQuemu = "%s_%s.bin" % (outBase, tpbFmapFormat)
         
-        if executor == "qemu_wave" or executor == "qemu_wave2":
+        if 'qemu' in executor:
           # qemu_inkling runtime outputs raw binary portion of the ofmap in TPB format (not full npy)
           print("INFO: nn_executor: translating Qemu output %s to %s" % (outFileQuemu, tpbOutFile))
           if os.path.isfile(outFileQuemu):

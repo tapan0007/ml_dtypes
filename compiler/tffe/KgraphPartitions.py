@@ -652,8 +652,6 @@ class KgraphPart(object):
     for sgId in range(len(self.__subgraphs)):
       if self.__subgraphs[sgId].isSupported:
         self.sgId2executor[sgId] = "wave"
-        if scheduler == "qemu_wave" or scheduler == "qemu_wave2":
-          self.sgId2executor[sgId] = "qemu_wave"
       else:
         self.sgId2executor[sgId] = "host"
 
@@ -665,10 +663,13 @@ class KgraphPart(object):
       elif re.search('^\d+$', word):
         sgId = int(word)
         self.sgId2executor[sgId] = executor
-        if executor == "wave" and (scheduler == "qemu_wave" or scheduler == "qemu_wave2"):
-          self.sgId2executor[sgId] = "qemu_wave"
       else:
         executor = word
+    # Override wave executor to qemu
+    if 'qemu' in scheduler:
+      for sgId in range(len(self.__subgraphs)):
+        if self.sgId2executor[sgId] == "wave":
+          self.sgId2executor[sgId] = "qemu_wave"
     print("INFO: subgraph to executor map  %s" % str(self.sgId2executor), flush=True)
     #assert len(self.sgId2executor) == len(self.__subgraphs)
   
