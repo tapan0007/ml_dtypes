@@ -45,8 +45,6 @@ private:
                     EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
     void generateDmaCopySimKelf(wave::SbAtomSaveWaveOp* sbAtomSaveWaveop,
                     EngineId chosenEngId, const std::vector<events::EventId>& succEventIds);
-    kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomSaveWaveOp* sbAtomWaveop,
-                        EngineId& chosenEngId, std::vector<events::EventId>& succEventIds);
 
     void calcOutputSize(const wave::SbAtomSaveWaveOp* sbAtomSaveWaveop);
 };

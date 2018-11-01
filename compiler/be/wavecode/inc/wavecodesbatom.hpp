@@ -5,6 +5,7 @@
 
 #include <string>
 #include <cstdio>
+#include <vector>
 
 
 
@@ -36,6 +37,9 @@ protected:
     void addDmaBarrier(EngineId engId);
     void addSecondDmaTrigger(compisa::DmaTriggerInstr& dmaTriggerInstr, EngineId chosenEngId);
 
+    kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
+                        EngineId& chosenEngId,
+                        std::vector<events::EventId>& succEventIds);
 
 private:
 };

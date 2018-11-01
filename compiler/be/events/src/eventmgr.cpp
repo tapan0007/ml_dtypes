@@ -110,7 +110,7 @@ EventMgr::processWaveop(wave::WaveOp* waveop)
         ++numPrevs;
 
         if (prevWaveop->gType() == waveop->gType()) {
-            if (! (waveop->qNopWaveOp() || waveop->qSbAtomLoadWaveOp()) ) {
+            if (! (waveop->qNopWaveOp()) ) {
                 std::cerr << "WARNING: two dependent NOP waveops of the same type("
                     << waveop->gTypeStr() << ") " << prevWaveop->gName() << " --> "
                     << waveop->gName() << "\n";

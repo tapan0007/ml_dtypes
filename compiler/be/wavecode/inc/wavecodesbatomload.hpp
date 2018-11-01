@@ -61,9 +61,6 @@ private:
     void generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
     void generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveOp);
 
-    kcc_int32 findSuccEventsAndChosenEngine(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
-                        EngineId& chosenEngId, std::vector<events::EventId>& succEventIds);
-
     static void setInstructionEvents(compisa::SimMemCpyInstr& dramToStateBufInstr, bool first, bool last,
                     events::EventId waitEventId, events::EventWaitMode waitEventMode,
                     events::EventId setEventId, events::EventSetMode setEventMode);
