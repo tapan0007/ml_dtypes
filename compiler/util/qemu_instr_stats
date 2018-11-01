@@ -192,7 +192,7 @@ class QemuLogs(object):
         print("\nTest", testName)
         tongaFiles = []
         for f in files:
-          if f.endswith("-final.bin"):
+          if f.endswith("_final.bin"):
             print("  File", f)
             tongaFiles.append(subdir + "/" + f)
         program = TongaProgram(tongaFiles)
