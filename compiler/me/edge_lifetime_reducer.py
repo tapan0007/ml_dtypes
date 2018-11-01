@@ -11,7 +11,7 @@ TOTAL_EVENTS = 256
 RESERVED_EVENTS = 13
 MAX_EVENTS = (TOTAL_EVENTS - RESERVED_EVENTS)
 LEVEL_PRINTING_STEP = 1000
-MAX_ELR_CNT = 10
+MAX_ELR_CNT = 5
 
 class EdgeLifetimeReducer():
     class Metrics():
@@ -285,7 +285,8 @@ class EdgeLifetimeReducer():
         latest_source_level = 0
         earliest_target_level = len(self.nx_wavegraph.nodes())
         for e in edges:
-            if (self.nx_wavegraph.has_edge(e[0], e[1])):
+            if (self.nx_wavegraph.has_edge(e[0], e[1]) and\
+                self.vtx2wop_type[e[1]] != "SBAtomSave"):
                 if (self.vtx2wop_type[e[0]] != "MatMul" or\
                     self.vtx2wop_type[e[1]] != "MatMul" or\
                     (self.vtx2wop[e[1]])["weights_sb_address"] != -1):

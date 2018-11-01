@@ -14,7 +14,13 @@ WaveOp::WaveOpType WaveOp::ExtractWaveOpTypeEngine(
   else if (!wot.compare("Pool")) t = Pool;
   else if (!wot.compare("ResAdd")) t = ResAdd;
   else if (!wot.compare("Multiply")) t = ResAdd;
+  else if (!wot.compare("Sub")) t = ResAdd;
+  else if (!wot.compare("Add")) t = ResAdd;
+  else if (!wot.compare("ScaleAdd")) t = Pool;
+  else if (!wot.compare("Maximum")) t = Pool;
+  else if (!wot.compare("Minimum")) t = Pool;
   else if (!wot.compare("Activation")) t = Activation;
+  else if (!wot.compare("ClipByValue")) t = Pool;
   else if (!wot.compare("Nop")) t = Nop;
   else assert(0);
   return t;
@@ -450,10 +456,16 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
   WaveOp* wo = nullptr;
   if (!wave_op_type.compare("MatMul")) wo = new MMOp(op);
   else if (!wave_op_type.compare("Activation") ||
-      !wave_op_type.compare("Pool")) wo = new PoolActOp(op);
+      !wave_op_type.compare("Pool") ||
+      !wave_op_type.compare("ClipByValue") ||
+      !wave_op_type.compare("ScaleAdd") ||
+      !wave_op_type.compare("Maximum") ||
+      !wave_op_type.compare("Minimum")) wo = new PoolActOp(op);
   else if (!wave_op_type.compare("SBAtomLoad") ||
       !wave_op_type.compare("SBAtomSave")) wo = new SBAtomOp(op);
   else if (!wave_op_type.compare("ResAdd")) wo = new ResAddOp(op);
+  else if (!wave_op_type.compare("Sub")) wo = new ResAddOp(op);
+  else if (!wave_op_type.compare("Add")) wo = new ResAddOp(op);
   else if (!wave_op_type.compare("Multiply")) wo = new ResAddOp(op);
   else if (!wave_op_type.compare("Nop")) wo = new NopOp(op);
   else 
