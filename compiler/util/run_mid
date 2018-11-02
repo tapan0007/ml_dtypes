@@ -22,14 +22,14 @@ while [[ $# > 0 ]]; do case $1 in
         <num>: Stop and dump results after <num> fused-ops"; 
         exit 0;
         shift;;
-    *) x=$1; shift;
+    *) x=$1; shift;;
 esac; done    
 
 rm -f *-midout.npy
-rm -f wavegraph.json
+rm -f wavegraph.json wavegraph.json.org
 cmd="python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json.org $dbg --nname=$nname $opts --stop_after_layer_num $x --no_inter_layer_load"
-$KAENA_PATH/compiler/cleaner/build/bin/cleaner --wavegraph wavegraph.json.org --fileout wavegraph.json
 echo $cmd
 echo $cmd > log-me.txt
 $cmd | tee -a log-me.txt
+$KAENA_PATH/compiler/cleaner/build/bin/cleaner --wavegraph wavegraph.json.org --fileout wavegraph.json
 #python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json --debug 3 --nname=$nname $repl $cleanup --stop_after_layer_num $x --no_inter_layer_load 2>&1 | tee log-me.txt
