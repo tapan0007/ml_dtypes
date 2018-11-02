@@ -89,6 +89,7 @@ parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph 
                     action="store_true",  default=False)
 parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=[])
 parser.add_argument('--waive_wavegraph_checks', help='Exclude wavegraph checker status from determination of test status', action='store_true')
+parser.add_argument('--euler_options', help='Euler options. E.g --max_events. Default is Non', default='')
 parser.add_argument('--wavegraph_transform', help='Wavegraph flow will be invoked to transofrm wavegraph into more optimzed form. Currently, transitive_reduction, edge lifetime reducer (EuLeR), and shell comands are supported. The default is no optimization', nargs='+', default=["cleaner"])
 parser.add_argument('--level_order_seed', help='Seed for randomization of Kgraph node order in compiler.json for stress testing of downstream flow, default is none which means alphabetic sort', type=int, default=None)
 
@@ -107,9 +108,9 @@ def writeBackEndFiles(kGraph, outPrefix, verbose):
   fileList += [outPrefix + "graph_ann.dot.svg"]
   #kGraph.genCompilertgz(outPrefix + "compiler.tgz", list(set(fileList)))
 
-def invokeEuLeR (_kPath, _sgDir):
+def invokeEuLeR (_kPath, _sgDir, _options):
   euler_path = "%s/compiler/me/edge_lifetime_reducer.py"%_kPath
-  euler_args = "--wavegraph wavegraph.json"
+  euler_args = "--wavegraph wavegraph.json" + " " + _options
   cmd = "python3 " + euler_path + " " + euler_args + " > log-euler.txt"
   print(getInfoDateStr(), "executing %s" % cmd, flush=True)
   EuLeRRet = abs(os.system(cmd))
@@ -123,7 +124,10 @@ def invokeCleaner(_kPath, _sgDir):
   cleaner_path = "%s/compiler/cleaner/build/bin/cleaner"%_kPath
   cleaner_args = "--wavegraph wavegraph.json"
   cleaner_args += " --fileout wavegraph_new.json"
-  cmd = cleaner_path + " " + cleaner_args + " > log-cleaner.txt"
+  if (os.path.isfile("log-cleaner.txt")):
+    cmd = cleaner_path + " " + cleaner_args + " >> log-cleaner.txt"
+  else:
+    cmd = cleaner_path + " " + cleaner_args + " > log-cleaner.txt"
   print(getInfoDateStr(), "executing %s" % cmd, flush=True)
   CLRet = abs(os.system(cmd))
   if (CLRet != 0):
@@ -223,7 +227,10 @@ if args.images != None:
           CLRet = invokeCleaner(kPath, sgDir)
           if (CLRet == 0):
             if "euler" in args.wavegraph_transform:
-              eulerRet = invokeEuLeR(kPath, sgDir)
+              eulerRet = invokeEuLeR(kPath, sgDir, args.euler_options)
+              # When EuLeR is run, invoke cleaner once again to clean up
+              # EuLeR'ed wavegraph
+              eulerRet += invokeCleaner(kPath, sgDir)
             else:
               eulerRet = 0
             if (eulerRet == 0):

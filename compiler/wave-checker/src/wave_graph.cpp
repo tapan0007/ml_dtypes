@@ -439,9 +439,9 @@ WaveGraphChecker::WaveGraphChecker(json& j, CommandLineOptions cli)
       num_neighs += op["previous_waveops"].size();
     }
   }
+  MakeImplicitEdgesExplicit();
   if (mCLI.event_conflict_check)
   {
-    MakeImplicitEdgesExplicit();
     mEventChecker = new EventChecker(wg);
   }
   InfoPrefix();
@@ -547,7 +547,7 @@ inline bool WaveGraphChecker::InputOperandCheck(vertex_t v)
   bool err = false;
   std::pair<ie_itr, ie_itr> iep;
   iep = boost::in_edges(v, wg);
-  if (iep.first == iep.second) {
+  if (iep.first == iep.second && wg[v]->get_waveop_type() != WaveOp::Nop) {
     err = true;
     ErrorPrefix();
     messages << wg[v]->get_name()
@@ -574,7 +574,7 @@ inline bool WaveGraphChecker::OutputOperandCheck(vertex_t v)
   bool err = false;
   std::pair<oe_itr, oe_itr> oep;
   oep = boost::out_edges(v, wg);
-  if (oep.first == oep.second)
+  if (oep.first == oep.second && wg[v]->get_waveop_type() != WaveOp::Nop)
   {
     err = true;
     ErrorPrefix();
@@ -957,26 +957,32 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
         !wop_type.compare("SBAtomLoad") ||
         !wop_type.compare("Nop"))
     {
-      std::string eng_name = op["engine"].get<std::string>();
-      if (!eng_name.compare("ActivationEng"))
+      if (op["engine"] != nullptr)
       {
-        make_edge(prev_exam(prev_act), cur_v, prev_act, wg);
-      }
-      else if (!eng_name.compare("PeArrayEng"))
-      {
-        make_edge(prev_exam(prev_pe), cur_v, prev_pe, wg);
-      }
-      else if (!eng_name.compare("PoolEng"))
-      {
-        make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
-      }
-      else if (!eng_name.compare("DmaEng"))
+        std::string eng_name = op["engine"].get<std::string>();
+        if (!eng_name.compare("ActivationEng"))
+        {
+          make_edge(prev_exam(prev_act), cur_v, prev_act, wg);
+        }
+        else if (!eng_name.compare("PeArrayEng"))
+        {
+          make_edge(prev_exam(prev_pe), cur_v, prev_pe, wg);
+        }
+        else if (!eng_name.compare("PoolEng"))
+        {
+          make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
+        }
+        else if (!eng_name.compare("DmaEng"))
+        {
+          make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
+        }
+        else
+        {
+          assert(0);
+        }
+      } else
       {
         make_edge(prev_exam(prev_dma), cur_v, prev_dma, wg);
-      }
-      else
-      {
-        assert(0);
       }
     }
     else

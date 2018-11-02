@@ -67,15 +67,25 @@ int main(int argc, char* argv[])
           err = ERROR;
         }
       }
+      std::string final_msg;
+      if (err != OK)
+      {
+        final_msg = "\nWaveChecker : FAILED\n";
+      } else
+      {
+        final_msg = "\nWaveChecker : PASSED\n";
+      }
       if (g_cli.count("fileout"))
       {
         std::ofstream o_file(g_cli["fileout"].as<std::string>());
         o_file << wg.get_msg().str();
+        o_file << final_msg;
         o_file.close();
       } else
       {
         if (g_cli["stdout"].as<bool>()) {
           std::cout << wg.get_msg().str();
+          std::cout << final_msg;
         }
       }
       //wg.write_graph_viz();
