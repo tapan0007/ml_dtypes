@@ -223,7 +223,11 @@ if args.images != None:
                 if len(args.wavegraph_checks) > 0:
                   waive_wave_checker = args.waive_wavegraph_checks
                   checksStr = " ".join(["--%s-check" % c for c in args.wavegraph_checks])
-                  cmd = "%s/compiler/wave-checker/wc-build/bin/wave_graph_checker --stdout --wave-graph-file wavegraph.json %s > log-wc.txt 2>&1" % (kPath, checksStr)
+                  if (args.scheduler.startswith("qemu")):
+                      wg = "wavegraph-bin.json"
+                  else:
+                      wg = "wavegraph-tpb.json"
+                  cmd = "%s/compiler/wave-checker/wc-build/bin/wave_graph_checker --stdout --wave-graph-file %s %s > log-wc.txt 2>&1" % (kPath, wg, checksStr)
                   print(getInfoDateStr(), "executing %s" % cmd, flush=True)
                   wcRet = abs(os.system(cmd))
                   if (waive_wave_checker == False):

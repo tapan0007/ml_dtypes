@@ -942,7 +942,14 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
     {
       make_edge(prev_exam(prev_pe), cur_v, prev_pe, wg);
     }
-    else if (!wop_type.compare("Pool") || !wop_type.compare("ResAdd"))
+    else if (!wop_type.compare("Pool") || !wop_type.compare("ResAdd")
+        || !wop_type.compare("Multiply")
+        || !wop_type.compare("ScaleAdd")
+        || !wop_type.compare("Add")
+        || !wop_type.compare("Sub")
+        || !wop_type.compare("ClipByValue")
+        || !wop_type.compare("Maximum")
+        || !wop_type.compare("Minimum"))
     {
       make_edge(prev_exam(prev_pool), cur_v, prev_pool, wg);
     }
@@ -974,6 +981,7 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
     }
     else
     {
+      std::cerr << wop_type << " is not supported" << std::endl;
       assert(0);
     }
   }
