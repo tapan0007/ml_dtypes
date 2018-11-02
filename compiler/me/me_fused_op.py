@@ -329,7 +329,7 @@ class FusedOp(list):
     """
     act_ops_regex = "Relu|Softplus|Sigmoid|Tanh|^Exp$|Identity|Lrelu|Prelu"
     bias_ops_regex = "BiasAdd"
-    pool_ops_regex = ".*Pool|Add|Multiply|ResAdd|Maximum|Minimum"
+    pool_ops_regex = ".*Pool|Sub|Add|Multiply|ResAdd|Maximum|Minimum"
     identity_ops_regex = "Reshape|Squeeze|ExpandDims"
     next_is_fusable_regex = bias_ops_regex + "|" + act_ops_regex + "|" + pool_ops_regex # + "|" + identity_ops_regex
     next_is_fusable = {
@@ -338,6 +338,7 @@ class FusedOp(list):
             'MatMul'   : next_is_fusable_regex,
             'BiasAdd'  : next_is_fusable_regex,
             'Add'      : next_is_fusable_regex,
+            'Sub'      : next_is_fusable_regex,
             'ResAdd'   : next_is_fusable_regex,
             'Multiply' : next_is_fusable_regex,
             'Relu'     : next_is_fusable_regex,
@@ -1438,7 +1439,8 @@ class FusedOp(list):
                 if dst_is_psum:
                     tpb.pearray.write_psum(psum_bank_dst, 0, psum_temp.shape[0], psum_temp)
                 waveop = self.gen_act_waveop_inline(tpb, None, op_list[i], self.first_op, ifmap_tile, ofmap_tile, 
-                                          True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, 0, new_reader_morsels)
+                                          True, psum_bank_id, dst_is_psum, psum_bank_id, dram_bias_waveops, 
+                                          tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr, new_reader_morsels)
                 attach_predecessors(waveop, prev_waveops)
             elif (layer_type == 'BiasAdd'):
                 # load bias values
@@ -2386,10 +2388,33 @@ class FusedOp(list):
                         )
             first_waveop = None
             last_waveop = None
-            if (first_op.data['layer_type'] == "BiasAdd"): 
+            if (re.search(self.act_ops_regex, first_op.data['layer_type'])):
+                (writers, readers, dram_bias_waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
+                                                tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
+                                                tpb.waveop_stream,
+                                                tpb.statebuffer.zero_bias_file_params,
+                                                0,  # batch_item is not needed for bias
+                                                tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr,
+                                                tpb.statebuffer.zero_bias_file_params.item_sz,
+                                                EngineEnum.ACT,
+                                                )
+                dram_ifmaps_waveops += dram_bias_waveops
+                new_reader_morsels += reader_morsels
+                prev_wr_waveops = extract_predecessors(
+                        list_of_accessors_wr = writers, 
+                        list_of_accessors_rd = [[]],
+                        waveop_list         = tpb.waveop_stream,
+                        dram_waveops        = [],
+                        relax_dependencies  = self.args.relax_dependencies,
+                        full_dependencies   = self.args.full_dependencies)
+                for i in prev_wr_waveops:
+                    if i not in prev_waveops:
+                        prev_waveops.append(i)
+                act_op = first_op
+            elif (first_op.data['layer_type'] == "BiasAdd"): 
                 bias_start = ofmap_tile.m_id * PEArray.NUM_COLS * first_op.item_sz
                 (writers, readers, dram_bias_waveops, reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
-                                                tpb.waveop_stream.waveop_count,
+                                                tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
                                                 tpb.waveop_stream,
                                                 first_op.bias_file_params,
                                                 0,  # batch_item is not needed for bias
@@ -2410,8 +2435,7 @@ class FusedOp(list):
                     if i not in prev_waveops:
                         prev_waveops.append(i)
                 biasadd_op = first_op
-            else:
-                act_op = first_op
+
             if first_op.is_join:
                 if 1:
                     residue_file_params = first_op.prev[first_op.residue_index].ofmaps_file_params
@@ -2421,9 +2445,8 @@ class FusedOp(list):
                     residue_tile = copy.copy(ifmap_tile)
                     residue_tile.file_params = residue_file_params
                     residue_subtile = PEWave(residue_tile, 0, 0, 0, first_op.stridedslice_chan_offset)
-                    (residue_prev_waveops, dram_resadd_waveops, reader_morsels) = \
+                    (residue_prev_waveops, dram_resadd_waveops, residue_reader_morsels) = \
                         self.get_producers_for_subtile_region(tpb, residue_subtile, reader_engine)
-                    new_reader_morsels += reader_morsels
                     residue_file_addr = residue_file_params.ravel_nchw(
                             ofmap_tile.n_id * ofmap_tile.Tn,
                             ofmap_tile.m_id // 2 * PEArray.NUM_ROWS,
@@ -2438,6 +2461,26 @@ class FusedOp(list):
                                 and psum_bank_src < 0:
                         psum_bank_residue = tpb.pearray.use_psum_bank_and_adv_ptr(True)
                         residue_tile.lower_addr[0] = residue_file_addr
+                        # grab dependencies for zeros
+                        (writers, readers, dram_bias_waveops, zeros_reader_morsels) = tpb.statebuffer.file_mapper.read_file_data_region(
+                                                        tpb.waveop_stream.waveop_count + len(dram_ifmaps_waveops),
+                                                        tpb.waveop_stream,
+                                                        tpb.statebuffer.zero_bias_file_params,
+                                                        0,  # batch_item is not needed for bias
+                                                        tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr,
+                                                        tpb.statebuffer.zero_bias_file_params.item_sz,
+                                                        EngineEnum.ACT,
+                                                        )
+                        prev_wr_waveops = extract_predecessors(
+                                list_of_accessors_wr = writers, 
+                                list_of_accessors_rd = [[]],
+                                waveop_list         = tpb.waveop_stream,
+                                dram_waveops        = [],
+                                relax_dependencies  = self.args.relax_dependencies,
+                                full_dependencies   = self.args.full_dependencies)
+                        for i in prev_wr_waveops:
+                            if i not in residue_prev_waveops:
+                                residue_prev_waveops.append(i)
                         first_waveop = self.gen_act_waveop_inline(
                                 tpb               = tpb, 
                                 biasadd_op        = None, 
@@ -2449,13 +2492,13 @@ class FusedOp(list):
                                 psum_bank_src     = -1, 
                                 dst_is_psum       = psum_bank_residue >= 0,
                                 psum_bank_dst     = psum_bank_residue, 
-                                dram_bias_waveops = dram_resadd_waveops, 
-                                bias_start        = 0,
-                                new_reader_morsels = reader_morsels)
+                                dram_bias_waveops = dram_resadd_waveops + dram_bias_waveops, 
+                                bias_start        = tpb.statebuffer.zero_bias_file_params.mapped_params.start_addr,
+                                new_reader_morsels = residue_reader_morsels + zeros_reader_morsels)
                         attach_predecessors(first_waveop, residue_prev_waveops)
                     else:                       
                         act_waveop = None
-                        new_reader_morsels += reader_morsels
+                        new_reader_morsels += residue_reader_morsels
                         prev_waveops += residue_prev_waveops
                         dram_ifmaps_waveops += dram_resadd_waveops
                         psum_bank_residue = -1

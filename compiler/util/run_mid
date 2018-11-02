@@ -27,7 +27,8 @@ esac; done
 
 rm -f *-midout.npy
 rm -f wavegraph.json
-cmd="python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json $dbg --nname=$nname $opts --stop_after_layer_num $x --no_inter_layer_load"
+cmd="python3 $pdb $KAENA_PATH/compiler/me/me_main.py --kgraph compiler.json --wavegraph wavegraph.json.org $dbg --nname=$nname $opts --stop_after_layer_num $x --no_inter_layer_load"
+$KAENA_PATH/compiler/cleaner/build/bin/cleaner --wavegraph wavegraph.json.org --fileout wavegraph.json
 echo $cmd
 echo $cmd > log-me.txt
 $cmd | tee -a log-me.txt
