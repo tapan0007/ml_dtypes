@@ -82,7 +82,8 @@ ckpt_%:
 	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb $(OUT_PREFIX)model --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
 
 run_kelf_cached:
-	/bin/cp -au $(CACHED_KELF)/* . || aws --profile=kaena s3 cp $(CACHED_KELF)/"*" . --recursive --exclude "log-*" --quiet
+	rsync -av --exclude log-\*.txt $(CACHED_KELF)/* . || aws --profile=kaena s3 cp $(CACHED_KELF)/"*" . --recursive --exclude "log-*" --quiet
+	/bin/rm -rf */working_dir
 	$(KAENA_PATH)/runtime/util/nn_executor --kelf_dir . --tfpb cached_tf.pb --check_against_ref all $(RT_ARGS) > log-rt.txt 2>&1
 
 
