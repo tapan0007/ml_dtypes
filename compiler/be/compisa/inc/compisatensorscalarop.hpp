@@ -13,9 +13,9 @@
 namespace kcc {
 namespace compisa {
 
-using TensorScalarOpInstr = InstrTempl<TONGA_ISA_TPB_TENSOR_SCALAR_OP_INST,
-                             TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_OP,
-                             tonga_isa_tpb_tensorscalar_check_validity>;
+using TensorScalarOpInstr = InstrTempl<::TONGA_ISA_TPB_TENSOR_SCALAR_OP_INST,
+                                       ::TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_OP,
+                                       ::tonga_isa_tpb_tensorscalar_check_validity>;
 
 
 }}

@@ -16,9 +16,9 @@
 namespace kcc {
 namespace compisa {
 
-using CopyInstr = InstrTempl<TONGA_ISA_TPB_COPY_INST,
-                             TONGA_ISA_TPB_OPCODE_COPY,
-                             tonga_isa_tpb_copy_check_validity>;
+using CopyInstr = InstrTempl<::TONGA_ISA_TPB_COPY_INST,
+                             ::TONGA_ISA_TPB_OPCODE_COPY,
+                             ::tonga_isa_tpb_copy_check_validity>;
 
 
 }}

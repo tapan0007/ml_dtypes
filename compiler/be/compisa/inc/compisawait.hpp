@@ -16,9 +16,9 @@ namespace kcc {
 
 namespace compisa {
 
-using WaitInstr = InstrTempl<TONGA_ISA_TPB_EVENT_WAIT_INST,
-                             TONGA_ISA_TPB_OPCODE_EVENT_WAIT,
-                             tonga_isa_tpb_eventwait_check_validity>;
+using WaitInstr = InstrTempl<::TONGA_ISA_TPB_EVENT_WAIT_INST,
+                             ::TONGA_ISA_TPB_OPCODE_EVENT_WAIT,
+                             ::tonga_isa_tpb_eventwait_check_validity>;
 
 
 }}

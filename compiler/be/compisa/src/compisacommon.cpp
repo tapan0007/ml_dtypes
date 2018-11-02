@@ -9,6 +9,7 @@
 #include "compisa/inc/compisacommon.hpp"
 
 #include "compisa/inc/compisaactivate.hpp"
+#include "compisa/inc/compisaactivatequantize.hpp"
 #include "compisa/inc/compisacast.hpp"
 #include "compisa/inc/compisaclear.hpp"
 #include "compisa/inc/compisacopy.hpp"
@@ -48,7 +49,7 @@ InitEvent(uint8_t& event_idx)
 }
 
 void
-InitSync(TONGA_ISA_TPB_INST_EVENTS& inst_events)
+InitSync(TongaTpbEvents& inst_events)
 {
     inst_events.wait_event_mode = events::eventWaitMode2Isa(events::EventWaitMode::Invalid);
     inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::Invalid);
@@ -57,7 +58,7 @@ InitSync(TONGA_ISA_TPB_INST_EVENTS& inst_events)
 }
 
 void
-InitHeader (TONGA_ISA_TPB_INST_HEADER& header, TONGA_ISA_TPB_OPCODE opcode, uint8_t sz)
+InitHeader (TongaTpbInstHeader& header, TongaTpbOpcode opcode, uint8_t sz)
 {
     header.opcode           = opcode;
     Assert((sz % BYTES_PER_WORD) == 0, "Instruction size must be integral multiple of word size");
@@ -70,6 +71,7 @@ void
 AllInstructions()
 {
     ActivateInstr           actInstr;
+    ActivateQuantizeInstr   actQuantInstr;
     CastInstr               castInstr;
     ClearInstr              clearInstr;
     CopyInstr               copyInstr;

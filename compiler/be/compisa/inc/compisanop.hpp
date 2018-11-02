@@ -15,9 +15,9 @@ namespace kcc {
 
 namespace compisa {
 
-using NopInstr = InstrTempl<TONGA_ISA_TPB_NOP_INST,
-                             TONGA_ISA_TPB_OPCODE_NOP,
-                             tonga_isa_tpb_nop_check_validity>;
+using NopInstr = InstrTempl<::TONGA_ISA_TPB_NOP_INST,
+                            ::TONGA_ISA_TPB_OPCODE_NOP,
+                            ::tonga_isa_tpb_nop_check_validity>;
 
 
 }}

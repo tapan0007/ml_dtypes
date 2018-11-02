@@ -16,9 +16,9 @@ namespace kcc {
 
 namespace compisa {
 
-using ClearInstr = InstrTempl<TONGA_ISA_TPB_EVENT_CLEAR_INST,
-                               TONGA_ISA_TPB_OPCODE_EVENT_CLEAR,
-                               tonga_isa_tpb_eventclear_check_validity>;
+using ClearInstr = InstrTempl<::TONGA_ISA_TPB_EVENT_CLEAR_INST,
+                              ::TONGA_ISA_TPB_OPCODE_EVENT_CLEAR,
+                              ::tonga_isa_tpb_eventclear_check_validity>;
 
 
 }}

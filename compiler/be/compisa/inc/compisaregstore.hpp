@@ -16,9 +16,9 @@
 namespace kcc {
 namespace compisa {
 
-using RegStoreInstr = InstrTempl<TONGA_ISA_TPB_REG_STORE_INST,
-                             TONGA_ISA_TPB_OPCODE_REG_STORE,
-                             tonga_isa_tpb_regstore_check_validity>;
+using RegStoreInstr = InstrTempl<::TONGA_ISA_TPB_REG_STORE_INST,
+                                 ::TONGA_ISA_TPB_OPCODE_REG_STORE,
+                                 ::tonga_isa_tpb_regstore_check_validity>;
 
 
 }}

@@ -17,9 +17,9 @@ namespace kcc {
 
 namespace compisa {
 
-using ActivateInstr = InstrTempl<TONGA_ISA_TPB_ACTIVATE_INST,
-                                 TONGA_ISA_TPB_OPCODE_ACTIVATE,
-                                 tonga_isa_tpb_activate_check_validity>;
+using ActivateInstr = InstrTempl<::TONGA_ISA_TPB_ACTIVATE_INST,
+                                 ::TONGA_ISA_TPB_OPCODE_ACTIVATE,
+                                 ::tonga_isa_tpb_activate_check_validity>;
 
 }}
 

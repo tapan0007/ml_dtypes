@@ -16,9 +16,9 @@ namespace kcc {
 
 namespace compisa {
 
-using LdWeightsInstr = InstrTempl<TONGA_ISA_TPB_LDWEIGHTS_INST,
-                                  TONGA_ISA_TPB_OPCODE_LDWEIGHTS,
-                                  tonga_isa_tpb_ldweights_check_validity>;
+using LdWeightsInstr = InstrTempl<::TONGA_ISA_TPB_LDWEIGHTS_INST,
+                                  ::TONGA_ISA_TPB_OPCODE_LDWEIGHTS,
+                                  ::tonga_isa_tpb_ldweights_check_validity>;
 
 
 }}

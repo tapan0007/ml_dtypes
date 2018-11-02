@@ -16,9 +16,9 @@
 namespace kcc {
 namespace compisa {
 
-using ReciprocalInstr = InstrTempl<TONGA_ISA_TPB_RECIPROCAL_INST,
-                             TONGA_ISA_TPB_OPCODE_RECIPROCAL,
-                             tonga_isa_tpb_reciprocal_check_validity>;
+using ReciprocalInstr = InstrTempl<::TONGA_ISA_TPB_RECIPROCAL_INST,
+                                   ::TONGA_ISA_TPB_OPCODE_RECIPROCAL,
+                                   ::tonga_isa_tpb_reciprocal_check_validity>;
 
 
 }}

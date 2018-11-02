@@ -16,9 +16,9 @@
 namespace kcc {
 namespace compisa {
 
-using CastInstr = InstrTempl<TONGA_ISA_TPB_CAST_INST,
-                             TONGA_ISA_TPB_OPCODE_CAST,
-                             tonga_isa_tpb_cast_check_validity>;
+using CastInstr = InstrTempl<::TONGA_ISA_TPB_CAST_INST,
+                             ::TONGA_ISA_TPB_OPCODE_CAST,
+                             ::tonga_isa_tpb_cast_check_validity>;
 
 
 }}

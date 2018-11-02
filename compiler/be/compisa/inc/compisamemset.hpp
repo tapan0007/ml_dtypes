@@ -16,9 +16,9 @@
 namespace kcc {
 namespace compisa {
 
-using MemSetInstr = InstrTempl<TONGA_ISA_TPB_MEMSET_INST,
-                             TONGA_ISA_TPB_OPCODE_MEMSET,
-                             tonga_isa_tpb_memset_check_validity>;
+using MemSetInstr = InstrTempl<::TONGA_ISA_TPB_MEMSET_INST,
+                               ::TONGA_ISA_TPB_OPCODE_MEMSET,
+                               ::tonga_isa_tpb_memset_check_validity>;
 
 
 

@@ -111,6 +111,12 @@ Main(int argc, char* argv[])
     bool dmaOnly = false;
 
     kcc_int32 numTpbEvents = -1;
+    {
+        std::cout << "Command line arguments:\n";
+        for (int i = 0; i < argc; ++i) {
+            std::cout << "    [" << i << "] = '" << argv[i] << "'\n";
+        }
+    }
 
     int i = 1;
     while (i < argc) {

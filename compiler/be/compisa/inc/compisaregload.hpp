@@ -16,9 +16,9 @@
 namespace kcc {
 namespace compisa {
 
-using RegLoadInstr = InstrTempl<TONGA_ISA_TPB_REG_LOAD_INST,
-                             TONGA_ISA_TPB_OPCODE_REG_LOAD,
-                             tonga_isa_tpb_regload_check_validity>;
+using RegLoadInstr = InstrTempl<::TONGA_ISA_TPB_REG_LOAD_INST,
+                                ::TONGA_ISA_TPB_OPCODE_REG_LOAD,
+                                ::tonga_isa_tpb_regload_check_validity>;
 
 }}
 

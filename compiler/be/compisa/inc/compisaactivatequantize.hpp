@@ -16,9 +16,9 @@
 namespace kcc {
 namespace compisa {
 
-using ActivateQuantizeInstr = InstrTempl<TONGA_ISA_TPB_ACTIVATE_QUANTIZE_INST,
-                             TONGA_ISA_TPB_OPCODE_ACTIVATE_QUANTIZE,
-                             tonga_isa_tpb_activate_quantize_check_validity>;
+using ActivateQuantizeInstr = InstrTempl<::TONGA_ISA_TPB_ACTIVATE_QUANTIZE_INST,
+                                         ::TONGA_ISA_TPB_OPCODE_ACTIVATE_QUANTIZE,
+                                         ::tonga_isa_tpb_activate_quantize_check_validity>;
 
 
 }}

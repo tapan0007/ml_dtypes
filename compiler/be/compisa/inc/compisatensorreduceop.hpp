@@ -13,9 +13,9 @@
 namespace kcc {
 namespace compisa {
 
-using TensorReduceOpInstr = InstrTempl<TONGA_ISA_TPB_TENSOR_REDUCE_OP_INST,
-                             TONGA_ISA_TPB_OPCODE_TENSOR_REDUCE_OP,
-                             tonga_isa_tpb_tensorreduce_check_validity>;
+using TensorReduceOpInstr = InstrTempl<::TONGA_ISA_TPB_TENSOR_REDUCE_OP_INST,
+                                       ::TONGA_ISA_TPB_OPCODE_TENSOR_REDUCE_OP,
+                                       ::tonga_isa_tpb_tensorreduce_check_validity>;
 
 
 }}

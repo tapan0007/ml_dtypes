@@ -16,9 +16,9 @@ namespace kcc {
 
 namespace compisa {
 
-using SetInstr = InstrTempl<TONGA_ISA_TPB_EVENT_SET_INST,
-                            TONGA_ISA_TPB_OPCODE_EVENT_SET,
-                            tonga_isa_tpb_eventset_check_validity>;
+using SetInstr = InstrTempl<::TONGA_ISA_TPB_EVENT_SET_INST,
+                            ::TONGA_ISA_TPB_OPCODE_EVENT_SET,
+                            ::tonga_isa_tpb_eventset_check_validity>;
 
 
 }}

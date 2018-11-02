@@ -14,9 +14,9 @@
 namespace kcc {
 namespace compisa {
 
-using PoolInstr = InstrTempl<TONGA_ISA_TPB_POOL_INST,
-                             TONGA_ISA_TPB_OPCODE_POOL,
-                             tonga_isa_tpb_pool_check_validity>;
+using PoolInstr = InstrTempl<::TONGA_ISA_TPB_POOL_INST,
+                             ::TONGA_ISA_TPB_OPCODE_POOL,
+                             ::tonga_isa_tpb_pool_check_validity>;
 
 
 }}

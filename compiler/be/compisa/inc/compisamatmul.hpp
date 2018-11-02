@@ -16,9 +16,9 @@ namespace kcc {
 namespace compisa {
 
 
-using MatMulInstr = InstrTempl<TONGA_ISA_TPB_MATMUL_INST,
-                               TONGA_ISA_TPB_OPCODE_MATMUL,
-                               tonga_isa_tpb_matmul_check_validity>;
+using MatMulInstr = InstrTempl<::TONGA_ISA_TPB_MATMUL_INST,
+                               ::TONGA_ISA_TPB_OPCODE_MATMUL,
+                               ::tonga_isa_tpb_matmul_check_validity>;
 
 }}
 

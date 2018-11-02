@@ -178,7 +178,6 @@ private:
     void checkForNoSync(const TONGA_ISA_TPB_INST_EVENTS&) const;
 
     void determinePrecSbEdges();
-    void moveOneInputToSingleInputQueue();
 
 private:
     nets::Network&                      m_Network;

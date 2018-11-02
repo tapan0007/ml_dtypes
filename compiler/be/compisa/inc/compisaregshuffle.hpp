@@ -16,9 +16,9 @@
 namespace kcc {
 namespace compisa {
 
-using RegShuffleInstr = InstrTempl<TONGA_ISA_TPB_REG_SHUFFLE_INST,
-                             TONGA_ISA_TPB_OPCODE_REG_SHUFFLE,
-                             tonga_isa_tpb_regshuffle_check_validity>;
+using RegShuffleInstr = InstrTempl<::TONGA_ISA_TPB_REG_SHUFFLE_INST,
+                                   ::TONGA_ISA_TPB_OPCODE_REG_SHUFFLE,
+                                   ::tonga_isa_tpb_regshuffle_check_validity>;
 
 
 }}
