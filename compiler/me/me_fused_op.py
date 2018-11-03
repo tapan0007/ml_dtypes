@@ -2026,7 +2026,7 @@ class FusedOp(list):
         for z in range(self.pool_op.Tn):
             pool_waveop = self.gen_pool_waveop(tpb, ifmap_tile, ofmap_tile, False, 0, start_at_mid_part, z)
             tpb.waveop_stream.add_linked(pool_waveop, dram_waveops if z==0 else [], -1, new_reader_morsels)
-            if z==0:
+            if z==0 or self.args.full_dependencies:
                 # Add non-DRAM waveops to a previouse_waveops list
                 existing_prev_waveops = pool_waveop['previous_waveops']
                 for i in prev_waveops:
