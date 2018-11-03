@@ -8,6 +8,7 @@
 import argparse
 import os, csv, sys, re
 
+print("Started as  ", " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]))
 argStr = " ".join(sys.argv)
 
 parser = argparse.ArgumentParser()
@@ -127,6 +128,7 @@ class Instr:
         pass
       else:
         print("ERROR: instruction %s has unexpected event_idx" % self.getInstrType())
+    #print("DEBUG: getEvents ", waitEvents, setEvents)
     return waitEvents, setEvents
     
 
@@ -137,6 +139,7 @@ class TpbProgram:
     with os.popen('$INKLING_PATH/objdump/objdump ' + tpbFile) as fh:
       instr = None
       for line in fh:
+        #print("DEBUG: line", line)
         match = re.match('^(\S+) @ (\S+):', line)
         if match:
           pc, instrType = match.groups()
@@ -165,6 +168,7 @@ class TpbProgram:
         eventSetTable[e] = 1 + eventSetTable.get(e, 0)
       for t in activeTable.keys():
         activeTable[t] = max(activeTable[t], instr.getFieldInt("num_active_%s" % t))
+    #print("DEBUG: getInstrTable ", instrTable, eventWaitTable, eventSetTable, activeTable)
     return instrTable, eventWaitTable, eventSetTable, activeTable
 
 
@@ -172,7 +176,7 @@ class TongaProgram:
   def __init__(self, tongaFiles):
     self.tpbPrograms = {}
     for f in tongaFiles:
-      engine = os.path.basename(f).split("-")[0]
+      engine = os.path.basename(f).split("_")[0]
       self.tpbPrograms[engine] = TpbProgram(f)
   def getInstrCountTable(self):
     count = {}
@@ -180,6 +184,7 @@ class TongaProgram:
     for engine, program in self.tpbPrograms.items():
       count[engine] = program.getInstrCount()
       instrTable[engine] = program.getInstrTable()
+    #print("DEBUG: getInstrCountTable ", count, instrTable)
     return count, instrTable
 
 class QemuLogs(object):
