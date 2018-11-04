@@ -134,14 +134,18 @@ def sha256checksum(fileName):
 
 def getPortsToUse(port=None, grpcPort=None):
   hashStr = '%s-%s' % (getpass.getuser(), os.getcwd())
-  if port != None and portInUse(port):
-    port += abs(hash(hashStr)) % 8000
-    while portInUse(port) and port < 60000:
-      port += int(random.random()*100)
-  if grpcPort != None and portInUse(grpcPort):
-    grpcPort += abs(hash(hashStr)) % 8000
-    while portInUse(grpcPort) and grpcPort < 60000:
-      grpcPort += int(random.random()*100)
+  # Randomize SSH port
+  if port is None: 
+      port = 5555
+  port += abs(hash(hashStr)) % 8000
+  while portInUse(port) and port < 60000:
+    port += int(random.random()*100)
+  # Randomize GRPC port  
+  if grpcPort is None: 
+      grpcPort = 5556
+  grpcPort += abs(hash(hashStr)) % 8000
+  while portInUse(grpcPort) and grpcPort < 60000:
+    grpcPort += int(random.random()*100)
   return port, grpcPort
 
 parser = argparse.ArgumentParser(epilog=epilog,
