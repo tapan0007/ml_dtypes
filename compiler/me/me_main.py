@@ -119,7 +119,6 @@ class WaveopStream(list):
         item['waveop_name'] = item_name
         self.waveop_name_set.add(item['waveop_name'])                
         if (args.debug > 2): print("INFO SB TRACE: Adding waveop %s ID %d"%(item['waveop_name'], self.waveop_count))
-        #self.append(item)
         if (loc == None):
             self.append(item)
         else:
@@ -189,7 +188,7 @@ class WaveopStream(list):
 
         # Update SB reader morsels
         for i in new_reader_morsels:
-            #print("INFO SB TRACE: updating morsel reader ID for file ID %d chunk_id %d to ID %d (old %d)"%(i.file_id, i.chunk_id, self.waveop_count, i.accessor_id))
+            if (args.debug > 3): print("INFO SB TRACE: updating morsel reader ID for file ID %d chunk_id %d to ID %d (old %d)"%(i.file_id, i.chunk_id, self.waveop_count, i.accessor_id))
             i.accessor_id = self.waveop_count
 
         # Add waveop to stream

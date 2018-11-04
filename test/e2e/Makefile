@@ -133,16 +133,27 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 7-rn50_nne_fp16_b4_wave \
 7-rn50_nne_fp16_b4_wave-no_repl \
 7-rn50_nne_fp16_wave-no_repl \
+5-parwavenet_10_fp16_tanh_to_add1_wave \
+5-parwavenet_10_fp16_tanh_to_add2_wave \
+5-parwavenet_10_fp16_tanh_to_add3_wave \
+5-parwavenet_10_fp16_tanh_to_add6_wave \
 6-parwavenet_10_fp16_tanh_to_add9_wave \
 6-parwavenet_10_fp16_tanh_to_add12_wave \
 6-parwavenet_10_fp16_tanh_to_add15_wave \
 6-parwavenet_10_fp16_tanh_to_add18_wave \
 6-parwavenet_10_fp16_tanh_to_add22_wave \
 7-parwavenet_10_fp16_tanh_to_add24_wave \
+7-amoebanet_fp16_cell0 \
 7-amoebanet_fp16_cell1 \
-7-amoebanet_fp16_cell11 \
+7-amoebanet_fp16_cell2 \
+7-amoebanet_fp16_cell3 \
+7-amoebanet_fp16_cell4 \
 7-amoebanet_fp16_cell5 \
-7-amoebanet_fp16_cell9
+7-amoebanet_fp16_cell6 \
+7-amoebanet_fp16_cell7 \
+7-amoebanet_fp16_cell11 \
+7-amoebanet_fp16_rcell0 \
+7-amoebanet_fp16_rcell1 
 
 # 0-subtract_psum_sb_wave  
 

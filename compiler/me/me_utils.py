@@ -143,36 +143,10 @@ def extract_predecessors(list_of_accessors_wr, list_of_accessors_rd, waveop_list
             if dram_waveops != []:
                 filtered_accessors = []
         for accessor in filtered_accessors:
-            if accessor >= 0:
+            if accessor >= 0 and accessor < len(waveop_list):
                 accessor_waveop = waveop_list[accessor]
                 if accessor_waveop['waveop_name'] not in predec_list_by_name:
-                    #if not relax_dependencies \
-                    #        or accessor_waveop['waveop_type'] != 'Activation':
-                        predec_list_by_name.append(accessor_waveop['waveop_name'])
-    # extract predecessors from combed list of writers and per-engine readers
-    #filtered_accessors = []
-    #for accessors in list_of_accessors_rd:
-    #    if not full_dependencies and accessors != []:
-    #        # IF there are DRAM loads, they would be the latest among all dependencies
-    #        # and the loads themselves would be dependent on earlier accessors,
-    #        # so no need to add previous dependencies
-    #        if dram_waveops == []:
-    #            # Keep the latest from list of accessors
-    #            filtered_accessors.append(max(accessors))
-    #        else:
-    #            print(dram_waveops[0]["waveop_name"], accessors)
-    #            assert(len([i for i in accessors if i>=0]) == 0)
-    #    else:
-    #        filtered_accessors += accessors
-    ## keep the full list of writers
-    #filtered_accessors += list_of_accessors_wr                
-    #for accessor in filtered_accessors:
-    #    if accessor >= 0:
-    #        accessor_waveop = waveop_list[accessor]
-    #        if accessor_waveop['waveop_name'] not in predec_list_by_name:
-    #            if not relax_dependencies \
-    #                    or accessor_waveop['waveop_type'] != 'Activation':
-    #                predec_list_by_name.append(accessor_waveop['waveop_name'])
+                    predec_list_by_name.append(accessor_waveop['waveop_name'])
     return predec_list_by_name                        
 
 # Attach dependencies on waveop
@@ -954,18 +928,32 @@ class FileMapper():
     def check_overlap100(self, region0_start, region0_sz, region1_start, region1_sz):
         return (region0_start == region1_start) and (region0_sz == region1_sz)
 
-    """Adjust and return region0_start if there's overlap
+    """Adjust region0 start and return (adjusted, region0_start) if there's overlap
+        args:
+            region0_start/sz: start and size of region0
+            region1_start/sz: start and size of region1
+        return:
+            (adjusted, region0_start): 
+                adjusted: True if adjustment happened due to overlap
+                region0_start: new start after adjustment
     """
     def adjust0_if_overlap(self, region0_start, region0_sz, region1_start, region1_sz, min_region_start):
         region0_start_adjusted = align_addr_64B(region0_start)
+        if region0_start_adjusted < min_region_start:
+            region0_start_adjusted = min_region_start
+        no_overlap = True
         if region0_start_adjusted + region0_sz > self.sb_partition_sz:
             region0_start_adjusted = align_addr_64B(min_region_start)
+            no_overlap = False
 #        if self.check_overlap(region0_start, region0_sz, region1_start, region1_sz):
         if self.check_overlap(region0_start_adjusted, region0_sz, region1_start, region1_sz):
+            print("adjust0_if_overlap: overlap found between region0_start_adjusted %d region0_sz %d and region1_start %d region1_sz %d"%(region0_start_adjusted, region0_sz, region1_start, region1_sz))
+            no_overlap = False
             region0_start_adjusted = align_addr_64B(region1_start + region1_sz)
             if region0_start_adjusted + region0_sz > self.sb_partition_sz:
                 region0_start_adjusted = align_addr_64B(min_region_start)
-        return region0_start_adjusted
+            print("adjust0_if_overlap: adjusted to region0_start_adjusted %d region0_sz %d"%(region0_start_adjusted, region0_sz))
+        return (no_overlap, region0_start_adjusted)
 
     def skip_unfreed_region (self, cur_knode, start_addr):
         st = start_addr
@@ -1440,6 +1428,9 @@ class FileMapper():
                           eviction_container[org_fparam].append(evicted_chunk_id)
                       else:
                           eviction_container[org_fparam] = [evicted_chunk_id]
+        if self.debug > 3:                          
+            if org_fparam.mapped_params.chunk_is_mapped[evicted_chunk_id]:
+                print("DBG: evicting chunk %d of file %s"%(evicted_chunk_id, org_fparam.file_name))                          
         org_fparam.mapped_params.chunk_is_mapped[evicted_chunk_id] = False
         return
 
@@ -1527,8 +1518,7 @@ class FileMapper():
             , reader_engine
             , start_at_mid_part  = False
             , end_after_mid_part = True
-            , repl_multiple_of_C = 1
-            , dont_put_prev_ops  = False):
+            , repl_multiple_of_C = 1):
         assert(not(start_at_mid_part and not end_before_mid_part))
         assert(batch_item < file_params.file_dims.N)
         assert(length > 0)
@@ -1633,13 +1623,6 @@ class FileMapper():
                     assert(load_required)
                     if self.debug > 4:
                         print("INFO SB TRACE: (before generating DRAM read)", list_of_writers, list_of_readers)
-                    prev_waveops = extract_predecessors(
-                        list_of_accessors_wr = list_of_writers, 
-                        list_of_accessors_rd = list_of_readers,
-                        waveop_list         = waveop_list,
-                        dram_waveops        = [],
-                        relax_dependencies  = False,
-                        full_dependencies      = self.full_dependencies)
 
                     evicted_waveops = []                            
                     if (self.enable_eviction == True):
@@ -1662,18 +1645,20 @@ class FileMapper():
                         dram_read_prevs = self.GetWaveOpNames(evicted_waveops)
                         if (prev_save != None):
                             dram_read_prevs.append(prev_save['waveop_name'])
-                            prev_waveops.append(prev_save['waveop_name'])
                     if (len(evicted_waveops) > 0):
                         new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, dram_read_prevs, repl_multiple_of_C)
-                        list_of_writers = []
-                        list_of_readers = [[] for l in range(EngineEnum.COUNT)]
                     else:
-                        if (dont_put_prev_ops == False):
-                            new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, prev_waveops, repl_multiple_of_C)
-                            list_of_writers = []
-                            list_of_readers = [[] for l in range(EngineEnum.COUNT)]
-                        else:
-                            new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, [], repl_multiple_of_C)
+                        new_dram_waveop = self.gen_dram_read_waveop(file_params, batch_item, i, [], repl_multiple_of_C)
+                    prev_waveops = extract_predecessors(
+                        list_of_accessors_wr = list_of_writers, 
+                        list_of_accessors_rd = list_of_readers,
+                        waveop_list          = waveop_list,
+                        dram_waveops         = [],
+                        relax_dependencies   = False,
+                        full_dependencies    = self.full_dependencies)
+                    list_of_writers = []
+                    list_of_readers = [[] for l in range(EngineEnum.COUNT)]
+                    attach_predecessors(new_dram_waveop, prev_waveops)
                     # Record load as writer into SB region
                     new_morsel_wr.accessor_id = waveop_id
                     # Update the reader ID (which maybe further updated if there's another load, like bias)

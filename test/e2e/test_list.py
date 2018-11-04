@@ -1099,7 +1099,6 @@ testWaiver = [
     ['0-1conv1maxpool_k3d2_wave',   'WAIVE_WAVESC'],
     ['0-1conv1pool_b5_wave',        'WAIVE_WAVESC'],
     ['0-1conv1pool_b5m3_wave',      'WAIVE_WAVESC'],
-    ['0-3conv_1concat_host', 'WAIVE_INCEPTIONV3'],
     ['5-inceptionv3_wave_dog_sg00_tpb_concat1_concat3$', 'WAIVE_INCEPTIONV3'],
     ['5-inceptionv3_wave_dog_sg00_tpb_upto_concat[3]$', 'WAIVE_INCEPTIONV3'],
     ['6-inceptionv3_wave_dog_sg00_tpb_upto_concat[89]$', 'WAIVE_INCEPTIONV3'],
@@ -1115,15 +1114,8 @@ testWaiver = [
     ['7-amoebanet_fp16_pool', 'WAIVE_AMOEBA_POOL'],
     ['7-amoebanet_fp16_evict', 'WAIVE_AMOEBA_SBEVICT'],
     ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT'], # added by taemin
-    ['7-amoebanet_fp16_cell0', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_cell2', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_cell3', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_cell4', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_cell6', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_cell7', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
+    ['7-amoebanet_fp16_cell9', 'WAIVE_AMOEBA_SBEVICT'],
     ['7-amoebanet_fp16_cell8', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_rcell0', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_rcell1', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
     ['7-amoebanet_fp16_cell10', 'WAIVE_AMOEBA_OUTSIDESBRANGE'],
 
     # Parallel wavenet
@@ -1139,8 +1131,6 @@ testWaiver = [
     ['3-1conv_transpose_1d_h10r40s10_wave', 'WAIVE_KAENA768'],
     ['6-parwavenet_10_fp16_in_to_add15_wave$', 'WAIVE-KAENA902'],
     ['6-parwavenet_10_fp16_in_to_add18_wave$', 'WAIVE-KAENA902'],
-    ['6-parwavenet_10_fp16_in_to_add22_wave$', 'WAIVE-KAENA902'],
-    ['7-parwavenet_10_fp16_in_to_add24_wave$', 'WAIVE-KAENA902'],
 
     #['^0-act_wave$',   'WAIVE-KAENA452'],
 
@@ -1189,7 +1179,6 @@ testWaiver = [
     ['0-act_exp_minisweep_wave', 'WAIVE-KAENA773'],
     #['0-act_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
     ['0-act_fused_lrelu_minisweep_wave', 'WAIVE-KAENA773'],
-    ['0-subtract_psum_sb_wave', 'WAIVE-FE-SUBTRACT'],
     ['7-rn50_nne_fp16_wave-no_repl-all-layers$', 'WAIVE_KAENA734'],
 
     # Replication
