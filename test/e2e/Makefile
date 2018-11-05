@@ -99,7 +99,13 @@ TEST_ARGS_CHECK = --test 0-1conv0_wave  3-rn50-t00_wave 3-rn50_pool2_wave 4-ptb_
 
 # Tests that will be run on emulator. These tests are run to check if RTL is fine.
 # Using parallel 1 till we figure out the lock issue
-TEST_ARGS_CHECK_EMU= --force_qemu --parallel 1 --test \
+ifndef TEST_EMU_OPTS
+	TEST_EMU_OPTS = --force_qemu --parallel 1
+endif
+
+TEST_ARGS_CHECK_EMU = ${TEST_EMU_OPTS} --test
+
+TEST_ARGS_CHECK_EMU_TESTS = \
 5-inceptionv3_wave_dog_sg00_tpb_upto_concat1 \
 5-inceptionv3_wave_dog_sg00_tpb_upto_concat2 \
 6-inceptionv3_wave_dog_sg00_tpb_upto_concat4 \
@@ -152,4 +158,4 @@ check_level7:
 	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_LEVEL7}
 
 check_emu:
-	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_EMU}
+	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_EMU} ${TEST_ARGS_CHECK_EMU_TESTS}
