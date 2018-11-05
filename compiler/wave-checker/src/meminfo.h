@@ -179,25 +179,44 @@ struct MemInfo {
   }
   void compute_footprint()
   {
+    tonga_addr x_begin;
+    tonga_addr x_last;
+    tonga_addr y_begin;
+    tonga_addr z_begin;
+    tonga_addr w_begin;
+    w_begin = start_addr;
     if (enable)
     {
-      //tonga_addr end = 
-        //(std::max(last_z_end(), std::max(last_y_end(), last_x_end())));
-      tonga_addr end = 
-        (std::max(std::max(last_w_end(), last_z_end())
-                  , std::max(last_y_end(), last_x_end())));
-      tonga_addr r_end;
-      tonga_addr r_start;
-      if (start_addr > end) {
-        r_end = start_addr;
-        r_start = end;
-      } else {
-        r_start = start_addr;
-        r_end = end;
+      for (int w = 1;w <= w_num;w++)
+      {
+        z_begin = w_begin;
+        for (int z = 1;z <= z_num;z++)
+        {
+          y_begin = z_begin;
+          for (int y = 1;y <= y_num;y++)
+          {
+            x_begin = y_begin;
+            for (int x = 1;x <= x_num;x++)
+            {
+              x_last = x_begin + elem_size - 1;
+              std::list<AddrRange>::reverse_iterator last_ar =
+                mem_footprints.rbegin();
+              if ((*last_ar).end == x_begin - 1)
+              {
+                (*last_ar).end = x_last;
+              } else
+              {
+                AddrRange addr_range(x_begin, x_last);
+                mem_footprints.push_back(addr_range);
+              }
+              x_begin += elem_size * x_step;
+            }
+            y_begin += elem_size * y_step;
+          }
+          z_begin += elem_size * z_step;
+        }
+        w_begin += elem_size * w_step;
       }
-      AddrRange addr_range(r_start, r_end);
-      //addr_range = AddrRange(start_addr, end);
-      mem_footprints.push_back(addr_range);
     }
   }
 }; // MemInfo
