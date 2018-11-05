@@ -347,7 +347,6 @@ class Qemu(BePlat):
   
   def stop(self):
     self.rsyncFromVm("/var/log/syslog", ".")
-    os.chmod('syslog', stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
     checksum = sha256checksum(self.localVdi)
     
     # Remove vdi to reduce disk space (after printing its checksum for later forensics)
@@ -376,6 +375,10 @@ class Qemu(BePlat):
     # Various reports
     print("INFO: checking for zero-size files:", flush=True)
     self.osSystem("find -size 0")
+    
+    # Non-git flow - fix permissions on restricted files
+    if os.path.exists('syslog'):
+      os.chmod('syslog', stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
 
   def checkDoubleEvents(self):  # Return: True is good, False is bad
     cmd = "egrep 'Double .+ of event' log-qemu.txt"
