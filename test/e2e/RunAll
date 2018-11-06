@@ -74,7 +74,6 @@ parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir fr
 
 args = parser.parse_args()
 verbose = args.verbose
-level = args.level
 parallel = args.parallel
 if args.force_qemu and args.parallel == defaultParallel:
   parallel = args.parallel // 2
@@ -120,14 +119,14 @@ def cloneTest(testConfigMap, srcTest, dstTest, fieldIdx, origStr, newStr):
   print("INFO: cloned test  %s  as  %s" % (srcTest, dstTest))
   return True
 
-def selectTests(testConfigMap, testWaiver, arglevel, argTest,
+def selectTests(testConfigMap, testWaiver, argLevel, argTest,
                 argTestRe, argSelect, argFilter, forceQemu):
   testList = []
   # Pre-select by level and the select method
   if len(argTest) == 0 and len(argTestRe) == 0:
     for testName in sorted(testConfigMap):
       isWaived = calcIsWaived(testName, testWaiver)
-      if getLevel(testName) <= level:
+      if getLevel(testName) <= argLevel:
         if argSelect == "any" or (isWaived and argSelect == "waived_only") or ((not isWaived) and argSelect == "not_waived"):
           testList.append(testName)
   else:
