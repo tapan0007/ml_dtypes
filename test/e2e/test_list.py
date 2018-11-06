@@ -1032,9 +1032,10 @@ def gen_parwavenet_10_fp16_tanh1_to(node, sgnum):
 for i in [1, 2, 3, 6]:
     testConfigMap["5-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
 
-# For tanh_to_add6, Slice_4 kept only 1536 elements from 2000 elements of BiasAdd_13 output (similarly for the others)
+# kaena-943: For tanh_to_add6, Slice_4 kept only 1536 elements from 2000 elements of BiasAdd_13 output (similarly for the others)
 for i in [2, 6]:
     testConfigMap["5-parwavenet_10_fp16_tanh_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
+    testConfigMap["5-parwavenet_10_fp16_in_to_add%s_wave"%i][TFFE_OPTION_IDX] += " --waive_wavegraph_checks "
 
 for i in [9, 12, 15, 18, 22]:
     testConfigMap["6-parwavenet_10_fp16_tanh_to_add%s_wave"%i] = gen_parwavenet_10_fp16_tanh1_to("add_%s"%i, 1)
