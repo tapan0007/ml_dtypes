@@ -83,9 +83,7 @@ bool EventChecker::RunEventConflictCheck(evid_t evid)
       // If two wave ops are executed on the same engine,
       // then we consider them ordered. Thus, even if
       // evid is assigned to e, we do not remove the edge.
-      if ((h_wg->get_engine() != t_wg->get_engine()) ||
-          (h_wg->get_engine() == WaveOp::DMA
-           && t_wg->get_engine() == WaveOp::DMA))
+      if (h_wg->get_engine() != t_wg->get_engine())
       {
         vertex_t h = l_vid2v[wg[boost::source(e, wg)]];
         vertex_t t = l_vid2v[wg[boost::target(e, wg)]];
