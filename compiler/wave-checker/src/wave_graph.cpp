@@ -458,16 +458,23 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
   else if (!wave_op_type.compare("Activation") ||
       !wave_op_type.compare("Pool") ||
       !wave_op_type.compare("ClipByValue") ||
-      !wave_op_type.compare("ScaleAdd") ||
-      !wave_op_type.compare("Maximum") ||
-      !wave_op_type.compare("Minimum")) wo = new PoolActOp(op);
+      !wave_op_type.compare("ScaleAdd")) wo = new PoolActOp(op);
   else if (!wave_op_type.compare("SBAtomLoad") ||
       !wave_op_type.compare("SBAtomSave")) wo = new SBAtomOp(op);
   else if (!wave_op_type.compare("ResAdd")) wo = new ResAddOp(op);
   else if (!wave_op_type.compare("Sub")) wo = new ResAddOp(op);
   else if (!wave_op_type.compare("Add")) wo = new ResAddOp(op);
-  else if (!wave_op_type.compare("Multiply")) wo = new ResAddOp(op);
-  else if (!wave_op_type.compare("Nop")) wo = new NopOp(op);
+  else if (!wave_op_type.compare("Multiply") ||
+      !wave_op_type.compare("Maximum") ||
+      !wave_op_type.compare("Minimum"))
+  {
+    if (op["is_scalar_op"] != nullptr && op["is_scalar_op"].get<bool>()==false)
+    {
+      wo = new ResAddOp(op);
+    } else {
+      wo = new PoolActOp(op);
+    }
+  } else if (!wave_op_type.compare("Nop")) wo = new NopOp(op);
   else 
   {
     std::cerr << "ASSERT:: " << wave_op_type
