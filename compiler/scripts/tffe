@@ -88,14 +88,14 @@ parser.add_argument('--postprocessor-args', help='Options to pas to postprocesso
 parser.add_argument('--exclude_ops_from_capture', help='Regexp for op names that will not be captured. TF errors out when capturing cond-false branch', default=None)
 parser.add_argument('--show_op_name_in_kgraph', help='Makes the dataflow kgraph graphical output more verbose', dest="show_op_name_in_kgraph",
                     action="store_true",  default=False)
-parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=[])
+parser.add_argument('--wavegraph_checks', help='Run the following checks during compile phase. The default is no checks', nargs='+', default=["structure", "data-race", "event-conflict"])
 parser.add_argument('--waive_wavegraph_checks', help='Exclude wavegraph checker status from determination of test status', action='store_true')
 parser.add_argument('--euler_options', help='Euler options. E.g --max_events. Default is Non', default='')
 parser.add_argument('--wavegraph_transform', 
                     help=('Wavegraph flow will be invoked to transofrm wavegraph into more optimzed or instrumented form. '
                           'Currently, transitive_reduction, edge lifetime reducer (EuLeR), shell command,s and watchpoint insertion are supported. '
                           'The default is no optimization'), 
-                    nargs='+', default=["cleaner"])
+                    nargs='+', default=["cleaner","euler","cleaner"])
 parser.add_argument('--level_order_seed', help='Seed for randomization of Kgraph node order in compiler.json for stress testing of downstream flow, default is none which means alphabetic sort', type=int, default=None)
 parser.add_argument('--be_options', help='Additional BE options', nargs='+', default=[])
 
@@ -234,23 +234,24 @@ if args.images != None:
             if t.startswith("shell="):
               ret += abs(invokeShellCommand(t))          
 
-        # Invoke wavegraph post-pass tools
-        if ret == 0 and invokeCleaner(kPath, sgDir) != 0:
-          print('ERROR: Cleaner failed')
-          ret = 1
-
-        if ret == 0 and ('watchpoint' in args.wavegraph_transform):
-          watchpoint_args = args.wavegraph_transform[args.wavegraph_transform.index('watchpoint')+1]
-          if invokeWatchpointInsertion(kPath, sgDir, watchpoint_args) != 0:
-            print('ERROR: Watchpoint insertion failed')
-            ret = 1
-
-        if ret == 0 and ("euler" in args.wavegraph_transform):
-          # When EuLeR is run, invoke cleaner once again to clean up
-          # EuLeR'ed wavegraph
-          if invokeEuLeR(kPath, sgDir, args.euler_options) != 0 or invokeCleaner(kPath, sgDir) != 0:
-            print ('ERROR: EuLer failed')
-            ret = 1
+        if (ret == 0):
+          # Invoke wavegraph post-pass tools
+          for t in args.wavegraph_transform:
+            if (t == 'cleaner' and invokeCleaner(kPath, sgDir) != 0):
+                print('ERROR: Cleaner failed')
+                ret = 1
+                break
+            if (t == 'euler' and\
+                invokeEuLeR(kPath, sgDir, args.euler_options) != 0):
+                print('ERROR: Euler failed')
+                ret = 1
+                break
+            
+            if (t == 'watchpoint'):
+              watchpoint_args = args.wavegraph_transform[args.wavegraph_transform.index('watchpoint')+1]
+              if invokeWatchpointInsertion(kPath, sgDir, watchpoint_args) != 0:
+                print('ERROR: Watchpoint insertion failed')
+                ret = 1
 
         if ret == 0:
           # Invoke backend

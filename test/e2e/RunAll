@@ -570,8 +570,6 @@ class Ktests:
       if forceQemu:
         # Both wave and wave2
         nnArgs = re.sub(r'--scheduler wave', "--scheduler qemu_wave", nnArgs)
-      if (not re.search('--wavegraph_checks', nnArgs)):
-        nnArgs += ' --wavegraph_checks structure data-race event-conflict'
       if parallelStreamsForWave and ("--scheduler wave" in nnArgs or "--scheduler qemu_wave" in nnArgs):
         nnArgs += " --parallel_streams" # forward option to compiler
       # default ref omage
