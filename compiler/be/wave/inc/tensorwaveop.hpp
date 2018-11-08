@@ -56,11 +56,17 @@ public:
     static std::string gTypeStrAddStatic() {
         return "Add";
     }
-    static std::string gTypeStrMaximum() {
+    static std::string gTypeStrMaximumStatic() {
         return "Maximum";
     }
-    static std::string gTypeStrMinimum() {
+    static std::string gTypeStrMinimumStatic() {
         return "Minimum";
+    }
+    static std::string gTypeStrTensorTensorStatic() {
+        return "TensorTensor";
+    }
+    static std::string gTypeStrTensorScalarStatic() {
+        return "TensorScalar";
     }
 
 

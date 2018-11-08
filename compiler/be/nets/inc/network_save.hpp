@@ -30,7 +30,7 @@ public:
                        serialize::SerWaveOp& serWaveOp) const;
     void saveTensorTensor(const wave::TensorTensorWaveOp* tensorTensorWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
-    void saveTensorScalarConst(const wave::TensorScalarConstWaveOp* tensorScalarConstWaveOp,
+    void saveTensorScalar(const wave::TensorScalarWaveOp* tensorScalarWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;
     void saveBarrier(const wave::BarrierWaveOp* barrierWaveOp,
                        serialize::SerWaveOp& serWaveOp) const;

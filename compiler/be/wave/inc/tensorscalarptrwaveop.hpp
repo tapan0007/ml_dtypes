@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_WAVE_TENSORSCALARCONSTWAVEOP_H
-#define KCC_WAVE_TENSORSCALARCONSTWAVEOP_H
+#ifndef KCC_WAVE_TENSORSCALARPTRWAVEOP_H
+#define KCC_WAVE_TENSORSCALARPTRWAVEOP_H
 
 
 #include <string>
@@ -26,27 +26,26 @@ namespace kcc {
 namespace wave {
 
 
-class TensorScalarConstWaveOp : public TensorWaveOp {
-private:
-    using BaseClass = TensorWaveOp;
+class TensorScalarPtrWaveOp : public TensorWaveOp {
 public:
     class Params;
+    using BaseClass = TensorWaveOp;
 public:
-    TensorScalarConstWaveOp(const TensorScalarConstWaveOp::Params& params,
+    TensorScalarPtrWaveOp(const TensorScalarPtrWaveOp::Params& params,
                             const std::vector<WaveOp*>& prevWaveOps);
 public:
     bool verify() const override;
 
 private:
-    TensorScalarConstWaveOp() = delete;
+    TensorScalarPtrWaveOp() = delete;
 
 public:
-    bool qTensorScalarConstWaveOp() const override {
+    bool qTensorScalarPtrWaveOp() const override {
         return true;
     }
 
-    WaveOpType gType() const override {
-        return WaveOpType::TensorScalarConst;
+    virtual WaveOpType gType() const override {
+        return WaveOpType::TensorScalar;
     }
 
     const DataType& gInDtype () const {
@@ -92,13 +91,16 @@ public:
     TensorAluOpType gAluOp(kcc_int32 i) const {
         return m_AluOp[i];
     }
-    kcc_float32 gImmVal(kcc_int32 i) const {
-        return m_ImmVal[i];
+    TensorAluOpType gOp(kcc_int32 i) const {
+        return gAluOp(i);
+    }
+    TpbAddress gImmPtr(kcc_int32 i) const {
+        return m_ImmPtr[i];
     }
 
 private:
     TensorAluOpType m_AluOp[2];   // operation in Pool ALU
-    kcc_float32     m_ImmVal[2];
+    TpbAddress      m_ImmPtr[2];
     
     const DataType& m_InDtype;
 
@@ -118,19 +120,21 @@ private:
     kcc_int32       m_SrcYNum              = -1;
     kcc_int32       m_SrcZStep             = -1;
     kcc_int32       m_SrcZNum              = -1;
-}; // class TensorScalarConstWaveOp : public PoolEngWaveOp
+}; // class TensorScalarPtrWaveOp : public PoolEngWaveOp
 
 
 
 
-class TensorScalarConstWaveOp::Params : public TensorWaveOp::Params {
+class TensorScalarPtrWaveOp::Params : public BaseClass::Params {
+private:
+    using BaseClass = TensorScalarPtrWaveOp::BaseClass::Params;
 public:
     bool verify() const;
 public:
     DataTypeId      m_InDtypeId            = DataTypeId::None;
 
-    kcc_float32     m_ImmVal[2];
     TensorAluOpType m_AluOp[2];
+    TpbAddress      m_ImmPtr[2];
 
     /* 3 dimensions for src/dst to support batching.  If this instruction runs
      * over sizeof() limit, cut the z dimension! */

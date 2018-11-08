@@ -25,7 +25,7 @@
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
-#include "wave/inc/tensorscalarconstwaveop.hpp"
+#include "wave/inc/tensorscalarwaveop.hpp"
 
 #include "serialize/inc/serwaveop.hpp"
 
@@ -93,30 +93,36 @@ Network::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
             } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrMultiplyStatic()) {
                 const TensorAluOpType aluOp = TensorAluOpType::Mult;
                 if (serWaveOp.m_IsScalarOp) {
-                    waveOp = m_Load->loadTensorScalarConst(serWaveOp, aluOp);
+                    waveOp = m_Load->loadTensorScalar(serWaveOp, aluOp);
                 } else {
                     waveOp = m_Load->loadTensorTensor(serWaveOp, aluOp);
                 }
             } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrAddStatic()) {
                 const TensorAluOpType aluOp = TensorAluOpType::Add;
                 if (serWaveOp.m_IsScalarOp) {
-                    waveOp = m_Load->loadTensorScalarConst(serWaveOp, aluOp);
+                    waveOp = m_Load->loadTensorScalar(serWaveOp, aluOp);
                 } else {
                     waveOp = m_Load->loadTensorTensor(serWaveOp, aluOp);
                 }
             } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrSubStatic()) {
                 const TensorAluOpType aluOp = TensorAluOpType::Sub;
                 if (serWaveOp.m_IsScalarOp) {
-                    waveOp = m_Load->loadTensorScalarConst(serWaveOp, aluOp);
+                    waveOp = m_Load->loadTensorScalar(serWaveOp, aluOp);
                 } else {
                     waveOp = m_Load->loadTensorTensor(serWaveOp, aluOp);
                 }
             } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrResAddStatic()) {
                 const TensorAluOpType aluOp = TensorAluOpType::Add;
                 waveOp = m_Load->loadTensorTensor(serWaveOp, aluOp);
-            } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrMinimum()) {
+
+            } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrTensorTensorStatic()) {
+                waveOp = m_Load->loadTensorTensor(serWaveOp);
+            } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrTensorScalarStatic()) {
+                waveOp = m_Load->loadTensorScalar(serWaveOp);
+
+            } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrMinimumStatic()) {
                 waveOp = m_Load->loadMinimum(serWaveOp);
-            } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrMaximum()) {
+            } else if (serWaveOp.m_WaveOpType == wave::TensorWaveOp::gTypeStrMaximumStatic()) {
                 waveOp = m_Load->loadMaximum(serWaveOp);
 
             } else {
@@ -403,7 +409,7 @@ Network::Load::loadMinimum(const serialize::SerWaveOp& serWaveOp)
     const TensorAluOpType aluOp = TensorAluOpType::Min;
     wave::TensorWaveOp* waveOp = nullptr;
     if (serWaveOp.m_IsScalarOp) {
-        waveOp = loadTensorScalarConst(serWaveOp, aluOp);
+        waveOp = loadTensorScalar(serWaveOp, aluOp);
     } else {
         waveOp = loadTensorTensor(serWaveOp, aluOp);
     }
@@ -416,20 +422,20 @@ Network::Load::loadMaximum(const serialize::SerWaveOp& serWaveOp)
     const TensorAluOpType aluOp = TensorAluOpType::Max;
     wave::TensorWaveOp* waveOp = nullptr;
     if (serWaveOp.m_IsScalarOp) {
-        waveOp = loadTensorScalarConst(serWaveOp, aluOp);
+        waveOp = loadTensorScalar(serWaveOp, aluOp);
     } else {
         waveOp = loadTensorTensor(serWaveOp, aluOp);
     }
     return waveOp;
 }
 
-wave::TensorScalarConstWaveOp*
+wave::TensorScalarWaveOp*
 Network::Load::loadScaleAdd(const serialize::SerWaveOp& serWaveOp)
 {
 #undef PARAMS
-#define PARAMS tensorScalarConstParams
+#define PARAMS tensorScalarParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::TensorScalarConstWaveOp::Params PARAMS;
+    wave::TensorScalarWaveOp::Params PARAMS;
     fillWaveOpParams(serWaveOp, prevWaveOps, PARAMS);
 
     KCC_UNSERIALIZE(NumPartitions);
@@ -439,7 +445,7 @@ Network::Load::loadScaleAdd(const serialize::SerWaveOp& serWaveOp)
 
     KCC_UNSERIALIZE(WaveOpType);
 
-    if (serWaveOp.m_WaveOpType == wave::TensorScalarConstWaveOp::gTypeStrScaleAddStatic()) {
+    if (serWaveOp.m_WaveOpType == wave::TensorScalarWaveOp::gTypeStrScaleAddStatic()) {
         // y = aluOp[1] * (x + aluOp[0])
         PARAMS.m_AluOp[0] = TensorAluOpType::Mult; 
         PARAMS.m_AluOp[1] = TensorAluOpType::Add; 
@@ -449,7 +455,7 @@ Network::Load::loadScaleAdd(const serialize::SerWaveOp& serWaveOp)
         Assert(false, "Supported ALU ops are: Add, Mult");
     }
 
-    auto waveOp = new wave::TensorScalarConstWaveOp(PARAMS, prevWaveOps);
+    auto waveOp = new wave::TensorScalarWaveOp(PARAMS, prevWaveOps);
     Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS
@@ -481,13 +487,20 @@ Network::Load::loadTensorTensor(const serialize::SerWaveOp& serWaveOp, TensorAlu
 #undef PARAMS
 }
 
-wave::TensorScalarConstWaveOp*
-Network::Load::loadTensorScalarConst(const serialize::SerWaveOp& serWaveOp, TensorAluOpType aluOp)
+wave::TensorTensorWaveOp*
+Network::Load::loadTensorTensor(const serialize::SerWaveOp& serWaveOp)
+{
+    const auto aluOp = utils::gAluOpType(serWaveOp.m_Op.c_str());
+    return loadTensorTensor(serWaveOp, aluOp);
+}
+
+wave::TensorScalarWaveOp*
+Network::Load::loadTensorScalar(const serialize::SerWaveOp& serWaveOp, TensorAluOpType aluOp)
 {
 #undef PARAMS
 #define PARAMS tensorScalarAddParams
     std::vector<wave::WaveOp*> prevWaveOps;
-    wave::TensorScalarConstWaveOp::Params PARAMS;
+    wave::TensorScalarWaveOp::Params PARAMS;
     fillWaveOpParams(serWaveOp, prevWaveOps, tensorScalarAddParams);
 
     PARAMS.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
@@ -516,7 +529,37 @@ Network::Load::loadTensorScalarConst(const serialize::SerWaveOp& serWaveOp, Tens
         break;
     }
 
-    auto waveOp = new wave::TensorScalarConstWaveOp(PARAMS, prevWaveOps);
+    auto waveOp = new wave::TensorScalarWaveOp(PARAMS, prevWaveOps);
+    Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
+    return waveOp;
+#undef PARAMS
+}
+ 
+//**********************************************************************
+wave::TensorScalarWaveOp*
+Network::Load::loadTensorScalar(const serialize::SerWaveOp& serWaveOp)
+{
+#undef PARAMS
+#define PARAMS tensorScalarAddParams
+    std::vector<wave::WaveOp*> prevWaveOps;
+    wave::TensorScalarWaveOp::Params PARAMS;
+    fillWaveOpParams(serWaveOp, prevWaveOps, tensorScalarAddParams);
+
+    PARAMS.m_InDtypeId        = DataType::dataTypeStr2Id(serWaveOp.m_InDtype.c_str());
+    PARAMS.m_OutDtypeId       = DataType::dataTypeStr2Id(serWaveOp.m_OutDtype.c_str());
+    KCC_UNSERIALIZE(NumPartitions);
+
+    loadSrc(PARAMS, serWaveOp, Dims::XYZ);
+    loadDst(PARAMS, serWaveOp, Dims::XYZ);
+
+    KCC_UNSERIALIZE(WaveOpType);
+
+    PARAMS.m_AluOp[0]  = utils::gAluOpType(serWaveOp.m_Op0.c_str());
+    PARAMS.m_AluOp[1]  = utils::gAluOpType(serWaveOp.m_Op1.c_str());
+    PARAMS.m_ImmVal[0]  = serWaveOp.m_ImmVal0;
+    PARAMS.m_ImmVal[1]  = serWaveOp.m_ImmVal1;
+
+    auto waveOp = new wave::TensorScalarWaveOp(PARAMS, prevWaveOps);
     Assert(waveOp->gName() == PARAMS.m_WaveOpName, "Wrong waveop name ", waveOp->gName());
     return waveOp;
 #undef PARAMS

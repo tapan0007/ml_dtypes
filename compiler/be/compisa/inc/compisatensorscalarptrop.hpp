@@ -17,8 +17,6 @@ using TensorScalarPtrOpInstr = InstrTempl2<
     ::TONGA_ISA_TPB_TENSOR_SCALAR_PTR_OP_INST,
     ::tonga_isa_tpb_tensorscalarptr_check_validity>;
 
-
-
 }}
 
 #endif // KCC_COMPISA_TENSORSCALARPTROP_H

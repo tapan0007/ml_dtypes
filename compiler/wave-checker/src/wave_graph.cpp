@@ -17,6 +17,9 @@ WaveOp::WaveOpType WaveOp::ExtractWaveOpTypeEngine(
   else if (!wot.compare("Multiply")) t = ResAdd;
   else if (!wot.compare("Sub")) t = ResAdd;
   else if (!wot.compare("Add")) t = ResAdd;
+  else if (!wot.compare("TensorTensor")) t = ResAdd;
+  else if (!wot.compare("TensorScalar")) t = Pool;
+  else if (!wot.compare("TensorScalarPtr")) t = Pool;
   else if (!wot.compare("ScaleAdd")) t = Pool;
   else if (!wot.compare("Maximum")) t = Pool;
   else if (!wot.compare("Minimum")) t = Pool;
@@ -466,6 +469,9 @@ WaveOp* WaveGraphChecker::ConstructWaveOp(json& op)
   else if (!wave_op_type.compare("ResAdd")) wo = new ResAddOp(op);
   else if (!wave_op_type.compare("Sub")) wo = new ResAddOp(op);
   else if (!wave_op_type.compare("Add")) wo = new ResAddOp(op);
+  else if (!wave_op_type.compare("TensorTensor")) wo = new ResAddOp(op);
+  else if (!wave_op_type.compare("TensorScalar")) wo = new PoolActOp(op);
+  else if (!wave_op_type.compare("TensorScalarPtr")) wo = new PoolActOp(op);
   else if (!wave_op_type.compare("Multiply") ||
       !wave_op_type.compare("Maximum") ||
       !wave_op_type.compare("Minimum"))
@@ -953,6 +959,9 @@ void WaveGraphChecker::MakeImplicitEdgesExplicit()
     }
     else if (!wop_type.compare("Pool") || !wop_type.compare("ResAdd")
         || !wop_type.compare("Reciprocal")
+        || !wop_type.compare("TensorTensor")
+        || !wop_type.compare("TensorScalar")
+        || !wop_type.compare("TensorScalarPtr")
         || !wop_type.compare("Multiply")
         || !wop_type.compare("ScaleAdd")
         || !wop_type.compare("Add")

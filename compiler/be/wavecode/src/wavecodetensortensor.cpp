@@ -69,7 +69,6 @@ WaveCodeTensorTensor::generateDiffBufSrc(wave::TensorTensorWaveOp* tensortensorW
     //-----------------------------------------------------------------
     // For now ARITH tensor-tensor
     compisa::TensorTensorOpInstr tensortensorInstr(TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_ARITH_OP);
-
     const utils::DataType& srcADtype(tensortensorWaveop->gInADtype());
     const utils::DataType& srcBDtype(tensortensorWaveop->gInBDtype());
     TONGA_ISA_TPB_MEM_ACCESS_3D& srcAPat(tensortensorInstr.src_mem_pattern[srcAIdx]);

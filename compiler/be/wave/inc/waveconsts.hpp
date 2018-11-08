@@ -21,6 +21,9 @@ constexpr const char* const WaveOpTypeStr_Multiply      = "Multiply";
 constexpr const char* const WaveOpTypeStr_Add           = "Add";
 constexpr const char* const WaveOpTypeStr_Sub           = "Sub";
 constexpr const char* const WaveOpTypeStr_ClipByValue   = "ClipByValue";
+constexpr static const char* WaveOpTypeStr_TensorTensor = "TensorTensor";
+constexpr static const char* WaveOpTypeStr_TensorScalar = "TensorScalar";
+constexpr static const char* WaveOpTypeStr_TensorScalarPtr = "TensorScalarPtr";
 constexpr const char* const WaveOpTypeStr_Maximum       = "Maximum";
 constexpr const char* const WaveOpTypeStr_Minimum       = "Minimum";
 

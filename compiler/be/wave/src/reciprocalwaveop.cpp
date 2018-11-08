@@ -63,7 +63,7 @@ bool
 ReciprocalWaveOp::verify() const
 {
     const arch::PsumBuffer& psumBuf(arch::Arch::gArch().gPsumBuffer());
-    if (! this->SubClass::verify()) {
+    if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
     }
     if (m_DstSbAddress < 0) {

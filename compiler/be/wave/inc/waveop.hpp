@@ -96,7 +96,10 @@ public:
     virtual bool qTensorTensorWaveOp() const {
         return false;
     }
-    virtual bool qTensorScalarConstWaveOp() const {
+    virtual bool qTensorScalarWaveOp() const {
+        return false;
+    }
+    virtual bool qTensorScalarPtrWaveOp() const {
         return false;
     }
     virtual bool qBarrierWaveOp() const {

@@ -39,6 +39,11 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
     // For now ARITH
     compisa::TensorScalarOpInstr tensorScalarOpInstr(TONGA_ISA_TPB_OPCODE_TENSOR_SCALAR_ARITH_OP);
 
+    AssignWithSizeCheck(tensorScalarOpInstr.op[0], TONGA_ISA_TPB_ALU_OP_MIN);
+    AssignWithSizeCheck(tensorScalarOpInstr.op[1], TONGA_ISA_TPB_ALU_OP_MAX);
+    tensorScalarOpInstr.imm_val_float[0] = clipByValueWaveop->gMaxValue(); // float
+    tensorScalarOpInstr.imm_val_float[1] = clipByValueWaveop->gMinValue(); // float
+
     AssignWithSizeCheck(tensorScalarOpInstr.in_dtype, clipByValueWaveop->gInDtype().gSimTypeId());
     AssignWithSizeCheck(tensorScalarOpInstr.out_dtype, clipByValueWaveop->gOutDtype().gSimTypeId());
 
@@ -82,14 +87,6 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
 
     AssignWithSizeCheck(tensorScalarOpInstr.num_active_channels, clipByValueWaveop->gNumPartitions());
 
-    AssignWithSizeCheck(tensorScalarOpInstr.op[0], TONGA_ISA_TPB_ALU_OP_MIN);
-    tensorScalarOpInstr.imm_val_float[0] =  clipByValueWaveop->gMaxValue(); // float
-
-    AssignWithSizeCheck(tensorScalarOpInstr.op[1], TONGA_ISA_TPB_ALU_OP_MAX);
-    tensorScalarOpInstr.imm_val_float[1] = clipByValueWaveop->gMinValue(); // float
-
-
-
     AssignWithSizeCheck(tensorScalarOpInstr.inst_events.wait_event_idx, 0);
     AssignWithSizeCheck(tensorScalarOpInstr.inst_events.wait_event_mode, events::eventWaitMode2Isa(events::EventWaitMode::DontWait));
     AssignWithSizeCheck(tensorScalarOpInstr.inst_events.set_event_idx, 0);
@@ -118,5 +115,6 @@ WaveCodeClipByValue::generate(wave::WaveOp* waveop)
 
 
 }}
+
 
 

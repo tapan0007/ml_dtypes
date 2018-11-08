@@ -77,6 +77,12 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
         saveActivation(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
         saveClipByValue(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorTensor) {
+        saveTensorTensor(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalar) {
+        saveTensorScalar(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalarPtr) {
+        saveTensorScalarPtr(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ResAdd) {
         saveResAdd(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ScaleAdd) {
@@ -234,6 +240,54 @@ SerWaveOp::saveClipByValue(cereal::JSONOutputArchive& archive) const
 
     KCC_ARCHIVE(MinValue);
     KCC_ARCHIVE(MaxValue);
+}
+ 
+//===========================================================================
+void
+SerWaveOp::saveTensorTensor(cereal::JSONOutputArchive& archive) const
+{
+    saveSrcAB(archive, Dims::XYZ);
+    saveDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+
+    KCC_ARCHIVE(Op);
+}
+
+//===========================================================================
+void
+SerWaveOp::saveTensorScalar(cereal::JSONOutputArchive& archive) const
+{
+    saveSrc(archive, Dims::XYZ);
+    saveDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+
+    KCC_ARCHIVE(Op0);
+    KCC_ARCHIVE(Op1);
+    KCC_ARCHIVE(ImmVal0);
+    KCC_ARCHIVE(ImmVal1);
+}
+
+//===========================================================================
+void
+SerWaveOp::saveTensorScalarPtr(cereal::JSONOutputArchive& archive) const
+{
+    saveSrc(archive, Dims::XYZ);
+    saveDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+
+    KCC_ARCHIVE(Op0);
+    KCC_ARCHIVE(Op1);
+    KCC_ARCHIVE(ImmPtr0);
+    KCC_ARCHIVE(ImmPtr1);
 }
 
 //===========================================================================

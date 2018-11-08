@@ -26,12 +26,14 @@ public:
     wave::ClipByValueWaveOp* loadClipByValue(const serialize::SerWaveOp& serWaveOp);
 
     wave::TensorTensorWaveOp* loadTensorTensor(const serialize::SerWaveOp&, TensorAluOpType);
-    wave::TensorScalarConstWaveOp* loadTensorScalarConst(const serialize::SerWaveOp&, TensorAluOpType);
+    wave::TensorTensorWaveOp* loadTensorTensor(const serialize::SerWaveOp&);
+    wave::TensorScalarWaveOp* loadTensorScalar(const serialize::SerWaveOp&, TensorAluOpType);
+    wave::TensorScalarWaveOp* loadTensorScalar(const serialize::SerWaveOp&);
 
     wave::TensorWaveOp* loadMinimum(const serialize::SerWaveOp& serWaveOp);
     wave::TensorWaveOp* loadMaximum(const serialize::SerWaveOp& serWaveOp);
 
-    wave::TensorScalarConstWaveOp* loadScaleAdd(const serialize::SerWaveOp& serWaveOp);
+    wave::TensorScalarWaveOp* loadScaleAdd(const serialize::SerWaveOp& serWaveOp);
 
 
 private:

@@ -47,7 +47,7 @@ class WaveCodeReciprocal;
 class WaveCodeActivation;
 class WaveCodeClipByValue;
 class WaveCodeTensorTensor;
-class WaveCodeTensorScalarConst;
+class WaveCodeTensorScalar;
 class WaveCodeBarrier;
 class WaveCodeNop;
 class WaveCodeTensorTensor;
@@ -199,7 +199,7 @@ private:
     std::unique_ptr<WaveCodeBarrier>    m_CodeBarrier;
     std::unique_ptr<WaveCodeNop>        m_CodeNop;
     std::unique_ptr<WaveCodeTensorTensor> m_CodeTensorTensor;
-    std::unique_ptr<WaveCodeTensorScalarConst> m_CodeTensorScalarConst;
+    std::unique_ptr<WaveCodeTensorScalar> m_CodeTensorScalar;
 
     kcc_int64                           m_CurrentDramAddress;
     std::map<std::string, NpyFileInfo>  m_NpyFile2DramAddress;

@@ -679,6 +679,198 @@ SerWaveOp::verifyTensor() const
 }
 
 bool
+SerWaveOp::verifyTensorTensor() const
+{
+    if (m_NumPartitions < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_OutDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstIsPsum) {
+        if (m_DstPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_DstSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_DstXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+
+    if (m_InADtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAIsPsum) {
+        if (m_SrcAPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcAPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcASbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_SrcAXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAXStep == 0 && m_SrcAXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAYStep == 0 && m_SrcAYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcAZStep == 0 && m_SrcAZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+
+    if (m_InBDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBIsPsum) {
+        if (m_SrcBPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcBPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcBSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_SrcBXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBXStep == 0 && m_SrcBXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBYStep == 0 && m_SrcBYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcBZStep == 0 && m_SrcBZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+    return true;
+}
+
+bool
+SerWaveOp::verifyTensorScalar() const
+{
+    if (m_NumPartitions < 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_OutDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstIsPsum) {
+        if (m_DstPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_DstPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_DstSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_DstXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstXStep == 0 && m_DstXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstYStep == 0 && m_DstYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_DstZStep == 0 && m_DstZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+    if (m_InDtype == "") {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcIsPsum) {
+        if (m_SrcPsumBankId < 0) {
+            RETURN_ASSERT(false);
+        }
+        if (m_SrcPsumBankOffset < 0) {
+            RETURN_ASSERT(false);
+        }
+    } else {
+        if (m_SrcSbAddress < 0) {
+            RETURN_ASSERT(false);
+        }
+    }
+    if (m_SrcXNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcXStep == 0 && m_SrcXNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcYStep == 0 && m_SrcYNum != 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZNum < 1) {
+        RETURN_ASSERT(false);
+    }
+    if (m_SrcZStep == 0 && m_SrcZNum != 1) {
+        RETURN_ASSERT(false);
+    }
+
+    return true;
+}
+
+bool
 SerWaveOp::verifyResAdd() const
 {
     if (m_InADtype == "") {
@@ -912,6 +1104,10 @@ SerWaveOp::verify() const
         return verifyActivation();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_ClipByValue) {
         return verifyClipByValue();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorTensor) {
+        return verifyTensorTensor();
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalar) {
+        return verifyTensorScalar();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Barrier) {
         return verifyBarrier();
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Nop) {

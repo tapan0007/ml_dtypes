@@ -29,7 +29,7 @@
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
-#include "wave/inc/tensorscalarconstwaveop.hpp"
+#include "wave/inc/tensorscalarwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 
@@ -108,8 +108,8 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
             m_Save->saveTensorTensor(tensorTensorWaveOp, serWaveOp);
             continue;
         }
-        if (const auto tensorScalarConstWaveOp = dynamic_cast<const wave::TensorScalarConstWaveOp*>(waveOp)) {
-            m_Save->saveTensorScalarConst(tensorScalarConstWaveOp, serWaveOp);
+        if (const auto tensorScalarWaveOp = dynamic_cast<const wave::TensorScalarWaveOp*>(waveOp)) {
+            m_Save->saveTensorScalar(tensorScalarWaveOp, serWaveOp);
             continue;
         }
         if (const auto barrierWaveOp = dynamic_cast<const wave::BarrierWaveOp*>(waveOp)) {
@@ -324,7 +324,7 @@ Network::Save::saveClipByValue(const wave::ClipByValueWaveOp* clipByValueWaveOp,
     saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
     saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
-    const std::array<kcc_int32, 4>& tileId(clipByValueWaveOp->gTileId());
+    const std::array<kcc_int32, 4>& tileId(WAVE_OP->gTileId());
     for (unsigned int i = 0; i < tileId.size(); ++i) {
         serWaveOp.m_TileId[i]       = tileId[i];
     }
@@ -332,45 +332,52 @@ Network::Save::saveClipByValue(const wave::ClipByValueWaveOp* clipByValueWaveOp,
 #undef WAVE_OP
 }
 
-
-
 void
-Network::Save::saveTensorTensor(const wave::TensorTensorWaveOp* tensorTensorWaveOp,
-                    serialize::SerWaveOp& serWaveOp) const
+Network::Save::saveTensorTensor(
+    const wave::TensorTensorWaveOp* tensorTensorWaveop,
+    serialize::SerWaveOp& serWaveOp) const
 {
 #undef WAVE_OP
-#define WAVE_OP tensorTensorWaveOp
-    serWaveOp.m_IsScalarOp = false;
-    serWaveOp.m_WaveOpType = tensorTensorWaveOp->gTypeStr();
+#define WAVE_OP tensorTensorWaveop
+    serWaveOp.m_WaveOpType  = WAVE_OP->gTypeStr();
 
+    serWaveOp.m_InADtype    = WAVE_OP->gInADtype().gName();
+    serWaveOp.m_InBDtype    = WAVE_OP->gInBDtype().gName();
+    serWaveOp.m_OutDtype    = WAVE_OP->gOutDtype().gName();
+ 
     KCC_SERIALIZE(NumPartitions);
-
+ 
     saveSrcAB(WAVE_OP, serWaveOp, Dims::XYZ);
     saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
-
-#undef WAVE_OP
+ 
+    serWaveOp.m_Op      = gAluOpTypeStr(WAVE_OP->gOp());
 }
+#undef WAVE_OP
+
 
 void
-Network::Save::saveTensorScalarConst(const wave::TensorScalarConstWaveOp* tensorScalarConstWaveOp,
-                       serialize::SerWaveOp& serWaveOp) const
+Network::Save::saveTensorScalar(
+        const wave::TensorScalarWaveOp* tensorScalarWaveOp,
+        serialize::SerWaveOp& serWaveOp) const
 {
 #undef WAVE_OP
-#define WAVE_OP tensorScalarConstWaveOp
-    serWaveOp.m_IsScalarOp = true;
-    serWaveOp.m_WaveOpType = tensorScalarConstWaveOp->gTypeStr();
+#define WAVE_OP tensorScalarWaveOp
+    serWaveOp.m_WaveOpType  = WAVE_OP->gTypeStr();
+
+    serWaveOp.m_InDtype    = WAVE_OP->gInDtype().gName();
+    serWaveOp.m_OutDtype    = WAVE_OP->gOutDtype().gName();
 
     KCC_SERIALIZE(NumPartitions);
 
     saveSrc(WAVE_OP, serWaveOp, Dims::XYZ);
     saveDst(WAVE_OP, serWaveOp, Dims::XYZ);
 
-    if (serWaveOp.m_WaveOpType == "ScaleAdd") {
-        serWaveOp.m_Scale = tensorScalarConstWaveOp->gImmVal(0);
-        serWaveOp.m_Add = tensorScalarConstWaveOp->gImmVal(1);
-    }
-#undef WAVE_OP
+    serWaveOp.m_Op0 = gAluOpTypeStr(WAVE_OP->gOp(0));
+    serWaveOp.m_Op1 = gAluOpTypeStr(WAVE_OP->gOp(1));
+    serWaveOp.m_ImmVal0 = WAVE_OP->gImmVal(0);
+    serWaveOp.m_ImmVal1 = WAVE_OP->gImmVal(1);
 }
+#undef WAVE_OP
 
 
 

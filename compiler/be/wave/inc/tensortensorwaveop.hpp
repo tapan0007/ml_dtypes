@@ -130,6 +130,9 @@ public:
     TensorAluOpType gAluOp() const {
         return m_AluOp;
     }
+    TensorAluOpType gOp() const {
+        return gAluOp();
+    }
 
 private:
     TensorAluOpType m_AluOp;   // operation in Pool ALU

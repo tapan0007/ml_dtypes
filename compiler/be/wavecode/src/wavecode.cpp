@@ -33,7 +33,7 @@
 #include "wave/inc/activationwaveop.hpp"
 #include "wave/inc/clipbyvaluewaveop.hpp"
 #include "wave/inc/tensortensorwaveop.hpp"
-#include "wave/inc/tensorscalarconstwaveop.hpp"
+#include "wave/inc/tensorscalarwaveop.hpp"
 #include "wave/inc/barrierwaveop.hpp"
 #include "wave/inc/nopwaveop.hpp"
 #include "wave/inc/waveedge.hpp"
@@ -47,7 +47,7 @@
 #include "wavecode/inc/wavecodeactivation.hpp"
 #include "wavecode/inc/wavecodeclipbyvalue.hpp"
 #include "wavecode/inc/wavecodetensortensor.hpp"
-#include "wavecode/inc/wavecodetensorscalarconst.hpp"
+#include "wavecode/inc/wavecodetensorscalar.hpp"
 #include "wavecode/inc/wavecodebarrier.hpp"
 #include "wavecode/inc/wavecodenop.hpp"
 
@@ -71,7 +71,7 @@ WaveCode::WaveCode(nets::Network& network, const arch::Arch& arch, bool useSem)
     m_CodeBarrier           = std::make_unique<WaveCodeBarrier>(*this);
     m_CodeNop               = std::make_unique<WaveCodeNop>(*this);
     m_CodeTensorTensor      = std::make_unique<WaveCodeTensorTensor>(*this);
-    m_CodeTensorScalarConst = std::make_unique<WaveCodeTensorScalarConst>(*this);
+    m_CodeTensorScalar      = std::make_unique<WaveCodeTensorScalar>(*this);
 
     m_CurrentDramAddress    = P_0_DRAM_0_BASE;
 }
@@ -204,8 +204,8 @@ WaveCode::getCodeGen(const wave::WaveOp* waveOp)
         return *m_CodeNop;
     } else if (dynamic_cast<const wave::TensorTensorWaveOp*>(waveOp)) {
         return *m_CodeTensorTensor;
-    } else if (dynamic_cast<const wave::TensorScalarConstWaveOp*>(waveOp)) {
-        return *m_CodeTensorScalarConst;
+    } else if (dynamic_cast<const wave::TensorScalarWaveOp*>(waveOp)) {
+        return *m_CodeTensorScalar;
     } else {
         assert(false && "WaveCode: Unsupported WaveOp");
     }

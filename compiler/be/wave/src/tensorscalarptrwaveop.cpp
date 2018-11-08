@@ -7,7 +7,7 @@
 #include "arch/inc/arch.hpp"
 #include "nets/inc/network.hpp"
 #include "wave/inc/waveconsts.hpp"
-#include "wave/inc/tensorscalarconstwaveop.hpp"
+#include "wave/inc/tensorscalarptrwaveop.hpp"
 
 // #define RETURN_ASSERT(x) return (x)
 #define RETURN_ASSERT(x)  assert(x); return (x)
@@ -16,8 +16,8 @@
 namespace kcc {
 namespace wave {
 
-TensorScalarConstWaveOp::TensorScalarConstWaveOp(
-                        const TensorScalarConstWaveOp::Params& params,
+TensorScalarPtrWaveOp::TensorScalarPtrWaveOp(
+                        const TensorScalarPtrWaveOp::Params& params,
                         const std::vector<WaveOp*>& prevWaveOps)
     : BaseClass(params, prevWaveOps)
     , m_InDtype(DataType::dataTypeId2DataType(params.m_InDtypeId))
@@ -25,10 +25,10 @@ TensorScalarConstWaveOp::TensorScalarConstWaveOp(
 {
     Assert(params.m_InDtypeId != DataTypeId::None, "None in data type");
 
-    m_AluOp[0] = params.m_AluOp[0];
-    m_AluOp[1] = params.m_AluOp[1];
-    m_ImmVal[0] = params.m_ImmVal[0];
-    m_ImmVal[1] = params.m_ImmVal[1];
+    for (auto i = 0; i < 2; ++i) {
+        m_AluOp[i] = params.m_AluOp[i];
+        m_ImmPtr[i] = params.m_ImmPtr[i];
+    }
 
     /* src_a */
     if (m_SrcIsPsum) {
@@ -67,7 +67,7 @@ TensorScalarConstWaveOp::TensorScalarConstWaveOp(
 
 
 bool
-TensorScalarConstWaveOp::verify() const
+TensorScalarPtrWaveOp::verify() const
 {
     if (! this->BaseClass::verify()) {
         RETURN_ASSERT(false);
@@ -112,9 +112,8 @@ TensorScalarConstWaveOp::verify() const
 
 
 bool
-TensorScalarConstWaveOp::Params::verify() const
+TensorScalarPtrWaveOp::Params::verify() const
 {
-    TensorScalarConstWaveOp::BaseClass::Params::verify();
     return true;
 }
 

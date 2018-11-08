@@ -26,10 +26,9 @@ public:
         if (expr) {
             return;
         }
-        char buf[BUF_SIZE];
-        snprintf(buf, sizeof(buf)/sizeof(buf[0]),
-            "ERROR: File %s:%d, Assertion '%s' failed: ", m_FileName, m_LineNumber, m_ExprStr);
-        this->printer(buf, arg, Fargs...);
+        std::cerr << "ERROR: File " << m_FileName << ":" << m_LineNumber
+                  << ", Assertion '" << m_ExprStr << "' failed: ";
+        this->printer(arg, Fargs...);
         crash();
     }
 

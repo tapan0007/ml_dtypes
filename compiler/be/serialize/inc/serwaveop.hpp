@@ -195,6 +195,14 @@ constexpr static const char* WaveOpKey_QuantOffsetWeights   = "quant_offset_weig
 //constexpr static const char* WaveOpKey_AddScalar            = "add_scalar";
 constexpr static const char* WaveOpKey_IsScalarOp           = "is_scalar_op";
 constexpr static const char* WaveOpKey_ScalarVal            = "scalar_val";
+ 
+constexpr static const char* WaveOpKey_Op                   = "op";
+constexpr static const char* WaveOpKey_Op0                  = "op0";
+constexpr static const char* WaveOpKey_Op1                  = "op1";
+constexpr static const char* WaveOpKey_ImmVal0              = "imm_val0";
+constexpr static const char* WaveOpKey_ImmVal1              = "imm_val1";
+constexpr static const char* WaveOpKey_ImmPtr0              = "imm_ptr0";
+constexpr static const char* WaveOpKey_ImmPtr1              = "imm_ptr1";
 
 
 
@@ -258,6 +266,10 @@ private:
     void loadClipByValue(cereal::JSONInputArchive& archive);
     void loadMaximum(cereal::JSONInputArchive& archive);
     void loadMinimum(cereal::JSONInputArchive& archive);
+    void loadTensorTensor(cereal::JSONInputArchive& archive);
+    void loadTensorScalar(cereal::JSONInputArchive& archive);
+    void loadTensorScalarPtr(cereal::JSONInputArchive& archive);
+
 
     void saveSbAtom(cereal::JSONOutputArchive& archive) const;
     void savePool(cereal::JSONOutputArchive& archive) const;
@@ -274,6 +286,9 @@ private:
     void saveAdd(cereal::JSONOutputArchive& archive) const;
     void saveSub(cereal::JSONOutputArchive& archive) const;
     void saveMult(cereal::JSONOutputArchive& archive) const;
+    void saveTensorTensor(cereal::JSONOutputArchive& archive) const;
+    void saveTensorScalar(cereal::JSONOutputArchive& archive) const;
+    void saveTensorScalarPtr(cereal::JSONOutputArchive& archive) const;
 
 protected:
     bool verify() const;
@@ -292,6 +307,8 @@ private:
     bool verifyBarrier() const;
     bool verifyNop() const;
     bool verifyTensor() const;
+    bool verifyTensorTensor() const;
+    bool verifyTensorScalar() const;
 
 public:
     // common to all
@@ -430,6 +447,14 @@ public:
     kcc_int32                   m_IfmapReplicationStepBytes     = -1; // SbAtomLoad
 
     kcc_int32                   m_SrcStepElem                   = -1; // SbAtomLoad
+
+    std::string                 m_Op;
+    std::string                 m_Op0;
+    std::string                 m_Op1;
+    kcc_float32                 m_ImmVal0;
+    kcc_float32                 m_ImmVal1;
+    TpbAddress                  m_ImmPtr0;
+    TpbAddress                  m_ImmPtr1;
 
     // ClipByValue
     kcc_float32                 m_MinValue;

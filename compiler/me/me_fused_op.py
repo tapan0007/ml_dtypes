@@ -352,6 +352,20 @@ class FusedOp(list):
             #'ExpandDims': next_is_fusable_regex,
             }
 
+    def translate_isa_op_name(self, op_type):
+        new_type = op_type
+        if op_type == "resadd":
+            new_type = "add"
+        elif op_type == "sub":
+            new_type = "subtract"
+        elif op_type == "maximum":
+            new_type = "max"
+        elif op_type == "minimum":
+            new_type = "min"
+        elif op_type == "multiply":
+            new_type = "mult"
+        return new_type            
+
     def __init__(self, out_data_type, fused_op_id, args):
         self.fused_op_id = fused_op_id 
         self.prev = None
@@ -1366,6 +1380,7 @@ class FusedOp(list):
         prev_waveops = []
         for i in op_list_iter:
             layer_type = self[i].data['layer_type'] 
+            layer_data = self[i].data
             if (re.search(self.act_ops_regex, layer_type)):
                 dram_bias_waveops = []
                 list_of_accessors_wr = []
@@ -1543,41 +1558,38 @@ class FusedOp(list):
                         relax_dependencies   = self.args.relax_dependencies,
                         full_dependencies    = self.args.full_dependencies)
                 attach_predecessors(waveop, prev_waveops)
-            elif (re.search("^Add$|Minimum|Maximum|Multiply", layer_type)):
-                add_scalar = 0.0
-                mul_scalar = 1.0
-                if layer_type == 'Add':
-                    assert('add_scalar' in self[i].data)
-                    add_scalar = self[i].data['add_scalar']
-                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, add_scalar)
-                else: # if layer_type == 'Multiply':
-                    assert('mul_scalar' in self[i].data)
-                    mul_scalar = self[i].data['mul_scalar']
-                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, mul_scalar)
-                dst_is_psum = self[i].dst_is_psum
-                if dst_is_psum:
+            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum", layer_type):
+                if layer_type == "ClipByValue":
+                    scalar_val = [layer_data['clip_value_min'], layer_data['clip_value_max']]
+                    scalar_op = [
+                        self.translate_isa_op_name("maximum"),
+                        self.translate_isa_op_name("minimum")
+                    ]  # clip: max for lower bound, and min for the upper bound
+                    psum_temp = tpb.pool.clipbyvalue(psum_temp, scalar_val[0], scalar_val[1])
+                elif layer_type == 'Add':
+                    assert('add_scalar' in layer_data)
+                    scalar_val = [layer_data['add_scalar'], 0.0]
+                    scalar_op = [layer_data['layer_type'].lower(), "bypass"]
+                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, scalar_val[0])
+                else:
+                    assert('mul_scalar' in layer_data)
+                    scalar_val = [layer_data['mul_scalar'], 0.0]
+                    scalar_op = [layer_data['layer_type'].lower(), "bypass"]
+                    psum_temp = tpb.pool.tensor_scalar_op(layer_type, psum_temp, scalar_val[0])
+                if self[i].dst_is_psum:                    
                     tpb.pearray.write_psum(psum_bank_id, 0, psum_temp.shape[0], psum_temp)
-                if layer_type == 'Add' or layer_type == 'Multiply':
-                    waveop = self.gen_scaleadd_or_clip_waveop_inline(
-                                tpb              = tpb,
-                                op               = self[i], 
-                                ifmap_tile       = ifmap_tile, 
-                                ofmap_tile       = ofmap_tile,
-                                src_is_psum      = True, 
-                                psum_bank_src    = psum_bank_id, 
-                                dst_is_psum      = dst_is_psum,
-                                psum_bank_dst    = psum_bank_id if dst_is_psum else -1, 
-                                dram_waveops     = [], 
-                                scale_or_min_val = mul_scalar,
-                                add_or_max_val   = add_scalar)
-                else:                    
-                    waveop = self.gen_tensor_scalar_waveop_inline(
-                                mapper        = tpb.statebuffer.file_mapper, 
-                                waveop_stream = tpb.waveop_stream,
-                                op            = self[i],
-                                ifmap_tile    = ifmap_tile, 
-                                ofmap_tile    = ofmap_tile, 
-                                psum_bank_id  = psum_bank_id) 
+                waveop = self.gen_tensor_scalar_waveop_inline(
+                            mapper        = tpb.statebuffer.file_mapper, 
+                            waveop_stream = tpb.waveop_stream,
+                            op            = self[i],
+                            scalar_op     = scalar_op,
+                            scalar_val    = scalar_val,
+                            ifmap_tile    = ifmap_tile, 
+                            ofmap_tile    = ofmap_tile, 
+                            psum_bank_id  = psum_bank_id,
+                            dram_waveops  = [], 
+                            new_reader_morsels = []
+                            )
                 attach_predecessors(waveop, prev_waveops)
             elif re.search("Reshape|Squeeze|ExpandDims", layer_type):
                 pass
@@ -1689,87 +1701,6 @@ class FusedOp(list):
               'num_partitions'          : 1
             }
         tpb.waveop_stream.add_linked(instr, [], psum_bank_src)
-        return instr
-
-    # generate scaleadd instruction and add it to instruction stream
-    def gen_scaleadd_or_clip_waveop_inline(self, tpb, op, ifmap_tile, ofmap_tile, src_is_psum, psum_bank_src, dst_is_psum, psum_bank_dst, dram_waveops, scale_or_min_val, add_or_max_val):
-        batch_item = ofmap_tile.n_id * op.Tn
-        layer_name = op.data["layer_name"]
-        # TODO: update in_dtype when src_is_psum is added
-        in_dtype = "float32"
-        out_dtype = "float32"
-        # TODO: refactor to some class to determine in_dtype and out_dtype
-        if (op.item_sz == 2 and not src_is_psum):
-            in_dtype = "float16"
-        elif (op.item_sz == 1 and not src_is_psum):
-            raise RuntimeError("ERROR: item_sz %d not yet supported"%op.item_sz)
-        if (op.item_sz == 2 and not dst_is_psum):
-            out_dtype = "float16"
-        elif (op.item_sz == 1 and not dst_is_psum):
-            raise RuntimeError("ERROR: item_sz %d not yet supported"%op.item_sz)
-        if (src_is_psum):
-            src_sb_address = 0
-        else:
-            src_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ifmaps_file_params, batch_item, ifmap_tile.lower_addr[0])
-        dst_x_num = op.ofmap_full_tilex_sz
-        dst_y_step = op.E
-        dst_y_num = op.ofmap_full_tiley_sz
-        dst_z_step = op.ofmaps_file_params.batch_item_partition_usage_elems_padded if op.Tn > 1 else 1
-        dst_z_num = op.Tn  # Need CNHW data format
-        num_partitions = ofmap_tile.channel_count
-        if dst_is_psum:
-            dst_sb_address = 0
-        else:            
-            dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(op.ofmaps_file_params, batch_item, ofmap_tile.lower_addr[0])
-        waveop_name = layer_name + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string            
-        instr = {
-              'previous_waveops'        : [],
-              'waveop_type'             : op.data['layer_type'],
-              'waveop_name'             : waveop_name,
-              'layer_name'              : layer_name,
-              'tile_id_format'          : ofmap_tile.format,
-              'tile_id'                 : ofmap_tile.id_array,
-              'is_scalar_op'            : True,
-              'in_dtype'                : in_dtype,
-              'out_dtype'               : out_dtype,
-              'src_is_psum'             : src_is_psum,
-              'src_x_step'              : 1,
-              'src_x_num'               : dst_x_num,
-              'src_y_step'              : dst_y_step,
-              'src_y_num'               : dst_y_num,
-              'src_z_step'              : dst_z_step,
-              'src_z_num'               : dst_z_num,
-              'dst_is_psum'             : dst_is_psum,
-              'dst_x_step'              : 1,
-              'dst_x_num'               : dst_x_num,
-              'dst_y_step'              : dst_y_step,
-              'dst_y_num'               : dst_y_num,
-              'dst_z_step'              : dst_z_step,
-              'dst_z_num'               : dst_z_num,
-              'num_partitions'          : num_partitions,
-            }
-        if op.data['layer_type'] == "ClipByValue":
-            instr['min_val'] = scale_or_min_val
-            instr['max_val'] = add_or_max_val
-        else:            
-            instr['waveop_type'] = "ScaleAdd"
-            instr['scale'] = scale_or_min_val
-            instr['add'] = add_or_max_val
-        if src_is_psum:
-            assert(psum_bank_src >= 0)
-            instr['src_psum_bank_id'] = psum_bank_src
-            instr['src_psum_bank_offset'] = 0 
-        else:                
-            instr['src_sb_address'] = src_sb_address
-            instr['src_start_at_mid_part'] = ofmap_tile.m_id%2 == 1
-        if dst_is_psum:
-            assert(psum_bank_dst >= 0)
-            instr['dst_psum_bank_id'] = psum_bank_dst
-            instr['dst_psum_bank_offset'] = 0
-        else:                
-            instr['dst_sb_address'] = dst_sb_address
-            instr['dst_start_at_mid_part'] = ofmap_tile.m_id%2 == 1
-        tpb.waveop_stream.add_linked(instr, dram_waveops, psum_bank_src if src_is_psum else -1)
         return instr
 
     # generate activation instruction and add it to instruction stream
@@ -1935,17 +1866,18 @@ class FusedOp(list):
         else:            
             dst_sb_address = tpb.statebuffer.file_mapper.get_sb_addr_from_file_addr(ofmap_tile.file_params, batch_item, ofmap_tile.lower_addr[0])
         waveop_name = op.data['layer_name'] + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
-        waveop_type = op.data['layer_type']
+        op_type = op.data['layer_type'].lower()
+        op_type = self.translate_isa_op_name(op_type)
 
         instr = {
               'previous_waveops'        : [],
-              'waveop_type'             : waveop_type,
+              'waveop_type'             : 'TensorTensor',
+              'op'                      : op_type,
               'waveop_name'             : waveop_name,
               'layer_name'              : op.data['layer_name'],
               'tile_id_format'          : ofmap_tile.format,
               'tile_id'                 : ofmap_tile.id_array,
               'num_partitions'          : num_partitions,
-              'is_scalar_op'            : False,
             }
 
         ofmap_subtile = ofmap_tile.make_pewave()
@@ -1966,7 +1898,17 @@ class FusedOp(list):
         return instr
 
     # generate tensor-scalar waveop and add to waveop stream
-    def gen_tensor_scalar_waveop_inline(self, mapper, waveop_stream, op, ifmap_tile, ofmap_tile, psum_bank_id, dram_waveops=[], new_reader_morsels=[]):
+    def gen_tensor_scalar_waveop_inline(self, 
+            mapper, 
+            waveop_stream, 
+            op, 
+            scalar_op,
+            scalar_val,
+            ifmap_tile, 
+            ofmap_tile, 
+            psum_bank_id, 
+            dram_waveops=[], 
+            new_reader_morsels=[]):
         batch_item = ofmap_tile.batch_item_start
         num_partitions = ofmap_tile.channel_count
         start_at_mid_part = ofmap_tile.start_at_mid_part
@@ -1988,18 +1930,22 @@ class FusedOp(list):
 
         waveop_name = op.data['layer_name'] + "/" + op.data['layer_type'] + "_" + ofmap_tile.id_string
         waveop_type = op.data['layer_type']
-        scalar = op.data['mul_scalar']
+
+        for i in range(len(scalar_op)):
+            scalar_op[i] = self.translate_isa_op_name(scalar_op[i])
 
         waveop = {
               'previous_waveops'        : [],
-              'waveop_type'             : waveop_type,
+              'waveop_type'             : "TensorScalar",
               'waveop_name'             : waveop_name,
               'layer_name'              : op.data['layer_name'],
               'tile_id_format'          : ofmap_tile.format,
               'tile_id'                 : ofmap_tile.id_array,
               'num_partitions'          : num_partitions,
-              'scalar_val'              : scalar,
-              'is_scalar_op'            : True,
+              'op0'                     : scalar_op[0],
+              'op1'                     : scalar_op[1],
+              'imm_val0'                : scalar_val[0],
+              'imm_val1'                : scalar_val[1],
             }
 
         ifmap_subtile = ifmap_tile.make_pewave()
@@ -2213,17 +2159,18 @@ class FusedOp(list):
                 tile_data_flatten = tpb.pool.minimum(ifmaps_data_extract, residue_ifmaps)
             else:
                 raise RuntimeError("ERROR: don't know how to handle tensor-tensor op %s for layer %s"%(layer_type, first_op.data['layer_name']))
-        elif (re.search("^Add$|Minimum|Maximum|Multiply", layer_type)):
-            add_scalar = 0.0
-            mul_scalar = 1.0
-            if layer_type == 'Add':
+        elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum", layer_type):
+            if (layer_type == "ClipByValue"):
+                scalar_val = [first_op.data['clip_value_min'], first_op.data['clip_value_max']]
+                tile_data_flatten = tpb.pool.clipbyvalue(ifmaps_data_extract, scalar_val[0], scalar_val[1])
+            elif layer_type == 'Add':
                 assert('add_scalar' in first_op.data)
-                add_scalar = first_op.data['add_scalar']
-                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, psum_temp, add_scalar)
+                scalar_val = [first_op.data['add_scalar'], 0.0]
+                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, scalar_val[0])
             else: # if layer_type == 'Multiply':
                 assert('mul_scalar' in first_op.data)
-                mul_scalar = first_op.data['mul_scalar']
-                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, mul_scalar)
+                scalar_val = [first_op.data['mul_scalar'], 0.0]
+                tile_data_flatten = tpb.pool.tensor_scalar_op(layer_type, ifmaps_data_extract, scalar_val[0])
         elif (layer_type == "BiasAdd"):
             bias_chan_start = first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + ofmap_tile.m_id * PEArray.NUM_COLS
             bias_chan_end = min(bias_chan_start + PEArray.NUM_COLS, first_op.bias_file_c_fold_offset * PEArray.NUM_ROWS + first_op.M)
@@ -2236,10 +2183,6 @@ class FusedOp(list):
                 bias_extracted[chan - bias_chan_start] = first_op.parent.combined_bias_file_params.dram_data[part, 0, fold, 0, 0]
             tile_data_flatten = tpb.activate.biasadd(ifmaps_data_extract, bias_extracted)
             #x = DBG_DUMP_PSUM_COL("BiasAdd: ", tile_data_flatten, 0)
-        elif (layer_type == "ClipByValue"):
-            min_val = self.first_op.data['clip_value_min']
-            max_val = self.first_op.data['clip_value_max']
-            tile_data_flatten = tpb.pool.clipbyvalue(ifmaps_data_extract, min_val, max_val)
         elif re.search(self.act_ops_regex, layer_type):
             alpha = 1.0
             if layer_type == 'Lrelu':
@@ -2562,38 +2505,34 @@ class FusedOp(list):
                             psum_bank_residue   = psum_bank_residue,
                             residue_sb_addr     = residue_sb_addr,
                             new_reader_morsels  = new_reader_morsels)
-            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum", first_op.data['layer_type']):
-                if 1:                    
-                    if first_op.data['layer_type'] == "ClipByValue":
-                        scale_or_min_val = first_op.data['clip_value_min']
-                        add_or_max_val = first_op.data['clip_value_max']
-                    elif first_op.data['layer_type'] == "Add":                        
-                        scale_or_min_val = 1.0
-                        add_or_max_val = first_op.data['add_scalar']
-                    else:
-                        scale_or_min_val = first_op.data['mul_scalar']
-                        add_or_max_val = 0.0
-                    if layer_type == 'Add' or layer_type == 'Multiply' or layer_type == "ClipByValue":
-                        last_waveop = self.gen_scaleadd_or_clip_waveop_inline(
-                                    tpb              = tpb,
-                                    op               = first_op, 
-                                    ifmap_tile       = ifmap_tile, 
-                                    ofmap_tile       = ofmap_tile,
-                                    src_is_psum      = False, 
-                                    psum_bank_src    = -1, 
-                                    dst_is_psum      = first_op.dst_is_psum, 
-                                    psum_bank_dst    = psum_bank_id if first_op.dst_is_psum else -1, 
-                                    dram_waveops     = dram_ifmaps_waveops, 
-                                    scale_or_min_val = scale_or_min_val,
-                                    add_or_max_val   = add_or_max_val)
-                    else:                    
-                        last_waveop = self.gen_tensor_scalar_waveop_inline(
-                                    mapper        = tpb.statebuffer.file_mapper, 
-                                    waveop_stream = tpb.waveop_stream,
-                                    op            = self[0],
-                                    ifmap_tile    = ifmap_tile, 
-                                    ofmap_tile    = ofmap_tile, 
-                                    psum_bank_id  = psum_bank_id if first_op.dst_is_psum else -1)
+
+            elif re.search("Multiply|ClipByValue|^Add$|Minimum|Maximum", layer_type):
+                if layer_type == "ClipByValue":
+                    scalar_val = [first_op.data['clip_value_min'], first_op.data['clip_value_max']]
+                    scalar_op = [
+                        self.translate_isa_op_name("maximum"),
+                        self.translate_isa_op_name("minimum")
+                    ]  # clip: max for lower bound, and min for the upper bound
+                elif layer_type == 'Add':
+                    assert('add_scalar' in first_op.data)
+                    scalar_val = [first_op.data['add_scalar'], 0.0]
+                    scalar_op = [first_op.data['layer_type'].lower(), "bypass"]
+                else:
+                    assert('mul_scalar' in first_op.data)
+                    scalar_val = [first_op.data['mul_scalar'], 0.0]
+                    scalar_op = [first_op.data['layer_type'].lower(), "bypass"]
+                last_waveop = self.gen_tensor_scalar_waveop_inline(
+                            mapper        = tpb.statebuffer.file_mapper, 
+                            waveop_stream = tpb.waveop_stream,
+                            op            = self[0],
+                            scalar_op     = scalar_op,
+                            scalar_val    = scalar_val,
+                            ifmap_tile    = ifmap_tile, 
+                            ofmap_tile    = ofmap_tile, 
+                            psum_bank_id  = psum_bank_id,
+                            dram_waveops  = dram_ifmaps_waveops, 
+                            new_reader_morsels = new_reader_morsels
+                            )
             elif first_op.data['layer_type'] == 'Reciprocal':
                 ifmap_tile_subtile \
                         = PoolSubtile(ifmap_tile, ifmap_tile.tile_rect, Dim2D(1,1))
@@ -2609,6 +2548,7 @@ class FusedOp(list):
                     psum_bank_id       = psum_bank_id if first_op.dst_is_psum else -1,
                     dram_waveops       = dram_ifmaps_waveops, 
                     new_reader_morsels = new_reader_morsels)
+
             else:                    
                 last_waveop = self.gen_act_waveop_inline(
                         tpb               = tpb, 

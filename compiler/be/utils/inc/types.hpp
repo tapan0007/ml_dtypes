@@ -102,40 +102,76 @@ enum class WaveOpType {
     MatMul,
     Activation,
     TensorTensor,
-    TensorScalarConst,
-    TensorVectorConst,
+    TensorScalar,
+    TensorScalarPtr,
     Barrier,
     Nop,
     ScaleAdd,
     ClipByValue,
 };
 
+#undef CONST
+#define CONST(X) constexpr static const char* KCC_CONCAT(TensorAluTypeStr_,X) = KCC_STR(X);
 enum class TensorAluOpType {
-    Bypass = TONGA_ISA_TPB_ALU_OP_BYPASS,
-    BwNot = TONGA_ISA_TPB_ALU_OP_BITWISE_NOT,
-    ArithShiftLeft = TONGA_ISA_TPB_ALU_OP_ARITH_SHIFT_LEFT,
+    Bypass          = TONGA_ISA_TPB_ALU_OP_BYPASS,
+    BwNot           = TONGA_ISA_TPB_ALU_OP_BITWISE_NOT,
+    ArithShiftLeft  = TONGA_ISA_TPB_ALU_OP_ARITH_SHIFT_LEFT,
     ArithShiftRight = TONGA_ISA_TPB_ALU_OP_ARITH_SHIFT_RIGHT,
-    Add = TONGA_ISA_TPB_ALU_OP_ADD,
-    Sub = TONGA_ISA_TPB_ALU_OP_SUBTRACT,
-    Mult = TONGA_ISA_TPB_ALU_OP_MULT,
-    Div = TONGA_ISA_TPB_ALU_OP_DIVIDE,
-    Max = TONGA_ISA_TPB_ALU_OP_MAX,
-    Min = TONGA_ISA_TPB_ALU_OP_MIN,
-    BwAnd = TONGA_ISA_TPB_ALU_OP_BITWISE_AND,
-    BwOr = TONGA_ISA_TPB_ALU_OP_BITWISE_OR,
-    BwXor = TONGA_ISA_TPB_ALU_OP_BITWISE_XOR,
-    LogAnd = TONGA_ISA_TPB_ALU_OP_LOGICAL_AND,
-    LogOr = TONGA_ISA_TPB_ALU_OP_LOGICAL_OR,
-    LogXor = TONGA_ISA_TPB_ALU_OP_LOGICAL_XOR,
-    LogShiftLeft = TONGA_ISA_TPB_ALU_OP_LOGICAL_SHIFT_LEFT,
-    LogShiftRight = TONGA_ISA_TPB_ALU_OP_LOGICAL_SHIFT_RIGHT,
-    Equal = TONGA_ISA_TPB_ALU_OP_IS_EQUAL,
-    Gt = TONGA_ISA_TPB_ALU_OP_IS_GT,
-    Ge = TONGA_ISA_TPB_ALU_OP_IS_GE,
-    Lt = TONGA_ISA_TPB_ALU_OP_IS_LT,
-    Le = TONGA_ISA_TPB_ALU_OP_IS_LE,
-    Number,
+    Add             = TONGA_ISA_TPB_ALU_OP_ADD,
+    Sub             = TONGA_ISA_TPB_ALU_OP_SUBTRACT,
+    Mult            = TONGA_ISA_TPB_ALU_OP_MULT,
+    Div             = TONGA_ISA_TPB_ALU_OP_DIVIDE,
+    Max             = TONGA_ISA_TPB_ALU_OP_MAX,
+    Min             = TONGA_ISA_TPB_ALU_OP_MIN,
+    BwAnd           = TONGA_ISA_TPB_ALU_OP_BITWISE_AND,
+    BwOr            = TONGA_ISA_TPB_ALU_OP_BITWISE_OR,
+    BwXor           = TONGA_ISA_TPB_ALU_OP_BITWISE_XOR,
+    LogAnd          = TONGA_ISA_TPB_ALU_OP_LOGICAL_AND,
+    LogOr           = TONGA_ISA_TPB_ALU_OP_LOGICAL_OR,
+    LogXor          = TONGA_ISA_TPB_ALU_OP_LOGICAL_XOR,
+    LogShiftLeft    = TONGA_ISA_TPB_ALU_OP_LOGICAL_SHIFT_LEFT,
+    LogShiftRight   = TONGA_ISA_TPB_ALU_OP_LOGICAL_SHIFT_RIGHT,
+    Equal           = TONGA_ISA_TPB_ALU_OP_IS_EQUAL,
+    Gt              = TONGA_ISA_TPB_ALU_OP_IS_GT,
+    Ge              = TONGA_ISA_TPB_ALU_OP_IS_GE,
+    Lt              = TONGA_ISA_TPB_ALU_OP_IS_LT,
+    Le              = TONGA_ISA_TPB_ALU_OP_IS_LE,
+   Number,
 };
+ 
+//**********************************************************************
+/*
+#undef CONST
+#define CONST(X) constexpr static const char* TensorAluTypeStr_::X = KCC_STR(X);
+*/
+
+namespace TensorAluTypeStr {
+constexpr static const char* Bypass             = "bypass";
+constexpr static const char* BwNot              = "bitwise_not";
+constexpr static const char* ArithShiftLeft     = "arith_shift_left";
+constexpr static const char* ArithShiftRight    = "arith_shift_right";
+constexpr static const char* Add                = "add";
+constexpr static const char* Sub                = "subtract";
+constexpr static const char* Mult               = "mult";
+constexpr static const char* Div                = "divide";
+constexpr static const char* Max                = "max";
+constexpr static const char* Min                = "min";
+constexpr static const char* BwAnd              = "bitwise_and";
+constexpr static const char* BwOr               = "bitwise_or";
+constexpr static const char* BwXor              = "bitwise_xor";
+constexpr static const char* LogAnd             = "logical_and";
+constexpr static const char* LogOr              = "logical_or";
+constexpr static const char* LogXor             = "logical_xor";
+constexpr static const char* LogShiftLeft       = "logical_shift_left";
+constexpr static const char* LogShiftRight      = "logical_shift_right";
+constexpr static const char* Equal              = "is_equal";
+constexpr static const char* Gt                 = "is_gt";
+constexpr static const char* Ge                 = "is_ge";
+constexpr static const char* Lt                 = "is_lt";
+constexpr static const char* Le                 = "is_le";
+}
+
+
 
 //**********************************************************************
 enum class ActivationFunc {
@@ -308,6 +344,8 @@ TensorParams::end() const -> iterator
     return iterator(*this, NUM_DIMS);
 }
 
+extern TensorAluOpType gAluOpType(const char* tensorOp);
+extern const char* gAluOpTypeStr(TensorAluOpType opType);
 
 }} // namespace utils, kcc
 

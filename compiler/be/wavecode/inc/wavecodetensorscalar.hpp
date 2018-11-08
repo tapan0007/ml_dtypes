@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef KCC_WAVECODE_WAVECODETENSORSCALARCONST_H
-#define KCC_WAVECODE_WAVECODETENSORSCALARCONST_H
+#ifndef KCC_WAVECODE_WAVECODETENSORSCALAR_H
+#define KCC_WAVECODE_WAVECODETENSORSCALAR_H
 
 #include <string>
 #include <cstdio>
@@ -18,17 +18,17 @@
 namespace kcc {
 
 namespace wave {
-    class TensorScalarConstWaveOp;
+    class TensorScalarWaveOp;
 }
 
 namespace wavecode {
 
 
 
-class WaveCodeTensorScalarConst : public WaveCodeWaveOp {
+class WaveCodeTensorScalar : public WaveCodeWaveOp {
 public:
     //----------------------------------------------------------------
-    WaveCodeTensorScalarConst(WaveCodeRef wavecode);
+    WaveCodeTensorScalar(WaveCodeRef wavecode);
 
     //----------------------------------------------------------------
     void generate(wave::WaveOp* waveOp) override;
@@ -37,5 +37,5 @@ public:
 
 }}
 
-#endif // KCC_WAVECODE_WAVECODETENSORSCALARCONST_H
+#endif // KCC_WAVECODE_WAVECODETENSORSCALAR_H
 

@@ -102,7 +102,6 @@ AllInstructions()
     TensorTensorOpInstr     tensortensorInstrA(TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_ARITH_OP);
     TensorTensorOpInstr     tensortensorInstrB(TONGA_ISA_TPB_OPCODE_TENSOR_TENSOR_BITVEC_OP);
 
-
     WaitInstr               waitInstr;
     WriteInstr              writeInstr;
 }

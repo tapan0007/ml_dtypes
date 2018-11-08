@@ -27,7 +27,7 @@ namespace wave {
 
 class ReciprocalWaveOp : public PoolEngWaveOp {
 private:
-    using SubClass = PoolEngWaveOp;
+    using BaseClass = PoolEngWaveOp;
 public:
     class Params;
 public:
@@ -166,7 +166,7 @@ private:
 
 
 
-class ReciprocalWaveOp::Params : public ReciprocalWaveOp::SubClass::Params {
+class ReciprocalWaveOp::Params : public ReciprocalWaveOp::BaseClass::Params {
 public:
     bool verify() const;
 public:

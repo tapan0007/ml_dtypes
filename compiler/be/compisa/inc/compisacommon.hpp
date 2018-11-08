@@ -27,16 +27,16 @@ using TongaTpbEvents     = ::TONGA_ISA_TPB_INST_EVENTS;
 template<typename INSTR, TongaTpbOpcode opcode, TongaErrorCode (*Checker)(const INSTR*)>
 class InstrTempl : public INSTR {
 private:
-    using SubClass = INSTR;
+    using BaseClass = INSTR;
     using Class = InstrTempl;
 public:
-    InstrTempl() : SubClass() {
+    InstrTempl() : BaseClass() {
         enum { BYTES_PER_WORD = ::TONGA_ISA_TPB_INST_NBYTES / ::TONGA_ISA_TPB_INST_NWORDS };
 
         std::memset(this, 0, sizeof(Class)); // zero out instruction
         TongaTpbInstHeader& header(this->inst_header);
         header.opcode = opcode;
-        header.inst_word_len = sizeof(SubClass) / BYTES_PER_WORD;
+        header.inst_word_len = sizeof(BaseClass) / BYTES_PER_WORD;
         header.debug_cmd        = 0;
         header.debug_hint       = 0;
     }
@@ -53,16 +53,16 @@ public:
 template<typename INSTR, TongaErrorCode (*Checker)(const INSTR*)>
 class InstrTempl2 : public INSTR {
 private:
-    using SubClass = INSTR;
+    using BaseClass = INSTR;
     using Class = InstrTempl2;
 public:
-    InstrTempl2(TongaTpbOpcode opcode) : SubClass() {
+    InstrTempl2(TongaTpbOpcode opcode) : BaseClass() {
         enum { BYTES_PER_WORD = ::TONGA_ISA_TPB_INST_NBYTES / ::TONGA_ISA_TPB_INST_NWORDS };
 
         std::memset(this, 0, sizeof(Class)); // zero out instruction
         TongaTpbInstHeader& header(this->inst_header);
         header.opcode = opcode;
-        header.inst_word_len = sizeof(SubClass) / BYTES_PER_WORD;
+        header.inst_word_len = sizeof(Class) / BYTES_PER_WORD;
         header.debug_cmd        = 0;
         header.debug_hint       = 0;
     }
@@ -70,10 +70,10 @@ public:
     void CheckValidity() const
     {
         const TongaErrorCode errCode = Checker(this);
-        Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS,
-               "Invalid instruction of type ", typeid(Class).name(), "    Error code: ", errCode);
+        Assert(errCode == ::TONGA_ISA_ERR_CODE_SUCCESS, "Invalid instruction. Error code: ", errCode);
     }
 };
+
 
 
 

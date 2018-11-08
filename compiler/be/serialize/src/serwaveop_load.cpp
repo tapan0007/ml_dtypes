@@ -52,6 +52,12 @@ SerWaveOp::load<cereal::JSONInputArchive>(cereal::JSONInputArchive& archive)
         loadMaximum(archive);
     } else if (m_WaveOpType == wave::WaveOpTypeStr_Minimum) {
         loadMinimum(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorTensor) {
+        loadTensorTensor(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalar) {
+        loadTensorScalar(archive);
+    } else if (m_WaveOpType == wave::WaveOpTypeStr_TensorScalarPtr) {
+        loadTensorScalarPtr(archive);
     } else {
         Assert(false, "Unknown waveop type: ", m_WaveOpType);
     }
@@ -187,6 +193,53 @@ SerWaveOp::loadActivation(cereal::JSONInputArchive& archive)
 
     KCC_ARCHIVE(TileId);
     KCC_ARCHIVE(TileIdFormat);
+}
+ 
+//===========================================================================
+void
+SerWaveOp::loadTensorTensor(cereal::JSONInputArchive& archive)
+{
+    loadSrcAB(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+
+    KCC_ARCHIVE(Op);
+}
+
+//===========================================================================
+void
+SerWaveOp::loadTensorScalar(cereal::JSONInputArchive& archive)
+{
+    loadSrc(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+
+    KCC_ARCHIVE(Op0);
+    KCC_ARCHIVE(Op1);
+    KCC_ARCHIVE(ImmVal0);
+    KCC_ARCHIVE(ImmVal1);
+}
+
+void
+SerWaveOp::loadTensorScalarPtr(cereal::JSONInputArchive& archive)
+{
+    loadSrc(archive, Dims::XYZ);
+    loadDst(archive, Dims::XYZ);
+
+    KCC_ARCHIVE(NumPartitions);
+    KCC_ARCHIVE(TileId);
+    KCC_ARCHIVE(TileIdFormat);
+
+    KCC_ARCHIVE(Op0);
+    KCC_ARCHIVE(Op1);
+    KCC_ARCHIVE(ImmPtr0);
+    KCC_ARCHIVE(ImmPtr1);
 }
 
 void

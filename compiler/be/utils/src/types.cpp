@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <cstring>
 
 #include "utils/inc/asserter.hpp"
 #include "utils/inc/types.hpp"
@@ -136,6 +137,82 @@ const std::string& ActivationFunc2Str(ActivationFunc actFunc)
         return InvalidStr;
     }
 }
+
+ 
+#undef ELSEIF
+#define ELSEIF(X)  } else if (0 == strcmp(tensorOp, TensorAluTypeStr::X)) { return TensorAluOpType::X;
+
+TensorAluOpType
+gAluOpType(const char* tensorOp)
+{
+    if (0 == strcmp(tensorOp, TensorAluTypeStr::Bypass)) {
+        return TensorAluOpType::Bypass;
+    ELSEIF(Add)
+    ELSEIF(Sub)
+    ELSEIF(Mult)
+    ELSEIF(Div)
+    ELSEIF(Max)
+    ELSEIF(Min)
+    ELSEIF(BwNot)
+    ELSEIF(BwAnd)
+    ELSEIF(BwOr)
+    ELSEIF(BwXor)
+    ELSEIF(LogAnd)
+    ELSEIF(LogOr)
+    ELSEIF(LogXor)
+    ELSEIF(LogShiftLeft)
+    ELSEIF(LogShiftRight)
+    ELSEIF(ArithShiftLeft)
+    ELSEIF(ArithShiftRight)
+    ELSEIF(Equal)
+    ELSEIF(Gt)
+    ELSEIF(Ge)
+    ELSEIF(Lt)
+    ELSEIF(Le)
+    } else {
+        Assert(false, "Wrong Tensor Alu Opcode '", tensorOp, "'");
+    }
+    return TensorAluOpType::Le;
+}
+#undef ELSEIF
+
+#undef CASE
+#define CASE(X) case TensorAluOpType::X: return TensorAluTypeStr::X; break;
+
+const char*
+gAluOpTypeStr(TensorAluOpType opType)
+{
+    switch (opType) {
+    CASE(Bypass)
+    CASE(Add)
+    CASE(Sub)
+    CASE(Mult)
+    CASE(Div)
+    CASE(Max)
+    CASE(Min)
+    CASE(BwNot)
+    CASE(BwAnd)
+    CASE(BwOr)
+    CASE(BwXor)
+    CASE(LogAnd)
+    CASE(LogOr)
+    CASE(LogXor)
+    CASE(LogShiftLeft)
+    CASE(LogShiftRight)
+    CASE(ArithShiftLeft)
+    CASE(ArithShiftRight)
+    CASE(Equal)
+    CASE(Gt)
+    CASE(Ge)
+    CASE(Lt)
+    CASE(Le)
+    default:
+        break;
+        Assert(false, "Wrong Tensor Alu Opcode ", static_cast<kcc_int32>(opType));
+    }
+    return TensorAluTypeStr::Le;
+}
+#undef CASE
 
 }}
 
