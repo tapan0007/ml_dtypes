@@ -26,7 +26,7 @@ def getInfoDateStr():
   return "INFO %s :" % str(datetime.datetime.now())
 
 
-print("\n", getInfoDateStr(), "started as  ", " ".join(sys.argv), flush=True)
+print("\n", getInfoDateStr(), " started as  ", " ".join(sys.argv), flush=True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--kelf_dir', help='kelf directory', default="")
@@ -75,7 +75,7 @@ if os.path.exists(working_dir):
   shutil.rmtree(working_dir)
 os.makedirs(working_dir)
 
-print("INFO: using working directory  %s" % (working_dir))
+print(getInfoDateStr(), " using working directory  %s" % (working_dir))
 
 class NnSubgraph:
   def __init__(self, sgId, sgJson):
@@ -154,7 +154,7 @@ class NnSubgraph:
           assert os.path.isfile(tpbInpFile)  # exists from compilation
         else:
           npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile)
-          print(getInfoDateStr(), "nn_executor: translated TF format %s %s  to TPB Fmap format %s %s" % (inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
+          print(getInfoDateStr(), " nn_executor: translated TF format %s %s  to TPB Fmap format %s %s" % (inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
         inputFilesInTpbFotmat.append(tpbInpFile)
       else:
         print("ERROR: no tf file not found %s" % tfFile, flush=True)
@@ -249,7 +249,7 @@ class NnSubgraph:
       cmd += "  --inference"
     cmd += "  " + self.execOptions
     cmd = "%s > %s 2>&1" % (cmd, logFile)
-    print("\n", getInfoDateStr(), "executing %s" % cmd, flush=True)
+    print("\n", getInfoDateStr(), " executing %s" % cmd, flush=True)
     ret = os.system(cmd)
     if ret != 0:
       print("\nERROR: command  %s  returned non-zero exit code" % cmd, flush=True)
@@ -258,7 +258,8 @@ class NnSubgraph:
 
     # Translate TPB format back to TF format.
     isWaveopt = (executor == "waveopt" or executor == "waveopt2")
-    if (executor == "tcc" or  executor == "wave" or 'qemu' in executor or isWaveopt) and len(self.outputs) > 0:
+    isQemu = 'qemu' in executor
+    if (executor == "tcc" or  executor == "wave" or isQemu or isWaveopt) and len(self.outputs) > 0:
       for jsonOutput in self.outputs:
         outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
         tff = self.tensorFormatMap.get(outNodeName)
@@ -290,7 +291,21 @@ class NnSubgraph:
         else:
           print("ERROR: no tpb output file %s / %s" % (self.sgDir, tpbOutFile), flush=True)
           return -1
-
+      if isQemu:
+        # Create PE utilization profile
+        testName = os.getcwd().split('/')[-2]
+        profileOut = 'tpb_profile-%s.png' % self.sgDir
+        cmd = "%s/compiler/util/tpb_profile --log %s --tpb %s --resolution 2000 --title %s --output_files %s" % (
+                kPath, 'trace_notifications.json', '*_final.bin',
+                testName + '-' + self.sgDir, profileOut)
+        print(getInfoDateStr(), " executing %s" % cmd, flush=True)
+        ret = os.system(cmd)
+        if ret == 0:
+          if not os.path.isfile(profileOut):
+            ret = 3
+        if ret != 0:
+          return ret
+        
     return 0
     
 
@@ -429,7 +444,7 @@ class NnExec:
         newFile = f
         cmd = "%s/compiler/util/npy_diff_files %s --gold %s --new %s" % (
                 kPath, diffOptionsCached, refFile, newFile)
-        print("INFO: executing %s" % cmd, flush=True)
+        print(getInfoDateStr(), " executing %s" % cmd, flush=True)
         ret = os.system(cmd)
         retAll = ret | retAll
       if retAll != 0:

@@ -20,6 +20,10 @@ import matplotlib
 matplotlib.use('tkagg')
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
+import datetime
+
+def getInfoDateStr():
+  return "INFO %s :" % str(datetime.datetime.now())
 
 argStr = " ".join(sys.argv)
 
@@ -33,6 +37,8 @@ parser.add_argument('--geometry', help='Output size width height', type=int, nar
 parser.add_argument('--long', help='Partitions long run into N cycle long blocks and saves png, default 0 (off)', type=float, default=0)
 parser.add_argument('--event_statistics', help='Load profile data and compile event statistics, no visualization is done. Also overrides cycle_range to 0 1e9', action='store_true', default=False)
 parser.add_argument('--resolution', help='Speed up plot by not showing instructions below equivalent pixel width resolution, use 2000 for faster run, default 1e9', type=float, default=-1)
+parser.add_argument('--output_files', help='List of files to plot to, default is out_profile.svg', nargs='+', default=['out_profile.svg'])
+parser.add_argument('--title', help='Text to include in the plot', default="")
 
 args = parser.parse_args()
 
@@ -155,7 +161,7 @@ class Instr:
 class TpbProgram:
   def __init__(self, tpbFile):
     self.instructions = {}
-    print("INFO: Loading " + tpbFile, flush=True)
+    print(getInfoDateStr(), " Loading " + tpbFile, flush=True)
     with os.popen('$INKLING_PATH/objdump/objdump ' + tpbFile) as fh:
       instr = None
       for line in fh:
@@ -219,7 +225,7 @@ class InklingProfile(object):
     self.engines = ["pool", "act", "pe", "dma"]
     self.cycle2event = {engine : {} for engine in self.engines}
     self.toEventIds = {}
-    print("INFO: parsing %s" % logFile)      
+    print(getInfoDateStr()," parsing %s" % logFile)      
     lineCount = 0
     isJson = True
     try:
@@ -332,15 +338,16 @@ class InklingProfile(object):
           inFlight[se] = eIdx
     #print("DEBUG: event graph  %s" % str(self.toEventIds))
   
-  def plotProfile(self, outFile):
+  def plotProfile(self, outFile, titleStr):
     ylabels = self.engines
     y = [y for y in range(len(ylabels))]
     #fig = plt.figure(figsize=(self.geometry))
     fig, axarr = plt.subplots(2, sharex=True, figsize=(self.geometry))
     axPeUtil, axEvents  = axarr
+    fig.suptitle(titleStr)
+    #fig.subplots_adjust(top=0.8)
     
-    
-    print("INFO: processing %d instructions" % len(self.events))
+    print(getInfoDateStr(), " processing %d instructions" % len(self.events))
     eventCount = 0
     peCycles = []
     peUtil = [0]
@@ -353,7 +360,7 @@ class InklingProfile(object):
     startCycle = self.events[0].cycle
     endCycle = self.events[-1].cycle
     resolutionCycles = 1.0 * (endCycle - startCycle) / self.resolution
-    print("INFO: start cycle %d, end cycle %d, resolution %f cycles" % (startCycle, endCycle, resolutionCycles))
+    print(getInfoDateStr(), " start cycle %d, end cycle %d, resolution %f cycles" % (startCycle, endCycle, resolutionCycles))
     
     for eIdx in range(len(self.events)):
       e = self.events[eIdx]
@@ -455,7 +462,7 @@ class InklingProfile(object):
         os.system(cmd)
       def startDetailFullRes(self, event):
         cmd = argStr + " --verbose --resolution 1e9 --cycle_range %g %g" % (self.xlim)
-        print("INFO: executing  ", cmd)
+        print(getInfoDateStr(), " executing  ", cmd)
         os.system(cmd)
     
     detail = Detail(axEvents)
@@ -491,7 +498,7 @@ class InklingProfile(object):
 
     plt.tight_layout()
     plt.savefig(outFile)
-    print("INFO: wrote  %s" % (outFile))
+    print(getInfoDateStr(), " wrote  %s" % (outFile))
     if self.show:
       #os.system("firefox %s" % (outFile))
 
@@ -583,7 +590,7 @@ else:
       #pid = 0
       if pid == 0:
         pi = InklingProfile(args.log, tongaProgram, args.verbose, [i*int(cycleStep), (i+1)*int(cycleStep)], False, args.geometry, args.resolution)
-        pi.plotProfile(outPng)
+        pi.plotProfile(outPng, args.title)
         sys.exit(0)
       else:
         pids.append(pid)
@@ -591,11 +598,15 @@ else:
       os.wait()
     outPng = "out_profile.png"
     cmd = "convert -append %s %s" % (" ".join(pngs), outPng)
-    print("INFO: executing " + cmd)
+    print(getInfoDateStr(), " executing " + cmd)
     os.system(cmd)
     if args.show:
       os.system("firefox %s" % (outPng))  
 
   else:
     p.calcEventIdGraph()
-    p.plotProfile("out_profile.svg")
+    for f in args.output_files:
+      p.plotProfile(f, args.title)
+      print("INFO: Wrote", f)
+
+exit(0)

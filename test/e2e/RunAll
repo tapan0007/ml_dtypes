@@ -20,6 +20,7 @@ import test_list
 import csv
 import subprocess
 import json
+import datetime
 
 kPath = os.environ.get('KAENA_PATH')
 kePath = os.environ.get('KAENA_EXT_PATH')
@@ -39,7 +40,10 @@ class Logger(object):
 sys.stdout = Logger('log-RunAll.txt')
 sys.stderr = Logger('log-RunAll.txt')
 
-startedAsStr = "\nINFO: started as  %s" % " ".join(sys.argv)
+def getInfoDateStr():
+  return "INFO %s :" % str(datetime.datetime.now())
+
+startedAsStr = '\n' + getInfoDateStr() + " started as  %s" % " ".join(sys.argv)
 print(startedAsStr)
 
 
