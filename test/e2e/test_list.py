@@ -830,20 +830,19 @@ testConfigMap = {
     lstmD0T4), "--input_files %s" % lstmD0T4],
 
   ## fp16,b32,2l on Tonga
-  #"4-ptb_word_small_sigmoid_2l_fp16_b32_wave"  : [ "tf_pb",
-  #"ptb_word_lm/keras_unrolled/sigmoid/fp16/model-b32s4h512_fp16.pb","lm",
-  #(" --show_op_name_in_kgraph --input_node embedding_1_input_1  "
-  #+ " --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose HNC  --depth 3  --debug 1    "
-  #+ " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack   lstm_2_1/unstack,lstm_2_1/Tile_1,lstm_2_1/Tile,lstm_2_1/Tile_1  lstm_2_1/stack      "
-  #+ " --adjust_node_color  lstm_1_1/Tile 0 lstm_1_1/Tile_1 0 lstm_2_1/Tile 2 lstm_2_1/Tile_1 2    "
-  #+ " --executors  wave 1 3   "
-  #+ " --input_constants dropout_1/keras_learning_phase:0 False   "
-  #+ " --exclude_ops_from_capture ^dropout_1_1/cond/ "
-  #+ " %s --images %s "
-  #) % (
-  #" --scheduler wave2 "
-  #+ " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile_1\|lstm_1_1/Tile\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/transpose\|lstm_2_1/Tile\|lstm_2_1/Tile_1\|lstm_2_1/mul_2\|lstm_2_1/mul_5\|lstm_2_1/mul_8\|lstm_2_1/mul_11 ' " ,
-  #lstmD0T4), "--input_files %s" % lstmD0T4],
+  "4-ptb_word_small_sigmoid_2l_fp16_b32_wave"  : [ "tf_s3", "s3://kaena-nn-models/lstm_fp16", "model-b32s4h512_fp16.pb",
+  (" --show_op_name_in_kgraph --input_node embedding_1_input_1  "
+  + " --sg_input_format lstm_1_1/transpose HNC lstm_2_1/transpose HNC  --depth 3  --debug 1    "
+  + " --partition from_multi  lstm_1_1/unstack,lstm_1_1/Tile_1,lstm_1_1/Tile,lstm_1_1/Tile_1  lstm_1_1/stack   lstm_2_1/unstack,lstm_2_1/Tile_1,lstm_2_1/Tile,lstm_2_1/Tile_1  lstm_2_1/stack      "
+  + " --adjust_node_color  lstm_1_1/Tile 0 lstm_1_1/Tile_1 0 lstm_2_1/Tile 2 lstm_2_1/Tile_1 2    "
+  + " --executors  wave 1 3   "
+  + " --input_constants dropout_1/keras_learning_phase:0 False   "
+  + " --exclude_ops_from_capture ^dropout_1_1/cond/ "
+  + " %s --images %s "
+  ) % (
+  " --scheduler wave2 "
+  + " --schedule_options ' --nname=generic --enable_cleanup --save_layer_regex  lstm_1_1/transpose\|lstm_1_1/Tile_1\|lstm_1_1/Tile\|lstm_1_1/mul_2\|lstm_1_1/mul_5\|lstm_1_1/mul_8\|lstm_1_1/mul_11\|lstm_2_1/transpose\|lstm_2_1/Tile\|lstm_2_1/Tile_1\|lstm_2_1/mul_2\|lstm_2_1/mul_5\|lstm_2_1/mul_8\|lstm_2_1/mul_11 ' " ,
+  lstmD0T4), "--input_files %s" % lstmD0T4],
 
   ## fp16,b32,2l on host
   #"4-ptb_word_small_sigmoid_2l_fp16_b32_host"  : [ "tf_pb",
@@ -1172,6 +1171,7 @@ testWaiver = [
     ['2-ptb_word_unstack_.*',             'WAIVE-KAENA661'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
+    ['4-ptb_word_small_sigmoid_2l_fp16_b32_wave', 'WAIVE-LSTM-NUMERICAL'],
 
     # Multi-tpb partitioning - passes in host mode so no need to waive
     #['7-rn50_fp16_multi_tpb_o_wave', 'WAIVE_MTPB'],
