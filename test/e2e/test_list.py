@@ -23,6 +23,12 @@ rnDogCatB2Fp32 = "%s/%s" % (kePath, "images/res50_dog_cat_fp32.npy")
 
 rnBfloat16Npy = "%s/%s" % (kePath, "images/res50_bfp16infp16.npy")
 
+transformerInX = '{0}/images/transformer_x.npy'.format(kePath)
+transformerRtInX = 'infer_x:0={0}/images/transformer_x.npy'.format(kePath)
+
+transformerIn = '{0}/images/transformer_x.npy {0}/images/transformer_y.npy'.format(kePath)
+transformerRtIn = 'infer_x:0={0}/images/transformer_x.npy infer_y:0={0}/images/transformer_y.npy'.format(kePath)
+
 def getBatchedJpgs(batchLevel):
     listExtraJpgs = [rnDogJpg, rnCatJpg, rnKoalaJpg] * ((batchLevel+3)//3)
     return ' '.join(tuple(listExtraJpgs[0:batchLevel]))
@@ -1033,6 +1039,33 @@ testConfigMap = {
     "--input_files %s --check_against_ref all_available" % rnDogJpg
   ],
 
+  # transformer tests
+
+  "0-transformer-matmul": [ 
+    "tf_s3", "s3://kaena-nn-models", "transformer_frozen_fp16.pb",
+    "--input_node infer_x infer_y --depth 2 "
+    "--focus_to 'infer_preds' "
+    "--partition from_multi '"
+      "dense/Tensordot/MatMul,dense/Tensordot/concat_2"
+      "' '"
+      "ArgMax"
+      "' "
+    "--dot_timeout 1 "
+    "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerIn), "--input_files {}".format(transformerRtIn) 
+  ],
+
+  "0-transformer-mul": [ 
+    "tf_s3", "s3://kaena-nn-models", "transformer_frozen_fp16.pb",
+    "--input_node infer_x --depth 2 "
+    "--focus_to 'encoder/num_blocks_1/multihead_attention/Sum' "
+    "--partition from_multi '"
+      "encoder/num_blocks_0/multihead_attention_1/ln/add_1"
+      "' '"
+      "encoder/num_blocks_0/multihead_attention_1/ln/mul"
+      "' "
+    "--dot_timeout 1 "
+    "--executors host 0 2 wave 1 --scheduler wave2 --schedule_options ' --nname=generic' --images {} --wavegraph_checks structure data-race".format(transformerInX), "--input_files {}".format(transformerRtInX) 
+  ],
 }
 
 def gen_rn50_nne_to_act_norepl(act_num, batch):
@@ -1205,6 +1238,11 @@ testWaiver = [
     #['^0-1conv0_qemu_wave$', 'WAIVE_QEMU'],
 
     [ '3-1conv1relupoolconv_k3d2_wave', 'WAIVE_RELU_POOL'],
+
+    # Transformer
+    # Comment calling kp.reportOpAndSizes() to see ME failure
+    ['0-transformer-matmul', 'WAIVE_KAENA964'],
+    ['0-transformer-mul', 'WAIVE_KAENA964'],
   ]
 
 noGpuTestWaiver = [
