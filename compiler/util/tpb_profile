@@ -15,11 +15,12 @@ set d = 7-rn50_nne_fp16_wave-zero/ ; cd $d ; $ku/tpb_profile --log working_dir/l
 
 import argparse
 import os, json, sys, re
+
 import matplotlib
-#matplotlib.use('gtk3agg')
-matplotlib.use('tkagg')
-import matplotlib.pyplot as plt
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt    
 from matplotlib.widgets import Button
+
 import datetime
 
 def getInfoDateStr():
