@@ -51,6 +51,8 @@ void
 WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
 {
     assert(matmulWaveop->verify());
+    const arch::PeArray& peArray(arch::Arch::gArch().gPeArray());
+
     const EngineId engineId = matmulWaveop->gEngineId();
     if (matmulWaveop->gWeightsSbAddress() < 0 && qParallelStreams()) {
         // this MatMul reuses weights, but even though weights are not loaded,
@@ -116,6 +118,10 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
             "(New LdWeights address) % ", OCTET_SIZE, " is ", newLastAddressInSbPart % OCTET_SIZE, " should be ", OCTET_SIZE - dtypeSize);
         const kcc_int32 deltaNumWeights         = deltaAddress / dtypeSize;
         const kcc_int32 newNumWeights           = realNumWeights + deltaNumWeights;
+        Assert(newNumWeights <= peArray.gNumberColumns(),
+            "To align weights adding extra ", deltaNumWeights, ", but new num weights, ",
+            newNumWeights, ", exceeds the number PE columns ", peArray.gNumberColumns(),
+            ". Waveop ", matmulWaveop->gName());
 
         ldweightsInstr.src_mem_pattern.start_addr           = newLastAddressInSbPart;
         AssignWithSizeCheck(ldweightsInstr.src_mem_pattern.step_elem[PatDim_X], -1); // last column goes first, so decrement
