@@ -177,7 +177,8 @@ if len(args.prop) < 1:
   print("ERROR: use -prop with one or more of  %s" % "  ".join(qorDb.getProps()))
 else:
   for prop in args.prop:
-    outFile = "out_%s.svg" % prop.replace('/', '_')
-    qorDb.plotProps(outFile, prop, args.annotate, args.geometry)
-    print("Wrote ", outFile)
+    for fmt in ['svg', 'png']:
+      outFile = "out_%s.%s" % (prop.replace('/', '_'), fmt)
+      qorDb.plotProps(outFile, prop, args.annotate, args.geometry)
+      print("Wrote ", outFile)
     
