@@ -159,13 +159,13 @@ class NnSubgraph:
               padE = int(m.group(5))
           else:
               raise RuntimeError("Cannot extract pad/split parameters from file name %s"%tpbInpPadSplitFileList[0])
-          cmd = "%s/compiler/util/padsplit_npy_for_repl.py --input_file %s --format %s --stride %d --padding [ [0,0], [0,0], [%d,%d], [%d,%d] ]" % (
+          cmd = "%s/compiler/util/padsplit_npy_for_repl.py --input_file %s --format %s --stride %d --padding=\"[ [0,0], [0,0], [%d,%d], [%d,%d] ]\"" % (
                   kPath, tpbInpFile, inputFormatSim, stride, padN, padS, padW, padE)
           print("INFO: executing %s" % cmd, flush=True)
           ret = os.system(cmd)
           if ret != 0:
             print("\nERROR: command  %s  returned non-zero exit code" % cmd, flush=True)
-            return ret
+            sys.exit(-1)
           tpbInpFile = tpbInpPadSplitFileList[0]
           assert os.path.isfile(tpbInpFile)
         inputFilesInTpbFotmat.append(tpbInpFile)
