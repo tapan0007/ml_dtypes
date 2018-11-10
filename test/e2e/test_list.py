@@ -314,8 +314,7 @@ testConfigMap = {
     "tfloat16-b1-h1-r1-s1-c512-m2048-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03",
     "matmult",
     ("--scheduler wave2 "
-    + " --schedule_options ' --save_layer_output ' "
-    + " --waive_wavegraph_checks"
+    + " --schedule_options ' --save_layer_output --nname=generic ' "
     )
   ],
 
@@ -1137,6 +1136,7 @@ testWaiver = [
     # UINT8 support
     ['^0-resadd_uint8_wave$', 'WAIVE-UINT8'],
     ['0-3resadd_fp16_wave', 'WAIVE-KAENA661'],
+    ['0-3conv_1concat_host', 'WAIVE-KAENA661'],
     ['0-resadd_2in_wave', 'WAIVE-2INPUTS'],
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
