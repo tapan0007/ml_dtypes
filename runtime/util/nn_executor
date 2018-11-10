@@ -447,6 +447,14 @@ class NnExec:
         print(getInfoDateStr(), " executing %s" % cmd, flush=True)
         ret = os.system(cmd)
         retAll = ret | retAll
+
+      print("\nINFO: nn_executor. check trace notifications file")
+      qemuCacheFile = "%s/trace_notifications.json" % (cachedGoldensPath)
+      currentFile = "%s/trace_notifications.json" % (working_dir)
+      cmd = "%s/tools/ni/ni_diff %s %s > log-nidiff.txt 2>&1" % (os.environ["KAENA_RT_PATH"], qemuCacheFile, currentFile)
+      print("\nINFO: nn_executor. Issuing ni_diff cmd %s" % (cmd))
+      ret = os.system(cmd) # For the time being not using the ret
+
       if retAll != 0:
         return retAll
     
