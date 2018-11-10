@@ -140,7 +140,7 @@ pipeline{
         stage('prep_emu') {
             steps {
                 sh '''
-                (cd $TEST_DIR/prep_emu && export KAENA_ZEBU_SERVER=$KAENA_ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt --zebu "$KAENA_ZEBU_SERVER" --action start_pool > log_pool.txt 2>&1 &)
+                (cd $TEST_DIR/prep_emu && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt --zebu "$KAENA_ZEBU_SERVER" --action start_pool > log_pool.txt 2>&1 &)
                 '''
                 timeout(time: 30, unit: 'MINUTES') {
                     sh '''
@@ -164,7 +164,7 @@ pipeline{
                         catchError {
                             sh 'export CACHE_DIR=$TEST_DIR/test_qemu'
                             sh '''
-                            (cd $TEST_DIR/compiler_test && export QEMU_KRT_NUM_INFERENCES=$NUM_INFERENCES && export KAENA_ZEBU_SERVER=$KAENA_ZEBU_SERVER && make -f $KAENA_PATH/test/e2e/Makefile check_emu "TEST_EMU_OPTS=--force_qemu --parallel 1 --cached_kelf /workdir/test/test_qemu")
+                            (cd $TEST_DIR/compiler_test && export QEMU_KRT_NUM_INFERENCES=$NUM_INFERENCES && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && make -f $KAENA_PATH/test/e2e/Makefile check_emu "TEST_EMU_OPTS=--force_qemu --parallel 1 --cached_kelf /workdir/test/test_qemu")
                             '''
                         }
                     }

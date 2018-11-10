@@ -105,7 +105,7 @@ pipeline{
         stage('prep_emu') {
             steps {
                 sh '''
-                (cd $TEST_DIR/prep_emu && export KAENA_ZEBU_SERVER=$KAENA_ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt --zebu "$KAENA_ZEBU_SERVER" --action start_pool > log_pool.txt 2>&1 &)
+                (cd $TEST_DIR/prep_emu && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt --zebu "$KAENA_ZEBU_SERVER" --action start_pool > log_pool.txt 2>&1 &)
                 '''
                 timeout(time: 30, unit: 'MINUTES') {
                     sh '''
@@ -128,7 +128,7 @@ pipeline{
                     steps {
                         catchError {
                             sh '''
-                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/non_compiler_test && export KAENA_ZEBU_SERVER=$KAENA_ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS --zebu "$KAENA_ZEBU_SERVER")
+                            [ -z "$RUNNC_ARGS" ] || (cd $TEST_DIR/non_compiler_test && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && $KAENA_PATH/runtime/util/qemu_rt $RUNNC_ARGS --zebu "$KAENA_ZEBU_SERVER")
                             '''
                         }
                     }
