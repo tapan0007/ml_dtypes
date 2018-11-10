@@ -46,6 +46,13 @@ Zebu pool is similar:
       the crashed host, but pass full list to RunAll as before
     - Just like qemu, the pools are multi-user, ie your pool can be used by you (
 
+# Port assignment algorithm
+With addition of grpc ports 2 port are needed per qemu session - ssh and grpc.
+By default both are randomized.
+In qemu server pool mode the ssh port is passed by user to identify the pool and the
+grpc port is by a fixed offset.
+Starting pool fails if any of the ports are not available.
+
 '''
 
 import argparse
@@ -56,7 +63,7 @@ import socket, errno
 import xml.etree.ElementTree as ET
 import subprocess
 import getpass
-import signal
+import signal, socket
 
 print("\nINFO %s : started as  " % str(datetime.datetime.now()), " ".join(["'"+word+"'" if " " in word else word for word in sys.argv]), flush=True)
 qiBldPath = os.environ["QEMU_BLD_DIR"]
@@ -92,7 +99,6 @@ vdis = {
   }
 
 defaultVdi, checksumVdi = vdis["ubuntu-18.04-24G_pytest"]
-defaultGrpcPort = 5556
 
 zebuGrpcHost = {
   'zebuserver1': 20000,
@@ -151,9 +157,9 @@ parser = argparse.ArgumentParser(epilog=epilog,
            formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--action', help='Default is inference, others are: start_pool', default="inference")
 parser.add_argument('--vdi', help='Path to virtual disk image for the qemu VM. It can be file or S3 URL including options, the default is ' + defaultVdi, default=defaultVdi)
-parser.add_argument('--port', help='SSH port for the qemu VM', type=int, default=5555)
+parser.add_argument('--port', help='SSH port for the qemu VM', type=int, default=None)
 parser.add_argument('--grpcHost', help='GRPC host to use for talking to krtd', default="localhost")
-parser.add_argument('--grpcPort', help='GRPC port to use for talking to krtd', type=int, default=defaultGrpcPort)
+parser.add_argument('--grpcPort', help='GRPC port to use for talking to krtd', type=int, default=None)
 parser.add_argument('--pool', help='Port range that defines Qemu process pool', type=int, nargs='+', default=[])
 parser.add_argument('--mem', help='Memory for the qemu VM, default 1024MB', type=int, default=1024)
 parser.add_argument('--kelf', help='Kelf directory to compile', default=None)
@@ -221,14 +227,15 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     
     # Log all shell commands to a file
     self.cmdFh = open('replay-qemu_rt.txt', 'w')
-    newPort, newgrpcPort = getPortsToUse(port, grpcPort)
-    if port != None:
-      print("INFO: using available port %d  (--port was %d)" % (newPort, port))
-    if grpcPort != None:
-      print("INFO: using available port %d for grpc  (--grpcPort was %d)" % (newgrpcPort, grpcPort))
+    if port == None:
+      # Pool mode or user requested a specific port
+      newPort, newgrpcPort = getPortsToUse(port, grpcPort)
+    else:
+      newPort, newgrpcPort = port, port + 1000
     self.port = newPort
     self.grpcHost = grpcHost
     self.grpcPort = newgrpcPort
+    print("INFO: using ssh port %d and grpc port %d" % (self.port, self.grpcPort))
 
 
   def __del__(self):
@@ -254,15 +261,21 @@ c7unPf36AHohqWJgqn6L9z2PZRDplEs/82uzKzEvmFhMFWyyBZKtGg==
     cmd = '%s "%s@%s:%s" %s' % (self.cmdForRsync, self.sshUser, self.sshHost, fromVmDir, toDir)
     print("INFO %s : rsyncFromVm executing %s" % (str(datetime.datetime.now()), cmd), flush=True)
     return self.osSystem(cmd) == 0
+  def getLockId(self):
+    return "%s-%d" % (socket.gethostname(), os.getpid())
   def lock(self):
-    return self.sshCmd('l=/var/lock/qemu; test -f $l || echo $$ > $l; expr $$ == `cat $l`') == 0
+    lockId = self.getLockId()
+    return self.sshCmd('l=/var/lock/qemu; test -f $l || echo %s > $l; expr %s == `cat $l`' % (lockId, lockId)) == 0
   def unlock(self):
+    lockId = self.getLockId()
+    return self.sshCmd('l=/var/lock/qemu; expr %s == `cat $l` && /bin/rm -f $l' % lockId) == 0
+  def unlockAny(self):
     return self.sshCmd('l=/var/lock/qemu; /bin/rm -f $l') == 0
   def getTongaDevice(self):
     return self.tongaDevice
 
 class Qemu(BePlat):
-  def __init__(self, vdi, mem, port, grpcHost="localhost", grpcPort=defaultGrpcPort):
+  def __init__(self, vdi, mem, port, grpcHost="localhost", grpcPort=None):
     BePlat.__init__(self, port, grpcHost=grpcHost, grpcPort=grpcPort)
     
     #qemuOpts = '-monitor stdio'
@@ -271,7 +284,6 @@ class Qemu(BePlat):
     self.localVdi = "copy.vdi"
     self.type = "qemu"
     qemuNoInkling = os.getenv("QEMU_NO_INKLING", None)
-    assert not portInUse(self.grpcPort) and not portInUse(self.port)
     if qemuNoInkling == None:
         self.cmd = '%s %s -m %d -device pci-inkling %s -net nic,model=virtio,netdev=net0 -netdev user,id=net0,hostfwd=tcp::%d-:22,hostfwd=tcp::%d-:%d -serial file:log-qemu_serial.txt' % (qiPath, self.localVdi, mem, qemuOpts, self.port, self.grpcPort, self.grpcPort)
     else:
@@ -388,7 +400,7 @@ class Qemu(BePlat):
     
 
 class Zebu(BePlat):
-  def __init__(self, zebuHost, grpcHost="localhost", grpcPort=defaultGrpcPort):
+  def __init__(self, zebuHost, grpcHost="localhost", grpcPort=None):
     BePlat.__init__(self, grpcHost=grpcHost, grpcPort=grpcPort)
     match = re.search(r'(\S+)--(\S+)', zebuHost)
     if match:
@@ -963,10 +975,10 @@ class Krtd():
 class QemuPool:
   def __init__(self, ports, vdi, mem, inklingTimeout):
     if len(ports) == 2:
-      self.ports = range(ports[0], ports[1])
+      self.ports = list(range(ports[0], ports[1]+1))
     else:
       self.ports = ports
-    self.qemus = []
+    self.qemus = []    
     for port in self.ports:
       qemu = Qemu(vdi, mem, port)
       krt = Krtd(qemu, inklingTimeout)
@@ -997,19 +1009,22 @@ class QemuPool:
     return len(self.qemus) == len(self.ports)
   def getAvailQemu(self):
     found = False
+    sleepTime = 1
     while not found:
       idx = random.randint(0, len(self.qemus)-1)
       print("INFO: trying to lock QEMU %d on port %d ..." % (idx, self.ports[idx]), flush=True)
       qemu, krt = self.qemus[idx]
       found = qemu.lock()
-      time.sleep(1)
+      if not found:
+        time.sleep(sleepTime)
+        sleepTime += 1
     print("INFO: locked QEMU %d on port %d" % (idx, self.ports[idx]), flush=True)
     return qemu, krt
   def cleanup(self):
     for idx in range(len(self.ports)):
       port = self.ports[idx]
       qemu, krt = self.qemus[idx]
-      qemu.unlock()
+      qemu.unlockAny()
 
 class ZebuPool:
   def __init__(self, zebuHosts, inklingTimeout):
@@ -1046,7 +1061,7 @@ class ZebuPool:
   def cleanup(self):
     for idx in range(len(self.zebus)):
       host, zebu, krt = self.zebus[idx]
-      zebu.unlock()
+      zebu.unlockAny()
 
 #########################################################
 
@@ -1132,6 +1147,11 @@ elif args.zebu != None:
 elif len(args.pool) > 0:
   qp = QemuPool(args.pool, args.vdi, args.mem, inklingTimeout)
   if args.action == 'start_pool':
+    if qp.checkPorts():
+      print("INFO: all pool ports are available")
+    else:
+      print("ERROR: pool ports are not available")
+      exit(1)
     if not qp.startPool():
       raise RuntimeError('ERROR: failed to start qemus, %d requested while %d started' % (len(qp.ports), len(qp.qemus)))
     print('INFO: your qemu pool has started. You can access it on ports %s. To stop them terminate this process' % qp.ports, flush=True)
@@ -1152,6 +1172,8 @@ elif len(args.pool) > 0:
     krtOk = krt.execute(args)
     qemu.unlock()
     sys.exit(0 if krtOk else 1)
+  else:
+    raise ValueError("ERROR: unknown --action", args.action)
     
 ##############  single qemu  ##############
 else:
