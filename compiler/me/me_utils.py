@@ -14,9 +14,15 @@ import unittest
 import numpy as np
 import os.path
 import copy
+import sys
 from enum import IntEnum
-from me_models import PEArray
 from functools import reduce
+
+kPath = os.environ.get('KAENA_PATH')
+if kPath is None:
+  kPath =''
+sys.path.insert(0, kPath + "/compiler")
+from me.me_models import PEArray
 
 #np.set_printoptions(precision=3)
 #np.set_printoptions(threshold=np.nan)
@@ -118,13 +124,13 @@ def pad_and_split_file(file_to_split, file_format, num_to_split, pad_west, pad_e
             new_dram_data[n, c, :] = np.concatenate(new_hw_split, 0)
             #print("all frames channel %d:"%c)
             #print(new_dram_data[n, c, :])
-    new_file = file_to_split.replace(".npy", "_padsplit.npy")
+    new_file = file_to_split.replace(".npy", "_padsplit_stride%d_n%d_s%d_w%d_e%d.npy"%(num_to_split, pad_north, pad_south, pad_west, pad_east))
     try:
         np.save(new_file, new_dram_data)
     except:
         raise RuntimeError("Cannot save numpy file %s"%(new_file))
-    print("Converted %s with format %s, stride %d, and padding W%d E%d N%d S%d, to %s with format %s"
-            %(file_to_split, file_format, num_to_split, pad_west, pad_east, pad_north, pad_south, new_file, "NCHW"))
+    print("INFO: Converted %s with format %s, stride %d, and padding N%d S%d W%d E%d, to %s with format %s"\
+            %(file_to_split, file_format, num_to_split, pad_north, pad_south, pad_west, pad_east, new_file, "NCHW"))
     return (new_file, new_shape)
 
 # Extract list of predecessor waveop names from list of accessors

@@ -21,6 +21,7 @@ sys.path.insert(0, "/usr/lib/python3.6/site-packages/")
 import numpy as np
 from tffe.NpTransforms import NpTrans as npt
 from tffe.NpTransforms import TensorFormat, TensorFormatMap
+from me.me_utils import pad_and_split_file
 
 def getInfoDateStr():
   return "INFO %s :" % str(datetime.datetime.now())
@@ -138,23 +139,35 @@ class NnSubgraph:
         inputShapeTf = input["shape"]
         inputFormatTf = tff.tfFormat
         inputFormatSim = tff.simFormat
-        if self.sgId == 0:
-          # The inputs for the first subgraph are same as when compiled
-
-          ## # kaena-602: hack for testing one input file only; doesn't work for inferencing
-          tpbInpPadSplitFile = tpbInpFile[:-4] + "_padsplit.npy"
-          if os.path.isfile(tpbInpPadSplitFile):
-            print("nn_executor: Replacing input npy ", tpbInpFile, " with padded input ", tpbInpPadSplitFile)
-            tpbInpFile = tpbInpPadSplitFile
+        npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile)
+        print(getInfoDateStr(), "INFO: nn_executor sg%02d:  translated TF format %s %s  to TPB Fmap format %s %s" % (self.sgId, inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
+        assert os.path.isfile(tpbInpFile)  # exists from compilation
+        # The inputs for the first subgraph are same as when compiled
+        ## # kaena-602: improved for inference by extracting pad/split parameters and apply to inference input
+        tpbInpPadSplitFileList = glob.glob(tpbInpFile[:-4] + "_padsplit_*.npy")
+        #if os.path.isfile(tpbInpPadSplitFile):
+        if len(tpbInpPadSplitFileList) > 0:
+          if len(tpbInpPadSplitFileList) > 1:
+              print("WARNING: more than one pad/split file found; using the first one to obtain pad/split parameters.")
+          assert(inputFormatSim == "NCHW" or inputFormatSim == "NHWC")
+          m = re.search(r"padsplit_stride(\d)_n(\d)_s(\d)_w(\d)_e(\d)", tpbInpPadSplitFileList[0])
+          if m:
+              stride = int(m.group(1))
+              padN = int(m.group(2))
+              padS = int(m.group(3))
+              padW = int(m.group(4))
+              padE = int(m.group(5))
           else:
-            npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile)
-            print("nn_executor: Using original input npy ", tpbInpFile, ", did not find padded input ", tpbInpPadSplitFile)
-            print("INFO: nn_executor: did not find padded input therfore translated TF format %s %s  to TPB Fmap format %s %s" % (inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
-
-          assert os.path.isfile(tpbInpFile)  # exists from compilation
-        else:
-          npt.formatNpyFileAs(tfFile, inputFormatTf, inputFormatSim, outFile=tpbInpFile)
-          print(getInfoDateStr(), " nn_executor: translated TF format %s %s  to TPB Fmap format %s %s" % (inputFormatTf, tfFile, inputFormatSim, tpbInpFile))
+              raise RuntimeError("Cannot extract pad/split parameters from file name %s"%tpbInpPadSplitFileList[0])
+          cmd = "%s/compiler/util/padsplit_npy_for_repl.py --input_file %s --format %s --stride %d --padding [ [0,0], [0,0], [%d,%d], [%d,%d] ]" % (
+                  kPath, tpbInpFile, inputFormatSim, stride, padN, padS, padW, padE)
+          print("INFO: executing %s" % cmd, flush=True)
+          ret = os.system(cmd)
+          if ret != 0:
+            print("\nERROR: command  %s  returned non-zero exit code" % cmd, flush=True)
+            return ret
+          tpbInpFile = tpbInpPadSplitFileList[0]
+          assert os.path.isfile(tpbInpFile)
         inputFilesInTpbFotmat.append(tpbInpFile)
       else:
         print("ERROR: no tf file not found %s" % tfFile, flush=True)
@@ -170,7 +183,7 @@ class NnSubgraph:
       os.symlink(src_f, f)
     # ME creates files of constants that are not visible to TFFE, so link them too
     files =  glob.glob("../%s/*-constants.npy" % self.sgDir)
-    files += glob.glob("../%s/*_padsplit.npy" % self.sgDir)
+    files += glob.glob("../%s/*_padsplit*.npy" % self.sgDir)
     files += glob.glob("../%s/*_concat_weight*.npy" % self.sgDir)
     for f in files:
       dst_f = os.path.basename(f)
