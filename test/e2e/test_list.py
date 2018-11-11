@@ -225,7 +225,7 @@ testConfigMap = {
   "0-1conv_tile_r1h32_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h32-r1-s1-c1-m1-wmin-0.1-wmax0.12-imin-0.2-imax0.25", "1conv", MEv2("Generic")],
   "0-1conv_tile_r1_e1_wave"  : [ "trivnet_conv1",  "tfloat16-b1-h35-r1-s1-c1-m1-F_31_31=3-wmin2-wmax2-imin-0-imax0", "1conv", MEv2("Generic")],
   #"0-2conv3_relu" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r3-s1-c1-m1-relu-wmin-0.2-wmax0.24-imin-10000-imax10100", "1conv3"],
-  "0-3conv_1concat_host" : [ "trivnet_concat2",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1concat", "--scheduler wave2 --schedule_options ' --nname=generic --save_layer_output' --partition from 1concat/i3 --waive_wavegraph_checks"],
+  "0-3conv_1concat_wave" : [ "trivnet_concat2",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1concat", "--scheduler wave2 --schedule_options ' --nname=generic --save_layer_output' --partition from 1concat/i3 --waive_wavegraph_checks"],
   "0-3conv_1concat" : [ "trivnet_concat2",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1concat", "--scheduler wave2 --schedule_options ' --nname=generic --save_layer_output' --waive_wavegraph_checks"],
   "0-3conv_1concat_c32m32" : [ "trivnet_concat2",  "tfloat16-b1-h1-r1-s1-c32-m32-wmin2-wmax2.2-imin3-imax3.2", "1concat", "--scheduler wave2 --schedule_options ' --nname=generic --save_layer_output' --waive_wavegraph_checks"],
   "0-3conv_1concat_h16c32m32" : [ "trivnet_concat2",  "tfloat16-b1-h16-r1-s1-c32-m32-wmin2-wmax2.2-imin3-imax3.2", "1concat", "--scheduler wave2 --schedule_options ' --nname=generic --save_layer_output' --waive_wavegraph_checks"],
@@ -299,7 +299,7 @@ testConfigMap = {
 
   "0-3resadd_fp16_wave"  : [ "trivnet_conv_ba_add",
     "tfloat16-b1-h4-r1-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03",
-    "add", "--scheduler wave --schedule_options ' --nname=generic'  --partition from add/i3 --executor host 0 wave 1 --waive_wavegraph_checks"
+    "add", "--scheduler wave --schedule_options ' --nname=generic'  --partition from add/i3 add/output --executor host 0 wave 1 --waive_wavegraph_checks"
     ],
 
   "0-3conv_ba_resadd_fp32_wave"  : [ "trivnet_conv_ba_add", "tfloat32-b1-h55-r3-s1-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "add", "--scheduler wave --waive_wavegraph_checks"],
@@ -1135,8 +1135,6 @@ testWaiver = [
 
     # UINT8 support
     ['^0-resadd_uint8_wave$', 'WAIVE-UINT8'],
-    ['0-3resadd_fp16_wave', 'WAIVE-KAENA661'],
-    ['0-3conv_1concat_host', 'WAIVE-KAENA661'],
     ['0-resadd_2in_wave', 'WAIVE-2INPUTS'],
 
     ['1-1conv0_r3h55c256_wave',     'WAIVE_WAVESC'],
@@ -1158,7 +1156,7 @@ testWaiver = [
     ['4-ptb_word_lm1_host$', 'WAIVE-LSTM_HOST'],
     ['4-ptb_word_lm1$', 'WAIVE-LSTM'],
     ['4-ptb_word_small1_wave$', 'WAIVE-LSTM'],
-    ['2-ptb_word_unstack_.*',             'WAIVE-KAENA661'],
+    ['2-ptb_word_unstack_.*',             'WAIVE-LSTM'],
     ['4-ptb_word_small_sigmoid_2l_auto_waveopt',   'WAIVE-L_PART'],
     ['4-ptb_word_small_sigmoid_2l_b64_wave',   'WAIVE-LSTM_ME'],
     ['4-ptb_word_small_sigmoid_2l_fp16_b32_wave', 'WAIVE-LSTM-NUMERICAL'],

@@ -230,11 +230,12 @@ class NnSubgraph:
       cmd += "  --inputs %s" % " ".join(inputs)
       if self.cmd_args:
         cmd += " " + self.cmd_args
-      OutFile = ""
+      OutFiles = []
       if len(self.outputs) > 0:
-        OutFile = self.outputs[0]["file"].replace(".npy", "-out.npy")
-      if OutFile != "":
-        cmd += "  --output %s" % (OutFile)
+        for i in range(len(self.outputs)):
+          OutFiles.append(self.outputs[0]["file"].replace(".npy", "-out.npy"))
+      if len(OutFiles) > 0:
+        cmd += "  --output %s" % (" ".join(OutFiles))
     elif executor == "waveopt":
       self.linkConsts()
       self.createTpbFormatInputs()
@@ -263,6 +264,9 @@ class NnSubgraph:
       for jsonOutput in self.outputs:
         outNodeName, outFileRaw, outShape = [jsonOutput[k] for k in ['name', 'file', 'shape']]
         tff = self.tensorFormatMap.get(outNodeName)
+        if tff == None:
+          raise ValueError("ERROR: tensor map for output %s was not found in tensor_map.json "
+                           "Correct operator suppot in genCompilerLayerJson() and rerun" % outNodeName)
         outFile = outFileRaw.replace(".npy", "-out.npy")
         outBase = outFileRaw[:-4]
         simExt = "simout"
@@ -286,7 +290,7 @@ class NnSubgraph:
             print("ERROR: nn_executor: missing Quemu Inkling output file %s" % outFileQuemu)
         
         if os.path.isfile(tpbOutFile):
-          outShape = self.outputs[0]["shape"]
+          outShape = jsonOutput["shape"]
           npt.formatNpyFileAs(tpbOutFile,  tff.simFormat, tff.tfFormat, dstShape=outShape, outFile=outFile)
         else:
           print("ERROR: no tpb output file %s / %s" % (self.sgDir, tpbOutFile), flush=True)
@@ -345,11 +349,13 @@ class NnExec:
     # Attach supplied output file to last subgraph
     if len(output_files) != 0:
       if len(sg_last.outputs) == 0:
+        assert len(output_files) == 1
         sg_last.inputs.append({"name" : "", "file" : output_files[0]})
       else:
         assert (len(sg_last.outputs) == len(output_files))
         # we only support single output file for now
-        sg_last.outputs[0]["file"] = output_files[0]
+        for i in range(len(sg_last.outputs)):
+          sg_last.outputs[i]["file"] = output_files[i]
 
   def run(self):
 

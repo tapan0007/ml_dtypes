@@ -9,6 +9,8 @@ import sys
 import re
 from tensorflow.python.ops import array_ops
 
+np.random.seed(17)
+
 # To minimize likelihood of float16 overflow
 # Example  0 1 2 3 4 5  =>  0 5 1 4 2 3
 def permuteArr(arr):
@@ -131,7 +133,6 @@ i3 = array_ops.concat([i1, i2], -1, name=netName+"/i3")
 output = tf.identity(i3, name=netName+"/output")
 
 #i0val = permuteArr(np.linspace(IMIN, IMAX, num=IF1.size, dtype=npDataType)).reshape(IF1.shape)
-np.random.seed(17)
 i0val = np.random.random(IF1.shape).astype(npDataType)
 #i1val = np.random.random(IF2.shape)
 
