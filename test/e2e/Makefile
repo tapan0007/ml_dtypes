@@ -95,6 +95,7 @@ TEST_ARGS_CHECK = --test 0-1conv0_wave  3-rn50-t00_wave 3-rn50_pool2_wave 4-ptb_
 0-1conv1ba1_h4c2m2_wave_qemu  0-1conv_exp_pad_wave_qemu  0-1conv_h4_softplus_wave_qemu  \
 4-ptb_word_small_sigmoid_wave 4-ptb_word_small_sigmoid_2l_wave_qemu \
 4-ptb_word_small_sigmoid_fp16_b32_wave_qemu \
+0-1conv0_qemu_sem_wave 0-116conv_tanh_sem_qemu_wave \
 0-resadd_wave_qemu   
 
 # Tests that will be run on emulator. These tests are run to check if RTL is fine.
@@ -106,6 +107,8 @@ endif
 TEST_ARGS_CHECK_EMU = ${TEST_EMU_OPTS} --test
 
 TEST_ARGS_CHECK_EMU_TESTS = \
+0-1conv0_qemu_sem_wave \
+0-116conv_tanh_sem_qemu_wave \
 5-inceptionv3_wave_dog_sg00_tpb_upto_concat1 \
 5-inceptionv3_wave_dog_sg00_tpb_upto_concat2 \
 6-inceptionv3_wave_dog_sg00_tpb_upto_concat4 \
