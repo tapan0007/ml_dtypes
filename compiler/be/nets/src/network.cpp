@@ -230,6 +230,13 @@ Network::gOutDataSizeInBytes() const
     return -1;
 }
 
+//--------------------------------------------------------
+void
+Network::rUseSem(bool useSem)
+{
+    m_UseSem = useSem;
+}
+
 }}
 
 

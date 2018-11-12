@@ -168,12 +168,6 @@ public:
     static void SaveName(compisa::MatMulInstr& instr, const char* name);
 
 
-    bool qUseEvent(const wave::WaveEdge* edge) const;
-    bool qUseSemaphore(const wave::WaveEdge* edge) const;
-
-
-private:
-
 private:
     WaveCode() = delete;
     WaveCode(const WaveCode&) = delete;

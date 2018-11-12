@@ -562,7 +562,7 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelf(wave::SbAtomLoadWaveOp*
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
-            << ":" << succEventIds[0]
+            << ":" << (succEventIds.size() > 0 ? succEventIds[0] : -1)
             << "-" << sbAtomLoadWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
@@ -719,7 +719,7 @@ WaveCodeSbAtomLoad::generateInputDmaRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWaveo
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
-            << ":" << succEventIds[0]
+            << ":" << (succEventIds.size() > 0 ? succEventIds[0] : -1)
             << "-" << sbAtomLoadWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
@@ -747,9 +747,6 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
 
     /*const kcc_int32 numSyncs =*/ findSuccEventsAndChosenEngine(sbAtomLoadWaveop,
                                         chosenEngId, succEventIds);
-    Assert(succEventIds.size() > 0, "No successor events found for AtomLoad '",
-            sbAtomLoadWaveop->gName(), "'");
-
     kelf::DmaDescription& kelfDma(m_WaveCode.gDmaDescription());
 
     std::ostringstream oss;
@@ -784,7 +781,7 @@ WaveCodeSbAtomLoad::generateInputDmaNoRepl(wave::SbAtomLoadWaveOp* sbAtomLoadWav
     {
         std::ostringstream oss;
         oss << sbAtomLoadWaveop->gOrder()
-            << ":" << succEventIds[0]
+            << ":" << (succEventIds.size() > 0 ? succEventIds[0] : -1)
             << "-" << sbAtomLoadWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
@@ -824,7 +821,6 @@ void
 WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::SbAtomLoadWaveOp* sbAtomLoadWaveop,
                     EngineId chosenEngId, const std::vector<events::EventId>& succEventIds)
 {
-    Assert(succEventIds.size() == 1, "AtomLoad: only one succ event id: ", sbAtomLoadWaveop->gName());
     Assert(m_WaveCode.qBinFileRuntimeKelf(), "Must be binary for Runtime Kelf");
     const arch::StateBuffer& stateBuf(arch::Arch::gArch().gStateBuffer());
     //const utils::DataType& dataType(sbAtomLoadWaveop->gDataType());
@@ -927,7 +923,9 @@ WaveCodeSbAtomLoad::generateDmaDescAndTriggerRuntimeKelfWithReplication(wave::Sb
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
     {
         std::ostringstream oss;
-        oss << sbAtomLoadWaveop->gOrder() << ":" << succEventIds[0] << "-" << sbAtomLoadWaveop->gName();
+        oss << sbAtomLoadWaveop->gOrder()
+            << ":" << (succEventIds.size() > 0 ? succEventIds[0] : -1)
+            << "-" << sbAtomLoadWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());
     }
     m_WaveCode.writeInstruction(dmaTriggerInstr, chosenEngId);

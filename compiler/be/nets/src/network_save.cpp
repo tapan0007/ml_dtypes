@@ -15,6 +15,8 @@
 #include "events/inc/events.hpp"
 #include "arch/inc/arch.hpp"
 
+#include "dma/inc/dmaqueue.hpp"
+
 #include "layers/inc/layerconsts.hpp"
 #include "layers/inc/layer.hpp"
 #include "layers/inc/inputlayer.hpp"
@@ -270,9 +272,20 @@ Network::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) con
         for (auto prevWaveEdge : waveOp->gPrevWaveEdges()) {
             auto prevWaveOp = prevWaveEdge->gFromOp();
             serWaveOp.addPreviousWaveOp(prevWaveOp->gName());
-            serWaveOp.addPreviousEventId(prevWaveEdge->gEventId());
-            serWaveOp.addPreviousEventWaitMode(prevWaveEdge->gWaitEventMode());
-            serWaveOp.addPrevEventSetMode(prevWaveEdge->gSetEventMode());
+            if (m_UseSem && prevWaveOp->qSbAtomWaveOp()) {
+                    const char* buf = "NOSEM";
+                    kcc_int32 trigOrd = -1;
+                    auto sbAtomWop = dynamic_cast<wave::SbAtomWaveOp*>(prevWaveOp);
+                    if (auto dmaQue = sbAtomWop->gDmaQueue()) {
+                        buf = dmaQue->gName().c_str();
+                        trigOrd = sbAtomWop->gTriggerOrd();
+                    }
+                    serWaveOp.addPreviousSemaphoreSync(buf, trigOrd);
+            } else {
+                serWaveOp.addPreviousEventSync(prevWaveEdge->gWaitEventMode(),
+                                          prevWaveEdge->gEventId(),
+                                          prevWaveEdge->gSetEventMode());
+            }
         }
         serWaveOp.m_Order = waveOp->gOrder();
 

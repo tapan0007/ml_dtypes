@@ -480,19 +480,5 @@ WaveCode::SaveName(compisa::MatMulInstr& instr, const char* name)
 }
 
 
-//======================================================================
-bool
-WaveCode::qUseEvent(const wave::WaveEdge* edge) const
-{
-    return edge->qSyncedWithEvent();
-}
-
-//======================================================================
-bool
-WaveCode::qUseSemaphore(const wave::WaveEdge* edge) const
-{
-    return edge->qSyncedWithSemaphore();
-}
-
 }}
 

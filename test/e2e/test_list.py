@@ -187,6 +187,12 @@ testConfigMap = {
   "0-1conv0_wave_h35c288m64" : [ "trivnet_conv1",  "tfloat16-b1-h35-r1-s1-c288-m64-wmin0.1-wmax0.2-imin0.2-imax0.3", "1conv", MEv2("Generic")],
   "0-1conv0_ckpt_wave" : [ "ckpt_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler wave2 --wavegraph_checks structure data-race --show_op_name_in_kgraph --exclude_ops_from_capture 'save|Save|restore' --debug 1"],
   "0-1conv0_qemu_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", "--scheduler qemu_wave --wavegraph_checks structure data-race"],
+  "0-1conv0_qemu_sem_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv",
+      ( "--scheduler qemu_wave2 "
+      + " --wavegraph_checks structure data-race "
+      + " --be_options sync-with-semaphores "
+      )
+  ],
   "0-1conv0_b16_wave" : [ "trivnet_conv1",  "tfloat16-b16-h1-r1-s1-c1-m1-wmin2-wmax2.2-imin3-imax3.2", "1conv", MEv2("RN50")],
   "0-1conv0m4_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m4-wmin2-wmax2.2-imin3-imax3.2", "1conv", MEv2("Generic")],
   "0-1conv0m8_wave" : [ "trivnet_conv1",  "tfloat16-b1-h1-r1-s1-c1-m8-wmin2-wmax2.2-imin3-imax3.2", "1conv", MEv2("Generic")],
@@ -247,6 +253,13 @@ testConfigMap = {
   "0-1conv_h4_softplus_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r1-s1-c1-m1-softplus-wmin-0.2-wmax0.4-imin-1-imax1.2", "10cr", MEv2("Generic")],
   "0-1conv_h4_sigmoid_wave" : [ "trivnet_lin",    "tfloat16-l2-b1-h4-r1-s1-c1-m1-sigmoid-wmin-0.2-wmax0.4-imin-1000-imax1010", "10cr", MEv2("Generic")],
   "0-116conv_tanh_wave" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct", MEv2("Generic")],
+
+  "0-116conv_tanh_sem_qemu_wave" : [ "trivnet_lin",   "tfloat16-l116-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "116ct",
+      ( "--scheduler qemu_wave2 "
+      + " --schedule_options ' --nname=generic ' "
+      + " --be_options sync-with-semaphores "
+      )
+  ],
 
   "0-300conv_tanh_wave-all-layers" : [ "trivnet_lin", "tfloat16-l300-b1-h4-r3-s1-c1-m1-tanh-wmin-0.2-wmax0.8-imin-4-imax8", "300ct", MEv2("Generic-CleanWG-SaveAll")],
 
@@ -309,14 +322,15 @@ testConfigMap = {
   "0-3conv_ba_mult_fp16_wave"  : [ "trivnet_conv_ba_mult", "tfloat16-b1-h55-r3-s2-c1-m1-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "mult", "--scheduler wave --waive_wavegraph_checks"],
   "0-2matmult_add_fp32_wave"  : [ "trivnet_matmul_add", "tfloat32-b1-h1-r1-s1-c512-m2048-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03", "matmult", "--scheduler wave --schedule_options ' --save_layer_output '  --waive_wavegraph_checks"],
 
-  "0-2matmult_add_fp16_wave"  : [
-    "trivnet_matmul_add",
-    "tfloat16-b1-h1-r1-s1-c512-m2048-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03",
-    "matmult",
-    ("--scheduler wave2 "
-    + " --schedule_options ' --save_layer_output --nname=generic ' "
-    )
-  ],
+  #"0-2matmult_add_fp16_wave"  : [
+  #  "trivnet_matmul_add",
+  #  "tfloat16-b1-h1-r1-s1-c512-m2048-SAME-wmin-1-wmax2-imin-0.1-imax0.3-amin-0.01-amax-0.03",
+  #  "matmult",
+  #  ("--scheduler wave2 "
+  #  + " --schedule_options ' --save_layer_output ' "
+  #  + " --waive_wavegraph_checks"
+  #  )
+  #],
 
   "0-1conv_s8_32b_wave": [ "trivnet_lin",    "tfloat32-l2-b1-h16-r1-s8-c1-m1-wmin-0.1-wmax0.11-imin-0.2-imax0.21", "1conv32", "--scheduler wave --wavegraph_checks structure data-race"],
   "0-1conv_exp_pad_wave" : [ "trivnet_conv1",  "tfloat16-b1-h16-r7-s2-c1-m1-wmin2-wmax2.2-imin3-imax3.2-padw2-pade3", "1conv", MEv2("Generic")],

@@ -82,6 +82,8 @@ public:
     template<typename Archive>
     void load(Archive & archive);
 
+    void rUseSem(bool useSem);
+
 private:
     class LoadSaveBase;
     class Load;
@@ -194,6 +196,7 @@ private:
     bool                                    m_UseWave = false;
     std::unique_ptr<Load>                   m_Load;
     std::unique_ptr<Save>                   m_Save;
+    bool                                    m_UseSem;
 }; // Network
 
 

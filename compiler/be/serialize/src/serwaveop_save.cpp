@@ -9,6 +9,9 @@ namespace serialize {
 #define KCC_ARCHIVE(X) archive(cereal::make_nvp(KCC_CONCAT(WaveOpKey_,X), KCC_CONCAT(m_,X)))
 
 
+//===========================================================================
+
+//===========================================================================
 template<>
 void
 SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) const
@@ -18,9 +21,11 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
     KCC_ARCHIVE(WaveOpName);
     KCC_ARCHIVE(LayerName);
     KCC_ARCHIVE(PreviousWaveOps);
-    KCC_ARCHIVE(PreviousEventIds);
-    KCC_ARCHIVE(PreviousEventWaitModes);
-    KCC_ARCHIVE(PreviousEventSetModes);
+
+    if (m_PreviousSyncs.size() > 0) {
+        KCC_ARCHIVE(PreviousSyncs);
+    }
+
     KCC_ARCHIVE(Order);
 
 
@@ -60,6 +65,7 @@ SerWaveOp::save<cereal::JSONOutputArchive>(cereal::JSONOutputArchive& archive) c
 } // SerWaveOp::save
 
 
+//===========================================================================
 void
 SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
 {
@@ -87,6 +93,7 @@ SerWaveOp::saveSbAtom(cereal::JSONOutputArchive& archive) const
     }
 } // SerWaveOp::saveSbAtom
 
+//===========================================================================
 void
 SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
 {
@@ -103,6 +110,7 @@ SerWaveOp::savePool(cereal::JSONOutputArchive& archive) const
 }
 
 
+//===========================================================================
 void
 SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
 {
@@ -140,6 +148,7 @@ SerWaveOp::saveMatMul(cereal::JSONOutputArchive& archive) const
 } // SerWaveOp::saveMatMul
 
 
+//===========================================================================
 void
 SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
 {
@@ -159,6 +168,7 @@ SerWaveOp::saveActivation(cereal::JSONOutputArchive& archive) const
 }
 
 
+//===========================================================================
 void
 SerWaveOp::saveClipByValue(cereal::JSONOutputArchive& archive) const
 {
@@ -173,6 +183,7 @@ SerWaveOp::saveClipByValue(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(MaxValue);
 }
 
+//===========================================================================
 void
 SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
 {
@@ -182,6 +193,7 @@ SerWaveOp::saveResAdd(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(NumPartitions);
 }
 
+//===========================================================================
 void
 SerWaveOp::saveMaximum(cereal::JSONOutputArchive& archive) const
 {
@@ -196,6 +208,7 @@ SerWaveOp::saveMaximum(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(NumPartitions);
 }
 
+//===========================================================================
 void
 SerWaveOp::saveMinimum(cereal::JSONOutputArchive& archive) const
 {
@@ -210,6 +223,7 @@ SerWaveOp::saveMinimum(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(NumPartitions);
 }
 
+//===========================================================================
 void
 SerWaveOp::saveAdd(cereal::JSONOutputArchive& archive) const
 {
@@ -224,6 +238,7 @@ SerWaveOp::saveAdd(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(NumPartitions);
 }
 
+//===========================================================================
 void
 SerWaveOp::saveSub(cereal::JSONOutputArchive& archive) const
 {
@@ -238,6 +253,7 @@ SerWaveOp::saveSub(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(NumPartitions);
 }
 
+//===========================================================================
 void
 SerWaveOp::saveMult(cereal::JSONOutputArchive& archive) const
 {
@@ -252,6 +268,7 @@ SerWaveOp::saveMult(cereal::JSONOutputArchive& archive) const
     KCC_ARCHIVE(NumPartitions);
 }
 
+//===========================================================================
 void
 SerWaveOp::saveScaleAdd(cereal::JSONOutputArchive& archive) const
 {
@@ -266,11 +283,13 @@ SerWaveOp::saveScaleAdd(cereal::JSONOutputArchive& archive) const
 
 
 
+//===========================================================================
 void
 SerWaveOp::saveBarrier(cereal::JSONOutputArchive& /*archive*/) const
 {
 }
 
+//===========================================================================
 void
 SerWaveOp::saveNop(cereal::JSONOutputArchive& archive) const
 {
@@ -280,6 +299,7 @@ SerWaveOp::saveNop(cereal::JSONOutputArchive& archive) const
 
 
 
+//===========================================================================
 void
 SerWaveOp::saveSrc(cereal::JSONOutputArchive& archive, Dims dims) const
 {
@@ -314,6 +334,7 @@ SerWaveOp::saveSrc(cereal::JSONOutputArchive& archive, Dims dims) const
     }
 }
 
+//===========================================================================
 void
 SerWaveOp::saveSrcA(cereal::JSONOutputArchive& archive, Dims dims) const
 {
@@ -348,6 +369,7 @@ SerWaveOp::saveSrcA(cereal::JSONOutputArchive& archive, Dims dims) const
     }
 }
 
+//===========================================================================
 void
 SerWaveOp::saveSrcB(cereal::JSONOutputArchive& archive, Dims dims) const
 {
@@ -382,6 +404,7 @@ SerWaveOp::saveSrcB(cereal::JSONOutputArchive& archive, Dims dims) const
     }
 }
 
+//===========================================================================
 void
 SerWaveOp::saveSrcAB(cereal::JSONOutputArchive& archive, Dims dims) const
 {
@@ -389,6 +412,7 @@ SerWaveOp::saveSrcAB(cereal::JSONOutputArchive& archive, Dims dims) const
     saveSrcB(archive, dims);
 }
 
+//===========================================================================
 void
 SerWaveOp::saveDst(cereal::JSONOutputArchive& archive, Dims dims) const
 {

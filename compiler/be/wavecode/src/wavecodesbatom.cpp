@@ -128,12 +128,26 @@ WaveCodeSbAtom::findSuccEventsAndChosenEngine(wave::SbAtomWaveOp* sbAtomWaveop,
         }
 
         ++numSyncs;
-        m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
+        if (prevWaveEdge->qSyncedWithEvent()) {
+            m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, chosenEngId);
+        } else if (prevWaveEdge->qSyncedWithSemaphore()) {
+            GenerateSemaphoreInstr(prevWaveEdge);
+        } else {
+            Assert(false, "Must sync edge from ", prevWaveEdge->gFromOp()->gName(),
+                   " to ", prevWaveEdge->gToOp()->gName());
+        }
     }
 
     for (auto succWaveEdge : sbAtomWaveop->gSuccWaveEdges()) {
         if (succWaveEdge->qNeedToImplementSync()) {
-            succEventIds.push_back(succWaveEdge->gEventId());
+            if (succWaveEdge->qSyncedWithEvent()) {
+                succEventIds.push_back(succWaveEdge->gEventId());
+            } else if (succWaveEdge->qSyncedWithSemaphore()) {
+                // No need to do anything, DMA will increment semaphore
+            } else {
+                Assert(false, "Must sync edge from ", succWaveEdge->gFromOp()->gName(),
+                       " to ", succWaveEdge->gToOp()->gName());
+            }
             ++numSyncs;
         }
     }

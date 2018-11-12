@@ -197,29 +197,36 @@ bool WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
                     m_WaveCode.writeInstruction(waitEventInstr, waveop->gEngineId());
                 }
                 // 3. Set the actual event scheduled
-                if (m_WaveCode.qUseEvent(succWaveEdge)) {
+                if (succWaveEdge->qSyncedWithEvent()) {
                     compisa::SetInstr setEventInstr;
                     setEventInstr.event_idx          = succWaveEdge->gEventId();
                     m_WaveCode.SaveName(setEventInstr, oss.str().c_str());
                     m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
+                } else if (succWaveEdge->qSyncedWithSemaphore()) {
+                    // nothing
                 } else {
+                    Assert(false, "Must sync edge from ", succWaveEdge->gFromOp()->gName(),
+                           " to ", succWaveEdge->gToOp()->gName());
                 }
             }
             else {
-                if (m_WaveCode.qUseEvent(succWaveEdge)) {
+                if (succWaveEdge->qSyncedWithEvent()) {
                     instr.inst_events.set_event_idx    = succWaveEdge->gEventId();
                     instr.inst_events.set_event_mode  = events::eventSetMode2Isa(
                                                             succWaveEdge->gSetEventMode());
                     m_WaveCode.SaveName(instr, oss.str().c_str());
                     m_WaveCode.writeInstruction(instr); // this requires template
+                } else if (succWaveEdge->qSyncedWithSemaphore()) {
+                    // nothing
                 } else {
-                    Assert(succWaveEdge->qSyncedWithSemaphore(), "Need to sync with semaphore");
+                    Assert(false, "Must sync edge from ", succWaveEdge->gFromOp()->gName(),
+                           " to ", succWaveEdge->gToOp()->gName());
                 }
             }
             instructionWritten = true;
             //std::cout << waveop->gName() << " (embedded) " << succWaveEdge->gEventId() << std::endl;
         } else {
-            if (m_WaveCode.qUseEvent(succWaveEdge)) {
+            if (succWaveEdge->qSyncedWithEvent()) {
                 std::ostringstream oss;
                 oss << waveop->gOrder() << "-" <<  waveop->gName();
                 compisa::SetInstr setEventInstr;
@@ -228,8 +235,11 @@ bool WaveCodeWaveOp::processOutgoingEdges(wave::WaveOp* waveop, INST& instr)
                 m_WaveCode.writeInstruction(setEventInstr, waveop->gEngineId());
                 //std::cout << waveop->gName() << " (not embedded) " << succWaveEdge->gEventId()
                 //  << " engine " << utils::engineId2Str(waveop->gEngineId()) << std::endl;
+            } else if (succWaveEdge->qSyncedWithSemaphore()) {
+                // nothing
             } else {
-                Assert(succWaveEdge->qSyncedWithSemaphore(), "Need to sync with semaphore");
+                Assert(false, "Must sync edge from ", succWaveEdge->gFromOp()->gName(),
+                       " to ", succWaveEdge->gToOp()->gName());
             }
         }
     } // for (auto succWaveEdge : waveop->gSuccWaveEdges())

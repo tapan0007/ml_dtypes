@@ -31,7 +31,7 @@ DmaDescription::DmaBlock::addTailEventId(events::EventId eventId)
 void
 DmaDescription::DmaBlock::setDmaEventField(nlohmann::json& jDmaBlock) const
 {
-    if (m_DmaDescription.qUseEvents() && m_TailEventIds.size() > 0) {
+    if (m_TailEventIds.size() > 0) {
         if (m_TailEventIds.size() == 1) {
             jDmaBlock["event"]  = m_TailEventIds[0];
         }

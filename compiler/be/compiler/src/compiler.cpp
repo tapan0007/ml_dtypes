@@ -126,19 +126,26 @@ Main(int argc, char* argv[])
         } else if (arg == "--number-tpb-events") {
             numTpbEvents = atoi(argv[i+1]);
             ++i;
-        } else if (arg == "--semaphore" || arg == "-s") {
+        } else if (arg == "--sync-with-semaphores" || arg == "-s") {
             useSem = true;
+        } else if (arg == "--sync-with-events" || arg == "-e") {
+            useSem = false;
         } else if (arg == "--wavegraph" || arg == "-w") {
             if (JsonInFileName) {
-                std::cerr << "Must specify net" << "\n";
+                std::cerr << "NN file name already specified" << "\n";
                 exit(1);
             }
             JsonInFileName = argv[i+1];
             i += 1;
         } else {
             std::cerr << "Wrong argument: " << arg << "\n";
-            std::cerr << "Usage: " << argv[0]
-                      << "[[[--parallel_streams]|[--sequential_stream]] --wavegraph WAVEGRAPH.JSON|--json LAYER.JSON]\n";
+            std::cerr << "Usage: " << argv[0] << " [options] --wavegraph wavegrephjson\n"
+                      << "options:\n"
+                      <<      "--parallel-stream\n"
+                      <<      "--sequential-stream\n"
+                      <<      "--sync-with-events\n"
+                      <<      "--sync-with-semaphores\n"
+                      <<      "--real-dma\n";
             exit(1);
         }
 
@@ -146,7 +153,7 @@ Main(int argc, char* argv[])
     }
 
     if (JsonInFileName == nullptr) {
-        std::cerr << "Must specify net" << "\n";
+        std::cerr << "Must specify NN file name" << "\n";
         exit(1);
     }
 
@@ -183,15 +190,6 @@ Main(int argc, char* argv[])
                 ;
     }
 
-#if 0
-    const arch::StateBuffer stateBuf(arch.gStateBuffer());
-    std::cout << "State buffer, partition size =  " << stateBuf.gPartitionSizeInBytes() << "'\n";
-    std::cout << "State buffer, partition 0, entry 0: TPB address =  " << stateBuf.gEntryTpbAddress(0, 0) << "'\n";
-    std::cout << "State buffer, partition 1, entry 0: TPB address =  " << stateBuf.gEntryTpbAddress(1, 0) << "'\n";
-    //std::cout << "State buffer, All zero TPB address =  " << stateBuf.gAllZeroOffsetTpbAddress() << "'\n";
-    std::cout << "State buffer, delta TPB address between part 0 and 1=  "
-              << (stateBuf.gEntryTpbAddress(1, 0) - stateBuf.gEntryTpbAddress(0, 0)) << "'\n";
-#endif
 
 
     //------------------------------------------------
@@ -230,6 +228,7 @@ Main(int argc, char* argv[])
 
             // with Angel
             if (!dmaOnly) {
+                ntwk->rUseSem(false);
                 std::cout << "Wavegraph code generation for SIM/Angel:\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "------" << "----\n";
@@ -263,6 +262,7 @@ Main(int argc, char* argv[])
             // Runtime Kelf
             if (true) {
                 kelf = true;
+                ntwk->rUseSem(useSem);
                 std::cout << "Wavegraph code generation for Qemu/Emu:\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "Engine" << "File\n";
                 std::cout << "    " << std::setw(EnginePrintFormatSize) << std::left << "------" << "----\n";

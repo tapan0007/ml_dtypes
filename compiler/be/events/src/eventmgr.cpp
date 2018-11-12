@@ -453,7 +453,8 @@ EventMgr::findQueue(const wave::SbAtomWaveOp* sbatomWop)
 
     const auto it = m_Name2Queue.find(queName);
     if (it == m_Name2Queue.end()) {
-        const auto que = new dma::DmaQueue(queName, engId, typ, m_Name2Queue.size());
+        const auto semId = ReservedSemaphore_FirstNonReserved + m_Name2Queue.size();
+        const auto que = new dma::DmaQueue(queName, engId, typ, semId);
         m_Name2Queue[queName] = que;
         return que;
     } else {

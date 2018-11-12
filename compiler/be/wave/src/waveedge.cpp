@@ -137,6 +137,13 @@ WaveEdge::qNeedToSync() const
     // (they were loaded from DRAM), we don't need to save
     //
     if (prevWaveop->qSbAtomWaveOp()) {
+        if (succWaveop->qSbAtomWaveOp()) {
+            const auto prevSbAtom = dynamic_cast<const wave::SbAtomWaveOp*>(prevWaveop);
+            const auto succSbAtom = dynamic_cast<const wave::SbAtomWaveOp*>(succWaveop);
+            if (prevSbAtom->gDmaQueue() ==  succSbAtom->gDmaQueue()) {
+                return false;
+            }
+        }
         return true;
     }
     return false;

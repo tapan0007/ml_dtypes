@@ -223,7 +223,7 @@ WaveCodeSbAtomSave::generateDmaTriggerRuntimeKelf(wave::SbAtomSaveWaveOp* sbAtom
     dmaTriggerInstr.inst_events.set_event_idx   = 0; // succ event is in desc
     dmaTriggerInstr.inst_events.set_event_mode  = events::eventSetMode2Isa(events::EventSetMode::DontSet);
     {
-        const auto eventId = succEventIds.size() > 0 ?  succEventIds[0] : -1;
+        const auto eventId = (succEventIds.size() > 0 ?  succEventIds[0] : -1);
         std::ostringstream oss;
         oss << sbAtomSaveWaveop->gOrder() << ":" << eventId << "-" << sbAtomSaveWaveop->gName();
         m_WaveCode.SaveName(dmaTriggerInstr, oss.str().c_str());

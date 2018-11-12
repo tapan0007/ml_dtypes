@@ -75,9 +75,13 @@ parser.add_argument('--force_qemu', help='Apply additional --filer and various c
 parser.add_argument('--sealife', help='Use sealife compiler instead of kcc', action='store_true', default=False)
 parser.add_argument('--waive', help='Additional test to waive', nargs='+', default=[])
 parser.add_argument('--cached_kelf', help='Instead of compiling copy test dir from here/test_name and run inference. It can be unix path, ssh URL or s3 URL. Also triggers additional comparison with tensors computed by the cached run, and qor TopEffs comparison.', default=None)
+parser.add_argument('--be_options', help='BE arguments', nargs='+', default=[])
 
 args = parser.parse_args()
 verbose = args.verbose
+level = args.level
+
+################################
 parallel = args.parallel
 if args.force_qemu and args.parallel == defaultParallel:
   parallel = args.parallel // 2
@@ -572,6 +576,8 @@ class Ktests:
         nnArgs += " --parallel_streams" # forward option to compiler
       # default ref omage
       default_image =  "%sref_input.npy" % outPrefix
+      if args.be_options:
+          nnArgs += " --be_options " + " ".join(args.be_options)
       if ("trivnet" in nnStruct or "ckpt" in nnStruct) and "--images" not in nnArgs:
           nnArgs += " --images %s " % default_image # default if none..
       if ("trivnet" in nnStruct or "ckpt" in nnStruct) and "--input_files" not in rtArgs:

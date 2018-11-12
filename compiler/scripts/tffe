@@ -97,6 +97,7 @@ parser.add_argument('--wavegraph_transform',
                           'The default is no optimization'), 
                     nargs='+', default=["cleaner"])
 parser.add_argument('--level_order_seed', help='Seed for randomization of Kgraph node order in compiler.json for stress testing of downstream flow, default is none which means alphabetic sort', type=int, default=None)
+parser.add_argument('--be_options', help='Additional BE options', nargs='+', default=[])
 
 args = parser.parse_args()
 
@@ -256,6 +257,16 @@ if args.images != None:
           beopts = ""
           if args.scheduler.startswith("qemu"):
             beopts = "--real-dma"
+
+            for opt in args.be_options:
+                if opt == "sync-with-events":
+                    beopts += " --" + opt + " "
+                elif opt == "sync-with-semaphores":
+                    beopts += " --" + opt + " "
+                else:
+                    print("Bad BE option:", opt)
+                    assert(False)
+
           cmd = "%s/compiler/be/compiler/compiler.exe %s %s %s> log-be.txt 2>&1" % (kPath,
                   beopts, jsonFileOption.get(args.scheduler, jsonFileOptionGeneric), parallelStreamsOption)
           print(getInfoDateStr(), "executing %s" % cmd, flush=True)

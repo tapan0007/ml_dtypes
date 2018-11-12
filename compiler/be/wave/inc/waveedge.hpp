@@ -99,6 +99,9 @@ public:
 
     bool qSyncedWithEvent() const;
     bool qSyncedWithSemaphore() const;
+    bool qSynced() const {
+        return qSyncedWithEvent() || qSyncedWithSemaphore();
+    }
     void DoSyncWithSemaphore() {
         m_SyncMethod = SyncMethod::WithSemaphore;
     }

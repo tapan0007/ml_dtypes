@@ -93,10 +93,11 @@ private:
     EventId getLocalEventId(const wave::WaveEdge* edge);
 
     enum  {
-        RunTimeReservedEventsCount = 6
+        RunTimeReservedEventsCount = 7,
+        RunTimeReservedSemaphoresCount = 3,
     };
     enum ReservedEvent {
-        ReservedEvent_RunTimeFirst,
+        ReservedEvent_RunTimeFirst = 0,
         ReservedEvent_RunTimeLast = ReservedEvent_RunTimeFirst + RunTimeReservedEventsCount - 1,
 
 
@@ -116,6 +117,11 @@ private:
 
 
         ReservedEvent_FirstNonReserved
+    };
+    enum ReservedSemaphore {
+        ReservedSemaphore_RunTimeFirst = 0,
+        ReservedSemaphore_RunTimeLast = ReservedSemaphore_RunTimeFirst + RunTimeReservedSemaphoresCount - 1,
+        ReservedSemaphore_FirstNonReserved
     };
 
     void assignEventsToNewSuccEdges(wave::WaveOp* waveop);

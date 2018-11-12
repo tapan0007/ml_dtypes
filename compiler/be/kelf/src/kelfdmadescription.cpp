@@ -515,7 +515,9 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
                 if (qUseSemaphore()) {
                     queDesc[Keys::gSemId()] = que->gSemaphoreId();
                 }
-                //queDesc[Keys::gOwner()] = gEngineName(engId);//no owner for input 
+                char buf[512];
+                sprintf(buf, "# %s", Keys::gOwner());
+                queDesc[buf] = gEngineName(que->gEngineId());
                 jDmaQueue[que->gName()]  = queDesc;
             }
         }
@@ -528,6 +530,9 @@ DmaDescription::writeDefinitions(const char* peInstrFileName,
             for (auto que : dmaQueues) {
                 json queDesc;
                 queDesc[Keys::gQueueType()] = "out";
+                if (qUseSemaphore()) {
+                    queDesc[Keys::gSemId()] = que->gSemaphoreId();
+                }
                 queDesc[Keys::gOwner()] = gEngineName(que->gEngineId());
                 jDmaQueue[que->gName()]  = queDesc;
             }

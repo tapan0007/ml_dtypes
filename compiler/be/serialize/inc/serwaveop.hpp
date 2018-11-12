@@ -17,6 +17,7 @@
 
 
 #include "utils/inc/debug.hpp"
+#include "utils/inc/asserter.hpp"
 #include "utils/inc/consts.hpp"
 #include "utils/inc/types.hpp"
 #include "utils/inc/datatype.hpp"
@@ -35,9 +36,10 @@ constexpr static const char* WaveOpKey_WaveOpType               = "waveop_type";
 constexpr static const char* WaveOpKey_WaveOpName               = "waveop_name";
 constexpr static const char* WaveOpKey_LayerName                = "layer_name";
 constexpr static const char* WaveOpKey_PreviousWaveOps          = "previous_waveops";
-constexpr static const char* WaveOpKey_PreviousEventIds         = "previous_event_ids";
-constexpr static const char* WaveOpKey_PreviousEventWaitModes   = "previous_event_wait_modes";
-constexpr static const char* WaveOpKey_PreviousEventSetModes    = "previous_event_set_modes";
+
+constexpr static const char* WaveOpKey_PreviousSyncs            = "previous_syncs";
+constexpr static const char* WaveOpKey_SemaphoreSync            = "semaphore_sync";
+constexpr static const char* WaveOpKey_EventSync                = "event_sync";
 
 constexpr static const char* WaveOpKey_Order                    = "order";
 
@@ -192,6 +194,8 @@ constexpr static const char* WaveOpKey_IsScalarOp           = "is_scalar_op";
 constexpr static const char* WaveOpKey_ScalarVal            = "scalar_val";
 
 
+
+//===================================================
 class SerWaveOp {
 public:
     SerWaveOp();
@@ -210,15 +214,30 @@ public:
 
     void addPreviousWaveOp(const std::string& prevWaveOp) { m_PreviousWaveOps.push_back(prevWaveOp);
     }
-    void addPreviousEventId(events::EventId eventId) {
-        m_PreviousEventIds.push_back(eventId);
+
+    void addPreviousEventSync(events::EventWaitMode waitMode,
+                              events::EventId eventId,
+                              events::EventSetMode setMode)
+    {
+        char buf[512];
+        sprintf(buf, "%s: wait=%d  event=%d  set=%d",
+            WaveOpKey_SemaphoreSync,
+            static_cast<kcc_int32>(waitMode),
+            static_cast<kcc_int32>(eventId),
+            static_cast<kcc_int32>(setMode));
+        const std::string b(buf);
+        m_PreviousSyncs.push_back(b);
     }
-    void addPreviousEventWaitMode(events::EventWaitMode mode) {
-        m_PreviousEventWaitModes.push_back(eventWaitMode2Isa(mode));
+
+    void addPreviousSemaphoreSync(const char* prevSemaphore, kcc_int32 trigOrd)
+    {
+        char buf[512];
+        sprintf(buf, "%s: name=%s  trig_ord=%d",
+            WaveOpKey_SemaphoreSync, prevSemaphore, trigOrd);
+        const std::string b(buf);
+        m_PreviousSyncs.push_back(b);
     }
-    void addPrevEventSetMode(events::EventSetMode mode) {
-        m_PreviousEventSetModes.push_back(eventSetMode2Isa(mode));
-    }
+
 
     static ActivationFunc str2ActivationFunc(const std::string& s);
     static std::string activationType2Str(ActivationFunc);
@@ -288,9 +307,7 @@ public:
     std::string                 m_WaveOpName        = "";
     std::string                 m_LayerName         = "";
     std::vector<std::string>    m_PreviousWaveOps;
-    std::vector<int>            m_PreviousEventIds;
-    std::vector<int>            m_PreviousEventWaitModes;
-    std::vector<int>            m_PreviousEventSetModes;
+    std::vector<std::string>    m_PreviousSyncs;
 
     std::string                 m_Engine;
 

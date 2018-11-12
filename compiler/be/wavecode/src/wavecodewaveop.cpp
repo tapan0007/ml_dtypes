@@ -54,7 +54,7 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
         }
 
         ++numSyncs;
-        if (m_WaveCode.qUseEvent(prevWaveEdge)) {
+        if (prevWaveEdge->qSyncedWithEvent()) {
             const auto evtId = prevWaveEdge->gEventId();
 
             if (allowEmb && firstEmb) {
@@ -76,8 +76,11 @@ WaveCodeWaveOp::processIncomingEdges(wave::WaveOp* waveop, EngineId engineId,
                 }
                 m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
             }
-        } else {
+        } else if (prevWaveEdge->qSyncedWithSemaphore()) {
             GenerateSemaphoreInstr(prevWaveEdge);
+        } else {
+            Assert(false, "Must sync edge from ", prevWaveEdge->gFromOp()->gName(),
+                   " to ", prevWaveEdge->gToOp()->gName());
         }
     }
     return numSyncs;
@@ -92,11 +95,19 @@ WaveCodeWaveOp::GenerateSemaphoreInstr(const wave::WaveEdge* prevWaveEdge)
     auto prevSbAtomWaveop = dynamic_cast<const wave::SbAtomWaveOp*>(prevWaveop);
     Assert(prevSbAtomWaveop, "WaveOp ", prevWaveop->gName(), " should be Load/Save");
 
+    // semaphore wait must >= because 2 DMA transfers that are on the same queue
+    // could both finish before the engine(s) that is(are) waiting on the first
+    // condition arrives to the semaphore.wait, misses the condition, and gets stuck.
     compisa::SemaphoreInstr semInstr;
     semInstr.semaphore_id = prevSbAtomWaveop->gDmaQueue()->gSemaphoreId();
-    semInstr.wait_cond    = TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_EQUAL;
+    semInstr.wait_cond    = TONGA_ISA_TPB_SEMAPHORE_WAIT_COND_GREATER_EQUAL;
     semInstr.wait_value   = prevSbAtomWaveop->gTriggerOrd();
-    m_WaveCode.writeInstruction(semInstr, prevWaveEdge->gToOp()->gEngineId());
+
+    const auto succWaveop = prevWaveEdge->gToOp();
+    std::ostringstream oss;
+    oss << prevSbAtomWaveop->gOrder() << "->" << succWaveop->gName();
+    m_WaveCode.SaveName(semInstr, oss.str().c_str());
+    m_WaveCode.writeInstruction(semInstr, succWaveop->gEngineId());
 } // WaveCodeWaveOp::GenerateSemaphoreInstr
 
 //======================================================================

@@ -68,13 +68,16 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
             if (! qLoadWeightsWaitsFor(prevWaveEdge)) {
                 continue;
             }
-            if (m_WaveCode.qUseEvent(prevWaveEdge)) {
+            if (prevWaveEdge->qSyncedWithEvent()) {
                 const auto evtId = prevWaveEdge->gEventId();
                 Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
                 eventIds.insert(evtId);
                 m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
-            } else {
+            } else if (prevWaveEdge->qSyncedWithSemaphore()) {
                 GenerateSemaphoreInstr(prevWaveEdge);
+            } else {
+                Assert(false, "Must sync edge from ", prevWaveEdge->gFromOp()->gName(),
+                       " to ", prevWaveEdge->gToOp()->gName());
             }
         }
         return; // No LdWeights instructions
@@ -148,7 +151,7 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                 continue;
             }
 
-            if (m_WaveCode.qUseEvent(prevWaveEdge)) {
+            if (prevWaveEdge->qSyncedWithEvent()) {
                 const auto evtId = prevWaveEdge->gEventId();
                 Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
                 eventIds.insert(evtId);
@@ -160,8 +163,11 @@ WaveCodeMatMul::generateLoadWeights(wave::MatMulWaveOp* matmulWaveop)
                 } else {
                     m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
                 }
-            } else {
+            } else if (prevWaveEdge->qSyncedWithSemaphore()) {
                 GenerateSemaphoreInstr(prevWaveEdge);
+            } else {
+                Assert(false, "Must sync edge from ", prevWaveEdge->gFromOp()->gName(),
+                       " to ", prevWaveEdge->gToOp()->gName());
             }
         }
     }
@@ -267,7 +273,7 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                 continue;
             }
 
-            if (m_WaveCode.qUseEvent(prevWaveEdge)) {
+            if (prevWaveEdge->qSyncedWithEvent()) {
                 const auto evtId = prevWaveEdge->gEventId();
                 Assert(eventIds.find(evtId) == eventIds.end(), "Double event id ", evtId);
                 eventIds.insert(evtId);
@@ -280,8 +286,11 @@ WaveCodeMatMul::generateMatMul(wave::MatMulWaveOp* matmulWaveop)
                 } else {
                     m_WaveCode.writeWaitOrWaitClearInstr(prevWaveEdge, engineId);
                 }
-            } else {
+            } else if (prevWaveEdge->qSyncedWithSemaphore()) {
                 GenerateSemaphoreInstr(prevWaveEdge);
+            } else {
+                Assert(false, "Must sync edge from ", prevWaveEdge->gFromOp()->gName(),
+                       " to ", prevWaveEdge->gToOp()->gName());
             }
         }
     } // end incoming events
