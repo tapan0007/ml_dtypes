@@ -171,6 +171,7 @@ class TpbProgram:
           pc, instrType = match.groups()
           instr = Instr(instrType)
           self.instructions[int(pc,0)] = instr
+          #print('DEBUG: added instruction', instr)
         else:
           match = re.match('^  (\S+) .+: (0x\S+)', line)
           if match:
@@ -250,8 +251,12 @@ class InklingProfile(object):
           event = 0
           e = InklingEvent(cycle, engine, pcHex, opcode, mode, event)
           #print("  DEBUG: created inkling event record %s" % e)
-          self.events.append(e)
-          self.cycle2event[engine][cycle] = e
+          if self.cycle2event[engine].get(cycle, None) == None:
+            self.events.append(e)
+            self.cycle2event[engine][cycle] = e
+          else:
+            # Duplicate (end of ) instruction, ignore
+            pass
         else:
           print("WARNING: the notification file has %s PC %s pointing to a non-existing instruction, entry %s" % (
                   engine, pcHex, entry))
@@ -345,7 +350,6 @@ class InklingProfile(object):
     #fig = plt.figure(figsize=(self.geometry))
     fig, axarr = plt.subplots(2, sharex=True, figsize=(self.geometry))
     axPeUtil, axEvents  = axarr
-    fig.suptitle(titleStr)
     #fig.subplots_adjust(top=0.8)
     
     print(getInfoDateStr(), " processing %d instructions" % len(self.events))
@@ -354,7 +358,8 @@ class InklingProfile(object):
     peUtil = [0]
     peUtilTot = [0]
     firstCycle = -1
-    opsTot = 0
+    opsTot = 0.0
+    UtilTot2 = 0.0
     
     # For --resolution
     lastEngineCycle = {}  
@@ -396,6 +401,7 @@ class InklingProfile(object):
             if self.verbose:
               axEvents.text(xval+0.1, yval-0.1, "pc=%s\ncycles=%d" % (e.pc, instrCycles), color=color)
         if instr.getInstrType() == 'MATMUL':
+          #print('DEBUG: MATMUL')
           peuVal = 100.0*instr.getOPC() / 128 / 64 / 2
           waveCycles = instr.getWaveCycles()
           div = xval - firstCycle
@@ -443,6 +449,11 @@ class InklingProfile(object):
         print("\r%7.3f %%" % (100.0 * eventCount / len(self.events)), end='', flush=True)
       #if eventCount % 1000 == 0:
       #  break
+    totCycles = 1.0 + endCycle - startCycle;
+    
+    fig.suptitle(titleStr + '\nMM Ops %.3g G  '
+                 'Total Cycles %.3g k (usec)  '
+                 'PE utilization %.3f %%' % (opsTot/1e9, totCycles/1e3, UtilTot2) )
     print()
 
     # Zoom size notification
