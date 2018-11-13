@@ -12,6 +12,7 @@ import copy
 import numpy as np
 
 from me_utils import ceildiv
+from me_utils import data_type_to_item_sz
 from me_utils import ShapeDims
 from me_utils import FileParams
 from me_utils import Coord
@@ -119,6 +120,12 @@ class KNode:
             if (not i.is_const) and (not i.result_avail):
                 count += 1
         return count
+
+    def get_const_predecessor(self):
+        for i in self.prev:
+            if i.is_const:
+                return i
+        return None
 
     def populate_ofmaps_file_params(self):
         layer_info = self.data
@@ -742,15 +749,7 @@ class KGraph:
         # get the lowest significant bit
         if ("data_type" in kgraph_json):
             self.data_type = kgraph_json["data_type"]
-            if (self.data_type == 'float16'):
-                self.item_sz = 2
-            elif (self.data_type == 'float32'):
-                self.item_sz = 4
-            elif (self.data_type == 'uint8'):
-                self.item_sz = 1
-            else:
-                print("ERROR: cannot handle data type %s"%self.data_type)
-                exit(-1)
+            self.item_sz = data_type_to_item_sz(self.data_type)
 
         # process layers
         node_number = 0
@@ -913,6 +912,15 @@ class KGraph:
                     new_node.is_nop = True
                 elif (l['layer_type'] == "ExpandDims"):
                     new_node.is_nop = True
+                elif (l['layer_type'] == "Add"):
+                    const_node = new_node.get_const_predecessor()
+                    if const_node is not None:
+                        const_shape_dims = ShapeDims(const_node.data['ofmap_format'], const_node.data['ofmap_shape'])
+                        new_node_shape_dims = ShapeDims(l['ofmap_format'], l['ofmap_shape'])
+                        if const_shape_dims.C == new_node_shape_dims.C \
+                                and const_shape_dims.H == 1 \
+                                and const_shape_dims.W == 1:
+                            l['layer_type'] = "BiasAdd"
                 elif (l['layer_type'] == "Slice"):
                     new_node.is_nop = True
                     error = False
@@ -1056,7 +1064,7 @@ class KGraph:
             exit(-1)
         #print("DBG get_fused_ops: current_node ", self.current_node.data["layer_name"])
         # when we see ResAdd/Multiply, backtrack to the last split and follow the next branch in list
-        if (self.current_node.is_join and self.current_node.count_missing_input_results() > 0):
+        while (self.current_node.is_join and self.current_node.count_missing_input_results() > 0):
             if (self.args.debug > 0):
                 print("DBG: get_fused_ops: found join (ResAdd, Multiply, etc) at node %s, back-track to last split and follow next branch"%self.current_node.data["layer_name"])
             if self.last_split_next_nodes != [] and self.last_split_next_nodes[-1] != []:
