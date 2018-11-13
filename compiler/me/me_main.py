@@ -441,8 +441,8 @@ class TPBSched:
                         batch_item = b - j, 
                         live_mapped_file_params = live_mapped_file_params)
                     op_list.execute(tpb, b - j)
-                    if (args.nname == 'generic'):
-                      op_list.mark_ifmaps_are_consumed(live_mapped_file_params)
+                    if args.nname != "resnet50":
+                        op_list.mark_ifmaps_are_consumed(live_mapped_file_params)
                 # kaena-409: the marker must be qualified with the condition that the fused-op contains a join or fork, 
                 # because the marker is set for both branches before the join 
                 # (the fork condition also must be considered for the first MaxPool, since we double-up there too).
@@ -551,7 +551,7 @@ if __name__ == "__main__":
     parser.add_argument("--kgraph", default="compiler.json", help="K-graph Json file to read; defaults to compiler.json")
     parser.add_argument("--wavegraph", default="wavegraph.json", help="Wave-graph Json file to write; defaults to wavegraph.json")
     parser.add_argument("--dot", help="Dot file to write")
-    parser.add_argument("--nname", default="resnet50", help="Network name, resnet50 or lm")
+    parser.add_argument("--nname", default="generic", help="Network name, resnet50 or generic")
     parser.add_argument("--debug", type=int, default=DEBUG_LEVEL_DEFAULT, help="Debug level")
     parser.add_argument("--eigenlib_stride", action='store_true', help="Use Eigenlib style of striding starting in the center (-1) of striding window")
     parser.add_argument("--golden_inputs", action='store_true', help="Use golden files as inputs for each layer")

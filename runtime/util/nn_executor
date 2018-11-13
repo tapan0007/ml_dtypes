@@ -188,8 +188,9 @@ class NnSubgraph:
     for f in files:
       dst_f = os.path.basename(f)
       print("DEBUG4 linking", f, dst_f)
+      if os.path.isfile(dst_f):
+          os.remove(dst_f)
       os.symlink(f, dst_f)
-      
 
   # Executes a subgraph, calls appropriate executor as specified in nn_graph.json
   # Returns 0 on success, -1 or error code of failure.
