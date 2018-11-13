@@ -109,38 +109,24 @@ TEST_ARGS_CHECK_EMU = ${TEST_EMU_OPTS} --test
 TEST_ARGS_CHECK_EMU_TESTS = \
 0-1conv0_qemu_sem_wave \
 0-116conv_tanh_sem_qemu_wave \
-5-inceptionv3_wave_dog_sg00_tpb_upto_concat1 \
-5-inceptionv3_wave_dog_sg00_tpb_upto_concat2 \
-6-inceptionv3_wave_dog_sg00_tpb_upto_concat4 \
-6-inceptionv3_wave_dog_sg00_tpb_upto_concat5 \
 6-inceptionv3_wave_dog_sg00_tpb_upto_concat8 \
 6-inceptionv3_wave_dog_sg00_tpb_upto_concat9 \
 7-inceptionv3_wave_dog_sg00_tpb_upto_concat10 \
 7-inceptionv3_wave_dog_sg00_tpb_upto_concat11 \
 4-ptb_word_small_sigmoid_fp16_b32_wave \
-5-rn50_nne_to_act13_wave-no_repl \
-5-rn50_nne_to_act13_wave-repl \
 5-rn50_nne_to_act4_wave-no_repl \
 5-rn50_nne_to_act4_wave-repl \
+5-rn50_nne_to_act13_wave-no_repl \
+5-rn50_nne_to_act13_wave-repl \
 6-rn50_nne_to_act22_wave-no_repl \
 6-rn50_nne_to_act22_wave-repl \
-6-rn50_nne_to_act25_wave-repl \
-6-rn50_nne_to_act28_wave-repl \
 6-rn50_nne_to_act37_wave-repl \
-6-rn50_nne_to_act40_wave-repl \
-6-rn50_nne_to_act43_wave-repl \
 6-rn50_nne_to_act46_wave-no_repl \
 6-rn50_nne_to_act46_wave-repl \
-6-rn50_nne_to_act49_wave-no_repl \
-6-rn50_nne_to_act49_wave-repl \
 7-rn50_nne_fp16_b4_wave \
 7-rn50_nne_fp16_b4_wave-no_repl \
+7-rn50_nne_fp16_wave \
 7-rn50_nne_fp16_wave-no_repl \
-5-parwavenet_10_fp16_tanh_to_add1_wave \
-5-parwavenet_10_fp16_tanh_to_add2_wave \
-5-parwavenet_10_fp16_tanh_to_add3_wave \
-5-parwavenet_10_fp16_tanh_to_add6_wave \
-6-parwavenet_10_fp16_tanh_to_add9_wave \
 6-parwavenet_10_fp16_tanh_to_add12_wave \
 6-parwavenet_10_fp16_tanh_to_add15_wave \
 6-parwavenet_10_fp16_tanh_to_add18_wave \
@@ -158,6 +144,23 @@ TEST_ARGS_CHECK_EMU_TESTS = \
 7-amoebanet_fp16_rcell0 \
 7-amoebanet_fp16_rcell1 
 
+TEST_ARGS_CHECK_EMU_TESTS_EXTRA = \
+5-inceptionv3_wave_dog_sg00_tpb_upto_concat1 \
+5-inceptionv3_wave_dog_sg00_tpb_upto_concat2 \
+6-inceptionv3_wave_dog_sg00_tpb_upto_concat4 \
+6-inceptionv3_wave_dog_sg00_tpb_upto_concat5 \
+6-rn50_nne_to_act25_wave-repl \
+6-rn50_nne_to_act28_wave-repl \
+6-rn50_nne_to_act40_wave-repl \
+6-rn50_nne_to_act43_wave-repl \
+6-rn50_nne_to_act49_wave-no_repl \
+6-rn50_nne_to_act49_wave-repl \
+5-parwavenet_10_fp16_tanh_to_add1_wave \
+5-parwavenet_10_fp16_tanh_to_add2_wave \
+5-parwavenet_10_fp16_tanh_to_add3_wave \
+5-parwavenet_10_fp16_tanh_to_add6_wave \
+6-parwavenet_10_fp16_tanh_to_add9_wave 
+
 # 0-subtract_psum_sb_wave  
 
 # Tests that we want to run on qemu but they still fails as of Oct 2018
@@ -173,3 +176,6 @@ check_level7:
 
 check_emu:
 	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_EMU} ${TEST_ARGS_CHECK_EMU_TESTS}
+
+check_emu_weekend:
+	${KAENA_PATH}/test/e2e/RunAll ${TEST_ARGS_CHECK_EMU} ${TEST_ARGS_CHECK_EMU_TESTS} ${TEST_ARGS_CHECK_EMU_TESTS_EXTRA}
