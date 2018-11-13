@@ -535,6 +535,32 @@ class FusedOp(list):
             st = min_region_start
         if self.args.debug > 1:
             print("DBG: checking for overlap, start addr %d size %d, against %d live mapped files"%(st_addr, region_sz, len(live_mapped_file_params)))
+
+        list_of_seg = self.get_list_of_free_sections(file_mapper, min_region_start, live_mapped_file_params)
+
+        # find the smallest free segment that fits
+        st = -1
+        for i in list_of_seg:
+            if region_sz < i[1]:
+                st = i[0]
+        if st < 0:
+            for i in list_of_seg:
+                print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
+            raise RuntimeError("Couldn't find empty space for start addr %d size %d"%(st_addr, region_sz))
+        return st
+
+    def print_SB_addr (self, file_params):
+        print ("file_name = %s"%file_params.file_name)
+        print ("\tstart_addr = %d"%file_params.mapped_params.start_addr)
+        print ("\tend_addr = %d"%file_params.mapped_params.end_addr)
+
+    """Get list of free sections
+    """
+    def get_list_of_free_sections(self
+                                , file_mapper
+                                , min_region_start
+                                , live_mapped_file_params
+                                ):
         live_mapped_file_params.sort(key = lambda x : x.mapped_params.start_addr, reverse=False)
         num_live_tensors = len(live_mapped_file_params)
         item_sz = live_mapped_file_params[0].item_sz
@@ -543,7 +569,8 @@ class FusedOp(list):
         for i in range(num_live_tensors):
             mapped_cur = live_mapped_file_params[i].mapped_params
             end_of_cur = mapped_cur.start_addr + mapped_cur.region_sz
-            #print("%d: (current) start %d size %d (%s)"%(i, mapped_cur.start_addr, mapped_cur.region_sz, live_mapped_file_params[i].file_name))
+            if (self.args.debug > 3):
+                print("%d: (current) start %d size %d (%s)"%(i, mapped_cur.start_addr, mapped_cur.region_sz, live_mapped_file_params[i].file_name))
             if i+1 < num_live_tensors:
                 mapped_nxt = live_mapped_file_params[i+1].mapped_params
                 #print("%d: (next) start %d size %d (%s)"%(i, mapped_nxt.start_addr, mapped_nxt.region_sz, live_mapped_file_params[i+1].file_name))
@@ -562,21 +589,7 @@ class FusedOp(list):
         #    print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
         # sort list of free segments            
         list_of_seg.sort(key = lambda x: x[1], reverse = False)
-        # find the smallest free segment that fits
-        st = -1
-        for i in list_of_seg:
-            if region_sz < i[1]:
-                st = i[0]
-        if st < 0:
-            for i in list_of_seg:
-                print("free (start, len) = (%d, %d), next start = %d"%(i[0], i[1], i[0]+i[1]))
-            raise RuntimeError("Couldn't find empty space for start addr %d size %d"%(st_addr, region_sz))
-        return st
-
-    def print_SB_addr (self, file_params):
-        print ("file_name = %s"%file_params.file_name)
-        print ("\tstart_addr = %d"%file_params.mapped_params.start_addr)
-        print ("\tend_addr = %d"%file_params.mapped_params.end_addr)
+        return list_of_seg
 
     """Map tensors to SB
         args:
@@ -804,9 +817,13 @@ class FusedOp(list):
                     # Ff weights file is too large, make intake buffer a circular buffer.
                     # Due to channel folding there's high chance of thrashing (high eviction rate) with a factor of 4,
                     # so use an odd factor say 7.
-                    if weights_file_sz > (tpb.statebuffer.SB_PARTITION_SZ//2):
+                    largest_free_section = self.get_list_of_free_sections(
+                                                    file_mapper               = tpb.statebuffer.file_mapper
+                                                    , min_region_start        = bias_region_sz
+                                                    , live_mapped_file_params = live_mapped_file_params)[-1][1]
+                    if weights_file_sz > largest_free_section:
                         chunk_sz_x_chan_folds = weights_file_params.chunk_sz_padded * weights_file_params.fmap_channels_folds
-                        multiplier = (tpb.statebuffer.SB_PARTITION_SZ//2) // chunk_sz_x_chan_folds
+                        multiplier = largest_free_section // chunk_sz_x_chan_folds
                         weights_file_sz = multiplier * chunk_sz_x_chan_folds
                         wrap_around = True
                     t = weights_file_start_addr
@@ -2375,7 +2392,8 @@ class FusedOp(list):
                     = PoolSubtile(ifmap_tile, ifmap_tile.tile_rect, Dim2D(1,1))
             ofmap_tile_subtile \
                     = PoolSubtile(ofmap_tile, ofmap_tile.tile_rect, Dim2D(1,1))
-            if first_op.data['layer_type'] == "BiasAdd" or first_op.data['layer_type'] == "Activation": 
+            layer_type = first_op.data['layer_type']
+            if re.search(self.act_ops_regex, layer_type) or layer_type == "BiasAdd":
                 reader_engine = EngineEnum.ACT
             else:                
                 reader_engine = EngineEnum.POOL

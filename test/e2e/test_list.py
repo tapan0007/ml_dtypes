@@ -1126,9 +1126,6 @@ testWaiver = [
     ['7-amoebanet_fp16_pool', 'WAIVE_AMOEBA_POOL'],
     ['7-amoebanet_fp16_evict', 'WAIVE_AMOEBA_SBEVICT'],
     ['0-1conv_evict_wave', 'WAIVE_AMOEBA_SBEVICT'], # added by taemin
-    ['7-amoebanet_fp16_cell9', 'WAIVE_AMOEBA_SBEVICT'],
-    ['7-amoebanet_fp16_cell8', 'WAIVE_AMOEBA_UNRESOLVEDEP'],
-    ['7-amoebanet_fp16_cell10', 'WAIVE_AMOEBA_OUTSIDESBRANGE'],
 
     # Parallel wavenet
     #['.*clipbyvalue.*', 'WAIVE_KAENA636'],
@@ -1215,7 +1212,6 @@ noGpuTestWaiver = [
 
 qemuTestWaiver = [
     #['0-1conv1avgpool_wave_2tpbs', 'WAIVE-QEMU-KAENA830'],
-    ['.*-parwavenet_10_fp16_in_to_add.*_wave$', 'WAIVE-QEMU-KAENA831'],
     ['5-rn50_nne_to_act13_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['6-rn50_nne_to_act40_b16_wave-fast_dram$',  'WAIVE-QEMU'],
     ['7-rn50_nne_fp16_wave-no_repl-save-last-n-layers', 'WAIVE-QEMU-KAENA922'],
