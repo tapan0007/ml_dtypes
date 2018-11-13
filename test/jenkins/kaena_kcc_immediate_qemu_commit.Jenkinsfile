@@ -51,7 +51,7 @@ pipeline{
                 sh 'chmod 600 /root/.ssh/siopt-vpc.pem'
                 sh 'chmod 600 /root/.ssh/id_rsa'
                 sh 'rm -rf $TEST_DIR'
-                sh 'mkdir -p $TEST_DIR/compiler_test'
+                sh 'mkdir -p $TEST_DIR/test_qemu_compiler'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
                 '''
@@ -123,27 +123,27 @@ pipeline{
                     steps {
                         timeout(time: 70, unit: 'MINUTES') {
                             sh '''
-                            (cd $TEST_DIR/compiler_test && make -f $KAENA_PATH/test/e2e/Makefile check)
+                            (cd $TEST_DIR/test_qemu_compiler && make -f $KAENA_PATH/test/e2e/Makefile check)
                             '''
                         }
                     }
                     post {
                         always {
                             sh '''
-                            ([ -f $TEST_DIR/compiler_test/RunAllReport.xml ] && /bin/cp $TEST_DIR/compiler_test/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
+                            ([ -f $TEST_DIR/test_qemu_compiler/RunAllReport.xml ] && /bin/cp $TEST_DIR/test_qemu_compiler/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
                             '''
                             junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
-                            sh 'mkdir /artifact/compiler_test'
-                            sh '/bin/cp $TEST_DIR/compiler_test/qor* /artifact/compiler_test/ || touch /artifact/compiler_test/qor_RunAllWithArgs_qor_available.txt'
-                            sh 'for f in `find $TEST_DIR/compiler_test  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/compiler_test/;done; '
+                            sh 'mkdir /artifact/test_qemu_compiler'
+                            sh '/bin/cp $TEST_DIR/test_qemu_compiler/qor* /artifact/test_qemu_compiler/ || touch /artifact/test_qemu_compiler/qor_RunAllWithArgs_qor_available.txt'
+                            sh 'for f in `find $TEST_DIR/test_qemu_compiler  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_qemu_compiler/;done; '
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'compiler_test/*.txt,*.tgz,compiler_test/**/*.txt,tgz,compiler_test/**/*.json, compiler_test/**/*.bin, compiler_test/**/*.svg, compiler_test/**/*.png, compiler_test/**/*.csv, compiler_test/**/*.asm'
+                            archiveArtifacts artifacts:'test_qemu_compiler/*.txt,*.tgz,test_qemu_compiler/**/*.txt,tgz,test_qemu_compiler/**/*.json, test_qemu_compiler/**/*.bin, test_qemu_compiler/**/*.svg, test_qemu_compiler/**/*.png, test_qemu_compiler/**/*.csv, test_qemu_compiler/**/*.asm'
                         }
                         failure {
-                            sh 'find $TEST_DIR/compiler_test -type f -name "*.vdi" -delete'
-                            sh 'find $TEST_DIR/compiler_test -iname "*.txt" -print0 | tar -czvf /artifact/compiler_test/logs.tgz -T -'
+                            sh 'find $TEST_DIR/test_qemu_compiler -type f -name "*.vdi" -delete'
+                            sh 'find $TEST_DIR/test_qemu_compiler -iname "*.txt" -print0 | tar -czvf /artifact/test_qemu_compiler/logs.tgz -T -'
                             sh 'chmod -R a+wX /artifact/'
-                            archiveArtifacts artifacts:'compiler_test/logs.tgz'
+                            archiveArtifacts artifacts:'test_qemu_compiler/logs.tgz'
                         }
                     }
                 }

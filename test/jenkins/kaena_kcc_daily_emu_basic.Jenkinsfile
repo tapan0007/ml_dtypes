@@ -51,9 +51,9 @@ pipeline{
                 sh 'chmod 600 /root/.ssh/siopt-vpc.pem'
                 sh 'chmod 600 /root/.ssh/id_rsa'
                 sh 'rm -rf $TEST_DIR'
-                sh 'mkdir -p $TEST_DIR/test_qemu'
+                sh 'mkdir -p $TEST_DIR/test_qemu_compiler'
                 sh 'mkdir -p $TEST_DIR/prep_emu'
-                sh 'mkdir -p $TEST_DIR/compiler_test'
+                sh 'mkdir -p $TEST_DIR/test_emu_compiler'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
                 '''
@@ -108,7 +108,7 @@ pipeline{
             steps {
                 catchError {
                     sh '''
-                    (cd $TEST_DIR/test_qemu && make -f $KAENA_PATH/test/e2e/Makefile check_emu 'TEST_EMU_OPTS=--force_qemu --parallel 16')
+                    (cd $TEST_DIR/test_qemu_compiler && make -f $KAENA_PATH/test/e2e/Makefile check_emu 'TEST_EMU_OPTS=--force_qemu --parallel 16')
                     '''
                 }
             }
@@ -116,23 +116,23 @@ pipeline{
                 always {
                     catchError {
                         sh '''
-                        ([ -f $TEST_DIR/test_qemu/RunAllReport.xml ] && /bin/cp $TEST_DIR/test_qemu/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
+                        ([ -f $TEST_DIR/test_qemu_compiler/RunAllReport.xml ] && /bin/cp $TEST_DIR/test_qemu_compiler/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
                         '''
                         junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
-                        sh 'mkdir /artifact/test_qemu'
-                        sh '/bin/cp $TEST_DIR/test_qemu/qor* /artifact/test_qemu/ || touch /artifact/test_qemu/qor_RunAllWithArgs_qor_available.txt'
-                        sh 'for f in `find $TEST_DIR/test_qemu  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_qemu/;done; '
-                        sh 'for f in `find $TEST_DIR/test_qemu/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/test_qemu/;done; '
+                        sh 'mkdir /artifact/test_qemu_compiler'
+                        sh '/bin/cp $TEST_DIR/test_qemu_compiler/qor* /artifact/test_qemu_compiler/ || touch /artifact/test_qemu_compiler/qor_RunAllWithArgs_qor_available.txt'
+                        sh 'for f in `find $TEST_DIR/test_qemu_compiler  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_qemu_compiler/;done; '
+                        sh 'for f in `find $TEST_DIR/test_qemu_compiler/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/test_qemu_compiler/;done; '
                         sh 'chmod -R a+wX /artifact/'
-                        archiveArtifacts artifacts:'test_qemu/*.txt,*.tgz,test_qemu/**/*.txt,tgz,test_qemu/**/*.json, test_qemu/**/*.bin, test_qemu/**/*.svg, test_qemu/**/*.png, test_qemu/**/*.csv, test_qemu/**/*.asm'
+                        archiveArtifacts artifacts:'test_qemu_compiler/*.txt,*.tgz,test_qemu_compiler/**/*.txt,tgz,test_qemu_compiler/**/*.json, test_qemu_compiler/**/*.bin, test_qemu_compiler/**/*.svg, test_qemu_compiler/**/*.png, test_qemu_compiler/**/*.csv, test_qemu_compiler/**/*.asm'
                     }
                 }
                 failure {
                     catchError {
-                        sh 'find $TEST_DIR/test_qemu -type f -name "*.vdi" -delete'
-                        sh 'find $TEST_DIR/test_qemu -iname "*.txt" -print0 | tar -czvf /artifact/test_qemu/logs.tgz -T -'
+                        sh 'find $TEST_DIR/test_qemu_compiler -type f -name "*.vdi" -delete'
+                        sh 'find $TEST_DIR/test_qemu_compiler -iname "*.txt" -print0 | tar -czvf /artifact/test_qemu_compiler/logs.tgz -T -'
                         sh 'chmod -R a+wX /artifact/'
-                        archiveArtifacts artifacts:'test_qemu/logs.tgz'
+                        archiveArtifacts artifacts:'test_qemu_compiler/logs.tgz'
                     }
                 }
             }
@@ -163,9 +163,9 @@ pipeline{
                 stage('compiler_test') {
                     steps {
                         catchError {
-                            sh 'export CACHE_DIR=$TEST_DIR/test_qemu'
+                            sh 'export CACHE_DIR=$TEST_DIR/test_qemu_compiler'
                             sh '''
-                            (cd $TEST_DIR/compiler_test && export QEMU_KRT_NUM_INFERENCES=$NUM_INFERENCES && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && make -f $KAENA_PATH/test/e2e/Makefile check_emu "TEST_EMU_OPTS=--force_qemu --parallel 1 --cached_kelf /workdir/test/test_qemu")
+                            (cd $TEST_DIR/test_emu_compiler && export QEMU_KRT_NUM_INFERENCES=$NUM_INFERENCES && export KAENA_ZEBU_SERVER=$ZEBU_SERVER && make -f $KAENA_PATH/test/e2e/Makefile check_emu "TEST_EMU_OPTS=--force_qemu --parallel 1 --cached_kelf /workdir/test/test_qemu_compiler")
                             '''
                         }
                     }
@@ -173,23 +173,23 @@ pipeline{
                         always {
                             catchError {
                                 sh '''
-                                ([ -f $TEST_DIR/compiler_test/RunAllReport.xml ] && /bin/cp $TEST_DIR/compiler_test/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
+                                ([ -f $TEST_DIR/test_emu_compiler/RunAllReport.xml ] && /bin/cp $TEST_DIR/test_emu_compiler/RunAllReport.xml $WORKSPACE/RunAllReportFull.xml)
                                 '''
                                 junit allowEmptyResults: true, testResults: 'RunAllReportFull.xml'
-                                sh 'mkdir /artifact/compiler_test'
-                                sh '/bin/cp $TEST_DIR/compiler_test/qor* /artifact/compiler_test/ || touch /artifact/compiler_test/qor_RunAllWithArgs_qor_available.txt'
-                                sh 'for f in `find $TEST_DIR/compiler_test  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/compiler_test/;done; '
-                                sh 'for f in `find $TEST_DIR/compiler_test/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/compiler_test/;done; '
+                                sh 'mkdir /artifact/test_emu_compiler'
+                                sh '/bin/cp $TEST_DIR/test_emu_compiler/qor* /artifact/test_emu_compiler/ || touch /artifact/test_emu_compiler/qor_RunAllWithArgs_qor_available.txt'
+                                sh 'for f in `find $TEST_DIR/test_emu_compiler  -iname "*.txt" -o -iname "*.json" -o -iname "*.bin" -o -iname "*.svg" -o -iname "*.png" -o -iname "*.csv" -o -iname "*.asm" `; do cp $f --parents  /artifact/test_emu_compiler/;done; '
+                                sh 'for f in `find $TEST_DIR/test_emu_compiler/*/working_dir  -iname "*.npy" -a -type f`; do cp $f --parents  /artifact/test_emu_compiler/;done; '
                                 sh 'chmod -R a+wX /artifact/'
-                                archiveArtifacts artifacts:'compiler_test/*.txt,*.tgz,compiler_test/**/*.txt,tgz,compiler_test/**/*.json, compiler_test/**/*.bin, compiler_test/**/*.svg, compiler_test/**/*.png, compiler_test/**/*.csv, compiler_test/**/*.asm'
+                                archiveArtifacts artifacts:'test_emu_compiler/*.txt,*.tgz,test_emu_compiler/**/*.txt,tgz,test_emu_compiler/**/*.json, test_emu_compiler/**/*.bin, test_emu_compiler/**/*.svg, test_emu_compiler/**/*.png, test_emu_compiler/**/*.csv, test_emu_compiler/**/*.asm'
                             }
                         }
                         failure {
                             catchError {
-                                sh 'find $TEST_DIR/compiler_test -type f -name "*.vdi" -delete'
-                                sh 'find $TEST_DIR/compiler_test -iname "*.txt" -print0 | tar -czvf /artifact/compiler_test/logs.tgz -T -'
+                                sh 'find $TEST_DIR/test_emu_compiler -type f -name "*.vdi" -delete'
+                                sh 'find $TEST_DIR/test_emu_compiler -iname "*.txt" -print0 | tar -czvf /artifact/test_emu_compiler/logs.tgz -T -'
                                 sh 'chmod -R a+wX /artifact/'
-                                archiveArtifacts artifacts:'compiler_test/logs.tgz'
+                                archiveArtifacts artifacts:'test_emu_compiler/logs.tgz'
                             }
                         }
                     }

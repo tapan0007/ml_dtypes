@@ -50,7 +50,7 @@ pipeline{
                 sh 'cp /home/jenkins/.ssh/id_rsa /root/.ssh/id_rsa'
                 sh 'chmod 600 /root/.ssh/siopt-vpc.pem'
                 sh 'chmod 600 /root/.ssh/id_rsa'
-                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/non_compiler_test'
+                sh 'rm -rf $TEST_DIR && mkdir -p $TEST_DIR/test_qemu_non_compiler'
                 sh '''
                 [ -f "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" ] && /bin/cp "/kaena-test/ubuntu-18.04-24G_pytest.qcow2" /tmp/ubuntu-18.04-24G_pytest.qcow2
                 '''
@@ -121,22 +121,22 @@ pipeline{
                 stage('non_compiler_test') {
                     steps {
                         sh '''
-                        (cd $TEST_DIR/non_compiler_test && $KAENA_PATH/runtime/util/qemu_rt --pytest)
+                        (cd $TEST_DIR/test_qemu_non_compiler && $KAENA_PATH/runtime/util/qemu_rt --pytest)
                         '''
                     }
                     post {
                         always {
                            sh '''
-                           ([ -f $TEST_DIR/non_compiler_test/pytestResult.xml ] && /bin/cp $TEST_DIR/non_compiler_test/pytestResult.xml $WORKSPACE/.)
+                           ([ -f $TEST_DIR/test_qemu_non_compiler/pytestResult.xml ] && /bin/cp $TEST_DIR/test_qemu_non_compiler/pytestResult.xml $WORKSPACE/.)
                            '''
                            junit allowEmptyResults: true, testResults: 'pytestResult.xml'
-                           sh 'mkdir /artifact/non_compiler_test'
-                           sh 'find $TEST_DIR/non_compiler_test -iname "*.txt" -print0 | tar -czvf /artifact/non_compiler_test/logs.tgz -T -'
+                           sh 'mkdir /artifact/test_qemu_non_compiler'
+                           sh 'find $TEST_DIR/test_qemu_non_compiler -iname "*.txt" -print0 | tar -czvf /artifact/test_qemu_non_compiler/logs.tgz -T -'
                            sh 'chmod -R a+wX /artifact/'
-                           archiveArtifacts artifacts:'non_compiler_test/logs.tgz'
+                           archiveArtifacts artifacts:'test_qemu_non_compiler/logs.tgz'
                         }
                         failure {
-                            sh 'find $TEST_DIR/non_compiler_test -type f -name "*.vdi" -delete'
+                            sh 'find $TEST_DIR/test_qemu_non_compiler -type f -name "*.vdi" -delete'
                         }
                     }
                 }
