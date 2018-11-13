@@ -417,7 +417,7 @@ class Zebu(BePlat):
     self.cmdForRsync = 'rsync -av --progress -e "ssh %s -i %s"' % (sshOpt, self.pemFile)
     #self.cmdForRsync = 'rsync --rsync-path "sudo rsync" -av --progress -e "ssh %s -i %s"' % (sshOpt, self.pemFile)
     self.grpcPort = zebuGrpcHost[self.zebuHost]
-    print("INFO: using port %d for grpc  (--grpcPort was %d)" % (self.grpcPort, grpcPort))
+    print("INFO: using port %d for grpc" % self.grpcPort)
 
   def startTonga(self):
     # Boot Tonga
